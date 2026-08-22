@@ -89,7 +89,7 @@ export function DictationButton({ onTranscript }: { onTranscript: (text: string)
     <button
       type="button"
       onClick={toggle}
-      className={`rounded-lg px-3 py-2 text-xs font-semibold ${
+      className={`min-h-[44px] w-full rounded-lg px-3 py-2 text-xs font-semibold ${
         listening ? "bg-red-700 text-white" : "bg-[#7A1E2C] text-white"
       }`}
     >
@@ -140,7 +140,7 @@ export function CameraFileCapture({
   return (
     <div className="space-y-2">
       <label className="block">
-        <span className="mb-1 block text-xs font-semibold text-[color:var(--lx-text)]">
+        <span className="mb-1 block text-xs font-semibold text-[#1E1810]">
           Tomar foto / Take photo
         </span>
         <input
@@ -152,11 +152,11 @@ export function CameraFileCapture({
             const file = e.target.files?.[0];
             if (file) void handleFile(file);
           }}
-          className="block w-full text-xs"
+          className="block min-h-[44px] w-full text-xs file:mr-3 file:min-h-[44px] file:rounded-lg file:border-0 file:bg-[#7A1E2C] file:px-3 file:text-xs file:font-semibold file:text-white"
         />
       </label>
       <label className="block">
-        <span className="mb-1 block text-xs font-semibold text-[color:var(--lx-text)]">
+        <span className="mb-1 block text-xs font-semibold text-[#1E1810]">
           Subir archivo / Upload file
         </span>
         <input
@@ -166,10 +166,10 @@ export function CameraFileCapture({
             const file = e.target.files?.[0];
             if (file) void handleFile(file);
           }}
-          className="block w-full text-xs"
+          className="block min-h-[44px] w-full text-xs file:mr-3 file:min-h-[44px] file:rounded-lg file:border-0 file:bg-[#7A1E2C] file:px-3 file:text-xs file:font-semibold file:text-white"
         />
       </label>
-      {uploading ? <p className="text-xs text-[color:var(--lx-text-muted)]">Subiendo… / Uploading…</p> : null}
+      {uploading ? <p className="text-xs text-[#7A7164]">Subiendo… / Uploading…</p> : null}
       {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
     </div>
   );
@@ -180,7 +180,7 @@ export function NetworkStatusIndicator() {
   return (
     <div
       className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-        network === "online" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+        network === "online" ? "bg-[#F3F7F4] text-[#1F3A2D]" : "bg-red-100 text-red-800"
       }`}
     >
       {network === "online" ? "En línea / Online" : "Sin conexión / Offline"}
@@ -195,7 +195,7 @@ export function InstallCta() {
     <button
       type="button"
       onClick={() => void promptInstall()}
-      className="rounded-lg bg-[#7A1E2C] px-3 py-2 text-xs font-semibold text-white"
+      className="min-h-[44px] rounded-lg bg-[#7A1E2C] px-3 py-2 text-xs font-semibold text-white"
     >
       Instalar app / Install app
     </button>
@@ -203,26 +203,27 @@ export function InstallCta() {
 }
 
 export function BusinessQuickActions({ businessId }: { businessId: string }) {
+  const dashboard = `/admin/businesses/${businessId}`;
+  const actions: { href: string; label: string }[] = [
+    { href: dashboard, label: "Open Business Dashboard" },
+    { href: "/admin/businesses", label: "Staff Command Center" },
+    { href: `${dashboard}#outreach`, label: "Create Follow-up" },
+    { href: `${dashboard}#meetings`, label: "Meeting" },
+    { href: `${dashboard}#discover`, label: "Discover" },
+    { href: `${dashboard}#opportunity`, label: "Opportunities" },
+    { href: `${dashboard}#outreach`, label: "Outreach" },
+  ];
   return (
-    <div className="flex flex-wrap gap-2">
-      <a
-        href={`/admin/businesses/${businessId}`}
-        className="rounded-lg bg-[color:var(--lx-badge-bg)] px-3 py-2 text-xs font-semibold text-[color:var(--lx-text)]"
-      >
-        Ver negocio / View business
-      </a>
-      <a
-        href={`/admin/businesses/${businessId}#field-discovery`}
-        className="rounded-lg bg-[color:var(--lx-badge-bg)] px-3 py-2 text-xs font-semibold text-[color:var(--lx-text)]"
-      >
-        Descubrimiento / Discovery
-      </a>
-      <a
-        href={`/admin/businesses/${businessId}#advisor`}
-        className="rounded-lg bg-[color:var(--lx-badge-bg)] px-3 py-2 text-xs font-semibold text-[color:var(--lx-text)]"
-      >
-        Señales / Signals
-      </a>
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      {actions.map((action) => (
+        <a
+          key={`${action.label}-${action.href}`}
+          href={action.href}
+          className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-white px-3 py-2 text-center text-xs font-semibold text-[#1E1810]"
+        >
+          {action.label}
+        </a>
+      ))}
     </div>
   );
 }

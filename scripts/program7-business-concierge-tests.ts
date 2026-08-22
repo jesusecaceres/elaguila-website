@@ -292,6 +292,8 @@ const generateRoute = readSource("app/api/admin/businesses/[businessId]/creative
 const opportunityRepo = readSource("app/lib/business/opportunity/repository.ts");
 const fieldDictation = readSource("app/admin/field/[businessId]/FieldAgentDictationSection.tsx");
 const fieldBusinessPage = readSource("app/admin/field/[businessId]/page.tsx");
+const fieldHomePage = readSource("app/admin/field/page.tsx");
+const fieldIdentity = readSource("app/admin/field/FieldAgentIdentity.tsx");
 const evidenceRoute = readSource("app/api/admin/businesses/[businessId]/book/evidence/route.ts");
 const livingBookActor = readSource("app/admin/_lib/livingBookActor.ts");
 const evidenceRepo = readSource("app/lib/business/livingBook/repository.ts");
@@ -432,6 +434,74 @@ test("71. no automatic persistence before Save is clicked", () =>
   !sqlContains(fieldDictation, /useEffect/) &&
   sqlContains(fieldDictation, /onClick=\{\(\) => void saveNote\(\)\}/) &&
   sqlContains(fieldDictation, /DictationButton/));
+
+test("72. Field Agent identity references Business Concierge, not a separate product", () =>
+  sqlContains(fieldIdentity, /Business Concierge/) &&
+  sqlContains(fieldIdentity, /Field Agent/) &&
+  sqlContains(fieldIdentity, /Quick capture in the field/) &&
+  !sqlContains(fieldIdentity, /title_banner_leonix/) &&
+  sqlContains(fieldIdentity, /logo-clean\.png/));
+
+test("73. /admin/field links to Staff Command Center at /admin/businesses", () =>
+  sqlContains(fieldHomePage, /FieldAgentHomeHeader/) &&
+  sqlContains(fieldIdentity, /href="\/admin\/businesses"/) &&
+  sqlContains(fieldIdentity, /Staff Command Center/) &&
+  sqlContains(fieldHomePage, /listBusinessesForWorkspace/));
+
+test("74. /admin/field/[businessId] links to Business Dashboard and preserves business ID", () =>
+  sqlContains(fieldIdentity, /Open Business Dashboard/) &&
+  sqlContains(fieldIdentity, /href=\{`\/admin\/businesses\/\$\{businessId\}`\}/) &&
+  sqlContains(fieldAgentComponents, /\/admin\/businesses\/\$\{businessId\}/));
+
+test("75. successful note copy identifies Living Business Book evidence and is not a verified fact", () =>
+  sqlContains(fieldDictation, /Living Business Book evidence/) &&
+  sqlContains(fieldDictation, /Staff note/) &&
+  sqlContains(fieldDictation, /does not automatically become a verified business fact/) &&
+  !sqlContains(fieldDictation, /verified fact\./) &&
+  sqlContains(fieldDictation, /#business-book/));
+
+test("76. save remains explicit; photo/file still uses Field Discovery upload", () =>
+  sqlContains(fieldDictation, /Guardar nota \/ Save note/) &&
+  !sqlContains(fieldDictation, /useEffect/) &&
+  sqlContains(fieldAgentComponents, /\/api\/admin\/field-discovery\/assets\/upload/) &&
+  sqlContains(fieldAgentComponents, /fileKind", "photo"/));
+
+test("77. PWA identity remains Leonix Business Concierge with start_url /admin/businesses", () =>
+  sqlContains(manifestSource, /name: "Leonix Business Concierge"/) &&
+  sqlContains(manifestSource, /short_name: "Leonix Concierge"/) &&
+  sqlContains(manifestSource, /start_url: "\/admin\/businesses"/));
+
+test("78. service worker still never caches APIs; no mutation queue or background sync", () =>
+  sqlContains(swSource, /NEVER_CACHE_PATTERNS/) &&
+  sqlContains(swSource, /\\\/api\\\//) &&
+  !sqlContains(swSource, /backgroundsync/i) &&
+  !sqlContains(swSource, /sync\s*:/) &&
+  !sqlContains(fieldDictation, /indexedDB/i) &&
+  !sqlContains(fieldAgentComponents, /indexedDB/i));
+
+test("79. Field Agent follow-up is an Outreach link only — no NLP parser, no auto follow-up, no live recording", () =>
+  sqlContains(fieldAgentComponents, /#outreach/) &&
+  sqlContains(fieldAgentComponents, /Create Follow-up/) &&
+  !sqlContains(fieldDictation, /chrono/) &&
+  !sqlContains(fieldDictation, /parseFollowUp/) &&
+  !sqlContains(fieldDictation, /natural.?language/i) &&
+  !sqlContains(fieldDictation, /MediaRecorder/) &&
+  !sqlContains(fieldAgentComponents, /MediaRecorder/) &&
+  !sqlContains(fieldBusinessPage, /business_follow_ups/) &&
+  !sqlContains(fieldDictation, /business_sales_notes/));
+
+test("80. recent field notes reuse listEvidenceForBusiness; no new notes table or evidence API", () =>
+  sqlContains(fieldBusinessPage, /listEvidenceForBusiness/) &&
+  sqlContains(fieldBusinessPage, /evidenceType === "staff_note"/) &&
+  !sqlContains(fieldBusinessPage, /CREATE TABLE/) &&
+  !sqlContains(fieldBusinessPage, /from\("business_field_notes"\)/) &&
+  !sqlContains(fieldBusinessPage, /\/api\/admin\/.*evidence/) &&
+  sqlContains(fieldBusinessPage, /No recent field notes/));
+
+test("81. owner-bootstrap evidence path remains Living Book, not business_sales_notes", () =>
+  sqlContains(evidenceRoute, /salesActorToLivingBookActor/) &&
+  !sqlContains(evidenceRoute, /business_sales_notes/) &&
+  sqlContains(fieldDictation, /evidenceType: "staff_note"/));
 
 // Report
 const passed = results.filter((r) => r.passed).length;

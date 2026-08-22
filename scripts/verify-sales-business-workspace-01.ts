@@ -591,6 +591,41 @@ check("Gate 02: Field Agent business link and no duplicate Concierge route", () 
   assert.ok(detailPageGate02.includes('from "@/app/lib/business/phoneDisplay"'));
 });
 
+const fieldHomeGate03 = read("app/admin/field/page.tsx");
+const fieldBusinessGate03 = read("app/admin/field/[businessId]/page.tsx");
+const fieldIdentityGate03 = read("app/admin/field/FieldAgentIdentity.tsx");
+const fieldDictationGate03 = read("app/admin/field/[businessId]/FieldAgentDictationSection.tsx");
+const fieldComponentsGate03 = read("app/admin/field/FieldAgentComponents.tsx");
+check("Gate 03: Field Agent home brands as Business Concierge mode and links to Staff Command Center", () => {
+  assert.ok(fieldIdentityGate03.includes("Business Concierge"));
+  assert.ok(fieldIdentityGate03.includes("Field Agent"));
+  assert.ok(fieldHomeGate03.includes("FieldAgentHomeHeader"));
+  assert.ok(fieldIdentityGate03.includes('href="/admin/businesses"'));
+  assert.ok(fieldHomeGate03.includes("listBusinessesForWorkspace"));
+  assert.ok(!fieldHomeGate03.includes("/admin/business-concierge"));
+});
+check("Gate 03: Field business page links to Business Dashboard with the same business ID", () => {
+  assert.ok(fieldIdentityGate03.includes("Open Business Dashboard"));
+  assert.ok(fieldIdentityGate03.includes("`/admin/businesses/${businessId}`"));
+  assert.ok(fieldComponentsGate03.includes("`/admin/businesses/${businessId}`"));
+  assert.ok(fieldBusinessGate03.includes("FieldAgentDictationSection businessId={businessId}"));
+});
+check("Gate 03: Field note save destination is Living Book evidence and not a verified fact", () => {
+  assert.ok(fieldDictationGate03.includes("Living Business Book evidence"));
+  assert.ok(fieldDictationGate03.includes("does not automatically become a verified business fact"));
+  assert.ok(fieldDictationGate03.includes('evidenceType: "staff_note"'));
+  assert.ok(!fieldDictationGate03.includes("business_sales_notes"));
+  assert.ok(fieldDictationGate03.includes('setTranscript("")'));
+  assert.ok(fieldDictationGate03.indexOf("setError(String(body?.error") < fieldDictationGate03.indexOf('setTranscript("")'));
+});
+check("Gate 03: recent notes reuse existing evidence repository; follow-up is Outreach only", () => {
+  assert.ok(fieldBusinessGate03.includes("listEvidenceForBusiness"));
+  assert.ok(!fieldBusinessGate03.includes("CREATE TABLE"));
+  assert.ok(fieldComponentsGate03.includes("#outreach"));
+  assert.ok(!fieldDictationGate03.includes("chrono"));
+  assert.ok(!fieldComponentsGate03.includes("MediaRecorder"));
+});
+
 // --- No secret / no production reference ------------------------------------------------------------
 const gateB_Files = [
   "app/admin/_lib/businessWorkspaceAccess.ts",

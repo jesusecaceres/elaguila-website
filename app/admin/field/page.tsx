@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AdminPageHeader } from "../_components/AdminPageHeader";
 import { requireSalesWorkspaceAccess, type SalesWorkspaceDenialReason } from "../_lib/businessWorkspaceAccess";
 import { listBusinessesForWorkspace } from "../_lib/businessWorkspaceData";
 import { InstallCta, NetworkStatusIndicator } from "./FieldAgentComponents";
+import { FieldAgentHomeHeader } from "./FieldAgentIdentity";
 
 /**
- * Program 7, Gate 7G — Mobile Staff Field Agent shell.
+ * Program 7, Gate 7G / Gate 03 — Mobile Staff Field Agent home.
  * Reuses the existing canonical staff access resolver (requireSalesWorkspaceAccess) —
  * no separate PWA authentication path. Reuses listBusinessesForWorkspace (Sales Workspace,
  * Program 1) — no duplicated business listing query.
@@ -25,28 +25,30 @@ export default async function FieldAgentShellPage() {
   const { items } = await listBusinessesForWorkspace({ limit: 25 });
 
   return (
-    <div className="mx-auto max-w-md space-y-4 px-4 pb-24 pt-4">
-      <div className="flex items-center justify-between">
-        <AdminPageHeader title="Field Agent" eyebrow="Leonix Business Concierge" />
+    <div className="mx-auto max-w-md overflow-x-hidden px-4 pb-24 pt-4">
+      <div className="mb-3 flex justify-end">
         <NetworkStatusIndicator />
       </div>
-      <InstallCta />
-      <div className="space-y-2">
-        <h2 className="text-xs font-bold uppercase tracking-wide text-[color:var(--lx-text-muted)]">
-          Negocios / Businesses
-        </h2>
-        {items.map(({ business }) => (
-          <Link
-            key={business.id}
-            href={`/admin/field/${business.id}`}
-            className="block rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] p-3 text-sm font-semibold text-[color:var(--lx-text)]"
-          >
-            {business.displayName}
-          </Link>
-        ))}
-        {items.length === 0 ? (
-          <p className="text-xs text-[color:var(--lx-text-muted)]">No hay negocios asignados. / No businesses assigned.</p>
-        ) : null}
+      <div className="space-y-4">
+        <FieldAgentHomeHeader />
+        <InstallCta />
+        <div className="space-y-2">
+          <h2 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">
+            Negocios / Businesses
+          </h2>
+          {items.map(({ business }) => (
+            <Link
+              key={business.id}
+              href={`/admin/field/${business.id}`}
+              className="flex min-h-[44px] items-center rounded-lg border border-[#D6C7AD]/85 bg-[#FFFDF7] px-3 py-2 text-sm font-semibold text-[#1E1810]"
+            >
+              {business.displayName}
+            </Link>
+          ))}
+          {items.length === 0 ? (
+            <p className="text-xs text-[#7A7164]">No hay negocios asignados. / No businesses assigned.</p>
+          ) : null}
+        </div>
       </div>
     </div>
   );

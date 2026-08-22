@@ -306,6 +306,33 @@ function verifySourceArchitecture(): VerifyCheck[] {
       manifestFile.includes('start_url: "/admin/businesses"'),
   });
 
+  const fieldHomeFile = readSourceFile("app/admin/field/page.tsx");
+  const fieldBusinessFile = readSourceFile("app/admin/field/[businessId]/page.tsx");
+  const fieldIdentityFile = readSourceFile("app/admin/field/FieldAgentIdentity.tsx");
+  const fieldDictationFile = readSourceFile("app/admin/field/[businessId]/FieldAgentDictationSection.tsx");
+  checks.push({
+    name: "Gate 03: Field Agent is a Business Concierge mode with Command Center + Dashboard links",
+    passed:
+      fieldIdentityFile.includes("Business Concierge") &&
+      fieldIdentityFile.includes("Field Agent") &&
+      fieldHomeFile.includes("FieldAgentHomeHeader") &&
+      fieldIdentityFile.includes('href="/admin/businesses"') &&
+      fieldIdentityFile.includes("`/admin/businesses/${businessId}`") &&
+      fieldAgentFile.includes("#outreach") &&
+      !fieldIdentityFile.includes("title_banner_leonix"),
+    detail: "Field Agent must glue to Staff Command Center and Business Dashboard without a new brand",
+  });
+  checks.push({
+    name: "Gate 03: saved note destination is Living Book staff evidence, not a verified fact",
+    passed:
+      fieldDictationFile.includes("Living Business Book evidence") &&
+      fieldDictationFile.includes("does not automatically become a verified business fact") &&
+      fieldDictationFile.includes('evidenceType: "staff_note"') &&
+      fieldBusinessFile.includes("listEvidenceForBusiness") &&
+      !fieldDictationFile.includes("business_sales_notes"),
+    detail: "Explicit save must state destination and not promote the note to a confirmed fact",
+  });
+
   const installBannerFile = readSourceFile("app/admin/(dashboard)/businesses/BusinessConciergeInstallBanner.tsx");
   checks.push({
     name: "Install banner: no fake download link",
