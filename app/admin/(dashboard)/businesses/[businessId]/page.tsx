@@ -21,7 +21,7 @@ import { computeBookCompleteness } from "@/app/lib/business/livingBook/logic";
 import { MarkHumanReviewForm, RunAssessmentButton } from "./HealthMapActions";
 import { getFullRun, getLatestCompletedRun, listRunsForBusiness } from "@/app/lib/business/healthMap/repository";
 import { HEALTH_DIMENSION_KEYS } from "@/app/lib/business/healthMap/constants";
-import { CreateRecommendationButton, OverrideForm, RecommendationTransitionButtons } from "./StewardshipActions";
+import { RecommendJourney, StewardshipOpportunityFlowNav } from "./RecommendJourney";
 import { listLedgerForBusiness, listOverridesForRecommendation, listRecommendationsForBusiness, listTestsForRecommendation } from "@/app/lib/business/stewardship/repository";
 import { BriefingReviewPanel, ConsentStatusPanel, RunResearchButton, SourceFilesPanel, SourceLinksPanel } from "./FieldDiscoveryActions";
 import { listConsentForBusiness, listSourceFilesForBusiness, listSourceLinksForBusiness } from "@/app/lib/business/fieldDiscovery/repository";
@@ -699,6 +699,12 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
           <p className="mt-1 text-xs text-[#7A7164]">
             Where the business is strong, stable, needs attention, lacks information, or is blocked by contradiction. Never a numeric score.
           </p>
+          <StewardshipOpportunityFlowNav
+            current="health"
+            hasRecommend={Boolean(canViewRecommendations && stewardshipData)}
+            hasOpportunity={Boolean(canViewOpportunities && opportunityEnabled)}
+            hasCreative={Boolean(canViewCreativeStudio && creativeStudioEnabled)}
+          />
 
           {!healthData.latestRun ? (
             <p className="mt-3 text-sm text-[#7A7164]">No assessment has been run yet.</p>
@@ -852,87 +858,21 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
         </section>
       </div>
 
-      {/* Next Right Move / Stewardship Engine (Gate BCO-TODAY-3) — capability-gated. */}
       {canViewRecommendations && stewardshipData ? (
-        <section id="recommend" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-serif text-lg font-bold text-[#1E1810]">Next Right Move</h2>
-            {canCreateRecommendation ? <CreateRecommendationButton businessId={business.id} /> : null}
-          </div>
-          <p className="mt-1 text-xs text-[#7A7164]">
-            &quot;What is the smallest truthful intervention that can produce meaningful progress?&quot; — never an AI advisor, never sold before it protects.
-          </p>
-
-          {!stewardshipData.current ? (
-            <p className="mt-3 text-sm text-[#7A7164]">No current Next Right Move for this business.</p>
-          ) : (
-            <>
-              <div className="mt-3 rounded-lg border border-[#E8DFD0] p-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-sm font-semibold text-[#1E1810]">{stewardshipData.current.candidateKey}</span>
-                  <span className="rounded-full bg-[#EDE6D6] px-2 py-0.5 text-[10px] font-bold text-[#3D3428]">{stewardshipData.current.status} · v{stewardshipData.current.version}</span>
-                </div>
-                <p className="mt-1 text-sm text-[#3D3428]">{stewardshipData.current.verifiedNeedEn}</p>
-                <p className="mt-1 text-xs text-[#7A7164]">Primary intervention: {stewardshipData.current.primaryIntervention} · effort: {stewardshipData.current.expectedEffort} · cost: {stewardshipData.current.costBand}</p>
-                {stewardshipData.current.rejectedHigherCostReasonEn ? (
-                  <p className="mt-1 text-xs text-[#7A7164]">Why not a higher-cost option: {stewardshipData.current.rejectedHigherCostReasonEn}</p>
-                ) : null}
-
-                <h3 className="mt-3 text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Six tests</h3>
-                <ul className="mt-1 space-y-1">
-                  {stewardshipData.tests.map((test) => (
-                    <li key={test.id} className="flex items-center justify-between gap-2 text-xs">
-                      <span className="font-semibold text-[#3D3428]">{test.testKey}</span>
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${test.result === "pass" ? "bg-emerald-100 text-emerald-800" : test.result === "caution" ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-800"}`}>
-                        {test.result}
-                      </span>
-                      <span className="flex-1 text-[#7A7164]">{test.explanationEn}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <RecommendationTransitionButtons
-                  businessId={business.id}
-                  recommendationId={stewardshipData.current.id}
-                  status={stewardshipData.current.status}
-                  canCreate={canCreateRecommendation}
-                  canApprove={canApproveRecommendation}
-                />
-
-                {canOverrideRecommendation && stewardshipData.current.status !== "draft" ? (
-                  <OverrideForm businessId={business.id} recommendationId={stewardshipData.current.id} />
-                ) : null}
-
-                {stewardshipData.overrides.length > 0 ? (
-                  <>
-                    <h3 className="mt-3 text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Override history</h3>
-                    <ul className="mt-1 space-y-1">
-                      {stewardshipData.overrides.map((o) => (
-                        <li key={o.id} className="text-xs text-[#3D3428]">
-                          {new Date(o.createdAt).toLocaleString()} — {o.actorEmail}: {o.reason} ({o.changedFields.join(", ")})
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                ) : null}
-              </div>
-            </>
-          )}
-
-          {canViewLedger ? (
-            <>
-              <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Stewardship Ledger</h3>
-              <ul className="mt-2 space-y-1">
-                {stewardshipData.ledger.slice(0, 20).map((entry) => (
-                  <li key={entry.id} className="text-xs text-[#3D3428]">
-                    {new Date(entry.createdAt).toLocaleString()} — <span className="font-semibold">{entry.eventType}</span>{entry.reasonEn ? `: ${entry.reasonEn}` : ""}
-                  </li>
-                ))}
-                {stewardshipData.ledger.length === 0 ? <li className="text-sm text-[#7A7164]">No ledger entries yet.</li> : null}
-              </ul>
-            </>
-          ) : null}
-        </section>
+        <RecommendJourney
+          businessId={business.id}
+          current={stewardshipData.current}
+          tests={stewardshipData.tests}
+          overrides={stewardshipData.overrides}
+          ledger={stewardshipData.ledger}
+          canCreate={canCreateRecommendation}
+          canApprove={canApproveRecommendation}
+          canOverride={canOverrideRecommendation}
+          canViewLedger={canViewLedger}
+          hasHealth={Boolean(canViewHealthMap && healthData)}
+          hasOpportunity={Boolean(canViewOpportunities && opportunityEnabled)}
+          hasCreative={Boolean(canViewCreativeStudio && creativeStudioEnabled)}
+        />
       ) : null}
 
       {/* Program 4 — Field Discovery + AI Research Engine */}
@@ -1035,7 +975,13 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
           {canViewCreativeStudio && creativeStudioEnabled ? (
             <section id="creative" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
               <h2 className="font-serif text-lg font-bold text-[#1E1810]">Creative Studio</h2>
-              <p className="mt-1 text-xs text-[#7A7164]">Transform verified business truth into print-ready / Canva-ready creative production packets.</p>
+              <p className="mt-1 text-xs text-[#7A7164]">Transform verified business truth into print-ready / Canva-ready creative production packets. Creative jobs are not created automatically when an opportunity is approved.</p>
+              <StewardshipOpportunityFlowNav
+                current="creative"
+                hasHealth={Boolean(canViewHealthMap && healthData)}
+                hasRecommend={Boolean(canViewRecommendations && stewardshipData)}
+                hasOpportunity={Boolean(canViewOpportunities && opportunityEnabled)}
+              />
               <CreativeStudioPanel
                 businessId={business.id}
                 jobs={creativeJobs.map((j) => ({ id: j.id, assetType: j.assetType, language: j.language, format: j.format, archetype: j.archetype, status: j.status, riskClass: j.riskClass, createdAt: j.createdAt }))}
@@ -1048,7 +994,16 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
           {canViewOpportunities && opportunityEnabled ? (
             <section id="opportunity" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
               <h2 className="font-serif text-lg font-bold text-[#1E1810]">Opportunities</h2>
-              <p className="mt-1 text-xs text-[#7A7164]">Human-reviewed contextual editorial/sponsorship matches. Approving one never confirms sponsorship or sends anything automatically.</p>
+              <p className="mt-1 text-xs text-[#7A7164]">
+                Is there a contextual Leonix editorial / sponsorship / advertising opportunity worth reviewing? Approving one never confirms sponsorship, never accepts for the client, and never sends outreach.
+              </p>
+              <StewardshipOpportunityFlowNav
+                current="opportunity"
+                hasHealth={Boolean(canViewHealthMap && healthData)}
+                hasRecommend={Boolean(canViewRecommendations && stewardshipData)}
+                hasCreative={Boolean(canViewCreativeStudio && creativeStudioEnabled)}
+              />
+              <div className="mt-3">
               <OpportunitiesPanel
                 businessId={business.id}
                 opportunities={opportunities.map((o) => ({
@@ -1062,11 +1017,14 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
                   readinessRecommended: o.readinessRecommended,
                   readinessExplanationEn: o.readinessExplanationEn,
                   sourceTitle: o.sourceTitle,
+                  sourceType: o.sourceType,
+                  reviewNote: o.reviewNote,
                   lifecycleState: o.lifecycleState,
                 }))}
                 canReview={canReviewOpportunity}
                 canCreateCreativeRequest={canCreateOpportunityCreativeRequest}
               />
+              </div>
             </section>
           ) : null}
 

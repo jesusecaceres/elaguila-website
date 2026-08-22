@@ -571,9 +571,10 @@ check("Gate 02: Business Dashboard identity exists and is not merely Sales works
 check("Gate 02: local navigation exists with the required section anchors", () => {
   assert.ok(dashboardNav.includes('"use client"'));
   assert.ok(dashboardNav.includes("BusinessDashboardNav"));
-  for (const id of ["overview", "business-book", "health", "outreach", "discover", "meetings", "recommend", "opportunity", "creative", "decide", "promises", "outcomes"]) {
+  for (const id of ["overview", "business-book", "health", "outreach", "discover", "meetings", "opportunity", "creative", "decide", "promises", "outcomes"]) {
     assert.ok(detailPageGate02.includes(`id="${id}"`), `missing section id ${id}`);
   }
+  assert.ok(read("app/admin/(dashboard)/businesses/[businessId]/RecommendJourney.tsx").includes('id="recommend"'));
 });
 check("Gate 02: existing domain panels remain rendered on the detail page", () => {
   assert.ok(detailPageGate02.includes("from \"./LivingBusinessBookActions\""));
@@ -582,7 +583,7 @@ check("Gate 02: existing domain panels remain rendered on the detail page", () =
   assert.ok(detailPageGate02.includes("<NotesPanel"));
   assert.ok(detailPageGate02.includes("from \"./FieldDiscoveryActions\""));
   assert.ok(detailPageGate02.includes("from \"./MeetingJourney\""));
-  assert.ok(detailPageGate02.includes("from \"./StewardshipActions\""));
+  assert.ok(detailPageGate02.includes("from \"./RecommendJourney\""));
   assert.ok(detailPageGate02.includes("from \"./OpportunityActions\""));
   assert.ok(detailPageGate02.includes("from \"./CreativeStudioActions\""));
   assert.ok(detailPageGate02.includes("from \"./ProposalActions\""));
@@ -730,6 +731,104 @@ check("Gate 05: fact/evidence/unknown distinctions and existing status enum rema
   assert.ok(meetingActionsGate05.includes("completed:"));
   assert.ok(meetingActionsGate05.includes("cancelled:"));
   assert.ok(meetingApiGate05.includes("review_meeting_notes"));
+});
+
+const recommendPageGate06 = read("app/admin/(dashboard)/businesses/[businessId]/page.tsx");
+const recommendJourneyGate06 = read("app/admin/(dashboard)/businesses/[businessId]/RecommendJourney.tsx");
+const stewardshipActionsGate06 = read("app/admin/(dashboard)/businesses/[businessId]/StewardshipActions.tsx");
+const opportunityActionsGate06 = read("app/admin/(dashboard)/businesses/[businessId]/OpportunityActions.tsx");
+const stewardshipTypesGate06 = read("app/lib/business/stewardship/types.ts");
+const stewardshipConstantsGate06 = read("app/lib/business/stewardship/constants.ts");
+const opportunityTypesGate06 = read("app/lib/business/opportunity/types.ts");
+const opportunityRepoGate06 = read("app/lib/business/opportunity/repository.ts");
+const opportunityMatchGate06 = read("app/lib/business/opportunity/matchEngine.ts");
+const opportunityCreativeRouteGate06 = read("app/api/admin/businesses/[businessId]/opportunities/[opportunityId]/creative-request/route.ts");
+const commandCenterHomeGate06 = read("app/admin/_lib/staffConciergeHome.ts");
+const commandCenterUiGate06 = read("app/admin/(dashboard)/businesses/StaffCommandCenter.tsx");
+const capabilitiesGate06 = read("app/admin/_lib/salesWorkspaceCapabilities.ts");
+check("Gate 06: Stewardship remains the canonical recommendation engine under #recommend", () => {
+  assert.ok(recommendPageGate06.includes("<RecommendJourney"));
+  assert.ok(recommendJourneyGate06.includes('id="recommend"'));
+  assert.ok(recommendJourneyGate06.includes("from \"./StewardshipActions\""));
+  assert.ok(recommendJourneyGate06.includes("<CreateRecommendationButton"));
+  assert.ok(recommendJourneyGate06.includes("<RecommendationTransitionButtons"));
+  assert.ok(recommendJourneyGate06.includes("Next Right Move"));
+  assert.ok(!recommendJourneyGate06.includes("CREATE TABLE"));
+  assert.ok(!recommendPageGate06.includes("new recommendation engine"));
+});
+check("Gate 06: six tests, statuses, and recommendation ladder remain canonical with no fake score", () => {
+  for (const key of ["need", "readiness", "capacity", "life_alignment", "value", "lion_code"]) {
+    assert.ok(stewardshipTypesGate06.includes(`"${key}"`) || stewardshipTypesGate06.includes(`'${key}'`));
+  }
+  assert.ok(recommendJourneyGate06.includes("Need"));
+  assert.ok(recommendJourneyGate06.includes("Readiness"));
+  assert.ok(recommendJourneyGate06.includes("Capacity"));
+  assert.ok(recommendJourneyGate06.includes("Life alignment"));
+  assert.ok(recommendJourneyGate06.includes("Value"));
+  assert.ok(recommendJourneyGate06.includes("Lion Code"));
+  assert.ok(recommendJourneyGate06.includes("does not infer pass or fail") || recommendJourneyGate06.includes("This page does not infer pass or fail"));
+  assert.ok(stewardshipConstantsGate06.includes('"draft", "review_required", "approved"'));
+  assert.ok(recommendJourneyGate06.includes("free_owner_action"));
+  assert.ok(recommendJourneyGate06.includes("external_specialist_referral"));
+  assert.ok(recommendJourneyGate06.includes("no_action_yet"));
+  assert.ok(recommendJourneyGate06.includes("External referral"));
+  assert.ok(recommendJourneyGate06.includes("No action"));
+  assert.ok(recommendJourneyGate06.includes("Leonix sale is not forced"));
+  assert.ok(!recommendJourneyGate06.includes("71/100"));
+  assert.ok(!recommendJourneyGate06.includes("85% match"));
+  assert.ok(!recommendJourneyGate06.includes("A+ opportunity"));
+  assert.ok(!recommendJourneyGate06.includes("star rating"));
+  assert.ok(recommendJourneyGate06.includes("not a score"));
+});
+check("Gate 06: OpportunityActions remains canonical; lifecycle unchanged; approved is not client acceptance", () => {
+  assert.ok(recommendPageGate06.includes("<OpportunitiesPanel"));
+  assert.ok(recommendPageGate06.includes('id="opportunity"'));
+  assert.ok(opportunityActionsGate06.includes("Suggested — the system found a plausible fit"));
+  assert.ok(opportunityActionsGate06.includes("Approved — staff judges this opportunity worth pursuing"));
+  assert.ok(opportunityActionsGate06.includes("Not client acceptance and not confirmed sponsorship"));
+  assert.ok(opportunityTypesGate06.includes('"suggested"'));
+  assert.ok(opportunityTypesGate06.includes('"reviewed"'));
+  assert.ok(opportunityTypesGate06.includes('"approved"'));
+  assert.ok(opportunityTypesGate06.includes('"dismissed"'));
+  assert.ok(opportunityTypesGate06.includes('"creative_requested"'));
+  assert.ok(!opportunityTypesGate06.includes('"accepted"'));
+  assert.ok(!opportunityTypesGate06.includes("declined_by_client"));
+  assert.ok(!opportunityTypesGate06.includes("contracted"));
+  assert.ok(!opportunityTypesGate06.includes("published"));
+  assert.ok(opportunityActionsGate06.includes("Request Creative"));
+  assert.ok(!opportunityActionsGate06.includes("Send Pitch"));
+  assert.ok(!opportunityActionsGate06.includes("Generate Contract"));
+  assert.ok(!opportunityActionsGate06.includes("Charge Client"));
+  assert.ok(!opportunityActionsGate06.includes("Publish Feature"));
+});
+check("Gate 06: creative request stays human-triggered; no auto outreach/pricing/payment; Command Center opportunity counts deferred", () => {
+  assert.ok(opportunityCreativeRouteGate06.includes('opportunity.lifecycleState !== "approved"'));
+  assert.ok(!opportunityActionsGate06.includes("/generate"));
+  assert.ok(!opportunityRepoGate06.includes("twilio"));
+  assert.ok(!opportunityMatchGate06.includes("generateText"));
+  assert.ok(!opportunityMatchGate06.includes("providerRegistry"));
+  assert.ok(opportunityActionsGate06.includes("matchReasons"));
+  assert.ok(commandCenterHomeGate06.includes("composeStaffConciergeHome"));
+  assert.ok(!commandCenterHomeGate06.includes("listOpportunities"));
+  assert.ok(!commandCenterUiGate06.includes("Opportunities to review"));
+  assert.ok(!commandCenterUiGate06.includes("awaiting creative"));
+  assert.ok(!opportunityRepoGate06.includes("listOpportunitiesForWorkspace"));
+  assert.ok(opportunityRepoGate06.includes("listOpportunitiesForBusiness"));
+  assert.ok(capabilitiesGate06.includes('"view_recommendations"'));
+  assert.ok(capabilitiesGate06.includes('"view_opportunities"'));
+  assert.ok(capabilitiesGate06.includes('"review_opportunity"'));
+  const salesRepMatrix = capabilitiesGate06.slice(capabilitiesGate06.lastIndexOf("sales_rep: ["));
+  assert.ok(salesRepMatrix.includes('"view_opportunities"'));
+  assert.ok(salesRepMatrix.includes('"view_recommendations"'));
+  assert.ok(!salesRepMatrix.includes('"review_opportunity"'));
+  assert.ok(!salesRepMatrix.includes('"create_opportunity_creative_request"'));
+  assert.ok(!salesRepMatrix.includes('"approve_recommendation"'));
+  assert.ok(!salesRepMatrix.includes('"create_recommendation"'));
+  assert.ok(!stewardshipActionsGate06.includes("CREATE TABLE"));
+  assert.ok(!opportunityActionsGate06.includes("CREATE TABLE"));
+  assert.ok(recommendJourneyGate06.includes("No active recommendation."));
+  assert.ok(opportunityActionsGate06.includes("No contextual opportunities are waiting for review."));
+  assert.ok(opportunityActionsGate06.includes("No approved opportunities are waiting for creative."));
 });
 
 // --- No secret / no production reference ------------------------------------------------------------

@@ -82,6 +82,15 @@ test("opportunity lifecycle: every declared state is reachable in the transition
   assert(OPPORTUNITY_LIFECYCLE_STATES.length === 5, "expected exactly 5 canonical lifecycle states");
 });
 
+test("opportunity lifecycle: no client-accepted, contracted, paid, or published states", () => {
+  const states = OPPORTUNITY_LIFECYCLE_STATES as readonly string[];
+  assert(!states.includes("accepted"), "client accepted is not an opportunity state");
+  assert(!states.includes("declined"), "client declined is not an opportunity state");
+  assert(!states.includes("contracted"), "contracted is not an opportunity state");
+  assert(!states.includes("paid"), "paid is not an opportunity state");
+  assert(!states.includes("published"), "published is not an opportunity state");
+});
+
 function main() {
   console.log("\nPACKAGE B — OPPORTUNITY BEHAVIORAL TESTS");
   console.log("=".repeat(60));
