@@ -141,8 +141,16 @@ export async function leoListActiveAttentionAcks(
 export async function leoListOwnerAttentionAcks(
   limit?: number,
 ): Promise<LeoAckListReadResult> {
-  const ownerAuthUserId = await requireOwnerId();
-  return listLeoAttentionAcksForOwner(ownerAuthUserId, limit);
+  try {
+    const ownerAuthUserId = await requireOwnerId();
+    return listLeoAttentionAcksForOwner(ownerAuthUserId, limit);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg.includes("missing_auth_user_id")) {
+      return { availability: "UNAVAILABLE", acks: [], errorCode: "missing_auth_user_id" };
+    }
+    throw err;
+  }
 }
 
 export async function leoClearAttentionAck(

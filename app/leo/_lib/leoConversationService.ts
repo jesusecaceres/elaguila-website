@@ -1747,10 +1747,24 @@ export async function runLeoPersistentConversation(
   let sessionId: string | null = null;
   let recentTurns: LeoConversationTurn[] = [];
 
-  const ensured = await leoEnsureConversationSession({
-    sessionId: request.sessionId,
-    firstQuestion: request.question,
-  });
+  let ensured: Awaited<ReturnType<typeof leoEnsureConversationSession>>;
+  try {
+    ensured = await leoEnsureConversationSession({
+      sessionId: request.sessionId,
+      firstQuestion: request.question,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg.includes("missing_auth_user_id") || /persistence|42p01/i.test(msg)) {
+      ensured = {
+        ok: false,
+        error: "persistence_unavailable",
+        persistenceState: "NOT_PERSISTED_UNAVAILABLE",
+      };
+    } else {
+      throw err;
+    }
+  }
 
   if (!ensured.ok) {
     if (
@@ -1960,7 +1974,16 @@ export async function runLeoPersistentConversation(
   }
 
   // Core intelligence — unchanged authority path.
-  const answer = await runLeoConversation(workingRequest);
+  let answer: Awaited<ReturnType<typeof runLeoConversation>>;
+  try {
+    answer = await runLeoConversation(workingRequest);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg.includes("missing_auth_user_id")) {
+      throw new Error("LEO access denied: missing_auth_user_id");
+    }
+    throw err;
+  }
 
   const extracted = focusFromAnswerCards(answer.resultCards);
   const postContext = buildLeoActiveConversationContext({

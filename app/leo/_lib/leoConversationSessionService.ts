@@ -89,7 +89,20 @@ export async function leoEnsureConversationSession(input: {
   sessionId?: string | null;
   firstQuestion?: string | null;
 }): Promise<LeoSessionEnsureResult> {
-  const ownerAuthUserId = await requireOwnerId();
+  let ownerAuthUserId: string;
+  try {
+    ownerAuthUserId = await requireOwnerId();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg.includes("missing_auth_user_id")) {
+      return {
+        ok: false,
+        error: "persistence_unavailable",
+        persistenceState: "NOT_PERSISTED_UNAVAILABLE",
+      };
+    }
+    throw err;
+  }
   const requested = input.sessionId?.trim() || null;
 
   if (requested) {

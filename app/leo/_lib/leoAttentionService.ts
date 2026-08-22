@@ -72,7 +72,12 @@ export async function getLeoAttentionBrief(
     nowMs,
   });
 
-  const listed = await leoListOwnerAttentionAcks();
+  let listed: Awaited<ReturnType<typeof leoListOwnerAttentionAcks>>;
+  try {
+    listed = await leoListOwnerAttentionAcks();
+  } catch {
+    listed = { availability: "UNAVAILABLE", acks: [], errorCode: "ack_unavailable" };
+  }
   return applyOwnerDispositionsToAttentionBrief({
     brief,
     acks: listed.acks,

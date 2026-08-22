@@ -804,3 +804,49 @@ export function validateLeoConversationRequest(
 
   return { ok: true, request };
 }
+
+export type LeoConversationSafeErrorCode =
+  | "persistence_unavailable"
+  | "invalid_client_context"
+  | "owner_auth_required"
+  | "conversation_runtime_error";
+
+/** Map thrown errors to bounded owner-safe codes. Never returns stack traces or secrets. */
+export function classifyLeoConversationFailure(error: unknown): {
+  code: LeoConversationSafeErrorCode;
+  message: string;
+  status: number;
+} {
+  const raw = (error instanceof Error ? error.message : String(error ?? "")).toLowerCase();
+  if (raw.includes("missing_auth_user_id") || raw.includes("unauthenticated")) {
+    return {
+      code: "owner_auth_required",
+      message: "Owner identity is incomplete for this step. Sign out and sign back in as owner.",
+      status: 403,
+    };
+  }
+  if (
+    raw.includes("persistence") ||
+    raw.includes("42p01") ||
+    raw.includes("session_table") ||
+    raw.includes("not_persisted")
+  ) {
+    return {
+      code: "persistence_unavailable",
+      message: "Conversation history is temporarily unavailable.",
+      status: 503,
+    };
+  }
+  if (raw.includes("client_context") || raw.includes("invalid_request")) {
+    return {
+      code: "invalid_client_context",
+      message: "Conversation context was not valid.",
+      status: 400,
+    };
+  }
+  return {
+    code: "conversation_runtime_error",
+    message: "Conversation request failed.",
+    status: 500,
+  };
+}

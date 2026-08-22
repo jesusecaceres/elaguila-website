@@ -17,6 +17,7 @@ export function LeoComposer({
   offline,
   speechLanguage,
   onStartHandsFree,
+  dictationMode = "merge",
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -26,6 +27,7 @@ export function LeoComposer({
   offline?: boolean;
   speechLanguage?: LeoConversationLanguage;
   onStartHandsFree?: () => void;
+  dictationMode?: "merge" | "replace";
 }) {
   const inputId = useId();
 
@@ -68,6 +70,7 @@ export function LeoComposer({
             onComposerChange={onChange}
             pending={pending || disabled}
             speechLanguage={speechLanguage}
+            dictationMode={dictationMode}
           />
           <button
             type="submit"

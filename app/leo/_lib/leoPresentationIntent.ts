@@ -57,12 +57,29 @@ const RULES: readonly PhraseRule[] = [
   {
     kind: "PRESENT",
     workspace: "REPORTS",
-    phrases: ["take me to reports", "show me reports", "go to reports", "open reports"],
+    phrases: [
+      "take me to reports",
+      "take me to my reports",
+      "take me to the reports",
+      "show me reports",
+      "show me my reports",
+      "go to reports",
+      "open reports",
+    ],
   },
   {
     kind: "PRESENT",
     workspace: "GMAIL",
-    phrases: ["show me gmail", "take me to gmail", "go to gmail", "open email", "open gmail", "show me email"],
+    phrases: [
+      "show me gmail",
+      "take me to gmail",
+      "take me to my gmail",
+      "go to gmail",
+      "open email",
+      "open gmail",
+      "show me email",
+      "take me to email",
+    ],
   },
   {
     kind: "PRESENT",

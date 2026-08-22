@@ -6,7 +6,11 @@
  */
 import { NextResponse } from "next/server";
 
-import { LEO_CONVERSATION_BOUNDS, validateLeoConversationRequest } from "@/app/leo/_lib/leoConversationRouter";
+import {
+  LEO_CONVERSATION_BOUNDS,
+  classifyLeoConversationFailure,
+  validateLeoConversationRequest,
+} from "@/app/leo/_lib/leoConversationRouter";
 import { runLeoPersistentConversation } from "@/app/leo/_lib/leoConversationService";
 import { resolveLeoAccess } from "@/app/leo/_lib/leoAccess";
 
@@ -79,8 +83,15 @@ export async function POST(req: Request) {
 
     const validated = validateLeoConversationRequest(parsed);
     if (!validated.ok) {
+      const invalidContext = validated.message.toLowerCase().includes("clientcontext")
+        || validated.message.toLowerCase().includes("activeworkspace")
+        || validated.message.toLowerCase().includes("selected");
       return NextResponse.json(
-        { ok: false, error: validated.error, message: validated.message },
+        {
+          ok: false,
+          error: invalidContext ? "invalid_client_context" : validated.error,
+          message: validated.message,
+        },
         { status: 400 },
       );
     }
@@ -115,10 +126,11 @@ export async function POST(req: Request) {
       },
       { status: 200, headers: { "Cache-Control": "no-store" } },
     );
-  } catch {
+  } catch (err) {
+    const classified = classifyLeoConversationFailure(err);
     return NextResponse.json(
-      { ok: false, error: "internal_error", message: "Conversation request failed." },
-      { status: 500 },
+      { ok: false, error: classified.code, message: classified.message },
+      { status: classified.status },
     );
   }
 }

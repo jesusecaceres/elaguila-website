@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { LeoConversationAnswer, LeoConversationLanguage } from "@/app/leo/_lib/leoTypes";
 import {
+  applyDictationTranscriptToComposer,
   createLeoSpeechRecognitionSession,
   getLeoSpeechRecognitionCapability,
   leoSpeechRecognitionAutoLabel,
@@ -51,11 +52,13 @@ export function LeoVoiceDictationControl({
   onComposerChange,
   pending,
   speechLanguage = "auto",
+  dictationMode = "merge",
 }: {
   composerValue: string;
   onComposerChange: (value: string) => void;
   pending?: boolean;
   speechLanguage?: LeoConversationLanguage;
+  dictationMode?: "merge" | "replace";
 }) {
   const [mounted, setMounted] = useState(false);
   const [state, setState] = useState<LeoVoiceDictationState>("IDLE");
@@ -107,7 +110,11 @@ export function LeoVoiceDictationControl({
         onFinal: (text) => {
           setInterim("");
           setState("IDLE");
-          if (text) onComposerChange(mergeTranscriptIntoComposer(composerRef.current, text));
+          if (text) {
+            onComposerChange(
+              applyDictationTranscriptToComposer(composerRef.current, text, dictationMode),
+            );
+          }
         },
         onListeningChange: (listening) => {
           setState(listening ? "LISTENING" : "TRANSCRIBING");
@@ -125,7 +132,7 @@ export function LeoVoiceDictationControl({
       });
     }
     return sessionRef.current;
-  }, [capability.supported, lang, onComposerChange]);
+  }, [capability.supported, dictationMode, lang, onComposerChange]);
 
   const startListening = useCallback(() => {
     if (pending || !capability.supported) return;

@@ -87,6 +87,18 @@ export function mergeTranscriptIntoComposer(existing: string, transcript: string
   return `${base} ${next}`;
 }
 
+/** Idle/stale composer: replace. Owner-typed unsent draft: merge. */
+export function applyDictationTranscriptToComposer(
+  existing: string,
+  transcript: string,
+  mode: "replace" | "merge",
+): string {
+  const next = transcript.trim();
+  if (!next) return existing;
+  if (mode === "replace" || !existing.trim()) return next;
+  return mergeTranscriptIntoComposer(existing, next);
+}
+
 /** Owner-facing error copy — no raw browser error names as primary text. */
 export function mapLeoSpeechRecognitionError(errorCode: string): string {
   switch (errorCode) {

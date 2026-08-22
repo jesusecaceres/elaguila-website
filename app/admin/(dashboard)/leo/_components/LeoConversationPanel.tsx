@@ -116,6 +116,22 @@ function writeDraft(text: string) {
   }
 }
 
+function ownerMessageForConversationError(code?: string | null, fallback?: string | null): string {
+  switch (code) {
+    case "owner_auth_required":
+      return "Owner identity is incomplete for this step. Sign out and sign back in as owner.";
+    case "persistence_unavailable":
+      return "Conversation history is temporarily unavailable. You can retry.";
+    case "invalid_client_context":
+      return "Conversation context was not valid. Try again.";
+    case "conversation_runtime_error":
+    case "internal_error":
+      return "Conversation request failed. You can retry.";
+    default:
+      return fallback?.trim() || "Could not retrieve an answer from available Leonix evidence.";
+  }
+}
+
 function historyToStream(turns: HistoryOk["turns"]): LeoStreamTurn[] {
   return turns
     .filter((t) => t.role === "USER" || t.role === "LEO")
@@ -151,6 +167,8 @@ export function LeoConversationPanel({ coldStart = false }: { coldStart?: boolea
   const [handsFreePersistWarning, setHandsFreePersistWarning] = useState<string | null>(null);
   const bootstrapped = useRef(false);
   const composerFocusRef = useRef(false);
+  const composerDirtySinceSubmitRef = useRef(false);
+  const lastSubmittedRef = useRef<string>("");
   const workspace = useLeoWorkspaceController();
   const spoken = useLeoSpokenSession();
 
@@ -361,6 +379,10 @@ export function LeoConversationPanel({ coldStart = false }: { coldStart?: boolea
 
       setError(null);
       workspace.markConversationActive();
+      lastSubmittedRef.current = trimmed;
+      composerDirtySinceSubmitRef.current = false;
+      setQuestion("");
+      writeDraft("");
 
       setTurns((prev) => {
         const withoutFailed = opts?.retryLocalId
@@ -422,8 +444,10 @@ export function LeoConversationPanel({ coldStart = false }: { coldStart?: boolea
               );
             } else {
               setError(
-                (data as ApiErr).message ??
-                  "Could not retrieve an answer from available Leonix evidence.",
+                ownerMessageForConversationError(
+                  errCode,
+                  (data as ApiErr).message,
+                ),
               );
             }
             setTurns((prev) =>
@@ -609,11 +633,17 @@ export function LeoConversationPanel({ coldStart = false }: { coldStart?: boolea
         {!handsFree ? (
         <LeoComposer
           value={question}
-          onChange={setQuestion}
+          onChange={(v) => {
+            composerDirtySinceSubmitRef.current = true;
+            setQuestion(v);
+          }}
           onSubmit={() => submit(question)}
           pending={pending || restoring}
           offline={!online}
           onStartHandsFree={startHandsFree}
+          dictationMode={
+            !question.trim() || !composerDirtySinceSubmitRef.current ? "replace" : "merge"
+          }
         />
         ) : null}
       </div>
