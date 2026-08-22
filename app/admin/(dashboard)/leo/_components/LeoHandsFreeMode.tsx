@@ -21,12 +21,12 @@ import {
   getLeoSpeechRecognitionCapability,
   resolveLeoSpeechRecognitionLang,
 } from "@/app/leo/_lib/leoSpeechRecognition";
+import { LEO_BARGE_IN_LIMITATION } from "@/app/leo/_lib/leoSpokenContext";
 import {
-  createLeoSpeechSynthesisController,
   getLeoSpeechSynthesisCapability,
-  resolveLeoSpeechSynthesisLang,
   resolveLeoSpokenResponseText,
 } from "@/app/leo/_lib/leoSpeechSynthesis";
+import { useLeoSpokenSession } from "./LeoSpokenSession";
 
 const HF_BTN =
   "inline-flex min-h-[48px] min-w-[48px] items-center justify-center rounded-xl border px-4 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C] disabled:cursor-not-allowed disabled:opacity-60";
@@ -75,7 +75,7 @@ export function LeoHandsFreeMode({
   activeRef.current = active;
 
   const recRef = useRef<ReturnType<typeof createLeoSpeechRecognitionSession> | null>(null);
-  const ttsRef = useRef<ReturnType<typeof createLeoSpeechSynthesisController> | null>(null);
+  const spokenSession = useLeoSpokenSession();
   const onSubmitRef = useRef(onSubmit);
   onSubmitRef.current = onSubmit;
   const pendingRef = useRef(pending);
@@ -97,7 +97,7 @@ export function LeoHandsFreeMode({
 
   const stopSpeech = useCallback(() => {
     speakLockRef.current = false;
-    ttsRef.current?.stop();
+    spokenSession.stop();
   }, []);
 
   const endMode = useCallback(() => {
@@ -109,8 +109,7 @@ export function LeoHandsFreeMode({
     apply("END");
     recRef.current?.dispose();
     recRef.current = null;
-    ttsRef.current?.dispose();
-    ttsRef.current = null;
+    spokenSession.stop();
     onEnded();
   }, [apply, onEnded, stopRecognition, stopSpeech]);
   endModeRef.current = endMode;
@@ -203,38 +202,28 @@ export function LeoHandsFreeMode({
         return;
       }
       const summary = resolveLeoSpokenResponseText(answer);
-      const spoken = composeLeoHandsFreeSpokenText(
+      const utterance = composeLeoHandsFreeSpokenText(
         summary ?? "",
         leoHandsFreeShouldSpeakConfirmation(answer),
       );
-      if (!spoken) {
+      if (!utterance) {
         skipAutoListenRef.current = false;
         apply("SPEECH_ERROR");
         return;
       }
-      setSpokenShown(spoken);
+      setSpokenShown(utterance);
       speakLockRef.current = true;
       stopRecognition();
       apply("SPEECH_START");
-
-      if (!ttsRef.current) {
-        const lang = resolveLeoSpeechSynthesisLang("auto", navigator.language);
-        ttsRef.current = createLeoSpeechSynthesisController(window, lang, {
-          onEnd: () => {
-            speakLockRef.current = false;
-            skipAutoListenRef.current = false;
-            apply("SPEECH_END");
-          },
-          onError: () => {
-            speakLockRef.current = false;
-            skipAutoListenRef.current = false;
-            apply("SPEECH_ERROR");
-          },
-        });
-      }
-      ttsRef.current?.speak(spoken);
+      spokenSession.speak(utterance);
+      window.setTimeout(() => {
+        if (!activeRef.current) return;
+        speakLockRef.current = false;
+        skipAutoListenRef.current = false;
+        apply("SPEECH_END");
+      }, Math.min(12000, Math.max(2500, utterance.length * 60)));
     },
-    [apply, stopRecognition],
+    [apply, spokenSession, stopRecognition],
   );
 
   useEffect(() => {
@@ -349,6 +338,7 @@ export function LeoHandsFreeMode({
       </div>
 
       <p className="mt-4 text-xs leading-relaxed text-[#5C5346]">{LEO_HANDS_FREE_FOREGROUND_NOTICE}</p>
+      <p className="mt-2 text-xs leading-relaxed text-[#5C5346]">{LEO_BARGE_IN_LIMITATION}</p>
       {persistWarning ? (
         <p className="mt-2 text-xs text-amber-900" role="status">
           {persistWarning}
@@ -429,7 +419,7 @@ export function LeoHandsFreeMode({
             stopRecognition();
             speakLockRef.current = true;
             apply("SPEECH_START");
-            ttsRef.current?.repeat(spokenShown);
+            spokenSession.repeat();
           }}
         >
           Repeat

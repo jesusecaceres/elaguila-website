@@ -7,6 +7,7 @@ import type {
 } from "@/app/leo/_lib/leoTypes";
 
 import { LeoResultCardView } from "./LeoResultCard";
+import { LeoResponseActionBar } from "./LeoResponseActionBar";
 import { LeoSpeechResponseControls } from "./LeoVoiceControls";
 import {
   formatOwnerDateTime,
@@ -54,6 +55,10 @@ export function LeoConversationTurnView({
   isLatestLeo,
   selectedCardId,
   pending,
+  sessionId,
+  userTurnId,
+  requestSnapshot,
+  activeWorkspace,
   onAsk,
   onSelectCard,
   onRetry,
@@ -62,6 +67,10 @@ export function LeoConversationTurnView({
   isLatestLeo?: boolean;
   selectedCardId?: string | null;
   pending?: boolean;
+  sessionId?: string | null;
+  userTurnId?: string | null;
+  requestSnapshot?: string | null;
+  activeWorkspace?: string | null;
   onAsk: (q: string) => void;
   onSelectCard: (card: LeoResultCard, entityRef: LeoConversationEntityRef) => void;
   onRetry?: () => void;
@@ -138,15 +147,19 @@ export function LeoConversationTurnView({
 
         {cards && cards.length > 0 ? (
           <div className="space-y-3" data-result-cards>
-            {cards.map((card) => (
-              <LeoResultCardView
-                key={card.cardId}
-                card={card}
-                selected={selectedCardId === card.cardId}
-                pending={pending}
-                onSelect={onSelectCard}
-                onAsk={onAsk}
-              />
+            {cards.map((card, index) => (
+              <div key={card.cardId} data-leo-visible-index={index + 1}>
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[#A67C52]">
+                  Item {index + 1}
+                </p>
+                <LeoResultCardView
+                  card={card}
+                  selected={selectedCardId === card.cardId}
+                  pending={pending}
+                  onSelect={onSelectCard}
+                  onAsk={onAsk}
+                />
+              </div>
             ))}
           </div>
         ) : turn.resultCardRefs && turn.resultCardRefs.length > 0 ? (
@@ -196,7 +209,21 @@ export function LeoConversationTurnView({
           </details>
         ) : null}
 
-        {isLatestLeo && answer ? <LeoSpeechResponseControls answer={answer} /> : null}
+        {isLatestLeo && answer ? (
+          <div className="space-y-2">
+            <LeoSpeechResponseControls answer={answer} />
+            <LeoResponseActionBar
+              answer={answer}
+              sessionId={sessionId ?? null}
+              userTurnId={userTurnId ?? null}
+              localResponseId={turn.turnId ?? turn.localId}
+              requestSnapshot={requestSnapshot ?? null}
+              responseSnapshot={answer.summary ?? turn.boundedText}
+              activeWorkspace={activeWorkspace ?? null}
+              selectedCardId={selectedCardId ?? null}
+            />
+          </div>
+        ) : null}
 
         {suggestions.length > 0 ? (
           <div>

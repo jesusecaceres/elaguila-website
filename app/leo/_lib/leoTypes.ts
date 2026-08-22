@@ -611,6 +611,8 @@ export type LeoConversationClientContext = {
   selectedCardId?: string | null;
   selectedEntityRef?: LeoConversationEntityRef | null;
   visibleCardIds?: string[];
+  /** LEO-22A visual workspace — presentation only; ignored for authority. */
+  activeWorkspace?: string | null;
 };
 
 /** LEO-14.6: safe focus refs returned to client (no owner ids / raw payloads). */
@@ -1243,11 +1245,18 @@ export type LeoProjectTimelineItem = {
 export type LeoProjectConfigDiagnostic = {
   github: {
     configured: boolean;
+    /** Token present — connector/tool integration available. */
+    connectorConnected: boolean;
+    /** Token + allowlisted repo so project intelligence can run. */
+    projectIntelligenceConfigured: boolean;
     repositoryAllowlisted: true;
     allowlistedRepo: string;
   };
   vercel: {
     configured: boolean;
+    connectorConnected: boolean;
+    /** Token + team + project ids so project intelligence can run. */
+    projectIntelligenceConfigured: boolean;
     teamIdAvailable: boolean;
     projectIdAvailable: boolean;
     projectAllowlisted: true;

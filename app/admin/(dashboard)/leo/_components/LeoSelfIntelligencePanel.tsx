@@ -17,6 +17,7 @@ import {
   presentSelfIntelligenceHealthState,
   scrubOwnerFacingText,
 } from "./leoOwnerPresentation";
+import { LeoFeedbackQualityCard } from "./LeoFeedbackQualityCard";
 
 export type LeoSelfIntelligenceLoad =
   | { ok: true; profile: LeonixInternalIntelligenceProfile }
@@ -335,6 +336,8 @@ export function LeoSelfIntelligencePanel({ load }: { load: LeoSelfIntelligenceLo
 
       {discoverySeo ? <DiscoverySeoPartialCallout dim={discoverySeo} /> : null}
       {customerJourney ? <CustomerJourneyPartialCallout dim={customerJourney} /> : null}
+
+      <LeoFeedbackQualityCard />
 
       <BlindSpotsSection spots={profile.blindSpots} />
 

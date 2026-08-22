@@ -1,18 +1,19 @@
 /**
- * LEO-9 Owner Executive Console — /admin/leo
- * Owner_admin only. Evidence-first. No AI theater. No execution.
- * LEO-9B: Ask LEO first, compact priorities, owner language.
+ * LEO-9 / LEO-22A Owner Executive Console — /admin/leo
+ * Conversation-first operating shell. Evidence workspace is secondary.
+ * Owner_admin only. No execution. CAPABILITY ≠ AUTHORITY.
  */
 import { redirect } from "next/navigation";
 
 import { resolveLeoAccess } from "@/app/leo/_lib/leoAccess";
-import { leoListGovernedActionProposalCardsForOwner } from "@/app/leo/_lib/leoActionProposalService";
-import { getLeoAttentionBrief } from "@/app/leo/_lib/leoAttentionService";
+import { loadLeoAttentionCockpit, loadLeoGovernedActionsCockpit } from "@/app/leo/_lib/leoCockpitLoaders";
+import { getLeoGoogleWorkspaceCapabilityTruth } from "@/app/leo/_lib/leoGoogleWorkspaceCapabilityTruth";
+import { getLeoProjectConfigDiagnostic } from "@/app/leo/_lib/leoProjectConfig";
 import { getLeoClientCareWatch } from "@/app/leo/_lib/leoClientCareService";
 import { leoListRecentMemory } from "@/app/leo/_lib/leoLivingBookService";
 import { getLeoSelfIntelligence } from "@/app/leo/_lib/leoSelfIntelligenceService";
 import { buildLeoSystemHealthSnapshot } from "@/app/leo/_lib/leoSystemHealth";
-import type { LeoAttentionBrief, LeoClientCareWatchResult, LeoMemoryRecord } from "@/app/leo/_lib/leoTypes";
+import type { LeoClientCareWatchResult, LeoMemoryRecord } from "@/app/leo/_lib/leoTypes";
 import { adminCardBase, adminContentArea } from "@/app/admin/_components/adminTheme";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { isWebPushConfigured } from "@/app/lib/digitalContact/humanConnection/webPushConfig";
@@ -22,24 +23,21 @@ import { LeoAttentionPanel } from "./_components/LeoAttentionPanel";
 import { LeoCapabilityStrip } from "./_components/LeoCapabilityStrip";
 import { LeoClientCarePanel } from "./_components/LeoClientCarePanel";
 import { LeoMorningBriefPanel } from "./_components/LeoMorningBrief";
-import { LeoConversationPanel } from "./_components/LeoConversationPanel";
-import { LeoExecutiveHeader } from "./_components/LeoExecutiveHeader";
-import { LeoGovernedActionsPanel, type LeoGovernedActionsLoad } from "./_components/LeoGovernedActionsPanel";
 import { LeoGovernanceLegend } from "./_components/LeoGovernanceLegend";
+import { LeoGovernedActionsPanel, type LeoGovernedActionsLoad } from "./_components/LeoGovernedActionsPanel";
 import { LeoMemoryPanel } from "./_components/LeoMemoryPanel";
 import { LeoNotificationSettings } from "./_components/LeoNotificationSettings";
+import { LeoOperatingShell } from "./_components/LeoOperatingShell";
 import { LeoPwaShell } from "./_components/LeoPwaShell";
+import { LeoSpokenSessionProvider } from "./_components/LeoSpokenSession";
 import {
   LeoSelfIntelligencePanel,
   type LeoSelfIntelligenceLoad,
 } from "./_components/LeoSelfIntelligencePanel";
 import { LeoSystemHealthCard } from "./_components/LeoSystemHealthCard";
+import { LeoWorkspaceProvider } from "./_components/LeoWorkspaceController";
 
 export const dynamic = "force-dynamic";
-
-type AttentionLoad =
-  | { ok: true; brief: LeoAttentionBrief }
-  | { ok: false; limitation: string };
 
 type CareLoad =
   | { ok: true; watch: LeoClientCareWatchResult }
@@ -62,16 +60,12 @@ async function loadSelfIntelligence(): Promise<LeoSelfIntelligenceLoad> {
   }
 }
 
-async function loadAttention(): Promise<AttentionLoad> {
-  try {
-    const brief = await getLeoAttentionBrief({ topN: 3 });
-    return { ok: true, brief };
-  } catch {
-    return {
-      ok: false,
-      limitation: "Attention data is currently unavailable.",
-    };
+async function loadAttention() {
+  const loaded = await loadLeoAttentionCockpit();
+  if (loaded.ok) {
+    return { ok: true as const, brief: loaded.data, truth: loaded.truth };
   }
+  return { ok: false as const, limitation: loaded.truth.explanation, truth: loaded.truth };
 }
 
 async function loadClientCare(): Promise<CareLoad> {
@@ -99,21 +93,11 @@ async function loadMemory(): Promise<MemoryLoad> {
 }
 
 async function loadGovernedActions(): Promise<LeoGovernedActionsLoad> {
-  try {
-    const res = await leoListGovernedActionProposalCardsForOwner({ limit: 40 });
-    if (!res.ok) {
-      return {
-        ok: false,
-        limitation: "Governed action proposals are temporarily unavailable.",
-      };
-    }
-    return { ok: true, cards: res.cards };
-  } catch {
-    return {
-      ok: false,
-      limitation: "Governed action proposals are temporarily unavailable.",
-    };
+  const loaded = await loadLeoGovernedActionsCockpit();
+  if (loaded.ok) {
+    return { ok: true, cards: loaded.data.cards, truth: loaded.truth };
   }
+  return { ok: false, limitation: loaded.truth.explanation, truth: loaded.truth };
 }
 
 export default async function LeoExecutiveConsolePage() {
@@ -125,55 +109,72 @@ export default async function LeoExecutiveConsolePage() {
     redirect("/admin?leo_access_denied=1");
   }
 
-  const [attention, care, memory, selfIntelligence, governedActions] = await Promise.all([
+  const [attention, care, memory, selfIntelligence, governedActions, googleTruth] = await Promise.all([
     loadAttention(),
     loadClientCare(),
     loadMemory(),
     loadSelfIntelligence(),
     loadGovernedActions(),
+    getLeoGoogleWorkspaceCapabilityTruth(),
   ]);
 
+  const project = getLeoProjectConfigDiagnostic();
   const systemHealth = buildLeoSystemHealthSnapshot({
     supabasePersistence: isSupabaseAdminConfigured() ? "HEALTHY" : "NOT_CONFIGURED",
     supabaseConfigured: isSupabaseAdminConfigured(),
     googleWorkspaceConfigured: isLeoGoogleWorkspaceConfigured(),
+    githubConfigured: project.github.connectorConnected,
+    vercelConfigured: project.vercel.connectorConnected,
+    projectGithub: project.github.projectIntelligenceConfigured
+      ? "HEALTHY"
+      : project.github.connectorConnected
+        ? "DEGRADED"
+        : "NOT_CONFIGURED",
+    projectVercel: project.vercel.projectIntelligenceConfigured
+      ? "HEALTHY"
+      : project.vercel.connectorConnected
+        ? "DEGRADED"
+        : "NOT_CONFIGURED",
     webPushConfigured: isWebPushConfigured(),
   });
+
+  const home = (
+    <div className="min-w-0 space-y-4">
+      <LeoMorningBriefPanel />
+    </div>
+  );
 
   return (
     <div className={`${adminContentArea} pt-[max(0px,env(safe-area-inset-top))]`}>
       <LeoPwaShell>
-        <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-4 sm:gap-5">
-          <LeoExecutiveHeader />
-
-          <LeoMorningBriefPanel />
-
-          <LeoSelfIntelligencePanel load={selfIntelligence} />
-
-          <LeoGovernedActionsPanel initialLoad={governedActions} />
-
-          <div className="min-w-0 lg:max-w-none">
-            <LeoConversationPanel />
-          </div>
-
-          <div className="grid min-w-0 gap-4 sm:gap-5">
-            <LeoAttentionPanel load={attention} />
-
-            <LeoClientCarePanel load={care} />
-
-            <LeoMemoryPanel load={memory} />
-          </div>
-
-          <section className={`${adminCardBase} min-w-0 space-y-4 p-3 sm:p-4`} aria-labelledby="leo-controls-heading">
+        <LeoWorkspaceProvider>
+          <LeoSpokenSessionProvider>
+          <LeoOperatingShell
+            slots={{
+              HOME: home,
+              ATTENTION: <LeoAttentionPanel load={attention} />,
+              CLIENTS: <LeoClientCarePanel load={care} />,
+              GOVERNED_ACTIONS: <LeoGovernedActionsPanel initialLoad={governedActions} />,
+              MEMORY: <LeoMemoryPanel load={memory} />,
+              SELF_INTELLIGENCE: <LeoSelfIntelligencePanel load={selfIntelligence} />,
+              TECHNOLOGY: <LeoSystemHealthCard health={systemHealth} />,
+              REPORTS: home,
+            }}
+          />
+          <section
+            className={`${adminCardBase} mx-auto mt-4 w-full max-w-6xl min-w-0 space-y-4 p-3 sm:p-4`}
+            aria-labelledby="leo-controls-heading"
+            data-leo-utility-controls
+          >
             <h2 id="leo-controls-heading" className="text-sm font-bold text-[#1E1810]">
               LEO Controls &amp; Capabilities
             </h2>
-            <LeoSystemHealthCard health={systemHealth} />
             <LeoNotificationSettings />
             <LeoGovernanceLegend />
-            <LeoCapabilityStrip />
+            <LeoCapabilityStrip project={project} google={googleTruth} />
           </section>
-        </div>
+          </LeoSpokenSessionProvider>
+        </LeoWorkspaceProvider>
       </LeoPwaShell>
     </div>
   );

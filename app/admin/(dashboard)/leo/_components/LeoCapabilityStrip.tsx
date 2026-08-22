@@ -1,3 +1,6 @@
+import type { LeoGoogleWorkspaceCapabilityTruth } from "@/app/leo/_lib/leoGoogleWorkspaceCapabilityTruth";
+import type { LeoProjectConfigDiagnostic } from "@/app/leo/_lib/leoTypes";
+
 const AVAILABLE = [
   "Truth",
   "Reason Chains",
@@ -13,37 +16,40 @@ const AVAILABLE = [
   "Project change intelligence",
 ] as const;
 
-export function LeoCapabilityStrip() {
-  const githubConfigured = Boolean(process.env.LEO_GITHUB_TOKEN?.trim());
-  const vercelConfigured = Boolean(
-    process.env.LEO_VERCEL_TOKEN?.trim() || process.env.VERCEL_TOKEN?.trim(),
-  );
-  // Config presence only — does not claim live Gmail/Calendar API success.
-  const googleWorkspaceConfigured = Boolean(
-    process.env.LEO_GOOGLE_CLIENT_ID?.trim() &&
-      process.env.LEO_GOOGLE_CLIENT_SECRET?.trim() &&
-      process.env.LEO_GOOGLE_REFRESH_TOKEN?.trim(),
-  );
-  const googleOwnerConfigured = Boolean(process.env.LEO_GOOGLE_ACCOUNT_EMAIL?.trim());
-  const googleLabel = googleWorkspaceConfigured ? "Configured" : "Not configured";
-
-  const projectStatus =
-    githubConfigured && vercelConfigured
-      ? "Project intelligence connected"
-      : githubConfigured || vercelConfigured
-        ? "Project intelligence partial"
-        : "Project intelligence not configured";
-
+export function LeoCapabilityStrip({
+  project,
+  google,
+}: {
+  project: LeoProjectConfigDiagnostic;
+  google: LeoGoogleWorkspaceCapabilityTruth;
+}) {
   const notConnected: string[] = [
     "Background monitoring",
-    "Notifications",
     "Business Concierge connection",
-    "Voice",
     "Autonomous execution",
   ];
 
+  const githubLine = project.github.connectorConnected
+    ? project.github.projectIntelligenceConfigured
+      ? "GitHub — connector connected · project intelligence ready"
+      : "GitHub — connector connected · project intelligence mapping incomplete"
+    : "GitHub — connector not configured";
+
+  const vercelLine = project.vercel.connectorConnected
+    ? project.vercel.projectIntelligenceConfigured
+      ? "Vercel — connector connected · project intelligence ready"
+      : "Vercel — connector connected · project mapping (team/project ids) not configured"
+    : "Vercel — connector not configured";
+
+  const sendScope =
+    google.gmailSendScopeHealth === "HEALTHY"
+      ? "send scope proven"
+      : google.gmailSendScopeHealth === "UNPROVEN"
+        ? "send scope unproven"
+        : "send scope not configured";
+
   return (
-    <div className="min-w-0" aria-labelledby="leo-cap-heading">
+    <div className="min-w-0" aria-labelledby="leo-cap-heading" data-leo-capability-truth>
       <h3 id="leo-cap-heading" className="text-xs font-bold uppercase tracking-wide text-[#5C5346]">
         Capability
       </h3>
@@ -55,17 +61,16 @@ export function LeoCapabilityStrip() {
             Project connections
           </p>
           <p className="mt-1 break-words text-xs leading-relaxed text-[#5C5346]">
-            GitHub — {githubConfigured ? "Connected" : "Not configured"} · Vercel —{" "}
-            {vercelConfigured ? "Connected" : "Not configured"} · {projectStatus}
+            {githubLine}. {vercelLine}.
           </p>
           <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-[#2A4536]">
             Google Workspace
           </p>
-          <p className="mt-1 break-words text-xs leading-relaxed text-[#5C5346]">
-            Workspace — {googleLabel} · Gmail — {googleLabel} · Calendar — {googleLabel}
-            {googleWorkspaceConfigured
-              ? ` · Owner account — ${googleOwnerConfigured ? "Configured" : "Not configured"}`
-              : null}
+          <p className="mt-1 break-words text-xs leading-relaxed text-[#5C5346]" data-leo-google-capability>
+            {google.summary} Read: Gmail {google.gmailReadConfigured ? "configured" : "not configured"}, Calendar{" "}
+            {google.calendarReadConfigured ? "configured" : "not configured"}. {sendScope}. Write flag{" "}
+            {google.writeFlagEnabled ? "on" : "off"}. Reply execution{" "}
+            {google.gmailReplyExecutionAvailable ? "available" : "unavailable"}.
           </p>
         </div>
         <div className="min-w-0">

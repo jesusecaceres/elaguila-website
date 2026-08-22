@@ -13,6 +13,17 @@ type SafeStatus = {
   lastDeliveryAt: string | null;
 };
 
+function presentLeoAlertsError(raw: string): string {
+  if (raw === "missing_auth_user_id") {
+    return "Owner session is signed in, but the durable auth user id cookie is missing. LEO Alerts cannot bind a push subscription without inventing an identity. Sign out and sign back in as owner.";
+  }
+  if (raw === "network") return "LEO Alerts could not reach the notification service. Retry shortly.";
+  if (raw === "permission_denied") return "Browser notification permission is required to enable LEO Alerts.";
+  if (raw === "push_not_configured") return "Web push is not configured on the server (VAPID keys missing).";
+  if (raw === "unsupported") return "This browser or install cannot register push alerts.";
+  return raw.replace(/_/g, " ");
+}
+
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -44,7 +55,7 @@ export function LeoNotificationSettings() {
         error?: string;
       };
       if (!res.ok || !json.ok) {
-        setError(json.error ?? "load_failed");
+        setError(presentLeoAlertsError(json.error ?? "load_failed"));
         return;
       }
       setStatus(json.status ?? null);
@@ -108,7 +119,7 @@ export function LeoNotificationSettings() {
       });
       const out = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || !out.ok) {
-        setError(out.error ?? "subscribe_failed");
+        setError(presentLeoAlertsError(out.error ?? "subscribe_failed"));
         return;
       }
       setMessage("LEO alerts enabled on this device.");
@@ -182,7 +193,11 @@ export function LeoNotificationSettings() {
         </p>
       ) : null}
       {message ? <p className="mt-2 text-xs text-[#2A4536]">{message}</p> : null}
-      {error ? <p className="mt-2 text-xs text-rose-800">{error.replace(/_/g, " ")}</p> : null}
+      {error ? (
+        <p className="mt-2 text-xs text-rose-800" data-leo-alerts-auth={error.includes("auth user id") ? "AUTH_REQUIRED" : undefined}>
+          {error}
+        </p>
+      ) : null}
       <div className="mt-3 flex min-w-0 flex-wrap gap-2">
         <button
           type="button"

@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 
 import { resolveLeoAccess } from "@/app/leo/_lib/leoAccess";
 import { leoListGovernedActionProposalCardsForOwner } from "@/app/leo/_lib/leoActionProposalService";
+import { presentLeoCockpitLoadError } from "@/app/leo/_lib/leoCockpitHealth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,7 +41,18 @@ export async function GET() {
   try {
     const res = await leoListGovernedActionProposalCardsForOwner({ limit: 40 });
     if (!res.ok) {
-      return NextResponse.json({ ok: false, error: res.error }, { status: 500 });
+      const presented = presentLeoCockpitLoadError(res.error);
+      const status = presented.health === "AUTH_REQUIRED" ? 403 : 503;
+      return NextResponse.json(
+        {
+          ok: false,
+          error: presented.health === "AUTH_REQUIRED" ? "missing_owner_actor_id" : "unavailable",
+          health: presented.health,
+          explanation: presented.explanation,
+          nextStep: presented.nextStep,
+        },
+        { status },
+      );
     }
     return NextResponse.json(
       {

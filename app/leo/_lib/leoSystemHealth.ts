@@ -102,18 +102,32 @@ export function buildLeoSystemHealthSnapshot(input: LeoSystemHealthInput = {}): 
           : null,
   });
 
+  const githubState =
+    input.projectGithub ?? (input.githubConfigured ? "HEALTHY" : "NOT_CONFIGURED");
   components.push({
     key: "project_github",
     label: "Project intelligence (GitHub)",
-    state: input.projectGithub ?? (input.githubConfigured ? "HEALTHY" : "NOT_CONFIGURED"),
-    ownerMessage: null,
+    state: githubState,
+    ownerMessage:
+      githubState === "NOT_CONFIGURED"
+        ? "GitHub connector is not configured (LEO_GITHUB_TOKEN)."
+        : githubState === "DEGRADED"
+          ? "GitHub connector is present, but project intelligence mapping is incomplete."
+          : null,
   });
 
+  const vercelState =
+    input.projectVercel ?? (input.vercelConfigured ? "HEALTHY" : "NOT_CONFIGURED");
   components.push({
     key: "project_vercel",
     label: "Project intelligence (Vercel)",
-    state: input.projectVercel ?? (input.vercelConfigured ? "HEALTHY" : "NOT_CONFIGURED"),
-    ownerMessage: null,
+    state: vercelState,
+    ownerMessage:
+      vercelState === "NOT_CONFIGURED"
+        ? "Vercel connector is not configured (LEO_VERCEL_TOKEN)."
+        : vercelState === "DEGRADED"
+          ? "Vercel connector is connected, but project mapping (team/project ids) is not configured."
+          : null,
   });
 
   components.push({

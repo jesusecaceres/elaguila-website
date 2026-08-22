@@ -10,6 +10,8 @@ export function LeoConversationStream({
   turns,
   pending,
   selectedCardId,
+  sessionId,
+  activeWorkspace,
   onAsk,
   onSelectCard,
   onRetryUser,
@@ -17,6 +19,8 @@ export function LeoConversationStream({
   turns: LeoStreamTurn[];
   pending?: boolean;
   selectedCardId?: string | null;
+  sessionId?: string | null;
+  activeWorkspace?: string | null;
   onAsk: (q: string) => void;
   onSelectCard: (card: LeoResultCard, entityRef: LeoConversationEntityRef) => void;
   onRetryUser?: (localId: string) => void;
@@ -35,12 +39,18 @@ export function LeoConversationStream({
 
   return (
     <div className="min-w-0 space-y-4" aria-live="polite" data-conversation-stream>
-      {turns.map((turn) => (
+      {turns.map((turn, idx) => {
+        const priorUser = [...turns.slice(0, idx)].reverse().find((t) => t.role === "USER");
+        return (
         <LeoConversationTurnView
           key={turn.localId}
           turn={turn}
           isLatestLeo={turn.localId === latestLeoId}
           selectedCardId={selectedCardId}
+          sessionId={sessionId}
+          userTurnId={priorUser?.turnId ?? null}
+          requestSnapshot={priorUser?.boundedText ?? null}
+          activeWorkspace={activeWorkspace}
           pending={pending}
           onAsk={onAsk}
           onSelectCard={onSelectCard}
@@ -50,7 +60,8 @@ export function LeoConversationStream({
               : undefined
           }
         />
-      ))}
+        );
+      })}
       {pending ? (
         <p className="text-sm font-medium text-[#5C5346]" aria-live="polite">
           LEO is reviewing the evidence…

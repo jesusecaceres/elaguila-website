@@ -12,11 +12,23 @@ import type {
   LeoResultCard,
 } from "@/app/leo/_lib/leoTypes";
 
+import { resolveLeoPresentationIntent } from "@/app/leo/_lib/leoPresentationIntent";
+import {
+  LEO_NOTHING_READABLE,
+  LEO_VISIBLE_ITEM_MISSING,
+  leoResultCardsToAddressableItems,
+  resolveLeoReadableContext,
+  resolveLeoVisibleItemByNumber,
+} from "@/app/leo/_lib/leoSpokenContext";
+import { resolveLeoSpokenResponseText } from "@/app/leo/_lib/leoSpeechSynthesis";
+
 import { LeoComposer, LeoNewConversationButton } from "./LeoComposer";
 import { LeoConversationStream } from "./LeoConversationStream";
 import type { LeoStreamTurn } from "./LeoConversationTurn";
 import { LeoHandsFreeMode } from "./LeoHandsFreeMode";
 import { LeoSessionStatus } from "./LeoSessionStatus";
+import { useLeoSpokenSession } from "./LeoSpokenSession";
+import { leoIntentIsWorkspaceCommand, useLeoWorkspaceController } from "./LeoWorkspaceController";
 import {
   LEO_OFFLINE_SUBMIT_MESSAGE,
   LEO_PWA_DRAFT_STORAGE_KEY,
@@ -122,7 +134,7 @@ function historyToStream(turns: HistoryOk["turns"]): LeoStreamTurn[] {
     }));
 }
 
-export function LeoConversationPanel() {
+export function LeoConversationPanel({ coldStart = false }: { coldStart?: boolean }) {
   const [question, setQuestion] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [turns, setTurns] = useState<LeoStreamTurn[]>([]);
@@ -139,6 +151,8 @@ export function LeoConversationPanel() {
   const [handsFreePersistWarning, setHandsFreePersistWarning] = useState<string | null>(null);
   const bootstrapped = useRef(false);
   const composerFocusRef = useRef(false);
+  const workspace = useLeoWorkspaceController();
+  const spoken = useLeoSpokenSession();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -182,8 +196,10 @@ export function LeoConversationPanel() {
           return;
         }
         setSessionId(data.session.id);
-        setTurns(historyToStream(data.turns));
+        const restored = historyToStream(data.turns);
+        setTurns(restored);
         setPersistenceState("PERSISTED");
+        if (restored.length > 0) workspace.markConversationActive();
         // Never auto-start Hands-Free from restored session.mode.
       } catch {
         writeSessionPointer(null);
@@ -276,11 +292,75 @@ export function LeoConversationPanel() {
         return;
       }
 
+      const presentationIntent = resolveLeoPresentationIntent(trimmed);
+      if (presentationIntent.kind === "STOP_SPEECH") {
+        spoken.stop();
+        setQuestion("");
+        writeDraft("");
+        return;
+      }
+      if (presentationIntent.kind === "REPEAT_SPOKEN") {
+        if (!spoken.repeat()) {
+          setError(LEO_NOTHING_READABLE);
+        }
+        setQuestion("");
+        writeDraft("");
+        return;
+      }
+      if (presentationIntent.kind === "READ_CONTEXT") {
+        const readable = resolveLeoReadableContext(spoken.snapshot);
+        if (!readable.ok) setError(LEO_NOTHING_READABLE);
+        else spoken.speak(readable.text);
+        setQuestion("");
+        writeDraft("");
+        return;
+      }
+      if (presentationIntent.kind === "OPEN_VISIBLE_ITEM") {
+        const index = presentationIntent.index;
+        if (typeof index === "number") {
+          const item = resolveLeoVisibleItemByNumber(spoken.snapshot.visibleItems, index);
+          if (!item) {
+            setError(LEO_VISIBLE_ITEM_MISSING);
+            setQuestion("");
+            writeDraft("");
+            return;
+          }
+          setSelectedCardId(item.cardId);
+          spoken.setSelected(item.cardId, item.entityRef);
+          if (presentationIntent.verb === "read") spoken.speak(item.spokenText);
+        }
+        workspace.markConversationActive();
+        setQuestion("");
+        writeDraft("");
+        return;
+      }
+      if (leoIntentIsWorkspaceCommand(presentationIntent)) {
+        workspace.markConversationActive();
+        workspace.applyPresentationIntent(presentationIntent);
+        setQuestion("");
+        writeDraft("");
+        const createdAt = new Date().toISOString();
+        setTurns((prev) => [
+          ...prev,
+          {
+            localId: `local-nav-${Date.now()}`,
+            clientRequestId: newClientRequestId(),
+            role: "USER",
+            boundedText: trimmed,
+            createdAt,
+            pending: false,
+            persisted: false,
+          },
+        ]);
+        return;
+      }
+
       const clientRequestId = newClientRequestId();
       const localUserId = opts?.retryLocalId ?? `local-user-${clientRequestId}`;
       const createdAt = new Date().toISOString();
 
       setError(null);
+      workspace.markConversationActive();
 
       setTurns((prev) => {
         const withoutFailed = opts?.retryLocalId
@@ -311,6 +391,7 @@ export function LeoConversationPanel() {
           .flatMap((t) => t.answer?.resultCards?.map((c) => c.cardId) ?? t.resultCardRefs ?? [])
           .filter(Boolean)
           .slice(-40),
+        activeWorkspace: workspace.activeWorkspace,
       };
 
       startTransition(async () => {
@@ -371,6 +452,8 @@ export function LeoConversationPanel() {
           setPersistenceState(data.persistenceState ?? answer.persistenceState ?? null);
           setQuestion("");
           writeDraft("");
+          spoken.setCurrentAnswer(resolveLeoSpokenResponseText(answer), answer.summary ?? null);
+          spoken.setVisibleItems(leoResultCardsToAddressableItems(answer.resultCards));
 
           setTurns((prev) => {
             const withoutOptimistic = prev.filter((t) => t.localId !== localUserId);
@@ -416,28 +499,31 @@ export function LeoConversationPanel() {
         }
       });
     },
-    [pending, selectedCardId, selectedEntityRef, sessionId, turns],
+    [pending, selectedCardId, selectedEntityRef, sessionId, turns, workspace, spoken],
   );
 
   const onSelectCard = useCallback((card: LeoResultCard, entityRef: LeoConversationEntityRef) => {
     setSelectedCardId(card.cardId);
     setSelectedEntityRef(entityRef);
-  }, []);
+    spoken.setSelected(card.cardId, entityRef);
+  }, [spoken]);
 
   const hasConversation = turns.length > 0;
 
   return (
-    <section className="min-w-0" aria-labelledby="leo-ask-heading">
+    <section className="min-w-0" aria-labelledby="leo-ask-heading" data-leo-conversation-panel>
       <div
         className={`${adminCardBase} relative min-w-0 overflow-hidden border-[#7A1E2C]/15 p-4 shadow-[0_12px_40px_-16px_rgba(122,30,44,0.18)] sm:p-5`}
       >
         <div className="mb-3 flex min-w-0 flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 id="leo-ask-heading" className="text-xl font-bold tracking-tight text-[#1E1810] sm:text-2xl">
-              Ask LEO
+              LEO
             </h2>
-            <p className="mt-1 text-sm text-[#5C5346]">
-              Your executive conversation — priorities, commitments, and clear next moves.
+            <p className="mt-1 text-sm text-[#5C5346]" data-leo-cold-start-greeting={coldStart ? "true" : "false"}>
+              {coldStart
+                ? "Ready when you are."
+                : "Your executive conversation — still live while the workspace changes."}
             </p>
             <div className="mt-1.5">
               <LeoSessionStatus
@@ -492,6 +578,8 @@ export function LeoConversationPanel() {
             turns={turns}
             pending={pending || handsFree}
             selectedCardId={selectedCardId}
+            sessionId={sessionId}
+            activeWorkspace={workspace.activeWorkspace}
             onAsk={(q) => {
               setQuestion(q);
               submit(q);

@@ -42,16 +42,24 @@ export function getLeoVercelProjectId(): string | null {
  * Never returns token values, prefixes, or authorization headers.
  */
 export function getLeoProjectConfigDiagnostic(): LeoProjectConfigDiagnostic {
+  const githubConnector = isLeoGithubConfigured();
+  const vercelConnector = isLeoVercelConfigured();
+  const vercelTeam = Boolean(getLeoVercelTeamId());
+  const vercelProject = Boolean(getLeoVercelProjectId());
   return {
     github: {
-      configured: isLeoGithubConfigured(),
+      configured: githubConnector,
+      connectorConnected: githubConnector,
+      projectIntelligenceConfigured: githubConnector,
       repositoryAllowlisted: true,
       allowlistedRepo: LEO_GITHUB_ALLOWED_REPO.fullName,
     },
     vercel: {
-      configured: isLeoVercelConfigured(),
-      teamIdAvailable: Boolean(getLeoVercelTeamId()),
-      projectIdAvailable: Boolean(getLeoVercelProjectId()),
+      configured: vercelConnector,
+      connectorConnected: vercelConnector,
+      projectIntelligenceConfigured: vercelConnector && vercelTeam && vercelProject,
+      teamIdAvailable: vercelTeam,
+      projectIdAvailable: vercelProject,
       projectAllowlisted: true,
       allowlistedProject: LEO_VERCEL_ALLOWED_PROJECT.name,
     },

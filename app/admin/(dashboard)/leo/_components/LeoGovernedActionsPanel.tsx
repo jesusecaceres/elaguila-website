@@ -12,8 +12,8 @@ import { adminCardBase } from "@/app/admin/_components/adminTheme";
 import type { LeoGovernedActionProposalCard } from "@/app/leo/_lib/leoGovernedActionProposalReadModel";
 
 export type LeoGovernedActionsLoad =
-  | { ok: true; cards: LeoGovernedActionProposalCard[] }
-  | { ok: false; limitation: string };
+  | { ok: true; cards: LeoGovernedActionProposalCard[]; truth?: { explanation: string; nextStep: string | null; health: string } }
+  | { ok: false; limitation: string; truth?: { explanation: string; nextStep: string | null; health: string } };
 
 type ConfirmApprove = { kind: "approve"; card: LeoGovernedActionProposalCard };
 type ConfirmExecute = { kind: "execute"; card: LeoGovernedActionProposalCard };
@@ -205,12 +205,14 @@ export function LeoGovernedActionsPanel({
     });
     const body = (await res.json().catch(() => null)) as
       | { ok: true; cards: LeoGovernedActionProposalCard[] }
-      | { ok: false; error?: string }
+      | { ok: false; error?: string; explanation?: string }
       | null;
     if (!res.ok || !body || !body.ok) {
-      setActionError(
-        !body || !("error" in body) ? "Could not refresh proposals." : String(body.error),
-      );
+      const explained =
+        body && "explanation" in body && body.explanation
+          ? body.explanation
+          : "Could not refresh proposals after known checks failed.";
+      setActionError(explained);
       return false;
     }
     setCards(body.cards);
@@ -387,9 +389,12 @@ export function LeoGovernedActionsPanel({
       </div>
 
       {loadError ? (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-          {loadError}
-        </p>
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+          <p data-leo-health={initialLoad.ok ? undefined : initialLoad.truth?.health}>{loadError}</p>
+          {!initialLoad.ok && initialLoad.truth?.nextStep ? (
+            <p className="mt-1 text-xs">{initialLoad.truth.nextStep}</p>
+          ) : null}
+        </div>
       ) : null}
       {actionError ? (
         <p
@@ -406,9 +411,10 @@ export function LeoGovernedActionsPanel({
       ) : null}
 
       {!loadError && cards.length === 0 ? (
-        <p className="text-sm text-[#5C5346]">
-          No governed action proposals yet. Conversation can prepare proposals; they appear here from
-          canonical persistence.
+        <p className="text-sm text-[#5C5346]" data-leo-health={initialLoad.truth?.health ?? "HEALTHY"}>
+          {initialLoad.ok && initialLoad.truth?.explanation
+            ? initialLoad.truth.explanation
+            : "Proposal store is healthy. There are no governed action proposals right now."}
         </p>
       ) : null}
 

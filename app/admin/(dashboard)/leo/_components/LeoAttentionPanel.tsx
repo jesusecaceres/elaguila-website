@@ -1,11 +1,12 @@
 import { adminCardBase } from "@/app/admin/_components/adminTheme";
-import type { LeoAttentionBrief, LeoAttentionItem } from "@/app/leo/_lib/leoTypes";
+import type { LeoAttentionItem } from "@/app/leo/_lib/leoTypes";
+import type { LeoAttentionRuntimeBrief } from "@/app/leo/_lib/leoAttentionRuntime";
 
 import { presentAttentionItem, scrubOwnerFacingText } from "./leoOwnerPresentation";
 
 type AttentionLoad =
-  | { ok: true; brief: LeoAttentionBrief }
-  | { ok: false; limitation: string };
+  | { ok: true; brief: LeoAttentionRuntimeBrief; truth?: { explanation: string; nextStep: string | null; health: string } }
+  | { ok: false; limitation: string; truth?: { explanation: string; nextStep: string | null; health: string } };
 
 function levelStyles(level: LeoAttentionItem["level"]): string {
   switch (level) {
@@ -92,13 +93,18 @@ export function LeoAttentionPanel({ load }: { load: AttentionLoad }) {
       </div>
 
       {!load.ok ? (
-        <div className={`${adminCardBase} border-amber-200/80 bg-amber-50/70 p-3 text-sm text-amber-950`}>
-          {load.limitation}
+        <div
+          className={`${adminCardBase} border-amber-200/80 bg-amber-50/70 p-3 text-sm text-amber-950`}
+          data-leo-health={load.truth?.health ?? "UNAVAILABLE"}
+        >
+          <p>{load.limitation}</p>
+          {load.truth?.nextStep ? <p className="mt-1 text-xs">{load.truth.nextStep}</p> : null}
         </div>
-      ) : load.brief.items.length === 0 ? (
-        <div className={`${adminCardBase} p-4`}>
+      ) : (load.brief.visibleItems ?? load.brief.items).length === 0 ? (
+        <div className={`${adminCardBase} p-4`} data-leo-health={load.truth?.health ?? "HEALTHY"}>
           <p className="text-sm font-semibold leading-relaxed text-[#1E1810]">
-            No current signals qualify for executive attention from available sources.
+            {load.truth?.explanation ??
+              "No current signals qualify for executive attention from available sources."}
           </p>
           <p className="mt-1.5 text-xs leading-relaxed text-[#5C5346]">
             This is not a full-system health attestation — LEO does not yet have complete operational
@@ -110,7 +116,7 @@ export function LeoAttentionPanel({ load }: { load: AttentionLoad }) {
         </div>
       ) : (
         <div className={`${adminCardBase} divide-y divide-[color:var(--lx-border)]/50 overflow-hidden`}>
-          {load.brief.items.map((item, index) => (
+          {(load.brief.visibleItems ?? load.brief.items).map((item, index) => (
             <AttentionRow key={item.id} item={item} rank={index + 1} />
           ))}
         </div>

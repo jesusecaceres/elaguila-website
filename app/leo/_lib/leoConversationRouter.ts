@@ -724,6 +724,15 @@ export function validateLeoConversationRequest(
         .filter(Boolean)
         .slice(0, LEO_CONVERSATION_BOUNDS.maxVisibleCardIds);
     }
+    if (cc.activeWorkspace !== undefined) {
+      if (cc.activeWorkspace !== null && typeof cc.activeWorkspace !== "string") {
+        return { ok: false, error: "invalid_request", message: "activeWorkspace must be a string or null." };
+      }
+      out.activeWorkspace =
+        typeof cc.activeWorkspace === "string"
+          ? cc.activeWorkspace.trim().slice(0, 64) || null
+          : null;
+    }
     clientContext = out;
   }
 

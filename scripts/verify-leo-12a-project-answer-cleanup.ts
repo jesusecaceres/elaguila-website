@@ -91,11 +91,15 @@ function sampleExec(over: Partial<LeoProjectExecutiveSnapshot> = {}): LeoProject
   const configurationState: LeoProjectConfigDiagnostic = {
     github: {
       configured: true,
+      connectorConnected: true,
+      projectIntelligenceConfigured: true,
       repositoryAllowlisted: true,
       allowlistedRepo: "jesusecaceres/elaguila-website",
     },
     vercel: {
       configured: true,
+      connectorConnected: true,
+      projectIntelligenceConfigured: true,
       teamIdAvailable: true,
       projectIdAvailable: true,
       projectAllowlisted: true,
