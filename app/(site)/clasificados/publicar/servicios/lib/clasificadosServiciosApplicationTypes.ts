@@ -3,6 +3,8 @@
  * Step 3 will map this into `ServiciosApplicationDraft` / shell slots — not exposed in UI.
  */
 
+import type { AdBrandingProfile } from "@/app/lib/adBranding";
+
 export type ServiciosLang = "es" | "en";
 
 /** Internal grouping for filters/analytics — never shown in the form copy */
@@ -288,4 +290,10 @@ export type ClasificadosServiciosApplicationState = {
   pendingCertification: string;
   licenseDocumentUrl: string;
   insuranceDocumentUrl: string;
+  /**
+   * Leonix Ad Branding Layer (Gate 2A — data path only, no UI control yet). Sourced from the
+   * global `app/lib/adBranding` preset contract — never a Servicios-local theme/color id.
+   * `null` when the advertiser has not chosen (or is not offered) a branding profile.
+   */
+  adBranding: AdBrandingProfile | null;
 };

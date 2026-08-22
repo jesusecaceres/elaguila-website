@@ -69,6 +69,7 @@ import { buildRestauranteApplicationSectionNavItems } from "./restauranteApplica
 import { RestauranteApplicationSectionNav } from "./RestauranteApplicationSectionNav";
 import { RestauranteAmenitiesFormBlock } from "./RestauranteAmenitiesFormBlock";
 import { RestauranteExternalVideoUrlsSection } from "./RestauranteExternalVideoUrlsSection";
+import { RestauranteAdBrandingPanel } from "./RestauranteAdBrandingPanel";
 import {
   buildRestauranteFormServicePatch,
   isDuplicateCustomLanguage,
@@ -2340,7 +2341,9 @@ export default function RestauranteApplicationClient() {
                 </>
               ) : null}
             </div>
-            
+
+            <RestauranteAdBrandingPanel draft={draft} setDraftPatch={setDraftPatch} lang={lang} />
+
             <RestaurantePublishMediaBuckets
               draft={draft}
               onChange={setDraftPatch}

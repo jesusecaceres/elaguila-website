@@ -146,6 +146,7 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     pendingCertification: "",
     licenseDocumentUrl: "",
     insuranceDocumentUrl: "",
+    adBranding: null,
   };
 }
 
@@ -237,5 +238,6 @@ export function clasificadosServiciosApplicationHasProgress(s: ClasificadosServi
   if (s.languageOtherLines.trim()) return true;
   if (s.languageIds.length !== 1 || s.languageIds[0] !== "lang_es") return true;
   if (hoursDifferFromTemplate(s.hours)) return true;
+  if (s.adBranding) return true;
   return false;
 }

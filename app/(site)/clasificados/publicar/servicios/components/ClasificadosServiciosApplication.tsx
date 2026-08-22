@@ -21,6 +21,7 @@ import {
 } from "../lib/businessTypePresets";
 import { getClasificadosServiciosCopy } from "../lib/clasificadosServiciosApplicationCopy";
 import { ServiciosPublishSortableGallery } from "./ServiciosPublishSortableGallery";
+import { ServiciosAdBrandingPanel } from "./ServiciosAdBrandingPanel";
 import type {
   ChipDef,
   ClasificadosServiciosApplicationState,
@@ -1683,6 +1684,12 @@ export function ClasificadosServiciosApplication() {
               </div>
             </div>
           </div>
+
+          <ServiciosAdBrandingPanel
+            adBranding={state.adBranding}
+            onChange={(next) => setState((s) => ({ ...s, adBranding: next }))}
+            lang={lang}
+          />
 
           <div className="mt-10 border-t border-[#D8C79A]/30 pt-8">
             <p className={labelClass}>{copy.labels.gallery}</p>

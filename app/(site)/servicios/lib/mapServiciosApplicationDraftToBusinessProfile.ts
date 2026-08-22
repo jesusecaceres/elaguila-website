@@ -29,6 +29,7 @@ import {
   sanitizeServiciosAmenityOptionIds,
 } from "./serviciosAmenitiesCatalog";
 import { sanitizeCertificationLabels } from "./serviciosCredentialsCatalog";
+import { validateAdBrandingProfile } from "@/app/lib/adBranding";
 
 function trim(s: string | undefined | null): string {
   return typeof s === "string" ? s.trim().replace(/\s+/g, " ") : "";
@@ -251,6 +252,13 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
       url: couponMoreUrl,
       ...(couponMoreLabel ? { buttonLabel: couponMoreLabel.slice(0, 80) } : {}),
     };
+  }
+
+  // Leonix Ad Branding Layer (Gate 2A) — re-validated at this, the final boundary before the
+  // value can reach `profile_json`; an invalid/unapproved value is dropped, never persisted.
+  if (draft.adBranding) {
+    const adBrandingResult = validateAdBrandingProfile(draft.adBranding);
+    if (adBrandingResult.ok) out.adBranding = adBrandingResult.profile;
   }
 
   return out;

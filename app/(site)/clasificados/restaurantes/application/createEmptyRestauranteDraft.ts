@@ -7,6 +7,7 @@ import {
   collectRestauranteExternalVideoUrls,
   normalizeRestauranteVideoUrlsList,
 } from "@/app/lib/clasificados/restaurantes/restauranteVideoUrls";
+import { validateAdBrandingProfile } from "@/app/lib/adBranding";
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
 import type { RestauranteDaySchedule } from "./restauranteListingApplicationModel";
 
@@ -148,6 +149,7 @@ export function createEmptyRestauranteDraft(): RestauranteListingDraft {
     baseMonthlyPrice: undefined,
     couponUpgradeEnabled: false,
     couponMonthlyPrice: undefined,
+    adBranding: undefined,
   };
 }
 
@@ -288,6 +290,16 @@ export function mergeRestauranteDraft(loaded: unknown): RestauranteListingDraft 
     merged.couponMoreOffers = undefined;
     merged.couponMonthlyPrice = undefined;
   }
+
+  /**
+   * Leonix Ad Branding Layer (Gate 3A) — this is the single normalization boundary shared by
+   * the publish API route, client draft-storage hydration, and published-listing edit
+   * hydration (`listingJsonToDraft`), so validating here covers all three at once. An unknown
+   * theme/shade/background/logo-presentation id, or an unapproved theme+background pairing, is
+   * rejected outright — never coerced, never guessed — and the listing simply has no branding.
+   */
+  const adBrandingResult = validateAdBrandingProfile(draft.adBranding);
+  merged.adBranding = adBrandingResult.ok ? adBrandingResult.profile : undefined;
 
   return merged;
 }
