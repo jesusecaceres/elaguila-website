@@ -9,6 +9,7 @@ import { requireLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
 import {
   loadSpanishReconciliationSnapshot,
   isEligibleForBulkTranslationDraft,
+  isEligibleForOfficialSpanishBatchApproval,
   MAX_BULK_SPANISH_DRAFT_BATCH,
   SPANISH_QUEUE_STATUS_LABEL,
   type SpanishReconciliationEntry,
@@ -20,6 +21,7 @@ import { getUrgencyLabel } from "@/app/lib/recursos/urgency";
 import { verificationStatusLabel, resolveEffectiveVerificationStatus } from "@/app/lib/recursos/verificationStatus";
 import { confirmOfficialSpanishAction } from "@/app/admin/recursosTranslationActions";
 import { generateSpanishDraftsBatchAction } from "@/app/admin/recursosSpanishReconciliationActions";
+import { approveOfficialSpanishBatchAction, type OfficialSpanishBatchSummary } from "@/app/admin/recursosOfficialSpanishActions";
 import { recursosResourcePath } from "@/app/lib/recursos/recursosUrls";
 
 export const dynamic = "force-dynamic";
@@ -56,10 +58,44 @@ const SOURCE_TYPE_LABEL: Record<string, string> = {
   none: "Ninguna",
 };
 
+const ES_FIELD_LABEL: Record<string, string> = {
+  shortDescriptionEs: "Descripción corta",
+  detailsEs: "Detalles",
+  eligibilityEs: "Elegibilidad",
+  hoursNoteEs: "Horario",
+};
+
+/** Existing Resource Official-Spanish Bridge — the resource's own EN value for the paired preview, matching prepareOfficialSpanishProposals.ts's field mapping. */
+function currentEnValueFor(resource: SpanishReconciliationEntry["resource"], fieldName: string): string {
+  switch (fieldName) {
+    case "shortDescriptionEs":
+      return resource.shortDescriptionEn || "";
+    case "detailsEs":
+      return resource.detailsEn || "";
+    case "eligibilityEs":
+      return resource.eligibilityEn || "";
+    case "hoursNoteEs":
+      return resource.contact.hoursNoteEn || "";
+    default:
+      return "";
+  }
+}
+
 function EntryRow({ entry }: { entry: SpanishReconciliationEntry }) {
-  const { resource, queueStatus, spanishStatus, spanishSourceType, highRisk, hasOfficialSourceUrl, pendingTranslationCount } = entry;
+  const {
+    resource,
+    queueStatus,
+    spanishStatus,
+    spanishSourceType,
+    highRisk,
+    hasOfficialSourceUrl,
+    pendingTranslationCount,
+    pendingOfficialSpanish,
+    pendingOfficialSpanishClean,
+  } = entry;
   const effective = resolveEffectiveVerificationStatus(resource.verification);
   const eligibleForBulk = isEligibleForBulkTranslationDraft(entry);
+  const eligibleForOfficialSpanishBatch = isEligibleForOfficialSpanishBatchApproval(entry);
   const publicEsUrl = `${LEONIX_PUBLIC_ORIGIN}${recursosResourcePath(resource.slug)}?lang=es`;
 
   return (
@@ -101,6 +137,48 @@ function EntryRow({ entry }: { entry: SpanishReconciliationEntry }) {
         {pendingTranslationCount > 0 ? <> · {pendingTranslationCount} propuesta(s) de traducción pendiente(s)</> : null}
       </p>
 
+      {queueStatus === "FUENTE_OFICIAL_ES" && pendingOfficialSpanish.length > 0 ? (
+        <div className="mt-3 rounded-lg border border-sky-200 bg-sky-50 p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-sky-950">
+              {pendingOfficialSpanish.length} campo(s) propuesto(s) desde fuente oficial
+            </p>
+            <span
+              className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                pendingOfficialSpanishClean ? "border border-emerald-300 bg-emerald-50 text-emerald-900" : "border border-rose-300 bg-rose-50 text-rose-900"
+              }`}
+            >
+              {pendingOfficialSpanishClean ? "Integridad: PASS" : "Integridad: HOLD"}
+            </span>
+          </div>
+          {hasOfficialSourceUrl ? (
+            <p className="mt-1 text-[11px] text-[#5C5346]">
+              Fuente:{" "}
+              <a href={resource.verification.officialSourceUrl ?? undefined} target="_blank" rel="noopener noreferrer" className="underline">
+                {resource.verification.officialSourceUrl}
+              </a>
+            </p>
+          ) : null}
+          <div className="mt-2 space-y-3">
+            {pendingOfficialSpanish.map((p) => (
+              <div key={p.id} className="rounded-md border border-[color:var(--lx-border)] bg-white p-2.5">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">{ES_FIELD_LABEL[p.fieldName] ?? p.fieldName}</p>
+                <div className="mt-1 grid gap-2 sm:grid-cols-2">
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-wide text-[#A79A87]">EN (actual)</p>
+                    <p className="text-xs text-[#5C5346]">{currentEnValueFor(resource, p.fieldName) || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-wide text-[#A79A87]">ES (propuesto, fuente oficial)</p>
+                    <p className="text-xs font-semibold text-[#1E1810]">{p.proposedValue == null ? "—" : String(p.proposedValue)}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div className="mt-3 flex flex-wrap gap-2">
         <Link href={`/admin/recursos/${resource.id}`} className={`${adminCtaChip} ${adminCtaChipCompact}`}>
           Ver recurso
@@ -108,7 +186,13 @@ function EntryRow({ entry }: { entry: SpanishReconciliationEntry }) {
         {eligibleForBulk ? (
           <label className={`${adminCtaChip} ${adminCtaChipCompact} flex cursor-pointer items-center gap-1.5 border-[#C9B46A]/80 bg-[#FFFCF7]`}>
             <input type="checkbox" name="resourceId" value={resource.id} form="bulk-draft-form" className="h-3.5 w-3.5" />
-            Incluir en lote
+            Incluir en lote (traducción)
+          </label>
+        ) : null}
+        {eligibleForOfficialSpanishBatch ? (
+          <label className={`${adminCtaChip} ${adminCtaChipCompact} flex cursor-pointer items-center gap-1.5 border-emerald-700/80 bg-emerald-50`}>
+            <input type="checkbox" name="resourceId" value={resource.id} form="bulk-official-spanish-form" className="h-3.5 w-3.5" defaultChecked />
+            Incluir en lote (español oficial)
           </label>
         ) : null}
 
@@ -158,7 +242,9 @@ function EntryRow({ entry }: { entry: SpanishReconciliationEntry }) {
   );
 }
 
-export default async function RecursosEspanolPage(props: { searchParams?: Promise<{ tab?: string; error?: string; batch_summary?: string }> }) {
+export default async function RecursosEspanolPage(props: {
+  searchParams?: Promise<{ tab?: string; error?: string; batch_summary?: string; oficial_batch_summary?: string }>;
+}) {
   await requireLeonixAdminPermission("can_manage_recursos");
   const sp = props.searchParams ? await props.searchParams : {};
   const tab: FiltroTab = FILTRO_TABS.some((t) => t.value === sp.tab) ? (sp.tab as FiltroTab) : "todos";
@@ -175,6 +261,7 @@ export default async function RecursosEspanolPage(props: { searchParams?: Promis
     reverificar: snapshot.entries.filter((e) => e.queueStatus === "REVERIFICAR_PRIMERO").length,
   };
   const eligibleForBatch = snapshot.entries.filter(isEligibleForBulkTranslationDraft);
+  const eligibleForOfficialSpanishBatch = snapshot.entries.filter(isEligibleForOfficialSpanishBatchApproval);
 
   const activeTab = FILTRO_TABS.find((t) => t.value === tab) ?? FILTRO_TABS[0];
   const rows = snapshot.entries.filter((e) => activeTab.matches(e.queueStatus));
@@ -185,6 +272,15 @@ export default async function RecursosEspanolPage(props: { searchParams?: Promis
       batchSummary = JSON.parse(sp.batch_summary) as BulkSpanishDraftSummary;
     } catch {
       batchSummary = null;
+    }
+  }
+
+  let oficialBatchSummary: OfficialSpanishBatchSummary | null = null;
+  if (sp.oficial_batch_summary) {
+    try {
+      oficialBatchSummary = JSON.parse(sp.oficial_batch_summary) as OfficialSpanishBatchSummary;
+    } catch {
+      oficialBatchSummary = null;
     }
   }
 
@@ -204,11 +300,16 @@ export default async function RecursosEspanolPage(props: { searchParams?: Promis
       <AdminPagePurposeCard
         title="Cola de reconciliación de español (operacional)"
         purpose="Clasifica cada recurso verificado en uno de siete estados operativos y siempre sugiere la acción correcta: completar contenido base, generar, revisar, publicar, confirmar español oficial o reverificar."
-        dataSource="Deriva de community_resources (incluye spanish_status/spanish_source_type) + resource_change_proposals pendientes. Reutiliza generateSpanishTranslationProposals() — no existe un segundo motor de traducción."
+        dataSource="Deriva de community_resources (incluye spanish_status/spanish_source_type) + resource_change_proposals pendientes (translation y official_spanish). Reutiliza generateSpanishTranslationProposals() y prepareOfficialSpanishProposals() — no existe un segundo motor de revisión."
         status="real"
-        safeActions={["Generar traducción (individual o en lote de hasta 20)", "Revisar y aprobar en el flujo de una página", "Confirmar español oficial", "Ver recurso / reverificar fuente"]}
+        safeActions={[
+          "Generar traducción (individual o en lote de hasta 20)",
+          "Revisar y aprobar en el flujo de una página",
+          "Confirmar español oficial (individual o en lote de hasta 20)",
+          "Ver recurso / reverificar fuente",
+        ]}
         nextGate="Ninguno planeado — el flujo de revisión de una página es la forma habitual de trabajar."
-        warningNote="Esta cola nunca aprueba ni publica nada automáticamente. Los recursos sin contenido base en inglés nunca se cuentan como listos para traducir, y la fuente oficial en español siempre tiene prioridad sobre la traducción por IA."
+        warningNote="Esta cola nunca aprueba ni publica nada automáticamente. Los recursos sin contenido base en inglés nunca se cuentan como listos para traducir, la fuente oficial en español siempre tiene prioridad sobre la traducción por IA, y los recursos de alto riesgo nunca aparecen en ningún lote de aprobación."
       />
 
       <section className={`${adminCardBase} mb-6 p-5`}>
@@ -240,6 +341,30 @@ export default async function RecursosEspanolPage(props: { searchParams?: Promis
             </p>
           ) : null}
 
+          {oficialBatchSummary ? (
+            <div className={`${adminActionProofOk} mb-6`}>
+              <p>
+                Lote de español oficial procesado: {oficialBatchSummary.processed}/{oficialBatchSummary.requested} solicitado(s) ·{" "}
+                <span className="font-bold">{oficialBatchSummary.published} publicado(s)</span> · {oficialBatchSummary.skipped.length} omitido(s) ·{" "}
+                {oficialBatchSummary.failed.length} fallido(s).
+              </p>
+              {oficialBatchSummary.skipped.length > 0 || oficialBatchSummary.failed.length > 0 ? (
+                <ul className="mt-2 space-y-1 text-xs">
+                  {oficialBatchSummary.skipped.map((s) => (
+                    <li key={`skipped-${s.resourceId}`}>
+                      Omitido — <span className="font-semibold">{s.organizationName}</span>: {s.reason}
+                    </li>
+                  ))}
+                  {oficialBatchSummary.failed.map((f) => (
+                    <li key={`failed-${f.resourceId}`}>
+                      Fallido — <span className="font-semibold">{f.organizationName}</span>: {f.reason}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
+
           <form id="bulk-draft-form" action={generateSpanishDraftsBatchAction} className={`${adminCardBase} mb-6 flex flex-wrap items-center justify-between gap-3 p-4`}>
             <div className="text-xs text-[#5C5346]">
               <p>
@@ -256,6 +381,26 @@ export default async function RecursosEspanolPage(props: { searchParams?: Promis
               className={`${adminCtaChip} border-[#7A1E2C] bg-[#7A1E2C] text-white hover:bg-[#6B1A26]`}
             >
               Generar borradores ES
+            </ExecutiveHubConfirmSubmitButton>
+          </form>
+
+          <form
+            id="bulk-official-spanish-form"
+            action={approveOfficialSpanishBatchAction}
+            className={`${adminCardBase} mb-6 flex flex-wrap items-center justify-between gap-3 border-emerald-700/40 p-4`}
+          >
+            <div className="text-xs text-[#5C5346]">
+              <p>
+                <span className="font-bold">{eligibleForOfficialSpanishBatch.length}</span> recurso(s) listo(s) para confirmar como español oficial (máximo{" "}
+                {MAX_BULK_SPANISH_DRAFT_BATCH} por lote). Recursos de alto riesgo nunca se incluyen; cada uno se re-verifica individualmente en el momento de aprobar.
+              </p>
+              <p className="mt-0.5 text-[#8B7E70]">Las casillas de &quot;español oficial&quot; arriba vienen pre-marcadas — desmárcalas para excluir un recurso de este lote.</p>
+            </div>
+            <ExecutiveHubConfirmSubmitButton
+              confirmMessage={`¿Aprobar español oficial y publicar para hasta ${MAX_BULK_SPANISH_DRAFT_BATCH} recursos marcados? Cada recurso se re-verifica individualmente; uno que falle no bloquea a los demás.`}
+              className={`${adminCtaChip} border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800`}
+            >
+              Aprobar español oficial y publicar
             </ExecutiveHubConfirmSubmitButton>
           </form>
 

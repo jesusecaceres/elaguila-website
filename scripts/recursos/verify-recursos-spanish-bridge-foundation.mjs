@@ -70,7 +70,16 @@ if (exists(CHANGE_DETECTION)) {
   assert("getResourceFieldValue has a case for detailsEs", /case "detailsEs":\s*\n\s*return resource\.detailsEs/.test(src));
   assert("getResourceFieldValue has a case for eligibilityEs", /case "eligibilityEs":\s*\n\s*return resource\.eligibilityEs/.test(src));
   assert("getResourceFieldValue has a case for hoursNoteEs", /case "hoursNoteEs":\s*\n\s*return resource\.contact\.hoursNoteEs/.test(src));
-  assert("ProposalSource type includes translation", /export type ProposalSource = "pdf_reextraction" \| "url_recheck" \| "partner_request" \| "manual" \| "translation"/.test(src));
+  assert("ProposalSource type includes translation (historical ES-1B proof — the original 5-value prefix, unchanged by any later gate)", /export type ProposalSource = "pdf_reextraction" \| "url_recheck" \| "partner_request" \| "manual" \| "translation"/.test(src));
+  // Existing Resource Official-Spanish Bridge (Gate ES-9, forward-compatible supersession): this
+  // does NOT require ProposalSource to stay frozen at exactly 5 values forever — it asserts the
+  // CURRENT union contains the historical values above PLUS official_spanish where a later gate
+  // legitimately added it. The historical migration file (MIGRATION, asserted above) is never
+  // touched by this or any later gate and remains the permanent proof of what ES-1B introduced.
+  assert(
+    "ProposalSource type ALSO includes official_spanish (Gate ES-9 — current source, additive, does not contradict the ES-1B historical proof above)",
+    /export type ProposalSource = "pdf_reextraction" \| "url_recheck" \| "partner_request" \| "manual" \| "translation" \| "official_spanish"/.test(src),
+  );
   const safetySetLiteral = src.match(/SAFETY_SENSITIVE_FIELDS: ReadonlySet<string> = new Set\(\[[\s\S]*?\]\);/)?.[0] ?? "";
   assert(
     "SAFETY_SENSITIVE_FIELDS unchanged — does NOT include any *Es field (translation exclusion is separate, not merged into this set)",
@@ -114,7 +123,23 @@ if (exists(CAMBIOS_PAGE)) {
   assert("Cambios page shows a TRADUCCIÓN ES badge", /Traducción ES/.test(src));
   assert("Cambios page shows an ALTO RIESGO badge", /Alto riesgo — revisar individualmente/.test(src));
   assert("Cambios page imports isHighRiskResourceForTranslation", /isHighRiskResourceForTranslation/.test(src));
-  assert("safeCount (displayed bulk-safe count) excludes translation proposals — matches the actual action", /safeCount = proposals\.filter\(\(p\) => !isSafetySensitiveField\(p\.fieldName\) && p\.proposalSource !== "translation"\)/.test(src));
+  // Gate ES-9H widened this from a translation-only exclusion to translation+official_spanish —
+  // matched with a flexible window (not one rigid exact-formatted string) so a harmless future
+  // reformat doesn't fail this check for no semantic reason.
+  assert(
+    "safeCount (displayed bulk-safe count) excludes translation proposals — matches the actual action",
+    (() => {
+      const m = src.match(/const safeCount = proposals\.filter\([\s\S]{0,200}?\)\.length;/);
+      return m ? /proposalSource !== "translation"/.test(m[0]) : false;
+    })(),
+  );
+  assert(
+    "safeCount ALSO excludes official_spanish proposals (Gate ES-9H — matches acceptAllSafeChangeProposalsAction's real filter)",
+    (() => {
+      const m = src.match(/const safeCount = proposals\.filter\([\s\S]{0,200}?\)\.length;/);
+      return m ? /proposalSource !== "official_spanish"/.test(m[0]) : false;
+    })(),
+  );
   assert("bulk-safe warning copy mentions translation exclusion truthfully", /traducci[oó]n/i.test(src) && /sensible/i.test(src));
   assert("no fake/no-op action wired to a real-looking button (every form action is a real imported function)", /acceptAllSafeChangeProposalsAction|acceptChangeProposalAction|rejectChangeProposalAction|needsMoreResearchChangeProposalAction/.test(src));
 }

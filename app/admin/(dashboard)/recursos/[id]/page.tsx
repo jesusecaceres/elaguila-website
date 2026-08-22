@@ -18,6 +18,7 @@ import {
   editTranslationProposalAction,
   approveSpanishTranslationAction,
 } from "@/app/admin/recursosTranslationActions";
+import { attachOfficialSpanishSourceAction } from "@/app/admin/recursosOfficialSpanishActions";
 import { resolveEffectiveVerificationStatus } from "@/app/lib/recursos/verificationStatus";
 import { buildTranslationWorkspaceModel, type TranslationFieldModel, type TranslationFieldStatus } from "@/app/lib/recursos/intake/translation/resourceTranslationWorkspace";
 import { recursosResourcePath } from "@/app/lib/recursos/recursosUrls";
@@ -163,6 +164,12 @@ export default async function EditRecursoPage(props: {
   const SPANISH_FIELD_NAMES = new Set(["shortDescriptionEs", "detailsEs", "eligibilityEs", "hoursNoteEs"]);
   const pendingOnSpanishFields = pendingChanges.filter((p) => SPANISH_FIELD_NAMES.has(p.fieldName));
   const canConfirmOfficialSpanish = isVerified && hasOfficialSpanishEvidence && hasSpanishContent && pendingOnSpanishFields.length === 0 && spanishStatus !== "official_spanish";
+  // Existing Resource Official-Spanish Bridge (Gate ES-9I): the attach control only ever appears
+  // for verified, non-high-risk resources that aren't already publicly-trusted official Spanish —
+  // matches prepareOfficialSpanishProposals.ts's own hard requirements exactly, so the UI never
+  // offers an action the server would refuse anyway.
+  const canAttachOfficialSpanishSource = isVerified && !highRisk && spanishStatus !== "official_spanish";
+  const pendingOfficialSpanishOnPage = pendingChanges.filter((p) => p.proposalSource === "official_spanish");
 
   // Owner Spanish Translation Review Workspace — the single model driving the 3-step workflow.
   const workspace = buildTranslationWorkspaceModel(record, spanishStatus, spanishSourceType, pendingChanges);
@@ -253,6 +260,90 @@ export default async function EditRecursoPage(props: {
         </p>
 
         {!isVerified ? <p className="mt-2 text-xs text-[#8B7E70]">El recurso debe estar verificado (con verificación vigente) antes de generar o aprobar una traducción.</p> : null}
+
+        {/* ================= FUENTE OFICIAL EN ESPAÑOL (attach) — Gate ES-9I ================= */}
+        {canAttachOfficialSpanishSource ? (
+          <details className="mt-4 rounded-lg border border-sky-200 bg-sky-50/60 px-4 py-3">
+            <summary className="cursor-pointer text-sm font-bold text-sky-950">FUENTE OFICIAL EN ESPAÑOL</summary>
+            <p className="mt-2 text-xs text-[#5C5346]">
+              Adjunta una fuente oficial en español o bilingüe encontrada para este recurso ya verificado. Esto crea propuestas pendientes — nada se publica aquí. La
+              revisión y aprobación (individual o en lote) ocurre en{" "}
+              <Link href="/admin/recursos/espanol" className="font-bold underline">
+                /admin/recursos/espanol
+              </Link>
+              .
+            </p>
+            {pendingOfficialSpanishOnPage.length > 0 ? (
+              <p className="mt-2 text-xs font-semibold text-amber-900">
+                Ya hay {pendingOfficialSpanishOnPage.length} propuesta(s) de fuente oficial pendiente(s) para este recurso — revísalas antes de adjuntar una fuente
+                nueva.
+              </p>
+            ) : (
+              <form action={attachOfficialSpanishSourceAction} className="mt-3 space-y-3">
+                <input type="hidden" name="resourceId" value={id} />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="block text-xs font-bold uppercase tracking-wide text-[#7A7164]">
+                    URL de la fuente oficial en español
+                    <input
+                      type="url"
+                      name="sourceUrl"
+                      required
+                      placeholder="https://..."
+                      className="mt-1 w-full rounded-md border border-[color:var(--lx-border)] bg-white px-2.5 py-1.5 text-xs font-normal normal-case text-[#1E1810]"
+                    />
+                  </label>
+                  <label className="block text-xs font-bold uppercase tracking-wide text-[#7A7164]">
+                    Tipo de fuente
+                    <select
+                      name="sourceType"
+                      required
+                      defaultValue="official_spanish_source"
+                      className="mt-1 w-full rounded-md border border-[color:var(--lx-border)] bg-white px-2.5 py-1.5 text-xs font-normal normal-case text-[#1E1810]"
+                    >
+                      <option value="official_spanish_source">Fuente oficial en español</option>
+                      <option value="official_bilingual_source">Fuente oficial bilingüe</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div className="space-y-3">
+                  {(
+                    [
+                      { name: "shortDescriptionEs", label: "Descripción", en: record.shortDescriptionEn },
+                      { name: "detailsEs", label: "Detalles", en: record.detailsEn },
+                      { name: "eligibilityEs", label: "Elegibilidad", en: record.eligibilityEn },
+                      { name: "hoursNoteEs", label: "Horario", en: record.contact.hoursNoteEn },
+                    ] as const
+                  ).map((f) => (
+                    <div key={f.name} className="grid gap-2 sm:grid-cols-2">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-[#A79A87]">{f.label} (EN, solo lectura)</p>
+                        <p className="mt-1 rounded-md border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] px-2.5 py-1.5 text-xs text-[#5C5346]">
+                          {f.en?.trim() || "—"}
+                        </p>
+                      </div>
+                      <label className="block">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-[#A79A87]">{f.label} (ES, opcional — solo si la fuente oficial lo respalda)</p>
+                        <textarea
+                          name={f.name}
+                          rows={2}
+                          className="mt-1 w-full rounded-md border border-[color:var(--lx-border)] bg-white px-2.5 py-1.5 text-xs text-[#1E1810]"
+                        />
+                      </label>
+                    </div>
+                  ))}
+                </div>
+
+                <ExecutiveHubConfirmSubmitButton
+                  confirmMessage="¿Adjuntar esta fuente oficial en español? Se crean propuestas pendientes para los campos completados — nada se publica todavía."
+                  className={`${adminCtaChip} border-sky-700 bg-sky-700 text-white hover:bg-sky-800`}
+                >
+                  Adjuntar fuente oficial en español
+                </ExecutiveHubConfirmSubmitButton>
+              </form>
+            )}
+          </details>
+        ) : null}
 
         {/* ================= PUBLISHED STATE ================= */}
         {workspace.isPublished ? (

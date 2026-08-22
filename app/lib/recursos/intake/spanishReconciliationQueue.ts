@@ -13,7 +13,8 @@ import { dbListAllCommunityResourceSpanishStatuses, type SpanishStatus, type Spa
 import { dbListAllPendingResourceChangeProposals, type ResourceChangeProposalRow } from "./server/resourceChangeProposalsDb";
 import { classifySpanishReadiness, type SpanishReadinessClassification } from "./spanishReadinessClassification";
 import { isHighRiskResourceForTranslation } from "./resourceChangeDetection";
-import { checkFieldTranslationIntegrity } from "./translation/translationIntegrityCheck";
+import { checkFieldTranslationIntegrity, checkOfficialSpanishFieldIntegrity } from "./translation/translationIntegrityCheck";
+import { buildOfficialSpanishStructuredFacts, relatedEnTextForOfficialSpanishField } from "./translation/prepareOfficialSpanishProposals";
 
 const ES_FIELD_TO_EN_SOURCE: Record<string, (r: ResourceRecord) => string | null> = {
   shortDescriptionEs: (r) => r.shortDescriptionEn,
@@ -80,6 +81,12 @@ export type SpanishReconciliationEntry = {
   /** Existing *_es text is display-only info here — never itself treated as "approved" (ES-6A doctrine). */
   hasExistingSpanishText: boolean;
   pendingTranslationCount: number;
+  /** Existing Resource Official-Spanish Bridge (Gate ES-9G): full pending official_spanish proposal rows for this resource, for the owner workspace's EN↔ES paired preview. */
+  pendingOfficialSpanish: ResourceChangeProposalRow[];
+  pendingOfficialSpanishCount: number;
+  /** True only when every pending official_spanish proposal passes checkOfficialSpanishFieldIntegrity against the resource's CURRENT structured facts — a live re-check, not the value captured at attach time. */
+  pendingOfficialSpanishClean: boolean;
+  /** Gate ES-9G: pendingFactualCount now excludes BOTH translation and official_spanish — neither is a "factual" structured-field proposal, both are Spanish-presentation content reviewed through their own dedicated flows. */
   pendingFactualCount: number;
   /** ES-6G: official-source Spanish evidence exists but a human hasn't confirmed it yet — routes to "Confirmar español oficial", never AI translation. */
   officialSpanishAwaitingConfirmation: boolean;
@@ -135,7 +142,9 @@ export function buildSpanishReconciliationEntries(
     const pending = pendingByResource.get(resource.id) ?? [];
     const pendingTranslations = pending.filter((p) => p.proposalSource === "translation");
     const pendingTranslationCount = pendingTranslations.length;
-    const pendingFactualCount = pending.filter((p) => p.proposalSource !== "translation").length;
+    const pendingOfficialSpanish = pending.filter((p) => p.proposalSource === "official_spanish");
+    const pendingOfficialSpanishCount = pendingOfficialSpanish.length;
+    const pendingFactualCount = pending.filter((p) => p.proposalSource !== "translation" && p.proposalSource !== "official_spanish").length;
     const classification = classifySpanishReadiness(resource, spanishStatus, now);
     const officialSpanishAwaitingConfirmation =
       (spanishSourceType === "official_spanish_source" || spanishSourceType === "official_bilingual_source") && spanishStatus !== "official_spanish";
@@ -146,22 +155,35 @@ export function buildSpanishReconciliationEntries(
       const integrity = checkFieldTranslationIntegrity(enSource, p.proposedValue == null ? null : String(p.proposedValue));
       return integrity.ok;
     });
+    const officialSpanishFacts = buildOfficialSpanishStructuredFacts(resource);
+    const pendingOfficialSpanishClean = pendingOfficialSpanish.every((p) => {
+      const relatedEnText = relatedEnTextForOfficialSpanishField(p.fieldName, resource);
+      const integrity = checkOfficialSpanishFieldIntegrity(
+        { ...officialSpanishFacts, relatedVerifiedEnText: relatedEnText },
+        p.proposedValue == null ? null : String(p.proposedValue),
+      );
+      return integrity.ok;
+    });
+    const highRisk = isHighRiskResourceForTranslation({
+      primaryCategory: resource.primaryCategory,
+      crisisPhone: resource.contact.crisisPhone,
+      is24Hours: resource.contact.is24Hours,
+    });
 
     return {
       resource,
       spanishStatus,
       spanishSourceType,
       classification,
-      highRisk: isHighRiskResourceForTranslation({
-        primaryCategory: resource.primaryCategory,
-        crisisPhone: resource.contact.crisisPhone,
-        is24Hours: resource.contact.is24Hours,
-      }),
+      highRisk,
       hasOfficialSourceUrl: Boolean(resource.verification.officialSourceUrl),
       hasExistingSpanishText: Boolean(
         resource.shortDescriptionEs?.trim() || resource.detailsEs?.trim() || resource.eligibilityEs?.trim() || resource.contact.hoursNoteEs?.trim(),
       ),
       pendingTranslationCount,
+      pendingOfficialSpanish,
+      pendingOfficialSpanishCount,
+      pendingOfficialSpanishClean,
       pendingFactualCount,
       officialSpanishAwaitingConfirmation,
       hasBaseContent,
@@ -169,6 +191,25 @@ export function buildSpanishReconciliationEntries(
       queueStatus: computeQueueStatus({ classification, officialSpanishAwaitingConfirmation, spanishStatus, pendingTranslationCount, pendingTranslationsClean, hasBaseContent }),
     };
   });
+}
+
+/**
+ * Existing Resource Official-Spanish Bridge (Gate ES-9G) — eligibility for the owner batch
+ * approval gesture in the espanol command center. Mirrors isEligibleForBulkTranslationDraft's
+ * shape but for the confirm-side of the official-source flow: the resource must already be in
+ * FUENTE_OFICIAL_ES (spanish_source_type official_*, not yet spanish_status=official_spanish),
+ * have at least one pending official_spanish proposal, every one of those must currently pass
+ * integrity (re-checked live against current structured facts, not the value at attach time),
+ * and the resource must never be high-risk — defense-in-depth alongside prepareOfficialSpanishProposals'
+ * own hard refusal.
+ */
+export function isEligibleForOfficialSpanishBatchApproval(entry: SpanishReconciliationEntry): boolean {
+  if (entry.highRisk) return false;
+  if (!entry.officialSpanishAwaitingConfirmation) return false;
+  if (entry.pendingOfficialSpanishCount === 0) return false;
+  if (!entry.pendingOfficialSpanishClean) return false;
+  if (entry.pendingTranslationCount > 0) return false; // no conflicting translation proposal on any field
+  return true;
 }
 
 export async function loadSpanishReconciliationSnapshot(now: Date = new Date()): Promise<SpanishReconciliationSnapshot> {

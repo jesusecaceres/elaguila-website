@@ -201,11 +201,15 @@ if (exists(PUBLIC_QUERIES_PATH)) {
 assert("types.ts untouched beyond the additive sourceDocument/sourceYear widen", exists(TYPES_PATH));
 
 // --- no schema/migration change in Gate 3 ---------------------------------------------------------
-assert("no unaccounted migration file added since Gate 1 (only the Coach-approved Spanish Bridge foundation migration is newer)", (() => {
+// Forward-compatible supersession (same doctrine the PM approved for the historical
+// verify-recursos-spanish-bridge-foundation.mjs assertions): names every migration legitimately
+// added by a LATER, PM-approved gate and fails only on a truly unaccounted one.
+assert("no unaccounted migration file added since Gate 1 (only PM-approved later-gate migrations are newer)", (() => {
   const migDir = path.join(root, "supabase", "migrations");
   const files = fs.readdirSync(migDir).filter((f) => f.endsWith(".sql"));
   const newerThanGate1 = files.filter((f) => f > "20260820120000_recursos_intake_os_schema.sql");
-  return newerThanGate1.filter((f) => f !== "20260821090000_recursos_spanish_bridge_foundation.sql").length === 0;
+  const KNOWN_LATER_GATES = ["20260821090000_recursos_spanish_bridge_foundation.sql", "20260821140000_recursos_official_spanish_bridge.sql"];
+  return newerThanGate1.filter((f) => !KNOWN_LATER_GATES.includes(f)).length === 0;
 })());
 assert("Gate 1 migration file itself is untouched", exists(MIGRATION_PATH));
 

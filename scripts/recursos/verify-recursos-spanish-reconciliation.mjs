@@ -148,7 +148,45 @@ assert(
   "isEligibleForBulkTranslationDraft excludes resources with pending FACTUAL proposals",
   queueFile !== null && /if \(entry\.pendingFactualCount > 0\) return false;/.test(queueFile),
 );
-assert("pendingFactualCount computed from non-translation pending proposals", queueFile !== null && /proposalSource !== "translation"\)\.length/.test(queueFile));
+// Existing Resource Official-Spanish Bridge (Gate ES-9G) widened the binary translation/factual
+// split into a three-way split (translation / official_spanish / factual). Asserting the intended
+// GUARD BEHAVIOR — both exclusions present near the pendingFactualCount definition — rather than
+// one brittle exact-source regex, so a harmless future refactor of this line's exact formatting
+// doesn't fail this check for no semantic reason.
+assert(
+  "pendingFactualCount excludes translation-sourced pending proposals",
+  queueFile !== null &&
+    (() => {
+      const m = queueFile.match(/const pendingFactualCount = pending\.filter\([\s\S]{0,160}?\)\.length;/);
+      return m ? /proposalSource !== "translation"/.test(m[0]) : false;
+    })(),
+);
+assert(
+  "pendingFactualCount ALSO excludes official_spanish-sourced pending proposals (Gate ES-9G — official Spanish is Spanish-presentation content, not a structured factual change)",
+  queueFile !== null &&
+    (() => {
+      const m = queueFile.match(/const pendingFactualCount = pending\.filter\([\s\S]{0,160}?\)\.length;/);
+      return m ? /proposalSource !== "official_spanish"/.test(m[0]) : false;
+    })(),
+);
+assert(
+  "pendingOfficialSpanish proposal rows are exposed on the reconciliation entry (owner workspace can render an EN↔ES paired preview)",
+  queueFile !== null && /pendingOfficialSpanish: ResourceChangeProposalRow\[\]/.test(queueFile) && /pendingOfficialSpanishCount: number/.test(queueFile),
+);
+assert(
+  "isEligibleForOfficialSpanishBatchApproval exported and structurally excludes high-risk resources",
+  queueFile !== null &&
+    (() => {
+      const fnMatch = queueFile.match(/export function isEligibleForOfficialSpanishBatchApproval[\s\S]*?\n}/);
+      return fnMatch ? /highRisk/.test(fnMatch[0]) : false;
+    })(),
+);
+assert(
+  "official_spanish and translation pending proposals are computed as structurally distinct buckets (queue never conflates them into one list)",
+  queueFile !== null &&
+    /const pendingTranslations = pending\.filter\(\(p\) => p\.proposalSource === "translation"\);/.test(queueFile) &&
+    /const pendingOfficialSpanish = pending\.filter\(\(p\) => p\.proposalSource === "official_spanish"\);/.test(queueFile),
+);
 
 // ---------- ES-6F: cost guard preserved ----------
 assert(

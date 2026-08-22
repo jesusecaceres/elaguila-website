@@ -107,21 +107,30 @@ if (exists(SOURCE_INGESTION)) {
 }
 
 // --- ES-5H: confirm-official-Spanish action, permission, factual verification unchanged --------------
+// Existing Resource Official-Spanish Bridge (Gate ES-9F, PM-authorized): the safety-check logic
+// that used to live inline inside confirmOfficialSpanishAction was extracted into a shared,
+// reusable confirmOfficialSpanishCore so approveOfficialSpanishBatchAction can call the exact same
+// implementation instead of a divergent second copy. The logic itself is unchanged (extraction,
+// not a behavior change) — these assertions now look for it in the CORE, and separately confirm
+// the form-bound wrapper still requires can_manage_recursos and actually delegates to that core.
 assert("recursosTranslationActions.ts exists", exists(TRANSLATION_ACTIONS));
 if (exists(TRANSLATION_ACTIONS)) {
   const src = read(TRANSLATION_ACTIONS);
   assert("confirmOfficialSpanishAction exists", /export async function confirmOfficialSpanishAction/.test(src));
-  const confirmFn = src.match(/export async function confirmOfficialSpanishAction[\s\S]*?\n}\n/)?.[0] ?? "";
-  assert("requires can_manage_recursos", /requireLeonixAdminPermission\("can_manage_recursos"\)/.test(confirmFn));
-  assert("requires effective verification status = verified", /resolveEffectiveVerificationStatus\(resource!\.verification\) !== "verified"/.test(confirmFn));
-  assert("requires Spanish presentation content to exist", /hasSpanishContent/.test(confirmFn));
-  assert("requires official Spanish/bilingual evidence already recorded (never sets source_type itself)", /sourceType !== "official_spanish_source" && sourceType !== "official_bilingual_source"/.test(confirmFn));
-  assert("requires no unresolved pending proposals on Spanish fields", /SPANISH_FIELDS\.has\(p\.fieldName\)/.test(confirmFn));
-  assert("sets spanish_status to official_spanish, preserving (not overwriting) the existing source_type", /dbSetCommunityResourceSpanishStatus\(resourceId, "official_spanish", sourceType\)/.test(confirmFn));
-  assert("NEVER touches verification_status/last_verified_at/next_verification_at", !/verificationStatus:|verification_status:|lastVerifiedAt:|last_verified_at:|nextVerificationAt:|next_verification_at:/.test(confirmFn));
+  assert("confirmOfficialSpanishCore exists (extracted, reusable core)", /export async function confirmOfficialSpanishCore/.test(src));
+  const wrapperFn = src.match(/export async function confirmOfficialSpanishAction[\s\S]*?\n}\n/)?.[0] ?? "";
+  const coreFn = src.match(/export async function confirmOfficialSpanishCore[\s\S]*?\n}\n/)?.[0] ?? "";
+  assert("wrapper requires can_manage_recursos", /requireLeonixAdminPermission\("can_manage_recursos"\)/.test(wrapperFn));
+  assert("wrapper delegates to the shared core (no duplicated safety-check logic)", /confirmOfficialSpanishCore\(resourceId, actor\)/.test(wrapperFn));
+  assert("core requires effective verification status = verified", /resolveEffectiveVerificationStatus\(resource\.verification\) !== "verified"/.test(coreFn));
+  assert("core requires Spanish presentation content to exist", /hasSpanishContent/.test(coreFn));
+  assert("core requires official Spanish/bilingual evidence already recorded (never sets source_type itself)", /sourceType !== "official_spanish_source" && sourceType !== "official_bilingual_source"/.test(coreFn));
+  assert("core requires no unresolved pending proposals on Spanish fields", /SPANISH_FIELDS\.has\(p\.fieldName\)/.test(coreFn));
+  assert("core sets spanish_status to official_spanish, preserving (not overwriting) the existing source_type", /dbSetCommunityResourceSpanishStatus\(resourceId, "official_spanish", sourceType\)/.test(coreFn));
+  assert("core NEVER touches verification_status/last_verified_at/next_verification_at", !/verificationStatus:|verification_status:|lastVerifiedAt:|last_verified_at:|nextVerificationAt:|next_verification_at:/.test(coreFn));
   // ES-5N: verification event + audit
-  assert("writes evidence_recorded verification event on confirmation", /eventType: "evidence_recorded"/.test(confirmFn));
-  assert("event sourceType matches the actual preserved source_type (truthful provenance, no new event type)", /sourceType,\s*\n\s*notes: "Español oficial confirmado/.test(confirmFn));
+  assert("core writes evidence_recorded verification event on confirmation", /eventType: "evidence_recorded"/.test(coreFn));
+  assert("event sourceType matches the actual preserved source_type (truthful provenance, no new event type)", /sourceType,\s*\n\s*notes: "Español oficial confirmado/.test(coreFn));
   assert("audit write for official Spanish confirmation", /auditAdminWrite\("recurso_official_spanish_confirmed"/.test(src));
 }
 
@@ -162,11 +171,15 @@ if (exists(BILINGUAL_FALLBACK)) {
 assert("no automatic community_resources.active flip anywhere in the promotion Spanish-handling block", exists(PROMOTE_ACTION) && !/active: true/.test(read(PROMOTE_ACTION)));
 
 // --- No candidate-table migration unless explicitly justified -----------------------------------------
+// Forward-compatible supersession: this gate itself added no migration, which remains true — the
+// one migration that IS newer than the foundation file belongs to a later, separately PM-approved
+// gate (Existing Resource Official-Spanish Bridge, ES-9), not to this gate.
 assert("no new migration file added in this gate (Preferred: no migration — satisfied)", (() => {
   const dir = path.join(root, "supabase", "migrations");
   const files = fs.readdirSync(dir).filter((f) => f.endsWith(".sql"));
   const expectedNewest = "20260821090000_recursos_spanish_bridge_foundation.sql";
-  const newerThanFoundation = files.filter((f) => f > expectedNewest);
+  const KNOWN_LATER_GATES = ["20260821140000_recursos_official_spanish_bridge.sql"];
+  const newerThanFoundation = files.filter((f) => f > expectedNewest && !KNOWN_LATER_GATES.includes(f));
   return newerThanFoundation.length === 0;
 })());
 assert("community_resource_candidate_reviews table/schema untouched (cargo-bay jsonb reuse only)", !exists("supabase/migrations/20260821090000_recursos_spanish_bridge_foundation.sql") || !/candidate_reviews/.test(read("supabase/migrations/20260821090000_recursos_spanish_bridge_foundation.sql")));

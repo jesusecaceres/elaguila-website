@@ -164,10 +164,10 @@ export async function needsMoreResearchChangeProposalAction(formData: FormData):
 }
 
 /**
- * Accepts every PENDING proposal for one resource EXCEPT safety-sensitive fields AND translation
- * proposals, reusing the exact same per-field acceptance path as acceptChangeProposalAction (no
- * separate bulk SQL UPDATE) — one field at a time, one audit/event row per field, so the trail is
- * identical to a human clicking Accept on each one individually.
+ * Accepts every PENDING proposal for one resource EXCEPT safety-sensitive fields AND
+ * translation/official_spanish proposals, reusing the exact same per-field acceptance path as
+ * acceptChangeProposalAction (no separate bulk SQL UPDATE) — one field at a time, one audit/event
+ * row per field, so the trail is identical to a human clicking Accept on each one individually.
  *
  * Spanish Bridge (Gate ES-2C): translation proposals are ALWAYS excluded from bulk-safe-accept,
  * regardless of which field they touch. SAFETY_SENSITIVE_FIELDS only covers structured facts
@@ -175,6 +175,14 @@ export async function needsMoreResearchChangeProposalAction(formData: FormData):
  * Spanish translation of e.g. eligibilityEs/shortDescriptionEs would otherwise be one click away
  * from bulk-publication the moment those fields become writable. This exclusion is independent
  * of and in addition to the existing safety-field exclusion — neither replaces the other.
+ *
+ * Existing Resource Official-Spanish Bridge (Gate ES-9E): official_spanish proposals get the
+ * EXACT same exclusion, for the exact same reason — a resource entering this generic factual
+ * bulk-accept flow must never be able to reach spanish_status='needs_translation_review'-adjacent
+ * content acceptance through this button. Official-source Spanish content is only ever accepted
+ * through the dedicated confirmation core (confirmOfficialSpanishCore /
+ * approveOfficialSpanishBatchAction), which also flips spanish_status and preserves provenance —
+ * this generic action does neither and must never be allowed to touch these fields.
  */
 export async function acceptAllSafeChangeProposalsAction(formData: FormData): Promise<void> {
   await requireLeonixAdminPermission("can_manage_recursos");
@@ -183,7 +191,7 @@ export async function acceptAllSafeChangeProposalsAction(formData: FormData): Pr
 
   const pending = await dbListPendingResourceChangeProposalsForResource(resourceId);
   const safeOnes = pending.filter(
-    (p) => !isSafetySensitiveField(p.fieldName) && p.proposalSource !== "translation" && p.proposedValue !== null,
+    (p) => !isSafetySensitiveField(p.fieldName) && p.proposalSource !== "translation" && p.proposalSource !== "official_spanish" && p.proposedValue !== null,
   );
 
   const actor = await actorEmail();

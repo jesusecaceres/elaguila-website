@@ -9,7 +9,7 @@
 import type { ResourceRecord } from "@/app/lib/recursos/types";
 import type { UrlCandidateProposal } from "./urlCandidateProposal";
 
-export type ProposalSource = "pdf_reextraction" | "url_recheck" | "partner_request" | "manual" | "translation";
+export type ProposalSource = "pdf_reextraction" | "url_recheck" | "partner_request" | "manual" | "translation" | "official_spanish";
 
 /**
  * Fields eligible for a change proposal at all, mapped to their community_resources column.
@@ -19,8 +19,11 @@ export type ProposalSource = "pdf_reextraction" | "url_recheck" | "partner_reque
  * Spanish Bridge (Gate ES-2A): the four *Es entries are the ONLY Spanish fields ever writable
  * through this contract — no arbitrary *_es key is permitted. These are always safe fields
  * structurally (never phone/address/is24Hours), but a proposal touching them is separately
- * excluded from bulk-safe-accept whenever proposalSource === "translation" — see
- * app/admin/recursosChangeProposalActions.ts's acceptAllSafeChangeProposalsAction.
+ * excluded from bulk-safe-accept whenever proposalSource === "translation" OR "official_spanish"
+ * (Gate ES-9B) — see app/admin/recursosChangeProposalActions.ts's acceptAllSafeChangeProposalsAction.
+ * Official-source Spanish must only ever reach community_resources through the dedicated
+ * confirmation core in recursosOfficialSpanishActions.ts/recursosTranslationActions.ts, never the
+ * generic factual bulk-accept.
  */
 export const WRITABLE_FIELD_COLUMNS: Record<string, string> = {
   organizationName: "organization_name",

@@ -29,6 +29,7 @@ const SOURCE_LABEL: Record<string, string> = {
   partner_request: "Solicitud de socio",
   manual: "Manual",
   translation: "Traducción",
+  official_spanish: "Fuente oficial ES",
 };
 
 function shortValue(v: unknown): string {
@@ -40,7 +41,11 @@ function shortValue(v: unknown): string {
 function ProposalRow({ p }: { p: ResourceChangeProposalRow }) {
   const safety = isSafetySensitiveField(p.fieldName);
   const isTranslation = p.proposalSource === "translation";
-  const highRisk = isTranslation && isHighRiskResourceForTranslation({
+  const isOfficialSpanish = p.proposalSource === "official_spanish";
+  // Gate ES-9H: high-risk defense-in-depth badge now covers official_spanish rows too, not just
+  // translation — a high-risk official_spanish proposal should never exist (prepareOfficialSpanishProposals
+  // refuses it structurally), but this is a display-only second signal, never the enforcement point.
+  const highRisk = (isTranslation || isOfficialSpanish) && isHighRiskResourceForTranslation({
     primaryCategory: p.resourcePrimaryCategory,
     crisisPhone: p.resourceCrisisPhone,
     is24Hours: p.resourceIs24Hours,
@@ -60,6 +65,11 @@ function ProposalRow({ p }: { p: ResourceChangeProposalRow }) {
           {isTranslation ? (
             <span className="inline-flex rounded-md border border-sky-300 bg-sky-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-900">
               Traducción ES
+            </span>
+          ) : null}
+          {isOfficialSpanish ? (
+            <span className="inline-flex rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-900">
+              Fuente oficial ES — no es traducción por IA
             </span>
           ) : null}
           {highRisk ? (
@@ -102,25 +112,31 @@ function ProposalRow({ p }: { p: ResourceChangeProposalRow }) {
   );
 }
 
-type CambiosTipo = "todos" | "datos" | "traducciones";
+type CambiosTipo = "todos" | "datos" | "traducciones" | "oficial_es";
 const TIPO_TABS: { value: CambiosTipo; label: string }[] = [
   { value: "todos", label: "Todos" },
   { value: "datos", label: "Datos" },
   { value: "traducciones", label: "Traducciones" },
+  { value: "oficial_es", label: "Fuente oficial ES" },
 ];
 
 export default async function RecursosCambiosPage(props: { searchParams?: Promise<{ status_saved?: string; error?: string; tipo?: string }> }) {
   await requireLeonixAdminPermission("can_manage_recursos");
   const sp = props.searchParams ? await props.searchParams : {};
-  const tipo: CambiosTipo = sp.tipo === "datos" || sp.tipo === "traducciones" ? sp.tipo : "todos";
+  const tipo: CambiosTipo = sp.tipo === "datos" || sp.tipo === "traducciones" || sp.tipo === "oficial_es" ? sp.tipo : "todos";
 
   const { rows: allRows, unavailable } = await dbListResourceChangeProposals();
+  // Gate ES-9H: three-way split — official_spanish is its own bucket, never lumped into "datos"
+  // (factual) alongside pdf_reextraction/url_recheck/partner_request/manual, and never mixed into
+  // "traducciones" either — translation-tab semantics are unchanged from before this gate.
   const rows =
     tipo === "todos"
       ? allRows
       : tipo === "traducciones"
         ? allRows.filter((p) => p.proposalSource === "translation")
-        : allRows.filter((p) => p.proposalSource !== "translation");
+        : tipo === "oficial_es"
+          ? allRows.filter((p) => p.proposalSource === "official_spanish")
+          : allRows.filter((p) => p.proposalSource !== "translation" && p.proposalSource !== "official_spanish");
   const pending = rows.filter((p) => p.status === "pending");
   const decided = rows.filter((p) => p.status !== "pending");
 
@@ -149,9 +165,9 @@ export default async function RecursosCambiosPage(props: { searchParams?: Promis
         purpose="Revisión campo por campo de public.resource_change_proposals. Aceptar actualiza únicamente ese campo en community_resources; Rechazar y Necesita más investigación nunca tocan el recurso."
         dataSource="Supabase `public.resource_change_proposals`. Cada acción re-lee la propuesta en el servidor, confirma que sigue pendiente, y escribe solo la columna permitida — nunca una sobrescritura completa."
         status="real"
-        safeActions={["Aceptar un cambio de campo", "Rechazar una propuesta", "Marcar que necesita más investigación", "Aceptar todos los cambios seguros de un recurso (excluye campos sensibles y traducciones)"]}
-        nextGate="Ninguno planeado en esta fase — el motor de traducción llega en un gate futuro."
-        warningNote="Los campos sensibles (teléfono de crisis, SMS, dirección, 24/7) y toda propuesta de traducción siempre requieren revisión individual — ninguno de los dos se incluye en 'Aceptar cambios seguros'."
+        safeActions={["Aceptar un cambio de campo", "Rechazar una propuesta", "Marcar que necesita más investigación", "Aceptar todos los cambios seguros de un recurso (excluye campos sensibles, traducciones y fuente oficial ES)"]}
+        nextGate="Ninguno planeado en esta fase — la aprobación habitual de español oficial vive en /admin/recursos/espanol."
+        warningNote="Los campos sensibles (teléfono de crisis, SMS, dirección, 24/7), toda propuesta de traducción, y toda propuesta de fuente oficial en español siempre requieren revisión individual o el flujo dedicado — ninguno se incluye en 'Aceptar cambios seguros'."
       />
 
       <div className="mb-6 flex flex-wrap gap-2">
@@ -183,7 +199,9 @@ export default async function RecursosCambiosPage(props: { searchParams?: Promis
           ) : (
             <div className="space-y-6">
               {[...pendingByResource.entries()].map(([resourceId, proposals]) => {
-                const safeCount = proposals.filter((p) => !isSafetySensitiveField(p.fieldName) && p.proposalSource !== "translation").length;
+                const safeCount = proposals.filter(
+                  (p) => !isSafetySensitiveField(p.fieldName) && p.proposalSource !== "translation" && p.proposalSource !== "official_spanish",
+                ).length;
                 return (
                   <section key={resourceId}>
                     <div className="mb-3 flex flex-wrap items-center justify-between gap-2">

@@ -100,10 +100,17 @@ assert("reverifyResourceViaUrl.ts no longer hardcodes is24Hours:false in the det
 })());
 
 // --- Gate 8: schema untouched (no migration expected this gate) --------------------------------
-assert("only the expected Recursos migrations exist (Gate 1 schema + Coach-approved Spanish Bridge foundation)", (() => {
+// Forward-compatible supersession: the expected list now also names the Existing Resource
+// Official-Spanish Bridge (ES-9) migration, a later, separately PM-approved gate — this still
+// fails on any migration NOT in this explicit list, it just isn't frozen at Gate 8's own count.
+assert("only the expected Recursos migrations exist (Gate 1 schema + Spanish Bridge foundation + Official-Spanish Bridge)", (() => {
   const dir = path.join(root, "supabase", "migrations");
   const files = fs.readdirSync(dir).filter((f) => /recursos/i.test(f)).sort();
-  const expected = ["20260820120000_recursos_intake_os_schema.sql", "20260821090000_recursos_spanish_bridge_foundation.sql"];
+  const expected = [
+    "20260820120000_recursos_intake_os_schema.sql",
+    "20260821090000_recursos_spanish_bridge_foundation.sql",
+    "20260821140000_recursos_official_spanish_bridge.sql",
+  ];
   return files.length === expected.length && files.every((f, i) => f === expected[i]);
 })());
 

@@ -159,63 +159,80 @@ export async function markSpanishReviewedAction(formData: FormData): Promise<voi
   redirect(`/admin/recursos/${resourceId}?saved=1`);
 }
 
+export type ConfirmOfficialSpanishCoreResult = { ok: true; sourceType: string } | { ok: false; error: string };
+
 /**
- * Official Spanish certification gesture (Gate ES-5H). Distinct from markSpanishReviewedAction:
- * this confirms Spanish that came directly from an official source (extracted, not AI-translated)
- * — spanish_source_type must already be official_spanish_source/official_bilingual_source
- * (set at promotion time, ES-5G) BEFORE this action can run; it is never set here, only
- * preserved. Like markSpanishReviewedAction, never touches verification_status/last_verified_at/
- * next_verification_at — translation/source approval is not factual reverification.
+ * Official Spanish certification core (Gate ES-5H, extracted at Gate ES-9F). Distinct from
+ * markSpanishReviewedAction: this confirms Spanish that came directly from an official source
+ * (extracted, not AI-translated) — spanish_source_type must already be
+ * official_spanish_source/official_bilingual_source BEFORE this can run; it is never set here,
+ * only preserved. Never touches verification_status/last_verified_at/next_verification_at —
+ * source approval is not factual reverification.
+ *
+ * Extracted into a plain async function (no FormData/redirect) so BOTH the single-resource form
+ * action below AND the Existing-Resource Official-Spanish Bridge's batch action
+ * (approveOfficialSpanishBatchAction, app/admin/recursosOfficialSpanishActions.ts) call the exact
+ * same safety checks and the exact same write — one confirmation implementation, never two
+ * divergent copies. Behavior is byte-for-byte identical to the pre-extraction version.
  */
-export async function confirmOfficialSpanishAction(formData: FormData): Promise<void> {
-  await requireLeonixAdminPermission("can_manage_recursos");
-  const resourceId = str(formData, "resourceId");
-  if (!resourceId) redirect("/admin/recursos?error=unknown_resource");
-
+export async function confirmOfficialSpanishCore(resourceId: string, actorEmail: string | null): Promise<ConfirmOfficialSpanishCoreResult> {
   const resource = await dbGetCommunityResourceById(resourceId);
-  if (!resource) redirect("/admin/recursos?error=unknown_resource");
+  if (!resource) return { ok: false, error: "Recurso desconocido." };
 
-  if (resolveEffectiveVerificationStatus(resource!.verification) !== "verified") {
-    redirect(`/admin/recursos/${resourceId}?error=${encodeURIComponent("El recurso debe estar verificado antes de confirmar el español oficial.")}`);
+  if (resolveEffectiveVerificationStatus(resource.verification) !== "verified") {
+    return { ok: false, error: "El recurso debe estar verificado antes de confirmar el español oficial." };
   }
 
   const hasSpanishContent = Boolean(
-    resource!.shortDescriptionEs?.trim() || resource!.detailsEs?.trim() || resource!.eligibilityEs?.trim() || resource!.contact.hoursNoteEs?.trim(),
+    resource.shortDescriptionEs?.trim() || resource.detailsEs?.trim() || resource.eligibilityEs?.trim() || resource.contact.hoursNoteEs?.trim(),
   );
   if (!hasSpanishContent) {
-    redirect(`/admin/recursos/${resourceId}?error=${encodeURIComponent("No hay ningún campo en español para confirmar todavía.")}`);
+    return { ok: false, error: "No hay ningún campo en español para confirmar todavía." };
   }
 
   const spanishRow = await dbGetCommunityResourceSpanishStatus(resourceId);
   const sourceType = spanishRow?.spanishSourceType;
   if (sourceType !== "official_spanish_source" && sourceType !== "official_bilingual_source") {
-    redirect(`/admin/recursos/${resourceId}?error=${encodeURIComponent("Este recurso no tiene evidencia de fuente oficial en español registrada — no se puede confirmar como español oficial.")}`);
+    return { ok: false, error: "Este recurso no tiene evidencia de fuente oficial en español registrada — no se puede confirmar como español oficial." };
   }
 
-  // Unresolved relevant conflicts: any pending proposal (translation OR url_recheck) touching a
-  // Spanish field must be resolved first — confirming while a change to that same content is
-  // still under review would certify text that's about to change out from under it.
+  // Unresolved relevant conflicts: any pending proposal (translation OR url_recheck OR
+  // official_spanish) touching a Spanish field must be resolved first — confirming while a change
+  // to that same content is still under review would certify text that's about to change out from
+  // under it.
   const SPANISH_FIELDS = new Set(["shortDescriptionEs", "detailsEs", "eligibilityEs", "hoursNoteEs"]);
   const pending = await dbListPendingResourceChangeProposalsForResource(resourceId);
   if (pending.some((p) => SPANISH_FIELDS.has(p.fieldName))) {
-    redirect(`/admin/recursos/${resourceId}?error=${encodeURIComponent("Quedan propuestas pendientes sobre campos en español — revísalas antes de confirmar el español oficial.")}`);
+    return { ok: false, error: "Quedan propuestas pendientes sobre campos en español — revísalas antes de confirmar el español oficial." };
   }
 
-  const actor = await actorEmail();
   const result = await dbSetCommunityResourceSpanishStatus(resourceId, "official_spanish", sourceType);
-  if (!result.ok) {
-    redirect(`/admin/recursos/${resourceId}?error=${encodeURIComponent(result.error)}`);
-  }
+  if (!result.ok) return { ok: false, error: result.error };
 
   // ES-5N: evidence_recorded, sourceType matches the actual preserved source_type — no new event type.
   await insertVerificationEvent({
     resourceId,
     eventType: "evidence_recorded",
-    actorEmail: actor,
+    actorEmail,
     sourceType,
     notes: "Español oficial confirmado por un humano.",
   });
-  auditAdminWrite("recurso_official_spanish_confirmed", "community_resources", resourceId, { actorEmail: actor, spanishSourceType: sourceType });
+  auditAdminWrite("recurso_official_spanish_confirmed", "community_resources", resourceId, { actorEmail, spanishSourceType: sourceType });
+
+  return { ok: true, sourceType };
+}
+
+/** Form-bound wrapper around confirmOfficialSpanishCore — unchanged public behavior/messages. */
+export async function confirmOfficialSpanishAction(formData: FormData): Promise<void> {
+  await requireLeonixAdminPermission("can_manage_recursos");
+  const resourceId = str(formData, "resourceId");
+  if (!resourceId) redirect("/admin/recursos?error=unknown_resource");
+
+  const actor = await actorEmail();
+  const result = await confirmOfficialSpanishCore(resourceId, actor);
+  if (!result.ok) {
+    redirect(`/admin/recursos/${resourceId}?error=${encodeURIComponent(result.error)}`);
+  }
 
   revalidatePath(`/admin/recursos/${resourceId}`);
   redirect(`/admin/recursos/${resourceId}?saved=1`);
