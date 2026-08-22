@@ -75,7 +75,7 @@ export function StaffCommandCenter({
                 {home.attentionBusinesses.map((item) => (
                   <li key={item.businessId}>
                     <Link
-                      href={`/admin/businesses/${item.businessId}`}
+                      href={`/admin/businesses/${item.businessId}#outreach`}
                       className="flex min-h-[44px] items-center justify-between gap-3 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2"
                     >
                       <span className="min-w-0">

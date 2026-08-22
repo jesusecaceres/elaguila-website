@@ -21,8 +21,8 @@ import { listDigitalProfilesForBusiness } from "@/app/lib/business/repositories/
 import { listCustomLinksForBusiness } from "@/app/lib/business/repositories/customLinksRepo";
 import { listListingLinksForBusiness } from "@/app/lib/business/repositories/listingLinksRepo";
 import type { Business, BusinessContact, BusinessCustomLink, BusinessDigitalProfile, BusinessListingLink, BusinessServiceArea } from "@/app/lib/business/types";
-import type { BusinessSalesStatus, FollowUpStoredStatus, SalesContactMethod, SalesNoteOutcome, SalesNoteType } from "./salesWorkspaceLogic";
-import type { StrictSalesActor } from "./businessWorkspaceAccess";
+import { deriveFollowUpDisplayStatus, type BusinessSalesStatus, type FollowUpStoredStatus, type SalesContactMethod, type SalesNoteOutcome, type SalesNoteType } from "./salesWorkspaceLogic";
+import { isOwnerBootstrapActor, type StrictSalesActor } from "./businessWorkspaceAccess";
 import { hasCapability } from "./salesWorkspaceCapabilities";
 
 const BUSINESS_LIST_COLUMNS =
@@ -137,6 +137,7 @@ export async function listBusinessesForWorkspace(filters: BusinessWorkspaceListF
   const businessIds = businesses.map((b) => b.id);
   if (businessIds.length === 0) return { items: [], total: 0 };
 
+  const todayIso = new Date().toISOString().slice(0, 10);
   const [salesProfiles, followUps, serviceAreas, contacts, digitalProfiles, customLinks, listingLinks] = await Promise.all([
     fetchSalesProfilesByBusinessIds(businessIds),
     fetchCurrentFollowUpsByBusinessIds(businessIds),
@@ -179,7 +180,9 @@ export async function listBusinessesForWorkspace(filters: BusinessWorkspaceListF
       salesStatus: salesProfile?.status ?? "new",
       lastContactedAt: salesProfile?.last_contacted_at ?? null,
       nextFollowUpDate: followUp?.scheduled_date ?? null,
-      nextFollowUpStatus: followUp?.status ?? null,
+      nextFollowUpStatus: followUp
+        ? deriveFollowUpDisplayStatus(followUp.status, followUp.scheduled_date, todayIso)
+        : null,
       connectedAdCount,
       primaryCountry: primaryArea?.country ?? null,
       primaryCity: primaryArea?.city_hint ?? null,
@@ -417,6 +420,9 @@ export type CreateSalesNoteInput = {
 };
 
 export async function createSalesNote(input: CreateSalesNoteInput, actor: StrictSalesActor): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  if (isOwnerBootstrapActor(actor) || !actor.rosterId) {
+    return { ok: false, error: "owner_bootstrap_cannot_write_sales_notes" };
+  }
   const trimmedBody = input.body.trim();
   if (!trimmedBody) return { ok: false, error: "empty_body" };
   if (trimmedBody.length > 4000) return { ok: false, error: "body_too_long" };
@@ -486,6 +492,9 @@ export type UpsertFollowUpInput = {
  * makes the "replace" UX explicit rather than surfacing a raw constraint-violation error.
  */
 export async function upsertCurrentFollowUp(input: UpsertFollowUpInput, actor: StrictSalesActor): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (isOwnerBootstrapActor(actor) || !actor.rosterId) {
+    return { ok: false, error: "owner_bootstrap_cannot_write_follow_ups" };
+  }
   const trimmedPurpose = input.purpose.trim();
   if (!trimmedPurpose) return { ok: false, error: "empty_purpose" };
   const supabase = getAdminSupabase();

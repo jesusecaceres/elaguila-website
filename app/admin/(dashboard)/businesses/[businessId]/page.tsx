@@ -2,9 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
-import { actorHasCapability, requireSalesWorkspaceAccess, type SalesWorkspaceDenialReason } from "../../../_lib/businessWorkspaceAccess";
+import { actorHasCapability, isOwnerBootstrapActor, requireSalesWorkspaceAccess, type SalesWorkspaceDenialReason } from "../../../_lib/businessWorkspaceAccess";
 import { getBusinessWorkspaceDetail } from "../../../_lib/businessWorkspaceData";
-import { BUSINESS_SALES_STATUSES, computeNextHelpfulAction, computeProfileCompleteness, type ProfileCompletenessInput } from "../../../_lib/salesWorkspaceLogic";
+import { BUSINESS_SALES_STATUSES, FOLLOW_UP_STATUSES, computeNextHelpfulAction, computeProfileCompleteness, deriveFollowUpDisplayStatus, type ProfileCompletenessInput } from "../../../_lib/salesWorkspaceLogic";
 import { BusinessDashboardNav } from "./BusinessDashboardNav";
 import { BROAD_BUSINESS_TYPES, BUSINESS_STAGES, CONTACT_LABELS, DIGITAL_PROFILE_PLATFORMS, OPERATING_MODELS, SALES_CHANNELS, SALES_RELATIONSHIPS } from "@/app/lib/business/constants";
 import { countryLabel } from "@/app/lib/business/countries";
@@ -84,6 +84,10 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
   }
 
   const { business, membership, contacts, serviceAreas, digitalProfiles, customLinks, listingLinks, salesProfile, notes, currentFollowUp } = detail;
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const followUpDisplayStatus = currentFollowUp
+    ? deriveFollowUpDisplayStatus(currentFollowUp.status, currentFollowUp.scheduledDate, todayIso)
+    : null;
   const primaryArea = serviceAreas.find((a) => a.isPrimary) ?? serviceAreas[0] ?? null;
   const t = businessIdentityCopy("en");
 
@@ -332,7 +336,10 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
             <div className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2">
               <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Follow-up</dt>
               <dd className="text-xs font-semibold text-[#1E1810]">
-                {currentFollowUp.scheduledDate} · {currentFollowUp.status}
+                {currentFollowUp.scheduledDate}
+                {currentFollowUp.scheduledTime ? ` · ${currentFollowUp.scheduledTime.slice(0, 5)}` : ""}
+                {" · "}
+                {labelFromList(FOLLOW_UP_STATUSES, followUpDisplayStatus)}
               </dd>
             </div>
           ) : null}
@@ -764,19 +771,82 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
       <div id="outreach" className="scroll-mt-24 space-y-4">
         <div>
           <h2 className="font-serif text-lg font-bold text-[#1E1810]">Outreach</h2>
-          <p className="mt-1 text-xs text-[#7A7164]">Who contacted the business, what happened, and what should happen next. Follow-ups are not commitments.</p>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            Have we contacted this business, what happened, who handled it, and whether another contact is needed.
+            Sales follow-ups are relationship actions in <code className="text-[11px]">business_follow_ups</code> — not Promise Keeper commitments.
+          </p>
         </div>
+
+        <section className="rounded-2xl border border-[#E8DFD0] bg-[#FFFDF7] p-4">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Outreach status</h3>
+          <p className="mt-2 text-sm font-semibold text-[#1E1810]">{labelFromList(BUSINESS_SALES_STATUSES, salesProfile.status)}</p>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            Last contacted: {salesProfile.lastContactedAt ? new Date(salesProfile.lastContactedAt).toLocaleString("en-US") : "not recorded"}
+          </p>
+          <p className="mt-1 text-[11px] text-[#7A7164]">Change status with the Status control in the dashboard header. Existing canonical values only.</p>
+        </section>
+
         <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-          <h3 className="text-sm font-bold text-[#1E1810]">Follow-up</h3>
-          <div className="mt-3">
-            <FollowUpPanel businessId={business.id} current={currentFollowUp} />
+          <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Contact actions</h3>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            {primaryPhone ? (
+              <a href={`tel:${primaryPhone.normalizedValue}`} className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#7A1E2C] px-3 py-2 text-xs font-bold text-white">
+                Call {formatUsPhoneForDisplay(primaryPhone.value)}
+              </a>
+            ) : null}
+            {primaryPhone?.capabilities.includes("sms") ? (
+              <a href={`sms:${primaryPhone.normalizedValue}`} className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#E8DFD0] px-3 py-2 text-xs font-semibold text-[#3D3428]">
+                SMS
+              </a>
+            ) : null}
+            {primaryPhone?.capabilities.includes("whatsapp") ? (
+              <a href={`https://wa.me/${primaryPhone.normalizedValue.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 px-3 py-2 text-xs font-semibold text-[#1F3A2D]">
+                WhatsApp
+              </a>
+            ) : null}
+            {primaryEmail ? (
+              <a href={`mailto:${primaryEmail.value}`} className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#E8DFD0] px-3 py-2 text-xs font-semibold text-[#3D3428]">
+                Email
+              </a>
+            ) : null}
+            {websiteContact ? (
+              <a href={websiteContact.value.startsWith("http") ? websiteContact.value : `https://${websiteContact.value}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#E8DFD0] px-3 py-2 text-xs font-semibold text-[#3D3428]">
+                Website
+              </a>
+            ) : null}
+            {!canViewPrivateContacts ? (
+              <p className="text-xs text-[#7A7164]">Your role does not include permission to view private contact details.</p>
+            ) : !primaryPhone && !primaryEmail && !websiteContact ? (
+              <p className="text-xs text-[#7A7164]">No verified contact method on file yet.</p>
+            ) : null}
           </div>
         </section>
-        <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-          <h3 className="text-sm font-bold text-[#1E1810]">Sales notes</h3>
-          <p className="mt-1 text-xs text-[#7A7164]">Internal only — never shown to the business owner.</p>
+
+        <section id="follow-up" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
+          <h3 className="text-sm font-bold text-[#1E1810]">Follow-up</h3>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            Next relationship contact — when, why, and expected action. Distinct from Field Agent Living Book notes, confirmed facts, meeting notes, and Promise Keeper commitments.
+          </p>
           <div className="mt-3">
-            <NotesPanel businessId={business.id} notes={notes} />
+            <FollowUpPanel
+              businessId={business.id}
+              current={currentFollowUp}
+              canWrite={actorHasCapability(access.actor, "create_follow_up") && !isOwnerBootstrapActor(access.actor)}
+            />
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
+          <h3 className="text-sm font-bold text-[#1E1810]">Internal notes</h3>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            Internal relationship notes (<code className="text-[11px]">business_sales_notes</code>). Never shown to the owner. Not a confirmed business fact and not a Field Agent Living Book staff note.
+          </p>
+          <div className="mt-3">
+            <NotesPanel
+              businessId={business.id}
+              notes={notes}
+              canWrite={actorHasCapability(access.actor, "create_internal_note") && !isOwnerBootstrapActor(access.actor)}
+            />
           </div>
         </section>
       </div>

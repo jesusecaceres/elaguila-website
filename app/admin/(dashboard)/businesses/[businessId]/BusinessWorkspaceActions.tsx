@@ -80,7 +80,15 @@ export function StatusQuickActions({ businessId, currentStatus }: { businessId: 
   );
 }
 
-export function NotesPanel({ businessId, notes }: { businessId: string; notes: SalesNoteRecord[] }) {
+export function NotesPanel({
+  businessId,
+  notes,
+  canWrite = true,
+}: {
+  businessId: string;
+  notes: SalesNoteRecord[];
+  canWrite?: boolean;
+}) {
   const router = useRouter();
   const [noteType, setNoteType] = useState<string>("conversation");
   const [body, setBody] = useState("");
@@ -103,7 +111,8 @@ export function NotesPanel({ businessId, notes }: { businessId: string; notes: S
     });
     setSubmitting(false);
     if (!res.ok) {
-      setError("Could not save the note.");
+      const body = await res.json().catch(() => null);
+      setError(String(body?.error ?? "Could not save the note."));
       return;
     }
     setBody("");
@@ -114,6 +123,7 @@ export function NotesPanel({ businessId, notes }: { businessId: string; notes: S
 
   return (
     <div className="space-y-4">
+      {canWrite ? (
       <div className="rounded-2xl border border-dashed border-[#D6C7AD] bg-[#FAF7F2]/60 p-4">
         <fieldset className="space-y-3">
           <legend className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Add a note</legend>
@@ -175,11 +185,16 @@ export function NotesPanel({ businessId, notes }: { businessId: string; notes: S
               {error}
             </p>
           ) : null}
-          <button type="button" onClick={() => void submit()} disabled={submitting} className="min-h-[40px] rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white disabled:opacity-50">
+          <button type="button" onClick={() => void submit()} disabled={submitting} className="min-h-[44px] rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white disabled:opacity-50">
             {submitting ? "Saving…" : "Save note"}
           </button>
         </fieldset>
       </div>
+      ) : (
+        <p className="text-xs text-[#7A7164]">
+          Owner bootstrap cannot write roster-attributed sales notes. Use Field Agent to save Living Book staff evidence.
+        </p>
+      )}
 
       <ul className="space-y-2">
         {notes.map((note) => (
@@ -200,13 +215,21 @@ export function NotesPanel({ businessId, notes }: { businessId: string; notes: S
             ) : null}
           </li>
         ))}
-        {notes.length === 0 ? <li className="text-sm text-[#7A7164]">No notes yet.</li> : null}
+        {notes.length === 0 ? <li className="text-sm text-[#7A7164]">No outreach notes yet.</li> : null}
       </ul>
     </div>
   );
 }
 
-export function FollowUpPanel({ businessId, current }: { businessId: string; current: FollowUpRecord | null }) {
+export function FollowUpPanel({
+  businessId,
+  current,
+  canWrite = true,
+}: {
+  businessId: string;
+  current: FollowUpRecord | null;
+  canWrite?: boolean;
+}) {
   const router = useRouter();
   const [scheduledDate, setScheduledDate] = useState("");
   const [purpose, setPurpose] = useState("");
@@ -231,7 +254,8 @@ export function FollowUpPanel({ businessId, current }: { businessId: string; cur
     });
     setSubmitting(false);
     if (!res.ok) {
-      setError("Could not schedule the follow-up.");
+      const body = await res.json().catch(() => null);
+      setError(String(body?.error ?? "Could not schedule the follow-up."));
       return;
     }
     setScheduledDate("");
@@ -262,41 +286,56 @@ export function FollowUpPanel({ businessId, current }: { businessId: string; cur
         <div className="rounded-xl border border-[#E8DFD0] bg-white p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${followUpStatusClass(displayStatus)}`}>{labelFrom(FOLLOW_UP_STATUSES, displayStatus, "en")}</span>
-            <span className="text-xs text-[#7A7164]">{current.scheduledDate}</span>
+            <span className="text-xs text-[#7A7164]">
+              {current.scheduledDate}
+              {current.scheduledTime ? ` · ${current.scheduledTime.slice(0, 5)}` : ""}
+            </span>
           </div>
           <p className="mt-2 break-words text-sm text-[#1E1810]">{current.purpose}</p>
           {current.contactMethod ? <p className="mt-1 text-xs text-[#7A7164]">Via {labelFrom(SALES_CONTACT_METHODS, current.contactMethod, "en")}</p> : null}
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" onClick={() => void quickAction("complete")} disabled={submitting} className="min-h-[36px] rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50">
+          <p className="mt-1 text-[11px] text-[#7A7164]">
+            Scheduled by {current.createdByEmail}
+            {current.createdByRole ? ` · ${current.createdByRole}` : ""}
+          </p>
+          {canWrite ? (
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <button type="button" onClick={() => void quickAction("complete")} disabled={submitting} className="min-h-[44px] rounded-lg bg-[#1F3A2D] px-3 py-2 text-xs font-bold text-white disabled:opacity-50">
               Mark contacted / complete
             </button>
-            <button type="button" onClick={() => void quickAction("waiting_on_owner")} disabled={submitting} className="min-h-[36px] rounded-lg border border-[#E8DFD0] px-3 py-1.5 text-xs font-semibold text-[#3D3428] disabled:opacity-50">
+            <button type="button" onClick={() => void quickAction("waiting_on_owner")} disabled={submitting} className="min-h-[44px] rounded-lg border border-[#E8DFD0] px-3 py-2 text-xs font-semibold text-[#3D3428] disabled:opacity-50">
               Waiting on owner
             </button>
-            <button type="button" onClick={() => void quickAction("cancel")} disabled={submitting} className="min-h-[36px] rounded-lg border border-[#E8DFD0] px-3 py-1.5 text-xs font-semibold text-[#3D3428] disabled:opacity-50">
+            <button type="button" onClick={() => void quickAction("cancel")} disabled={submitting} className="min-h-[44px] rounded-lg border border-[#E8DFD0] px-3 py-2 text-xs font-semibold text-[#3D3428] disabled:opacity-50">
               Not a fit right now
             </button>
           </div>
+          ) : null}
         </div>
       ) : (
         <p className="text-sm text-[#7A7164]">No follow-up scheduled.</p>
       )}
 
+      {canWrite ? (
       <div className="rounded-2xl border border-dashed border-[#D6C7AD] bg-[#FAF7F2]/60 p-4">
         <fieldset className="space-y-3">
-          <legend className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">{current ? "Reschedule follow-up" : "Schedule follow-up"}</legend>
+          <legend className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">{current ? "Replace follow-up" : "Schedule follow-up"}</legend>
+          <p className="text-[11px] text-[#7A7164]">
+            {current
+              ? "A business has one current follow-up. Saving a new date replaces the current one. This is not a history timeline."
+              : "When should we follow up, why, and what is the expected next action?"}
+          </p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div>
               <label htmlFor="follow-up-date" className="block text-xs font-semibold text-[#3D3428]">
                 Date
               </label>
-              <input id="follow-up-date" type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} className="mt-1 min-h-[40px] w-full rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-sm" />
+              <input id="follow-up-date" type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} className="mt-1 min-h-[44px] w-full rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-sm" />
             </div>
             <div>
               <label htmlFor="follow-up-method" className="block text-xs font-semibold text-[#3D3428]">
                 Contact method
               </label>
-              <select id="follow-up-method" value={contactMethod} onChange={(e) => setContactMethod(e.target.value)} className="mt-1 min-h-[40px] w-full rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-sm">
+              <select id="follow-up-method" value={contactMethod} onChange={(e) => setContactMethod(e.target.value)} className="mt-1 min-h-[44px] w-full rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-sm">
                 <option value="">—</option>
                 {SALES_CONTACT_METHODS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -310,18 +349,23 @@ export function FollowUpPanel({ businessId, current }: { businessId: string; cur
             <label htmlFor="follow-up-purpose" className="block text-xs font-semibold text-[#3D3428]">
               Purpose
             </label>
-            <input id="follow-up-purpose" value={purpose} onChange={(e) => setPurpose(e.target.value)} className="mt-1 min-h-[40px] w-full rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm" placeholder="e.g. confirm WhatsApp number" />
+            <input id="follow-up-purpose" value={purpose} onChange={(e) => setPurpose(e.target.value)} className="mt-1 min-h-[44px] w-full rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm" placeholder="e.g. confirm WhatsApp number" />
           </div>
           {error ? (
             <p role="alert" className="text-xs text-red-700">
               {error}
             </p>
           ) : null}
-          <button type="button" onClick={() => void schedule()} disabled={submitting} className="min-h-[40px] rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white disabled:opacity-50">
+          <button type="button" onClick={() => void schedule()} disabled={submitting} className="min-h-[44px] rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white disabled:opacity-50">
             {submitting ? "Saving…" : current ? "Replace follow-up" : "Schedule follow-up"}
           </button>
         </fieldset>
       </div>
+      ) : (
+        <p className="text-xs text-[#7A7164]">
+          Owner bootstrap cannot create roster-attributed follow-ups. Staff with a real roster use this form.
+        </p>
+      )}
     </div>
   );
 }

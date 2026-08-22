@@ -504,6 +504,15 @@ check("composeStaffConciergeHome: empty lists stay empty — no fake counts", ()
   assert.equal(home.attentionBusinesses.length, 0);
   assert.equal(home.recentBusinesses.length, 0);
 });
+check("composeStaffConciergeHome: the same business is not double-counted in Today headline metrics", () => {
+  const home = composeStaffConciergeHome([
+    { business: { id: "b1", displayName: "One Shop" }, salesStatus: "follow_up_due", nextFollowUpDate: "2026-08-01", nextFollowUpStatus: "overdue" },
+  ]);
+  assert.equal(home.overdueFollowUps.length, 1);
+  assert.equal(home.dueFollowUps.length, 0);
+  assert.equal(home.attentionBusinesses.length, 1);
+  assert.equal(home.attentionBusinesses[0]?.businessId, "b1");
+});
 
 const commandCenterPage = read("app/admin/(dashboard)/businesses/page.tsx");
 const commandCenterUi = read("app/admin/(dashboard)/businesses/StaffCommandCenter.tsx");
@@ -624,6 +633,47 @@ check("Gate 03: recent notes reuse existing evidence repository; follow-up is Ou
   assert.ok(fieldComponentsGate03.includes("#outreach"));
   assert.ok(!fieldDictationGate03.includes("chrono"));
   assert.ok(!fieldComponentsGate03.includes("MediaRecorder"));
+});
+
+const outreachPageGate04 = read("app/admin/(dashboard)/businesses/[businessId]/page.tsx");
+const outreachActionsGate04 = read("app/admin/(dashboard)/businesses/[businessId]/BusinessWorkspaceActions.tsx");
+const followUpRouteGate04 = read("app/api/admin/businesses/[businessId]/follow-up/route.ts");
+const notesRouteGate04 = read("app/api/admin/businesses/[businessId]/notes/route.ts");
+check("Gate 04: Outreach section exists with canonical follow-up and sales note UI", () => {
+  assert.ok(outreachPageGate04.includes('id="outreach"'));
+  assert.ok(outreachPageGate04.includes("<FollowUpPanel"));
+  assert.ok(outreachPageGate04.includes("<NotesPanel"));
+  assert.ok(outreachPageGate04.includes("business_follow_ups"));
+  assert.ok(outreachPageGate04.includes("business_sales_notes"));
+  assert.ok(outreachPageGate04.includes("Promise Keeper"));
+});
+check("Gate 04: follow-up source remains business_follow_ups; no Promise Keeper merge or reminder table", () => {
+  assert.ok(followUpRouteGate04.includes("upsertCurrentFollowUp"));
+  assert.ok(followUpRouteGate04.includes("getCurrentFollowUp"));
+  assert.ok(dataText.includes('.from("business_follow_ups")'));
+  assert.ok(dataText.includes("deriveFollowUpDisplayStatus"));
+  assert.ok(!outreachPageGate04.includes("business_reminders"));
+  assert.ok(!outreachActionsGate04.includes("business_commitments"));
+  assert.ok(!outreachActionsGate04.includes("PromiseKeeper"));
+  assert.ok(!dataText.includes("CREATE TABLE"));
+});
+check("Gate 04: owner bootstrap cannot fabricate a sales-note roster write", () => {
+  assert.ok(dataText.includes("owner_bootstrap_cannot_write_sales_notes"));
+  assert.ok(dataText.includes("isOwnerBootstrapActor(actor)"));
+  assert.ok(outreachPageGate04.includes("isOwnerBootstrapActor(access.actor)"));
+  assert.ok(outreachActionsGate04.includes("Owner bootstrap cannot write roster-attributed sales notes"));
+});
+check("Gate 04: contact actions require real values; Field Agent still targets #outreach; no automation", () => {
+  assert.ok(outreachPageGate04.includes("{primaryPhone ?"));
+  assert.ok(outreachPageGate04.includes("{primaryEmail ?"));
+  assert.ok(outreachPageGate04.includes("No verified contact method on file yet."));
+  assert.ok(fieldComponentsGate03.includes("#outreach"));
+  assert.ok(fieldComponentsGate03.includes("Create Follow-up"));
+  assert.ok(!outreachActionsGate04.includes("twilio"));
+  assert.ok(!outreachActionsGate04.includes("chrono"));
+  assert.ok(!outreachActionsGate04.includes("parseFollowUp"));
+  assert.ok(!notesRouteGate04.includes("upsertCurrentFollowUp"));
+  assert.ok(commandCenterUi.includes("#outreach"));
 });
 
 // --- No secret / no production reference ------------------------------------------------------------
