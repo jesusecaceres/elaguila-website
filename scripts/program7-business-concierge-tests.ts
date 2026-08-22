@@ -238,7 +238,9 @@ test("39. assistant cannot externally message", () => isProhibitedAction("SEND_M
 
 test("40. manifest returns expected installability metadata", () =>
   sqlContains(manifestSource, /display: "standalone"/) &&
-  sqlContains(manifestSource, /start_url:/) &&
+  sqlContains(manifestSource, /start_url: "\/admin\/businesses"/) &&
+  sqlContains(manifestSource, /name: "Leonix Business Concierge"/) &&
+  sqlContains(manifestSource, /short_name: "Leonix Concierge"/) &&
   sqlContains(manifestSource, /icons:/));
 
 test("41. service worker excludes /api/*", () =>

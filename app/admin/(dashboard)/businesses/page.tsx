@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AdminPageHeader } from "../../_components/AdminPageHeader";
 import { actorHasCapability, requireSalesWorkspaceAccess, type SalesWorkspaceDenialReason } from "../../_lib/businessWorkspaceAccess";
 import { listBusinessesForWorkspace } from "../../_lib/businessWorkspaceData";
 import { BUSINESS_SALES_STATUSES, labelFrom, type BusinessSalesStatus } from "../../_lib/salesWorkspaceLogic";
+import { composeStaffConciergeHome, emptyStaffConciergeHome } from "../../_lib/staffConciergeHome";
 import { BROAD_BUSINESS_TYPES, BUSINESS_STAGES } from "@/app/lib/business/constants";
 import { countriesSortedByLabel, countryLabel } from "@/app/lib/business/countries";
-import { BusinessConciergeInstallBanner } from "./BusinessConciergeInstallBanner";
+import { StaffCommandCenter } from "./StaffCommandCenter";
 
 export const dynamic = "force-dynamic";
 
@@ -78,16 +78,29 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
 
   const countryOptions = countriesSortedByLabel("en");
   const activeFilterCount = [sp.category, sp.stage, sp.country, sp.status, sp.hasPhone, sp.hasEmail, sp.hasWhatsapp, sp.hasWebsite, sp.hasAds].filter(Boolean).length;
+  const hasListFilters = activeFilterCount > 0 || Boolean(sp.q);
+
+  let home = emptyStaffConciergeHome();
+  let summaryUnavailable = false;
+  try {
+    const homeSource = hasListFilters ? (await listBusinessesForWorkspace({ limit: 100 })).items : items;
+    home = composeStaffConciergeHome(homeSource);
+  } catch {
+    home = emptyStaffConciergeHome();
+    summaryUnavailable = true;
+  }
 
   return (
     <div className="max-w-6xl space-y-6">
-      <AdminPageHeader
-        title="Businesses"
-        eyebrow="Sales workspace"
-        subtitle="Confirmed Business Identity records — find a business, see what's missing, and prepare for contact."
-        helperText="This is the Sales Team Business Workspace. It shows the same trusted Business Identity record the entrepreneur completed — never a second, conflicting source of truth."
-        rightSlot={<BusinessConciergeInstallBanner />}
-      />
+      <StaffCommandCenter home={home} summaryUnavailable={summaryUnavailable} />
+
+      <section id="businesses-inventory" className="space-y-4 scroll-mt-4">
+        <div>
+          <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-[#8A6B1F]">Businesses</h2>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            Confirmed Business Identity records — find a business, see what&apos;s missing, and prepare for contact.
+          </p>
+        </div>
 
       {/* Filters — plain GET form so every view is a shareable/refreshable URL. */}
       <form method="get" className="rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-4">
@@ -274,6 +287,7 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
           </tbody>
         </table>
       </div>
+      </section>
     </div>
   );
 }

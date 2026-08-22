@@ -25,6 +25,8 @@ import {
   hasCapability,
   isSalesWorkspaceRole,
 } from "../app/admin/_lib/salesWorkspaceCapabilities";
+import { isStaffSalesAllowedAdminPath } from "../app/admin/_lib/staffSalesAllowedAdminPath";
+import { composeStaffConciergeHome } from "../app/admin/_lib/staffConciergeHome";
 
 let passed = 0;
 function check(name: string, fn: () => void): void {
@@ -375,9 +377,20 @@ check("businessWorkspaceData.ts and businessWorkspaceAccess.ts are server-only m
 });
 
 // --- Sales-rep reachability (nav wiring) ----------------------------------------------------------
-const staffAccessText = read("app/admin/_lib/staffAdminAccess.ts");
+const staffAccessText = read("app/admin/_lib/staffSalesAllowedAdminPath.ts");
 check("isStaffSalesAllowedAdminPath: sales_rep role can reach /admin/businesses (the whole point of the role)", () => {
   assert.ok(staffAccessText.includes('pathname.startsWith("/admin/businesses")'));
+  assert.equal(isStaffSalesAllowedAdminPath("/admin/businesses"), true);
+});
+check("isStaffSalesAllowedAdminPath: sales_rep can reach Field Agent /admin/field and /admin/field/[businessId]", () => {
+  assert.equal(isStaffSalesAllowedAdminPath("/admin/field"), true);
+  assert.equal(isStaffSalesAllowedAdminPath("/admin/field/abc-123"), true);
+});
+check("isStaffSalesAllowedAdminPath: sales_rep is still denied unrelated admin routes", () => {
+  assert.equal(isStaffSalesAllowedAdminPath("/admin/clasificados"), false);
+  assert.equal(isStaffSalesAllowedAdminPath("/admin/tienda"), false);
+  assert.equal(isStaffSalesAllowedAdminPath("/admin/usuarios"), false);
+  assert.equal(isStaffSalesAllowedAdminPath("/admin/leads/inbox"), false);
 });
 const adminAccessControlText = read("app/admin/_lib/adminAccessControl.ts");
 check("getAllowedGlobalNavHrefs: /admin/businesses is allowed for both the sales_rep branch and the full-access branch", () => {
@@ -469,6 +482,69 @@ check("Data contract doc documents all four tables, the capability matrix, and t
   assert.ok(contractText.includes("assigned_roster_id"), "must document the assignment-model gap using the current column name");
   assert.ok(!contractText.includes("assigned_operator_email"), "must not reference the old free-text column name");
   assert.ok(!contractText.includes("unattributed@leonix-admin") || contractText.toLowerCase().includes("resolved"), "the old placeholder pattern must be documented as resolved, not presented as current behavior");
+});
+
+// --- Gate 01: Staff Command Center (read model + shell, no new table) --------------------------------
+check("composeStaffConciergeHome: overdue and due_today come from real follow-up status only", () => {
+  const home = composeStaffConciergeHome([
+    { business: { id: "b1", displayName: "Overdue Cafe" }, salesStatus: "contacted", nextFollowUpDate: "2026-08-01", nextFollowUpStatus: "overdue" },
+    { business: { id: "b2", displayName: "Due Today Shop" }, salesStatus: "follow_up_due", nextFollowUpDate: "2026-08-21", nextFollowUpStatus: "due_today" },
+    { business: { id: "b3", displayName: "Quiet Bakery" }, salesStatus: "new", nextFollowUpDate: null, nextFollowUpStatus: null },
+  ]);
+  assert.equal(home.overdueFollowUps.length, 1);
+  assert.equal(home.overdueFollowUps[0]?.businessId, "b1");
+  assert.equal(home.dueFollowUps.length, 1);
+  assert.equal(home.dueFollowUps[0]?.businessId, "b2");
+  assert.equal(home.attentionBusinesses.length, 2);
+});
+check("composeStaffConciergeHome: empty lists stay empty — no fake counts", () => {
+  const home = composeStaffConciergeHome([]);
+  assert.equal(home.dueFollowUps.length, 0);
+  assert.equal(home.overdueFollowUps.length, 0);
+  assert.equal(home.attentionBusinesses.length, 0);
+  assert.equal(home.recentBusinesses.length, 0);
+});
+
+const commandCenterPage = read("app/admin/(dashboard)/businesses/page.tsx");
+const commandCenterUi = read("app/admin/(dashboard)/businesses/StaffCommandCenter.tsx");
+const adminHomeDash = read("app/admin/_components/AdminCommandCenterDashboard.tsx");
+const manifestText = read("app/manifest.ts");
+check("Gate 01: /admin/businesses is the Staff Command Center and still loads business inventory", () => {
+  assert.ok(commandCenterPage.includes("StaffCommandCenter"));
+  assert.ok(commandCenterPage.includes("listBusinessesForWorkspace"));
+  assert.ok(commandCenterPage.includes('id="businesses-inventory"'));
+  assert.ok(commandCenterUi.includes("Leonix Business Concierge"));
+  assert.ok(commandCenterUi.includes("Staff Command Center"));
+});
+check("Gate 01: Command Center crest is /logo-clean.png and never the locked title banner", () => {
+  assert.ok(commandCenterUi.includes('src="/logo-clean.png"'));
+  assert.ok(!commandCenterUi.includes("title_banner_leonix.png"));
+  assert.ok(!commandCenterPage.includes("title_banner_leonix.png"));
+});
+check("Gate 01: Quick actions use real routes only (inventory, canvass, Field Agent)", () => {
+  assert.ok(commandCenterUi.includes('href="#businesses-inventory"'));
+  assert.ok(commandCenterUi.includes('href="/admin/businesses/canvass"'));
+  assert.ok(commandCenterUi.includes('href="/admin/field"'));
+});
+check("Gate 01: install banner remains on the Command Center", () => {
+  assert.ok(commandCenterUi.includes("BusinessConciergeInstallBanner"));
+});
+check("Gate 01: Admin home Concierge card is live and links to /admin/businesses", () => {
+  assert.ok(adminHomeDash.includes("Open Business Concierge"));
+  assert.ok(adminHomeDash.includes('href: "/admin/businesses"'));
+  assert.ok(!adminHomeDash.includes("Future paid service queue"));
+  assert.ok(!adminHomeDash.includes("No live concierge table yet"));
+});
+check("Gate 01: PWA identity is Leonix Business Concierge with start_url /admin/businesses", () => {
+  assert.ok(manifestText.includes('name: "Leonix Business Concierge"'));
+  assert.ok(manifestText.includes('short_name: "Leonix Concierge"'));
+  assert.ok(manifestText.includes('start_url: "/admin/businesses"'));
+});
+check("Gate 01: staffConciergeHome is a pure read model — no DB writes, no new table", () => {
+  const homeLib = read("app/admin/_lib/staffConciergeHome.ts");
+  assert.ok(!/\.from\(/.test(homeLib));
+  assert.ok(!/CREATE TABLE/i.test(homeLib));
+  assert.ok(!/insert\(/i.test(homeLib));
 });
 
 // --- No secret / no production reference ------------------------------------------------------------

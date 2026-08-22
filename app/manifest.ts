@@ -7,9 +7,9 @@ import type { MetadataRoute } from "next";
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Leonix Business Concierge — Field Agent",
-    short_name: "Leonix Field",
-    description: "Staff field agent tools for the Leonix Business Concierge platform.",
+    name: "Leonix Business Concierge",
+    short_name: "Leonix Concierge",
+    description: "Staff operating system for the Leonix Business Concierge platform.",
     start_url: "/admin/businesses",
     display: "standalone",
     orientation: "portrait",

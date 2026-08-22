@@ -266,10 +266,44 @@ function verifySourceArchitecture(): VerifyCheck[] {
   });
 
   const businessesListPage = readSourceFile("app/admin/(dashboard)/businesses/page.tsx");
+  const commandCenterFile = readSourceFile("app/admin/(dashboard)/businesses/StaffCommandCenter.tsx");
+  const staffAccessFile = readSourceFile("app/admin/_lib/staffSalesAllowedAdminPath.ts");
+  const adminHomeFile = readSourceFile("app/admin/_components/AdminCommandCenterDashboard.tsx");
+  const manifestFile = readSourceFile("app/manifest.ts");
   checks.push({
     name: "Main Business Concierge workspace: exposes install banner",
-    passed: businessesListPage.includes("BusinessConciergeInstallBanner"),
+    passed: businessesListPage.includes("BusinessConciergeInstallBanner") || commandCenterFile.includes("BusinessConciergeInstallBanner"),
     detail: "Staff must not need to visit /admin/field to discover installation",
+  });
+  checks.push({
+    name: "Gate 01: /admin/businesses is Staff Command Center with inventory preserved",
+    passed:
+      businessesListPage.includes("StaffCommandCenter") &&
+      businessesListPage.includes("listBusinessesForWorkspace") &&
+      commandCenterFile.includes("Leonix Business Concierge") &&
+      commandCenterFile.includes('src="/logo-clean.png"') &&
+      !commandCenterFile.includes("title_banner_leonix.png"),
+    detail: "Command Center sits above existing inventory; official crest only",
+  });
+  checks.push({
+    name: "Gate 01: sales_rep Field Agent paths are allowed",
+    passed: staffAccessFile.includes('pathname === "/admin/field"') && staffAccessFile.includes('pathname.startsWith("/admin/field/")'),
+    detail: "sales_rep must reach /admin/field and /admin/field/[businessId]",
+  });
+  checks.push({
+    name: "Gate 01: Admin home Concierge card is live, not planned",
+    passed:
+      adminHomeFile.includes("Open Business Concierge") &&
+      adminHomeFile.includes('href: "/admin/businesses"') &&
+      !adminHomeFile.includes("Future paid service queue") &&
+      !adminHomeFile.includes("No live concierge table yet"),
+  });
+  checks.push({
+    name: "Gate 01: PWA name is Leonix Business Concierge; start_url remains /admin/businesses",
+    passed:
+      manifestFile.includes('name: "Leonix Business Concierge"') &&
+      manifestFile.includes('short_name: "Leonix Concierge"') &&
+      manifestFile.includes('start_url: "/admin/businesses"'),
   });
 
   const installBannerFile = readSourceFile("app/admin/(dashboard)/businesses/BusinessConciergeInstallBanner.tsx");
