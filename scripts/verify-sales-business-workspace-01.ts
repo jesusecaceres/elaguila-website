@@ -547,6 +547,50 @@ check("Gate 01: staffConciergeHome is a pure read model — no DB writes, no new
   assert.ok(!/insert\(/i.test(homeLib));
 });
 
+const detailPageGate02 = read("app/admin/(dashboard)/businesses/[businessId]/page.tsx");
+const dashboardNav = read("app/admin/(dashboard)/businesses/[businessId]/BusinessDashboardNav.tsx");
+check("Gate 02: business detail remains a server component (no use client on the page)", () => {
+  assert.ok(!/^\s*["']use client["']/.test(detailPageGate02));
+  assert.ok(detailPageGate02.includes("requireSalesWorkspaceAccess()"));
+});
+check("Gate 02: Business Dashboard identity exists and is not merely Sales workspace", () => {
+  assert.ok(detailPageGate02.includes("Business Dashboard"));
+  assert.ok(detailPageGate02.includes("Business Concierge"));
+  assert.ok(!detailPageGate02.includes('eyebrow="Sales workspace"'));
+  assert.ok(!detailPageGate02.includes('eyebrow={business.publicName && business.publicName !== business.displayName ? `Public name: ${business.publicName}` : "Sales workspace"}'));
+});
+check("Gate 02: local navigation exists with the required section anchors", () => {
+  assert.ok(dashboardNav.includes('"use client"'));
+  assert.ok(dashboardNav.includes("BusinessDashboardNav"));
+  for (const id of ["overview", "business-book", "health", "outreach", "discover", "meetings", "recommend", "opportunity", "creative", "decide", "promises", "outcomes"]) {
+    assert.ok(detailPageGate02.includes(`id="${id}"`), `missing section id ${id}`);
+  }
+});
+check("Gate 02: existing domain panels remain rendered on the detail page", () => {
+  assert.ok(detailPageGate02.includes("from \"./LivingBusinessBookActions\""));
+  assert.ok(detailPageGate02.includes("from \"./HealthMapActions\""));
+  assert.ok(detailPageGate02.includes("<FollowUpPanel"));
+  assert.ok(detailPageGate02.includes("<NotesPanel"));
+  assert.ok(detailPageGate02.includes("from \"./FieldDiscoveryActions\""));
+  assert.ok(detailPageGate02.includes("from \"./MeetingStudioActions\""));
+  assert.ok(detailPageGate02.includes("from \"./StewardshipActions\""));
+  assert.ok(detailPageGate02.includes("from \"./OpportunityActions\""));
+  assert.ok(detailPageGate02.includes("from \"./CreativeStudioActions\""));
+  assert.ok(detailPageGate02.includes("from \"./ProposalActions\""));
+  assert.ok(detailPageGate02.includes("from \"./PromiseKeeperActions\""));
+  assert.ok(detailPageGate02.includes("<OutcomesPanel"));
+  assert.ok(detailPageGate02.includes("<AdvisorPanel"));
+  assert.ok(detailPageGate02.includes("<AssistantPanel"));
+  assert.ok(detailPageGate02.includes("isOutcomesEnabled"));
+  assert.ok(detailPageGate02.includes("isAdvisorEnabled"));
+  assert.ok(detailPageGate02.includes("isAssistantEnabled"));
+});
+check("Gate 02: Field Agent business link and no duplicate Concierge route", () => {
+  assert.ok(detailPageGate02.includes("href={`/admin/field/${business.id}`}"));
+  assert.ok(!detailPageGate02.includes("/admin/business-concierge"));
+  assert.ok(detailPageGate02.includes('from "@/app/lib/business/phoneDisplay"'));
+});
+
 // --- No secret / no production reference ------------------------------------------------------------
 const gateB_Files = [
   "app/admin/_lib/businessWorkspaceAccess.ts",

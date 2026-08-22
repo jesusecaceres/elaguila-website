@@ -1,9 +1,11 @@
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { actorHasCapability, requireSalesWorkspaceAccess, type SalesWorkspaceDenialReason } from "../../../_lib/businessWorkspaceAccess";
 import { getBusinessWorkspaceDetail } from "../../../_lib/businessWorkspaceData";
-import { computeNextHelpfulAction, computeProfileCompleteness, type ProfileCompletenessInput } from "../../../_lib/salesWorkspaceLogic";
+import { BUSINESS_SALES_STATUSES, computeNextHelpfulAction, computeProfileCompleteness, type ProfileCompletenessInput } from "../../../_lib/salesWorkspaceLogic";
+import { BusinessDashboardNav } from "./BusinessDashboardNav";
 import { BROAD_BUSINESS_TYPES, BUSINESS_STAGES, CONTACT_LABELS, DIGITAL_PROFILE_PLATFORMS, OPERATING_MODELS, SALES_CHANNELS, SALES_RELATIONSHIPS } from "@/app/lib/business/constants";
 import { countryLabel } from "@/app/lib/business/countries";
 import { formatUsPhoneForDisplay } from "@/app/lib/business/phoneDisplay";
@@ -73,7 +75,7 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
   if (!detail) {
     return (
       <div className="max-w-3xl">
-        <AdminPageHeader title="Business not found" eyebrow="Sales workspace" />
+        <AdminPageHeader title="Business not found" eyebrow="Business Concierge" />
         <Link href="/admin/businesses" className="text-sm font-semibold text-[#7A1E2C] underline">
           ← Back to businesses
         </Link>
@@ -187,7 +189,7 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
   // Program 5 — Lion's Cockpit + Meeting Studio + Proposals + Promise Keeper
   const canViewMeetingStudio = actorHasCapability(access.actor, "view_meeting_studio");
   const canPrepareMeeting = actorHasCapability(access.actor, "prepare_business_meeting");
-  const canCreateProposal = actorHasCapability(access.actor, "create_proposal");
+  const _canCreateProposal = actorHasCapability(access.actor, "create_proposal");
   const canReviewProposal = actorHasCapability(access.actor, "review_proposal");
   const canRecordProposalDecision = actorHasCapability(access.actor, "record_proposal_decision");
   const canViewCommitments = actorHasCapability(access.actor, "view_commitments");
@@ -254,17 +256,142 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
   const assistantEnabled = await isAssistantEnabled();
   const program7Threads = assistantEnabled ? await listThreadsForBusiness(business.id) : [];
 
+  const dashboardTabs = [
+    { id: "overview", label: "Overview" },
+    ...(canViewBook && bookData ? [{ id: "business-book", label: "Business Book" }] : []),
+    ...(canViewHealthMap && healthData ? [{ id: "health", label: "Health" }] : []),
+    { id: "outreach", label: "Outreach" },
+    ...(fieldDiscoveryData ? [{ id: "discover", label: "Discover" }] : []),
+    ...(program5Data ? [{ id: "meetings", label: "Meetings" }] : []),
+    ...(canViewRecommendations && stewardshipData ? [{ id: "recommend", label: "Next Right Move" }] : []),
+    ...(canViewOpportunities && opportunityEnabled ? [{ id: "opportunity", label: "Opportunities" }] : []),
+    ...(canViewCreativeStudio && creativeStudioEnabled ? [{ id: "creative", label: "Creative Studio" }] : []),
+    ...(program5Data && canViewCommitments ? [{ id: "decide", label: "Proposals" }] : []),
+    ...(program5Data && canViewCommitments ? [{ id: "promises", label: "Commitments" }] : []),
+    ...(outcomesEnabled || advisorEnabled || assistantEnabled ? [{ id: "outcomes", label: "Outcomes" }] : []),
+  ];
+
+  const locationChip = primaryArea?.country ? countryLabel(primaryArea.country, "en") : null;
+  const commitmentCount = program5Data?.briefing.commitments?.activeCount;
+  const opportunityCount = canViewOpportunities && opportunityEnabled ? opportunities.length : null;
+
   return (
     <div className="max-w-5xl space-y-6">
       <Link href="/admin/businesses" className="text-xs font-semibold text-[#7A1E2C] underline">
         ← Back to businesses
       </Link>
-      <AdminPageHeader
-        title={business.displayName}
-        eyebrow={business.publicName && business.publicName !== business.displayName ? `Public name: ${business.publicName}` : "Sales workspace"}
-        subtitle={`${labelFromList(BROAD_BUSINESS_TYPES, business.broadBusinessType)} · ${labelFromList(BUSINESS_STAGES, business.businessStage)}`}
-        rightSlot={<StatusQuickActions businessId={business.id} currentStatus={salesProfile.status} />}
-      />
+
+      <header className="rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-4 sm:p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
+            <Image src="/logo-clean.png" alt="" width={40} height={40} className="mt-0.5 h-8 w-8 shrink-0 object-contain sm:h-10 sm:w-10" />
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Business Concierge</p>
+              <h1 className="mt-1 font-serif text-2xl font-bold leading-tight tracking-tight text-[#1E1810] sm:text-3xl">
+                {business.displayName}
+              </h1>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#8A6B1F]">Business Dashboard</p>
+              {business.publicName && business.publicName !== business.displayName ? (
+                <p className="mt-1 text-xs text-[#7A7164]">Public name: {business.publicName}</p>
+              ) : null}
+            </div>
+          </div>
+          <StatusQuickActions businessId={business.id} currentStatus={salesProfile.status} />
+        </div>
+
+        <dl className="mt-4 flex flex-wrap gap-2">
+          <div className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2">
+            <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Status</dt>
+            <dd className="text-xs font-semibold text-[#1E1810]">{labelFromList(BUSINESS_SALES_STATUSES, salesProfile.status)}</dd>
+          </div>
+          {business.businessStage ? (
+            <div className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2">
+              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Stage</dt>
+              <dd className="text-xs font-semibold text-[#1E1810]">{labelFromList(BUSINESS_STAGES, business.businessStage)}</dd>
+            </div>
+          ) : null}
+          {business.broadBusinessType ? (
+            <div className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2">
+              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Category</dt>
+              <dd className="text-xs font-semibold text-[#1E1810]">{labelFromList(BROAD_BUSINESS_TYPES, business.broadBusinessType)}</dd>
+            </div>
+          ) : null}
+          {locationChip ? (
+            <div className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2">
+              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Location</dt>
+              <dd className="text-xs font-semibold text-[#1E1810]">{locationChip}</dd>
+            </div>
+          ) : null}
+          <div className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2">
+            <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Complete</dt>
+            <dd className="text-xs font-semibold text-[#1E1810]">
+              {completeness.metCount}/{completeness.totalCount}
+            </dd>
+          </div>
+          {currentFollowUp ? (
+            <div className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2">
+              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Follow-up</dt>
+              <dd className="text-xs font-semibold text-[#1E1810]">
+                {currentFollowUp.scheduledDate} · {currentFollowUp.status}
+              </dd>
+            </div>
+          ) : null}
+          {commitmentCount && commitmentCount > 0 ? (
+            <div className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2">
+              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Active commitments</dt>
+              <dd className="text-xs font-semibold text-[#1E1810]">{commitmentCount}</dd>
+            </div>
+          ) : null}
+          {opportunityCount && opportunityCount > 0 ? (
+            <div className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2">
+              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Opportunities</dt>
+              <dd className="text-xs font-semibold text-[#1E1810]">{opportunityCount}</dd>
+            </div>
+          ) : null}
+        </dl>
+
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <a href="#outreach" className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-semibold text-white">
+            Add note
+          </a>
+          <a href="#outreach" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
+            Follow-up
+          </a>
+          <Link
+            href={`/admin/field/${business.id}`}
+            className="inline-flex min-h-[44px] flex-col items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-white px-4 py-2 text-xs font-semibold text-[#7A1E2C]"
+          >
+            <span>Field Agent</span>
+            <span className="text-[10px] font-normal text-[#7A7164]">Quick capture in the field.</span>
+          </Link>
+          {fieldDiscoveryData ? (
+            <a href="#discover" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
+              Discover
+            </a>
+          ) : null}
+          {program5Data ? (
+            <a href="#meetings" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
+              Start meeting
+            </a>
+          ) : null}
+          {canViewOpportunities && opportunityEnabled ? (
+            <a href="#opportunity" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
+              Review opportunities
+            </a>
+          ) : null}
+          {canViewCreativeStudio && creativeStudioEnabled ? (
+            <a href="#creative" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
+              Creative Studio
+            </a>
+          ) : null}
+        </div>
+      </header>
+
+      <BusinessDashboardNav tabs={dashboardTabs} />
+
+      <div id="overview" className="scroll-mt-24 space-y-4">
+        <h2 className="font-serif text-lg font-bold text-[#1E1810]">Overview</h2>
+        <p className="text-xs text-[#7A7164]">Who this business is, how to reach them, what is missing, and what staff should do next.</p>
 
       {/* B. Contact actions — near the top, real formatted values, respects visibility. */}
       <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
@@ -463,29 +590,13 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
           {!primaryPhone && !primaryEmail ? <li className="font-semibold text-amber-800">⚠ No verified owner contact on file.</li> : null}
         </ul>
       </section>
-
-      {/* Follow-up system */}
-      <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-        <h2 className="text-sm font-bold text-[#1E1810]">Follow-up</h2>
-        <div className="mt-3">
-          <FollowUpPanel businessId={business.id} current={currentFollowUp} />
-        </div>
-      </section>
-
-      {/* Notes */}
-      <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-        <h2 className="text-sm font-bold text-[#1E1810]">Sales notes</h2>
-        <p className="mt-1 text-xs text-[#7A7164]">Internal only — never shown to the business owner.</p>
-        <div className="mt-3">
-          <NotesPanel businessId={business.id} notes={notes} />
-        </div>
-      </section>
+      </div>
 
       {/* Living Business Book (Gate BCO-5A) — capability-gated; entirely absent from the page when the actor lacks view_business_book, not just visually hidden. */}
       {canViewBook && bookData ? (
-        <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-          <h2 className="text-sm font-bold text-[#1E1810]">Living Business Book</h2>
-          <p className="mt-1 text-xs text-[#7A7164]">What Leonix knows, what&apos;s confirmed, what&apos;s unknown, and what&apos;s changed over time.</p>
+        <section id="business-book" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
+          <h2 className="font-serif text-lg font-bold text-[#1E1810]">Business Book</h2>
+          <p className="mt-1 text-xs text-[#7A7164]">Verified facts, evidence, unknowns, contradictions, and the evolving Leonix understanding of this business.</p>
 
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <div className="rounded-lg border border-[#E8DFD0] p-2 text-center">
@@ -572,13 +683,13 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
 
       {/* Business Health Map (Gate BCO-6A) — capability-gated; entirely absent from the page when the actor lacks view_business_health_map. */}
       {canViewHealthMap && healthData ? (
-        <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
+        <section id="health" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-bold text-[#1E1810]">Business Health Map</h2>
+            <h2 className="font-serif text-lg font-bold text-[#1E1810]">Business Health</h2>
             {canRunHealthAssessment ? <RunAssessmentButton businessId={business.id} /> : null}
           </div>
           <p className="mt-1 text-xs text-[#7A7164]">
-            A deterministic, explainable read of seven business dimensions — never an AI advisor, never a numeric score.
+            Where the business is strong, stable, needs attention, lacks information, or is blocked by contradiction. Never a numeric score.
           </p>
 
           {!healthData.latestRun ? (
@@ -650,11 +761,31 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
         </section>
       ) : null}
 
+      <div id="outreach" className="scroll-mt-24 space-y-4">
+        <div>
+          <h2 className="font-serif text-lg font-bold text-[#1E1810]">Outreach</h2>
+          <p className="mt-1 text-xs text-[#7A7164]">Who contacted the business, what happened, and what should happen next. Follow-ups are not commitments.</p>
+        </div>
+        <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
+          <h3 className="text-sm font-bold text-[#1E1810]">Follow-up</h3>
+          <div className="mt-3">
+            <FollowUpPanel businessId={business.id} current={currentFollowUp} />
+          </div>
+        </section>
+        <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
+          <h3 className="text-sm font-bold text-[#1E1810]">Sales notes</h3>
+          <p className="mt-1 text-xs text-[#7A7164]">Internal only — never shown to the business owner.</p>
+          <div className="mt-3">
+            <NotesPanel businessId={business.id} notes={notes} />
+          </div>
+        </section>
+      </div>
+
       {/* Next Right Move / Stewardship Engine (Gate BCO-TODAY-3) — capability-gated. */}
       {canViewRecommendations && stewardshipData ? (
-        <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
+        <section id="recommend" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-bold text-[#1E1810]">Next Right Move / Stewardship</h2>
+            <h2 className="font-serif text-lg font-bold text-[#1E1810]">Next Right Move</h2>
             {canCreateRecommendation ? <CreateRecommendationButton businessId={business.id} /> : null}
           </div>
           <p className="mt-1 text-xs text-[#7A7164]">
@@ -735,8 +866,9 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
 
       {/* Program 4 — Field Discovery + AI Research Engine */}
       {fieldDiscoveryData ? (
-        <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-          <h2 className="text-sm font-bold text-[#1E1810]">Field Discovery</h2>
+        <section id="discover" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
+          <h2 className="font-serif text-lg font-bold text-[#1E1810]">Discover</h2>
+          <p className="mt-1 text-xs text-[#7A7164]">Gather evidence, public-source context, missing information, photos/files, and AI-supported briefing drafts. AI inference is not a confirmed fact.</p>
           <div className="mt-3 space-y-3">
             <ConsentStatusPanel consent={fieldDiscoveryData.consent} />
             <SourceLinksPanel sourceLinks={fieldDiscoveryData.sourceLinks} />
@@ -759,10 +891,10 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
 
       {/* Program 5 — Lion's Cockpit + Meeting Studio + Proposals + Promise Keeper */}
       {program5Data ? (
-        <>
+        <div id="meetings" className="scroll-mt-24 space-y-4">
           {/* Lion's Cockpit — deterministic briefing assembler */}
           <section className="rounded-2xl border border-[#C9A84A]/50 bg-[#FBF7EF] p-4">
-            <h2 className="text-sm font-bold text-[#1E1810]">Lion&apos;s Cockpit</h2>
+            <h2 className="font-serif text-lg font-bold text-[#1E1810]">Lion&apos;s Cockpit</h2>
             <p className="mt-1 text-xs text-[#7A7164]">Deterministic briefing — truth classes separated, no AI advisor, no invented pricing.</p>
 
             {/* Truth classes */}
@@ -871,12 +1003,14 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
               {program5Data.meetingsWithDetails.length === 0 ? <p className="text-sm text-[#7A7164]">No meetings yet.</p> : null}
             </div>
           </section>
+        </div>
+      ) : null}
 
           {/* Proposals */}
-          {canViewCommitments && program5Data.proposals.length > 0 ? (
-            <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-              <h2 className="text-sm font-bold text-[#1E1810]">Proposals</h2>
-              <p className="mt-1 text-xs text-[#7A7164]">Truthful proposals referencing real pricing. Acceptance does not charge or fulfill.</p>
+          {program5Data && canViewCommitments ? (
+            <section id="decide" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
+              <h2 className="font-serif text-lg font-bold text-[#1E1810]">Proposals / Decisions</h2>
+              <p className="mt-1 text-xs text-[#7A7164]">Commercial proposal state and client decision. Acceptance does not charge, fulfill, or confirm an Opportunity.</p>
               <div className="mt-3 space-y-3">
                 {program5Data.proposals.filter((p) => p.isCurrent).slice(0, 5).map((p) => (
                   <ProposalDetailPanel
@@ -887,15 +1021,18 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
                     canRecord={canRecordProposalDecision}
                   />
                 ))}
+                {program5Data.proposals.filter((p) => p.isCurrent).length === 0 ? (
+                  <p className="text-sm text-[#7A7164]">No current proposals yet.</p>
+                ) : null}
               </div>
             </section>
           ) : null}
 
           {/* Promise Keeper */}
-          {canViewCommitments ? (
-            <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-              <h2 className="text-sm font-bold text-[#1E1810]">Promise Keeper</h2>
-              <p className="mt-1 text-xs text-[#7A7164]">Commitments are tracked, never silently disappear. No shame language — capacity/blocker/release supported.</p>
+          {program5Data && canViewCommitments ? (
+            <section id="promises" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
+              <h2 className="font-serif text-lg font-bold text-[#1E1810]">Commitments</h2>
+              <p className="mt-1 text-xs text-[#7A7164]">What Leonix and relevant actors promised to do. Commitments are not sales follow-ups.</p>
               {canManageCommitments ? <CreateCommitmentForm businessId={business.id} /> : null}
               <div className="mt-3 space-y-3">
                 {program5Data.commitmentsWithEvents.map(({ commitment, events }) => (
@@ -913,8 +1050,8 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
 
           {/* Program 6 — Creative Studio */}
           {canViewCreativeStudio && creativeStudioEnabled ? (
-            <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-              <h2 className="text-sm font-bold text-[#1E1810]">Creative Studio</h2>
+            <section id="creative" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
+              <h2 className="font-serif text-lg font-bold text-[#1E1810]">Creative Studio</h2>
               <p className="mt-1 text-xs text-[#7A7164]">Transform verified business truth into print-ready / Canva-ready creative production packets.</p>
               <CreativeStudioPanel
                 businessId={business.id}
@@ -926,8 +1063,8 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
 
           {/* Package B — Contextual Opportunity / Sponsorship Bridge */}
           {canViewOpportunities && opportunityEnabled ? (
-            <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-              <h2 className="text-sm font-bold text-[#1E1810]">Opportunities</h2>
+            <section id="opportunity" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
+              <h2 className="font-serif text-lg font-bold text-[#1E1810]">Opportunities</h2>
               <p className="mt-1 text-xs text-[#7A7164]">Human-reviewed contextual editorial/sponsorship matches. Approving one never confirms sponsorship or sends anything automatically.</p>
               <OpportunitiesPanel
                 businessId={business.id}
@@ -950,34 +1087,35 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
             </section>
           ) : null}
 
-          {/* Program 7 — Outcomes */}
+          {(outcomesEnabled || advisorEnabled || assistantEnabled) ? (
+            <div id="outcomes" className="scroll-mt-24 space-y-4">
+              <h2 className="font-serif text-lg font-bold text-[#1E1810]">Outcomes</h2>
+              <p className="text-xs text-[#7A7164]">Measurement, advisor signals, and the bounded assistant — only where those features are enabled.</p>
           {outcomesEnabled ? (
             <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-              <h2 className="text-sm font-bold text-[#1E1810]">Business Outcomes</h2>
+              <h3 className="text-sm font-bold text-[#1E1810]">Business Outcomes</h3>
               <p className="mt-1 text-xs text-[#7A7164]">Truthful measurement with bounded result/confidence/causation. Never guaranteed or proven.</p>
               <OutcomesPanel outcomes={program7Outcomes.map((o) => ({ id: o.id, metricKey: o.metricKey, metricLabelEs: o.metricLabelEs, metricLabelEn: o.metricLabelEn, baselineValue: o.baselineValue, measuredValue: o.measuredValue, result: o.result, confidence: o.confidence, causationClaim: o.causationClaim, reviewStatus: o.reviewStatus, createdAt: o.createdAt }))} />
             </section>
           ) : null}
 
-          {/* Program 7 — Proactive Advisor */}
           {advisorEnabled ? (
             <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-              <h2 className="text-sm font-bold text-[#1E1810]">Proactive Advisor</h2>
+              <h3 className="text-sm font-bold text-[#1E1810]">Proactive Advisor</h3>
               <p className="mt-1 text-xs text-[#7A7164]">Deterministic signals from existing truth. Not a second recommendation engine. Never auto-acts or auto-sends.</p>
               <AdvisorPanel signals={program7Signals.map((s) => ({ id: s.id, signalType: s.signalType, severity: s.severity, status: s.status, titleEn: s.titleEn, titleEs: s.titleEs, explanationEn: s.explanationEn, explanationEs: s.explanationEs, detectedAt: s.detectedAt }))} />
             </section>
           ) : null}
 
-          {/* Program 7 — Contextual Business Concierge Assistant */}
           {assistantEnabled ? (
             <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-              <h2 className="text-sm font-bold text-[#1E1810]">Business Concierge Assistant</h2>
+              <h3 className="text-sm font-bold text-[#1E1810]">Business Concierge Assistant</h3>
               <p className="mt-1 text-xs text-[#7A7164]">Bounded to this business context. AI may READ, EXPLAIN, SUMMARIZE, GUIDE, DRAFT, SUGGEST — never autonomously mutate state.</p>
               <AssistantPanel threads={program7Threads.map((t) => ({ id: t.id, status: t.status, titleEn: t.titleEn, titleEs: t.titleEs, primaryContextType: t.primaryContextType, lastMessageAt: t.lastMessageAt, createdAt: t.createdAt }))} />
             </section>
           ) : null}
-        </>
-      ) : null}
+            </div>
+          ) : null}
     </div>
   );
 }
