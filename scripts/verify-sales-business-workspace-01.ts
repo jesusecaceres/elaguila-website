@@ -581,7 +581,7 @@ check("Gate 02: existing domain panels remain rendered on the detail page", () =
   assert.ok(detailPageGate02.includes("<FollowUpPanel"));
   assert.ok(detailPageGate02.includes("<NotesPanel"));
   assert.ok(detailPageGate02.includes("from \"./FieldDiscoveryActions\""));
-  assert.ok(detailPageGate02.includes("from \"./MeetingStudioActions\""));
+  assert.ok(detailPageGate02.includes("from \"./MeetingJourney\""));
   assert.ok(detailPageGate02.includes("from \"./StewardshipActions\""));
   assert.ok(detailPageGate02.includes("from \"./OpportunityActions\""));
   assert.ok(detailPageGate02.includes("from \"./CreativeStudioActions\""));
@@ -674,6 +674,62 @@ check("Gate 04: contact actions require real values; Field Agent still targets #
   assert.ok(!outreachActionsGate04.includes("parseFollowUp"));
   assert.ok(!notesRouteGate04.includes("upsertCurrentFollowUp"));
   assert.ok(commandCenterUi.includes("#outreach"));
+});
+
+const meetingPageGate05 = read("app/admin/(dashboard)/businesses/[businessId]/page.tsx");
+const meetingJourneyGate05 = read("app/admin/(dashboard)/businesses/[businessId]/MeetingJourney.tsx");
+const meetingActionsGate05 = read("app/admin/(dashboard)/businesses/[businessId]/MeetingStudioActions.tsx");
+const meetingApiGate05 = read("app/api/admin/businesses/[businessId]/meetings/[meetingId]/route.ts");
+const meetingLogicGate05 = read("app/lib/business/meetingStudio/logic.ts");
+check("Gate 05: Meetings section remains on the business dashboard with Lion's Cockpit as Meeting Prep", () => {
+  assert.ok(meetingPageGate05.includes('id="meetings"'));
+  assert.ok(meetingPageGate05.includes("<MeetingJourney"));
+  assert.ok(meetingJourneyGate05.includes("Meeting Prep"));
+  assert.ok(meetingJourneyGate05.includes("Lion"));
+  assert.ok(!meetingJourneyGate05.includes("assembleCockpitBriefing"));
+  assert.ok(meetingPageGate05.includes("assembleCockpitBriefing"));
+  assert.ok(meetingJourneyGate05.includes("<CreateMeetingForm"));
+  assert.ok(meetingJourneyGate05.includes("<MeetingDetailPanel"));
+});
+check("Gate 05: Meeting Studio capabilities preserved; notes remain notes; transcript is import-only", () => {
+  assert.ok(meetingActionsGate05.includes("action: \"add_attendee\""));
+  assert.ok(meetingActionsGate05.includes("action: \"record_consent\""));
+  assert.ok(meetingActionsGate05.includes("action: \"create_note\""));
+  assert.ok(meetingActionsGate05.includes("action: \"import_transcript\""));
+  assert.ok(meetingActionsGate05.includes("Import Transcript"));
+  assert.ok(meetingActionsGate05.includes("Use a transcript created manually or by an external tool"));
+  assert.ok(meetingActionsGate05.includes("Meeting notes remain meeting notes"));
+  assert.ok(meetingApiGate05.includes("import_transcript"));
+  assert.ok(meetingLogicGate05.includes("isAudioRecordingLive"));
+  assert.ok(meetingLogicGate05.includes("return false"));
+});
+check("Gate 05: no live recorder, no auto fact/commitment/follow-up/proposal/creative promotion", () => {
+  assert.ok(meetingActionsGate05.includes("Live meeting recording is not currently available"));
+  assert.ok(!meetingActionsGate05.includes("MediaRecorder"));
+  assert.ok(!meetingActionsGate05.includes("Whisper"));
+  assert.ok(!meetingActionsGate05.includes("Deepgram"));
+  assert.ok(!meetingActionsGate05.includes("AssemblyAI"));
+  assert.ok(meetingActionsGate05.includes("Promote to Living Book"));
+  assert.ok(meetingActionsGate05.includes("action: \"promote_note\""));
+  assert.ok(meetingJourneyGate05.includes("do not auto-create"));
+  assert.ok(meetingJourneyGate05.includes("#outreach"));
+  assert.ok(meetingJourneyGate05.includes("#promises"));
+  assert.ok(!meetingJourneyGate05.includes("CREATE TABLE"));
+  assert.ok(!meetingActionsGate05.includes("CREATE TABLE"));
+  assert.ok(meetingPageGate05.includes("requireSalesWorkspaceAccess"));
+});
+check("Gate 05: fact/evidence/unknown distinctions and existing status enum remain", () => {
+  assert.ok(meetingJourneyGate05.includes("Fact"));
+  assert.ok(meetingJourneyGate05.includes("Evidence"));
+  assert.ok(meetingJourneyGate05.includes("Unknown"));
+  assert.ok(meetingJourneyGate05.includes("Contradiction"));
+  assert.ok(meetingJourneyGate05.includes("Meeting note"));
+  assert.ok(meetingActionsGate05.includes("planned:"));
+  assert.ok(meetingActionsGate05.includes("prepared:"));
+  assert.ok(meetingActionsGate05.includes("in_progress:"));
+  assert.ok(meetingActionsGate05.includes("completed:"));
+  assert.ok(meetingActionsGate05.includes("cancelled:"));
+  assert.ok(meetingApiGate05.includes("review_meeting_notes"));
 });
 
 // --- No secret / no production reference ------------------------------------------------------------

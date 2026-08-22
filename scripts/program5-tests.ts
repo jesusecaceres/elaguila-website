@@ -498,6 +498,30 @@ test("SCHEMA-PROMO-10: no CREATE POLICY on promotion table (service_role bypasse
 test("SCHEMA-PROMO-11: destination_type CHECK constraint limits to valid destinations", () =>
   sqlContains(migration3, /destination_type[\s\S]*?CHECK[\s\S]*?'fact'[\s\S]*?'unknown'[\s\S]*?'contradiction'[\s\S]*?'correction'/));
 
+const meetingActionsUi = fs.readFileSync(path.join(root, "app/admin/(dashboard)/businesses/[businessId]/MeetingStudioActions.tsx"), "utf-8");
+const meetingJourneyUi = fs.readFileSync(path.join(root, "app/admin/(dashboard)/businesses/[businessId]/MeetingJourney.tsx"), "utf-8");
+test("GATE05: MeetingJourney labels Lion's Cockpit as Meeting Prep", () =>
+  meetingJourneyUi.includes("Meeting Prep") && meetingJourneyUi.includes("Lion"));
+test("GATE05: MeetingStudioActions remains the canonical conduct surface", () =>
+  meetingJourneyUi.includes("<CreateMeetingForm") && meetingJourneyUi.includes("<MeetingDetailPanel"));
+test("GATE05: live recording is explicitly unavailable and MediaRecorder is absent", () =>
+  meetingActionsUi.includes("Live meeting recording is not currently available") &&
+  !meetingActionsUi.includes("MediaRecorder") &&
+  !meetingActionsUi.includes("Whisper") &&
+  !meetingActionsUi.includes("Deepgram"));
+test("GATE05: transcript import remains manual_import / import_transcript", () =>
+  meetingActionsUi.includes("action: \"import_transcript\"") &&
+  meetingActionsUi.includes("Import Transcript") &&
+  meetingActionsUi.includes("This is not live recording"));
+test("GATE05: Living Book promotion remains explicit human action", () =>
+  meetingActionsUi.includes("Promote to Living Book") &&
+  meetingActionsUi.includes("action: \"promote_note\"") &&
+  meetingJourneyUi.includes("Nothing here auto-promotes"));
+test("GATE05: sales follow-up and Promise Keeper remain separate navigation", () =>
+  meetingJourneyUi.includes("#outreach") &&
+  meetingJourneyUi.includes("#promises") &&
+  meetingJourneyUi.includes("do not auto-create"));
+
 // Report
 const passed = results.filter((r) => r.passed).length;
 const failed = results.filter((r) => !r.passed).length;

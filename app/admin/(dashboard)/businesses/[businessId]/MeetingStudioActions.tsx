@@ -6,6 +6,11 @@ import type { BusinessMeeting, MeetingAttendee, MeetingConsentRecord, MeetingNot
 import type { FactCategory } from "@/app/lib/business/livingBook/types";
 import { eligiblePromotionDestinations } from "@/app/lib/business/meetingStudio/logic";
 
+async function readApiError(res: Response, fallback: string): Promise<string> {
+  const data = await res.json().catch(() => ({} as { error?: string }));
+  return typeof data.error === "string" && data.error.trim() ? data.error : fallback;
+}
+
 export function CreateMeetingForm({ businessId }: { businessId: string }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
@@ -25,7 +30,7 @@ export function CreateMeetingForm({ businessId }: { businessId: string }) {
     });
     setSaving(false);
     if (!res.ok) {
-      setError("Could not create meeting.");
+      setError(await readApiError(res, "Could not create meeting."));
       return;
     }
     router.refresh();
@@ -33,22 +38,22 @@ export function CreateMeetingForm({ businessId }: { businessId: string }) {
 
   return (
     <form onSubmit={submit} className="mt-3 space-y-2">
-      <div className="flex flex-wrap gap-2">
-        <select value={meetingType} onChange={(e) => setMeetingType(e.target.value)} className="rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <select value={meetingType} onChange={(e) => setMeetingType(e.target.value)} className="min-h-[44px] rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs">
           <option value="discovery">Discovery</option>
           <option value="check_in">Check-in</option>
           <option value="proposal_review">Proposal review</option>
           <option value="follow_up">Follow-up</option>
           <option value="intake">Intake</option>
         </select>
-        <select value={language} onChange={(e) => setLanguage(e.target.value)} className="rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs">
+        <select value={language} onChange={(e) => setLanguage(e.target.value)} className="min-h-[44px] rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs">
           <option value="es">ES</option>
           <option value="en">EN</option>
         </select>
-        <input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} className="rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs" />
+        <input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} className="min-h-[44px] rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs" />
       </div>
-      {error ? <p className="text-xs text-red-700">{error}</p> : null}
-      <button type="submit" disabled={saving} className="rounded-lg bg-[#7A1E2C] px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50">
+      {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
+      <button type="submit" disabled={saving} className="inline-flex min-h-[44px] items-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white disabled:opacity-50">
         {saving ? "Creating…" : "Create meeting"}
       </button>
     </form>
@@ -58,15 +63,21 @@ export function CreateMeetingForm({ businessId }: { businessId: string }) {
 export function MeetingStatusButtons({ businessId, meetingId, currentStatus }: { businessId: string; meetingId: string; currentStatus: string }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function transition(status: string) {
     setSaving(true);
-    await fetch(`/api/admin/businesses/${businessId}/meetings/${meetingId}`, {
+    setError(null);
+    const res = await fetch(`/api/admin/businesses/${businessId}/meetings/${meetingId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "update_status", status }),
     });
     setSaving(false);
+    if (!res.ok) {
+      setError(await readApiError(res, "Could not update meeting status."));
+      return;
+    }
     router.refresh();
   }
 
@@ -81,17 +92,20 @@ export function MeetingStatusButtons({ businessId, meetingId, currentStatus }: {
   const buttons = transitions[currentStatus] ?? [];
 
   return (
-    <div className="flex flex-wrap gap-2">
-      {buttons.map((btn) => (
-        <button
-          key={btn.to}
-          onClick={() => transition(btn.to)}
-          disabled={saving}
-          className={`rounded-lg px-3 py-1.5 text-xs font-bold disabled:opacity-50 ${btn.to === "cancelled" ? "border border-red-300 text-red-700" : "bg-[#7A1E2C] text-white"}`}
-        >
-          {btn.label}
-        </button>
-      ))}
+    <div>
+      <div className="flex flex-wrap gap-2">
+        {buttons.map((btn) => (
+          <button
+            key={btn.to}
+            onClick={() => transition(btn.to)}
+            disabled={saving}
+            className={`inline-flex min-h-[44px] items-center rounded-lg px-4 py-2 text-xs font-bold disabled:opacity-50 ${btn.to === "cancelled" ? "border border-red-300 text-red-700" : "bg-[#7A1E2C] text-white"}`}
+          >
+            {btn.label}
+          </button>
+        ))}
+      </div>
+      {error ? <p role="alert" className="mt-2 text-xs text-red-700">{error}</p> : null}
     </div>
   );
 }
@@ -99,6 +113,7 @@ export function MeetingStatusButtons({ businessId, meetingId, currentStatus }: {
 export function AddAttendeeForm({ businessId, meetingId }: { businessId: string; meetingId: string }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [type, setType] = useState("owner");
 
@@ -106,57 +121,94 @@ export function AddAttendeeForm({ businessId, meetingId }: { businessId: string;
     e.preventDefault();
     if (!name.trim()) return;
     setSaving(true);
-    await fetch(`/api/admin/businesses/${businessId}/meetings/${meetingId}`, {
+    setError(null);
+    const res = await fetch(`/api/admin/businesses/${businessId}/meetings/${meetingId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "add_attendee", attendeeType: type, displayName: name.trim() }),
     });
     setSaving(false);
+    if (!res.ok) {
+      setError(await readApiError(res, "Could not add attendee."));
+      return;
+    }
     setName("");
     router.refresh();
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-wrap gap-2">
-      <select value={type} onChange={(e) => setType(e.target.value)} className="rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs">
-        <option value="owner">Owner</option>
-        <option value="staff">Staff</option>
-        <option value="external">External</option>
-      </select>
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" className="rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs" />
-      <button type="submit" disabled={saving || !name.trim()} className="rounded-lg border border-[#E8DFD0] px-3 py-1 text-xs font-semibold text-[#3D3428] disabled:opacity-50">
-        Add
-      </button>
+    <form onSubmit={submit} className="space-y-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <select value={type} onChange={(e) => setType(e.target.value)} className="min-h-[44px] rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs">
+          <option value="owner">Owner</option>
+          <option value="staff">Staff</option>
+          <option value="external">External</option>
+        </select>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" className="min-h-[44px] rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs" />
+        <button type="submit" disabled={saving || !name.trim()} className="inline-flex min-h-[44px] items-center rounded-lg border border-[#E8DFD0] px-4 py-2 text-xs font-semibold text-[#3D3428] disabled:opacity-50">
+          Add attendee
+        </button>
+      </div>
+      {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
     </form>
   );
+}
+
+function consentTypeLabel(consentType: string): string {
+  switch (consentType) {
+    case "notes":
+      return "notes";
+    case "audio_recording":
+      return "audio_recording (type only — live recording is not available)";
+    case "transcription":
+      return "transcription (import consent — not live ASR)";
+    case "connected_account_review":
+      return "connected_account_review";
+    case "file_photo_review":
+      return "file_photo_review";
+    case "followup_messages":
+      return "followup_messages";
+    default:
+      return consentType;
+  }
 }
 
 export function ConsentButtons({ businessId, meetingId }: { businessId: string; meetingId: string }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function record(consentType: string, state: string) {
     setSaving(true);
-    await fetch(`/api/admin/businesses/${businessId}/meetings/${meetingId}`, {
+    setError(null);
+    const res = await fetch(`/api/admin/businesses/${businessId}/meetings/${meetingId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "record_consent", consentType, state, method: "verbal", language: "es" }),
     });
     setSaving(false);
+    if (!res.ok) {
+      setError(await readApiError(res, "Could not record consent."));
+      return;
+    }
     router.refresh();
   }
 
   const consentTypes = ["notes", "audio_recording", "transcription", "connected_account_review", "file_photo_review", "followup_messages"];
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-2">
+      <p className="text-[10px] text-[#7A7164]">Existing Meeting Studio consent types. Recording these does not turn on a live recorder.</p>
       {consentTypes.map((ct) => (
-        <div key={ct} className="flex items-center gap-2 text-xs">
-          <span className="font-semibold text-[#3D3428]">{ct}</span>
-          <button onClick={() => record(ct, "provided")} disabled={saving} className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 disabled:opacity-50">Provided</button>
-          <button onClick={() => record(ct, "declined")} disabled={saving} className="rounded bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800 disabled:opacity-50">Declined</button>
+        <div key={ct} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2 text-xs">
+          <span className="font-semibold text-[#3D3428]">{consentTypeLabel(ct)}</span>
+          <div className="flex gap-2">
+            <button onClick={() => record(ct, "provided")} disabled={saving} className="inline-flex min-h-[44px] items-center rounded bg-emerald-100 px-3 py-1 text-[10px] font-bold text-emerald-800 disabled:opacity-50">Provided</button>
+            <button onClick={() => record(ct, "declined")} disabled={saving} className="inline-flex min-h-[44px] items-center rounded bg-red-100 px-3 py-1 text-[10px] font-bold text-red-800 disabled:opacity-50">Declined</button>
+          </div>
         </div>
       ))}
+      {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
     </div>
   );
 }
@@ -164,6 +216,7 @@ export function ConsentButtons({ businessId, meetingId }: { businessId: string; 
 export function NoteForm({ businessId, meetingId }: { businessId: string; meetingId: string }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [content, setContent] = useState("");
   const [noteType, setNoteType] = useState("owner_statement");
 
@@ -171,19 +224,24 @@ export function NoteForm({ businessId, meetingId }: { businessId: string; meetin
     e.preventDefault();
     if (!content.trim()) return;
     setSaving(true);
-    await fetch(`/api/admin/businesses/${businessId}/meetings/${meetingId}`, {
+    setError(null);
+    const res = await fetch(`/api/admin/businesses/${businessId}/meetings/${meetingId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "create_note", noteType, content: content.trim() }),
     });
     setSaving(false);
+    if (!res.ok) {
+      setError(await readApiError(res, "Could not save meeting note."));
+      return;
+    }
     setContent("");
     router.refresh();
   }
 
   return (
     <form onSubmit={submit} className="space-y-2">
-      <select value={noteType} onChange={(e) => setNoteType(e.target.value)} className="rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs">
+      <select value={noteType} onChange={(e) => setNoteType(e.target.value)} className="min-h-[44px] rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs">
         <option value="owner_statement">Owner statement</option>
         <option value="staff_observation">Staff observation</option>
         <option value="potential_fact">Potential fact</option>
@@ -192,9 +250,67 @@ export function NoteForm({ businessId, meetingId }: { businessId: string; meetin
         <option value="decision">Decision</option>
         <option value="action_item">Action item</option>
       </select>
-      <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Note content…" rows={3} className="w-full rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs" />
-      <button type="submit" disabled={saving || !content.trim()} className="rounded-lg bg-[#7A1E2C] px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50">
+      <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Meeting note…" rows={3} className="w-full rounded-lg border border-[#E8DFD0] px-2 py-2 text-xs" />
+      {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
+      <button type="submit" disabled={saving || !content.trim()} className="inline-flex min-h-[44px] items-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white disabled:opacity-50">
         {saving ? "Saving…" : "Add note"}
+      </button>
+    </form>
+  );
+}
+
+export function ImportTranscriptForm({
+  businessId,
+  meetingId,
+  language,
+  consentRecordId,
+}: {
+  businessId: string;
+  meetingId: string;
+  language: string;
+  consentRecordId: string | null;
+}) {
+  const router = useRouter();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [transcriptText, setTranscriptText] = useState("");
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!transcriptText.trim()) return;
+    setSaving(true);
+    setError(null);
+    const res = await fetch(`/api/admin/businesses/${businessId}/meetings/${meetingId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "import_transcript",
+        language,
+        transcriptText: transcriptText.trim(),
+        consentRecordId,
+      }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      setError(await readApiError(res, "Could not import transcript."));
+      return;
+    }
+    setTranscriptText("");
+    router.refresh();
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-2">
+      <textarea
+        value={transcriptText}
+        onChange={(e) => setTranscriptText(e.target.value)}
+        placeholder="Paste a transcript created manually or by an external tool…"
+        rows={4}
+        className="w-full rounded-lg border border-[#E8DFD0] px-2 py-2 text-xs"
+      />
+      {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
+      <button type="submit" disabled={saving || !transcriptText.trim()} className="inline-flex min-h-[44px] items-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810] disabled:opacity-50">
+        {saving ? "Importing…" : "Import Transcript"}
       </button>
     </form>
   );
@@ -232,11 +348,12 @@ function destinationLabel(dest: string): string {
   }
 }
 
-function NoteCard({ note, businessId, meetingId, initialPromotion }: {
+function NoteCard({ note, businessId, meetingId, initialPromotion, canReviewNotes }: {
   note: MeetingNote;
   businessId: string;
   meetingId: string;
   initialPromotion: MeetingNotePromotion | null;
+  canReviewNotes: boolean;
 }) {
   const [promotion, setPromotion] = useState<MeetingNotePromotion | null>(initialPromotion);
   const [showForm, setShowForm] = useState(false);
@@ -335,10 +452,10 @@ function NoteCard({ note, businessId, meetingId, initialPromotion }: {
           <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold text-emerald-800">
             Promoted as {destinationLabel(promotion.destinationType)}
           </span>
-        ) : isEligible && !showForm ? (
+        ) : isEligible && !showForm && canReviewNotes ? (
           <button
             onClick={() => setShowForm(true)}
-            className="rounded border border-[#C8A94A] px-2 py-0.5 text-[9px] font-semibold text-[#8A6B1F] hover:bg-[#FAF7F2]"
+            className="inline-flex min-h-[44px] items-center rounded border border-[#C8A94A] px-3 py-1 text-[10px] font-semibold text-[#8A6B1F] hover:bg-[#FAF7F2]"
           >
             Promote to Living Book
           </button>
@@ -434,14 +551,14 @@ function NoteCard({ note, businessId, meetingId, initialPromotion }: {
             <button
               onClick={submitPromotion}
               disabled={submitting}
-              className="rounded-lg bg-[#7A1E2C] px-3 py-1 text-[10px] font-bold text-white disabled:opacity-50"
+              className="inline-flex min-h-[44px] items-center rounded-lg bg-[#7A1E2C] px-3 py-1 text-[10px] font-bold text-white disabled:opacity-50"
             >
               {submitting ? "Promoting…" : "Confirm promotion"}
             </button>
             <button
               onClick={() => { setShowForm(false); setFormError(null); }}
               disabled={submitting}
-              className="rounded-lg border border-[#E8DFD0] px-3 py-1 text-[10px] text-[#3D3428] disabled:opacity-50"
+              className="inline-flex min-h-[44px] items-center rounded-lg border border-[#E8DFD0] px-3 py-1 text-[10px] text-[#3D3428] disabled:opacity-50"
             >
               Cancel
             </button>
@@ -452,11 +569,12 @@ function NoteCard({ note, businessId, meetingId, initialPromotion }: {
   );
 }
 
-function NotesSection({ notes, businessId, meetingId, activeOnly }: {
+function NotesSection({ notes, businessId, meetingId, activeOnly, canReviewNotes }: {
   notes: MeetingNote[];
   businessId: string;
   meetingId: string;
   activeOnly: boolean;
+  canReviewNotes: boolean;
 }) {
   const [promotionMap, setPromotionMap] = useState<Record<string, MeetingNotePromotion>>({});
   const [loaded, setLoaded] = useState(false);
@@ -477,7 +595,10 @@ function NotesSection({ notes, businessId, meetingId, activeOnly }: {
 
   return (
     <>
-      <h4 className="mt-4 text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Notes</h4>
+      <h4 className="mt-4 text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Meeting notes</h4>
+      <p className="mt-1 text-[10px] text-[#7A7164]">
+        Meeting notes remain meeting notes. They are not automatically Business Book facts, sales notes, recommendations, commitments, creative inputs, or proposal decisions.
+      </p>
       <ul className="mt-1 space-y-2">
         {notes.map((n) => (
           <NoteCard
@@ -486,6 +607,7 @@ function NotesSection({ notes, businessId, meetingId, activeOnly }: {
             businessId={businessId}
             meetingId={meetingId}
             initialPromotion={loaded ? (promotionMap[n.id] ?? null) : null}
+            canReviewNotes={canReviewNotes}
           />
         ))}
         {notes.length === 0 ? <li className="text-xs text-[#7A7164]">No notes yet.</li> : null}
@@ -496,7 +618,7 @@ function NotesSection({ notes, businessId, meetingId, activeOnly }: {
 }
 
 export function MeetingDetailPanel({
-  businessId, meeting, attendees, consents, notes, transcripts,
+  businessId, meeting, attendees, consents, notes, transcripts, canReviewNotes = false, surface = "conduct",
 }: {
   businessId: string;
   meeting: BusinessMeeting;
@@ -504,8 +626,11 @@ export function MeetingDetailPanel({
   consents: MeetingConsentRecord[];
   notes: MeetingNote[];
   transcripts: MeetingTranscriptImport[];
+  canReviewNotes?: boolean;
+  surface?: "conduct" | "review";
 }) {
   const isActive = meeting.status !== "cancelled" && meeting.status !== "completed";
+  const transcriptionConsent = consents.find((c) => c.consentType === "transcription" && c.state === "provided") ?? null;
 
   return (
     <div className="rounded-lg border border-[#E8DFD0] p-3">
@@ -515,6 +640,9 @@ export function MeetingDetailPanel({
       </div>
       <p className="mt-1 text-[10px] text-[#9A9184]">
         {meeting.language.toUpperCase()} · {meeting.scheduledAt ? new Date(meeting.scheduledAt).toLocaleString("en-US") : "No schedule"} · created {new Date(meeting.createdAt).toLocaleString("en-US")}
+      </p>
+      <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
+        Live meeting recording is not currently available. Browser dictation elsewhere is not a meeting recorder.
       </p>
 
       <div className="mt-3">
@@ -538,39 +666,70 @@ export function MeetingDetailPanel({
           <ul className="mt-1 space-y-1">
             {consents.map((c) => (
               <li key={c.id} className="text-xs text-[#3D3428]">
-                {c.consentType} — <span className={c.state === "provided" ? "text-emerald-700" : "text-red-700"}>{c.state}</span> <span className="text-[#9A9184]">({c.method})</span>
+                {consentTypeLabel(c.consentType)} — <span className={c.state === "provided" ? "text-emerald-700" : "text-red-700"}>{c.state}</span> <span className="text-[#9A9184]">({c.method})</span>
               </li>
             ))}
             {consents.length === 0 ? <li className="text-xs text-[#7A7164]">No consent recorded yet.</li> : null}
           </ul>
           <div className="mt-2"><ConsentButtons businessId={businessId} meetingId={meeting.id} /></div>
         </>
-      ) : null}
-
-      {/* Notes are visible for all meeting states so promotions remain accessible after completion */}
-      <NotesSection
-        notes={notes}
-        businessId={businessId}
-        meetingId={meeting.id}
-        activeOnly={isActive}
-      />
-
-      {isActive && transcripts.length > 0 ? (
+      ) : attendees.length > 0 ? (
         <>
-          <h4 className="mt-4 text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Transcript imports</h4>
+          <h4 className="mt-4 text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Attendees</h4>
           <ul className="mt-1 space-y-1">
-            {transcripts.map((t) => (
-              <li key={t.id} className="text-xs text-[#3D3428]">
-                {t.importMethod} · {t.language.toUpperCase()} · {t.status}
+            {attendees.map((a) => (
+              <li key={a.id} className="text-xs text-[#3D3428]">
+                {a.displayName} <span className="text-[#9A9184]">({a.attendeeType} · {a.attendanceState})</span>
               </li>
             ))}
           </ul>
         </>
       ) : null}
 
+      {surface === "review" ? (
+        <p className="mt-4 text-[11px] text-[#3D3428]">
+          Review each note. Promote only with an explicit human action. Transcript sentences and recaps never become facts automatically.
+        </p>
+      ) : null}
+
+      <NotesSection
+        notes={notes}
+        businessId={businessId}
+        meetingId={meeting.id}
+        activeOnly={isActive}
+        canReviewNotes={canReviewNotes}
+      />
+
+      <h4 className="mt-4 text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Import Transcript</h4>
+      <p className="mt-1 text-[10px] text-[#7A7164]">
+        Use a transcript created manually or by an external tool. This is not live recording. Imported text is not automatically promoted to Living Book truth.
+      </p>
+      {transcripts.length > 0 ? (
+        <ul className="mt-2 space-y-1">
+          {transcripts.map((t) => (
+            <li key={t.id} className="text-xs text-[#3D3428]">
+              {t.importMethod} · {t.language.toUpperCase()} · {t.status}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-2 text-xs text-[#7A7164]">No transcript imported.</p>
+      )}
+      {isActive ? (
+        <div className="mt-2">
+          <ImportTranscriptForm
+            businessId={businessId}
+            meetingId={meeting.id}
+            language={meeting.language}
+            consentRecordId={transcriptionConsent?.id ?? null}
+          />
+        </div>
+      ) : null}
+
       {meeting.recapEn ? (
         <div className="mt-3 rounded border border-[#E8DFD0] bg-[#FAF7F2] p-2">
           <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Recap</p>
+          <p className="mt-1 text-[10px] text-[#7A7164]">Existing recap text. Not an automatic Living Book fact.</p>
           <p className="mt-1 text-xs text-[#3D3428]">{meeting.recapEn}</p>
         </div>
       ) : null}
