@@ -61,9 +61,9 @@ export const LEO_WORKSPACE_CATALOG: readonly LeoWorkspaceDefinition[] = [
   {
     id: "REPORTS",
     label: "Reports",
-    description: "Executive reports and briefs",
+    description: "Leonix-wide executive reporting",
     renderer: "existing",
-    panelHint: "LeoMorningBriefPanel",
+    panelHint: "LeoExecutiveReportsPanel",
   },
   {
     id: "CLIENTS",

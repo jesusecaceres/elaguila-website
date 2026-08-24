@@ -76,6 +76,8 @@ export function LeoHandsFreeMode({
 
   const recRef = useRef<ReturnType<typeof createLeoSpeechRecognitionSession> | null>(null);
   const spokenSession = useLeoSpokenSession();
+  const utteranceIdRef = useRef(0);
+  const watchdogRef = useRef<number | null>(null);
   const onSubmitRef = useRef(onSubmit);
   onSubmitRef.current = onSubmit;
   const pendingRef = useRef(pending);
@@ -95,10 +97,19 @@ export function LeoHandsFreeMode({
     recRef.current?.abort();
   }, []);
 
+  const clearSpeechWatchdog = useCallback(() => {
+    if (watchdogRef.current != null) {
+      window.clearTimeout(watchdogRef.current);
+      watchdogRef.current = null;
+    }
+  }, []);
+
   const stopSpeech = useCallback(() => {
+    utteranceIdRef.current += 1;
+    clearSpeechWatchdog();
     speakLockRef.current = false;
     spokenSession.stop();
-  }, []);
+  }, [clearSpeechWatchdog, spokenSession]);
 
   const endMode = useCallback(() => {
     skipAutoListenRef.current = true;
@@ -215,15 +226,25 @@ export function LeoHandsFreeMode({
       speakLockRef.current = true;
       stopRecognition();
       apply("SPEECH_START");
-      spokenSession.speak(utterance);
-      window.setTimeout(() => {
+      const utteranceId = ++utteranceIdRef.current;
+      clearSpeechWatchdog();
+      const completeSpeech = () => {
         if (!activeRef.current) return;
+        if (utteranceIdRef.current !== utteranceId) return;
+        if (stateRef.current !== "SPEAKING") return;
+        clearSpeechWatchdog();
         speakLockRef.current = false;
         skipAutoListenRef.current = false;
         apply("SPEECH_END");
-      }, Math.min(12000, Math.max(2500, utterance.length * 60)));
+      };
+      const started = spokenSession.speak(utterance, { onEnded: completeSpeech });
+      if (!started) {
+        completeSpeech();
+        return;
+      }
+      watchdogRef.current = window.setTimeout(completeSpeech, Math.max(20000, utterance.length * 80));
     },
-    [apply, spokenSession, stopRecognition],
+    [apply, clearSpeechWatchdog, spokenSession, stopRecognition],
   );
 
   useEffect(() => {
@@ -232,6 +253,8 @@ export function LeoHandsFreeMode({
     skipAutoListenRef.current = false;
     startListen();
     return () => {
+      utteranceIdRef.current += 1;
+      clearSpeechWatchdog();
       stopRecognition();
       stopSpeech();
     };
@@ -419,7 +442,26 @@ export function LeoHandsFreeMode({
             stopRecognition();
             speakLockRef.current = true;
             apply("SPEECH_START");
-            spokenSession.repeat();
+            const utteranceId = ++utteranceIdRef.current;
+            clearSpeechWatchdog();
+            const completeSpeech = () => {
+              if (!activeRef.current) return;
+              if (utteranceIdRef.current !== utteranceId) return;
+              if (stateRef.current !== "SPEAKING") return;
+              clearSpeechWatchdog();
+              speakLockRef.current = false;
+              skipAutoListenRef.current = false;
+              apply("SPEECH_END");
+            };
+            const started = spokenSession.repeat({ onEnded: completeSpeech });
+            if (!started) {
+              completeSpeech();
+              return;
+            }
+            watchdogRef.current = window.setTimeout(
+              completeSpeech,
+              Math.max(20000, spokenShown.length * 80),
+            );
           }}
         >
           Repeat

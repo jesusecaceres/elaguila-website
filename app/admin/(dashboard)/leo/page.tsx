@@ -12,6 +12,7 @@ import { getLeoProjectConfigDiagnostic } from "@/app/leo/_lib/leoProjectConfig";
 import { getLeoClientCareWatch } from "@/app/leo/_lib/leoClientCareService";
 import { leoListRecentMemory } from "@/app/leo/_lib/leoLivingBookService";
 import { getLeoSelfIntelligence } from "@/app/leo/_lib/leoSelfIntelligenceService";
+import { getLeoExecutiveReportingSnapshot } from "@/app/leo/_lib/leoExecutiveReportingService";
 import { buildLeoSystemHealthSnapshot } from "@/app/leo/_lib/leoSystemHealth";
 import type { LeoClientCareWatchResult, LeoMemoryRecord } from "@/app/leo/_lib/leoTypes";
 import { adminCardBase, adminContentArea } from "@/app/admin/_components/adminTheme";
@@ -35,6 +36,7 @@ import {
   type LeoSelfIntelligenceLoad,
 } from "./_components/LeoSelfIntelligencePanel";
 import { LeoSystemHealthCard } from "./_components/LeoSystemHealthCard";
+import { LeoExecutiveReportsPanel } from "./_components/LeoExecutiveReportsPanel";
 import { LeoWorkspaceProvider } from "./_components/LeoWorkspaceController";
 
 export const dynamic = "force-dynamic";
@@ -109,14 +111,19 @@ export default async function LeoExecutiveConsolePage() {
     redirect("/admin?leo_access_denied=1");
   }
 
-  const [attention, care, memory, selfIntelligence, governedActions, googleTruth] = await Promise.all([
-    loadAttention(),
-    loadClientCare(),
-    loadMemory(),
-    loadSelfIntelligence(),
-    loadGovernedActions(),
-    getLeoGoogleWorkspaceCapabilityTruth(),
-  ]);
+  const [attention, care, memory, selfIntelligence, governedActions, googleTruth, reporting] =
+    await Promise.all([
+      loadAttention(),
+      loadClientCare(),
+      loadMemory(),
+      loadSelfIntelligence(),
+      loadGovernedActions(),
+      getLeoGoogleWorkspaceCapabilityTruth(),
+      getLeoExecutiveReportingSnapshot({ limit: 8 }).then(
+        (snapshot) => ({ ok: true as const, snapshot }),
+        () => ({ ok: false as const, limitation: "Executive reporting is unavailable right now." }),
+      ),
+    ]);
 
   const project = getLeoProjectConfigDiagnostic();
   const systemHealth = buildLeoSystemHealthSnapshot({
@@ -158,7 +165,7 @@ export default async function LeoExecutiveConsolePage() {
               MEMORY: <LeoMemoryPanel load={memory} />,
               SELF_INTELLIGENCE: <LeoSelfIntelligencePanel load={selfIntelligence} />,
               TECHNOLOGY: <LeoSystemHealthCard health={systemHealth} />,
-              REPORTS: home,
+              REPORTS: <LeoExecutiveReportsPanel load={reporting} />,
             }}
           />
           <section

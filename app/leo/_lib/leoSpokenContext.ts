@@ -52,6 +52,83 @@ export function leoWorkspaceSpokenSummary(workspaceId: LeoWorkspaceId): string {
   return `${def.label}. ${def.description}.`;
 }
 
+function entityRefFromResultCard(card: LeoResultCard): LeoConversationEntityRef | null {
+  switch (card.kind) {
+    case "EMAIL": {
+      const id = (card.threadId || card.messageId).trim();
+      if (!id) return null;
+      return {
+        system: card.sourceSystem,
+        kind: "EMAIL",
+        id,
+        label: card.subject ?? card.title,
+      };
+    }
+    case "CALENDAR": {
+      const id = card.eventId.trim();
+      if (!id) return null;
+      return {
+        system: card.sourceSystem,
+        kind: "CALENDAR",
+        id,
+        label: card.title,
+      };
+    }
+    case "CLIENT": {
+      const id = card.entityRef.id?.trim();
+      if (!id) return null;
+      return {
+        system: card.sourceSystem,
+        kind: "CLIENT",
+        id,
+        label: card.displayName || card.title,
+      };
+    }
+    case "PROJECT": {
+      const id = (card.deploymentId || card.commitSha || card.repository || "").trim();
+      if (!id) return null;
+      return {
+        system: card.sourceSystem,
+        kind: "PROJECT",
+        id,
+        label: card.projectName || card.title,
+      };
+    }
+    case "COMMITMENT": {
+      const id = card.commitmentId.trim();
+      if (!id) return null;
+      return {
+        system: card.sourceSystem,
+        kind: "COMMITMENT",
+        id,
+        label: card.title,
+      };
+    }
+    case "PREPARED_ACTION": {
+      const id = card.preparationId.trim();
+      if (!id) return null;
+      return {
+        system: card.sourceSystem,
+        kind: "PREPARED_ACTION",
+        id,
+        label: card.title,
+      };
+    }
+    case "BRIEF_SECTION": {
+      const id = card.sectionKey.trim();
+      if (!id) return null;
+      return {
+        system: card.sourceSystem,
+        kind: "BRIEF_SECTION",
+        id,
+        label: card.title,
+      };
+    }
+    default:
+      return null;
+  }
+}
+
 export function leoResultCardsToAddressableItems(
   cards: readonly LeoResultCard[] | null | undefined,
 ): LeoAddressableSpokenItem[] {
@@ -62,7 +139,7 @@ export function leoResultCardsToAddressableItems(
     label: (card.title || card.subtitle || `Item ${i + 1}`).slice(0, 120),
     spokenText:
       boundLeoSpokenOwnerText(card.spokenSummary || card.title || card.subtitle) || `Item ${i + 1}.`,
-    entityRef: null,
+    entityRef: entityRefFromResultCard(card),
   }));
 }
 

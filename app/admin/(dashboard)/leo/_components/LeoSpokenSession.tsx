@@ -32,9 +32,9 @@ type LeoSpokenSessionValue = {
   setVisibleItems: (items: LeoAddressableSpokenItem[]) => void;
   setSelected: (cardId: string | null, entityRef: LeoConversationEntityRef | null) => void;
   setCurrentAnswer: (spoken: string | null, display: string | null) => void;
-  speak: (text: string) => boolean;
+  speak: (text: string, options?: { onEnded?: () => void }) => boolean;
   stop: () => void;
-  repeat: () => boolean;
+  repeat: (options?: { onEnded?: () => void }) => boolean;
 };
 
 const LeoSpokenReactContext = createContext<LeoSpokenSessionValue | null>(null);
@@ -52,6 +52,13 @@ export function LeoSpokenSessionProvider({ children }: { children: ReactNode }) 
   const [recognitionAvailable, setRecognitionAvailable] = useState(false);
 
   const ttsRef = useRef<ReturnType<typeof createLeoSpeechSynthesisController> | null>(null);
+  const utteranceEndedRef = useRef<(() => void) | null>(null);
+
+  const fireUtteranceEnded = useCallback(() => {
+    const cb = utteranceEndedRef.current;
+    utteranceEndedRef.current = null;
+    cb?.();
+  }, []);
 
   useEffect(() => {
     setSynthAvailable(getLeoSpeechSynthesisCapability(window).supported);
@@ -61,18 +68,26 @@ export function LeoSpokenSessionProvider({ children }: { children: ReactNode }) 
     const lang = resolveLeoSpeechSynthesisLang("auto", navigator.language);
     ttsRef.current = createLeoSpeechSynthesisController(window, lang, {
       onStateChange: (s) => setSpeaking(s === "SPEAKING"),
-      onEnd: () => setSpeaking(false),
-      onError: () => setSpeaking(false),
+      onEnd: () => {
+        setSpeaking(false);
+        fireUtteranceEnded();
+      },
+      onError: () => {
+        setSpeaking(false);
+        fireUtteranceEnded();
+      },
     });
     return () => {
+      utteranceEndedRef.current = null;
       ttsRef.current?.dispose();
       ttsRef.current = null;
     };
-  }, []);
+  }, [fireUtteranceEnded]);
 
-  const speak = useCallback((text: string) => {
+  const speak = useCallback((text: string, options?: { onEnded?: () => void }) => {
     const trimmed = text.trim();
     if (!trimmed || !ttsRef.current) return false;
+    utteranceEndedRef.current = options?.onEnded ?? null;
     ttsRef.current.stop();
     ttsRef.current.speak(trimmed);
     setLastSpokenText(trimmed);
@@ -80,12 +95,14 @@ export function LeoSpokenSessionProvider({ children }: { children: ReactNode }) 
   }, []);
 
   const stop = useCallback(() => {
+    utteranceEndedRef.current = null;
     ttsRef.current?.stop();
     setSpeaking(false);
   }, []);
 
-  const repeat = useCallback(() => {
+  const repeat = useCallback((options?: { onEnded?: () => void }) => {
     if (!lastSpokenText || !ttsRef.current) return false;
+    utteranceEndedRef.current = options?.onEnded ?? null;
     ttsRef.current.repeat(lastSpokenText);
     return true;
   }, [lastSpokenText]);
