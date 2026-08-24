@@ -103,6 +103,17 @@ export function LeonixDashboardShell({
     drafts: null,
     expiring: null,
   });
+  // Package 1 — mobile dashboard navigation (drawer). Desktop sidebar is unaffected.
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setMobileNavOpen(false);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [mobileNavOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -166,9 +177,18 @@ export function LeonixDashboardShell({
     );
   }
 
-  const navItem = (key: ActiveNav, href: string, label: string, badge?: number | null, badgeTitle?: string) => (
+  const navItem = (
+    key: ActiveNav,
+    href: string,
+    label: string,
+    badge?: number | null,
+    badgeTitle?: string,
+    onNavigate?: () => void,
+  ) => (
     <Link
+      key={key}
       href={href}
+      onClick={onNavigate}
       className={cx(
         // Package F Build F2, Gate 9 (P1 accessibility fix) — py-2.5 alone netted ~36-39px, under
         // the 44px minimum touch target; min-h enforces the floor without changing desktop density.
@@ -187,6 +207,141 @@ export function LeonixDashboardShell({
     </Link>
   );
 
+  // Package 1 — sidebar Information Architecture, grouped by owner task. Presentation/grouping
+  // only: every route, gate flag, and badge below is unchanged from the prior flat nav list.
+  const buildNavGroups = (onNavigate?: () => void) =>
+    [
+      { title: L.navGroupInicio, items: [navItem("home", `/dashboard?${q}`, L.home, undefined, undefined, onNavigate)] },
+      {
+        title: L.navGroupMisAnuncios,
+        items: [
+          navItem("listings", `/dashboard/mis-anuncios?${q}`, L.listings, navCounts.expiring, L.badgeExpiring, onNavigate),
+          navItem("drafts", `/dashboard/drafts?${q}`, L.drafts, navCounts.drafts, L.badgeDrafts, onNavigate),
+        ],
+      },
+      {
+        title: L.navGroupClientesYRendimiento,
+        items: [
+          DASHBOARD_INTERNAL_INBOX_READY
+            ? navItem("messages", `/dashboard/mensajes?${q}`, L.messages, navCounts.messages, L.badgeInbox, onNavigate)
+            : null,
+          navItem("analytics", `/dashboard/analytics?${q}`, L.analytics, undefined, undefined, onNavigate),
+          navItem("notifications", `/dashboard/notificaciones?${q}`, L.notifications, undefined, undefined, onNavigate),
+        ].filter(Boolean),
+      },
+      {
+        title: L.navGroupMiActividad,
+        items: [
+          DASHBOARD_SAVED_LISTINGS_READY ? navItem("saved", `/dashboard/guardados?${q}`, L.saved, undefined, undefined, onNavigate) : null,
+          DASHBOARD_SAVED_SEARCHES_READY
+            ? navItem("savedSearches", `/dashboard/busquedas-guardadas?${q}`, L.savedSearches, undefined, undefined, onNavigate)
+            : null,
+          navItem("recent", `/dashboard/vistos-recientes?${q}`, L.recent, undefined, undefined, onNavigate),
+        ].filter(Boolean),
+      },
+      {
+        title: L.navGroupCuenta,
+        items: [
+          navItem("profile", `/dashboard/perfil?${q}`, L.profile, undefined, undefined, onNavigate),
+          navItem("security", `/dashboard/seguridad?${q}`, L.security, undefined, undefined, onNavigate),
+        ],
+      },
+      { title: L.navGroupNegocio, items: [navItem("business", `/dashboard/business-tools?${q}`, L.businessTools, undefined, undefined, onNavigate)] },
+    ].filter((group) => group.items.length > 0);
+
+  function renderNavGroups(onNavigate?: () => void) {
+    return (
+      <nav className="mt-5 space-y-4">
+        {buildNavGroups(onNavigate).map((group) => (
+          <div key={group.title}>
+            <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]/90">{group.title}</p>
+            <div className="space-y-1">{group.items}</div>
+          </div>
+        ))}
+      </nav>
+    );
+  }
+
+  const accountPanel = (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{L.accountStatus}</span>
+        <span className="rounded-full border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] px-2.5 py-1 text-[11px] font-bold text-[color:var(--lx-muted)]">
+          {L.accountMetadata}
+        </span>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-section)]/80 p-4">
+        <p className="text-[15px] font-bold text-[color:var(--lx-text)]">{userName?.trim() || "—"}</p>
+        <p className="mt-1 text-xs text-[color:var(--lx-muted)]/95">{email || "—"}</p>
+        {accountRef ? (
+          <p className="mt-2 font-mono text-[10px] font-semibold text-[color:var(--lx-muted)]/90">
+            Leonix ID · #{accountRef}
+          </p>
+        ) : null}
+        {membershipTier?.trim() ? (
+          <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-[color:var(--lx-muted)]/90">
+            {membershipTier.trim()}
+          </p>
+        ) : null}
+        {accountType?.trim() ? (
+          <p className="mt-0.5 text-[10px] text-[color:var(--lx-muted)]/90">
+            {L.accountType}: {accountType.trim()}
+          </p>
+        ) : null}
+      </div>
+    </>
+  );
+
+  function renderSidebarBottom(onNavigate?: () => void) {
+    return (
+      <>
+        <Link
+          href={`/publicar?${q}`}
+          onClick={onNavigate}
+          className="mt-6 flex w-full items-center justify-center rounded-2xl border border-[#7A1E2C]/15 bg-[#7A1E2C] px-4 py-3 text-sm font-semibold text-[#FFFCF7] shadow-[0_8px_20px_-6px_rgba(122,30,44,0.35)] transition hover:bg-[#5e1721] active:scale-[0.99]"
+        >
+          {L.publish}
+        </Link>
+
+        <button
+          type="button"
+          onClick={() => {
+            onNavigate?.();
+            void signOut();
+          }}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-[#D6C7AD]/70 bg-transparent py-2.5 text-sm font-semibold text-[#5C5346] transition hover:bg-[#FBF7EF]"
+        >
+          <span aria-hidden className="text-lg leading-none">
+            ⊖
+          </span>
+          {L.signOut}
+        </button>
+      </>
+    );
+  }
+
+  // Package 1 — mobile header section title. Falls back to the dashboard label for the two
+  // ActiveNav values (restaurantes/servicios/viajes) that have no dedicated shell copy key.
+  const activeNavLabel: Partial<Record<ActiveNav, string>> = {
+    home: L.home,
+    listings: L.listings,
+    restaurantes: L.restaurants,
+    servicios: L.servicios,
+    viajes: L.viajesStaged,
+    messages: L.messages,
+    drafts: L.drafts,
+    saved: L.saved,
+    savedSearches: L.savedSearches,
+    analytics: L.analytics,
+    profile: L.profile,
+    security: L.security,
+    notifications: L.notifications,
+    business: L.businessTools,
+    recent: L.recent,
+  };
+  const currentSectionTitle = activeNavLabel[activeNav] ?? L.dashboardLabel;
+
   const workbench = contentLayout === "workbench";
 
   return (
@@ -198,9 +353,56 @@ export function LeonixDashboardShell({
         }}
         aria-hidden
       />
+
+      {/* Package 1 — mobile dashboard header + nav trigger. Desktop sidebar (below) is unaffected;
+          this bar and its drawer render only below `lg:`, replacing the old behavior where the
+          full sidebar simply stacked above page content on small screens. */}
+      <div className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-[#D6C7AD]/70 bg-[#FBF7EF]/95 px-4 py-3 backdrop-blur sm:px-6 lg:hidden">
+        <div className="min-w-0">
+          <p className="truncate text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">
+            {userName?.trim() || L.accountMetadata}
+          </p>
+          <p className="truncate text-sm font-bold text-[color:var(--lx-text)]">{currentSectionTitle}</p>
+        </div>
+        <button
+          type="button"
+          aria-expanded={mobileNavOpen}
+          aria-controls="lx-dashboard-mobile-nav"
+          onClick={() => setMobileNavOpen((v) => !v)}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#D6C7AD]/70 bg-[#FFFDF7] text-[#1F241C] transition hover:bg-[#FBF7EF]"
+        >
+          <span className="sr-only">{mobileNavOpen ? L.closeMenu : L.openMenu}</span>
+          <span aria-hidden className="text-xl leading-none">
+            {mobileNavOpen ? "✕" : "☰"}
+          </span>
+        </button>
+      </div>
+
+      {mobileNavOpen ? (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <button
+            type="button"
+            aria-label={L.closeMenu}
+            onClick={() => setMobileNavOpen(false)}
+            className="absolute inset-0 bg-black/40"
+          />
+          <div
+            id="lx-dashboard-mobile-nav"
+            role="dialog"
+            aria-modal="true"
+            aria-label={L.menuLabel}
+            className="absolute inset-y-0 right-0 flex w-[86vw] max-w-sm flex-col overflow-y-auto border-l border-[#D6C7AD]/85 bg-[#FBF7EF] p-4 shadow-[0_0_60px_-12px_rgba(31,36,28,0.4)] sm:p-5"
+          >
+            {accountPanel}
+            {renderNavGroups(() => setMobileNavOpen(false))}
+            {renderSidebarBottom(() => setMobileNavOpen(false))}
+          </div>
+        </div>
+      ) : null}
+
       <main
         className={cx(
-          "relative mx-auto px-4 pb-20 pt-24 sm:px-6 lg:px-8",
+          "relative mx-auto px-4 pb-20 pt-8 sm:px-6 lg:px-8 lg:pt-24",
           workbench ? "max-w-[90rem]" : "max-w-7xl",
         )}
       >
@@ -231,78 +433,15 @@ export function LeonixDashboardShell({
         >
           <aside
             className={cx(
-              "h-fit rounded-3xl p-4 shadow-[0_14px_44px_-16px_rgba(42,36,22,0.12)] sm:p-5",
+              "hidden h-fit rounded-3xl p-4 shadow-[0_14px_44px_-16px_rgba(42,36,22,0.12)] sm:p-5 lg:block",
               varioSidebar
                 ? "border border-[#D6C7AD]/85 bg-[#FFFDF7]/95 ring-1 ring-[#C9A84A]/10"
                 : "border border-[#D6C7AD]/85 bg-[#FFFDF7]/95 ring-1 ring-[#C9A84A]/10",
             )}
           >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{L.accountStatus}</span>
-              <span className="rounded-full border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] px-2.5 py-1 text-[11px] font-bold text-[color:var(--lx-muted)]">
-                {L.accountMetadata}
-              </span>
-            </div>
-
-            <div className="mt-4 rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-section)]/80 p-4">
-              <p className="text-[15px] font-bold text-[color:var(--lx-text)]">{userName?.trim() || "—"}</p>
-              <p className="mt-1 text-xs text-[color:var(--lx-muted)]/95">{email || "—"}</p>
-              {accountRef ? (
-                <p className="mt-2 font-mono text-[10px] text-[color:var(--lx-muted)]/90">
-                  #{accountRef}
-                </p>
-              ) : null}
-              {membershipTier?.trim() ? (
-                <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-[color:var(--lx-muted)]/90">
-                  {membershipTier.trim()}
-                </p>
-              ) : null}
-              {accountType?.trim() ? (
-                <p className="mt-0.5 text-[10px] text-[color:var(--lx-muted)]/90">
-                  {L.accountType}: {accountType.trim()}
-                </p>
-              ) : null}
-            </div>
-
-            <nav className="mt-5 space-y-1">
-              {navItem("home", `/dashboard?${q}`, L.home)}
-              {navItem("listings", `/dashboard/mis-anuncios?${q}`, L.listings, navCounts.expiring, L.badgeExpiring)}
-              {DASHBOARD_INTERNAL_INBOX_READY
-                ? navItem("messages", `/dashboard/mensajes?${q}`, L.messages, navCounts.messages, L.badgeInbox)
-                : null}
-              {navItem("drafts", `/dashboard/drafts?${q}`, L.drafts, navCounts.drafts, L.badgeDrafts)}
-              {DASHBOARD_SAVED_LISTINGS_READY ? navItem("saved", `/dashboard/guardados?${q}`, L.saved) : null}
-              {DASHBOARD_SAVED_SEARCHES_READY
-                ? navItem("savedSearches", `/dashboard/busquedas-guardadas?${q}`, L.savedSearches)
-                : null}
-              {navItem("analytics", `/dashboard/analytics?${q}`, L.analytics)}
-              {navItem("profile", `/dashboard/perfil?${q}`, L.profile)}
-              {navItem("security", `/dashboard/seguridad?${q}`, L.security)}
-              {navItem("notifications", `/dashboard/notificaciones?${q}`, L.notifications)}
-              {navItem("business", `/dashboard/business-tools?${q}`, L.businessTools)}
-              <div className="pt-3">
-                <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]/90">{L.activity}</p>
-                {navItem("recent", `/dashboard/vistos-recientes?${q}`, L.recent)}
-              </div>
-            </nav>
-
-            <Link
-              href={`/publicar?${q}`}
-              className="mt-6 flex w-full items-center justify-center rounded-2xl border border-[#7A1E2C]/15 bg-[#7A1E2C] px-4 py-3 text-sm font-semibold text-[#FFFCF7] shadow-[0_8px_20px_-6px_rgba(122,30,44,0.35)] transition hover:bg-[#5e1721] active:scale-[0.99]"
-            >
-              {L.publish}
-            </Link>
-
-            <button
-              type="button"
-              onClick={() => void signOut()}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-[#D6C7AD]/70 bg-transparent py-2.5 text-sm font-semibold text-[#5C5346] transition hover:bg-[#FBF7EF]"
-            >
-              <span aria-hidden className="text-lg leading-none">
-                ⊖
-              </span>
-              {L.signOut}
-            </button>
+            {accountPanel}
+            {renderNavGroups()}
+            {renderSidebarBottom()}
           </aside>
 
           <div className={cx("min-w-0", workbench && "w-full max-w-none overflow-visible")}>{children}</div>

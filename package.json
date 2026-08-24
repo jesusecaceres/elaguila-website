@@ -552,7 +552,17 @@
     "smoke:clasificados": "npx playwright test -c playwright.leonix-smoke.config.mjs --grep @smoke-public",
     "smoke:all": "npx playwright test -c playwright.leonix-smoke.config.mjs",
     "verify:responsive-rendering-launch-gate-01": "node scripts/verify-responsive-rendering-launch-gate-01.mjs",
-    "test:gates": "tsx scripts/run-all-gates.ts"
+    "test:gates": "tsx scripts/run-all-gates.ts",
+    "verify:owner-command-center:package1": "tsx scripts/verify-owner-command-center-package1.ts",
+    "verify:owner-command-center:package2:2a": "tsx scripts/verify-owner-command-center-package2-gate2a.ts",
+    "verify:owner-command-center:package2:2b": "tsx scripts/verify-owner-command-center-package2-gate2b.ts",
+    "verify:owner-command-center:package2:2c": "tsx scripts/verify-owner-command-center-package2-gate2c.ts",
+    "verify:owner-command-center:package2:2d": "tsx scripts/verify-owner-command-center-package2-gate2d.ts",
+    "verify:owner-command-center:package3:3a": "tsx scripts/verify-owner-command-center-package3-gate3a.ts",
+    "verify:owner-command-center:package3:3b": "tsx scripts/verify-owner-command-center-package3-gate3b.ts",
+    "verify:owner-command-center:package3:3c": "tsx scripts/verify-owner-command-center-package3-gate3c.ts",
+    "verify:owner-command-center:package3:3d": "tsx scripts/verify-owner-command-center-package3-gate3d.ts",
+    "verify:owner-command-center:package3:3e": "tsx scripts/verify-owner-command-center-package3-gate3e.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -172,13 +172,19 @@ export function EnVentaListingManageCard({
     lang === "es"
       ? {
           view: "Ver anuncio",
+          manage: "Administrar anuncio",
+          publicView: "Ver público",
           edit: "Editar",
           editLocked: "Editar (ventana corta)",
-          sold: "Finalizar / vendido",
+          sold: "Marcar vendido",
           active: "Reactivar",
           pauseAd: "Pausar anuncio",
           resumeAd: "Reactivar anuncio",
           republicar: "Republicar anuncio",
+          archiveConfirmTitle: "¿Archivar este anuncio?",
+          archiveConfirmBody: "Dejará de mostrarse al público. Podrás seguir viendo este anuncio archivado en tu panel.",
+          archiveConfirmCancel: "Cancelar",
+          archiveConfirmOk: "Sí, archivar",
           repubConfirmTitle: "¿Republicar este anuncio?",
           repubConfirmBody:
             "Crearemos una nueva publicación usando la información y fotos guardadas de este anuncio. El anuncio anterior se conservará en tu historial.",
@@ -208,7 +214,7 @@ export function EnVentaListingManageCard({
           refreshHelper: EN_VENTA_REFRESH_HELPER.es,
           lastRefresh: "Último refresco",
           refreshCount: "Veces refrescado",
-          archive: "Archivar",
+          archive: "Archivar anuncio",
           dup: "Duplicar",
           soldConfirmTitle: "¿Finalizar este anuncio?",
           soldConfirmBody:
@@ -230,13 +236,19 @@ export function EnVentaListingManageCard({
         }
       : {
           view: "View listing",
+          manage: "Manage listing",
+          publicView: "View public",
           edit: "Edit",
           editLocked: "Edit (short window)",
           sold: "Mark sold",
           active: "Reactivate",
-          pauseAd: "Pause ad",
+          pauseAd: "Pause listing",
           resumeAd: "Reactivate listing",
           republicar: "Republish listing",
+          archiveConfirmTitle: "Archive this listing?",
+          archiveConfirmBody: "It will stop showing publicly. You can still view this archived listing in your dashboard.",
+          archiveConfirmCancel: "Cancel",
+          archiveConfirmOk: "Yes, archive",
           repubConfirmTitle: "Republish this listing?",
           repubConfirmBody:
             "We'll create a new listing using the saved information and photos from this one. The previous listing will stay in your history.",
@@ -266,7 +278,7 @@ export function EnVentaListingManageCard({
           refreshHelper: EN_VENTA_REFRESH_HELPER.en,
           lastRefresh: "Last refreshed",
           refreshCount: "Times refreshed",
-          archive: "Archive",
+          archive: "Archive listing",
           dup: "Duplicate",
           soldConfirmTitle: "Finish this listing?",
           soldConfirmBody: "It will be marked as sold and will no longer appear as available to buyers.",
@@ -294,6 +306,10 @@ export function EnVentaListingManageCard({
   const expireLbl = expiresIso ? expiresInDaysLabel(expiresIso, lang) : null;
   const [soldConfirmOpen, setSoldConfirmOpen] = useState(false);
   const [repubConfirmOpen, setRepubConfirmOpen] = useState(false);
+  // Gate 2C, Task 2C-11 — Archive is a high-consequence action; standardize it with the
+  // same confirm pattern already used for Mark sold/Republish. onArchive's own semantics
+  // are unchanged — this only gates the click behind one extra confirmation step.
+  const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false);
 
   const confirmMarkSold = () => {
     setSoldConfirmOpen(false);
@@ -303,6 +319,11 @@ export function EnVentaListingManageCard({
   const confirmRepublicar = () => {
     setRepubConfirmOpen(false);
     onRepublicarListing?.();
+  };
+
+  const confirmArchive = () => {
+    setArchiveConfirmOpen(false);
+    onArchive?.();
   };
 
   return (
@@ -480,16 +501,24 @@ export function EnVentaListingManageCard({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {workspaceHref ? (
+              // Gate 2C — canonical primary doorway. Every en-venta row gets a real
+              // /dashboard/mis-anuncios/{id} workspace, so this always renders when the
+              // caller supplies it (it always does, per mis-anuncios/page.tsx).
+              <Link
+                href={workspaceHref}
+                prefetch={false}
+                className="inline-flex rounded-xl border border-[#7A1E2C]/15 bg-[#7A1E2C] px-4 py-2 text-sm font-semibold text-[#FFFCF7] shadow-[0_6px_16px_-4px_rgba(122,30,44,0.35)] hover:bg-[#5e1721]"
+              >
+                {L.manage}
+              </Link>
+            ) : null}
             <Link
               href={`/clasificados/anuncio/${row.id}?lang=${lang}`}
               prefetch={false}
-              className={
-                hidePlanUpsell
-                  ? "inline-flex rounded-xl border border-[#7A1E2C]/15 bg-[#7A1E2C] px-4 py-2 text-sm font-semibold text-[#FFFCF7] shadow-[0_6px_16px_-4px_rgba(122,30,44,0.35)] hover:bg-[#5e1721]"
-                  : "inline-flex rounded-xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E] shadow-sm hover:bg-[#F3EBDD]"
-              }
+              className="inline-flex rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416] hover:bg-[#FAF7F2]"
             >
-              {L.details} →
+              {L.publicView}
             </Link>
             {canEdit && isActiveLifecycle ? (
               <Link href={editHref} prefetch={false} className="inline-flex rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]">
@@ -554,8 +583,8 @@ export function EnVentaListingManageCard({
               <button
                 type="button"
                 disabled={busy}
-                onClick={onArchive}
-                className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#5C5346] disabled:opacity-50"
+                onClick={() => setArchiveConfirmOpen(true)}
+                className="rounded-xl border border-red-300/70 bg-red-50 px-4 py-2 text-sm font-semibold text-red-800 hover:border-red-400 hover:bg-red-100 disabled:opacity-50"
               >
                 {L.archive}
               </button>
@@ -625,6 +654,39 @@ export function EnVentaListingManageCard({
                 className="rounded-xl bg-[#2A2620] px-4 py-2 text-sm font-semibold text-[#FAF7F2] disabled:opacity-50"
               >
                 {L.soldConfirmOk}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {archiveConfirmOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#1E1810]/45 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="enventa-archive-confirm-title"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-6 shadow-xl">
+            <h4 id="enventa-archive-confirm-title" className="text-lg font-bold text-[#1E1810]">
+              {L.archiveConfirmTitle}
+            </h4>
+            <p className="mt-3 text-sm leading-relaxed text-[#5C5346]">{L.archiveConfirmBody}</p>
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setArchiveConfirmOpen(false)}
+                className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
+              >
+                {L.archiveConfirmCancel}
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={confirmArchive}
+                className="rounded-xl bg-red-800 px-4 py-2 text-sm font-semibold text-[#FAF7F2] disabled:opacity-50"
+              >
+                {L.archiveConfirmOk}
               </button>
             </div>
           </div>

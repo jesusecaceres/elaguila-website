@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import {useEffect, useMemo, useState, Suspense } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+import { BusinessConciergeOwnerHome } from "../components/BusinessConciergeOwnerHome";
 import { computeBusinessCompleteness } from "../lib/businessProfileCompleteness";
 import { fetchDashboardProfile } from "../lib/dashboardProfile";
 import { fetchOwnerRestaurantListings, fetchOwnerServiciosListings } from "../lib/dashboardInventory";
@@ -102,6 +102,7 @@ function BusinessToolsPageContent() {
   const [completeness, setCompleteness] = useState<ReturnType<typeof computeBusinessCompleteness> | null>(null);
   const [capabilityRows, setCapabilityRows] = useState<CapabilityRow[]>([]);
   const [capabilitiesChecked, setCapabilitiesChecked] = useState(false);
+  const [hasBusinessListings, setHasBusinessListings] = useState(false);
 
   useEffect(() => {
     const sb = createSupabaseBrowserClient();
@@ -168,6 +169,7 @@ function BusinessToolsPageContent() {
           }),
         ];
 
+        if (mounted) setHasBusinessListings(items.length > 0);
         if (items.length > 0 && token) {
           const { badges } = await fetchDashboardListingPackageEntitlementBadges(items, token);
           const rows: CapabilityRow[] = [
@@ -204,91 +206,25 @@ function BusinessToolsPageContent() {
   const accountRef = userId ? accountRefFromId(userId) : null;
 
   return (
-    <LeonixDashboardShell lang={lang} activeNav="business" plan={plan} userName={name} email={email} accountRef={accountRef} ownerId={userId}>
+    <LeonixDashboardShell lang={lang} activeNav="business" plan={plan} userName={name} email={email} accountRef={accountRef} ownerId={userId} contentLayout="workbench">
       {loading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>
       ) : (
-        <>
-          <header className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.12)] sm:p-8">
-            <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">{t.title}</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#5C5346]/95">{t.subtitle}</p>
-            <p className="mt-4 text-sm text-[#3D3428]/90">{t.lead}</p>
-          </header>
-
-          {capabilitiesChecked ? (
-            <div className="mt-8 rounded-3xl border border-[#C9B46A]/35 bg-[#FFFDF7] p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.12)]">
-              <h2 className="text-sm font-bold text-[#1E1810]">{t.capabilitiesTitle}</h2>
-              <p className="mt-1 text-xs text-[#7A7164]">{t.capabilitiesHint}</p>
-              {capabilityRows.length === 0 ? (
-                <p className="mt-3 text-sm text-[#5C5346]">{t.capabilitiesEmpty}</p>
-              ) : (
-                <ul className="mt-3 space-y-2">
-                  {capabilityRows.map((row) => (
-                    <li
-                      key={row.key}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#E8DFD0] bg-white px-4 py-3"
-                    >
-                      <Link href={row.href} className="text-sm font-medium text-[#1E1810] hover:underline">
-                        {row.label}
-                      </Link>
-                      <span
-                        className={
-                          row.active
-                            ? "inline-flex rounded-full border border-[#2A4536]/25 bg-[#2A4536]/[0.08] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#2A4536]"
-                            : "inline-flex rounded-full border border-[#D6C7AD]/70 bg-[#F3EBDD]/80 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#7A7164]"
-                        }
-                      >
-                        {row.active ? t.active : t.locked}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ) : null}
-
-          {completeness ? (
-            <div className="mt-8 rounded-3xl border border-[#C9B46A]/35 bg-gradient-to-br from-[#FFFCF7] to-[#F3EBDD]/90 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.12)]">
-              <h2 className="text-sm font-bold text-[#1E1810]">{t.completeness}</h2>
-              <p className="mt-2 text-3xl font-bold tabular-nums text-[#1E1810]">
-                {completeness.score}/{completeness.max}
-              </p>
-              <p className="mt-3 text-sm font-semibold text-[#5C5346]">{t.nextSteps}</p>
-              <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-[#3D3428]/95">
-                {completeness.recommendations.slice(0, 4).map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          <div className="mt-8 grid gap-4 sm:grid-cols-2">
-            {t.cards.map((c) => (
-              <div
-                key={c.h}
-                className="rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]"
-              >
-                <h2 className="text-base font-bold text-[#1E1810]">{c.h}</h2>
-                <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">{c.p}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link
-              href={`/dashboard/perfil?${q}`}
-              className="inline-flex rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-5 py-2.5 text-sm font-semibold text-[#1E1810] shadow-md hover:brightness-[1.03]"
-            >
-              {t.ctaProfile}
-            </Link>
-            <a
-              href={`mailto:hola@leonix.com?subject=${encodeURIComponent(lang === "es" ? "Leonix Concierge" : "Leonix Concierge")}`}
-              className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
-            >
-              {t.ctaConcierge}
-            </a>
-          </div>
-        </>
+        <BusinessConciergeOwnerHome
+          lang={lang}
+          q={q}
+          hasBusinessListings={hasBusinessListings}
+          completenessScore={completeness?.score ?? null}
+          completenessMax={completeness?.max ?? null}
+          completenessRecommendations={completeness?.recommendations ?? []}
+          capabilityRows={capabilityRows.map((row) => ({
+            key: row.key,
+            label: row.label,
+            href: row.href,
+            active: row.active,
+          }))}
+          capabilitiesChecked={capabilitiesChecked}
+        />
       )}
     </LeonixDashboardShell>
   );

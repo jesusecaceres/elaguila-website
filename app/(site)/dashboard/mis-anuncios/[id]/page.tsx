@@ -10,7 +10,7 @@ import {
   ownerListingResumeFromPausePatch,
   applyOwnerListingPatch,
 } from "../../lib/ownerListingsLifecycleClient";
-import { isBrNegocioListing } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
+import { isBrNegocioListing, isBrInventoryMainListing, isBrInventoryProperty } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
 import { callBrLifecycleMutation } from "../../lib/brDashboardLifecycleClient";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
@@ -44,13 +44,23 @@ import {
   mergeDetailPairValue,
 } from "@/app/clasificados/en-venta/boosts/enVentaVisibilityRenewal";
 import { listingsRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
-import { misAnunciosDetailCopy } from "../../lib/dashboardI18n";
-import { EV_SELLER_DETAIL, evDetailClass } from "../enVentaSellerDetailTheme";
+import { misAnunciosDetailCopy, genericCategoryEyebrow, ownerToolsTitle } from "../../lib/dashboardI18n";
+import { OwnerEntityWorkspace } from "../../components/OwnerEntityWorkspace";
+import type { ActionItem } from "../../components/DashboardListingActionBar";
+import type { OwnerEntityDetailItem } from "../../components/OwnerEntityDetailGrid";
+import type { OwnerEntityMetric } from "../../components/OwnerEntityPerformance";
+import type { OwnerEntityActivityItem } from "../../components/OwnerEntityActivity";
+import { getOwnerEntityCapabilities, type OwnerEntityCategoryKey } from "../../lib/ownerEntityCapabilityRegistry";
+import {
+  bienesInventoryEditHref,
+  bienesListingEditHref,
+  bienesListingPreviewHref,
+} from "../../lib/bienesDashboardInventoryAddonCheckout";
+import { manageInventoryLabel, previewLabel } from "../../lib/dashboardMisAnunciosCategoryTools";
 
 export const dynamic = "force-dynamic";
 
 type Plan = "free" | "pro";
-type Tab = "overview" | "analytics" | "messages" | "edit" | "promotion" | "status";
 
 type ListingRow = {
   id: string;
@@ -74,6 +84,9 @@ type ListingRow = {
   current_price?: number | string | null;
   price_last_updated?: string | null;
   seller_type?: string | null;
+  br_inventory_group_id?: string | null;
+  br_inventory_parent_listing_id?: string | null;
+  inventory_role?: string | null;
 };
 
 type ListingMsgRow = {
@@ -144,20 +157,6 @@ function formatPrice(v: ListingRow["price"], lang: Lang) {
   }
 }
 
-function getFirstListingImageUrl(images: unknown): string | null {
-  if (images == null) return null;
-  if (Array.isArray(images) && images.length > 0) {
-    const first = images[0];
-    if (typeof first === "string" && first.trim()) return first.trim();
-    if (first && typeof first === "object") {
-      const obj = first as Record<string, unknown>;
-      const url = (obj.url ?? obj.src ?? obj.path) as string | undefined;
-      if (typeof url === "string" && url.trim()) return url.trim();
-    }
-  }
-  return null;
-}
-
 function ListingWorkspacePageContent() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
@@ -169,7 +168,6 @@ function ListingWorkspacePageContent() {
 
   const t = useMemo(() => misAnunciosDetailCopy(lang), [lang]);
 
-  const [tab, setTab] = useState<Tab>("overview");
   const [loading, setLoading] = useState(true);
   const [row, setRow] = useState<ListingRow | null>(null);
   const [accountPlan, setAccountPlan] = useState<Plan>("free");
@@ -350,7 +348,6 @@ function ListingWorkspacePageContent() {
   const uiStatus = row ? resolveListingUiStatus(row) : "unknown";
   const priceLine = row ? formatPrice(row.price, lang) : "—";
   const cityLine = (row?.city ?? "").trim() || "—";
-  const thumbUrl = row ? getFirstListingImageUrl(row.images) : null;
   const visibilityWindowEndIso = row ? listingRepublishVisibilityWindowEndIso(row.republished_at) : null;
   const expireChip = expiresInDaysLabel(visibilityWindowEndIso, lang);
   const listingExpireIso =
@@ -391,29 +388,6 @@ function ListingWorkspacePageContent() {
       { k: t.opens, v: stats?.listingOpens ?? 0 },
     ];
   }, [isEnVentaListing, stats, t]);
-
-  const visibleTabs = useMemo((): Array<{ k: Tab; label: string }> => {
-    if (isEnVentaListing) {
-      return [
-        { k: "overview", label: t.tabs.overview },
-        { k: "analytics", label: t.tabs.analytics },
-        { k: "edit", label: t.tabs.edit },
-        { k: "promotion", label: t.tabs.visibility },
-        { k: "status", label: t.tabs.status },
-      ];
-    }
-    return [
-      { k: "overview", label: t.tabs.overview },
-      { k: "analytics", label: t.tabs.analytics },
-      { k: "edit", label: t.tabs.edit },
-      { k: "promotion", label: t.tabs.promotion },
-      { k: "status", label: t.tabs.status },
-    ];
-  }, [isEnVentaListing, t]);
-
-  useEffect(() => {
-    if (tab === "messages") setTab("overview");
-  }, [tab]);
 
   const enVentaVisibilityVm = useMemo(() => {
     if (!isEnVentaListing || !row || listingPlan !== "pro") return null;
@@ -504,8 +478,20 @@ function ListingWorkspacePageContent() {
 
   async function markStatus(status: "active" | "sold") {
     if (!row) return;
-    const sb = createSupabaseBrowserClient();
     setBusy(true);
+    if (status === "sold" && isBrNegocioListing(row)) {
+      const result = await callBrLifecycleMutation({ listingId: row.id, mutation: "discontinue" });
+      if (!result.ok) {
+        setResumeError(brResumeErrorMessage(result.code, lang));
+        setBusy(false);
+        return;
+      }
+      const now = new Date().toISOString();
+      setRow((r) => (r ? { ...r, status: result.status, is_published: result.isPublished, updated_at: now } : r));
+      setBusy(false);
+      return;
+    }
+    const sb = createSupabaseBrowserClient();
     const patch: Record<string, unknown> = { status };
     if (status === "active") patch.is_published = true;
     const { error } = await applyOwnerListingPatch(sb, row.id, userId, patch);
@@ -516,8 +502,20 @@ function ListingWorkspacePageContent() {
   async function archiveListing() {
     if (!row) return;
     if (!confirm(lang === "es" ? "¿Archivar este anuncio? Dejará de mostrarse al público." : "Archive this listing? It will stop showing publicly.")) return;
-    const sb = createSupabaseBrowserClient();
     setBusy(true);
+    if (isBrNegocioListing(row)) {
+      const result = await callBrLifecycleMutation({ listingId: row.id, mutation: "archive" });
+      if (!result.ok) {
+        setResumeError(brResumeErrorMessage(result.code, lang));
+        setBusy(false);
+        return;
+      }
+      const now = new Date().toISOString();
+      setRow((r) => (r ? { ...r, status: result.status, is_published: result.isPublished, updated_at: now } : r));
+      setBusy(false);
+      return;
+    }
+    const sb = createSupabaseBrowserClient();
     const now = new Date().toISOString();
     const patch = { ...OWNER_LISTING_SOFT_ARCHIVE_PATCH, updated_at: now };
     const { error } = await applyOwnerListingPatch(sb, row.id, userId, patch);
@@ -527,8 +525,20 @@ function ListingWorkspacePageContent() {
 
   async function pauseListing() {
     if (!row) return;
-    const sb = createSupabaseBrowserClient();
     setBusy(true);
+    if (isBrNegocioListing(row)) {
+      const result = await callBrLifecycleMutation({ listingId: row.id, mutation: "pause" });
+      if (!result.ok) {
+        setResumeError(brResumeErrorMessage(result.code, lang));
+        setBusy(false);
+        return;
+      }
+      const now = new Date().toISOString();
+      setRow((r) => (r ? { ...r, status: result.status, is_published: result.isPublished, updated_at: now } : r));
+      setBusy(false);
+      return;
+    }
+    const sb = createSupabaseBrowserClient();
     const now = new Date().toISOString();
     const patch = { ...OWNER_LISTING_PAUSE_PATCH, updated_at: now };
     const { error } = await applyOwnerListingPatch(sb, row.id, userId, patch);
@@ -564,22 +574,97 @@ function ListingWorkspacePageContent() {
     setBusy(false);
   }
 
-  const tabBtn = (k: Tab, label: string) => (
-    <button
-      type="button"
-      key={k}
-      onClick={() => setTab(k)}
-      className={
-        tab === k
-          ? evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.tabActive, "rounded-full px-3 py-1.5 text-xs font-semibold sm:text-sm bg-gradient-to-r from-[#FBF7EF] to-[#F3EBDD] text-[#1E1810] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] ring-1 ring-[#C9B46A]/35")
-          : evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.tabInactive, "rounded-full px-3 py-1.5 text-xs font-semibold sm:text-sm text-[#5C5346] hover:bg-[#FFFCF7]/80")
-      }
-    >
-      {label}
-    </button>
-  );
-
   const previewTitle = row?.title?.trim() || (lang === "es" ? "Tu anuncio" : "Your listing");
+
+  // Gate 3B — Owner Entity Workspace migration. Resolve which of the seven declared generic
+  // Gate 3B categories this row belongs to, so lifecycle actions render only what the
+  // capability registry says is truthfully supported (fixing the legacy tab UI's real
+  // over-exposure — e.g. a "Marcar vendido" button previously rendered unconditionally for
+  // every category, including ones with no sold concept at all). Bienes Raíces Negocio (not a
+  // Gate 3B target — its lifecycle goes through a real server-authorized RPC route, not the
+  // generic direct-write path this page uses) and any other category reaching this shared page
+  // outside the declared seven fall back to `null`, which preserves this page's original
+  // unconditional lifecycle-button behavior exactly as before — this migration changes nothing
+  // for rows outside its declared scope.
+  const isBrNegocio = row ? isBrNegocioListing(row) : false;
+  const catLower = (row?.category ?? "").toLowerCase();
+  // Rentas Privado and Rentas Negocio carry identical lifecycle/analytics capability shapes in
+  // the registry, so a "rentas" row resolves to "rentas-privado" regardless of actual branch.
+  const genericCapabilityKey: OwnerEntityCategoryKey | null = !row
+    ? null
+    : isEnVentaListing
+      ? "en-venta"
+      : catLower === "rentas" && !isBrNegocio
+        ? "rentas-privado"
+        : catLower === "bienes-raices" && !isBrNegocio
+          ? "bienes-raices-privado"
+          : isBrNegocio
+            ? "bienes-raices-negocio"
+          : catLower === "clases"
+            ? "clases"
+            : catLower === "comunidad"
+              ? "comunidad"
+              : catLower === "busco"
+                ? "busco"
+                : catLower === "mascotas" || catLower === "mascotas-y-perdidos"
+                  ? "mascotas-y-perdidos"
+                  : null;
+  const capabilities = genericCapabilityKey ? getOwnerEntityCapabilities(genericCapabilityKey) : null;
+  const canPause = capabilities ? capabilities.lifecycle.pause === "supported" || capabilities.lifecycle.pause === "specialized" : true;
+  const canReactivate = capabilities ? capabilities.lifecycle.reactivate === "supported" || capabilities.lifecycle.reactivate === "specialized" : true;
+  const canArchive = capabilities ? capabilities.lifecycle.archive === "supported" || capabilities.lifecycle.archive === "specialized" : true;
+  const canMarkSold = capabilities ? capabilities.lifecycle.markSold === "supported" || capabilities.lifecycle.markSold === "specialized" : true;
+  const analyticsSupported = capabilities ? capabilities.identity.analytics === "supported" || capabilities.identity.analytics === "specialized" : true;
+  const activitySupported = capabilities ? capabilities.specialized.activity === "supported" || capabilities.specialized.activity === "specialized" : true;
+
+  const detailItems: OwnerEntityDetailItem[] = row
+    ? [
+        { label: lang === "es" ? "Precio" : "Price", value: priceLine },
+        { label: lang === "es" ? "Ciudad" : "City", value: cityLine },
+        row.created_at ? { label: t.created, value: new Date(row.created_at).toLocaleDateString() } : null,
+        row.updated_at ? { label: t.updated, value: new Date(row.updated_at).toLocaleString() } : null,
+        row.published_at ? { label: t.published, value: new Date(row.published_at).toLocaleString() } : null,
+        listingExpireIso
+          ? { label: t.listingExpires, value: new Date(listingExpireIso).toLocaleString() + (listingExpireChip ? ` · ${listingExpireChip}` : "") }
+          : null,
+        visibilityWindowEndIso
+          ? { label: t.expires, value: new Date(visibilityWindowEndIso).toLocaleString() + (expireChip ? ` · ${expireChip}` : "") }
+          : null,
+        { label: t.plan, value: listingPlan.toUpperCase() },
+        {
+          label: t.visibilityState,
+          value: visibilityWindowActive ? (lang === "es" ? "Activo" : "Active") : lang === "es" ? "Sin ventana activa" : "No active window",
+        },
+        isEnVentaListing && row.republished_at
+          ? {
+              label: t.lastRefresh,
+              value:
+                new Date(String(row.republished_at)).toLocaleString(lang === "es" ? "es-MX" : "en-US") +
+                (row.republish_count != null && row.republish_count > 0 ? ` · ${t.refreshCount}: ${row.republish_count}` : ""),
+            }
+          : null,
+        isBrNegocio && isBrInventoryMainListing(row)
+          ? { label: lang === "es" ? "Rol" : "Role", value: lang === "es" ? "Anuncio principal" : "Main listing" }
+          : null,
+        isBrNegocio && isBrInventoryProperty(row)
+          ? { label: lang === "es" ? "Rol" : "Role", value: lang === "es" ? "Propiedad de inventario" : "Inventory property" }
+          : null,
+        isBrNegocio && isBrInventoryProperty(row) && row.br_inventory_parent_listing_id
+          ? {
+              label: lang === "es" ? "Anuncio principal" : "Parent listing",
+              value: shortListingRef(row.br_inventory_parent_listing_id),
+            }
+          : null,
+      ].filter((x): x is OwnerEntityDetailItem => x !== null)
+    : [];
+
+  const performanceMetrics: OwnerEntityMetric[] = analyticsSupported
+    ? analyticsMetricCards.map((c) => ({ key: c.k, label: c.k, value: c.v }))
+    : [];
+
+  const activityItems: OwnerEntityActivityItem[] = activitySupported
+    ? listingMessages.map((m) => ({ id: m.id, date: m.created_at, message: m.message }))
+    : [];
 
   const publicListingHref =
     row && (row.category ?? "").toLowerCase() === "rentas"
@@ -587,6 +672,51 @@ function ListingWorkspacePageContent() {
       : row
         ? `/clasificados/anuncio/${row.id}?${q}`
         : "#";
+
+  const quickActions: ActionItem[] = row ? [{ href: publicListingHref, label: t.publicLink, tone: "secondary" }] : [];
+  if (row && isBrNegocio && isBrInventoryMainListing(row)) {
+    quickActions.push({
+      href: bienesListingPreviewHref({ lang, listingId: row.id, leonixAdId: row.leonix_ad_id }),
+      label: previewLabel(lang),
+      tone: "secondary",
+    });
+  }
+
+  const rawLifecycleActions: Array<ActionItem | null> = row
+    ? [
+        canMarkSold ? { label: t.markSold, onClick: () => void markStatus("sold"), disabled: busy, tone: "danger" } : null,
+        canReactivate && (String(row.status ?? "").toLowerCase() === "paused" || String(row.status ?? "").toLowerCase() === "unpublished")
+          ? { label: busy ? (lang === "es" ? "Restaurando…" : "Restoring…") : t.resumeAd, onClick: () => void resumeListing(), disabled: busy, tone: "positive" }
+          : null,
+        canArchive
+          ? {
+              label: t.archive,
+              onClick: () => void archiveListing(),
+              disabled: busy || String(row.status ?? "").toLowerCase() === "removed",
+              tone: "danger",
+            }
+          : null,
+        canPause && String(row.status ?? "").toLowerCase() === "active" && row.is_published !== false
+          ? { label: t.pauseAd, onClick: () => void pauseListing(), disabled: busy, tone: "warning" }
+          : null,
+      ]
+    : [];
+  const lifecycleActions: ActionItem[] = rawLifecycleActions.filter((x): x is ActionItem => x !== null);
+
+  const specializedActions: ActionItem[] = [
+    ...(isEnVentaListing && listingPlan === "pro" && canEnVentaRefresh
+      ? [{ label: t.refreshAd, onClick: () => void refreshEnVentaListing(), disabled: busy, tone: "premium" as const }]
+      : []),
+    ...(row && isBrNegocio && isBrInventoryMainListing(row)
+      ? [
+          {
+            href: bienesInventoryEditHref({ lang, listingId: row.id, leonixAdId: row.leonix_ad_id }),
+            label: manageInventoryLabel(lang),
+            tone: "premium" as const,
+          },
+        ]
+      : []),
+  ];
 
   const displayLeonixAdId = useMemo(() => {
     if (!row) return "";
@@ -620,16 +750,16 @@ function ListingWorkspacePageContent() {
       }
     >
       {loading || access === "loading" ? (
-        <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>
+        <div className="rounded-3xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>
       ) : access === "forbidden" ? (
-        <div className="rounded-3xl border border-amber-200 bg-amber-50/90 p-8 text-center">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-8 text-center">
           <p className="text-[#1E1810]">{t.forbidden}</p>
           <Link href={`/dashboard/mis-anuncios?${q}`} className="mt-4 inline-flex font-semibold text-[#2A2620] underline">
             {t.back}
           </Link>
         </div>
       ) : !row || access === "missing" ? (
-        <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-8 text-center">
+        <div className="rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-8 text-center">
           <p className="text-[#1E1810]">{t.notFound}</p>
           <Link href={`/dashboard/mis-anuncios?${q}`} className="mt-4 inline-flex font-semibold text-[#2A2620] underline">
             {t.back}
@@ -637,351 +767,49 @@ function ListingWorkspacePageContent() {
         </div>
       ) : (
         <>
-          <header className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0 space-y-3">
-              {isEnVentaListing ? (
-                <p className={EV_SELLER_DETAIL.contextLabel}>
-                  {lang === "es" ? "Varios · Centro del vendedor" : "For Sale · Seller workspace"}
-                </p>
-              ) : null}
-              <div className="flex flex-wrap items-center gap-2.5">
-                <h1
-                  className={evDetailClass(
-                    isEnVentaListing,
-                    EV_SELLER_DETAIL.title,
-                    "text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl",
-                  )}
-                >
-                  {row.title?.trim() || "—"}
-                </h1>
-                <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${listingUiStatusChipClass(uiStatus)}`}>
-                  {listingUiStatusLabel(uiStatus, lang)}
-                </span>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.metaChip, "font-mono text-[11px] text-[#7A7164]")}>
-                  {t.listingRef}: {shortListingRef(row.id)}
-                </span>
-                {displayLeonixAdId ? (
-                  <span className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.metaChip, "font-mono text-[11px] text-[#7A7164]")}>
-                    {lang === "es" ? "ID Leonix" : "Leonix Ad ID"}: {displayLeonixAdId}
-                  </span>
-                ) : null}
-                {(row.category ?? "").trim() ? (
-                  <span className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.categoryChip, "text-[11px] text-[#7A7164]")}>
-                    {lang === "es" ? "Categoría" : "Category"}: {(row.category ?? "").trim()}
-                  </span>
-                ) : null}
-              </div>
-            </div>
-            <div className="flex shrink-0 flex-wrap gap-2.5 lg:pt-1">
-              <Link
-                href={publicListingHref}
-                className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.btnPrimary, "inline-flex rounded-2xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E]")}
-              >
-                {t.publicLink} →
-              </Link>
-              <Link
-                href={`/dashboard/mis-anuncios/${row.id}/editar?${q}`}
-                className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.btnSecondary, "inline-flex rounded-2xl bg-[#2A2620] px-4 py-2 text-sm font-semibold text-[#FAF7F2]")}
-              >
-                {t.editCta}
-              </Link>
-            </div>
-          </header>
+          {/* Gate 3B — Owner Entity Workspace migration. This is a single-item detail page, not
+              a category collection page, so it composes directly as
+              LeonixDashboardShell → OwnerEntityWorkspace (Layer C) with no OwnerProductPageFrame
+              (Layer B) in between — Layer B's job (category-level create/results header,
+              collection rhythm across many listings) does not apply to a one-item page, per the
+              Bible's "use the smallest architecture that satisfies the global contract." */}
+          <OwnerEntityWorkspace
+            lang={lang}
+            header={{
+              eyebrow: genericCategoryEyebrow(row.category, lang),
+              title: row.title?.trim() || "—",
+              statusLabel: listingUiStatusLabel(uiStatus, lang),
+              statusChipClass: listingUiStatusChipClass(uiStatus),
+              plan: listingPlan.toUpperCase(),
+              leonixId: displayLeonixAdId || `${t.listingRef}: ${shortListingRef(row.id)}`,
+            }}
+            note={resumeError ? { text: resumeError, tone: "urgent" } : null}
+            detailItems={detailItems}
+            performance={{ title: t.performanceTitle, metrics: performanceMetrics }}
+            primaryAction={{
+              href:
+                isBrNegocio && isBrInventoryProperty(row) && row.br_inventory_parent_listing_id
+                  ? `${bienesInventoryEditHref({ lang, listingId: row.br_inventory_parent_listing_id, leonixAdId: row.leonix_ad_id })}&openChildDraftId=${encodeURIComponent(`br-db-child-${row.id}`)}`
+                  : isBrNegocio
+                    ? bienesListingEditHref({ lang, listingId: row.id, leonixAdId: row.leonix_ad_id })
+                    : `/dashboard/mis-anuncios/${row.id}/editar?${q}`,
+              label: t.editCta,
+            }}
+            quickActions={quickActions}
+            lifecycleActions={lifecycleActions}
+            specialized={{ title: isBrNegocio ? ownerToolsTitle(lang) : t.visibilityTitle, actions: specializedActions }}
+            activity={{ title: t.activityTitle, items: activityItems, emptyLabel: t.activityEmpty }}
+            mobileSheetLabels={{ trigger: t.moreOptions, title: t.moreOptions, close: t.moreOptionsClose }}
+            footerHint={
+              listingAnalyticsDegraded
+                ? t.analyticsDegraded
+                : isEnVentaListing && listingPlan === "pro" && !canEnVentaRefresh
+                  ? (enVentaRefreshBlockedReason ?? t.refreshNotReady)
+                  : null
+            }
+          />
 
-          <div className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.tabBar, "mt-6 flex flex-wrap gap-2 border-b border-[#E8DFD0]/80 pb-4")}>
-            {visibleTabs.map(({ k, label }) => tabBtn(k, label))}
-          </div>
-
-          {tab === "overview" ? (
-            <div className="mt-6 grid gap-6 lg:grid-cols-2">
-              <div className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.panel, "rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6")}>
-                <p className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.sectionLabel, "text-xs font-bold uppercase tracking-wide text-[#7A7164]")}>
-                  {t.tabs.overview}
-                </p>
-                <dl className={evDetailClass(isEnVentaListing, "mt-5", "mt-4 space-y-3 text-sm")}>
-                  {[
-                    { label: lang === "es" ? "Precio" : "Price", value: priceLine, strong: true },
-                    { label: lang === "es" ? "Ciudad" : "City", value: cityLine, strong: true },
-                    { label: t.created, value: row.created_at ? new Date(row.created_at).toLocaleDateString() : "—" },
-                    { label: t.updated, value: row.updated_at ? new Date(row.updated_at).toLocaleString() : "—" },
-                    { label: t.published, value: row.published_at ? new Date(row.published_at).toLocaleString() : "—" },
-                    {
-                      label: t.listingExpires,
-                      value: listingExpireIso ? new Date(listingExpireIso).toLocaleString() : "—",
-                      chip: listingExpireChip,
-                    },
-                    {
-                      label: t.expires,
-                      value: visibilityWindowEndIso ? new Date(visibilityWindowEndIso).toLocaleString() : "—",
-                      chip: expireChip,
-                    },
-                    { label: t.plan, value: listingPlan, strong: true, upper: true },
-                    {
-                      label: t.visibilityState,
-                      value: visibilityWindowActive
-                        ? lang === "es"
-                          ? "Activo"
-                          : "Active"
-                        : lang === "es"
-                          ? "Sin ventana activa"
-                          : "No active window",
-                    },
-                  ].map((item) => (
-                    <div
-                      key={item.label}
-                      className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.dlRow, "flex justify-between gap-4")}
-                    >
-                      <dt className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.dlLabel, "text-[#5C5346]")}>{item.label}</dt>
-                      <dd
-                        className={evDetailClass(
-                          isEnVentaListing,
-                          EV_SELLER_DETAIL.dlValue,
-                          item.strong ? "font-semibold text-[#1E1810]" : "text-[#1E1810]",
-                        ) + (item.upper ? " uppercase" : "")}
-                      >
-                        {item.value}
-                        {item.chip ? (
-                          <span className="ml-2 inline-block rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-900">
-                            {item.chip}
-                          </span>
-                        ) : null}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-              <div className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.panelAccent, "rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 lg:hidden")}>
-                <p className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.sectionLabel, "text-xs font-bold uppercase tracking-wide text-[#7A7164]")}>
-                  {lang === "es" ? "Vista previa" : "Preview"}
-                </p>
-                <p className="mt-2 text-sm text-[#5C5346]/95">
-                  {lang === "es" ? "En escritorio la vista móvil aparece a la derecha." : "On desktop, the mobile preview is on the right."}
-                </p>
-              </div>
-            </div>
-          ) : null}
-
-          {tab === "analytics" ? (
-            <div className="mt-6 space-y-6">
-              <div className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.panel, "rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6")}>
-                <p className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.sectionLabel, "text-xs font-bold uppercase tracking-wide text-[#7A7164]")}>
-                  {t.tabs.analytics}
-                </p>
-                <p className="mt-2 text-sm text-[#5C5346]/95">
-                  {lang === "es"
-                    ? "Cada métrica cuenta eventos reales guardados en analíticas para este anuncio (incluye el ID del anuncio y tu Leonix ad ID si aplica)."
-                    : "Each metric counts real persisted analytics events for this listing (listing id and Leonix ad id when applicable)."}
-                </p>
-                {listingAnalyticsDegraded ? (
-                  <p
-                    className="mt-3 rounded-xl border border-sky-200/90 bg-sky-50/90 p-3 text-sm leading-relaxed text-sky-950"
-                    role="status"
-                  >
-                    {t.analyticsDegraded}
-                  </p>
-                ) : null}
-                <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {analyticsMetricCards.map((x) => (
-                    <div
-                      key={x.k}
-                      className={evDetailClass(
-                        isEnVentaListing,
-                        EV_SELLER_DETAIL.metricCard,
-                        "rounded-2xl border border-[#E8DFD0]/80 bg-[#FAF7F2]/80 p-4",
-                      )}
-                    >
-                      <p className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.metricLabel, "text-[11px] font-bold uppercase tracking-wide text-[#7A7164]")}>
-                        {x.k}
-                      </p>
-                      <p className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.metricValue, "mt-2 text-2xl font-bold tabular-nums text-[#1E1810]")}>
-                        {x.v}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-                {stats?.lastEngagement && !Number.isNaN(new Date(stats.lastEngagement).getTime()) ? (
-                  <p className="mt-4 text-sm text-[#5C5346]">
-                    <span className="font-semibold text-[#3D3428]">{t.lastEng}:</span>{" "}
-                    {new Intl.DateTimeFormat(lang === "es" ? "es-MX" : "en-US", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    }).format(new Date(stats.lastEngagement))}
-                  </p>
-                ) : null}
-              </div>
-              <div className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.panelAccent, "rounded-3xl border border-[#C9B46A]/30 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6")}>
-                <p className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.sectionLabel, "text-xs font-bold uppercase tracking-wide text-[#6B5B2E]")}>
-                  {lang === "es" ? "Siguiente paso sugerido" : "Suggested next step"}
-                </p>
-                <p className="mt-2 text-sm text-[#3D3428]/95">
-                  {isEnVentaListing
-                    ? (stats?.views ?? 0) === 0
-                      ? lang === "es"
-                        ? "Aún no hay vistas registradas: comparte el enlace público y revisa fotos y título."
-                        : "No views recorded yet: share the public link and review photos and title."
-                      : lang === "es"
-                        ? "Hay tráfico: revisa contactos en analíticas y refresca el anuncio cuando corresponda."
-                        : "You have traffic: check contact metrics in analytics and refresh when eligible."
-                    : (stats?.views ?? 0) === 0
-                      ? lang === "es"
-                        ? "Aún no hay vistas registradas: comparte el enlace público y revisa fotos y título."
-                        : "No views recorded yet: share the public link and review photos and title."
-                      : lang === "es"
-                        ? "Hay tráfico: revisa analíticas y acciones de estado cuando corresponda."
-                        : "You have traffic: review analytics and lifecycle actions when needed."}
-                </p>
-              </div>
-            </div>
-          ) : null}
-
-          {tab === "edit" ? (
-            <div className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.panel, "rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6")}>
-              <p className="text-sm text-[#3D3428]/95">{t.editHint}</p>
-              <Link
-                href={`/dashboard/mis-anuncios/${row.id}/editar?${q}`}
-                className={evDetailClass(isEnVentaListing, `${EV_SELLER_DETAIL.btnPrimary} mt-4`, "mt-4 inline-flex rounded-2xl bg-[#2A2620] px-5 py-2.5 text-sm font-semibold text-[#FAF7F2]")}
-              >
-                {t.editCta} →
-              </Link>
-              {thumbUrl ? (
-                <div className="mt-6">
-                  <img
-                    src={thumbUrl}
-                    alt=""
-                    className={evDetailClass(
-                      isEnVentaListing,
-                      "h-40 w-full max-w-sm rounded-xl border border-[#D6C7AD]/70 object-cover ring-1 ring-[#C9A84A]/10",
-                      "h-40 w-full max-w-sm rounded-2xl border border-[#E8DFD0] object-cover",
-                    )}
-                  />
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
-          {tab === "promotion" ? (
-            isEnVentaListing ? (
-              <div className={`mt-6 ${EV_SELLER_DETAIL.panelAccent}`}>
-                <p className={EV_SELLER_DETAIL.sectionLabel}>{t.tabs.visibility}</p>
-                <p className="mt-3 text-sm leading-relaxed text-[#3D3428]/95">{t.visibilityHint}</p>
-                <p className="mt-3 text-[11px] leading-relaxed text-[#5C5346]/95">{t.refreshHelper}</p>
-                {listingPlan === "pro" && enVentaVisibilityVm ? (
-                  <p className="mt-4 text-sm font-medium text-[#3D3428]">
-                    {enVentaVisibilityVm.republishWindowActive && visibilityWindowEndIso
-                      ? `${t.visibilityWindowActive} ${new Date(visibilityWindowEndIso).toLocaleString(lang === "es" ? "es-MX" : "en-US")}`
-                      : t.visibilityWindowInactive}
-                  </p>
-                ) : null}
-                {row.republished_at ? (
-                  <p className="mt-2 text-[11px] text-[#3D3428]">
-                    {t.lastRefresh}:{" "}
-                    <span className="font-semibold">
-                      {new Date(String(row.republished_at)).toLocaleString(lang === "es" ? "es-MX" : "en-US")}
-                    </span>
-                    {row.republish_count != null && row.republish_count > 0 ? (
-                      <span className="text-[#5C5346]">
-                        {" "}
-                        · {t.refreshCount}: {row.republish_count}
-                      </span>
-                    ) : null}
-                  </p>
-                ) : null}
-                {canEnVentaRefresh ? (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void refreshEnVentaListing()}
-                    className={EV_SELLER_DETAIL.refreshBtn}
-                  >
-                    {t.refreshAd}
-                  </button>
-                ) : (
-                  <p className={EV_SELLER_DETAIL.helperBox}>{enVentaRefreshBlockedReason ?? t.refreshNotReady}</p>
-                )}
-              </div>
-            ) : (
-            <div className="mt-6 rounded-3xl border border-[#C9B46A]/35 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6">
-              <p className="text-sm text-[#3D3428]/95">{t.promoHint}</p>
-              <p className="mt-4 text-sm text-[#5C5346]/95">
-                {lang === "es"
-                  ? "Las opciones de promoción dependen de la categoría del anuncio. Gestiona visibilidad y plan desde Mis anuncios o el flujo de publicación de tu categoría."
-                  : "Promotion options depend on this listing’s category. Manage visibility from My ads or your category’s publish flow."}
-              </p>
-            </div>
-            )
-          ) : null}
-
-          {tab === "status" ? (
-            <div className="mt-6 space-y-5">
-              <div className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.panel, "rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6")}>
-                <p className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.sectionLabel, "text-xs font-bold uppercase tracking-wide text-[#7A7164]")}>
-                  {t.modNote}
-                </p>
-                <p className="mt-2 text-sm text-[#5C5346]/95">{t.modPlaceholder}</p>
-              </div>
-              <div className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.lifecycleWrap, "")}>
-                <p className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.sectionLabel, "mb-3 text-xs font-bold uppercase tracking-wide text-[#7A7164]")}>
-                  {t.tabs.status}
-                </p>
-                {resumeError ? (
-                  <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{resumeError}</p>
-                ) : null}
-                <div className="flex flex-wrap gap-2.5">
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void markStatus("sold")}
-                  className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.lifecycleBtn, "rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold disabled:opacity-50")}
-                >
-                  {t.markSold}
-                </button>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void markStatus("active")}
-                  className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.lifecycleBtnPrimary, "rounded-xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E] disabled:opacity-50")}
-                >
-                  {t.reactivate}
-                </button>
-                <button
-                  type="button"
-                  disabled={busy || String(row?.status ?? "").toLowerCase() === "removed"}
-                  onClick={() => void archiveListing()}
-                  className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.lifecycleBtnMuted, "rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-4 py-2 text-sm font-semibold disabled:opacity-50")}
-                >
-                  {t.archive}
-                </button>
-                {String(row?.status ?? "").toLowerCase() === "active" && row.is_published !== false ? (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void pauseListing()}
-                    className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.lifecycleBtnWarn, "rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-950 disabled:opacity-50")}
-                  >
-                    {t.pauseAd}
-                  </button>
-                ) : null}
-                {String(row?.status ?? "").toLowerCase() === "paused" || String(row?.status ?? "").toLowerCase() === "unpublished" ? (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void resumeListing()}
-                    className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.lifecycleBtnPrimary, "rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-950 disabled:opacity-50")}
-                  >
-                    {t.resumeAd}
-                  </button>
-                ) : null}
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          <Link
-            href={`/dashboard/mis-anuncios?${q}`}
-            className={evDetailClass(isEnVentaListing, EV_SELLER_DETAIL.backLink, "mt-10 inline-flex text-sm font-semibold text-[#2A2620] underline")}
-          >
+          <Link href={`/dashboard/mis-anuncios?${q}`} className="mt-6 inline-flex text-sm font-semibold text-[#2A2620] underline">
             ← {t.back}
           </Link>
         </>

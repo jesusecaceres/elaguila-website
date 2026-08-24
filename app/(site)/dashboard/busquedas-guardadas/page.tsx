@@ -206,6 +206,7 @@ function BusquedasGuardadasPageContent() {
       email={email}
       accountRef={accountRef}
       ownerId={ownerId}
+      contentLayout="workbench"
     >
       {loading ? (
         <div className={`${LX_DASH.panel} p-10 text-center text-sm text-[#5C5346]`}>{t.loading}</div>

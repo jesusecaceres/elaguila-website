@@ -1,21 +1,27 @@
 "use client";
 
-import Link from "next/link";
-import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
+import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+import { OwnerProductPageFrame } from "../components/OwnerProductPageFrame";
+import { OwnerEntityWorkspace } from "../components/OwnerEntityWorkspace";
+import type { ActionItem } from "../components/DashboardListingActionBar";
 import { fetchDashboardProfile } from "../lib/dashboardProfile";
 import { dashboardSafeMutationErrorCopy } from "../lib/dashboardSafeErrorCopy";
+import { getOwnerEntityCapabilities, isLiveCapability } from "../lib/ownerEntityCapabilityRegistry";
+import { listingUiStatusChipClass, type ListingUiStatus } from "../lib/listingDisplayStatus";
+import { editListingLabel, publicViewLabel, previewLabel, publicResultsLabel } from "../lib/dashboardMisAnunciosCategoryTools";
 
-import type { ViajesStagedListingRow, ViajesStagedLifecycleStatus } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingTypes";
+import type { ViajesStagedListingRow, ViajesStagedLifecycleStatus, ViajesStagedLane } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingTypes";
 import { isViajesPrivatePublishDisabled } from "@/app/(site)/clasificados/viajes/lib/viajesPrivateLaneLaunchPolicy";
 
 export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
+type Plan = "free" | "pro";
 
 function lifecycleStatusLabel(status: ViajesStagedLifecycleStatus, lang: Lang): string {
   const es: Record<ViajesStagedLifecycleStatus, string> = {
@@ -40,7 +46,33 @@ function lifecycleStatusLabel(status: ViajesStagedLifecycleStatus, lang: Lang): 
   };
   return (lang === "es" ? es : en)[status] ?? status;
 }
-type Plan = "free" | "pro";
+
+/** Chip tone only — never used as the owner-facing Viajes label. */
+function viajesChipUiStatus(status: ViajesStagedLifecycleStatus): ListingUiStatus {
+  switch (status) {
+    case "draft":
+      return "draft";
+    case "submitted":
+    case "in_review":
+    case "changes_requested":
+      return "pending";
+    case "approved":
+      return "active";
+    case "rejected":
+      return "paused";
+    case "expired":
+      return "expired";
+    case "unpublished":
+      return "archived";
+    default:
+      return "unknown";
+  }
+}
+
+function viajesLaneBadge(lane: ViajesStagedLane, lang: Lang): string {
+  if (lane === "private") return lang === "es" ? "Particular" : "Private";
+  return lang === "es" ? "Negocios" : "Business";
+}
 
 function accountRefFromId(id: string): string {
   const s = (id ?? "").replace(/-/g, "").trim();
@@ -53,61 +85,75 @@ function normalizePlanFromMembershipTier(raw: unknown): Plan {
   return "free";
 }
 
+function formatStamp(iso: string | null | undefined, lang: Lang): string | null {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return iso;
+  return new Date(iso).toLocaleString(lang === "es" ? "es-US" : "en-US");
+}
+
 function DashboardViajesStagedPageContent() {
   const router = useRouter();
   const pathname = usePathname() ?? "/dashboard/viajes";
   const searchParams = useSearchParams();
   const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const capabilities = getOwnerEntityCapabilities("viajes");
   const t = useMemo(
     () =>
       lang === "es"
         ? {
+            eyebrow: "Viajes",
             title: "Viajes — tus envíos",
             subtitle:
               "Solicitudes guardadas en Leonix. Revisión interna antes de aparecer en resultados públicos. Leonix no vende el viaje ni procesa pagos aquí.",
             loading: "Cargando…",
             signIn: "Inicia sesión para ver tus envíos.",
             empty: "Aún no hay envíos vinculados a tu cuenta.",
-            thTitle: "Título",
-            thLane: "Vía",
-            thStatus: "Estado de moderación",
-            thModeration: "Notas de revisión",
-            thSubmitted: "Enviado",
-            thActions: "Acciones",
-            viewPublic: "Ficha pública",
-            preview: "Vista previa interna",
-            edit: "Editar y reenviar",
+            publish: "Publicar viaje",
+            submitted: "Enviado",
+            updated: "Actualizado",
+            visibility: "Visibilidad",
+            visibilityPublic: "Visible al público",
+            visibilityHidden: "No público",
+            moderation: "Notas de revisión",
             resubmit: "Reenviar a revisión",
             unpublish: "Ocultar del público",
-            results: "Resultados Viajes",
             moderationEmpty: "—",
             busy: "…",
+            changesNeeded: "Leonix pidió cambios. Edita y reenvía a revisión.",
+            rejectedNeeded: "Este envío fue rechazado. Edita y reenvía a revisión.",
+            waitingReview: "Leonix está revisando este envío. Todavía no es público.",
             privateEditDisabled: "Edición particular desactivada en este entorno — contacta a Leonix.",
             privatePreviewDisabled: "Vista previa particular no disponible mientras la vía esté desactivada.",
+            moreOptions: "Más opciones",
+            moreOptionsClose: "Cerrar",
           }
         : {
+            eyebrow: "Viajes",
             title: "Viajes — your submissions",
             subtitle:
               "Requests stored in Leonix. Internal review before they appear in public results. Leonix does not sell the trip or process payment here.",
             loading: "Loading…",
             signIn: "Sign in to see your submissions.",
             empty: "No Viajes submissions are linked to your account yet.",
-            thTitle: "Title",
-            thLane: "Lane",
-            thStatus: "Status",
-            thModeration: "Review notes",
-            thSubmitted: "Submitted",
-            thActions: "Actions",
-            viewPublic: "Public offer",
-            preview: "Internal preview",
-            edit: "Edit & resubmit",
+            publish: "Publish a trip",
+            submitted: "Submitted",
+            updated: "Updated",
+            visibility: "Visibility",
+            visibilityPublic: "Public",
+            visibilityHidden: "Not public",
+            moderation: "Review notes",
             resubmit: "Send back to review",
             unpublish: "Remove from public",
-            results: "Viajes results",
             moderationEmpty: "—",
             busy: "…",
+            changesNeeded: "Leonix requested changes. Edit and send back to review.",
+            rejectedNeeded: "This submission was rejected. Edit and send it back to review.",
+            waitingReview: "Leonix is reviewing this submission. It is not public yet.",
             privateEditDisabled: "Private editing is disabled in this environment — contact Leonix.",
             privatePreviewDisabled: "Private preview is unavailable while this lane is disabled.",
+            moreOptions: "More options",
+            moreOptionsClose: "Close",
           },
     [lang]
   );
@@ -140,7 +186,7 @@ function DashboardViajesStagedPageContent() {
       setErr(null);
       setRows((data ?? []) as ViajesStagedListingRow[]);
     }
-  }, []);
+  }, [lang]);
 
   useEffect(() => {
     let mounted = true;
@@ -256,153 +302,116 @@ function DashboardViajesStagedPageContent() {
       email={email}
       accountRef={userId ? accountRefFromId(userId) : null}
       ownerId={userId}
+      contentLayout="workbench"
     >
-      <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_14px_44px_-16px_rgba(42,36,22,0.14)] sm:p-8">
-        <h1 className="text-2xl font-bold text-[#1E1810]">{t.title}</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#5C5346]">{t.subtitle}</p>
-
-        {loading ? <p className="mt-8 text-sm text-[#7A7164]">{t.loading}</p> : null}
-        {!loading && !userId ? <p className="mt-8 text-sm text-[#7A7164]">{t.signIn}</p> : null}
-        {err ? <p className="mt-4 text-sm text-rose-800">{err}</p> : null}
-
-        {!loading && userId && !err && rows.length === 0 ? <p className="mt-8 text-sm text-[#7A7164]">{t.empty}</p> : null}
-
-        {!loading && rows.length > 0 ? (
-          <>
-            <ul className="mt-8 space-y-3 md:hidden">
-              {rows.map((r) => (
-                <li key={r.id} className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-4">
-                  <p className="text-base font-bold text-[#1E1810]">{r.title}</p>
-                  <p className="mt-1 text-xs text-[#5C5346]">
-                    {t.thLane}: {r.lane} · {t.thStatus}: {lifecycleStatusLabel(r.lifecycle_status, lang)}
-                    {r.is_public ? (lang === "es" ? " · visible público" : " · public") : ""}
-                  </p>
-                  <p className="mt-1 text-xs text-[#7A7164]">{t.thModeration}: {modLine(r)}</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {r.lifecycle_status === "approved" && r.is_public ? (
-                      <Link
-                        href={appendLangToPath(`/clasificados/viajes/oferta/${r.slug}`, lang)}
-                        className="rounded-xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-3 py-2 text-xs font-semibold text-[#5C4E2E]"
-                      >
-                        {t.viewPublic}
-                      </Link>
-                    ) : null}
-                    {r.lane === "private" && privateLaneDisabled ? (
-                      <span className="rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-3 py-2 text-xs text-[#7A7164]" title={t.privatePreviewDisabled}>
-                        {t.preview}
-                      </span>
-                    ) : (
-                      <Link href={previewHref(r)} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416]">
-                        {t.preview}
-                      </Link>
-                    )}
-                    {r.lane === "private" && privateLaneDisabled ? (
-                      <span className="rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-3 py-2 text-xs text-[#7A7164]" title={t.privateEditDisabled}>
-                        {t.edit}
-                      </span>
-                    ) : (
-                      <Link href={editHref(r)} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416]">
-                        {t.edit}
-                      </Link>
-                    )}
-                    {canResubmit(r.lifecycle_status) ? (
-                      <button
-                        type="button"
-                        disabled={busyId === r.id}
-                        className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416] disabled:opacity-50"
-                        onClick={() => void ownerAction(r.id, "resubmit")}
-                      >
-                        {busyId === r.id ? t.busy : t.resubmit}
-                      </button>
-                    ) : null}
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-8 hidden overflow-x-auto md:block">
-              <table className="min-w-[920px] w-full border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-b border-[#E8DFD0] text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">
-                  <th className="py-2 pr-4">{t.thTitle}</th>
-                  <th className="py-2 pr-4">{t.thLane}</th>
-                  <th className="py-2 pr-4">{t.thStatus}</th>
-                  <th className="py-2 pr-4">{t.thModeration}</th>
-                  <th className="py-2 pr-4">{t.thSubmitted}</th>
-                  <th className="py-2">{t.thActions}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.id} className="border-b border-[#F0E8DC]/90">
-                    <td className="py-3 pr-4 font-semibold text-[#1E1810]">{r.title}</td>
-                    <td className="py-3 pr-4 capitalize text-[#5C5346]">{r.lane}</td>
-                    <td className="py-3 pr-4 text-[#5C5346]">
-                      {lifecycleStatusLabel(r.lifecycle_status, lang)}
-                      {r.is_public ? (lang === "es" ? " · visible público" : " · public") : ""}
-                    </td>
-                    <td className="max-w-[240px] py-3 pr-4 text-xs text-[#5C5346]">{modLine(r)}</td>
-                    <td className="py-3 pr-4 text-xs tabular-nums text-[#5C5346]">{r.submitted_at ?? "—"}</td>
-                    <td className="py-3">
-                      <div className="flex flex-col gap-1.5 sm:flex-row sm:flex-wrap">
-                        {r.lifecycle_status === "approved" && r.is_public ? (
-                          <Link
-                            href={appendLangToPath(`/clasificados/viajes/oferta/${r.slug}`, lang)}
-                            className="text-xs font-bold text-[#6B5B2E] underline"
-                          >
-                            {t.viewPublic}
-                          </Link>
-                        ) : null}
-                        {r.lane === "private" && privateLaneDisabled ? (
-                          <span className="text-xs text-[#7A7164]" title={t.privatePreviewDisabled}>
-                            {t.preview}
-                          </span>
-                        ) : (
-                          <Link href={previewHref(r)} className="text-xs font-semibold text-[#5C5346] underline">
-                            {t.preview}
-                          </Link>
-                        )}
-                        {r.lane === "private" && privateLaneDisabled ? (
-                          <span className="text-xs text-[#7A7164]" title={t.privateEditDisabled}>
-                            {t.edit}
-                          </span>
-                        ) : (
-                          <Link href={editHref(r)} className="text-xs text-[#5C5346] underline">
-                            {t.edit}
-                          </Link>
-                        )}
-                        {canResubmit(r.lifecycle_status) ? (
-                          <button
-                            type="button"
-                            disabled={busyId === r.id}
-                            className="text-left text-xs font-semibold text-[#6B5B2E] underline disabled:opacity-40"
-                            onClick={() => void ownerAction(r.id, "resubmit")}
-                          >
-                            {busyId === r.id ? t.busy : t.resubmit}
-                          </button>
-                        ) : null}
-                        {canUnpublish(r) ? (
-                          <button
-                            type="button"
-                            disabled={busyId === r.id}
-                            className="text-left text-xs font-semibold text-rose-900 underline disabled:opacity-40"
-                            onClick={() => void ownerAction(r.id, "unpublish")}
-                          >
-                            {busyId === r.id ? t.busy : t.unpublish}
-                          </button>
-                        ) : null}
-                        <Link href={appendLangToPath("/clasificados/viajes/resultados", lang)} className="text-xs text-[#7A7164] underline">
-                          {t.results}
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              </table>
-            </div>
-          </>
+      <OwnerProductPageFrame
+        eyebrow={t.eyebrow}
+        title={t.title}
+        subtitle={t.subtitle}
+        primaryAction={{ href: appendLangToPath("/publicar/viajes", lang), label: t.publish }}
+        secondaryAction={
+          isLiveCapability(capabilities.identity.results)
+            ? { href: appendLangToPath("/clasificados/viajes/resultados", lang), label: publicResultsLabel(lang) }
+            : null
+        }
+        loading={loading}
+        loadingLabel={t.loading}
+        error={!loading && rows.length === 0 ? err : null}
+        empty={!loading && !err && rows.length === 0}
+        emptyLabel={!userId ? t.signIn : t.empty}
+      >
+        {err && rows.length > 0 ? (
+          <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">{err}</p>
         ) : null}
-      </div>
+        {rows.map((r) => {
+          const busy = busyId === r.id;
+          const privateBlocked = r.lane === "private" && privateLaneDisabled;
+          const notes = modLine(r);
+          const submitted = formatStamp(r.submitted_at, lang);
+          const updated = formatStamp(r.updated_at, lang);
+          const detailItems = [
+            submitted ? { label: t.submitted, value: submitted } : null,
+            updated ? { label: t.updated, value: updated } : null,
+            { label: t.visibility, value: r.is_public ? t.visibilityPublic : t.visibilityHidden },
+            notes !== t.moderationEmpty ? { label: t.moderation, value: notes } : null,
+          ].filter((x): x is { label: string; value: string } => x !== null);
+
+          const primaryAction: ActionItem =
+            isLiveCapability(capabilities.identity.edit) && !privateBlocked
+              ? { href: editHref(r), label: editListingLabel(lang) }
+              : { label: editListingLabel(lang), disabled: true };
+
+          const quickActions: ActionItem[] = [];
+          if (isLiveCapability(capabilities.identity.publicView) && r.lifecycle_status === "approved" && r.is_public) {
+            quickActions.push({
+              href: appendLangToPath(`/clasificados/viajes/oferta/${r.slug}`, lang),
+              label: publicViewLabel(lang),
+              tone: "secondary",
+            });
+          }
+          if (isLiveCapability(capabilities.identity.preview)) {
+            if (privateBlocked) {
+              quickActions.push({ label: previewLabel(lang), disabled: true });
+            } else {
+              quickActions.push({ href: previewHref(r), label: previewLabel(lang), tone: "subtle" });
+            }
+          }
+          if (isLiveCapability(capabilities.identity.results)) {
+            quickActions.push({
+              href: appendLangToPath("/clasificados/viajes/resultados", lang),
+              label: publicResultsLabel(lang),
+              tone: "subtle",
+            });
+          }
+
+          const lifecycleActions: ActionItem[] = [];
+          if (canResubmit(r.lifecycle_status)) {
+            lifecycleActions.push({
+              label: busy ? t.busy : t.resubmit,
+              onClick: () => void ownerAction(r.id, "resubmit"),
+              disabled: busy,
+              tone: "positive",
+            });
+          }
+          if (canUnpublish(r)) {
+            lifecycleActions.push({
+              label: busy ? t.busy : t.unpublish,
+              onClick: () => void ownerAction(r.id, "unpublish"),
+              disabled: busy,
+              tone: "danger",
+            });
+          }
+
+          return (
+            <OwnerEntityWorkspace
+              key={r.id}
+              lang={lang}
+              header={{
+                eyebrow: t.eyebrow,
+                title: r.title,
+                statusLabel: lifecycleStatusLabel(r.lifecycle_status, lang),
+                statusChipClass: listingUiStatusChipClass(viajesChipUiStatus(r.lifecycle_status)),
+                badges: [viajesLaneBadge(r.lane, lang)],
+              }}
+              detailItems={detailItems}
+              primaryAction={primaryAction}
+              quickActions={quickActions}
+              lifecycleActions={lifecycleActions}
+              note={
+                r.lifecycle_status === "changes_requested"
+                  ? { text: notes !== t.moderationEmpty ? `${t.changesNeeded} ${notes}` : t.changesNeeded, tone: "warning" }
+                  : r.lifecycle_status === "rejected"
+                    ? { text: notes !== t.moderationEmpty ? `${t.rejectedNeeded} ${notes}` : t.rejectedNeeded, tone: "warning" }
+                    : r.lifecycle_status === "submitted" || r.lifecycle_status === "in_review"
+                      ? { text: t.waitingReview, tone: "neutral" }
+                      : null
+              }
+              footerHint={privateBlocked ? t.privateEditDisabled : null}
+              mobileSheetLabels={{ trigger: t.moreOptions, title: t.moreOptions, close: t.moreOptionsClose }}
+            />
+          );
+        })}
+      </OwnerProductPageFrame>
     </LeonixDashboardShell>
   );
 }

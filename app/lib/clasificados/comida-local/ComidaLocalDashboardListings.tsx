@@ -1,9 +1,18 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import type { ComidaLocalDashboardListingVm } from "./mapComidaLocalDashboardListing";
+import {
+  editListingLabel,
+  publicViewLabel,
+  pauseListingLabel,
+  resumeListingLabel,
+} from "@/app/(site)/dashboard/lib/dashboardMisAnunciosCategoryTools";
+import { getOwnerEntityCapabilities, isLiveCapability } from "@/app/(site)/dashboard/lib/ownerEntityCapabilityRegistry";
+import { resolveListingUiStatus, listingUiStatusLabel, listingUiStatusChipClass } from "@/app/(site)/dashboard/lib/listingDisplayStatus";
+import { OwnerEntityWorkspace } from "@/app/(site)/dashboard/components/OwnerEntityWorkspace";
+import type { ActionItem } from "@/app/(site)/dashboard/components/DashboardListingActionBar";
 
 type Lang = "es" | "en";
 
@@ -19,9 +28,39 @@ export function ComidaLocalDashboardListings({ lang, items, showEmpty = false, o
   const q = `lang=${lang}`;
   const [busyId, setBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const capabilities = getOwnerEntityCapabilities("comida-local");
 
-  /** Package A Gate 5 — the pipeline's first owner-side lifecycle mutation (published↔paused
-   * via the owner-verified server API; suspended/draft rows are never owner-flippable). */
+  const t =
+    lang === "es"
+      ? {
+          emptyTitle: "Comida Local",
+          empty: "Todavía no tienes publicaciones de Comida Local.",
+          emptyHelp: "Tus puestos, pop-ups o vendedores locales publicados.",
+          publish: "Publicar Comida Local",
+          moreOptions: "Más opciones",
+          moreOptionsClose: "Cerrar",
+          foodType: "Tipo",
+          city: "Ciudad",
+          published: "Publicado",
+          payment: "Pago",
+          contact: "Contacto",
+          eyebrow: "Comida local",
+        }
+      : {
+          emptyTitle: "Comida Local",
+          empty: "You do not have any Comida Local listings yet.",
+          emptyHelp: "Your published food stands, pop-ups, and local vendors.",
+          publish: "Publish Comida Local",
+          moreOptions: "More options",
+          moreOptionsClose: "Close",
+          foodType: "Type",
+          city: "City",
+          published: "Published",
+          payment: "Payment",
+          contact: "Contact",
+          eyebrow: "Local food",
+        };
+
   async function mutateLifecycle(listingId: string, action: "pause" | "resume") {
     setActionError(null);
     const supabase = createSupabaseBrowserClient();
@@ -54,24 +93,16 @@ export function ComidaLocalDashboardListings({ lang, items, showEmpty = false, o
 
   if (items.length === 0 && showEmpty) {
     return (
-      <section className="mt-8 rounded-2xl border border-[#D4C4A8]/80 bg-[#FFFCF7] p-6 shadow-sm">
-        <h2 className="text-xl font-bold text-[#1E1814]">Comida Local</h2>
-        <p className="mt-2 text-sm text-[#1E1814]/70">
-          {lang === "es"
-            ? "Todavía no tienes publicaciones de Comida Local."
-            : "You do not have any Comida Local listings yet."}
-        </p>
-        <p className="mt-1 text-xs text-[#1E1814]/55">
-          {lang === "es"
-            ? "Tus puestos, pop-ups o vendedores locales publicados."
-            : "Your published food stands, pop-ups, and local vendors."}
-        </p>
-        <Link
+      <section className="mt-8 rounded-3xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-6 shadow-[0_10px_32px_-16px_rgba(31,36,28,0.1)]">
+        <h2 className="font-serif text-2xl font-semibold text-[#1F241C]">{t.emptyTitle}</h2>
+        <p className="mt-2 text-sm text-[#5C5346]">{t.empty}</p>
+        <p className="mt-1 text-xs text-[#7A7164]">{t.emptyHelp}</p>
+        <a
           href={`/publicar/comida-local?${q}`}
-          className="mt-4 inline-flex rounded-xl border border-[#7A1E2C] bg-[#7A1E2C] px-4 py-2 text-sm font-semibold text-[#FFFCF7] hover:bg-[#6a1a26]"
+          className="mt-4 inline-flex min-h-[40px] items-center justify-center rounded-xl border border-[#7A1E2C]/15 bg-[#7A1E2C] px-4 py-2 text-sm font-semibold text-[#FFFCF7]"
         >
-          {lang === "es" ? "Publicar Comida Local" : "Publish Comida Local"}
-        </Link>
+          {t.publish}
+        </a>
       </section>
     );
   }
@@ -79,146 +110,64 @@ export function ComidaLocalDashboardListings({ lang, items, showEmpty = false, o
   if (items.length === 0) return null;
 
   return (
-    <section className="mt-8">
-      <div className="mb-4">
-        <h2 className="text-xl font-bold text-[#1E1814]">Comida Local ({items.length})</h2>
-        <p className="mt-1 text-sm text-[#1E1814]/70">
-          {lang === "es"
-            ? "Tus puestos, pop-ups o vendedores locales publicados."
-            : "Your published food stands, pop-ups, and local vendors."}
-        </p>
-      </div>
+    <div className="mt-8 flex flex-col gap-4">
+      {items.map((item) => {
+        const uiStatus = resolveListingUiStatus({ status: item.status });
+        const busy = busyId === item.id;
+        const editHref = `/publicar/comida-local?edit=1&listingId=${encodeURIComponent(item.id)}&source=dashboard&${q}`;
+        const detailItems = [
+          item.foodTypeLabel ? { label: t.foodType, value: item.foodTypeLabel } : null,
+          item.cityLabel ? { label: t.city, value: item.cityLabel } : null,
+          item.publishedAtLabel ? { label: t.published, value: item.publishedAtLabel } : null,
+          item.paymentStatusLabel ? { label: t.payment, value: item.paymentStatusLabel } : null,
+          item.primaryContactLabel ? { label: t.contact, value: item.primaryContactLabel } : null,
+        ].filter((x): x is { label: string; value: string } => x !== null);
 
-      <div className="grid gap-4">
-        {items.map((item) => (
-          <article
+        const quickActions: ActionItem[] = [];
+        if (isLiveCapability(capabilities.identity.publicView) && item.publicPath) {
+          quickActions.push({ href: `${item.publicPath}?${q}`, label: publicViewLabel(lang), tone: "secondary" });
+        }
+
+        const lifecycleActions: ActionItem[] = [];
+        if (isLiveCapability(capabilities.lifecycle.pause) && item.status === "published") {
+          lifecycleActions.push({
+            label: busy ? (lang === "es" ? "Pausando…" : "Pausing…") : pauseListingLabel(lang),
+            onClick: () => void mutateLifecycle(item.id, "pause"),
+            disabled: busy,
+            tone: "warning",
+          });
+        }
+        if (isLiveCapability(capabilities.lifecycle.reactivate) && item.status === "paused") {
+          lifecycleActions.push({
+            label: busy ? (lang === "es" ? "Reactivando…" : "Resuming…") : resumeListingLabel(lang),
+            onClick: () => void mutateLifecycle(item.id, "resume"),
+            disabled: busy,
+            tone: "positive",
+          });
+        }
+
+        return (
+          <OwnerEntityWorkspace
             key={item.id}
-            className="flex flex-col gap-4 overflow-hidden rounded-2xl border border-[#D4C4A8]/85 bg-[#FFFCF7] p-4 shadow-sm sm:flex-row"
-          >
-            <div className="relative h-28 w-full shrink-0 overflow-hidden rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0] sm:h-24 sm:w-32">
-              {item.mainPhotoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={item.mainPhotoUrl}
-                  alt=""
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-xs text-[#1E1814]/40">
-                  {lang === "es" ? "Sin foto" : "No photo"}
-                </div>
-              )}
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-md bg-[#7A1E2C]/10 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#7A1E2C]">
-                  {item.categoryLabel}
-                </span>
-                <span className="rounded-md border border-[#D4C4A8] px-2 py-0.5 text-[11px] font-semibold text-[#1E1814]/75">
-                  {item.statusLabel}
-                </span>
-                <span className="rounded-md border border-[#D4C4A8]/80 px-2 py-0.5 text-[11px] text-[#1E1814]/65">
-                  {item.packageLabel}
-                </span>
-              </div>
-
-              <h3 className="mt-2 text-lg font-bold text-[#1E1814]">{item.title}</h3>
-              <p className="mt-0.5 text-sm text-[#1E1814]/65">
-                {[item.foodTypeLabel, item.cityLabel].filter(Boolean).join(" · ")}
-              </p>
-
-              <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-                {item.leonixAdId ? (
-                  <div className="rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0] px-3 py-2">
-                    <dt className="text-[10px] font-bold uppercase tracking-wide text-[#1E1814]/50">
-                      {lang === "es" ? "ID Leonix" : "Leonix ID"}
-                    </dt>
-                    <dd className="mt-0.5 font-mono text-xs font-semibold text-[#1E1814]">
-                      {item.leonixAdId}
-                    </dd>
-                  </div>
-                ) : null}
-                <div className="rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0] px-3 py-2">
-                  <dt className="text-[10px] font-bold uppercase tracking-wide text-[#1E1814]/50">
-                    {lang === "es" ? "Publicado" : "Published"}
-                  </dt>
-                  <dd className="mt-0.5 font-semibold text-[#1E1814]">{item.publishedAtLabel}</dd>
-                </div>
-                <div className="rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0] px-3 py-2">
-                  <dt className="text-[10px] font-bold uppercase tracking-wide text-[#1E1814]/50">
-                    {lang === "es" ? "Pago" : "Payment"}
-                  </dt>
-                  <dd className="mt-0.5 text-xs font-semibold text-[#1E1814]">
-                    {item.paymentStatusLabel}
-                  </dd>
-                </div>
-                {item.primaryContactLabel ? (
-                  <div className="rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0] px-3 py-2">
-                    <dt className="text-[10px] font-bold uppercase tracking-wide text-[#1E1814]/50">
-                      {lang === "es" ? "Contacto" : "Contact"}
-                    </dt>
-                    <dd className="mt-0.5 text-xs font-semibold text-[#1E1814]">
-                      {item.primaryContactLabel}
-                    </dd>
-                  </div>
-                ) : null}
-              </dl>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Link
-                  href={`${item.publicPath}?${q}`}
-                  prefetch={false}
-                  className="inline-flex rounded-xl border border-[#7A1E2C] bg-[#7A1E2C] px-4 py-2 text-sm font-semibold text-[#FFFCF7] hover:bg-[#6a1a26]"
-                >
-                  {lang === "es" ? "Ver ficha" : "View listing"}
-                </Link>
-                {/* Package A closure — dedicated listing-bound editor (same-row save; no
-                    payment). The generic "Formulario" link was replaced by the real edit
-                    action carrying this listing's identity. */}
-                <Link
-                  href={`/publicar/comida-local?edit=1&listingId=${encodeURIComponent(item.id)}&source=dashboard&${q}`}
-                  prefetch={false}
-                  className="inline-flex rounded-xl border border-[#D4C4A8] bg-white px-4 py-2 text-sm font-medium text-[#1E1814] hover:border-[#7A1E2C]/35"
-                >
-                  {lang === "es" ? "Editar" : "Edit"}
-                </Link>
-                {item.status === "published" ? (
-                  <button
-                    type="button"
-                    disabled={busyId === item.id}
-                    onClick={() => void mutateLifecycle(item.id, "pause")}
-                    className="inline-flex rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900 hover:border-amber-400 disabled:opacity-50"
-                  >
-                    {busyId === item.id ? (lang === "es" ? "Pausando…" : "Pausing…") : lang === "es" ? "Pausar" : "Pause"}
-                  </button>
-                ) : item.status === "paused" ? (
-                  <button
-                    type="button"
-                    disabled={busyId === item.id}
-                    onClick={() => void mutateLifecycle(item.id, "resume")}
-                    className="inline-flex rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-900 hover:border-emerald-400 disabled:opacity-50"
-                  >
-                    {busyId === item.id
-                      ? lang === "es"
-                        ? "Reactivando…"
-                        : "Resuming…"
-                      : lang === "es"
-                        ? "Reactivar"
-                        : "Resume"}
-                  </button>
-                ) : null}
-              </div>
-              {actionError && busyId === null ? (
-                <p className="mt-2 text-xs font-semibold text-red-800" role="alert">
-                  {actionError}
-                </p>
-              ) : null}
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
+            lang={lang}
+            header={{
+              eyebrow: t.eyebrow,
+              title: item.title,
+              statusLabel: listingUiStatusLabel(uiStatus, lang),
+              statusChipClass: listingUiStatusChipClass(uiStatus),
+              plan: item.packageLabel || null,
+              leonixId: item.leonixAdId,
+              badges: item.categoryLabel ? [item.categoryLabel] : undefined,
+            }}
+            note={actionError && busyId === null ? { text: actionError, tone: "urgent" } : null}
+            detailItems={detailItems}
+            primaryAction={{ href: editHref, label: editListingLabel(lang) }}
+            quickActions={quickActions}
+            lifecycleActions={lifecycleActions}
+            mobileSheetLabels={{ trigger: t.moreOptions, title: t.moreOptions, close: t.moreOptionsClose }}
+          />
+        );
+      })}
+    </div>
   );
 }

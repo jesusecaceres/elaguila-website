@@ -2,17 +2,42 @@
 
 import Link from "next/link";
 
-type ActionItem = {
+export type ActionItem = {
   href?: string;
   label: string;
-  tone?: "primary" | "secondary" | "subtle";
+  /**
+   * Gate 2C — semantic tone, not decoration. "primary" = the one owner doorway;
+   * "secondary"/"subtle" = view-tier actions; "positive"/"warning"/"danger" = lifecycle
+   * actions carrying the Package 1 brand's status meaning (resume=green, pause=amber,
+   * archive/destructive=red — never used for anything else); "premium" = specialized/
+   * add-on tools (inventory, coupons, offers) in the gold role. Adding a tone here is a
+   * presentation choice only — it never changes which action exists or where it goes.
+   */
+  tone?: "primary" | "secondary" | "subtle" | "positive" | "warning" | "danger" | "premium";
   onClick?: () => void;
   disabled?: boolean;
 };
 
+// Gate 2C — color-only fragments (border/bg/text/hover), matching the same colors as
+// the Package 1 LX_DASH.btnPositive/btnWarning/btnDanger/btnPremium tokens, but without
+// their full layout classes (size/padding/font-size) — this component already supplies
+// those on the shared wrapper below, so reusing the full LX_DASH strings here would
+// duplicate/conflict with it (e.g. text-xs vs the wrapper's text-sm).
 function actionClass(tone: ActionItem["tone"]): string {
   if (tone === "primary") {
     return "border-transparent bg-[color:var(--lx-cta-primary-bg)] text-[color:var(--lx-cta-primary-fg)] hover:opacity-90";
+  }
+  if (tone === "positive") {
+    return "border-[#2A4536]/25 bg-[#2A4536] text-[#F8F4EA] hover:bg-[#1F3327]";
+  }
+  if (tone === "warning") {
+    return "border-amber-300/70 bg-amber-50 text-amber-900 hover:border-amber-400 hover:bg-amber-100";
+  }
+  if (tone === "danger") {
+    return "border-red-300/70 bg-red-50 text-red-800 hover:border-red-400 hover:bg-red-100";
+  }
+  if (tone === "premium") {
+    return "border-[#C9A84A]/70 bg-gradient-to-br from-[#FBF7EF] to-[#F3EBDD] text-[#5C4A16] hover:border-[#C9A84A]";
   }
   if (tone === "subtle") {
     return "border-[color:var(--lx-border)] bg-[color:var(--lx-section)] text-[color:var(--lx-text)]";

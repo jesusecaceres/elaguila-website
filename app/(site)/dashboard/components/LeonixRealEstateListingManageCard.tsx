@@ -5,7 +5,9 @@ import { BR_NEGOCIO_Q_PROPIEDAD } from "@/app/clasificados/bienes-raices/shared/
 import {
   archiveListingLabel,
   editListingLabel,
+  openPanelLabel,
   pauseListingLabel,
+  previewLabel,
   publicViewLabel,
   resumeListingLabel,
 } from "../lib/dashboardMisAnunciosCategoryTools";
@@ -564,6 +566,18 @@ export function LeonixRealEstateListingManageCard({
               {republishPrimaryLabel}
             </button>
           ) : null}
+          {/* Gate 2C — canonical primary doorway. Rentas and Bienes Raíces (both lanes) all get
+              a real /dashboard/mis-anuncios/{id} workspace per the locked destination contract;
+              this card previously had no primary "manage" action at all (View public/Edit/
+              Preview all rendered with the same plain styling). Added, not replacing any
+              existing link/route. */}
+          <Link
+            href={`/dashboard/mis-anuncios/${encodeURIComponent(row.id)}?lang=${lang}`}
+            prefetch={false}
+            className="rounded-xl border border-[#7A1E2C]/15 bg-[#7A1E2C] px-4 py-2 text-sm font-semibold text-[#FFFCF7] shadow-[0_6px_16px_-4px_rgba(122,30,44,0.35)] hover:bg-[#5e1721]"
+          >
+            {openPanelLabel(lang)}
+          </Link>
           <Link
             href={publicViewHref}
             prefetch={false}
@@ -586,7 +600,7 @@ export function LeonixRealEstateListingManageCard({
               prefetch={false}
               className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416]"
             >
-              {lang === "es" ? "Vista previa" : "Preview"}
+              {previewLabel(lang)}
             </Link>
           ) : null}
           {isBrNegocioRow ? (

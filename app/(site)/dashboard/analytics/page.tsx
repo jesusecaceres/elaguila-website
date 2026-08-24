@@ -5,6 +5,7 @@ import {useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+import { LX_DASH } from "../lib/dashboardLeonixTheme";
 import { dashboardCountLabelTotalGestionados } from "../lib/dashboardCountDefinitions";
 import type { OwnerAnalyticsTotals } from "../lib/dashboardAnalyticsSummary";
 import { fetchDashboardAnalyticsSummary } from "../lib/fetchDashboardAnalyticsApi";
@@ -210,13 +211,13 @@ function DashboardAnalyticsPageContent() {
   const lastEngagementLabel = totals ? formatLastEngagement(totals.lastEngagement, lang) : null;
 
   return (
-    <LeonixDashboardShell lang={lang} activeNav="analytics" plan={plan} userName={name} email={email} accountRef={accountRef} ownerId={userId}>
+    <LeonixDashboardShell lang={lang} activeNav="analytics" plan={plan} userName={name} email={email} accountRef={accountRef} ownerId={userId} contentLayout="workbench">
       {loading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>
       ) : (
         <>
           <header className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.12)] sm:p-8">
-            <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">{t.title}</h1>
+            <h1 className={LX_DASH.pageTitle}>{t.title}</h1>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#5C5346]/95">{t.subtitle}</p>
           </header>
           <div className="mt-6 rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-inner">

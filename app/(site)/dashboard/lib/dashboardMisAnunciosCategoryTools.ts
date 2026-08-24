@@ -33,10 +33,17 @@ export type CategoryPanelAction = {
   tone: "primary" | "secondary" | "manage";
 };
 
+/**
+ * Gate 2C — extended to match `ActionItem`'s semantic tones (`DashboardListingActionBar.tsx`):
+ * "positive"/"warning"/"danger" for lifecycle actions, "premium" for specialized/add-on
+ * tools. Kept as a separate type (not a re-export) since this file predates that component
+ * and other callers may still only supply the original three — but the value sets are
+ * identical, so anything built here renders correctly through the shared action bar.
+ */
 export type ListingPanelAction = {
   href?: string;
   label: string;
-  tone?: "primary" | "secondary" | "subtle";
+  tone?: "primary" | "secondary" | "subtle" | "positive" | "warning" | "danger" | "premium";
   onClick?: () => void;
   disabled?: boolean;
 };
@@ -184,8 +191,15 @@ export function categoryToolsTrustCopy(lang: Lang): string {
     : "We only show tools available for this category.";
 }
 
+/**
+ * Gate 2C — canonical primary owner doorway label, locked across every category that
+ * has a truthful manage/edit/workspace destination. Do not use "Gestionar"/"Gestionar
+ * vacante"/"Gestionar envío"/"Editar anuncio"/"Ver detalles" as a primary card doorway —
+ * those may still exist as secondary/specialized concepts inside the destination the
+ * owner lands on, just not as the card's own primary label.
+ */
 export function openPanelLabel(lang: Lang): string {
-  return lang === "es" ? "Administrar anuncio" : "Manage ad";
+  return lang === "es" ? "Administrar anuncio" : "Manage listing";
 }
 
 export function editListingLabel(lang: Lang): string {
@@ -217,15 +231,35 @@ export function publicResultsListingLabel(lang: Lang): string {
 }
 
 export function archiveListingLabel(lang: Lang): string {
-  return lang === "es" ? "Archivar anuncio" : "Archive ad";
+  return lang === "es" ? "Archivar anuncio" : "Archive listing";
 }
 
 export function pauseListingLabel(lang: Lang): string {
-  return lang === "es" ? "Pausar anuncio" : "Pause ad";
+  return lang === "es" ? "Pausar anuncio" : "Pause listing";
 }
 
 export function resumeListingLabel(lang: Lang): string {
-  return lang === "es" ? "Restaurar" : "Restore";
+  return lang === "es" ? "Reactivar anuncio" : "Reactivate listing";
+}
+
+export function markSoldListingLabel(lang: Lang): string {
+  return lang === "es" ? "Marcar vendido" : "Mark sold";
+}
+
+export function republishListingLabel(lang: Lang): string {
+  return lang === "es" ? "Republicar anuncio" : "Republish listing";
+}
+
+export function manageInventoryLabel(lang: Lang): string {
+  return lang === "es" ? "Gestionar inventario" : "Manage inventory";
+}
+
+export function offersAndCouponsLabel(lang: Lang): string {
+  return lang === "es" ? "Ofertas y cupones" : "Offers & coupons";
+}
+
+export function applicationsLabel(lang: Lang): string {
+  return lang === "es" ? "Solicitudes" : "Applications";
 }
 
 /** Dedicated dashboard hub — not the Mis anuncios self-ref workspace. */
@@ -378,9 +412,14 @@ export function buildInventoryListingActions(
     // Gate D.4 — canonical resolver output preferred (verified parity in Gate D.4's read-only
     // pass: `listingSlug` is a hydration fallback only, never required when a real listingId is
     // present), falling back to the existing opts/href chain when identity isn't available.
+    // Gate 2C — this IS Servicios' single canonical primary doorway (the destination the
+    // legacy `actionContract.manageUrl` branch used to duplicate with a second, conflicting
+    // "Administrar anuncio" button — that branch is retired below). Labeled as the canonical
+    // primary doorway, not "Editar anuncio", since it's now the one place "manage this
+    // listing" means for Servicios.
     actions.push({
       href: canonical.get("edit")?.href ?? opts?.serviciosEditHref ?? item.editHref,
-      label: opts?.editLabelOverride ?? editListingLabel(lang),
+      label: opts?.editLabelOverride ?? openPanelLabel(lang),
       tone: "primary",
     });
   }
@@ -390,25 +429,31 @@ export function buildInventoryListingActions(
     opts?.serviciosOffersActive &&
     opts?.serviciosOffersEditHref
   ) {
+    // Gate 2C — specialized/add-on action, gold "premium" role; not a second primary.
     actions.push({
       href: opts.serviciosOffersEditHref,
-      label: opts.offersEditLabelOverride ?? (lang === "es" ? "Editar ofertas" : "Edit offers"),
-      tone: "primary",
+      label: opts.offersEditLabelOverride ?? offersAndCouponsLabel(lang),
+      tone: "premium",
     });
   }
 
   if (listingToolIsReady(category, "publicView")) {
+    // Gate 2C — view-tier action for every category (previously "primary" for
+    // non-Servicios categories, which competed visually with the real manage doorway).
     actions.push({
       href: canonical.get("viewPublic")?.href ?? item.publicHref,
       label: publicViewLabel(lang),
-      tone: category === "servicios" ? "secondary" : "primary",
+      tone: "secondary",
     });
   }
 
   if (category === "restaurantes" && listingToolIsReady(category, "openPanel")) {
+    // Gate 2C — canonical primary doorway; this dedicated page is Restaurantes' real
+    // manage surface (form-hydration edit model, no listing-scoped sub-route exists).
     actions.push({
       href: `/dashboard/restaurantes?${q}`,
       label: openPanelLabel(lang),
+      tone: "primary",
     });
   }
 
@@ -418,6 +463,7 @@ export function buildInventoryListingActions(
     listingToolIsReady(category, "couponUpgrade") &&
     opts?.onCouponUpgrade
   ) {
+    // Gate 2C — specialized/add-on action, gold "premium" role; not a second primary.
     actions.push({
       label: opts.couponUpgradeBusy
         ? lang === "es"
@@ -428,7 +474,7 @@ export function buildInventoryListingActions(
           : "Add coupons +$99/mo",
       onClick: opts.onCouponUpgrade,
       disabled: opts.couponUpgradeBusy,
-      tone: "primary",
+      tone: "premium",
     });
   }
 
@@ -438,6 +484,10 @@ export function buildInventoryListingActions(
     listingToolIsReady(category, "couponEdit") &&
     opts?.onCouponEdit
   ) {
+    // Gate 2C — specialized/add-on action, gold "premium" role; not a second primary.
+    // Kept as the specific "edit existing coupons" label (distinct from the generic
+    // "Ofertas y cupones" concept used where no more precise action exists) so the
+    // distinction between adding vs. editing coupons isn't lost.
     actions.push({
       label: opts.couponEditBusy
         ? lang === "es"
@@ -448,7 +498,7 @@ export function buildInventoryListingActions(
           : "Edit coupons",
       onClick: opts.onCouponEdit,
       disabled: opts.couponEditBusy,
-      tone: "primary",
+      tone: "premium",
     });
   }
 
@@ -458,6 +508,7 @@ export function buildInventoryListingActions(
     listingToolIsReady(category, "pause") &&
     opts?.onServiciosManage
   ) {
+    // Gate 2C — lifecycle action, amber "warning" role (pause/caution).
     actions.push({
       label: opts.serviciosManageBusy
         ? lang === "es"
@@ -466,7 +517,7 @@ export function buildInventoryListingActions(
         : pauseListingLabel(lang),
       onClick: () => opts.onServiciosManage!("pause"),
       disabled: opts.serviciosManageBusy,
-      tone: "secondary",
+      tone: "warning",
     });
   }
 
@@ -476,6 +527,7 @@ export function buildInventoryListingActions(
     listingToolIsReady(category, "reactivate") &&
     opts?.onServiciosManage
   ) {
+    // Gate 2C — lifecycle action, green "positive" role (resume/reactivate).
     actions.push({
       label: opts.serviciosManageBusy
         ? lang === "es"
@@ -484,21 +536,26 @@ export function buildInventoryListingActions(
         : resumeListingLabel(lang),
       onClick: () => opts.onServiciosManage!("resume"),
       disabled: opts.serviciosManageBusy,
-      tone: "secondary",
+      tone: "positive",
     });
   }
 
-  if (category === "servicios" && item.actionContract?.manageUrl) {
-    actions.push({
-      href: item.actionContract.manageUrl,
-      label: openPanelLabel(lang),
-    });
-  }
+  // Gate 2C, Task 2C-4 — the legacy `actionContract.manageUrl` branch that used to push a
+  // SECOND, conflicting "Administrar anuncio" button here (pointing at
+  // `/dashboard/servicios?listingSlug=...`, a different destination than the canonical
+  // edit/manage href above) is retired. `buildServiciosDashboardActionContract` and
+  // `item.actionContract` themselves are untouched — their other fields (publicUrl,
+  // editUrl, resultsUrl, listingId fallbacks) are still real and still used elsewhere
+  // (dashboardInventory.ts, mis-anuncios/page.tsx) — only this one duplicate CTA push is
+  // removed, so one Servicios listing now has exactly one primary doorway.
 
   if (category === "empleos" && listingToolIsReady(category, "edit")) {
+    // Gate 2C — canonical primary doorway (was "Gestionar vacante"/"Manage listing" with
+    // no tone, i.e. visually secondary). Destination unchanged: /dashboard/empleos/{id}.
     actions.push({
       href: item.editHref,
-      label: lang === "es" ? "Gestionar vacante" : "Manage listing",
+      label: openPanelLabel(lang),
+      tone: "primary",
     });
   }
 
@@ -509,7 +566,7 @@ export function buildInventoryListingActions(
         label: opts.empleosLifecycleBusy ? busyLabel : pauseListingLabel(lang),
         onClick: () => opts.onEmpleosLifecycle!("paused"),
         disabled: opts.empleosLifecycleBusy,
-        tone: "secondary",
+        tone: "warning",
       });
     }
     if (item.status === "paused" && listingToolIsReady(category, "reactivate")) {
@@ -517,7 +574,7 @@ export function buildInventoryListingActions(
         label: opts.empleosLifecycleBusy ? busyLabel : resumeListingLabel(lang),
         onClick: () => opts.onEmpleosLifecycle!("published"),
         disabled: opts.empleosLifecycleBusy,
-        tone: "secondary",
+        tone: "positive",
       });
     }
     if ((item.status === "published" || item.status === "paused") && listingToolIsReady(category, "archive")) {
@@ -525,15 +582,20 @@ export function buildInventoryListingActions(
         label: opts.empleosLifecycleBusy ? busyLabel : archiveListingLabel(lang),
         onClick: () => opts.onEmpleosLifecycle!("archived"),
         disabled: opts.empleosLifecycleBusy,
-        tone: "subtle",
+        tone: "danger",
       });
     }
   }
 
   if (category === "viajes" && listingToolIsReady(category, "edit")) {
+    // Gate 2C — canonical primary doorway (was "Gestionar envío"/"Manage submission" with
+    // no tone). Destination unchanged (item.editHref) — Viajes' own routing was left as-is
+    // per this gate's explicit "do not redesign Viajes" instruction; only the label/tone
+    // that the owner sees on the Mis Anuncios card changed.
     actions.push({
       href: item.editHref,
-      label: lang === "es" ? "Gestionar envío" : "Manage submission",
+      label: openPanelLabel(lang),
+      tone: "primary",
     });
   }
 

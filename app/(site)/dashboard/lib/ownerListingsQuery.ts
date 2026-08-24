@@ -27,6 +27,50 @@ export type OwnerListingFetchMeta = {
   republishColsAvailable: boolean;
 };
 
+/**
+ * Gate 2A — session-scoped capability cache around the tiered SELECT above.
+ *
+ * The tier/column definitions, the missing-column detection, and the stripping loop above
+ * are all unchanged. This cache only remembers the exact column string that last succeeded
+ * for `public.listings` in this browser session, so repeat page loads (owner navigating away
+ * and back, refreshing, switching category tabs) can skip straight to the working shape
+ * instead of re-discovering it via failed round trips every time. It is intentionally NOT
+ * persisted to localStorage (schema drift across a deploy should be re-discovered on the next
+ * new session, not remembered forever) and is safe to no-op in any non-browser/SSR context —
+ * it degrades to "always rediscover", never to "always fail".
+ */
+let cachedWorkingListingsSelect: string | null = null;
+
+function readCachedListingsSelect(): string | null {
+  if (cachedWorkingListingsSelect) return cachedWorkingListingsSelect;
+  if (typeof window === "undefined" || !window.sessionStorage) return null;
+  try {
+    return window.sessionStorage.getItem("lx_owner_listings_select_v1") || null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedListingsSelect(cols: string): void {
+  cachedWorkingListingsSelect = cols;
+  if (typeof window === "undefined" || !window.sessionStorage) return;
+  try {
+    window.sessionStorage.setItem("lx_owner_listings_select_v1", cols);
+  } catch {
+    /* ignore — cache is a best-effort shortcut, never required for correctness */
+  }
+}
+
+function clearCachedListingsSelect(): void {
+  cachedWorkingListingsSelect = null;
+  if (typeof window === "undefined" || !window.sessionStorage) return;
+  try {
+    window.sessionStorage.removeItem("lx_owner_listings_select_v1");
+  } catch {
+    /* ignore */
+  }
+}
+
 export async function fetchOwnerListingsForDashboard(
   sb: SupabaseClient,
   ownerId: string,
@@ -37,6 +81,29 @@ export async function fetchOwnerListingsForDashboard(
     { cols: CORE, rich: false },
   ];
 
+  // Try the previously-successful shape first, if this session has already discovered one.
+  // A cache hit skips the full tiered fallback entirely; a cache miss/failure falls straight
+  // through to the existing, unmodified discovery loop below — the cache never hides a real
+  // schema failure, it only shortcuts a *known-good* shape.
+  const cachedCols = readCachedListingsSelect();
+  if (cachedCols) {
+    const res = await sb.from("listings").select(cachedCols).eq("owner_id", ownerId).order("created_at", { ascending: false });
+    if (!res.error) {
+      const rich = cachedCols === WITH_OPTIONAL_META || cachedCols === WITH_TIMESTAMPS;
+      return {
+        data: (res.data as unknown as Record<string, unknown>[]) ?? [],
+        error: null,
+        meta: {
+          optionalMetaAvailable: rich,
+          republishColsAvailable: cachedCols.split(",").some((s) => s.trim() === "republished_at"),
+        },
+      };
+    }
+    // Cached shape no longer works (e.g. schema changed mid-session) — drop it and fall back
+    // to full discovery below, exactly as if there had been no cache at all.
+    clearCachedListingsSelect();
+  }
+
   let lastErr: { message: string } | null = null;
   for (const tier of tiers) {
     let cols = tier.cols;
@@ -44,6 +111,7 @@ export async function fetchOwnerListingsForDashboard(
     for (let attempt = 0; attempt < 32; attempt++) {
       const res = await sb.from("listings").select(cols).eq("owner_id", ownerId).order("created_at", { ascending: false });
       if (!res.error) {
+        writeCachedListingsSelect(cols);
         return {
           data: (res.data as unknown as Record<string, unknown>[]) ?? [],
           error: null,

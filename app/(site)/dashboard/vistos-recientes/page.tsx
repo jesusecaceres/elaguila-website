@@ -8,6 +8,7 @@ import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
 import { getRecentlyViewedIds } from "../../../lib/recentlyViewed";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+import { LX_DASH } from "../lib/dashboardLeonixTheme";
 
 export const dynamic = "force-dynamic";
 
@@ -188,7 +189,7 @@ function VistosRecientesPageContent() {
       ) : (
         <>
           <header>
-            <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">{t.title}</h1>
+            <h1 className={LX_DASH.pageTitle}>{t.title}</h1>
             <p className="mt-2 text-sm text-[#5C5346]/95">{t.subtitle}</p>
           </header>
 

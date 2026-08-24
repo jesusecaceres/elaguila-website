@@ -7,6 +7,7 @@ import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+import { LX_DASH } from "../lib/dashboardLeonixTheme";
 import type { Lang } from "../lib/listingDisplayStatus";
 import { fetchDerivedDashboardFeed, type DerivedFeedItem } from "../lib/derivedDashboardFeed";
 
@@ -200,14 +201,14 @@ function NotificacionesPageContent() {
   const accountRef = userId ? accountRefFromId(userId) : null;
 
   return (
-    <LeonixDashboardShell lang={lang} activeNav="notifications" plan={plan} userName={name} email={email} accountRef={accountRef} ownerId={userId}>
+    <LeonixDashboardShell lang={lang} activeNav="notifications" plan={plan} userName={name} email={email} accountRef={accountRef} ownerId={userId} contentLayout="workbench">
       {loading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>
       ) : (
         <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
           <div className="min-w-0 flex-1 space-y-6">
             <header>
-              <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">{t.title}</h1>
+              <h1 className={LX_DASH.pageTitle}>{t.title}</h1>
               <p className="mt-2 text-sm text-[#5C5346]/95">{t.subtitle}</p>
             </header>
 

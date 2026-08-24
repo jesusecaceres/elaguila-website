@@ -598,30 +598,47 @@ function MyListingsPageContent() {
           null
       );
 
-      try {
-        const { data: pData } = await supabase
-          .from("profiles")
-          .select("display_name, email, membership_tier")
-          .eq("id", u.id)
-          .maybeSingle();
-        if (pData) {
+      // Gate 2A — auth resolves as soon as we have a user; the owner profile row is
+      // secondary/display-only data (sidebar name/email/plan) with no dependency relationship
+      // to the listings query below (both only need `u.id`), so it no longer serializes in
+      // front of it. It's kicked off concurrently and updates state independently whenever it
+      // resolves — a slow or failed profile read never delays or blocks listing content.
+      setAuthLoading(false);
+
+      const profileTask = (async () => {
+        try {
+          const { data: pData } = await supabase
+            .from("profiles")
+            .select("display_name, email, membership_tier")
+            .eq("id", u.id)
+            .maybeSingle();
+          if (!mounted || !pData) return;
           const row = pData as { display_name?: string | null; email?: string | null; membership_tier?: string | null };
           setName(row.display_name ?? (u.user_metadata?.full_name as string) ?? null);
           setEmail(row.email ?? u.email ?? null);
           setAccountPlan(normalizePlanFromMembershipTier(row.membership_tier));
+        } catch {
+          /* ignore — profile is secondary display data, never blocks listing content */
         }
-      } catch {
-        /* ignore */
-      }
-
-      setAuthLoading(false);
+      })();
 
       setListingsLoading(true);
       setError(null);
 
-      const { data: rows, error: qErr, meta } = await fetchOwnerListingsForDashboard(supabase, u.id);
+      // Gate 2A — `getSession()` is still required (it's the only source of the bearer access
+      // token used below by the Servicios and Ofertas Locales authenticated fetches; `getUser()`
+      // does not return one). It no longer runs strictly after the listings query — since it has
+      // no dependency on the listings result, it now runs concurrently with it instead, shortening
+      // the critical path by one round trip's worth of serial wait.
+      const [{ data: rows, error: qErr, meta }, { data: sessData }] = await Promise.all([
+        fetchOwnerListingsForDashboard(supabase, u.id),
+        supabase.auth.getSession(),
+      ]);
 
       if (!mounted) return;
+
+      const token = sessData.session?.access_token ?? null;
+      setAccessToken(token);
 
       if (qErr) {
         console.error("[mis-anuncios]", qErr.message);
@@ -635,15 +652,12 @@ function MyListingsPageContent() {
       const list = ((rows ?? []) as Record<string, unknown>[]).map((r) => mapOwnerListingRow(r)) as ListingRow[];
       setListings(list);
 
-      const { data: sessData } = await supabase.auth.getSession();
-      const token = sessData.session?.access_token ?? null;
-      if (mounted) setAccessToken(token);
-
       // Gate I.4.2 — only lightweight, always-needed data loads unconditionally on initial
       // render: real per-category counts (tab badges + smart default-category selection) and
       // Servicios' already-necessary full fetch (no lightweight count endpoint exists for it —
-      // see the Gate I.4.2 report §3/§6). Every other dedicated category's full content loads on
-      // demand only once actually selected, via the separate effect below.
+      // see the Gate I.4.2 report §3/§6; re-confirmed still true under Gate 2A — see Task 2A-6
+      // note below). Every other dedicated category's full content loads on demand only once
+      // actually selected, via the separate effect below.
       const [dedCounts, activeAcross, serviciosRows, managedTotal] = await Promise.all([
         fetchDedicatedCategoryCounts(supabase, u.id),
         countOwnerActiveListingsAcrossSources(supabase, u.id),
@@ -657,20 +671,28 @@ function MyListingsPageContent() {
       setTotalManagedCount(managedTotal);
       setServiciosRawRows(serviciosRows);
 
-      // Package E Build E2, Gate 8 — real, existing owner reader; boundary-safe summary only.
+      // Gate 2A — selected-category content no longer waits on Ofertas Locales: this fetch has
+      // no bearing on what the owner is looking at (a separate, isolated dashboard surface), so
+      // it's no longer awaited in front of `setListingsLoading(false)`. It now runs in the
+      // background and updates its own summary link whenever it resolves.
+      setListingsLoading(false);
+
       if (token) {
-        try {
-          const ofertasRes = await fetch(`/api/ofertas-locales/owner?lang=${lang}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const ofertasJson = (await ofertasRes.json()) as { ok?: boolean; total?: number };
-          if (mounted) setOfertasLocalesOwnerCount(ofertasRes.ok && ofertasJson.ok ? (ofertasJson.total ?? 0) : null);
-        } catch {
-          if (mounted) setOfertasLocalesOwnerCount(null);
-        }
+        void (async () => {
+          try {
+            // Package E Build E2, Gate 8 — real, existing owner reader; boundary-safe summary only.
+            const ofertasRes = await fetch(`/api/ofertas-locales/owner?lang=${lang}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const ofertasJson = (await ofertasRes.json()) as { ok?: boolean; total?: number };
+            if (mounted) setOfertasLocalesOwnerCount(ofertasRes.ok && ofertasJson.ok ? (ofertasJson.total ?? 0) : null);
+          } catch {
+            if (mounted) setOfertasLocalesOwnerCount(null);
+          }
+        })();
       }
 
-      setListingsLoading(false);
+      void profileTask;
 
       if (list.length > 0) {
         const ids = list.map((x) => x.id);
@@ -1530,11 +1552,10 @@ function MyListingsPageContent() {
       contentLayout="workbench"
       ownerId={userId}
     >
-      {showLoading ? (
-        <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>
-      ) : (
-        <>
-          <div className={LX_DASH.workbenchCanvas}>
+      {/* Gate 2A — shell + category nav render immediately regardless of listingsLoading;
+          only the selected-category content panel below shows a contained skeleton while
+          blocking data is in flight. Category nav layout itself is unchanged (Gate 2B scope). */}
+      <div className={LX_DASH.workbenchCanvas}>
           <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <p className={LX_DASH.contextLabel}>{lang === "es" ? "Inventario del vendedor" : "Seller inventory"}</p>
@@ -1635,6 +1656,18 @@ function MyListingsPageContent() {
             </Link>
           ) : null}
 
+          {showLoading ? (
+            <div className={`mt-3 min-w-0 overflow-visible ${LX_DASH.panelCompact}`} aria-busy="true" aria-live="polite">
+              <div className="h-6 w-40 animate-pulse rounded-full bg-[#E8DFD0]" />
+              <div className="mt-4 h-10 w-full max-w-sm animate-pulse rounded-xl bg-[#E8DFD0]/70" />
+              <div className="mt-4 flex flex-col gap-2.5">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="h-24 w-full animate-pulse rounded-2xl border border-[#E8DFD0] bg-[#FAF7F2]/70" />
+                ))}
+              </div>
+              <span className="sr-only">{t.loading}</span>
+            </div>
+          ) : (
           <div className={`mt-3 min-w-0 overflow-visible ${LX_DASH.panelCompact}`}>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0 flex-1">
@@ -1685,7 +1718,9 @@ function MyListingsPageContent() {
 
             <div className={`mt-3 ${LX_DASH.filterBarCompact}`}>
               <div className="flex flex-col gap-2.5">
-                <div className="flex flex-nowrap gap-1.5 overflow-x-auto overscroll-x-contain pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {/* Gate 2B — wraps instead of scrolling horizontally at any breakpoint; state/
+                    semantics unchanged (still just setTab). */}
+                <div className="flex flex-wrap gap-1.5">
                   {tabBtn("all", t.tabAll)}
                   {tabBtn("active", t.tabActive)}
                   {tabBtn("expired", t.tabExpired)}
@@ -2462,13 +2497,12 @@ function MyListingsPageContent() {
 
             </div>
           </div>
+          )}
 
           <Link href={`/dashboard?${q}`} className="mt-5 inline-flex text-sm font-semibold text-[#2A2620] underline">
             ← {t.back}
           </Link>
           </div>
-        </>
-      )}
     </LeonixDashboardShell>
   );
 }
