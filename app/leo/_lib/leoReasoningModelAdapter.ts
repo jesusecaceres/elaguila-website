@@ -89,7 +89,11 @@ export const leoReasoningModelAdapter: LeoIntelligenceProviderAdapter = {
 
     const systemPrompt = buildLeoAiSystemPromptFromEnvelope(envelope);
     const userPayload = buildLeoAiUserPayloadFromEnvelope(envelope);
-    const provider = await callLeoAiProvider({ systemPrompt, userPayload });
+    const provider = await callLeoAiProvider({
+      systemPrompt,
+      userPayload,
+      temperature: envelope.intent === "GENERAL_REASONING" ? 0.5 : 0,
+    });
 
     if (!provider.ok) {
       const failure = mapTransportError(provider.error);

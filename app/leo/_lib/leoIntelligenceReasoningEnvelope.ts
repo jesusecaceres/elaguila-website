@@ -53,6 +53,7 @@ export type LeoIntelligenceReasoningEnvelope = {
   consequentialDecision: boolean;
   externalUntrustedNotes: string[];
   requiredOutputSchema: typeof LEO_AI_REASONED_ANSWER_SCHEMA;
+  recentConversationTurns: Array<{ role: "USER" | "LEO"; text: string }>;
 };
 
 function mapFact(f: LeoAiEvidenceItem): LeoIntelligenceReasoningFact {
@@ -90,6 +91,7 @@ export function mapLeoAiEvidenceBundleToReasoningEnvelope(
     consequentialDecision: bundle.consequentialDecision,
     externalUntrustedNotes: [...bundle.externalUntrustedNotes],
     requiredOutputSchema: LEO_AI_REASONED_ANSWER_SCHEMA,
+    recentConversationTurns: [...(bundle.recentConversationTurns ?? [])],
   };
 }
 
@@ -122,5 +124,6 @@ export function reasoningEnvelopeToValidationBundle(
     preparedStatus: envelope.preparedStatus,
     externalUntrustedNotes: envelope.externalUntrustedNotes,
     policyNotes: envelope.policyNotes,
+    recentConversationTurns: [...(envelope.recentConversationTurns ?? [])],
   };
 }

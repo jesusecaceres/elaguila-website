@@ -17,6 +17,7 @@ export type LeoAiProviderResult =
 export async function callLeoAiProvider(args: {
   systemPrompt: string;
   userPayload: string;
+  temperature?: number;
 }): Promise<LeoAiProviderResult> {
   const apiKey = getLeoAiApiKey();
   const model = getLeoAiModel();
@@ -37,7 +38,10 @@ export async function callLeoAiProvider(args: {
       signal: controller.signal,
       body: JSON.stringify({
         model,
-        temperature: 0,
+        temperature:
+          typeof args.temperature === "number" && Number.isFinite(args.temperature)
+            ? Math.min(1, Math.max(0, args.temperature))
+            : 0,
         max_tokens: LEO_AI_BOUNDS.maxResponseTokens,
         response_format: { type: "json_object" },
         messages: [

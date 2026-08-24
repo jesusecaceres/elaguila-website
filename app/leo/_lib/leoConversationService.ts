@@ -36,6 +36,7 @@ import { requireLeoOwnerAccess } from "@/app/leo/_lib/leoAccess";
 import { isConsequentialActionRequest } from "@/app/leo/_lib/leoPreparationEngine";
 import { isLeoPreparationKind, runLeoPreparation } from "@/app/leo/_lib/leoPreparationService";
 import { enrichLeoConversationWithAi } from "@/app/leo/_lib/leoAiReasoningEngine";
+import { boundLeoConversationTurnsForAi } from "@/app/leo/_lib/leoConversationFallback";
 import {
   buildLeoActiveConversationContext,
   buildTurnContextRefs,
@@ -1988,6 +1989,10 @@ export async function runLeoPersistentConversation(
   }
 
   // Core intelligence — unchanged authority path.
+  workingRequest = {
+    ...workingRequest,
+    recentConversationTurns: boundLeoConversationTurnsForAi(recentTurns),
+  };
   let answer: Awaited<ReturnType<typeof runLeoConversation>>;
   try {
     answer = await runLeoConversation(workingRequest);

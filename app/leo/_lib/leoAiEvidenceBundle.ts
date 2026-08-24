@@ -83,5 +83,9 @@ export function buildLeoAiEvidenceBundle(args: {
       .slice(0, 4)
       .map((n) => truncate(n, 200)),
     policyNotes: LEO_AI_POLICY_NOTES,
+    recentConversationTurns: (request.recentConversationTurns ?? []).slice(0, 6).map((t) => ({
+      role: t.role,
+      text: truncate(t.text, 400),
+    })),
   };
 }

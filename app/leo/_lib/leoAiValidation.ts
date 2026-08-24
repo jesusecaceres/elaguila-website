@@ -3,6 +3,7 @@
  * Pure/server-safe — no second model judge.
  */
 import { LEO_AI_BOUNDS } from "@/app/leo/_lib/leoAiBounds";
+import { isLeoCompanyFactQuestion } from "@/app/leo/_lib/leoConversationFallback";
 import type {
   LeoAiEvidenceBundle,
   LeoAiKeyPoint,
@@ -40,7 +41,11 @@ function asStringArray(v: unknown, max: number): string[] {
     .slice(0, max);
 }
 
-function parseKeyPoint(raw: unknown, allowedIds: Set<string>): LeoAiKeyPoint | null {
+function parseKeyPoint(
+  raw: unknown,
+  allowedIds: Set<string>,
+  conversational: boolean,
+): LeoAiKeyPoint | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const o = raw as Record<string, unknown>;
   const kind = String(o.kind ?? "").trim().toUpperCase() as LeoAiKeyPointKind;
@@ -50,10 +55,10 @@ function parseKeyPoint(raw: unknown, allowedIds: Set<string>): LeoAiKeyPoint | n
   const evidenceIds = asStringArray(o.evidenceIds ?? o.evidence_ids, 8).filter((id) =>
     allowedIds.has(id),
   );
-  if ((kind === "FACT" || kind === "SYNTHESIS") && evidenceIds.length === 0) {
+  if (kind === "FACT" && evidenceIds.length === 0) return null;
+  if (!conversational && kind === "SYNTHESIS" && evidenceIds.length === 0) {
     return null;
   }
-  if (kind === "FACT" && evidenceIds.length === 0) return null;
   return { kind, text, evidenceIds };
 }
 
@@ -91,6 +96,11 @@ export function validateLeoAiReasonedAnswer(
     return { ok: false, reason: "claims_execution" };
   }
 
+  const conversational = bundle.intent === "GENERAL_REASONING";
+  if (conversational && bundle.facts.length === 0 && isLeoCompanyFactQuestion(summary)) {
+    return { ok: false, reason: "ungrounded_company_fact" };
+  }
+
   // Governance immutability — ignore/reject contradictory claims
   if (o.governanceLevel != null || o.governance != null) {
     const claimed = String(o.governanceLevel ?? o.governance ?? "").toUpperCase();
@@ -111,7 +121,7 @@ export function validateLeoAiReasonedAnswer(
   const keyPointsRaw = Array.isArray(o.keyPoints) ? o.keyPoints : [];
   const keyPoints: LeoAiKeyPoint[] = [];
   for (const kp of keyPointsRaw.slice(0, LEO_AI_BOUNDS.maxKeyPoints)) {
-    const parsed = parseKeyPoint(kp, allowedIds);
+    const parsed = parseKeyPoint(kp, allowedIds, conversational);
     if (!parsed) {
       // Skip invalid points rather than accept ungrounded FACT
       continue;
@@ -122,10 +132,14 @@ export function validateLeoAiReasonedAnswer(
     keyPoints.push(parsed);
   }
 
-  const evidenceReferences = asStringArray(o.evidenceReferences ?? o.evidence_references, 20);
-  for (const id of evidenceReferences) {
-    if (!allowedIds.has(id)) {
-      return { ok: false, reason: "unknown_evidence_citation" };
+  const evidenceReferences = asStringArray(o.evidenceReferences ?? o.evidence_references, 20).filter(
+    (id) => allowedIds.has(id),
+  );
+  if (!conversational) {
+    for (const id of asStringArray(o.evidenceReferences ?? o.evidence_references, 20)) {
+      if (!allowedIds.has(id)) {
+        return { ok: false, reason: "unknown_evidence_citation" };
+      }
     }
   }
   // Also reject citations inside key points that somehow bypassed (already filtered)

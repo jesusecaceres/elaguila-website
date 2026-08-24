@@ -688,6 +688,11 @@ export type LeoConversationRequest = {
   executiveContextPackage?: unknown | null;
   /** LEO-18B: optional active conversation context for proposal/context assembly. */
   conversationContext?: LeoActiveConversationContext | null;
+  /**
+   * Server-owned bounded prior turns for GENERAL_REASONING follow-up.
+   * Never accepted from the client body.
+   */
+  recentConversationTurns?: Array<{ role: "USER" | "LEO"; text: string }>;
 };
 
 export type LeoConversationRouteResult = {
@@ -870,6 +875,7 @@ export type LeoAiEvidenceBundle = {
   preparedStatus: LeoPreparedActionStatus | null;
   externalUntrustedNotes: string[];
   policyNotes: readonly string[];
+  recentConversationTurns?: Array<{ role: "USER" | "LEO"; text: string }>;
 };
 
 export type LeoAiReasonedAnswer = {

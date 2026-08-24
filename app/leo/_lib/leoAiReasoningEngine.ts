@@ -9,6 +9,7 @@
 import "server-only";
 
 import { isLeoAiIntentEligible, LEO_AI_BOUNDS } from "@/app/leo/_lib/leoAiBounds";
+import { LEO_GENERAL_REASONING_UNAVAILABLE_SUMMARY } from "@/app/leo/_lib/leoConversationFallback";
 import { isLeoAiConfigured } from "@/app/leo/_lib/leoAiConfig";
 import { buildLeoAiEvidenceBundle } from "@/app/leo/_lib/leoAiEvidenceBundle";
 import { mapLeoAiEvidenceBundleToReasoningEnvelope } from "@/app/leo/_lib/leoIntelligenceReasoningEnvelope";
@@ -66,9 +67,13 @@ function applyReasoned(
     }
   }
 
-  const limitations = [
-    ...new Set([...deterministic.limitations, ...reasoned.limitations]),
-  ].slice(0, LEO_AI_BOUNDS.maxLimitations + 4);
+  const limitations =
+    deterministic.intent === "GENERAL_REASONING"
+      ? reasoned.limitations.slice(0, LEO_AI_BOUNDS.maxLimitations)
+      : [...new Set([...deterministic.limitations, ...reasoned.limitations])].slice(
+          0,
+          LEO_AI_BOUNDS.maxLimitations + 4,
+        );
 
   const unknowns = [...new Set([...deterministic.unknowns, ...reasoned.unknowns])].slice(
     0,
@@ -191,7 +196,11 @@ export async function enrichLeoConversationWithAi(args: {
       latencyMs: obs.latencyMs ?? null,
       governanceLevel: meta.governanceLevel,
     });
-    return withMeta(answer, attachObservation(meta, observation));
+    const nextAnswer =
+      deterministic.intent === "GENERAL_REASONING" && meta.fallbackUsed
+        ? { ...answer, summary: LEO_GENERAL_REASONING_UNAVAILABLE_SUMMARY }
+        : answer;
+    return withMeta(nextAnswer, attachObservation(meta, observation));
   };
 
   if (

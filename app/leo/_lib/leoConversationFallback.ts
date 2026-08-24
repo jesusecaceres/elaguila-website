@@ -46,3 +46,23 @@ export function classifyLeoConversationFallback(question: string): LeoConversati
   if (isLeoCompanyFactQuestion(question)) return "COMPANY_FACT_REQUIRES_EVIDENCE";
   return "GENERAL_REASONING_ALLOWED";
 }
+
+export const LEO_GENERAL_REASONING_UNAVAILABLE_SUMMARY =
+  "AI reasoning is unavailable right now, so I cannot complete a live conversational reply. This is a fallback, not a synthesized answer.";
+
+const MAX_AI_TURNS = 6;
+const MAX_TURN_CHARS = 400;
+
+export function boundLeoConversationTurnsForAi(
+  turns: ReadonlyArray<{ role?: string | null; boundedText?: string | null }>,
+): Array<{ role: "USER" | "LEO"; text: string }> {
+  const out: Array<{ role: "USER" | "LEO"; text: string }> = [];
+  for (const t of turns.slice(-MAX_AI_TURNS)) {
+    const text = (t.boundedText ?? "").replace(/\s+/g, " ").trim().slice(0, MAX_TURN_CHARS);
+    if (!text) continue;
+    const role = t.role === "LEO" ? "LEO" : t.role === "USER" ? "USER" : null;
+    if (!role) continue;
+    out.push({ role, text });
+  }
+  return out;
+}
