@@ -38,7 +38,8 @@ import { CreateCommitmentForm, CommitmentDetailPanel } from "./PromiseKeeperActi
 import { listJobsForBusiness } from "@/app/lib/business/creativeStudio/repository";
 import { isCreativeStudioEnabled } from "@/app/lib/business/creativeStudio/featureFlag";
 import { getConfiguredCreativeProviders } from "@/app/lib/business/creativeStudio/providerRegistry";
-import { CreativeStudioPanel } from "./CreativeStudioActions";
+import { isImageGenerationLive } from "@/app/lib/business/creativeStudio/providerTypes";
+import { CreativeJourney, loadCreativeJobWorkspaces } from "./CreativeJourney";
 import { listBusinessOutcomes } from "@/app/lib/business/outcomes/repository";
 import { isOutcomesEnabled } from "@/app/lib/business/outcomes/featureFlag";
 import { OutcomesPanel } from "./OutcomesPanel";
@@ -243,6 +244,9 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
     : [];
   // Package A — truthful provider availability for staff (never claims an unconfigured provider is live).
   const creativeProviderAvailability = canViewCreativeStudio ? await getConfiguredCreativeProviders() : { gemini: false, openai: false };
+  const canGenerateCreative = actorHasCapability(access.actor, "generate_creative_draft");
+  const canCreateCreativeBrief = actorHasCapability(access.actor, "create_creative_job") || actorHasCapability(access.actor, "approve_creative_brief");
+  const imageGenerationLive = isImageGenerationLive();
 
   // Package B — Contextual Opportunity / Sponsorship Bridge
   const canViewOpportunities = actorHasCapability(access.actor, "view_opportunities");
@@ -250,6 +254,9 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
   const opportunities = (canViewOpportunities && opportunityEnabled) ? await listOpportunitiesForBusiness(business.id) : [];
   const canReviewOpportunity = actorHasCapability(access.actor, "review_opportunity");
   const canCreateOpportunityCreativeRequest = actorHasCapability(access.actor, "create_opportunity_creative_request");
+  const creativeJobViews = (canViewCreativeStudio && creativeStudioEnabled)
+    ? await loadCreativeJobWorkspaces(business.id, creativeJobs, opportunities.map((row) => ({ id: row.id, titleEn: row.titleEn })))
+    : [];
 
   // Program 7 — Outcomes + Advisor + Assistant
   const outcomesEnabled = await isOutcomesEnabled();
@@ -975,17 +982,20 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
           {canViewCreativeStudio && creativeStudioEnabled ? (
             <section id="creative" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
               <h2 className="font-serif text-lg font-bold text-[#1E1810]">Creative Studio</h2>
-              <p className="mt-1 text-xs text-[#7A7164]">Transform verified business truth into print-ready / Canva-ready creative production packets. Creative jobs are not created automatically when an opportunity is approved.</p>
+              <p className="mt-1 text-xs text-[#7A7164]">Transform verified business truth into print-ready / Canva-ready creative production packets. Creative jobs are not created automatically when an opportunity is approved. Approval is not publication.</p>
               <StewardshipOpportunityFlowNav
                 current="creative"
                 hasHealth={Boolean(canViewHealthMap && healthData)}
                 hasRecommend={Boolean(canViewRecommendations && stewardshipData)}
                 hasOpportunity={Boolean(canViewOpportunities && opportunityEnabled)}
               />
-              <CreativeStudioPanel
+              <CreativeJourney
                 businessId={business.id}
-                jobs={creativeJobs.map((j) => ({ id: j.id, assetType: j.assetType, language: j.language, format: j.format, archetype: j.archetype, status: j.status, riskClass: j.riskClass, createdAt: j.createdAt }))}
+                jobs={creativeJobViews}
                 providerAvailability={creativeProviderAvailability}
+                canGenerate={canGenerateCreative}
+                canCreateBrief={canCreateCreativeBrief}
+                imageGenerationLive={imageGenerationLive}
               />
             </section>
           ) : null}

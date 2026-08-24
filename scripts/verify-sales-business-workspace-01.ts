@@ -9,7 +9,7 @@
  * Run from repo root: npx tsx scripts/verify-sales-business-workspace-01.ts
  */
 import { strict as assert } from "node:assert";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 
 import {
@@ -585,7 +585,7 @@ check("Gate 02: existing domain panels remain rendered on the detail page", () =
   assert.ok(detailPageGate02.includes("from \"./MeetingJourney\""));
   assert.ok(detailPageGate02.includes("from \"./RecommendJourney\""));
   assert.ok(detailPageGate02.includes("from \"./OpportunityActions\""));
-  assert.ok(detailPageGate02.includes("from \"./CreativeStudioActions\""));
+  assert.ok(detailPageGate02.includes("from \"./CreativeJourney\""));
   assert.ok(detailPageGate02.includes("from \"./ProposalActions\""));
   assert.ok(detailPageGate02.includes("from \"./PromiseKeeperActions\""));
   assert.ok(detailPageGate02.includes("<OutcomesPanel"));
@@ -829,6 +829,53 @@ check("Gate 06: creative request stays human-triggered; no auto outreach/pricing
   assert.ok(recommendJourneyGate06.includes("No active recommendation."));
   assert.ok(opportunityActionsGate06.includes("No contextual opportunities are waiting for review."));
   assert.ok(opportunityActionsGate06.includes("No approved opportunities are waiting for creative."));
+});
+
+const creativePageGate07 = read("app/admin/(dashboard)/businesses/[businessId]/page.tsx");
+const creativeJourneyGate07 = read("app/admin/(dashboard)/businesses/[businessId]/CreativeJourney.tsx");
+const creativePacketGate07 = read("app/admin/(dashboard)/businesses/[businessId]/CreativeTruthPacket.tsx");
+const creativeActionsGate07 = read("app/admin/(dashboard)/businesses/[businessId]/CreativeStudioActions.tsx");
+const creativeSnapshotTypesGate07 = read("app/lib/business/creativeStudio/types.ts");
+const creativeRepoGate07 = read("app/lib/business/creativeStudio/repository.ts");
+const imageGenRouteGate07 = read("app/api/admin/businesses/[businessId]/creative-studio/jobs/[jobId]/generate-image/route.ts");
+const encodedCreativeListGate07 = "app/api/admin/businesses/%5BbusinessId%5D/creative-studio/route.ts";
+check("Gate 07: Creative Studio remains canonical; Truth Packet reads existing snapshots", () => {
+  assert.ok(creativePageGate07.includes("<CreativeJourney"));
+  assert.ok(creativeJourneyGate07.includes("from \"./CreativeStudioActions\""));
+  assert.ok(creativeJourneyGate07.includes("from \"./CreativeTruthPacket\""));
+  assert.ok(creativeJourneyGate07.includes("getLatestSnapshotForJob"));
+  assert.ok(creativePacketGate07.includes("Creative Truth Packet"));
+  assert.ok(creativePacketGate07.includes("not live-mutating canonical business truth"));
+  assert.ok(!creativeJourneyGate07.includes("assembleResearchPacket"));
+  assert.ok(creativeRepoGate07.includes("business_creative_input_snapshots"));
+  assert.ok(creativeSnapshotTypesGate07.includes("CreativeInputSnapshot"));
+  assert.ok(!creativeJourneyGate07.includes("CREATE TABLE"));
+  assert.ok(!creativePacketGate07.includes("CREATE TABLE"));
+});
+check("Gate 07: journey distinctions, no fake score, no auto publish, image button not added", () => {
+  assert.ok(creativeJourneyGate07.includes("1. Input — Creative Truth Packet"));
+  assert.ok(creativeJourneyGate07.includes("2. Brief — derived working direction"));
+  assert.ok(creativeJourneyGate07.includes("3. Create — generate from snapshot + brief"));
+  assert.ok(creativeJourneyGate07.includes("4. Review — human assessment"));
+  assert.ok(creativeJourneyGate07.includes("5. Export / handoff — not publication"));
+  assert.ok(creativeJourneyGate07.includes("Not approved and not published") || creativeJourneyGate07.includes("not approved, not published"));
+  assert.ok(creativeJourneyGate07.includes("not confirmed sponsorship"));
+  assert.ok(creativeJourneyGate07.includes("Ready for Canva finishing"));
+  assert.ok(creativeJourneyGate07.includes("No Canva API is claimed"));
+  assert.ok(creativeJourneyGate07.includes("No creative work has been requested yet."));
+  assert.ok(creativePacketGate07.includes("No verified creative input snapshot is available."));
+  assert.ok(creativeActionsGate07.includes("Creative generation provider is not available."));
+  assert.ok(creativeJourneyGate07.includes("No approved export is ready."));
+  assert.ok(!creativeActionsGate07.includes("generate-image"));
+  assert.ok(!creativeJourneyGate07.includes("generate-image"));
+  assert.ok(!creativeJourneyGate07.includes("71/100"));
+  assert.ok(imageGenRouteGate07.includes("OPENAI_IMAGE_GENERATION_ENABLED"));
+  assert.ok(existsSync(path.resolve(__dirname, "..", encodedCreativeListGate07)));
+  assert.ok(!existsSync(path.resolve(__dirname, "..", "app/api/admin/businesses/[businessId]/creative-studio/route.ts")));
+  assert.ok(existsSync(path.resolve(__dirname, "..", "app/api/admin/businesses/%5BbusinessId%5D/advisor/route.ts")));
+  assert.ok(existsSync(path.resolve(__dirname, "..", "app/api/admin/businesses/%5BbusinessId%5D/assistant/route.ts")));
+  assert.ok(existsSync(path.resolve(__dirname, "..", "app/api/admin/businesses/%5BbusinessId%5D/outcomes/route.ts")));
+  assert.ok(creativePageGate07.includes("listJobsForBusiness"));
 });
 
 // --- No secret / no production reference ------------------------------------------------------------

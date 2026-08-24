@@ -1269,13 +1269,56 @@ export function verifyPackageA(): VerifyCheck[] {
   return checks;
 }
 
+function verifyGate07StaffSurface(): VerifyCheck[] {
+  const checks: VerifyCheck[] = [];
+  const page = fs.readFileSync(path.join(BASE, "app", "admin", "(dashboard)", "businesses", "[businessId]", "page.tsx"), "utf-8");
+  const journey = fs.readFileSync(path.join(BASE, "app", "admin", "(dashboard)", "businesses", "[businessId]", "CreativeJourney.tsx"), "utf-8");
+  const packet = fs.readFileSync(path.join(BASE, "app", "admin", "(dashboard)", "businesses", "[businessId]", "CreativeTruthPacket.tsx"), "utf-8");
+  const actions = fs.readFileSync(path.join(BASE, "app", "admin", "(dashboard)", "businesses", "[businessId]", "CreativeStudioActions.tsx"), "utf-8");
+  const encodedList = path.join(BASE, "app", "api", "admin", "businesses", "%5BbusinessId%5D", "creative-studio", "route.ts");
+  const dynamicList = path.join(BASE, "app", "api", "admin", "businesses", "[businessId]", "creative-studio", "route.ts");
+
+  checks.push({
+    check: "Gate 07: dashboard lists jobs via repository, not a new list engine",
+    pass: page.includes("listJobsForBusiness") && page.includes("<CreativeJourney"),
+    detail: "Staff Creative Studio must keep using listJobsForBusiness + CreativeJourney",
+  });
+  checks.push({
+    check: "Gate 07: Truth Packet reads stored snapshot, does not live-reassemble",
+    pass: journey.includes("getLatestSnapshotForJob") && !journey.includes("assembleResearchPacket") && packet.includes("not live-mutating canonical business truth"),
+    detail: "Dashboard must display the immutable stored snapshot, not reassemble live business truth",
+  });
+  checks.push({
+    check: "Gate 07: journey keeps Truth Packet / Brief / Output / Review / Export distinct",
+    pass: journey.includes("1. Input — Creative Truth Packet")
+      && journey.includes("2. Brief — derived working direction")
+      && journey.includes("4. Review — human assessment")
+      && journey.includes("5. Export / handoff — not publication"),
+    detail: "Staff surface must not blur snapshot, brief, generation, review, and export",
+  });
+  checks.push({
+    check: "Gate 07: no unauthorized image-generation UI and encoded Program 7 routes untouched",
+    pass: !actions.includes("generate-image")
+      && !journey.includes("generate-image")
+      && fs.existsSync(encodedList)
+      && !fs.existsSync(dynamicList)
+      && fileExists("app/api/admin/businesses/%5BbusinessId%5D/advisor/route.ts")
+      && fileExists("app/api/admin/businesses/%5BbusinessId%5D/assistant/route.ts")
+      && fileExists("app/api/admin/businesses/%5BbusinessId%5D/outcomes/route.ts"),
+    detail: "No image button; Creative Studio list route unrepaired because dashboard does not depend on it; Program 7 encoded routes remain",
+  });
+
+  return checks;
+}
+
 // ─── Main ───────────────────────────────────────────────────────────────────
 
 function main() {
   const migrationChecks = verifyMigration();
   const archChecks = verifyArchitecture();
   const packageAChecks = verifyPackageA();
-  const all = [...migrationChecks, ...archChecks, ...packageAChecks];
+  const gate07Checks = verifyGate07StaffSurface();
+  const all = [...migrationChecks, ...archChecks, ...packageAChecks, ...gate07Checks];
   const passed = all.filter((c) => c.pass).length;
   const failed = all.filter((c) => !c.pass);
 
@@ -1284,6 +1327,7 @@ function main() {
   console.log(`Migration checks: ${migrationChecks.filter((c) => c.pass).length}/${migrationChecks.length}`);
   console.log(`Architecture checks: ${archChecks.filter((c) => c.pass).length}/${archChecks.length}`);
   console.log(`Package A checks: ${packageAChecks.filter((c) => c.pass).length}/${packageAChecks.length}`);
+  console.log(`Gate 07 staff surface checks: ${gate07Checks.filter((c) => c.pass).length}/${gate07Checks.length}`);
   console.log(`Total: ${passed}/${all.length}`);
   console.log("");
 

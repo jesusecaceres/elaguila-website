@@ -175,7 +175,7 @@ export async function listVersionsForJob(businessId: string, jobId: string): Pro
     .eq("job_id", jobId)
     .order("version_number", { ascending: false });
   if (error || !data) return [];
-  return data as CreativeJobVersion[];
+  return data.map((row) => mapVersionRow(row as Record<string, unknown>));
 }
 
 export async function listReviewsForJob(businessId: string, jobId: string): Promise<CreativeReview[]> {
@@ -187,7 +187,7 @@ export async function listReviewsForJob(businessId: string, jobId: string): Prom
     .eq("job_id", jobId)
     .order("created_at", { ascending: false });
   if (error || !data) return [];
-  return data as CreativeReview[];
+  return data.map((row) => mapReviewRow(row as Record<string, unknown>));
 }
 
 export async function listExportsForJob(businessId: string, jobId: string): Promise<CreativeExport[]> {
@@ -199,7 +199,7 @@ export async function listExportsForJob(businessId: string, jobId: string): Prom
     .eq("job_id", jobId)
     .order("created_at", { ascending: false });
   if (error || !data) return [];
-  return data as CreativeExport[];
+  return data.map((row) => mapExportRow(row as Record<string, unknown>));
 }
 
 // ─── Package A — Input snapshots (append-only) ─────────────────────────────
@@ -405,6 +405,42 @@ function mapVersionRow(row: Record<string, unknown>): CreativeJobVersion {
     createdByAuthUserId: String(row.created_by_auth_user_id),
     createdByEmail: String(row.created_by_email),
     createdByRole: String(row.created_by_role),
+    createdAt: String(row.created_at),
+  };
+}
+
+function mapReviewRow(row: Record<string, unknown>): CreativeReview {
+  return {
+    id: String(row.id),
+    businessId: String(row.business_id),
+    jobId: String(row.job_id),
+    versionId: String(row.version_id),
+    issueType: row.issue_type as CreativeReview["issueType"],
+    issueDescription: String(row.issue_description),
+    severity: row.severity as CreativeReview["severity"],
+    resolutionOfId: (row.resolution_of_id as string | null) ?? null,
+    reviewerActorType: row.reviewer_actor_type as CreativeReview["reviewerActorType"],
+    reviewerRosterId: (row.reviewer_roster_id as string | null) ?? null,
+    reviewerAuthUserId: String(row.reviewer_auth_user_id),
+    reviewerEmail: String(row.reviewer_email),
+    reviewerRole: String(row.reviewer_role),
+    createdAt: String(row.created_at),
+  };
+}
+
+function mapExportRow(row: Record<string, unknown>): CreativeExport {
+  return {
+    id: String(row.id),
+    businessId: String(row.business_id),
+    jobId: String(row.job_id),
+    versionId: String(row.version_id),
+    exportType: row.export_type as CreativeExport["exportType"],
+    content: String(row.content ?? ""),
+    status: row.status as CreativeExport["status"],
+    generatedAt: (row.generated_at as string | null) ?? null,
+    createdActorType: row.created_actor_type as CreativeExport["createdActorType"],
+    createdByAuthUserId: String(row.created_by_auth_user_id),
+    createdByRosterId: (row.created_by_roster_id as string | null) ?? null,
     createdAt: String(row.created_at),
   };
 }
