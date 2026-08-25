@@ -61,6 +61,15 @@ function matchesQuery(r: ResourceRecord, q: string): boolean {
   return haystack.includes(q);
 }
 
+/**
+ * Deliberately excludes a "Deactivate"/inactive option: verification_status='inactive' and the
+ * separate `active` boolean both display as the same "Inactive" badge (resolveEffectiveVerificationStatus
+ * checks `!active` first, then verificationStatus==='inactive') but write to two different columns
+ * through two different actions — having both a status-transition "Deactivate" here AND
+ * ActiveToggle's own "Deactivate" was two same-labeled buttons doing different, easily-decoupled
+ * things. ActiveToggle below is the single, clear control for publish/unpublish; this list only
+ * ever offers the three real verification-quality transitions.
+ */
 function VerificationActions({ id, currentStatus }: { id: string; currentStatus: string }) {
   const options: { status: string; label: string; className: string; confirmMessage: string }[] = [
     {
@@ -81,12 +90,6 @@ function VerificationActions({ id, currentStatus }: { id: string; currentStatus:
       label: "Mark stale",
       className: "border border-orange-700 bg-orange-500 text-[#1E1810] hover:bg-orange-600",
       confirmMessage: "Mark this resource as stale?",
-    },
-    {
-      status: "inactive",
-      label: "Deactivate",
-      className: "border border-rose-800 bg-rose-800 text-white hover:bg-rose-900",
-      confirmMessage: "Mark this resource inactive? It will stop surfacing publicly.",
     },
   ].filter((o) => o.status !== currentStatus);
 
@@ -373,7 +376,12 @@ export default async function RecursosAdminListPage(props: {
       ) : (
         <>
           <div className={`${adminDesktopTableOnly} ${adminTableWrap}`}>
-            <table className="w-full min-w-[1200px] text-left text-sm">
+            {/* Gate ES-QA1: min-width trimmed from 1200 to 1040 (the widest real content is the
+                Verification column's stacked buttons, not this table's raw column count), and the
+                Actions column is sticky to the right edge of the scroll container — at 1024-1280px
+                real-world widths the table used to force horizontal scroll that hid Editar/Ver
+                público entirely; now they stay reachable regardless of scroll position. */}
+            <table className="w-full min-w-[1040px] text-left text-sm">
               <thead>
                 <tr className="border-b border-[color:var(--lx-border)]/70 text-xs font-bold uppercase tracking-wide text-[#7A7164]">
                   <th className="px-4 py-3">Organization / program</th>
@@ -384,14 +392,16 @@ export default async function RecursosAdminListPage(props: {
                   <th className="px-4 py-3">Last verified</th>
                   <th className="px-4 py-3">Next review</th>
                   <th className="px-4 py-3">Service area</th>
-                  <th className="px-4 py-3">Actions</th>
+                  <th className="sticky right-0 border-l border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)] px-4 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(({ r, effective }) => (
                   <tr key={r.id} className={adminTableZebraRow}>
                     <td className="px-4 py-3">
-                      <p className="font-semibold text-[#1E1810]">{r.organizationName}</p>
+                      <Link href={`/admin/recursos/${r.id}`} className="font-semibold text-[#1E1810] hover:text-[#6B5B2E] hover:underline">
+                        {r.organizationName}
+                      </Link>
                       {r.programName ? <p className="text-xs text-[#7A7164]">{r.programName}</p> : null}
                     </td>
                     <td className="px-4 py-3 text-[#5C5346]">{getPrimaryCategoryLabel(r.primaryCategory, "en")}</td>
@@ -418,7 +428,7 @@ export default async function RecursosAdminListPage(props: {
                       {r.verification.nextVerificationAt ? new Date(r.verification.nextVerificationAt).toLocaleDateString() : "—"}
                     </td>
                     <td className="px-4 py-3 text-xs text-[#5C5346]">{r.serviceArea ?? "—"}</td>
-                    <td className="px-4 py-3">
+                    <td className="sticky right-0 border-l border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)] px-4 py-3">
                       <div className="flex flex-wrap gap-1.5">
                         <Link href={`/admin/recursos/${r.id}`} className={`${adminCtaChip} ${adminCtaChipCompact}`}>
                           Editar
@@ -439,7 +449,9 @@ export default async function RecursosAdminListPage(props: {
               <div key={r.id} className="rounded-2xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)] p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="font-semibold text-[#1E1810]">{r.organizationName}</p>
+                    <Link href={`/admin/recursos/${r.id}`} className="font-semibold text-[#1E1810] hover:text-[#6B5B2E] hover:underline">
+                      {r.organizationName}
+                    </Link>
                     {r.programName ? <p className="text-xs text-[#7A7164]">{r.programName}</p> : null}
                   </div>
                   <span className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${VERIFICATION_BADGE[effective]}`}>

@@ -91,11 +91,25 @@ if (espanolPageFile) {
   assert("all 8 filter tabs present (queueStatus model)", TABS.every((t) => espanolPageFile.includes(t)), TABS);
   const ROW_FIELDS = ["organizationName", "primaryCategory", "urgencyLevel", "verification", "spanishStatus", "spanishSourceType", "hasOfficialSourceUrl", "highRisk", "pendingTranslationCount"];
   assert("row shows org/category/urgency/verification/spanish_status/spanish_source_type/official-URL/high-risk/pending-count", ROW_FIELDS.every((f) => espanolPageFile.includes(f)), ROW_FIELDS);
-  // Generar/Revisar/Publicar now route to the one-page resource workspace (Link, not a direct
-  // form action) — only confirmOfficialSpanishAction is still fired directly from the queue row,
-  // since it's a single already-safe, already-narrow action with no multi-field review step.
+  // Generar/Revisar/Publicar route to the resource-level one-page workspace (Link, not a direct
+  // form action). Gate ES-QA1: individual FUENTE_OFICIAL_ES confirmation was ALSO moved to route
+  // there instead of firing confirmOfficialSpanishAction directly on this page — the batch
+  // checkbox and a per-row direct-confirm button lived on the exact same row, which let an owner
+  // confirm everything individually and then hit the batch button expecting it to do something
+  // (it correctly reported 0/0, but read as broken). The single confirmOfficialSpanishCore
+  // implementation is still the only place spanish_status flips to official_spanish — it's just
+  // reached via the resource page now for the individual path, same as it always was for the
+  // batch path (approveOfficialSpanishBatchAction calls the identical core).
+  const idPageFile = read("app/admin/(dashboard)/recursos/[id]/page.tsx");
   assert("Generar/Revisar/Publicar route to the resource-level one-page workspace, not fired directly from the queue row", /Link href={`\/admin\/recursos\/\$\{resource\.id\}`} className={`\$\{adminCtaChip\} \$\{adminCtaChipCompact\}`}>\s*Generar/.test(espanolPageFile));
-  assert("wires confirmOfficialSpanishAction (reused, not reinvented)", /confirmOfficialSpanishAction/.test(espanolPageFile));
+  assert(
+    "FUENTE_OFICIAL_ES individual confirmation routes to the resource page (not a duplicate direct form action on this row)",
+    /queueStatus === "FUENTE_OFICIAL_ES" && !eligibleForOfficialSpanishBatch/.test(espanolPageFile),
+  );
+  assert(
+    "confirmOfficialSpanishAction is still wired somewhere reachable from this queue (the resource-detail page it now links to)",
+    idPageFile !== null && /confirmOfficialSpanishAction/.test(idPageFile),
+  );
   assert("Ver recurso link present", /Ver recurso/.test(espanolPageFile));
   assert("Reverificar link present, gated on REVERIFICAR_PRIMERO queue status", /queueStatus === "REVERIFICAR_PRIMERO"[\s\S]{0,300}Reverificar/.test(espanolPageFile));
   assert("actions are conditionally rendered per queueStatus (one branch per state, no ambiguous fallback)", /queueStatus === "SIN_CONTENIDO_BASE"/.test(espanolPageFile) && /queueStatus === "FUENTE_OFICIAL_ES"/.test(espanolPageFile));

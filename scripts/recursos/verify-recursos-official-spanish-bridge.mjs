@@ -208,6 +208,66 @@ for (const f of [CHANGE_DETECTION, INTEGRITY_CHECK, PREPARE, OFFICIAL_ACTIONS, T
   assert(`${f}: no Production project ref (xuieateniufcrsfdomwl)`, !/xuieateniufcrsfdomwl/.test(read(f)));
 }
 
+// ---------- Gate ES-QA1: final end-to-end QA fixes ----------
+const COMMAND_CENTER_PAGE = "app/admin/(dashboard)/recursos/page.tsx";
+const FILTER_BAR = "app/admin/_components/recursos/RecursosFilterBar.tsx";
+
+// Bug 1 — search scroll jump
+assert("RecursosFilterBar.tsx exists", exists(FILTER_BAR));
+if (exists(FILTER_BAR)) {
+  const src = read(FILTER_BAR);
+  // Matches to end-of-statement (;) rather than first ")" — router.push's first argument is a
+  // template literal containing its own parens (params.toString()), which a naive [^)]* stops at.
+  const pushCalls = src.match(/router\.push\([^;]*\);/g) ?? [];
+  assert("at least one router.push call found in the filter bar", pushCalls.length > 0);
+  assert("every router.push call preserves scroll position ({ scroll: false }) — filtering must never yank the operator to the top", pushCalls.length > 0 && pushCalls.every((c) => /\{\s*scroll:\s*false\s*\}/.test(c)));
+}
+
+// Bug 2 — responsive admin layout / clipped actions
+assert("admin command center page exists", exists(COMMAND_CENTER_PAGE));
+if (exists(COMMAND_CENTER_PAGE)) {
+  const src = read(COMMAND_CENTER_PAGE);
+  assert("desktop table Actions column is sticky (stays reachable regardless of horizontal scroll)", /sticky right-0[\s\S]{0,150}Actions/.test(src));
+  assert("desktop table Actions cells are ALSO sticky (header alone isn't enough — the body cells must match)", (src.match(/sticky right-0/g) ?? []).length >= 2);
+  assert("table min-width trimmed from the original 1200px", !/min-w-\[1200px\]/.test(src));
+
+  // Bug 5 — resource name clickable
+  assert(
+    "organization name links to the resource detail page (desktop table)",
+    /<Link href={`\/admin\/recursos\/\$\{r\.id\}`} className="font-semibold text-\[#1E1810\][\s\S]{0,80}>\s*\{r\.organizationName\}/.test(src),
+  );
+  assert("Editar action preserved alongside the new name link (not replaced)", /Editar/.test(src) && /Ver público/.test(src));
+
+  // Bug 6 — duplicate Deactivate control
+  assert(
+    "VerificationActions no longer offers a redundant 'inactive' status option (ActiveToggle is the single Activate/Deactivate control)",
+    !/status: "inactive"/.test(src),
+  );
+  assert("ActiveToggle (the real Activate/Deactivate control) still exists and is wired", /function ActiveToggle/.test(src) && /setResourceActiveAction/.test(src));
+}
+
+// Bug 3 — official-source textareas too small
+assert("[id]/page.tsx exists", exists(ID_PAGE));
+if (exists(ID_PAGE)) {
+  const src = read(ID_PAGE);
+  assert("official-Spanish attach textareas no longer use the too-small rows={2}", !/rows={2}[\s\S]{0,40}className="mt-1 w-full/.test(src));
+  assert("official-Spanish attach textareas have a usable min-height and are resizable", /min-h-\[9rem\][\s\S]{0,40}resize-y/.test(src) || /resize-y[\s\S]{0,120}min-h-\[9rem\]/.test(src));
+}
+
+// Bug 4 — batch result summary bug (root cause: duplicate individual-confirm button on the same
+// FUENTE_OFICIAL_ES row as the batch checkbox, not a serialization defect — the batch summary
+// object itself was always computed correctly; a genuinely-empty batch now says so honestly).
+assert("espanol/page.tsx exists", exists(ESPANOL_PAGE));
+if (exists(ESPANOL_PAGE)) {
+  const src = read(ESPANOL_PAGE);
+  assert(
+    "individual FUENTE_OFICIAL_ES confirm button is gated OFF whenever the batch checkbox is also offered (no duplicate action on the same row)",
+    /queueStatus === "FUENTE_OFICIAL_ES" && !eligibleForOfficialSpanishBatch/.test(src),
+  );
+  assert("a zero-item batch result shows an honest explanation instead of a bare 0/0 banner", /requested === 0/.test(src) && /ya se hayan confirmado individualmente/.test(src));
+  assert("non-zero batch results still show the full requested/processed/published/skipped/failed breakdown", /oficialBatchSummary\.processed\}\/\{oficialBatchSummary\.requested\}/.test(src));
+}
+
 let passCount = 0;
 for (const c of checks) {
   console.log(`${c.ok ? "PASS" : "FAIL"} — ${c.name}${c.detail !== undefined && !c.ok ? ` (${JSON.stringify(c.detail)})` : ""}`);

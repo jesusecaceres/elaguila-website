@@ -324,10 +324,13 @@ export default async function EditRecursoPage(props: {
                       </div>
                       <label className="block">
                         <p className="text-[10px] font-bold uppercase tracking-wide text-[#A79A87]">{f.label} (ES, opcional — solo si la fuente oficial lo respalda)</p>
+                        {/* Gate ES-QA1: rows 2→6 + min-h + resize-y — a real official-source
+                            paragraph (e.g. eligibility or details text) didn't fit in 2 rows,
+                            forcing a tiny internal scrollbar to read/edit what was typed. */}
                         <textarea
                           name={f.name}
-                          rows={2}
-                          className="mt-1 w-full rounded-md border border-[color:var(--lx-border)] bg-white px-2.5 py-1.5 text-xs text-[#1E1810]"
+                          rows={6}
+                          className="mt-1 min-h-[9rem] w-full resize-y rounded-md border border-[color:var(--lx-border)] bg-white px-2.5 py-1.5 text-xs text-[#1E1810]"
                         />
                       </label>
                     </div>

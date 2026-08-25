@@ -42,7 +42,10 @@ export function RecursosFilterBar({
       if (value) params.set(key, value);
       else params.delete(key);
     }
-    router.push(`/admin/recursos?${params.toString()}`);
+    // { scroll: false } — Next.js scrolls to top on every router.push() by default; without this,
+    // typing a search term or changing a filter yanks the operator back to the top of a long
+    // resource list instead of preserving their working position.
+    router.push(`/admin/recursos?${params.toString()}`, { scroll: false });
   }
 
   const hasFilters = initialQuery || initialCategory || initialUrgency || initialVerification || initialActive;
@@ -145,7 +148,7 @@ export function RecursosFilterBar({
           type="button"
           onClick={() => {
             setQuery("");
-            router.push("/admin/recursos");
+            router.push("/admin/recursos", { scroll: false });
           }}
           className={`${adminCtaChipSecondary} text-xs`}
         >

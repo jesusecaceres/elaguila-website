@@ -19,7 +19,6 @@ import {
 import { getPrimaryCategoryLabel } from "@/app/lib/recursos/categories";
 import { getUrgencyLabel } from "@/app/lib/recursos/urgency";
 import { verificationStatusLabel, resolveEffectiveVerificationStatus } from "@/app/lib/recursos/verificationStatus";
-import { confirmOfficialSpanishAction } from "@/app/admin/recursosTranslationActions";
 import { generateSpanishDraftsBatchAction } from "@/app/admin/recursosSpanishReconciliationActions";
 import { approveOfficialSpanishBatchAction, type OfficialSpanishBatchSummary } from "@/app/admin/recursosOfficialSpanishActions";
 import { recursosResourcePath } from "@/app/lib/recursos/recursosUrls";
@@ -221,16 +220,18 @@ function EntryRow({ entry }: { entry: SpanishReconciliationEntry }) {
             Ver publicación ES ↗
           </a>
         ) : null}
-        {queueStatus === "FUENTE_OFICIAL_ES" ? (
-          <form action={confirmOfficialSpanishAction}>
-            <input type="hidden" name="resourceId" value={resource.id} />
-            <ExecutiveHubConfirmSubmitButton
-              confirmMessage="¿Confirmar que el español de este recurso proviene de una fuente oficial? Esto marca spanish_status como official_spanish."
-              className={`${adminCtaChip} ${adminCtaChipCompact} border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800`}
-            >
-              Confirmar español oficial
-            </ExecutiveHubConfirmSubmitButton>
-          </form>
+        {queueStatus === "FUENTE_OFICIAL_ES" && !eligibleForOfficialSpanishBatch ? (
+          // Gate ES-QA1: only shown when this row ISN'T also offering the batch checkbox above —
+          // having both a per-row "Confirmar español oficial" button AND a batch checkbox on the
+          // exact same row let an owner confirm all resources individually, then hit the batch
+          // button afterward expecting it to do something — it correctly (but confusingly) reports
+          // 0/0 because there's genuinely nothing left pending by then. This button now only
+          // appears for the (rare) case where a FUENTE_OFICIAL_ES resource fails the batch
+          // eligibility check itself (e.g. an integrity conflict), so it still has a path to
+          // confirm/investigate individually via the resource page.
+          <Link href={`/admin/recursos/${resource.id}`} className={`${adminCtaChip} ${adminCtaChipCompact} border-emerald-700 bg-emerald-50 text-emerald-950`}>
+            Revisar y confirmar individualmente
+          </Link>
         ) : null}
         {queueStatus === "REVERIFICAR_PRIMERO" ? (
           <Link href={`/admin/recursos/${resource.id}`} className={`${adminCtaChip} ${adminCtaChipCompact} border-rose-700 bg-rose-50 text-rose-900`}>
@@ -343,11 +344,21 @@ export default async function RecursosEspanolPage(props: {
 
           {oficialBatchSummary ? (
             <div className={`${adminActionProofOk} mb-6`}>
-              <p>
-                Lote de español oficial procesado: {oficialBatchSummary.processed}/{oficialBatchSummary.requested} solicitado(s) ·{" "}
-                <span className="font-bold">{oficialBatchSummary.published} publicado(s)</span> · {oficialBatchSummary.skipped.length} omitido(s) ·{" "}
-                {oficialBatchSummary.failed.length} fallido(s).
-              </p>
+              {oficialBatchSummary.requested === 0 ? (
+                // Gate ES-QA1: a 0/0 batch result is a genuinely different situation from a batch
+                // that ran and published nothing — it means no resource was still awaiting batch
+                // approval when the button was clicked (most commonly because every checked
+                // resource was already confirmed individually beforehand). The bare "0/0
+                // solicitado(s) · 0 publicado(s)" read as a bug even when technically accurate —
+                // this says the true thing plainly instead.
+                <p>No había ningún recurso pendiente de aprobar en este lote — es posible que ya se hayan confirmado individualmente antes de usar el botón de lote.</p>
+              ) : (
+                <p>
+                  Lote de español oficial procesado: {oficialBatchSummary.processed}/{oficialBatchSummary.requested} solicitado(s) ·{" "}
+                  <span className="font-bold">{oficialBatchSummary.published} publicado(s)</span> · {oficialBatchSummary.skipped.length} omitido(s) ·{" "}
+                  {oficialBatchSummary.failed.length} fallido(s).
+                </p>
+              )}
               {oficialBatchSummary.skipped.length > 0 || oficialBatchSummary.failed.length > 0 ? (
                 <ul className="mt-2 space-y-1 text-xs">
                   {oficialBatchSummary.skipped.map((s) => (
