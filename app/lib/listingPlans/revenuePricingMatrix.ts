@@ -10,7 +10,12 @@ export const EMPLEOS_JOB_POST_PAID_PACKAGE_KEY = "empleos_job_post_paid";
 export const EMPLEOS_JOB_FAIR_FREE_PACKAGE_KEY = "empleos_job_fair_free";
 
 export const OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY = "ofertas_locales_flyer_30d";
+/** Historical/retired — see ofertas_locales_coupons_free below (owner lock 2026-08-25). */
 export const OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY = "ofertas_locales_coupons_30d";
+/** Package 2 — owner lock 2026-08-25: canonical FREE basic community coupon package. */
+export const OFERTAS_LOCALES_COUPONS_FREE_PACKAGE_KEY = "ofertas_locales_coupons_free";
+/** Package 2 — owner lock 2026-08-25: canonical FREE Viajes business/community package. */
+export const VIAJES_BUSINESS_FREE_PACKAGE_KEY = "viajes_business_free";
 
 export type RevenueBillingMode =
   | "one_time"
@@ -312,20 +317,54 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     unresolvedOwnerDecision: null,
   },
   {
+    // Owner lock 2026-08-25: basic Leonix community coupons are free for new publishing.
+    // Historical $199 package retained for audit/history only — see
+    // ofertas_locales_coupons_free below for the current canonical free package.
     category: "ofertas-locales",
     packageKey: OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY,
     customerType: "service_business",
     pipeline: "coupons",
-    label: "Cupones Leonix 30-day",
+    label: "Cupones Leonix 30-day (retired — new publishing is free)",
     priceCents: 19900,
     billingMode: "one_time",
     durationDays: 30,
     includedInventory: "1 coupon or promotion listing; AI extraction/review and public coupon result/detail included",
     addOnInventory: null,
+    // stripeEligible/promoEligible false is the actual central guard (read by
+    // validateRevenueCheckoutRequest and the promo resolver); newSalesRetired is documentation
+    // + the route-level defense-in-depth check in app/api/revenue-os/checkout/route.ts.
     promoEligible: false,
     printCompEligible: false,
     placementEligible: false,
-    stripeEligible: true,
+    stripeEligible: false,
+    unresolvedOwnerDecision: null,
+    newSalesRetired: true,
+  },
+  {
+    // Owner lock 2026-08-25: canonical FREE basic community coupon package. Free does NOT mean
+    // Featured/Premium placement, homepage placement, Business Tools, paid ranking, a managed
+    // campaign, the interactive flyer, magazine placement, or sponsored content — those remain
+    // exclusively part of the paid ofertas_locales_flyer_30d product and the paid Restaurante/
+    // Servicios base packages' bundled coupons_offers capability.
+    category: "ofertas-locales",
+    packageKey: OFERTAS_LOCALES_COUPONS_FREE_PACKAGE_KEY,
+    customerType: "service_business",
+    pipeline: "coupons",
+    label: "Leonix community coupon — free",
+    priceCents: 0,
+    billingMode: "free",
+    // Content/offer validity lifecycle, NOT a billing duration (there is no billing) — mirrors
+    // the same 30-day public-term lifecycle the paid coupon product used
+    // (OFERTAS_LOCALES_PUBLIC_TERM_DAYS in ofertasLocalesConstants.ts). Free-to-publish does not
+    // mean a coupon may claim an untruthful/indefinite expiration.
+    durationDays: 30,
+    includedInventory: "1 coupon or promotion submission",
+    addOnInventory: null,
+    promoEligible: false,
+    printCompEligible: false,
+    placementEligible: false,
+    stripeEligible: false,
+    placementTierKey: "free",
     unresolvedOwnerDecision: null,
   },
   {
@@ -448,20 +487,52 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     unresolvedOwnerDecision: null,
   },
   {
+    // Owner lock 2026-08-25: Viajes business participation is free for new publishing.
+    // Historical $399 package retained for audit/history only — see viajes_business_free below
+    // for the current canonical free package. Historical printCompEligible/placementEligible
+    // remain true here because they describe how PAST real payments were interpreted; they are
+    // not read for any new sale once stripeEligible/promoEligible are false.
     category: "viajes",
     packageKey: "viajes_business_monthly",
     customerType: "travel_business",
-    label: "Viajes business monthly",
+    label: "Viajes business monthly (retired — new publishing is free)",
     priceCents: 39900,
     billingMode: "monthly_subscription",
     durationDays: null,
     includedInventory: "1 business/offer",
     addOnInventory: null,
-    promoEligible: true,
+    // stripeEligible/promoEligible false is the actual central guard (read by
+    // validateRevenueCheckoutRequest and the promo resolver); newSalesRetired is documentation
+    // + the route-level defense-in-depth check in app/api/revenue-os/checkout/route.ts. The
+    // owner-lock decision this unresolvedOwnerDecision entry tracked is now resolved (retired
+    // for new sales, replaced by the free package below) — set to null rather than reused.
+    promoEligible: false,
     printCompEligible: true,
     placementEligible: true,
-    stripeEligible: true,
-    unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[0],
+    stripeEligible: false,
+    unresolvedOwnerDecision: null,
+    newSalesRetired: true,
+  },
+  {
+    // Owner lock 2026-08-25: canonical FREE Viajes business/community package. Product
+    // doctrine: free to participate, curated for community value, reviewed before publication.
+    // Free does NOT mean Featured/Premium placement or Business Tools — those are not granted
+    // by this package.
+    category: "viajes",
+    packageKey: VIAJES_BUSINESS_FREE_PACKAGE_KEY,
+    customerType: "travel_business",
+    label: "Viajes business — free (community participation)",
+    priceCents: 0,
+    billingMode: "free",
+    durationDays: null,
+    includedInventory: "1 reviewed business/offer submission",
+    addOnInventory: null,
+    promoEligible: false,
+    printCompEligible: false,
+    placementEligible: false,
+    stripeEligible: false,
+    placementTierKey: "free",
+    unresolvedOwnerDecision: null,
   },
   {
     category: "viajes",

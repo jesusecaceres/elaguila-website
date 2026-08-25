@@ -116,10 +116,23 @@ export async function POST(request: NextRequest) {
     categoryEarly === "bienes-raices" && packageKeyEarly === BR_INVENTORY_PACK_PACKAGE_KEY;
   const isServiciosOffersAddonOnlyEarly =
     categoryEarly === "servicios" && packageKeyEarly === SERVICIOS_OFFERS_ADDON_PACKAGE_KEY;
+  // Package 2 — owner lock 2026-08-25: the standalone $199 Cupones product is retired for new
+  // sales (community coupon publishing is now free — see ofertas_locales_coupons_free in the
+  // pricing matrix). It is intentionally EXCLUDED from isOfertasLocalesCheckoutEarly below so a
+  // retired-key request never reaches the still-sellable Ofertas Locales ownership DB gate; it
+  // is caught by the retirement guard immediately below instead. The interactive flyer product
+  // is unaffected and remains fully checkout-eligible.
   const isOfertasLocalesCheckoutEarly =
-    categoryEarly === "ofertas-locales" &&
-    (packageKeyEarly === OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY ||
-      packageKeyEarly === OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY);
+    categoryEarly === "ofertas-locales" && packageKeyEarly === OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY;
+  // Package 2 — owner lock 2026-08-25: retired-for-new-sales package keys. Historical rows
+  // still resolve (getRevenuePackageDefinition never removes these entries); only NEW checkout
+  // is blocked. The central guard (validateRevenueCheckoutRequest's stripeEligible check, which
+  // every path eventually reaches) already rejects these too — this early check exists only to
+  // return a specific, honest "now free" message before any ownership DB round-trip runs.
+  const isViajesBusinessMonthlyRetiredEarly =
+    categoryEarly === "viajes" && packageKeyEarly === "viajes_business_monthly";
+  const isOfertasCouponsRetiredEarly =
+    categoryEarly === "ofertas-locales" && packageKeyEarly === OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY;
 
   // Package C Build 3 (C5/C6) — cheap, no-DB-call defense-in-depth: the retired restaurantes/
   // servicios offers add-ons can no longer be purchased standalone. The central guard
@@ -133,6 +146,22 @@ export async function POST(request: NextRequest) {
         code: "addon_retired_included_in_base",
         message:
           "This add-on is no longer sold separately — coupons/offers are included with the active $399 base package.",
+      },
+      { status: 410 },
+    );
+  }
+
+  // Package 2 — owner lock 2026-08-25: Viajes business publishing and basic Leonix community
+  // coupons are now free. The paid packages stay resolvable for historical price/label reads
+  // but can never start a new Stripe checkout.
+  if (isViajesBusinessMonthlyRetiredEarly || isOfertasCouponsRetiredEarly) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "package_retired_now_free",
+        message: isViajesBusinessMonthlyRetiredEarly
+          ? "Viajes business publishing is now free — no payment is required. Use the free publishing flow instead."
+          : "Basic Leonix community coupon publishing is now free — no payment is required. Use the free publishing flow instead.",
       },
       { status: 410 },
     );

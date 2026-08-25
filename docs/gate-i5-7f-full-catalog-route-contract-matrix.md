@@ -39,6 +39,72 @@ and, for the full-catalog Preview runtime certification recorded below,
 It does not claim the two route systems are unified, and it does not repair every stale value it
 documents — see [Unresolved Route Debt](#unresolved-route-debt).
 
+## Globalization Reconcile Package 2 Update Log — OWNER LOCK 2026-08-25: Free Viajes and Cupones Catalog
+
+Enforced by [`scripts/gate-pkgC-viajes-cupones-free-catalog-selftest.ts`](../scripts/gate-pkgC-viajes-cupones-free-catalog-selftest.ts).
+Branch `globalization-release-reconcile-2026-08-14`. These owner decisions are FINAL and
+supersede the earlier commercial truth for these two products; the historical statements in the
+package logs below remain as written (honest record of what was true at the time).
+
+### VIAJES — new business publishing is FREE
+
+- **New Viajes business publishing is free.** Doctrine: free to participate, curated for
+  community value, reviewed before publication.
+- Canonical free package: `viajes_business_free` (`VIAJES_BUSINESS_FREE_PACKAGE_KEY`) —
+  `priceCents: 0`, `billingMode: "free"`, `stripeEligible: false`, `promoEligible: false`,
+  no placement eligibility, no automatic Business Tools.
+- Historical `viajes_business_monthly` ($399/mo) is **retained for history only**: still
+  resolvable by key, historical price/billing semantics preserved untouched,
+  `newSalesRetired: true`, `stripeEligible: false`, `promoEligible: false`. The
+  `REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[0]` ("Viajes business monthly pricing final
+  lock") decision is now resolved by this owner lock — the matrix entry's
+  `unresolvedOwnerDecision` is cleared.
+- **Superseded surface (handed to the Viajes workstream, deliberately untouched here):** the
+  `/publicar/viajes/checkpoint` negocios card (`getViajesCheckpointCards()` in
+  `categoryPublishCheckpoints.ts`) still renders the matrix-derived $399/mes paid card. Product
+  UI intake work (free publishing language, Community Opportunity Intake, prefill, moderation,
+  no Stripe prompt) belongs to the Viajes workstream.
+
+### CUPONES — basic community coupons are FREE
+
+- **New basic community coupon publishing is free.**
+- Canonical free package: `ofertas_locales_coupons_free`
+  (`OFERTAS_LOCALES_COUPONS_FREE_PACKAGE_KEY`) — `priceCents: 0`, `billingMode: "free"`,
+  `stripeEligible: false`, `promoEligible: false`, no placement eligibility; `durationDays: 30`
+  is retained as a truthful content-expiration window (not a billing duration).
+- Historical `ofertas_locales_coupons_30d` ($199/30d) is **retained for history only**: still
+  resolvable by key, historical price/duration/billing preserved untouched,
+  `newSalesRetired: true`, `stripeEligible: false`, `promoEligible: false`.
+- Product UI work ($199 payment UI removal/replacement, public Cupones copy, dashboard truth)
+  belongs to the Ofertas workstream — no Ofertas/Cupones product file touched by this package.
+
+### OFERTAS LOCALES — interactive flyer stays PAID
+
+- `ofertas_locales_flyer_30d` remains **$399 / 30 days**, `billingMode: "one_time"`,
+  `stripeEligible: true`. The flyer and coupon lanes are commercially distinct; the Cupones
+  free change does not touch the flyer.
+
+### RESTAURANTES / SERVICIOS — unchanged
+
+- `restaurantes_base_monthly` and `servicios_base_monthly` stay $399/mo with the bundled
+  `coupons_offers` capability. The retired $79 `restaurantes_offers_addon` /
+  `servicios_offers_addon` remain `newSalesRetired: true`, `stripeEligible: false`,
+  `promoEligible: false`, and historically resolvable — not resurrected.
+
+### Enforcement
+
+- Central guard: `validateRevenueCheckoutRequest` (`revenueCheckout.ts`) rejects every retired
+  and free key generically (`package_not_stripe_eligible` on `stripeEligible: false`;
+  `package_is_free` on `billingMode: "free"` / `priceCents <= 0`) — no category-specific hack.
+- Route-level defense-in-depth: `app/api/revenue-os/checkout/route.ts` returns
+  `410 package_retired_now_free` for `viajes_business_monthly` and
+  `ofertas_locales_coupons_30d` before any ownership DB round-trip, and the retired coupons key
+  no longer triggers the still-sellable Ofertas ownership gate.
+- Package 1's canonical `listing_source` resolver resolves both new free keys by category with
+  no resolver change (`viajes_business_free` → `viajes_staged_listings`;
+  `ofertas_locales_coupons_free` → `ofertas_locales`).
+- No historical payment, entitlement, or subscription row is rewritten; no migration created.
+
 ## Globalization Package A Update Log — Global Foundation + Complete Customer Lifecycle
 
 ### Gate 1 — Catalog and contract freeze (DONE)
