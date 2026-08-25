@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { AutoDealerPreviewPage } from "../components/AutoDealerPreviewPage";
+import { AutosNegociosDealershipPreviewPage } from "./dealershipPreview/AutosNegociosDealershipPreviewPage";
 import { AutoDealerPreviewChrome } from "../components/AutoDealerPreviewChrome";
 import { AutosNegociosPreviewEmptyState } from "../components/AutosNegociosPreviewEmptyState";
 import { loadAutosNegociosCanonicalActiveDraft } from "@/app/lib/clasificados/autos/autosNegociosCanonicalDraftLoad";
@@ -529,7 +529,7 @@ function AutosNegociosPreviewInner({
   if (mode === "canonical-active") {
     return (
       <AutosDraftPreviewErrorBoundary logLabel="negocios" fallback={<AutosNegociosPreviewEmptyState />}>
-        <AutoDealerPreviewPage data={listing} editBackHref={editBackHref} />
+        <AutosNegociosDealershipPreviewPage data={listing} editBackHref={editBackHref} />
       </AutosDraftPreviewErrorBoundary>
     );
   }
@@ -563,10 +563,11 @@ function AutosNegociosPreviewInner({
           <div className={`mx-auto ${autosPreviewPageMaxWidthClass} px-4 md:px-6 lg:px-8`}>
             <AutosNegociosResultsCardPreview lang={lang} listing={listing} additionalCount={additionalCount} />
           </div>
-          <AutoDealerPreviewPage
+          <AutosNegociosDealershipPreviewPage
             data={listing}
             embeddedInShell
             draftPreviewMode
+            relatedPreviewOnly
             heroSpecItems={viewModel.heroSpecItems}
           />
           <AutosNegociosPreviewInventorySection
@@ -596,7 +597,7 @@ function AutosNegociosPreviewInner({
 
   return (
     <AutosDraftPreviewErrorBoundary logLabel="negocios" fallback={<AutosNegociosPreviewEmptyState />}>
-      <AutoDealerPreviewPage data={listing} editBackHref={editBackHref} />
+      <AutosNegociosDealershipPreviewPage data={listing} editBackHref={editBackHref} />
     </AutosDraftPreviewErrorBoundary>
   );
 }
