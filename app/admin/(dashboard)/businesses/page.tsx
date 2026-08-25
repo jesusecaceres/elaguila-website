@@ -7,6 +7,7 @@ import { composeStaffConciergeHome, emptyStaffConciergeHome } from "../../_lib/s
 import { BROAD_BUSINESS_TYPES, BUSINESS_STAGES } from "@/app/lib/business/constants";
 import { countriesSortedByLabel, countryLabel } from "@/app/lib/business/countries";
 import { StaffCommandCenter } from "./StaffCommandCenter";
+import { listAcceptedCurrentProposalsForHandoff } from "@/app/lib/business/proposals/repository";
 
 export const dynamic = "force-dynamic";
 
@@ -82,6 +83,8 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
 
   let home = emptyStaffConciergeHome();
   let summaryUnavailable = false;
+  let ownerHandoff: Awaited<ReturnType<typeof listAcceptedCurrentProposalsForHandoff>> = [];
+  let ownerHandoffUnavailable = false;
   try {
     const homeSource = hasListFilters ? (await listBusinessesForWorkspace({ limit: 100 })).items : items;
     home = composeStaffConciergeHome(homeSource);
@@ -89,10 +92,21 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
     home = emptyStaffConciergeHome();
     summaryUnavailable = true;
   }
+  try {
+    ownerHandoff = await listAcceptedCurrentProposalsForHandoff();
+  } catch {
+    ownerHandoff = [];
+    ownerHandoffUnavailable = true;
+  }
 
   return (
     <div className="max-w-6xl space-y-6">
-      <StaffCommandCenter home={home} summaryUnavailable={summaryUnavailable} />
+      <StaffCommandCenter
+        home={home}
+        summaryUnavailable={summaryUnavailable}
+        ownerHandoff={ownerHandoff}
+        ownerHandoffUnavailable={ownerHandoffUnavailable}
+      />
 
       <section id="businesses-inventory" className="space-y-4 scroll-mt-4">
         <div>

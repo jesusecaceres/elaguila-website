@@ -26,6 +26,7 @@ import {
   ownerAcceptanceRequiresNoStaffRoster,
   staffAcceptanceRequiresRoster,
 } from "../app/lib/business/proposals/logic";
+import { PROPOSAL_STATUSES, isValidProposalStatusTransition } from "../app/lib/business/proposals/constants";
 import type { ProposalActor } from "../app/lib/business/proposals/types";
 import {
   canTransitionCommitmentStatus,
@@ -106,6 +107,10 @@ test("proposal status: owner_review -> accepted", () => canTransitionProposalSta
 test("proposal status: owner_review -> declined", () => canTransitionProposalStatus("owner_review", "declined"));
 test("proposal status: accepted -> draft (invalid)", () => !canTransitionProposalStatus("accepted", "draft"));
 test("proposal status: cancelled -> anything (invalid)", () => !canTransitionProposalStatus("cancelled", "draft"));
+test("proposal statuses do not include postponed", () => !PROPOSAL_STATUSES.includes("postponed"));
+test("proposal cannot transition to postponed", () => !isValidProposalStatusTransition("owner_review", "postponed"));
+test("proposal cannot transition from accepted to declined", () => !canTransitionProposalStatus("accepted", "declined"));
+test("proposal cannot skip to accepted from draft", () => !canTransitionProposalStatus("draft", "accepted"));
 
 test("pricing confirmed when source is revenue_pricing_matrix and confirmed", () =>
   isPricingConfirmed({ packageKey: "test", packageLabel: "Test", priceCents: 100, billingMode: "one_time", durationDays: 30, pricingSource: "revenue_pricing_matrix", pricingConfirmed: true }));

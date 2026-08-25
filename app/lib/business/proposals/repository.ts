@@ -183,6 +183,56 @@ export async function listProposalsForBusiness(businessId: string): Promise<Busi
   return (data as Record<string, unknown>[]).map(mapProposalRow);
 }
 
+export type OwnerHandoffProposalRow = {
+  businessId: string;
+  displayName: string;
+  proposalId: string;
+  version: number;
+  verifiedNeedEn: string;
+  recommendedIntervention: string;
+  acceptedAt: string | null;
+  acceptedByEmail: string | null;
+  acceptedByRole: string | null;
+};
+
+const OWNER_HANDOFF_LIMIT = 20;
+
+/**
+ * Bounded Command Center read model: current accepted proposals only.
+ * Two queries max (proposals + matching businesses). Not N+1. Not a new table.
+ */
+export async function listAcceptedCurrentProposalsForHandoff(): Promise<OwnerHandoffProposalRow[]> {
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("business_proposals")
+    .select("id, business_id, version, verified_need_en, recommended_intervention, accepted_at, accepted_by_email, accepted_by_role")
+    .eq("status", "accepted")
+    .eq("is_current", true)
+    .order("accepted_at", { ascending: false })
+    .limit(OWNER_HANDOFF_LIMIT);
+  if (error || !data || data.length === 0) return [];
+
+  const businessIds = [...new Set((data as Record<string, unknown>[]).map((row) => String(row.business_id)))];
+  const { data: businesses, error: businessError } = await supabase
+    .from("businesses")
+    .select("id, display_name")
+    .in("id", businessIds);
+  if (businessError || !businesses) return [];
+
+  const names = new Map((businesses as Record<string, unknown>[]).map((row) => [String(row.id), String(row.display_name ?? "")]));
+  return (data as Record<string, unknown>[]).map((row) => ({
+    businessId: String(row.business_id),
+    displayName: names.get(String(row.business_id)) || "Business",
+    proposalId: String(row.id),
+    version: Number(row.version),
+    verifiedNeedEn: String(row.verified_need_en ?? ""),
+    recommendedIntervention: String(row.recommended_intervention ?? ""),
+    acceptedAt: (row.accepted_at as string | null) ?? null,
+    acceptedByEmail: (row.accepted_by_email as string | null) ?? null,
+    acceptedByRole: (row.accepted_by_role as string | null) ?? null,
+  }));
+}
+
 export async function getProposalById(proposalId: string, businessId: string): Promise<BusinessProposal | null> {
   const supabase = getAdminSupabase();
   const { data, error } = await supabase

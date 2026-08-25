@@ -359,11 +359,11 @@ export function MeetingJourney({
             Schedule a sales follow-up
           </a>
           {followThrough.hasCurrentProposal ? (
-            <a href="#decide" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
-              Open proposal
+            <a href="#proposals" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
+              Client Decision
             </a>
           ) : followThrough.canViewCommitments ? (
-            <a href="#decide" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#E8DFD0] px-4 py-2 text-xs font-semibold text-[#3D3428]">
+            <a href="#proposals" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#E8DFD0] px-4 py-2 text-xs font-semibold text-[#3D3428]">
               Review proposals
             </a>
           ) : null}

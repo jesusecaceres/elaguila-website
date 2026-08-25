@@ -878,6 +878,48 @@ check("Gate 07: journey distinctions, no fake score, no auto publish, image butt
   assert.ok(creativePageGate07.includes("listJobsForBusiness"));
 });
 
+const proposalPageGate08 = read("app/admin/(dashboard)/businesses/[businessId]/page.tsx");
+const proposalActionsGate08 = read("app/admin/(dashboard)/businesses/[businessId]/ProposalActions.tsx");
+const proposalConstantsGate08 = read("app/lib/business/proposals/constants.ts");
+const proposalRepoGate08 = read("app/lib/business/proposals/repository.ts");
+const opportunityTypesGate08 = read("app/lib/business/opportunity/types.ts");
+const commandCenterGate08 = read("app/admin/(dashboard)/businesses/StaffCommandCenter.tsx");
+const commandCenterPageGate08 = read("app/admin/(dashboard)/businesses/page.tsx");
+const followUpDataGate08 = read("app/admin/_lib/businessWorkspaceData.ts");
+check("Gate 08: proposals remain canonical client decision domain; statuses unchanged", () => {
+  assert.ok(proposalConstantsGate08.includes('"draft"'));
+  assert.ok(proposalConstantsGate08.includes('"accepted"'));
+  assert.ok(proposalConstantsGate08.includes('"declined"'));
+  assert.ok(!proposalConstantsGate08.includes('"postponed"'));
+  assert.ok(!proposalConstantsGate08.includes('"signed"'));
+  assert.ok(!proposalConstantsGate08.includes('"paid"'));
+  assert.ok(proposalPageGate08.includes('id="proposals"'));
+  assert.ok(proposalActionsGate08.includes("Client Decision"));
+  assert.ok(proposalActionsGate08.includes("does not mean opportunity approval"));
+  assert.ok(!proposalActionsGate08.includes("CREATE TABLE"));
+});
+check("Gate 08: Owner Handoff is a bounded accepted-proposal read model; follow-up stays canonical", () => {
+  assert.ok(proposalRepoGate08.includes("listAcceptedCurrentProposalsForHandoff"));
+  assert.ok(proposalRepoGate08.includes('.eq("status", "accepted")'));
+  assert.ok(proposalRepoGate08.includes('.eq("is_current", true)'));
+  assert.ok(proposalRepoGate08.includes("OWNER_HANDOFF_LIMIT"));
+  assert.ok(commandCenterGate08.includes("Owner Handoff"));
+  assert.ok(commandCenterGate08.includes("No accepted proposals are waiting for owner handoff."));
+  assert.ok(commandCenterGate08.includes("#proposals"));
+  assert.ok(commandCenterPageGate08.includes("listAcceptedCurrentProposalsForHandoff"));
+  assert.ok(proposalActionsGate08.includes("/api/admin/businesses/${businessId}/follow-up"));
+  assert.ok(followUpDataGate08.includes("owner_bootstrap_cannot_write_follow_ups"));
+  assert.ok(proposalActionsGate08.includes("A staff roster assignment is required"));
+  assert.ok(!opportunityTypesGate08.includes('| "accepted"'));
+  assert.ok(!opportunityTypesGate08.includes('| "declined"'));
+  assert.ok(!opportunityTypesGate08.includes('| "postponed"'));
+  assert.ok(opportunityTypesGate08.includes('"suggested"'));
+  assert.ok(opportunityTypesGate08.includes('"creative_requested"'));
+  assert.ok(!proposalActionsGate08.includes("docusign"));
+  assert.ok(!proposalActionsGate08.includes("stripe"));
+  assert.ok(!proposalRepoGate08.includes("CREATE TABLE"));
+});
+
 // --- No secret / no production reference ------------------------------------------------------------
 const gateB_Files = [
   "app/admin/_lib/businessWorkspaceAccess.ts",
