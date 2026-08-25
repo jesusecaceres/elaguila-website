@@ -8,7 +8,7 @@
  */
 import type { UrgencyLevel } from "./types";
 
-export type CandidateReviewDisposition = "pending" | "ready_for_promotion" | "promoted" | "dropped";
+export type CandidateReviewDisposition = "pending" | "researching" | "ready_for_promotion" | "promoted" | "dropped";
 
 export type CurrentSourceType = "government" | "official_org_site" | "phone_call";
 
@@ -83,6 +83,8 @@ export function candidateReviewDispositionLabel(disposition: CandidateReviewDisp
   switch (disposition) {
     case "pending":
       return "Pending review";
+    case "researching":
+      return "Researching — evidence in progress";
     case "ready_for_promotion":
       return "Ready for promotion";
     case "promoted":

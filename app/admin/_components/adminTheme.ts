@@ -90,6 +90,21 @@ export const adminDashboardCtaNeutral =
   adminDashboardCtaBase +
   " border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] text-[color:var(--lx-text)] hover:bg-[color:var(--lx-section)]";
 
+/** Olive accent on cream — subtle, for review/comparison actions (e.g. Revisar cambios). */
+export const adminDashboardCtaOlive =
+  adminDashboardCtaBase +
+  " border border-[#8A9A5B]/70 bg-[color:var(--lx-card)] text-[#4B5530] hover:bg-[#F4F6EC] hover:border-[#8A9A5B]";
+
+/** Blue-green / teal accent on cream — subtle, for partner-facing actions (e.g. Solicitudes de socios). */
+export const adminDashboardCtaTeal =
+  adminDashboardCtaBase +
+  " border border-[#3E8A82]/70 bg-[color:var(--lx-card)] text-[#1F5C55] hover:bg-[#EEF6F5] hover:border-[#3E8A82]";
+
+/** Slate / muted-royal accent on cream — subtle, for ongoing/operational actions (e.g. Reverificación). */
+export const adminDashboardCtaSlate =
+  adminDashboardCtaBase +
+  " border border-[#5B6B85]/70 bg-[color:var(--lx-card)] text-[#33415A] hover:bg-[#EEF1F6] hover:border-[#5B6B85]";
+
 /** Gold/bronze accent chip border (counts / premium). */
 export const adminDashboardMetricChip =
   "inline-flex items-center rounded-md border border-[#C9B46A]/60 bg-[#FFFCF7] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#5C4E2E]";

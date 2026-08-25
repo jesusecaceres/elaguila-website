@@ -1,4 +1,5 @@
-import type { PublicResourceRecord, RecursosLang } from "@/app/lib/recursos/types";
+import type { RecursosLang } from "@/app/lib/recursos/types";
+import type { PublicResourceWithSpanishTrust } from "@/app/lib/recursos/server/communityResourcesPublicQueries";
 import { ResourceCard } from "./ResourceCard";
 
 const COPY: Record<RecursosLang, { emptyTitle: string; emptyBody: string }> = {
@@ -13,7 +14,7 @@ const COPY: Record<RecursosLang, { emptyTitle: string; emptyBody: string }> = {
 };
 
 /** Shared grid used by both the category route and the general results route — same data, same rules. */
-export function ResourceResultsGrid({ resources, lang }: { resources: PublicResourceRecord[]; lang: RecursosLang }) {
+export function ResourceResultsGrid({ resources, lang }: { resources: PublicResourceWithSpanishTrust[]; lang: RecursosLang }) {
   const t = COPY[lang];
 
   if (resources.length === 0) {

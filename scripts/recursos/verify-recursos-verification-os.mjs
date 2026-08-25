@@ -124,7 +124,16 @@ if (exists(PUBLIC_QUERIES_PATH)) {
   assert("public query uses isEffectivelyVerified (reused, not reinvented)", /isEffectivelyVerified/.test(src));
   assert("public query filters verification_status = verified at the query level (stricter than neq inactive)", /\.eq\("verification_status", "verified"\)/.test(src));
   assert("public query no longer allows needs_review/stale through via a neq-inactive filter", !/\.neq\("verification_status", "inactive"\)/.test(src));
-  assert("listPublicCommunityResources applies the effective-eligibility filter before returning", /records\.filter\(isCurrentlyPublicEligible\)/.test(src));
+  // Existing Resource Official-Spanish Bridge (Gate ES-QA1): confirmed this was a false-positive in
+  // the verifier, not a real product bug — listPublicCommunityResources genuinely applies
+  // isCurrentlyPublicEligible before returning (communityResourcesPublicQueries.ts:150), it's just
+  // written as `.filter(({ record }) => isCurrentlyPublicEligible(record))` (destructured wrapper,
+  // since `records` at that point is `{row, record}[]`, not bare ResourceRecord[]) rather than a
+  // bare function reference. Matching the actual safe call, not one specific syntax for it.
+  assert(
+    "listPublicCommunityResources applies the effective-eligibility filter before returning",
+    /\.filter\(\(\{\s*record\s*\}\)\s*=>\s*isCurrentlyPublicEligible\(record\)\)/.test(src) || /records\.filter\(isCurrentlyPublicEligible\)/.test(src),
+  );
   assert("getPublicCommunityResourceBySlug applies the effective-eligibility check before returning", /if \(!isCurrentlyPublicEligible\(record\)\) return null/.test(src));
 }
 

@@ -30,8 +30,11 @@ export type CandidateResourceRecord = {
   candidateId: string;
 
   // SOURCE IDENTITY
-  sourceDocument: "scc-community-resource-guide-2023";
-  sourceYear: 2023;
+  // Gate 3 (URL intake) extends this beyond the original single PDF literal — "url-intake"
+  // marks a candidate discovered by fetching an official URL rather than the 2023 PDF guide.
+  // Existing PDF candidates are unaffected: they always carry the original literal value.
+  sourceDocument: "scc-community-resource-guide-2023" | "url-intake";
+  sourceYear: 2023 | null;
   sourcePages: number[];
   sourceSections: string[];
   sourceRawCategory?: string | null;
@@ -147,6 +150,14 @@ export function candidateToResourceDraft(candidate: CandidateResourceRecord) {
     );
   }
 
+  // Spanish Bridge (Gate ES-5F) — audited, not modified. CandidateResourceRecord is the STATIC
+  // 2023 county-guide JSON dataset's type only (see the file doc comment above): its own
+  // suggestedDescriptionEs is hard-typed to the literal `null` (never `string | null`) and it has
+  // no eligibilityEs/hoursNoteEs/detailsEs fields at all — this candidate source structurally
+  // cannot carry Spanish, so there is nothing to preserve here. Per Gate ES-5D, the locked static
+  // dataset/type is explicitly out of scope; the real ES-5F fix lives in promoteUrlCandidateAction
+  // (recursosUrlCandidateActions.ts), which serves both URL- and live-PDF-intake-sourced
+  // candidates — the only paths that can genuinely carry official-source Spanish today.
   return {
     organizationName: candidate.organizationName,
     programName: candidate.programName ?? null,

@@ -13,6 +13,13 @@ import {
   adminTableZebraRow,
   adminActionProofOk,
   adminActionProofErr,
+  adminCardBase,
+  adminDashboardCtaPrimary,
+  adminDashboardCtaView,
+  adminDashboardCtaWarning,
+  adminDashboardCtaOlive,
+  adminDashboardCtaTeal,
+  adminDashboardCtaSlate,
 } from "@/app/admin/_components/adminTheme";
 import { ExecutiveHubConfirmSubmitButton } from "@/app/admin/_components/executiveHub/ExecutiveHubConfirmSubmitButton";
 import { RecursosFilterBar } from "@/app/admin/_components/recursos/RecursosFilterBar";
@@ -25,6 +32,11 @@ import type { ResourceRecord } from "@/app/lib/recursos/types";
 import { dbListCandidateReviews } from "@/app/lib/recursos/server/communityResourceCandidateReviewsDb";
 import type { CandidateResourceRecord } from "@/app/lib/recursos/sourceIngestion";
 import candidatesData from "@/data/recursos/candidates/scc-community-resource-guide-2023.json";
+import { buildReverificationQueue } from "@/app/lib/recursos/intake/reverificationQueue";
+import { dbCountActiveResourceIntakeJobs } from "@/app/lib/recursos/intake/server/resourceIntakeJobsDb";
+import { dbCountPendingResourceChangeProposals } from "@/app/lib/recursos/intake/server/resourceChangeProposalsDb";
+import { dbCountPendingPartnerUpdateRequests } from "@/app/lib/recursos/intake/server/partnerUpdateRequestsDb";
+import { loadSpanishReconciliationSnapshot } from "@/app/lib/recursos/intake/spanishReconciliationQueue";
 
 const CANDIDATES = candidatesData as unknown as CandidateResourceRecord[];
 
@@ -49,6 +61,15 @@ function matchesQuery(r: ResourceRecord, q: string): boolean {
   return haystack.includes(q);
 }
 
+/**
+ * Deliberately excludes a "Deactivate"/inactive option: verification_status='inactive' and the
+ * separate `active` boolean both display as the same "Inactive" badge (resolveEffectiveVerificationStatus
+ * checks `!active` first, then verificationStatus==='inactive') but write to two different columns
+ * through two different actions — having both a status-transition "Deactivate" here AND
+ * ActiveToggle's own "Deactivate" was two same-labeled buttons doing different, easily-decoupled
+ * things. ActiveToggle below is the single, clear control for publish/unpublish; this list only
+ * ever offers the three real verification-quality transitions.
+ */
 function VerificationActions({ id, currentStatus }: { id: string; currentStatus: string }) {
   const options: { status: string; label: string; className: string; confirmMessage: string }[] = [
     {
@@ -69,12 +90,6 @@ function VerificationActions({ id, currentStatus }: { id: string; currentStatus:
       label: "Mark stale",
       className: "border border-orange-700 bg-orange-500 text-[#1E1810] hover:bg-orange-600",
       confirmMessage: "Mark this resource as stale?",
-    },
-    {
-      status: "inactive",
-      label: "Deactivate",
-      className: "border border-rose-800 bg-rose-800 text-white hover:bg-rose-900",
-      confirmMessage: "Mark this resource inactive? It will stop surfacing publicly.",
     },
   ].filter((o) => o.status !== currentStatus);
 
@@ -122,6 +137,25 @@ export default async function RecursosAdminListPage(props: {
   const sp = props.searchParams ? await props.searchParams : {};
   const { rows: all, unavailable } = await dbListCommunityResources();
   const { rows: candidateReviews } = await dbListCandidateReviews();
+
+  // Gate 2 — Recursos Command Center metrics. Reuses `all` (no extra query) for reverification;
+  // three genuinely new counts come from the Gate 1 Intake OS tables. Any query that fails shows
+  // an honest "no disponible" rather than a fabricated zero (see `commandCenterUnavailable` below).
+  const reverificationQueue = buildReverificationQueue(all);
+  const [intakeJobsCount, changeProposalsCount, partnerRequestsCount, spanishSnapshot] = await Promise.all([
+    dbCountActiveResourceIntakeJobs(),
+    dbCountPendingResourceChangeProposals(),
+    dbCountPendingPartnerUpdateRequests(),
+    loadSpanishReconciliationSnapshot(),
+  ]);
+  const spanishCounts = {
+    listosParaTraducir: spanishSnapshot.entries.filter((e) => e.queueStatus === "LISTO_PARA_GENERAR").length,
+    sinContenidoBase: spanishSnapshot.entries.filter((e) => e.queueStatus === "SIN_CONTENIDO_BASE").length,
+    pendientesRevision: spanishSnapshot.entries.filter((e) => e.queueStatus === "REVISION_PENDIENTE" || e.queueStatus === "LISTO_PARA_PUBLICAR").length,
+    publicado: spanishSnapshot.entries.filter((e) => e.queueStatus === "ESPANOL_PUBLICADO").length,
+    fuenteOficial: spanishSnapshot.entries.filter((e) => e.queueStatus === "FUENTE_OFICIAL_ES").length,
+    reverify: spanishSnapshot.entries.filter((e) => e.queueStatus === "REVERIFICAR_PRIMERO").length,
+  };
   const promotedCandidateIds = new Set(candidateReviews.filter((r) => r.disposition === "promoted").map((r) => r.candidateId));
   const candidateCounts = {
     total: CANDIDATES.length,
@@ -171,17 +205,123 @@ export default async function RecursosAdminListPage(props: {
       <AdminPagePurposeCard
         title="Recursos — Data OS"
         purpose="Manage verified community-help organizations and programs (identity, bilingual content, category/urgency, contact CTAs, verification freshness, and editorial status) without code changes."
-        dataSource="Supabase `public.community_resources` table (supabase/migrations/20260818150000_community_resources.sql). No public search page reads this table yet — that is Build 03."
+        dataSource="Supabase `public.community_resources` table (supabase/migrations/20260818150000_community_resources.sql). The public search/directory at /recursos-comunitarios reads this same table live via app/lib/recursos/server/communityResourcesPublicQueries.ts."
         status="real"
         safeActions={[
           "Search / filter by category, urgency, verification, active",
           "Create/edit resource records",
           "Mark verified / needs review / stale / deactivate",
           "Activate / deactivate",
+          "Ver público — open a resource's live public detail page",
         ]}
-        nextGate="Build 03 wires a public search/directory experience against this same table via app/lib/recursos/server/communityResourcesPublicQueries.ts."
+        nextGate="Ninguno planeado — la Data OS y el directorio público ya están en producción."
         warningNote="Partner status and Featured are editorial/relationship metadata only — they never affect public ranking. Ranking is always urgency/relevance/geography/eligibility/verification/active-status based."
       />
+
+      <section className={`${adminCardBase} mb-6 p-5`}>
+        <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C4E2E]">Centro de comando de Recursos</h2>
+        <p className="mt-1 text-xs leading-relaxed text-[#7A7164]">
+          Métricas reales — cada número se lee directamente de Supabase en el momento de cargar esta página. Ningún valor se
+          inventa: si una consulta falla, se muestra &quot;no disponible&quot; en vez de un cero falso.
+        </p>
+
+        <div className="mt-4 grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-9">
+          <AdminStatCard title="Publicados / Activos" value={unavailable ? "—" : counts.active} />
+          <AdminStatCard title="Verificados" value={unavailable ? "—" : counts.verified} />
+          <AdminStatCard title="Revisión pendiente" value={unavailable ? "—" : counts.needsReview} accent={!unavailable && counts.needsReview > 0 ? "amber" : "default"} />
+          <AdminStatCard title="Vencidos / Stale" value={unavailable ? "—" : counts.stale} accent={!unavailable && counts.stale > 0 ? "amber" : "default"} />
+          <AdminStatCard
+            title="Reverificación vencida"
+            value={unavailable ? "—" : reverificationQueue.overdue.length}
+            accent={!unavailable && reverificationQueue.overdue.length > 0 ? "rose" : "default"}
+            actionLabel="Ver cola"
+            actionHref="/admin/recursos/reverificacion"
+          />
+          <AdminStatCard title="Candidatos" value={CANDIDATES.length} actionLabel="Revisar" actionHref="/admin/recursos/candidatos" />
+          <AdminStatCard
+            title="Intakes activos"
+            value={intakeJobsCount.unavailable ? "no disponible" : intakeJobsCount.count}
+            actionLabel="Nuevo intake"
+            actionHref="/admin/recursos/intake"
+          />
+          <AdminStatCard
+            title="Cambios pendientes"
+            value={changeProposalsCount.unavailable ? "no disponible" : changeProposalsCount.count}
+            accent={!changeProposalsCount.unavailable && changeProposalsCount.count > 0 ? "amber" : "default"}
+            actionLabel="Ver cambios"
+            actionHref="/admin/recursos/cambios"
+          />
+          <AdminStatCard
+            title="Solicitudes pendientes"
+            value={partnerRequestsCount.unavailable ? "no disponible" : partnerRequestsCount.count}
+            accent={!partnerRequestsCount.unavailable && partnerRequestsCount.count > 0 ? "amber" : "default"}
+            actionLabel="Ver solicitudes"
+            actionHref="/admin/recursos/solicitudes"
+          />
+        </div>
+
+        <div className="mt-5 grid gap-2.5 grid-cols-2 lg:grid-cols-3">
+          <Link href="/admin/recursos/nuevo" className={adminDashboardCtaPrimary}>
+            Agregar recurso manualmente
+          </Link>
+          <Link href="/admin/recursos/intake" className={adminDashboardCtaView}>
+            Nuevo intake
+          </Link>
+          <Link href="/admin/recursos/candidatos" className={adminDashboardCtaWarning}>
+            Revisar candidatos
+          </Link>
+          <Link href="/admin/recursos/cambios" className={adminDashboardCtaOlive}>
+            Revisar cambios
+          </Link>
+          <Link href="/admin/recursos/solicitudes" className={adminDashboardCtaTeal}>
+            Solicitudes de socios
+          </Link>
+          <Link href="/admin/recursos/reverificacion" className={adminDashboardCtaSlate}>
+            Reverificación
+          </Link>
+        </div>
+      </section>
+
+      <section className={`${adminCardBase} mb-6 p-5`}>
+        <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C4E2E]">Puente al español — reconciliación</h2>
+        <p className="mt-1 text-xs leading-relaxed text-[#7A7164]">
+          Clasificación en vivo de disponibilidad de español para los 65 recursos verificados. Ningún valor se inventa: si una
+          consulta falla, se muestra &quot;no disponible&quot; en vez de un cero falso.
+        </p>
+
+        <div className="mt-4 grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+          <AdminStatCard title="Listos para traducir" value={spanishSnapshot.unavailable ? "no disponible" : spanishCounts.listosParaTraducir} actionLabel="Ver cola" actionHref="/admin/recursos/espanol?tab=listo_generar" />
+          <AdminStatCard
+            title="Sin contenido base EN"
+            value={spanishSnapshot.unavailable ? "no disponible" : spanishCounts.sinContenidoBase}
+            accent={!spanishSnapshot.unavailable && spanishCounts.sinContenidoBase > 0 ? "amber" : "default"}
+            actionLabel="Ver cola"
+            actionHref="/admin/recursos/espanol?tab=sin_contenido"
+          />
+          <AdminStatCard
+            title="Pendientes de revisión"
+            value={spanishSnapshot.unavailable ? "no disponible" : spanishCounts.pendientesRevision}
+            accent={!spanishSnapshot.unavailable && spanishCounts.pendientesRevision > 0 ? "amber" : "default"}
+            actionLabel="Ver cola"
+            actionHref="/admin/recursos/espanol?tab=revision_pendiente"
+          />
+          <AdminStatCard title="Español publicado" value={spanishSnapshot.unavailable ? "no disponible" : spanishCounts.publicado} actionLabel="Ver cola" actionHref="/admin/recursos/espanol?tab=publicado" />
+          <AdminStatCard title="Fuente oficial ES" value={spanishSnapshot.unavailable ? "no disponible" : spanishCounts.fuenteOficial} actionLabel="Ver cola" actionHref="/admin/recursos/espanol?tab=oficial_es" />
+          <AdminStatCard
+            title="Reverificación requerida"
+            value={spanishSnapshot.unavailable ? "no disponible" : spanishCounts.reverify}
+            accent={!spanishSnapshot.unavailable && spanishCounts.reverify > 0 ? "rose" : "default"}
+            actionLabel="Ver cola"
+            actionHref="/admin/recursos/espanol?tab=reverificar"
+          />
+        </div>
+
+        <div className="mt-5">
+          <Link href="/admin/recursos/espanol" className={adminDashboardCtaOlive}>
+            Reconciliación de español
+          </Link>
+        </div>
+      </section>
 
       <Link
         href="/admin/recursos/candidatos"
@@ -236,7 +376,12 @@ export default async function RecursosAdminListPage(props: {
       ) : (
         <>
           <div className={`${adminDesktopTableOnly} ${adminTableWrap}`}>
-            <table className="w-full min-w-[1200px] text-left text-sm">
+            {/* Gate ES-QA1: min-width trimmed from 1200 to 1040 (the widest real content is the
+                Verification column's stacked buttons, not this table's raw column count), and the
+                Actions column is sticky to the right edge of the scroll container — at 1024-1280px
+                real-world widths the table used to force horizontal scroll that hid Editar/Ver
+                público entirely; now they stay reachable regardless of scroll position. */}
+            <table className="w-full min-w-[1040px] text-left text-sm">
               <thead>
                 <tr className="border-b border-[color:var(--lx-border)]/70 text-xs font-bold uppercase tracking-wide text-[#7A7164]">
                   <th className="px-4 py-3">Organization / program</th>
@@ -247,18 +392,17 @@ export default async function RecursosAdminListPage(props: {
                   <th className="px-4 py-3">Last verified</th>
                   <th className="px-4 py-3">Next review</th>
                   <th className="px-4 py-3">Service area</th>
-                  <th className="px-4 py-3">Actions</th>
+                  <th className="sticky right-0 border-l border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)] px-4 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(({ r, effective }) => (
                   <tr key={r.id} className={adminTableZebraRow}>
                     <td className="px-4 py-3">
-                      <p className="font-semibold text-[#1E1810]">{r.organizationName}</p>
-                      {r.programName ? <p className="text-xs text-[#7A7164]">{r.programName}</p> : null}
-                      <Link href={`/admin/recursos/${r.id}`} className="text-xs font-bold text-[#6B5B2E] underline">
-                        Edit →
+                      <Link href={`/admin/recursos/${r.id}`} className="font-semibold text-[#1E1810] hover:text-[#6B5B2E] hover:underline">
+                        {r.organizationName}
                       </Link>
+                      {r.programName ? <p className="text-xs text-[#7A7164]">{r.programName}</p> : null}
                     </td>
                     <td className="px-4 py-3 text-[#5C5346]">{getPrimaryCategoryLabel(r.primaryCategory, "en")}</td>
                     <td className="px-4 py-3">
@@ -284,10 +428,15 @@ export default async function RecursosAdminListPage(props: {
                       {r.verification.nextVerificationAt ? new Date(r.verification.nextVerificationAt).toLocaleDateString() : "—"}
                     </td>
                     <td className="px-4 py-3 text-xs text-[#5C5346]">{r.serviceArea ?? "—"}</td>
-                    <td className="px-4 py-3">
-                      <Link href={`/admin/recursos/${r.id}`} className={`${adminCtaChip} ${adminCtaChipCompact}`}>
-                        Edit
-                      </Link>
+                    <td className="sticky right-0 border-l border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)] px-4 py-3">
+                      <div className="flex flex-wrap gap-1.5">
+                        <Link href={`/admin/recursos/${r.id}`} className={`${adminCtaChip} ${adminCtaChipCompact}`}>
+                          Editar
+                        </Link>
+                        <Link href={`/recursos-comunitarios/recurso/${r.slug}`} target="_blank" rel="noopener noreferrer" className={`${adminCtaChip} ${adminCtaChipCompact}`}>
+                          Ver público
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -300,7 +449,9 @@ export default async function RecursosAdminListPage(props: {
               <div key={r.id} className="rounded-2xl border border-[color:var(--lx-border)]/70 bg-[color:var(--lx-card)] p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="font-semibold text-[#1E1810]">{r.organizationName}</p>
+                    <Link href={`/admin/recursos/${r.id}`} className="font-semibold text-[#1E1810] hover:text-[#6B5B2E] hover:underline">
+                      {r.organizationName}
+                    </Link>
                     {r.programName ? <p className="text-xs text-[#7A7164]">{r.programName}</p> : null}
                   </div>
                   <span className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${VERIFICATION_BADGE[effective]}`}>
@@ -331,7 +482,10 @@ export default async function RecursosAdminListPage(props: {
                 </dl>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <Link href={`/admin/recursos/${r.id}`} className={`${adminCtaChip} ${adminCtaChipCompact}`}>
-                    Edit
+                    Editar
+                  </Link>
+                  <Link href={`/recursos-comunitarios/recurso/${r.slug}`} target="_blank" rel="noopener noreferrer" className={`${adminCtaChip} ${adminCtaChipCompact}`}>
+                    Ver público
                   </Link>
                   <ActiveToggle id={r.id} active={r.verification.active} />
                 </div>
