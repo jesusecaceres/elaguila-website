@@ -8,6 +8,8 @@ import { BROAD_BUSINESS_TYPES, BUSINESS_STAGES } from "@/app/lib/business/consta
 import { countriesSortedByLabel, countryLabel } from "@/app/lib/business/countries";
 import { StaffCommandCenter } from "./StaffCommandCenter";
 import { listAcceptedCurrentProposalsForHandoff } from "@/app/lib/business/proposals/repository";
+import { listActiveSignalsForStaffAttention } from "@/app/lib/business/advisor/repository";
+import { isAdvisorEnabled } from "@/app/lib/business/advisor/featureFlag";
 
 export const dynamic = "force-dynamic";
 
@@ -98,6 +100,16 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
     ownerHandoff = [];
     ownerHandoffUnavailable = true;
   }
+  let advisorEnabled = false;
+  let advisorSignals: Awaited<ReturnType<typeof listActiveSignalsForStaffAttention>> = [];
+  let advisorUnavailable = false;
+  try {
+    advisorEnabled = await isAdvisorEnabled();
+    advisorSignals = advisorEnabled ? await listActiveSignalsForStaffAttention() : [];
+  } catch {
+    advisorSignals = [];
+    advisorUnavailable = true;
+  }
 
   return (
     <div className="max-w-6xl space-y-6">
@@ -106,6 +118,9 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
         summaryUnavailable={summaryUnavailable}
         ownerHandoff={ownerHandoff}
         ownerHandoffUnavailable={ownerHandoffUnavailable}
+        advisorSignals={advisorSignals}
+        advisorUnavailable={advisorUnavailable}
+        advisorEnabled={advisorEnabled}
       />
 
       <section id="businesses-inventory" className="space-y-4 scroll-mt-4">

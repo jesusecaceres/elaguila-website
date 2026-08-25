@@ -191,7 +191,7 @@ test("25. owner context excludes staff-only material", () =>
   isOwnerSafeMessage("staff_only") === false);
 
 test("26. staff context respects capability shaping (admin route requires requireSalesWorkspaceAccess)", () =>
-  sqlContains(readSource("app/api/admin/businesses/%5BbusinessId%5D/assistant/route.ts"), /requireSalesWorkspaceAccess/));
+  sqlContains(readSource("app/api/admin/businesses/[businessId]/assistant/route.ts"), /requireSalesWorkspaceAccess/));
 
 test("27. provider unavailable fails closed", () =>
   sqlContains(replyOrchestrator, /if \(!configured\)[\s\S]{0,200}failureCode: "provider_unavailable"/) &&
@@ -502,6 +502,97 @@ test("81. owner-bootstrap evidence path remains Living Book, not business_sales_
   sqlContains(evidenceRoute, /salesActorToLivingBookActor/) &&
   !sqlContains(evidenceRoute, /business_sales_notes/) &&
   sqlContains(fieldDictation, /evidenceType: "staff_note"/));
+
+const advisorPanel = readSource("app/admin/(dashboard)/businesses/[businessId]/AdvisorPanel.tsx");
+const assistantPanel = readSource("app/admin/(dashboard)/businesses/[businessId]/AssistantPanel.tsx");
+const outcomesPanel = readSource("app/admin/(dashboard)/businesses/[businessId]/OutcomesPanel.tsx");
+const advisorListRoute = readSource("app/api/admin/businesses/[businessId]/advisor/route.ts");
+const advisorActionRoute = readSource("app/api/admin/businesses/[businessId]/advisor/[signalId]/route.ts");
+const assistantListRoute = readSource("app/api/admin/businesses/[businessId]/assistant/route.ts");
+const assistantThreadRoute = readSource("app/api/admin/businesses/[businessId]/assistant/[threadId]/route.ts");
+const outcomesListRoute = readSource("app/api/admin/businesses/[businessId]/outcomes/route.ts");
+const commandCenter = readSource("app/admin/(dashboard)/businesses/StaffCommandCenter.tsx");
+const businessesPage = readSource("app/admin/(dashboard)/businesses/page.tsx");
+const detailPage = readSource("app/admin/(dashboard)/businesses/[businessId]/page.tsx");
+const advisorConstants = readSource("app/lib/business/advisor/constants.ts");
+const advisorLogic = readSource("app/lib/business/advisor/logic.ts");
+
+test("82. Gate 09: real dynamic Advisor/Assistant/Outcomes admin routes exist", () =>
+  fs.existsSync(path.join(root, "app/api/admin/businesses/[businessId]/advisor/route.ts")) &&
+  fs.existsSync(path.join(root, "app/api/admin/businesses/[businessId]/advisor/[signalId]/route.ts")) &&
+  fs.existsSync(path.join(root, "app/api/admin/businesses/[businessId]/assistant/route.ts")) &&
+  fs.existsSync(path.join(root, "app/api/admin/businesses/[businessId]/assistant/[threadId]/route.ts")) &&
+  fs.existsSync(path.join(root, "app/api/admin/businesses/[businessId]/outcomes/route.ts")));
+
+test("83. Gate 09: Advisor actions use businessId and signalId, never signalId as businessId", () =>
+  sqlContains(advisorPanel, /\/api\/admin\/businesses\/\$\{businessId\}\/advisor\/\$\{signalId\}/) &&
+  !sqlContains(advisorPanel, /\/api\/admin\/businesses\/\$\{signalId\}\//) &&
+  sqlContains(advisorActionRoute, /getSignalById\(businessId, signalId\)/));
+
+test("84. Gate 09: Advisor signal types and lifecycle remain canonical", () =>
+  sqlContains(advisorConstants, /COMMITMENT_DUE/) &&
+  sqlContains(advisorConstants, /CAPACITY_STRETCHED/) &&
+  sqlContains(advisorConstants, /"active", "acknowledged", "resolved", "expired", "dismissed"/) &&
+  !sqlContains(advisorConstants, /snooze/) &&
+  !sqlContains(advisorActionRoute, /snooze/));
+
+test("85. Gate 09: Assistant uses businessId in the URL and keeps threadId distinct", () =>
+  sqlContains(assistantPanel, /\/api\/admin\/businesses\/\$\{businessId\}\/assistant\/\$\{threadId\}/) &&
+  sqlContains(assistantPanel, /\/api\/admin\/businesses\/\$\{businessId\}\/assistant/) &&
+  !sqlContains(assistantPanel, /\/api\/admin\/businesses\/\$\{threadId\}\//) &&
+  sqlContains(assistantThreadRoute, /getThreadById\(businessId, threadId\)/));
+
+test("86. Gate 09: Outcomes dynamic route is business-scoped", () =>
+  sqlContains(outcomesListRoute, /listBusinessOutcomes\(businessId\)/) &&
+  sqlContains(outcomesListRoute, /requireSalesWorkspaceAccess/) &&
+  sqlContains(outcomesPanel, /No outcomes have been recorded yet/));
+
+test("87. Gate 09: Creative Studio encoded list route remains unrepaired", () =>
+  fs.existsSync(path.join(root, "app/api/admin/businesses/%5BbusinessId%5D/creative-studio/route.ts")) &&
+  !fs.existsSync(path.join(root, "app/api/admin/businesses/[businessId]/creative-studio/route.ts")));
+
+test("88. Gate 09: Advisor Command Center aggregation is bounded and not N+1", () =>
+  sqlContains(advisorRepo, /listActiveSignalsForStaffAttention/) &&
+  sqlContains(advisorRepo, /ADVISOR_ATTENTION_LIMIT/) &&
+  sqlContains(advisorRepo, /\.eq\("status", "active"\)/) &&
+  sqlContains(businessesPage, /listActiveSignalsForStaffAttention/) &&
+  sqlContains(commandCenter, /No active advisor signals/));
+
+test("89. Gate 09: Advisor deep links use existing dashboard anchors", () =>
+  sqlContains(advisorLogic, /advisorSignalDashboardAnchor/) &&
+  sqlContains(advisorLogic, /#promises/) &&
+  sqlContains(advisorLogic, /#recommend/) &&
+  sqlContains(advisorLogic, /#creative/) &&
+  sqlContains(advisorLogic, /#proposals/) &&
+  sqlContains(advisorLogic, /#business-book/) &&
+  sqlContains(advisorLogic, /#outcomes/) &&
+  sqlContains(detailPage, /id="advisor"/) &&
+  sqlContains(detailPage, /id="assistant"/) &&
+  sqlContains(detailPage, /id="outcomes"/));
+
+test("90. Gate 09: no second assistant memory, no notification store, no autonomous mutation", () =>
+  !sqlContains(assistantListRoute, /CREATE TABLE/) &&
+  !sqlContains(assistantThreadRoute, /CREATE TABLE/) &&
+  !sqlContains(advisorActionRoute, /CREATE TABLE/) &&
+  !sqlContains(assistantThreadRoute, /sendEmail|sendSMS|sendWhatsApp|sendPush/) &&
+  !sqlContains(advisorActionRoute, /from\("business_recommendations"\)/) &&
+  !sqlContains(advisorPanel, /docusign|stripe/) &&
+  sqlContains(assistantPanel, /No assistant thread is open yet/));
+
+test("91. Gate 09: Program 7 feature flags remain default-disabled in source (no Production enablement)", () =>
+  sqlContains(readSource("app/lib/business/advisor/featureFlag.ts"), /return tier === "global"/) &&
+  sqlContains(readSource("app/lib/business/assistant/featureFlag.ts"), /return tier === "global"/) &&
+  sqlContains(readSource("app/lib/business/outcomes/featureFlag.ts"), /return tier === "global"/) &&
+  sqlContains(migrationSql, /'business_proactive_advisor', false, false, '\{\}'/) &&
+  sqlContains(migrationSql, /'business_contextual_assistant', false, false, '\{\}'/) &&
+  sqlContains(migrationSql, /'business_outcomes', false, false, '\{\}'/));
+
+test("92. Gate 09: owner bootstrap does not fabricate a roster for Advisor or Assistant", () =>
+  sqlContains(readSource("app/admin/_lib/businessWorkspaceAccess.ts"), /salesActorToAdvisorActor/) &&
+  sqlContains(readSource("app/admin/_lib/businessWorkspaceAccess.ts"), /salesActorToAssistantActor/) &&
+  sqlContains(readSource("app/admin/_lib/businessWorkspaceAccess.ts"), /Never fabricates a roster row/) &&
+  sqlContains(advisorActionRoute, /salesActorToAdvisorActor/) &&
+  sqlContains(assistantThreadRoute, /salesActorToAssistantActor/));
 
 // Report
 const passed = results.filter((r) => r.passed).length;

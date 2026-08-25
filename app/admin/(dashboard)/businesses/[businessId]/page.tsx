@@ -258,15 +258,42 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
     ? await loadCreativeJobWorkspaces(business.id, creativeJobs, opportunities.map((row) => ({ id: row.id, titleEn: row.titleEn })))
     : [];
 
-  // Program 7 — Outcomes + Advisor + Assistant
-  const outcomesEnabled = await isOutcomesEnabled();
-  const program7Outcomes = outcomesEnabled ? await listBusinessOutcomes(business.id) : [];
+  // Program 7 — Outcomes + Advisor + Assistant (bounded; read failure must not crash the dashboard)
+  let outcomesEnabled = false;
+  let program7Outcomes: Awaited<ReturnType<typeof listBusinessOutcomes>> = [];
+  let outcomesUnavailable = false;
+  try {
+    outcomesEnabled = await isOutcomesEnabled();
+    program7Outcomes = outcomesEnabled ? await listBusinessOutcomes(business.id) : [];
+  } catch {
+    outcomesEnabled = false;
+    program7Outcomes = [];
+    outcomesUnavailable = true;
+  }
 
-  const advisorEnabled = await isAdvisorEnabled();
-  const program7Signals = advisorEnabled ? await listAllSignals(business.id) : [];
+  let advisorEnabled = false;
+  let program7Signals: Awaited<ReturnType<typeof listAllSignals>> = [];
+  let advisorUnavailable = false;
+  try {
+    advisorEnabled = await isAdvisorEnabled();
+    program7Signals = advisorEnabled ? await listAllSignals(business.id) : [];
+  } catch {
+    advisorEnabled = false;
+    program7Signals = [];
+    advisorUnavailable = true;
+  }
 
-  const assistantEnabled = await isAssistantEnabled();
-  const program7Threads = assistantEnabled ? await listThreadsForBusiness(business.id) : [];
+  let assistantEnabled = false;
+  let program7Threads: Awaited<ReturnType<typeof listThreadsForBusiness>> = [];
+  let assistantUnavailable = false;
+  try {
+    assistantEnabled = await isAssistantEnabled();
+    program7Threads = assistantEnabled ? await listThreadsForBusiness(business.id) : [];
+  } catch {
+    assistantEnabled = false;
+    program7Threads = [];
+    assistantUnavailable = true;
+  }
 
   const dashboardTabs = [
     { id: "overview", label: "Overview" },
@@ -280,7 +307,9 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
     ...(canViewCreativeStudio && creativeStudioEnabled ? [{ id: "creative", label: "Creative Studio" }] : []),
     ...(program5Data && canViewCommitments ? [{ id: "proposals", label: "Client Decision" }] : []),
     ...(program5Data && canViewCommitments ? [{ id: "promises", label: "Commitments" }] : []),
-    ...(outcomesEnabled || advisorEnabled || assistantEnabled ? [{ id: "outcomes", label: "Outcomes" }] : []),
+    ...(outcomesEnabled ? [{ id: "outcomes", label: "Outcomes" }] : []),
+    ...(advisorEnabled ? [{ id: "advisor", label: "Advisor" }] : []),
+    ...(assistantEnabled ? [{ id: "assistant", label: "Assistant" }] : []),
   ];
 
   const locationChip = primaryArea?.country ? countryLabel(primaryArea.country, "en") : null;
@@ -1083,35 +1112,53 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
             </section>
           ) : null}
 
-          {(outcomesEnabled || advisorEnabled || assistantEnabled) ? (
-            <div id="outcomes" className="scroll-mt-24 space-y-4">
-              <h2 className="font-serif text-lg font-bold text-[#1E1810]">Outcomes</h2>
-              <p className="text-xs text-[#7A7164]">Measurement, advisor signals, and the bounded assistant — only where those features are enabled.</p>
-          {outcomesEnabled ? (
-            <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-              <h3 className="text-sm font-bold text-[#1E1810]">Business Outcomes</h3>
-              <p className="mt-1 text-xs text-[#7A7164]">Truthful measurement with bounded result/confidence/causation. Never guaranteed or proven.</p>
-              <OutcomesPanel outcomes={program7Outcomes.map((o) => ({ id: o.id, metricKey: o.metricKey, metricLabelEs: o.metricLabelEs, metricLabelEn: o.metricLabelEn, baselineValue: o.baselineValue, measuredValue: o.measuredValue, result: o.result, confidence: o.confidence, causationClaim: o.causationClaim, reviewStatus: o.reviewStatus, createdAt: o.createdAt }))} />
-            </section>
-          ) : null}
+          <section id="outcomes" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
+            <h2 className="font-serif text-lg font-bold text-[#1E1810]">Outcomes</h2>
+            {outcomesUnavailable ? (
+              <p className="mt-2 text-xs text-[#7A7164]">Outcomes could not be loaded. No recorded result was invented.</p>
+            ) : outcomesEnabled ? (
+              <>
+                <p className="mt-1 text-xs text-[#7A7164]">Truthful measurement with bounded result/confidence/causation. Never guaranteed or proven.</p>
+                <OutcomesPanel outcomes={program7Outcomes.map((o) => ({ id: o.id, metricKey: o.metricKey, metricLabelEs: o.metricLabelEs, metricLabelEn: o.metricLabelEn, baselineValue: o.baselineValue, measuredValue: o.measuredValue, result: o.result, confidence: o.confidence, causationClaim: o.causationClaim, reviewStatus: o.reviewStatus, createdAt: o.createdAt }))} />
+              </>
+            ) : (
+              <p className="mt-2 text-xs text-[#7A7164]">This module is not enabled in this environment.</p>
+            )}
+          </section>
 
-          {advisorEnabled ? (
-            <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-              <h3 className="text-sm font-bold text-[#1E1810]">Proactive Advisor</h3>
-              <p className="mt-1 text-xs text-[#7A7164]">Deterministic signals from existing truth. Not a second recommendation engine. Never auto-acts or auto-sends.</p>
-              <AdvisorPanel signals={program7Signals.map((s) => ({ id: s.id, signalType: s.signalType, severity: s.severity, status: s.status, titleEn: s.titleEn, titleEs: s.titleEs, explanationEn: s.explanationEn, explanationEs: s.explanationEs, detectedAt: s.detectedAt }))} />
-            </section>
-          ) : null}
+          <section id="advisor" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
+            <h2 className="font-serif text-lg font-bold text-[#1E1810]">Proactive Advisor</h2>
+            {advisorUnavailable ? (
+              <p className="mt-2 text-xs text-[#7A7164]">Advisor signals could not be loaded. The dashboard remains available.</p>
+            ) : advisorEnabled ? (
+              <>
+                <p className="mt-1 text-xs text-[#7A7164]">Deterministic signals from existing truth. Not a second recommendation engine. Never auto-acts or auto-sends.</p>
+                <AdvisorPanel
+                  businessId={business.id}
+                  signals={program7Signals.map((s) => ({ id: s.id, signalType: s.signalType, severity: s.severity, status: s.status, titleEn: s.titleEn, titleEs: s.titleEs, explanationEn: s.explanationEn, explanationEs: s.explanationEs, detectedAt: s.detectedAt }))}
+                />
+              </>
+            ) : (
+              <p className="mt-2 text-xs text-[#7A7164]">This module is not enabled in this environment.</p>
+            )}
+          </section>
 
-          {assistantEnabled ? (
-            <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-              <h3 className="text-sm font-bold text-[#1E1810]">Business Concierge Assistant</h3>
-              <p className="mt-1 text-xs text-[#7A7164]">Bounded to this business context. AI may READ, EXPLAIN, SUMMARIZE, GUIDE, DRAFT, SUGGEST — never autonomously mutate state.</p>
-              <AssistantPanel threads={program7Threads.map((t) => ({ id: t.id, status: t.status, titleEn: t.titleEn, titleEs: t.titleEs, primaryContextType: t.primaryContextType, lastMessageAt: t.lastMessageAt, createdAt: t.createdAt }))} />
-            </section>
-          ) : null}
-            </div>
-          ) : null}
+          <section id="assistant" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
+            <h2 className="font-serif text-lg font-bold text-[#1E1810]">Business Concierge Assistant</h2>
+            {assistantUnavailable ? (
+              <p className="mt-2 text-xs text-[#7A7164]">Assistant could not be loaded. No fake thread or answer is shown.</p>
+            ) : assistantEnabled ? (
+              <>
+                <p className="mt-1 text-xs text-[#7A7164]">Bounded to this business context. AI may READ, EXPLAIN, SUMMARIZE, GUIDE, DRAFT, SUGGEST — never autonomously mutate state.</p>
+                <AssistantPanel
+                  businessId={business.id}
+                  threads={program7Threads.map((t) => ({ id: t.id, status: t.status, titleEn: t.titleEn, titleEs: t.titleEs, primaryContextType: t.primaryContextType, lastMessageAt: t.lastMessageAt, createdAt: t.createdAt }))}
+                />
+              </>
+            ) : (
+              <p className="mt-2 text-xs text-[#7A7164]">This module is not enabled in this environment.</p>
+            )}
+          </section>
     </div>
   );
 }

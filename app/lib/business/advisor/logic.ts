@@ -79,6 +79,30 @@ export function isSignalExpired(expiresAt: string | null, now: string): boolean 
   return new Date(expiresAt).getTime() < new Date(now).getTime();
 }
 
+/** Deterministic Business Dashboard hash for an Advisor signal. Does not create workflows. */
+export function advisorSignalDashboardAnchor(signalType: AdvisorSignalType): string {
+  switch (signalType) {
+    case "COMMITMENT_DUE":
+    case "COMMITMENT_BLOCKED":
+      return "#promises";
+    case "POSTPONED_RECOMMENDATION_REVIEW_DUE":
+      return "#recommend";
+    case "CREATIVE_AWAITING_REVIEW":
+      return "#creative";
+    case "PROPOSAL_AWAITING_OWNER":
+      return "#proposals";
+    case "UNRESOLVED_CONTRADICTION":
+    case "STALE_CRITICAL_TRUTH":
+      return "#business-book";
+    case "OUTCOME_REVIEW_DUE":
+      return "#outcomes";
+    case "CAPACITY_STRETCHED":
+      return "#overview";
+    default:
+      return "#advisor";
+  }
+}
+
 export function shapeSignalForOwner(signal: {
   id: string;
   signalType: AdvisorSignalType;

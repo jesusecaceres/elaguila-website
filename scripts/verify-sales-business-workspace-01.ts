@@ -920,6 +920,44 @@ check("Gate 08: Owner Handoff is a bounded accepted-proposal read model; follow-
   assert.ok(!proposalRepoGate08.includes("CREATE TABLE"));
 });
 
+const advisorPanelGate09 = read("app/admin/(dashboard)/businesses/[businessId]/AdvisorPanel.tsx");
+const assistantPanelGate09 = read("app/admin/(dashboard)/businesses/[businessId]/AssistantPanel.tsx");
+const outcomesPanelGate09 = read("app/admin/(dashboard)/businesses/[businessId]/OutcomesPanel.tsx");
+const advisorActionRouteGate09 = read("app/api/admin/businesses/[businessId]/advisor/[signalId]/route.ts");
+const assistantThreadRouteGate09 = read("app/api/admin/businesses/[businessId]/assistant/[threadId]/route.ts");
+const outcomesRouteGate09 = read("app/api/admin/businesses/[businessId]/outcomes/route.ts");
+const advisorRepoGate09 = read("app/lib/business/advisor/repository.ts");
+const advisorConstantsGate09 = read("app/lib/business/advisor/constants.ts");
+const commandCenterGate09 = read("app/admin/(dashboard)/businesses/StaffCommandCenter.tsx");
+const businessesPageGate09 = read("app/admin/(dashboard)/businesses/page.tsx");
+const detailPageGate09 = read("app/admin/(dashboard)/businesses/[businessId]/page.tsx");
+check("Gate 09: Program 7 dynamic routes resolve; encoded Creative Studio list remains", () => {
+  assert.ok(existsSync(path.resolve(__dirname, "..", "app/api/admin/businesses/[businessId]/advisor/route.ts")));
+  assert.ok(existsSync(path.resolve(__dirname, "..", "app/api/admin/businesses/[businessId]/assistant/route.ts")));
+  assert.ok(existsSync(path.resolve(__dirname, "..", "app/api/admin/businesses/[businessId]/outcomes/route.ts")));
+  assert.ok(existsSync(path.resolve(__dirname, "..", "app/api/admin/businesses/%5BbusinessId%5D/creative-studio/route.ts")));
+  assert.ok(!existsSync(path.resolve(__dirname, "..", "app/api/admin/businesses/[businessId]/creative-studio/route.ts")));
+  assert.ok(outcomesRouteGate09.includes("listBusinessOutcomes(businessId)"));
+});
+check("Gate 09: Advisor/Assistant identity boundaries; Command Center Advisor is bounded", () => {
+  assert.ok(advisorPanelGate09.includes("/api/admin/businesses/${businessId}/advisor/${signalId}"));
+  assert.ok(!advisorPanelGate09.includes("/api/admin/businesses/${signalId}/"));
+  assert.ok(advisorActionRouteGate09.includes("getSignalById(businessId, signalId)"));
+  assert.ok(assistantPanelGate09.includes("/api/admin/businesses/${businessId}/assistant/${threadId}"));
+  assert.ok(!assistantPanelGate09.includes("/api/admin/businesses/${threadId}/"));
+  assert.ok(assistantThreadRouteGate09.includes("getThreadById(businessId, threadId)"));
+  assert.ok(advisorRepoGate09.includes("listActiveSignalsForStaffAttention"));
+  assert.ok(advisorRepoGate09.includes("ADVISOR_ATTENTION_LIMIT"));
+  assert.ok(commandCenterGate09.includes("No active advisor signals."));
+  assert.ok(businessesPageGate09.includes("listActiveSignalsForStaffAttention"));
+  assert.ok(detailPageGate09.includes('id="advisor"'));
+  assert.ok(detailPageGate09.includes('id="assistant"'));
+  assert.ok(advisorConstantsGate09.includes("COMMITMENT_DUE"));
+  assert.ok(outcomesPanelGate09.includes("No outcomes have been recorded yet."));
+  assert.ok(!advisorActionRouteGate09.includes("CREATE TABLE"));
+  assert.ok(!assistantThreadRouteGate09.includes("CREATE TABLE"));
+});
+
 // --- No secret / no production reference ------------------------------------------------------------
 const gateB_Files = [
   "app/admin/_lib/businessWorkspaceAccess.ts",

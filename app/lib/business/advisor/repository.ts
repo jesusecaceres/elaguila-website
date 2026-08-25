@@ -216,6 +216,51 @@ export async function dismissSignal(
   return transitionSignal(businessId, signalId, "dismissed", "dismissed", actor, note);
 }
 
+export type AdvisorAttentionRow = {
+  businessId: string;
+  displayName: string;
+  signalId: string;
+  signalType: AdvisorSignalType;
+  severity: AdvisorSignalSeverity;
+  titleEn: string;
+  detectedAt: string;
+};
+
+const ADVISOR_ATTENTION_LIMIT = 20;
+
+/**
+ * Bounded Command Center read model: active advisor signals only.
+ * Two queries max (signals + matching businesses). Not N+1. Not a new table.
+ */
+export async function listActiveSignalsForStaffAttention(): Promise<AdvisorAttentionRow[]> {
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("business_advisor_signals")
+    .select("id, business_id, signal_type, severity, title_en, detected_at")
+    .eq("status", "active")
+    .order("detected_at", { ascending: false })
+    .limit(ADVISOR_ATTENTION_LIMIT);
+  if (error || !data || data.length === 0) return [];
+
+  const businessIds = [...new Set((data as Record<string, unknown>[]).map((row) => String(row.business_id)))];
+  const { data: businesses, error: businessError } = await supabase
+    .from("businesses")
+    .select("id, display_name")
+    .in("id", businessIds);
+  if (businessError || !businesses) return [];
+
+  const names = new Map((businesses as Record<string, unknown>[]).map((row) => [String(row.id), String(row.display_name ?? "")]));
+  return (data as Record<string, unknown>[]).map((row) => ({
+    businessId: String(row.business_id),
+    displayName: names.get(String(row.business_id)) || "Business",
+    signalId: String(row.id),
+    signalType: row.signal_type as AdvisorSignalType,
+    severity: row.severity as AdvisorSignalSeverity,
+    titleEn: String(row.title_en ?? ""),
+    detectedAt: String(row.detected_at),
+  }));
+}
+
 export async function listEventsForSignal(businessId: string, signalId: string): Promise<BusinessAdvisorSignalEvent[]> {
   const supabase = getAdminSupabase();
   const { data, error } = await supabase

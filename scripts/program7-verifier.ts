@@ -344,6 +344,49 @@ function verifySourceArchitecture(): VerifyCheck[] {
     passed: installBannerFile.includes('from "@/app/lib/pwa/useInstallPrompt"') && !installBannerFile.includes("addEventListener(\"beforeinstallprompt\""),
   });
 
+  const advisorPanelFile = readSourceFile("app/admin/(dashboard)/businesses/[businessId]/AdvisorPanel.tsx");
+  const assistantPanelFile = readSourceFile("app/admin/(dashboard)/businesses/[businessId]/AssistantPanel.tsx");
+  const advisorActionRouteFile = readSourceFile("app/api/admin/businesses/[businessId]/advisor/[signalId]/route.ts");
+  const assistantThreadRouteFile = readSourceFile("app/api/admin/businesses/[businessId]/assistant/[threadId]/route.ts");
+  const outcomesRouteFile = readSourceFile("app/api/admin/businesses/[businessId]/outcomes/route.ts");
+  const advisorRepoFile = readSourceFile("app/lib/business/advisor/repository.ts");
+  checks.push({
+    name: "Gate 09: real dynamic Advisor/Assistant/Outcomes routes exist",
+    passed:
+      existsSync(join(process.cwd(), "app/api/admin/businesses/[businessId]/advisor/route.ts")) &&
+      existsSync(join(process.cwd(), "app/api/admin/businesses/[businessId]/assistant/route.ts")) &&
+      existsSync(join(process.cwd(), "app/api/admin/businesses/[businessId]/outcomes/route.ts")),
+  });
+  checks.push({
+    name: "Gate 09: Advisor mutation is scoped by businessId + signalId",
+    passed:
+      advisorPanelFile.includes("/api/admin/businesses/${businessId}/advisor/${signalId}") &&
+      !advisorPanelFile.includes("/api/admin/businesses/${signalId}/") &&
+      advisorActionRouteFile.includes("getSignalById(businessId, signalId)"),
+  });
+  checks.push({
+    name: "Gate 09: Assistant keeps businessId and threadId distinct",
+    passed:
+      assistantPanelFile.includes("/api/admin/businesses/${businessId}/assistant/${threadId}") &&
+      !assistantPanelFile.includes("/api/admin/businesses/${threadId}/") &&
+      assistantThreadRouteFile.includes("getThreadById(businessId, threadId)"),
+  });
+  checks.push({
+    name: "Gate 09: Outcomes route is business-scoped; Creative Studio encoded list remains",
+    passed:
+      outcomesRouteFile.includes("listBusinessOutcomes(businessId)") &&
+      existsSync(join(process.cwd(), "app/api/admin/businesses/%5BbusinessId%5D/creative-studio/route.ts")) &&
+      !existsSync(join(process.cwd(), "app/api/admin/businesses/[businessId]/creative-studio/route.ts")),
+  });
+  checks.push({
+    name: "Gate 09: Advisor Command Center read is bounded; no N+1",
+    passed:
+      advisorRepoFile.includes("listActiveSignalsForStaffAttention") &&
+      advisorRepoFile.includes("ADVISOR_ATTENTION_LIMIT") &&
+      commandCenterFile.includes("Advisor") &&
+      businessesListPage.includes("listActiveSignalsForStaffAttention"),
+  });
+
   return checks;
 }
 

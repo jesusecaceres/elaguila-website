@@ -64,6 +64,8 @@ import {
 import { requireAdminCookie } from "@/app/lib/supabase/server";
 import type { CreativeActor } from "@/app/lib/business/creativeStudio/repository";
 import type { OpportunityActor } from "@/app/lib/business/opportunity/types";
+import type { AdvisorActor } from "@/app/lib/business/advisor/types";
+import type { AssistantActor } from "@/app/lib/business/assistant/types";
 import { capabilitiesForRole, isSalesWorkspaceRole, type SalesWorkspaceCapability, type SalesWorkspaceRole } from "./salesWorkspaceCapabilities";
 
 export type SalesWorkspaceActorType = "staff" | "owner_bootstrap";
@@ -221,6 +223,42 @@ export function salesActorToOpportunityActor(actor: StrictSalesActor): Extract<O
     type: "staff",
     rosterId: actor.rosterId,
     authUserId: actor.authUserId,
+    role: actor.role,
+  };
+}
+
+/** Maps a verified workspace actor onto Program 7 Advisor writer shape. Never fabricates a roster row. */
+export function salesActorToAdvisorActor(actor: StrictSalesActor): AdvisorActor {
+  if (actor.actorType === "owner_bootstrap" || !actor.rosterId) {
+    return {
+      type: "owner",
+      authUserId: OWNER_BOOTSTRAP_ATTRIBUTION_AUTH_USER_ID,
+      email: actor.email,
+    };
+  }
+  return {
+    type: "staff",
+    rosterId: actor.rosterId,
+    authUserId: actor.authUserId,
+    email: actor.email,
+    role: actor.role,
+  };
+}
+
+/** Maps a verified workspace actor onto Program 7 Assistant writer shape. Never fabricates a roster row. */
+export function salesActorToAssistantActor(actor: StrictSalesActor): AssistantActor {
+  if (actor.actorType === "owner_bootstrap" || !actor.rosterId) {
+    return {
+      type: "owner",
+      authUserId: OWNER_BOOTSTRAP_ATTRIBUTION_AUTH_USER_ID,
+      email: actor.email,
+    };
+  }
+  return {
+    type: "staff",
+    rosterId: actor.rosterId,
+    authUserId: actor.authUserId,
+    email: actor.email,
     role: actor.role,
   };
 }
