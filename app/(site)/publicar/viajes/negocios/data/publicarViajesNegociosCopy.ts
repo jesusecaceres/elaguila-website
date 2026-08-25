@@ -188,6 +188,14 @@ function es(): PublicarViajesNegociosUi {
         crucero: "Crucero",
         resort: "Resort / hotel",
         escapada: "Escapada",
+        // Package 3 — extended vocabulary shared with the Community Opportunity Intake.
+        transporte: "Transporte / traslados",
+        "agencia-servicio": "Agencia / servicio de viajes",
+        "viaje-grupo": "Viaje en grupo",
+        "viaje-familiar": "Viaje familiar",
+        "viaje-religioso": "Viaje religioso / de iglesia",
+        "viaje-educativo": "Viaje educativo",
+        otro: "Otro",
       },
     },
     ctaType: {
@@ -381,6 +389,14 @@ function en(): PublicarViajesNegociosUi {
         crucero: "Cruise",
         resort: "Resort / hotel",
         escapada: "Getaway",
+        // Package 3 — extended vocabulary shared with the Community Opportunity Intake.
+        transporte: "Transportation / transfers",
+        "agencia-servicio": "Travel agency / service",
+        "viaje-grupo": "Group trip",
+        "viaje-familiar": "Family trip",
+        "viaje-religioso": "Religious / church trip",
+        "viaje-educativo": "Educational trip",
+        otro: "Other",
       },
     },
     ctaType: {

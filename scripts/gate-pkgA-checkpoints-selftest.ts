@@ -169,18 +169,40 @@ const REPO_ROOT = path.resolve(__dirname, "..");
   assert.equal(getBuscoCheckpointCard("en", "x").priceLabel, "Free");
   assert.equal(getEnVentaCheckpointCard("en", "x").priceLabel, "Free");
 
+  // Package 3 — owner lock 2026-08-25: Viajes business publishing is FREE. The negocios card
+  // must be a free-variant card (no $399, no coupon, no paid-style banner trigger) whose CTA
+  // routes brand-new business publishers through the Community Opportunity Intake. The private
+  // lane card is unchanged.
   const viajesCards = getViajesCheckpointCards("es", "/publicar/viajes/negocios", "/publicar/viajes/privado");
   assert.equal(viajesCards.length, 2);
-  const viajesBusinessMatrix = REVENUE_V1_PACKAGE_MATRIX.find(
+  const historicalViajesMatrix = REVENUE_V1_PACKAGE_MATRIX.find(
     (entry) => entry.packageKey === "viajes_business_monthly",
   );
-  assert.ok(viajesBusinessMatrix, "viajes_business_monthly must exist in the pricing matrix");
+  assert.ok(historicalViajesMatrix, "historical viajes_business_monthly must remain in the pricing matrix");
+  assert.equal(historicalViajesMatrix!.newSalesRetired, true, "historical Viajes package must stay retired");
+  assert.equal(viajesCards[0].variant, "free", "Viajes negocios card must be free-variant");
+  assert.equal(viajesCards[0].priceLabel, "Gratis");
+  assert.equal(viajesCards[0].couponEligible, false, "free Viajes negocios card must never claim coupon eligibility");
   assert.equal(
-    viajesCards[0].priceLabel,
-    `${formatRevenuePriceLabel(viajesBusinessMatrix!.priceCents)}/mes`,
-    "Viajes negocios card price must be matrix-derived",
+    viajesCards[0].ctaHref,
+    "/publicar/viajes/negocios/intake",
+    "Viajes negocios CTA must route through the Community Opportunity Intake",
   );
-  assert.equal(viajesCards[0].ctaHref, "/publicar/viajes/negocios");
+  const viajesCardText = JSON.stringify([
+    ...getViajesCheckpointCards("es", "/publicar/viajes/negocios", "/publicar/viajes/privado"),
+    ...getViajesCheckpointCards("en", "/publicar/viajes/negocios", "/publicar/viajes/privado"),
+  ]);
+  assert.ok(!viajesCardText.includes("$399"), "no Viajes checkpoint card may mention $399");
+  assert.ok(!/exclusiv/i.test(viajesCardText), "no Viajes checkpoint card may claim exclusivity");
+  // The intake href builder must preserve query strings (withLang may append ?lang=…).
+  const viajesCardsEnLang = getViajesCheckpointCards("en", "/publicar/viajes/negocios?lang=en", "/publicar/viajes/privado?lang=en");
+  assert.equal(viajesCardsEnLang[0].ctaHref, "/publicar/viajes/negocios/intake?lang=en");
+  // No paid-style Viajes card ⇒ the mixed-page Launch coupon banner no longer renders for Viajes
+  // (PublishEntryCheckpointLayout shows it only when a paid/dealer/upgrade variant exists).
+  assert.ok(
+    viajesCards.every((c) => c.variant !== "paid" && c.variant !== "dealer" && c.variant !== "upgrade"),
+    "no Viajes checkpoint card may be paid-style (this is what suppresses the Launch coupon banner)",
+  );
   assert.equal(viajesCards[1].variant, "free");
   assert.equal(viajesCards[1].priceLabel, "Gratis");
   assert.equal(viajesCards[1].ctaHref, "/publicar/viajes/privado");

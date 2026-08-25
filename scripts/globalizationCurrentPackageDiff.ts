@@ -618,6 +618,53 @@ export const GLOBALIZATION_CURRENT_PACKAGE_FILES: ReadonlySet<string> = new Set(
   "scripts/verify-package-f-f2-final-fix-build.mjs",
   "scripts/gate-i5-8-empleos-autos-viajes-route-drift-selftest.ts",
   "scripts/globalizationCurrentPackageDiff.ts",
+
+  // ═══ GLOBALIZATION RECONCILE PACKAGE 3 — VIAJES FREE COMMUNITY OPPORTUNITY EXPERIENCE ═══
+  // (Earlier package entries above are inert since their commits; audit trail preserved.)
+  // Gate V1 — shared free-checkpoint truth (free negocios card → intake CTA) + stale
+  // unresolved-owner-decision cleanup (named constants) + re-pinned checkpoint gate:
+  // categoryPublishCheckpoints.ts / revenuePricingMatrix.ts / gate-pkgA-checkpoints-selftest.ts
+  // are already listed above — no new entries needed for them.
+  // Gate V2 — intake data contract + one-row staged persistence + benefit-truth column:
+  "app/(site)/clasificados/viajes/lib/viajesIntakeTypes.ts",
+  "app/(site)/clasificados/viajes/lib/viajesStagedListingTypes.ts",
+  "app/(site)/clasificados/viajes/lib/viajesStagedListingsDbServer.ts",
+  "app/(site)/clasificados/viajes/lib/travelOpportunityLead.ts",
+  "app/api/clasificados/viajes/intake/route.ts",
+  // Approved additive migration — AUTHORED ONLY, never applied by this package:
+  "supabase/migrations/20260825150000_viajes_community_benefit_status.sql",
+  // Gate V3 — mobile-first intake UI + routing (branch chooser CTA → intake; hub copy truth):
+  "app/(site)/publicar/viajes/negocios/intake/page.tsx",
+  "app/(site)/publicar/viajes/negocios/intake/components/ViajesIntakeShell.tsx",
+  "app/(site)/publicar/viajes/negocios/intake/data/publicarViajesIntakeCopy.ts",
+  "app/(site)/publicar/viajes/negocios/intake/lib/useViajesIntakeDraft.ts",
+  "app/(site)/publicar/viajes/PublicarViajesBranchClient.tsx",
+  "app/(site)/publicar/viajes/data/publicarViajesHubCopy.ts",
+  // Gate V4 — prefill + same-row continuity + dashboard Continue CTA + extended offer types:
+  "app/(site)/publicar/viajes/negocios/lib/mapViajesIntakeToNegociosDraft.ts",
+  "app/(site)/publicar/viajes/negocios/components/ViajesNegociosApplicationShell.tsx",
+  "app/(site)/publicar/viajes/negocios/data/publicarViajesNegociosCopy.ts",
+  "app/(site)/dashboard/viajes/page.tsx",
+  "app/api/clasificados/viajes/staged-owner/route.ts",
+  // Gate V5 — admin early opportunity visibility + benefit approve action + fail-closed public
+  // benefit badge + canonical field inventory:
+  "app/admin/(dashboard)/clasificados/viajes/business-offers/AdminViajesBusinessOffersModeration.tsx",
+  "app/api/admin/viajes/staged-listings/moderate/route.ts",
+  "app/(site)/clasificados/viajes/lib/mapViajesStagedRowToViajesResult.ts",
+  "app/(site)/clasificados/viajes/lib/resolveViajesOfferDetailFromStagedServer.ts",
+  "app/(site)/clasificados/viajes/lib/viajesCanonicalFieldInventory.ts",
+  "app/(site)/clasificados/viajes/components/ViajesResultsBusinessCard.tsx",
+  "app/(site)/clasificados/viajes/components/ViajesOfferDetailLayout.tsx",
+  "app/(site)/clasificados/viajes/data/viajesResultsSampleData.ts",
+  "app/(site)/clasificados/viajes/data/viajesOfferDetailSampleData.ts",
+  "app/(site)/clasificados/viajes/data/viajesUiCopy.ts",
+  // New Package 3 proof:
+  "scripts/gate-pkg3-viajes-intake-selftest.ts",
+  // Historical gate triage — gate-pkgB-media-adoption sliced the allowlist from "PACKAGE B" to
+  // END OF FILE, sweeping every later package's entries into "Package B's diff section" (the
+  // stale-snapshot class this module exists to prevent); the slice is now bounded to Package
+  // B's own section, intent unchanged:
+  "scripts/gate-pkgB-media-adoption-selftest.ts",
 ]);
 
 /** Drop the current package's own authorized files from a changed-file list before running a

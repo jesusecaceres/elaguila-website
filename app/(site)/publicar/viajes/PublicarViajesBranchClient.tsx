@@ -6,9 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { FiArrowRight, FiBriefcase, FiUser } from "react-icons/fi";
 
 import Navbar from "@/app/components/Navbar";
-import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
-import { resolveClasificadosPublishLang, withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
+import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { ViajesLangSwitch } from "@/app/(site)/clasificados/viajes/components/ViajesLangSwitch";
 import { isViajesPrivatePublishDisabled } from "@/app/(site)/clasificados/viajes/lib/viajesPrivateLaneLaunchPolicy";
 import { getPublicarViajesHubCopy } from "./data/publicarViajesHubCopy";
@@ -26,7 +25,9 @@ export function PublicarViajesBranchClient() {
   }, [copy.documentTitle]);
 
   const hubHref = appendLangToPath("/clasificados/publicar", routeLang);
-  const negociosHref = appendLangToPath("/publicar/viajes/negocios", routeLang);
+  // Package 3 — brand-new business publishers start at the free Community Opportunity Intake;
+  // existing rows keep entering the application directly via /publicar/viajes/negocios?stagedId=…
+  const negociosHref = appendLangToPath("/publicar/viajes/negocios/intake", routeLang);
   const privadoHref = appendLangToPath("/publicar/viajes/privado", routeLang);
   const viajesHref = appendLangToPath("/clasificados/viajes", routeLang);
   const privateLaneDisabled = isViajesPrivatePublishDisabled();

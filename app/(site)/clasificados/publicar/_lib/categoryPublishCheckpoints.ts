@@ -486,9 +486,10 @@ export function getEmpleosPaidCheckpointCard(
  * as P3 Gate 6 "NOT YET BUILT"). Each card is truthful against `revenuePricingMatrix.ts`: the
  * free lanes' matrix entries are genuinely $0 (`busco_free`, `clases_free`, `comunidad_free`,
  * `mascotas_free`, `en_venta_free_v1`) or absent entirely (comida_local pipeline — no SKU, no
- * payment wiring), and Viajes prices come from the matrix (`viajes_business_monthly`). The
- * dormant `clases_paid_30d` SKU is deliberately NOT shown — no checkout path exists for it
- * (owner decision D2: launch free-only).
+ * payment wiring). Viajes business is free as of the Package 3 owner lock 2026-08-25
+ * (`viajes_business_free`; the historical `viajes_business_monthly` $399 package is retired for
+ * new sales). The dormant `clases_paid_30d` SKU is deliberately NOT shown — no checkout path
+ * exists for it (owner decision D2: launch free-only).
  */
 type FreeQuickCheckpointCopy = {
   id: string;
@@ -680,46 +681,60 @@ export function getComidaLocalCheckpointCard(lang: PublishCheckpointLang, applic
   );
 }
 
+/**
+ * Package 3 — owner lock 2026-08-25: appends `/intake` to the negocios application href while
+ * preserving any query string (`withLang` may have appended `?lang=…`). The intake is the
+ * mandatory first step for a brand-new Viajes business submission; existing staged rows
+ * (edit/revise/resubmit via `?stagedId=`) never pass through here.
+ */
+function viajesIntakeHrefFromNegociosHref(negociosHref: string): string {
+  const qIndex = negociosHref.indexOf("?");
+  if (qIndex === -1) return `${negociosHref}/intake`;
+  return `${negociosHref.slice(0, qIndex)}/intake${negociosHref.slice(qIndex)}`;
+}
+
 export function getViajesCheckpointCards(
   lang: PublishCheckpointLang,
   negociosHref: string,
   privadoHref: string,
 ): PublishCheckpointCardData[] {
   const es = lang === "es";
-  const businessPrice = monthlyPrice("viajes_business_monthly", "viajes");
+  // Package 3 — owner lock 2026-08-25: Viajes business publishing is FREE
+  // (viajes_business_free in revenuePricingMatrix.ts; the $399 viajes_business_monthly package
+  // is retired for new sales and retained for history only). Free to participate, curated for
+  // community value, reviewed before publication. No payment step, no coupon, no premium
+  // placement implied.
   return [
     {
       id: "viajes_negocios",
-      variant: "paid",
+      variant: "free",
       eyebrow: es ? "Negocio de viajes" : "Travel business",
-      title: es ? "Publicar como negocio de viajes" : "Publish as a travel business",
-      priceLabel: businessPrice,
+      title: es ? "Publica gratis como negocio de viajes" : "Publish free as a travel business",
+      priceLabel: es ? "Gratis" : "Free",
       shortDescription: es
-        ? "Para agencias, operadores y negocios de viajes. Perfil con ofertas, galería, contacto y presencia en Leonix Viajes."
-        : "For agencies, operators, and travel businesses. Profile with offers, gallery, contact, and presence on Leonix Viajes.",
-      ctaLabel: es ? "Publicar como negocio" : "Publish as business",
-      ctaHref: negociosHref,
+        ? "Cuéntanos qué ofreces y cómo beneficia a nuestra comunidad. Gratis para participar; revisado antes de publicar."
+        : "Tell us what you offer and how it benefits our community. Free to participate; reviewed before publication.",
+      ctaLabel: es ? "Publica gratis" : "Publish free",
+      ctaHref: viajesIntakeHrefFromNegociosHref(negociosHref),
       moreLabel: es ? "Ver más" : "See more",
-      modalTitle: es
-        ? `Qué incluye Negocio de viajes — ${businessPrice}`
-        : `What's included with Travel business — ${businessPrice}`,
+      modalTitle: es ? "Negocio de viajes — Gratis" : "Travel business — Free",
       modalIntro: es
-        ? "Publicación de negocio de viajes. Tu anuncio pasa por revisión antes de aparecer públicamente."
-        : "Travel business publication. Your listing goes through review before appearing publicly.",
+        ? "Publicación gratuita para agencias, operadores y negocios de viajes. Empiezas con un breve formulario sobre tu oportunidad; tu anuncio pasa por revisión antes de aparecer públicamente. Sin pago."
+        : "Free publication for agencies, operators, and travel businesses. You start with a short form about your opportunity; your listing goes through review before appearing publicly. No payment.",
       includedBullets: es
         ? [
             "Perfil de negocio con ofertas de viaje",
             "Fotos, contacto y enlaces",
-            `Precio mensual: ${businessPrice}`,
+            "Gratis para participar — sin pago ni cupón",
             "Nota: la publicación se activa después de revisión.",
           ]
         : [
             "Business profile with travel offers",
             "Photos, contact, and links",
-            `Monthly price: ${businessPrice}`,
+            "Free to participate — no payment or coupon",
             "Note: publication activates after review.",
           ],
-      couponEligible: isPromoEligible("viajes_business_monthly"),
+      couponEligible: false,
       highlighted: true,
     },
     buildFreeQuickCheckpointCard(

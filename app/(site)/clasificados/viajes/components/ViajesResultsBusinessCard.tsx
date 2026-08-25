@@ -29,6 +29,12 @@ export function ViajesResultsBusinessCard({ row, ui }: { row: ViajesBusinessResu
           <span className="rounded-full bg-[color:var(--lx-cta-dark)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#FFFCF7]">
             {ui.cards.businessListing}
           </span>
+          {row.communityBenefitApproved ? (
+            // Package 3 — only present when admin approved the community benefit (fail closed).
+            <span className="rounded-full bg-emerald-800/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#FFFCF7]">
+              {ui.cards.communityBenefitBadge}
+            </span>
+          ) : null}
         </span>
       </div>
       <div className="flex flex-1 flex-col p-3">

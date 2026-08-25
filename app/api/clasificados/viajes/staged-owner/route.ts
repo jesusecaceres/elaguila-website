@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { revalidateViajesStagedPublicSurfaces } from "@/app/(site)/clasificados/viajes/lib/viajesRevalidatePublicSurfaces";
+import { resolveViajesStagedApplicationStage } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingTypes";
 import {
   fetchViajesStagedRowById,
   ownerResubmitViajesStagedListing,
@@ -71,6 +72,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   if (action === "resubmit") {
+    // Package 3 — an intake-only row (draft + intake block, no full application) has nothing to
+    // send to review yet; the dashboard hides the action and the server enforces the same rule.
+    if (
+      row.lifecycle_status === "draft" &&
+      resolveViajesStagedApplicationStage(row.listing_json) === "intake"
+    ) {
+      return NextResponse.json({ ok: false, error: "intake_only_row" }, { status: 400 });
+    }
     const wasPublic = row.lifecycle_status === "approved" && row.is_public;
     const res = await ownerResubmitViajesStagedListing(id, ownerUserId);
     if (!res.ok) {

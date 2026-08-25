@@ -69,6 +69,13 @@ export interface ViajesBusinessResult {
    * Populated from business draft `destinationsServed` + `languages` so discovery search can match them.
    */
   listingSearchExtras?: string;
+  /**
+   * Package 3 — ADMIN-APPROVED community benefit only (row `community_benefit_status ===
+   * "approved"` with a written benefit description). A claimed-but-unreviewed benefit, an
+   * absent column (migration not applied), or a same-public-offer listing never populates this
+   * — fail closed, no badge. Never carries intake PII.
+   */
+  communityBenefitApproved?: { description: string };
   discovery?: ViajesDiscoverySignals;
 }
 

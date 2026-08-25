@@ -119,8 +119,15 @@ const read = (p: string) => readFileSync(path.join(REPO_ROOT, p), "utf8");
   // product file is authorized in it for this package).
   const configs = read("app/lib/media/listingMediaConfigs.ts");
   assert.ok(configs.includes('videoValidator: "shared-https-strict"'), "Viajes/Servicios boundary uses the shared strict validator by contract");
+  // Package 3 triage — the original slice ran from "PACKAGE B" to END OF FILE, so every LATER
+  // package's legitimately-authorized files were swept into "Package B's diff section" (the
+  // exact stale-snapshot class the shared allowlist exists to prevent; Reconcile Package 3
+  // authorizes Viajes product files and tripped it). Bound the slice to Package B's OWN
+  // section — the assertion's actual intent is unchanged and still enforced.
   const allowlist = read("scripts/globalizationCurrentPackageDiff.ts");
-  const packageBSection = allowlist.slice(allowlist.indexOf("PACKAGE B"));
+  const packageBStart = allowlist.indexOf("PACKAGE B");
+  const packageCStart = allowlist.indexOf("PACKAGE C");
+  const packageBSection = allowlist.slice(packageBStart, packageCStart > packageBStart ? packageCStart : undefined);
   assert.ok(packageBSection.length > 0, "the allowlist must carry a Package B section");
   assert.ok(
     !/app\/\(site\)\/(publicar|clasificados)\/viajes\//.test(packageBSection),

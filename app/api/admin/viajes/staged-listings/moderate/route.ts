@@ -2,12 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 
 import type { ViajesStagedLifecycleStatus } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingTypes";
 import { revalidateViajesStagedPublicSurfaces } from "@/app/(site)/clasificados/viajes/lib/viajesRevalidatePublicSurfaces";
-import { fetchViajesStagedRowById, updateViajesStagedListingModeration } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingsDbServer";
+import {
+  approveViajesCommunityBenefit,
+  fetchViajesStagedRowById,
+  updateViajesStagedListingModeration,
+} from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingsDbServer";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-type ModerateAction = "approve" | "reject" | "request_edits" | "expire" | "unpublish" | "in_review";
+type ModerateAction =
+  | "approve"
+  | "reject"
+  | "request_edits"
+  | "expire"
+  | "unpublish"
+  | "in_review"
+  /** Package 3 — promote a CLAIMED community benefit to APPROVED (the only path to approved). */
+  | "approve_benefit";
 
 function mapAction(a: ModerateAction): { lifecycle_status: ViajesStagedLifecycleStatus; is_public: boolean } {
   switch (a) {
@@ -51,6 +63,20 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const before = await fetchViajesStagedRowById(id);
   const slug = before?.slug;
+
+  // Package 3 — community-benefit truth: this admin action is the ONLY path to "approved".
+  // The status is never accepted from the request body; the helper's write is narrowed to
+  // rows currently "claimed" and reports benefit_column_missing until the authored migration
+  // is applied. Lifecycle/publication state is deliberately untouched by this action.
+  if (action === "approve_benefit") {
+    const res = await approveViajesCommunityBenefit(id);
+    if (!res.ok) {
+      const status = res.error === "benefit_column_missing" ? 409 : res.error === "not_claimed_or_missing" ? 400 : 500;
+      return NextResponse.json({ ok: false, error: res.error ?? "update_failed" }, { status });
+    }
+    revalidateViajesStagedPublicSurfaces(slug);
+    return NextResponse.json({ ok: true });
+  }
 
   const { lifecycle_status, is_public } = mapAction(action);
   const review_notes = typeof b.review_notes === "string" ? b.review_notes.trim() || null : null;

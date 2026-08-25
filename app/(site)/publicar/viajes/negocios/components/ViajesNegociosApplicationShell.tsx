@@ -6,12 +6,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import Navbar from "@/app/components/Navbar";
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
-import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { resolveClasificadosPublishLang, withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { ViajesLangSwitch } from "@/app/(site)/clasificados/viajes/components/ViajesLangSwitch";
 import { useViajesLocalHeroObjectUrl } from "@/app/(site)/clasificados/viajes/lib/useViajesLocalHeroObjectUrl";
 import { newViajesDraftMediaId, viajesDraftMediaDelete, viajesDraftMediaPut } from "@/app/(site)/clasificados/viajes/lib/viajesDraftMediaIdb";
+import { trackClasificadosEvent } from "@/app/lib/clasificadosAnalytics";
+import type { ViajesIntakeV1 } from "@/app/(site)/clasificados/viajes/lib/viajesIntakeTypes";
 import { ViajesDateRangeFields } from "../../components/ViajesDateRangeFields";
 import { getPublicarViajesNegociosCopy } from "../data/publicarViajesNegociosCopy";
 import type { ViajesNegociosDraft, ViajesNegociosCtaType } from "../lib/viajesNegociosDraftTypes";
@@ -20,6 +21,8 @@ import {
   VIAJES_NEGOCIOS_GALLERY_MAX,
   VIAJES_NEGOCIOS_MAX_INLINE_IMAGE,
 } from "../lib/viajesNegociosDraftDefaults";
+import { mapViajesIntakeToNegociosDraft } from "../lib/mapViajesIntakeToNegociosDraft";
+import { clearStoredViajesIntakeStagedId, readStoredViajesIntakeStagedId } from "../intake/lib/useViajesIntakeDraft";
 import { useViajesNegociosDraft } from "../lib/useViajesNegociosDraft";
 
 const CARD =
@@ -37,6 +40,29 @@ export function ViajesNegociosApplicationShell() {
   const { draft, update, reset, hydrated, setDraft } = useViajesNegociosDraft();
   const stagedIdFromUrl = (sp?.get("stagedId") ?? "").trim();
   const [stagedBootstrapErr, setStagedBootstrapErr] = useState<string | null>(null);
+
+  // Package 3 — mandatory Community Opportunity Intake for BRAND-NEW business submissions.
+  // Anyone arriving without a stagedId is routed through the intake first, except: (a) an owner
+  // whose intake already created a row (stored id → re-enter via ?stagedId so prefill runs);
+  // (b) a pre-Package-3 user with a started local draft (never destroy in-flight work).
+  // Revisions/resubmits always carry ?stagedId and are untouched.
+  useEffect(() => {
+    if (!hydrated || stagedIdFromUrl) return;
+    const storedIntakeId = readStoredViajesIntakeStagedId();
+    if (storedIntakeId) {
+      router.replace(
+        withClasificadosPublishLang("/publicar/viajes/negocios", routeLang, { stagedId: storedIntakeId }),
+      );
+      return;
+    }
+    const draftLooksStarted = [draft.titulo, draft.businessName, draft.destino, draft.descripcion, draft.email].some(
+      (v) => v.trim().length > 0,
+    );
+    if (!draftLooksStarted) {
+      router.replace(withClasificadosPublishLang("/publicar/viajes/negocios/intake", routeLang));
+    }
+    // Intentionally keyed on hydration only — the guard is an entry decision, not a live watcher.
+  }, [hydrated, stagedIdFromUrl]);
 
   useEffect(() => {
     if (!hydrated || !stagedIdFromUrl) {
@@ -57,12 +83,34 @@ export function ViajesNegociosApplicationShell() {
         const res = await fetch(`/api/clasificados/viajes/staged-owner?id=${encodeURIComponent(stagedIdFromUrl)}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const json = (await res.json()) as { ok?: boolean; row?: { listing_json?: { negocios?: ViajesNegociosDraft } }; error?: string };
-        if (!res.ok || !json.ok || !json.row?.listing_json?.negocios) {
+        const json = (await res.json()) as {
+          ok?: boolean;
+          row?: { listing_json?: { negocios?: ViajesNegociosDraft; intake?: ViajesIntakeV1 } };
+          error?: string;
+        };
+        const negocios = json.row?.listing_json?.negocios;
+        const intake = json.row?.listing_json?.intake;
+        if (!res.ok || !json.ok || (!negocios && !intake)) {
           if (!cancelled) setStagedBootstrapErr(json.error ?? (lang === "en" ? "Could not load submission." : "No se pudo cargar el envío."));
           return;
         }
-        if (!cancelled) setDraft(mergeViajesNegociosDraftFromPartial(json.row.listing_json.negocios));
+        if (cancelled) return;
+        if (negocios) {
+          // A row that already carries a full application always wins — the intake block is a
+          // snapshot and never overwrites returning users' application data.
+          setDraft(mergeViajesNegociosDraftFromPartial(negocios));
+          return;
+        }
+        // Package 3 — intake-stage row: prefill the full application from the intake so the
+        // provider never types the same information twice.
+        setDraft(mergeViajesNegociosDraftFromPartial(mapViajesIntakeToNegociosDraft(intake!)));
+        void trackClasificadosEvent({
+          listing_id: stagedIdFromUrl,
+          category: "viajes",
+          event_type: "apply_started",
+          event_source: "unknown",
+          metadata: { flow: "viajes_intake", stage: "full", fromIntake: true },
+        });
       } catch {
         if (!cancelled) setStagedBootstrapErr(lang === "en" ? "Network error." : "Error de red.");
       }
@@ -160,6 +208,17 @@ export function ViajesNegociosApplicationShell() {
         }
         return;
       }
+      // Package 3 — the intake→application handoff is complete for this row: clear the stored
+      // intake pointer so a future brand-new listing starts at the intake again, and record the
+      // full-application submit on the same one-row identity.
+      clearStoredViajesIntakeStagedId();
+      void trackClasificadosEvent({
+        listing_id: String(json.id ?? stagedIdFromUrl) || null,
+        category: "viajes",
+        event_type: "apply_submitted",
+        event_source: "unknown",
+        metadata: { flow: "viajes_intake", stage: "full" },
+      });
       const q = new URLSearchParams({ slug: String(json.slug), id: String(json.id), lane: "business", lang: routeLang });
       setPublishOpen(false);
       router.push(`/publicar/viajes/enviado?${q.toString()}`);

@@ -2,7 +2,15 @@ import "server-only";
 
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
-import type { ViajesStagedLane, ViajesStagedListingRow, ViajesStagedLifecycleStatus } from "./viajesStagedListingTypes";
+import type { ViajesIntakeV1 } from "./viajesIntakeTypes";
+import { viajesIntakeClaimsBenefit, viajesIntakeProvisionalTitle } from "./viajesIntakeTypes";
+import type {
+  ViajesCommunityBenefitStatus,
+  ViajesStagedLane,
+  ViajesStagedListingRow,
+  ViajesStagedLifecycleStatus,
+} from "./viajesStagedListingTypes";
+import { resolveViajesStagedApplicationStage } from "./viajesStagedListingTypes";
 import { slugifyViajesListingBase } from "./viajesSlugUtils";
 
 export async function allocateUniqueViajesStagedSlug(baseTitle: string): Promise<string> {
@@ -50,8 +58,14 @@ export async function fetchAllViajesStagedForAdmin(): Promise<ViajesStagedListin
   return fetchViajesStagedAdminQueue({ limit: 500 });
 }
 
-const VIAJES_ADMIN_QUEUE_SELECT =
-  "id, slug, title, lifecycle_status, is_public, admin_promoted, leonix_verified, leonix_ad_id, owner_user_id, published_at, updated_at, republish_override, republish_count";
+// Package 3 — widened from a named-column list to "*" for two proven reasons: (1) the admin
+// moderation UI already rendered lane / submitter_* / submitted_at, which the old bounded
+// select silently omitted (they displayed blank); (2) the Community Opportunity Intake panel
+// needs listing_json, and the optional community_benefit_status column must never be NAMED in
+// a select before its migration is applied (PostgREST errors on unknown columns; "*" returns
+// whatever exists, so the code degrades safely). The row cap below stays — this is not an
+// unbounded query.
+const VIAJES_ADMIN_QUEUE_SELECT = "*";
 
 export type ViajesAdminQueueFilters = {
   limit?: number;
@@ -193,11 +207,21 @@ export async function updateViajesStagedListingOwnerRevision(input: {
   if (!existing || existing.owner_user_id !== input.owner_user_id) return { ok: false, error: "forbidden" };
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
+  // Package 3 — the full application submits `{version, negocios}` (or `{version, privado}`)
+  // WITHOUT the intake block. The Community Opportunity Intake snapshot on the same row must
+  // survive every later owner revision/submit, so merge it back rather than letting the
+  // incoming envelope silently erase it. The full application never edits the intake block.
+  const existingJson = (existing.listing_json ?? {}) as Record<string, unknown>;
+  const incomingJson = (input.listing_json ?? {}) as Record<string, unknown>;
+  const mergedListingJson =
+    existingJson.intake && !incomingJson.intake
+      ? { ...incomingJson, intake: existingJson.intake }
+      : incomingJson;
   const { data: updated, error } = await supabase
     .from("viajes_staged_listings")
     .update({
       title: input.title,
-      listing_json: input.listing_json,
+      listing_json: mergedListingJson,
       hero_image_url: input.hero_image_url,
       lang: input.lang,
       submitter_name: input.submitter_name,
@@ -244,4 +268,169 @@ export async function ownerResubmitViajesStagedListing(id: string, owner_user_id
   // write itself by owner_user_id rather than relying solely on the prior read.
   if (!updated || updated.length === 0) return { ok: false, error: "forbidden" };
   return { ok: true, slug: existing.slug };
+}
+
+/* ==============================================================================================
+ * Package 3 — Community Opportunity Intake persistence (owner lock 2026-08-25).
+ *
+ * One-row identity: the intake creates the SAME viajes_staged_listings row the full application
+ * later enriches and submits. lifecycle_status "draft" was already in the table CHECK and in
+ * every status map — Package 3 is the first writer of it.
+ * ============================================================================================ */
+
+/**
+ * The owner's current intake-stage row (business lane, lifecycle "draft", intake block present,
+ * no negocios block yet) — the dedupe target for repeat intake saves. At most one such row is
+ * maintained per owner; if several somehow exist, the most recently updated wins.
+ */
+export async function fetchViajesIntakeStageDraftRowForOwner(
+  ownerUserId: string,
+): Promise<ViajesStagedListingRow | null> {
+  if (!isSupabaseAdminConfigured() || !ownerUserId.trim()) return null;
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("viajes_staged_listings")
+    .select("*")
+    .eq("owner_user_id", ownerUserId)
+    .eq("lane", "business")
+    .eq("lifecycle_status", "draft")
+    .order("updated_at", { ascending: false })
+    .limit(20);
+  if (error || !data) return null;
+  const rows = data as ViajesStagedListingRow[];
+  return rows.find((r) => resolveViajesStagedApplicationStage(r.listing_json) === "intake") ?? null;
+}
+
+/**
+ * Best-effort transitional write of the community-benefit truth column. The column arrives with
+ * the authored (NOT yet applied) Package 3 migration; before that, PostgREST rejects the update
+ * and this helper reports `columnMissing` WITHOUT failing the caller's main operation. The
+ * public badge is fail-closed either way (absent column ⇒ undefined ⇒ no badge).
+ */
+export async function setViajesCommunityBenefitStatus(
+  id: string,
+  status: ViajesCommunityBenefitStatus,
+): Promise<{ ok: boolean; columnMissing?: boolean; error?: string }> {
+  if (!isSupabaseAdminConfigured()) return { ok: false, error: "not_configured" };
+  const supabase = getAdminSupabase();
+  const { data: updated, error } = await supabase
+    .from("viajes_staged_listings")
+    .update({ community_benefit_status: status, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select("id");
+  if (error) {
+    const columnMissing = /community_benefit_status/i.test(error.message);
+    return { ok: false, columnMissing, error: error.message };
+  }
+  if (!updated || updated.length === 0) return { ok: false, error: "listing_not_found" };
+  return { ok: true };
+}
+
+/**
+ * Admin-only promotion `claimed` → `approved`. This is the ONLY path to `approved` anywhere in
+ * the codebase; the write itself is narrowed by the current status so a non-claimed row can
+ * never be approved (no read-then-write race). Requires the Package 3 migration: without the
+ * column this returns `benefit_column_missing` so the admin UI reports the dependency honestly.
+ */
+export async function approveViajesCommunityBenefit(
+  id: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!isSupabaseAdminConfigured()) return { ok: false, error: "not_configured" };
+  const supabase = getAdminSupabase();
+  const { data: updated, error } = await supabase
+    .from("viajes_staged_listings")
+    .update({ community_benefit_status: "approved", updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("community_benefit_status", "claimed")
+    .select("id");
+  if (error) {
+    if (/community_benefit_status/i.test(error.message)) {
+      return { ok: false, error: "benefit_column_missing" };
+    }
+    return { ok: false, error: error.message };
+  }
+  if (!updated || updated.length === 0) return { ok: false, error: "not_claimed_or_missing" };
+  return { ok: true };
+}
+
+export type ViajesIntakeUpsertResult =
+  | { ok: true; id: string; slug: string; created: boolean }
+  | { ok: false; error: string };
+
+/**
+ * First save creates the early staged row (draft / business / not public); repeat saves update
+ * the owner's existing intake-stage row in place (owner predicate in the write, zero-row-safe).
+ * Never publishes, never marks submitted, never touches Stripe. Every save recomputes the
+ * benefit claim status (`claimed`/`none`) best-effort — by doctrine this also downgrades an
+ * already-`approved` benefit back to `claimed` whenever the owner edits the claim, forcing
+ * Leonix re-review (documented fail-safe: no content-diff engine; any intake save re-reviews).
+ */
+export async function upsertViajesIntakeStagedRow(input: {
+  owner_user_id: string;
+  intake: ViajesIntakeV1;
+  lang: "es" | "en";
+}): Promise<ViajesIntakeUpsertResult> {
+  if (!isSupabaseAdminConfigured()) return { ok: false, error: "not_configured" };
+  const ownerUserId = input.owner_user_id?.trim();
+  if (!ownerUserId) return { ok: false, error: "owner_required" };
+
+  const supabase = getAdminSupabase();
+  const now = new Date().toISOString();
+  const title = viajesIntakeProvisionalTitle(input.intake);
+  const claimStatus: ViajesCommunityBenefitStatus = viajesIntakeClaimsBenefit(input.intake)
+    ? "claimed"
+    : "none";
+  const submitterFields = {
+    submitter_name: input.intake.businessName.trim() || null,
+    submitter_email: input.intake.email.trim() || null,
+    submitter_phone: input.intake.phone.trim() || null,
+  };
+
+  const existing = await fetchViajesIntakeStageDraftRowForOwner(ownerUserId);
+  if (existing) {
+    const existingJson = (existing.listing_json ?? {}) as Record<string, unknown>;
+    const { data: updated, error } = await supabase
+      .from("viajes_staged_listings")
+      .update({
+        title,
+        listing_json: { ...existingJson, version: 1, intake: input.intake },
+        lang: input.lang,
+        ...submitterFields,
+        updated_at: now,
+      })
+      .eq("id", existing.id)
+      .eq("owner_user_id", ownerUserId)
+      .select("id");
+    if (error) return { ok: false, error: error.message };
+    if (!updated || updated.length === 0) return { ok: false, error: "forbidden" };
+    // Awaited but non-fatal: pre-migration the column is missing and this reports columnMissing.
+    await setViajesCommunityBenefitStatus(existing.id, claimStatus);
+    return { ok: true, id: existing.id, slug: existing.slug, created: false };
+  }
+
+  const slug = await allocateUniqueViajesStagedSlug(title);
+  const { data, error } = await supabase
+    .from("viajes_staged_listings")
+    .insert({
+      slug,
+      lane: "business",
+      owner_user_id: ownerUserId,
+      title,
+      listing_json: { version: 1, intake: input.intake },
+      hero_image_url: null,
+      lang: input.lang,
+      ...submitterFields,
+      lifecycle_status: "draft",
+      is_public: false,
+      submitted_at: null,
+      created_at: now,
+      updated_at: now,
+    })
+    .select("id")
+    .single();
+  if (error || !data) return { ok: false, error: error?.message ?? "insert_failed" };
+  const id = (data as { id: string }).id;
+  // Awaited but non-fatal: pre-migration the column is missing and this reports columnMissing.
+  await setViajesCommunityBenefitStatus(id, claimStatus);
+  return { ok: true, id, slug, created: true };
 }

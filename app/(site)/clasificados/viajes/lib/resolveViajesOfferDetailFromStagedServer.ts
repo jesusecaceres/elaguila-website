@@ -38,6 +38,15 @@ async function resolveViajesStagedOfferDetailBundleUncached(slug: string, lang: 
       lang === "en"
         ? "Published listing (internal review passed). Leonix is not the merchant of record — confirm price and availability with the operator."
         : "Listado publicado (pasó revisión interna). Leonix no es el vendedor final — confirma precio y disponibilidad con el operador.";
+    // Package 3 — fail-closed: only an ADMIN-approved benefit (dedicated column, never
+    // owner-writable) with a written claim description renders on the public detail page.
+    const benefitDescription =
+      row.community_benefit_status === "approved"
+        ? String(
+            (row.listing_json as { intake?: { communityBenefit?: { description?: string } } }).intake
+              ?.communityBenefit?.description ?? "",
+          ).trim()
+        : "";
     return {
       stagedListingId,
       leonix_ad_id,
@@ -46,6 +55,7 @@ async function resolveViajesStagedOfferDetailBundleUncached(slug: string, lang: 
         ...base,
         slug: row.slug,
         trustNote: trust,
+        ...(benefitDescription ? { communityBenefitApproved: { description: benefitDescription } } : {}),
         partner: {
           ...base.partner,
           privateSeller: false,

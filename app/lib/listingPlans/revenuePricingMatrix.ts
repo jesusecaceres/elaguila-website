@@ -80,11 +80,16 @@ export type RevenuePackageDefinition = {
 
 // Package C Build 1 — owner-locked in the Execution Bible v2: Autos boost $129/mo (+10),
 // Bienes pack $99/mo (+3, max 4 total), FSBO $49.99/45d, offers add-ons $79/mo. Only the
-// genuinely still-open decisions remain below.
+// genuinely still-open decisions remain below. Package 3 (owner lock 2026-08-25): the former
+// "Viajes business monthly pricing final lock" entry is resolved (retired for new sales, free
+// package canonical) and removed; matrix entries reference the named constants rather than
+// array positions so a resolved decision can be deleted without shifting the others.
+export const REVENUE_UNRESOLVED_DECISION_RENTAS_SPLIT = "Rentas V1 negocio split confirmation";
+export const REVENUE_UNRESOLVED_DECISION_LISTING_WINDOW =
+  "Clases / Comunidad / Mascotas listing window duration";
 export const REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS = [
-  "Viajes business monthly pricing final lock",
-  "Rentas V1 negocio split confirmation",
-  "Clases / Comunidad / Mascotas listing window duration",
+  REVENUE_UNRESOLVED_DECISION_RENTAS_SPLIT,
+  REVENUE_UNRESOLVED_DECISION_LISTING_WINDOW,
 ] as const;
 
 export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
@@ -199,7 +204,7 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     printCompEligible: false,
     placementEligible: true,
     stripeEligible: true,
-    unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[1],
+    unresolvedOwnerDecision: REVENUE_UNRESOLVED_DECISION_RENTAS_SPLIT,
   },
   {
     category: "restaurantes",
@@ -416,7 +421,7 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     placementEligible: true,
     stripeEligible: true,
     placementTierKey: "paid_private",
-    unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[2],
+    unresolvedOwnerDecision: REVENUE_UNRESOLVED_DECISION_LISTING_WINDOW,
   },
   {
     category: "clases",
@@ -433,7 +438,7 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     placementEligible: false,
     stripeEligible: false,
     placementTierKey: "free",
-    unresolvedOwnerDecision: REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS[2],
+    unresolvedOwnerDecision: REVENUE_UNRESOLVED_DECISION_LISTING_WINDOW,
   },
   {
     category: "comunidad",

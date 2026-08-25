@@ -1,11 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 
 import { adminBtnSecondary, adminInputClass } from "@/app/admin/_components/adminTheme";
 import { adminQueueIsUuid, adminQueueNormalizeLeonixAdId } from "@/app/admin/_lib/adminAdSearch";
+import {
+  mapViajesStagedRowToTravelOpportunityLead,
+  type TravelOpportunityLead,
+} from "@/app/(site)/clasificados/viajes/lib/travelOpportunityLead";
 import type { ViajesStagedLifecycleStatus, ViajesStagedListingRow } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingTypes";
+import { resolveViajesStagedApplicationStage } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingTypes";
 
 const STATUS_LABEL: Record<ViajesStagedLifecycleStatus, string> = {
   draft: "Draft",
@@ -16,6 +21,39 @@ const STATUS_LABEL: Record<ViajesStagedLifecycleStatus, string> = {
   changes_requested: "Changes requested",
   expired: "Expired",
   unpublished: "Unpublished",
+};
+
+/** Package 3 — derived pipeline stage: intake, full application in progress, then lifecycle. */
+function stageLabel(r: ViajesStagedListingRow): string {
+  if (r.lifecycle_status !== "draft") return STATUS_LABEL[r.lifecycle_status];
+  return resolveViajesStagedApplicationStage(r.listing_json) === "intake"
+    ? "Intake"
+    : "Full application in progress";
+}
+
+function isIntakeOnly(r: ViajesStagedListingRow): boolean {
+  return r.lifecycle_status === "draft" && resolveViajesStagedApplicationStage(r.listing_json) === "intake";
+}
+
+const BENEFIT_STATUS_LABEL: Record<string, string> = {
+  none: "No benefit claimed",
+  claimed: "Claimed — needs review",
+  approved: "Approved",
+};
+
+const OPPORTUNITY_VALUE_BAND_LABEL: Record<string, string> = {
+  lt25: "Under $25",
+  "25_50": "$25–$50",
+  "51_100": "$51–$100",
+  "101_250": "$101–$250",
+  gt250: "$251+",
+  non_monetary: "Non-monetary",
+};
+
+const SAME_PUBLIC_OFFER_LABEL: Record<string, string> = {
+  same: "Same public offer",
+  extra: "Leonix receives an additional benefit",
+  partial: "Leonix receives something extra (partial)",
 };
 
 function statusBadge(s: ViajesStagedLifecycleStatus) {
@@ -39,15 +77,25 @@ function statusBadge(s: ViajesStagedLifecycleStatus) {
 const btn =
   "rounded-lg border border-[#E8DFD0]/90 bg-white px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#5C5346] hover:bg-[#FFFCF7] disabled:cursor-not-allowed disabled:opacity-45";
 
-type ModerateAction = "approve" | "reject" | "request_edits" | "expire" | "unpublish" | "in_review";
+type ModerateAction =
+  | "approve"
+  | "reject"
+  | "request_edits"
+  | "expire"
+  | "unpublish"
+  | "in_review"
+  | "approve_benefit";
+
+type QueueFilter = ViajesStagedLifecycleStatus | "all" | "intake";
 
 export function AdminViajesBusinessOffersModeration() {
   const [q, setQ] = useState("");
-  const [status, setStatus] = useState<ViajesStagedLifecycleStatus | "all">("all");
+  const [status, setStatus] = useState<QueueFilter>("all");
   const [rows, setRows] = useState<ViajesStagedListingRow[]>([]);
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [reasonDraft, setReasonDraft] = useState<Record<string, string>>({});
+  const [openOpportunityId, setOpenOpportunityId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoadErr(null);
@@ -72,7 +120,8 @@ export function AdminViajesBusinessOffersModeration() {
 
   const filtered = useMemo(() => {
     let list = [...rows];
-    if (status !== "all") list = list.filter((r) => r.lifecycle_status === status);
+    if (status === "intake") list = list.filter((r) => isIntakeOnly(r));
+    else if (status !== "all") list = list.filter((r) => r.lifecycle_status === status);
     const rawQ = q.trim();
     const qq = rawQ.toLowerCase();
     const nlx = adminQueueNormalizeLeonixAdId(rawQ);
@@ -107,7 +156,11 @@ export function AdminViajesBusinessOffersModeration() {
       });
       const json = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || !json.ok) {
-        window.alert(json.error ?? "Update failed");
+        window.alert(
+          json.error === "benefit_column_missing"
+            ? "Community-benefit approval requires the Package 3 migration (community_benefit_status column) to be applied first."
+            : json.error ?? "Update failed",
+        );
         return;
       }
       await load();
@@ -136,6 +189,8 @@ export function AdminViajesBusinessOffersModeration() {
             onChange={(e) => setStatus(e.target.value as typeof status)}
           >
             <option value="all">All statuses</option>
+            <option value="intake">Intake (opportunity only)</option>
+            <option value="draft">Draft</option>
             <option value="submitted">Submitted</option>
             <option value="in_review">In review</option>
             <option value="changes_requested">Changes requested</option>
@@ -158,7 +213,7 @@ export function AdminViajesBusinessOffersModeration() {
       )}
 
       <div className="overflow-x-auto rounded-2xl border border-[#E8DFD0]/90 bg-white/95 shadow-sm">
-        <table className="min-w-[1220px] w-full border-collapse text-left text-sm">
+        <table className="min-w-[1360px] w-full border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-[#E8DFD0]/90 bg-[#FAF7F2]/90 text-[11px] font-bold uppercase tracking-wide text-[#7A7164]">
               <th className="px-3 py-3">Lane</th>
@@ -166,6 +221,7 @@ export function AdminViajesBusinessOffersModeration() {
               <th className="px-3 py-3">Slug</th>
               <th className="px-3 py-3">Leonix Ad ID</th>
               <th className="px-3 py-3">Status</th>
+              <th className="px-3 py-3">Stage / Opportunity</th>
               <th className="px-3 py-3">Submitted</th>
               <th className="px-3 py-3">Owner</th>
               <th className="min-w-[180px] px-3 py-3">Moderation note</th>
@@ -174,13 +230,38 @@ export function AdminViajesBusinessOffersModeration() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((r) => (
-              <tr key={r.id} className="border-b border-[#F0E8DC]/90 hover:bg-[#FFFCF7]/95">
+            {filtered.map((r) => {
+              const lead = mapViajesStagedRowToTravelOpportunityLead(r);
+              const opportunityOpen = openOpportunityId === r.id;
+              return (
+              <Fragment key={r.id}>
+              <tr className="border-b border-[#F0E8DC]/90 hover:bg-[#FFFCF7]/95">
                 <td className="px-3 py-2.5 text-xs font-semibold capitalize text-[#5C5346]">{r.lane}</td>
                 <td className="px-3 py-2.5 font-semibold text-[#1E1810]">{r.title}</td>
                 <td className="px-3 py-2.5 font-mono text-xs text-[#5C5346]">{r.slug}</td>
                 <td className="px-3 py-2.5 font-mono text-[10px] text-[#3D3428]">{r.leonix_ad_id?.trim() || "—"}</td>
                 <td className="px-3 py-2.5">{statusBadge(r.lifecycle_status)}</td>
+                <td className="px-3 py-2.5">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold text-[#5C5346]">{stageLabel(r)}</span>
+                    {lead ? (
+                      <>
+                        <span className="text-[10px] text-[#7A7164]">
+                          Benefit: {BENEFIT_STATUS_LABEL[lead.communityBenefitStatus] ?? lead.communityBenefitStatus}
+                        </span>
+                        <button
+                          type="button"
+                          className={btn}
+                          onClick={() => setOpenOpportunityId(opportunityOpen ? null : r.id)}
+                        >
+                          {opportunityOpen ? "Hide opportunity" : "View opportunity"}
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-[10px] text-[#7A7164]">No intake record</span>
+                    )}
+                  </div>
+                </td>
                 <td className="px-3 py-2.5 text-xs tabular-nums text-[#5C5346]">{r.submitted_at ?? "—"}</td>
                 <td className="px-3 py-2.5 text-xs text-[#5C5346]">{r.owner_user_id ? r.owner_user_id.slice(0, 8) + "…" : "—"}</td>
                 <td className="px-3 py-2.5">
@@ -238,7 +319,20 @@ export function AdminViajesBusinessOffersModeration() {
                   </div>
                 </td>
               </tr>
-            ))}
+              {opportunityOpen && lead ? (
+                <tr className="border-b border-[#F0E8DC]/90 bg-[#FBF7EF]/70">
+                  <td colSpan={11} className="px-4 py-4">
+                    <OpportunityPanel
+                      lead={lead}
+                      busy={busyId === r.id}
+                      onApproveBenefit={() => void moderate(r.id, "approve_benefit")}
+                    />
+                  </td>
+                </tr>
+              ) : null}
+              </Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -249,6 +343,68 @@ export function AdminViajesBusinessOffersModeration() {
         </button>
         <p className="text-xs text-[#7A7164]">Bulk actions are not enabled; process row-by-row for audit clarity.</p>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Package 3 — early Community Opportunity visibility: everything the provider told Leonix in the
+ * short intake, BEFORE the full application exists. Admin-only surface (this PII never reaches
+ * public mappers). "Approve community benefit" is the only path to the public benefit badge and
+ * is offered only while the claim status is "claimed".
+ */
+function OpportunityPanel({
+  lead,
+  busy,
+  onApproveBenefit,
+}: {
+  lead: TravelOpportunityLead;
+  busy: boolean;
+  onApproveBenefit: () => void;
+}) {
+  const cb = lead.communityBenefit;
+  const item = (label: string, value: string | null | undefined) => (
+    <div className="min-w-0">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-[#A67C52]">{label}</p>
+      <p className="break-words text-xs text-[#3D3428]">{value?.trim() || "—"}</p>
+    </div>
+  );
+  return (
+    <div className="space-y-4">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-[#A67C52]">
+        Community Opportunity Intake · stage: {lead.stage} · updated {lead.updatedAt}
+      </p>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {item("Business", lead.businessName)}
+        {item("Contact name", lead.contactName)}
+        {item("Email", lead.email)}
+        {item("Phone", lead.phone)}
+        {item("Website", lead.website)}
+        {item("Offer type", lead.offerType)}
+        {item("Destination", lead.destination)}
+        {item("Departure city", lead.departureCity)}
+        {item("Normal / public price", lead.normalPrice)}
+        {item("Price basis", lead.priceBasis || "—")}
+        {item(
+          "Estimated value",
+          cb ? OPPORTUNITY_VALUE_BAND_LABEL[cb.estimatedValueBand] ?? cb.estimatedValueBand : "—",
+        )}
+        {item(
+          "Same public offer?",
+          cb ? SAME_PUBLIC_OFFER_LABEL[cb.samePublicOffer] ?? cb.samePublicOffer : "—",
+        )}
+      </div>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        {item("Community benefit", cb ? [cb.types.join(", "), cb.description].filter(Boolean).join(" — ") : "—")}
+        {item("Expiration", cb?.expiration)}
+        {item("Restrictions / blackout / qualifications", cb?.restrictions)}
+        {item("Benefit truth status", BENEFIT_STATUS_LABEL[lead.communityBenefitStatus] ?? lead.communityBenefitStatus)}
+      </div>
+      {lead.communityBenefitStatus === "claimed" ? (
+        <button type="button" className={btn} disabled={busy} onClick={onApproveBenefit}>
+          Approve community benefit
+        </button>
+      ) : null}
     </div>
   );
 }

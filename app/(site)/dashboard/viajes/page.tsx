@@ -11,7 +11,17 @@ import { fetchDashboardProfile } from "../lib/dashboardProfile";
 import { dashboardSafeMutationErrorCopy } from "../lib/dashboardSafeErrorCopy";
 
 import type { ViajesStagedListingRow, ViajesStagedLifecycleStatus } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingTypes";
+import { resolveViajesStagedApplicationStage } from "@/app/(site)/clasificados/viajes/lib/viajesStagedListingTypes";
 import { isViajesPrivatePublishDisabled } from "@/app/(site)/clasificados/viajes/lib/viajesPrivateLaneLaunchPolicy";
+
+/**
+ * Package 3 — an intake-only row (draft + intake block, no full application yet). It gets a
+ * truthful "application started" status and a Continue CTA; it must NOT offer "resubmit"
+ * (there is no full application to send to review yet) and has nothing to preview.
+ */
+function isViajesIntakeOnlyRow(r: ViajesStagedListingRow): boolean {
+  return r.lifecycle_status === "draft" && resolveViajesStagedApplicationStage(r.listing_json) === "intake";
+}
 
 export const dynamic = "force-dynamic";
 
@@ -84,6 +94,8 @@ function DashboardViajesStagedPageContent() {
             busy: "…",
             privateEditDisabled: "Edición particular desactivada en este entorno — contacta a Leonix.",
             privatePreviewDisabled: "Vista previa particular no disponible mientras la vía esté desactivada.",
+            intakeStatus: "Solicitud iniciada — continúa cuando quieras",
+            continueApplication: "Continuar solicitud",
           }
         : {
             title: "Viajes — your submissions",
@@ -108,6 +120,8 @@ function DashboardViajesStagedPageContent() {
             busy: "…",
             privateEditDisabled: "Private editing is disabled in this environment — contact Leonix.",
             privatePreviewDisabled: "Private preview is unavailable while this lane is disabled.",
+            intakeStatus: "Application started — continue when you're ready",
+            continueApplication: "Continue application",
           },
     [lang]
   );
@@ -243,9 +257,17 @@ function DashboardViajesStagedPageContent() {
     return s.length > 220 ? `${s.slice(0, 217)}…` : s;
   };
 
-  const canResubmit = (s: ViajesStagedLifecycleStatus) =>
-    s === "changes_requested" || s === "rejected" || s === "draft" || s === "unpublished";
+  // Package 3 — intake-only rows can never "resubmit": there is no full application yet.
+  const canResubmit = (r: ViajesStagedListingRow) =>
+    (r.lifecycle_status === "changes_requested" ||
+      r.lifecycle_status === "rejected" ||
+      r.lifecycle_status === "draft" ||
+      r.lifecycle_status === "unpublished") &&
+    !isViajesIntakeOnlyRow(r);
   const canUnpublish = (r: ViajesStagedListingRow) => r.lifecycle_status === "approved" && r.is_public;
+  const statusLine = (r: ViajesStagedListingRow) =>
+    isViajesIntakeOnlyRow(r) ? t.intakeStatus : lifecycleStatusLabel(r.lifecycle_status, lang);
+  const editLabel = (r: ViajesStagedListingRow) => (isViajesIntakeOnlyRow(r) ? t.continueApplication : t.edit);
 
   return (
     <LeonixDashboardShell
@@ -274,7 +296,7 @@ function DashboardViajesStagedPageContent() {
                 <li key={r.id} className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-4">
                   <p className="text-base font-bold text-[#1E1810]">{r.title}</p>
                   <p className="mt-1 text-xs text-[#5C5346]">
-                    {t.thLane}: {r.lane} · {t.thStatus}: {lifecycleStatusLabel(r.lifecycle_status, lang)}
+                    {t.thLane}: {r.lane} · {t.thStatus}: {statusLine(r)}
                     {r.is_public ? (lang === "es" ? " · visible público" : " · public") : ""}
                   </p>
                   <p className="mt-1 text-xs text-[#7A7164]">{t.thModeration}: {modLine(r)}</p>
@@ -287,7 +309,7 @@ function DashboardViajesStagedPageContent() {
                         {t.viewPublic}
                       </Link>
                     ) : null}
-                    {r.lane === "private" && privateLaneDisabled ? (
+                    {isViajesIntakeOnlyRow(r) ? null : r.lane === "private" && privateLaneDisabled ? (
                       <span className="rounded-xl border border-[#E8DFD0] bg-[#FAF7F2] px-3 py-2 text-xs text-[#7A7164]" title={t.privatePreviewDisabled}>
                         {t.preview}
                       </span>
@@ -302,10 +324,10 @@ function DashboardViajesStagedPageContent() {
                       </span>
                     ) : (
                       <Link href={editHref(r)} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416]">
-                        {t.edit}
+                        {editLabel(r)}
                       </Link>
                     )}
-                    {canResubmit(r.lifecycle_status) ? (
+                    {canResubmit(r) ? (
                       <button
                         type="button"
                         disabled={busyId === r.id}
@@ -337,7 +359,7 @@ function DashboardViajesStagedPageContent() {
                     <td className="py-3 pr-4 font-semibold text-[#1E1810]">{r.title}</td>
                     <td className="py-3 pr-4 capitalize text-[#5C5346]">{r.lane}</td>
                     <td className="py-3 pr-4 text-[#5C5346]">
-                      {lifecycleStatusLabel(r.lifecycle_status, lang)}
+                      {statusLine(r)}
                       {r.is_public ? (lang === "es" ? " · visible público" : " · public") : ""}
                     </td>
                     <td className="max-w-[240px] py-3 pr-4 text-xs text-[#5C5346]">{modLine(r)}</td>
@@ -352,7 +374,7 @@ function DashboardViajesStagedPageContent() {
                             {t.viewPublic}
                           </Link>
                         ) : null}
-                        {r.lane === "private" && privateLaneDisabled ? (
+                        {isViajesIntakeOnlyRow(r) ? null : r.lane === "private" && privateLaneDisabled ? (
                           <span className="text-xs text-[#7A7164]" title={t.privatePreviewDisabled}>
                             {t.preview}
                           </span>
@@ -367,10 +389,10 @@ function DashboardViajesStagedPageContent() {
                           </span>
                         ) : (
                           <Link href={editHref(r)} className="text-xs text-[#5C5346] underline">
-                            {t.edit}
+                            {editLabel(r)}
                           </Link>
                         )}
-                        {canResubmit(r.lifecycle_status) ? (
+                        {canResubmit(r) ? (
                           <button
                             type="button"
                             disabled={busyId === r.id}

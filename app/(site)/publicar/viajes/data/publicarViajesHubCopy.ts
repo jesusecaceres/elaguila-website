@@ -33,14 +33,18 @@ function es(): PublicarViajesHubCopy {
     stepsTitle: "Flujo previsto",
     steps: [
       { label: "1. Entrada", detail: "Eliges negocios o privado y lees expectativas de calidad y confianza." },
-      { label: "2. Solicitud", detail: "Completas la oferta en borrador (guardado en este dispositivo)." },
-      { label: "3. Vista previa", detail: "Revisas la ficha en Clasificados antes de enviar." },
+      {
+        label: "2. Oportunidad (negocios)",
+        detail:
+          "Publicación gratuita: primero un formulario corto sobre tu oferta y cómo beneficia a nuestra comunidad. Lo que escribes se reutiliza en la solicitud completa.",
+      },
+      { label: "3. Solicitud y vista previa", detail: "Completas la oferta en borrador y revisas la ficha en Clasificados antes de enviar." },
       { label: "4. Envío y revisión", detail: "Con sesión iniciada, envías a Leonix; revisión interna antes de aparecer en resultados públicos (sin pago de viaje aquí)." },
     ],
-    negociosTitle: "Negocios y agencias",
+    negociosTitle: "Negocios y agencias — gratis",
     negociosBody:
-      "Solicitud estructurada para agencias y operadores — alineada con la ficha pública de Viajes (destino, inclusiones, precio, contacto del negocio).",
-    negociosCta: "Continuar a la solicitud",
+      "Publica gratis. Cuéntanos qué ofreces y cómo beneficia a nuestra comunidad; después completas la solicitud estructurada alineada con la ficha pública de Viajes (destino, inclusiones, precio, contacto del negocio).",
+    negociosCta: "Publica gratis",
     privadoTitle: "Particulares (privado)",
     privadoBody:
       "Para personas que ofrecen un viaje, cupo o paquete propio — no es la vía de agencia ni inventario de socios comerciales. Revisión y calidad de anuncio aplican.",
@@ -66,14 +70,18 @@ function en(): PublicarViajesHubCopy {
     stepsTitle: "Intended flow",
     steps: [
       { label: "1. Entry", detail: "Choose business or private and read quality and trust expectations." },
-      { label: "2. Application", detail: "Complete the offer as a draft (saved on this device)." },
-      { label: "3. Preview", detail: "Review your card in Classifieds before you submit." },
+      {
+        label: "2. Opportunity (business)",
+        detail:
+          "Free publication: first a short form about your offer and how it benefits our community. What you write is reused in the full application.",
+      },
+      { label: "3. Application & preview", detail: "Complete the offer as a draft and review your card in Classifieds before you submit." },
       { label: "4. Submit & review", detail: "Signed in, you submit to Leonix; internal review before public results (no travel checkout here)." },
     ],
-    negociosTitle: "Businesses & agencies",
+    negociosTitle: "Businesses & agencies — free",
     negociosBody:
-      "Structured application for agencies and operators — aligned with the public Viajes card (destination, inclusions, price, business contact).",
-    negociosCta: "Continue to application",
+      "Publish free. Tell us what you offer and how it benefits our community; then complete the structured application aligned with the public Viajes card (destination, inclusions, price, business contact).",
+    negociosCta: "Publish free",
     privadoTitle: "Private individuals",
     privadoBody:
       "For people offering their own trip, spot, or package — not the agency path and not commercial partner inventory. Listings are reviewed for accuracy and quality.",

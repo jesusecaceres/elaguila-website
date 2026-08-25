@@ -20,7 +20,27 @@ const NEGOCIOS_OFFER_TO_TRIP_KEYS: Record<string, string[]> = {
   crucero: ["cruceros", "crucero"],
   resort: ["resorts", "resort"],
   escapada: ["fin-de-semana", "escapada"],
+  // Package 3 — extended offer-type vocabulary shared with the Community Opportunity Intake.
+  transporte: ["transporte"],
+  "agencia-servicio": ["tours"],
+  "viaje-grupo": ["tours"],
+  "viaje-familiar": ["tours"],
+  "viaje-religioso": ["tours"],
+  "viaje-educativo": ["tours"],
+  otro: ["tours"],
 };
+
+/**
+ * Package 3 — fail-closed public community-benefit resolution. Only an ADMIN-approved benefit
+ * (dedicated column, never owner-writable) with a written claim description renders publicly;
+ * "claimed", "none", or an absent column (migration not applied) yields undefined — no badge.
+ */
+function approvedCommunityBenefit(row: ViajesStagedListingRow): { description: string } | undefined {
+  if (row.community_benefit_status !== "approved") return undefined;
+  const j = row.listing_json as { intake?: { communityBenefit?: { description?: string } } };
+  const description = String(j.intake?.communityBenefit?.description ?? "").trim();
+  return description ? { description } : undefined;
+}
 
 const PRIVADO_OFFER_TO_TRIP_KEYS: Record<string, string[]> = {
   day_trip: ["dia"],
@@ -127,6 +147,7 @@ export function mapViajesStagedRowToViajesBusinessResult(row: ViajesStagedListin
       seasonKeys,
       serviceLanguageKeys,
       listingSearchExtras: negociosListingSearchExtras(d),
+      communityBenefitApproved: approvedCommunityBenefit(row),
       discovery: { featuredBase: 46, sourceTrust: 1, completeness: 0.75 },
       sellerLane: "business",
     };

@@ -185,6 +185,9 @@ export type ViajesUi = {
     businessViewListing: string;
     businessMoreDetails: string;
     readFree: string;
+    /** Package 3 — rendered ONLY for an admin-approved community benefit (fail closed). */
+    communityBenefitBadge: string;
+    communityBenefitHeading: string;
   };
   offerDetail: {
     previewBanner: string;
@@ -512,6 +515,8 @@ function es(): Omit<ViajesUi, "lang"> {
       businessViewListing: "Ver ficha publicada",
       businessMoreDetails: "Más detalles",
       readFree: "Lectura gratuita",
+      communityBenefitBadge: "Beneficio para la comunidad Leonix",
+      communityBenefitHeading: "Beneficio para la comunidad Leonix",
     },
     offerDetail: {
       previewBanner: "Vista previa — así verán tu oferta en Clasificados (datos de borrador / ejemplo).",
@@ -849,6 +854,8 @@ function en(): Omit<ViajesUi, "lang"> {
       businessViewListing: "View listing",
       businessMoreDetails: "More details",
       readFree: "Free to read",
+      communityBenefitBadge: "Leonix Community Benefit",
+      communityBenefitHeading: "Leonix Community Benefit",
     },
     offerDetail: {
       previewBanner: "Preview — this is how your offer will appear in Classifieds (sample / draft data).",

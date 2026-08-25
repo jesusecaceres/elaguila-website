@@ -61,6 +61,12 @@ export type ViajesOfferDetailModel = {
   notes?: string;
   description: string;
   trustNote?: string;
+  /**
+   * Package 3 — ADMIN-APPROVED community benefit only (`community_benefit_status ===
+   * "approved"` on the staged row). Claimed/none/absent-column all leave this unset — fail
+   * closed, no public benefit section. Never carries intake PII.
+   */
+  communityBenefitApproved?: { description: string };
 };
 
 export const VIAJES_OFFER_DETAILS: Record<string, ViajesOfferDetailModel> = {

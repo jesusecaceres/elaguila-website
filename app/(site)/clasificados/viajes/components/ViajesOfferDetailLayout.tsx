@@ -519,6 +519,17 @@ function ViajesOfferDetailLayoutBody({
             </div>
           ) : null}
           {offer.notes ? <p className="text-sm text-[color:var(--lx-muted)]">{offer.notes}</p> : null}
+          {offer.communityBenefitApproved ? (
+            // Package 3 — rendered ONLY for an admin-approved community benefit (fail closed).
+            <div className="rounded-xl border border-emerald-800/30 bg-emerald-50/60 p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-emerald-900">
+                {ui.cards.communityBenefitHeading}
+              </p>
+              <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-[color:var(--lx-text-2)]">
+                {offer.communityBenefitApproved.description}
+              </p>
+            </div>
+          ) : null}
           {offer.trustNote ? (
             <div className="rounded-xl border border-dashed border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)]/90 p-4 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
               {offer.trustNote}

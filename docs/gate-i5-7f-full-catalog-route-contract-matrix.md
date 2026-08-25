@@ -39,6 +39,107 @@ and, for the full-catalog Preview runtime certification recorded below,
 It does not claim the two route systems are unified, and it does not repair every stale value it
 documents — see [Unresolved Route Debt](#unresolved-route-debt).
 
+## Globalization Reconcile Package 3 Update Log — Viajes Free Community Opportunity Experience
+
+Enforced by [`scripts/gate-pkg3-viajes-intake-selftest.ts`](../scripts/gate-pkg3-viajes-intake-selftest.ts)
+and the re-pinned [`scripts/gate-pkgA-checkpoints-selftest.ts`](../scripts/gate-pkgA-checkpoints-selftest.ts).
+Branch `globalization-release-reconcile-2026-08-14`. Implements the Package 2 owner lock
+(2026-08-25) in the Viajes product experience.
+
+### Free checkpoint live in code
+
+- `getViajesCheckpointCards()` negocios card is now a FREE-variant card ("Publica gratis" /
+  "Publish free", "Gratis"/"Free" price label, `couponEligible: false`) whose CTA routes to the
+  Community Opportunity Intake. No `$399` remains on any current Viajes surface; the mixed-page
+  Launch coupon banner no longer renders for Viajes (no paid-style card exists). The private
+  lane card and its launch policy (`NEXT_PUBLIC_VIAJES_PRIVATE_LANE_DISABLED`) are unchanged.
+- Pricing-matrix cleanup: the resolved "Viajes business monthly pricing final lock" decision was
+  removed from `REVENUE_PRICING_UNRESOLVED_OWNER_DECISIONS`; the two remaining real decisions
+  are now named constants (`REVENUE_UNRESOLVED_DECISION_RENTAS_SPLIT`,
+  `REVENUE_UNRESOLVED_DECISION_LISTING_WINDOW`) — no more fragile positional indexing.
+
+### Community Opportunity Intake (mandatory for brand-new business submissions)
+
+- New mobile-first, ES/EN, 3-section intake at `/publicar/viajes/negocios/intake`
+  (business/offer/community-benefit; local draft before auth, authenticated save at "Enviar
+  información" via `POST /api/clasificados/viajes/intake`). Brand-new business publishers are
+  routed through it (checkpoint card, branch chooser, and an entry guard in the application
+  shell); existing rows (edit / revise / resubmit / `changes_requested` via `?stagedId=`) never
+  repeat the intake.
+- **One-row staged identity**: the intake creates the SAME `viajes_staged_listings` row
+  (`lifecycle_status: "draft"`, `lane: "business"`, `is_public: false`,
+  `listing_json: {version:1, intake:{…}}`) that the full application later enriches
+  (`negocios` merged in, intake block preserved by `updateViajesStagedListingOwnerRevision`) and
+  submits. No second table, no duplicate rows (repeat saves update the owner's intake-stage row,
+  owner-predicated, zero-row-safe). Stage is derived, not stored:
+  `resolveViajesStagedApplicationStage()` (`intake` = intake block, no negocios).
+- **No approval gate before continuation**: after the intake save Leonix has visibility
+  immediately and the provider continues straight to the prefilled full application.
+  Publication approval is unchanged (existing moderation; nothing public before admin approve).
+- **Prefill** (`mapViajesIntakeToNegociosDraft`): businessName/email/phone/website/socials/
+  offerType/destino/ciudadSalida map 1:1; precio composes the price basis ("$1,999 por
+  persona"); `viaje-grupo`/`viaje-familiar` derive `grupos`/`familias`; community-benefit prose
+  is NEVER dumped into `descripcion`/`incluye`. A row that already has `negocios` always wins —
+  intake never overwrites a full application. The offer-type vocabulary was extended (shared by
+  intake and application): `transporte`, `agencia-servicio`, `viaje-grupo`, `viaje-familiar`,
+  `viaje-religioso`, `viaje-educativo`, `otro`.
+- **Dashboard**: intake-only rows show "Solicitud iniciada — continúa cuando quieras" with a
+  "Continuar solicitud" CTA (`?stagedId=`); they can never "resubmit" (hidden in UI AND
+  rejected server-side with `intake_only_row`). Analytics ride the existing canonical
+  `clasificadosAnalytics` allowlist (`apply_started`/`apply_submitted` with
+  `metadata.flow: "viajes_intake"`, stage `intake`/`full`) — no new event types, no
+  abandonment/resume fiction.
+
+### Admin early visibility
+
+- `/admin/clasificados/viajes/business-offers`: new "Stage / Opportunity" column (Intake / Full
+  application in progress / lifecycle), an "Intake (opportunity only)" queue filter, and an
+  expandable Opportunity panel (business, contact, offer, destination, departure, normal price
+  + basis, benefit types + description, estimated value band, same-public-offer answer,
+  expiration, restrictions, benefit truth status, updated time) — visible from the intake save,
+  BEFORE the full application exists. Also fixed in passing: the admin queue's bounded select
+  had silently omitted `lane`/`submitter_*`/`submitted_at` (columns the table already rendered
+  as blanks); the select is now `"*"` (still capped at 500 rows) which is also the
+  transitional-safe way to read the optional benefit column.
+- The read-only `TravelOpportunityLead` projection
+  (`app/(site)/clasificados/viajes/lib/travelOpportunityLead.ts`) is the published contract a
+  future Business Concierge may CONSUME; Viajes owns the source truth and no Concierge file was
+  touched.
+
+### Community-benefit truth (claim vs. verdict)
+
+- CLAIM lives in `listing_json.intake.communityBenefit` (owner-writable via the intake API;
+  `samePublicOffer: "same"` is never a claim). VERDICT lives in the new
+  `community_benefit_status` COLUMN (`none|claimed|approved`, default `none`) — deliberately
+  not in `listing_json`, because owner revisions rewrite that envelope wholesale.
+- Only the admin moderation route (`action: "approve_benefit"`, admin cookie required) can set
+  `approved`, and its write is narrowed to rows currently `claimed`. Every owner intake save
+  recomputes `claimed`/`none` — the documented fail-safe re-review rule: ANY owner edit of the
+  intake downgrades an approved benefit back to `claimed` (no content-diff engine).
+- **Public badge is approved-only and fail-closed**: results card badge + detail section
+  ("Beneficio para la comunidad Leonix" / "Leonix Community Benefit") render ONLY when
+  `community_benefit_status === "approved"` AND a written benefit description exists.
+  `claimed`, `none`, or an ABSENT COLUMN (migration not applied) render nothing. No
+  "exclusive/verified/guaranteed" language anywhere. Benefit approval adds NO ranking signal.
+  Intake PII (contactName, intake email/phone) never reaches public mappers (pinned by test).
+
+### Migration — AUTHORED, NOT APPLIED
+
+- [`supabase/migrations/20260825150000_viajes_community_benefit_status.sql`](../supabase/migrations/20260825150000_viajes_community_benefit_status.sql)
+  — one additive column + CHECK, no RLS change, no index, no lifecycle-constraint change.
+  **Not applied to any environment by this package.** Until the owner applies it: intake saves
+  and moderation work normally (the benefit-status write is best-effort and reports
+  `columnMissing`), admin benefit approval returns an honest `benefit_column_missing` error,
+  and no public badge can ever render. Applying the migration is the ONLY remaining dependency
+  for the public Community Benefit badge to function in Production.
+
+### QA remaining (deferred to owner, post-deploy)
+
+Checkpoint free card (visual) → intake walkthrough ES/EN on a phone (authenticated) → prefill
+into `/publicar/viajes/negocios?stagedId=…` → Preview → submit → `/admin/clasificados/viajes/
+business-offers` intake visibility + benefit approve → public results/detail badge. No
+Production action was taken by this package.
+
 ## Globalization Reconcile Package 2 Update Log — OWNER LOCK 2026-08-25: Free Viajes and Cupones Catalog
 
 Enforced by [`scripts/gate-pkgC-viajes-cupones-free-catalog-selftest.ts`](../scripts/gate-pkgC-viajes-cupones-free-catalog-selftest.ts).
