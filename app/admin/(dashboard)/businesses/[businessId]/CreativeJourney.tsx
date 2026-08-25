@@ -11,6 +11,7 @@ import type {
   CreativeProviderRun,
   CreativeReview,
 } from "@/app/lib/business/creativeStudio/types";
+import { buildNewBriefPrefill, type NewBriefPrefill } from "@/app/lib/business/creativeStudio/briefPrefill";
 import {
   getLastProviderRunForJob,
   getLatestBriefForJob,
@@ -25,6 +26,7 @@ export type CreativeJobWorkspace = {
   snapshot: CreativeInputSnapshot | null;
   snapshotLoadError: boolean;
   brief: CreativeBrief | null;
+  briefPrefill: NewBriefPrefill | null;
   currentVersion: CreativeJobVersion | null;
   lastRun: CreativeProviderRun | null;
   reviews: CreativeReview[];
@@ -37,7 +39,7 @@ export async function loadCreativeJobWorkspaces(
   jobs: CreativeJob[],
   opportunities: readonly { id: string; titleEn: string }[],
 ): Promise<CreativeJobWorkspace[]> {
-  return Promise.all(jobs.map(async (job) => {
+  const loaded = await Promise.all(jobs.map(async (job) => {
     const opportunityTitle = job.sourceOpportunityId
       ? opportunities.find((row) => row.id === job.sourceOpportunityId)?.titleEn ?? null
       : null;
@@ -55,6 +57,7 @@ export async function loadCreativeJobWorkspaces(
         snapshot,
         snapshotLoadError: false,
         brief,
+        briefPrefill: null as NewBriefPrefill | null,
         currentVersion: versions[0] ?? null,
         lastRun,
         reviews: reviewRows,
@@ -67,6 +70,7 @@ export async function loadCreativeJobWorkspaces(
         snapshot: null,
         snapshotLoadError: true,
         brief: null,
+        briefPrefill: null as NewBriefPrefill | null,
         currentVersion: null,
         lastRun: null,
         reviews: [],
@@ -75,6 +79,12 @@ export async function loadCreativeJobWorkspaces(
       };
     }
   }));
+
+  if (loaded.some((row) => !row.brief)) {
+    const prefill = await buildNewBriefPrefill(businessId);
+    return loaded.map((row) => (row.brief ? row : { ...row, briefPrefill: prefill }));
+  }
+  return loaded;
 }
 
 function jobStatusMeaning(status: string): string {
@@ -154,7 +164,7 @@ export function CreativeJobCard({
   canCreateBrief: boolean;
   providerAvailable: boolean;
 }) {
-  const { job, snapshot, snapshotLoadError, brief, currentVersion, lastRun, reviews, exports, opportunityTitle } = workspace;
+  const { job, snapshot, snapshotLoadError, brief, briefPrefill, currentVersion, lastRun, reviews, exports, opportunityTitle } = workspace;
   const generatedReady = Boolean(currentVersion);
   const generatedExport = exports.filter((row) => row.status === "generated");
 
@@ -201,7 +211,13 @@ export function CreativeJobCard({
         {brief ? (
           <BriefReadout brief={brief} />
         ) : (
-          <CreateBriefForm businessId={businessId} jobId={job.id} canCreateBrief={canCreateBrief} creativeLane={job.creativeLane} />
+          <CreateBriefForm
+            businessId={businessId}
+            jobId={job.id}
+            canCreateBrief={canCreateBrief}
+            creativeLane={job.creativeLane}
+            prefill={briefPrefill}
+          />
         )}
       </Step>
 

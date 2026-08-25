@@ -583,6 +583,54 @@ export async function createProviderRun(
   return mapProviderRunRow(data);
 }
 
+const CREATIVE_ASSET_METADATA_COLUMNS =
+  "id, business_id, job_id, asset_kind, original_filename, mime_type, storage_ref, rights_source, rights_status, authenticity_classification, approval_state, source_url, created_at";
+
+const CREATIVE_ASSET_METADATA_LIMIT = 40;
+
+export type CreativeAssetMetadata = {
+  id: string;
+  businessId: string;
+  jobId: string | null;
+  assetKind: BusinessCreativeAsset["assetKind"];
+  originalFilename: string;
+  mimeType: string;
+  storageRef: string;
+  rightsSource: BusinessCreativeAsset["rightsSource"];
+  rightsStatus: BusinessCreativeAsset["rightsStatus"];
+  authenticityClassification: BusinessCreativeAsset["authenticityClassification"];
+  approvalState: BusinessCreativeAsset["approvalState"];
+  sourceUrl: string | null;
+  createdAt: string;
+};
+
+/** Bounded metadata-only read for Truth Packet compile. No binary. No signed URLs. */
+export async function listCreativeAssetMetadataForBusiness(businessId: string): Promise<CreativeAssetMetadata[]> {
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("business_creative_assets")
+    .select(CREATIVE_ASSET_METADATA_COLUMNS)
+    .eq("business_id", businessId)
+    .order("created_at", { ascending: false })
+    .limit(CREATIVE_ASSET_METADATA_LIMIT);
+  if (error || !data) return [];
+  return (data as Record<string, unknown>[]).map((row) => ({
+    id: String(row.id),
+    businessId: String(row.business_id),
+    jobId: (row.job_id as string | null) ?? null,
+    assetKind: row.asset_kind as BusinessCreativeAsset["assetKind"],
+    originalFilename: String(row.original_filename ?? ""),
+    mimeType: String(row.mime_type ?? ""),
+    storageRef: String(row.storage_ref ?? ""),
+    rightsSource: row.rights_source as BusinessCreativeAsset["rightsSource"],
+    rightsStatus: row.rights_status as BusinessCreativeAsset["rightsStatus"],
+    authenticityClassification: row.authenticity_classification as BusinessCreativeAsset["authenticityClassification"],
+    approvalState: row.approval_state as BusinessCreativeAsset["approvalState"],
+    sourceUrl: (row.source_url as string | null) ?? null,
+    createdAt: String(row.created_at),
+  }));
+}
+
 // ─── Package A, Gate 10 — AI-generated image assets ────────────────────────
 
 /**

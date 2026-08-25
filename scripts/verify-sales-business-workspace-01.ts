@@ -959,6 +959,39 @@ check("Gate 09: Program 7 dynamic routes resolve; encoded Creative Studio list r
   assert.ok(!existsSync(path.resolve(__dirname, "..", "app/api/admin/businesses/[businessId]/creative-studio/route.ts")));
   assert.ok(outcomesRouteGate09.includes("listBusinessOutcomes(businessId)"));
 });
+const assemblerGate10b = read("app/lib/business/creativeStudio/researchPacketAssembler.ts");
+const packetLogicGate10b = read("app/lib/business/creativeStudio/researchPacketLogic.ts");
+const briefPrefillGate10b = read("app/lib/business/creativeStudio/briefPrefill.ts");
+const creativeRepoGate10b = read("app/lib/business/creativeStudio/repository.ts");
+const generateRouteGate10b = read("app/api/admin/businesses/[businessId]/creative-studio/jobs/[jobId]/generate/route.ts");
+check("Gate 10B: Creative Truth Packet compiles canonical contacts/destinations/assets into existing snapshots", () => {
+  assert.ok(assemblerGate10b.includes("listContactsForBusiness"));
+  assert.ok(assemblerGate10b.includes("listServiceAreasForBusiness"));
+  assert.ok(assemblerGate10b.includes("listDigitalProfilesForBusiness"));
+  assert.ok(assemblerGate10b.includes("listCustomLinksForBusiness"));
+  assert.ok(assemblerGate10b.includes("listCreativeAssetMetadataForBusiness"));
+  assert.ok(creativeRepoGate10b.includes("business_creative_input_snapshots"));
+  assert.ok(creativeRepoGate10b.includes("Append-only"));
+  assert.ok(generateRouteGate10b.includes("createInputSnapshot"));
+  assert.ok(!assemblerGate10b.includes("business_meeting_notes"));
+  assert.ok(assemblerGate10b.includes("confirmedSponsorship: false"));
+  assert.ok(!assemblerGate10b.includes("CREATE TABLE"));
+});
+check("Gate 10B: new brief can prefill; saved brief is preserved; image/publication/migration unchanged", () => {
+  assert.ok(briefPrefillGate10b.includes("buildNewBriefPrefill"));
+  assert.ok(packetLogicGate10b.includes("briefPrefillFromPacket"));
+  assert.ok(creativeJourneyGate07.includes("briefPrefill"));
+  assert.ok(creativeJourneyGate07.includes("<BriefReadout"));
+  assert.ok(!creativeJourneyGate07.includes("assembleResearchPacket"));
+  assert.ok(creativeJourneyGate07.includes("getLatestSnapshotForJob"));
+  assert.ok(creativeActionsGate07.includes("Prefill is editable and is not saved until you click Save"));
+  assert.ok(creativePacketGate07.includes("Missing important information"));
+  assert.ok(creativePacketGate07.includes("uploaded is not approved"));
+  assert.ok(packetLogicGate10b.includes("Brand colors"));
+  assert.ok(!creativeActionsGate07.includes("generate-image"));
+  assert.ok(imageGenRouteGate07.includes("OPENAI_IMAGE_GENERATION_ENABLED"));
+  assert.ok(creativeJourneyGate07.includes("not publication"));
+});
 check("Gate 09: Advisor/Assistant identity boundaries; Command Center Advisor is bounded", () => {
   assert.ok(advisorPanelGate09.includes("/api/admin/businesses/${businessId}/advisor/${signalId}"));
   assert.ok(!advisorPanelGate09.includes("/api/admin/businesses/${signalId}/"));

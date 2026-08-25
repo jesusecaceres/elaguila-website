@@ -105,22 +105,35 @@ export function CreateBriefForm({
   jobId,
   canCreateBrief,
   creativeLane,
+  prefill,
 }: {
   businessId: string;
   jobId: string;
   canCreateBrief: boolean;
   creativeLane: string;
+  prefill?: {
+    businessGoal: string;
+    campaignObjective: string;
+    readerNeed: string;
+    targetAudience: string;
+    primaryMessage: string;
+    cta: string;
+    contactPath: string;
+    keyServicesText: string;
+    offer: string;
+  } | null;
 }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [businessGoal, setBusinessGoal] = useState("");
-  const [campaignObjective, setCampaignObjective] = useState("");
-  const [readerNeed, setReaderNeed] = useState("");
-  const [targetAudience, setTargetAudience] = useState("");
-  const [primaryMessage, setPrimaryMessage] = useState("");
-  const [cta, setCta] = useState("");
-  const [contactPath, setContactPath] = useState("");
+  const [businessGoal, setBusinessGoal] = useState(prefill?.businessGoal ?? "");
+  const [campaignObjective, setCampaignObjective] = useState(prefill?.campaignObjective ?? "");
+  const [readerNeed, setReaderNeed] = useState(prefill?.readerNeed ?? "");
+  const [targetAudience, setTargetAudience] = useState(prefill?.targetAudience ?? "");
+  const [primaryMessage, setPrimaryMessage] = useState(prefill?.primaryMessage ?? "");
+  const [cta, setCta] = useState(prefill?.cta ?? "");
+  const [contactPath, setContactPath] = useState(prefill?.contactPath ?? "");
+  const [keyServicesText, setKeyServicesText] = useState(prefill?.keyServicesText ?? "");
   const [imageStrategy, setImageStrategy] = useState("");
   const [desiredAction, setDesiredAction] = useState("");
   const [lane, setLane] = useState(creativeLane || CREATIVE_LANES[0]);
@@ -145,6 +158,7 @@ export function CreateBriefForm({
         contactPath,
         imageStrategy,
         desiredAction,
+        keyServices: keyServicesText.trim() ? [keyServicesText.trim()] : [],
         creativeLane: lane,
       }),
     });
@@ -167,7 +181,7 @@ export function CreateBriefForm({
         void submit();
       }}
     >
-      <p className="text-xs text-[#7A7164]">Creative Brief is derived working direction. It is not the Truth Packet.</p>
+      <p className="text-xs text-[#7A7164]">Creative Brief is derived working direction. It is not the Truth Packet. Prefill is editable and is not saved until you click Save.</p>
       <input className={fieldClass} value={businessGoal} onChange={(e) => setBusinessGoal(e.target.value)} placeholder="Business goal" required />
       <input className={fieldClass} value={campaignObjective} onChange={(e) => setCampaignObjective(e.target.value)} placeholder="Campaign objective" required />
       <input className={fieldClass} value={readerNeed} onChange={(e) => setReaderNeed(e.target.value)} placeholder="Reader need" required />
@@ -175,6 +189,7 @@ export function CreateBriefForm({
       <textarea className={fieldClass} value={primaryMessage} onChange={(e) => setPrimaryMessage(e.target.value)} placeholder="Primary message" rows={2} required />
       <input className={fieldClass} value={cta} onChange={(e) => setCta(e.target.value)} placeholder="CTA" required />
       <input className={`${fieldClass} break-all`} value={contactPath} onChange={(e) => setContactPath(e.target.value)} placeholder="Contact path" required />
+      <input className={fieldClass} value={keyServicesText} onChange={(e) => setKeyServicesText(e.target.value)} placeholder="Key services (optional)" />
       <input className={fieldClass} value={imageStrategy} onChange={(e) => setImageStrategy(e.target.value)} placeholder="Image strategy" required />
       <input className={fieldClass} value={desiredAction} onChange={(e) => setDesiredAction(e.target.value)} placeholder="Desired action" required />
       <select className={fieldClass} value={lane} onChange={(e) => setLane(e.target.value)}>

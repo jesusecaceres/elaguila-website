@@ -1733,6 +1733,118 @@ test("118. Fix 4: Normal issue with blocker/warning/minor severity is valid", ()
   }
 });
 
+import {
+  briefPrefillFromPacket,
+  contactIsWhatsApp,
+  isConfirmedLivingBookFact,
+  missingBrandTruthItems,
+  packetExcludesRawMeetingNotes,
+  preferredContactPath,
+} from "../app/lib/business/creativeStudio/researchPacketLogic";
+import type { SnapshotCategory } from "../app/lib/business/creativeStudio/types";
+
+const assemblerSrc = fs.readFileSync(path.join(__dirname, "../app/lib/business/creativeStudio/researchPacketAssembler.ts"), "utf-8");
+const snapshotRepoSrc = fs.readFileSync(path.join(__dirname, "../app/lib/business/creativeStudio/repository.ts"), "utf-8");
+const briefFormSrc = fs.readFileSync(path.join(__dirname, "../app/admin/(dashboard)/businesses/[businessId]/CreativeStudioActions.tsx"), "utf-8");
+const packetUiSrc = fs.readFileSync(path.join(__dirname, "../app/admin/(dashboard)/businesses/[businessId]/CreativeTruthPacket.tsx"), "utf-8");
+const journeySrc = fs.readFileSync(path.join(__dirname, "../app/admin/(dashboard)/businesses/[businessId]/CreativeJourney.tsx"), "utf-8");
+const generateRouteSrc = fs.readFileSync(path.join(__dirname, "../app/api/admin/businesses/[businessId]/creative-studio/jobs/[jobId]/generate/route.ts"), "utf-8");
+const imageFlagSrc = fs.readFileSync(path.join(__dirname, "../app/lib/business/creativeStudio/providerTypes.ts"), "utf-8");
+
+test("GATE10B: immutable snapshot store is reused, not a new table", () => {
+  assert(snapshotRepoSrc.includes("business_creative_input_snapshots"), "existing snapshot table");
+  assert(snapshotRepoSrc.includes("Append-only"), "append-only createInputSnapshot");
+  assert(!assemblerSrc.includes("CREATE TABLE"), "no assembler migration");
+  assert(!assemblerSrc.includes("business_meeting_notes"), "raw meeting notes excluded");
+});
+test("GATE10B: confirmed contacts, destinations, service areas, and assets are compiled", () => {
+  assert(assemblerSrc.includes("listContactsForBusiness"), "contacts");
+  assert(assemblerSrc.includes("listDigitalProfilesForBusiness"), "digital profiles");
+  assert(assemblerSrc.includes("listCustomLinksForBusiness"), "custom links");
+  assert(assemblerSrc.includes("listServiceAreasForBusiness"), "service areas");
+  assert(assemblerSrc.includes("listCreativeAssetMetadataForBusiness"), "asset metadata");
+  assert(assemblerSrc.includes("client_logo"), "client logo compile");
+  assert(assemblerSrc.includes("operating_models"), "canonical operating models");
+  assert(!assemblerSrc.includes("operating_model,"), "no invented singular operating_model column");
+});
+test("GATE10B: raw meeting notes stay out; confirmed Living Book facts stay in", () => {
+  assert(packetExcludesRawMeetingNotes(assemblerSrc), "no meeting table reads");
+  assert(assemblerSrc.includes("business_facts"), "Living Book facts");
+  assert(assemblerSrc.includes("isConfirmedLivingBookFact"), "confirmation filter");
+  assert(isConfirmedLivingBookFact("staff_confirmed", "active"), "staff confirmed included");
+  assert(isConfirmedLivingBookFact("owner_confirmed", "active"), "owner confirmed included");
+  assert(!isConfirmedLivingBookFact("unconfirmed", "active"), "unconfirmed excluded");
+});
+test("GATE10B: missing brand colors/personality remain missing; no invented CTA/offer", () => {
+  const missing = missingBrandTruthItems();
+  const empty = briefPrefillFromPacket([]);
+  assert(missing.some((row) => row.includes("Brand colors")), "colors missing");
+  assert(missing.some((row) => row.includes("personality")), "personality missing");
+  assertEq(empty.cta, "", "cta not invented");
+  assertEq(empty.offer, "", "offer not invented");
+});
+test("GATE10B: contact compile and brief prefill mappings are deterministic", () => {
+  const categories: SnapshotCategory[] = [
+    {
+      category: "confirmed_facts",
+      truthStatus: "KNOWN",
+      data: {
+        facts: [
+          { fieldKey: "owner_goals", displayValue: "Keep the shop family-run" },
+          { fieldKey: "target_customer", displayValue: "Local families" },
+          { fieldKey: "product_service_summary", displayValue: "Tacos and aguas" },
+        ],
+      },
+      evidenceRefs: [],
+      snapshotTimestamp: "2026-01-01T00:00:00Z",
+    },
+    {
+      category: "approved_contacts_location",
+      truthStatus: "KNOWN",
+      data: { contacts: [{ contactType: "website", value: "https://example.com", isPrimary: false, visibility: "public", channelKind: null, capabilities: [], isWhatsApp: false }] },
+      evidenceRefs: [],
+      snapshotTimestamp: "2026-01-01T00:00:00Z",
+    },
+    {
+      category: "source_recommendation",
+      truthStatus: "KNOWN",
+      data: { recommendations: [{ needEn: "Clarify the offer before advertising" }] },
+      evidenceRefs: [],
+      snapshotTimestamp: "2026-01-01T00:00:00Z",
+    },
+  ];
+  const prefill = briefPrefillFromPacket(categories);
+  assertEq(prefill.businessGoal, "Keep the shop family-run", "goal");
+  assertEq(prefill.targetAudience, "Local families", "audience");
+  assertEq(prefill.primaryMessage, "Tacos and aguas", "service");
+  assertEq(prefill.keyServicesText, "Tacos and aguas", "key services");
+  assertEq(prefill.contactPath, "https://example.com", "contact path");
+  assertEq(prefill.readerNeed, "Clarify the offer before advertising", "reader need");
+  assert(contactIsWhatsApp({ channelKind: "whatsapp", capabilities: [] }), "whatsapp channel");
+  assertEq(preferredContactPath([{ id: "1", contactType: "phone", value: "555", isPrimary: true, visibility: "public", channelKind: null, capabilities: [], isWhatsApp: false }]), "555", "phone path");
+});
+test("GATE10B: new brief can prefill; saved brief is not overwritten; no auto-save/approval/image/publish", () => {
+  assert(briefFormSrc.includes("prefill"), "prefill prop");
+  assert(briefFormSrc.includes("Prefill is editable and is not saved until you click Save"), "no auto-save copy");
+  assert(journeySrc.includes("brief ?"), "saved brief branch");
+  assert(journeySrc.includes("<BriefReadout"), "saved brief readout");
+  assert(!briefFormSrc.includes("useEffect(() => { void submit"), "no auto-submit");
+  assert(!journeySrc.includes("assembleResearchPacket"), "journey does not live-reassemble packet UI");
+  assert(journeySrc.includes("getLatestSnapshotForJob"), "immutable snapshot read");
+  assert(generateRouteSrc.includes("sourceOpportunityId"), "linked opportunity at generate");
+  assert(assemblerSrc.includes("confirmedSponsorship: false"), "no invented sponsorship");
+  assert(assemblerSrc.includes("getOpportunityById"), "in-business opportunity only");
+  assert(snapshotRepoSrc.includes("listCreativeAssetMetadataForBusiness"), "metadata helper");
+  assert(snapshotRepoSrc.includes("No binary"), "no binary copy");
+  assert(!snapshotRepoSrc.includes("base64"), "no base64");
+  assert(imageFlagSrc.includes("OPENAI_IMAGE_GENERATION_ENABLED"), "image flag unchanged");
+  assert(packetUiSrc.includes("Missing important information"), "missing section");
+  assert(packetUiSrc.includes("uploaded is not approved"), "uploaded != approved");
+  assert(!journeySrc.includes("generate-image"), "no image UI");
+  assert(journeySrc.includes("not publication"), "export is not publication");
+  assert(assemblerSrc.includes(".eq(\"id\", businessId)") || assemblerSrc.includes(".eq(\"business_id\", businessId)"), "business scope");
+});
+
 // ─── Main ───────────────────────────────────────────────────────────────────
 
 function main() {

@@ -62,7 +62,7 @@ export async function POST(
   const actor = salesActorToCreativeActor(access.actor);
 
   // 1. Assemble a fresh verified truth snapshot and persist it (append-only).
-  const packet = await assembleResearchPacket(businessId);
+  const packet = await assembleResearchPacket(businessId, { sourceOpportunityId: job.sourceOpportunityId });
   const snapshot = await createInputSnapshot(businessId, jobId, packet.categories, actor);
   if (!snapshot) {
     return NextResponse.json({ ok: false, error: "snapshot_persist_failed" }, { status: 500 });

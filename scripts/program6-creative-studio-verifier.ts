@@ -1311,6 +1311,80 @@ function verifyGate07StaffSurface(): VerifyCheck[] {
   return checks;
 }
 
+function verifyGate10BCompileBridge(): VerifyCheck[] {
+  const assembler = readCsFile("researchPacketAssembler.ts");
+  const logic = readCsFile("researchPacketLogic.ts");
+  const repo = readCsFile("repository.ts");
+  const prefill = readCsFile("briefPrefill.ts");
+  const providerTypes = readCsFile("providerTypes.ts");
+  const packet = fs.readFileSync(path.join(BASE, "app", "admin", "(dashboard)", "businesses", "[businessId]", "CreativeTruthPacket.tsx"), "utf-8");
+  const journey = fs.readFileSync(path.join(BASE, "app", "admin", "(dashboard)", "businesses", "[businessId]", "CreativeJourney.tsx"), "utf-8");
+  const actions = fs.readFileSync(path.join(BASE, "app", "admin", "(dashboard)", "businesses", "[businessId]", "CreativeStudioActions.tsx"), "utf-8");
+  const generate = fs.readFileSync(path.join(BASE, "app", "api", "admin", "businesses", "[businessId]", "creative-studio", "jobs", "[jobId]", "generate", "route.ts"), "utf-8");
+  const migrations = fs.readdirSync(path.join(BASE, "supabase", "migrations"));
+
+  return [
+    {
+      check: "Gate 10B: existing immutable snapshot store reused",
+      pass: repo.includes("business_creative_input_snapshots") && repo.includes("Append-only") && generate.includes("createInputSnapshot") && generate.includes("assembleResearchPacket"),
+      detail: "Generation still compiles then persists append-only business_creative_input_snapshots",
+    },
+    {
+      check: "Gate 10B: canonical contacts/destinations/location/assets compiled",
+      pass: assembler.includes("listContactsForBusiness")
+        && assembler.includes("listServiceAreasForBusiness")
+        && assembler.includes("listDigitalProfilesForBusiness")
+        && assembler.includes("listCustomLinksForBusiness")
+        && assembler.includes("listCreativeAssetMetadataForBusiness")
+        && assembler.includes("operating_models"),
+      detail: "Packet compile uses existing identity, contact, service-area, digital, and asset repositories",
+    },
+    {
+      check: "Gate 10B: meeting notes excluded; confirmed Living Book facts included",
+      pass: !assembler.includes("business_meeting_notes")
+        && assembler.includes("business_facts")
+        && assembler.includes("isConfirmedLivingBookFact")
+        && logic.includes("owner_confirmed")
+        && logic.includes("staff_confirmed"),
+      detail: "Raw meeting notes stay out; promoted confirmed facts compile",
+    },
+    {
+      check: "Gate 10B: asset metadata only; rights preserved; no binary",
+      pass: repo.includes("CREATIVE_ASSET_METADATA_COLUMNS")
+        && repo.includes("No binary")
+        && !repo.includes("base64")
+        && packet.includes("uploaded is not approved")
+        && assembler.includes("rightsStatus")
+        && assembler.includes("uploadedDoesNotMeanApproved"),
+      detail: "Assets compile as metadata/reference with stored rights/approval",
+    },
+    {
+      check: "Gate 10B: missing brand truth stays missing; no invented sponsorship",
+      pass: logic.includes("Brand colors")
+        && logic.includes("Brand personality")
+        && assembler.includes("confirmedCta: null")
+        && assembler.includes("confirmedOffer: null")
+        && assembler.includes("confirmedSponsorship: false")
+        && assembler.includes("getOpportunityById"),
+      detail: "Colors/personality/CTA/offer/sponsorship are not invented",
+    },
+    {
+      check: "Gate 10B: new-brief prefill only; saved brief preserved; no auto-save/approval/image/publish/migration",
+      pass: prefill.includes("buildNewBriefPrefill")
+        && journey.includes("row.brief ? row :")
+        && journey.includes("<BriefReadout")
+        && actions.includes("Prefill is editable and is not saved until you click Save")
+        && !journey.includes("assembleResearchPacket")
+        && journey.includes("getLatestSnapshotForJob")
+        && !actions.includes("generate-image")
+        && providerTypes.includes("OPENAI_IMAGE_GENERATION_ENABLED")
+        && journey.includes("not publication")
+        && !migrations.some((name) => name.includes("GATE_10B") || name.includes("truth_packet")),
+      detail: "Prefill is unsaved-form only; Gate 07 boundaries and no new migration",
+    },
+  ];
+}
+
 // ─── Main ───────────────────────────────────────────────────────────────────
 
 function main() {
@@ -1318,7 +1392,8 @@ function main() {
   const archChecks = verifyArchitecture();
   const packageAChecks = verifyPackageA();
   const gate07Checks = verifyGate07StaffSurface();
-  const all = [...migrationChecks, ...archChecks, ...packageAChecks, ...gate07Checks];
+  const gate10bChecks = verifyGate10BCompileBridge();
+  const all = [...migrationChecks, ...archChecks, ...packageAChecks, ...gate07Checks, ...gate10bChecks];
   const passed = all.filter((c) => c.pass).length;
   const failed = all.filter((c) => !c.pass);
 
@@ -1328,6 +1403,7 @@ function main() {
   console.log(`Architecture checks: ${archChecks.filter((c) => c.pass).length}/${archChecks.length}`);
   console.log(`Package A checks: ${packageAChecks.filter((c) => c.pass).length}/${packageAChecks.length}`);
   console.log(`Gate 07 staff surface checks: ${gate07Checks.filter((c) => c.pass).length}/${gate07Checks.length}`);
+  console.log(`Gate 10B compile bridge checks: ${gate10bChecks.filter((c) => c.pass).length}/${gate10bChecks.length}`);
   console.log(`Total: ${passed}/${all.length}`);
   console.log("");
 
