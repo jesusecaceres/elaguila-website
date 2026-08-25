@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useInstallPrompt } from "@/app/lib/pwa/useInstallPrompt";
+import { BusinessConciergeInstallBanner } from "@/app/admin/(dashboard)/businesses/BusinessConciergeInstallBanner";
 
 /**
  * Program 7, Gate 7G — Mobile Staff Field Agent shell.
@@ -189,17 +189,7 @@ export function NetworkStatusIndicator() {
 }
 
 export function InstallCta() {
-  const { canInstall, promptInstall } = useInstallPrompt();
-  if (!canInstall) return null;
-  return (
-    <button
-      type="button"
-      onClick={() => void promptInstall()}
-      className="min-h-[44px] rounded-lg bg-[#7A1E2C] px-3 py-2 text-xs font-semibold text-white"
-    >
-      Instalar app / Install app
-    </button>
-  );
+  return <BusinessConciergeInstallBanner />;
 }
 
 export function BusinessQuickActions({ businessId }: { businessId: string }) {

@@ -23,7 +23,7 @@ export function AdminShell({
 }) {
   return (
     <AdminI18nProvider lang={adminLang}>
-    <div className={adminPageBg}>
+    <div className={`${adminPageBg} pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]`}>
       <div
         className="pointer-events-none fixed inset-0 opacity-[0.04]"
         style={{

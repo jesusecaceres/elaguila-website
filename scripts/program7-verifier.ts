@@ -256,8 +256,8 @@ function verifySourceArchitecture(): VerifyCheck[] {
   const fieldAgentFile = readSourceFile("app/admin/field/FieldAgentComponents.tsx");
   checks.push({
     name: "Field Agent shell: consumes shared install hook",
-    passed: fieldAgentFile.includes('from "@/app/lib/pwa/useInstallPrompt"'),
-    detail: "Field Agent shell must reuse the shared hook, not define its own",
+    passed: fieldAgentFile.includes("BusinessConciergeInstallBanner"),
+    detail: "Field Agent shell must reuse the shared Command Center install surface",
   });
   checks.push({
     name: "Field Agent shell: no duplicated beforeinstallprompt handler",
@@ -303,7 +303,11 @@ function verifySourceArchitecture(): VerifyCheck[] {
     passed:
       manifestFile.includes('name: "Leonix Business Concierge"') &&
       manifestFile.includes('short_name: "Leonix Concierge"') &&
-      manifestFile.includes('start_url: "/admin/businesses"'),
+      manifestFile.includes('start_url: "/admin/businesses"') &&
+      manifestFile.includes('scope: "/admin/"') &&
+      manifestFile.includes("/pwa/icon-192.png") &&
+      manifestFile.includes("/pwa/icon-512.png") &&
+      !manifestFile.includes("orientation"),
   });
 
   const fieldHomeFile = readSourceFile("app/admin/field/page.tsx");
@@ -341,7 +345,7 @@ function verifySourceArchitecture(): VerifyCheck[] {
   });
   checks.push({
     name: "Install banner: uses shared hook, not a private beforeinstallprompt handler",
-    passed: installBannerFile.includes('from "@/app/lib/pwa/useInstallPrompt"') && !installBannerFile.includes("addEventListener(\"beforeinstallprompt\""),
+    passed: installBannerFile.includes('from "@/app/lib/pwa/useInstallPrompt"') && !installBannerFile.includes("addEventListener(\"beforeinstallprompt\"") && installBannerFile.includes("Install Business Concierge") && installBannerFile.includes("Add to Home Screen") && installBannerFile.includes("Installed"),
   });
 
   const advisorPanelFile = readSourceFile("app/admin/(dashboard)/businesses/[businessId]/AdvisorPanel.tsx");

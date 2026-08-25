@@ -1,21 +1,23 @@
 /**
- * Program 7, Gate 7G — Conservative service worker for Staff Field Agent PWA.
+ * Conservative service worker for the shared Leonix Business Concierge PWA.
  *
- * V1 rules:
+ * Rules:
  * - Cache only static shell assets (CSS, JS bundles, images)
- * - NEVER cache API responses (business data is sensitive and must always be fresh)
- * - NEVER cache authentication responses
+ * - NEVER cache API responses, auth traffic, or private Business Concierge data
+ * - NEVER cache authentication cookies/tokens
  * - Truthful offline behavior: show offline page, not fake data
- * - No offline mutation queues in V1
- * - No background sync, no push notifications in V1
+ * - No offline mutation queues
+ * - No background sync, no push
+ * - One shared worker identity for every authorized user on the device
  */
 
-const CACHE_NAME = "leonix-field-v1";
+const CACHE_NAME = "leonix-business-concierge-v1";
 const OFFLINE_URL = "/offline";
 
 const STATIC_ASSET_PATTERNS = [
   /\/_next\/static\//,
   /\/_next\/chunks\//,
+  /\/pwa\//,
   /\.(?:css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2)$/i,
 ];
 

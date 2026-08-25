@@ -239,9 +239,16 @@ test("39. assistant cannot externally message", () => isProhibitedAction("SEND_M
 test("40. manifest returns expected installability metadata", () =>
   sqlContains(manifestSource, /display: "standalone"/) &&
   sqlContains(manifestSource, /start_url: "\/admin\/businesses"/) &&
+  sqlContains(manifestSource, /scope: "\/admin\/"/) &&
+  sqlContains(manifestSource, /id: "\/admin\/businesses"/) &&
   sqlContains(manifestSource, /name: "Leonix Business Concierge"/) &&
   sqlContains(manifestSource, /short_name: "Leonix Concierge"/) &&
-  sqlContains(manifestSource, /icons:/));
+  sqlContains(manifestSource, /\/pwa\/icon-192\.png/) &&
+  sqlContains(manifestSource, /\/pwa\/icon-512\.png/) &&
+  sqlContains(manifestSource, /purpose: "maskable"/) &&
+  !sqlContains(manifestSource, /orientation:/) &&
+  fs.existsSync(path.join(__dirname, "../public/pwa/icon-192.png")) &&
+  fs.existsSync(path.join(__dirname, "../public/pwa/icon-512.png")));
 
 test("41. service worker excludes /api/*", () =>
   sqlContains(swSource, /NEVER_CACHE_PATTERNS[\s\S]{0,80}\/\\\/api\\\//));
@@ -469,7 +476,8 @@ test("76. save remains explicit; photo/file still uses Field Discovery upload", 
 test("77. PWA identity remains Leonix Business Concierge with start_url /admin/businesses", () =>
   sqlContains(manifestSource, /name: "Leonix Business Concierge"/) &&
   sqlContains(manifestSource, /short_name: "Leonix Concierge"/) &&
-  sqlContains(manifestSource, /start_url: "\/admin\/businesses"/));
+  sqlContains(manifestSource, /start_url: "\/admin\/businesses"/) &&
+  sqlContains(manifestSource, /scope: "\/admin\/"/));
 
 test("78. service worker still never caches APIs; no mutation queue or background sync", () =>
   sqlContains(swSource, /NEVER_CACHE_PATTERNS/) &&
@@ -506,7 +514,7 @@ test("81. owner-bootstrap evidence path remains Living Book, not business_sales_
 const advisorPanel = readSource("app/admin/(dashboard)/businesses/[businessId]/AdvisorPanel.tsx");
 const assistantPanel = readSource("app/admin/(dashboard)/businesses/[businessId]/AssistantPanel.tsx");
 const outcomesPanel = readSource("app/admin/(dashboard)/businesses/[businessId]/OutcomesPanel.tsx");
-const advisorListRoute = readSource("app/api/admin/businesses/[businessId]/advisor/route.ts");
+const _advisorListRoute = readSource("app/api/admin/businesses/[businessId]/advisor/route.ts");
 const advisorActionRoute = readSource("app/api/admin/businesses/[businessId]/advisor/[signalId]/route.ts");
 const assistantListRoute = readSource("app/api/admin/businesses/[businessId]/assistant/route.ts");
 const assistantThreadRoute = readSource("app/api/admin/businesses/[businessId]/assistant/[threadId]/route.ts");
@@ -593,6 +601,30 @@ test("92. Gate 09: owner bootstrap does not fabricate a roster for Advisor or As
   sqlContains(readSource("app/admin/_lib/businessWorkspaceAccess.ts"), /Never fabricates a roster row/) &&
   sqlContains(advisorActionRoute, /salesActorToAdvisorActor/) &&
   sqlContains(assistantThreadRoute, /salesActorToAssistantActor/));
+
+const installBanner = readSource("app/admin/(dashboard)/businesses/BusinessConciergeInstallBanner.tsx");
+const installHook = readSource("app/lib/pwa/useInstallPrompt.ts");
+const adminNavStrings = readSource("app/admin/_lib/adminStrings.ts");
+test("93. PWA install CTA is user-triggered, detects installed, and tells iOS/iPad the Share path", () =>
+  sqlContains(installBanner, /Install Business Concierge/) &&
+  sqlContains(installBanner, /promptInstall/) &&
+  sqlContains(installBanner, /Installed/) &&
+  sqlContains(installBanner, /Add to Home Screen/) &&
+  sqlContains(installHook, /userChoice/) &&
+  sqlContains(installHook, /appinstalled/) &&
+  sqlContains(installHook, /maxTouchPoints/) &&
+  sqlContains(installBanner, /This browser cannot install automatically/) &&
+  !sqlContains(installBanner, /addEventListener\("beforeinstallprompt"/));
+test("94. one shared PWA identity; install grants no privilege; no per-user worker/manifest; no mutation queue", () =>
+  sqlContains(manifestSource, /id: "\/admin\/businesses"/) &&
+  sqlContains(swSource, /leonix-business-concierge-v1/) &&
+  sqlContains(installBanner, /Your login decides access/) &&
+  sqlContains(installBanner, /does not change server authorization/) &&
+  sqlContains(adminNavStrings, /"nav.businesses": "Business Concierge"/) &&
+  sqlContains(swRegistration, /register\("\/sw\.js"/) &&
+  !sqlContains(manifestSource, /userId/) &&
+  !sqlContains(swSource, /indexedDB/) &&
+  !sqlContains(swSource, /backgroundsync/i));
 
 // Report
 const passed = results.filter((r) => r.passed).length;

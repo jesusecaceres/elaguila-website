@@ -549,6 +549,32 @@ check("Gate 01: PWA identity is Leonix Business Concierge with start_url /admin/
   assert.ok(manifestText.includes('short_name: "Leonix Concierge"'));
   assert.ok(manifestText.includes('start_url: "/admin/businesses"'));
 });
+check("PWA installability closeout: one shared app, real icons, install CTA, admin doorway", () => {
+  const banner = read("app/admin/(dashboard)/businesses/BusinessConciergeInstallBanner.tsx");
+  const hook = read("app/lib/pwa/useInstallPrompt.ts");
+  const sw = read("public/sw.js");
+  const nav = read("app/admin/_lib/adminStrings.ts");
+  const access = read("app/admin/_lib/adminAccessControl.ts");
+  assert.ok(manifestText.includes('id: "/admin/businesses"'));
+  assert.ok(manifestText.includes('scope: "/admin/"'));
+  assert.ok(manifestText.includes("/pwa/icon-192.png"));
+  assert.ok(manifestText.includes("/pwa/icon-512-maskable.png"));
+  assert.ok(existsSync(path.resolve(__dirname, "../public/pwa/icon-192.png")));
+  assert.ok(existsSync(path.resolve(__dirname, "../public/pwa/icon-512.png")));
+  assert.ok(banner.includes("Install Business Concierge"));
+  assert.ok(banner.includes("Installed"));
+  assert.ok(banner.includes("Add to Home Screen"));
+  assert.ok(hook.includes("userChoice"));
+  assert.ok(hook.includes("maxTouchPoints"));
+  assert.ok(sw.includes("leonix-business-concierge-v1"));
+  assert.ok(sw.includes("NEVER_CACHE_PATTERNS"));
+  assert.ok(sw.includes("\\/api\\/"));
+  assert.ok(!sw.includes("indexedDB"));
+  assert.ok(nav.includes('"nav.businesses": "Business Concierge"'));
+  assert.ok(access.includes('hrefs = ["/admin", "/admin/businesses"]'));
+  assert.ok(access.includes('"/admin/businesses"'));
+  assert.ok(!manifestText.includes("userId"));
+});
 check("Gate 01: staffConciergeHome is a pure read model — no DB writes, no new table", () => {
   const homeLib = read("app/admin/_lib/staffConciergeHome.ts");
   assert.ok(!/\.from\(/.test(homeLib));
