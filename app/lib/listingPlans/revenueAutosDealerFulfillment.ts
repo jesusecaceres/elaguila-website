@@ -19,6 +19,12 @@ import {
 } from "./publishCheckoutCheckpoint";
 import { getRevenuePackageDefinition } from "./revenuePricingMatrix";
 import type { LeonixPaymentRecordRow } from "./revenuePaymentRecords";
+import { resolveCanonicalListingSourceForCategory } from "./revenueListingSourceResolver";
+
+/** Package 1 (Gate 3/5) — sourced from the single canonical resolver rather than an
+ * independently-maintained literal. */
+const AUTOS_CANONICAL_LISTING_SOURCE =
+  resolveCanonicalListingSourceForCategory("autos") ?? "autos_classifieds_listings";
 
 export type AutosDealerRevenueActivationOutcome =
   | "activated"
@@ -85,7 +91,7 @@ async function grantAutosDealerInventoryPackAddOn(input: {
 
   const { error } = await supabase.from("listing_package_entitlements").insert({
     category: "autos",
-    listing_source: "autos_classifieds_listings",
+    listing_source: AUTOS_CANONICAL_LISTING_SOURCE,
     listing_id: listingId,
     package_tier: "digital_only",
     entitlement_code: generateEntitlementCode(),

@@ -71,6 +71,7 @@ import {
   type ReserveVerifiedIntroDiscountInput,
 } from "@/app/lib/listingPlans/verifiedIntroDiscountRedemptions";
 import { ensureVerifiedIntroDiscountStripeCoupon } from "@/app/lib/listingPlans/verifiedIntroDiscountStripeCoupon";
+import { resolveCanonicalListingSourceForPackageKey } from "@/app/lib/listingPlans/revenueListingSourceResolver";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -378,7 +379,10 @@ export async function POST(request: NextRequest) {
 
     const business = await resolveCommercialBusinessIdentity({
       category: prelim.packageDef.category,
-      listingSource: body.sourceTable ?? null,
+      // Package 1 (Gate 3/4) — server-derived canonical source, never the client-supplied
+      // body.sourceTable (a crafted request could otherwise influence anti-repeat business
+      // identity dedup keying).
+      listingSource: resolveCanonicalListingSourceForPackageKey(prelim.packageDef.packageKey),
       listingId: prelim.listingRef,
       ownerUserId,
     });
@@ -469,6 +473,11 @@ export async function POST(request: NextRequest) {
 
   const { packageDef, listingRef, amountCents, subtotalCents, addOns, currency, stripeMode } = validated;
 
+  // Package 1 (Gate 3/4) — the single server-derived canonical listing_source for this
+  // checkout, resolved from the server-validated packageKey/category. Never the client-supplied
+  // body.sourceTable — that field is retained only as an informational metadata note.
+  const canonicalListingSource = resolveCanonicalListingSourceForPackageKey(packageDef.packageKey);
+
   const locale = body.locale === "en" ? "en" : "es";
   const isRestauranteAddonOnly =
     packageDef.packageKey === RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY &&
@@ -513,7 +522,7 @@ export async function POST(request: NextRequest) {
       ownerUserId,
       customerEmail: body.customerEmail ?? null,
       category: packageDef.category,
-      listingSource: body.sourceTable ?? null,
+      listingSource: canonicalListingSource,
       listingId: listingRef || null,
       packageKey: packageDef.packageKey,
       amountCents,
@@ -532,7 +541,7 @@ export async function POST(request: NextRequest) {
   // open Stripe session; a genuinely new attempt requires the prior one resolved or stale.
   const checkoutAttemptKey = computeCheckoutAttemptKey({
     ownerUserId,
-    listingSource: body.sourceTable ?? packageDef.category,
+    listingSource: canonicalListingSource ?? packageDef.category,
     listingId: listingRef,
     packageKey: packageDef.packageKey,
     addOns: addOns.map((a) => ({ key: a.key, quantity: a.quantity })),
@@ -601,6 +610,7 @@ export async function POST(request: NextRequest) {
 
   const paymentInsert = await createPendingPaymentRecord({
     category: packageDef.category,
+    listingSource: canonicalListingSource,
     packageKey: packageDef.packageKey,
     packageDef,
     amountCents,

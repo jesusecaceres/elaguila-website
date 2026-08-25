@@ -27,6 +27,10 @@ import {
 } from "./placementEntitlements";
 import { computeEndsAt } from "./subscriptionLifecyclePolicy";
 import { writePlacementEntitlement } from "./placementEntitlementWriter";
+import {
+  resolveCanonicalListingSourceForCategory,
+  resolveListingSourceReadCompatibilitySet,
+} from "./revenueListingSourceResolver";
 
 export { computeEndsAt };
 
@@ -176,7 +180,11 @@ export async function activatePackageEntitlement(
     .from("listing_package_entitlements")
     .insert({
       category: input.category,
-      listing_source: input.category,
+      // Package 1 (Gate 3/4) — canonical source, not the bare category slug (root defect: this
+      // used to write e.g. "servicios"/"autos" while readers expect "servicios_public_listings"/
+      // "autos_classifieds_listings"). Falls back to the category slug only for a category the
+      // resolver does not yet recognize, preserving prior behavior rather than writing null.
+      listing_source: resolveCanonicalListingSourceForCategory(input.category) ?? input.category,
       listing_id: listingId,
       package_tier: "digital_only",
       entitlement_code: generateEntitlementCode(),
@@ -218,10 +226,13 @@ export async function activatePackageEntitlement(
     // This is the ACTUAL durable idempotency boundary for every grant source, comp/partner
     // included — never the pre-check SELECTs above, which are fast-path optimizations only.
     if (pkgError?.code === "23505") {
+      // Package 1 (Gate 5) — tolerate both the canonical value and any legacy alias a
+      // pre-existing row may have been written under, since the write above now writes
+      // canonical-first.
       const { data: liveRow } = await supabase
         .from("listing_package_entitlements")
         .select("id")
-        .eq("listing_source", input.category)
+        .in("listing_source", resolveListingSourceReadCompatibilitySet(input.category))
         .eq("listing_id", listingId)
         .eq("package_key", input.packageDef.packageKey)
         .in("status", ["active", "scheduled"])
@@ -469,10 +480,13 @@ export async function extendEntitlementForInvoicePaid(input: {
   let targetId = String(input.packageEntitlementId ?? "").trim() || null;
   if (!targetId && input.listingSource && input.listingId && input.packageKey) {
     // Legacy-pointer fallback via the M4 unique key; the caller heals the pointer afterward.
+    // Package 1 (Gate 5) — tolerate both the canonical value the caller now passes and any
+    // legacy alias a pre-existing row may still carry (input.listingSource may itself be a
+    // bare category slug from an older caller).
     const { data } = await supabase
       .from("listing_package_entitlements")
       .select("id")
-      .eq("listing_source", input.listingSource)
+      .in("listing_source", resolveListingSourceReadCompatibilitySet(input.listingSource))
       .eq("listing_id", input.listingId)
       .eq("package_key", input.packageKey)
       .in("status", ["active", "scheduled", "expired"])

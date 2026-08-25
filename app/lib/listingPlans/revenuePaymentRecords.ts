@@ -40,6 +40,9 @@ export type CreatePendingPaymentRecordInput = {
   /** True when checkout is add-on-only (e.g. dashboard Restaurante coupon upgrade). */
   addonOnly?: boolean;
   sourceTable?: string | null;
+  /** Package 1 (Gate 3/4) — canonical, server-derived `listing_source` (never client-supplied).
+   * See `resolveCanonicalListingSourceForPackageKey` in `revenueListingSourceResolver.ts`. */
+  listingSource?: string | null;
   currentExpiresAt?: string | null;
   renewalAttemptId?: string | null;
   returnContext?: string | null;
@@ -123,6 +126,7 @@ export async function createPendingPaymentRecord(
     .from("leonix_payment_records")
     .insert({
       category: input.category,
+      listing_source: input.listingSource ?? null,
       listing_id: input.listingId,
       package_key: input.packageKey,
       placement_tier: input.packageDef.placementTierKey ?? null,

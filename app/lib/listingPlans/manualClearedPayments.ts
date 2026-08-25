@@ -19,6 +19,7 @@ import { writeRevenueAuditLog } from "./revenueAuditLog";
 import { getRevenuePackageDefinition } from "./revenuePricingMatrix";
 import { activateEntitlementsForPayment, type PaymentRecordRow } from "./revenueEntitlementFulfillment";
 import { applyPaymentSuspension } from "./subscriptionLifecycle";
+import { resolveCanonicalListingSourceForCategory } from "./revenueListingSourceResolver";
 
 export type ManualPaymentMethod = "cash" | "check" | "zelle" | "ach" | "money_order" | "other";
 export { canTransitionManualState, type ManualPaymentState } from "./refundDisputePolicy";
@@ -58,7 +59,10 @@ export async function recordManualPaymentPendingVerification(
     .from("leonix_payment_records")
     .insert({
       category: input.category,
-      listing_source: input.listingSource ?? packageDef.category,
+      // Package 1 (Gate 3/4) — an explicit caller-supplied listingSource wins; otherwise resolve
+      // canonically from the package's category rather than defaulting to the bare category slug.
+      listing_source:
+        input.listingSource ?? resolveCanonicalListingSourceForCategory(packageDef.category) ?? packageDef.category,
       listing_id: input.listingId ?? null,
       leonix_ad_id: input.leonixAdId ?? null,
       owner_user_id: input.ownerUserId,

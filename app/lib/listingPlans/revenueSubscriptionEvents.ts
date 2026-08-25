@@ -19,6 +19,7 @@ import { writeRevenueAuditLog } from "./revenueAuditLog";
 import { attachStripeIdentitiesToConsent } from "./recurringConsent";
 import { extendEntitlementForInvoicePaid } from "./revenueEntitlementFulfillment";
 import { recordDisputeOnPaymentRecord, recordRefundOnPaymentRecord } from "./refundDisputeFoundations";
+import { resolveCanonicalListingSourceForCategory } from "./revenueListingSourceResolver";
 import {
   applyPaymentSuspension,
   computeGraceEndsAt,
@@ -147,7 +148,11 @@ export async function ensureSubscriptionRecordFromCheckoutSession(input: {
         consent_record_id: metadata.leonix_consent_record_id ?? null,
         owner_user_id: metadata.leonix_owner_user_id ?? null,
         category: metadata.leonix_category ?? null,
-        listing_source: metadata.leonix_category ?? null,
+        // Package 1 (Gate 3/4) — canonical source, not the bare category slug.
+        listing_source:
+          resolveCanonicalListingSourceForCategory(metadata.leonix_category) ??
+          metadata.leonix_category ??
+          null,
         listing_id: metadata.leonix_listing_id ?? null,
         package_key: metadata.leonix_package_key ?? null,
         amount_cents: session.amount_total ?? null,
@@ -226,6 +231,9 @@ export async function handleInvoicePaid(input: {
   // Per-invoice renewal payment record — idempotent via the M5 partial unique index.
   const { error: invoiceInsertError } = await supabase.from("leonix_payment_records").insert({
     category: record.category,
+    // Package 1 (Gate 3/4) — root defect fix: renewal-originated payment records previously
+    // wrote no listing_source at all.
+    listing_source: resolveCanonicalListingSourceForCategory(record.category) ?? record.category ?? null,
     listing_id: record.listing_id,
     package_key: record.package_key,
     billing_mode: "monthly_subscription",

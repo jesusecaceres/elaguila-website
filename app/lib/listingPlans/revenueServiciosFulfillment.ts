@@ -11,6 +11,13 @@ import { randomBytes } from "node:crypto";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type { LeonixPaymentRecordRow } from "./revenuePaymentRecords";
 import { getRevenuePackageDefinition } from "./revenuePricingMatrix";
+import { resolveCanonicalListingSourceForCategory } from "./revenueListingSourceResolver";
+
+/** Package 1 (Gate 3/5) — sourced from the single canonical resolver rather than an
+ * independently-maintained literal, closing the drift class this file's own Gate E.1 fix
+ * (below) exists to compensate for. */
+const SERVICIOS_CANONICAL_LISTING_SOURCE =
+  resolveCanonicalListingSourceForCategory("servicios") ?? "servicios_public_listings";
 
 /** Hidden DB status for unpaid Servicios listings saved before Revenue OS Stripe checkout. */
 export const SERVICIOS_PENDING_CHECKOUT_STATUS = "pending_payment" as const;
@@ -73,7 +80,7 @@ export async function grantServiciosOffersAddonEntitlementFromBasePayment(input:
 
   const { error } = await supabase.from("listing_package_entitlements").insert({
     category: "servicios",
-    listing_source: "servicios_public_listings",
+    listing_source: SERVICIOS_CANONICAL_LISTING_SOURCE,
     listing_id: listingId,
     package_tier: "digital_only",
     entitlement_code: generateEntitlementCode(),
@@ -130,7 +137,7 @@ export async function normalizeServiciosOffersAddonEntitlementSource(input: {
   const supabase = getAdminSupabase();
   const { error } = await supabase
     .from("listing_package_entitlements")
-    .update({ listing_source: "servicios_public_listings" })
+    .update({ listing_source: SERVICIOS_CANONICAL_LISTING_SOURCE })
     .eq("id", id)
     .eq("category", "servicios")
     .eq("package_key", SERVICIOS_OFFERS_ADDON_PACKAGE_KEY);
