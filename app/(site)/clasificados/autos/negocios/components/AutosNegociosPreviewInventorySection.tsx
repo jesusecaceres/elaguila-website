@@ -5,11 +5,10 @@ import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/
 import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import type { AutosNegociosBuyerPreviewInventoryCard } from "@/app/lib/clasificados/autos/mapAutosNegociosBuyerPreviewViewModel";
 import {
-  autosInventoryBundleAdditionalLabel,
+  autosPreviewInventoryBundleCardQuietLabel,
   autosPreviewInventorySectionHelper,
   autosPreviewInventorySectionTitle,
   autosRelatedInventoryAvailableAfterPublish,
-  autosRelatedInventoryDraftCardLabel,
   autosRelatedInventoryFullDraftDeferral,
   autosRelatedInventoryWillPublishWithRequest,
 } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
@@ -20,9 +19,12 @@ import {
   autosPreviewRectBadgeClass,
   autosPreviewSectionEyebrowClass,
   autosPreviewSectionTitleClass,
-  autosRelatedInventoryShelfCardShellClass,
   autosRelatedInventoryShelfScrollClass,
 } from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
+
+/** Preview-owned (this component's sole consumer is the draft-capture shell) — intentionally
+ * narrower than the shared `autosRelatedInventoryShelfCardShellClass` used on live/privado. */
+const BUNDLE_CARD_SHELL_CLASS = "w-[70vw] max-w-[240px] shrink-0 snap-start lg:w-auto lg:max-w-none lg:shrink";
 
 export function AutosNegociosPreviewInventorySection({
   lang,
@@ -78,7 +80,7 @@ export function AutosNegociosPreviewInventorySection({
         {visible.map((card) => (
           <article
             key={card.id}
-            className={`${autosPreviewPremiumCardClass} overflow-hidden ${autosRelatedInventoryShelfCardShellClass}`}
+            className={`${autosPreviewPremiumCardClass} overflow-hidden ${BUNDLE_CARD_SHELL_CLASS}`}
           >
             <div className="aspect-[4/3] bg-[#F5F0E8]">
               {card.coverUrl ? (
@@ -90,9 +92,9 @@ export function AutosNegociosPreviewInventorySection({
                 </div>
               )}
             </div>
-            <div className="p-4">
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8A6B1F]">
-                {autosInventoryBundleAdditionalLabel(lang)} · {autosRelatedInventoryDraftCardLabel(lang)}
+            <div className="p-3.5">
+              <p className="text-[11px] font-medium text-[#8A7A68]">
+                {autosPreviewInventoryBundleCardQuietLabel(lang)}
               </p>
               <h3 className="mt-1 font-serif text-base font-bold text-[#1F241C]">{card.title}</h3>
               <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm text-[#5C5346]">
