@@ -190,7 +190,7 @@ function MensajesPageContent() {
   };
 
   return (
-    <LeonixDashboardShell lang={lang} activeNav="messages" plan={plan} userName={name} email={email} accountRef={accountRef} ownerId={ownerId}>
+    <LeonixDashboardShell lang={lang} activeNav="messages" plan={plan} userName={name} email={email} accountRef={accountRef} ownerId={ownerId} contentLayout="workbench">
       {loading ? (
         <div className={`${LX_DASH.panel} p-10 text-center text-sm text-[#5C5346]`}>{t.loading}</div>
       ) : (

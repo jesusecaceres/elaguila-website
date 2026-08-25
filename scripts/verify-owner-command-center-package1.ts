@@ -136,7 +136,19 @@ const normalizedPages = [
 for (const rel of normalizedPages) {
   const content = read(rel);
   check(`${rel} uses LeonixDashboardShell`, /LeonixDashboardShell/.test(content));
-  check(`${rel} uses LX_DASH.pageTitle for its page heading`, /LX_DASH\.pageTitle/.test(content));
+  // Gate 3E moved Account Command Center and Concierge hub titles into shared
+  // composers. The heading token remains LX_DASH.pageTitle; it no longer has to
+  // live on the route file itself.
+  const headingFiles =
+    rel === "app/(site)/dashboard/page.tsx"
+      ? [rel, "app/(site)/dashboard/components/OwnerAccountCommandCenter.tsx"]
+      : rel === "app/(site)/dashboard/business-tools/page.tsx"
+        ? [rel, "app/(site)/dashboard/components/BusinessConciergeOwnerHome.tsx"]
+        : [rel];
+  check(
+    `${rel} uses LX_DASH.pageTitle for its page heading`,
+    headingFiles.some((f) => /LX_DASH\.pageTitle/.test(f === rel ? content : read(f))),
+  );
 }
 for (const rel of [
   "app/(site)/dashboard/page.tsx",

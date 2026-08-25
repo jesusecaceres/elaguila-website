@@ -221,7 +221,7 @@ function DashboardListingAnalyticsPageContent() {
     : false;
 
   return (
-    <LeonixDashboardShell lang={lang} activeNav="analytics" plan="free" userName={name} email={email} accountRef={accountRef} ownerId={userId}>
+    <LeonixDashboardShell lang={lang} activeNav="analytics" plan="free" userName={name} email={email} accountRef={accountRef} ownerId={userId} contentLayout="workbench">
       {loading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>
       ) : access === "missing" ? (

@@ -733,6 +733,7 @@ function ListingWorkspacePageContent() {
       email={email}
       accountRef={accountRef}
       ownerId={userId}
+      contentLayout="workbench"
       sidebarTone={isEnVentaListing ? "varios" : "default"}
       rightPanel={
         <DashboardMobilePreview
