@@ -817,6 +817,47 @@ checks.push({
   detail: "No RLS policies may be created on promotion table — service_role bypasses RLS",
 });
 
+const proposalActionsGate10a = path.join(root, "app/admin/(dashboard)/businesses/[businessId]/ProposalActions.tsx");
+const proposalPageGate10a = path.join(root, "app/admin/(dashboard)/businesses/[businessId]/page.tsx");
+const proposalRepoGate10a = path.join(root, "app/lib/business/proposals/repository.ts");
+const proposalCreateRouteGate10a = path.join(root, "app/api/admin/businesses/[businessId]/proposals/route.ts");
+const proposalConstantsGate10a = path.join(root, "app/lib/business/proposals/constants.ts");
+checks.push({
+  name: "Gate 10A: create proposal UI and versioning reuse existing domain",
+  passed:
+    checkFileContains(proposalActionsGate10a, /export function CreateProposalForm/) &&
+    checkFileContains(proposalPageGate10a, /No proposal has been created yet/) &&
+    checkFileContains(proposalRepoGate10a, /nextProposalVersion/) &&
+    checkFileContains(proposalRepoGate10a, /replaced_by_new_version/) &&
+    checkFileContains(proposalCreateRouteGate10a, /create_proposal/) &&
+    checkFileContains(proposalCreateRouteGate10a, /staff_roster_required/) &&
+    checkFileNotContains(proposalConstantsGate10a, /needs_changes/) &&
+    checkFileNotContains(proposalConstantsGate10a, /postponed/),
+  detail: "Create UI, version increment, and roster rule must exist without new statuses",
+});
+checks.push({
+  name: "Gate 10A: Needs Changes uses owner_review to staff_review",
+  passed:
+    checkFileContains(proposalActionsGate10a, /Needs Changes/) &&
+    checkFileContains(proposalActionsGate10a, /transition\("staff_review", "needs_changes"\)/) &&
+    checkFileContains(proposalActionsGate10a, /not Declined, not Follow Up Later, and not Accepted/) &&
+    checkFileContains(path.join(root, "app/lib/business/proposals/constants.ts"), /owner_review: \["accepted", "declined", "staff_review", "expired"\]/),
+  detail: "Needs Changes must be the existing staff_review transition, not a new enum",
+});
+checks.push({
+  name: "Gate 10A: terminal proposal history is preserved on later create",
+  passed:
+    checkFileContains(path.join(root, "app/lib/business/proposals/logic.ts"), /isTerminalProposalHistoryStatus/) &&
+    checkFileContains(path.join(root, "app/lib/business/proposals/logic.ts"), /isWorkingReplaceableProposalStatus/) &&
+    checkFileContains(proposalRepoGate10a, /restorePreviousCurrentFlags/) &&
+    checkFileNotContains(proposalRepoGate10a, /newStatus: "superseded"/) &&
+    checkFileContains(proposalActionsGate10a, /Create Next Version/) &&
+    checkFileContains(proposalActionsGate10a, /Create New Proposal/) &&
+    checkFileContains(proposalRepoGate10a, /\.eq\("status", "accepted"\)/) &&
+    checkFileContains(proposalRepoGate10a, /\.eq\("is_current", true\)/),
+  detail: "Accepted/declined/expired/cancelled must keep status; only working rows become superseded",
+});
+
 // Report
 const passed = checks.filter((c) => c.passed).length;
 const failed = checks.filter((c) => !c.passed).length;

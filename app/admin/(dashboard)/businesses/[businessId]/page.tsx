@@ -32,7 +32,7 @@ import { listMeetingsForBusiness, listAttendeesForMeeting, listConsentsForMeetin
 import { isMeetingStudioEnabled } from "@/app/lib/business/meetingStudio/featureFlag";
 import { MeetingJourney } from "./MeetingJourney";
 import { listProposalsForBusiness } from "@/app/lib/business/proposals/repository";
-import { ProposalDetailPanel } from "./ProposalActions";
+import { CreateProposalForm, ProposalDetailPanel } from "./ProposalActions";
 import { listCommitmentsForBusiness, listEventsForCommitment } from "@/app/lib/business/promiseKeeper/repository";
 import { CreateCommitmentForm, CommitmentDetailPanel } from "./PromiseKeeperActions";
 import { listJobsForBusiness } from "@/app/lib/business/creativeStudio/repository";
@@ -195,7 +195,7 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
   const canViewMeetingStudio = actorHasCapability(access.actor, "view_meeting_studio");
   const canPrepareMeeting = actorHasCapability(access.actor, "prepare_business_meeting");
   const canReviewMeetingNotes = actorHasCapability(access.actor, "review_meeting_notes");
-  const _canCreateProposal = actorHasCapability(access.actor, "create_proposal");
+  const canCreateProposal = actorHasCapability(access.actor, "create_proposal");
   const canReviewProposal = actorHasCapability(access.actor, "review_proposal");
   const canRecordProposalDecision = actorHasCapability(access.actor, "record_proposal_decision");
   const canViewCommitments = actorHasCapability(access.actor, "view_commitments");
@@ -910,6 +910,7 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
           canApprove={canApproveRecommendation}
           canOverride={canOverrideRecommendation}
           canViewLedger={canViewLedger}
+          canCreateProposal={canCreateProposal}
           hasHealth={Boolean(canViewHealthMap && healthData)}
           hasOpportunity={Boolean(canViewOpportunities && opportunityEnabled)}
           hasCreative={Boolean(canViewCreativeStudio && creativeStudioEnabled)}
@@ -992,11 +993,33 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
                 const earlier = program5Data.proposals.filter((p) => !p.isCurrent).slice(0, 5);
                 const canWriteFollowUp = actorHasCapability(access.actor, "create_follow_up") && !isOwnerBootstrapActor(access.actor);
                 const canRecordDecision = canRecordProposalDecision && !isOwnerBootstrapActor(access.actor);
+                const recommendationPrefill = stewardshipData?.current ? {
+                  id: stewardshipData.current.id,
+                  verifiedNeedEn: stewardshipData.current.verifiedNeedEn,
+                  verifiedNeedEs: stewardshipData.current.verifiedNeedEs,
+                  recommendedIntervention: stewardshipData.current.primaryIntervention,
+                  ownerGoalEn: stewardshipData.current.ownerGoalAlignmentEn,
+                  ownerGoalEs: stewardshipData.current.ownerGoalAlignmentEs,
+                  freeOptionEn: stewardshipData.current.freeOptionEn,
+                  freeOptionEs: stewardshipData.current.freeOptionEs,
+                  successMetricEn: stewardshipData.current.successMetricEn,
+                  successMetricEs: stewardshipData.current.successMetricEs,
+                  reviewDate: stewardshipData.current.reviewDate,
+                } : null;
                 return (
                   <div className="mt-3 space-y-3">
                     <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Current proposal</p>
                     {current.length === 0 ? (
-                      <p className="text-sm text-[#7A7164]">No active proposal is ready for a client decision.</p>
+                      <div className="space-y-3">
+                        <p className="text-sm text-[#7A7164]">No proposal has been created yet.</p>
+                        <CreateProposalForm
+                          businessId={business.id}
+                          canCreate={canCreateProposal}
+                          hasCurrentProposal={false}
+                          currentProposal={null}
+                          recommendation={recommendationPrefill}
+                        />
+                      </div>
                     ) : current.map((p) => (
                       <ProposalDetailPanel
                         key={p.id}
@@ -1009,6 +1032,15 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
                         hasCurrentFollowUp={Boolean(currentFollowUp)}
                       />
                     ))}
+                    {current.length > 0 && canCreateProposal ? (
+                      <CreateProposalForm
+                        businessId={business.id}
+                        canCreate={canCreateProposal}
+                        hasCurrentProposal
+                        currentProposal={current[0] ?? null}
+                        recommendation={recommendationPrefill}
+                      />
+                    ) : null}
                     {earlier.length > 0 ? (
                       <div className="space-y-2">
                         <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Earlier proposals</p>

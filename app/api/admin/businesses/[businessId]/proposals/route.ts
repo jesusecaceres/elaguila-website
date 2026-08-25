@@ -3,7 +3,7 @@
  * Requires create_proposal / review_proposal / record_proposal_decision capabilities.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { requireSalesWorkspaceAccess, actorHasCapability, denialStatusCode } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { requireSalesWorkspaceAccess, actorHasCapability, denialStatusCode, isOwnerBootstrapActor } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { createProposal, listProposalsForBusiness } from "@/app/lib/business/proposals/repository";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ businessId: string }> }) {
@@ -22,6 +22,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ bus
   if (!access.ok) return NextResponse.json({ error: access.reason }, { status: denialStatusCode(access.reason) });
   if (!actorHasCapability(access.actor, "create_proposal")) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+  if (isOwnerBootstrapActor(access.actor) || !access.actor.rosterId) {
+    return NextResponse.json({ error: "staff_roster_required" }, { status: 400 });
   }
 
   const { businessId } = await params;

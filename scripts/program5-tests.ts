@@ -25,6 +25,11 @@ import {
   isValidAcceptanceActor,
   ownerAcceptanceRequiresNoStaffRoster,
   staffAcceptanceRequiresRoster,
+  nextProposalVersion,
+  previousCurrentShouldBecomeSuperseded,
+  previousCurrentReplacementStatus,
+  isWorkingReplaceableProposalStatus,
+  isTerminalProposalHistoryStatus,
 } from "../app/lib/business/proposals/logic";
 import { PROPOSAL_STATUSES, isValidProposalStatusTransition } from "../app/lib/business/proposals/constants";
 import type { ProposalActor } from "../app/lib/business/proposals/types";
@@ -105,6 +110,38 @@ test("proposal status: draft -> owner_review (invalid)", () => !canTransitionPro
 test("proposal status: staff_review -> owner_review", () => canTransitionProposalStatus("staff_review", "owner_review"));
 test("proposal status: owner_review -> accepted", () => canTransitionProposalStatus("owner_review", "accepted"));
 test("proposal status: owner_review -> declined", () => canTransitionProposalStatus("owner_review", "declined"));
+test("proposal status: owner_review -> staff_review (needs changes)", () => canTransitionProposalStatus("owner_review", "staff_review"));
+test("proposal statuses do not include needs_changes", () => !PROPOSAL_STATUSES.includes("needs_changes"));
+test("proposal cannot transition to needs_changes", () => !isValidProposalStatusTransition("owner_review", "needs_changes"));
+test("first proposal version is 1", () => nextProposalVersion([]) === 1);
+test("next proposal version increments from history", () => nextProposalVersion([1]) === 2 && nextProposalVersion([1, 3]) === 4);
+test("draft current → later version: old superseded, not current", () =>
+  previousCurrentReplacementStatus("draft") === "superseded" && previousCurrentShouldBecomeSuperseded("draft"));
+test("staff_review current → later version: old superseded, not current", () =>
+  previousCurrentReplacementStatus("staff_review") === "superseded" && previousCurrentShouldBecomeSuperseded("staff_review"));
+test("owner_review current → later version: old superseded, not current", () =>
+  previousCurrentReplacementStatus("owner_review") === "superseded" && previousCurrentShouldBecomeSuperseded("owner_review"));
+test("accepted current → later proposal: old remains accepted", () =>
+  previousCurrentReplacementStatus("accepted") === "accepted" && !previousCurrentShouldBecomeSuperseded("accepted") && isTerminalProposalHistoryStatus("accepted"));
+test("declined current → later proposal: old remains declined", () =>
+  previousCurrentReplacementStatus("declined") === "declined" && !previousCurrentShouldBecomeSuperseded("declined"));
+test("expired current → later proposal: old remains expired", () =>
+  previousCurrentReplacementStatus("expired") === "expired" && !previousCurrentShouldBecomeSuperseded("expired"));
+test("cancelled current → later proposal: old remains cancelled", () =>
+  previousCurrentReplacementStatus("cancelled") === "cancelled" && !previousCurrentShouldBecomeSuperseded("cancelled"));
+test("working statuses are replaceable; terminal statuses are historical", () =>
+  isWorkingReplaceableProposalStatus("draft") &&
+  isWorkingReplaceableProposalStatus("staff_review") &&
+  isWorkingReplaceableProposalStatus("owner_review") &&
+  !isWorkingReplaceableProposalStatus("accepted") &&
+  !isWorkingReplaceableProposalStatus("declined") &&
+  isTerminalProposalHistoryStatus("accepted") &&
+  isTerminalProposalHistoryStatus("declined") &&
+  isTerminalProposalHistoryStatus("expired") &&
+  isTerminalProposalHistoryStatus("cancelled") &&
+  !isTerminalProposalHistoryStatus("draft"));
+test("superseded current is not re-marked superseded", () =>
+  previousCurrentReplacementStatus("superseded") === "superseded" && !previousCurrentShouldBecomeSuperseded("superseded"));
 test("proposal status: accepted -> draft (invalid)", () => !canTransitionProposalStatus("accepted", "draft"));
 test("proposal status: cancelled -> anything (invalid)", () => !canTransitionProposalStatus("cancelled", "draft"));
 test("proposal statuses do not include postponed", () => !PROPOSAL_STATUSES.includes("postponed"));
@@ -526,6 +563,54 @@ test("GATE05: sales follow-up and Promise Keeper remain separate navigation", ()
   meetingJourneyUi.includes("#outreach") &&
   meetingJourneyUi.includes("#promises") &&
   meetingJourneyUi.includes("do not auto-create"));
+
+const proposalActionsUi = fs.readFileSync(path.join(root, "app/admin/(dashboard)/businesses/[businessId]/ProposalActions.tsx"), "utf-8");
+const proposalPageUi = fs.readFileSync(path.join(root, "app/admin/(dashboard)/businesses/[businessId]/page.tsx"), "utf-8");
+const proposalRepoSrc = fs.readFileSync(path.join(root, "app/lib/business/proposals/repository.ts"), "utf-8");
+const proposalCreateRoute = fs.readFileSync(path.join(root, "app/api/admin/businesses/[businessId]/proposals/route.ts"), "utf-8");
+const recommendJourneyUi = fs.readFileSync(path.join(root, "app/admin/(dashboard)/businesses/[businessId]/RecommendJourney.tsx"), "utf-8");
+test("GATE10A: staff can create a proposal through the dashboard UI", () =>
+  proposalActionsUi.includes("export function CreateProposalForm") &&
+  proposalPageUi.includes("<CreateProposalForm") &&
+  proposalPageUi.includes("No proposal has been created yet.") &&
+  recommendJourneyUi.includes("Create Proposal") &&
+  recommendJourneyUi.includes("#proposals"));
+test("GATE10A: creation is human-triggered POST and capability-gated", () =>
+  proposalActionsUi.includes('method: "POST"') &&
+  proposalCreateRoute.includes('"create_proposal"') &&
+  proposalCreateRoute.includes("staff_roster_required") &&
+  !proposalActionsUi.includes("useEffect(() => { void submit") &&
+  proposalPageUi.includes("canCreateProposal={canCreateProposal}"));
+test("GATE10A: versioning reuses existing superseded status without a new enum", () =>
+  proposalRepoSrc.includes("nextProposalVersion") &&
+  proposalRepoSrc.includes("replaced_by_new_version") &&
+  proposalRepoSrc.includes('status: "superseded"') &&
+  proposalRepoSrc.includes("previousCurrentShouldBecomeSuperseded") &&
+  !proposalRepoSrc.includes("needs_changes") &&
+  proposalActionsUi.includes('transition("staff_review", "needs_changes")') &&
+  proposalActionsUi.includes("Needs Changes") &&
+  proposalActionsUi.includes("Follow Up Later does not change proposal status."));
+test("GATE10A: Needs Changes is not Declined or Follow Up Later", () =>
+  proposalActionsUi.includes("It is not Declined, not Follow Up Later, and not Accepted") &&
+  proposalActionsUi.includes("does not create a new proposal version") &&
+  proposalActionsUi.includes("/api/admin/businesses/${businessId}/follow-up"));
+test("GATE10A: no payment, DocuSign, contract-complete, or opportunity status added", () =>
+  !proposalActionsUi.includes("docusign.com") &&
+  !proposalRepoSrc.includes("CREATE TABLE") &&
+  !proposalCreateRoute.includes("lifecycle_state"));
+test("GATE10A: terminal history is preserved; only working rows become superseded", () =>
+  proposalRepoSrc.includes("is_current: false") &&
+  proposalRepoSrc.includes("restorePreviousCurrentFlags") &&
+  proposalRepoSrc.includes("deleteInsertedProposal") &&
+  proposalRepoSrc.includes('.in("status", ["draft", "staff_review", "owner_review"])') &&
+  !proposalRepoSrc.includes('newStatus: "superseded"') &&
+  proposalActionsUi.includes("Create Next Version") &&
+  proposalActionsUi.includes("Create New Proposal") &&
+  proposalActionsUi.includes("keeps its historical status"));
+test("GATE10A: Owner Handoff still reads accepted + current only", () =>
+  proposalRepoSrc.includes("listAcceptedCurrentProposalsForHandoff") &&
+  proposalRepoSrc.includes('.eq("status", "accepted")') &&
+  proposalRepoSrc.includes('.eq("is_current", true)'));
 
 // Report
 const passed = results.filter((r) => r.passed).length;

@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import { isTerminalProposalHistoryStatus, previousCurrentShouldBecomeSuperseded } from "@/app/lib/business/proposals/logic";
 import type { BusinessProposal } from "@/app/lib/business/proposals/types";
 
 function readApiError(data: { error?: string }, fallback: string): string {
@@ -48,21 +49,21 @@ export function ProposalTransitionButtons({
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState<"accepted" | "declined" | null>(null);
+  const [pending, setPending] = useState<"accepted" | "declined" | "needs_changes" | null>(null);
 
-  async function transition(status: string) {
+  async function transition(status: string, changeReason?: string) {
     setSaving(true);
     setError(null);
     const res = await fetch(`/api/admin/businesses/${businessId}/proposals/${proposalId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, changeReason: changeReason ?? null }),
     });
     const data = await res.json().catch(() => ({} as { error?: string }));
     setSaving(false);
     if (!res.ok) {
       setPending(null);
-      setError(readApiError(data, status === "accepted" ? "Could not record Accepted." : status === "declined" ? "Could not record Declined." : "Could not update the proposal."));
+      setError(readApiError(data, status === "accepted" ? "Could not record Accepted." : status === "declined" ? "Could not record Declined." : status === "staff_review" ? "Could not return this proposal for revision." : "Could not update the proposal."));
       return;
     }
     setPending(null);
@@ -114,7 +115,7 @@ export function ProposalTransitionButtons({
                 ? "A staff roster assignment is required to record Accepted or Declined."
                 : "Recording a client decision remains a manager / super-admin action."}
             </p>
-          ) : pending ? (
+          ) : pending === "accepted" || pending === "declined" ? (
             <div className="mt-3 space-y-2">
               <p className="text-xs font-semibold text-[#1E1810]">
                 {pending === "accepted"
@@ -131,6 +132,30 @@ export function ProposalTransitionButtons({
                   }`}
                 >
                   {saving ? "Saving…" : pending === "accepted" ? "Confirm Accepted" : "Confirm Declined"}
+                </button>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => setPending(null)}
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#E8DFD0] px-4 py-2 text-xs font-semibold text-[#3D3428] disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : pending === "needs_changes" ? (
+            <div className="mt-3 space-y-2">
+              <p className="text-xs font-semibold text-[#1E1810]">
+                Confirm: the client/owner review requires changes before a decision. This returns the current proposal to staff review. It is not Declined, not Follow Up Later, and not Accepted. It does not create a new proposal version.
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void transition("staff_review", "needs_changes")}
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
+                >
+                  {saving ? "Saving…" : "Confirm Needs Changes"}
                 </button>
                 <button
                   type="button"
@@ -160,6 +185,18 @@ export function ProposalTransitionButtons({
               >
                 Declined
               </button>
+              {canReview ? (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => setPending("needs_changes")}
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810] disabled:opacity-50"
+                >
+                  Needs Changes
+                </button>
+              ) : (
+                <p className="text-xs text-[#7A7164]">Returning a proposal for revision remains a manager / super-admin action.</p>
+              )}
             </div>
           )}
         </div>
@@ -337,5 +374,190 @@ export function ProposalDetailPanel({
         </div>
       ) : null}
     </article>
+  );
+}
+
+export type ProposalRecommendationPrefill = {
+  id: string;
+  verifiedNeedEn: string;
+  verifiedNeedEs: string;
+  recommendedIntervention: string;
+  ownerGoalEn: string | null;
+  ownerGoalEs: string | null;
+  freeOptionEn: string | null;
+  freeOptionEs: string | null;
+  successMetricEn: string;
+  successMetricEs: string;
+  reviewDate: string | null;
+};
+
+const fieldClass = "min-h-[44px] w-full rounded-lg border border-[#E8DFD0] px-3 py-2 text-xs text-[#1E1810]";
+
+export function CreateProposalForm({
+  businessId,
+  canCreate,
+  hasCurrentProposal,
+  currentProposal,
+  recommendation,
+}: {
+  businessId: string;
+  canCreate: boolean;
+  hasCurrentProposal: boolean;
+  currentProposal: BusinessProposal | null;
+  recommendation: ProposalRecommendationPrefill | null;
+}) {
+  const router = useRouter();
+  const [open, setOpen] = useState(!hasCurrentProposal);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const source = currentProposal;
+  const [recommendedIntervention, setRecommendedIntervention] = useState(source?.recommendedIntervention || recommendation?.recommendedIntervention || "");
+  const [verifiedNeedEn, setVerifiedNeedEn] = useState(source?.verifiedNeedEn || recommendation?.verifiedNeedEn || "");
+  const [verifiedNeedEs, setVerifiedNeedEs] = useState(source?.verifiedNeedEs || recommendation?.verifiedNeedEs || "");
+  const [ownerGoalEn, setOwnerGoalEn] = useState(source?.ownerGoalEn || recommendation?.ownerGoalEn || "");
+  const [ownerGoalEs, setOwnerGoalEs] = useState(source?.ownerGoalEs || recommendation?.ownerGoalEs || "");
+  const [scopeEn, setScopeEn] = useState(source?.scopeEn || "");
+  const [scopeEs, setScopeEs] = useState(source?.scopeEs || "");
+  const [deliverablesEn, setDeliverablesEn] = useState(source?.deliverablesEn || "");
+  const [deliverablesEs, setDeliverablesEs] = useState(source?.deliverablesEs || "");
+  const [responsibilitiesEn, setResponsibilitiesEn] = useState(source?.responsibilitiesEn || "");
+  const [responsibilitiesEs, setResponsibilitiesEs] = useState(source?.responsibilitiesEs || "");
+  const [timelineEn, setTimelineEn] = useState(source?.timelineEn || "");
+  const [timelineEs, setTimelineEs] = useState(source?.timelineEs || "");
+  const [successMetricEn, setSuccessMetricEn] = useState(source?.successMetricEn || recommendation?.successMetricEn || "");
+  const [successMetricEs, setSuccessMetricEs] = useState(source?.successMetricEs || recommendation?.successMetricEs || "");
+  const [freeOptionEn, setFreeOptionEn] = useState(source?.freeOptionEn || recommendation?.freeOptionEn || "");
+  const [freeOptionEs, setFreeOptionEs] = useState(source?.freeOptionEs || recommendation?.freeOptionEs || "");
+  const [exclusionsEn, setExclusionsEn] = useState(source?.exclusionsEn || "");
+  const [exclusionsEs, setExclusionsEs] = useState(source?.exclusionsEs || "");
+  const [reviewDate, setReviewDate] = useState((source?.reviewDate || recommendation?.reviewDate || "").slice(0, 10));
+
+  if (!canCreate) {
+    return (
+      <p className="text-sm text-[#7A7164]">
+        Your role can view Client Decision. Creating a proposal remains a manager / super-admin action.
+      </p>
+    );
+  }
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setSaving(true);
+    setError(null);
+    const res = await fetch(`/api/admin/businesses/${businessId}/proposals`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sourceRecommendationId: source?.sourceRecommendationId || recommendation?.id || null,
+        recommendedIntervention,
+        verifiedNeedEn,
+        verifiedNeedEs,
+        ownerGoalEn: ownerGoalEn || null,
+        ownerGoalEs: ownerGoalEs || null,
+        scopeEn,
+        scopeEs,
+        deliverablesEn,
+        deliverablesEs,
+        responsibilitiesEn,
+        responsibilitiesEs,
+        timelineEn,
+        timelineEs,
+        successMetricEn,
+        successMetricEs,
+        freeOptionEn: freeOptionEn || null,
+        freeOptionEs: freeOptionEs || null,
+        exclusionsEn: exclusionsEn || null,
+        exclusionsEs: exclusionsEs || null,
+        reviewDate: reviewDate || null,
+      }),
+    });
+    const data = await res.json().catch(() => ({} as { error?: string }));
+    setSaving(false);
+    if (!res.ok) {
+      setError(readApiError(data, "Could not create the proposal."));
+      return;
+    }
+    setOpen(false);
+    router.refresh();
+  }
+
+  const replacingWorking = Boolean(hasCurrentProposal && currentProposal && previousCurrentShouldBecomeSuperseded(currentProposal.status));
+  const replacingTerminal = Boolean(hasCurrentProposal && currentProposal && isTerminalProposalHistoryStatus(currentProposal.status));
+  const title = !hasCurrentProposal ? "Create Proposal" : replacingTerminal ? "Create New Proposal" : "Create next proposal version";
+  const actionLabel = !hasCurrentProposal ? "Create Proposal" : replacingWorking ? "Create Next Version" : "Create New Proposal";
+  const help = !hasCurrentProposal
+    ? "Human-triggered. A recommendation does not create a proposal automatically."
+    : replacingTerminal
+      ? "This creates a new current draft. The previous proposal keeps its historical status (accepted, declined, expired, or cancelled) and is no longer current. Status records what happened; current records which proposal is active."
+      : "This creates a new draft version. The previous in-flight proposal is marked superseded and is no longer current. Needs Changes returns the same row to staff review without creating a version.";
+
+  return (
+    <div className="rounded-lg border border-[#C9A84A]/40 bg-white p-3">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">{title}</p>
+      <p className="mt-1 text-xs text-[#7A7164]">{help}</p>
+      {!open ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="mt-3 inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white"
+        >
+          {actionLabel}
+        </button>
+      ) : (
+        <form className="mt-3 space-y-2" onSubmit={(event) => void submit(event)}>
+          <label className="block text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Recommended intervention</label>
+          <input className={fieldClass} required value={recommendedIntervention} onChange={(e) => setRecommendedIntervention(e.target.value)} />
+          <label className="block text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Verified need (EN)</label>
+          <textarea className={fieldClass} required rows={2} value={verifiedNeedEn} onChange={(e) => setVerifiedNeedEn(e.target.value)} />
+          <label className="block text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Verified need (ES)</label>
+          <textarea className={fieldClass} rows={2} value={verifiedNeedEs} onChange={(e) => setVerifiedNeedEs(e.target.value)} />
+          <label className="block text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Owner goal (EN)</label>
+          <textarea className={fieldClass} rows={2} value={ownerGoalEn} onChange={(e) => setOwnerGoalEn(e.target.value)} />
+          <label className="block text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Owner goal (ES)</label>
+          <textarea className={fieldClass} rows={2} value={ownerGoalEs} onChange={(e) => setOwnerGoalEs(e.target.value)} />
+          <label className="block text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Scope (EN)</label>
+          <textarea className={fieldClass} required rows={2} value={scopeEn} onChange={(e) => setScopeEn(e.target.value)} />
+          <label className="block text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Scope (ES)</label>
+          <textarea className={fieldClass} rows={2} value={scopeEs} onChange={(e) => setScopeEs(e.target.value)} />
+          <label className="block text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Deliverables (EN)</label>
+          <textarea className={fieldClass} required rows={2} value={deliverablesEn} onChange={(e) => setDeliverablesEn(e.target.value)} />
+          <label className="block text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Deliverables (ES)</label>
+          <textarea className={fieldClass} rows={2} value={deliverablesEs} onChange={(e) => setDeliverablesEs(e.target.value)} />
+          <label className="block text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Responsibilities (EN)</label>
+          <textarea className={fieldClass} required rows={2} value={responsibilitiesEn} onChange={(e) => setResponsibilitiesEn(e.target.value)} />
+          <label className="block text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Responsibilities (ES)</label>
+          <textarea className={fieldClass} rows={2} value={responsibilitiesEs} onChange={(e) => setResponsibilitiesEs(e.target.value)} />
+          <label className="block text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Timeline (EN)</label>
+          <input className={fieldClass} required value={timelineEn} onChange={(e) => setTimelineEn(e.target.value)} />
+          <label className="block text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Timeline (ES)</label>
+          <input className={fieldClass} value={timelineEs} onChange={(e) => setTimelineEs(e.target.value)} />
+          <label className="block text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Success metric (EN)</label>
+          <input className={fieldClass} required value={successMetricEn} onChange={(e) => setSuccessMetricEn(e.target.value)} />
+          <label className="block text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Success metric (ES)</label>
+          <input className={fieldClass} value={successMetricEs} onChange={(e) => setSuccessMetricEs(e.target.value)} />
+          <label className="block text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Free option (EN)</label>
+          <input className={fieldClass} value={freeOptionEn} onChange={(e) => setFreeOptionEn(e.target.value)} />
+          <label className="block text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Free option (ES)</label>
+          <input className={fieldClass} value={freeOptionEs} onChange={(e) => setFreeOptionEs(e.target.value)} />
+          <label className="block text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Exclusions (EN)</label>
+          <input className={fieldClass} value={exclusionsEn} onChange={(e) => setExclusionsEn(e.target.value)} />
+          <label className="block text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Exclusions (ES)</label>
+          <input className={fieldClass} value={exclusionsEs} onChange={(e) => setExclusionsEs(e.target.value)} />
+          <label className="block text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Review date</label>
+          <input className={fieldClass} type="date" value={reviewDate} onChange={(e) => setReviewDate(e.target.value)} />
+          {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button type="submit" disabled={saving} className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white disabled:opacity-50">
+              {saving ? "Saving…" : actionLabel}
+            </button>
+            {hasCurrentProposal ? (
+              <button type="button" disabled={saving} onClick={() => setOpen(false)} className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#E8DFD0] px-4 py-2 text-xs font-semibold text-[#3D3428] disabled:opacity-50">
+                Cancel
+              </button>
+            ) : null}
+          </div>
+        </form>
+      )}
+    </div>
   );
 }

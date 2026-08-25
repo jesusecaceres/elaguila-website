@@ -8,7 +8,7 @@ import "server-only";
 
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { REVENUE_V1_PACKAGE_MATRIX, type RevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
-import { canTransitionProposalStatus } from "./logic";
+import { canTransitionProposalStatus, nextProposalVersion, previousCurrentShouldBecomeSuperseded } from "./logic";
 import type {
   BusinessProposal, ProposalActor, ProposalPricingSnapshot, ProposalStatus, ProposalVersion,
 } from "./types";
@@ -123,43 +123,127 @@ export type CreateProposalInput = {
   successMetricEs: string;
 };
 
+function requiredText(value: string, fallback = ""): string {
+  const primary = value.trim();
+  if (primary) return primary;
+  return fallback.trim();
+}
+
+async function setProposalCurrentFlag(
+  proposal: Pick<BusinessProposal, "id" | "businessId">,
+  isCurrent: boolean,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = getAdminSupabase();
+  const { error } = await supabase
+    .from("business_proposals")
+    .update({ is_current: isCurrent, updated_at: new Date().toISOString() })
+    .eq("id", proposal.id)
+    .eq("business_id", proposal.businessId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+async function deleteInsertedProposal(proposalId: string, businessId: string): Promise<void> {
+  const supabase = getAdminSupabase();
+  await supabase.from("business_proposals").delete().eq("id", proposalId).eq("business_id", businessId);
+}
+
+async function restorePreviousCurrentFlags(previous: readonly BusinessProposal[]): Promise<void> {
+  for (const row of previous) {
+    await setProposalCurrentFlag(row, true);
+  }
+}
+
+/**
+ * Mark an in-flight previous current row superseded. Terminal rows never enter here.
+ * Status machine has no draft/staff_review/owner_review → superseded path; replacement
+ * still uses the existing superseded status (not a new enum).
+ */
+async function markWorkingProposalSuperseded(
+  current: BusinessProposal,
+  actor: ProposalActor,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = getAdminSupabase();
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("business_proposals")
+    .update({ status: "superseded", is_current: false, updated_at: now })
+    .eq("id", current.id)
+    .eq("business_id", current.businessId)
+    .in("status", ["draft", "staff_review", "owner_review"])
+    .select("id")
+    .maybeSingle();
+  if (error || !data) return { ok: false, error: error?.message ?? "retire_failed" };
+
+  await supabase.from("business_proposal_versions").insert({
+    proposal_id: current.id,
+    business_id: current.businessId,
+    version: current.version,
+    status: "superseded",
+    changed_actor_type: actor.type,
+    changed_by_roster_id: actorRosterId(actor),
+    changed_by_auth_user_id: actor.authUserId,
+    changed_by_email: actor.email,
+    changed_by_role: actorRole(actor),
+    change_reason: "replaced_by_new_version",
+    snapshot: { from: current.status, to: "superseded" },
+  });
+  return { ok: true };
+}
+
 export async function createProposal(
   input: CreateProposalInput,
   actor: ProposalActor,
 ): Promise<{ ok: true; proposal: BusinessProposal } | { ok: false; error: string }> {
+  const verifiedNeedEn = requiredText(input.verifiedNeedEn);
+  const recommendedIntervention = requiredText(input.recommendedIntervention);
+  const scopeEn = requiredText(input.scopeEn);
+  const deliverablesEn = requiredText(input.deliverablesEn);
+  const responsibilitiesEn = requiredText(input.responsibilitiesEn);
+  const timelineEn = requiredText(input.timelineEn);
+  const successMetricEn = requiredText(input.successMetricEn);
+  if (!verifiedNeedEn || !recommendedIntervention || !scopeEn || !deliverablesEn || !responsibilitiesEn || !timelineEn || !successMetricEn) {
+    return { ok: false, error: "missing_required_fields" };
+  }
+
+  const existing = await listProposalsForBusiness(input.businessId);
+  const version = nextProposalVersion(existing.map((row) => row.version));
+  const previousCurrent = existing.filter((row) => row.isCurrent);
+
   const pricingSnapshot = input.packageKey ? resolvePricingFromMatrix(input.packageKey) : null;
 
   const supabase = getAdminSupabase();
+  // Insert inactive first so a failed insert cannot leave zero current rows.
   const { data, error } = await supabase
     .from("business_proposals")
     .insert({
       business_id: input.businessId,
       source_recommendation_id: input.sourceRecommendationId ?? null,
       status: "draft",
-      version: 1,
-      is_current: true,
-      owner_goal_en: input.ownerGoalEn ?? null,
-      owner_goal_es: input.ownerGoalEs ?? null,
-      verified_need_en: input.verifiedNeedEn,
-      verified_need_es: input.verifiedNeedEs,
-      recommended_intervention: input.recommendedIntervention,
-      free_option_en: input.freeOptionEn ?? null,
-      free_option_es: input.freeOptionEs ?? null,
-      scope_en: input.scopeEn,
-      scope_es: input.scopeEs,
-      deliverables_en: input.deliverablesEn,
-      deliverables_es: input.deliverablesEs,
-      exclusions_en: input.exclusionsEn ?? null,
-      exclusions_es: input.exclusionsEs ?? null,
-      responsibilities_en: input.responsibilitiesEn,
-      responsibilities_es: input.responsibilitiesEs,
-      timeline_en: input.timelineEn,
-      timeline_es: input.timelineEs,
+      version,
+      is_current: false,
+      owner_goal_en: requiredText(input.ownerGoalEn ?? "") || null,
+      owner_goal_es: requiredText(input.ownerGoalEs ?? "") || null,
+      verified_need_en: verifiedNeedEn,
+      verified_need_es: requiredText(input.verifiedNeedEs, verifiedNeedEn),
+      recommended_intervention: recommendedIntervention,
+      free_option_en: requiredText(input.freeOptionEn ?? "") || null,
+      free_option_es: requiredText(input.freeOptionEs ?? "") || null,
+      scope_en: scopeEn,
+      scope_es: requiredText(input.scopeEs, scopeEn),
+      deliverables_en: deliverablesEn,
+      deliverables_es: requiredText(input.deliverablesEs, deliverablesEn),
+      exclusions_en: requiredText(input.exclusionsEn ?? "") || null,
+      exclusions_es: requiredText(input.exclusionsEs ?? "") || null,
+      responsibilities_en: responsibilitiesEn,
+      responsibilities_es: requiredText(input.responsibilitiesEs, responsibilitiesEn),
+      timeline_en: timelineEn,
+      timeline_es: requiredText(input.timelineEs, timelineEn),
       review_date: input.reviewDate ?? null,
       pricing_snapshot: pricingSnapshot,
-      entitlement_reference: input.entitlementReference ?? null,
-      success_metric_en: input.successMetricEn,
-      success_metric_es: input.successMetricEs,
+      entitlement_reference: requiredText(input.entitlementReference ?? "") || null,
+      success_metric_en: successMetricEn,
+      success_metric_es: requiredText(input.successMetricEs, successMetricEn),
       created_actor_type: actor.type,
       created_by_roster_id: actorRosterId(actor),
       created_by_auth_user_id: actor.authUserId,
@@ -169,7 +253,35 @@ export async function createProposal(
     .select(PROPOSAL_COLUMNS)
     .maybeSingle();
   if (error || !data) return { ok: false, error: error?.message ?? "insert_failed" };
-  return { ok: true, proposal: mapProposalRow(data as Record<string, unknown>) };
+
+  const created = mapProposalRow(data as Record<string, unknown>);
+
+  for (const current of previousCurrent) {
+    const cleared = await setProposalCurrentFlag(current, false);
+    if (!cleared.ok) {
+      await restorePreviousCurrentFlags(previousCurrent);
+      await deleteInsertedProposal(created.id, created.businessId);
+      return cleared;
+    }
+  }
+
+  const activated = await setProposalCurrentFlag(created, true);
+  if (!activated.ok) {
+    await restorePreviousCurrentFlags(previousCurrent);
+    await deleteInsertedProposal(created.id, created.businessId);
+    return activated;
+  }
+
+  for (const current of previousCurrent) {
+    if (!previousCurrentShouldBecomeSuperseded(current.status)) continue;
+    const superseded = await markWorkingProposalSuperseded(current, actor);
+    if (!superseded.ok) {
+      // New row is already the sole current. Working previous is not current; superseded stamp is best-effort.
+      return { ok: true, proposal: { ...created, isCurrent: true } };
+    }
+  }
+
+  return { ok: true, proposal: { ...created, isCurrent: true } };
 }
 
 export async function listProposalsForBusiness(businessId: string): Promise<BusinessProposal[]> {

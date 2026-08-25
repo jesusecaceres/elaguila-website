@@ -104,6 +104,7 @@ export function RecommendJourney({
   canApprove,
   canOverride,
   canViewLedger,
+  canCreateProposal = false,
   hasHealth,
   hasOpportunity,
   hasCreative,
@@ -117,6 +118,7 @@ export function RecommendJourney({
   canApprove: boolean;
   canOverride: boolean;
   canViewLedger: boolean;
+  canCreateProposal?: boolean;
   hasHealth: boolean;
   hasOpportunity: boolean;
   hasCreative: boolean;
@@ -295,6 +297,11 @@ export function RecommendJourney({
         {hasCreative ? (
           <a href="#creative" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#E8DFD0] px-4 py-2 text-xs font-semibold text-[#3D3428]">
             Creative Studio
+          </a>
+        ) : null}
+        {canCreateProposal ? (
+          <a href="#proposals" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
+            Create Proposal
           </a>
         ) : null}
       </div>

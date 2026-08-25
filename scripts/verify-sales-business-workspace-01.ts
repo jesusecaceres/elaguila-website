@@ -920,6 +920,26 @@ check("Gate 08: Owner Handoff is a bounded accepted-proposal read model; follow-
   assert.ok(!proposalRepoGate08.includes("CREATE TABLE"));
 });
 
+check("Gate 10A: proposal create/revision bridge stays on canonical Program 5 domain", () => {
+  assert.ok(proposalActionsGate08.includes("export function CreateProposalForm"));
+  assert.ok(proposalActionsGate08.includes("Needs Changes"));
+  assert.ok(proposalActionsGate08.includes('transition("staff_review", "needs_changes")'));
+  assert.ok(proposalPageGate08.includes("No proposal has been created yet."));
+  assert.ok(proposalPageGate08.includes("canCreateProposal={canCreateProposal}"));
+  assert.ok(proposalRepoGate08.includes("nextProposalVersion"));
+  assert.ok(proposalRepoGate08.includes("replaced_by_new_version"));
+  assert.ok(!proposalConstantsGate08.includes("needs_changes"));
+  assert.ok(!proposalConstantsGate08.includes('"postponed"'));
+  assert.ok(proposalActionsGate08.includes("/api/admin/businesses/${businessId}/follow-up"));
+  assert.ok(proposalRepoGate08.includes("listAcceptedCurrentProposalsForHandoff"));
+  assert.ok(!proposalActionsGate08.includes("docusign.com"));
+  assert.ok(!proposalRepoGate08.includes("CREATE TABLE"));
+  assert.ok(proposalActionsGate08.includes("Create Next Version"));
+  assert.ok(proposalActionsGate08.includes("Create New Proposal"));
+  assert.ok(!proposalRepoGate08.includes('newStatus: "superseded"'));
+  assert.ok(proposalRepoGate08.includes("restorePreviousCurrentFlags"));
+});
+
 const advisorPanelGate09 = read("app/admin/(dashboard)/businesses/[businessId]/AdvisorPanel.tsx");
 const assistantPanelGate09 = read("app/admin/(dashboard)/businesses/[businessId]/AssistantPanel.tsx");
 const outcomesPanelGate09 = read("app/admin/(dashboard)/businesses/[businessId]/OutcomesPanel.tsx");
