@@ -17,8 +17,18 @@ export const OFERTAS_LOCALES_PRODUCT_NAME = "Ofertas Locales";
 export const OFERTAS_LOCALES_NAV_LABEL = "Ofertas";
 export const OFERTAS_LOCALES_PUBLIC_TERM_DAYS = 30;
 export const OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY = "ofertas_locales_flyer_30d";
+/**
+ * Historical/retired — owner lock 2026-08-25 (Package 4): basic community coupon publishing is
+ * now free. This key remains resolvable (see ofertasLocalesCommercial.ts) so old payment,
+ * entitlement, and admin-history rows keep reading a truthful $199 label/price; it is never
+ * returned by the current NEW-SALE resolvers (getOfertaLocalCommercialProductForDraft /
+ * ForOfferType) — see OFERTAS_LOCALES_COUPONS_FREE_PACKAGE_KEY below for current truth.
+ */
 export const OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY = "ofertas_locales_coupons_30d";
+/** Owner lock 2026-08-25 (Package 4): canonical FREE community coupon package — current new-sale truth. */
+export const OFERTAS_LOCALES_COUPONS_FREE_PACKAGE_KEY = "ofertas_locales_coupons_free";
 export const OFERTAS_LOCALES_FLYER_PRICE_CENTS = 39900;
+/** Historical price only — see OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY. */
 export const OFERTAS_LOCALES_COUPONS_PRICE_CENTS = 19900;
 export const OFERTAS_LOCALES_CURRENCY = "usd" as const;
 
@@ -96,7 +106,8 @@ export const OFERTAS_LOCALES_STEP1_BASE_PRODUCTS = [
     pricingKey: "digitalCouponListing" as const,
     labelEs: "Cupón o promoción",
     labelEn: "Coupon / Promotion",
-    priceDisplayMonthly: 199,
+    // Owner lock 2026-08-25 (Package 4): free for new publishing (was $199).
+    priceDisplayMonthly: 0,
     valueCopyEs:
       "Publica cupones, promociones, combos, especiales de temporada o descuentos por tiempo limitado.",
     valueCopyEn:
@@ -144,11 +155,14 @@ export const OFERTAS_LOCALES_PUBLISH_PRODUCT_CATALOG = {
   },
   coupons: {
     key: "coupons" as const,
-    revenuePackageKey: OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY,
+    // Owner lock 2026-08-25 (Package 4): new coupon publishing uses the free package. The
+    // historical $199 package (OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY) is retired for new
+    // sales — never referenced here — and remains resolvable only for historical reads.
+    revenuePackageKey: OFERTAS_LOCALES_COUPONS_FREE_PACKAGE_KEY,
     primaryAdFormat: "local_coupons" as const,
     labelEs: "Cupones Leonix",
     labelEn: "Leonix Coupons",
-    displayPriceUsd: 199,
+    displayPriceUsd: 0,
     currency: "USD" as const,
     durationDays: 30,
     aiIncluded: true,

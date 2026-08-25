@@ -39,6 +39,78 @@ and, for the full-catalog Preview runtime certification recorded below,
 It does not claim the two route systems are unified, and it does not repair every stale value it
 documents — see [Unresolved Route Debt](#unresolved-route-debt).
 
+## Globalization Reconcile Package 4 Update Log — Cupones Free Product Experience + Ofertas $399 Protection
+
+Enforced by [`scripts/ofertas-package4-free-coupons-audit.mjs`](../scripts/ofertas-package4-free-coupons-audit.mjs)
+and the updated [`scripts/ofertas-checkpoint-product-value-audit.mjs`](../scripts/ofertas-checkpoint-product-value-audit.mjs) /
+[`scripts/ofertas-commercial-products-audit.mjs`](../scripts/ofertas-commercial-products-audit.mjs) /
+[`scripts/verify-ofertas-cupones-single-ai-pipeline.mjs`](../scripts/verify-ofertas-cupones-single-ai-pipeline.mjs).
+Branch `globalization-release-reconcile-2026-08-14`. Implements the owner lock of 2026-08-25 in the
+Ofertas Locales / Cupones product experience.
+
+### Cupones — FREE new publishing
+
+- New canonical package `ofertas_locales_coupons_free` (`OFERTAS_LOCALES_COUPONS_FREE_PACKAGE_KEY`,
+  `app/lib/ofertas-locales/ofertasLocalesConstants.ts` /
+  [`ofertasLocalesCommercial.ts`](../app/lib/ofertas-locales/ofertasLocalesCommercial.ts)) is now
+  the current NEW-SALE truth returned by `getOfertaLocalCommercialProductForDraft` /
+  `ForOfferType`: `amountCents: 0`, no Stripe, no promo, no premium placement, no automatic
+  Business Tools. The 30-day content/moderation-validity term is preserved unchanged (it is
+  approval-driven, not payment-driven — `calculateOfertaLocalPublicTermExpiresAt` was already
+  independent of commercial state).
+- Historical `ofertas_locales_coupons_30d` ($199/30d) remains fully resolvable — historical
+  price/label untouched, retired for new sales, and stays blocked from checkout (defense-in-depth
+  added to `validateOfertasLocalesCheckoutOwnership`: rejects `newSalesRetired` and `amountCents
+  === 0` packages before any Stripe call).
+- **Submission unblocked for free**: `validateOfertaLocalSubmissionEntitlement` gained a `source:
+  "free"` short-circuit — a free-lane offer needs no paid entitlement and no partner courtesy to
+  reach moderation (previously this would have 402'd forever with `commercial_entitlement_required`).
+  The SAME bypass was added to the independent admin-approval commercial gate in
+  `ofertasLocalesAdminReviewMutations.ts` (a paid coupon or the flyer still requires a real paid
+  entitlement or courtesy; only the free lane is exempt).
+- **Commercial readiness/checkout-CTA truth** (`deriveOfertaLocalOperationalStatus`,
+  `checkoutEligible` in `ofertasLocalesOwnerHelpers.ts`) is derived from the offer type's EXPECTED
+  product (`getOfertaLocalCommercialProductForOfferType`), not from persisted DB state alone — so
+  a free coupon never shows a "Pay for publication" button, before or after its first submission.
+- **No migration required or authored**: `commercial_eligibility_source`'s existing DB CHECK only
+  allows `'paid' | 'partner_courtesy'`; rather than widen it, the two submit/resubmit routes
+  (`app/api/ofertas-locales/publish/route.ts`, `app/api/ofertas-locales/owner/[id]/route.ts`)
+  simply skip writing that column for `source: "free"` (an existing, pre-existing self-verifying
+  script — `verify-ofertas-cupones-single-ai-pipeline.mjs` — forbids touching `supabase/migrations`
+  for this product line). Free-lane commercial truth instead lives entirely in the unconstrained
+  `commercial_product_key` / `commercial_amount_cents` columns, which already resolve correctly.
+  **Known, deferred limitation**: the admin/owner "Partner / cortesía" raw-enum display block
+  (`{offer.commercialEligibilitySource}`) will show the column's `'paid'` default for a free
+  listing rather than a dedicated "free" value — cosmetic only, does not affect gating (see the
+  route-level comments for the exact reasoning). A future migration adding a `'free'` value to that
+  CHECK would close this; out of scope here by the same script's constraint.
+- **Real bug fixed in passing**: `ofertasLocalesAdminHelpers.ts`'s admin-list discrepancy check
+  hardcoded the historical coupons key as "the expected product" for every coupon row, which would
+  have wrongly flagged every current free-coupon listing as a commercial mismatch. Now derives the
+  expectation from `getOfertaLocalCommercialProductForOfferType(row.offer_type)`, matching the
+  pattern already used everywhere else (renewals, operational status).
+- Publish-flow copy updated (ES/EN) with the required free-publishing language ("Publica tu cupón
+  gratis" / "Publish your coupon free") on the Step 1 lane card, and free-appropriate Step 7 review
+  copy (no promo-code field, no payment CTA, "Gratis — no se requiere pago" / "Free — no payment
+  required"). No current-facing coupon surface mentions $199.
+
+### Ofertas interactive flyer — protected, unchanged
+
+- `ofertas_locales_flyer_30d` remains **$399 / 30 days**, `billingMode: one_time`,
+  `stripeEligible: true`, and is the ONLY Ofertas package key that reaches the Revenue OS checkout
+  ownership gate (`isOfertasLocalesCheckoutEarly` — established by Package 2, re-verified here).
+  AI extraction/review, searchable products, the flyer page, product cards, and the shopping list
+  stay flyer-only (`OFERTAS_LOCALES_PUBLISH_PRODUCT_CATALOG.interactive_flyer`
+  `productSearchIncluded`/`flyerViewerIncluded`/`shoppingListIncluded: true` vs. the coupons
+  product's `false`/`false`) — free coupon publishing never inherits paid flyer capabilities.
+
+### QA remaining (deferred to owner)
+
+Publish-flow "Publica gratis" walkthrough (ES/EN) → moderation approve of a free coupon → public
+result/detail truth. No Production action was taken by this package. The `'free'`
+`commercial_eligibility_source` display cosmetic limitation above is deferred pending a future,
+explicitly-authorized migration.
+
 ## Globalization Reconcile Package 3 Update Log — Viajes Free Community Opportunity Experience
 
 Enforced by [`scripts/gate-pkg3-viajes-intake-selftest.ts`](../scripts/gate-pkg3-viajes-intake-selftest.ts)

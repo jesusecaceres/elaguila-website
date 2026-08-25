@@ -153,7 +153,8 @@ const draftPersistence = readGateFile("app/lib/ofertas-locales/ofertasLocalesDra
 const publishMapper = readGateFile("app/lib/ofertas-locales/ofertasLocalesPublishMapper.ts");
 
 requireText("Ofertas catalog price 399", constants, "displayPriceUsd: 399");
-requireText("Cupones catalog price 199", constants, "displayPriceUsd: 199");
+// Owner lock 2026-08-25 (Package 4): community coupon publishing is free (was $199).
+requireText("Cupones catalog price is free", constants, "displayPriceUsd: 0");
 requireText("Ofertas duration 30 days", constants, "durationDays: 30");
 requireText("Ofertas aiIncluded true", constants, "interactive_flyer");
 requireText("Cupones aiIncluded true", constants, "coupons:");

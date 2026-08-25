@@ -241,13 +241,18 @@ export function deriveOfertaLocalOperationalStatus(
     ["needs_review", "review_required"].includes(scanStatus);
   if (reviewRequired) blockers.push("review_required");
 
+  // Owner lock 2026-08-25 (Package 4) — a free-lane offer (basic community coupons) never needs
+  // payment or partner courtesy. Derived from the offer type's EXPECTED product (not persisted
+  // DB state), so this reads correctly both before and after the row's first submission, when
+  // commercial_amount_cents may still be null.
+  const freeProductLane = getOfertaLocalCommercialProductForOfferType(input.offerType)?.amountCents === 0;
   const courtesyActive = input.commercialEligibilitySource === "partner_courtesy";
   const paidEntitlement =
     input.paymentStatus === "paid" &&
     input.entitlementStatus === "active" &&
     hasText(input.paymentRecordId) &&
     hasText(input.packageEntitlementId);
-  const commercialReady = courtesyActive || paidEntitlement || input.entitlementStatus === "active";
+  const commercialReady = freeProductLane || courtesyActive || paidEntitlement || input.entitlementStatus === "active";
   if (!commercialReady && !isPaymentProcessing(input.paymentStatus)) blockers.push("commercial_entitlement_required");
   if (isPaymentProcessing(input.paymentStatus) && input.entitlementStatus !== "active") blockers.push("payment_processing");
 

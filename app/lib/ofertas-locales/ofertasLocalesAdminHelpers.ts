@@ -18,6 +18,7 @@ import {
 import {
   formatOfertaLocalCommercialAmount,
   getOfertaLocalCommercialProductByPackageKey,
+  getOfertaLocalCommercialProductForOfferType,
 } from "./ofertasLocalesCommercial";
 import {
   deriveOfertaLocalOperationalStatus,
@@ -368,10 +369,10 @@ function mapRowToListVm(row: OfertaLocalAdminRow): OfertaLocalAdminListVm {
   const couponAssets = parseAssetArray(row.coupon_assets);
   const metadata = parseOfertaLocalAdminMetadataFromInternalNotes(row.internal_notes);
   const commercialProduct = getOfertaLocalCommercialProductByPackageKey(row.commercial_product_key);
-  const expectedProduct =
-    row.offer_type === "weekly_flyer"
-      ? getOfertaLocalCommercialProductByPackageKey("ofertas_locales_flyer_30d")
-      : getOfertaLocalCommercialProductByPackageKey("ofertas_locales_coupons_30d");
+  // Owner lock 2026-08-25 (Package 4) — resolve the CURRENT new-sale expectation from the offer
+  // type, not a hardcoded historical package key. A hardcoded retired coupon key here would
+  // wrongly flag every current free-coupon row as a "commercial discrepancy".
+  const expectedProduct = getOfertaLocalCommercialProductForOfferType(row.offer_type);
   const commercialDiscrepancyWarning =
     commercialProduct && expectedProduct && commercialProduct.packageKey !== expectedProduct.packageKey
       ? "Product key does not match listing lane."

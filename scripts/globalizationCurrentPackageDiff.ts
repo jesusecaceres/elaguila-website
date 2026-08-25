@@ -665,6 +665,38 @@ export const GLOBALIZATION_CURRENT_PACKAGE_FILES: ReadonlySet<string> = new Set(
   // stale-snapshot class this module exists to prevent); the slice is now bounded to Package
   // B's own section, intent unchanged:
   "scripts/gate-pkgB-media-adoption-selftest.ts",
+
+  // ═══ GLOBALIZATION RECONCILE PACKAGE 4 — CUPONES FREE PRODUCT EXPERIENCE + OFERTAS $399
+  // PROTECTION ═══
+  // Owner lock 2026-08-25: community coupon publishing is free; the interactive flyer stays
+  // paid at $399/30 days. Several historical gates carry a blanket "no ofertas-locales file in
+  // this package's diff" lock (Ofertas was an external, untouched boundary for THOSE packages);
+  // those checks already route through GLOBALIZATION_CURRENT_PACKAGE_FILES (this set) directly
+  // or via excludeCurrentPackageFiles(), so no gate file itself needed editing this package.
+  "app/lib/ofertas-locales/ofertasLocalesConstants.ts",
+  "app/lib/ofertas-locales/ofertasLocalesTwoLaneProductModel.ts",
+  "app/lib/ofertas-locales/ofertasLocalesCommercial.ts",
+  "app/lib/ofertas-locales/ofertasLocalesCommercialServer.ts",
+  "app/lib/ofertas-locales/ofertasLocalesOperationalStatus.ts",
+  "app/lib/ofertas-locales/ofertasLocalesOwnerHelpers.ts",
+  "app/lib/ofertas-locales/ofertasLocalesAdminHelpers.ts",
+  "app/lib/ofertas-locales/ofertasLocalesAdminReviewMutations.ts",
+  "app/api/ofertas-locales/publish/route.ts",
+  "app/api/ofertas-locales/owner/[id]/route.ts",
+  "app/(site)/publicar/ofertas-locales/OfertasLocalesApplicationClient.tsx",
+  "app/(site)/publicar/ofertas-locales/OfertasLocalesCommercialSummary.tsx",
+  "app/(site)/publicar/ofertas-locales/ofertasLocalesApplicationCopy.ts",
+  "app/(site)/dashboard/ofertas-locales/[id]/page.tsx",
+  // Shared Revenue OS file — comment-only annotation on the now-inert historical checkout
+  // payload constant; no behavior change:
+  "app/lib/listingPlans/revenueCategoryCheckoutPayload.ts",
+  // Updated existing Ofertas audits (Gate 7 — update rather than fork a parallel framework):
+  "scripts/ofertas-checkpoint-product-value-audit.mjs",
+  "scripts/ofertas-commercial-products-audit.mjs",
+  "scripts/verify-ofertas-cupones-single-ai-pipeline.mjs",
+  // New Package 4 proof:
+  "scripts/ofertas-package4-free-coupons-audit.mjs",
+  "scripts/globalizationCurrentPackageDiff.ts",
 ]);
 
 /** Drop the current package's own authorized files from a changed-file list before running a

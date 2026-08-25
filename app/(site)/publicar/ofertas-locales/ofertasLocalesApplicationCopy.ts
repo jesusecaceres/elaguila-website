@@ -29,10 +29,11 @@ const COPY = {
       "30 días públicos completos después de aprobación",
     ] as const,
     step1CouponsTitle: "Cupones Leonix",
-    step1CouponsCta: "Publicar cupones",
+    step1CouponsCta: "Publicar cupones gratis",
     step1CouponsDescription:
-      "Sube un cupón, hoja de cupones o documento. Leonix ayuda con IA incluida, tú revisas título, descuento, términos y vigencia, y los compradores ven tarjetas públicas con Business Hub.",
+      "Publica tu cupón gratis. Sube un cupón, hoja de cupones o documento. Leonix ayuda con IA incluida, tú revisas título, descuento, términos y vigencia, y los compradores ven tarjetas públicas con Business Hub.",
     step1CouponsBullets: [
+      "Gratis para publicar — sin costo",
       "Sube imagen, hoja o documento de cupones",
       "IA incluida para sugerir detalles de la oferta",
       "Revisión de título, descuento o precio, términos y vigencia",
@@ -43,6 +44,7 @@ const COPY = {
     ] as const,
     step1PackageNote: "Un solo precio. La asistencia con IA ya está incluida.",
     perDuration: " / 30 días",
+    priceFreeLabel: "Gratis",
     aiIncludedLabel: "IA incluida",
     step7AiIncludedNote: "IA incluida",
     step2OfferTitleLabel: "Título de la oferta",
@@ -185,9 +187,15 @@ const COPY = {
     publishReadyForReview: "Listo para enviar a revisión.",
     publishNotBuilt:
       "El pago autoriza el envío para revisión. El plazo público de 30 días empieza después de la aprobación de Leonix; una corrección o rechazo no consume días ni requiere otro pago. No hay publicación instantánea ni aprobación garantizada.",
+    // Owner lock 2026-08-25 (Package 4): free community coupon publishing — no payment step exists.
+    publishNotBuiltFree:
+      "Tu cupón es gratis — no hay pago. El plazo público de 30 días empieza después de la aprobación de Leonix; una corrección o rechazo no consume días. No hay publicación instantánea ni aprobación garantizada.",
     continueSecureCheckout: "Continuar a pago seguro",
+    continueToMyDashboard: "Continuar a mi panel",
     checkoutParentRequired:
       "Analiza el archivo con IA para crear el ID canónico antes de abrir el pago seguro.",
+    checkoutParentRequiredFree:
+      "Analiza el archivo con IA para crear el ID canónico antes de continuar.",
     selectPlaceholder: "Selecciona…",
     optional: "opcional",
     flyerTitleLabel: "Título del volante",
@@ -332,6 +340,7 @@ const COPY = {
     step7CommercialTitle: "Resumen comercial",
     step7BasePrice: "Precio base",
     step7Duration: "30 días",
+    step7NoPaymentRequired: "Gratis — no se requiere pago.",
     step7PromoCode: "Código promocional",
     step7PromoApply: "Aplicar",
     step7PromoRemove: "Quitar",
@@ -500,10 +509,11 @@ const COPY = {
       "30 full public days after approval",
     ] as const,
     step1CouponsTitle: "Leonix Coupons",
-    step1CouponsCta: "Publish coupons",
+    step1CouponsCta: "Publish coupons free",
     step1CouponsDescription:
-      "Upload a coupon, coupon sheet, or document. Leonix helps with AI included, you review title, discount, terms, and validity, and shoppers see public coupon cards with the Business Hub.",
+      "Publish your coupon free. Upload a coupon, coupon sheet, or document. Leonix helps with AI included, you review title, discount, terms, and validity, and shoppers see public coupon cards with the Business Hub.",
     step1CouponsBullets: [
+      "Free to publish — no cost",
       "Upload a coupon image, coupon sheet, or document",
       "AI included to suggest offer details",
       "Review title, discount or price, terms, and validity",
@@ -514,6 +524,7 @@ const COPY = {
     ] as const,
     step1PackageNote: "One price. AI assistance is already included.",
     perDuration: " / 30 days",
+    priceFreeLabel: "Free",
     aiIncludedLabel: "AI included",
     step7AiIncludedNote: "AI included",
     step2OfferTitleLabel: "Offer title",
@@ -654,9 +665,14 @@ const COPY = {
     publishReadyForReview: "Ready to submit for review.",
     publishNotBuilt:
       "Payment authorizes review submission. The 30-day public term starts after Leonix approval; a correction or rejection does not consume days or require a second payment. There is no instant publication or guaranteed approval.",
+    // Owner lock 2026-08-25 (Package 4): free community coupon publishing — no payment step exists.
+    publishNotBuiltFree:
+      "Your coupon is free — no payment. The 30-day public term starts after Leonix approval; a correction or rejection does not consume days. There is no instant publication or guaranteed approval.",
     continueSecureCheckout: "Continue secure checkout",
+    continueToMyDashboard: "Continue to my dashboard",
     checkoutParentRequired:
       "Scan the file with AI to create the canonical ID before opening secure checkout.",
+    checkoutParentRequiredFree: "Scan the file with AI to create the canonical ID before continuing.",
     selectPlaceholder: "Select…",
     optional: "optional",
     flyerTitleLabel: "Flyer title",
@@ -800,6 +816,7 @@ const COPY = {
     step7CommercialTitle: "Commercial summary",
     step7BasePrice: "Base price",
     step7Duration: "30 days",
+    step7NoPaymentRequired: "Free — no payment required.",
     step7PromoCode: "Promo code",
     step7PromoApply: "Apply",
     step7PromoRemove: "Remove",

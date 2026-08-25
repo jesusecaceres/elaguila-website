@@ -21,10 +21,13 @@ assert.match(matrix, /billingMode:\s*"one_time"/);
 assert.match(matrix, /stripeEligible:\s*true/);
 
 assert.match(constants, /OFERTAS_LOCALES_FLYER_PRICE_CENTS\s*=\s*39900/);
+// Owner lock 2026-08-25 (Package 4): OFERTAS_LOCALES_COUPONS_PRICE_CENTS (19900) is now
+// historical-only — see OFERTAS_LOCALES_COUPONS_FREE_PACKAGE_KEY for current new-sale truth.
 assert.match(constants, /OFERTAS_LOCALES_COUPONS_PRICE_CENTS\s*=\s*19900/);
 assert.match(constants, /OFERTAS_LOCALES_PUBLIC_TERM_DAYS\s*=\s*30/);
+assert.match(constants, /OFERTAS_LOCALES_COUPONS_FREE_PACKAGE_KEY\s*=\s*"ofertas_locales_coupons_free"/);
 assert.match(constants, /revenuePackageKey:\s*OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY/);
-assert.match(constants, /revenuePackageKey:\s*OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY/);
+assert.match(constants, /revenuePackageKey:\s*OFERTAS_LOCALES_COUPONS_FREE_PACKAGE_KEY/);
 
 assert.match(appHelpers, /AI scan\/review is included with both publish products/);
 assert.match(appHelpers, /Single complete-package display price \(no AI add-on arithmetic\)/);

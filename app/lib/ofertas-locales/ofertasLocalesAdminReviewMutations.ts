@@ -12,6 +12,7 @@ import {
 } from "./ofertasLocalesAdminHelpers";
 import { OFERTAS_LOCALES_ADMIN_SELECT } from "./ofertasLocalesDbSchema";
 import { calculateOfertaLocalPublicTermExpiresAt } from "./ofertasLocalesFormatting";
+import { getOfertaLocalCommercialProductForOfferType } from "./ofertasLocalesCommercial";
 import { validateOfertaLocalPartnerCourtesyEligibility } from "./ofertasLocalesPartnerOperations";
 import { markOfertaLocalSourceVersionActive } from "./ofertasLocalesAssetLifecycle";
 import type { OfertaLocalPublishStatus } from "./ofertasLocalesTypes";
@@ -219,24 +220,29 @@ export async function mutateOfertaLocalAdminReview(
     if (!/^LNX-[A-Z0-9]{8}$/.test(String(offer.leonix_ad_id ?? ""))) {
       return { ok: false, error: "leonix_ad_id_required" };
     }
-    const hasPaidEntitlement =
-      offer.payment_status === "paid" &&
-      offer.entitlement_status === "active" &&
-      Boolean(offer.package_entitlement_id) &&
-      Boolean(offer.payment_record_id);
-    if (!hasPaidEntitlement) {
-      const courtesy = await validateOfertaLocalPartnerCourtesyEligibility({
-        supabase: sb,
-        parent: {
-          id: offer.id,
-          owner_id: offer.owner_id,
-          offer_type: offer.offer_type,
-          leonix_ad_id: offer.leonix_ad_id,
-        },
-        ownerId: offer.owner_id,
-      });
-      if (!courtesy.ok) {
-        return { ok: false, error: "commercial_entitlement_required" };
+    // Owner lock 2026-08-25 (Package 4) — a free-lane offer (basic community coupons) never
+    // needs a paid entitlement or partner courtesy to be approved.
+    const isFreeProductLane = getOfertaLocalCommercialProductForOfferType(offer.offer_type)?.amountCents === 0;
+    if (!isFreeProductLane) {
+      const hasPaidEntitlement =
+        offer.payment_status === "paid" &&
+        offer.entitlement_status === "active" &&
+        Boolean(offer.package_entitlement_id) &&
+        Boolean(offer.payment_record_id);
+      if (!hasPaidEntitlement) {
+        const courtesy = await validateOfertaLocalPartnerCourtesyEligibility({
+          supabase: sb,
+          parent: {
+            id: offer.id,
+            owner_id: offer.owner_id,
+            offer_type: offer.offer_type,
+            leonix_ad_id: offer.leonix_ad_id,
+          },
+          ownerId: offer.owner_id,
+        });
+        if (!courtesy.ok) {
+          return { ok: false, error: "commercial_entitlement_required" };
+        }
       }
     }
   }

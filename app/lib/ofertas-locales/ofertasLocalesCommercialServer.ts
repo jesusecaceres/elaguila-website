@@ -128,6 +128,16 @@ export async function validateOfertasLocalesCheckoutOwnership(input: {
   if (!product) {
     return { ok: false, status: 400, code: "package_not_supported", message: "Unsupported Ofertas package." };
   }
+  // Owner lock 2026-08-25 (Package 4) — defense-in-depth: this route is only ever reached today
+  // for the still-sellable flyer key (the retired coupons key is blocked earlier, at the
+  // Revenue OS route's own 410 guard), but never let a retired or free package reach a real
+  // Stripe checkout session from here either.
+  if (product.newSalesRetired) {
+    return { ok: false, status: 410, code: "package_retired", message: "This package is retired for new sales." };
+  }
+  if (product.amountCents === 0) {
+    return { ok: false, status: 400, code: "package_not_checkout_eligible", message: "Free packages cannot use checkout." };
+  }
 
   const { data, error } = await input.supabase
     .from("ofertas_locales")
@@ -322,6 +332,14 @@ export type OfertaLocalSubmissionEntitlementResult =
       leonixAdId: string;
       partnerAssignmentId: string;
     }
+  | {
+      /** Owner lock 2026-08-25 (Package 4) — free community coupon publishing: no payment,
+       * no promo, no partner courtesy grant. Never returned for a package with amountCents > 0. */
+      ok: true;
+      source: "free";
+      product: OfertaLocalCommercialProduct;
+      leonixAdId: string;
+    }
   | { ok: false; status: number; code: string; message: string };
 
 export async function validateOfertaLocalSubmissionEntitlement(input: {
@@ -341,6 +359,13 @@ export async function validateOfertaLocalSubmissionEntitlement(input: {
   const leonixAdId = String(input.parent.leonix_ad_id ?? "").trim();
   if (!/^LNX-[A-Z0-9]{8}$/.test(leonixAdId)) {
     return { ok: false, status: 422, code: "leonix_ad_id_missing", message: "Listing must have a stable Leonix Ad ID before submission." };
+  }
+
+  // Owner lock 2026-08-25 (Package 4) — free community coupon publishing: no payment or partner
+  // courtesy is required for submission. This must be the ONLY path that ever returns
+  // source: "free", and it never fires for a priced product (amountCents > 0).
+  if (product.amountCents === 0) {
+    return { ok: true, source: "free", product, leonixAdId };
   }
 
   const { data: entitlements } = await input.supabase

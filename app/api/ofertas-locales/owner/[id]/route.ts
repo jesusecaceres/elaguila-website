@@ -151,7 +151,12 @@ export async function PATCH(
       { status: entitlement.status }
     );
   }
-  payload.commercial_eligibility_source = entitlement.source;
+  // Owner lock 2026-08-25 (Package 4) — see the matching comment in
+  // app/api/ofertas-locales/publish/route.ts: "free" is never written to this CHECK-constrained
+  // column; free-lane commercial truth lives in commercial_product_key/commercial_amount_cents.
+  if (entitlement.source !== "free") {
+    payload.commercial_eligibility_source = entitlement.source;
+  }
   payload.partner_assignment_id =
     entitlement.source === "partner_courtesy" ? entitlement.partnerAssignmentId : null;
 

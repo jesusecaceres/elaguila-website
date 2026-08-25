@@ -42,7 +42,8 @@ export function OfertasLocalesCommercialSummary({ draft, lang }: Props) {
   }, [draft.applicationSessionId, product?.packageKey]);
 
   const baseCents = product?.amountCents ?? 0;
-  const totalCents = applied?.totalCents ?? baseCents;
+  const isFreeProduct = baseCents === 0;
+  const totalCents = isFreeProduct ? 0 : applied?.totalCents ?? baseCents;
 
   const durationNote = useMemo(
     () => `${c.step7Duration} · ${c.step7AiIncludedNote}`,
@@ -105,9 +106,11 @@ export function OfertasLocalesCommercialSummary({ draft, lang }: Props) {
       <div className="mt-3 space-y-2 text-sm">
         <div className="flex items-baseline justify-between gap-3">
           <span className="text-[#1E1814]/70">{c.step7BasePrice}</span>
-          <span className="text-lg font-bold text-[#7A1E2C]">{formatMoney(baseCents)}</span>
+          <span className="text-lg font-bold text-[#7A1E2C]">
+            {isFreeProduct ? c.priceFreeLabel : formatMoney(baseCents)}
+          </span>
         </div>
-        {applied ? (
+        {!isFreeProduct && applied ? (
           <div className="flex items-baseline justify-between gap-3 text-emerald-900">
             <span>
               {applied.discountLabel || c.step7Discount}
@@ -115,52 +118,60 @@ export function OfertasLocalesCommercialSummary({ draft, lang }: Props) {
             <span className="font-semibold">-{formatMoney(applied.discountCents)}</span>
           </div>
         ) : null}
-        <div className="flex items-baseline justify-between gap-3 border-t border-[#D4C4A8]/60 pt-2">
-          <span className="font-semibold text-[#1E1814]">{c.step7Total}</span>
-          <span className="text-lg font-bold text-[#1E1814]">{formatMoney(totalCents)}</span>
-        </div>
+        {!isFreeProduct ? (
+          <div className="flex items-baseline justify-between gap-3 border-t border-[#D4C4A8]/60 pt-2">
+            <span className="font-semibold text-[#1E1814]">{c.step7Total}</span>
+            <span className="text-lg font-bold text-[#1E1814]">{formatMoney(totalCents)}</span>
+          </div>
+        ) : null}
       </div>
       <p className="mt-2 text-xs text-[#1E1814]/70">{durationNote}</p>
 
-      <div className="mt-4 space-y-2">
-        <label className="block text-xs font-semibold uppercase tracking-wide text-[#1E1814]/70">
-          {c.step7PromoCode}
-        </label>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <input
-            type="text"
-            value={applied?.code ?? input}
-            onChange={(e) => setInput(e.target.value.toUpperCase())}
-            disabled={busy || Boolean(applied)}
-            autoComplete="off"
-            spellCheck={false}
-            className="min-h-11 w-full rounded-xl border border-[#D4C4A8]/90 bg-white px-3 py-2.5 text-sm uppercase text-[#1E1814] focus:outline-none focus:ring-2 focus:ring-[#7A1E2C]/25 disabled:opacity-60"
-          />
-          {applied ? (
-            <button
-              type="button"
-              className="min-h-11 rounded-xl border border-[#D4C4A8] bg-white px-4 py-2.5 text-sm font-semibold text-[#1E1814] hover:border-[#7A1E2C]/40"
-              onClick={removePromo}
-            >
-              {c.step7PromoRemove}
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="min-h-11 rounded-xl bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-45"
-              disabled={busy || !input.trim()}
-              onClick={() => void applyPromo()}
-            >
-              {busy ? c.step7PromoApplying : c.step7PromoApply}
-            </button>
-          )}
+      {isFreeProduct ? (
+        // Owner lock 2026-08-25 (Package 4): free community coupon publishing — no promo code
+        // field, no payment step of any kind.
+        <p className="mt-4 text-sm font-semibold text-emerald-900">{c.step7NoPaymentRequired}</p>
+      ) : (
+        <div className="mt-4 space-y-2">
+          <label className="block text-xs font-semibold uppercase tracking-wide text-[#1E1814]/70">
+            {c.step7PromoCode}
+          </label>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              type="text"
+              value={applied?.code ?? input}
+              onChange={(e) => setInput(e.target.value.toUpperCase())}
+              disabled={busy || Boolean(applied)}
+              autoComplete="off"
+              spellCheck={false}
+              className="min-h-11 w-full rounded-xl border border-[#D4C4A8]/90 bg-white px-3 py-2.5 text-sm uppercase text-[#1E1814] focus:outline-none focus:ring-2 focus:ring-[#7A1E2C]/25 disabled:opacity-60"
+            />
+            {applied ? (
+              <button
+                type="button"
+                className="min-h-11 rounded-xl border border-[#D4C4A8] bg-white px-4 py-2.5 text-sm font-semibold text-[#1E1814] hover:border-[#7A1E2C]/40"
+                onClick={removePromo}
+              >
+                {c.step7PromoRemove}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="min-h-11 rounded-xl bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-45"
+                disabled={busy || !input.trim()}
+                onClick={() => void applyPromo()}
+              >
+                {busy ? c.step7PromoApplying : c.step7PromoApply}
+              </button>
+            )}
+          </div>
+          {error ? (
+            <p className="text-xs font-medium text-red-800" role="alert">
+              {error}
+            </p>
+          ) : null}
         </div>
-        {error ? (
-          <p className="text-xs font-medium text-red-800" role="alert">
-            {error}
-          </p>
-        ) : null}
-      </div>
+      )}
     </div>
   );
 }

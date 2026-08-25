@@ -106,6 +106,12 @@ export const OFERTAS_LOCALES_FLYER_CHECKOUT = {
   returnPath: "/dashboard/ofertas-locales",
 } as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
 
+/**
+ * Historical/inert — owner lock 2026-08-25 (Package 4): community coupon publishing is free.
+ * This constant is not imported by any live checkout entry point (the coupons key is already
+ * retired for new sales at the Revenue OS checkout route's own guard); kept only so historical
+ * code/audits referencing the old $199 checkout payload shape still resolve.
+ */
 export const OFERTAS_LOCALES_COUPONS_CHECKOUT = {
   category: "ofertas-locales",
   packageKey: OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY,

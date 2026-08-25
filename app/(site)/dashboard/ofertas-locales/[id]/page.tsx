@@ -6,6 +6,7 @@ import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
 
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { getSafeOfertaLocalSourceAssetHref } from "@/app/lib/ofertas-locales/ofertasLocalesClickableItemPreviewHelpers";
+import { getOfertaLocalCommercialProductForOfferType } from "@/app/lib/ofertas-locales/ofertasLocalesCommercial";
 import type { OfertaLocalOwnerDetail } from "@/app/lib/ofertas-locales/ofertasLocalesOwnerHelpers";
 import type { OfertaLocalOwnerUpdateInput } from "@/app/lib/ofertas-locales/ofertasLocalesOwnerUpdateMapper";
 import {
@@ -66,6 +67,8 @@ function OfertasLocalesOwnerManagePageContent() {
             paying: "Creando pago seguro…",
             paymentHelp:
               "El pago no publica tu oferta. Después del pago, envía la oferta a revisión; los 30 días empiezan cuando Leonix la aprueba.",
+            freeNoPaymentNote:
+              "Gratis — no se requiere pago. Envía la oferta a revisión; los 30 días públicos empiezan cuando Leonix la aprueba.",
             notStarted: "No iniciado",
             activeTerm: "Activo",
             expiredTerm: "Expirado",
@@ -111,6 +114,8 @@ function OfertasLocalesOwnerManagePageContent() {
             paying: "Creating secure checkout…",
             paymentHelp:
               "Payment does not publish your listing. After payment, submit for review; the 30 days start when Leonix approves it.",
+            freeNoPaymentNote:
+              "Free — no payment required. Submit for review; the 30 public days start when Leonix approves it.",
             notStarted: "Not started",
             activeTerm: "Active",
             expiredTerm: "Expired",
@@ -357,7 +362,12 @@ function OfertasLocalesOwnerManagePageContent() {
               {checkoutLoading ? t.paying : t.payNow}
             </button>
           ) : null}
-          <p className="mt-2 text-xs text-[#7A7164]">{t.paymentHelp}</p>
+          {/* Owner lock 2026-08-25 (Package 4): free community coupon publishing never implies a payment step. */}
+          <p className="mt-2 text-xs text-[#7A7164]">
+            {getOfertaLocalCommercialProductForOfferType(offer.offerType)?.amountCents === 0
+              ? t.freeNoPaymentNote
+              : t.paymentHelp}
+          </p>
           {checkoutMsg ? <p className="mt-2 text-xs text-rose-800">{checkoutMsg}</p> : null}
         </div>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">

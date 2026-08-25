@@ -817,8 +817,14 @@ export default function OfertasLocalesApplicationClient() {
                   >
                     <p className="text-base font-semibold text-[#1E1814]">{title}</p>
                     <p className="mt-1 text-lg font-bold text-[#7A1E2C]">
-                      {formatUsd(catalog.displayPriceUsd)}
-                      {c.perDuration}
+                      {catalog.displayPriceUsd === 0 ? (
+                        c.priceFreeLabel
+                      ) : (
+                        <>
+                          {formatUsd(catalog.displayPriceUsd)}
+                          {c.perDuration}
+                        </>
+                      )}
                     </p>
                     <p className="mt-1 text-xs font-medium text-[#7A1E2C]/90">{c.aiIncludedLabel}</p>
                     <p className="mt-2 text-xs leading-relaxed text-[#1E1814]/70">{description}</p>
@@ -1702,16 +1708,22 @@ export default function OfertasLocalesApplicationClient() {
             </div>
 
             <OfertasLocalesCommercialSummary draft={draft} lang={lang} />
-            <p className="text-xs text-[#1E1814]/55">{c.publishNotBuilt}</p>
+            {/* Owner lock 2026-08-25 (Package 4): free community coupon publishing — the
+                dashboard continue link and copy must never imply a payment step for coupons. */}
+            <p className="text-xs text-[#1E1814]/55">
+              {isOfertaLocalLocalCouponsLane(draft) ? c.publishNotBuiltFree : c.publishNotBuilt}
+            </p>
             {effectiveOfertaLocalId ? (
               <Link
                 href={`/dashboard/ofertas-locales/${encodeURIComponent(effectiveOfertaLocalId)}?lang=${lang}`}
                 className={`${BTN_SECONDARY} inline-flex`}
               >
-                {c.continueSecureCheckout}
+                {isOfertaLocalLocalCouponsLane(draft) ? c.continueToMyDashboard : c.continueSecureCheckout}
               </Link>
             ) : (
-              <p className="text-xs font-medium text-amber-900">{c.checkoutParentRequired}</p>
+              <p className="text-xs font-medium text-amber-900">
+                {isOfertaLocalLocalCouponsLane(draft) ? c.checkoutParentRequiredFree : c.checkoutParentRequired}
+              </p>
             )}
 
             {aiIncludedInPackage && hasExistingAiScan ? (

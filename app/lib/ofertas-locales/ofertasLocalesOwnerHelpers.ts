@@ -12,6 +12,7 @@ import {
   type OfertaLocalAdminRow,
   type OfertaLocalPublicTermStatus,
 } from "./ofertasLocalesAdminHelpers";
+import { getOfertaLocalCommercialProductForOfferType } from "./ofertasLocalesCommercial";
 import {
   isOfertaLocalExpired,
   isOfertaLocalPublicTermActive,
@@ -253,7 +254,11 @@ export function mapOfertaLocalRowToOwnerListItem(
     publicSourceAssetId: detail.publicSourceAssetId,
     assetLifecycleStatus: detail.assetLifecycleStatus,
     assetReplacementRequiredReview: detail.assetReplacementRequiredReview,
+    // Owner lock 2026-08-25 (Package 4): a free-lane offer (basic community coupons) never
+    // shows a checkout/pay CTA — derived from the offer type's expected product so this is
+    // correct even before the row's first submission (no fake $0 checkout screen).
     checkoutEligible:
+      getOfertaLocalCommercialProductForOfferType(row.offer_type)?.amountCents !== 0 &&
       ["draft", "submitted", "pending_review", "rejected"].includes(row.status) &&
       detail.commercialEligibilitySource !== "partner_courtesy" &&
       detail.entitlementStatus !== "active" &&
@@ -296,6 +301,7 @@ export function mapOfertaLocalRowToOwnerDetail(
       ? publicResultsHrefForStatus(row.status, isExpired || !termActive)
       : null,
     checkoutEligible:
+      getOfertaLocalCommercialProductForOfferType(row.offer_type)?.amountCents !== 0 &&
       ["draft", "submitted", "pending_review", "rejected"].includes(row.status) &&
       safe.commercialEligibilitySource !== "partner_courtesy" &&
       safe.entitlementStatus !== "active" &&

@@ -1,5 +1,6 @@
 import {
   OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY,
+  OFERTAS_LOCALES_COUPONS_FREE_PACKAGE_KEY,
   OFERTAS_LOCALES_COUPONS_PRICE_CENTS,
   OFERTAS_LOCALES_CURRENCY,
   OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY,
@@ -11,6 +12,8 @@ import type { OfertaLocalDraft, OfertaLocalOfferType, OfertaLocalPrimaryAdFormat
 
 export type OfertaLocalCommercialProductKey =
   | typeof OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY
+  | typeof OFERTAS_LOCALES_COUPONS_FREE_PACKAGE_KEY
+  /** Historical/retired — see OFERTAS_LOCALES_COUPONS_FREE_PACKAGE_KEY (owner lock 2026-08-25). */
   | typeof OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY;
 
 export type OfertaLocalCommercialLane = "interactive_flyer" | "coupons";
@@ -25,8 +28,16 @@ export type OfertaLocalCommercialProduct = {
   currency: typeof OFERTAS_LOCALES_CURRENCY;
   durationDays: typeof OFERTAS_LOCALES_PUBLIC_TERM_DAYS;
   aiIncluded: true;
+  /** Owner lock 2026-08-25 (Package 4) — true only on the retired historical coupons entry. */
+  newSalesRetired?: true;
 };
 
+/**
+ * Owner lock 2026-08-25 (Package 4) — current, NEW-SALE commercial truth. Community coupon
+ * publishing is free (no Stripe, no promo, no premium placement, no automatic Business Tools);
+ * the interactive flyer stays paid at $399/30 days. Keyed by lane so every NEW-SALE resolver
+ * below (ForDraft / ForOfferType / ByPackageKey for the two live keys) reads from here only.
+ */
 export const OFERTAS_LOCALES_COMMERCIAL_PRODUCTS = {
   interactive_flyer: {
     category: "ofertas-locales",
@@ -41,19 +52,44 @@ export const OFERTAS_LOCALES_COMMERCIAL_PRODUCTS = {
   },
   coupons: {
     category: "ofertas-locales",
-    packageKey: OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY,
+    packageKey: OFERTAS_LOCALES_COUPONS_FREE_PACKAGE_KEY,
     lane: "coupons",
-    labelEs: "Cupones Leonix",
-    labelEn: "Leonix Coupons",
-    amountCents: OFERTAS_LOCALES_COUPONS_PRICE_CENTS,
+    labelEs: "Cupones Leonix — Gratis",
+    labelEn: "Leonix Coupons — Free",
+    amountCents: 0,
     currency: OFERTAS_LOCALES_CURRENCY,
+    // Content/moderation-validity lifecycle, not a billing duration (there is no billing) —
+    // free publishing does not mean a coupon may claim an untruthful/indefinite expiration.
     durationDays: OFERTAS_LOCALES_PUBLIC_TERM_DAYS,
     aiIncluded: true,
   },
 } as const satisfies Record<OfertaLocalCommercialLane, OfertaLocalCommercialProduct>;
 
+/**
+ * Historical/retired only — never returned by the NEW-SALE resolvers (ForDraft / ForOfferType).
+ * Kept so old payment records, old entitlements, and admin history still resolve a truthful
+ * $199 label and price for rows written before the owner lock.
+ */
+export const OFERTAS_LOCALES_HISTORICAL_COMMERCIAL_PRODUCTS: Readonly<
+  Partial<Record<OfertaLocalCommercialProductKey, OfertaLocalCommercialProduct>>
+> = {
+  [OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY]: {
+    category: "ofertas-locales",
+    packageKey: OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY,
+    lane: "coupons",
+    labelEs: "Cupones Leonix 30 días (retirado — publicación actual gratis)",
+    labelEn: "Leonix Coupons 30-day (retired — current publishing is free)",
+    amountCents: OFERTAS_LOCALES_COUPONS_PRICE_CENTS,
+    currency: OFERTAS_LOCALES_CURRENCY,
+    durationDays: OFERTAS_LOCALES_PUBLIC_TERM_DAYS,
+    aiIncluded: true,
+    newSalesRetired: true,
+  },
+};
+
 export const OFERTAS_LOCALES_COMMERCIAL_PACKAGE_KEYS: readonly OfertaLocalCommercialProductKey[] = [
   OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY,
+  OFERTAS_LOCALES_COUPONS_FREE_PACKAGE_KEY,
   OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY,
 ];
 
@@ -65,12 +101,16 @@ export function isOfertaLocalCommercialPackageKey(
   );
 }
 
+/** Resolves current AND historical package keys — the only lookup safe for admin/history reads. */
 export function getOfertaLocalCommercialProductByPackageKey(
   packageKey: string | null | undefined,
 ): OfertaLocalCommercialProduct | null {
   const key = String(packageKey ?? "").trim().toLowerCase();
   if (key === OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY) return OFERTAS_LOCALES_COMMERCIAL_PRODUCTS.interactive_flyer;
-  if (key === OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY) return OFERTAS_LOCALES_COMMERCIAL_PRODUCTS.coupons;
+  if (key === OFERTAS_LOCALES_COUPONS_FREE_PACKAGE_KEY) return OFERTAS_LOCALES_COMMERCIAL_PRODUCTS.coupons;
+  if (key === OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY) {
+    return OFERTAS_LOCALES_HISTORICAL_COMMERCIAL_PRODUCTS[OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY] ?? null;
+  }
   return null;
 }
 

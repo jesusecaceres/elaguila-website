@@ -25,12 +25,22 @@ for (const required of [
 }
 
 assertIncludes("flyer package key", constants, "ofertas_locales_flyer_30d");
-assertIncludes("coupon package key", constants, "ofertas_locales_coupons_30d");
+// Owner lock 2026-08-25 (Package 4): community coupon publishing is free — the current new-sale
+// package key/price live in ofertasLocalesCommercial.ts (OFERTAS_LOCALES_COMMERCIAL_PRODUCTS),
+// not the constants catalog checked here. The historical $199 key/price remain in constants.ts
+// for old payment/entitlement reads only — asserted, never presented as current truth.
+assertIncludes("historical coupon package key preserved", constants, "ofertas_locales_coupons_30d");
+assertIncludes("historical coupon price preserved", constants, "OFERTAS_LOCALES_COUPONS_PRICE_CENTS = 19900");
+assertIncludes("free coupon package key", constants, "ofertas_locales_coupons_free");
 assertIncludes("flyer locked price", constants, "displayPriceUsd: 399");
-assertIncludes("coupon locked price", constants, "displayPriceUsd: 199");
+assertIncludes("current coupon publish catalog price is free", constants, "displayPriceUsd: 0");
 assertNotIncludes("checkpoint copy", copy, "$598");
 assertNotIncludes("checkpoint copy", copy, "optional AI");
 assertNotIncludes("checkpoint copy", copy, "manual-only");
 assertNotIncludes("checkpoint copy", copy, "basic package");
+assertNotIncludes("checkpoint copy", copy, "$199");
+assertIncludes("free coupon CTA copy ES", copy, "Publica tu cupón gratis");
+assertIncludes("free coupon CTA copy EN", copy, "Publish your coupon free");
 
 pass("Package 10 checkpoint product value is explicit and obsolete pricing/add-on copy is absent");
+pass("Package 4 free-coupon product value and copy are current and no $199 remains in checkpoint copy");

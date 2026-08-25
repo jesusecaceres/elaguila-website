@@ -427,7 +427,16 @@ export async function POST(req: NextRequest) {
     const updateRow = buildOfertasLocalesProductionInsertRow(draft, ownerId, parent.draft_snapshot);
     delete updateRow.owner_id;
     delete updateRow.created_at;
-    updateRow.commercial_eligibility_source = entitlement.source;
+    // Owner lock 2026-08-25 (Package 4) — free community coupon publishing: the
+    // commercial_eligibility_source column's CHECK constraint only allows 'paid' |
+    // 'partner_courtesy' today, so a "free" entitlement source is deliberately NOT written here
+    // (would violate that constraint) — commercial truth for free rows comes from
+    // commercial_product_key / commercial_amount_cents instead (both already correct via
+    // buildOfertasLocalesProductionInsertRow), and readiness is derived from the offer type's
+    // expected product, not from this column (see deriveOfertaLocalOperationalStatus).
+    if (entitlement.source !== "free") {
+      updateRow.commercial_eligibility_source = entitlement.source;
+    }
     updateRow.partner_assignment_id =
       entitlement.source === "partner_courtesy" ? entitlement.partnerAssignmentId : null;
 
