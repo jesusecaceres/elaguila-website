@@ -20,6 +20,7 @@ const INPUT =
   "mt-1.5 min-h-[46px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3.5 py-2.5 text-[15px] leading-snug text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2";
 
 const UNLISTED_MAKE = "__unlisted_make__";
+const MODEL_CUSTOM = "__model_custom__";
 const TRIM_CUSTOM = "__trim_custom__";
 
 export type AutosVehicleIdentityLang = "es" | "en";
@@ -92,6 +93,10 @@ export function AutosVehicleIdentityFields({
   );
 
   const [makeUnlisted, setMakeUnlisted] = useState(false);
+  const modelInCatalog = Boolean(catalogModel);
+  const [modelCustomMode, setModelCustomMode] = useState(
+    () => Boolean(model?.trim()) && models.length > 0 && !modelInCatalog,
+  );
   const trimInCatalog = trim?.trim() && trimSuggestions.some((t) => t.toLowerCase() === trim.trim().toLowerCase());
   const [trimCustomMode, setTrimCustomMode] = useState(
     () => Boolean(trim?.trim()) && trimSuggestions.length > 0 && !trimInCatalog,
@@ -100,6 +105,12 @@ export function AutosVehicleIdentityFields({
   useEffect(() => {
     if (catalogMake) setMakeUnlisted(false);
   }, [catalogMake]);
+
+  useEffect(() => {
+    if (!model?.trim()) setModelCustomMode(false);
+    else if (models.length === 0) setModelCustomMode(false);
+    else if (modelInCatalog) setModelCustomMode(false);
+  }, [model, models.length, modelInCatalog]);
 
   useEffect(() => {
     if (!trim?.trim()) setTrimCustomMode(false);
@@ -112,6 +123,9 @@ export function AutosVehicleIdentityFields({
   const emptyModel = lang === "es" ? "Selecciona modelo" : "Select model";
   const unlistedMakeLabel = lang === "es" ? "Mi marca no está en la lista" : "My make is not listed";
   const backToList = lang === "es" ? "Volver a la lista de marcas" : "Back to make list";
+  const modelManualLabel = lang === "es" ? "Escribir modelo manualmente" : "Enter model manually";
+  const backToModelList = lang === "es" ? "Volver a la lista de modelos" : "Back to model list";
+  const modelPlaceholder = lang === "es" ? "Escribe el modelo" : "Enter model";
   const trimHint =
     lang === "es"
       ? "Selecciona una versión si aparece en la lista. Si no ves tu versión, escríbela manualmente."
@@ -237,26 +251,54 @@ export function AutosVehicleIdentityFields({
       </div>
       <div>
         <label className="block">{labelEl(labels.model, requiredModel)}</label>
-        {models.length > 0 ? (
-          <select className={selectClass} value={modelSelectValue} {...modalSelectHandlers} onChange={(e) => onModelChange(e.target.value)}>
+        {models.length > 0 && !modelCustomMode ? (
+          <select
+            className={selectClass}
+            value={modelSelectValue}
+            {...modalSelectHandlers}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === MODEL_CUSTOM) {
+                setModelCustomMode(true);
+                onPatch({ model: undefined, trim: undefined });
+                return;
+              }
+              onModelChange(v);
+            }}
+          >
             <option value="">{emptyModel}</option>
             {models.map((m) => (
               <option key={m} value={m}>
                 {m}
               </option>
             ))}
+            <option value={MODEL_CUSTOM}>{modelManualLabel}</option>
             {legacyModel ? (
               <option value={legacyModel}>{normalizeVehicleTrim(make, model, legacyModel) ?? legacyModel}</option>
             ) : null}
           </select>
         ) : (
-          <input
-            className={INPUT}
-            value={model ?? ""}
-            onChange={(e) => onPatch({ model: autosDraftTextValue(e.target.value) })}
-            placeholder={lang === "es" ? "Escribe el modelo" : "Enter model"}
-            autoComplete="off"
-          />
+          <div className="space-y-2">
+            <input
+              className={INPUT}
+              value={model ?? ""}
+              onChange={(e) => onPatch({ model: autosDraftTextValue(e.target.value) })}
+              placeholder={modelPlaceholder}
+              autoComplete="off"
+            />
+            {models.length > 0 ? (
+              <button
+                type="button"
+                className="text-xs font-semibold text-[color:var(--lx-gold)] underline"
+                onClick={() => {
+                  setModelCustomMode(false);
+                  onPatch({ model: undefined, trim: undefined });
+                }}
+              >
+                {backToModelList}
+              </button>
+            ) : null}
+          </div>
         )}
       </div>
       <div className="sm:col-span-2">

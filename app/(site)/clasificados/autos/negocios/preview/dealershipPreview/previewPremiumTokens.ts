@@ -1,4 +1,4 @@
-/** Preview-only Leonix dealership mockup tokens — do not import from live detail. */
+/** Leonix Autos Negocios dealership presentation tokens — shared by dashboard preview and the published live vehicle detail page. */
 
 export const AUTOS_PREVIEW_MAX_RELATED_VISIBLE = 6;
 
