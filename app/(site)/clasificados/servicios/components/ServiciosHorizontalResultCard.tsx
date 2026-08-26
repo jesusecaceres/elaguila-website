@@ -44,6 +44,7 @@ import {
   LX_IVORY_CARD,
   cleanProfessionalChipLabel,
   isWeakProfessionalChipLabel,
+  resolveServiciosResultCardBranding,
 } from "@/app/(site)/servicios/components/serviciosLeonixBrand";
 import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "../lib/serviciosListingLifecycle";
 import {
@@ -275,18 +276,32 @@ export function ServiciosHorizontalResultCard({
   const primaryCall = officeTel && officeDisplay ? { href: officeTel, label: L.callOffice, key: "callOffice" } : tel && phoneDisplay ? { href: tel, label: L.call, key: "call" } : null;
   const wa = resolveServiciosProfileDirectWhatsAppHref(profile.contact) ?? "";
   const showDirections = Boolean(mapsHref && (addressQuery || /^https?:\/\//i.test(mapsHref)));
+  // Leonix Ad Branding Layer — null for every unbranded listing, guaranteeing zero new
+  // DOM/style on the vast majority of cards. This is the live "standard" results card
+  // (rendered directly by /clasificados/servicios/resultados for non-professional templates);
+  // ServiciosListingResultCard.tsx's own branding does not reach this component.
+  const cardBrand = resolveServiciosResultCardBranding(profile.adBranding);
 
   return (
     <>
       <article
         className={`${LX_IVORY_CARD} relative w-full min-w-0 ${className}`.trim()}
         data-servicios-card-shell="trade-canonical"
+        style={cardBrand ? { borderColor: cardBrand.accentBorderColor } : undefined}
       >
         <ServiciosResultCardBodyLink
           href={vitrinaHref}
           ariaLabel={cardNavigateLabel}
           onNavigate={onCardNavigate}
         />
+
+        {cardBrand ? (
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 z-[3] h-[3px]"
+            style={{ backgroundColor: cardBrand.accentColor }}
+            aria-hidden
+          />
+        ) : null}
 
         <div className="pointer-events-none relative z-[2] flex gap-3 p-4 sm:gap-4 sm:p-5">
           <ServiciosAdaptiveLogoPlate
@@ -295,6 +310,8 @@ export function ServiciosHorizontalResultCard({
             fallbackMonogram={profile.identity.businessName}
             variant="card"
             className=""
+            presentation={profile.adBranding?.logo.presentation}
+            accentColor={cardBrand?.accentColor}
           />
 
           <div className="min-w-0 flex-1 space-y-1">

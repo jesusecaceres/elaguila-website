@@ -748,5 +748,9 @@ export function mapRestauranteDraftToShellData(
     stackSections: stacks.length ? stacks : undefined,
     groupedFeatures: normalizeRestaurantFeatures(d),
     ...amenitiesBlock,
+    // Leonix Ad Branding Layer (Gate 3A) — pure pass-through; already validated by
+    // `mergeRestauranteDraft`, the single boundary every draft passes through before reaching
+    // here. No styling logic lives in this gate.
+    adBranding: d.adBranding,
   };
 }

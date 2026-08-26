@@ -42,6 +42,7 @@ import {
   isServiciosWhatsAppProfileSocialUrl,
   isServiciosWhatsAppSocialDuplicateOfContact,
 } from "./serviciosWhatsAppHref";
+import { validateAdBrandingProfile } from "@/app/lib/adBranding";
 
 /**
  * Turn canonical wire data into a presentation-safe model (filtered lists, safe URLs, fallbacks).
@@ -183,6 +184,11 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
   const { gallery, galleryMore } = splitFeaturedGallery(allGallery, input.featuredGalleryIds);
   const galleryVideos = filterGalleryVideos(input.galleryVideos);
 
+  // Leonix Ad Branding Layer (Gate 2B) — re-validated at the render boundary; an invalid or
+  // unapproved stored value is dropped, never coerced or guessed. Renderers see either a fully
+  // valid AdBrandingProfile or nothing, and fall back to the current Leonix default hero.
+  const adBrandingResult = input.adBranding ? validateAdBrandingProfile(input.adBranding) : null;
+
   const withoutAdvertiserVerified = filterHeroBadges(heroIn.badges).filter((b) => b.kind !== "verified");
   const heroBadges =
     input.identity?.leonixVerified === true
@@ -261,6 +267,7 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
         }
       : {}),
     ...(credentials ? { credentials } : {}),
+    ...(adBrandingResult?.ok ? { adBranding: adBrandingResult.profile } : {}),
   };
 }
 

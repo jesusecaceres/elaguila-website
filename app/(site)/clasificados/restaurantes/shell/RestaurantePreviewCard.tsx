@@ -7,6 +7,7 @@ import { trackRestaurantesResultCardClick } from "../lib/restaurantesCtaTracking
 import { FiGlobe, FiMapPin, FiPhone } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
+import { resolveRestauranteResultCardBranding } from "./restauranteBrandResolver";
 
 const PREVIEW_CARD =
   "overflow-hidden rounded-[22px] border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-card)] shadow-[0_14px_46px_-30px_rgba(42,36,22,0.18)] transition-shadow duration-300 hover:shadow-[0_18px_60px_-36px_rgba(42,36,22,0.24)]";
@@ -120,7 +121,17 @@ export function RestaurantePreviewCard({
   const heroImage = data.heroImageUrl?.trim() || "";
   const logoCandidate = (data.businessLogo ?? "").trim();
   const logoUrl = isRenderableLogoUrl(logoCandidate) ? logoCandidate : "";
-  const showLogoOnHero = presentation !== "public_discovery" && Boolean(heroImage && logoUrl);
+  const hasRenderableLogo = Boolean(heroImage && logoUrl);
+  // Leonix Ad Branding Layer (Gate 3C) — null for every unbranded listing, guaranteeing zero
+  // new DOM/style on the vast majority of cards.
+  const cardBrand = resolveRestauranteResultCardBranding(data.adBranding);
+  // Public-discovery results traditionally suppress the logo (food stays dominant). Gate 3C
+  // relaxes that ONLY when the listing both has a real logo AND an approved branding profile —
+  // an unbranded listing keeps today's exact suppression behavior.
+  const showLogoOnHero =
+    presentation !== "public_discovery"
+      ? hasRenderableLogo
+      : hasRenderableLogo && Boolean(cardBrand);
   const showLikeBadge =
     presentation === "public_discovery" && typeof likesCount === "number" && likesCount > 0;
 
@@ -195,7 +206,13 @@ export function RestaurantePreviewCard({
   }, [data.primaryCtas]);
 
   return (
-    <div className={`${PREVIEW_CARD} w-full min-w-0 ${className}`}>
+    <div
+      className={`${PREVIEW_CARD} w-full min-w-0 ${className}`}
+      style={cardBrand ? { borderColor: cardBrand.accentBorderColor } : undefined}
+    >
+      {cardBrand ? (
+        <div className="h-[3px] w-full shrink-0" style={{ backgroundColor: cardBrand.accentColor }} aria-hidden />
+      ) : null}
       <div className={GRID}>
         <div className={MEDIA}>
           <div className={MEDIA_FRAME}>
@@ -219,7 +236,17 @@ export function RestaurantePreviewCard({
               </div>
             )}
             {showLogoOnHero ? (
-              <div className="pointer-events-none absolute right-3 top-12 z-[2] flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border border-white/40 bg-white/95 shadow-md ring-1 ring-black/5 md:h-14 md:w-14 md:top-14">
+              <div
+                className="pointer-events-none absolute right-3 top-12 z-[2] flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border border-white/40 bg-white/95 shadow-md ring-1 ring-black/5 md:h-14 md:w-14 md:top-14"
+                style={
+                  cardBrand
+                    ? {
+                        borderColor: cardBrand.accentColor,
+                        ...(cardBrand.logoPresentation === "circular" ? { borderRadius: "9999px" } : {}),
+                      }
+                    : undefined
+                }
+              >
                 <Image
                   src={logoUrl}
                   alt={`${data.businessName} logo`}

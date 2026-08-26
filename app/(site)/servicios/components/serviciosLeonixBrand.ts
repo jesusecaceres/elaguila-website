@@ -1,6 +1,9 @@
+import type { CSSProperties } from "react";
 import type { ServiciosLang } from "../types/serviciosBusinessProfile";
 import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
 import { SV } from "./serviciosDesignTokens";
+import type { AdBrandingProfile } from "@/app/lib/adBranding";
+import { resolveAdBrandColorSet } from "@/app/lib/adBranding";
 
 /** Leonix Servicios professional brand — cream, charcoal, burgundy, gold (Gate 13). */
 export const LX = {
@@ -68,6 +71,57 @@ export const LX_STANDARD_HERO_FALLBACK_STYLE = {
   background:
     "radial-gradient(circle at 78% 18%, rgba(214, 166, 58, 0.18), transparent 34%), linear-gradient(135deg, #050B14 0%, #071A33 45%, #102E57 100%)",
 } as const;
+
+/**
+ * Leonix Ad Branding Layer (Gate 2B) — resolves the hero's background gradient, accent glow,
+ * and primary-action color from an advertiser's `AdBrandingProfile`, or the current Leonix
+ * default when none is set (backward compatible — every pre-existing listing renders unchanged).
+ *
+ * Deliberately keeps the exact same "editorial night hero" structure (radial glow + dark
+ * diagonal gradient, ivory text) for every theme — only the theme's own colors are substituted
+ * in, never the composition — so legibility and the premium Leonix hero identity never break.
+ */
+export function resolveServiciosHeroBranding(adBranding?: AdBrandingProfile): {
+  heroBackgroundStyle: CSSProperties;
+  accentColor: string;
+  primaryActionColor: string;
+} {
+  if (!adBranding) {
+    return {
+      heroBackgroundStyle: LX_HERO_BG_STYLE,
+      accentColor: LX.gold,
+      primaryActionColor: LX.burgundy,
+    };
+  }
+  const colors = resolveAdBrandColorSet(adBranding.themeId, adBranding.shadeId);
+  return {
+    heroBackgroundStyle: {
+      background: `radial-gradient(circle at 78% 18%, ${colors.accentSoft}, transparent 34%), linear-gradient(135deg, ${colors.secondary} 0%, ${colors.primaryDark} 45%, ${colors.primary} 100%)`,
+    },
+    accentColor: colors.accent,
+    primaryActionColor: colors.primary,
+  };
+}
+
+/**
+ * Leonix Ad Branding Layer (Gate 2C) — subtle, discovery-first branding for results cards.
+ * Returns `null` when no branding is set so callers can render exactly today's card with a
+ * single `if (cardBrand)` check — no new markup, no color, no layout change for the vast
+ * majority of listings. Deliberately narrower than `resolveServiciosHeroBranding`: results
+ * cards get an accent border tint and a thin top accent line only, never a background fill or
+ * a resized logo — "fast trust," not a mini profile.
+ */
+export function resolveServiciosResultCardBranding(adBranding?: AdBrandingProfile): {
+  accentColor: string;
+  accentBorderColor: string;
+} | null {
+  if (!adBranding) return null;
+  const colors = resolveAdBrandColorSet(adBranding.themeId, adBranding.shadeId);
+  return {
+    accentColor: colors.accent,
+    accentBorderColor: colors.accentBorder,
+  };
+}
 
 /** Premium editorial titles — `font-serif` (project-safe, no new font imports). */
 export const LX_TYPE_SERIF_DISPLAY = "font-serif font-semibold tracking-tight text-balance";

@@ -3,6 +3,8 @@
  * Map form/API fields into this shape; run through `resolveServiciosProfile` before rendering.
  */
 
+import type { AdBrandingProfile } from "@/app/lib/adBranding";
+
 export type ServiciosLang = "es" | "en";
 
 export type ServiciosQuickFactKind =
@@ -330,6 +332,13 @@ export type ServiciosBusinessProfile = {
   customAmenityOptions?: string[];
   /** License, insurance, certifications (self-serve; not verified by Leonix). */
   credentials?: ServiciosCredentialsWire;
+  /**
+   * Leonix Ad Branding Layer (Gate 2A — data path only). Sourced exclusively from the global
+   * `app/lib/adBranding` preset contract; never a Servicios-local theme/color definition.
+   * Not yet consumed by `resolveServiciosProfile` or any renderer — persisted with
+   * `profile_json` so a future gate can wire it in without another data-shape migration.
+   */
+  adBranding?: AdBrandingProfile;
 };
 
 /**
@@ -450,4 +459,10 @@ export type ServiciosProfileResolved = {
   couponMoreOffers?: { url: string; buttonLabel?: string };
   /** Sanitized credentials block — omitted when nothing meaningful remains */
   credentials?: ServiciosCredentialsResolved;
+  /**
+   * Leonix Ad Branding Layer (Gate 2B) — validated, render-ready branding selection.
+   * Present only when the wire profile carried an approved profile; renderers must fall back
+   * to the current Leonix default hero styling when this is absent.
+   */
+  adBranding?: AdBrandingProfile;
 };

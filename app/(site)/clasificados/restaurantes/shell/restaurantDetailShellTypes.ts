@@ -1,4 +1,5 @@
 import type { RestaurantContactHubData } from "../application/buildRestaurantContactHub";
+import type { AdBrandingProfile } from "@/app/lib/adBranding";
 
 /**
  * Leonix Clasificados — Restaurantes desktop detail shell.
@@ -214,4 +215,10 @@ export type RestaurantDetailShellData = {
   groupedFeatures?: import("../lib/restauranteFeaturesNormalization").GroupedFeatures;
   /** Optional amenities (payments, accessibility, etc.) — labels only; hidden when empty */
   amenitiesSection?: ShellAmenitiesSection;
+  /**
+   * Leonix Ad Branding Layer (Gate 3A — data foundation only). Pass-through from the draft;
+   * not yet consumed by `RestauranteProfileHeader`/`RestaurantePreviewCard` — no header/card
+   * styling changes in this gate.
+   */
+  adBranding?: AdBrandingProfile;
 };

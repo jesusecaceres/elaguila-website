@@ -2,8 +2,8 @@ import type { ServiciosProfileResolved, ServiciosLang } from "../types/servicios
 import { buildServiciosHeroHoursPill } from "./serviciosHeroHoursStatus";
 import {
   LX_STANDARD_HERO_CHIP,
-  LX_STANDARD_HERO_FALLBACK_STYLE,
   LX_STANDARD_HERO_TITLE,
+  resolveServiciosHeroBranding,
 } from "./serviciosLeonixBrand";
 import { ServiciosAdaptiveLogoPlate } from "./ServiciosAdaptiveLogoPlate";
 import { ServiciosLikeCountBadge } from "./ServiciosLikeCountBadge";
@@ -39,6 +39,9 @@ export function ServiciosHero({
   const hoursPill = buildServiciosHeroHoursPill(profile.contact.hours, lang);
   const likeCueN =
     typeof publicLikeCount === "number" && Number.isFinite(publicLikeCount) ? Math.max(0, Math.floor(publicLikeCount)) : 0;
+  // Leonix Ad Branding Layer (Gate 2B) — falls back to the exact current Leonix default hero
+  // whenever no branding is set.
+  const brand = resolveServiciosHeroBranding(profile.adBranding);
 
   return (
     <section
@@ -48,7 +51,7 @@ export function ServiciosHero({
     >
       <div className="relative isolate w-full min-h-[clamp(14.25rem,38vmin,31rem)] sm:min-h-[clamp(15.25rem,34vmin,28rem)] md:min-h-[clamp(16rem,30vmin,26rem)]">
         <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]" aria-hidden>
-          <div className="absolute inset-0" style={LX_STANDARD_HERO_FALLBACK_STYLE} />
+          <div className="absolute inset-0" style={brand.heroBackgroundStyle} />
         </div>
 
         <div className="relative z-10 flex w-full flex-col items-center px-3 pb-7 pt-8 text-center text-[#FFFCF7] sm:px-8 sm:pb-9 sm:pt-10 md:px-10 md:pb-10 md:pt-11">
@@ -58,6 +61,8 @@ export function ServiciosHero({
               alt={hero.logoAlt || identity.businessName}
               fallbackMonogram={identity.businessName}
               variant="hero"
+              presentation={profile.adBranding?.logo.presentation}
+              accentColor={profile.adBranding ? brand.accentColor : undefined}
             />
 
             <h1 className={LX_STANDARD_HERO_TITLE}>{identity.businessName}</h1>

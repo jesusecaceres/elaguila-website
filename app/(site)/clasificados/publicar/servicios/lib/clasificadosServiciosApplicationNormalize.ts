@@ -22,6 +22,7 @@ import { SERVICIOS_APPLICATION_STEP_COUNT, migrateServiciosApplicationStepIndex 
 import { SERVICIOS_MAX_VIDEO_URLS } from "./clasificadosServiciosApplicationTypes";
 import { CUSTOM_PAYMENT_LABEL_MAX } from "@/app/servicios/lib/serviciosPaymentMethodCatalog";
 import { CUSTOM_SERVICIOS_AMENITY_LABEL_MAX } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
+import { validateAdBrandingProfile } from "@/app/lib/adBranding";
 
 const DAY_KEYS: DayKey[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
@@ -319,6 +320,13 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     customQuickFactIncluded = false;
   }
 
+  /**
+   * Leonix Ad Branding Layer (Gate 2A) — unknown/invalid values are rejected outright, never
+   * coerced or defaulted to a guessed preset. `d.adBranding` (null) is the only fallback.
+   */
+  const adBrandingResult = validateAdBrandingProfile(o.adBranding);
+  const adBranding = adBrandingResult.ok ? adBrandingResult.profile : d.adBranding;
+
   const baseBeforeCaps = {
     applicationStepIndex,
     businessTypeId: str("businessTypeId", d.businessTypeId),
@@ -429,6 +437,7 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     insuranceDocumentUrl: str("insuranceDocumentUrl", d.insuranceDocumentUrl),
     certifications,
     pendingCertification: str("pendingCertification", d.pendingCertification),
+    adBranding,
   } as ClasificadosServiciosApplicationState;
 
   return enforceServiciosSelectionCaps({

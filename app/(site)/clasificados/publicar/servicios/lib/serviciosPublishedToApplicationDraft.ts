@@ -19,6 +19,7 @@ import type {
 import { normalizeClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationNormalize";
 import { createEmptyClasificadosPromoRow } from "./clasificadosServiciosPromo";
 import { createDefaultClasificadosServiciosState } from "./defaultClasificadosServiciosState";
+import { validateAdBrandingProfile } from "@/app/lib/adBranding";
 
 export type ServiciosPublishedListingHydrationSource = {
   id?: string | null;
@@ -381,6 +382,12 @@ export function serviciosPublishedToApplicationDraft(
     certifications: sanitizeCertificationLabels(profile?.credentials?.certifications),
     licenseDocumentUrl: fromUrl(profile?.credentials?.licenseDocumentUrl),
     insuranceDocumentUrl: fromUrl(profile?.credentials?.insuranceDocumentUrl),
+    // Leonix Ad Branding Layer (Gate 2A) — round-trips a previously published branding
+    // selection back into the edit draft; an unknown/invalid stored value is dropped, not guessed.
+    adBranding: (() => {
+      const result = validateAdBrandingProfile(profile?.adBranding);
+      return result.ok ? result.profile : base.adBranding;
+    })(),
   });
 
   const newFieldsMissing = profile ? detectNewFieldsAvailable(profile) : [];

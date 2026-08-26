@@ -14,10 +14,10 @@ import {
   LX_CTA_PRIMARY_LG,
   LX_CTA_WHATSAPP,
   LX_HERO_BG,
-  LX_HERO_BG_STYLE,
   LX_HERO_TITLE,
   getPrimaryCtaLabel,
   hasPhysicalAddress,
+  resolveServiciosHeroBranding,
 } from "./serviciosLeonixBrand";
 import { ServiciosAdaptiveLogoPlate } from "./ServiciosAdaptiveLogoPlate";
 import { ServiciosLanguageChipRow } from "./ServiciosLanguageChipRow";
@@ -133,12 +133,17 @@ export function ServiciosProfessionalHero({
   const heroShell =
     template === "standard_service" ? "trade-canonical" : "professional-canonical";
 
+  // Leonix Ad Branding Layer (Gate 2B) — falls back to the exact current Leonix default hero
+  // (LX.gold / LX.burgundy / the fixed night-sky gradient) whenever no branding is set.
+  const brand = resolveServiciosHeroBranding(profile.adBranding);
+
   return (
     <div
       className={LX_HERO_BG}
-      style={LX_HERO_BG_STYLE}
+      style={brand.heroBackgroundStyle}
       data-servicios-hero-shell={heroShell}
       data-servicios-hero-align="editorial"
+      data-servicios-ad-branding={profile.adBranding ? profile.adBranding.themeId : undefined}
     >
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#C9A84A]/80 to-transparent"
@@ -150,7 +155,7 @@ export function ServiciosProfessionalHero({
       />
       <div
         className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full opacity-[0.1]"
-        style={{ background: `radial-gradient(circle, ${LX.gold} 0%, transparent 70%)` }}
+        style={{ background: `radial-gradient(circle, ${brand.accentColor} 0%, transparent 70%)` }}
         aria-hidden
       />
 
@@ -170,6 +175,8 @@ export function ServiciosProfessionalHero({
             fallbackMonogram={profile.identity.businessName}
             variant="hero"
             className="mx-auto sm:mx-0"
+            presentation={profile.adBranding?.logo.presentation}
+            accentColor={profile.adBranding ? brand.accentColor : undefined}
           />
 
           <div className="min-w-0 flex-1 text-center sm:text-left">
@@ -236,7 +243,7 @@ export function ServiciosProfessionalHero({
               type="button"
               onClick={openCall}
               className={`${LX_CTA_PRIMARY} ${LX_CTA_PRIMARY_LG} w-full sm:col-span-2 lg:min-w-[14rem] lg:flex-1`}
-              style={{ backgroundColor: LX.burgundy, boxShadow: "0 8px 24px rgba(92, 22, 34, 0.32)" }}
+              style={{ backgroundColor: brand.primaryActionColor, boxShadow: "0 8px 24px rgba(92, 22, 34, 0.32)" }}
             >
               <FiPhone className="h-4 w-4 shrink-0" aria-hidden />
               {primaryLabel}
@@ -264,7 +271,7 @@ export function ServiciosProfessionalHero({
               type="button"
               onClick={scrollToContact}
               className={`${LX_CTA_PRIMARY} ${LX_CTA_PRIMARY_LG} w-full sm:col-span-2`}
-              style={{ backgroundColor: LX.burgundy }}
+              style={{ backgroundColor: brand.primaryActionColor }}
             >
               {primaryLabel}
             </button>
