@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { AutoDealerListing } from "../../negocios/types/autoDealerListing";
 import { normalizeLoadedListing } from "../../negocios/lib/autoDealerDraftDefaults";
 import { withNormalizedVehicleIdentityForDisplay } from "@/app/lib/clasificados/autos/autosListingDisplayIdentity";
-import { AutoDealerPreviewPage } from "../../negocios/components/AutoDealerPreviewPage";
+import { AutosNegociosDealershipPreviewPage } from "../../negocios/preview/dealershipPreview/AutosNegociosDealershipPreviewPage";
 import { AutoPrivadoPreviewPage } from "../../privado/components/AutoPrivadoPreviewPage";
 import { AutosNegociosPreviewLocaleProvider } from "../../negocios/lib/AutosNegociosPreviewLocaleContext";
 import { AutosPrivadoPreviewLocaleProvider } from "../../privado/lib/AutosPrivadoPreviewLocaleContext";
@@ -188,7 +188,7 @@ export function AutosLiveVehicleClient({
   }
 
   return (
-    <AutosNegociosPreviewLocaleProvider lang={lang}>
+    <AutosNegociosPreviewLocaleProvider lang={lang} manageDocumentTitle={false}>
       <AutosVehicleProfileViewAnalytics listingSourceId={listingId} leonixAdId={leonixAdId} lane={lane} />
       <AutosLiveVehicleOwnerInventoryBar listingId={listingId} lang={lang} />
       <AutosListingTranslationLayer
@@ -200,7 +200,7 @@ export function AutosLiveVehicleClient({
         {(displayListing, translateControl) => (
           <>
             {translateControl}
-            <AutoDealerPreviewPage
+            <AutosNegociosDealershipPreviewPage
               data={displayListing}
               editBackHref={undefined}
               publicPlaybackOnly
