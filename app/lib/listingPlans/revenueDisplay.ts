@@ -105,6 +105,13 @@ export function revenueAdPlanBadgeLabel(input: {
     planLabel = lang === "es" ? "Empleo pagado" : "Paid job";
   } else if (key.includes("restaurantes")) {
     planLabel = lang === "es" ? "Restaurante pagado" : "Paid restaurant";
+  } else if (def?.billingMode === "free") {
+    // Package 5 (owner lock 2026-08-25): a free package (e.g. viajes_business_free,
+    // ofertas_locales_coupons_free) must never fall through to the generic "business"/
+    // "monthly_subscription" paid-label branch below just because its customerType string
+    // happens to contain "business" (e.g. "travel_business", "service_business"). Checked
+    // before that branch so this always wins for any current or future free package.
+    planLabel = lang === "es" ? "Gratis" : "Free";
   } else if (def?.customerType?.includes("business") || def?.billingMode === "monthly_subscription") {
     planLabel = lang === "es" ? "Negocio pagado" : "Paid business";
   } else if (def?.billingMode === "one_time") {

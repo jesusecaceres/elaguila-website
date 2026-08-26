@@ -1,13 +1,13 @@
 /**
  * Globalization Package A Gate 2 — Viajes checkpoint entry page.
  *
- * Presents the truthful paid (negocios, $ from revenuePricingMatrix) and free (privado) lane
- * cards before either application. The existing /publicar/viajes branch chooser
- * (PublicarViajesBranchClient) is deliberately left untouched — that surface may be superseded
- * by the isolated Viajes workstream at merge; the shared checkpoint card config in
- * categoryPublishCheckpoints.ts is the canonical contract either surface consumes. The gateway
- * routes here (registry `checkpointRoute`); lane applications are unchanged at
- * /publicar/viajes/{negocios,privado}.
+ * Presents the truthful free negocios and free privado lane cards before either application
+ * (owner lock 2026-08-25, Package 3: Viajes business publishing is free — no payment, no
+ * Stripe). The existing /publicar/viajes branch chooser (PublicarViajesBranchClient) is
+ * deliberately left untouched — that surface may be superseded by the isolated Viajes
+ * workstream at merge; the shared checkpoint card config in categoryPublishCheckpoints.ts is
+ * the canonical contract either surface consumes. The gateway routes here (registry
+ * `checkpointRoute`); lane applications are unchanged at /publicar/viajes/{negocios,privado}.
  */
 import type { Metadata } from "next";
 import { Suspense } from "react";
