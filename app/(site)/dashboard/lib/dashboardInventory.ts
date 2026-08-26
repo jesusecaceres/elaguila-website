@@ -8,6 +8,8 @@ import {
 } from "@/app/(site)/dashboard/lib/autosDashboardInventoryAddonCheckout";
 import { autosPaidListingAnalyticsHref } from "@/app/lib/clasificados/autos/autosPaidListingAnalyticsHref";
 import { buildVehicleTitle } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
+import { deriveHeroImageUrls } from "@/app/clasificados/autos/negocios/lib/autoDealerHeroImages";
+import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import {
   buildServiciosDashboardActionContract,
   type CategoryDashboardActionContract,
@@ -222,8 +224,13 @@ export async function fetchOwnerAutosClassifiedsListings(
   return data as DashboardAutosClassifiedsRow[];
 }
 
+/** Mirrors `autosClassifiedsRowToDashboardRow` (admin) — prefer the stored/edited
+ * `vehicleTitle` before falling back to an auto-built year/make/model/trim string, so the
+ * owner's own dashboard never shows a different title than admin or the live listing. */
 function autosClassifiedsTitleFromPayload(payload: unknown, lang: "es" | "en"): string {
   const p = payload && typeof payload === "object" ? (payload as Record<string, unknown>) : {};
+  const storedTitle = typeof p.vehicleTitle === "string" ? p.vehicleTitle.trim() : "";
+  if (storedTitle) return storedTitle;
   const yearRaw = p.year;
   const year = typeof yearRaw === "number" && Number.isFinite(yearRaw) ? yearRaw : parseInt(String(yearRaw ?? ""), 10);
   const make = typeof p.make === "string" ? p.make : undefined;
@@ -232,6 +239,14 @@ function autosClassifiedsTitleFromPayload(payload: unknown, lang: "es" | "en"): 
   const t = buildVehicleTitle(Number.isFinite(year) ? year : undefined, make, model, trim);
   if (t.trim()) return t;
   return lang === "es" ? "Auto (Leonix)" : "Vehicle (Leonix)";
+}
+
+/** Mirrors `autosClassifiedsRowToDashboardRow` (admin) so the owner's own "Mis anuncios"
+ * dashboard shows the same thumbnail admin and the live listing already show. */
+function autosClassifiedsThumbFromPayload(payload: unknown): string | null {
+  const p = payload && typeof payload === "object" ? (payload as AutoDealerListing) : ({} as AutoDealerListing);
+  const thumbs = deriveHeroImageUrls(p);
+  return thumbs[0] ?? null;
 }
 
 export function buildAutosClassifiedsInventoryItems(
@@ -280,7 +295,7 @@ export function buildAutosClassifiedsInventoryItems(
       }),
       publishedAt: row.published_at,
       updatedAt: row.updated_at,
-      image: null,
+      image: autosClassifiedsThumbFromPayload(row.listing_payload),
       leonixAdId: typeof row.leonix_ad_id === "string" && row.leonix_ad_id.trim() ? row.leonix_ad_id.trim() : null,
       slug: null,
       packageTier: null,

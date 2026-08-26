@@ -149,7 +149,7 @@ export function AutosLiveVehicleClient({
 
   if (lane === "privado") {
     return (
-      <AutosPrivadoPreviewLocaleProvider lang={lang}>
+      <AutosPrivadoPreviewLocaleProvider lang={lang} manageDocumentTitle={false}>
         <AutosVehicleProfileViewAnalytics listingSourceId={listingId} leonixAdId={leonixAdId} lane={lane} />
         <AutosListingTranslationLayer
           listing={data}
