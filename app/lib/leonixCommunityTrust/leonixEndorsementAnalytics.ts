@@ -16,6 +16,7 @@ import type { LeonixEndorsementCategory } from "./leonixEndorsementRegistry";
 const SOURCE_TABLE_BY_CATEGORY: Record<LeonixEndorsementCategory, string> = {
   servicios: "servicios_public_listings",
   restaurantes: "restaurantes_public_listings",
+  "comida-local": "comida_local_public_listings",
   // Item 21 — both target the durable per-(owner, category) identity table, not a listing.
   bienes_raices_negocio: "leonix_professional_identities",
   rentas_negocio: "leonix_professional_identities",

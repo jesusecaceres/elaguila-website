@@ -77,15 +77,15 @@ const REPO_ROOT = join(__dirname, "..");
 }
 
 /* ------------------------------------------------------------------------------------------ *
- * C — Readiness gate: BR/Rentas Negocio are correctly NOT live yet (migration prepared, not
- * applied); Servicios/Restaurantes are unaffected and still live.
+ * C — Readiness gate: Gate 5 activation. Migration applied and verified against canonical
+ * production (Gates 3-4), so BR/Rentas Negocio are now live; Servicios/Restaurantes unaffected.
  * ------------------------------------------------------------------------------------------ */
 {
-  assert.equal(isLeonixEndorsementCategoryLive("bienes_raices_negocio"), false, "C: BR Negocio not live until migration applied");
-  assert.equal(isLeonixEndorsementCategoryLive("rentas_negocio"), false, "C: Rentas Negocio not live until migration applied");
+  assert.equal(isLeonixEndorsementCategoryLive("bienes_raices_negocio"), true, "C: BR Negocio live post-activation (Gate 5)");
+  assert.equal(isLeonixEndorsementCategoryLive("rentas_negocio"), true, "C: Rentas Negocio live post-activation (Gate 5)");
   assert.equal(isLeonixEndorsementCategoryLive("servicios"), true, "C: Servicios regression — still live");
   assert.equal(isLeonixEndorsementCategoryLive("restaurantes"), true, "C: Restaurantes regression — still live");
-  console.log("C (readiness gate) OK");
+  console.log("C (readiness gate, post-activation) OK");
 }
 
 /* ------------------------------------------------------------------------------------------ *
