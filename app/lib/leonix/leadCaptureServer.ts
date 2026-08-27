@@ -19,7 +19,18 @@ import {
 } from "./leadCaptureValidation";
 
 export type SaveNewsletterResult =
-  | { ok: true; id: string; updated: boolean }
+  | {
+      ok: true;
+      id: string;
+      updated: boolean;
+      /**
+       * The subscriber's `status` value BEFORE this write (null when this call inserted a brand
+       * new row). Callers use this to tell an idempotent re-confirmation of an already-subscribed
+       * email (ALREADY_SUBSCRIBED) apart from a genuine new/re- subscription (SUCCESS) without
+       * re-querying. See CHECKOUT-NEWSLETTER-CHECKBOX-CAPTURE-01.
+       */
+      previousStatus: string | null;
+    }
   | { ok: false; error: "invalid_email" | "email_required" | "save_failed" };
 
 export type SaveMediaKitLeadResult =
@@ -88,7 +99,7 @@ export async function saveNewsletterSubscriber(
 
   const { data: existing, error: selectError } = await supabase
     .from("leonix_newsletter_subscribers")
-    .select("id")
+    .select("id, status")
     .eq("email", email)
     .maybeSingle();
 
@@ -107,7 +118,7 @@ export async function saveNewsletterSubscriber(
       console.error("[newsletter] update failed", { code: updateError.code });
       return { ok: false, error: "save_failed" };
     }
-    return { ok: true, id: existing.id, updated: true };
+    return { ok: true, id: existing.id, updated: true, previousStatus: existing.status ?? null };
   }
 
   const { data: inserted, error: insertError } = await supabase
@@ -117,11 +128,34 @@ export async function saveNewsletterSubscriber(
     .single();
 
   if (insertError || !inserted?.id) {
+    // Idempotency: a concurrent request (e.g. two checkout tabs) may have inserted the same
+    // email between our SELECT and this INSERT. The unique index on `email` rejects the second
+    // insert (unique_violation, Postgres code 23505) rather than creating a duplicate row — fall
+    // back to an update so the caller still gets a truthful ok:true instead of a false negative.
+    if (insertError?.code === "23505") {
+      const { data: raced, error: racedSelectError } = await supabase
+        .from("leonix_newsletter_subscribers")
+        .select("id, status")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (!racedSelectError && raced?.id) {
+        const { error: racedUpdateError } = await supabase
+          .from("leonix_newsletter_subscribers")
+          .update(row)
+          .eq("id", raced.id);
+
+        if (!racedUpdateError) {
+          return { ok: true, id: raced.id, updated: true, previousStatus: raced.status ?? null };
+        }
+      }
+    }
+
     console.error("[newsletter] insert failed", { code: insertError?.code });
     return { ok: false, error: "save_failed" };
   }
 
-  return { ok: true, id: inserted.id, updated: false };
+  return { ok: true, id: inserted.id, updated: false, previousStatus: null };
 }
 
 export async function saveMediaKitLead(

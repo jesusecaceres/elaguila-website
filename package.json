@@ -178,6 +178,7 @@
     "verify:negocios-locales-landing-hub": "node scripts/verify-negocios-locales-landing-hub.mjs",
     "verify:checkpoint-first-routes": "node scripts/verify-checkpoint-first-routes.mjs",
     "verify:checkout-newsletter-capture": "node scripts/verify-checkout-newsletter-capture.mjs",
+    "verify:newsletter-engine-v2": "npx tsx scripts/verify-newsletter-engine-v2.ts",
     "verify:launch-25-opportunity-surfaces": "node scripts/verify-launch-25-opportunity-surfaces.mjs",
     "verify:launch-25-public-placements": "node scripts/verify-launch-25-public-placements.mjs",
     "verify:autos-privado-revenue-os-checkout": "node scripts/verify-autos-privado-revenue-os-checkout.mjs",
