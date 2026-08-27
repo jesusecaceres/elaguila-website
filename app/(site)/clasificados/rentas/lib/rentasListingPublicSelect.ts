@@ -7,10 +7,15 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { listingsQueryWithSelectShrink } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
 
 export const RENTAS_LISTING_PUBLIC_ROW_BASE =
-  "id, title, description, city, state, zip, category, price, is_free, detail_pairs, listing_json, profile_json, contact_json, seller_type, business_name, business_meta, status, is_published, created_at, images, contact_phone, contact_email, leonix_ad_id";
+  "id, owner_id, title, description, city, state, zip, category, price, is_free, detail_pairs, listing_json, profile_json, contact_json, seller_type, business_name, business_meta, status, is_published, created_at, images, contact_phone, contact_email, leonix_ad_id";
 
+// `republish_sort_at` is requested by BROWSE_ORDER_ATTEMPTS below but confirmed NOT present on
+// production's live `listings` table (pg_catalog introspection, 2026-08-27) -- omitted from the
+// select so every load doesn't pay a guaranteed failed round trip before the shrink-retry loop
+// finds a working column set. Re-add here (and to BROWSE_ORDER_ATTEMPTS) if it's ever actually
+// migrated onto production.
 /** Rich row for browse + detail (republish ordering + timestamps). */
-export const RENTAS_LISTING_PUBLIC_ROW_RICH = `${RENTAS_LISTING_PUBLIC_ROW_BASE}, published_at, expires_at, republished_at, republish_sort_at, updated_at, mux_asset_id, mux_playback_id, mux_thumbnail_url, mux_status`;
+export const RENTAS_LISTING_PUBLIC_ROW_RICH = `${RENTAS_LISTING_PUBLIC_ROW_BASE}, published_at, expires_at, republished_at, updated_at, mux_asset_id, mux_playback_id, mux_thumbnail_url, mux_status`;
 
 /** @deprecated Use `RENTAS_LISTING_PUBLIC_ROW_RICH` — kept for external imports during transition. */
 export const RENTAS_LISTING_PUBLIC_ROW_WITH_BOOST = RENTAS_LISTING_PUBLIC_ROW_RICH;
@@ -22,7 +27,6 @@ type BrowseOrder =
   | { kind: "none" };
 
 const BROWSE_ORDER_ATTEMPTS: BrowseOrder[] = [
-  { kind: "column", column: "republish_sort_at", ascending: false, nullsFirst: true },
   { kind: "column", column: "republished_at", ascending: false, nullsFirst: true },
   { kind: "column", column: "published_at", ascending: false, nullsFirst: true },
   { kind: "column", column: "updated_at", ascending: false, nullsFirst: true },
