@@ -501,6 +501,7 @@
     "ofertas-locales:final-4-public-detail-audit": "tsx scripts/ofertas-locales-final-4-public-detail-audit.ts",
     "ofertas-locales:final-ai-1-audit": "tsx scripts/ofertas-locales-final-ai-1-audit.ts",
     "ofertas-locales:ol2-draft-preview-persistence-audit": "tsx scripts/ofertas-locales-ol2-draft-preview-persistence-audit.ts",
+    "ofertas-locales:draft-identity-hydration-regression-audit": "tsx scripts/ofertas-locales-draft-identity-hydration-regression-audit.ts",
     "ofertas-locales:ol3-step1-cta-cleanup-audit": "tsx scripts/ofertas-locales-ol3-step1-cta-cleanup-audit.ts",
     "ofertas-locales:ol4-step2-4-field-cleanup-audit": "tsx scripts/ofertas-locales-ol4-step2-4-field-cleanup-audit.ts",
     "ofertas-locales:ol5-upload-size-storage-audit": "tsx scripts/ofertas-locales-ol5-upload-size-storage-audit.ts",
