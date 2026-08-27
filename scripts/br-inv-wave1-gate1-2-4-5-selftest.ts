@@ -39,6 +39,7 @@ import {
   type RentasPublicListingFlowSlice,
 } from "../app/(site)/clasificados/rentas/shared/rentasRentalTypeApply";
 import { rentasRentalFlowGroupForTipo } from "../app/(site)/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
+import { mergeParentHubWithChildProperty } from "../app/(site)/clasificados/publicar/bienes-raices/negocio/application/brNegocioChildInventoryFormMapping";
 
 function agente(overrides: Partial<AgenteIndividualResidencialFormState>): AgenteIndividualResidencialFormState {
   return mergePartialAgenteIndividualResidencial({
@@ -179,6 +180,57 @@ function agente(overrides: Partial<AgenteIndividualResidencialFormState>): Agent
   assert.equal(negocioComercial.gate12d.hasHoa, "", "FINAL-04: HOA must NOT be forwarded for comercial category");
 
   console.log("Item 4 (BR Negocio HOA — residential-only) OK");
+}
+
+/* ------------------------------------------------------------------------------------------ *
+ * FINAL-04-CHILD — BR Inventory child property: HOA is child-owned (not inherited from parent
+ * hub identity) and survives the same publish mapper the parent uses, end to end.
+ * ------------------------------------------------------------------------------------------ */
+{
+  const parentHub = agente({
+    categoriaPropiedad: "residencial",
+    titulo: "Hub del agente (no debe verse en el hijo)",
+    marcaNombre: "Acme Realty",
+    // Parent explicitly has NO HOA — proves the child's HOA isn't leaking from a shared default.
+    hasHoa: "",
+    hoaFee: "",
+  });
+  const childProperty = {
+    categoriaPropiedad: "residencial" as const,
+    titulo: "Unidad 204 — Condominio del inventario",
+    precio: "310000",
+    hasHoa: "yes" as const,
+    hoaFee: "180",
+    hoaFrequency: "monthly" as const,
+    communityRules: "No mascotas mayores a 25 lbs",
+    shortTermRentalAllowed: "no" as const,
+    parkingRules: "1 espacio numerado",
+  };
+  const childState = mergeParentHubWithChildProperty(parentHub, childProperty);
+
+  // Child owns its own HOA facts, distinct from (and not blocked by) the parent's empty HOA.
+  assert.equal(childState.hasHoa, "yes", "FINAL-04-CHILD: child hasHoa must come from the child, not the parent");
+  assert.equal(childState.hoaFee, "180", "FINAL-04-CHILD: child hoaFee must survive the parent/child merge");
+  assert.equal(childState.titulo, childProperty.titulo, "FINAL-04-CHILD: child title must win over parent hub title");
+  // Parent identity (brand) is still inherited, proving this is a merge, not a wholesale replace.
+  assert.equal(childState.marcaNombre, "Acme Realty", "FINAL-04-CHILD: parent identity fields must still be inherited");
+
+  const negocioChild = mapAgenteResidencialFormStateToNegocioForPublish(childState);
+  assert.equal(negocioChild.gate12d.hasHoa, "yes", "FINAL-04-CHILD: child HOA must survive the shared publish mapper");
+  assert.equal(negocioChild.gate12d.hoaFee, "180", "FINAL-04-CHILD: child hoaFee must survive publish");
+  assert.equal(
+    negocioChild.gate12d.communityRules,
+    "No mascotas mayores a 25 lbs",
+    "FINAL-04-CHILD: child communityRules must survive publish",
+  );
+
+  const vmChild = mapBienesRaicesNegocioStateToPreviewVm(negocioChild);
+  assert.ok(
+    vmChild.hoaCommunityCard && vmChild.hoaCommunityCard.rows.length > 0,
+    "FINAL-04-CHILD: HOA card must render for a published child property",
+  );
+
+  console.log("Item 4 (BR Inventory child HOA — owned by child, survives publish) OK");
 }
 
 /* ------------------------------------------------------------------------------------------ *

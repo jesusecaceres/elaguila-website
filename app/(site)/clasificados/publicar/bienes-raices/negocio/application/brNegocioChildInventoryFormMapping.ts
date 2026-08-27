@@ -83,6 +83,18 @@ export const AGENTE_CHILD_PROPERTY_FIELD_KEYS = [
   "estacionamientos",
   "anoConstruccion",
   "condicionPropiedad",
+  // FINAL-COMPLETION item 04: HOA is property-specific data (varies per unit/property), so it
+  // belongs to the child, same as title/price/location — not inherited from the parent's
+  // professional identity.
+  "hasHoa",
+  "hoaFee",
+  "hoaFrequency",
+  "hoaIncludes",
+  "communityRules",
+  "petRules",
+  "rentalRestrictions",
+  "shortTermRentalAllowed",
+  "parkingRules",
   "destacados",
   "destacadosComercial",
   "destacadosTerreno",
