@@ -2187,6 +2187,7 @@ function AnuncioDetallePageContent() {
                 listing={{
                   contact_phone: leonixLiveContact?.phoneForTel ?? (listing as any).contact_phone,
                   contact_email: leonixLiveContact?.emailForMailto ?? (listing as any).contact_email,
+                  owner_id: (listing as any).owner_id ?? null,
                 }}
                 onRequestInfo={handleContactarVendedor}
                 onScheduleVisit={handleContactarVendedor}

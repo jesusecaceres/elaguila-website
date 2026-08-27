@@ -1,5 +1,15 @@
 "use client";
 
+/**
+ * Shared "contact by email" lead-capture modal — server-persisted inquiry (auth-gated,
+ * self-inquiry blocked) plus Gmail/Yahoo/mailto fallback links. Originally built under En Venta;
+ * moved here (Final Completion item 18) because Rentas already reused it cross-category via
+ * `inquiryApiPath`/`onMessageSentAnalytics` — those props exist specifically to make this
+ * reusable, so the fix is relocating the file to a shared home, not rebuilding it under
+ * CtaActionSheet (which has no server-side lead persistence and would be a functional
+ * regression, not a parity swap).
+ */
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { trackEnVentaMessageIntent } from "@/app/clasificados/en-venta/analytics/enVentaAnalytics";
@@ -74,7 +84,7 @@ type Props = {
   sellerOwnerId?: string | null;
   /** Human-readable listing id for display (UUID or preview token). */
   listingIdDisplay?: string | null;
-  /** Defaults to En Venta route; Rentas uses the same handler once it accepts `rentas` listings. */
+  /** Category-specific inquiry endpoint (e.g. En Venta vs. Rentas vs. future categories). */
   inquiryApiPath?: string;
   /** When set, called after successful Leonix send instead of `trackEnVentaMessageIntent`. */
   onMessageSentAnalytics?: (listingId: string | null, userId: string | null) => void;
@@ -92,7 +102,7 @@ function readOnlyFieldClass() {
   return "w-full cursor-not-allowed rounded-xl border border-[#E8DFD0] bg-[#EFEAE0] px-3 py-2 text-sm text-[#1E1810]/90";
 }
 
-export function EnVentaCorreoModal({
+export function LeonixCorreoLeadModal({
   open,
   onClose,
   lang,
@@ -189,6 +199,15 @@ export function EnVentaCorreoModal({
       cancelled = true;
     };
   }, [open, defaultBody, emailAddr, sellerOwnerId]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
 
   const subj = lang === "es" ? COPY.es.subj : COPY.en.subj;
 
@@ -315,14 +334,14 @@ export function EnVentaCorreoModal({
       className="fixed inset-0 z-[85] flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="en-venta-correo-title"
+      aria-labelledby="leonix-correo-lead-title"
       onClick={onClose}
     >
       <div
         className="w-full max-w-md rounded-t-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-4 pb-safe shadow-xl sm:rounded-2xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id="en-venta-correo-title" className="text-base font-bold text-[#1E1810] pb-2 border-b border-[#E8DFD0]/90">
+        <h2 id="leonix-correo-lead-title" className="text-base font-bold text-[#1E1810] pb-2 border-b border-[#E8DFD0]/90">
           {t.title}
         </h2>
         <p className="mt-2 text-xs font-semibold text-[#7A7164]">
@@ -351,8 +370,11 @@ export function EnVentaCorreoModal({
         </div>
 
         <div className="mt-3">
-          <label className="text-[11px] font-semibold text-[#7A7164]">{t.messagePh}</label>
+          <label htmlFor="leonix-correo-lead-message" className="text-[11px] font-semibold text-[#7A7164]">
+            {t.messagePh}
+          </label>
           <textarea
+            id="leonix-correo-lead-message"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder={t.messagePh}

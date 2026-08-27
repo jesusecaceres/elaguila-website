@@ -41,10 +41,7 @@ import {
   onPhoneInputChange,
   digitsOnly,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/phoneMask";
-import {
-  compressImageFileToJpegDataUrl,
-  readVideoFileAsDataUrlLimited,
-} from "./utils/brPrivadoMediaCompress";
+import { compressImageFileToJpegDataUrl } from "./utils/brPrivadoMediaCompress";
 import { LeonixRealEstateSortablePhotoStrip } from "@/app/clasificados/lib/LeonixRealEstateSortablePhotoStrip";
 import { BrPrivadoCiudadZonaCombobox } from "./components/BrPrivadoCiudadZonaCombobox";
 import {
@@ -68,8 +65,6 @@ import {
 import { formatSqftDisplay, formatUsdWhole, priceDigitsUnbounded } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
 
 const MAX_PHOTOS = 8;
-/** Soft cap for draft video data URLs (sessionStorage); no Mux upload in this flow. */
-const MAX_VIDEO_BYTES = 32 * 1024 * 1024;
 /** Gate I.5.4A.1 — reject an oversized seller photo up front instead of letting a slow/huge upload fail silently later. */
 const MAX_SELLER_PHOTO_BYTES = 12 * 1024 * 1024;
 
@@ -120,7 +115,6 @@ export function BienesRaicesPrivadoForm() {
   const [state, setState] = useState<BienesRaicesPrivadoFormState>(createEmptyBienesRaicesPrivadoFormState);
   const [hydrated, setHydrated] = useState(false);
   const [previewGateMessage, setPreviewGateMessage] = useState<string | null>(null);
-  const [localVideoFileName, setLocalVideoFileName] = useState("");
   const [mediaNotice, setMediaNotice] = useState<string | null>(null);
   const [sellerPhotoNotice, setSellerPhotoNotice] = useState<string | null>(null);
 
@@ -128,23 +122,29 @@ export function BienesRaicesPrivadoForm() {
   stateRef.current = state;
   const photosInputRef = useRef<HTMLInputElement>(null);
   const ownerPhotoInputRef = useRef<HTMLInputElement>(null);
-  const videoFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const d = loadBienesRaicesPrivadoDraft();
-    if (d) {
-      setState(d);
+    let cancelled = false;
+    (async () => {
+      const d = await loadBienesRaicesPrivadoDraft();
+      if (cancelled) return;
+      if (d) {
+        setState(d);
+        setHydrated(true);
+        return;
+      }
+      try {
+        const sp = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+        const p = parseBrNegocioPropiedadParam(sp.get(BR_NEGOCIO_Q_PROPIEDAD));
+        if (p) setState((s) => ({ ...s, categoriaPropiedad: p }));
+      } catch {
+        /* ignore */
+      }
       setHydrated(true);
-      return;
-    }
-    try {
-      const sp = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-      const p = parseBrNegocioPropiedadParam(sp.get(BR_NEGOCIO_Q_PROPIEDAD));
-      if (p) setState((s) => ({ ...s, categoriaPropiedad: p }));
-    } catch {
-      /* ignore */
-    }
-    setHydrated(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   /** Debounced autosave — always persists `stateRef.current` when the timer fires (avoids stale closures). */
@@ -156,15 +156,12 @@ export function BienesRaicesPrivadoForm() {
     return () => window.clearTimeout(id);
   }, [state, hydrated]);
 
-  useEffect(() => {
-    if (!hydrated) return;
-    if (state.media.videoLocalDataUrl && !localVideoFileName) {
-      setLocalVideoFileName("Video local (sesión)");
-    }
-  }, [hydrated, state.media.videoLocalDataUrl, localVideoFileName]);
 
+  // BR-INV-WAVE1-GATE3: save is now async (IndexedDB offload). Returns the promise so callers that
+  // navigate right after (onVerAnuncio) can await it — otherwise router.push could race ahead of
+  // the write and the preview page would read a stale draft.
   const flushSave = useCallback(() => {
-    saveBienesRaicesPrivadoDraft(stateRef.current);
+    return saveBienesRaicesPrivadoDraft(stateRef.current);
   }, []);
 
   const previewHref = withClasificadosPublishLang(BR_PREVIEW_PRIVADO, routeLang, {
@@ -201,60 +198,15 @@ export function BienesRaicesPrivadoForm() {
     if (photosInputRef.current) photosInputRef.current.value = "";
   };
 
-  const onVideoFile = async (files: FileList | null) => {
-    const f = files?.[0];
-    if (!f) return;
-    setMediaNotice(null);
-    try {
-      const data = await readVideoFileAsDataUrlLimited(f, MAX_VIDEO_BYTES);
-      setLocalVideoFileName(f.name);
-      setState((s) => {
-        const out: BienesRaicesPrivadoFormState = {
-          ...s,
-          /** One video source: archivo borra enlace guardado para evitar ambigüedad. */
-          media: { ...s.media, videoLocalDataUrl: data, videoUrl: "" },
-        };
-        queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
-        return out;
-      });
-    } catch (e) {
-      const code = e instanceof Error ? e.message : "";
-      if (code === "video_too_large") {
-        setMediaNotice(`El video supera ${Math.round(MAX_VIDEO_BYTES / (1024 * 1024))} MB (límite para vista previa en el navegador).`);
-      } else if (code === "not_video") {
-        setMediaNotice("Elige un archivo de video válido.");
-      } else {
-        setMediaNotice("No se pudo leer el video.");
-      }
-    }
-    if (videoFileInputRef.current) videoFileInputRef.current.value = "";
-  };
-
-  const clearLocalVideo = () => {
-    setLocalVideoFileName("");
-    setMediaNotice(null);
-    setState((s) => {
-      const out: BienesRaicesPrivadoFormState = {
-        ...s,
-        media: { ...s.media, videoLocalDataUrl: "" },
-      };
-      queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
-      return out;
-    });
-  };
-
   const onVideoUrlChange = (raw: string) => {
     setMediaNotice(null);
-    const t = raw.trim();
-    if (t) setLocalVideoFileName("");
     setState((s) => {
       const out: BienesRaicesPrivadoFormState = {
         ...s,
-        media: {
-          ...s.media,
-          videoUrl: raw,
-          ...(t ? { videoLocalDataUrl: "" } : {}),
-        },
+        // BR-INV-WAVE1-GATE2: device video upload removed (external URL only). Clearing any
+        // legacy `videoLocalDataUrl` here so an old draft that still carries one converges to
+        // URL-only as soon as the seller touches this field.
+        media: { ...s.media, videoUrl: raw, videoLocalDataUrl: "" },
       };
       queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
       return out;
@@ -267,7 +219,7 @@ export function BienesRaicesPrivadoForm() {
 
   const pricePreview = formatPricePreviewUsd(state.precio);
 
-  const onVerAnuncio = () => {
+  const onVerAnuncio = async () => {
     if (!confirmAll) return;
     const g = gateBienesRaicesPrivadoPreview(stateRef.current);
     if (!g.ok) {
@@ -275,7 +227,7 @@ export function BienesRaicesPrivadoForm() {
       return;
     }
     setPreviewGateMessage(null);
-    flushSave();
+    await flushSave();
     router.push(previewHref);
   };
 
@@ -486,17 +438,10 @@ export function BienesRaicesPrivadoForm() {
               </span>
               .
             </p>
-            <div className="sm:col-span-2">
-              <AiField label="Enlace a mapa (opcional)" hint="Pega un enlace https (por ejemplo Google Maps).">
-                <input
-                  className={fieldClass}
-                  type="url"
-                  placeholder="https://"
-                  value={state.enlaceMapa}
-                  onChange={(e) => setState((s) => ({ ...s, enlaceMapa: e.target.value }))}
-                />
-              </AiField>
-            </div>
+            {/* BR-INV-FINAL-WAVE-D: manual "Enlace a mapa" input removed per product direction — maps/
+                directions are derived from the structured address instead. state.enlaceMapa stays in
+                the schema/mapper for backward-compat reads of already-stored drafts/listings; new
+                entries simply never populate it again. */}
             <div className="sm:col-span-2">
               <AiField
                 label="Descripción principal"
@@ -648,7 +593,7 @@ export function BienesRaicesPrivadoForm() {
               {" "}
               *
             </span>
-            . Un solo video: por archivo <strong className="font-semibold text-[#1E1810]">o</strong> por enlace (no ambos).
+            . Un solo video por enlace (opcional).
             Nada se sube a servidores en este paso; el borrador vive en esta sesión hasta que exista publicación.
           </p>
           {mediaNotice ? (
@@ -663,6 +608,7 @@ export function BienesRaicesPrivadoForm() {
               type="file"
               accept="image/*"
               multiple
+              aria-label="Fotos del anuncio"
               className="sr-only"
               onChange={(e) => onPhotos(e.target.files)}
             />
@@ -724,69 +670,26 @@ export function BienesRaicesPrivadoForm() {
           </div>
           <div className="mt-6 border-t border-[#E8DFD0] pt-5">
             <span className={aiLabelClass}>Video (opcional)</span>
-            <p className={aiHintClass}>
-              Elige <strong className="font-semibold text-[#1E1810]">un solo origen</strong>: archivo en tu equipo (borrador
-              local, sin Mux) o enlace (YouTube, mp4, etc.). Al elegir archivo se borra el enlace; al pegar un enlace se borra
-              el archivo.
-            </p>
-            <input
-              ref={videoFileInputRef}
-              type="file"
-              accept="video/*"
-              className="sr-only"
-              onChange={(e) => onVideoFile(e.target.files)}
-            />
-            {state.media.videoLocalDataUrl ? (
-              <div className="mt-3 space-y-2 rounded-xl border border-[#B8954A]/35 bg-[#FFF6E7] p-4">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#6E5418]">Video activo: archivo local</p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex max-w-full min-w-0 items-center rounded-full border border-[#C9B46A]/60 bg-white px-3 py-1.5 text-xs font-semibold text-[#1E1810]">
-                    <span className="min-w-0 truncate">{localVideoFileName || "Video local (sesión)"}</span>
-                  </span>
-                  <button
-                    type="button"
-                    className="text-xs font-bold text-[#B8954A] underline"
-                    onClick={clearLocalVideo}
-                  >
-                    Quitar archivo
-                  </button>
-                </div>
-                <p className="text-xs leading-relaxed text-[#5C5346]">
-                  Para usar un enlace, quita primero el archivo. La vista previa reproduce este video solo en tu navegador.
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#C9B46A]/70 bg-white px-4 text-sm font-semibold text-[#1E1810] transition hover:bg-[#FFEFD8]"
-                    onClick={() => videoFileInputRef.current?.click()}
-                  >
-                    Subir video del dispositivo
-                  </button>
-                </div>
-                <div className="mt-4">
-                  <AiField
-                    label="O video por enlace"
-                    hint="Pega la URL completa (YouTube, Vimeo, mp4…). Si empiezas a escribir aquí, cualquier archivo de video anterior se descarta."
-                  >
-                    <input
-                      className={fieldClass}
-                      type="text"
-                      inputMode="url"
-                      autoComplete="off"
-                      placeholder="https://"
-                      value={state.media.videoUrl}
-                      onChange={(e) => onVideoUrlChange(e.target.value)}
-                    />
-                  </AiField>
-                </div>
-                {state.media.videoUrl.trim() ? (
-                  <p className="mt-2 text-xs font-medium text-[#2C7A4E]">Enlace listo: se usará en la vista previa.</p>
-                ) : null}
-              </>
-            )}
+            <p className={aiHintClass}>Comparte un enlace externo (YouTube, Vimeo, mp4, etc.).</p>
+            <div className="mt-4">
+              <AiField
+                label="Video por enlace"
+                hint="Pega la URL completa (YouTube, Vimeo, mp4…)."
+              >
+                <input
+                  className={fieldClass}
+                  type="text"
+                  inputMode="url"
+                  autoComplete="off"
+                  placeholder="https://"
+                  value={state.media.videoUrl}
+                  onChange={(e) => onVideoUrlChange(e.target.value)}
+                />
+              </AiField>
+            </div>
+            {state.media.videoUrl.trim() ? (
+              <p className="mt-2 text-xs font-medium text-[#2C7A4E]">Enlace listo: se usará en la vista previa.</p>
+            ) : null}
           </div>
         </section>
 
@@ -812,6 +715,7 @@ export function BienesRaicesPrivadoForm() {
                 ref={ownerPhotoInputRef}
                 type="file"
                 accept="image/*"
+                aria-label="Foto del propietario"
                 className="sr-only"
                 onChange={async (e) => {
                   const f = e.target.files?.[0];
@@ -1364,10 +1268,20 @@ export function BienesRaicesPrivadoForm() {
             disableVerAnuncio={!confirmAll}
             validationMessage={verAnuncioValidationMessage}
             onReiniciar={onReiniciar}
+            openPreviewHref={previewHref}
+            onBeforeOpenUnvalidatedPreview={flushSave}
             labels={
               lang === "en"
-                ? { verAnuncio: "View listing", reiniciar: "Clear progress and restart" }
-                : { verAnuncio: "Ver anuncio", reiniciar: "Borrar progreso y reiniciar" }
+                ? {
+                    verAnuncio: "View listing",
+                    openPreview: "View preview (without validation)",
+                    reiniciar: "Clear progress and restart",
+                  }
+                : {
+                    verAnuncio: "Ver anuncio",
+                    openPreview: "Ver vista previa (sin validar)",
+                    reiniciar: "Borrar progreso y reiniciar",
+                  }
             }
           />
         </section>

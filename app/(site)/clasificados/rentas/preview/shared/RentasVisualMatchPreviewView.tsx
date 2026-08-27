@@ -21,6 +21,7 @@ import type {
   BienesRaicesPreviewFact,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 import { buildOfertaLocalPreviewMapEmbedUrl } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
+import { LeonixListingFactsGrid } from "@/app/clasificados/lib/LeonixListingFactsGrid";
 import {
   trackRentasPhoneClick,
   trackRentasWhatsappClick,
@@ -38,6 +39,8 @@ type Props = {
   videoUrls?: readonly string[] | null;
   /** Optional listing UUID for analytics tracking in public detail context */
   listingId?: string | null;
+  /** Item 29 — utilities/services included in rent, kept separate from property/space features. */
+  includedServices?: readonly string[] | null;
 };
 
 type DetailGroup = {
@@ -335,7 +338,7 @@ function ActionLink({
   );
 }
 
-export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId }: Props) {
+export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, includedServices }: Props) {
   const ph = photos(vm);
   const [hero, ...rest] = ph;
   const videos = mediaVideos(vm, videoUrls, lang);
@@ -607,38 +610,48 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId }:
               </div>
               <div className="grid gap-3 lg:grid-cols-2">
                 {detailGroups.map((group) => (
-                  <div key={group.title} className="rounded-[1.25rem] border bg-[#FFFDF7] p-4 shadow-[0_12px_34px_-26px_rgba(31,36,28,0.28)]" style={{ borderColor: BORDER_SOFT }}>
-                    <h3 className="font-serif text-base font-bold" style={{ color: CHARCOAL }}>
-                      {group.title}
-                    </h3>
-                    <div className="mt-3 divide-y" style={{ borderColor: "rgba(214,199,173,0.55)" }}>
-                      {group.rows.map((row) => (
-                        <div key={`${group.title}-${row.label}-${row.value}`} className="grid gap-1 py-2.5 sm:grid-cols-[0.85fr_1.15fr] sm:gap-3">
-                          <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em]" style={{ color: MUTED }}>
-                            {row.label}
-                          </p>
-                          <p className="whitespace-pre-wrap text-sm font-semibold leading-6" style={{ color: BODY }}>
-                            {row.value}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <LeonixListingFactsGrid
+                    key={group.title}
+                    title={group.title}
+                    rows={group.rows}
+                    columns={1}
+                    theme={{ borderColor: BORDER_SOFT, cardBackground: "#FFFDF7", labelColor: MUTED, valueColor: BODY }}
+                    className="rounded-[1.25rem] shadow-[0_12px_34px_-26px_rgba(31,36,28,0.28)]"
+                  />
                 ))}
               </div>
             </section>
           ) : null}
 
           {featureText.length ? (
-            <Section eyebrow={lang === "es" ? "Incluido y destacado" : "Included & highlighted"} title={lang === "es" ? "Características destacadas" : "Highlighted features"}>
-              <div className="grid gap-2 sm:grid-cols-2">
+            <Section eyebrow={lang === "es" ? "Destacado" : "Highlighted"} title={lang === "es" ? "Características" : "Features"}>
+              <div className="flex flex-wrap gap-2">
                 {featureText.map((item) => (
-                  <div key={item} className="flex items-start gap-2.5 rounded-2xl border bg-white/75 p-3" style={{ borderColor: "rgba(214,199,173,0.75)" }}>
-                    <FiCheckCircle className="mt-0.5 h-4 w-4 shrink-0" style={{ color: BRONZE }} aria-hidden />
-                    <span className="text-sm font-semibold leading-6" style={{ color: BODY }}>
-                      {item}
-                    </span>
-                  </div>
+                  <span
+                    key={item}
+                    className="inline-flex items-center gap-1.5 rounded-full border bg-white/75 px-3 py-1.5 text-xs font-semibold"
+                    style={{ borderColor: "rgba(214,199,173,0.75)", color: BODY }}
+                  >
+                    <FiCheckCircle className="h-3.5 w-3.5 shrink-0" style={{ color: BRONZE }} aria-hidden />
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </Section>
+          ) : null}
+
+          {includedServices && includedServices.length ? (
+            <Section eyebrow={lang === "es" ? "Incluido en la renta" : "Included in rent"} title={lang === "es" ? "Servicios incluidos" : "Included services"}>
+              <div className="flex flex-wrap gap-2">
+                {includedServices.map((item) => (
+                  <span
+                    key={item}
+                    className="inline-flex items-center gap-1.5 rounded-full border bg-white/75 px-3 py-1.5 text-xs font-semibold"
+                    style={{ borderColor: "rgba(214,199,173,0.75)", color: BODY }}
+                  >
+                    <FiCheckCircle className="h-3.5 w-3.5 shrink-0" style={{ color: BRONZE }} aria-hidden />
+                    {item}
+                  </span>
                 ))}
               </div>
             </Section>

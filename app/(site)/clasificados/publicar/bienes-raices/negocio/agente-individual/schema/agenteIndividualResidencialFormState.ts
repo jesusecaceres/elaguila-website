@@ -24,6 +24,12 @@ import {
 import { mergeAdditionalInventoryProperties } from "../../application/brNegocioAdditionalInventoryDraft";
 import type { ComercialDestacadoId, TerrenoDestacadoId } from "./agenteComercialTerrenoMeta";
 import {
+  coerceBrPrivadoHoaFrequency,
+  coerceBrPrivadoTriBool,
+  type BrPrivadoHoaFrequency,
+  type BrPrivadoTriBool,
+} from "@/app/clasificados/publicar/bienes-raices/privado/schema/bienesRaicesPrivadoFormState";
+import {
   COMERCIAL_DESTACADOS_DEFS,
   normalizeComercialTipoCodigo,
   normalizeTerrenoTipoCodigo,
@@ -180,6 +186,20 @@ export type AgenteIndividualResidencialFormState = {
   estacionamientos: string;
   anoConstruccion: string;
   condicionPropiedad: AgenteResidencialCondicionPropiedad;
+
+  // BR-INV-FINAL-WAVE-D (item 4) — HOA/community, residential only. Reuses BR Privado's exact
+  // tri-bool/frequency types and coercion (bienesRaicesPrivadoFormState.ts) rather than a
+  // divergent duplicate; forwarded into the Negocio publish shape's existing `gate12d` slice by
+  // the publish mapper, which already renders it via the shared HOA preview card.
+  hasHoa: BrPrivadoTriBool;
+  hoaFee: string;
+  hoaFrequency: BrPrivadoHoaFrequency;
+  hoaIncludes: string;
+  communityRules: string;
+  petRules: string;
+  rentalRestrictions: string;
+  shortTermRentalAllowed: BrPrivadoTriBool;
+  parkingRules: string;
 
   destacados: Record<AgenteResidencialDestacadoId, boolean>;
   destacadosComercial: Record<ComercialDestacadoId, boolean>;
@@ -635,6 +655,16 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     estacionamientos: "",
     anoConstruccion: "",
     condicionPropiedad: "buena",
+
+    hasHoa: "",
+    hoaFee: "",
+    hoaFrequency: "",
+    hoaIncludes: "",
+    communityRules: "",
+    petRules: "",
+    rentalRestrictions: "",
+    shortTermRentalAllowed: "",
+    parkingRules: "",
 
     destacados,
     destacadosComercial,
@@ -1127,6 +1157,11 @@ export function mergePartialAgenteIndividualResidencial(
           ? nested.mostrarDireccionExacta
           : base.mostrarDireccionExacta,
     condicionPropiedad: coerceCondicion(flat.condicionPropiedad ?? nested.condicionPropiedad ?? base.condicionPropiedad),
+    hasHoa: coerceBrPrivadoTriBool(flat.hasHoa ?? nested.hasHoa ?? base.hasHoa),
+    hoaFrequency: coerceBrPrivadoHoaFrequency(flat.hoaFrequency ?? nested.hoaFrequency ?? base.hoaFrequency),
+    shortTermRentalAllowed: coerceBrPrivadoTriBool(
+      flat.shortTermRentalAllowed ?? nested.shortTermRentalAllowed ?? base.shortTermRentalAllowed,
+    ),
     listadoUrl,
     listadoArchivoDataUrl,
     listadoArchivoNombre,

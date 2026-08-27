@@ -115,6 +115,7 @@ export type RentasNegocioFormState = {
   negocioSitioWeb: string;
   negocioRedes: string;
   negocioBio: string;
+  negocioIdiomas: string;
   residencial: BienesRaicesPrivadoResidencialFields;
   comercial: BienesRaicesPrivadoComercialFields;
   terreno: BienesRaicesPrivadoTerrenoFields;
@@ -198,6 +199,7 @@ export function createEmptyRentasNegocioFormState(): RentasNegocioFormState {
     negocioSitioWeb: "",
     negocioRedes: "",
     negocioBio: "",
+    negocioIdiomas: "",
     residencial: { ...p.residencial },
     comercial: { ...p.comercial },
     terreno: { ...p.terreno },
@@ -230,6 +232,7 @@ export function mergePartialRentasNegocioState(partial: Partial<RentasNegocioFor
     negocioSitioWeb: ns,
     negocioRedes: nr,
     negocioBio: nb,
+    negocioIdiomas: nidi,
     ...propLike
   } = partial;
 
@@ -320,6 +323,7 @@ export function mergePartialRentasNegocioState(partial: Partial<RentasNegocioFor
     negocioSitioWeb: typeof ns === "string" ? ns : base.negocioSitioWeb,
     negocioRedes: typeof nr === "string" ? nr : base.negocioRedes,
     negocioBio: typeof nb === "string" ? nb : base.negocioBio,
+    negocioIdiomas: typeof nidi === "string" ? nidi : base.negocioIdiomas,
     residencial: br.residencial,
     comercial: br.comercial,
     terreno: br.terreno,

@@ -10,8 +10,18 @@
  * genuinely endorse — never a numeric rating scale.
  */
 
-/** Gate D17 — "comida-local" added; matches COMIDA_LOCAL_CATEGORY_KEY used everywhere else. */
-export type LeonixEndorsementCategory = "servicios" | "restaurantes" | "comida-local";
+/**
+ * Gate D17 added "comida-local". Final Completion item 21 added "bienes_raices_negocio" /
+ * "rentas_negocio" — reconciled together (both landed independently on the same shared file;
+ * see 20260827190000_leonix_endorsement_votes_comida_local_br_rentas_reconcile.sql for the DB
+ * side of this reconciliation).
+ */
+export type LeonixEndorsementCategory =
+  | "servicios"
+  | "restaurantes"
+  | "comida-local"
+  | "bienes_raices_negocio"
+  | "rentas_negocio";
 
 export type LeonixEndorsementDefinition = {
   /** Stable machine key — never renamed once votes exist against it (would orphan real votes). */
@@ -51,6 +61,24 @@ export const LEONIX_ENDORSEMENT_REGISTRY: Readonly<Record<LeonixEndorsementCateg
     { key: "cl_on_time", es: "Llega a tiempo", en: "Shows up on time", active: true, order: 4 },
     { key: "cl_clean_setup", es: "Puesto limpio", en: "Clean setup", active: true, order: 5 },
   ],
+  // Item 21 (Final Completion) — BR Negocio: professional-only (agent/brokerage identity),
+  // never exposed to BR Privado. Curated vocabulary as approved.
+  bienes_raices_negocio: [
+    { key: "respuesta_rapida", es: "Respuesta rápida", en: "Quick to respond", active: true, order: 1 },
+    { key: "comunicacion_clara", es: "Comunicación clara", en: "Clear communication", active: true, order: 2 },
+    { key: "informacion_precisa", es: "Información precisa", en: "Accurate information", active: true, order: 3 },
+    { key: "proceso_sencillo", es: "Proceso sencillo", en: "Smooth process", active: true, order: 4 },
+    { key: "conocimiento_area", es: "Conocimiento del área", en: "Knows the area", active: true, order: 5 },
+  ],
+  // Rentas Negocio: professional-only (business/property-manager identity), never exposed to
+  // Rentas Privado. Curated vocabulary as approved.
+  rentas_negocio: [
+    { key: "respuesta_rapida", es: "Respuesta rápida", en: "Quick to respond", active: true, order: 1 },
+    { key: "mantenimiento_tiempo", es: "Mantenimiento a tiempo", en: "Timely maintenance", active: true, order: 2 },
+    { key: "trato_justo", es: "Trato justo", en: "Fair treatment", active: true, order: 3 },
+    { key: "proceso_renta_sencillo", es: "Proceso de renta sencillo", en: "Easy rental process", active: true, order: 4 },
+    { key: "propiedad_como_descrita", es: "Propiedad como se describe", en: "Property as described", active: true, order: 5 },
+  ],
 } as const;
 
 /** Active, display-ordered definitions for one category. */
@@ -58,6 +86,14 @@ export function getLeonixEndorsementDefinitions(category: LeonixEndorsementCateg
   const defs = LEONIX_ENDORSEMENT_REGISTRY[category] ?? [];
   return [...defs].filter((d) => d.active).sort((a, b) => a.order - b.order);
 }
+
+const LEONIX_ENDORSEMENT_CATEGORIES: readonly LeonixEndorsementCategory[] = [
+  "servicios",
+  "restaurantes",
+  "comida-local",
+  "bienes_raices_negocio",
+  "rentas_negocio",
+];
 
 /** True only if `key` is a real, active, registered endorsement for `category` — the server-side
  * validation gate before any vote write (never trust a client-supplied key blindly). */
@@ -67,15 +103,45 @@ export function isValidLeonixEndorsementKey(category: string, key: string): cate
 }
 
 export function isLeonixEndorsementCategory(category: string): category is LeonixEndorsementCategory {
-  return category === "servicios" || category === "restaurantes" || category === "comida-local";
+  return (LEONIX_ENDORSEMENT_CATEGORIES as readonly string[]).includes(category);
 }
 
+export type LeonixEndorsementTargetType =
+  | "servicios_profile"
+  | "restaurantes_listing"
+  | "comida_local_listing"
+  | "bienes_raices_negocio_identity"
+  | "rentas_negocio_identity";
+
 /** `leonix_endorsement_votes.target_type` for a given category — the durable business-identity
- * table each category's target_id actually references (Gate 13; Gate D17 adds comida-local). */
-export function leonixEndorsementTargetTypeForCategory(
-  category: LeonixEndorsementCategory,
-): "servicios_profile" | "restaurantes_listing" | "comida_local_listing" {
+ * table/entity each category's target_id actually references (Gate 13; Gate D17 adds
+ * comida-local). BR/Rentas Negocio target a durable per-owner `leonix_professional_identities`
+ * row (item 21), never a disposable listing id. */
+export function leonixEndorsementTargetTypeForCategory(category: LeonixEndorsementCategory): LeonixEndorsementTargetType {
   if (category === "servicios") return "servicios_profile";
   if (category === "restaurantes") return "restaurantes_listing";
-  return "comida_local_listing";
+  if (category === "comida-local") return "comida_local_listing";
+  if (category === "bienes_raices_negocio") return "bienes_raices_negocio_identity";
+  return "rentas_negocio_identity";
+}
+
+/**
+ * Item 21 (Final Completion) — readiness gate, independent of the registry/UI code above being
+ * complete. Both new BR/Rentas categories are now live: the prepared migration
+ * (20260827180000_leonix_professional_identities_br_rentas_community_trust.sql, plus the
+ * 20260827190000 reconciliation with Comida Local's own migration) was applied to canonical
+ * production and verified (table/RLS/constraints/RPC present and correct; Servicios/Restaurantes
+ * regression-checked; BR/Rentas identity resolve/create proven idempotent; Privado proven unable
+ * to become a target via the category CHECK).
+ */
+const LEONIX_ENDORSEMENT_CATEGORY_LIVE: Record<LeonixEndorsementCategory, boolean> = {
+  servicios: true,
+  restaurantes: true,
+  "comida-local": true,
+  bienes_raices_negocio: true,
+  rentas_negocio: true,
+};
+
+export function isLeonixEndorsementCategoryLive(category: LeonixEndorsementCategory): boolean {
+  return LEONIX_ENDORSEMENT_CATEGORY_LIVE[category] === true;
 }

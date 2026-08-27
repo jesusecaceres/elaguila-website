@@ -14,6 +14,7 @@ import {
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPreviewPageShell";
 import { RentasVisualMatchPreviewView } from "@/app/clasificados/rentas/preview/shared/RentasVisualMatchPreviewView";
+import { rentasServicioIncluidoLabel } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import { RentasPreviewResultCardSection } from "@/app/clasificados/rentas/preview/shared/RentasPreviewResultCardSection";
 import {
   buildRentasResultCardPreviewListingFromNegocioVm,
@@ -125,7 +126,7 @@ export default function RentasNegocioPreviewClient() {
       setCheckoutErr(null);
       setCheckoutBusy(true);
 
-      const d = loadRentasNegocioDraft();
+      const d = await loadRentasNegocioDraft();
       if (!d) {
         setCheckoutBusy(false);
         return;
@@ -211,20 +212,28 @@ export default function RentasNegocioPreviewClient() {
   );
 
   useEffect(() => {
-    const raw = editContext
-      ? loadRentasListingEditWorkspace<RentasNegocioFormState>({
-          listingId: editContext.listingId,
-          lane: "negocio",
-          merge: mergePartialRentasNegocioState,
-        })
-      : loadRentasNegocioDraft();
-    if (!raw) {
-      setDraft(null);
-      setPhase("recovery");
-      return;
-    }
-    setDraft(raw);
-    setPhase("ready");
+    let cancelled = false;
+    // BR-INV-WAVE1-GATE3: loadRentasNegocioDraft is now async (IndexedDB inline).
+    void (async () => {
+      const raw = editContext
+        ? loadRentasListingEditWorkspace<RentasNegocioFormState>({
+            listingId: editContext.listingId,
+            lane: "negocio",
+            merge: mergePartialRentasNegocioState,
+          })
+        : await loadRentasNegocioDraft();
+      if (cancelled) return;
+      if (!raw) {
+        setDraft(null);
+        setPhase("recovery");
+        return;
+      }
+      setDraft(raw);
+      setPhase("ready");
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [editContext]);
 
   useEffect(() => {
@@ -322,6 +331,12 @@ export default function RentasNegocioPreviewClient() {
               ? [draft.media.videoUrl]
               : []
         }
+        includedServices={[
+          ...draft.serviciosIncluidosKeys
+            .filter((k): k is Exclude<typeof k, "otro"> => k !== "otro")
+            .map((k) => rentasServicioIncluidoLabel(k, lang)),
+          ...(draft.serviciosIncluidosOtro.trim() ? [draft.serviciosIncluidosOtro.trim()] : []),
+        ]}
       />
 
       <div className="mx-auto mt-8 max-w-3xl px-4 pb-10 sm:px-6">

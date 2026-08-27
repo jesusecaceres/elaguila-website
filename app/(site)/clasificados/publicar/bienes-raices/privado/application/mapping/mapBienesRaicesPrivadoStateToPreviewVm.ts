@@ -6,13 +6,19 @@ import {
   TERRENO_DESTACADOS_DEFS,
   TERRENO_SUBTIPO_POR_TIPO,
   TERRENO_TIPO_OPCIONES,
+  comercialSubtipoDisplayGroup,
   labelComercialSubtipo,
+  terrenoSubtipoDisplayGroup,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteComercialTerrenoMeta";
 import {
   digitsOnly,
   formatUsPhoneDisplay,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/phoneMask";
-import { labelForSubtipo, TIPO_PROPIEDAD_OPCIONES } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteResidencialTipoMeta";
+import {
+  TIPO_PROPIEDAD_OPCIONES,
+  labelForSubtipo,
+  residencialSubtipoDisplayGroup,
+} from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteResidencialTipoMeta";
 import { previewWhatsappClickHref } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/lib/agenteResidencialPreviewFormat";
 import type { BienesRaicesPrivadoFormState } from "../../schema/bienesRaicesPrivadoFormState";
 import type { BienesRaicesPreviewFact, BienesRaicesPreviewMediaVm, BienesRaicesPreviewQuickFactVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
@@ -165,7 +171,7 @@ function buildResidencialDetails(s: BienesRaicesPrivadoFormState): BienesRaicesP
   const subLbl = labelForSubtipo(r.tipoCodigo, r.subtipo);
   const rows: Array<BienesRaicesPreviewFact | null> = [
     row("Tipo", tipoLabel),
-    row("Subtipo", subLbl),
+    row(residencialSubtipoDisplayGroup(r.subtipo), subLbl),
     row("Recámaras", prettifyPlainNumber(r.recamaras)),
     row("Baños completos", prettifyPlainNumber(r.banos)),
     rowOptionalCount("Medios baños", r.mediosBanos),
@@ -214,7 +220,7 @@ function buildComercialDetails(s: BienesRaicesPrivadoFormState): BienesRaicesPre
   const subLbl = labelComercialSubtipo(c.tipoCodigo, c.subtipo);
   const rows: Array<BienesRaicesPreviewFact | null> = [
     row("Tipo comercial", tipoLabel),
-    row("Subtipo", subLbl),
+    row(comercialSubtipoDisplayGroup(c.subtipo), subLbl),
     row("Uso", c.uso),
     row("Tamaño interior", c.interiorSqft ? prettifySqft(c.interiorSqft) : ""),
     row("Oficinas", prettifyPlainNumber(c.oficinas)),
@@ -270,7 +276,7 @@ function buildTerrenoDetails(s: BienesRaicesPrivadoFormState): BienesRaicesPrevi
   const subLbl = labelTerrenoSubtipo(t.tipoCodigo, t.subtipo);
   const rows: Array<BienesRaicesPreviewFact | null> = [
     row("Tipo de terreno", tipoLabel),
-    row("Subtipo", subLbl),
+    row(terrenoSubtipoDisplayGroup(t.subtipo), subLbl),
     row("Tamaño del lote", t.loteSqft ? prettifySqft(t.loteSqft) : ""),
     row("Uso / zonificación", t.usoZonificacion),
     row("Acceso", t.acceso),
