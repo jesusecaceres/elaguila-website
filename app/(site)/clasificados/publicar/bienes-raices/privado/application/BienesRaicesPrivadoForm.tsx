@@ -593,7 +593,7 @@ export function BienesRaicesPrivadoForm() {
               {" "}
               *
             </span>
-            . Un solo video: por archivo <strong className="font-semibold text-[#1E1810]">o</strong> por enlace (no ambos).
+            . Un solo video por enlace (opcional).
             Nada se sube a servidores en este paso; el borrador vive en esta sesión hasta que exista publicación.
           </p>
           {mediaNotice ? (
