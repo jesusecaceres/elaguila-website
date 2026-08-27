@@ -42,7 +42,19 @@ import { rentasRentalFlowGroupForTipo } from "../app/(site)/clasificados/rentas/
 import { mergeParentHubWithChildProperty } from "../app/(site)/clasificados/publicar/bienes-raices/negocio/application/brNegocioChildInventoryFormMapping";
 import { createEmptyBrNegocioAdditionalInventoryPropertyDraft } from "../app/(site)/clasificados/publicar/bienes-raices/negocio/application/brNegocioAdditionalInventoryDraft";
 import { mapAdditionalDraftToInventoryCard } from "../app/(site)/clasificados/publicar/bienes-raices/negocio/application/brNegocioInventoryCardModel";
-import { buildOpenHouseSlotRows } from "../app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/lib/agenteResidencialPreviewFormat";
+import { buildOpenHouseSlotRows, buildPropertyDetailRows } from "../app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/lib/agenteResidencialPreviewFormat";
+import {
+  labelForSubtipo,
+  residencialSubtipoSemanticKind,
+  residencialSubtipoDisplayGroup,
+} from "../app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteResidencialTipoMeta";
+import {
+  labelComercialSubtipo,
+  labelTerrenoSubtipo,
+  comercialSubtipoSemanticKind,
+  terrenoSubtipoSemanticKind,
+  terrenoSubtipoDisplayGroup,
+} from "../app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteComercialTerrenoMeta";
 
 function agente(overrides: Partial<AgenteIndividualResidencialFormState>): AgenteIndividualResidencialFormState {
   return mergePartialAgenteIndividualResidencial({
@@ -440,6 +452,74 @@ function rentasSlice(overrides: Partial<RentasPrivadoFormState>): RentasPrivadoF
   );
 
   console.log("Gate 5 (O — draft/live preview parity) OK");
+}
+
+/* ------------------------------------------------------------------------------------------ *
+ * FINAL-12 — type/subtype semantic reclassification: every legacy stored subtipo value still
+ * resolves to a label (no destructive rename), and the new display-group classifier correctly
+ * separates true subtypes from structural/location/access characteristics.
+ * ------------------------------------------------------------------------------------------ */
+{
+  // Legacy values still resolve to a non-empty label — proves no destructive rename.
+  assert.equal(labelForSubtipo("casa", "un_piso"), "Un solo piso", "FINAL-12: legacy 'un_piso' still resolves");
+  assert.equal(labelForSubtipo("townhome", "esquina"), "En esquina", "FINAL-12: legacy 'esquina' (residential) still resolves");
+  assert.equal(labelComercialSubtipo("nave_industrial", "muelle"), "Muelle de carga", "FINAL-12: legacy 'muelle' still resolves");
+  assert.equal(labelTerrenoSubtipo("lote_residencial", "cul_de_sac"), "Calle sin salida", "FINAL-12: legacy 'cul_de_sac' still resolves");
+  assert.equal(labelTerrenoSubtipo("lote_residencial", "esquina"), "En esquina", "FINAL-12: legacy 'esquina' (terreno) still resolves");
+
+  // Semantic classification: structural/location/access attributes are no longer "subtype".
+  assert.equal(residencialSubtipoSemanticKind("un_piso"), "story_count", "FINAL-12: un_piso classified as story_count");
+  assert.equal(residencialSubtipoSemanticKind("esquina"), "corner_lot", "FINAL-12: esquina (residential) classified as corner_lot");
+  assert.equal(residencialSubtipoSemanticKind("duplex"), "subtype", "FINAL-12: duplex remains a true subtype");
+  assert.equal(comercialSubtipoSemanticKind("muelle"), "access_loading", "FINAL-12: muelle classified as access_loading");
+  assert.equal(comercialSubtipoSemanticKind("pb_comercio"), "zoning_use", "FINAL-12: pb_comercio classified as zoning_use");
+  assert.equal(comercialSubtipoSemanticKind("suite"), "subtype", "FINAL-12: suite remains a true commercial subtype");
+  assert.equal(terrenoSubtipoSemanticKind("esquina"), "lot_access", "FINAL-12: esquina (terreno) classified as lot_access");
+  assert.equal(terrenoSubtipoSemanticKind("cul_de_sac"), "lot_access", "FINAL-12: cul_de_sac classified as lot_access");
+  assert.equal(terrenoSubtipoSemanticKind("con_casa"), "subtype", "FINAL-12: con_casa remains a true terreno subtype");
+
+  // Display-group labels are accurate, not the generic "Subtipo", for reclassified values.
+  assert.equal(residencialSubtipoDisplayGroup("esquina", "es"), "Característica del lote", "FINAL-12: corner lot row title (es)");
+  assert.equal(residencialSubtipoDisplayGroup("esquina", "en"), "Lot characteristic", "FINAL-12: corner lot row title (en)");
+  assert.equal(residencialSubtipoDisplayGroup("duplex", "es"), "Subtipo", "FINAL-12: true subtype keeps 'Subtipo' row title");
+  assert.equal(terrenoSubtipoDisplayGroup("cul_de_sac", "en"), "Lot characteristic", "FINAL-12: cul-de-sac row title (en)");
+
+  // End-to-end: BR Negocio's live preview (AgenteIndividualResidencialPreviewPage.tsx) reads
+  // buildPropertyDetailRows() directly off AgenteIndividualResidencialFormState — verify it
+  // splits the corner-lot fact out of the type line into its own accurately-labeled row, while
+  // the type line itself no longer implies corner lot is a distinct townhome subtype.
+  const cornerTownhome = agente({
+    categoriaPropiedad: "residencial",
+    tipoPropiedadCodigo: "townhome",
+    subtipoPropiedad: "esquina",
+  });
+  const cornerRows = buildPropertyDetailRows(cornerTownhome, "es");
+  assert.ok(
+    cornerRows.some((r) => r.label === "Característica del lote" && r.value === "En esquina"),
+    "FINAL-12: corner-lot fact renders as its own row, not folded into 'Tipo de propiedad'",
+  );
+  assert.ok(
+    !cornerRows.some((r) => r.label === "Tipo de propiedad" && r.value.includes("esquina")),
+    "FINAL-12: 'Tipo de propiedad' row no longer implies corner lot is a distinct townhome subtype",
+  );
+
+  // A true subtype (duplex) still folds into the type line as before — no regression.
+  const duplexHouse = agente({
+    categoriaPropiedad: "residencial",
+    tipoPropiedadCodigo: "casa",
+    subtipoPropiedad: "duplex",
+  });
+  const duplexRows = buildPropertyDetailRows(duplexHouse, "es");
+  assert.ok(
+    duplexRows.some((r) => r.label === "Tipo de propiedad" && r.value.includes("Dúplex")),
+    "FINAL-12: true subtype (duplex) still folds into the type line, unchanged",
+  );
+  assert.ok(
+    !duplexRows.some((r) => r.label !== "Tipo de propiedad" && r.value === "Dúplex / pareado"),
+    "FINAL-12: true subtype does not get a spurious extra characteristic row",
+  );
+
+  console.log("Item 12 (type/subtype semantic reclassification — compatibility-safe) OK");
 }
 
 console.log("\nBR-INV-WAVE1 Gates 1/4/5 selftest: ALL OK");
