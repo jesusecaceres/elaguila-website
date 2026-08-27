@@ -11,7 +11,7 @@ import { trackListingSaveToggleAuthed } from "@/app/lib/analytics/client/listing
 import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
 import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
 import { useRentasListingTranslation } from "@/app/clasificados/rentas/lib/useRentasListingTranslation";
-import { EnVentaCorreoModal } from "@/app/clasificados/en-venta/preview/EnVentaCorreoModal";
+import { LeonixCorreoLeadModal } from "@/app/clasificados/lib/LeonixCorreoLeadModal";
 import { RentasVisualMatchPreviewView } from "@/app/clasificados/rentas/preview/shared/RentasVisualMatchPreviewView";
 import { trackRentasListingView, trackRentasMessageSent } from "@/app/clasificados/rentas/analytics/rentasAnalytics";
 import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasLandingLang";
@@ -211,7 +211,7 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
         </section>
       </div>
 
-      <EnVentaCorreoModal
+      <LeonixCorreoLeadModal
         open={correoOpen}
         onClose={() => setCorreoOpen(false)}
         lang={lang}

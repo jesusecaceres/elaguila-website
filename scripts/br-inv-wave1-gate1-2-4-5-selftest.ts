@@ -40,6 +40,8 @@ import {
 } from "../app/(site)/clasificados/rentas/shared/rentasRentalTypeApply";
 import { rentasRentalFlowGroupForTipo } from "../app/(site)/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 import { mergeParentHubWithChildProperty } from "../app/(site)/clasificados/publicar/bienes-raices/negocio/application/brNegocioChildInventoryFormMapping";
+import { createEmptyBrNegocioAdditionalInventoryPropertyDraft } from "../app/(site)/clasificados/publicar/bienes-raices/negocio/application/brNegocioAdditionalInventoryDraft";
+import { mapAdditionalDraftToInventoryCard } from "../app/(site)/clasificados/publicar/bienes-raices/negocio/application/brNegocioInventoryCardModel";
 
 function agente(overrides: Partial<AgenteIndividualResidencialFormState>): AgenteIndividualResidencialFormState {
   return mergePartialAgenteIndividualResidencial({
@@ -231,6 +233,35 @@ function agente(overrides: Partial<AgenteIndividualResidencialFormState>): Agent
   );
 
   console.log("Item 4 (BR Inventory child HOA — owned by child, survives publish) OK");
+}
+
+/* ------------------------------------------------------------------------------------------ *
+ * FINAL-34 — BR Inventory checkpoint card: a child draft whose title/price/city only exist under
+ * propertyForm (never mirrored to the flat legacy fields) must still display real values, not
+ * "Sin título" / "Precio pendiente" / a bare country placeholder.
+ * ------------------------------------------------------------------------------------------ */
+{
+  const draft = {
+    ...createEmptyBrNegocioAdditionalInventoryPropertyDraft("child-final-34"),
+    // Flat fields intentionally left blank — simulates a draft saved by a path that only wrote
+    // propertyForm (e.g. an interrupted save, or a pre-flat-sync legacy draft).
+    propertyForm: {
+      titulo: "Unidad 12B — Torre Vista",
+      precio: "225000",
+      ciudad: "San Jose",
+      direccionEstado: "CA",
+      direccionCodigoPostal: "95112",
+      direccionPais: "United States",
+    },
+  };
+  const card = mapAdditionalDraftToInventoryCard(draft as never, "es");
+  assert.equal(card.title, "Unidad 12B — Torre Vista", "FINAL-34: card title must read from propertyForm when flat title is blank");
+  assert.match(card.priceDisplay, /225,000|225000/, "FINAL-34: card price must read from propertyForm when flat price is blank");
+  assert.match(card.cityState, /San Jose/, "FINAL-34: card location must read from propertyForm when flat city is blank");
+  assert.ok(!card.title.includes("Sin título"), "FINAL-34: must not fall back to the empty-title placeholder when real data exists");
+  assert.ok(!card.priceDisplay.includes("pendiente"), "FINAL-34: must not fall back to the pending-price placeholder when real data exists");
+
+  console.log("Item 34 (BR Inventory child card — reads propertyForm when flat fields are blank) OK");
 }
 
 /* ------------------------------------------------------------------------------------------ *
