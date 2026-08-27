@@ -985,6 +985,7 @@ export function EnVentaAnuncioLayout({
                 listing={{
                   contact_phone: resolvedContact.phoneForTel,
                   contact_email: resolvedContact.emailForMailto,
+                  owner_id: ownerId,
                 }}
                 onRequestInfo={scrollToContact}
                 onScheduleVisit={scrollToContact}

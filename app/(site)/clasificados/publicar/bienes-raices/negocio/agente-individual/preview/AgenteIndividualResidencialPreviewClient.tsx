@@ -164,6 +164,21 @@ export default function AgenteIndividualResidencialPreviewClient() {
    * surfaced stale-draft conflict notice. */
   const [hydratedSourceUpdatedAt, setHydratedSourceUpdatedAt] = useState<string | null>(null);
   const [staleDraftNotice, setStaleDraftNotice] = useState<string | null>(null);
+  // Item 21 — the current agent's own auth id, for the Community Trust professional identity
+  // (this preview surface is always the agent viewing their own listing, never a third party).
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const sb = createSupabaseBrowserClient();
+      const { data: auth } = await sb.auth.getUser();
+      if (!cancelled) setAuthUserId(auth.user?.id ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (inventoryAdd.context) writeBrInventoryAddContextToSession(inventoryAdd.context);
@@ -721,6 +736,7 @@ export default function AgenteIndividualResidencialPreviewClient() {
         editHref={editHref}
         footerExtra={t.previewUi.footerDefault}
         onBeforeNavigateToEdit={markPublishFlowReturningToEdit}
+        ownerId={authUserId}
       />
 
       {hasInventoryPackage ? (

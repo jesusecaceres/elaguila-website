@@ -44,6 +44,7 @@ import {
 } from "@/app/lib/clasificados/bienes-raices/brGlobalAnalytics";
 import { dispatchConnectionHubCta } from "@/app/lib/analytics/client/connectionHubCtaDispatch";
 import { SharedConnectionHubReviewButton } from "@/app/components/contact/connectionHub/renderers/SharedConnectionHubReviewButton";
+import { BrRentasCommunityTrustSection } from "@/app/clasificados/lib/BrRentasCommunityTrustSection";
 
 /** Package D Build D2, Gate 6A — real listing identity for the live published detail render only.
  * Reuses the existing canonical `brGlobalAnalytics.ts` module; this component fires no analytics of
@@ -204,11 +205,16 @@ export function BrAgenteResContactSidebar({
   locale: _locale,
   p,
   analyticsContext,
+  ownerId,
 }: {
   data: AgenteIndividualResidencialFormState;
   locale: AgenteResPreviewLocale;
   p: PreviewUi;
   analyticsContext?: BrAgenteResContactSidebarAnalyticsContext | null;
+  /** Item 21 — listing owner's auth user id, for the BR Negocio Community Trust professional
+   * identity (never a disposable listing id). Optional/best-effort: the widget itself no-ops
+   * until isLeonixEndorsementCategoryLive("bienes_raices_negocio") is true. */
+  ownerId?: string | null;
 }) {
   const cr = buildContactModel(data);
   const track = (fn: (ctx: BrGlobalAnalyticsContext) => void) => {
@@ -474,6 +480,13 @@ export function BrAgenteResContactSidebar({
             ))}
           </div>
         ) : null}
+        <BrRentasCommunityTrustSection
+          category="bienes_raices_negocio"
+          ownerId={ownerId}
+          displayName={trim(data.marcaNombre) || trim(data.agenteNombre) || null}
+          lang={_locale}
+          surface="br_negocio_contact_sidebar"
+        />
       </CardShell>
 
       {showSecondAgentRail ? (

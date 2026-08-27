@@ -153,6 +153,7 @@ export function AgenteIndividualResidencialPreviewPage({
   onBeforeNavigateToEdit,
   publicChrome,
   analyticsContext,
+  ownerId,
 }: {
   data: AgenteIndividualResidencialFormState;
   editHref?: string;
@@ -167,6 +168,9 @@ export function AgenteIndividualResidencialPreviewPage({
   /** Package D Build D2, Gate 6A — set only on the real published/live detail render (never during
    * the owner's pre-publish draft preview, which has no real listing id to attribute clicks to). */
   analyticsContext?: BrAgenteResContactSidebarAnalyticsContext | null;
+  /** Item 21 — listing owner's auth user id, threaded to the Community Trust professional
+   * identity resolver. Optional/best-effort; the widget no-ops until it's live. */
+  ownerId?: string | null;
 }) {
   const { lang, t } = useBrAgenteResidencialCopy();
   const locale: AgenteResPreviewLocale = lang === "en" ? "en" : "es";
@@ -789,7 +793,7 @@ export function AgenteIndividualResidencialPreviewPage({
             }}
           >
             <div className="p-3.5 sm:p-4">
-              <BrAgenteResContactSidebar data={data} locale={locale} p={p} analyticsContext={analyticsContext} />
+              <BrAgenteResContactSidebar data={data} locale={locale} p={p} analyticsContext={analyticsContext} ownerId={ownerId} />
             </div>
           </aside>
         </section>
