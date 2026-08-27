@@ -521,6 +521,13 @@ export default function OfertasLocalesApplicationClient() {
     if (!window.confirm(msg)) return;
     clearOfertaLocalAiScanSession();
     resetDraft();
+    if (searchParams?.has("id")) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("id");
+      urlIdSyncedRef.current = false;
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : `${pathname}`, { scroll: false });
+    }
     setSubmitSuccess(null);
     setAiScanRecordId(null);
     setLastScanJobId(null);
@@ -545,7 +552,7 @@ export default function OfertasLocalesApplicationClient() {
     });
     setStep(1);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [c.startOverDeviceWarning, lang, resetDraft]);
+  }, [c.startOverDeviceWarning, lang, pathname, resetDraft, router, searchParams]);
 
   useEffect(() => {
     if (!hasLoadedDraft) return;
