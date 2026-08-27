@@ -30,11 +30,20 @@ export async function fetchOfertaLocalReviewItems(
   const qs = new URLSearchParams({ ofertaLocalId });
   if (scanJobId?.trim()) qs.set("scanJobId", scanJobId.trim());
 
-  const res = await fetch(`/api/ofertas-locales/items?${qs.toString()}`, {
-    method: "GET",
-    headers,
-    cache: "no-store",
-  });
+  let res: Response;
+  try {
+    res = await fetch(`/api/ofertas-locales/items?${qs.toString()}`, {
+      method: "GET",
+      headers,
+      cache: "no-store",
+    });
+  } catch (err) {
+    return {
+      ok: false,
+      error: "network_error",
+      detail: err instanceof Error ? err.message : "Network request failed.",
+    };
+  }
 
   try {
     return (await res.json()) as OfertaLocalItemsListApiResponse;
@@ -52,11 +61,20 @@ export async function patchOfertaLocalReviewItem(
     return { ok: false, error: "unauthorized", detail: "Sign in to update items." };
   }
 
-  const res = await fetch(`/api/ofertas-locales/items/${encodeURIComponent(itemId)}`, {
-    method: "PATCH",
-    headers,
-    body: JSON.stringify(patch),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`/api/ofertas-locales/items/${encodeURIComponent(itemId)}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify(patch),
+    });
+  } catch (err) {
+    return {
+      ok: false,
+      error: "network_error",
+      detail: err instanceof Error ? err.message : "Network request failed.",
+    };
+  }
 
   try {
     return (await res.json()) as OfertaLocalItemPatchApiResponse;

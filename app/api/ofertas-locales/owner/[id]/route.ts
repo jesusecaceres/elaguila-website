@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getBearerUserId } from "@/app/api/_lib/bearerUser";
 import {
   getOfertaLocalForOwner,
+  mapOfertaLocalAdminRowToDraftRecoveryPatch,
   mapOfertaLocalRowToOwnerDetail,
   OFERTAS_LOCALES_OWNER_EDITABLE_STATUSES,
 } from "@/app/lib/ofertas-locales/ofertasLocalesOwnerHelpers";
@@ -49,6 +50,12 @@ export async function GET(
 
   return NextResponse.json({
     ok: true,
+    // Lets the publish wizard recover an in-progress application (business
+    // info, contact, assets) when local browser draft state is unavailable —
+    // e.g. a different Preview deployment origin, device, or cleared storage.
+    draftPatch: OFERTAS_LOCALES_OWNER_EDITABLE_STATUSES.includes(row.status)
+      ? mapOfertaLocalAdminRowToDraftRecoveryPatch(row)
+      : null,
     offer: {
       ...detail,
       analytics: {

@@ -153,7 +153,7 @@ function sanitizeAsset(raw: unknown, fallbackSort: number): OfertaLocalDraftAsse
   };
 }
 
-function sanitizeAssetList(raw: unknown): OfertaLocalDraftAsset[] {
+export function sanitizeAssetList(raw: unknown): OfertaLocalDraftAsset[] {
   if (!Array.isArray(raw)) return [];
   const out: OfertaLocalDraftAsset[] = [];
   raw.forEach((item, index) => {
