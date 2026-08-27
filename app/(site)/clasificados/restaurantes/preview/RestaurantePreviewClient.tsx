@@ -63,11 +63,14 @@ const LEONIX_INFO_BLUE = "#355C7D";
 const LEONIX_ELEVATED_CHIP = "#F6EBDD";
 
 /**
- * Edit link back to the Restaurante application. The `focus=coupon-upgrade`
- * param lets the application page (future follow-up) scroll/highlight the
- * coupon module the user must turn off before secure checkout.
+ * Edit link back to the Restaurante application. Gate C15 fix: this used to hardcode
+ * `?focus=coupon-upgrade`, which force-jumped every "Volver a editar" click straight to the
+ * coupon section — a leftover from the retired paid-coupon-addon flow (coupons/offers are now
+ * included free, so there is no longer a mandatory "turn off the coupon module before checkout"
+ * step to redirect to). Plain return now lands on the application's own default section instead
+ * of hijacking the user's actual editing context.
  */
-const EDIT_HREF_BASE = "/publicar/restaurantes?focus=coupon-upgrade";
+const EDIT_HREF_BASE = "/publicar/restaurantes";
 
 export default function RestaurantePreviewClient() {
   const searchParams = useSearchParams();

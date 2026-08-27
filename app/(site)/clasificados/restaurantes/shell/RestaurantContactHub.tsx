@@ -26,7 +26,7 @@ import {
   restaurantesAnalyticsTrackMeta,
   trackRestaurantesListingCta,
 } from "../lib/restaurantesCtaTracking";
-import { RestauranteShellDataUrlModal } from "./RestauranteShellDataUrlModal";
+import { BusinessFlyerViewerModal } from "@/app/components/media/BusinessFlyerViewerModal";
 import { RestaurantContactHubFauxMap } from "./RestaurantContactHubFauxMap";
 import { buildSharedConnectionHubMapEmbedSrc } from "@/app/(site)/clasificados/shared/constants/sharedConnectionHubLocationHelpers";
 import { copyToClipboard } from "@/app/components/cta/ctaLaunchers";
@@ -621,11 +621,16 @@ export function RestaurantContactHub({
       </article>
 
       <CtaActionSheet open={ctaIntent != null} onClose={() => setCtaIntent(null)} intent={ctaIntent} lang={lang} />
-      <RestauranteShellDataUrlModal
+      <BusinessFlyerViewerModal
         open={dataModal != null}
         onClose={() => setDataModal(null)}
         href={dataModal?.href ?? ""}
         title={dataModal?.title ?? ""}
+        closeLabel={lang === "en" ? "Close" : "Cerrar"}
+        unavailableLabel={
+          lang === "en" ? "Inline preview not available for this file type." : "Vista integrada no disponible para este tipo de archivo."
+        }
+        downloadLabel={lang === "en" ? "Download / open in another tab" : "Descargar / abrir en otra pestaña"}
       />
     </>
   );
