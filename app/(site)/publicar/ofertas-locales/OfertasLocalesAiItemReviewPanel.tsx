@@ -1304,8 +1304,12 @@ export function OfertasLocalesAiItemReviewPanel({
     formPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [selectedItemId, isWorkspace]);
 
+  // Summary boxes must reflect the WHOLE current scan ("Escaneo actual: N"),
+  // not just the current page's still-unresolved queue — otherwise a fully
+  // reviewed page shows a false all-zero breakdown even though real
+  // approved/rejected counts exist elsewhere in the same scan.
   const countLabels = useMemo(() => {
-    const scoped = isWorkspace ? summarizeScopedItemReviewCounts(displayItems) : summary;
+    const scoped = isWorkspace ? summarizeScopedItemReviewCounts(allCurrentScanItems) : summary;
     if (!scoped) return null;
     return [
       { key: "pending" as const, label: c.aiReviewCountPending, count: scoped.pending },
@@ -1313,7 +1317,7 @@ export function OfertasLocalesAiItemReviewPanel({
       { key: "approved" as const, label: c.aiReviewCountApproved, count: scoped.approved },
       { key: "rejected" as const, label: c.aiReviewCountRejected, count: scoped.rejected },
     ];
-  }, [summary, c, isWorkspace, displayItems]);
+  }, [summary, c, isWorkspace, allCurrentScanItems]);
 
   const filterButtons: { key: ReviewFilter; label: string }[] = [
     { key: "all", label: c.aiReviewFilterAll },
@@ -1557,7 +1561,15 @@ export function OfertasLocalesAiItemReviewPanel({
           </p>
         ) : null}
 
-        {!loading && !error && displayItems.length === 0 ? (
+        {/* Genuinely-empty check: in workspace mode this must ask whether the WHOLE
+            current scan is empty, not whether the current page's remaining queue is
+            empty — a fully-reviewed page (a success state) must never render as
+            "no suggestions found" merely because displayItems (the page's active
+            queue) is temporarily empty. Non-workspace mode is unaffected — its
+            displayItems is not page/queue-narrowed. */}
+        {!loading &&
+        !error &&
+        (isWorkspace ? allCurrentScanItems.length === 0 : displayItems.length === 0) ? (
           <p className="text-xs text-[#1E1814]/60">
             {scanActiveForAsset
               ? scanCopy.scanInProgressEmpty
