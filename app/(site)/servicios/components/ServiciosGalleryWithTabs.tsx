@@ -9,7 +9,7 @@ import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
 import { buildServiciosGetQuoteIntent, trackServiciosListingCta } from "../lib/serviciosCtaIntents";
 import { serviciosCombinedVideoGridClass } from "../lib/serviciosGalleryVideoLayout";
 import { ServiciosGalleryVideoTile } from "./ServiciosGalleryVideoTile";
-import { ServiciosMediaLightbox } from "./ServiciosMediaLightbox";
+import { BusinessGalleryLightbox, type BusinessGallerySlide } from "@/app/components/media/BusinessGalleryModal";
 import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
 import type { CtaSheetIntent } from "@/app/components/cta/types";
 
@@ -83,9 +83,22 @@ export function ServiciosGalleryWithTabs({
     !hasPhotos && hasVideos ? "videos" : "photos",
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentModalIndex, setCurrentModalIndex] = useState(0);
-  const [modalInitialTab, setModalInitialTab] = useState<"photos" | "videos">("photos");
+  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [narrowViewport, setNarrowViewport] = useState(false);
+
+  /** Combined photos-then-videos sequence for the shared enlarged viewer (Gate B4) — the
+   * existing Fotos/Videos tab UI above still controls which grid is shown; only the modal's
+   * own cross-tab nav is now "keep arrowing" instead of a tab switcher inside the dialog. */
+  const gallerySlides: BusinessGallerySlide[] = [
+    ...allPhotos.map((g) => ({ kind: "image" as const, url: g.url, alt: g.alt })),
+    ...videos.map((v) => ({ kind: "video" as const, renderVideo: () => <ServiciosGalleryVideoTile v={v} lang={lang} variant="embed" /> })),
+  ];
+  const lightboxCopy = {
+    close: lang === "en" ? "Close" : "Cerrar",
+    prev: lang === "en" ? "Previous" : "Anterior",
+    next: lang === "en" ? "Next" : "Siguiente",
+    counterLabel: L.gallery,
+  };
 
   useEffect(() => {
     if (!hasPhotos && hasVideos && activeTab === "photos") setActiveTab("videos");
@@ -129,8 +142,7 @@ export function ServiciosGalleryWithTabs({
   };
 
   const openModal = (index: number, tab: "photos" | "videos" = "photos") => {
-    setModalInitialTab(tab);
-    setCurrentModalIndex(index);
+    setActiveSlideIndex(tab === "videos" ? allPhotos.length + index : index);
     setIsModalOpen(true);
   };
 
@@ -194,14 +206,14 @@ export function ServiciosGalleryWithTabs({
           </div>
         </section>
 
-        <ServiciosMediaLightbox
-          photos={allPhotos}
-          videos={videos}
-          lang={lang}
-          isOpen={isModalOpen}
+        <BusinessGalleryLightbox
+          open={isModalOpen}
           onClose={closeModal}
-          initialTab={modalInitialTab}
-          initialPhotoIndex={currentModalIndex}
+          slides={gallerySlides}
+          activeIndex={activeSlideIndex}
+          onActiveIndexChange={setActiveSlideIndex}
+          ariaLabel={L.gallery}
+          copy={lightboxCopy}
         />
         <CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} />
       </>
@@ -312,14 +324,14 @@ export function ServiciosGalleryWithTabs({
         </div>
       </section>
 
-      <ServiciosMediaLightbox
-        photos={allPhotos}
-        videos={videos}
-        lang={lang}
-        isOpen={isModalOpen}
+      <BusinessGalleryLightbox
+        open={isModalOpen}
         onClose={closeModal}
-        initialTab={modalInitialTab}
-        initialPhotoIndex={currentModalIndex}
+        slides={gallerySlides}
+        activeIndex={activeSlideIndex}
+        onActiveIndexChange={setActiveSlideIndex}
+        ariaLabel={L.gallery}
+        copy={lightboxCopy}
       />
       <CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} />
     </>

@@ -8,13 +8,17 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
  * (app/(site)/clasificados/restaurantes/shell/). The modal chrome (thumbnail grid, slide
  * index/counter, prev/next, Escape-to-close, visible close control, mobile-safe sizing) is
  * extracted verbatim in shape; video-platform detection (YouTube/Vimeo/local data URL) is
- * intentionally NOT reimplemented here — it stays Restaurantes-owned logic. Each slide/thumb
- * is supplied as a small render function by the caller, so a category's existing video
- * rendering (however it resolves platforms/thumbnails today) can be reused as-is without this
- * shared component inventing a second, competing video-parsing implementation.
+ * intentionally NOT reimplemented here — it stays category-owned logic. Each slide/thumb is
+ * supplied as a small render function by the caller, so a category's existing video rendering
+ * (however it resolves platforms/thumbnails today) can be reused as-is without this shared
+ * component inventing a second, competing video-parsing implementation.
  *
- * Worktree A builds this component only; wiring any category's live gallery onto it is
- * category-adapter work for a later worktree.
+ * `BusinessGalleryLightbox` (Gate B4 addition) is the fullscreen viewer split out on its own —
+ * for a category (Servicios) that already has its own working thumbnail-grid UI and only wants
+ * to reuse the shared enlarged-viewer behavior without also taking over its grid layout.
+ * `BusinessGalleryModal` is unchanged in behavior; it now composes the same lightbox internally
+ * instead of duplicating the dialog markup, so existing/future full-package consumers see no
+ * difference.
  */
 
 export type BusinessGallerySlide =
@@ -33,6 +37,99 @@ export type BusinessGalleryModalCopy = {
   /** e.g. "Galería" — combined with "{active} / {total}" for the counter line. */
   counterLabel: string;
 };
+
+/** Fullscreen viewer only — no thumbnail grid, no heading. Fully controlled by the caller. */
+export function BusinessGalleryLightbox({
+  open,
+  onClose,
+  slides,
+  activeIndex,
+  onActiveIndexChange,
+  ariaLabel,
+  copy,
+}: {
+  open: boolean;
+  onClose: () => void;
+  slides: BusinessGallerySlide[];
+  activeIndex: number;
+  onActiveIndexChange: (index: number) => void;
+  ariaLabel: string;
+  copy: BusinessGalleryModalCopy;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowLeft") onActiveIndexChange(activeIndex <= 0 ? slides.length - 1 : activeIndex - 1);
+      else if (e.key === "ArrowRight") onActiveIndexChange(activeIndex >= slides.length - 1 ? 0 : activeIndex + 1);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, slides.length, activeIndex, onActiveIndexChange, onClose]);
+
+  const current = useMemo(
+    () => slides[Math.min(Math.max(activeIndex, 0), Math.max(0, slides.length - 1))] ?? null,
+    [slides, activeIndex],
+  );
+
+  if (!open || slides.length === 0) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-label={ariaLabel}
+    >
+      <div className="flex h-full max-h-[96vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0f0d09] shadow-2xl">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-3 py-2 sm:px-4">
+          <p className="text-xs font-semibold text-white/80">
+            {copy.counterLabel} · {activeIndex + 1} / {slides.length}
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold text-white hover:bg-white/15"
+          >
+            {copy.close}
+          </button>
+        </div>
+        <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center bg-black p-2 sm:p-4">
+          {current?.kind === "image" ? (
+            <img
+              src={current.url}
+              alt={current.alt}
+              className="max-h-[min(78vh,820px)] max-w-full object-contain"
+              draggable={false}
+            />
+          ) : current?.kind === "video" ? (
+            current.renderVideo()
+          ) : null}
+          {slides.length > 1 ? (
+            <>
+              <button
+                type="button"
+                aria-label={copy.prev}
+                onClick={() => onActiveIndexChange(activeIndex <= 0 ? slides.length - 1 : activeIndex - 1)}
+                className="absolute left-1 top-1/2 z-10 min-h-[44px] min-w-[44px] -translate-y-1/2 rounded-full border border-white/20 bg-black/50 px-3 py-2 text-sm font-bold text-white hover:bg-black/70 sm:left-3"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                aria-label={copy.next}
+                onClick={() => onActiveIndexChange(activeIndex >= slides.length - 1 ? 0 : activeIndex + 1)}
+                className="absolute right-1 top-1/2 z-10 min-h-[44px] min-w-[44px] -translate-y-1/2 rounded-full border border-white/20 bg-black/50 px-3 py-2 text-sm font-bold text-white hover:bg-black/70 sm:right-3"
+              >
+                ›
+              </button>
+            </>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function BusinessGalleryModal({
   slides,
@@ -65,22 +162,6 @@ export function BusinessGalleryModal({
     [slides.length],
   );
 
-  useEffect(() => {
-    if (!open) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-      else if (e.key === "ArrowLeft") setActive((i) => (i <= 0 ? slides.length - 1 : i - 1));
-      else if (e.key === "ArrowRight") setActive((i) => (i >= slides.length - 1 ? 0 : i + 1));
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, slides.length]);
-
-  const current = useMemo(
-    () => slides[Math.min(active, Math.max(0, slides.length - 1))] ?? null,
-    [slides, active],
-  );
-
   return (
     <section className={className}>
       <div className="max-w-2xl">
@@ -105,61 +186,15 @@ export function BusinessGalleryModal({
         </div>
       ) : null}
 
-      {open && slides.length > 0 ? (
-        <div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-6"
-          role="dialog"
-          aria-modal="true"
-          aria-label={heading}
-        >
-          <div className="flex h-full max-h-[96vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0f0d09] shadow-2xl">
-            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-3 py-2 sm:px-4">
-              <p className="text-xs font-semibold text-white/80">
-                {copy.counterLabel} · {active + 1} / {slides.length}
-              </p>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="rounded-xl border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold text-white hover:bg-white/15"
-              >
-                {copy.close}
-              </button>
-            </div>
-            <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center bg-black p-2 sm:p-4">
-              {current?.kind === "image" ? (
-                <img
-                  src={current.url}
-                  alt={current.alt}
-                  className="max-h-[min(78vh,820px)] max-w-full object-contain"
-                  draggable={false}
-                />
-              ) : current?.kind === "video" ? (
-                current.renderVideo()
-              ) : null}
-              {slides.length > 1 ? (
-                <>
-                  <button
-                    type="button"
-                    aria-label={copy.prev}
-                    onClick={() => setActive((i) => (i <= 0 ? slides.length - 1 : i - 1))}
-                    className="absolute left-1 top-1/2 z-10 min-h-[44px] min-w-[44px] -translate-y-1/2 rounded-full border border-white/20 bg-black/50 px-3 py-2 text-sm font-bold text-white hover:bg-black/70 sm:left-3"
-                  >
-                    ‹
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={copy.next}
-                    onClick={() => setActive((i) => (i >= slides.length - 1 ? 0 : i + 1))}
-                    className="absolute right-1 top-1/2 z-10 min-h-[44px] min-w-[44px] -translate-y-1/2 rounded-full border border-white/20 bg-black/50 px-3 py-2 text-sm font-bold text-white hover:bg-black/70 sm:right-3"
-                  >
-                    ›
-                  </button>
-                </>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <BusinessGalleryLightbox
+        open={open}
+        onClose={() => setOpen(false)}
+        slides={slides}
+        activeIndex={active}
+        onActiveIndexChange={setActive}
+        ariaLabel={heading}
+        copy={copy}
+      />
     </section>
   );
 }

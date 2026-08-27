@@ -128,7 +128,14 @@ export function ClasificadosServiciosPreviewClient() {
     [searchParams],
   );
 
-  const checkpointEditHref = withClasificadosPublishLang("/clasificados/publicar/servicios/checkpoint", routeLang);
+  /** New (non-dashboard) application "Volver a editar" target. Gate B11 fix: this used to point
+   * at the checkpoint gateway page (`/clasificados/publicar/servicios/checkpoint`), which restarted
+   * the flow instead of returning to the final review step. The application form's real mount
+   * route is `/publicar/servicios` (see app/(site)/publicar/servicios/page.tsx) — since the saved
+   * draft's own `applicationStepIndex` is already 7 (final review) at the moment "Vista previa" is
+   * clicked (persisted via persistServiciosDraftForPreviewNavigation), landing back on this route
+   * rehydrates the same draft directly onto the final review step, not step 0. */
+  const newApplicationEditHref = withClasificadosPublishLang("/publicar/servicios", routeLang);
   const previewListingParam = searchParams?.get("preview") === "listing";
   const dashboardSource = searchParams?.get("source") === "dashboard";
   const listingId = searchParams?.get("listingId")?.trim() ?? "";
@@ -164,7 +171,7 @@ export function ClasificadosServiciosPreviewClient() {
           mode: backToEditMode,
           focus: previewFocus,
         })
-      : checkpointEditHref;
+      : newApplicationEditHref;
   const [listingHydrationError, setListingHydrationError] = useState<string | null>(null);
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishErr, setPublishErr] = useState<string | null>(null);

@@ -5,7 +5,7 @@ import { FaTicketAlt } from "react-icons/fa";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { hasOfferSectionResolved } from "../lib/serviciosProfilePresence";
-import { ServiciosPromoImageLightbox } from "./ServiciosPromoImageLightbox";
+import { BusinessFlyerViewerModal } from "@/app/components/media/BusinessFlyerViewerModal";
 import { serviciosAnalyticsTrackMeta, trackServiciosListingCta } from "../lib/serviciosCtaIntents";
 
 type PromoRow = ServiciosProfileResolved["promotions"][number];
@@ -58,7 +58,7 @@ function SidebarPromoCta({
       ? "inline-flex min-h-[40px] w-full items-center justify-center rounded-xl border border-[#B8935A]/55 bg-gradient-to-b from-[#F3E6C8] to-[#E8D4A8] px-3 py-2 text-xs font-bold text-[#2C2214] shadow-sm transition hover:border-[#9A7329]/70"
       : "inline-flex min-h-[40px] w-full items-center justify-center rounded-xl border border-[#C4A574]/45 bg-[#FFFAF0]/95 px-3 py-2 text-xs font-semibold text-[#3D2C12] transition hover:border-[#9A7329]/55 hover:bg-white";
 
-  if (kind === "image") {
+  if (kind === "image" || kind === "pdf") {
     return (
       <button
         type="button"
@@ -117,11 +117,12 @@ export function ServiciosOfferCard({
 
   return (
     <>
-      <ServiciosPromoImageLightbox
-        src={lightboxSrc}
+      <BusinessFlyerViewerModal
+        open={lightboxSrc != null}
+        href={lightboxSrc ?? ""}
         onClose={closeLightbox}
+        title={L.promoImageLightboxAria}
         closeLabel={L.promoModalClose}
-        dialogLabel={L.promoImageLightboxAria}
       />
       <div
         className="relative overflow-hidden rounded-2xl border border-[#D4A574]/45 px-4 py-5 shadow-[0_8px_28px_-12px_rgba(61,44,18,0.18)] transition hover:border-[#C9A84A]/55 hover:shadow-md sm:px-5 sm:py-6"

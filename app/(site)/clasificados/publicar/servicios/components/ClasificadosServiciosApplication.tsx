@@ -17,6 +17,8 @@ import {
 import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
 import { PhoneInput } from "@/app/components/forms/PhoneInput";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
+import { LanguagesInput } from "@/app/components/forms/LanguagesInput";
+import { HoursEditor, type HoursEditorDayRow, type HoursEditorDaySchedule } from "@/app/components/forms/HoursEditor";
 import {
   BUSINESS_TYPE_PRESETS,
   chipLabel,
@@ -107,7 +109,6 @@ import {
   normalizeHttpUrl,
 } from "../lib/socialAndUrlHelpers";
 import { normalizeStrictExternalVideoUrl } from "@/app/lib/media/externalVideoUrlValidation";
-import { ServiciosPublishModal } from "./ServiciosPublishModal";
 import {
   CUSTOM_PAYMENT_LABEL_MAX,
   MAX_CUSTOM_PAYMENT_METHODS,
@@ -265,6 +266,8 @@ export function ClasificadosServiciosApplication() {
   const [editHydration, setEditHydration] = useState<ServiciosEditHydrationState>({ status: editRequested ? "loading" : "idle" });
   const [editIdentity, setEditIdentity] = useState<ServiciosEditIdentity | null>(null);
   const [newFieldsMissing, setNewFieldsMissing] = useState<string[]>([]);
+  const [languageOtherPending, setLanguageOtherPending] = useState("");
+  const [serviceAreaPending, setServiceAreaPending] = useState("");
 
   const stepLabels = useMemo(() => getServiciosApplicationStepLabels(lang), [lang]);
   const stepShortLabels = useMemo(() => getServiciosApplicationStepShortLabels(lang), [lang]);
@@ -304,7 +307,6 @@ export function ClasificadosServiciosApplication() {
   const [galleryUrlDraft, setGalleryUrlDraft] = useState("");
   const [videoUrlDraft, setVideoUrlDraft] = useState("");
   const [galleryZoneActive, setGalleryZoneActive] = useState(false);
-  const [publishOpen, setPublishOpen] = useState(false);
   const [couponDetailOpen, setCouponDetailOpen] = useState(false);
   const [leonixRulesOpen, setLeonixRulesOpen] = useState(false);
   const [finalStepPublishBlocked, setFinalStepPublishBlocked] = useState<string | null>(null);
@@ -602,16 +604,6 @@ export function ClasificadosServiciosApplication() {
     router.push(previewHref);
   }, [copy.storageWriteFailed, lang, previewHref, router, goToStep]);
 
-  const openPublishModalFromFinalStep = useCallback(() => {
-    const s = stateRef.current;
-    if (!s.confirmListingAccurate || !s.confirmPhotosRepresentBusiness || !s.confirmCommunityRules) {
-      setFinalStepPublishBlocked(copy.publishConfirmMissing);
-      return;
-    }
-    setFinalStepPublishBlocked(null);
-    setPublishOpen(true);
-  }, [copy.publishConfirmMissing]);
-
   const deleteApplicationDraft = useCallback(async () => {
     if (!window.confirm(copy.deleteConfirm)) return;
     clearServiciosPreviewReturnHandoff();
@@ -682,6 +674,59 @@ export function ClasificadosServiciosApplication() {
       return { ...prev, languageIds, languageOtherLines };
     });
   };
+
+  /** `languageOtherLines` stays a single newline-joined string in storage (unchanged field/shape);
+   * these only adapt it to the shared LanguagesInput's removable-chip list presentation. */
+  const customLanguageLines = useMemo(
+    () => state.languageOtherLines.split("\n").map((l) => l.trim()).filter(Boolean),
+    [state.languageOtherLines],
+  );
+
+  const addCustomLanguage = useCallback(() => {
+    const trimmed = languageOtherPending.trim();
+    if (!trimmed) return;
+    setState((s) => {
+      const existing = s.languageOtherLines.split("\n").map((l) => l.trim()).filter(Boolean);
+      if (existing.some((v) => v.toLowerCase() === trimmed.toLowerCase())) return s;
+      return { ...s, languageOtherLines: [...existing, trimmed].join("\n") };
+    });
+    setLanguageOtherPending("");
+  }, [languageOtherPending]);
+
+  const removeCustomLanguageAt = useCallback((index: number) => {
+    setState((s) => {
+      const existing = s.languageOtherLines.split("\n").map((l) => l.trim()).filter(Boolean);
+      return { ...s, languageOtherLines: existing.filter((_, i) => i !== index).join("\n") };
+    });
+  }, []);
+
+  /** `serviceAreaNotes` stays the same free-text string field/shape in storage (no migration) —
+   * split on comma OR newline so an existing legacy comma-separated draft still parses into
+   * chips; new entries are joined with newline going forward to avoid comma ambiguity inside an
+   * area name (e.g. "San Jose, CA"). Free-text fallback is preserved: nothing here rejects or
+   * blocks a value the split doesn't cleanly separate. */
+  const serviceAreaChips = useMemo(
+    () => state.serviceAreaNotes.split(/[,\n]/).map((s) => s.trim()).filter(Boolean),
+    [state.serviceAreaNotes],
+  );
+
+  const addServiceArea = useCallback(() => {
+    const trimmed = serviceAreaPending.trim();
+    if (!trimmed) return;
+    setState((s) => {
+      const existing = s.serviceAreaNotes.split(/[,\n]/).map((v) => v.trim()).filter(Boolean);
+      if (existing.some((v) => v.toLowerCase() === trimmed.toLowerCase())) return s;
+      return { ...s, serviceAreaNotes: [...existing, trimmed].join("\n") };
+    });
+    setServiceAreaPending("");
+  }, [serviceAreaPending]);
+
+  const removeServiceAreaAt = useCallback((index: number) => {
+    setState((s) => {
+      const existing = s.serviceAreaNotes.split(/[,\n]/).map((v) => v.trim()).filter(Boolean);
+      return { ...s, serviceAreaNotes: existing.filter((_, i) => i !== index).join("\n") };
+    });
+  }, []);
 
   const toggleChipList = (
     field:
@@ -881,6 +926,19 @@ export function ClasificadosServiciosApplication() {
     }));
   };
 
+  /** Adapter only — `state.hours` stays the same DayHoursRow[] shape/keys ("open"/"close" strings,
+   * never undefined); the shared HoursEditor's optional openTime/closeTime schedule shape is
+   * translated at this boundary so no draft field is renamed. */
+  const hoursEditorDays: HoursEditorDayRow[] = state.hours.map((row) => ({
+    key: row.day,
+    label: WEEK_DAY_LABELS[row.day][lang],
+    schedule: { closed: row.closed, openTime: row.open || undefined, closeTime: row.close || undefined },
+  }));
+
+  const onHoursEditorDayChange = (day: string, next: HoursEditorDaySchedule) => {
+    updateHour(day as DayKey, { closed: next.closed, open: next.openTime ?? "", close: next.closeTime ?? "" });
+  };
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#F6F0E2] text-[#3D2C12]">
       {isExistingDashboardListingMode && editHydration.status === "error" ? (
@@ -987,7 +1045,7 @@ export function ClasificadosServiciosApplication() {
                     </p>
                     {state.couponsAddOn && (
                       <p className="mt-1 text-xs text-[#5D4A25]/90">
-                        + {lang === "en" ? "Coupons — $99/mes" : "Cupones — $99/mes"}
+                        + {lang === "en" ? "Coupons — included" : "Cupones — incluidos"}
                       </p>
                     )}
                   </div>
@@ -1123,8 +1181,8 @@ export function ClasificadosServiciosApplication() {
           </p>
           <p className="mt-2 text-xs leading-relaxed text-[#6b5c42]">
             {lang === "es"
-              ? "¿No encuentras tu categoría? Usa “Otro servicio” o “No veo mi categoría” y detalla en servicios y descripción."
-              : "Don’t see your trade? Pick “Other service” or “I don’t see my category,” then describe your offer in Services and About."}
+              ? "¿No encuentras tu categoría? Elige “Otro servicio” y detalla en servicios y descripción."
+              : "Don’t see your trade? Pick “Other service,” then describe your offer in Services and About."}
           </p>
           <label className={`mt-4 block ${labelClass}`}>
             {copy.labels.businessType} <span className="text-red-600">*</span>
@@ -1157,15 +1215,6 @@ export function ClasificadosServiciosApplication() {
             </div>
           )}
 
-          <div className="mt-4 text-sm">
-            <button
-              type="button"
-              onClick={() => console.log("No veo mi categoría clicked - placeholder for help modal")}
-              className="text-[#3B66AD] underline hover:text-[#2f5699]"
-            >
-              {lang === "es" ? "¿No ves tu categoría?" : "Don't see your category?"}
-            </button>
-          </div>
         </section>
           </>
         ) : null}
@@ -1247,12 +1296,47 @@ export function ClasificadosServiciosApplication() {
             <div className="sm:col-span-2">
               <label className={labelClass}>{copy.labels.serviceAreas}</label>
               <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.serviceAreasHelp}</p>
-              <textarea
-                className={inputClass}
-                rows={2}
-                value={state.serviceAreaNotes}
-                onChange={(e) => setState((s) => ({ ...s, serviceAreaNotes: e.target.value }))}
-              />
+              {serviceAreaChips.length ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {serviceAreaChips.map((area, index) => (
+                    <span
+                      key={`${area}-${index}`}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[#D8C79A] bg-white px-3 py-1 text-sm font-medium text-[#3D2C12]"
+                    >
+                      {area}
+                      <button
+                        type="button"
+                        className="ml-0.5 rounded-full px-1 text-[#6b5c42] hover:text-[#3D2C12]"
+                        aria-label={lang === "es" ? `Quitar ${area}` : `Remove ${area}`}
+                        onClick={() => removeServiceAreaAt(index)}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <input
+                  className={`${inputClass} flex-1 min-w-[10rem]`}
+                  placeholder={copy.labels.serviceAreasHelp}
+                  value={serviceAreaPending}
+                  onChange={(e) => setServiceAreaPending(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addServiceArea();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="shrink-0 rounded-xl border border-[#D8C79A] bg-white px-4 py-2 text-sm font-semibold text-[#3D2C12] hover:bg-[#FFFCF2]"
+                  onClick={addServiceArea}
+                >
+                  {lang === "es" ? "Añadir" : "Add"}
+                </button>
+              </div>
             </div>
 
             <div className="sm:col-span-2 mt-1 border-t border-[#D8C79A]/35 pt-6">
@@ -1571,31 +1655,25 @@ export function ClasificadosServiciosApplication() {
 
             <div className="sm:col-span-2 mt-2 border-t border-[#D8C79A]/35 pt-6">
               <p className={labelClass}>{copy.labels.languages}</p>
-              <div className="-mx-1 mt-2 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible sm:pb-0">
-                {LANGUAGE_OPTION_CHIPS.map((c) => (
-                  <Chip
-                    key={c.id}
-                    selected={state.languageIds.includes(c.id)}
-                    onClick={() => toggleLangChip(c.id)}
-                  >
-                    {lang === "en" ? c.en : c.es}
-                  </Chip>
-                ))}
-              </div>
-              {state.languageIds.includes("lang_otro") ? (
-                <label className={`mt-3 block ${labelClass}`}>
-                  {copy.labels.languageOtherLabel}
-                  <p className="mt-1 text-xs font-normal text-[#6b5c42]">{copy.labels.languageOtherHelp}</p>
-                  <textarea
-                    className={`${inputClass} min-h-[88px]`}
-                    value={state.languageOtherLines}
-                    placeholder={copy.labels.languageOtherPlaceholder}
-                    onChange={(e) => setState((s) => ({ ...s, languageOtherLines: e.target.value }))}
-                    autoComplete="off"
-                    spellCheck={false}
-                  />
-                </label>
-              ) : null}
+              <LanguagesInput
+                className="mt-2"
+                options={LANGUAGE_OPTION_CHIPS.map((c) => ({ key: c.id, label: lang === "en" ? c.en : c.es }))}
+                selectedKeys={state.languageIds}
+                onToggle={toggleLangChip}
+                otherKey="lang_otro"
+                customValues={customLanguageLines}
+                customInputValue={languageOtherPending}
+                onCustomInputChange={setLanguageOtherPending}
+                onAddCustom={addCustomLanguage}
+                onRemoveCustom={removeCustomLanguageAt}
+                labels={{
+                  otherLabel: copy.labels.languageOtherLabel,
+                  otherHelper: copy.labels.languageOtherHelp,
+                  otherPlaceholder: copy.labels.languageOtherPlaceholder,
+                  add: lang === "en" ? "Add" : "Añadir",
+                  removeAria: (value) => (lang === "en" ? `Remove ${value}` : `Quitar ${value}`),
+                }}
+              />
             </div>
           </div>
         </section>
@@ -2834,44 +2912,12 @@ export function ClasificadosServiciosApplication() {
         <section className={sectionCard}>
           <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.hours}</h2>
           <p className="mt-2 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.hoursOutputHint}</p>
-          <div className="mt-4 space-y-3">
-            {state.hours.map((row) => (
-              <div
-                key={row.day}
-                className="flex flex-col gap-2 rounded-xl border border-neutral-100 bg-[#FFFCF7] px-3 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 sm:py-2"
-              >
-                <span className="shrink-0 text-sm font-semibold text-[#3D2C12] sm:w-28">{WEEK_DAY_LABELS[row.day][lang]}</span>
-                <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
-                  <label className="flex min-h-[40px] cursor-pointer items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={row.closed}
-                      onChange={(e) => updateHour(row.day, { closed: e.target.checked })}
-                      className="h-4 w-4 rounded"
-                    />
-                    {copy.labels.closed}
-                  </label>
-                  {!row.closed ? (
-                    <>
-                      <input
-                        type="time"
-                        className={`${inputClass} w-[min(100%,9rem)] max-w-[140px] sm:w-auto`}
-                        value={row.open}
-                        onChange={(e) => updateHour(row.day, { open: e.target.value })}
-                      />
-                      <span className="text-neutral-500">—</span>
-                      <input
-                        type="time"
-                        className={`${inputClass} w-[min(100%,9rem)] max-w-[140px] sm:w-auto`}
-                        value={row.close}
-                        onChange={(e) => updateHour(row.day, { close: e.target.value })}
-                      />
-                    </>
-                  ) : null}
-                </div>
-              </div>
-            ))}
-          </div>
+          <HoursEditor
+            className="mt-4"
+            days={hoursEditorDays}
+            onDayChange={onHoursEditorDayChange}
+            closedLabel={copy.labels.closed}
+          />
         </section>
           </>
         ) : null}
@@ -2885,7 +2931,7 @@ export function ClasificadosServiciosApplication() {
                   <SectionTitle>{copy.labels.couponsFeaturedStepTitle}</SectionTitle>
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-semibold text-[color:var(--lx-text)]">
-                      {lang === "en" ? "Coupons enabled — +$99/month" : "Cupones activados — +$99/mes"}
+                      {lang === "en" ? "Coupons enabled — included" : "Cupones activados — incluidos"}
                     </span>
                     <button
                       type="button"
@@ -3238,16 +3284,20 @@ export function ClasificadosServiciosApplication() {
           </div>
               </section>
             ) : isExistingDashboardListingMode ? (
-              /* Dashboard existing-listing add-on activation — real add-on-only Stripe checkout ($99/mo). */
+              /* Dashboard existing-listing offers-module activation — capability check only, included
+                 in the $399/mo base package; no separate Stripe checkout (see
+                 startServiciosDashboardOffersAddonCheckout). */
               <>
                 <SectionTitle>{serviciosOffersModuleHeading(lang)}</SectionTitle>
                 <div className="mt-6 rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[color:var(--lx-gold-border)]/25">
                   <h3 className="text-lg font-bold text-[color:var(--lx-text)]">{serviciosOffersModuleHeading(lang)}</h3>
-                  <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">+${lang === "en" ? "99/mo" : "99/mes"}</p>
+                  <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">
+                    {lang === "en" ? "Included with your plan" : "Incluido en tu plan"}
+                  </p>
                   <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
                     {lang === "en"
-                      ? "Add up to 4 featured offers/coupons to your listing to attract more customers. Activate the module for $99/mo, then you can save your offers."
-                      : "Agrega hasta 4 ofertas/cupones destacados a tu anuncio para atraer más clientes. Activa el módulo por $99/mes y luego podrás guardar tus ofertas."}
+                      ? "Add up to 4 featured offers/coupons to your listing to attract more customers. Activate the module, then you can save your offers."
+                      : "Agrega hasta 4 ofertas/cupones destacados a tu anuncio para atraer más clientes. Activa el módulo y luego podrás guardar tus ofertas."}
                   </p>
                   <button
                     type="button"
@@ -3280,9 +3330,11 @@ export function ClasificadosServiciosApplication() {
                     <h3 className="text-lg font-bold text-[color:var(--lx-text)]">
                       {copy.labels.couponsFeaturedStepTitle}
                     </h3>
-                    <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">+${lang === "en" ? "99/month" : "99/mes"}</p>
+                    <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">
+                      {lang === "en" ? "Included with your plan" : "Incluido en tu plan"}
+                    </p>
                     <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
-                      {lang === "en" ? "Special price for services. Monthly add-on inside your listing." : "Precio especial para servicios. Complemento mensual dentro de tu anuncio."}
+                      {lang === "en" ? "No extra cost — included inside your listing." : "Sin costo adicional — incluido dentro de tu anuncio."}
                     </p>
                     <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
                       {copy.labels.couponsFeaturedStepBody}
@@ -3306,13 +3358,13 @@ export function ClasificadosServiciosApplication() {
                           setState((s) => ({
                             ...s,
                             couponsAddOn: true,
-                            couponsMonthlyPrice: 99,
+                            couponsMonthlyPrice: 0,
                             coupons: s.coupons && s.coupons.length > 0 ? s.coupons : [createEmptyCouponRow()],
                           }));
                         }}
                         className="min-h-[44px] shrink-0 rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)]"
                       >
-                        {lang === "en" ? "Add coupons for $99/month" : "Agregar cupones por $99/mes"}
+                        {lang === "en" ? "Add coupons" : "Agregar cupones"}
                       </button>
                       <button
                         type="button"
@@ -3415,13 +3467,6 @@ export function ClasificadosServiciosApplication() {
                     className="inline-flex min-h-[48px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl bg-[#3B66AD] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699] sm:max-w-xs"
                   >
                     {copy.previewCta}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={openPublishModalFromFinalStep}
-                    className="inline-flex min-h-[48px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl border-2 border-[#3B66AD]/45 bg-white px-4 py-3 text-sm font-bold leading-tight text-[#2f5699] shadow-sm transition hover:bg-[#3B66AD]/5 sm:max-w-xs"
-                  >
-                    {copy.publishCta}
                   </button>
                 </div>
                 {finalStepPublishBlocked ? (
@@ -3595,18 +3640,6 @@ export function ClasificadosServiciosApplication() {
         </div>
       </main>
 
-      <ServiciosPublishModal
-        open={publishOpen}
-        onClose={() => setPublishOpen(false)}
-        state={state}
-        lang={lang}
-        copy={copy}
-        onPersistDraft={async () => {
-          await saveClasificadosServiciosApplicationResolved(stateRef.current);
-        }}
-        getLatestState={() => stateRef.current}
-      />
-
       {couponDetailOpen ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
@@ -3621,8 +3654,8 @@ export function ClasificadosServiciosApplication() {
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-[#5C5346]">
               {lang === "en"
-                ? "Featured coupons and offers are an optional +$99/mo add-on to show up to 4 offers inside your listing. Use it for clear discounts, packages, specials, or promotions with conditions."
-                : "Cupones y ofertas destacadas son un add-on opcional de +$99/mes para mostrar hasta 4 ofertas dentro de tu anuncio. Úsalo para descuentos claros, paquetes, especiales o promociones con condiciones."}
+                ? "Featured coupons and offers are included with your plan at no extra cost — show up to 4 offers inside your listing. Use it for clear discounts, packages, specials, or promotions with conditions."
+                : "Cupones y ofertas destacadas están incluidos en tu plan sin costo adicional — muestra hasta 4 ofertas dentro de tu anuncio. Úsalo para descuentos claros, paquetes, especiales o promociones con condiciones."}
             </p>
             <p className="mt-3 text-sm leading-relaxed text-[#5C5346]">
               {lang === "en"

@@ -5,18 +5,16 @@ import { useEffect } from "react";
 /**
  * Shared flyer/coupon viewer modal — generalized from Restaurantes' working
  * `RestauranteShellDataUrlModal` (app/(site)/clasificados/restaurantes/shell/
- * RestauranteShellDataUrlModal.tsx), picked as the canonical source per the Worktree A
- * execution contract since it already handles both image and PDF sources with an always
- * visible, reachable close control. Logic is unchanged from the source component (verified by
- * direct read) — including its exact match rule: only `data:image/...` / `data:application/pdf`
- * URIs render inline; any other URL (including an already-resolved HTTPS flyer URL) falls
- * through to the "open in another tab" fallback below, exactly as the source component does
- * today. Only generalized (caller-supplied close/fallback copy) so any category can reuse it
- * without a dependency on the Restaurantes module — no behavior change proposed here.
+ * RestauranteShellDataUrlModal.tsx). Modal chrome (dialog role, always-visible close control,
+ * Escape-to-close, mobile/100%-zoom-safe sizing) is unchanged from the source component.
  *
- * Worktree A builds this component only; Servicios/Restaurantes/Comida Local continue using
- * their own current flyer viewers in this gate — swapping onto this shared component is
- * category-adapter work for a later worktree.
+ * Servicios adoption (Gate B3) widened the inline-render match beyond the source's
+ * `data:`-only rule to also cover already-resolved HTTPS flyer URLs by extension — Servicios'
+ * coupon/promo flyers are durable Vercel Blob HTTPS URLs, not `data:` URIs, by the time they
+ * reach this modal, and the gate's explicit requirement is "PDF works if source supports it."
+ * This is additive only (every existing `data:image`/`data:application/pdf` match still hits
+ * first); anything that matches neither still falls through to the same download/open-in-tab
+ * fallback the source component always had.
  */
 export function BusinessFlyerViewerModal({
   open,
@@ -46,8 +44,8 @@ export function BusinessFlyerViewerModal({
 
   if (!open || !href) return null;
 
-  const isPdf = /^data:application\/pdf/i.test(href);
-  const isImage = /^data:image/i.test(href);
+  const isPdf = /^data:application\/pdf/i.test(href) || /\.pdf(\?|#|$)/i.test(href);
+  const isImage = /^data:image/i.test(href) || /\.(png|jpe?g|webp|gif|avif)(\?|#|$)/i.test(href);
 
   return (
     <div
