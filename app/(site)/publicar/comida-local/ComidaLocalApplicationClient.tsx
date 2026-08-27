@@ -816,7 +816,7 @@ export default function ComidaLocalApplicationClient() {
 
             {activeSection === "ubicacion" && (
               <section className={cx(CARD, "p-5 sm:p-6")} id="ubicacion">
-                <h2 className={SECTION_TITLE}>Encuéntrame hoy</h2>
+                <h2 className={SECTION_TITLE}>{es ? "Encuéntrame Hoy" : "Find Me Today"}</h2>
                 <p className="mt-1 text-xs text-[#1E1814]/55">
                   {es
                     ? "Dónde estás hoy, tu disponibilidad y cómo pueden recibir la comida. Tu dirección fija va aparte y es privada por defecto."

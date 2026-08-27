@@ -197,12 +197,18 @@ export default function RestauranteApplicationClient() {
     returnPanel === "restaurantes"
       ? appendLangToPath("/dashboard/restaurantes", routeLang)
       : buildDashboardMisAnunciosReturnPath(lang, "restaurantes");
-  const { hydrated, draft, draftRef, setDraftPatch, resetDraft } = useRestauranteDraft();
+  const { hydrated, draft, draftRef, setDraftPatch, resetDraft, trimDraftStrings } = useRestauranteDraft();
 
   useBusinessApplicationLeaveGuard({
     isDirty: hydrated && Boolean(draft.businessName?.trim()),
+    // Trim only at this one-time exit snapshot, never on every keystroke — trimming inside the
+    // live onChange path would fight normal typing (a trailing space the user just typed to
+    // start a new word would be stripped back out on every keystroke). This closes the gap where
+    // a whitespace-only custom "Otro" cuisine/style/etc. value could otherwise linger in the
+    // persisted draft (it was already correctly excluded from Preview/publish by nonEmpty()/
+    // hasValue() downstream — this just keeps the draft itself clean too).
     persist: () => {
-      void saveRestauranteDraftToStorageResolved(draftRef.current);
+      void saveRestauranteDraftToStorageResolved(trimDraftStrings(draftRef.current));
     },
   });
   const [serviceErr, setServiceErr] = useState(false);
@@ -225,16 +231,21 @@ export default function RestauranteApplicationClient() {
   const [dashboardSaveBusy, setDashboardSaveBusy] = useState(false);
   const [dashboardContextErr, setDashboardContextErr] = useState<string | null>(null);
 
-  // Initialize pricing based on product query param
+  // Initialize pricing based on product query param.
+  // Fixed defect: Comida Local is its own category at its own real price
+  // (comida_local_base_monthly) — it is never a $199 Restaurantes product, and the checkout below
+  // always charges the single real Restaurantes base price regardless of `productType`. A
+  // "mobile_food_vendor" productType value may still legitimately describe a restaurant that
+  // operates as a food truck/pop-up (kept for copy/labeling only), but it must always be priced
+  // and charged as Restaurantes, never as a fake discounted Comida Local stand-in.
   useEffect(() => {
     if (hydrated && !draft.productType && !isExistingDashboardListingMode) {
       const productParam = searchParams?.get("product");
       const isMobile = productParam === "mobile_food_vendor";
       const productType = isMobile ? "mobile_food_vendor" : "established_restaurant";
-      const baseMonthlyPrice = isMobile ? 199 : 399;
       setDraftPatch({
         productType,
-        baseMonthlyPrice,
+        baseMonthlyPrice: 399,
       });
     }
   }, [hydrated, draft.productType, setDraftPatch, searchParams, isExistingDashboardListingMode]);
@@ -444,10 +455,12 @@ export default function RestauranteApplicationClient() {
     if (isExistingDashboardListingMode) return;
     // Service modes are no longer required for preview - default assumption is brick-and-mortar restaurant
     setServiceErr(false);
-    await saveRestauranteDraftToStorageResolved(draftRef.current);
+    // Trim at this commit boundary (leaving the form for Preview), not on every keystroke — see
+    // the leave-guard's persist callback above for why per-keystroke trimming is unsafe.
+    await saveRestauranteDraftToStorageResolved(trimDraftStrings(draftRef.current));
     markPublishFlowOpeningPreview();
     window.location.href = previewHrefWithPlan;
-  }, [draftRef, previewHrefWithPlan, isExistingDashboardListingMode]);
+  }, [draftRef, previewHrefWithPlan, isExistingDashboardListingMode, trimDraftStrings]);
 
   const toggleHighlight = useCallback(
     (key: string) => {

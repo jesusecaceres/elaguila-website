@@ -54,14 +54,15 @@ export type CheckoutNewsletterCaptureInput = {
 /**
  * Truthful, discriminated capture outcome — never a bare boolean/void.
  *
- * SUCCESS / ALREADY_SUBSCRIBED / FAILED are live outcomes from the current write path.
- * PENDING_VERIFICATION is reserved for a future double-opt-in flow (see
+ * SUCCESS / ALREADY_SUBSCRIBED / UNSUBSCRIBE_PRESERVED / FAILED are live outcomes from the
+ * current write path. PENDING_VERIFICATION is reserved for a future double-opt-in flow (see
  * app/lib/newsletter/newsletterVerificationState.ts) — no current server code returns it yet.
  * SKIPPED covers the two legitimate non-attempts (box unchecked; server capture not configured).
  */
 export type CheckoutNewsletterCaptureResult =
   | { status: "SUCCESS"; updated?: boolean }
   | { status: "ALREADY_SUBSCRIBED" }
+  | { status: "UNSUBSCRIBE_PRESERVED" }
   | { status: "PENDING_VERIFICATION" }
   | { status: "FAILED"; reason: string }
   | { status: "SKIPPED"; reason: "unchecked" | "not_configured" };
@@ -127,7 +128,12 @@ export async function captureCheckoutNewsletterSubscriber(
     const status = responseBody.status;
     const reason = responseBody.reason;
 
-    if (status === "SUCCESS" || status === "ALREADY_SUBSCRIBED" || status === "PENDING_VERIFICATION") {
+    if (
+      status === "SUCCESS" ||
+      status === "ALREADY_SUBSCRIBED" ||
+      status === "UNSUBSCRIBE_PRESERVED" ||
+      status === "PENDING_VERIFICATION"
+    ) {
       return { status };
     }
     if (status === "SKIPPED") {

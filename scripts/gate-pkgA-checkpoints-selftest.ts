@@ -11,9 +11,11 @@
  *      `checkpointRoute ?? hubRoute ?? applicationRoute`, and the live legacy CTA builder
  *      (`categoryPublishPath`) routes the five updated lanes through their checkpoints.
  *   3. PRICE COPY-ACCURACY AUDIT — every checkpoint card's priceLabel is either a free label
- *      or derived from `revenuePricingMatrix.ts` (never a retyped literal), with exactly one
- *      documented exception: RESTAURANTES_COMIDA_LOCAL_DISPLAY_PRICE ($199/mes, flagged
- *      in-code as "not in Revenue V1 matrix yet" — owner decision D15).
+ *      or derived from `revenuePricingMatrix.ts` (never a retyped literal). Final-audit-fixes:
+ *      the Restaurantes-family Comida Local card used to carry a hardcoded "$199/mes" exception
+ *      here — that was a real price-mismatch defect (its checkout always charged the real
+ *      Restaurantes $399/mo base price), not a legitimate exception. It now derives its price
+ *      from comida_local_base_monthly like every other card; no exception remains.
  *
  * No network, no React, no Supabase. Run from repo root:
  *   npx tsx scripts/gate-pkgA-checkpoints-selftest.ts
@@ -39,7 +41,6 @@ import {
   getRestaurantesCheckpointCards,
   getServiciosCheckpointCard,
   getViajesCheckpointCards,
-  RESTAURANTES_COMIDA_LOCAL_DISPLAY_PRICE,
   type PublishCheckpointCardData,
 } from "../app/(site)/clasificados/publicar/_lib/categoryPublishCheckpoints";
 import {
@@ -186,14 +187,16 @@ const REPO_ROOT = path.resolve(__dirname, "..");
   assert.equal(viajesCards[1].ctaHref, "/publicar/viajes/privado");
 
   // ---- Copy-accuracy audit across ALL card builders: every non-free priceLabel's dollar
-  // amount must equal a real matrix price for some SKU, except the one documented $199
-  // Restaurantes-family Comida Local display price (owner decision D15).
+  // amount must equal a real matrix price for some SKU. Final-audit-fixes: the previously
+  // documented exception (a hardcoded "$199/mes" for the Restaurantes-family Comida Local
+  // display card) was a real defect, not a legitimate exception — that card's checkout always
+  // charged the real Restaurantes $399/mo base price regardless of the $199 shown. It now derives
+  // its price from comida_local_base_monthly like every other card, so no exception remains.
   const matrixPriceLabels = new Set(
     REVENUE_V1_PACKAGE_MATRIX.filter((entry) => entry.priceCents > 0).map((entry) =>
       formatRevenuePriceLabel(entry.priceCents),
     ),
   );
-  const KNOWN_EXCEPTION = RESTAURANTES_COMIDA_LOCAL_DISPLAY_PRICE; // "$199/mes", flagged in-code
 
   const allCards: PublishCheckpointCardData[] = [
     ...getRestaurantesCheckpointCards("es", passthrough),
@@ -210,12 +213,11 @@ const REPO_ROOT = path.resolve(__dirname, "..");
   for (const card of allCards) {
     const label = card.priceLabel;
     if (label === "Gratis" || label === "Free" || label === "—") continue;
-    if (label === KNOWN_EXCEPTION) continue;
     const dollarAmount = label.match(/^\$[\d,]+(?:\.\d{2})?/)?.[0];
     assert.ok(dollarAmount, `card ${card.id} has a non-free, non-dollar priceLabel: ${label}`);
     assert.ok(
       matrixPriceLabels.has(dollarAmount!),
-      `card ${card.id} priceLabel "${label}" is not derived from any revenuePricingMatrix price — retyped literals are forbidden (the only documented exception is ${KNOWN_EXCEPTION})`,
+      `card ${card.id} priceLabel "${label}" is not derived from any revenuePricingMatrix price — retyped literals are forbidden`,
     );
   }
 }

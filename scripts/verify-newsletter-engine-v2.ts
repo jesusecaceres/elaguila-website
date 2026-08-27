@@ -24,6 +24,10 @@ import {
   generateNewsletterVerificationToken,
   resolveNewsletterVerificationState,
 } from "../app/lib/newsletter/newsletterVerificationState";
+import {
+  generateNewsletterUnsubscribeToken,
+  resolveNewsletterUnsubscribeRequest,
+} from "../app/lib/newsletter/newsletterUnsubscribeToken";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -261,6 +265,180 @@ async function main() {
     fail("Unchecked checkbox must short-circuit BEFORE any network call (resubscribe-safety invariant)");
   } else {
     ok("unchecked checkbox short-circuits before any network call — cannot silently resubscribe anyone");
+  }
+
+  // =======================================================================
+  // FINAL-AUDIT-FIXES — Defect 1: real unsubscribe/opt-out path (Gate G, 12 checks).
+  // =======================================================================
+  const leadCaptureSrc2 = leadCaptureSrc; // already read above
+  const checkoutRouteSrc = routeSrc; // already read above
+  const unsubscribeServerSrc = read("app/lib/newsletter/newsletterUnsubscribeServer.ts");
+  const unsubscribeRouteSrc = read("app/api/newsletter/unsubscribe/route.ts");
+  const unsubscribeMigrationRel = "supabase/migrations/20260827180000_leonix_newsletter_unsubscribe.sql";
+
+  // G1 — new subscription works (existing insert path, unchanged by this fix; re-affirmed here
+  // since explicitOptIn now gates part of the same function).
+  if (!leadCaptureSrc2.includes("insertUnsubscribeToken")) {
+    fail("saveNewsletterSubscriber must issue a real unsubscribe_token on new-subscriber insert");
+  } else {
+    ok("G1: new subscription path issues a real unsubscribe_token on insert");
+  }
+
+  // G2 — duplicate subscribe remains idempotent (unchanged 23505 fallback path, re-affirmed).
+  if (!leadCaptureSrc2.includes("23505")) {
+    fail("G2: duplicate-subscribe unique_violation fallback missing");
+  } else {
+    ok("G2: duplicate subscribe remains idempotent via the existing 23505 fallback");
+  }
+
+  // G3 — unsubscribe succeeds: pure resolver, valid token, not-yet-unsubscribed status.
+  const unsubToken = generateNewsletterUnsubscribeToken();
+  if (typeof unsubToken !== "string" || unsubToken.length < 32) {
+    fail("G3: generateNewsletterUnsubscribeToken must return a long opaque random string");
+  } else {
+    ok(`G3: generateNewsletterUnsubscribeToken produces an opaque token (length ${unsubToken.length})`);
+  }
+  const freshUnsubscribe = resolveNewsletterUnsubscribeRequest({
+    status: "subscribed",
+    storedToken: unsubToken,
+    storedTokenExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+    presentedToken: unsubToken,
+  });
+  if (!freshUnsubscribe.ok || freshUnsubscribe.alreadyUnsubscribed) {
+    fail(`G3: unsubscribing a subscribed row with a valid token must succeed, got ${JSON.stringify(freshUnsubscribe)}`);
+  } else {
+    ok("G3: unsubscribe succeeds given a valid, unexpired token on a subscribed row");
+  }
+
+  // G4 — repeat unsubscribe is idempotent: same valid token, row already unsubscribed.
+  const repeatUnsubscribe = resolveNewsletterUnsubscribeRequest({
+    status: "unsubscribed",
+    storedToken: unsubToken,
+    storedTokenExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+    presentedToken: unsubToken,
+  });
+  if (!repeatUnsubscribe.ok || !repeatUnsubscribe.alreadyUnsubscribed) {
+    fail(`G4: repeat unsubscribe with the same token must be idempotent (ALREADY_UNSUBSCRIBED), got ${JSON.stringify(repeatUnsubscribe)}`);
+  } else {
+    ok("G4: repeat unsubscribe with the same token is idempotent (no re-write, no error)");
+  }
+
+  // G5 — unsubscribed record stays unsubscribed on passive (non-explicit) capture.
+  if (!/existing\.status === "unsubscribed" && !input\.explicitOptIn/.test(leadCaptureSrc2)) {
+    fail("G5: saveNewsletterSubscriber must skip the write when the existing row is unsubscribed and explicitOptIn is not set");
+  } else {
+    ok("G5: an unsubscribed row is left untouched by any write that isn't explicitOptIn:true");
+  }
+  if (!leadCaptureSrc2.includes("unsubscribePreserved: true")) {
+    fail("G5: saveNewsletterSubscriber must report unsubscribePreserved:true, never a fake SUCCESS, when preserving an opt-out");
+  } else {
+    ok("G5: unsubscribe-preserved outcome is reported truthfully (unsubscribePreserved:true), not SUCCESS");
+  }
+
+  // G6 — unchecked checkout does not resubscribe (unchanged invariant, re-affirmed above at line
+  // ~264 — the unchecked path never even reaches saveNewsletterSubscriber, so explicitOptIn is
+  // moot for it).
+
+  // G7 — explicit checked opt-in can resubscribe: checkout-capture route sets explicitOptIn:true.
+  if (!checkoutRouteSrc.includes("explicitOptIn: true")) {
+    fail("G7: checkout-capture route must pass explicitOptIn:true so a checked box can reactivate an unsubscribed row");
+  } else {
+    ok("G7: checkout-capture route passes explicitOptIn:true (checked-box = real explicit consent)");
+  }
+  const subscribeRouteSrc = read("app/api/newsletter/subscribe/route.ts");
+  if (!subscribeRouteSrc.includes("explicitOptIn: true")) {
+    fail("G7: direct newsletter subscribe route must also pass explicitOptIn:true (a submitted signup form is explicit consent)");
+  } else {
+    ok("G7: direct subscribe route also passes explicitOptIn:true");
+  }
+
+  // G8 — no duplicate row on resubscribe: reactivation still goes through the existing-row UPDATE
+  // branch (keyed by id), never a second INSERT.
+  if (!/existing\?\.id\)[\s\S]{0,800}unsubscribeTokenPatch/.test(leadCaptureSrc2)) {
+    fail("G8: reactivation of an existing row must stay inside the existing.id UPDATE branch, not a new INSERT");
+  } else {
+    ok("G8: reactivation updates the existing row by id — no duplicate row is ever created");
+  }
+
+  // G9 — invalid unsubscribe token fails safely: wrong token, and empty token.
+  const wrongUnsubToken = resolveNewsletterUnsubscribeRequest({
+    status: "subscribed",
+    storedToken: unsubToken,
+    storedTokenExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+    presentedToken: "not-the-right-token",
+  });
+  if (wrongUnsubToken.ok) {
+    fail(`G9: an invalid unsubscribe token must fail safely, got ${JSON.stringify(wrongUnsubToken)}`);
+  } else {
+    ok(`G9: invalid unsubscribe token fails safely (reason: ${wrongUnsubToken.reason}), no state change`);
+  }
+  const expiredUnsubToken = resolveNewsletterUnsubscribeRequest({
+    status: "subscribed",
+    storedToken: unsubToken,
+    storedTokenExpiresAt: new Date(Date.now() - 60_000).toISOString(),
+    presentedToken: unsubToken,
+  });
+  if (expiredUnsubToken.ok || expiredUnsubToken.reason !== "token_expired") {
+    fail(`G9: an expired unsubscribe token must fail safely as token_expired, got ${JSON.stringify(expiredUnsubToken)}`);
+  } else {
+    ok("G9: expired unsubscribe token fails safely (token_expired), no state change");
+  }
+
+  // G10 — one subscriber cannot unsubscribe another: the server resolver must look up strictly by
+  // unsubscribe_token, never by email.
+  if (!unsubscribeServerSrc.includes('.eq("unsubscribe_token"')) {
+    fail("G10: unsubscribe resolver must look up the subscriber by unsubscribe_token");
+  } else {
+    ok("G10: unsubscribe resolver looks up strictly by unsubscribe_token");
+  }
+  if (/\.eq\("email"/.test(unsubscribeServerSrc)) {
+    fail("G10: unsubscribe resolver must never accept an email-based lookup — that would let one subscriber affect another's row");
+  } else {
+    ok("G10: unsubscribe resolver never looks up by email — one subscriber's token can only ever affect their own row");
+  }
+
+  // G11 — FAILED is truthful: the unsubscribe route/page never claim a fake success.
+  for (const state of ["UNSUBSCRIBED", "ALREADY_UNSUBSCRIBED", "INVALID_TOKEN", "EXPIRED_TOKEN", "FAILED"]) {
+    if (!unsubscribeServerSrc.includes(`"${state}"`)) {
+      fail(`G11: unsubscribe resolver result type is missing the "${state}" state`);
+    }
+  }
+  ok("G11: unsubscribe resolver returns a real discriminated status (UNSUBSCRIBED/ALREADY_UNSUBSCRIBED/INVALID_TOKEN/EXPIRED_TOKEN/FAILED)");
+  if (!unsubscribeRouteSrc.includes('"FAILED"')) {
+    fail("G11: unsubscribe API route must be able to report a real FAILED status, not swallow errors as success");
+  } else {
+    ok("G11: unsubscribe API route can report a truthful FAILED status");
+  }
+
+  // G12 — outbound double-opt-in delivery is still NOT falsely claimed to exist. This fix adds
+  // unsubscribe STATE + ROUTE + TOKEN behavior only — it must not start sending any email.
+  if (/resend|sendLeonixResendEmail|nodemailer|sendgrid/i.test(unsubscribeServerSrc + unsubscribeRouteSrc)) {
+    fail("G12: unsubscribe implementation must not send any outbound email — no email provider is wired for this flow");
+  } else {
+    ok("G12: unsubscribe implementation sends no outbound email (correctly does not claim delivery that doesn't exist)");
+  }
+  const verificationStateSrc = read("app/lib/newsletter/newsletterVerificationState.ts");
+  if (!verificationStateSrc.includes("does NOT send any email")) {
+    fail("G12: verification-state module must still honestly document that no outbound email exists");
+  } else {
+    ok("G12: verification-state module still honestly documents no outbound double-opt-in email exists");
+  }
+
+  // Migration sanity for the new unsubscribe columns — additive only.
+  if (!existsSync(path.join(root, unsubscribeMigrationRel))) {
+    fail(`Missing unsubscribe migration: ${unsubscribeMigrationRel}`);
+  } else {
+    const unsubMigrationSrc = read(unsubscribeMigrationRel);
+    if (/DROP TABLE|DELETE FROM|DROP COLUMN/i.test(unsubMigrationSrc)) {
+      fail("Unsubscribe migration must be additive only (no DROP TABLE/DELETE/DROP COLUMN)");
+    } else {
+      ok("unsubscribe migration contains no destructive statements");
+    }
+    if (!unsubMigrationSrc.includes("unsubscribe_token") || !unsubMigrationSrc.includes("unsubscribed_at")) {
+      fail("Unsubscribe migration must add unsubscribe_token and unsubscribed_at columns");
+    } else {
+      ok("unsubscribe migration adds unsubscribe_token/unsubscribe_token_expires_at/unsubscribed_at additively");
+    }
   }
 
   console.log("");

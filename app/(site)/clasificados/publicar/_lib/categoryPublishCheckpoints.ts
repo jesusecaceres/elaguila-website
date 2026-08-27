@@ -51,9 +51,6 @@ function isPromoEligible(packageKey: string): boolean {
   return def?.promoEligible === true;
 }
 
-/** Restaurantes comida local $199/mes — display on live page; not in Revenue V1 matrix yet. */
-export const RESTAURANTES_COMIDA_LOCAL_DISPLAY_PRICE = "$199/mes";
-
 export function getRestaurantesCheckpointCards(
   lang: PublishCheckpointLang,
   withLang: (path: string, extra?: Record<string, string>) => string,
@@ -63,6 +60,15 @@ export function getRestaurantesCheckpointCards(
     ? "Cupones y ofertas destacadas incluidos sin costo adicional."
     : "Featured coupons and offers included at no extra cost.";
   const establishedPrice = monthlyPrice("restaurantes_base_monthly", "restaurantes");
+  // Comida Local is its own category with its own real price (comida_local_base_monthly) — this
+  // card is a cross-link to that canonical product for a visitor browsing the Restaurantes
+  // selector, never a separate Restaurantes-priced product. It must show the real current Comida
+  // Local price and route to the real Comida Local application, never into the Restaurantes
+  // checkout flow. Fixed defect: this card previously showed a stale "$199/mes" literal and
+  // routed into /publicar/restaurantes?product=mobile_food_vendor, whose checkout always charged
+  // the real Restaurantes $399/mo base price regardless of that display — a real price-mismatch
+  // defect, not a legitimate Restaurantes product tier.
+  const comidaLocalPrice = monthlyPrice("comida_local_base_monthly", "comida-local");
 
   return [
     {
@@ -112,16 +118,20 @@ export function getRestaurantesCheckpointCards(
       variant: "paid",
       eyebrow: es ? "Comida Local" : "Local Food",
       title: es ? "Puesto, pop-up o vendedor móvil" : "Stand, pop-up, or mobile vendor",
-      priceLabel: RESTAURANTES_COMIDA_LOCAL_DISPLAY_PRICE,
+      priceLabel: comidaLocalPrice,
       shortDescription: es
         ? "Para puestos, pop-ups, comida casera, vendedores móviles y fines de semana. Ideal para negocios que venden por ubicación temporal, eventos o servicio local."
         : "For stands, pop-ups, homemade food, mobile vendors, and weekend operations. Ideal for businesses that sell at temporary locations, events, or local service.",
       ctaLabel: es ? "Publicar comida local" : "Publish local food",
-      ctaHref: withLang("/publicar/restaurantes", { product: "mobile_food_vendor" }),
+      // Comida Local is its own category — route to its own canonical application, never into
+      // the Restaurantes checkout flow (see comment above; this used to route into
+      // /publicar/restaurantes?product=mobile_food_vendor, which charged $399, not the $199 this
+      // card displayed).
+      ctaHref: withLang("/publicar/comida-local"),
       moreLabel: es ? "Ver más" : "See more",
       modalTitle: es
-        ? `Qué incluye Puesto / Pop-up / Vendedor móvil — ${RESTAURANTES_COMIDA_LOCAL_DISPLAY_PRICE}`
-        : `What's included with Stand / Pop-up / Mobile vendor — ${RESTAURANTES_COMIDA_LOCAL_DISPLAY_PRICE}`,
+        ? `Qué incluye Puesto / Pop-up / Vendedor móvil — ${comidaLocalPrice}`
+        : `What's included with Stand / Pop-up / Mobile vendor — ${comidaLocalPrice}`,
       modalIntro: es
         ? "Este plan ayuda a vendedores de comida móviles o temporales a mostrar dónde estarán, qué venden, cómo contactarlos y cómo la comunidad puede encontrarlos."
         : "This plan helps mobile or temporary food vendors show where they'll be, what they sell, how to contact them, and how the community can find them.",
@@ -130,25 +140,22 @@ export function getRestaurantesCheckpointCards(
             "Qué incluye: Perfil compacto y profesional con fotos o flyer",
             "Para quién es: Puestos, pop-ups, comida casera, vendedores móviles, mercados, eventos",
             "Qué aparece en la ficha: Zona de venta, ciudad, horarios, contacto, menú/pedidos",
-            `Precio mensual: ${RESTAURANTES_COMIDA_LOCAL_DISPLAY_PRICE}`,
+            `Precio mensual: ${comidaLocalPrice}`,
             "Nota: La publicación se activa después de revisión final.",
           ]
         : [
             "What's included: Compact, professional profile with photos or flyer",
             "Who it's for: Stands, pop-ups, homemade food, mobile vendors, markets, events",
             "What appears on profile: Sales zone, city, hours, contact, menu/orders",
-            `Monthly price: ${RESTAURANTES_COMIDA_LOCAL_DISPLAY_PRICE}`,
+            `Monthly price: ${comidaLocalPrice}`,
             "Note: Publication activates after final review.",
           ],
       optionalUpgradeLine: couponAddon,
       optionalUpgradeBullets: es
         ? ["Cupones destacados incluidos en tu plan"]
         : ["Featured coupons included with your plan"],
-      couponEligible: true,
+      couponEligible: isPromoEligible("comida_local_base_monthly"),
       highlighted: true,
-      footnote: es
-        ? "Precio de pantalla Comida Local — verificar matriz Revenue OS en docs si difiere del checkout."
-        : "Comida Local display price — see docs if Revenue OS matrix differs from checkout.",
     },
   ];
 }

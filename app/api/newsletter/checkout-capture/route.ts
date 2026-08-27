@@ -111,11 +111,23 @@ export async function POST(req: Request) {
       source,
       lang: o.lang,
       consentTimestamp: new Date().toISOString(),
+      // Reaching this route at all already means the client-side opt-in checkbox was checked
+      // (checkoutNewsletterCapture.ts returns SKIPPED before ever calling fetch when unchecked —
+      // see the invariant this route's own targeted test asserts) — the same real, current,
+      // explicit-action trust boundary this route has always relied on. That is exactly the
+      // signal `explicitOptIn` requires to reactivate a previously-unsubscribed row.
+      explicitOptIn: true,
     });
 
     if (!result.ok) {
       console.warn("[newsletter] checkout capture save failed", { source, error: result.error });
       return NextResponse.json({ status: "FAILED", reason: result.error });
+    }
+
+    // An unsubscribed subscriber's row was intentionally left untouched (see Step 5) — never
+    // report this as SUCCESS.
+    if (result.unsubscribePreserved) {
+      return NextResponse.json({ status: "UNSUBSCRIBE_PRESERVED" });
     }
 
     // Idempotency-aware discrimination: a row that already existed with status "subscribed"

@@ -15,7 +15,7 @@ export type RestauranteDraftPatch =
   | Partial<RestauranteListingDraft>
   | ((prev: RestauranteListingDraft) => Partial<RestauranteListingDraft>);
 
-function trimDraftStrings(d: RestauranteListingDraft): RestauranteListingDraft {
+export function trimDraftStrings(d: RestauranteListingDraft): RestauranteListingDraft {
   const t = (s: string | undefined) => {
     if (s == null) return undefined;
     const x = s.trim();
