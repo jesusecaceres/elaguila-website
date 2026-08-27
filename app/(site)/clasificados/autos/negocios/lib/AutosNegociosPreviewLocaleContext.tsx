@@ -10,11 +10,21 @@ type PreviewLocaleValue = { lang: AutosNegociosLang; t: AutosNegociosCopy };
 
 const PreviewLocaleContext = createContext<PreviewLocaleValue | null>(null);
 
-function AutosNegociosPreviewLocaleInner({ lang, children }: { lang: AutosNegociosLang; children: ReactNode }) {
+function AutosNegociosPreviewLocaleInner({
+  lang,
+  manageDocumentTitle = true,
+  children,
+}: {
+  lang: AutosNegociosLang;
+  /** Live detail sets its own real vehicle-title document.title — skip the "Vista previa" label there. */
+  manageDocumentTitle?: boolean;
+  children: ReactNode;
+}) {
   const t = useMemo(() => getAutosNegociosCopy(lang), [lang]);
   useEffect(() => {
+    if (!manageDocumentTitle) return;
     document.title = t.meta.previewTitle;
-  }, [t.meta.previewTitle]);
+  }, [manageDocumentTitle, t.meta.previewTitle]);
   return <PreviewLocaleContext.Provider value={{ lang, t }}>{children}</PreviewLocaleContext.Provider>;
 }
 
@@ -28,12 +38,19 @@ function AutosNegociosPreviewLocaleFromSearchParams({ children }: { children: Re
 export function AutosNegociosPreviewLocaleProvider({
   children,
   lang: langProp,
+  manageDocumentTitle = true,
 }: {
   children: ReactNode;
   lang?: AutosNegociosLang;
+  /** Live detail sets its own real vehicle-title document.title — skip the "Vista previa" label there. */
+  manageDocumentTitle?: boolean;
 }) {
   if (langProp) {
-    return <AutosNegociosPreviewLocaleInner lang={langProp}>{children}</AutosNegociosPreviewLocaleInner>;
+    return (
+      <AutosNegociosPreviewLocaleInner lang={langProp} manageDocumentTitle={manageDocumentTitle}>
+        {children}
+      </AutosNegociosPreviewLocaleInner>
+    );
   }
   return <AutosNegociosPreviewLocaleFromSearchParams>{children}</AutosNegociosPreviewLocaleFromSearchParams>;
 }
