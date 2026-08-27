@@ -49,38 +49,40 @@ function labelFromBilingualOptions<T extends string>(
   return opt ? comidaLocalOptionLabel(opt, lang) : value;
 }
 
-function buildFoodTypeChips(draft: ComidaLocalDraft): ComidaLocalPreviewChip[] {
+function buildFoodTypeChips(draft: ComidaLocalDraft, lang: "es" | "en"): ComidaLocalPreviewChip[] {
   if (!draft.foodType) return [];
   if (draft.foodType === "otro") {
     const custom = draft.foodTypeCustom.trim();
     if (!custom) return [];
     return [{ key: "food-otro", label: custom }];
   }
-  const label = labelFromOptions(draft.foodType, COMIDA_LOCAL_FOOD_TYPE_OPTIONS);
+  const label = labelFromBilingualOptions(draft.foodType, COMIDA_LOCAL_FOOD_TYPE_OPTIONS, lang);
   return [{ key: draft.foodType, label }];
 }
 
-const WEEKDAY_ORDER_LABELS: Array<{ key: string; label: string }> = [
-  { key: "monday", label: "Lunes" },
-  { key: "tuesday", label: "Martes" },
-  { key: "wednesday", label: "Miércoles" },
-  { key: "thursday", label: "Jueves" },
-  { key: "friday", label: "Viernes" },
-  { key: "saturday", label: "Sábado" },
-  { key: "sunday", label: "Domingo" },
+const WEEKDAY_ORDER_LABELS: Array<{ key: string; labelEs: string; labelEn: string }> = [
+  { key: "monday", labelEs: "Lunes", labelEn: "Monday" },
+  { key: "tuesday", labelEs: "Martes", labelEn: "Tuesday" },
+  { key: "wednesday", labelEs: "Miércoles", labelEn: "Wednesday" },
+  { key: "thursday", labelEs: "Jueves", labelEn: "Thursday" },
+  { key: "friday", labelEs: "Viernes", labelEn: "Friday" },
+  { key: "saturday", labelEs: "Sábado", labelEn: "Saturday" },
+  { key: "sunday", labelEs: "Domingo", labelEn: "Sunday" },
 ];
 
-function buildHoursLines(draft: ComidaLocalDraft): { dayLabel: string; text: string }[] {
+function buildHoursLines(draft: ComidaLocalDraft, lang: "es" | "en"): { dayLabel: string; text: string }[] {
+  const en = lang === "en";
   const lines: { dayLabel: string; text: string }[] = [];
-  for (const { key, label } of WEEKDAY_ORDER_LABELS) {
+  for (const { key, labelEs, labelEn } of WEEKDAY_ORDER_LABELS) {
     const sched = draft.weeklyHours[key];
     if (!sched) continue;
+    const dayLabel = en ? labelEn : labelEs;
     if (sched.closed) {
-      lines.push({ dayLabel: label, text: "Cerrado" });
+      lines.push({ dayLabel, text: en ? "Closed" : "Cerrado" });
       continue;
     }
     if (sched.openTime && sched.closeTime) {
-      lines.push({ dayLabel: label, text: `${sched.openTime} – ${sched.closeTime}` });
+      lines.push({ dayLabel, text: `${sched.openTime} – ${sched.closeTime}` });
     }
   }
   return lines;
@@ -142,7 +144,8 @@ function normalizeLocationHref(raw: string): string | null {
   return isValidComidaLocalExternalUrl(withScheme) ? withScheme : null;
 }
 
-function buildContactActions(draft: ComidaLocalDraft): ComidaLocalPreviewContactAction[] {
+function buildContactActions(draft: ComidaLocalDraft, lang: "es" | "en"): ComidaLocalPreviewContactAction[] {
+  const en = lang === "en";
   const actions: ComidaLocalPreviewContactAction[] = [];
   const name = draft.businessName.trim();
 
@@ -150,11 +153,11 @@ function buildContactActions(draft: ComidaLocalDraft): ComidaLocalPreviewContact
   if (phoneDigits.length >= 10) {
     const tel = buildComidaLocalTelHref(draft.phone);
     if (tel) {
-      actions.push({ id: "call", label: "Llamar", href: tel, variant: "primary" });
+      actions.push({ id: "call", label: en ? "Call" : "Llamar", href: tel, variant: "primary" });
     }
     const sms = buildComidaLocalSmsHref(draft.phone);
     if (sms) {
-      actions.push({ id: "sms", label: "Mensaje", href: sms, variant: "secondary" });
+      actions.push({ id: "sms", label: en ? "Message" : "Mensaje", href: sms, variant: "secondary" });
     }
   }
 
@@ -162,7 +165,7 @@ function buildContactActions(draft: ComidaLocalDraft): ComidaLocalPreviewContact
   if (email) {
     actions.push({
       id: "email",
-      label: "Correo",
+      label: en ? "Email" : "Correo",
       href: `mailto:${email}`,
       variant: "secondary",
     });
@@ -213,7 +216,7 @@ function buildContactActions(draft: ComidaLocalDraft): ComidaLocalPreviewContact
   if (loc) {
     actions.push({
       id: "location",
-      label: "Dónde está hoy",
+      label: en ? "Where I am today" : "Dónde está hoy",
       href: loc,
       variant: "secondary",
     });
@@ -222,11 +225,11 @@ function buildContactActions(draft: ComidaLocalDraft): ComidaLocalPreviewContact
   return actions;
 }
 
-function buildPaymentChips(draft: ComidaLocalDraft): ComidaLocalPreviewChip[] {
+function buildPaymentChips(draft: ComidaLocalDraft, lang: "es" | "en"): ComidaLocalPreviewChip[] {
   return draft.paymentMethods.map((v) => {
-    let label = labelFromOptions(v, COMIDA_LOCAL_PAYMENT_OPTIONS);
+    let label = labelFromBilingualOptions(v, COMIDA_LOCAL_PAYMENT_OPTIONS, lang);
     if (v === "other" && draft.paymentOtherNote.trim()) {
-      label = `Otro: ${draft.paymentOtherNote.trim()}`;
+      label = `${lang === "en" ? "Other" : "Otro"}: ${draft.paymentOtherNote.trim()}`;
     }
     return { key: v, label };
   });
@@ -240,8 +243,8 @@ export function mapComidaLocalDraftToPreviewVm(
   draft: ComidaLocalDraft,
   lang: "es" | "en" = "es",
 ): ComidaLocalPreviewVm {
-  const previewIssues = validateComidaLocalDraftForPreview(draft);
-  const businessName = draft.businessName.trim() || "Tu puesto";
+  const previewIssues = validateComidaLocalDraftForPreview(draft, lang === "es");
+  const businessName = draft.businessName.trim() || (lang === "en" ? "Your stand" : "Tu puesto");
   const queVendes = draft.queVendes.trim();
   const availabilityNote = draft.availabilityNote.trim();
   const locationNote = draft.locationNote.trim();
@@ -252,25 +255,25 @@ export function mapComidaLocalDraftToPreviewVm(
     }
     return { key: v, label };
   });
-  const paymentChips = buildPaymentChips(draft);
+  const paymentChips = buildPaymentChips(draft, lang);
   const priceLevelLabel = draft.priceLevel
     ? labelFromOptions(draft.priceLevel, COMIDA_LOCAL_PRICE_LEVEL_OPTIONS)
     : "";
   const languageLabels = [
     ...draft.languages
       .filter((v) => v !== "otro")
-      .map((v) => labelFromOptions(v, COMIDA_LOCAL_LANGUAGE_OPTIONS)),
+      .map((v) => labelFromBilingualOptions(v, COMIDA_LOCAL_LANGUAGE_OPTIONS, lang)),
     ...draft.customLanguages,
   ];
-  const contactActions = buildContactActions(draft);
+  const contactActions = buildContactActions(draft, lang);
   const businessTypeLabel = buildBusinessTypeLabel(draft, lang);
   const highlightChips = buildHighlightChips(draft, lang);
   const additionalWebsites = buildAdditionalWebsiteLinks(draft);
   const businessAddressLine = draft.showAddressPublicly ? draft.businessAddressLine.trim() : "";
-  const hoursLines = buildHoursLines(draft);
+  const hoursLines = buildHoursLines(draft, lang);
   const isOpenNow =
     hoursLines.length > 0 ? computeBusinessHoursStatus(draft.weeklyHours).isOpenNow : null;
-  const foodLabel = buildFoodTypeChips(draft)[0]?.label ?? "";
+  const foodLabel = buildFoodTypeChips(draft, lang)[0]?.label ?? "";
   const mainAlt =
     draft.mainPhoto?.altText?.trim() ||
     comidaLocalImageAltText(businessName, foodLabel, "main");
@@ -305,7 +308,7 @@ export function mapComidaLocalDraftToPreviewVm(
 
   return {
     businessName,
-    foodTypeChips: buildFoodTypeChips(draft),
+    foodTypeChips: buildFoodTypeChips(draft, lang),
     businessTypeLabel,
     locationLine: buildLocationLine(draft),
     queVendes,

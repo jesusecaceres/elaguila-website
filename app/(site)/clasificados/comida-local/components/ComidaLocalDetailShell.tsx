@@ -169,6 +169,7 @@ export function ComidaLocalDetailShell({ vm, leonixAdId, analyticsContext, lang 
               actions={vm.contactActions}
               analyticsContext={analyticsContext}
               businessName={vm.businessName}
+              lang={lang}
             />
           </div>
         ) : null}

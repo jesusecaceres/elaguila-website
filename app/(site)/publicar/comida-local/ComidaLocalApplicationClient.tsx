@@ -40,6 +40,7 @@ import { syncComidaLocalCityFromInput } from "@/app/lib/clasificados/comida-loca
 import {
   COMIDA_LOCAL_FIELD_COPY,
   COMIDA_LOCAL_SHELL_COPY,
+  resolveComidaLocalFieldCopy,
 } from "@/app/lib/clasificados/comida-local/comidaLocalFieldCopy";
 import {
   formatComidaLocalPhoneInput,
@@ -116,20 +117,24 @@ function toggleInList<T extends string>(list: T[], value: T): T[] {
 
 function FieldBlock({
   fieldKey,
+  es,
   children,
   warning,
 }: {
   fieldKey: keyof typeof COMIDA_LOCAL_FIELD_COPY;
+  es: boolean;
   children: ReactNode;
   warning?: string;
 }) {
-  const copy = COMIDA_LOCAL_FIELD_COPY[fieldKey];
+  const copy = resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY[fieldKey], es);
   return (
     <div className="space-y-1.5">
       <label className={LABEL}>
         {copy.label}
         {copy.optional ? (
-          <span className="ml-1 font-normal normal-case text-[#1E1814]/45">(opcional)</span>
+          <span className="ml-1 font-normal normal-case text-[#1E1814]/45">
+            {es ? "(opcional)" : "(optional)"}
+          </span>
         ) : null}
       </label>
       {children}
@@ -147,10 +152,10 @@ function SellerTypeBanner({ text }: { text: string }) {
   );
 }
 
-function formatSavedAt(ts: number | null): string | null {
+function formatSavedAt(ts: number | null, es: boolean): string | null {
   if (!ts) return null;
   try {
-    return new Date(ts).toLocaleTimeString("es-US", { hour: "numeric", minute: "2-digit" });
+    return new Date(ts).toLocaleTimeString(es ? "es-US" : "en-US", { hour: "numeric", minute: "2-digit" });
   } catch {
     return null;
   }
@@ -160,6 +165,7 @@ export default function ComidaLocalApplicationClient() {
   const searchParams = useSearchParams();
   const routeLang = normalizeLang(searchParams?.get("lang"));
   const es = routeLang !== "en";
+  const shellCopy = COMIDA_LOCAL_SHELL_COPY[es ? "es" : "en"];
   const comidaLocalHubHref = replaceLangInHref("/clasificados/comida-local", routeLang);
   const editListingIdForHrefs = ((searchParams?.get("edit") ?? "") === "1" ? searchParams?.get("listingId") ?? "" : "").trim();
   const comidaLocalPreviewHref = replaceLangInHref(
@@ -275,8 +281,8 @@ export default function ComidaLocalApplicationClient() {
     // would re-fight the owner's edits.
   }, [editListingId, hasLoadedDraft, es, editStorageKey]);
 
-  const previewIssues = useMemo(() => validateComidaLocalDraftForPreview(draft), [draft]);
-  const publishIssues = useMemo(() => validateComidaLocalDraftForFuturePublish(draft), [draft]);
+  const previewIssues = useMemo(() => validateComidaLocalDraftForPreview(draft, es), [draft, es]);
+  const publishIssues = useMemo(() => validateComidaLocalDraftForFuturePublish(draft, es), [draft, es]);
   const publishReady = publishIssues.every((i) => i.severity !== "error");
   const previewReady = previewIssues.length === 0;
 
@@ -289,16 +295,20 @@ export default function ComidaLocalApplicationClient() {
       const t = raw.trim();
       if (!t) return undefined;
       if (!touched[platform]) return undefined;
-      return normalizeComidaLocalSocialInput(t, platform) ? undefined : "Enlace o usuario no válido para esta red.";
+      return normalizeComidaLocalSocialInput(t, platform)
+        ? undefined
+        : es
+          ? "Enlace o usuario no válido para esta red."
+          : "Invalid link or username for this network.";
     },
-    [touched]
+    [touched, es]
   );
 
   const locationUrlWarning = useMemo(() => {
     const t = draft.locationUrl.trim();
     if (!t || !touched.locationUrl) return undefined;
-    return isValidComidaLocalExternalUrl(t) ? undefined : "URL no válida.";
-  }, [draft.locationUrl, touched.locationUrl]);
+    return isValidComidaLocalExternalUrl(t) ? undefined : es ? "URL no válida." : "Invalid URL.";
+  }, [draft.locationUrl, touched.locationUrl, es]);
 
   const handleSocialBlur = useCallback(
     (platform: ComidaLocalSocialPlatform, field: keyof Pick<ComidaLocalDraft, "instagramUrl" | "facebookUrl" | "tiktokUrl">) => {
@@ -371,7 +381,7 @@ export default function ComidaLocalApplicationClient() {
   const showServiceOptionOther = draft.serviceOptions.includes("other");
   const showHighlightsOther = draft.highlights.includes("otro");
   const showPaymentOther = draft.paymentMethods.includes("other");
-  const savedLabel = formatSavedAt(lastSavedAt);
+  const savedLabel = formatSavedAt(lastSavedAt, es);
 
   const handlePublish = useCallback(async () => {
     if (!publishReady || publishBusy) return;
@@ -395,7 +405,7 @@ export default function ComidaLocalApplicationClient() {
       });
       if (!res.ok || !data.ok) {
         const issueMsg = data.issues?.map((i) => i.message).filter(Boolean).join(" ");
-        setPublishError(issueMsg || data.detail || data.error || COMIDA_LOCAL_SHELL_COPY.publishErrorGeneric);
+        setPublishError(issueMsg || data.detail || data.error || shellCopy.publishErrorGeneric);
         return;
       }
       if (data.publicPath) {
@@ -415,7 +425,7 @@ export default function ComidaLocalApplicationClient() {
         }
       }
     } catch {
-      setPublishError(COMIDA_LOCAL_SHELL_COPY.publishErrorGeneric);
+      setPublishError(shellCopy.publishErrorGeneric);
     } finally {
       setPublishBusy(false);
     }
@@ -455,10 +465,10 @@ export default function ComidaLocalApplicationClient() {
             Leonix Clasificados · {COMIDA_LOCAL_PRODUCT_NAME}
           </p>
           <h1 className="mt-2 text-2xl font-bold text-[#1E1814] sm:text-3xl">
-            {COMIDA_LOCAL_SHELL_COPY.pageTitle}
+            {shellCopy.pageTitle}
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-[#1E1814]/75">
-            {COMIDA_LOCAL_SHELL_COPY.pageSubtitle}
+            {shellCopy.pageSubtitle}
           </p>
           {editListingId && editHydration.status === "ready" ? (
             <div className="mt-3 rounded-lg border border-[#7A1E2C]/30 bg-[#7A1E2C]/5 px-3 py-2 text-xs leading-relaxed text-[#1E1814]">
@@ -482,8 +492,8 @@ export default function ComidaLocalApplicationClient() {
           ) : null}
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <p className="rounded-lg border border-[#D4C4A8]/70 bg-[#FDF8F0] px-3 py-2 text-xs leading-relaxed text-[#1E1814]/70">
-              {COMIDA_LOCAL_SHELL_COPY.scaffoldNotice}
-              {savedLabel ? ` · ${COMIDA_LOCAL_SHELL_COPY.draftSaved} (${savedLabel})` : null}
+              {shellCopy.scaffoldNotice}
+              {savedLabel ? ` · ${shellCopy.draftSaved} (${savedLabel})` : null}
             </p>
             <button
               type="button"
@@ -508,7 +518,7 @@ export default function ComidaLocalApplicationClient() {
               }}
               className="text-xs font-medium text-[#7A1E2C] underline-offset-2 hover:underline"
             >
-              {editListingId ? (es ? "Descartar cambios" : "Discard changes") : COMIDA_LOCAL_SHELL_COPY.resetDraft}
+              {editListingId ? (es ? "Descartar cambios" : "Discard changes") : shellCopy.resetDraft}
             </button>
           </div>
         </header>
@@ -518,11 +528,12 @@ export default function ComidaLocalApplicationClient() {
             previewIssues={previewIssues}
             publishIssues={publishIssues}
             publishReady={publishReady}
+            es={es}
           />
         </div>
 
         <div className="flex flex-col gap-8 lg:flex-row">
-          <nav className="lg:w-52 lg:shrink-0" aria-label="Secciones del formulario">
+          <nav className="lg:w-52 lg:shrink-0" aria-label={es ? "Secciones del formulario" : "Form sections"}>
             <ul className="flex flex-wrap gap-2 lg:flex-col lg:gap-1">
               {COMIDA_LOCAL_SECTIONS.map((s) => (
                 <li key={s.key}>
@@ -536,7 +547,7 @@ export default function ComidaLocalApplicationClient() {
                         : "text-[#1E1814]/80 hover:bg-[#D4C4A8]/30"
                     )}
                   >
-                    {s.title}
+                    {es ? s.titleEs : s.titleEn}
                   </button>
                 </li>
               ))}
@@ -546,18 +557,18 @@ export default function ComidaLocalApplicationClient() {
           <div className="min-w-0 flex-1 space-y-6">
             {activeSection === "identidad" && (
               <section className={cx(CARD, "p-5 sm:p-6")} id="identidad">
-                <h2 className={SECTION_TITLE}>Identidad</h2>
+                <h2 className={SECTION_TITLE}>{es ? "Identidad" : "Identity"}</h2>
                 <div className="mt-5 space-y-5">
-                  <FieldBlock fieldKey="businessName">
+                  <FieldBlock fieldKey="businessName" es={es}>
                     <input
                       className={INPUT}
                       value={draft.businessName}
                       onChange={(e) => updateDraft({ businessName: e.target.value })}
-                      placeholder={COMIDA_LOCAL_FIELD_COPY.businessName.placeholder}
+                      placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.businessName, es).placeholder}
                       autoComplete="organization"
                     />
                   </FieldBlock>
-                  <FieldBlock fieldKey="foodType">
+                  <FieldBlock fieldKey="foodType" es={es}>
                     <select
                       className={INPUT}
                       value={draft.foodType}
@@ -569,25 +580,25 @@ export default function ComidaLocalApplicationClient() {
                         })
                       }
                     >
-                      <option value="">{COMIDA_LOCAL_FIELD_COPY.foodType.placeholder}</option>
+                      <option value="">{resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.foodType, es).placeholder}</option>
                       {COMIDA_LOCAL_FOOD_TYPE_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>
-                          {o.label}
+                          {es ? o.labelEs : o.labelEn}
                         </option>
                       ))}
                     </select>
                   </FieldBlock>
                   {showFoodTypeCustom ? (
-                    <FieldBlock fieldKey="foodTypeCustom">
+                    <FieldBlock fieldKey="foodTypeCustom" es={es}>
                       <input
                         className={INPUT}
                         value={draft.foodTypeCustom}
                         onChange={(e) => updateDraft({ foodTypeCustom: e.target.value })}
-                        placeholder={COMIDA_LOCAL_FIELD_COPY.foodTypeCustom.placeholder}
+                        placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.foodTypeCustom, es).placeholder}
                       />
                     </FieldBlock>
                   ) : null}
-                  <FieldBlock fieldKey="businessType">
+                  <FieldBlock fieldKey="businessType" es={es}>
                     <select
                       className={INPUT}
                       value={draft.businessType}
@@ -599,7 +610,7 @@ export default function ComidaLocalApplicationClient() {
                         })
                       }
                     >
-                      <option value="">{COMIDA_LOCAL_FIELD_COPY.businessType.placeholder}</option>
+                      <option value="">{resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.businessType, es).placeholder}</option>
                       {COMIDA_LOCAL_BUSINESS_TYPE_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>
                           {es ? o.labelEs : o.labelEn}
@@ -608,12 +619,12 @@ export default function ComidaLocalApplicationClient() {
                     </select>
                   </FieldBlock>
                   {showBusinessTypeCustom ? (
-                    <FieldBlock fieldKey="businessTypeCustom">
+                    <FieldBlock fieldKey="businessTypeCustom" es={es}>
                       <input
                         className={INPUT}
                         value={draft.businessTypeCustom}
                         onChange={(e) => updateDraft({ businessTypeCustom: e.target.value })}
-                        placeholder={COMIDA_LOCAL_FIELD_COPY.businessTypeCustom.placeholder}
+                        placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.businessTypeCustom, es).placeholder}
                       />
                     </FieldBlock>
                   ) : null}
@@ -623,12 +634,17 @@ export default function ComidaLocalApplicationClient() {
 
             {activeSection === "zona" && (
               <section className={cx(CARD, "p-5 sm:p-6")} id="zona">
-                <h2 className={SECTION_TITLE}>Zona</h2>
+                <h2 className={SECTION_TITLE}>{es ? "Zona" : "Area"}</h2>
                 <div className="mt-5 space-y-5">
                   <FieldBlock
                     fieldKey="cityDisplay"
+                    es={es}
                     warning={
-                      cityInvalid ? "Selecciona una ciudad de la lista NorCal." : undefined
+                      cityInvalid
+                        ? es
+                          ? "Selecciona una ciudad de la lista NorCal."
+                          : "Select a city from the NorCal list."
+                        : undefined
                     }
                   >
                     <CityAutocomplete
@@ -639,7 +655,7 @@ export default function ComidaLocalApplicationClient() {
                         if (synced.cityCanonical) markTouched("city");
                       }}
                       onSelect={() => markTouched("city")}
-                      placeholder={COMIDA_LOCAL_FIELD_COPY.cityDisplay.placeholder}
+                      placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.cityDisplay, es).placeholder}
                       lang="es"
                       variant="light"
                       className={cx(INPUT, cityInvalid && INPUT_INVALID)}
@@ -647,12 +663,12 @@ export default function ComidaLocalApplicationClient() {
                       invalid={cityInvalid}
                     />
                   </FieldBlock>
-                  <FieldBlock fieldKey="zoneNote">
+                  <FieldBlock fieldKey="zoneNote" es={es}>
                     <input
                       className={INPUT}
                       value={draft.zoneNote}
                       onChange={(e) => updateDraft({ zoneNote: e.target.value })}
-                      placeholder={COMIDA_LOCAL_FIELD_COPY.zoneNote.placeholder}
+                      placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.zoneNote, es).placeholder}
                       onBlur={() => markTouched("zoneNote")}
                     />
                   </FieldBlock>
@@ -662,7 +678,7 @@ export default function ComidaLocalApplicationClient() {
 
             {activeSection === "que-vendes" && (
               <section className={cx(CARD, "p-5 sm:p-6")} id="que-vendes">
-                <h2 className={SECTION_TITLE}>Qué vendes</h2>
+                <h2 className={SECTION_TITLE}>{es ? "Qué vendes" : "What you sell"}</h2>
                 <div className="mt-5 space-y-5">
                   {sellerCategory === "catering" ? (
                     <SellerTypeBanner
@@ -682,12 +698,12 @@ export default function ComidaLocalApplicationClient() {
                       }
                     />
                   ) : null}
-                  <FieldBlock fieldKey="queVendes">
+                  <FieldBlock fieldKey="queVendes" es={es}>
                     <textarea
                       className={cx(INPUT, "min-h-[120px] resize-y")}
                       value={draft.queVendes}
                       onChange={(e) => updateDraft({ queVendes: e.target.value })}
-                      placeholder={COMIDA_LOCAL_FIELD_COPY.queVendes.placeholder}
+                      placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.queVendes, es).placeholder}
                       rows={5}
                     />
                   </FieldBlock>
@@ -697,18 +713,18 @@ export default function ComidaLocalApplicationClient() {
 
             {activeSection === "contacto" && (
               <section className={cx(CARD, "p-5 sm:p-6")} id="contacto">
-                <h2 className={SECTION_TITLE}>Contacto</h2>
+                <h2 className={SECTION_TITLE}>{es ? "Contacto" : "Contact"}</h2>
                 <div className="mt-5 space-y-5">
-                  <FieldBlock fieldKey="phone">
+                  <FieldBlock fieldKey="phone" es={es}>
                     <PhoneInput
                       className={INPUT}
                       value={draft.phone}
                       onChange={(next) => updateDraft({ phone: next })}
-                      placeholder={COMIDA_LOCAL_FIELD_COPY.phone.placeholder}
+                      placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.phone, es).placeholder}
                       autoComplete="tel"
                     />
                   </FieldBlock>
-                  <FieldBlock fieldKey="whatsapp">
+                  <FieldBlock fieldKey="whatsapp" es={es}>
                     <input
                       className={INPUT}
                       type="tel"
@@ -717,48 +733,48 @@ export default function ComidaLocalApplicationClient() {
                       onChange={(e) =>
                         updateDraft({ whatsapp: formatComidaLocalPhoneInput(e.target.value) })
                       }
-                      placeholder={COMIDA_LOCAL_FIELD_COPY.whatsapp.placeholder}
+                      placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.whatsapp, es).placeholder}
                     />
                   </FieldBlock>
-                  <FieldBlock fieldKey="email">
+                  <FieldBlock fieldKey="email" es={es}>
                     <input
                       className={INPUT}
                       type="email"
                       inputMode="email"
                       value={draft.email}
                       onChange={(e) => updateDraft({ email: e.target.value })}
-                      placeholder={COMIDA_LOCAL_FIELD_COPY.email.placeholder}
+                      placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.email, es).placeholder}
                       autoComplete="email"
                     />
                   </FieldBlock>
-                  <FieldBlock fieldKey="instagramUrl" warning={socialWarning("instagram", draft.instagramUrl)}>
+                  <FieldBlock fieldKey="instagramUrl" es={es} warning={socialWarning("instagram", draft.instagramUrl)}>
                     <input
                       className={cx(INPUT, SOCIAL_ACCENT.instagram)}
                       value={draft.instagramUrl}
                       onChange={(e) => updateDraft({ instagramUrl: e.target.value })}
                       onBlur={() => handleSocialBlur("instagram", "instagramUrl")}
-                      placeholder={COMIDA_LOCAL_FIELD_COPY.instagramUrl.placeholder}
+                      placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.instagramUrl, es).placeholder}
                     />
                   </FieldBlock>
-                  <FieldBlock fieldKey="facebookUrl" warning={socialWarning("facebook", draft.facebookUrl)}>
+                  <FieldBlock fieldKey="facebookUrl" es={es} warning={socialWarning("facebook", draft.facebookUrl)}>
                     <input
                       className={cx(INPUT, SOCIAL_ACCENT.facebook)}
                       value={draft.facebookUrl}
                       onChange={(e) => updateDraft({ facebookUrl: e.target.value })}
                       onBlur={() => handleSocialBlur("facebook", "facebookUrl")}
-                      placeholder={COMIDA_LOCAL_FIELD_COPY.facebookUrl.placeholder}
+                      placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.facebookUrl, es).placeholder}
                     />
                   </FieldBlock>
-                  <FieldBlock fieldKey="tiktokUrl" warning={socialWarning("tiktok", draft.tiktokUrl)}>
+                  <FieldBlock fieldKey="tiktokUrl" es={es} warning={socialWarning("tiktok", draft.tiktokUrl)}>
                     <input
                       className={cx(INPUT, SOCIAL_ACCENT.tiktok)}
                       value={draft.tiktokUrl}
                       onChange={(e) => updateDraft({ tiktokUrl: e.target.value })}
                       onBlur={() => handleSocialBlur("tiktok", "tiktokUrl")}
-                      placeholder={COMIDA_LOCAL_FIELD_COPY.tiktokUrl.placeholder}
+                      placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.tiktokUrl, es).placeholder}
                     />
                   </FieldBlock>
-                  <FieldBlock fieldKey="additionalWebsites">
+                  <FieldBlock fieldKey="additionalWebsites" es={es}>
                     <div className="space-y-2">
                       {draft.additionalWebsites.map((site, i) => (
                         <div key={i} className="flex flex-col gap-2 sm:flex-row">
@@ -770,7 +786,7 @@ export default function ComidaLocalApplicationClient() {
                               next[i] = { ...next[i], label: e.target.value };
                               updateDraft({ additionalWebsites: next });
                             }}
-                            placeholder="Ej. Menú"
+                            placeholder={es ? "Ej. Menú" : "e.g. Menu"}
                           />
                           <input
                             className={cx(INPUT, "flex-1")}
@@ -832,30 +848,30 @@ export default function ComidaLocalApplicationClient() {
                       }
                     />
                   ) : null}
-                  <FieldBlock fieldKey="locationNote">
+                  <FieldBlock fieldKey="locationNote" es={es}>
                     <textarea
                       className={cx(INPUT, "min-h-[80px] resize-y")}
                       value={draft.locationNote}
                       onChange={(e) => updateDraft({ locationNote: e.target.value })}
-                      placeholder={COMIDA_LOCAL_FIELD_COPY.locationNote.placeholder}
+                      placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.locationNote, es).placeholder}
                       rows={3}
                     />
                   </FieldBlock>
-                  <FieldBlock fieldKey="locationUrl" warning={locationUrlWarning}>
+                  <FieldBlock fieldKey="locationUrl" es={es} warning={locationUrlWarning}>
                     <input
                       className={cx(INPUT, locationUrlWarning && INPUT_INVALID)}
                       value={draft.locationUrl}
                       onChange={(e) => updateDraft({ locationUrl: e.target.value })}
                       onBlur={handleLocationUrlBlur}
-                      placeholder={COMIDA_LOCAL_FIELD_COPY.locationUrl.placeholder}
+                      placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.locationUrl, es).placeholder}
                     />
                   </FieldBlock>
-                  <FieldBlock fieldKey="availabilityNote">
+                  <FieldBlock fieldKey="availabilityNote" es={es}>
                     <input
                       className={INPUT}
                       value={draft.availabilityNote}
                       onChange={(e) => updateDraft({ availabilityNote: e.target.value })}
-                      placeholder={COMIDA_LOCAL_FIELD_COPY.availabilityNote.placeholder}
+                      placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.availabilityNote, es).placeholder}
                     />
                   </FieldBlock>
                   <div className="space-y-1.5">
@@ -880,7 +896,7 @@ export default function ComidaLocalApplicationClient() {
                         : "Optional and separate from “Find me today.” Leave it blank if your schedule changes constantly."}
                     </p>
                   </div>
-                  <FieldBlock fieldKey="serviceOptions">
+                  <FieldBlock fieldKey="serviceOptions" es={es}>
                     <div className="flex flex-wrap gap-2">
                       {COMIDA_LOCAL_SERVICE_OPTIONS.map((o) => (
                         <button
@@ -904,12 +920,12 @@ export default function ComidaLocalApplicationClient() {
                     </div>
                   </FieldBlock>
                   {showServiceOptionOther ? (
-                    <FieldBlock fieldKey="serviceOptionOtherCustom">
+                    <FieldBlock fieldKey="serviceOptionOtherCustom" es={es}>
                       <input
                         className={INPUT}
                         value={draft.serviceOptionOtherCustom}
                         onChange={(e) => updateDraft({ serviceOptionOtherCustom: e.target.value })}
-                        placeholder={COMIDA_LOCAL_FIELD_COPY.serviceOptionOtherCustom.placeholder}
+                        placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.serviceOptionOtherCustom, es).placeholder}
                       />
                     </FieldBlock>
                   ) : null}
@@ -922,16 +938,16 @@ export default function ComidaLocalApplicationClient() {
                       }
                     />
                   ) : null}
-                  <FieldBlock fieldKey="businessAddressLine">
+                  <FieldBlock fieldKey="businessAddressLine" es={es}>
                     <input
                       className={INPUT}
                       value={draft.businessAddressLine}
                       onChange={(e) => updateDraft({ businessAddressLine: e.target.value })}
-                      placeholder={COMIDA_LOCAL_FIELD_COPY.businessAddressLine.placeholder}
+                      placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.businessAddressLine, es).placeholder}
                     />
                   </FieldBlock>
                   {draft.businessAddressLine.trim() ? (
-                    <FieldBlock fieldKey="showAddressPublicly">
+                    <FieldBlock fieldKey="showAddressPublicly" es={es}>
                       <button
                         type="button"
                         role="switch"
@@ -955,9 +971,10 @@ export default function ComidaLocalApplicationClient() {
 
             {activeSection === "extras" && (
               <section className={cx(CARD, "p-5 sm:p-6")} id="extras">
+                {/* "Extras" is intentionally identical in both languages — a real shared word, not an untranslated string. */}
                 <h2 className={SECTION_TITLE}>Extras</h2>
                 <div className="mt-5 space-y-5">
-                  <FieldBlock fieldKey="paymentMethods">
+                  <FieldBlock fieldKey="paymentMethods" es={es}>
                     <div className="flex flex-wrap gap-2">
                       {COMIDA_LOCAL_PAYMENT_OPTIONS.map((o) => (
                         <button
@@ -975,22 +992,22 @@ export default function ComidaLocalApplicationClient() {
                             })
                           }
                         >
-                          {o.label}
+                          {es ? o.labelEs : o.labelEn}
                         </button>
                       ))}
                     </div>
                   </FieldBlock>
                   {showPaymentOther ? (
-                    <FieldBlock fieldKey="paymentOtherNote">
+                    <FieldBlock fieldKey="paymentOtherNote" es={es}>
                       <input
                         className={INPUT}
                         value={draft.paymentOtherNote}
                         onChange={(e) => updateDraft({ paymentOtherNote: e.target.value })}
-                        placeholder={COMIDA_LOCAL_FIELD_COPY.paymentOtherNote.placeholder}
+                        placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.paymentOtherNote, es).placeholder}
                       />
                     </FieldBlock>
                   ) : null}
-                  <FieldBlock fieldKey="priceLevel">
+                  <FieldBlock fieldKey="priceLevel" es={es}>
                     <div className="flex flex-wrap gap-2">
                       {COMIDA_LOCAL_PRICE_LEVEL_OPTIONS.map((o) => (
                         <button
@@ -1011,11 +1028,11 @@ export default function ComidaLocalApplicationClient() {
                       ))}
                     </div>
                   </FieldBlock>
-                  <FieldBlock fieldKey="languages">
+                  <FieldBlock fieldKey="languages" es={es}>
                     <LanguagesInput
                       options={COMIDA_LOCAL_LANGUAGE_OPTIONS.map((o) => ({
                         key: o.value,
-                        label: o.label,
+                        label: es ? o.labelEs : o.labelEn,
                       }))}
                       selectedKeys={draft.languages}
                       onToggle={(key) =>
@@ -1049,7 +1066,7 @@ export default function ComidaLocalApplicationClient() {
                       }}
                     />
                   </FieldBlock>
-                  <FieldBlock fieldKey="highlights">
+                  <FieldBlock fieldKey="highlights" es={es}>
                     <div className="flex flex-wrap gap-2">
                       {COMIDA_LOCAL_HIGHLIGHT_OPTIONS.map((o) => (
                         <button
@@ -1073,12 +1090,12 @@ export default function ComidaLocalApplicationClient() {
                     </div>
                   </FieldBlock>
                   {showHighlightsOther ? (
-                    <FieldBlock fieldKey="highlightsOtherCustom">
+                    <FieldBlock fieldKey="highlightsOtherCustom" es={es}>
                       <input
                         className={INPUT}
                         value={draft.highlightsOtherCustom}
                         onChange={(e) => updateDraft({ highlightsOtherCustom: e.target.value })}
-                        placeholder={COMIDA_LOCAL_FIELD_COPY.highlightsOtherCustom.placeholder}
+                        placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.highlightsOtherCustom, es).placeholder}
                       />
                     </FieldBlock>
                   ) : null}
@@ -1088,28 +1105,30 @@ export default function ComidaLocalApplicationClient() {
 
             {activeSection === "fotos" && (
               <section className={cx(CARD, "p-5 sm:p-6")} id="fotos">
-                <h2 className={SECTION_TITLE}>Fotos</h2>
+                <h2 className={SECTION_TITLE}>{es ? "Fotos" : "Photos"}</h2>
                 <p className="mt-2 text-xs text-[#1E1814]/60">
-                  {COMIDA_LOCAL_SHELL_COPY.photosDeferredNote}
+                  {shellCopy.photosDeferredNote}
                 </p>
                 <div className="mt-5 space-y-6">
                   <ComidaLocalImageUploadField
                     role="main"
-                    label={COMIDA_LOCAL_FIELD_COPY.mainPhoto.label}
-                    helper={COMIDA_LOCAL_FIELD_COPY.mainPhoto.helper}
+                    label={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.mainPhoto, es).label}
+                    helper={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.mainPhoto, es).helper}
                     draftListingId={draft.draftListingId}
                     image={draft.mainPhoto}
                     onImageChange={(mainPhoto) => updateDraft({ mainPhoto })}
+                    es={es}
                   />
                   <ComidaLocalImageUploadField
                     role="logo"
-                    label={COMIDA_LOCAL_FIELD_COPY.logoImage.label}
-                    helper={COMIDA_LOCAL_FIELD_COPY.logoImage.helper}
+                    label={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.logoImage, es).label}
+                    helper={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.logoImage, es).helper}
                     optional
                     draftListingId={draft.draftListingId}
                     image={draft.logoImage}
                     minHeightClass="min-h-[100px]"
                     onImageChange={(logoImage) => updateDraft({ logoImage })}
+                    es={es}
                   />
                   <ComidaLocalGalleryUpload
                     draftListingId={draft.draftListingId}
@@ -1117,6 +1136,7 @@ export default function ComidaLocalApplicationClient() {
                     onChange={(galleryImages) =>
                       updateDraft({ galleryImages: galleryImages.slice(0, COMIDA_LOCAL_GALLERY_MAX) })
                     }
+                    es={es}
                   />
                 </div>
               </section>
@@ -1135,18 +1155,18 @@ export default function ComidaLocalApplicationClient() {
                     ? es
                       ? "Cambios guardados en tu anuncio."
                       : "Changes saved to your listing."
-                    : COMIDA_LOCAL_SHELL_COPY.publishSuccessTitle}
+                    : shellCopy.publishSuccessTitle}
                 </p>
                 <p className="mt-1 text-emerald-900/90">
                   {editListingId
                     ? es
                       ? "Se actualizó el mismo anuncio publicado — mismo ID Leonix, misma dirección pública."
                       : "The same published listing was updated — same Leonix ID, same public address."
-                    : COMIDA_LOCAL_SHELL_COPY.publishSuccessBody}
+                    : shellCopy.publishSuccessBody}
                 </p>
                 {publishSuccess.leonixAdId ? (
                   <p className="mt-2 text-xs text-emerald-800/90">
-                    ID Leonix:{" "}
+                    {es ? "ID Leonix" : "Leonix ID"}:{" "}
                     <span className="font-mono font-medium">{publishSuccess.leonixAdId}</span>
                   </p>
                 ) : null}
@@ -1155,13 +1175,13 @@ export default function ComidaLocalApplicationClient() {
                     href={comidaLocalHubHref}
                     className="inline-flex rounded-lg border border-emerald-700 px-4 py-2 text-sm font-semibold text-emerald-900 hover:bg-emerald-100"
                   >
-                    {COMIDA_LOCAL_SHELL_COPY.publishSuccessViewResults}
+                    {shellCopy.publishSuccessViewResults}
                   </Link>
                   <Link
                     href={publishSuccess.publicPath}
                     className="inline-flex rounded-lg border border-emerald-600/60 bg-white px-4 py-2 text-sm font-semibold text-emerald-900 hover:bg-emerald-50"
                   >
-                    {COMIDA_LOCAL_SHELL_COPY.publishSuccessViewListing}
+                    {shellCopy.publishSuccessViewListing}
                   </Link>
                 </div>
               </div>
@@ -1174,11 +1194,15 @@ export default function ComidaLocalApplicationClient() {
               )}
             >
               <div className="min-w-0">
-                <p className="text-sm font-medium text-[#1E1814]">Vista previa</p>
+                <p className="text-sm font-medium text-[#1E1814]">{es ? "Vista previa" : "Preview"}</p>
                 <p className="mt-1 text-sm text-[#1E1814]/68">
                   {previewReady
-                    ? "Revisa cómo se verá tu ficha antes de publicar."
-                    : "Completa los campos de la guía «Para vista previa» para abrir la vista previa."}
+                    ? es
+                      ? "Revisa cómo se verá tu ficha antes de publicar."
+                      : "Review how your listing will look before publishing."
+                    : es
+                      ? "Completa los campos de la guía «Para vista previa» para abrir la vista previa."
+                      : "Complete the fields in the “For preview” checklist to open the preview."}
                 </p>
                 {!previewReady && previewIssues.length > 0 ? (
                   <ul className="mt-2 space-y-0.5 text-xs text-[#7A1E2C]/90">
@@ -1194,16 +1218,16 @@ export default function ComidaLocalApplicationClient() {
                   onClick={markPublishFlowOpeningPreview}
                   className="inline-flex shrink-0 items-center justify-center rounded-lg border border-[#7A1E2C] bg-[#7A1E2C] px-5 py-2.5 text-sm font-semibold text-[#FFFCF7] hover:bg-[#6a1a26]"
                 >
-                  {COMIDA_LOCAL_SHELL_COPY.viewPreview}
+                  {shellCopy.viewPreview}
                 </Link>
               ) : (
                 <button
                   type="button"
                   disabled
                   className="cursor-not-allowed shrink-0 rounded-xl bg-[#7A1E2C]/40 px-5 py-2.5 text-sm font-semibold text-[#FFFCF7]"
-                  title={COMIDA_LOCAL_SHELL_COPY.previewSoon}
+                  title={shellCopy.previewSoon}
                 >
-                  {COMIDA_LOCAL_SHELL_COPY.viewPreview}
+                  {shellCopy.viewPreview}
                 </button>
               )}
             </div>

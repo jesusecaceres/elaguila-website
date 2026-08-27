@@ -2959,7 +2959,7 @@ export function ClasificadosServiciosApplication() {
                 {(state.coupons ?? []).map((coupon, i) => (
                   <div key={i} className="rounded-xl border border-[color:var(--lx-nav-border)] bg-white p-4">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-semibold">Cupón {i + 1}</span>
+                      <span className="text-sm font-semibold">{lang === "en" ? `Coupon ${i + 1}` : `Cupón ${i + 1}`}</span>
                       <button type="button" className="text-sm text-red-700 underline" onClick={() => {
                         setState((s) => ({
                           ...s,
@@ -2968,7 +2968,7 @@ export function ClasificadosServiciosApplication() {
                             : [createEmptyCouponRow()],
                         }));
                       }}>
-                        Quitar
+                        {lang === "en" ? "Remove" : "Quitar"}
                       </button>
                     </div>
                     <div className="mt-3 grid gap-3">
@@ -3172,14 +3172,14 @@ export function ClasificadosServiciosApplication() {
                     }
                     className="rounded-full border border-dashed border-[color:var(--lx-gold-border)] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
                   >
-                    + Añadir cupón
+                    {lang === "en" ? "+ Add coupon" : "+ Añadir cupón"}
                   </button>
                 ) : null}
               </div>
 
           <div className="mt-6 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4">
             <label className="block text-xs font-semibold text-[#6b5c42]">
-              {lang === "en" ? "Flyer de cupones o promociones" : "Flyer de cupones o promociones"}
+              {lang === "en" ? "Coupon or promotions flyer" : "Flyer de cupones o promociones"}
             </label>
             <p className="mt-1 text-xs text-[#5D4A25]/80">
               {lang === "en" ? "Upload or paste an image with more promotions. It will appear below the main coupons." : "Sube o pega una imagen con más promociones. Se mostrará debajo de los cupones principales."}
@@ -3246,7 +3246,7 @@ export function ClasificadosServiciosApplication() {
 
           <div className="mt-4 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4">
             <label className="block text-xs font-semibold text-[#6b5c42]">
-              {lang === "en" ? "Enlace para ver más ofertas" : "Enlace para ver más ofertas"}
+              {lang === "en" ? "Link to see more offers" : "Enlace para ver más ofertas"}
             </label>
             <p className="mt-1 text-xs text-[#5D4A25]/80">
               {lang === "en" ? "External URL where customers can see more coupons or promotions." : "URL externa donde los clientes pueden ver más cupones o promociones."}
@@ -3260,11 +3260,11 @@ export function ClasificadosServiciosApplication() {
                   couponMoreOffers: { ...(s.couponMoreOffers || { url: "", buttonLabel: "" }), url: e.target.value },
                 }))
               }
-              placeholder="https://ejemplo.com/mas-cupones"
+              placeholder={lang === "en" ? "https://example.com/more-coupons" : "https://ejemplo.com/mas-cupones"}
             />
             <div className="mt-3">
               <label className="block text-xs font-semibold text-[#6b5c42]">
-                {lang === "en" ? "Texto del botón" : "Texto del botón"}
+                {lang === "en" ? "Button text" : "Texto del botón"}
               </label>
               <p className="mt-1 text-xs text-[#5D4A25]/80">
                 {lang === "en" ? "Custom button text (default: See more coupons)." : "Texto personalizado para el botón (por defecto: Ver más cupones)."}
@@ -3278,7 +3278,7 @@ export function ClasificadosServiciosApplication() {
                     couponMoreOffers: { ...(s.couponMoreOffers || { url: "", buttonLabel: "" }), buttonLabel: e.target.value },
                   }))
                 }
-                placeholder="Ej. Ver menú con especiales"
+                placeholder={lang === "en" ? "e.g. See menu with specials" : "Ej. Ver menú con especiales"}
               />
             </div>
           </div>

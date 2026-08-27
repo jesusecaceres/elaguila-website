@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { normalizeLang } from "@/app/lib/language";
 import { ComidaLocalDetailShell } from "../components/ComidaLocalDetailShell";
 import {
   CL_BTN_PRIMARY,
@@ -42,6 +43,8 @@ const PUBLISH_FORM_HREF = "/publicar/comida-local";
 
 export function ComidaLocalPreviewClient() {
   const searchParams = useSearchParams();
+  const routeLang = normalizeLang(searchParams?.get("lang"));
+  const es = routeLang !== "en";
   const [draft, setDraft] = useState<ComidaLocalDraft | null>(null);
   const [ready, setReady] = useState(false);
 
@@ -74,13 +77,13 @@ export function ComidaLocalPreviewClient() {
 
   const previewMode = resolvePreviewMode({ listingBound: Boolean(editListingId), hasUnsavedEditDraft: Boolean(editListingId) });
   const backToEditHref = editListingId
-    ? `${PUBLISH_FORM_HREF}?edit=1&listingId=${encodeURIComponent(editListingId)}`
-    : PUBLISH_FORM_HREF;
+    ? `${PUBLISH_FORM_HREF}?edit=1&listingId=${encodeURIComponent(editListingId)}&lang=${routeLang}`
+    : `${PUBLISH_FORM_HREF}?lang=${routeLang}`;
 
   const vm = useMemo(() => {
     if (!draft) return null;
-    return mapComidaLocalDraftToPreviewVm(draft);
-  }, [draft]);
+    return mapComidaLocalDraftToPreviewVm(draft, es ? "es" : "en");
+  }, [draft, es]);
 
   const hasContent = draft ? comidaLocalDraftHasPreviewContent(draft) : false;
 
@@ -113,8 +116,8 @@ export function ComidaLocalPreviewClient() {
   }, []);
 
   const publishIssues = useMemo(
-    () => (draft ? validateComidaLocalDraftForFuturePublish(draft) : []),
-    [draft],
+    () => (draft ? validateComidaLocalDraftForFuturePublish(draft, es) : []),
+    [draft, es],
   );
   const publishReady = publishIssues.every((i) => i.severity !== "error");
 
@@ -131,7 +134,7 @@ export function ComidaLocalPreviewClient() {
         const accessToken = sess.session?.access_token ?? null;
         const customerEmail = sess.session?.user?.email ?? null;
         if (!accessToken) {
-          setCheckoutError("Inicia sesión para continuar al pago.");
+          setCheckoutError(es ? "Inicia sesión para continuar al pago." : "Sign in to continue to payment.");
           setCheckoutBusy(false);
           return;
         }
@@ -142,20 +145,26 @@ export function ComidaLocalPreviewClient() {
         const captureEmail = newsletterEmail.trim() || customerEmail;
         const capturePromise = captureCheckoutNewsletterSubscriber({
           email: captureEmail,
-          lang: "es",
-          preferredLanguage: "es",
+          lang: es ? "es" : "en",
+          preferredLanguage: es ? "es" : "en",
           source: CHECKOUT_NEWSLETTER_SOURCES.comidaLocal,
           interests: ["package:comida_local_base_monthly"],
           checked: ctx.newsletterOptIn,
         });
 
-        const pending = await saveComidaLocalPendingBeforeCheckout({ draft, lang: "es", accessToken });
+        const pending = await saveComidaLocalPendingBeforeCheckout({
+          draft,
+          lang: es ? "es" : "en",
+          accessToken,
+        });
 
         const captureResult = await capturePromise;
         if (captureResult.status === "FAILED") {
           console.warn("[comida-local] newsletter checkout capture failed", captureResult.reason);
           setNewsletterCaptureNote(
-            "No pudimos guardar tu suscripción al boletín. Tu pago no se vio afectado.",
+            es
+              ? "No pudimos guardar tu suscripción al boletín. Tu pago no se vio afectado."
+              : "We couldn't save your newsletter subscription. Your payment wasn't affected.",
           );
         }
 
@@ -169,7 +178,7 @@ export function ComidaLocalPreviewClient() {
           ...COMIDA_LOCAL_BASE_CHECKOUT,
           listingId: pending.listingId,
           leonixAdId: pending.leonixAdId,
-          locale: "es",
+          locale: es ? "es" : "en",
           customerEmail,
         });
 
@@ -181,18 +190,22 @@ export function ComidaLocalPreviewClient() {
 
         redirectToRevenueCategoryCheckout(checkout.checkoutUrl);
       } catch {
-        setCheckoutError("No pudimos iniciar el pago seguro. Intenta de nuevo o contacta a Leonix.");
+        setCheckoutError(
+          es
+            ? "No pudimos iniciar el pago seguro. Intenta de nuevo o contacta a Leonix."
+            : "We couldn't start secure payment. Try again or contact Leonix.",
+        );
         setCheckoutBusy(false);
       }
     },
-    [draft, newsletterEmail],
+    [draft, newsletterEmail, es],
   );
 
   const checkoutConfig: PublishCheckpointConfig | null = draft
     ? {
         category: COMIDA_LOCAL_BASE_CHECKOUT.category,
         packageKey: COMIDA_LOCAL_BASE_CHECKOUT.packageKey,
-        lang: "es",
+        lang: es ? "es" : "en",
         mode: "checkout",
         confirmations: COMIDA_LOCAL_CHECKPOINT_CONFIRMATIONS,
       }
@@ -201,7 +214,7 @@ export function ComidaLocalPreviewClient() {
   if (!ready) {
     return (
       <div className={`${CL_PAGE} px-4 py-16 text-center text-sm text-[#1E1814]/60`}>
-        Cargando vista previa…
+        {es ? "Cargando vista previa…" : "Loading preview…"}
       </div>
     );
   }
@@ -210,13 +223,16 @@ export function ComidaLocalPreviewClient() {
     return (
       <div className={`${CL_PAGE} px-4 py-16`}>
         <div className={`${CL_PANEL} mx-auto max-w-lg p-8 text-center`}>
-          <h1 className="text-xl font-bold text-[#1E1814]">Sin borrador de Comida Local</h1>
+          <h1 className="text-xl font-bold text-[#1E1814]">
+            {es ? "Sin borrador de Comida Local" : "No Local Food draft"}
+          </h1>
           <p className="mt-3 text-sm leading-relaxed text-[#1E1814]/70">
-            Aún no hay datos guardados en este navegador. Completa el formulario y vuelve a abrir la
-            vista previa.
+            {es
+              ? "Aún no hay datos guardados en este navegador. Completa el formulario y vuelve a abrir la vista previa."
+              : "There's no data saved in this browser yet. Fill out the form and open the preview again."}
           </p>
           <Link href={backToEditHref} className={`${CL_BTN_PRIMARY} mt-6`}>
-            Ir al formulario
+            {es ? "Ir al formulario" : "Go to the form"}
           </Link>
         </div>
       </div>
@@ -229,21 +245,37 @@ export function ComidaLocalPreviewClient() {
         <div className={`${CL_CONTAINER_NARROW} flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between`}>
           <div>
             <p className={CL_EYEBROW}>
-              {previewMode === "edit-draft" ? "Vista previa · Edición" : "Vista previa · no publicada"}
+              {previewMode === "edit-draft"
+                ? es
+                  ? "Vista previa · Edición"
+                  : "Preview · Editing"
+                : es
+                  ? "Vista previa · no publicada"
+                  : "Preview · not published"}
             </p>
             <p className="mt-1 text-sm text-[#1E1814]/72">
               {previewMode === "edit-draft"
-                ? "Así se verán tus cambios. Regresa al formulario y guarda para actualizar el mismo anuncio publicado."
-                : "Así se verá tu ficha. Solo tú ves esta página — no tiene ID Leonix ni aparece en resultados."}
+                ? es
+                  ? "Así se verán tus cambios. Regresa al formulario y guarda para actualizar el mismo anuncio publicado."
+                  : "This is how your changes will look. Go back to the form and save to update the same published listing."
+                : es
+                  ? "Así se verá tu ficha. Solo tú ves esta página — no tiene ID Leonix ni aparece en resultados."
+                  : "This is how your listing will look. Only you can see this page — it has no Leonix ID and doesn't appear in results."}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link href={backToEditHref} className={CL_BTN_SECONDARY}>
-              {previewMode === "edit-draft" ? "Volver a editar" : "Editar formulario"}
+              {previewMode === "edit-draft"
+                ? es
+                  ? "Volver a editar"
+                  : "Back to edit"
+                : es
+                  ? "Editar formulario"
+                  : "Edit form"}
             </Link>
             {previewMode === "edit-draft" ? (
               <Link href={backToEditHref} className={CL_BTN_PRIMARY}>
-                Guardar desde formulario
+                {es ? "Guardar desde formulario" : "Save from the form"}
               </Link>
             ) : null}
           </div>
@@ -253,7 +285,7 @@ export function ComidaLocalPreviewClient() {
       <div className={`${CL_CONTAINER_NARROW} py-6 sm:py-8`}>
         {!vm.previewReady ? (
           <div className="mb-5 rounded-lg border border-[#D4C4A8]/70 bg-[#FDF8F0] px-4 py-3 text-xs text-[#7A1E2C]">
-            <p className="font-semibold">Vista previa parcial</p>
+            <p className="font-semibold">{es ? "Vista previa parcial" : "Partial preview"}</p>
             <ul className="mt-1 list-inside list-disc space-y-0.5">
               {vm.previewIssues.map((issue) => (
                 <li key={`${issue.field}-${issue.message}`}>{issue.message}</li>
@@ -261,20 +293,22 @@ export function ComidaLocalPreviewClient() {
             </ul>
           </div>
         ) : null}
-        <ComidaLocalDetailShell vm={vm} />
+        <ComidaLocalDetailShell vm={vm} lang={es ? "es" : "en"} />
 
         {previewMode === "new-publish" && checkoutConfig ? (
           <div className="mt-6">
             <PublishCheckoutCheckpoint
               config={checkoutConfig}
-              lang="es"
+              lang={es ? "es" : "en"}
               busy={checkoutBusy}
               errorMessage={checkoutError}
               draftReady={publishReady}
               draftReadyMessage={
                 publishReady
                   ? null
-                  : "Completa los campos de «Lista para publicar» en el formulario para habilitar el pago."
+                  : es
+                    ? "Completa los campos de «Lista para publicar» en el formulario para habilitar el pago."
+                    : "Complete the fields in the “Ready to publish” checklist in the form to enable payment."
               }
               onCheckout={(ctx) => void onCheckout(ctx)}
               newsletterEmail={newsletterEmail}

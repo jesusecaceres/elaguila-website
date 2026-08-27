@@ -123,7 +123,7 @@ export function ComidaLocalResultsFilters({ options, initial }: Props) {
             <option value="">Todos</option>
             {COMIDA_LOCAL_FOOD_TYPE_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
-                {o.label}
+                {o.labelEs}
               </option>
             ))}
           </select>

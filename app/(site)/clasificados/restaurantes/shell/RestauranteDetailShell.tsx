@@ -305,7 +305,9 @@ export function RestauranteDetailShell({
           ? data.stackSections!.map((stack) => (
               <section key={stack.id} className="px-6 sm:px-8 lg:px-12 scroll-mt-24" aria-labelledby={`stack-${stack.id}`}>
                 <div className="mb-8">
-                  <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-[color:var(--lx-muted)]">Servicios especiales</p>
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-[color:var(--lx-muted)]">
+                    {lang === "en" ? "Special services" : "Servicios especiales"}
+                  </p>
                   <h2 id={`stack-${stack.id}`} className="mt-2 text-2xl font-bold tracking-tight text-[color:var(--lx-text)] sm:text-3xl">
                     {stack.title}
                   </h2>
@@ -313,13 +315,14 @@ export function RestauranteDetailShell({
                 <div className={`${CARD} px-6 py-6 sm:px-8`}>
                   <dl className="space-y-4 text-sm">
                     {stack.rows.map((row) => {
-                      // Check if this field should be clickable
-                      const isClickableField = 
-                        row.label.includes('Ubicación actual') ||
-                        row.label.includes('Enlace') ||
-                        row.label.includes('Ruta semanal') ||
-                        row.label.includes('Solicitud') ||
-                        row.label.includes('cotización');
+                      // Check if this field should be clickable. Match on the stable,
+                      // language-independent `key`, never on `label` — `label` is translated per
+                      // viewer locale and must never be used as an identity check.
+                      const isClickableField =
+                        row.key === "currentLocation" ||
+                        row.key === "link" ||
+                        row.key === "weeklyRoute" ||
+                        row.key === "cateringInquiry";
                       
                       const actionableUrl = isClickableField ? normalizeActionableUrl(row.value) : null;
                       

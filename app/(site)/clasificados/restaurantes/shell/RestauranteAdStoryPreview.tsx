@@ -161,18 +161,17 @@ export function RestauranteAdStoryPreview({
     return rows.find((r) => r.dayLabel === label) ?? null;
   }, [data.hoursDetail]);
 
-  const renderStackValue = (row: { label: string; value: string }) => {
-    if (row.label === "Enlace" && data.contactHub?.findUs.some((b) => b.id === "current-location")) {
+  const renderStackValue = (row: { key?: string; label: string; value: string }) => {
+    if (row.key === "link" && data.contactHub?.findUs.some((b) => b.id === "current-location")) {
       return (
         <span className="break-words text-[color:var(--lx-text-2)]">
           {lang === "en" ? "Use “See where we are today” in contact." : "Usa «Ver dónde está hoy» en contacto."}
         </span>
       );
     }
-    const isClickableField =
-      row.label.includes("Ruta semanal") ||
-      row.label.includes("Solicitud") ||
-      row.label.includes("cotización");
+    // Match on the stable, language-independent `key`, never on `label` — `label` is translated
+    // per viewer locale and must never be used as an identity check.
+    const isClickableField = row.key === "weeklyRoute" || row.key === "cateringInquiry";
     const actionableUrl = isClickableField ? normalizeActionableUrl(row.value) : null;
     if (actionableUrl) {
       const trackStackCta = () => {

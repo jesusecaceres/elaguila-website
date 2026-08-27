@@ -17,9 +17,10 @@ type Props = {
   /** When absent (preview), no analytics are recorded. */
   analyticsContext?: ComidaLocalAnalyticsContext | null;
   businessName?: string;
+  lang?: "es" | "en";
 };
 
-export function ComidaLocalContactActions({ actions, analyticsContext, businessName }: Props) {
+export function ComidaLocalContactActions({ actions, analyticsContext, businessName, lang = "es" }: Props) {
   const [emailIntent, setEmailIntent] = useState<CtaSheetIntent | null>(null);
   if (actions.length === 0) return null;
 
@@ -81,7 +82,7 @@ export function ComidaLocalContactActions({ actions, analyticsContext, businessN
           );
         })}
       </div>
-      <CtaActionSheet open={emailIntent != null} onClose={() => setEmailIntent(null)} intent={emailIntent} lang="es" />
+      <CtaActionSheet open={emailIntent != null} onClose={() => setEmailIntent(null)} intent={emailIntent} lang={lang} />
     </>
   );
 }

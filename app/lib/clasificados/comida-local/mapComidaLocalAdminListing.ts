@@ -14,7 +14,7 @@ function foodTypeLabelForAdminRow(row: ComidaLocalAdminListingRow): string {
     return custom || "Otro";
   }
   const opt = COMIDA_LOCAL_FOOD_TYPE_OPTIONS.find((o) => o.value === ft);
-  return (opt?.label ?? ft) || "Comida local";
+  return (opt?.labelEs ?? ft) || "Comida local";
 }
 
 function statusLabel(status: string, lang: "es" | "en"): string {
