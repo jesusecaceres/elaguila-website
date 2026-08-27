@@ -19,6 +19,7 @@ import {
 } from "react-icons/bi";
 import { FiExternalLink, FiMapPin, FiVideo } from "react-icons/fi";
 import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndividualResidencialFormState";
+import { LeonixOpenHouseSlotCards } from "@/app/clasificados/lib/LeonixOpenHouseSlotCards";
 import type { QuickFactKey } from "../lib/agenteResidencialPreviewFormat";
 import {
   buildBrokerSupportBlock,
@@ -26,7 +27,7 @@ import {
   buildGalleryModel,
   buildLocationLine,
   buildMapQuery,
-  buildOpenHouseSlotSummaries,
+  buildOpenHouseSlotRows,
   buildPropertyDetailRows,
   buildQuickFacts,
   externalVideoUrls,
@@ -180,7 +181,7 @@ export function AgenteIndividualResidencialPreviewPage({
   const locationLine = buildLocationLine(data);
   const mapQuery = buildMapQuery(data);
   const mapsUrl = mapQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}` : null;
-  const openHouseSummaries = buildOpenHouseSlotSummaries(data, locale);
+  const openHouseSlotRows = buildOpenHouseSlotRows(data, locale);
   const brokerSupportBlock = buildBrokerSupportBlock(data);
   const opLine = formatTipoPublicacionFijoLine(data, locale);
 
@@ -671,25 +672,17 @@ export function AgenteIndividualResidencialPreviewPage({
                   Más información
                 </h2>
                 <div className="grid gap-3 lg:grid-cols-2 lg:gap-4">
-                  {openHouseSummaries.length > 0 ? (
+                  {openHouseSlotRows.length > 0 ? (
                     <div className="rounded-xl border lg:col-span-2" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
                       <div className={CARD_PAD}>
-                        <h4 className={`${typo.kicker} mb-2`} style={{ color: MUTED }}>
-                          {p.openHouse}
-                        </h4>
-                        <div
-                          className={`grid gap-2 ${openHouseSummaries.length > 1 ? "sm:grid-cols-2" : ""}`}
-                        >
-                          {openHouseSummaries.map((summary, i) => (
-                            <div
-                              key={i}
-                              className="rounded-lg border px-3 py-2.5"
-                              style={{ borderColor: BORDER, background: "rgba(255,252,247,0.65)" }}
-                            >
-                              <p className={`${typo.body} whitespace-pre-line`}>{summary}</p>
-                            </div>
-                          ))}
-                        </div>
+                        <LeonixOpenHouseSlotCards
+                          title={p.openHouse}
+                          slots={openHouseSlotRows}
+                          borderColor={BORDER}
+                          cardBackground="rgba(255,252,247,0.65)"
+                          labelColor={MUTED}
+                          valueColor={CHARCOAL}
+                        />
                       </div>
                     </div>
                   ) : null}

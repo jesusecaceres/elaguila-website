@@ -42,6 +42,7 @@ import { rentasRentalFlowGroupForTipo } from "../app/(site)/clasificados/rentas/
 import { mergeParentHubWithChildProperty } from "../app/(site)/clasificados/publicar/bienes-raices/negocio/application/brNegocioChildInventoryFormMapping";
 import { createEmptyBrNegocioAdditionalInventoryPropertyDraft } from "../app/(site)/clasificados/publicar/bienes-raices/negocio/application/brNegocioAdditionalInventoryDraft";
 import { mapAdditionalDraftToInventoryCard } from "../app/(site)/clasificados/publicar/bienes-raices/negocio/application/brNegocioInventoryCardModel";
+import { buildOpenHouseSlotRows } from "../app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/lib/agenteResidencialPreviewFormat";
 
 function agente(overrides: Partial<AgenteIndividualResidencialFormState>): AgenteIndividualResidencialFormState {
   return mergePartialAgenteIndividualResidencial({
@@ -266,6 +267,30 @@ function agente(overrides: Partial<AgenteIndividualResidencialFormState>): Agent
   assert.ok(!card.priceDisplay.includes("pendiente"), "FINAL-34: must not fall back to the pending-price placeholder when real data exists");
 
   console.log("Item 34 (BR Inventory child card — reads propertyForm when flat fields are blank) OK");
+}
+
+/* ------------------------------------------------------------------------------------------ *
+ * FINAL-05 — BR Negocio Open House: structured per-slot rows instead of one joined text blob.
+ * ------------------------------------------------------------------------------------------ */
+{
+  const s = agente({
+    openHouseSlots: [
+      { fecha: "2026-09-05", fechaFin: "", inicio: "10:00 AM", fin: "1:00 PM", diasHorariosAdicionales: "", notas: "Solo con cita" },
+      { fecha: "2026-09-06", fechaFin: "", inicio: "2:00 PM", fin: "4:00 PM", diasHorariosAdicionales: "", notas: "" },
+    ],
+  });
+  const rows = buildOpenHouseSlotRows(s, "es");
+  assert.equal(rows.length, 2, "FINAL-05: one row-set per open house slot");
+  assert.ok(rows[0].some((r) => r.label === "Fecha" && r.value.length > 0), "FINAL-05: slot 1 has a structured Fecha row");
+  assert.ok(rows[0].some((r) => r.label === "Horario" && r.value === "10:00 AM – 1:00 PM"), "FINAL-05: slot 1 has a structured Horario row");
+  assert.ok(rows[0].some((r) => r.label === "Notas" && r.value === "Solo con cita"), "FINAL-05: slot 1 has a structured Notas row");
+  assert.ok(!rows[1].some((r) => r.label === "Notas"), "FINAL-05: slot 2 has no Notas row (sparse, no joined blob padding)");
+  assert.ok(
+    rows.every((slotRows) => slotRows.every((r) => !r.value.includes("\n"))),
+    "FINAL-05: rows are structured facts, never a single joined multi-line blob",
+  );
+
+  console.log("Item 5 (BR Negocio Open House — structured per-slot rows, not a text blob) OK");
 }
 
 /* ------------------------------------------------------------------------------------------ *

@@ -218,7 +218,8 @@ export function BrAgenteResContactSidebar({
   // "B — surgical shared-primitive adoption": the review-link BUTTON visuals swap to the shared
   // Level-A component (behavior-equivalent to Servicios' own swap), analytics stay on the
   // existing brGlobalAnalytics dispatch this sidebar already uses.
-  const openReview = (url: string, fn: (ctx: BrGlobalAnalyticsContext) => void) => {
+  const openReview = (url: string | null | undefined, fn: (ctx: BrGlobalAnalyticsContext) => void) => {
+    if (!url) return;
     track(fn);
     window.open(url, "_blank", "noopener,noreferrer");
   };

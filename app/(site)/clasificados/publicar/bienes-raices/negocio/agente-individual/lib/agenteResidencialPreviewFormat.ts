@@ -1007,6 +1007,35 @@ export function buildOpenHouseSlotSummaries(
   return out;
 }
 
+/**
+ * Item 05 (Final Completion) — same per-slot data as buildOpenHouseSlotSummaries, but as
+ * structured label:value rows instead of one joined \n-separated text blob per slot, so the
+ * preview can render each fact on its own line (matching BR Privado's existing HOA/open-house
+ * row pattern) instead of a single <p whitespace-pre-line> paragraph.
+ */
+export function buildOpenHouseSlotRows(
+  s: AgenteIndividualResidencialFormState,
+  locale: AgenteResPreviewLocale = "es",
+): Array<{ label: string; value: string }[]> {
+  const slots = normalizeOpenHouseSlots(s);
+  const labDate = locale === "en" ? "Date" : "Fecha";
+  const labHours = locale === "en" ? "Hours" : "Horario";
+  const labExtra = locale === "en" ? "Additional days/hours" : "Días/horarios adicionales";
+  const labNotes = locale === "en" ? "Notes" : "Notas";
+  const out: Array<{ label: string; value: string }[]> = [];
+  for (const slot of slots) {
+    const rows: { label: string; value: string }[] = [];
+    const range = formatOpenHouseDateRange(slot.fecha, slot.fechaFin ?? "", locale);
+    if (range) rows.push({ label: labDate, value: range });
+    const r = [trim(slot.inicio), trim(slot.fin)].filter(Boolean);
+    if (r.length) rows.push({ label: labHours, value: r.join(" – ") });
+    if (trim(slot.diasHorariosAdicionales)) rows.push({ label: labExtra, value: trim(slot.diasHorariosAdicionales) });
+    if (trim(slot.notas)) rows.push({ label: labNotes, value: trim(slot.notas) });
+    if (rows.length) out.push(rows);
+  }
+  return out;
+}
+
 /** Compat: primer bloque o varios unidos (p. ej. metadatos). */
 export function buildOpenHouseSummary(
   s: AgenteIndividualResidencialFormState,
