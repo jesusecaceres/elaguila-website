@@ -321,6 +321,15 @@ export type RestauranteContactCta = {
   /** Maps or “Ver ubicación” handoff when not using auto-generated search */
   verUbicacionUrl?: string;
   allowMessageCTA?: boolean;
+  /** Repeatable extra links (menú, reservas, pedidos, catering, eventos, etc.) beyond the single
+   * primary websiteUrl — Gate C7. Lives in listing_json like the other optional stacks; no
+   * migration needed. */
+  additionalWebsites?: RestauranteAdditionalWebsite[];
+};
+
+export type RestauranteAdditionalWebsite = {
+  label: string;
+  url: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -381,7 +390,7 @@ export type RestaurantePricingState = {
   productType?: RestauranteProductType;
   /** Base monthly price (399 for established, 199 for mobile) */
   baseMonthlyPrice?: number;
-  /** Coupon add-on enabled (+$99/month) */
+  /** Coupon/offers module enabled — included free with the base package, not a paid add-on. */
   couponUpgradeEnabled?: boolean;
   /** Coupon add-on monthly price */
   couponMonthlyPrice?: number;

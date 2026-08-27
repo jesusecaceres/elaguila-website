@@ -10,8 +10,8 @@ import {
   TAXONOMY_KEY_OTHER_LANG,
 } from "@/app/clasificados/restaurantes/application/restauranteTaxonomy";
 
-/** Recommended max custom “Otro” language chips in Restaurante form. */
-export const RESTAURANTE_MAX_CUSTOM_LANGUAGES = 3;
+/** Max custom "Otro" language chips in Restaurante form — generous bound, not the old arbitrary 3-language cap. */
+export const RESTAURANTE_MAX_CUSTOM_LANGUAGES = 8;
 
 /** US state abbreviations for Restaurante establishment address (default CA). */
 export const RESTAURANTE_US_STATE_OPTIONS = [

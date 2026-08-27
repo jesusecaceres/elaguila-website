@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/application/restauranteDraftTypes";
-import type { RestauranteCoupon, RestauranteDaySchedule, RestauranteFeaturedDish, RestauranteServiceMode } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
+import type { RestauranteAdditionalWebsite, RestauranteCoupon, RestauranteDaySchedule, RestauranteFeaturedDish, RestauranteServiceMode } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import {
   RESTAURANTE_CONTACT_PLACEHOLDERS,
   RESTAURANTE_CUISINES,
@@ -22,6 +22,8 @@ import { saveRestauranteDraftToStorageResolved } from "@/app/clasificados/restau
 import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
 import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { PhoneInput } from "@/app/components/forms/PhoneInput";
+import { LanguagesInput } from "@/app/components/forms/LanguagesInput";
+import { HoursEditor } from "@/app/components/forms/HoursEditor";
 import {
   satisfiesRestauranteMinimumDraftForPreview,
   satisfiesRestauranteServiceModes,
@@ -103,7 +105,7 @@ const OTHER_INPUT =
   "mt-1.5 w-full max-w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm text-[color:var(--lx-text)]";
 
 /** UI cap for additional cuisine tags (stored arrays may be longer from older sessions; user can only add up to this). */
-const MAX_ADDITIONAL_CUISINES = 3;
+const MAX_ADDITIONAL_CUISINES = 6;
 
 const DAY_ROW_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
 
@@ -512,6 +514,32 @@ export default function RestauranteApplicationClient() {
       setLanguageOtherPending("");
     },
     [draft, setDraftPatch]
+  );
+
+  /** Gate C7 — repeatable additional website links (menú, reservas, pedidos, catering, eventos, etc.). */
+  const addAdditionalWebsite = useCallback(() => {
+    const cur = draft.additionalWebsites ?? [];
+    if (cur.length >= 8) return;
+    setDraftPatch({ additionalWebsites: [...cur, { label: "", url: "" }] });
+  }, [draft.additionalWebsites, setDraftPatch]);
+
+  const updateAdditionalWebsiteAt = useCallback(
+    (index: number, patch: Partial<RestauranteAdditionalWebsite>) => {
+      const cur = draft.additionalWebsites ?? [];
+      setDraftPatch({
+        additionalWebsites: cur.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+      });
+    },
+    [draft.additionalWebsites, setDraftPatch]
+  );
+
+  const removeAdditionalWebsiteAt = useCallback(
+    (index: number) => {
+      const cur = draft.additionalWebsites ?? [];
+      const next = cur.filter((_, i) => i !== index);
+      setDraftPatch({ additionalWebsites: next.length ? next : undefined });
+    },
+    [draft.additionalWebsites, setDraftPatch]
   );
 
   const toggleAdditionalCuisine = useCallback(
@@ -1112,72 +1140,30 @@ export default function RestauranteApplicationClient() {
             <div>
               <FieldLabel optional lang={lang}>{fc.sectionA.languagesLabel}</FieldLabel>
               <HelperText>{fc.sectionA.languagesHelper}</HelperText>
-              <div className="mt-3 flex flex-wrap gap-2 rounded-xl border border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/40 p-3">
-                {RESTAURANTE_LANGUAGES.map((o) => (
-                  <label key={o.key} className="inline-flex items-center gap-1.5 text-sm">
-                    <input
-                      type="checkbox"
-                      className="shrink-0"
-                      checked={(draft.languagesSpoken ?? []).includes(o.key)}
-                      onChange={() => toggleLanguage(o.key)}
-                    />
-                    <TaxonomyChipLeading chipEmoji={o.chipEmoji} />
-                    <span className="min-w-0">{labelForLanguage(o.key, lang)}</span>
-                  </label>
-                ))}
-              </div>
-              {(draft.languagesSpoken ?? []).includes(TAXONOMY_KEY_OTHER_LANG) ? (
-                <div className="mt-3 max-w-md space-y-3">
-                  {customLanguages.length ? (
-                    <div className="flex flex-wrap gap-2">
-                      {customLanguages.map((lang, index) => (
-                        <span
-                          key={`${lang}-${index}`}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--lx-nav-border)] bg-white px-3 py-1 text-sm font-medium text-[color:var(--lx-text)]"
-                        >
-                          {lang}
-                          <button
-                            type="button"
-                            className="ml-0.5 rounded-full px-1 text-[color:var(--lx-muted)] hover:text-[color:var(--lx-text)]"
-                            aria-label={`${fc.common.removeLanguageAria} ${lang}`}
-                            onClick={() => removeCustomLanguageAt(index)}
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-                  {customLanguages.length < RESTAURANTE_MAX_CUSTOM_LANGUAGES ? (
-                    <>
-                      <FieldLabel optional lang={lang}>{fc.sectionA.languageOtherLabel}</FieldLabel>
-                      <HelperText>{fc.sectionA.languageOtherHelper}</HelperText>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <input
-                          className={`${OTHER_INPUT} mt-0 flex-1 min-w-[10rem]`}
-                          maxLength={48}
-                          placeholder={fc.sectionA.languageOtherPlaceholder}
-                          value={languageOtherPending}
-                          onChange={(e) => setLanguageOtherPending(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              addCustomLanguage();
-                            }
-                          }}
-                        />
-                        <button
-                          type="button"
-                          className="shrink-0 rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
-                          onClick={addCustomLanguage}
-                        >
-                          {fc.common.add}
-                        </button>
-                      </div>
-                    </>
-                  ) : null}
-                </div>
-              ) : null}
+              <LanguagesInput
+                className="mt-3"
+                options={RESTAURANTE_LANGUAGES.map((o) => ({
+                  key: o.key,
+                  label: labelForLanguage(o.key, lang),
+                  emoji: o.chipEmoji,
+                }))}
+                selectedKeys={draft.languagesSpoken ?? []}
+                onToggle={toggleLanguage}
+                otherKey={TAXONOMY_KEY_OTHER_LANG}
+                customValues={customLanguages}
+                customValuesMax={RESTAURANTE_MAX_CUSTOM_LANGUAGES}
+                customInputValue={languageOtherPending}
+                onCustomInputChange={setLanguageOtherPending}
+                onAddCustom={addCustomLanguage}
+                onRemoveCustom={removeCustomLanguageAt}
+                labels={{
+                  otherLabel: fc.sectionA.languageOtherLabel,
+                  otherHelper: fc.sectionA.languageOtherHelper,
+                  otherPlaceholder: fc.sectionA.languageOtherPlaceholder,
+                  add: fc.common.add,
+                  removeAria: (value) => `${fc.common.removeLanguageAria} ${value}`,
+                }}
+              />
             </div>
           </div>
         </section>
@@ -1343,43 +1329,16 @@ export default function RestauranteApplicationClient() {
             <span className="font-semibold text-red-600">*</span> {fc.sectionC.requiredNote}
           </p>
           <HelperText>{fc.sectionC.helper}</HelperText>
-          <div className="mt-4 space-y-3">
-            {dayRows(lang).map(({ key, label }) => {
-              const s = draft[key] as RestauranteDaySchedule;
-              return (
-                <div
-                  key={key}
-                  className="grid gap-2 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-3 sm:grid-cols-[120px_1fr_1fr_auto]"
-                >
-                  <div className="font-semibold text-sm text-[color:var(--lx-text)]">{label}</div>
-                  <label className="flex items-center gap-2 text-sm sm:col-span-3 lg:col-span-1">
-                    <input
-                      type="checkbox"
-                      checked={s.closed}
-                      onChange={(e) =>
-                        setDay(key, { closed: e.target.checked, openTime: s.openTime, closeTime: s.closeTime })
-                      }
-                    />
-                    {fc.common.closed}
-                  </label>
-                  <input
-                    type="time"
-                    disabled={s.closed}
-                    className="rounded-lg border border-[color:var(--lx-nav-border)] px-2 py-1 text-sm disabled:opacity-50"
-                    value={s.openTime ?? ""}
-                    onChange={(e) => setDay(key, { ...s, openTime: e.target.value || undefined })}
-                  />
-                  <input
-                    type="time"
-                    disabled={s.closed}
-                    className="rounded-lg border border-[color:var(--lx-nav-border)] px-2 py-1 text-sm disabled:opacity-50"
-                    value={s.closeTime ?? ""}
-                    onChange={(e) => setDay(key, { ...s, closeTime: e.target.value || undefined })}
-                  />
-                </div>
-              );
-            })}
-          </div>
+          <HoursEditor
+            className="mt-4"
+            days={dayRows(lang).map(({ key, label }) => ({
+              key,
+              label,
+              schedule: draft[key] as RestauranteDaySchedule,
+            }))}
+            onDayChange={(key, next) => setDay(key as keyof RestauranteListingDraft, next)}
+            closedLabel={fc.common.closed}
+          />
           <div className="mt-4 grid gap-3">
             <div>
               <FieldLabel optional lang={lang}>{fc.sectionC.specialHoursLabel}</FieldLabel>
@@ -1415,6 +1374,51 @@ export default function RestauranteApplicationClient() {
                     value={draft.websiteUrl ?? ""}
                     onChange={(e) => setDraftPatch({ websiteUrl: e.target.value || undefined })}
                   />
+                </div>
+                <div className="sm:col-span-2">
+                  <FieldLabel optional lang={lang}>
+                    {lang === "en" ? "Additional websites" : "Sitios web adicionales"}
+                  </FieldLabel>
+                  <HelperText>
+                    {lang === "en"
+                      ? "Menu, reservations, ordering, catering, events — add as many as you need."
+                      : "Menú, reservas, pedidos, catering, eventos — agrega los que necesites."}
+                  </HelperText>
+                  <div className="mt-2 space-y-2">
+                    {(draft.additionalWebsites ?? []).map((row, index) => (
+                      <div key={index} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <input
+                          className="w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm sm:w-40 sm:shrink-0"
+                          placeholder={lang === "en" ? "Label (e.g. Menu)" : "Título (ej. Menú)"}
+                          maxLength={40}
+                          value={row.label}
+                          onChange={(e) => updateAdditionalWebsiteAt(index, { label: e.target.value })}
+                        />
+                        <input
+                          className="w-full flex-1 rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                          placeholder="https://…"
+                          value={row.url}
+                          onChange={(e) => updateAdditionalWebsiteAt(index, { url: e.target.value })}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeAdditionalWebsiteAt(index)}
+                          className="shrink-0 rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-xs font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
+                        >
+                          {lang === "en" ? "Remove" : "Quitar"}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  {(draft.additionalWebsites ?? []).length < 8 ? (
+                    <button
+                      type="button"
+                      onClick={addAdditionalWebsite}
+                      className="mt-2 rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
+                    >
+                      {lang === "en" ? "Add another link" : "Agregar otro enlace"}
+                    </button>
+                  ) : null}
                 </div>
                 <div>
                   <FieldLabel optional lang={lang}>{fc.sectionD.phoneLabel}</FieldLabel>

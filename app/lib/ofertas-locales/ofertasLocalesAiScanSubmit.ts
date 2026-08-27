@@ -18,14 +18,24 @@ export async function submitOfertaLocalAiScan(
     };
   }
 
-  const res = await fetch("/api/ofertas-locales/scan", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  let res: Response;
+  try {
+    res = await fetch("/api/ofertas-locales/scan", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (err) {
+    return {
+      ok: false,
+      error: "network_error",
+      detail: err instanceof Error ? err.message : "Network request failed.",
+      configurationMissing: false,
+    };
+  }
 
   let parsed: unknown;
   try {
