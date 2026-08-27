@@ -23,7 +23,7 @@ function pushIssue(
   issues.push({ field, message, severity });
 }
 
-function hasContactChannel(draft: OfertaLocalDraft): boolean {
+export function hasContactChannel(draft: OfertaLocalDraft): boolean {
   const phone = normalizeOfertaLocalPhoneInput(draft.phone);
   const whatsapp = normalizeOfertaLocalPhoneInput(draft.whatsapp);
   const website = normalizeOfertaLocalUrlInput(draft.websiteUrl);
