@@ -14,6 +14,7 @@ import {
   normalizeComidaLocalImageFromStorage,
 } from "./comidaLocalImageNormalize";
 import { resolveComidaLocalImageUrl } from "./comidaLocalImageValidation";
+import { mergeComidaLocalDraftFromStorage } from "./comidaLocalDraftPersistence";
 import { mapComidaLocalDraftToPreviewVm } from "./mapComidaLocalDraftToPreviewVm";
 import type { ComidaLocalPreviewChip } from "./comidaLocalPreviewTypes";
 import type {
@@ -32,11 +33,27 @@ import type {
 
 const FOOD_TYPE_VALUES = new Set(COMIDA_LOCAL_FOOD_TYPE_OPTIONS.map((o) => o.value));
 
+const SERVICE_OPTION_VALUES = new Set<ComidaLocalServiceOption>([
+  "pickup",
+  "delivery",
+  "in_person",
+  "preorder",
+  "scheduled_pickup",
+  "custom_order",
+  "catering",
+  "events",
+  "mobile",
+  "market_pickup",
+  "meal_prep",
+  "limited_daily_quantity",
+  "other",
+]);
+
 function parseServiceOptions(raw: unknown): ComidaLocalServiceOption[] {
   if (!Array.isArray(raw)) return [];
   return raw.filter(
     (v): v is ComidaLocalServiceOption =>
-      v === "pickup" || v === "delivery" || v === "in_person"
+      typeof v === "string" && SERVICE_OPTION_VALUES.has(v as ComidaLocalServiceOption)
   );
 }
 
@@ -56,7 +73,8 @@ function parsePaymentMethods(raw: unknown): ComidaLocalPaymentMethod[] {
 function parseLanguages(raw: unknown): ComidaLocalLanguageOption[] {
   if (!Array.isArray(raw)) return [];
   return raw.filter(
-    (v): v is ComidaLocalLanguageOption => v === "es" || v === "en" || v === "bilingual"
+    (v): v is ComidaLocalLanguageOption =>
+      v === "es" || v === "en" || v === "bilingual" || v === "otro"
   );
 }
 
@@ -88,7 +106,13 @@ export function buildComidaLocalLocationLine(row: ComidaLocalPublicListingRow): 
   return city || zone;
 }
 
-export function publicRowToComidaLocalDraft(row: ComidaLocalPublicListingRow): ComidaLocalDraft {
+/**
+ * Structured-column fallback only — used when a row has no usable `listing_json` (e.g. a
+ * pre-listing_json legacy row). Does not know about fields that only ever lived in
+ * `listing_json` (businessType, email, highlights, additionalWebsites, etc.) since those have
+ * no dedicated column; such a row will render without those fields until it is republished.
+ */
+function publicRowToComidaLocalDraftFromColumns(row: ComidaLocalPublicListingRow): ComidaLocalDraft {
   const foodTypeRaw = (row.food_type ?? "").trim();
   const foodType = FOOD_TYPE_VALUES.has(foodTypeRaw as ComidaLocalFoodType)
     ? (foodTypeRaw as ComidaLocalDraft["foodType"])
@@ -97,6 +121,7 @@ export function publicRowToComidaLocalDraft(row: ComidaLocalPublicListingRow): C
       : "";
 
   return {
+    ...mergeComidaLocalDraftFromStorage({}),
     draftListingId: "",
     businessName: row.business_name?.trim() ?? "",
     foodType,
@@ -126,6 +151,25 @@ export function publicRowToComidaLocalDraft(row: ComidaLocalPublicListingRow): C
     logoImage: parseImage(row.logo_image, "logo"),
     galleryImages: parseGallery(row.gallery_images),
   };
+}
+
+/**
+ * Gate D20/D23 — every field the owner can fill in (business type, email, address privacy,
+ * highlights, additional websites, custom languages, etc.) is only ever stored in
+ * `listing_json` (the publish route writes `{ ...draft, category }` there — see
+ * `draftToComidaLocalPublicListingInsert`); the structured columns are a narrower, older
+ * subset kept for indexing/filtering. Reading listing_json back through the same tolerant
+ * sanitizer edit-mode uses is the correct source of truth for public rendering. The
+ * structured-column path is a fallback only for a row that somehow has no listing_json.
+ */
+export function publicRowToComidaLocalDraft(row: ComidaLocalPublicListingRow): ComidaLocalDraft {
+  if (row.listing_json && typeof row.listing_json === "object") {
+    return {
+      ...mergeComidaLocalDraftFromStorage(row.listing_json),
+      draftListingId: "",
+    };
+  }
+  return publicRowToComidaLocalDraftFromColumns(row);
 }
 
 function excerpt(text: string, max = 140): string {

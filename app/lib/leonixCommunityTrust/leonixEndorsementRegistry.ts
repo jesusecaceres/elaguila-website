@@ -10,7 +10,8 @@
  * genuinely endorse — never a numeric rating scale.
  */
 
-export type LeonixEndorsementCategory = "servicios" | "restaurantes";
+/** Gate D17 — "comida-local" added; matches COMIDA_LOCAL_CATEGORY_KEY used everywhere else. */
+export type LeonixEndorsementCategory = "servicios" | "restaurantes" | "comida-local";
 
 export type LeonixEndorsementDefinition = {
   /** Stable machine key — never renamed once votes exist against it (would orphan real votes). */
@@ -43,6 +44,13 @@ export const LEONIX_ENDORSEMENT_REGISTRY: Readonly<Record<LeonixEndorsementCateg
     { key: "good_communication", es: "Buena comunicación", en: "Good communication", active: true, order: 4 },
     { key: "quality_work", es: "Trabajo de calidad", en: "Quality work", active: true, order: 5 },
   ],
+  "comida-local": [
+    { key: "cl_tasty_food", es: "Comida sabrosa", en: "Tasty food", active: true, order: 1 },
+    { key: "cl_generous_portions", es: "Porciones generosas", en: "Generous portions", active: true, order: 2 },
+    { key: "cl_friendly_seller", es: "Vendedor amable", en: "Friendly seller", active: true, order: 3 },
+    { key: "cl_on_time", es: "Llega a tiempo", en: "Shows up on time", active: true, order: 4 },
+    { key: "cl_clean_setup", es: "Puesto limpio", en: "Clean setup", active: true, order: 5 },
+  ],
 } as const;
 
 /** Active, display-ordered definitions for one category. */
@@ -54,16 +62,20 @@ export function getLeonixEndorsementDefinitions(category: LeonixEndorsementCateg
 /** True only if `key` is a real, active, registered endorsement for `category` — the server-side
  * validation gate before any vote write (never trust a client-supplied key blindly). */
 export function isValidLeonixEndorsementKey(category: string, key: string): category is LeonixEndorsementCategory {
-  if (category !== "servicios" && category !== "restaurantes") return false;
+  if (!isLeonixEndorsementCategory(category)) return false;
   return getLeonixEndorsementDefinitions(category).some((d) => d.key === key);
 }
 
 export function isLeonixEndorsementCategory(category: string): category is LeonixEndorsementCategory {
-  return category === "servicios" || category === "restaurantes";
+  return category === "servicios" || category === "restaurantes" || category === "comida-local";
 }
 
 /** `leonix_endorsement_votes.target_type` for a given category — the durable business-identity
- * table each category's target_id actually references (Gate 13). */
-export function leonixEndorsementTargetTypeForCategory(category: LeonixEndorsementCategory): "servicios_profile" | "restaurantes_listing" {
-  return category === "servicios" ? "servicios_profile" : "restaurantes_listing";
+ * table each category's target_id actually references (Gate 13; Gate D17 adds comida-local). */
+export function leonixEndorsementTargetTypeForCategory(
+  category: LeonixEndorsementCategory,
+): "servicios_profile" | "restaurantes_listing" | "comida_local_listing" {
+  if (category === "servicios") return "servicios_profile";
+  if (category === "restaurantes") return "restaurantes_listing";
+  return "comida_local_listing";
 }

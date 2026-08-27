@@ -5,7 +5,9 @@
  * form, so the checkpoint cannot take its path). The gateway now routes here first (registry
  * `checkpointRoute`); the CTA continues to the unchanged application. Distinct from the
  * Restaurantes-family "mobile_food_vendor" product card (which routes to
- * /publicar/restaurantes) — this is the free community comida_local pipeline.
+ * /publicar/restaurantes and remains its own $399/mo product, untouched here) — this is the
+ * standalone comida_local pipeline. Gate D18: this pipeline is $129/mo (comida_local_base_monthly
+ * in revenuePricingMatrix.ts), not free — see getComidaLocalCheckpointCard.
  */
 import type { Metadata } from "next";
 import { Suspense } from "react";
@@ -14,7 +16,7 @@ import { resolveClasificadosPublishLangFromSearchParams } from "@/app/lib/clasif
 
 export const metadata: Metadata = {
   title: "Publicar Comida Local | Leonix Clasificados",
-  description: "Publica gratis tu puesto o comida local en Leonix.",
+  description: "Publica tu puesto o comida local en Leonix — $129/mes.",
 };
 
 type PageProps = { searchParams: Promise<{ lang?: string }> };

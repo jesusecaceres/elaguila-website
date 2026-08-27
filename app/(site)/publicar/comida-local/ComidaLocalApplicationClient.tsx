@@ -22,9 +22,13 @@ import { resolveDraftPrecedence } from "@/app/lib/listingDrafts/draftWorkspaceCo
 import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
 import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { PhoneInput } from "@/app/components/forms/PhoneInput";
+import { LanguagesInput } from "@/app/components/forms/LanguagesInput";
+import { HoursEditor, type HoursEditorDayRow } from "@/app/components/forms/HoursEditor";
 import {
+  COMIDA_LOCAL_BUSINESS_TYPE_OPTIONS,
   COMIDA_LOCAL_FOOD_TYPE_OPTIONS,
   COMIDA_LOCAL_GALLERY_MAX,
+  COMIDA_LOCAL_HIGHLIGHT_OPTIONS,
   COMIDA_LOCAL_LANGUAGE_OPTIONS,
   COMIDA_LOCAL_PAYMENT_OPTIONS,
   COMIDA_LOCAL_PRICE_LEVEL_OPTIONS,
@@ -44,6 +48,7 @@ import {
 } from "@/app/lib/clasificados/comida-local/comidaLocalFormatting";
 import type {
   ComidaLocalDraft,
+  ComidaLocalHighlightOption,
   ComidaLocalLanguageOption,
   ComidaLocalPaymentMethod,
   ComidaLocalPriceLevel,
@@ -74,6 +79,26 @@ const CHIP_ON =
   "rounded-lg border border-[#7A1E2C] bg-[#7A1E2C]/10 px-3 py-1.5 text-sm font-medium text-[#7A1E2C]";
 const CHIP_OFF =
   "rounded-lg border border-[#D4C4A8] bg-white px-3 py-1.5 text-sm text-[#1E1814]/80 hover:border-[#7A1E2C]/40";
+
+const WEEKDAY_ORDER = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+] as const;
+
+const WEEKDAY_LABELS: Record<(typeof WEEKDAY_ORDER)[number], { es: string; en: string }> = {
+  monday: { es: "Lunes", en: "Monday" },
+  tuesday: { es: "Martes", en: "Tuesday" },
+  wednesday: { es: "Miércoles", en: "Wednesday" },
+  thursday: { es: "Jueves", en: "Thursday" },
+  friday: { es: "Viernes", en: "Friday" },
+  saturday: { es: "Sábado", en: "Saturday" },
+  sunday: { es: "Domingo", en: "Sunday" },
+};
 
 const SOCIAL_ACCENT: Record<ComidaLocalSocialPlatform, string> = {
   instagram: "focus:ring-[#E4405F]/30 border-[#E4405F]/25",
@@ -114,6 +139,14 @@ function FieldBlock({
   );
 }
 
+function SellerTypeBanner({ text }: { text: string }) {
+  return (
+    <p className="rounded-lg border border-[#7A1E2C]/25 bg-[#7A1E2C]/5 px-3 py-2 text-xs leading-relaxed text-[#1E1814]/80">
+      {text}
+    </p>
+  );
+}
+
 function formatSavedAt(ts: number | null): string | null {
   if (!ts) return null;
   try {
@@ -140,8 +173,9 @@ export default function ComidaLocalApplicationClient() {
    * under its own per-listing key (draftWorkspaceContract Rule 1 — never the new-ad key), the
    * row hydrates from its own stored listing_json (owner-scoped), and publishing routes into
    * the server's same-row update branch via the row's own draft_listing_id (id, slug, Leonix
-   * Ad ID, status, payment, and ownership all preserved server-side). No payment behavior —
-   * this lane is free. */
+   * Ad ID, status, payment, and ownership all preserved server-side). Gate D19 — editing an
+   * already-published (already-paid) listing saves directly with no re-checkout, matching the
+   * locked "no recharge on active-paid-edit" doctrine used by every other paid category. */
   const editListingId = ((searchParams?.get("edit") ?? "") === "1" ? searchParams?.get("listingId") ?? "" : "").trim();
   const editStorageKey = editListingId ? comidaLocalEditWorkspaceStorageKey(editListingId) : undefined;
   const { draft, setDraft, updateDraft, resetDraft, hasLoadedDraft, lastSavedAt } = useComidaLocalDraft({
@@ -164,6 +198,7 @@ export default function ComidaLocalApplicationClient() {
   const [staleDraftNotice, setStaleDraftNotice] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<ComidaLocalSectionKey>("identidad");
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [customLanguageInput, setCustomLanguageInput] = useState("");
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] = useState<{
@@ -288,13 +323,53 @@ export default function ComidaLocalApplicationClient() {
     }
   }, [draft.locationUrl, markTouched, updateDraft]);
 
+  const hoursDays: HoursEditorDayRow[] = WEEKDAY_ORDER.map((key) => {
+    const sched = draft.weeklyHours[key];
+    return {
+      key,
+      label: es ? WEEKDAY_LABELS[key].es : WEEKDAY_LABELS[key].en,
+      schedule: {
+        closed: sched?.closed ?? true,
+        openTime: sched?.openTime,
+        closeTime: sched?.closeTime,
+      },
+    };
+  });
+
   const cityValue = draft.cityDisplay || draft.cityCanonical;
   const cityInvalid =
     touched.city &&
     Boolean(cityValue.trim()) &&
     !syncComidaLocalCityFromInput(cityValue).cityCanonical;
 
+  /** Gate D3 — seller-type buckets driving conditional section copy/visibility. One
+   * application, no separate forms; only emphasis/visibility of already-shared fields changes. */
+  const sellerCategory = useMemo((): "mobile" | "home_kitchen" | "catering" | "meal_prep" | null => {
+    switch (draft.businessType) {
+      case "food_truck":
+      case "puesto":
+      case "mercado":
+      case "delivery_only":
+      case "pop_up":
+      case "feria":
+        return "mobile";
+      case "comida_casa":
+      case "chef_privado":
+      case "panaderia":
+        return "home_kitchen";
+      case "catering":
+        return "catering";
+      case "meal_prep":
+        return "meal_prep";
+      default:
+        return null;
+    }
+  }, [draft.businessType]);
+
   const showFoodTypeCustom = draft.foodType === "otro";
+  const showBusinessTypeCustom = draft.businessType === "otro";
+  const showServiceOptionOther = draft.serviceOptions.includes("other");
+  const showHighlightsOther = draft.highlights.includes("otro");
   const showPaymentOther = draft.paymentMethods.includes("other");
   const savedLabel = formatSavedAt(lastSavedAt);
 
@@ -512,6 +587,36 @@ export default function ComidaLocalApplicationClient() {
                       />
                     </FieldBlock>
                   ) : null}
+                  <FieldBlock fieldKey="businessType">
+                    <select
+                      className={INPUT}
+                      value={draft.businessType}
+                      onChange={(e) =>
+                        updateDraft({
+                          businessType: e.target.value as ComidaLocalDraft["businessType"],
+                          businessTypeCustom:
+                            e.target.value === "otro" ? draft.businessTypeCustom : "",
+                        })
+                      }
+                    >
+                      <option value="">{COMIDA_LOCAL_FIELD_COPY.businessType.placeholder}</option>
+                      {COMIDA_LOCAL_BUSINESS_TYPE_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </FieldBlock>
+                  {showBusinessTypeCustom ? (
+                    <FieldBlock fieldKey="businessTypeCustom">
+                      <input
+                        className={INPUT}
+                        value={draft.businessTypeCustom}
+                        onChange={(e) => updateDraft({ businessTypeCustom: e.target.value })}
+                        placeholder={COMIDA_LOCAL_FIELD_COPY.businessTypeCustom.placeholder}
+                      />
+                    </FieldBlock>
+                  ) : null}
                 </div>
               </section>
             )}
@@ -558,7 +663,25 @@ export default function ComidaLocalApplicationClient() {
             {activeSection === "que-vendes" && (
               <section className={cx(CARD, "p-5 sm:p-6")} id="que-vendes">
                 <h2 className={SECTION_TITLE}>Qué vendes</h2>
-                <div className="mt-5">
+                <div className="mt-5 space-y-5">
+                  {sellerCategory === "catering" ? (
+                    <SellerTypeBanner
+                      text={
+                        es
+                          ? "Para catering, describe tamaños de evento, mínimos de pedido y con cuánta anticipación reservar. Agrega tu formulario de cotización en «Enlaces adicionales» (sección Contacto)."
+                          : "For catering, describe event sizes, order minimums, and how much advance notice you need. Add your quote form under “Additional links” (Contact section)."
+                      }
+                    />
+                  ) : null}
+                  {sellerCategory === "meal_prep" ? (
+                    <SellerTypeBanner
+                      text={
+                        es
+                          ? "Para meal prep, describe tu menú semanal y cómo se ordena. Agrega tu enlace de pedidos en «Enlaces adicionales» (sección Contacto)."
+                          : "For meal prep, describe your weekly menu and how to order. Add your order link under “Additional links” (Contact section)."
+                      }
+                    />
+                  ) : null}
                   <FieldBlock fieldKey="queVendes">
                     <textarea
                       className={cx(INPUT, "min-h-[120px] resize-y")}
@@ -597,6 +720,17 @@ export default function ComidaLocalApplicationClient() {
                       placeholder={COMIDA_LOCAL_FIELD_COPY.whatsapp.placeholder}
                     />
                   </FieldBlock>
+                  <FieldBlock fieldKey="email">
+                    <input
+                      className={INPUT}
+                      type="email"
+                      inputMode="email"
+                      value={draft.email}
+                      onChange={(e) => updateDraft({ email: e.target.value })}
+                      placeholder={COMIDA_LOCAL_FIELD_COPY.email.placeholder}
+                      autoComplete="email"
+                    />
+                  </FieldBlock>
                   <FieldBlock fieldKey="instagramUrl" warning={socialWarning("instagram", draft.instagramUrl)}>
                     <input
                       className={cx(INPUT, SOCIAL_ACCENT.instagram)}
@@ -624,14 +758,80 @@ export default function ComidaLocalApplicationClient() {
                       placeholder={COMIDA_LOCAL_FIELD_COPY.tiktokUrl.placeholder}
                     />
                   </FieldBlock>
+                  <FieldBlock fieldKey="additionalWebsites">
+                    <div className="space-y-2">
+                      {draft.additionalWebsites.map((site, i) => (
+                        <div key={i} className="flex flex-col gap-2 sm:flex-row">
+                          <input
+                            className={cx(INPUT, "sm:w-40")}
+                            value={site.label}
+                            onChange={(e) => {
+                              const next = draft.additionalWebsites.slice();
+                              next[i] = { ...next[i], label: e.target.value };
+                              updateDraft({ additionalWebsites: next });
+                            }}
+                            placeholder="Ej. Menú"
+                          />
+                          <input
+                            className={cx(INPUT, "flex-1")}
+                            value={site.url}
+                            onChange={(e) => {
+                              const next = draft.additionalWebsites.slice();
+                              next[i] = { ...next[i], url: e.target.value };
+                              updateDraft({ additionalWebsites: next });
+                            }}
+                            placeholder="https://…"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateDraft({
+                                additionalWebsites: draft.additionalWebsites.filter((_, j) => j !== i),
+                              })
+                            }
+                            className="shrink-0 rounded-lg border border-[#D4C4A8] px-3 py-2 text-xs font-medium text-[#7A1E2C] hover:border-[#7A1E2C]/40"
+                          >
+                            {es ? "Quitar" : "Remove"}
+                          </button>
+                        </div>
+                      ))}
+                      {draft.additionalWebsites.length < 6 ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateDraft({
+                              additionalWebsites: [...draft.additionalWebsites, { label: "", url: "" }],
+                            })
+                          }
+                          className="rounded-lg border border-dashed border-[#D4C4A8] px-3 py-2 text-xs font-medium text-[#1E1814]/70 hover:border-[#7A1E2C]/40"
+                        >
+                          {es ? "+ Agregar enlace" : "+ Add link"}
+                        </button>
+                      ) : null}
+                    </div>
+                  </FieldBlock>
                 </div>
               </section>
             )}
 
             {activeSection === "ubicacion" && (
               <section className={cx(CARD, "p-5 sm:p-6")} id="ubicacion">
-                <h2 className={SECTION_TITLE}>Ubicación y disponibilidad</h2>
+                <h2 className={SECTION_TITLE}>Encuéntrame hoy</h2>
+                <p className="mt-1 text-xs text-[#1E1814]/55">
+                  {es
+                    ? "Dónde estás hoy, tu disponibilidad y cómo pueden recibir la comida. Tu dirección fija va aparte y es privada por defecto."
+                    : "Where you are today, your availability, and how people can get your food. Your fixed address is separate and private by default."}
+                </p>
                 <div className="mt-5 space-y-5">
+                  {sellerCategory === "mobile" ? (
+                    <SellerTypeBanner
+                      text={
+                        es
+                          ? "Como vendedor móvil, «Encuéntrame hoy» es tu herramienta principal — complétalo cada vez que cambies de lugar."
+                          : "As a mobile seller, “Find me today” is your main tool — fill it in every time you move."
+                      }
+                    />
+                  ) : null}
                   <FieldBlock fieldKey="locationNote">
                     <textarea
                       className={cx(INPUT, "min-h-[80px] resize-y")}
@@ -658,6 +858,28 @@ export default function ComidaLocalApplicationClient() {
                       placeholder={COMIDA_LOCAL_FIELD_COPY.availabilityNote.placeholder}
                     />
                   </FieldBlock>
+                  <div className="space-y-1.5">
+                    <label className={LABEL}>
+                      {es ? "Horario semanal" : "Weekly hours"}
+                      <span className="ml-1 font-normal normal-case text-[#1E1814]/45">
+                        {es ? "(opcional)" : "(optional)"}
+                      </span>
+                    </label>
+                    <HoursEditor
+                      days={hoursDays}
+                      closedLabel={es ? "Cerrado" : "Closed"}
+                      onDayChange={(key, next) =>
+                        updateDraft({
+                          weeklyHours: { ...draft.weeklyHours, [key]: next },
+                        })
+                      }
+                    />
+                    <p className={HELPER}>
+                      {es
+                        ? "Opcional y aparte de «Encuéntrame hoy». Déjalo vacío si tu horario cambia todo el tiempo."
+                        : "Optional and separate from “Find me today.” Leave it blank if your schedule changes constantly."}
+                    </p>
+                  </div>
                   <FieldBlock fieldKey="serviceOptions">
                     <div className="flex flex-wrap gap-2">
                       {COMIDA_LOCAL_SERVICE_OPTIONS.map((o) => (
@@ -681,6 +903,52 @@ export default function ComidaLocalApplicationClient() {
                       ))}
                     </div>
                   </FieldBlock>
+                  {showServiceOptionOther ? (
+                    <FieldBlock fieldKey="serviceOptionOtherCustom">
+                      <input
+                        className={INPUT}
+                        value={draft.serviceOptionOtherCustom}
+                        onChange={(e) => updateDraft({ serviceOptionOtherCustom: e.target.value })}
+                        placeholder={COMIDA_LOCAL_FIELD_COPY.serviceOptionOtherCustom.placeholder}
+                      />
+                    </FieldBlock>
+                  ) : null}
+                  {sellerCategory === "home_kitchen" ? (
+                    <SellerTypeBanner
+                      text={
+                        es
+                          ? "Como cocina en casa, tu dirección se mantiene privada a menos que actives mostrarla abajo. Solo tu ciudad/zona es pública por defecto."
+                          : "As a home kitchen, your address stays private unless you turn on showing it below. Only your city/zone is public by default."
+                      }
+                    />
+                  ) : null}
+                  <FieldBlock fieldKey="businessAddressLine">
+                    <input
+                      className={INPUT}
+                      value={draft.businessAddressLine}
+                      onChange={(e) => updateDraft({ businessAddressLine: e.target.value })}
+                      placeholder={COMIDA_LOCAL_FIELD_COPY.businessAddressLine.placeholder}
+                    />
+                  </FieldBlock>
+                  {draft.businessAddressLine.trim() ? (
+                    <FieldBlock fieldKey="showAddressPublicly">
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={draft.showAddressPublicly}
+                        onClick={() => updateDraft({ showAddressPublicly: !draft.showAddressPublicly })}
+                        className={draft.showAddressPublicly ? CHIP_ON : CHIP_OFF}
+                      >
+                        {draft.showAddressPublicly
+                          ? es
+                            ? "Sí, mostrar dirección"
+                            : "Yes, show address"
+                          : es
+                            ? "No, mantener privada"
+                            : "No, keep private"}
+                      </button>
+                    </FieldBlock>
+                  ) : null}
                 </div>
               </section>
             )}
@@ -744,19 +1012,57 @@ export default function ComidaLocalApplicationClient() {
                     </div>
                   </FieldBlock>
                   <FieldBlock fieldKey="languages">
+                    <LanguagesInput
+                      options={COMIDA_LOCAL_LANGUAGE_OPTIONS.map((o) => ({
+                        key: o.value,
+                        label: o.label,
+                      }))}
+                      selectedKeys={draft.languages}
+                      onToggle={(key) =>
+                        updateDraft({
+                          languages: toggleInList(
+                            draft.languages,
+                            key as ComidaLocalLanguageOption
+                          ),
+                        })
+                      }
+                      otherKey="otro"
+                      customValues={draft.customLanguages}
+                      customInputValue={customLanguageInput}
+                      onCustomInputChange={setCustomLanguageInput}
+                      onAddCustom={() => {
+                        const value = customLanguageInput.trim();
+                        if (!value) return;
+                        updateDraft({ customLanguages: [...draft.customLanguages, value] });
+                        setCustomLanguageInput("");
+                      }}
+                      onRemoveCustom={(index) =>
+                        updateDraft({
+                          customLanguages: draft.customLanguages.filter((_, i) => i !== index),
+                        })
+                      }
+                      labels={{
+                        otherLabel: es ? "Otro idioma" : "Other language",
+                        otherPlaceholder: es ? "Ej. mixteco" : "e.g. Mixtec",
+                        add: es ? "Agregar" : "Add",
+                        removeAria: (value) => (es ? `Quitar ${value}` : `Remove ${value}`),
+                      }}
+                    />
+                  </FieldBlock>
+                  <FieldBlock fieldKey="highlights">
                     <div className="flex flex-wrap gap-2">
-                      {COMIDA_LOCAL_LANGUAGE_OPTIONS.map((o) => (
+                      {COMIDA_LOCAL_HIGHLIGHT_OPTIONS.map((o) => (
                         <button
                           key={o.value}
                           type="button"
                           className={
-                            draft.languages.includes(o.value) ? CHIP_ON : CHIP_OFF
+                            draft.highlights.includes(o.value) ? CHIP_ON : CHIP_OFF
                           }
                           onClick={() =>
                             updateDraft({
-                              languages: toggleInList(
-                                draft.languages,
-                                o.value as ComidaLocalLanguageOption
+                              highlights: toggleInList(
+                                draft.highlights,
+                                o.value as ComidaLocalHighlightOption
                               ),
                             })
                           }
@@ -766,6 +1072,16 @@ export default function ComidaLocalApplicationClient() {
                       ))}
                     </div>
                   </FieldBlock>
+                  {showHighlightsOther ? (
+                    <FieldBlock fieldKey="highlightsOtherCustom">
+                      <input
+                        className={INPUT}
+                        value={draft.highlightsOtherCustom}
+                        onChange={(e) => updateDraft({ highlightsOtherCustom: e.target.value })}
+                        placeholder={COMIDA_LOCAL_FIELD_COPY.highlightsOtherCustom.placeholder}
+                      />
+                    </FieldBlock>
+                  ) : null}
                 </div>
               </section>
             )}
@@ -892,58 +1208,56 @@ export default function ComidaLocalApplicationClient() {
               )}
             </div>
 
-            <div
-              className={cx(
-                CARD,
-                "flex flex-col gap-4 border-[#7A1E2C]/15 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"
-              )}
-            >
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-[#1E1814]">
-                  {editListingId
-                    ? es
-                      ? "Guardar cambios en tu anuncio"
-                      : "Save changes to your listing"
-                    : "Publicar en Comida Local"}
-                </p>
-                <p className="mt-1 text-sm text-[#1E1814]/70">
-                  {editListingId
-                    ? publishReady
+            {editListingId ? (
+              <div
+                className={cx(
+                  CARD,
+                  "flex flex-col gap-4 border-[#7A1E2C]/15 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"
+                )}
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-[#1E1814]">
+                    {es ? "Guardar cambios en tu anuncio" : "Save changes to your listing"}
+                  </p>
+                  <p className="mt-1 text-sm text-[#1E1814]/70">
+                    {publishReady
                       ? es
                         ? "Se actualizará el mismo anuncio publicado — sin duplicados ni pagos."
                         : "The same published listing will be updated — no duplicates, no payments."
                       : es
                         ? "Completa los campos de «Lista para publicar» para habilitar el guardado."
-                        : "Complete the “Ready to publish” fields to enable saving."
-                    : publishReady
-                      ? "Cuando publiques, tu ficha aparecerá en /clasificados/comida-local con un ID Leonix COMIDA-…"
-                      : "Completa los campos de «Lista para publicar» para habilitar la publicación."}
-                </p>
-              </div>
-              <button
-                type="button"
-                disabled={!publishReady || publishBusy}
-                onClick={() => void handlePublish()}
-                className={cx(
-                  "inline-flex shrink-0 items-center justify-center rounded-xl px-5 py-2.5 text-sm font-semibold",
-                  publishReady && !publishBusy
-                    ? "border border-[#7A1E2C] bg-[#7A1E2C] text-[#FFFCF7] hover:bg-[#6a1a26]"
-                    : "cursor-not-allowed border border-[#7A1E2C]/30 bg-[#7A1E2C]/40 text-[#FFFCF7]"
-                )}
-              >
-                {publishBusy
-                  ? editListingId
+                        : "Complete the “Ready to publish” fields to enable saving."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={!publishReady || publishBusy}
+                  onClick={() => void handlePublish()}
+                  className={cx(
+                    "inline-flex shrink-0 items-center justify-center rounded-xl px-5 py-2.5 text-sm font-semibold",
+                    publishReady && !publishBusy
+                      ? "border border-[#7A1E2C] bg-[#7A1E2C] text-[#FFFCF7] hover:bg-[#6a1a26]"
+                      : "cursor-not-allowed border border-[#7A1E2C]/30 bg-[#7A1E2C]/40 text-[#FFFCF7]"
+                  )}
+                >
+                  {publishBusy
                     ? es
                       ? "Guardando…"
                       : "Saving…"
-                    : COMIDA_LOCAL_SHELL_COPY.publishing
-                  : editListingId
-                    ? es
+                    : es
                       ? "Guardar cambios"
-                      : "Save changes"
-                    : COMIDA_LOCAL_SHELL_COPY.publishFicha}
-              </button>
-            </div>
+                      : "Save changes"}
+                </button>
+              </div>
+            ) : (
+              // Gate D19 — no direct-publish bypass for a brand-new listing. The only path to
+              // publish is Preview → PublishCheckoutCheckpoint → Stripe → webhook activation.
+              <p className="px-1 text-center text-xs text-[#1E1814]/55">
+                {es
+                  ? "Publicar requiere pasar por la vista previa y el pago seguro."
+                  : "Publishing requires going through preview and secure payment."}
+              </p>
+            )}
           </div>
         </div>
       </div>

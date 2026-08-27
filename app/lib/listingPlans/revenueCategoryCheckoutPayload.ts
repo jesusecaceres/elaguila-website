@@ -86,6 +86,13 @@ export const SERVICIOS_OFFERS_ADDON_DASHBOARD_CHECKOUT = {
   returnPath: buildDashboardMisAnunciosReturnPath("es", "servicios"),
 } as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
 
+/** Gate D18/D19 — Comida Local base listing, monthly subscription ($129/mo, Revenue OS matrix). */
+export const COMIDA_LOCAL_BASE_CHECKOUT = {
+  category: "comida-local",
+  packageKey: "comida_local_base_monthly",
+  returnPath: "/clasificados/comida-local",
+} as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
+
 /** Dashboard add-on-only — property inventory pack on an existing published Bienes parent listing ($99/mo). */
 export const BIENES_INVENTORY_PACK_DASHBOARD_CHECKOUT = {
   category: "bienes-raices",
