@@ -138,6 +138,51 @@ check("Community Trust: comida-local is a valid endorsement category with real k
   assert.equal(leonixEndorsementTargetTypeForCategory("restaurantes"), "restaurantes_listing");
 });
 
+check("Gate F2: business type/service/highlight labels are genuinely bilingual, stored values unchanged", () => {
+  const draft = {
+    ...createEmptyComidaLocalDraft(),
+    businessName: "X",
+    businessType: "comida_casa" as const,
+    serviceOptions: ["pickup" as const, "delivery" as const],
+    highlights: ["receta_familiar" as const, "ingredientes_frescos" as const],
+  };
+
+  const esVm = mapComidaLocalDraftToPreviewVm(draft, "es");
+  const enVm = mapComidaLocalDraftToPreviewVm(draft, "en");
+
+  assert.equal(esVm.businessTypeLabel, "Comida desde casa");
+  assert.equal(enVm.businessTypeLabel, "Home kitchen");
+
+  assert.deepEqual(
+    esVm.serviceChips.map((c) => c.label),
+    ["Recoger", "Entrega"],
+  );
+  assert.deepEqual(
+    enVm.serviceChips.map((c) => c.label),
+    ["Pickup", "Delivery"],
+  );
+
+  assert.deepEqual(
+    esVm.highlightChips.map((c) => c.label),
+    ["Receta familiar", "Ingredientes frescos"],
+  );
+  assert.deepEqual(
+    enVm.highlightChips.map((c) => c.label),
+    ["Family recipe", "Fresh ingredients"],
+  );
+
+  // Stored keys (chip `key`, not `label`) must stay language-neutral regardless of lang.
+  assert.deepEqual(
+    esVm.serviceChips.map((c) => c.key),
+    enVm.serviceChips.map((c) => c.key),
+  );
+  assert.equal(esVm.serviceChips[0]?.key, "pickup");
+
+  // Default (no lang arg) must stay Spanish — preserves every pre-existing call site.
+  const defaultVm = mapComidaLocalDraftToPreviewVm(draft);
+  assert.equal(defaultVm.businessTypeLabel, "Comida desde casa");
+});
+
 check("hide-if-empty: optional sections all false on an empty draft", () => {
   const vm = mapComidaLocalDraftToPreviewVm({ ...createEmptyComidaLocalDraft(), businessName: "X" });
   assert.equal(vm.sections.showHighlights, false);

@@ -1,4 +1,5 @@
 import {
+  comidaLocalOptionLabel,
   COMIDA_LOCAL_BUSINESS_TYPE_OPTIONS,
   COMIDA_LOCAL_FOOD_TYPE_OPTIONS,
   COMIDA_LOCAL_HIGHLIGHT_OPTIONS,
@@ -6,6 +7,7 @@ import {
   COMIDA_LOCAL_PAYMENT_OPTIONS,
   COMIDA_LOCAL_PRICE_LEVEL_OPTIONS,
   COMIDA_LOCAL_SERVICE_OPTIONS,
+  type ComidaLocalBilingualOption,
 } from "./comidaLocalConstants";
 import { resolveComidaLocalCityCanonical } from "./comidaLocalCity";
 import { computeBusinessHoursStatus } from "@/app/lib/businessHours/computeBusinessHoursStatus";
@@ -34,6 +36,17 @@ function labelFromOptions<T extends string>(
   options: ReadonlyArray<{ value: T; label: string }>
 ): string {
   return options.find((o) => o.value === value)?.label ?? value;
+}
+
+/** Gate F2 — bilingual lookup for the three now-{labelEs,labelEn} option sets (business type,
+ * service options, highlights). Stored `value` is unchanged; only the display label varies. */
+function labelFromBilingualOptions<T extends string>(
+  value: T,
+  options: ReadonlyArray<ComidaLocalBilingualOption<T>>,
+  lang: "es" | "en",
+): string {
+  const opt = options.find((o) => o.value === value);
+  return opt ? comidaLocalOptionLabel(opt, lang) : value;
 }
 
 function buildFoodTypeChips(draft: ComidaLocalDraft): ComidaLocalPreviewChip[] {
@@ -73,20 +86,20 @@ function buildHoursLines(draft: ComidaLocalDraft): { dayLabel: string; text: str
   return lines;
 }
 
-function buildBusinessTypeLabel(draft: ComidaLocalDraft): string {
+function buildBusinessTypeLabel(draft: ComidaLocalDraft, lang: "es" | "en"): string {
   if (!draft.businessType) return "";
   if (draft.businessType === "otro") return draft.businessTypeCustom.trim();
-  return labelFromOptions(draft.businessType, COMIDA_LOCAL_BUSINESS_TYPE_OPTIONS);
+  return labelFromBilingualOptions(draft.businessType, COMIDA_LOCAL_BUSINESS_TYPE_OPTIONS, lang);
 }
 
-function buildHighlightChips(draft: ComidaLocalDraft): ComidaLocalPreviewChip[] {
+function buildHighlightChips(draft: ComidaLocalDraft, lang: "es" | "en"): ComidaLocalPreviewChip[] {
   return draft.highlights
     .map((v) => {
       if (v === "otro") {
         const custom = draft.highlightsOtherCustom.trim();
         return custom ? { key: "highlight-otro", label: custom } : null;
       }
-      return { key: v, label: labelFromOptions(v, COMIDA_LOCAL_HIGHLIGHT_OPTIONS) };
+      return { key: v, label: labelFromBilingualOptions(v, COMIDA_LOCAL_HIGHLIGHT_OPTIONS, lang) };
     })
     .filter((x): x is ComidaLocalPreviewChip => x !== null);
 }
@@ -219,15 +232,21 @@ function buildPaymentChips(draft: ComidaLocalDraft): ComidaLocalPreviewChip[] {
   });
 }
 
-/** Map session/local draft → preview VM. No fake ids or engagement. */
-export function mapComidaLocalDraftToPreviewVm(draft: ComidaLocalDraft): ComidaLocalPreviewVm {
+/** Map session/local draft → preview VM. No fake ids or engagement.
+ * Gate F2 — `lang` defaults to "es" so every existing call site (preview client, which stays
+ * Spanish-only) keeps its prior behavior unchanged; only the public detail read-path passes
+ * "en" explicitly. */
+export function mapComidaLocalDraftToPreviewVm(
+  draft: ComidaLocalDraft,
+  lang: "es" | "en" = "es",
+): ComidaLocalPreviewVm {
   const previewIssues = validateComidaLocalDraftForPreview(draft);
   const businessName = draft.businessName.trim() || "Tu puesto";
   const queVendes = draft.queVendes.trim();
   const availabilityNote = draft.availabilityNote.trim();
   const locationNote = draft.locationNote.trim();
   const serviceChips: ComidaLocalPreviewChip[] = draft.serviceOptions.map((v) => {
-    let label = labelFromOptions(v, COMIDA_LOCAL_SERVICE_OPTIONS);
+    let label = labelFromBilingualOptions(v, COMIDA_LOCAL_SERVICE_OPTIONS, lang);
     if (v === "other" && draft.serviceOptionOtherCustom.trim()) {
       label = draft.serviceOptionOtherCustom.trim();
     }
@@ -244,8 +263,8 @@ export function mapComidaLocalDraftToPreviewVm(draft: ComidaLocalDraft): ComidaL
     ...draft.customLanguages,
   ];
   const contactActions = buildContactActions(draft);
-  const businessTypeLabel = buildBusinessTypeLabel(draft);
-  const highlightChips = buildHighlightChips(draft);
+  const businessTypeLabel = buildBusinessTypeLabel(draft, lang);
+  const highlightChips = buildHighlightChips(draft, lang);
   const additionalWebsites = buildAdditionalWebsiteLinks(draft);
   const businessAddressLine = draft.showAddressPublicly ? draft.businessAddressLine.trim() : "";
   const hoursLines = buildHoursLines(draft);

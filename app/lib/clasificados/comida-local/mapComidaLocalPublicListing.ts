@@ -182,7 +182,10 @@ function buildCardChips(row: ComidaLocalPublicListingRow): ComidaLocalPreviewChi
   const chips: ComidaLocalPreviewChip[] = [];
   const services = parseServiceOptions(row.service_options).slice(0, 1);
   for (const s of services) {
-    const label = COMIDA_LOCAL_SERVICE_OPTIONS.find((o) => o.value === s)?.label ?? s;
+    // Results-listing page has no lang routing yet (Gate F2 scope: taxonomy labels only,
+    // not a new page-level i18n architecture) — preserves this page's existing Spanish-only
+    // behavior unchanged.
+    const label = COMIDA_LOCAL_SERVICE_OPTIONS.find((o) => o.value === s)?.labelEs ?? s;
     chips.push({ key: `svc-${s}`, label });
   }
   if (row.price_level === "1" || row.price_level === "2" || row.price_level === "3") {
@@ -224,9 +227,12 @@ export function mapComidaLocalRowToCardVm(row: ComidaLocalPublicListingRow): Com
   };
 }
 
-export function mapComidaLocalRowToDetailVm(row: ComidaLocalPublicListingRow): ComidaLocalPublicListingDetailVm {
+export function mapComidaLocalRowToDetailVm(
+  row: ComidaLocalPublicListingRow,
+  lang: "es" | "en" = "es",
+): ComidaLocalPublicListingDetailVm {
   const draft = publicRowToComidaLocalDraft(row);
-  const vm = mapComidaLocalDraftToPreviewVm(draft);
+  const vm = mapComidaLocalDraftToPreviewVm(draft, lang);
   const leonix =
     typeof row.leonix_ad_id === "string" && row.leonix_ad_id.trim() ? row.leonix_ad_id.trim() : null;
 

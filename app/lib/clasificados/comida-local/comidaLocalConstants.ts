@@ -29,67 +29,81 @@ export const COMIDA_LOCAL_FOOD_TYPE_OPTIONS: ReadonlyArray<{
   { value: "otro", label: "Otro" },
 ];
 
+/** Gate F2 — bilingual option shape (mirrors ofertasLocalesBusinessCategoryUx.ts's proven
+ * {value, labelEs, labelEn} convention). Stored `value` identifiers are language-neutral and
+ * unchanged; only display labels vary by lang. */
+export type ComidaLocalBilingualOption<T extends string> = {
+  value: T;
+  labelEs: string;
+  labelEn: string;
+};
+
+/** Gate F2 — pick the right label for lang; defaults to Spanish (prior behavior unchanged). */
+export function comidaLocalOptionLabel<T extends string>(
+  opt: ComidaLocalBilingualOption<T>,
+  lang: "es" | "en" = "es",
+): string {
+  return lang === "en" ? opt.labelEn : opt.labelEs;
+}
+
 /** Gate D2 — seller/business format registry, distinct from foodType (cuisine). */
-export const COMIDA_LOCAL_BUSINESS_TYPE_OPTIONS: ReadonlyArray<{
-  value: ComidaLocalBusinessType;
-  label: string;
-}> = [
-  { value: "food_truck", label: "Food truck" },
-  { value: "puesto", label: "Puesto / carrito" },
-  { value: "comida_casa", label: "Comida desde casa" },
-  { value: "pop_up", label: "Pop-up" },
-  { value: "feria", label: "Feria / mercado" },
-  { value: "catering", label: "Catering" },
-  { value: "meal_prep", label: "Meal prep" },
-  { value: "panaderia", label: "Panadería / repostería" },
-  { value: "chef_privado", label: "Chef privado" },
-  { value: "delivery_only", label: "Solo entrega" },
-  { value: "mercado", label: "Vendedor de mercado" },
-  { value: "otro", label: "Otro" },
+export const COMIDA_LOCAL_BUSINESS_TYPE_OPTIONS: ReadonlyArray<
+  ComidaLocalBilingualOption<ComidaLocalBusinessType>
+> = [
+  { value: "food_truck", labelEs: "Food truck", labelEn: "Food truck" },
+  { value: "puesto", labelEs: "Puesto / carrito", labelEn: "Stand / cart" },
+  { value: "comida_casa", labelEs: "Comida desde casa", labelEn: "Home kitchen" },
+  { value: "pop_up", labelEs: "Pop-up", labelEn: "Pop-up" },
+  { value: "feria", labelEs: "Feria / mercado", labelEn: "Fair / market" },
+  { value: "catering", labelEs: "Catering", labelEn: "Catering" },
+  { value: "meal_prep", labelEs: "Meal prep", labelEn: "Meal prep" },
+  { value: "panaderia", labelEs: "Panadería / repostería", labelEn: "Bakery / pastry" },
+  { value: "chef_privado", labelEs: "Chef privado", labelEn: "Private chef" },
+  { value: "delivery_only", labelEs: "Solo entrega", labelEn: "Delivery only" },
+  { value: "mercado", labelEs: "Vendedor de mercado", labelEn: "Market vendor" },
+  { value: "otro", labelEs: "Otro", labelEn: "Other" },
 ];
 
 /** Gate D4 — expanded service-mode registry (additive over the original 3-value set). */
-export const COMIDA_LOCAL_SERVICE_OPTIONS: ReadonlyArray<{
-  value: ComidaLocalServiceOption;
-  label: string;
-}> = [
-  { value: "pickup", label: "Para recoger" },
-  { value: "delivery", label: "Entrega" },
-  { value: "in_person", label: "Solo en persona" },
-  { value: "preorder", label: "Pedido anticipado" },
-  { value: "scheduled_pickup", label: "Recoger con horario" },
-  { value: "custom_order", label: "Pedido personalizado" },
-  { value: "catering", label: "Catering" },
-  { value: "events", label: "Eventos" },
-  { value: "mobile", label: "Móvil" },
-  { value: "market_pickup", label: "Recoger en mercado/feria" },
-  { value: "meal_prep", label: "Meal prep" },
-  { value: "limited_daily_quantity", label: "Cantidad limitada por día" },
-  { value: "other", label: "Otro" },
+export const COMIDA_LOCAL_SERVICE_OPTIONS: ReadonlyArray<
+  ComidaLocalBilingualOption<ComidaLocalServiceOption>
+> = [
+  { value: "pickup", labelEs: "Recoger", labelEn: "Pickup" },
+  { value: "delivery", labelEs: "Entrega", labelEn: "Delivery" },
+  { value: "in_person", labelEs: "Solo en persona", labelEn: "In person only" },
+  { value: "preorder", labelEs: "Pedido anticipado", labelEn: "Pre-order" },
+  { value: "scheduled_pickup", labelEs: "Recoger con horario", labelEn: "Scheduled pickup" },
+  { value: "custom_order", labelEs: "Pedido personalizado", labelEn: "Custom order" },
+  { value: "catering", labelEs: "Catering", labelEn: "Catering" },
+  { value: "events", labelEs: "Eventos", labelEn: "Events" },
+  { value: "mobile", labelEs: "Móvil", labelEn: "Mobile" },
+  { value: "market_pickup", labelEs: "Recoger en mercado/feria", labelEn: "Market/fair pickup" },
+  { value: "meal_prep", labelEs: "Meal prep", labelEn: "Meal prep" },
+  { value: "limited_daily_quantity", labelEs: "Cantidad limitada por día", labelEn: "Limited daily quantity" },
+  { value: "other", labelEs: "Otro", labelEn: "Other" },
 ];
 
 /** Gate D15 — Comida Local specific highlights (not Restaurant amenities). */
-export const COMIDA_LOCAL_HIGHLIGHT_OPTIONS: ReadonlyArray<{
-  value: ComidaLocalHighlightOption;
-  label: string;
-}> = [
-  { value: "hecho_en_casa", label: "Hecho en casa" },
-  { value: "receta_familiar", label: "Receta familiar" },
-  { value: "ingredientes_frescos", label: "Ingredientes frescos" },
-  { value: "halal", label: "Halal" },
-  { value: "kosher", label: "Kosher" },
-  { value: "vegetariano", label: "Vegetariano" },
-  { value: "vegano", label: "Vegano" },
-  { value: "sin_gluten", label: "Sin gluten" },
-  { value: "hecho_al_momento", label: "Hecho al momento" },
-  { value: "porciones_limitadas", label: "Porciones limitadas" },
-  { value: "catering", label: "Catering disponible" },
-  { value: "pedidos_personalizados", label: "Pedidos personalizados" },
-  { value: "entrega_disponible", label: "Entrega disponible" },
-  { value: "pickup_disponible", label: "Pickup disponible" },
-  { value: "familiar", label: "Negocio familiar" },
-  { value: "local", label: "100% local" },
-  { value: "otro", label: "Otro" },
+export const COMIDA_LOCAL_HIGHLIGHT_OPTIONS: ReadonlyArray<
+  ComidaLocalBilingualOption<ComidaLocalHighlightOption>
+> = [
+  { value: "hecho_en_casa", labelEs: "Hecho en casa", labelEn: "Homemade" },
+  { value: "receta_familiar", labelEs: "Receta familiar", labelEn: "Family recipe" },
+  { value: "ingredientes_frescos", labelEs: "Ingredientes frescos", labelEn: "Fresh ingredients" },
+  { value: "halal", labelEs: "Halal", labelEn: "Halal" },
+  { value: "kosher", labelEs: "Kosher", labelEn: "Kosher" },
+  { value: "vegetariano", labelEs: "Vegetariano", labelEn: "Vegetarian" },
+  { value: "vegano", labelEs: "Vegano", labelEn: "Vegan" },
+  { value: "sin_gluten", labelEs: "Sin gluten", labelEn: "Gluten-free" },
+  { value: "hecho_al_momento", labelEs: "Hecho al momento", labelEn: "Made to order" },
+  { value: "porciones_limitadas", labelEs: "Porciones limitadas", labelEn: "Limited portions" },
+  { value: "catering", labelEs: "Catering disponible", labelEn: "Catering available" },
+  { value: "pedidos_personalizados", labelEs: "Pedidos personalizados", labelEn: "Custom orders" },
+  { value: "entrega_disponible", labelEs: "Entrega disponible", labelEn: "Delivery available" },
+  { value: "pickup_disponible", labelEs: "Pickup disponible", labelEn: "Pickup available" },
+  { value: "familiar", labelEs: "Negocio familiar", labelEn: "Family-owned" },
+  { value: "local", labelEs: "100% local", labelEn: "100% local" },
+  { value: "otro", labelEs: "Otro", labelEn: "Other" },
 ];
 
 export const COMIDA_LOCAL_PAYMENT_OPTIONS: ReadonlyArray<{

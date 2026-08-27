@@ -602,7 +602,7 @@ export default function ComidaLocalApplicationClient() {
                       <option value="">{COMIDA_LOCAL_FIELD_COPY.businessType.placeholder}</option>
                       {COMIDA_LOCAL_BUSINESS_TYPE_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>
-                          {o.label}
+                          {es ? o.labelEs : o.labelEn}
                         </option>
                       ))}
                     </select>
@@ -898,7 +898,7 @@ export default function ComidaLocalApplicationClient() {
                             })
                           }
                         >
-                          {o.label}
+                          {es ? o.labelEs : o.labelEn}
                         </button>
                       ))}
                     </div>
@@ -1067,7 +1067,7 @@ export default function ComidaLocalApplicationClient() {
                             })
                           }
                         >
-                          {o.label}
+                          {es ? o.labelEs : o.labelEn}
                         </button>
                       ))}
                     </div>
