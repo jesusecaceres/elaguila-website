@@ -9,6 +9,7 @@ import {
   leonixSlideIndexForVideoSlot,
 } from "@/app/clasificados/lib/leonixGallerySlides";
 import { LeonixPreviewGalleryLightbox } from "@/app/clasificados/lib/LeonixPreviewGalleryLightbox";
+import { LeonixListingFactsGrid } from "@/app/clasificados/lib/LeonixListingFactsGrid";
 import { LeonixPreviewGalleryVideoTile } from "@/app/clasificados/lib/leonixPreviewGalleryVideoTile";
 import { LeonixPrivadoPreviewQuickFactsStrip } from "@/app/clasificados/lib/leonixPrivadoPreviewQuickFacts";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
@@ -156,33 +157,14 @@ function SectionIcon({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Item 30 (Final Completion) — thin category adapter over the shared facts-grid primitive. */
 function FactBlock({ title, rows }: { title: string; rows: Array<{ label: string; value: string }> | undefined }) {
-  const safeRows = Array.isArray(rows) ? rows : [];
-  if (safeRows.length === 0) return null;
   return (
-    <div
-      className="min-w-0 rounded-xl border p-3.5 shadow-[0_10px_36px_-14px_rgba(42,36,22,0.08)] sm:p-4"
-      style={{ borderColor: BORDER, background: CREAM_CARD }}
-    >
-      <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
-        {title}
-      </h3>
-      <dl className="mt-2.5 grid gap-x-5 gap-y-3 sm:mt-3 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-3.5">
-        {safeRows.map((r) => (
-          <div key={`${r.label}-${r.value}`} className="min-w-0">
-            <dt className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: MUTED }}>
-              {r.label}
-            </dt>
-            <dd
-              className="mt-1 whitespace-pre-line break-words text-sm font-medium leading-snug [overflow-wrap:anywhere] [font-variant-numeric:tabular-nums]"
-              style={{ color: CHARCOAL }}
-            >
-              {r.value}
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </div>
+    <LeonixListingFactsGrid
+      title={title}
+      rows={rows}
+      theme={{ borderColor: BORDER, cardBackground: CREAM_CARD, labelColor: MUTED, valueColor: CHARCOAL }}
+    />
   );
 }
 

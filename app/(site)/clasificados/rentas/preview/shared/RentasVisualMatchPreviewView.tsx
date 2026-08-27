@@ -21,6 +21,7 @@ import type {
   BienesRaicesPreviewFact,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 import { buildOfertaLocalPreviewMapEmbedUrl } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
+import { LeonixListingFactsGrid } from "@/app/clasificados/lib/LeonixListingFactsGrid";
 import {
   trackRentasPhoneClick,
   trackRentasWhatsappClick,
@@ -609,23 +610,14 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, i
               </div>
               <div className="grid gap-3 lg:grid-cols-2">
                 {detailGroups.map((group) => (
-                  <div key={group.title} className="rounded-[1.25rem] border bg-[#FFFDF7] p-4 shadow-[0_12px_34px_-26px_rgba(31,36,28,0.28)]" style={{ borderColor: BORDER_SOFT }}>
-                    <h3 className="font-serif text-base font-bold" style={{ color: CHARCOAL }}>
-                      {group.title}
-                    </h3>
-                    <div className="mt-3 divide-y" style={{ borderColor: "rgba(214,199,173,0.55)" }}>
-                      {group.rows.map((row) => (
-                        <div key={`${group.title}-${row.label}-${row.value}`} className="grid gap-1 py-2.5 sm:grid-cols-[0.85fr_1.15fr] sm:gap-3">
-                          <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em]" style={{ color: MUTED }}>
-                            {row.label}
-                          </p>
-                          <p className="whitespace-pre-wrap text-sm font-semibold leading-6" style={{ color: BODY }}>
-                            {row.value}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <LeonixListingFactsGrid
+                    key={group.title}
+                    title={group.title}
+                    rows={group.rows}
+                    columns={1}
+                    theme={{ borderColor: BORDER_SOFT, cardBackground: "#FFFDF7", labelColor: MUTED, valueColor: BODY }}
+                    className="rounded-[1.25rem] shadow-[0_12px_34px_-26px_rgba(31,36,28,0.28)]"
+                  />
                 ))}
               </div>
             </section>

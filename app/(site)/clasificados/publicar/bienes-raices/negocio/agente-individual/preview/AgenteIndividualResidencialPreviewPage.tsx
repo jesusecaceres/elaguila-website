@@ -20,6 +20,7 @@ import {
 import { FiExternalLink, FiMapPin, FiVideo } from "react-icons/fi";
 import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndividualResidencialFormState";
 import { LeonixOpenHouseSlotCards } from "@/app/clasificados/lib/LeonixOpenHouseSlotCards";
+import { LeonixListingFactsGrid } from "@/app/clasificados/lib/LeonixListingFactsGrid";
 import type { QuickFactKey } from "../lib/agenteResidencialPreviewFormat";
 import {
   buildBrokerSupportBlock,
@@ -598,23 +599,12 @@ export function AgenteIndividualResidencialPreviewPage({
                 }`}
               >
                 {hasPropertyDetails(data) ? (
-                  <div className="rounded-xl border" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
-                    <div className={CARD_PAD}>
-                      <h3 className={SECTION_LABEL} style={{ color: MUTED }}>
-                        {p.detallesPropiedad}
-                      </h3>
-                      <dl className="grid gap-2 sm:grid-cols-2 sm:gap-x-4 sm:gap-y-2">
-                        {propertyRows.map((r) => (
-                          <div key={r.label} className="min-w-0 border-b border-[rgba(44,36,22,0.06)] pb-2 last:border-b-0 sm:border-b-0 sm:pb-0">
-                            <dt className={typo.detailLabel} style={{ color: MUTED_LIGHT }}>
-                              {r.label}
-                            </dt>
-                            <dd className={`mt-0.5 ${typo.detailValue}`}>{r.value}</dd>
-                          </div>
-                        ))}
-                      </dl>
-                    </div>
-                  </div>
+                  <LeonixListingFactsGrid
+                    title={p.detallesPropiedad}
+                    rows={propertyRows}
+                    theme={{ borderColor: BORDER, cardBackground: CREAM, labelColor: MUTED, valueColor: CHARCOAL }}
+                    className="shadow-[0_4px_24px_rgba(44,36,22,0.06)]"
+                  />
                 ) : null}
                 {hasFeatures(data) ? (
                   <div className="rounded-xl border" style={{ borderColor: BORDER, background: CREAM, boxShadow: CARD_SHADOW }}>
