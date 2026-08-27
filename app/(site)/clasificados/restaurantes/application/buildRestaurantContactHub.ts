@@ -265,6 +265,19 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
       });
     }
   }
+  // Gate C7 — repeatable additional website links (menú, reservas, pedidos, catering, eventos, etc.).
+  (d.additionalWebsites ?? []).forEach((row, index) => {
+    const label = nonEmpty(row.label) ? row.label.trim() : "";
+    if (!nonEmpty(row.url) || !label) return;
+    const url = normalizeRestaurantUrl(row.url);
+    if (!isValidExternalHttpUrl(url)) return;
+    pushUniqueButton(orderReserve, {
+      id: `extra-website-${index}`,
+      label,
+      href: url,
+      action: "website",
+    });
+  });
 
   const social: RestaurantHubSocialLink[] = [];
   const addSocial = (id: string, label: string, raw?: string) => {

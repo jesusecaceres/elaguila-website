@@ -28,17 +28,26 @@ export async function ensureOfertaLocalRecordForAiScan(
     return { ok: false, error: "unauthorized", detail: "Sign in to scan with AI." };
   }
 
-  const res = await fetch("/api/ofertas-locales/scan-prep", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      draft,
-      ofertaLocalId: existingOfertaLocalId?.trim() || undefined,
-    }),
-  });
+  let res: Response;
+  try {
+    res = await fetch("/api/ofertas-locales/scan-prep", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        draft,
+        ofertaLocalId: existingOfertaLocalId?.trim() || undefined,
+      }),
+    });
+  } catch (err) {
+    return {
+      ok: false,
+      error: "network_error",
+      detail: err instanceof Error ? err.message : "Network request failed.",
+    };
+  }
 
   let body: unknown;
   try {

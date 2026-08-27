@@ -49,6 +49,7 @@ import {
 import {
   loadOfertaLocalSubmissionSession,
   loadOfertaLocalWizardStep,
+  sanitizeAssetList,
   saveOfertaLocalDraftToStorage,
   saveOfertaLocalWizardStep,
 } from "@/app/lib/ofertas-locales/ofertasLocalesDraftPersistence";
@@ -64,6 +65,7 @@ import { validateOfertaLocalDraftForServerPublish } from "@/app/lib/ofertas-loca
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import type {
   OfertaLocalBusinessCategory,
+  OfertaLocalDraft,
   OfertaLocalMarketType,
   OfertaLocalOfferType,
 } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
@@ -75,7 +77,7 @@ import {
   wizardStepTitle,
   type OfertasLocalesWizardStepId,
 } from "@/app/lib/ofertas-locales/ofertasLocalesWizardSteps";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { normalizeLang } from "@/app/lib/language";
 import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import { publicContactHref } from "@/app/lib/leonix/publicRouteHrefs";
@@ -257,6 +259,8 @@ function formatSavedAt(ts: number | null, lang: "es" | "en"): string | null {
 
 export default function OfertasLocalesApplicationClient() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const requestedInitialStep = searchParams?.get("step") ?? "";
   const requestedProduct = searchParams?.get("product") ?? "";
   const requestedIntent = searchParams?.get("intent") ?? "";
@@ -285,6 +289,8 @@ export default function OfertasLocalesApplicationClient() {
   const [step5PendingFileCount, setStep5PendingFileCount] = useState(0);
   const [submitSuccess, setSubmitSuccess] = useState<{ id: string; status: string } | null>(null);
   const stepRestoredRef = useRef(false);
+  const canonicalRecoveryAttemptedRef = useRef(false);
+  const urlIdSyncedRef = useRef(false);
   const [aiScanRecordId, setAiScanRecordId] = useState<string | null>(
     () => loadOfertaLocalAiScanSession().ofertaLocalId
   );
@@ -352,6 +358,68 @@ export default function OfertasLocalesApplicationClient() {
     }
   }, [draft.applicationSessionId, hasLoadedDraft]);
 
+  // Canonical DB recovery — covers the case where browser-local draft state
+  // is unavailable (a different Preview deployment origin, device, cleared
+  // storage) but a durable ?id= is present in the URL. Local draft state
+  // always wins when it exists; this only fires when the id is still empty
+  // after the local-storage restoration above.
+  useEffect(() => {
+    if (!hasLoadedDraft || canonicalRecoveryAttemptedRef.current) return;
+    const idToRecover = requestedListingId.trim();
+    if (!idToRecover || effectiveOfertaLocalId) {
+      canonicalRecoveryAttemptedRef.current = true;
+      return;
+    }
+    canonicalRecoveryAttemptedRef.current = true;
+    let cancelled = false;
+    (async () => {
+      try {
+        const sb = createSupabaseBrowserClient();
+        const { data } = await sb.auth.getSession();
+        const token = data.session?.access_token;
+        if (!token) return;
+        const res = await fetch(`/api/ofertas-locales/owner/${encodeURIComponent(idToRecover)}?lang=${lang}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok || cancelled) return;
+        const body = (await res.json()) as {
+          ok?: boolean;
+          offer?: { id?: string; status?: string };
+          draftPatch?: Record<string, unknown> | null;
+        };
+        if (cancelled || !body?.ok || !body.offer?.id) return;
+        setAiScanRecordId(body.offer.id);
+        setSubmitSuccess({ id: body.offer.id, status: body.offer.status ?? "pending_review" });
+        saveOfertaLocalAiScanSession({ ofertaLocalId: body.offer.id, lastScanJobId: null });
+        if (body.draftPatch) {
+          const patch: Record<string, unknown> = { ...body.draftPatch };
+          if ("flyerAssets" in patch) patch.flyerAssets = sanitizeAssetList(patch.flyerAssets);
+          if ("couponAssets" in patch) patch.couponAssets = sanitizeAssetList(patch.couponAssets);
+          updateDraft(patch as Partial<OfertaLocalDraft>);
+        }
+      } catch {
+        // Network error recovering the canonical row — leave whatever local
+        // draft state already loaded untouched.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [hasLoadedDraft, requestedListingId, effectiveOfertaLocalId, lang, updateDraft]);
+
+  // Durable identity — once a canonical id is known, reflect it in the URL
+  // so a bookmark, share, or reload from a storage-less context (a new
+  // Preview deployment origin, a different device) can still recover the
+  // application via the canonical-DB-recovery effect above.
+  useEffect(() => {
+    if (!effectiveOfertaLocalId || urlIdSyncedRef.current) return;
+    urlIdSyncedRef.current = true;
+    if (requestedListingId.trim() === effectiveOfertaLocalId.trim()) return;
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    params.set("id", effectiveOfertaLocalId);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [effectiveOfertaLocalId, requestedListingId, pathname, router, searchParams]);
+
   useEffect(() => {
     if (!hasLoadedDraft) return;
     if (requestedReview === "1" || requestedReview === "true") {
@@ -403,11 +471,14 @@ export default function OfertasLocalesApplicationClient() {
   }, [draft, hasLoadedDraft, lang, requestedProduct, updateDraft]);
 
   useEffect(() => {
+    // Guarded so this can't re-persist a stale pre-hydration id in the same
+    // commit as useOfertasLocalesDraft's own mount effect clearing it.
+    if (!hasLoadedDraft) return;
     saveOfertaLocalAiScanSession({
       ofertaLocalId: effectiveOfertaLocalId,
       lastScanJobId,
     });
-  }, [effectiveOfertaLocalId, lastScanJobId]);
+  }, [effectiveOfertaLocalId, hasLoadedDraft, lastScanJobId]);
 
   useEffect(() => {
     const sb = createSupabaseBrowserClient();
@@ -512,10 +583,12 @@ export default function OfertasLocalesApplicationClient() {
 
   const step5ScanRequired = aiIncludedInPackage;
   const step5ScanComplete = !step5ScanRequired || hasExistingAiScan;
+  // Zero extracted candidates is never "review complete" — that's an
+  // extraction failure/empty result, not a reviewed set. Only a real,
+  // non-empty candidate list with nothing left pending counts as complete.
   const step5ReviewComplete =
     !step5ScanRequired ||
-    (step5ScanComplete &&
-      (aiReviewGate.totalItems === 0 || aiReviewGate.needsReviewCount === 0));
+    (step5ScanComplete && aiReviewGate.totalItems > 0 && aiReviewGate.needsReviewCount === 0);
 
   const step5ActiveCheckpoint = useMemo((): "upload" | "scan" | "review" | "complete" => {
     if (!step5UploadComplete) return "upload";
@@ -614,12 +687,15 @@ export default function OfertasLocalesApplicationClient() {
       : `Paso ${step} de ${OFERTAS_LOCALES_WIZARD_STEP_COUNT}`;
 
   useEffect(() => {
+    // Guarded so this can't apply the default against the pre-hydration
+    // empty draft and clobber a real restored value.
+    if (!hasLoadedDraft) return;
     if (!draft.membershipCtaLabel.trim()) {
       updateDraft({
         membershipCtaLabel: OFERTAS_LOCALES_MEMBERSHIP_CTA_DEFAULTS.signUpBeforeYouGoEs,
       });
     }
-  }, [draft.membershipCtaLabel, updateDraft]);
+  }, [draft.membershipCtaLabel, hasLoadedDraft, updateDraft]);
 
   const handleBusinessLogoFile = useCallback(
     async (file: File) => {

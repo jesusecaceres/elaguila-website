@@ -26,7 +26,7 @@ import {
 } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import type { IconType } from "react-icons";
-import { RestauranteShellDataUrlModal } from "./RestauranteShellDataUrlModal";
+import { BusinessFlyerViewerModal } from "@/app/components/media/BusinessFlyerViewerModal";
 import {
   restaurantesGlobalListingFromRow,
   restaurantesGlobalSaveRecorder,
@@ -299,7 +299,7 @@ export function RestauranteShellInteractiveCtas({
           </button>
         );
       })}
-      <RestauranteShellDataUrlModal
+      <BusinessFlyerViewerModal
         open={dataModal != null}
         onClose={() => setDataModal(null)}
         href={dataModal?.href ?? ""}
