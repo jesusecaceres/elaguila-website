@@ -146,7 +146,11 @@ export function RestauranteAdStoryPreview({
   // Global Business Hub OS — trustRating no longer renders (REVIEWS MASTER RULE); this gate now
   // reflects only what's actually shown (trustLight).
   const hasTrustInfo = Boolean(data.trustLight);
-  const hasStackSections = proseData.stackSections && proseData.stackSections.length > 0;
+  // Gate C6: catering gets its own always-visible titled section instead of being buried inside
+  // the collapsed "Más información" accordion — it stays out of hasStackSections/hasMoreInfo below.
+  const cateringStack = proseData.stackSections?.find((s) => s.id === "catering") ?? null;
+  const otherStackSections = proseData.stackSections?.filter((s) => s.id !== "catering") ?? [];
+  const hasStackSections = otherStackSections.length > 0;
   const hasMoreInfo = hasTrustInfo || hasStackSections;
 
   const todayHoursRow = useMemo(() => {
@@ -271,7 +275,7 @@ export function RestauranteAdStoryPreview({
         <section className={SECTION_CARD}>
           <div className={SECTION_PADDING}>
             {!proseData.aboutBody ? translateControl : null}
-            <h2 className={SECTION_TITLE}>Especialidades de la Casa</h2>
+            <h2 className={SECTION_TITLE}>{lang === "en" ? "House Specialties" : "Especialidades de la Casa"}</h2>
             {/* Mobile: horizontal snap carousel */}
             <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] md:hidden">
               {proseData.menuHighlights!.map((dish, index) => (
@@ -356,7 +360,7 @@ export function RestauranteAdStoryPreview({
       {showStandaloneHours && data.hoursPreview ? (
         <section className={SECTION_CARD}>
           <div className={SECTION_PADDING}>
-            <h2 className={SECTION_TITLE}>Horarios</h2>
+            <h2 className={SECTION_TITLE}>{lang === "en" ? "Hours" : "Horarios"}</h2>
             <div className="space-y-2 md:space-y-3">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                 <span
@@ -366,7 +370,13 @@ export function RestauranteAdStoryPreview({
                       : "bg-orange-100 text-orange-800"
                   }`}
                 >
-                  {data.hoursPreview.status === "open" ? "Abierto ahora" : "Cerrado"}
+                  {data.hoursPreview.status === "open"
+                    ? lang === "en"
+                      ? "Open now"
+                      : "Abierto ahora"
+                    : lang === "en"
+                      ? "Closed"
+                      : "Cerrado"}
                 </span>
                 <div className="min-w-0 text-sm text-[#5A5148] md:text-base">
                   <p className="font-medium text-[#1F1A17]">{data.hoursPreview.statusLine}</p>
@@ -376,7 +386,9 @@ export function RestauranteAdStoryPreview({
 
               {todayHoursRow ? (
                 <div className="rounded-xl border border-[#D8C2A0]/80 bg-white/90 px-3 py-2.5 md:hidden">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8B7E70]">Hoy · {todayHoursRow.dayLabel}</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8B7E70]">
+                    {lang === "en" ? "Today" : "Hoy"} · {todayHoursRow.dayLabel}
+                  </p>
                   <p className="mt-1 text-sm font-medium text-[#1F1A17]">{convertTo12Hour(todayHoursRow.line)}</p>
                 </div>
               ) : null}
@@ -398,7 +410,7 @@ export function RestauranteAdStoryPreview({
                     {(proseData.hoursDetail?.specialNote ?? data.hoursDetail.specialNote) ? (
                       <div className="mt-4 rounded-xl bg-[#F6EBDD] p-4">
                         <p className="text-sm text-[#1F1A17]">
-                          <strong>Nota especial:</strong>{" "}
+                          <strong>{lang === "en" ? "Special note:" : "Nota especial:"}</strong>{" "}
                           {proseData.hoursDetail?.specialNote ?? data.hoursDetail.specialNote}
                         </p>
                       </div>
@@ -411,7 +423,13 @@ export function RestauranteAdStoryPreview({
                       onClick={() => setHoursFull((v) => !v)}
                       className="w-full rounded-xl border border-[#D8C2A0] bg-white py-2.5 text-sm font-semibold text-[#1F1A17]"
                     >
-                      {hoursFull ? "Ocultar horarios completos" : "Ver horarios completos"}
+                      {hoursFull
+                        ? lang === "en"
+                          ? "Hide full hours"
+                          : "Ocultar horarios completos"
+                        : lang === "en"
+                          ? "See full hours"
+                          : "Ver horarios completos"}
                     </button>
                     {hoursFull ? (
                       <div className="mt-3 rounded-2xl border border-[#D8C2A0] bg-white p-4">
@@ -427,7 +445,7 @@ export function RestauranteAdStoryPreview({
                         </dl>
                         {(proseData.hoursDetail?.specialNote ?? data.hoursDetail.specialNote) ? (
                           <p className="mt-3 rounded-lg bg-[#F6EBDD] p-3 text-xs text-[#1F1A17]">
-                            <strong>Nota:</strong>{" "}
+                            <strong>{lang === "en" ? "Note:" : "Nota:"}</strong>{" "}
                             {proseData.hoursDetail?.specialNote ?? data.hoursDetail.specialNote}
                           </p>
                         ) : null}
@@ -441,7 +459,29 @@ export function RestauranteAdStoryPreview({
         </section>
       ) : null}
 
-      {/* Más información — trust, catering stacks, extra details (compact) */}
+      {/* Catering y eventos — Gate C6: real, titled, always-visible section (not buried in Ver más). */}
+      {cateringStack ? (
+        <section className={SECTION_CARD}>
+          <div className={SECTION_PADDING}>
+            <h2 className={SECTION_TITLE}>{lang === "en" ? "Catering & events" : cateringStack.title}</h2>
+            <dl className="mt-3 space-y-0">
+              {cateringStack.rows.map((row, rowIndex) => (
+                <div
+                  key={rowIndex}
+                  className="flex flex-col gap-0.5 border-b border-[#D8C2A0]/25 py-2 last:border-0 sm:flex-row sm:items-start sm:justify-between sm:gap-3"
+                >
+                  <dt className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-[#8B7E70] sm:max-w-[40%] sm:normal-case sm:text-sm sm:text-[#1F1A17]">
+                    {row.label}
+                  </dt>
+                  <dd className="min-w-0 text-sm text-[#5A5148] sm:text-right">{renderStackValue(row)}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </section>
+      ) : null}
+
+      {/* Más información — trust, extra details (compact) */}
       {hasMoreInfo ? (
         <details className={`${SECTION_CARD} group`}>
           <summary className={`${SECTION_PADDING} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
@@ -488,7 +528,7 @@ export function RestauranteAdStoryPreview({
 
             {hasStackSections ? (
               <div className="space-y-3">
-                {proseData.stackSections!.map((stack) => (
+                {otherStackSections.map((stack) => (
                   <div key={stack.id} className="rounded-xl border border-[#D8C2A0] bg-white p-3 sm:p-4">
                     <h3 className={SUBSECTION_TITLE}>{stack.title}</h3>
                     <dl className="mt-2 space-y-0">

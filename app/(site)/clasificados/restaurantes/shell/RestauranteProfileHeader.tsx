@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import { FiClock, FiMapPin } from "react-icons/fi";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
@@ -11,8 +12,10 @@ import {
 } from "../lib/recordRestaurantesGlobalAnalytics";
 import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
 
+/** Gate C13 — same warm-brown Restaurant identity, moderately lighter/softer gradient endpoints
+ * (was #1E1814/#3B2117/#2A2620); no new token system, no owner customization. */
 const HEADER_SHELL =
-  "relative overflow-hidden rounded-xl border-2 border-[#E8D9C4] bg-gradient-to-br from-[#1E1814] via-[#3B2117] to-[#2A2620] text-[#FFFCF7] shadow-[0_12px_40px_rgba(30,24,16,0.18)] sm:rounded-2xl";
+  "relative overflow-hidden rounded-xl border-2 border-[#E8D9C4] bg-gradient-to-br from-[#2E2620] via-[#4A2E20] to-[#3A332C] text-[#FFFCF7] shadow-[0_12px_40px_rgba(30,24,16,0.18)] sm:rounded-2xl";
 
 const LOGO_FRAME =
   "relative mx-auto h-[5.25rem] w-[5.25rem] shrink-0 overflow-hidden rounded-lg border-[2.5px] border-[#C9A84A]/85 bg-[#FFFCF7] p-1.5 shadow-[0_8px_24px_rgba(201,168,74,0.22)] sm:h-24 sm:w-24 lg:mx-0 lg:h-[5.5rem] lg:w-[5.5rem]";
@@ -78,6 +81,12 @@ export function RestauranteProfileHeader({
 
   const heroImage = data.heroImageUrl?.trim() ?? "";
 
+  // Gate C12 — square/compact marks fill the frame edge to edge (no forced padding shrinking a
+  // logo that's already the right shape); wide/tall marks keep the padded contain treatment so
+  // nothing is destructively cropped. Ratio is only known once the image has actually loaded.
+  const [logoAspectRatio, setLogoAspectRatio] = useState<number | null>(null);
+  const logoIsCompact = logoAspectRatio != null && logoAspectRatio >= 0.8 && logoAspectRatio <= 1.25;
+
   return (
     <section className={HEADER_SHELL} aria-label={lang === "en" ? "Restaurant profile" : "Perfil del restaurante"}>
       <div
@@ -110,7 +119,7 @@ export function RestauranteProfileHeader({
           ) : null}
 
           <div className="flex min-w-0 flex-1 flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
-          <div className={LOGO_FRAME}>
+          <div className={`${LOGO_FRAME} ${logoIsCompact ? "!p-0.5" : ""}`}>
             {data.businessLogo?.trim() ? (
               <Image
                 src={data.businessLogo}
@@ -119,6 +128,12 @@ export function RestauranteProfileHeader({
                 height={96}
                 className="h-full w-full object-contain"
                 unoptimized={data.businessLogo.startsWith("data:") || data.businessLogo.startsWith("blob:")}
+                onLoad={(e) => {
+                  const img = e.currentTarget;
+                  if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+                    setLogoAspectRatio(img.naturalWidth / img.naturalHeight);
+                  }
+                }}
               />
             ) : (
               <div
