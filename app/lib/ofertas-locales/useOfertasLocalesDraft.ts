@@ -11,7 +11,6 @@ import {
 import {
   clearOfertaLocalDraftStorage,
   loadOfertaLocalDraftFromStorage,
-  peekStoredOfertaLocalApplicationSessionId,
   readActiveOfertaLocalApplicationSessionId,
   saveOfertaLocalDraftToStorage,
   writeActiveOfertaLocalApplicationSessionId,
@@ -46,7 +45,10 @@ export function useOfertasLocalesDraft(options?: UseOfertasLocalesDraftOptions) 
     hydratedRef.current = true;
 
     const stored = loadOfertaLocalDraftFromStorage();
-    const storedSessionId = peekStoredOfertaLocalApplicationSessionId();
+    // Read directly off the same merged draft used to restore state below —
+    // a second independent loadOfertaLocalDraftFromStorage() call would run
+    // mergeDraft() again and could synthesize a different fallback id.
+    const storedSessionId = stored?.applicationSessionId || null;
     const activeSessionId = readActiveOfertaLocalApplicationSessionId();
     const decision = forceContinue
       ? "continue"

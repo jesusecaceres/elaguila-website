@@ -53,10 +53,16 @@ export function resolveOfertaLocalDraftLoadDecision(input: {
     return "continue";
   }
 
-  const active = String(input.activeSessionId ?? "").trim();
+  // No explicit reset/continue signal was given (e.g. a plain reload, a hard
+  // refresh, or returning via back/forward or an internal link). A stored
+  // draft on this device is itself the strongest signal available — the
+  // active-session marker lives in sessionStorage and is easily lost (new
+  // tab, some hard-refresh paths, storage partitioning) without that meaning
+  // the user wants to abandon their application. Restore whenever we have
+  // one; only the explicit "new"/"fresh" signals above, or the confirmed
+  // in-app "start over" action (resetDraft()), should ever discard it.
   const stored = String(input.storedSessionId ?? "").trim();
-  const navigation = input.signals.navigation ?? "unknown";
-  if (active && stored && active === stored && navigation !== "navigate") {
+  if (stored) {
     return "active";
   }
 
