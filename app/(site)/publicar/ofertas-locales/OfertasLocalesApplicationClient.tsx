@@ -276,7 +276,10 @@ export default function OfertasLocalesApplicationClient() {
     sourceCta: "more_exposure_contact",
     inquiryType: "advertising",
   });
+  const [signedIn, setSignedIn] = useState(true);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
   const { draft, updateDraft, resetDraft, hasLoadedDraft, lastSavedAt } = useOfertasLocalesDraft({
+    ownerId,
     signals: {
       intent: requestedIntent,
       fresh: requestedFresh,
@@ -319,7 +322,6 @@ export default function OfertasLocalesApplicationClient() {
     aiItems: false,
     leonixRules: false,
   });
-  const [signedIn, setSignedIn] = useState(true);
   const initialStepAppliedRef = useRef(false);
   const initialProductAppliedRef = useRef(false);
 
@@ -484,9 +486,11 @@ export default function OfertasLocalesApplicationClient() {
     const sb = createSupabaseBrowserClient();
     void sb.auth.getSession().then(({ data }) => {
       setSignedIn(Boolean(data.session?.access_token));
+      setOwnerId(data.session?.user?.id ?? null);
     });
     const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
       setSignedIn(Boolean(session?.access_token));
+      setOwnerId(session?.user?.id ?? null);
     });
     return () => sub.subscription.unsubscribe();
   }, []);
