@@ -58,6 +58,10 @@ import {
 } from "@/app/lib/listingPlans/revenueOsReturnPath";
 import { validateRentasRenewalCheckoutOwnership } from "@/app/lib/listingLifecycle/listingRenewalFulfillment";
 import { assertCommercialCapacityForWrite } from "@/app/lib/listingPlans/commercialWriteGuard";
+import {
+  isRevenueBaseEntitlementGuardedPackage,
+  requiresBaseCheckout,
+} from "@/app/lib/listingPlans/revenueActiveEntitlementGuard";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { getVerifiedBearerUser } from "@/app/api/_lib/verifiedBearerUser";
 import { hashVerifiedIdentity, maskVerifiedEmail, maskVerifiedPhone } from "@/app/lib/security/verifiedIdentityHash";
@@ -468,6 +472,33 @@ export async function POST(request: NextRequest) {
   }
 
   const { packageDef, listingRef, amountCents, subtotalCents, addOns, currency, stripeMode } = validated;
+
+  // ── Revenue OS active-entitlement guard (shared, server-authoritative) ──────────────────
+  // A listing/business that already has an ACTIVE base-package entitlement must never be sent
+  // through Stripe Checkout for that same base package again — this is the actual choke point
+  // every category's base-package checkout (Autos Dealer, Bienes Raíces, Servicios, Restaurantes,
+  // Comida Local) funnels through, so one check here closes the gap for all five at once. Never
+  // trusts client state — reads the real `listing_package_entitlements` table.
+  if (isRevenueBaseEntitlementGuardedPackage(packageDef.category, packageDef.packageKey)) {
+    const entitlementGuard = await requiresBaseCheckout({
+      listingId: listingRef || null,
+      ownerId: ownerUserId,
+      category: packageDef.category,
+      packageKey: packageDef.packageKey,
+    });
+    if (!entitlementGuard.requiresCheckout) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "active_entitlement_no_recharge",
+          message:
+            "This listing already has an active base package — no additional charge is required. Save your edit instead of checking out again.",
+          activeEntitlement: entitlementGuard.activeEntitlement,
+        },
+        { status: 409 },
+      );
+    }
+  }
 
   const locale = body.locale === "en" ? "en" : "es";
   const isRestauranteAddonOnly =
