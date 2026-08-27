@@ -38,6 +38,8 @@ type Props = {
   videoUrls?: readonly string[] | null;
   /** Optional listing UUID for analytics tracking in public detail context */
   listingId?: string | null;
+  /** Item 29 — utilities/services included in rent, kept separate from property/space features. */
+  includedServices?: readonly string[] | null;
 };
 
 type DetailGroup = {
@@ -335,7 +337,7 @@ function ActionLink({
   );
 }
 
-export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId }: Props) {
+export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, includedServices }: Props) {
   const ph = photos(vm);
   const [hero, ...rest] = ph;
   const videos = mediaVideos(vm, videoUrls, lang);
@@ -630,15 +632,34 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId }:
           ) : null}
 
           {featureText.length ? (
-            <Section eyebrow={lang === "es" ? "Incluido y destacado" : "Included & highlighted"} title={lang === "es" ? "Características destacadas" : "Highlighted features"}>
-              <div className="grid gap-2 sm:grid-cols-2">
+            <Section eyebrow={lang === "es" ? "Destacado" : "Highlighted"} title={lang === "es" ? "Características" : "Features"}>
+              <div className="flex flex-wrap gap-2">
                 {featureText.map((item) => (
-                  <div key={item} className="flex items-start gap-2.5 rounded-2xl border bg-white/75 p-3" style={{ borderColor: "rgba(214,199,173,0.75)" }}>
-                    <FiCheckCircle className="mt-0.5 h-4 w-4 shrink-0" style={{ color: BRONZE }} aria-hidden />
-                    <span className="text-sm font-semibold leading-6" style={{ color: BODY }}>
-                      {item}
-                    </span>
-                  </div>
+                  <span
+                    key={item}
+                    className="inline-flex items-center gap-1.5 rounded-full border bg-white/75 px-3 py-1.5 text-xs font-semibold"
+                    style={{ borderColor: "rgba(214,199,173,0.75)", color: BODY }}
+                  >
+                    <FiCheckCircle className="h-3.5 w-3.5 shrink-0" style={{ color: BRONZE }} aria-hidden />
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </Section>
+          ) : null}
+
+          {includedServices && includedServices.length ? (
+            <Section eyebrow={lang === "es" ? "Incluido en la renta" : "Included in rent"} title={lang === "es" ? "Servicios incluidos" : "Included services"}>
+              <div className="flex flex-wrap gap-2">
+                {includedServices.map((item) => (
+                  <span
+                    key={item}
+                    className="inline-flex items-center gap-1.5 rounded-full border bg-white/75 px-3 py-1.5 text-xs font-semibold"
+                    style={{ borderColor: "rgba(214,199,173,0.75)", color: BODY }}
+                  >
+                    <FiCheckCircle className="h-3.5 w-3.5 shrink-0" style={{ color: BRONZE }} aria-hidden />
+                    {item}
+                  </span>
                 ))}
               </div>
             </Section>
