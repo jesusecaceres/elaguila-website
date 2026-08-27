@@ -452,6 +452,154 @@ export function BienesRaicesPrivadoPreviewView({
   return (
     <div className="w-full min-w-0 max-w-[100vw] overflow-x-hidden antialiased" style={{ backgroundColor: IVORY, color: CHARCOAL }}>
       <main className="mx-auto w-full min-w-0 max-w-[1240px] px-4 pb-[max(3rem,env(safe-area-inset-bottom,0px))] pt-2 sm:px-5 sm:pb-12 sm:pt-3 lg:px-7">
+        <section
+          style={{ borderColor: BORDER }}
+        >
+          <div className="min-w-0 lg:min-h-0">
+            {heroTitleShown ? (
+              <h1
+                className="max-w-full text-[1.65rem] font-bold leading-[1.15] tracking-tight [overflow-wrap:anywhere] sm:text-[2rem] lg:max-w-[720px] lg:text-[2.35rem]"
+                style={{ color: CHARCOAL_DEEP, fontFamily: "Georgia, 'Times New Roman', serif" }}
+              >
+                {heroTitleShown}
+              </h1>
+            ) : (
+              <h1 className="sr-only">{ui.vistaPreviaSr}</h1>
+            )}
+            {addressLineShown ? (
+              <p className="mt-2.5 flex items-start gap-2 text-sm font-medium leading-snug" style={{ color: MUTED }}>
+                <span className="mt-0.5 shrink-0" style={{ color: BRONZE }}>
+                  <IconPin className="block h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+                </span>
+                <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">{addressLineShown}</span>
+              </p>
+            ) : null}
+            {priceShown || vm.listingStatusLabel ? (
+              <div className="mt-3 flex flex-wrap items-end gap-2.5">
+                {priceShown ? (
+                  <span
+                    className="break-words text-[1.65rem] font-bold tracking-tight [font-variant-numeric:tabular-nums] sm:text-[2.25rem] lg:text-[2.5rem]"
+                    style={{ color: BRONZE, fontFamily: "Georgia, serif" }}
+                  >
+                    {priceShown}
+                  </span>
+                ) : null}
+                {vm.listingStatusLabel ? (
+                  <span
+                    className="mb-1 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
+                    style={{ borderColor: `${BRONZE}55`, background: "rgba(197, 160, 89, 0.12)", color: BRONZE_SOFT }}
+                  >
+                    {vm.listingStatusLabel}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+            {vm.operationSummary ? (
+              <p className="mt-1.5 text-xs font-medium" style={{ color: MUTED }}>
+                {vm.operationSummary}
+              </p>
+            ) : null}
+
+            <LeonixPrivadoPreviewQuickFactsStrip quickFacts={quickFacts} />
+          </div>
+
+          {showMainSellerAside ? (
+            <aside
+              className="min-w-0 rounded-2xl border p-4 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.18)] sm:p-5 lg:sticky lg:top-6 lg:self-start"
+              style={{ borderColor: BORDER, background: CREAM_CARD }}
+            >
+              {showSellerPhotoAside && vm.seller.photoUrl ? (
+                <div className="overflow-hidden rounded-2xl border shadow-sm" style={{ borderColor: BORDER }}>
+                  <img
+                    src={vm.seller.photoUrl ?? undefined}
+                    alt=""
+                    className="aspect-[4/5] w-full max-h-[min(240px,36vh)] object-cover object-top sm:max-h-[min(280px,40vh)]"
+                  />
+                </div>
+              ) : null}
+              {sellerNameShown ? (
+                <p
+                  className={`break-words text-base font-bold leading-snug tracking-tight sm:text-lg ${showSellerPhotoAside ? "mt-3 sm:mt-4" : "mt-0"}`}
+                  style={{ color: CHARCOAL_DEEP }}
+                >
+                  {sellerNameShown}
+                </p>
+              ) : null}
+              {sellerRoleShown ? (
+                <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.12em] sm:text-[11px]" style={{ color: BRONZE_SOFT }}>
+                  {sellerRoleShown}
+                </p>
+              ) : null}
+              {vm.seller.noteLine ? (
+                <p className="mt-3 text-sm leading-relaxed [overflow-wrap:anywhere]" style={{ color: MUTED }}>
+                  {vm.seller.noteLine}
+                </p>
+              ) : null}
+              <div
+                className={`space-y-2.5 text-sm ${
+                  showSellerPhotoAside || sellerNameShown || sellerRoleShown || vm.seller.noteLine
+                    ? "mt-4 border-t pt-4"
+                    : "mt-0"
+                }`}
+                style={{ borderColor: BORDER }}
+              >
+                {vm.contact.showSolicitarInfo && vm.contact.solicitarInfoHref ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      trackContact();
+                      brCta.openEmail();
+                    }}
+                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl px-3 py-3.5 text-center text-sm font-bold text-[#1E1810] shadow-md transition hover:brightness-105"
+                    style={{ background: `linear-gradient(180deg, ${BRONZE} 0%, ${BRONZE_SOFT} 100%)` }}
+                  >
+                    {ui.escribirCorreo}
+                  </button>
+                ) : null}
+                {vm.contact.showLlamar && vm.contact.llamarHref ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      trackContact();
+                      brCta.openCall();
+                    }}
+                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold transition hover:bg-black/[0.03]"
+                    style={{ borderColor: BORDER, color: CHARCOAL_DEEP }}
+                  >
+                    {ui.llamar}
+                  </button>
+                ) : null}
+                {vm.contact.showWhatsapp && vm.contact.whatsappHref ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      trackContact();
+                      brCta.openWhatsApp();
+                    }}
+                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold transition hover:bg-black/[0.03]"
+                    style={{ borderColor: "rgba(37,152,102,0.35)", color: "#1F6B44" }}
+                  >
+                    {ui.whatsapp}
+                  </button>
+                ) : null}
+                {vm.contact.showSms && vm.contact.smsHref ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      trackContact();
+                      brCta.openSms();
+                    }}
+                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold transition hover:bg-black/[0.03]"
+                    style={{ borderColor: "rgba(64,110,166,0.35)", color: "#2A4E7A" }}
+                  >
+                    {ui.enviarTexto}
+                  </button>
+                ) : null}
+              </div>
+            </aside>
+          ) : null}
+        </section>
+
         {showGallerySection ? (
           <section className="mb-0" id="galeria-multimedia">
             <div className="mb-1.5 flex flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
@@ -633,154 +781,6 @@ export function BienesRaicesPrivadoPreviewView({
             </div>
           </section>
         ) : null}
-
-        <section
-          style={{ borderColor: BORDER }}
-        >
-          <div className="min-w-0 lg:min-h-0">
-            {heroTitleShown ? (
-              <h1
-                className="max-w-full text-[1.65rem] font-bold leading-[1.15] tracking-tight [overflow-wrap:anywhere] sm:text-[2rem] lg:max-w-[720px] lg:text-[2.35rem]"
-                style={{ color: CHARCOAL_DEEP, fontFamily: "Georgia, 'Times New Roman', serif" }}
-              >
-                {heroTitleShown}
-              </h1>
-            ) : (
-              <h1 className="sr-only">{ui.vistaPreviaSr}</h1>
-            )}
-            {addressLineShown ? (
-              <p className="mt-2.5 flex items-start gap-2 text-sm font-medium leading-snug" style={{ color: MUTED }}>
-                <span className="mt-0.5 shrink-0" style={{ color: BRONZE }}>
-                  <IconPin className="block h-4 w-4 sm:h-[18px] sm:w-[18px]" />
-                </span>
-                <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">{addressLineShown}</span>
-              </p>
-            ) : null}
-            {priceShown || vm.listingStatusLabel ? (
-              <div className="mt-3 flex flex-wrap items-end gap-2.5">
-                {priceShown ? (
-                  <span
-                    className="break-words text-[1.65rem] font-bold tracking-tight [font-variant-numeric:tabular-nums] sm:text-[2.25rem] lg:text-[2.5rem]"
-                    style={{ color: BRONZE, fontFamily: "Georgia, serif" }}
-                  >
-                    {priceShown}
-                  </span>
-                ) : null}
-                {vm.listingStatusLabel ? (
-                  <span
-                    className="mb-1 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
-                    style={{ borderColor: `${BRONZE}55`, background: "rgba(197, 160, 89, 0.12)", color: BRONZE_SOFT }}
-                  >
-                    {vm.listingStatusLabel}
-                  </span>
-                ) : null}
-              </div>
-            ) : null}
-            {vm.operationSummary ? (
-              <p className="mt-1.5 text-xs font-medium" style={{ color: MUTED }}>
-                {vm.operationSummary}
-              </p>
-            ) : null}
-
-            <LeonixPrivadoPreviewQuickFactsStrip quickFacts={quickFacts} />
-          </div>
-
-          {showMainSellerAside ? (
-            <aside
-              className="min-w-0 rounded-2xl border p-4 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.18)] sm:p-5 lg:sticky lg:top-6 lg:self-start"
-              style={{ borderColor: BORDER, background: CREAM_CARD }}
-            >
-              {showSellerPhotoAside && vm.seller.photoUrl ? (
-                <div className="overflow-hidden rounded-2xl border shadow-sm" style={{ borderColor: BORDER }}>
-                  <img
-                    src={vm.seller.photoUrl ?? undefined}
-                    alt=""
-                    className="aspect-[4/5] w-full max-h-[min(240px,36vh)] object-cover object-top sm:max-h-[min(280px,40vh)]"
-                  />
-                </div>
-              ) : null}
-              {sellerNameShown ? (
-                <p
-                  className={`break-words text-base font-bold leading-snug tracking-tight sm:text-lg ${showSellerPhotoAside ? "mt-3 sm:mt-4" : "mt-0"}`}
-                  style={{ color: CHARCOAL_DEEP }}
-                >
-                  {sellerNameShown}
-                </p>
-              ) : null}
-              {sellerRoleShown ? (
-                <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.12em] sm:text-[11px]" style={{ color: BRONZE_SOFT }}>
-                  {sellerRoleShown}
-                </p>
-              ) : null}
-              {vm.seller.noteLine ? (
-                <p className="mt-3 text-sm leading-relaxed [overflow-wrap:anywhere]" style={{ color: MUTED }}>
-                  {vm.seller.noteLine}
-                </p>
-              ) : null}
-              <div
-                className={`space-y-2.5 text-sm ${
-                  showSellerPhotoAside || sellerNameShown || sellerRoleShown || vm.seller.noteLine
-                    ? "mt-4 border-t pt-4"
-                    : "mt-0"
-                }`}
-                style={{ borderColor: BORDER }}
-              >
-                {vm.contact.showSolicitarInfo && vm.contact.solicitarInfoHref ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      trackContact();
-                      brCta.openEmail();
-                    }}
-                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl px-3 py-3.5 text-center text-sm font-bold text-[#1E1810] shadow-md transition hover:brightness-105"
-                    style={{ background: `linear-gradient(180deg, ${BRONZE} 0%, ${BRONZE_SOFT} 100%)` }}
-                  >
-                    {ui.escribirCorreo}
-                  </button>
-                ) : null}
-                {vm.contact.showLlamar && vm.contact.llamarHref ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      trackContact();
-                      brCta.openCall();
-                    }}
-                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold transition hover:bg-black/[0.03]"
-                    style={{ borderColor: BORDER, color: CHARCOAL_DEEP }}
-                  >
-                    {ui.llamar}
-                  </button>
-                ) : null}
-                {vm.contact.showWhatsapp && vm.contact.whatsappHref ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      trackContact();
-                      brCta.openWhatsApp();
-                    }}
-                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold transition hover:bg-black/[0.03]"
-                    style={{ borderColor: "rgba(37,152,102,0.35)", color: "#1F6B44" }}
-                  >
-                    {ui.whatsapp}
-                  </button>
-                ) : null}
-                {vm.contact.showSms && vm.contact.smsHref ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      trackContact();
-                      brCta.openSms();
-                    }}
-                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold transition hover:bg-black/[0.03]"
-                    style={{ borderColor: "rgba(64,110,166,0.35)", color: "#2A4E7A" }}
-                  >
-                    {ui.enviarTexto}
-                  </button>
-                ) : null}
-              </div>
-            </aside>
-          ) : null}
-        </section>
 
         <section className="mt-3 grid min-w-0 grid-cols-1 gap-3 sm:mt-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:gap-4">
           <div className="space-y-3">
