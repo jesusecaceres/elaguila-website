@@ -68,7 +68,7 @@ export default async function ComidaLocalPublicDetailPage(props: PageProps) {
   const row = await getPublishedComidaLocalListingBySlug(slug);
   if (!row) notFound();
 
-  const vm = mapComidaLocalRowToDetailVm(row);
+  const vm = mapComidaLocalRowToDetailVm(row, lang === "en" ? "en" : "es");
   const hubHref = replaceLangInHref("/clasificados/comida-local", lang);
 
   return (

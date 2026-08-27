@@ -244,6 +244,7 @@ export function parseComidaLocalPublishRequest(body: Record<string, unknown>): {
       : randomUUID();
 
   const lang = body.lang === "en" ? "en" : "es";
+  const activationMode = body.activationMode === "pending_payment" ? "pending_payment" : undefined;
 
   return {
     ok: true,
@@ -252,6 +253,7 @@ export function parseComidaLocalPublishRequest(body: Record<string, unknown>): {
       draftListingId,
       packageTier,
       lang,
+      ...(activationMode ? { activationMode } : {}),
     },
   };
 }

@@ -61,8 +61,8 @@ const PAGE_COPY: Record<QuickLaneCheckpointCategory, { es: { title: string; body
     en: { title: "Publish in For Sale / Misc", body: "How your free publication works before you start." },
   },
   "comida-local": {
-    es: { title: "Publicar en Comida Local", body: "Así funciona tu publicación gratuita antes de empezar." },
-    en: { title: "Publish in Local Food", body: "How your free publication works before you start." },
+    es: { title: "Publicar en Comida Local", body: "Así funciona tu publicación antes de empezar." },
+    en: { title: "Publish in Local Food", body: "How your listing works before you start." },
   },
   viajes: {
     es: { title: "Publicar en Viajes", body: "Elige cómo quieres publicar tu viaje u oferta en Leonix." },

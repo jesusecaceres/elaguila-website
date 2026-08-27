@@ -18,6 +18,10 @@ export type ComidaLocalPublishRequestBody = {
   draftListingId?: string;
   packageTier?: string;
   lang?: "es" | "en";
+  /** Gate D19 — when "pending_payment", the row is saved hidden (not publicly visible) ahead
+   * of Revenue OS Stripe checkout; the webhook flips it to published on confirmed payment
+   * (see revenueComidaLocalFulfillment.ts). Omitted/undefined = normal publish. */
+  activationMode?: "pending_payment";
   /** Ignored — owner resolved server-side from Bearer token. */
   owner_user_id?: never;
 };
@@ -42,4 +46,5 @@ export type ComidaLocalNormalizedPublishDraft = {
   draftListingId: string;
   packageTier: ComidaLocalPackageTierDb;
   lang: "es" | "en";
+  activationMode?: "pending_payment";
 };

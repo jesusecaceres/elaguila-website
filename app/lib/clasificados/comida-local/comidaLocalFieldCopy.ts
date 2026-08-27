@@ -14,7 +14,7 @@ export const COMIDA_LOCAL_SHELL_COPY = {
   pageSubtitle:
     "Ficha simple para puestos, pop-ups y vendedores locales. Completa el formulario, revisa la vista previa y publica cuando estés listo.",
   scaffoldNotice:
-    "Tu borrador se guarda automáticamente en este navegador. La publicación es gratuita en esta fase (sin Stripe).",
+    "Tu borrador se guarda automáticamente en este navegador. Revisa la vista previa antes de continuar al pago ($129/mes).",
   previewSoon: "Próximo paso: vista previa",
   viewPreview: "Ver vista previa",
   publishSoonPreview: "Publicar próximamente",
@@ -51,6 +51,18 @@ export const COMIDA_LOCAL_FIELD_COPY: Record<string, ComidaLocalFieldCopy> = {
     placeholder: "Ej. pupusas salvadoreñas",
     optional: true,
   },
+  businessType: {
+    label: "Formato de tu negocio",
+    helper: "Food truck, puesto, cocina en casa, catering… ayuda a mostrar los campos correctos.",
+    placeholder: "Elige una opción",
+    optional: true,
+  },
+  businessTypeCustom: {
+    label: "Otro formato",
+    helper: "Solo si elegiste Otro en formato de negocio.",
+    placeholder: "Ej. cooperativa de vendedores",
+    optional: true,
+  },
   cityDisplay: {
     label: "Ciudad / zona principal",
     helper: "Elige una ciudad NorCal de la lista. Aparece en resultados y en la ficha.",
@@ -79,6 +91,12 @@ export const COMIDA_LOCAL_FIELD_COPY: Record<string, ComidaLocalFieldCopy> = {
     placeholder: "(408) 555-1234",
     optional: true,
   },
+  email: {
+    label: "Correo (opcional)",
+    helper: "Habilita el botón de Correo en tu ficha pública. Solo se muestra si lo llenas.",
+    placeholder: "tunegocio@correo.com",
+    optional: true,
+  },
   instagramUrl: {
     label: "Instagram",
     helper: "Enlace o usuario. Solo se muestra si es válido.",
@@ -98,14 +116,14 @@ export const COMIDA_LOCAL_FIELD_COPY: Record<string, ComidaLocalFieldCopy> = {
     optional: true,
   },
   locationNote: {
-    label: "Ubicación actual / nota de ubicación",
-    helper: "Útil para puestos móviles. No es una dirección fija de restaurante.",
+    label: "Encuéntrame hoy",
+    helper: "Dónde estás hoy o esta semana. Útil para puestos móviles — no es tu dirección fija.",
     placeholder: "Hoy en mercado en…",
     optional: true,
   },
   locationUrl: {
-    label: "URL de ubicación actual",
-    helper: "Pin de Maps, publicación o link con dónde estás hoy. Opcional.",
+    label: "Enlace a dónde estás hoy",
+    helper: "Pin de Maps, publicación o link con tu ubicación de hoy. Opcional.",
     placeholder: "https://maps.google.com/…",
     optional: true,
   },
@@ -118,6 +136,39 @@ export const COMIDA_LOCAL_FIELD_COPY: Record<string, ComidaLocalFieldCopy> = {
   serviceOptions: {
     label: "Opciones de servicio",
     helper: "Cómo pueden recibir la comida. Aparecen como etiquetas en la ficha.",
+    optional: true,
+  },
+  serviceOptionOtherCustom: {
+    label: "Otra opción de servicio",
+    helper: "Solo si marcaste Otro en opciones de servicio.",
+    placeholder: "Ej. solo por encargo especial",
+    optional: true,
+  },
+  businessAddressLine: {
+    label: "Dirección del negocio (opcional)",
+    helper: "Dirección fija, si tienes una. Privada por defecto — actívala abajo para mostrarla en la ficha pública.",
+    placeholder: "Calle, ciudad",
+    optional: true,
+  },
+  showAddressPublicly: {
+    label: "Mostrar dirección en la ficha pública",
+    helper: "Si no la activas, tu dirección queda privada y solo se muestra tu ciudad/zona.",
+    optional: true,
+  },
+  highlights: {
+    label: "Detalles destacados",
+    helper: "Lo que te distingue: hecho en casa, vegano, porciones limitadas, etc.",
+    optional: true,
+  },
+  highlightsOtherCustom: {
+    label: "Otro detalle destacado",
+    helper: "Solo si marcaste Otro en detalles destacados.",
+    placeholder: "Ej. receta de tres generaciones",
+    optional: true,
+  },
+  additionalWebsites: {
+    label: "Enlaces adicionales",
+    helper: "Menú, formulario de pedidos, catering, socio de entrega, etc. Opcional.",
     optional: true,
   },
   paymentMethods: {

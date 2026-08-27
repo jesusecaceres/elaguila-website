@@ -22,6 +22,10 @@ import {
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
 } from "./revenueServiciosFulfillment";
 import {
+  activatePaidComidaLocalListingFromRevenueOs,
+  COMIDA_LOCAL_BASE_MONTHLY_PACKAGE_KEY,
+} from "./revenueComidaLocalFulfillment";
+import {
   activatePaidRentasListingFromRevenueOs,
   RENTAS_30D_PACKAGE_KEY,
 } from "./revenueRentasFulfillment";
@@ -279,6 +283,85 @@ async function tryActivateRestauranteListingAfterEntitlement(input: {
   await writeRevenueAuditLog({
     action: "restaurante_listing_activated_after_payment",
     targetType: "restaurantes_public_listings",
+    targetId: activation.listingId ?? null,
+    meta: {
+      listing_id: activation.listingId,
+      package_key: input.packageDef.packageKey,
+      payment_record_id: input.paymentRecord.id,
+      leonix_ad_id: input.paymentRecord.leonix_ad_id,
+      stripe_checkout_session_id: input.stripeCheckoutSessionId,
+      stripe_event_id: input.stripeEventId,
+      outcome: activation.outcome,
+    },
+  });
+
+  return { ok: true };
+}
+
+/** Gate D19 — mirrors tryActivateRestauranteListingAfterEntitlement; no coupon add-on branch
+ * (Comida Local has no coupon feature, Gate D14). */
+async function tryActivateComidaLocalListingAfterEntitlement(input: {
+  paymentRecord: LeonixPaymentRecordRow;
+  packageDef: RevenuePackageDefinition;
+  stripeEventId: string;
+  stripeCheckoutSessionId: string;
+}): Promise<{ ok: boolean; code?: string; message?: string }> {
+  if (input.packageDef.packageKey !== COMIDA_LOCAL_BASE_MONTHLY_PACKAGE_KEY) {
+    return { ok: true };
+  }
+
+  const activation = await activatePaidComidaLocalListingFromRevenueOs({
+    listingId: input.paymentRecord.listing_id,
+    packageKey: input.packageDef.packageKey,
+    paymentRecordId: input.paymentRecord.id,
+    stripeCheckoutSessionId: input.stripeCheckoutSessionId,
+    stripeEventId: input.stripeEventId,
+    leonixAdId: input.paymentRecord.leonix_ad_id,
+  });
+
+  if (activation.outcome === "skipped_wrong_package" || activation.outcome === "already_published") {
+    return { ok: true };
+  }
+
+  if (activation.outcome === "unsafe_status" && activation.ok) {
+    await writeRevenueAuditLog({
+      action: "revenue_webhook_ignored",
+      targetType: "comida_local_public_listings",
+      targetId: activation.listingId ?? null,
+      meta: {
+        reason: "comida_local_activation_unsafe_status",
+        outcome: activation.outcome,
+        message: activation.message,
+        payment_record_id: input.paymentRecord.id,
+        stripe_event_id: input.stripeEventId,
+      },
+    });
+    return { ok: true };
+  }
+
+  if (!activation.ok) {
+    await writeRevenueAuditLog({
+      action: "revenue_webhook_validation_failed",
+      targetType: "comida_local_public_listings",
+      targetId: activation.listingId ?? input.paymentRecord.listing_id,
+      meta: {
+        code: `comida_local_activation_${activation.outcome}`,
+        message: activation.message,
+        payment_record_id: input.paymentRecord.id,
+        package_key: input.packageDef.packageKey,
+        stripe_event_id: input.stripeEventId,
+      },
+    });
+    return {
+      ok: false,
+      code: activation.outcome,
+      message: activation.message ?? "Comida Local listing activation failed.",
+    };
+  }
+
+  await writeRevenueAuditLog({
+    action: "comida_local_listing_activated_after_payment",
+    targetType: "comida_local_public_listings",
     targetId: activation.listingId ?? null,
     meta: {
       listing_id: activation.listingId,
@@ -1144,6 +1227,25 @@ export async function fulfillCheckoutSessionCompleted(input: {
       };
     }
 
+    const comidaLocalActivation = await tryActivateComidaLocalListingAfterEntitlement({
+      paymentRecord,
+      packageDef,
+      stripeEventId: eventId,
+      stripeCheckoutSessionId: session.id,
+    });
+    if (!comidaLocalActivation.ok) {
+      return {
+        ok: false,
+        code: comidaLocalActivation.code,
+        message: comidaLocalActivation.message,
+        paymentRecordId: paymentRecord.id,
+        packageEntitlementId: entitlementResult.packageEntitlementId ?? paymentRecord.package_entitlement_id,
+        placementEntitlementId:
+          entitlementResult.placementEntitlementId ?? paymentRecord.placement_entitlement_id,
+        promoRedemptionId: paymentRecord.promo_redemption_id,
+      };
+    }
+
     const couponAddonActivation = await tryActivateRestauranteCouponAddonAfterEntitlement({
       paymentRecord,
       packageDef,
@@ -1487,6 +1589,24 @@ export async function fulfillCheckoutSessionCompleted(input: {
       ok: false,
       code: restaurantActivation.code,
       message: restaurantActivation.message,
+      paymentRecordId: paymentRecord.id,
+      packageEntitlementId: entitlementResult.packageEntitlementId,
+      placementEntitlementId: entitlementResult.placementEntitlementId,
+      promoRedemptionId,
+    };
+  }
+
+  const comidaLocalActivation = await tryActivateComidaLocalListingAfterEntitlement({
+    paymentRecord: refreshed,
+    packageDef,
+    stripeEventId: eventId,
+    stripeCheckoutSessionId: session.id,
+  });
+  if (!comidaLocalActivation.ok) {
+    return {
+      ok: false,
+      code: comidaLocalActivation.code,
+      message: comidaLocalActivation.message,
       paymentRecordId: paymentRecord.id,
       packageEntitlementId: entitlementResult.packageEntitlementId,
       placementEntitlementId: entitlementResult.placementEntitlementId,
