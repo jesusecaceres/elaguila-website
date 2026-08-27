@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ComidaLocalDetailShell } from "../components/ComidaLocalDetailShell";
 import {
@@ -17,6 +17,7 @@ import { createEmptyComidaLocalDraft } from "@/app/lib/clasificados/comida-local
 import {
   comidaLocalEditWorkspaceStorageKey,
   loadComidaLocalDraftFromStorage,
+  saveComidaLocalDraftToStorage,
 } from "@/app/lib/clasificados/comida-local/comidaLocalDraftPersistence";
 import { readComidaLocalEditContext } from "@/app/lib/clasificados/comida-local/comidaLocalListingEditContext";
 import {
@@ -25,6 +26,17 @@ import {
 } from "@/app/lib/clasificados/comida-local/mapComidaLocalDraftToPreviewVm";
 import type { ComidaLocalDraft } from "@/app/lib/clasificados/comida-local/comidaLocalTypes";
 import { resolvePreviewMode } from "@/app/lib/listingIdentity/previewModeContract";
+import { PublishCheckoutCheckpoint } from "@/app/(site)/clasificados/components/PublishCheckoutCheckpoint";
+import { COMIDA_LOCAL_CHECKPOINT_CONFIRMATIONS, type PublishCheckpointConfig } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
+import { COMIDA_LOCAL_BASE_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import { redirectToRevenueCategoryCheckout, startRevenueCategoryCheckout } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
+import { saveComidaLocalPendingBeforeCheckout } from "../lib/saveComidaLocalPendingBeforeCheckout";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { validateComidaLocalDraftForFuturePublish } from "@/app/lib/clasificados/comida-local/comidaLocalValidation";
+import {
+  CHECKOUT_NEWSLETTER_SOURCES,
+  captureCheckoutNewsletterSubscriber,
+} from "@/app/lib/newsletter/checkoutNewsletterCapture";
 
 const PUBLISH_FORM_HREF = "/publicar/comida-local";
 
@@ -36,8 +48,9 @@ export function ComidaLocalPreviewClient() {
   /* Globalization Package A closure — edit-draft preview. When reached from the listing-edit
    * flow (?edit=1&listingId=..., with the hard-refresh-safe edit-context marker as fallback),
    * this previews the per-listing EDIT workspace (draftWorkspaceContract Rule 1 — never the
-   * new-ad draft) and resolves "edit-draft" on the shared preview-mode contract. This lane is
-   * free — there is no checkout to suppress (pinned by gate-pkgA-preview-modes). */
+   * new-ad draft) and resolves "edit-draft" on the shared preview-mode contract. Gate D19 — this
+   * lane saves directly (no re-checkout on an already-paid listing); the checkout checkpoint
+   * below only renders for previewMode === "new-publish". */
   const editListingIdParam = ((searchParams?.get("edit") ?? "") === "1" ? searchParams?.get("listingId") ?? "" : "").trim();
   const [editListingId, setEditListingId] = useState<string>(editListingIdParam);
 
@@ -70,6 +83,120 @@ export function ComidaLocalPreviewClient() {
   }, [draft]);
 
   const hasContent = draft ? comidaLocalDraftHasPreviewContent(draft) : false;
+
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  // Newsletter Engine v2 — Comida Local's Stripe checkout only just shipped and previously never
+  // captured the newsletter opt-in checkbox at all (the checkbox rendered via the shared
+  // PublishCheckoutCheckpoint, but `onCheckout` below ignored its `ctx` entirely). Resolve the
+  // session email up front so it can be shown/edited before checkout starts, matching Servicios
+  // and Restaurantes.
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterCaptureNote, setNewsletterCaptureNote] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const sb = createSupabaseBrowserClient();
+        const { data: sess } = await sb.auth.getSession();
+        const email = sess.session?.user?.email ?? "";
+        if (!cancelled) setNewsletterEmail((prev) => (prev ? prev : email));
+      } catch {
+        // Best-effort prefill only — the field stays editable/empty either way.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const publishIssues = useMemo(
+    () => (draft ? validateComidaLocalDraftForFuturePublish(draft) : []),
+    [draft],
+  );
+  const publishReady = publishIssues.every((i) => i.severity !== "error");
+
+  const onCheckout = useCallback(
+    async (ctx: { newsletterOptIn: boolean }) => {
+      if (!draft) return;
+      setCheckoutBusy(true);
+      setCheckoutError(null);
+      setNewsletterCaptureNote(null);
+      try {
+        saveComidaLocalDraftToStorage(draft);
+        const sb = createSupabaseBrowserClient();
+        const { data: sess } = await sb.auth.getSession();
+        const accessToken = sess.session?.access_token ?? null;
+        const customerEmail = sess.session?.user?.email ?? null;
+        if (!accessToken) {
+          setCheckoutError("Inicia sesión para continuar al pago.");
+          setCheckoutBusy(false);
+          return;
+        }
+
+        // Best-effort newsletter capture — awaited (never fire-and-forget `void`) so a FAILED
+        // result can be surfaced, but never blocks/gates checkout. This was previously not wired
+        // at all for Comida Local; the opt-in checkbox rendered but nothing captured it.
+        const captureEmail = newsletterEmail.trim() || customerEmail;
+        const capturePromise = captureCheckoutNewsletterSubscriber({
+          email: captureEmail,
+          lang: "es",
+          preferredLanguage: "es",
+          source: CHECKOUT_NEWSLETTER_SOURCES.comidaLocal,
+          interests: ["package:comida_local_base_monthly"],
+          checked: ctx.newsletterOptIn,
+        });
+
+        const pending = await saveComidaLocalPendingBeforeCheckout({ draft, lang: "es", accessToken });
+
+        const captureResult = await capturePromise;
+        if (captureResult.status === "FAILED") {
+          console.warn("[comida-local] newsletter checkout capture failed", captureResult.reason);
+          setNewsletterCaptureNote(
+            "No pudimos guardar tu suscripción al boletín. Tu pago no se vio afectado.",
+          );
+        }
+
+        if (!pending.ok) {
+          setCheckoutError(pending.userMessage);
+          setCheckoutBusy(false);
+          return;
+        }
+
+        const checkout = await startRevenueCategoryCheckout({
+          ...COMIDA_LOCAL_BASE_CHECKOUT,
+          listingId: pending.listingId,
+          leonixAdId: pending.leonixAdId,
+          locale: "es",
+          customerEmail,
+        });
+
+        if (!checkout.ok) {
+          setCheckoutError(checkout.userMessage);
+          setCheckoutBusy(false);
+          return;
+        }
+
+        redirectToRevenueCategoryCheckout(checkout.checkoutUrl);
+      } catch {
+        setCheckoutError("No pudimos iniciar el pago seguro. Intenta de nuevo o contacta a Leonix.");
+        setCheckoutBusy(false);
+      }
+    },
+    [draft, newsletterEmail],
+  );
+
+  const checkoutConfig: PublishCheckpointConfig | null = draft
+    ? {
+        category: COMIDA_LOCAL_BASE_CHECKOUT.category,
+        packageKey: COMIDA_LOCAL_BASE_CHECKOUT.packageKey,
+        lang: "es",
+        mode: "checkout",
+        confirmations: COMIDA_LOCAL_CHECKPOINT_CONFIRMATIONS,
+      }
+    : null;
 
   if (!ready) {
     return (
@@ -114,9 +241,11 @@ export function ComidaLocalPreviewClient() {
             <Link href={backToEditHref} className={CL_BTN_SECONDARY}>
               {previewMode === "edit-draft" ? "Volver a editar" : "Editar formulario"}
             </Link>
-            <Link href={backToEditHref} className={CL_BTN_PRIMARY}>
-              {previewMode === "edit-draft" ? "Guardar desde formulario" : "Publicar desde formulario"}
-            </Link>
+            {previewMode === "edit-draft" ? (
+              <Link href={backToEditHref} className={CL_BTN_PRIMARY}>
+                Guardar desde formulario
+              </Link>
+            ) : null}
           </div>
         </div>
       </div>
@@ -133,6 +262,27 @@ export function ComidaLocalPreviewClient() {
           </div>
         ) : null}
         <ComidaLocalDetailShell vm={vm} />
+
+        {previewMode === "new-publish" && checkoutConfig ? (
+          <div className="mt-6">
+            <PublishCheckoutCheckpoint
+              config={checkoutConfig}
+              lang="es"
+              busy={checkoutBusy}
+              errorMessage={checkoutError}
+              draftReady={publishReady}
+              draftReadyMessage={
+                publishReady
+                  ? null
+                  : "Completa los campos de «Lista para publicar» en el formulario para habilitar el pago."
+              }
+              onCheckout={(ctx) => void onCheckout(ctx)}
+              newsletterEmail={newsletterEmail}
+              onNewsletterEmailChange={setNewsletterEmail}
+              newsletterCaptureNote={newsletterCaptureNote}
+            />
+          </div>
+        ) : null}
       </div>
     </div>
   );

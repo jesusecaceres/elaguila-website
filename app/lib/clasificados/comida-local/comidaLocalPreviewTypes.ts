@@ -4,6 +4,7 @@ export type ComidaLocalPreviewContactActionId =
   | "call"
   | "sms"
   | "whatsapp"
+  | "email"
   | "instagram"
   | "facebook"
   | "tiktok"
@@ -30,6 +31,11 @@ export type ComidaLocalPreviewChip = {
   label: string;
 };
 
+export type ComidaLocalPreviewLink = {
+  label: string;
+  href: string;
+};
+
 export type ComidaLocalPreviewImage = {
   /** Safe http(s) or same-session blob only — never data: or fake URLs. */
   src: string;
@@ -45,12 +51,17 @@ export type ComidaLocalPreviewSectionFlags = {
   showPayment: boolean;
   showExtras: boolean;
   showGallery: boolean;
+  showHighlights: boolean;
+  showAdditionalWebsites: boolean;
+  showBusinessAddress: boolean;
+  showHours: boolean;
 };
 
 /** Lightweight preview/detail view model — no DB ids, slugs, or fake engagement. */
 export type ComidaLocalPreviewVm = {
   businessName: string;
   foodTypeChips: ComidaLocalPreviewChip[];
+  businessTypeLabel: string;
   locationLine: string;
   queVendes: string;
   availabilityNote: string;
@@ -59,6 +70,13 @@ export type ComidaLocalPreviewVm = {
   paymentChips: ComidaLocalPreviewChip[];
   priceLevelLabel: string;
   languageLabels: string[];
+  highlightChips: ComidaLocalPreviewChip[];
+  additionalWebsites: ComidaLocalPreviewLink[];
+  /** Gate D9 — real open/closed truth from structured weekly hours, or null when unset. */
+  isOpenNow: boolean | null;
+  hoursLines: { dayLabel: string; text: string }[];
+  /** Gate D6 — only populated when the owner opted to show it publicly. */
+  businessAddressLine: string;
   contactActions: ComidaLocalPreviewContactAction[];
   mainImage: ComidaLocalPreviewImage | null;
   logoImage: ComidaLocalPreviewImage | null;

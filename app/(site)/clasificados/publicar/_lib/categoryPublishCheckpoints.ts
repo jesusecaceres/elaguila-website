@@ -657,29 +657,41 @@ export function getEnVentaCheckpointCard(lang: PublishCheckpointLang, proHref: s
 }
 
 export function getComidaLocalCheckpointCard(lang: PublishCheckpointLang, applicationHref: string): PublishCheckpointCardData {
-  return buildFreeQuickCheckpointCard(
-    {
-      id: "comida_local_pipeline_free",
-      eyebrow: { es: "Comida Local", en: "Local Food" },
-      title: { es: "Publicar comida local", en: "Post local food" },
-      shortDescription: {
-        es: "Comparte tu puesto, comida casera o venta de fin de semana con la comunidad — publicación gratuita.",
-        en: "Share your stand, homemade food, or weekend sale with the community — free publication.",
-      },
-      ctaLabel: { es: "Publicar gratis", en: "Post for free" },
-      modalTitle: { es: "Comida Local — Gratis", en: "Local Food — Free" },
-      modalIntro: {
-        es: "Publicación gratuita para vendedores de comida local. Sin pago ni cupón. Vista previa antes de publicar.",
-        en: "Free publication for local food vendors. No payment or coupon. Preview before publishing.",
-      },
-      includedBullets: {
-        es: ["Puesto, pop-up o comida casera", "Fotos, horario y ubicación", "Contacto directo", "Vista previa antes de publicar"],
-        en: ["Stand, pop-up, or homemade food", "Photos, schedule, and location", "Direct contact", "Preview before publishing"],
-      },
-    },
-    lang,
-    applicationHref,
-  );
+  const es = lang === "es";
+  const price = monthlyPrice("comida_local_base_monthly", "comida-local");
+  return {
+    id: "comida_local_pipeline",
+    variant: "paid",
+    eyebrow: es ? "Comida Local" : "Local Food",
+    title: es ? "Publicar comida local" : "Post local food",
+    priceLabel: price,
+    shortDescription: es
+      ? "Para puestos, pop-ups, comida casera y vendedores móviles. Ficha con fotos, horario, ubicación y contacto directo."
+      : "For stands, pop-ups, homemade food, and mobile vendors. A listing with photos, schedule, location, and direct contact.",
+    ctaLabel: es ? "Publicar comida local" : "Post local food",
+    ctaHref: applicationHref,
+    moreLabel: es ? "Ver más" : "See more",
+    modalTitle: es ? `Qué incluye Comida Local — ${price}` : `What's included with Local Food — ${price}`,
+    modalIntro: es
+      ? "Este plan crea una ficha para tu puesto o negocio de comida local: dónde te encuentran hoy, qué vendes, horario y cómo contactarte."
+      : "This plan creates a listing for your local food stand or business: where to find you today, what you sell, hours, and how to contact you.",
+    includedBullets: es
+      ? [
+          "Puesto, pop-up, comida casera o vendedor móvil",
+          "«Encuéntrame hoy» — ubicación del día, aparte de tu dirección privada",
+          "Fotos, horario semanal y galería",
+          "Teléfono, WhatsApp, correo y redes sociales",
+          "Vista previa antes de publicar",
+        ]
+      : [
+          "Stand, pop-up, homemade food, or mobile vendor",
+          "“Find me today” — today's location, separate from your private address",
+          "Photos, weekly hours, and gallery",
+          "Phone, WhatsApp, email, and social media",
+          "Preview before publishing",
+        ],
+    couponEligible: isPromoEligible("comida_local_base_monthly"),
+  };
 }
 
 export function getViajesCheckpointCards(

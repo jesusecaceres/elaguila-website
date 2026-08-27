@@ -14,6 +14,7 @@ export type RevenueAuditAction =
   | "revenue_entitlement_activated"
   | "restaurante_listing_activated_after_payment"
   | "servicios_listing_activated_after_payment"
+  | "comida_local_listing_activated_after_payment"
   | "rentas_listing_activated_after_payment"
   | "empleos_listing_activated_after_payment"
   | "autos_privado_listing_activated_after_payment"

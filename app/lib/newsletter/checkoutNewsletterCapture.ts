@@ -5,19 +5,26 @@
  * Best-effort capture of a newsletter/contact subscriber from a PAID checkout
  * opt-in checkbox. This MUST NEVER block or fail checkout/payment.
  *
- * - Unchecked checkbox → skip (no network).
- * - Missing/invalid email → skip safely.
- * - On checked + valid email → POST to the best-effort capture endpoint, which
- *   reuses the existing `saveNewsletterSubscriber` pattern server-side.
+ * - Unchecked checkbox -> SKIPPED (no network), reason "unchecked".
+ * - Missing/invalid email while checked -> FAILED (no network), reason "missing_email".
+ *   (Newsletter Engine v2: this used to be a silent "ok:true, skipped" no-op that hid a real
+ *   gap — a session-fetch race leaving `email` null at checkout time. Callers must now check the
+ *   result and surface FAILED, even though checkout itself must still proceed.)
+ * - On checked + valid email -> POST to the capture endpoint, which reuses the existing
+ *   `saveNewsletterSubscriber` pattern server-side, and resolves to whatever discriminated
+ *   status the server reports (SUCCESS / ALREADY_SUBSCRIBED / PENDING_VERIFICATION / FAILED).
  *
  * This helper does NOT create promo codes, does NOT send email, and does NOT
- * touch Stripe/checkout. It is intentionally fire-and-forget friendly.
+ * touch Stripe/checkout. Callers must AWAIT the returned promise and react to a FAILED result
+ * with a non-blocking inline note (see PublishCheckoutCheckpoint's `newsletterCaptureNote`
+ * prop) — never with `void` fire-and-forget, and never by blocking the paid transaction.
  */
 
 /** Canonical checkout capture sources (must match server allowlist). */
 export const CHECKOUT_NEWSLETTER_SOURCES = {
   restaurantes: "restaurantes_checkout",
   servicios: "servicios_checkout",
+  comidaLocal: "comida_local_checkout",
   rentas: "rentas_checkout",
   empleos: "empleos_checkout",
   autosPrivado: "autos_privado_checkout",
@@ -44,9 +51,20 @@ export type CheckoutNewsletterCaptureInput = {
   checked: boolean;
 };
 
+/**
+ * Truthful, discriminated capture outcome — never a bare boolean/void.
+ *
+ * SUCCESS / ALREADY_SUBSCRIBED / FAILED are live outcomes from the current write path.
+ * PENDING_VERIFICATION is reserved for a future double-opt-in flow (see
+ * app/lib/newsletter/newsletterVerificationState.ts) — no current server code returns it yet.
+ * SKIPPED covers the two legitimate non-attempts (box unchecked; server capture not configured).
+ */
 export type CheckoutNewsletterCaptureResult =
-  | { ok: true; skipped?: boolean; reason?: string }
-  | { ok: false; skipped?: false; reason?: string };
+  | { status: "SUCCESS"; updated?: boolean }
+  | { status: "ALREADY_SUBSCRIBED" }
+  | { status: "PENDING_VERIFICATION" }
+  | { status: "FAILED"; reason: string }
+  | { status: "SKIPPED"; reason: "unchecked" | "not_configured" };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -55,18 +73,22 @@ function normalizeEmail(raw: string): string {
 }
 
 /**
- * Fire-and-forget safe capture. Resolves to a result but NEVER throws.
- * Callers should not await this in a way that blocks the checkout redirect.
+ * Best-effort capture. Resolves to a real discriminated result and NEVER throws — but it is no
+ * longer a "fake success": a missing/invalid email while checked resolves to FAILED, not a
+ * silent skip. Callers MUST await this and react to FAILED (console + non-blocking inline note);
+ * they must never gate checkout/publish on the result.
  */
 export async function captureCheckoutNewsletterSubscriber(
   input: CheckoutNewsletterCaptureInput,
 ): Promise<CheckoutNewsletterCaptureResult> {
   try {
-    if (!input.checked) return { ok: true, skipped: true, reason: "unchecked" };
+    if (!input.checked) return { status: "SKIPPED", reason: "unchecked" };
 
     const email = normalizeEmail(String(input.email ?? ""));
     if (!email || !EMAIL_RE.test(email)) {
-      return { ok: true, skipped: true, reason: "missing_email" };
+      // Newsletter Engine v2: previously reported as a fake "ok:true, skipped" success. A missing
+      // email here is a real gap (e.g. a session-fetch race) that the caller should know about.
+      return { status: "FAILED", reason: "missing_email" };
     }
 
     const interests = Array.from(
@@ -92,10 +114,34 @@ export async function captureCheckoutNewsletterSubscriber(
       }),
     });
 
-    if (!res.ok) return { ok: false, reason: `http_${res.status}` };
-    return { ok: true };
+    let body: unknown = null;
+    try {
+      body = await res.json();
+    } catch {
+      body = null;
+    }
+
+    if (!res.ok) return { status: "FAILED", reason: `http_${res.status}` };
+
+    const responseBody = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+    const status = responseBody.status;
+    const reason = responseBody.reason;
+
+    if (status === "SUCCESS" || status === "ALREADY_SUBSCRIBED" || status === "PENDING_VERIFICATION") {
+      return { status };
+    }
+    if (status === "SKIPPED") {
+      return { status: "SKIPPED", reason: reason === "not_configured" ? "not_configured" : "unchecked" };
+    }
+    if (status === "FAILED") {
+      return { status: "FAILED", reason: String(reason ?? "unknown") };
+    }
+
+    // Unrecognized/legacy response shape — treat as failed rather than a fake success.
+    return { status: "FAILED", reason: "bad_response" };
   } catch {
-    // Newsletter capture is best-effort only. Swallow all errors.
-    return { ok: false, reason: "network_error" };
+    // Network/exception failure. Newsletter capture is best-effort — checkout must still proceed
+    // — but the failure itself must be real and visible to the caller, never swallowed silently.
+    return { status: "FAILED", reason: "network_error" };
   }
 }

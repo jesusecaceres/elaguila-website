@@ -10,7 +10,9 @@ import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/
  * This route reuses the existing `saveNewsletterSubscriber` pattern (same table,
  * same schema). It NEVER creates promo codes, NEVER sends email, and NEVER
  * touches Stripe/checkout. It always returns HTTP 200 so a slow or failed save
- * can never surface as a checkout error to the customer.
+ * can never surface as a checkout error to the customer — the response BODY carries a
+ * discriminated `status` (SUCCESS / ALREADY_SUBSCRIBED / PENDING_VERIFICATION / FAILED /
+ * SKIPPED) so the client can react truthfully without ever blocking checkout on it.
  */
 export const runtime = "nodejs";
 
@@ -20,6 +22,7 @@ const MAX_BODY_BYTES = 8_192;
 const ALLOWED_SOURCES = new Set([
   "restaurantes_checkout",
   "servicios_checkout",
+  "comida_local_checkout",
   "rentas_checkout",
   "empleos_checkout",
   "autos_privado_checkout",
@@ -31,6 +34,7 @@ const ALLOWED_SOURCES = new Set([
 const SOURCE_TAGS: Record<string, string[]> = {
   restaurantes_checkout: ["category:restaurantes", "audience:business"],
   servicios_checkout: ["category:servicios", "audience:business"],
+  comida_local_checkout: ["category:comida-local", "audience:business"],
   rentas_checkout: ["category:rentas", "audience:seller"],
   empleos_checkout: ["category:empleos", "audience:business"],
   autos_privado_checkout: ["category:autos", "seller:private", "audience:seller"],
@@ -41,36 +45,38 @@ const SOURCE_TAGS: Record<string, string[]> = {
 const OPT_IN_TAG = "cta:checkout_newsletter_opt_in";
 
 export async function POST(req: Request) {
-  // Best-effort: any failure returns 200 + skipped so checkout is never affected.
+  // Best-effort: any failure returns HTTP 200 so checkout is never affected. The response BODY
+  // still carries a truthful discriminated `status` — a payload/config/validation problem is
+  // reported as FAILED (or SKIPPED for a genuinely benign non-attempt), never a fake SUCCESS.
   try {
     const contentLength = Number(req.headers.get("content-length") ?? 0);
     if (contentLength > MAX_BODY_BYTES) {
-      return NextResponse.json({ ok: true, skipped: true, reason: "payload_too_large" });
+      return NextResponse.json({ status: "FAILED", reason: "payload_too_large" });
     }
 
     if (!isSupabaseAdminConfigured()) {
-      return NextResponse.json({ ok: true, skipped: true, reason: "not_configured" });
+      return NextResponse.json({ status: "SKIPPED", reason: "not_configured" });
     }
 
     let body: unknown;
     try {
       body = await req.json();
     } catch {
-      return NextResponse.json({ ok: true, skipped: true, reason: "bad_json" });
+      return NextResponse.json({ status: "FAILED", reason: "bad_json" });
     }
     if (!body || typeof body !== "object") {
-      return NextResponse.json({ ok: true, skipped: true, reason: "bad_body" });
+      return NextResponse.json({ status: "FAILED", reason: "bad_body" });
     }
 
     const o = body as Record<string, unknown>;
     const source = String(o.source ?? "").trim();
     if (!ALLOWED_SOURCES.has(source)) {
-      return NextResponse.json({ ok: true, skipped: true, reason: "source_not_eligible" });
+      return NextResponse.json({ status: "FAILED", reason: "source_not_eligible" });
     }
 
     const email = normalizeLeadEmail(String(o.email ?? ""));
     if (!isValidLeadEmail(email)) {
-      return NextResponse.json({ ok: true, skipped: true, reason: "missing_email" });
+      return NextResponse.json({ status: "FAILED", reason: "missing_email" });
     }
 
     const providedInterests = Array.isArray(o.interests)
@@ -92,7 +98,7 @@ export async function POST(req: Request) {
     try {
       supabase = getAdminSupabase();
     } catch {
-      return NextResponse.json({ ok: true, skipped: true, reason: "not_configured" });
+      return NextResponse.json({ status: "SKIPPED", reason: "not_configured" });
     }
 
     const result = await saveNewsletterSubscriber(supabase, {
@@ -109,14 +115,23 @@ export async function POST(req: Request) {
 
     if (!result.ok) {
       console.warn("[newsletter] checkout capture save failed", { source, error: result.error });
-      return NextResponse.json({ ok: false, reason: result.error });
+      return NextResponse.json({ status: "FAILED", reason: result.error });
     }
 
-    return NextResponse.json({ ok: true, saved: true, updated: result.updated });
+    // Idempotency-aware discrimination: a row that already existed with status "subscribed"
+    // before this write is an idempotent re-confirmation (ALREADY_SUBSCRIBED), not a fresh
+    // subscription — this also covers the double-submit race the unique-index fallback in
+    // saveNewsletterSubscriber resolves. A brand-new row, or one reactivated from
+    // "unsubscribed" (the ONE case where re-opting-in should flip the status — see Step 5),
+    // reports SUCCESS.
+    if (result.updated && result.previousStatus === "subscribed") {
+      return NextResponse.json({ status: "ALREADY_SUBSCRIBED" });
+    }
+    return NextResponse.json({ status: "SUCCESS", updated: result.updated });
   } catch (e) {
     console.warn("[newsletter] checkout capture threw", {
       message: e instanceof Error ? e.message : "unknown",
     });
-    return NextResponse.json({ ok: false, reason: "exception" });
+    return NextResponse.json({ status: "FAILED", reason: "exception" });
   }
 }

@@ -13,8 +13,11 @@ export type ComidaLocalPaymentStatusValue =
   (typeof COMIDA_LOCAL_PAYMENT_STATUS)[keyof typeof COMIDA_LOCAL_PAYMENT_STATUS];
 
 /**
- * Payment status written on publish while Stripe checkout is not wired (FOOD-L5D).
- * Do not mark rows `paid` without a verified payment webhook.
+ * Gate D19 — legacy fallback only. The real new-sale path now always passes an explicit
+ * `activationMode`/`paymentStatus` through the publish route (pending → paid via the Revenue OS
+ * webhook, see revenueComidaLocalFulfillment.ts); this constant is never used by that path. Kept
+ * only so a direct/legacy call to draftToComidaLocalPublicListingInsert without an explicit
+ * paymentStatus still writes a real, non-fabricated status rather than defaulting to "paid".
  */
 export function resolveComidaLocalPublishPaymentStatus(): string {
   return COMIDA_LOCAL_PAYMENT_STATUS.NOT_REQUIRED_L5B;
