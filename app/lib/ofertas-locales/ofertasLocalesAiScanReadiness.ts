@@ -2,7 +2,11 @@ import {
   activeOfertaLocalDraftAssets,
   assetHasUploadedWithUrl,
 } from "./ofertasLocalesDraftAssetHelpers";
-import { isOfertaLocalCouponPromotionFlow, isOfertaLocalWeeklyFlyerFlow } from "./ofertasLocalesApplicationHelpers";
+import {
+  isOfertaLocalAiIncludedInPackage,
+  isOfertaLocalCouponPromotionFlow,
+  isOfertaLocalWeeklyFlyerFlow,
+} from "./ofertasLocalesApplicationHelpers";
 import { canOfertaLocalDraftPersistForAiScan } from "./ofertasLocalesAiScanPersist";
 import type { OfertaLocalDraft, OfertaLocalDraftAsset } from "./ofertasLocalesTypes";
 
@@ -99,7 +103,7 @@ export function getOfertaLocalAiScanReadiness(
   const lang = context.lang ?? "es";
   const missing: string[] = [];
 
-  if (!draft.wantsAiSearchableSpecials) {
+  if (!isOfertaLocalAiIncludedInPackage(draft)) {
     missing.push(
       lang === "en"
         ? "Enable AI Product Search in Step 1."
@@ -157,7 +161,7 @@ export function getOfertaLocalAiScanReadiness(
   ];
 
   const scanReady =
-    draft.wantsAiSearchableSpecials &&
+    isOfertaLocalAiIncludedInPackage(draft) &&
     eligibleAssets.length > 0 &&
     signedIn &&
     (hasOfertaLocalId || canPersistForScan) &&

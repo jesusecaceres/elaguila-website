@@ -1,4 +1,7 @@
-import { isOfertaLocalCouponPromotionFlow } from "./ofertasLocalesApplicationHelpers";
+import {
+  isOfertaLocalAiIncludedInPackage,
+  isOfertaLocalCouponPromotionFlow,
+} from "./ofertasLocalesApplicationHelpers";
 import { getOfertaLocalScanEligibleAssets } from "./ofertasLocalesAiScanReadiness";
 import { mapOfertaLocalDraftToInsertPayload } from "./ofertasLocalesPublishMapper";
 import type { OfertaLocalDraft, OfertaLocalDbInsertPayload, OfertaLocalValidationIssue } from "./ofertasLocalesTypes";
@@ -23,7 +26,7 @@ export function validateOfertaLocalDraftForAiScanPersist(
     return true;
   });
 
-  if (!draft.wantsAiSearchableSpecials) {
+  if (!isOfertaLocalAiIncludedInPackage(draft)) {
     issues.push({
       field: "wantsAiSearchableSpecials",
       message: "Activa Búsqueda por producto con AI para escanear archivos.",
