@@ -78,11 +78,14 @@ function agenteRedes(s: AgenteIndividualResidencialFormState): string[] {
 }
 
 /**
- * BR-INV-WAVE1-GATE1 — residential preset highlights use a different id vocabulary
- * (`AgenteResidencialDestacadoId`, 15 ids) than the Negocio publish shape's `highlightPresets`
- * (`BR_HIGHLIGHT_PRESET_DEFS`, 21 ids, shared with BR Privado). Only the ids that mean the same
- * thing map directly; everything else is preserved as a free-text line in `customHighlightsText`
- * rather than silently dropped.
+ * BR-INV-WAVE1-GATE1 / Final Completion item 11 — residential preset highlights originally used a
+ * different id vocabulary (`AgenteResidencialDestacadoId`, 15 ids) than the Negocio publish
+ * shape's `highlightPresets` (`BR_HIGHLIGHT_PRESET_DEFS`). Item 11 reconciled the two into one
+ * canonical registry by additively growing `BR_HIGHLIGHT_PRESET_DEFS` with the 6 ids that had no
+ * equivalent (sotano/garaje/portonElectrico/adu/remodelada/nuevaConstruccion) — no existing key
+ * was renamed, so this is a pure additive alias map: every one of the 15 Negocio ids now has a
+ * stable canonical preset key, and `extraLines`/`customHighlightsText` stays as a safety net for
+ * any future id this map doesn't yet cover, not the primary path.
  */
 const AGENTE_RES_TO_HIGHLIGHT_PRESET: Partial<Record<AgenteResidencialDestacadoId, string>> = {
   piscina: "piscina",
@@ -94,6 +97,12 @@ const AGENTE_RES_TO_HIGHLIGHT_PRESET: Partial<Record<AgenteResidencialDestacadoI
   comunidad_cerrada: "comunidadCerrada",
   paneles_solares: "panelesSolares",
   oficina: "oficinaEnCasa",
+  sotano: "sotano",
+  garaje: "garaje",
+  porton_electrico: "portonElectrico",
+  adu: "adu",
+  remodelada: "remodelada",
+  nueva_construccion: "nuevaConstruccion",
 };
 
 function residencialHighlights(s: AgenteIndividualResidencialFormState): {

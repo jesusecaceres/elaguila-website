@@ -65,8 +65,10 @@ function agente(overrides: Partial<AgenteIndividualResidencialFormState>): Agent
     mostrarMarcaEnTarjeta: true,
     destacados: {
       piscina: true, // matches highlightPresets "piscina"
-      sotano: true, // no match -> customHighlightsText
-      garaje: true, // no match -> customHighlightsText
+      // item 11 — sotano/garaje are now reconciled into BR_HIGHLIGHT_PRESET_DEFS too, so both
+      // survive as structured presets rather than falling back to customHighlightsText.
+      sotano: true,
+      garaje: true,
     } as AgenteIndividualResidencialFormState["destacados"],
     videoUrls: [
       "https://example.com/v1",
@@ -85,8 +87,9 @@ function agente(overrides: Partial<AgenteIndividualResidencialFormState>): Agent
   assert.equal(negocio.anioConstruccion, "1998", "A: anioConstruccion must survive publish");
   assert.equal(negocio.condicion, "buena", "A: condicion must survive publish");
   assert.equal(negocio.highlightPresets.piscina, true, "A: matched highlight (piscina) must survive as a preset");
-  assert.match(negocio.customHighlightsText, /Sótano/, "A: unmatched highlight (sótano) must survive as free text");
-  assert.match(negocio.customHighlightsText, /Garaje/, "A: unmatched highlight (garaje) must survive as free text");
+  assert.equal(negocio.highlightPresets.sotano, true, "item 11: sotano must survive as a reconciled preset, not free text");
+  assert.equal(negocio.highlightPresets.garaje, true, "item 11: garaje must survive as a reconciled preset, not free text");
+  assert.equal(negocio.customHighlightsText, "", "item 11: all 15 BR Negocio residential highlight ids now map to a canonical preset");
 
   // D — video cap raised from 4 to 8
   assert.equal(negocio.media.externalVideoUrls?.length, 8, "D: all 8 video URLs must survive the publish mapper");
@@ -105,7 +108,8 @@ function agente(overrides: Partial<AgenteIndividualResidencialFormState>): Agent
   // intermediate state shape.
   const vm = mapBienesRaicesNegocioStateToPreviewVm(negocio);
   assert.ok(vm.highlightsRows.some((r) => r.value === "Alberca / piscina"), "A: matched highlight renders in preview");
-  assert.ok(vm.highlightsRows.some((r) => r.value === "Sótano"), "A: unmatched highlight renders in preview as custom");
+  assert.ok(vm.highlightsRows.some((r) => r.value === "Sótano"), "item 11: reconciled sotano preset renders in preview");
+  assert.ok(vm.highlightsRows.some((r) => r.value === "Garaje"), "item 11: reconciled garaje preset renders in preview");
   assert.equal(vm.media.externalVideoLinks?.length, 8, "D: all 8 videos render as links in preview");
 
   console.log("Gate 1 (A/D/E — BR Negocio Residential) OK");
