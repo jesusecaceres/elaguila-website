@@ -506,6 +506,7 @@
     "ofertas-locales:ai-entitlement-gate-regression-audit": "tsx scripts/ofertas-locales-ai-entitlement-gate-regression-audit.ts",
     "ofertas-locales:scan-persist-publish-separation-audit": "tsx scripts/ofertas-locales-scan-persist-publish-separation-audit.ts",
     "ofertas-locales:scanner-client-dispatch-regression-audit": "tsx scripts/ofertas-locales-scanner-client-dispatch-regression-audit.ts",
+    "ofertas-locales:wizard-step-navigation-regression-audit": "tsx scripts/ofertas-locales-wizard-step-navigation-regression-audit.ts",
     "ofertas-locales:ol3-step1-cta-cleanup-audit": "tsx scripts/ofertas-locales-ol3-step1-cta-cleanup-audit.ts",
     "ofertas-locales:ol4-step2-4-field-cleanup-audit": "tsx scripts/ofertas-locales-ol4-step2-4-field-cleanup-audit.ts",
     "ofertas-locales:ol5-upload-size-storage-audit": "tsx scripts/ofertas-locales-ol5-upload-size-storage-audit.ts",

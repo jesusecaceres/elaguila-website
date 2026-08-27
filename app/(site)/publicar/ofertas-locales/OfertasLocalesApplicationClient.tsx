@@ -1978,7 +1978,9 @@ export default function OfertasLocalesApplicationClient() {
               lang={lang}
               progressLabel={progressLabel}
               onStepClick={(s) => {
-                if (step === 5 && s > 5 && step5HasBlockingWork) return;
+                // Quick-jump navigation is intentionally permissive — required-field
+                // and publish/scan validation still gate the relevant ACTION, but must
+                // never trap a customer on a step via Atrás/Siguiente-only navigation.
                 setStep(s);
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
