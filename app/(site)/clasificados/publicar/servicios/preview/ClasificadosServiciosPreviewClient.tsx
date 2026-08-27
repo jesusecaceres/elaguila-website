@@ -178,6 +178,29 @@ export function ClasificadosServiciosPreviewClient() {
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutErr, setCheckoutErr] = useState<string | null>(null);
 
+  // Newsletter Engine v2 — resolve the session email up front so it can be shown/edited in the
+  // checkout checkpoint BEFORE checkout starts, instead of silently pulling a hidden
+  // session.user.email only at the moment of checkout.
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterCaptureNote, setNewsletterCaptureNote] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const sb = createSupabaseBrowserClient();
+        const { data: sess } = await withAuthTimeout(sb.auth.getSession(), AUTH_CHECK_TIMEOUT_MS);
+        const email = sess.session?.user?.email ?? "";
+        if (!cancelled) setNewsletterEmail((prev) => (prev ? prev : email));
+      } catch {
+        // Best-effort prefill only — the field stays editable/empty either way.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useLayoutEffect(() => {
     clearLeonixPreviewNavSessionFlag();
   }, []);
@@ -518,6 +541,7 @@ export function ClasificadosServiciosPreviewClient() {
       if (!appState) return;
       setCheckoutBusy(true);
       setCheckoutErr(null);
+      setNewsletterCaptureNote(null);
       try {
         let accessToken: string | null = null;
         let customerEmail: string | null = null;
@@ -530,9 +554,13 @@ export function ClasificadosServiciosPreviewClient() {
           accessToken = null;
         }
 
-        // Best-effort newsletter capture — never blocks checkout.
-        void captureCheckoutNewsletterSubscriber({
-          email: customerEmail,
+        // Best-effort newsletter capture — awaited (never fire-and-forget `void`) so a FAILED
+        // result can be surfaced, but never blocks/gates checkout. Uses the visible/editable
+        // `newsletterEmail` field (not the hidden session email) so the subscriber address the
+        // user saw is the one actually captured.
+        const captureEmail = newsletterEmail.trim() || customerEmail;
+        const capturePromise = captureCheckoutNewsletterSubscriber({
+          email: captureEmail,
           lang,
           preferredLanguage: lang,
           source: CHECKOUT_NEWSLETTER_SOURCES.servicios,
@@ -541,6 +569,17 @@ export function ClasificadosServiciosPreviewClient() {
         });
 
         const pending = await saveServiciosPendingBeforeCheckout({ state: appState, lang, accessToken });
+
+        const captureResult = await capturePromise;
+        if (captureResult.status === "FAILED") {
+          console.warn("[servicios] newsletter checkout capture failed", captureResult.reason);
+          setNewsletterCaptureNote(
+            lang === "es"
+              ? "No pudimos guardar tu suscripción al boletín. Tu pago no se vio afectado."
+              : "We couldn't save your newsletter subscription. Your payment was not affected.",
+          );
+        }
+
         if (!pending.ok) {
           setCheckoutErr(pending.userMessage);
           setCheckoutBusy(false);
@@ -574,7 +613,7 @@ export function ClasificadosServiciosPreviewClient() {
         setCheckoutBusy(false);
       }
     },
-    [appState, lang, offersAddonSelected],
+    [appState, lang, offersAddonSelected, newsletterEmail],
   );
 
   const backLabel = lang === "en" ? "Back to edit" : "Volver a editar";
@@ -751,6 +790,9 @@ export function ClasificadosServiciosPreviewClient() {
               }
               onPromoApply={handlePromoApply}
               onCheckout={(ctx) => void onCheckout(ctx)}
+              newsletterEmail={newsletterEmail}
+              onNewsletterEmailChange={setNewsletterEmail}
+              newsletterCaptureNote={newsletterCaptureNote}
               editHref={editHref}
               rulesModal={{
                 titleEn: "Leonix service marketplace rules",

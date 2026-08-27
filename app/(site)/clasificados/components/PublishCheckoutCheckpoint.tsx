@@ -49,6 +49,9 @@ const LEONIX_MUTED = "#5A5148";
 const LEONIX_BURGUNDY = "#6B1E2E";
 const LEONIX_BURGUNDY_HOVER = "#541724";
 const LEONIX_SUCCESS = "#1A4D2E";
+const LEONIX_WARNING = "#8B3A3A";
+
+const NEWSLETTER_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type PublishCheckoutCheckpointProps = {
   config: PublishCheckpointConfig;
@@ -77,6 +80,27 @@ export type PublishCheckoutCheckpointProps = {
     newsletterOptIn: boolean;
     checkedConfirmationIds: string[];
   }) => void | Promise<void>;
+  /**
+   * Newsletter Engine v2 — the email address that WILL be subscribed if the opt-in checkbox is
+   * checked. Callers should resolve this from the current session (or user input) BEFORE render
+   * so it is visible even before checkout starts — never a hidden `session.user.email` the
+   * customer never sees. `undefined` hides the whole email row (used by categories not yet
+   * wired into this, so their checkout UI is unchanged); `null`/`""` renders the row with an
+   * honest "no email available" state instead of hiding the problem.
+   */
+  newsletterEmail?: string | null;
+  /**
+   * When provided, the resolved email renders as an editable text input (defaulting to the
+   * caller's resolved value, basic email-format validated inline) instead of read-only text.
+   * Omit this to show the resolved email as read-only text only.
+   */
+  onNewsletterEmailChange?: (email: string) => void;
+  /**
+   * Non-blocking inline note shown under the newsletter row — e.g. after an awaited
+   * `captureCheckoutNewsletterSubscriber` call resolves FAILED. Must never be used to disable
+   * `finalButtonEnabled`; newsletter capture failure must never block the paid transaction.
+   */
+  newsletterCaptureNote?: string | null;
   /** When set, shown as CTA when Restaurante coupon add-on blocks checkout. */
   editHref?: string;
   /** Optional "Ver reglas de Leonix" modal shown above confirmations (opt-in per category). */
@@ -102,6 +126,9 @@ export function PublishCheckoutCheckpoint({
   onPromoApply,
   onCheckout,
   onFreePublish,
+  newsletterEmail,
+  onNewsletterEmailChange,
+  newsletterCaptureNote,
   editHref,
   rulesModal,
   className = "",
@@ -403,19 +430,69 @@ export function PublishCheckoutCheckpoint({
 
       {/* Newsletter opt-in — optional, never blocks */}
       {resolved.newsletterOptIn ? (
-        <label className="mt-4 flex min-h-[44px] cursor-pointer items-start gap-3 text-xs leading-relaxed">
-          <input
-            type="checkbox"
-            className="mt-1 h-4 w-4 shrink-0 rounded"
-            style={{ accentColor: LEONIX_BURGUNDY }}
-            checked={newsletterOptIn}
-            onChange={(e) => setNewsletterOptIn(e.target.checked)}
-            disabled={busy}
-          />
-          <span style={{ color: LEONIX_MUTED }}>
-            {lang === "es" ? resolved.newsletterOptIn.labelEs : resolved.newsletterOptIn.labelEn}
-          </span>
-        </label>
+        <div className="mt-4">
+          <label className="flex min-h-[44px] cursor-pointer items-start gap-3 text-xs leading-relaxed">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 shrink-0 rounded"
+              style={{ accentColor: LEONIX_BURGUNDY }}
+              checked={newsletterOptIn}
+              onChange={(e) => setNewsletterOptIn(e.target.checked)}
+              disabled={busy}
+            />
+            <span style={{ color: LEONIX_MUTED }}>
+              {lang === "es" ? resolved.newsletterOptIn.labelEs : resolved.newsletterOptIn.labelEn}
+            </span>
+          </label>
+          {/* Newsletter Engine v2 — always show (or let the user edit) the email that will
+              actually be subscribed. Never silently pull a hidden session email. */}
+          {newsletterEmail !== undefined ? (
+            <div className="ml-7 mt-1.5">
+              {onNewsletterEmailChange ? (
+                <>
+                  <label htmlFor={`${id}-newsletter-email`} className="sr-only">
+                    {lang === "es" ? "Correo para el boletín" : "Newsletter email"}
+                  </label>
+                  <input
+                    id={`${id}-newsletter-email`}
+                    type="email"
+                    inputMode="email"
+                    value={newsletterEmail ?? ""}
+                    onChange={(e) => onNewsletterEmailChange(e.target.value)}
+                    disabled={busy}
+                    placeholder={lang === "es" ? "tu@correo.com" : "you@email.com"}
+                    className="min-h-[36px] w-full max-w-xs rounded-lg border px-2.5 py-1 text-xs"
+                    style={{ borderColor: LEONIX_BORDER, color: LEONIX_CHARCOAL, background: "#FFF" }}
+                    autoComplete="email"
+                  />
+                  {newsletterOptIn && !NEWSLETTER_EMAIL_RE.test((newsletterEmail ?? "").trim()) ? (
+                    <p className="mt-1 text-[11px]" style={{ color: LEONIX_WARNING }} role="status">
+                      {lang === "es"
+                        ? "Ese correo no parece válido. Corrígelo o desmarca la casilla — esto no afecta tu pago."
+                        : "That email doesn't look valid. Fix it or uncheck the box — this does not affect your payment."}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-[11px]" style={{ color: LEONIX_MUTED }}>
+                      {lang === "es" ? "Se suscribirá este correo." : "This email will be subscribed."}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-[11px]" style={{ color: LEONIX_MUTED }}>
+                  {lang === "es" ? "Se suscribirá: " : "Will subscribe: "}
+                  <span className="font-semibold" style={{ color: LEONIX_CHARCOAL }}>
+                    {newsletterEmail?.trim() || (lang === "es" ? "(sin correo disponible)" : "(no email available)")}
+                  </span>
+                </p>
+              )}
+            </div>
+          ) : null}
+          {newsletterCaptureNote ? (
+            <p className="ml-7 mt-1 text-[11px]" style={{ color: "#8B6914" }} role="status">
+              {newsletterCaptureNote}
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       {/* Required confirmations */}
