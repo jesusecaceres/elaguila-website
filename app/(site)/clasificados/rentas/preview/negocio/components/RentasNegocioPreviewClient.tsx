@@ -125,7 +125,7 @@ export default function RentasNegocioPreviewClient() {
       setCheckoutErr(null);
       setCheckoutBusy(true);
 
-      const d = loadRentasNegocioDraft();
+      const d = await loadRentasNegocioDraft();
       if (!d) {
         setCheckoutBusy(false);
         return;
@@ -211,20 +211,28 @@ export default function RentasNegocioPreviewClient() {
   );
 
   useEffect(() => {
-    const raw = editContext
-      ? loadRentasListingEditWorkspace<RentasNegocioFormState>({
-          listingId: editContext.listingId,
-          lane: "negocio",
-          merge: mergePartialRentasNegocioState,
-        })
-      : loadRentasNegocioDraft();
-    if (!raw) {
-      setDraft(null);
-      setPhase("recovery");
-      return;
-    }
-    setDraft(raw);
-    setPhase("ready");
+    let cancelled = false;
+    // BR-INV-WAVE1-GATE3: loadRentasNegocioDraft is now async (IndexedDB inline).
+    void (async () => {
+      const raw = editContext
+        ? loadRentasListingEditWorkspace<RentasNegocioFormState>({
+            listingId: editContext.listingId,
+            lane: "negocio",
+            merge: mergePartialRentasNegocioState,
+          })
+        : await loadRentasNegocioDraft();
+      if (cancelled) return;
+      if (!raw) {
+        setDraft(null);
+        setPhase("recovery");
+        return;
+      }
+      setDraft(raw);
+      setPhase("ready");
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [editContext]);
 
   useEffect(() => {

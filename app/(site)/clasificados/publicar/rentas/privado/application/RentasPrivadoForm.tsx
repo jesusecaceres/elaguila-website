@@ -249,19 +249,22 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
       });
       return;
     }
-    const d = loadRentasPrivadoDraft();
-    if (d) {
-      setState(d);
+    // BR-INV-WAVE1-GATE3: loadRentasPrivadoDraft is now async (IndexedDB inline).
+    void (async () => {
+      const d = await loadRentasPrivadoDraft();
+      if (d) {
+        setState(d);
+        setHydrated(true);
+        return;
+      }
+      try {
+        const p = parseBrNegocioPropiedadParam(sp.get(BR_NEGOCIO_Q_PROPIEDAD));
+        if (p) setState((s) => ({ ...s, categoriaPropiedad: p }));
+      } catch {
+        /* ignore */
+      }
       setHydrated(true);
-      return;
-    }
-    try {
-      const p = parseBrNegocioPropiedadParam(sp.get(BR_NEGOCIO_Q_PROPIEDAD));
-      if (p) setState((s) => ({ ...s, categoriaPropiedad: p }));
-    } catch {
-      /* ignore */
-    }
-    setHydrated(true);
+    })();
   }, [routeEditContext]);
 
   useEffect(() => {
@@ -314,9 +317,15 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [editContext, dirty]);
 
+  // BR-INV-WAVE1-GATE3: saveRentasPrivadoDraft is now async (IndexedDB offload). Returns the
+  // promise so callers that navigate right after can await it — otherwise router.push could race
+  // ahead of the write and the preview page would read a stale draft.
   const flushSave = useCallback(() => {
-    if (editContext) saveRentasListingEditWorkspace({ listingId: editContext.listingId, lane: "privado", draft: stateRef.current });
-    else saveRentasPrivadoDraft(stateRef.current);
+    if (editContext) {
+      saveRentasListingEditWorkspace({ listingId: editContext.listingId, lane: "privado", draft: stateRef.current });
+      return Promise.resolve();
+    }
+    return saveRentasPrivadoDraft(stateRef.current);
   }, [editContext]);
 
   const previewHref = useMemo(
@@ -449,7 +458,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
   }, [editContext, hydrationStatus, lang, router, rm.actions]);
 
   const previewActionsProps = {
-    onPreviewValidated: () => {
+    onPreviewValidated: async () => {
       if (editContext && hydrationStatus !== "ready") return;
       if (!confirmAll) return;
       const g = gateRentasPrivadoPreview(stateRef.current);
@@ -458,7 +467,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
         return;
       }
       setPreviewGateMessage(null);
-      flushSave();
+      await flushSave();
       router.push(previewHref);
     },
     openPreviewHref: previewHref,

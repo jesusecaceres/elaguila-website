@@ -132,7 +132,7 @@ export default function RentasPrivadoPreviewClient() {
       setCheckoutErr(null);
       setCheckoutBusy(true);
 
-      const d = loadRentasPrivadoDraft();
+      const d = await loadRentasPrivadoDraft();
       if (!d) {
         setCheckoutBusy(false);
         return;
@@ -226,7 +226,7 @@ export default function RentasPrivadoPreviewClient() {
             lane: "privado",
             merge: mergePartialRentasPrivadoState,
           })
-        : loadRentasPrivadoDraft();
+        : await loadRentasPrivadoDraft();
       if (!raw) {
         if (!cancelled) {
           setDraft(null);

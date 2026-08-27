@@ -202,7 +202,7 @@ export default function BienesRaicesPrivadoPreviewClient() {
 
   const onStartFsboCheckout = useCallback(
     async (ctx: { newsletterOptIn: boolean; promoCode: string | null }) => {
-      const d = loadBienesRaicesPrivadoDraft();
+      const d = await loadBienesRaicesPrivadoDraft();
       if (!d) return;
       setPublishBusy(true);
       setPublishErr(null);
@@ -253,9 +253,16 @@ export default function BienesRaicesPrivadoPreviewClient() {
   );
 
   useEffect(() => {
-    const d = loadBienesRaicesPrivadoDraft();
-    setDraft(d);
-    setPhase(d ? "ready" : "recovery");
+    let cancelled = false;
+    (async () => {
+      const d = await loadBienesRaicesPrivadoDraft();
+      if (cancelled) return;
+      setDraft(d);
+      setPhase(d ? "ready" : "recovery");
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   /** Keep `?propiedad=` aligned with draft category whenever both are known (survives remounts and query changes). */

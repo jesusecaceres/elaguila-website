@@ -160,7 +160,10 @@ export function externalVideoUrls(s: AgenteIndividualResidencialFormState): stri
     const url = hrefFromUserInput(item);
     if (!url || out.includes(url)) continue;
     out.push(url);
-    if (out.length >= 4) break;
+    // BR-INV-WAVE1-GATE1: was capped at 4, out of sync with AGENTE_RES_MAX_VIDEO_URLS (8) and with
+    // the publish-path cap now raised to match — kept the seller's own draft preview from showing
+    // videos 5-8 even though they'd (now correctly) reach the live listing.
+    if (out.length >= 8) break;
   }
   return out;
 }

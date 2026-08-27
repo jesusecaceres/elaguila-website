@@ -740,7 +740,9 @@ export function normalizeBienesRaicesNegocioMedia(
     photoUrls,
     primaryImageIndex,
     listingVideoSlots: [slot0, slot1],
-    externalVideoUrls: coerceUrlList(r.externalVideoUrls ?? r.videoUrls, 4),
+    // BR-INV-WAVE1-GATE1: raised from 4 to 8 to match AGENTE_RES_MAX_VIDEO_URLS — this coercer
+    // runs on every merge, so leaving it at 4 would silently re-truncate whatever the mapper sends.
+    externalVideoUrls: coerceUrlList(r.externalVideoUrls ?? r.videoUrls, 8),
     virtualTourUrl: typeof r.virtualTourUrl === "string" ? r.virtualTourUrl : base.virtualTourUrl,
     floorPlanUrls,
     sitePlanUrl: typeof r.sitePlanUrl === "string" ? r.sitePlanUrl : base.sitePlanUrl,

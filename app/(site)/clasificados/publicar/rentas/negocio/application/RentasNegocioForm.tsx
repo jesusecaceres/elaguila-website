@@ -245,9 +245,12 @@ export function RentasNegocioForm() {
       });
       return;
     }
-    const d = loadRentasNegocioDraft();
-    if (d) setState(d);
-    setHydrated(true);
+    // BR-INV-WAVE1-GATE3: loadRentasNegocioDraft is now async (IndexedDB inline).
+    void (async () => {
+      const d = await loadRentasNegocioDraft();
+      if (d) setState(d);
+      setHydrated(true);
+    })();
   }, [routeEditContext]);
 
   useEffect(() => {
@@ -296,9 +299,14 @@ export function RentasNegocioForm() {
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [editContext, dirty]);
 
+  // BR-INV-WAVE1-GATE3: saveRentasNegocioDraft is now async (IndexedDB offload). Returns the
+  // promise so callers that navigate right after can await it.
   const flushSave = useCallback(() => {
-    if (editContext) saveRentasListingEditWorkspace({ listingId: editContext.listingId, lane: "negocio", draft: stateRef.current });
-    else saveRentasNegocioDraft(stateRef.current);
+    if (editContext) {
+      saveRentasListingEditWorkspace({ listingId: editContext.listingId, lane: "negocio", draft: stateRef.current });
+      return Promise.resolve();
+    }
+    return saveRentasNegocioDraft(stateRef.current);
   }, [editContext]);
 
   const previewHref = useMemo(
@@ -435,7 +443,7 @@ export function RentasNegocioForm() {
   }, [editContext, hydrationStatus, lang, router]);
 
   const previewActionsProps = {
-    onPreviewValidated: () => {
+    onPreviewValidated: async () => {
       if (editContext && hydrationStatus !== "ready") return;
       if (!confirmAll) return;
       const g = gateRentasNegocioPreview(stateRef.current);
@@ -444,7 +452,7 @@ export function RentasNegocioForm() {
         return;
       }
       setPreviewGateMessage(null);
-      flushSave();
+      await flushSave();
       router.push(previewHref);
     },
     openPreviewHref: previewHref,
