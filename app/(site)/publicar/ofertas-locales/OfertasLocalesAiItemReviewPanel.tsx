@@ -1467,8 +1467,9 @@ export function OfertasLocalesAiItemReviewPanel({
         ) : null}
       </div>
       <button type="button" className={BTN_SECONDARY} disabled={loading} onClick={() => void loadItems()}>
-        {loading ? c.aiReviewRefreshing : c.aiReviewRefresh}
+        {loading ? c.aiReviewRefreshing : scanCopy.refreshNow}
       </button>
+      <p className="text-[10px] text-[#1E1814]/55">{scanCopy.refreshBackupHint}</p>
     </div>
   ) : (
     <div className="space-y-1">
