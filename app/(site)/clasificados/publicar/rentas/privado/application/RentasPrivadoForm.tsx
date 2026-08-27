@@ -13,6 +13,7 @@ import {
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import {
   RENTAS_PREVIEW_PRIVADO,
+  RENTAS_PUBLICAR_HUB,
 } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
 import { Gate12cContactChannelsFields } from "@/app/clasificados/publicar/shared/Gate12cContactChannelsFields";
@@ -562,7 +563,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
 
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <Link
-            href={withClasificadosPublishLang("/clasificados/rentas", routeLang)}
+            href={withClasificadosPublishLang(RENTAS_PUBLICAR_HUB, routeLang)}
             className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-[#C9B46A]/50 px-6 text-sm font-semibold text-[#6E5418] transition hover:bg-[#FFEFD8] sm:w-auto"
           >
             {rm.actions.backToRentals}

@@ -24,7 +24,6 @@ import {
 } from "@/app/clasificados/bienes-raices/preview/bienesRaicesPreviewViewI18n";
 import type { BienesRaicesPrivadoPreviewVm } from "./model/bienesRaicesPrivadoPreviewVm";
 import { useBrContactCtaSheet } from "@/app/clasificados/bienes-raices/shared/brContactCtaSheet";
-import { FaFacebook, FaInstagram, FaTiktok, FaYoutube } from "react-icons/fa";
 
 const IVORY = "#F9F6F1";
 const CREAM_CARD = "#FDFBF7";
@@ -686,18 +685,17 @@ export function BienesRaicesPrivadoPreviewView({
             <LeonixPrivadoPreviewQuickFactsStrip quickFacts={quickFacts} />
           </div>
 
-          {false && showMainSellerAside ? (
+          {showMainSellerAside ? (
             <aside
-              className="min-w-0 rounded-xl border p-3 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.18)] sm:p-3.5 lg:sticky lg:top-4 lg:self-start"
+              className="min-w-0 rounded-2xl border p-4 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.18)] sm:p-5 lg:sticky lg:top-6 lg:self-start"
               style={{ borderColor: BORDER, background: CREAM_CARD }}
             >
               {showSellerPhotoAside && vm.seller.photoUrl ? (
                 <div className="overflow-hidden rounded-2xl border shadow-sm" style={{ borderColor: BORDER }}>
-                  { }
                   <img
                     src={vm.seller.photoUrl ?? undefined}
                     alt=""
-                    className="aspect-[4/5] w-full max-h-[min(280px,40vh)] object-cover object-top sm:max-h-[min(340px,44vh)] lg:max-h-[360px]"
+                    className="aspect-[4/5] w-full max-h-[min(240px,36vh)] object-cover object-top sm:max-h-[min(280px,40vh)]"
                   />
                 </div>
               ) : null}
@@ -720,42 +718,64 @@ export function BienesRaicesPrivadoPreviewView({
                 </p>
               ) : null}
               <div
-                className={
-                  vm.seller.phoneDisplay || vm.seller.whatsappDisplay || vm.seller.emailDisplay
-                    ? `space-y-2 border-t pt-4 text-sm ${showSellerPhotoAside || sellerNameShown || sellerRoleShown || vm.seller.noteLine ? "mt-4" : "mt-0"}`
-                    : "hidden"
-                }
+                className={`space-y-2.5 text-sm ${
+                  showSellerPhotoAside || sellerNameShown || sellerRoleShown || vm.seller.noteLine
+                    ? "mt-4 border-t pt-4"
+                    : "mt-0"
+                }`}
                 style={{ borderColor: BORDER }}
               >
-                {vm.seller.phoneDisplay ? (
-                  <p className="font-medium [font-variant-numeric:tabular-nums]" style={{ color: CHARCOAL }}>
-                    {vm.seller.phoneDisplay}
-                  </p>
+                {vm.contact.showSolicitarInfo && vm.contact.solicitarInfoHref ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      trackContact();
+                      brCta.openEmail();
+                    }}
+                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl px-3 py-3.5 text-center text-sm font-bold text-[#1E1810] shadow-md transition hover:brightness-105"
+                    style={{ background: `linear-gradient(180deg, ${BRONZE} 0%, ${BRONZE_SOFT} 100%)` }}
+                  >
+                    {ui.escribirCorreo}
+                  </button>
                 ) : null}
-                {vm.seller.whatsappDisplay ? (
-                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: MUTED }}>
+                {vm.contact.showLlamar && vm.contact.llamarHref ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      trackContact();
+                      brCta.openCall();
+                    }}
+                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold transition hover:bg-black/[0.03]"
+                    style={{ borderColor: BORDER, color: CHARCOAL_DEEP }}
+                  >
+                    {ui.llamar}
+                  </button>
+                ) : null}
+                {vm.contact.showWhatsapp && vm.contact.whatsappHref ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      trackContact();
+                      brCta.openWhatsApp();
+                    }}
+                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold transition hover:bg-black/[0.03]"
+                    style={{ borderColor: "rgba(37,152,102,0.35)", color: "#1F6B44" }}
+                  >
                     {ui.whatsapp}
-                  </p>
+                  </button>
                 ) : null}
-                {vm.seller.whatsappDisplay ? (
-                  <p className="[font-variant-numeric:tabular-nums]" style={{ color: CHARCOAL }}>
-                    {vm.seller.whatsappDisplay}
-                  </p>
-                ) : null}
-                {vm.seller.smsDisplay ? (
-                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: MUTED }}>
-                    {ui.mensajesTexto}
-                  </p>
-                ) : null}
-                {vm.seller.smsDisplay ? (
-                  <p className="[font-variant-numeric:tabular-nums]" style={{ color: CHARCOAL }}>
-                    {vm.seller.smsDisplay}
-                  </p>
-                ) : null}
-                {vm.seller.emailDisplay ? (
-                  <p className="break-all text-sm leading-snug opacity-90" style={{ color: CHARCOAL }}>
-                    {vm.seller.emailDisplay}
-                  </p>
+                {vm.contact.showSms && vm.contact.smsHref ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      trackContact();
+                      brCta.openSms();
+                    }}
+                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold transition hover:bg-black/[0.03]"
+                    style={{ borderColor: "rgba(64,110,166,0.35)", color: "#2A4E7A" }}
+                  >
+                    {ui.enviarTexto}
+                  </button>
                 ) : null}
               </div>
             </aside>
@@ -807,161 +827,6 @@ export function BienesRaicesPrivadoPreviewView({
               </div>
             ) : null}
           </div>
-          <aside
-            className="flex min-h-full flex-col lg:sticky lg:top-6 lg:min-h-0 lg:self-start"
-          >
-            <div
-              className="flex flex-1 flex-col overflow-hidden rounded-2xl border shadow-[0_24px_64px_-20px_rgba(26,24,20,0.35)]"
-              style={{ borderColor: "rgba(255,255,255,0.08)" }}
-            >
-              <div className="px-4 py-3 sm:px-5" style={{ background: CHARCOAL_DEEP }}>
-                <p className="text-center text-xs font-bold uppercase tracking-[0.2em] text-[#F5F0E8]">{vm.contactRailTitle}</p>
-              </div>
-              {vm.contact.instructionsLine ? (
-                <p
-                  className="border-b px-5 py-3 text-xs leading-relaxed text-[#d8cfc3]"
-                  style={{ borderColor: "rgba(255,255,255,0.08)", background: "#2F2A24" }}
-                >
-                  {vm.contact.instructionsLine}
-                </p>
-              ) : null}
-              <div className="flex flex-1 flex-col space-y-2.5 px-4 py-3.5 sm:px-5 sm:py-4" style={{ background: "#2F2A24" }}>
-                {sellerNameShown ? <p className="text-sm font-bold text-[#F5F0E8]">{sellerNameShown}</p> : null}
-                {vm.seller.noteLine ? <p className="text-xs leading-relaxed text-[#D8CFC3]">{vm.seller.noteLine}</p> : null}
-                {vm.contact.showSolicitarInfo && vm.contact.solicitarInfoHref ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      trackContact();
-                      brCta.openEmail();
-                    }}
-                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl px-3 py-3.5 text-center text-sm font-bold text-[#1E1810] shadow-md transition hover:brightness-105"
-                    style={{ background: `linear-gradient(180deg, ${BRONZE} 0%, ${BRONZE_SOFT} 100%)` }}
-                  >
-                    {ui.escribirCorreo}
-                  </button>
-                ) : null}
-                {vm.contact.showLlamar && vm.contact.llamarHref ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      trackContact();
-                      brCta.openCall();
-                    }}
-                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
-                    style={{ borderColor: "rgba(245,240,232,0.25)" }}
-                  >
-                    {ui.llamar}
-                  </button>
-                ) : null}
-                {vm.contact.showWhatsapp && vm.contact.whatsappHref ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      trackContact();
-                      brCta.openWhatsApp();
-                    }}
-                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#E8F5E9] transition hover:bg-white/5"
-                    style={{ borderColor: "rgba(37,211,102,0.35)" }}
-                  >
-                    {ui.whatsapp}
-                  </button>
-                ) : null}
-                {vm.contact.showSms && vm.contact.smsHref ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      trackContact();
-                      brCta.openSms();
-                    }}
-                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#E3F2FD] transition hover:bg-white/5"
-                    style={{ borderColor: "rgba(100,181,246,0.45)" }}
-                  >
-                    {ui.enviarTexto}
-                  </button>
-                ) : null}
-                {vm.contact.preferredContactLine ? (
-                  <p className="text-center text-[11px] leading-relaxed text-[#d8cfc3]">{vm.contact.preferredContactLine}</p>
-                ) : null}
-                {vm.contact.websiteHref ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      trackContact();
-                      brCta.openWebsite();
-                    }}
-                    className="flex min-h-[48px] w-full items-center justify-center rounded-xl border px-3 py-3 text-center text-sm font-semibold text-[#F5F0E8] transition hover:bg-white/5"
-                    style={{ borderColor: "rgba(197,160,89,0.45)" }}
-                  >
-                    {ui.masInformacion}
-                  </button>
-                ) : null}
-                {(vm.contact.socialLinks?.length ?? 0) > 0 ? (
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {(vm.contact.socialLinks ?? []).map((sl) => {
-                      const href = sl.href.trim();
-                      const ring =
-                        "inline-flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full border text-[#F5F0E8] transition hover:bg-white/10";
-                      const b = "rgba(245,240,232,0.2)";
-                      const icon =
-                        sl.kind === "instagram" ? (
-                          <FaInstagram className="h-4 w-4" aria-hidden />
-                        ) : sl.kind === "facebook" ? (
-                          <FaFacebook className="h-4 w-4" aria-hidden />
-                        ) : sl.kind === "youtube" ? (
-                          <FaYoutube className="h-4 w-4" aria-hidden />
-                        ) : (
-                          <FaTiktok className="h-4 w-4" aria-hidden />
-                        );
-                      const label =
-                        sl.kind === "instagram"
-                          ? "Instagram"
-                          : sl.kind === "facebook"
-                            ? "Facebook"
-                            : sl.kind === "youtube"
-                              ? "YouTube"
-                              : "TikTok";
-                      return (
-                        <button
-                          key={`${sl.kind}-${href}`}
-                          type="button"
-                          onClick={() => {
-                            trackContact();
-                            brCta.openSocial(href);
-                          }}
-                          className={ring}
-                          style={{ borderColor: b }}
-                          aria-label={label}
-                        >
-                          {icon}
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : null}
-                {(vm.location.line1 || vm.location.cityStateZip || vm.location.mapsUrl) ? (
-                  <div className="mt-1 rounded-xl border p-3" style={{ borderColor: "rgba(255,255,255,0.15)" }}>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#E8DFD4]">{ui.ubicacion}</p>
-                    {vm.location.line1 ? <p className="mt-1 text-xs text-[#F5F0E8]">{vm.location.line1}</p> : null}
-                    {vm.location.cityStateZip ? <p className="mt-1 text-xs text-[#D8CFC3]">{vm.location.cityStateZip}</p> : null}
-                    {vm.location.mapsUrl ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          trackContact();
-                          brCta.openMaps();
-                        }}
-                        className="mt-3 inline-flex rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold text-[#F5F0E8]"
-                        style={{ borderColor: "rgba(255,255,255,0.35)" }}
-                      >
-                        {ui.verEnMapa}
-                      </button>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </aside>
         </section>
 
         {String(vm.footerNote ?? "").trim() ? (

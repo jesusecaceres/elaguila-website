@@ -13,6 +13,7 @@ import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publis
 import { gateRentasNegocioPreview } from "@/app/clasificados/lib/publish/leonixRequiredForPreviewGates";
 import {
   RENTAS_PREVIEW_NEGOCIO,
+  RENTAS_PUBLICAR_HUB,
   RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY,
 } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
@@ -566,7 +567,7 @@ export function RentasNegocioForm() {
 
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <Link
-            href={`/clasificados/rentas?lang=${lang}`}
+            href={`${RENTAS_PUBLICAR_HUB}?lang=${lang}`}
             className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-[#C9B46A]/50 px-6 text-sm font-semibold text-[#6E5418] transition hover:bg-[#FFEFD8] sm:w-auto"
           >
             {lang === "en" ? "Back to Rentals" : "Volver a Rentas"}

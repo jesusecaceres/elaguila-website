@@ -27,6 +27,7 @@ import {
 } from "../lib/agenteResidencialPreviewFormat";
 import { formatSqftDisplay } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
 import { detectAgenteResBuyerActions } from "../lib/agenteResidencialDetectedActions";
+import { BrGate12dHoaCommunitySection } from "@/app/clasificados/publicar/bienes-raices/shared/BrGate12dHoaCommunitySection";
 
 function BrSqftPreview({ value }: { value: string }) {
   const shown = formatSqftDisplay(value);
@@ -41,7 +42,7 @@ export function Step04DetallesEsenciales({
   state: AgenteIndividualResidencialFormState;
   setState: Dispatch<SetStateAction<AgenteIndividualResidencialFormState>>;
 }) {
-  const { t } = useBrAgenteResidencialCopy();
+  const { t, lang } = useBrAgenteResidencialCopy();
   const c = t.previewFormat.condicion;
   const cat = state.categoriaPropiedad;
 
@@ -127,6 +128,27 @@ export function Step04DetallesEsenciales({
           </AiField>
           {condicionSelect}
         </div>
+      ) : null}
+      {/* BR-INV-FINAL-WAVE-D (item 4): HOA is residential-only, reusing the exact shared
+          BrGate12dHoaCommunitySection/slice BR Privado already uses (variant="negocio"), not a
+          divergent duplicate. */}
+      {cat === "residencial" ? (
+        <BrGate12dHoaCommunitySection
+          variant="negocio"
+          lang={lang}
+          gate12d={{
+            hasHoa: state.hasHoa,
+            hoaFee: state.hoaFee,
+            hoaFrequency: state.hoaFrequency,
+            hoaIncludes: state.hoaIncludes,
+            communityRules: state.communityRules,
+            petRules: state.petRules,
+            rentalRestrictions: state.rentalRestrictions,
+            shortTermRentalAllowed: state.shortTermRentalAllowed,
+            parkingRules: state.parkingRules,
+          }}
+          onChange={(patch) => setState((s) => ({ ...s, ...patch }))}
+        />
       ) : null}
 
       {cat === "comercial" ? (

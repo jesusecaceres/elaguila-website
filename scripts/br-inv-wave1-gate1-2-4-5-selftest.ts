@@ -140,6 +140,48 @@ function agente(overrides: Partial<AgenteIndividualResidencialFormState>): Agent
 }
 
 /* ------------------------------------------------------------------------------------------ *
+ * FINAL-04 — BR Negocio HOA: residential-only, survives publish + preview; absent for comercial/terreno
+ * ------------------------------------------------------------------------------------------ */
+{
+  const s = agente({
+    categoriaPropiedad: "residencial",
+    titulo: "Condominio con HOA",
+    precio: "400000",
+    hasHoa: "yes",
+    hoaFee: "250",
+    hoaFrequency: "monthly",
+    hoaIncludes: "Agua, jardinería, seguridad",
+    communityRules: "No rentas de corto plazo",
+    petRules: "Máximo 2 mascotas",
+    rentalRestrictions: "Mínimo 6 meses",
+    shortTermRentalAllowed: "no",
+    parkingRules: "1 espacio asignado",
+  });
+  const negocio = mapAgenteResidencialFormStateToNegocioForPublish(s);
+  assert.equal(negocio.gate12d.hasHoa, "yes", "FINAL-04: hasHoa must survive publish");
+  assert.equal(negocio.gate12d.hoaFee, "250", "FINAL-04: hoaFee must survive publish");
+  assert.equal(negocio.gate12d.hoaFrequency, "monthly", "FINAL-04: hoaFrequency must survive publish");
+  assert.equal(negocio.gate12d.communityRules, "No rentas de corto plazo", "FINAL-04: communityRules must survive");
+  assert.equal(negocio.gate12d.parkingRules, "1 espacio asignado", "FINAL-04: parkingRules must survive");
+
+  const vm = mapBienesRaicesNegocioStateToPreviewVm(negocio);
+  assert.ok(vm.hoaCommunityCard && vm.hoaCommunityCard.rows.length > 0, "FINAL-04: HOA card must render for residential");
+
+  // HOA must NOT leak into comercial/terreno — semantically wrong per the product decision.
+  const sComercial = agente({
+    categoriaPropiedad: "comercial",
+    titulo: "Oficina",
+    precio: "3000",
+    hasHoa: "yes",
+    hoaFee: "250",
+  });
+  const negocioComercial = mapAgenteResidencialFormStateToNegocioForPublish(sComercial);
+  assert.equal(negocioComercial.gate12d.hasHoa, "", "FINAL-04: HOA must NOT be forwarded for comercial category");
+
+  console.log("Item 4 (BR Negocio HOA — residential-only) OK");
+}
+
+/* ------------------------------------------------------------------------------------------ *
  * C — BR Negocio Terreno/Lote: every land field + highlights survive publish
  * ------------------------------------------------------------------------------------------ */
 {

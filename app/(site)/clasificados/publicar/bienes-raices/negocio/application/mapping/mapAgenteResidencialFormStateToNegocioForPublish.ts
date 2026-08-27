@@ -248,6 +248,25 @@ export function mapAgenteResidencialFormStateToNegocioForPublish(
     highlightPresets: residencial.presets,
     customHighlightsText,
     deepDetails: buildNegocioDeepDetails(s, base.deepDetails),
+    // BR-INV-FINAL-WAVE-D (item 4): HOA is residential-only — forwarding it for comercial/terreno
+    // would be semantically wrong (BR Privado never asks it there either). The target `gate12d`
+    // slice already has a working preview card (buildBrGate12dHoaPreviewCard, shared with BR
+    // Privado); only the source side of BR Negocio was missing until now.
+    gate12d:
+      cat !== "comercial" && cat !== "terreno_lote"
+        ? {
+            ...base.gate12d,
+            hasHoa: s.hasHoa,
+            hoaFee: s.hoaFee,
+            hoaFrequency: s.hoaFrequency,
+            hoaIncludes: s.hoaIncludes,
+            communityRules: s.communityRules,
+            petRules: s.petRules,
+            rentalRestrictions: s.rentalRestrictions,
+            shortTermRentalAllowed: s.shortTermRentalAllowed,
+            parkingRules: s.parkingRules,
+          }
+        : base.gate12d,
     petsAllowed: "no",
     media: {
       ...base.media,

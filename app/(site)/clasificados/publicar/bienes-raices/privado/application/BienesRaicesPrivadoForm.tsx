@@ -438,17 +438,10 @@ export function BienesRaicesPrivadoForm() {
               </span>
               .
             </p>
-            <div className="sm:col-span-2">
-              <AiField label="Enlace a mapa (opcional)" hint="Pega un enlace https (por ejemplo Google Maps).">
-                <input
-                  className={fieldClass}
-                  type="url"
-                  placeholder="https://"
-                  value={state.enlaceMapa}
-                  onChange={(e) => setState((s) => ({ ...s, enlaceMapa: e.target.value }))}
-                />
-              </AiField>
-            </div>
+            {/* BR-INV-FINAL-WAVE-D: manual "Enlace a mapa" input removed per product direction — maps/
+                directions are derived from the structured address instead. state.enlaceMapa stays in
+                the schema/mapper for backward-compat reads of already-stored drafts/listings; new
+                entries simply never populate it again. */}
             <div className="sm:col-span-2">
               <AiField
                 label="Descripción principal"
@@ -1273,10 +1266,20 @@ export function BienesRaicesPrivadoForm() {
             disableVerAnuncio={!confirmAll}
             validationMessage={verAnuncioValidationMessage}
             onReiniciar={onReiniciar}
+            openPreviewHref={previewHref}
+            onBeforeOpenUnvalidatedPreview={flushSave}
             labels={
               lang === "en"
-                ? { verAnuncio: "View listing", reiniciar: "Clear progress and restart" }
-                : { verAnuncio: "Ver anuncio", reiniciar: "Borrar progreso y reiniciar" }
+                ? {
+                    verAnuncio: "View listing",
+                    openPreview: "View preview (without validation)",
+                    reiniciar: "Clear progress and restart",
+                  }
+                : {
+                    verAnuncio: "Ver anuncio",
+                    openPreview: "Ver vista previa (sin validar)",
+                    reiniciar: "Borrar progreso y reiniciar",
+                  }
             }
           />
         </section>

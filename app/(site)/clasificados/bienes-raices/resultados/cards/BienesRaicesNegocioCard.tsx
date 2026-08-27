@@ -8,7 +8,6 @@ import {
   brAnalyticsContextFromListing,
   trackBrResultCardClickGlobal,
 } from "@/app/lib/clasificados/bienes-raices/brGlobalAnalytics";
-import { BrEngagementRow } from "@/app/clasificados/bienes-raices/listing/BrEngagementRow";
 import type { BrNegocioListing } from "./listingTypes";
 import { BadgeStack } from "./BadgeStack";
 import { IconBath, IconBed, IconCalendar, IconMapPin, IconRuler } from "./cardIcons";
@@ -117,15 +116,6 @@ function listingDetailHref(id: string, lang?: Lang) {
 
 const cardShell = `group relative flex h-full flex-col overflow-hidden rounded-3xl border border-[#D4A574]/30 bg-[#FFFAF0] shadow-[0_12px_48px_-20px_rgba(212,165,116,0.15)] transition hover:border-[#D4A574]/45 hover:shadow-[0_16px_56px_-18px_rgba(212,165,116,0.2)]`;
 
-const ENGAGEMENT_LABELS = {
-  es: {
-    title: "Interacción",
-  },
-  en: {
-    title: "Engagement",
-  },
-} as const;
-
 export function BienesRaicesNegocioCard({
   listing,
   className,
@@ -137,7 +127,6 @@ export function BienesRaicesNegocioCard({
   sellerKindLabels?: { privado: string; negocio: string };
   lang?: Lang;
 }) {
-  const eg = ENGAGEMENT_LABELS[lang === "en" ? "en" : "es"];
   const horizontal = listing.layout === "horizontal";
   const href = listingDetailHref(listing.id, lang);
   const op = operationKind(listing);
@@ -160,6 +149,51 @@ export function BienesRaicesNegocioCard({
     </div>
   );
 
+  // BR-INV-FINAL-WAVE-J (item 8): the grid (non-horizontal) variant is the actual search-result
+  // card — it previously carried a full avatar+name+badge identity row, two full-width CTA
+  // buttons, and a complete like/share engagement widget with its own heading, roughly doubling
+  // the body height versus RentasResultCard's lean equivalent. Those richer treatments still
+  // belong on the detail page (BienesRaicesPrivadoPreviewView / AgenteIndividualResidencialPreviewPage
+  // already carry the full identity/contact/engagement UI) — the result card itself just needs a
+  // compact seller signal and a single detail affordance, matching RentasResultCard's density.
+  // The horizontal (list-row) layout has more room and is left as-is; only the grid card is trimmed.
+  const compactSellerLine = (
+    <p className="mt-3 flex min-w-0 items-center gap-1.5 text-xs font-medium text-[#5C5346]/80">
+      <span className="truncate">{listing.advertiser.name}</span>
+      <span
+        className={
+          lane === "negocio"
+            ? "shrink-0 rounded-full border border-[#C9B46A]/40 bg-[#FFF8E8] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#6E5418]"
+            : "shrink-0 rounded-full border border-[#E8DFD0] bg-white/95 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#5C5346]"
+        }
+      >
+        {lane === "negocio" ? (sellerKindLabels?.negocio ?? "Negocio") : (sellerKindLabels?.privado ?? "Privado")}
+      </span>
+    </p>
+  );
+
+  const bodyLowerGrid = (
+    <>
+      {listing.openHouse ? (
+        <p className="mt-2 rounded-lg bg-[#D4A574]/10 px-2.5 py-1.5 text-xs font-semibold text-[#7A7A7A]">
+          {listing.openHouse}
+        </p>
+      ) : null}
+      {listing.metaLines?.length ? (
+        <p className="mt-2 line-clamp-2 text-sm text-[#4A4A4A]">{listing.metaLines[0]}</p>
+      ) : null}
+      {listing.advertiser.name ? compactSellerLine : null}
+      <Link
+        href={href}
+        onClick={trackResultOpen}
+        className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-[#D4A574] transition-colors hover:text-[#B8843F]"
+      >
+        {lang === "en" ? "View details" : "Ver detalles"}
+        <span aria-hidden>→</span>
+      </Link>
+    </>
+  );
+
   const bodyLower = (
     <>
       {listing.openHouse ? (
@@ -179,24 +213,6 @@ export function BienesRaicesNegocioCard({
           {lang === "en" ? "Contact" : "Contactar"}
         </Link>
       </div>
-
-      {/* Engagement Section — real like/share against this card's listing UUID */}
-      {!horizontal ? (
-      <div className="mt-4 pt-4 border-t border-[#E5E5E5]/50">
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="text-sm font-semibold text-[#1A1A1A] uppercase tracking-wide">
-            {eg.title}
-          </h4>
-        </div>
-        <BrEngagementRow
-          lang={lang === "en" ? "en" : "es"}
-          mode="live"
-          listingUuid={listing.id}
-          listingTitle={listing.title}
-          listingUrl={typeof window !== "undefined" ? `${window.location.origin}${href}` : href}
-        />
-      </div>
-      ) : null}
     </>
   );
 
@@ -237,7 +253,7 @@ export function BienesRaicesNegocioCard({
           <span className="line-clamp-2">{listing.addressLine}</span>
         </p>
         <FactsRow listing={listing} />
-        <div className="mt-auto">{bodyLower}</div>
+        <div className="mt-auto">{bodyLowerGrid}</div>
       </div>
     </article>
   );
