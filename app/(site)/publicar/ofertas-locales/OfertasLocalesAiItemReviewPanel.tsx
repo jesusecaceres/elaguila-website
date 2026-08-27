@@ -49,6 +49,9 @@ const BTN_FILTER =
   "min-h-10 rounded-full border px-3 py-2 text-[10px] font-semibold uppercase tracking-wide";
 const BTN_PRIMARY_LG =
   "min-h-12 w-full rounded-lg bg-[#7A1E2C] px-4 py-3 text-sm font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-45";
+// Page-complete / review-complete progression only — never the main product action.
+const BTN_SUCCESS_LG =
+  "min-h-12 w-full rounded-lg bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-45";
 const BTN_NAV =
   "min-h-9 rounded-lg border border-[#D4C4A8] bg-white px-2.5 py-1.5 text-[10px] font-medium text-[#1E1814] hover:border-[#7A1E2C]/40 disabled:cursor-not-allowed disabled:opacity-45";
 const BTN_DANGER =
@@ -1637,35 +1640,6 @@ export function OfertasLocalesAiItemReviewPanel({
                       {pageBlockMessage}
                     </p>
                   ) : null}
-                  {allPagesComplete ? (
-                    <div className="mt-3 rounded-xl border border-emerald-300/80 bg-emerald-50 px-4 py-4">
-                      <p className="text-base font-semibold text-emerald-950">{c.aiReviewCompleteTitle}</p>
-                      <p className="mt-1 text-sm text-emerald-900">
-                        {formatReviewCopy(c.aiReviewCompleteCount, { count: allCurrentScanItems.length })}
-                      </p>
-                      <button
-                        type="button"
-                        className={`${BTN_PRIMARY_LG} mt-4`}
-                        onClick={() => onContinueToNextStep?.()}
-                      >
-                        {c.aiReviewContinueToNextStep}
-                      </button>
-                    </div>
-                  ) : null}
-                  <div className="mt-3 flex flex-col gap-2">
-                    {currentPageSummary.needsReview === 0 && nextPageSummary ? (
-                      <button
-                        type="button"
-                        className={BTN_PRIMARY_LG}
-                        onClick={proceedToNextPage}
-                      >
-                        {formatReviewCopy(c.aiReviewContinueToPage, { page: nextPageSummary.page })}
-                      </button>
-                    ) : null}
-                    {currentPageSummary.needsReview > 0 ? (
-                      <p className="text-xs font-medium text-[#1E1814]/70">{c.aiReviewPageInstruction}</p>
-                    ) : null}
-                  </div>
                 </div>
               ) : null}
             </div>
@@ -1713,17 +1687,17 @@ export function OfertasLocalesAiItemReviewPanel({
                       type="button"
                       className={BTN_SECONDARY}
                       disabled={savingId === focusedItem.id}
-                      onClick={() => handleReviewLater(focusedItem.id)}
+                      onClick={() => void handleSave(focusedItem.id)}
                     >
-                      {c.aiReviewReviewLater}
+                      {c.aiReviewSaveEdits}
                     </button>
                     <button
                       type="button"
                       className={BTN_SECONDARY}
                       disabled={savingId === focusedItem.id}
-                      onClick={() => void handleSave(focusedItem.id)}
+                      onClick={() => handleReviewLater(focusedItem.id)}
                     >
-                      {c.aiReviewSaveEdits}
+                      {c.aiReviewReviewLater}
                     </button>
                   </div>
                   {reviewLaterHint ? (
@@ -1801,9 +1775,9 @@ export function OfertasLocalesAiItemReviewPanel({
               </p>
             </div>
             {queueItems.length === 0 ? (
-              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-900">
+              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-900">
                 {currentPageNumber != null
-                  ? formatReviewCopy(c.aiReviewPageComplete, { page: currentPageNumber })
+                  ? formatReviewCopy(c.aiReviewPageCompleteCheck, { page: currentPageNumber })
                   : c.aiReviewNoMoreItemsOnPage}
               </p>
             ) : (
@@ -1816,34 +1790,29 @@ export function OfertasLocalesAiItemReviewPanel({
             {isWorkspace && currentPageSummary ? (
               <div className="rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0] px-3 py-3">
                 {currentPageSummary.needsReview === 0 ? (
-                  <>
-                    <p className="text-sm font-semibold text-emerald-900">
-                      {formatReviewCopy(c.aiReviewPageComplete, { page: currentPageSummary.page })}
-                    </p>
-                    {allPagesComplete ? (
-                      <div className="mt-3 rounded-xl border border-emerald-300/80 bg-emerald-50 px-4 py-4">
-                        <p className="text-base font-semibold text-emerald-950">{c.aiReviewCompleteTitle}</p>
-                        <p className="mt-1 text-sm text-emerald-900">
-                          {formatReviewCopy(c.aiReviewCompleteCount, { count: allCurrentScanItems.length })}
-                        </p>
-                        <button
-                          type="button"
-                          className={`${BTN_PRIMARY_LG} mt-4`}
-                          onClick={() => onContinueToNextStep?.()}
-                        >
-                          {c.aiReviewContinueToNextStep}
-                        </button>
-                      </div>
-                    ) : nextPageSummary ? (
+                  allPagesComplete ? (
+                    <div className="rounded-xl border border-emerald-300/80 bg-emerald-50 px-4 py-4">
+                      <p className="text-base font-semibold text-emerald-950">{c.aiReviewCompleteTitle}</p>
+                      <p className="mt-1 text-sm text-emerald-900">{c.aiReviewCompleteBody}</p>
+                      <p className="mt-1 text-sm font-medium text-emerald-900">
+                        {formatReviewCopy(c.aiReviewCompletePagesCount, {
+                          completed: pageSummaries.filter((page) => page.needsReview === 0).length,
+                          total: pageSummaries.length,
+                        })}
+                      </p>
                       <button
                         type="button"
-                        className={`${BTN_PRIMARY_LG} mt-3 w-full`}
-                        onClick={proceedToNextPage}
+                        className={`${BTN_SUCCESS_LG} mt-4`}
+                        onClick={() => onContinueToNextStep?.()}
                       >
-                        {formatReviewCopy(c.aiReviewContinueToPage, { page: nextPageSummary.page })}
+                        {c.aiReviewContinueToNextStep}
                       </button>
-                    ) : null}
-                  </>
+                    </div>
+                  ) : nextPageSummary ? (
+                    <button type="button" className={BTN_SUCCESS_LG} onClick={proceedToNextPage}>
+                      {c.aiReviewContinueToPage}
+                    </button>
+                  ) : null
                 ) : (
                   <p className="text-xs text-[#1E1814]/70">{c.aiReviewPageInstruction}</p>
                 )}
