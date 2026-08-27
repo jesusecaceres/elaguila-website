@@ -200,6 +200,15 @@ export function LeonixCorreoLeadModal({
     };
   }, [open, defaultBody, emailAddr, sellerOwnerId]);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
+
   const subj = lang === "es" ? COPY.es.subj : COPY.en.subj;
 
   const mailtoUrl = useMemo(() => {
@@ -361,8 +370,11 @@ export function LeonixCorreoLeadModal({
         </div>
 
         <div className="mt-3">
-          <label className="text-[11px] font-semibold text-[#7A7164]">{t.messagePh}</label>
+          <label htmlFor="leonix-correo-lead-message" className="text-[11px] font-semibold text-[#7A7164]">
+            {t.messagePh}
+          </label>
           <textarea
+            id="leonix-correo-lead-message"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder={t.messagePh}

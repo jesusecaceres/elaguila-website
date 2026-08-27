@@ -679,6 +679,7 @@ export function RentasNegocioForm() {
               type="file"
               accept="image/*"
               multiple
+              aria-label={lang === "en" ? "Listing photos" : "Fotos del anuncio"}
               className="sr-only"
               onChange={(e) => onPhotos(e.target.files)}
             />
@@ -797,6 +798,7 @@ export function RentasNegocioForm() {
                 ref={negocioLogoInputRef}
                 type="file"
                 accept="image/*"
+                aria-label="Logo o foto del equipo"
                 className="sr-only"
                 onChange={async (e) => {
                   const f = e.target.files?.[0];

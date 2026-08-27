@@ -608,6 +608,7 @@ export function BienesRaicesPrivadoForm() {
               type="file"
               accept="image/*"
               multiple
+              aria-label="Fotos del anuncio"
               className="sr-only"
               onChange={(e) => onPhotos(e.target.files)}
             />
@@ -714,6 +715,7 @@ export function BienesRaicesPrivadoForm() {
                 ref={ownerPhotoInputRef}
                 type="file"
                 accept="image/*"
+                aria-label="Foto del propietario"
                 className="sr-only"
                 onChange={async (e) => {
                   const f = e.target.files?.[0];

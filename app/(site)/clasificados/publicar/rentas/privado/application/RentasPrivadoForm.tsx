@@ -670,6 +670,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
               type="file"
               accept="image/*"
               multiple
+              aria-label={rm.media.listingPhotos}
               className="sr-only"
               onChange={(e) => onPhotos(e.target.files)}
             />
@@ -787,6 +788,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 ref={ownerPhotoInputRef}
                 type="file"
                 accept="image/*"
+                aria-label={rm.contact.contactPhoto}
                 className="sr-only"
                 onChange={async (e) => {
                   const f = e.target.files?.[0];
