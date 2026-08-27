@@ -583,10 +583,12 @@ export default function OfertasLocalesApplicationClient() {
 
   const step5ScanRequired = aiIncludedInPackage;
   const step5ScanComplete = !step5ScanRequired || hasExistingAiScan;
+  // Zero extracted candidates is never "review complete" — that's an
+  // extraction failure/empty result, not a reviewed set. Only a real,
+  // non-empty candidate list with nothing left pending counts as complete.
   const step5ReviewComplete =
     !step5ScanRequired ||
-    (step5ScanComplete &&
-      (aiReviewGate.totalItems === 0 || aiReviewGate.needsReviewCount === 0));
+    (step5ScanComplete && aiReviewGate.totalItems > 0 && aiReviewGate.needsReviewCount === 0);
 
   const step5ActiveCheckpoint = useMemo((): "upload" | "scan" | "review" | "complete" => {
     if (!step5UploadComplete) return "upload";
