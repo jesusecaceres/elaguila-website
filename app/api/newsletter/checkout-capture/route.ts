@@ -19,6 +19,7 @@ const MAX_BODY_BYTES = 8_192;
 /** Server allowlist — must match the client `CHECKOUT_NEWSLETTER_SOURCES`. */
 const ALLOWED_SOURCES = new Set([
   "restaurantes_checkout",
+  "servicios_checkout",
   "rentas_checkout",
   "empleos_checkout",
   "autos_privado_checkout",
@@ -29,6 +30,7 @@ const ALLOWED_SOURCES = new Set([
 /** Category/audience tags derived from source so admin/export is always clear. */
 const SOURCE_TAGS: Record<string, string[]> = {
   restaurantes_checkout: ["category:restaurantes", "audience:business"],
+  servicios_checkout: ["category:servicios", "audience:business"],
   rentas_checkout: ["category:rentas", "audience:seller"],
   empleos_checkout: ["category:empleos", "audience:business"],
   autos_privado_checkout: ["category:autos", "seller:private", "audience:seller"],

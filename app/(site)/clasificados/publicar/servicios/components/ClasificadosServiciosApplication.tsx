@@ -14,6 +14,9 @@ import {
   clearLeonixReturningToEditSessionFlag,
   markPublishFlowOpeningPreview,
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
+import { PhoneInput } from "@/app/components/forms/PhoneInput";
+import CityAutocomplete from "@/app/components/CityAutocomplete";
 import {
   BUSINESS_TYPE_PRESETS,
   chipLabel,
@@ -558,7 +561,12 @@ export function ClasificadosServiciosApplication() {
     state.couponMoreOffers,
   ]);
 
-  /* Servicios draft is session-persisted; do not register native beforeunload warnings. */
+  useBusinessApplicationLeaveGuard({
+    isDirty: hydrated && state.businessName.trim().length > 0,
+    persist: () => {
+      void saveClasificadosServiciosApplicationResolved(stateRef.current);
+    },
+  });
 
   // Golden-loop: dashboard listing edit → listing-bound preview (keeps identity/mode/focus).
   // New application → plain seller preview from local draft.
@@ -1191,12 +1199,14 @@ export function ClasificadosServiciosApplication() {
               {copy.labels.cityHelpDetail.trim() ? (
                 <p className="mt-0.5 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.cityHelpDetail}</p>
               ) : null}
-              <input
+              <CityAutocomplete
                 className={inputClass}
                 value={state.city}
                 placeholder={copy.labels.cityPlaceholder}
-                onChange={(e) => setState((s) => ({ ...s, city: e.target.value }))}
-                autoComplete="address-level2"
+                onChange={(next) => setState((s) => ({ ...s, city: next }))}
+                lang={lang}
+                variant="light"
+                freeText
               />
             </div>
             <div>
@@ -1331,14 +1341,12 @@ export function ClasificadosServiciosApplication() {
               <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2">
                 <div>
                   <label className={labelClass}>{copy.labels.phone}</label>
-                  <input
+                  <PhoneInput
                     className={inputClass}
-                    type="tel"
-                    inputMode="numeric"
                     autoComplete="tel"
                     placeholder={lang === "es" ? "(713) 555-0100" : "(713) 555-0100"}
-                    value={formatPhoneInputDisplay(state.phone)}
-                    onChange={(e) => setState((s) => ({ ...s, phone: formatPhoneInputDisplay(e.target.value) }))}
+                    value={state.phone}
+                    onChange={(next) => setState((s) => ({ ...s, phone: next }))}
                   />
                 </div>
                 <div>

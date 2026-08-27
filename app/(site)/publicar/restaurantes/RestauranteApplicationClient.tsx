@@ -19,6 +19,9 @@ import {
 import { RestauranteUploadRow } from "@/app/clasificados/restaurantes/application/RestauranteUploadRow";
 import { useRestauranteDraft } from "@/app/clasificados/restaurantes/application/useRestauranteDraft";
 import { saveRestauranteDraftToStorageResolved } from "@/app/clasificados/restaurantes/application/restauranteDraftStorage";
+import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
+import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import { PhoneInput } from "@/app/components/forms/PhoneInput";
 import {
   satisfiesRestauranteMinimumDraftForPreview,
   satisfiesRestauranteServiceModes,
@@ -193,6 +196,13 @@ export default function RestauranteApplicationClient() {
       ? appendLangToPath("/dashboard/restaurantes", routeLang)
       : buildDashboardMisAnunciosReturnPath(lang, "restaurantes");
   const { hydrated, draft, draftRef, setDraftPatch, resetDraft } = useRestauranteDraft();
+
+  useBusinessApplicationLeaveGuard({
+    isDirty: hydrated && Boolean(draft.businessName?.trim()),
+    persist: () => {
+      void saveRestauranteDraftToStorageResolved(draftRef.current);
+    },
+  });
   const [serviceErr, setServiceErr] = useState(false);
   /** Pending text before user confirms custom language with Añadir. */
   const [languageOtherPending, setLanguageOtherPending] = useState("");
@@ -433,6 +443,7 @@ export default function RestauranteApplicationClient() {
     // Service modes are no longer required for preview - default assumption is brick-and-mortar restaurant
     setServiceErr(false);
     await saveRestauranteDraftToStorageResolved(draftRef.current);
+    markPublishFlowOpeningPreview();
     window.location.href = previewHrefWithPlan;
   }, [draftRef, previewHrefWithPlan, isExistingDashboardListingMode]);
 
@@ -1408,15 +1419,11 @@ export default function RestauranteApplicationClient() {
                 <div>
                   <FieldLabel optional lang={lang}>{fc.sectionD.phoneLabel}</FieldLabel>
                   <HelperText>{fc.sectionD.phoneHelper}</HelperText>
-                  <input
+                  <PhoneInput
                     className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                     placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.phoneNumber}
                     value={draft.phoneNumber ?? ""}
-                    onChange={(e) => setDraftPatch({ phoneNumber: normalizePhoneInput(e.target.value) || undefined })}
-                    onBlur={(e) => {
-                      const formatted = formatPhoneNumber(e.target.value);
-                      if (formatted) setDraftPatch({ phoneNumber: formatted });
-                    }}
+                    onChange={(next) => setDraftPatch({ phoneNumber: next || undefined })}
                   />
                 </div>
                 <div>

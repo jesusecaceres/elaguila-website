@@ -30,7 +30,8 @@ import { RestauranteShellDataUrlModal } from "./RestauranteShellDataUrlModal";
 import { RestaurantContactHubFauxMap } from "./RestaurantContactHubFauxMap";
 import { buildSharedConnectionHubMapEmbedSrc } from "@/app/(site)/clasificados/shared/constants/sharedConnectionHubLocationHelpers";
 import { copyToClipboard } from "@/app/components/cta/ctaLaunchers";
-import { RestaurantHubReviewLinkButton } from "./RestaurantHubReviewLinkButton";
+import { SharedConnectionHubReviewButton } from "@/app/components/contact/connectionHub/renderers/SharedConnectionHubReviewButton";
+import type { SharedConnectionHubReviewLink } from "@/app/components/contact/connectionHub/sharedConnectionHubContactTypes";
 import { LeonixCommunityTrust } from "@/app/components/leonixCommunityTrust/LeonixCommunityTrust";
 import {
   restaurantHubSocialBrandStyle,
@@ -537,15 +538,24 @@ export function RestaurantContactHub({
                   <span id="rest-hub-reviews-heading">{labels.reviews}</span>
                 </HubSectionTitle>
                 <div className="mt-2 flex flex-col gap-2">
-                  {hub.reviews.map((btn) => (
-                    <RestaurantHubReviewLinkButton
-                      key={btn.id}
-                      reviewId={btn.id}
-                      label={btn.label}
-                      lang={lang}
-                      onClick={() => openButton(btn)}
-                    />
-                  ))}
+                  {hub.reviews.map((btn) => {
+                    const link: SharedConnectionHubReviewLink = {
+                      provider: btn.id === "google-reviews" ? "google" : "yelp",
+                      label: btn.label,
+                      url: btn.href,
+                    };
+                    return (
+                      <SharedConnectionHubReviewButton
+                        key={btn.id}
+                        link={link}
+                        lang={lang}
+                        onClick={() => openButton(btn)}
+                        goldBorder={RCH_LX.goldBorder}
+                        ivory={RCH_LX.ivory}
+                        gold={RCH_LX.gold}
+                      />
+                    );
+                  })}
                 </div>
               </section>
             ) : null}
