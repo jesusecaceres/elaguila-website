@@ -101,8 +101,14 @@ import {
 } from "@/app/(site)/clasificados/lib/brPublicChildParentVisibility";
 type Lang = "es" | "en";
 
+// original_price/current_price/price_last_updated are requested by the "price drop" feature
+// (20250311000001_listings_price_drop.sql) but confirmed NOT present on production's live
+// `listings` table (verified via pg_catalog introspection, 2026-08-27) -- they were never
+// actually applied there. Omitted from the initial select so every load doesn't pay 3 guaranteed
+// failed round trips before the existing shrink-retry loop finds a working column set; the
+// price-drop feature already degrades to "no data" for every real row today regardless.
 const ANUNCIO_LISTING_SELECT_BASE =
-  "id, leonix_ad_id, owner_id, title, description, city, zip, category, price, is_free, detail_pairs, listing_json, profile_json, contact_json, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, is_published, created_at, original_price, current_price, price_last_updated, images, republished_at, mux_playback_id";
+  "id, leonix_ad_id, owner_id, title, description, city, zip, category, price, is_free, detail_pairs, listing_json, profile_json, contact_json, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, is_published, created_at, images, republished_at, mux_playback_id";
 
 function classifiedsSampleListingsEnabled(): boolean {
   if (process.env.NODE_ENV === "production") return false;
