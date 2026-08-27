@@ -589,6 +589,27 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
               </button>
             ))}
           </div>
+          {state.posterType === "business" || state.posterType === "property_manager" ? (
+            <p className="mt-3 text-xs leading-relaxed text-[#5C5346]/88">
+              {lang === "es" ? (
+                <>
+                  ¿Publicas a nombre de un negocio? El{" "}
+                  <Link href={withClasificadosPublishLang(RENTAS_PUBLICAR_HUB, routeLang)} className="font-semibold text-[#6E5418] underline">
+                    formulario de Rentas Negocio
+                  </Link>{" "}
+                  agrega perfil de negocio, logotipo, sitio web y redes — opcional, el precio no cambia.
+                </>
+              ) : (
+                <>
+                  Posting on behalf of a business? The{" "}
+                  <Link href={withClasificadosPublishLang(RENTAS_PUBLICAR_HUB, routeLang)} className="font-semibold text-[#6E5418] underline">
+                    Rentas Business form
+                  </Link>{" "}
+                  adds a business profile, logo, website, and social links — optional, price stays the same.
+                </>
+              )}
+            </p>
+          ) : null}
         </section>
 
         <section className={`${aiCardClass} min-w-0`}>

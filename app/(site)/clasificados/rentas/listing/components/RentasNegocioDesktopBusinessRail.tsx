@@ -6,6 +6,7 @@ import {
   buildSendEmailIntent,
   buildSocialLinkIntent,
   buildWebsiteIntent,
+  buildWhatsAppMessageIntent,
   CtaActionSheet,
   type CtaSheetIntent,
 } from "@/app/components/cta";
@@ -48,6 +49,14 @@ export function RentasNegocioDesktopBusinessRail(props: {
 
   const openPhoneSheet = (phone: string | null | undefined) => {
     openSheet(buildCallIntent({ phone: phone ?? "", contactShareExtras }));
+  };
+
+  const openWhatsappSheet = (phone: string | null | undefined) => {
+    const message =
+      lang === "es"
+        ? `Hola, me interesa este anuncio de renta (${businessName}).`
+        : `Hi, I'm interested in this rental listing (${businessName}).`;
+    openSheet(buildWhatsAppMessageIntent({ whatsappDigits: phone ?? "", message, contactShareExtras }));
   };
 
   const openEmailSheet = (email: string | null | undefined) => {
@@ -227,6 +236,15 @@ export function RentasNegocioDesktopBusinessRail(props: {
               className="w-full px-4 py-3 rounded-xl font-semibold border border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF] transition text-sm text-center inline-block"
             >
               {lang === "es" ? "Llamar" : "Call"}
+            </button>
+          )}
+          {(railDisplay.officePhone || listing.contact_phone) && (
+            <button
+              type="button"
+              onClick={() => openWhatsappSheet(railDisplay.officePhone || listing.contact_phone)}
+              className="w-full px-4 py-3 rounded-xl font-semibold border border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF] transition text-sm text-center inline-block"
+            >
+              WhatsApp
             </button>
           )}
           {listing.contact_email && (

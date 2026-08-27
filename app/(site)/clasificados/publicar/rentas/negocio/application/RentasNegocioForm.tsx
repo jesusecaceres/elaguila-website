@@ -43,6 +43,13 @@ import {
 import { LeonixRealEstateSortablePhotoStrip } from "@/app/clasificados/lib/LeonixRealEstateSortablePhotoStrip";
 import { RentasAnuncioFormSection } from "@/app/clasificados/publicar/rentas/shared/RentasAnuncioFormSection";
 import { RentasShowingTourSection } from "@/app/clasificados/publicar/rentas/shared/RentasShowingTourSection";
+import { LanguagesInput } from "@/app/components/forms/LanguagesInput";
+import {
+  BR_RENTAS_LANGUAGE_OTHER_KEY,
+  brRentasLanguageChipOptions,
+  parseBrRentasLanguagesString,
+  serializeBrRentasLanguagesString,
+} from "@/app/clasificados/publicar/bienes-raices/shared/brRentasLanguagesAdapter";
 import {
   rentasFlowGroupActive,
   rentasResidencialFormRowsMode,
@@ -162,6 +169,7 @@ export function RentasNegocioForm() {
     [searchParams],
   );
   const [state, setState] = useState<RentasNegocioFormState>(createEmptyRentasNegocioFormState);
+  const [idiomaOtroPending, setIdiomaOtroPending] = useState("");
   const [hydrated, setHydrated] = useState(false);
   const [editContext, setEditContext] = useState<RentasListingEditContext | null>(routeEditContext);
   const [hydrationStatus, setHydrationStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -514,6 +522,36 @@ export function RentasNegocioForm() {
       </main>
     );
   }
+
+  const parsedIdiomas = parseBrRentasLanguagesString(state.negocioIdiomas);
+  const toggleIdiomaChip = (key: string) => {
+    const next = parsedIdiomas.selectedKeys.includes(key)
+      ? parsedIdiomas.selectedKeys.filter((k) => k !== key)
+      : [...parsedIdiomas.selectedKeys, key];
+    const customValues = next.includes(BR_RENTAS_LANGUAGE_OTHER_KEY) ? parsedIdiomas.customValues : [];
+    setState((s) => ({ ...s, negocioIdiomas: serializeBrRentasLanguagesString(next, customValues, lang) }));
+  };
+  const addCustomIdioma = () => {
+    const trimmed = idiomaOtroPending.trim();
+    if (!trimmed) return;
+    if (parsedIdiomas.customValues.some((v) => v.toLowerCase() === trimmed.toLowerCase())) {
+      setIdiomaOtroPending("");
+      return;
+    }
+    const nextCustom = [...parsedIdiomas.customValues, trimmed];
+    const nextKeys = parsedIdiomas.selectedKeys.includes(BR_RENTAS_LANGUAGE_OTHER_KEY)
+      ? parsedIdiomas.selectedKeys
+      : [...parsedIdiomas.selectedKeys, BR_RENTAS_LANGUAGE_OTHER_KEY];
+    setState((s) => ({ ...s, negocioIdiomas: serializeBrRentasLanguagesString(nextKeys, nextCustom, lang) }));
+    setIdiomaOtroPending("");
+  };
+  const removeCustomIdiomaAt = (index: number) => {
+    const nextCustom = parsedIdiomas.customValues.filter((_, i) => i !== index);
+    const nextKeys = nextCustom.length
+      ? parsedIdiomas.selectedKeys
+      : parsedIdiomas.selectedKeys.filter((k) => k !== BR_RENTAS_LANGUAGE_OTHER_KEY);
+    setState((s) => ({ ...s, negocioIdiomas: serializeBrRentasLanguagesString(nextKeys, nextCustom, lang) }));
+  };
 
   return (
     <main className="min-h-screen w-full min-w-0 overflow-x-hidden bg-[#F6F0E2] px-4 pb-[max(7rem,env(safe-area-inset-bottom,0px))] pt-24 text-[#2C2416] sm:px-5 sm:pb-24 sm:pt-28">
@@ -905,6 +943,26 @@ export function RentasNegocioForm() {
                   placeholder="https://"
                   value={state.negocioSitioWeb}
                   onChange={(e) => setState((s) => ({ ...s, negocioSitioWeb: e.target.value }))}
+                />
+              </AiField>
+            </div>
+            <div className="sm:col-span-2">
+              <AiField label={rentasUiLabel(lang, "Idiomas (opcional)", "Languages (optional)")}>
+                <LanguagesInput
+                  options={brRentasLanguageChipOptions(lang)}
+                  selectedKeys={parsedIdiomas.selectedKeys}
+                  onToggle={toggleIdiomaChip}
+                  otherKey={BR_RENTAS_LANGUAGE_OTHER_KEY}
+                  customValues={parsedIdiomas.customValues}
+                  customInputValue={idiomaOtroPending}
+                  onCustomInputChange={setIdiomaOtroPending}
+                  onAddCustom={addCustomIdioma}
+                  onRemoveCustom={removeCustomIdiomaAt}
+                  labels={{
+                    otherPlaceholder: rentasUiLabel(lang, "Otro idioma", "Other language"),
+                    add: rentasUiLabel(lang, "Agregar", "Add"),
+                    removeAria: (value) => rentasUiLabel(lang, `Quitar ${value}`, `Remove ${value}`),
+                  }}
                 />
               </AiField>
             </div>

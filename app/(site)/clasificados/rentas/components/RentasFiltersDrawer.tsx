@@ -83,8 +83,6 @@ export type RentasFiltersDrawerProps = {
   onPoolDraft: (v: boolean) => void;
   kindDraft: string;
   onKindDraft: (v: string) => void;
-  subtypeDraft: string;
-  onSubtypeDraft: (v: string) => void;
   priceOptions: { value: string; label: string }[];
 };
 
@@ -180,8 +178,6 @@ export function RentasFiltersDrawer({
   onPoolDraft,
   kindDraft,
   onKindDraft,
-  subtypeDraft,
-  onSubtypeDraft,
   priceOptions,
 }: RentasFiltersDrawerProps) {
   useEffect(() => {
@@ -207,6 +203,13 @@ export function RentasFiltersDrawer({
   const essentialsLabel = lang === "es" ? "¿Qué espacio necesitas?" : "What space details?";
   const rulesLabel = lang === "es" ? "¿Qué condiciones?" : "What conditions?";
   const posterLabel = lang === "es" ? "¿Quién publica?" : "Who is posting?";
+  const kindLabel = lang === "es" ? "Categoría amplia" : "Broad category";
+  const KIND_OPTIONS = [
+    { value: "casa", labelEs: "Casa", labelEn: "House" },
+    { value: "departamento", labelEs: "Departamento", labelEn: "Apartment" },
+    { value: "terreno", labelEs: "Terreno", labelEn: "Land" },
+    { value: "comercial", labelEs: "Comercial", labelEn: "Commercial" },
+  ] as const;
   const drawerIntro =
     lang === "es"
       ? "Afina por tipo, presupuesto, ubicación y condiciones. Cada opción usa campos reales del anuncio."
@@ -401,6 +404,18 @@ export function RentasFiltersDrawer({
                   <option value="2-anos">2-anos</option>
                 </select>
               </label>
+              <GroupLabel>{kindLabel}</GroupLabel>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <ToggleChip pressed={!kindDraft} onClick={() => onKindDraft("")}>
+                  {lang === "es" ? "Cualquiera" : "Any"}
+                </ToggleChip>
+                {KIND_OPTIONS.map((opt) => (
+                  <ToggleChip key={opt.value} pressed={kindDraft === opt.value} onClick={() => onKindDraft(opt.value)}>
+                    {lang === "es" ? opt.labelEs : opt.labelEn}
+                  </ToggleChip>
+                ))}
+              </div>
+
               <label className="mt-3 block text-left text-[11px] font-semibold text-[#5C5346]">
                 {lang === "es" ? "Estado del anuncio" : "Listing status"}
                 <select value={estadoDraft} onChange={(e) => onEstadoDraft(e.target.value)} className={RENTAS_FIELD}>
