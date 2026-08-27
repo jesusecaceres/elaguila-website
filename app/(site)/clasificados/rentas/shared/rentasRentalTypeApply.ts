@@ -148,7 +148,12 @@ export type RentasResidencialFormRowsMode = "full_legacy" | "room_partial" | "no
 export function rentasResidencialFormRowsMode(g: RentasRentalFlowGroup): RentasResidencialFormRowsMode {
   if (g === "unset" || g === "full_housing") return "full_legacy";
   if (g === "room_shared") return "room_partial";
-  if (g === "storage_parking") return "none";
+  // BR-INV-WAVE1-GATE4: storage_parking already correctly hid the full bedroom/bath/lot/year/
+  // condition block via the default branch below — but commercial_space and land_parcel fell
+  // through to "full_legacy" instead, so a mismatched selection (e.g. categoriaPropiedad =
+  // "residencial" with tipoDeRenta = "oficina"/"terreno_lote") rendered the full residential
+  // detail block for what should be a commercial/land rental. Both now match storage_parking.
+  if (g === "storage_parking" || g === "commercial_space" || g === "land_parcel") return "none";
   return "full_legacy";
 }
 
@@ -281,7 +286,11 @@ const RES_LABELS_DROP: Record<RentasRentalFlowGroup, Set<string> | null> = {
     "Medios baños",
     "Año de construcción",
     "Condición",
-    "Estacionamiento",
+    // BR-INV-WAVE1-GATE5: was "Estacionamiento" (singular) — the row builder
+    // (rentasResidencialPreviewRows.ts) actually emits "Estacionamientos" (plural), so this drop
+    // never matched and the parking row leaked into room/storage previews despite the evident
+    // intent to hide it.
+    "Estacionamientos",
     "Tipo",
     "Subtipo",
   ]),
@@ -307,6 +316,33 @@ function filterResidencialCaracteristicas(
   const drop = RES_LABELS_DROP[g];
   if (!drop) return rows;
   return rows.filter((r) => !drop.has(r.label));
+}
+
+function filterRowsByLabelDropSet(rows: BienesRaicesPreviewFact[], drop: Set<string>): BienesRaicesPreviewFact[] {
+  return rows.filter((r) => !drop.has(r.label));
+}
+
+/**
+ * BR-INV-WAVE1-GATE5 — single canonical row-applicability rule, used by BOTH the seller's own
+ * draft preview (`buildRentasFlowPropertyBodyRows`) and the published/live renderer
+ * (`filterRentasLivePropertyRowsForFlow`). Previously the draft path only ever filtered rows when
+ * `categoriaPropiedad === "residencial"` — a comercial/terreno draft showed every row unfiltered,
+ * while the live path applied additional drops (e.g. a bare "Subtipo" row) for those same flow
+ * groups. A seller's own preview must show what will actually publish.
+ */
+function applyRentasFlowRowFilter(
+  g: RentasRentalFlowGroup,
+  categoriaPropiedad: RentasFlowFormSlice["categoriaPropiedad"],
+  rows: BienesRaicesPreviewFact[],
+): BienesRaicesPreviewFact[] {
+  if (g === "unset") return rows;
+  if (g === "land_parcel") return filterRowsByLabelDropSet(rows, LAND_PARCEL_LABELS_DROP);
+  if (categoriaPropiedad === "residencial") return filterResidencialCaracteristicas(g, rows);
+  if (g === "commercial_space" || g === "room_shared" || g === "storage_parking") {
+    const drop = RES_LABELS_DROP[g];
+    return drop ? filterRowsByLabelDropSet(rows, drop) : rows;
+  }
+  return rows;
 }
 
 function buildComercialPropertyRows(s: RentasFlowFormSlice): BienesRaicesPreviewFact[] {
@@ -347,30 +383,30 @@ function buildTerrenoPropertyRows(s: RentasFlowFormSlice): BienesRaicesPreviewFa
   return rows.filter((x): x is BienesRaicesPreviewFact => x != null);
 }
 
-/** Build características + tipo-specific rows for Rentas preview/publish. */
+/**
+ * Build características + tipo-specific rows for Rentas preview/publish.
+ * BR-INV-WAVE1-GATE5: every category branch now runs through the same
+ * `applyRentasFlowRowFilter` the live renderer uses (see that function's doc comment) — previously
+ * only the residencial branch filtered at all.
+ */
 export function buildRentasFlowPropertyBodyRows(s: RentasFlowFormSlice): BienesRaicesPreviewFact[] {
   const g = rentasFlowGroupActive(s);
   const ext = extensionRows(s, g);
 
   if (s.categoriaPropiedad === "residencial") {
-    let rows = buildRentasResidencialPropertyRows(s.residencial);
-    rows = filterResidencialCaracteristicas(g, rows);
-    return [...rows, ...ext];
+    const rows = buildRentasResidencialPropertyRows(s.residencial);
+    return applyRentasFlowRowFilter(g, s.categoriaPropiedad, [...rows, ...ext]);
   }
 
   if (s.categoriaPropiedad === "comercial") {
     const base = buildComercialPropertyRows(s);
-    if (g === "commercial_space") {
-      return [...ext, ...base];
-    }
-    return [...base, ...ext];
+    const combined = g === "commercial_space" ? [...ext, ...base] : [...base, ...ext];
+    return applyRentasFlowRowFilter(g, s.categoriaPropiedad, combined);
   }
 
   const base = buildTerrenoPropertyRows(s);
-  if (g === "land_parcel") {
-    return [...ext, ...base];
-  }
-  return [...base, ...ext];
+  const combined = g === "land_parcel" ? [...ext, ...base] : [...base, ...ext];
+  return applyRentasFlowRowFilter(g, s.categoriaPropiedad, combined);
 }
 
 export type RentasPublicListingFlowSlice = {
@@ -407,30 +443,17 @@ export type RentasPublicListingFlowSlice = {
   propertySubtype?: string | null;
 };
 
-function filterRowsByLabelDrop(rows: BienesRaicesPreviewFact[], drop: Set<string>): BienesRaicesPreviewFact[] {
-  return rows.filter((r) => !drop.has(r.label));
-}
-
-/** Adapt live listing property rows using persisted rental type code when present. */
+/**
+ * Adapt live listing property rows using persisted rental type code when present.
+ * BR-INV-WAVE1-GATE5: now delegates to `applyRentasFlowRowFilter`, the same canonical function
+ * `buildRentasFlowPropertyBodyRows` (the draft preview) uses — logic unchanged, just deduplicated.
+ */
 export function filterRentasLivePropertyRowsForFlow(
   listing: RentasPublicListingFlowSlice,
   rows: BienesRaicesPreviewFact[],
 ): BienesRaicesPreviewFact[] {
   const g = rentasRentalFlowGroupForTipo(listing.rentalTypeCode ?? "");
-  if (g === "unset") return rows;
-  if (g === "land_parcel") return filterRowsByLabelDrop(rows, LAND_PARCEL_LABELS_DROP);
-  if (listing.categoriaPropiedad === "residencial") {
-    return filterResidencialCaracteristicas(g, rows);
-  }
-  if (g === "commercial_space") {
-    const drop = RES_LABELS_DROP.commercial_space;
-    return drop ? filterRowsByLabelDrop(rows, drop) : rows;
-  }
-  if (g === "room_shared" || g === "storage_parking") {
-    const drop = RES_LABELS_DROP[g];
-    return drop ? filterRowsByLabelDrop(rows, drop) : rows;
-  }
-  return rows;
+  return applyRentasFlowRowFilter(g, listing.categoriaPropiedad, rows);
 }
 
 /** Extension facts from published human `detail_pairs` (live detail parity with preview). */

@@ -17,6 +17,8 @@ import {
 import {
   labelForSubtipo,
   labelForSubtipoEn,
+  residencialSubtipoDisplayGroup,
+  residencialSubtipoSemanticKind,
   TIPO_PROPIEDAD_LABEL_EN,
   TIPO_PROPIEDAD_OPCIONES,
 } from "../schema/agenteResidencialTipoMeta";
@@ -25,6 +27,8 @@ import {
   COMERCIAL_DESTACADOS_DEFS,
   COMERCIAL_TIPO_LABEL_EN,
   COMERCIAL_TIPO_OPCIONES,
+  comercialSubtipoDisplayGroup,
+  comercialSubtipoSemanticKind,
   labelComercialSubtipo,
   labelComercialSubtipoEn,
   TERRENO_DESTACADO_EN,
@@ -33,6 +37,8 @@ import {
   TERRENO_TIPO_OPCIONES,
   labelTerrenoSubtipo,
   labelTerrenoSubtipoEn,
+  terrenoSubtipoDisplayGroup,
+  terrenoSubtipoSemanticKind,
   type ComercialDestacadoId,
   type TerrenoDestacadoId,
 } from "../schema/agenteComercialTerrenoMeta";
@@ -160,7 +166,10 @@ export function externalVideoUrls(s: AgenteIndividualResidencialFormState): stri
     const url = hrefFromUserInput(item);
     if (!url || out.includes(url)) continue;
     out.push(url);
-    if (out.length >= 4) break;
+    // BR-INV-WAVE1-GATE1: was capped at 4, out of sync with AGENTE_RES_MAX_VIDEO_URLS (8) and with
+    // the publish-path cap now raised to match — kept the seller's own draft preview from showing
+    // videos 5-8 even though they'd (now correctly) reach the live listing.
+    if (out.length >= 8) break;
   }
   return out;
 }
@@ -352,8 +361,22 @@ function buildResidencialPropertyDetailRows(
           ano: "Año de construcción",
           cond: "Condición",
         };
+  // Item 12 — a subtipo value that's really a structural/location attribute (story count,
+  // corner lot, floor level, amenity, view) gets its own accurately-labeled row instead of
+  // being folded into the "Tipo de propiedad" line as if it were a distinct house subtype.
+  // Compatibility-safe: subtipoPropiedad itself, the catalog, and the dropdown are unchanged.
+  const isCharacteristic = residencialSubtipoSemanticKind(s.subtipoPropiedad) !== "subtype";
+  const tipoOpt = TIPO_PROPIEDAD_OPCIONES.find((x) => x.value === s.tipoPropiedadCodigo);
+  const tipoOnly = locale === "en" ? TIPO_PROPIEDAD_LABEL_EN[s.tipoPropiedadCodigo] ?? tipoOpt?.label ?? "" : tipoOpt?.label ?? "";
+  const subLabel = locale === "en"
+    ? labelForSubtipoEn(s.tipoPropiedadCodigo, s.subtipoPropiedad)
+    : labelForSubtipo(s.tipoPropiedadCodigo, s.subtipoPropiedad);
+
   const all: PropertyDetailRow[] = [
-    { label: L.tipo, value: formatTipoPropiedadLine(s, locale) },
+    { label: L.tipo, value: isCharacteristic ? tipoOnly || "—" : formatTipoPropiedadLine(s, locale) },
+    ...(isCharacteristic && subLabel
+      ? [{ label: residencialSubtipoDisplayGroup(s.subtipoPropiedad, locale), value: subLabel }]
+      : []),
     { label: L.rec, value: formatDetailCountDisplay(s.recamaras) || trim(s.recamaras) || "—" },
     { label: L.ban, value: formatDetailCountDisplay(s.banos) || trim(s.banos) || "—" },
     { label: L.med, value: formatDetailCountDisplay(s.mediosBanos) || trim(s.mediosBanos) || "—" },
@@ -400,9 +423,25 @@ function buildCommercialPropertyDetailRows(
           cond: "Condición",
           carga: "Acceso de carga",
         };
+  // Item 12 — same characteristic-vs-subtype split as residential, for zoning/access/loading
+  // values historically stored under comercialSubtipoPropiedad.
+  const isComercialCharacteristic = comercialSubtipoSemanticKind(s.comercialSubtipoPropiedad) !== "subtype";
+  const comercialTipoOpt = COMERCIAL_TIPO_OPCIONES.find((x) => x.value === s.comercialTipoCodigo);
+  const comercialTipoOnly =
+    locale === "en"
+      ? COMERCIAL_TIPO_LABEL_EN[s.comercialTipoCodigo] ?? comercialTipoOpt?.label ?? ""
+      : comercialTipoOpt?.label ?? "";
+  const comercialSubLabel =
+    locale === "en"
+      ? labelComercialSubtipoEn(s.comercialTipoCodigo, s.comercialSubtipoPropiedad)
+      : labelComercialSubtipo(s.comercialTipoCodigo, s.comercialSubtipoPropiedad);
+
   const rows: PropertyDetailRow[] = [
-    { label: L.tipo, value: formatComercialTipoLine(s, locale) },
+    { label: L.tipo, value: isComercialCharacteristic ? comercialTipoOnly || "—" : formatComercialTipoLine(s, locale) },
   ];
+  if (isComercialCharacteristic && comercialSubLabel) {
+    rows.push({ label: comercialSubtipoDisplayGroup(s.comercialSubtipoPropiedad, locale), value: comercialSubLabel });
+  }
   if (trim(s.comercialUso)) rows.push({ label: L.uso, value: trim(s.comercialUso) });
   if (trim(s.tamanoInteriorSqft)) rows.push({ label: L.interior, value: formatSqftDetailValue(s.tamanoInteriorSqft) });
   if (trim(s.tamanoLoteSqft)) rows.push({ label: L.lote, value: formatSqftDetailValue(s.tamanoLoteSqft) });
@@ -443,7 +482,25 @@ function buildTerrenoPropertyDetailRows(
           listo: "Listo para construir",
           cercado: "Cercado",
         };
-  const rows: PropertyDetailRow[] = [{ label: L.tipo, value: formatTerrenoTipoLine(s, locale) }];
+  // Item 12 — corner-lot/cul-de-sac and other lote_* subtipo values are a lot characteristic,
+  // not a distinct land subtype.
+  const isTerrenoCharacteristic = terrenoSubtipoSemanticKind(s.terrenoSubtipoPropiedad) !== "subtype";
+  const terrenoTipoOpt = TERRENO_TIPO_OPCIONES.find((x) => x.value === s.terrenoTipoCodigo);
+  const terrenoTipoOnly =
+    locale === "en"
+      ? TERRENO_TIPO_LABEL_EN[s.terrenoTipoCodigo] ?? terrenoTipoOpt?.label ?? ""
+      : terrenoTipoOpt?.label ?? "";
+  const terrenoSubLabel =
+    locale === "en"
+      ? labelTerrenoSubtipoEn(s.terrenoTipoCodigo, s.terrenoSubtipoPropiedad)
+      : labelTerrenoSubtipo(s.terrenoTipoCodigo, s.terrenoSubtipoPropiedad);
+
+  const rows: PropertyDetailRow[] = [
+    { label: L.tipo, value: isTerrenoCharacteristic ? terrenoTipoOnly || "—" : formatTerrenoTipoLine(s, locale) },
+  ];
+  if (isTerrenoCharacteristic && terrenoSubLabel) {
+    rows.push({ label: terrenoSubtipoDisplayGroup(s.terrenoSubtipoPropiedad, locale), value: terrenoSubLabel });
+  }
   if (trim(s.tamanoLoteSqft)) rows.push({ label: L.lote, value: formatSqftDetailValue(s.tamanoLoteSqft) });
   if (trim(s.terrenoUsoZonificacion)) rows.push({ label: L.uso, value: trim(s.terrenoUsoZonificacion) });
   if (trim(s.terrenoAcceso)) rows.push({ label: L.acceso, value: trim(s.terrenoAcceso) });
@@ -1000,6 +1057,35 @@ export function buildOpenHouseSlotSummaries(
     if (trim(slot.diasHorariosAdicionales)) parts.push(`${labExtra} ${trim(slot.diasHorariosAdicionales)}`);
     if (trim(slot.notas)) parts.push(`${labNotes} ${trim(slot.notas)}`);
     if (parts.length) out.push(parts.join("\n"));
+  }
+  return out;
+}
+
+/**
+ * Item 05 (Final Completion) — same per-slot data as buildOpenHouseSlotSummaries, but as
+ * structured label:value rows instead of one joined \n-separated text blob per slot, so the
+ * preview can render each fact on its own line (matching BR Privado's existing HOA/open-house
+ * row pattern) instead of a single <p whitespace-pre-line> paragraph.
+ */
+export function buildOpenHouseSlotRows(
+  s: AgenteIndividualResidencialFormState,
+  locale: AgenteResPreviewLocale = "es",
+): Array<{ label: string; value: string }[]> {
+  const slots = normalizeOpenHouseSlots(s);
+  const labDate = locale === "en" ? "Date" : "Fecha";
+  const labHours = locale === "en" ? "Hours" : "Horario";
+  const labExtra = locale === "en" ? "Additional days/hours" : "Días/horarios adicionales";
+  const labNotes = locale === "en" ? "Notes" : "Notas";
+  const out: Array<{ label: string; value: string }[]> = [];
+  for (const slot of slots) {
+    const rows: { label: string; value: string }[] = [];
+    const range = formatOpenHouseDateRange(slot.fecha, slot.fechaFin ?? "", locale);
+    if (range) rows.push({ label: labDate, value: range });
+    const r = [trim(slot.inicio), trim(slot.fin)].filter(Boolean);
+    if (r.length) rows.push({ label: labHours, value: r.join(" – ") });
+    if (trim(slot.diasHorariosAdicionales)) rows.push({ label: labExtra, value: trim(slot.diasHorariosAdicionales) });
+    if (trim(slot.notas)) rows.push({ label: labNotes, value: trim(slot.notas) });
+    if (rows.length) out.push(rows);
   }
   return out;
 }

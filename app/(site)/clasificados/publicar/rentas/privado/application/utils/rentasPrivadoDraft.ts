@@ -2,6 +2,11 @@ import {
   mergePartialRentasPrivadoState,
   type RentasPrivadoFormState,
 } from "../../schema/rentasPrivadoFormState";
+import {
+  clearRentasPrivadoDraftMediaIdb,
+  inlineRentasPrivadoHeavyMediaFromIdb,
+  offloadRentasPrivadoHeavyMediaToIdb,
+} from "./rentasPrivadoDraftMedia";
 
 export const RENTAS_PRIVADO_DRAFT_STORAGE_KEY = "rentas-privado-draft-v1";
 
@@ -34,28 +39,33 @@ function readDraftRaw(): string | null {
   return null;
 }
 
-export function loadRentasPrivadoDraft(): RentasPrivadoFormState | null {
+/** BR-INV-WAVE1-GATE3: now async — resolves IndexedDB-offloaded photo/seller-photo refs. */
+export async function loadRentasPrivadoDraft(): Promise<RentasPrivadoFormState | null> {
   if (typeof window === "undefined") return null;
   try {
     const raw = readDraftRaw();
     if (!raw) return null;
     const parsed = JSON.parse(raw) as unknown;
     if (!parsed || typeof parsed !== "object") return null;
-    return mergePartialRentasPrivadoState(parsed as Partial<RentasPrivadoFormState>);
+    const merged = mergePartialRentasPrivadoState(parsed as Partial<RentasPrivadoFormState>);
+    return await inlineRentasPrivadoHeavyMediaFromIdb(merged);
   } catch {
     return null;
   }
 }
 
-export function saveRentasPrivadoDraft(state: RentasPrivadoFormState): void {
+/** BR-INV-WAVE1-GATE3: now async — offloads heavy photo/seller-photo data: URLs to IndexedDB first. */
+export async function saveRentasPrivadoDraft(state: RentasPrivadoFormState): Promise<void> {
   if (typeof window === "undefined") return;
-  const raw = JSON.stringify({
+  const stripped: RentasPrivadoFormState = {
     ...state,
     media: {
       ...state.media,
       videoLocalDataUrl: "",
     },
-  } satisfies RentasPrivadoFormState);
+  } satisfies RentasPrivadoFormState;
+  const toSave = await offloadRentasPrivadoHeavyMediaToIdb(stripped);
+  const raw = JSON.stringify(toSave);
   try {
     sessionStorage.setItem(RENTAS_PRIVADO_DRAFT_STORAGE_KEY, raw);
     try {
@@ -74,7 +84,7 @@ export function saveRentasPrivadoDraft(state: RentasPrivadoFormState): void {
   }
 }
 
-export function clearRentasPrivadoDraft(): void {
+export async function clearRentasPrivadoDraft(): Promise<void> {
   if (typeof window === "undefined") return;
   try {
     sessionStorage.removeItem(RENTAS_PRIVADO_DRAFT_STORAGE_KEY);
@@ -83,4 +93,5 @@ export function clearRentasPrivadoDraft(): void {
   } catch {
     /* ignore */
   }
+  await clearRentasPrivadoDraftMediaIdb();
 }

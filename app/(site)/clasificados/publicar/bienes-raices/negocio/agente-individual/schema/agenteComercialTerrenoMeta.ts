@@ -97,6 +97,43 @@ export function labelComercialSubtipoEn(codigo: ComercialTipoCodigo, subvalor: s
   return labelComercialSubtipo(codigo, subvalor);
 }
 
+/**
+ * Item 12 (Final Completion) — compatibility-safe semantic reclassification, mirroring
+ * `residencialSubtipoDisplayGroup` in agenteResidencialTipoMeta.ts. Display-layer adapter only:
+ * COMERCIAL_SUBTIPO_POR_TIPO (catalog, stored values, dropdown options) is unchanged. Zoning /
+ * permitted-use / loading-access facts stay stored under the same subtipo field, but a caller
+ * that opts in renders them under an accurate row title instead of implying they're a distinct
+ * commercial property subtype.
+ */
+export type ComercialSubtipoSemanticKind = "subtype" | "access_loading" | "frontage" | "zoning_use" | "floor_extent";
+
+const COMERCIAL_SUBTIPO_SEMANTIC_KIND: Record<string, ComercialSubtipoSemanticKind> = {
+  con_rampa: "access_loading",
+  muelle: "access_loading",
+  altura_libre: "access_loading",
+  frente_calle: "frontage",
+  pb_comercio: "zoning_use",
+  niveles_mixtos: "floor_extent",
+  piso_completo: "floor_extent",
+};
+
+export function comercialSubtipoSemanticKind(subvalor: string): ComercialSubtipoSemanticKind {
+  return COMERCIAL_SUBTIPO_SEMANTIC_KIND[String(subvalor ?? "").trim()] ?? "subtype";
+}
+
+const COMERCIAL_SUBTIPO_DISPLAY_GROUP_LABEL: Record<ComercialSubtipoSemanticKind, { es: string; en: string }> = {
+  subtype: { es: "Subtipo", en: "Subtype" },
+  access_loading: { es: "Acceso y carga", en: "Access & loading" },
+  frontage: { es: "Frente / acceso", en: "Frontage / access" },
+  zoning_use: { es: "Zonificación / uso", en: "Zoning / permitted use" },
+  floor_extent: { es: "Detalle del piso", en: "Floor detail" },
+};
+
+export function comercialSubtipoDisplayGroup(subvalor: string, lang: "es" | "en" = "es"): string {
+  const kind = comercialSubtipoSemanticKind(subvalor);
+  return COMERCIAL_SUBTIPO_DISPLAY_GROUP_LABEL[kind][lang];
+}
+
 export type TerrenoTipoCodigo = "lote_residencial" | "lote_comercial" | "rancho" | "agricola" | "desarrollo";
 
 export const TERRENO_TIPO_OPCIONES: ReadonlyArray<{ value: TerrenoTipoCodigo; label: string }> = [
@@ -171,6 +208,38 @@ export function labelTerrenoSubtipoEn(codigo: TerrenoTipoCodigo, subvalor: strin
   if (!v) return "";
   if (TERRENO_SUBVALUE_LABEL_EN[v]) return TERRENO_SUBVALUE_LABEL_EN[v];
   return labelTerrenoSubtipo(codigo, subvalor);
+}
+
+/**
+ * Item 12 (Final Completion) — compatibility-safe semantic reclassification. "Corner lot" and
+ * "cul-de-sac" are location/access characteristics of a specific parcel, not a distinct land
+ * property subtype — same display-layer-only adapter pattern as the residential/comercial
+ * registries above. TERRENO_SUBTIPO_POR_TIPO (catalog, stored values, dropdown options) is
+ * unchanged.
+ */
+export type TerrenoSubtipoSemanticKind = "subtype" | "lot_access" | "land_condition";
+
+const TERRENO_SUBTIPO_SEMANTIC_KIND: Record<string, TerrenoSubtipoSemanticKind> = {
+  esquina: "lot_access",
+  cul_de_sac: "lot_access",
+  frente_vial: "lot_access",
+  riegos: "land_condition",
+  secano: "land_condition",
+};
+
+export function terrenoSubtipoSemanticKind(subvalor: string): TerrenoSubtipoSemanticKind {
+  return TERRENO_SUBTIPO_SEMANTIC_KIND[String(subvalor ?? "").trim()] ?? "subtype";
+}
+
+const TERRENO_SUBTIPO_DISPLAY_GROUP_LABEL: Record<TerrenoSubtipoSemanticKind, { es: string; en: string }> = {
+  subtype: { es: "Subtipo", en: "Subtype" },
+  lot_access: { es: "Característica del lote", en: "Lot characteristic" },
+  land_condition: { es: "Condición del terreno", en: "Land condition" },
+};
+
+export function terrenoSubtipoDisplayGroup(subvalor: string, lang: "es" | "en" = "es"): string {
+  const kind = terrenoSubtipoSemanticKind(subvalor);
+  return TERRENO_SUBTIPO_DISPLAY_GROUP_LABEL[kind][lang];
 }
 
 export type ComercialDestacadoId =

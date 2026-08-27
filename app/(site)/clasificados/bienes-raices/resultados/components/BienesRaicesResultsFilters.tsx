@@ -51,20 +51,23 @@ function AmenityChip({
   checked,
   label,
   onChange,
+  disabled,
 }: {
   id: string;
   checked: boolean;
   label: string;
   onChange: (next: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
-    <label htmlFor={id} className={CAT_STD_FILTER_CHIP}>
+    <label htmlFor={id} className={`${CAT_STD_FILTER_CHIP}${disabled ? " opacity-50 cursor-not-allowed" : ""}`}>
       <input
         id={id}
         type="checkbox"
         checked={checked}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
-        className="h-4 w-4 shrink-0 rounded border-[#E8DFD0] text-[#B8954A] focus:ring-[#C9B46A]/50"
+        className="h-4 w-4 shrink-0 rounded border-[#E8DFD0] text-[#B8954A] focus:ring-[#C9B46A]/50 disabled:cursor-not-allowed"
       />
       <span>{label}</span>
     </label>
@@ -339,110 +342,7 @@ export function BienesRaicesResultsFilters({
             label={copy.togglePool}
             onChange={(next) => onPatch({ pool: next ? "true" : null })}
           />
-          <AmenityChip
-            id={`${idPrefix}-patio`}
-            checked={false}
-            label={lang === "es" ? "Patio" : "Patio"}
-            onChange={(next) => onPatch({ patio: next ? "true" : null })}
-          />
-          <AmenityChip
-            id={`${idPrefix}-balcony`}
-            checked={false}
-            label={lang === "es" ? "Balcón" : "Balcony"}
-            onChange={(next) => onPatch({ balcony: next ? "true" : null })}
-          />
-          <AmenityChip
-            id={`${idPrefix}-view`}
-            checked={false}
-            label={lang === "es" ? "Vista" : "View"}
-            onChange={(next) => onPatch({ view: next ? "true" : null })}
-          />
-          <AmenityChip
-            id={`${idPrefix}-gated`}
-            checked={false}
-            label={lang === "es" ? "Comunidad cerrada" : "Gated community"}
-            onChange={(next) => onPatch({ gated: next ? "true" : null })}
-          />
-          <AmenityChip
-            id={`${idPrefix}-homeOffice`}
-            checked={false}
-            label={lang === "es" ? "Oficina en casa" : "Home office"}
-            onChange={(next) => onPatch({ homeOffice: next ? "true" : null })}
-          />
-          <AmenityChip
-            id={`${idPrefix}-solar`}
-            checked={false}
-            label={lang === "es" ? "Paneles solares" : "Solar panels"}
-            onChange={(next) => onPatch({ solar: next ? "true" : null })}
-          />
-          <AmenityChip
-            id={`${idPrefix}-fireplace`}
-            checked={false}
-            label={lang === "es" ? "Chimenea" : "Fireplace"}
-            onChange={(next) => onPatch({ fireplace: next ? "true" : null })}
-          />
-          <AmenityChip
-            id={`${idPrefix}-laundry`}
-            checked={false}
-            label={lang === "es" ? "Lavandería" : "Laundry"}
-            onChange={(next) => onPatch({ laundry: next ? "true" : null })}
-          />
-          <AmenityChip
-            id={`${idPrefix}-coveredParking`}
-            checked={false}
-            label={lang === "es" ? "Estacionamiento techado" : "Covered parking"}
-            onChange={(next) => onPatch({ coveredParking: next ? "true" : null })}
-          />
-          <AmenityChip
-            id={`${idPrefix}-accessControl`}
-            checked={false}
-            label={lang === "es" ? "Acceso controlado" : "Controlled access"}
-            onChange={(next) => onPatch({ accessControl: next ? "true" : null })}
-          />
-          <AmenityChip
-            id={`${idPrefix}-elevator`}
-            checked={false}
-            label={lang === "es" ? "Elevador" : "Elevator"}
-            onChange={(next) => onPatch({ elevator: next ? "true" : null })}
-          />
-          <AmenityChip
-            id={`${idPrefix}-terrace`}
-            checked={false}
-            label={lang === "es" ? "Terraza" : "Terrace"}
-            onChange={(next) => onPatch({ terrace: next ? "true" : null })}
-          />
-          <AmenityChip
-            id={`${idPrefix}-gym`}
-            checked={false}
-            label={lang === "es" ? "Gimnasio" : "Gym"}
-            onChange={(next) => onPatch({ gym: next ? "true" : null })}
-          />
-          <AmenityChip
-            id={`${idPrefix}-amenities`}
-            checked={false}
-            label={lang === "es" ? "Amenidades del desarrollo" : "Development amenities"}
-            onChange={(next) => onPatch({ amenities: next ? "true" : null })}
-          />
-          <AmenityChip
-            id={`${idPrefix}-walkInCloset`}
-            checked={false}
-            label={lang === "es" ? "Walk-in closet" : "Walk-in closet"}
-            onChange={(next) => onPatch({ walkInCloset: next ? "true" : null })}
-          />
-          <AmenityChip
-            id={`${idPrefix}-highCeilings`}
-            checked={false}
-            label={lang === "es" ? "Techos altos" : "High ceilings"}
-            onChange={(next) => onPatch({ highCeilings: next ? "true" : null })}
-          />
-          <AmenityChip
-            id={`${idPrefix}-smartHome`}
-            checked={false}
-            label={lang === "es" ? "Smart home" : "Smart home"}
-            onChange={(next) => onPatch({ smartHome: next ? "true" : null })}
-          />
         </div>
-        <p className={CAT_STD_FILTER_HELPER}>{copy.amenityTogglesHint}</p>
       </FilterSection>
 
       <FilterSection title={copy.sectionPoster}>
@@ -505,18 +405,21 @@ export function BienesRaicesResultsFilters({
               <AmenityChip
                 id={`${idPrefix}-buildReady`}
                 checked={false}
+                disabled
                 label={lang === "es" ? "Listo para construir" : "Build-ready"}
                 onChange={() => {}}
               />
               <AmenityChip
                 id={`${idPrefix}-fenced`}
                 checked={false}
+                disabled
                 label={lang === "es" ? "Cercado" : "Fenced"}
                 onChange={() => {}}
               />
               <AmenityChip
                 id={`${idPrefix}-utilities`}
                 checked={false}
+                disabled
                 label={lang === "es" ? "Servicios disponibles" : "Utilities available"}
                 onChange={() => {}}
               />
@@ -550,24 +453,28 @@ export function BienesRaicesResultsFilters({
               <AmenityChip
                 id={`${idPrefix}-hasPhotos`}
                 checked={false}
+                disabled
                 label={lang === "es" ? "Con fotos" : "Has photos"}
                 onChange={() => {}}
               />
               <AmenityChip
                 id={`${idPrefix}-hasVideo`}
                 checked={false}
+                disabled
                 label={lang === "es" ? "Con video" : "Has video"}
                 onChange={() => {}}
               />
               <AmenityChip
                 id={`${idPrefix}-hasVirtualTour`}
                 checked={false}
+                disabled
                 label={lang === "es" ? "Con tour virtual" : "Has virtual tour"}
                 onChange={() => {}}
               />
               <AmenityChip
                 id={`${idPrefix}-hasFloorPlan`}
                 checked={false}
+                disabled
                 label={lang === "es" ? "Con plano / floor plan" : "Has floor plan"}
                 onChange={() => {}}
               />

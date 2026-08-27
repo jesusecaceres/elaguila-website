@@ -102,6 +102,32 @@ function childDraftMediaAliasInput(normalized: BrNegocioAdditionalInventoryPrope
   };
 }
 
+/**
+ * Item 34 (Final Completion) — some child drafts have real data under `propertyForm` (the
+ * structured slice the live child editor writes) that a save path never mirrored back onto the
+ * flat legacy fields this card model otherwise reads; prefer the flat field, but fall back to the
+ * matching propertyForm value instead of showing "Sin título" / "Precio pendiente" / a bare
+ * country fallback when real data exists on either side.
+ */
+function effectiveChildDisplayFields(normalized: BrNegocioAdditionalInventoryPropertyDraft): {
+  title: string;
+  price: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+} {
+  const form = normalized.propertyForm ?? null;
+  return {
+    title: trim(normalized.title) || trim(String(form?.titulo ?? "")),
+    price: trim(normalized.price) || trim(String(form?.precio ?? "")),
+    city: trim(normalized.city) || trim(String(form?.ciudad ?? "")),
+    state: trim(normalized.state) || trim(String(form?.direccionEstado ?? "")),
+    zip: trim(normalized.zip) || trim(String(form?.direccionCodigoPostal ?? "")),
+    country: trim(normalized.country) || trim(String(form?.direccionPais ?? "")),
+  };
+}
+
 function cardFieldsFromCanonicalMedia(
   normalized: BrNegocioAdditionalInventoryPropertyDraft,
   images: BrChildMediaImage[],
@@ -116,14 +142,15 @@ function cardFieldsFromCanonicalMedia(
     ? { role: "Propiedad adicional", status: "Borrador", leonix: "ID Leonix se generará al publicar" }
     : { role: "Additional property", status: "Draft", leonix: "Leonix ID generated on publish" };
   const sourceCount = expandBrChildMediaSourceFields(childDraftMediaAliasInput(normalized)).urls.length;
+  const eff = effectiveChildDisplayFields(normalized);
 
   return {
     kind: "additional",
     id: normalized.id,
-    title: trim(normalized.title) || titleFallback(lang),
-    priceDisplay: brInventoryDraftPriceDisplay(normalized.price, lang),
+    title: eff.title || titleFallback(lang),
+    priceDisplay: brInventoryDraftPriceDisplay(eff.price, lang),
     propertyTypeLine: typeLine,
-    cityState: brInventoryDraftLocationLine(normalized),
+    cityState: brInventoryDraftLocationLine({ ...normalized, city: eff.city, state: eff.state, zip: eff.zip, country: eff.country }),
     bedrooms: trim(normalized.bedrooms),
     bathrooms: trim(normalized.bathrooms),
     interiorSqft: trim(normalized.interiorSqft),

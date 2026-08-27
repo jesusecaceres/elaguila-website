@@ -6,11 +6,13 @@ import {
   buildSendEmailIntent,
   buildSocialLinkIntent,
   buildWebsiteIntent,
+  buildWhatsAppMessageIntent,
   CtaActionSheet,
   type CtaSheetIntent,
 } from "@/app/components/cta";
 import type { RentasPlanTier } from "../../shared/utils/rentasPlanTier";
 import type { RentasAnuncioLang, RentasNegocioLiveDisplay } from "../types/rentasAnuncioLiveTypes";
+import { BrRentasCommunityTrustSection } from "@/app/clasificados/lib/BrRentasCommunityTrustSection";
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -19,6 +21,9 @@ function cx(...classes: Array<string | false | null | undefined>) {
 type ListingContact = {
   contact_phone?: string | null;
   contact_email?: string | null;
+  /** Item 21 — listing owner's auth user id, for the Rentas Negocio Community Trust
+   * professional identity (never a disposable listing id). */
+  owner_id?: string | null;
 };
 
 export function RentasNegocioDesktopBusinessRail(props: {
@@ -48,6 +53,14 @@ export function RentasNegocioDesktopBusinessRail(props: {
 
   const openPhoneSheet = (phone: string | null | undefined) => {
     openSheet(buildCallIntent({ phone: phone ?? "", contactShareExtras }));
+  };
+
+  const openWhatsappSheet = (phone: string | null | undefined) => {
+    const message =
+      lang === "es"
+        ? `Hola, me interesa este anuncio de renta (${businessName}).`
+        : `Hi, I'm interested in this rental listing (${businessName}).`;
+    openSheet(buildWhatsAppMessageIntent({ whatsappDigits: phone ?? "", message, contactShareExtras }));
   };
 
   const openEmailSheet = (email: string | null | undefined) => {
@@ -96,10 +109,10 @@ export function RentasNegocioDesktopBusinessRail(props: {
             )}
           </div>
         )}
-        <div>
-          <p className="text-base font-semibold text-[#111111]">{businessName}</p>
-          {railDisplay.agent && <p className="mt-0.5 text-sm text-[#111111]/90">{railDisplay.agent}</p>}
-          {railDisplay.role && <p className="text-xs text-[#111111]/70">{railDisplay.role}</p>}
+        <div className="min-w-0">
+          <p className="break-words text-base font-semibold text-[#111111] [overflow-wrap:anywhere]">{businessName}</p>
+          {railDisplay.agent && <p className="mt-0.5 break-words text-sm text-[#111111]/90 [overflow-wrap:anywhere]">{railDisplay.agent}</p>}
+          {railDisplay.role && <p className="break-words text-xs text-[#111111]/70 [overflow-wrap:anywhere]">{railDisplay.role}</p>}
         </div>
         {railDisplay.officePhone && (
           <p className="text-sm text-[#111111]">
@@ -229,6 +242,15 @@ export function RentasNegocioDesktopBusinessRail(props: {
               {lang === "es" ? "Llamar" : "Call"}
             </button>
           )}
+          {(railDisplay.officePhone || listing.contact_phone) && (
+            <button
+              type="button"
+              onClick={() => openWhatsappSheet(railDisplay.officePhone || listing.contact_phone)}
+              className="w-full px-4 py-3 rounded-xl font-semibold border border-black/10 bg-[#F5F5F5] text-[#111111] hover:bg-[#EFEFEF] transition text-sm text-center inline-block"
+            >
+              WhatsApp
+            </button>
+          )}
           {listing.contact_email && (
             <button
               type="button"
@@ -238,6 +260,15 @@ export function RentasNegocioDesktopBusinessRail(props: {
               {lang === "es" ? "Enviar mensaje" : "Send message"}
             </button>
           )}
+        </div>
+        <div className="mt-4">
+          <BrRentasCommunityTrustSection
+            category="rentas_negocio"
+            ownerId={listing.owner_id}
+            displayName={businessName}
+            lang={lang}
+            surface="rentas_negocio_business_rail"
+          />
         </div>
       </div>
       <CtaActionSheet open={ctaIntent != null} onClose={() => setCtaIntent(null)} intent={ctaIntent} lang={lang} />

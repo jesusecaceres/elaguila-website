@@ -94,3 +94,55 @@ export function labelForSubtipoEn(codigo: TipoPropiedadCodigo, subvalor: string)
   const hit = list.find((x) => x.value === v);
   return hit ? SUBTIPO_SUBVALUE_LABEL_EN[v] ?? hit.label : "";
 }
+
+/**
+ * Item 12 (Final Completion) — compatibility-safe semantic reclassification. Several stored
+ * "subtipo" values are not actually a distinct property subtype (a different kind of home) —
+ * they're a structural/physical/location attribute (story count, corner lot, floor level,
+ * amenity, view) that happened to be modeled as a subtipo option historically.
+ *
+ * This is a display-layer adapter ONLY: `SUBTIPO_POR_TIPO` (the closed catalog, the stored
+ * value shape, and every dropdown option) is completely unchanged — no destructive rename, no
+ * migration, no stored-value change. Every legacy stored value still resolves to a label via
+ * `labelForSubtipo`/`labelForSubtipoEn` exactly as before. This registry only changes which
+ * ROW TITLE a preview renders the value's fact under (e.g. "Corner lot" under "Lot
+ * characteristics" instead of implying it's a property subtype), and only when a caller opts in
+ * via `residencialSubtipoDisplayGroup`.
+ */
+export type ResidencialSubtipoSemanticKind =
+  | "subtype"
+  | "story_count"
+  | "corner_lot"
+  | "floor_level"
+  | "building_amenity"
+  | "view";
+
+const RESIDENCIAL_SUBTIPO_SEMANTIC_KIND: Record<string, ResidencialSubtipoSemanticKind> = {
+  un_piso: "story_count",
+  dos_pisos: "story_count",
+  esquina: "corner_lot",
+  planta_baja: "floor_level",
+  elevador: "building_amenity",
+  vista: "view",
+};
+
+export function residencialSubtipoSemanticKind(subvalor: string): ResidencialSubtipoSemanticKind {
+  return RESIDENCIAL_SUBTIPO_SEMANTIC_KIND[String(subvalor ?? "").trim()] ?? "subtype";
+}
+
+const SUBTIPO_DISPLAY_GROUP_LABEL: Record<ResidencialSubtipoSemanticKind, { es: string; en: string }> = {
+  subtype: { es: "Subtipo", en: "Subtype" },
+  story_count: { es: "Detalle estructural", en: "Structural detail" },
+  corner_lot: { es: "Característica del lote", en: "Lot characteristic" },
+  floor_level: { es: "Nivel", en: "Floor level" },
+  building_amenity: { es: "Amenidad del edificio", en: "Building amenity" },
+  view: { es: "Vista", en: "View" },
+};
+
+/** The row title a preview should use for this stored subtipo value — "Subtipo" for a true
+ * subtype, or a more accurate characteristic label for a value that was historically stored as
+ * a subtipo but is really a structural/location/amenity attribute. */
+export function residencialSubtipoDisplayGroup(subvalor: string, lang: "es" | "en" = "es"): string {
+  const kind = residencialSubtipoSemanticKind(subvalor);
+  return SUBTIPO_DISPLAY_GROUP_LABEL[kind][lang];
+}

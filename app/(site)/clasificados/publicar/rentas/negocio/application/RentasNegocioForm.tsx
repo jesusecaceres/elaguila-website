@@ -13,6 +13,7 @@ import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publis
 import { gateRentasNegocioPreview } from "@/app/clasificados/lib/publish/leonixRequiredForPreviewGates";
 import {
   RENTAS_PREVIEW_NEGOCIO,
+  RENTAS_PUBLICAR_HUB,
   RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY,
 } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
@@ -42,6 +43,13 @@ import {
 import { LeonixRealEstateSortablePhotoStrip } from "@/app/clasificados/lib/LeonixRealEstateSortablePhotoStrip";
 import { RentasAnuncioFormSection } from "@/app/clasificados/publicar/rentas/shared/RentasAnuncioFormSection";
 import { RentasShowingTourSection } from "@/app/clasificados/publicar/rentas/shared/RentasShowingTourSection";
+import { LanguagesInput } from "@/app/components/forms/LanguagesInput";
+import {
+  BR_RENTAS_LANGUAGE_OTHER_KEY,
+  brRentasLanguageChipOptions,
+  parseBrRentasLanguagesString,
+  serializeBrRentasLanguagesString,
+} from "@/app/clasificados/publicar/bienes-raices/shared/brRentasLanguagesAdapter";
 import {
   rentasFlowGroupActive,
   rentasResidencialFormRowsMode,
@@ -161,6 +169,7 @@ export function RentasNegocioForm() {
     [searchParams],
   );
   const [state, setState] = useState<RentasNegocioFormState>(createEmptyRentasNegocioFormState);
+  const [idiomaOtroPending, setIdiomaOtroPending] = useState("");
   const [hydrated, setHydrated] = useState(false);
   const [editContext, setEditContext] = useState<RentasListingEditContext | null>(routeEditContext);
   const [hydrationStatus, setHydrationStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -245,9 +254,12 @@ export function RentasNegocioForm() {
       });
       return;
     }
-    const d = loadRentasNegocioDraft();
-    if (d) setState(d);
-    setHydrated(true);
+    // BR-INV-WAVE1-GATE3: loadRentasNegocioDraft is now async (IndexedDB inline).
+    void (async () => {
+      const d = await loadRentasNegocioDraft();
+      if (d) setState(d);
+      setHydrated(true);
+    })();
   }, [routeEditContext]);
 
   useEffect(() => {
@@ -296,9 +308,14 @@ export function RentasNegocioForm() {
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [editContext, dirty]);
 
+  // BR-INV-WAVE1-GATE3: saveRentasNegocioDraft is now async (IndexedDB offload). Returns the
+  // promise so callers that navigate right after can await it.
   const flushSave = useCallback(() => {
-    if (editContext) saveRentasListingEditWorkspace({ listingId: editContext.listingId, lane: "negocio", draft: stateRef.current });
-    else saveRentasNegocioDraft(stateRef.current);
+    if (editContext) {
+      saveRentasListingEditWorkspace({ listingId: editContext.listingId, lane: "negocio", draft: stateRef.current });
+      return Promise.resolve();
+    }
+    return saveRentasNegocioDraft(stateRef.current);
   }, [editContext]);
 
   const previewHref = useMemo(
@@ -435,7 +452,7 @@ export function RentasNegocioForm() {
   }, [editContext, hydrationStatus, lang, router]);
 
   const previewActionsProps = {
-    onPreviewValidated: () => {
+    onPreviewValidated: async () => {
       if (editContext && hydrationStatus !== "ready") return;
       if (!confirmAll) return;
       const g = gateRentasNegocioPreview(stateRef.current);
@@ -444,7 +461,7 @@ export function RentasNegocioForm() {
         return;
       }
       setPreviewGateMessage(null);
-      flushSave();
+      await flushSave();
       router.push(previewHref);
     },
     openPreviewHref: previewHref,
@@ -506,6 +523,36 @@ export function RentasNegocioForm() {
     );
   }
 
+  const parsedIdiomas = parseBrRentasLanguagesString(state.negocioIdiomas);
+  const toggleIdiomaChip = (key: string) => {
+    const next = parsedIdiomas.selectedKeys.includes(key)
+      ? parsedIdiomas.selectedKeys.filter((k) => k !== key)
+      : [...parsedIdiomas.selectedKeys, key];
+    const customValues = next.includes(BR_RENTAS_LANGUAGE_OTHER_KEY) ? parsedIdiomas.customValues : [];
+    setState((s) => ({ ...s, negocioIdiomas: serializeBrRentasLanguagesString(next, customValues, lang) }));
+  };
+  const addCustomIdioma = () => {
+    const trimmed = idiomaOtroPending.trim();
+    if (!trimmed) return;
+    if (parsedIdiomas.customValues.some((v) => v.toLowerCase() === trimmed.toLowerCase())) {
+      setIdiomaOtroPending("");
+      return;
+    }
+    const nextCustom = [...parsedIdiomas.customValues, trimmed];
+    const nextKeys = parsedIdiomas.selectedKeys.includes(BR_RENTAS_LANGUAGE_OTHER_KEY)
+      ? parsedIdiomas.selectedKeys
+      : [...parsedIdiomas.selectedKeys, BR_RENTAS_LANGUAGE_OTHER_KEY];
+    setState((s) => ({ ...s, negocioIdiomas: serializeBrRentasLanguagesString(nextKeys, nextCustom, lang) }));
+    setIdiomaOtroPending("");
+  };
+  const removeCustomIdiomaAt = (index: number) => {
+    const nextCustom = parsedIdiomas.customValues.filter((_, i) => i !== index);
+    const nextKeys = nextCustom.length
+      ? parsedIdiomas.selectedKeys
+      : parsedIdiomas.selectedKeys.filter((k) => k !== BR_RENTAS_LANGUAGE_OTHER_KEY);
+    setState((s) => ({ ...s, negocioIdiomas: serializeBrRentasLanguagesString(nextKeys, nextCustom, lang) }));
+  };
+
   return (
     <main className="min-h-screen w-full min-w-0 overflow-x-hidden bg-[#F6F0E2] px-4 pb-[max(7rem,env(safe-area-inset-bottom,0px))] pt-24 text-[#2C2416] sm:px-5 sm:pb-24 sm:pt-28">
       <div className="mx-auto w-full min-w-0 max-w-3xl space-y-7 md:space-y-8">
@@ -558,7 +605,7 @@ export function RentasNegocioForm() {
 
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <Link
-            href={`/clasificados/rentas?lang=${lang}`}
+            href={`${RENTAS_PUBLICAR_HUB}?lang=${lang}`}
             className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-[#C9B46A]/50 px-6 text-sm font-semibold text-[#6E5418] transition hover:bg-[#FFEFD8] sm:w-auto"
           >
             {lang === "en" ? "Back to Rentals" : "Volver a Rentas"}
@@ -632,6 +679,7 @@ export function RentasNegocioForm() {
               type="file"
               accept="image/*"
               multiple
+              aria-label={lang === "en" ? "Listing photos" : "Fotos del anuncio"}
               className="sr-only"
               onChange={(e) => onPhotos(e.target.files)}
             />
@@ -750,6 +798,7 @@ export function RentasNegocioForm() {
                 ref={negocioLogoInputRef}
                 type="file"
                 accept="image/*"
+                aria-label="Logo o foto del equipo"
                 className="sr-only"
                 onChange={async (e) => {
                   const f = e.target.files?.[0];
@@ -896,6 +945,26 @@ export function RentasNegocioForm() {
                   placeholder="https://"
                   value={state.negocioSitioWeb}
                   onChange={(e) => setState((s) => ({ ...s, negocioSitioWeb: e.target.value }))}
+                />
+              </AiField>
+            </div>
+            <div className="sm:col-span-2">
+              <AiField label={rentasUiLabel(lang, "Idiomas (opcional)", "Languages (optional)")}>
+                <LanguagesInput
+                  options={brRentasLanguageChipOptions(lang)}
+                  selectedKeys={parsedIdiomas.selectedKeys}
+                  onToggle={toggleIdiomaChip}
+                  otherKey={BR_RENTAS_LANGUAGE_OTHER_KEY}
+                  customValues={parsedIdiomas.customValues}
+                  customInputValue={idiomaOtroPending}
+                  onCustomInputChange={setIdiomaOtroPending}
+                  onAddCustom={addCustomIdioma}
+                  onRemoveCustom={removeCustomIdiomaAt}
+                  labels={{
+                    otherPlaceholder: rentasUiLabel(lang, "Otro idioma", "Other language"),
+                    add: rentasUiLabel(lang, "Agregar", "Add"),
+                    removeAria: (value) => rentasUiLabel(lang, `Quitar ${value}`, `Remove ${value}`),
+                  }}
                 />
               </AiField>
             </div>

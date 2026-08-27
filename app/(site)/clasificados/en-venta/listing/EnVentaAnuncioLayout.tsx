@@ -16,7 +16,7 @@ import {
   brLuxurySerifHeadingClass,
 } from "@/app/clasificados/bienes-raices/shared/brResultsTheme";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
-import { EnVentaCorreoModal } from "@/app/clasificados/en-venta/preview/EnVentaCorreoModal";
+import { LeonixCorreoLeadModal } from "@/app/clasificados/lib/LeonixCorreoLeadModal";
 import {
   buildCallIntent,
   buildDirectionsIntent,
@@ -985,6 +985,7 @@ export function EnVentaAnuncioLayout({
                 listing={{
                   contact_phone: resolvedContact.phoneForTel,
                   contact_email: resolvedContact.emailForMailto,
+                  owner_id: ownerId,
                 }}
                 onRequestInfo={scrollToContact}
                 onScheduleVisit={scrollToContact}
@@ -1427,7 +1428,7 @@ export function EnVentaAnuncioLayout({
       ) : null}
 
       {email && !premiumBr ? (
-        <EnVentaCorreoModal
+        <LeonixCorreoLeadModal
           open={correoOpen}
           onClose={() => setCorreoOpen(false)}
           lang={lang}

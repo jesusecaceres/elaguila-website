@@ -16,6 +16,7 @@ import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPre
 import { buildRentasPrivadoTemplateVm } from "../model/buildRentasPrivadoTemplateVm";
 import { RentasPreviewResultCardSection } from "@/app/clasificados/rentas/preview/shared/RentasPreviewResultCardSection";
 import { RentasVisualMatchPreviewView } from "@/app/clasificados/rentas/preview/shared/RentasVisualMatchPreviewView";
+import { rentasServicioIncluidoLabel } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import {
   buildRentasResultCardPreviewListingFromPrivadoVm,
   rentasPreviewResultCardFlowOverlay,
@@ -132,7 +133,7 @@ export default function RentasPrivadoPreviewClient() {
       setCheckoutErr(null);
       setCheckoutBusy(true);
 
-      const d = loadRentasPrivadoDraft();
+      const d = await loadRentasPrivadoDraft();
       if (!d) {
         setCheckoutBusy(false);
         return;
@@ -226,7 +227,7 @@ export default function RentasPrivadoPreviewClient() {
             lane: "privado",
             merge: mergePartialRentasPrivadoState,
           })
-        : loadRentasPrivadoDraft();
+        : await loadRentasPrivadoDraft();
       if (!raw) {
         if (!cancelled) {
           setDraft(null);
@@ -325,7 +326,17 @@ export default function RentasPrivadoPreviewClient() {
           {lang === "en" ? "Full listing preview" : "Vista previa completa"}
         </h2>
       </section>
-      <RentasVisualMatchPreviewView vm={vm} lang={lang} videoUrls={draftVideoUrls(draft)} />
+      <RentasVisualMatchPreviewView
+        vm={vm}
+        lang={lang}
+        videoUrls={draftVideoUrls(draft)}
+        includedServices={[
+          ...draft.serviciosIncluidosKeys
+            .filter((k): k is Exclude<typeof k, "otro"> => k !== "otro")
+            .map((k) => rentasServicioIncluidoLabel(k, lang)),
+          ...(draft.serviciosIncluidosOtro.trim() ? [draft.serviciosIncluidosOtro.trim()] : []),
+        ]}
+      />
 
       <div className="mx-auto mt-8 max-w-3xl px-4 pb-10 sm:px-6">
         {isListingBoundPreview && editContext ? (
