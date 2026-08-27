@@ -10,6 +10,7 @@ export function ServiciosReviewSubmitForm({ listingSlug, lang }: { listingSlug: 
   const [hp, setHp] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<"idle" | "ok" | "err">("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const t =
     lang === "en"
@@ -38,6 +39,7 @@ export function ServiciosReviewSubmitForm({ listingSlug, lang }: { listingSlug: 
     e.preventDefault();
     setBusy(true);
     setDone("idle");
+    setErrorMessage(null);
     try {
       const res = await fetch("/api/clasificados/servicios/review", {
         method: "POST",
@@ -48,14 +50,17 @@ export function ServiciosReviewSubmitForm({ listingSlug, lang }: { listingSlug: 
           body,
           rating,
           companyUrl: hp,
+          lang,
         }),
       });
-      const j = (await res.json()) as { ok?: boolean };
+      const j = (await res.json()) as { ok?: boolean; message?: string };
       setDone(j.ok ? "ok" : "err");
       if (j.ok) {
         setAuthorName("");
         setBody("");
         setRating(5);
+      } else {
+        setErrorMessage(j.message ?? null);
       }
     } catch {
       setDone("err");
@@ -127,7 +132,7 @@ export function ServiciosReviewSubmitForm({ listingSlug, lang }: { listingSlug: 
           {busy ? "…" : t.submit}
         </button>
         {done === "ok" ? <p className="text-sm font-medium text-emerald-800">{t.ok}</p> : null}
-        {done === "err" ? <p className="text-sm font-medium text-rose-800">{t.err}</p> : null}
+        {done === "err" ? <p className="text-sm font-medium text-rose-800">{errorMessage ?? t.err}</p> : null}
       </form>
     </section>
   );

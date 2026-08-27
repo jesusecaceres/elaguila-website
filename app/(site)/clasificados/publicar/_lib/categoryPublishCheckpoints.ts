@@ -59,7 +59,9 @@ export function getRestaurantesCheckpointCards(
   withLang: (path: string, extra?: Record<string, string>) => string,
 ): PublishCheckpointCardData[] {
   const es = lang === "es";
-  const couponAddon = es ? "Opcional: agrega cupones destacados por +$99/mes" : "Optional: add featured coupons for +$99/month";
+  const couponAddon = es
+    ? "Cupones y ofertas destacadas incluidos sin costo adicional."
+    : "Featured coupons and offers included at no extra cost.";
   const establishedPrice = monthlyPrice("restaurantes_base_monthly", "restaurantes");
 
   return [
@@ -100,8 +102,8 @@ export function getRestaurantesCheckpointCards(
           ],
       optionalUpgradeLine: couponAddon,
       optionalUpgradeBullets: es
-        ? ["Opcional: cupones destacados por +$99/mes (hasta 4 cupones)"]
-        : ["Optional: featured coupons for +$99/month (up to 4 coupons)"],
+        ? ["Cupones destacados: hasta 4, incluidos en tu plan"]
+        : ["Featured coupons: up to 4, included with your plan"],
       couponEligible: isPromoEligible("restaurantes_base_monthly"),
       highlighted: false,
     },
@@ -140,8 +142,8 @@ export function getRestaurantesCheckpointCards(
           ],
       optionalUpgradeLine: couponAddon,
       optionalUpgradeBullets: es
-        ? ["Opcional: cupones destacados por +$99/mes"]
-        : ["Optional: featured coupons for +$99/month"],
+        ? ["Cupones destacados incluidos en tu plan"]
+        : ["Featured coupons included with your plan"],
       couponEligible: true,
       highlighted: true,
       footnote: es
@@ -193,8 +195,8 @@ export function getServiciosCheckpointCard(
           "Mobile/PWA ready",
         ],
     optionalUpgradeLine: es
-      ? "Opcional: agrega cupones destacados por +$99/mes dentro de la aplicación."
-      : "Optional: add featured coupons for +$99/mes inside the application.",
+      ? "Cupones y ofertas destacadas incluidos sin costo adicional dentro de la aplicación."
+      : "Featured coupons and offers included at no extra cost inside the application.",
     optionalUpgradeBullets: es
       ? ["Cupones destacados: hasta 4, precio regular/especial, imagen y código"]
       : ["Featured coupons: up to 4, regular/special price, image and code"],

@@ -396,7 +396,7 @@ const es: ClasificadosServiciosCopy = {
       "Escribe una frase corta que represente tu negocio. No repitas todos tus servicios; usa una frase clara para atraer clientes.",
     businessFocusPlaceholder: "Ej.: Tu ayuda legal cuando más la necesitas",
     aboutHelper:
-      "Describe tu experiencia y cómo ayudas a tus clientes. Puedes borradorar ideas aquí y pulir el texto con IA externamente si te hace falta.",
+      "Describe tu experiencia y cómo ayudas a tus clientes. Sé claro y específico — eso genera más confianza que un texto genérico.",
     servicesHint: "Marca los servicios que ofreces (según tu tipo de negocio).",
     reasonsHint: "Elige lo que mejor te representa.",
     quickHint: "Datos rápidos que aparecen bajo el encabezado.",
@@ -706,7 +706,7 @@ const en: ClasificadosServiciosCopy = {
       "Write a short phrase that represents your business. Do not repeat every service — use one clear line to attract clients.",
     businessFocusPlaceholder: "Ex: Your legal help when you need it most",
     aboutHelper:
-      "Describe your experience and how you help clients. Draft here and refine with an external AI assistant if you want.",
+      "Describe your experience and how you help clients. Be clear and specific — that builds more trust than generic wording.",
     servicesHint: "Select the services you offer (based on your business type).",
     reasonsHint: "Pick what best represents you.",
     quickHint: "Quick highlights shown below the hero.",

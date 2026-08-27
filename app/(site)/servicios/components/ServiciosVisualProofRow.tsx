@@ -8,7 +8,8 @@ import {
   getAllServiciosGalleryPhotos,
   getFeaturedVisualProofImages,
 } from "../lib/serviciosFeaturedMedia";
-import { ServiciosMediaLightbox } from "./ServiciosMediaLightbox";
+import { ServiciosGalleryVideoTile } from "./ServiciosGalleryVideoTile";
+import { BusinessGalleryLightbox, type BusinessGallerySlide } from "@/app/components/media/BusinessGalleryModal";
 
 export function ServiciosVisualProofRow({
   profile,
@@ -34,6 +35,17 @@ export function ServiciosVisualProofRow({
   );
 
   const closeLightbox = useCallback(() => setLightboxOpen(false), []);
+
+  const gallerySlides: BusinessGallerySlide[] = [
+    ...allPhotos.map((g) => ({ kind: "image" as const, url: g.url, alt: g.alt })),
+    ...videos.map((v) => ({ kind: "video" as const, renderVideo: () => <ServiciosGalleryVideoTile v={v} lang={lang} variant="embed" /> })),
+  ];
+  const lightboxCopy = {
+    close: lang === "en" ? "Close" : "Cerrar",
+    prev: lang === "en" ? "Previous" : "Anterior",
+    next: lang === "en" ? "Next" : "Siguiente",
+    counterLabel: lang === "en" ? "Gallery" : "Galería",
+  };
 
   if (images.length === 0) return null;
 
@@ -98,14 +110,14 @@ export function ServiciosVisualProofRow({
         </div>
       </section>
 
-      <ServiciosMediaLightbox
-        photos={allPhotos}
-        videos={videos}
-        lang={lang}
-        isOpen={lightboxOpen}
+      <BusinessGalleryLightbox
+        open={lightboxOpen}
         onClose={closeLightbox}
-        initialTab="photos"
-        initialPhotoIndex={lightboxPhotoIndex}
+        slides={gallerySlides}
+        activeIndex={lightboxPhotoIndex}
+        onActiveIndexChange={setLightboxPhotoIndex}
+        ariaLabel={lang === "en" ? "Gallery viewer" : "Visor de galería"}
+        copy={lightboxCopy}
       />
     </>
   );

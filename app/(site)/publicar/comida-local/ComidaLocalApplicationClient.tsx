@@ -19,6 +19,9 @@ import {
   writeComidaLocalEditContext,
 } from "@/app/lib/clasificados/comida-local/comidaLocalListingEditContext";
 import { resolveDraftPrecedence } from "@/app/lib/listingDrafts/draftWorkspaceContract";
+import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
+import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import { PhoneInput } from "@/app/components/forms/PhoneInput";
 import {
   COMIDA_LOCAL_FOOD_TYPE_OPTIONS,
   COMIDA_LOCAL_GALLERY_MAX,
@@ -143,6 +146,14 @@ export default function ComidaLocalApplicationClient() {
   const editStorageKey = editListingId ? comidaLocalEditWorkspaceStorageKey(editListingId) : undefined;
   const { draft, setDraft, updateDraft, resetDraft, hasLoadedDraft, lastSavedAt } = useComidaLocalDraft({
     storageKey: editStorageKey,
+  });
+
+  useBusinessApplicationLeaveGuard({
+    isDirty: hasLoadedDraft && Boolean(draft.businessName?.trim()),
+    persist: () => {
+      if (editStorageKey) saveComidaLocalDraftToStorage(draft, editStorageKey);
+      else saveComidaLocalDraftToStorage(draft);
+    },
   });
   const [editHydration, setEditHydration] = useState<
     | { status: "idle" }
@@ -566,14 +577,10 @@ export default function ComidaLocalApplicationClient() {
                 <h2 className={SECTION_TITLE}>Contacto</h2>
                 <div className="mt-5 space-y-5">
                   <FieldBlock fieldKey="phone">
-                    <input
+                    <PhoneInput
                       className={INPUT}
-                      type="tel"
-                      inputMode="tel"
                       value={draft.phone}
-                      onChange={(e) =>
-                        updateDraft({ phone: formatComidaLocalPhoneInput(e.target.value) })
-                      }
+                      onChange={(next) => updateDraft({ phone: next })}
                       placeholder={COMIDA_LOCAL_FIELD_COPY.phone.placeholder}
                       autoComplete="tel"
                     />
@@ -868,6 +875,7 @@ export default function ComidaLocalApplicationClient() {
               {previewReady ? (
                 <Link
                   href={comidaLocalPreviewHref}
+                  onClick={markPublishFlowOpeningPreview}
                   className="inline-flex shrink-0 items-center justify-center rounded-lg border border-[#7A1E2C] bg-[#7A1E2C] px-5 py-2.5 text-sm font-semibold text-[#FFFCF7] hover:bg-[#6a1a26]"
                 >
                   {COMIDA_LOCAL_SHELL_COPY.viewPreview}
