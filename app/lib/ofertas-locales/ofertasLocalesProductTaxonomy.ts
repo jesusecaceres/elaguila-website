@@ -192,6 +192,55 @@ export function getOfertaProductFilterLabel(
   return `${group.emoji} ${lang === "en" ? group.en : group.es}`;
 }
 
+export type OfertaProductBilingualCategoryDisplay = {
+  /** Empty string when the raw value did not match any taxonomy group. */
+  emoji: string;
+  /** Label in the caller's current UI language. */
+  primary: string;
+  /** Label in the other supported language; empty when unmatched. */
+  secondary: string;
+  /** False when the raw category text is shown as-is because no taxonomy group matched it. */
+  matched: boolean;
+};
+
+/**
+ * Bilingual, icon-annotated category display for the product review/editor UI
+ * (⚠️33/⚠️34). Reuses the same OFERTA_PRODUCT_TAXONOMY data as the filter
+ * chips — this is a second display helper over the existing map, not a
+ * second taxonomy.
+ *
+ * `normalizeOfertaProductCategory` only ever returns "other" when nothing
+ * matched (its keyword list is empty, so it's never actively matched). When
+ * that happens and the raw text isn't literally the other-bucket's own
+ * label, the original raw text is preserved verbatim instead of being
+ * relabeled "Other/Otros" — historical/custom category values must never be
+ * silently overwritten or blanked.
+ */
+export function getOfertaProductBilingualCategoryDisplay(
+  rawCategory: string | null | undefined,
+  lang: OfertasLocalesAppLang,
+  subcategory?: string | null
+): OfertaProductBilingualCategoryDisplay {
+  const trimmedRaw = (rawCategory ?? "").trim();
+  const key = normalizeOfertaProductCategory(rawCategory, subcategory);
+  const group = GROUP_BY_KEY[key];
+
+  if (key === "other" && trimmedRaw) {
+    const isLiterallyOtherLabel =
+      trimmedRaw.toLowerCase() === group.en.toLowerCase() || trimmedRaw.toLowerCase() === group.es.toLowerCase();
+    if (!isLiterallyOtherLabel) {
+      return { emoji: "", primary: trimmedRaw, secondary: "", matched: false };
+    }
+  }
+
+  return {
+    emoji: group.emoji,
+    primary: lang === "en" ? group.en : group.es,
+    secondary: lang === "en" ? group.es : group.en,
+    matched: true,
+  };
+}
+
 /** Ordered list of taxonomy keys present in the given raw categories. */
 export function collectOfertaProductFilterKeys(
   rawCategories: Array<{ category?: string | null; subcategory?: string | null }>

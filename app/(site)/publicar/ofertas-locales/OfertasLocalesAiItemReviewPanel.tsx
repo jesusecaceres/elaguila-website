@@ -25,6 +25,7 @@ import {
   summarizeScopedItemReviewCounts,
 } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
 import { normalizeOfertaLocalPrice } from "@/app/lib/ofertas-locales/ofertasLocalesPriceNormalization";
+import { getOfertaProductBilingualCategoryDisplay } from "@/app/lib/ofertas-locales/ofertasLocalesProductTaxonomy";
 import type { ClipReviewViewerItem } from "./OfertasClipReviewViewer";
 import type { OfertaLocalSourceFileRole } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
 import type {
@@ -329,6 +330,11 @@ function ItemReviewCard({
   const [ocrOpen, setOcrOpen] = useState(false);
   const [commerceOpen, setCommerceOpen] = useState(false);
   const ocrContext = item.sourceContext?.trim();
+  const categoryTaxonomyDisplay = getOfertaProductBilingualCategoryDisplay(
+    draftFields.category,
+    lang,
+    item.subcategory
+  );
   const cardClass = compact
     ? "rounded-lg border border-[#D4C4A8]/70 bg-white px-3 py-2.5 shadow-sm"
     : CARD;
@@ -426,6 +432,13 @@ function ItemReviewCard({
               onChange={(e) => onFieldChange("category", e.target.value)}
             />
           </label>
+        ) : null}
+        {!isCouponMode && categoryTaxonomyDisplay.matched ? (
+          <p className="text-[10px] leading-relaxed text-[#1E1814]/55">
+            <span aria-hidden="true">{categoryTaxonomyDisplay.emoji} </span>
+            {categoryTaxonomyDisplay.primary}
+            {categoryTaxonomyDisplay.secondary ? ` · ${categoryTaxonomyDisplay.secondary}` : ""}
+          </p>
         ) : null}
         <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
           {isCouponMode ? c.aiReviewTerms : c.aiReviewDescription}
