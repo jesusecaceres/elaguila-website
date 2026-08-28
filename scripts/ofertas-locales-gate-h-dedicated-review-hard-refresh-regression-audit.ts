@@ -71,7 +71,7 @@ function run() {
   // --- Case D: dedicated review screen (Step 6) never shows the Step 5 file checklist ---
   // Step 6 is its own switch case now (Gate I), so the Step 5 checklist/start-over
   // box structurally cannot render there — no shared conditional to regress.
-  const step6CaseMatch = clientSrc.match(/case 6:\s*\n\s*return \([\s\S]*?\n      case 7:/);
+  const step6CaseMatch = clientSrc.match(/case 6:[\s\S]*?\n      case 7:/);
   assert.ok(step6CaseMatch, "sanity: case 6 (Revisar productos) block not found");
   assert.doesNotMatch(
     step6CaseMatch![0],
