@@ -276,7 +276,7 @@ export function OfertasClipReviewViewer({
               disabled={safePage <= 1}
               onClick={() => onPageChange?.(safePage - 1)}
             >
-              {lang === "en" ? "Prev page" : "Pág. ant."}
+              {lang === "en" ? "Previous page" : "Página anterior"}
             </button>
             <span className="text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/60">
               {lang === "en" ? "Page" : "Página"} {safePage}/{effectivePageCount}
@@ -287,7 +287,7 @@ export function OfertasClipReviewViewer({
               disabled={safePage >= effectivePageCount}
               onClick={() => onPageChange?.(safePage + 1)}
             >
-              {lang === "en" ? "Next page" : "Pág. sig."}
+              {lang === "en" ? "Next page" : "Página siguiente"}
             </button>
           </div>
         ) : null}

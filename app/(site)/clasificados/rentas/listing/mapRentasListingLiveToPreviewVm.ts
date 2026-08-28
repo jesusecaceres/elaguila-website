@@ -52,22 +52,34 @@ function digitsOnly15(raw: string): string {
   return String(raw ?? "").replace(/\D/g, "").slice(0, 15);
 }
 
+/** F7 fix: `tel:`/`sms:` URIs must be E.164 (a leading `+`, RFC 3966) to be an international-safe
+ * dialing destination -- bare local digits (e.g. `tel:4088021531`) work by accident on some
+ * devices/locales and silently fail on others. A bare 10-digit number is assumed local US/CA
+ * (prefix `1`); anything longer is assumed to already carry its own country code -- never
+ * truncated or reinterpreted, so real international numbers pass through unmodified. */
+function e164FromDigits(x: string): string {
+  return x.length === 10 ? `+1${x}` : `+${x}`;
+}
+
 function telHrefFromDigits(d: string): string | null {
   const x = digitsOnly15(d);
   if (x.length < 10) return null;
-  return `tel:${x}`;
+  return `tel:${e164FromDigits(x)}`;
 }
 
 function smsHrefFromDigits(d: string, lang: "es" | "en"): string | null {
   const x = digitsOnly15(d);
   if (x.length < 10) return null;
-  return `sms:${x}?&body=${encodeURIComponent(rentasLeadSmsBody(lang))}`;
+  return `sms:${e164FromDigits(x)}?&body=${encodeURIComponent(rentasLeadSmsBody(lang))}`;
 }
 
 function waHrefFromDigits(d: string, lang: "es" | "en"): string | null {
   const x = digitsOnly15(d);
   if (x.length < 10) return null;
-  return `https://wa.me/${x}?text=${encodeURIComponent(rentasLeadSmsBody(lang))}`;
+  // wa.me requires the full number with country code, digits only, no leading "+" (WhatsApp's own
+  // spec) -- a bare 10-digit US number was missing its country code entirely.
+  const withCountryCode = x.length === 10 ? `1${x}` : x;
+  return `https://wa.me/${withCountryCode}?text=${encodeURIComponent(rentasLeadSmsBody(lang))}`;
 }
 
 function phoneDisplay(raw: string): string {

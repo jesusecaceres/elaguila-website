@@ -154,6 +154,12 @@ export const OFERTAS_LOCALES_PREVIEW_COPY = {
   submitSuccessNoteEn: "Your listing will be published after Leonix approves it.",
   submitBlockedEs: "Termina la revisión AI antes de enviar",
   submitBlockedEn: "Finish AI review before submitting",
+  continueToDashboardEs: "Continuar para publicar →",
+  continueToDashboardEn: "Continue to publish →",
+  dashboardLinkPendingEs:
+    "Analiza el archivo con IA o guarda tu borrador para crear el ID canónico antes de continuar.",
+  dashboardLinkPendingEn:
+    "Scan the file with AI or save your draft to create the canonical ID before continuing.",
   defaultOfferTitleEs: "Oferta local",
   defaultOfferTitleEn: "Local offer",
   fileReceived: "Archivo recibido",
