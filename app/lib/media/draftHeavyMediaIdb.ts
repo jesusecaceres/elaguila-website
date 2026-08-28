@@ -31,6 +31,8 @@ export type DraftHeavyMediaIdbStore = {
   inlinePhotoArray(ns: string, segment: string, photos: string[]): Promise<string[]>;
   /** Remove every entry under a given namespace (e.g. on publish/clear-draft). */
   clearNamespace(ns: string): Promise<void>;
+  /** True if IndexedDB still holds any entry for this namespace, regardless of sessionStorage state. */
+  hasNamespaceEntries(ns: string): Promise<boolean>;
 };
 
 export function createDraftHeavyMediaIdbStore(dbName: string, refPrefix: string): DraftHeavyMediaIdbStore {
@@ -163,5 +165,31 @@ export function createDraftHeavyMediaIdbStore(dbName: string, refPrefix: string)
     return out;
   }
 
-  return { offloadScalar, inlineScalar, offloadPhotoArray, inlinePhotoArray, clearNamespace };
+  async function hasNamespaceEntries(namespace: string): Promise<boolean> {
+    try {
+      const db = await openDb();
+      const prefix = `${namespace}:`;
+      return await new Promise<boolean>((resolve, reject) => {
+        const tx = db.transaction(STORE, "readonly");
+        const req = tx.objectStore(STORE).openCursor();
+        req.onsuccess = () => {
+          const cursor = req.result;
+          if (!cursor) {
+            resolve(false);
+            return;
+          }
+          if (String(cursor.key ?? "").startsWith(prefix)) {
+            resolve(true);
+            return;
+          }
+          cursor.continue();
+        };
+        req.onerror = () => reject(req.error ?? new Error("idb cursor failed"));
+      });
+    } catch {
+      return false;
+    }
+  }
+
+  return { offloadScalar, inlineScalar, offloadPhotoArray, inlinePhotoArray, clearNamespace, hasNamespaceEntries };
 }

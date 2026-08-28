@@ -156,6 +156,25 @@ export function BienesRaicesPrivadoForm() {
     return () => window.clearTimeout(id);
   }, [state, hydrated]);
 
+  // BR-INV-D2-FIX — flush the current draft the moment the page is about to hide/unload (matches
+  // the pattern already proven in RentasPrivadoForm/RentasNegocioForm). This form previously had
+  // no such flush, relying solely on the 280ms debounced autosave above; a reload shortly after a
+  // real edit could otherwise land between debounce ticks with only an older write on record.
+  useEffect(() => {
+    if (!hydrated) return;
+    function flush() {
+      saveBienesRaicesPrivadoDraft(stateRef.current);
+    }
+    function onVisibilityChange() {
+      if (document.visibilityState === "hidden") flush();
+    }
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [hydrated]);
 
   // BR-INV-WAVE1-GATE3: save is now async (IndexedDB offload). Returns the promise so callers that
   // navigate right after (onVerAnuncio) can await it — otherwise router.push could race ahead of
