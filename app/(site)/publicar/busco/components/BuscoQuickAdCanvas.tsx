@@ -1,7 +1,6 @@
 "use client";
 
-import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FaFacebook, FaInstagram, FaTiktok, FaWhatsapp, FaYoutube } from "react-icons/fa";
 import { FiExternalLink, FiMail, FiMapPin, FiMessageSquare, FiPhone, FiShare2 } from "react-icons/fi";
 
@@ -76,25 +75,8 @@ const URGENCY_BADGE: Record<string, string> = {
   urgente_hoy: "border-red-800/40 bg-red-100/95 text-red-800",
 };
 
-type LayoutMode = "flyer" | "photo";
-
-function detectLayoutMode(w: number, h: number): LayoutMode {
-  if (!w || !h) return "photo";
-  const ratio = w / h;
-  if (ratio < 0.85 || h > w * 1.15) return "flyer";
-  return "photo";
-}
-
 function BuscoHero({ vm, lang, urgencyLabel }: { vm: BuscoQuickAdViewModel; lang: Lang; urgencyLabel: string | null }) {
   const t = COPY[lang];
-  const [layout, setLayout] = useState<LayoutMode>("photo");
-
-  useEffect(() => {
-    if (!vm.heroSrc) return;
-    const img = new window.Image();
-    img.onload = () => setLayout(detectLayoutMode(img.naturalWidth, img.naturalHeight));
-    img.src = vm.heroSrc;
-  }, [vm.heroSrc]);
 
   const badgeClass = vm.urgency !== "normal" ? URGENCY_BADGE[vm.urgency] : null;
 
@@ -126,22 +108,13 @@ function BuscoHero({ vm, lang, urgencyLabel }: { vm: BuscoQuickAdViewModel; lang
       </span>
     ) : null;
 
-  if (layout === "flyer") {
-    return (
-      <div className="relative w-full overflow-hidden rounded-t-2xl border-b border-[#C9B46A]/25 bg-[#F4F0E6] px-2 py-4 sm:px-4 sm:py-6">
-        {badge}
-        <div className="relative mx-auto flex min-h-[min(50vh,520px)] max-w-[min(100%,960px)] items-center justify-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={vm.heroSrc} alt="" className="max-h-[min(70vh,640px)] w-full object-contain object-center" />
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="relative aspect-[16/10] max-h-[380px] w-full overflow-hidden rounded-t-2xl border-b border-[#C9B46A]/25 bg-[#EDE8E0]">
+    <div className="relative w-full overflow-hidden rounded-t-2xl border-b border-[#C9B46A]/25 bg-[#F4F0E6] px-2 py-4 sm:px-4 sm:py-6">
       {badge}
-      <Image src={vm.heroSrc} alt="" fill className="object-cover object-center" sizes="(max-width: 768px) 100vw, 960px" unoptimized />
+      <div className="relative mx-auto flex min-h-[min(50vh,520px)] max-w-[min(100%,960px)] items-center justify-center">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={vm.heroSrc} alt="" className="max-h-[min(70vh,640px)] w-full object-contain object-center" />
+      </div>
     </div>
   );
 }

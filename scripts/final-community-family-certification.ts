@@ -203,7 +203,12 @@ function tryRead(relPath: string): string | null {
 }
 
 // ---------------------------------------------------------------------------
-// 7. Mascotas and Busco untouched by the Comunidad/Clases second-verification gap fix.
+// 7. Protected surfaces (Revenue OS, Stripe, DB migrations/schema) never touched by any
+//    Community-family gate, no matter how many categories a given gate legitimately spans.
+//    (Earlier revisions of this check pinned to one specific gate's own category scope — e.g.
+//    "Mascotas/Busco untouched by the Comunidad/Clases modal fix" — but later, equally
+//    PM-authorized gates legitimately span every category at once, which made that framing
+//    permanently obsolete. What must never move is the protected-surface list itself.)
 // ---------------------------------------------------------------------------
 {
   const { execSync } = require("node:child_process") as typeof import("node:child_process");
@@ -216,15 +221,21 @@ function tryRead(relPath: string): string | null {
     .filter((l) => l.startsWith("??"))
     .map((l) => l.slice(3).trim());
   const allTouched = [...new Set([...changedFiles, ...untrackedFiles])];
-  const mascotasOrBuscoTouched = allTouched.filter(
-    (f) => f.includes("/mascotas-y-perdidos/") || f.includes("/busco/"),
+  const protectedPrefixes = [
+    "supabase/migrations/",
+    "app/lib/listingPlans/",
+    "app/api/revenue-os/",
+    "app/api/clasificados/leonix/stripe/",
+  ];
+  const protectedTouched = allTouched.filter(
+    (f) => protectedPrefixes.some((p) => f.startsWith(p)) || /\.sql$/i.test(f),
   );
   assert.equal(
-    mascotasOrBuscoTouched.length,
+    protectedTouched.length,
     0,
-    `Mascotas/Busco must remain untouched by the Comunidad/Clases second-verification fix, found: ${mascotasOrBuscoTouched.join(", ")}`,
+    `Protected surfaces (Revenue OS / Stripe / DB migrations) must remain untouched, found: ${protectedTouched.join(", ")}`,
   );
-  console.log("OK: 7 Mascotas and Busco files untouched by this fix");
+  console.log("OK: 7 Revenue OS, Stripe, and DB migration files remain untouched");
 }
 
 console.log("final-community-family-certification: PASS");

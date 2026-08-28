@@ -100,11 +100,11 @@ function BuscoCardLayout({
 
       <div className="flex min-w-0 flex-1 flex-col gap-2 p-4 sm:p-4 sm:pl-3">
         <div className="flex flex-wrap items-start gap-2">
-          <span className="inline-flex max-w-full truncate rounded-full bg-[#F0EBE0] px-2.5 py-0.5 text-[11px] font-semibold text-[#5C3D2E]">
+          <span className="inline-flex max-w-full truncate rounded-full bg-[#F0EBE0] px-3 py-1 text-xs font-semibold text-[#5C3D2E]">
             {model.typeBadge}
           </span>
           {model.urgency && URGENCY_LABEL[model.urgency] ? (
-            <span className={`inline-flex max-w-full truncate rounded-full px-2.5 py-0.5 text-[10px] font-bold ${URGENCY_CLASS[model.urgency]}`}>
+            <span className={`inline-flex max-w-full truncate rounded-full px-3 py-1 text-xs font-bold ${URGENCY_CLASS[model.urgency]}`}>
               {lang === "es" ? URGENCY_LABEL[model.urgency].es : URGENCY_LABEL[model.urgency].en}
             </span>
           ) : null}

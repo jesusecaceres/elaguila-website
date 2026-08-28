@@ -381,6 +381,13 @@ function read(relPath: string): string {
     "app/(site)/clasificados/publicar/_components/QuickLaneCheckpointClient.tsx",
     "app/(site)/clasificados/publicar/_lib/categoryPublishCheckpoints.ts",
     "app/(site)/publicar/community/shared/components/CommunityPublishConfirmationSection.tsx",
+    // Final owner-QA repair batch (⚠️67-76) is a deliberate, PM-authorized cross-category pass —
+    // same precedent as the earlier second-verification modal backport (Comunidad + Clases) and
+    // the Gate 2B relaxation for this same batch.
+    "app/(site)/publicar/comunidad/components/ComunidadQuickAdCanvas.tsx",
+    "app/(site)/publicar/clases/quick/ClasesQuickApplication.tsx",
+    "app/(site)/publicar/mascotas-y-perdidos/quick/MascotasPerdidosQuickFormClient.tsx",
+    "app/(site)/publicar/mascotas-y-perdidos/shared/mascotasPerdidosLocationOptions.ts",
   ]);
   const violations = allTouched.filter(
     (f) => forbiddenPrefixes.some((p) => f.startsWith(p)) && !allowedSharedFiles.has(f),

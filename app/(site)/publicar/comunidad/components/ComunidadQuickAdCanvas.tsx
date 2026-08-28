@@ -180,17 +180,13 @@ export function ComunidadQuickAdCanvas({
             />
           )}
         </div>
-        <div className="pointer-events-none absolute right-3 top-3 flex flex-wrap justify-end gap-2">
-          <span
-            className={`rounded-full border-2 px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-wide shadow-[0_2px_10px_rgba(0,0,0,0.28)] backdrop-blur-sm ${
-              draft.eventCost === "gratis"
-                ? "border-emerald-900/40 bg-[#E8F3EA]/95 text-[#1B4332]"
-                : "border-[#5D3A12]/40 bg-[#FFF3E0]/95 text-[#5D3A12]"
-            }`}
-          >
-            {comunidadCostLabel(draft.eventCost, lang)}
-          </span>
-        </div>
+        {draft.eventCost !== "gratis" ? (
+          <div className="pointer-events-none absolute right-3 top-3 flex flex-wrap justify-end gap-2">
+            <span className="rounded-full border-2 border-[#5D3A12]/40 bg-[#FFF3E0]/95 px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-wide text-[#5D3A12] shadow-[0_2px_10px_rgba(0,0,0,0.28)] backdrop-blur-sm">
+              {comunidadCostLabel(draft.eventCost, lang)}
+            </span>
+          </div>
+        ) : null}
         {isPdf ? (
           <div className="pointer-events-none absolute bottom-3 left-3 rounded-lg bg-black/75 px-2.5 py-1 text-[10px] font-bold text-white">
             {lang === "es" ? "Solo PDF en este campo — añade imagen para el volante" : "PDF only here — add an image for the flyer"}

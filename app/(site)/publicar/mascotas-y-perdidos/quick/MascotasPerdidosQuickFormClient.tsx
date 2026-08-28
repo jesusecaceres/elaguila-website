@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import CityAutocomplete from "@/app/components/CityAutocomplete";
@@ -40,6 +40,13 @@ import {
   MASCOTAS_SIZE_OPTIONS,
 } from "../shared/mascotasPerdidosTaxonomy";
 import { isPetNoticeType } from "../shared/mascotasPerdidosQuickTypes";
+import {
+  findMascotasLocationOption,
+  isMascotasUsCountry,
+  MASCOTAS_COUNTRY_OPTIONS,
+  MASCOTAS_LOCATION_OTHER_VALUE,
+  MASCOTAS_US_STATE_OPTIONS,
+} from "../shared/mascotasPerdidosLocationOptions";
 
 const INPUT =
   "mt-1 min-h-[44px] w-full rounded-lg border border-[#C9B46A]/40 bg-white px-3 py-2.5 text-sm text-[#111111] outline-none focus:border-[#A98C2A]/70 focus:ring-2 focus:ring-[#C9B46A]/30";
@@ -62,6 +69,29 @@ export default function MascotasPerdidosQuickFormClient() {
   const gate = useMemo(() => gateMascotasPerdidosQuickPreview(state, lang), [state, lang]);
   const previewDisabled = !gate.ok;
   const previewIssues = gate.ok ? [] : gate.issues;
+
+  // Owner-QA ⚠️68 — structured country/state. A value that doesn't match a known option (legacy
+  // free text, or a country/state Leonix hasn't listed yet) falls back to the "Otro" select value
+  // + a preserved, editable free-text box — nothing is ever silently dropped. Explicit local flags
+  // (not just "value is non-empty") are what keep the free-text box open right after picking
+  // "Otro", before the user has typed anything into it.
+  const [countryOtherMode, setCountryOtherMode] = useState(false);
+  const [stateOtherMode, setStateOtherMode] = useState(false);
+
+  const matchedCountry = useMemo(
+    () => (state.country.trim() ? findMascotasLocationOption(MASCOTAS_COUNTRY_OPTIONS, state.country) : null),
+    [state.country],
+  );
+  const countryIsOther = !matchedCountry && (countryOtherMode || Boolean(state.country.trim()));
+  const countrySelectValue = matchedCountry ? matchedCountry.value : countryIsOther ? MASCOTAS_LOCATION_OTHER_VALUE : "";
+  const isUsCountry = isMascotasUsCountry(state.country) || matchedCountry?.value === "United States";
+
+  const matchedState = useMemo(
+    () => (isUsCountry && state.state.trim() ? findMascotasLocationOption(MASCOTAS_US_STATE_OPTIONS, state.state) : null),
+    [isUsCountry, state.state],
+  );
+  const stateIsOther = !matchedState && (stateOtherMode || Boolean(state.state.trim()));
+  const stateSelectValue = matchedState ? matchedState.value : stateIsOther ? MASCOTAS_LOCATION_OTHER_VALUE : "";
 
   const continueToPreview = useCallback(() => {
     if (previewDisabled) return;
@@ -407,13 +437,75 @@ export default function MascotasPerdidosQuickFormClient() {
               <EmpleosFieldLabel lang={lang} optional>
                 {copy.fields.state}
               </EmpleosFieldLabel>
-              <input className={INPUT} value={state.state} onChange={(e) => patch({ state: e.target.value })} />
+              {isUsCountry ? (
+                <>
+                  <select
+                    className={INPUT}
+                    value={stateSelectValue}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === MASCOTAS_LOCATION_OTHER_VALUE) {
+                        setStateOtherMode(true);
+                        return;
+                      }
+                      setStateOtherMode(false);
+                      patch({ state: v });
+                    }}
+                  >
+                    <option value="">{lang === "es" ? "— Selecciona —" : "— Select —"}</option>
+                    {MASCOTAS_US_STATE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {lang === "en" ? opt.labelEn : opt.labelEs}
+                      </option>
+                    ))}
+                    <option value={MASCOTAS_LOCATION_OTHER_VALUE}>{lang === "es" ? "Otro" : "Other"}</option>
+                  </select>
+                  {stateIsOther ? (
+                    <input
+                      className={`${INPUT} mt-2`}
+                      value={state.state}
+                      onChange={(e) => patch({ state: e.target.value })}
+                      placeholder={lang === "es" ? "Escribe el estado" : "Type the state"}
+                    />
+                  ) : null}
+                </>
+              ) : (
+                <input className={INPUT} value={state.state} onChange={(e) => patch({ state: e.target.value })} />
+              )}
             </label>
             <label className="block text-sm">
               <EmpleosFieldLabel lang={lang} optional>
                 {copy.fields.country}
               </EmpleosFieldLabel>
-              <input className={INPUT} value={state.country} onChange={(e) => patch({ country: e.target.value })} />
+              <select
+                className={INPUT}
+                value={countrySelectValue}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === MASCOTAS_LOCATION_OTHER_VALUE) {
+                    setCountryOtherMode(true);
+                    return;
+                  }
+                  setCountryOtherMode(false);
+                  patch({ country: v });
+                }}
+              >
+                <option value="">{lang === "es" ? "— Selecciona —" : "— Select —"}</option>
+                {MASCOTAS_COUNTRY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {lang === "en" ? opt.labelEn : opt.labelEs}
+                  </option>
+                ))}
+                <option value={MASCOTAS_LOCATION_OTHER_VALUE}>{lang === "es" ? "Otro país" : "Other country"}</option>
+              </select>
+              {countryIsOther ? (
+                <input
+                  className={`${INPUT} mt-2`}
+                  value={state.country}
+                  onChange={(e) => patch({ country: e.target.value })}
+                  placeholder={lang === "es" ? "Escribe el país" : "Type the country"}
+                />
+              ) : null}
             </label>
             <label className="block text-sm">
               <EmpleosFieldLabel lang={lang} optional>

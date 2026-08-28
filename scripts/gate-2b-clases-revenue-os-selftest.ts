@@ -262,12 +262,20 @@ function read(relPath: string): string {
 
   // Gate 3 legitimately owns Mascotas y Perdidos, and Gate 4 legitimately owns Busco, now (each
   // was only out of scope at Gate 2B's own commit time) — neither is in this forbidden list any
-  // more. Comunidad remains forbidden for every gate that isn't its own.
+  // more. Comunidad remains forbidden for every gate that isn't its own, except the specific file
+  // below: the final owner-QA repair batch (⚠️67-76) is a deliberate, PM-authorized cross-category
+  // pass touching Comunidad + Clases together (same precedent as the earlier second-verification
+  // modal backport).
   const forbiddenPrefixes = [
     "app/(site)/publicar/comunidad/",
     "app/(site)/clasificados/comunidad/",
   ];
-  const violations = allTouched.filter((f) => forbiddenPrefixes.some((p) => f.startsWith(p)));
+  const allowedSharedFiles = new Set([
+    "app/(site)/publicar/comunidad/components/ComunidadQuickAdCanvas.tsx",
+  ]);
+  const violations = allTouched.filter(
+    (f) => forbiddenPrefixes.some((p) => f.startsWith(p)) && !allowedSharedFiles.has(f),
+  );
   assert.equal(violations.length, 0, `expected no Comunidad-owned files touched, found: ${violations.join(", ")}`);
 
   console.log("OK: no DB migration added; no Comunidad-owned UI files touched");

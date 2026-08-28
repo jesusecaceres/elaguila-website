@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import type { DayKey } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
@@ -201,6 +202,18 @@ function ClasesQuickApplicationBody({
     setPublishError(null);
   }, [state, lang]);
 
+  const organizerLogoFileRef = useRef<HTMLInputElement>(null);
+  const handleOrganizerLogoUpload = useCallback((files: FileList | null) => {
+    if (!files?.length) return;
+    const file = files[0];
+    if (!file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      patch({ organizerLogoUrl: String(reader.result ?? "") });
+    };
+    reader.readAsDataURL(file);
+  }, [patch]);
+
   const ctaL = ctaLabels(lang);
   const ctaPrimaryHint = copy.primaryCtaHint;
   const mediaCopy = MEDIA_COPY[lang];
@@ -251,6 +264,53 @@ function ClasesQuickApplicationBody({
                 value={state.organizer}
                 onChange={(e) => patch({ organizer: e.target.value })}
               />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {lang === "es" ? "Logo o foto del organizador" : "Organizer logo or photo"}
+              </EmpleosFieldLabel>
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input
+                    className={`${INPUT} flex-1`}
+                    type="url"
+                    value={state.organizerLogoUrl && !state.organizerLogoUrl.startsWith("data:") ? state.organizerLogoUrl : ""}
+                    onChange={(e) => patch({ organizerLogoUrl: e.target.value })}
+                    placeholder={lang === "es" ? "https://… (URL de imagen)" : "https://… (image URL)"}
+                  />
+                  <input
+                    ref={organizerLogoFileRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleOrganizerLogoUpload(e.target.files)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => organizerLogoFileRef.current?.click()}
+                    className="min-h-[42px] rounded-lg border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] px-4 text-xs font-bold"
+                  >
+                    {lang === "es" ? "Subir imagen" : "Upload image"}
+                  </button>
+                </div>
+                {state.organizerLogoUrl ? (
+                  <div className="relative h-20 w-20 overflow-hidden rounded-lg border border-black/10 bg-neutral-100">
+                    <Image
+                      src={state.organizerLogoUrl}
+                      alt={lang === "es" ? "Vista previa del logo del organizador" : "Organizer logo preview"}
+                      fill
+                      className="object-cover"
+                      sizes="80px"
+                      unoptimized
+                    />
+                  </div>
+                ) : null}
+                <p className="mt-1 text-xs text-[color:var(--lx-text-2)]">
+                  {lang === "es"
+                    ? "Opcional. Sube un logo/foto del organizador o pega una URL de imagen."
+                    : "Optional. Upload an organizer logo/photo or paste an image URL."}
+                </p>
+              </div>
             </label>
             <fieldset>
               <legend className="text-sm font-semibold text-[color:var(--lx-text)]">

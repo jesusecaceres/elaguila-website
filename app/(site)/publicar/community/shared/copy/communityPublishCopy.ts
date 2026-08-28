@@ -16,7 +16,7 @@ export const COMMUNITY_PUBLISH_COPY = {
     finalStep: {
       title: "Revisión final",
       intro:
-        "Con sesión iniciada, Publicar crea el anuncio en Leonix Clasificados (tabla listings), sube fotos al bucket listing-images en la ruta de tu usuario y te lleva al detalle público. Los PDF no se publican aún: quítalos del volante antes de publicar.",
+        "Con sesión iniciada, Publicar crea tu anuncio en Leonix Clasificados, procesa la información y los medios que proporcionaste, y te lleva al detalle público. Los PDF no se publican aún: quítalos del volante antes de publicar.",
       sessionDraftLine: "Tu borrador se guarda automáticamente en esta sesión del navegador.",
       previewCta: "Vista previa",
       publishCta: "Publicar anuncio",
@@ -58,7 +58,7 @@ export const COMMUNITY_PUBLISH_COPY = {
     finalStep: {
       title: "Final review",
       intro:
-        "When signed in, Publish creates the listing in Leonix Clasificados (listings table), uploads photos to the listing-images bucket under your user path, then opens the public detail page. PDFs are not published yet — remove PDF flyers before publishing.",
+        "When signed in, Publish creates your listing in Leonix Clasificados, processes the information and media you provided, then opens the public detail page. PDFs are not published yet — remove PDF flyers before publishing.",
       sessionDraftLine: "Your draft is auto-saved in this browser session.",
       previewCta: "Preview",
       publishCta: "Publish listing",
