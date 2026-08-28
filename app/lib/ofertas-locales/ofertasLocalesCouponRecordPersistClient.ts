@@ -16,14 +16,16 @@
  * the coupon lane gets a real, persisted, hard-refresh-safe canonical row
  * for every field the endpoint already knows how to map.
  *
- * Known gap (see OFERTAS_QA_UX_FINAL_CERTIFICATION.md): individually
- * authored coupon entries, the more-offers URL/label are new draft fields
- * this endpoint's protected row-builder does not yet know about, so they
- * persist at the local-draft level (survives hard refresh in this browser,
- * renders fully in Preview) but do not yet reach the canonical DB row.
+ * The more-offers URL/label remain draft-level-only (Preview renders them
+ * from the local draft) — they have no dedicated column and are cosmetic,
+ * not part of the searchable item model. Individually authored coupons
+ * themselves ARE now synced into the searchable oferta_local_items table
+ * via syncOfertaLocalCouponItems() below (Two-Lane Execution — Gap A
+ * closeout) using a narrowly-scoped, explicitly authorized new endpoint —
+ * see ofertasLocalesCouponItemSync.ts for the mapping.
  */
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
-import type { OfertaLocalDraft } from "./ofertasLocalesTypes";
+import type { OfertaLocalCouponEntryDraft, OfertaLocalDraft } from "./ofertasLocalesTypes";
 
 export type OfertaLocalCouponRecordPersistResult =
   | { ok: true; id: string; status: string; created: boolean }
@@ -74,4 +76,55 @@ export async function ensureOfertaLocalCouponRecord(
   }
 
   return { ok: true, id: parsed.id, status: parsed.status ?? "draft", created: Boolean(parsed.created) };
+}
+
+export type OfertaLocalCouponItemSyncResult =
+  | { ok: true; syncedCount: number; removedCount: number }
+  | { ok: false; error: string; detail?: string };
+
+export async function syncOfertaLocalCouponItems(
+  ofertaLocalId: string,
+  coupons: OfertaLocalCouponEntryDraft[]
+): Promise<OfertaLocalCouponItemSyncResult> {
+  const sb = createSupabaseBrowserClient();
+  const { data } = await sb.auth.getSession();
+  const accessToken = data.session?.access_token;
+  if (!accessToken) {
+    return { ok: false, error: "unauthorized", detail: "Sign in to save your coupons." };
+  }
+
+  const res = await fetch("/api/ofertas-locales/coupons/sync", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ ofertaLocalId, coupons }),
+  });
+
+  let body: unknown;
+  try {
+    body = await res.json();
+  } catch {
+    return { ok: false, error: "bad_response", detail: `HTTP ${res.status}` };
+  }
+
+  if (!res.ok || !body || typeof body !== "object" || !(body as { ok?: boolean }).ok) {
+    const err =
+      body && typeof body === "object" && "error" in body
+        ? String((body as { error?: string }).error)
+        : "sync_failed";
+    const detail =
+      body && typeof body === "object" && "detail" in body
+        ? String((body as { detail?: string }).detail)
+        : undefined;
+    return { ok: false, error: err, detail };
+  }
+
+  const parsed = body as { syncedCount?: number; removedCount?: number };
+  return {
+    ok: true,
+    syncedCount: parsed.syncedCount ?? 0,
+    removedCount: parsed.removedCount ?? 0,
+  };
 }

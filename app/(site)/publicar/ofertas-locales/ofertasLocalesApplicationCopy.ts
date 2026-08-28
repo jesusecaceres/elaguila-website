@@ -260,6 +260,9 @@ const COPY = {
     couponsMoreOffersButtonDefault: "Ver más cupones",
     step7ConfirmCouponsBusinessFiles:
       "Confirmo que la información del negocio, contacto, cupones y fechas es correcta.",
+    couponsSyncSaving: "Guardando cupones…",
+    couponsSyncSaved: "✓ Cupones guardados y listos para búsqueda",
+    couponsSyncError: "No se pudieron guardar los cupones. Se reintentará automáticamente.",
     startOverNeedQuestion: "¿Necesitas empezar de nuevo?",
     startOverDeleteCta: "Borrar esta solicitud y empezar de nuevo",
     step5CheckpointViewFile: "Ver / previsualizar",
@@ -770,6 +773,9 @@ const COPY = {
     couponsMoreOffersButtonDefault: "View more coupons",
     step7ConfirmCouponsBusinessFiles:
       "I confirm that the business information, contact details, coupons, and dates are correct.",
+    couponsSyncSaving: "Saving coupons…",
+    couponsSyncSaved: "✓ Coupons saved and ready for search",
+    couponsSyncError: "Could not save your coupons. This will retry automatically.",
     startOverNeedQuestion: "Need to start over?",
     startOverDeleteCta: "Delete this application and start over",
     step5CheckpointViewFile: "View / preview",

@@ -247,15 +247,15 @@ function run() {
     assert.match(previewCardSrc, /draft\.couponEntries/);
   });
 
-  check(
-    "38",
-    "Coupon items structured for public discovery/search — KNOWN GAP, see cert §20 (requires a DB/API decision not authorized in this gate)",
-    () => {
-      throw new Error(
-        "Proven blocked: oferta_local_items is scanner-owned/protected, draft_snapshot's writer (protected buildDraftSnapshotFromDraft) doesn't forward new fields, and a new API/table is out of scope without explicit reopen."
-      );
-    }
-  );
+  check("38", "Coupon items structured for public discovery/search (Gap A closeout — see Gate L)", () => {
+    // Full behavioral proof (real row shape, stable id, scan_job_id null,
+    // public-search eligibility) lives in Gate L; here we just confirm the
+    // sync surface exists and reuses the certified protected mapper.
+    const syncSrc = fs.readFileSync("app/lib/ofertas-locales/ofertasLocalesCouponItemSync.ts", "utf8");
+    assert.match(syncSrc, /import \{ mapOfertaLocalSearchableItemDraftToDbInsert \} from "\.\/ofertasLocalesAiDbMapper";/);
+    const routeSrc = fs.readFileSync("app/api/ofertas-locales/coupons/sync/route.ts", "utf8");
+    assert.match(routeSrc, /\.is\("scan_job_id", null\)/);
+  });
 
   check("39", "Full promo flyer persists (reuses existing couponAssets column/mechanism)", () => {
     assert.match(clientSrc, /bucket="couponAssets"[\s\S]{0,200}sectionMode="primaryMainFlyer"/);
@@ -424,17 +424,9 @@ function run() {
   console.log(`\n${results.length - failed.length}/${results.length} TRUE.`);
   if (failed.length > 0) {
     console.log("FALSE items:", failed.map((f) => f.id).join(", "));
+    throw new Error(`Gate K requires 68/68 TRUE — FALSE items: ${failed.map((f) => f.id).join(", ")}`);
   }
-  if (failed.length > 1 || (failed.length === 1 && failed[0].id !== "38")) {
-    throw new Error(
-      `Gate K found unexpected FALSE items beyond the one documented, known gap (38): ${failed
-        .map((f) => f.id)
-        .join(", ")}`
-    );
-  }
-  console.log(
-    "\nOfertas Locales Gate K two-lane final verifier passed (67/68 TRUE; item 38 is a proven, documented, out-of-scope-without-reopen gap — see certification §20)."
-  );
+  console.log("\nOfertas Locales Gate K two-lane final verifier passed (68/68 TRUE).");
 }
 
 run();

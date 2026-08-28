@@ -79,7 +79,10 @@ import {
   wizardStepTitle,
   type OfertasLocalesWizardStepId,
 } from "@/app/lib/ofertas-locales/ofertasLocalesWizardSteps";
-import { ensureOfertaLocalCouponRecord } from "@/app/lib/ofertas-locales/ofertasLocalesCouponRecordPersistClient";
+import {
+  ensureOfertaLocalCouponRecord,
+  syncOfertaLocalCouponItems,
+} from "@/app/lib/ofertas-locales/ofertasLocalesCouponRecordPersistClient";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { normalizeLang } from "@/app/lib/language";
 import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
@@ -517,6 +520,46 @@ export default function OfertasLocalesApplicationClient() {
   const handleAiScanRecordId = useCallback((id: string) => {
     setAiScanRecordId(id);
   }, []);
+
+  // Two-Lane Execution — Gap A/B closeout: the coupon lane has no AI scan
+  // panel to trigger canonical-row creation, and its individually authored
+  // coupons need to reach the searchable oferta_local_items table. This
+  // debounced background sync (same debounce-on-change pattern as the
+  // draft's own localStorage autosave) covers both: it ensures the
+  // canonical row exists, then upserts every titled coupon as a stable,
+  // idempotent item row (keyed by the coupon's own client-generated id) and
+  // deactivates any coupon the owner removed. Runs regardless of which step
+  // the wizard is on, so it also covers hard refresh, rail-jumping, and
+  // navigating straight to Preview.
+  const [couponSyncStatus, setCouponSyncStatus] = useState<"idle" | "saving" | "saved" | "error">(
+    "idle"
+  );
+  useEffect(() => {
+    if (!hasLoadedDraft || !isCouponsLane) return;
+    if (!draft.couponEntries.some((entry) => entry.title.trim())) return;
+    let cancelled = false;
+    const t = window.setTimeout(() => {
+      void (async () => {
+        setCouponSyncStatus("saving");
+        const ensured = await ensureOfertaLocalCouponRecord(draft, effectiveOfertaLocalId);
+        if (cancelled) return;
+        if (!ensured.ok) {
+          setCouponSyncStatus("error");
+          return;
+        }
+        if (ensured.id !== aiScanRecordId) {
+          handleAiScanRecordId(ensured.id);
+        }
+        const synced = await syncOfertaLocalCouponItems(ensured.id, draft.couponEntries);
+        if (cancelled) return;
+        setCouponSyncStatus(synced.ok ? "saved" : "error");
+      })();
+    }, 900);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [aiScanRecordId, draft, effectiveOfertaLocalId, handleAiScanRecordId, hasLoadedDraft, isCouponsLane]);
 
   const handleScanStarted = useCallback(() => {
     setScanPollingActive(true);
@@ -1162,6 +1205,14 @@ export default function OfertasLocalesApplicationClient() {
         >
           {c.couponEntryAddCta}
         </button>
+
+        {couponSyncStatus === "saving" ? (
+          <p className="text-xs text-[#1E1814]/55">{c.couponsSyncSaving}</p>
+        ) : couponSyncStatus === "saved" ? (
+          <p className="text-xs font-medium text-emerald-800">{c.couponsSyncSaved}</p>
+        ) : couponSyncStatus === "error" ? (
+          <p className="text-xs font-medium text-red-700">{c.couponsSyncError}</p>
+        ) : null}
 
         <div className="border-t border-[#D4C4A8]/50 pt-4">
           <OfertasLocalesDraftAssetSection
