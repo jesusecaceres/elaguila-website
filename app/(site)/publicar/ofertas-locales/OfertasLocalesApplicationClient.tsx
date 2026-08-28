@@ -61,6 +61,8 @@ import {
   saveOfertaLocalAiScanSession,
 } from "@/app/lib/ofertas-locales/ofertasLocalesAiScanRecordPersistence";
 import { validateOfertaLocalDraftForServerPublish } from "@/app/lib/ofertas-locales/ofertasLocalesPublishMapper";
+import { fetchOfertaLocalReviewItems } from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewClient";
+import { summarizeScopedItemReviewCounts } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import type {
   OfertaLocalBusinessCategory,
@@ -524,6 +526,46 @@ export default function OfertasLocalesApplicationClient() {
   const handleAiReviewGateChange = useCallback((state: OfertaLocalAiReviewGateState) => {
     setAiReviewGate(state);
   }, []);
+
+  // LIVE QA CORRECTION: aiReviewGate was previously only ever populated by
+  // OfertasLocalesAiItemReviewPanel's own effect, which only runs while the
+  // dedicated review workspace is mounted (step5ReviewView === "products").
+  // On a cold hard refresh, step5ReviewView defaults back to "files" (by
+  // design — Gate D), so the workspace never mounts, aiReviewGate stays at
+  // its zeroed initial value, and step5ReviewComplete falsely reads as
+  // incomplete even when every item was already approved. This reconstructs
+  // the same gate state directly from the existing certified read path
+  // (fetchOfertaLocalReviewItems — no new API) so the Files view is correct
+  // BEFORE the user ever opens the workspace. Once the workspace does mount,
+  // its own live effect takes over and this one no-ops (guarded below).
+  useEffect(() => {
+    if (!aiIncludedInPackage) return;
+    if (!effectiveOfertaLocalId?.trim()) return;
+    if (!lastScanJobId) return;
+    if (aiReviewGate.totalItems > 0) return;
+    let cancelled = false;
+    void fetchOfertaLocalReviewItems(effectiveOfertaLocalId, lastScanJobId).then((result) => {
+      if (cancelled || !result.ok) return;
+      const items = result.items ?? [];
+      if (items.length === 0) return;
+      const scoped = summarizeScopedItemReviewCounts(items);
+      const scanJob = result.scanJobs?.find((job) => job.id === lastScanJobId) ?? result.scanJobs?.[0] ?? null;
+      setAiReviewGate({
+        activeSourceAssetId: null,
+        activeScanJobId: lastScanJobId,
+        totalItems: items.length,
+        needsReviewCount: scoped.pending + scoped.needs_review,
+        approvedCount: scoped.approved,
+        rejectedCount: scoped.rejected,
+        reviewLaterCount: scoped.needs_review,
+        scanTotalPages: scanJob?.totalPages ?? null,
+        scanCompletedPages: scanJob?.completedPages ?? null,
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [aiIncludedInPackage, effectiveOfertaLocalId, lastScanJobId, aiReviewGate.totalItems]);
 
   const handleStartFresh = useCallback(() => {
     const msg =
@@ -1405,8 +1447,21 @@ export default function OfertasLocalesApplicationClient() {
         return (
           <div className="space-y-3">
             {step5ReviewView === "products" ? (
-              <div className="rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/50 px-4 py-6 text-center">
-                <p className="text-sm font-medium text-[#1E1814]/70">{c.step5ReviewWorkspaceOpenHint}</p>
+              <div className="space-y-1.5 rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/50 px-4 py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-[#7A1E2C]/70">
+                  {c.step5ReviewScreenBreadcrumb}
+                </p>
+                <h3 className="text-lg font-semibold text-[#1E1814]">{c.step5ReviewScreenTitle}</h3>
+                <p className="text-sm text-[#1E1814]/70">{c.step5ReviewScreenSubtitle}</p>
+                {aiReviewGate.totalItems > 0 ? (
+                  <p className="text-xs font-medium text-[#7A1E2C]">
+                    {formatOfertaLocalCopyTemplate(c.step5ReviewScreenSummary, {
+                      count: aiReviewGate.totalItems,
+                      pages: aiReviewGate.scanTotalPages ?? 0,
+                    })}
+                  </p>
+                ) : null}
+                <p className="text-xs text-[#1E1814]/60">{c.step5ReviewWorkspaceOpenHint}</p>
               </div>
             ) : (
               <>
@@ -1630,19 +1685,21 @@ export default function OfertasLocalesApplicationClient() {
               </>
             )}
 
-            <div className="rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/50 px-4 py-3">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-[#1E1814]/45">
-                {c.startOverNeedQuestion}
-              </p>
-              <p className="mt-1 text-xs leading-relaxed text-[#1E1814]/55">{c.startOverDeviceWarning}</p>
-              <button
-                type="button"
-                className="mt-3 min-h-11 rounded-xl border border-[#D4C4A8] bg-white px-3 py-2 text-xs font-medium text-[#1E1814]/70 hover:border-red-300 hover:text-red-800"
-                onClick={handleStartFresh}
-              >
-                {c.startOverDeleteCta}
-              </button>
-            </div>
+            {step5ReviewView === "products" ? null : (
+              <div className="rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/50 px-4 py-3">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-[#1E1814]/45">
+                  {c.startOverNeedQuestion}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-[#1E1814]/55">{c.startOverDeviceWarning}</p>
+                <button
+                  type="button"
+                  className="mt-3 min-h-11 rounded-xl border border-[#D4C4A8] bg-white px-3 py-2 text-xs font-medium text-[#1E1814]/70 hover:border-red-300 hover:text-red-800"
+                  onClick={handleStartFresh}
+                >
+                  {c.startOverDeleteCta}
+                </button>
+              </div>
+            )}
           </div>
         );
       }
@@ -2052,7 +2109,7 @@ export default function OfertasLocalesApplicationClient() {
                 {renderStepContent()}
               </div>
 
-              {step < 7 ? (
+              {step === 5 && step5ReviewView === "products" ? null : step < 7 ? (
                 <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-[#D4C4A8]/50 pt-6">
                   <button
                     type="button"
