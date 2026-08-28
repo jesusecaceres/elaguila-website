@@ -206,6 +206,30 @@ export function BrNegocioChildInventoryFullApplication({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- stable child media id + open/editing only
   }, [open, editingId, childMediaId, initialDraft?.id, lang, total, preferredCategoria]);
 
+  const parentHubIdentitySlice = useMemo(() => pickParentHubSlice(parentHubSnapshot), [parentHubSnapshot]);
+  const parentHubIdentityKey = useMemo(() => JSON.stringify(parentHubIdentitySlice), [parentHubIdentitySlice]);
+
+  // BR-INV-D1-FIX — keep the read-only inherited parent hub (professional identity/contact) in
+  // sync with the live parent state. Deliberately decoupled from the heavy session-bootstrap
+  // effect above, which intentionally does NOT depend on parentHubSnapshot (to avoid resetting
+  // the child's step/session/media on every parent keystroke). Without this second effect, a
+  // child editor opened before the parent's own async draft hydration finished up would freeze
+  // parentHubRef on an empty/stale snapshot for the rest of the session ("no se encontró
+  // información profesional/de contacto heredada" even when the parent draft genuinely has that
+  // data) — and, separately, editing the parent's identity while a child editor was already open
+  // would never propagate. This effect only re-merges the inherited slice on top of whatever
+  // child property data already exists (pickChildPropertySlice(prev)), so it can never overwrite
+  // or wipe the child's own in-progress property/media edits — it never grants the child write
+  // access to parent-owned fields, only refreshes what it reads.
+  useEffect(() => {
+    parentHubRef.current = parentHubIdentitySlice;
+    if (!open) return;
+    setStateRaw((prev) =>
+      mergeParentHubWithChildPropertyForEditor(parentHubIdentitySlice, pickChildPropertySlice(prev)),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on parentHubIdentityKey (value equality), not the recreated object reference
+  }, [parentHubIdentityKey, open]);
+
   const isDirty = useCallback(() => {
     return JSON.stringify(pickChildPropertySlice(state)) !== baselinePropertyRef.current;
   }, [state]);
