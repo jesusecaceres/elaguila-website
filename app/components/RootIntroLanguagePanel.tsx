@@ -9,6 +9,7 @@ import {
   UNIVERSAL_LANGUAGES_DROPDOWN_TRIGGER,
   isAdditionalLanguageActive,
   resolveRouteLang,
+  resolveRouteLangSsrSafe,
   withPublicLangAndTracking,
   writePersistedLangPreference,
   type SupportedLang,
@@ -32,7 +33,14 @@ type RootIntroLanguagePanelProps = {
 export function RootIntroLanguagePanel({ siteUnlocked }: RootIntroLanguagePanelProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const lang = resolveRouteLang(searchParams?.get("lang"));
+  const queryLang = searchParams?.get("lang") ?? null;
+  // Hydration-safety fix (matches useRentasLandingLang's "F4" pattern): the first render must
+  // match SSR exactly, so it can only resolve from the URL query param, never from a client-only
+  // stored preference. The full (storage-aware) value is applied after mount.
+  const [lang, setLang] = useState<SupportedLang>(() => resolveRouteLangSsrSafe(queryLang));
+  useEffect(() => {
+    setLang(resolveRouteLang(queryLang));
+  }, [queryLang]);
   const copy = getRootIntroCopy(lang);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);

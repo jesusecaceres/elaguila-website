@@ -21,7 +21,7 @@ import {
 import { AdvertiseDropdown } from "./AdvertiseDropdown";
 import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/LeonixHeaderLanguageSelector";
 import { getNavbarChromeCopy } from "@/app/lib/leonix/publicNavCopy";
-import { resolveRouteLang } from "@/app/lib/language";
+import { resolveRouteLang, resolveRouteLangSsrSafe, type SupportedLang } from "@/app/lib/language";
 
 const HEADER_LOGO_SRC = "/logo.png";
 
@@ -51,7 +51,15 @@ function NavbarContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const navLang = resolveRouteLang(searchParams?.get("lang"));
+  const navQueryLang = searchParams?.get("lang") ?? null;
+  // Hydration-safety fix (matches useRentasLandingLang's "F4" pattern) -- Navbar renders on every
+  // route except "/", so an unguarded resolveRouteLang() call here caused React error #418 on any
+  // page for a returning visitor with a stored language preference. First render must match SSR
+  // (URL-only); the storage-aware value is applied after mount.
+  const [navLang, setNavLang] = useState<SupportedLang>(() => resolveRouteLangSsrSafe(navQueryLang));
+  useEffect(() => {
+    setNavLang(resolveRouteLang(navQueryLang));
+  }, [navQueryLang]);
   const L = getNavbarChromeCopy(navLang);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [masOpen, setMasOpen] = useState(false);
