@@ -499,7 +499,7 @@ export function RestauranteAdStoryPreview({
           <div className="space-y-4 border-t border-[#D8C2A0]/50 px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
             {hasTrustInfo ? (
               <div>
-                <h3 className={SUBSECTION_TITLE}>{lang === "en" ? "External proof" : "Prueba Externa"}</h3>
+                <h3 className={SUBSECTION_TITLE}>{lang === "en" ? "External proof" : "Respaldo externo"}</h3>
                 {/* Global Business Hub OS — REVIEWS MASTER RULE (Level A, link-only): removed the
                     owner-typed 5-star trustRating renderer. No provider API exists; the DB field
                     is untouched. data.trustLight below (a truthful, softer "reference" summary
