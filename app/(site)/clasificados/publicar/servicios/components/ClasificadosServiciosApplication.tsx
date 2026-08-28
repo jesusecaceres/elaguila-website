@@ -300,6 +300,10 @@ export function ClasificadosServiciosApplication() {
   const addedCustomLanguage = useAddedConfirmation();
   const addedServiceArea = useAddedConfirmation();
   const addedVideoUrl = useAddedConfirmation();
+  const addedGalleryImage = useAddedConfirmation();
+  const addedCustomBusinessHighlight = useAddedConfirmation();
+  const addedCustomPaymentMethod = useAddedConfirmation();
+  const addedCertification = useAddedConfirmation();
   const addedCouponImageRow0 = useAddedConfirmation();
   const addedCouponImageRow1 = useAddedConfirmation();
   const addedCouponImageRow2 = useAddedConfirmation();
@@ -904,6 +908,7 @@ export function ClasificadosServiciosApplication() {
       return;
     }
     const id = newGalleryId();
+    let added = false;
     setState((prev) => {
       if (prev.gallery.length >= GALLERY_MAX) {
         queueMicrotask(() =>
@@ -911,12 +916,14 @@ export function ClasificadosServiciosApplication() {
         );
         return prev;
       }
+      added = true;
       const gallery = [...prev.gallery, { id, url: normalizeHttpUrl(raw), source: "url" as const }];
       const gIds = new Set(gallery.map((g) => g.id));
       const fg = prev.featuredGalleryIds.filter((x) => gIds.has(x));
       if (fg.length < 4 && !fg.includes(id)) fg.push(id);
       return { ...prev, gallery, featuredGalleryIds: fg.slice(0, 4) };
     });
+    if (added) addedGalleryImage.flash();
     setGalleryUrlDraft("");
   };
 
@@ -1959,6 +1966,10 @@ export function ClasificadosServiciosApplication() {
               >
                 {copy.labels.addUrl}
               </button>
+              <AddedConfirmationBadge
+                visible={addedGalleryImage.visible}
+                label={lang === "en" ? "Image accepted" : "Imagen aceptada"}
+              />
             </div>
             {state.gallery.length >= GALLERY_MAX ? (
               <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.galleryLimitHint.replace("{max}", String(GALLERY_MAX))}</p>
@@ -2426,19 +2437,26 @@ export function ClasificadosServiciosApplication() {
                   }
                   className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                   onClick={() => {
+                    let added = false;
                     setState((prev) => {
                       const r = evaluateAddCustomBusinessHighlight(prev, lang, prev.customBusinessHighlightLabel);
                       if (!r.ok) return prev;
+                      added = true;
                       return enforceServiciosSelectionCaps({
                         ...prev,
                         customBusinessHighlights: [...prev.customBusinessHighlights, r.label],
                         customBusinessHighlightLabel: "",
                       });
                     });
+                    if (added) addedCustomBusinessHighlight.flash();
                   }}
                 >
                   {copy.labels.addCustomChip}
                 </button>
+                <AddedConfirmationBadge
+                  visible={addedCustomBusinessHighlight.visible}
+                  label={lang === "en" ? "Added" : "Añadido"}
+                />
               </div>
               {state.customBusinessHighlights.length >= MAX_CUSTOM_BUSINESS_HIGHLIGHTS ? (
                 <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.customHighlightsMax}</p>
@@ -2648,19 +2666,26 @@ export function ClasificadosServiciosApplication() {
               }
               className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               onClick={() => {
+                let added = false;
                 setState((prev) => {
                   const r = evaluateAddCustomPaymentMethod(prev, prev.customPaymentMethodLabel);
                   if (!r.ok) return prev;
+                  added = true;
                   return enforceServiciosSelectionCaps({
                     ...prev,
                     customPaymentMethods: [...prev.customPaymentMethods, r.label],
                     customPaymentMethodLabel: "",
                   });
                 });
+                if (added) addedCustomPaymentMethod.flash();
               }}
             >
               {copy.labels.paymentsAdd}
             </button>
+            <AddedConfirmationBadge
+              visible={addedCustomPaymentMethod.visible}
+              label={lang === "en" ? "Added" : "Añadido"}
+            />
           </div>
           {state.customPaymentMethods.length >= MAX_CUSTOM_PAYMENT_METHODS ? (
             <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.paymentsCustomMax}</p>
@@ -2967,22 +2992,29 @@ export function ClasificadosServiciosApplication() {
               }
               className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               onClick={() => {
+                let added = false;
                 setState((prev) => {
                   const r = evaluateAddCertificationLabel({
                     certifications: prev.certifications,
                     raw: prev.pendingCertification,
                   });
                   if (!r.ok) return prev;
+                  added = true;
                   return enforceServiciosSelectionCaps({
                     ...prev,
                     certifications: [...prev.certifications, r.label],
                     pendingCertification: "",
                   });
                 });
+                if (added) addedCertification.flash();
               }}
             >
               {copy.labels.certificationsAdd}
             </button>
+            <AddedConfirmationBadge
+              visible={addedCertification.visible}
+              label={lang === "en" ? "Added" : "Añadido"}
+            />
           </div>
           {state.certifications.length >= MAX_SERVICIOS_CERTIFICATIONS ? (
             <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.certificationsCustomMax}</p>
@@ -3322,7 +3354,7 @@ export function ClasificadosServiciosApplication() {
                               </button>
                               <AddedConfirmationBadge
                                 visible={addedCouponImageByIndex[i]?.visible ?? false}
-                                label={lang === "en" ? "Image saved" : "Imagen guardada"}
+                                label={lang === "en" ? "Image accepted" : "Imagen aceptada"}
                               />
                             </div>
                           )}
@@ -3414,7 +3446,7 @@ export function ClasificadosServiciosApplication() {
                   </button>
                   <AddedConfirmationBadge
                     visible={addedCouponFlyerImage.visible}
-                    label={lang === "en" ? "Image saved" : "Imagen guardada"}
+                    label={lang === "en" ? "Image accepted" : "Imagen aceptada"}
                   />
                 </div>
               )}

@@ -3,7 +3,7 @@
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { normalizeLang, replaceLangInHref } from "@/app/lib/language";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { postComidaLocalPublishApi } from "@/app/lib/clasificados/comida-local/comidaLocalPublishClient";
@@ -326,7 +326,27 @@ export default function ComidaLocalApplicationClient() {
   const serviceOptionOtherAddedConfirmation = useAddedConfirmation();
   const highlightsOtherAddedConfirmation = useAddedConfirmation();
   const customLanguageAddedConfirmation = useAddedConfirmation();
-  const additionalWebsiteAddedConfirmation = useAddedConfirmation();
+  /** Per-row confirmation for repeatable "additional websites" links (dynamic row count, so this
+   * is a small map + timer-ref instead of one `useAddedConfirmation()` per row) — mirrors
+   * Restaurantes' `websiteLinkConfirmVisible`/`flashWebsiteLinkAdded`. Flashes only once a row's
+   * URL is a genuinely valid, non-blank link (on blur), never merely because a blank row slot
+   * was created by the "+ Add link" button. */
+  const [websiteLinkConfirmVisible, setWebsiteLinkConfirmVisible] = useState<Record<number, boolean>>({});
+  const websiteLinkConfirmTimersRef = useRef<Record<number, number>>({});
+  useEffect(() => {
+    const timers = websiteLinkConfirmTimersRef.current;
+    return () => {
+      Object.values(timers).forEach((t) => window.clearTimeout(t));
+    };
+  }, []);
+  const flashAdditionalWebsiteAdded = useCallback((index: number) => {
+    setWebsiteLinkConfirmVisible((prev) => ({ ...prev, [index]: true }));
+    const existing = websiteLinkConfirmTimersRef.current[index];
+    if (existing != null) window.clearTimeout(existing);
+    websiteLinkConfirmTimersRef.current[index] = window.setTimeout(() => {
+      setWebsiteLinkConfirmVisible((prev) => ({ ...prev, [index]: false }));
+    }, 2200);
+  }, []);
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] = useState<{
@@ -1054,6 +1074,10 @@ export default function ComidaLocalApplicationClient() {
                               next[i] = { ...next[i], url: e.target.value };
                               updateDraft({ additionalWebsites: next });
                             }}
+                            onBlur={(e) => {
+                              const v = e.target.value.trim();
+                              if (v && isValidComidaLocalExternalUrl(v)) flashAdditionalWebsiteAdded(i);
+                            }}
                             placeholder="https://…"
                           />
                           <button
@@ -1067,26 +1091,25 @@ export default function ComidaLocalApplicationClient() {
                           >
                             {es ? "Quitar" : "Remove"}
                           </button>
+                          <AddedConfirmationBadge
+                            visible={Boolean(websiteLinkConfirmVisible[i])}
+                            label={es ? "Enlace añadido" : "Link added"}
+                          />
                         </div>
                       ))}
                       {draft.additionalWebsites.length < 6 ? (
                         <div className="flex flex-wrap items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => {
+                            onClick={() =>
                               updateDraft({
                                 additionalWebsites: [...draft.additionalWebsites, { label: "", url: "" }],
-                              });
-                              additionalWebsiteAddedConfirmation.flash();
-                            }}
+                              })
+                            }
                             className="rounded-lg border border-dashed border-[#D4C4A8] px-3 py-2 text-xs font-medium text-[#1E1814]/70 hover:border-[#7A1E2C]/40"
                           >
                             {es ? "+ Agregar enlace" : "+ Add link"}
                           </button>
-                          <AddedConfirmationBadge
-                            visible={additionalWebsiteAddedConfirmation.visible}
-                            label={es ? "Enlace añadido" : "Link added"}
-                          />
                         </div>
                       ) : null}
                     </div>

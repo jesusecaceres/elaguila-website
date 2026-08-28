@@ -234,6 +234,7 @@ export default function RestauranteApplicationClient() {
   const additionalCuisineOtherConfirm = useAddedConfirmation();
   const customLanguageConfirm = useAddedConfirmation();
   const specialHoursConfirm = useAddedConfirmation();
+  const serviceModeOtherConfirm = useAddedConfirmation();
   /** Per-row confirmation for repeatable "additional websites" links (dynamic row count, so this
    * is a small map + timer-ref instead of one `useAddedConfirmation()` per row). */
   const [websiteLinkConfirmVisible, setWebsiteLinkConfirmVisible] = useState<Record<number, boolean>>({});
@@ -1452,6 +1453,14 @@ export default function RestauranteApplicationClient() {
                 placeholder={fc.sectionB.serviceModeOtherPlaceholder}
                 value={draft.serviceModeOtherCustom ?? ""}
                 onChange={(e) => setDraftPatch({ serviceModeOtherCustom: e.target.value || undefined })}
+                onBlur={(e) => {
+                  if (e.target.value.trim()) serviceModeOtherConfirm.flash();
+                }}
+              />
+              <AddedConfirmationBadge
+                visible={serviceModeOtherConfirm.visible}
+                label={lang === "en" ? "Added" : "Añadido"}
+                className="mt-1.5"
               />
             </div>
           ) : null}
@@ -1724,6 +1733,7 @@ export default function RestauranteApplicationClient() {
                     buttonLabel={fc.common.uploadFile}
                     helperText={fc.sectionD.menuFileUploadHelper}
                     accept="image/*,application/pdf"
+                    lang={lang}
                     selectedLabel={
                       uploadLabels.menu ?? (draft.menuFile ? fc.common.fileSavedInDraft : null)
                     }
@@ -1899,6 +1909,7 @@ export default function RestauranteApplicationClient() {
                         helperText={fc.sectionF.dishImageUploadHelper}
                         accept="image/*"
                         disabled={featuredUploading[i]}
+                        lang={lang}
                         selectedLabel={
                           featuredUploading[i]
                             ? `📤 ${fc.common.processingImage}`
@@ -2301,6 +2312,7 @@ export default function RestauranteApplicationClient() {
                   helperText={fc.sectionH.heroUploadHelper}
                   accept="image/*"
                   disabled={mediaUploading.hero}
+                  lang={lang}
                   selectedLabel={
                     mediaUploading.hero
                       ? `📤 ${fc.common.processingImage}`
@@ -2423,6 +2435,7 @@ export default function RestauranteApplicationClient() {
                   helperText={fc.sectionH.logoUploadHelper}
                   accept="image/*"
                   disabled={mediaUploading.logo}
+                  lang={lang}
                   selectedLabel={
                     mediaUploading.logo
                       ? `📤 ${fc.common.processingLogo}`
