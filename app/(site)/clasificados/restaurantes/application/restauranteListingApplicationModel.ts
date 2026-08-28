@@ -78,6 +78,15 @@ export type RestauranteDaySchedule = {
   closeTime?: string;
 };
 
+/** One holiday/exception entry — contract §3.4 items 46-48 (multi-entry special hours). */
+export type RestauranteSpecialHoursEntry = {
+  id: string;
+  /** Short label — e.g. a date, date range, or holiday name ("24-25 dic.", "Navidad"). */
+  label: string;
+  /** Freeform note describing the special hours for that label ("Cerrado", "10am-2pm"). */
+  note: string;
+};
+
 export type RestauranteWeeklyHours = {
   monday: RestauranteDaySchedule;
   tuesday: RestauranteDaySchedule;
@@ -86,8 +95,22 @@ export type RestauranteWeeklyHours = {
   friday: RestauranteDaySchedule;
   saturday: RestauranteDaySchedule;
   sunday: RestauranteDaySchedule;
+  /**
+   * Real multi-entry special/holiday hours (contract §3.4 items 46-48) — the UI-wired source of
+   * truth going forward. Populated on hydration from legacy `specialHoursNote` when non-empty and
+   * this array is still empty (see `mergeRestauranteDraft`).
+   */
+  specialHoursEntries?: RestauranteSpecialHoursEntry[];
+  /**
+   * @deprecated Legacy single freeform special-hours note. Read-only for back-compat with any
+   * remaining reader — new writes go through `specialHoursEntries`. Migrated non-destructively
+   * into `specialHoursEntries` on load; this scalar is left untouched so nothing that still reads
+   * it directly breaks.
+   */
   specialHoursNote?: string;
+  /** @deprecated Dead field — no UI ever wrote to this. Kept only for back-compat. */
   temporaryHoursActive?: boolean;
+  /** @deprecated Dead field — no UI ever wrote to this. Kept only for back-compat. */
   temporaryHoursNote?: string;
 };
 
@@ -527,6 +550,7 @@ function hasWeeklyHoursSignal(h: RestauranteWeeklyHours): boolean {
 export function hasOperatingSignal(h: RestauranteWeeklyHours): boolean {
   if (hasWeeklyHoursSignal(h)) return true;
   if (nonEmpty(h.specialHoursNote)) return true;
+  if ((h.specialHoursEntries ?? []).some((e) => nonEmpty(e.label) || nonEmpty(e.note))) return true;
   return false;
 }
 

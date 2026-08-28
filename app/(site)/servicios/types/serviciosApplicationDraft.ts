@@ -63,6 +63,8 @@ export type ServiciosApplicationContactDraft = {
   hoursTodayLine?: string;
   /** Mon→Sun localized rows for public weekly schedule */
   weeklyHoursRows?: { dayLabel: string; line: string }[];
+  /** Multi-entry special hours / holidays (contract §3.4 items 46-48) — e.g. "Navidad: Cerrado" */
+  specialHoursRows?: { label: string; note: string }[];
   primaryCtaLabel?: string;
   /** Preset secondary CTA chip labels (localized at map time) */
   secondaryCtaLabels?: string[];
@@ -238,7 +240,9 @@ export type ServiciosApplicationDraft = {
   customPaymentMethodLabel?: string;
   /** Standard amenities / options ids; sanitized on map/resolve */
   amenityOptionIds?: string[];
-  /** Custom amenities / options labels; sanitized on map/resolve */
+  /** Per-group custom amenity / option labels, keyed by `ServiciosAmenityGroupId` (service, availability, customers_served, accessibility_languages, discounts_benefits); sanitized on map/resolve */
+  customAmenityOptionsByGroup?: Record<string, string[]>;
+  /** @deprecated Legacy flat custom amenities list (pre-per-group) — kept for older stored drafts */
   customAmenityOptions?: string[];
   /** Pending custom amenity input (flushed on step Next where applicable) */
   pendingCustomAmenityOption?: string;

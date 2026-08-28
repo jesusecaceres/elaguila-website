@@ -93,6 +93,7 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     customReasonLabel: "",
     customReasonIncluded: false,
     selectedQuickFactIds: [],
+    customQuickFacts: [],
     customQuickFactLabel: "",
     customQuickFactIncluded: false,
     selectedBusinessHighlightIds: [],
@@ -121,6 +122,7 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     extraLink2Url: "",
     extraLink2Label: "",
     hours: defaultHours(),
+    specialHoursEntries: [],
     testimonials: [],
     promotions: [createEmptyClasificadosPromoRow()],
     coupons: [],
@@ -133,7 +135,9 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     customPaymentMethods: [],
     customPaymentMethodLabel: "",
     amenityOptionIds: [],
+    customAmenityOptionsByGroup: {},
     customAmenityOptions: [],
+    pendingCustomAmenityOptionByGroup: {},
     pendingCustomAmenityOption: "",
     hasLicense: false,
     licenseType: "",
@@ -186,7 +190,13 @@ export function clasificadosServiciosApplicationHasProgress(s: ClasificadosServi
     return true;
   }
   if (s.selectedReasonIds.length > 0 || (s.customReasonIncluded && s.customReasonLabel.trim())) return true;
-  if (s.selectedQuickFactIds.length > 0 || (s.customQuickFactIncluded && s.customQuickFactLabel.trim())) return true;
+  if (
+    s.selectedQuickFactIds.length > 0 ||
+    s.customQuickFacts.length > 0 ||
+    (s.customQuickFactIncluded && s.customQuickFactLabel.trim())
+  ) {
+    return true;
+  }
   if (s.selectedBusinessHighlightIds.length > 0 || s.customBusinessHighlights.length > 0 || s.customBusinessHighlightLabel.trim()) {
     return true;
   }
@@ -217,7 +227,9 @@ export function clasificadosServiciosApplicationHasProgress(s: ClasificadosServi
   if (
     s.amenityOptionIds.length > 0 ||
     s.customAmenityOptions.length > 0 ||
-    s.pendingCustomAmenityOption.trim()
+    s.pendingCustomAmenityOption.trim() ||
+    Object.values(s.customAmenityOptionsByGroup ?? {}).some((arr) => arr.length > 0) ||
+    Object.values(s.pendingCustomAmenityOptionByGroup ?? {}).some((v) => v.trim())
   ) {
     return true;
   }
@@ -237,5 +249,6 @@ export function clasificadosServiciosApplicationHasProgress(s: ClasificadosServi
   if (s.languageOtherLines.trim()) return true;
   if (s.languageIds.length !== 1 || s.languageIds[0] !== "lang_es") return true;
   if (hoursDifferFromTemplate(s.hours)) return true;
+  if (s.specialHoursEntries.some((e) => e.label.trim() || e.note.trim())) return true;
   return false;
 }

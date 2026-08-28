@@ -58,6 +58,7 @@ function minimalProfile(contact: Partial<ServiciosProfileResolved["contact"]>): 
     customPaymentMethods: [],
     amenityOptionIds: [],
     customAmenityOptions: [],
+    customAmenityOptionsByGroup: {},
     promotions: [],
     coupons: [],
   };

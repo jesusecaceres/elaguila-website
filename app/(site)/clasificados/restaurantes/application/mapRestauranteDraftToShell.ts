@@ -25,7 +25,7 @@ import {
   type RestauranteDaySchedule,
   type RestauranteServiceMode,
 } from "./restauranteListingApplicationModel";
-import { computeShellHoursPreview } from "./restauranteHoursPreview";
+import { computeShellHoursPreview, formatSpecialHoursEntriesLine } from "./restauranteHoursPreview";
 import {
   labelForBusinessType,
   labelForCuisine,
@@ -232,7 +232,7 @@ function buildHoursDetail(d: RestauranteListingDraft): ShellHoursDetail | undefi
         : "Horario por confirmar";
     rows.push({ dayLabel: label, line });
   }
-  const specialNote = d.specialHoursNote?.trim() || undefined;
+  const specialNote = formatSpecialHoursEntriesLine(d.specialHoursEntries) || d.specialHoursNote?.trim() || undefined;
   if (!rows.length && !specialNote) return undefined;
   return { rows, specialNote };
 }
@@ -678,7 +678,9 @@ export function mapRestauranteDraftToShellData(
   options?: { lang?: "es" | "en" },
 ): RestaurantDetailShellData {
   const lang = options?.lang ?? "es";
-  // Create weekly hours structure from individual day fields
+  // Create weekly hours structure from individual day fields. Must also carry the special-hours
+  // override fields (R-025 fix) — omitting them here made any special-hours entry unreachable
+  // from the "open now" status card even though the data existed on the draft.
   const weeklyHours = {
     monday: d.monday,
     tuesday: d.tuesday,
@@ -686,9 +688,13 @@ export function mapRestauranteDraftToShellData(
     thursday: d.thursday,
     friday: d.friday,
     saturday: d.saturday,
-    sunday: d.sunday
+    sunday: d.sunday,
+    specialHoursEntries: d.specialHoursEntries,
+    specialHoursNote: d.specialHoursNote,
+    temporaryHoursActive: d.temporaryHoursActive,
+    temporaryHoursNote: d.temporaryHoursNote,
   };
-  const hp = computeShellHoursPreview(weeklyHours);
+  const hp = computeShellHoursPreview(weeklyHours, new Date(), lang);
   const cuisineLine = buildCuisineIdentityLine(d);
   const seq = computePublishGallerySequence(d);
   const imgs = d.galleryImages ?? [];
@@ -810,7 +816,7 @@ export function mapRestauranteDraftToShellData(
     aboutBody: nonEmpty(d.longDescription) ? d.longDescription!.trim() : undefined,
     trustLight: buildTrustLight(d, lang),
     stackSections: stacks.length ? stacks : undefined,
-    groupedFeatures: normalizeRestaurantFeatures(d),
+    groupedFeatures: normalizeRestaurantFeatures(d, lang),
     ...amenitiesBlock,
   };
 }

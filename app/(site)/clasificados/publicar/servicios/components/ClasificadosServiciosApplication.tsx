@@ -18,7 +18,12 @@ import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications
 import { PhoneInput } from "@/app/components/forms/PhoneInput";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { LanguagesInput } from "@/app/components/forms/LanguagesInput";
-import { HoursEditor, type HoursEditorDayRow, type HoursEditorDaySchedule } from "@/app/components/forms/HoursEditor";
+import {
+  HoursEditor,
+  type HoursEditorDayRow,
+  type HoursEditorDaySchedule,
+  type HoursEditorSpecialHoursEntry,
+} from "@/app/components/forms/HoursEditor";
 import {
   BUSINESS_TYPE_PRESETS,
   chipLabel,
@@ -33,6 +38,7 @@ import type {
   DayKey,
   GalleryItem,
   ServiciosLang,
+  ServiciosSpecialHoursEntry,
 } from "../lib/clasificadosServiciosApplicationTypes";
 import {
   LANGUAGE_OPTION_CHIPS,
@@ -86,6 +92,7 @@ import { mergeStateForBusinessTypeChange } from "../lib/presetStateMerge";
 import {
   CUSTOM_CHIP_MAX_LENGTH,
   MAX_CUSTOM_SERVICES_OFFERED,
+  MAX_CUSTOM_QUICK_FACTS,
   MAX_QUICK_FACTS_SELECTION,
   MAX_REASONS_SELECTION,
   MAX_SERVICES_SELECTION,
@@ -93,13 +100,14 @@ import {
 } from "../lib/serviciosSelectionCaps";
 import { BUSINESS_HIGHLIGHT_PRESET_CHIPS } from "../lib/businessHighlightPresets";
 import { evaluateAddCustomBusinessHighlight } from "../lib/serviciosCustomBusinessHighlights";
-import { evaluateAddCustomServiceOffered } from "../lib/serviciosCustomServicesOffered";
+import { evaluateAddCustomServiceOffered, normalizeServiceOfferedDedupeKey } from "../lib/serviciosCustomServicesOffered";
+import { evaluateAddCustomQuickFact } from "../lib/serviciosCustomQuickFacts";
 import {
   BUSINESS_HIGHLIGHT_LABEL_MAX,
   MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION,
   MAX_CUSTOM_BUSINESS_HIGHLIGHTS,
 } from "../lib/serviciosHighlightCaps";
-import { digitsOnly, formatPhoneInputDisplay } from "../lib/serviciosPhoneUi";
+import { digitsOnly, formatPhoneInputDisplay, formatWhatsAppInputDisplay } from "../lib/serviciosPhoneUi";
 import { resolveServiciosBusinessHighlightVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosBusinessHighlightVisual";
 import { resolveServiciosServiceVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosServiceVisualCatalog";
 import {
@@ -120,13 +128,14 @@ import { ServiciosPaymentMethodBadge } from "@/app/servicios/components/Servicio
 import { evaluateAddCustomPaymentMethod } from "../lib/serviciosCustomPaymentMethods";
 import {
   CUSTOM_SERVICIOS_AMENITY_LABEL_MAX,
-  MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS,
+  MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS_PER_GROUP,
+  SERVICIOS_AMENITY_CUSTOM_GROUP_IDS,
   SERVICIOS_AMENITY_GROUPS,
   SERVICIOS_AMENITY_OPTIONS,
+  evaluateAddCustomAmenityOptionForGroup,
   sanitizeServiciosAmenityOptionIds,
 } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
 import { ServiciosAmenityBadge } from "@/app/servicios/components/ServiciosAmenityBadge";
-import { evaluateAddCustomAmenityOption } from "../lib/serviciosCustomAmenityOptions";
 import { evaluateAddCertificationLabel } from "@/app/servicios/lib/serviciosCredentialsCustom";
 import { isValidEmail } from "../lib/leonixContactCtaPriority";
 import {
@@ -360,6 +369,9 @@ export function ClasificadosServiciosApplication() {
 
   const stateRef = useRef(state);
   stateRef.current = state;
+  // Tracks the exact state object last written to storage so the leave-guard can tell
+  // "nothing changed since the last successful save" apart from "form has content".
+  const lastPersistedStateRef = useRef<typeof state | null>(null);
 
   useEffect(() => {
     if (!mediaFlash) return;
@@ -491,7 +503,10 @@ export function ClasificadosServiciosApplication() {
 
   useEffect(() => {
     if (!hydrated) return;
-    const t = window.setTimeout(() => void saveClasificadosServiciosApplicationResolved(state), DEBOUNCE_MS);
+    const t = window.setTimeout(() => {
+      void saveClasificadosServiciosApplicationResolved(state);
+      lastPersistedStateRef.current = state;
+    }, DEBOUNCE_MS);
     return () => window.clearTimeout(t);
   }, [state, hydrated]);
 
@@ -564,9 +579,13 @@ export function ClasificadosServiciosApplication() {
   ]);
 
   useBusinessApplicationLeaveGuard({
-    isDirty: hydrated && state.businessName.trim().length > 0,
+    isDirty:
+      hydrated &&
+      state.businessName.trim().length > 0 &&
+      lastPersistedStateRef.current !== state,
     persist: () => {
       void saveClasificadosServiciosApplicationResolved(stateRef.current);
+      lastPersistedStateRef.current = stateRef.current;
     },
   });
 
@@ -682,16 +701,29 @@ export function ClasificadosServiciosApplication() {
     [state.languageOtherLines],
   );
 
+  // Shared item 39 — the fixed language options' own labels (both locales), so typing "French"/
+  // "francés" as a custom entry is blocked the same way an already-added custom duplicate is,
+  // regardless of whether "Inglés/English" is currently selected.
+  const FIXED_LANGUAGE_LABELS = useMemo(
+    () => ["español", "spanish", "inglés", "ingles", "english"].map(normalizeServiceOfferedDedupeKey),
+    [],
+  );
+
   const addCustomLanguage = useCallback(() => {
     const trimmed = languageOtherPending.trim();
     if (!trimmed) return;
+    const candidateKey = normalizeServiceOfferedDedupeKey(trimmed);
+    if (FIXED_LANGUAGE_LABELS.includes(candidateKey)) {
+      setLanguageOtherPending("");
+      return;
+    }
     setState((s) => {
       const existing = s.languageOtherLines.split("\n").map((l) => l.trim()).filter(Boolean);
-      if (existing.some((v) => v.toLowerCase() === trimmed.toLowerCase())) return s;
+      if (existing.some((v) => normalizeServiceOfferedDedupeKey(v) === candidateKey)) return s;
       return { ...s, languageOtherLines: [...existing, trimmed].join("\n") };
     });
     setLanguageOtherPending("");
-  }, [languageOtherPending]);
+  }, [languageOtherPending, FIXED_LANGUAGE_LABELS]);
 
   const removeCustomLanguageAt = useCallback((index: number) => {
     setState((s) => {
@@ -701,12 +733,12 @@ export function ClasificadosServiciosApplication() {
   }, []);
 
   /** `serviceAreaNotes` stays the same free-text string field/shape in storage (no migration) —
-   * split on comma OR newline so an existing legacy comma-separated draft still parses into
-   * chips; new entries are joined with newline going forward to avoid comma ambiguity inside an
-   * area name (e.g. "San Jose, CA"). Free-text fallback is preserved: nothing here rejects or
-   * blocks a value the split doesn't cleanly separate. */
+   * each area is one newline-delimited line, same pattern as `languageOtherLines`. Comma is
+   * NEVER treated as a delimiter here so an area label containing a comma (e.g. "San Jose, CA")
+   * stays one chip (S-073). A one-time legacy comma-joined draft is migrated to newline-joined
+   * form in `clasificadosServiciosApplicationNormalize.ts` on hydrate, not here. */
   const serviceAreaChips = useMemo(
-    () => state.serviceAreaNotes.split(/[,\n]/).map((s) => s.trim()).filter(Boolean),
+    () => state.serviceAreaNotes.split("\n").map((s) => s.trim()).filter(Boolean),
     [state.serviceAreaNotes],
   );
 
@@ -714,7 +746,7 @@ export function ClasificadosServiciosApplication() {
     const trimmed = serviceAreaPending.trim();
     if (!trimmed) return;
     setState((s) => {
-      const existing = s.serviceAreaNotes.split(/[,\n]/).map((v) => v.trim()).filter(Boolean);
+      const existing = s.serviceAreaNotes.split("\n").map((v) => v.trim()).filter(Boolean);
       if (existing.some((v) => v.toLowerCase() === trimmed.toLowerCase())) return s;
       return { ...s, serviceAreaNotes: [...existing, trimmed].join("\n") };
     });
@@ -723,7 +755,7 @@ export function ClasificadosServiciosApplication() {
 
   const removeServiceAreaAt = useCallback((index: number) => {
     setState((s) => {
-      const existing = s.serviceAreaNotes.split(/[,\n]/).map((v) => v.trim()).filter(Boolean);
+      const existing = s.serviceAreaNotes.split("\n").map((v) => v.trim()).filter(Boolean);
       return { ...s, serviceAreaNotes: existing.filter((_, i) => i !== index).join("\n") };
     });
   }, []);
@@ -751,15 +783,11 @@ export function ClasificadosServiciosApplication() {
               ? MAX_QUICK_FACTS_SELECTION
               : MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION;
       const customSlot =
-        field === "selectedServiceIds" || field === "selectedBusinessHighlightIds"
-          ? 0
-          : field === "selectedReasonIds"
-            ? prev.customReasonIncluded && prev.customReasonLabel.trim()
-              ? 1
-              : 0
-            : prev.customQuickFactIncluded && prev.customQuickFactLabel.trim()
-              ? 1
-              : 0;
+        field === "selectedReasonIds"
+          ? prev.customReasonIncluded && prev.customReasonLabel.trim()
+            ? 1
+            : 0
+          : 0;
       if (cur.length + customSlot >= max) return prev;
       return { ...prev, [field]: toggleId(cur, id, true) };
     });
@@ -772,10 +800,8 @@ export function ClasificadosServiciosApplication() {
     [state.customReasonIncluded, state.customReasonLabel, state.selectedReasonIds],
   );
   const quickFactsSelectionCount = useMemo(
-    () =>
-      state.selectedQuickFactIds.length +
-      (state.customQuickFactIncluded && state.customQuickFactLabel.trim() ? 1 : 0),
-    [state.customQuickFactIncluded, state.customQuickFactLabel, state.selectedQuickFactIds],
+    () => state.selectedQuickFactIds.length,
+    [state.selectedQuickFactIds],
   );
   const businessHighlightSelectionCount = useMemo(
     () => state.selectedBusinessHighlightIds.length,
@@ -880,7 +906,9 @@ export function ClasificadosServiciosApplication() {
     const normalizedUrl = normalizeHttpUrl(strictNormalized);
     setState((prev) => {
       if (prev.videos.length >= SERVICIOS_MAX_VIDEO_URLS) {
-        queueMicrotask(() => setMediaFlash(copy.labels.videosLimitHint));
+        queueMicrotask(() =>
+          setMediaFlash(copy.labels.videosLimitHint.replace("{max}", String(SERVICIOS_MAX_VIDEO_URLS))),
+        );
         return prev;
       }
       const duplicate = prev.videos.some(
@@ -939,10 +967,40 @@ export function ClasificadosServiciosApplication() {
     updateHour(day as DayKey, { closed: next.closed, open: next.openTime ?? "", close: next.closeTime ?? "" });
   };
 
+  /** Multi-entry special hours (contract §3.4 items 46-48) — Add/change/remove for the shared
+   * HoursEditor's `specialHoursList` prop. Each entry gets its own id so it can be independently
+   * edited/removed without disturbing the others. */
+  const addSpecialHoursEntry = useCallback(() => {
+    setState((s) => ({
+      ...s,
+      specialHoursEntries: [
+        ...s.specialHoursEntries,
+        { id: `special_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, label: "", note: "" },
+      ],
+    }));
+  }, []);
+
+  const changeSpecialHoursEntry = useCallback(
+    (id: string, patch: Partial<Pick<ServiciosSpecialHoursEntry, "label" | "note">>) => {
+      setState((s) => ({
+        ...s,
+        specialHoursEntries: s.specialHoursEntries.map((e) => (e.id === id ? { ...e, ...patch } : e)),
+      }));
+    },
+    [],
+  );
+
+  const removeSpecialHoursEntry = useCallback((id: string) => {
+    setState((s) => ({
+      ...s,
+      specialHoursEntries: s.specialHoursEntries.filter((e) => e.id !== id),
+    }));
+  }, []);
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#F6F0E2] text-[#3D2C12]">
       {isExistingDashboardListingMode && editHydration.status === "error" ? (
-        <main className="mx-auto max-w-lg px-4 py-16">
+        <main className="mx-auto max-w-lg px-4 pb-16 pt-24 sm:pt-28">
           <h1 className="text-xl font-bold text-[#3D2C12]">
             {lang === "en" ? "Edit mode could not load" : "No se pudo cargar el modo edición"}
           </h1>
@@ -955,14 +1013,14 @@ export function ClasificadosServiciosApplication() {
           </Link>
         </main>
       ) : isExistingDashboardListingMode && (editHydration.status === "loading" || !hydrated) ? (
-        <main className="mx-auto max-w-lg px-4 py-16">
+        <main className="mx-auto max-w-lg px-4 pb-16 pt-24 sm:pt-28">
           <p className="text-sm font-semibold text-[#5D4A25]" role="status">
             {lang === "en" ? "Loading saved listing for editing…" : "Cargando anuncio publicado…"}
           </p>
         </main>
       ) : (
       <>
-      <main className="mx-auto max-w-6xl px-4 pb-10 pt-6 sm:pb-12 sm:pt-8">
+      <main className="mx-auto max-w-6xl px-4 pb-10 pt-24 sm:pb-12 sm:pt-28">
         <div className="mb-6 rounded-2xl border border-[#D8C79A]/60 bg-[#FFFDF7]/95 p-4 shadow-sm sm:p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-[#8a7a62]">Leonix Clasificados</p>
           <h1 className="mt-2 text-xl font-extrabold tracking-tight text-[#3D2C12] sm:text-2xl">{copy.pageTitle}</h1>
@@ -1194,11 +1252,20 @@ export function ClasificadosServiciosApplication() {
             required
           >
             <option value="">{lang === "es" ? "Selecciona…" : "Select…"}</option>
-            {BUSINESS_TYPE_PRESETS.filter(p => p.id !== "servicio_no_listado").map((p) => (
-              <option key={p.id} value={p.id}>
-                {lang === "en" ? p.labelEn : p.labelEs}
-              </option>
-            ))}
+            {BUSINESS_TYPE_PRESETS
+              .filter((p) => p.id !== "servicio_no_listado")
+              // Sort only the rendered/mapped list by the locale-appropriate display label —
+              // BUSINESS_TYPE_PRESETS itself keeps its declaration order, and stored `value`/id
+              // is untouched, so sorting can never affect stored canonical IDs (S-011).
+              .slice()
+              .sort((a, b) =>
+                (lang === "en" ? a.labelEn : a.labelEs).localeCompare(lang === "en" ? b.labelEn : b.labelEs, lang),
+              )
+              .map((p) => (
+                <option key={p.id} value={p.id}>
+                  {lang === "en" ? p.labelEn : p.labelEs}
+                </option>
+              ))}
           </select>
 
           {state.businessTypeId === "servicio_otro_generico" && (
@@ -1451,10 +1518,10 @@ export function ClasificadosServiciosApplication() {
                   <input
                     className={`${inputClass} mt-2`}
                     type="tel"
-                    inputMode="numeric"
-                    placeholder={lang === "es" ? "(713) 555-0100" : "(713) 555-0100"}
-                    value={formatPhoneInputDisplay(state.whatsapp)}
-                    onChange={(e) => setState((s) => ({ ...s, whatsapp: formatPhoneInputDisplay(e.target.value) }))}
+                    inputMode="tel"
+                    placeholder={lang === "es" ? "+1 713 555 0100" : "+1 713 555 0100"}
+                    value={formatWhatsAppInputDisplay(state.whatsapp)}
+                    onChange={(e) => setState((s) => ({ ...s, whatsapp: formatWhatsAppInputDisplay(e.target.value) }))}
                   />
                 </div>
                 <div>
@@ -1889,7 +1956,9 @@ export function ClasificadosServiciosApplication() {
             <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.videosHint}</p>
             <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.videosHelper}</p>
             <p className="mt-2 text-xs font-semibold tabular-nums text-[#5D4A25]">
-              {copy.labels.videosCountLine.replace("{n}", String(state.videos.length))}
+              {copy.labels.videosCountLine
+                .replace("{n}", String(state.videos.length))
+                .replace("{max}", String(SERVICIOS_MAX_VIDEO_URLS))}
             </p>
             {state.videos.length > 0 ? (
               <ul className="mt-4 space-y-2">
@@ -1964,7 +2033,9 @@ export function ClasificadosServiciosApplication() {
                 </div>
               </div>
             ) : (
-              <p className="mt-4 text-xs font-medium text-[#8a7a62]">{copy.labels.videosLimitHint}</p>
+              <p className="mt-4 text-xs font-medium text-[#8a7a62]">
+                {copy.labels.videosLimitHint.replace("{max}", String(SERVICIOS_MAX_VIDEO_URLS))}
+              </p>
             )}
           </div>
         </section>
@@ -2126,7 +2197,7 @@ export function ClasificadosServiciosApplication() {
             <section className={sectionCard}>
               <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.reasons}</h2>
               <p className="mt-1 text-sm text-[#5D4A25]/85">{copy.labels.reasonsHint}</p>
-              <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible sm:pb-0">
+              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {preset.reasonsToChoose.map((c: ChipDef) => {
                   const selected = state.selectedReasonIds.includes(c.id);
                   const disabled = !selected && reasonsSelectionCount >= MAX_REASONS_SELECTION;
@@ -2369,22 +2440,6 @@ export function ClasificadosServiciosApplication() {
                     </Chip>
                   );
                 })}
-                {state.customQuickFactIncluded && state.customQuickFactLabel.trim() ? (
-                  <Chip
-                    selected
-                    truncateLabel
-                    labelTitle={state.customQuickFactLabel.trim()}
-                    onClick={() =>
-                      setState((s) => ({
-                        ...s,
-                        customQuickFactIncluded: false,
-                        customQuickFactLabel: "",
-                      }))
-                    }
-                  >
-                    {state.customQuickFactLabel.trim()}
-                  </Chip>
-                ) : null}
               </div>
               {quickFactsSelectionCount >= MAX_QUICK_FACTS_SELECTION ? (
                 <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.selectionMaxQuickFacts}</p>
@@ -2396,65 +2451,64 @@ export function ClasificadosServiciosApplication() {
                   className={inputClass}
                   placeholder={copy.labels.customChipPlaceholder}
                   maxLength={CUSTOM_CHIP_MAX_LENGTH}
-                  disabled={
-                    !state.customQuickFactIncluded &&
-                    state.selectedQuickFactIds.length >= MAX_QUICK_FACTS_SELECTION
-                  }
                   value={state.customQuickFactLabel}
                   onChange={(e) => {
                     const v = e.target.value.slice(0, CUSTOM_CHIP_MAX_LENGTH);
-                    setState((s) => ({
-                      ...s,
-                      customQuickFactLabel: v,
-                      customQuickFactIncluded: v.trim().length > 0 ? s.customQuickFactIncluded : false,
-                    }));
+                    setState((s) => ({ ...s, customQuickFactLabel: v }));
                   }}
                 />
-                {state.customQuickFactIncluded ? (
-                  <button
-                    type="button"
-                    className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-red-700 hover:bg-neutral-50 sm:w-auto"
-                    onClick={() =>
-                      setState((s) => ({
-                        ...s,
-                        customQuickFactIncluded: false,
+                <button
+                  type="button"
+                  disabled={
+                    !state.customQuickFactLabel.trim() ||
+                    state.customQuickFacts.length >= MAX_CUSTOM_QUICK_FACTS
+                  }
+                  className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                  onClick={() => {
+                    setState((prev) => {
+                      const r = evaluateAddCustomQuickFact(prev, lang, prev.customQuickFactLabel);
+                      if (!r.ok) return prev;
+                      return enforceServiciosSelectionCaps({
+                        ...prev,
+                        customQuickFacts: [...prev.customQuickFacts, r.label],
                         customQuickFactLabel: "",
-                      }))
-                    }
-                  >
-                    {copy.labels.remove}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={
-                      !state.customQuickFactLabel.trim() ||
-                      state.selectedQuickFactIds.length +
-                        (state.customQuickFactIncluded ? 1 : 0) >=
-                        MAX_QUICK_FACTS_SELECTION
-                    }
-                    className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-                    onClick={() => {
-                      const t = state.customQuickFactLabel.trim();
-                      if (!t) return;
-                      if (
-                        state.selectedQuickFactIds.length +
-                          (state.customQuickFactIncluded ? 1 : 0) >=
-                        MAX_QUICK_FACTS_SELECTION
-                      ) {
-                        return;
-                      }
-                      setState((s) => ({
-                        ...s,
-                        customQuickFactIncluded: true,
-                        customQuickFactLabel: t.slice(0, CUSTOM_CHIP_MAX_LENGTH),
-                      }));
-                    }}
-                  >
-                    {copy.labels.addCustomChip}
-                  </button>
-                )}
+                      });
+                    });
+                  }}
+                >
+                  {copy.labels.addCustomChip}
+                </button>
               </div>
+              {state.customQuickFacts.length >= MAX_CUSTOM_QUICK_FACTS ? (
+                <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.customQuickFactsMax}</p>
+              ) : null}
+              {state.customQuickFacts.length > 0 ? (
+                <div className="mt-5">
+                  <p className="text-sm font-semibold text-[#3D2C12]">{copy.labels.addedQuickFactsSection}</p>
+                  <div className="-mx-1 mt-2 flex flex-wrap gap-2 px-1">
+                    {state.customQuickFacts.map((label, i) => (
+                      <button
+                        key={`cqf-${i}-${label}`}
+                        type="button"
+                        title={label}
+                        aria-label={`${copy.labels.remove}: ${label}`}
+                        onClick={() =>
+                          setState((prev) =>
+                            enforceServiciosSelectionCaps({
+                              ...prev,
+                              customQuickFacts: prev.customQuickFacts.filter((_, j) => j !== i),
+                            }),
+                          )
+                        }
+                        className="inline-flex max-w-full min-w-0 min-h-[40px] touch-manipulation items-center gap-1.5 rounded-full border border-[#3B66AD] bg-[#3B66AD]/10 px-3 py-2 text-left text-sm font-medium text-[#1e3a5f] ring-1 ring-[#3B66AD]/20 transition active:scale-[0.99] hover:bg-[#3B66AD]/15"
+                      >
+                        <span className="min-w-0 max-w-[14rem] truncate sm:max-w-[18rem]">{label}</span>
+                        <FiX className="h-3.5 w-3.5 shrink-0 text-[#1e3a5f]/70" aria-hidden />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </section>
           </>
         ) : (
@@ -2576,9 +2630,11 @@ export function ClasificadosServiciosApplication() {
           </h2>
           <p className="mt-1 text-sm text-[#5D4A25]/85">{copy.labels.amenitiesSectionHint}</p>
 
-          <div className="mt-5 space-y-5">
+          <div className="mt-5 space-y-6">
             {SERVICIOS_AMENITY_GROUPS.filter((g) => g.id !== "other").map((group) => {
               const options = SERVICIOS_AMENITY_OPTIONS.filter((o) => o.groupId === group.id);
+              const groupCustoms = state.customAmenityOptionsByGroup?.[group.id] ?? [];
+              const pendingGroupValue = state.pendingCustomAmenityOptionByGroup?.[group.id] ?? "";
               if (options.length === 0) return null;
               return (
                 <div key={group.id}>
@@ -2607,79 +2663,92 @@ export function ClasificadosServiciosApplication() {
                       );
                     })}
                   </div>
+
+                  <div className="mt-3 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
+                    <input
+                      className={inputClass}
+                      placeholder={copy.labels.amenitiesPlaceholder}
+                      maxLength={CUSTOM_SERVICIOS_AMENITY_LABEL_MAX}
+                      value={pendingGroupValue}
+                      onChange={(e) => {
+                        const v = e.target.value.slice(0, CUSTOM_SERVICIOS_AMENITY_LABEL_MAX);
+                        setState((s) => ({
+                          ...s,
+                          pendingCustomAmenityOptionByGroup: {
+                            ...s.pendingCustomAmenityOptionByGroup,
+                            [group.id]: v,
+                          },
+                        }));
+                      }}
+                    />
+                    <button
+                      type="button"
+                      disabled={
+                        !pendingGroupValue.trim() ||
+                        groupCustoms.length >= MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS_PER_GROUP
+                      }
+                      className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                      onClick={() => {
+                        setState((prev) => {
+                          const bucket = prev.customAmenityOptionsByGroup?.[group.id] ?? [];
+                          const pending = prev.pendingCustomAmenityOptionByGroup?.[group.id] ?? "";
+                          const r = evaluateAddCustomAmenityOptionForGroup(bucket, pending);
+                          if (!r.ok) return prev;
+                          return enforceServiciosSelectionCaps({
+                            ...prev,
+                            customAmenityOptionsByGroup: {
+                              ...prev.customAmenityOptionsByGroup,
+                              [group.id]: [...bucket, r.label],
+                            },
+                            pendingCustomAmenityOptionByGroup: {
+                              ...prev.pendingCustomAmenityOptionByGroup,
+                              [group.id]: "",
+                            },
+                          });
+                        });
+                      }}
+                    >
+                      {copy.labels.amenitiesAdd}
+                    </button>
+                  </div>
+
+                  {groupCustoms.length >= MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS_PER_GROUP ? (
+                    <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.amenitiesCustomMax}</p>
+                  ) : null}
+
+                  {groupCustoms.length > 0 ? (
+                    <div className="-mx-1 mt-2 flex flex-wrap gap-2 px-1">
+                      {groupCustoms.map((label, i) => (
+                        <button
+                          key={`amenity-${group.id}-${i}-${label}`}
+                          type="button"
+                          title={label}
+                          aria-label={`${copy.labels.remove}: ${label}`}
+                          onClick={() =>
+                            setState((prev) =>
+                              enforceServiciosSelectionCaps({
+                                ...prev,
+                                customAmenityOptionsByGroup: {
+                                  ...prev.customAmenityOptionsByGroup,
+                                  [group.id]: (prev.customAmenityOptionsByGroup?.[group.id] ?? []).filter(
+                                    (_, j) => j !== i,
+                                  ),
+                                },
+                              }),
+                            )
+                          }
+                          className="inline-flex max-w-full min-w-0 min-h-[40px] touch-manipulation items-center gap-1.5 rounded-full border border-[#3B66AD] bg-[#3B66AD]/10 px-3 py-2 text-left text-sm font-medium text-[#1e3a5f] ring-1 ring-[#3B66AD]/20"
+                        >
+                          <ServiciosAmenityBadge lang={lang} customLabel={label} compact />
+                          <FiX className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               );
             })}
           </div>
-
-          <label className={`mt-6 block ${labelClass}`}>{copy.labels.amenitiesOtherLabel}</label>
-          <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
-            <input
-              className={inputClass}
-              placeholder={copy.labels.amenitiesPlaceholder}
-              maxLength={CUSTOM_SERVICIOS_AMENITY_LABEL_MAX}
-              value={state.pendingCustomAmenityOption}
-              onChange={(e) =>
-                setState((s) => ({
-                  ...s,
-                  pendingCustomAmenityOption: e.target.value.slice(0, CUSTOM_SERVICIOS_AMENITY_LABEL_MAX),
-                }))
-              }
-            />
-            <button
-              type="button"
-              disabled={
-                !state.pendingCustomAmenityOption.trim() ||
-                state.customAmenityOptions.length >= MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS
-              }
-              className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-              onClick={() => {
-                setState((prev) => {
-                  const r = evaluateAddCustomAmenityOption(prev, prev.pendingCustomAmenityOption);
-                  if (!r.ok) return prev;
-                  return enforceServiciosSelectionCaps({
-                    ...prev,
-                    customAmenityOptions: [...prev.customAmenityOptions, r.label],
-                    pendingCustomAmenityOption: "",
-                  });
-                });
-              }}
-            >
-              {copy.labels.amenitiesAdd}
-            </button>
-          </div>
-
-          {state.customAmenityOptions.length >= MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS ? (
-            <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.amenitiesCustomMax}</p>
-          ) : null}
-
-          {state.customAmenityOptions.length > 0 ? (
-            <div className="mt-5">
-              <p className="text-sm font-semibold text-[#3D2C12]">{copy.labels.amenitiesAddedList}</p>
-              <div className="-mx-1 mt-2 flex flex-wrap gap-2 px-1">
-                {state.customAmenityOptions.map((label, i) => (
-                  <button
-                    key={`amenity-${i}-${label}`}
-                    type="button"
-                    title={label}
-                    aria-label={`${copy.labels.remove}: ${label}`}
-                    onClick={() =>
-                      setState((prev) =>
-                        enforceServiciosSelectionCaps({
-                          ...prev,
-                          customAmenityOptions: prev.customAmenityOptions.filter((_, j) => j !== i),
-                        }),
-                      )
-                    }
-                    className="inline-flex max-w-full min-w-0 min-h-[40px] touch-manipulation items-center gap-1.5 rounded-full border border-[#3B66AD] bg-[#3B66AD]/10 px-3 py-2 text-left text-sm font-medium text-[#1e3a5f] ring-1 ring-[#3B66AD]/20"
-                  >
-                    <ServiciosAmenityBadge lang={lang} customLabel={label} compact />
-                    <FiX className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
         </section>
 
         <section className={sectionCard} aria-labelledby="sec-credentials">
@@ -2917,6 +2986,21 @@ export function ClasificadosServiciosApplication() {
             days={hoursEditorDays}
             onDayChange={onHoursEditorDayChange}
             closedLabel={copy.labels.closed}
+            specialHoursList={{
+              entries: state.specialHoursEntries,
+              onAdd: addSpecialHoursEntry,
+              onEntryChange: changeSpecialHoursEntry,
+              onRemove: removeSpecialHoursEntry,
+              sectionLabel: copy.labels.specialHoursSectionLabel,
+              sectionHelper: copy.labels.specialHoursSectionHelper,
+              addLabel: copy.labels.specialHoursAdd,
+              labelPlaceholder: copy.labels.specialHoursLabelPlaceholder,
+              notePlaceholder: copy.labels.specialHoursNotePlaceholder,
+              removeAriaLabel: (entry: HoursEditorSpecialHoursEntry) =>
+                entry.label.trim()
+                  ? `${copy.labels.specialHoursRemoveAria}: ${entry.label.trim()}`
+                  : copy.labels.specialHoursRemoveAria,
+            }}
           />
         </section>
           </>
@@ -3445,6 +3529,16 @@ export function ClasificadosServiciosApplication() {
                         </span>
                       </div>
                     )}
+                    {state.couponsAddOn && state.couponsMonthlyPrice <= 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-[#5D4A25]">
+                          {lang === "en" ? "Coupons & offers" : "Cupones y ofertas"}
+                        </span>
+                        <span className="font-semibold text-[#3D2C12]">
+                          {lang === "en" ? "Included" : "Incluido"}
+                        </span>
+                      </div>
+                    )}
                     <div className="mt-2 flex justify-between border-t border-[#D8C79A]/40 pt-2">
                       <span className="font-semibold text-[#3D2C12]">
                         {lang === "en" ? "Total monthly" : "Total mensual"}
@@ -3538,17 +3632,15 @@ export function ClasificadosServiciosApplication() {
                           }
 
                           const pendingQuickFact = w.customQuickFactLabel.trim();
-                          if (!w.customQuickFactIncluded && pendingQuickFact) {
-                            const total =
-                              w.selectedQuickFactIds.length +
-                              (w.customQuickFactIncluded && w.customQuickFactLabel.trim() ? 1 : 0);
-                            if (total < MAX_QUICK_FACTS_SELECTION) {
-                              w = {
-                                ...w,
-                                customQuickFactIncluded: true,
-                                customQuickFactLabel: pendingQuickFact.slice(0, CUSTOM_CHIP_MAX_LENGTH),
-                              };
-                            }
+                          if (pendingQuickFact) {
+                            const r = evaluateAddCustomQuickFact(w, lang, pendingQuickFact);
+                            w = r.ok
+                              ? enforceServiciosSelectionCaps({
+                                  ...w,
+                                  customQuickFacts: [...w.customQuickFacts, r.label],
+                                  customQuickFactLabel: "",
+                                })
+                              : enforceServiciosSelectionCaps({ ...w, customQuickFactLabel: "" });
                           }
 
                           const pendingHighlight = w.customBusinessHighlightLabel.trim();
@@ -3569,6 +3661,7 @@ export function ClasificadosServiciosApplication() {
                             customServiceIncluded: w.customServiceIncluded,
                             customReasonIncluded: w.customReasonIncluded,
                             customReasonLabel: w.customReasonLabel,
+                            customQuickFacts: w.customQuickFacts,
                             customQuickFactIncluded: w.customQuickFactIncluded,
                             customQuickFactLabel: w.customQuickFactLabel,
                             selectedBusinessHighlightIds: w.selectedBusinessHighlightIds,
@@ -3591,16 +3684,30 @@ export function ClasificadosServiciosApplication() {
                                 })
                               : enforceServiciosSelectionCaps({ ...w, customPaymentMethodLabel: "" });
                           }
-                          const pendingAmenity = w.pendingCustomAmenityOption.trim();
-                          if (pendingAmenity) {
-                            const r = evaluateAddCustomAmenityOption(w, pendingAmenity);
+                          for (const groupId of SERVICIOS_AMENITY_CUSTOM_GROUP_IDS) {
+                            const pendingGroupAmenity = (w.pendingCustomAmenityOptionByGroup?.[groupId] ?? "").trim();
+                            if (!pendingGroupAmenity) continue;
+                            const bucket = w.customAmenityOptionsByGroup?.[groupId] ?? [];
+                            const r = evaluateAddCustomAmenityOptionForGroup(bucket, pendingGroupAmenity);
                             w = r.ok
                               ? enforceServiciosSelectionCaps({
                                   ...w,
-                                  customAmenityOptions: [...w.customAmenityOptions, r.label],
-                                  pendingCustomAmenityOption: "",
+                                  customAmenityOptionsByGroup: {
+                                    ...w.customAmenityOptionsByGroup,
+                                    [groupId]: [...bucket, r.label],
+                                  },
+                                  pendingCustomAmenityOptionByGroup: {
+                                    ...w.pendingCustomAmenityOptionByGroup,
+                                    [groupId]: "",
+                                  },
                                 })
-                              : enforceServiciosSelectionCaps({ ...w, pendingCustomAmenityOption: "" });
+                              : enforceServiciosSelectionCaps({
+                                  ...w,
+                                  pendingCustomAmenityOptionByGroup: {
+                                    ...w.pendingCustomAmenityOptionByGroup,
+                                    [groupId]: "",
+                                  },
+                                });
                           }
                           const pendingCert = w.pendingCertification.trim();
                           if (pendingCert) {
@@ -3623,6 +3730,8 @@ export function ClasificadosServiciosApplication() {
                             amenityOptionIds: w.amenityOptionIds,
                             customAmenityOptions: w.customAmenityOptions,
                             pendingCustomAmenityOption: w.pendingCustomAmenityOption,
+                            customAmenityOptionsByGroup: w.customAmenityOptionsByGroup,
+                            pendingCustomAmenityOptionByGroup: w.pendingCustomAmenityOptionByGroup,
                             certifications: w.certifications,
                             pendingCertification: w.pendingCertification,
                           };

@@ -76,6 +76,9 @@ export function useRestauranteDraft(options: UseRestauranteDraftOptions = {}) {
   const [draft, setDraft] = useState<RestauranteListingDraft>(() => createEmptyRestauranteDraft());
   const draftRef = useRef(draft);
   draftRef.current = draft;
+  // Tracks the exact draft object last handed to persist() so the leave-guard can tell
+  // "nothing changed since the last successful save" apart from "form has content".
+  const lastPersistedDraftRef = useRef<RestauranteListingDraft | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,7 +86,10 @@ export function useRestauranteDraft(options: UseRestauranteDraftOptions = {}) {
       const loaded = resolveMediaOnLoad
         ? await loadRestauranteDraftFromStorageResolved()
         : loadRestauranteDraftFromStorageForEditor();
-      if (!cancelled && loaded) setDraft(loaded);
+      if (!cancelled && loaded) {
+        setDraft(loaded);
+        lastPersistedDraftRef.current = loaded;
+      }
       if (!cancelled) setHydrated(true);
     })();
     return () => {
@@ -93,6 +99,7 @@ export function useRestauranteDraft(options: UseRestauranteDraftOptions = {}) {
 
   const persist = useCallback((next: RestauranteListingDraft) => {
     void saveRestauranteDraftToStorageResolved(next);
+    lastPersistedDraftRef.current = next;
   }, []);
 
   const setDraftPatch = useCallback(
@@ -111,9 +118,12 @@ export function useRestauranteDraft(options: UseRestauranteDraftOptions = {}) {
     (next: RestauranteListingDraft) => {
       setDraft(next);
       void saveRestauranteDraftToStorageResolved(next);
+      lastPersistedDraftRef.current = next;
     },
     [],
   );
+
+  const isDraftDirty = draft !== lastPersistedDraftRef.current;
 
   const resetDraft = useCallback(async () => {
     const next = await resetRestauranteDraftInStorage();
@@ -129,6 +139,7 @@ export function useRestauranteDraft(options: UseRestauranteDraftOptions = {}) {
     hydrated,
     draft,
     draftRef,
+    isDraftDirty,
     setDraftPatch,
     replaceDraft,
     resetDraft,

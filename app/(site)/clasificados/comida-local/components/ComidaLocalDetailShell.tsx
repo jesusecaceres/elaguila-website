@@ -40,6 +40,11 @@ const SHELL_COPY = {
     languages: "Idiomas: ",
     highlights: "Detalles destacados",
     links: "Enlaces",
+    orderLink: "Pedidos / contacto",
+    eventSchedule: "Próximo evento",
+    cateringDetails: "Catering",
+    cateringRadius: "Área de servicio: ",
+    mealPrepSchedule: "Horario de meal prep",
     gallery: "Galería",
     leonixId: "ID Leonix: ",
     galleryAria: "Galería",
@@ -64,6 +69,11 @@ const SHELL_COPY = {
     languages: "Languages: ",
     highlights: "Highlights",
     links: "Links",
+    orderLink: "Order / contact",
+    eventSchedule: "Next event",
+    cateringDetails: "Catering",
+    cateringRadius: "Service area: ",
+    mealPrepSchedule: "Meal prep schedule",
     gallery: "Gallery",
     leonixId: "Leonix ID: ",
     galleryAria: "Gallery",
@@ -192,6 +202,45 @@ export function ComidaLocalDetailShell({ vm, leonixAdId, analyticsContext, lang 
               </p>
             ) : null}
           </div>
+        </DetailSection>
+      ) : null}
+
+      {vm.sections.showEventSchedule ? (
+        <DetailSection title={copy.eventSchedule}>
+          <p className="text-sm leading-relaxed text-[#1E1814]/85">{vm.eventScheduleNote}</p>
+        </DetailSection>
+      ) : null}
+
+      {vm.sections.showOrderLink && vm.orderLink ? (
+        <DetailSection title={copy.orderLink}>
+          <a
+            href={vm.orderLink.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={CL_CHIP}
+          >
+            {vm.orderLink.label}
+          </a>
+        </DetailSection>
+      ) : null}
+
+      {vm.sections.showCateringDetails ? (
+        <DetailSection title={copy.cateringDetails}>
+          <div className="space-y-2 text-sm text-[#1E1814]/85">
+            {vm.cateringServiceRadiusNote ? (
+              <p>
+                <span className="font-medium text-[#1E1814]/65">{copy.cateringRadius}</span>
+                {vm.cateringServiceRadiusNote}
+              </p>
+            ) : null}
+            {vm.cateringEventInfoNote ? <p className="whitespace-pre-wrap">{vm.cateringEventInfoNote}</p> : null}
+          </div>
+        </DetailSection>
+      ) : null}
+
+      {vm.sections.showMealPrepSchedule ? (
+        <DetailSection title={copy.mealPrepSchedule}>
+          <p className="text-sm leading-relaxed text-[#1E1814]/85">{vm.mealPrepScheduleNote}</p>
         </DetailSection>
       ) : null}
 

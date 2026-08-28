@@ -51,8 +51,12 @@ export function buildServiciosHowGroups(profile: ServiciosProfileResolved, lang:
     byGroup.set(gid, cur);
   }
 
+  const customByGroup = profile.customAmenityOptionsByGroup ?? {};
+  const looseCustom: string[] = [];
   for (const g of SERVICIOS_AMENITY_GROUPS.filter((row) => row.id !== "other")) {
-    const items = byGroup.get(g.id) ?? [];
+    const custom = (customByGroup[g.id] ?? []).filter((x) => typeof x === "string" && x.trim().length > 0);
+    const cur = byGroup.get(g.id) ?? [];
+    const items = [...cur, ...custom.map((x) => x.trim())];
     if (items.length === 0) continue;
     groups.push({
       id: g.id,
@@ -62,13 +66,23 @@ export function buildServiciosHowGroups(profile: ServiciosProfileResolved, lang:
     });
   }
 
-  const custom = profile.customAmenityOptions.filter((x) => typeof x === "string" && x.trim().length > 0);
-  if (custom.length > 0) {
+  // Legacy flat custom amenities not attributable to a specific group (older stored profiles).
+  const knownGroupIds = new Set(SERVICIOS_AMENITY_GROUPS.filter((row) => row.id !== "other").map((r) => r.id));
+  const groupedCustomKeys = new Set<string>();
+  for (const gid of knownGroupIds) {
+    for (const label of customByGroup[gid] ?? []) groupedCustomKeys.add(label.trim().toLowerCase());
+  }
+  for (const label of profile.customAmenityOptions ?? []) {
+    if (typeof label !== "string" || !label.trim()) continue;
+    if (groupedCustomKeys.has(label.trim().toLowerCase())) continue;
+    looseCustom.push(label.trim());
+  }
+  if (looseCustom.length > 0) {
     groups.push({
       id: "other",
       title: lang === "en" ? "Other options" : "Otras opciones",
       icon: groupIcon("other"),
-      items: custom.map((x) => x.trim()),
+      items: looseCustom,
     });
   }
 

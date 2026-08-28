@@ -117,10 +117,10 @@ const COPY = {
       secondaryCuisineOtherPlaceholder: "Breve descripción",
       additionalCuisinesLabel: "Cocinas adicionales",
       additionalCuisinesHelper:
-        "Etiquetas de apoyo para descubrimiento: en la ficha salen como chips «Descub.» bajo la línea principal/secundaria, no en esa línea. Por eso existen las tres: identidad clara + etiquetas selectivas. Elige hasta 3. La ciudad canónica y la cocina principal siguen anclando filtros y resultados.",
+        "Etiquetas de apoyo para descubrimiento: en la ficha salen como chips «Descub.» bajo la línea principal/secundaria, no en esa línea. Por eso existen las tres: identidad clara + etiquetas selectivas. Elige hasta 6. La ciudad canónica y la cocina principal siguen anclando filtros y resultados.",
       additionalCuisinesCountSuffix: "seleccionadas",
       additionalCuisinesOverCapWarning:
-        "— Tienes más etiquetas de las recomendadas; desmarca hasta 3 para un listado más limpio.",
+        "— Tienes más etiquetas de las recomendadas; desmarca hasta 6 para un listado más limpio.",
       additionalCuisineOtherLabel: "Especifica “Otra” en cocinas adicionales",
       additionalCuisineOtherHelper: "Una línea clara; se muestra donde aplique la etiqueta «Otra».",
       additionalCuisineOtherPlaceholder: "Una línea, p. ej. comida nikkei",
@@ -137,7 +137,7 @@ const COPY = {
         "Idiomas en los que el equipo puede atender al cliente en persona, por teléfono o mensaje — no es una lista decorativa. Aparecen en la franja de información rápida como una línea compacta. Si seleccionas Otro, especifica el idioma concreto.",
       languageOtherLabel: "Especifica el idioma (Otro)",
       languageOtherHelper:
-        "Escribe el idioma concreto y pulsa Añadir. Máximo 3 idiomas personalizados.",
+        "Escribe el idioma concreto y pulsa Añadir. Máximo 8 idiomas personalizados.",
       languageOtherPlaceholder: "Ej. portugués, ASL…",
     },
     sectionB: {
@@ -172,9 +172,13 @@ const COPY = {
         "Completa cada día (cerrado u horario) o indica la situación con las notas de abajo — necesario para la vista previa estructural.",
       helper:
         "La cuadrícula semanal es la base en la ficha. Las notas no sustituyen horarios salvo que así lo indiques; sirven para excepciones, feriados o cambios puntuales visibles junto al bloque de horas.",
-      specialHoursLabel: "Nota de horario especial",
+      specialHoursLabel: "Horarios especiales / feriados",
       specialHoursHelper:
-        "Aviso recurrente o general (p. ej. «cerrado lunes festivos», «cocina cierra a las 9 pm»): no reemplaza la cuadrícula semanal. Se muestra en el resumen de horario cuando aplica y en el bloque «Horarios completos» bajo la lista de días.",
+        "Agrega tantas excepciones como necesites (feriados, cierres puntuales, horario reducido): no reemplazan la cuadrícula semanal. Se muestran en el resumen de horario y en el estado «abierto ahora» cuando aplica.",
+      specialHoursAddLabel: "+ Agregar horario especial",
+      specialHoursLabelPlaceholder: "Ej. Navidad, 24-25 dic.",
+      specialHoursNotePlaceholder: "Ej. Cerrado, 10am-2pm",
+      specialHoursRemoveAriaLabel: "Eliminar este horario especial",
     },
     sectionD: {
       requiredNote:
@@ -360,7 +364,6 @@ const COPY = {
       previewGateConfirmRules: "Confirma que cumples las reglas de Leonix",
       previewGateConfirmPromos: "Confirma que las promociones son válidas",
       preview: "Vista previa",
-      continueToPreview: "Continuar a vista previa",
       deleteRequest: "Eliminar solicitud",
     },
   },
@@ -462,10 +465,10 @@ const COPY = {
       secondaryCuisineOtherPlaceholder: "Brief description",
       additionalCuisinesLabel: "Additional cuisines",
       additionalCuisinesHelper:
-        "Discovery support tags: on the listing they appear as «Disc.» chips below the primary/secondary line, not on that line. That is why all three exist: clear identity + selective tags. Choose up to 3. Canonical city and primary cuisine still anchor filters and results.",
+        "Discovery support tags: on the listing they appear as «Disc.» chips below the primary/secondary line, not on that line. That is why all three exist: clear identity + selective tags. Choose up to 6. Canonical city and primary cuisine still anchor filters and results.",
       additionalCuisinesCountSuffix: "selected",
       additionalCuisinesOverCapWarning:
-        "— You have more tags than recommended; uncheck down to 3 for a cleaner listing.",
+        "— You have more tags than recommended; uncheck down to 6 for a cleaner listing.",
       additionalCuisineOtherLabel: "Specify «Other» in additional cuisines",
       additionalCuisineOtherHelper: "One clear line; shown where the «Other» tag applies.",
       additionalCuisineOtherPlaceholder: "One line, e.g. Nikkei cuisine",
@@ -481,7 +484,7 @@ const COPY = {
       languagesHelper:
         "Languages your team can serve customers in person, by phone, or message — not a decorative list. Appears in the quick-info strip as a compact line. If you select Other, specify the language.",
       languageOtherLabel: "Specify language (Other)",
-      languageOtherHelper: "Type the language and press Add. Up to 3 custom languages.",
+      languageOtherHelper: "Type the language and press Add. Up to 8 custom languages.",
       languageOtherPlaceholder: "e.g. Portuguese, ASL…",
     },
     sectionB: {
@@ -516,9 +519,13 @@ const COPY = {
         "Complete each day (closed or hours) or explain the situation with the notes below — required for structural preview.",
       helper:
         "The weekly grid is the base on the listing. Notes do not replace hours unless you indicate so; they cover exceptions, holidays, or one-off changes shown next to the hours block.",
-      specialHoursLabel: "Special hours note",
+      specialHoursLabel: "Special / holiday hours",
       specialHoursHelper:
-        "Recurring or general notice (e.g. «closed holiday Mondays», «kitchen closes at 9 pm»): does not replace the weekly grid. Shown in the hours summary when applicable and in «Full hours» below the day list.",
+        "Add as many exceptions as you need (holidays, one-off closures, reduced hours): they do not replace the weekly grid. Shown in the hours summary and in the «open now» status when applicable.",
+      specialHoursAddLabel: "+ Add special hours",
+      specialHoursLabelPlaceholder: "e.g. Christmas, Dec 24-25",
+      specialHoursNotePlaceholder: "e.g. Closed, 10am-2pm",
+      specialHoursRemoveAriaLabel: "Remove this special hours entry",
     },
     sectionD: {
       requiredNote:
@@ -701,7 +708,6 @@ const COPY = {
       previewGateConfirmRules: "Confirm you comply with Leonix rules",
       previewGateConfirmPromos: "Confirm promotions are valid",
       preview: "Preview",
-      continueToPreview: "Continue to preview",
       deleteRequest: "Delete request",
     },
   },

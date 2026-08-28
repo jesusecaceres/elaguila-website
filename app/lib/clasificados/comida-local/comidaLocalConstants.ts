@@ -102,6 +102,14 @@ export const COMIDA_LOCAL_HIGHLIGHT_OPTIONS: ReadonlyArray<
   { value: "pickup_disponible", labelEs: "Pickup disponible", labelEn: "Pickup available" },
   { value: "familiar", labelEs: "Negocio familiar", labelEn: "Family-owned" },
   { value: "local", labelEs: "100% local", labelEn: "100% local" },
+  { value: "fresco_diario", labelEs: "Fresco cada día", labelEn: "Fresh daily" },
+  { value: "ingredientes_locales", labelEs: "Ingredientes locales", labelEn: "Local ingredients" },
+  { value: "preorder", labelEs: "Pedido anticipado", labelEn: "Pre-order" },
+  {
+    value: "disponible_fines_de_semana",
+    labelEs: "Disponible los fines de semana",
+    labelEn: "Weekend availability",
+  },
   { value: "otro", labelEs: "Otro", labelEn: "Other" },
 ];
 

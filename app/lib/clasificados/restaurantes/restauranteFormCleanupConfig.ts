@@ -5,6 +5,7 @@ import type {
 import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/application/restauranteDraftTypes";
 import {
   RESTAURANTE_BUSINESS_TYPES,
+  RESTAURANTE_LANGUAGES,
   RESTAURANTE_SERVICE_MODES,
   TAXONOMY_KEY_OTHER,
   TAXONOMY_KEY_OTHER_LANG,
@@ -113,6 +114,13 @@ export function isDuplicateCustomLanguage(
   for (const key of languagesSpoken ?? []) {
     if (key === TAXONOMY_KEY_OTHER_LANG) continue;
     if (normalizeLanguageToken(resolveLanguageLabel(key)) === norm) return true;
+  }
+  // Shared item 39 — block the same semantic language re-entered as custom text just because it
+  // wasn't yet selected as a fixed option (e.g. typing "French"/"francés" when "Francés/French" is
+  // a selectable fixed option, regardless of current selection state).
+  for (const opt of RESTAURANTE_LANGUAGES) {
+    if (opt.key === TAXONOMY_KEY_OTHER_LANG) continue;
+    if (normalizeLanguageToken(resolveLanguageLabel(opt.key)) === norm) return true;
   }
   return false;
 }

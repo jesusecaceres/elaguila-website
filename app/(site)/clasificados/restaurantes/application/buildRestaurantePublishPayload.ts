@@ -149,6 +149,7 @@ export function buildRestaurantePublishPayload(
     friday: blockHeavyMedia(draft.friday, "friday"),
     saturday: blockHeavyMedia(draft.saturday, "saturday"),
     sunday: blockHeavyMedia(draft.sunday, "sunday"),
+    specialHoursEntries: blockHeavyMedia((draft.specialHoursEntries || []).slice(0, 20), "specialHoursEntries"),
     specialHoursNote: blockHeavyMedia(draft.specialHoursNote, "specialHoursNote"),
     heroImage: blockHeavyMedia(draft.heroImage, "heroImage"),
     businessLogo: blockHeavyMedia(draft.businessLogo, "businessLogo"),

@@ -78,6 +78,14 @@ export const COMIDA_LOCAL_SHELL_COPY = {
   },
 } as const;
 
+/** Gate C-066 — vegetarian/vegan/gluten-free/halal/kosher highlight options are real, but
+ * self-declared by the seller, never independently certified. Shown as a small disclaimer next
+ * to the highlights chip group so no fake-certification claim is ever implied. */
+export const COMIDA_LOCAL_HIGHLIGHTS_DISCLAIMER = {
+  es: "Vegetariano, vegano, sin gluten, halal y kosher son declarados por el vendedor — no están certificados de forma independiente.",
+  en: "Vegetarian, vegan, gluten-free, halal, and kosher are self-reported by the seller — not independently certified.",
+} as const;
+
 export const COMIDA_LOCAL_FIELD_COPY: Record<string, ComidaLocalFieldCopy> = {
   businessName: {
     labelEs: "Nombre del puesto / negocio",
@@ -116,8 +124,8 @@ export const COMIDA_LOCAL_FIELD_COPY: Record<string, ComidaLocalFieldCopy> = {
   businessTypeCustom: {
     labelEs: "Otro formato",
     labelEn: "Other format",
-    helperEs: "Solo si elegiste Otro en formato de negocio.",
-    helperEn: "Only if you chose Other for business format.",
+    helperEs: "Solo si elegiste Otro en formato de negocio. Agrega uno o más y quítalos si te equivocas.",
+    helperEn: "Only if you chose Other for business format. Add one or more, and remove any by mistake.",
     placeholderEs: "Ej. cooperativa de vendedores",
     placeholderEn: "e.g. vendor cooperative",
     optional: true,
@@ -219,6 +227,60 @@ export const COMIDA_LOCAL_FIELD_COPY: Record<string, ComidaLocalFieldCopy> = {
     placeholderEn: "https://maps.google.com/…",
     optional: true,
   },
+  mobileOrderLinkUrl: {
+    labelEs: "Enlace de pedidos o contacto",
+    labelEn: "Order or contact link",
+    helperEs: "¿Dónde pueden hacer un pedido o contactarte ahora mismo? Instagram, formulario, WhatsApp Business, etc.",
+    helperEn: "Where can people place an order or reach you right now? Instagram, a form, WhatsApp Business, etc.",
+    placeholderEs: "https://…",
+    placeholderEn: "https://…",
+    optional: true,
+  },
+  eventScheduleNote: {
+    labelEs: "Próximo evento (fecha/lugar)",
+    labelEn: "Next event (date/location)",
+    helperEs: "Texto corto y libre. No reemplaza «Encuéntrame hoy».",
+    helperEn: "Short freeform text. Doesn't replace “Find me today.”",
+    placeholderEs: "Sáb. 14 de sept. · Feria de Union City",
+    placeholderEn: "Sat. Sept 14 · Union City Feria",
+    optional: true,
+  },
+  cateringServiceRadiusNote: {
+    labelEs: "¿Hasta dónde viajas para catering?",
+    labelEn: "How far will you travel for catering?",
+    helperEs: "Distinto de la zona general. Ej. 20 millas desde San José, o todo el Área de la Bahía.",
+    helperEn: "Different from the general area note. e.g. 20 miles from San Jose, or the whole Bay Area.",
+    placeholderEs: "Ej. 20 millas desde San José",
+    placeholderEn: "e.g. 20 miles from San Jose",
+    optional: true,
+  },
+  cateringEventInfoNote: {
+    labelEs: "Información de eventos",
+    labelEn: "Event information",
+    helperEs: "Tamaños de evento, mínimos de pedido y con cuánta anticipación reservar.",
+    helperEn: "Typical event sizes, order minimums, and how much lead time you need.",
+    placeholderEs: "Ej. Mínimo 20 personas, reservar con 1 semana de anticipación",
+    placeholderEn: "e.g. 20-person minimum, book 1 week ahead",
+    optional: true,
+  },
+  mealPrepScheduleNote: {
+    labelEs: "Frecuencia del meal prep",
+    labelEn: "Meal prep schedule",
+    helperEs: "Con qué frecuencia ofreces meal prep, ej. cada domingo.",
+    helperEn: "How often you offer meal prep, e.g. weekly Sunday pickup.",
+    placeholderEs: "Ej. Pickup todos los domingos",
+    placeholderEn: "e.g. Weekly Sunday pickup",
+    optional: true,
+  },
+  mealPrepOrderUrl: {
+    labelEs: "Enlace de pedidos de meal prep",
+    labelEn: "Meal prep order link",
+    helperEs: "Formulario o enlace donde pueden ordenar tu menú semanal.",
+    helperEn: "Form or link where people can order your weekly menu.",
+    placeholderEs: "https://…",
+    placeholderEn: "https://…",
+    optional: true,
+  },
   availabilityNote: {
     labelEs: "Disponibilidad / horario simple",
     labelEn: "Availability / simple schedule",
@@ -238,8 +300,8 @@ export const COMIDA_LOCAL_FIELD_COPY: Record<string, ComidaLocalFieldCopy> = {
   serviceOptionOtherCustom: {
     labelEs: "Otra opción de servicio",
     labelEn: "Other service option",
-    helperEs: "Solo si marcaste Otro en opciones de servicio.",
-    helperEn: "Only if you checked Other for service options.",
+    helperEs: "Solo si marcaste Otro en opciones de servicio. Agrega una o más y quítalas si te equivocas.",
+    helperEn: "Only if you checked Other for service options. Add one or more, and remove any by mistake.",
     placeholderEs: "Ej. solo por encargo especial",
     placeholderEn: "e.g. special order only",
     optional: true,
@@ -270,8 +332,8 @@ export const COMIDA_LOCAL_FIELD_COPY: Record<string, ComidaLocalFieldCopy> = {
   highlightsOtherCustom: {
     labelEs: "Otro detalle destacado",
     labelEn: "Other highlight",
-    helperEs: "Solo si marcaste Otro en detalles destacados.",
-    helperEn: "Only if you checked Other for highlights.",
+    helperEs: "Solo si marcaste Otro en detalles destacados. Agrega uno o más y quítalos si te equivocas.",
+    helperEn: "Only if you checked Other for highlights. Add one or more, and remove any by mistake.",
     placeholderEs: "Ej. receta de tres generaciones",
     placeholderEn: "e.g. three-generation family recipe",
     optional: true,

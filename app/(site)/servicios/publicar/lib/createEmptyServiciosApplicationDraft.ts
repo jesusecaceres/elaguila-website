@@ -9,6 +9,7 @@ export function createEmptyServiciosApplicationDraft(): ServiciosApplicationDraf
     customPaymentMethods: [],
     customPaymentMethodLabel: "",
     amenityOptionIds: [],
+    customAmenityOptionsByGroup: {},
     customAmenityOptions: [],
     pendingCustomAmenityOption: "",
   };

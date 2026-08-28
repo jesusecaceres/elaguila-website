@@ -345,7 +345,7 @@ export function RestauranteAdStoryPreview({
 
       {/* 3. Servicios y Características */}
       {data.groupedFeatures ? (
-        <RestauranteGroupedFeaturesSection features={data.groupedFeatures} />
+        <RestauranteGroupedFeaturesSection features={data.groupedFeatures} lang={lang} />
       ) : null}
 
       {/* 4. Amenidades y más */}
