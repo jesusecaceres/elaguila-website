@@ -7,8 +7,22 @@ import {
   isOfertaLocalCouponPromotionFlow,
   isOfertaLocalWeeklyFlyerFlow,
 } from "./ofertasLocalesApplicationHelpers";
-import { canOfertaLocalDraftPersistForAiScan } from "./ofertasLocalesAiScanPersist";
+import {
+  canOfertaLocalDraftPersistForAiScan,
+  validateOfertaLocalDraftForAiScanPersist,
+} from "./ofertasLocalesAiScanPersist";
 import type { OfertaLocalDraft, OfertaLocalDraftAsset } from "./ofertasLocalesTypes";
+
+/** Bilingual copy for the scan-persist validator's field-level errors (validator text itself is Spanish-only). */
+const SCAN_PERSIST_FIELD_MESSAGES: Record<string, { es: string; en: string }> = {
+  businessCategory: { es: "Elige la categoría del negocio.", en: "Choose the business category." },
+  customMarketType: { es: "Agrega el tipo de negocio.", en: "Add the business type." },
+  businessName: { es: "Completa el nombre del negocio.", en: "Complete the business name." },
+  title: { es: "Agrega un título.", en: "Add a title." },
+  city: { es: "Agrega la ciudad.", en: "Add the city." },
+  zipCode: { es: "Agrega el código postal.", en: "Add the zip code." },
+  phone: { es: "Agrega teléfono, WhatsApp o sitio web.", en: "Add a phone, WhatsApp, or website." },
+};
 
 export type OfertaLocalAiScanReadinessStatus =
   | "not_ready"
@@ -129,11 +143,25 @@ export function getOfertaLocalAiScanReadiness(
       lang === "en" ? "Sign in to scan with AI." : "Inicia sesión para escanear con AI."
     );
   } else if (!hasOfertaLocalId && !canPersistForScan) {
-    missing.push(
-      lang === "en"
-        ? "Complete business details in Steps 2–4 before scanning."
-        : "Completa los datos del negocio en los Pasos 2–4 antes de escanear."
-    );
+    const persistIssues = validateOfertaLocalDraftForAiScanPersist(draft, null, { skipAuth: true });
+    const businessFieldMessages = persistIssues
+      .filter(
+        (issue) =>
+          issue.severity === "error" &&
+          issue.field !== "wantsAiSearchableSpecials" &&
+          issue.field !== "assets"
+      )
+      .map((issue) => SCAN_PERSIST_FIELD_MESSAGES[issue.field]?.[lang] ?? null)
+      .filter((message): message is string => Boolean(message));
+    if (businessFieldMessages.length > 0) {
+      missing.push(...businessFieldMessages);
+    } else {
+      missing.push(
+        lang === "en"
+          ? "Complete business details in Steps 2–4 before scanning."
+          : "Completa los datos del negocio en los Pasos 2–4 antes de escanear."
+      );
+    }
   }
 
   if (context.serverConfigurationMissing) {

@@ -145,6 +145,7 @@ export default function OfertasLocalesPreviewClient() {
       draft={draft}
       lang={lang}
       routeLang={routeLang}
+      ofertaLocalId={aiSession.ofertaLocalId}
       approvedAiItems={approvedAiItems}
       aiReviewLoading={aiReviewLoading}
       aiReviewError={aiReviewError}
