@@ -236,21 +236,36 @@ function run() {
   );
   console.log("Case T (Continuar a Extras sets wizard Step 7) passed.");
 
-  // --- Case U: Step 7 owns the Extras fields (social, memberships, rewards) ---
-  const step7CaseMatch = clientSrc.match(/case 7:[\s\S]*?\n      case 8:/);
-  assert.ok(step7CaseMatch, "sanity: case 7 block not found");
+  // --- Case U: Step 7 (flyer) / Step 6 (coupon) owns the Extras fields (social, memberships, rewards) ---
+  // Extras is shared between lanes at different step numbers (Gate: two-lane
+  // execution), so its content lives in one renderExtrasStepContent()
+  // function reused by both switch positions rather than duplicated inline.
+  const extrasFnMatch = clientSrc.match(
+    /function renderExtrasStepContent\(\) \{[\s\S]*?Shared between lanes — final review/
+  );
+  assert.ok(extrasFnMatch, "sanity: renderExtrasStepContent function not found");
   assert.match(
-    step7CaseMatch![0],
+    extrasFnMatch![0],
     /socialSectionTitle/,
-    "CASE U FAILED: Step 7 must own the Extras/social fields"
+    "CASE U FAILED: Extras must own the social fields"
+  );
+  assert.match(
+    clientSrc,
+    /case 7:\s*\n\s*return isCouponsLane \? renderFinalReviewStepContent\(\) : renderExtrasStepContent\(\);/,
+    "CASE U FAILED: Step 7 must call renderExtrasStepContent for the flyer lane"
+  );
+  assert.match(
+    clientSrc,
+    /case 6:\s*\n\s*if \(isCouponsLane\) \{\s*\n\s*return renderExtrasStepContent\(\);/,
+    "CASE U FAILED: Step 6 must call renderExtrasStepContent for the coupon lane"
   );
   console.log("Case U (Step 7 owns Extras fields) passed.");
 
   // --- Case V: Step 8 remains the final review step ---
   assert.match(
     clientSrc,
-    /case 8:\s*\n\s*return \(\s*\n\s*<div className="space-y-6">\s*\n\s*<div className="rounded-xl border border-\[#D4C4A8\]\/70 bg-\[#FDF8F0\]\/90 px-4 py-4">\s*\n\s*<h3 className="text-base font-semibold text-\[#1E1814\]">\{c\.step7FinalReviewTitle\}<\/h3>/,
-    "CASE V FAILED: Step 8 must remain the final review case"
+    /case 8:\s*\n\s*return renderFinalReviewStepContent\(\);/,
+    "CASE V FAILED: Step 8 must call renderFinalReviewStepContent"
   );
   console.log("Case V (Step 8 remains final review) passed.");
 

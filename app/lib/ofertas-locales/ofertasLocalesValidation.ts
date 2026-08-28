@@ -73,7 +73,11 @@ function appendDraftAssetValidation(issues: OfertaLocalValidationIssue[], draft:
 }
 
 function hasCouponContent(draft: OfertaLocalDraft): boolean {
-  return Boolean(draft.couponText.trim() || draft.description.trim());
+  return Boolean(
+    draft.couponText.trim() ||
+      draft.description.trim() ||
+      draft.couponEntries.some((entry) => entry.title.trim())
+  );
 }
 
 function isIsoDate(value: string): boolean {

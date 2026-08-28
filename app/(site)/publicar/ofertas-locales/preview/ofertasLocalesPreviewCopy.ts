@@ -356,4 +356,13 @@ export const OFERTAS_LOCALES_PREVIEW_COPY = {
   // V2.3 — premium header quick actions
   quickActionsTitleEs: "Acciones",
   quickActionsTitleEn: "Actions",
+  // Cupones y promociones lane — free product Preview rendering
+  freeLabelEs: "GRATIS",
+  freeLabelEn: "FREE",
+  couponsSectionTitleEs: "Cupones y ofertas destacadas",
+  couponsSectionTitleEn: "Featured coupons & offers",
+  couponsViewFlyerCtaEs: "Ver flyer de promociones →",
+  couponsViewFlyerCtaEn: "View promotions flyer →",
+  couponValidUntilEs: "Válido hasta",
+  couponValidUntilEn: "Valid until",
 } as const;

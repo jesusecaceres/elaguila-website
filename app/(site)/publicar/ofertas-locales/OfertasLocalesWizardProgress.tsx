@@ -1,10 +1,10 @@
 "use client";
 
 import {
-  OFERTAS_LOCALES_WIZARD_STEP_COUNT,
-  OFERTAS_LOCALES_WIZARD_STEPS,
+  OFERTAS_LOCALES_FLYER_WIZARD_STEPS,
   wizardStepLabel,
   type OfertasLocalesWizardStepId,
+  type OfertasLocalesWizardStepMeta,
 } from "@/app/lib/ofertas-locales/ofertasLocalesWizardSteps";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 
@@ -17,10 +17,18 @@ type Props = {
   lang: OfertasLocalesAppLang;
   progressLabel: string;
   onStepClick?: (step: OfertasLocalesWizardStepId) => void;
+  /** Defaults to the flyer lane's 8 steps for any caller that doesn't pass a lane-aware list. */
+  steps?: ReadonlyArray<OfertasLocalesWizardStepMeta>;
 };
 
-export function OfertasLocalesWizardProgress({ currentStep, lang, progressLabel, onStepClick }: Props) {
-  const pct = Math.round((currentStep / OFERTAS_LOCALES_WIZARD_STEP_COUNT) * 100);
+export function OfertasLocalesWizardProgress({
+  currentStep,
+  lang,
+  progressLabel,
+  onStepClick,
+  steps = OFERTAS_LOCALES_FLYER_WIZARD_STEPS,
+}: Props) {
+  const pct = Math.round((currentStep / steps.length) * 100);
 
   return (
     <>
@@ -42,7 +50,7 @@ export function OfertasLocalesWizardProgress({ currentStep, lang, progressLabel,
             onChange={(e) => onStepClick?.(Number(e.target.value) as OfertasLocalesWizardStepId)}
             className="w-full rounded-lg border border-[#D4C4A8] bg-white px-2 py-1.5 text-sm font-semibold text-[#1E1814] focus:border-[#7A1E2C] focus:outline-none focus:ring-2 focus:ring-[#7A1E2C]/30"
           >
-            {OFERTAS_LOCALES_WIZARD_STEPS.map((step) => (
+            {steps.map((step) => (
               <option key={step.id} value={step.id}>
                 {step.id}. {wizardStepLabel(step, lang)}
               </option>
@@ -53,7 +61,7 @@ export function OfertasLocalesWizardProgress({ currentStep, lang, progressLabel,
 
       <nav className="hidden lg:block" aria-label={lang === "en" ? "Wizard steps" : "Pasos del asistente"}>
         <ol className="space-y-1">
-          {OFERTAS_LOCALES_WIZARD_STEPS.map((step) => {
+          {steps.map((step) => {
             const active = step.id === currentStep;
             const done = step.id < currentStep;
             return (

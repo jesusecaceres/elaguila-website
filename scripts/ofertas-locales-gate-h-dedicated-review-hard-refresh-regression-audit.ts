@@ -80,8 +80,8 @@ function run() {
   );
   assert.match(
     clientSrc,
-    /const hideGenericFooter =\s*\n\s*step === 6 \|\| \(step === 5 && aiIncludedInPackage && step5ScanComplete\);/,
-    "CASE D FAILED: the wizard-level Back/Next footer must be hidden while the dedicated review screen (Step 6) is open"
+    /const hideGenericFooter =\s*\n\s*\(!isCouponsLane && step === 6\) \|\|\s*\n\s*\(!isCouponsLane && step === 5 && aiIncludedInPackage && step5ScanComplete\);/,
+    "CASE D FAILED: the wizard-level Back/Next footer must be hidden while the dedicated review screen (flyer-lane Step 6) is open"
   );
   console.log("Case D (dedicated review screen hides the Step 5 checklist/footer) passed.");
 
