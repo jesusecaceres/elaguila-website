@@ -7,6 +7,7 @@ import type { BienesRaicesPrivadoFormState } from "@/app/clasificados/publicar/b
 import { mapBienesRaicesPrivadoStateToPreviewVm } from "@/app/clasificados/publicar/bienes-raices/privado/application/mapping/mapBienesRaicesPrivadoStateToPreviewVm";
 import { mapRentasPrivadoStateToPreviewVm } from "@/app/clasificados/publicar/rentas/privado/application/mapping/mapRentasPrivadoStateToPreviewVm";
 import type { RentasPrivadoFormState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
+import { rentasCategoriaPropiedadForTipo } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 import { mapBienesRaicesNegocioStateToPreviewVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/mapBienesRaicesNegocioStateToPreviewVm";
 import { mapRentasNegocioStateToPreviewVm } from "@/app/clasificados/publicar/rentas/negocio/application/mapping/mapRentasNegocioStateToPreviewVm";
 import { rentasNegocioToBienesRaicesNegocioState } from "@/app/clasificados/publicar/rentas/negocio/application/mapping/rentasNegocioToBienesRaicesNegocioState";
@@ -322,7 +323,9 @@ export function buildRentasPrivadoListingParams(
   const pairs = mergeLeonixListingContractDetailPairs(withMachine, {
     branch: "rentas_privado",
     operation: "rent",
-    categoriaPropiedad: state.categoriaPropiedad,
+    // Item 13 fix — always write the canonical category derived from tipoDeRenta, defensively,
+    // even if a mismatched state somehow reached publish (the form itself now keeps them in sync).
+    categoriaPropiedad: rentasCategoriaPropiedadForTipo(state.tipoDeRenta),
     machineFacetPairs: buildLeonixMachineFacetPairsFromRentasPrivadoFormState(state),
   });
   const contact = privadoSellerContact(state.seller);
@@ -529,7 +532,9 @@ export function buildRentasNegocioListingParams(
   const pairs = mergeLeonixListingContractDetailPairs(withMachine, {
     branch: "rentas_negocio",
     operation: "rent",
-    categoriaPropiedad: state.categoriaPropiedad,
+    // Item 13 fix — always write the canonical category derived from tipoDeRenta, defensively,
+    // even if a mismatched state somehow reached publish (the form itself now keeps them in sync).
+    categoriaPropiedad: rentasCategoriaPropiedadForTipo(state.tipoDeRenta),
     machineFacetPairs: [
       ...buildLeonixMachineFacetPairsFromBienesRaicesNegocioState(br),
       ...buildLeonixHighlightSlugPairsFromRentasNegocioNonResidencial(state),
