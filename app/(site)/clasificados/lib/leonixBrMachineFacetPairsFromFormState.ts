@@ -32,8 +32,13 @@ import {
 import {
   LEONIX_DP_BATHROOMS_COUNT,
   LEONIX_DP_BEDROOMS_COUNT,
+  LEONIX_DP_BR_CUSTOM_HIGHLIGHTS,
   LEONIX_DP_BR_LISTING_STATUS,
   LEONIX_DP_BR_MAP_URL,
+  LEONIX_DP_BR_VIDEO_URL,
+  LEONIX_DP_BR_VIDEO_URL_2,
+  LEONIX_DP_BR_VIDEO_URL_3,
+  LEONIX_DP_BR_VIDEO_URL_4,
   LEONIX_DP_FURNISHED,
   LEONIX_DP_HIGHLIGHT_SLUGS,
   LEONIX_DP_PARKING_SPOTS,
@@ -50,6 +55,7 @@ import {
   normalizeLeonixLbCountry,
   normalizeLeonixLbStateCode,
 } from "@/app/clasificados/shared/constants/leonixPropertyLocationContract";
+import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
 
 function push(out: Array<{ label: string; value: string }>, label: string, value: string | number | boolean | null | undefined) {
   if (value === null || value === undefined) return;
@@ -99,12 +105,25 @@ function pushHighlightSlugsForPrivado(
   out: Array<{ label: string; value: string }>,
 ) {
   const cat = state.categoriaPropiedad;
+  if (cat === "residencial") {
+    // Owner-typed "Agregar otra característica" values aren't canonical preset keys — the slug
+    // channel below strips spaces/accents/punctuation for filtering, so free text can't survive
+    // it. Split residencial highlightKeys into known presets (slugified, filterable) vs custom
+    // text (preserved verbatim in its own pair, display-only).
+    const knownKeys = new Set(BR_HIGHLIGHT_PRESET_DEFS.map((d) => d.key));
+    const known = state.residencial.highlightKeys.filter((k) => knownKeys.has(k));
+    const custom = state.residencial.highlightKeys.filter((k) => !knownKeys.has(k));
+    const slugs = known.map((k) => String(k).trim().toLowerCase().replace(/[^a-z0-9_]/g, "")).filter(Boolean);
+    const uniq = [...new Set(slugs)].sort();
+    if (uniq.length) push(out, LEONIX_DP_HIGHLIGHT_SLUGS, uniq.join(","));
+    const customText = [...new Set(custom.map((c) => c.trim()).filter(Boolean))];
+    if (customText.length) push(out, LEONIX_DP_BR_CUSTOM_HIGHLIGHTS, customText.join("|"));
+    return;
+  }
   const slugs =
-    cat === "residencial"
-      ? state.residencial.highlightKeys.map((k) => String(k).trim().toLowerCase().replace(/[^a-z0-9_]/g, "")).filter(Boolean)
-      : cat === "comercial"
-        ? state.comercial.destacadoIds.map((id) => `comercial:${String(id).trim().toLowerCase().replace(/[^a-z0-9_]/g, "")}`)
-        : state.terreno.destacadoIds.map((id) => `terreno:${String(id).trim().toLowerCase().replace(/[^a-z0-9_]/g, "")}`);
+    cat === "comercial"
+      ? state.comercial.destacadoIds.map((id) => `comercial:${String(id).trim().toLowerCase().replace(/[^a-z0-9_]/g, "")}`)
+      : state.terreno.destacadoIds.map((id) => `terreno:${String(id).trim().toLowerCase().replace(/[^a-z0-9_]/g, "")}`);
   const uniq = [...new Set(slugs.filter(Boolean))].sort();
   if (uniq.length) push(out, LEONIX_DP_HIGHLIGHT_SLUGS, uniq.join(","));
 }
@@ -244,6 +263,14 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(
     const href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`;
     push(out, LEONIX_DP_BR_MAP_URL, href);
   }
+  const videoUrls = (state.media.videoUrls.length ? state.media.videoUrls : [state.media.videoUrl])
+    .map((v) => v.trim())
+    .filter(Boolean)
+    .slice(0, 4);
+  if (videoUrls[0]) push(out, LEONIX_DP_BR_VIDEO_URL, videoUrls[0]);
+  if (videoUrls[1]) push(out, LEONIX_DP_BR_VIDEO_URL_2, videoUrls[1]);
+  if (videoUrls[2]) push(out, LEONIX_DP_BR_VIDEO_URL_3, videoUrls[2]);
+  if (videoUrls[3]) push(out, LEONIX_DP_BR_VIDEO_URL_4, videoUrls[3]);
   return out;
 }
 

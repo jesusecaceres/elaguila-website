@@ -39,6 +39,15 @@ export const LEONIX_DP_BR_SHOW_EXACT_ADDRESS = "Leonix:br:show_exact_address";
 export const LEONIX_DP_BR_LISTING_STATUS = "Leonix:br:listing_status";
 /** Safe https Google Maps link from publish `enlaceMapa` when provided. */
 export const LEONIX_DP_BR_MAP_URL = "Leonix:br:map_url";
+/** BR Privado external video URLs (external links only, no device upload) — up to 4, same
+ * fixed-key pattern already proven for Rentas (`Leonix:rent:video_url[_N]`). */
+export const LEONIX_DP_BR_VIDEO_URL = "Leonix:br:video_url";
+export const LEONIX_DP_BR_VIDEO_URL_2 = "Leonix:br:video_url_2";
+export const LEONIX_DP_BR_VIDEO_URL_3 = "Leonix:br:video_url_3";
+export const LEONIX_DP_BR_VIDEO_URL_4 = "Leonix:br:video_url_4";
+/** Owner-typed "Agregar otra característica" text — kept separate from `Leonix:highlight_slugs`
+ * (which is machine-slugified for filtering and cannot round-trip free text/spaces/accents). */
+export const LEONIX_DP_BR_CUSTOM_HIGHLIGHTS = "Leonix:br:custom_highlights";
 
 export const LEONIX_MACHINE_FACET_LABELS: readonly string[] = [
   LEONIX_DP_BEDROOMS_COUNT,

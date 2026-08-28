@@ -10,13 +10,19 @@
  * facts through the same underlying contract.
  */
 import {
+  LEONIX_DP_BR_CUSTOM_HIGHLIGHTS,
   LEONIX_DP_BR_LISTING_STATUS,
   LEONIX_DP_BR_MAP_URL,
   LEONIX_DP_BR_SHOW_EXACT_ADDRESS,
+  LEONIX_DP_BR_VIDEO_URL,
+  LEONIX_DP_BR_VIDEO_URL_2,
+  LEONIX_DP_BR_VIDEO_URL_3,
+  LEONIX_DP_BR_VIDEO_URL_4,
   parseLeonixListingContract,
   parseLeonixMachineFacetRead,
   readLeonixDetailPairValue,
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
 import { buildBrLiveGate12dHoaCard, buildBrLiveGate12dOpenHouseCard } from "@/app/clasificados/lib/leonixBrGate12d";
 import { formatUsPhoneDisplay, digitsOnly } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/phoneMask";
 import { phoneTelHref, stripPhoneDigits } from "@/app/lib/leonix/phoneFormat";
@@ -37,6 +43,15 @@ const ESTADO_LABEL: Record<string, { es: string; en: string }> = {
 /** Facts already surfaced elsewhere in the VM (seller identity, operation/status/location) — never
  * duplicated in the generic property-facts list. */
 const RESERVED_HUMAN_LABELS = new Set(["Operación", "Estado del anuncio", "Ubicación", "Vendedor", "Foto del vendedor"]);
+
+function parseYoutubeId(u: string): string | null {
+  const m = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/.exec(u);
+  return m?.[1] ?? null;
+}
+
+function numberedVideoCtaLabel(index: number): string {
+  return index === 0 ? "Ver video" : `Ver video ${index + 1}`;
+}
 
 function trim(v: unknown): string {
   return v == null ? "" : typeof v === "string" ? v.trim() : String(v).trim();
@@ -116,6 +131,32 @@ export function mapBrListingRowToPrivadoPreviewVm(listing: BienesLiveListingLike
   const images = (listing.images ?? []).map(trim).filter(Boolean);
   const photoCount = images.length;
 
+  const videoUrls = [
+    readLeonixDetailPairValue(detailPairs, LEONIX_DP_BR_VIDEO_URL),
+    readLeonixDetailPairValue(detailPairs, LEONIX_DP_BR_VIDEO_URL_2),
+    readLeonixDetailPairValue(detailPairs, LEONIX_DP_BR_VIDEO_URL_3),
+    readLeonixDetailPairValue(detailPairs, LEONIX_DP_BR_VIDEO_URL_4),
+  ].filter((u): u is string => Boolean(u?.trim()));
+  const primaryVideo = videoUrls[0] ?? null;
+  const primaryYoutubeId = primaryVideo ? parseYoutubeId(primaryVideo) : null;
+  const primaryThumb = primaryYoutubeId ? `https://img.youtube.com/vi/${primaryYoutubeId}/hqdefault.jpg` : null;
+  const externalVideoLinks = videoUrls.map((href, index) => ({ label: numberedVideoCtaLabel(index), href }));
+
+  const highlightLabelBySlug = new Map(
+    BR_HIGHLIGHT_PRESET_DEFS.map((d) => [d.key.toLowerCase().replace(/[^a-z0-9_]/g, ""), d.label]),
+  );
+  const knownHighlightRows = (facets.highlightSlugs ?? [])
+    .map((slug) => highlightLabelBySlug.get(slug))
+    .filter((label): label is string => Boolean(label))
+    .map((label) => ({ label, value: "✓" }));
+  const customHighlightsRaw = readLeonixDetailPairValue(detailPairs, LEONIX_DP_BR_CUSTOM_HIGHLIGHTS) ?? "";
+  const customHighlightRows = customHighlightsRaw
+    .split("|")
+    .map((v) => v.trim())
+    .filter(Boolean)
+    .map((label) => ({ label, value: "✓" }));
+  const highlightsRows = [...knownHighlightRows, ...customHighlightRows];
+
   return {
     categoria: contract.categoriaPropiedad ?? "residencial",
     platformLogoUrl: "/logo.png",
@@ -139,15 +180,21 @@ export function mapBrListingRowToPrivadoPreviewVm(listing: BienesLiveListingLike
     media: {
       heroUrl: images[0] ?? null,
       secondaryPhotoUrls: [],
-      videoThumbUrls: [null, null],
-      videoPlaybackUrls: [null, null],
-      youtubeIds: [null, null],
+      videoThumbUrls: [primaryThumb, null],
+      videoPlaybackUrls: [primaryVideo, null],
+      youtubeIds: [primaryYoutubeId, null],
+      externalVideoLinks,
       virtualTourUrl: null,
       floorPlanUrls: [],
       sitePlanUrl: null,
-      metaLine: photoCount > 0 ? `${photoCount} foto${photoCount === 1 ? "" : "s"} en la galería` : "",
+      metaLine:
+        photoCount > 0
+          ? `${photoCount} foto${photoCount === 1 ? "" : "s"} en la galería`
+          : primaryVideo
+            ? "Video en el anuncio"
+            : "",
       hasPhotos: photoCount > 0,
-      hasVideo1: false,
+      hasVideo1: Boolean(primaryVideo),
       hasVideo2: false,
       hasVirtualTour: false,
       hasFloorPlans: false,
@@ -159,8 +206,8 @@ export function mapBrListingRowToPrivadoPreviewVm(listing: BienesLiveListingLike
       photoCaptionsFull: images.map(() => ""),
     },
     propertyDetailsRows: humanFactRows(detailPairs),
-    highlightsRows: [],
-    hasHighlights: false,
+    highlightsRows,
+    hasHighlights: highlightsRows.length > 0,
     description: listing.blurb[lang] || listing.blurb.es || listing.blurb.en,
     hasDescription: Boolean(trim(listing.blurb[lang] || listing.blurb.es || listing.blurb.en)),
     contactRailTitle: lang === "es" ? "Contacto" : "Contact",
