@@ -280,6 +280,9 @@ export function PublishCheckoutCheckpoint({
               </div>
               <span className="shrink-0 font-semibold tabular-nums" style={{ color: LEONIX_CHARCOAL }}>
                 {formatPublishCheckpointMoney(item.priceCents, lang, { monthly: basePackageIsMonthly })}
+                {!basePackageIsMonthly && (lang === "es" ? item.durationSuffixEs : item.durationSuffixEn)
+                  ? ` / ${lang === "es" ? item.durationSuffixEs : item.durationSuffixEn}`
+                  : ""}
               </span>
             </li>
           ))}

@@ -93,6 +93,11 @@ export type PublishCheckpointLineItem = {
   /** Optional sub-label (e.g. "includes 1 featured property"). */
   detailEn?: string;
   detailEs?: string;
+  /** Optional non-monthly duration suffix appended to the price (e.g. "45 days" renders as
+   * "$49.99 / 45 days"). Only used when the package is not a monthly subscription; existing
+   * callers that don't set this are unaffected. */
+  durationSuffixEn?: string;
+  durationSuffixEs?: string;
 };
 
 export type PublishCheckpointAddOn = {
