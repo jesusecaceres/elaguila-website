@@ -86,6 +86,42 @@ check("shared#122-restaurantes", "Restaurantes persists activeSectionId so Previ
   const s = read("app/(site)/publicar/restaurantes/RestauranteApplicationClient.tsx");
   return /RESTAURANTE_ACTIVE_SECTION_STORAGE_KEY/.test(s) && /sessionStorage\.getItem\(RESTAURANTE_ACTIVE_SECTION_STORAGE_KEY\)/.test(s);
 });
+check("owner-accepted-truthfulness", "No accepted-confirmation label overclaims durable save/upload when only local-draft-acceptance occurred (Servicios coupon/flyer, Restaurantes hero/logo/menu-file status labels)", () => {
+  const servicios = read("app/(site)/clasificados/publicar/servicios/components/ClasificadosServiciosApplication.tsx");
+  const restauranteCopy = read("app/(site)/publicar/restaurantes/restauranteApplicationFormCopy.ts");
+  const statusLabelsBlock = /savedInDraft:\s*"[^"]*"|logoSavedInDraft:\s*"[^"]*"|fileSavedInDraft:\s*"[^"]*"/g;
+  const statusLabels = restauranteCopy.match(statusLabelsBlock) ?? [];
+  const anyOverclaim = statusLabels.some((s) => /guardad[oa] en el borrador|saved in draft/i.test(s));
+  return !/Imagen guardada|Image saved/.test(servicios) && !anyOverclaim;
+});
+check("owner-accepted-confirmation-primitive", "Shared AddedConfirmation primitive exists (useAddedConfirmation + AddedConfirmationBadge)", () => {
+  const s = read("app/components/forms/AddedConfirmation.tsx");
+  return /useAddedConfirmation/.test(s) && /AddedConfirmationBadge/.test(s);
+});
+check("owner-accepted-confirmation-servicios", "Servicios wires the accepted-confirmation badge into its Add flows", () => {
+  const s = read("app/(site)/clasificados/publicar/servicios/components/ClasificadosServiciosApplication.tsx");
+  return /AddedConfirmationBadge/.test(s) && /useAddedConfirmation/.test(s);
+});
+check("owner-accepted-confirmation-restaurantes", "Restaurantes wires the accepted-confirmation badge into its Add flows", () => {
+  const s = read("app/(site)/publicar/restaurantes/RestauranteApplicationClient.tsx");
+  return /AddedConfirmationBadge/.test(s) && /useAddedConfirmation/.test(s);
+});
+check("owner-accepted-confirmation-comida", "Comida Local wires the accepted-confirmation badge into its Add flows", () => {
+  const s = read("app/(site)/publicar/comida-local/ComidaLocalApplicationClient.tsx");
+  return /AddedConfirmationBadge/.test(s) && /useAddedConfirmation/.test(s);
+});
+check("restaurantes-amenidades-custom-groups", "Restaurantes' 6 Amenidades groups have per-group custom-entry support (new feature, previously missing entirely)", () => {
+  const form = read("app/(site)/publicar/restaurantes/RestauranteAmenitiesFormBlock.tsx");
+  const model = read("app/(site)/clasificados/restaurantes/application/restauranteListingApplicationModel.ts");
+  const catalog = read("app/(site)/clasificados/restaurantes/lib/restauranteAmenitiesCatalog.ts");
+  return /customRestaurantAmenitiesByGroup/.test(form) &&
+    /customRestaurantAmenitiesByGroup/.test(model) &&
+    /evaluateAddCustomRestauranteAmenityOptionForGroup/.test(catalog);
+});
+check("restaurantes-amenidades-nondestructive-hydrate", "Restaurantes amenity-custom hydration is non-destructive for existing listings (defaults to empty, doesn't crash)", () => {
+  const s = read("app/(site)/clasificados/restaurantes/application/createEmptyRestauranteDraft.ts");
+  return /customRestaurantAmenitiesByGroup/.test(s);
+});
 check("R-025", "Restaurantes shell mapper passes special/temporary hours fields into the open-now status calculation", () => {
   const s = read("app/(site)/clasificados/restaurantes/application/mapRestauranteDraftToShell.ts");
   return /specialHoursEntries/.test(s) && /temporaryHoursActive/.test(s);

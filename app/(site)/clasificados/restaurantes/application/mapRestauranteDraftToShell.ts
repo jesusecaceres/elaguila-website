@@ -768,7 +768,7 @@ export function mapRestauranteDraftToShellData(
   const logoTrim = d.businessLogo?.trim();
   const logoResolved = nonEmpty(logoTrim) ? logoTrim : undefined;
 
-  const amenitiesBlock = buildShellAmenitiesSection(d.restaurantAmenities);
+  const amenitiesBlock = buildShellAmenitiesSection(d.restaurantAmenities, d.customRestaurantAmenitiesByGroup);
 
   const enShell = lang === "en";
   return {

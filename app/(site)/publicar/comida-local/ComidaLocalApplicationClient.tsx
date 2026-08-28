@@ -3,7 +3,7 @@
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { normalizeLang, replaceLangInHref } from "@/app/lib/language";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { postComidaLocalPublishApi } from "@/app/lib/clasificados/comida-local/comidaLocalPublishClient";
@@ -24,6 +24,7 @@ import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlo
 import { PhoneInput } from "@/app/components/forms/PhoneInput";
 import { LanguagesInput } from "@/app/components/forms/LanguagesInput";
 import { HoursEditor, type HoursEditorDayRow } from "@/app/components/forms/HoursEditor";
+import { AddedConfirmationBadge, useAddedConfirmation } from "@/app/components/forms/AddedConfirmation";
 import {
   COMIDA_LOCAL_BUSINESS_TYPE_OPTIONS,
   COMIDA_LOCAL_FOOD_TYPE_OPTIONS,
@@ -195,6 +196,8 @@ function CustomChipListField({
   addLabel,
   removeAriaLabel,
   maxLength = 80,
+  justAdded,
+  addedLabel,
 }: {
   values: string[];
   inputValue: string;
@@ -205,6 +208,12 @@ function CustomChipListField({
   addLabel: string;
   removeAriaLabel: (value: string) => string;
   maxLength?: number;
+  /** Owner UX doctrine (INPUT -> ACCEPTED -> PERSISTED): true for a brief moment right after a
+   * genuinely successful add, driven by the caller's own `useAddedConfirmation()` instance so
+   * each of this component's call sites (business type / service mode / highlights) flashes
+   * independently. */
+  justAdded: boolean;
+  addedLabel: string;
 }) {
   return (
     <div className="space-y-2">
@@ -249,6 +258,7 @@ function CustomChipListField({
         >
           {addLabel}
         </button>
+        <AddedConfirmationBadge visible={justAdded} label={addedLabel} />
       </div>
     </div>
   );
@@ -310,6 +320,33 @@ export default function ComidaLocalApplicationClient() {
   const [businessTypeCustomInput, setBusinessTypeCustomInput] = useState("");
   const [serviceOptionOtherInput, setServiceOptionOtherInput] = useState("");
   const [highlightsOtherInput, setHighlightsOtherInput] = useState("");
+  // Owner UX doctrine — each explicit Add/Accept flow owns its own independent "just added"
+  // flash state so, e.g., adding a highlight never flashes a confirmation next to service mode.
+  const businessTypeAddedConfirmation = useAddedConfirmation();
+  const serviceOptionOtherAddedConfirmation = useAddedConfirmation();
+  const highlightsOtherAddedConfirmation = useAddedConfirmation();
+  const customLanguageAddedConfirmation = useAddedConfirmation();
+  /** Per-row confirmation for repeatable "additional websites" links (dynamic row count, so this
+   * is a small map + timer-ref instead of one `useAddedConfirmation()` per row) — mirrors
+   * Restaurantes' `websiteLinkConfirmVisible`/`flashWebsiteLinkAdded`. Flashes only once a row's
+   * URL is a genuinely valid, non-blank link (on blur), never merely because a blank row slot
+   * was created by the "+ Add link" button. */
+  const [websiteLinkConfirmVisible, setWebsiteLinkConfirmVisible] = useState<Record<number, boolean>>({});
+  const websiteLinkConfirmTimersRef = useRef<Record<number, number>>({});
+  useEffect(() => {
+    const timers = websiteLinkConfirmTimersRef.current;
+    return () => {
+      Object.values(timers).forEach((t) => window.clearTimeout(t));
+    };
+  }, []);
+  const flashAdditionalWebsiteAdded = useCallback((index: number) => {
+    setWebsiteLinkConfirmVisible((prev) => ({ ...prev, [index]: true }));
+    const existing = websiteLinkConfirmTimersRef.current[index];
+    if (existing != null) window.clearTimeout(existing);
+    websiteLinkConfirmTimersRef.current[index] = window.setTimeout(() => {
+      setWebsiteLinkConfirmVisible((prev) => ({ ...prev, [index]: false }));
+    }, 2200);
+  }, []);
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] = useState<{
@@ -444,7 +481,8 @@ export default function ComidaLocalApplicationClient() {
     setBusinessTypeCustomInput("");
     if (draft.businessTypeCustomValues.some((v) => v.toLowerCase() === value.toLowerCase())) return;
     updateDraft({ businessTypeCustomValues: [...draft.businessTypeCustomValues, value] });
-  }, [businessTypeCustomInput, draft.businessTypeCustomValues, updateDraft]);
+    businessTypeAddedConfirmation.flash();
+  }, [businessTypeCustomInput, draft.businessTypeCustomValues, updateDraft, businessTypeAddedConfirmation]);
 
   const removeBusinessTypeCustomValue = useCallback(
     (index: number) => {
@@ -463,7 +501,13 @@ export default function ComidaLocalApplicationClient() {
     updateDraft({
       serviceOptionOtherCustomValues: [...draft.serviceOptionOtherCustomValues, value],
     });
-  }, [serviceOptionOtherInput, draft.serviceOptionOtherCustomValues, updateDraft]);
+    serviceOptionOtherAddedConfirmation.flash();
+  }, [
+    serviceOptionOtherInput,
+    draft.serviceOptionOtherCustomValues,
+    updateDraft,
+    serviceOptionOtherAddedConfirmation,
+  ]);
 
   const removeServiceOptionOtherValue = useCallback(
     (index: number) => {
@@ -482,7 +526,13 @@ export default function ComidaLocalApplicationClient() {
     setHighlightsOtherInput("");
     if (draft.highlightsOtherCustomValues.some((v) => v.toLowerCase() === value.toLowerCase())) return;
     updateDraft({ highlightsOtherCustomValues: [...draft.highlightsOtherCustomValues, value] });
-  }, [highlightsOtherInput, draft.highlightsOtherCustomValues, updateDraft]);
+    highlightsOtherAddedConfirmation.flash();
+  }, [
+    highlightsOtherInput,
+    draft.highlightsOtherCustomValues,
+    updateDraft,
+    highlightsOtherAddedConfirmation,
+  ]);
 
   const removeHighlightsOtherValue = useCallback(
     (index: number) => {
@@ -802,6 +852,8 @@ export default function ComidaLocalApplicationClient() {
                         placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.businessTypeCustom, es).placeholder}
                         addLabel={es ? "Agregar" : "Add"}
                         removeAriaLabel={(value) => (es ? `Quitar ${value}` : `Remove ${value}`)}
+                        justAdded={businessTypeAddedConfirmation.visible}
+                        addedLabel={es ? "Añadido" : "Added"}
                       />
                     </FieldBlock>
                   ) : null}
@@ -1022,6 +1074,10 @@ export default function ComidaLocalApplicationClient() {
                               next[i] = { ...next[i], url: e.target.value };
                               updateDraft({ additionalWebsites: next });
                             }}
+                            onBlur={(e) => {
+                              const v = e.target.value.trim();
+                              if (v && isValidComidaLocalExternalUrl(v)) flashAdditionalWebsiteAdded(i);
+                            }}
                             placeholder="https://…"
                           />
                           <button
@@ -1035,20 +1091,26 @@ export default function ComidaLocalApplicationClient() {
                           >
                             {es ? "Quitar" : "Remove"}
                           </button>
+                          <AddedConfirmationBadge
+                            visible={Boolean(websiteLinkConfirmVisible[i])}
+                            label={es ? "Enlace añadido" : "Link added"}
+                          />
                         </div>
                       ))}
                       {draft.additionalWebsites.length < 6 ? (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateDraft({
-                              additionalWebsites: [...draft.additionalWebsites, { label: "", url: "" }],
-                            })
-                          }
-                          className="rounded-lg border border-dashed border-[#D4C4A8] px-3 py-2 text-xs font-medium text-[#1E1814]/70 hover:border-[#7A1E2C]/40"
-                        >
-                          {es ? "+ Agregar enlace" : "+ Add link"}
-                        </button>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateDraft({
+                                additionalWebsites: [...draft.additionalWebsites, { label: "", url: "" }],
+                              })
+                            }
+                            className="rounded-lg border border-dashed border-[#D4C4A8] px-3 py-2 text-xs font-medium text-[#1E1814]/70 hover:border-[#7A1E2C]/40"
+                          >
+                            {es ? "+ Agregar enlace" : "+ Add link"}
+                          </button>
+                        </div>
                       ) : null}
                     </div>
                   </FieldBlock>
@@ -1194,6 +1256,8 @@ export default function ComidaLocalApplicationClient() {
                         placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.serviceOptionOtherCustom, es).placeholder}
                         addLabel={es ? "Agregar" : "Add"}
                         removeAriaLabel={(value) => (es ? `Quitar ${value}` : `Remove ${value}`)}
+                        justAdded={serviceOptionOtherAddedConfirmation.visible}
+                        addedLabel={es ? "Añadido" : "Added"}
                       />
                     </FieldBlock>
                   ) : null}
@@ -1324,6 +1388,7 @@ export default function ComidaLocalApplicationClient() {
                         }
                         updateDraft({ customLanguages: [...draft.customLanguages, value] });
                         setCustomLanguageInput("");
+                        customLanguageAddedConfirmation.flash();
                       }}
                       onRemoveCustom={(index) =>
                         updateDraft({
@@ -1336,6 +1401,11 @@ export default function ComidaLocalApplicationClient() {
                         add: es ? "Agregar" : "Add",
                         removeAria: (value) => (es ? `Quitar ${value}` : `Remove ${value}`),
                       }}
+                    />
+                    <AddedConfirmationBadge
+                      visible={customLanguageAddedConfirmation.visible}
+                      label={es ? "Idioma añadido" : "Language added"}
+                      className="mt-2"
                     />
                   </FieldBlock>
                   <FieldBlock fieldKey="highlights" es={es}>
@@ -1375,6 +1445,8 @@ export default function ComidaLocalApplicationClient() {
                         placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.highlightsOtherCustom, es).placeholder}
                         addLabel={es ? "Agregar" : "Add"}
                         removeAriaLabel={(value) => (es ? `Quitar ${value}` : `Remove ${value}`)}
+                        justAdded={highlightsOtherAddedConfirmation.visible}
+                        addedLabel={es ? "Añadido" : "Added"}
                       />
                     </FieldBlock>
                   ) : null}
