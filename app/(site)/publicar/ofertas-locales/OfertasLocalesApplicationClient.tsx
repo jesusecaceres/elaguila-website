@@ -198,6 +198,8 @@ const BTN_PRIMARY =
   "rounded-xl bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-45";
 const BTN_SECONDARY =
   "rounded-xl border border-[#D4C4A8] bg-white px-4 py-2.5 text-sm font-medium text-[#1E1814] hover:border-[#7A1E2C]/40 disabled:cursor-not-allowed disabled:opacity-45";
+const BTN_SUCCESS_LG =
+  "min-h-12 w-full rounded-lg bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto";
 const CALLOUT =
   "rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0] px-4 py-3 text-sm text-[#1E1814]/75";
 const HINT_BOX =
@@ -220,6 +222,8 @@ function formatUsd(amount: number): string {
 function FieldBlock({
   label,
   helper,
+  error,
+  errorId,
   optional,
   optionalLabel = "opcional",
   confirm,
@@ -227,6 +231,8 @@ function FieldBlock({
 }: {
   label: string;
   helper?: string;
+  error?: string;
+  errorId?: string;
   optional?: boolean;
   optionalLabel?: string;
   confirm?: string;
@@ -241,7 +247,16 @@ function FieldBlock({
         ) : null}
       </label>
       {children}
-      {helper ? <p className={HELPER}>{helper}</p> : null}
+      {/* ⚠️65: a real inline error, distinct from the neutral grey helper —
+          shown immediately (not only after Step 8 revalidation) so an
+          invalid optional value never advances silently. */}
+      {error ? (
+        <p id={errorId} role="alert" className="text-xs font-medium text-red-700">
+          {error}
+        </p>
+      ) : helper ? (
+        <p className={HELPER}>{helper}</p>
+      ) : null}
       {confirm ? <p className={CONFIRM}>{confirm}</p> : null}
     </div>
   );
@@ -321,6 +336,7 @@ export default function OfertasLocalesApplicationClient() {
     null
   );
   const reviewWorkbenchRef = useRef<HTMLElement>(null);
+  const emailFieldRef = useRef<HTMLInputElement>(null);
   // Consolidated to 3 confirmations (Gate F ⚠️42) — businessInfo + filesDates
   // merged into one, aiItems stays required only for AI-included packages.
   const [step7Confirmations, setStep7Confirmations] = useState({
@@ -976,6 +992,10 @@ export default function OfertasLocalesApplicationClient() {
     [c.couponEntryImageUploadFailed, lang, patchCouponEntry]
   );
 
+  // ⚠️65: Extras is step 6 for the coupon lane and step 7 for the flyer
+  // lane (both render the same shared renderExtrasStepContent()).
+  const isExtrasStep = isCouponsLane ? step === 6 : step === 7;
+
   const goNext = useCallback(() => {
     if (step === 5) {
       if (isCouponsLane) {
@@ -985,9 +1005,23 @@ export default function OfertasLocalesApplicationClient() {
         if (aiIncludedInPackage && !step5ScanComplete) return;
       }
     }
+    if (isExtrasStep && emailMalformed) {
+      emailFieldRef.current?.focus();
+      emailFieldRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     setStep((s) => clampWizardStep(s + 1, isCouponsLane));
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [aiIncludedInPackage, couponsStep5Complete, isCouponsLane, step, step5ScanComplete, step5UploadComplete]);
+  }, [
+    aiIncludedInPackage,
+    couponsStep5Complete,
+    emailMalformed,
+    isCouponsLane,
+    isExtrasStep,
+    step,
+    step5ScanComplete,
+    step5UploadComplete,
+  ]);
 
   const step5UploadBlocksContinue = useMemo(() => {
     if (step !== 5 || isCouponsLane) return false;
@@ -1292,11 +1326,14 @@ export default function OfertasLocalesApplicationClient() {
             label={c.socialEmail}
             optional
             optionalLabel={c.optional}
-            confirm={resolveOfertaLocalContactEmail(draft) ? c.urlAccepted : undefined}
-            helper={emailMalformed ? c.socialEmailInvalid : undefined}
+            confirm={!emailMalformed && resolveOfertaLocalContactEmail(draft) ? c.urlAccepted : undefined}
+            error={emailMalformed ? c.socialEmailInvalid : undefined}
+            errorId="ofertas-email-error"
           >
             <input
-              className={INPUT}
+              ref={emailFieldRef}
+              id="ofertas-email-input"
+              className={cx(INPUT, emailMalformed ? "border-red-400 focus:border-red-500" : undefined)}
               type="email"
               value={draft.email}
               onChange={(e) => updateDraft({ email: e.target.value })}
@@ -1304,6 +1341,8 @@ export default function OfertasLocalesApplicationClient() {
               placeholder={lang === "en" ? "hello@business.com" : "hola@negocio.com"}
               inputMode="email"
               autoComplete="email"
+              aria-invalid={emailMalformed}
+              aria-describedby={emailMalformed ? "ofertas-email-error" : undefined}
             />
           </FieldBlock>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -2274,7 +2313,15 @@ export default function OfertasLocalesApplicationClient() {
 
   return (
     <div className={cx("min-h-screen", PAGE_BG)}>
-      <div className="mx-auto max-w-5xl px-4 py-8 pb-24 sm:px-6 lg:pb-16">
+      <div
+        className={cx(
+          "mx-auto max-w-5xl px-4 py-8 sm:px-6",
+          // The review desk (⚠️63) renders its own full-width section directly
+          // beneath this wrapper with no gap intended — the generic bottom
+          // padding here is only for steps that end with this wrapper.
+          showStep6ReviewDesk ? "" : "pb-24 lg:pb-16"
+        )}
+      >
         <header className="mb-6 border-b border-[#D4C4A8]/60 pb-6 lg:mb-8">
           <p className="text-xs font-semibold uppercase tracking-widest text-[#7A1E2C]">
             Leonix · {OFERTAS_LOCALES_PRODUCT_NAME}
@@ -2297,43 +2344,51 @@ export default function OfertasLocalesApplicationClient() {
           </p>
         </header>
 
-        <div className="lg:flex lg:items-start lg:gap-10">
-          <aside className="lg:w-52 lg:shrink-0">
-            <OfertasLocalesWizardProgress
-              currentStep={step}
-              lang={lang}
-              progressLabel={progressLabel}
-              steps={wizardSteps}
-              onStepClick={(s) => {
-                // Quick-jump navigation is intentionally permissive — required-field
-                // and publish/scan validation still gate the relevant ACTION, but must
-                // never trap a customer on a step via Atrás/Siguiente-only navigation.
-                setStep(s);
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-            />
-          </aside>
+        {showStep6ReviewDesk ? (
+          // ⚠️63: Step 6's wizard card previously rendered here empty (its
+          // content branch returns null while the review desk mounts below)
+          // — a dead bordered box between the page header and the workbench.
+          // The heading now renders directly on the review desk section
+          // instead, so nothing empty renders in this wrapper at all.
+          null
+        ) : (
+          <div className="lg:flex lg:items-start lg:gap-10">
+            <aside className="lg:w-52 lg:shrink-0">
+              <OfertasLocalesWizardProgress
+                currentStep={step}
+                lang={lang}
+                progressLabel={progressLabel}
+                steps={wizardSteps}
+                onStepClick={(s) => {
+                  // Quick-jump navigation is intentionally permissive — required-field
+                  // and publish/scan validation still gate the relevant ACTION, but must
+                  // never trap a customer on a step via Atrás/Siguiente-only navigation.
+                  setStep(s);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+              />
+            </aside>
 
-          <div className="min-w-0 flex-1">
-            <div className="mb-4 hidden lg:block">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#1E1814]/50">
-                {progressLabel}
-              </p>
-              <h2 className="mt-1 text-xl font-semibold text-[#1E1814]">
-                {wizardStepTitle(stepMeta, lang)}
-              </h2>
-            </div>
-
-            <section className={cx(CARD, "p-5 sm:p-6")}>
-              <h2 className={cx(SECTION_TITLE, "lg:sr-only")}>{wizardStepTitle(stepMeta, lang)}</h2>
-              <div className="mt-4">
-                {renderStepHints()}
-                {renderStepContent()}
+            <div className="min-w-0 flex-1">
+              <div className="mb-4 hidden lg:block">
+                <p className="text-xs font-medium uppercase tracking-wide text-[#1E1814]/50">
+                  {progressLabel}
+                </p>
+                <h2 className="mt-1 text-xl font-semibold text-[#1E1814]">
+                  {wizardStepTitle(stepMeta, lang)}
+                </h2>
               </div>
 
-              {hideGenericFooter ? null : step < wizardStepCount ? (
-                <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-[#D4C4A8]/50 pt-6">
-                  <button
+              <section className={cx(CARD, "p-5 sm:p-6")}>
+                <h2 className={cx(SECTION_TITLE, "lg:sr-only")}>{wizardStepTitle(stepMeta, lang)}</h2>
+                <div className="mt-4">
+                  {renderStepHints()}
+                  {renderStepContent()}
+                </div>
+
+                {hideGenericFooter ? null : step < wizardStepCount ? (
+                  <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-[#D4C4A8]/50 pt-6">
+                    <button
                     type="button"
                     className={BTN_SECONDARY}
                     onClick={goBack}
@@ -2357,17 +2412,20 @@ export default function OfertasLocalesApplicationClient() {
                   </button>
                 </div>
               )}
-            </section>
+              </section>
+            </div>
           </div>
-        </div>
+        )}
 
-        <span className="sr-only" aria-hidden>
-          {draft.membershipCtaLabel}
-          {String(draft.isMagazinePickupPartner)}
-          {draft.magazineDistributionStatus}
-          {draft.magazinePickupNotes}
-          {draft.magazineMonthlyDropEstimate}
-        </span>
+        {showStep6ReviewDesk ? null : (
+          <span className="sr-only" aria-hidden>
+            {draft.membershipCtaLabel}
+            {String(draft.isMagazinePickupPartner)}
+            {draft.magazineDistributionStatus}
+            {draft.magazinePickupNotes}
+            {draft.magazineMonthlyDropEstimate}
+          </span>
+        )}
       </div>
 
       {showStep6ReviewDesk ? (
@@ -2375,9 +2433,17 @@ export default function OfertasLocalesApplicationClient() {
           ref={reviewWorkbenchRef}
           tabIndex={-1}
           aria-label={lang === "en" ? "AI scan review desk" : "Mesa de revisión de escaneo AI"}
-          className="border-t border-[#D4C4A8]/70 bg-[#FAF6F0] px-4 py-8 sm:px-6 lg:py-10 focus:outline-none"
+          className="border-t border-[#D4C4A8]/70 bg-[#FAF6F0] px-4 py-6 sm:px-6 lg:py-8 focus:outline-none"
         >
           <div className="mx-auto w-full max-w-[min(100vw-2rem,1600px)]">
+            <div className="mb-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-[#1E1814]/50">
+                {progressLabel}
+              </p>
+              <h2 className="mt-1 text-xl font-semibold text-[#1E1814]">
+                {wizardStepTitle(stepMeta, lang)}
+              </h2>
+            </div>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <button type="button" className={BTN_SECONDARY} onClick={handleBackToFiles}>
                 {c.step5BackToFiles}
@@ -2391,6 +2457,36 @@ export default function OfertasLocalesApplicationClient() {
                 </p>
               ) : null}
             </div>
+            {step5ReviewComplete ? (
+              // ⚠️64: the review workspace already surfaces a completed banner,
+              // but it sits deep inside the right-hand editor column. This
+              // duplicate — same copy keys, same action — sits immediately
+              // under the heading so the primary next step is obvious without
+              // scrolling into the workbench first.
+              <div className="mb-5 rounded-xl border border-emerald-300/80 bg-emerald-50 px-4 py-4">
+                <p className="text-base font-semibold text-emerald-950">{c.aiReviewCompleteTitle}</p>
+                <p className="mt-1 text-sm font-medium text-emerald-900">
+                  {formatOfertaLocalCopyTemplate(c.step5ReviewCompleteCount, {
+                    count: aiReviewGate.totalItems,
+                  })}
+                </p>
+                {aiReviewGate.scanTotalPages ? (
+                  <p className="mt-1 text-sm font-medium text-emerald-900">
+                    {formatOfertaLocalCopyTemplate(c.aiReviewCompletePagesCount, {
+                      completed: aiReviewGate.scanCompletedPages ?? aiReviewGate.scanTotalPages,
+                      total: aiReviewGate.scanTotalPages,
+                    })}
+                  </p>
+                ) : null}
+                <button
+                  type="button"
+                  className={`${BTN_SUCCESS_LG} mt-4`}
+                  onClick={goToStep7Extras}
+                >
+                  {c.aiReviewContinueToNextStep}
+                </button>
+              </div>
+            ) : null}
             <OfertasLocalesAiScanReviewWorkspace
               lang={lang}
               draft={draft}
