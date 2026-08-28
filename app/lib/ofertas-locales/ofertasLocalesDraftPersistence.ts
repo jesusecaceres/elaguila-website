@@ -23,6 +23,8 @@ export const OFERTAS_LOCALES_ACTIVE_SESSION_KEY = "leonix:ofertas-locales:active
 export const OFERTAS_LOCALES_WIZARD_STEP_KEY = "leonix:ofertas-locales:wizard-step:v1" as const;
 export const OFERTAS_LOCALES_PROMO_SESSION_KEY = "leonix:ofertas-locales:promo:v1" as const;
 export const OFERTAS_LOCALES_SUBMISSION_SESSION_KEY = "leonix:ofertas-locales:submission:v1" as const;
+/** Which authenticated owner the current browser draft belongs to — the storage key above is global per-browser, not per-account. */
+export const OFERTAS_LOCALES_DRAFT_OWNER_KEY = "leonix:ofertas-locales:draft-owner:v1" as const;
 
 function getLocalDraftStorage(): Storage | null {
   if (typeof window === "undefined") return null;
@@ -287,11 +289,33 @@ export function saveOfertaLocalDraftToStorage(draft: OfertaLocalDraft): void {
 export function clearOfertaLocalDraftStorage(): void {
   try {
     getLocalDraftStorage()?.removeItem(OFERTAS_LOCALES_DRAFT_STORAGE_KEY);
+    getLocalDraftStorage()?.removeItem(OFERTAS_LOCALES_DRAFT_OWNER_KEY);
     getSessionDraftStorage()?.removeItem(OFERTAS_LOCALES_DRAFT_STORAGE_KEY);
     getSessionDraftStorage()?.removeItem(OFERTAS_LOCALES_ACTIVE_SESSION_KEY);
     getSessionDraftStorage()?.removeItem(OFERTAS_LOCALES_WIZARD_STEP_KEY);
     getSessionDraftStorage()?.removeItem(OFERTAS_LOCALES_PROMO_SESSION_KEY);
     getSessionDraftStorage()?.removeItem(OFERTAS_LOCALES_SUBMISSION_SESSION_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+/** Which authenticated owner's account last claimed the current browser draft, or null if unclaimed (anonymous). */
+export function readOfertaLocalDraftOwnerStamp(): string | null {
+  try {
+    const value = getLocalDraftStorage()?.getItem(OFERTAS_LOCALES_DRAFT_OWNER_KEY);
+    return value && value.trim() ? value.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Claims the current browser draft for the given authenticated owner. */
+export function writeOfertaLocalDraftOwnerStamp(ownerId: string): void {
+  const value = String(ownerId ?? "").trim();
+  if (!value) return;
+  try {
+    getLocalDraftStorage()?.setItem(OFERTAS_LOCALES_DRAFT_OWNER_KEY, value);
   } catch {
     // ignore
   }

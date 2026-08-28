@@ -22,11 +22,13 @@ for (const required of [
   "30-day public term starts after Leonix approval",
   "No hay publicación instantánea",
   "no instant publication",
-  "continueSecureCheckout",
   "submitNotPublicUntilReview",
 ]) {
   assertIncludes("submission truth", appCopy + app, required);
 }
+
+// Gate F relocated the checkout continuation from Step 7 to Preview.
+assertIncludes("preview checkout continuation", previewCopy + previewCard, "continueToDashboardEs");
 
 assertNotIncludes("preview", previewCopy + previewCard, "public impression");
 

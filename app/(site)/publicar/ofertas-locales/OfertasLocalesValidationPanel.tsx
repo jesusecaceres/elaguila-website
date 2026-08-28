@@ -70,9 +70,7 @@ export function OfertasLocalesValidationPanel({
         </h3>
         <div className="mt-2">
           {publishFieldsReady ? (
-            <p className="text-xs text-[#1E1814]/65">
-              {c.publishReadyForReview} {c.publishNotBuilt}
-            </p>
+            <p className="text-xs font-medium text-emerald-900">{c.publishReadyToContinue}</p>
           ) : (
             <>
               <IssueList issues={publishErrors} emptyMessage="" tone="publish" />
