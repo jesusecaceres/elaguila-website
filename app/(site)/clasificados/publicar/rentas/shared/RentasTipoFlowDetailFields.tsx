@@ -103,6 +103,24 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
             ))}
           </select>
         </AiField>
+        <AiField label={tf.parkingAvailable}>
+          <select
+            className={fieldClass}
+            value={state.rentasEspacioEstacionamiento}
+            onChange={(e) =>
+              setState((s) => ({
+                ...s,
+                rentasEspacioEstacionamiento: e.target.value as typeof s.rentasEspacioEstacionamiento,
+              }))
+            }
+          >
+            {siNo.map((o) => (
+              <option key={o.id || "x"} value={o.id}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </AiField>
         <div className="sm:col-span-2">
           <AiField label={tf.maxOccupants} hint={tf.maxOccupantsHint}>
             <input
@@ -192,6 +210,21 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
             value={state.rentasAlmacenSeguridad}
             onChange={(e) =>
               setState((s) => ({ ...s, rentasAlmacenSeguridad: e.target.value as typeof s.rentasAlmacenSeguridad }))
+            }
+          >
+            {siNo.map((o) => (
+              <option key={o.id || "x"} value={o.id}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </AiField>
+        <AiField label={tf.covered}>
+          <select
+            className={fieldClass}
+            value={state.rentasAlmacenCubierto}
+            onChange={(e) =>
+              setState((s) => ({ ...s, rentasAlmacenCubierto: e.target.value as typeof s.rentasAlmacenCubierto }))
             }
           >
             {siNo.map((o) => (
@@ -295,6 +328,16 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
               onChange={(e) => setState((s) => ({ ...s, rentasComercialContratoMinimo: e.target.value }))}
               autoComplete="off"
               placeholder={tf.minimumContractPlaceholder}
+            />
+          </AiField>
+        </div>
+        <div className="sm:col-span-2">
+          <AiField label={tf.availableUtilities}>
+            <input
+              className={fieldClass}
+              value={state.rentasComercialServiciosDisponibles}
+              onChange={(e) => setState((s) => ({ ...s, rentasComercialServiciosDisponibles: e.target.value }))}
+              autoComplete="off"
             />
           </AiField>
         </div>

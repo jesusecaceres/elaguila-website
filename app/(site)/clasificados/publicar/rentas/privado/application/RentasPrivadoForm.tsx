@@ -47,10 +47,10 @@ import {
   rentasResidencialFormRowsMode,
 } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
 import {
-  COMERCIAL_DESTACADOS_DEFS,
+  COMERCIAL_DESTACADOS_CHECKLIST_DEFS,
   COMERCIAL_SUBTIPO_POR_TIPO,
   COMERCIAL_TIPO_OPCIONES,
-  TERRENO_DESTACADOS_DEFS,
+  TERRENO_DESTACADOS_CHECKLIST_DEFS,
   TERRENO_SUBTIPO_POR_TIPO,
   TERRENO_TIPO_OPCIONES,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteComercialTerrenoMeta";
@@ -1245,7 +1245,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
             <div className="mt-6">
               <span className={aiLabelClass}>{rm.commercialSection.highlightsHeading}</span>
               <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
-                {COMERCIAL_DESTACADOS_DEFS.map((d) => (
+                {COMERCIAL_DESTACADOS_CHECKLIST_DEFS.map((d) => (
                   <label key={d.id} className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
                     <input
                       type="checkbox"
@@ -1364,7 +1364,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
             <div className="mt-6">
               <span className={aiLabelClass}>{rm.landSection.highlightsHeading}</span>
               <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
-                {TERRENO_DESTACADOS_DEFS.map((d) => (
+                {TERRENO_DESTACADOS_CHECKLIST_DEFS.map((d) => (
                   <label key={d.id} className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
                     <input
                       type="checkbox"

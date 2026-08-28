@@ -3,6 +3,7 @@ import { parseRentasDetailMachineRead } from "@/app/clasificados/rentas/lib/rent
 import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { createEmptyRentasPrivadoFormState, mergePartialRentasPrivadoState, type RentasPrivadoFormState } from "../privado/schema/rentasPrivadoFormState";
 import { createEmptyRentasNegocioFormState, mergePartialRentasNegocioState, type RentasNegocioFormState } from "../negocio/schema/rentasNegocioFormState";
+import { rentasCategoriaPropiedadForTipo } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 
 function trim(raw: unknown): string {
   return typeof raw === "string" ? raw.trim() : raw == null ? "" : String(raw).trim();
@@ -30,9 +31,14 @@ function basePartialFromRow(row: Record<string, unknown>): Partial<RentasPrivado
   const rx = parseRentasDetailMachineRead(row.detail_pairs);
   const lx = parseLeonixListingContract(row.detail_pairs);
   const gallery = imagesFromRow(row.images);
+  const persistedCategoria: RentasPrivadoFormState["categoriaPropiedad"] =
+    lx.categoriaPropiedad === "comercial" || lx.categoriaPropiedad === "terreno_lote" ? lx.categoriaPropiedad : "residencial";
+  const tipoDeRenta = trim(rx.rentalTypeCode);
   return {
-    categoriaPropiedad:
-      lx.categoriaPropiedad === "comercial" || lx.categoriaPropiedad === "terreno_lote" ? lx.categoriaPropiedad : "residencial",
+    // Legacy listings can predate the tipoDeRenta/categoriaPropiedad cross-sync fix and may have
+    // a stale, mismatched categoriaPropiedad saved — re-derive it from tipoDeRenta when present
+    // so editing an old draft doesn't reload the desync (e.g. "Garaje" + "Residencial").
+    categoriaPropiedad: tipoDeRenta ? rentasCategoriaPropiedadForTipo(tipoDeRenta) : persistedCategoria,
     titulo: trim(row.title),
     rentaMensual: digits(row.price),
     deposito: rx.depositUsdDigits ?? "",
