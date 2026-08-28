@@ -376,7 +376,7 @@ export const BR_COPY_EN = {
     masInformacion: "More information",
     detallesPropiedad: "Property details",
     caracteristicas: "Highlighted features",
-    descripcion: "Description",
+    descripcion: "Property description",
     notasAdicionales: "Additional notes",
     masInfo: "More information",
     openHouse: "Open house",

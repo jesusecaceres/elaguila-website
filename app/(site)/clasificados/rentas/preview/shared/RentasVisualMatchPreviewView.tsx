@@ -22,6 +22,7 @@ import type {
 } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 import { buildOfertaLocalPreviewMapEmbedUrl } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
 import { LeonixListingFactsGrid } from "@/app/clasificados/lib/LeonixListingFactsGrid";
+import { tryWebShare, copyToClipboard } from "@/app/components/cta/ctaLaunchers";
 import { BrRentasCommunityTrustSection } from "@/app/clasificados/lib/BrRentasCommunityTrustSection";
 import {
   trackRentasPhoneClick,
@@ -372,18 +373,14 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, i
     const title = vm.heroTitle?.trim() || (lang === "en" ? "Leonix Media" : "Leonix Media");
 
     try {
-      if (typeof navigator.share === "function") {
-        await navigator.share({
-          title,
-          text: title,
-          url,
-        });
-        return;
-      }
+      const result = await tryWebShare({ title, text: title, url });
+      if (result === "shared" || result === "aborted") return;
 
-      await navigator.clipboard.writeText(url);
-      setShareCopied(true);
-      window.setTimeout(() => setShareCopied(false), 2000);
+      const copied = await copyToClipboard(url);
+      if (copied) {
+        setShareCopied(true);
+        window.setTimeout(() => setShareCopied(false), 2000);
+      }
     } catch {
       // User cancelled native share or browser blocked it.
     }
@@ -438,6 +435,24 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, i
     if (galleryIndex >= galleryCount) setGalleryIndex(Math.max(0, galleryCount - 1));
     if (!galleryCount && galleryOpen) setGalleryOpen(false);
   }, [galleryCount, galleryIndex, galleryOpen]);
+
+  // Preload the adjacent slides so arrowing through the gallery doesn't flash/blank.
+  useEffect(() => {
+    if (!galleryOpen || galleryCount <= 1) return;
+    const urls = photos(vm);
+    const n = urls.length;
+    const neighbors = [(galleryIndex + 1) % n, (galleryIndex - 1 + n) % n];
+    const preloaded = neighbors.map((i) => {
+      const url = urls[i];
+      if (!url) return null;
+      const img = new Image();
+      img.src = url;
+      return img;
+    });
+    return () => {
+      for (const img of preloaded) if (img) img.src = "";
+    };
+  }, [galleryOpen, galleryIndex, galleryCount, vm]);
 
   return (
     <div
@@ -597,7 +612,7 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, i
           </section>
 
           {vm.hasDescription && isMeaningfulValue(vm.description) ? (
-            <Section eyebrow={lang === "es" ? "La historia del espacio" : "The rental story"} title={lang === "es" ? "Descripción" : "Description"}>
+            <Section eyebrow={lang === "es" ? "La historia del espacio" : "The rental story"} title={lang === "es" ? "Descripción del espacio" : "Space description"}>
               <p className="max-w-3xl whitespace-pre-wrap text-[0.96rem] leading-7" style={{ color: BODY }}>
                 {vm.description}
               </p>
