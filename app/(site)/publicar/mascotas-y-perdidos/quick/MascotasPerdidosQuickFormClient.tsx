@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import CityAutocomplete from "@/app/components/CityAutocomplete";
@@ -10,6 +10,8 @@ import {
   mascotasPerdidosRouteLangFromSearchParams,
 } from "@/app/(site)/clasificados/mascotas-y-perdidos/shared/mascotasPerdidosShellCopy";
 import { EmpleosReadinessBanner } from "@/app/publicar/empleos/shared/components/EmpleosReadinessBanner";
+import { EmpleosApplicationFinalStep } from "@/app/publicar/empleos/shared/components/EmpleosApplicationFinalStep";
+import { EmpleosImageGalleryEditor } from "@/app/publicar/empleos/shared/media/EmpleosImageGalleryEditor";
 import {
   EmpleosFieldLabel,
   EmpleosSectionCard,
@@ -18,6 +20,8 @@ import {
   flushCommunityDraftToSession,
   useCommunityDraftSession,
 } from "@/app/publicar/community/shared/hooks/useCommunityDraftSession";
+import { CommunityPublishConfirmationSection } from "@/app/publicar/community/shared/components/CommunityPublishConfirmationSection";
+import { COMMUNITY_PUBLISH_COPY } from "@/app/publicar/community/shared/copy/communityPublishCopy";
 
 import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 
@@ -25,18 +29,22 @@ import { mascotasPerdidosFormCopy } from "../shared/mascotasPerdidosFormCopy";
 import { mascotasPerdidosHandoffPreviewUrl } from "../shared/mascotasPerdidosPublishRoutes";
 import {
   emptyMascotasPerdidosQuickDraft,
+  MAX_MASCOTAS_PHOTOS,
   normalizeMascotasPerdidosQuickDraft,
 } from "../shared/mascotasPerdidosQuickDraft";
 import { gateMascotasPerdidosQuickPreview } from "../shared/mascotasPerdidosRequiredForPreview";
 import { MASCOTAS_PERDIDOS_QUICK_DRAFT_KEY } from "../shared/mascotasPerdidosSessionKeys";
-import { MASCOTAS_PERDIDOS_NOTICE_OPTIONS } from "../shared/mascotasPerdidosTaxonomy";
+import {
+  MASCOTAS_PERDIDOS_NOTICE_OPTIONS,
+  MASCOTAS_SEX_OPTIONS,
+  MASCOTAS_SIZE_OPTIONS,
+} from "../shared/mascotasPerdidosTaxonomy";
+import { isPetNoticeType } from "../shared/mascotasPerdidosQuickTypes";
 
 const INPUT =
   "mt-1 min-h-[44px] w-full rounded-lg border border-[#C9B46A]/40 bg-white px-3 py-2.5 text-sm text-[#111111] outline-none focus:border-[#A98C2A]/70 focus:ring-2 focus:ring-[#C9B46A]/30";
 const TEXTAREA =
-  "mt-1 min-h-[96px] w-full rounded-lg border border-[#C9B46A]/40 bg-white px-3 py-2.5 text-sm text-[#111111] outline-none focus:border-[#A98C2A]/70 focus:ring-2 focus:ring-[#C9B46A]/30";
-
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+  "mt-1 min-h-[160px] w-full rounded-lg border border-[#C9B46A]/40 bg-white px-3 py-2.5 text-sm text-[#111111] outline-none focus:border-[#A98C2A]/70 focus:ring-2 focus:ring-[#C9B46A]/30";
 
 export default function MascotasPerdidosQuickFormClient() {
   const router = useRouter();
@@ -44,9 +52,8 @@ export default function MascotasPerdidosQuickFormClient() {
   const lang = mascotasPerdidosLangFromSearchParams(sp);
   const routeLang = mascotasPerdidosRouteLangFromSearchParams(sp);
   const copy = mascotasPerdidosFormCopy(lang);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [imageError, setImageError] = useState<string | null>(null);
-  const { state, patch, hydrated } = useCommunityDraftSession(
+  const sharedCopy = COMMUNITY_PUBLISH_COPY[lang];
+  const { state, patch, reset, hydrated } = useCommunityDraftSession(
     MASCOTAS_PERDIDOS_QUICK_DRAFT_KEY,
     emptyMascotasPerdidosQuickDraft(),
     (raw) => normalizeMascotasPerdidosQuickDraft(raw),
@@ -65,36 +72,6 @@ export default function MascotasPerdidosQuickFormClient() {
     router.push(mascotasPerdidosHandoffPreviewUrl(routeLang));
   }, [previewDisabled, state, router, routeLang]);
 
-  const onImagePick = useCallback(
-    (file: File | null) => {
-      setImageError(null);
-      if (!file) {
-        patch({ imageDataUrl: "", imageFileName: "" });
-        return;
-      }
-      if (!/^image\/(jpeg|png|webp)$/i.test(file.type)) {
-        setImageError(lang === "es" ? "Usa JPG, PNG o WebP." : "Use JPG, PNG, or WebP.");
-        return;
-      }
-      if (file.size > MAX_IMAGE_BYTES) {
-        setImageError(
-          lang === "es" ? "La imagen es demasiado grande (máx. 8 MB)." : "Image is too large (max 8 MB).",
-        );
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => {
-        const url = typeof reader.result === "string" ? reader.result : "";
-        patch({ imageDataUrl: url, imageFileName: file.name });
-      };
-      reader.onerror = () => {
-        setImageError(lang === "es" ? "No se pudo leer la imagen." : "Could not read the image.");
-      };
-      reader.readAsDataURL(file);
-    },
-    [patch, lang],
-  );
-
   if (!hydrated) {
     return (
       <MascotasPerdidosShellLayout lang={lang}>
@@ -103,20 +80,35 @@ export default function MascotasPerdidosQuickFormClient() {
     );
   }
 
+  const isPet = isPetNoticeType(state.noticeType);
+  const isLost = state.noticeType === "mascota-perdida";
+  const isFound = state.noticeType === "mascota-encontrada";
+  const isAdoption = state.noticeType === "adopcion-mascota";
+  const isObject = state.noticeType === "objeto-perdido" || state.noticeType === "objeto-encontrado";
+  const rewardEligible = isLost || state.noticeType === "objeto-perdido";
+
+  const triOptions = (
+    field: "microchip" | "vaccinated" | "spayedNeutered",
+  ) => (
+    <select
+      className={INPUT}
+      value={state[field]}
+      onChange={(e) => patch({ [field]: e.target.value } as never)}
+    >
+      <option value="">{lang === "es" ? "— Selecciona —" : "— Select —"}</option>
+      <option value="si">{copy.triState.yes}</option>
+      <option value="no">{copy.triState.no}</option>
+      <option value="no_se">{copy.triState.unsure}</option>
+    </select>
+  );
+
   return (
     <MascotasPerdidosShellLayout lang={lang}>
       <p className="text-sm text-[#5C5346]/90">{copy.pageSubtitle}</p>
-      <p className="mt-2 text-xs text-[#6B5A32]/90">{copy.leonixNote}</p>
 
       <EmpleosReadinessBanner visible={!gate.ok} intro={copy.gateFail} issues={previewIssues} />
 
-      <form
-        className="mt-5 space-y-5"
-        onSubmit={(e) => {
-          e.preventDefault();
-          continueToPreview();
-        }}
-      >
+      <div className="mt-5 space-y-5">
         <EmpleosSectionCard title={copy.sections.main}>
           <label className="block text-sm">
             <EmpleosFieldLabel lang={lang} required>
@@ -136,143 +128,380 @@ export default function MascotasPerdidosQuickFormClient() {
             </select>
           </label>
 
+          {isPet ? (
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.petName}
+              </EmpleosFieldLabel>
+              <input className={INPUT} value={state.petName} onChange={(e) => patch({ petName: e.target.value })} maxLength={100} />
+            </label>
+          ) : null}
+
           <label className="block text-sm">
             <EmpleosFieldLabel lang={lang} required>
               {copy.fields.title}
             </EmpleosFieldLabel>
-            <input
-              className={INPUT}
-              value={state.title}
-              onChange={(e) => patch({ title: e.target.value })}
-              maxLength={200}
-            />
+            <input className={INPUT} value={state.title} onChange={(e) => patch({ title: e.target.value })} maxLength={200} />
           </label>
 
           <label className="block text-sm">
             <EmpleosFieldLabel lang={lang} required>
               {copy.fields.description}
             </EmpleosFieldLabel>
-            <textarea
-              className={TEXTAREA}
-              value={state.description}
-              onChange={(e) => patch({ description: e.target.value })}
-              maxLength={800}
-              rows={4}
-              placeholder={lang === "es" ? "Describe brevemente…" : "Describe briefly…"}
-            />
+            <textarea className={TEXTAREA} value={state.description} onChange={(e) => patch({ description: e.target.value })} maxLength={1500} />
           </label>
         </EmpleosSectionCard>
 
         <EmpleosSectionCard title={copy.sections.media}>
           <p className="text-xs text-[#5C5346]/85">{copy.imageHint}</p>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="sr-only"
-            onChange={(e) => {
-              const f = e.target.files?.[0] ?? null;
-              onImagePick(f);
-              e.target.value = "";
-            }}
+          <EmpleosImageGalleryEditor
+            images={state.images}
+            onChange={(images) => patch({ images: images.slice(0, MAX_MASCOTAS_PHOTOS) })}
+            urlPlaceholder="https://…"
+            addUrlLabel={lang === "es" ? "Añadir URL" : "Add URL"}
+            uploadLabel={lang === "es" ? "Subir foto" : "Upload photo"}
+            mainLabel={copy.imageMain}
+            removeLabel={copy.imageRemove}
+            upLabel={lang === "es" ? "Subir" : "Up"}
+            downLabel={lang === "es" ? "Bajar" : "Down"}
+            altPlaceholder={lang === "es" ? "Descripción de la foto" : "Photo description"}
+            lang={lang}
           />
-          {state.imageDataUrl ? (
-            <div>
-              <img
-                src={state.imageDataUrl}
-                alt=""
-                className="max-h-48 w-full rounded-xl border border-[#C9B46A]/35 object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  patch({ imageDataUrl: "", imageFileName: "" });
-                  setImageError(null);
-                }}
-                className="mt-2 min-h-[44px] rounded-lg border border-[#C9B46A]/45 px-3 py-2 text-sm font-semibold text-[#6B5A32]"
-              >
-                {copy.imageRemove}
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="flex min-h-[52px] w-full items-center justify-center rounded-xl border border-dashed border-[#C9B46A]/55 bg-[#FFFCF7] px-4 py-3 text-sm font-semibold text-[#6B5A32]"
-            >
-              {copy.fields.image}
-            </button>
-          )}
-          {imageError ? <p className="text-sm text-red-700">{imageError}</p> : null}
         </EmpleosSectionCard>
+
+        {isPet ? (
+          <EmpleosSectionCard title={copy.sections.petDetails}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} optional>
+                  {copy.fields.species}
+                </EmpleosFieldLabel>
+                <input className={INPUT} value={state.species} onChange={(e) => patch({ species: e.target.value })} placeholder={lang === "es" ? "Ej. Perro, Gato" : "E.g. Dog, Cat"} />
+              </label>
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} optional>
+                  {copy.fields.breed}
+                </EmpleosFieldLabel>
+                <input className={INPUT} value={state.breed} onChange={(e) => patch({ breed: e.target.value })} />
+              </label>
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} optional>
+                  {copy.fields.color}
+                </EmpleosFieldLabel>
+                <input className={INPUT} value={state.color} onChange={(e) => patch({ color: e.target.value })} />
+              </label>
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} optional>
+                  {copy.fields.sex}
+                </EmpleosFieldLabel>
+                <select className={INPUT} value={state.sex} onChange={(e) => patch({ sex: e.target.value as typeof state.sex })}>
+                  <option value="">{lang === "es" ? "— Selecciona —" : "— Select —"}</option>
+                  {MASCOTAS_SEX_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {lang === "en" ? o.labelEn : o.labelEs}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} optional>
+                  {copy.fields.ageApprox}
+                </EmpleosFieldLabel>
+                <input className={INPUT} value={state.ageApprox} onChange={(e) => patch({ ageApprox: e.target.value })} placeholder={lang === "es" ? "Ej. 2 años" : "E.g. 2 years"} />
+              </label>
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} optional>
+                  {copy.fields.size}
+                </EmpleosFieldLabel>
+                <select className={INPUT} value={state.size} onChange={(e) => patch({ size: e.target.value })}>
+                  <option value="">{lang === "es" ? "— Selecciona —" : "— Select —"}</option>
+                  {MASCOTAS_SIZE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {lang === "en" ? o.labelEn : o.labelEs}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.identifyingMarks}
+              </EmpleosFieldLabel>
+              <textarea className={`${INPUT} min-h-[100px]`} value={state.identifyingMarks} onChange={(e) => patch({ identifyingMarks: e.target.value })} />
+            </label>
+
+            <label className="flex min-h-[40px] cursor-pointer items-center gap-2 text-sm">
+              <input type="checkbox" checked={state.hasCollar} onChange={(e) => patch({ hasCollar: e.target.checked })} className="h-4 w-4 rounded border-black/20" />
+              {copy.fields.hasCollar}
+            </label>
+            {state.hasCollar ? (
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} optional>
+                  {copy.fields.collarNote}
+                </EmpleosFieldLabel>
+                <input className={INPUT} value={state.collarNote} onChange={(e) => patch({ collarNote: e.target.value })} />
+              </label>
+            ) : null}
+
+            {(isLost || isFound) ? (
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} optional>
+                  {copy.fields.microchip}
+                </EmpleosFieldLabel>
+                {triOptions("microchip")}
+              </label>
+            ) : null}
+          </EmpleosSectionCard>
+        ) : null}
+
+        {isObject ? (
+          <EmpleosSectionCard title={copy.sections.objectDetails}>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.objectType}
+              </EmpleosFieldLabel>
+              <input className={INPUT} value={state.objectType} onChange={(e) => patch({ objectType: e.target.value })} />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.color}
+              </EmpleosFieldLabel>
+              <input className={INPUT} value={state.color} onChange={(e) => patch({ color: e.target.value })} />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.identifyingMarks}
+              </EmpleosFieldLabel>
+              <textarea className={`${INPUT} min-h-[100px]`} value={state.identifyingMarks} onChange={(e) => patch({ identifyingMarks: e.target.value })} />
+            </label>
+          </EmpleosSectionCard>
+        ) : null}
+
+        {isLost ? (
+          <EmpleosSectionCard title={copy.sections.lostDetails}>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.lastSeenDate}
+              </EmpleosFieldLabel>
+              <input type="date" className={INPUT} value={state.lastSeenDate} onChange={(e) => patch({ lastSeenDate: e.target.value })} />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.safetyNote}
+              </EmpleosFieldLabel>
+              <textarea className={`${INPUT} min-h-[100px]`} value={state.safetyNote} onChange={(e) => patch({ safetyNote: e.target.value })} />
+            </label>
+          </EmpleosSectionCard>
+        ) : null}
+
+        {isFound ? (
+          <EmpleosSectionCard title={copy.sections.foundDetails}>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.foundDate}
+              </EmpleosFieldLabel>
+              <input type="date" className={INPUT} value={state.foundDate} onChange={(e) => patch({ foundDate: e.target.value })} />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.currentStatus}
+              </EmpleosFieldLabel>
+              <textarea className={`${INPUT} min-h-[100px]`} value={state.currentStatus} onChange={(e) => patch({ currentStatus: e.target.value })} />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.claimInstructions}
+              </EmpleosFieldLabel>
+              <textarea className={`${INPUT} min-h-[100px]`} value={state.claimInstructions} onChange={(e) => patch({ claimInstructions: e.target.value })} />
+            </label>
+          </EmpleosSectionCard>
+        ) : null}
+
+        {isAdoption ? (
+          <EmpleosSectionCard title={copy.sections.adoptionDetails}>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.temperament}
+              </EmpleosFieldLabel>
+              <textarea className={`${INPUT} min-h-[100px]`} value={state.temperament} onChange={(e) => patch({ temperament: e.target.value })} />
+            </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} optional>
+                  {copy.fields.vaccinated}
+                </EmpleosFieldLabel>
+                {triOptions("vaccinated")}
+              </label>
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} optional>
+                  {copy.fields.spayedNeutered}
+                </EmpleosFieldLabel>
+                {triOptions("spayedNeutered")}
+              </label>
+            </div>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.specialNeeds}
+              </EmpleosFieldLabel>
+              <textarea className={`${INPUT} min-h-[100px]`} value={state.specialNeeds} onChange={(e) => patch({ specialNeeds: e.target.value })} />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.adoptionDetails}
+              </EmpleosFieldLabel>
+              <textarea className={`${INPUT} min-h-[100px]`} value={state.adoptionDetails} onChange={(e) => patch({ adoptionDetails: e.target.value })} />
+            </label>
+          </EmpleosSectionCard>
+        ) : null}
+
+        {rewardEligible ? (
+          <EmpleosSectionCard title={copy.sections.reward}>
+            <fieldset>
+              <legend className="text-sm font-semibold text-[color:var(--lx-text)]">{copy.fields.offersReward}</legend>
+              <div className="mt-2 flex flex-wrap gap-4 text-sm">
+                {([false, true] as const).map((value) => (
+                  <label key={String(value)} className="inline-flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="mascotas-offers-reward"
+                      checked={state.offersReward === value}
+                      onChange={() => patch({ offersReward: value, ...(value ? null : { rewardAmount: "" }) })}
+                    />
+                    {value ? copy.triState.yes : copy.triState.no}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            {state.offersReward ? (
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} required>
+                  {copy.fields.rewardAmount}
+                </EmpleosFieldLabel>
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="text-sm font-bold text-[#2A2826]">$</span>
+                  <input
+                    className={INPUT}
+                    style={{ marginTop: 0 }}
+                    value={state.rewardAmount}
+                    onChange={(e) => patch({ rewardAmount: e.target.value.replace(/[^\d.]/g, "") })}
+                    inputMode="decimal"
+                    placeholder={copy.rewardAmountPlaceholder}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-[#5C5346]/85">{copy.rewardAmountHelper}</p>
+              </label>
+            ) : null}
+          </EmpleosSectionCard>
+        ) : null}
 
         <EmpleosSectionCard title={copy.sections.location}>
           <label className="block text-sm">
             <EmpleosFieldLabel lang={lang} required>
               {copy.fields.city}
             </EmpleosFieldLabel>
-            <CityAutocomplete
-              value={state.city}
-              onChange={(v) => patch({ city: v })}
-              placeholder={lang === "es" ? "Ciudad" : "City"}
-              lang={lang}
-              variant="light"
-              className={INPUT}
-            />
+            <CityAutocomplete value={state.city} onChange={(v) => patch({ city: v })} placeholder={lang === "es" ? "Ciudad" : "City"} lang={lang} variant="light" className={INPUT} />
           </label>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.state}
+              </EmpleosFieldLabel>
+              <input className={INPUT} value={state.state} onChange={(e) => patch({ state: e.target.value })} />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.country}
+              </EmpleosFieldLabel>
+              <input className={INPUT} value={state.country} onChange={(e) => patch({ country: e.target.value })} />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.zip}
+              </EmpleosFieldLabel>
+              <input className={INPUT} value={state.zip} onChange={(e) => patch({ zip: e.target.value })} />
+            </label>
+          </div>
           <label className="block text-sm">
             <EmpleosFieldLabel lang={lang} required>
               {copy.fields.lastSeenLocation}
             </EmpleosFieldLabel>
-            <input
-              className={INPUT}
-              value={state.lastSeenLocation}
-              onChange={(e) => patch({ lastSeenLocation: e.target.value })}
-              maxLength={200}
-              placeholder={
-                lang === "es" ? "Ej. Parque, esquina, colonia…" : "E.g. park, corner, neighborhood…"
-              }
-            />
+            <input className={INPUT} value={state.lastSeenLocation} onChange={(e) => patch({ lastSeenLocation: e.target.value })} maxLength={200} />
+            <p className="mt-1 text-xs text-[#5C5346]/85">{copy.lastSeenLocationHelper}</p>
+          </label>
+          <label className="block text-sm">
+            <EmpleosFieldLabel lang={lang} optional>
+              {copy.fields.landmark}
+            </EmpleosFieldLabel>
+            <input className={INPUT} value={state.landmark} onChange={(e) => patch({ landmark: e.target.value })} maxLength={200} />
+            <p className="mt-1 text-xs text-[#5C5346]/85">{copy.landmarkHelper}</p>
           </label>
         </EmpleosSectionCard>
 
         <EmpleosSectionCard title={copy.sections.contact}>
+          <p className="text-xs text-[#5C5346]/85">{copy.contactHelper}</p>
           <label className="block text-sm">
-            <EmpleosFieldLabel lang={lang} required>
-              {copy.fields.contactPhone}
+            <EmpleosFieldLabel lang={lang} optional>
+              {copy.fields.phone}
             </EmpleosFieldLabel>
-            <input
-              className={INPUT}
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              value={state.contactPhone}
-              onChange={(e) => patch({ contactPhone: e.target.value })}
-            />
+            <input className={INPUT} type="tel" inputMode="tel" autoComplete="tel" value={state.phone} onChange={(e) => patch({ phone: e.target.value })} />
+          </label>
+          <label className="block text-sm">
+            <EmpleosFieldLabel lang={lang} optional>
+              {copy.fields.smsPhone}
+            </EmpleosFieldLabel>
+            <input className={INPUT} type="tel" inputMode="tel" value={state.smsPhone} onChange={(e) => patch({ smsPhone: e.target.value })} />
+          </label>
+          <label className="block text-sm">
+            <EmpleosFieldLabel lang={lang} optional>
+              {copy.fields.whatsapp}
+            </EmpleosFieldLabel>
+            <input className={INPUT} type="tel" inputMode="tel" value={state.whatsapp} onChange={(e) => patch({ whatsapp: e.target.value })} />
           </label>
           <label className="block text-sm">
             <EmpleosFieldLabel lang={lang} optional>
               {copy.fields.email}
             </EmpleosFieldLabel>
-            <input
-              className={INPUT}
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              value={state.email}
-              onChange={(e) => patch({ email: e.target.value })}
-            />
+            <input className={INPUT} type="email" inputMode="email" autoComplete="email" value={state.email} onChange={(e) => patch({ email: e.target.value })} />
           </label>
         </EmpleosSectionCard>
 
-        <button
-          type="submit"
-          disabled={previewDisabled}
-          className="flex min-h-[52px] w-full items-center justify-center rounded-xl bg-[#111111] px-5 py-3 text-sm font-bold text-[#F5F5F5] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-45"
-        >
-          {copy.previewCta}
-        </button>
-      </form>
+        <EmpleosSectionCard title={copy.sections.social}>
+          <label className="block text-sm">
+            <EmpleosFieldLabel lang={lang} optional>
+              {copy.fields.facebook}
+            </EmpleosFieldLabel>
+            <input className={INPUT} type="url" value={state.facebook} onChange={(e) => patch({ facebook: e.target.value })} placeholder="https://facebook.com/…" />
+          </label>
+          <label className="block text-sm">
+            <EmpleosFieldLabel lang={lang} optional>
+              {copy.fields.instagram}
+            </EmpleosFieldLabel>
+            <input className={INPUT} type="url" value={state.instagram} onChange={(e) => patch({ instagram: e.target.value })} placeholder="https://instagram.com/…" />
+          </label>
+        </EmpleosSectionCard>
+      </div>
+
+      <CommunityPublishConfirmationSection
+        variant="mascotas"
+        lang={lang}
+        value={state.publishConfirmations}
+        onChange={(p) => patch({ publishConfirmations: { ...state.publishConfirmations, ...p } })}
+      />
+
+      <EmpleosApplicationFinalStep
+        copy={{ ...sharedCopy.finalStep, previewCta: copy.previewCta }}
+        previewDisabled={previewDisabled}
+        onVistaPrevia={continueToPreview}
+        onPublicar={() => {}}
+        onDelete={() => reset()}
+        stagedSuccessText={null}
+        publishErrorText={null}
+        publishGateBlockedHint={previewDisabled ? copy.gateFail : null}
+        finalBlockingIssues={previewIssues}
+        finalBlockingIntro={previewDisabled && previewIssues.length ? sharedCopy.stillNeededTitle : null}
+        showSecondaryActions={false}
+      />
     </MascotasPerdidosShellLayout>
   );
 }

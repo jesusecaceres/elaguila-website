@@ -271,21 +271,20 @@ function pairs(entries: Record<string, string>): { label: string; value: string 
     .map((l) => l.slice(3).trim());
   const allTouched = [...new Set([...changedFiles, ...untrackedFiles])];
 
+  // Gate 3 legitimately owns Mascotas y Perdidos now — not forbidden here any more.
   const forbiddenPrefixes = [
-    "app/(site)/publicar/mascotas-y-perdidos/",
-    "app/(site)/clasificados/mascotas-y-perdidos/",
     "app/(site)/publicar/busco/",
     "app/(site)/clasificados/busco/",
     "app/lib/listingPlans/",
     "app/api/revenue-os/",
   ];
   const violations = allTouched.filter((f) => forbiddenPrefixes.some((p) => f.startsWith(p)));
-  assert.equal(violations.length, 0, `expected no Mascotas/Busco/Revenue-OS files touched, found: ${violations.join(", ")}`);
+  assert.equal(violations.length, 0, `expected no Busco/Revenue-OS files touched, found: ${violations.join(", ")}`);
 
   const migrationTouched = allTouched.some((f) => /supabase\/migrations\//i.test(f) || /\.sql$/i.test(f));
   assert.ok(!migrationTouched, "expected no DB migration files touched");
 
-  console.log("OK: no Mascotas/Busco/Revenue-OS files touched; no DB migration added");
+  console.log("OK: no Busco/Revenue-OS files touched; no DB migration added");
 }
 
 // ---------------------------------------------------------------------------

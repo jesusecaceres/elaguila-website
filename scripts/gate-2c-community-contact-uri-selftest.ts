@@ -136,16 +136,16 @@ function read(relPath: string): string {
     .map((l) => l.slice(3).trim());
   const allTouched = [...new Set([...changedFiles, ...untrackedFiles])];
 
+  // Gate 3 legitimately owns Mascotas y Perdidos now — not forbidden here any more (only Busco
+  // remains out of scope for every non-Busco gate).
   const forbiddenPrefixes = [
-    "app/(site)/publicar/mascotas-y-perdidos/",
-    "app/(site)/clasificados/mascotas-y-perdidos/",
     "app/(site)/publicar/busco/",
     "app/(site)/clasificados/busco/",
   ];
   const violations = allTouched.filter((f) => forbiddenPrefixes.some((p) => f.startsWith(p)));
-  assert.equal(violations.length, 0, `expected no Mascotas/Busco files touched, found: ${violations.join(", ")}`);
+  assert.equal(violations.length, 0, `expected no Busco files touched, found: ${violations.join(", ")}`);
 
-  console.log("OK: no Mascotas/Busco files touched");
+  console.log("OK: no Busco files touched");
 }
 
 // ---------------------------------------------------------------------------
