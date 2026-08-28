@@ -22,6 +22,7 @@ import type {
 } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 import { buildOfertaLocalPreviewMapEmbedUrl } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
 import { LeonixListingFactsGrid } from "@/app/clasificados/lib/LeonixListingFactsGrid";
+import { BrRentasCommunityTrustSection } from "@/app/clasificados/lib/BrRentasCommunityTrustSection";
 import {
   trackRentasPhoneClick,
   trackRentasWhatsappClick,
@@ -41,6 +42,11 @@ type Props = {
   listingId?: string | null;
   /** Item 29 — utilities/services included in rent, kept separate from property/space features. */
   includedServices?: readonly string[] | null;
+  /** Listing owner's auth user id — threaded to Community Trust professional identity resolution
+   * for Rentas Negocio (never a disposable listing id). Only pass this on the real published/live
+   * detail render, never during the owner's own pre-publish draft preview — the component treats
+   * its absence as "not live yet" and renders nothing, same convention as the BR equivalent. */
+  ownerId?: string | null;
 };
 
 type DetailGroup = {
@@ -338,7 +344,7 @@ function ActionLink({
   );
 }
 
-export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, includedServices }: Props) {
+export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, includedServices, ownerId }: Props) {
   const ph = photos(vm);
   const [hero, ...rest] = ph;
   const videos = mediaVideos(vm, videoUrls, lang);
@@ -802,6 +808,15 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, i
               <FiMapPin className="h-4 w-4" />
               {lang === "es" ? "Ver mapa" : "View on map"}
             </ActionLink>
+          ) : null}
+          {isNegocio(vm) ? (
+            <BrRentasCommunityTrustSection
+              category="rentas_negocio"
+              ownerId={ownerId}
+              displayName={c.name || null}
+              lang={lang}
+              surface="rentas_negocio_detail_rail"
+            />
           ) : null}
           {vm.location?.hasMeaningfulAddress && locationLine ? (
             <div className="mt-4 border-t pt-4" style={{ borderColor: "rgba(214,199,173,0.65)" }}>

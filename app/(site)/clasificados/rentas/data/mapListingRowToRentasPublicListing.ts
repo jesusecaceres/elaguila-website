@@ -296,6 +296,7 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
 
   const id = trim(row.id);
   if (!id) return null;
+  const ownerId = trim(row.owner_id) || null;
 
   const title = trim(row.title) || (lang === "es" ? "Renta" : "Rental");
   const city = trim(row.city) || undefined;
@@ -483,6 +484,7 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
 
   return {
     id,
+    ownerId,
     slug: id,
     leonixAdId: trim(row.leonix_ad_id as string | undefined) || undefined,
     title,

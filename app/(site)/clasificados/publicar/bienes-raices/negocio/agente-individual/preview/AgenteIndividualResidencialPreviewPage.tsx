@@ -400,7 +400,7 @@ export function AgenteIndividualResidencialPreviewPage({
                       </button>
                       <GalleryCaption>{p.fotoPrincipal}</GalleryCaption>
                     </div>
-                  ) : (
+                  ) : publicChrome ? null : (
                     <div>
                       <EmptySlot title={p.slotPrincipal} subtitle={p.slotPrincipalSub} />
                       <GalleryCaption>{p.fotoPrincipal}</GalleryCaption>
@@ -427,7 +427,7 @@ export function AgenteIndividualResidencialPreviewPage({
                       </button>
                       <GalleryCaption>{p.foto2}</GalleryCaption>
                     </div>
-                  ) : (
+                  ) : publicChrome ? null : (
                     <div>
                       <EmptySlot title={p.foto2} subtitle={p.opcional} />
                       <GalleryCaption>{p.foto2}</GalleryCaption>
@@ -452,7 +452,7 @@ export function AgenteIndividualResidencialPreviewPage({
                       </button>
                       <GalleryCaption>{p.foto3}</GalleryCaption>
                     </div>
-                  ) : (
+                  ) : publicChrome ? null : (
                     <div>
                       <EmptySlot title={p.foto3} subtitle={p.opcional} />
                       <GalleryCaption>{p.foto3}</GalleryCaption>
@@ -499,7 +499,7 @@ export function AgenteIndividualResidencialPreviewPage({
                       </button>
                       <GalleryCaption>{p.video}</GalleryCaption>
                     </div>
-                  ) : (
+                  ) : publicChrome ? null : (
                     <div>
                       <EmptySlot
                         title={p.slotVideoTitle}

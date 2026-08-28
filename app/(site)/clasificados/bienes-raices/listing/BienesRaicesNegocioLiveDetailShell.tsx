@@ -473,6 +473,7 @@ export function BienesRaicesNegocioLiveDetailShell({
         <AgenteIndividualResidencialPreviewPage
           data={data}
           analyticsContext={analyticsContext}
+          ownerId={listing.owner_id}
           publicChrome={{
             eyebrow: (
               <Link
