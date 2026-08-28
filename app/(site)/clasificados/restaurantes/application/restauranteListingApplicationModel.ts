@@ -388,11 +388,25 @@ export type RestauranteProductType = "established_restaurant" | "mobile_food_ven
 export type RestaurantePricingState = {
   /** Selected product type */
   productType?: RestauranteProductType;
-  /** Base monthly price (399 for established, 199 for mobile) */
+  /**
+   * Historical/informational only — a legacy snapshot of what the draft's monthly price looked
+   * like at bootstrap time, stored on the listing row for record-keeping. NEVER the current-price
+   * authority: the real, current Restaurantes base price is always $399/mo, sourced from
+   * revenuePricingMatrix.ts's `restaurantes_base_monthly` entry (see RESTAURANTES_BASE_CHECKOUT /
+   * getRevenuePackageDefinition in RestaurantePreviewClient.tsx, which is what actually determines
+   * both the displayed checkout price and the real charge). No code may read this field to decide
+   * what price to show or charge — an old draft bootstrapped before the Comida Local pricing fix
+   * may still carry a stale value here (e.g. 199 for a pre-fix "mobile_food_vendor" draft); that
+   * stale value must never surface as a current price anywhere.
+   */
   baseMonthlyPrice?: number;
   /** Coupon/offers module enabled — included free with the base package, not a paid add-on. */
   couponUpgradeEnabled?: boolean;
-  /** Coupon add-on monthly price */
+  /**
+   * Historical/informational only — never a payment authority. Coupons/offers are included free
+   * with the current Restaurantes base package; no code may read this field to decide what to
+   * charge or display as a coupon add-on price.
+   */
   couponMonthlyPrice?: number;
 };
 

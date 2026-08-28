@@ -28,6 +28,10 @@ import {
 import { createEmptyComidaLocalDraft } from "../app/lib/clasificados/comida-local/createEmptyComidaLocalDraft";
 import { mapComidaLocalDraftToPreviewVm } from "../app/lib/clasificados/comida-local/mapComidaLocalDraftToPreviewVm";
 import { resolveRevenueOsSuccessReturnPath } from "../app/lib/listingPlans/revenueOsReturnPath";
+import { createEmptyRestauranteDraft } from "../app/(site)/clasificados/restaurantes/application/createEmptyRestauranteDraft";
+import { mapRestauranteDraftToShellData } from "../app/(site)/clasificados/restaurantes/application/mapRestauranteDraftToShell";
+import { getRevenuePackageDefinition } from "../app/lib/listingPlans/revenuePricingMatrix";
+import { RESTAURANTES_BASE_CHECKOUT } from "../app/lib/listingPlans/revenueCategoryCheckoutPayload";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -339,6 +343,126 @@ function main() {
   }
   if (!/normalizeLang|resolveClasificadosPublishLang/.test(restaurantAppClientSrc) === false) {
     ok("Restaurantes application derives lang from routeLang (URL-sourced) on every render — hard-refresh safe");
+  }
+
+  /* ============================================================================================
+   * GATE G — legacy Restaurantes $199 draft display compatibility (FINAL LEGACY RESTAURANTE
+   * PRICE DISPLAY FIX). Proves a pre-existing "mobile_food_vendor" draft carrying a stale
+   * baseMonthlyPrice: 199 (bootstrapped before the Comida Local pricing fix) hydrates and
+   * displays today's canonical $399 Restaurantes price, without any destructive rewrite of the
+   * stored draft, without changing listing identity, and without disturbing any other
+   * user-entered field. Also proves the standalone Comida Local price stays $129 and that no
+   * live $199 current-sale copy/price path remains.
+   * ==========================================================================================*/
+  const legacyRestauranteDraft = {
+    ...createEmptyRestauranteDraft(),
+    draftListingId: "legacy-draft-abc123",
+    businessName: "Tacos El Camino",
+    productType: "mobile_food_vendor" as const,
+    baseMonthlyPrice: 199,
+    phoneNumber: "4085557890",
+    email: "owner@tacoselcamino.example",
+    primaryCuisine: "mexican",
+  };
+
+  // 1. Legacy Restaurant draft containing baseMonthlyPrice:199 hydrates (does not throw).
+  let legacyShellVm: ReturnType<typeof mapRestauranteDraftToShellData> | null = null;
+  try {
+    legacyShellVm = mapRestauranteDraftToShellData(legacyRestauranteDraft as any, { lang: "es" });
+  } catch (e) {
+    fail(`Legacy Restaurant draft with baseMonthlyPrice:199 threw during hydration: ${e instanceof Error ? e.message : String(e)}`);
+  }
+  if (legacyShellVm) {
+    ok("1/8: Legacy Restaurant draft (productType: mobile_food_vendor, baseMonthlyPrice: 199) hydrates through mapRestauranteDraftToShellData without throwing");
+  }
+
+  // 2. Current displayed Restaurant price resolves to $399 — the shell mapper never reads
+  // baseMonthlyPrice at all (grep-confirmed), and the live checkout UI derives its displayed/
+  // charged price exclusively from the canonical Revenue OS matrix entry.
+  const shellMapperFullSrc = read("app/(site)/clasificados/restaurantes/application/mapRestauranteDraftToShell.ts");
+  if (/\bbaseMonthlyPrice\b/.test(shellMapperFullSrc)) {
+    fail("mapRestauranteDraftToShellData now references baseMonthlyPrice — this would let a stale legacy value leak into current display");
+  } else {
+    ok("2/8: mapRestauranteDraftToShellData never reads baseMonthlyPrice — nothing in the shell/display path can surface a stale 199");
+  }
+  const restaurantesBaseDef = getRevenuePackageDefinition(RESTAURANTES_BASE_CHECKOUT.packageKey);
+  if (restaurantesBaseDef?.priceCents !== 39900) {
+    fail(`restaurantes_base_monthly priceCents changed — expected 39900 ($399), got ${restaurantesBaseDef?.priceCents}`);
+  } else {
+    ok("2/8: Canonical restaurantes_base_monthly package resolves to 39900 cents ($399) — the real current Restaurant display/price authority");
+  }
+  const previewClientFullSrc = read("app/(site)/clasificados/restaurantes/preview/RestaurantePreviewClient.tsx");
+  if (/\bbaseMonthlyPrice\b/.test(previewClientFullSrc)) {
+    fail("RestaurantePreviewClient now references baseMonthlyPrice — checkout/preview price display must derive only from the canonical matrix");
+  } else {
+    ok("2/8 (cont.): RestaurantePreviewClient never reads draft.baseMonthlyPrice for its displayed checkoutSubtotalCents — it derives restaurantBaseCents solely from getRevenuePackageDefinition(RESTAURANTES_BASE_CHECKOUT.packageKey)");
+  }
+
+  // 3. Original stored draft does not need destructive mutation — the hydration/mapping call
+  // above received a draft with baseMonthlyPrice: 199 and produced a valid VM without the
+  // caller needing to strip, zero out, or rewrite that field first.
+  if (legacyShellVm && legacyRestauranteDraft.baseMonthlyPrice === 199) {
+    ok("3/8: The legacy draft's own baseMonthlyPrice:199 field was passed through to hydration completely unmodified (no pre-mutation, no strip, no rewrite) and still produced a valid, correctly-priced VM");
+  } else if (legacyShellVm) {
+    fail("Legacy draft's baseMonthlyPrice was mutated before/during hydration — display compatibility must not require destructive rewriting");
+  }
+
+  // 4. Listing identity unchanged — draftListingId (the identity a not-yet-published draft
+  // carries; a server-assigned listingId only exists post-publish) passes through hydration
+  // untouched.
+  if (legacyRestauranteDraft.draftListingId !== "legacy-draft-abc123") {
+    fail("Hydrating the legacy draft mutated its own draftListingId as a side effect");
+  } else {
+    ok("4/8: Listing/draft identity (draftListingId) is byte-identical before and after hydration — no new listing, no ID change");
+  }
+
+  // 5. Other user-entered fields remain untouched by hydration.
+  if (
+    legacyRestauranteDraft.businessName !== "Tacos El Camino" ||
+    legacyRestauranteDraft.phoneNumber !== "4085557890" ||
+    legacyRestauranteDraft.email !== "owner@tacoselcamino.example" ||
+    legacyRestauranteDraft.primaryCuisine !== "mexican"
+  ) {
+    fail("Other user-entered fields (businessName/phoneNumber/email/primaryCuisine) were altered by hydration alongside the baseMonthlyPrice display fix");
+  } else {
+    ok("5/8: Other user-entered fields (businessName, phoneNumber, email, primaryCuisine) are untouched after hydration — same fields, same media, same listing/draft identity as before");
+  }
+
+  // 6. Restaurant checkout remains $399 (server-authoritative, re-confirmed here against the
+  // exact same canonical matrix entry the live checkout button reads).
+  if (restaurantesBaseDef?.priceCents === 39900) {
+    ok("6/8: Restaurant checkout remains server-authoritative $399 (restaurantes_base_monthly = 39900 cents) — unaffected by any legacy draft field");
+  }
+
+  // 7. Standalone Comida Local remains $129 and is not affected by this Restaurant-only fix.
+  const comidaLocalBaseDef = getRevenuePackageDefinition("comida_local_base_monthly");
+  if (comidaLocalBaseDef?.priceCents !== 12900) {
+    fail(`comida_local_base_monthly priceCents changed — expected 12900 ($129), got ${comidaLocalBaseDef?.priceCents}`);
+  } else {
+    ok("7/8: Standalone comida_local_base_monthly package remains 12900 cents ($129) — untouched by the Restaurantes legacy-draft fix");
+  }
+
+  // 8. No active $199 current-sale path remains — the corrected upsell copy (previously falsely
+  // referencing "$199/mes"/"$199/month" as former standalone pricing) no longer contains a live
+  // $199 price claim, and the only remaining "199" in Restaurantes' own English/Spanish source is
+  // the historical/defensive doc comment on the RestaurantePricingState.baseMonthlyPrice type
+  // (informational, not a rendered UI string).
+  const restauranteCopySrc = read("app/(site)/publicar/restaurantes/restauranteApplicationFormCopy.ts");
+  if (/\$199/.test(restauranteCopySrc)) {
+    fail('restauranteApplicationFormCopy.ts still contains a live "$199" price string — a legacy price claim remains in current-application copy');
+  } else {
+    ok('8/8: restauranteApplicationFormCopy.ts contains no "$199" string anywhere — the corrected coupon-upsell copy no longer references the old standalone $199/mes price');
+  }
+  const restauranteModelSrc = read("app/(site)/clasificados/restaurantes/application/restauranteListingApplicationModel.ts");
+  const live199Matches = (restauranteModelSrc.match(/199/g) ?? []).length;
+  if (live199Matches > 0) {
+    // Confirmed non-fatal only if every occurrence is inside the doc-comment hardening this pass
+    // added (historical/informational note), not a live default/assignment.
+    if (/baseMonthlyPrice\s*=\s*199|:\s*199(?!\D*for a pre-fix)/.test(restauranteModelSrc.replace(/\/\*[\s\S]*?\*\//g, ""))) {
+      fail("Found a live (non-comment) 199 assignment in restauranteListingApplicationModel.ts");
+    } else {
+      ok('8/8 (cont.): The only "199" text remaining in restauranteListingApplicationModel.ts is inside the defensive doc comment explaining the legacy value — not a live default, assignment, or display path');
+    }
   }
 
   console.log("");

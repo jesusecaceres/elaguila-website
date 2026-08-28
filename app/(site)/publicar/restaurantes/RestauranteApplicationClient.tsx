@@ -1845,7 +1845,7 @@ export default function RestauranteApplicationClient() {
                     <button
                       type="button"
                       onClick={() => {
-                        setDraftPatch({ couponUpgradeEnabled: true, couponMonthlyPrice: 99 });
+                        setDraftPatch({ couponUpgradeEnabled: true, couponMonthlyPrice: 0 });
                       }}
                       className="min-h-[44px] shrink-0 rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)]"
                     >

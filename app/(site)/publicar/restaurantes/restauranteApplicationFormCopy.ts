@@ -259,13 +259,13 @@ const COPY = {
       dashboardAddonBody:
         "Agrega hasta 4 ofertas/cupones destacados a tu anuncio para atraer más clientes. Activa el módulo por $99/mes y luego podrás guardar tus ofertas.",
       upsellQuestion: "¿Quieres agregar cupones destacados a tu perfil?",
-      upsellPrice: "$99/mes",
+      upsellPrice: "Incluido en tu plan",
       upsellPriceNote:
-        "Precio especial para restaurantes. Antes era $199/mes como producto independiente.",
+        "Incluido sin costo adicional en tu plan Restaurantes ($399/mes). No es un producto independiente.",
       upsellBody:
-        "Agrega hasta 4 cupones destacados dentro de tu perfil. Puedes promocionar combos, descuentos de temporada, especiales de almuerzo, catering o eventos. Los clientes podrán compartir el cupón por enlace, mensaje, email o apps compatibles.",
-      addCouponsForPrice: "Agregar cupones por $99/mes",
-      couponsEnabled: "Cupones activados — +$99/mes",
+        "Agrega hasta 4 cupones destacados dentro de tu perfil, incluido sin costo adicional en tu plan. Puedes promocionar combos, descuentos de temporada, especiales de almuerzo, catering o eventos. Los clientes podrán compartir el cupón por enlace, mensaje, email o apps compatibles.",
+      addCouponsForPrice: "Activar cupones (incluido en tu plan)",
+      couponsEnabled: "Cupones activados — incluido en tu plan",
       enabledHelper:
         "Agrega hasta 4 ofertas para que los clientes tengan una razón clara para visitar, ordenar o compartir tu restaurante.",
       couponTitleLabel: "Título del cupón",
@@ -603,13 +603,13 @@ const COPY = {
       dashboardAddonBody:
         "Add up to 4 featured offers/coupons to your listing to attract more customers. Activate the module for $99/mo, then you can save your offers.",
       upsellQuestion: "Do you want to add featured coupons to your profile?",
-      upsellPrice: "$99/month",
+      upsellPrice: "Included with your plan",
       upsellPriceNote:
-        "Special price for restaurants. Previously $199/month as a standalone product.",
+        "Included at no extra cost with your Restaurantes plan ($399/month). Not a standalone product.",
       upsellBody:
-        "Add up to 4 featured coupons within your profile. You can promote combos, seasonal discounts, lunch specials, catering, or events. Customers will be able to share the coupon by link, message, email, or compatible apps.",
-      addCouponsForPrice: "Add coupons for $99/month",
-      couponsEnabled: "Coupons enabled — +$99/month",
+        "Add up to 4 featured coupons within your profile, included at no extra cost with your plan. You can promote combos, seasonal discounts, lunch specials, catering, or events. Customers will be able to share the coupon by link, message, email, or compatible apps.",
+      addCouponsForPrice: "Activate coupons (included with your plan)",
+      couponsEnabled: "Coupons enabled — included with your plan",
       enabledHelper:
         "Add up to 4 offers so customers have a clear reason to visit, order, or share your restaurant.",
       couponTitleLabel: "Coupon title",
