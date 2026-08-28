@@ -160,13 +160,19 @@ function coerceBrPetsAllowedChoice(raw: unknown, fallback: BrPetsAllowedChoice):
   return fallback;
 }
 
+/** Canonical preset keys pass through as-is; free-text "Agregar otra característica" entries are
+ * also accepted (bounded length) so an owner-typed custom highlight isn't silently dropped. */
 function coerceResidencialHighlights(raw: unknown): string[] {
-  return coerceStringArray(raw, 24).filter((k) => VALID_RES_HIGHLIGHT.has(k));
+  return coerceStringArray(raw, 32).filter((k) => VALID_RES_HIGHLIGHT.has(k) || (k.trim().length > 0 && k.length <= 40));
 }
 
 export type BienesRaicesPrivadoResidencialFields = {
   tipoCodigo: TipoPropiedadCodigo;
   subtipo: string;
+  /** Levels/stories — a genuinely separate field from `subtipo` (property type != subtype !=
+   * levels/stories). Free text ("1", "2", "3+") so existing "un_piso"/"dos_pisos" subtipo values
+   * remain valid/displayable without any migration; new drafts should use this field instead. */
+  niveles: string;
   recamaras: string;
   banos: string;
   mediosBanos: string;
@@ -175,8 +181,11 @@ export type BienesRaicesPrivadoResidencialFields = {
   estacionamiento: string;
   ano: string;
   condicion: BrPrivadoCondicion;
-  /** Keys from `BR_HIGHLIGHT_PRESET_DEFS` */
+  /** Keys from `BR_HIGHLIGHT_PRESET_DEFS`, plus any owner-typed "Agregar otra característica"
+   * free-text entries (not in the preset defs — distinguished by lookup at render time). */
   highlightKeys: string[];
+  /** In-progress "Agregar otra característica" text, persisted so a reload doesn't lose it. */
+  pendingCustomHighlight: string;
 };
 
 export type BienesRaicesPrivadoComercialFields = {
@@ -228,8 +237,12 @@ export type BienesRaicesPrivadoFormState = {
   media: {
     photoDataUrls: string[];
     primaryImageIndex: number;
-    /** External video URL (YouTube, Vimeo, direct .mp4, etc.). */
+    /** Legacy single external video URL — superseded by `videoUrls`, kept so old drafts/published
+     * listings saved before multi-video support still hydrate correctly. */
     videoUrl: string;
+    /** External video URLs (YouTube, Vimeo, direct .mp4, etc.) — external links only, no device
+     * upload. Add-one-at-a-time, up to MAX_PRIVADO_VIDEO_URLS. */
+    videoUrls: string[];
     /**
      * Local draft video as data URL (same-tab session only). Takes precedence over `videoUrl` for preview.
      * Not uploaded to Mux until a future paid publish step.
@@ -261,6 +274,7 @@ export type BienesRaicesPrivadoFormState = {
 };
 
 const MAX_PHOTOS = 8;
+export const MAX_PRIVADO_VIDEO_URLS = 4;
 
 export function createEmptyBienesRaicesPrivadoFormState(): BienesRaicesPrivadoFormState {
   return {
@@ -279,6 +293,7 @@ export function createEmptyBienesRaicesPrivadoFormState(): BienesRaicesPrivadoFo
       photoDataUrls: [],
       primaryImageIndex: 0,
       videoUrl: "",
+      videoUrls: [],
       videoLocalDataUrl: "",
     },
     seller: {
@@ -294,6 +309,7 @@ export function createEmptyBienesRaicesPrivadoFormState(): BienesRaicesPrivadoFo
     residencial: {
       tipoCodigo: "casa",
       subtipo: "",
+      niveles: "",
       recamaras: "",
       banos: "",
       mediosBanos: "",
@@ -303,6 +319,7 @@ export function createEmptyBienesRaicesPrivadoFormState(): BienesRaicesPrivadoFo
       ano: "",
       condicion: "",
       highlightKeys: [],
+      pendingCustomHighlight: "",
     },
     comercial: {
       tipoCodigo: "oficina",
@@ -376,6 +393,17 @@ export function mergePartialBienesRaicesPrivadoState(
       photoDataUrls,
       primaryImageIndex,
       videoUrl: typeof mediaIn?.videoUrl === "string" ? mediaIn.videoUrl : base.media.videoUrl,
+      videoUrls: (() => {
+        if (Array.isArray(mediaIn?.videoUrls)) {
+          return mediaIn.videoUrls
+            .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+            .slice(0, MAX_PRIVADO_VIDEO_URLS);
+        }
+        if (base.media.videoUrls.length > 0) return base.media.videoUrls;
+        // Migration compat: an old draft/published listing only ever had a single legacy `videoUrl`.
+        const legacy = typeof mediaIn?.videoUrl === "string" ? mediaIn.videoUrl : base.media.videoUrl;
+        return legacy.trim() ? [legacy.trim()] : [];
+      })(),
       videoLocalDataUrl:
         typeof mediaIn?.videoLocalDataUrl === "string" ? mediaIn.videoLocalDataUrl : base.media.videoLocalDataUrl,
     },
@@ -395,8 +423,11 @@ export function mergePartialBienesRaicesPrivadoState(
       ...resIn,
       tipoCodigo: normalizeResidencialTipoPropiedadCodigo(resIn?.tipoCodigo ?? base.residencial.tipoCodigo),
       subtipo: typeof resIn?.subtipo === "string" ? resIn.subtipo : base.residencial.subtipo,
+      niveles: typeof resIn?.niveles === "string" ? resIn.niveles : base.residencial.niveles,
       condicion: coerceCondicion(resIn?.condicion),
       highlightKeys: coerceResidencialHighlights(resIn?.highlightKeys),
+      pendingCustomHighlight:
+        typeof resIn?.pendingCustomHighlight === "string" ? resIn.pendingCustomHighlight : base.residencial.pendingCustomHighlight,
     },
     comercial: {
       ...base.comercial,

@@ -21,6 +21,8 @@ import {
   BR_PUBLICAR_HUB,
 } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
+import { LeonixCustomHighlightChipAdd } from "@/app/clasificados/lib/LeonixCustomHighlightChipAdd";
+import { evaluateAddCustomHighlight } from "@/app/clasificados/lib/leonixCustomHighlightChips";
 import { BrGate12dHoaCommunitySection } from "@/app/clasificados/publicar/bienes-raices/shared/BrGate12dHoaCommunitySection";
 import {
   AiField,
@@ -44,16 +46,17 @@ import { compressImageFileToJpegDataUrl } from "./utils/brPrivadoMediaCompress";
 import { LeonixRealEstateSortablePhotoStrip } from "@/app/clasificados/lib/LeonixRealEstateSortablePhotoStrip";
 import { BrPrivadoCiudadZonaCombobox } from "./components/BrPrivadoCiudadZonaCombobox";
 import {
-  COMERCIAL_DESTACADOS_DEFS,
+  COMERCIAL_DESTACADOS_CHECKLIST_DEFS,
   COMERCIAL_SUBTIPO_POR_TIPO,
   COMERCIAL_TIPO_OPCIONES,
-  TERRENO_DESTACADOS_DEFS,
+  TERRENO_DESTACADOS_CHECKLIST_DEFS,
   TERRENO_SUBTIPO_POR_TIPO,
   TERRENO_TIPO_OPCIONES,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteComercialTerrenoMeta";
 import { SUBTIPO_POR_TIPO, TIPO_PROPIEDAD_OPCIONES } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteResidencialTipoMeta";
 import {
   createEmptyBienesRaicesPrivadoFormState,
+  MAX_PRIVADO_VIDEO_URLS,
   type BienesRaicesPrivadoFormState,
 } from "../schema/bienesRaicesPrivadoFormState";
 import {
@@ -225,15 +228,30 @@ export function BienesRaicesPrivadoForm() {
     if (photosInputRef.current) photosInputRef.current.value = "";
   };
 
-  const onVideoUrlChange = (raw: string) => {
+  const normalizePrivadoVideoUrls = (urls: readonly string[]): string[] => {
+    const out: string[] = [];
+    for (const raw of urls) {
+      const v = String(raw ?? "").trim();
+      if (!v || out.includes(v)) continue;
+      out.push(v);
+      if (out.length >= MAX_PRIVADO_VIDEO_URLS) break;
+    }
+    return out;
+  };
+
+  const onVideoUrlChange = (index: number, raw: string) => {
     setMediaNotice(null);
     setState((s) => {
+      const current = normalizePrivadoVideoUrls(s.media.videoUrls.length ? s.media.videoUrls : [s.media.videoUrl]);
+      const nextInput = Array.from({ length: MAX_PRIVADO_VIDEO_URLS }, (_, i) => current[i] ?? "");
+      nextInput[index] = raw;
+      const nextUrls = normalizePrivadoVideoUrls(nextInput);
       const out: BienesRaicesPrivadoFormState = {
         ...s,
         // BR-INV-WAVE1-GATE2: device video upload removed (external URL only). Clearing any
         // legacy `videoLocalDataUrl` here so an old draft that still carries one converges to
         // URL-only as soon as the seller touches this field.
-        media: { ...s.media, videoUrl: raw, videoLocalDataUrl: "" },
+        media: { ...s.media, videoUrl: nextUrls[0] ?? "", videoUrls: nextUrls, videoLocalDataUrl: "" },
       };
       queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
       return out;
@@ -701,25 +719,42 @@ export function BienesRaicesPrivadoForm() {
           </div>
           <div className="mt-6 border-t border-[#E8DFD0] pt-5">
             <span className={aiLabelClass}>Video (opcional)</span>
-            <p className={aiHintClass}>Comparte un enlace externo (YouTube, Vimeo, mp4, etc.).</p>
-            <div className="mt-4">
-              <AiField
-                label="Video por enlace"
-                hint="Pega la URL completa (YouTube, Vimeo, mp4…)."
-              >
-                <input
-                  className={fieldClass}
-                  type="text"
-                  inputMode="url"
-                  autoComplete="off"
-                  placeholder="https://"
-                  value={state.media.videoUrl}
-                  onChange={(e) => onVideoUrlChange(e.target.value)}
-                />
-              </AiField>
+            <p className={aiHintClass}>
+              Comparte hasta {MAX_PRIVADO_VIDEO_URLS} enlaces externos (YouTube, Vimeo, mp4, etc.). No se aceptan
+              archivos de video del dispositivo.
+            </p>
+            <div className="mt-4 grid gap-3">
+              {Array.from({ length: MAX_PRIVADO_VIDEO_URLS }, (_, i) => {
+                const current = normalizePrivadoVideoUrls(
+                  state.media.videoUrls.length ? state.media.videoUrls : [state.media.videoUrl],
+                );
+                const value = current[i] ?? "";
+                const invalid = Boolean(value.trim()) && !/^https?:\/\//i.test(value.trim());
+                return (
+                  <AiField
+                    key={i}
+                    label={i === 0 ? "Video por enlace" : `Video ${i + 1} por enlace`}
+                    hint={i === 0 ? "Pega la URL completa (YouTube, Vimeo, mp4…)." : undefined}
+                  >
+                    <input
+                      className={fieldClass}
+                      type="text"
+                      inputMode="url"
+                      autoComplete="off"
+                      placeholder="https://"
+                      value={value}
+                      onChange={(e) => onVideoUrlChange(i, e.target.value)}
+                    />
+                    {invalid ? (
+                      <p className="mt-2 text-xs font-medium text-amber-800">Revisa el enlace; debe empezar con http(s)://</p>
+                    ) : null}
+                  </AiField>
+                );
+              })}
             </div>
-            {state.media.videoUrl.trim() ? (
-              <p className="mt-2 text-xs font-medium text-[#2C7A4E]">Enlace listo: se usará en la vista previa.</p>
+            {normalizePrivadoVideoUrls(state.media.videoUrls.length ? state.media.videoUrls : [state.media.videoUrl])
+              .length ? (
+              <p className="mt-2 text-xs font-medium text-[#2C7A4E]">Enlace(s) listo(s): se usarán en la vista previa.</p>
             ) : null}
           </div>
         </section>
@@ -901,6 +936,18 @@ export function BienesRaicesPrivadoForm() {
                   ))}
                 </select>
               </AiField>
+              <AiField label="Niveles / pisos" hint="Opcional. Distinto del subtipo (ej. condominio de 2 niveles).">
+                <select
+                  className={fieldClass}
+                  value={state.residencial.niveles}
+                  onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, niveles: e.target.value } }))}
+                >
+                  <option value="">— No indicado</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3+">3+</option>
+                </select>
+              </AiField>
               <AiField label="Recámaras">
                 <input
                   className={fieldClass}
@@ -1000,6 +1047,67 @@ export function BienesRaicesPrivadoForm() {
                   </label>
                 ))}
               </div>
+              <LeonixCustomHighlightChipAdd
+                label="Agregar otra característica"
+                placeholder="Ej. Piso de mármol"
+                addLabel="Añadir"
+                removeAriaLabel={(label) => `Quitar: ${label}`}
+                capReachedLabel="Alcanzaste el máximo de características personalizadas."
+                pendingValue={state.residencial.pendingCustomHighlight}
+                onPendingChange={(next) =>
+                  setState((s) => ({ ...s, residencial: { ...s.residencial, pendingCustomHighlight: next } }))
+                }
+                canAdd={Boolean(state.residencial.pendingCustomHighlight.trim())}
+                atCap={
+                  state.residencial.highlightKeys.filter((k) => !BR_HIGHLIGHT_PRESET_DEFS.some((d) => d.key === k))
+                    .length >= 8
+                }
+                customValues={state.residencial.highlightKeys.filter(
+                  (k) => !BR_HIGHLIGHT_PRESET_DEFS.some((d) => d.key === k),
+                )}
+                onAdd={() =>
+                  setState((s) => {
+                    const custom = s.residencial.highlightKeys.filter(
+                      (k) => !BR_HIGHLIGHT_PRESET_DEFS.some((d) => d.key === k),
+                    );
+                    const r = evaluateAddCustomHighlight({
+                      raw: s.residencial.pendingCustomHighlight,
+                      existingValues: custom,
+                      standardLabels: BR_HIGHLIGHT_PRESET_DEFS.map((d) => d.label),
+                    });
+                    if (!r.ok) return s;
+                    const out: BienesRaicesPrivadoFormState = {
+                      ...s,
+                      residencial: {
+                        ...s.residencial,
+                        highlightKeys: [...s.residencial.highlightKeys, r.label],
+                        pendingCustomHighlight: "",
+                      },
+                    };
+                    queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
+                    return out;
+                  })
+                }
+                onRemove={(customIndex) =>
+                  setState((s) => {
+                    const custom = s.residencial.highlightKeys.filter(
+                      (k) => !BR_HIGHLIGHT_PRESET_DEFS.some((d) => d.key === k),
+                    );
+                    const toRemove = custom[customIndex];
+                    const out: BienesRaicesPrivadoFormState = {
+                      ...s,
+                      residencial: {
+                        ...s.residencial,
+                        highlightKeys: s.residencial.highlightKeys.filter((k) => k !== toRemove),
+                      },
+                    };
+                    queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
+                    return out;
+                  })
+                }
+                inputClassName={fieldClass}
+                labelClassName={aiLabelClass}
+              />
             </div>
           </section>
         ) : null}
@@ -1123,7 +1231,7 @@ export function BienesRaicesPrivadoForm() {
             <div className="mt-6">
               <span className={aiLabelClass}>Destacados</span>
               <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
-                {COMERCIAL_DESTACADOS_DEFS.map((d) => (
+                {COMERCIAL_DESTACADOS_CHECKLIST_DEFS.map((d) => (
                   <label key={d.id} className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
                     <input
                       type="checkbox"
@@ -1240,7 +1348,7 @@ export function BienesRaicesPrivadoForm() {
             <div className="mt-6">
               <span className={aiLabelClass}>Destacados</span>
               <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
-                {TERRENO_DESTACADOS_DEFS.map((d) => (
+                {TERRENO_DESTACADOS_CHECKLIST_DEFS.map((d) => (
                   <label key={d.id} className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
                     <input
                       type="checkbox"

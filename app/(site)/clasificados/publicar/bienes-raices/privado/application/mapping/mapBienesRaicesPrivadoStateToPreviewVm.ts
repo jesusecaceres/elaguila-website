@@ -120,19 +120,27 @@ function operationSummaryFor(cat: BienesRaicesPrivadoFormState["categoriaPropied
   return "Venta terreno / lote";
 }
 
+function numberedVideoCtaLabel(index: number): string {
+  return index === 0 ? "Ver video" : `Ver video ${index + 1}`;
+}
+
 function buildMediaVm(s: BienesRaicesPrivadoFormState): BienesRaicesPreviewMediaVm {
   const urls = [...s.media.photoDataUrls];
   const n = urls.length;
   const pi = n === 0 ? 0 : Math.min(Math.max(0, s.media.primaryImageIndex), n - 1);
   const heroUrl = n > 0 ? urls[pi]! : null;
   const localV = trim(s.media.videoLocalDataUrl ?? "");
-  const urlV = trim(s.media.videoUrl);
+  const videoUrls = (s.media.videoUrls.length > 0 ? s.media.videoUrls : s.media.videoUrl ? [s.media.videoUrl] : [])
+    .map(trim)
+    .filter(Boolean);
+  const urlV = videoUrls[0] ?? "";
   /** Local file wins over URL for preview (draft-only; no Mux). */
   const primaryVideo = localV || urlV;
   const yt = !localV && urlV ? parseYoutubeId(urlV) : null;
   const hasVid = Boolean(primaryVideo);
   const thumb0 = yt ? `https://img.youtube.com/vi/${yt}/hqdefault.jpg` : null;
   const playback0 = hasVid ? (localV || urlV) : null;
+  const externalVideoLinks = videoUrls.map((href, index) => ({ label: numberedVideoCtaLabel(index), href }));
 
   const vt = normalizeLeonixHttpsUrl(trim(s.gate12d?.virtualTourUrl ?? ""));
   const metaLine =
@@ -144,6 +152,7 @@ function buildMediaVm(s: BienesRaicesPrivadoFormState): BienesRaicesPreviewMedia
     videoThumbUrls: [thumb0, null],
     videoPlaybackUrls: [playback0, null],
     youtubeIds: [yt, null],
+    externalVideoLinks,
     virtualTourUrl: vt,
     floorPlanUrls: [],
     sitePlanUrl: null,
@@ -172,6 +181,7 @@ function buildResidencialDetails(s: BienesRaicesPrivadoFormState): BienesRaicesP
   const rows: Array<BienesRaicesPreviewFact | null> = [
     row("Tipo", tipoLabel),
     row(residencialSubtipoDisplayGroup(r.subtipo), subLbl),
+    row("Niveles / pisos", r.niveles),
     row("Condición", r.condicion ? CONDICION_LABEL[r.condicion] ?? r.condicion : ""),
   ];
   return rows.filter((x): x is BienesRaicesPreviewFact => x != null);
@@ -198,13 +208,12 @@ function buildResidencialQuickFacts(s: BienesRaicesPrivadoFormState): BienesRaic
 function buildResidencialHighlights(s: BienesRaicesPrivadoFormState): BienesRaicesPreviewFact[] {
   const map = new Map(BR_HIGHLIGHT_PRESET_DEFS.map((d) => [d.key, d.label]));
   const uniqueKeys = [...new Set(s.residencial.highlightKeys)];
-  return uniqueKeys
-    .map((k) => {
-      const label = map.get(k);
-      if (!label) return null;
-      return { label, value: "✓" };
-    })
-    .filter((x): x is BienesRaicesPreviewFact => x != null);
+  return uniqueKeys.map((k) => {
+    // Custom "Agregar otra característica" entries aren't in the canonical preset map — render
+    // the owner's own text as-is instead of silently dropping it.
+    const label = map.get(k) ?? k;
+    return { label, value: "✓" };
+  });
 }
 
 function buildComercialDetails(s: BienesRaicesPrivadoFormState): BienesRaicesPreviewFact[] {
