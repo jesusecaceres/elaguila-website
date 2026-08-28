@@ -28,7 +28,6 @@ import {
 import {
   composeBrApproximateMapQuery,
   composeBrExactMapQuery,
-  sanitizeBrUserMapUrl,
 } from "@/app/clasificados/lib/leonixBrGate12d";
 import {
   LEONIX_DP_BATHROOMS_COUNT,
@@ -225,30 +224,25 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(
   const g12 = serializeBrGate12dV1Payload(buildBrGate12dV1FromPrivadoState(state));
   if (g12) push(out, LEONIX_DP_BR_GATE12D_V1, g12);
   if (state.estadoAnuncio) push(out, LEONIX_DP_BR_LISTING_STATUS, state.estadoAnuncio);
-  const userMap = sanitizeBrUserMapUrl(state.enlaceMapa);
-  if (userMap) {
-    push(out, LEONIX_DP_BR_MAP_URL, userMap);
-  } else {
-    const zip = normalizeZipForBrowse(String(state.gate12d?.codigoPostal ?? "").trim());
-    const mapsQuery = state.mostrarDireccionExacta
-      ? composeBrExactMapQuery({
-          streetAddress: state.ubicacionLinea,
-          unit: "",
-          neighborhood: "",
-          city: state.ciudad,
-          state: "",
-          zip,
-        })
-      : composeBrApproximateMapQuery({
-          neighborhood: state.ubicacionLinea,
-          city: state.ciudad,
-          state: "",
-          zip,
-        });
-    if (mapsQuery) {
-      const href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`;
-      push(out, LEONIX_DP_BR_MAP_URL, href);
-    }
+  const zip = normalizeZipForBrowse(String(state.gate12d?.codigoPostal ?? "").trim());
+  const mapsQuery = state.mostrarDireccionExacta
+    ? composeBrExactMapQuery({
+        streetAddress: state.ubicacionLinea,
+        unit: "",
+        neighborhood: "",
+        city: state.ciudad,
+        state: "",
+        zip,
+      })
+    : composeBrApproximateMapQuery({
+        neighborhood: state.ubicacionLinea,
+        city: state.ciudad,
+        state: "",
+        zip,
+      });
+  if (mapsQuery) {
+    const href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`;
+    push(out, LEONIX_DP_BR_MAP_URL, href);
   }
   return out;
 }
