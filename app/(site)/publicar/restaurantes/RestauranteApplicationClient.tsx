@@ -43,6 +43,7 @@ import { resolveRestauranteDraftMediaToRemoteUrls } from "@/app/clasificados/res
 import {
   redirectRestauranteDashboardCouponAddonCheckout,
   restauranteCouponAddonUpgradeLabel,
+  restauranteCouponAddonUpgradeBusyLabel,
   restauranteCouponEditHref,
   restauranteOffersModuleHeading,
 } from "@/app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCheckout";
@@ -825,7 +826,7 @@ export default function RestauranteApplicationClient() {
               onClick={() => void startDashboardAddonCheckout()}
               className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50"
             >
-              {dashboardAddonCheckoutBusy ? fc.common.startingCheckout : restauranteCouponAddonUpgradeLabel(lang)}
+              {dashboardAddonCheckoutBusy ? restauranteCouponAddonUpgradeBusyLabel(lang) : restauranteCouponAddonUpgradeLabel(lang)}
             </button>
             <Link
               href={dashboardReturnHref}
@@ -1813,7 +1814,7 @@ export default function RestauranteApplicationClient() {
                     onClick={() => void startDashboardAddonCheckout()}
                     className="mt-4 min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50"
                   >
-                    {dashboardAddonCheckoutBusy ? fc.common.startingCheckout : restauranteCouponAddonUpgradeLabel(lang)}
+                    {dashboardAddonCheckoutBusy ? restauranteCouponAddonUpgradeBusyLabel(lang) : restauranteCouponAddonUpgradeLabel(lang)}
                   </button>
                 </div>
               </>
@@ -1825,7 +1826,7 @@ export default function RestauranteApplicationClient() {
                   <h3 className="text-lg font-bold text-[color:var(--lx-text)]">
                     {fc.sectionG.upsellQuestion}
                   </h3>
-                  <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">+${fc.sectionG.upsellPrice}</p>
+                  <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">{fc.sectionG.upsellPrice}</p>
                   <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
                     {fc.sectionG.upsellPriceNote}
                   </p>

@@ -28,10 +28,16 @@ import {
 import { createEmptyComidaLocalDraft } from "../app/lib/clasificados/comida-local/createEmptyComidaLocalDraft";
 import { mapComidaLocalDraftToPreviewVm } from "../app/lib/clasificados/comida-local/mapComidaLocalDraftToPreviewVm";
 import { resolveRevenueOsSuccessReturnPath } from "../app/lib/listingPlans/revenueOsReturnPath";
-import { createEmptyRestauranteDraft } from "../app/(site)/clasificados/restaurantes/application/createEmptyRestauranteDraft";
+import { createEmptyRestauranteDraft, mergeRestauranteDraft } from "../app/(site)/clasificados/restaurantes/application/createEmptyRestauranteDraft";
 import { mapRestauranteDraftToShellData } from "../app/(site)/clasificados/restaurantes/application/mapRestauranteDraftToShell";
 import { getRevenuePackageDefinition } from "../app/lib/listingPlans/revenuePricingMatrix";
 import { RESTAURANTES_BASE_CHECKOUT } from "../app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import {
+  restaurantListingJsonCouponEnabled,
+  restaurantCouponEditEligibleFromLifecycle,
+  restaurantCouponAddonUpgradeEligibleFromLifecycle,
+  restauranteCouponEditHref,
+} from "../app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCheckout";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -463,6 +469,202 @@ function main() {
     } else {
       ok('8/8 (cont.): The only "199" text remaining in restauranteListingApplicationModel.ts is inside the defensive doc comment explaining the legacy value — not a live default, assignment, or display path');
     }
+  }
+
+  /* ============================================================================================
+   * GATE H — Restaurantes legacy coupon add-on retirement (FINAL RESTAURANTES LEGACY COUPON
+   * ADD-ON RETIREMENT). Proves coupons/offers are a real included feature of the $399/mo base
+   * package for EXISTING published Restaurant listings — not gated behind a historical
+   * restaurantes_offers_addon purchase, and never routed through Stripe checkout — while legacy
+   * coupon content/images and listing identity are never destructively touched.
+   * ==========================================================================================*/
+
+  // 1. Existing Restaurant without historical coupon entitlement sees Edit/Add Coupons as
+  // included: dashboard pages upgrade addonStatus to "active" purely from real base-package
+  // capability (hasCouponsCapability), with no historical addon purchase required — confirm both
+  // dashboard surfaces contain that exact upgrade logic, then confirm the lifecycle eligibility
+  // function treats "active" as edit-eligible.
+  const dashboardRestaurantesPageSrc = read("app/(site)/dashboard/restaurantes/page.tsx");
+  const dashboardMisAnunciosPageSrc = read("app/(site)/dashboard/mis-anuncios/page.tsx");
+  const capabilityUpgradePattern = /addonStatus === "not_purchased" && hasCouponsCapability \? "active" : addonStatus/;
+  if (!capabilityUpgradePattern.test(dashboardRestaurantesPageSrc)) {
+    fail("dashboard/restaurantes/page.tsx no longer upgrades coupon status to 'active' from real base-package capability alone");
+  } else {
+    ok("1/12: dashboard/restaurantes/page.tsx treats any listing with real base-package coupons_offers capability as 'active' — no historical addon purchase required");
+  }
+  if (!capabilityUpgradePattern.test(dashboardMisAnunciosPageSrc)) {
+    fail("dashboard/mis-anuncios/page.tsx no longer upgrades coupon status to 'active' from real base-package capability alone");
+  } else {
+    ok("1/12 (cont.): dashboard/mis-anuncios/page.tsx applies the same capability-based upgrade — consistent across both dashboard surfaces");
+  }
+  if (!restaurantCouponEditEligibleFromLifecycle({ status: "published", addonStatus: "active" })) {
+    fail("restaurantCouponEditEligibleFromLifecycle does not treat an 'active' capability status as edit-eligible");
+  } else {
+    ok("1/12 (cont.): restaurantCouponEditEligibleFromLifecycle({status:'published', addonStatus:'active'}) → true — Edit/Add Coupons shows as included the moment real base-package capability exists, with zero historical addon row required");
+  }
+  if (restaurantCouponAddonUpgradeEligibleFromLifecycle({ status: "published", addonStatus: "active" })) {
+    fail("restaurantCouponAddonUpgradeEligibleFromLifecycle still shows the separate 'Enable' upsell for a listing that already has real capability — should be mutually exclusive with edit-eligible");
+  } else {
+    ok("1/12 (cont.): restaurantCouponAddonUpgradeEligibleFromLifecycle({status:'published', addonStatus:'active'}) → false — the separate 'Enable' step never shows once real capability already exists, so no stale upsell can appear alongside the Edit action");
+  }
+
+  // 2. CTA does NOT start Stripe checkout — the real enable/edit call chain only ever reaches
+  // enableIncludedCommercialCapability (a capability POST, not a Stripe session), never a
+  // Stripe/checkout-session URL.
+  const dashboardCouponLibSrc = read("app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCheckout.ts");
+  // Strip comments/doc-comments before scanning for a real Stripe reference — this file's own
+  // documentation legitimately explains, in prose, that it no longer uses Stripe.
+  const dashboardCouponLibCodeOnly = dashboardCouponLibSrc
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/.*$/gm, "");
+  if (!dashboardCouponLibSrc.includes("enableIncludedCommercialCapability")) {
+    fail("restaurantesDashboardCouponAddonCheckout.ts no longer calls enableIncludedCommercialCapability");
+  } else if (/stripe|checkoutUrl|checkout\.stripe/i.test(dashboardCouponLibCodeOnly)) {
+    fail("restaurantesDashboardCouponAddonCheckout.ts appears to reference a Stripe checkout URL in real code — the coupon module must never start a paid checkout");
+  } else {
+    ok("2/12: Both startRestauranteDashboardCouponAddonCheckout (Enable) and hydrateRestauranteListingForCouponEdit (Edit) resolve exclusively through enableIncludedCommercialCapability — no Stripe/checkout-session URL anywhere in this module");
+  }
+
+  // 3 & 4. CTA opens the same-listing coupon edit flow, and the existing listing ID is preserved
+  // (carried verbatim into the edit route, never regenerated).
+  const editHref = restauranteCouponEditHref({
+    lang: "es",
+    listingId: "legacy-restaurant-listing-777",
+    leonixAdId: "leonix-ad-777",
+    returnPanel: "restaurantes",
+  });
+  if (!editHref.includes("mode=coupon-edit") || !editHref.includes("listingId=legacy-restaurant-listing-777")) {
+    fail(`restauranteCouponEditHref did not produce a same-listing coupon-edit route: ${editHref}`);
+  } else {
+    ok(`3/12 & 4/12: restauranteCouponEditHref carries mode=coupon-edit AND the exact existing listingId unchanged (${editHref}) — same listing, same identity, no new listing created`);
+  }
+
+  // 5 & 6. Existing coupon content AND images are preserved when the legacy couponUpgradeEnabled
+  // flag is synced from false to true — this is the exact operation hydrateRestauranteListingForCouponEdit
+  // performs (spread the flag onto listing_json, then merge). Order matters: mergeRestauranteDraft
+  // WIPES coupons/couponFlyer whenever it sees a falsy couponUpgradeEnabled, so the flag must be
+  // set to true BEFORE merging, never after.
+  const legacyListingJsonWithContent = {
+    businessName: "Tacos El Camino",
+    couponUpgradeEnabled: false, // legacy: never explicitly enabled, even though real content exists
+    coupons: [
+      { title: "2x1 tacos", description: "Combo familiar", imageUrl: "https://cdn.example.com/coupon1.jpg" },
+      { title: "10% de descuento", description: "En cualquier orden", imageUrl: "https://cdn.example.com/coupon2.jpg" },
+    ],
+    couponFlyer: { imageUrl: "https://cdn.example.com/flyer.jpg" },
+  };
+  if (restaurantListingJsonCouponEnabled(legacyListingJsonWithContent)) {
+    fail("restaurantListingJsonCouponEnabled incorrectly reads the legacy fixture (couponUpgradeEnabled:false) as already enabled");
+  } else {
+    ok("5/12 & 6/12 (setup): restaurantListingJsonCouponEnabled correctly reports false for the legacy fixture — this is exactly what triggers hydrateRestauranteListingForCouponEdit's real-capability auto-sync path instead of a false 'already enabled' short-circuit");
+  }
+  // Correct order (what the fix does): flip the flag true FIRST, then merge.
+  const fixedOrderResult = mergeRestauranteDraft({
+    ...legacyListingJsonWithContent,
+    couponUpgradeEnabled: true,
+  });
+  const fixedOrderCoupons = fixedOrderResult.coupons ?? [];
+  if (fixedOrderCoupons.length !== 2 || fixedOrderCoupons[0]?.title !== "2x1 tacos") {
+    fail("Existing coupon content did not survive hydration when couponUpgradeEnabled is synced true before merging");
+  } else {
+    ok("5/12: Existing coupon content (2 coupons, titles/descriptions intact) survives hydration when the legacy flag is synced to true before merging — no destructive rewrite of user-entered coupon text");
+  }
+  if (fixedOrderCoupons[0]?.imageUrl !== "https://cdn.example.com/coupon1.jpg" || !fixedOrderResult.couponFlyer?.imageUrl) {
+    fail("Existing coupon images (per-coupon imageUrl and couponFlyer) did not survive hydration");
+  } else {
+    ok("6/12: Existing coupon images (per-coupon imageUrl values and the coupon flyer image) survive hydration unchanged");
+  }
+  // Negative control: proves WHY the fix's operation order matters — merging BEFORE flipping the
+  // flag (the naive/wrong order) silently wipes real coupon content. This documents the exact
+  // destructive-mutation trap hydrateRestauranteListingForCouponEdit's fix avoids.
+  const wrongOrderResult = mergeRestauranteDraft(legacyListingJsonWithContent);
+  if ((wrongOrderResult.coupons ?? []).length !== 0) {
+    fail("Sanity check failed: expected mergeRestauranteDraft's own wipe-on-disabled behavior to still exist (this proves the fix's flag-then-merge order is load-bearing, not incidental)");
+  } else {
+    ok("5/12 & 6/12 (negative control): merging with couponUpgradeEnabled still false WOULD wipe coupons/couponFlyer to empty (mergeRestauranteDraft's own normalize step) — confirming the fix's flag-before-merge order is the only safe sequence, not a coincidence");
+  }
+
+  // 7. Save/republish does not recharge the Restaurant base — already exhaustively proven by
+  // verify-revenue-active-entitlement-guard.ts's "Restaurantes: active restaurantes_base_monthly
+  // edit -> requiresCheckout=false" case (run separately as part of the required battery). Cross-
+  // check here that the dashboard's own listing-edit copy still makes the same no-recharge promise.
+  const listingEditCopySrc = read("app/(site)/publicar/restaurantes/restauranteApplicationFormCopy.ts");
+  if (!/no se volverá a cobrar el plan base/.test(listingEditCopySrc) || !/base plan will not be charged again/.test(listingEditCopySrc)) {
+    fail("Dashboard listing-edit mode no longer promises the base plan will not be recharged, in one or both languages");
+  } else {
+    ok("7/12: Dashboard listing-edit mode copy (ES/EN) still states the base plan is not recharged on save — consistent with verify-revenue-active-entitlement-guard.ts's real 'active entitlement -> requiresCheckout=false' proof for restaurantes_base_monthly");
+  }
+
+  // 8. New Restaurant still requires the real $399 base checkout (reaffirms Gate G's proof from
+  // the prior pass, standalone-readable here too).
+  const restaurantesBaseDefH = getRevenuePackageDefinition(RESTAURANTES_BASE_CHECKOUT.packageKey);
+  if (restaurantesBaseDefH?.priceCents !== 39900) {
+    fail(`restaurantes_base_monthly priceCents changed — expected 39900 ($399), got ${restaurantesBaseDefH?.priceCents}`);
+  } else {
+    ok("8/12: New Restaurant applications still resolve to the real $399/mo base package (restaurantes_base_monthly = 39900 cents) — the coupon-included model never bypasses the base checkout for a brand-new listing");
+  }
+
+  // 9. No customer-facing "$99/mes" coupon upgrade remains anywhere in Restaurantes' own
+  // application/dashboard copy or components.
+  const restauranteAppClientSrcH = read("app/(site)/publicar/restaurantes/RestauranteApplicationClient.tsx");
+  const dashboardMisAnunciosToolsSrc = read("app/(site)/dashboard/lib/dashboardMisAnunciosCategoryTools.ts");
+  const dollar99Files: Array<[string, string]> = [
+    ["restauranteApplicationFormCopy.ts", listingEditCopySrc],
+    ["RestauranteApplicationClient.tsx", restauranteAppClientSrcH],
+    ["restaurantesDashboardCouponAddonCheckout.ts", dashboardCouponLibSrc],
+    ["dashboard/restaurantes/page.tsx", dashboardRestaurantesPageSrc],
+    ["dashboard/mis-anuncios/page.tsx (code, not comments)", dashboardMisAnunciosPageSrc.replace(/\/\/.*$/gm, "")],
+    ["dashboardMisAnunciosCategoryTools.ts (code, not comments)", dashboardMisAnunciosToolsSrc.replace(/\/\/.*$/gm, "")],
+  ];
+  let live99Found = false;
+  for (const [label, src] of dollar99Files) {
+    if (/\$99/.test(src)) {
+      live99Found = true;
+      fail(`Live "$99" text remains in ${label}`);
+    }
+  }
+  if (!live99Found) {
+    ok('9/12: No customer-facing "$99/mes"/"$99/mo" coupon-upgrade string remains anywhere in Restaurantes\' application client, copy, or dashboard action-builder code (comments excluded)');
+  }
+
+  // 10. No active code path starts a restaurantes_offers_addon checkout — the standalone
+  // Stripe-checkout constant for this SKU is defined but never imported/used anywhere live, and
+  // the server's checkout route still hard-rejects any attempt with HTTP 410.
+  const revenueCategoryCheckoutPayloadSrc = read("app/lib/listingPlans/revenueCategoryCheckoutPayload.ts");
+  const checkoutRouteSrc = read("app/api/revenue-os/checkout/route.ts");
+  if (!revenueCategoryCheckoutPayloadSrc.includes("RESTAURANTES_OFFERS_ADDON_DASHBOARD_CHECKOUT")) {
+    fail("RESTAURANTES_OFFERS_ADDON_DASHBOARD_CHECKOUT definition is missing — cannot verify it stays unused (historical constant should be retained, not deleted)");
+  } else if (
+    dashboardCouponLibSrc.includes("RESTAURANTES_OFFERS_ADDON_DASHBOARD_CHECKOUT") ||
+    restauranteAppClientSrcH.includes("RESTAURANTES_OFFERS_ADDON_DASHBOARD_CHECKOUT")
+  ) {
+    fail("RESTAURANTES_OFFERS_ADDON_DASHBOARD_CHECKOUT is referenced by a live dashboard/application file — this would start a real Stripe checkout for the retired add-on");
+  } else if (!/addon_retired_included_in_base/.test(checkoutRouteSrc) || !checkoutRouteSrc.includes("410")) {
+    fail("/api/revenue-os/checkout/route.ts no longer hard-rejects restaurantes_offers_addon with HTTP 410 addon_retired_included_in_base");
+  } else {
+    ok("10/12: RESTAURANTES_OFFERS_ADDON_DASHBOARD_CHECKOUT is defined (historical) but referenced by no live dashboard/application file, AND the server checkout route independently hard-rejects any restaurantes_offers_addon purchase attempt with HTTP 410 addon_retired_included_in_base — no active purchase path exists at any layer");
+  }
+
+  // 11. Historical payment/SKU compatibility remains intact: the retired SKU definition itself is
+  // still present (never deleted, so old Stripe/payment records still resolve labels/price), and
+  // an owner who genuinely paid the legacy add-on still keeps real coupons_offers capability via
+  // the legacy-entitlement union path.
+  const revenuePricingMatrixSrcH = read("app/lib/listingPlans/revenuePricingMatrix.ts");
+  const commercialPlanPolicySrc = read("app/lib/listingPlans/categoryCommercialPlanPolicy.ts");
+  if (!revenuePricingMatrixSrcH.includes('packageKey: "restaurantes_offers_addon"')) {
+    fail("restaurantes_offers_addon package definition was deleted from revenuePricingMatrix.ts — this would break historical payment/entitlement record label resolution");
+  } else if (!/capabilities:\s*\["coupons_offers"\]\s*,?\s*\n\s*capabilitySource:\s*"legacy_addon_entitlement"/.test(commercialPlanPolicySrc)) {
+    fail("categoryCommercialPlanPolicy.ts no longer grants coupons_offers capability via the legacy_addon_entitlement path — an owner who genuinely paid the old add-on could lose access");
+  } else {
+    ok('11/12: restaurantes_offers_addon\'s package definition remains in revenuePricingMatrix.ts (historical Stripe/payment records still resolve), AND categoryCommercialPlanPolicy.ts still grants real coupons_offers capability via "legacy_addon_entitlement" for an owner who genuinely paid it historically — compatibility preserved both directions');
+  }
+
+  // 12. Comida Local remains $129 — unaffected by this Restaurantes-only coupon-addon retirement.
+  const comidaLocalBaseDefH = getRevenuePackageDefinition("comida_local_base_monthly");
+  if (comidaLocalBaseDefH?.priceCents !== 12900) {
+    fail(`comida_local_base_monthly priceCents changed — expected 12900 ($129), got ${comidaLocalBaseDefH?.priceCents}`);
+  } else {
+    ok("12/12: Standalone comida_local_base_monthly package remains 12900 cents ($129) — untouched by the Restaurantes coupon-addon retirement");
   }
 
   console.log("");

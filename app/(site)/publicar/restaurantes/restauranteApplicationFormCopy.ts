@@ -70,7 +70,7 @@ const COPY = {
     },
     dashboard: {
       addonModeMessage:
-        "Estás activando cupones para un anuncio existente. Solo se cobrará el módulo de cupones: $99/mes.",
+        "Estás activando cupones para un anuncio existente. Los cupones están incluidos en tu plan Restaurantes — no se te cobrará nada adicional.",
       couponEditModeMessage: "Estás editando cupones para un anuncio existente.",
       listingEditModeMessage:
         "Estás editando tu anuncio publicado. Guarda los cambios aquí — no se volverá a cobrar el plan base.",
@@ -89,7 +89,7 @@ const COPY = {
     },
     couponUpsell: {
       title: "¿Quieres atraer más clientes con cupones?",
-      body: "$99/mes para mostrar ofertas destacadas dentro de tu anuncio. Puedes publicar hasta 4 cupones principales y agregar un flyer o enlace externo para más promociones.",
+      body: "Cupones incluidos en tu plan Restaurantes, sin costo adicional, para mostrar ofertas destacadas dentro de tu anuncio. Puedes publicar hasta 4 cupones principales y agregar un flyer o enlace externo para más promociones.",
       addCoupons: "Agregar cupones",
       continueWithoutCoupons: "Continuar sin cupones",
     },
@@ -257,7 +257,7 @@ const COPY = {
     sectionG: {
       disabledTitle: "Cupones y ofertas",
       dashboardAddonBody:
-        "Agrega hasta 4 ofertas/cupones destacados a tu anuncio para atraer más clientes. Activa el módulo por $99/mes y luego podrás guardar tus ofertas.",
+        "Agrega hasta 4 ofertas/cupones destacados a tu anuncio para atraer más clientes. Incluido en tu plan Restaurantes — actívalo para empezar a guardar tus ofertas.",
       upsellQuestion: "¿Quieres agregar cupones destacados a tu perfil?",
       upsellPrice: "Incluido en tu plan",
       upsellPriceNote:
@@ -416,7 +416,7 @@ const COPY = {
     },
     dashboard: {
       addonModeMessage:
-        "You are enabling coupons for an existing listing. Only the coupon module will be charged: $99/mo.",
+        "You are enabling coupons for an existing listing. Coupons are included in your Restaurantes plan — you will not be charged anything extra.",
       couponEditModeMessage: "You are editing coupons for an existing listing.",
       listingEditModeMessage:
         "You are editing your published restaurant listing. Save changes here — the base plan will not be charged again.",
@@ -434,7 +434,7 @@ const COPY = {
     },
     couponUpsell: {
       title: "Want to attract more customers with coupons?",
-      body: "$99/month to show featured offers inside your restaurant ad. You can publish up to 4 main coupons and add a flyer or external link for more promotions.",
+      body: "Coupons included with your Restaurantes plan, at no extra cost, to show featured offers inside your restaurant ad. You can publish up to 4 main coupons and add a flyer or external link for more promotions.",
       addCoupons: "Add coupons",
       continueWithoutCoupons: "Continue without coupons",
     },
@@ -601,7 +601,7 @@ const COPY = {
     sectionG: {
       disabledTitle: "Coupons & offers",
       dashboardAddonBody:
-        "Add up to 4 featured offers/coupons to your listing to attract more customers. Activate the module for $99/mo, then you can save your offers.",
+        "Add up to 4 featured offers/coupons to your listing to attract more customers. Included with your Restaurantes plan — activate it to start saving your offers.",
       upsellQuestion: "Do you want to add featured coupons to your profile?",
       upsellPrice: "Included with your plan",
       upsellPriceNote:
