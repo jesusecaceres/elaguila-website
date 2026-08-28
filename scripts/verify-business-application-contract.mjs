@@ -86,6 +86,14 @@ check("shared#122-restaurantes", "Restaurantes persists activeSectionId so Previ
   const s = read("app/(site)/publicar/restaurantes/RestauranteApplicationClient.tsx");
   return /RESTAURANTE_ACTIVE_SECTION_STORAGE_KEY/.test(s) && /sessionStorage\.getItem\(RESTAURANTE_ACTIVE_SECTION_STORAGE_KEY\)/.test(s);
 });
+check("owner-accepted-truthfulness", "No accepted-confirmation label overclaims durable save/upload when only local-draft-acceptance occurred (Servicios coupon/flyer, Restaurantes hero/logo/menu-file status labels)", () => {
+  const servicios = read("app/(site)/clasificados/publicar/servicios/components/ClasificadosServiciosApplication.tsx");
+  const restauranteCopy = read("app/(site)/publicar/restaurantes/restauranteApplicationFormCopy.ts");
+  const statusLabelsBlock = /savedInDraft:\s*"[^"]*"|logoSavedInDraft:\s*"[^"]*"|fileSavedInDraft:\s*"[^"]*"/g;
+  const statusLabels = restauranteCopy.match(statusLabelsBlock) ?? [];
+  const anyOverclaim = statusLabels.some((s) => /guardad[oa] en el borrador|saved in draft/i.test(s));
+  return !/Imagen guardada|Image saved/.test(servicios) && !anyOverclaim;
+});
 check("owner-accepted-confirmation-primitive", "Shared AddedConfirmation primitive exists (useAddedConfirmation + AddedConfirmationBadge)", () => {
   const s = read("app/components/forms/AddedConfirmation.tsx");
   return /useAddedConfirmation/.test(s) && /AddedConfirmationBadge/.test(s);
