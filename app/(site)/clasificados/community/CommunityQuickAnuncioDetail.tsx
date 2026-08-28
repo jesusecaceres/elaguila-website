@@ -5,12 +5,8 @@ import { LeonixSaveButton } from "@/app/components/clasificados/analytics/Leonix
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { FiUser } from "react-icons/fi";
 import {
-  labelClasesSkillLevel,
-  labelComunidadAccessibilityKey,
   labelCommunityAudience,
   labelCommunityRegistration,
-  resolveClasesCategoryPublicLabel,
-  resolveComunidadEventTypePublicLabel,
 } from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
 import { formatTimeForDisplay, getActiveWeeklyScheduleGridItems } from "@/app/publicar/community/shared/lib/communityWeeklySchedule";
 import { CommunityWeeklyScheduleAligned } from "@/app/publicar/community/shared/preview/CommunityWeeklyScheduleAligned";
@@ -18,19 +14,16 @@ import { trackListingShare } from "@/app/lib/clasificadosAnalytics";
 import { trackCommunityLikeToggle } from "@/app/lib/clasificados/comunidad/comunidadClasesBuscoGlobalAnalytics";
 import { trackListingSaveToggleAuthed } from "@/app/lib/analytics/client/listingEngagementRecorder";
 import {
-  clasesCostTypeLabel,
-  clasesModeLabel,
-  clasesPriceFrequencyLabel,
-  comunidadEventCostLabel,
   detailPairsToMap,
   isCommunityQuickListing,
-  parseAccessibilityKeysCsv,
   parseWeeklyScheduleJson,
 } from "@/app/(site)/clasificados/community/shared/communityListingDetailPairs";
 import { CommunityContactCanvas } from "@/app/(site)/publicar/community/shared/preview/CommunityContactCanvas";
 import { buildComunidadContactCanvasModel } from "@/app/(site)/publicar/comunidad/lib/buildComunidadContactCanvasModel";
 import { buildClasesContactCanvasModel } from "@/app/(site)/publicar/clases/lib/buildClasesContactCanvasModel";
 import type { ClasesQuickDraft, ComunidadQuickDraft } from "@/app/(site)/publicar/community/shared/types/communityQuickDraft";
+import { buildComunidadLegacyDetail } from "@/app/(site)/clasificados/comunidad/shared/comunidadLegacyDetailAdapter";
+import { buildClasesLegacyDetail } from "@/app/(site)/clasificados/clases/shared/clasesLegacyDetailAdapter";
 
 /**
  * Gate C: Format an admission/price string with a $ prefix when it starts with
@@ -112,63 +105,12 @@ export function CommunityQuickAnuncioDetail({
   const regReq = pairs["Leonix:registrationRequired"] ?? "";
   const bring = pairs["Leonix:bringNote"] ?? "";
 
-  const rows: { label: string; value: string }[] = [];
+  const categoryDetail =
+    category === "clases"
+      ? buildClasesLegacyDetail(pairs, lang)
+      : buildComunidadLegacyDetail(pairs, lang, formatAdmissionWithDollar);
 
-  if (category === "clases") {
-    const catSlug = pairs["Leonix:classCategory"] ?? "";
-    const catCustom = pairs["Leonix:classCategoryCustom"] ?? "";
-    rows.push({
-      label: L ? "Tipo de clase" : "Class type",
-      value: resolveClasesCategoryPublicLabel(catSlug, catCustom, lang),
-    });
-    rows.push({ label: L ? "Modalidad" : "Mode", value: clasesModeLabel(pairs["Leonix:mode"] ?? "", lang) });
-    rows.push({
-      label: L ? "Costo" : "Cost",
-      value: clasesCostTypeLabel(pairs["Leonix:classCostType"] ?? "", lang),
-    });
-    if (pairs["Leonix:classCostType"] === "pagada") {
-      const amt = pairs["Leonix:priceAmount"] ?? "";
-      const fq = pairs["Leonix:priceFrequency"] ?? "";
-      const fqL = fq ? clasesPriceFrequencyLabel(fq, lang) : "";
-      rows.push({
-        label: L ? "Precio" : "Price",
-        value: amt ? `${amt} (${fqL})`.trim() : "—",
-      });
-      const note = pairs["Leonix:priceNote"];
-      if (note?.trim()) rows.push({ label: L ? "Nota de precio" : "Price note", value: note });
-    }
-    const lvl = pairs["Leonix:skillLevel"] ?? "";
-    if (lvl.trim()) rows.push({ label: L ? "Nivel" : "Level", value: labelClasesSkillLevel(lvl, lang) });
-  } else {
-    const catSlug = pairs["Leonix:eventCategory"] ?? "";
-    const catCustom = pairs["Leonix:eventCategoryCustom"] ?? "";
-    rows.push({
-      label: L ? "Tipo de evento" : "Event type",
-      value: resolveComunidadEventTypePublicLabel(catSlug, catCustom, lang),
-    });
-    rows.push({
-      label: L ? "Costo del evento" : "Event cost",
-      value: comunidadEventCostLabel(pairs["Leonix:eventCost"] ?? "", lang),
-    });
-    const d0 = pairs["Leonix:eventDate"] ?? "";
-    const d1 = pairs["Leonix:eventEndDate"] ?? "";
-    if (d0 || d1) {
-      rows.push({
-        label: L ? "Fechas" : "Dates",
-        value: d1 && d1 !== d0 ? `${d0} → ${d1}` : d0 || d1,
-      });
-    }
-    const adm = pairs["Leonix:admissionNote"] ?? "";
-    if (adm.trim()) rows.push({ label: L ? "Admisión" : "Admission", value: formatAdmissionWithDollar(adm) });
-    const accRaw = pairs["Leonix:accessibility"] ?? "";
-    const accKeys = parseAccessibilityKeysCsv(accRaw);
-    if (accKeys.length) {
-      rows.push({
-        label: L ? "Acceso" : "Access",
-        value: accKeys.map((k) => labelComunidadAccessibilityKey(k, lang)).join(", "),
-      });
-    }
-  }
+  const rows: { label: string; value: string }[] = [...categoryDetail.rows];
 
   if (audience.trim()) {
     rows.push({ label: L ? "Para quién" : "Audience", value: labelCommunityAudience(audience, lang) });
@@ -292,7 +234,7 @@ export function CommunityQuickAnuncioDetail({
   return (
     <div className="mx-auto mt-6 w-full max-w-4xl rounded-2xl border border-[#C9B46A]/55 bg-[#FCF9F2] p-6 ring-1 ring-[#C9B46A]/25 sm:p-8">
       <h3 className="text-sm font-semibold uppercase tracking-wide text-[#5C564E]">
-        {category === "clases" ? (L ? "Detalle de la clase" : "Class details") : L ? "Detalle del evento" : "Event details"}
+        {categoryDetail.sectionTitle}
       </h3>
       {org.trim() ? (
         <div className="mt-3 flex items-start gap-3 rounded-xl border border-[#C9B46A]/50 bg-[#F4EBD8]/65 px-3.5 py-3 sm:px-4">
@@ -304,7 +246,7 @@ export function CommunityQuickAnuncioDetail({
         </div>
       ) : null}
       <div className="mt-3 flex flex-wrap gap-2">
-        {chip(category === "clases" ? (L ? "Clases" : "Classes") : L ? "Comunidad y Eventos" : "Community & Events")}
+        {chip(categoryDetail.categoryChipLabel)}
         {!isFree && priceLabel ? chip(priceLabel) : isFree ? chip(L ? "Gratis" : "Free") : null}
       </div>
 

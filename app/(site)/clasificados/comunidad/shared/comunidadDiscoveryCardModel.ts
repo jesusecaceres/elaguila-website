@@ -9,8 +9,6 @@ import {
 } from "@/app/(site)/clasificados/community/shared/communityListingDetailPairs";
 import type { CommunityListingBrowseRow } from "@/app/(site)/clasificados/community/shared/communityListingsBrowseClient";
 import {
-  comunidadEventCategoryCustom,
-  comunidadEventCategorySlug,
   comunidadScheduleHint,
   excerptFromDescription,
   formatLocationLine,
@@ -19,6 +17,10 @@ import {
   pickMainDraftImageUrl,
   type CommunityDiscoveryCardModel,
 } from "@/app/(site)/clasificados/community/shared/communityDiscoveryListingCardModel";
+import {
+  comunidadEventCategoryCustom,
+  comunidadEventCategorySlug,
+} from "@/app/(site)/clasificados/comunidad/shared/comunidadEventCategoryFields";
 import { labelCommunityAudience, resolveComunidadEventTypePublicLabel } from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
 import type { ComunidadQuickDraft } from "@/app/(site)/publicar/community/shared/types/communityQuickDraft";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";

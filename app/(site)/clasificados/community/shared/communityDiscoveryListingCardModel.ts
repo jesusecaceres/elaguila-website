@@ -8,13 +8,10 @@ import {
   type CommunityListingPairMap,
 } from "@/app/(site)/clasificados/community/shared/communityListingDetailPairs";
 import type { CommunityListingBrowseRow } from "@/app/(site)/clasificados/community/shared/communityListingsBrowseClient";
-import {
-  labelClasesSkillLevel,
-  labelCommunityAudience,
-  resolveClasesCategoryPublicLabel,
-  resolveComunidadEventTypePublicLabel,
-} from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
+import { labelCommunityAudience } from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
 import type { ClasesQuickDraft, ComunidadQuickDraft } from "@/app/(site)/publicar/community/shared/types/communityQuickDraft";
+import { comunidadSearchTypeLine } from "@/app/(site)/clasificados/comunidad/shared/comunidadSearchBlob";
+import { clasesSearchTypeAndLevel } from "@/app/(site)/clasificados/clases/shared/clasesSearchBlob";
 
 export type CommunityDiscoveryCardModel = {
   id: string;
@@ -77,17 +74,6 @@ export function excerptFromDescription(raw: string | null | undefined, max = 140
   return `${plain.slice(0, max - 1)}…`;
 }
 
-/** Comunidad-specific field-key readers — kept here (shared) because buildCommunityDiscoverySearchBlob
- *  below still uses them directly; the Comunidad-owned card model builder also imports them from here
- *  rather than duplicating the `Leonix:eventCategory` key knowledge. */
-export function comunidadEventCategorySlug(pairs: CommunityListingPairMap): string {
-  return (pairs["Leonix:eventCategory"] ?? pairs["Leonix:eventType"] ?? "").trim();
-}
-
-export function comunidadEventCategoryCustom(pairs: CommunityListingPairMap): string {
-  return (pairs["Leonix:eventCategoryCustom"] ?? "").trim();
-}
-
 export function formatLocationLine(city: string | null, pairs: CommunityListingPairMap): string {
   const c = String(city ?? "").trim();
   const st = (pairs["Leonix:state"] ?? "").trim();
@@ -128,14 +114,13 @@ export function buildCommunityDiscoverySearchBlob(
   const desc = String(row.description ?? "");
   const quick = isCommunityQuickListing(pairs);
   let typeLine = "";
-  if (category === "clases" && quick) {
-    typeLine = resolveClasesCategoryPublicLabel(
-      pairs["Leonix:classCategory"] ?? "",
-      pairs["Leonix:classCategoryCustom"] ?? "",
-      lang,
-    );
-  } else if (category === "comunidad" && quick) {
-    typeLine = resolveComunidadEventTypePublicLabel(comunidadEventCategorySlug(pairs), comunidadEventCategoryCustom(pairs), lang);
+  let lvl = "";
+  if (category === "clases") {
+    const r = clasesSearchTypeAndLevel(pairs, quick, lang);
+    typeLine = r.typeLine;
+    lvl = r.lvl;
+  } else {
+    typeLine = comunidadSearchTypeLine(pairs, quick, lang);
   }
   const venue = pairs["Leonix:venue"] ?? "";
   const addr = pairs["Leonix:addressLine1"] ?? "";
@@ -145,11 +130,8 @@ export function buildCommunityDiscoverySearchBlob(
   const state = pairs["Leonix:state"] ?? "";
   const country = pairs["Leonix:country"] ?? "";
   const modeRaw = (pairs["Leonix:mode"] ?? "").trim();
-  const mode =
-    category === "clases" && modeRaw ? clasesModeLabel(modeRaw, lang) : category === "comunidad" && modeRaw ? clasesModeLabel(modeRaw, lang) : "";
+  const mode = modeRaw ? clasesModeLabel(modeRaw, lang) : "";
   const aud = pairs["Leonix:audience"] ? labelCommunityAudience(pairs["Leonix:audience"], lang) : "";
-  const lvl =
-    category === "clases" && pairs["Leonix:skillLevel"] ? labelClasesSkillLevel(pairs["Leonix:skillLevel"], lang) : "";
   const sched = summarizeWeeklySchedule(parseWeeklyScheduleJson(pairs["Leonix:weeklyScheduleJson"]), lang);
   const dateBits = [pairs["Leonix:eventDate"], pairs["Leonix:eventEndDate"], pairs["Leonix:eventSessionStart"], pairs["Leonix:eventSessionEnd"]]
     .filter(Boolean)

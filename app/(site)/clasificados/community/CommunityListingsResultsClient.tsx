@@ -12,7 +12,6 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import {
   detailPairsToMap,
   isCommunityQuickListing,
-  parseAccessibilityKeysCsv,
 } from "@/app/(site)/clasificados/community/shared/communityListingDetailPairs";
 import { buildCommunityDiscoverySearchBlob } from "@/app/(site)/clasificados/community/shared/communityDiscoveryListingCardModel";
 import { buildCommunityDiscoveryCardModel } from "@/app/(site)/clasificados/community/shared/communityDiscoveryCardModelDispatch";
@@ -24,10 +23,8 @@ import {
   fetchPublishedCommunityCategoryListings,
   type CommunityListingBrowseRow,
 } from "@/app/(site)/clasificados/community/shared/communityListingsBrowseClient";
-import {
-  resolveClasesCategoryPublicLabel,
-  resolveComunidadEventTypePublicLabel,
-} from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
+import { comunidadMatchesResultsFilters } from "@/app/(site)/clasificados/comunidad/shared/comunidadResultsFilter";
+import { clasesMatchesResultsFilters } from "@/app/(site)/clasificados/clases/shared/clasesResultsFilter";
 import { CategoryStandardResultsHeader } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsHeader";
 import { CategoryStandardResultsPageShell } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardResultsPageShell";
 import {
@@ -121,93 +118,25 @@ export function CommunityListingsResultsClient({
 
       if (!quick) return true;
 
-      const classTypeLine =
-        category === "clases" && quick
-          ? resolveClasesCategoryPublicLabel(
-              pairs["Leonix:classCategory"] ?? "",
-              pairs["Leonix:classCategoryCustom"] ?? "",
-              lang,
-            )
-          : "";
-
       if (category === "clases") {
-        if (cost !== "all") {
-          const ct = (pairs["Leonix:classCostType"] ?? "").trim();
-          if (cost === "gratis" && ct !== "gratis") return false;
-          if (cost === "pagada" && ct !== "pagada") return false;
-        }
-        if (mode !== "all") {
-          const m = (pairs["Leonix:mode"] ?? "").trim().toLowerCase();
-          if (m !== mode.toLowerCase()) return false;
-        }
-        if (classType.trim()) {
-          const slug = (pairs["Leonix:classCategory"] ?? "").trim().toLowerCase();
-          const needle = classType.trim().toLowerCase();
-          if (slug && slug === needle) {
-            /* exact taxonomy slug match */
-          } else {
-            const catRaw =
-              pairs["Leonix:classCategory"] === "otro"
-                ? pairs["Leonix:classCategoryCustom"] || pairs["Leonix:classCategory"]
-                : pairs["Leonix:classCategory"];
-            const hay = `${String(catRaw ?? "")} ${classTypeLine}`.toLowerCase();
-            if (!textMatch(hay, classType)) return false;
-          }
-        }
-        if (audienceF !== "all") {
-          const a = (pairs["Leonix:audience"] ?? "").trim().toLowerCase();
-          if (a !== audienceF) return false;
-        }
-        if (levelF !== "all") {
-          const lv = (pairs["Leonix:skillLevel"] ?? "").trim().toLowerCase();
-          if (lv !== levelF) return false;
-        }
-        if (registrationF !== "all") {
-          const r = (pairs["Leonix:registrationRequired"] ?? "").trim().toLowerCase();
-          if (r !== registrationF) return false;
-        }
-      } else {
-        if (eventCost !== "all") {
-          const ec = (pairs["Leonix:eventCost"] ?? "").trim().toLowerCase();
-          if (ec !== eventCost) return false;
-        }
-        if (eventType.trim()) {
-          const slug = (pairs["Leonix:eventCategory"] ?? pairs["Leonix:eventType"] ?? "").trim().toLowerCase();
-          const needle = eventType.trim().toLowerCase();
-          if (slug && slug === needle) {
-            /* exact taxonomy slug match */
-          } else {
-            const catRaw = slug === "otro" ? pairs["Leonix:eventCategoryCustom"] || slug : slug;
-            const eventTypeLine = isCommunityQuickListing(pairs)
-              ? resolveComunidadEventTypePublicLabel(
-                  pairs["Leonix:eventCategory"] ?? pairs["Leonix:eventType"] ?? "",
-                  pairs["Leonix:eventCategoryCustom"] ?? "",
-                  lang,
-                )
-              : "";
-            const hay = `${String(catRaw ?? "")} ${eventTypeLine}`.toLowerCase();
-            if (!textMatch(hay, eventType)) return false;
-          }
-        }
-        const isoLike = /^\d{4}-\d{2}-\d{2}/;
-        const start = (pairs["Leonix:eventDate"] ?? "").trim();
-        const startKey = isoLike.test(start) ? start.slice(0, 10) : "";
-        if (dateFrom.trim() && startKey && startKey < dateFrom.trim()) return false;
-        if (dateTo.trim() && startKey && startKey > dateTo.trim()) return false;
-        if (audienceF !== "all") {
-          const a = (pairs["Leonix:audience"] ?? "").trim().toLowerCase();
-          if (a !== audienceF) return false;
-        }
-        if (registrationF !== "all") {
-          const r = (pairs["Leonix:registrationRequired"] ?? "").trim().toLowerCase();
-          if (r !== registrationF) return false;
-        }
-        if (accessibilityF !== "all") {
-          const keys = parseAccessibilityKeysCsv(pairs["Leonix:accessibility"]);
-          if (!keys.includes(accessibilityF)) return false;
-        }
+        return clasesMatchesResultsFilters(pairs, quick, lang, {
+          cost,
+          mode,
+          classType,
+          audienceF,
+          levelF,
+          registrationF,
+        });
       }
-      return true;
+      return comunidadMatchesResultsFilters(pairs, quick, lang, {
+        eventCost,
+        eventType,
+        dateFrom,
+        dateTo,
+        audienceF,
+        registrationF,
+        accessibilityF,
+      });
     });
     return category === "comunidad" ? sortComunidadDiscoveryRows(list) : list;
   }, [
