@@ -30,6 +30,8 @@ import { buildClasesLegacyDetail } from "../app/(site)/clasificados/clases/share
 import {
   emptyComunidadQuickDraft,
   emptyClasesQuickDraft,
+  type ComunidadQuickDraft,
+  type ClasesQuickDraft,
 } from "../app/(site)/publicar/community/shared/types/communityQuickDraft";
 
 function pairs(entries: Record<string, string>): { label: string; value: string }[] {
@@ -78,7 +80,13 @@ function row(overrides: Partial<CommunityListingBrowseRow>): CommunityListingBro
   assert.ok(blob.includes("feria"), `comunidad search blob missing known term "feria": ${blob}`);
   assert.ok(blob.includes("iglesia san jose"), `comunidad search blob missing organizer term: ${blob}`);
 
-  const draft = { ...emptyComunidadQuickDraft(), title: "Feria Comunitaria", category: "feria", eventCost: "gratis", publicCity: "San José" };
+  const draft: ComunidadQuickDraft = {
+    ...emptyComunidadQuickDraft(),
+    title: "Feria Comunitaria",
+    category: "feria",
+    eventCost: "gratis",
+    publicCity: "San José",
+  };
   const draftModel = buildComunidadDiscoveryCardModelFromDraft(draft, "es", "/preview");
   assert.equal(draftModel.title, "Feria Comunitaria");
   assert.equal(draftModel.typeChip, "Feria", `expected draft type chip "Feria", got ${draftModel.typeChip}`);
@@ -112,7 +120,14 @@ function row(overrides: Partial<CommunityListingBrowseRow>): CommunityListingBro
   assert.ok(blob.includes("principiante"), `clases search blob missing known skill-level term: ${blob}`);
   assert.ok(blob.includes("instructor yoga"), `clases search blob missing organizer term: ${blob}`);
 
-  const draft = { ...emptyClasesQuickDraft(), title: "Yoga para todos", category: "yoga", classCostType: "gratis", skillLevel: "principiante", publicCity: "San José" };
+  const draft: ClasesQuickDraft = {
+    ...emptyClasesQuickDraft(),
+    title: "Yoga para todos",
+    category: "yoga",
+    classCostType: "gratis",
+    skillLevel: "principiante",
+    publicCity: "San José",
+  };
   const draftModel = buildClasesDiscoveryCardModelFromDraft(draft, "es", "/preview");
   assert.equal(draftModel.title, "Yoga para todos");
   assert.equal(draftModel.typeChip, "Yoga", `expected draft type chip "Yoga", got ${draftModel.typeChip}`);
