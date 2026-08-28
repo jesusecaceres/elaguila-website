@@ -356,6 +356,7 @@ const COPY = {
       "Revisar después mantiene este producto en la fila para decidir al final.",
     aiReviewViewProductsOnPage: "Ver productos de esta página",
     aiReviewPageCompleteCheck: "✓ Página {page} completa",
+    aiReviewPageCompleteBody: "Has revisado todos los productos de esta página.",
     aiReviewContinueToPage: "Siguiente página →",
     aiReviewAllPagesComplete: "Todas las páginas están revisadas. Puedes continuar.",
     aiReviewPageInstruction:
@@ -868,6 +869,7 @@ const COPY = {
       "Review later keeps this product in the queue for a final decision.",
     aiReviewViewProductsOnPage: "View products on this page",
     aiReviewPageCompleteCheck: "✓ Page {page} complete",
+    aiReviewPageCompleteBody: "You've reviewed all the products on this page.",
     aiReviewContinueToPage: "Next page →",
     aiReviewAllPagesComplete: "All pages are reviewed. You can continue.",
     aiReviewPageInstruction:
