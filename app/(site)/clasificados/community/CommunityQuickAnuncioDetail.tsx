@@ -28,6 +28,9 @@ import {
   parseWeeklyScheduleJson,
 } from "@/app/(site)/clasificados/community/shared/communityListingDetailPairs";
 import { CommunityContactCanvas } from "@/app/(site)/publicar/community/shared/preview/CommunityContactCanvas";
+import { buildComunidadContactCanvasModel } from "@/app/(site)/publicar/comunidad/lib/buildComunidadContactCanvasModel";
+import { buildClasesContactCanvasModel } from "@/app/(site)/publicar/clases/lib/buildClasesContactCanvasModel";
+import type { ClasesQuickDraft, ComunidadQuickDraft } from "@/app/(site)/publicar/community/shared/types/communityQuickDraft";
 
 /**
  * Gate C: Format an admission/price string with a $ prefix when it starts with
@@ -281,6 +284,10 @@ export function CommunityQuickAnuncioDetail({
   /** Cast to satisfy CommunityContactCanvas Draft union — shape is compatible. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const canvasDraft = contactDraft as any;
+  const contactCanvasModel =
+    category === "clases"
+      ? buildClasesContactCanvasModel(canvasDraft as ClasesQuickDraft, lang)
+      : buildComunidadContactCanvasModel(canvasDraft as ComunidadQuickDraft, lang);
 
   return (
     <div className="mx-auto mt-6 w-full max-w-4xl rounded-2xl border border-[#C9B46A]/55 bg-[#FCF9F2] p-6 ring-1 ring-[#C9B46A]/25 sm:p-8">
@@ -371,6 +378,7 @@ export function CommunityQuickAnuncioDetail({
         draft={canvasDraft}
         lang={lang}
         sectionHtmlId="community-legacy-contact-hub"
+        model={contactCanvasModel}
       />
     </div>
   );

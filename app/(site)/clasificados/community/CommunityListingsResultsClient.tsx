@@ -14,10 +14,8 @@ import {
   isCommunityQuickListing,
   parseAccessibilityKeysCsv,
 } from "@/app/(site)/clasificados/community/shared/communityListingDetailPairs";
-import {
-  buildCommunityDiscoveryCardModel,
-  buildCommunityDiscoverySearchBlob,
-} from "@/app/(site)/clasificados/community/shared/communityDiscoveryListingCardModel";
+import { buildCommunityDiscoverySearchBlob } from "@/app/(site)/clasificados/community/shared/communityDiscoveryListingCardModel";
+import { buildCommunityDiscoveryCardModel } from "@/app/(site)/clasificados/community/shared/communityDiscoveryCardModelDispatch";
 import {
   isCommunityEventActiveForDiscovery,
   sortComunidadDiscoveryRows,

@@ -25,8 +25,8 @@ import {
   websiteHref,
   whatsAppUri,
 } from "../lib/communityContactCtas";
-import { normalizeWebsiteForOpen, normalizeSocialUrlForOpen } from "../lib/communityWebsiteAndSocial";
-import type { ClasesClassLinks, ClasesQuickDraft, ComunidadEventLinks, ComunidadQuickDraft } from "../types/communityQuickDraft";
+import { normalizeSocialUrlForOpen } from "../lib/communityWebsiteAndSocial";
+import type { CommunityCommonDraft } from "../types/communityQuickDraft";
 import {
   trackCommunityPhoneClick,
   trackCommunityWhatsAppClick,
@@ -83,129 +83,37 @@ function buildCommunityGoogleMapsDirectionsUrl(locationLine: string): string {
   return `https://www.google.com/maps/dir/?api=1&destination=${encoded}`;
 }
 
-const SMS_BODY = {
-  clases: {
-    es: "Vi tu clase en Leonix Media y quisiera más información.",
-    en: "I saw your class on Leonix Media and would like more information.",
-  },
-  comunidad: {
-    es: "Vi tu evento en Leonix Media y quisiera más información.",
-    en: "I saw your event on Leonix Media and would like more information.",
-  },
-} as const;
+/**
+ * Gate 0 (community category isolation) — the per-category copy tables
+ * (contact/social/location/link labels), SMS/mail templates, and
+ * registration/tickets/donation/etc. link-item lists used to live here as
+ * `UI_COMUNIDAD` / `UI_CLASES` / `SMS_BODY` / `MAIL_SUBJECT` with an internal
+ * `kindOf(draft)` branch. That category composition now lives in each
+ * category's own model builder — see
+ * app/(site)/publicar/comunidad/lib/buildComunidadContactCanvasModel.ts and
+ * app/(site)/publicar/clases/lib/buildClasesContactCanvasModel.ts — and is
+ * passed in fully resolved via the `model` prop below. This component only
+ * renders it; it does not decide what the labels or links are.
+ */
+export type CommunityContactCanvasLinkItem = { key: string; href: string; label: string };
 
-const MAIL_SUBJECT = {
-  clases: {
-    es: "Información sobre tu clase en Leonix Media",
-    en: "About your class on Leonix Media",
-  },
-  comunidad: {
-    es: "Información sobre tu evento en Leonix Media",
-    en: "About your event on Leonix Media",
-  },
-} as const;
-
-const UI_COMUNIDAD = {
-  es: {
-    contactTitle: "Contacto del organizador",
-    socialTitle: "Síguenos",
-    locationTitle: "Lugar del evento",
-    moreTitle: "Más información",
-    trustLabel: "Publicado en Leonix",
-    call: "Llamar",
-    text: "Enviar texto",
-    email: "Escribir correo",
-    website: "Sitio web del evento",
-    register: "Registrarse",
-    tickets: "Boletos",
-    donate: "Donar",
-    eventProgram: "Programa del evento",
-    eventGuide: "Guía del evento",
-    vendors: "Vendedores",
-    foodVendors: "Comida / puestos",
-    sponsors: "Patrocinadores",
-    map: "Ver en el mapa",
-    copyEmail: "Copiar correo",
-    copyPhone: "Copiar teléfono",
-  },
-  en: {
-    contactTitle: "Organizer contact",
-    socialTitle: "Follow us",
-    locationTitle: "Event location",
-    moreTitle: "More information",
-    trustLabel: "Published on Leonix",
-    call: "Call",
-    text: "Text message",
-    email: "Email",
-    website: "Event website",
-    register: "Register",
-    tickets: "Tickets",
-    donate: "Donate",
-    eventProgram: "Event program",
-    eventGuide: "Event guide",
-    vendors: "Vendors",
-    foodVendors: "Food / vendors",
-    sponsors: "Sponsors",
-    map: "View on map",
-    copyEmail: "Copy email",
-    copyPhone: "Copy phone",
-  },
-} as const;
-
-const UI_CLASES = {
-  es: {
-    contactTitle: "Contacto del instructor / organizador",
-    socialTitle: "Síguenos",
-    locationTitle: "Lugar de la clase",
-    moreTitle: "Más información de la clase",
-    trustLabel: "Publicado en Leonix",
-    call: "Llamar",
-    text: "Enviar texto",
-    email: "Escribir correo",
-    website: "Sitio web de la clase",
-    register: "Registrarse",
-    pay: "Pagar",
-    tickets: "Boletos",
-    donate: "Donar",
-    materials: "Materiales",
-    syllabus: "Programa / temario",
-    classGuide: "Guía de la clase",
-    instructorPage: "Página del instructor",
-    studentPortal: "Portal del estudiante",
-    vendors: "Vendedores / recursos",
-    foodVendors: "Comida / puestos",
-    sponsors: "Patrocinadores",
-    map: "Ver en el mapa",
-    copyEmail: "Copiar correo",
-    copyPhone: "Copiar teléfono",
-  },
-  en: {
-    contactTitle: "Instructor / organizer contact",
-    socialTitle: "Follow us",
-    locationTitle: "Class location",
-    moreTitle: "More class information",
-    trustLabel: "Published on Leonix",
-    call: "Call",
-    text: "Text message",
-    email: "Email",
-    website: "Class website",
-    register: "Register",
-    pay: "Pay",
-    tickets: "Tickets",
-    donate: "Donate",
-    materials: "Materials",
-    syllabus: "Program / syllabus",
-    classGuide: "Class guide",
-    instructorPage: "Instructor page",
-    studentPortal: "Student portal",
-    vendors: "Vendors / resources",
-    foodVendors: "Food / vendors",
-    sponsors: "Sponsors",
-    map: "View on map",
-    copyEmail: "Copy email",
-    copyPhone: "Copy phone",
-  },
-} as const;
+export type CommunityContactCanvasModel = {
+  labels: {
+    contactTitle: string;
+    socialTitle: string;
+    locationTitle: string;
+    moreTitle: string;
+    call: string;
+    text: string;
+    email: string;
+    website: string;
+    map: string;
+  };
+  /** Resolved, ordered "more information" links (registration/tickets/materials/etc.), category-specific. */
+  linkItems: CommunityContactCanvasLinkItem[];
+  smsBody: string;
+  mailSubject: string;
+};
 
 const SOCIAL_ARIA = {
   es: {
@@ -230,12 +138,6 @@ const SOCIAL_ARIA = {
   },
 } as const;
 
-type Draft = ClasesQuickDraft | ComunidadQuickDraft;
-
-function kindOf(d: Draft): "clases" | "comunidad" {
-  return d.kind;
-}
-
 function btnPrimaryClass(disabled?: boolean): string {
   return [
     "inline-flex min-h-[40px] min-w-0 items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm font-bold shadow-sm transition",
@@ -249,8 +151,9 @@ export function CommunityContactCanvas({
   sectionHtmlId,
   analyticsCtx,
   locationOnlineLabel,
+  model,
 }: {
-  draft: Draft;
+  draft: CommunityCommonDraft;
   lang: Lang;
   /** Optional DOM id for scroll targets (e.g. published anuncio “Ver contacto”). */
   sectionHtmlId?: string;
@@ -258,9 +161,10 @@ export function CommunityContactCanvas({
   analyticsCtx?: CommunityGlobalAnalyticsCtx;
   /** When class/event is online-only, show this instead of a physical map. */
   locationOnlineLabel?: string;
+  /** Category-resolved labels/links/templates — built by the caller's own category-owned builder. */
+  model: CommunityContactCanvasModel;
 }) {
-  const k = kindOf(draft);
-  const t = k === "clases" ? UI_CLASES[lang] : UI_COMUNIDAD[lang];
+  const t = model.labels;
   const [emailOpen, setEmailOpen] = useState(false);
   const phone10 = usPhoneDigits10(draft.phone);
   const wa10 = usPhoneDigits10(draft.whatsapp);
@@ -268,10 +172,6 @@ export function CommunityContactCanvas({
   const sms10 = usPhoneDigits10(smsRaw);
   const email = draft.email.trim();
   const web = websiteHref(draft.website);
-  const eventLinks: ComunidadEventLinks | null =
-    draft.kind === "comunidad" ? (draft as ComunidadQuickDraft).eventLinks : null;
-  const classLinks: ClasesClassLinks | null =
-    draft.kind === "clases" ? (draft as ClasesQuickDraft).classLinks : null;
 
   const mapQ = buildCommunityMapQuery({
     addressLine1: draft.addressLine1,
@@ -304,8 +204,8 @@ export function CommunityContactCanvas({
   const mapsEmbedUrl = buildCommunityGoogleMapsEmbedUrl(locationLine);
   const mapsDirectionsUrl = buildCommunityGoogleMapsDirectionsUrl(locationLine);
 
-  const smsBody = SMS_BODY[k][lang];
-  const mailSub = MAIL_SUBJECT[k][lang];
+  const smsBody = model.smsBody;
+  const mailSub = model.mailSubject;
   const mailHref = email ? mailtoCommunity({ to: email, subject: mailSub }) : "";
 
   const sAria = SOCIAL_ARIA[lang];
@@ -327,61 +227,7 @@ export function CommunityContactCanvas({
     { key: "pi", href: normalizeSocialUrlForOpen(draft.socialLinks.pinterest ?? "", "pinterest"), Icon: FaPinterest, ariaLabel: sAria.pinterest, label: "Pinterest", brandColor: "#E60023" },
   ].filter((x) => x.href);
 
-  /** Build the ordered list of event-specific useful link CTAs (Comunidad only). */
-  const eventLinkItems: { key: string; href: string; label: string }[] = [];
-  if (eventLinks) {
-    const el = eventLinks;
-    const push = (key: string, raw: string, label: string) => {
-      const href = normalizeWebsiteForOpen(raw);
-      if (href) eventLinkItems.push({ key, href, label });
-    };
-    const tc = UI_COMUNIDAD[lang];
-    push("reg", el.registrationUrl, tc.register);
-    push("tix", el.ticketsUrl, tc.tickets);
-    push("don", el.donationUrl, tc.donate);
-    push("prg", el.eventProgramUrl, tc.eventProgram);
-    push("gui", el.eventGuideUrl, tc.eventGuide);
-    push("vnd", el.vendorListUrl, tc.vendors);
-    push("fvd", el.foodVendorsUrl, tc.foodVendors);
-    push("spo", el.sponsorsUrl, tc.sponsors);
-    if (el.customLink1Label.trim() && normalizeWebsiteForOpen(el.customLink1Url)) {
-      push("c1", el.customLink1Url, el.customLink1Label.trim());
-    }
-    if (el.customLink2Label.trim() && normalizeWebsiteForOpen(el.customLink2Url)) {
-      push("c2", el.customLink2Url, el.customLink2Label.trim());
-    }
-  }
-
-  /** Build the ordered list of class-specific useful link CTAs (Clases only). */
-  const classLinkItems: { key: string; href: string; label: string }[] = [];
-  if (classLinks) {
-    const cl = classLinks;
-    const tc = UI_CLASES[lang];
-    const push = (key: string, raw: string, label: string) => {
-      const href = normalizeWebsiteForOpen(raw);
-      if (href) classLinkItems.push({ key, href, label });
-    };
-    push("reg", cl.registrationUrl, tc.register);
-    push("pay", cl.paymentUrl, tc.pay);
-    push("tix", cl.ticketsUrl, tc.tickets);
-    push("don", cl.donationUrl, tc.donate);
-    push("mat", cl.classMaterialsUrl, tc.materials);
-    push("syl", cl.syllabusUrl, tc.syllabus);
-    push("gui", cl.classGuideUrl, tc.classGuide);
-    push("ins", cl.instructorPageUrl, tc.instructorPage);
-    push("stu", cl.studentPortalUrl, tc.studentPortal);
-    push("vnd", cl.vendorsResourcesUrl, tc.vendors);
-    push("fvd", cl.foodVendorsUrl, tc.foodVendors);
-    push("spo", cl.sponsorsUrl, tc.sponsors);
-    if (cl.customLink1Label.trim() && normalizeWebsiteForOpen(cl.customLink1Url)) {
-      push("c1", cl.customLink1Url, cl.customLink1Label.trim());
-    }
-    if (cl.customLink2Label.trim() && normalizeWebsiteForOpen(cl.customLink2Url)) {
-      push("c2", cl.customLink2Url, cl.customLink2Label.trim());
-    }
-  }
-
-  const allLinkItems = k === "clases" ? classLinkItems : eventLinkItems;
+  const allLinkItems = model.linkItems;
 
   const hasContactActions = !!(phone10 || wa10 || sms10 || email);
   const hasPhysicalLocation = !!(draft.venue.trim() || draft.addressLine1.trim() || cityStateZip);

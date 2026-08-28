@@ -1,7 +1,7 @@
 "use client";
 
-import CommunityQuickApplicationClient from "@/app/publicar/community/shared/CommunityQuickApplicationClient";
+import ComunidadQuickApplication from "./ComunidadQuickApplication";
 
 export default function ComunidadQuickApplicationClient() {
-  return <CommunityQuickApplicationClient kind="comunidad" />;
+  return <ComunidadQuickApplication />;
 }
