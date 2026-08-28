@@ -12,6 +12,7 @@ import {
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import type { RentasPublicListing } from "@/app/clasificados/rentas/model/rentasPublicListing";
 import { parseRentasDetailMachineRead } from "@/app/clasificados/rentas/lib/rentasDetailPairRead";
+import { rentasCategoriaPropiedadForTipo } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 import { rentasListingPromotedFromRow } from "@/app/clasificados/rentas/lib/rentasListingPromotionFromRow";
 import { rentasShowExactAddressFromDetailPairs } from "@/app/clasificados/rentas/lib/leonixRentasShowing";
 import { buildRentasPublishedFlowExtensionRows } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
@@ -289,10 +290,18 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const browseActive =
     lifecycle.isPubliclyVisible && rentasCatalogEligibleFromMachineStatus(rx.listingStatus);
   const branchSeller = branchToSeller(lx.branch);
-  const categoria: BrNegocioCategoriaPropiedad =
+  // Item 13 fix — derive the canonical category from the machine-readable rental type whenever
+  // it's present, rather than trusting the independently-stored categoriaPropiedad value. This
+  // protects already-published legacy rows (published before categoriaPropiedad was derived from
+  // tipoDeRenta) from showing a contradictory heading (e.g. "RENTA RESIDENCIAL" for an office
+  // listing) on the live public output, without any destructive data migration.
+  const storedCategoria: BrNegocioCategoriaPropiedad =
     lx.categoriaPropiedad === "residencial" || lx.categoriaPropiedad === "comercial" || lx.categoriaPropiedad === "terreno_lote"
       ? lx.categoriaPropiedad
       : "residencial";
+  const categoria: BrNegocioCategoriaPropiedad = rx.rentalTypeCode
+    ? rentasCategoriaPropiedadForTipo(rx.rentalTypeCode)
+    : storedCategoria;
 
   const id = trim(row.id);
   if (!id) return null;

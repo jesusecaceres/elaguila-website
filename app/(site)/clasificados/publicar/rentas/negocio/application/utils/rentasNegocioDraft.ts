@@ -7,6 +7,7 @@ import {
   inlineRentasNegocioHeavyMediaFromIdb,
   offloadRentasNegocioHeavyMediaToIdb,
 } from "./rentasNegocioDraftMedia";
+import { rentasCategoriaPropiedadForTipo } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 
 export const RENTAS_NEGOCIO_DRAFT_STORAGE_KEY = "rentas-negocio-draft-v1";
 
@@ -51,7 +52,13 @@ export async function loadRentasNegocioDraft(): Promise<RentasNegocioFormState |
     const parsed = JSON.parse(raw) as unknown;
     if (!parsed || typeof parsed !== "object") return null;
     const merged = mergePartialRentasNegocioState(parsed as Partial<RentasNegocioFormState>);
-    return await inlineRentasNegocioHeavyMediaFromIdb(merged);
+    // Item 13 fix — legacy drafts saved before categoriaPropiedad was derived from tipoDeRenta may
+    // carry a mismatched combination. Normalize on load rather than migrating storage
+    // destructively: every other field is preserved untouched.
+    const normalized = merged.tipoDeRenta
+      ? { ...merged, categoriaPropiedad: rentasCategoriaPropiedadForTipo(merged.tipoDeRenta) }
+      : merged;
+    return await inlineRentasNegocioHeavyMediaFromIdb(normalized);
   } catch {
     return null;
   }
