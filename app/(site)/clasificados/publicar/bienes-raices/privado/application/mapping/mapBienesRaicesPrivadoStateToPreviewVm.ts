@@ -27,7 +27,6 @@ import { sanitizeLeonixListingPublishDescriptionBody } from "@/app/clasificados/
 import {
   composeBrApproximateMapQuery,
   composeBrExactMapQuery,
-  sanitizeBrUserMapUrl,
 } from "@/app/clasificados/lib/leonixBrGate12d";
 import { buildBrGate12dHoaPreviewCard } from "@/app/clasificados/lib/leonixBrGate12dHoaPreview";
 import { normalizeLeonixHttpsUrl } from "@/app/clasificados/lib/leonixContactSocialNormalize";
@@ -167,16 +166,12 @@ function buildResidencialDetails(s: BienesRaicesPrivadoFormState): BienesRaicesP
   const r = s.residencial;
   const tipoLabel = TIPO_PROPIEDAD_OPCIONES.find((o) => o.value === r.tipoCodigo)?.label ?? "";
   const subLbl = labelForSubtipo(r.tipoCodigo, r.subtipo);
+  // Recámaras/Baños/Medios baños/Interior/Lote/Estacionamiento/Año already render in the
+  // quick-facts strip above (buildResidencialQuickFacts) — kept out of this list to avoid
+  // showing the same values twice on the same preview.
   const rows: Array<BienesRaicesPreviewFact | null> = [
     row("Tipo", tipoLabel),
     row(residencialSubtipoDisplayGroup(r.subtipo), subLbl),
-    row("Recámaras", prettifyPlainNumber(r.recamaras)),
-    row("Baños completos", prettifyPlainNumber(r.banos)),
-    rowOptionalCount("Medios baños", r.mediosBanos),
-    row("Tamaño interior", r.interiorSqft ? prettifySqft(r.interiorSqft) : ""),
-    row("Tamaño del lote", r.loteSqft ? prettifySqft(r.loteSqft) : ""),
-    row("Estacionamiento", r.estacionamiento),
-    row("Año de construcción", formatYearBuiltDisplay(r.ano)),
     row("Condición", r.condicion ? CONDICION_LABEL[r.condicion] ?? r.condicion : ""),
   ];
   return rows.filter((x): x is BienesRaicesPreviewFact => x != null);
@@ -412,8 +407,7 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(
       });
   const q = (composedQ || (showExact ? line : "") || city).trim();
   const googleHref = q ? googleMapsSearchUrl(q) : null;
-  const userMap = sanitizeBrUserMapUrl(s.enlaceMapa);
-  const mapsUrl = userMap ?? googleHref;
+  const mapsUrl = googleHref;
 
   const desc = sanitizeLeonixListingPublishDescriptionBody(trim(s.descripcion));
   const phoneDisp = trim(s.seller.telefono) ? formatUsPhoneDisplay(digitsOnly(s.seller.telefono)) : "";

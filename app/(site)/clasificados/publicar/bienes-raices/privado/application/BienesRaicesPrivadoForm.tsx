@@ -21,7 +21,6 @@ import {
   BR_PUBLICAR_HUB,
 } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
-import { Gate12cContactChannelsFields } from "@/app/clasificados/publicar/shared/Gate12cContactChannelsFields";
 import { BrGate12dHoaCommunitySection } from "@/app/clasificados/publicar/bienes-raices/shared/BrGate12dHoaCommunitySection";
 import {
   AiField,
@@ -444,7 +443,7 @@ export function BienesRaicesPrivadoForm() {
             </AiField>
             <AiField
               label="Mostrar dirección exacta cuando aplique"
-              hint="Si no activas esta opción, mostraremos una ubicación aproximada. / If you do not enable this, we will show an approximate location."
+              hint="Si no activas esta opción, mostraremos una ubicación aproximada."
             >
               <label className="flex min-h-[44px] items-center gap-3 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-3 py-2 text-sm text-[#2C2416]">
                 <input
@@ -607,6 +606,9 @@ export function BienesRaicesPrivadoForm() {
                       }
                     />
                   </AiField>
+                  {state.gate12d.virtualTourUrl.trim() ? (
+                    <p className="mt-2 text-xs font-medium text-[#2C7A4E]">Enlace listo: se usará en la vista previa.</p>
+                  ) : null}
                 </div>
               </div>
             </details>
@@ -860,15 +862,6 @@ export function BienesRaicesPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, seller: { ...s.seller, notaContacto: e.target.value } }))}
                 />
               </AiField>
-            </div>
-            <div className="sm:col-span-2 mt-2 border-t border-black/10 pt-5">
-              <Gate12cContactChannelsFields
-                lang="es"
-                value={state.contactChannels}
-                onChange={(next) => setState((s) => ({ ...s, contactChannels: next }))}
-                fieldClass={fieldClass}
-                titleClass={aiTitleClass}
-              />
             </div>
           </div>
         </section>
@@ -1277,8 +1270,8 @@ export function BienesRaicesPrivadoForm() {
             </p>
             <p className="mt-1 text-xs leading-relaxed text-[#5C5346]/90">
               {lang === "es"
-                ? "Marca las casillas, abre «Ver anuncio» para revisar el borrador y, si todo está bien, publica en vivo desde la pantalla de vista previa."
-                : "Check the boxes, open “View listing” to review your draft, then publish live from the preview screen when you are ready."}
+                ? "Marca las casillas, abre «Vista previa» para revisar el borrador y, si todo está bien, publica en vivo desde la pantalla de vista previa."
+                : "Check the boxes, open “Preview” to review your draft, then publish live from the preview screen when you are ready."}
             </p>
           </div>
           <ListingRulesConfirmationSection
@@ -1302,13 +1295,13 @@ export function BienesRaicesPrivadoForm() {
             labels={
               lang === "en"
                 ? {
-                    verAnuncio: "View listing",
-                    openPreview: "View preview (without validation)",
+                    verAnuncio: "Preview",
+                    openPreview: "View draft",
                     reiniciar: "Clear progress and restart",
                   }
                 : {
-                    verAnuncio: "Ver anuncio",
-                    openPreview: "Ver vista previa (sin validar)",
+                    verAnuncio: "Vista previa",
+                    openPreview: "Ver borrador",
                     reiniciar: "Borrar progreso y reiniciar",
                   }
             }

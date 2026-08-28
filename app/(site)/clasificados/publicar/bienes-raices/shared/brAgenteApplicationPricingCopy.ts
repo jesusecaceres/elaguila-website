@@ -76,7 +76,7 @@ export function brAgenteApplicationPricingCopy(lang: BrAgentePricingLang) {
         "Entiendo que el pago es requerido después de la vista previa antes de que este anuncio quede activo.",
       confirmInventory:
         "Entiendo que el Paquete de inventario agrega +$99/mes por hasta 3 propiedades adicionales.",
-      continueToPreview: "Continuar a vista previa",
+      continueToPreview: "Vista previa",
       draftDeviceNote:
         "Borrador guardado en este dispositivo. Al actualizar esta pestaña, tu progreso debe mantenerse.",
     };
@@ -151,7 +151,7 @@ export function brAgenteApplicationPricingCopy(lang: BrAgentePricingLang) {
     confirmPayment:
       "I understand payment is required after preview before this listing becomes active.",
     confirmInventory: "I understand the Inventory Pack adds +$99/month for up to 3 additional properties.",
-    continueToPreview: "Continue to preview",
+    continueToPreview: "Preview",
     draftDeviceNote: "Draft saved on this device. Refreshing this tab should keep your progress.",
   };
 }
