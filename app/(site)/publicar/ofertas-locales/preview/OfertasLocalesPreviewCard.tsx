@@ -349,6 +349,9 @@ function PreviewBusinessHub({
   mailtoHref,
   directionsHref,
   locationLine,
+  showMembership,
+  membershipHref,
+  membershipInstructions,
 }: {
   draft: OfertaLocalDraft;
   lang: OfertasLocalesAppLang;
@@ -358,6 +361,9 @@ function PreviewBusinessHub({
   mailtoHref: string;
   directionsHref: string;
   locationLine: string;
+  showMembership: boolean;
+  membershipHref: string;
+  membershipInstructions: string;
 }) {
   const c = OFERTAS_LOCALES_PREVIEW_COPY;
   const contactEmail = resolveOfertaLocalContactEmail(draft);
@@ -425,9 +431,9 @@ function PreviewBusinessHub({
               />
             </div>
             {contactEmail ? (
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-2 text-sm text-[#1E1814]/85">
-                  <FiMail className="h-4 w-4 text-[#7A1E2C]" aria-hidden />
+              <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0]/70 px-3 py-2.5">
+                <span className="inline-flex items-center gap-2 truncate text-sm font-medium text-[#1E1814]/85">
+                  <FiMail className="h-4 w-4 shrink-0 text-[#7A1E2C]" aria-hidden />
                   {contactEmail}
                 </span>
                 {mailtoHref ? (
@@ -445,6 +451,39 @@ function PreviewBusinessHub({
                       ? c.copyEmailEn
                       : c.copyEmailEs}
                 </button>
+              </div>
+            ) : null}
+            {showMembership && membershipHref ? (
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <a
+                  href={membershipHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cx(BTN_OUTLINE, "border-[#B8860B]/45 text-[#7A1E2C] hover:border-[#7A1E2C]/35")}
+                  title={lang === "en" ? c.membershipTitleEn : c.membershipTitleEs}
+                >
+                  <FiAward className="h-4 w-4 shrink-0 text-[#B8860B]" aria-hidden />
+                  {lang === "en" ? c.membershipSignUpShortEn : c.membershipSignUpShortEs}
+                </a>
+                {membershipInstructions ? (
+                  <details className="max-w-full shrink">
+                    <summary
+                      className={INSTRUCTION_HINT}
+                      title={membershipInstructions}
+                      aria-label={
+                        lang === "en"
+                          ? `${c.membershipInstructionsLabelEn}: ${membershipInstructions}`
+                          : `${c.membershipInstructionsLabelEs}: ${membershipInstructions}`
+                      }
+                    >
+                      <FiInfo className="h-3.5 w-3.5 shrink-0 text-[#B8860B]" aria-hidden />
+                      {lang === "en" ? c.membershipInstructionsLabelEn : c.membershipInstructionsLabelEs}
+                    </summary>
+                    <p className="mt-1 max-w-[min(100%,20rem)] rounded-lg border border-[#D4C4A8]/60 bg-[#FFFCF7] px-2.5 py-1.5 text-[11px] leading-relaxed text-[#1E1814]/75">
+                      {membershipInstructions}
+                    </p>
+                  </details>
+                ) : null}
               </div>
             ) : null}
           </HubCollapsibleGroup>
@@ -526,19 +565,11 @@ function OwnerPreviewControls({
   editHref,
   editReviewHref,
   dashboardHref,
-  publishing,
-  aiNeedsReviewCount,
-  publishSuccess,
-  onSubmitForReview,
 }: {
   lang: OfertasLocalesAppLang;
   editHref: string;
   editReviewHref: string | null;
   dashboardHref: string | null;
-  publishing: boolean;
-  aiNeedsReviewCount: number;
-  publishSuccess?: { id: string; status: string } | null;
-  onSubmitForReview?: () => void;
 }) {
   const c = OFERTAS_LOCALES_PREVIEW_COPY;
   return (
@@ -555,33 +586,6 @@ function OwnerPreviewControls({
             {lang === "en" ? c.backToReviewEn : c.backToReviewEs}
           </Link>
         ) : null}
-        {publishSuccess ? (
-          <p className="w-full text-xs font-semibold text-emerald-900">
-            {lang === "en" ? c.submitSuccessEn : c.submitSuccessEs}
-          </p>
-        ) : (
-          <button
-            type="button"
-            className={cx(BTN_OUTLINE, "min-h-10 px-3 py-2 text-xs sm:text-sm")}
-            disabled={publishing || aiNeedsReviewCount > 0 || !onSubmitForReview}
-            onClick={onSubmitForReview}
-            title={
-              aiNeedsReviewCount > 0
-                ? lang === "en"
-                  ? c.submitBlockedEn
-                  : c.submitBlockedEs
-                : undefined
-            }
-          >
-            {publishing
-              ? lang === "en"
-                ? c.submittingEn
-                : c.submittingEs
-              : lang === "en"
-                ? c.submitForReviewEn
-                : c.submitForReviewEs}
-          </button>
-        )}
         {dashboardHref ? (
           // Routes into the existing owner-dashboard commercial workflow (real
           // checkout lives there via startRevenueCategoryCheckout) — no new
@@ -609,10 +613,7 @@ export function OfertasLocalesPreviewCard({
   aiReviewError = null,
   aiNeedsReviewCount = 0,
   aiTotalCount = 0,
-  publishing = false,
-  publishError = null,
   publishSuccess = null,
-  onSubmitForReview,
 }: {
   draft: OfertaLocalDraft;
   lang?: OfertasLocalesAppLang;
@@ -623,10 +624,10 @@ export function OfertasLocalesPreviewCard({
   aiReviewError?: string | null;
   aiNeedsReviewCount?: number;
   aiTotalCount?: number;
-  publishing?: boolean;
-  publishError?: string | null;
+  /** Kept only as the dashboardId fallback below — the manual "submit for
+   * review" UI that used to populate this from a button click was removed;
+   * the real submission path is the dashboard's checkout flow. */
   publishSuccess?: { id: string; status: string } | null;
-  onSubmitForReview?: () => void;
 }) {
   const c = OFERTAS_LOCALES_PREVIEW_COPY;
   const resolvedRouteLang = routeLang ?? lang;
@@ -823,10 +824,6 @@ export function OfertasLocalesPreviewCard({
           editHref={editHref}
           editReviewHref={editReviewHref}
           dashboardHref={dashboardHref}
-          publishing={publishing}
-          aiNeedsReviewCount={aiNeedsReviewCount}
-          publishSuccess={publishSuccess}
-          onSubmitForReview={onSubmitForReview}
         />
 
         {/* 2. Page header */}
@@ -1198,6 +1195,9 @@ export function OfertasLocalesPreviewCard({
           mailtoHref={mailtoHref}
           directionsHref={directionsHref}
           locationLine={locationLine}
+          showMembership={showMembership}
+          membershipHref={membershipHref}
+          membershipInstructions={membershipInstructions}
         />
 
         {/* 7. Product grid */}
@@ -1244,18 +1244,6 @@ export function OfertasLocalesPreviewCard({
             {lang === "en" ? c.ownerControlsEn : c.ownerControlsEs}
           </h2>
 
-          {publishSuccess ? (
-            <div className="mt-4 rounded-xl border border-emerald-300/80 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-              <p className="font-semibold">{lang === "en" ? c.submitSuccessEn : c.submitSuccessEs}</p>
-              <p className="mt-1 text-xs">{lang === "en" ? c.submitSuccessNoteEn : c.submitSuccessNoteEs}</p>
-            </div>
-          ) : null}
-          {publishError ? (
-            <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
-              {publishError}
-            </p>
-          ) : null}
-
           <div className="mt-4 flex flex-wrap gap-3">
             <Link href={editHref} className={BTN_OUTLINE}>
               {lang === "en" ? c.backToEditEn : c.backToEdit}
@@ -1265,29 +1253,6 @@ export function OfertasLocalesPreviewCard({
                 {lang === "en" ? c.backToReviewEn : c.backToReviewEs}
               </Link>
             ) : null}
-            {publishSuccess ? null : (
-              <button
-                type="button"
-                className={BTN_OUTLINE}
-                disabled={publishing || aiNeedsReviewCount > 0 || !onSubmitForReview}
-                onClick={onSubmitForReview}
-                title={
-                  aiNeedsReviewCount > 0
-                    ? lang === "en"
-                      ? c.submitBlockedEn
-                      : c.submitBlockedEs
-                    : undefined
-                }
-              >
-                {publishing
-                  ? lang === "en"
-                    ? c.submittingEn
-                    : c.submittingEs
-                  : lang === "en"
-                    ? c.submitForReviewEn
-                    : c.submitForReviewEs}
-              </button>
-            )}
             {dashboardHref ? (
               <Link href={dashboardHref} className={BTN_PRIMARY}>
                 {lang === "en" ? c.continueToDashboardEn : c.continueToDashboardEs}

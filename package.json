@@ -522,6 +522,7 @@
     "ofertas-locales:gate-l-two-lane-backend-closeout-audit": "node scripts/ofertas-locales-gate-l-run.cjs",
     "ofertas-locales:owner-qa-repair-audit": "tsx scripts/ofertas-locales-owner-qa-repair-audit.ts",
     "ofertas-locales:page-progression-repair-audit": "tsx scripts/ofertas-locales-page-progression-repair-audit.ts",
+    "ofertas-locales:preview-performance-audit": "tsx scripts/ofertas-locales-preview-performance-audit.ts",
     "ofertas:ai-scanner-certified-baseline-audit": "tsx scripts/ofertas-ai-scanner-certified-baseline-audit.ts",
     "ofertas-locales:ol3-step1-cta-cleanup-audit": "tsx scripts/ofertas-locales-ol3-step1-cta-cleanup-audit.ts",
     "ofertas-locales:ol4-step2-4-field-cleanup-audit": "tsx scripts/ofertas-locales-ol4-step2-4-field-cleanup-audit.ts",

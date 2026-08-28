@@ -138,14 +138,24 @@ export function OfertasLocalesPreviewHeroVisual({
 
       <div className={CARD}>
         {canOpenViewer ? (
-          <button
-            type="button"
+          // A <div role="button"> instead of a real <button> — the PDF preview
+          // below now has its own prev/next page controls, and a real <button>
+          // cannot validly contain nested interactive descendants.
+          <div
+            role="button"
+            tabIndex={0}
             onClick={onOpenViewer}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onOpenViewer?.();
+              }
+            }}
             aria-label={viewLabel}
             className="group block w-full cursor-zoom-in text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/40"
           >
             {previewInner}
-          </button>
+          </div>
         ) : (
           previewInner
         )}
