@@ -5,7 +5,8 @@
  * UI aligned with `BrNegocioGalleryLightbox`; props are plain URLs (no legacy VM).
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { TouchEvent as ReactTouchEvent } from "react";
 import { FiExternalLink, FiVideo } from "react-icons/fi";
 import {
   extractVimeoId,
@@ -210,6 +211,38 @@ export function AgenteIndividualResidencialMediaLightbox({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose, slides.length]);
 
+  // Preload the adjacent slides so arrowing through the gallery doesn't flash/blank.
+  useEffect(() => {
+    if (!open || slides.length <= 1) return;
+    const n = slides.length;
+    const neighbors = [(active + 1) % n, (active - 1 + n) % n];
+    const preloaded = neighbors.map((i) => {
+      const slide = slides[i];
+      if (!slide || slide.kind !== "photo") return null;
+      const img = new Image();
+      img.src = slide.url;
+      return img;
+    });
+    return () => {
+      for (const img of preloaded) if (img) img.src = "";
+    };
+  }, [open, active, slides]);
+
+  const touchStartXRef = useRef<number | null>(null);
+  const onTouchStart = (e: ReactTouchEvent) => {
+    touchStartXRef.current = e.touches[0]?.clientX ?? null;
+  };
+  const onTouchEnd = (e: ReactTouchEvent) => {
+    const startX = touchStartXRef.current;
+    touchStartXRef.current = null;
+    if (startX == null || slides.length <= 1) return;
+    const endX = e.changedTouches[0]?.clientX ?? startX;
+    const dx = endX - startX;
+    const SWIPE_THRESHOLD = 40;
+    if (dx <= -SWIPE_THRESHOLD) setActive((i) => (i >= slides.length - 1 ? 0 : i + 1));
+    else if (dx >= SWIPE_THRESHOLD) setActive((i) => (i <= 0 ? slides.length - 1 : i - 1));
+  };
+
   const current = slides[Math.min(active, Math.max(0, slides.length - 1))] ?? null;
   const show = open && slides.length > 0;
 
@@ -233,7 +266,11 @@ export function AgenteIndividualResidencialMediaLightbox({
         </div>
 
         <div className="relative flex min-h-0 flex-1 flex-col bg-black">
-          <div className="relative flex min-h-[200px] flex-1 items-center justify-center">
+          <div
+            className="relative flex min-h-[200px] flex-1 items-center justify-center"
+            onTouchStart={onTouchStart}
+            onTouchEnd={onTouchEnd}
+          >
             {current?.kind === "photo" ? (
               <ZoomablePhoto url={current.url} zoomHint={labels.zoomHint} resetZoom={labels.resetZoom} />
             ) : current?.kind === "video" ? (
