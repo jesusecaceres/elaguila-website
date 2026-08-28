@@ -26,6 +26,7 @@ import {
 } from "./serviciosPaymentMethodCatalog";
 import {
   sanitizeCustomServiciosAmenityLabels,
+  sanitizeCustomServiciosAmenityLabelsByGroup,
   sanitizeServiciosAmenityOptionIds,
 } from "./serviciosAmenitiesCatalog";
 import { sanitizeCertificationLabels } from "./serviciosCredentialsCatalog";
@@ -115,14 +116,26 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
       line: trim(typeof r?.line === "string" ? r.line : ""),
     }))
     .filter((r) => r.dayLabel && r.line);
+  const specialHoursWire = (draft.contact?.specialHoursRows ?? [])
+    .map((r) => ({
+      label: trim(typeof r?.label === "string" ? r.label : ""),
+      note: trim(typeof r?.note === "string" ? r.note : ""),
+    }))
+    .filter((r) => r.label && r.note);
   if (openNow && today) {
     contact.hours = {
       openNowLabel: openNow,
       todayHoursLine: today,
       ...(weeklyWire.length ? { weeklyRows: weeklyWire } : {}),
+      ...(specialHoursWire.length ? { specialHoursRows: specialHoursWire } : {}),
     };
   } else if (weeklyWire.length >= 3) {
-    contact.hours = { weeklyRows: weeklyWire };
+    contact.hours = {
+      weeklyRows: weeklyWire,
+      ...(specialHoursWire.length ? { specialHoursRows: specialHoursWire } : {}),
+    };
+  } else if (specialHoursWire.length) {
+    contact.hours = { specialHoursRows: specialHoursWire };
   }
 
   const primaryCta = trim(draft.contact?.primaryCtaLabel);
@@ -211,7 +224,16 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   const paymentMethodIds = sanitizeServiciosPaymentMethodIds(draft.paymentMethodIds);
   const customPaymentMethods = sanitizeCustomPaymentMethodLabels(draft.customPaymentMethods);
   const amenityOptionIds = sanitizeServiciosAmenityOptionIds(draft.amenityOptionIds);
-  const customAmenityOptions = sanitizeCustomServiciosAmenityLabels(draft.customAmenityOptions);
+  const groupedCustomAmenityOptions = sanitizeCustomServiciosAmenityLabelsByGroup(draft.customAmenityOptionsByGroup);
+  const hasGroupedCustomAmenityOptions = Object.values(groupedCustomAmenityOptions).some((arr) => arr.length > 0);
+  // Legacy flat `customAmenityOptions` (pre-per-group) — migrate into the "service" bucket
+  // only when no grouped data exists yet, so older drafts keep their custom amenities.
+  const customAmenityOptionsByGroup = hasGroupedCustomAmenityOptions
+    ? groupedCustomAmenityOptions
+    : sanitizeCustomServiciosAmenityLabelsByGroup({
+        service: sanitizeCustomServiciosAmenityLabels(draft.customAmenityOptions),
+      });
+  const customAmenityOptions = Object.values(customAmenityOptionsByGroup).flat();
   const credentials = mapCredentials(draft.credentials);
   const couponsWire = mapCouponsDraftToWire(draft.coupons);
   const couponFlyerUrl = trim(draft.couponFlyer?.imageUrl);
@@ -242,6 +264,9 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   if (paymentMethodIds.length) out.paymentMethodIds = paymentMethodIds;
   if (customPaymentMethods.length) out.customPaymentMethods = customPaymentMethods;
   if (amenityOptionIds.length) out.amenityOptionIds = amenityOptionIds;
+  if (hasGroupedCustomAmenityOptions || customAmenityOptions.length) {
+    out.customAmenityOptionsByGroup = customAmenityOptionsByGroup;
+  }
   if (customAmenityOptions.length) out.customAmenityOptions = customAmenityOptions;
   if (credentials) out.credentials = credentials;
   if (couponsWire.length) out.coupons = couponsWire;

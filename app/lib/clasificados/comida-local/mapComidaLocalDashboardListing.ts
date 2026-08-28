@@ -15,7 +15,7 @@ function foodTypeLabelForDashboardRow(row: ComidaLocalDashboardListingRow): stri
     return custom || "Otro";
   }
   const opt = COMIDA_LOCAL_FOOD_TYPE_OPTIONS.find((o) => o.value === ft);
-  return (opt?.label ?? ft) || "Comida local";
+  return (opt?.labelEs ?? ft) || "Comida local";
 }
 
 export type ComidaLocalDashboardListingVm = {

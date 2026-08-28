@@ -34,7 +34,7 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
         lang === "en" ? "Listing not found | Local Food | Leonix" : "Ficha no encontrada | Comida Local | Leonix",
     };
   }
-  const food = resolveComidaLocalFoodTypeLabel(row);
+  const food = resolveComidaLocalFoodTypeLabel(row, lang === "en" ? "en" : "es");
   const city = row.city_display?.trim() || row.city_canonical?.trim() || "";
   const categoryLabel = lang === "en" ? "Local Food" : "Comida Local";
   const title = `${row.business_name.trim()} | ${categoryLabel} | Leonix`;

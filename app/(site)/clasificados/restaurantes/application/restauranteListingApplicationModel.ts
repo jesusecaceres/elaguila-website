@@ -78,6 +78,15 @@ export type RestauranteDaySchedule = {
   closeTime?: string;
 };
 
+/** One holiday/exception entry — contract §3.4 items 46-48 (multi-entry special hours). */
+export type RestauranteSpecialHoursEntry = {
+  id: string;
+  /** Short label — e.g. a date, date range, or holiday name ("24-25 dic.", "Navidad"). */
+  label: string;
+  /** Freeform note describing the special hours for that label ("Cerrado", "10am-2pm"). */
+  note: string;
+};
+
 export type RestauranteWeeklyHours = {
   monday: RestauranteDaySchedule;
   tuesday: RestauranteDaySchedule;
@@ -86,8 +95,22 @@ export type RestauranteWeeklyHours = {
   friday: RestauranteDaySchedule;
   saturday: RestauranteDaySchedule;
   sunday: RestauranteDaySchedule;
+  /**
+   * Real multi-entry special/holiday hours (contract §3.4 items 46-48) — the UI-wired source of
+   * truth going forward. Populated on hydration from legacy `specialHoursNote` when non-empty and
+   * this array is still empty (see `mergeRestauranteDraft`).
+   */
+  specialHoursEntries?: RestauranteSpecialHoursEntry[];
+  /**
+   * @deprecated Legacy single freeform special-hours note. Read-only for back-compat with any
+   * remaining reader — new writes go through `specialHoursEntries`. Migrated non-destructively
+   * into `specialHoursEntries` on load; this scalar is left untouched so nothing that still reads
+   * it directly breaks.
+   */
   specialHoursNote?: string;
+  /** @deprecated Dead field — no UI ever wrote to this. Kept only for back-compat. */
   temporaryHoursActive?: boolean;
+  /** @deprecated Dead field — no UI ever wrote to this. Kept only for back-compat. */
   temporaryHoursNote?: string;
 };
 
@@ -388,11 +411,25 @@ export type RestauranteProductType = "established_restaurant" | "mobile_food_ven
 export type RestaurantePricingState = {
   /** Selected product type */
   productType?: RestauranteProductType;
-  /** Base monthly price (399 for established, 199 for mobile) */
+  /**
+   * Historical/informational only — a legacy snapshot of what the draft's monthly price looked
+   * like at bootstrap time, stored on the listing row for record-keeping. NEVER the current-price
+   * authority: the real, current Restaurantes base price is always $399/mo, sourced from
+   * revenuePricingMatrix.ts's `restaurantes_base_monthly` entry (see RESTAURANTES_BASE_CHECKOUT /
+   * getRevenuePackageDefinition in RestaurantePreviewClient.tsx, which is what actually determines
+   * both the displayed checkout price and the real charge). No code may read this field to decide
+   * what price to show or charge — an old draft bootstrapped before the Comida Local pricing fix
+   * may still carry a stale value here (e.g. 199 for a pre-fix "mobile_food_vendor" draft); that
+   * stale value must never surface as a current price anywhere.
+   */
   baseMonthlyPrice?: number;
   /** Coupon/offers module enabled — included free with the base package, not a paid add-on. */
   couponUpgradeEnabled?: boolean;
-  /** Coupon add-on monthly price */
+  /**
+   * Historical/informational only — never a payment authority. Coupons/offers are included free
+   * with the current Restaurantes base package; no code may read this field to decide what to
+   * charge or display as a coupon add-on price.
+   */
   couponMonthlyPrice?: number;
 };
 
@@ -513,6 +550,7 @@ function hasWeeklyHoursSignal(h: RestauranteWeeklyHours): boolean {
 export function hasOperatingSignal(h: RestauranteWeeklyHours): boolean {
   if (hasWeeklyHoursSignal(h)) return true;
   if (nonEmpty(h.specialHoursNote)) return true;
+  if ((h.specialHoursEntries ?? []).some((e) => nonEmpty(e.label) || nonEmpty(e.note))) return true;
   return false;
 }
 

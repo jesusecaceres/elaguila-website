@@ -27,3 +27,22 @@ export function isValidUsPhone(raw: string): boolean {
   const d = digitsOnly(raw);
   return d.length === 0 || d.length === 10;
 }
+
+/**
+ * International-safe WhatsApp input: keeps a leading "+" (country code marker) and digits
+ * only — no US (XXX) XXX-XXXX grouping, and no truncation to 10 digits. WhatsApp numbers are
+ * frequently non-US, so unlike the primary phone field this must not force US formatting or
+ * silently drop a country code (see contract §3.5 — primary phone stays separately US-formatted).
+ * Caps at 16 characters, generous headroom over the 15-digit E.164 max (+ up to 15 digits).
+ */
+export function formatWhatsAppInputDisplay(raw: string): string {
+  const hasLeadingPlus = raw.trim().startsWith("+");
+  const digits = digitsOnly(raw).slice(0, 15);
+  return (hasLeadingPlus ? "+" : "") + digits;
+}
+
+/** True when empty or has at least 7 digits (loose international sanity check, no US-only 10-digit rule). */
+export function isValidWhatsAppNumber(raw: string): boolean {
+  const d = digitsOnly(raw);
+  return d.length === 0 || (d.length >= 7 && d.length <= 15);
+}

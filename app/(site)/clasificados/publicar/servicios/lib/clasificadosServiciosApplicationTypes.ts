@@ -53,6 +53,19 @@ export type DayHoursRow = {
   close: string;
 };
 
+/**
+ * One special-hours / holiday entry (contract §3.4 items 46-48) — multiple entries can coexist,
+ * unlike a single freeform note. Mirrors `HoursEditorSpecialHoursEntry` in the shared
+ * `app/components/forms/HoursEditor.tsx` component.
+ */
+export type ServiciosSpecialHoursEntry = {
+  id: string;
+  /** Short label — e.g. a date, date range, or holiday name ("Dec 24-25", "Navidad"). */
+  label: string;
+  /** Freeform note describing the special hours for that label ("Cerrado", "10am-2pm"). */
+  note: string;
+};
+
 export type GalleryItem = {
   id: string;
   url: string;
@@ -210,8 +223,11 @@ export type ClasificadosServiciosApplicationState = {
   customReasonLabel: string;
   customReasonIncluded: boolean;
   selectedQuickFactIds: string[];
-  /** Short label — paired with `customQuickFactIncluded` */
+  /** Free-text quick facts the advertiser added (trimmed); independent list, multiple entries supported */
+  customQuickFacts: string[];
+  /** Pending custom quick-fact input — flushed into `customQuickFacts` on Añadir / Siguiente (same role as `customServiceLabel`) */
   customQuickFactLabel: string;
+  /** @deprecated Legacy single-value "included" flag from the old singular custom-quick-fact format — migrated into `customQuickFacts` in normalize; always cleared afterward, not used for caps */
   customQuickFactIncluded: boolean;
   /** Preset highlight chip ids from `BUSINESS_HIGHLIGHT_PRESET_CHIPS` */
   selectedBusinessHighlightIds: string[];
@@ -246,6 +262,8 @@ export type ClasificadosServiciosApplicationState = {
   extraLink2Url: string;
   extraLink2Label: string;
   hours: DayHoursRow[];
+  /** Multi-entry special hours / holidays (contract §3.4 items 46-48) — empty array default. */
+  specialHoursEntries: ServiciosSpecialHoursEntry[];
   testimonials: TestimonialRow[];
   /** Featured promotions — 1–4 rows; legacy single-promo fields migrate in normalize */
   promotions: ClasificadosServiciosPromoRow[];
@@ -272,9 +290,13 @@ export type ClasificadosServiciosApplicationState = {
   customPaymentMethodLabel: string;
   /** Standard amenities / options ids */
   amenityOptionIds: string[];
-  /** Custom amenities / options labels */
+  /** Per-group custom amenity / option labels — one bucket per `ServiciosAmenityGroupId` (service, availability, customers_served, accessibility_languages, discounts_benefits) so each group can add its own entries independently */
+  customAmenityOptionsByGroup: Record<string, string[]>;
+  /** Per-group pending custom amenity input, keyed the same way as `customAmenityOptionsByGroup` (flushed on Next) */
+  pendingCustomAmenityOptionByGroup: Record<string, string>;
+  /** @deprecated Legacy flat custom amenities list (pre-per-group) — migrated into `customAmenityOptionsByGroup.service` in normalize; not used for caps */
   customAmenityOptions: string[];
-  /** Pending custom amenity input (flushed on Next) */
+  /** @deprecated Legacy flat pending custom amenity input — migrated in normalize */
   pendingCustomAmenityOption: string;
   /** Credentials, license & insurance (Phase 6A) */
   hasLicense: boolean;

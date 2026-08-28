@@ -23,7 +23,9 @@ import {
 } from "@/app/servicios/lib/serviciosPaymentMethodCatalog";
 import {
   CUSTOM_SERVICIOS_AMENITY_LABEL_MAX,
+  SERVICIOS_AMENITY_CUSTOM_GROUP_IDS,
   sanitizeCustomServiciosAmenityLabels,
+  sanitizeCustomServiciosAmenityLabelsByGroup,
   sanitizeServiciosAmenityOptionIds,
 } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
 import {
@@ -39,6 +41,8 @@ export const MAX_SERVICES_SELECTION = 24;
 export const MAX_CUSTOM_SERVICES_OFFERED = 40;
 export const MAX_REASONS_SELECTION = 6;
 export const MAX_QUICK_FACTS_SELECTION = 5;
+/** Max free-text custom quick facts (independent of preset quick-facts cap) */
+export const MAX_CUSTOM_QUICK_FACTS = 20;
 
 export const CUSTOM_CHIP_MAX_LENGTH = 28;
 
@@ -70,14 +74,30 @@ export function enforceServiciosSelectionCaps(
     if (customs.length >= MAX_CUSTOM_SERVICES_OFFERED) break;
   }
 
-  let customQuickFactLabel =
-    typeof s.customQuickFactLabel === "string"
-      ? s.customQuickFactLabel.slice(0, CUSTOM_CHIP_MAX_LENGTH)
-      : "";
-  let customQ = !!(s.customQuickFactIncluded && customQuickFactLabel.trim());
-  if (isJunkServiciosQuickFactLabel(customQuickFactLabel)) {
-    customQuickFactLabel = "";
-    customQ = false;
+  // `customQuickFactLabel` is the live pending-input field for the Quick Facts Add flow
+  // (same role as `customServiceLabel`) — preserved by re-slicing, never force-cleared here,
+  // so typing isn't wiped by an unrelated setState elsewhere. `customQuickFactIncluded` is the
+  // retired legacy "included" flag from the old singular format; always cleared so a legacy
+  // draft can never resurrect a second, separately-tracked custom value.
+  const customQuickFactLabel =
+    typeof s.customQuickFactLabel === "string" ? s.customQuickFactLabel.slice(0, CUSTOM_CHIP_MAX_LENGTH) : "";
+  const customQ = false;
+
+  const qfCustomIn = Array.isArray(s.customQuickFacts) ? [...s.customQuickFacts] : [];
+  const qfCustom: string[] = [];
+  const qfSeen = new Set<string>();
+  for (const raw of qfCustomIn) {
+    if (typeof raw !== "string") continue;
+    const t = raw.trim().slice(0, CUSTOM_CHIP_MAX_LENGTH);
+    if (!t || isJunkServiciosQuickFactLabel(t)) continue;
+    const k = t
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{M}/gu, "");
+    if (qfSeen.has(k)) continue;
+    qfSeen.add(k);
+    qfCustom.push(t);
+    if (qfCustom.length >= MAX_CUSTOM_QUICK_FACTS) break;
   }
 
   let customR = !!(s.customReasonIncluded && s.customReasonLabel.trim());
@@ -91,12 +111,8 @@ export function enforceServiciosSelectionCaps(
   }
 
   const qis = [...s.selectedQuickFactIds];
-  while (qis.length + (customQ ? 1 : 0) > MAX_QUICK_FACTS_SELECTION) {
-    if (qis.length > 0) qis.pop();
-    else {
-      customQ = false;
-      break;
-    }
+  while (qis.length > MAX_QUICK_FACTS_SELECTION) {
+    qis.pop();
   }
 
   const highlightIds = [...s.selectedBusinessHighlightIds].filter((id) => isBusinessHighlightPresetId(id));
@@ -131,11 +147,20 @@ export function enforceServiciosSelectionCaps(
       : "";
 
   const amenityOptionIds = sanitizeServiciosAmenityOptionIds(s.amenityOptionIds);
+  // Legacy flat list — retained only for older stored drafts; no longer written to by the UI.
   const customAmenityOptions = sanitizeCustomServiciosAmenityLabels(s.customAmenityOptions);
   const pendingCustomAmenityOption =
     typeof s.pendingCustomAmenityOption === "string"
       ? s.pendingCustomAmenityOption.slice(0, CUSTOM_SERVICIOS_AMENITY_LABEL_MAX)
       : "";
+
+  const customAmenityOptionsByGroup = sanitizeCustomServiciosAmenityLabelsByGroup(s.customAmenityOptionsByGroup);
+  const pendingCustomAmenityOptionByGroup: Record<string, string> = {};
+  for (const groupId of SERVICIOS_AMENITY_CUSTOM_GROUP_IDS) {
+    const raw = s.pendingCustomAmenityOptionByGroup?.[groupId];
+    pendingCustomAmenityOptionByGroup[groupId] =
+      typeof raw === "string" ? raw.slice(0, CUSTOM_SERVICIOS_AMENITY_LABEL_MAX) : "";
+  }
 
   const certifications = sanitizeCertificationLabels(
     Array.isArray(s.certifications) ? s.certifications.filter((x): x is string => typeof x === "string") : [],
@@ -184,6 +209,7 @@ export function enforceServiciosSelectionCaps(
     customReasonIncluded: customR,
     customQuickFactIncluded: customQ,
     customQuickFactLabel,
+    customQuickFacts: qfCustom,
     selectedBusinessHighlightIds: highlightIds,
     customBusinessHighlights: bhCustom,
     customBusinessHighlightLabel,
@@ -193,6 +219,8 @@ export function enforceServiciosSelectionCaps(
     amenityOptionIds,
     customAmenityOptions,
     pendingCustomAmenityOption,
+    customAmenityOptionsByGroup,
+    pendingCustomAmenityOptionByGroup,
     hasLicense: s.hasLicense === true,
     isInsured: s.isInsured === true,
     licenseType: sliceCred(s.licenseType, SERVICIOS_CREDENTIAL_STRING_MAX.licenseType),

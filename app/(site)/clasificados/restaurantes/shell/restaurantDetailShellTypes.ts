@@ -142,7 +142,13 @@ export type ShellTrustLight = {
 export type ShellStackSection = {
   id: string;
   title: string;
-  rows: { label: string; value: string }[];
+  /**
+   * `key` is a stable, language-independent identifier for what this row IS (e.g. "currentLocation",
+   * "weeklyRoute", "cateringInquiry") — consumers that need to detect a specific row (to render its
+   * value as a clickable link, for example) must match on `key`, never on `label`, since `label` is
+   * translated per the viewer's locale and must never be used as an identity check.
+   */
+  rows: { key?: string; label: string; value: string }[];
 };
 
 /** Bilingual amenities block for preview + public detail */

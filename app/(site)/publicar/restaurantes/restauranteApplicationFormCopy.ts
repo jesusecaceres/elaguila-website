@@ -70,7 +70,7 @@ const COPY = {
     },
     dashboard: {
       addonModeMessage:
-        "Estás activando cupones para un anuncio existente. Solo se cobrará el módulo de cupones: $99/mes.",
+        "Estás activando cupones para un anuncio existente. Los cupones están incluidos en tu plan Restaurantes — no se te cobrará nada adicional.",
       couponEditModeMessage: "Estás editando cupones para un anuncio existente.",
       listingEditModeMessage:
         "Estás editando tu anuncio publicado. Guarda los cambios aquí — no se volverá a cobrar el plan base.",
@@ -89,7 +89,7 @@ const COPY = {
     },
     couponUpsell: {
       title: "¿Quieres atraer más clientes con cupones?",
-      body: "$99/mes para mostrar ofertas destacadas dentro de tu anuncio. Puedes publicar hasta 4 cupones principales y agregar un flyer o enlace externo para más promociones.",
+      body: "Cupones incluidos en tu plan Restaurantes, sin costo adicional, para mostrar ofertas destacadas dentro de tu anuncio. Puedes publicar hasta 4 cupones principales y agregar un flyer o enlace externo para más promociones.",
       addCoupons: "Agregar cupones",
       continueWithoutCoupons: "Continuar sin cupones",
     },
@@ -117,10 +117,10 @@ const COPY = {
       secondaryCuisineOtherPlaceholder: "Breve descripción",
       additionalCuisinesLabel: "Cocinas adicionales",
       additionalCuisinesHelper:
-        "Etiquetas de apoyo para descubrimiento: en la ficha salen como chips «Descub.» bajo la línea principal/secundaria, no en esa línea. Por eso existen las tres: identidad clara + etiquetas selectivas. Elige hasta 3. La ciudad canónica y la cocina principal siguen anclando filtros y resultados.",
+        "Etiquetas de apoyo para descubrimiento: en la ficha salen como chips «Descub.» bajo la línea principal/secundaria, no en esa línea. Por eso existen las tres: identidad clara + etiquetas selectivas. Elige hasta 6. La ciudad canónica y la cocina principal siguen anclando filtros y resultados.",
       additionalCuisinesCountSuffix: "seleccionadas",
       additionalCuisinesOverCapWarning:
-        "— Tienes más etiquetas de las recomendadas; desmarca hasta 3 para un listado más limpio.",
+        "— Tienes más etiquetas de las recomendadas; desmarca hasta 6 para un listado más limpio.",
       additionalCuisineOtherLabel: "Especifica “Otra” en cocinas adicionales",
       additionalCuisineOtherHelper: "Una línea clara; se muestra donde aplique la etiqueta «Otra».",
       additionalCuisineOtherPlaceholder: "Una línea, p. ej. comida nikkei",
@@ -137,7 +137,7 @@ const COPY = {
         "Idiomas en los que el equipo puede atender al cliente en persona, por teléfono o mensaje — no es una lista decorativa. Aparecen en la franja de información rápida como una línea compacta. Si seleccionas Otro, especifica el idioma concreto.",
       languageOtherLabel: "Especifica el idioma (Otro)",
       languageOtherHelper:
-        "Escribe el idioma concreto y pulsa Añadir. Máximo 3 idiomas personalizados.",
+        "Escribe el idioma concreto y pulsa Añadir. Máximo 8 idiomas personalizados.",
       languageOtherPlaceholder: "Ej. portugués, ASL…",
     },
     sectionB: {
@@ -172,9 +172,13 @@ const COPY = {
         "Completa cada día (cerrado u horario) o indica la situación con las notas de abajo — necesario para la vista previa estructural.",
       helper:
         "La cuadrícula semanal es la base en la ficha. Las notas no sustituyen horarios salvo que así lo indiques; sirven para excepciones, feriados o cambios puntuales visibles junto al bloque de horas.",
-      specialHoursLabel: "Nota de horario especial",
+      specialHoursLabel: "Horarios especiales / feriados",
       specialHoursHelper:
-        "Aviso recurrente o general (p. ej. «cerrado lunes festivos», «cocina cierra a las 9 pm»): no reemplaza la cuadrícula semanal. Se muestra en el resumen de horario cuando aplica y en el bloque «Horarios completos» bajo la lista de días.",
+        "Agrega tantas excepciones como necesites (feriados, cierres puntuales, horario reducido): no reemplazan la cuadrícula semanal. Se muestran en el resumen de horario y en el estado «abierto ahora» cuando aplica.",
+      specialHoursAddLabel: "+ Agregar horario especial",
+      specialHoursLabelPlaceholder: "Ej. Navidad, 24-25 dic.",
+      specialHoursNotePlaceholder: "Ej. Cerrado, 10am-2pm",
+      specialHoursRemoveAriaLabel: "Eliminar este horario especial",
     },
     sectionD: {
       requiredNote:
@@ -257,15 +261,15 @@ const COPY = {
     sectionG: {
       disabledTitle: "Cupones y ofertas",
       dashboardAddonBody:
-        "Agrega hasta 4 ofertas/cupones destacados a tu anuncio para atraer más clientes. Activa el módulo por $99/mes y luego podrás guardar tus ofertas.",
+        "Agrega hasta 4 ofertas/cupones destacados a tu anuncio para atraer más clientes. Incluido en tu plan Restaurantes — actívalo para empezar a guardar tus ofertas.",
       upsellQuestion: "¿Quieres agregar cupones destacados a tu perfil?",
-      upsellPrice: "$99/mes",
+      upsellPrice: "Incluido en tu plan",
       upsellPriceNote:
-        "Precio especial para restaurantes. Antes era $199/mes como producto independiente.",
+        "Incluido sin costo adicional en tu plan Restaurantes ($399/mes). No es un producto independiente.",
       upsellBody:
-        "Agrega hasta 4 cupones destacados dentro de tu perfil. Puedes promocionar combos, descuentos de temporada, especiales de almuerzo, catering o eventos. Los clientes podrán compartir el cupón por enlace, mensaje, email o apps compatibles.",
-      addCouponsForPrice: "Agregar cupones por $99/mes",
-      couponsEnabled: "Cupones activados — +$99/mes",
+        "Agrega hasta 4 cupones destacados dentro de tu perfil, incluido sin costo adicional en tu plan. Puedes promocionar combos, descuentos de temporada, especiales de almuerzo, catering o eventos. Los clientes podrán compartir el cupón por enlace, mensaje, email o apps compatibles.",
+      addCouponsForPrice: "Activar cupones (incluido en tu plan)",
+      couponsEnabled: "Cupones activados — incluido en tu plan",
       enabledHelper:
         "Agrega hasta 4 ofertas para que los clientes tengan una razón clara para visitar, ordenar o compartir tu restaurante.",
       couponTitleLabel: "Título del cupón",
@@ -360,7 +364,6 @@ const COPY = {
       previewGateConfirmRules: "Confirma que cumples las reglas de Leonix",
       previewGateConfirmPromos: "Confirma que las promociones son válidas",
       preview: "Vista previa",
-      continueToPreview: "Continuar a vista previa",
       deleteRequest: "Eliminar solicitud",
     },
   },
@@ -416,7 +419,7 @@ const COPY = {
     },
     dashboard: {
       addonModeMessage:
-        "You are enabling coupons for an existing listing. Only the coupon module will be charged: $99/mo.",
+        "You are enabling coupons for an existing listing. Coupons are included in your Restaurantes plan — you will not be charged anything extra.",
       couponEditModeMessage: "You are editing coupons for an existing listing.",
       listingEditModeMessage:
         "You are editing your published restaurant listing. Save changes here — the base plan will not be charged again.",
@@ -434,7 +437,7 @@ const COPY = {
     },
     couponUpsell: {
       title: "Want to attract more customers with coupons?",
-      body: "$99/month to show featured offers inside your restaurant ad. You can publish up to 4 main coupons and add a flyer or external link for more promotions.",
+      body: "Coupons included with your Restaurantes plan, at no extra cost, to show featured offers inside your restaurant ad. You can publish up to 4 main coupons and add a flyer or external link for more promotions.",
       addCoupons: "Add coupons",
       continueWithoutCoupons: "Continue without coupons",
     },
@@ -462,10 +465,10 @@ const COPY = {
       secondaryCuisineOtherPlaceholder: "Brief description",
       additionalCuisinesLabel: "Additional cuisines",
       additionalCuisinesHelper:
-        "Discovery support tags: on the listing they appear as «Disc.» chips below the primary/secondary line, not on that line. That is why all three exist: clear identity + selective tags. Choose up to 3. Canonical city and primary cuisine still anchor filters and results.",
+        "Discovery support tags: on the listing they appear as «Disc.» chips below the primary/secondary line, not on that line. That is why all three exist: clear identity + selective tags. Choose up to 6. Canonical city and primary cuisine still anchor filters and results.",
       additionalCuisinesCountSuffix: "selected",
       additionalCuisinesOverCapWarning:
-        "— You have more tags than recommended; uncheck down to 3 for a cleaner listing.",
+        "— You have more tags than recommended; uncheck down to 6 for a cleaner listing.",
       additionalCuisineOtherLabel: "Specify «Other» in additional cuisines",
       additionalCuisineOtherHelper: "One clear line; shown where the «Other» tag applies.",
       additionalCuisineOtherPlaceholder: "One line, e.g. Nikkei cuisine",
@@ -481,7 +484,7 @@ const COPY = {
       languagesHelper:
         "Languages your team can serve customers in person, by phone, or message — not a decorative list. Appears in the quick-info strip as a compact line. If you select Other, specify the language.",
       languageOtherLabel: "Specify language (Other)",
-      languageOtherHelper: "Type the language and press Add. Up to 3 custom languages.",
+      languageOtherHelper: "Type the language and press Add. Up to 8 custom languages.",
       languageOtherPlaceholder: "e.g. Portuguese, ASL…",
     },
     sectionB: {
@@ -516,9 +519,13 @@ const COPY = {
         "Complete each day (closed or hours) or explain the situation with the notes below — required for structural preview.",
       helper:
         "The weekly grid is the base on the listing. Notes do not replace hours unless you indicate so; they cover exceptions, holidays, or one-off changes shown next to the hours block.",
-      specialHoursLabel: "Special hours note",
+      specialHoursLabel: "Special / holiday hours",
       specialHoursHelper:
-        "Recurring or general notice (e.g. «closed holiday Mondays», «kitchen closes at 9 pm»): does not replace the weekly grid. Shown in the hours summary when applicable and in «Full hours» below the day list.",
+        "Add as many exceptions as you need (holidays, one-off closures, reduced hours): they do not replace the weekly grid. Shown in the hours summary and in the «open now» status when applicable.",
+      specialHoursAddLabel: "+ Add special hours",
+      specialHoursLabelPlaceholder: "e.g. Christmas, Dec 24-25",
+      specialHoursNotePlaceholder: "e.g. Closed, 10am-2pm",
+      specialHoursRemoveAriaLabel: "Remove this special hours entry",
     },
     sectionD: {
       requiredNote:
@@ -601,15 +608,15 @@ const COPY = {
     sectionG: {
       disabledTitle: "Coupons & offers",
       dashboardAddonBody:
-        "Add up to 4 featured offers/coupons to your listing to attract more customers. Activate the module for $99/mo, then you can save your offers.",
+        "Add up to 4 featured offers/coupons to your listing to attract more customers. Included with your Restaurantes plan — activate it to start saving your offers.",
       upsellQuestion: "Do you want to add featured coupons to your profile?",
-      upsellPrice: "$99/month",
+      upsellPrice: "Included with your plan",
       upsellPriceNote:
-        "Special price for restaurants. Previously $199/month as a standalone product.",
+        "Included at no extra cost with your Restaurantes plan ($399/month). Not a standalone product.",
       upsellBody:
-        "Add up to 4 featured coupons within your profile. You can promote combos, seasonal discounts, lunch specials, catering, or events. Customers will be able to share the coupon by link, message, email, or compatible apps.",
-      addCouponsForPrice: "Add coupons for $99/month",
-      couponsEnabled: "Coupons enabled — +$99/month",
+        "Add up to 4 featured coupons within your profile, included at no extra cost with your plan. You can promote combos, seasonal discounts, lunch specials, catering, or events. Customers will be able to share the coupon by link, message, email, or compatible apps.",
+      addCouponsForPrice: "Activate coupons (included with your plan)",
+      couponsEnabled: "Coupons enabled — included with your plan",
       enabledHelper:
         "Add up to 4 offers so customers have a clear reason to visit, order, or share your restaurant.",
       couponTitleLabel: "Coupon title",
@@ -701,7 +708,6 @@ const COPY = {
       previewGateConfirmRules: "Confirm you comply with Leonix rules",
       previewGateConfirmPromos: "Confirm promotions are valid",
       preview: "Preview",
-      continueToPreview: "Continue to preview",
       deleteRequest: "Delete request",
     },
   },

@@ -109,6 +109,9 @@ export async function POST(req: Request) {
       source,
       lang,
       consentTimestamp,
+      // A direct newsletter-page submission with explicit consent is itself the real, current,
+      // explicit opt-in action — may reactivate a previously-unsubscribed email.
+      explicitOptIn: true,
     });
 
     if (!result.ok) {

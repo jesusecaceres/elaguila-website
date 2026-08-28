@@ -1,11 +1,11 @@
 ﻿"use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/application/restauranteDraftTypes";
-import type { RestauranteAdditionalWebsite, RestauranteCoupon, RestauranteDaySchedule, RestauranteFeaturedDish, RestauranteServiceMode } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
+import type { RestauranteAdditionalWebsite, RestauranteCoupon, RestauranteDaySchedule, RestauranteFeaturedDish, RestauranteServiceMode, RestauranteSpecialHoursEntry } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import {
   RESTAURANTE_CONTACT_PLACEHOLDERS,
   RESTAURANTE_CUISINES,
@@ -43,6 +43,7 @@ import { resolveRestauranteDraftMediaToRemoteUrls } from "@/app/clasificados/res
 import {
   redirectRestauranteDashboardCouponAddonCheckout,
   restauranteCouponAddonUpgradeLabel,
+  restauranteCouponAddonUpgradeBusyLabel,
   restauranteCouponEditHref,
   restauranteOffersModuleHeading,
 } from "@/app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCheckout";
@@ -86,6 +87,7 @@ import {
 } from "@/app/lib/clasificados/restaurantes/restauranteFormCleanupConfig";
 
 const PREVIEW_HREF = "/clasificados/restaurantes/preview";
+const RESTAURANTE_ACTIVE_SECTION_STORAGE_KEY = "leonix.restaurantes.activeSection.v1";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)] sm:p-6";
@@ -108,6 +110,12 @@ const OTHER_INPUT =
 const MAX_ADDITIONAL_CUISINES = 6;
 
 const DAY_ROW_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
+
+/** Client-only id for a new special-hours row; falls back when crypto.randomUUID is unavailable. */
+function newSpecialHoursEntryId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return `sh-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
 function dayRows(lang: RestauranteAppUiLang) {
   return DAY_ROW_KEYS.map((key) => ({
@@ -167,6 +175,7 @@ function TaxonomyChipLeading({ chipEmoji }: { chipEmoji?: string }) {
 export default function RestauranteApplicationClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
   const { routeLang, copyLang: lang } = useMemo(
     () => resolveClasificadosPublishLang(searchParams?.get("lang")),
     [searchParams],
@@ -197,12 +206,18 @@ export default function RestauranteApplicationClient() {
     returnPanel === "restaurantes"
       ? appendLangToPath("/dashboard/restaurantes", routeLang)
       : buildDashboardMisAnunciosReturnPath(lang, "restaurantes");
-  const { hydrated, draft, draftRef, setDraftPatch, resetDraft } = useRestauranteDraft();
+  const { hydrated, draft, draftRef, isDraftDirty, setDraftPatch, resetDraft, trimDraftStrings } = useRestauranteDraft();
 
   useBusinessApplicationLeaveGuard({
-    isDirty: hydrated && Boolean(draft.businessName?.trim()),
+    isDirty: hydrated && Boolean(draft.businessName?.trim()) && isDraftDirty,
+    // Trim only at this one-time exit snapshot, never on every keystroke — trimming inside the
+    // live onChange path would fight normal typing (a trailing space the user just typed to
+    // start a new word would be stripped back out on every keystroke). This closes the gap where
+    // a whitespace-only custom "Otro" cuisine/style/etc. value could otherwise linger in the
+    // persisted draft (it was already correctly excluded from Preview/publish by nonEmpty()/
+    // hasValue() downstream — this just keeps the draft itself clean too).
     persist: () => {
-      void saveRestauranteDraftToStorageResolved(draftRef.current);
+      void saveRestauranteDraftToStorageResolved(trimDraftStrings(draftRef.current));
     },
   });
   const [serviceErr, setServiceErr] = useState(false);
@@ -225,16 +240,21 @@ export default function RestauranteApplicationClient() {
   const [dashboardSaveBusy, setDashboardSaveBusy] = useState(false);
   const [dashboardContextErr, setDashboardContextErr] = useState<string | null>(null);
 
-  // Initialize pricing based on product query param
+  // Initialize pricing based on product query param.
+  // Fixed defect: Comida Local is its own category at its own real price
+  // (comida_local_base_monthly) — it is never a $199 Restaurantes product, and the checkout below
+  // always charges the single real Restaurantes base price regardless of `productType`. A
+  // "mobile_food_vendor" productType value may still legitimately describe a restaurant that
+  // operates as a food truck/pop-up (kept for copy/labeling only), but it must always be priced
+  // and charged as Restaurantes, never as a fake discounted Comida Local stand-in.
   useEffect(() => {
     if (hydrated && !draft.productType && !isExistingDashboardListingMode) {
       const productParam = searchParams?.get("product");
       const isMobile = productParam === "mobile_food_vendor";
       const productType = isMobile ? "mobile_food_vendor" : "established_restaurant";
-      const baseMonthlyPrice = isMobile ? 199 : 399;
       setDraftPatch({
         productType,
-        baseMonthlyPrice,
+        baseMonthlyPrice: 399,
       });
     }
   }, [hydrated, draft.productType, setDraftPatch, searchParams, isExistingDashboardListingMode]);
@@ -403,13 +423,52 @@ export default function RestauranteApplicationClient() {
 
   const sectionNavItems = useMemo(() => buildRestauranteApplicationSectionNavItems(draft, lang), [draft, lang]);
 
-  const [activeSectionId, setActiveSectionId] = useState("restaurantes-section-a");
-
-  useEffect(() => {
-    if (hydrated && focusCoupon) {
-      setActiveSectionId("restaurantes-section-g");
+  // Persists the owner's current section across a hard refresh / Preview -> "Volver a editar"
+  // round trip (contract shared item #122) — without this, `activeSectionId` reset to Section A
+  // on every remount regardless of where the owner had actually navigated.
+  const [activeSectionId, setActiveSectionIdRaw] = useState<string>(() => {
+    if (typeof window === "undefined") return "restaurantes-section-a";
+    try {
+      return sessionStorage.getItem(RESTAURANTE_ACTIVE_SECTION_STORAGE_KEY) || "restaurantes-section-a";
+    } catch {
+      return "restaurantes-section-a";
     }
-  }, [hydrated, focusCoupon]);
+  });
+  const setActiveSectionId = useCallback((next: string | ((prev: string) => string)) => {
+    setActiveSectionIdRaw((prev) => {
+      const resolved = typeof next === "function" ? (next as (p: string) => string)(prev) : next;
+      try {
+        sessionStorage.setItem(RESTAURANTE_ACTIVE_SECTION_STORAGE_KEY, resolved);
+      } catch {
+        /* ignore */
+      }
+      return resolved;
+    });
+  }, []);
+
+  /**
+   * `focus=coupon-upgrade` is baked permanently into the URL by
+   * `restauranteCouponEditHref` (dashboard "Edit coupon" links) and browsers never drop query
+   * params on reload. Without a one-shot guard, this effect would re-fire on every hard refresh
+   * of that URL and snap the owner back to Section G regardless of where they'd since navigated
+   * (R-026/R-060). Apply the jump only once per mount, then strip the param from the URL so a
+   * later hard refresh has nothing left to re-trigger on.
+   */
+  const focusCouponAppliedRef = useRef(false);
+  useEffect(() => {
+    if (!hydrated || !focusCoupon || focusCouponAppliedRef.current) return;
+    focusCouponAppliedRef.current = true;
+    setActiveSectionId("restaurantes-section-g");
+    // Only strip the param once the coupon-edit link resolved to a real listing — leave the URL
+    // (and its "focus" param) intact when `dashboardListingId` is missing so the malformed-link
+    // warning banner below keeps surfacing on reload instead of silently vanishing.
+    if (pathname && dashboardListingId) {
+      const nextParams = new URLSearchParams(searchParams?.toString() ?? "");
+      nextParams.delete("focus");
+      const query = nextParams.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname);
+    }
+  }, [hydrated, focusCoupon, pathname, router, searchParams, dashboardListingId]);
 
   useEffect(() => {
     setActiveSectionId((prev) => {
@@ -444,10 +503,12 @@ export default function RestauranteApplicationClient() {
     if (isExistingDashboardListingMode) return;
     // Service modes are no longer required for preview - default assumption is brick-and-mortar restaurant
     setServiceErr(false);
-    await saveRestauranteDraftToStorageResolved(draftRef.current);
+    // Trim at this commit boundary (leaving the form for Preview), not on every keystroke — see
+    // the leave-guard's persist callback above for why per-keystroke trimming is unsafe.
+    await saveRestauranteDraftToStorageResolved(trimDraftStrings(draftRef.current));
     markPublishFlowOpeningPreview();
     window.location.href = previewHrefWithPlan;
-  }, [draftRef, previewHrefWithPlan, isExistingDashboardListingMode]);
+  }, [draftRef, previewHrefWithPlan, isExistingDashboardListingMode, trimDraftStrings]);
 
   const toggleHighlight = useCallback(
     (key: string) => {
@@ -542,6 +603,32 @@ export default function RestauranteApplicationClient() {
     [draft.additionalWebsites, setDraftPatch]
   );
 
+  /** Gate §3.4 items 46-48 — real multi-entry special/holiday hours (supersedes the old single-string note). */
+  const addSpecialHoursEntry = useCallback(() => {
+    const cur = draft.specialHoursEntries ?? [];
+    setDraftPatch({
+      specialHoursEntries: [...cur, { id: newSpecialHoursEntryId(), label: "", note: "" }],
+    });
+  }, [draft.specialHoursEntries, setDraftPatch]);
+
+  const updateSpecialHoursEntry = useCallback(
+    (id: string, patch: Partial<Pick<RestauranteSpecialHoursEntry, "label" | "note">>) => {
+      const cur = draft.specialHoursEntries ?? [];
+      setDraftPatch({
+        specialHoursEntries: cur.map((row) => (row.id === id ? { ...row, ...patch } : row)),
+      });
+    },
+    [draft.specialHoursEntries, setDraftPatch]
+  );
+
+  const removeSpecialHoursEntry = useCallback(
+    (id: string) => {
+      const cur = draft.specialHoursEntries ?? [];
+      setDraftPatch({ specialHoursEntries: cur.filter((row) => row.id !== id) });
+    },
+    [draft.specialHoursEntries, setDraftPatch]
+  );
+
   const toggleAdditionalCuisine = useCallback(
     (key: string) => {
       const cur = draft.additionalCuisines ?? [];
@@ -627,8 +714,9 @@ export default function RestauranteApplicationClient() {
   }, []);
 
   const normalizePhoneInput = useCallback((input: string): string => {
-    // Allow user to type normally but format on blur
-    return input.replace(/\D/g, "").slice(0, 11);
+    // WhatsApp-only field (see call site below): international numbers with a country code
+    // commonly exceed 11 digits, so cap at the ITU E.164 max (15 digits) instead of truncating them.
+    return input.replace(/\D/g, "").slice(0, 15);
   }, []);
 
   const [featuredUploading, setFeaturedUploading] = useState<Record<number, boolean>>({});
@@ -812,7 +900,7 @@ export default function RestauranteApplicationClient() {
               onClick={() => void startDashboardAddonCheckout()}
               className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50"
             >
-              {dashboardAddonCheckoutBusy ? fc.common.startingCheckout : restauranteCouponAddonUpgradeLabel(lang)}
+              {dashboardAddonCheckoutBusy ? restauranteCouponAddonUpgradeBusyLabel(lang) : restauranteCouponAddonUpgradeLabel(lang)}
             </button>
             <Link
               href={dashboardReturnHref}
@@ -1062,7 +1150,7 @@ export default function RestauranteApplicationClient() {
                 ) : null}
               </p>
               <div className="mt-2 max-h-52 overflow-y-auto rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)]/60 p-3">
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {RESTAURANTE_CUISINES.map((o) => {
                     const cur = draft.additionalCuisines ?? [];
                     const checked = cur.includes(o.key);
@@ -1338,18 +1426,19 @@ export default function RestauranteApplicationClient() {
             }))}
             onDayChange={(key, next) => setDay(key as keyof RestauranteListingDraft, next)}
             closedLabel={fc.common.closed}
+            specialHoursList={{
+              entries: draft.specialHoursEntries ?? [],
+              onAdd: addSpecialHoursEntry,
+              onEntryChange: updateSpecialHoursEntry,
+              onRemove: removeSpecialHoursEntry,
+              sectionLabel: fc.sectionC.specialHoursLabel,
+              sectionHelper: fc.sectionC.specialHoursHelper,
+              addLabel: fc.sectionC.specialHoursAddLabel,
+              labelPlaceholder: fc.sectionC.specialHoursLabelPlaceholder,
+              notePlaceholder: fc.sectionC.specialHoursNotePlaceholder,
+              removeAriaLabel: () => fc.sectionC.specialHoursRemoveAriaLabel,
+            }}
           />
-          <div className="mt-4 grid gap-3">
-            <div>
-              <FieldLabel optional lang={lang}>{fc.sectionC.specialHoursLabel}</FieldLabel>
-              <HelperText>{fc.sectionC.specialHoursHelper}</HelperText>
-              <input
-                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                value={draft.specialHoursNote ?? ""}
-                onChange={(e) => setDraftPatch({ specialHoursNote: e.target.value || undefined })}
-              />
-            </div>
-          </div>
         </section>
         ) : null}
 
@@ -1800,7 +1889,7 @@ export default function RestauranteApplicationClient() {
                     onClick={() => void startDashboardAddonCheckout()}
                     className="mt-4 min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50"
                   >
-                    {dashboardAddonCheckoutBusy ? fc.common.startingCheckout : restauranteCouponAddonUpgradeLabel(lang)}
+                    {dashboardAddonCheckoutBusy ? restauranteCouponAddonUpgradeBusyLabel(lang) : restauranteCouponAddonUpgradeLabel(lang)}
                   </button>
                 </div>
               </>
@@ -1812,7 +1901,7 @@ export default function RestauranteApplicationClient() {
                   <h3 className="text-lg font-bold text-[color:var(--lx-text)]">
                     {fc.sectionG.upsellQuestion}
                   </h3>
-                  <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">+${fc.sectionG.upsellPrice}</p>
+                  <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">{fc.sectionG.upsellPrice}</p>
                   <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
                     {fc.sectionG.upsellPriceNote}
                   </p>
@@ -1832,7 +1921,7 @@ export default function RestauranteApplicationClient() {
                     <button
                       type="button"
                       onClick={() => {
-                        setDraftPatch({ couponUpgradeEnabled: true, couponMonthlyPrice: 99 });
+                        setDraftPatch({ couponUpgradeEnabled: true, couponMonthlyPrice: 0 });
                       }}
                       className="min-h-[44px] shrink-0 rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)]"
                     >
@@ -2598,14 +2687,6 @@ export default function RestauranteApplicationClient() {
                 {fc.sectionFinal.deleteRequest}
               </button>
             </div>
-            <button
-              type="button"
-              onClick={goPreview}
-              disabled={!canContinueToPreview}
-              className="min-h-[44px] w-full rounded-full bg-[color:var(--lx-text)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:min-w-[200px]"
-            >
-              {fc.sectionFinal.continueToPreview}
-            </button>
             </>
             )}
           </div>

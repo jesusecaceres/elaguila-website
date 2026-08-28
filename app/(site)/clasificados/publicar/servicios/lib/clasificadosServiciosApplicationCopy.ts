@@ -3,7 +3,11 @@ import {
   MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION,
   MAX_CUSTOM_BUSINESS_HIGHLIGHTS,
 } from "./serviciosHighlightCaps";
-import { MAX_CUSTOM_SERVICES_OFFERED, MAX_SERVICES_SELECTION } from "./serviciosSelectionCaps";
+import {
+  MAX_CUSTOM_SERVICES_OFFERED,
+  MAX_CUSTOM_QUICK_FACTS,
+  MAX_SERVICES_SELECTION,
+} from "./serviciosSelectionCaps";
 
 export type ClasificadosServiciosCopy = {
   pageTitle: string;
@@ -173,6 +177,8 @@ export type ClasificadosServiciosCopy = {
     addCustomChip: string;
     addedCustomServicesSection: string;
     customServicesMax: string;
+    addedQuickFactsSection: string;
+    customQuickFactsMax: string;
     /** When the advertiser reaches the preset selection cap */
     selectionMaxSuggestedPresets: string;
     servicesSuggestedHeading: string;
@@ -243,6 +249,14 @@ export type ClasificadosServiciosCopy = {
     galleryPartialAdd: string;
     /** Shown under the hours section — how schedule appears on the public profile */
     hoursOutputHint: string;
+    /** Multi-entry special hours / holidays section (contract §3.4 items 46-48) */
+    specialHoursSectionLabel: string;
+    specialHoursSectionHelper: string;
+    specialHoursAdd: string;
+    specialHoursLabelPlaceholder: string;
+    specialHoursNotePlaceholder: string;
+    /** `{label}` — the entry's own label, or a generic fallback when blank */
+    specialHoursRemoveAria: string;
     /** Paso 2 — ciudad vs zonas */
     cityHelp: string;
     cityHelpDetail: string;
@@ -491,6 +505,8 @@ const es: ClasificadosServiciosCopy = {
     selectionMaxPresetHighlights: `Puedes elegir hasta ${MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION} sugeridos.`,
     selectionMaxReasons: "Máximo 6 opciones",
     selectionMaxQuickFacts: "Máximo 5 opciones",
+    addedQuickFactsSection: "Datos rápidos agregados:",
+    customQuickFactsMax: `Máximo ${MAX_CUSTOM_QUICK_FACTS} datos rápidos personalizados`,
     aboutServicesGapNote:
       "Si algo de tu oferta no encaja en las opciones sugeridas, detállalo aquí: especialidades, materiales, alcance y condiciones. Ayuda a los clientes a entender exactamente qué resuelves.",
     leonixVerified: "Mostrar interés en Verificado Leonix",
@@ -539,9 +555,9 @@ const es: ClasificadosServiciosCopy = {
     assetFromUrl: "URL",
     videosTitle: "Video opcional",
     galleryCountLine: "{n} / {max} fotos en la galería",
-    videosCountLine: "{n} / 4 videos agregados",
+    videosCountLine: "{n} / {max} videos agregados",
     galleryLimitHint: "Límite alcanzado (máx. {max}). Quita una foto para añadir más.",
-    videosLimitHint: "Límite de 4 videos alcanzado.",
+    videosLimitHint: "Límite de {max} videos alcanzado.",
     galleryListOrderHint:
       "El orden de la lista es el orden completo de la galería. Las destacadas pueden ser cualquiera de esas fotos; no tienen que ser las primeras.",
     mediaWrongFileType: "Ese archivo no es una imagen. Usa JPG, PNG, WebP u otro formato de imagen.",
@@ -550,6 +566,13 @@ const es: ClasificadosServiciosCopy = {
     galleryPartialAdd: "Solo cabían algunas fotos nuevas (máx. {max} en total).",
     hoursOutputHint:
       "En tu vitrina: destacamos el horario de hoy y mostramos la semana completa en el panel de contacto.",
+    specialHoursSectionLabel: "Horarios especiales / Días festivos",
+    specialHoursSectionHelper:
+      "Agrega excepciones al horario regular, como días festivos o cierres especiales. Puedes añadir varias.",
+    specialHoursAdd: "Añadir horario especial",
+    specialHoursLabelPlaceholder: "Ej. Navidad, 24-25 dic.",
+    specialHoursNotePlaceholder: "Ej. Cerrado, 10am-2pm",
+    specialHoursRemoveAria: "Quitar horario especial",
     cityHelp: "Los ejemplos son sugerencias, no límites.",
     cityHelpDetail:
       "Puedes escribir cualquier ciudad donde atiendes. NorCal aparece como sugerencia, pero Leonix acepta otras ciudades.",
@@ -801,6 +824,8 @@ const en: ClasificadosServiciosCopy = {
     selectionMaxPresetHighlights: `You can select up to ${MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION} suggested highlights.`,
     selectionMaxReasons: "Maximum 6 options",
     selectionMaxQuickFacts: "Maximum 5 options",
+    addedQuickFactsSection: "Added quick facts:",
+    customQuickFactsMax: `Up to ${MAX_CUSTOM_QUICK_FACTS} custom quick facts`,
     aboutServicesGapNote:
       "If your offer is not fully covered by the suggested chips, describe specialties, scope, and constraints here so clients know exactly what you deliver.",
     leonixVerified: "Show interest in Leonix Verified",
@@ -849,9 +874,9 @@ const en: ClasificadosServiciosCopy = {
     assetFromUrl: "URL",
     videosTitle: "Optional video",
     galleryCountLine: "{n} / {max} photos in gallery",
-    videosCountLine: "{n} / 4 videos added",
+    videosCountLine: "{n} / {max} videos added",
     galleryLimitHint: "Limit reached (max {max}). Remove a photo to add more.",
-    videosLimitHint: "4 video limit reached.",
+    videosLimitHint: "{max} video limit reached.",
     galleryListOrderHint:
       "The list order is the full gallery order. Featured picks can be any of those photos — they do not have to be first.",
     mediaWrongFileType: "That file is not an image. Use JPG, PNG, WebP, or another image format.",
@@ -860,6 +885,13 @@ const en: ClasificadosServiciosCopy = {
     galleryPartialAdd: "Only some new photos fit (max {max} total).",
     hoursOutputHint:
       "On your public profile: we highlight today’s hours and show the full week in the contact panel.",
+    specialHoursSectionLabel: "Special hours / Holidays",
+    specialHoursSectionHelper:
+      "Add exceptions to your regular schedule, like holidays or special closures. You can add more than one.",
+    specialHoursAdd: "Add special hours",
+    specialHoursLabelPlaceholder: "E.g. Christmas, Dec 24-25",
+    specialHoursNotePlaceholder: "E.g. Closed, 10am-2pm",
+    specialHoursRemoveAria: "Remove special hours entry",
     cityHelp: "Examples are suggestions, not limits.",
     cityHelpDetail:
       "You can enter any city you serve. NorCal appears as a suggestion, but Leonix accepts other cities.",

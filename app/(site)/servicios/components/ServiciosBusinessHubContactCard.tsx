@@ -48,6 +48,8 @@ import { ServiciosActionPanelAreasMap } from "./ServiciosActionPanelAreasMap";
 import { ServiciosOfferCard } from "./ServiciosOfferCard";
 import { ContactEmailMenu } from "@/app/components/contact/ContactEmailMenu";
 import { SharedConnectionHubReviewButton } from "@/app/components/contact/connectionHub/renderers/SharedConnectionHubReviewButton";
+import { buildSendEmailIntent, CtaActionSheet } from "@/app/components/cta";
+import type { CtaSheetIntent } from "@/app/components/cta/types";
 import { copyToClipboard } from "@/app/components/cta/ctaLaunchers";
 import {
   SCH_COMPACT_CTA,
@@ -208,6 +210,7 @@ export function ServiciosBusinessHubContactCard({
 }) {
   const L = getServiciosProfileLabels(lang);
   const vm = useMemo(() => mapServiciosProfileToBusinessHubContact(profile, lang), [profile, lang]);
+  const [emailSheetIntent, setEmailSheetIntent] = useState<CtaSheetIntent | null>(null);
 
   const analyticsBase = useMemo(
     () =>
@@ -298,8 +301,15 @@ export function ServiciosBusinessHubContactCard({
   const openEmail = () => {
     const mailto = vm.contact.emailMailto;
     if (!mailto) return;
+    const email = emailFromMailtoHref(mailto) || mailto.replace(/^mailto:/i, "");
     trackServiciosListingCta(listingSlug, "cta_email_click", { ...analyticsBase, source: "business_hub" });
-    serviciosOpenMailtoHref(mailto);
+    setEmailSheetIntent(
+      buildSendEmailIntent({
+        email,
+        subject: profile.identity?.businessName ? `Leonix · ${profile.identity.businessName}` : "Leonix",
+        body: "",
+      }),
+    );
   };
 
   const openSocialOutbound = (url: string, _headline: string) => {
@@ -400,6 +410,7 @@ export function ServiciosBusinessHubContactCard({
   };
 
   return (
+    <>
     <div className="flex min-w-0 flex-col gap-3 md:gap-5">
       <section className={SVC_SECTION_CARD} aria-labelledby="servicios-contact-hub-heading">
         <div className={SVC_SECTION_PADDING}>
@@ -735,5 +746,12 @@ export function ServiciosBusinessHubContactCard({
         />
       ) : null}
     </div>
+    <CtaActionSheet
+      open={emailSheetIntent != null}
+      onClose={() => setEmailSheetIntent(null)}
+      intent={emailSheetIntent}
+      lang={lang}
+    />
+    </>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import CommunityQuickApplicationClient from "@/app/publicar/community/shared/CommunityQuickApplicationClient";
+import ClasesQuickApplication from "./ClasesQuickApplication";
 
 export default function ClasesQuickApplicationClient() {
-  return <CommunityQuickApplicationClient kind="clases" />;
+  return <ClasesQuickApplication />;
 }

@@ -12,6 +12,7 @@ import {
 import { clasesCostLabel, clasesFrequencyLabel, clasesModeLabel } from "@/app/(site)/publicar/community/shared/copy/communityPublishCopy";
 import type { ClasesQuickDraft } from "@/app/(site)/publicar/community/shared/types/communityQuickDraft";
 import { CommunityContactCanvas } from "@/app/(site)/publicar/community/shared/preview/CommunityContactCanvas";
+import { buildClasesContactCanvasModel } from "@/app/(site)/publicar/clases/lib/buildClasesContactCanvasModel";
 import type { CommunityGlobalAnalyticsCtx } from "@/app/lib/clasificados/comunidad/comunidadClasesBuscoGlobalAnalytics";
 import { getActiveWeeklyScheduleGridItems } from "@/app/(site)/publicar/community/shared/lib/communityWeeklySchedule";
 import {
@@ -215,6 +216,7 @@ export function ClasesQuickAdCanvas({
           sectionHtmlId={contactSectionId}
           analyticsCtx={analyticsCtx}
           locationOnlineLabel={isOnline ? t.online : undefined}
+          model={buildClasesContactCanvasModel(draft, lang)}
         />
 
         {isPaid ? (

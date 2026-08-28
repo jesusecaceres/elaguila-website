@@ -17,6 +17,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default function ClasificadosPublicarServiciosPage() {
-  redirect("/clasificados/publicar/servicios/checkpoint");
+export default async function ClasificadosPublicarServiciosPage(props: {
+  searchParams?: Promise<{ lang?: string }>;
+}) {
+  const sp = (await props.searchParams) ?? {};
+  const lang = sp.lang === "en" ? "en" : sp.lang === "es" ? "es" : undefined;
+  redirect(
+    lang
+      ? `/clasificados/publicar/servicios/checkpoint?lang=${lang}`
+      : "/clasificados/publicar/servicios/checkpoint",
+  );
 }

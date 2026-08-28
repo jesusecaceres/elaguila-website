@@ -13,20 +13,19 @@ import type {
 export const COMIDA_LOCAL_CATEGORY_KEY = "comida-local" as const;
 export const COMIDA_LOCAL_PRODUCT_NAME = "Comida Local";
 
-export const COMIDA_LOCAL_FOOD_TYPE_OPTIONS: ReadonlyArray<{
-  value: ComidaLocalFoodType;
-  label: string;
-}> = [
-  { value: "tacos", label: "Tacos" },
-  { value: "pupusas", label: "Pupusas" },
-  { value: "tamales", label: "Tamales" },
-  { value: "antojitos", label: "Antojitos" },
-  { value: "postres", label: "Postres" },
-  { value: "bebidas", label: "Bebidas" },
-  { value: "mariscos", label: "Mariscos" },
-  { value: "comida-casera", label: "Comida casera" },
-  { value: "comida-eventos", label: "Comida para eventos" },
-  { value: "otro", label: "Otro" },
+export const COMIDA_LOCAL_FOOD_TYPE_OPTIONS: ReadonlyArray<
+  ComidaLocalBilingualOption<ComidaLocalFoodType>
+> = [
+  { value: "tacos", labelEs: "Tacos", labelEn: "Tacos" },
+  { value: "pupusas", labelEs: "Pupusas", labelEn: "Pupusas" },
+  { value: "tamales", labelEs: "Tamales", labelEn: "Tamales" },
+  { value: "antojitos", labelEs: "Antojitos", labelEn: "Antojitos" },
+  { value: "postres", labelEs: "Postres", labelEn: "Desserts" },
+  { value: "bebidas", labelEs: "Bebidas", labelEn: "Drinks" },
+  { value: "mariscos", labelEs: "Mariscos", labelEn: "Seafood" },
+  { value: "comida-casera", labelEs: "Comida casera", labelEn: "Home cooking" },
+  { value: "comida-eventos", labelEs: "Comida para eventos", labelEn: "Event catering" },
+  { value: "otro", labelEs: "Otro", labelEn: "Other" },
 ];
 
 /** Gate F2 — bilingual option shape (mirrors ofertasLocalesBusinessCategoryUx.ts's proven
@@ -103,19 +102,26 @@ export const COMIDA_LOCAL_HIGHLIGHT_OPTIONS: ReadonlyArray<
   { value: "pickup_disponible", labelEs: "Pickup disponible", labelEn: "Pickup available" },
   { value: "familiar", labelEs: "Negocio familiar", labelEn: "Family-owned" },
   { value: "local", labelEs: "100% local", labelEn: "100% local" },
+  { value: "fresco_diario", labelEs: "Fresco cada día", labelEn: "Fresh daily" },
+  { value: "ingredientes_locales", labelEs: "Ingredientes locales", labelEn: "Local ingredients" },
+  { value: "preorder", labelEs: "Pedido anticipado", labelEn: "Pre-order" },
+  {
+    value: "disponible_fines_de_semana",
+    labelEs: "Disponible los fines de semana",
+    labelEn: "Weekend availability",
+  },
   { value: "otro", labelEs: "Otro", labelEn: "Other" },
 ];
 
-export const COMIDA_LOCAL_PAYMENT_OPTIONS: ReadonlyArray<{
-  value: ComidaLocalPaymentMethod;
-  label: string;
-}> = [
-  { value: "cash", label: "Efectivo" },
-  { value: "zelle", label: "Zelle" },
-  { value: "cash_app", label: "Cash App" },
-  { value: "venmo", label: "Venmo" },
-  { value: "card", label: "Tarjeta" },
-  { value: "other", label: "Otro" },
+export const COMIDA_LOCAL_PAYMENT_OPTIONS: ReadonlyArray<
+  ComidaLocalBilingualOption<ComidaLocalPaymentMethod>
+> = [
+  { value: "cash", labelEs: "Efectivo", labelEn: "Cash" },
+  { value: "zelle", labelEs: "Zelle", labelEn: "Zelle" },
+  { value: "cash_app", labelEs: "Cash App", labelEn: "Cash App" },
+  { value: "venmo", labelEs: "Venmo", labelEn: "Venmo" },
+  { value: "card", labelEs: "Tarjeta", labelEn: "Card" },
+  { value: "other", labelEs: "Otro", labelEn: "Other" },
 ];
 
 export const COMIDA_LOCAL_PRICE_LEVEL_OPTIONS: ReadonlyArray<{
@@ -127,27 +133,27 @@ export const COMIDA_LOCAL_PRICE_LEVEL_OPTIONS: ReadonlyArray<{
   { value: "3", label: "$$$" },
 ];
 
-export const COMIDA_LOCAL_LANGUAGE_OPTIONS: ReadonlyArray<{
-  value: ComidaLocalLanguageOption;
-  label: string;
-}> = [
-  { value: "es", label: "Español" },
-  { value: "en", label: "Inglés" },
-  { value: "bilingual", label: "Bilingüe" },
-  { value: "otro", label: "Otro idioma" },
+export const COMIDA_LOCAL_LANGUAGE_OPTIONS: ReadonlyArray<
+  ComidaLocalBilingualOption<ComidaLocalLanguageOption>
+> = [
+  { value: "es", labelEs: "Español", labelEn: "Spanish" },
+  { value: "en", labelEs: "Inglés", labelEn: "English" },
+  { value: "bilingual", labelEs: "Bilingüe", labelEn: "Bilingual" },
+  { value: "otro", labelEs: "Otro idioma", labelEn: "Other language" },
 ];
 
 export const COMIDA_LOCAL_SECTIONS: ReadonlyArray<{
   key: ComidaLocalSectionKey;
-  title: string;
+  titleEs: string;
+  titleEn: string;
 }> = [
-  { key: "identidad", title: "Identidad" },
-  { key: "zona", title: "Zona" },
-  { key: "que-vendes", title: "Qué vendes" },
-  { key: "contacto", title: "Contacto" },
-  { key: "ubicacion", title: "Encuéntrame hoy" },
-  { key: "extras", title: "Extras" },
-  { key: "fotos", title: "Fotos" },
+  { key: "identidad", titleEs: "Identidad", titleEn: "Identity" },
+  { key: "zona", titleEs: "Zona", titleEn: "Area" },
+  { key: "que-vendes", titleEs: "Qué vendes", titleEn: "What you sell" },
+  { key: "contacto", titleEs: "Contacto", titleEn: "Contact" },
+  { key: "ubicacion", titleEs: "Encuéntrame hoy", titleEn: "Find me today" },
+  { key: "extras", titleEs: "Extras", titleEn: "Extras" },
+  { key: "fotos", titleEs: "Fotos", titleEn: "Photos" },
 ];
 
 /** Gallery cap for Basic-ready default (FOOD-L5D package config). */

@@ -14,11 +14,13 @@ const CHIPS_CONTAINER = "flex flex-wrap gap-1.5";
 interface RestauranteGroupedFeaturesSectionProps {
   features: GroupedFeatures;
   className?: string;
+  lang?: "es" | "en";
 }
 
 export function RestauranteGroupedFeaturesSection({
   features,
   className = "",
+  lang = "es",
 }: RestauranteGroupedFeaturesSectionProps) {
   const nonEmptyGroups = Object.entries(features).filter(([_, group]) => group.items.length > 0);
 
@@ -35,7 +37,7 @@ export function RestauranteGroupedFeaturesSection({
     <section className={`${SECTION_CARD} ${className}`} aria-labelledby="features-heading">
       <div className={SECTION_PADDING}>
         <h2 id="features-heading" className={SECTION_TITLE}>
-          Servicios y Características
+          {lang === "en" ? "Services and Features" : "Servicios y Características"}
         </h2>
 
         <div className="space-y-3">

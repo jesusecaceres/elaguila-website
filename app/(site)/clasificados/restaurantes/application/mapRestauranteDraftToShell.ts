@@ -25,7 +25,7 @@ import {
   type RestauranteDaySchedule,
   type RestauranteServiceMode,
 } from "./restauranteListingApplicationModel";
-import { computeShellHoursPreview } from "./restauranteHoursPreview";
+import { computeShellHoursPreview, formatSpecialHoursEntriesLine } from "./restauranteHoursPreview";
 import {
   labelForBusinessType,
   labelForCuisine,
@@ -232,7 +232,7 @@ function buildHoursDetail(d: RestauranteListingDraft): ShellHoursDetail | undefi
         : "Horario por confirmar";
     rows.push({ dayLabel: label, line });
   }
-  const specialNote = d.specialHoursNote?.trim() || undefined;
+  const specialNote = formatSpecialHoursEntriesLine(d.specialHoursEntries) || d.specialHoursNote?.trim() || undefined;
   if (!rows.length && !specialNote) return undefined;
   return { rows, specialNote };
 }
@@ -246,86 +246,98 @@ function buildCuisineIdentityLine(d: RestauranteListingDraft): string | undefine
   return line || undefined;
 }
 
-function buildQuickInfo(d: RestauranteListingDraft, scheduleSummary: string): ShellQuickInfoItem[] {
+function buildQuickInfo(
+  d: RestauranteListingDraft,
+  scheduleSummary: string,
+  lang: "es" | "en",
+): ShellQuickInfoItem[] {
+  const en = lang === "en";
   const items: ShellQuickInfoItem[] = [];
   const loc = [d.neighborhood, d.cityCanonical].filter(nonEmpty).join(" · ");
-  if (loc) items.push({ key: "neighborhood", label: "Zona", value: loc });
-  if (d.priceLevel) items.push({ key: "price", label: "Precio", value: d.priceLevel });
+  if (loc) items.push({ key: "neighborhood", label: en ? "Area" : "Zona", value: loc });
+  if (d.priceLevel) items.push({ key: "price", label: en ? "Price" : "Precio", value: d.priceLevel });
   if (nonEmpty(d.businessType)) {
     let bt = labelForBusinessType(d.businessType);
     if (d.businessType.trim() === TAXONOMY_KEY_OTHER && nonEmpty(d.businessTypeCustom)) {
       bt = clampChipLabel(d.businessTypeCustom!);
     }
-    items.push({ key: "businessType", label: "Tipo", value: bt });
+    items.push({ key: "businessType", label: en ? "Type" : "Tipo", value: bt });
   }
   const sum = scheduleSummary.length > 140 ? `${scheduleSummary.slice(0, 140)}…` : scheduleSummary;
-  items.push({ key: "hours", label: "Horario", value: sum || "—" });
+  items.push({ key: "hours", label: en ? "Hours" : "Horario", value: sum || "—" });
   const svc = formatServiceModesForQuickInfo(d);
   const langStr = formatLanguagesForQuickInfo(d);
-  const lang = langStr ? `Idiomas: ${langStr}` : "";
-  if (svc || lang) items.push({ key: "service", label: "Servicio", value: [svc, lang].filter(Boolean).join(" · ") });
+  const langLine = langStr ? `${en ? "Languages" : "Idiomas"}: ${langStr}` : "";
+  if (svc || langLine) {
+    items.push({
+      key: "service",
+      label: en ? "Service" : "Servicio",
+      value: [svc, langLine].filter(Boolean).join(" · "),
+    });
+  }
   return items;
 }
 
-function buildPrimaryCtas(d: RestauranteListingDraft): ShellPrimaryCta[] {
+function buildPrimaryCtas(d: RestauranteListingDraft, lang: "es" | "en"): ShellPrimaryCta[] {
+  const en = lang === "en";
   const ctas: ShellPrimaryCta[] = [];
-  
+
   // 1. Call
-  if (nonEmpty(d.phoneNumber)) ctas.push({ key: "call", label: "Llamar", href: telHref(d.phoneNumber!) });
-  
+  if (nonEmpty(d.phoneNumber)) ctas.push({ key: "call", label: en ? "Call" : "Llamar", href: telHref(d.phoneNumber!) });
+
   // 2. Website
   if (nonEmpty(d.websiteUrl)) {
     const url = normalizeUrl(d.websiteUrl!);
-    if (isValidExternalHttpUrl(url)) ctas.push({ key: "website", label: "Sitio web", href: url });
+    if (isValidExternalHttpUrl(url)) ctas.push({ key: "website", label: en ? "Website" : "Sitio web", href: url });
   }
-  
+
   // 3. Directions (respect home-based / privacy — same rules as contact hub)
   const mapsUrl = resolveRestaurantMapsHref(d, shouldShowRestaurantStreetAddress(d));
   if (mapsUrl) {
-    ctas.push({ key: "directions", label: "Direcciones", href: mapsUrl });
+    ctas.push({ key: "directions", label: en ? "Directions" : "Direcciones", href: mapsUrl });
   }
-  
+
   // 4. WhatsApp
   if (nonEmpty(d.whatsAppNumber)) {
     const href = waHref(d.whatsAppNumber!, d.businessName);
     if (href) ctas.push({ key: "whatsapp", label: "WhatsApp", href });
   }
-  
+
   // 5. Order
   if (nonEmpty(d.orderUrl)) {
     const url = normalizeUrl(d.orderUrl!);
-    if (isValidExternalHttpUrl(url)) ctas.push({ key: "order", label: "Ordenar", href: url });
+    if (isValidExternalHttpUrl(url)) ctas.push({ key: "order", label: en ? "Order" : "Ordenar", href: url });
   }
 
   // 6. Reserve
   if (nonEmpty(d.reservationUrl)) {
     const url = normalizeUrl(d.reservationUrl!);
-    if (isValidExternalHttpUrl(url)) ctas.push({ key: "reserve", label: "Reservar", href: url });
+    if (isValidExternalHttpUrl(url)) ctas.push({ key: "reserve", label: en ? "Reserve" : "Reservar", href: url });
   }
-  
+
   // Menu CTAs (not in hero order, but included for other sections)
   const hasMenuUrl = nonEmpty(d.menuUrl);
   const hasMenuFile = nonEmpty(d.menuFile);
   if (hasMenuUrl && hasMenuFile) {
     const menuUrl = normalizeUrl(d.menuUrl!);
-    if (isValidExternalHttpUrl(menuUrl)) ctas.push({ key: "menu", label: "Menú en línea", href: menuUrl });
-    ctas.push({ key: "menuAsset", label: "Carta (archivo)", href: d.menuFile! });
+    if (isValidExternalHttpUrl(menuUrl)) ctas.push({ key: "menu", label: en ? "Menu online" : "Menú en línea", href: menuUrl });
+    ctas.push({ key: "menuAsset", label: en ? "Menu (file)" : "Carta (archivo)", href: d.menuFile! });
   } else if (hasMenuUrl) {
     const menuUrl = normalizeUrl(d.menuUrl!);
-    if (isValidExternalHttpUrl(menuUrl)) ctas.push({ key: "menu", label: "Ver menú", href: menuUrl });
+    if (isValidExternalHttpUrl(menuUrl)) ctas.push({ key: "menu", label: en ? "View menu" : "Ver menú", href: menuUrl });
   } else if (hasMenuFile) {
-    ctas.push({ key: "menu", label: "Ver menú", href: d.menuFile! });
+    ctas.push({ key: "menu", label: en ? "View menu" : "Ver menú", href: d.menuFile! });
   }
-  
+
   // Message CTAs (not in hero order)
   if (nonEmpty(d.phoneNumber)) {
     const digits = d.phoneNumber!.replace(/\D/g, "");
     const sms = digits.length >= 10 ? `sms:+1${digits.slice(-10)}` : `sms:${d.phoneNumber}`;
-    ctas.push({ key: "message", label: "Mensaje", href: sms });
+    ctas.push({ key: "message", label: en ? "Message" : "Mensaje", href: sms });
   } else if (nonEmpty(d.email)) {
-    ctas.push({ key: "message", label: "Correo", href: `mailto:${encodeURIComponent(d.email!.trim())}` });
+    ctas.push({ key: "message", label: en ? "Email" : "Correo", href: `mailto:${encodeURIComponent(d.email!.trim())}` });
   }
-  
+
   return ctas;
 }
 
@@ -508,82 +520,122 @@ function buildContact(d: RestauranteListingDraft): ShellContactBlock | undefined
   return has ? c : undefined;
 }
 
-function buildStacks(d: RestauranteListingDraft): ShellStackSection[] {
+function buildStacks(d: RestauranteListingDraft, lang: "es" | "en"): ShellStackSection[] {
+  const en = lang === "en";
   const stacks: ShellStackSection[] = [];
   if (d.movingVendor) {
     const m = d.movingVendorStack ?? {};
-    const rows: { label: string; value: string }[] = [];
-    const add = (label: string, v?: string) => {
-      if (nonEmpty(v)) rows.push({ label, value: v!.trim() });
+    const rows: { key?: string; label: string; value: string }[] = [];
+    const add = (label: string, v?: string, key?: string) => {
+      if (nonEmpty(v)) rows.push({ key, label, value: v!.trim() });
     };
-    add("Ubicación actual", m.currentLocationText);
+    add(en ? "Current location" : "Ubicación actual", m.currentLocationText, "currentLocation");
     const locUrl = m.currentLocationUrl?.trim();
     const locUrlNormalized = locUrl ? normalizeActionableUrl(locUrl) ?? normalizeUrl(locUrl) : "";
     const hubShowsCurrentLocation =
       d.movingVendor && locUrlNormalized && isValidExternalHttpUrl(locUrlNormalized);
     if (nonEmpty(locUrl) && !hubShowsCurrentLocation) {
-      rows.push({ label: "Enlace", value: locUrl! });
+      rows.push({ key: "link", label: en ? "Link" : "Enlace", value: locUrl! });
     }
-    if (m.activeNow != null) rows.push({ label: "Activo ahora", value: m.activeNow ? "Sí" : "No" });
-    add("Horario de hoy", m.todayHoursText);
-    add("Próxima parada", m.nextStopText);
-    add("Hora próxima parada", m.nextStopTime);
-    add("Ruta semanal", m.weeklyRouteText);
-    if (m.allowFollowNotify != null) rows.push({ label: "Avisos", value: m.allowFollowNotify ? "Sí — " + (m.notifyCopy?.trim() || "Notificaciones") : "No" });
-    else add("Avisos", m.notifyCopy);
-    if (rows.length) stacks.push({ id: "moving", title: "Ubicación móvil", rows });
+    if (m.activeNow != null) {
+      rows.push({
+        key: "activeNow",
+        label: en ? "Active now" : "Activo ahora",
+        value: m.activeNow ? (en ? "Yes" : "Sí") : "No",
+      });
+    }
+    add(en ? "Today's hours" : "Horario de hoy", m.todayHoursText);
+    add(en ? "Next stop" : "Próxima parada", m.nextStopText);
+    add(en ? "Next stop time" : "Hora próxima parada", m.nextStopTime);
+    add(en ? "Weekly route" : "Ruta semanal", m.weeklyRouteText, "weeklyRoute");
+    if (m.allowFollowNotify != null) {
+      rows.push({
+        label: en ? "Notifications" : "Avisos",
+        value: m.allowFollowNotify
+          ? (en ? "Yes — " : "Sí — ") + (m.notifyCopy?.trim() || (en ? "Notifications" : "Notificaciones"))
+          : "No",
+      });
+    } else add(en ? "Notifications" : "Avisos", m.notifyCopy);
+    if (rows.length) stacks.push({ id: "moving", title: en ? "Mobile location" : "Ubicación móvil", rows });
   }
   if (d.homeBasedBusiness) {
     const h = d.homeBasedStack ?? {};
-    const rows: { label: string; value: string }[] = [];
+    const rows: { key?: string; label: string; value: string }[] = [];
     const add = (label: string, v?: string) => {
       if (nonEmpty(v)) rows.push({ label, value: v!.trim() });
     };
-    add("Instrucciones de recogida", h.pickupInstructions);
-    if (h.pickupDays?.length) rows.push({ label: "Días", value: h.pickupDays.join(", ") });
-    add("Ventana de recogida", h.pickupWindowText);
+    add(en ? "Pickup instructions" : "Instrucciones de recogida", h.pickupInstructions);
+    if (h.pickupDays?.length) rows.push({ label: en ? "Days" : "Días", value: h.pickupDays.join(", ") });
+    add(en ? "Pickup window" : "Ventana de recogida", h.pickupWindowText);
     if (h.deliveryRadiusMiles != null && Number.isFinite(h.deliveryRadiusMiles)) {
-      rows.push({ label: "Radio de entrega (millas)", value: String(h.deliveryRadiusMiles) });
+      rows.push({
+        label: en ? "Delivery radius (miles)" : "Radio de entrega (millas)",
+        value: String(h.deliveryRadiusMiles),
+      });
     }
-    add("Tiempo de anticipación", h.preorderLeadTimeText);
-    add("Aviso", h.homeBusinessNotice);
-    if (rows.length) stacks.push({ id: "home", title: "Negocio desde casa", rows });
+    add(en ? "Lead time" : "Tiempo de anticipación", h.preorderLeadTimeText);
+    add(en ? "Note" : "Aviso", h.homeBusinessNotice);
+    if (rows.length) stacks.push({ id: "home", title: en ? "Home-based business" : "Negocio desde casa", rows });
   }
   if (d.cateringAvailable || d.eventFoodService) {
     const k = d.cateringEventsStack ?? {};
-    const rows: { label: string; value: string }[] = [];
-    if (k.eventSizesSupported?.length) rows.push({ label: "Tamaños de evento", value: k.eventSizesSupported.join(", ") });
-    if (nonEmpty(k.bookingLeadTimeText)) rows.push({ label: "Anticipación", value: k.bookingLeadTimeText!.trim() });
-    if (k.serviceRadiusMiles != null && Number.isFinite(k.serviceRadiusMiles)) {
-      rows.push({ label: "Radio de servicio (millas)", value: String(k.serviceRadiusMiles) });
+    const rows: { key?: string; label: string; value: string }[] = [];
+    if (k.eventSizesSupported?.length) {
+      rows.push({ label: en ? "Event sizes" : "Tamaños de evento", value: k.eventSizesSupported.join(", ") });
     }
-    if (nonEmpty(k.cateringInquiryUrl)) rows.push({ label: "Solicitud / cotización", value: k.cateringInquiryUrl!.trim() });
-    if (nonEmpty(k.cateringNote)) rows.push({ label: "Nota", value: k.cateringNote!.trim() });
-    if (rows.length) stacks.push({ id: "catering", title: "Catering y eventos", rows });
+    if (nonEmpty(k.bookingLeadTimeText)) {
+      rows.push({ label: en ? "Lead time" : "Anticipación", value: k.bookingLeadTimeText!.trim() });
+    }
+    if (k.serviceRadiusMiles != null && Number.isFinite(k.serviceRadiusMiles)) {
+      rows.push({
+        label: en ? "Service radius (miles)" : "Radio de servicio (millas)",
+        value: String(k.serviceRadiusMiles),
+      });
+    }
+    if (nonEmpty(k.cateringInquiryUrl)) {
+      rows.push({
+        key: "cateringInquiry",
+        label: en ? "Request / quote" : "Solicitud / cotización",
+        value: k.cateringInquiryUrl!.trim(),
+      });
+    }
+    if (nonEmpty(k.cateringNote)) rows.push({ label: en ? "Note" : "Nota", value: k.cateringNote!.trim() });
+    if (rows.length) stacks.push({ id: "catering", title: en ? "Catering and events" : "Catering y eventos", rows });
   }
   return stacks;
 }
 
-function buildTrustLight(d: RestauranteListingDraft): RestaurantDetailShellData["trustLight"] {
+function buildTrustLight(d: RestauranteListingDraft, lang: "es" | "en"): RestaurantDetailShellData["trustLight"] {
+  const en = lang === "en";
   const parts: string[] = [];
   if (nonEmpty(d.testimonialSnippet)) {
     parts.push(`«${d.testimonialSnippet!.trim()}»`);
   }
   if (d.externalRatingValue != null && d.externalReviewCount != null) {
     parts.push(
-      `Referencia opcional en Leonix: ${d.externalRatingValue.toFixed(1)}★ · ${d.externalReviewCount} menciones públicas (si aplica).`
+      en
+        ? `Optional reference on Leonix: ${d.externalRatingValue.toFixed(1)}★ · ${d.externalReviewCount} public mentions (if applicable).`
+        : `Referencia opcional en Leonix: ${d.externalRatingValue.toFixed(1)}★ · ${d.externalReviewCount} menciones públicas (si aplica).`
     );
   } else if (d.externalRatingValue != null) {
-    parts.push(`Referencia opcional: ${d.externalRatingValue.toFixed(1)}★.`);
+    parts.push(
+      en
+        ? `Optional reference: ${d.externalRatingValue.toFixed(1)}★.`
+        : `Referencia opcional: ${d.externalRatingValue.toFixed(1)}★.`
+    );
   }
   if (d.aiSummaryEnabled) {
     parts.push(
-      "Resumen breve de reputación en Leonix (opcional): puede combinar tu testimonio y datos que indiques."
+      en
+        ? "Short reputation summary on Leonix (optional): may combine your testimonial and the data you provide."
+        : "Resumen breve de reputación en Leonix (opcional): puede combinar tu testimonio y datos que indiques."
     );
   }
   if (!parts.length && (nonEmpty(d.googleReviewUrl) || nonEmpty(d.yelpReviewUrl))) {
     parts.push(
-      "En Leonix la confianza se construye en tu página: puedes añadir enlaces de respaldo opcionales si te sirven."
+      en
+        ? "On Leonix, trust is built on your page: you can add optional backup links if they help."
+        : "En Leonix la confianza se construye en tu página: puedes añadir enlaces de respaldo opcionales si te sirven."
     );
   }
   if (!parts.length) return undefined;
@@ -592,7 +644,7 @@ function buildTrustLight(d: RestauranteListingDraft): RestaurantDetailShellData[
   return {
     summaryLine: parts.join(" "),
     externalTrustHref: external || undefined,
-    externalTrustLabel: external ? "Material de respaldo (opcional)" : undefined,
+    externalTrustLabel: external ? (en ? "Backup material (optional)" : "Material de respaldo (opcional)") : undefined,
   };
 }
 
@@ -626,7 +678,9 @@ export function mapRestauranteDraftToShellData(
   options?: { lang?: "es" | "en" },
 ): RestaurantDetailShellData {
   const lang = options?.lang ?? "es";
-  // Create weekly hours structure from individual day fields
+  // Create weekly hours structure from individual day fields. Must also carry the special-hours
+  // override fields (R-025 fix) — omitting them here made any special-hours entry unreachable
+  // from the "open now" status card even though the data existed on the draft.
   const weeklyHours = {
     monday: d.monday,
     tuesday: d.tuesday,
@@ -634,9 +688,13 @@ export function mapRestauranteDraftToShellData(
     thursday: d.thursday,
     friday: d.friday,
     saturday: d.saturday,
-    sunday: d.sunday
+    sunday: d.sunday,
+    specialHoursEntries: d.specialHoursEntries,
+    specialHoursNote: d.specialHoursNote,
+    temporaryHoursActive: d.temporaryHoursActive,
+    temporaryHoursNote: d.temporaryHoursNote,
   };
-  const hp = computeShellHoursPreview(weeklyHours);
+  const hp = computeShellHoursPreview(weeklyHours, new Date(), lang);
   const cuisineLine = buildCuisineIdentityLine(d);
   const seq = computePublishGallerySequence(d);
   const imgs = d.galleryImages ?? [];
@@ -649,7 +707,7 @@ export function mapRestauranteDraftToShellData(
     if (bucket) heroResolved = bucket;
   }
 
-  const quick = buildQuickInfo(d, hp.scheduleSummary).filter((q) => nonEmpty(q.value));
+  const quick = buildQuickInfo(d, hp.scheduleSummary, lang).filter((q) => nonEmpty(q.value));
   const highlights = (d.highlights ?? [])
     .filter(nonEmpty)
     .slice(0, RESTAURANTE_SHELL_HIGHLIGHT_CAP)
@@ -700,8 +758,8 @@ export function mapRestauranteDraftToShellData(
   const venueGallery = buildVenueGalleryFromDraft(d);
   const contact = buildContact(d);
   const contactHub = buildRestaurantContactHub(d, lang);
-  const stacks = buildStacks(d);
-  const primaryCtas = filterHeroPrimaryCtas(buildPrimaryCtas(d), contactHub);
+  const stacks = buildStacks(d, lang);
+  const primaryCtas = filterHeroPrimaryCtas(buildPrimaryCtas(d, lang), contactHub);
   const trustRating =
     d.externalRatingValue != null && d.externalReviewCount != null
       ? { average: Math.min(5, Math.max(0, d.externalRatingValue)), count: Math.max(0, Math.floor(d.externalReviewCount)) }
@@ -712,41 +770,53 @@ export function mapRestauranteDraftToShellData(
 
   const amenitiesBlock = buildShellAmenitiesSection(d.restaurantAmenities);
 
+  const enShell = lang === "en";
   return {
     id: d.draftListingId,
     heroImageUrl: heroResolved != null && nonEmpty(heroResolved) ? heroResolved.trim() : undefined,
-    heroImageAlt: nonEmpty(d.businessName) ? `Foto principal · ${d.businessName.trim()}` : "Foto principal del negocio",
+    heroImageAlt: nonEmpty(d.businessName)
+      ? `${enShell ? "Hero photo" : "Foto principal"} · ${d.businessName.trim()}`
+      : enShell
+        ? "Business hero photo"
+        : "Foto principal del negocio",
     businessLogo: logoResolved,
-    businessName: nonEmpty(d.businessName) ? d.businessName.trim() : "Borrador sin título",
+    businessName: nonEmpty(d.businessName) ? d.businessName.trim() : enShell ? "Untitled draft" : "Borrador sin título",
     cuisineTypeLine: cuisineLine,
     taxonomyChips: buildTaxonomyChips(d),
     coupons: coupons.length ? coupons : undefined,
     summaryShort: undefined,
     trustRating,
     hoursPreview: hp,
-    seeHoursLabel: "Ver horarios",
+    seeHoursLabel: enShell ? "See hours" : "Ver horarios",
     seeHoursHref: "#horarios-detalle",
     hoursDetail: buildHoursDetail(d),
     primaryCtas,
     quickInfo: quick.length ? quick : undefined,
     menuHighlights: dishes.length ? dishes : undefined,
     fullMenuCta: menuHref
-      ? { label: hasMenuUrl ? "Ver menú completo" : "Ver carta completa", href: menuHref }
+      ? {
+          label: enShell
+            ? "See full menu"
+            : hasMenuUrl
+              ? "Ver menú completo"
+              : "Ver carta completa",
+          href: menuHref,
+        }
       : undefined,
     highlightTags: highlights.length ? highlights : undefined,
     couponFlyer,
     couponMoreOffers,
     venueGallery,
     galleryCta: venueGallery
-      ? { label: "Explorar fotos y videos", href: "#galeria-lugar" }
+      ? { label: enShell ? "Explore photos and videos" : "Explorar fotos y videos", href: "#galeria-lugar" }
       : undefined,
     contact,
     contactHub,
-    aboutTitle: nonEmpty(d.longDescription) ? "Sobre nosotros" : undefined,
+    aboutTitle: nonEmpty(d.longDescription) ? (enShell ? "About us" : "Sobre nosotros") : undefined,
     aboutBody: nonEmpty(d.longDescription) ? d.longDescription!.trim() : undefined,
-    trustLight: buildTrustLight(d),
+    trustLight: buildTrustLight(d, lang),
     stackSections: stacks.length ? stacks : undefined,
-    groupedFeatures: normalizeRestaurantFeatures(d),
+    groupedFeatures: normalizeRestaurantFeatures(d, lang),
     ...amenitiesBlock,
   };
 }

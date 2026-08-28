@@ -89,14 +89,18 @@ function parseGallery(raw: unknown): ComidaLocalImageDraft[] {
     .filter((x): x is ComidaLocalImageDraft => x !== null);
 }
 
-export function resolveComidaLocalFoodTypeLabel(row: ComidaLocalPublicListingRow): string {
+export function resolveComidaLocalFoodTypeLabel(
+  row: ComidaLocalPublicListingRow,
+  lang: "es" | "en" = "es",
+): string {
   const ft = (row.food_type ?? "").trim();
   if (ft === "otro") {
     const custom = (row.food_type_custom ?? "").trim();
-    return custom || "Otro";
+    return custom || (lang === "en" ? "Other" : "Otro");
   }
   const opt = COMIDA_LOCAL_FOOD_TYPE_OPTIONS.find((o) => o.value === ft);
-  return (opt?.label ?? ft) || "Comida local";
+  const label = opt ? (lang === "en" ? opt.labelEn : opt.labelEs) : ft;
+  return label || (lang === "en" ? "Local food" : "Comida local");
 }
 
 export function buildComidaLocalLocationLine(row: ComidaLocalPublicListingRow): string {
@@ -194,7 +198,7 @@ function buildCardChips(row: ComidaLocalPublicListingRow): ComidaLocalPreviewChi
   }
   const langs = parseLanguages(row.languages).slice(0, 1);
   for (const l of langs) {
-    const label = COMIDA_LOCAL_LANGUAGE_OPTIONS.find((o) => o.value === l)?.label ?? l;
+    const label = COMIDA_LOCAL_LANGUAGE_OPTIONS.find((o) => o.value === l)?.labelEs ?? l;
     chips.push({ key: `lang-${l}`, label });
   }
   return chips.slice(0, 3);

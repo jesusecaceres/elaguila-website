@@ -375,8 +375,6 @@ export function buildInventoryListingActions(
   lang: Lang,
   q: string,
   opts?: {
-    onCouponUpgrade?: () => void;
-    couponUpgradeBusy?: boolean;
     onCouponEdit?: () => void;
     couponEditBusy?: boolean;
     /** Servicios P0C listing-edit route (mode=listing-edit, returnPanel=servicios, identity). */
@@ -457,26 +455,11 @@ export function buildInventoryListingActions(
     });
   }
 
-  if (
-    category === "restaurantes" &&
-    item.restaurantCouponUpgradeEligible &&
-    listingToolIsReady(category, "couponUpgrade") &&
-    opts?.onCouponUpgrade
-  ) {
-    // Gate 2C — specialized/add-on action, gold "premium" role; not a second primary.
-    actions.push({
-      label: opts.couponUpgradeBusy
-        ? lang === "es"
-          ? "Iniciando pago…"
-          : "Starting checkout…"
-        : lang === "es"
-          ? "Agregar cupones +$99/mes"
-          : "Add coupons +$99/mo",
-      onClick: opts.onCouponUpgrade,
-      disabled: opts.couponUpgradeBusy,
-      tone: "premium",
-    });
-  }
+  // Package E Build E2, Gate 4 — the "+$99/mes" coupon-upgrade CTA that used to live here is
+  // retired: coupons are included in the $399/mo Restaurantes base package with no real paid
+  // add-on backend, so that CTA misrepresented a free capability as a paid upsell. Existing
+  // owners reach coupons entirely through the couponEdit action below (real base-package
+  // capability, server-verified, no checkout).
 
   if (
     category === "restaurantes" &&

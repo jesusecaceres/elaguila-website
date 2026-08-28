@@ -15,6 +15,7 @@ import { formatAdmissionWithDollar } from "@/app/(site)/clasificados/community/C
 import { formatComunidadCostSummary } from "@/app/lib/clasificados/comunidad/comunidadCostDisplay";
 import type { ComunidadQuickDraft } from "@/app/(site)/publicar/community/shared/types/communityQuickDraft";
 import { CommunityContactCanvas } from "@/app/(site)/publicar/community/shared/preview/CommunityContactCanvas";
+import { buildComunidadContactCanvasModel } from "@/app/(site)/publicar/comunidad/lib/buildComunidadContactCanvasModel";
 import type { CommunityGlobalAnalyticsCtx } from "@/app/lib/clasificados/comunidad/comunidadClasesBuscoGlobalAnalytics";
 import {
   cityStateZipLine,
@@ -226,6 +227,7 @@ export function ComunidadQuickAdCanvas({
           lang={lang}
           sectionHtmlId={contactSectionId}
           analyticsCtx={analyticsCtx}
+          model={buildComunidadContactCanvasModel(draft, lang)}
         />
 
         <CommunityPremiumTrustFooter lang={lang} leonixAdId={leonixAdId ?? analyticsCtx?.leonixAdId} />

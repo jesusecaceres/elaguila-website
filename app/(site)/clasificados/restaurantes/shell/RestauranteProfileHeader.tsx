@@ -13,18 +13,20 @@ import {
 import type { RestaurantDetailShellData } from "./restaurantDetailShellTypes";
 
 /** Gate C13 — same warm-brown Restaurant identity, moderately lighter/softer gradient endpoints
- * (was #1E1814/#3B2117/#2A2620); no new token system, no owner customization. */
+ * (was #1E1814/#3B2117/#2A2620). R-003: colors are now the named `--lx-restaurantes-*` category
+ * tokens (`app/globals.css`) instead of arbitrary hardcoded hex literals — the exact same values,
+ * not a redesign. */
 const HEADER_SHELL =
-  "relative overflow-hidden rounded-xl border-2 border-[#E8D9C4] bg-gradient-to-br from-[#2E2620] via-[#4A2E20] to-[#3A332C] text-[#FFFCF7] shadow-[0_12px_40px_rgba(30,24,16,0.18)] sm:rounded-2xl";
+  "relative overflow-hidden rounded-xl border-2 border-[color:var(--lx-restaurantes-header-border)] bg-gradient-to-br from-[color:var(--lx-restaurantes-header-bg-1)] via-[color:var(--lx-restaurantes-header-bg-2)] to-[color:var(--lx-restaurantes-header-bg-3)] text-[color:var(--lx-cta-light)] shadow-[0_12px_40px_rgba(30,24,16,0.18)] sm:rounded-2xl";
 
 const LOGO_FRAME =
-  "relative mx-auto h-[5.25rem] w-[5.25rem] shrink-0 overflow-hidden rounded-lg border-[2.5px] border-[#C9A84A]/85 bg-[#FFFCF7] p-1.5 shadow-[0_8px_24px_rgba(201,168,74,0.22)] sm:h-24 sm:w-24 lg:mx-0 lg:h-[5.5rem] lg:w-[5.5rem]";
+  "relative mx-auto h-[5.25rem] w-[5.25rem] shrink-0 overflow-hidden rounded-lg border-[2.5px] border-[color:var(--lx-gold)]/85 bg-[color:var(--lx-cta-light)] p-1.5 shadow-[0_8px_24px_rgba(201,168,74,0.22)] sm:h-24 sm:w-24 lg:mx-0 lg:h-[5.5rem] lg:w-[5.5rem]";
 
 const HERO_IMAGE_FRAME =
-  "relative hidden w-full overflow-hidden lg:block lg:max-h-[300px] lg:min-h-[200px] lg:flex-[1.15] lg:rounded-xl lg:border lg:border-[#C9A84A]/35";
+  "relative hidden w-full overflow-hidden lg:block lg:max-h-[300px] lg:min-h-[200px] lg:flex-[1.15] lg:rounded-xl lg:border lg:border-[color:var(--lx-gold)]/35";
 
 const CHIP =
-  "inline-flex max-w-full shrink-0 items-center rounded-md border border-[#C9A84A]/45 bg-[#FFFCF7]/12 px-2.5 py-1 text-[11px] font-semibold leading-tight text-[#FFFCF7] sm:text-xs";
+  "inline-flex max-w-full shrink-0 items-center rounded-md border border-[color:var(--lx-gold)]/45 bg-[color:var(--lx-cta-light)]/12 px-2.5 py-1 text-[11px] font-semibold leading-tight text-[color:var(--lx-cta-light)] sm:text-xs";
 
 export function RestauranteProfileHeader({
   data,
@@ -90,12 +92,12 @@ export function RestauranteProfileHeader({
   return (
     <section className={HEADER_SHELL} aria-label={lang === "en" ? "Restaurant profile" : "Perfil del restaurante"}>
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#C9A84A]/55 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--lx-gold)]/55 to-transparent"
         aria-hidden
       />
       <div
         className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full opacity-[0.12]"
-        style={{ background: "radial-gradient(circle, #C9A84A 0%, transparent 70%)" }}
+        style={{ background: "radial-gradient(circle, var(--lx-gold) 0%, transparent 70%)" }}
         aria-hidden
       />
 
@@ -113,7 +115,7 @@ export function RestauranteProfileHeader({
                   priority
                   unoptimized={heroImage.startsWith("data:") || heroImage.startsWith("blob:")}
                 />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#1E1814]/50 via-transparent to-transparent" aria-hidden />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[color:var(--lx-restaurantes-header-overlay)]/50 via-transparent to-transparent" aria-hidden />
               </div>
             </div>
           ) : null}
@@ -137,7 +139,7 @@ export function RestauranteProfileHeader({
               />
             ) : (
               <div
-                className="flex h-full w-full items-center justify-center rounded-md bg-[#F5F0E8] text-2xl font-bold text-[#7A1E2C]"
+                className="flex h-full w-full items-center justify-center rounded-md bg-[color:var(--lx-restaurantes-initial-bg)] text-2xl font-bold text-[color:var(--lx-restaurantes-initial-text)]"
                 aria-hidden
               >
                 {(data.businessName?.trim() || "R").charAt(0).toUpperCase()}
@@ -146,10 +148,10 @@ export function RestauranteProfileHeader({
           </div>
 
           <div className="min-w-0 flex-1 text-center sm:text-left">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#FFFCF7]/65">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--lx-cta-light)]/65">
               {lang === "en" ? "Restaurant" : "Restaurante"}
             </p>
-            <h1 className="mt-1 font-serif text-2xl font-semibold leading-tight tracking-tight text-[#FFFCF7] sm:text-3xl lg:text-[2.15rem]">
+            <h1 className="mt-1 font-serif text-2xl font-semibold leading-tight tracking-tight text-[color:var(--lx-cta-light)] sm:text-3xl lg:text-[2.15rem]">
               {data.businessName}
             </h1>
 
@@ -172,23 +174,23 @@ export function RestauranteProfileHeader({
               <span
                 className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 font-semibold ${
                   open
-                    ? "bg-[#2D5A3D]/35 text-[#A8D4B8] ring-1 ring-[#2D5A3D]/50"
-                    : "bg-[#FFFCF7]/10 text-[#FFFCF7]/85 ring-1 ring-[#FFFCF7]/20"
+                    ? "bg-[color:var(--lx-restaurantes-open-bg)]/35 text-[color:var(--lx-restaurantes-open-text)] ring-1 ring-[color:var(--lx-restaurantes-open-bg)]/50"
+                    : "bg-[color:var(--lx-cta-light)]/10 text-[color:var(--lx-cta-light)]/85 ring-1 ring-[color:var(--lx-cta-light)]/20"
                 }`}
               >
                 <FiClock className="h-3.5 w-3.5 shrink-0" aria-hidden />
                 {data.hoursPreview.statusLine}
               </span>
               {locationLine ? (
-                <span className="inline-flex max-w-full items-start gap-1 text-[#FFFCF7]/85">
-                  <FiMapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#C9A84A]" aria-hidden />
+                <span className="inline-flex max-w-full items-start gap-1 text-[color:var(--lx-cta-light)]/85">
+                  <FiMapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[color:var(--lx-gold)]" aria-hidden />
                   <span className="min-w-0 break-words text-left">{locationLine}</span>
                 </span>
               ) : null}
             </div>
 
             {neighborhoodDisplay && neighborhoodDisplay !== locationLine ? (
-              <p className="mt-1.5 text-xs text-[#FFFCF7]/70">{neighborhoodDisplay}</p>
+              <p className="mt-1.5 text-xs text-[color:var(--lx-cta-light)]/70">{neighborhoodDisplay}</p>
             ) : null}
           </div>
 
@@ -204,7 +206,7 @@ export function RestauranteProfileHeader({
                 recordLikeEvent={
                   globalListing ? restaurantesGlobalLikeRecorder(globalListing) : undefined
                 }
-                className="!border-[#C9A84A]/40 !bg-[#FFFCF7]/95 !text-[#1E1814]"
+                className="!border-[color:var(--lx-gold)]/40 !bg-[color:var(--lx-cta-light)]/95 !text-[color:var(--lx-restaurantes-header-overlay)]"
               />
               <LeonixShareButton
                 listingId={listingKey}
@@ -219,7 +221,7 @@ export function RestauranteProfileHeader({
                 recordShareEvent={
                   globalListing ? restaurantesGlobalShareRecorder(globalListing, "detail_share") : undefined
                 }
-                className="[&>button]:!border-[#C9A84A]/40 [&>button]:!bg-[#FFFCF7]/95 [&>button]:!text-[#1E1814]"
+                className="[&>button]:!border-[color:var(--lx-gold)]/40 [&>button]:!bg-[color:var(--lx-cta-light)]/95 [&>button]:!text-[color:var(--lx-restaurantes-header-overlay)]"
               />
             </div>
           ) : null}

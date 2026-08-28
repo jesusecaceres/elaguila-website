@@ -19,7 +19,6 @@ import {
   serviciosListingPreviewHref,
 } from "./serviciosDashboardOffersAddonCheckout";
 import {
-  restaurantCouponAddonUpgradeEligibleFromLifecycle,
   restaurantCouponEditEligibleFromLifecycle,
   restauranteListingEditHref,
 } from "./restaurantesDashboardCouponAddonCheckout";
@@ -50,9 +49,7 @@ export type DashboardInventoryItem = {
   promoted?: boolean;
   verified?: boolean;
   draftListingId?: string | null;
-  /** True when published Restaurante can buy coupon add-on only from dashboard. */
-  restaurantCouponUpgradeEligible?: boolean;
-  /** True when published Restaurante has paid coupon module and can edit coupons. */
+  /** True when published Restaurante has real base-package coupon capability and can edit coupons. */
   restaurantCouponEditEligible?: boolean;
   /** Gate E.2.3 — lifecycle truth backing the two flags above (`not_purchased` when not yet resolved). */
   restaurantCouponAddonStatus?: AddonLifecycleStatus;
@@ -457,10 +454,6 @@ export function buildRestaurantInventoryItems(
     promoted: row.promoted,
     verified: row.leonix_verified,
     draftListingId: row.draft_listing_id,
-    restaurantCouponUpgradeEligible: restaurantCouponAddonUpgradeEligibleFromLifecycle({
-      status: row.status,
-      addonStatus,
-    }),
     restaurantCouponEditEligible: restaurantCouponEditEligibleFromLifecycle({
       status: row.status,
       addonStatus,

@@ -70,6 +70,15 @@ export type ComidaLocalHighlightOption =
   | "pickup_disponible"
   | "familiar"
   | "local"
+  /** Additive — daily-freshness claim, distinct from the generic "ingredientes_frescos". */
+  | "fresco_diario"
+  /** Additive — ingredients-specific local-sourcing claim, distinct from the business-level "local". */
+  | "ingredientes_locales"
+  /** Additive — same literal value as the `preorder` service option (dual-purpose value,
+   * mirrors how "catering" already appears in both registries); a highlight-level claim. */
+  | "preorder"
+  /** Additive — weekend-availability claim. */
+  | "disponible_fines_de_semana"
   | "otro";
 
 export type ComidaLocalPaymentMethod =
@@ -135,7 +144,13 @@ export type ComidaLocalDraft = {
   foodTypeCustom: string;
   /** Gate D2 — seller/business format (food truck, home kitchen, pop-up, etc.), distinct from foodType. */
   businessType: ComidaLocalBusinessType | "";
+  /** @deprecated Legacy single free-text value. Superseded by `businessTypeCustomValues`
+   * (array-backed add/remove chip list). Preserved read-only for backward compatibility —
+   * a legacy draft with only this scalar populated is migrated into a one-element
+   * `businessTypeCustomValues` on load; never written by the current UI. */
   businessTypeCustom: string;
+  /** Array-backed "Other" seller-type values — Add button + independently-removable chips. */
+  businessTypeCustomValues: string[];
   /** Canonical NorCal city slug/key — wired in FOOD-L3/FOOD-L6. */
   cityCanonical: string;
   /** Display city line while canonical autocomplete is deferred. */
@@ -153,12 +168,33 @@ export type ComidaLocalDraft = {
   /** Gate D5 "Encuéntrame hoy" — today's/current location note+link. Never the permanent address. */
   locationNote: string;
   locationUrl: string;
+  /** Gate C-027/C-038 — dedicated order/contact link for mobile-bucket sellers (food truck,
+   * puesto, mercado, delivery-only, pop-up, feria) and private chefs (booking/quote requests).
+   * Additive and distinct from the generic `additionalWebsites` list. */
+  mobileOrderLinkUrl: string;
+  /** Gate C-032/C-033 — lightweight freeform event/market schedule note for pop-up, feria, and
+   * mercado (farmers-market) sellers. Additive; distinct from `locationNote` (today's location). */
+  eventScheduleNote: string;
+  /** Gate C-035 — catering service radius/area, distinct from the generic `zoneNote`. */
+  cateringServiceRadiusNote: string;
+  /** Gate C-036 — structured catering event info (sizes, minimums, lead time), distinct from
+   * the generic freeform `queVendes` textarea. */
+  cateringEventInfoNote: string;
+  /** Gate C-037 — meal-prep recurring-schedule note, distinct from `weeklyHours`/`serviceOptions`. */
+  mealPrepScheduleNote: string;
+  /** Gate C-038 — dedicated meal-prep order URL, distinct from the generic `additionalWebsites`. */
+  mealPrepOrderUrl: string;
   availabilityNote: string;
   /** Gate D9 — additive structured weekly hours; existing availabilityNote text is preserved
    * unchanged and still shown as a freeform note alongside the structured schedule. */
   weeklyHours: BusinessWeeklyHours;
   serviceOptions: ComidaLocalServiceOption[];
+  /** @deprecated Legacy single free-text value. Superseded by
+   * `serviceOptionOtherCustomValues` (array-backed add/remove chip list). Preserved read-only
+   * for backward compatibility; never written by the current UI. */
   serviceOptionOtherCustom: string;
+  /** Array-backed "Other" service-mode values — Add button + independently-removable chips. */
+  serviceOptionOtherCustomValues: string[];
   /** Gate D6 — optional permanent business address, private by default. */
   businessAddressLine: string;
   showAddressPublicly: boolean;
@@ -170,7 +206,12 @@ export type ComidaLocalDraft = {
   customLanguages: string[];
   /** Gate D15 — Comida Local specific highlights. */
   highlights: ComidaLocalHighlightOption[];
+  /** @deprecated Legacy single free-text value. Superseded by `highlightsOtherCustomValues`
+   * (array-backed add/remove chip list). Preserved read-only for backward compatibility;
+   * never written by the current UI. */
   highlightsOtherCustom: string;
+  /** Array-backed "Other" highlight values — Add button + independently-removable chips. */
+  highlightsOtherCustomValues: string[];
   /** Gate D11 — repeatable additional links (order, menu, catering form, delivery partner, etc.). */
   additionalWebsites: ComidaLocalAdditionalWebsite[];
   mainPhoto: ComidaLocalImageDraft | null;
