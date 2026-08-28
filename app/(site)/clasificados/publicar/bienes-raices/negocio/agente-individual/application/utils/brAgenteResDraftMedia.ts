@@ -3,7 +3,12 @@ import { mergePartialAgenteIndividualResidencial } from "../../schema/agenteIndi
 import type { BrNegocioAdditionalInventoryPropertyDraft } from "../../../application/brNegocioAdditionalInventoryDraft";
 import { normalizeChildInventoryDraft } from "../../../application/brNegocioAdditionalInventoryDraft";
 import type { AgenteChildPropertyFormSlice } from "../../../application/brNegocioChildInventoryFormMapping";
-import { idbBrAgenteGetDataUrl, idbBrAgentePutDataUrl, idbBrAgenteClearNamespace } from "./brAgenteResDraftMediaIdb";
+import {
+  idbBrAgenteGetDataUrl,
+  idbBrAgentePutDataUrl,
+  idbBrAgenteClearNamespace,
+  idbBrAgenteHasNamespaceEntries,
+} from "./brAgenteResDraftMediaIdb";
 
 export const BR_AGENTE_IDB_PREFIX = "__LX_BR_AGENTE_IDB__";
 export const BR_AGENTE_DRAFT_MEDIA_NAMESPACE = "br-agente-res-v1";
@@ -269,6 +274,14 @@ export function brAgenteDraftJsonMayContainIdbRefs(state: AgenteIndividualReside
 
 export async function clearBrAgenteResDraftMediaNamespace(namespace: string): Promise<void> {
   await idbBrAgenteClearNamespace(namespace);
+}
+
+/**
+ * BR-INV-D1-FIX — true if IndexedDB still holds offloaded media for this draft, independent of
+ * whatever sessionStorage currently reads. See `idbBrAgenteHasNamespaceEntries`.
+ */
+export async function brAgenteResHasPersistedMedia(namespace: string): Promise<boolean> {
+  return idbBrAgenteHasNamespaceEntries(namespace);
 }
 
 function childEditorPhotoSegment(editingId: string): string {

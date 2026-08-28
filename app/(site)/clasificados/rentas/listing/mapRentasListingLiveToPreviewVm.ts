@@ -37,6 +37,13 @@ function trim(s: unknown): string {
   return typeof s === "string" ? s.trim() : String(s).trim();
 }
 
+/** BR-INV-RENTAS-I18N-FIX — row labels (not just values) must follow `lang`; this file previously
+ * hardcoded every label in Spanish even where the value already branched on `lang`, so switching
+ * to English left the live Rentas listing detail page's structured facts entirely in Spanish. */
+function L(lang: "es" | "en", es: string, en: string): string {
+  return lang === "es" ? es : en;
+}
+
 function resolvePlatformLogoUrl(): string {
   if (typeof process === "undefined") return "/logo.png";
   const raw = String(process.env.NEXT_PUBLIC_LEONIX_BRAND_LOGO_URL ?? "").trim();
@@ -123,10 +130,10 @@ function rentasAvailabilityLabel(
   return m[c]?.[lang] ?? "";
 }
 
-function operationSummary(cat: RentasPublicListing["categoriaPropiedad"]): string {
-  if (cat === "residencial") return "Renta residencial";
-  if (cat === "comercial") return "Renta comercial";
-  return "Renta terreno / lote";
+function operationSummary(cat: RentasPublicListing["categoriaPropiedad"], lang: "es" | "en"): string {
+  if (cat === "residencial") return L(lang, "Renta residencial", "Residential rental");
+  if (cat === "comercial") return L(lang, "Renta comercial", "Commercial rental");
+  return L(lang, "Renta terreno / lote", "Land / lot rental");
 }
 
 function kindLabel(kind: RentasPublicListing["resultsPropertyKind"], lang: "es" | "en"): string {
@@ -239,27 +246,29 @@ function cityStateZipLine(listing: RentasPublicListing): string {
 
 function buildContractRows(listing: RentasPublicListing, lang: "es" | "en"): BienesRaicesPreviewFact[] {
   const rows: BienesRaicesPreviewFact[] = [];
-  pushRow(rows, "Renta mensual", trim(listing.rentDisplay));
+  pushRow(rows, L(lang, "Renta mensual", "Monthly rent"), trim(listing.rentDisplay));
   const tipo = formatRentasTipoDeRentaDisplay(listing.rentalTypeCode ?? "", listing.rentalTypeCustom ?? "");
-  if (tipo) pushRow(rows, "Tipo de renta", tipo);
+  if (tipo) pushRow(rows, L(lang, "Tipo de renta", "Rental type"), tipo);
   const dep = depositDisplay(listing, lang);
-  if (dep) rows.push({ label: "Depósito", value: dep });
+  if (dep) rows.push({ label: L(lang, "Depósito", "Deposit"), value: dep });
   const pl = formatLeaseCode(listing.leaseTermCode, lang, listing.leaseTermCustom);
-  if (pl) rows.push({ label: "Plazo del contrato", value: pl });
+  if (pl) rows.push({ label: L(lang, "Plazo del contrato", "Lease term"), value: pl });
   const disp = trim(listing.availabilityNote);
-  if (disp) rows.push({ label: "Disponibilidad", value: disp });
+  if (disp) rows.push({ label: L(lang, "Disponibilidad", "Availability"), value: disp });
   const g = rentasRentalFlowGroupForTipo(listing.rentalTypeCode ?? "");
   const showFurnPets = g === "unset" || g === "full_housing" || g === "room_shared" || g === "commercial_space";
   if (showFurnPets) {
-    if (listing.amueblado === true) rows.push({ label: "Amueblado", value: lang === "es" ? "Amueblado" : "Furnished" });
-    if (listing.amueblado === false) rows.push({ label: "Amueblado", value: lang === "es" ? "Sin amueblar" : "Unfurnished" });
-    if (listing.mascotasPermitidas === true) rows.push({ label: "Mascotas", value: lang === "es" ? "Permitidas" : "Allowed" });
-    if (listing.mascotasPermitidas === false) rows.push({ label: "Mascotas", value: lang === "es" ? "No permitidas" : "Not allowed" });
+    const furnLabel = L(lang, "Amueblado", "Furnished");
+    if (listing.amueblado === true) rows.push({ label: furnLabel, value: lang === "es" ? "Amueblado" : "Furnished" });
+    if (listing.amueblado === false) rows.push({ label: furnLabel, value: lang === "es" ? "Sin amueblar" : "Unfurnished" });
+    const petsLabel = L(lang, "Mascotas", "Pets");
+    if (listing.mascotasPermitidas === true) rows.push({ label: petsLabel, value: lang === "es" ? "Permitidas" : "Allowed" });
+    if (listing.mascotasPermitidas === false) rows.push({ label: petsLabel, value: lang === "es" ? "No permitidas" : "Not allowed" });
   }
   const svc = trim(listing.servicesIncluded);
-  if (svc) rows.push({ label: "Servicios incluidos", value: svc });
+  if (svc) rows.push({ label: L(lang, "Servicios incluidos", "Utilities included"), value: svc });
   const req = trim(listing.requirements);
-  if (req) rows.push({ label: "Requisitos", value: req });
+  if (req) rows.push({ label: L(lang, "Requisitos", "Requirements"), value: req });
   const sprefs = trim(listing.sharedSpacePreferences);
   if (sprefs) {
     rows.push({
@@ -268,55 +277,58 @@ function buildContractRows(listing: RentasPublicListing, lang: "es" | "en"): Bie
     });
   }
   const lc = trim(listing.leaseConditions);
-  if (lc) rows.push({ label: "Condiciones importantes", value: lc });
+  if (lc) rows.push({ label: L(lang, "Condiciones importantes", "Important conditions"), value: lc });
   const zona = zonaFromListing(listing);
-  if (zona) rows.push({ label: "Zona o vecindario", value: zona });
+  if (zona) rows.push({ label: L(lang, "Zona o vecindario", "Area / neighborhood"), value: zona });
   const st = rentasAvailabilityLabel(listing.rentasListingAvailability, lang);
-  if (st) rows.push({ label: "Estado del anuncio", value: st });
+  if (st) rows.push({ label: L(lang, "Estado del anuncio", "Listing status"), value: st });
   return rows;
 }
 
 function buildResidencialPropertyRows(listing: RentasPublicListing, lang: "es" | "en"): BienesRaicesPreviewFact[] {
   const rows: BienesRaicesPreviewFact[] = [];
   const k = kindLabel(listing.resultsPropertyKind, lang);
-  if (k) pushRow(rows, "Tipo", k);
-  if (listing.propertySubtype) pushRow(rows, "Subtipo", listing.propertySubtype);
-  pushRow(rows, "Recámaras", listing.beds);
+  if (k) pushRow(rows, L(lang, "Tipo", "Type"), k);
+  if (listing.propertySubtype) pushRow(rows, L(lang, "Subtipo", "Subtype"), listing.propertySubtype);
+  pushRow(rows, L(lang, "Recámaras", "Bedrooms"), listing.beds);
   const baths = trim(listing.fullBaths) || trim(listing.baths);
-  pushRow(rows, "Baños completos", baths);
-  if (listing.halfBaths?.trim()) pushRow(rows, "Medios baños", listing.halfBaths);
+  pushRow(rows, L(lang, "Baños completos", "Full baths"), baths);
+  const halfBathsLabel = L(lang, "Medios baños", "Half baths");
+  if (listing.halfBaths?.trim()) pushRow(rows, halfBathsLabel, listing.halfBaths);
   else if (typeof listing.halfBathsCount === "number" && listing.halfBathsCount > 0) {
-    rows.push({ label: "Medios baños", value: String(listing.halfBathsCount) });
+    rows.push({ label: halfBathsLabel, value: String(listing.halfBathsCount) });
   }
-  pushRow(rows, "Interior (ft²)", listing.sqft);
-  if (listing.lotSqft?.trim()) pushRow(rows, "Lote (ft²)", listing.lotSqft!);
-  if (listing.parking?.trim()) pushRow(rows, "Estacionamiento", listing.parking!);
+  pushRow(rows, L(lang, "Interior (ft²)", "Interior (sq ft)"), listing.sqft);
+  if (listing.lotSqft?.trim()) pushRow(rows, L(lang, "Lote (ft²)", "Lot (sq ft)"), listing.lotSqft!);
+  const parkingLabel = L(lang, "Estacionamiento", "Parking");
+  if (listing.parking?.trim()) pushRow(rows, parkingLabel, listing.parking!);
   else if (typeof listing.parkingSpots === "number" && listing.parkingSpots > 0) {
-    rows.push({ label: "Estacionamiento", value: String(listing.parkingSpots) });
+    rows.push({ label: parkingLabel, value: String(listing.parkingSpots) });
   }
   if (listing.yearBuilt?.trim()) {
-    rows.push({ label: "Año de construcción", value: listing.yearBuilt.replace(/,/g, "").trim() });
+    rows.push({ label: L(lang, "Año de construcción", "Year built"), value: listing.yearBuilt.replace(/,/g, "").trim() });
   }
-  if (listing.condition?.trim()) pushRow(rows, "Condición", listing.condition!);
-  if (listing.pool === true) pushRow(rows, "Alberca / piscina", lang === "es" ? "Sí" : "Yes");
+  if (listing.condition?.trim()) pushRow(rows, L(lang, "Condición", "Condition"), listing.condition!);
+  if (listing.pool === true) pushRow(rows, L(lang, "Alberca / piscina", "Pool"), lang === "es" ? "Sí" : "Yes");
   return rows;
 }
 
 function buildNonResidencialRows(listing: RentasPublicListing, lang: "es" | "en"): BienesRaicesPreviewFact[] {
   const rows: BienesRaicesPreviewFact[] = [];
   const k = kindLabel(listing.resultsPropertyKind, lang);
-  if (k) pushRow(rows, "Tipo", k);
-  if (listing.propertySubtype) pushRow(rows, "Subtipo", listing.propertySubtype);
-  pushRow(rows, "Interior (ft²)", listing.sqft);
-  if (listing.lotSqft?.trim()) pushRow(rows, "Lote (ft²)", listing.lotSqft!);
-  if (listing.parking?.trim()) pushRow(rows, "Estacionamiento", listing.parking!);
+  if (k) pushRow(rows, L(lang, "Tipo", "Type"), k);
+  if (listing.propertySubtype) pushRow(rows, L(lang, "Subtipo", "Subtype"), listing.propertySubtype);
+  pushRow(rows, L(lang, "Interior (ft²)", "Interior (sq ft)"), listing.sqft);
+  if (listing.lotSqft?.trim()) pushRow(rows, L(lang, "Lote (ft²)", "Lot (sq ft)"), listing.lotSqft!);
+  const parkingLabel = L(lang, "Estacionamiento", "Parking");
+  if (listing.parking?.trim()) pushRow(rows, parkingLabel, listing.parking!);
   else if (typeof listing.parkingSpots === "number" && listing.parkingSpots > 0) {
-    rows.push({ label: "Estacionamiento", value: String(listing.parkingSpots) });
+    rows.push({ label: parkingLabel, value: String(listing.parkingSpots) });
   }
   if (listing.yearBuilt?.trim()) {
-    rows.push({ label: "Año de construcción", value: listing.yearBuilt.replace(/,/g, "").trim() });
+    rows.push({ label: L(lang, "Año de construcción", "Year built"), value: listing.yearBuilt.replace(/,/g, "").trim() });
   }
-  if (listing.condition?.trim()) pushRow(rows, "Condición", listing.condition!);
+  if (listing.condition?.trim()) pushRow(rows, L(lang, "Condición", "Condition"), listing.condition!);
   return rows;
 }
 
@@ -359,14 +371,14 @@ function rentasLiveLocationLines(listing: RentasPublicListing): {
   return { line1, cityStateZip: cityZip, addressLine, exact };
 }
 
-function highlightsRowsFromListing(listing: RentasPublicListing): BienesRaicesPreviewFact[] {
+function highlightsRowsFromListing(listing: RentasPublicListing, lang: "es" | "en"): BienesRaicesPreviewFact[] {
   const map = new Map(BR_HIGHLIGHT_PRESET_DEFS.map((d) => [d.key.toLowerCase(), d.label] as const));
   const out: BienesRaicesPreviewFact[] = [];
   for (const raw of listing.highlightSlugs ?? []) {
     const kk = String(raw ?? "").trim().toLowerCase();
     if (!kk) continue;
     const label = map.get(kk) ?? kk;
-    out.push({ label, value: "Sí" });
+    out.push({ label, value: L(lang, "Sí", "Yes") });
   }
   return out;
 }
@@ -385,18 +397,19 @@ function dedupeQuickFacts(items: BienesRaicesPreviewQuickFactVm[]): BienesRaices
 function contractQuickStrip(listing: RentasPublicListing, lang: "es" | "en"): BienesRaicesPreviewQuickFactVm[] {
   const out: BienesRaicesPreviewQuickFactVm[] = [];
   const rent = trim(listing.rentDisplay);
-  if (rent) out.push({ label: "Renta mensual", value: rent, icon: "calendar" });
+  if (rent) out.push({ label: L(lang, "Renta mensual", "Monthly rent"), value: rent, icon: "calendar" });
   const dep = depositDisplay(listing, lang);
-  if (dep) out.push({ label: "Depósito", value: dep, icon: "pin" });
+  if (dep) out.push({ label: L(lang, "Depósito", "Deposit"), value: dep, icon: "pin" });
   const pl = formatLeaseCode(listing.leaseTermCode, lang, listing.leaseTermCustom);
-  if (pl) out.push({ label: "Plazo", value: pl, icon: "calendar" });
+  if (pl) out.push({ label: L(lang, "Plazo", "Term"), value: pl, icon: "calendar" });
   const disp = trim(listing.availabilityNote);
-  if (disp) out.push({ label: "Disponibilidad", value: disp, icon: "calendar" });
+  if (disp) out.push({ label: L(lang, "Disponibilidad", "Availability"), value: disp, icon: "calendar" });
   const g = rentasRentalFlowGroupForTipo(listing.rentalTypeCode ?? "");
   const showFurn = g === "unset" || g === "full_housing" || g === "room_shared" || g === "commercial_space";
   if (showFurn) {
-    if (listing.amueblado === true) out.push({ label: "Amueblado", value: lang === "es" ? "Sí" : "Yes", icon: "home" });
-    if (listing.amueblado === false) out.push({ label: "Amueblado", value: lang === "es" ? "No" : "No", icon: "home" });
+    const furnLabel = L(lang, "Amueblado", "Furnished");
+    if (listing.amueblado === true) out.push({ label: furnLabel, value: lang === "es" ? "Sí" : "Yes", icon: "home" });
+    if (listing.amueblado === false) out.push({ label: furnLabel, value: lang === "es" ? "No" : "No", icon: "home" });
   }
   return out;
 }
@@ -446,7 +459,10 @@ export function mapRentasListingToPrivadoPreviewVm(
   const media = buildLiveMediaVm(gallery, listing.videoUrl, listing.videoPosterUrl, listing.videoUrls, lang);
   const contract = buildContractRows(listing, lang);
   const property = buildPropertyRows(listing, lang);
-  const highlightsRows = highlightsRowsFromListing(listing).map((r) => ({ ...r, value: trim(r.value) === "✓" ? "Sí" : r.value }));
+  const highlightsRows = highlightsRowsFromListing(listing, lang).map((r) => ({
+    ...r,
+    value: trim(r.value) === "✓" ? L(lang, "Sí", "Yes") : r.value,
+  }));
   const quickFacts = dedupeQuickFacts([...contractQuickStrip(listing, lang), ...stripQuickFromProperty(listing, lang)]);
 
   const phoneRaw = trim(extra.contactPhone);
@@ -484,7 +500,7 @@ export function mapRentasListingToPrivadoPreviewVm(
     addressLine: loc.addressLine,
     priceDisplay: trim(listing.rentDisplay),
     listingStatusLabel: rentasAvailabilityLabel(listing.rentasListingAvailability, lang) || "—",
-    operationSummary: operationSummary(listing.categoriaPropiedad),
+    operationSummary: operationSummary(listing.categoriaPropiedad, lang),
     rentalTypeDisplay,
     quickFacts,
     seller: {
@@ -577,7 +593,7 @@ export function mapRentasListingToNegocioPreviewVm(
   const media = buildLiveMediaVm(gallery, listing.videoUrl, listing.videoPosterUrl, listing.videoUrls, lang);
   const contract = buildContractRows(listing, lang);
   const property = buildPropertyRows(listing, lang);
-  const highlightsRows = highlightsRowsFromListing(listing).map((r) => ({ ...r, value: "Sí" }));
+  const highlightsRows = highlightsRowsFromListing(listing, lang).map((r) => ({ ...r, value: L(lang, "Sí", "Yes") }));
   const quickFacts = dedupeQuickFacts([...contractQuickStrip(listing, lang), ...stripQuickFromProperty(listing, lang)]);
 
   const phoneRaw = trim(extra.contactPhone);
@@ -632,7 +648,7 @@ export function mapRentasListingToNegocioPreviewVm(
     addressLine: loc.addressLine,
     priceDisplay: trim(listing.rentDisplay),
     listingStatusLabel: rentasAvailabilityLabel(listing.rentasListingAvailability, lang) || "—",
-    operationSummary: operationSummary(listing.categoriaPropiedad),
+    operationSummary: operationSummary(listing.categoriaPropiedad, lang),
     rentalTypeDisplay,
     quickFacts,
     contactRailTitle: lang === "es" ? "Contacto" : "Contact",

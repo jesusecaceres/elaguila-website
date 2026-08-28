@@ -625,6 +625,7 @@
     "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "^15.0.3",
+    "fake-indexeddb": "^6.2.5",
     "kill-port": "^2.0.1",
     "pg": "^8.20.0",
     "tailwindcss": "^4",

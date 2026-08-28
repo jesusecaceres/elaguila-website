@@ -16,6 +16,7 @@ import {
   BR_AGENTE_DRAFT_MEDIA_NAMESPACE,
   BR_AGENTE_IDB_PREFIX,
   brAgenteDraftMediaNamespaceForApplicationInstance,
+  brAgenteResHasPersistedMedia,
   clearBrAgenteResDraftMediaNamespace,
   setActiveBrAgenteDraftMediaNamespace,
   inlineBrAgenteResHeavyMediaFromIdb,
@@ -896,7 +897,7 @@ export async function bootstrapAgenteIndividualResidencialApplicationStateResolv
   const migrated = keys.applicationInstanceId
     ? await migrateLegacyAgenteResDraftIntoApplicationNamespace(keys.applicationInstanceId)
     : null;
-  const boot = migrated ?? bootstrapAgenteIndividualResidencialApplicationState(scope);
+  const boot = migrated ?? (await bootstrapAgenteIndividualResidencialApplicationState(scope));
   return rehydrateAgenteResDraftMediaFromIdb(boot, scope);
 }
 
@@ -935,9 +936,51 @@ function hydrateBootStateFromPersisted(
   });
 }
 
-export function bootstrapAgenteIndividualResidencialApplicationState(
+/**
+ * BR-INV-D1-FIX — a fresh reload can hit a window where `sessionStorage.getItem` returns null for
+ * a key that was written just before the reload and only becomes readable again some time later
+ * (same underlying browser/session-storage restore timing already proven and fixed for BR Privado
+ * — see `BR-INV-D2-FIX` in bienesRaicesPrivadoDraft.ts). Left unguarded here, a transient miss on
+ * the parent's own return/preview key falls straight through to "brand-new application," handing
+ * back an empty state — which is exactly what made the BR Negocio inventory child's inherited
+ * professional/contact display appear to fail: the child reads its inherited fields straight off
+ * this parent state, so a momentarily-empty parent reads as a momentarily-empty child hub, even
+ * though a real parent draft (and its IndexedDB media) still exists. IndexedDB is unaffected by
+ * this timing window and stays reliably readable throughout, so it doubles as positive evidence a
+ * draft exists: retry the normal short beats first, and if IndexedDB shows leftover media for this
+ * application's media namespace, keep waiting substantially longer rather than conclude "no draft."
+ */
+async function readSessionKeyWithRetry(
+  key: string,
+  mediaNamespace: string,
+  fallback: () => string | null,
+): Promise<string | null> {
+  const read = (): string | null => {
+    try {
+      return sessionStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  };
+  const immediate = read() ?? fallback();
+  if (immediate) return immediate;
+  for (const delayMs of [20, 60, 150, 300, 600]) {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    const retried = read() ?? fallback();
+    if (retried) return retried;
+  }
+  if (!(await brAgenteResHasPersistedMedia(mediaNamespace))) return null;
+  for (const delayMs of [500, 1000, 1500, 2000]) {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    const retried = read() ?? fallback();
+    if (retried) return retried;
+  }
+  return null;
+}
+
+export async function bootstrapAgenteIndividualResidencialApplicationState(
   scope?: AgenteResApplicationScope | string | null,
-): AgenteIndividualResidencialFormState {
+): Promise<AgenteIndividualResidencialFormState> {
   if (typeof window === "undefined") return createEmptyAgenteIndividualResidencialState();
   const keys = activateApplicationMediaNamespace(scope);
   if (previewReturnMemory) {
@@ -958,7 +1001,7 @@ export function bootstrapAgenteIndividualResidencialApplicationState(
     // A — Resume / Volver / preview browser-back (return draft key written only when opening Preview)
     if (returningIntent || hasReturnKey) {
       restoreMediaBridgesFromLocalStorageFallback(scope);
-      const raw = sessionStorage.getItem(keys.returnKey);
+      const raw = await readSessionKeyWithRetry(keys.returnKey, keys.mediaNamespace, () => null);
       const returnState = raw ? parsePersistedStateFromJson(raw) : null;
       if (returnState) {
         try {
@@ -985,8 +1028,9 @@ export function bootstrapAgenteIndividualResidencialApplicationState(
     // B — Hard refresh of an in-progress application (preview draft / LS mirror)
     if (hardReload) {
       restoreMediaBridgesFromLocalStorageFallback(scope);
-      const previewRaw =
-        sessionStorage.getItem(keys.previewKey) ?? readDraftFromLocalStorageFallback(scope);
+      const previewRaw = await readSessionKeyWithRetry(keys.previewKey, keys.mediaNamespace, () =>
+        readDraftFromLocalStorageFallback(scope),
+      );
       const previewState = previewRaw ? parsePersistedStateFromJson(previewRaw) : null;
       if (previewState) {
         try {
