@@ -82,8 +82,8 @@ function run() {
   );
   assert.match(
     clientSrc,
-    /step5ScanRequired && step5ScanComplete && step5UploadComplete \? \(/,
-    "CASE G FAILED: Step 5's completion summary + primary CTA must be gated on upload+scan completion, not review"
+    /collapsedActions=\{\s*step5ScanComplete \? \(\s*<button type="button" className=\{BTN_PRIMARY\} onClick=\{openProductReviewWorkspace\}>\s*\{step5ReviewOpenCtaLabel\}/,
+    "CASE G FAILED: Step 5's primary review CTA must live in the scan checkpoint card's collapsedActions, gated on scan completion"
   );
   console.log("Case G (Step 5 review CTA advances to Step 6) passed.");
 
