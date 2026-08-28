@@ -23,6 +23,7 @@ import type { RentasPrivadoFormState } from "../privado/schema/rentasPrivadoForm
 import {
   RENTAS_TIPO_DE_RENTA_OPTIONS,
   rentasTipoDeRentaOptionLabel,
+  rentasCategoriaPropiedadForTipo,
 } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 import { rentasFlowGroupActive } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
 import { RentasTipoFlowDetailFields } from "@/app/clasificados/publicar/rentas/shared/RentasTipoFlowDetailFields";
@@ -99,6 +100,9 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
                   ...s,
                   tipoDeRenta: e.target.value as typeof s.tipoDeRenta,
                   tipoDeRentaOtro: e.target.value === "otro" ? s.tipoDeRentaOtro : "",
+                  // Item 13 fix — categoriaPropiedad is derived from tipoDeRenta, never set
+                  // independently, so the two can never contradict each other again.
+                  categoriaPropiedad: e.target.value ? rentasCategoriaPropiedadForTipo(e.target.value) : s.categoriaPropiedad,
                 }))
               }
             >

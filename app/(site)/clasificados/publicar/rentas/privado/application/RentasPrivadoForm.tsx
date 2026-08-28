@@ -614,18 +614,29 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
 
         <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>{rm.category.title}</h2>
-          <p className={aiSubClass}>{rm.category.hint}</p>
+          <p className={aiSubClass}>
+            {state.tipoDeRenta
+              ? lang === "en"
+                ? "Determined automatically from the rental type below — it can no longer be set independently."
+                : "Se determina automáticamente según el tipo de renta (abajo) — ya no se puede elegir de forma independiente."
+              : rm.category.hint}
+          </p>
           <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
             {CATEGORIAS.map((c) => (
               <button
                 key={c.id}
                 type="button"
-                onClick={() => setState((s) => ({ ...s, categoriaPropiedad: c.id }))}
+                disabled={Boolean(state.tipoDeRenta)}
+                aria-disabled={Boolean(state.tipoDeRenta)}
+                onClick={() => {
+                  if (state.tipoDeRenta) return;
+                  setState((s) => ({ ...s, categoriaPropiedad: c.id }));
+                }}
                 className={`min-h-[48px] w-full rounded-xl border px-3 py-3 text-center text-sm font-semibold leading-snug transition sm:min-h-[44px] sm:py-2.5 ${
                   cat === c.id
                     ? "border-[#B8954A] bg-[#FFF6E7] text-[#1E1810] ring-1 ring-[#B8954A]/30"
                     : "border-[#E8DFD0] bg-white text-[#5C5346] hover:border-[#C9B46A]/60"
-                }`}
+                } ${state.tipoDeRenta ? "cursor-not-allowed opacity-70" : ""}`}
               >
                 {rm.category[c.labelKey]}
               </button>
