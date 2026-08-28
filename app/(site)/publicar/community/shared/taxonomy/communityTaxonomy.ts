@@ -93,6 +93,15 @@ export const COMUNIDAD_ACCESSIBILITY_OPTIONS: readonly CommunitySelectOption[] =
   { value: "no_seguro", labelEs: "No estoy seguro", labelEn: "Not sure" },
 ] as const;
 
+/**
+ * "No estoy seguro" is an uncertainty state, not a real accessibility feature —
+ * it must never render as if it were a concrete positive attribute chip
+ * alongside familiar/accesible/al_aire_libre/interior (Gate 1 fix). Selecting
+ * it in the form is mutually exclusive with the concrete options, and it is
+ * filtered out of any public "positive attributes" chip list.
+ */
+export const COMUNIDAD_ACCESSIBILITY_UNCERTAIN_VALUE = "no_seguro";
+
 export type CommunityAudienceSlug = "ninos" | "jovenes" | "adultos" | "familias" | "todos";
 export type CommunityRegistrationSlug = "si" | "no" | "noSeguro";
 export type ClasesSkillLevelSlug = "principiante" | "intermedio" | "avanzado" | "todos";

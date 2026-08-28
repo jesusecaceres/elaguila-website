@@ -246,11 +246,18 @@ export const COMUNIDAD_QUICK_COPY = {
       registrationRequired: "¿Requiere registro?",
       accessibility: "Acceso",
       bringNote: "Qué deben llevar o saber",
+      bringNoteHelper:
+        "Ej. qué traer, dónde estacionar, identificación requerida, clima/vestimenta, cómo prepararse, notas de accesibilidad, instrucciones de llegada.",
+      restrictionsNote: "Qué NO llevar / restricciones",
+      restrictionsNoteHelper:
+        "Ej. artículos prohibidos, restricciones de bolsas, armas, comida externa, alcohol, mascotas, reglas propias del lugar.",
     },
     primaryCtaHint:
       "La acción principal es la que destacamos primero; el resto de datos seguirá visible.",
     freePostingNotice:
       "Publicar en Comunidad y Eventos es siempre gratis. El evento puede ser gratis, pagado o con donación.",
+    finalStepIntro:
+      "Publicar en Comunidad y Eventos es gratis. Revisa la vista previa de tu evento y publícalo cuando esté listo.",
   },
   en: {
     pageTitle: "Quick community event",
@@ -300,11 +307,18 @@ export const COMUNIDAD_QUICK_COPY = {
       registrationRequired: "Registration required?",
       accessibility: "Access",
       bringNote: "What to bring or know",
+      bringNoteHelper:
+        "E.g. what to bring, parking, ID requirements, weather/clothing, how to prepare, accessibility notes, arrival instructions.",
+      restrictionsNote: "What NOT to bring / restrictions",
+      restrictionsNoteHelper:
+        "E.g. prohibited items, bag restrictions, weapons, outside food, alcohol, pets, venue-specific rules.",
     },
     primaryCtaHint:
       "We highlight one primary action first; any other contact details you add stay visible.",
     freePostingNotice:
       "Posting in Community & Events is always free. The event itself may be free, paid, or by donation.",
+    finalStepIntro:
+      "Posting in Community & Events is free. Review your event preview, then publish when it's ready.",
   },
 } as const;
 

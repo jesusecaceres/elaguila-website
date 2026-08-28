@@ -163,6 +163,8 @@ export type ComunidadQuickDraft = CommunityCommonDraft & {
   accessibilityKeys: string[];
   /** Optional event-specific useful links. */
   eventLinks: ComunidadEventLinks;
+  /** Qué NO llevar / restricciones — comunidad-owned, separate from bringNote (what to bring/know). */
+  restrictionsNote: string;
 };
 
 export type CommunityQuickDraft = ClasesQuickDraft | ComunidadQuickDraft;
@@ -281,6 +283,7 @@ export function emptyComunidadQuickDraft(): ComunidadQuickDraft {
     weeklySchedule: emptyCommunityWeeklySchedule(),
     accessibilityKeys: [],
     eventLinks: emptyEventLinks(),
+    restrictionsNote: "",
   };
 }
 
@@ -531,5 +534,6 @@ export function normalizeComunidadQuickDraft(raw: unknown): ComunidadQuickDraft 
     weeklySchedule,
     accessibilityKeys,
     eventLinks: normalizeEventLinks(p.eventLinks),
+    restrictionsNote: String((p as Partial<ComunidadQuickDraft>).restrictionsNote ?? e.restrictionsNote),
   };
 }

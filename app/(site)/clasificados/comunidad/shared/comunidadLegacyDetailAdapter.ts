@@ -4,8 +4,11 @@ import {
   parseAccessibilityKeysCsv,
   type CommunityListingPairMap,
 } from "@/app/(site)/clasificados/community/shared/communityListingDetailPairs";
-import { labelComunidadAccessibilityKey } from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
-import { resolveComunidadEventTypePublicLabel } from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
+import {
+  COMUNIDAD_ACCESSIBILITY_UNCERTAIN_VALUE,
+  labelComunidadAccessibilityKey,
+  resolveComunidadEventTypePublicLabel,
+} from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
 import type { CommunityLegacyDetailAdapter } from "@/app/(site)/clasificados/community/shared/communityLegacyDetailAdapterTypes";
 
 /**
@@ -49,7 +52,9 @@ export function buildComunidadLegacyDetail(
   const adm = pairs["Leonix:admissionNote"] ?? "";
   if (adm.trim()) rows.push({ label: L ? "Admisión" : "Admission", value: formatAdmission(adm) });
   const accRaw = pairs["Leonix:accessibility"] ?? "";
-  const accKeys = parseAccessibilityKeysCsv(accRaw);
+  // "No estoy seguro" is an uncertainty state, not a real feature — never render it
+  // as if it were a concrete positive accessibility attribute (Gate 1 fix).
+  const accKeys = parseAccessibilityKeysCsv(accRaw).filter((k) => k !== COMUNIDAD_ACCESSIBILITY_UNCERTAIN_VALUE);
   if (accKeys.length) {
     rows.push({
       label: L ? "Acceso" : "Access",

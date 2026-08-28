@@ -95,7 +95,13 @@ function buildCommunityGoogleMapsDirectionsUrl(locationLine: string): string {
  * passed in fully resolved via the `model` prop below. This component only
  * renders it; it does not decide what the labels or links are.
  */
-export type CommunityContactCanvasLinkItem = { key: string; href: string; label: string };
+export type CommunityContactCanvasLinkItem = {
+  key: string;
+  href: string;
+  label: string;
+  /** Optional group heading (e.g. "Inscripción / asistencia"). Ungrouped items render as a flat list, unchanged from before this existed. */
+  groupLabel?: string;
+};
 
 export type CommunityContactCanvasModel = {
   labels: {
@@ -186,12 +192,14 @@ export function CommunityContactCanvas({
   const st = draft.state.trim();
   const zip = draft.zip.trim();
   const country = draft.country?.trim() ?? "";
+  // City/Region line intentionally excludes country — country renders once, on its own line,
+  // right after this one (Gate 1 fix: it previously appeared twice — once folded in here, once
+  // again as its own paragraph below).
   const locationParts: string[] = [];
   if (cityDisplay) locationParts.push(cityDisplay);
   if (st && zip) locationParts.push(`${st} ${zip}`);
   else if (st) locationParts.push(st);
   else if (zip) locationParts.push(zip);
-  if (country) locationParts.push(country);
   const cityStateZip = locationParts.join(", ");
 
   const locationLine = buildCommunityLocationLine({
@@ -228,6 +236,33 @@ export function CommunityContactCanvas({
   ].filter((x) => x.href);
 
   const allLinkItems = model.linkItems;
+
+  // Group link items by their optional groupLabel, preserving first-seen group order; items
+  // without a groupLabel fall into one trailing ungrouped bucket. When nothing sets groupLabel
+  // (every caller before this existed, and Clases today), this collapses to exactly one group
+  // with label=null, and the render path below uses the original flat, ungrouped layout.
+  const linkItemGroups = (() => {
+    const order: string[] = [];
+    const byLabel = new Map<string, CommunityContactCanvasLinkItem[]>();
+    const ungrouped: CommunityContactCanvasLinkItem[] = [];
+    for (const item of allLinkItems) {
+      if (item.groupLabel) {
+        if (!byLabel.has(item.groupLabel)) {
+          order.push(item.groupLabel);
+          byLabel.set(item.groupLabel, []);
+        }
+        byLabel.get(item.groupLabel)!.push(item);
+      } else {
+        ungrouped.push(item);
+      }
+    }
+    const groups: { label: string | null; items: CommunityContactCanvasLinkItem[] }[] = order.map((label) => ({
+      label,
+      items: byLabel.get(label)!,
+    }));
+    if (ungrouped.length || !groups.length) groups.push({ label: null, items: ungrouped });
+    return groups;
+  })();
 
   const hasContactActions = !!(phone10 || wa10 || sms10 || email);
   const hasPhysicalLocation = !!(draft.venue.trim() || draft.addressLine1.trim() || cityStateZip);
@@ -352,42 +387,89 @@ export function CommunityContactCanvas({
 
         {/* ── Section 3: More information / event links ───────────────────── */}
         {hasMoreInfo ? (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <h3
               className="text-[11px] font-bold uppercase tracking-widest"
               style={{ color: GH.burgundy }}
             >
               {t.moreTitle}
             </h3>
-            <div className="flex flex-wrap gap-2">
-              {web ? (
-                <a
-                  href={web}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={btnPrimaryClass()}
-                  style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.burgundy}` }}
-                  onClick={() => analyticsCtx && trackCommunityWebsiteClick(analyticsCtx, "website")}
-                >
-                  <FiGlobe className="h-4 w-4 shrink-0" aria-hidden />
-                  {t.website}
-                </a>
-              ) : null}
-              {allLinkItems.map(({ key, href, label }) => (
-                <a
-                  key={key}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={btnPrimaryClass()}
-                  style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.burgundy}` }}
-                  onClick={() => analyticsCtx && trackCommunityWebsiteClick(analyticsCtx, key)}
-                >
-                  <FiExternalLink className="h-4 w-4 shrink-0" aria-hidden />
-                  {label}
-                </a>
-              ))}
-            </div>
+            {linkItemGroups.length <= 1 ? (
+              // No grouping requested (e.g. Clases) — identical flat row to before groupLabel existed.
+              <div className="flex flex-wrap gap-2">
+                {web ? (
+                  <a
+                    href={web}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={btnPrimaryClass()}
+                    style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.burgundy}` }}
+                    onClick={() => analyticsCtx && trackCommunityWebsiteClick(analyticsCtx, "website")}
+                  >
+                    <FiGlobe className="h-4 w-4 shrink-0" aria-hidden />
+                    {t.website}
+                  </a>
+                ) : null}
+                {allLinkItems.map(({ key, href, label }) => (
+                  <a
+                    key={key}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={btnPrimaryClass()}
+                    style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.burgundy}` }}
+                    onClick={() => analyticsCtx && trackCommunityWebsiteClick(analyticsCtx, key)}
+                  >
+                    <FiExternalLink className="h-4 w-4 shrink-0" aria-hidden />
+                    {label}
+                  </a>
+                ))}
+              </div>
+            ) : (
+              // Grouped resource links (Comunidad) — logical sections instead of one flat CTA wall.
+              <div className="space-y-3">
+                {web ? (
+                  <div className="flex flex-wrap gap-2">
+                    <a
+                      href={web}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={btnPrimaryClass()}
+                      style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.burgundy}` }}
+                      onClick={() => analyticsCtx && trackCommunityWebsiteClick(analyticsCtx, "website")}
+                    >
+                      <FiGlobe className="h-4 w-4 shrink-0" aria-hidden />
+                      {t.website}
+                    </a>
+                  </div>
+                ) : null}
+                {linkItemGroups.map((group) => (
+                  <div key={group.label ?? "__ungrouped"} className="space-y-1.5">
+                    {group.label ? (
+                      <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: GH.muted }}>
+                        {group.label}
+                      </p>
+                    ) : null}
+                    <div className="flex flex-wrap gap-2">
+                      {group.items.map(({ key, href, label }) => (
+                        <a
+                          key={key}
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={btnPrimaryClass()}
+                          style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.burgundy}` }}
+                          onClick={() => analyticsCtx && trackCommunityWebsiteClick(analyticsCtx, key)}
+                        >
+                          <FiExternalLink className="h-4 w-4 shrink-0" aria-hidden />
+                          {label}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ) : null}
 
@@ -411,16 +493,16 @@ export function CommunityContactCanvas({
                     {draft.venue.trim()}
                   </p>
                 ) : null}
-                {cityStateZip ? (
-                  <p className="text-base font-bold" style={{ color: GH.charcoal }}>
-                    {cityStateZip}
-                  </p>
-                ) : null}
                 {draft.addressLine1.trim() ? (
                   <p className="text-sm" style={{ color: GH.muted }}>{draft.addressLine1.trim()}</p>
                 ) : null}
                 {draft.addressLine2?.trim() ? (
                   <p className="text-sm" style={{ color: GH.muted }}>{draft.addressLine2.trim()}</p>
+                ) : null}
+                {cityStateZip ? (
+                  <p className="text-base font-bold" style={{ color: GH.charcoal }}>
+                    {cityStateZip}
+                  </p>
                 ) : null}
                 {country ? (
                   <p className="text-sm" style={{ color: GH.muted }}>{country}</p>
