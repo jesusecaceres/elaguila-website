@@ -88,6 +88,17 @@ export type ClasesPriceFrequency =
 
 export type ClasesMode = "presencial" | "enLinea" | "hibrida";
 
+/**
+ * Gate 2D — explicit organizer-declared schedule shape, closing the owner-QA complaint that
+ * "ongoing" must never be silently inferred from a blank end date. `"recurring"` covers both the
+ * "recurring weekly" and "ongoing" owner-QA examples (they are the same underlying weekly-pattern
+ * data — `startDate`/`endDate` set = a bounded date range, both blank = ongoing/indefinite); the
+ * organizer's explicit mode choice plus that existing date-range distinction together produce all
+ * 4 named owner-QA display states without inventing a redundant 4th storage value. `"one_time"` is
+ * the genuinely new capability — a single date + time window, not a weekly pattern at all.
+ */
+export type ClasesScheduleMode = "one_time" | "recurring";
+
 export type ComunidadCostType = "gratis" | "pagado" | "donacion" | "noConfirmado";
 
 /** Fields shared across Clases + Comunidad quick drafts. */
@@ -159,10 +170,28 @@ export type ClasesQuickDraft = CommunityCommonDraft & {
   /** Optional class date-range boundary layered on top of the weekly schedule (Gate 2A). Blank = ongoing/ordinary recurring class (unchanged legacy behavior). */
   startDate: string;
   endDate: string;
+  /**
+   * Gate 2D — multiple audiences (e.g. Jóvenes + Adultos). `audiences[0]` always mirrors the
+   * legacy single `audience` field, same mirroring pattern as `categories`/`category`.
+   */
+  audiences: string[];
+  /** Gate 2D — "Materiales / equipo", distinct from bringNote ("Qué llevar"). */
+  materialsNote: string;
+  /** Gate 2D — "Requisitos / antes de asistir", distinct from bringNote and materialsNote. */
+  requirementsNote: string;
+  /** Gate 2D — explicit organizer-declared schedule shape (see ClasesScheduleMode). Legacy listings default to "recurring" (their only prior shape). */
+  scheduleMode: ClasesScheduleMode;
+  /** Used only when scheduleMode === "one_time": a single date, not a weekly pattern. */
+  oneTimeDate: string;
+  oneTimeStart: string;
+  oneTimeEnd: string;
 };
 
 /** Owner-approved cap (Gate 2A Section C) — enough for real multi-discipline classes, not endless taxonomy selection. */
 export const MAX_CLASES_CATEGORIES = 4;
+
+/** Gate 2D — sensible cap so audience selection stays a real signal, not endless taxonomy selection. */
+export const MAX_CLASES_AUDIENCES = 3;
 
 export type ComunidadQuickDraft = CommunityCommonDraft & {
   kind: "comunidad";
@@ -291,6 +320,13 @@ export function emptyClasesQuickDraft(): ClasesQuickDraft {
     paymentMethodOther: "",
     startDate: "",
     endDate: "",
+    audiences: [],
+    materialsNote: "",
+    requirementsNote: "",
+    scheduleMode: "recurring",
+    oneTimeDate: "",
+    oneTimeStart: "",
+    oneTimeEnd: "",
   };
 }
 
@@ -359,6 +395,26 @@ function normalizeClasesCategories(raw: unknown, legacyCategory: string): string
   }
   return out;
 }
+
+/**
+ * Gate 2D — normalizes the multi-audience selection: drops unknown/blank slugs, dedupes, caps at
+ * MAX_CLASES_AUDIENCES. Falls back to `[legacyAudience]` when the caller never sent an
+ * `audiences` array (old drafts / old published listings) so `audiences[0]` always mirrors the
+ * resolved single `audience`.
+ */
+function normalizeClasesAudiences(raw: unknown, legacyAudience: string): string[] {
+  const source = Array.isArray(raw) && raw.length > 0 ? raw : legacyAudience ? [legacyAudience] : [];
+  const out: string[] = [];
+  for (const x of source) {
+    const slug = String(x ?? "").trim();
+    if (!slug || !ALLOWED_AUDIENCE.has(slug)) continue;
+    if (!out.includes(slug)) out.push(slug);
+    if (out.length >= MAX_CLASES_AUDIENCES) break;
+  }
+  return out;
+}
+
+const CLASES_SCHEDULE_MODE = new Set<ClasesScheduleMode>(["one_time", "recurring"]);
 
 function normalizeAccessibilityKeys(raw: unknown): string[] {
   if (Array.isArray(raw)) {
@@ -549,8 +605,15 @@ export function normalizeClasesQuickDraft(raw: unknown): ClasesQuickDraft {
   const skillRaw = String((p as Partial<ClasesQuickDraft>).skillLevel ?? e.skillLevel).trim();
   const skillLevel = ALLOWED_CLASES_SKILL.has(skillRaw) ? skillRaw : "";
   const paymentMethods = normalizePaymentMethods((p as Partial<ClasesQuickDraft>).paymentMethods);
+  const audiences = normalizeClasesAudiences((p as Partial<ClasesQuickDraft>).audiences, common.audience);
+  const audience = audiences[0] ?? common.audience;
+  const scheduleModeRaw = (p as Partial<ClasesQuickDraft>).scheduleMode;
+  const scheduleMode = CLASES_SCHEDULE_MODE.has(scheduleModeRaw as ClasesScheduleMode)
+    ? (scheduleModeRaw as ClasesScheduleMode)
+    : e.scheduleMode;
   return {
     ...common,
+    audience,
     category,
     kind: "clases",
     classCostType,
@@ -566,6 +629,13 @@ export function normalizeClasesQuickDraft(raw: unknown): ClasesQuickDraft {
     paymentMethodOther: String((p as Partial<ClasesQuickDraft>).paymentMethodOther ?? e.paymentMethodOther).trim(),
     startDate: String((p as Partial<ClasesQuickDraft>).startDate ?? e.startDate).trim(),
     endDate: String((p as Partial<ClasesQuickDraft>).endDate ?? e.endDate).trim(),
+    audiences,
+    materialsNote: String((p as Partial<ClasesQuickDraft>).materialsNote ?? e.materialsNote),
+    requirementsNote: String((p as Partial<ClasesQuickDraft>).requirementsNote ?? e.requirementsNote),
+    scheduleMode,
+    oneTimeDate: String((p as Partial<ClasesQuickDraft>).oneTimeDate ?? e.oneTimeDate).trim(),
+    oneTimeStart: String((p as Partial<ClasesQuickDraft>).oneTimeStart ?? e.oneTimeStart).trim(),
+    oneTimeEnd: String((p as Partial<ClasesQuickDraft>).oneTimeEnd ?? e.oneTimeEnd).trim(),
   };
 }
 

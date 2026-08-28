@@ -80,13 +80,16 @@ function read(relPath: string): string {
 // ---------------------------------------------------------------------------
 // 12. Email uses canonical current behavior
 // ---------------------------------------------------------------------------
+// Gate 2D (owner-QA debt) superseded this: email now invokes native mailto directly (no Leonix
+// custom sheet/modal) for Comunidad + Clases. The canonical URI construction itself (buildMailtoHref)
+// is unchanged — only the UI wrapper around it changed. See gate-2d-community-owner-qa-debt-selftest.ts.
 {
   const href = buildMailtoHref("organizer@example.com", "Hola");
   assert.ok(href && href.startsWith("mailto:organizer@example.com"), `expected a valid mailto: href, got ${href}`);
   const canvas = read("app/(site)/publicar/community/shared/preview/CommunityContactCanvas.tsx");
-  assert.ok(canvas.includes("EmailContactOptionsSheet"), "email must still route through the current approved EmailContactOptionsSheet, not a restored custom modal");
-  assert.ok(canvas.includes("buildMailtoHref(email, mailSub)"), "mailtoHref passed to the sheet must come from the canonical builder");
-  console.log("OK: email keeps the current approved EmailContactOptionsSheet, fed by the canonical mailto builder");
+  assert.ok(!canvas.includes("EmailContactOptionsSheet"), "Gate 2D: email must NOT route through the obsolete Leonix custom sheet/modal");
+  assert.ok(canvas.includes("buildMailtoHref(email, mailSub)"), "mailtoHref must come from the canonical builder");
+  console.log("OK: email uses native mailto directly (Gate 2D), fed by the canonical mailto builder");
 }
 
 // ---------------------------------------------------------------------------
@@ -116,7 +119,11 @@ function read(relPath: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// 16, 20. Scope discipline — only the shared contact engine touched, no forbidden categories
+// 16, 20. Scope discipline — the canonical contact engine itself is untouched here; the durable
+// regression concern (checked in every later gate too) is that Mascotas/Busco are never touched.
+// The exact "only these N files" snapshot check that used to live here was specific to Gate 2C's
+// own commit and is intentionally NOT re-asserted by later gates (e.g. Gate 2D legitimately edits
+// Clases/Comunidad-owned files as its actual mandate).
 // ---------------------------------------------------------------------------
 {
   const changedFiles = execSync("git diff --name-only HEAD", { cwd: ROOT, encoding: "utf8" })
@@ -129,28 +136,16 @@ function read(relPath: string): string {
     .map((l) => l.slice(3).trim());
   const allTouched = [...new Set([...changedFiles, ...untrackedFiles])];
 
-  const allowedExact = new Set([
-    "app/(site)/publicar/community/shared/lib/communityContactCtas.ts",
-    "app/(site)/publicar/community/shared/preview/CommunityContactCanvas.tsx",
-    "scripts/gate-2c-community-contact-uri-selftest.ts",
-  ]);
-  const unexpected = allTouched.filter((f) => !allowedExact.has(f));
-  assert.equal(unexpected.length, 0, `expected only the shared contact engine + verifier touched, found extra: ${unexpected.join(", ")}`);
-
   const forbiddenPrefixes = [
     "app/(site)/publicar/mascotas-y-perdidos/",
     "app/(site)/clasificados/mascotas-y-perdidos/",
     "app/(site)/publicar/busco/",
     "app/(site)/clasificados/busco/",
-    "app/(site)/publicar/comunidad/",
-    "app/(site)/clasificados/comunidad/",
-    "app/(site)/publicar/clases/",
-    "app/(site)/clasificados/clases/",
   ];
   const violations = allTouched.filter((f) => forbiddenPrefixes.some((p) => f.startsWith(p)));
-  assert.equal(violations.length, 0, `expected no category-owned composition files touched, found: ${violations.join(", ")}`);
+  assert.equal(violations.length, 0, `expected no Mascotas/Busco files touched, found: ${violations.join(", ")}`);
 
-  console.log("OK: only the shared contact engine changed — no category-owned visual/composition files, no Mascotas/Busco files touched");
+  console.log("OK: no Mascotas/Busco files touched");
 }
 
 // ---------------------------------------------------------------------------

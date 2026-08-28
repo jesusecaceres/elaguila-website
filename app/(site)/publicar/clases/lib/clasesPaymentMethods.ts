@@ -17,10 +17,21 @@ export type ClasesPaymentMethodId =
   | "venmo"
   | "cash_app"
   | "paypal"
+  | "apple_pay"
+  | "google_pay"
+  | "klarna"
+  | "afterpay"
   | "bank_transfer"
   | "payment_plans"
   | "otro";
 
+/**
+ * Gate 2D — Apple Pay, Google Pay, Klarna, and Afterpay added because the platform already has a
+ * canonical, installed brand-icon asset for each (`react-icons/si`: SiApplepay, SiGooglepay,
+ * SiKlarna, SiAfterpay — the real Simple Icons brand marks, not a fabricated logo). Affirm was
+ * requested too but has NO canonical icon anywhere in the installed dependency tree — it is
+ * deliberately NOT added rather than inventing a logo (see Gate 2D report).
+ */
 export const CLASES_PAYMENT_METHOD_ORDER = [
   "cash",
   "credit_debit_card",
@@ -28,6 +39,10 @@ export const CLASES_PAYMENT_METHOD_ORDER = [
   "venmo",
   "cash_app",
   "paypal",
+  "apple_pay",
+  "google_pay",
+  "klarna",
+  "afterpay",
   "check",
   "bank_transfer",
   "payment_plans",
@@ -47,6 +62,10 @@ const LABELS: Record<ClasesPaymentMethodId, { es: string; en: string }> = {
   venmo: { es: "Venmo", en: "Venmo" },
   cash_app: { es: "Cash App", en: "Cash App" },
   paypal: { es: "PayPal", en: "PayPal" },
+  apple_pay: { es: "Apple Pay", en: "Apple Pay" },
+  google_pay: { es: "Google Pay", en: "Google Pay" },
+  klarna: { es: "Klarna", en: "Klarna" },
+  afterpay: { es: "Afterpay", en: "Afterpay" },
   bank_transfer: { es: "Transferencia bancaria", en: "Bank transfer" },
   payment_plans: { es: "Planes de pago", en: "Payment plans" },
   otro: { es: "Otro", en: "Other" },
@@ -80,6 +99,8 @@ export function normalizePaymentMethods(raw: unknown): ClasesPaymentMethodId[] {
 export const CUSTOM_PAYMENT_OTHER_MAX = 48;
 
 type BrandId = "zelle" | "venmo" | "cash_app" | "paypal";
+/** Brands with a real react-icons/si logo — rendered as an actual brand icon, not a text pill. */
+type BrandIconId = "apple_pay" | "google_pay" | "klarna" | "afterpay";
 
 const BRAND_DETECT: ReadonlyArray<{ brand: BrandId; pattern: RegExp }> = [
   { brand: "zelle", pattern: /zelle/i },
@@ -87,6 +108,23 @@ const BRAND_DETECT: ReadonlyArray<{ brand: BrandId; pattern: RegExp }> = [
   { brand: "cash_app", pattern: /cash\s*app/i },
   { brand: "paypal", pattern: /pay\s*pal/i },
 ];
+
+const BRAND_ICON_DETECT: ReadonlyArray<{ brand: BrandIconId; pattern: RegExp }> = [
+  { brand: "apple_pay", pattern: /apple\s*pay/i },
+  { brand: "google_pay", pattern: /google\s*pay/i },
+  { brand: "klarna", pattern: /klarna/i },
+  { brand: "afterpay", pattern: /afterpay/i },
+];
+
+/** Detects a react-icons-backed brand inside a free-typed "otro" label. */
+export function detectClasesPaymentBrandIcon(customLabel: string): BrandIconId | null {
+  const text = customLabel.trim();
+  if (!text) return null;
+  for (const { brand, pattern } of BRAND_ICON_DETECT) {
+    if (pattern.test(text)) return brand;
+  }
+  return null;
+}
 
 /** Detects a known brand inside a free-typed "otro" label so it can render with the brand badge instead of a generic pill. */
 export function detectClasesPaymentBrand(customLabel: string): BrandId | null {
@@ -100,7 +138,8 @@ export function detectClasesPaymentBrand(customLabel: string): BrandId | null {
 
 export type ClasesPaymentMethodVisual =
   | { kind: "emoji"; emoji: string }
-  | { kind: "brandBadge"; brand: BrandId };
+  | { kind: "brandBadge"; brand: BrandId }
+  | { kind: "brandIcon"; brand: BrandIconId };
 
 export function getClasesPaymentMethodVisual(
   id: ClasesPaymentMethodId,
@@ -121,11 +160,21 @@ export function getClasesPaymentMethodVisual(
       return { kind: "brandBadge", brand: "cash_app" };
     case "paypal":
       return { kind: "brandBadge", brand: "paypal" };
+    case "apple_pay":
+      return { kind: "brandIcon", brand: "apple_pay" };
+    case "google_pay":
+      return { kind: "brandIcon", brand: "google_pay" };
+    case "klarna":
+      return { kind: "brandIcon", brand: "klarna" };
+    case "afterpay":
+      return { kind: "brandIcon", brand: "afterpay" };
     case "bank_transfer":
       return { kind: "emoji", emoji: "🏦" };
     case "payment_plans":
       return { kind: "emoji", emoji: "📅" };
     case "otro": {
+      const iconBrand = customLabel ? detectClasesPaymentBrandIcon(customLabel) : null;
+      if (iconBrand) return { kind: "brandIcon", brand: iconBrand };
       const brand = customLabel ? detectClasesPaymentBrand(customLabel) : null;
       return brand ? { kind: "brandBadge", brand } : { kind: "emoji", emoji: "✨" };
     }

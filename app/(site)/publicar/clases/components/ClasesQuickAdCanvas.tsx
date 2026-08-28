@@ -14,7 +14,7 @@ import type { ClasesQuickDraft } from "@/app/(site)/publicar/community/shared/ty
 import { CommunityContactCanvas } from "@/app/(site)/publicar/community/shared/preview/CommunityContactCanvas";
 import { buildClasesContactCanvasModel } from "@/app/(site)/publicar/clases/lib/buildClasesContactCanvasModel";
 import type { CommunityGlobalAnalyticsCtx } from "@/app/lib/clasificados/comunidad/comunidadClasesBuscoGlobalAnalytics";
-import { getActiveWeeklyScheduleGridItems } from "@/app/(site)/publicar/community/shared/lib/communityWeeklySchedule";
+import { formatTimeForDisplay, getActiveWeeklyScheduleGridItems } from "@/app/(site)/publicar/community/shared/lib/communityWeeklySchedule";
 import {
   cityStateZipLine,
   pickMainHeroImage,
@@ -41,13 +41,17 @@ const COPY = {
     registration: "Registro",
     schedule: "Horario de la clase",
     description: "Descripción",
-    bring: "Qué deben saber los alumnos / materiales",
     paidNotice:
       "Esta clase tiene costo para el estudiante. La tarifa de anuncio Leonix es de $24.99 por 30 días; esa activación de pago aún no está disponible aquí.",
     online: "En línea",
     dateRange: "Fechas del curso",
     paymentMethods: "Pagos aceptados",
     leonixFee: "Tarifa de anuncio Leonix",
+    oneTimeLabel: "Clase única",
+    ongoingLabel: "Continua",
+    bringOnly: "Qué llevar",
+    materials: "Materiales / equipo",
+    requirements: "Requisitos / antes de asistir",
   },
   en: {
     organizer: "Instructor / organizer",
@@ -59,13 +63,17 @@ const COPY = {
     registration: "Registration",
     schedule: "Class schedule",
     description: "Description",
-    bring: "What students should know / materials",
     paidNotice:
       "This class has a cost for the student. The Leonix listing fee is $24.99 per 30 days; that paid activation isn't available here yet.",
     online: "Online",
     dateRange: "Course dates",
     paymentMethods: "Accepted payments",
     leonixFee: "Leonix listing fee",
+    oneTimeLabel: "One-time class",
+    ongoingLabel: "Ongoing",
+    bringOnly: "What to bring",
+    materials: "Materials / equipment",
+    requirements: "Requirements / before you attend",
   },
 } as const;
 
@@ -127,9 +135,13 @@ export function ClasesQuickAdCanvas({
   const schedLang = lang === "en" ? "en" : "es";
   const scheduleRows = getActiveWeeklyScheduleGridItems(draft.weeklySchedule, schedLang);
 
+  const audienceSlugs = draft.audiences.length > 0 ? draft.audiences : [draft.audience].filter(Boolean);
+  const audienceLabels = audienceSlugs.map((a) => labelCommunityAudience(a, lang));
+  const audienceSummary = audienceLabels.join(" + ");
+
   const levelParts: string[] = [];
   if (draft.skillLevel) levelParts.push(labelClasesSkillLevel(draft.skillLevel, lang));
-  if (draft.audience) levelParts.push(labelCommunityAudience(draft.audience, lang));
+  if (audienceSummary) levelParts.push(audienceSummary);
   const levelSummary = levelParts.join(" · ");
 
   const categorySlugs = draft.categories.length > 0 ? draft.categories : [draft.category].filter(Boolean);
@@ -139,16 +151,23 @@ export function ClasesQuickAdCanvas({
 
   const chips: string[] = [...categoryLabels];
   chips.push(modeLabel);
-  if (draft.audience) chips.push(labelCommunityAudience(draft.audience, lang));
+  /** Cap audience chips shown to avoid chip soup — full list still shows in the info grid. */
+  if (audienceLabels.length > 0) chips.push(audienceLabels.slice(0, 2).join(" + "));
   if (draft.skillLevel) chips.push(labelClasesSkillLevel(draft.skillLevel, lang));
   if (locationDisplay) chips.push(locationDisplay);
   chips.push(clasesCostLabel(draft.classCostType, lang));
   if (registrationLabel) chips.push(registrationLabel);
 
+  const isOneTime = draft.scheduleMode === "one_time";
   const dateRangeLine = [draft.startDate.trim(), draft.endDate.trim()]
     .filter(Boolean)
     .map((iso) => formatLongClassDate(iso, lang))
     .join(" → ");
+  const oneTimeDateLine = formatLongClassDate(draft.oneTimeDate.trim(), lang);
+  const oneTimeTimeLine = [draft.oneTimeStart.trim(), draft.oneTimeEnd.trim()]
+    .filter(Boolean)
+    .map((t2) => formatTimeForDisplay(t2, schedLang))
+    .join(" – ");
 
   const infoItems = [
     { key: "city", label: t.publicCity, value: locationDisplay },
@@ -237,15 +256,31 @@ export function ClasesQuickAdCanvas({
           testId="community-premium-description"
         />
 
-        {dateRangeLine ? (
-          <p className="text-sm font-medium text-[#5C564E]">
-            <span className="font-bold text-[#2A2826]">{t.dateRange}:</span> {dateRangeLine}
-          </p>
-        ) : null}
+        {isOneTime ? (
+          <div className="rounded-xl border border-[#C9B46A]/35 bg-white/70 p-3 sm:p-4">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-[#7B2D42]">
+              {t.oneTimeLabel}
+            </p>
+            {oneTimeDateLine ? (
+              <p className="mt-1 text-base font-bold text-[#2A2826]">{oneTimeDateLine}</p>
+            ) : null}
+            {oneTimeTimeLine ? (
+              <p className="mt-0.5 text-sm text-[#5C564E]">{oneTimeTimeLine}</p>
+            ) : null}
+          </div>
+        ) : (
+          <>
+            <p className="text-sm font-medium text-[#5C564E]">
+              <span className="font-bold text-[#2A2826]">{t.dateRange}:</span>{" "}
+              {dateRangeLine || t.ongoingLabel}
+            </p>
+            <CommunityPremiumScheduleCard title={t.schedule} rows={scheduleRows} lang={lang} />
+          </>
+        )}
 
-        <CommunityPremiumScheduleCard title={t.schedule} rows={scheduleRows} lang={lang} />
-
-        <CommunityPremiumTextCard title={t.bring} body={draft.bringNote} testId="community-premium-bring" />
+        <CommunityPremiumTextCard title={t.bringOnly} body={draft.bringNote} testId="community-premium-bring" />
+        <CommunityPremiumTextCard title={t.materials} body={draft.materialsNote} testId="community-premium-materials" />
+        <CommunityPremiumTextCard title={t.requirements} body={draft.requirementsNote} testId="community-premium-requirements" />
 
         {draft.paymentMethods.length > 0 || isPaid ? (
           <div className="rounded-xl border border-[#C9B46A]/40 bg-white/70 px-4 py-3">

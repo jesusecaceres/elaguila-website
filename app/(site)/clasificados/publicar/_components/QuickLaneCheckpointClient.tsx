@@ -113,6 +113,9 @@ export function QuickLaneCheckpointClient({
   const withLang = (path: string) => withClasificadosPublishLang(path, routeLang);
   const copy = PAGE_COPY[category][lang === "es" ? "es" : "en"];
   const cards = useMemo(() => buildCards(category, lang, withLang), [category, lang, routeLang]);
+  // Gate 2D — owner-QA debt: Comunidad/Clases card faces lean out (full copy stays in "Ver más").
+  // Every other lane (Busco, Mascotas, En Venta, Comida Local, Viajes) keeps its exact prior layout.
+  const compact = category === "comunidad" || category === "clases";
 
   return (
     <PublishEntryCheckpointLayout
@@ -122,7 +125,7 @@ export function QuickLaneCheckpointClient({
       checkpointCategory={category}
       launchBannerCards={cards}
     >
-      <PublishEntryCheckpointStack cards={cards} lang={lang} />
+      <PublishEntryCheckpointStack cards={cards} lang={lang} compact={compact} />
     </PublishEntryCheckpointLayout>
   );
 }

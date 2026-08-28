@@ -96,12 +96,20 @@ export function buildClasesDiscoveryCardModel(
   }
   const modeRaw = (pairs["Leonix:mode"] ?? "").trim();
   const modeL = quick && modeRaw ? clasesModeLabel(modeRaw, lang) : "";
-  const aud = pairs["Leonix:audience"] ? labelCommunityAudience(pairs["Leonix:audience"], lang) : "";
+  const audRaw = (pairs["Leonix:audiences"] ?? "").trim();
+  const audSlugs = audRaw
+    ? audRaw.split(",").map((s) => s.trim()).filter(Boolean)
+    : [pairs["Leonix:audience"] ?? ""].filter(Boolean);
+  /** Concise subset for the result card — avoid audience chip soup. */
+  const aud = audSlugs.slice(0, 2).map((a) => labelCommunityAudience(a, lang)).join(" + ");
   const lvl = pairs["Leonix:skillLevel"] ? labelClasesSkillLevel(pairs["Leonix:skillLevel"], lang) : "";
-  const dr = [pairs["Leonix:classStartDate"], pairs["Leonix:classEndDate"]]
-    .filter(Boolean)
-    .map((iso) => formatShortClassDate(String(iso), lang))
-    .join(" → ");
+  const isOneTime = (pairs["Leonix:scheduleMode"] ?? "").trim() === "one_time";
+  const dr = isOneTime
+    ? formatShortClassDate(String(pairs["Leonix:oneTimeDate"] ?? ""), lang)
+    : [pairs["Leonix:classStartDate"], pairs["Leonix:classEndDate"]]
+        .filter(Boolean)
+        .map((iso) => formatShortClassDate(String(iso), lang))
+        .join(" → ");
   const secondary = [modeL, dr, aud, lvl].filter(Boolean).join(" · ") || null;
 
   return {
@@ -156,12 +164,16 @@ export function buildClasesDiscoveryCardModelFromDraft(
   }
   const modeRaw = draft.mode.trim();
   const modeL = modeRaw ? clasesModeLabel(modeRaw, lang) : "";
-  const aud = draft.audience ? labelCommunityAudience(draft.audience, lang) : "";
+  const draftAudSlugs = draft.audiences.length > 0 ? draft.audiences : [draft.audience].filter(Boolean);
+  const aud = draftAudSlugs.slice(0, 2).map((a) => labelCommunityAudience(a, lang)).join(" + ");
   const lvl = draft.skillLevel ? labelClasesSkillLevel(draft.skillLevel, lang) : "";
-  const dr = [draft.startDate.trim(), draft.endDate.trim()]
-    .filter(Boolean)
-    .map((iso) => formatShortClassDate(iso, lang))
-    .join(" → ");
+  const dr =
+    draft.scheduleMode === "one_time"
+      ? formatShortClassDate(draft.oneTimeDate.trim(), lang)
+      : [draft.startDate.trim(), draft.endDate.trim()]
+          .filter(Boolean)
+          .map((iso) => formatShortClassDate(iso, lang))
+          .join(" → ");
   const secondary = [modeL, dr, aud, lvl].filter(Boolean).join(" · ") || null;
 
   return {

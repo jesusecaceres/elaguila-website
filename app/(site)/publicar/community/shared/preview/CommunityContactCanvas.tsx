@@ -1,10 +1,8 @@
 "use client";
 
 import type { ComponentType } from "react";
-import { useState } from "react";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
-import { EmailContactOptionsSheet } from "@/app/components/clasificados/EmailContactOptionsSheet";
 import {
   digitsOnly,
   formatPhoneInputDisplay,
@@ -185,7 +183,6 @@ export function CommunityContactCanvas({
   model: CommunityContactCanvasModel;
 }) {
   const t = model.labels;
-  const [emailOpen, setEmailOpen] = useState(false);
   const smsBody = model.smsBody;
   const mailSub = model.mailSubject;
   const telHref = buildTelHref(draft.phone);
@@ -279,7 +276,7 @@ export function CommunityContactCanvas({
     return groups;
   })();
 
-  const hasContactActions = !!(telHref || waHref || smsHref || email);
+  const hasContactActions = !!(telHref || waHref || smsHref || mailHref);
   const hasPhysicalLocation = !!(draft.venue.trim() || draft.addressLine1.trim() || cityStateZip);
   const hasOnlineLocation = Boolean(locationOnlineLabel?.trim()) && !hasPhysicalLocation;
   const hasLocation = hasPhysicalLocation || hasOnlineLocation;
@@ -352,16 +349,16 @@ export function CommunityContactCanvas({
                   {t.text}
                 </a>
               ) : null}
-              {email ? (
-                <button
-                  type="button"
+              {mailHref ? (
+                <a
+                  href={mailHref}
                   className={btnPrimaryClass()}
                   style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.goldBorder}` }}
-                  onClick={() => { setEmailOpen(true); analyticsCtx && trackCommunityEmailClick(analyticsCtx); }}
+                  onClick={() => analyticsCtx && trackCommunityEmailClick(analyticsCtx)}
                 >
                   <FiMail className="h-4 w-4 shrink-0" aria-hidden />
                   {t.email}
-                </button>
+                </a>
               ) : null}
             </div>
           </div>
@@ -553,17 +550,6 @@ export function CommunityContactCanvas({
         ) : null}
 
       </div>
-
-      {email ? (
-        <EmailContactOptionsSheet
-          open={emailOpen}
-          onClose={() => setEmailOpen(false)}
-          email={email}
-          lang={lang}
-          mailtoHref={mailHref}
-          mailtoSubject={mailSub}
-        />
-      ) : null}
     </section>
   );
 }

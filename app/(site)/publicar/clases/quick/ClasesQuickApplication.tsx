@@ -59,8 +59,10 @@ import {
   emptyClasesQuickDraft,
   normalizeClasesQuickDraft,
   MAX_CLASES_CATEGORIES,
+  MAX_CLASES_AUDIENCES,
   type ClasesPriceFrequency,
   type ClasesQuickDraft,
+  type ClasesScheduleMode,
 } from "@/app/(site)/publicar/community/shared/types/communityQuickDraft";
 import {
   ctaLabels,
@@ -311,19 +313,42 @@ function ClasesQuickApplicationBody({
                 onChange={(e) => patch({ description: e.target.value })}
               />
             </label>
-            <label className="block text-sm">
-              <EmpleosFieldLabel lang={lang} required>
-                {copy.fields.audience}
-              </EmpleosFieldLabel>
-              <select className={INPUT} value={state.audience} onChange={(e) => patch({ audience: e.target.value })}>
-                <option value="">{lang === "es" ? "— Selecciona —" : "— Select —"}</option>
-                {COMMUNITY_AUDIENCE_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {lang === "en" ? o.labelEn : o.labelEs}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <fieldset>
+              <legend className="text-sm font-semibold text-[color:var(--lx-text)]">
+                {copy.fields.audience} *
+              </legend>
+              <p className="mt-1 text-xs text-[color:var(--lx-text-2)]">{copy.fields.audiencesHelper}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {COMMUNITY_AUDIENCE_OPTIONS.map((o) => {
+                  const checked = state.audiences.includes(o.value);
+                  const atMax = state.audiences.length >= MAX_CLASES_AUDIENCES;
+                  return (
+                    <label
+                      key={o.value}
+                      className={`inline-flex min-h-[36px] cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-xs ${
+                        checked
+                          ? "border-[color:var(--lx-cta-dark)]/50 bg-[color:var(--lx-cta-dark)]/10"
+                          : "border-black/10 bg-white"
+                      } ${!checked && atMax ? "opacity-40" : ""}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={!checked && atMax}
+                        onChange={() => {
+                          const next = checked
+                            ? state.audiences.filter((a) => a !== o.value)
+                            : [...state.audiences, o.value].slice(0, MAX_CLASES_AUDIENCES);
+                          patch({ audiences: next, audience: next[0] ?? "" });
+                        }}
+                        className="h-3.5 w-3.5 rounded border-black/20"
+                      />
+                      {lang === "en" ? o.labelEn : o.labelEs}
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
             <label className="block text-sm">
               <EmpleosFieldLabel lang={lang} required>
                 {copy.fields.skillLevel}
@@ -358,10 +383,35 @@ function ClasesQuickApplicationBody({
               <EmpleosFieldLabel lang={lang} optional>
                 {copy.fields.bringNote}
               </EmpleosFieldLabel>
+              <p className="mb-1 text-xs text-[color:var(--lx-text-2)]">{copy.fields.bringNoteHelper}</p>
               <textarea
                 className={`${INPUT} min-h-[120px]`}
                 value={state.bringNote}
                 onChange={(e) => patch({ bringNote: e.target.value })}
+                placeholder={lang === "es" ? "Opcional" : "Optional"}
+              />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.materialsNote}
+              </EmpleosFieldLabel>
+              <p className="mb-1 text-xs text-[color:var(--lx-text-2)]">{copy.fields.materialsNoteHelper}</p>
+              <textarea
+                className={`${INPUT} min-h-[120px]`}
+                value={state.materialsNote}
+                onChange={(e) => patch({ materialsNote: e.target.value })}
+                placeholder={lang === "es" ? "Opcional" : "Optional"}
+              />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.requirementsNote}
+              </EmpleosFieldLabel>
+              <p className="mb-1 text-xs text-[color:var(--lx-text-2)]">{copy.fields.requirementsNoteHelper}</p>
+              <textarea
+                className={`${INPUT} min-h-[120px]`}
+                value={state.requirementsNote}
+                onChange={(e) => patch({ requirementsNote: e.target.value })}
                 placeholder={lang === "es" ? "Opcional" : "Optional"}
               />
             </label>
@@ -564,60 +614,122 @@ function ClasesQuickApplicationBody({
                 ))}
               </div>
             </fieldset>
-            <div className="mt-4 space-y-3">
-              <EmpleosFieldLabel lang={lang} required>
-                {copy.fields.weeklySchedule}
-              </EmpleosFieldLabel>
-              <ClasesScheduleQuickApply
-                lang={lang}
-                rows={state.weeklySchedule}
-                onApply={(days, open, close) =>
-                  patch({
-                    weeklySchedule: state.weeklySchedule.map((r) =>
-                      days.includes(r.day) ? { ...r, closed: false, open, close } : r,
-                    ),
-                  })
-                }
-              />
-              <WeeklyScheduleEditor
-                lang={lang}
-                rows={state.weeklySchedule}
-                closedLabel={copy.fields.weeklyClosed}
-                helperText={copy.fields.weeklyHelper}
-                onPatchDay={(day: DayKey, pr) =>
-                  patch({
-                    weeklySchedule: state.weeklySchedule.map((r) =>
-                      r.day === day ? { ...r, ...pr } : r,
-                    ),
-                  })
-                }
-              />
-            </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <label className="block text-sm">
-                <EmpleosFieldLabel lang={lang} optional>
-                  {copy.fields.startDate}
-                </EmpleosFieldLabel>
-                <input
-                  type="date"
-                  className={INPUT}
-                  value={state.startDate}
-                  onChange={(e) => patch({ startDate: e.target.value })}
-                />
-              </label>
-              <label className="block text-sm">
-                <EmpleosFieldLabel lang={lang} optional>
-                  {copy.fields.endDate}
-                </EmpleosFieldLabel>
-                <input
-                  type="date"
-                  className={INPUT}
-                  value={state.endDate}
-                  onChange={(e) => patch({ endDate: e.target.value })}
-                />
-              </label>
-            </div>
-            <p className="mt-1 text-xs text-[color:var(--lx-text-2)]">{copy.fields.dateRangeHelper}</p>
+            <fieldset className="mt-4">
+              <legend className="text-sm font-semibold text-[color:var(--lx-text)]">
+                {copy.fields.scheduleMode} *
+              </legend>
+              <p className="mt-1 text-xs text-[color:var(--lx-text-2)]">{copy.fields.scheduleModeHelper}</p>
+              <div className="mt-2 flex flex-wrap gap-4 text-sm">
+                {(["recurring", "one_time"] as const).map((value) => (
+                  <label key={value} className="inline-flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="clases-schedule-mode"
+                      checked={state.scheduleMode === value}
+                      onChange={() => patch({ scheduleMode: value as ClasesScheduleMode })}
+                    />
+                    {value === "recurring" ? copy.fields.scheduleModeRecurring : copy.fields.scheduleModeOneTime}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            {state.scheduleMode === "one_time" ? (
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <label className="block text-sm">
+                  <EmpleosFieldLabel lang={lang} required>
+                    {copy.fields.oneTimeDate}
+                  </EmpleosFieldLabel>
+                  <input
+                    type="date"
+                    className={INPUT}
+                    value={state.oneTimeDate}
+                    onChange={(e) => patch({ oneTimeDate: e.target.value })}
+                  />
+                </label>
+                <label className="block text-sm">
+                  <EmpleosFieldLabel lang={lang} required>
+                    {copy.fields.oneTimeStart}
+                  </EmpleosFieldLabel>
+                  <input
+                    type="time"
+                    className={INPUT}
+                    value={state.oneTimeStart}
+                    onChange={(e) => patch({ oneTimeStart: e.target.value })}
+                  />
+                </label>
+                <label className="block text-sm">
+                  <EmpleosFieldLabel lang={lang} required>
+                    {copy.fields.oneTimeEnd}
+                  </EmpleosFieldLabel>
+                  <input
+                    type="time"
+                    className={INPUT}
+                    value={state.oneTimeEnd}
+                    onChange={(e) => patch({ oneTimeEnd: e.target.value })}
+                  />
+                </label>
+              </div>
+            ) : (
+              <>
+                <div className="mt-4 space-y-3">
+                  <EmpleosFieldLabel lang={lang} required>
+                    {copy.fields.weeklySchedule}
+                  </EmpleosFieldLabel>
+                  <ClasesScheduleQuickApply
+                    lang={lang}
+                    rows={state.weeklySchedule}
+                    onApply={(days, open, close) =>
+                      patch({
+                        weeklySchedule: state.weeklySchedule.map((r) =>
+                          days.includes(r.day) ? { ...r, closed: false, open, close } : r,
+                        ),
+                      })
+                    }
+                  />
+                  <WeeklyScheduleEditor
+                    lang={lang}
+                    rows={state.weeklySchedule}
+                    closedLabel={copy.fields.weeklyClosed}
+                    helperText={copy.fields.weeklyHelper}
+                    onPatchDay={(day: DayKey, pr) =>
+                      patch({
+                        weeklySchedule: state.weeklySchedule.map((r) =>
+                          r.day === day ? { ...r, ...pr } : r,
+                        ),
+                      })
+                    }
+                  />
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <label className="block text-sm">
+                    <EmpleosFieldLabel lang={lang} optional>
+                      {copy.fields.startDate}
+                    </EmpleosFieldLabel>
+                    <input
+                      type="date"
+                      className={INPUT}
+                      value={state.startDate}
+                      onChange={(e) => patch({ startDate: e.target.value })}
+                    />
+                  </label>
+                  <label className="block text-sm">
+                    <EmpleosFieldLabel lang={lang} optional>
+                      {copy.fields.endDate}
+                    </EmpleosFieldLabel>
+                    <input
+                      type="date"
+                      className={INPUT}
+                      value={state.endDate}
+                      onChange={(e) => patch({ endDate: e.target.value })}
+                    />
+                  </label>
+                </div>
+                <p className="mt-1 text-xs text-[color:var(--lx-text-2)]">
+                  {state.startDate.trim() || state.endDate.trim() ? copy.fields.dateRangeHelper : copy.fields.ongoingHelper}
+                </p>
+              </>
+            )}
           </EmpleosSectionCard>
 
           <EmpleosSectionCard title={copy.sections.cta}>
