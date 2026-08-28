@@ -267,6 +267,13 @@ export const COMERCIAL_DESTACADOS_DEFS: ReadonlyArray<{ id: ComercialDestacadoId
   { id: "area_almacen", label: "Área de almacén" },
 ];
 
+/** Excludes ids already captured by their own standalone checkbox elsewhere in the same step
+ * (e.g. "Acceso de carga"), so the highlights grid doesn't offer the same fact twice. */
+const COMERCIAL_DESTACADOS_STANDALONE_IDS = new Set<ComercialDestacadoId>(["acceso_carga"]);
+export const COMERCIAL_DESTACADOS_CHECKLIST_DEFS = COMERCIAL_DESTACADOS_DEFS.filter(
+  (d) => !COMERCIAL_DESTACADOS_STANDALONE_IDS.has(d.id),
+);
+
 export const COMERCIAL_DESTACADO_EN: Record<ComercialDestacadoId, string> = {
   recepcion: "Reception",
   elevador: "Elevator",
@@ -290,7 +297,11 @@ export type TerrenoDestacadoId =
   | "destacado_agricola"
   | "destacado_comercial"
   | "listo_construir"
-  | "cerca_servicios";
+  | "cerca_servicios"
+  | "fosa_septica"
+  | "electricidad_disponible"
+  | "agua_disponible"
+  | "drenaje_disponible";
 
 export const TERRENO_DESTACADOS_DEFS: ReadonlyArray<{ id: TerrenoDestacadoId; label: string }> = [
   { id: "pozo", label: "Pozo" },
@@ -303,7 +314,19 @@ export const TERRENO_DESTACADOS_DEFS: ReadonlyArray<{ id: TerrenoDestacadoId; la
   { id: "destacado_comercial", label: "Uso comercial viable" },
   { id: "listo_construir", label: "Listo para construir" },
   { id: "cerca_servicios", label: "Cerca de servicios" },
+  { id: "fosa_septica", label: "Fosa séptica" },
+  { id: "electricidad_disponible", label: "Electricidad disponible" },
+  { id: "agua_disponible", label: "Agua disponible" },
+  { id: "drenaje_disponible", label: "Drenaje disponible" },
 ];
+
+/** Excludes ids already captured by their own standalone checkbox elsewhere in the same step
+ * (e.g. "Listo para construir", "Cercado"), so the highlights grid doesn't offer the same fact
+ * twice. */
+const TERRENO_DESTACADOS_STANDALONE_IDS = new Set<TerrenoDestacadoId>(["cercado", "listo_construir"]);
+export const TERRENO_DESTACADOS_CHECKLIST_DEFS = TERRENO_DESTACADOS_DEFS.filter(
+  (d) => !TERRENO_DESTACADOS_STANDALONE_IDS.has(d.id),
+);
 
 export const TERRENO_DESTACADO_EN: Record<TerrenoDestacadoId, string> = {
   pozo: "Well",
@@ -316,6 +339,10 @@ export const TERRENO_DESTACADO_EN: Record<TerrenoDestacadoId, string> = {
   destacado_comercial: "Commercial potential",
   listo_construir: "Ready to build",
   cerca_servicios: "Near utilities / services",
+  fosa_septica: "Septic system",
+  electricidad_disponible: "Power available",
+  agua_disponible: "Water available",
+  drenaje_disponible: "Sewer available",
 };
 
 export function normalizeComercialTipoCodigo(raw: unknown): ComercialTipoCodigo {

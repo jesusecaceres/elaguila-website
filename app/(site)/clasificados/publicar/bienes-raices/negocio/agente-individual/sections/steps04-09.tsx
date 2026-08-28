@@ -14,7 +14,7 @@ import {
   sanitizeBusinessExtraLinksForDraft,
   type BienesAdditionalBusinessLink,
 } from "../../application/bienesAdditionalBusinessLinks";
-import { COMERCIAL_DESTACADOS_DEFS, TERRENO_DESTACADOS_DEFS } from "../schema/agenteComercialTerrenoMeta";
+import { COMERCIAL_DESTACADOS_CHECKLIST_DEFS, TERRENO_DESTACADOS_CHECKLIST_DEFS } from "../schema/agenteComercialTerrenoMeta";
 import { AiField, aiCardClass, aiInputClass, aiSubClass, aiTextareaClass, aiTitleClass } from "../application/formPrimitives";
 import { readFileAsDataUrl } from "../application/utils/readFileAsDataUrl";
 import { digitsOnly, formatUsPhoneDisplay, onPhoneInputChange } from "../application/utils/phoneMask";
@@ -357,7 +357,7 @@ export function Step05Caracteristicas({
             ))
           : null}
         {cat === "comercial"
-          ? COMERCIAL_DESTACADOS_DEFS.map((def) => (
+          ? COMERCIAL_DESTACADOS_CHECKLIST_DEFS.map((def) => (
               <label key={def.id} className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm">
                 <input
                   type="checkbox"
@@ -375,7 +375,7 @@ export function Step05Caracteristicas({
             ))
           : null}
         {cat === "terreno_lote"
-          ? TERRENO_DESTACADOS_DEFS.map((def) => (
+          ? TERRENO_DESTACADOS_CHECKLIST_DEFS.map((def) => (
               <label key={def.id} className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm">
                 <input
                   type="checkbox"
