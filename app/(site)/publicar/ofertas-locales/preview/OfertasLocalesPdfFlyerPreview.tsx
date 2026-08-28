@@ -6,6 +6,9 @@ import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertas
 import { OFERTAS_LOCALES_PREVIEW_COPY } from "./ofertasLocalesPreviewCopy";
 import { acquireSharedPdfPage, releaseSharedPdfDocument } from "./ofertasLocalesPdfDocumentCache";
 
+const NAV_BTN =
+  "inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-[#D4C4A8] bg-white px-3 py-2 text-xs font-semibold text-[#1E1814] transition hover:border-[#7A1E2C]/40 disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-11 sm:px-4 sm:text-sm";
+
 export function OfertasLocalesPdfFlyerPreview({
   pdfUrl,
   lang,
@@ -85,35 +88,22 @@ export function OfertasLocalesPdfFlyerPreview({
     };
   }, [pdfUrl, currentPage, lang, c.flyerRenderFailedEn, c.flyerRenderFailedEs]);
 
-  // Substantially larger + less dead whitespace than the prior fixed caps —
-  // the flyer is the primary reason a shopper opens this page.
-  const mobileMaxH = compactMobile ? "max-h-[420px]" : "max-h-[560px]";
-  const desktopMaxH = "sm:max-h-[680px] lg:max-h-[760px]";
-  const hasMultiplePages = (pageCount ?? 1) > 1;
+  // Uses the full width of its container (no more max-w-2xl/3xl wrapper one
+  // level up) and a viewport-relative height cap so the rendered flyer scales
+  // with real available space instead of a small fixed pixel ceiling.
+  const mobileMaxH = compactMobile ? "max-h-[55vh]" : "max-h-[65vh]";
+  const desktopMaxH = "sm:max-h-[75vh] lg:max-h-[82vh]";
 
-  function goToPage(e: React.MouseEvent, next: number) {
-    // The whole card is a click-to-zoom control (see OfertasLocalesPreviewHeroVisual)
-    // — page-nav clicks must not bubble up and open the full-screen viewer instead.
-    e.stopPropagation();
+  function goToPage(next: number) {
     setCurrentPage((prev) => Math.min(Math.max(1, next), pageCount ?? prev));
   }
 
   return (
-    <div
-      ref={containerRef}
-      className={`relative w-full overflow-hidden bg-[#FDF8F0]/80 p-1.5 sm:p-3 ${compactMobile ? "max-h-[440px] sm:max-h-none" : ""}`}
-    >
-      <div className="mb-1 flex items-center justify-between gap-2 sm:mb-2">
-        <p className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-wide text-[#B8860B] sm:text-[10px]">
-          <FiFileText className="h-3 w-3 sm:h-3.5 sm:w-3.5" aria-hidden />
-          {lang === "en" ? c.flyerPreviewEn : c.flyerPreviewEs}
-        </p>
-        {hasMultiplePages ? (
-          <span className="text-[9px] font-semibold uppercase tracking-wide text-[#1E1814]/55 sm:text-[10px]">
-            {lang === "en" ? "Page" : "Página"} {currentPage} {lang === "en" ? "of" : "de"} {pageCount}
-          </span>
-        ) : null}
-      </div>
+    <div ref={containerRef} className="w-full overflow-hidden bg-[#FDF8F0]/80 p-1.5 sm:p-3">
+      <p className="mb-1 flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-wide text-[#B8860B] sm:mb-2 sm:text-[10px]">
+        <FiFileText className="h-3 w-3 sm:h-3.5 sm:w-3.5" aria-hidden />
+        {lang === "en" ? c.flyerPreviewEn : c.flyerPreviewEs}
+      </p>
       {rendering && !error ? (
         <div
           className={`flex items-center justify-center rounded-lg border border-[#D4C4A8]/60 bg-white/80 px-3 py-8 text-center sm:px-4 sm:py-12 ${mobileMaxH} ${desktopMaxH} ${compactMobile ? "min-h-[160px]" : "min-h-[260px]"}`}
@@ -133,37 +123,38 @@ export function OfertasLocalesPdfFlyerPreview({
           ) : null}
         </div>
       ) : (
-        <div className="relative">
-          <canvas
-            ref={canvasRef}
-            className={`mx-auto w-full rounded-lg object-contain ${mobileMaxH} ${desktopMaxH} ${
-              rendering ? "hidden" : "block"
-            }`}
-          />
-          {!rendering && hasMultiplePages ? (
-            <>
-              <button
-                type="button"
-                aria-label={lang === "en" ? "Previous page" : "Página anterior"}
-                disabled={currentPage <= 1}
-                onClick={(e) => goToPage(e, currentPage - 1)}
-                className="absolute left-1 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-[#D4C4A8]/80 bg-white/90 text-[#1E1814] shadow-sm transition hover:border-[#7A1E2C]/40 disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:w-10"
-              >
-                <FiChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />
-              </button>
-              <button
-                type="button"
-                aria-label={lang === "en" ? "Next page" : "Página siguiente"}
-                disabled={currentPage >= (pageCount ?? currentPage)}
-                onClick={(e) => goToPage(e, currentPage + 1)}
-                className="absolute right-1 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-[#D4C4A8]/80 bg-white/90 text-[#1E1814] shadow-sm transition hover:border-[#7A1E2C]/40 disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:w-10"
-              >
-                <FiChevronRight className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />
-              </button>
-            </>
-          ) : null}
-        </div>
+        <canvas
+          ref={canvasRef}
+          className={`mx-auto w-full rounded-lg object-contain ${mobileMaxH} ${desktopMaxH} ${
+            rendering ? "hidden" : "block"
+          }`}
+        />
       )}
+      {pageCount != null && !error ? (
+        <div className="mt-3 flex items-center justify-between gap-2 border-t border-[#E8D9C4]/70 pt-3 sm:mt-4 sm:pt-4">
+          <button
+            type="button"
+            disabled={currentPage <= 1}
+            onClick={() => goToPage(currentPage - 1)}
+            className={NAV_BTN}
+          >
+            <FiChevronLeft className="h-4 w-4 shrink-0" aria-hidden />
+            {lang === "en" ? "Previous" : "Anterior"}
+          </button>
+          <span className="text-xs font-semibold text-[#1E1814]/70 sm:text-sm">
+            {lang === "en" ? "Page" : "Página"} {currentPage} {lang === "en" ? "of" : "de"} {pageCount}
+          </span>
+          <button
+            type="button"
+            disabled={currentPage >= pageCount}
+            onClick={() => goToPage(currentPage + 1)}
+            className={NAV_BTN}
+          >
+            {lang === "en" ? "Next" : "Siguiente"}
+            <FiChevronRight className="h-4 w-4 shrink-0" aria-hidden />
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

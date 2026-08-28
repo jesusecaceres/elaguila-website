@@ -40,6 +40,7 @@ const cropSrc = fs.readFileSync(`${previewDir}/OfertasPdfItemCropPreview.tsx`, "
 const flyerPreviewSrc = fs.readFileSync(`${previewDir}/OfertasLocalesPdfFlyerPreview.tsx`, "utf8");
 const modalSrc = fs.readFileSync(`${previewDir}/OfertasLocalesFlyerViewerModal.tsx`, "utf8");
 const heroVisualSrc = fs.readFileSync(`${previewDir}/OfertasLocalesPreviewHeroVisual.tsx`, "utf8");
+const copySrcPreview = fs.readFileSync(`${previewDir}/ofertasLocalesPreviewCopy.ts`, "utf8");
 const cardSrc = fs.readFileSync(`${previewDir}/OfertasLocalesPreviewCard.tsx`, "utf8");
 const clientSrc = fs.readFileSync(`${previewDir}/OfertasLocalesPreviewClient.tsx`, "utf8");
 const gridSrc = fs.readFileSync(`${previewDir}/OfertasLocalesPreviewProductGrid.tsx`, "utf8");
@@ -123,13 +124,15 @@ check("11", "Inline flyer preview also uses the shared cache (was its own indepe
   assert.doesNotMatch(flyerPreviewSrc, /pdfjs\.getDocument/);
 });
 
-check("12", "Flyer viewer enlarged (max-height caps raised, less dead whitespace padding)", () => {
-  assert.match(flyerPreviewSrc, /max-h-\[680px\]|max-h-\[760px\]/);
+check("12", "Inline flyer enlarged: full column width (no more max-w-2xl/3xl wrapper)", () => {
+  assert.doesNotMatch(cardSrc, /max-w-2xl lg:max-w-3xl/);
+  assert.match(cardSrc, /id="volante"[\s\S]{0,120}<div className="w-full">/);
 });
 
-check("13", "Flyer page navigation: previous/next arrows present", () => {
-  assert.match(flyerPreviewSrc, /FiChevronLeft/);
-  assert.match(flyerPreviewSrc, /FiChevronRight/);
+check("13", "Flyer page navigation: text-labeled Anterior/Siguiente buttons (not tiny floating icon-only arrows)", () => {
+  assert.match(flyerPreviewSrc, /"Previous" : "Anterior"/);
+  assert.match(flyerPreviewSrc, /"Next" : "Siguiente"/);
+  assert.doesNotMatch(flyerPreviewSrc, /absolute left-1 top-1\/2|absolute right-1 top-1\/2/);
 });
 
 check("14", "Flyer page navigation: shows 'Página X de Y'", () => {
@@ -137,16 +140,15 @@ check("14", "Flyer page navigation: shows 'Página X de Y'", () => {
   assert.match(flyerPreviewSrc, /currentPage[\s\S]*pageCount|pageCount[\s\S]*currentPage/);
 });
 
-check("15", "Page-nav clicks do not bubble into the click-to-zoom wrapper (stopPropagation)", () => {
-  assert.match(flyerPreviewSrc, /e\.stopPropagation\(\)/);
+check("15", "Inline page-nav has clear first/last disabled states (no bubbling concern — the whole-card click-to-zoom is gone)", () => {
+  assert.match(flyerPreviewSrc, /disabled=\{currentPage <= 1\}/);
+  assert.match(flyerPreviewSrc, /disabled=\{currentPage >= pageCount\}/);
 });
 
-check("16", "Click-to-zoom wrapper is no longer a <button> (would invalidly nest the new nav buttons)", () => {
-  const wrapperMatch = heroVisualSrc.match(/canOpenViewer \? \(\s*[\s\S]*?\{previewInner\}\s*<\/(div|button)>/);
-  assert.ok(wrapperMatch, "the click-to-zoom wrapper branch must exist");
-  assert.equal(wrapperMatch![1], "div", "wrapper must be a div, not a button, since it now contains nested nav buttons");
-  assert.match(wrapperMatch![0], /role="button"/);
-  assert.match(wrapperMatch![0], /onClick=\{onOpenViewer\}/);
+check("16", "No click-to-zoom wrapper on the inline flyer anymore (nothing is 'opened' there, so no X belongs on it either)", () => {
+  assert.doesNotMatch(heroVisualSrc, /canOpenViewer/);
+  assert.doesNotMatch(heroVisualSrc, /role="button"/);
+  assert.match(heroVisualSrc, /<div className=\{CARD\}>\{previewInner\}<\/div>/);
 });
 
 check("17", "Flyer viewer modal also uses the shared cache (was its own independent getDocument before)", () => {
@@ -192,23 +194,74 @@ check("24", "Membership CTA hides when no membership destination exists (same sh
   assert.match(cardSrc, /membershipHref={membershipHref}/);
 });
 
-check("25", "Email sits in a clean bordered contact box with address + Correo + Copiar correo", () => {
+check("25", "Email sits in a clean bordered contact box showing the address clearly labeled", () => {
   const emailBoxMatch = businessHubSrc.match(/contactEmail \? \(\s*<div className="mt-4[\s\S]*?<\/div>\s*\) : null/);
   assert.ok(emailBoxMatch, "the email box must exist");
   const box = emailBoxMatch![0];
   assert.match(box, /rounded-lg border/, "must be a visually distinct box, not a bare flex row");
+  assert.match(box, /c\.emailAddressLabelEn : c\.emailAddressLabelEs/, "must show a CORREO ELECTRÓNICO label");
   assert.match(box, /\{contactEmail\}/);
   assert.match(box, /c\.emailEn : c\.emailEs/);
-  assert.match(box, /c\.copyEmailEn/);
-  assert.match(box, /c\.copyEmailEs/);
 });
 
 check("26", "Email keeps native mailto behavior (a real <a href={mailtoHref}>, not a script-driven fetch)", () => {
-  assert.match(cardSrc, /<a href=\{mailtoHref\} className=\{BTN_OUTLINE\}>/);
+  assert.match(cardSrc, /<a href=\{mailtoHref\} className=\{cx\(BTN_PRIMARY, "mt-3"\)\}>/);
 });
 
-check("27", "Copy-email fallback preserved (clipboard write, independent of mailto)", () => {
-  assert.match(cardSrc, /navigator\.clipboard\.writeText\(contactEmail\)/);
+check("27", "'Copiar correo' fully removed — no clipboard fallback, no leftover copy key", () => {
+  assert.doesNotMatch(cardSrc, /navigator\.clipboard\.writeText\(contactEmail\)/);
+  assert.doesNotMatch(cardSrc, /copyEmailEn|copyEmailEs|emailCopied/);
+  assert.doesNotMatch(copySrcPreview, /copyEmailEs|copyEmailEn/);
+});
+
+check("33", "Correo CTA is bold/high-confidence (same solid-fill weight as BTN_PRIMARY, not a faint outline button)", () => {
+  assert.match(cardSrc, /<a href=\{mailtoHref\} className=\{cx\(BTN_PRIMARY, "mt-3"\)\}>\s*\n\s*\{lang === "en" \? c\.emailEn : c\.emailEs\}/);
+});
+
+check("34", "Mailto never crashes without a configured mail handler (plain native <a>, no JS click-handler/try-catch around it)", () => {
+  const emailBoxMatch = businessHubSrc.match(/contactEmail \? \(\s*<div className="mt-4[\s\S]*?<\/div>\s*\) : null/);
+  const box = emailBoxMatch![0];
+  assert.doesNotMatch(box, /onClick=\{.*mailto/i);
+});
+
+check("35", "Ver volante modal significantly enlarged (near-full-viewport width)", () => {
+  assert.match(modalSrc, /sm:max-w-4xl/);
+  assert.match(modalSrc, /lg:max-w-6xl/);
+  assert.doesNotMatch(modalSrc, /sm:max-w-2xl|lg:max-w-3xl/);
+});
+
+check("36", "Modal keeps its existing controls: X close, Anterior/Siguiente + Página X/Y, Descargar, Abrir en pestaña", () => {
+  assert.match(modalSrc, /<FiX className/);
+  assert.match(modalSrc, /"Prev page" : "Pág\. ant\."/);
+  assert.match(modalSrc, /"Next page" : "Pág\. sig\."/);
+  assert.match(modalSrc, /c\.downloadFlyerEn|c\.downloadCouponEn/);
+  assert.match(modalSrc, /c\.openInTabEn : c\.openInTabEs/);
+});
+
+check("37", "Membership CTA moved to Más información, styled bold (solid fill, font-bold — comparable to Google Business)", () => {
+  const moreInfoMatch = cardSrc.match(/hasMoreInfo \? \(\s*<HubCollapsibleGroup[\s\S]*?<\/HubCollapsibleGroup>\s*\) : null/);
+  assert.ok(moreInfoMatch, "the Más información group must exist");
+  const group = moreInfoMatch![0];
+  assert.match(group, /SocialLinkButton/, "Google Business must still render here");
+  assert.match(group, /showMembership && membershipHref \?/);
+  assert.match(group, /font-bold text-white/);
+  assert.match(group, /c\.membershipSignUpShortEn : c\.membershipSignUpShortEs/);
+});
+
+check("38", "Instrucciones CTA moved to Más información, styled bold (comparable to Google Business)", () => {
+  const moreInfoMatch = cardSrc.match(/hasMoreInfo \? \(\s*<HubCollapsibleGroup[\s\S]*?<\/HubCollapsibleGroup>\s*\) : null/);
+  const group = moreInfoMatch![0];
+  assert.match(group, /showMembership && membershipInstructions \?/);
+  assert.match(group, /bg-\[#B8860B\][\s\S]{0,40}font-bold text-white/);
+  assert.match(group, /c\.membershipInstructionsLabelEn : c\.membershipInstructionsLabelEs/);
+});
+
+check("39", "Membership CTA no longer duplicated in Contacto (moved, not copy-pasted twice)", () => {
+  const start = businessHubSrc.indexOf("{hasContact ? (");
+  const end = businessHubSrc.indexOf("{hasLocation ? (");
+  assert.ok(start >= 0 && end > start, "the Contacto group must exist before the Ubicación group");
+  const contactGroup = businessHubSrc.slice(start, end);
+  assert.doesNotMatch(contactGroup, /membershipSignUpShortEn/);
 });
 
 check("28", "Mailto is never treated as an HTTP request error (no fetch/error-status check wraps the mailto link)", () => {
