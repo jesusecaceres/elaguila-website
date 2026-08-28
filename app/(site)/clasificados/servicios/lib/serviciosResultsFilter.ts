@@ -225,7 +225,7 @@ function wireTrustMarketingHaystackNormalized(pj: ServiciosBusinessProfile): str
     }
     const customAmenities = pj.customAmenityOptions;
     if (Array.isArray(customAmenities)) {
-      for (const c of customAmenities) push(c);
+      for (const c of customAmenities) push(c.label);
     }
     return normalize(parts.join("\n"));
   } catch {
@@ -677,7 +677,7 @@ export function filterServiciosRowsByKeyword(
     }
 
     // Other secondary fields - use some() where possible
-    if ((pj.customAmenityOptions ?? []).some((c) => includesAnyNormalized(c, terms))) return true;
+    if ((pj.customAmenityOptions ?? []).some((c) => includesAnyNormalized(c.label, terms))) return true;
     if ((pj.businessHighlights ?? []).some((h) => includesAnyNormalized(h.label, terms))) return true;
     if ((profile.trust ?? []).some((t) => includesAnyNormalized(t.label, terms))) return true;
     if ((profile.quickFacts ?? []).some((f) => includesAnyNormalized(f.label, terms))) return true;

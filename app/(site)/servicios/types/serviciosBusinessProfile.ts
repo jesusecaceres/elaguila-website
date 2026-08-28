@@ -3,6 +3,8 @@
  * Map form/API fields into this shape; run through `resolveServiciosProfile` before rendering.
  */
 
+import type { ServiciosCustomAmenityEntry } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
+
 export type ServiciosLang = "es" | "en";
 
 export type ServiciosQuickFactKind =
@@ -123,6 +125,8 @@ export type ServiciosHoursSummary = {
   todayHoursLine?: string;
   /** Full week from the application — shown under the today line when present */
   weeklyRows?: ServiciosWeeklyHourRow[];
+  /** Optional freeform special-hours note (holidays, seasonal changes, by-appointment, etc.). */
+  note?: string;
 };
 
 export type ServiciosPromoOffer = {
@@ -326,8 +330,8 @@ export type ServiciosBusinessProfile = {
   customPaymentMethods?: string[];
   /** Standard amenity/option ids (Opciones y facilidades); sanitized at resolve */
   amenityOptionIds?: string[];
-  /** Custom amenity/option labels; sanitized at resolve */
-  customAmenityOptions?: string[];
+  /** Custom amenity/option entries, each tagged with its subgroup; sanitized at resolve */
+  customAmenityOptions?: ServiciosCustomAmenityEntry[];
   /** License, insurance, certifications (self-serve; not verified by Leonix). */
   credentials?: ServiciosCredentialsWire;
 };
@@ -369,6 +373,7 @@ export type ServiciosProfileResolved = {
       openNowLabel?: string;
       todayHoursLine?: string;
       weeklyRows?: ServiciosWeeklyHourRow[];
+      note?: string;
     };
     primaryCtaLabel?: string;
     secondaryCtaLabels?: string[];
@@ -418,8 +423,8 @@ export type ServiciosProfileResolved = {
   customPaymentMethods: string[];
   /** Whitelisted amenity option ids */
   amenityOptionIds: string[];
-  /** Sanitized custom amenity labels */
-  customAmenityOptions: string[];
+  /** Sanitized custom amenity entries, each tagged with its subgroup */
+  customAmenityOptions: ServiciosCustomAmenityEntry[];
   /** Active promotions (max 4); safe hrefs only */
   promotions: Array<{
     id: string;

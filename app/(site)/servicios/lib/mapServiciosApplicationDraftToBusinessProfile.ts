@@ -25,7 +25,7 @@ import {
   sanitizeServiciosPaymentMethodIds,
 } from "./serviciosPaymentMethodCatalog";
 import {
-  sanitizeCustomServiciosAmenityLabels,
+  sanitizeCustomServiciosAmenityEntries,
   sanitizeServiciosAmenityOptionIds,
 } from "./serviciosAmenitiesCatalog";
 import { sanitizeCertificationLabels } from "./serviciosCredentialsCatalog";
@@ -109,6 +109,7 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
 
   const openNow = trim(draft.contact?.hoursOpenNowLabel);
   const today = trim(draft.contact?.hoursTodayLine);
+  const hoursNote = trim(draft.contact?.hoursSpecialNote).slice(0, 240);
   const weeklyWire = (draft.contact?.weeklyHoursRows ?? [])
     .map((r) => ({
       dayLabel: trim(typeof r?.dayLabel === "string" ? r.dayLabel : ""),
@@ -120,9 +121,12 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
       openNowLabel: openNow,
       todayHoursLine: today,
       ...(weeklyWire.length ? { weeklyRows: weeklyWire } : {}),
+      ...(hoursNote ? { note: hoursNote } : {}),
     };
   } else if (weeklyWire.length >= 3) {
-    contact.hours = { weeklyRows: weeklyWire };
+    contact.hours = { weeklyRows: weeklyWire, ...(hoursNote ? { note: hoursNote } : {}) };
+  } else if (hoursNote) {
+    contact.hours = { note: hoursNote };
   }
 
   const primaryCta = trim(draft.contact?.primaryCtaLabel);
@@ -211,7 +215,7 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   const paymentMethodIds = sanitizeServiciosPaymentMethodIds(draft.paymentMethodIds);
   const customPaymentMethods = sanitizeCustomPaymentMethodLabels(draft.customPaymentMethods);
   const amenityOptionIds = sanitizeServiciosAmenityOptionIds(draft.amenityOptionIds);
-  const customAmenityOptions = sanitizeCustomServiciosAmenityLabels(draft.customAmenityOptions);
+  const customAmenityOptions = sanitizeCustomServiciosAmenityEntries(draft.customAmenityOptions);
   const credentials = mapCredentials(draft.credentials);
   const couponsWire = mapCouponsDraftToWire(draft.coupons);
   const couponFlyerUrl = trim(draft.couponFlyer?.imageUrl);

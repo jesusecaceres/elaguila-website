@@ -11,6 +11,7 @@ import type {
   ServiciosServiceVisualVariant,
   ServiciosTrustItem,
 } from "./serviciosBusinessProfile";
+import type { ServiciosCustomAmenityEntry } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
 
 /** identity.slug · identity.businessName */
 export type ServiciosApplicationIdentityDraft = {
@@ -63,6 +64,8 @@ export type ServiciosApplicationContactDraft = {
   hoursTodayLine?: string;
   /** Mon→Sun localized rows for public weekly schedule */
   weeklyHoursRows?: { dayLabel: string; line: string }[];
+  /** Optional freeform special-hours note (holidays, seasonal changes, by-appointment, etc.). */
+  hoursSpecialNote?: string;
   primaryCtaLabel?: string;
   /** Preset secondary CTA chip labels (localized at map time) */
   secondaryCtaLabels?: string[];
@@ -238,8 +241,8 @@ export type ServiciosApplicationDraft = {
   customPaymentMethodLabel?: string;
   /** Standard amenities / options ids; sanitized on map/resolve */
   amenityOptionIds?: string[];
-  /** Custom amenities / options labels; sanitized on map/resolve */
-  customAmenityOptions?: string[];
+  /** Custom amenities / options, each tagged with its subgroup; sanitized on map/resolve */
+  customAmenityOptions?: ServiciosCustomAmenityEntry[];
   /** Pending custom amenity input (flushed on step Next where applicable) */
   pendingCustomAmenityOption?: string;
   /** Credentials, license & insurance (optional) */

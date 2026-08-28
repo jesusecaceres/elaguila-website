@@ -123,7 +123,9 @@ import {
   MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS,
   SERVICIOS_AMENITY_GROUPS,
   SERVICIOS_AMENITY_OPTIONS,
+  SERVICIOS_AMENITY_REAL_GROUP_IDS,
   sanitizeServiciosAmenityOptionIds,
+  type ServiciosAmenityRealGroupId,
 } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
 import { ServiciosAmenityBadge } from "@/app/servicios/components/ServiciosAmenityBadge";
 import { evaluateAddCustomAmenityOption } from "../lib/serviciosCustomAmenityOptions";
@@ -255,10 +257,6 @@ export function ClasificadosServiciosApplication() {
   );
   const copy = getClasificadosServiciosCopy(lang);
   const labels = copy.labels as any;
-  const couponDecisionTitle = labels.couponDecisionTitle || (lang === "en" ? "Add featured coupons?" : "¿Quieres agregar cupones destacados?");
-  const couponDecisionBody = labels.couponDecisionBody || (lang === "en" ? "For +$99/month, show up to 4 featured coupons inside your service listing." : "Por +$99/mes puedes mostrar hasta 4 cupones destacados dentro de tu anuncio de servicios.");
-  const couponDecisionAdd = labels.couponDecisionAdd || (lang === "en" ? "Add coupons" : "Agregar cupones");
-  const couponDecisionSkip = labels.couponDecisionSkip || (lang === "en" ? "Continue without coupons" : "Continuar sin cupones");
 
   const [hydrated, setHydrated] = useState(false);
   const [previewGateMissing, setPreviewGateMissing] = useState<PublishReadinessMissingItem[] | null>(null);
@@ -618,6 +616,20 @@ export function ClasificadosServiciosApplication() {
 
   const preset = useMemo(() => getBusinessTypePreset(state.businessTypeId), [state.businessTypeId]);
 
+  // Owner-QA — business type discovery: options must be alphabetically scannable per locale.
+  // Sorting is display-only (locale-aware label compare); stored value stays the canonical id.
+  // The generic "Otro servicio"/"Other service" fallback stays last, matching the convention
+  // already used elsewhere in the app (e.g. Busco's "Otro").
+  const sortedBusinessTypePresets = useMemo(() => {
+    const real = BUSINESS_TYPE_PRESETS.filter((p) => p.id !== "servicio_otro_generico");
+    const generic = BUSINESS_TYPE_PRESETS.filter((p) => p.id === "servicio_otro_generico");
+    const collator = new Intl.Collator(lang === "en" ? "en" : "es", { sensitivity: "base" });
+    const sortedReal = [...real].sort((a, b) =>
+      collator.compare(lang === "en" ? a.labelEn : a.labelEs, lang === "en" ? b.labelEn : b.labelEs),
+    );
+    return [...sortedReal, ...generic];
+  }, [lang]);
+
   const listingTemplate = useMemo(
     () => resolveServiciosApplicationTemplate(state.businessTypeId),
     [state.businessTypeId],
@@ -757,9 +769,7 @@ export function ClasificadosServiciosApplication() {
             ? prev.customReasonIncluded && prev.customReasonLabel.trim()
               ? 1
               : 0
-            : prev.customQuickFactIncluded && prev.customQuickFactLabel.trim()
-              ? 1
-              : 0;
+            : prev.customQuickFacts.length;
       if (cur.length + customSlot >= max) return prev;
       return { ...prev, [field]: toggleId(cur, id, true) };
     });
@@ -772,10 +782,8 @@ export function ClasificadosServiciosApplication() {
     [state.customReasonIncluded, state.customReasonLabel, state.selectedReasonIds],
   );
   const quickFactsSelectionCount = useMemo(
-    () =>
-      state.selectedQuickFactIds.length +
-      (state.customQuickFactIncluded && state.customQuickFactLabel.trim() ? 1 : 0),
-    [state.customQuickFactIncluded, state.customQuickFactLabel, state.selectedQuickFactIds],
+    () => state.selectedQuickFactIds.length + state.customQuickFacts.length,
+    [state.customQuickFacts, state.selectedQuickFactIds],
   );
   const businessHighlightSelectionCount = useMemo(
     () => state.selectedBusinessHighlightIds.length,
@@ -1194,7 +1202,7 @@ export function ClasificadosServiciosApplication() {
             required
           >
             <option value="">{lang === "es" ? "Selecciona…" : "Select…"}</option>
-            {BUSINESS_TYPE_PRESETS.filter(p => p.id !== "servicio_no_listado").map((p) => (
+            {sortedBusinessTypePresets.map((p) => (
               <option key={p.id} value={p.id}>
                 {lang === "en" ? p.labelEn : p.labelEs}
               </option>
@@ -2369,22 +2377,24 @@ export function ClasificadosServiciosApplication() {
                     </Chip>
                   );
                 })}
-                {state.customQuickFactIncluded && state.customQuickFactLabel.trim() ? (
+                {state.customQuickFacts.map((label, i) => (
                   <Chip
+                    key={`cqf-${i}-${label}`}
                     selected
                     truncateLabel
-                    labelTitle={state.customQuickFactLabel.trim()}
+                    labelTitle={label}
                     onClick={() =>
-                      setState((s) => ({
-                        ...s,
-                        customQuickFactIncluded: false,
-                        customQuickFactLabel: "",
-                      }))
+                      setState((s) =>
+                        enforceServiciosSelectionCaps({
+                          ...s,
+                          customQuickFacts: s.customQuickFacts.filter((_, j) => j !== i),
+                        }),
+                      )
                     }
                   >
-                    {state.customQuickFactLabel.trim()}
+                    {label}
                   </Chip>
-                ) : null}
+                ))}
               </div>
               {quickFactsSelectionCount >= MAX_QUICK_FACTS_SELECTION ? (
                 <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.selectionMaxQuickFacts}</p>
@@ -2396,64 +2406,33 @@ export function ClasificadosServiciosApplication() {
                   className={inputClass}
                   placeholder={copy.labels.customChipPlaceholder}
                   maxLength={CUSTOM_CHIP_MAX_LENGTH}
-                  disabled={
-                    !state.customQuickFactIncluded &&
-                    state.selectedQuickFactIds.length >= MAX_QUICK_FACTS_SELECTION
-                  }
+                  disabled={quickFactsSelectionCount >= MAX_QUICK_FACTS_SELECTION}
                   value={state.customQuickFactLabel}
                   onChange={(e) => {
                     const v = e.target.value.slice(0, CUSTOM_CHIP_MAX_LENGTH);
-                    setState((s) => ({
-                      ...s,
-                      customQuickFactLabel: v,
-                      customQuickFactIncluded: v.trim().length > 0 ? s.customQuickFactIncluded : false,
-                    }));
+                    setState((s) => ({ ...s, customQuickFactLabel: v }));
                   }}
                 />
-                {state.customQuickFactIncluded ? (
-                  <button
-                    type="button"
-                    className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-red-700 hover:bg-neutral-50 sm:w-auto"
-                    onClick={() =>
-                      setState((s) => ({
-                        ...s,
-                        customQuickFactIncluded: false,
+                <button
+                  type="button"
+                  disabled={
+                    !state.customQuickFactLabel.trim() || quickFactsSelectionCount >= MAX_QUICK_FACTS_SELECTION
+                  }
+                  className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                  onClick={() => {
+                    setState((prev) => {
+                      const t = prev.customQuickFactLabel.trim();
+                      if (!t || isJunkServiciosQuickFactLabel(t)) return prev;
+                      return enforceServiciosSelectionCaps({
+                        ...prev,
+                        customQuickFacts: [...prev.customQuickFacts, t.slice(0, CUSTOM_CHIP_MAX_LENGTH)],
                         customQuickFactLabel: "",
-                      }))
-                    }
-                  >
-                    {copy.labels.remove}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={
-                      !state.customQuickFactLabel.trim() ||
-                      state.selectedQuickFactIds.length +
-                        (state.customQuickFactIncluded ? 1 : 0) >=
-                        MAX_QUICK_FACTS_SELECTION
-                    }
-                    className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-                    onClick={() => {
-                      const t = state.customQuickFactLabel.trim();
-                      if (!t) return;
-                      if (
-                        state.selectedQuickFactIds.length +
-                          (state.customQuickFactIncluded ? 1 : 0) >=
-                        MAX_QUICK_FACTS_SELECTION
-                      ) {
-                        return;
-                      }
-                      setState((s) => ({
-                        ...s,
-                        customQuickFactIncluded: true,
-                        customQuickFactLabel: t.slice(0, CUSTOM_CHIP_MAX_LENGTH),
-                      }));
-                    }}
-                  >
-                    {copy.labels.addCustomChip}
-                  </button>
-                )}
+                      });
+                    });
+                  }}
+                >
+                  {copy.labels.addCustomChip}
+                </button>
               </div>
             </section>
           </>
@@ -2576,110 +2555,110 @@ export function ClasificadosServiciosApplication() {
           </h2>
           <p className="mt-1 text-sm text-[#5D4A25]/85">{copy.labels.amenitiesSectionHint}</p>
 
-          <div className="mt-5 space-y-5">
+          <div className="mt-5 space-y-6">
             {SERVICIOS_AMENITY_GROUPS.filter((g) => g.id !== "other").map((group) => {
-              const options = SERVICIOS_AMENITY_OPTIONS.filter((o) => o.groupId === group.id);
-              if (options.length === 0) return null;
+              const groupId = group.id as ServiciosAmenityRealGroupId;
+              const options = SERVICIOS_AMENITY_OPTIONS.filter((o) => o.groupId === groupId);
+              const groupCustoms = state.customAmenityOptions.filter((e) => e.groupId === groupId);
+              const pendingForGroup = state.pendingCustomAmenityOptionByGroup[groupId] ?? "";
               return (
                 <div key={group.id}>
                   <p className="text-sm font-semibold text-[#3D2C12]">{group.label[lang]}</p>
-                  <div className="-mx-1 mt-2 flex flex-wrap gap-2 px-1 pb-1">
-                    {options.map((opt) => {
-                      const selected = sanitizeServiciosAmenityOptionIds(state.amenityOptionIds).includes(opt.id);
-                      return (
-                        <Chip
-                          key={opt.id}
-                          selected={selected}
-                          onClick={() => {
-                            setState((prev) => {
-                              const cur = new Set(sanitizeServiciosAmenityOptionIds(prev.amenityOptionIds));
-                              if (cur.has(opt.id)) cur.delete(opt.id);
-                              else cur.add(opt.id);
-                              return enforceServiciosSelectionCaps({
-                                ...prev,
-                                amenityOptionIds: sanitizeServiciosAmenityOptionIds([...cur]),
+                  {options.length > 0 ? (
+                    <div className="-mx-1 mt-2 flex flex-wrap gap-2 px-1 pb-1">
+                      {options.map((opt) => {
+                        const selected = sanitizeServiciosAmenityOptionIds(state.amenityOptionIds).includes(opt.id);
+                        return (
+                          <Chip
+                            key={opt.id}
+                            selected={selected}
+                            onClick={() => {
+                              setState((prev) => {
+                                const cur = new Set(sanitizeServiciosAmenityOptionIds(prev.amenityOptionIds));
+                                if (cur.has(opt.id)) cur.delete(opt.id);
+                                else cur.add(opt.id);
+                                return enforceServiciosSelectionCaps({
+                                  ...prev,
+                                  amenityOptionIds: sanitizeServiciosAmenityOptionIds([...cur]),
+                                });
                               });
-                            });
-                          }}
-                        >
-                          <ServiciosAmenityBadge lang={lang} standardId={opt.id} compact />
-                        </Chip>
-                      );
-                    })}
+                            }}
+                          >
+                            <ServiciosAmenityBadge lang={lang} standardId={opt.id} compact />
+                          </Chip>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+
+                  {/* Owner-QA — each subgroup gets its OWN custom entry, not a shared bucket. */}
+                  <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
+                    <input
+                      className={inputClass}
+                      placeholder={copy.labels.amenitiesPlaceholder}
+                      maxLength={CUSTOM_SERVICIOS_AMENITY_LABEL_MAX}
+                      value={pendingForGroup}
+                      onChange={(e) => {
+                        const v = e.target.value.slice(0, CUSTOM_SERVICIOS_AMENITY_LABEL_MAX);
+                        setState((s) => ({
+                          ...s,
+                          pendingCustomAmenityOptionByGroup: { ...s.pendingCustomAmenityOptionByGroup, [groupId]: v },
+                        }));
+                      }}
+                    />
+                    <button
+                      type="button"
+                      disabled={!pendingForGroup.trim() || groupCustoms.length >= MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS}
+                      className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                      onClick={() => {
+                        setState((prev) => {
+                          const pending = prev.pendingCustomAmenityOptionByGroup[groupId] ?? "";
+                          const r = evaluateAddCustomAmenityOption(prev, groupId, pending);
+                          if (!r.ok) return prev;
+                          return enforceServiciosSelectionCaps({
+                            ...prev,
+                            customAmenityOptions: [...prev.customAmenityOptions, { groupId, label: r.label }],
+                            pendingCustomAmenityOptionByGroup: { ...prev.pendingCustomAmenityOptionByGroup, [groupId]: "" },
+                          });
+                        });
+                      }}
+                    >
+                      {copy.labels.amenitiesAdd}
+                    </button>
                   </div>
+                  {groupCustoms.length >= MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS ? (
+                    <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.amenitiesCustomMax}</p>
+                  ) : null}
+                  {groupCustoms.length > 0 ? (
+                    <div className="-mx-1 mt-3 flex flex-wrap gap-2 px-1">
+                      {groupCustoms.map((entry, i) => (
+                        <button
+                          key={`amenity-${groupId}-${i}-${entry.label}`}
+                          type="button"
+                          title={entry.label}
+                          aria-label={`${copy.labels.remove}: ${entry.label}`}
+                          onClick={() =>
+                            setState((prev) =>
+                              enforceServiciosSelectionCaps({
+                                ...prev,
+                                customAmenityOptions: prev.customAmenityOptions.filter(
+                                  (e) => !(e.groupId === groupId && e.label === entry.label),
+                                ),
+                              }),
+                            )
+                          }
+                          className="inline-flex max-w-full min-w-0 min-h-[40px] touch-manipulation items-center gap-1.5 rounded-full border border-[#3B66AD] bg-[#3B66AD]/10 px-3 py-2 text-left text-sm font-medium text-[#1e3a5f] ring-1 ring-[#3B66AD]/20"
+                        >
+                          <ServiciosAmenityBadge lang={lang} customLabel={entry.label} compact />
+                          <FiX className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               );
             })}
           </div>
-
-          <label className={`mt-6 block ${labelClass}`}>{copy.labels.amenitiesOtherLabel}</label>
-          <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
-            <input
-              className={inputClass}
-              placeholder={copy.labels.amenitiesPlaceholder}
-              maxLength={CUSTOM_SERVICIOS_AMENITY_LABEL_MAX}
-              value={state.pendingCustomAmenityOption}
-              onChange={(e) =>
-                setState((s) => ({
-                  ...s,
-                  pendingCustomAmenityOption: e.target.value.slice(0, CUSTOM_SERVICIOS_AMENITY_LABEL_MAX),
-                }))
-              }
-            />
-            <button
-              type="button"
-              disabled={
-                !state.pendingCustomAmenityOption.trim() ||
-                state.customAmenityOptions.length >= MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS
-              }
-              className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-              onClick={() => {
-                setState((prev) => {
-                  const r = evaluateAddCustomAmenityOption(prev, prev.pendingCustomAmenityOption);
-                  if (!r.ok) return prev;
-                  return enforceServiciosSelectionCaps({
-                    ...prev,
-                    customAmenityOptions: [...prev.customAmenityOptions, r.label],
-                    pendingCustomAmenityOption: "",
-                  });
-                });
-              }}
-            >
-              {copy.labels.amenitiesAdd}
-            </button>
-          </div>
-
-          {state.customAmenityOptions.length >= MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS ? (
-            <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.amenitiesCustomMax}</p>
-          ) : null}
-
-          {state.customAmenityOptions.length > 0 ? (
-            <div className="mt-5">
-              <p className="text-sm font-semibold text-[#3D2C12]">{copy.labels.amenitiesAddedList}</p>
-              <div className="-mx-1 mt-2 flex flex-wrap gap-2 px-1">
-                {state.customAmenityOptions.map((label, i) => (
-                  <button
-                    key={`amenity-${i}-${label}`}
-                    type="button"
-                    title={label}
-                    aria-label={`${copy.labels.remove}: ${label}`}
-                    onClick={() =>
-                      setState((prev) =>
-                        enforceServiciosSelectionCaps({
-                          ...prev,
-                          customAmenityOptions: prev.customAmenityOptions.filter((_, j) => j !== i),
-                        }),
-                      )
-                    }
-                    className="inline-flex max-w-full min-w-0 min-h-[40px] touch-manipulation items-center gap-1.5 rounded-full border border-[#3B66AD] bg-[#3B66AD]/10 px-3 py-2 text-left text-sm font-medium text-[#1e3a5f] ring-1 ring-[#3B66AD]/20"
-                  >
-                    <ServiciosAmenityBadge lang={lang} customLabel={label} compact />
-                    <FiX className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
         </section>
 
         <section className={sectionCard} aria-labelledby="sec-credentials">
@@ -2917,6 +2896,12 @@ export function ClasificadosServiciosApplication() {
             days={hoursEditorDays}
             onDayChange={onHoursEditorDayChange}
             closedLabel={copy.labels.closed}
+            specialHoursNote={{
+              value: state.specialHoursNote,
+              onChange: (v) => setState((s) => enforceServiciosSelectionCaps({ ...s, specialHoursNote: v.slice(0, 240) })),
+              label: copy.labels.specialHoursNoteLabel,
+              helper: copy.labels.specialHoursNoteHelper,
+            }}
           />
         </section>
           </>
@@ -3538,17 +3523,12 @@ export function ClasificadosServiciosApplication() {
                           }
 
                           const pendingQuickFact = w.customQuickFactLabel.trim();
-                          if (!w.customQuickFactIncluded && pendingQuickFact) {
-                            const total =
-                              w.selectedQuickFactIds.length +
-                              (w.customQuickFactIncluded && w.customQuickFactLabel.trim() ? 1 : 0);
-                            if (total < MAX_QUICK_FACTS_SELECTION) {
-                              w = {
-                                ...w,
-                                customQuickFactIncluded: true,
-                                customQuickFactLabel: pendingQuickFact.slice(0, CUSTOM_CHIP_MAX_LENGTH),
-                              };
-                            }
+                          if (pendingQuickFact && !isJunkServiciosQuickFactLabel(pendingQuickFact)) {
+                            w = enforceServiciosSelectionCaps({
+                              ...w,
+                              customQuickFacts: [...w.customQuickFacts, pendingQuickFact.slice(0, CUSTOM_CHIP_MAX_LENGTH)],
+                              customQuickFactLabel: "",
+                            });
                           }
 
                           const pendingHighlight = w.customBusinessHighlightLabel.trim();
@@ -3569,7 +3549,7 @@ export function ClasificadosServiciosApplication() {
                             customServiceIncluded: w.customServiceIncluded,
                             customReasonIncluded: w.customReasonIncluded,
                             customReasonLabel: w.customReasonLabel,
-                            customQuickFactIncluded: w.customQuickFactIncluded,
+                            customQuickFacts: w.customQuickFacts,
                             customQuickFactLabel: w.customQuickFactLabel,
                             selectedBusinessHighlightIds: w.selectedBusinessHighlightIds,
                             customBusinessHighlights: w.customBusinessHighlights,
@@ -3591,16 +3571,20 @@ export function ClasificadosServiciosApplication() {
                                 })
                               : enforceServiciosSelectionCaps({ ...w, customPaymentMethodLabel: "" });
                           }
-                          const pendingAmenity = w.pendingCustomAmenityOption.trim();
-                          if (pendingAmenity) {
-                            const r = evaluateAddCustomAmenityOption(w, pendingAmenity);
+                          for (const groupId of SERVICIOS_AMENITY_REAL_GROUP_IDS) {
+                            const pendingAmenity = (w.pendingCustomAmenityOptionByGroup[groupId] ?? "").trim();
+                            if (!pendingAmenity) continue;
+                            const r = evaluateAddCustomAmenityOption(w, groupId, pendingAmenity);
                             w = r.ok
                               ? enforceServiciosSelectionCaps({
                                   ...w,
-                                  customAmenityOptions: [...w.customAmenityOptions, r.label],
-                                  pendingCustomAmenityOption: "",
+                                  customAmenityOptions: [...w.customAmenityOptions, { groupId, label: r.label }],
+                                  pendingCustomAmenityOptionByGroup: { ...w.pendingCustomAmenityOptionByGroup, [groupId]: "" },
                                 })
-                              : enforceServiciosSelectionCaps({ ...w, pendingCustomAmenityOption: "" });
+                              : enforceServiciosSelectionCaps({
+                                  ...w,
+                                  pendingCustomAmenityOptionByGroup: { ...w.pendingCustomAmenityOptionByGroup, [groupId]: "" },
+                                });
                           }
                           const pendingCert = w.pendingCertification.trim();
                           if (pendingCert) {
@@ -3622,7 +3606,7 @@ export function ClasificadosServiciosApplication() {
                             customPaymentMethodLabel: w.customPaymentMethodLabel,
                             amenityOptionIds: w.amenityOptionIds,
                             customAmenityOptions: w.customAmenityOptions,
-                            pendingCustomAmenityOption: w.pendingCustomAmenityOption,
+                            pendingCustomAmenityOptionByGroup: w.pendingCustomAmenityOptionByGroup,
                             certifications: w.certifications,
                             pendingCertification: w.pendingCertification,
                           };

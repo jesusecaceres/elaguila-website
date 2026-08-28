@@ -20,7 +20,7 @@ export function ServiciosOpcionesFacilidadesCard({
   embedded?: boolean;
 }) {
   const std = profile.amenityOptionIds.filter((id): id is string => typeof id === "string");
-  const custom = profile.customAmenityOptions.filter((x) => typeof x === "string" && x.trim().length > 0);
+  const custom = profile.customAmenityOptions.filter((x) => x.label.trim().length > 0);
   if (std.length === 0 && custom.length === 0) return null;
 
   const title = lang === "en" ? "Options & amenities" : "Opciones y facilidades";
@@ -37,6 +37,14 @@ export function ServiciosOpcionesFacilidadesCard({
     const cur = byGroup.get(gid) ?? [];
     cur.push(id);
     byGroup.set(gid, cur);
+  }
+  // Owner-QA (section-specific "Otro") — custom entries render inside the group they were
+  // entered under, not a separate shared "Otras opciones" section.
+  const customByGroup = new Map<ServiciosAmenityGroupId, string[]>();
+  for (const entry of custom) {
+    const cur = customByGroup.get(entry.groupId) ?? [];
+    cur.push(entry.label.trim());
+    customByGroup.set(entry.groupId, cur);
   }
 
   const body = (
@@ -59,7 +67,8 @@ export function ServiciosOpcionesFacilidadesCard({
       <div className={`space-y-3 ${compact ? "mt-3" : "mt-4 md:mt-5 md:space-y-5"}`}>
         {SERVICIOS_AMENITY_GROUPS.filter((g) => g.id !== "other").map((g) => {
           const ids = byGroup.get(g.id as ServiciosAmenityGroupId) ?? [];
-          if (ids.length === 0) return null;
+          const customLabels = customByGroup.get(g.id as ServiciosAmenityGroupId) ?? [];
+          if (ids.length === 0 && customLabels.length === 0) return null;
           return (
             <div key={g.id}>
               <p className="text-sm font-semibold text-[color:var(--lx-text)]">{g.label[lang]}</p>
@@ -73,29 +82,19 @@ export function ServiciosOpcionesFacilidadesCard({
                     <ServiciosAmenityBadge lang={lang} standardId={id} />
                   </div>
                 ))}
+                {customLabels.map((label, i) => (
+                  <div
+                    key={`amenity-custom-${g.id}-${i}-${label.slice(0, 24)}`}
+                    className="shrink-0 rounded-xl border border-black/[0.06] bg-white/95 px-3 py-2 shadow-sm"
+                    style={{ borderColor: SV.goldBorder }}
+                  >
+                    <ServiciosAmenityBadge lang={lang} customLabel={label} />
+                  </div>
+                ))}
               </div>
             </div>
           );
         })}
-
-        {custom.length > 0 ? (
-          <div>
-            <p className="text-sm font-semibold text-[color:var(--lx-text)]">
-              {lang === "en" ? "Other options" : "Otras opciones"}
-            </p>
-            <div className="mt-2 flex flex-nowrap gap-2 overflow-x-auto pb-1 [scrollbar-width:thin] md:flex-wrap md:overflow-visible">
-              {custom.map((label, i) => (
-                <div
-                  key={`amenity-custom-${i}-${label.slice(0, 24)}`}
-                  className="shrink-0 rounded-xl border border-black/[0.06] bg-white/95 px-3 py-2 shadow-sm"
-                  style={{ borderColor: SV.goldBorder }}
-                >
-                  <ServiciosAmenityBadge lang={lang} customLabel={label} />
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
       </div>
     </>
   );

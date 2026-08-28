@@ -4,7 +4,7 @@ import type {
   ServiciosPromoOffer,
   ServiciosWeeklyHourRow,
 } from "@/app/servicios/types/serviciosBusinessProfile";
-import { sanitizeCustomServiciosAmenityLabels, sanitizeServiciosAmenityOptionIds } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
+import { sanitizeCustomServiciosAmenityEntries, sanitizeServiciosAmenityOptionIds } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
 import { sanitizeCertificationLabels } from "@/app/servicios/lib/serviciosCredentialsCatalog";
 import { sanitizeCustomPaymentMethodLabels, sanitizeServiciosPaymentMethodIds } from "@/app/servicios/lib/serviciosPaymentMethodCatalog";
 import type {
@@ -361,6 +361,7 @@ export function serviciosPublishedToApplicationDraft(
     extraLink2Url: clean(contact.extraLinks?.[1]?.url),
     extraLink2Label: clean(contact.extraLinks?.[1]?.label),
     hours: mapWeeklyHours(contact.hours?.weeklyRows, base.hours),
+    specialHoursNote: clean(contact.hours?.note),
     testimonials: profile ? mapTestimonials(profile) : [],
     promotions: mapPromotions(profile?.promotions ?? (profile?.promo ? [profile.promo] : undefined), base.promotions),
     coupons: mappedCoupons,
@@ -370,7 +371,7 @@ export function serviciosPublishedToApplicationDraft(
     paymentMethodIds: sanitizeServiciosPaymentMethodIds(profile?.paymentMethodIds),
     customPaymentMethods: sanitizeCustomPaymentMethodLabels(profile?.customPaymentMethods),
     amenityOptionIds: sanitizeServiciosAmenityOptionIds(profile?.amenityOptionIds),
-    customAmenityOptions: sanitizeCustomServiciosAmenityLabels(profile?.customAmenityOptions),
+    customAmenityOptions: sanitizeCustomServiciosAmenityEntries(profile?.customAmenityOptions),
     hasLicense: profile?.credentials?.hasLicense === true,
     licenseType: clean(profile?.credentials?.licenseType),
     licenseNumber: clean(profile?.credentials?.licenseNumber),

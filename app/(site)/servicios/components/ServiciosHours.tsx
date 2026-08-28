@@ -50,6 +50,10 @@ export function ServiciosHours({ profile, lang }: { profile: ServiciosProfileRes
           ))}
         </div>
       ) : null}
+
+      {hours.note ? (
+        <p className="mt-4 text-xs leading-relaxed text-[color:var(--lx-text-2)]">{hours.note}</p>
+      ) : null}
     </section>
   );
 }

@@ -3,6 +3,11 @@
  * Step 3 will map this into `ServiciosApplicationDraft` / shell slots — not exposed in UI.
  */
 
+import type {
+  ServiciosAmenityRealGroupId,
+  ServiciosCustomAmenityEntry,
+} from "@/app/servicios/lib/serviciosAmenitiesCatalog";
+
 export type ServiciosLang = "es" | "en";
 
 /** Internal grouping for filters/analytics — never shown in the form copy */
@@ -210,9 +215,10 @@ export type ClasificadosServiciosApplicationState = {
   customReasonLabel: string;
   customReasonIncluded: boolean;
   selectedQuickFactIds: string[];
-  /** Short label — paired with `customQuickFactIncluded` */
+  /** Multiple advertiser-typed Quick Facts (Gate: owner-QA final repair — was a single value). */
+  customQuickFacts: string[];
+  /** Pending text for the next custom Quick Fact to add. */
   customQuickFactLabel: string;
-  customQuickFactIncluded: boolean;
   /** Preset highlight chip ids from `BUSINESS_HIGHLIGHT_PRESET_CHIPS` */
   selectedBusinessHighlightIds: string[];
   /** Advertiser-typed highlight lines (trimmed in normalize / caps) */
@@ -246,6 +252,8 @@ export type ClasificadosServiciosApplicationState = {
   extraLink2Url: string;
   extraLink2Label: string;
   hours: DayHoursRow[];
+  /** Optional freeform special-hours note (holidays, seasonal changes, by-appointment, etc.). */
+  specialHoursNote: string;
   testimonials: TestimonialRow[];
   /** Featured promotions — 1–4 rows; legacy single-promo fields migrate in normalize */
   promotions: ClasificadosServiciosPromoRow[];
@@ -272,10 +280,11 @@ export type ClasificadosServiciosApplicationState = {
   customPaymentMethodLabel: string;
   /** Standard amenities / options ids */
   amenityOptionIds: string[];
-  /** Custom amenities / options labels */
-  customAmenityOptions: string[];
-  /** Pending custom amenity input (flushed on Next) */
-  pendingCustomAmenityOption: string;
+  /** Custom amenities / options labels — each tagged with the subgroup it was entered under
+   *  (owner-QA final repair — was one flat shared list with no subgroup fidelity). */
+  customAmenityOptions: ServiciosCustomAmenityEntry[];
+  /** Pending custom amenity input per subgroup (flushed on Next) */
+  pendingCustomAmenityOptionByGroup: Partial<Record<ServiciosAmenityRealGroupId, string>>;
   /** Credentials, license & insurance (Phase 6A) */
   hasLicense: boolean;
   licenseType: string;

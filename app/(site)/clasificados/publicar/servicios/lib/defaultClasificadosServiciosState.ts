@@ -93,8 +93,8 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     customReasonLabel: "",
     customReasonIncluded: false,
     selectedQuickFactIds: [],
+    customQuickFacts: [],
     customQuickFactLabel: "",
-    customQuickFactIncluded: false,
     selectedBusinessHighlightIds: [],
     customBusinessHighlights: [],
     customBusinessHighlightLabel: "",
@@ -121,6 +121,7 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     extraLink2Url: "",
     extraLink2Label: "",
     hours: defaultHours(),
+    specialHoursNote: "",
     testimonials: [],
     promotions: [createEmptyClasificadosPromoRow()],
     coupons: [],
@@ -134,7 +135,7 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     customPaymentMethodLabel: "",
     amenityOptionIds: [],
     customAmenityOptions: [],
-    pendingCustomAmenityOption: "",
+    pendingCustomAmenityOptionByGroup: {},
     hasLicense: false,
     licenseType: "",
     licenseNumber: "",
@@ -186,7 +187,7 @@ export function clasificadosServiciosApplicationHasProgress(s: ClasificadosServi
     return true;
   }
   if (s.selectedReasonIds.length > 0 || (s.customReasonIncluded && s.customReasonLabel.trim())) return true;
-  if (s.selectedQuickFactIds.length > 0 || (s.customQuickFactIncluded && s.customQuickFactLabel.trim())) return true;
+  if (s.selectedQuickFactIds.length > 0 || s.customQuickFacts.length > 0 || s.customQuickFactLabel.trim()) return true;
   if (s.selectedBusinessHighlightIds.length > 0 || s.customBusinessHighlights.length > 0 || s.customBusinessHighlightLabel.trim()) {
     return true;
   }
@@ -217,7 +218,7 @@ export function clasificadosServiciosApplicationHasProgress(s: ClasificadosServi
   if (
     s.amenityOptionIds.length > 0 ||
     s.customAmenityOptions.length > 0 ||
-    s.pendingCustomAmenityOption.trim()
+    Object.values(s.pendingCustomAmenityOptionByGroup).some((v) => (v ?? "").trim())
   ) {
     return true;
   }

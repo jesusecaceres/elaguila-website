@@ -70,7 +70,7 @@ export function hasSmartTrustSummary(profile: ServiciosProfileResolved): boolean
   const pay =
     profile.paymentMethodIds.length > 0 || profile.customPaymentMethods.some((x) => trim(x).length > 0);
   const am =
-    profile.amenityOptionIds.length > 0 || profile.customAmenityOptions.some((x) => trim(x).length > 0);
+    profile.amenityOptionIds.length > 0 || profile.customAmenityOptions.some((x) => trim(x.label).length > 0);
   const cred = credentialsMeaningful(profile.credentials);
   const loc = trim(profile.hero.locationSummary);
   const zoneN = profile.serviceAreas.items.length;
@@ -108,8 +108,8 @@ export function getTopTrustSummaryChips(profile: ServiciosProfileResolved, lang:
   for (const id of profile.amenityOptionIds.slice(0, 2)) {
     if (isServiciosAmenityOptionId(id)) chips.push(getServiciosAmenityOption(id).label[lang]);
   }
-  for (const raw of profile.customAmenityOptions.slice(0, 1)) {
-    const t = trim(raw);
+  for (const entry of profile.customAmenityOptions.slice(0, 1)) {
+    const t = trim(entry.label);
     if (t) chips.push(t);
   }
   const c = profile.credentials;
@@ -171,8 +171,8 @@ export function buildServiciosSmartTrustSummary(
   for (const id of profile.amenityOptionIds.slice(0, 2)) {
     if (isServiciosAmenityOptionId(id)) amLabels.push(getServiciosAmenityOption(id).label[lang]);
   }
-  for (const raw of profile.customAmenityOptions.slice(0, 2)) {
-    const t = trim(raw);
+  for (const entry of profile.customAmenityOptions.slice(0, 2)) {
+    const t = trim(entry.label);
     if (t) amLabels.push(t);
   }
 

@@ -42,8 +42,30 @@ export type ServiciosAmenityOptionId =
   | "discount_packages_available";
 
 export const MAX_SERVICIOS_AMENITY_OPTIONS_SELECTED = 80;
+/** Per-group cap for advertiser-typed custom entries in that group's own "Otro" bucket. */
 export const MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS = 24;
 export const CUSTOM_SERVICIOS_AMENITY_LABEL_MAX = 56;
+
+/** The 5 real subgroups that can hold custom entries — "other" is a label-only catch-all with no
+ *  preset options of its own and is intentionally excluded (owner-QA: no shared dumping ground). */
+export type ServiciosAmenityRealGroupId = Exclude<ServiciosAmenityGroupId, "other">;
+export const SERVICIOS_AMENITY_REAL_GROUP_IDS: readonly ServiciosAmenityRealGroupId[] = [
+  "service",
+  "availability",
+  "customers_served",
+  "accessibility_languages",
+  "discounts_benefits",
+];
+
+/** A single advertiser-typed custom option, tagged with the subgroup it was entered under. */
+export type ServiciosCustomAmenityEntry = {
+  groupId: ServiciosAmenityRealGroupId;
+  label: string;
+};
+
+export function isServiciosAmenityRealGroupId(id: unknown): id is ServiciosAmenityRealGroupId {
+  return typeof id === "string" && (SERVICIOS_AMENITY_REAL_GROUP_IDS as readonly string[]).includes(id);
+}
 
 export type ServiciosAmenityOptionDef = {
   id: ServiciosAmenityOptionId;
@@ -324,6 +346,33 @@ export function sanitizeCustomServiciosAmenityLabels(raw: string[] | undefined |
     seen.add(k);
     out.push(t);
     if (out.length >= MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS) break;
+  }
+  return out;
+}
+
+/**
+ * Owner-QA (section-specific "Otro") — sanitizes group-tagged custom entries, deduping/capping
+ * PER GROUP so each of the 5 subgroups (Servicio, Disponibilidad, Clientes que atiende,
+ * Accesibilidad e idiomas, Descuentos y beneficios) keeps its own independent bucket instead of
+ * sharing one flat "Otras opciones" list. Reuses the same per-array sanitize logic as before,
+ * just called once per group.
+ */
+export function sanitizeCustomServiciosAmenityEntries(raw: unknown): ServiciosCustomAmenityEntry[] {
+  if (!Array.isArray(raw)) return [];
+  const byGroup = new Map<ServiciosAmenityRealGroupId, string[]>();
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const groupId = (item as Record<string, unknown>).groupId;
+    const label = (item as Record<string, unknown>).label;
+    if (!isServiciosAmenityRealGroupId(groupId) || typeof label !== "string") continue;
+    const list = byGroup.get(groupId) ?? [];
+    list.push(label);
+    byGroup.set(groupId, list);
+  }
+  const out: ServiciosCustomAmenityEntry[] = [];
+  for (const groupId of SERVICIOS_AMENITY_REAL_GROUP_IDS) {
+    const cleaned = sanitizeCustomServiciosAmenityLabels(byGroup.get(groupId));
+    for (const label of cleaned) out.push({ groupId, label });
   }
   return out;
 }

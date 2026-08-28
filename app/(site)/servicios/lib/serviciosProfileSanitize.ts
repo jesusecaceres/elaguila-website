@@ -26,9 +26,10 @@ import {
   type ServiciosPaymentMethodId,
 } from "./serviciosPaymentMethodCatalog";
 import {
-  sanitizeCustomServiciosAmenityLabels,
+  sanitizeCustomServiciosAmenityEntries,
   sanitizeServiciosAmenityOptionIds,
   type ServiciosAmenityOptionId,
+  type ServiciosCustomAmenityEntry,
 } from "./serviciosAmenitiesCatalog";
 
 const SERVICE_VARIANTS = new Set<ServiciosServiceVisualVariant>([
@@ -159,10 +160,12 @@ export function normalizeHours(
   openNowLabel?: string;
   todayHoursLine?: string;
   weeklyRows?: { dayLabel: string; line: string }[];
+  note?: string;
 } | undefined {
   if (!h) return undefined;
   const openNowLabel = trimText(h.openNowLabel);
   const todayHoursLine = trimText(h.todayHoursLine);
+  const note = trimText(h.note).slice(0, 240);
   let weeklyRows: { dayLabel: string; line: string }[] | undefined;
   if (Array.isArray(h.weeklyRows)) {
     const wr = h.weeklyRows
@@ -175,10 +178,11 @@ export function normalizeHours(
     if (wr.length) weeklyRows = wr;
   }
   const hasToday = openNowLabel.length > 0 && todayHoursLine.length > 0;
-  if (!hasToday && !weeklyRows?.length) return undefined;
+  if (!hasToday && !weeklyRows?.length && !note.length) return undefined;
   return {
     ...(hasToday ? { openNowLabel, todayHoursLine } : {}),
     ...(weeklyRows?.length ? { weeklyRows } : {}),
+    ...(note.length ? { note } : {}),
   };
 }
 
@@ -447,8 +451,8 @@ export function filterAmenityOptionIds(raw: string[] | undefined): ServiciosAmen
   return sanitizeServiciosAmenityOptionIds(raw);
 }
 
-export function filterCustomAmenityOptions(raw: string[] | undefined): string[] {
-  return sanitizeCustomServiciosAmenityLabels(raw);
+export function filterCustomAmenityOptions(raw: ServiciosCustomAmenityEntry[] | undefined): ServiciosCustomAmenityEntry[] {
+  return sanitizeCustomServiciosAmenityEntries(raw);
 }
 
 /**

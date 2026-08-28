@@ -591,6 +591,9 @@ export function ServiciosBusinessHubContactCard({
                       ))}
                     </ul>
                   ) : null}
+                  {nonEmpty(hours.note) ? (
+                    <p className="mt-2 text-[11px] leading-relaxed text-[#6F6254]">{hours.note}</p>
+                  ) : null}
                 </section>
               ) : null}
             </div>

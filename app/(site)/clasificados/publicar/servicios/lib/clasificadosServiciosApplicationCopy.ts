@@ -243,6 +243,9 @@ export type ClasificadosServiciosCopy = {
     galleryPartialAdd: string;
     /** Shown under the hours section — how schedule appears on the public profile */
     hoursOutputHint: string;
+    /** Optional freeform special-hours note (holidays, seasonal changes, by-appointment). */
+    specialHoursNoteLabel: string;
+    specialHoursNoteHelper: string;
     /** Paso 2 — ciudad vs zonas */
     cityHelp: string;
     cityHelpDetail: string;
@@ -550,6 +553,8 @@ const es: ClasificadosServiciosCopy = {
     galleryPartialAdd: "Solo cabían algunas fotos nuevas (máx. {max} en total).",
     hoursOutputHint:
       "En tu vitrina: destacamos el horario de hoy y mostramos la semana completa en el panel de contacto.",
+    specialHoursNoteLabel: "Nota especial de horario (opcional)",
+    specialHoursNoteHelper: "Ej. días festivos, horario de temporada, solo con cita previa.",
     cityHelp: "Los ejemplos son sugerencias, no límites.",
     cityHelpDetail:
       "Puedes escribir cualquier ciudad donde atiendes. NorCal aparece como sugerencia, pero Leonix acepta otras ciudades.",
@@ -860,6 +865,8 @@ const en: ClasificadosServiciosCopy = {
     galleryPartialAdd: "Only some new photos fit (max {max} total).",
     hoursOutputHint:
       "On your public profile: we highlight today’s hours and show the full week in the contact panel.",
+    specialHoursNoteLabel: "Special hours note (optional)",
+    specialHoursNoteHelper: "e.g. holidays, seasonal hours, by appointment only.",
     cityHelp: "Examples are suggestions, not limits.",
     cityHelpDetail:
       "You can enter any city you serve. NorCal appears as a suggestion, but Leonix accepts other cities.",

@@ -139,8 +139,13 @@ export function buildServiciosPublishPayload(state: ClasificadosServiciosApplica
     extraLink2Label: cleanPlainText(n.extraLink2Label).slice(0, 48),
     customPaymentMethods: (n.customPaymentMethods ?? []).map((x) => cleanPlainText(x)).filter(Boolean).slice(0, 12),
     customPaymentMethodLabel: cleanPlainText(n.customPaymentMethodLabel),
-    customAmenityOptions: (n.customAmenityOptions ?? []).map((x) => cleanPlainText(x)).filter(Boolean).slice(0, 24),
-    pendingCustomAmenityOption: cleanPlainText(n.pendingCustomAmenityOption),
+    customAmenityOptions: (n.customAmenityOptions ?? [])
+      .map((e) => ({ groupId: e.groupId, label: cleanPlainText(e.label) }))
+      .filter((e) => e.label)
+      .slice(0, 24),
+    pendingCustomAmenityOptionByGroup: Object.fromEntries(
+      Object.entries(n.pendingCustomAmenityOptionByGroup ?? {}).map(([k, v]) => [k, cleanPlainText(v ?? "")]),
+    ) as ClasificadosServiciosApplicationState["pendingCustomAmenityOptionByGroup"],
     licenseType: cleanPlainText(n.licenseType),
     licenseNumber: cleanPlainText(n.licenseNumber),
     licenseAuthority: cleanPlainText(n.licenseAuthority),

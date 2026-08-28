@@ -51,6 +51,16 @@ export function buildServiciosHowGroups(profile: ServiciosProfileResolved, lang:
     byGroup.set(gid, cur);
   }
 
+  // Owner-QA (section-specific "Otro") — custom entries fold into their OWN subgroup's items,
+  // not a separate shared "Otras opciones" bucket.
+  for (const entry of profile.customAmenityOptions) {
+    const label = entry.label.trim();
+    if (!label) continue;
+    const cur = byGroup.get(entry.groupId) ?? [];
+    cur.push(label);
+    byGroup.set(entry.groupId, cur);
+  }
+
   for (const g of SERVICIOS_AMENITY_GROUPS.filter((row) => row.id !== "other")) {
     const items = byGroup.get(g.id) ?? [];
     if (items.length === 0) continue;
@@ -59,16 +69,6 @@ export function buildServiciosHowGroups(profile: ServiciosProfileResolved, lang:
       title: g.label[lang],
       icon: groupIcon(g.id),
       items,
-    });
-  }
-
-  const custom = profile.customAmenityOptions.filter((x) => typeof x === "string" && x.trim().length > 0);
-  if (custom.length > 0) {
-    groups.push({
-      id: "other",
-      title: lang === "en" ? "Other options" : "Otras opciones",
-      icon: groupIcon("other"),
-      items: custom.map((x) => x.trim()),
     });
   }
 

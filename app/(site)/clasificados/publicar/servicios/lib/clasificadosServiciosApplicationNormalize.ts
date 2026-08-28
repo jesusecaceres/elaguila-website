@@ -21,7 +21,12 @@ import { isJunkServiciosQuickFactLabel, syncServiciosContactEnables } from "./se
 import { SERVICIOS_APPLICATION_STEP_COUNT, migrateServiciosApplicationStepIndex } from "./serviciosApplicationStepLabels";
 import { SERVICIOS_MAX_VIDEO_URLS } from "./clasificadosServiciosApplicationTypes";
 import { CUSTOM_PAYMENT_LABEL_MAX } from "@/app/servicios/lib/serviciosPaymentMethodCatalog";
-import { CUSTOM_SERVICIOS_AMENITY_LABEL_MAX } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
+import {
+  CUSTOM_SERVICIOS_AMENITY_LABEL_MAX,
+  SERVICIOS_AMENITY_REAL_GROUP_IDS,
+  sanitizeCustomServiciosAmenityEntries,
+  type ServiciosAmenityRealGroupId,
+} from "@/app/servicios/lib/serviciosAmenitiesCatalog";
 
 const DAY_KEYS: DayKey[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
@@ -45,6 +50,22 @@ function isVideoItem(v: unknown): v is VideoItem {
   if (!v || typeof v !== "object") return false;
   const o = v as Record<string, unknown>;
   return typeof o.id === "string" && typeof o.url === "string" && (o.source === "file" || o.source === "url");
+}
+
+function normalizePendingCustomAmenityOptionByGroup(
+  raw: unknown,
+  fallback: Partial<Record<ServiciosAmenityRealGroupId, string>>,
+): Partial<Record<ServiciosAmenityRealGroupId, string>> {
+  if (!raw || typeof raw !== "object") return fallback;
+  const o = raw as Record<string, unknown>;
+  const out: Partial<Record<ServiciosAmenityRealGroupId, string>> = {};
+  for (const groupId of SERVICIOS_AMENITY_REAL_GROUP_IDS) {
+    const v = o[groupId];
+    if (typeof v === "string" && v.trim()) {
+      out[groupId] = v.slice(0, CUSTOM_SERVICIOS_AMENITY_LABEL_MAX);
+    }
+  }
+  return out;
 }
 
 /**
@@ -302,9 +323,21 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
   if (Array.isArray(o.amenityOptionIds)) {
     amenityOptionIds = o.amenityOptionIds.filter((x): x is string => typeof x === "string");
   }
+  // Owner-QA final repair — customAmenityOptions became group-tagged entries (was a flat string
+  // list with no subgroup fidelity). A prior in-flight draft already in the new shape hydrates
+  // directly; one still holding the old flat-string shape has every value folded into "service"
+  // (the first subgroup) so no filled application is silently lost — the original subgroup can't
+  // be recovered from the old shape, but the text itself is preserved and still visible/editable.
   let customAmenityOptions = d.customAmenityOptions;
   if (Array.isArray(o.customAmenityOptions)) {
-    customAmenityOptions = o.customAmenityOptions.filter((x): x is string => typeof x === "string");
+    const arr = o.customAmenityOptions;
+    if (arr.every((x) => typeof x === "string")) {
+      customAmenityOptions = sanitizeCustomServiciosAmenityEntries(
+        (arr as string[]).map((label) => ({ groupId: "service", label })),
+      );
+    } else {
+      customAmenityOptions = sanitizeCustomServiciosAmenityEntries(arr);
+    }
   }
 
   let certifications = d.certifications;
@@ -312,11 +345,25 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     certifications = o.certifications.filter((x): x is string => typeof x === "string");
   }
 
+  // Owner-QA final repair — Quick Facts became a multi-entry list (was a single committed value
+  // gated by customQuickFactIncluded). A prior in-flight draft that already has the new array
+  // hydrates directly; one still holding the old single-value shape has that one value folded in
+  // as its first entry so no filled application is silently lost.
+  let customQuickFacts: string[] = d.customQuickFacts;
   let customQuickFactLabel = str("customQuickFactLabel", d.customQuickFactLabel);
-  let customQuickFactIncluded = bool("customQuickFactIncluded", d.customQuickFactIncluded);
-  if (isJunkServiciosQuickFactLabel(customQuickFactLabel)) {
-    customQuickFactLabel = "";
-    customQuickFactIncluded = false;
+  if (Array.isArray(o.customQuickFacts)) {
+    customQuickFacts = o.customQuickFacts.filter(
+      (x): x is string => typeof x === "string" && x.trim().length > 0 && !isJunkServiciosQuickFactLabel(x),
+    );
+  } else {
+    const legacyLabel = str("customQuickFactLabel", "");
+    const legacyIncluded = bool("customQuickFactIncluded", false);
+    if (legacyIncluded && legacyLabel.trim() && !isJunkServiciosQuickFactLabel(legacyLabel)) {
+      customQuickFacts = [legacyLabel.trim()];
+      // The old committed value now lives in the array — don't also leave it sitting in the
+      // pending-text box, or it would look duplicated in the UI.
+      customQuickFactLabel = "";
+    }
   }
 
   const baseBeforeCaps = {
@@ -366,8 +413,8 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     customReasonLabel: str("customReasonLabel", d.customReasonLabel),
     customReasonIncluded: bool("customReasonIncluded", d.customReasonIncluded),
     selectedQuickFactIds,
+    customQuickFacts,
     customQuickFactLabel,
-    customQuickFactIncluded,
     selectedBusinessHighlightIds,
     customBusinessHighlights,
     customBusinessHighlightLabel: str("customBusinessHighlightLabel", d.customBusinessHighlightLabel).slice(
@@ -396,6 +443,7 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     extraLink2Url: str("extraLink2Url", d.extraLink2Url),
     extraLink2Label: str("extraLink2Label", d.extraLink2Label).slice(0, 48),
     hours,
+    specialHoursNote: str("specialHoursNote", d.specialHoursNote).slice(0, 240),
     testimonials,
     promotions,
     coupons,
@@ -414,9 +462,9 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     ),
     amenityOptionIds,
     customAmenityOptions,
-    pendingCustomAmenityOption: str("pendingCustomAmenityOption", d.pendingCustomAmenityOption).slice(
-      0,
-      CUSTOM_SERVICIOS_AMENITY_LABEL_MAX,
+    pendingCustomAmenityOptionByGroup: normalizePendingCustomAmenityOptionByGroup(
+      o.pendingCustomAmenityOptionByGroup,
+      d.pendingCustomAmenityOptionByGroup,
     ),
     hasLicense: bool("hasLicense", d.hasLicense),
     isInsured: bool("isInsured", d.isInsured),

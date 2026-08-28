@@ -99,7 +99,7 @@ function chipKindHint(chip: ChipDef): "emergency" | "mobile" | "other" {
 
 function pickQuickSelections(preset: BusinessTypePreset): {
   selectedQuickFactIds: string[];
-  customQuickFactIncluded: boolean;
+  customQuickFacts: string[];
   customQuickFactLabel: string;
 } {
   const facts = preset.quickFacts;
@@ -114,8 +114,8 @@ function pickQuickSelections(preset: BusinessTypePreset): {
   }
   return {
     selectedQuickFactIds: selected.slice(0, 2),
-    customQuickFactIncluded: true,
-    customQuickFactLabel: "Bilingüe certificado ES/EN",
+    customQuickFacts: ["Bilingüe certificado ES/EN"],
+    customQuickFactLabel: "",
   };
 }
 
@@ -206,7 +206,7 @@ function buildApplicationState(preset: BusinessTypePreset): ClasificadosServicio
     customReasonIncluded: false,
     selectedQuickFactIds: qk.selectedQuickFactIds,
     customQuickFactLabel: qk.customQuickFactLabel,
-    customQuickFactIncluded: qk.customQuickFactIncluded,
+    customQuickFacts: qk.customQuickFacts,
     selectedBusinessHighlightIds: ["bh_free_quote", "bh_same_day", "bh_at_home", "bh_guarantee", "bh_insured", "bh_fast_response"],
     customBusinessHighlights: [],
     customBusinessHighlightLabel: "",
@@ -241,6 +241,7 @@ function buildApplicationState(preset: BusinessTypePreset): ClasificadosServicio
       { day: "sat", closed: false, open: "10:00", close: "14:00" },
       { day: "sun", closed: false, open: "10:00", close: "13:00" },
     ],
+    specialHoursNote: "",
     testimonials: [
       {
         id: newTestimonialId(),
@@ -273,7 +274,7 @@ function buildApplicationState(preset: BusinessTypePreset): ClasificadosServicio
     customPaymentMethodLabel: "",
     amenityOptionIds: [],
     customAmenityOptions: [],
-    pendingCustomAmenityOption: "",
+    pendingCustomAmenityOptionByGroup: {},
     hasLicense: false,
     licenseType: "",
     licenseNumber: "",

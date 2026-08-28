@@ -1,4 +1,3 @@
-import type { ServiciosApplicationDraft } from "../types/serviciosApplicationDraft";
 import {
   CUSTOM_SERVICIOS_AMENITY_LABEL_MAX,
   MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS,
@@ -29,19 +28,5 @@ export function evaluateAddCustomAmenityLabel(params: {
   }
 
   return { ok: true, label };
-}
-
-export function flushPendingCustomAmenityOnDraft(draft: ServiciosApplicationDraft): ServiciosApplicationDraft {
-  const raw = draft.pendingCustomAmenityOption?.trim() ?? "";
-  if (!raw) return draft;
-  const r = evaluateAddCustomAmenityLabel({ customAmenityOptions: draft.customAmenityOptions, raw });
-  if (r.ok) {
-    return {
-      ...draft,
-      customAmenityOptions: [...(draft.customAmenityOptions ?? []), r.label],
-      pendingCustomAmenityOption: "",
-    };
-  }
-  return { ...draft, pendingCustomAmenityOption: "" };
 }
 

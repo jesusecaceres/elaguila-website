@@ -35,7 +35,7 @@ import {
   sanitizeServiciosPaymentMethodIds,
 } from "@/app/servicios/lib/serviciosPaymentMethodCatalog";
 import {
-  sanitizeCustomServiciosAmenityLabels,
+  sanitizeCustomServiciosAmenityEntries,
   sanitizeServiciosAmenityOptionIds,
 } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
 import { clasificadosCouponRowHasProgress } from "./clasificadosServiciosPromo";
@@ -148,8 +148,9 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       });
     }
   }
-  if (state.customQuickFactIncluded && state.customQuickFactLabel.trim() && !isJunkServiciosQuickFactLabel(state.customQuickFactLabel)) {
-    const lab = state.customQuickFactLabel.trim().slice(0, 28);
+  for (const raw of state.customQuickFacts) {
+    if (!raw.trim() || isJunkServiciosQuickFactLabel(raw)) continue;
+    const lab = raw.trim().slice(0, 28);
     const low = lab.toLowerCase();
     let kind: ServiciosQuickFactKind = "custom";
     if (/emergencia|emergency|urgencias/i.test(low)) kind = "emergency";
@@ -269,6 +270,9 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   if (hoursOpenNowLabel && hoursTodayLine) {
     contact.hoursOpenNowLabel = hoursOpenNowLabel;
     contact.hoursTodayLine = hoursTodayLine;
+  }
+  if (state.specialHoursNote.trim()) {
+    contact.hoursSpecialNote = state.specialHoursNote.trim();
   }
 
   const weeklyHoursRows: { dayLabel: string; line: string }[] = [];
@@ -471,7 +475,7 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   if (customPay.length) draft.customPaymentMethods = customPay;
 
   const amenityIds = sanitizeServiciosAmenityOptionIds(state.amenityOptionIds);
-  const customAmenities = sanitizeCustomServiciosAmenityLabels(state.customAmenityOptions);
+  const customAmenities = sanitizeCustomServiciosAmenityEntries(state.customAmenityOptions);
   if (amenityIds.length) draft.amenityOptionIds = amenityIds;
   if (customAmenities.length) draft.customAmenityOptions = customAmenities;
 
