@@ -41,24 +41,21 @@ function run() {
     "utf8"
   );
 
-  // --- Case A: Files view shows upload/scan summary but NOT the full product editor ---
+  // --- Case A: Step 5's own render branch never embeds the full review workspace ---
+  const step5CaseMatch = clientSrc.match(/case 5: \{[\s\S]*?\n      case 6:/);
+  assert.ok(step5CaseMatch, "sanity: case 5 block not found");
   assert.doesNotMatch(
-    clientSrc,
-    /step5ReviewView === "products"[\s\S]{0,5}\? \(\s*<[\s\S]{0,200}OfertasLocalesAiScanReviewWorkspace/,
-    "CASE A FAILED: the constrained Step 5 card content must never render the full review workspace inline"
+    step5CaseMatch![0],
+    /<OfertasLocalesAiScanReviewWorkspace/,
+    "CASE A FAILED: Step 5 must never render the full review workspace inline — it is now a real Step 6 (Gate I)"
   );
-  assert.match(
-    clientSrc,
-    /step5ReviewView === "products" \? \(\s*<div className="space-y-1\.5/,
-    "CASE A FAILED: Files view's products-mode branch must render the compact dedicated-screen header, not the workspace"
-  );
-  console.log("Case A (Files view contains summary, not the full editor) passed.");
+  console.log("Case A (Step 5 never renders the full review editor inline) passed.");
 
-  // --- Case B: Revisar productos opens the dedicated review screen ---
+  // --- Case B: Revisar productos opens the dedicated review screen (now real Step 6) ---
   assert.match(
     clientSrc,
-    /const openProductReviewWorkspace = useCallback\(\(\) => \{[\s\S]*?setStep5ReviewView\("products"\)/,
-    "CASE B FAILED: the review-open handler must switch step5ReviewView to 'products'"
+    /const openProductReviewWorkspace = useCallback\(\(\) => \{[\s\S]*?setStep\(6\)/,
+    "CASE B FAILED: the review-open handler must navigate the wizard to Step 6 (Gate I)"
   );
   console.log("Case B (Revisar productos opens dedicated review screen) passed.");
 
@@ -71,24 +68,28 @@ function run() {
   );
   console.log("Case C (dedicated review screen reuses existing workspace) passed.");
 
-  // --- Case D: dedicated review screen does not show the Step 5 file checklist simultaneously ---
-  assert.match(
-    clientSrc,
-    /\{step5ReviewView === "products" \? null : \(\s*<div className="rounded-xl border border-\[#D4C4A8\]\/60 bg-\[#FDF8F0\]\/50 px-4 py-3">\s*<p className="text-\[11px\] font-medium uppercase tracking-wide text-\[#1E1814\]\/45">\s*\{c\.startOverNeedQuestion\}/,
-    "CASE D FAILED: the start-over box must be hidden while the dedicated review screen is open"
+  // --- Case D: dedicated review screen (Step 6) never shows the Step 5 file checklist ---
+  // Step 6 is its own switch case now (Gate I), so the Step 5 checklist/start-over
+  // box structurally cannot render there — no shared conditional to regress.
+  const step6CaseMatch = clientSrc.match(/case 6:\s*\n\s*return \([\s\S]*?\n      case 7:/);
+  assert.ok(step6CaseMatch, "sanity: case 6 (Revisar productos) block not found");
+  assert.doesNotMatch(
+    step6CaseMatch![0],
+    /startOverNeedQuestion|Step5CheckpointCard/,
+    "CASE D FAILED: Step 6 must not render the Step 5 upload checklist or start-over box"
   );
   assert.match(
     clientSrc,
-    /step === 5 && step5ReviewView === "products" \? null : step < 7 \? \(/,
-    "CASE D FAILED: the wizard-level Back\\/Next footer must be hidden while the dedicated review screen is open"
+    /const hideGenericFooter =\s*\n\s*step === 6 \|\| \(step === 5 && aiIncludedInPackage && step5ScanComplete\);/,
+    "CASE D FAILED: the wizard-level Back/Next footer must be hidden while the dedicated review screen (Step 6) is open"
   );
   console.log("Case D (dedicated review screen hides the Step 5 checklist/footer) passed.");
 
-  // --- Case E: dedicated review completion proceeds directly into Step 6 Extras ---
+  // --- Case E: dedicated review completion proceeds directly into Step 7 Extras (Gate I renumbering) ---
   assert.match(
     clientSrc,
-    /const goToStep6 = useCallback\(\(\) => \{\s*setStep5ManualCheckpoint\(null\);\s*setStep\(6\);/,
-    "CASE E FAILED: goToStep6 must remain the existing direct Step 6 handler"
+    /const goToStep7Extras = useCallback\(\(\) => \{\s*setStep5ManualCheckpoint\(null\);\s*setStep\(7\);/,
+    "CASE E FAILED: goToStep7Extras must remain the existing direct Step 7 handler"
   );
   assert.match(
     workspaceSrc,
@@ -97,10 +98,10 @@ function run() {
   );
   assert.match(
     clientSrc,
-    /onContinueToNextStep=\{goToStep6\}/,
-    "CASE E FAILED: the full-width review desk must still wire onContinueToNextStep to goToStep6 directly — no detour back through Step 5"
+    /onContinueToNextStep=\{goToStep7Extras\}/,
+    "CASE E FAILED: the full-width review desk must still wire onContinueToNextStep to goToStep7Extras directly — no detour back through Step 5"
   );
-  console.log("Case E (review completion proceeds directly into Step 6 Extras) passed.");
+  console.log("Case E (review completion proceeds directly into Step 7 Extras) passed.");
 
   // --- Case F: cold mount with completed persisted review reconstructs state before the workspace opens ---
   const reconstructEffectMatch = clientSrc.match(
@@ -128,13 +129,14 @@ function run() {
   );
   console.log("Case G/H/I (completed/partial/unstarted review CTA derivation intact) passed.");
 
-  // --- Case J: completed review does not show the false AI-review blocker ---
-  assert.match(
+  // --- Case J: the false AI-review blocker cannot exist — Step 5 no longer gates
+  // generic continuation on review completion; review lives entirely on Step 6 now ---
+  assert.doesNotMatch(
     clientSrc,
-    /const step5AiReviewBlocksContinue =\s*step === 5 && aiIncludedInPackage && step5ScanComplete && !step5ReviewComplete;/,
-    "CASE J FAILED: the blocker must remain driven by step5ReviewComplete, which the Case F fix now populates correctly on cold mount"
+    /step5AiReviewBlocksContinue/,
+    "CASE J FAILED: Step 5 must not retain a review-completion blocker construct — that concept moved entirely to Step 6 (Gate I)"
   );
-  console.log("Case J (false AI-review blocker cannot survive a correctly reconstructed review state) passed.");
+  console.log("Case J (false AI-review blocker cannot exist — review moved off Step 5) passed.");
 
   // --- Case K: item review/PATCH persistence contract untouched (127 review decisions unaffected) ---
   assert.doesNotMatch(
