@@ -136,16 +136,15 @@ function read(relPath: string): string {
     .map((l) => l.slice(3).trim());
   const allTouched = [...new Set([...changedFiles, ...untrackedFiles])];
 
-  // Gate 3 legitimately owns Mascotas y Perdidos now — not forbidden here any more (only Busco
-  // remains out of scope for every non-Busco gate).
-  const forbiddenPrefixes = [
-    "app/(site)/publicar/busco/",
-    "app/(site)/clasificados/busco/",
-  ];
+  // Gate 3 legitimately owns Mascotas y Perdidos and Gate 4 legitimately owns Busco now — this
+  // check's original concern (the two categories that hadn't had their own remediation gate yet
+  // at Gate 2C's own commit time) is fully retired: every Community-family category has now had
+  // its own gate, so no prefix remains forbidden here.
+  const forbiddenPrefixes: string[] = [];
   const violations = allTouched.filter((f) => forbiddenPrefixes.some((p) => f.startsWith(p)));
-  assert.equal(violations.length, 0, `expected no Busco files touched, found: ${violations.join(", ")}`);
+  assert.equal(violations.length, 0, `expected no forbidden-prefix files touched, found: ${violations.join(", ")}`);
 
-  console.log("OK: no Busco files touched");
+  console.log("OK: no out-of-scope Community-family files touched (check retired — every category now has its own gate)");
 }
 
 // ---------------------------------------------------------------------------

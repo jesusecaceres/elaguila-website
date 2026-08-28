@@ -12,8 +12,15 @@ const LISTING_IMAGE_FALLBACK = "/logo.png";
 const CTA = { es: "Ver solicitud", en: "View request" } as const;
 
 const URGENCY_LABEL: Record<string, { es: string; en: string }> = {
-  pronto: { es: "Pronto", en: "Soon" },
-  urgente: { es: "Urgente", en: "Urgent" },
+  esta_semana: { es: "Esta semana", en: "This week" },
+  lo_antes_posible: { es: "Lo antes posible", en: "ASAP" },
+  urgente_hoy: { es: "Urgente hoy", en: "Urgent today" },
+};
+
+const URGENCY_CLASS: Record<string, string> = {
+  esta_semana: "bg-amber-50 text-amber-800",
+  lo_antes_posible: "bg-amber-100 text-amber-800",
+  urgente_hoy: "bg-red-100 text-red-700",
 };
 
 type Props = {
@@ -97,15 +104,8 @@ function BuscoCardLayout({
             {model.typeBadge}
           </span>
           {model.urgency && URGENCY_LABEL[model.urgency] ? (
-            <span className={`inline-flex max-w-full truncate rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-              model.urgency === "urgente" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
-            }`}>
+            <span className={`inline-flex max-w-full truncate rounded-full px-2.5 py-0.5 text-[10px] font-bold ${URGENCY_CLASS[model.urgency]}`}>
               {lang === "es" ? URGENCY_LABEL[model.urgency].es : URGENCY_LABEL[model.urgency].en}
-            </span>
-          ) : null}
-          {model.contactChip ? (
-            <span className="inline-flex max-w-full truncate rounded-full border border-[#C9B46A]/35 bg-[#FCF9F2] px-2.5 py-0.5 text-[10px] font-semibold text-[#6B5E4E]">
-              {model.contactChip}
             </span>
           ) : null}
         </div>
@@ -145,7 +145,7 @@ function BuscoCardCta({ href, cta }: { href: string; cta: string }) {
     <div className="mt-auto pt-2">
       <Link
         href={href}
-        className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#111111] px-4 py-2.5 text-sm font-semibold text-[#F5F5F5] transition hover:opacity-95 sm:w-auto sm:min-w-[10.5rem]"
+        className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-[#FFFCF7] transition hover:opacity-95 sm:w-auto sm:min-w-[10.5rem]"
       >
         {cta}
       </Link>

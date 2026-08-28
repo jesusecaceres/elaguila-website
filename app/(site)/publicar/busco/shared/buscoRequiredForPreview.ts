@@ -16,9 +16,10 @@ const GATE = {
     description: "Descripción breve",
     city: "Ciudad",
     cityInvalid: "Selecciona una ciudad válida de la lista.",
-    contact: "Teléfono / WhatsApp o correo electrónico",
-    phoneDigits: "Teléfono: ingresa 10 dígitos o déjalo vacío si usas correo",
+    contact: "Teléfono, mensaje de texto, WhatsApp o correo electrónico",
+    phoneDigits: "Teléfono: ingresa 10 dígitos o déjalo vacío",
     emailInvalid: "Correo: ingresa un email válido",
+    confirmations: "Confirma los 3 recuadros antes de continuar",
   },
   en: {
     type: "Request type",
@@ -27,9 +28,10 @@ const GATE = {
     description: "Short description",
     city: "City",
     cityInvalid: "Select a valid city from the list.",
-    contact: "Phone / WhatsApp or email",
-    phoneDigits: "Phone: enter 10 digits or leave blank if using email",
+    contact: "Phone, text message, WhatsApp, or email",
+    phoneDigits: "Phone: enter 10 digits or leave blank",
     emailInvalid: "Email: enter a valid email address",
+    confirmations: "Check all 3 confirmation boxes before continuing",
   },
 } as const;
 
@@ -37,6 +39,22 @@ function isProbablySafeEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
 
+/** Section J — at least one direct contact channel (any of phone/SMS/WhatsApp/email). */
+function hasAnyDirectContact(d: BuscoQuickDraft): boolean {
+  const phoneDig = digitsOnly(d.phone);
+  const smsDig = digitsOnly(d.smsPhone);
+  const waDig = digitsOnly(d.whatsapp);
+  const email = st(d.email);
+  return (
+    phoneDig.length >= 10 ||
+    smsDig.length >= 10 ||
+    waDig.length >= 10 ||
+    (email.length > 0 && isProbablySafeEmail(email))
+  );
+}
+
+/** Section P — Preview is blocked until required fields, at least one contact, and all 3
+ *  publish confirmations are satisfied (the stricter Community-family pattern from Gate 3). */
 export function gateBuscoQuickPreview(d: BuscoQuickDraft, lang: Lang = "es"): BuscoGateResult {
   const L = GATE[lang];
   const issues: string[] = [];
@@ -54,13 +72,13 @@ export function gateBuscoQuickPreview(d: BuscoQuickDraft, lang: Lang = "es"): Bu
   }
 
   const phoneDig = digitsOnly(d.phone);
-  const email = st(d.email);
-  const hasPhone = phoneDig.length >= 10;
-  const hasEmail = email.length > 0;
-
-  if (!hasPhone && !hasEmail) issues.push(L.contact);
   if (phoneDig.length > 0 && phoneDig.length < 10) issues.push(L.phoneDigits);
-  if (hasEmail && !isProbablySafeEmail(email)) issues.push(L.emailInvalid);
+  const email = st(d.email);
+  if (email.length > 0 && !isProbablySafeEmail(email)) issues.push(L.emailInvalid);
+  if (!hasAnyDirectContact(d)) issues.push(L.contact);
+
+  const c = d.publishConfirmations;
+  if (!c.infoTruthful || !c.mediaAccurate || !c.rulesAccepted) issues.push(L.confirmations);
 
   return issues.length ? { ok: false, issues } : { ok: true };
 }

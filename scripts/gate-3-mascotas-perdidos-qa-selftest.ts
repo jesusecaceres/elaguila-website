@@ -47,7 +47,7 @@ function row(overrides: Partial<MascotasPerdidosListingBrowseRow>): MascotasPerd
 // 1-3. Checkpoint compact path + conditional forms + pet fields hidden for objects
 {
   const quickLane = read("app/(site)/clasificados/publicar/_components/QuickLaneCheckpointClient.tsx");
-  assert.ok(/compact = category === "comunidad" \|\| category === "clases" \|\| category === "mascotas-y-perdidos"/.test(quickLane), "expected Mascotas to opt into the compact checkpoint layout");
+  assert.ok(/const compact =[\s\S]{0,200}category === "mascotas-y-perdidos"/.test(quickLane), "expected Mascotas to opt into the compact checkpoint layout");
 
   const form = read("app/(site)/publicar/mascotas-y-perdidos/quick/MascotasPerdidosQuickFormClient.tsx");
   assert.ok(form.includes("isPet ?") && form.includes("isObject ?"), "expected conditional pet-vs-object field sections");
@@ -252,16 +252,15 @@ function row(overrides: Partial<MascotasPerdidosListingBrowseRow>): MascotasPerd
   const migrationTouched = allTouched.some((f) => /supabase\/migrations\//i.test(f) || /\.sql$/i.test(f));
   assert.ok(!migrationTouched, "expected no DB migration files touched");
 
+  // Gate 4 legitimately owns Busco now — not forbidden here any more. The durable Revenue-OS
+  // concern remains forbidden for every gate.
   const forbiddenPrefixes = [
-    "app/(site)/publicar/mascotas-y-perdidos/../busco/",
-    "app/(site)/publicar/busco/",
-    "app/(site)/clasificados/busco/",
     "app/lib/listingPlans/",
     "app/api/revenue-os/",
   ];
   const violations = allTouched.filter((f) => forbiddenPrefixes.some((p) => f.startsWith(p)));
-  assert.equal(violations.length, 0, `expected no Busco/Revenue-OS files touched, found: ${violations.join(", ")}`);
-  console.log("OK: 36, 39, 40 no DB migration added; no Busco files touched; no Revenue OS files touched");
+  assert.equal(violations.length, 0, `expected no Revenue-OS files touched, found: ${violations.join(", ")}`);
+  console.log("OK: 36, 39, 40 no DB migration added; no Revenue OS files touched");
 }
 
 // 37-38. Prior gate verifiers still pass

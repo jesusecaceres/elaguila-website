@@ -260,19 +260,17 @@ function read(relPath: string): string {
   const migrationTouched = allTouched.some((f) => /supabase\/migrations\//i.test(f) || /\.sql$/i.test(f));
   assert.ok(!migrationTouched, `expected no DB migration files touched, found: ${allTouched.filter((f) => /migrations|\.sql$/i.test(f)).join(", ")}`);
 
-  // Gate 3 legitimately owns Mascotas y Perdidos now (out of scope only at Gate 2B's own commit
-  // time) — Mascotas is intentionally NOT in this forbidden list any more. Busco and Comunidad
-  // remain forbidden for every gate that isn't their own.
+  // Gate 3 legitimately owns Mascotas y Perdidos, and Gate 4 legitimately owns Busco, now (each
+  // was only out of scope at Gate 2B's own commit time) — neither is in this forbidden list any
+  // more. Comunidad remains forbidden for every gate that isn't its own.
   const forbiddenPrefixes = [
-    "app/(site)/publicar/busco/",
-    "app/(site)/clasificados/busco/",
     "app/(site)/publicar/comunidad/",
     "app/(site)/clasificados/comunidad/",
   ];
   const violations = allTouched.filter((f) => forbiddenPrefixes.some((p) => f.startsWith(p)));
-  assert.equal(violations.length, 0, `expected no Busco/Comunidad-owned files touched, found: ${violations.join(", ")}`);
+  assert.equal(violations.length, 0, `expected no Comunidad-owned files touched, found: ${violations.join(", ")}`);
 
-  console.log("OK: no DB migration added; no Busco/Comunidad-owned UI files touched");
+  console.log("OK: no DB migration added; no Comunidad-owned UI files touched");
 }
 
 console.log("gate-2b-clases-revenue-os-selftest: PASS");
