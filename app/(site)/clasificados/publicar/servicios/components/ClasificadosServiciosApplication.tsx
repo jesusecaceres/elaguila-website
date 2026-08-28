@@ -18,6 +18,7 @@ import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications
 import { PhoneInput } from "@/app/components/forms/PhoneInput";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { LanguagesInput } from "@/app/components/forms/LanguagesInput";
+import { useAddedConfirmation, AddedConfirmationBadge } from "@/app/components/forms/AddedConfirmation";
 import {
   HoursEditor,
   type HoursEditorDayRow,
@@ -277,6 +278,39 @@ export function ClasificadosServiciosApplication() {
   const [newFieldsMissing, setNewFieldsMissing] = useState<string[]>([]);
   const [languageOtherPending, setLanguageOtherPending] = useState("");
   const [serviceAreaPending, setServiceAreaPending] = useState("");
+
+  // Owner UX doctrine (INPUT -> ACCEPTED -> PERSISTED): one useAddedConfirmation() instance per
+  // distinct explicit Add flow. Groups/rows that repeat a fixed, bounded set (5 amenity groups,
+  // up to 4 coupon rows) each get their own fixed hook instance below (hooks can't be called
+  // inside .map()), looked up by id/index at render time.
+  const addedCustomService = useAddedConfirmation();
+  const addedCustomQuickFact = useAddedConfirmation();
+  const addedAmenityService = useAddedConfirmation();
+  const addedAmenityAvailability = useAddedConfirmation();
+  const addedAmenityCustomersServed = useAddedConfirmation();
+  const addedAmenityAccessibilityLanguages = useAddedConfirmation();
+  const addedAmenityDiscountsBenefits = useAddedConfirmation();
+  const addedAmenityConfirmationByGroup: Record<string, ReturnType<typeof useAddedConfirmation>> = {
+    service: addedAmenityService,
+    availability: addedAmenityAvailability,
+    customers_served: addedAmenityCustomersServed,
+    accessibility_languages: addedAmenityAccessibilityLanguages,
+    discounts_benefits: addedAmenityDiscountsBenefits,
+  };
+  const addedCustomLanguage = useAddedConfirmation();
+  const addedServiceArea = useAddedConfirmation();
+  const addedVideoUrl = useAddedConfirmation();
+  const addedCouponImageRow0 = useAddedConfirmation();
+  const addedCouponImageRow1 = useAddedConfirmation();
+  const addedCouponImageRow2 = useAddedConfirmation();
+  const addedCouponImageRow3 = useAddedConfirmation();
+  const addedCouponImageByIndex: ReturnType<typeof useAddedConfirmation>[] = [
+    addedCouponImageRow0,
+    addedCouponImageRow1,
+    addedCouponImageRow2,
+    addedCouponImageRow3,
+  ];
+  const addedCouponFlyerImage = useAddedConfirmation();
 
   const stepLabels = useMemo(() => getServiciosApplicationStepLabels(lang), [lang]);
   const stepShortLabels = useMemo(() => getServiciosApplicationStepShortLabels(lang), [lang]);
@@ -717,13 +751,16 @@ export function ClasificadosServiciosApplication() {
       setLanguageOtherPending("");
       return;
     }
+    let added = false;
     setState((s) => {
       const existing = s.languageOtherLines.split("\n").map((l) => l.trim()).filter(Boolean);
       if (existing.some((v) => normalizeServiceOfferedDedupeKey(v) === candidateKey)) return s;
+      added = true;
       return { ...s, languageOtherLines: [...existing, trimmed].join("\n") };
     });
     setLanguageOtherPending("");
-  }, [languageOtherPending, FIXED_LANGUAGE_LABELS]);
+    if (added) addedCustomLanguage.flash();
+  }, [languageOtherPending, FIXED_LANGUAGE_LABELS, addedCustomLanguage.flash]);
 
   const removeCustomLanguageAt = useCallback((index: number) => {
     setState((s) => {
@@ -745,13 +782,16 @@ export function ClasificadosServiciosApplication() {
   const addServiceArea = useCallback(() => {
     const trimmed = serviceAreaPending.trim();
     if (!trimmed) return;
+    let added = false;
     setState((s) => {
       const existing = s.serviceAreaNotes.split("\n").map((v) => v.trim()).filter(Boolean);
       if (existing.some((v) => v.toLowerCase() === trimmed.toLowerCase())) return s;
+      added = true;
       return { ...s, serviceAreaNotes: [...existing, trimmed].join("\n") };
     });
     setServiceAreaPending("");
-  }, [serviceAreaPending]);
+    if (added) addedServiceArea.flash();
+  }, [serviceAreaPending, addedServiceArea.flash]);
 
   const removeServiceAreaAt = useCallback((index: number) => {
     setState((s) => {
@@ -904,6 +944,7 @@ export function ClasificadosServiciosApplication() {
       return;
     }
     const normalizedUrl = normalizeHttpUrl(strictNormalized);
+    let added = false;
     setState((prev) => {
       if (prev.videos.length >= SERVICIOS_MAX_VIDEO_URLS) {
         queueMicrotask(() =>
@@ -918,6 +959,7 @@ export function ClasificadosServiciosApplication() {
         queueMicrotask(() => setMediaFlash(copy.labels.videoDuplicateUrl));
         return prev;
       }
+      added = true;
       const row = { id: newVideoId(), url: normalizedUrl, source: "url" as const };
       const next = [...prev.videos, row].slice(0, SERVICIOS_MAX_VIDEO_URLS);
       if (prev.videos.length === 0) {
@@ -926,6 +968,7 @@ export function ClasificadosServiciosApplication() {
       const primaryId = prev.videos.find((v) => v.isPrimary === true)?.id ?? prev.videos[0]!.id;
       return { ...prev, videos: next.map((v) => ({ ...v, isPrimary: v.id === primaryId })) };
     });
+    if (added) addedVideoUrl.flash();
     setVideoUrlDraft("");
   };
 
@@ -1403,6 +1446,10 @@ export function ClasificadosServiciosApplication() {
                 >
                   {lang === "es" ? "Añadir" : "Add"}
                 </button>
+                <AddedConfirmationBadge
+                  visible={addedServiceArea.visible}
+                  label={lang === "en" ? "Added" : "Añadido"}
+                />
               </div>
             </div>
 
@@ -1741,6 +1788,11 @@ export function ClasificadosServiciosApplication() {
                   removeAria: (value) => (lang === "en" ? `Remove ${value}` : `Quitar ${value}`),
                 }}
               />
+              <AddedConfirmationBadge
+                visible={addedCustomLanguage.visible}
+                label={lang === "en" ? "Added" : "Añadido"}
+                className="mt-2"
+              />
             </div>
           </div>
         </section>
@@ -2030,6 +2082,10 @@ export function ClasificadosServiciosApplication() {
                   >
                     {copy.labels.addVideoUrl}
                   </button>
+                  <AddedConfirmationBadge
+                    visible={addedVideoUrl.visible}
+                    label={lang === "en" ? "Video added" : "Video añadido"}
+                  />
                 </div>
               </div>
             ) : (
@@ -2138,19 +2194,26 @@ export function ClasificadosServiciosApplication() {
                   }
                   className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                   onClick={() => {
+                    let added = false;
                     setState((prev) => {
                       const r = evaluateAddCustomServiceOffered(prev, lang, prev.customServiceLabel);
                       if (!r.ok) return prev;
+                      added = true;
                       return enforceServiciosSelectionCaps({
                         ...prev,
                         customServicesOffered: [...prev.customServicesOffered, r.label],
                         customServiceLabel: "",
                       });
                     });
+                    if (added) addedCustomService.flash();
                   }}
                 >
                   {copy.labels.addCustomChip}
                 </button>
+                <AddedConfirmationBadge
+                  visible={addedCustomService.visible}
+                  label={lang === "en" ? "Added" : "Añadido"}
+                />
               </div>
               <p className="mt-2 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.customServicesHelperHint}</p>
               {state.customServicesOffered.length >= MAX_CUSTOM_SERVICES_OFFERED ? (
@@ -2465,19 +2528,26 @@ export function ClasificadosServiciosApplication() {
                   }
                   className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                   onClick={() => {
+                    let added = false;
                     setState((prev) => {
                       const r = evaluateAddCustomQuickFact(prev, lang, prev.customQuickFactLabel);
                       if (!r.ok) return prev;
+                      added = true;
                       return enforceServiciosSelectionCaps({
                         ...prev,
                         customQuickFacts: [...prev.customQuickFacts, r.label],
                         customQuickFactLabel: "",
                       });
                     });
+                    if (added) addedCustomQuickFact.flash();
                   }}
                 >
                   {copy.labels.addCustomChip}
                 </button>
+                <AddedConfirmationBadge
+                  visible={addedCustomQuickFact.visible}
+                  label={lang === "en" ? "Added" : "Añadido"}
+                />
               </div>
               {state.customQuickFacts.length >= MAX_CUSTOM_QUICK_FACTS ? (
                 <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.customQuickFactsMax}</p>
@@ -2635,6 +2705,7 @@ export function ClasificadosServiciosApplication() {
               const options = SERVICIOS_AMENITY_OPTIONS.filter((o) => o.groupId === group.id);
               const groupCustoms = state.customAmenityOptionsByGroup?.[group.id] ?? [];
               const pendingGroupValue = state.pendingCustomAmenityOptionByGroup?.[group.id] ?? "";
+              const groupConfirmation = addedAmenityConfirmationByGroup[group.id];
               if (options.length === 0) return null;
               return (
                 <div key={group.id}>
@@ -2689,11 +2760,13 @@ export function ClasificadosServiciosApplication() {
                       }
                       className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                       onClick={() => {
+                        let added = false;
                         setState((prev) => {
                           const bucket = prev.customAmenityOptionsByGroup?.[group.id] ?? [];
                           const pending = prev.pendingCustomAmenityOptionByGroup?.[group.id] ?? "";
                           const r = evaluateAddCustomAmenityOptionForGroup(bucket, pending);
                           if (!r.ok) return prev;
+                          added = true;
                           return enforceServiciosSelectionCaps({
                             ...prev,
                             customAmenityOptionsByGroup: {
@@ -2706,10 +2779,15 @@ export function ClasificadosServiciosApplication() {
                             },
                           });
                         });
+                        if (added) groupConfirmation?.flash();
                       }}
                     >
                       {copy.labels.amenitiesAdd}
                     </button>
+                    <AddedConfirmationBadge
+                      visible={groupConfirmation?.visible ?? false}
+                      label={lang === "en" ? "Added" : "Añadido"}
+                    />
                   </div>
 
                   {groupCustoms.length >= MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS_PER_GROUP ? (
@@ -3183,6 +3261,9 @@ export function ClasificadosServiciosApplication() {
                                   next[i] = { ...cur, imageUrl: url };
                                   return { ...s, coupons: next };
                                 });
+                                // Accepted/stored moment (S-042): the data URL is now committed to
+                                // state and rendered as the preview chip below, not just selected.
+                                addedCouponImageByIndex[i]?.flash();
                               });
                             }}
                           >
@@ -3200,6 +3281,7 @@ export function ClasificadosServiciosApplication() {
                                       next[i] = { ...cur, imageUrl: url };
                                       return { ...s, coupons: next };
                                     });
+                                    addedCouponImageByIndex[i]?.flash();
                                   });
                                 }
                               }}
@@ -3238,6 +3320,10 @@ export function ClasificadosServiciosApplication() {
                               >
                                 {lang === "en" ? "Remove" : "Eliminar"}
                               </button>
+                              <AddedConfirmationBadge
+                                visible={addedCouponImageByIndex[i]?.visible ?? false}
+                                label={lang === "en" ? "Image saved" : "Imagen guardada"}
+                              />
                             </div>
                           )}
                         </div>
@@ -3279,12 +3365,14 @@ export function ClasificadosServiciosApplication() {
                   e.preventDefault();
                   const f = e.dataTransfer.files?.[0];
                   if (!f?.type.startsWith("image/")) return;
-                  void readFileAsDataUrl(f).then((url) =>
+                  void readFileAsDataUrl(f).then((url) => {
                     setState((s) => ({
                       ...s,
                       couponFlyer: { imageUrl: url },
-                    })),
-                  );
+                    }));
+                    // Accepted/stored moment (S-042), not the instant the file was picked.
+                    addedCouponFlyerImage.flash();
+                  });
                 }}
               >
                 <input
@@ -3294,12 +3382,13 @@ export function ClasificadosServiciosApplication() {
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     if (f) {
-                      void readFileAsDataUrl(f).then((url) =>
+                      void readFileAsDataUrl(f).then((url) => {
                         setState((s) => ({
                           ...s,
                           couponFlyer: { imageUrl: url },
-                        })),
-                      );
+                        }));
+                        addedCouponFlyerImage.flash();
+                      });
                     }
                   }}
                 />
@@ -3323,6 +3412,10 @@ export function ClasificadosServiciosApplication() {
                   >
                     {lang === "en" ? "Remove" : "Eliminar"}
                   </button>
+                  <AddedConfirmationBadge
+                    visible={addedCouponFlyerImage.visible}
+                    label={lang === "en" ? "Image saved" : "Imagen guardada"}
+                  />
                 </div>
               )}
             </div>

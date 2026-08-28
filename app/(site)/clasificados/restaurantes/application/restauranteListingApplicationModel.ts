@@ -400,6 +400,10 @@ export type RestauranteListingApplication = RestauranteBusinessIdentity &
     cateringEventsStack?: Partial<RestauranteCateringEventsStack>;
     /** Optional structured amenities (payments, accessibility, etc.) */
     restaurantAmenities?: RestauranteAmenitiesSelection;
+    /** Owner-typed "Otro" custom amenity labels, one bucket per amenity group id (payments,
+     * service, accessibility, atmosphere, amenities, foodOptions) — additive alongside the fixed
+     * checkbox catalog in `restaurantAmenities`. Optional/absent on older drafts. */
+    customRestaurantAmenitiesByGroup?: Record<string, string[]>;
   };
 
 // ---------------------------------------------------------------------------

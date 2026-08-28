@@ -16,6 +16,12 @@ export type RestauranteAmenityGroupId =
 
 export type RestauranteAmenitiesSelection = Partial<Record<RestauranteAmenityGroupId, string[]>>;
 
+/** Owner-typed "Otro" custom amenity labels, one bucket per group id. */
+export type RestauranteCustomAmenitiesByGroup = Partial<Record<RestauranteAmenityGroupId, string[]>>;
+
+export const MAX_CUSTOM_RESTAURANTE_AMENITY_OPTIONS_PER_GROUP = 12;
+export const CUSTOM_RESTAURANTE_AMENITY_LABEL_MAX = 56;
+
 type ItemDef = { id: string; labelEs: string; labelEn: string; leading: RestaurantePublishChipLeading };
 
 const I = (id: string, labelEs: string, labelEn: string, leading: RestaurantePublishChipLeading): ItemDef => ({
@@ -180,6 +186,88 @@ export function hasAnyRestauranteAmenities(x: RestauranteAmenitiesSelection | un
   return RESTAURANTE_AMENITY_GROUP_ORDER.some((g) => (x[g]?.length ?? 0) > 0);
 }
 
+/** Normalize a label for duplicate-detection (case/diacritic/whitespace-insensitive). */
+export function normalizeRestauranteAmenityDedupeKey(label: string): string {
+  return label
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "");
+}
+
+/** All standard (fixed-checkbox) labels/ids across every group — blocks a custom entry duplicating one. */
+export function collectStandardRestauranteAmenityLabelKeys(): Set<string> {
+  const keys = new Set<string>();
+  for (const def of ITEM_LOOKUP.values()) {
+    keys.add(normalizeRestauranteAmenityDedupeKey(def.labelEs));
+    keys.add(normalizeRestauranteAmenityDedupeKey(def.labelEn));
+    keys.add(normalizeRestauranteAmenityDedupeKey(def.id));
+    keys.add(normalizeRestauranteAmenityDedupeKey(def.id.replace(/_/g, " ")));
+  }
+  return keys;
+}
+
+/** Sanitizes one group's custom-amenity bucket: trims, dedupes (within group + vs standard labels), caps length + count. */
+export function sanitizeCustomRestauranteAmenityLabelsForGroup(raw: string[] | undefined | null): string[] {
+  if (!Array.isArray(raw)) return [];
+  const blocked = collectStandardRestauranteAmenityLabelKeys();
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of raw) {
+    if (typeof item !== "string") continue;
+    const t = item.trim().slice(0, CUSTOM_RESTAURANTE_AMENITY_LABEL_MAX);
+    if (!t) continue;
+    const k = normalizeRestauranteAmenityDedupeKey(t);
+    if (!k || blocked.has(k)) continue;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(t);
+    if (out.length >= MAX_CUSTOM_RESTAURANTE_AMENITY_OPTIONS_PER_GROUP) break;
+  }
+  return out;
+}
+
+/**
+ * Sanitizes the full per-group custom-amenity map, ensuring every one of the 6 real groups has
+ * an (possibly empty) array and no unknown group keys leak through.
+ */
+export function sanitizeCustomRestauranteAmenitiesByGroup(
+  raw: Record<string, unknown> | undefined | null,
+): Record<RestauranteAmenityGroupId, string[]> {
+  const out = {} as Record<RestauranteAmenityGroupId, string[]>;
+  for (const groupId of RESTAURANTE_AMENITY_GROUP_ORDER) {
+    const bucket = raw && typeof raw === "object" ? (raw as Record<string, unknown>)[groupId] : undefined;
+    out[groupId] = sanitizeCustomRestauranteAmenityLabelsForGroup(
+      Array.isArray(bucket) ? bucket.filter((x): x is string => typeof x === "string") : [],
+    );
+  }
+  return out;
+}
+
+/** Evaluate an owner-typed custom amenity add for one group: blank/duplicate/cap guard, else the cleaned label. */
+export function evaluateAddCustomRestauranteAmenityOptionForGroup(
+  currentGroupBucket: string[],
+  raw: string,
+): { ok: true; label: string } | { ok: false; reason: "blank" | "duplicate" | "cap" } {
+  const label = raw.trim().slice(0, CUSTOM_RESTAURANTE_AMENITY_LABEL_MAX);
+  if (!label) return { ok: false, reason: "blank" };
+  const blocked = collectStandardRestauranteAmenityLabelKeys();
+  const key = normalizeRestauranteAmenityDedupeKey(label);
+  if (blocked.has(key)) return { ok: false, reason: "duplicate" };
+  if (currentGroupBucket.length >= MAX_CUSTOM_RESTAURANTE_AMENITY_OPTIONS_PER_GROUP) {
+    return { ok: false, reason: "cap" };
+  }
+  if (currentGroupBucket.some((x) => normalizeRestauranteAmenityDedupeKey(x) === key)) {
+    return { ok: false, reason: "duplicate" };
+  }
+  return { ok: true, label };
+}
+
+export function hasAnyCustomRestauranteAmenities(x: Record<string, string[]> | undefined): boolean {
+  if (!x) return false;
+  return RESTAURANTE_AMENITY_GROUP_ORDER.some((g) => (x[g]?.length ?? 0) > 0);
+}
+
 /** Resolve chip leading icon from public shell labels (display-only lookup). */
 export function lookupRestauranteAmenityLeading(
   labelEs: string,
@@ -212,18 +300,26 @@ export function emojiForRestauranteAmenityGroupTitle(title: string): string {
 
 export function buildShellAmenitiesSection(
   raw: RestauranteAmenitiesSelection | undefined,
+  customByGroup?: Record<string, string[]> | undefined,
 ): { amenitiesSection?: ShellAmenitiesSection } {
   const sanitized = sanitizeRestauranteAmenities(raw);
-  if (!hasAnyRestauranteAmenities(sanitized)) return {};
+  const sanitizedCustom = sanitizeCustomRestauranteAmenitiesByGroup(customByGroup);
+  if (!hasAnyRestauranteAmenities(sanitized) && !hasAnyCustomRestauranteAmenities(sanitizedCustom)) return {};
   const groups: ShellAmenitiesSection["groups"] = [];
   for (const g of RESTAURANTE_AMENITY_GROUP_ORDER) {
-    const ids = sanitized![g];
-    if (!ids?.length) continue;
+    const ids = sanitized?.[g] ?? [];
+    const customLabels = sanitizedCustom[g] ?? [];
+    if (!ids.length && !customLabels.length) continue;
     const meta = GROUP_META[g];
     const items: { labelEs: string; labelEn: string }[] = [];
     for (const id of ids) {
       const def = ITEM_LOOKUP.get(`${g}:${id}`);
       if (def) items.push({ labelEs: def.labelEs, labelEn: def.labelEn });
+    }
+    // Owner-typed "Otro" custom labels have no per-language translation — reuse the same text
+    // for both, same as every other custom-entry doctrine field in this app (languages, cuisines).
+    for (const label of customLabels) {
+      items.push({ labelEs: label, labelEn: label });
     }
     if (!items.length) continue;
     groups.push({
