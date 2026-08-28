@@ -298,7 +298,7 @@ const COPY = {
     socialGoogleBusiness: "Google Business Profile",
     socialGoogleReview: "Google Reviews",
     socialYelp: "Yelp",
-    socialEmailInvalid: "Revisa el formato del correo si quieres usarlo públicamente.",
+    socialEmailInvalid: "Ingresa un correo electrónico válido o deja este campo vacío.",
     featuredSectionTitle: "Destacado / más exposición",
     featuredQuestion:
       "¿Quieres aparecer destacado? El equipo de Leonix puede contactarte para opciones por ZIP, ciudad, categoría, newsletter o espacios destacados.",
@@ -811,7 +811,7 @@ const COPY = {
     socialGoogleBusiness: "Google Business Profile",
     socialGoogleReview: "Google Reviews",
     socialYelp: "Yelp",
-    socialEmailInvalid: "Check the email format if you want it shown publicly.",
+    socialEmailInvalid: "Enter a valid email address or leave this field blank.",
     featuredSectionTitle: "Featured / more exposure",
     featuredQuestion:
       "Want to be featured? The Leonix team can contact you about options by ZIP, city, category, newsletter, or featured placements.",
