@@ -65,6 +65,8 @@ import {
   loadRentasPrivadoDraft,
   saveRentasPrivadoDraft,
 } from "./utils/rentasPrivadoDraft";
+import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
+import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { formatRentasSqftPreview } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import {
   withClasificadosPublishLang,
@@ -318,10 +320,21 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [editContext, dirty]);
 
+  // Global unsaved-exit protection for the new-draft flow. The dashboard-edit flow above already
+  // has its own dedicated beforeunload guard (tracks `dirty` against the clean edit snapshot), so
+  // this stays off in that mode to avoid a redundant/competing listener.
+  useBusinessApplicationLeaveGuard({
+    isDirty: hydrated && !editContext && state.titulo.trim().length > 0,
+    persist: () => {
+      void saveRentasPrivadoDraft(stateRef.current);
+    },
+  });
+
   // BR-INV-WAVE1-GATE3: saveRentasPrivadoDraft is now async (IndexedDB offload). Returns the
   // promise so callers that navigate right after can await it — otherwise router.push could race
   // ahead of the write and the preview page would read a stale draft.
   const flushSave = useCallback(() => {
+    markPublishFlowOpeningPreview();
     if (editContext) {
       saveRentasListingEditWorkspace({ listingId: editContext.listingId, lane: "privado", draft: stateRef.current });
       return Promise.resolve();

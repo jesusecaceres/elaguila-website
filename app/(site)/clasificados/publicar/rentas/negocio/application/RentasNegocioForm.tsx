@@ -73,6 +73,8 @@ import {
   loadRentasNegocioDraft,
   saveRentasNegocioDraft,
 } from "./utils/rentasNegocioDraft";
+import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
+import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { formatRentasSqftPreview } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import {
   resolveClasificadosPublishLang,
@@ -311,12 +313,23 @@ export function RentasNegocioForm() {
   // BR-INV-WAVE1-GATE3: saveRentasNegocioDraft is now async (IndexedDB offload). Returns the
   // promise so callers that navigate right after can await it.
   const flushSave = useCallback(() => {
+    markPublishFlowOpeningPreview();
     if (editContext) {
       saveRentasListingEditWorkspace({ listingId: editContext.listingId, lane: "negocio", draft: stateRef.current });
       return Promise.resolve();
     }
     return saveRentasNegocioDraft(stateRef.current);
   }, [editContext]);
+
+  // Global unsaved-exit protection for the new-draft flow. The dashboard-edit flow above already
+  // has its own dedicated beforeunload guard (tracks `dirty` against the clean edit snapshot), so
+  // this stays off in that mode to avoid a redundant/competing listener.
+  useBusinessApplicationLeaveGuard({
+    isDirty: hydrated && !editContext && state.titulo.trim().length > 0,
+    persist: () => {
+      void saveRentasNegocioDraft(stateRef.current);
+    },
+  });
 
   const previewHref = useMemo(
     () =>

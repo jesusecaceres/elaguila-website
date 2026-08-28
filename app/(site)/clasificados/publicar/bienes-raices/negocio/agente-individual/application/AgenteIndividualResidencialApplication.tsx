@@ -28,6 +28,7 @@ import {
   confirmLeavePublishFlow,
   markPublishFlowOpeningPreview,
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
 import { createEmptyAgenteIndividualResidencialState } from "../schema/agenteIndividualResidencialFormState";
 import { brShouldIgnoreWizardShortcut } from "../../application/brWizardKeyboard";
 import {
@@ -584,6 +585,17 @@ export default function AgenteIndividualResidencialApplication() {
     },
     [isDirty, lang, muxIds, router]
   );
+
+  useBusinessApplicationLeaveGuard({
+    isDirty,
+    persist: () => {
+      if (isExistingDashboardListingMode && editListingId) {
+        saveBienesListingEditWorkspace({ parentListingId: editListingId, state: stateRef.current });
+        return;
+      }
+      void persistAgenteResApplicationDraftResolved(stateRef.current, { applicationInstanceId });
+    },
+  });
 
   const pricingCopy = brAgenteApplicationPricingCopy(lang);
   const childInventoryCount = state.additionalInventoryProperties.length;

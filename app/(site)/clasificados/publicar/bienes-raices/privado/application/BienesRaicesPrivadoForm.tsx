@@ -62,6 +62,8 @@ import {
   loadBienesRaicesPrivadoDraft,
   saveBienesRaicesPrivadoDraft,
 } from "./utils/bienesRaicesPrivadoDraft";
+import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
+import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { formatSqftDisplay, formatUsdWhole, priceDigitsUnbounded } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
 
 const MAX_PHOTOS = 8;
@@ -183,6 +185,13 @@ export function BienesRaicesPrivadoForm() {
     return saveBienesRaicesPrivadoDraft(stateRef.current);
   }, []);
 
+  useBusinessApplicationLeaveGuard({
+    isDirty: hydrated && state.titulo.trim().length > 0,
+    persist: () => {
+      void saveBienesRaicesPrivadoDraft(stateRef.current);
+    },
+  });
+
   const previewHref = withClasificadosPublishLang(BR_PREVIEW_PRIVADO, routeLang, {
     [BR_NEGOCIO_Q_PROPIEDAD]: state.categoriaPropiedad,
   });
@@ -247,6 +256,7 @@ export function BienesRaicesPrivadoForm() {
     }
     setPreviewGateMessage(null);
     await flushSave();
+    markPublishFlowOpeningPreview();
     router.push(previewHref);
   };
 
