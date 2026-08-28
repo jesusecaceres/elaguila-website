@@ -18,14 +18,15 @@ import { CommunityLeonixMapVisual } from "./CommunityLeonixMapVisual";
 import {
   buildCommunityMapQuery,
   googleMapsSearchUrl,
-  mailtoCommunity,
-  smsUri,
-  telUriFromUs10,
-  usPhoneDigits10,
   websiteHref,
-  whatsAppUri,
 } from "../lib/communityContactCtas";
 import { normalizeSocialUrlForOpen } from "../lib/communityWebsiteAndSocial";
+import {
+  buildMailtoHref,
+  buildSmsHref,
+  buildTelHref,
+  buildWhatsAppUrl,
+} from "@/app/lib/digitalContact/humanConnection/nativeChannelHrefs";
 import type { CommunityCommonDraft } from "../types/communityQuickDraft";
 import {
   trackCommunityPhoneClick,
@@ -81,6 +82,19 @@ function buildCommunityGoogleMapsDirectionsUrl(locationLine: string): string {
   if (!locationLine.trim()) return "";
   const encoded = encodeURIComponent(locationLine.trim());
   return `https://www.google.com/maps/dir/?api=1&destination=${encoded}`;
+}
+
+/**
+ * Gate 2C — `buildWhatsAppUrl` (unlike `buildTelHref`/`buildSmsHref`) expects digits that already
+ * include the country code; it never assumes US. Community only ever collects a bare 10-digit US
+ * number (or occasionally an already-international one), so this reuses `buildTelHref`'s own
+ * US/international normalization — rather than duplicating it — and hands WhatsApp fully-qualified
+ * digits instead of a raw 10-digit string.
+ */
+function communityWhatsAppDigits(raw: string): string | null {
+  const tel = buildTelHref(raw);
+  if (!tel) return null;
+  return tel.replace(/^tel:\+/, "");
 }
 
 /**
@@ -172,10 +186,13 @@ export function CommunityContactCanvas({
 }) {
   const t = model.labels;
   const [emailOpen, setEmailOpen] = useState(false);
-  const phone10 = usPhoneDigits10(draft.phone);
-  const wa10 = usPhoneDigits10(draft.whatsapp);
+  const smsBody = model.smsBody;
+  const mailSub = model.mailSubject;
+  const telHref = buildTelHref(draft.phone);
+  const waDigits = communityWhatsAppDigits(draft.whatsapp);
+  const waHref = waDigits ? buildWhatsAppUrl(waDigits, smsBody) : null;
   const smsRaw = draft.smsPhone.trim() ? draft.smsPhone : draft.phone;
-  const sms10 = usPhoneDigits10(smsRaw);
+  const smsHref = buildSmsHref(smsRaw, smsBody);
   const email = draft.email.trim();
   const web = websiteHref(draft.website);
 
@@ -212,9 +229,7 @@ export function CommunityContactCanvas({
   const mapsEmbedUrl = buildCommunityGoogleMapsEmbedUrl(locationLine);
   const mapsDirectionsUrl = buildCommunityGoogleMapsDirectionsUrl(locationLine);
 
-  const smsBody = model.smsBody;
-  const mailSub = model.mailSubject;
-  const mailHref = email ? mailtoCommunity({ to: email, subject: mailSub }) : "";
+  const mailHref = email ? (buildMailtoHref(email, mailSub) ?? "") : "";
 
   const sAria = SOCIAL_ARIA[lang];
   const socialItems: {
@@ -264,7 +279,7 @@ export function CommunityContactCanvas({
     return groups;
   })();
 
-  const hasContactActions = !!(phone10 || wa10 || sms10 || email);
+  const hasContactActions = !!(telHref || waHref || smsHref || email);
   const hasPhysicalLocation = !!(draft.venue.trim() || draft.addressLine1.trim() || cityStateZip);
   const hasOnlineLocation = Boolean(locationOnlineLabel?.trim()) && !hasPhysicalLocation;
   const hasLocation = hasPhysicalLocation || hasOnlineLocation;
@@ -301,9 +316,9 @@ export function CommunityContactCanvas({
               </p>
             ) : null}
             <div className="flex flex-wrap gap-2">
-              {phone10 ? (
+              {telHref ? (
                 <a
-                  href={telUriFromUs10(phone10)}
+                  href={telHref}
                   className={btnPrimaryClass()}
                   style={{ backgroundColor: GH.burgundy, color: "#FFFCF7" }}
                   onClick={() => analyticsCtx && trackCommunityPhoneClick(analyticsCtx)}
@@ -313,9 +328,9 @@ export function CommunityContactCanvas({
                   <span className="font-semibold tabular-nums">{formatPhoneInputDisplay(digitsOnly(draft.phone))}</span>
                 </a>
               ) : null}
-              {wa10 ? (
+              {waHref ? (
                 <a
-                  href={whatsAppUri(wa10, smsBody)}
+                  href={waHref}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={btnPrimaryClass()}
@@ -326,9 +341,9 @@ export function CommunityContactCanvas({
                   WhatsApp
                 </a>
               ) : null}
-              {sms10 ? (
+              {smsHref ? (
                 <a
-                  href={smsUri(sms10, smsBody)}
+                  href={smsHref}
                   className={btnPrimaryClass()}
                   style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.burgundy}` }}
                   onClick={() => analyticsCtx && trackCommunityMessageClick(analyticsCtx)}
