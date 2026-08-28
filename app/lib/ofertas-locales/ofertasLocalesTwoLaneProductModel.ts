@@ -39,7 +39,7 @@ export const OFERTAS_LOCALES_PRIMARY_AD_FORMAT_OPTIONS: ReadonlyArray<{
       "Para negocios con descuentos, servicios, paquetes, ofertas limitadas o cupones individuales.",
     descriptionEn:
       "For businesses with discounts, services, packages, limited-time offers, or individual coupons.",
-    priceDisplayMonthly: 199,
+    priceDisplayMonthly: 0,
   },
 ];
 

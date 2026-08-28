@@ -346,6 +346,27 @@ export type OfertaLocalDraft = {
   magazineDistributionStatus: OfertaLocalMagazineDistributionStatus;
   magazineMonthlyDropEstimate: string;
   internalNotes?: string;
+  /** Individually authored, repeatable coupons — Cupones y promociones (free) lane only. */
+  couponEntries: OfertaLocalCouponEntryDraft[];
+  /** Optional external "see more coupons" link and button label (empty = hidden). */
+  couponsMoreOffersUrl: string;
+  couponsMoreOffersLabel: string;
+};
+
+/** One individually authored coupon/promotion — free Cupones lane (no AI/scan involved). */
+export type OfertaLocalCouponEntryDraft = {
+  id: string;
+  title: string;
+  description: string;
+  couponCode: string;
+  /** Plain YYYY-MM-DD string, optional. */
+  expirationDate: string;
+  redemptionNote: string;
+  /** Pasted image URL — used only when no upload is present. */
+  imageUrl: string;
+  /** Uploaded image public URL — takes priority over imageUrl in Preview. */
+  imageUploadedUrl: string;
+  imageUploadedFileName: string;
 };
 
 /** Future item-level searchable specials (Version 2 — extended Stack 10). */

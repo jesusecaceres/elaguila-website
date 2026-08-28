@@ -19,6 +19,7 @@ import {
   isOfertaLocalActiveByDates,
   isOfertaLocalExpired,
 } from "@/app/lib/ofertas-locales/ofertasLocalesFormatting";
+import { isOfertaLocalLocalCouponsLane } from "@/app/lib/ofertas-locales/ofertasLocalesTwoLaneProductModel";
 import { isOfertaLocalAiIncludedInPackage } from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
 import type { OfertaLocalSocialLink, OfertaLocalSocialLinkKey } from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
 import {
@@ -532,7 +533,7 @@ function OwnerPreviewControls({
 }: {
   lang: OfertasLocalesAppLang;
   editHref: string;
-  editReviewHref: string;
+  editReviewHref: string | null;
   dashboardHref: string | null;
   publishing: boolean;
   aiNeedsReviewCount: number;
@@ -549,9 +550,11 @@ function OwnerPreviewControls({
         <Link href={editHref} className={cx(BTN_OUTLINE, "min-h-10 px-3 py-2 text-xs sm:text-sm")}>
           {lang === "en" ? c.backToEditEn : c.backToEdit}
         </Link>
-        <Link href={editReviewHref} className={cx(BTN_OUTLINE, "min-h-10 px-3 py-2 text-xs sm:text-sm")}>
-          {lang === "en" ? c.backToReviewEn : c.backToReviewEs}
-        </Link>
+        {editReviewHref ? (
+          <Link href={editReviewHref} className={cx(BTN_OUTLINE, "min-h-10 px-3 py-2 text-xs sm:text-sm")}>
+            {lang === "en" ? c.backToReviewEn : c.backToReviewEs}
+          </Link>
+        ) : null}
         {publishSuccess ? (
           <p className="w-full text-xs font-semibold text-emerald-900">
             {lang === "en" ? c.submitSuccessEn : c.submitSuccessEs}
@@ -627,15 +630,21 @@ export function OfertasLocalesPreviewCard({
 }) {
   const c = OFERTAS_LOCALES_PREVIEW_COPY;
   const resolvedRouteLang = routeLang ?? lang;
+  const isCouponsLocalLane = isOfertaLocalLocalCouponsLane(draft);
+  // Extras lives at Step 6 on the coupon lane, Step 7 on the flyer lane
+  // (Gate: two-lane execution) — "back to edit" lands there in both cases.
   const editHref = withClasificadosPublishLang("/publicar/ofertas-locales", resolvedRouteLang, {
-    step: 7,
+    step: isCouponsLocalLane ? 6 : 7,
     intent: "continue",
   });
-  const editReviewHref = withClasificadosPublishLang("/publicar/ofertas-locales", resolvedRouteLang, {
-    step: 5,
-    review: 1,
-    intent: "continue",
-  });
+  // The coupon lane has no AI review step to return to — it never scans.
+  const editReviewHref = isCouponsLocalLane
+    ? null
+    : withClasificadosPublishLang("/publicar/ofertas-locales", resolvedRouteLang, {
+        step: 5,
+        review: 1,
+        intent: "continue",
+      });
   // The real checkout (startRevenueCategoryCheckout) already lives on the
   // owner dashboard — this only routes there using the canonical listing id,
   // preferring the id confirmed by a successful submission over the
@@ -755,6 +764,12 @@ export function OfertasLocalesPreviewCard({
     sectionNavItems.push({
       id: "productos",
       label: lang === "en" ? c.sectionProductsEn : c.sectionProductsEs,
+    });
+  }
+  if (isCouponsLocalLane && draft.couponEntries.some((entry) => entry.title.trim())) {
+    sectionNavItems.push({
+      id: "cupones",
+      label: lang === "en" ? c.couponsSectionTitleEn : c.couponsSectionTitleEs,
     });
   }
   if (hasContactNav) {
@@ -1098,6 +1113,81 @@ export function OfertasLocalesPreviewCard({
           </div>
         </section>
 
+        {/* 5. Individual coupons — Cupones y promociones (free) lane only */}
+        {isCouponsLocalLane && draft.couponEntries.length > 0 ? (
+          <section id="cupones" className={cx(SECTION_ANCHOR, CARD, "mt-5 p-4 sm:p-5 lg:mt-6")}>
+            <h2 className="font-serif text-lg font-semibold text-[#1E1814] sm:text-xl">
+              {lang === "en" ? c.couponsSectionTitleEn : c.couponsSectionTitleEs}
+            </h2>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {draft.couponEntries
+                .filter((entry) => entry.title.trim())
+                .map((entry) => {
+                  const image = entry.imageUploadedUrl.trim() || entry.imageUrl.trim();
+                  return (
+                    <article
+                      key={entry.id}
+                      className="overflow-hidden rounded-xl border border-[#D4C4A8]/70 bg-white shadow-sm"
+                    >
+                      <div className="flex aspect-[5/4] items-center justify-center bg-[#FDF8F0]">
+                        {image ? (
+                          <img src={image} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="text-3xl" aria-hidden>
+                            🎫
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-1.5 p-3">
+                        {entry.couponCode.trim() ? (
+                          <span className={PILL_PRIMARY}>
+                            {lang === "en" ? c.couponCodeEn : c.couponCodeEs}:{" "}
+                            <span className="font-mono">{entry.couponCode.trim()}</span>
+                          </span>
+                        ) : null}
+                        <h3 className="line-clamp-1 text-sm font-semibold text-[#1E1814]">{entry.title}</h3>
+                        {entry.description.trim() ? (
+                          <p className="line-clamp-2 text-xs text-[#1E1814]/70">{entry.description}</p>
+                        ) : null}
+                        {entry.expirationDate.trim() ? (
+                          <p className="text-[11px] text-[#1E1814]/55">
+                            {lang === "en" ? c.couponValidUntilEn : c.couponValidUntilEs}: {entry.expirationDate}
+                          </p>
+                        ) : null}
+                        {entry.redemptionNote.trim() ? (
+                          <p className="line-clamp-1 text-[11px] text-[#1E1814]/55">{entry.redemptionNote}</p>
+                        ) : null}
+                      </div>
+                    </article>
+                  );
+                })}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {heroAsset?.href ? (
+                <a
+                  href={heroAsset.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={BTN_OUTLINE}
+                >
+                  {lang === "en" ? c.couponsViewFlyerCtaEn : c.couponsViewFlyerCtaEs}
+                </a>
+              ) : null}
+              {draft.couponsMoreOffersUrl.trim() ? (
+                <a
+                  href={resolveOfertaLocalWebsiteHref(draft.couponsMoreOffersUrl) ?? draft.couponsMoreOffersUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={BTN_PRIMARY}
+                >
+                  {draft.couponsMoreOffersLabel.trim() ||
+                    (lang === "en" ? c.viewMoreOffersEn : c.viewMoreOffersEs)}
+                </a>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
+
         {/* 6. Business Hub */}
         <PreviewBusinessHub
           draft={draft}
@@ -1170,9 +1260,11 @@ export function OfertasLocalesPreviewCard({
             <Link href={editHref} className={BTN_OUTLINE}>
               {lang === "en" ? c.backToEditEn : c.backToEdit}
             </Link>
-            <Link href={editReviewHref} className={BTN_OUTLINE}>
-              {lang === "en" ? c.backToReviewEn : c.backToReviewEs}
-            </Link>
+            {editReviewHref ? (
+              <Link href={editReviewHref} className={BTN_OUTLINE}>
+                {lang === "en" ? c.backToReviewEn : c.backToReviewEs}
+              </Link>
+            ) : null}
             {publishSuccess ? null : (
               <button
                 type="button"

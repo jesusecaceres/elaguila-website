@@ -6,17 +6,18 @@ import {
 } from "./ofertasLocalesApplicationHelpers";
 import { normalizeOfertaLocalPhoneInput, normalizeOfertaLocalZipInput } from "./ofertasLocalesFormatting";
 
-export const OFERTAS_LOCALES_WIZARD_STEP_COUNT = 8 as const;
-
 export type OfertasLocalesWizardStepId = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
-export const OFERTAS_LOCALES_WIZARD_STEPS: ReadonlyArray<{
+export type OfertasLocalesWizardStepMeta = {
   id: OfertasLocalesWizardStepId;
   labelEs: string;
   labelEn: string;
   titleEs: string;
   titleEn: string;
-}> = [
+};
+
+/** Volante interactivo lane — 8 real steps, unchanged since Gate I/J. */
+export const OFERTAS_LOCALES_FLYER_WIZARD_STEPS: ReadonlyArray<OfertasLocalesWizardStepMeta> = [
   {
     id: 1,
     labelEs: "Oferta",
@@ -75,9 +76,57 @@ export const OFERTAS_LOCALES_WIZARD_STEPS: ReadonlyArray<{
   },
 ];
 
-export function clampWizardStep(n: number): OfertasLocalesWizardStepId {
+/**
+ * Cupones y promociones (free) lane — 7 truthful steps, no AI/scan/review step.
+ * Step 5 owns individual coupon authoring instead of flyer files.
+ */
+export const OFERTAS_LOCALES_COUPON_WIZARD_STEPS: ReadonlyArray<OfertasLocalesWizardStepMeta> = [
+  OFERTAS_LOCALES_FLYER_WIZARD_STEPS[0],
+  OFERTAS_LOCALES_FLYER_WIZARD_STEPS[1],
+  OFERTAS_LOCALES_FLYER_WIZARD_STEPS[2],
+  OFERTAS_LOCALES_FLYER_WIZARD_STEPS[3],
+  {
+    id: 5,
+    labelEs: "Cupones y ofertas",
+    labelEn: "Coupons & offers",
+    titleEs: "Cupones y promociones",
+    titleEn: "Coupons and promotions",
+  },
+  {
+    id: 6,
+    labelEs: "Extras",
+    labelEn: "Extras",
+    titleEs: "Extras para mejorar tu presencia",
+    titleEn: "Extras to improve your presence",
+  },
+  {
+    id: 7,
+    labelEs: "Revisar",
+    labelEn: "Review",
+    titleEs: "Revisar antes de enviar",
+    titleEn: "Review before submitting",
+  },
+];
+
+/** @deprecated Use getOfertasLocalesWizardSteps(isCouponsLane) — kept for any stray legacy import. */
+export const OFERTAS_LOCALES_WIZARD_STEPS = OFERTAS_LOCALES_FLYER_WIZARD_STEPS;
+/** @deprecated Use getOfertasLocalesWizardStepCount(isCouponsLane) — kept for any stray legacy import. */
+export const OFERTAS_LOCALES_WIZARD_STEP_COUNT = 8 as const;
+
+export function getOfertasLocalesWizardSteps(
+  isCouponsLane: boolean
+): ReadonlyArray<OfertasLocalesWizardStepMeta> {
+  return isCouponsLane ? OFERTAS_LOCALES_COUPON_WIZARD_STEPS : OFERTAS_LOCALES_FLYER_WIZARD_STEPS;
+}
+
+export function getOfertasLocalesWizardStepCount(isCouponsLane: boolean): number {
+  return isCouponsLane ? OFERTAS_LOCALES_COUPON_WIZARD_STEPS.length : OFERTAS_LOCALES_FLYER_WIZARD_STEPS.length;
+}
+
+export function clampWizardStep(n: number, isCouponsLane = false): OfertasLocalesWizardStepId {
+  const max = getOfertasLocalesWizardStepCount(isCouponsLane);
   if (n <= 1) return 1;
-  if (n >= 8) return 8;
+  if (n >= max) return max as OfertasLocalesWizardStepId;
   return n as OfertasLocalesWizardStepId;
 }
 
@@ -85,10 +134,12 @@ export function clampWizardStep(n: number): OfertasLocalesWizardStepId {
 export function getOfertasLocalesWizardStepHints(
   step: OfertasLocalesWizardStepId,
   draft: OfertaLocalDraft,
-  lang: OfertasLocalesAppLang
+  lang: OfertasLocalesAppLang,
+  isCouponsLane = false
 ): string[] {
   const es = lang === "es";
   const hints: string[] = [];
+  const lastStep = getOfertasLocalesWizardStepCount(isCouponsLane);
 
   switch (step) {
     case 1:
@@ -145,14 +196,21 @@ export function getOfertasLocalesWizardStepHints(
       }
       break;
     case 5:
-      if (isOfertaLocalWeeklyFlyerFlow(draft.offerType) && draft.flyerAssets.length === 0) {
+      if (isCouponsLane) {
+        if (draft.couponEntries.length === 0) {
+          hints.push(
+            es
+              ? "Agrega al menos un cupón para que los compradores puedan encontrarlo."
+              : "Add at least one coupon so shoppers can find it."
+          );
+        }
+      } else if (isOfertaLocalWeeklyFlyerFlow(draft.offerType) && draft.flyerAssets.length === 0) {
         hints.push(
           es
             ? "Sube o enlaza tu volante cuando estés listo."
             : "Upload or link your flyer when ready."
         );
-      }
-      if (isOfertaLocalCouponPromotionFlow(draft.offerType) && draft.couponAssets.length === 0) {
+      } else if (isOfertaLocalCouponPromotionFlow(draft.offerType) && draft.couponAssets.length === 0) {
         hints.push(
           es ? "Sube o enlaza tu cupón cuando estés listo." : "Upload or link your coupon when ready."
         );
@@ -168,7 +226,7 @@ export function getOfertasLocalesWizardStepHints(
       break;
   }
 
-  if (hints.length > 0 && step < 8) {
+  if (hints.length > 0 && step < lastStep) {
     hints.unshift(es ? "Falta poco." : "Almost there.");
   }
 

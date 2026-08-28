@@ -184,15 +184,23 @@ function run() {
   // --- Case O: old stored step numbers (from the 7-step wizard) are safely compatibility-mapped ---
   assert.match(
     clientSrc,
-    /const safeStoredStep = storedStep === 6 \|\| storedStep === 7 \? 5 : storedStep;/,
-    "CASE O FAILED: a stored step of 6 or 7 from the previous 7-step wizard must be safely remapped to Step 5"
+    /const safeStoredStep =\s*\n\s*!isCouponsLane && \(storedStep === 6 \|\| storedStep === 7\) \? 5 : storedStep;/,
+    "CASE O FAILED: a stored step of 6 or 7 from the previous 7-step flyer wizard must be safely remapped to Step 5 (coupon-lane steps 6/7 are always current and must not be remapped)"
   );
   console.log("Case O (old stored step numbers are compatibility-mapped safely) passed.");
 
   // --- Case P: Step 8 preserves Gate F's Preview behavior exactly ---
+  // Final review is shared between lanes (Step 8 flyer / Step 7 coupon —
+  // Gate: two-lane execution) via one renderFinalReviewStepContent()
+  // function, reused rather than duplicated inline in the switch.
   assert.match(
     clientSrc,
-    /case 8:\s*\n\s*return \(\s*\n\s*<div className="space-y-6">\s*\n\s*<div className="rounded-xl border border-\[#D4C4A8\]\/70 bg-\[#FDF8F0\]\/90 px-4 py-4">\s*\n\s*<h3 className="text-base font-semibold text-\[#1E1814\]">\{c\.step7FinalReviewTitle\}<\/h3>/,
+    /case 8:\s*\n\s*return renderFinalReviewStepContent\(\);/,
+    "CASE P FAILED: Step 8 must call renderFinalReviewStepContent"
+  );
+  assert.match(
+    clientSrc,
+    /function renderFinalReviewStepContent\(\) \{[\s\S]*?<h3 className="text-base font-semibold text-\[#1E1814\]">\{c\.step7FinalReviewTitle\}<\/h3>/,
     "CASE P FAILED: Step 8 must be the final-review case, unchanged from Gate F"
   );
   assert.match(

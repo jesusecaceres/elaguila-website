@@ -24,7 +24,7 @@ export type OfertaLocalCommercialProduct = {
   amountCents: number;
   currency: typeof OFERTAS_LOCALES_CURRENCY;
   durationDays: typeof OFERTAS_LOCALES_PUBLIC_TERM_DAYS;
-  aiIncluded: true;
+  aiIncluded: boolean;
 };
 
 export const OFERTAS_LOCALES_COMMERCIAL_PRODUCTS = {
@@ -48,7 +48,8 @@ export const OFERTAS_LOCALES_COMMERCIAL_PRODUCTS = {
     amountCents: OFERTAS_LOCALES_COUPONS_PRICE_CENTS,
     currency: OFERTAS_LOCALES_CURRENCY,
     durationDays: OFERTAS_LOCALES_PUBLIC_TERM_DAYS,
-    aiIncluded: true,
+    /** Cupones y promociones is a free, manual-entry product — no AI scan/review. */
+    aiIncluded: false,
   },
 } as const satisfies Record<OfertaLocalCommercialLane, OfertaLocalCommercialProduct>;
 

@@ -517,6 +517,7 @@
     "ofertas-locales:gate-h-dedicated-review-hard-refresh-regression-audit": "tsx scripts/ofertas-locales-gate-h-dedicated-review-hard-refresh-regression-audit.ts",
     "ofertas-locales:gate-i-wizard-step-promotion-regression-audit": "tsx scripts/ofertas-locales-gate-i-wizard-step-promotion-regression-audit.ts",
     "ofertas-locales:gate-j-focused-review-ux-audit": "tsx scripts/ofertas-locales-gate-j-focused-review-ux-audit.ts",
+    "ofertas-locales:gate-k-two-lane-final-verifier": "tsx scripts/ofertas-locales-gate-k-two-lane-final-verifier.ts",
     "ofertas:ai-scanner-certified-baseline-audit": "tsx scripts/ofertas-ai-scanner-certified-baseline-audit.ts",
     "ofertas-locales:ol3-step1-cta-cleanup-audit": "tsx scripts/ofertas-locales-ol3-step1-cta-cleanup-audit.ts",
     "ofertas-locales:ol4-step2-4-field-cleanup-audit": "tsx scripts/ofertas-locales-ol4-step2-4-field-cleanup-audit.ts",
