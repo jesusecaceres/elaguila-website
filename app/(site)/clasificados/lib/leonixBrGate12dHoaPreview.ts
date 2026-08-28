@@ -73,10 +73,12 @@ export function buildBrGate12dHoaPreviewCard(
   };
   const hb = triBoolLabel(lang, g.hasHoa);
   if (hb) pushRow(L("¿Hay HOA?", "Is there an HOA?"), hb);
-  if (trim(g.hoaFee)) pushRow(L("Cuota HOA", "HOA fee"), trim(g.hoaFee));
-  const fq = hoaFreqLabel(lang, g.hoaFrequency);
-  if (fq) pushRow(L("Frecuencia", "Frequency"), fq);
-  if (trim(g.hoaIncludes)) pushRow(L("¿Qué incluye la cuota?", "What does the fee include?"), trim(g.hoaIncludes));
+  if (g.hasHoa === "yes") {
+    if (trim(g.hoaFee)) pushRow(L("Cuota HOA", "HOA fee"), trim(g.hoaFee));
+    const fq = hoaFreqLabel(lang, g.hoaFrequency);
+    if (fq) pushRow(L("Frecuencia", "Frequency"), fq);
+    if (trim(g.hoaIncludes)) pushRow(L("¿Qué incluye la cuota?", "What does the fee include?"), trim(g.hoaIncludes));
+  }
   if (trim(g.communityRules)) pushRow(L("Reglas de la comunidad", "Community rules"), trim(g.communityRules));
   const petText =
     trim(g.petRules) ||

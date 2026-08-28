@@ -505,9 +505,11 @@ export function buildBrLiveGate12dHoaCard(
     rows.push({ label, value: v });
   };
   if (g.hasHoa) push(L("¿Hay HOA?", "HOA?"), liveHoaTriLabel(lang, g.hasHoa));
-  if (trim(g.hoaFee)) push(L("Cuota HOA", "HOA fee"), trim(g.hoaFee));
-  if (g.hoaFrequency) push(L("Frecuencia", "Frequency"), liveFreqLabel(lang, g.hoaFrequency));
-  if (trim(g.hoaIncludes)) push(L("La cuota incluye", "HOA includes"), trim(g.hoaIncludes));
+  if (g.hasHoa === "yes") {
+    if (trim(g.hoaFee)) push(L("Cuota HOA", "HOA fee"), trim(g.hoaFee));
+    if (g.hoaFrequency) push(L("Frecuencia", "Frequency"), liveFreqLabel(lang, g.hoaFrequency));
+    if (trim(g.hoaIncludes)) push(L("La cuota incluye", "HOA includes"), trim(g.hoaIncludes));
+  }
   if (trim(g.communityRules)) push(L("Reglas de la comunidad", "Community rules"), trim(g.communityRules));
   const petRules =
     trim(g.petRules) ||
@@ -541,7 +543,9 @@ export function buildBrLiveGate12dOpenHouseCard(
     const a = trim(start);
     const b = trim(end);
     if (a && b && a !== b) return `${a}–${b}`;
-    return a || b;
+    if (a) return a;
+    if (b) return L("Hasta ", "Through ") + b;
+    return "";
   };
   const events = Array.isArray(g.openHouseEvents) ? g.openHouseEvents : [];
   if (events.length > 0) {

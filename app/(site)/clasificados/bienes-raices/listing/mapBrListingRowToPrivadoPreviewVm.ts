@@ -17,6 +17,7 @@ import {
   parseLeonixMachineFacetRead,
   readLeonixDetailPairValue,
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { buildBrLiveGate12dHoaCard, buildBrLiveGate12dOpenHouseCard } from "@/app/clasificados/lib/leonixBrGate12d";
 import { formatUsPhoneDisplay, digitsOnly } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/phoneMask";
 import { phoneTelHref, stripPhoneDigits } from "@/app/lib/leonix/phoneFormat";
 import { formatUsdWhole } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
@@ -186,7 +187,7 @@ export function mapBrListingRowToPrivadoPreviewVm(listing: BienesLiveListingLike
     },
     mostrarDireccionExacta: showExact,
     footerNote: "",
-    hoaCommunityCard: null,
-    openHouseCard: null,
+    hoaCommunityCard: buildBrLiveGate12dHoaCard(detailPairs, lang),
+    openHouseCard: buildBrLiveGate12dOpenHouseCard(detailPairs, lang),
   };
 }

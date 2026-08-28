@@ -1033,7 +1033,9 @@ function formatOpenHouseDateRange(
   if (startDisp && endDisp && trim(startRaw) !== trim(endRaw)) {
     return `${startDisp}–${endDisp}`;
   }
-  return startDisp || endDisp;
+  if (startDisp) return startDisp;
+  if (endDisp) return locale === "en" ? `Through ${endDisp}` : `Hasta ${endDisp}`;
+  return "";
 }
 
 /** Un resumen por evento (texto para mini tarjeta / public). */
