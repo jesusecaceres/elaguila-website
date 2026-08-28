@@ -13,9 +13,23 @@ export function clasesSearchTypeAndLevel(
   quick: boolean,
   lang: Lang,
 ): { typeLine: string; lvl: string } {
-  const typeLine = quick
-    ? resolveClasesCategoryPublicLabel(pairs["Leonix:classCategory"] ?? "", pairs["Leonix:classCategoryCustom"] ?? "", lang)
-    : "";
+  const typeLine = quick ? clasesSearchAllCategoryLabels(pairs, lang) : "";
   const lvl = pairs["Leonix:skillLevel"] ? labelClasesSkillLevel(pairs["Leonix:skillLevel"], lang) : "";
   return { typeLine, lvl };
+}
+
+/**
+ * All selected class types joined for search indexing (Gate 2A) — every type
+ * must be findable even though the result card only shows a capped display.
+ * Falls back to the single primary category for legacy listings that never
+ * had `Leonix:classCategories`.
+ */
+function clasesSearchAllCategoryLabels(pairs: CommunityListingPairMap, lang: Lang): string {
+  const raw = (pairs["Leonix:classCategories"] ?? "").trim();
+  const slugs = raw
+    ? raw.split(",").map((s) => s.trim()).filter(Boolean)
+    : [pairs["Leonix:classCategory"] ?? ""].filter(Boolean);
+  const custom = pairs["Leonix:classCategoryCustom"] ?? "";
+  const labels = slugs.map((slug) => resolveClasesCategoryPublicLabel(slug, custom, lang));
+  return Array.from(new Set(labels.filter(Boolean))).join(" ");
 }

@@ -16,6 +16,7 @@ export const CLASES_CATEGORY_OPTIONS: readonly CommunitySelectOption[] = [
   { value: "boxeo", labelEs: "Boxeo", labelEn: "Boxing" },
   { value: "artes_marciales", labelEs: "Artes marciales", labelEn: "Martial arts" },
   { value: "yoga", labelEs: "Yoga", labelEn: "Yoga" },
+  { value: "pilates", labelEs: "Pilates", labelEn: "Pilates" },
   { value: "baile_danza", labelEs: "Baile / Danza", labelEn: "Dance" },
   { value: "musica", labelEs: "Música", labelEn: "Music" },
   { value: "arte", labelEs: "Arte", labelEn: "Art" },
@@ -110,6 +111,7 @@ export const COMMUNITY_AUDIENCE_OPTIONS: readonly CommunitySelectOption[] = [
   { value: "ninos", labelEs: "Niños", labelEn: "Children" },
   { value: "jovenes", labelEs: "Jóvenes", labelEn: "Teens / youth" },
   { value: "adultos", labelEs: "Adultos", labelEn: "Adults" },
+  { value: "adultos_mayores", labelEs: "Adultos mayores", labelEn: "Older adults" },
   { value: "familias", labelEs: "Familias", labelEn: "Families" },
   { value: "todos", labelEs: "Todos", labelEn: "Everyone" },
 ] as const;

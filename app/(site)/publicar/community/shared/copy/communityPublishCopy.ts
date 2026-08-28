@@ -11,7 +11,8 @@ export const COMMUNITY_PUBLISH_COPY = {
   es: {
     gateFail: "Completa los campos marcados con * antes de la vista previa:",
     publishBlocked: "Completa los requisitos de vista previa antes de publicar.",
-    paidClassPublishBlocked: "Las clases pagadas requieren activación de publicación pagada.",
+    paidClassPublishBlocked:
+      "Las clases con costo requieren la tarifa de anuncio Leonix de $24.99 por 30 días. Esa activación de pago aún no está disponible aquí, así que la publicación está bloqueada por ahora.",
     finalStep: {
       title: "Revisión final",
       intro:
@@ -52,7 +53,8 @@ export const COMMUNITY_PUBLISH_COPY = {
   en: {
     gateFail: "Complete required fields (*) before preview:",
     publishBlocked: "Complete preview requirements before publishing.",
-    paidClassPublishBlocked: "Paid classes require paid publishing activation.",
+    paidClassPublishBlocked:
+      "Paid classes require the Leonix listing fee of $24.99 per 30 days. That paid activation isn't available here yet, so publishing is blocked for now.",
     finalStep: {
       title: "Final review",
       intro:
@@ -140,6 +142,21 @@ export const CLASES_QUICK_COPY = {
       skillLevel: "Nivel",
       registrationRequired: "¿Requiere registro?",
       bringNote: "Qué deben llevar o saber",
+      categoriesMulti: "Tipos de clase (elige hasta 4)",
+      categoriesHelper: "Ej. Boxeo + Yoga + Pilates, si ofreces varias disciplinas.",
+      paymentMethods: "Pagos aceptados (cómo te paga el estudiante)",
+      paymentMethodsHelper:
+        "Opcional. Distinto de la tarifa de anuncio de Leonix — esto es cómo cobras tú la clase.",
+      paymentMethodOther: "Describe el otro método de pago",
+      startDate: "Fecha de inicio del curso",
+      endDate: "Fecha de fin del curso",
+      dateRangeHelper: "Opcional. Déjalo en blanco si la clase es continua/sin fecha de término.",
+    },
+    priceSummary: {
+      title: "Resumen de precios",
+      leonixFeeFree: "Tarifa de anuncio Leonix: gratis",
+      leonixFeePaid: "Tarifa de anuncio Leonix: $24.99 por 30 días",
+      classPriceLabel: "Precio de la clase (lo que cobra el instructor)",
     },
     primaryCtaHint:
       "La acción principal es la que destacamos primero; el resto de datos seguirá visible.",
@@ -191,6 +208,21 @@ export const CLASES_QUICK_COPY = {
       skillLevel: "Level",
       registrationRequired: "Registration required?",
       bringNote: "What to bring or know",
+      categoriesMulti: "Class types (choose up to 4)",
+      categoriesHelper: "E.g. Boxing + Yoga + Pilates, if you offer several disciplines.",
+      paymentMethods: "Accepted payments (how the student pays you)",
+      paymentMethodsHelper:
+        "Optional. Separate from the Leonix listing fee — this is how you get paid for the class itself.",
+      paymentMethodOther: "Describe the other payment method",
+      startDate: "Course start date",
+      endDate: "Course end date",
+      dateRangeHelper: "Optional. Leave blank if the class is ongoing / has no end date.",
+    },
+    priceSummary: {
+      title: "Price summary",
+      leonixFeeFree: "Leonix listing fee: free",
+      leonixFeePaid: "Leonix listing fee: $24.99 per 30 days",
+      classPriceLabel: "Class price (what the instructor charges)",
     },
     primaryCtaHint:
       "We highlight one primary action first; any other contact details you add stay visible.",

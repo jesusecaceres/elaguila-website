@@ -2,6 +2,7 @@ import { ensureCommunityPreviewListingId } from "@/app/lib/clasificados/comunida
 import type { DayHoursRow } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import type { EmpleosImageItem } from "@/app/publicar/empleos/shared/media/empleosMediaTypes";
+import { normalizePaymentMethods } from "@/app/publicar/clases/lib/clasesPaymentMethods";
 
 import { COMMUNITY_DEFAULT_STATE } from "../constants/communityRegion";
 import {
@@ -11,6 +12,7 @@ import {
 } from "../lib/communityWeeklySchedule";
 import {
   CLASES_CATEGORY_LEGACY_MAP,
+  CLASES_CATEGORY_OPTIONS,
   COMMUNITY_AUDIENCE_OPTIONS,
   COMMUNITY_REGISTRATION_OPTIONS,
   CLASES_SKILL_LEVEL_OPTIONS,
@@ -143,7 +145,24 @@ export type ClasesQuickDraft = CommunityCommonDraft & {
   skillLevel: string;
   /** Optional class-specific useful links. */
   classLinks: ClasesClassLinks;
+  /**
+   * Multiple class types (Gate 2A) — e.g. Boxeo + Yoga + Pilates, max
+   * MAX_CLASES_CATEGORIES. `categories[0]` always mirrors the legacy single
+   * `category` field for backward compatibility with anything that only
+   * knows about one class type.
+   */
+  categories: string[];
+  /** Provider payment-method slugs (Gate 2A) — how STUDENTS pay the instructor, not the Leonix fee. */
+  paymentMethods: string[];
+  /** Free-text value when "otro" is among paymentMethods. */
+  paymentMethodOther: string;
+  /** Optional class date-range boundary layered on top of the weekly schedule (Gate 2A). Blank = ongoing/ordinary recurring class (unchanged legacy behavior). */
+  startDate: string;
+  endDate: string;
 };
+
+/** Owner-approved cap (Gate 2A Section C) — enough for real multi-discipline classes, not endless taxonomy selection. */
+export const MAX_CLASES_CATEGORIES = 4;
 
 export type ComunidadQuickDraft = CommunityCommonDraft & {
   kind: "comunidad";
@@ -267,6 +286,11 @@ export function emptyClasesQuickDraft(): ClasesQuickDraft {
     weeklySchedule: emptyCommunityWeeklySchedule(),
     skillLevel: "",
     classLinks: emptyClassLinks(),
+    categories: [],
+    paymentMethods: [],
+    paymentMethodOther: "",
+    startDate: "",
+    endDate: "",
   };
 }
 
@@ -310,6 +334,31 @@ const ALLOWED_AUDIENCE = new Set(COMMUNITY_AUDIENCE_OPTIONS.map((o) => o.value))
 const ALLOWED_REGISTRATION = new Set(COMMUNITY_REGISTRATION_OPTIONS.map((o) => o.value));
 const ALLOWED_CLASES_SKILL = new Set(CLASES_SKILL_LEVEL_OPTIONS.map((o) => o.value));
 const ALLOWED_ACCESSIBILITY = new Set(COMUNIDAD_ACCESSIBILITY_OPTIONS.map((o) => o.value));
+/** Valid (non-placeholder) Clases category slugs, incl. "otro". */
+const ALLOWED_CLASES_CATEGORY = new Set(
+  CLASES_CATEGORY_OPTIONS.filter((o) => o.value).map((o) => o.value),
+);
+
+/**
+ * Normalizes the Gate 2A multi-category selection: applies the legacy slug
+ * map per entry, drops unknown/blank slugs, dedupes, and caps at
+ * MAX_CLASES_CATEGORIES. Falls back to `[legacyCategory]` when the caller
+ * never sent a `categories` array (old drafts / old published listings) so
+ * `categories[0]` always mirrors the resolved single `category`.
+ */
+function normalizeClasesCategories(raw: unknown, legacyCategory: string): string[] {
+  const source = Array.isArray(raw) && raw.length > 0 ? raw : legacyCategory ? [legacyCategory] : [];
+  const out: string[] = [];
+  for (const x of source) {
+    let slug = String(x ?? "").trim();
+    if (!slug) continue;
+    if (CLASES_CATEGORY_LEGACY_MAP[slug]) slug = CLASES_CATEGORY_LEGACY_MAP[slug]!;
+    if (!ALLOWED_CLASES_CATEGORY.has(slug)) continue;
+    if (!out.includes(slug)) out.push(slug);
+    if (out.length >= MAX_CLASES_CATEGORIES) break;
+  }
+  return out;
+}
 
 function normalizeAccessibilityKeys(raw: unknown): string[] {
   if (Array.isArray(raw)) {
@@ -494,8 +543,12 @@ export function normalizeClasesQuickDraft(raw: unknown): ClasesQuickDraft {
   const weeklySchedule = normalizeWeeklyScheduleArray(p.weeklySchedule, legacyRows);
   let category = common.category;
   if (CLASES_CATEGORY_LEGACY_MAP[category]) category = CLASES_CATEGORY_LEGACY_MAP[category]!;
+  const categories = normalizeClasesCategories((p as Partial<ClasesQuickDraft>).categories, category);
+  /** `category` (legacy single field) always mirrors the first multi-select entry. */
+  category = categories[0] ?? category;
   const skillRaw = String((p as Partial<ClasesQuickDraft>).skillLevel ?? e.skillLevel).trim();
   const skillLevel = ALLOWED_CLASES_SKILL.has(skillRaw) ? skillRaw : "";
+  const paymentMethods = normalizePaymentMethods((p as Partial<ClasesQuickDraft>).paymentMethods);
   return {
     ...common,
     category,
@@ -508,6 +561,11 @@ export function normalizeClasesQuickDraft(raw: unknown): ClasesQuickDraft {
     weeklySchedule,
     skillLevel,
     classLinks: normalizeClassLinks(p.classLinks),
+    categories,
+    paymentMethods,
+    paymentMethodOther: String((p as Partial<ClasesQuickDraft>).paymentMethodOther ?? e.paymentMethodOther).trim(),
+    startDate: String((p as Partial<ClasesQuickDraft>).startDate ?? e.startDate).trim(),
+    endDate: String((p as Partial<ClasesQuickDraft>).endDate ?? e.endDate).trim(),
   };
 }
 

@@ -26,6 +26,31 @@ import type { ClasesQuickDraft } from "@/app/(site)/publicar/community/shared/ty
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { normalizeWeeklyScheduleArray } from "@/app/(site)/publicar/community/shared/lib/communityWeeklySchedule";
 
+/** Short readable date, e.g. "1 sep" / "Sep 1" — avoids showing a raw ISO fallback. */
+function formatShortClassDate(iso: string, lang: Lang): string {
+  if (!iso) return "";
+  try {
+    const d = new Date(`${iso}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(lang === "en" ? "en-US" : "es-MX", { month: "short", day: "numeric" });
+  } catch {
+    return iso;
+  }
+}
+
+/** Result cards avoid chip soup: show up to 2 types by name, then "+N más" (Gate 2A Section AB). */
+const MAX_TYPE_CHIP_LABELS = 2;
+
+function formatClasesTypeChip(labels: string[], lang: Lang): string | null {
+  const uniq = Array.from(new Set(labels.filter(Boolean)));
+  if (uniq.length === 0) return null;
+  if (uniq.length <= MAX_TYPE_CHIP_LABELS) return uniq.join(" + ");
+  const shown = uniq.slice(0, MAX_TYPE_CHIP_LABELS);
+  const rest = uniq.length - MAX_TYPE_CHIP_LABELS;
+  const more = lang === "es" ? `+${rest} más` : `+${rest} more`;
+  return `${shown.join(" + ")} ${more}`;
+}
+
 /** Clases-owned result-card model builder (published-listing rows). */
 export function buildClasesDiscoveryCardModel(
   row: CommunityListingBrowseRow,
@@ -43,8 +68,16 @@ export function buildClasesDiscoveryCardModel(
   const schedJson = pairs["Leonix:weeklyScheduleJson"] ?? "";
   const scheduleLine = summarizeWeeklySchedule(parseWeeklyScheduleJson(schedJson), lang);
 
+  const catRaw = (pairs["Leonix:classCategories"] ?? "").trim();
+  const catSlugs = catRaw
+    ? catRaw.split(",").map((s) => s.trim()).filter(Boolean)
+    : [pairs["Leonix:classCategory"] ?? ""].filter(Boolean);
+  const catCustom = pairs["Leonix:classCategoryCustom"] ?? "";
   const typeChip = quick
-    ? resolveClasesCategoryPublicLabel(pairs["Leonix:classCategory"] ?? "", pairs["Leonix:classCategoryCustom"] ?? "", lang)
+    ? formatClasesTypeChip(
+        catSlugs.map((slug) => resolveClasesCategoryPublicLabel(slug, catCustom, lang)),
+        lang,
+      )
     : null;
   const ct = (pairs["Leonix:classCostType"] ?? "").trim();
   let costBadge: string | null = null;
@@ -65,7 +98,11 @@ export function buildClasesDiscoveryCardModel(
   const modeL = quick && modeRaw ? clasesModeLabel(modeRaw, lang) : "";
   const aud = pairs["Leonix:audience"] ? labelCommunityAudience(pairs["Leonix:audience"], lang) : "";
   const lvl = pairs["Leonix:skillLevel"] ? labelClasesSkillLevel(pairs["Leonix:skillLevel"], lang) : "";
-  const secondary = [modeL, aud, lvl].filter(Boolean).join(" · ") || null;
+  const dr = [pairs["Leonix:classStartDate"], pairs["Leonix:classEndDate"]]
+    .filter(Boolean)
+    .map((iso) => formatShortClassDate(String(iso), lang))
+    .join(" → ");
+  const secondary = [modeL, dr, aud, lvl].filter(Boolean).join(" · ") || null;
 
   return {
     id: row.id,
@@ -99,7 +136,11 @@ export function buildClasesDiscoveryCardModelFromDraft(
     summarizeWeeklySchedule(draft.weeklySchedule, lang) ||
     summarizeWeeklySchedule(normalizeWeeklyScheduleArray(draft.weeklySchedule), lang);
 
-  const typeChip = resolveClasesCategoryPublicLabel(draft.category, draft.categoryCustom, lang);
+  const draftCatSlugs = draft.categories.length > 0 ? draft.categories : [draft.category].filter(Boolean);
+  const typeChip = formatClasesTypeChip(
+    draftCatSlugs.map((slug) => resolveClasesCategoryPublicLabel(slug, draft.categoryCustom, lang)),
+    lang,
+  );
   const ct = draft.classCostType.trim();
   let costBadge: string | null = null;
   if (ct === "pagada") {
@@ -117,7 +158,11 @@ export function buildClasesDiscoveryCardModelFromDraft(
   const modeL = modeRaw ? clasesModeLabel(modeRaw, lang) : "";
   const aud = draft.audience ? labelCommunityAudience(draft.audience, lang) : "";
   const lvl = draft.skillLevel ? labelClasesSkillLevel(draft.skillLevel, lang) : "";
-  const secondary = [modeL, aud, lvl].filter(Boolean).join(" · ") || null;
+  const dr = [draft.startDate.trim(), draft.endDate.trim()]
+    .filter(Boolean)
+    .map((iso) => formatShortClassDate(iso, lang))
+    .join(" → ");
+  const secondary = [modeL, dr, aud, lvl].filter(Boolean).join(" · ") || null;
 
   return {
     id: draft.previewListingId,

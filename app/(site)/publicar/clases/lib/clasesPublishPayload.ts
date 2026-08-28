@@ -48,8 +48,8 @@ export function buildClasesDescription(d: ClasesQuickDraft, lang: Lang): string 
         ? "Gratis"
         : "Free"
       : lang === "es"
-        ? "Clase pagada (publicación comercial pendiente)"
-        : "Paid class (commercial publish pending)";
+        ? "Clase pagada (tarifa de anuncio Leonix: $24.99 por 30 días)"
+        : "Paid class (Leonix listing fee: $24.99 per 30 days)";
   parts.push(`${lang === "es" ? "Costo" : "Cost"}: ${cost}`);
   const wk = formatWeekly(d.weeklySchedule, lang);
   if (wk) parts.push(wk);
@@ -68,6 +68,10 @@ export function buildClasesDetailPairs(c: ClasesQuickDraft): Array<{ label: stri
   if (c.category === "otro" && c.categoryCustom.trim()) {
     pairs.push({ label: "Leonix:classCategoryCustom", value: c.categoryCustom.trim() });
   }
+  /** Full multi-type selection (Gate 2A); categories[0] always mirrors Leonix:classCategory above. */
+  if (c.categories.length > 0) {
+    pairs.push({ label: "Leonix:classCategories", value: c.categories.join(",") });
+  }
   pairs.push({ label: "Leonix:classCostType", value: c.classCostType });
   pairs.push({ label: "Leonix:mode", value: c.mode });
   if (c.classCostType === "pagada") {
@@ -80,6 +84,15 @@ export function buildClasesDetailPairs(c: ClasesQuickDraft): Array<{ label: stri
     value: JSON.stringify(c.weeklySchedule),
   });
   pairs.push({ label: "Leonix:skillLevel", value: c.skillLevel.trim() });
+  /** Provider payment methods (Gate 2A) — how students pay the instructor, never the Leonix listing fee. */
+  if (c.paymentMethods.length > 0) {
+    pairs.push({ label: "Leonix:paymentMethods", value: c.paymentMethods.join(",") });
+    if (c.paymentMethods.includes("otro") && c.paymentMethodOther.trim()) {
+      pairs.push({ label: "Leonix:paymentMethodOther", value: c.paymentMethodOther.trim() });
+    }
+  }
+  if (c.startDate.trim()) pairs.push({ label: "Leonix:classStartDate", value: c.startDate.trim() });
+  if (c.endDate.trim()) pairs.push({ label: "Leonix:classEndDate", value: c.endDate.trim() });
   const cl = c.classLinks;
   const pushUrl = (label: string, raw: string) => {
     const v = normalizeWebsiteForOpen(raw);

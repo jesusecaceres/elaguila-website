@@ -58,6 +58,7 @@ import {
 import {
   emptyClasesQuickDraft,
   normalizeClasesQuickDraft,
+  MAX_CLASES_CATEGORIES,
   type ClasesPriceFrequency,
   type ClasesQuickDraft,
 } from "@/app/(site)/publicar/community/shared/types/communityQuickDraft";
@@ -67,6 +68,12 @@ import {
   LocationSection,
   MEDIA_COPY,
 } from "@/app/(site)/publicar/community/shared/components/communityFormPrimitives";
+import { ClasesScheduleQuickApply } from "@/app/(site)/publicar/clases/components/ClasesScheduleQuickApply";
+import {
+  CLASES_PAYMENT_METHOD_ORDER,
+  CUSTOM_PAYMENT_OTHER_MAX,
+  getClasesPaymentMethodLabel,
+} from "@/app/(site)/publicar/clases/lib/clasesPaymentMethods";
 
 type RouterLike = ReturnType<typeof useRouter>;
 
@@ -243,23 +250,43 @@ function ClasesQuickApplicationBody({
                 onChange={(e) => patch({ organizer: e.target.value })}
               />
             </label>
-            <label className="block text-sm">
-              <EmpleosFieldLabel lang={lang} required>
-                {copy.fields.category}
-              </EmpleosFieldLabel>
-              <select
-                className={INPUT}
-                value={state.category}
-                onChange={(e) => patch({ category: e.target.value })}
-              >
-                {CLASES_CATEGORY_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {lang === "en" ? o.labelEn : o.labelEs}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {state.category === "otro" ? (
+            <fieldset>
+              <legend className="text-sm font-semibold text-[color:var(--lx-text)]">
+                {copy.fields.categoriesMulti} *
+              </legend>
+              <p className="mt-1 text-xs text-[color:var(--lx-text-2)]">{copy.fields.categoriesHelper}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {CLASES_CATEGORY_OPTIONS.filter((o) => o.value).map((o) => {
+                  const checked = state.categories.includes(o.value);
+                  const atMax = state.categories.length >= MAX_CLASES_CATEGORIES;
+                  return (
+                    <label
+                      key={o.value}
+                      className={`inline-flex min-h-[36px] cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-xs ${
+                        checked
+                          ? "border-[color:var(--lx-cta-dark)]/50 bg-[color:var(--lx-cta-dark)]/10"
+                          : "border-black/10 bg-white"
+                      } ${!checked && atMax ? "opacity-40" : ""}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={!checked && atMax}
+                        onChange={() => {
+                          const next = checked
+                            ? state.categories.filter((c) => c !== o.value)
+                            : [...state.categories, o.value].slice(0, MAX_CLASES_CATEGORIES);
+                          patch({ categories: next, category: next[0] ?? "" });
+                        }}
+                        className="h-3.5 w-3.5 rounded border-black/20"
+                      />
+                      {lang === "en" ? o.labelEn : o.labelEs}
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+            {state.categories.includes("otro") ? (
               <label className="block text-sm">
                 <EmpleosFieldLabel lang={lang} required>
                   {copy.fields.categoryOther}
@@ -279,7 +306,7 @@ function ClasesQuickApplicationBody({
                 {copy.fields.description}
               </EmpleosFieldLabel>
               <textarea
-                className={`${INPUT} min-h-[100px]`}
+                className={`${INPUT} min-h-[160px]`}
                 value={state.description}
                 onChange={(e) => patch({ description: e.target.value })}
               />
@@ -332,12 +359,33 @@ function ClasesQuickApplicationBody({
                 {copy.fields.bringNote}
               </EmpleosFieldLabel>
               <textarea
-                className={`${INPUT} min-h-[72px]`}
+                className={`${INPUT} min-h-[120px]`}
                 value={state.bringNote}
                 onChange={(e) => patch({ bringNote: e.target.value })}
                 placeholder={lang === "es" ? "Opcional" : "Optional"}
               />
             </label>
+          </EmpleosSectionCard>
+
+          <EmpleosSectionCard title={copy.sections.media}>
+            <p className="text-xs text-[color:var(--lx-muted)]">{copy.fields.imageHint}</p>
+            <EmpleosFieldLabel lang={lang} required>
+              {copy.fields.image}
+            </EmpleosFieldLabel>
+            <EmpleosImageGalleryEditor
+              images={state.images}
+              onChange={(images) => patch({ images })}
+              urlPlaceholder={mediaCopy.urlPh}
+              addUrlLabel={mediaCopy.addUrl}
+              uploadLabel={mediaCopy.upload}
+              mainLabel={mediaCopy.main}
+              removeLabel={mediaCopy.remove}
+              upLabel={mediaCopy.up}
+              downLabel={mediaCopy.down}
+              altPlaceholder={mediaCopy.altImage}
+              uploadMode="imagesAndPdf"
+              lang={lang}
+            />
           </EmpleosSectionCard>
 
           <EmpleosSectionCard title={copy.sections.cost}>
@@ -425,10 +473,71 @@ function ClasesQuickApplicationBody({
                 </label>
                 <p className="rounded-lg border border-amber-300/70 bg-amber-50/90 px-3 py-2 text-xs font-medium text-amber-950">
                   {lang === "es"
-                    ? "Las clases pagadas requieren activación de publicación pagada (en preparación)."
-                    : "Paid classes require paid publishing activation (in preparation)."}
+                    ? "La clase tiene costo para el estudiante. Publicar el anuncio en Leonix sigue costando $24.99 por 30 días — esa activación de pago aún no está disponible aquí, así que por ahora la publicación queda bloqueada."
+                    : "This class has a cost for the student. The Leonix listing fee is $24.99 per 30 days — that paid activation isn't available here yet, so publishing stays blocked for now."}
                 </p>
+                <div className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-page)] px-3 py-3">
+                  <p className="text-xs font-bold text-[color:var(--lx-text)]">{copy.priceSummary.title}</p>
+                  <div className="mt-2 flex items-center justify-between text-xs">
+                    <span className="text-[color:var(--lx-text-2)]">{copy.priceSummary.classPriceLabel}</span>
+                    <span className="font-semibold text-[color:var(--lx-text)]">
+                      {state.priceAmount.trim() || "—"}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-xs">
+                    <span className="text-[color:var(--lx-text-2)]">
+                      {lang === "es" ? "Tarifa de anuncio Leonix" : "Leonix listing fee"}
+                    </span>
+                    <span className="font-semibold text-[color:var(--lx-text)]">{copy.priceSummary.leonixFeePaid}</span>
+                  </div>
+                </div>
               </div>
+            ) : null}
+          </EmpleosSectionCard>
+
+          <EmpleosSectionCard title={copy.fields.paymentMethods}>
+            <p className="text-xs text-[color:var(--lx-text-2)]">{copy.fields.paymentMethodsHelper}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {CLASES_PAYMENT_METHOD_ORDER.map((id) => {
+                const checked = state.paymentMethods.includes(id);
+                return (
+                  <label
+                    key={id}
+                    className={`inline-flex min-h-[36px] cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-xs ${
+                      checked
+                        ? "border-[color:var(--lx-cta-dark)]/50 bg-[color:var(--lx-cta-dark)]/10"
+                        : "border-black/10 bg-white"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        const next = checked
+                          ? state.paymentMethods.filter((m) => m !== id)
+                          : [...state.paymentMethods, id];
+                        patch({ paymentMethods: next });
+                      }}
+                      className="h-3.5 w-3.5 rounded border-black/20"
+                    />
+                    {getClasesPaymentMethodLabel(id, lang)}
+                  </label>
+                );
+              })}
+            </div>
+            {state.paymentMethods.includes("otro") ? (
+              <label className="mt-3 block text-sm">
+                <EmpleosFieldLabel lang={lang} optional>
+                  {copy.fields.paymentMethodOther}
+                </EmpleosFieldLabel>
+                <input
+                  className={INPUT}
+                  value={state.paymentMethodOther}
+                  maxLength={CUSTOM_PAYMENT_OTHER_MAX}
+                  onChange={(e) => patch({ paymentMethodOther: e.target.value })}
+                  placeholder={lang === "es" ? "Ej. Apple Pay" : "e.g. Apple Pay"}
+                />
+              </label>
             ) : null}
           </EmpleosSectionCard>
 
@@ -455,10 +564,21 @@ function ClasesQuickApplicationBody({
                 ))}
               </div>
             </fieldset>
-            <div className="mt-4">
+            <div className="mt-4 space-y-3">
               <EmpleosFieldLabel lang={lang} required>
                 {copy.fields.weeklySchedule}
               </EmpleosFieldLabel>
+              <ClasesScheduleQuickApply
+                lang={lang}
+                rows={state.weeklySchedule}
+                onApply={(days, open, close) =>
+                  patch({
+                    weeklySchedule: state.weeklySchedule.map((r) =>
+                      days.includes(r.day) ? { ...r, closed: false, open, close } : r,
+                    ),
+                  })
+                }
+              />
               <WeeklyScheduleEditor
                 lang={lang}
                 rows={state.weeklySchedule}
@@ -473,27 +593,31 @@ function ClasesQuickApplicationBody({
                 }
               />
             </div>
-          </EmpleosSectionCard>
-
-          <EmpleosSectionCard title={copy.sections.media}>
-            <p className="text-xs text-[color:var(--lx-muted)]">{copy.fields.imageHint}</p>
-            <EmpleosFieldLabel lang={lang} required>
-              {copy.fields.image}
-            </EmpleosFieldLabel>
-            <EmpleosImageGalleryEditor
-              images={state.images}
-              onChange={(images) => patch({ images })}
-              urlPlaceholder={mediaCopy.urlPh}
-              addUrlLabel={mediaCopy.addUrl}
-              uploadLabel={mediaCopy.upload}
-              mainLabel={mediaCopy.main}
-              removeLabel={mediaCopy.remove}
-              upLabel={mediaCopy.up}
-              downLabel={mediaCopy.down}
-              altPlaceholder={mediaCopy.altImage}
-              uploadMode="imagesAndPdf"
-              lang={lang}
-            />
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} optional>
+                  {copy.fields.startDate}
+                </EmpleosFieldLabel>
+                <input
+                  type="date"
+                  className={INPUT}
+                  value={state.startDate}
+                  onChange={(e) => patch({ startDate: e.target.value })}
+                />
+              </label>
+              <label className="block text-sm">
+                <EmpleosFieldLabel lang={lang} optional>
+                  {copy.fields.endDate}
+                </EmpleosFieldLabel>
+                <input
+                  type="date"
+                  className={INPUT}
+                  value={state.endDate}
+                  onChange={(e) => patch({ endDate: e.target.value })}
+                />
+              </label>
+            </div>
+            <p className="mt-1 text-xs text-[color:var(--lx-text-2)]">{copy.fields.dateRangeHelper}</p>
           </EmpleosSectionCard>
 
           <EmpleosSectionCard title={copy.sections.cta}>
@@ -508,6 +632,7 @@ function ClasesQuickApplicationBody({
               primaryHint={ctaPrimaryHint}
               formatUsPhone
               websiteInputType="text"
+              showPrimaryCtaSelector={false}
             />
           </EmpleosSectionCard>
 
@@ -585,6 +710,7 @@ function ClasesQuickApplicationBody({
           }
           saveDraftCta={sharedCopy.finalStep.saveDraftCta}
           onSaveDraft={onSaveDraft}
+          showSecondaryActions={false}
         />
 
         {paidBlockNotice ? (
