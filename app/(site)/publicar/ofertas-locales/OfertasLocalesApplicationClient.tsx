@@ -50,7 +50,6 @@ import {
   loadOfertaLocalSubmissionSession,
   loadOfertaLocalWizardStep,
   sanitizeAssetList,
-  saveOfertaLocalDraftToStorage,
   saveOfertaLocalWizardStep,
 } from "@/app/lib/ofertas-locales/ofertasLocalesDraftPersistence";
 import { uploadOfertaLocalDraftAsset } from "@/app/lib/ofertas-locales/ofertasLocalesAssetUpload";
@@ -83,10 +82,7 @@ import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificados
 import { publicContactHref } from "@/app/lib/leonix/publicRouteHrefs";
 import { useOfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { useOfertasLocalesDraft } from "@/app/lib/ofertas-locales/useOfertasLocalesDraft";
-import {
-  validateOfertaLocalDraftForFuturePublish,
-  validateOfertaLocalDraftForPreview,
-} from "@/app/lib/ofertas-locales/ofertasLocalesValidation";
+import { validateOfertaLocalDraftForPreview } from "@/app/lib/ofertas-locales/ofertasLocalesValidation";
 import { OfertasLocalesAiScanReviewWorkspace } from "./OfertasLocalesAiScanReviewWorkspace";
 import { OfertasLocalesAiScanPanel } from "./OfertasLocalesAiScanPanel";
 import { OfertasLocalesCommercialSummary } from "./OfertasLocalesCommercialSummary";
@@ -322,9 +318,10 @@ export default function OfertasLocalesApplicationClient() {
   // and are recovered independently of this toggle.
   const [step5ReviewView, setStep5ReviewView] = useState<"files" | "products">("files");
   const reviewWorkbenchRef = useRef<HTMLElement>(null);
+  // Consolidated to 3 confirmations (Gate F ⚠️42) — businessInfo + filesDates
+  // merged into one, aiItems stays required only for AI-included packages.
   const [step7Confirmations, setStep7Confirmations] = useState({
-    businessInfo: false,
-    filesDates: false,
+    businessFiles: false,
     aiItems: false,
     leonixRules: false,
   });
@@ -562,8 +559,7 @@ export default function OfertasLocalesApplicationClient() {
     setStep5UploadEditing(false);
     setStep5ManualCheckpoint(null);
     setStep7Confirmations({
-      businessInfo: false,
-      filesDates: false,
+      businessFiles: false,
       aiItems: false,
       leonixRules: false,
     });
@@ -579,8 +575,14 @@ export default function OfertasLocalesApplicationClient() {
   }, [aiIncludedInPackage, draft.wantsAiSearchableSpecials, hasLoadedDraft, updateDraft]);
 
   const previewIssues = useMemo(() => validateOfertaLocalDraftForPreview(draft), [draft]);
-  const publishIssues = useMemo(() => validateOfertaLocalDraftForFuturePublish(draft), [draft]);
-  const serverPublishIssues = useMemo(() => validateOfertaLocalDraftForServerPublish(draft), [draft]);
+  // ownerId is required here — validateOfertaLocalDraftForServerPublish checks it
+  // internally, and passing serverPublishIssues (not a separate ownerId-blind
+  // validator) into the panel below keeps the shown issues and the ready/not-ready
+  // state always in sync (Gate F ⚠️47).
+  const serverPublishIssues = useMemo(
+    () => validateOfertaLocalDraftForServerPublish(draft, ownerId),
+    [draft, ownerId]
+  );
   const previewReady = previewIssues.length === 0;
   const publishFieldsReady = serverPublishIssues.every((i) => i.severity !== "error");
 
@@ -703,10 +705,7 @@ export default function OfertasLocalesApplicationClient() {
     draft.email.trim().length > 0 && !isOfertaLocalEmailFormatValid(draft.email);
   const step7ConfirmationsComplete = useMemo(() => {
     if (emailMalformed) return false;
-    const base =
-      step7Confirmations.businessInfo &&
-      step7Confirmations.filesDates &&
-      step7Confirmations.leonixRules;
+    const base = step7Confirmations.businessFiles && step7Confirmations.leonixRules;
     if (aiIncludedInPackage) {
       return base && step7Confirmations.aiItems;
     }
@@ -802,10 +801,6 @@ export default function OfertasLocalesApplicationClient() {
     },
     [draft, updateDraft]
   );
-
-  const handleSaveDraft = useCallback(() => {
-    saveOfertaLocalDraftToStorage(draft);
-  }, [draft]);
 
   const goNext = useCallback(() => {
     if (step === 5) {
@@ -1854,19 +1849,6 @@ export default function OfertasLocalesApplicationClient() {
               )}
             </div>
 
-            <OfertasLocalesCommercialSummary draft={draft} lang={lang} />
-            <p className="text-xs text-[#1E1814]/55">{c.publishNotBuilt}</p>
-            {effectiveOfertaLocalId ? (
-              <Link
-                href={`/dashboard/ofertas-locales/${encodeURIComponent(effectiveOfertaLocalId)}?lang=${lang}`}
-                className={`${BTN_SECONDARY} inline-flex`}
-              >
-                {c.continueSecureCheckout}
-              </Link>
-            ) : (
-              <p className="text-xs font-medium text-amber-900">{c.checkoutParentRequired}</p>
-            )}
-
             {aiIncludedInPackage && hasExistingAiScan ? (
               <details className="rounded-xl border border-[#7A1E2C]/25 bg-[#7A1E2C]/5 px-4 py-3">
                 <summary className="cursor-pointer text-sm font-semibold text-[#7A1E2C]">
@@ -1917,7 +1899,7 @@ export default function OfertasLocalesApplicationClient() {
 
             <OfertasLocalesValidationPanel
               previewIssues={previewIssues}
-              publishIssues={publishIssues}
+              publishIssues={serverPublishIssues}
               previewReady={previewReady}
               publishFieldsReady={publishFieldsReady}
               lang={lang}
@@ -1928,24 +1910,13 @@ export default function OfertasLocalesApplicationClient() {
               <label className="flex items-start gap-3 text-sm text-[#1E1814]">
                 <input
                   type="checkbox"
-                  checked={step7Confirmations.businessInfo}
+                  checked={step7Confirmations.businessFiles}
                   onChange={(e) =>
-                    setStep7Confirmations((prev) => ({ ...prev, businessInfo: e.target.checked }))
+                    setStep7Confirmations((prev) => ({ ...prev, businessFiles: e.target.checked }))
                   }
                   className="mt-1 rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
                 />
-                <span>{c.step7ConfirmBusiness}</span>
-              </label>
-              <label className="flex items-start gap-3 text-sm text-[#1E1814]">
-                <input
-                  type="checkbox"
-                  checked={step7Confirmations.filesDates}
-                  onChange={(e) =>
-                    setStep7Confirmations((prev) => ({ ...prev, filesDates: e.target.checked }))
-                  }
-                  className="mt-1 rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
-                />
-                <span>{c.step7ConfirmFiles}</span>
+                <span>{c.step7ConfirmBusinessFiles}</span>
               </label>
               {aiIncludedInPackage ? (
                 <label className="flex items-start gap-3 text-sm text-[#1E1814]">
@@ -1972,17 +1943,18 @@ export default function OfertasLocalesApplicationClient() {
                 <span>{c.step7ConfirmRules}</span>
               </label>
               {!step7ConfirmationsComplete ? (
-                <p className="text-xs text-[#1E1814]/60">{c.step7PreviewGatedHelper}</p>
-              ) : null}
-              {aiIncludedInPackage && aiReviewGate.needsReviewCount > 0 ? (
-                <p className="text-xs font-medium text-amber-900">{c.step7AiIncompleteHelper}</p>
+                <ul className="space-y-1 text-xs font-medium text-amber-900">
+                  {emailMalformed ? <li>· {c.step7BlockerEmail}</li> : null}
+                  {!step7Confirmations.businessFiles ? <li>· {c.step7BlockerBusinessFiles}</li> : null}
+                  {aiIncludedInPackage && (aiReviewGate.needsReviewCount > 0 || !step7Confirmations.aiItems) ? (
+                    <li>· {c.step7BlockerAiReview}</li>
+                  ) : null}
+                  {!step7Confirmations.leonixRules ? <li>· {c.step7BlockerLeonixRules}</li> : null}
+                </ul>
               ) : null}
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <button type="button" className={BTN_SECONDARY} onClick={handleSaveDraft}>
-                {c.saveDraft}
-              </button>
               {step7ConfirmationsComplete ? (
                 <Link href={previewHref} className={`${BTN_PRIMARY} min-h-11`}>
                   {c.step7ViewPreview}
@@ -1997,6 +1969,9 @@ export default function OfertasLocalesApplicationClient() {
                 </span>
               )}
             </div>
+
+            <OfertasLocalesCommercialSummary draft={draft} lang={lang} />
+            <p className="text-xs text-[#1E1814]/55">{c.publishNotBuilt}</p>
 
             <div className="rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/50 px-4 py-3">
               <p className="text-[11px] font-medium uppercase tracking-wide text-[#1E1814]/45">

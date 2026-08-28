@@ -9,6 +9,10 @@ const offerDrawer = readRepoFile("app/(site)/clasificados/ofertas-locales/Oferta
 const list = readRepoFile("app/(site)/clasificados/ofertas-locales/OfertasLocalesShoppingListPanel.tsx");
 const listModel = readRepoFile("app/lib/ofertas-locales/ofertasLocalesShoppingList.ts");
 const doc = readRepoFile("docs/OFERTAS_PACKAGE_10_COMPLETE_PRODUCT_EXPERIENCE.md");
+// Gate F relocated the checkout continuation from Step 7 to the Preview
+// screen (the final visual inspection point) — see ofertas-advertiser-journey-audit.mjs.
+const previewCard = readRepoFile("app/(site)/publicar/ofertas-locales/preview/OfertasLocalesPreviewCard.tsx");
+const previewCopy = readRepoFile("app/(site)/publicar/ofertas-locales/preview/ofertasLocalesPreviewCopy.ts");
 
 for (const required of [
   "Crear volante interactivo",
@@ -16,7 +20,7 @@ for (const required of [
   "ofertas_locales_flyer_30d",
   "ofertas_locales_coupons_30d",
   "requestedProduct",
-  "continueSecureCheckout",
+  "continueToDashboardEs",
   "Busca productos, precios y cupones en negocios locales.",
   "business",
   "shareProduct",
@@ -27,7 +31,11 @@ for (const required of [
   "No shopping list, cart, or fake redemption",
   "PACKAGE 10",
 ]) {
-  assertIncludes("Package 10 completion surface", appCopy + app + publicCopy + publicSearch + itemDrawer + offerDrawer + list + listModel + doc, required);
+  assertIncludes(
+    "Package 10 completion surface",
+    appCopy + app + publicCopy + publicSearch + itemDrawer + offerDrawer + list + listModel + doc + previewCard + previewCopy,
+    required
+  );
 }
 
 assertNotIncludes("Package 10 completion", appCopy + publicCopy + itemDrawer + offerDrawer, "$598");

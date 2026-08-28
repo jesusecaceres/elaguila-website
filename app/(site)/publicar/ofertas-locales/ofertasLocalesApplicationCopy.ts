@@ -182,12 +182,9 @@ const COPY = {
     validationPreviewTitle: "Vista previa",
     validationPublishTitle: "Envío para revisión",
     previewReady: "Tienes lo básico para la vista previa.",
-    publishReadyForReview: "Listo para enviar a revisión.",
+    publishReadyToContinue: "✓ Listo para continuar",
     publishNotBuilt:
       "El pago autoriza el envío para revisión. El plazo público de 30 días empieza después de la aprobación de Leonix; una corrección o rechazo no consume días ni requiere otro pago. No hay publicación instantánea ni aprobación garantizada.",
-    continueSecureCheckout: "Continuar a pago seguro",
-    checkoutParentRequired:
-      "Analiza el archivo con IA para crear el ID canónico antes de abrir el pago seguro.",
     selectPlaceholder: "Selecciona…",
     optional: "opcional",
     flyerTitleLabel: "Título del volante",
@@ -361,17 +358,18 @@ const COPY = {
       "Volver a escanear puede reemplazar o cambiar sugerencias anteriores.",
     step7FinalReviewTitle: "Revisión final antes de la vista previa",
     step7EstimatedTotal: "Total mensual estimado",
-    step7ConfirmBusiness:
-      "Confirmo que la información del negocio y contacto es correcta.",
-    step7ConfirmFiles:
-      "Confirmo que los archivos y fechas del volante/cupón son correctos.",
+    step7ConfirmBusinessFiles:
+      "Confirmo que la información del negocio, contacto, archivos y fechas es correcta.",
     step7ConfirmAi:
-      "Confirmo que los productos sugeridos por IA están listos, o terminé la revisión requerida.",
+      "Confirmo que revisé los productos sugeridos por IA o completé la revisión requerida.",
     step7ConfirmRules:
       "Confirmo que esta oferta cumple con las reglas de Leonix y soy responsable por la información enviada.",
     step7PreviewGatedHelper: "Marca todas las confirmaciones para ver la vista previa.",
-    step7AiIncompleteHelper:
-      "Aún hay productos sugeridos por IA pendientes de revisión. El envío permanece bloqueado hasta terminar.",
+    step7BlockerEmail: "Corrige el correo electrónico.",
+    step7BlockerBusinessFiles:
+      "Confirma la información del negocio, contacto, archivos y fechas.",
+    step7BlockerAiReview: "Completa la revisión de productos sugeridos por IA.",
+    step7BlockerLeonixRules: "Confirma que la oferta cumple las reglas de Leonix.",
     step7DeleteStartOverTitle: "Borrar y empezar de nuevo",
     startOverDeviceWarning:
       "Esto borra el borrador guardado en este navegador. No borra productos de IA ya guardados en la base de datos.",
@@ -659,12 +657,9 @@ const COPY = {
     validationPreviewTitle: "Preview",
     validationPublishTitle: "Submit for review",
     previewReady: "You have enough for preview.",
-    publishReadyForReview: "Ready to submit for review.",
+    publishReadyToContinue: "✓ Ready to continue",
     publishNotBuilt:
       "Payment authorizes review submission. The 30-day public term starts after Leonix approval; a correction or rejection does not consume days or require a second payment. There is no instant publication or guaranteed approval.",
-    continueSecureCheckout: "Continue secure checkout",
-    checkoutParentRequired:
-      "Scan the file with AI to create the canonical ID before opening secure checkout.",
     selectPlaceholder: "Select…",
     optional: "optional",
     flyerTitleLabel: "Flyer title",
@@ -836,15 +831,17 @@ const COPY = {
     step7RescanWarning: "Scanning again may replace or change previous suggestions.",
     step7FinalReviewTitle: "Final review before preview",
     step7EstimatedTotal: "Estimated monthly total",
-    step7ConfirmBusiness: "I confirm the business/contact information is correct.",
-    step7ConfirmFiles: "I confirm the flyer/coupon files and dates are correct.",
+    step7ConfirmBusinessFiles:
+      "I confirm that the business information, contact details, files, and dates are correct.",
     step7ConfirmAi:
-      "I confirm the AI-suggested products are ready, or I finished the required review.",
+      "I confirm that I reviewed the AI-suggested products or completed the required product review.",
     step7ConfirmRules:
       "I confirm this offer follows Leonix rules and I am responsible for the submitted information.",
     step7PreviewGatedHelper: "Check all confirmations to open preview.",
-    step7AiIncompleteHelper:
-      "AI-suggested items still need review. Submit stays blocked until review is complete.",
+    step7BlockerEmail: "Correct the email address.",
+    step7BlockerBusinessFiles: "Confirm the business information, contact details, files, and dates.",
+    step7BlockerAiReview: "Complete the AI product review.",
+    step7BlockerLeonixRules: "Confirm that the offer follows Leonix rules.",
     step7DeleteStartOverTitle: "Delete and start over",
     startOverDeviceWarning:
       "This clears the draft saved in this browser. It does not delete AI products already saved in the database.",
@@ -1017,7 +1014,7 @@ export const OFERTAS_LOCALES_SHELL_COPY = {
   validationPublishTitle: COPY.es.validationPublishTitle,
   previewReady: COPY.es.previewReady,
   publishNotBuilt: COPY.es.publishNotBuilt,
-  publishReadyForReview: COPY.es.publishReadyForReview,
+  publishReadyToContinue: COPY.es.publishReadyToContinue,
   submitForReview: COPY.es.submitForReview,
   submitForReviewEn: COPY.en.submitForReview,
   submittingForReview: COPY.es.submittingForReview,

@@ -524,6 +524,7 @@ function OwnerPreviewControls({
   lang,
   editHref,
   editReviewHref,
+  dashboardHref,
   publishing,
   aiNeedsReviewCount,
   publishSuccess,
@@ -532,6 +533,7 @@ function OwnerPreviewControls({
   lang: OfertasLocalesAppLang;
   editHref: string;
   editReviewHref: string;
+  dashboardHref: string | null;
   publishing: boolean;
   aiNeedsReviewCount: number;
   publishSuccess?: { id: string; status: string } | null;
@@ -557,7 +559,7 @@ function OwnerPreviewControls({
         ) : (
           <button
             type="button"
-            className={cx(BTN_PRIMARY, "min-h-10 px-3 py-2 text-xs sm:text-sm")}
+            className={cx(BTN_OUTLINE, "min-h-10 px-3 py-2 text-xs sm:text-sm")}
             disabled={publishing || aiNeedsReviewCount > 0 || !onSubmitForReview}
             onClick={onSubmitForReview}
             title={
@@ -577,6 +579,18 @@ function OwnerPreviewControls({
                 : c.submitForReviewEs}
           </button>
         )}
+        {dashboardHref ? (
+          // Routes into the existing owner-dashboard commercial workflow (real
+          // checkout lives there via startRevenueCategoryCheckout) — no new
+          // Stripe/session logic here, this is presentation/routing only.
+          <Link href={dashboardHref} className={cx(BTN_PRIMARY, "min-h-10 px-3 py-2 text-xs sm:text-sm")}>
+            {lang === "en" ? c.continueToDashboardEn : c.continueToDashboardEs}
+          </Link>
+        ) : (
+          <p className="w-full text-xs font-medium text-amber-900">
+            {lang === "en" ? c.dashboardLinkPendingEn : c.dashboardLinkPendingEs}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -586,6 +600,7 @@ export function OfertasLocalesPreviewCard({
   draft,
   lang = "es",
   routeLang,
+  ofertaLocalId = null,
   approvedAiItems = [],
   aiReviewLoading = false,
   aiReviewError = null,
@@ -599,6 +614,7 @@ export function OfertasLocalesPreviewCard({
   draft: OfertaLocalDraft;
   lang?: OfertasLocalesAppLang;
   routeLang?: SupportedLang;
+  ofertaLocalId?: string | null;
   approvedAiItems?: OfertaLocalItemReviewViewModel[];
   aiReviewLoading?: boolean;
   aiReviewError?: string | null;
@@ -620,6 +636,14 @@ export function OfertasLocalesPreviewCard({
     review: 1,
     intent: "continue",
   });
+  // The real checkout (startRevenueCategoryCheckout) already lives on the
+  // owner dashboard — this only routes there using the canonical listing id,
+  // preferring the id confirmed by a successful submission over the
+  // AI-scan-session id used before submission.
+  const dashboardId = publishSuccess?.id ?? ofertaLocalId;
+  const dashboardHref = dashboardId
+    ? `/dashboard/ofertas-locales/${encodeURIComponent(dashboardId)}?lang=${resolvedRouteLang}`
+    : null;
   const offerLabel = labelForOfferType(draft.offerType, lang);
   const primaryFormatLabel = labelForPrimaryAdFormatLane(draft, lang);
   const categoryLabel = labelForBusinessCategory(draft.businessCategory, lang);
@@ -783,6 +807,7 @@ export function OfertasLocalesPreviewCard({
           lang={lang}
           editHref={editHref}
           editReviewHref={editReviewHref}
+          dashboardHref={dashboardHref}
           publishing={publishing}
           aiNeedsReviewCount={aiNeedsReviewCount}
           publishSuccess={publishSuccess}
@@ -1142,7 +1167,7 @@ export function OfertasLocalesPreviewCard({
           ) : null}
 
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href={editHref} className={BTN_PRIMARY}>
+            <Link href={editHref} className={BTN_OUTLINE}>
               {lang === "en" ? c.backToEditEn : c.backToEdit}
             </Link>
             <Link href={editReviewHref} className={BTN_OUTLINE}>
@@ -1151,7 +1176,7 @@ export function OfertasLocalesPreviewCard({
             {publishSuccess ? null : (
               <button
                 type="button"
-                className={BTN_PRIMARY}
+                className={BTN_OUTLINE}
                 disabled={publishing || aiNeedsReviewCount > 0 || !onSubmitForReview}
                 onClick={onSubmitForReview}
                 title={
@@ -1170,6 +1195,15 @@ export function OfertasLocalesPreviewCard({
                     ? c.submitForReviewEn
                     : c.submitForReviewEs}
               </button>
+            )}
+            {dashboardHref ? (
+              <Link href={dashboardHref} className={BTN_PRIMARY}>
+                {lang === "en" ? c.continueToDashboardEn : c.continueToDashboardEs}
+              </Link>
+            ) : (
+              <p className="w-full text-xs font-medium text-amber-900">
+                {lang === "en" ? c.dashboardLinkPendingEn : c.dashboardLinkPendingEs}
+              </p>
             )}
           </div>
         </section>
