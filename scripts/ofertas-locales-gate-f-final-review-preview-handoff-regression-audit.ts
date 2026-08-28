@@ -271,11 +271,11 @@ function run() {
   );
   console.log("Case T (Gate C behavior remains) passed.");
 
-  // --- Case U: Gate D dedicated review workspace remains ---
+  // --- Case U: Gate D dedicated review workspace remains (now Gate I's real Step 6) ---
   assert.match(
     clientSrc,
-    /const \[step5ReviewView, setStep5ReviewView\] = useState<"files" \| "products">\("files"\);/,
-    "CASE U FAILED: Gate D's Files/Products view-state toggle must remain"
+    /const showStep6ReviewDesk =\s*\n\s*step === 6 && aiIncludedInPackage && Boolean\(effectiveOfertaLocalId\?\.trim\(\)\);/,
+    "CASE U FAILED: the dedicated review workspace must still gate on being on its own step"
   );
   assert.match(
     workspaceSrc,

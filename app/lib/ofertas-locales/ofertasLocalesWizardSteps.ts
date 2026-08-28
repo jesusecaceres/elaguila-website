@@ -6,9 +6,9 @@ import {
 } from "./ofertasLocalesApplicationHelpers";
 import { normalizeOfertaLocalPhoneInput, normalizeOfertaLocalZipInput } from "./ofertasLocalesFormatting";
 
-export const OFERTAS_LOCALES_WIZARD_STEP_COUNT = 7 as const;
+export const OFERTAS_LOCALES_WIZARD_STEP_COUNT = 8 as const;
 
-export type OfertasLocalesWizardStepId = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export type OfertasLocalesWizardStepId = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 export const OFERTAS_LOCALES_WIZARD_STEPS: ReadonlyArray<{
   id: OfertasLocalesWizardStepId;
@@ -54,13 +54,20 @@ export const OFERTAS_LOCALES_WIZARD_STEPS: ReadonlyArray<{
   },
   {
     id: 6,
+    labelEs: "Revisar productos",
+    labelEn: "Review products",
+    titleEs: "Revisar productos encontrados",
+    titleEn: "Review the products found",
+  },
+  {
+    id: 7,
     labelEs: "Extras",
     labelEn: "Extras",
     titleEs: "Extras para mejorar tu presencia",
     titleEn: "Extras to improve your presence",
   },
   {
-    id: 7,
+    id: 8,
     labelEs: "Revisar",
     labelEn: "Review",
     titleEs: "Revisar antes de enviar",
@@ -70,7 +77,7 @@ export const OFERTAS_LOCALES_WIZARD_STEPS: ReadonlyArray<{
 
 export function clampWizardStep(n: number): OfertasLocalesWizardStepId {
   if (n <= 1) return 1;
-  if (n >= 7) return 7;
+  if (n >= 8) return 8;
   return n as OfertasLocalesWizardStepId;
 }
 
@@ -155,11 +162,13 @@ export function getOfertasLocalesWizardStepHints(
       break;
     case 7:
       break;
+    case 8:
+      break;
     default:
       break;
   }
 
-  if (hints.length > 0 && step < 7) {
+  if (hints.length > 0 && step < 8) {
     hints.unshift(es ? "Falta poco." : "Almost there.");
   }
 

@@ -60,8 +60,8 @@ function run() {
     /allPagesComplete \? \([\s\S]*?\) : nextPageSummary \? \(/,
     "CASE B FAILED: final-review CTA and next-page CTA must be mutually exclusive branches of the same ternary"
   );
-  assert.equal(cEs.aiReviewContinueToNextStep, "Continuar al siguiente paso →", "CASE B FAILED: Spanish continue-to-next-step label wrong");
-  assert.equal(cEn.aiReviewContinueToNextStep, "Continue to the next step →", "CASE B FAILED: English continue-to-next-step label wrong");
+  assert.equal(cEs.aiReviewContinueToNextStep, "Continuar a Extras →", "CASE B FAILED: Spanish continue-to-next-step label wrong");
+  assert.equal(cEn.aiReviewContinueToNextStep, "Continue to Extras →", "CASE B FAILED: English continue-to-next-step label wrong");
   console.log("Case B (final page renders Continue-to-next-step, not Next Page) passed.");
 
   // --- Case C: page counts in the completion card are computed dynamically, never hardcoded ---

@@ -66,8 +66,8 @@ function run() {
   // --- Case D: Gate D dedicated workspace remains ---
   assert.match(
     clientSrc,
-    /const \[step5ReviewView, setStep5ReviewView\] = useState<"files" \| "products">\("files"\);/,
-    "CASE D FAILED: Gate D's Files/Products view-state toggle must remain"
+    /const showStep6ReviewDesk =\s*\n\s*step === 6 && aiIncludedInPackage && Boolean\(effectiveOfertaLocalId\?\.trim\(\)\);/,
+    "CASE D FAILED: Gate D's dedicated review workspace (now Gate I's real Step 6) must remain"
   );
   assert.match(
     workspaceSrc,
