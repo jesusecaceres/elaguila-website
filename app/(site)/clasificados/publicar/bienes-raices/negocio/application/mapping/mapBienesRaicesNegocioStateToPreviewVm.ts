@@ -23,6 +23,7 @@ import type {
   DeepDetailGroupKey,
 } from "../schema/bienesRaicesNegocioFormState";
 import { businessExtraLinksToPreviewCtas } from "../bienesAdditionalBusinessLinks";
+import { phoneTelHref, stripPhoneDigits } from "@/app/lib/leonix/phoneFormat";
 import {
   buildLeonixContactChannelsV1PayloadFromFormSlice,
   formatLeonixPreferredContactLine,
@@ -641,30 +642,28 @@ function buildMailtoUri(to: string, subject: string, body: string): string | nul
   return `mailto:${e}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
-function digitsForDial(phone: string): string {
-  return trim(phone).replace(/\D/g, "");
-}
-
+/** F2 fix: tel:/sms:/wa.me all require E.164 (a leading `+1`/`1` country code for a bare
+ * 10-digit US number) -- bare local digits work by accident on some devices and silently fail
+ * on others. */
 function buildTelHref(phone: string): string | null {
-  const d = digitsForDial(phone);
-  if (d.length < 10) return null;
-  return `tel:${d}`;
+  const href = phoneTelHref(phone);
+  return href || null;
 }
 
 function buildWhatsappHref(phone: string, message: string): string | null {
-  const d = digitsForDial(phone);
-  if (d.length < 10) return null;
+  const d = stripPhoneDigits(phone);
+  if (!d) return null;
   const text =
     trim(message) ||
     "Hola, vi su anuncio en Leonix Clasificados y me gustaría más información.";
-  return `https://wa.me/${d}?text=${encodeURIComponent(text)}`;
+  return `https://wa.me/1${d}?text=${encodeURIComponent(text)}`;
 }
 
 function buildSmsHref(phone: string): string | null {
-  const d = digitsForDial(phone);
-  if (d.length < 10) return null;
+  const d = stripPhoneDigits(phone);
+  if (!d) return null;
   const body = "Hola, vi su anuncio en Leonix Clasificados y me gustaría más información.";
-  return `sms:${d}?body=${encodeURIComponent(body)}`;
+  return `sms:+1${d}?body=${encodeURIComponent(body)}`;
 }
 
 function cleanHttpUrls(raw: readonly string[] | undefined, max: number): string[] {

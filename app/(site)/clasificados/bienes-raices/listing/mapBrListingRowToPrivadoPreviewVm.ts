@@ -18,6 +18,7 @@ import {
   readLeonixDetailPairValue,
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { formatUsPhoneDisplay, digitsOnly } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/phoneMask";
+import { phoneTelHref, stripPhoneDigits } from "@/app/lib/leonix/phoneFormat";
 import { formatUsdWhole } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
 import { googleMapsSearchUrl } from "@/app/(site)/publicar/community/shared/lib/communityContactCtas";
 import type { BienesRaicesPrivadoPreviewVm } from "@/app/clasificados/bienes-raices/preview/privado/model/bienesRaicesPrivadoPreviewVm";
@@ -56,19 +57,22 @@ function humanFactRows(detailPairs: unknown): Array<{ label: string; value: stri
   return out;
 }
 
+/** F2 fix (mirrors Rentas' F7): tel:/sms:/wa.me all require E.164 (a leading `+1` country code for
+ * a bare 10-digit US number) -- bare local digits work by accident on some devices and silently
+ * fail on others. */
 function telHref(phoneDigits: string): string | null {
-  const d = digitsOnly(phoneDigits);
-  return d.length >= 10 ? `tel:${d}` : null;
+  const href = phoneTelHref(phoneDigits);
+  return href || null;
 }
 
 function smsHref(phoneDigits: string): string | null {
-  const d = digitsOnly(phoneDigits);
-  return d.length >= 10 ? `sms:${d}` : null;
+  const d = stripPhoneDigits(phoneDigits);
+  return d ? `sms:+1${d}` : null;
 }
 
 function waHref(phoneDigits: string): string | null {
-  const d = digitsOnly(phoneDigits);
-  return d.length >= 10 ? `https://wa.me/${d}` : null;
+  const d = stripPhoneDigits(phoneDigits);
+  return d ? `https://wa.me/1${d}` : null;
 }
 
 function mailtoHref(email: string, subject: string): string | null {

@@ -14,6 +14,7 @@ import {
   digitsOnly,
   formatUsPhoneDisplay,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/phoneMask";
+import { phoneTelHref, stripPhoneDigits } from "@/app/lib/leonix/phoneFormat";
 import {
   TIPO_PROPIEDAD_OPCIONES,
   labelForSubtipo,
@@ -93,15 +94,12 @@ function buildMailto(to: string, subject: string): string | null {
 }
 
 function buildTelHref(phoneDigits: string): string | null {
-  const d = digitsOnly(phoneDigits);
-  if (d.length < 10) return null;
-  return `tel:${d}`;
+  return phoneTelHref(phoneDigits) || null;
 }
 
 function buildSmsHref(phoneDigits: string): string | null {
-  const d = digitsOnly(phoneDigits);
-  if (d.length < 10) return null;
-  return `sms:${d}`;
+  const d = stripPhoneDigits(phoneDigits);
+  return d ? `sms:+1${d}` : null;
 }
 
 function row(label: string, value: string): BienesRaicesPreviewFact | null {

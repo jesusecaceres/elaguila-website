@@ -27,6 +27,7 @@ import {
   type AgenteResPreviewLocale,
 } from "../lib/agenteResidencialPreviewFormat";
 import { digitsOnly } from "../application/utils/phoneMask";
+import { phoneTelHref } from "@/app/lib/leonix/phoneFormat";
 import {
   trackBrEmailClickGlobal,
   trackBrGoogleBusinessClickGlobal,
@@ -360,7 +361,7 @@ export function BrAgenteResContactSidebar({
               <p className="text-[12px] font-semibold leading-snug">
                 <span className="block text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/90">{p.telPersonal}</span>
                 <a
-                  href={`tel:${digitsOnly(agentePersonalRaw)}`}
+                  href={phoneTelHref(agentePersonalRaw)}
                   className="text-[#2C2416] underline-offset-2 hover:underline"
                   onClick={() => track(trackBrPhoneClickGlobal)}
                 >
@@ -372,7 +373,7 @@ export function BrAgenteResContactSidebar({
               <p className="text-[12px] font-semibold leading-snug">
                 <span className="block text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/90">{p.telOficina}</span>
                 <a
-                  href={`tel:${digitsOnly(agenteOfficeRaw)}`}
+                  href={phoneTelHref(agenteOfficeRaw)}
                   className="text-[#2C2416] underline-offset-2 hover:underline"
                   onClick={() => track(trackBrPhoneClickGlobal)}
                 >
@@ -521,7 +522,7 @@ export function BrAgenteResContactSidebar({
               {agente2PersonalOk ? (
                 <p className="text-[11px] leading-snug">
                   <span className="font-semibold text-[#5C5346]">{p.telPersonal}:</span>{" "}
-                  <a href={`tel:${digitsOnly(agente2PersonalRaw)}`} className="font-semibold text-[#2C2416] underline-offset-2 hover:underline">
+                  <a href={phoneTelHref(agente2PersonalRaw)} className="font-semibold text-[#2C2416] underline-offset-2 hover:underline">
                     {formatPreviewPhoneDisplay(agente2PersonalRaw)}
                   </a>
                 </p>
@@ -529,7 +530,7 @@ export function BrAgenteResContactSidebar({
               {agente2OfficeOk ? (
                 <p className="text-[11px] leading-snug">
                   <span className="font-semibold text-[#5C5346]">{p.telOficina}:</span>{" "}
-                  <a href={`tel:${digitsOnly(agente2OfficeRaw)}`} className="font-semibold text-[#2C2416] underline-offset-2 hover:underline">
+                  <a href={phoneTelHref(agente2OfficeRaw)} className="font-semibold text-[#2C2416] underline-offset-2 hover:underline">
                     {formatPreviewPhoneDisplay(agente2OfficeRaw)}
                   </a>
                 </p>

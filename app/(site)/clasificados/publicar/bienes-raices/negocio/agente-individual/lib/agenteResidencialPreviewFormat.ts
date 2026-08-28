@@ -55,6 +55,7 @@ import {
   formatYearBuiltDisplay,
 } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
 import { digitsOnly, formatUsPhoneDisplay } from "../application/utils/phoneMask";
+import { phoneTelHref } from "@/app/lib/leonix/phoneFormat";
 
 export function trim(s: unknown): string {
   if (s == null) return "";
@@ -770,9 +771,7 @@ function buildMailto(to: string, subject: string, body: string): string | null {
 }
 
 function buildTelHref(phoneDigits: string): string | null {
-  const d = digitsOnly(phoneDigits);
-  if (d.length < 10) return null;
-  return `tel:${d}`;
+  return phoneTelHref(phoneDigits) || null;
 }
 
 function buildWhatsappHref(phoneDigits: string, msg: string): string | null {

@@ -43,6 +43,7 @@ import {
   type AgenteResPreviewLocale,
 } from "../lib/agenteResidencialPreviewFormat";
 import { digitsOnly } from "../application/utils/phoneMask";
+import { phoneTelHref } from "@/app/lib/leonix/phoneFormat";
 import { useBrAgenteResidencialCopy } from "../application/BrAgenteResidencialLocaleContext";
 import { BrAgenteResContactSidebar, type BrAgenteResContactSidebarAnalyticsContext } from "./BrAgenteResContactSidebar";
 import { BrLeonixPreviewMiniMap } from "@/app/clasificados/publicar/bienes-raices/shared/BrLeonixPreviewMiniMap";
@@ -720,7 +721,7 @@ export function AgenteIndividualResidencialPreviewPage({
                             ) : null}
                             {digitsOnly(brokerSupportBlock.personalPhone).length >= 10 ? (
                               <a
-                                href={`tel:${digitsOnly(brokerSupportBlock.personalPhone)}`}
+                                href={phoneTelHref(brokerSupportBlock.personalPhone)}
                                 className={`mt-2 block ${typo.bodySm} font-semibold`}
                                 style={{ color: CHARCOAL }}
                               >
@@ -730,7 +731,7 @@ export function AgenteIndividualResidencialPreviewPage({
                             ) : null}
                             {digitsOnly(brokerSupportBlock.officePhone).length >= 10 ? (
                               <a
-                                href={`tel:${digitsOnly(brokerSupportBlock.officePhone)}`}
+                                href={phoneTelHref(brokerSupportBlock.officePhone)}
                                 className={`mt-1 block ${typo.bodySm} font-semibold`}
                                 style={{ color: CHARCOAL }}
                               >
