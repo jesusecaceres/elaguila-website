@@ -75,8 +75,12 @@ if (!loginAuth.includes("lookupActiveAdminRosterByEmail")) fail("login must requ
 ok("Auth boundary — roster required for email login");
 
 if (!preview.includes("Internal preview only")) fail("website preview warning missing");
-if (!gateRoot.includes("requireAdminCookie")) fail("public lock must require admin cookie");
-ok("Website preview + public lock");
+// Public Coming Soon lock has been intentionally retired (owner decision) — ComingSoonGateRoot
+// now always renders children and no longer references requireAdminCookie or the retired
+// NEXT_PUBLIC_COMING_SOON_LOCK flag. Admin route protection itself lives in middleware.ts and
+// app/admin/_lib/adminAuthBoundary.ts, both untouched by this retirement.
+if (gateRoot.includes("NEXT_PUBLIC_COMING_SOON_LOCK")) fail("public lock flag must not be reintroduced");
+ok("Website preview intact; public launch gate confirmed retired");
 
 if (packageJson.includes("@leonixmedia.com")) fail("no hardcoded owner email in package.json");
 ok("No email domain auto-admin");

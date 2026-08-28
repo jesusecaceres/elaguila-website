@@ -74,8 +74,12 @@ if (!provisioning.includes("temporaryPassword")) fail("temporary password flow m
 if (!provisioning.includes("inviteUserByEmail")) fail("invite flow missing");
 ok("Staff creator with Auth + roster + password/invite");
 
-if (!gateRoot.includes("requireAdminCookie")) fail("website preview must require admin cookie");
-ok("Website preview protected");
+// Public Coming Soon lock has been intentionally retired (owner decision) — ComingSoonGateRoot
+// now always renders children. The admin website-preview page's own protection comes from the
+// dashboard layout's auth boundary (resolveAdminDashboardAccessDenial, checked above), not from
+// this retired gate.
+if (gateRoot.includes("NEXT_PUBLIC_COMING_SOON_LOCK")) fail("public lock flag must not be reintroduced");
+ok("Public launch gate confirmed retired; website preview page auth boundary unaffected");
 
 if (packageJson.includes("@leonixmedia.com") || usersNew.includes("@leonixmedia.com")) {
   fail("owner email must not be hardcoded in client/source");
