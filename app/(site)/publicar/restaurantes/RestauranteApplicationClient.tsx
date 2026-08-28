@@ -24,6 +24,8 @@ import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlo
 import { PhoneInput } from "@/app/components/forms/PhoneInput";
 import { LanguagesInput } from "@/app/components/forms/LanguagesInput";
 import { HoursEditor } from "@/app/components/forms/HoursEditor";
+import { AddedConfirmationBadge, useAddedConfirmation } from "@/app/components/forms/AddedConfirmation";
+import { isProbablyUrl } from "@/app/clasificados/restaurantes/lib/urlNormalization";
 import {
   satisfiesRestauranteMinimumDraftForPreview,
   satisfiesRestauranteServiceModes,
@@ -223,6 +225,33 @@ export default function RestauranteApplicationClient() {
   const [serviceErr, setServiceErr] = useState(false);
   /** Pending text before user confirms custom language with Añadir. */
   const [languageOtherPending, setLanguageOtherPending] = useState("");
+
+  // Accepted-confirmation doctrine (INPUT -> ACCEPTED -> PERSISTED) — one instance per explicit
+  // Add/Accept flow in this form; `.flash()` fires only on a genuinely successful/valid add.
+  const businessTypeOtherConfirm = useAddedConfirmation();
+  const primaryCuisineOtherConfirm = useAddedConfirmation();
+  const secondaryCuisineOtherConfirm = useAddedConfirmation();
+  const additionalCuisineOtherConfirm = useAddedConfirmation();
+  const customLanguageConfirm = useAddedConfirmation();
+  const specialHoursConfirm = useAddedConfirmation();
+  /** Per-row confirmation for repeatable "additional websites" links (dynamic row count, so this
+   * is a small map + timer-ref instead of one `useAddedConfirmation()` per row). */
+  const [websiteLinkConfirmVisible, setWebsiteLinkConfirmVisible] = useState<Record<number, boolean>>({});
+  const websiteLinkConfirmTimersRef = useRef<Record<number, number>>({});
+  useEffect(() => {
+    const timers = websiteLinkConfirmTimersRef.current;
+    return () => {
+      Object.values(timers).forEach((t) => window.clearTimeout(t));
+    };
+  }, []);
+  const flashWebsiteLinkAdded = useCallback((index: number) => {
+    setWebsiteLinkConfirmVisible((prev) => ({ ...prev, [index]: true }));
+    const existing = websiteLinkConfirmTimersRef.current[index];
+    if (existing != null) window.clearTimeout(existing);
+    websiteLinkConfirmTimersRef.current[index] = window.setTimeout(() => {
+      setWebsiteLinkConfirmVisible((prev) => ({ ...prev, [index]: false }));
+    }, 2200);
+  }, []);
   /** Display names for last picked files (draft stores data URLs only). */
   const [uploadLabels, setUploadLabels] = useState<Record<string, string>>({});
   /** Coupon detail drawer state */
@@ -557,7 +586,8 @@ export default function RestauranteApplicationClient() {
     };
     setDraftPatch(patch);
     setLanguageOtherPending("");
-  }, [draft, languageOtherPending, setDraftPatch]);
+    customLanguageConfirm.flash();
+  }, [draft, languageOtherPending, setDraftPatch, customLanguageConfirm]);
 
   const removeCustomLanguageAt = useCallback(
     (index: number) => {
@@ -609,7 +639,9 @@ export default function RestauranteApplicationClient() {
     setDraftPatch({
       specialHoursEntries: [...cur, { id: newSpecialHoursEntryId(), label: "", note: "" }],
     });
-  }, [draft.specialHoursEntries, setDraftPatch]);
+    // Unconditional explicit Add (always creates a fresh, always-valid blank row) — flash right away.
+    specialHoursConfirm.flash();
+  }, [draft.specialHoursEntries, setDraftPatch, specialHoursConfirm]);
 
   const updateSpecialHoursEntry = useCallback(
     (id: string, patch: Partial<Pick<RestauranteSpecialHoursEntry, "label" | "note">>) => {
@@ -1065,6 +1097,14 @@ export default function RestauranteApplicationClient() {
                   placeholder={fc.sectionA.businessTypeOtherPlaceholder}
                   value={draft.businessTypeCustom ?? ""}
                   onChange={(e) => setDraftPatch({ businessTypeCustom: e.target.value || undefined })}
+                  onBlur={(e) => {
+                    if (e.target.value.trim()) businessTypeOtherConfirm.flash();
+                  }}
+                />
+                <AddedConfirmationBadge
+                  visible={businessTypeOtherConfirm.visible}
+                  label={lang === "en" ? "Added" : "Añadido"}
+                  className="mt-1.5"
                 />
               </div>
             ) : null}
@@ -1124,6 +1164,14 @@ export default function RestauranteApplicationClient() {
                   placeholder={fc.sectionA.primaryCuisineOtherPlaceholder}
                   value={draft.primaryCuisineCustom ?? ""}
                   onChange={(e) => setDraftPatch({ primaryCuisineCustom: e.target.value || undefined })}
+                  onBlur={(e) => {
+                    if (e.target.value.trim()) primaryCuisineOtherConfirm.flash();
+                  }}
+                />
+                <AddedConfirmationBadge
+                  visible={primaryCuisineOtherConfirm.visible}
+                  label={lang === "en" ? "Added" : "Añadido"}
+                  className="mt-1.5"
                 />
               </div>
             ) : null}
@@ -1137,6 +1185,14 @@ export default function RestauranteApplicationClient() {
                   placeholder={fc.sectionA.secondaryCuisineOtherPlaceholder}
                   value={draft.secondaryCuisineCustom ?? ""}
                   onChange={(e) => setDraftPatch({ secondaryCuisineCustom: e.target.value || undefined })}
+                  onBlur={(e) => {
+                    if (e.target.value.trim()) secondaryCuisineOtherConfirm.flash();
+                  }}
+                />
+                <AddedConfirmationBadge
+                  visible={secondaryCuisineOtherConfirm.visible}
+                  label={lang === "en" ? "Added" : "Añadido"}
+                  className="mt-1.5"
                 />
               </div>
             ) : null}
@@ -1184,6 +1240,14 @@ export default function RestauranteApplicationClient() {
                     placeholder={fc.sectionA.additionalCuisineOtherPlaceholder}
                     value={draft.additionalCuisineOtherCustom ?? ""}
                     onChange={(e) => setDraftPatch({ additionalCuisineOtherCustom: e.target.value || undefined })}
+                    onBlur={(e) => {
+                      if (e.target.value.trim()) additionalCuisineOtherConfirm.flash();
+                    }}
+                  />
+                  <AddedConfirmationBadge
+                    visible={additionalCuisineOtherConfirm.visible}
+                    label={lang === "en" ? "Added" : "Añadido"}
+                    className="mt-1.5"
                   />
                 </div>
               ) : null}
@@ -1251,6 +1315,11 @@ export default function RestauranteApplicationClient() {
                   add: fc.common.add,
                   removeAria: (value) => `${fc.common.removeLanguageAria} ${value}`,
                 }}
+              />
+              <AddedConfirmationBadge
+                visible={customLanguageConfirm.visible}
+                label={lang === "en" ? "Added" : "Añadido"}
+                className="mt-2"
               />
             </div>
           </div>
@@ -1439,6 +1508,11 @@ export default function RestauranteApplicationClient() {
               removeAriaLabel: () => fc.sectionC.specialHoursRemoveAriaLabel,
             }}
           />
+          <AddedConfirmationBadge
+            visible={specialHoursConfirm.visible}
+            label={lang === "en" ? "Added" : "Añadido"}
+            className="mt-2"
+          />
         </section>
         ) : null}
 
@@ -1488,6 +1562,10 @@ export default function RestauranteApplicationClient() {
                           placeholder="https://…"
                           value={row.url}
                           onChange={(e) => updateAdditionalWebsiteAt(index, { url: e.target.value })}
+                          onBlur={(e) => {
+                            const v = e.target.value.trim();
+                            if (v && isProbablyUrl(v)) flashWebsiteLinkAdded(index);
+                          }}
                         />
                         <button
                           type="button"
@@ -1496,6 +1574,10 @@ export default function RestauranteApplicationClient() {
                         >
                           {lang === "en" ? "Remove" : "Quitar"}
                         </button>
+                        <AddedConfirmationBadge
+                          visible={Boolean(websiteLinkConfirmVisible[index])}
+                          label={lang === "en" ? "Link added" : "Enlace añadido"}
+                        />
                       </div>
                     ))}
                   </div>

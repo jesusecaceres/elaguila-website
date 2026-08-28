@@ -1,4 +1,8 @@
-import { sanitizeRestauranteAmenities, hasAnyRestauranteAmenities } from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
+import {
+  sanitizeRestauranteAmenities,
+  hasAnyRestauranteAmenities,
+  sanitizeCustomRestauranteAmenitiesByGroup,
+} from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
 import {
   migrateRestauranteServiceModesAndFlags,
   normalizeRestauranteCustomLanguages,
@@ -142,6 +146,7 @@ export function createEmptyRestauranteDraft(): RestauranteListingDraft {
     testimonialSnippet: undefined,
     aiSummaryEnabled: false,
     restaurantAmenities: undefined,
+    customRestaurantAmenitiesByGroup: {},
     coupons: [],
     couponFlyer: undefined,
     couponMoreOffers: undefined,
@@ -242,6 +247,16 @@ export function mergeRestauranteDraft(loaded: unknown): RestauranteListingDraft 
   const rawAmenities = (draft as Record<string, unknown>).restaurantAmenities;
   merged.restaurantAmenities = sanitizeRestauranteAmenities(rawAmenities);
   if (!hasAnyRestauranteAmenities(merged.restaurantAmenities)) merged.restaurantAmenities = undefined;
+
+  // Non-destructive: existing listings/drafts predating this field simply have no
+  // `customRestaurantAmenitiesByGroup` key — sanitize defaults every group to `[]` so the form
+  // and shell mapper never see `undefined` and older drafts hydrate fine with it empty.
+  const rawCustomAmenities = (draft as Record<string, unknown>).customRestaurantAmenitiesByGroup;
+  merged.customRestaurantAmenitiesByGroup = sanitizeCustomRestauranteAmenitiesByGroup(
+    rawCustomAmenities && typeof rawCustomAmenities === "object"
+      ? (rawCustomAmenities as Record<string, unknown>)
+      : undefined,
+  );
 
   if (draft.movingVendorStack && typeof draft.movingVendorStack === "object") {
     merged.movingVendorStack = { ...(base.movingVendorStack ?? {}), ...(draft.movingVendorStack as object) };
