@@ -329,7 +329,7 @@ const COPY = {
     aiReviewCompleteTitle: "✓ Revisión completa",
     aiReviewCompleteBody: "Todos los productos de este volante fueron revisados.",
     aiReviewCompletePagesCount: "{completed} de {total} páginas completas",
-    aiReviewContinueToNextStep: "Continuar al siguiente paso →",
+    aiReviewContinueToNextStep: "Continuar a Extras →",
     aiScanSlowWait:
       "Este volante tiene varias páginas y el análisis está tomando más tiempo de lo normal. Puedes seguir esperando; los resultados aparecerán automáticamente.",
     aiScanPageOf: "Página {current} de {total}",
@@ -807,7 +807,7 @@ const COPY = {
     aiReviewCompleteTitle: "✓ Review complete",
     aiReviewCompleteBody: "All products in this flyer have been reviewed.",
     aiReviewCompletePagesCount: "{completed} of {total} pages complete",
-    aiReviewContinueToNextStep: "Continue to the next step →",
+    aiReviewContinueToNextStep: "Continue to Extras →",
     aiScanSlowWait:
       "This flyer has several pages and the analysis is taking longer than usual. You can keep waiting; results will appear automatically.",
     aiScanPageOf: "Page {current} of {total}",

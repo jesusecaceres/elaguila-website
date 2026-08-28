@@ -312,13 +312,9 @@ export default function OfertasLocalesApplicationClient() {
     scanCompletedPages: null,
   });
   const [step5UploadEditing, setStep5UploadEditing] = useState(false);
-  const [step5ManualCheckpoint, setStep5ManualCheckpoint] = useState<
-    "upload" | "scan" | "review" | null
-  >(null);
-  // Ephemeral only (by design — see Gate D ticket's VIEW-STATE PERSISTENCE section):
-  // a hard refresh always returns to "files"; all review decisions stay DB-backed
-  // and are recovered independently of this toggle.
-  const [step5ReviewView, setStep5ReviewView] = useState<"files" | "products">("files");
+  const [step5ManualCheckpoint, setStep5ManualCheckpoint] = useState<"upload" | "scan" | null>(
+    null
+  );
   const reviewWorkbenchRef = useRef<HTMLElement>(null);
   // Consolidated to 3 confirmations (Gate F ⚠️42) — businessInfo + filesDates
   // merged into one, aiItems stays required only for AI-included packages.
@@ -332,11 +328,11 @@ export default function OfertasLocalesApplicationClient() {
 
   const effectiveOfertaLocalId = submitSuccess?.id ?? aiScanRecordId;
   const aiIncludedInPackage = isOfertaLocalAiIncludedInPackage(draft);
-  const showFullWidthReviewDesk =
-    step === 5 &&
-    aiIncludedInPackage &&
-    Boolean(effectiveOfertaLocalId?.trim()) &&
-    step5ReviewView === "products";
+  // LIVE HUMAN QA CORRECTION (Gate I): product review is now a real wizard
+  // step (Step 6), not a sub-view of Step 5 — gating on the step number
+  // itself is what makes the rail, the footer, and deep-linking all agree.
+  const showStep6ReviewDesk =
+    step === 6 && aiIncludedInPackage && Boolean(effectiveOfertaLocalId?.trim());
   const hasExistingAiScan =
     aiIncludedInPackage &&
     Boolean(lastScanJobId || aiReviewGate.totalItems > 0 || aiReviewGate.activeScanJobId);
@@ -350,7 +346,16 @@ export default function OfertasLocalesApplicationClient() {
       return;
     }
     const storedStep = loadOfertaLocalWizardStep(draft.applicationSessionId);
-    if (storedStep) setStep(clampWizardStep(storedStep));
+    if (storedStep) {
+      // LIVE HUMAN QA CORRECTION (Gate I): a stored step of 6 or 7 may have
+      // been saved under the previous 7-step wizard (6=Extras, 7=Revisar),
+      // which no longer matches this 8-step model (6=Revisar productos,
+      // 7=Extras, 8=Revisar). Bouncing to Step 5 is always safe — it never
+      // mis-renders a screen, and Step 5's own completion summary immediately
+      // re-offers the correct next step from live, DB-backed review state.
+      const safeStoredStep = storedStep === 6 || storedStep === 7 ? 5 : storedStep;
+      setStep(clampWizardStep(safeStoredStep));
+    }
   }, [draft.applicationSessionId, hasLoadedDraft, requestedInitialStep]);
 
   useEffect(() => {
@@ -433,9 +438,7 @@ export default function OfertasLocalesApplicationClient() {
   useEffect(() => {
     if (!hasLoadedDraft) return;
     if (requestedReview === "1" || requestedReview === "true") {
-      setStep(5);
-      setStep5ManualCheckpoint("review");
-      setStep5ReviewView("products");
+      setStep(6);
       window.setTimeout(() => {
         reviewWorkbenchRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
         reviewWorkbenchRef.current?.focus();
@@ -529,10 +532,10 @@ export default function OfertasLocalesApplicationClient() {
 
   // LIVE QA CORRECTION: aiReviewGate was previously only ever populated by
   // OfertasLocalesAiItemReviewPanel's own effect, which only runs while the
-  // dedicated review workspace is mounted (step5ReviewView === "products").
-  // On a cold hard refresh, step5ReviewView defaults back to "files" (by
-  // design — Gate D), so the workspace never mounts, aiReviewGate stays at
-  // its zeroed initial value, and step5ReviewComplete falsely reads as
+  // dedicated review workspace is mounted (Step 6, since Gate I). On a cold
+  // hard refresh, the wizard doesn't necessarily land on Step 6, so the
+  // workspace never mounts, aiReviewGate stays at its zeroed initial value,
+  // and step5ReviewComplete falsely reads as
   // incomplete even when every item was already approved. This reconstructs
   // the same gate state directly from the existing certified read path
   // (fetchOfertaLocalReviewItems — no new API) so the Files view is correct
@@ -708,18 +711,12 @@ export default function OfertasLocalesApplicationClient() {
       !step5UploadEditing &&
       !step5ScanComplete &&
       step5ActiveCheckpoint === "scan");
-  const step5ReviewCardOpen =
-    step5ManualCheckpoint === "review" ||
-    (step5ScanRequired &&
-      step5ScanComplete &&
-      !step5UploadEditing &&
-      !step5ReviewComplete &&
-      step5ActiveCheckpoint === "review");
 
   const openProductReviewWorkspace = useCallback(() => {
-    // View-state only — never re-triggers a scan or touches persisted review data.
-    setStep5ReviewView("products");
+    // Real wizard-step navigation (Gate I) — never re-triggers a scan or
+    // touches persisted review data; only moves the wizard to Step 6.
     setStep5ManualCheckpoint(null);
+    setStep(6);
     window.setTimeout(() => {
       reviewWorkbenchRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       reviewWorkbenchRef.current?.focus();
@@ -728,9 +725,9 @@ export default function OfertasLocalesApplicationClient() {
 
   const handleBackToFiles = useCallback(() => {
     // Draft, uploaded assets, scan results, and review decisions are all
-    // DB/local-draft persisted already — this only flips which sub-screen
-    // of Step 5 is visible.
-    setStep5ReviewView("files");
+    // DB/local-draft persisted already — this only moves the wizard back to
+    // Step 5 (Gate I: Step 6 is now a real step, not a Step 5 sub-view).
+    setStep(5);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
@@ -738,7 +735,6 @@ export default function OfertasLocalesApplicationClient() {
     if (step !== 5) {
       setStep5UploadEditing(false);
       setStep5ManualCheckpoint(null);
-      setStep5ReviewView("files");
     }
   }, [step]);
 
@@ -847,17 +843,11 @@ export default function OfertasLocalesApplicationClient() {
   const goNext = useCallback(() => {
     if (step === 5) {
       if (!step5UploadComplete) return;
-      if (aiIncludedInPackage && (!step5ScanComplete || !step5ReviewComplete)) return;
+      if (aiIncludedInPackage && !step5ScanComplete) return;
     }
     setStep((s) => clampWizardStep(s + 1));
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [
-    aiIncludedInPackage,
-    step,
-    step5ReviewComplete,
-    step5ScanComplete,
-    step5UploadComplete,
-  ]);
+  }, [aiIncludedInPackage, step, step5ScanComplete, step5UploadComplete]);
 
   const step5UploadBlocksContinue = useMemo(() => {
     if (step !== 5) return false;
@@ -867,23 +857,20 @@ export default function OfertasLocalesApplicationClient() {
   const step5HasBlockingWork = useMemo(() => {
     if (!step5UploadComplete) return true;
     if (!aiIncludedInPackage) return false;
-    return !step5ScanComplete || !step5ReviewComplete;
-  }, [
-    aiIncludedInPackage,
-    step5ReviewComplete,
-    step5ScanComplete,
-    step5UploadComplete,
-  ]);
+    return !step5ScanComplete;
+  }, [aiIncludedInPackage, step5ScanComplete, step5UploadComplete]);
 
   const step5BlocksContinue = useMemo(() => {
     if (step !== 5) return false;
     return step5HasBlockingWork;
   }, [step, step5HasBlockingWork]);
 
-  const step5AiReviewBlocksContinue =
-    step === 5 && aiIncludedInPackage && step5ScanComplete && !step5ReviewComplete;
-
-  const step5AiReviewBlockMessage = c.step5CheckpointLockedNext;
+  // LIVE HUMAN QA CORRECTION (Gate I): Step 5 no longer blocks generic
+  // continuation on review completion — review lives entirely on its own
+  // Step 6 now, so the false "review incomplete" blocker this used to gate
+  // can no longer exist.
+  const hideGenericFooter =
+    step === 6 || (step === 5 && aiIncludedInPackage && step5ScanComplete);
 
   const step5PendingBySectionRef = useRef<Map<string, number>>(new Map());
 
@@ -909,9 +896,9 @@ export default function OfertasLocalesApplicationClient() {
     intent: "continue",
   });
 
-  const goToStep6 = useCallback(() => {
+  const goToStep7Extras = useCallback(() => {
     setStep5ManualCheckpoint(null);
-    setStep(6);
+    setStep(7);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
@@ -926,7 +913,7 @@ export default function OfertasLocalesApplicationClient() {
   }
 
   function renderStepHints() {
-    if (step === 7 || stepHints.length === 0) return null;
+    if (step === 8 || stepHints.length === 0) return null;
     return (
       <ul className={cx(HINT_BOX, "mb-4 space-y-1")}>
         {stepHints.map((hint) => (
@@ -1390,9 +1377,6 @@ export default function OfertasLocalesApplicationClient() {
         const scanLockedMessage = isCouponsLane
           ? c.step5CheckpointLockedScanCoupon
           : c.step5CheckpointLockedScan;
-        const reviewLockedMessage = isCouponsLane
-          ? c.step5CheckpointLockedReviewCoupon
-          : c.step5CheckpointLockedReview;
 
         const assetUploadSections = (
           <>
@@ -1446,49 +1430,15 @@ export default function OfertasLocalesApplicationClient() {
 
         return (
           <div className="space-y-3">
-            {step5ReviewView === "products" ? (
-              <div className="space-y-1.5 rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/50 px-4 py-4">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-[#7A1E2C]/70">
-                  {c.step5ReviewScreenBreadcrumb}
-                </p>
-                <h3 className="text-lg font-semibold text-[#1E1814]">{c.step5ReviewScreenTitle}</h3>
-                <p className="text-sm text-[#1E1814]/70">{c.step5ReviewScreenSubtitle}</p>
-                {aiReviewGate.totalItems > 0 ? (
-                  <p className="text-xs font-medium text-[#7A1E2C]">
-                    {formatOfertaLocalCopyTemplate(c.step5ReviewScreenSummary, {
-                      count: aiReviewGate.totalItems,
-                      pages: aiReviewGate.scanTotalPages ?? 0,
-                    })}
-                  </p>
-                ) : null}
-                <p className="text-xs text-[#1E1814]/60">{c.step5ReviewWorkspaceOpenHint}</p>
-              </div>
+            {!primaryFormat ? (
+              <p className="text-sm text-[#1E1814]/55">
+                {lang === "en"
+                  ? "Choose your primary format in Step 1 first."
+                  : "Elige el formato principal en el Paso 1."}
+              </p>
             ) : (
               <>
-                {step5ReviewComplete && step5UploadComplete ? (
-                  <div className="rounded-xl border border-emerald-300/80 bg-emerald-50 px-4 py-4">
-                    <p className="text-base font-semibold text-emerald-950">{c.step5CheckpointReviewComplete}</p>
-                    {aiReviewGate.totalItems > 0 ? (
-                      <p className="mt-1 text-sm text-emerald-900">
-                        {formatOfertaLocalCopyTemplate(c.step5ReviewCompleteCount, {
-                          count: aiReviewGate.totalItems,
-                        })}
-                      </p>
-                    ) : null}
-                    <button type="button" className={`${BTN_PRIMARY} mt-4 min-h-11`} onClick={goToStep6}>
-                      {c.step5ContinueToNextStep}
-                    </button>
-                  </div>
-                ) : null}
-                {!primaryFormat ? (
-                  <p className="text-sm text-[#1E1814]/55">
-                    {lang === "en"
-                      ? "Choose your primary format in Step 1 first."
-                      : "Elige el formato principal en el Paso 1."}
-                  </p>
-                ) : (
-                  <>
-                    <Step5CheckpointCard
+                <Step5CheckpointCard
                       title={uploadCheckpointTitle}
                       isOpen={step5UploadCardOpen}
                       isLocked={false}
@@ -1576,7 +1526,19 @@ export default function OfertasLocalesApplicationClient() {
                                     count: aiReviewGate.totalItems,
                                   })}`
                                 : null}
+                              {aiReviewGate.scanTotalPages
+                                ? ` · ${formatOfertaLocalCopyTemplate(c.step5ScanPagesProcessed, {
+                                    count: aiReviewGate.scanTotalPages,
+                                  })}`
+                                : null}
                             </>
+                          ) : undefined
+                        }
+                        collapsedActions={
+                          step5ScanComplete ? (
+                            <button type="button" className={BTN_PRIMARY} onClick={openProductReviewWorkspace}>
+                              {step5ReviewOpenCtaLabel}
+                            </button>
                           ) : undefined
                         }
                         onToggle={() => {
@@ -1602,109 +1564,41 @@ export default function OfertasLocalesApplicationClient() {
                         />
                       </Step5CheckpointCard>
                     ) : null}
-
-                    {step5ScanRequired ? (
-                      <Step5CheckpointCard
-                        title={c.step5CheckpointReviewTitle}
-                        isOpen={step5ReviewCardOpen}
-                        isLocked={!step5ScanComplete}
-                        isComplete={step5ReviewComplete}
-                        lockMessage={!step5ScanComplete ? reviewLockedMessage : undefined}
-                        summary={
-                          step5ReviewComplete
-                            ? c.step5CheckpointReviewComplete
-                            : step5ScanComplete
-                              ? (
-                                <>
-                                  {c.step5ScanCompleteCheckTitle}
-                                  {aiReviewGate.totalItems > 0
-                                    ? ` · ${formatOfertaLocalCopyTemplate(c.step5CheckpointProductsFound, {
-                                        count: aiReviewGate.totalItems,
-                                      })}`
-                                    : ""}
-                                  {aiReviewGate.scanTotalPages
-                                    ? ` · ${formatOfertaLocalCopyTemplate(c.step5ScanPagesProcessed, {
-                                        count: aiReviewGate.scanTotalPages,
-                                      })}`
-                                    : ""}
-                                </>
-                              )
-                              : undefined
-                        }
-                        collapsedActions={
-                          step5ScanComplete ? (
-                            <button type="button" className={BTN_PRIMARY} onClick={openProductReviewWorkspace}>
-                              {step5ReviewOpenCtaLabel}
-                            </button>
-                          ) : undefined
-                        }
-                        onToggle={() => {
-                          if (!step5ScanComplete) return;
-                          setStep5ManualCheckpoint(step5ReviewCardOpen ? null : "review");
-                        }}
-                      >
-                        <div className="space-y-3">
-                          {step5ReviewComplete ? (
-                            <>
-                              <p className="text-sm font-medium text-emerald-900">{c.step5CheckpointReviewComplete}</p>
-                              <button type="button" className={BTN_PRIMARY} onClick={openProductReviewWorkspace}>
-                                {c.step5ViewReviewCta}
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <p className="text-sm font-semibold text-emerald-900">{c.step5ScanCompleteCheckTitle}</p>
-                              {aiReviewGate.totalItems > 0 ? (
-                                <p className="text-xs text-[#1E1814]/70">
-                                  {formatOfertaLocalCopyTemplate(c.step5CheckpointProductsFound, {
-                                    count: aiReviewGate.totalItems,
-                                  })}
-                                </p>
-                              ) : null}
-                              {aiReviewGate.scanTotalPages ? (
-                                <p className="text-xs text-[#1E1814]/70">
-                                  {formatOfertaLocalCopyTemplate(c.step5ScanPagesProcessed, {
-                                    count: aiReviewGate.scanTotalPages,
-                                  })}
-                                </p>
-                              ) : null}
-                              <button type="button" className={BTN_PRIMARY} onClick={openProductReviewWorkspace}>
-                                {step5ReviewOpenCtaLabel}
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </Step5CheckpointCard>
-                    ) : null}
-
-                    {step5AiReviewBlocksContinue ? (
-                      <p className={ERROR_BOX}>{step5AiReviewBlockMessage}</p>
-                    ) : null}
                   </>
                 )}
-              </>
-            )}
 
-            {step5ReviewView === "products" ? null : (
-              <div className="rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/50 px-4 py-3">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-[#1E1814]/45">
-                  {c.startOverNeedQuestion}
-                </p>
-                <p className="mt-1 text-xs leading-relaxed text-[#1E1814]/55">{c.startOverDeviceWarning}</p>
-                <button
-                  type="button"
-                  className="mt-3 min-h-11 rounded-xl border border-[#D4C4A8] bg-white px-3 py-2 text-xs font-medium text-[#1E1814]/70 hover:border-red-300 hover:text-red-800"
-                  onClick={handleStartFresh}
-                >
-                  {c.startOverDeleteCta}
-                </button>
-              </div>
-            )}
+            <div className="rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/50 px-4 py-3">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-[#1E1814]/45">
+                {c.startOverNeedQuestion}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-[#1E1814]/55">{c.startOverDeviceWarning}</p>
+              <button
+                type="button"
+                className="mt-3 min-h-11 rounded-xl border border-[#D4C4A8] bg-white px-3 py-2 text-xs font-medium text-[#1E1814]/70 hover:border-red-300 hover:text-red-800"
+                onClick={handleStartFresh}
+              >
+                {c.startOverDeleteCta}
+              </button>
+            </div>
           </div>
         );
       }
 
       case 6:
+        // The wizard shell above already renders "Paso 6 de 8 / Revisar
+        // productos" — this branch stays empty for the normal case so the
+        // workbench (rendered below, outside this card) is what the user
+        // sees immediately, with no redundant intro card repeating it.
+        return aiIncludedInPackage ? null : (
+          <div className="rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0]/90 px-4 py-4">
+            <p className="text-sm text-[#1E1814]/70">{c.step5ReviewScreenSubtitle}</p>
+            <button type="button" className={`${BTN_PRIMARY} mt-4 min-h-11`} onClick={goToStep7Extras}>
+              {c.aiReviewContinueToNextStep}
+            </button>
+          </div>
+        );
+
+      case 7:
         return (
           <div className="space-y-6">
             <div className="space-y-4 rounded-xl border border-[#D4C4A8]/50 bg-white p-4">
@@ -1890,7 +1784,7 @@ export default function OfertasLocalesApplicationClient() {
           </div>
         );
 
-      case 7:
+      case 8:
         return (
           <div className="space-y-6">
             <div className="rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0]/90 px-4 py-4">
@@ -1930,10 +1824,7 @@ export default function OfertasLocalesApplicationClient() {
                   <button
                     type="button"
                     className={BTN_SECONDARY}
-                    onClick={() => {
-                      setStep(5);
-                      setStep5ReviewView("products");
-                    }}
+                    onClick={() => setStep(6)}
                   >
                     {c.step7ContinueReviewing}
                   </button>
@@ -2109,7 +2000,7 @@ export default function OfertasLocalesApplicationClient() {
                 {renderStepContent()}
               </div>
 
-              {step === 5 && step5ReviewView === "products" ? null : step < 7 ? (
+              {hideGenericFooter ? null : step < 8 ? (
                 <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-[#D4C4A8]/50 pt-6">
                   <button
                     type="button"
@@ -2148,7 +2039,7 @@ export default function OfertasLocalesApplicationClient() {
         </span>
       </div>
 
-      {showFullWidthReviewDesk ? (
+      {showStep6ReviewDesk ? (
         <section
           ref={reviewWorkbenchRef}
           tabIndex={-1}
@@ -2156,13 +2047,19 @@ export default function OfertasLocalesApplicationClient() {
           className="border-t border-[#D4C4A8]/70 bg-[#FAF6F0] px-4 py-8 sm:px-6 lg:py-10 focus:outline-none"
         >
           <div className="mx-auto w-full max-w-[min(100vw-2rem,1600px)]">
-            <button
-              type="button"
-              className={`${BTN_SECONDARY} mb-4`}
-              onClick={handleBackToFiles}
-            >
-              {c.step5BackToFiles}
-            </button>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <button type="button" className={BTN_SECONDARY} onClick={handleBackToFiles}>
+                {c.step5BackToFiles}
+              </button>
+              {aiReviewGate.totalItems > 0 ? (
+                <p className="text-xs font-medium text-[#7A1E2C]">
+                  {formatOfertaLocalCopyTemplate(c.step5ReviewScreenSummary, {
+                    count: aiReviewGate.totalItems,
+                    pages: aiReviewGate.scanTotalPages ?? 0,
+                  })}
+                </p>
+              ) : null}
+            </div>
             <OfertasLocalesAiScanReviewWorkspace
               lang={lang}
               draft={draft}
@@ -2172,7 +2069,7 @@ export default function OfertasLocalesApplicationClient() {
               scanRefreshToken={scanRefreshToken}
               reviewMode={isCouponsLane ? "coupon" : "weekly"}
               onReviewGateChange={handleAiReviewGateChange}
-              onContinueToNextStep={goToStep6}
+              onContinueToNextStep={goToStep7Extras}
             />
           </div>
         </section>

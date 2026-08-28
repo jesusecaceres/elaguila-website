@@ -233,3 +233,60 @@ Before merge/deploy, a human should verify live, on staging or prod-preview:
 5. **New regression coverage.** `scripts/ofertas-locales-gate-h-dedicated-review-hard-refresh-regression-audit.ts` (15 cases, A–O) — reconstruction runs independent of `step5ReviewView`, dedicated screen hides the Step 5 checklist/footer, completion routes directly to Step 6, all three CTA states (Revisar productos / Continuar revisión / Ver revisión) derive correctly, 127 review decisions are never written to by this client (read-only reconstruction), no scan triggered, no new API, no scanner-protected path touched.
 
 **Human visual production QA of this specific fix is still PENDING** and must occur on a fresh deployment before any `LIVE PRODUCTION QA SIGN-OFF` section is added to this document.
+
+## 18. LIVE HUMAN QA — WIZARD STEP ARCHITECTURE CORRECTION
+
+**Status: NOT a final sign-off.** This section documents a second, deeper correction on top of section 17, made directly from live human QA of the deployed Gate H build, still on `integration/ofertas-locales-2026-07`. **Human visual production QA of this fix has not yet occurred.**
+
+1. **Gate H's honest limitation.** Gate H fixed the cold-refresh reconstruction bug and gave product review a dedicated-looking screen, but kept that screen as a `step5ReviewView` sub-view of Step 5 — a deliberate risk-reduction compromise to avoid renumbering the wizard. Human QA on production proved the UX cost of that compromise too high: while a user reviewed 127 products, the wizard rail still read "5 Archivos," and Step 5 exposed two competing progression paths (a top "Continuar al siguiente paso →" box plus the generic wizard "Siguiente" button), neither of which matched what the user was actually doing.
+
+2. **New QA items.**
+   - ⚠️55 — Product review is now a **real, numbered wizard step**, not a Step 5 sub-view.
+   - ⚠️56 — Step 5's competing/duplicate progression CTAs are removed; Step 5 owns only upload, scan, and a single scan-completion summary with one primary CTA.
+   - ⚠️57 — The product-review step owns its own page-by-page progression and its own continuation into Extras; the generic wizard footer is hidden while it's open.
+
+3. **Wizard renumbered from 7 to 8 steps — deliberately, this time.** The prior instruction to avoid renumbering was itself a risk-reduction compromise; human QA has overridden it.
+   | # | ES | EN |
+   |---|----|----|
+   | 1 | Oferta | Offer |
+   | 2 | Negocio | Business |
+   | 3 | Detalles | Details |
+   | 4 | Ubicación | Location |
+   | 5 | Archivos | Files |
+   | 6 | **Revisar productos** (new) | **Review products** (new) |
+   | 7 | Extras (was 6) | Extras (was 6) |
+   | 8 | Revisar (was 7) | Review (was 7) |
+
+4. **Implementation.**
+   - `ofertasLocalesWizardSteps.ts`: `OFERTAS_LOCALES_WIZARD_STEP_COUNT` → 8, `OfertasLocalesWizardStepId` → `1–8`, a new step-6 entry inserted, old steps 6/7 renumbered to 7/8, `clampWizardStep` and the hints tail-check updated to the new max.
+   - `OfertasLocalesApplicationClient.tsx`: `step5ReviewView` state removed entirely. Step 5's `case 5` now renders only the upload checkpoint, the scan checkpoint, and — once scan is complete — a single completion summary (`✓ Escaneo completado` / product count / page count) with one primary CTA (`Revisar productos →` / `Continuar revisión →` / `Ver revisión →`, unchanged three-state derivation) that calls `setStep(6)`. The old review checkpoint card and the old top "Revisión completa" box are both removed — review no longer has a presence on Step 5 beyond that single CTA. A new `case 6` renders the dedicated review-screen header; the existing full-bleed section below the wizard shell (unchanged `OfertasLocalesAiScanReviewWorkspace`, unchanged two-column grid) is now gated on `step === 6` (`showStep6ReviewDesk`) instead of the removed sub-view toggle. `goToStep6` is renamed `goToStep7Extras` and now targets Step 7. The generic wizard Back/Next footer is hidden (`hideGenericFooter`) whenever Step 6 is open, or whenever Step 5 has completed its scan — eliminating the competing-CTA problem structurally rather than just visually.
+   - **No new component, route, API, or DB change.** `OfertasLocalesAiScanReviewWorkspace` is reused byte-for-byte; `fetchOfertaLocalReviewItems` (Gate H's reconstruction effect) is untouched and still runs independent of which step the wizard is on.
+   - **Old stored step compatibility.** A stored wizard step of `6` or `7` (meaningful under the previous 7-step numbering) is remapped to `5` on load, since Step 5 is always a safe landing spot regardless of which scheme wrote it — it never mis-renders a screen, and its own completion CTA immediately re-offers the correct next step from live, DB-backed review state. No draft data, asset, or review status is touched by this mapping.
+
+5. **New regression coverage.** `scripts/ofertas-locales-gate-i-wizard-step-promotion-regression-audit.ts` (19 cases, A–S) — 8-step count, correct step identities, Step 5 never renders the review workspace, Step 5's CTA advances to Step 6, Step 6 reuses the existing workspace and rail-identifies as "Revisar productos," Step 6 completion advances directly to Step 7, Gate C's green CTA is intact, the completed-review state survives a hard refresh independent of step, no scan/API/DB side effects, old stored steps are safely remapped, and Step 8 preserves Gate F's Preview behavior exactly.
+   - Gates D, E, F, G, H, and the standalone `ofertas-locales-wizard-step-navigation-regression-audit.ts` were re-verified against this change; the small number of assertions that literally encoded the now-superseded `step5ReviewView` mechanism (Gate D Cases A/C/R, Gate E Case N, Gate F Case U, Gate G Case D, Gate H Cases A/B/D/E/J, Gate C Case B's CTA copy) were updated to assert the equivalent guarantee against the new Step 6 architecture — the underlying protections (two-column layout, reopening approved items, no scan-on-open, no new API, cold-refresh reconstruction, scanner-protected paths untouched) are unchanged and still independently verified. All other gates ran unmodified and passed.
+
+**Human visual production QA of this wizard-renumbering fix is still PENDING** and must occur on a fresh deployment before any `LIVE PRODUCTION QA SIGN-OFF` section is added to this document.
+
+## 19. LIVE HUMAN QA — FINAL REVIEW WORKBENCH SIMPLIFICATION
+
+**Status: NOT a final sign-off.** Human QA of Gate I's real Step 6 (still on the production deployment built from `45c19d01`) found two remaining layers of clutter left over from the Gate H/I transition, even though Step 6 was by then a real wizard step. **Human visual QA of this fix has not yet occurred.**
+
+1. **Finding.** Step 5 showed its scan-completion summary twice — once in a separate green box floating above the checklist, and again (implicitly) in the already-collapsed scan checkpoint card's own summary line. Step 6 opened on a redundant intro card (breadcrumb, title, subtitle, count, "the review area is open below" hint) that only repeated what the wizard's own step header/rail already say, before the actual workbench appeared beneath it — the opposite of "enter Step 6 and immediately see the actual working interface."
+
+2. **New QA items.**
+   - ⚠️58 — Step 6 is exclusively flyer + product audit forms (verified; it already reused `OfertasLocalesAiScanReviewWorkspace` untouched, no upload/scan/Extras/membership fields ever leaked in).
+   - ⚠️59 — Step 6's redundant intro/checkpoint card is removed; the workbench begins immediately.
+   - ⚠️60 — Step 5 is reduced to exactly upload + AI analysis + a single review-progression CTA.
+   - ⚠️61 — Each completed review page surfaces the existing green `Siguiente página →` CTA (Gate C, unchanged).
+   - ⚠️62 — Final page completion surfaces the existing green `Continuar a Extras →` CTA (Gate C/I, unchanged) that opens Step 7 directly.
+
+3. **Implementation.** Both changes are removals, not new machinery:
+   - Step 5's `case 5`: the standalone green completion box (title/count/pages/CTA) is deleted. The scan checkpoint card's `summary` now also shows pages processed, and its `collapsedActions` now carries the one primary CTA (`step5ReviewOpenCtaLabel` → `openProductReviewWorkspace`) — so Step 5 has exactly one review-transition control, living inside the card it summarizes, not floating above it.
+   - Step 6's `case 6`: the breadcrumb/title/subtitle/count/hint card is deleted; the branch now returns `null` for the normal (AI-included) case, so nothing renders inside the constrained wizard card and the existing full-bleed workspace section below is what the user sees. That section's "← Volver a Archivos" button row now also carries the small "127 productos · 8 páginas" supporting line, so the count isn't lost, just relocated next to the actual workbench instead of sitting in its own card above it.
+   - No change to `OfertasLocalesAiScanReviewWorkspace`, `OfertasLocalesAiItemReviewPanel`, or any scanner-protected path — the page-by-page green CTA hierarchy (⚠️61/⚠️62) was already correct from Gates C/F/I and needed no rebuild.
+
+4. **New regression coverage.** `scripts/ofertas-locales-gate-j-focused-review-ux-audit.ts` (30 cases, A–AD) — 8-step count intact, Step 5 has exactly one review CTA living in the scan card (no duplicate box, no third checkpoint card), Step 6 has no redundant intro and no upload/scan/Extras/membership content, the green page-complete and final-completion CTAs are unchanged and correctly wired, Step 7/8 content unchanged, approved-item reopening and bilingual taxonomy unchanged, hard-refresh reconstruction is step-independent, and no scanner/API/DB/Stripe surface was touched.
+   - Two existing audits needed small updates to keep asserting the same guarantee against the new markup shape rather than the removed literal boxes: Gate H's Case D (its case-6 boundary regex assumed a `return (` immediately after `case 6:`, which is no longer always true now that the normal branch is `return aiIncludedInPackage ? null : (...)`) and Gate I's Case G (which asserted the now-deleted top green box's exact conditional instead of the CTA's new home in the scan card's `collapsedActions`). Both were updated to check the equivalent guarantee under the new markup; no assertion was weakened. All other gates (A, B, C, D, E, F, G, I, plus the five standalone audits) ran unmodified and passed.
+
+**Human visual production QA of this workbench-simplification fix is still PENDING** and must occur on a fresh deployment before any `LIVE PRODUCTION QA SIGN-OFF` section is added to this document.
