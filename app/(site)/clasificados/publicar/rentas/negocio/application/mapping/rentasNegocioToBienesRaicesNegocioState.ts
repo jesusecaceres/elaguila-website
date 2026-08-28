@@ -158,6 +158,12 @@ export function rentasNegocioToBienesRaicesNegocioState(s: RentasNegocioFormStat
             }
             return hp;
           })(),
+          // Owner-typed "Agregar otra característica" entries aren't canonical preset ids — they
+          // don't have a slot in highlightPresets, so route them through the BR Negocio custom
+          // free-text channel instead of silently dropping them.
+          customHighlightsText: s.residencial.highlightKeys
+            .filter((k) => !(k in emptyNegocioHighlightPresets()))
+            .join("\n"),
         }
       : {}),
   };

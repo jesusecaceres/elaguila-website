@@ -17,6 +17,8 @@ import {
   RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY,
 } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
+import { LeonixCustomHighlightChipAdd } from "@/app/clasificados/lib/LeonixCustomHighlightChipAdd";
+import { evaluateAddCustomHighlight } from "@/app/clasificados/lib/leonixCustomHighlightChips";
 import { Gate12cContactChannelsFields } from "@/app/clasificados/publicar/shared/Gate12cContactChannelsFields";
 import { RENTAS_RESIDENCIAL_HIGHLIGHT_FORM_VISUAL } from "@/app/clasificados/rentas/shared/rentasResidencialHighlightFormVisuals";
 import {
@@ -1208,6 +1210,71 @@ export function RentasNegocioForm() {
                   </label>
                 ))}
               </div>
+              <LeonixCustomHighlightChipAdd
+                label={lang === "es" ? "Agregar otra característica" : "Add another feature"}
+                placeholder={lang === "es" ? "Ej. Piso de mármol" : "E.g. Marble flooring"}
+                addLabel={lang === "es" ? "Añadir" : "Add"}
+                removeAriaLabel={(label) => (lang === "es" ? `Quitar: ${label}` : `Remove: ${label}`)}
+                capReachedLabel={
+                  lang === "es"
+                    ? "Alcanzaste el máximo de características personalizadas."
+                    : "You've reached the maximum custom features."
+                }
+                pendingValue={state.residencial.pendingCustomHighlight}
+                onPendingChange={(next) =>
+                  setState((s) => ({ ...s, residencial: { ...s.residencial, pendingCustomHighlight: next } }))
+                }
+                canAdd={Boolean(state.residencial.pendingCustomHighlight.trim())}
+                atCap={
+                  state.residencial.highlightKeys.filter((k) => !BR_HIGHLIGHT_PRESET_DEFS.some((d) => d.key === k))
+                    .length >= 8
+                }
+                customValues={state.residencial.highlightKeys.filter(
+                  (k) => !BR_HIGHLIGHT_PRESET_DEFS.some((d) => d.key === k),
+                )}
+                onAdd={() =>
+                  setState((s) => {
+                    const custom = s.residencial.highlightKeys.filter(
+                      (k) => !BR_HIGHLIGHT_PRESET_DEFS.some((d) => d.key === k),
+                    );
+                    const r = evaluateAddCustomHighlight({
+                      raw: s.residencial.pendingCustomHighlight,
+                      existingValues: custom,
+                      standardLabels: BR_HIGHLIGHT_PRESET_DEFS.map((d) => d.label),
+                    });
+                    if (!r.ok) return s;
+                    const out = {
+                      ...s,
+                      residencial: {
+                        ...s.residencial,
+                        highlightKeys: [...s.residencial.highlightKeys, r.label],
+                        pendingCustomHighlight: "",
+                      },
+                    };
+                    queueMicrotask(() => saveRentasNegocioDraft(out));
+                    return out;
+                  })
+                }
+                onRemove={(customIndex) =>
+                  setState((s) => {
+                    const custom = s.residencial.highlightKeys.filter(
+                      (k) => !BR_HIGHLIGHT_PRESET_DEFS.some((d) => d.key === k),
+                    );
+                    const toRemove = custom[customIndex];
+                    const out = {
+                      ...s,
+                      residencial: {
+                        ...s.residencial,
+                        highlightKeys: s.residencial.highlightKeys.filter((k) => k !== toRemove),
+                      },
+                    };
+                    queueMicrotask(() => saveRentasNegocioDraft(out));
+                    return out;
+                  })
+                }
+                inputClassName={fieldClass}
+                labelClassName={aiLabelClass}
+              />
             </div>
           </section>
         ) : null}
