@@ -253,7 +253,10 @@ export function mapAgenteResidencialFormStateToNegocioForPublish(
     estacionamientos: s.estacionamientos,
     anioConstruccion: s.anoConstruccion,
     condicion: s.condicionPropiedad,
-    niveles: s.comercialNiveles,
+    // Levels/stories — residential uses its own `nivelesPropiedad` field (separate from
+    // subtype); comercial has its own `comercialNiveles`. Only one category is active per
+    // listing, so forward whichever applies.
+    niveles: trim(s.nivelesPropiedad) || s.comercialNiveles,
     highlightPresets: residencial.presets,
     customHighlightsText,
     deepDetails: buildNegocioDeepDetails(s, base.deepDetails),

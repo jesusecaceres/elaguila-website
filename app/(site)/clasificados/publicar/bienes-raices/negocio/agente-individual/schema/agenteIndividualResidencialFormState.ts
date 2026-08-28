@@ -138,6 +138,10 @@ export type AgenteIndividualResidencialFormState = {
 
   tipoPropiedadCodigo: TipoPropiedadCodigo;
   subtipoPropiedad: string;
+  /** Levels/stories — a genuinely separate field from `subtipoPropiedad` (property type != subtype
+   * != levels/stories). Existing "un_piso"/"dos_pisos" subtipo values remain valid/displayable
+   * without any migration; new drafts should use this field instead. */
+  nivelesPropiedad: string;
 
   comercialTipoCodigo: ComercialTipoCodigo;
   comercialSubtipoPropiedad: string;
@@ -468,6 +472,7 @@ function migrateFromNestedLegacy(p: Record<string, unknown>): Partial<AgenteIndi
     out.tipoPropiedadCodigo = normalizeResidencialTipoPropiedadCodigo(p.tipoPropiedadCodigo);
   }
   if (typeof p.subtipoPropiedad === "string") out.subtipoPropiedad = p.subtipoPropiedad;
+  if (typeof p.nivelesPropiedad === "string") out.nivelesPropiedad = p.nivelesPropiedad;
 
   if (typeof p.tipoPropiedad === "string" && trim(p.tipoPropiedad) && !out.tipoPropiedadCodigo) {
     out.tipoPropiedadCodigo = "casa";
@@ -609,6 +614,7 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
 
     tipoPropiedadCodigo: "casa",
     subtipoPropiedad: "",
+    nivelesPropiedad: "",
 
     comercialTipoCodigo: "oficina",
     comercialSubtipoPropiedad: "",

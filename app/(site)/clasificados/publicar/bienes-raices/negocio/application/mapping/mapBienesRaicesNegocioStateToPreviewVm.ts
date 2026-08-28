@@ -264,6 +264,7 @@ function buildPropertyDetails(s: BienesRaicesNegocioFormState): BienesRaicesPrev
   const rows: BienesRaicesPreviewFact[] = [
     { label: "Tipo", value: trim(s.tipoPropiedad) || "—" },
     { label: "Subtipo", value: trim(s.propertySubtype) || "—" },
+    ...(pub !== "comercial" && trim(s.niveles) ? [{ label: "Niveles / pisos", value: trim(s.niveles) }] : []),
     { label: "Operación", value: publicationOperationSummary(s) },
   ];
 

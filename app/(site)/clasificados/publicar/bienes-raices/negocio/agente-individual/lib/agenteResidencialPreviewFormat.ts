@@ -342,6 +342,7 @@ function buildResidencialPropertyDetailRows(
     locale === "en"
       ? {
           tipo: "Property type",
+          niveles: "Levels / stories",
           rec: "Bedrooms",
           ban: "Baths",
           med: "Half baths",
@@ -353,6 +354,7 @@ function buildResidencialPropertyDetailRows(
         }
       : {
           tipo: "Tipo de propiedad",
+          niveles: "Niveles / pisos",
           rec: "Recámaras",
           ban: "Baños",
           med: "Medios baños",
@@ -378,6 +380,7 @@ function buildResidencialPropertyDetailRows(
     ...(isCharacteristic && subLabel
       ? [{ label: residencialSubtipoDisplayGroup(s.subtipoPropiedad, locale), value: subLabel }]
       : []),
+    ...(trim(s.nivelesPropiedad) ? [{ label: L.niveles, value: trim(s.nivelesPropiedad) }] : []),
     { label: L.rec, value: formatDetailCountDisplay(s.recamaras) || trim(s.recamaras) || "—" },
     { label: L.ban, value: formatDetailCountDisplay(s.banos) || trim(s.banos) || "—" },
     { label: L.med, value: formatDetailCountDisplay(s.mediosBanos) || trim(s.mediosBanos) || "—" },

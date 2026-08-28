@@ -185,6 +185,24 @@ export function Step01TipoAnuncio({
           </div>
         ) : null}
 
+        {cat === "residencial" ? (
+          <AiField
+            label={lang === "es" ? "Niveles / pisos" : "Levels / stories"}
+            hint={lang === "es" ? "Opcional. Distinto del subtipo." : "Optional. Separate from subtype."}
+          >
+            <select
+              className={aiInputClass}
+              value={state.nivelesPropiedad}
+              onChange={(e) => setState((s) => ({ ...s, nivelesPropiedad: e.target.value }))}
+            >
+              <option value="">{lang === "es" ? "— No indicado" : "— Not indicated"}</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3+">3+</option>
+            </select>
+          </AiField>
+        ) : null}
+
         {cat === "comercial" && showComercialSubtipo ? (
           <div className="sm:col-span-2">
             <AiField label={t.step01.subtipo} hint={t.step01.subtipoHint}>
