@@ -88,6 +88,8 @@ export type OfertaLocalAiReviewGateState = {
   approvedCount: number;
   rejectedCount: number;
   reviewLaterCount: number;
+  scanTotalPages: number | null;
+  scanCompletedPages: number | null;
 };
 
 export type OfertaLocalReviewViewerBridge = {
@@ -676,6 +678,8 @@ export function OfertasLocalesAiItemReviewPanel({
       approvedCount: 0,
       rejectedCount: 0,
       reviewLaterCount: 0,
+      scanTotalPages: null,
+      scanCompletedPages: null,
     });
     onScopeChange?.({
       scanActiveForAsset: false,
@@ -1188,12 +1192,17 @@ export function OfertasLocalesAiItemReviewPanel({
       setActiveQueueOpen(false);
       return;
     }
-    if (selectedItemId && !queueItems.some((item) => item.id === selectedItemId)) {
+    // A deliberately reopened approved/rejected item is legitimate (⚠️31) — it
+    // lives in pageFilteredItems (all statuses on this page) but never in
+    // queueItems (active/non-terminal only), so the orphan check below must
+    // use the wider list. Only a genuinely gone item (removed from the page
+    // entirely) should trigger the default-item fallback.
+    if (selectedItemId && !pageFilteredItems.some((item) => item.id === selectedItemId)) {
       setSelectedItemId(pickDefaultOfertaLocalReviewItemId(queueItems));
     } else if (!selectedItemId && queueItems.length > 0) {
       setSelectedItemId(pickDefaultOfertaLocalReviewItemId(queueItems));
     }
-  }, [selectionContext, queueItems, selectedItemId]);
+  }, [selectionContext, queueItems, pageFilteredItems, selectedItemId]);
 
   const focusIndex = useMemo(() => {
     if (!selectedItemId) return 0;
@@ -1291,12 +1300,15 @@ export function OfertasLocalesAiItemReviewPanel({
       approvedCount: gateItems.filter((item) => item.reviewStatus === "approved").length,
       rejectedCount: gateItems.filter((item) => item.reviewStatus === "rejected").length,
       reviewLaterCount: gateItems.filter((item) => item.reviewStatus === "needs_review").length,
+      scanTotalPages: highlightedScanJob?.totalPages ?? null,
+      scanCompletedPages: highlightedScanJob?.completedPages ?? null,
     });
   }, [
     activeScanJobId,
     allCurrentScanItems,
     displayItems,
     hasActiveSourceAsset,
+    highlightedScanJob,
     isWorkspace,
     onReviewGateChange,
     selectedSourceAssetId,
@@ -1756,6 +1768,24 @@ export function OfertasLocalesAiItemReviewPanel({
                       {c.aiReviewRejectProduct}
                     </button>
                   )}
+                </div>
+              ) : null}
+              {focusedItem && !isOfertaLocalActiveReviewStatus(focusedItem.reviewStatus) ? (
+                // Reopened approved/rejected item (⚠️31): editable and saveable, but the
+                // approve/review-later/reject/nav actions belong to the active-review flow
+                // only — re-running them here would invent a revision workflow the current
+                // API doesn't define. Saving preserves the current status unchanged because
+                // handleSave omits reviewStatus from the patch (see patchFromDraft).
+                <div className="mt-4 space-y-2">
+                  <p className="text-xs text-[#1E1814]/60">{c.aiReviewReopenedTerminalNote}</p>
+                  <button
+                    type="button"
+                    className={BTN_SECONDARY}
+                    disabled={savingId === focusedItem.id}
+                    onClick={() => void handleSave(focusedItem.id)}
+                  >
+                    {c.aiReviewSaveEdits}
+                  </button>
                 </div>
               ) : null}
             </div>
