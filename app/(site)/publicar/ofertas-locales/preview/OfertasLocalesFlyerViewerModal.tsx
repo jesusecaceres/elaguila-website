@@ -11,6 +11,7 @@ import type { OfertaLocalPreviewHeroAsset } from "@/app/lib/ofertas-locales/ofer
 import type { OfertaLocalItemReviewViewModel } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { OFERTAS_LOCALES_PREVIEW_COPY } from "./ofertasLocalesPreviewCopy";
+import { acquireSharedPdfPage, releaseSharedPdfDocument } from "./ofertasLocalesPdfDocumentCache";
 
 function bboxRecord(bbox: OfertaLocalItemReviewViewModel["sourceBbox"]): Record<string, unknown> | null {
   if (!bbox) return null;
@@ -152,18 +153,10 @@ export function OfertasLocalesFlyerViewerModal({
       renderTaskRef.current = null;
 
       try {
-        const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-        if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-          pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/legacy/build/pdf.worker.min.mjs`;
-        }
-
-        const pdf = await pdfjs.getDocument({ url: sourceUrl, withCredentials: false }).promise;
+        const { page, numPages } = await acquireSharedPdfPage(sourceUrl, safePage);
         if (cancelled) return;
 
-        setPdfPageCount(pdf.numPages);
-        const pageNum = Math.min(Math.max(1, safePage), pdf.numPages);
-        const page = await pdf.getPage(pageNum);
-        if (cancelled) return;
+        setPdfPageCount(numPages);
 
         const baseViewport = page.getViewport({ scale: 1 });
         setNaturalSize({ width: baseViewport.width, height: baseViewport.height });
@@ -205,6 +198,7 @@ export function OfertasLocalesFlyerViewerModal({
     return () => {
       cancelled = true;
       renderTaskRef.current?.cancel?.();
+      releaseSharedPdfDocument(sourceUrl);
     };
   }, [open, heroAsset?.href, heroAsset?.isPdf, safePage, lang, c.flyerRenderFailedEn, c.flyerRenderFailedEs]);
 
