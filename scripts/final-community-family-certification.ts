@@ -68,12 +68,16 @@ function tryRead(relPath: string): string | null {
 }
 
 // ---------------------------------------------------------------------------
-// 3. Second final verification before publish — CROSS-CATEGORY GAP CHECK.
-//    Mascotas and Busco (Gates 3/4) added a second confirm-modal step immediately before the
-//    actual publish call. Comunidad/Clases (Gates 1/2A/2B/2D, which predate that pattern) were
-//    found during this certification to still publish directly from their one shared
-//    CommunityQuickPreviewPublishBar with no second modal. This assertion documents the gap
-//    rather than silently passing — VERIFY ONLY, no feature work in this gate.
+// 3. Second final verification before publish — all four categories.
+//    Mascotas and Busco (Gates 3/4) already gate their actual publish call behind
+//    EmpleosPublishConfirmModal. Comunidad and Clases share ONE publish bar
+//    (CommunityQuickPreviewPublishBar) and a prior certification pass found they published
+//    directly with no second modal. That gap is now closed here: the single shared "Publicar"
+//    button opens the modal, and ONLY the modal's own confirm action calls handlePublish() — the
+//    same function that already branches free-publish vs Clases-paid Revenue-OS checkout
+//    internally, so proving the button never calls handlePublish() directly proves BOTH the free
+//    and paid paths (Comunidad free, Clases free, Clases paid checkout) are gated identically,
+//    without needing three separate assertions or touching Revenue OS/pricing logic at all.
 // ---------------------------------------------------------------------------
 {
   const mascotasBar = read("app/(site)/publicar/mascotas-y-perdidos/quick/preview/MascotasPerdidosQuickPreviewPublishBar.tsx");
@@ -82,15 +86,31 @@ function tryRead(relPath: string): string | null {
   assert.ok(buscoBar.includes("EmpleosPublishConfirmModal"), "Busco must have the second-verification modal");
 
   const communityBar = read("app/(site)/publicar/community/shared/preview/CommunityQuickPreviewPublishBar.tsx");
-  const communityHasSecondModal = communityBar.includes("EmpleosPublishConfirmModal");
-  // Documented as a known, pre-existing cross-category gap — not asserted as a hard failure here
-  // (this is a VERIFY-ONLY certification gate; fixing it is out of scope), but the actual current
-  // state must be reported truthfully.
-  console.log(
-    communityHasSecondModal
-      ? "OK: 3 second-verification modal present in all four categories"
-      : "GAP: 3 Comunidad/Clases publish directly from CommunityQuickPreviewPublishBar with NO second-verification modal — Mascotas and Busco have it, Comunidad/Clases do not (pre-existing, predates Gate 3's pattern; not fixed in this VERIFY-ONLY gate)",
+  assert.ok(communityBar.includes("EmpleosPublishConfirmModal"), "Comunidad/Clases must now have the second-verification modal");
+
+  // The one visible "Publicar" button must open the modal, never call handlePublish() directly —
+  // this alone proves Comunidad free, Clases free, AND Clases paid-checkout (all three funnel
+  // through this single button + single handlePublish()) all require the modal first.
+  assert.ok(
+    /onClick=\{\(\) => setConfirmOpen\(true\)\}/.test(communityBar),
+    "the Publicar button must open the confirm modal, not call handlePublish()/checkout directly",
   );
+  assert.ok(
+    !/<button[\s\S]{0,300}onClick=\{\(\) => void handlePublish\(\)\}/.test(communityBar),
+    "no button in this file may call handlePublish() directly anymore — only the modal's onConfirm may",
+  );
+  assert.ok(
+    /onConfirm=\{\(\) => void handlePublish\(\)\}/.test(communityBar),
+    "the modal's own confirm action must be what actually invokes handlePublish() (free publish or Clases-paid checkout, unchanged internal branching)",
+  );
+
+  // handlePublish's internal paid/free branching (Revenue OS checkout for Clases-paid, direct
+  // publish otherwise) must be untouched by this gap fix — only the trigger changed.
+  assert.ok(communityBar.includes("isPaidClases"), "the existing paid/free branch inside handlePublish must be untouched");
+  assert.ok(communityBar.includes("startRevenueCategoryCheckout"), "the existing Revenue OS checkout call must be untouched");
+  assert.ok(communityBar.includes("CLASES_CATEGORY_CHECKOUT"), "the existing $24.99/30-day Clases checkout package must be untouched");
+
+  console.log("OK: 3 second-verification modal now present and gates the real action in all four categories (Comunidad, Clases free, Clases paid checkout, Mascotas, Busco)");
 }
 
 // ---------------------------------------------------------------------------
@@ -180,6 +200,31 @@ function tryRead(relPath: string): string | null {
     }
   }
   console.log("OK: 6 category isolation — no category directory imports directly from another category's owned directory");
+}
+
+// ---------------------------------------------------------------------------
+// 7. Mascotas and Busco untouched by the Comunidad/Clases second-verification gap fix.
+// ---------------------------------------------------------------------------
+{
+  const { execSync } = require("node:child_process") as typeof import("node:child_process");
+  const changedFiles = execSync("git diff --name-only HEAD", { cwd: ROOT, encoding: "utf8" })
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const untrackedFiles = execSync("git status --porcelain", { cwd: ROOT, encoding: "utf8" })
+    .split("\n")
+    .filter((l) => l.startsWith("??"))
+    .map((l) => l.slice(3).trim());
+  const allTouched = [...new Set([...changedFiles, ...untrackedFiles])];
+  const mascotasOrBuscoTouched = allTouched.filter(
+    (f) => f.includes("/mascotas-y-perdidos/") || f.includes("/busco/"),
+  );
+  assert.equal(
+    mascotasOrBuscoTouched.length,
+    0,
+    `Mascotas/Busco must remain untouched by the Comunidad/Clases second-verification fix, found: ${mascotasOrBuscoTouched.join(", ")}`,
+  );
+  console.log("OK: 7 Mascotas and Busco files untouched by this fix");
 }
 
 console.log("final-community-family-certification: PASS");

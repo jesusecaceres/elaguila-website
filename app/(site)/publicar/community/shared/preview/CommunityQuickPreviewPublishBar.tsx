@@ -26,6 +26,7 @@ import {
   startRevenueCategoryCheckout,
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
 import { CLASES_CATEGORY_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import { EmpleosPublishConfirmModal } from "@/app/publicar/empleos/shared/publish/EmpleosPublishConfirmModal";
 
 type Props = {
   kind: CommunityKind;
@@ -43,6 +44,7 @@ export function CommunityQuickPreviewPublishBar({ kind, draft, lang, routeLang }
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const gate = useMemo(
     () =>
@@ -179,10 +181,26 @@ export function CommunityQuickPreviewPublishBar({ kind, draft, lang, routeLang }
         className={BTN_PUBLISH}
         disabled={publishDisabled}
         title={publishTitleHint}
-        onClick={() => void handlePublish()}
+        onClick={() => setConfirmOpen(true)}
       >
         {publishing ? busyLabel : publishLabel}
       </button>
+      {/* Section 4 (final Community-family certification gap fix) — second final verification,
+          required immediately before the actual publish/checkout call, matching the Mascotas/
+          Busco pattern (Gates 3/4). Gates the SAME handlePublish() that already branches
+          paid-Clases (Revenue OS checkout) vs free publish internally — no new payment flow. */}
+      <EmpleosPublishConfirmModal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => void handlePublish()}
+        title={shared.publishModal.title}
+        intro={shared.publishModal.intro}
+        checks={shared.publishModal.checks}
+        confirmCta={shared.publishModal.confirmCta}
+        cancelCta={shared.publishModal.cancelCta}
+        blockedHint={shared.publishModal.blockedHint}
+        closeOverlayAria={shared.publishModal.closeOverlayAria}
+      />
       {publishError ? (
         <p
           className="w-full rounded-xl border border-red-200/90 bg-red-50/95 px-3 py-2 text-xs font-medium text-red-950 sm:order-last sm:max-w-md"
