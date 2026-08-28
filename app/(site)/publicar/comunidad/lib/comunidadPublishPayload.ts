@@ -40,6 +40,11 @@ export function buildComunidadDescription(d: ComunidadQuickDraft, lang: Lang): s
       `${lang === "es" ? "Qué deben llevar o saber" : "What to bring or know"}: ${d.bringNote.trim()}`,
     );
   }
+  if (d.restrictionsNote.trim()) {
+    parts.push(
+      `${lang === "es" ? "Qué NO llevar / restricciones" : "What not to bring / restrictions"}: ${d.restrictionsNote.trim()}`,
+    );
+  }
   if ((d.eventCost === "pagado" || d.eventCost === "donacion") && d.admissionNote.trim()) {
     parts.push(`${lang === "es" ? "Nota de admisión" : "Admission"}: ${d.admissionNote.trim()}`);
   }
@@ -113,14 +118,20 @@ export function buildComunidadDetailPairs(d: ComunidadQuickDraft): Array<{ label
   if (d.accessibilityKeys.length) {
     pairs.push({ label: "Leonix:accessibility", value: d.accessibilityKeys.join(",") });
   }
+  if (d.restrictionsNote.trim()) {
+    pairs.push({ label: "Leonix:restrictionsNote", value: d.restrictionsNote.trim() });
+  }
   return pairs;
 }
 
-export function comunidadPriceFields(d: ComunidadQuickDraft): { price: number; is_free: boolean } {
-  if (d.eventCost === "gratis") return { price: 0, is_free: true };
-  if (d.eventCost === "pagado") {
-    const n = Number(String(d.admissionNote).replace(/[^0-9.]/g, ""));
-    return { price: Number.isFinite(n) && n > 0 ? Math.round(n) : 0, is_free: false };
-  }
-  return { price: 0, is_free: false };
+/**
+ * Owner-approved business rule (Gate 1): publishing a Comunidad y Eventos
+ * listing on Leonix is always free. The event itself may charge admission
+ * (`eventCost` = "pagado"/"donacion") or not — that is event data, not
+ * Leonix listing pricing, and must never flip the Leonix listing's own
+ * price/is_free fields. Always returns the free-listing values regardless
+ * of `eventCost`.
+ */
+export function comunidadPriceFields(_d: ComunidadQuickDraft): { price: number; is_free: boolean } {
+  return { price: 0, is_free: true };
 }

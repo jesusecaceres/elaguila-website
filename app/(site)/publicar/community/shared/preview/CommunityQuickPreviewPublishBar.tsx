@@ -18,9 +18,15 @@ import { clearCommunityStagedPublish } from "../publish/communityPublishStaging"
 import {
   gateClasesQuickPreview,
   gateComunidadQuickPreview,
-  shouldBlockClasesPaidPublish,
 } from "../required/communityRequiredForPreview";
 import type { ClasesQuickDraft, ComunidadQuickDraft } from "../types/communityQuickDraft";
+import {
+  redirectToRevenueCategoryCheckout,
+  revenueCategoryCheckoutErrorMessage,
+  startRevenueCategoryCheckout,
+} from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
+import { CLASES_CATEGORY_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import { EmpleosPublishConfirmModal } from "@/app/publicar/empleos/shared/publish/EmpleosPublishConfirmModal";
 
 type Props = {
   kind: CommunityKind;
@@ -38,6 +44,7 @@ export function CommunityQuickPreviewPublishBar({ kind, draft, lang, routeLang }
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const gate = useMemo(
     () =>
@@ -52,20 +59,33 @@ export function CommunityQuickPreviewPublishBar({ kind, draft, lang, routeLang }
     draft.publishConfirmations.mediaAccurate &&
     draft.publishConfirmations.rulesAccepted;
 
-  const paidBlocked = kind === "clases" && shouldBlockClasesPaidPublish(draft as ClasesQuickDraft);
-  const publishDisabled = !gate.ok || !approvalsOk || paidBlocked || publishing;
+  // Gate 2B — a paid class no longer hits the hard "not published here yet" block; it routes to
+  // Revenue OS checkout instead. `shouldBlockClasesPaidPublish` remains intact and still guards
+  // every OTHER publish path that doesn't opt into checkout (defense in depth).
+  const isPaidClases = kind === "clases" && (draft as ClasesQuickDraft).classCostType === "pagada";
+  const publishDisabled = !gate.ok || !approvalsOk || publishing;
 
-  const publishLabel = lang === "es" ? "Publicar anuncio" : "Publish listing";
-  const busyLabel = lang === "es" ? "Publicando…" : "Publishing…";
+  const publishLabel = isPaidClases
+    ? lang === "es"
+      ? "Publicar — $24.99 / 30 días"
+      : "Publish — $24.99 / 30 days"
+    : lang === "es"
+      ? "Publicar anuncio"
+      : "Publish listing";
+  const busyLabel = isPaidClases
+    ? lang === "es"
+      ? "Creando pago seguro…"
+      : "Creating secure checkout…"
+    : lang === "es"
+      ? "Publicando…"
+      : "Publishing…";
   const successLabel = lang === "es" ? "Publicado. Abriendo anuncio…" : "Published. Opening listing…";
 
-  const publishTitleHint = paidBlocked
-    ? shared.paidClassPublishBlocked
-    : !gate.ok
-      ? shared.publishBlocked
-      : !approvalsOk
-        ? shared.approvalPublishBlocked
-        : undefined;
+  const publishTitleHint = !gate.ok
+    ? shared.publishBlocked
+    : !approvalsOk
+      ? shared.approvalPublishBlocked
+      : undefined;
 
   const handlePublish = async () => {
     if (publishDisabled) return;
@@ -73,10 +93,6 @@ export function CommunityQuickPreviewPublishBar({ kind, draft, lang, routeLang }
     setPublishSuccess(null);
     setPublishing(true);
     try {
-      if (kind === "clases" && shouldBlockClasesPaidPublish(draft as ClasesQuickDraft)) {
-        setPublishError(shared.paidClassPublishBlocked);
-        return;
-      }
       // I.6B — reuse this same in-progress submission's row (if a prior attempt already created
       // one and hasn't fully completed yet) instead of always inserting a fresh row.
       let inFlightId: string | null = null;
@@ -85,6 +101,44 @@ export function CommunityQuickPreviewPublishBar({ kind, draft, lang, routeLang }
       } catch {
         /* sessionStorage optional */
       }
+
+      if (isPaidClases) {
+        // Gate 2B — Revenue OS checkout path. The listing row is created/reused as a hidden
+        // "pending" row (never public, never charged the free/instant-active path); only a
+        // verified Stripe webhook (revenueClasesFulfillment.ts) is allowed to activate it.
+        const r = await publishCommunityQuickToListings({
+          kind,
+          draft,
+          lang,
+          existingListingId: inFlightId,
+          activationMode: "pending_payment",
+          onListingIdKnown: (listingId) => {
+            try {
+              window.sessionStorage.setItem(COMMUNITY_IN_FLIGHT_LISTING_ID_KEYS[kind], listingId);
+            } catch {
+              /* sessionStorage optional */
+            }
+          },
+        });
+        if (!r.ok) {
+          setPublishError(r.error);
+          return;
+        }
+        const checkout = await startRevenueCategoryCheckout({
+          ...CLASES_CATEGORY_CHECKOUT,
+          listingId: r.listingId,
+          locale: lang,
+        });
+        if (!checkout.ok) {
+          setPublishError(checkout.userMessage || revenueCategoryCheckoutErrorMessage(lang));
+          return;
+        }
+        // Browser leaves the app for Stripe Checkout here — activation happens server-side via
+        // the webhook, never from this redirect alone.
+        redirectToRevenueCategoryCheckout(checkout.checkoutUrl);
+        return;
+      }
+
       const r = await publishCommunityQuickToListings({
         kind,
         draft,
@@ -127,10 +181,26 @@ export function CommunityQuickPreviewPublishBar({ kind, draft, lang, routeLang }
         className={BTN_PUBLISH}
         disabled={publishDisabled}
         title={publishTitleHint}
-        onClick={() => void handlePublish()}
+        onClick={() => setConfirmOpen(true)}
       >
         {publishing ? busyLabel : publishLabel}
       </button>
+      {/* Section 4 (final Community-family certification gap fix) — second final verification,
+          required immediately before the actual publish/checkout call, matching the Mascotas/
+          Busco pattern (Gates 3/4). Gates the SAME handlePublish() that already branches
+          paid-Clases (Revenue OS checkout) vs free publish internally — no new payment flow. */}
+      <EmpleosPublishConfirmModal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => void handlePublish()}
+        title={shared.publishModal.title}
+        intro={shared.publishModal.intro}
+        checks={shared.publishModal.checks}
+        confirmCta={shared.publishModal.confirmCta}
+        cancelCta={shared.publishModal.cancelCta}
+        blockedHint={shared.publishModal.blockedHint}
+        closeOverlayAria={shared.publishModal.closeOverlayAria}
+      />
       {publishError ? (
         <p
           className="w-full rounded-xl border border-red-200/90 bg-red-50/95 px-3 py-2 text-xs font-medium text-red-950 sm:order-last sm:max-w-md"
@@ -146,11 +216,6 @@ export function CommunityQuickPreviewPublishBar({ kind, draft, lang, routeLang }
           data-testid="community-publish-success-inline"
         >
           {publishSuccess}
-        </p>
-      ) : null}
-      {paidBlocked ? (
-        <p className="w-full text-xs font-medium text-amber-950 sm:max-w-md" role="status">
-          {shared.paidClassPublishBlocked}
         </p>
       ) : null}
     </div>

@@ -21,6 +21,7 @@ import {
   type CommunityPrimaryCta,
 } from "@/app/(site)/publicar/community/shared/types/communityQuickDraft";
 import { CLASES_CATEGORY_LEGACY_MAP } from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
+import { normalizePaymentMethods } from "@/app/publicar/clases/lib/clasesPaymentMethods";
 
 export type ClasesPublishedListingLike = {
   id: string;
@@ -72,6 +73,19 @@ export function clasesPublishedQuickToDraft(
   if (CLASES_CATEGORY_LEGACY_MAP[cat]) cat = CLASES_CATEGORY_LEGACY_MAP[cat]!;
   d.category = cat;
   d.categoryCustom = (pairs["Leonix:classCategoryCustom"] ?? "").trim();
+  /** Legacy listings have no Leonix:classCategories key — fall back to the single primary type. */
+  const rawCategories = (pairs["Leonix:classCategories"] ?? "").trim();
+  d.categories = rawCategories
+    ? rawCategories
+        .split(",")
+        .map((c) => {
+          const t = c.trim();
+          return CLASES_CATEGORY_LEGACY_MAP[t] ?? t;
+        })
+        .filter(Boolean)
+    : cat
+      ? [cat]
+      : [];
 
   const cct = pairs["Leonix:classCostType"] ?? "";
   d.classCostType = cct === "pagada" ? "pagada" : "gratis";
@@ -87,9 +101,30 @@ export function clasesPublishedQuickToDraft(
   d.weeklySchedule = normalizeWeeklyScheduleArray(parseWeeklyScheduleJson(pairs["Leonix:weeklyScheduleJson"]), []);
 
   d.skillLevel = (pairs["Leonix:skillLevel"] ?? "").trim();
+  d.paymentMethods = normalizePaymentMethods(
+    (pairs["Leonix:paymentMethods"] ?? "").split(",").map((s) => s.trim()).filter(Boolean),
+  );
+  d.paymentMethodOther = (pairs["Leonix:paymentMethodOther"] ?? "").trim();
+  /** Gate 2D — legacy listings have no Leonix:scheduleMode key; their only prior shape was recurring. */
+  const scheduleModeRaw = (pairs["Leonix:scheduleMode"] ?? "").trim();
+  d.scheduleMode = scheduleModeRaw === "one_time" ? "one_time" : "recurring";
+  d.oneTimeDate = (pairs["Leonix:oneTimeDate"] ?? "").trim();
+  d.oneTimeStart = (pairs["Leonix:oneTimeStart"] ?? "").trim();
+  d.oneTimeEnd = (pairs["Leonix:oneTimeEnd"] ?? "").trim();
+  d.startDate = (pairs["Leonix:classStartDate"] ?? "").trim();
+  d.endDate = (pairs["Leonix:classEndDate"] ?? "").trim();
   d.audience = (pairs["Leonix:audience"] ?? "").trim();
+  /** Gate 2D — legacy listings have no Leonix:audiences key — fall back to the single audience. */
+  const rawAudiences = (pairs["Leonix:audiences"] ?? "").trim();
+  d.audiences = rawAudiences
+    ? rawAudiences.split(",").map((a) => a.trim()).filter(Boolean)
+    : d.audience
+      ? [d.audience]
+      : [];
   d.registrationRequired = (pairs["Leonix:registrationRequired"] ?? "").trim();
   d.bringNote = (pairs["Leonix:bringNote"] ?? "").trim();
+  d.materialsNote = (pairs["Leonix:materialsNote"] ?? "").trim();
+  d.requirementsNote = (pairs["Leonix:requirementsNote"] ?? "").trim();
 
   d.publicCity = (listing.city ?? "").trim();
   d.state = (pairs["Leonix:state"] ?? "").trim();

@@ -3,11 +3,11 @@ import { stripLeonixPublishedDescriptionBody } from "@/app/(site)/clasificados/l
 import { pickListingCardImageUrl } from "@/app/(site)/clasificados/community/shared/communityDiscoveryListingCardModel";
 import { formatLeonixAdId } from "@/app/(site)/clasificados/community/shared/communityLeonixAdId";
 import { resolveBuscoTypePublicLabel } from "@/app/(site)/clasificados/busco/shared/buscoPublicLabel";
+import { resolveBuscoBudgetDisplay } from "@/app/publicar/busco/shared/buscoBudgetDisplay";
+import type { BuscoQuickDraft, BuscoUrgency } from "@/app/publicar/busco/shared/buscoQuickTypes";
 
 import { detailPairsToMap, type BuscoListingPairMap } from "./buscoListingDetailPairs";
 import type { BuscoListingBrowseRow } from "./loadBuscoListings";
-import { buscoRowHasEmail, buscoRowHasPhone } from "./buscoSearchText";
-import { formatBuscoBudget } from "@/app/publicar/busco/shared/buscoFormatBudget";
 
 export type BuscoRequestCardModel = {
   id: string;
@@ -17,8 +17,7 @@ export type BuscoRequestCardModel = {
   imageUrl: string | null;
   excerpt: string | null;
   budget: string | null;
-  urgency: string | null;
-  contactChip: string | null;
+  urgency: BuscoUrgency | "";
   leonixAdId: string | null;
   detailHref: string;
 };
@@ -46,13 +45,12 @@ function formatLocationLine(city: string | null, pairs: BuscoListingPairMap): st
   return place || zone || "";
 }
 
-function contactChipLabel(row: BuscoListingBrowseRow, pairs: BuscoListingPairMap, lang: Lang): string | null {
-  const hasPhone = buscoRowHasPhone(row, pairs);
-  const hasEmail = buscoRowHasEmail(row, pairs);
-  if (hasPhone && hasEmail) return lang === "es" ? "Teléfono y correo" : "Phone and email";
-  if (hasPhone) return lang === "es" ? "Con teléfono / WhatsApp" : "Phone / WhatsApp";
-  if (hasEmail) return lang === "es" ? "Con correo" : "Email";
-  return null;
+function coerceUrgency(raw: string): BuscoUrgency | "" {
+  const s = raw.trim();
+  if (s === "pronto") return "esta_semana";
+  if (s === "urgente") return "urgente_hoy";
+  if (s === "esta_semana" || s === "lo_antes_posible" || s === "urgente_hoy") return s;
+  return "";
 }
 
 export function buildBuscoRequestCardModel(
@@ -68,10 +66,14 @@ export function buildBuscoRequestCardModel(
     pairs["Leonix:buscoTypeCustom"] ?? "",
     lang,
   );
-  const budgetRaw = (pairs["Leonix:buscoBudget"] ?? "").trim();
-  const budget = budgetRaw ? formatBuscoBudget(budgetRaw) : null;
-  const urgencyRaw = (pairs["Leonix:buscoUrgency"] ?? "").trim();
-  const urgency = urgencyRaw || null;
+  const budget = resolveBuscoBudgetDisplay(
+    {
+      budgetMode: pairs["Leonix:buscoBudgetMode"] ?? "",
+      budgetAmount: pairs["Leonix:buscoBudgetAmount"] ?? "",
+      legacyBudgetText: pairs["Leonix:buscoBudget"] ?? "",
+    },
+    lang,
+  );
   return {
     id: row.id,
     title,
@@ -80,9 +82,41 @@ export function buildBuscoRequestCardModel(
     imageUrl: pickListingCardImageUrl(row.images),
     excerpt: excerptFromDescription(row.description),
     budget,
-    urgency,
-    contactChip: contactChipLabel(row, pairs, lang),
+    urgency: coerceUrgency(pairs["Leonix:buscoUrgency"] ?? ""),
     leonixAdId: opts?.showLeonixAdId ? formatLeonixAdId(row.id) : null,
+    detailHref,
+  };
+}
+
+/** Section T — Preview's real "Vista previa en resultados" section builds this straight from the
+ *  in-progress draft, reusing the exact same resolution logic as the published-row builder above. */
+export function buildBuscoRequestCardModelFromDraft(
+  draft: BuscoQuickDraft,
+  lang: Lang,
+  detailHref: string,
+): BuscoRequestCardModel {
+  const title = draft.title.trim() || "—";
+  const typeBadge = resolveBuscoTypePublicLabel(draft.buscoType, draft.buscoTypeCustom, lang);
+  const budget = resolveBuscoBudgetDisplay({ budgetMode: draft.budgetMode, budgetAmount: draft.budgetAmount }, lang);
+  const place = [
+    draft.city.trim(),
+    draft.state.trim() && draft.zip.trim() ? `${draft.state.trim()} ${draft.zip.trim()}` : draft.state.trim() || draft.zip.trim(),
+    draft.country.trim(),
+  ]
+    .filter(Boolean)
+    .join(", ");
+  const locationLine = place && draft.zone.trim() ? `${place} · ${draft.zone.trim()}` : place || draft.zone.trim();
+
+  return {
+    id: draft.previewListingId,
+    title,
+    typeBadge,
+    locationLine,
+    imageUrl: draft.imageDataUrl.trim() || null,
+    excerpt: excerptFromDescription(draft.description),
+    budget,
+    urgency: draft.urgency !== "normal" ? draft.urgency : "",
+    leonixAdId: null,
     detailHref,
   };
 }

@@ -1,5 +1,7 @@
-/** Session-scoped draft key for Busco quick publish (form ↔ preview, tab-local). */
-export const BUSCO_QUICK_DRAFT_KEY = "leonix_busco_quick_draft_v1";
+/** Session-scoped draft key for Busco quick publish (form ↔ preview, tab-local). Bumped to v2 for
+ *  Gate 4 (structured budget, 4-state urgency, confirmations, new conditional fields) — a stray
+ *  v1 draft left in sessionStorage is simply discarded rather than misread. */
+export const BUSCO_QUICK_DRAFT_KEY = "leonix_busco_quick_draft_v2";
 
 /**
  * I.6B — canonical listing id this exact in-progress submission already created. Written as
