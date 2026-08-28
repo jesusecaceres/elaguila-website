@@ -318,7 +318,7 @@ export function OfertasLocalesFlyerViewerModal({
       <div
         ref={panelRef}
         tabIndex={-1}
-        className="relative z-10 flex h-full w-full max-w-[100vw] flex-col overflow-hidden border border-[#D4C4A8]/60 bg-[#FFFCF7] shadow-2xl outline-none sm:h-auto sm:max-h-[92vh] sm:max-w-2xl sm:rounded-2xl lg:max-w-3xl"
+        className="relative z-10 flex h-full w-full max-w-[100vw] flex-col overflow-hidden border border-[#D4C4A8]/60 bg-[#FFFCF7] shadow-2xl outline-none sm:h-auto sm:max-h-[96vh] sm:max-w-4xl sm:rounded-2xl lg:max-w-6xl xl:max-w-7xl"
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#E8D9C4]/70 bg-gradient-to-r from-[#FDF8F0]/60 to-[#FFFCF7] px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-5 sm:pt-3">
           <div className="min-w-0 flex-1">

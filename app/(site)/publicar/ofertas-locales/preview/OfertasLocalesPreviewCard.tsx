@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { FiAward, FiCopy, FiGlobe, FiInfo, FiMail, FiMapPin, FiPhone, FiShare2 } from "react-icons/fi";
+import { FiAward, FiGlobe, FiInfo, FiMail, FiMapPin, FiPhone, FiShare2 } from "react-icons/fi";
 import { FaGoogle, FaWhatsapp } from "react-icons/fa";
 import {
   SiFacebook,
@@ -370,30 +370,22 @@ function PreviewBusinessHub({
   const followLinks = getOfertaLocalSocialLinksByCategory(draft, "follow");
   const reviewLinks = getOfertaLocalSocialLinksByCategory(draft, "review");
   const businessLinks = getOfertaLocalSocialLinksByCategory(draft, "business");
-  const [emailCopied, setEmailCopied] = useState(false);
-
-  const copyEmail = useCallback(async () => {
-    if (!contactEmail) return;
-    try {
-      await navigator.clipboard.writeText(contactEmail);
-      setEmailCopied(true);
-      window.setTimeout(() => setEmailCopied(false), 2000);
-    } catch {
-      setEmailCopied(false);
-    }
-  }, [contactEmail]);
 
   const hasContact = Boolean(telHref || waHref || webHref || contactEmail);
   const hasLocation = Boolean(locationLine || directionsHref);
   const hasFollow = followLinks.length > 0;
   const hasReviews = reviewLinks.length > 0;
   const hasBusiness = businessLinks.length > 0;
+  // "Más información" also carries the membership sign-up + instructions CTAs
+  // now (moved out of Contacto so they read with the same visual confidence
+  // as Google Business), so it must stay visible whenever either exists.
+  const hasMoreInfo = hasBusiness || (showMembership && Boolean(membershipHref));
 
-  if (!hasContact && !hasLocation && !hasFollow && !hasReviews && !hasBusiness) return null;
+  if (!hasContact && !hasLocation && !hasFollow && !hasReviews && !hasMoreInfo) return null;
 
   const defaultOpenContact = hasContact;
   const defaultOpenLocation = !hasContact && hasLocation;
-  const defaultOpenSocial = !hasContact && !hasLocation && (hasFollow || hasReviews || hasBusiness);
+  const defaultOpenSocial = !hasContact && !hasLocation && (hasFollow || hasReviews || hasMoreInfo);
 
   return (
     <section className={cx(CARD, "mt-5 p-3 sm:p-4 lg:mt-6 lg:p-5")}>
@@ -431,58 +423,18 @@ function PreviewBusinessHub({
               />
             </div>
             {contactEmail ? (
-              <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0]/70 px-3 py-2.5">
-                <span className="inline-flex items-center gap-2 truncate text-sm font-medium text-[#1E1814]/85">
+              <div className="mt-4 rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0]/70 px-3 py-2.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/50">
+                  {lang === "en" ? c.emailAddressLabelEn : c.emailAddressLabelEs}
+                </p>
+                <p className="mt-1 flex items-center gap-2 truncate text-sm font-medium text-[#1E1814]/85">
                   <FiMail className="h-4 w-4 shrink-0 text-[#7A1E2C]" aria-hidden />
                   {contactEmail}
-                </span>
+                </p>
                 {mailtoHref ? (
-                  <a href={mailtoHref} className={BTN_OUTLINE}>
+                  <a href={mailtoHref} className={cx(BTN_PRIMARY, "mt-3")}>
                     {lang === "en" ? c.emailEn : c.emailEs}
                   </a>
-                ) : null}
-                <button type="button" className={BTN_OUTLINE} onClick={() => void copyEmail()}>
-                  <FiCopy className="h-4 w-4" aria-hidden />
-                  {emailCopied
-                    ? lang === "en"
-                      ? c.shareCopiedEn
-                      : c.shareCopiedEs
-                    : lang === "en"
-                      ? c.copyEmailEn
-                      : c.copyEmailEs}
-                </button>
-              </div>
-            ) : null}
-            {showMembership && membershipHref ? (
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <a
-                  href={membershipHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cx(BTN_OUTLINE, "border-[#B8860B]/45 text-[#7A1E2C] hover:border-[#7A1E2C]/35")}
-                  title={lang === "en" ? c.membershipTitleEn : c.membershipTitleEs}
-                >
-                  <FiAward className="h-4 w-4 shrink-0 text-[#B8860B]" aria-hidden />
-                  {lang === "en" ? c.membershipSignUpShortEn : c.membershipSignUpShortEs}
-                </a>
-                {membershipInstructions ? (
-                  <details className="max-w-full shrink">
-                    <summary
-                      className={INSTRUCTION_HINT}
-                      title={membershipInstructions}
-                      aria-label={
-                        lang === "en"
-                          ? `${c.membershipInstructionsLabelEn}: ${membershipInstructions}`
-                          : `${c.membershipInstructionsLabelEs}: ${membershipInstructions}`
-                      }
-                    >
-                      <FiInfo className="h-3.5 w-3.5 shrink-0 text-[#B8860B]" aria-hidden />
-                      {lang === "en" ? c.membershipInstructionsLabelEn : c.membershipInstructionsLabelEs}
-                    </summary>
-                    <p className="mt-1 max-w-[min(100%,20rem)] rounded-lg border border-[#D4C4A8]/60 bg-[#FFFCF7] px-2.5 py-1.5 text-[11px] leading-relaxed text-[#1E1814]/75">
-                      {membershipInstructions}
-                    </p>
-                  </details>
                 ) : null}
               </div>
             ) : null}
@@ -541,7 +493,7 @@ function PreviewBusinessHub({
           </HubCollapsibleGroup>
         ) : null}
 
-        {hasBusiness ? (
+        {hasMoreInfo ? (
           <HubCollapsibleGroup
             id={hasFollow || hasReviews ? undefined : "redes"}
             title={lang === "en" ? c.moreInfoEn : c.moreInfoEs}
@@ -552,6 +504,29 @@ function PreviewBusinessHub({
               {businessLinks.map((link) => (
                 <SocialLinkButton key={link.key} link={link} />
               ))}
+              {showMembership && membershipHref ? (
+                <a
+                  href={membershipHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#7A1E2C] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#6a1926]"
+                  title={lang === "en" ? c.membershipTitleEn : c.membershipTitleEs}
+                >
+                  <FiAward className="h-4 w-4 shrink-0" aria-hidden />
+                  {lang === "en" ? c.membershipSignUpShortEn : c.membershipSignUpShortEs}
+                </a>
+              ) : null}
+              {showMembership && membershipInstructions ? (
+                <details className="group/instructions max-w-full">
+                  <summary className="inline-flex min-h-11 max-w-full cursor-pointer list-none items-center justify-center gap-2 rounded-xl bg-[#B8860B] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#a5760a] [&::-webkit-details-marker]:hidden">
+                    <FiInfo className="h-4 w-4 shrink-0" aria-hidden />
+                    {lang === "en" ? c.membershipInstructionsLabelEn : c.membershipInstructionsLabelEs}
+                  </summary>
+                  <p className="mt-2 max-w-[min(100%,24rem)] rounded-lg border border-[#D4C4A8]/60 bg-[#FFFCF7] px-3 py-2 text-xs leading-relaxed text-[#1E1814]/80">
+                    {membershipInstructions}
+                  </p>
+                </details>
+              ) : null}
             </div>
           </HubCollapsibleGroup>
         ) : null}
@@ -1097,9 +1072,12 @@ export function OfertasLocalesPreviewCard({
           </p>
         </section>
 
-        {/* 4. Flyer hero — the star of the page (connected tightly to the header strip) */}
+        {/* 4. Flyer hero — the star of the page (connected tightly to the header strip).
+             Full column width, matching Business Hub/other sections below — this
+             used to be capped at max-w-2xl/3xl, making the flyer look small
+             regardless of how large the rendered canvas itself was. */}
         <section id="volante" className={cx(SECTION_ANCHOR, "mt-2 sm:mt-3")}>
-          <div className="mx-auto w-full max-w-2xl lg:max-w-3xl">
+          <div className="w-full">
             <OfertasLocalesPreviewHeroVisual
               draft={draft}
               heroAsset={heroAsset}

@@ -84,8 +84,6 @@ export function OfertasLocalesPreviewHeroVisual({
         ? c.viewFlyerEn
         : c.viewFlyerEs;
 
-  const canOpenViewer = Boolean(onOpenViewer && heroAsset?.href);
-
   const previewInner =
     heroAsset?.href && heroAsset.isImage ? (
       <div className="bg-[#FDF8F0]/80 p-1.5 sm:p-3">
@@ -136,30 +134,11 @@ export function OfertasLocalesPreviewHeroVisual({
         <p className="text-[10px] font-semibold uppercase tracking-widest text-[#B8860B] sm:text-xs">{laneLabel}</p>
       ) : null}
 
-      <div className={CARD}>
-        {canOpenViewer ? (
-          // A <div role="button"> instead of a real <button> — the PDF preview
-          // below now has its own prev/next page controls, and a real <button>
-          // cannot validly contain nested interactive descendants.
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={onOpenViewer}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onOpenViewer?.();
-              }
-            }}
-            aria-label={viewLabel}
-            className="group block w-full cursor-zoom-in text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7A1E2C]/40"
-          >
-            {previewInner}
-          </div>
-        ) : (
-          previewInner
-        )}
-      </div>
+      {/* The inline flyer is now a real standalone reader with its own page
+          navigation (see OfertasLocalesPdfFlyerPreview) — it is no longer a
+          click-anywhere gateway into the modal. "Ver volante" below is the
+          one explicit way to open the large viewer. */}
+      <div className={CARD}>{previewInner}</div>
 
       {heroAsset?.href ? (
         <div
