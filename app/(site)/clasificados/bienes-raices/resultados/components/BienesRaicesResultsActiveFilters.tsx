@@ -42,6 +42,10 @@ function buildChips(parsed: BrResultsParsedState, copy: BrResultsCopy): Chip[] {
               : parsed.propertyType;
     chips.push({ key: "propertyType", patch: { propertyType: null, tipo: null }, label: `${L.propertyType}: ${pt}` });
   }
+  if (parsed.comercialTipo.trim())
+    chips.push({ key: "comercialTipo", patch: { comercialTipo: null }, label: parsed.comercialTipo.trim() });
+  if (parsed.terrenoTipo.trim())
+    chips.push({ key: "terrenoTipo", patch: { terrenoTipo: null }, label: parsed.terrenoTipo.trim() });
   if (parsed.sellerType)
     chips.push({
       key: "sellerType",

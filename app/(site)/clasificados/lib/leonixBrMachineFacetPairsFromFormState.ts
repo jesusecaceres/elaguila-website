@@ -48,6 +48,8 @@ import {
   LEONIX_DP_PROPERTY_SUBTYPE,
   LEONIX_DP_RESULTS_PROPERTY_KIND,
   LEONIX_DP_BR_SHOW_EXACT_ADDRESS,
+  LEONIX_DP_BR_COMERCIAL_TIPO_CODE,
+  LEONIX_DP_BR_TERRENO_TIPO_CODE,
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import {
   LEONIX_PROP_COUNTRY,
@@ -212,12 +214,14 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(
     if (state.residencial.highlightKeys.includes("piscina")) push(out, LEONIX_DP_POOL, true);
   } else if (cat === "comercial") {
     push(out, LEONIX_DP_PROPERTY_SUBTYPE, state.comercial.tipoCodigo);
+    push(out, LEONIX_DP_BR_COMERCIAL_TIPO_CODE, state.comercial.tipoCodigo);
     const bathNum = parseNonNegNumber(state.comercial.banos);
     if (bathNum != null && bathNum > 0) push(out, LEONIX_DP_BATHROOMS_COUNT, bathNum);
     const park = parseNonNegNumber(state.comercial.estacionamiento);
     if (park != null) push(out, LEONIX_DP_PARKING_SPOTS, park);
   } else {
     push(out, LEONIX_DP_PROPERTY_SUBTYPE, state.terreno.tipoCodigo);
+    push(out, LEONIX_DP_BR_TERRENO_TIPO_CODE, state.terreno.tipoCodigo);
   }
 
   if (state.petsAllowed === "yes") push(out, LEONIX_DP_PETS_ALLOWED, true);
@@ -282,6 +286,10 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesNegocioState(
   push(out, LEONIX_DP_RESULTS_PROPERTY_KIND, rk);
   const subtype = String(state.tipoPropiedad ?? "").trim().toLowerCase().replace(/\s+/g, "_").slice(0, 64);
   if (subtype) push(out, LEONIX_DP_PROPERTY_SUBTYPE, subtype);
+  const comercialTipoCode = String(state.comercialTipoCodigo ?? "").trim();
+  if (rk === "comercial" && comercialTipoCode) push(out, LEONIX_DP_BR_COMERCIAL_TIPO_CODE, comercialTipoCode);
+  const terrenoTipoCode = String(state.terrenoTipoCodigo ?? "").trim();
+  if (rk === "terreno" && terrenoTipoCode) push(out, LEONIX_DP_BR_TERRENO_TIPO_CODE, terrenoTipoCode);
 
   const beds = parseNonNegInt(state.recamaras);
   if (beds != null) push(out, LEONIX_DP_BEDROOMS_COUNT, beds);

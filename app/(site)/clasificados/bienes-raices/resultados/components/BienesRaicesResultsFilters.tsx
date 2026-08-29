@@ -21,6 +21,10 @@ import {
   type BrFilterOption,
   type BrDrawerSection,
 } from "@/app/clasificados/bienes-raices/shared/bienesRaicesFilterOptions";
+import {
+  COMERCIAL_TIPO_OPCIONES,
+  TERRENO_TIPO_OPCIONES,
+} from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteComercialTerrenoMeta";
 
 const INPUT =
   "w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm text-[#1E1810] outline-none focus:border-[#C9B46A]/65";
@@ -188,6 +192,40 @@ export function BienesRaicesResultsFilters({
               <option value="comercial">{copy.typeCommercial}</option>
             </select>
           </label>
+          {parsed.propertyType === "comercial" ? (
+            <label className="block min-w-0">
+              <span className={LABEL}>{lang === "es" ? "Tipo comercial" : "Commercial type"}</span>
+              <select
+                value={parsed.comercialTipo}
+                onChange={(e) => onPatch({ comercialTipo: e.target.value || null })}
+                className={INPUT}
+              >
+                <option value="">{copy.typeAny}</option>
+                {COMERCIAL_TIPO_OPCIONES.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          {parsed.propertyType === "terreno" ? (
+            <label className="block min-w-0">
+              <span className={LABEL}>{lang === "es" ? "Tipo de terreno" : "Land type"}</span>
+              <select
+                value={parsed.terrenoTipo}
+                onChange={(e) => onPatch({ terrenoTipo: e.target.value || null })}
+                className={INPUT}
+              >
+                <option value="">{copy.typeAny}</option>
+                {TERRENO_TIPO_OPCIONES.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
         </div>
       </FilterSection>
 

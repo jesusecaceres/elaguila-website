@@ -100,6 +100,8 @@ export function savedSearchToBienesRaicesFilterState(saved: SavedSearchNormalize
     primary: "",
     secondary: "",
     precio: "",
+    comercialTipo: "",
+    terrenoTipo: "",
     patio: "",
     balcony: "",
     view: "",

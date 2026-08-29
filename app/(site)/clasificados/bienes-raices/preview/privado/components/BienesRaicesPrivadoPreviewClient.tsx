@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { publishLeonixListingFromBienesRaicesPrivadoDraft } from "@/app/clasificados/lib/leonixPublishRealEstateFromDraftState";
 import { useLeonixPublishFlowExitClear } from "@/app/clasificados/lib/leonixApplicationStandard/useLeonixPublishFlowExitClear";
 import { clearLeonixPreviewNavSessionFlag } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import { BrPrivadoPreviewResultCardSection } from "./BrPrivadoPreviewResultCardSection";
+import { buildBrResultCardPreviewListing } from "../model/buildBrResultCardPreviewListing";
 import { PublishCheckoutCheckpoint } from "@/app/clasificados/components/PublishCheckoutCheckpoint";
 import {
   previewModeSuppressesBasePlanCheckout,
@@ -327,6 +329,7 @@ export default function BienesRaicesPrivadoPreviewClient() {
     // in the shell's sticky top header (publishSlot), it renders as a normal block after the ad
     // canvas instead, so the page still opens on the property, not on a pricing card.
     <LeonixPreviewPageShell editHref={editHref}>
+      <BrPrivadoPreviewResultCardSection listing={buildBrResultCardPreviewListing(vm)} lang={lang} />
       <BienesRaicesPrivadoPreviewView vm={vm} lang={lang} />
       {suppressCheckout ? null : (
         <div className="mx-auto mt-6 w-full max-w-[420px] px-4">

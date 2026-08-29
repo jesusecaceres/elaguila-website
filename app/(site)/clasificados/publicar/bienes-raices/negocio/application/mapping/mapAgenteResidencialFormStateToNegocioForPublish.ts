@@ -252,6 +252,9 @@ export function mapAgenteResidencialFormStateToNegocioForPublish(
     descripcionCorta: s.notasAdicionales,
     tipoPropiedad: formatTipoPropiedadLine(s, "es"),
     propertySubtype: trim(s.subtipoPropiedad),
+    // Item 150 — canonical type codes for results filtering (separate from the human label above).
+    comercialTipoCodigo: s.categoriaPropiedad === "comercial" ? s.comercialTipoCodigo : undefined,
+    terrenoTipoCodigo: s.categoriaPropiedad === "terreno_lote" ? s.terrenoTipoCodigo : undefined,
     recamaras: s.recamaras,
     banosCompletos: s.banos,
     mediosBanos: s.mediosBanos,

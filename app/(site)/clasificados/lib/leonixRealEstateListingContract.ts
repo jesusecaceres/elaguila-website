@@ -48,6 +48,11 @@ export const LEONIX_DP_BR_VIDEO_URL_4 = "Leonix:br:video_url_4";
 /** Owner-typed "Agregar otra característica" text — kept separate from `Leonix:highlight_slugs`
  * (which is machine-slugified for filtering and cannot round-trip free text/spaces/accents). */
 export const LEONIX_DP_BR_CUSTOM_HIGHLIGHTS = "Leonix:br:custom_highlights";
+/** Item 150 — canonical commercial/land TYPE code, separate from the human-readable
+ * `Leonix:property_subtype` label line, so results filters can match a stable enum value
+ * instead of a slugified, locale-dependent display string. Additive-only. */
+export const LEONIX_DP_BR_COMERCIAL_TIPO_CODE = "Leonix:br:comercial_tipo_code";
+export const LEONIX_DP_BR_TERRENO_TIPO_CODE = "Leonix:br:terreno_tipo_code";
 
 export const LEONIX_MACHINE_FACET_LABELS: readonly string[] = [
   LEONIX_DP_BEDROOMS_COUNT,
@@ -76,6 +81,9 @@ export type LeonixMachineFacetRead = {
   highlightSlugs: string[];
   propertySubtype: string | null;
   resultsPropertyKind: BrResultsPropertyKind | null;
+  /** Item 150 — canonical commercial/land type codes for results filtering. */
+  comercialTipoCode: string | null;
+  terrenoTipoCode: string | null;
 };
 
 export type LeonixClasificadosBranch =
@@ -162,6 +170,8 @@ export function parseLeonixMachineFacetRead(detailPairs: unknown): LeonixMachine
     highlightSlugs: parseHighlightSlugsList(readPair(detailPairs, LEONIX_DP_HIGHLIGHT_SLUGS)),
     propertySubtype: readPair(detailPairs, LEONIX_DP_PROPERTY_SUBTYPE),
     resultsPropertyKind: parseResultsPropertyKind(readPair(detailPairs, LEONIX_DP_RESULTS_PROPERTY_KIND)),
+    comercialTipoCode: readPair(detailPairs, LEONIX_DP_BR_COMERCIAL_TIPO_CODE),
+    terrenoTipoCode: readPair(detailPairs, LEONIX_DP_BR_TERRENO_TIPO_CODE),
   };
 }
 

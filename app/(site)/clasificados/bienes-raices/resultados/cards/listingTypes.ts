@@ -54,6 +54,9 @@ export type BrNegocioListing = {
   facetPool?: boolean | null;
   facetPets?: boolean | null;
   facetFurnished?: boolean | null;
+  /** Item 150 — canonical commercial/land type codes for results filtering. */
+  comercialTipoCode?: string | null;
+  terrenoTipoCode?: string | null;
   /**
    * Sort key for “reciente” in `filterBrListings`: demo rows set explicitly; live rows use
    * max(`created_at`,`updated_at`,`published_at`) from `mapBrListingRowToNegocioCard`.

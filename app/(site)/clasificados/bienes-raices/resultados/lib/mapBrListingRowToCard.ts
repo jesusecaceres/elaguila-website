@@ -207,6 +207,8 @@ export function mapBrListingRowToNegocioCard(row: BrListingDbRow, lang: "es" | "
     facetPool: m?.pool ?? null,
     facetPets: m?.petsAllowed ?? null,
     facetFurnished: m?.furnished ?? null,
+    comercialTipoCode: m?.comercialTipoCode ?? null,
+    terrenoTipoCode: m?.terrenoTipoCode ?? null,
     searchBlob: searchBlob || undefined,
     adPlanLabel: monetization.adPlanLabelEs,
     adPlanKey: monetization.adPlanKey,
