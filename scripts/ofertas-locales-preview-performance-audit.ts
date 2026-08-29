@@ -19,6 +19,7 @@ import {
   acquireSharedPdfDocument,
   releaseSharedPdfDocument,
 } from "../app/(site)/publicar/ofertas-locales/preview/ofertasLocalesPdfDocumentCache";
+import { buildOfertaLocalMailtoHref } from "../app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
 import { OFERTAS_AI_SCANNER_PROTECTED_PATHS } from "../app/lib/ofertas-locales/ofertasAiScannerProtectedPaths";
 
 type Verdict = { id: string; label: string; ok: boolean };
@@ -300,6 +301,27 @@ check("32", "No DB migration introduced by this change", () => {
   for (const src of [cropSrc, flyerPreviewSrc, modalSrc, heroVisualSrc, cardSrc, clientSrc, cacheSrc]) {
     assert.doesNotMatch(src, /CREATE TABLE|ALTER TABLE/i);
   }
+});
+
+// ⚠️75 — the mailto "To" address was being run through encodeURIComponent(),
+// which turns "@" into "%40". Per RFC 6068 the recipient address must NOT be
+// percent-encoded; only the query (subject/body) is. A real function call,
+// not a regex, since this is exactly the kind of bug a source-pattern check
+// would miss (the buggy and fixed versions both "look like" a mailto builder).
+check("40", "Mailto 'To' address keeps a literal '@' (real function call, the exact live-repro case)", () => {
+  const href = buildOfertaLocalMailtoHref("jesusecaceres@gmail.com", "Supermercado Latino");
+  assert.match(href, /^mailto:jesusecaceres@gmail\.com\?subject=/, `got: ${href}`);
+  assert.doesNotMatch(href, /%40/, "the recipient address must never be percent-encoded");
+});
+
+check("41", "Mailto subject is still correctly percent-encoded (only the query, not the recipient)", () => {
+  const href = buildOfertaLocalMailtoHref("jesusecaceres@gmail.com", "Supermercado Latino");
+  assert.match(href, /subject=Supermercado%20Latino%20%C2%B7%20Leonix$/, `got: ${href}`);
+});
+
+check("42", "Correo CTA is still a plain native <a href> — no fetch/XHR, no app-router Link wrapping it", () => {
+  assert.match(cardSrc, /<a href=\{mailtoHref\} className=\{cx\(BTN_PRIMARY, "mt-3"\)\}>/);
+  assert.doesNotMatch(cardSrc, /fetch\(mailtoHref/);
 });
 
 const failed = results.filter((r) => !r.ok);
