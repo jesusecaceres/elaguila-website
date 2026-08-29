@@ -85,6 +85,8 @@ export type RentasPrivadoFormState = {
   rentasAlmacenCubierto: "" | "si" | "no";
   rentasAlmacenUsoPermitido: string;
   rentasAlmacenDimensiones: string;
+  /** Item 237 — vehicle-size/type restrictions, distinct from the generic "permitted use" field. */
+  rentasAlmacenRestriccionesVehiculo: string;
   /** Oficina / local */
   rentasComercialUsoPermitido: string;
   rentasComercialTamanoFt2: string;
@@ -302,6 +304,7 @@ export function createEmptyRentasPrivadoFormState(): RentasPrivadoFormState {
     rentasAlmacenCubierto: "",
     rentasAlmacenUsoPermitido: "",
     rentasAlmacenDimensiones: "",
+    rentasAlmacenRestriccionesVehiculo: "",
     rentasComercialUsoPermitido: "",
     rentasComercialTamanoFt2: "",
     rentasComercialBanoDisponible: "",
@@ -484,6 +487,10 @@ export function mergePartialRentasPrivadoState(partial: Partial<RentasPrivadoFor
       typeof partial.rentasAlmacenUsoPermitido === "string" ? partial.rentasAlmacenUsoPermitido : base.rentasAlmacenUsoPermitido,
     rentasAlmacenDimensiones:
       typeof partial.rentasAlmacenDimensiones === "string" ? partial.rentasAlmacenDimensiones : base.rentasAlmacenDimensiones,
+    rentasAlmacenRestriccionesVehiculo:
+      typeof partial.rentasAlmacenRestriccionesVehiculo === "string"
+        ? partial.rentasAlmacenRestriccionesVehiculo
+        : base.rentasAlmacenRestriccionesVehiculo,
     rentasComercialUsoPermitido:
       typeof partial.rentasComercialUsoPermitido === "string" ? partial.rentasComercialUsoPermitido : base.rentasComercialUsoPermitido,
     rentasComercialTamanoFt2:

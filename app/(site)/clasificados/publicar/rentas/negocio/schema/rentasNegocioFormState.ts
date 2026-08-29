@@ -67,6 +67,7 @@ export type RentasNegocioFormState = {
   rentasAlmacenCubierto: RentasPrivadoFormState["rentasAlmacenCubierto"];
   rentasAlmacenUsoPermitido: RentasPrivadoFormState["rentasAlmacenUsoPermitido"];
   rentasAlmacenDimensiones: RentasPrivadoFormState["rentasAlmacenDimensiones"];
+  rentasAlmacenRestriccionesVehiculo: RentasPrivadoFormState["rentasAlmacenRestriccionesVehiculo"];
   rentasComercialUsoPermitido: RentasPrivadoFormState["rentasComercialUsoPermitido"];
   rentasComercialTamanoFt2: RentasPrivadoFormState["rentasComercialTamanoFt2"];
   rentasComercialBanoDisponible: RentasPrivadoFormState["rentasComercialBanoDisponible"];
@@ -167,6 +168,7 @@ export function createEmptyRentasNegocioFormState(): RentasNegocioFormState {
     rentasAlmacenCubierto: "",
     rentasAlmacenUsoPermitido: "",
     rentasAlmacenDimensiones: "",
+    rentasAlmacenRestriccionesVehiculo: "",
     rentasComercialUsoPermitido: "",
     rentasComercialTamanoFt2: "",
     rentasComercialBanoDisponible: "",
@@ -294,6 +296,7 @@ export function mergePartialRentasNegocioState(partial: Partial<RentasNegocioFor
     rentasAlmacenCubierto: asPrivado.rentasAlmacenCubierto,
     rentasAlmacenUsoPermitido: asPrivado.rentasAlmacenUsoPermitido,
     rentasAlmacenDimensiones: asPrivado.rentasAlmacenDimensiones,
+    rentasAlmacenRestriccionesVehiculo: asPrivado.rentasAlmacenRestriccionesVehiculo,
     rentasComercialUsoPermitido: asPrivado.rentasComercialUsoPermitido,
     rentasComercialTamanoFt2: asPrivado.rentasComercialTamanoFt2,
     rentasComercialBanoDisponible: asPrivado.rentasComercialBanoDisponible,

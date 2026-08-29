@@ -535,6 +535,7 @@ export function buildDestacadosLabels(
         out.push(locale === "en" ? COMERCIAL_DESTACADO_EN[def.id] : def.label);
       }
     }
+    out.push(...(s.destacadosComercialCustom ?? []));
     return out;
   }
   if (s.categoriaPropiedad === "terreno_lote") {
@@ -544,6 +545,7 @@ export function buildDestacadosLabels(
         out.push(locale === "en" ? TERRENO_DESTACADO_EN[def.id] : def.label);
       }
     }
+    out.push(...(s.destacadosTerrenoCustom ?? []));
     return out;
   }
   const out: string[] = [];
@@ -552,6 +554,7 @@ export function buildDestacadosLabels(
       out.push(locale === "en" ? DESTACADO_EN[def.id] : def.label);
     }
   }
+  out.push(...(s.destacadosCustom ?? []));
   return out;
 }
 
@@ -1079,6 +1082,8 @@ export function buildOpenHouseSlotRows(
   const labHours = locale === "en" ? "Hours" : "Horario";
   const labExtra = locale === "en" ? "Additional days/hours" : "Días/horarios adicionales";
   const labNotes = locale === "en" ? "Notes" : "Notas";
+  const labAppointment = locale === "en" ? "By appointment only" : "Solo con cita previa";
+  const labBooking = locale === "en" ? "Booking link" : "Enlace para reservar";
   const out: Array<{ label: string; value: string }[]> = [];
   for (const slot of slots) {
     const rows: { label: string; value: string }[] = [];
@@ -1088,6 +1093,8 @@ export function buildOpenHouseSlotRows(
     if (r.length) rows.push({ label: labHours, value: r.join(" – ") });
     if (trim(slot.diasHorariosAdicionales)) rows.push({ label: labExtra, value: trim(slot.diasHorariosAdicionales) });
     if (trim(slot.notas)) rows.push({ label: labNotes, value: trim(slot.notas) });
+    if (slot.soloConCita) rows.push({ label: labAppointment, value: locale === "en" ? "Yes" : "Sí" });
+    if (trim(slot.enlaceReservar)) rows.push({ label: labBooking, value: trim(slot.enlaceReservar) });
     if (rows.length) out.push(rows);
   }
   return out;

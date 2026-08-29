@@ -73,6 +73,7 @@ export type RentasFlowFormSlice = Pick<
   | "rentasAlmacenCubierto"
   | "rentasAlmacenUsoPermitido"
   | "rentasAlmacenDimensiones"
+  | "rentasAlmacenRestriccionesVehiculo"
   | "rentasComercialUsoPermitido"
   | "rentasComercialTamanoFt2"
   | "rentasComercialBanoDisponible"
@@ -244,6 +245,8 @@ function extensionRows(s: RentasFlowFormSlice, g: RentasRentalFlowGroup): Bienes
     if (r2) out.push(r2);
     const r3 = row("Altura / dimensiones", s.rentasAlmacenDimensiones);
     if (r3) out.push(r3);
+    const r4 = row("Restricciones de vehículo", s.rentasAlmacenRestriccionesVehiculo);
+    if (r4) out.push(r4);
   }
   if (g === "commercial_space") {
     const r0 = row("Uso permitido", s.rentasComercialUsoPermitido);

@@ -19,10 +19,10 @@ import {
   type TerrenoTipoCodigo,
 } from "../schema/agenteComercialTerrenoMeta";
 import {
-  SUBTIPO_POR_TIPO,
   SUBTIPO_SUBVALUE_LABEL_EN,
   TIPO_PROPIEDAD_LABEL_EN,
   TIPO_PROPIEDAD_OPCIONES,
+  selectableSubtipoOptionsForTipo,
 } from "../schema/agenteResidencialTipoMeta";
 import type { TipoPropiedadCodigo } from "../schema/agenteResidencialTipoMeta";
 import { BrAgenteLocationFormFields } from "@/app/lib/clasificados/bienes-raices/brLocationFormFields";
@@ -37,6 +37,10 @@ export const BR_AGENTE_RES_TOUR_FILE_ACCEPT =
 export const BR_AGENTE_RES_BROCHURE_FILE_ACCEPT =
   "application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,image/jpeg,.jpg,.jpeg,.png,image/png";
 
+/** Item 81 — sentinel <select> value for the residential Subtipo "Otro (especifica)" custom
+ * fallback. Never stored — `subtipoPropiedad` always holds the actual free-text value. */
+const RESIDENCIAL_SUBTIPO_OTRO = "__otro__";
+
 export function Step01TipoAnuncio({
   state,
   setState,
@@ -46,6 +50,7 @@ export function Step01TipoAnuncio({
 }) {
   const { lang, t } = useBrAgenteResidencialCopy();
   const cat = state.categoriaPropiedad;
+  const [subtipoOtroActive, setSubtipoOtroActive] = useState(false);
 
   const subIntro =
     cat === "comercial" ? t.step01.subComercial : cat === "terreno_lote" ? t.step01.subTerreno : t.step01.subResidencial;
@@ -65,8 +70,11 @@ export function Step01TipoAnuncio({
         : t.step01.ventaResidencial;
 
   const residencialCodigo = state.tipoPropiedadCodigo;
-  const residencialSubtipos = SUBTIPO_POR_TIPO[residencialCodigo];
+  const residencialSubtipos = selectableSubtipoOptionsForTipo(residencialCodigo, state.subtipoPropiedad);
   const showResidencialSubtipo = residencialSubtipos.length > 0;
+  const isKnownResidencialSubtipo = residencialSubtipos.some((o) => o.value === state.subtipoPropiedad);
+  const isCustomResidencialSubtipo =
+    subtipoOtroActive || (Boolean(state.subtipoPropiedad.trim()) && !isKnownResidencialSubtipo);
 
   const tipoResLabel = (value: TipoPropiedadCodigo) =>
     lang === "en" ? TIPO_PROPIEDAD_LABEL_EN[value] : TIPO_PROPIEDAD_OPCIONES.find((o) => o.value === value)?.label ?? value;
@@ -172,15 +180,33 @@ export function Step01TipoAnuncio({
             <AiField label={t.step01.subtipo} hint={t.step01.subtipoHint}>
               <select
                 className={aiInputClass}
-                value={state.subtipoPropiedad}
-                onChange={(e) => setState((s) => ({ ...s, subtipoPropiedad: e.target.value }))}
+                value={isCustomResidencialSubtipo ? RESIDENCIAL_SUBTIPO_OTRO : state.subtipoPropiedad}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === RESIDENCIAL_SUBTIPO_OTRO) {
+                    setSubtipoOtroActive(true);
+                    setState((s) => ({ ...s, subtipoPropiedad: "" }));
+                    return;
+                  }
+                  setSubtipoOtroActive(false);
+                  setState((s) => ({ ...s, subtipoPropiedad: v }));
+                }}
               >
                 {residencialSubtipos.map((o) => (
                   <option key={o.value || "none"} value={o.value}>
                     {subtipoResOptionLabel(o.value, o.label)}
                   </option>
                 ))}
+                <option value={RESIDENCIAL_SUBTIPO_OTRO}>{lang === "en" ? "Other (specify)" : "Otro (especifica)"}</option>
               </select>
+              {isCustomResidencialSubtipo ? (
+                <input
+                  className={`${aiInputClass} mt-2`}
+                  value={state.subtipoPropiedad}
+                  placeholder={lang === "en" ? "Describe the subtype" : "Describe el subtipo"}
+                  onChange={(e) => setState((s) => ({ ...s, subtipoPropiedad: e.target.value }))}
+                />
+              ) : null}
             </AiField>
           </div>
         ) : null}
@@ -259,6 +285,7 @@ function UrlOrFileRow({
   fileReadyLabel,
   usarUrlLabel,
   showFileUpload = true,
+  addedLabel,
 }: {
   label: string;
   hint?: string;
@@ -275,6 +302,9 @@ function UrlOrFileRow({
   fileReadyLabel: string;
   usarUrlLabel: string;
   showFileUpload?: boolean;
+  /** Item 114/115 — styled "added" confirmation, matching the video field's pattern, shown once
+   * `urlValue` (the committed value, not the in-progress draft) is a valid http(s) URL. */
+  addedLabel?: string;
 }) {
   const [urlDraft, setUrlDraft] = useState(urlValue);
   useEffect(() => {
@@ -320,6 +350,9 @@ function UrlOrFileRow({
       </div>
       {urlValue && !fileActive ? (
         <p className="mt-2 text-xs font-medium text-[#5C5346]">{urlValue}</p>
+      ) : null}
+      {urlValue && !fileActive && addedLabel && validHttpUrl(urlValue) ? (
+        <p className="mt-1 text-xs font-bold text-[#2F6B3C]">{addedLabel}</p>
       ) : null}
       {fileActive ? (
         <div className="mt-2 rounded-xl border border-[#C9B46A]/45 bg-[#FFF9E8] px-3 py-2.5">
@@ -637,6 +670,7 @@ export function Step03Media({
           fileReadyLabel={t.step03.archivoListoPublicar}
           usarUrlLabel={t.step03.usarUrl}
           showFileUpload={false}
+          addedLabel={t.step07.linkAdded}
         />
         <UrlOrFileRow
           label={t.step03.folleto}
@@ -655,6 +689,7 @@ export function Step03Media({
           quitar={t.step02.quitar}
           fileReadyLabel={t.step03.archivoListoPublicar}
           usarUrlLabel={t.step03.usarUrl}
+          addedLabel={t.step07.linkAdded}
         />
       </div>
     </section>

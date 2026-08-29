@@ -254,6 +254,16 @@ export function RentasTipoFlowDetailFields<T extends S>({ state, setState, field
             />
           </AiField>
         </div>
+        <div className="sm:col-span-2">
+          <AiField label={tf.vehicleRestrictions} hint={tf.vehicleRestrictionsHint}>
+            <input
+              className={fieldClass}
+              value={state.rentasAlmacenRestriccionesVehiculo}
+              onChange={(e) => setState((s) => ({ ...s, rentasAlmacenRestriccionesVehiculo: e.target.value }))}
+              autoComplete="off"
+            />
+          </AiField>
+        </div>
       </div>
     );
   }
