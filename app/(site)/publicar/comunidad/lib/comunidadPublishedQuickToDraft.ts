@@ -86,6 +86,7 @@ export function comunidadPublishedQuickToDraft(
   d.audience = (pairs["Leonix:audience"] ?? "").trim();
   d.registrationRequired = (pairs["Leonix:registrationRequired"] ?? "").trim();
   d.bringNote = (pairs["Leonix:bringNote"] ?? "").trim();
+  d.restrictionsNote = (pairs["Leonix:restrictionsNote"] ?? "").trim();
 
   d.publicCity = (listing.city ?? "").trim();
   d.state = (pairs["Leonix:state"] ?? "").trim();

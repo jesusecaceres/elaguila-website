@@ -26,6 +26,13 @@ type Props = {
    */
   formatUsPhone?: boolean;
   websiteInputType?: "url" | "text";
+  /**
+   * When false, hides the "preferred primary action" radio selector entirely
+   * (Comunidad Gate 1 QA: visitors already see every populated contact method
+   * on the public listing — asking the organizer to pre-pick one is misleading).
+   * Defaults to true — unchanged behavior for every existing caller (Empleos, Clases).
+   */
+  showPrimaryCtaSelector?: boolean;
 };
 
 const US_PHONE_PLACEHOLDER = "(555) 123-4567";
@@ -41,6 +48,7 @@ export function EmpleosCtaFieldGroup({
   primaryHint,
   formatUsPhone = false,
   websiteInputType = "url",
+  showPrimaryCtaSelector = true,
 }: Props) {
   return (
     <div className="space-y-4">
@@ -99,20 +107,22 @@ export function EmpleosCtaFieldGroup({
           />
         </label>
       </div>
-      <fieldset>
-        <legend className="text-sm font-semibold text-[color:var(--lx-text)]">{labels.primary}</legend>
-        <div className="mt-2 flex flex-wrap gap-4 text-sm">
-          {(["phone", "whatsapp", "email"] as const).map((k) => (
-            <label key={k} className="inline-flex items-center gap-2">
-              <input type="radio" name="empleos-primary-cta" checked={primaryCta === k} onChange={() => onChange({ primaryCta: k })} />
-              {labels[k]}
-            </label>
-          ))}
-        </div>
-        {primaryHint ? (
-          <p className="mt-2 text-xs leading-relaxed text-[color:var(--lx-text-2)]">{primaryHint}</p>
-        ) : null}
-      </fieldset>
+      {showPrimaryCtaSelector ? (
+        <fieldset>
+          <legend className="text-sm font-semibold text-[color:var(--lx-text)]">{labels.primary}</legend>
+          <div className="mt-2 flex flex-wrap gap-4 text-sm">
+            {(["phone", "whatsapp", "email"] as const).map((k) => (
+              <label key={k} className="inline-flex items-center gap-2">
+                <input type="radio" name="empleos-primary-cta" checked={primaryCta === k} onChange={() => onChange({ primaryCta: k })} />
+                {labels[k]}
+              </label>
+            ))}
+          </div>
+          {primaryHint ? (
+            <p className="mt-2 text-xs leading-relaxed text-[color:var(--lx-text-2)]">{primaryHint}</p>
+          ) : null}
+        </fieldset>
+      ) : null}
     </div>
   );
 }

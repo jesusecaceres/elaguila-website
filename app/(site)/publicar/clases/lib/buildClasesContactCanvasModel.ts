@@ -30,6 +30,10 @@ const UI_CLASES = {
     foodVendors: "Comida / puestos",
     sponsors: "Patrocinadores",
     map: "Ver en el mapa",
+    groupEnrollment: "Inscripción y pago",
+    groupMaterials: "Materiales y aprendizaje",
+    groupInstructor: "Instructor y organización",
+    groupOther: "Otros recursos",
   },
   en: {
     contactTitle: "Instructor / organizer contact",
@@ -53,6 +57,10 @@ const UI_CLASES = {
     foodVendors: "Food / vendors",
     sponsors: "Sponsors",
     map: "View on map",
+    groupEnrollment: "Registration & payment",
+    groupMaterials: "Materials & learning",
+    groupInstructor: "Instructor & organization",
+    groupOther: "Other resources",
   },
 } as const;
 
@@ -72,27 +80,28 @@ function buildClasesLinkItems(
   tc: typeof UI_CLASES[Lang],
 ): CommunityContactCanvasLinkItem[] {
   const linkItems: CommunityContactCanvasLinkItem[] = [];
-  const push = (key: string, raw: string, label: string) => {
+  const push = (key: string, raw: string, label: string, groupLabel: string) => {
     const href = normalizeWebsiteForOpen(raw);
-    if (href) linkItems.push({ key, href, label });
+    if (href) linkItems.push({ key, href, label, groupLabel });
   };
-  push("reg", cl.registrationUrl, tc.register);
-  push("pay", cl.paymentUrl, tc.pay);
-  push("tix", cl.ticketsUrl, tc.tickets);
-  push("don", cl.donationUrl, tc.donate);
-  push("mat", cl.classMaterialsUrl, tc.materials);
-  push("syl", cl.syllabusUrl, tc.syllabus);
-  push("gui", cl.classGuideUrl, tc.classGuide);
-  push("ins", cl.instructorPageUrl, tc.instructorPage);
-  push("stu", cl.studentPortalUrl, tc.studentPortal);
-  push("vnd", cl.vendorsResourcesUrl, tc.vendors);
-  push("fvd", cl.foodVendorsUrl, tc.foodVendors);
-  push("spo", cl.sponsorsUrl, tc.sponsors);
+  /** Grouped into logical public sections (Gate 2A Section Q) — no empty groups, no flat wall of links. */
+  push("reg", cl.registrationUrl, tc.register, tc.groupEnrollment);
+  push("pay", cl.paymentUrl, tc.pay, tc.groupEnrollment);
+  push("tix", cl.ticketsUrl, tc.tickets, tc.groupEnrollment);
+  push("don", cl.donationUrl, tc.donate, tc.groupEnrollment);
+  push("mat", cl.classMaterialsUrl, tc.materials, tc.groupMaterials);
+  push("syl", cl.syllabusUrl, tc.syllabus, tc.groupMaterials);
+  push("gui", cl.classGuideUrl, tc.classGuide, tc.groupMaterials);
+  push("ins", cl.instructorPageUrl, tc.instructorPage, tc.groupInstructor);
+  push("stu", cl.studentPortalUrl, tc.studentPortal, tc.groupInstructor);
+  push("vnd", cl.vendorsResourcesUrl, tc.vendors, tc.groupOther);
+  push("fvd", cl.foodVendorsUrl, tc.foodVendors, tc.groupOther);
+  push("spo", cl.sponsorsUrl, tc.sponsors, tc.groupOther);
   if (cl.customLink1Label.trim() && normalizeWebsiteForOpen(cl.customLink1Url)) {
-    push("c1", cl.customLink1Url, cl.customLink1Label.trim());
+    push("c1", cl.customLink1Url, cl.customLink1Label.trim(), tc.groupOther);
   }
   if (cl.customLink2Label.trim() && normalizeWebsiteForOpen(cl.customLink2Url)) {
-    push("c2", cl.customLink2Url, cl.customLink2Label.trim());
+    push("c2", cl.customLink2Url, cl.customLink2Label.trim(), tc.groupOther);
   }
   return linkItems;
 }

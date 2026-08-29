@@ -15,11 +15,15 @@ const GATE = {
     description: "Descripción breve",
     city: "Ciudad",
     cityInvalid: "Selecciona una ciudad válida de la lista.",
-    lastSeenLocation: "Última ubicación vista / lugar",
-    contactPhone: "Teléfono / WhatsApp",
-    phoneDigits: "Teléfono / WhatsApp: ingresa 10 dígitos",
+    lastSeenLocation: "Área aproximada",
+    image: "Al menos una foto",
+    contact: "Al menos un método de contacto (teléfono, texto, WhatsApp o correo)",
+    phoneDigits: "Teléfono: ingresa 10 dígitos o déjalo vacío",
+    smsDigits: "Mensajes de texto: ingresa 10 dígitos o déjalo vacío",
+    whatsappDigits: "WhatsApp: ingresa 10 dígitos o déjalo vacío",
     emailInvalid: "Correo: ingresa un email válido",
-    image: "Imagen",
+    rewardAmount: "Monto de la recompensa",
+    confirmations: "Marca las tres confirmaciones de Leonix antes de continuar",
   },
   en: {
     noticeType: "Notice type",
@@ -27,11 +31,15 @@ const GATE = {
     description: "Short description",
     city: "City",
     cityInvalid: "Select a valid city from the list.",
-    lastSeenLocation: "Last seen / location",
-    contactPhone: "Phone / WhatsApp",
-    phoneDigits: "Phone / WhatsApp: enter 10 digits",
+    lastSeenLocation: "Approximate area",
+    image: "At least one photo",
+    contact: "At least one contact method (phone, text, WhatsApp, or email)",
+    phoneDigits: "Phone: enter 10 digits or leave blank",
+    smsDigits: "Text number: enter 10 digits or leave blank",
+    whatsappDigits: "WhatsApp: enter 10 digits or leave blank",
     emailInvalid: "Email: enter a valid email address",
-    image: "Image",
+    rewardAmount: "Reward amount",
+    confirmations: "Check all three Leonix confirmations before continuing",
   },
 } as const;
 
@@ -39,6 +47,20 @@ function isProbablySafeEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
 
+function hasAnyDirectContact(d: MascotasPerdidosQuickDraft): boolean {
+  return (
+    digitsOnly(d.phone).length === 10 ||
+    digitsOnly(d.smsPhone).length === 10 ||
+    digitsOnly(d.whatsapp).length === 10 ||
+    (st(d.email) !== "" && isProbablySafeEmail(d.email))
+  );
+}
+
+/**
+ * Gate 3 — conditional required fields per notice type, at least one direct contact method, and
+ * (Section O — stricter than the Comunidad/Clases pattern by explicit owner instruction) the three
+ * Leonix confirmations, all gating Preview itself here, not just the final Publish step.
+ */
 export function gateMascotasPerdidosQuickPreview(
   d: MascotasPerdidosQuickDraft,
   lang: Lang = "es",
@@ -58,16 +80,21 @@ export function gateMascotasPerdidosQuickPreview(
   }
 
   if (!st(d.lastSeenLocation)) issues.push(L.lastSeenLocation);
+  if (d.images.length === 0) issues.push(L.image);
 
-  const phoneDig = digitsOnly(d.contactPhone);
-  if (phoneDig.length < 10) {
-    issues.push(phoneDig.length === 0 ? L.contactPhone : L.phoneDigits);
-  }
-
+  if (st(d.phone) && digitsOnly(d.phone).length !== 10) issues.push(L.phoneDigits);
+  if (st(d.smsPhone) && digitsOnly(d.smsPhone).length !== 10) issues.push(L.smsDigits);
+  if (st(d.whatsapp) && digitsOnly(d.whatsapp).length !== 10) issues.push(L.whatsappDigits);
   const email = st(d.email);
   if (email && !isProbablySafeEmail(email)) issues.push(L.emailInvalid);
+  if (!hasAnyDirectContact(d)) issues.push(L.contact);
 
-  if (!st(d.imageDataUrl)) issues.push(L.image);
+  const rewardEligible = d.noticeType === "mascota-perdida" || d.noticeType === "objeto-perdido";
+  if (rewardEligible && d.offersReward && !st(d.rewardAmount)) issues.push(L.rewardAmount);
+
+  if (!d.publishConfirmations.infoTruthful || !d.publishConfirmations.mediaAccurate || !d.publishConfirmations.rulesAccepted) {
+    issues.push(L.confirmations);
+  }
 
   return issues.length ? { ok: false, issues } : { ok: true };
 }

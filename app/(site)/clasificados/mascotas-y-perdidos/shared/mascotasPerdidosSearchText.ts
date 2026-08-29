@@ -16,6 +16,17 @@ export function buildMascotasPerdidosSearchBlob(
   const typeLabel = resolveMascotasPerdidosNoticeLabel(typeSlug, lang);
   const city = String(row.city ?? "");
   const lastSeen = pairs["Leonix:lastSeenLocation"] ?? "";
+  const landmark = pairs["Leonix:landmark"] ?? "";
   const leonix = String(row.leonix_ad_id ?? "");
-  return `${title} ${desc} ${typeLabel} ${typeSlug} ${city} ${lastSeen} ${leonix}`.toLowerCase();
+  /** Gate 3 — pet/object fields folded into the search blob so species/breed/color/name are findable. */
+  const petFields = [
+    pairs["Leonix:petName"],
+    pairs["Leonix:species"],
+    pairs["Leonix:breed"],
+    pairs["Leonix:color"],
+    pairs["Leonix:objectType"],
+  ]
+    .filter(Boolean)
+    .join(" ");
+  return `${title} ${desc} ${typeLabel} ${typeSlug} ${city} ${lastSeen} ${landmark} ${petFields} ${leonix}`.toLowerCase();
 }

@@ -26,6 +26,44 @@ const COPY_CLASES = {
   },
 } as const;
 
+const COPY_MASCOTAS = {
+  es: {
+    title: "Confirmación antes de publicar",
+    desc: "Estas casillas ayudan a mantener Leonix claro y confiable para todos.",
+    a: "Confirmo que la información del aviso es veraz y actualizada.",
+    b: "Confirmo que las fotos representan la mascota u objeto que estoy publicando.",
+    c: "Confirmo que mi aviso respeta las reglas de la comunidad y del marketplace.",
+    rulesLink: "Ver reglas de Leonix",
+  },
+  en: {
+    title: "Confirmation before publishing",
+    desc: "These checks help keep Leonix clear and trustworthy for everyone.",
+    a: "I confirm the notice information is truthful and up to date.",
+    b: "I confirm the photos represent the pet or item I am publishing.",
+    c: "I confirm my notice follows the community and marketplace rules.",
+    rulesLink: "View Leonix rules",
+  },
+} as const;
+
+const COPY_BUSCO = {
+  es: {
+    title: "Confirmación antes de publicar",
+    desc: "Estas casillas ayudan a mantener Leonix claro y confiable para todos.",
+    a: "Confirmo que la información de mi solicitud es veraz y actualizada.",
+    b: "Confirmo que la imagen (si agregué una) representa lo que estoy buscando.",
+    c: "Confirmo que mi solicitud respeta las reglas de la comunidad y del marketplace.",
+    rulesLink: "Ver reglas de Leonix",
+  },
+  en: {
+    title: "Confirmation before publishing",
+    desc: "These checks help keep Leonix clear and trustworthy for everyone.",
+    a: "I confirm my request information is truthful and up to date.",
+    b: "I confirm the image (if I added one) represents what I am looking for.",
+    c: "I confirm my request follows the community and marketplace rules.",
+    rulesLink: "View Leonix rules",
+  },
+} as const;
+
 const COPY_COMUNIDAD = {
   es: {
     title: "Confirmación antes de publicar",
@@ -47,14 +85,21 @@ const COPY_COMUNIDAD = {
 
 type Props = {
   lang: "es" | "en";
-  variant: "clases" | "comunidad";
+  variant: "clases" | "comunidad" | "mascotas" | "busco";
   value: CommunityPublishConfirmations;
   onChange: (patch: Partial<CommunityPublishConfirmations>) => void;
 };
 
 export function CommunityPublishConfirmationSection({ lang, variant, value, onChange }: Props) {
   const [rulesOpen, setRulesOpen] = useState(false);
-  const t = variant === "comunidad" ? COPY_COMUNIDAD[lang] : COPY_CLASES[lang];
+  const t =
+    variant === "comunidad"
+      ? COPY_COMUNIDAD[lang]
+      : variant === "mascotas"
+        ? COPY_MASCOTAS[lang]
+        : variant === "busco"
+          ? COPY_BUSCO[lang]
+          : COPY_CLASES[lang];
 
   const row =
     "flex cursor-pointer items-start gap-3 rounded-xl border border-black/10 bg-[#FAFAFA] p-3 text-sm text-[color:var(--lx-text)]";

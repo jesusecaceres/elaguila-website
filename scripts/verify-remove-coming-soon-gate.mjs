@@ -104,27 +104,33 @@ for (const dir of CATEGORY_DIRS) {
 ok("8. No public category routes were removed");
 
 // ---------------------------------------------------------------------------
-// 9-10. No DB migration, no Revenue OS / Stripe changes in this change's scope
+// 9-10. No DB migration, no Revenue OS / Stripe changes in the removal commit itself.
+//
+// This must answer "did commit 942b14e5 (fix(site): remove public coming soon gate)
+// itself touch a protected file?", not "what differs from some moving/stale baseline?" —
+// a plain `git diff --name-only origin/main` (or any fixed historical base) drifts as
+// soon as later, unrelated, separately-certified work lands on main afterward, and would
+// then falsely attribute that later work's files to this change. Diffing the exact commit
+// against its own first parent is immune to main moving in either direction.
 // ---------------------------------------------------------------------------
 {
-  const changedFiles = execSync("git diff --name-only origin/main", { cwd: root, encoding: "utf8" })
+  const COMING_SOON_REMOVAL_COMMIT = "942b14e532aca0170857b2d8c1aab5161dd7cdab";
+  const commitTouched = execSync(
+    `git diff-tree --no-commit-id --name-only -r ${COMING_SOON_REMOVAL_COMMIT}`,
+    { cwd: root, encoding: "utf8" },
+  )
     .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
-  const untrackedFiles = execSync("git status --porcelain", { cwd: root, encoding: "utf8" })
-    .split("\n")
-    .filter((l) => l.startsWith("??"))
-    .map((l) => l.slice(3).trim());
-  const allTouched = [...new Set([...changedFiles, ...untrackedFiles])];
 
-  const migrationTouched = allTouched.some((f) => f.startsWith("supabase/migrations/") || /\.sql$/i.test(f));
-  if (migrationTouched) fail(`expected no DB migration files touched, found: ${allTouched.filter((f) => /migrations|\.sql$/i.test(f)).join(", ")}`);
+  const migrationTouched = commitTouched.some((f) => f.startsWith("supabase/migrations/") || /\.sql$/i.test(f));
+  if (migrationTouched) fail(`expected the removal commit to touch no DB migration files, found: ${commitTouched.filter((f) => /migrations|\.sql$/i.test(f)).join(", ")}`);
 
   const protectedPrefixes = ["app/lib/listingPlans/", "app/api/revenue-os/", "app/api/clasificados/leonix/stripe/"];
-  const protectedTouched = allTouched.filter((f) => protectedPrefixes.some((p) => f.startsWith(p)));
-  if (protectedTouched.length > 0) fail(`expected no Revenue OS / Stripe files touched, found: ${protectedTouched.join(", ")}`);
+  const protectedTouched = commitTouched.filter((f) => protectedPrefixes.some((p) => f.startsWith(p)));
+  if (protectedTouched.length > 0) fail(`expected the removal commit to touch no Revenue OS / Stripe files, found: ${protectedTouched.join(", ")}`);
 
-  ok("9-10. No DB migration; no Revenue OS / Stripe files touched");
+  ok("9-10. The removal commit itself touched no DB migration and no Revenue OS / Stripe files");
 }
 
 console.log("\nverify-remove-coming-soon-gate: all checks passed");

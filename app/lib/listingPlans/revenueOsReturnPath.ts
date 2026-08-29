@@ -36,6 +36,7 @@ const CATEGORY_DEFAULT_RETURN_PATHS: Record<string, string> = {
   servicios: "/clasificados/servicios",
   "bienes-raices": "/clasificados/bienes-raices",
   "ofertas-locales": "/dashboard/ofertas-locales",
+  clases: "/clasificados/clases",
 };
 
 export function resolveRevenueCategoryDefaultReturnPath(
