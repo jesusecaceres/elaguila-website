@@ -22,6 +22,9 @@ import type {
 } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 import { buildOfertaLocalPreviewMapEmbedUrl } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
 import { LeonixListingFactsGrid } from "@/app/clasificados/lib/LeonixListingFactsGrid";
+import { LeonixChipFactsCard } from "@/app/clasificados/lib/LeonixChipFactsCard";
+import { useBrContactCtaSheet } from "@/app/clasificados/bienes-raices/shared/brContactCtaSheet";
+import { LeonixPreviewGalleryLightbox } from "@/app/clasificados/lib/LeonixPreviewGalleryLightbox";
 import { tryWebShare, copyToClipboard } from "@/app/components/cta/ctaLaunchers";
 import { BrRentasCommunityTrustSection } from "@/app/clasificados/lib/BrRentasCommunityTrustSection";
 import {
@@ -313,6 +316,16 @@ function Section({
   );
 }
 
+function actionButtonClass(variant: "primary" | "secondary" | "whatsapp") {
+  const cls =
+    variant === "primary"
+      ? "border-[#7A1E2C] bg-[#7A1E2C] text-white shadow-[0_10px_22px_-12px_rgba(122,30,44,0.7)] hover:bg-[#5e1721]"
+      : variant === "whatsapp"
+        ? "border-[#2A4536]/45 bg-[#2A4536] text-[#F8F4EA] hover:bg-[#223528]"
+        : "border-[#D6C7AD] bg-[#FFFDF7] text-[#1F241C] hover:border-[#C9A84A] hover:bg-[#FBF7EF]";
+  return `inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-center text-[0.82rem] font-bold transition ${cls}`;
+}
+
 function ActionLink({
   href,
   children,
@@ -326,22 +339,34 @@ function ActionLink({
 }) {
   if (!href) return null;
   const isExternal = href.startsWith("http");
-  const cls =
-    variant === "primary"
-      ? "border-[#7A1E2C] bg-[#7A1E2C] text-white shadow-[0_10px_22px_-12px_rgba(122,30,44,0.7)] hover:bg-[#5e1721]"
-      : variant === "whatsapp"
-        ? "border-[#2A4536]/45 bg-[#2A4536] text-[#F8F4EA] hover:bg-[#223528]"
-        : "border-[#D6C7AD] bg-[#FFFDF7] text-[#1F241C] hover:border-[#C9A84A] hover:bg-[#FBF7EF]";
   return (
     <a
       href={href}
       target={isExternal ? "_blank" : undefined}
       rel={isExternal ? "noopener noreferrer" : undefined}
       onClick={onClick}
-      className={`inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-center text-[0.82rem] font-bold transition ${cls}`}
+      className={actionButtonClass(variant)}
     >
       {children}
     </a>
+  );
+}
+
+/** Item 17/295 — same visual treatment as ActionLink, but opens the canonical CtaActionSheet
+ * instead of navigating a raw href directly. */
+function ActionSheetButton({
+  onOpen,
+  children,
+  variant = "secondary",
+}: {
+  onOpen: () => void;
+  children: React.ReactNode;
+  variant?: "primary" | "secondary" | "whatsapp";
+}) {
+  return (
+    <button type="button" onClick={onOpen} className={actionButtonClass(variant)}>
+      {children}
+    </button>
   );
 }
 
@@ -350,6 +375,20 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, i
   const [hero, ...rest] = ph;
   const videos = mediaVideos(vm, videoUrls, lang);
   const c = contact(vm);
+  // Item 17/295 — route Call/SMS/WhatsApp/Email through the same canonical CtaActionSheet
+  // architecture BR already uses, instead of Rentas' own direct-href/hand-rolled wa.me links.
+  const brCta = useBrContactCtaSheet({
+    lang,
+    hrefs: {
+      solicitarInfoHref: c.mailHref,
+      llamarHref: c.callHref,
+      whatsappHref: c.waHref,
+      smsHref: c.smsHref,
+      websiteHref: c.websiteHref,
+      mapsUrl: c.mapHref,
+    },
+    publicUrl: typeof window !== "undefined" ? window.location.href : undefined,
+  });
   const quickFacts = (vm.quickFacts ?? []).filter((f) => isMeaningfulValue(text(f.value)));
   const detailRows = cleanRows(vm.propertyDetailsRows);
   const detailGroups = groupDetails(detailRows, lang);
@@ -359,12 +398,6 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, i
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const galleryCount = ph.length;
-  const galleryLabel =
-    galleryCount > 0
-      ? lang === "es"
-        ? `${galleryIndex + 1} de ${galleryCount}`
-        : `${galleryIndex + 1} of ${galleryCount}`
-      : "";
 
   const handleNativeShare = useCallback(async () => {
     const url = typeof window !== "undefined" ? window.location.href : "";
@@ -417,42 +450,13 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, i
   };
 
   const closePhotoGallery = () => setGalleryOpen(false);
-  const prevPhoto = () => setGalleryIndex((i) => (galleryCount ? (i <= 0 ? galleryCount - 1 : i - 1) : 0));
-  const nextPhoto = () => setGalleryIndex((i) => (galleryCount ? (i >= galleryCount - 1 ? 0 : i + 1) : 0));
 
-  useEffect(() => {
-    if (!galleryOpen) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") closePhotoGallery();
-      if (event.key === "ArrowLeft") prevPhoto();
-      if (event.key === "ArrowRight") nextPhoto();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [galleryOpen, galleryCount]);
-
+  // Item 24/25: keyboard nav, swipe, zoom, and adjacent-slide preload are now owned by the
+  // shared LeonixPreviewGalleryLightbox itself — no local duplicate handling needed here.
   useEffect(() => {
     if (galleryIndex >= galleryCount) setGalleryIndex(Math.max(0, galleryCount - 1));
     if (!galleryCount && galleryOpen) setGalleryOpen(false);
   }, [galleryCount, galleryIndex, galleryOpen]);
-
-  // Preload the adjacent slides so arrowing through the gallery doesn't flash/blank.
-  useEffect(() => {
-    if (!galleryOpen || galleryCount <= 1) return;
-    const urls = photos(vm);
-    const n = urls.length;
-    const neighbors = [(galleryIndex + 1) % n, (galleryIndex - 1 + n) % n];
-    const preloaded = neighbors.map((i) => {
-      const url = urls[i];
-      if (!url) return null;
-      const img = new Image();
-      img.src = url;
-      return img;
-    });
-    return () => {
-      for (const img of preloaded) if (img) img.src = "";
-    };
-  }, [galleryOpen, galleryIndex, galleryCount, vm]);
 
   return (
     <div
@@ -646,35 +650,25 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, i
 
           {featureText.length ? (
             <Section eyebrow={lang === "es" ? "Destacado" : "Highlighted"} title={lang === "es" ? "Características" : "Features"}>
-              <div className="flex flex-wrap gap-2">
-                {featureText.map((item) => (
-                  <span
-                    key={item}
-                    className="inline-flex items-center gap-1.5 rounded-full border bg-white/75 px-3 py-1.5 text-xs font-semibold"
-                    style={{ borderColor: "rgba(214,199,173,0.75)", color: BODY }}
-                  >
-                    <FiCheckCircle className="h-3.5 w-3.5 shrink-0" style={{ color: BRONZE }} aria-hidden />
-                    {item}
-                  </span>
-                ))}
-              </div>
+              <LeonixChipFactsCard
+                bare
+                title=""
+                items={featureText}
+                icon={FiCheckCircle}
+                theme={{ borderColor: "transparent", cardBackground: "transparent", titleColor: BODY, chipBorderColor: "rgba(214,199,173,0.75)", chipBackground: "rgba(255,255,255,0.75)", chipTextColor: BODY }}
+              />
             </Section>
           ) : null}
 
           {includedServices && includedServices.length ? (
             <Section eyebrow={lang === "es" ? "Incluido en la renta" : "Included in rent"} title={lang === "es" ? "Servicios incluidos" : "Included services"}>
-              <div className="flex flex-wrap gap-2">
-                {includedServices.map((item) => (
-                  <span
-                    key={item}
-                    className="inline-flex items-center gap-1.5 rounded-full border bg-white/75 px-3 py-1.5 text-xs font-semibold"
-                    style={{ borderColor: "rgba(214,199,173,0.75)", color: BODY }}
-                  >
-                    <FiCheckCircle className="h-3.5 w-3.5 shrink-0" style={{ color: BRONZE }} aria-hidden />
-                    {item}
-                  </span>
-                ))}
-              </div>
+              <LeonixChipFactsCard
+                bare
+                title=""
+                items={includedServices}
+                icon={FiCheckCircle}
+                theme={{ borderColor: "transparent", cardBackground: "transparent", titleColor: BODY, chipBorderColor: "rgba(214,199,173,0.75)", chipBackground: "rgba(255,255,255,0.75)", chipTextColor: BODY }}
+              />
             </Section>
           ) : null}
 
@@ -788,29 +782,51 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, i
                   : "Share"}
             </button>
           </div>
-          {c.showSolicitarInfo && c.mailHref ? (
-            <ActionLink href={c.mailHref} variant="primary" onClick={handleEmailClick}>
+          {c.showSolicitarInfo && brCta.hasEmail ? (
+            <ActionSheetButton
+              variant="primary"
+              onOpen={() => {
+                handleEmailClick();
+                brCta.openEmail();
+              }}
+            >
               <FiMail className="h-4 w-4" />
               {lang === "es" ? "Enviar correo" : "Email seller"}
-            </ActionLink>
+            </ActionSheetButton>
           ) : null}
-          {c.showLlamar && c.callHref ? (
-            <ActionLink href={c.callHref} onClick={handlePhoneClick}>
+          {c.showLlamar && brCta.hasPhone ? (
+            <ActionSheetButton
+              onOpen={() => {
+                handlePhoneClick();
+                brCta.openCall();
+              }}
+            >
               <FiPhone className="h-4 w-4" />
               {lang === "es" ? "Llamar" : "Call"}
-            </ActionLink>
+            </ActionSheetButton>
           ) : null}
-          {c.showWhatsapp && c.waHref ? (
-            <ActionLink href={c.waHref} variant="whatsapp" onClick={handleWhatsappClick}>
+          {c.showWhatsapp && brCta.hasWa ? (
+            <ActionSheetButton
+              variant="whatsapp"
+              onOpen={() => {
+                handleWhatsappClick();
+                brCta.openWhatsApp();
+              }}
+            >
               <FiMessageCircle className="h-4 w-4" />
               WhatsApp
-            </ActionLink>
+            </ActionSheetButton>
           ) : null}
           {c.showSms && c.smsHref ? (
-            <ActionLink href={c.smsHref} onClick={handleSmsClick}>
+            <ActionSheetButton
+              onOpen={() => {
+                handleSmsClick();
+                brCta.openSms();
+              }}
+            >
               <FiMessageCircle className="h-4 w-4" />
               {lang === "es" ? "Enviar texto" : "Send text"}
-            </ActionLink>
+            </ActionSheetButton>
           ) : null}
           {c.websiteHref ? (
             <ActionLink href={c.websiteHref} onClick={handleWebsiteClick}>
@@ -859,79 +875,10 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, i
           ) : null}
         </aside>
       </main>
-      {galleryOpen && galleryCount > 0 ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/88 px-3 py-4 sm:px-5"
-          role="dialog"
-          aria-modal="true"
-          aria-label={lang === "es" ? "Galería de fotos" : "Photo gallery"}
-        >
-          <button
-            type="button"
-            className="absolute inset-0 cursor-default"
-            aria-label={lang === "es" ? "Cerrar galería" : "Close gallery"}
-            onClick={closePhotoGallery}
-          />
-          <div className="relative z-10 flex h-full max-h-[92vh] w-full max-w-6xl flex-col">
-            <div className="mb-3 flex items-center justify-between gap-3 text-[#F8F4EA]">
-              <div>
-                <p className="text-[0.62rem] font-bold uppercase tracking-[0.16em] text-[#C9A84A]">
-                  {lang === "es" ? "Fotos de la renta" : "Rental photos"}
-                </p>
-                <p className="text-sm font-bold">{galleryLabel}</p>
-              </div>
-              <button
-                type="button"
-                onClick={closePhotoGallery}
-                className="min-h-[44px] rounded-full border border-white/25 px-4 py-2 text-sm font-bold transition hover:bg-white/10"
-              >
-                {lang === "es" ? "Cerrar" : "Close"}
-              </button>
-            </div>
-            <div className="relative flex min-h-0 flex-1 items-center justify-center rounded-2xl border border-white/15 bg-black/35 p-2 sm:p-4">
-              <img
-                src={ph[galleryIndex]}
-                alt=""
-                className="max-h-full max-w-full rounded-xl object-contain shadow-[0_24px_64px_-28px_rgba(0,0,0,0.85)]"
-              />
-              {galleryCount > 1 ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={prevPhoto}
-                    className="absolute left-2 top-1/2 min-h-[44px] -translate-y-1/2 rounded-full border border-white/25 bg-black/45 px-4 py-2 text-sm font-bold text-[#F8F4EA] transition hover:bg-black/70 sm:left-4"
-                  >
-                    {lang === "es" ? "Anterior" : "Prev"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={nextPhoto}
-                    className="absolute right-2 top-1/2 min-h-[44px] -translate-y-1/2 rounded-full border border-white/25 bg-black/45 px-4 py-2 text-sm font-bold text-[#F8F4EA] transition hover:bg-black/70 sm:right-4"
-                  >
-                    {lang === "es" ? "Siguiente" : "Next"}
-                  </button>
-                </>
-              ) : null}
-            </div>
-            {galleryCount > 1 ? (
-              <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-                {ph.map((url, index) => (
-                  <button
-                    key={url}
-                    type="button"
-                    onClick={() => setGalleryIndex(index)}
-                    className="h-16 w-20 shrink-0 overflow-hidden rounded-xl border bg-black sm:h-20 sm:w-28"
-                    style={{ borderColor: index === galleryIndex ? GOLD : "rgba(255,255,255,0.22)" }}
-                    aria-label={lang === "es" ? `Ver foto ${index + 1}` : `View photo ${index + 1}`}
-                  >
-                    <img src={url} alt="" className="h-full w-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+      {/* Item 24/25 — adopt the shared Leonix property lightbox (zoom, swipe, video tabs,
+          keyboard, preload) instead of Rentas' own bespoke modal, which lacked zoom/swipe. */}
+      <LeonixPreviewGalleryLightbox vm={vm} open={galleryOpen && galleryCount > 0} initialIndex={galleryIndex} onClose={closePhotoGallery} lang={lang} />
+      {brCta.sheet}
     </div>
   );
 }

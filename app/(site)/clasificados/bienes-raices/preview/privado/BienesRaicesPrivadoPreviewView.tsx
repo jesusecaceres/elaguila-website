@@ -10,6 +10,7 @@ import {
 } from "@/app/clasificados/lib/leonixGallerySlides";
 import { LeonixPreviewGalleryLightbox } from "@/app/clasificados/lib/LeonixPreviewGalleryLightbox";
 import { LeonixListingFactsGrid } from "@/app/clasificados/lib/LeonixListingFactsGrid";
+import { LeonixChipFactsCard } from "@/app/clasificados/lib/LeonixChipFactsCard";
 import { LeonixPreviewGalleryVideoTile } from "@/app/clasificados/lib/leonixPreviewGalleryVideoTile";
 import { LeonixPrivadoPreviewQuickFactsStrip } from "@/app/clasificados/lib/leonixPrivadoPreviewQuickFacts";
 import { LeonixOpenHouseSlotCards } from "@/app/clasificados/lib/LeonixOpenHouseSlotCards";
@@ -798,31 +799,17 @@ export function BienesRaicesPrivadoPreviewView({
               </div>
             ) : null}
             {grouped.caracteristicas.length > 0 ? <FactBlock title={ui.caracteristicas} rows={grouped.caracteristicas} /> : null}
-            {grouped.servicios.length > 0 ? (
-              <div className="rounded-xl border p-3.5 sm:p-4" style={{ borderColor: BORDER, background: CREAM_CARD }}>
-                <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>{ui.serviciosIncluidos}</h3>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {grouped.servicios.map((svc) => (
-                    <span key={svc} className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: BORDER, background: "#fff", color: CHARCOAL }}>
-                      {servicioChipText(svc)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-            {vm.hasHighlights && (vm.highlightsRows?.length ?? 0) > 0 ? (
-              <div className="rounded-xl border p-3.5 sm:p-4" style={{ borderColor: BORDER, background: CREAM_CARD }}>
-                <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
-                  {String(vm.highlightsSectionTitle ?? "").trim() || ui.destacadosFallback}
-                </h3>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {(vm.highlightsRows ?? []).map((row) => (
-                    <span key={row.label} className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: BORDER, background: "#fff", color: CHARCOAL }}>
-                      {highlightChipText(row.label)}
-                    </span>
-                  ))}
-                </div>
-              </div>
+            <LeonixChipFactsCard
+              title={ui.serviciosIncluidos}
+              items={grouped.servicios.map(servicioChipText)}
+              theme={{ borderColor: BORDER, cardBackground: CREAM_CARD, titleColor: MUTED, chipBorderColor: BORDER, chipBackground: "#fff", chipTextColor: CHARCOAL }}
+            />
+            {vm.hasHighlights ? (
+              <LeonixChipFactsCard
+                title={String(vm.highlightsSectionTitle ?? "").trim() || ui.destacadosFallback}
+                items={(vm.highlightsRows ?? []).map((row) => highlightChipText(row.label))}
+                theme={{ borderColor: BORDER, cardBackground: CREAM_CARD, titleColor: MUTED, chipBorderColor: BORDER, chipBackground: "#fff", chipTextColor: CHARCOAL }}
+              />
             ) : null}
           </div>
         </section>
