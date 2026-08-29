@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { clearLeonixPreviewNavSessionFlag } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { BR_NEGOCIO_Q_PROPIEDAD } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { BR_PUBLICAR_NEGOCIO } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
@@ -93,6 +94,10 @@ export default function AgenteIndividualResidencialPreviewClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { lang, t } = useBrAgenteResidencialCopy();
+
+  useLayoutEffect(() => {
+    clearLeonixPreviewNavSessionFlag();
+  }, []);
   const inventoryAdd = useMemo(
     () => parseBrInventoryAddSearchParams(searchParams ?? new URLSearchParams()),
     [searchParams],

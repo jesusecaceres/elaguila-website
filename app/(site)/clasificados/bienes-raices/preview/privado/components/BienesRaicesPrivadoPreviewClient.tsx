@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { publishLeonixListingFromBienesRaicesPrivadoDraft } from "@/app/clasificados/lib/leonixPublishRealEstateFromDraftState";
 import { useLeonixPublishFlowExitClear } from "@/app/clasificados/lib/leonixApplicationStandard/useLeonixPublishFlowExitClear";
+import { clearLeonixPreviewNavSessionFlag } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { PublishCheckoutCheckpoint } from "@/app/clasificados/components/PublishCheckoutCheckpoint";
 import {
   previewModeSuppressesBasePlanCheckout,
@@ -83,6 +84,10 @@ export default function BienesRaicesPrivadoPreviewClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const suspendExitClearRef = useRef(false);
+
+  useLayoutEffect(() => {
+    clearLeonixPreviewNavSessionFlag();
+  }, []);
 
   const isPathInsideFlow = useCallback((p: string) => {
     return (
@@ -318,10 +323,13 @@ export default function BienesRaicesPrivadoPreviewClient() {
   const suppressCheckout = previewModeSuppressesBasePlanCheckout(previewMode);
 
   return (
-    <LeonixPreviewPageShell
-      editHref={editHref}
-      publishSlot={
-        suppressCheckout ? undefined : (
+    // Item 208 — listing identity/property content must come first; checkout no longer renders
+    // in the shell's sticky top header (publishSlot), it renders as a normal block after the ad
+    // canvas instead, so the page still opens on the property, not on a pricing card.
+    <LeonixPreviewPageShell editHref={editHref}>
+      <BienesRaicesPrivadoPreviewView vm={vm} lang={lang} />
+      {suppressCheckout ? null : (
+        <div className="mx-auto mt-6 w-full max-w-[420px] px-4">
           <PublishCheckoutCheckpoint
             config={checkpointConfig}
             lang={lang}
@@ -332,10 +340,8 @@ export default function BienesRaicesPrivadoPreviewClient() {
             rulesModal={BIENES_RAICES_FSBO_PREVIEW_RULES_MODAL}
             className="w-full max-w-[420px]"
           />
-        )
-      }
-    >
-      <BienesRaicesPrivadoPreviewView vm={vm} lang={lang} />
+        </div>
+      )}
     </LeonixPreviewPageShell>
   );
 }
