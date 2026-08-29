@@ -23,7 +23,6 @@ import { isOfertaLocalLocalCouponsLane } from "@/app/lib/ofertas-locales/ofertas
 import { isOfertaLocalAiIncludedInPackage } from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
 import type { OfertaLocalSocialLink, OfertaLocalSocialLinkKey } from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
 import {
-  buildOfertaLocalMailtoHref,
   buildOfertaLocalTelHref,
   buildOfertaLocalWhatsAppHref,
   formatOfertaLocalDateRange,
@@ -346,7 +345,8 @@ function PreviewBusinessHub({
   telHref,
   waHref,
   webHref,
-  mailtoHref,
+  onShareContact,
+  shareCopied,
   directionsHref,
   locationLine,
   showMembership,
@@ -358,7 +358,9 @@ function PreviewBusinessHub({
   telHref: string;
   waHref: string;
   webHref: string;
-  mailtoHref: string;
+  /** Correo reuses the SAME native-share mechanism as Compartir (see handleShare) — no mailto. */
+  onShareContact: () => void;
+  shareCopied: boolean;
   directionsHref: string;
   locationLine: string;
   showMembership: boolean;
@@ -431,10 +433,13 @@ function PreviewBusinessHub({
                   <FiMail className="h-4 w-4 shrink-0 text-[#7A1E2C]" aria-hidden />
                   {contactEmail}
                 </p>
-                {mailtoHref ? (
-                  <a href={mailtoHref} className={cx(BTN_PRIMARY, "mt-3")}>
-                    {lang === "en" ? c.emailEn : c.emailEs}
-                  </a>
+                <button type="button" onClick={onShareContact} className={cx(BTN_PRIMARY, "mt-3")}>
+                  {lang === "en" ? c.emailEn : c.emailEs}
+                </button>
+                {shareCopied ? (
+                  <p className="mt-1.5 text-xs font-medium text-emerald-800">
+                    {lang === "en" ? c.shareCopiedEn : c.shareCopiedEs}
+                  </p>
                 ) : null}
               </div>
             ) : null}
@@ -648,7 +653,6 @@ export function OfertasLocalesPreviewCard({
   const waHref = buildOfertaLocalWhatsAppHref(draft.whatsapp || draft.phone, draft.businessName);
   const webHref = resolveOfertaLocalWebsiteHref(draft.websiteUrl);
   const directionsHref = resolveOfertaLocalDirectionsHref(draft);
-  const mailtoHref = buildOfertaLocalMailtoHref(draft.email, draft.businessName);
   const showMembership = shouldShowMembershipBlock(draft);
   const showDigitalCoupon = shouldShowDigitalCouponBlock(draft);
   const membershipHref = resolveOfertaLocalWebsiteHref(draft.membershipUrl);
@@ -706,25 +710,41 @@ export function OfertasLocalesPreviewCard({
     }
   }, [heroAsset?.href, heroAsset?.fileName, heroAsset?.kind, flyerDownloading]);
 
-  const handleShare = useCallback(async () => {
-    const url = typeof window !== "undefined" ? window.location.href : "";
-    if (!url) return;
-    try {
-      if (typeof navigator.share === "function") {
-        await navigator.share({ title: draft.title || draft.businessName, url });
-        return;
+  const handleShare = useCallback(
+    async (override?: { title?: string; text?: string }) => {
+      const url = typeof window !== "undefined" ? window.location.href : "";
+      if (!url) return;
+      const title = override?.title ?? (draft.title || draft.businessName);
+      try {
+        if (typeof navigator.share === "function") {
+          await navigator.share({ title, text: override?.text, url });
+          return;
+        }
+        await navigator.clipboard.writeText(override?.text ?? url);
+        setShareCopied(true);
+        window.setTimeout(() => setShareCopied(false), 2000);
+      } catch {
+        /* cancelled */
       }
-      await navigator.clipboard.writeText(url);
-      setShareCopied(true);
-      window.setTimeout(() => setShareCopied(false), 2000);
-    } catch {
-      /* cancelled */
-    }
-  }, [draft.businessName, draft.title]);
+    },
+    [draft.businessName, draft.title]
+  );
 
   const defaultOfferTitle = lang === "en" ? c.defaultOfferTitleEn : c.defaultOfferTitleEs;
 
   const contactEmail = resolveOfertaLocalContactEmail(draft);
+
+  // Correo reuses the exact same native-share mechanism as Compartir above —
+  // no mailto, no fetch — just a different title/text aimed at the business
+  // contact instead of the listing link.
+  const handleShareContact = useCallback(() => {
+    const businessLabel = draft.title || draft.businessName;
+    const emailLabel = lang === "en" ? c.emailEn : c.emailEs;
+    void handleShare({
+      title: businessLabel ? `${businessLabel} · Leonix` : "Leonix",
+      text: [businessLabel, `${emailLabel}: ${contactEmail}`].filter(Boolean).join("\n"),
+    });
+  }, [c.emailEn, c.emailEs, contactEmail, draft.businessName, draft.title, handleShare, lang]);
   const followLinks = getOfertaLocalSocialLinksByCategory(draft, "follow");
   const reviewLinks = getOfertaLocalSocialLinksByCategory(draft, "review");
   const businessLinks = getOfertaLocalSocialLinksByCategory(draft, "business");
@@ -1170,7 +1190,8 @@ export function OfertasLocalesPreviewCard({
           telHref={telHref}
           waHref={waHref}
           webHref={webHref}
-          mailtoHref={mailtoHref}
+          onShareContact={handleShareContact}
+          shareCopied={shareCopied}
           directionsHref={directionsHref}
           locationLine={locationLine}
           showMembership={showMembership}

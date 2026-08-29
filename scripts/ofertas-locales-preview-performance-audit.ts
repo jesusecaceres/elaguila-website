@@ -205,8 +205,10 @@ check("25", "Email sits in a clean bordered contact box showing the address clea
   assert.match(box, /c\.emailEn : c\.emailEs/);
 });
 
-check("26", "Email keeps native mailto behavior (a real <a href={mailtoHref}>, not a script-driven fetch)", () => {
-  assert.match(cardSrc, /<a href=\{mailtoHref\} className=\{cx\(BTN_PRIMARY, "mt-3"\)\}>/);
+check("26", "⚠️76: Correo now uses the native-share mechanism (onShareContact), not mailto", () => {
+  assert.doesNotMatch(cardSrc, /mailtoHref/);
+  assert.doesNotMatch(cardSrc, /buildOfertaLocalMailtoHref/);
+  assert.match(businessHubSrc, /<button type="button" onClick=\{onShareContact\} className=\{cx\(BTN_PRIMARY, "mt-3"\)\}>/);
 });
 
 check("27", "'Copiar correo' fully removed — no clipboard fallback, no leftover copy key", () => {
@@ -216,13 +218,19 @@ check("27", "'Copiar correo' fully removed — no clipboard fallback, no leftove
 });
 
 check("33", "Correo CTA is bold/high-confidence (same solid-fill weight as BTN_PRIMARY, not a faint outline button)", () => {
-  assert.match(cardSrc, /<a href=\{mailtoHref\} className=\{cx\(BTN_PRIMARY, "mt-3"\)\}>\s*\n\s*\{lang === "en" \? c\.emailEn : c\.emailEs\}/);
+  assert.match(
+    businessHubSrc,
+    /<button type="button" onClick=\{onShareContact\} className=\{cx\(BTN_PRIMARY, "mt-3"\)\}>\s*\n\s*\{lang === "en" \? c\.emailEn : c\.emailEs\}/
+  );
 });
 
-check("34", "Mailto never crashes without a configured mail handler (plain native <a>, no JS click-handler/try-catch around it)", () => {
-  const emailBoxMatch = businessHubSrc.match(/contactEmail \? \(\s*<div className="mt-4[\s\S]*?<\/div>\s*\) : null/);
-  const box = emailBoxMatch![0];
-  assert.doesNotMatch(box, /onClick=\{.*mailto/i);
+check("34", "Correo never crashes if no share handler / mail app is configured (navigator.share rejection is caught)", () => {
+  const start = cardSrc.indexOf("const handleShare = useCallback(");
+  const end = cardSrc.indexOf("const defaultOfferTitle");
+  assert.ok(start >= 0 && end > start, "handleShare must exist before defaultOfferTitle");
+  const shareFn = cardSrc.slice(start, end);
+  assert.match(shareFn, /try \{/);
+  assert.match(shareFn, /catch \{/);
 });
 
 check("35", "Ver volante modal significantly enlarged (near-full-viewport width)", () => {
@@ -303,25 +311,55 @@ check("32", "No DB migration introduced by this change", () => {
   }
 });
 
-// ⚠️75 — the mailto "To" address was being run through encodeURIComponent(),
-// which turns "@" into "%40". Per RFC 6068 the recipient address must NOT be
-// percent-encoded; only the query (subject/body) is. A real function call,
-// not a regex, since this is exactly the kind of bug a source-pattern check
-// would miss (the buggy and fixed versions both "look like" a mailto builder).
-check("40", "Mailto 'To' address keeps a literal '@' (real function call, the exact live-repro case)", () => {
+// ⚠️75 (superseded by ⚠️76 below) — buildOfertaLocalMailtoHref() itself is
+// left untouched and still correct (its "@" percent-encoding bug was fixed
+// separately); these two checks just prove that fix still holds even though
+// Correo no longer calls this helper at all.
+check("40", "buildOfertaLocalMailtoHref keeps a literal '@' (real function call — the helper itself, not the live CTA)", () => {
   const href = buildOfertaLocalMailtoHref("jesusecaceres@gmail.com", "Supermercado Latino");
   assert.match(href, /^mailto:jesusecaceres@gmail\.com\?subject=/, `got: ${href}`);
   assert.doesNotMatch(href, /%40/, "the recipient address must never be percent-encoded");
 });
 
-check("41", "Mailto subject is still correctly percent-encoded (only the query, not the recipient)", () => {
+check("41", "buildOfertaLocalMailtoHref subject is still correctly percent-encoded (only the query, not the recipient)", () => {
   const href = buildOfertaLocalMailtoHref("jesusecaceres@gmail.com", "Supermercado Latino");
   assert.match(href, /subject=Supermercado%20Latino%20%C2%B7%20Leonix$/, `got: ${href}`);
 });
 
-check("42", "Correo CTA is still a plain native <a href> — no fetch/XHR, no app-router Link wrapping it", () => {
-  assert.match(cardSrc, /<a href=\{mailtoHref\} className=\{cx\(BTN_PRIMARY, "mt-3"\)\}>/);
+// ⚠️76 — Correo did not reliably open a usable compose experience via
+// mailto, so it now reuses the exact same native-share mechanism (and
+// try/catch/clipboard-fallback path) as Compartir, with an email-specific
+// title/text instead of the listing link.
+check("42", "Correo CTA has no mailto href anywhere, no fetch/XHR", () => {
+  assert.doesNotMatch(cardSrc, /href=\{mailtoHref\}/);
   assert.doesNotMatch(cardSrc, /fetch\(mailtoHref/);
+});
+
+check("43", "handleShare is a single generalized function reused by both Compartir and Correo (no duplicate share implementation)", () => {
+  const shareCalls = cardSrc.match(/handleShare\(/g) ?? [];
+  assert.ok(shareCalls.length >= 3, "handleShare must be defined once and called by both Compartir sites and handleShareContact");
+  const navigatorShareCalls = cardSrc.match(/navigator\.share\(/g) ?? [];
+  assert.equal(navigatorShareCalls.length, 1, "there must be exactly ONE navigator.share() call site, inside the shared handleShare");
+});
+
+check("44", "handleShareContact builds an email-specific payload including the business email (real structural proof, not just presence of a string)", () => {
+  const fnMatch = cardSrc.match(/const handleShareContact = useCallback\(\(\) => \{[\s\S]*?\n {2}\}, \[[\s\S]*?\]\);/);
+  assert.ok(fnMatch, "handleShareContact must exist");
+  const fn = fnMatch![0];
+  assert.match(fn, /emailLabel\}: \$\{contactEmail\}/, "share text must include the business email");
+  assert.match(fn, /· Leonix/, "share title must append · Leonix like the mailto subject used to");
+  assert.match(fn, /handleShare\(\{/, "must call the SAME generalized handleShare, not a new implementation");
+});
+
+check("45", "Correo passes onShareContact/shareCopied into PreviewBusinessHub instead of mailtoHref", () => {
+  assert.match(cardSrc, /onShareContact=\{handleShareContact\}/);
+  assert.match(cardSrc, /shareCopied=\{shareCopied\}/);
+  assert.doesNotMatch(cardSrc, /mailtoHref=\{mailtoHref\}/);
+});
+
+check("46", "Compartir's own call sites are unchanged (still call handleShare with no override)", () => {
+  const compartirCalls = cardSrc.match(/on(?:Click|Share)=\{\(\) => void handleShare\(\)\}/g) ?? [];
+  assert.equal(compartirCalls.length, 2, "both existing Compartir call sites must still call handleShare() with no arguments");
 });
 
 const failed = results.filter((r) => !r.ok);
