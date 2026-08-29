@@ -1,4 +1,5 @@
 import type { ComidaLocalPackageTierDb } from "./comidaLocalPublishTypes";
+import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
 
 export type ComidaLocalPackageTier = ComidaLocalPackageTierDb;
 
@@ -110,6 +111,20 @@ export function getComidaLocalPackagePriceLabel(
   tier: ComidaLocalPackageTier | string | null | undefined
 ): string {
   return getComidaLocalPackageByTier(tier).priceLabel;
+}
+
+/**
+ * The real current-sale price for every Comida Local listing regardless of stored `package_tier`.
+ * The Basic/$99 and Plus/$149 tier price fields above were never wired to Stripe and are
+ * superseded for all current sales by the single `comida_local_base_monthly` $129/mo package
+ * (see revenuePricingMatrix.ts) — they remain only for historical tier-label/feature-limit reads.
+ * Owner-facing and admin-facing price displays must read from here, not from the tier price
+ * fields, so they never show a stale $99/$149 figure for a listing actually billed at $129/mo.
+ */
+export function getComidaLocalCurrentSalePriceLabel(lang: "es" | "en" = "es"): string {
+  const def = getRevenuePackageDefinition("comida_local_base_monthly");
+  const dollars = Math.round((def?.priceCents ?? 12900) / 100);
+  return lang === "en" ? `$${dollars}/mo` : `$${dollars}/mes`;
 }
 
 export type ComidaLocalPackageLimits = Pick<

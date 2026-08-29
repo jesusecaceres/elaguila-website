@@ -1,22 +1,28 @@
 import type { BusinessWeeklyHours, ComidaLocalDraft } from "./comidaLocalTypes";
 
 /**
- * Default open hours for a brand-new draft (contract shared item 41 — "open-first" default
- * workflow). Mirrors Servicios' default-open pattern (`defaultClasificadosServiciosState.ts`)
- * so a new seller only has to close/adjust the days that differ, instead of un-closing all 7.
- * This only seeds the empty-draft initializer; hydration of a stored draft always overrides
- * `weeklyHours` from persisted data (see `mergeComidaLocalDraftFromStorage`), so this never
- * affects an existing application.
+ * Default hours for a brand-new draft: every day present as a real, editable row (`closed:
+ * false`) but with no time entered yet. Comida Local sellers include food trucks, pop-ups,
+ * event/market vendors, and other mobile/irregular schedules — the form explicitly tells owners
+ * they may leave this section blank if their schedule varies too much to state, so a fresh draft
+ * must not put words (or hours) in their mouth with a fabricated Mon–Sat 9–6 schedule.
+ * `buildHoursLines`/`isOpenNow` (mapComidaLocalDraftToPreviewVm.ts) already treat a day with no
+ * openTime/closeTime as having nothing to report — an untouched new listing therefore renders no
+ * hours lines and no fabricated "Open now"/"Closed now" badge, until the owner actually enters a
+ * real schedule. This only seeds the empty-draft initializer; hydration of a stored draft always
+ * overrides `weeklyHours` from persisted data (see `mergeComidaLocalDraftFromStorage`), so this
+ * never touches an existing application's saved hours.
  */
 function defaultWeeklyHours(): BusinessWeeklyHours {
+  const unset = { closed: false, openTime: "", closeTime: "" };
   return {
-    monday: { closed: false, openTime: "09:00", closeTime: "18:00" },
-    tuesday: { closed: false, openTime: "09:00", closeTime: "18:00" },
-    wednesday: { closed: false, openTime: "09:00", closeTime: "18:00" },
-    thursday: { closed: false, openTime: "09:00", closeTime: "18:00" },
-    friday: { closed: false, openTime: "09:00", closeTime: "18:00" },
-    saturday: { closed: false, openTime: "10:00", closeTime: "14:00" },
-    sunday: { closed: true, openTime: "10:00", closeTime: "14:00" },
+    monday: { ...unset },
+    tuesday: { ...unset },
+    wednesday: { ...unset },
+    thursday: { ...unset },
+    friday: { ...unset },
+    saturday: { ...unset },
+    sunday: { ...unset },
   };
 }
 

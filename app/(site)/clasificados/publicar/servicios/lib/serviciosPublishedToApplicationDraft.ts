@@ -20,6 +20,7 @@ import type {
 import { normalizeClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationNormalize";
 import { createEmptyClasificadosPromoRow } from "./clasificadosServiciosPromo";
 import { createDefaultClasificadosServiciosState } from "./defaultClasificadosServiciosState";
+import { getBusinessTypePreset } from "./businessTypePresets";
 
 export type ServiciosPublishedListingHydrationSource = {
   id?: string | null;
@@ -269,13 +270,36 @@ function inferCouponsAddOnFromProfile(profile: ServiciosBusinessProfile | null |
   return hasCoupon || hasFlyer || hasMore;
 }
 
-function mapSelectedServiceIds(profile: ServiciosBusinessProfile | null | undefined): string[] {
+/**
+ * Recovers `svc_<chipId>` ids from a published listing's service cards, then migrates any
+ * pre-namespacing legacy id (e.g. "carp_muebles", stored before chip ids were namespaced as
+ * "carpinteria::carp_muebles" — see businessTypePresets.ts `namespaceChips`) to its namespaced
+ * form using this listing's own recorded business type, which is always the exact preset that
+ * id was originally selected under, so the mapping is never ambiguous. An id that still doesn't
+ * resolve to a real chip on that business type's preset (already-namespaced ids pass through
+ * unchanged; anything else that can't be matched) is dropped rather than guessed at, per the
+ * "clear rather than mislabel" rule this migration exists to uphold.
+ */
+function mapSelectedServiceIds(
+  profile: ServiciosBusinessProfile | null | undefined,
+  businessTypeId: string,
+): string[] {
   if (!Array.isArray(profile?.services)) return [];
+  const preset = getBusinessTypePreset(businessTypeId);
+  const validIds = new Set(preset?.suggestedServices.map((c) => c.id) ?? []);
   const ids: string[] = [];
   for (const card of profile.services) {
     const id = clean(card.id);
     const match = /^svc_(.+)$/.exec(id);
-    if (match?.[1]) ids.push(match[1]);
+    const raw = match?.[1];
+    if (!raw) continue;
+    if (validIds.has(raw)) {
+      ids.push(raw);
+      continue;
+    }
+    const migrated = `${businessTypeId}::${raw}`;
+    if (validIds.has(migrated)) ids.push(migrated);
+    // else: legacy id no longer resolvable against this business type's preset — dropped.
   }
   return ids;
 }
@@ -331,6 +355,7 @@ export function serviciosPublishedToApplicationDraft(
   const couponFlyerUrl = fromUrl(profile?.couponFlyer?.imageUrl);
   const couponMoreOffersUrl = clean(profile?.couponMoreOffers?.url);
   const couponMoreOffersLabel = clean(profile?.couponMoreOffers?.buttonLabel);
+  const businessTypeId = clean(profile?.opsMeta?.businessTypeId);
 
   const state = normalizeClasificadosServiciosApplicationState({
     ...base,
@@ -347,7 +372,7 @@ export function serviciosPublishedToApplicationDraft(
       couponMoreOffersUrl || couponMoreOffersLabel
         ? { url: couponMoreOffersUrl, buttonLabel: couponMoreOffersLabel }
         : base.couponMoreOffers,
-    businessTypeId: clean(profile?.opsMeta?.businessTypeId),
+    businessTypeId,
     businessName,
     city,
     state: clean(profile?.opsMeta?.discovery?.state) || clean(hero.state) || base.state,
@@ -377,7 +402,7 @@ export function serviciosPublishedToApplicationDraft(
     videos: media.videos,
     aboutText: clean(profile?.about?.text),
     specialtiesLine: clean(profile?.about?.specialtiesLine),
-    selectedServiceIds: mapSelectedServiceIds(profile),
+    selectedServiceIds: mapSelectedServiceIds(profile, businessTypeId),
     customServicesOffered: (Array.isArray(profile?.services) ? profile.services : [])
       .map((item) => clean(item.title))
       .filter(Boolean),

@@ -271,7 +271,7 @@ export type RestauranteTaxonomyOtherSupplements = {
   secondaryCuisineCustom?: string;
   /** When "other" is checked under cocinas adicionales */
   additionalCuisineOtherCustom?: string;
-  /** Multiple custom language labels when Otro is selected (max 3). */
+  /** Multiple custom language labels when Otro is selected (max RESTAURANTE_MAX_CUSTOM_LANGUAGES = 8). */
   customLanguages?: string[];
   languageOtherCustom?: string;
   serviceModeOtherCustom?: string;
