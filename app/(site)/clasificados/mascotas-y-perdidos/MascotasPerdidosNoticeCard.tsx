@@ -12,9 +12,18 @@ const LISTING_IMAGE_FALLBACK = "/logo.png";
 const CTA = { es: "Ver aviso", en: "View notice" } as const;
 
 const LABELS = {
-  es: { city: "Ciudad", lastSeen: "Última ubicación vista / lugar", leonix: "Leonix Ad ID" },
-  en: { city: "City", lastSeen: "Last seen / location", leonix: "Leonix Ad ID" },
+  es: { city: "Ciudad" },
+  en: { city: "City" },
 } as const;
+
+/** Gate 3 Section U — category-owned status treatments, Leonix brand language, accessible contrast. */
+const STATUS_BADGE: Record<string, { es: string; en: string; className: string }> = {
+  "mascota-perdida": { es: "PERDIDA", en: "LOST", className: "border-[#7A1E2C]/50 bg-[#F7E3E6] text-[#7A1E2C]" },
+  "mascota-encontrada": { es: "ENCONTRADA", en: "FOUND", className: "border-emerald-900/40 bg-[#E8F3EA] text-[#1B4332]" },
+  "adopcion-mascota": { es: "ADOPCIÓN", en: "ADOPTION", className: "border-[#8A6B1F]/45 bg-[#FBF3DA] text-[#6B5310]" },
+  "objeto-perdido": { es: "OBJETO PERDIDO", en: "LOST ITEM", className: "border-[#5C5346]/45 bg-[#EDE8DF] text-[#3D3428]" },
+  "objeto-encontrado": { es: "OBJETO ENCONTRADO", en: "FOUND ITEM", className: "border-emerald-900/40 bg-[#E8F3EA] text-[#1B4332]" },
+};
 
 type Props = {
   model: MascotasPerdidosNoticeCardModel;
@@ -25,6 +34,7 @@ export function MascotasPerdidosNoticeCard({ model, lang }: Props) {
   const t = LABELS[lang];
   const cta = CTA[lang];
   const [photoFailed, setPhotoFailed] = useState(false);
+  const badge = STATUS_BADGE[model.noticeType];
 
   useEffect(() => {
     setPhotoFailed(false);
@@ -61,45 +71,43 @@ export function MascotasPerdidosNoticeCard({ model, lang }: Props) {
               className="absolute inset-0 h-full w-full object-contain object-center p-6 opacity-[0.92]"
             />
           )}
+          <div className="pointer-events-none absolute left-2 top-2 flex flex-col items-start gap-1.5">
+            {badge ? (
+              <span className={`rounded-full border-2 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide shadow-sm backdrop-blur-sm ${badge.className}`}>
+                {lang === "en" ? badge.en : badge.es}
+              </span>
+            ) : null}
+            {model.reward ? (
+              <span className="rounded-full border-2 border-[#B8860B]/60 bg-[#FFF3C4]/95 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-[#6B4E00] shadow-sm">
+                {model.reward}
+              </span>
+            ) : null}
+          </div>
         </Link>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-2 p-4 sm:pl-3">
-          <span className="inline-flex max-w-full truncate rounded-full bg-[#EDE8DF] px-2.5 py-0.5 text-[11px] font-semibold text-[#3D3428]">
-            {model.typeBadge}
-          </span>
-
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5 p-4 sm:pl-3">
           <Link href={model.detailHref} className="block min-w-0">
             <h3 className="line-clamp-2 text-base font-bold leading-snug text-[#1E1810] transition group-hover:text-[#6B5A32] sm:text-[1.05rem]">
               {model.title}
             </h3>
           </Link>
 
+          {model.keyFact ? <p className="line-clamp-1 text-xs font-medium text-[#5C5346]">{model.keyFact}</p> : null}
+
           {model.city ? (
-            <p className="line-clamp-2 text-xs font-medium text-[#5C5346]">
+            <p className="line-clamp-1 text-xs text-[#2a241c]/85">
               <span className="font-semibold">{t.city}:</span> {model.city}
+              {model.lastSeenLocation ? ` · ${model.lastSeenLocation}` : ""}
+              {model.dateLabel ? ` · ${model.dateLabel}` : ""}
             </p>
           ) : null}
 
-          {model.lastSeenLocation ? (
-            <p className="line-clamp-2 text-xs text-[#2a241c]/85">
-              <span className="font-semibold">{t.lastSeen}:</span> {model.lastSeenLocation}
-            </p>
-          ) : null}
-
-          {model.excerpt ? (
-            <p className="line-clamp-3 text-sm leading-relaxed text-[#2a241c]/85">{model.excerpt}</p>
-          ) : null}
-
-          {model.leonixAdId ? (
-            <p className="font-mono text-[10px] text-[#6B5A32]/90" data-testid="mascotas-perdidos-card-leonix-id">
-              {t.leonix}: {model.leonixAdId}
-            </p>
-          ) : null}
+          {model.excerpt ? <p className="line-clamp-2 text-sm leading-relaxed text-[#2a241c]/85">{model.excerpt}</p> : null}
 
           <div className="mt-auto pt-2">
             <Link
               href={model.detailHref}
-              className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#111111] px-4 py-2.5 text-sm font-semibold text-[#F5F5F5] transition hover:opacity-95 sm:w-auto sm:min-w-[10.5rem]"
+              className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-[#FFFCF7] transition hover:opacity-95 sm:w-auto sm:min-w-[10.5rem]"
             >
               {cta}
             </Link>

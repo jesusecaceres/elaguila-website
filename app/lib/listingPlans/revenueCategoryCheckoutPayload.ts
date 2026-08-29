@@ -25,6 +25,15 @@ export const RENTAS_CATEGORY_CHECKOUT = {
   returnPath: "/clasificados/rentas",
 } as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
 
+/** Gate 2B — Clases paid class publication, $24.99/30 days (Revenue OS matrix `clases_paid_30d`). */
+export const CLASES_PAID_30D_PACKAGE_KEY = "clases_paid_30d" as const;
+
+export const CLASES_CATEGORY_CHECKOUT = {
+  category: "clases",
+  packageKey: CLASES_PAID_30D_PACKAGE_KEY,
+  returnPath: "/publicar/clases/quick/preview",
+} as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
+
 export const EMPLEOS_PAID_JOB_CHECKOUT = {
   category: "empleos",
   packageKey: EMPLEOS_JOB_POST_PAID_PACKAGE_KEY,

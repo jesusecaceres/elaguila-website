@@ -5,6 +5,7 @@ import Image from "next/image";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { formatTimeForDisplay, getGroupedWeeklyScheduleGridItems } from "@/app/(site)/publicar/community/shared/lib/communityWeeklySchedule";
 import {
+  COMUNIDAD_ACCESSIBILITY_UNCERTAIN_VALUE,
   labelComunidadAccessibilityKey,
   labelCommunityAudience,
   labelCommunityRegistration,
@@ -43,6 +44,7 @@ const COPY = {
     time: "Horario",
     description: "Descripción",
     bring: "Qué llevar o saber",
+    restrictions: "Qué NO llevar / restricciones",
   },
   en: {
     organizer: "Organized by",
@@ -54,6 +56,7 @@ const COPY = {
     time: "Time",
     description: "Description",
     bring: "What to bring or know",
+    restrictions: "What NOT to bring / restrictions",
   },
 } as const;
 
@@ -111,7 +114,10 @@ export function ComunidadQuickAdCanvas({
   if (draft.registrationRequired === "si") {
     chips.push(lang === "es" ? "Registro requerido" : "Registration required");
   }
+  // "No estoy seguro" is an uncertainty state, not a real feature — never render it
+  // as if it were a concrete positive accessibility attribute (Gate 1 fix).
   for (const k of draft.accessibilityKeys) {
+    if (k === COMUNIDAD_ACCESSIBILITY_UNCERTAIN_VALUE) continue;
     chips.push(labelComunidadAccessibilityKey(k, lang));
   }
 
@@ -174,17 +180,13 @@ export function ComunidadQuickAdCanvas({
             />
           )}
         </div>
-        <div className="pointer-events-none absolute left-3 top-3 flex flex-wrap gap-2">
-          <span
-            className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${
-              draft.eventCost === "gratis"
-                ? "border-emerald-800/30 bg-[#E8F3EA] text-[#1B4332]"
-                : "border-amber-800/35 bg-[#FFF3E0] text-[#5D4037]"
-            }`}
-          >
-            {comunidadCostLabel(draft.eventCost, lang)}
-          </span>
-        </div>
+        {draft.eventCost !== "gratis" ? (
+          <div className="pointer-events-none absolute right-3 top-3 flex flex-wrap justify-end gap-2">
+            <span className="rounded-full border-2 border-[#5D3A12]/40 bg-[#FFF3E0]/95 px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-wide text-[#5D3A12] shadow-[0_2px_10px_rgba(0,0,0,0.28)] backdrop-blur-sm">
+              {comunidadCostLabel(draft.eventCost, lang)}
+            </span>
+          </div>
+        ) : null}
         {isPdf ? (
           <div className="pointer-events-none absolute bottom-3 left-3 rounded-lg bg-black/75 px-2.5 py-1 text-[10px] font-bold text-white">
             {lang === "es" ? "Solo PDF en este campo — añade imagen para el volante" : "PDF only here — add an image for the flyer"}
@@ -203,6 +205,12 @@ export function ComunidadQuickAdCanvas({
 
         <CommunityPremiumInfoGrid items={infoItems} />
 
+        <CommunityPremiumTextCard
+          title={t.description}
+          body={draft.description}
+          testId="community-premium-description"
+        />
+
         <CommunityPremiumScheduleCard
           title={t.eventWeekly}
           rows={scheduleRows}
@@ -217,9 +225,9 @@ export function ComunidadQuickAdCanvas({
         />
 
         <CommunityPremiumTextCard
-          title={t.description}
-          body={draft.description}
-          testId="community-premium-description"
+          title={t.restrictions}
+          body={draft.restrictionsNote}
+          testId="community-premium-restrictions"
         />
 
         <CommunityContactCanvas
