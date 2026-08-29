@@ -60,6 +60,9 @@ export type BrGate12dV1Payload = {
     endTime?: string;
     additionalDaysHours?: string;
     notes?: string;
+    /** Item 134 */
+    appointmentOnly?: boolean;
+    bookingUrl?: string;
   }>;
   showingByAppointment?: boolean;
   showingInstructions?: string;
@@ -329,6 +332,8 @@ export function buildBrGate12dV1FromNegocioState(s: BienesRaicesNegocioFormState
         endTime: trim(ev.endTime),
         additionalDaysHours: trim(ev.additionalDaysHours),
         notes: trim(ev.notes),
+        appointmentOnly: Boolean(ev.appointmentOnly),
+        bookingUrl: trim(ev.bookingUrl),
       }))
       .filter(
         (ev) =>
@@ -337,7 +342,9 @@ export function buildBrGate12dV1FromNegocioState(s: BienesRaicesNegocioFormState
           ev.startTime ||
           ev.endTime ||
           ev.additionalDaysHours ||
-          ev.notes,
+          ev.notes ||
+          ev.appointmentOnly ||
+          ev.bookingUrl,
       )
       .slice(0, 12);
     if (!p.openHouseEnabled && p.openHouseEvents.length) p.openHouseEnabled = true;
@@ -449,7 +456,7 @@ export function buildBrPublicLocationForLiveDetail(opts: {
 export function brGate12dHoaSectionHasContent(g: BrGate12dV1Payload | null): boolean {
   if (!g) return false;
   return Boolean(
-    g.hasHoa ||
+    (g.hasHoa === "yes" || g.hasHoa === "no") ||
       trim(g.hoaFee) ||
       g.hoaFrequency ||
       trim(g.hoaIncludes) ||
@@ -504,7 +511,9 @@ export function buildBrLiveGate12dHoaCard(
     if (!v) return;
     rows.push({ label, value: v });
   };
-  if (g.hasHoa) push(L("¿Hay HOA?", "HOA?"), liveHoaTriLabel(lang, g.hasHoa));
+  // Item 10/66 — "unknown" is not a meaningful answer the owner gave; don't publish a bare
+  // "No indicado"/"Unknown" status row for it. Only a deliberate yes/no is worth showing.
+  if (g.hasHoa === "yes" || g.hasHoa === "no") push(L("¿Hay HOA?", "HOA?"), liveHoaTriLabel(lang, g.hasHoa));
   if (g.hasHoa === "yes") {
     if (trim(g.hoaFee)) push(L("Cuota HOA", "HOA fee"), trim(g.hoaFee));
     if (g.hoaFrequency) push(L("Frecuencia", "Frequency"), liveFreqLabel(lang, g.hoaFrequency));
@@ -559,6 +568,8 @@ export function buildBrLiveGate12dOpenHouseCard(
         push(`${L("Días/horarios adicionales", "Additional days/hours")}${prefix}`, trim(ev.additionalDaysHours));
       }
       if (trim(ev.notes)) push(`${L("Notas", "Notes")}${prefix}`, trim(ev.notes));
+      if (ev.appointmentOnly) push(`${L("Solo con cita previa", "By appointment only")}${prefix}`, L("Sí", "Yes"));
+      if (trim(ev.bookingUrl)) push(`${L("Reservar", "Book")}${prefix}`, trim(ev.bookingUrl));
     });
   } else if (g.openHouseEnabled || trim(g.openHouseDate) || trim(g.openHouseEndDate)) {
     push(L("Open house", "Open house"), L("Sí", "Yes"));

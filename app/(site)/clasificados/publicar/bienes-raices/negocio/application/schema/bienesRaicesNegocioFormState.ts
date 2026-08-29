@@ -297,6 +297,10 @@ export type BienesRaicesNegocioFormState = {
       endTime: string;
       additionalDaysHours: string;
       notes: string;
+      /** Item 134 — optional, additive-only (existing object literals elsewhere don't need to
+       * change). */
+      appointmentOnly?: boolean;
+      bookingUrl?: string;
     }>;
   };
 
