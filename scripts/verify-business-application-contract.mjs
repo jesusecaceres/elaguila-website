@@ -159,9 +159,18 @@ check("R-003", "RestauranteProfileHeader uses only Leonix/category tokens (var(-
   });
   return liveHexMatches.length === 0 && /var\(--lx-restaurantes-header-bg-1\)/.test(s);
 });
-check("shared#41", "Comida Local defaults new-application hours to open (not every day closed)", () => {
+check("shared#41", "Comida Local new-draft hours are real editable rows with no fabricated schedule (⚠️132) — not every day closed, not a hardcoded 9-6", () => {
   const s = read("app/lib/clasificados/comida-local/createEmptyComidaLocalDraft.ts");
-  return /defaultWeeklyHours/.test(s) && !/weeklyHours:\s*\{\}/.test(s);
+  return (
+    /defaultWeeklyHours/.test(s) &&
+    !/weeklyHours:\s*\{\}/.test(s) &&
+    !/openTime:\s*"09:00"/.test(s) &&
+    !/closed:\s*true,\s*openTime/.test(s)
+  );
+});
+check("C-hours-no-fabricated-status", "Comida Local open-now/hours-lines computation returns nothing when no real hours were entered (⚠️132)", () => {
+  const s = read("app/lib/clasificados/comida-local/mapComidaLocalDraftToPreviewVm.ts");
+  return /hoursLines\.length > 0 \? computeBusinessHoursStatus/.test(s);
 });
 check("shared#51-servicios", "Servicios hours normalizer repairs a malformed legacy schedule instead of discarding it wholesale", () => {
   const s = read("app/(site)/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationNormalize.ts");
@@ -268,6 +277,38 @@ check("C-108-111-bonus", "Comida Local edit-save no longer hardcodes lang litera
 check("C-024-039", "Comida Local seller-type buckets have distinct tailored fields beyond banner copy (mobileOrderLinkUrl / cateringServiceRadiusNote / mealPrepOrderUrl or equivalent)", () => {
   const t = read("app/lib/clasificados/comida-local/comidaLocalTypes.ts");
   return /mobileOrderLinkUrl|cateringServiceRadiusNote|mealPrepOrderUrl|eventScheduleNote/.test(t);
+});
+
+// ---------- SOURCE RED burn-down (final pre-owner-QA forensic audit, 5 confirmed defects) ----------
+
+check("RED-1-restaurantes-language-cap", "Restaurantes trimDraftStrings no longer truncates customLanguages to 3 — aligned with the 8-item UI cap (⚠️2, ⚠️3, ⚠️8)", () => {
+  const s = read("app/(site)/clasificados/restaurantes/application/useRestauranteDraft.ts");
+  return (
+    /RESTAURANTE_MAX_CUSTOM_LANGUAGES/.test(s) &&
+    !/customLanguages[\s\S]{0,120}\.slice\(0,\s*3\)/.test(s)
+  );
+});
+
+check("RED-2-servicios-dead-99-copy", "Servicios application file has zero active +$99/month current-sale copy (⚠️60)", () => {
+  const s = read("app/(site)/clasificados/publicar/servicios/components/ClasificadosServiciosApplication.tsx");
+  return !/\+\$99/.test(s) && !/couponDecisionBody/.test(s);
+});
+
+check("RED-3-servicios-preset-chip-namespacing", "Servicios business-type preset chip ids are namespaced per business type at construction (structural fix for cross-type collisions, ⚠️34/⚠️35)", () => {
+  const s = read("app/(site)/clasificados/publicar/servicios/lib/businessTypePresets.ts");
+  return /function namespaceChips/.test(s) && /namespaceChips\(id, suggestedServices\)/.test(s) && /namespaceChips\(id, reasonsToChoose\)/.test(s) && /namespaceChips\(id, quickFacts\)/.test(s);
+});
+
+check("RED-4-comida-truthful-dashboard-admin-price", "Comida Local dashboard/admin listing mappers show the real $129/mo current-sale price, not a stale tier-derived $99/$149 (⚠️106)", () => {
+  const dash = read("app/lib/clasificados/comida-local/mapComidaLocalDashboardListing.ts");
+  const admin = read("app/lib/clasificados/comida-local/mapComidaLocalAdminListing.ts");
+  const usesReal = (s) => /getComidaLocalCurrentSalePriceLabel/.test(s) && !/getComidaLocalPackagePriceLabel/.test(s);
+  return usesReal(dash) && usesReal(admin);
+});
+
+check("RED-5a-comida-cityautocomplete-locale", "Comida Local CityAutocomplete receives the real active application language, not a hardcoded \"es\" (⚠️131)", () => {
+  const s = read("app/(site)/publicar/comida-local/ComidaLocalApplicationClient.tsx");
+  return /lang=\{es \? "es" : "en"\}/.test(s) && !/lang="es"\s*\n\s*variant="light"/.test(s);
 });
 
 // ---------- Requirement IDs this verifier explicitly does NOT and cannot cover ----------

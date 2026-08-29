@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createEmptyRestauranteDraft } from "./createEmptyRestauranteDraft";
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
+import { RESTAURANTE_MAX_CUSTOM_LANGUAGES } from "@/app/lib/clasificados/restaurantes/restauranteFormCleanupConfig";
 import {
   clearRestauranteDraftStorageAndIdb,
   loadRestauranteDraftFromStorageForEditor,
@@ -32,7 +33,10 @@ export function trimDraftStrings(d: RestauranteListingDraft): RestauranteListing
     secondaryCuisineCustom: t(d.secondaryCuisineCustom),
     additionalCuisineOtherCustom: t(d.additionalCuisineOtherCustom),
     languageOtherCustom: t(d.languageOtherCustom),
-    customLanguages: d.customLanguages?.map((x) => x.trim()).filter(Boolean).slice(0, 3),
+    customLanguages: d.customLanguages
+      ?.map((x) => x.trim())
+      .filter(Boolean)
+      .slice(0, RESTAURANTE_MAX_CUSTOM_LANGUAGES),
     serviceModeOtherCustom: t(d.serviceModeOtherCustom),
     shortSummary: d.shortSummary?.trim() || undefined,
     longDescription: t(d.longDescription),
