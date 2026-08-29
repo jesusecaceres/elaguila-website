@@ -12,7 +12,7 @@ export const COMMUNITY_PUBLISH_COPY = {
     gateFail: "Completa los campos marcados con * antes de la vista previa:",
     publishBlocked: "Completa los requisitos de vista previa antes de publicar.",
     paidClassPublishBlocked:
-      "Las clases con costo requieren la tarifa de anuncio Leonix de $24.99 por 30 días. Esa activación de pago aún no está disponible aquí, así que la publicación está bloqueada por ahora.",
+      "Las clases con costo requieren la tarifa de anuncio Leonix de $24.99 por 30 días. Al publicar, te llevaremos a un pago seguro para completar la publicación.",
     finalStep: {
       title: "Revisión final",
       intro:
@@ -54,7 +54,7 @@ export const COMMUNITY_PUBLISH_COPY = {
     gateFail: "Complete required fields (*) before preview:",
     publishBlocked: "Complete preview requirements before publishing.",
     paidClassPublishBlocked:
-      "Paid classes require the Leonix listing fee of $24.99 per 30 days. That paid activation isn't available here yet, so publishing is blocked for now.",
+      "Paid classes require the Leonix listing fee of $24.99 per 30 days. When you publish, we'll take you to secure checkout to complete the listing.",
     finalStep: {
       title: "Final review",
       intro:
