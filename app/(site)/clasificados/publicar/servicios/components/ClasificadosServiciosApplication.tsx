@@ -265,10 +265,6 @@ export function ClasificadosServiciosApplication() {
   );
   const copy = getClasificadosServiciosCopy(lang);
   const labels = copy.labels as any;
-  const couponDecisionTitle = labels.couponDecisionTitle || (lang === "en" ? "Add featured coupons?" : "¿Quieres agregar cupones destacados?");
-  const couponDecisionBody = labels.couponDecisionBody || (lang === "en" ? "For +$99/month, show up to 4 featured coupons inside your service listing." : "Por +$99/mes puedes mostrar hasta 4 cupones destacados dentro de tu anuncio de servicios.");
-  const couponDecisionAdd = labels.couponDecisionAdd || (lang === "en" ? "Add coupons" : "Agregar cupones");
-  const couponDecisionSkip = labels.couponDecisionSkip || (lang === "en" ? "Continue without coupons" : "Continuar sin cupones");
 
   const [hydrated, setHydrated] = useState(false);
   const [previewGateMissing, setPreviewGateMissing] = useState<PublishReadinessMissingItem[] | null>(null);

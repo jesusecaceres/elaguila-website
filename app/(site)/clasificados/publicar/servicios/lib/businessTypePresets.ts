@@ -4,6 +4,22 @@ function C(id: string, es: string, en: string): ChipDef {
   return { id, es, en };
 }
 
+/**
+ * Namespaces a chip id with its owning preset's business-type id, e.g. "carp_r1" under
+ * "carpinteria" becomes "carpinteria::carp_r1". This guarantees every suggestedServices/
+ * reasonsToChoose/quickFacts chip id is unique across all 78 business types by construction,
+ * closing a data-integrity defect where several unrelated presets reused the same short chip
+ * id (e.g. carpinteria/carroceria_pintura both had "carp_r1") — mergeStateForBusinessTypeChange
+ * filtered by id membership only, so switching between a colliding pair silently kept a
+ * selection "checked" but re-labeled it to the new preset's unrelated chip text.
+ * CTA chip ids (primary/secondaryCtaOptions) are intentionally left un-namespaced: they are a
+ * shared, fixed cross-preset vocabulary (see presetStateMerge.ts), always cleared rather than
+ * filtered on business-type change, so they were never part of this defect.
+ */
+function namespaceChips(presetId: string, chips: ChipDef[]): ChipDef[] {
+  return chips.map((c) => ({ ...c, id: `${presetId}::${c.id}` }));
+}
+
 function preset(
   id: string,
   group: ServiciosInternalGroup,
@@ -20,9 +36,9 @@ function preset(
     internalGroup: group,
     labelEs,
     labelEn,
-    suggestedServices,
-    reasonsToChoose,
-    quickFacts,
+    suggestedServices: namespaceChips(id, suggestedServices),
+    reasonsToChoose: namespaceChips(id, reasonsToChoose),
+    quickFacts: namespaceChips(id, quickFacts),
     primaryCtaOptions,
     secondaryCtaOptions,
   };

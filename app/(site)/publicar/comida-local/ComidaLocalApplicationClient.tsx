@@ -885,7 +885,7 @@ export default function ComidaLocalApplicationClient() {
                       }}
                       onSelect={() => markTouched("city")}
                       placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.cityDisplay, es).placeholder}
-                      lang="es"
+                      lang={es ? "es" : "en"}
                       variant="light"
                       className={cx(INPUT, cityInvalid && INPUT_INVALID)}
                       stripInvalidOnBlur
