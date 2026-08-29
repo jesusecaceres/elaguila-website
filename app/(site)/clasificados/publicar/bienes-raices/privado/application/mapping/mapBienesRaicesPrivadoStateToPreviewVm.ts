@@ -173,15 +173,11 @@ function buildMediaVm(s: BienesRaicesPrivadoFormState): BienesRaicesPreviewMedia
 
 function buildResidencialDetails(s: BienesRaicesPrivadoFormState): BienesRaicesPreviewFact[] {
   const r = s.residencial;
-  const tipoLabel = TIPO_PROPIEDAD_OPCIONES.find((o) => o.value === r.tipoCodigo)?.label ?? "";
-  const subLbl = labelForSubtipo(r.tipoCodigo, r.subtipo);
-  // Recámaras/Baños/Medios baños/Interior/Lote/Estacionamiento/Año already render in the
-  // quick-facts strip above (buildResidencialQuickFacts) — kept out of this list to avoid
-  // showing the same values twice on the same preview.
+  // Item 198/201/202 — Tipo/Subtipo/Niveles now render in the top quick-facts strip
+  // (buildResidencialQuickFacts) so they're visible before the gallery, matching the owner's
+  // "type, subtype/levels" requirement for the top identity block; kept out of this list to
+  // avoid showing the same values twice on the same preview.
   const rows: Array<BienesRaicesPreviewFact | null> = [
-    row("Tipo", tipoLabel),
-    row(residencialSubtipoDisplayGroup(r.subtipo), subLbl),
-    row("Niveles / pisos", r.niveles),
     row("Condición", r.condicion ? CONDICION_LABEL[r.condicion] ?? r.condicion : ""),
   ];
   return rows.filter((x): x is BienesRaicesPreviewFact => x != null);
@@ -194,6 +190,10 @@ function buildResidencialQuickFacts(s: BienesRaicesPrivadoFormState): BienesRaic
     const v = trim(value);
     if (v) out.push({ label, value: v, icon });
   };
+  const tipoLabel = TIPO_PROPIEDAD_OPCIONES.find((o) => o.value === r.tipoCodigo)?.label ?? "";
+  push("Tipo", tipoLabel, "home");
+  push(residencialSubtipoDisplayGroup(r.subtipo), labelForSubtipo(r.tipoCodigo, r.subtipo), "home");
+  push("Niveles / pisos", r.niveles, "home");
   push("Recámaras", prettifyPlainNumber(r.recamaras), "bed");
   push("Baños", prettifyPlainNumber(r.banos), "bath");
   const mb = trim(r.mediosBanos);
@@ -220,15 +220,13 @@ function buildComercialDetails(s: BienesRaicesPrivadoFormState): BienesRaicesPre
   const c = s.comercial;
   const tipoLabel = COMERCIAL_TIPO_OPCIONES.find((o) => o.value === c.tipoCodigo)?.label ?? "";
   const subLbl = labelComercialSubtipo(c.tipoCodigo, c.subtipo);
+  // Item 201/202/217 — Interior/Oficinas/Baños/Niveles/Estacionamiento already render in the
+  // quick-facts strip above (buildComercialQuickFacts) — kept out of this list to avoid showing
+  // the same values twice on the same preview.
   const rows: Array<BienesRaicesPreviewFact | null> = [
     row("Tipo comercial", tipoLabel),
     row(comercialSubtipoDisplayGroup(c.subtipo), subLbl),
     row("Uso", c.uso),
-    row("Tamaño interior", c.interiorSqft ? prettifySqft(c.interiorSqft) : ""),
-    row("Oficinas", prettifyPlainNumber(c.oficinas)),
-    row("Baños", prettifyPlainNumber(c.banos)),
-    row("Niveles / pisos", prettifyPlainNumber(c.niveles)),
-    row("Estacionamiento", c.estacionamiento),
     row("Zonificación", c.zonificacion),
     row("Condición", c.condicion ? CONDICION_LABEL[c.condicion] ?? c.condicion : ""),
     row("Acceso de carga", c.accesoCarga ? "Sí" : ""),
@@ -276,13 +274,12 @@ function buildTerrenoDetails(s: BienesRaicesPrivadoFormState): BienesRaicesPrevi
   const t = s.terreno;
   const tipoLabel = TERRENO_TIPO_OPCIONES.find((o) => o.value === t.tipoCodigo)?.label ?? "";
   const subLbl = labelTerrenoSubtipo(t.tipoCodigo, t.subtipo);
+  // Item 201/202/217 — Lote/Uso-zonificación/Acceso/Servicios already render in the quick-facts
+  // strip above (buildTerrenoQuickFacts) — kept out of this list to avoid showing the same
+  // values twice on the same preview.
   const rows: Array<BienesRaicesPreviewFact | null> = [
     row("Tipo de terreno", tipoLabel),
     row(terrenoSubtipoDisplayGroup(t.subtipo), subLbl),
-    row("Tamaño del lote", t.loteSqft ? prettifySqft(t.loteSqft) : ""),
-    row("Uso / zonificación", t.usoZonificacion),
-    row("Acceso", t.acceso),
-    row("Servicios disponibles", t.servicios),
     row("Topografía", t.topografia),
     row("Listo para construir", t.listoConstruir ? "Sí" : ""),
     row("Cercado", t.cercado ? "Sí" : ""),
