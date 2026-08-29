@@ -327,6 +327,8 @@ export const BR_COPY_EN = {
     diasAdicionales: "Additional days or hours (optional)",
     diasAdicionalesHelper: "Example: Saturday and Sunday 11:00 AM–3:00 PM; Monday by appointment.",
     notasOh: "Notes (optional)",
+    soloConCita: "By appointment only",
+    enlaceReservar: "Booking link (optional)",
     openHouseHelper:
       "The first date is the starting date. If the open house continues on more days, add the ending date and list any different days or hours below.",
     agregarOpenHouse: "Add another open-house event",

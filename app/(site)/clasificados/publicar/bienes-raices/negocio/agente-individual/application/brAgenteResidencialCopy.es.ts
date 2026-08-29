@@ -328,6 +328,8 @@ export const BR_COPY_ES = {
     diasAdicionales: "Días u horarios adicionales (opcional)",
     diasAdicionalesHelper: "Ejemplo: sábado y domingo de 11:00 AM a 3:00 PM; lunes con cita previa.",
     notasOh: "Notas (opcional)",
+    soloConCita: "Solo con cita previa",
+    enlaceReservar: "Enlace para reservar (opcional)",
     openHouseHelper:
       "La primera fecha es la fecha de inicio. Si la casa abierta continúa durante más días, agrega la fecha de finalización y escribe abajo cualquier día u horario diferente.",
     agregarOpenHouse: "Agregar otro evento de casa abierta",

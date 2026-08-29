@@ -107,14 +107,17 @@ function agente(overrides: Partial<AgenteIndividualResidencialFormState>): Agent
   // D — video cap raised from 4 to 8
   assert.equal(negocio.media.externalVideoUrls?.length, 8, "D: all 8 video URLs must survive the publish mapper");
 
-  // E — mostrarMarcaEnTarjeta honored even when marcaNombre is set
-  assert.equal(negocio.trust.mostrarBrokerage, true, "E: brand shown when toggle is true and name is set");
+  // E — item 104: brand visibility is purely content-driven; the mostrarMarcaEnTarjeta toggle
+  // no longer has a live UI control (removed per the owner's "no redundant toggle" rule) and is
+  // never honored as a suppression gate anywhere in the app — including here — because a legacy
+  // draft stored with it false must not silently lose its brand block with no way to fix it.
+  assert.equal(negocio.trust.mostrarBrokerage, true, "E: brand shown whenever marcaNombre is set");
   const sHidden = agente({ ...s, mostrarMarcaEnTarjeta: false });
   const negocioHidden = mapAgenteResidencialFormStateToNegocioForPublish(sHidden);
   assert.equal(
     negocioHidden.trust.mostrarBrokerage,
-    false,
-    "E: brand must be hidden when the agent explicitly disabled it, even though marcaNombre is set",
+    true,
+    "E: brand still shown even when the vestigial mostrarMarcaEnTarjeta field is false — content-driven, not toggle-gated",
   );
 
   // Confirm the highlights and D-fixed fields actually render in the preview VM, not just the
