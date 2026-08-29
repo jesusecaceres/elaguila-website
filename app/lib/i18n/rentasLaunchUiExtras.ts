@@ -121,6 +121,7 @@ export type RentasLaunchUiExtras = {
     virtualTour: string;
     virtualTourHint: string;
     invalidHttps: string;
+    tourLinkAdded: string;
   };
   residential: {
     sectionTitle: string;
@@ -356,6 +357,8 @@ export type RentasLaunchUiExtras = {
     permittedUse: string;
     heightDimensions: string;
     heightDimensionsHint: string;
+    vehicleRestrictions: string;
+    vehicleRestrictionsHint: string;
     sizeSqft: string;
     sizeSqftHint: string;
     restroomAvailable: string;
@@ -379,7 +382,7 @@ const es: RentasLaunchUiExtras = {
     introNew: "La vista previa solo muestra lo que llenes. El borrador vive en esta sesión del navegador (misma pestaña).",
     introEdit: "Estás editando un espacio aislado. Tu anuncio publicado solo cambia al usar Guardar cambios.",
     previewExplanation:
-      "Vista previa revisa que tengas lo mínimo necesario y abre tu anuncio de prueba. Ver borrador abre tu progreso al instante, aunque falten campos opcionales.",
+      "Vista previa revisa que tengas lo mínimo necesario y abre tu anuncio de prueba.",
     draftDeviceOnly: "Borrador guardado solo en este dispositivo.",
     draftCleared: "Borrador eliminado. Puedes empezar de nuevo.",
     publishedProtected: "Anuncio publicado protegido",
@@ -499,6 +502,7 @@ const es: RentasLaunchUiExtras = {
     virtualTour: "Tour virtual (enlace HTTPS)",
     virtualTourHint: "Solo enlaces https seguros (Matterport, YouTube, etc.). Opcional.",
     invalidHttps: "Si el enlace no es válido, no se mostrará en el anuncio.",
+    tourLinkAdded: "Enlace añadido",
   },
   residential: {
     sectionTitle: "Detalle residencial",
@@ -732,6 +736,8 @@ const es: RentasLaunchUiExtras = {
     permittedUse: "Uso permitido",
     heightDimensions: "Altura / dimensiones",
     heightDimensionsHint: "Si aplica (puerta, techo, van accessible…).",
+    vehicleRestrictions: "Restricciones de vehículo",
+    vehicleRestrictionsHint: "Ej. solo autos, sin RV/tráiler, altura máxima.",
     sizeSqft: "Tamaño (ft²)",
     sizeSqftHint: "Solo números (pies cuadrados aproximados).",
     restroomAvailable: "Baño disponible",
@@ -755,7 +761,7 @@ const en: RentasLaunchUiExtras = {
     introNew: "The preview only shows what you fill in. The draft lives in this browser session (same tab).",
     introEdit: "You are editing an isolated workspace. Your published listing changes only after Save changes.",
     previewExplanation:
-      "Preview checks that you have the minimum required fields and opens your test listing. View draft opens your progress instantly, even if optional fields are missing.",
+      "Preview checks that you have the minimum required fields and opens your test listing.",
     draftDeviceOnly: "Draft saved only on this device.",
     draftCleared: "Draft cleared. You can start over.",
     publishedProtected: "Published listing protected",
@@ -874,6 +880,7 @@ const en: RentasLaunchUiExtras = {
     virtualTour: "Virtual tour (HTTPS link)",
     virtualTourHint: "Only secure https links (Matterport, YouTube, etc.). Optional.",
     invalidHttps: "If the link is not valid, it will not be shown in the listing.",
+    tourLinkAdded: "Link added",
   },
   residential: {
     sectionTitle: "Residential details",
@@ -1107,6 +1114,8 @@ const en: RentasLaunchUiExtras = {
     permittedUse: "Permitted use",
     heightDimensions: "Height / dimensions",
     heightDimensionsHint: "If applicable (door, ceiling, van accessible…).",
+    vehicleRestrictions: "Vehicle restrictions",
+    vehicleRestrictionsHint: "E.g. cars only, no RV/trailer, max height.",
     sizeSqft: "Size (ft²)",
     sizeSqftHint: "Numbers only (approximate square feet).",
     restroomAvailable: "Restroom available",
@@ -1130,7 +1139,7 @@ const pt: RentasLaunchUiExtras = {
     introNew: "A prévia mostra apenas o que você preencher. O rascunho fica nesta sessão do navegador (mesma aba).",
     introEdit: "Você está editando um espaço isolado. Seu anúncio publicado só muda ao usar Salvar alterações.",
     previewExplanation:
-      "Prévia confere se você tem o mínimo necessário e abre seu anúncio de teste. Ver rascunho abre seu progresso na hora, mesmo com campos opcionais pendentes.",
+      "Prévia confere se você tem o mínimo necessário e abre seu anúncio de teste.",
     draftDeviceOnly: "Rascunho salvo só neste dispositivo.",
     draftCleared: "Rascunho apagado. Você pode começar de novo.",
     publishedProtected: "Anúncio publicado protegido",
@@ -1250,6 +1259,7 @@ const pt: RentasLaunchUiExtras = {
     virtualTour: "Tour virtual (link HTTPS)",
     virtualTourHint: "Somente links https seguros (Matterport, YouTube etc.). Opcional.",
     invalidHttps: "Se o link não for válido, não será mostrado no anúncio.",
+    tourLinkAdded: "Link adicionado",
   },
   residential: {
     sectionTitle: "Detalhe residencial",
@@ -1483,6 +1493,8 @@ const pt: RentasLaunchUiExtras = {
     permittedUse: "Uso permitido",
     heightDimensions: "Altura / dimensões",
     heightDimensionsHint: "Se aplicável (porta, teto, van accessible…).",
+    vehicleRestrictions: "Restrições de veículo",
+    vehicleRestrictionsHint: "Ex. só carros, sem RV/trailer, altura máxima.",
     sizeSqft: "Tamanho (ft²)",
     sizeSqftHint: "Somente números (pés quadrados aproximados).",
     restroomAvailable: "Banheiro disponível",
@@ -1506,7 +1518,7 @@ const tl: RentasLaunchUiExtras = {
     introNew: "Ang preview ay nagpapakita lang ng nilagay mo. Nakatira ang draft sa session na ito ng browser (parehong tab).",
     introEdit: "Nag-e-edit ka sa hiwalay na workspace. Nagbabago lang ang published listing pagkatapos ng Save changes.",
     previewExplanation:
-      "Sinisiguro ng I-preview na kumpleto ang minimum na kailangan bago buksan ang test listing mo. Ang Tingnan ang draft ay agad na bubukas ang progress mo, kahit may kulang pang optional fields.",
+      "Sinisiguro ng I-preview na kumpleto ang minimum na kailangan bago buksan ang test listing mo.",
     draftDeviceOnly: "Naka-save ang draft sa device na ito lang.",
     draftCleared: "Na-clear ang draft. Puwede kang magsimula ulit.",
     publishedProtected: "Protektado ang published listing",
@@ -1626,6 +1638,7 @@ const tl: RentasLaunchUiExtras = {
     virtualTour: "Virtual tour (HTTPS link)",
     virtualTourHint: "Secure https links lang (Matterport, YouTube, atbp.). Optional.",
     invalidHttps: "Kung hindi valid ang link, hindi ito ipapakita sa listing.",
+    tourLinkAdded: "Naidagdag ang link",
   },
   residential: {
     sectionTitle: "Mga detalye ng residential",
@@ -1859,6 +1872,8 @@ const tl: RentasLaunchUiExtras = {
     permittedUse: "Pinapayagang gamit",
     heightDimensions: "Taas / dimensyon",
     heightDimensionsHint: "Kung applicable (door, ceiling, van accessible…).",
+    vehicleRestrictions: "Mga restriksyon sa sasakyan",
+    vehicleRestrictionsHint: "Hal. mga sasakyan lang, walang RV/trailer, max na taas.",
     sizeSqft: "Sukat (ft²)",
     sizeSqftHint: "Numero lang (tinatayang square feet).",
     restroomAvailable: "May restroom",

@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { LeonixVideoUrlAddRows } from "@/app/clasificados/lib/LeonixVideoUrlAddRows";
 import {
   resolveClasificadosPublishLang,
   withClasificadosPublishLang,
@@ -53,7 +54,7 @@ import {
   TERRENO_SUBTIPO_POR_TIPO,
   TERRENO_TIPO_OPCIONES,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteComercialTerrenoMeta";
-import { SUBTIPO_POR_TIPO, TIPO_PROPIEDAD_OPCIONES } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteResidencialTipoMeta";
+import { TIPO_PROPIEDAD_OPCIONES, selectableSubtipoOptionsForTipo } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteResidencialTipoMeta";
 import {
   createEmptyBienesRaicesPrivadoFormState,
   MAX_PRIVADO_VIDEO_URLS,
@@ -342,29 +343,18 @@ export function BienesRaicesPrivadoForm() {
             <AiField
               required
               label="Precio (USD)"
-              hint="Escribe solo números (sin símbolos). Abajo ves cómo quedará en el anuncio."
+              hint="Escribe solo números; se formatea automáticamente con $ y comas."
             >
               <input
                 className={fieldClass}
                 inputMode="numeric"
-                value={state.precio}
+                value={pricePreview || state.precio}
                 onChange={(e) => setState((s) => ({ ...s, precio: priceDigitsUnbounded(e.target.value) }))}
                 autoComplete="off"
               />
-              {pricePreview ? (
-                <p className="mt-2 text-sm font-semibold [font-variant-numeric:tabular-nums] text-[#6E5418]">
-                  En el anuncio:{" "}
-                  <span className="text-[#1E1810]" aria-live="polite">
-                    {pricePreview}
-                  </span>
-                </p>
-              ) : (
-                <p className="mt-2 text-xs text-[#5C5346]/85">
-                  {state.precio.trim()
-                    ? "Revisa el número (debe ser mayor que cero)."
-                    : "Ejemplo: al escribir 120000 se mostrará como precio en dólares con formato."}
-                </p>
-              )}
+              {!pricePreview && state.precio.trim() ? (
+                <p className="mt-2 text-xs text-[#5C5346]/85">Revisa el número (debe ser mayor que cero).</p>
+              ) : null}
             </AiField>
             <AiField label="Estado del anuncio">
               <select
@@ -624,8 +614,8 @@ export function BienesRaicesPrivadoForm() {
                       }
                     />
                   </AiField>
-                  {state.gate12d.virtualTourUrl.trim() ? (
-                    <p className="mt-2 text-xs font-medium text-[#2C7A4E]">Enlace listo: se usará en la vista previa.</p>
+                  {/^https?:\/\/\S+/i.test(state.gate12d.virtualTourUrl.trim()) ? (
+                    <p className="mt-2 text-xs font-bold text-[#2F6B3C]">Enlace añadido</p>
                   ) : null}
                 </div>
               </div>
@@ -723,39 +713,20 @@ export function BienesRaicesPrivadoForm() {
               Comparte hasta {MAX_PRIVADO_VIDEO_URLS} enlaces externos (YouTube, Vimeo, mp4, etc.). No se aceptan
               archivos de video del dispositivo.
             </p>
-            <div className="mt-4 grid gap-3">
-              {Array.from({ length: MAX_PRIVADO_VIDEO_URLS }, (_, i) => {
-                const current = normalizePrivadoVideoUrls(
-                  state.media.videoUrls.length ? state.media.videoUrls : [state.media.videoUrl],
-                );
-                const value = current[i] ?? "";
-                const invalid = Boolean(value.trim()) && !/^https?:\/\//i.test(value.trim());
-                return (
-                  <AiField
-                    key={i}
-                    label={i === 0 ? "Video por enlace" : `Video ${i + 1} por enlace`}
-                    hint={i === 0 ? "Pega la URL completa (YouTube, Vimeo, mp4…)." : undefined}
-                  >
-                    <input
-                      className={fieldClass}
-                      type="text"
-                      inputMode="url"
-                      autoComplete="off"
-                      placeholder="https://"
-                      value={value}
-                      onChange={(e) => onVideoUrlChange(i, e.target.value)}
-                    />
-                    {invalid ? (
-                      <p className="mt-2 text-xs font-medium text-amber-800">Revisa el enlace; debe empezar con http(s)://</p>
-                    ) : null}
-                  </AiField>
-                );
-              })}
+            <div className="mt-4">
+              <LeonixVideoUrlAddRows
+                values={normalizePrivadoVideoUrls(state.media.videoUrls.length ? state.media.videoUrls : [state.media.videoUrl])}
+                max={MAX_PRIVADO_VIDEO_URLS}
+                onChange={(next) => {
+                  for (let i = 0; i < next.length; i++) onVideoUrlChange(i, next[i]);
+                }}
+                fieldLabel="Video por enlace"
+                urlLabel={(n) => (n === 1 ? "Video por enlace" : `Video ${n} por enlace`)}
+                addLabel="+ Agregar video"
+                removeLabel="Quitar"
+                addedLabel="Video añadido"
+              />
             </div>
-            {normalizePrivadoVideoUrls(state.media.videoUrls.length ? state.media.videoUrls : [state.media.videoUrl])
-              .length ? (
-              <p className="mt-2 text-xs font-medium text-[#2C7A4E]">Enlace(s) listo(s): se usarán en la vista previa.</p>
-            ) : null}
           </div>
         </section>
 
@@ -851,7 +822,7 @@ export function BienesRaicesPrivadoForm() {
                 autoComplete="name"
               />
             </AiField>
-            <AiField label="Teléfono">
+            <AiField label="Teléfono" hint="Número de 10 dígitos en EE. UU., sin el 1 inicial (para que no se duplique al marcar).">
               <input
                 className={fieldClass}
                 inputMode="numeric"
@@ -864,7 +835,7 @@ export function BienesRaicesPrivadoForm() {
                 autoComplete="tel"
               />
             </AiField>
-            <AiField label="WhatsApp">
+            <AiField label="WhatsApp" hint="Puede ser el mismo número de teléfono o uno diferente.">
               <input
                 className={fieldClass}
                 inputMode="numeric"
@@ -873,6 +844,19 @@ export function BienesRaicesPrivadoForm() {
                   const prev = digitsOnly(state.seller.whatsapp);
                   const { display } = onPhoneInputChange(e.target.value, prev);
                   setState((s) => ({ ...s, seller: { ...s.seller, whatsapp: display } }));
+                }}
+                autoComplete="tel"
+              />
+            </AiField>
+            <AiField label="Número para mensajes de texto (SMS, opcional)" hint="Puede ser el mismo número de teléfono o uno diferente.">
+              <input
+                className={fieldClass}
+                inputMode="numeric"
+                value={formatUsPhoneDisplay(digitsOnly(state.seller.mensajesTexto))}
+                onChange={(e) => {
+                  const prev = digitsOnly(state.seller.mensajesTexto);
+                  const { display } = onPhoneInputChange(e.target.value, prev);
+                  setState((s) => ({ ...s, seller: { ...s.seller, mensajesTexto: display } }));
                 }}
                 autoComplete="tel"
               />
@@ -929,7 +913,7 @@ export function BienesRaicesPrivadoForm() {
                   value={state.residencial.subtipo}
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, subtipo: e.target.value } }))}
                 >
-                  {SUBTIPO_POR_TIPO[state.residencial.tipoCodigo].map((o) => (
+                  {selectableSubtipoOptionsForTipo(state.residencial.tipoCodigo, state.residencial.subtipo).map((o) => (
                     <option key={o.value || "none"} value={o.value}>
                       {o.label}
                     </option>
@@ -1398,18 +1382,14 @@ export function BienesRaicesPrivadoForm() {
             disableVerAnuncio={!confirmAll}
             validationMessage={verAnuncioValidationMessage}
             onReiniciar={onReiniciar}
-            openPreviewHref={previewHref}
-            onBeforeOpenUnvalidatedPreview={flushSave}
             labels={
               lang === "en"
                 ? {
                     verAnuncio: "Preview",
-                    openPreview: "View draft",
                     reiniciar: "Clear progress and restart",
                   }
                 : {
                     verAnuncio: "Vista previa",
-                    openPreview: "Ver borrador",
                     reiniciar: "Borrar progreso y reiniciar",
                   }
             }

@@ -24,5 +24,5 @@ export function formatListingPrice(
   const n = Number(cleaned);
   if (!Number.isFinite(n) || n < 0) return raw;
 
-  return `$${Math.round(n)}`;
+  return `$${Math.round(n).toLocaleString("en-US")}`;
 }

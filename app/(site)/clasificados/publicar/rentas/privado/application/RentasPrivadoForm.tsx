@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publishUi/ClasificadosApplicationTopActions";
+import { LeonixVideoUrlAddRows } from "@/app/clasificados/lib/LeonixVideoUrlAddRows";
 import ListingRulesConfirmationSection from "@/app/clasificados/en-venta/shared/components/ListingRulesConfirmationSection";
 import { gateRentasPrivadoPreview } from "@/app/clasificados/lib/publish/leonixRequiredForPreviewGates";
 import {
@@ -486,8 +487,6 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
       await flushSave();
       router.push(previewHref);
     },
-    openPreviewHref: previewHref,
-    onBeforeOpenUnvalidatedPreview: flushSave,
     disableValidatedPreview: !confirmAll || (Boolean(editContext) && hydrationStatus !== "ready"),
     validationBlockedMessage:
       previewGateMessage ??
@@ -498,8 +497,6 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
           : null),
     labels: {
       preview: rm.actions.validatePreview,
-      openPreview: rm.actions.viewWithoutValidation,
-      openPreviewTitle: rm.actions.openPreviewTitle,
       deleteApplication: rm.actions.deleteDraft,
     },
     onDeleteApplication: async () => {
@@ -771,36 +768,21 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
             <p className={aiHintClass}>
               {rm.media.videosHint} {rm.media.recommendedPlatforms}
             </p>
-            <div className="mt-4 grid gap-3">
-              {Array.from({ length: MAX_VIDEO_URLS }, (_, i) => {
-                const current = normalizeVideoUrls(state.media.videoUrls?.length ? state.media.videoUrls : [state.media.videoUrl]);
-                const value = current[i] ?? "";
-                const invalid = value.trim() && !/^https?:\/\//i.test(value.trim());
-                return (
-                  <AiField
-                    key={i}
-                    label={fillTemplate(rm.media.videoN, { n: i + 1 })}
-                    hint={i === 0 ? rm.media.primaryVideoHint : undefined}
-                  >
-                    <input
-                      className={fieldClass}
-                      type="url"
-                      inputMode="url"
-                      autoComplete="off"
-                      placeholder="https://youtube.com/..."
-                      value={value}
-                      onChange={(e) => onVideoUrlChange(i, e.target.value)}
-                    />
-                    {invalid ? (
-                      <p className="mt-2 text-xs font-medium text-amber-800">{rm.media.invalidUrl}</p>
-                    ) : null}
-                  </AiField>
-                );
-              })}
+            <div className="mt-4">
+              <LeonixVideoUrlAddRows
+                values={normalizeVideoUrls(state.media.videoUrls?.length ? state.media.videoUrls : [state.media.videoUrl])}
+                max={MAX_VIDEO_URLS}
+                onChange={(next) => {
+                  for (let i = 0; i < next.length; i++) onVideoUrlChange(i, next[i]);
+                }}
+                fieldLabel={rm.media.videosByLink}
+                urlLabel={(n) => fillTemplate(rm.media.videoN, { n })}
+                addLabel="+ Agregar video"
+                removeLabel="Quitar"
+                addedLabel={rm.media.linksReady}
+                placeholder="https://youtube.com/..."
+              />
             </div>
-            {normalizeVideoUrls(state.media.videoUrls?.length ? state.media.videoUrls : [state.media.videoUrl]).length ? (
-              <p className="mt-3 text-xs font-medium text-[#2C7A4E]">{rm.media.linksReady}</p>
-            ) : null}
           </div>
         </section>
 
@@ -1494,16 +1476,6 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 className="inline-flex min-h-[48px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl bg-[#3B66AD] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699] disabled:cursor-not-allowed disabled:opacity-40 sm:max-w-xs"
               >
                 {rm.review.preview}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  previewActionsProps.onBeforeOpenUnvalidatedPreview();
-                  router.push(previewActionsProps.openPreviewHref);
-                }}
-                className="inline-flex min-h-[48px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl border-2 border-[#3B66AD]/45 bg-white px-4 py-3 text-sm font-bold leading-tight text-[#2f5699] shadow-sm transition hover:bg-[#3B66AD]/5 sm:max-w-xs"
-              >
-                {rm.review.viewPreviewDraft}
               </button>
             </div>
             {previewActionsProps.validationBlockedMessage ? (
