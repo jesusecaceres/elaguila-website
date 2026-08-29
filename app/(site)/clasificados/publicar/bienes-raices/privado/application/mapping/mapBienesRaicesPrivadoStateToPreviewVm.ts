@@ -335,7 +335,18 @@ function buildGate12dOpenHouseCard(
     const r = row(label, value);
     if (r) rows.push(r);
   };
-  if (g.openHouseEnabled) {
+  // Item 206 — repeatable events take precedence over the single legacy date/start/end fields.
+  if (g.openHouseSlots.length) {
+    const multi = g.openHouseSlots.length > 1;
+    g.openHouseSlots.forEach((slot, i) => {
+      const suffix = multi ? ` ${i + 1}` : "";
+      if (trim(slot.fecha)) pushRow(`${L("Fecha", "Date")}${suffix}`, trim(slot.fecha));
+      const tw = [trim(slot.inicio), trim(slot.fin)].filter(Boolean).join(" – ");
+      if (tw) pushRow(`${L("Horario", "Hours")}${suffix}`, tw);
+      if (slot.soloConCita) pushRow(`${L("Solo con cita previa", "By appointment only")}${suffix}`, L("Sí", "Yes"));
+      if (trim(slot.notas)) pushRow(`${L("Notas", "Notes")}${suffix}`, trim(slot.notas));
+    });
+  } else if (g.openHouseEnabled) {
     pushRow(L("Open house", "Open house"), L("Sí", "Yes"));
     if (trim(g.openHouseDate)) pushRow(L("Fecha", "Date"), trim(g.openHouseDate));
     const tw = [trim(g.openHouseStartTime), trim(g.openHouseEndTime)].filter(Boolean).join(" – ");

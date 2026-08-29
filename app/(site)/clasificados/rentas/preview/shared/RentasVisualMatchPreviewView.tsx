@@ -23,6 +23,7 @@ import type {
 import { buildOfertaLocalPreviewMapEmbedUrl } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
 import { LeonixListingFactsGrid } from "@/app/clasificados/lib/LeonixListingFactsGrid";
 import { LeonixChipFactsCard } from "@/app/clasificados/lib/LeonixChipFactsCard";
+import { LeonixOpenHouseSlotCards } from "@/app/clasificados/lib/LeonixOpenHouseSlotCards";
 import { useBrContactCtaSheet } from "@/app/clasificados/bienes-raices/shared/brContactCtaSheet";
 import { LeonixPreviewGalleryLightbox } from "@/app/clasificados/lib/LeonixPreviewGalleryLightbox";
 import { tryWebShare, copyToClipboard } from "@/app/components/cta/ctaLaunchers";
@@ -669,6 +670,36 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, i
                 icon={FiCheckCircle}
                 theme={{ borderColor: "transparent", cardBackground: "transparent", titleColor: BODY, chipBorderColor: "rgba(214,199,173,0.75)", chipBackground: "rgba(255,255,255,0.75)", chipTextColor: BODY }}
               />
+            </Section>
+          ) : null}
+
+          {vm.openHouseCard && vm.openHouseCard.rows.length ? (
+            <Section eyebrow={lang === "es" ? "Agenda tu visita" : "Plan your visit"} title={vm.openHouseCard.title}>
+              {/* Item 280 — same shared structured event-card renderer BR uses for Open House,
+                  instead of a separate Rentas-only rendering path. Rentas' own showing/appointment
+                  labels are already baked into vm.openHouseCard by the Rentas mappers. */}
+              <LeonixOpenHouseSlotCards
+                title=""
+                slots={[vm.openHouseCard.rows]}
+                borderColor={BORDER_SOFT}
+                cardBackground="rgba(255,253,247,0.7)"
+                labelColor={MUTED}
+                valueColor={BODY}
+              />
+            </Section>
+          ) : null}
+
+          {vm.media?.virtualTourUrl ? (
+            <Section eyebrow={lang === "es" ? "Recorrido virtual" : "Virtual walkthrough"} title={lang === "es" ? "Tour virtual" : "Virtual tour"}>
+              <a
+                href={vm.media.virtualTourUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-full border px-4 py-2 text-sm font-bold transition hover:bg-[#FBF7EF]"
+                style={{ borderColor: `${GOLD}88`, color: CHARCOAL }}
+              >
+                {lang === "es" ? "Abrir tour virtual" : "Open virtual tour"}
+              </a>
             </Section>
           ) : null}
 

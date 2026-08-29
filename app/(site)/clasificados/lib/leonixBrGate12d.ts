@@ -214,6 +214,28 @@ export function buildBrGate12dV1FromPrivadoState(s: BienesRaicesPrivadoFormState
   pushS("openHouseDate", g.openHouseDate);
   pushS("openHouseStartTime", g.openHouseStartTime);
   pushS("openHouseEndTime", g.openHouseEndTime);
+  // Item 206 — repeatable events take precedence over the legacy single-event fields above
+  // (which stay populated too, for any reader that hasn't adopted the array yet).
+  const privadoEvents = Array.isArray(g.openHouseSlots) ? g.openHouseSlots : [];
+  if (privadoEvents.length) {
+    p.openHouseEvents = privadoEvents
+      .map((ev) => ({
+        startDate: trim(ev.fecha),
+        endDate: trim(ev.fechaFin),
+        startTime: trim(ev.inicio),
+        endTime: trim(ev.fin),
+        additionalDaysHours: trim(ev.diasHorariosAdicionales),
+        notes: trim(ev.notas),
+        appointmentOnly: Boolean(ev.soloConCita),
+        bookingUrl: trim(ev.enlaceReservar),
+      }))
+      .filter(
+        (ev) =>
+          ev.startDate || ev.endDate || ev.startTime || ev.endTime || ev.additionalDaysHours || ev.notes || ev.appointmentOnly || ev.bookingUrl,
+      )
+      .slice(0, 12);
+    if (!p.openHouseEnabled && p.openHouseEvents.length) p.openHouseEnabled = true;
+  }
   if (g.showingByAppointment) p.showingByAppointment = true;
   pushS("showingInstructions", g.showingInstructions);
   const tour = normalizeLeonixHttpsUrl(g.virtualTourUrl);

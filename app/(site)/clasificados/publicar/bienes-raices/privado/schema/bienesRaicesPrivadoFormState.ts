@@ -20,6 +20,25 @@ import {
   createEmptyLeonixContactChannelsFormSlice,
   mergePartialLeonixContactChannelsFormSlice,
 } from "@/app/clasificados/lib/leonixContactChannelsV1";
+import type { AgenteResOpenHouseSlot } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteIndividualResidencialFormState";
+
+/** Item 206 — same repeatable event shape BR Negocio already uses, so Privado adopts the
+ * approved structured model instead of inventing its own. */
+const BR_PRIVADO_MAX_OPEN_HOUSE_SLOTS = 4;
+
+function coerceBrPrivadoOpenHouseSlot(o: unknown): AgenteResOpenHouseSlot {
+  const r = (o && typeof o === "object" ? o : {}) as Record<string, unknown>;
+  return {
+    fecha: typeof r.fecha === "string" ? r.fecha : "",
+    fechaFin: typeof r.fechaFin === "string" ? r.fechaFin : "",
+    inicio: typeof r.inicio === "string" ? r.inicio : "",
+    fin: typeof r.fin === "string" ? r.fin : "",
+    diasHorariosAdicionales: typeof r.diasHorariosAdicionales === "string" ? r.diasHorariosAdicionales : "",
+    notas: typeof r.notas === "string" ? r.notas : "",
+    soloConCita: typeof r.soloConCita === "boolean" ? r.soloConCita : false,
+    enlaceReservar: typeof r.enlaceReservar === "string" ? r.enlaceReservar : "",
+  };
+}
 
 export const BR_PRIVADO_FORM_VERSION = 3 as const;
 
@@ -43,9 +62,14 @@ export type BrPrivadoGate12dSlice = {
   shortTermRentalAllowed: BrPrivadoTriBool;
   parkingRules: string;
   openHouseEnabled: boolean;
+  /** @deprecated Item 206 — Privado's Open House is now repeatable via `openHouseSlots`. These
+   * three legacy fields are kept only so old drafts/listings hydrate safely; new UI writes to
+   * `openHouseSlots` instead. */
   openHouseDate: string;
   openHouseStartTime: string;
   openHouseEndTime: string;
+  /** Item 206 — repeatable Open House events, same shape BR Negocio already uses. */
+  openHouseSlots: AgenteResOpenHouseSlot[];
   showingByAppointment: boolean;
   showingInstructions: string;
   virtualTourUrl: string;
@@ -71,6 +95,7 @@ export function createEmptyBrPrivadoGate12dSlice(): BrPrivadoGate12dSlice {
     openHouseDate: "",
     openHouseStartTime: "",
     openHouseEndTime: "",
+    openHouseSlots: [],
     showingByAppointment: false,
     showingInstructions: "",
     virtualTourUrl: "",
@@ -113,6 +138,21 @@ export function mergeBrPrivadoGate12dSlice(partial: unknown): BrPrivadoGate12dSl
     openHouseDate: typeof g.openHouseDate === "string" ? g.openHouseDate : base.openHouseDate,
     openHouseStartTime: typeof g.openHouseStartTime === "string" ? g.openHouseStartTime : base.openHouseStartTime,
     openHouseEndTime: typeof g.openHouseEndTime === "string" ? g.openHouseEndTime : base.openHouseEndTime,
+    openHouseSlots: (() => {
+      if (Array.isArray(g.openHouseSlots) && g.openHouseSlots.length > 0) {
+        return g.openHouseSlots.slice(0, BR_PRIVADO_MAX_OPEN_HOUSE_SLOTS).map(coerceBrPrivadoOpenHouseSlot);
+      }
+      // Backward compat: an old draft/listing with only the legacy single-event fields
+      // synthesizes one slot, so it hydrates safely into the repeatable model — no data loss,
+      // no destructive migration.
+      const legacyDate = typeof g.openHouseDate === "string" ? g.openHouseDate : "";
+      const legacyStart = typeof g.openHouseStartTime === "string" ? g.openHouseStartTime : "";
+      const legacyEnd = typeof g.openHouseEndTime === "string" ? g.openHouseEndTime : "";
+      if (legacyDate || legacyStart || legacyEnd) {
+        return [coerceBrPrivadoOpenHouseSlot({ fecha: legacyDate, inicio: legacyStart, fin: legacyEnd })];
+      }
+      return [];
+    })(),
     showingByAppointment: typeof g.showingByAppointment === "boolean" ? g.showingByAppointment : base.showingByAppointment,
     showingInstructions: typeof g.showingInstructions === "string" ? g.showingInstructions : base.showingInstructions,
     virtualTourUrl: typeof g.virtualTourUrl === "string" ? g.virtualTourUrl : base.virtualTourUrl,

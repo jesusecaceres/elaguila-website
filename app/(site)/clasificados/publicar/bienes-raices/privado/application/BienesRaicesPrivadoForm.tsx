@@ -84,6 +84,95 @@ function BrSqftPreview({ value }: { value: string }) {
   return <p className="mt-1.5 text-xs font-medium text-[#5C5346]">Vista previa: {shown}</p>;
 }
 
+const BR_PRIVADO_MAX_OPEN_HOUSE_SLOTS = 4;
+
+/** Item 206 — repeatable Open House events for BR Privado, mirroring BR Negocio's
+ * add/edit/remove pattern (same shared `AgenteResOpenHouseSlot` shape). */
+function BrPrivadoOpenHouseSlots({
+  state,
+  setState,
+  fieldClass,
+}: {
+  state: BienesRaicesPrivadoFormState;
+  setState: React.Dispatch<React.SetStateAction<BienesRaicesPrivadoFormState>>;
+  fieldClass: string;
+}) {
+  const slots = state.gate12d.openHouseSlots;
+
+  const patchSlot = (index: number, patch: Partial<(typeof slots)[number]>) => {
+    setState((s) => ({
+      ...s,
+      gate12d: {
+        ...s.gate12d,
+        openHouseSlots: s.gate12d.openHouseSlots.map((row, j) => (j === index ? { ...row, ...patch } : row)),
+      },
+    }));
+  };
+
+  const removeSlot = (index: number) => {
+    setState((s) => ({
+      ...s,
+      gate12d: { ...s.gate12d, openHouseSlots: s.gate12d.openHouseSlots.filter((_, j) => j !== index) },
+    }));
+  };
+
+  const addSlot = () => {
+    setState((s) => ({
+      ...s,
+      gate12d: {
+        ...s.gate12d,
+        openHouseSlots: [
+          ...s.gate12d.openHouseSlots,
+          { fecha: "", fechaFin: "", inicio: "", fin: "", diasHorariosAdicionales: "", notas: "", soloConCita: false, enlaceReservar: "" },
+        ].slice(0, BR_PRIVADO_MAX_OPEN_HOUSE_SLOTS),
+      },
+    }));
+  };
+
+  return (
+    <div>
+      <span className={aiLabelClass}>Open house / visitas</span>
+      <div className="mt-2 space-y-3">
+        {slots.map((slot, i) => (
+          <div key={i} className="rounded-lg border border-[#E8DFD0] bg-[#FFFDF9] p-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">
+                Open house{slots.length > 1 ? ` ${i + 1}` : ""}
+              </p>
+              <button type="button" className="text-xs font-semibold text-[#8B7355] underline-offset-2 hover:underline" onClick={() => removeSlot(i)}>
+                Eliminar
+              </button>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <AiField label="Fecha">
+                <input className={fieldClass} type="date" value={slot.fecha} onChange={(e) => patchSlot(i, { fecha: e.target.value })} />
+              </AiField>
+              <AiField label="Hora inicio">
+                <input className={fieldClass} type="time" value={slot.inicio} onChange={(e) => patchSlot(i, { inicio: e.target.value })} />
+              </AiField>
+              <AiField label="Hora fin">
+                <input className={fieldClass} type="time" value={slot.fin} onChange={(e) => patchSlot(i, { fin: e.target.value })} />
+              </AiField>
+              <AiField label="Notas (opcional)">
+                <input className={fieldClass} value={slot.notas} onChange={(e) => patchSlot(i, { notas: e.target.value })} />
+              </AiField>
+            </div>
+          </div>
+        ))}
+      </div>
+      {slots.length < BR_PRIVADO_MAX_OPEN_HOUSE_SLOTS ? (
+        <button
+          type="button"
+          className="mt-3 w-full rounded-lg border border-dashed border-[#C9B46A]/60 bg-[#FFFCF7] px-3 py-2.5 text-sm font-semibold text-[#5C4A28] transition hover:border-[#B8954A]/80 hover:bg-[#FFF6E7]"
+          onClick={addSlot}
+        >
+          + Añadir horario / visita
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 const CATEGORIAS: { id: BrNegocioCategoriaPropiedad; label: string }[] = [
   { id: "residencial", label: "Residencial" },
   { id: "comercial", label: "Comercial" },
@@ -541,36 +630,9 @@ export function BienesRaicesPrivadoForm() {
                     Sí, planeo un open house
                   </label>
                 </AiField>
-                <AiField label="Fecha (AAAA-MM-DD)">
-                  <input
-                    className={fieldClass}
-                    type="date"
-                    value={state.gate12d.openHouseDate}
-                    onChange={(e) =>
-                      setState((s) => ({ ...s, gate12d: { ...s.gate12d, openHouseDate: e.target.value } }))
-                    }
-                  />
-                </AiField>
-                <AiField label="Hora inicio">
-                  <input
-                    className={fieldClass}
-                    type="time"
-                    value={state.gate12d.openHouseStartTime}
-                    onChange={(e) =>
-                      setState((s) => ({ ...s, gate12d: { ...s.gate12d, openHouseStartTime: e.target.value } }))
-                    }
-                  />
-                </AiField>
-                <AiField label="Hora fin">
-                  <input
-                    className={fieldClass}
-                    type="time"
-                    value={state.gate12d.openHouseEndTime}
-                    onChange={(e) =>
-                      setState((s) => ({ ...s, gate12d: { ...s.gate12d, openHouseEndTime: e.target.value } }))
-                    }
-                  />
-                </AiField>
+                <div className="sm:col-span-2">
+                  <BrPrivadoOpenHouseSlots state={state} setState={setState} fieldClass={fieldClass} />
+                </div>
                 <AiField label="Visitas solo con cita">
                   <label className="flex min-h-[44px] items-center gap-2 text-sm text-[#2C2416]">
                     <input
