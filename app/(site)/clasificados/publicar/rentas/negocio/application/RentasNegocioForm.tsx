@@ -944,7 +944,6 @@ export function RentasNegocioForm() {
               <input
                 className={fieldClass}
                 inputMode="numeric"
-                placeholder="Puede ser el mismo número de teléfono o uno diferente."
                 value={formatUsPhoneDisplay(digitsOnly(state.negocioMensajesTexto))}
                 onChange={(e) => {
                   const prev = digitsOnly(state.negocioMensajesTexto);

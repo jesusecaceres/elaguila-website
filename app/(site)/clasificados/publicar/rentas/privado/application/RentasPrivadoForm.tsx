@@ -902,7 +902,6 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
               <input
                 className={fieldClass}
                 inputMode="numeric"
-                placeholder={rm.contact.textNumberPlaceholder}
                 value={formatUsPhoneDisplay(digitsOnly(state.seller.mensajesTexto))}
                 onChange={(e) => {
                   const prev = digitsOnly(state.seller.mensajesTexto);

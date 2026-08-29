@@ -335,7 +335,7 @@ export function mapRentasPrivadoStateToPreviewVm(
       ...base.location,
       line1,
       cityStateZip,
-      fullAddress: exact ? addressLine : line1,
+      fullAddress: addressLine,
       mapsUrl,
       hasMeaningfulAddress,
     },
