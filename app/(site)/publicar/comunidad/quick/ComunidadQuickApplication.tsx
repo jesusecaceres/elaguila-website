@@ -47,6 +47,7 @@ import { COMMUNITY_IN_FLIGHT_LISTING_ID_KEYS } from "@/app/(site)/publicar/commu
 import { gateComunidadQuickPreview } from "@/app/(site)/publicar/community/shared/required/communityRequiredForPreview";
 import {
   COMUNIDAD_ACCESSIBILITY_OPTIONS,
+  COMUNIDAD_ACCESSIBILITY_UNCERTAIN_VALUE,
   COMUNIDAD_CATEGORY_OPTIONS,
   COMMUNITY_AUDIENCE_OPTIONS,
   COMMUNITY_REGISTRATION_OPTIONS,
@@ -326,7 +327,7 @@ function ComunidadQuickApplicationBody({
                 {copy.fields.description}
               </EmpleosFieldLabel>
               <textarea
-                className={`${INPUT} min-h-[100px]`}
+                className={`${INPUT} min-h-[160px]`}
                 value={state.description}
                 onChange={(e) => patch({ description: e.target.value })}
               />
@@ -366,15 +367,22 @@ function ComunidadQuickApplicationBody({
               <div className="mt-2 flex flex-wrap gap-3">
                 {COMUNIDAD_ACCESSIBILITY_OPTIONS.map((o) => {
                   const checked = state.accessibilityKeys.includes(o.value);
+                  const isUncertain = o.value === COMUNIDAD_ACCESSIBILITY_UNCERTAIN_VALUE;
                   return (
                     <label key={o.value} className="inline-flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={() => {
-                          const next = checked
-                            ? state.accessibilityKeys.filter((k) => k !== o.value)
-                            : [...state.accessibilityKeys, o.value];
+                          if (checked) {
+                            patch({ accessibilityKeys: state.accessibilityKeys.filter((k) => k !== o.value) });
+                            return;
+                          }
+                          // "No estoy seguro" is an uncertainty state, not a real feature — it must
+                          // never co-render with concrete accessibility attributes as if it were one.
+                          const next = isUncertain
+                            ? [o.value]
+                            : [...state.accessibilityKeys.filter((k) => k !== COMUNIDAD_ACCESSIBILITY_UNCERTAIN_VALUE), o.value];
                           patch({ accessibilityKeys: next });
                         }}
                       />
@@ -389,10 +397,21 @@ function ComunidadQuickApplicationBody({
                 {copy.fields.bringNote}
               </EmpleosFieldLabel>
               <textarea
-                className={`${INPUT} min-h-[72px]`}
+                className={`${INPUT} min-h-[120px]`}
                 value={state.bringNote}
                 onChange={(e) => patch({ bringNote: e.target.value })}
-                placeholder={lang === "es" ? "Opcional" : "Optional"}
+                placeholder={copy.fields.bringNoteHelper}
+              />
+            </label>
+            <label className="block text-sm">
+              <EmpleosFieldLabel lang={lang} optional>
+                {copy.fields.restrictionsNote}
+              </EmpleosFieldLabel>
+              <textarea
+                className={`${INPUT} min-h-[120px]`}
+                value={state.restrictionsNote}
+                onChange={(e) => patch({ restrictionsNote: e.target.value })}
+                placeholder={copy.fields.restrictionsNoteHelper}
               />
             </label>
           </EmpleosSectionCard>
@@ -486,6 +505,7 @@ function ComunidadQuickApplicationBody({
               primaryHint={ctaPrimaryHint}
               formatUsPhone
               websiteInputType="text"
+              showPrimaryCtaSelector={false}
             />
           </EmpleosSectionCard>
 
@@ -540,7 +560,7 @@ function ComunidadQuickApplicationBody({
         />
 
         <EmpleosApplicationFinalStep
-          copy={sharedCopy.finalStep}
+          copy={{ ...sharedCopy.finalStep, intro: copy.finalStepIntro }}
           previewDisabled={previewDisabled}
           publishDisabled={publishBtnDisabled}
           onVistaPrevia={goPreview}
@@ -561,6 +581,7 @@ function ComunidadQuickApplicationBody({
           }
           saveDraftCta={sharedCopy.finalStep.saveDraftCta}
           onSaveDraft={onSaveDraft}
+          showSecondaryActions={false}
         />
       </div>
     </main>

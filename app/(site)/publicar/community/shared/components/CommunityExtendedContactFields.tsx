@@ -99,6 +99,7 @@ type EventLinksCopy = {
   customUrlPlaceholder: string;
   urlExample: string;
   registrationRevealedBecause: string;
+  duplicateLabelWarning: string;
 };
 
 const EVENT_LINKS_COPY: Record<Lang, EventLinksCopy> = {
@@ -123,6 +124,7 @@ const EVENT_LINKS_COPY: Record<Lang, EventLinksCopy> = {
     customUrlPlaceholder: "https://ejemplo.com",
     urlExample: "Ej. https://ejemplo.com",
     registrationRevealedBecause: "Seleccionaste \"Se requiere registro\" — agrega el enlace aquí.",
+    duplicateLabelWarning: "Los dos enlaces adicionales tienen el mismo título. Si van a páginas distintas, dales títulos diferentes.",
   },
   en: {
     sectionTitle: "7. Useful event links",
@@ -145,6 +147,7 @@ const EVENT_LINKS_COPY: Record<Lang, EventLinksCopy> = {
     customUrlPlaceholder: "https://example.com",
     urlExample: "e.g. https://example.com",
     registrationRevealedBecause: "You selected \"Registration required\" — add the link here.",
+    duplicateLabelWarning: "Both additional links use the same title. If they go to different pages, give them different titles.",
   },
 };
 
@@ -512,6 +515,11 @@ export function ClasesClassLinksSection({ lang, registrationRequired, classLinks
 export function ComunidadEventLinksSection({ lang, registrationRequired, eventLinks, onChangeLinks }: EventLinksProps) {
   const t = EVENT_LINKS_COPY[lang];
   const registrationIsRequired = registrationRequired === "si";
+  // Case-insensitive duplicate-label warning (Gate 1) — prevention/awareness only, never
+  // deletes either link: two different destinations sharing a label is a common paste mistake.
+  const customLabelsDuplicate =
+    eventLinks.customLink1Label.trim().length > 0 &&
+    eventLinks.customLink1Label.trim().toLowerCase() === eventLinks.customLink2Label.trim().toLowerCase();
 
   return (
     <fieldset
@@ -629,6 +637,11 @@ export function ComunidadEventLinksSection({ lang, registrationRequired, eventLi
             placeholder={t.customUrlPlaceholder}
           />
         </div>
+        {customLabelsDuplicate ? (
+          <p className="text-xs text-amber-800/90" role="status">
+            {t.duplicateLabelWarning}
+          </p>
+        ) : null}
       </div>
     </fieldset>
   );

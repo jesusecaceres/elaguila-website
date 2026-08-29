@@ -92,6 +92,18 @@ export function formatLocationLine(city: string | null, pairs: CommunityListingP
   return line || (c || "");
 }
 
+/** Short readable date, e.g. "1 sep" / "Sep 1" — avoids showing a raw ISO "2026-09-01" fallback. */
+function formatShortEventDate(iso: string, lang: Lang): string {
+  if (!iso) return "";
+  try {
+    const d = new Date(`${iso}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(lang === "en" ? "en-US" : "es-MX", { month: "short", day: "numeric" });
+  } catch {
+    return iso;
+  }
+}
+
 export function comunidadScheduleHint(pairs: CommunityListingPairMap, lang: Lang): string | null {
   const rows = parseWeeklyScheduleJson(pairs["Leonix:weeklyScheduleJson"]);
   const weekly = summarizeWeeklySchedule(rows, lang);
@@ -99,8 +111,9 @@ export function comunidadScheduleHint(pairs: CommunityListingPairMap, lang: Lang
   const d = (pairs["Leonix:eventDate"] ?? "").trim();
   const s = (pairs["Leonix:eventSessionStart"] ?? "").trim();
   const e = (pairs["Leonix:eventSessionEnd"] ?? "").trim();
-  if (d && s && e) return lang === "es" ? `${d} · ${s}–${e}` : `${d} · ${s}–${e}`;
-  if (d) return d;
+  const dLabel = formatShortEventDate(d, lang);
+  if (d && s && e) return `${dLabel} · ${s}–${e}`;
+  if (d) return dLabel;
   return null;
 }
 

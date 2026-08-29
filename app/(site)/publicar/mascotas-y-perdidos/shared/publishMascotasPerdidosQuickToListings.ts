@@ -18,29 +18,80 @@ async function fetchAsBlob(src: string): Promise<Blob> {
 }
 
 function resolveContactPhone(d: MascotasPerdidosQuickDraft): string | null {
-  const p = digitsOnly(d.contactPhone);
+  const p = digitsOnly(d.phone);
   if (p.length >= 10) return p.slice(0, 15);
   return null;
 }
 
+/** Gate 3 — rich, category-owned detail pairs. Every key is optional/additive — legacy simple-lane rows (Leonix:mascotasLane = "simple" or absent) never had any of these and must keep hydrating fine. */
 function buildMascotasDetailPairs(d: MascotasPerdidosQuickDraft): { label: string; value: string }[] {
-  const phoneDig = digitsOnly(d.contactPhone);
   const pairs: { label: string; value: string }[] = [
-    { label: "Leonix:mascotasLane", value: "simple" },
+    { label: "Leonix:mascotasLane", value: "rich" },
     { label: "Leonix:noticeType", value: d.noticeType.trim() },
-    { label: "Leonix:lastSeenLocation", value: d.lastSeenLocation.trim() },
   ];
-  if (phoneDig.length >= 10) {
-    pairs.push({ label: "Leonix:phoneDigits", value: phoneDig });
-    pairs.push({ label: "Leonix:whatsappDigits", value: phoneDig });
+  const push = (label: string, value: string) => {
+    const v = value.trim();
+    if (v) pairs.push({ label, value: v });
+  };
+
+  push("Leonix:lastSeenLocation", d.lastSeenLocation);
+  push("Leonix:landmark", d.landmark);
+  push("Leonix:state", d.state);
+  push("Leonix:country", d.country);
+  push("Leonix:zip", d.zip);
+
+  push("Leonix:petName", d.petName);
+  push("Leonix:species", d.species);
+  push("Leonix:breed", d.breed);
+  push("Leonix:color", d.color);
+  push("Leonix:sex", d.sex);
+  push("Leonix:ageApprox", d.ageApprox);
+  push("Leonix:size", d.size);
+  push("Leonix:identifyingMarks", d.identifyingMarks);
+  if (d.hasCollar) pairs.push({ label: "Leonix:hasCollar", value: "1" });
+  push("Leonix:collarNote", d.collarNote);
+  push("Leonix:microchip", d.microchip);
+
+  push("Leonix:lastSeenDate", d.lastSeenDate);
+  if (d.offersReward) {
+    pairs.push({ label: "Leonix:offersReward", value: "1" });
+    push("Leonix:rewardAmount", d.rewardAmount);
   }
-  if (d.email.trim()) pairs.push({ label: "Leonix:contactEmailAvailable", value: "1" });
+  push("Leonix:safetyNote", d.safetyNote);
+
+  push("Leonix:foundDate", d.foundDate);
+  push("Leonix:currentStatus", d.currentStatus);
+  push("Leonix:claimInstructions", d.claimInstructions);
+
+  push("Leonix:temperament", d.temperament);
+  push("Leonix:vaccinated", d.vaccinated);
+  push("Leonix:spayedNeutered", d.spayedNeutered);
+  push("Leonix:specialNeeds", d.specialNeeds);
+  push("Leonix:adoptionDetails", d.adoptionDetails);
+
+  push("Leonix:objectType", d.objectType);
+
+  const smsDig = digitsOnly(d.smsPhone);
+  if (smsDig.length >= 10) pairs.push({ label: "Leonix:smsDigits", value: smsDig.slice(0, 10) });
+  const waDig = digitsOnly(d.whatsapp);
+  if (waDig.length >= 10) pairs.push({ label: "Leonix:whatsappDigits", value: waDig.slice(0, 10) });
+
+  push("Leonix:facebook", d.facebook);
+  push("Leonix:instagram", d.instagram);
+
   return pairs;
 }
 
 export type MascotasPerdidosQuickPublishToListingsResult =
   | { ok: true; listingId: string }
   | { ok: false; error: string };
+
+function orderedImageUrls(images: MascotasPerdidosQuickDraft["images"]): string[] {
+  const main = images.find((x) => x.isMain);
+  const rest = images.filter((x) => x !== main);
+  const ordered = main ? [main, ...rest] : [...images];
+  return ordered.map((im) => im.url.trim()).filter(Boolean);
+}
 
 export async function publishMascotasPerdidosQuickToListings(input: {
   draft: MascotasPerdidosQuickDraft;
@@ -80,10 +131,10 @@ export async function publishMascotasPerdidosQuickToListings(input: {
   const pairs = buildMascotasDetailPairs(d);
   const contact_phone = resolveContactPhone(d);
   const contact_email = d.email.trim() || null;
-  const imageSrc = d.imageDataUrl.trim();
+  const orderedUrls = orderedImageUrls(d.images);
 
-  if (!imageSrc) {
-    return { ok: false, error: err("Añade una imagen para publicar.", "Add an image to publish.") };
+  if (orderedUrls.length === 0) {
+    return { ok: false, error: err("Añade al menos una foto para publicar.", "Add at least one photo to publish.") };
   }
 
   const insertPayload: Record<string, unknown> = {
@@ -115,52 +166,62 @@ export async function publishMascotasPerdidosQuickToListings(input: {
     await supabase.from("listings").update({ status: "removed", is_published: false }).eq("id", listingId);
   };
 
+  const basePath = `${userId}/${listingId}/photos`;
+  const photoUrls: string[] = [];
+
   try {
-    const blob = await fetchAsBlob(imageSrc);
-    if (blob.size > MAX_IMAGE_BYTES) {
-      await markPublishFailedNonPublic();
-      return {
-        ok: false,
-        error: err(
-          `La imagen supera el límite de ${Math.round(MAX_IMAGE_BYTES / (1024 * 1024))} MB.`,
-          `The image exceeds the ${Math.round(MAX_IMAGE_BYTES / (1024 * 1024))} MB limit.`,
-        ),
-      };
+    for (let i = 0; i < orderedUrls.length; i++) {
+      const src = orderedUrls[i];
+      const blob = await fetchAsBlob(src);
+      if (blob.size > MAX_IMAGE_BYTES) {
+        await markPublishFailedNonPublic();
+        return {
+          ok: false,
+          error: err(
+            `Una foto supera el límite de ${Math.round(MAX_IMAGE_BYTES / (1024 * 1024))} MB.`,
+            `One photo exceeds the ${Math.round(MAX_IMAGE_BYTES / (1024 * 1024))} MB limit.`,
+          ),
+        };
+      }
+      const ext = blob.type.includes("png") ? "png" : blob.type.includes("webp") ? "webp" : "jpg";
+      const path = `${basePath}/photo-${String(i + 1).padStart(2, "0")}.${ext}`;
+      const up = await supabase.storage
+        .from("listing-images")
+        .upload(path, blob, { upsert: true, contentType: blob.type || "image/jpeg" });
+      if (up.error) {
+        await markPublishFailedNonPublic();
+        return {
+          ok: false,
+          error: err(`No se pudo subir una foto (${up.error.message}).`, `A photo upload failed (${up.error.message}).`),
+        };
+      }
+      const url = supabase.storage.from("listing-images").getPublicUrl(path).data.publicUrl;
+      if (url) photoUrls.push(url);
     }
-    const ext = blob.type.includes("png") ? "png" : blob.type.includes("webp") ? "webp" : "jpg";
-    const basePath = `${userId}/${listingId}/photos`;
-    const path = `${basePath}/photo-01.${ext}`;
-    const up = await supabase.storage
-      .from("listing-images")
-      .upload(path, blob, { upsert: true, contentType: blob.type || "image/jpeg" });
-    if (up.error) {
-      await markPublishFailedNonPublic();
-      return {
-        ok: false,
-        error: err(
-          `No se pudo subir la foto (${up.error.message}).`,
-          `Photo upload failed (${up.error.message}).`,
-        ),
-      };
-    }
-    const url = supabase.storage.from("listing-images").getPublicUrl(path).data.publicUrl;
-    if (url) {
-      const marker = `[LEONIX_IMAGES]\nurl=${url}\n[/LEONIX_IMAGES]`;
+
+    if (photoUrls.length) {
+      const marker = `[LEONIX_IMAGES]\n${photoUrls.map((u) => `url=${u}`).join("\n")}\n[/LEONIX_IMAGES]`;
       const appendix =
-        lang === "es" ? `\n\n— Fotos —\n${url}\n${marker}\n` : `\n\n— Photos —\n${url}\n${marker}\n`;
+        lang === "es" ? `\n\n— Fotos —\n${photoUrls.join("\n")}\n${marker}\n` : `\n\n— Photos —\n${photoUrls.join("\n")}\n${marker}\n`;
       await supabase
         .from("listings")
-        .update({ description: `${descriptionBase}${appendix}`.trim(), images: [url] })
+        .update({ description: `${descriptionBase}${appendix}`.trim(), images: photoUrls })
         .eq("id", listingId);
     }
   } catch (e: unknown) {
     await markPublishFailedNonPublic();
     return {
       ok: false,
-      error:
-        e instanceof Error
-          ? e.message
-          : err("Error al procesar la imagen.", "Error while processing the image."),
+      error: e instanceof Error ? e.message : err("Error al procesar las fotos.", "Error while processing photos."),
+    };
+  }
+
+  const imagesOk = photoUrls.length === orderedUrls.length;
+  if (!imagesOk) {
+    await markPublishFailedNonPublic();
+    return {
+      ok: false,
+      error: err("No se pudieron subir todas las fotos. El aviso no quedó público.", "Not all photos could upload. The notice was not made public."),
     };
   }
 

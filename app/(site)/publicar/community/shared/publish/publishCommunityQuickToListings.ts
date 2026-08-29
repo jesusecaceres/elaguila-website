@@ -158,6 +158,15 @@ export type CommunityQuickPublishToListingsResult =
   | { ok: true; listingId: string }
   | { ok: false; error: string };
 
+/**
+ * "immediate" (default) — unchanged pre-Gate-2B behavior: row goes straight to active/published.
+ * "pending_payment" (Gate 2B, Clases paid checkout only) — mirrors the Rentas same-row-activation
+ * pattern: the row is written as `status:"pending", is_published:false` and stays that way here;
+ * the ONLY thing that ever flips it to active/published is the Revenue OS webhook fulfillment
+ * adapter (`activatePaidClasesListingFromRevenueOs`) after a verified Stripe payment.
+ */
+export type CommunityQuickPublishActivationMode = "immediate" | "pending_payment";
+
 export async function publishCommunityQuickToListings(input: {
   kind: CommunityKind;
   draft: ClasesQuickDraft | ComunidadQuickDraft;
@@ -166,12 +175,14 @@ export async function publishCommunityQuickToListings(input: {
   existingListingId?: string | null;
   /** I.6B — invoked as soon as the row id is known (reused or freshly inserted), before photo upload. */
   onListingIdKnown?: (listingId: string) => void;
+  /** Gate 2B — defaults to "immediate" (unchanged behavior) for every existing caller. */
+  activationMode?: CommunityQuickPublishActivationMode;
 }): Promise<CommunityQuickPublishToListingsResult> {
-  const { kind, draft: d, lang, existingListingId, onListingIdKnown } = input;
+  const { kind, draft: d, lang, existingListingId, onListingIdKnown, activationMode = "immediate" } = input;
   const err = (es: string, en: string) => (lang === "es" ? es : en);
 
-  if (kind === "clases" && shouldBlockClasesPaidPublish(d as ClasesQuickDraft)) {
-    return { ok: false, error: err("Las clases pagadas aún no se publican aquí.", "Paid classes are not published here yet.") };
+  if (kind === "clases" && activationMode !== "pending_payment" && shouldBlockClasesPaidPublish(d as ClasesQuickDraft)) {
+    return { ok: false, error: err("Las clases pagadas requieren pago para publicarse.", "Paid classes require payment to publish.") };
   }
 
   if (communityGalleryContainsPdf(d.images)) {
@@ -235,7 +246,7 @@ export async function publishCommunityQuickToListings(input: {
     is_free,
     contact_phone,
     contact_email,
-    status: "draft",
+    status: activationMode === "pending_payment" ? "pending" : "draft",
     is_published: false,
     seller_type: "personal",
     detail_pairs: pairs.length ? pairs : null,
@@ -255,6 +266,21 @@ export async function publishCommunityQuickToListings(input: {
   let listingId: string | undefined;
   if (reuseCheck?.safe) {
     listingId = reuseCheck.listingId;
+    if (activationMode === "pending_payment") {
+      // Never let a re-click/resubmit downgrade a listing that Revenue OS webhook fulfillment
+      // already activated back to pending/unpublished — this row's paid state is authoritative.
+      const { data: currentRow } = await supabase
+        .from("listings")
+        .select("status, is_published")
+        .eq("id", listingId)
+        .maybeSingle();
+      if (currentRow?.status === "active" && currentRow?.is_published === true) {
+        return {
+          ok: false,
+          error: err("Esta clase ya está publicada y pagada.", "This class is already published and paid."),
+        };
+      }
+    }
     const { category: _category, owner_id: _ownerId, ...updatablePayload } = insertPayload;
     void _category;
     void _ownerId;
@@ -414,6 +440,12 @@ export async function publishCommunityQuickToListings(input: {
         "Not all photos could upload. The listing was not made public.",
       ),
     };
+  }
+
+  if (activationMode === "pending_payment") {
+    // Media is uploaded and recoverable, but the row stays hidden/pending — only verified Revenue
+    // OS webhook fulfillment (after Stripe payment) is allowed to flip status/is_published.
+    return { ok: true, listingId };
   }
 
   const { error: finErr } = await supabase

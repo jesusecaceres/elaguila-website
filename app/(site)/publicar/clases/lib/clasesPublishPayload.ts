@@ -30,8 +30,10 @@ export function buildClasesDescription(d: ClasesQuickDraft, lang: Lang): string 
           ? "Híbrida"
           : "Hybrid";
   parts.push(`${lang === "es" ? "Modalidad" : "Mode"}: ${modeLabel}`);
+  const audienceSlugs = d.audiences.length > 0 ? d.audiences : [d.audience].filter(Boolean);
+  const audienceLabel = audienceSlugs.map((a) => labelCommunityAudience(a, lang)).join(" · ") || labelCommunityAudience(d.audience, lang);
   parts.push(
-    `${lang === "es" ? "¿Para quién es la clase?" : "Who is this class for?"}: ${labelCommunityAudience(d.audience, lang)}`,
+    `${lang === "es" ? "¿Para quién es la clase?" : "Who is this class for?"}: ${audienceLabel}`,
   );
   parts.push(`${lang === "es" ? "Nivel" : "Level"}: ${labelClasesSkillLevel(d.skillLevel, lang)}`);
   parts.push(
@@ -39,7 +41,17 @@ export function buildClasesDescription(d: ClasesQuickDraft, lang: Lang): string 
   );
   if (d.bringNote.trim()) {
     parts.push(
-      `${lang === "es" ? "Qué deben llevar o saber" : "What to bring or know"}: ${d.bringNote.trim()}`,
+      `${lang === "es" ? "Qué llevar" : "What to bring"}: ${d.bringNote.trim()}`,
+    );
+  }
+  if (d.materialsNote.trim()) {
+    parts.push(
+      `${lang === "es" ? "Materiales / equipo" : "Materials / equipment"}: ${d.materialsNote.trim()}`,
+    );
+  }
+  if (d.requirementsNote.trim()) {
+    parts.push(
+      `${lang === "es" ? "Requisitos / antes de asistir" : "Requirements / before you attend"}: ${d.requirementsNote.trim()}`,
     );
   }
   const cost =
@@ -48,8 +60,8 @@ export function buildClasesDescription(d: ClasesQuickDraft, lang: Lang): string 
         ? "Gratis"
         : "Free"
       : lang === "es"
-        ? "Clase pagada (publicación comercial pendiente)"
-        : "Paid class (commercial publish pending)";
+        ? "Clase pagada (tarifa de anuncio Leonix: $24.99 por 30 días)"
+        : "Paid class (Leonix listing fee: $24.99 per 30 days)";
   parts.push(`${lang === "es" ? "Costo" : "Cost"}: ${cost}`);
   const wk = formatWeekly(d.weeklySchedule, lang);
   if (wk) parts.push(wk);
@@ -68,6 +80,10 @@ export function buildClasesDetailPairs(c: ClasesQuickDraft): Array<{ label: stri
   if (c.category === "otro" && c.categoryCustom.trim()) {
     pairs.push({ label: "Leonix:classCategoryCustom", value: c.categoryCustom.trim() });
   }
+  /** Full multi-type selection (Gate 2A); categories[0] always mirrors Leonix:classCategory above. */
+  if (c.categories.length > 0) {
+    pairs.push({ label: "Leonix:classCategories", value: c.categories.join(",") });
+  }
   pairs.push({ label: "Leonix:classCostType", value: c.classCostType });
   pairs.push({ label: "Leonix:mode", value: c.mode });
   if (c.classCostType === "pagada") {
@@ -80,6 +96,30 @@ export function buildClasesDetailPairs(c: ClasesQuickDraft): Array<{ label: stri
     value: JSON.stringify(c.weeklySchedule),
   });
   pairs.push({ label: "Leonix:skillLevel", value: c.skillLevel.trim() });
+  /** Provider payment methods (Gate 2A) — how students pay the instructor, never the Leonix listing fee. */
+  if (c.paymentMethods.length > 0) {
+    pairs.push({ label: "Leonix:paymentMethods", value: c.paymentMethods.join(",") });
+    if (c.paymentMethods.includes("otro") && c.paymentMethodOther.trim()) {
+      pairs.push({ label: "Leonix:paymentMethodOther", value: c.paymentMethodOther.trim() });
+    }
+  }
+  /** Gate 2D — explicit schedule mode + one-time date/time (only meaningful when scheduleMode === "one_time"). */
+  pairs.push({ label: "Leonix:scheduleMode", value: c.scheduleMode });
+  if (c.scheduleMode === "one_time") {
+    if (c.oneTimeDate.trim()) pairs.push({ label: "Leonix:oneTimeDate", value: c.oneTimeDate.trim() });
+    if (c.oneTimeStart.trim()) pairs.push({ label: "Leonix:oneTimeStart", value: c.oneTimeStart.trim() });
+    if (c.oneTimeEnd.trim()) pairs.push({ label: "Leonix:oneTimeEnd", value: c.oneTimeEnd.trim() });
+  } else {
+    if (c.startDate.trim()) pairs.push({ label: "Leonix:classStartDate", value: c.startDate.trim() });
+    if (c.endDate.trim()) pairs.push({ label: "Leonix:classEndDate", value: c.endDate.trim() });
+  }
+  /** Gate 2D — multiple audiences; audiences[0] always mirrors Leonix:audience (written by the shared common-pairs builder). */
+  if (c.audiences.length > 0) {
+    pairs.push({ label: "Leonix:audiences", value: c.audiences.join(",") });
+  }
+  /** Gate 2D — bring/materials/requirements split (bringNote itself persists via the shared common-pairs builder as Leonix:bringNote). */
+  if (c.materialsNote.trim()) pairs.push({ label: "Leonix:materialsNote", value: c.materialsNote.trim() });
+  if (c.requirementsNote.trim()) pairs.push({ label: "Leonix:requirementsNote", value: c.requirementsNote.trim() });
   const cl = c.classLinks;
   const pushUrl = (label: string, raw: string) => {
     const v = normalizeWebsiteForOpen(raw);

@@ -24,14 +24,14 @@ export function ctaLabels(lang: Lang) {
         phone: "Teléfono",
         whatsapp: "WhatsApp",
         email: "Correo",
-        website: "Sitio web / registro",
+        website: "Sitio web",
         primary: "Acción principal preferida *",
       }
     : {
         phone: "Phone",
         whatsapp: "WhatsApp",
         email: "Email",
-        website: "Website / registration link",
+        website: "Website",
         primary: "Preferred primary action *",
       };
 }

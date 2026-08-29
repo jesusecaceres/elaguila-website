@@ -26,6 +26,18 @@ import type { ComunidadQuickDraft } from "@/app/(site)/publicar/community/shared
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { normalizeWeeklyScheduleArray } from "@/app/(site)/publicar/community/shared/lib/communityWeeklySchedule";
 
+/** Short readable date, e.g. "1 sep" / "Sep 1" — avoids showing a raw ISO "2026-09-01" fallback. */
+function formatShortEventDate(iso: string, lang: Lang): string {
+  if (!iso) return "";
+  try {
+    const d = new Date(`${iso}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(lang === "en" ? "en-US" : "es-MX", { month: "short", day: "numeric" });
+  } catch {
+    return iso;
+  }
+}
+
 /** Comunidad-owned result-card model builder (published-listing rows). */
 export function buildComunidadDiscoveryCardModel(
   row: CommunityListingBrowseRow,
@@ -54,7 +66,10 @@ export function buildComunidadDiscoveryCardModel(
         ? "Gratis"
         : "Free"
       : null;
-  const dr = [pairs["Leonix:eventDate"], pairs["Leonix:eventEndDate"]].filter(Boolean).join(" → ");
+  const dr = [pairs["Leonix:eventDate"], pairs["Leonix:eventEndDate"]]
+    .filter(Boolean)
+    .map((iso) => formatShortEventDate(String(iso), lang))
+    .join(" → ");
   const aud = pairs["Leonix:audience"] ? labelCommunityAudience(pairs["Leonix:audience"], lang) : "";
   const modeRaw = (pairs["Leonix:mode"] ?? "").trim();
   const modeL = quick && modeRaw ? clasesModeLabel(modeRaw, lang) : "";
@@ -97,7 +112,10 @@ export function buildComunidadDiscoveryCardModelFromDraft(
   const typeChip = resolveComunidadEventTypePublicLabel(draft.category, draft.categoryCustom, lang);
   const ecRaw = draft.eventCost.trim();
   const costBadge = ecRaw ? comunidadEventCostLabel(ecRaw, lang) : null;
-  const dr = [draft.date.trim(), draft.eventEndDate.trim()].filter(Boolean).join(" → ");
+  const dr = [draft.date.trim(), draft.eventEndDate.trim()]
+    .filter(Boolean)
+    .map((iso) => formatShortEventDate(iso, lang))
+    .join(" → ");
   const aud = draft.audience ? labelCommunityAudience(draft.audience, lang) : "";
   const secondaryParts = [dr, aud].filter(Boolean);
   const secondary = secondaryParts.length ? secondaryParts.join(" · ") : null;
@@ -121,7 +139,8 @@ function comunidadDraftDateHint(draft: ComunidadQuickDraft, lang: Lang): string 
   const d = draft.date.trim();
   const s = draft.eventSessionStart.trim();
   const e = draft.eventSessionEnd.trim();
-  if (d && s && e) return lang === "es" ? `${d} · ${s}–${e}` : `${d} · ${s}–${e}`;
-  if (d) return d;
+  const dLabel = formatShortEventDate(d, lang);
+  if (d && s && e) return `${dLabel} · ${s}–${e}`;
+  if (d) return dLabel;
   return null;
 }

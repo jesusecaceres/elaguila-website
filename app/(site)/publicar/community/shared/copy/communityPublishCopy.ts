@@ -11,11 +11,12 @@ export const COMMUNITY_PUBLISH_COPY = {
   es: {
     gateFail: "Completa los campos marcados con * antes de la vista previa:",
     publishBlocked: "Completa los requisitos de vista previa antes de publicar.",
-    paidClassPublishBlocked: "Las clases pagadas requieren activación de publicación pagada.",
+    paidClassPublishBlocked:
+      "Las clases con costo requieren la tarifa de anuncio Leonix de $24.99 por 30 días. Al publicar, te llevaremos a un pago seguro para completar la publicación.",
     finalStep: {
       title: "Revisión final",
       intro:
-        "Con sesión iniciada, Publicar crea el anuncio en Leonix Clasificados (tabla listings), sube fotos al bucket listing-images en la ruta de tu usuario y te lleva al detalle público. Los PDF no se publican aún: quítalos del volante antes de publicar.",
+        "Con sesión iniciada, Publicar crea tu anuncio en Leonix Clasificados, procesa la información y los medios que proporcionaste, y te lleva al detalle público. Los PDF no se publican aún: quítalos del volante antes de publicar.",
       sessionDraftLine: "Tu borrador se guarda automáticamente en esta sesión del navegador.",
       previewCta: "Vista previa",
       publishCta: "Publicar anuncio",
@@ -52,11 +53,12 @@ export const COMMUNITY_PUBLISH_COPY = {
   en: {
     gateFail: "Complete required fields (*) before preview:",
     publishBlocked: "Complete preview requirements before publishing.",
-    paidClassPublishBlocked: "Paid classes require paid publishing activation.",
+    paidClassPublishBlocked:
+      "Paid classes require the Leonix listing fee of $24.99 per 30 days. When you publish, we'll take you to secure checkout to complete the listing.",
     finalStep: {
       title: "Final review",
       intro:
-        "When signed in, Publish creates the listing in Leonix Clasificados (listings table), uploads photos to the listing-images bucket under your user path, then opens the public detail page. PDFs are not published yet — remove PDF flyers before publishing.",
+        "When signed in, Publish creates your listing in Leonix Clasificados, processes the information and media you provided, then opens the public detail page. PDFs are not published yet — remove PDF flyers before publishing.",
       sessionDraftLine: "Your draft is auto-saved in this browser session.",
       previewCta: "Preview",
       publishCta: "Publish listing",
@@ -139,7 +141,36 @@ export const CLASES_QUICK_COPY = {
       audience: "¿Para quién es la clase?",
       skillLevel: "Nivel",
       registrationRequired: "¿Requiere registro?",
-      bringNote: "Qué deben llevar o saber",
+      bringNote: "Qué llevar",
+      bringNoteHelper: "Ej. ropa cómoda, botella de agua, tapete propio.",
+      materialsNote: "Materiales / equipo",
+      materialsNoteHelper: "Ej. lo que la clase proporciona vs. lo que el estudiante debe traer.",
+      requirementsNote: "Requisitos / antes de asistir",
+      requirementsNoteHelper: "Ej. nivel mínimo, edad mínima, condición física, vacunas, forma médica.",
+      categoriesMulti: "Tipos de clase (elige hasta 4)",
+      categoriesHelper: "Ej. Boxeo + Yoga + Pilates, si ofreces varias disciplinas.",
+      audiencesHelper: "Elige hasta 3, ej. Jóvenes + Adultos, o Niños + Familias.",
+      paymentMethods: "Pagos aceptados (cómo te paga el estudiante)",
+      paymentMethodsHelper:
+        "Opcional. Distinto de la tarifa de anuncio de Leonix — esto es cómo cobras tú la clase.",
+      paymentMethodOther: "Describe el otro método de pago",
+      scheduleMode: "Tipo de horario",
+      scheduleModeHelper: "Indica cómo funciona el horario de tu clase — así los estudiantes lo entienden claramente.",
+      scheduleModeRecurring: "Recurrente (semanal)",
+      scheduleModeOneTime: "Clase única (una sola fecha)",
+      oneTimeDate: "Fecha de la clase",
+      oneTimeStart: "Hora de inicio",
+      oneTimeEnd: "Hora de fin",
+      startDate: "Fecha de inicio del curso",
+      endDate: "Fecha de fin del curso",
+      dateRangeHelper: "Tu clase tiene fecha de término — se mostrará como un rango de fechas.",
+      ongoingHelper: "Sin fecha de fin: tu clase se mostrará como continua (\"Todos los sábados\", por ejemplo).",
+    },
+    priceSummary: {
+      title: "Resumen de precios",
+      leonixFeeFree: "Tarifa de anuncio Leonix: gratis",
+      leonixFeePaid: "Tarifa de anuncio Leonix: $24.99 por 30 días",
+      classPriceLabel: "Precio de la clase (lo que cobra el instructor)",
     },
     primaryCtaHint:
       "La acción principal es la que destacamos primero; el resto de datos seguirá visible.",
@@ -190,7 +221,36 @@ export const CLASES_QUICK_COPY = {
       audience: "Who is this class for?",
       skillLevel: "Level",
       registrationRequired: "Registration required?",
-      bringNote: "What to bring or know",
+      bringNote: "What to bring",
+      bringNoteHelper: "E.g. comfortable clothes, water bottle, your own mat.",
+      materialsNote: "Materials / equipment",
+      materialsNoteHelper: "E.g. what the class provides vs. what the student must bring.",
+      requirementsNote: "Requirements / before you attend",
+      requirementsNoteHelper: "E.g. minimum level, minimum age, physical condition, vaccines, medical form.",
+      categoriesMulti: "Class types (choose up to 4)",
+      categoriesHelper: "E.g. Boxing + Yoga + Pilates, if you offer several disciplines.",
+      audiencesHelper: "Choose up to 3, e.g. Teens + Adults, or Children + Families.",
+      paymentMethods: "Accepted payments (how the student pays you)",
+      paymentMethodsHelper:
+        "Optional. Separate from the Leonix listing fee — this is how you get paid for the class itself.",
+      paymentMethodOther: "Describe the other payment method",
+      scheduleMode: "Schedule type",
+      scheduleModeHelper: "Tell students how your class schedule works — clearly, not left to guesswork.",
+      scheduleModeRecurring: "Recurring (weekly)",
+      scheduleModeOneTime: "One-time class (single date)",
+      oneTimeDate: "Class date",
+      oneTimeStart: "Start time",
+      oneTimeEnd: "End time",
+      startDate: "Course start date",
+      endDate: "Course end date",
+      dateRangeHelper: "Your class has an end date — it will show as a date range.",
+      ongoingHelper: "No end date: your class will show as ongoing (e.g. \"Every Saturday\").",
+    },
+    priceSummary: {
+      title: "Price summary",
+      leonixFeeFree: "Leonix listing fee: free",
+      leonixFeePaid: "Leonix listing fee: $24.99 per 30 days",
+      classPriceLabel: "Class price (what the instructor charges)",
     },
     primaryCtaHint:
       "We highlight one primary action first; any other contact details you add stay visible.",
@@ -246,11 +306,18 @@ export const COMUNIDAD_QUICK_COPY = {
       registrationRequired: "¿Requiere registro?",
       accessibility: "Acceso",
       bringNote: "Qué deben llevar o saber",
+      bringNoteHelper:
+        "Ej. qué traer, dónde estacionar, identificación requerida, clima/vestimenta, cómo prepararse, notas de accesibilidad, instrucciones de llegada.",
+      restrictionsNote: "Qué NO llevar / restricciones",
+      restrictionsNoteHelper:
+        "Ej. artículos prohibidos, restricciones de bolsas, armas, comida externa, alcohol, mascotas, reglas propias del lugar.",
     },
     primaryCtaHint:
       "La acción principal es la que destacamos primero; el resto de datos seguirá visible.",
     freePostingNotice:
       "Publicar en Comunidad y Eventos es siempre gratis. El evento puede ser gratis, pagado o con donación.",
+    finalStepIntro:
+      "Publicar en Comunidad y Eventos es gratis. Revisa la vista previa de tu evento y publícalo cuando esté listo.",
   },
   en: {
     pageTitle: "Quick community event",
@@ -300,11 +367,18 @@ export const COMUNIDAD_QUICK_COPY = {
       registrationRequired: "Registration required?",
       accessibility: "Access",
       bringNote: "What to bring or know",
+      bringNoteHelper:
+        "E.g. what to bring, parking, ID requirements, weather/clothing, how to prepare, accessibility notes, arrival instructions.",
+      restrictionsNote: "What NOT to bring / restrictions",
+      restrictionsNoteHelper:
+        "E.g. prohibited items, bag restrictions, weapons, outside food, alcohol, pets, venue-specific rules.",
     },
     primaryCtaHint:
       "We highlight one primary action first; any other contact details you add stay visible.",
     freePostingNotice:
       "Posting in Community & Events is always free. The event itself may be free, paid, or by donation.",
+    finalStepIntro:
+      "Posting in Community & Events is free. Review your event preview, then publish when it's ready.",
   },
 } as const;
 

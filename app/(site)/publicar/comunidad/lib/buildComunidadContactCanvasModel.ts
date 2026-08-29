@@ -26,6 +26,10 @@ const UI_COMUNIDAD = {
     foodVendors: "Comida / puestos",
     sponsors: "Patrocinadores",
     map: "Ver en el mapa",
+    groupRegistration: "Inscripción / asistencia",
+    groupEventInfo: "Información del evento",
+    groupResources: "Recursos del evento",
+    groupOther: "Otros enlaces",
   },
   en: {
     contactTitle: "Organizer contact",
@@ -45,6 +49,10 @@ const UI_COMUNIDAD = {
     foodVendors: "Food / vendors",
     sponsors: "Sponsors",
     map: "View on map",
+    groupRegistration: "Registration / attendance",
+    groupEventInfo: "Event information",
+    groupResources: "Event resources",
+    groupOther: "Other links",
   },
 } as const;
 
@@ -64,23 +72,25 @@ function buildComunidadLinkItems(
   tc: typeof UI_COMUNIDAD[Lang],
 ): CommunityContactCanvasLinkItem[] {
   const linkItems: CommunityContactCanvasLinkItem[] = [];
-  const push = (key: string, raw: string, label: string) => {
+  const push = (key: string, raw: string, label: string, groupLabel: string) => {
     const href = normalizeWebsiteForOpen(raw);
-    if (href) linkItems.push({ key, href, label });
+    if (href) linkItems.push({ key, href, label, groupLabel });
   };
-  push("reg", el.registrationUrl, tc.register);
-  push("tix", el.ticketsUrl, tc.tickets);
-  push("don", el.donationUrl, tc.donate);
-  push("prg", el.eventProgramUrl, tc.eventProgram);
-  push("gui", el.eventGuideUrl, tc.eventGuide);
-  push("vnd", el.vendorListUrl, tc.vendors);
-  push("fvd", el.foodVendorsUrl, tc.foodVendors);
-  push("spo", el.sponsorsUrl, tc.sponsors);
+  // Grouped per Gate 1 QA: inscripción/asistencia, información del evento, recursos del
+  // evento, otros enlaces — instead of one flat wall of buttons.
+  push("reg", el.registrationUrl, tc.register, tc.groupRegistration);
+  push("tix", el.ticketsUrl, tc.tickets, tc.groupRegistration);
+  push("don", el.donationUrl, tc.donate, tc.groupRegistration);
+  push("prg", el.eventProgramUrl, tc.eventProgram, tc.groupEventInfo);
+  push("gui", el.eventGuideUrl, tc.eventGuide, tc.groupEventInfo);
+  push("vnd", el.vendorListUrl, tc.vendors, tc.groupResources);
+  push("fvd", el.foodVendorsUrl, tc.foodVendors, tc.groupResources);
+  push("spo", el.sponsorsUrl, tc.sponsors, tc.groupResources);
   if (el.customLink1Label.trim() && normalizeWebsiteForOpen(el.customLink1Url)) {
-    push("c1", el.customLink1Url, el.customLink1Label.trim());
+    push("c1", el.customLink1Url, el.customLink1Label.trim(), tc.groupOther);
   }
   if (el.customLink2Label.trim() && normalizeWebsiteForOpen(el.customLink2Url)) {
-    push("c2", el.customLink2Url, el.customLink2Label.trim());
+    push("c2", el.customLink2Url, el.customLink2Label.trim(), tc.groupOther);
   }
   return linkItems;
 }
