@@ -35,6 +35,12 @@ import {
   parseBrRentasLanguagesString,
   serializeBrRentasLanguagesString,
 } from "@/app/clasificados/publicar/bienes-raices/shared/brRentasLanguagesAdapter";
+import {
+  BR_RENTAS_SERVICE_AREA_KEY,
+  BR_RENTAS_SERVICE_AREA_OPTIONS,
+  parseBrRentasServiceAreaString,
+  serializeBrRentasServiceAreaString,
+} from "@/app/clasificados/publicar/bienes-raices/shared/brRentasServiceAreaAdapter";
 
 function BrSqftPreview({ value }: { value: string }) {
   const shown = formatSqftDisplay(value);
@@ -694,6 +700,27 @@ export function Step07InformacionProfesional({
     setState((s) => ({ ...s, agenteIdiomas: serializeBrRentasLanguagesString(nextKeys, nextCustom, lang) }));
   };
 
+  const [areaServicioPending, setAreaServicioPending] = useState("");
+  const parsedAreaServicio = useMemo(
+    () => parseBrRentasServiceAreaString(state.agenteAreaServicio),
+    [state.agenteAreaServicio],
+  );
+  const addAreaServicio = () => {
+    const trimmed = areaServicioPending.trim();
+    if (!trimmed) return;
+    if (parsedAreaServicio.customValues.some((v) => v.toLowerCase() === trimmed.toLowerCase())) {
+      setAreaServicioPending("");
+      return;
+    }
+    const nextCustom = [...parsedAreaServicio.customValues, trimmed];
+    setState((s) => ({ ...s, agenteAreaServicio: serializeBrRentasServiceAreaString(nextCustom) }));
+    setAreaServicioPending("");
+  };
+  const removeAreaServicioAt = (index: number) => {
+    const nextCustom = parsedAreaServicio.customValues.filter((_, i) => i !== index);
+    setState((s) => ({ ...s, agenteAreaServicio: serializeBrRentasServiceAreaString(nextCustom) }));
+  };
+
   const agentePersonalDigits = digitsOnly(state.agenteTelefonoPersonal || state.telefonoPrincipal);
   const agenteOfficeDigits = digitsOnly(state.agenteTelefonoOficina);
   const showAgentePrimaryLlamadas = agentePersonalDigits.length >= 10 && agenteOfficeDigits.length >= 10;
@@ -731,23 +758,6 @@ export function Step07InformacionProfesional({
         </AiField>
       </div>
     </>
-  );
-
-  const mostrarMarcaToggle = (
-    <div className="mt-8">
-      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#E8DFD0] bg-white px-4 py-3 text-sm text-[#2C2416]">
-        <input
-          type="checkbox"
-          className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#C9B46A] text-[#B8954A]"
-          checked={state.mostrarMarcaEnTarjeta}
-          onChange={(e) => setState((s) => ({ ...s, mostrarMarcaEnTarjeta: e.target.checked }))}
-        />
-        <span>
-          <span className="font-semibold">{s7.mostrarMarca}</span>
-          <span className="mt-0.5 block text-xs text-[#5C5346]/90">{s7.mostrarMarcaHint}</span>
-        </span>
-      </label>
-    </div>
   );
 
   const agenteBlock = (
@@ -915,8 +925,13 @@ export function Step07InformacionProfesional({
       <p className={aiSubClass}>{s7.sub}</p>
 
       {agenteBlock}
-      {mostrarMarcaToggle}
-      {state.mostrarMarcaEnTarjeta ? <div className="mt-2">{marcaBlock}</div> : null}
+      {/* Item 43: the manual "Mostrar oficina o marca en la tarjeta" toggle was removed per the
+          owner's locked decision — if the agent fills in office/brand info, it renders
+          automatically; no separate show/hide option. The publish mapper already infers
+          visibility from whether marcaNombre is filled, matching this. The fields themselves
+          stay always-editable (previously hidden behind the toggle, which also blocked agents
+          from even filling them in when the toggle was off). */}
+      <div className="mt-2">{marcaBlock}</div>
 
       {!state.mostrarSegundoAgente ? (
         <button
@@ -1002,6 +1017,20 @@ export function Step07InformacionProfesional({
                 placeholder="(555) 555-5555"
               />
             </AiField>
+            <AiField label={s7.whatsapp} hint={s7.whatsappHint}>
+              <input
+                className={aiInputClass}
+                value={formatUsPhoneDisplay(digitsOnly(state.agente2Whatsapp))}
+                onChange={(e) => {
+                  const prev = digitsOnly(state.agente2Whatsapp);
+                  const { display } = onPhoneInputChange(e.target.value, prev);
+                  setState((s) => ({ ...s, agente2Whatsapp: display }));
+                }}
+                inputMode="numeric"
+                autoComplete="tel"
+                placeholder="(555) 555-5555"
+              />
+            </AiField>
             {digitsOnly(state.agente2TelefonoPersonal || state.agente2Telefono).length >= 10 &&
             digitsOnly(state.agente2TelefonoOficina).length >= 10 ? (
               <fieldset className="sm:col-span-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-3">
@@ -1035,6 +1064,16 @@ export function Step07InformacionProfesional({
                 value={state.agente2Correo}
                 onChange={(e) => setState((s) => ({ ...s, agente2Correo: e.target.value }))}
                 autoComplete="email"
+              />
+            </AiField>
+            <AiField label={s7.sitioWebAgente} hint={s7.sitioWebAgenteHint}>
+              <input
+                className={aiInputClass}
+                type="url"
+                value={state.agente2SitioWeb}
+                onChange={(e) => setState((s) => ({ ...s, agente2SitioWeb: e.target.value }))}
+                placeholder="https://"
+                autoComplete="url"
               />
             </AiField>
             <div className="sm:col-span-2">
@@ -1217,9 +1256,26 @@ export function Step07InformacionProfesional({
             />
           </AiField>
         </div>
-        <AiField label={s7.areaServicio}>
-          <input className={aiInputClass} value={state.agenteAreaServicio} onChange={(e) => setState((s) => ({ ...s, agenteAreaServicio: e.target.value }))} autoComplete="off" />
-        </AiField>
+        <div className="sm:col-span-2">
+          <AiField label={s7.areaServicio}>
+            <LanguagesInput
+              options={BR_RENTAS_SERVICE_AREA_OPTIONS}
+              selectedKeys={parsedAreaServicio.selectedKeys}
+              onToggle={() => {}}
+              otherKey={BR_RENTAS_SERVICE_AREA_KEY}
+              customValues={parsedAreaServicio.customValues}
+              customInputValue={areaServicioPending}
+              onCustomInputChange={setAreaServicioPending}
+              onAddCustom={addAreaServicio}
+              onRemoveCustom={removeAreaServicioAt}
+              labels={{
+                otherPlaceholder: lang === "es" ? "Ej. San José, Santa Clara" : "E.g. San José, Santa Clara",
+                add: lang === "es" ? "Agregar" : "Add",
+                removeAria: (value) => (lang === "es" ? `Quitar ${value}` : `Remove ${value}`),
+              }}
+            />
+          </AiField>
+        </div>
         <div className="sm:col-span-2">
           <AiField label={s7.idiomas}>
             <LanguagesInput

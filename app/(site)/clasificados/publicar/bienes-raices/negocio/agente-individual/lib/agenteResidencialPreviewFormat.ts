@@ -830,13 +830,12 @@ export function listadoDownloadName(s: AgenteIndividualResidencialFormState): st
   return trim(s.listadoArchivoNombre) || null;
 }
 
+/** Item 43: brand-block visibility is now content-driven (same rule the publish mapper already
+ * used) rather than gated behind the removed `mostrarMarcaEnTarjeta` manual toggle — if the
+ * agent filled in office/brand info, it renders automatically. */
 export function hasBrandBlockVisible(s: AgenteIndividualResidencialFormState): boolean {
   return Boolean(
-    s.mostrarMarcaEnTarjeta &&
-      (trim(s.marcaNombre) ||
-        trim(s.marcaLogoDataUrl) ||
-        trim(s.marcaLicencia) ||
-        hrefFromUserInput(s.marcaSitioWeb)),
+    trim(s.marcaNombre) || trim(s.marcaLogoDataUrl) || trim(s.marcaLicencia) || hrefFromUserInput(s.marcaSitioWeb),
   );
 }
 

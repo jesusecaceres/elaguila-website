@@ -23,6 +23,7 @@ import {
   hasBrandBlockVisible,
   hasSecondAgentRailContent,
   hrefFromUserInput,
+  previewWhatsappClickHref,
   trim,
   type AgenteResPreviewLocale,
 } from "../lib/agenteResidencialPreviewFormat";
@@ -266,6 +267,10 @@ export function BrAgenteResContactSidebar({
   const agente2OfficeRaw = trim(data.agente2TelefonoOficina);
   const agente2PersonalOk = digitsOnly(agente2PersonalRaw).length >= 10;
   const agente2OfficeOk = digitsOnly(agente2OfficeRaw).length >= 10;
+  // Item 42: Agent 2's own WhatsApp/website — owned by Agent 2, never routed through Agent 1's
+  // single global CTA (that CTA is intentionally singular per listing).
+  const agente2WhatsappHref = previewWhatsappClickHref(data.agente2Whatsapp);
+  const agente2SiteHref = hrefFromUserInput(data.agente2SitioWeb);
 
   const hasQuickActions = Boolean(
     cr.showLlamar ||
@@ -517,7 +522,7 @@ export function BrAgenteResContactSidebar({
               {agente2LicenseLine}
             </p>
           ) : null}
-          {agente2PersonalOk || agente2OfficeOk || trim(data.agente2Correo) ? (
+          {agente2PersonalOk || agente2OfficeOk || trim(data.agente2Correo) || agente2WhatsappHref || agente2SiteHref ? (
             <div className="mt-2 space-y-1 text-center">
               {agente2PersonalOk ? (
                 <p className="text-[11px] leading-snug">
@@ -537,6 +542,29 @@ export function BrAgenteResContactSidebar({
               ) : null}
               {trim(data.agente2Correo) ? (
                 <EmailRow email={trim(data.agente2Correo)} copyLabel={locale === "en" ? "Copy email" : "Copiar correo"} />
+              ) : null}
+              {agente2WhatsappHref ? (
+                <a
+                  href={agente2WhatsappHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-1 text-[11px] font-semibold"
+                  style={{ color: BRONZE }}
+                >
+                  WhatsApp
+                </a>
+              ) : null}
+              {agente2SiteHref ? (
+                <a
+                  href={agente2SiteHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-1 text-[11px] font-semibold"
+                  style={{ color: BRONZE }}
+                >
+                  {p.sitioWeb}
+                  <FiExternalLink className="h-3 w-3 opacity-80" aria-hidden />
+                </a>
               ) : null}
             </div>
           ) : null}

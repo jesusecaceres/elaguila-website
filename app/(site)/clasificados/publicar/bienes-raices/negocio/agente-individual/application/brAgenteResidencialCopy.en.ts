@@ -188,7 +188,7 @@ export const BR_COPY_EN = {
     principalPersonal: "Personal",
     principalOficina: "Office",
     correoAgente: "Email",
-    sitioWebAgente: "Website",
+    sitioWebAgente: "Agent website",
     sitioWebAgenteHint:
       "Your agent site (“View website” uses the contact & button destinations step first, then this, then office/brand).",
     mostrarMarca: "Show office or brand on the card",

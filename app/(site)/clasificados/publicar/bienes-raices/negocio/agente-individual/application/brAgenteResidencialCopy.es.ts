@@ -189,7 +189,7 @@ export const BR_COPY_ES = {
     principalPersonal: "Personal",
     principalOficina: "Oficina",
     correoAgente: "Correo electrónico",
-    sitioWebAgente: "Sitio web",
+    sitioWebAgente: "Sitio web del agente",
     sitioWebAgenteHint:
       "Tu sitio como agente (el botón «Ver sitio web» usa primero el enlace preferido de «Contacto y destinos de botones», luego este, luego el de oficina/marca).",
     mostrarMarca: "Mostrar oficina o marca en la tarjeta",
