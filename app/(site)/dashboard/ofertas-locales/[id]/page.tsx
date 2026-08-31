@@ -6,16 +6,16 @@ import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
 
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { getSafeOfertaLocalSourceAssetHref } from "@/app/lib/ofertas-locales/ofertasLocalesClickableItemPreviewHelpers";
+import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import type { OfertaLocalOwnerDetail } from "@/app/lib/ofertas-locales/ofertasLocalesOwnerHelpers";
 import type { OfertaLocalOwnerUpdateInput } from "@/app/lib/ofertas-locales/ofertasLocalesOwnerUpdateMapper";
-import {
-  redirectToRevenueCategoryCheckout,
-  startRevenueCategoryCheckout,
-} from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
-import { OfertasLocalesOwnerAiManageSection } from "./OfertasLocalesOwnerAiManageSection";
+import {
+  OfertasLocalesOwnerAiManageSection,
+  type OfertaLocalOwnerReviewSummary,
+} from "./OfertasLocalesOwnerAiManageSection";
 import { OfertasLocalesOwnerRenewalActionCenter } from "./OfertasLocalesOwnerRenewalActionCenter";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +24,42 @@ type Lang = "es" | "en";
 
 const INPUT =
   "mt-1 w-full rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-sm text-[#1E1810]";
+
+function humanizeEnumFallback(value: string): string {
+  return value
+    .split(/[_-]+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function commercialEligibilitySourceLabel(value: string, lang: Lang): string {
+  const es: Record<string, string> = {
+    paid: "Pago",
+    partner_courtesy: "Cortesía de partner",
+  };
+  const en: Record<string, string> = {
+    paid: "Paid",
+    partner_courtesy: "Partner courtesy",
+  };
+  const map = lang === "es" ? es : en;
+  return map[value] ?? humanizeEnumFallback(value);
+}
+
+function assetLifecycleStatusLabel(value: string, lang: Lang): string {
+  const es: Record<string, string> = {
+    current: "Archivo actual",
+    legacy: "Archivo anterior",
+    replacement_pending: "Reemplazo pendiente",
+  };
+  const en: Record<string, string> = {
+    current: "Current file",
+    legacy: "Previous file",
+    replacement_pending: "Replacement pending",
+  };
+  const map = lang === "es" ? es : en;
+  return map[value] ?? humanizeEnumFallback(value);
+}
 
 function OfertasLocalesOwnerManagePageContent() {
   const params = useParams();
@@ -62,10 +98,20 @@ function OfertasLocalesOwnerManagePageContent() {
             partnerTitle: "Partner / cortesía",
             assetLifecycleTitle: "Archivos y reemplazo",
             analyticsTitle: "Analíticas reales",
-            payNow: "Pagar publicación",
-            paying: "Creando pago seguro…",
-            paymentHelp:
-              "El pago no publica tu oferta. Después del pago, envía la oferta a revisión; los 30 días empiezan cuando Leonix la aprueba.",
+            payNow: "Pagar y publicar →",
+            reviewCompleteTitle: "✅ Revisión de productos completa",
+            reviewCompleteBody: (approved: number, pages: number, totalPages: number) =>
+              `${approved} productos aprobados · ${pages} de ${totalPages} páginas completas`,
+            publishCardTitle: "PUBLICAR ESTA OFERTA",
+            publishCardIncluded: "IA y productos buscables incluidos",
+            publishCardTermNote:
+              "Los 30 días públicos empiezan cuando el pago se completa exitosamente y la publicación se activa.",
+            publishCardPerDays: (days: number) => `/ ${days} días`,
+            backToEdit: "Volver a editar",
+            viewPreview: "Ver vista previa",
+            paidBadge: "Pagado",
+            partnerVerification: "La verificación y cortesía solo las administra Leonix.",
+            assetReplacementPending: "Reemplazo pendiente de revisión.",
             notStarted: "No iniciado",
             activeTerm: "Activo",
             expiredTerm: "Expirado",
@@ -73,13 +119,6 @@ function OfertasLocalesOwnerManagePageContent() {
             daysRemaining: "días restantes",
             analyticsUnavailable: "Analíticas no disponibles en este ambiente.",
             lastActivity: "Última actividad",
-            nextActionTitle: "Siguiente acción",
-            blockers: "Bloqueos",
-            allowedActions: "Acciones disponibles",
-            sourceReplaceAllowed: "Reemplazo de fuente permitido",
-            scanRetryAllowed: "Reintento de escaneo permitido",
-            submitAllowed: "Envío permitido",
-            publicLinkAllowed: "Enlace público permitido",
           }
         : {
             title: "Manage local deal",
@@ -107,10 +146,20 @@ function OfertasLocalesOwnerManagePageContent() {
             partnerTitle: "Partner / courtesy",
             assetLifecycleTitle: "Assets and replacement",
             analyticsTitle: "Real analytics",
-            payNow: "Pay for publication",
-            paying: "Creating secure checkout…",
-            paymentHelp:
-              "Payment does not publish your listing. After payment, submit for review; the 30 days start when Leonix approves it.",
+            payNow: "Pay and publish →",
+            reviewCompleteTitle: "✅ Product review complete",
+            reviewCompleteBody: (approved: number, pages: number, totalPages: number) =>
+              `${approved} products approved · ${pages} of ${totalPages} pages complete`,
+            publishCardTitle: "PUBLISH THIS DEAL",
+            publishCardIncluded: "AI and searchable products included",
+            publishCardTermNote:
+              "The 30-day public term begins once payment completes successfully and publication activates.",
+            publishCardPerDays: (days: number) => `/ ${days} days`,
+            backToEdit: "Back to edit",
+            viewPreview: "View preview",
+            paidBadge: "Paid",
+            partnerVerification: "Verification and courtesy are managed only by Leonix.",
+            assetReplacementPending: "Replacement pending review.",
             notStarted: "Not started",
             activeTerm: "Active",
             expiredTerm: "Expired",
@@ -118,13 +167,6 @@ function OfertasLocalesOwnerManagePageContent() {
             daysRemaining: "days remaining",
             analyticsUnavailable: "Analytics are unavailable in this environment.",
             lastActivity: "Last activity",
-            nextActionTitle: "Next action",
-            blockers: "Blockers",
-            allowedActions: "Available actions",
-            sourceReplaceAllowed: "Source replacement allowed",
-            scanRetryAllowed: "Scan retry allowed",
-            submitAllowed: "Submission allowed",
-            publicLinkAllowed: "Public link allowed",
           },
     [lang]
   );
@@ -133,11 +175,13 @@ function OfertasLocalesOwnerManagePageContent() {
   const [offer, setOffer] = useState<OfertaLocalOwnerDetail | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
-  const [checkoutMsg, setCheckoutMsg] = useState<string | null>(null);
   const [form, setForm] = useState<OfertaLocalOwnerUpdateInput>({});
   const [ownerId, setOwnerId] = useState<string | null>(null);
+  const [reviewSummary, setReviewSummary] = useState<OfertaLocalOwnerReviewSummary | null>(null);
+  const handleReviewSummaryChange = useCallback((summary: OfertaLocalOwnerReviewSummary) => {
+    setReviewSummary(summary);
+  }, []);
 
   const loadOffer = useCallback(async () => {
     const sb = createSupabaseBrowserClient();
@@ -237,26 +281,6 @@ function OfertasLocalesOwnerManagePageContent() {
     }
   }
 
-  async function handleCheckout() {
-    if (!offer?.commercialProductKey || !offer.checkoutEligible) return;
-    setCheckoutLoading(true);
-    setCheckoutMsg(null);
-    const result = await startRevenueCategoryCheckout({
-      category: "ofertas-locales",
-      packageKey: offer.commercialProductKey,
-      listingId: offer.id,
-      leonixAdId: offer.leonixAdId,
-      returnPath: `/dashboard/ofertas-locales/${offer.id}?${q}`,
-      locale: lang,
-    });
-    setCheckoutLoading(false);
-    if (result.ok) {
-      redirectToRevenueCategoryCheckout(result.checkoutUrl);
-      return;
-    }
-    setCheckoutMsg(result.userMessage);
-  }
-
   if (loading) {
     return (
       <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId}>
@@ -277,6 +301,12 @@ function OfertasLocalesOwnerManagePageContent() {
   }
 
   const social = offer.metadata.socialLinks ?? {};
+  const reviewCompleteBannerActive =
+    Boolean(reviewSummary?.reviewComplete) &&
+    !offer.publishedAt &&
+    offer.status !== "approved" &&
+    offer.status !== "archived" &&
+    offer.status !== "rejected";
 
   return (
     <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId}>
@@ -291,8 +321,12 @@ function OfertasLocalesOwnerManagePageContent() {
         <p className="mt-1 text-lg font-semibold text-[#5C5346]">{offer.businessName}</p>
         <p className="text-sm text-[#7A7164]">{offer.title}</p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="rounded-lg bg-[#FBF7EF] px-2 py-1 text-xs font-bold text-[#5C4E2E]">
-            {offer.displayStatus}
+          <span
+            className={`rounded-lg px-2 py-1 text-xs font-bold ${
+              reviewCompleteBannerActive ? "bg-emerald-100 text-emerald-900" : "bg-[#FBF7EF] text-[#5C4E2E]"
+            }`}
+          >
+            {reviewCompleteBannerActive ? t.reviewCompleteTitle : offer.displayStatus}
           </span>
           {offer.publicResultsHref ? (
             <Link
@@ -306,83 +340,85 @@ function OfertasLocalesOwnerManagePageContent() {
           ) : null}
         </div>
         <p className="mt-3 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] p-3 text-sm text-[#5C5346]">
-          {offer.statusMessage}
+          {reviewCompleteBannerActive && reviewSummary
+            ? t.reviewCompleteBody(reviewSummary.approvedCount, reviewSummary.completedPages, reviewSummary.totalPages)
+            : offer.statusMessage}
         </p>
-        <section className="mt-3 rounded-xl border border-[#C9B46A]/50 bg-white p-3 text-sm text-[#5C5346]">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.nextActionTitle}</p>
-          <p className="mt-1 font-semibold text-[#1E1810]">
-            {lang === "es" ? offer.operationalStatus.ownerNextActionEs : offer.operationalStatus.ownerNextActionEn}
-          </p>
-          {offer.operationalStatus.blockingReasons.length > 0 ? (
-            <p className="mt-2 font-mono text-xs text-[#7A1E2C]">
-              {t.blockers}: {offer.operationalStatus.blockingReasons.join(", ")}
+
+        {offer.checkoutEligible ? (
+          <section className="mt-3 rounded-2xl border-2 border-[#C9B46A] bg-white p-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.publishCardTitle}</p>
+            <p className="mt-1 text-lg font-bold text-[#1E1810]">
+              {offer.commercialProductLabel || offer.commercialProductKey || t.publishCardTitle}
             </p>
-          ) : null}
-          <dl className="mt-3 grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <dt className="font-bold text-[#7A7164]">{t.sourceReplaceAllowed}</dt>
-              <dd>{offer.operationalStatus.sourceReplacementAllowed ? "TRUE" : "FALSE"}</dd>
+            <p className="mt-1 text-2xl font-bold text-[#1E1810]">
+              {offer.commercialAmount}{" "}
+              <span className="text-sm font-semibold text-[#5C5346]">
+                {t.publishCardPerDays(offer.commercialDurationDays ?? 30)}
+              </span>
+            </p>
+            <p className="mt-1 text-sm font-semibold text-[#6B5B2E]">{t.publishCardIncluded}</p>
+            <p className="mt-2 text-xs text-[#7A7164]">{t.publishCardTermNote}</p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link
+                href={`/dashboard/ofertas-locales/${offer.id}/checkout?${q}`}
+                className="min-h-11 rounded-xl bg-[#7A1E2C] px-5 py-2.5 text-sm font-bold text-white"
+              >
+                {t.payNow}
+              </Link>
+              {offer.canEdit && !editMode ? (
+                <button
+                  type="button"
+                  onClick={() => setEditMode(true)}
+                  className="min-h-11 rounded-xl border border-[#D4C4A8] px-4 py-2.5 text-sm font-semibold text-[#1E1810]"
+                >
+                  {t.backToEdit}
+                </button>
+              ) : null}
+              <Link
+                href={withClasificadosPublishLang("/publicar/ofertas-locales", lang, {
+                  id: offer.id,
+                  step: offer.offerType === "weekly_flyer" ? 7 : 6,
+                  intent: "continue",
+                })}
+                className="min-h-11 rounded-xl border border-[#D4C4A8] px-4 py-2.5 text-sm font-semibold text-[#1E1810]"
+              >
+                {t.viewPreview}
+              </Link>
             </div>
-            <div>
-              <dt className="font-bold text-[#7A7164]">{t.scanRetryAllowed}</dt>
-              <dd>{offer.operationalStatus.scanRetryAllowed ? "TRUE" : "FALSE"}</dd>
-            </div>
-            <div>
-              <dt className="font-bold text-[#7A7164]">{t.submitAllowed}</dt>
-              <dd>{offer.operationalStatus.submissionAllowed ? "TRUE" : "FALSE"}</dd>
-            </div>
-            <div>
-              <dt className="font-bold text-[#7A7164]">{t.publicLinkAllowed}</dt>
-              <dd>{offer.operationalStatus.publicLinkAllowed ? "TRUE" : "FALSE"}</dd>
-            </div>
-          </dl>
-        </section>
-        <div className="mt-3 rounded-xl border border-[#E8DFD0] bg-white p-3 text-sm text-[#5C5346]">
-          <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.commercialTitle}</p>
-          <p className="mt-1 font-mono text-xs">{offer.leonixAdId || "ID Leonix pendiente"}</p>
-          <p className="mt-1 font-semibold text-[#1E1810]">
-            {offer.commercialProductLabel || offer.commercialProductKey || "Paquete pendiente"}
-          </p>
-          <p className="text-xs">
-            {offer.commercialAmount || "Sin pago"} · {offer.paymentStatus} · {offer.entitlementStatus}
-          </p>
-          {offer.paidAt ? <p className="mt-1 font-mono text-xs">{offer.paidAt}</p> : null}
-          {offer.checkoutEligible ? (
-            <button
-              type="button"
-              onClick={handleCheckout}
-              disabled={checkoutLoading}
-              className="mt-3 rounded-xl bg-[#2A2620] px-4 py-2 text-xs font-bold text-[#FAF7F2] disabled:opacity-50"
-            >
-              {checkoutLoading ? t.paying : t.payNow}
-            </button>
-          ) : null}
-          <p className="mt-2 text-xs text-[#7A7164]">{t.paymentHelp}</p>
-          {checkoutMsg ? <p className="mt-2 text-xs text-rose-800">{checkoutMsg}</p> : null}
-        </div>
+          </section>
+        ) : (
+          <div className="mt-3 rounded-xl border border-[#E8DFD0] bg-white p-3 text-sm text-[#5C5346]">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.commercialTitle}</p>
+            <p className="mt-1 font-semibold text-[#1E1810]">
+              {offer.commercialProductLabel || offer.commercialProductKey || t.publishCardTitle}
+            </p>
+            <p className="text-xs">
+              {offer.commercialAmount}
+              {offer.paymentStatus === "paid" ? (
+                <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-900">
+                  {t.paidBadge}
+                </span>
+              ) : null}
+            </p>
+          </div>
+        )}
+
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <div className="rounded-xl border border-[#E8DFD0] bg-white p-3 text-sm text-[#5C5346]">
             <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.partnerTitle}</p>
-            <p className="mt-1 font-semibold text-[#1E1810]">{offer.commercialEligibilitySource}</p>
-            <p className="font-mono text-[10px] text-[#7A7164]">
-              {offer.partnerAssignmentId || (lang === "es" ? "Sin asignación partner" : "No partner assignment")}
+            <p className="mt-1 font-semibold text-[#1E1810]">
+              {commercialEligibilitySourceLabel(offer.commercialEligibilitySource, lang)}
             </p>
-            <p className="mt-1 text-xs text-[#7A7164]">
-              {lang === "es"
-                ? "La verificación y cortesía solo las administra Leonix."
-                : "Verification and courtesy are managed only by Leonix."}
-            </p>
+            <p className="mt-1 text-xs text-[#7A7164]">{t.partnerVerification}</p>
           </div>
           <div className="rounded-xl border border-[#E8DFD0] bg-white p-3 text-sm text-[#5C5346]">
             <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.assetLifecycleTitle}</p>
-            <p className="mt-1 font-semibold text-[#1E1810]">{offer.assetLifecycleStatus}</p>
-            <p className="font-mono text-[10px] text-[#7A7164]">
-              active {offer.activeSourceAssetId || "legacy"} · public {offer.publicSourceAssetId || "legacy"}
+            <p className="mt-1 font-semibold text-[#1E1810]">
+              {assetLifecycleStatusLabel(offer.assetLifecycleStatus, lang)}
             </p>
             {offer.assetReplacementRequiredReview ? (
-              <p className="mt-1 text-xs font-semibold text-amber-900">
-                {lang === "es" ? "Reemplazo pendiente de revisión." : "Replacement pending review."}
-              </p>
+              <p className="mt-1 text-xs font-semibold text-amber-900">{t.assetReplacementPending}</p>
             ) : null}
           </div>
         </div>
@@ -405,12 +441,19 @@ function OfertasLocalesOwnerManagePageContent() {
               {offer.publicTermDaysRemaining} {t.daysRemaining}
             </p>
           ) : null}
+          {offer.status === "approved" && offer.paymentStatus === "paid" ? (
+            <p className="mt-1 text-xs font-semibold text-emerald-800">
+              {lang === "es" ? "Pago" : "Payment"}: {t.paidBadge}
+            </p>
+          ) : null}
         </div>
       </header>
 
-      <div className="mb-6">
-        <OfertasLocalesOwnerRenewalActionCenter offer={offer} lang={lang} />
-      </div>
+      {offer.publishedAt ? (
+        <div className="mb-6">
+          <OfertasLocalesOwnerRenewalActionCenter offer={offer} lang={lang} />
+        </div>
+      ) : null}
 
       <section className="mb-6 rounded-2xl border border-[#E8DFD0] bg-white p-4 text-sm">
         <h2 className="text-xs font-bold uppercase text-[#7A7164]">{t.analyticsTitle}</h2>
@@ -518,6 +561,7 @@ function OfertasLocalesOwnerManagePageContent() {
         flyerAssets={offer.flyerAssets}
         couponAssets={offer.couponAssets}
         offerStatus={offer.status}
+        onReviewSummaryChange={handleReviewSummaryChange}
       />
 
       <div className="space-y-6 text-sm">
