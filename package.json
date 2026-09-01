@@ -525,6 +525,7 @@
     "ofertas-locales:preview-performance-audit": "tsx scripts/ofertas-locales-preview-performance-audit.ts",
     "ofertas-locales:owner-dashboard-checkout-audit": "tsx scripts/ofertas-locales-owner-dashboard-checkout-audit.ts",
     "ofertas-locales:flyer-publish-routing-audit": "tsx scripts/ofertas-locales-flyer-publish-routing-audit.ts",
+    "ofertas-locales:checkout-presentation-audit": "tsx scripts/ofertas-locales-checkout-presentation-audit.ts",
     "ofertas:ai-scanner-certified-baseline-audit": "tsx scripts/ofertas-ai-scanner-certified-baseline-audit.ts",
     "ofertas-locales:ol3-step1-cta-cleanup-audit": "tsx scripts/ofertas-locales-ol3-step1-cta-cleanup-audit.ts",
     "ofertas-locales:ol4-step2-4-field-cleanup-audit": "tsx scripts/ofertas-locales-ol4-step2-4-field-cleanup-audit.ts",
