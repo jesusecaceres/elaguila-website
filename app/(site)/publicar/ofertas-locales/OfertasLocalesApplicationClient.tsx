@@ -2005,6 +2005,19 @@ export default function OfertasLocalesApplicationClient() {
                 autoComplete="street-address"
               />
             </FieldBlock>
+            <label className="flex items-start gap-3 text-sm text-[#1E1814]">
+              <input
+                type="checkbox"
+                checked={draft.showExactAddress}
+                onChange={(e) => updateDraft({ showExactAddress: e.target.checked })}
+                className="mt-1 rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
+              />
+              <span>
+                {lang === "en"
+                  ? "Show my exact address publicly"
+                  : "Mostrar mi dirección exacta públicamente"}
+              </span>
+            </label>
             <div className="grid gap-4 sm:grid-cols-2">
               <FieldBlock label={c.locationCityLabel} helper={c.cityHelper}>
                 <input

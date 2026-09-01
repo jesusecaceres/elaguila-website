@@ -25,6 +25,7 @@ export function createEmptyOfertaLocalDraft(): OfertaLocalDraft {
     state: "",
     country: "United States",
     zipCode: "",
+    showExactAddress: true,
     serviceZipCodes: [],
     phone: "",
     whatsapp: "",

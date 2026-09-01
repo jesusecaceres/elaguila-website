@@ -58,6 +58,7 @@ export type OfertaLocalAdminRow = {
   city: string;
   state: string | null;
   zip_code: string;
+  show_exact_address: boolean;
   service_zips: string[];
   phone: string | null;
   whatsapp: string | null;

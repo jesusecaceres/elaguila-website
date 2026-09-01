@@ -328,6 +328,10 @@ export function mapOfertaLocalAdminRowToDraftRecoveryPatch(row: OfertaLocalAdmin
     city: row.city || "",
     state: row.state || "",
     zipCode: row.zip_code || "",
+    // Absent/undefined on any listing published before this column existed — default true so
+    // re-opening an existing listing for edit never silently flips an always-public address to
+    // hidden.
+    showExactAddress: typeof row.show_exact_address === "boolean" ? row.show_exact_address : true,
     serviceZipCodes: Array.isArray(row.service_zips) ? row.service_zips : [],
     phone: row.phone || "",
     whatsapp: row.whatsapp || "",

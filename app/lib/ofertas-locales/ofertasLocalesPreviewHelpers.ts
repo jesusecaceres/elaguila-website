@@ -106,8 +106,15 @@ export function resolveOfertaLocalWebsiteHref(url: string): string {
   return normalizeOfertaLocalUrlInput(url);
 }
 
+/**
+ * Globalization Build A3 (RED #9) — the owner's OWN preview shows exactly what the public will
+ * see (mirrors Comida Local's `mapComidaLocalDraftToPreviewVm.ts`, which gates its preview the
+ * same way): the auto-generated address-derived maps query only appears when the owner has
+ * `showExactAddress` on. The owner's own separately pasted `directionsUrl` is never gated — an
+ * explicit share, not a derivation from the private street address.
+ */
 export function resolveOfertaLocalDirectionsHref(draft: OfertaLocalDraft): string {
-  const generated = buildOfertaLocalGoogleMapsSearchUrl(draft);
+  const generated = draft.showExactAddress ? buildOfertaLocalGoogleMapsSearchUrl(draft) : "";
   if (generated) return generated;
   return normalizeOfertaLocalUrlInput(draft.directionsUrl);
 }
@@ -228,8 +235,17 @@ export function getOfertaLocalPreviewHeroAsset(draft: OfertaLocalDraft): OfertaL
   return null;
 }
 
+/** Globalization Build A3 (RED #9) — the exact street only appears when the owner has opted in;
+ * city/state/country/zip (the safe general-area line) always remain, mirroring
+ * `resolveOfertaLocalDirectionsHref`'s same gate on this same draft. */
 export function buildOfertaLocalPreviewLocationLine(draft: OfertaLocalDraft): string {
-  return [draft.address, draft.city, draft.state, draft.country, draft.zipCode]
+  return [
+    draft.showExactAddress ? draft.address : "",
+    draft.city,
+    draft.state,
+    draft.country,
+    draft.zipCode,
+  ]
     .map((p) => p.trim())
     .filter(Boolean)
     .join(", ");
