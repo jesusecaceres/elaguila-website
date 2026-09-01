@@ -58,6 +58,9 @@ export function getAutosPrivadoCopy(lang: AutosNegociosLang): AutosNegociosCopy 
       hints: {
         ...base.app.hints,
         previewNeed_title: isEs ? "año / marca / modelo (y versión si aplica)" : "year / make / model (and trim if applicable)",
+        socialLinksHelper: isEs
+          ? "Opcional. Agrega redes sociales donde los compradores puedan enviarte mensaje directo."
+          : "Optional. Add social profiles where buyers can send you a direct message.",
       },
       sections: {
         ...base.app.sections,
@@ -69,6 +72,11 @@ export function getAutosPrivadoCopy(lang: AutosNegociosLang): AutosNegociosCopy 
         phoneOffice: isEs ? "Teléfono" : "Phone",
         dealerName: isEs ? "Nombre del vendedor" : "Seller name",
         sellerEmail: isEs ? "Correo electrónico (opcional)" : "Email (optional)",
+        socialFacebook: "Facebook",
+        socialInstagram: "Instagram",
+        socialTiktok: "TikTok",
+        socialX: isEs ? "X / Twitter" : "X / Twitter",
+        socialOther: isEs ? "Otro enlace social" : "Other social link",
       },
     },
   };

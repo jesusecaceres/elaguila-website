@@ -32,6 +32,8 @@ import {
 import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import { getAutosPreviewBlockingStepIndices } from "@/app/clasificados/autos/shared/lib/autosPreviewCompleteness";
 import { autosDraftTextValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
+import { normalizeAutosSocialUrl } from "@/app/lib/clasificados/autos/autosSocialLinkValidation";
+import type { PrivadoSellerSocialKey } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import {
   autosVehicleCityHelper,
   autosVehicleCityPlaceholder,
@@ -56,6 +58,14 @@ const LABEL = "block text-xs font-bold uppercase tracking-[0.1em] text-[color:va
 const INPUT =
   "mt-1.5 min-h-[46px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-3.5 py-2.5 text-[15px] leading-snug text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2";
 const GRID2 = "grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-x-5 sm:gap-y-4";
+
+const SOCIAL_FIELD_KEYS: readonly { key: PrivadoSellerSocialKey; labelKey: "socialFacebook" | "socialInstagram" | "socialTiktok" | "socialX" | "socialOther" }[] = [
+  { key: "facebook", labelKey: "socialFacebook" },
+  { key: "instagram", labelKey: "socialInstagram" },
+  { key: "tiktok", labelKey: "socialTiktok" },
+  { key: "x", labelKey: "socialX" },
+  { key: "other", labelKey: "socialOther" },
+];
 
 function reqLabel(label: string) {
   return (
@@ -663,7 +673,43 @@ export function AutosPrivadoApplication() {
                 />
               </div>
             </div>
-            
+
+            {/* Optional social DM links */}
+            <div className="mt-6">
+              <p className="text-xs leading-relaxed text-[color:var(--lx-muted)]">{t.app.hints.socialLinksHelper}</p>
+              <div className={`${GRID2} mt-3`}>
+                {SOCIAL_FIELD_KEYS.map(({ key, labelKey }) => (
+                  <div key={key}>
+                    <label className={LABEL}>{t.app.labels[labelKey]}</label>
+                    <input
+                      className={INPUT}
+                      type="url"
+                      inputMode="url"
+                      autoComplete="off"
+                      placeholder="https://..."
+                      value={listing.privadoSellerSocials?.[key] ?? ""}
+                      onChange={(e) => {
+                        const v = autosDraftTextValue(e.target.value);
+                        setListingPatch({
+                          privadoSellerSocials: { ...listing.privadoSellerSocials, [key]: v || undefined },
+                        });
+                      }}
+                      onBlur={(e) => {
+                        const raw = e.target.value;
+                        if (!raw.trim()) return;
+                        const normalized = normalizeAutosSocialUrl(raw);
+                        if (normalized && normalized !== raw) {
+                          setListingPatch({
+                            privadoSellerSocials: { ...listing.privadoSellerSocials, [key]: normalized },
+                          });
+                        }
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Optional meeting note */}
             <div className="mt-6">
               <label className={LABEL}>

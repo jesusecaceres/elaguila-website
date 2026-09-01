@@ -15,10 +15,12 @@ export const AUTOS_PRIVADO_PRODUCT = {
     "CTA stack: call, optional WhatsApp (prefilled interest text), Leonix message form, optional seller email",
     "Lightweight 2×2 analytics strip (views / saves / shares / contacts vocabulary)",
     "Results-card participation (distinct Privado presentation)",
+    "Optional seller social DM links, seller-entered per listing (Facebook, Instagram, TikTok, X, other)",
   ],
   excludes: [
     "Dealership logo / business stack",
-    "Website, socials, hours, booking URL",
+    "Dealership website, hours, booking URL",
+    "Dealer business social links (`dealerSocials`) — never read on Privado, see PrivadoContactStrip",
     "Related dealer inventory",
     "Default featured dealership treatment",
   ],
