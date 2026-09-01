@@ -19,6 +19,7 @@ import {
   logComidaLocalInventoryFailure,
 } from "./comidaLocalPublicInventoryErrors";
 import type { ComidaLocalServiceOption } from "./comidaLocalTypes";
+import { overlayActiveEntitlementsForComidaLocalResults } from "./comidaLocalEntitlementOverlay";
 
 export const COMIDA_LOCAL_PUBLIC_STATUS_PUBLISHED = "published" as const;
 
@@ -173,7 +174,8 @@ export async function listPublishedComidaLocalListings(
   }
 
   const filtered = applyFilters(fetched.rows, filters);
-  return { rows: filtered, source: "published" };
+  const withEntitlements = await overlayActiveEntitlementsForComidaLocalResults(filtered);
+  return { rows: withEntitlements, source: "published" };
 }
 
 export async function getPublishedComidaLocalListingBySlug(

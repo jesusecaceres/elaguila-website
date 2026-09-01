@@ -163,6 +163,14 @@ const LANE_SUSPENSION: Record<string, LaneSuspensionSpec> = {
     visibleStatuses: ["active"],
     suspendedValue: "suspended",
   },
+  "comida-local": {
+    table: "comida_local_public_listings",
+    statusColumn: "status",
+    // Existing lane vocabulary (revenueComidaLocalFulfillment.ts already recognizes both
+    // "published" as the live visible state and "suspended" as a real, handled status value).
+    visibleStatuses: ["published"],
+    suspendedValue: "suspended",
+  },
 };
 
 export function laneSuspensionSpecForCategory(category: string): LaneSuspensionSpec | null {
