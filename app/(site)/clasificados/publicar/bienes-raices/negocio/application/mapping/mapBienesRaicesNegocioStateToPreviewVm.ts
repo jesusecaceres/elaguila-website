@@ -657,7 +657,10 @@ function buildWhatsappHref(phone: string, message: string): string | null {
   const text =
     trim(message) ||
     "Hola, vi su anuncio en Leonix Clasificados y me gustaría más información.";
-  return `https://wa.me/${d}?text=${encodeURIComponent(text)}`;
+  // Globalization Build D — a bare 10-digit number needs its US country code prefixed for wa.me
+  // (naive digit-strip previously produced a link missing the country code entirely).
+  const withCountryCode = d.length === 10 ? `1${d}` : d;
+  return `https://wa.me/${withCountryCode}?text=${encodeURIComponent(text)}`;
 }
 
 function buildSmsHref(phone: string): string | null {

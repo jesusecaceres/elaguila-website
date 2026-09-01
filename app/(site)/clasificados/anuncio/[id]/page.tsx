@@ -44,10 +44,10 @@ import {
 } from "@/app/lib/analytics/client/listingEngagementRecorder";
 import { addListingView } from "@/app/lib/recentlyViewed";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
-import { submitListingReportAction } from "@/app/admin/actions";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { copyToClipboard } from "@/app/components/cta";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { LeonixInlineListingReport } from "@/app/clasificados/components/LeonixInlineListingReport";
 import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
 import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
 import { useAnuncioListingTranslation } from "@/app/lib/translation/useAnuncioListingTranslation";
@@ -965,10 +965,6 @@ function AnuncioDetallePageContent() {
   const [viewCount, setViewCount] = useState<number | null>(null);
   const [viewsToday, setViewsToday] = useState<number | null>(null);
   const [savedSyncDone, setSavedSyncDone] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [reportReason, setReportReason] = useState("");
-  const [reportSubmitting, setReportSubmitting] = useState(false);
-  const [reportDone, setReportDone] = useState(false);
   const [sellerStats, setSellerStats] = useState<{ avgRating: number | null; totalRatings: number } | null>(null);
   const [showChatModal, setShowChatModal] = useState(false);
   const [chatMessages, setChatMessages] = useState<Array<{ id: string; sender_id: string; message: string; created_at: string }>>([]);
@@ -1092,12 +1088,6 @@ function AnuncioDetallePageContent() {
     el?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const handleReportarAnuncio = () => {
-    setReportReason("");
-    setReportDone(false);
-    setShowReportModal(true);
-  };
-
   useEffect(() => {
     if (!showChatModal || !listing?.id) return;
     const ownerId = (listing as any)?.owner_id;
@@ -1148,31 +1138,6 @@ function AnuncioDetallePageContent() {
       setChatSending(false);
     }
   };
-
-  const handleReportSubmit = async () => {
-    if (!listing?.id) return;
-    const reason = reportReason.trim();
-    if (!reason) {
-      alert(lang === "es" ? "Escribe el motivo del reporte." : "Please enter a reason for the report.");
-      return;
-    }
-    setReportSubmitting(true);
-    try {
-      const supabase = createSupabaseBrowserClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      await submitListingReportAction(listing.id, reason, user?.id ?? null);
-      setReportDone(true);
-      setTimeout(() => {
-        setShowReportModal(false);
-        setReportReason("");
-      }, 1500);
-    } catch {
-      alert(lang === "es" ? "No se pudo enviar el reporte. Intenta de nuevo." : "Could not submit report. Please try again.");
-    } finally {
-      setReportSubmitting(false);
-    }
-  };
-
 
   const status: ListingStatus = listing?.status ? listing.status : "active";
   const isSold = status === "sold";
@@ -2037,55 +2002,11 @@ function AnuncioDetallePageContent() {
               <div className="mt-2 text-[#111111]">{t.guardBody}</div>
 
               <div className="mt-4">
-                <button
-                  type="button"
-                  className="cta-free px-5 py-2.5 rounded-full border border-gray-300 bg-white text-[#111111] font-semibold hover:bg-gray-50 transition"
-                  onClick={handleReportarAnuncio}
-                >
-                  {t.report}
-                </button>
+                {listing?.id ? (
+                  <LeonixInlineListingReport listingId={listing.id} lang={lang === "en" ? "en" : "es"} />
+                ) : null}
               </div>
             </div>
-
-            {/* Report modal */}
-            {showReportModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true">
-                <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 text-[#111111]">
-                  <h3 className="text-lg font-bold">{t.report}</h3>
-                  {reportDone ? (
-                    <p className="mt-4 text-[#111111]">{t.reportThankYou}</p>
-                  ) : (
-                    <>
-                      <textarea
-                        className="mt-4 w-full rounded-xl border border-gray-300 p-3 text-sm min-h-[100px] resize-y"
-                        placeholder={t.reportReasonPlaceholder}
-                        value={reportReason}
-                        onChange={(e) => setReportReason(e.target.value)}
-                        disabled={reportSubmitting}
-                      />
-                      <div className="mt-4 flex gap-3 justify-end">
-                        <button
-                          type="button"
-                          className="px-4 py-2 rounded-full border border-gray-300 bg-white font-medium hover:bg-gray-50 disabled:opacity-50"
-                          onClick={() => setShowReportModal(false)}
-                          disabled={reportSubmitting}
-                        >
-                          {t.reportCancel}
-                        </button>
-                        <button
-                          type="button"
-                          className="px-4 py-2 rounded-full bg-[#C9B46A] text-[#111111] font-medium hover:opacity-90 disabled:opacity-50"
-                          onClick={handleReportSubmit}
-                          disabled={reportSubmitting}
-                        >
-                          {reportSubmitting ? (lang === "es" ? "Enviando…" : "Sending…") : t.reportSubmit}
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
 
             {/* Chat modal — Contactar vendedor */}
             {showChatModal && (
