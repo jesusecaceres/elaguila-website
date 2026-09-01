@@ -29,6 +29,7 @@ import { ServiciosJustPublishedSuccessBanner } from "@/app/(site)/clasificados/p
 import { SERVICIOS_OFFERS_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
 import { serviciosJsonLd } from "@/app/servicios/seo/serviciosJsonLd";
+import { RecentlyViewedAndReportMount } from "@/app/clasificados/components/RecentlyViewedAndReportMount";
 
 export const dynamic = "force-dynamic";
 
@@ -219,6 +220,11 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
       ) : (
         <ServiciosProfileView {...profileShellProps} showTopBar={false} />
       )}
+      {isPublishedLive ? (
+        <div className="mx-auto max-w-3xl px-4">
+          <RecentlyViewedAndReportMount listingId={canonicalServiciosListingId} lang={lang} />
+        </div>
+      ) : null}
     </>
   );
 }

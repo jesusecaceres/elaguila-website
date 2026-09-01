@@ -14,6 +14,7 @@ import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/pu
 import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
 import { restauranteJsonLd } from "../seo/restauranteJsonLd";
 import { breadcrumbJsonLd } from "@/app/lib/seo/breadcrumbJsonLd";
+import { RecentlyViewedAndReportMount } from "@/app/clasificados/components/RecentlyViewedAndReportMount";
 
 type Lang = "es" | "en";
 
@@ -147,6 +148,7 @@ export default async function RestaurantePublicDetailPage(props: PageProps) {
             Leonix Ad ID # {row.leonix_ad_id}
           </p>
         ) : null}
+        <RecentlyViewedAndReportMount listingId={row.id} lang={lang} />
       </div>
     </RestaurantesShellChrome>
   );
