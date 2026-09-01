@@ -18,7 +18,7 @@ import {
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
-import { LeonixDashboardShell } from "../../../components/LeonixDashboardShell";
+import { LeonixResponsiveShell } from "@/app/(site)/components/mobile/LeonixResponsiveShell";
 
 type Lang = "es" | "en";
 
@@ -110,7 +110,6 @@ function OfertasLocalesOwnerCheckoutContent() {
 
   const [loading, setLoading] = useState(true);
   const [offer, setOffer] = useState<OfertaLocalOwnerDetail | null>(null);
-  const [ownerId, setOwnerId] = useState<string | null>(null);
   const [approvedCount, setApprovedCount] = useState(0);
   const [pageCompletion, setPageCompletion] = useState<{ totalPages: number; completedPages: number }>({
     totalPages: 0,
@@ -135,7 +134,6 @@ function OfertasLocalesOwnerCheckoutContent() {
         return;
       }
       if (cancelled) return;
-      setOwnerId(userData.user.id);
       const { data: sess } = await sb.auth.getSession();
       const token = sess.session?.access_token ?? "";
       if (!token) return;
@@ -219,20 +217,20 @@ function OfertasLocalesOwnerCheckoutContent() {
 
   if (loading) {
     return (
-      <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId}>
+      <LeonixResponsiveShell maxWidth="narrow" containerClassName="py-10">
         <p className="text-sm text-[#5C5346]">{t.loading}</p>
-      </LeonixDashboardShell>
+      </LeonixResponsiveShell>
     );
   }
 
   if (!offer) {
     return (
-      <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId}>
+      <LeonixResponsiveShell maxWidth="narrow" containerClassName="py-10">
         <p className="text-sm text-[#5C5346]">{t.notFound}</p>
         <Link href={`/dashboard/ofertas-locales?${q}`} className="mt-4 inline-block text-[#6B5B2E] underline">
           {t.back}
         </Link>
-      </LeonixDashboardShell>
+      </LeonixResponsiveShell>
     );
   }
 
@@ -248,10 +246,10 @@ function OfertasLocalesOwnerCheckoutContent() {
   });
 
   return (
-    <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId}>
+    <LeonixResponsiveShell maxWidth="narrow" containerClassName="py-10">
       <div className="mb-4">
-        <Link href={`/dashboard/ofertas-locales/${offer.id}?${q}`} className="text-sm text-[#6B5B2E] underline">
-          ← {t.backToEdit}
+        <Link href={previewHref} className="text-sm text-[#6B5B2E] underline">
+          ← {t.backToPreview}
         </Link>
       </div>
 
@@ -376,7 +374,7 @@ function OfertasLocalesOwnerCheckoutContent() {
           {t.backToPreview}
         </Link>
       </div>
-    </LeonixDashboardShell>
+    </LeonixResponsiveShell>
   );
 }
 
