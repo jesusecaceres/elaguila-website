@@ -7,12 +7,9 @@ import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { getSafeOfertaLocalSourceAssetHref } from "@/app/lib/ofertas-locales/ofertasLocalesClickableItemPreviewHelpers";
 import { getOfertaLocalCommercialProductForOfferType } from "@/app/lib/ofertas-locales/ofertasLocalesCommercial";
+import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import type { OfertaLocalOwnerDetail } from "@/app/lib/ofertas-locales/ofertasLocalesOwnerHelpers";
 import type { OfertaLocalOwnerUpdateInput } from "@/app/lib/ofertas-locales/ofertasLocalesOwnerUpdateMapper";
-import {
-  redirectToRevenueCategoryCheckout,
-  startRevenueCategoryCheckout,
-} from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
@@ -22,7 +19,10 @@ import { getOwnerEntityCapabilities, isLiveCapability } from "../../lib/ownerEnt
 import { listingUiStatusChipClass, resolveListingUiStatus, type ListingUiStatus } from "../../lib/listingDisplayStatus";
 import { publicViewLabel } from "../../lib/dashboardMisAnunciosCategoryTools";
 import { ownerToolsTitle, ownerCampaignModuleTitle, ownerAiReviewModuleTitle } from "../../lib/dashboardI18n";
-import { OfertasLocalesOwnerAiManageSection } from "./OfertasLocalesOwnerAiManageSection";
+import {
+  OfertasLocalesOwnerAiManageSection,
+  type OfertaLocalOwnerReviewSummary,
+} from "./OfertasLocalesOwnerAiManageSection";
 import { OfertasLocalesOwnerRenewalActionCenter } from "./OfertasLocalesOwnerRenewalActionCenter";
 
 export const dynamic = "force-dynamic";
@@ -91,10 +91,18 @@ function OfertasLocalesOwnerManagePageContent() {
             viewFile: "Ver archivo",
             publicTermTitle: "Término público",
             commercialTitle: "Pago y paquete",
-            payNow: "Pagar publicación",
-            paying: "Creando pago seguro…",
-            paymentHelp:
-              "El pago no publica tu oferta. Después del pago, envía la oferta a revisión; los 30 días empiezan cuando Leonix la aprueba.",
+            payNow: "Pagar y publicar →",
+            reviewCompleteTitle: "✅ Revisión de productos completa",
+            reviewCompleteBody: (approved: number, pages: number, totalPages: number) =>
+              `${approved} productos aprobados · ${pages} de ${totalPages} páginas completas`,
+            publishCardTitle: "PUBLICAR ESTA OFERTA",
+            publishCardIncluded: "IA y productos buscables incluidos",
+            publishCardTermNote:
+              "Los 30 días públicos empiezan cuando el pago se completa exitosamente y la publicación se activa.",
+            publishCardPerDays: (days: number) => `/ ${days} días`,
+            backToEdit: "Volver a editar",
+            viewPreview: "Ver vista previa",
+            paidBadge: "Pagado",
             notStarted: "No iniciado",
             activeTerm: "Activo",
             expiredTerm: "Expirado",
@@ -158,10 +166,18 @@ function OfertasLocalesOwnerManagePageContent() {
             viewFile: "View file",
             publicTermTitle: "Public term",
             commercialTitle: "Payment and package",
-            payNow: "Pay for publication",
-            paying: "Creating secure checkout…",
-            paymentHelp:
-              "Payment does not publish your listing. After payment, submit for review; the 30 days start when Leonix approves it.",
+            payNow: "Pay and publish →",
+            reviewCompleteTitle: "✅ Product review complete",
+            reviewCompleteBody: (approved: number, pages: number, totalPages: number) =>
+              `${approved} products approved · ${pages} of ${totalPages} pages complete`,
+            publishCardTitle: "PUBLISH THIS DEAL",
+            publishCardIncluded: "AI and searchable products included",
+            publishCardTermNote:
+              "The 30-day public term begins once payment completes successfully and publication activates.",
+            publishCardPerDays: (days: number) => `/ ${days} days`,
+            backToEdit: "Back to edit",
+            viewPreview: "View preview",
+            paidBadge: "Paid",
             notStarted: "Not started",
             activeTerm: "Active",
             expiredTerm: "Expired",
@@ -209,11 +225,13 @@ function OfertasLocalesOwnerManagePageContent() {
   const [offer, setOffer] = useState<OfertaLocalOwnerDetail | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
-  const [checkoutMsg, setCheckoutMsg] = useState<string | null>(null);
   const [form, setForm] = useState<OfertaLocalOwnerUpdateInput>({});
   const [ownerId, setOwnerId] = useState<string | null>(null);
+  const [reviewSummary, setReviewSummary] = useState<OfertaLocalOwnerReviewSummary | null>(null);
+  const handleReviewSummaryChange = useCallback((summary: OfertaLocalOwnerReviewSummary) => {
+    setReviewSummary(summary);
+  }, []);
 
   const loadOffer = useCallback(async () => {
     const sb = createSupabaseBrowserClient();
@@ -313,26 +331,6 @@ function OfertasLocalesOwnerManagePageContent() {
     }
   }
 
-  async function handleCheckout() {
-    if (!offer?.commercialProductKey || !offer.checkoutEligible) return;
-    setCheckoutLoading(true);
-    setCheckoutMsg(null);
-    const result = await startRevenueCategoryCheckout({
-      category: "ofertas-locales",
-      packageKey: offer.commercialProductKey,
-      listingId: offer.id,
-      leonixAdId: offer.leonixAdId,
-      returnPath: `/dashboard/ofertas-locales/${offer.id}?${q}`,
-      locale: lang,
-    });
-    setCheckoutLoading(false);
-    if (result.ok) {
-      redirectToRevenueCategoryCheckout(result.checkoutUrl);
-      return;
-    }
-    setCheckoutMsg(result.userMessage);
-  }
-
   if (loading) {
     return (
       <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId} contentLayout="workbench">
@@ -353,6 +351,12 @@ function OfertasLocalesOwnerManagePageContent() {
   }
 
   const social = offer.metadata.socialLinks ?? {};
+  const reviewCompleteBannerActive =
+    Boolean(reviewSummary?.reviewComplete) &&
+    !offer.publishedAt &&
+    offer.status !== "approved" &&
+    offer.status !== "archived" &&
+    offer.status !== "rejected";
   const laneBadge = offerLaneBadge(offer.offerType, lang);
   const nextAction = lang === "es" ? offer.operationalStatus.ownerNextActionEs : offer.operationalStatus.ownerNextActionEn;
   const publicTerm =
@@ -399,16 +403,30 @@ function OfertasLocalesOwnerManagePageContent() {
       : undefined;
 
   const editLabel = offer.status === "rejected" ? t.editAndResubmit : t.editTitle;
+  const checkoutHref = `/dashboard/ofertas-locales/${offer.id}/checkout?${q}`;
+  const previewHref = withClasificadosPublishLang("/publicar/ofertas-locales", lang, {
+    id: offer.id,
+    step: offer.offerType === "weekly_flyer" ? 7 : 6,
+    intent: "continue",
+  });
+  // Checkout eligibility (payment/status truth) takes priority over the plain edit
+  // action as the ONE owner doorway — a completed, unpaid listing must lead straight
+  // to "Pagar y publicar", not get stuck behind the edit CTA (both are reachable
+  // together via quickActions below).
   let primaryAction: ActionItem;
-  if (offer.canEdit) {
+  if (offer.checkoutEligible) {
+    primaryAction = { href: checkoutHref, label: t.payNow };
+  } else if (offer.canEdit) {
     primaryAction = { label: editLabel, onClick: () => setEditMode(true), disabled: editMode };
-  } else if (offer.checkoutEligible) {
-    primaryAction = { label: checkoutLoading ? t.paying : t.payNow, onClick: () => void handleCheckout(), disabled: checkoutLoading };
   } else {
     primaryAction = { href: "#ofertas-campaign-tools", label: t.reviewCampaign };
   }
 
   const quickActions: ActionItem[] = [];
+  if (offer.checkoutEligible && offer.canEdit) {
+    quickActions.push({ label: editLabel, onClick: () => setEditMode(true), disabled: editMode, tone: "secondary" });
+    quickActions.push({ href: previewHref, label: t.viewPreview, tone: "secondary" });
+  }
   if (offer.publicResultsHref && isLiveCapability(capabilities.identity.publicView)) {
     quickActions.push({
       href: appendLangToPath(offer.publicResultsHref, lang),
@@ -432,9 +450,17 @@ function OfertasLocalesOwnerManagePageContent() {
     specializedActions.push({ href: "#ofertas-ai-review", label: ownerAiReviewModuleTitle(lang), tone: "premium" });
   }
 
-  const noteText = offer.statusMessage || nextAction;
-  const noteTone =
-    offer.status === "rejected" || offer.operationalStatus.tone === "danger"
+  // Review-complete truth overrides the shared operational-status note/tone — that
+  // status is derived from stale scan diagnostics that never clear once every item
+  // has actually been resolved (127/127 approved), so it must not surface as a
+  // false "needs attention" warning once the owner's real review work is done.
+  const noteText =
+    reviewCompleteBannerActive && reviewSummary
+      ? t.reviewCompleteBody(reviewSummary.approvedCount, reviewSummary.completedPages, reviewSummary.totalPages)
+      : offer.statusMessage || nextAction;
+  const noteTone = reviewCompleteBannerActive
+    ? "neutral"
+    : offer.status === "rejected" || offer.operationalStatus.tone === "danger"
       ? "urgent"
       : offer.status === "pending_review" || offer.status === "submitted" || offer.operationalStatus.tone === "warning"
         ? "warning"
@@ -465,7 +491,7 @@ function OfertasLocalesOwnerManagePageContent() {
           eyebrow: t.eyebrow,
           title: offer.businessName,
           subtitle: offer.title,
-          statusLabel: offer.displayStatus,
+          statusLabel: reviewCompleteBannerActive ? t.reviewCompleteTitle : offer.displayStatus,
           statusChipClass: listingUiStatusChipClass(offerChipStatus(offer.status)),
           plan: offer.commercialProductLabel,
           leonixId: offer.leonixAdId,
@@ -489,23 +515,49 @@ function OfertasLocalesOwnerManagePageContent() {
               ) : null}
 
               <div id="ofertas-campaign-tools" className="space-y-4">
-                <OfertasLocalesOwnerRenewalActionCenter offer={offer} lang={lang} />
+                {offer.publishedAt ? <OfertasLocalesOwnerRenewalActionCenter offer={offer} lang={lang} /> : null}
                 {offer.checkoutEligible && offer.canEdit ? (
-                  <div className="rounded-xl border border-[#E8DFD0] bg-white p-3 text-sm text-[#5C5346]">
-                    <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.commercialTitle}</p>
-                    <button
-                      type="button"
-                      onClick={() => void handleCheckout()}
-                      disabled={checkoutLoading}
-                      className="mt-3 rounded-xl bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-[#FAF7F2] disabled:opacity-50"
-                    >
-                      {checkoutLoading ? t.paying : t.payNow}
-                    </button>
-                    <p className="mt-2 text-xs text-[#7A7164]">{t.paymentHelp}</p>
-                    {checkoutMsg ? <p className="mt-2 text-xs text-rose-800">{checkoutMsg}</p> : null}
+                  <div className="rounded-2xl border-2 border-[#C9B46A] bg-white p-4">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.publishCardTitle}</p>
+                    <p className="mt-1 text-lg font-bold text-[#1E1810]">
+                      {offer.commercialProductLabel || offer.commercialProductKey || t.publishCardTitle}
+                    </p>
+                    <p className="mt-1 text-2xl font-bold text-[#1E1810]">
+                      {offer.commercialAmount}{" "}
+                      <span className="text-sm font-semibold text-[#5C5346]">
+                        {t.publishCardPerDays(offer.commercialDurationDays ?? 30)}
+                      </span>
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-[#6B5B2E]">{t.publishCardIncluded}</p>
+                    <p className="mt-2 text-xs text-[#7A7164]">{t.publishCardTermNote}</p>
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <Link
+                        href={checkoutHref}
+                        className="min-h-11 rounded-xl bg-[#7A1E2C] px-5 py-2.5 text-sm font-bold text-white"
+                      >
+                        {t.payNow}
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => setEditMode(true)}
+                        className="min-h-11 rounded-xl border border-[#D4C4A8] px-4 py-2.5 text-sm font-semibold text-[#1E1810]"
+                      >
+                        {t.backToEdit}
+                      </button>
+                      <Link
+                        href={previewHref}
+                        className="min-h-11 rounded-xl border border-[#D4C4A8] px-4 py-2.5 text-sm font-semibold text-[#1E1810]"
+                      >
+                        {t.viewPreview}
+                      </Link>
+                    </div>
                   </div>
                 ) : null}
-                {checkoutMsg && !offer.canEdit ? <p className="text-xs text-rose-800">{checkoutMsg}</p> : null}
+                {offer.status === "approved" && offer.paymentStatus === "paid" ? (
+                  <p className="text-xs font-semibold text-emerald-800">
+                    {lang === "es" ? "Pago" : "Payment"}: {t.paidBadge}
+                  </p>
+                ) : null}
 
                 {editMode && offer.canEdit ? (
                   <form onSubmit={handleSave} className="space-y-4 rounded-2xl border border-[#E8DFD0] bg-white p-5">
@@ -586,13 +638,14 @@ function OfertasLocalesOwnerManagePageContent() {
                   flyerAssets={offer.flyerAssets}
                   couponAssets={offer.couponAssets}
                   offerStatus={offer.status}
+                  onReviewSummaryChange={handleReviewSummaryChange}
                 />
               </div>
             </div>
           ),
         }}
         mobileSheetLabels={{ trigger: t.moreOptions, title: t.moreOptions, close: t.moreOptionsClose }}
-        footerHint={analyticsLive && offer.analytics?.lastActivity ? `${t.lastActivity}: ${offer.analytics.lastActivity}` : t.paymentHelp}
+        footerHint={analyticsLive && offer.analytics?.lastActivity ? `${t.lastActivity}: ${offer.analytics.lastActivity}` : null}
       />
       <Link href={`/dashboard/ofertas-locales?${q}`} className="mt-6 inline-flex text-sm font-semibold underline">
         ← {t.back}
