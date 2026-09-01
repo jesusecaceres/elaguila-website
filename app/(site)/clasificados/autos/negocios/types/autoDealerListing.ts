@@ -28,6 +28,17 @@ export type DealerSocialKey =
 
 export type DealerSocials = Partial<Record<DealerSocialKey, string>>;
 
+/**
+ * Privado only — optional seller-entered social DM links, filled per listing. Deliberately a
+ * separate type/field from `DealerSocials`/`dealerSocials`: Privado never reads `dealerSocials`
+ * (see `PrivadoContactStrip`'s documented Business Hub OS leak-fix), so reusing that field would
+ * risk resurfacing dealer/business social links on a private-seller card. Keep this field the
+ * only source of Privado social CTAs.
+ */
+export type PrivadoSellerSocialKey = "facebook" | "instagram" | "tiktok" | "x" | "other";
+
+export type PrivadoSellerSocials = Partial<Record<PrivadoSellerSocialKey, string>>;
+
 /** Up to 3 dealership links with custom titles (Negocios Business Hub). */
 export type DealerCustomLink = {
   id: string;
@@ -228,6 +239,8 @@ export type AutoDealerListing = {
    * Privado: when false, hide the site “Message” CTA on preview. Default is treated as enabled when unset.
    */
   privadoSiteMessageEnabled?: boolean;
+  /** Privado only — optional seller-entered social DM links. See `PrivadoSellerSocials` for why this is kept separate from `dealerSocials`. */
+  privadoSellerSocials?: PrivadoSellerSocials;
   /** @deprecated Synced from structured fields on save when present; legacy rows may only have this string. */
   dealerAddress?: string;
   dealerStreetNumber?: string;
