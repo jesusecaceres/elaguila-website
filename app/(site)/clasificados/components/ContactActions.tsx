@@ -6,6 +6,7 @@ import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
 import type { CtaActionCallback, CtaSheetIntent } from "@/app/components/cta/types";
 import { trackClasificadosEvent } from "@/app/lib/clasificadosAnalytics";
 import type { LeonixPublicSocialLink } from "@/app/clasificados/lib/leonixContactChannelsV1";
+import { buildInternationalWhatsAppWaMeHrefWithText, whatsAppDigitsOnly } from "@/app/lib/whatsapp/internationalWhatsApp";
 import { FaFacebook, FaInstagram, FaTiktok, FaYoutube } from "react-icons/fa";
 
 type Lang = "es" | "en";
@@ -84,10 +85,6 @@ function normalizePhoneForTel(raw: string) {
   return String(raw || "").replace(/[^0-9+]/g, "");
 }
 
-function digitsOnlyUs(raw: string): string {
-  return String(raw || "").replace(/\D/g, "").slice(0, 15);
-}
-
 function safeHttpUrl(raw: string) {
   const u = String(raw || "").trim();
   if (!u) return "";
@@ -129,14 +126,11 @@ export default function ContactActions(props: Props) {
         ? `sms:${smsHrefBase}`
         : "";
 
-  const waDigits = props.whatsappPhone ? digitsOnlyUs(props.whatsappPhone) : "";
+  const waDigits = props.whatsappPhone ? whatsAppDigitsOnly(props.whatsappPhone) : "";
   const waMsg = String(props.whatsappMessage ?? "").trim();
-  const whatsappHref =
-    waDigits.length >= 10
-      ? waMsg
-        ? `https://wa.me/${waDigits}?text=${encodeURIComponent(waMsg)}`
-        : `https://wa.me/${waDigits}`
-      : "";
+  const whatsappHref = props.whatsappPhone
+    ? buildInternationalWhatsAppWaMeHrefWithText(props.whatsappPhone, waMsg) ?? ""
+    : "";
 
   const mailSub = String(props.mailtoSubject ?? "").trim();
   const mailBody = String(props.mailtoBody ?? "").trim();

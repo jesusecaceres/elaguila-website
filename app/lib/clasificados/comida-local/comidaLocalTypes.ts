@@ -3,6 +3,7 @@
  */
 
 import type { BusinessWeeklyHours } from "@/app/lib/businessHours/computeBusinessHoursStatus";
+import type { AdditionalWebsiteEntry } from "@/app/lib/additionalWebsites/additionalWebsiteEntry";
 
 export type { BusinessWeeklyHours };
 
@@ -219,7 +220,6 @@ export type ComidaLocalDraft = {
   galleryImages: ComidaLocalImageDraft[];
 };
 
-export type ComidaLocalAdditionalWebsite = {
-  label: string;
-  url: string;
-};
+/** @deprecated Use the shared `AdditionalWebsiteEntry` directly — kept as an alias so existing
+ * imports of `ComidaLocalAdditionalWebsite` continue to resolve unchanged. */
+export type ComidaLocalAdditionalWebsite = AdditionalWebsiteEntry;

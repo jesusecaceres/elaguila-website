@@ -3,8 +3,10 @@
  * `computeHoursStatus` (app/(site)/clasificados/restaurantes/lib/restauranteHoursLogic.ts).
  * Logic is unchanged; only the module location/name is generalized so other business
  * categories (Servicios, and eventually Comida Local) can reuse the same open-now truth
- * instead of reimplementing it. Restaurantes' own file is left as-is in this gate — category
- * adoption of this shared version is later category-adapter work.
+ * instead of reimplementing it. Restaurantes' own file now re-exports this module directly
+ * instead of keeping its own duplicate copy of the same logic. Comida Local was already the
+ * sole other adopter; Servicios has no open-now compute at all today (remains category-adapter
+ * work, out of scope here).
  */
 
 export type BusinessHoursStatus = {

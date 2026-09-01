@@ -12,6 +12,7 @@ import {
 } from "./ofertasLocalesApplicationHelpers";
 import { activeOfertaLocalDraftAssets, assetHasExternalUrlReady, assetHasUploadedWithUrl } from "./ofertasLocalesDraftAssetHelpers";
 import { buildOfertaLocalGoogleMapsSearchUrl, normalizeOfertaLocalPhoneInput, normalizeOfertaLocalUrlInput } from "./ofertasLocalesFormatting";
+import { normalizeInternationalWhatsAppDigits } from "@/app/lib/whatsapp/internationalWhatsApp";
 import { splitOfertaLocalPrimaryFlyerAssets } from "./ofertasLocalesStep5AssetLayout";
 import type { OfertaLocalDraft, OfertaLocalDraftAsset } from "./ofertasLocalesTypes";
 
@@ -90,10 +91,8 @@ export function buildOfertaLocalTelHref(phone: string): string {
 
 export function buildOfertaLocalWhatsAppHref(phone: string, businessName?: string): string {
   const raw = String(phone ?? "").trim();
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length < 8) return "";
-  const dialDigits = digits.length === 10 ? `1${digits}` : digits;
-  if (dialDigits.length > 15) return "";
+  const dialDigits = normalizeInternationalWhatsAppDigits(raw);
+  if (!dialDigits) return "";
   const name = (businessName ?? "").trim();
   const text = encodeURIComponent(
     name

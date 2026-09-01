@@ -8,6 +8,7 @@ import {
   enVentaPhoneInputDigits,
   formatEnVentaPhoneInput,
 } from "@/app/(site)/clasificados/en-venta/shared/utils/enVentaPhoneDisplay";
+import { normalizeInternationalWhatsAppDigits } from "@/app/lib/whatsapp/internationalWhatsApp";
 
 export function formatComidaLocalPhoneInput(raw: string): string {
   return formatEnVentaPhoneInput(raw);
@@ -46,7 +47,7 @@ export function buildComidaLocalWhatsAppHref(
   raw: string,
   businessName?: string
 ): string {
-  const digits = raw.replace(/\D/g, "");
+  const digits = normalizeInternationalWhatsAppDigits(raw);
   if (!digits) return "";
   const name = (businessName ?? "").trim();
   const text = encodeURIComponent(

@@ -21,6 +21,7 @@ import { formatUsPhoneDisplay, digitsOnly } from "@/app/clasificados/publicar/bi
 import { formatUsdWhole } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
 import { googleMapsSearchUrl } from "@/app/(site)/publicar/community/shared/lib/communityContactCtas";
 import type { BienesRaicesPrivadoPreviewVm } from "@/app/clasificados/bienes-raices/preview/privado/model/bienesRaicesPrivadoPreviewVm";
+import { buildInternationalWhatsAppWaMeHref } from "@/app/lib/whatsapp/internationalWhatsApp";
 import type { BienesLiveListingLike } from "./BienesRaicesNegocioLiveDetailShell";
 
 type Lang = "es" | "en";
@@ -67,8 +68,7 @@ function smsHref(phoneDigits: string): string | null {
 }
 
 function waHref(phoneDigits: string): string | null {
-  const d = digitsOnly(phoneDigits);
-  return d.length >= 10 ? `https://wa.me/${d}` : null;
+  return buildInternationalWhatsAppWaMeHref(phoneDigits);
 }
 
 function mailtoHref(email: string, subject: string): string | null {

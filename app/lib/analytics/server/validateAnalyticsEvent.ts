@@ -76,6 +76,21 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
 }
 
 /** Shallow sanitize metadata for jsonb insert. */
+// RED #11 (Globalization Build A) — the sanitizer previously only enforced shape/size (key
+// count, key length, string length) with zero PII detection, so any string a caller passed in
+// metadata was stored verbatim. These mirror the proven unmasked-contact-data detectors already
+// used by app/api/translate-ad/route.ts (UNMASKED_EMAIL_RE / UNMASKED_PHONE_RE) — redacting here
+// rather than rejecting the event, since a metadata field failing a PII check should not block
+// the underlying event (a view/click) from being recorded at all.
+const METADATA_EMAIL_RE = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g;
+const METADATA_PHONE_RE = /(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)?\d{3}[\s.-]?\d{4}\b|\+\d{8,15}\b/g;
+
+function redactPiiFromMetadataString(value: string): string {
+  return value
+    .replace(METADATA_EMAIL_RE, "[redacted-email]")
+    .replace(METADATA_PHONE_RE, (m) => (m.replace(/\D/g, "").length >= 7 ? "[redacted-phone]" : m));
+}
+
 export function sanitizeAnalyticsMetadata(input: unknown): Record<string, unknown> {
   if (!isPlainObject(input)) return {};
   const out: Record<string, unknown> = {};
@@ -91,7 +106,7 @@ export function sanitizeAnalyticsMetadata(input: unknown): Record<string, unknow
     }
     const t = typeof value;
     if (t === "string") {
-      out[k] = (value as string).slice(0, MAX_STRING_LEN);
+      out[k] = redactPiiFromMetadataString((value as string).slice(0, MAX_STRING_LEN));
       n++;
     } else if (t === "number" && Number.isFinite(value)) {
       out[k] = value;
