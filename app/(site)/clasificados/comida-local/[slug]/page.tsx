@@ -16,6 +16,7 @@ import {
 import { ComidaLocalPublicDetailClient } from "../components/ComidaLocalPublicDetailClient";
 import { normalizeLang, replaceLangInHref } from "@/app/lib/language";
 import { RecentlyViewedAndReportMount } from "@/app/clasificados/components/RecentlyViewedAndReportMount";
+import { ComidaLocalEngagementRow } from "../components/ComidaLocalEngagementRow";
 
 export const dynamic = "force-dynamic";
 
@@ -88,6 +89,14 @@ export default async function ComidaLocalPublicDetailPage(props: PageProps) {
 
       <div className={`${CL_CONTAINER_NARROW} py-6 sm:py-8`}>
         <ComidaLocalPublicDetailClient vm={vm} lang={lang === "en" ? "en" : "es"} />
+        <ComidaLocalEngagementRow
+          listingId={row.id}
+          leonixAdId={row.leonix_ad_id}
+          listingUrl={`/clasificados/comida-local/${encodeURIComponent(row.slug)}`}
+          listingTitle={row.business_name}
+          ownerUserId={row.owner_user_id}
+          lang={lang === "en" ? "en" : "es"}
+        />
         <RecentlyViewedAndReportMount listingId={row.id} lang={lang === "en" ? "en" : "es"} />
       </div>
     </div>

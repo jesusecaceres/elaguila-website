@@ -5,6 +5,7 @@
 import { recordAnalyticsEvent } from "@/app/lib/analytics/client/recordAnalyticsEvent";
 import type { ListingAnalyticsEventType } from "@/app/lib/listingAnalyticsEventTypes";
 import type { ComidaLocalPreviewContactActionId } from "./comidaLocalPreviewTypes";
+import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 export const COMIDA_LOCAL_ANALYTICS_SOURCE_TABLE = "comida_local_public_listings" as const;
 export const COMIDA_LOCAL_ANALYTICS_CATEGORY = "comida-local" as const;
@@ -209,5 +210,71 @@ export function trackComidaLocalProfileViewOnce(ctx: ComidaLocalAnalyticsContext
     eventType: "profile_view",
     source: "detail_header",
     metadata: ctx.slug ? { slug: ctx.slug } : undefined,
+  });
+}
+
+/**
+ * Globalization Build D — Save/Like/Share global G2A analytics (Gate D22). These are separate
+ * generic event types (listing_save/unsave, listing_like/unlike, listing_share) not part of
+ * ComidaLocalAnalyticsEventType's contact/view vocabulary, so they call recordAnalyticsEvent
+ * directly — same shape as trackEnVentaSaveGlobal/trackEnVentaLikeGlobal/
+ * trackEnVentaListingShareGlobal (app/lib/clasificados/en-venta/analytics/enVentaGlobalAnalytics.ts),
+ * the reference pattern for this exact gap.
+ */
+async function resolveAccessTokenIfNeeded(required: boolean): Promise<string | null> {
+  if (!required) return null;
+  try {
+    const sb = createSupabaseBrowserClient();
+    const { data } = await sb.auth.getSession();
+    return data.session?.access_token ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function trackComidaLocalLikeGlobal(ctx: ComidaLocalAnalyticsContext, isLike: boolean): void {
+  const listingId = ctx.listingId.trim();
+  if (!listingId) return;
+  void recordAnalyticsEvent({
+    event_type: isLike ? "listing_like" : "listing_unlike",
+    source_table: COMIDA_LOCAL_ANALYTICS_SOURCE_TABLE,
+    source_id: listingId,
+    category: COMIDA_LOCAL_ANALYTICS_CATEGORY,
+    event_source: "detail_header",
+    canonical_ad_id: ctx.leonixAdId?.trim() || undefined,
+    anonymous_session_id: getAnonymousSessionId(),
+  });
+}
+
+export function trackComidaLocalSaveGlobal(ctx: ComidaLocalAnalyticsContext, isSave: boolean): void {
+  const listingId = ctx.listingId.trim();
+  if (!listingId) return;
+  void (async () => {
+    const accessToken = await resolveAccessTokenIfNeeded(true);
+    void recordAnalyticsEvent({
+      event_type: isSave ? "listing_save" : "listing_unsave",
+      source_table: COMIDA_LOCAL_ANALYTICS_SOURCE_TABLE,
+      source_id: listingId,
+      category: COMIDA_LOCAL_ANALYTICS_CATEGORY,
+      event_source: "detail_header",
+      canonical_ad_id: ctx.leonixAdId?.trim() || undefined,
+      anonymous_session_id: accessToken ? undefined : getAnonymousSessionId(),
+      accessToken,
+    });
+  })();
+}
+
+export function trackComidaLocalShareGlobal(ctx: ComidaLocalAnalyticsContext, shareMethod?: string): void {
+  const listingId = ctx.listingId.trim();
+  if (!listingId) return;
+  void recordAnalyticsEvent({
+    event_type: "listing_share",
+    source_table: COMIDA_LOCAL_ANALYTICS_SOURCE_TABLE,
+    source_id: listingId,
+    category: COMIDA_LOCAL_ANALYTICS_CATEGORY,
+    event_source: "detail_header",
+    canonical_ad_id: ctx.leonixAdId?.trim() || undefined,
+    anonymous_session_id: getAnonymousSessionId(),
+    metadata: sanitizeClientMetadata(shareMethod ? { shareMethod } : undefined),
   });
 }

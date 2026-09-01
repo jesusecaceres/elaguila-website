@@ -24,7 +24,7 @@ import { overlayActiveEntitlementsForComidaLocalResults } from "./comidaLocalEnt
 export const COMIDA_LOCAL_PUBLIC_STATUS_PUBLISHED = "published" as const;
 
 export const COMIDA_LOCAL_PUBLIC_LISTING_SELECT =
-  "id, slug, leonix_ad_id, status, package_tier, payment_status, published_at, business_name, food_type, food_type_custom, city_canonical, city_display, zone_note, que_vendes, phone, whatsapp, instagram_url, facebook_url, tiktok_url, location_note, location_url, availability_note, service_options, payment_methods, payment_other_note, price_level, languages, main_photo, logo_image, gallery_images, listing_json";
+  "id, slug, leonix_ad_id, owner_user_id, status, package_tier, payment_status, published_at, business_name, food_type, food_type_custom, city_canonical, city_display, zone_note, que_vendes, phone, whatsapp, instagram_url, facebook_url, tiktok_url, location_note, location_url, availability_note, service_options, payment_methods, payment_other_note, price_level, languages, main_photo, logo_image, gallery_images, listing_json";
 
 const FETCH_CAP = 300;
 
