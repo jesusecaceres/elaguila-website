@@ -30,8 +30,7 @@ import { BusinessFlyerViewerModal } from "@/app/components/media/BusinessFlyerVi
 import { RestaurantContactHubFauxMap } from "./RestaurantContactHubFauxMap";
 import { buildSharedConnectionHubMapEmbedSrc } from "@/app/(site)/clasificados/shared/constants/sharedConnectionHubLocationHelpers";
 import { copyToClipboard } from "@/app/components/cta/ctaLaunchers";
-import { SharedConnectionHubReviewButton } from "@/app/components/contact/connectionHub/renderers/SharedConnectionHubReviewButton";
-import type { SharedConnectionHubReviewLink } from "@/app/components/contact/connectionHub/sharedConnectionHubContactTypes";
+import { SharedConnectionHubReviewDrawer } from "@/app/components/contact/connectionHub/renderers/SharedConnectionHubReviewDrawer";
 import { LeonixCommunityTrust } from "@/app/components/leonixCommunityTrust/LeonixCommunityTrust";
 import {
   restaurantHubSocialBrandStyle,
@@ -537,25 +536,22 @@ export function RestaurantContactHub({
                 <HubSectionTitle>
                   <span id="rest-hub-reviews-heading">{labels.reviews}</span>
                 </HubSectionTitle>
-                <div className="mt-2 flex flex-col gap-2">
-                  {hub.reviews.map((btn) => {
-                    const link: SharedConnectionHubReviewLink = {
-                      provider: btn.id === "google-reviews" ? "google" : "yelp",
+                <div className="mt-2">
+                  {/* Globalization Build B (Gate B5) — one shared drawer trigger replaces the N
+                      inline review buttons; drawer hosts the same Level-A link-only buttons. */}
+                  <SharedConnectionHubReviewDrawer
+                    links={hub.reviews.map((btn) => ({
+                      provider: btn.id === "google-reviews" ? ("google" as const) : ("yelp" as const),
                       label: btn.label,
                       url: btn.href,
-                    };
-                    return (
-                      <SharedConnectionHubReviewButton
-                        key={btn.id}
-                        link={link}
-                        lang={lang}
-                        onClick={() => openButton(btn)}
-                        goldBorder={RCH_LX.goldBorder}
-                        ivory={RCH_LX.ivory}
-                        gold={RCH_LX.gold}
-                      />
-                    );
-                  })}
+                    }))}
+                    lang={lang}
+                    businessName={hub.businessName}
+                    onLinkClick={(link) => {
+                      const btn = hub.reviews.find((r) => r.href === link.url);
+                      if (btn) openButton(btn);
+                    }}
+                  />
                 </div>
               </section>
             ) : null}
