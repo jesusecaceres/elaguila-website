@@ -1534,6 +1534,26 @@ export function ClasificadosServiciosApplication() {
                     autoComplete="postal-code"
                   />
                 </div>
+                <div className="sm:col-span-2">
+                  <label className="flex items-start gap-2 text-sm font-medium text-[#3D2C12]">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#D8C79A]"
+                      checked={state.showExactAddress}
+                      onChange={(e) => setState((s) => ({ ...s, showExactAddress: e.target.checked }))}
+                    />
+                    <span>
+                      {lang === "en"
+                        ? "Show my exact street address publicly and allow “Get directions”"
+                        : "Mostrar mi dirección exacta públicamente y permitir “Cómo llegar”"}
+                    </span>
+                  </label>
+                  <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">
+                    {lang === "en"
+                      ? "When off, your street address stays private — your city still shows to help customers find you."
+                      : "Si está desactivado, tu dirección exacta se mantiene privada — tu ciudad sigue mostrándose para que los clientes te encuentren."}
+                  </p>
+                </div>
               </div>
             </div>
 

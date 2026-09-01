@@ -160,6 +160,7 @@ function buildApplicationState(preset: BusinessTypePreset): ClasificadosServicio
     physicalRegion: "Nuevo León",
     physicalCountry: "Mexico",
     physicalPostalCode: "64000",
+    showExactAddress: true,
     serviceAreaNotes: "San Pedro Garza García\nSanta Catarina\nCentro de Monterrey\nCumbres",
     phone: "+52 81 4000 2100",
     phoneOffice: "+52 81 4000 2101",

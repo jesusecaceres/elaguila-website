@@ -21,6 +21,8 @@ import {
 import { buildBusinessDirectionsHref } from "@/app/lib/businessAddress/businessAddressDirections";
 import { createEmptyComidaLocalDraft } from "@/app/lib/clasificados/comida-local/createEmptyComidaLocalDraft";
 import { mapComidaLocalDraftToPreviewVm } from "@/app/lib/clasificados/comida-local/mapComidaLocalDraftToPreviewVm";
+import { resolveServiciosProfile } from "@/app/(site)/servicios/lib/resolveServiciosProfile";
+import type { ServiciosBusinessProfile } from "@/app/(site)/servicios/types/serviciosBusinessProfile";
 
 const failures: string[] = [];
 async function check(name: string, fn: () => void | Promise<void>) {
@@ -300,6 +302,74 @@ async function main() {
       assert.equal(vm.sections.showBusinessAddress, true);
     }
   );
+
+  // =================================================================================
+  // Globalization Build A2 — Servicios address-privacy adoption (RED #9)
+  // =================================================================================
+
+  function serviciosProfileWithAddress(overrides: {
+    showExactAddress?: boolean;
+    physicalStreet?: string;
+  }): ServiciosBusinessProfile {
+    return {
+      identity: { slug: "test-negocio", businessName: "Test Negocio" },
+      hero: { locationSummary: "San Jose, CA" },
+      contact: {
+        physicalStreet: overrides.physicalStreet ?? "999 Secret Ave",
+        physicalCity: "San Jose",
+        physicalRegion: "CA",
+        physicalCountry: "US",
+        physicalPostalCode: "95112",
+        showExactAddress: overrides.showExactAddress,
+      },
+    };
+  }
+
+  await check("Servicios: exact address ON reveals the street line and a directions href", () => {
+    const resolved = resolveServiciosProfile(serviciosProfileWithAddress({ showExactAddress: true }));
+    assert.ok(resolved.contact.physicalAddressDisplay?.includes("999 Secret Ave"));
+    assert.ok(resolved.contact.mapsSearchHref?.includes(encodeURIComponent("999 Secret Ave")));
+  });
+
+  await check("Servicios: exact address OFF hides the street line and the directions href entirely", () => {
+    const resolved = resolveServiciosProfile(serviciosProfileWithAddress({ showExactAddress: false }));
+    assert.equal(resolved.contact.physicalAddressDisplay, undefined);
+    assert.equal(resolved.contact.mapsSearchHref, undefined);
+    assert.ok(!JSON.stringify(resolved).includes("999 Secret Ave"), "private street must not leak anywhere in the resolved profile");
+    // City-level info remains available independent of the exact-street gate.
+    assert.equal(resolved.hero.locationSummary, "San Jose, CA");
+  });
+
+  await check(
+    "Servicios: showExactAddress absent (pre-existing published listing) defaults to visible — no forced hiding of an address that was always public",
+    () => {
+      const resolved = resolveServiciosProfile(serviciosProfileWithAddress({ showExactAddress: undefined }));
+      assert.ok(resolved.contact.physicalAddressDisplay?.includes("999 Secret Ave"));
+      assert.ok(resolved.contact.mapsSearchHref);
+    }
+  );
+
+  await check("Servicios: no address on file produces neither a display line nor a directions href, regardless of the toggle", () => {
+    const resolved = resolveServiciosProfile(
+      serviciosProfileWithAddress({ showExactAddress: true, physicalStreet: "" })
+    );
+    assert.equal(resolved.contact.physicalAddressDisplay, undefined);
+    assert.equal(resolved.contact.mapsSearchHref, undefined);
+  });
+
+  await check("Servicios: no 'Verified Address' claim anywhere in the resolved profile output", () => {
+    const resolved = resolveServiciosProfile(serviciosProfileWithAddress({ showExactAddress: true }));
+    const serialized = JSON.stringify(resolved).toLowerCase();
+    assert.ok(!serialized.includes("verified address"));
+    assert.ok(!serialized.includes("dirección verificada"));
+  });
+
+  // =================================================================================
+  // Ofertas Locales — NOT adopted in this pass (see Build A2 report: no JSONB/metadata column
+  // exists on public.ofertas_locales to persist a new privacy flag without a schema migration;
+  // Gate A2-2 requires stopping and reporting rather than inventing one). No test added here —
+  // there is no shipped behavior yet to regress-test.
+  // =================================================================================
 
   if (failures.length) {
     console.error(`\n${failures.length} check(s) FAILED`);

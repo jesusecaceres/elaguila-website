@@ -182,6 +182,10 @@ export type ClasificadosServiciosApplicationState = {
   physicalRegion: string;
   physicalCountry: string;
   physicalPostalCode: string;
+  /** Owner's explicit choice to reveal the exact physical address publicly. Defaults to `true`
+   * (existing/new applications alike) so this addition never silently hides an address that was
+   * always shown before this field existed — see `serviciosBusinessProfile.ts`'s `showExactAddress`. */
+  showExactAddress: boolean;
   serviceAreaNotes: string;
   phone: string;
   /** Optional second line — same digit rules as `phone` */

@@ -421,6 +421,7 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     physicalRegion: str("physicalRegion", d.physicalRegion),
     physicalCountry: str("physicalCountry", d.physicalCountry),
     physicalPostalCode: str("physicalPostalCode", d.physicalPostalCode),
+    showExactAddress: bool("showExactAddress", d.showExactAddress),
     // One-time legacy migration: an old single-line comma/semicolon-separated draft (from before
     // service areas were newline-delimited, S-073) is converted to newline-joined form here, once,
     // on hydrate. A string that already contains a newline is assumed already-migrated and is left

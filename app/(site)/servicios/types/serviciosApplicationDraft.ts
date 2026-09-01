@@ -91,6 +91,10 @@ export type ServiciosApplicationContactDraft = {
   physicalRegion?: string;
   physicalCountry?: string;
   physicalPostalCode?: string;
+  /** Owner's explicit choice to reveal the exact physical address publicly. Absent on any
+   * listing before this field existed — treated as `true` at read time, see
+   * `serviciosBusinessProfile.ts`'s `showExactAddress` and `resolveServiciosProfile.ts`. */
+  showExactAddress?: boolean;
 };
 
 export type ServiciosApplicationAboutDraft = {

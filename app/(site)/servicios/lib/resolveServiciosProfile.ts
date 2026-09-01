@@ -43,6 +43,7 @@ import {
   isServiciosWhatsAppProfileSocialUrl,
   isServiciosWhatsAppSocialDuplicateOfContact,
 } from "./serviciosWhatsAppHref";
+import { resolveBusinessAddressPublicView } from "@/app/lib/businessAddress/businessAddressPrivacy";
 
 /**
  * Turn canonical wire data into a presentation-safe model (filtered lists, safe URLs, fallbacks).
@@ -71,16 +72,32 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
   const websiteHref = safeExternalWebsiteHref(contactIn.websiteUrl);
   const websiteLabel = trimText(contactIn.websiteLabel);
 
-  const physicalAddressDisplay = formatPhysicalAddressDisplay({
-    physicalStreet: contactIn.physicalStreet,
-    physicalSuite: contactIn.physicalSuite,
-    physicalCity: contactIn.physicalCity,
-    physicalRegion: contactIn.physicalRegion,
-    physicalCountry: contactIn.physicalCountry,
-    physicalPostalCode: contactIn.physicalPostalCode,
+  // RED #9 (Globalization Build A2) — reuse the shared address-privacy contract for the
+  // reveal/hide DECISION only (Servicios' own formatters below keep building the actual display
+  // string/maps query, since they already correctly include suite+zip+country that the shared
+  // contract's generic `exactAddressLine` builder does not — no fidelity loss, just a shared
+  // gate). `showExactAddress` absent on the wire (any listing published before this field
+  // existed) defaults to `true` so no existing listing's already-public address is silently
+  // hidden by this addition.
+  const addressPublicView = resolveBusinessAddressPublicView({
+    address: contactIn.physicalStreet?.trim()
+      ? {
+          street: contactIn.physicalStreet ?? "",
+          unit: contactIn.physicalSuite,
+          city: contactIn.physicalCity ?? "",
+          region: contactIn.physicalRegion ?? "",
+          country: contactIn.physicalCountry ?? "",
+          postalCode: contactIn.physicalPostalCode ?? "",
+          verificationStatus: "manual",
+          manualEntry: true,
+        }
+      : null,
+    showExactAddress: contactIn.showExactAddress ?? true,
+    cityOrServiceArea: "",
   });
-  const mapsSearchHref = physicalAddressDisplay
-    ? buildGoogleMapsSearchHrefFromPhysical({
+
+  const physicalAddressDisplay = addressPublicView.showExactAddress
+    ? formatPhysicalAddressDisplay({
         physicalStreet: contactIn.physicalStreet,
         physicalSuite: contactIn.physicalSuite,
         physicalCity: contactIn.physicalCity,
@@ -89,6 +106,17 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
         physicalPostalCode: contactIn.physicalPostalCode,
       })
     : undefined;
+  const mapsSearchHref =
+    addressPublicView.directionsAllowed && physicalAddressDisplay
+      ? buildGoogleMapsSearchHrefFromPhysical({
+          physicalStreet: contactIn.physicalStreet,
+          physicalSuite: contactIn.physicalSuite,
+          physicalCity: contactIn.physicalCity,
+          physicalRegion: contactIn.physicalRegion,
+          physicalCountry: contactIn.physicalCountry,
+          physicalPostalCode: contactIn.physicalPostalCode,
+        })
+      : undefined;
 
   const rawSocial = contactIn.socialLinks;
   let socialLinks: ServiciosProfileResolved["contact"]["socialLinks"];

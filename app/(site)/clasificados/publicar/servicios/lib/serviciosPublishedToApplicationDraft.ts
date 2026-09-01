@@ -383,6 +383,9 @@ export function serviciosPublishedToApplicationDraft(
     physicalRegion: clean(contact.physicalRegion),
     physicalCountry: clean(contact.physicalCountry),
     physicalPostalCode: clean(contact.physicalPostalCode),
+    // Absent on any listing published before this field existed — default true so re-opening an
+    // existing listing for edit never silently flips an always-public address to hidden.
+    showExactAddress: typeof contact.showExactAddress === "boolean" ? contact.showExactAddress : true,
     serviceAreaNotes,
     phone: clean(contact.phone),
     phoneOffice: clean(contact.phoneOffice),

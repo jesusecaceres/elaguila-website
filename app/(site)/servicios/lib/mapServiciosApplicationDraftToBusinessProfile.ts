@@ -210,6 +210,7 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   if (physRegion) contact.physicalRegion = physRegion;
   if (physCountry) contact.physicalCountry = physCountry;
   if (physZip) contact.physicalPostalCode = physZip;
+  if (typeof c?.showExactAddress === "boolean") contact.showExactAddress = c.showExactAddress;
 
   const quickFacts = mapQuickFacts(draft.quickFacts);
   const about = mapAbout(draft.about);

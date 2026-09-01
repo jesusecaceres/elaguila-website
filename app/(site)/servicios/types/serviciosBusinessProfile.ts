@@ -244,6 +244,15 @@ export type ServiciosContactBlock = {
   physicalRegion?: string;
   physicalCountry?: string;
   physicalPostalCode?: string;
+  /**
+   * Owner's explicit choice to reveal the exact physical address publicly (and allow a
+   * "get directions" CTA to it). Absent on any listing published before this field existed —
+   * treated as `true` at read time (see `resolveServiciosProfile.ts`) so no existing listing's
+   * already-public address is silently hidden by this addition; going forward the owner can
+   * explicitly turn it off. Mirrors the same privacy contract already shipped for Restaurantes/
+   * Comida Local/Bienes Raíces/Rentas — see `app/lib/businessAddress/businessAddressPrivacy.ts`.
+   */
+  showExactAddress?: boolean;
 };
 
 export type ServiciosAboutBlock = {

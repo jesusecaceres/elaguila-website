@@ -68,6 +68,7 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     physicalRegion: "",
     physicalCountry: LEONIX_LB_DEFAULT_COUNTRY,
     physicalPostalCode: "",
+    showExactAddress: true,
     serviceAreaNotes: "",
     phone: "",
     phoneOffice: "",
