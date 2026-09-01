@@ -626,13 +626,16 @@ export function OfertasLocalesPreviewCard({
         review: 1,
         intent: "continue",
       });
-  // The real checkout (startRevenueCategoryCheckout) already lives on the
-  // owner dashboard — this only routes there using the canonical listing id,
-  // preferring the id confirmed by a successful submission over the
-  // AI-scan-session id used before submission.
+  // Locked doctrine: the normal path is Application → Preview → final
+  // checkout/publish checkpoint → Stripe. This routes straight to the
+  // existing, certified checkout page for the SAME canonical listing id
+  // (preferring the id confirmed by a successful submission over the
+  // AI-scan-session id used before submission) — the dashboard itself is
+  // only the post-payment management destination, or a secondary recovery
+  // path for an unfinished payment, never the required next step here.
   const dashboardId = publishSuccess?.id ?? ofertaLocalId;
   const dashboardHref = dashboardId
-    ? `/dashboard/ofertas-locales/${encodeURIComponent(dashboardId)}?lang=${resolvedRouteLang}`
+    ? `/dashboard/ofertas-locales/${encodeURIComponent(dashboardId)}/checkout?lang=${resolvedRouteLang}`
     : null;
   const offerLabel = labelForOfferType(draft.offerType, lang);
   const primaryFormatLabel = labelForPrimaryAdFormatLane(draft, lang);
