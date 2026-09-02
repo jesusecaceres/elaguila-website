@@ -30,6 +30,7 @@ import { SERVICIOS_OFFERS_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publi
 import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
 import { serviciosJsonLd } from "@/app/servicios/seo/serviciosJsonLd";
 import { RecentlyViewedAndReportMount } from "@/app/clasificados/components/RecentlyViewedAndReportMount";
+import { resolveClasificadosPublishLangFromSearchParams } from "@/app/lib/clasificados/clasificadosPublishLang";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +52,10 @@ type PageProps = {
 export default async function ClasificadosServiciosDynamicPage(props: PageProps) {
   const { slug } = await props.params;
   const sp = (await props.searchParams) ?? {};
-  const lang: ServiciosLang = sp.lang === "en" ? "en" : "es";
+  // Globalization Build D-F6 — bare `?lang=` ternary didn't handle Next's `string[]` searchParams
+  // shape; server pages can't read the visitor's stored cookie/localStorage preference (no
+  // next/headers cookie read exists in this codebase for lang), so this is a robustness-only fix.
+  const lang: ServiciosLang = resolveClasificadosPublishLangFromSearchParams(sp).copyLang;
 
   const row = await getServiciosPublicListingBySlugForDiscovery(slug);
   if (!row) notFound();
