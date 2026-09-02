@@ -91,6 +91,33 @@ function redactPiiFromMetadataString(value: string): string {
     .replace(METADATA_PHONE_RE, (m) => (m.replace(/\D/g, "").length >= 7 ? "[redacted-phone]" : m));
 }
 
+// Globalization Build 3 — Comida Local's own client-side wrapper
+// (comidaLocalAnalytics.ts's BLOCKED_METADATA_KEYS) already blocks a small set of contact-
+// identity key names before ever sending metadata, but that protection only covered callers
+// going through that one wrapper. Every other category's metadata reached this shared,
+// authoritative server-side sanitizer with only value-pattern (email/phone regex) redaction —
+// a key like `owner_user_id` or `user_id` holding a bare UUID matches neither pattern and
+// passed through completely unredacted. This adopts the same proven key set here, at the one
+// choke point every category's metadata actually goes through, normalizing away case/
+// underscore/hyphen differences so `ownerUserId`, `owner_user_id`, and `OWNER-USER-ID` are all
+// caught the same way.
+const BLOCKED_METADATA_KEY_NAMES = new Set([
+  "phone",
+  "phonenumber",
+  "tel",
+  "sms",
+  "whatsapp",
+  "whatsappnumber",
+  "email",
+  "owneruserid",
+  "userid",
+]);
+
+function isBlockedMetadataKey(key: string): boolean {
+  const normalized = key.trim().toLowerCase().replace(/[\s_-]/g, "");
+  return BLOCKED_METADATA_KEY_NAMES.has(normalized);
+}
+
 export function sanitizeAnalyticsMetadata(input: unknown): Record<string, unknown> {
   if (!isPlainObject(input)) return {};
   const out: Record<string, unknown> = {};
@@ -99,6 +126,7 @@ export function sanitizeAnalyticsMetadata(input: unknown): Record<string, unknow
     if (n >= MAX_METADATA_KEYS) break;
     const k = trim(key);
     if (!k || k.length > 80) continue;
+    if (isBlockedMetadataKey(k)) continue;
     if (value === null) {
       out[k] = null;
       n++;

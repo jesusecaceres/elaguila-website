@@ -6,10 +6,6 @@ import Link from "next/link";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { addListingView } from "@/app/lib/recentlyViewed";
-import {
-  trackCommunityListingView,
-  type CommunityGlobalAnalyticsCtx,
-} from "@/app/lib/clasificados/comunidad/comunidadClasesBuscoGlobalAnalytics";
 import { LeonixInlineListingReport } from "@/app/clasificados/components/LeonixInlineListingReport";
 import { mascotasPerdidosPublishedQuickToDraft } from "@/app/(site)/publicar/mascotas-y-perdidos/shared/mascotasPerdidosPublishedQuickToDraft";
 import { MascotasPerdidosQuickAdCanvas } from "@/app/(site)/publicar/mascotas-y-perdidos/components/MascotasPerdidosQuickAdCanvas";
@@ -52,11 +48,13 @@ export function MascotasPerdidosPublishedDetailPage({
   const draft = useMemo(() => mascotasPerdidosPublishedQuickToDraft(listing), [listing]);
 
   useEffect(() => {
+    // Globalization Build 3 — the Build D-F5 trackCommunityListingView addition here was
+    // actually redundant: the generic anuncio/[id]/page.tsx wrapper that renders this component
+    // already fires trackListingViewOpen (identical event types, identity, sourceTable)
+    // unconditionally for every listing, contrary to that commit's "zero canonical analytics"
+    // premise. That generic emission is retained as canonical; addListingView (Recently Viewed)
+    // is untouched — this page genuinely had none of that before D-F5, so it stays.
     if (skipAnalytics) return;
-    // Globalization Build D-F5 — this page had zero canonical analytics; only Recently Viewed
-    // was wired. Mirrors the Busco/Comunidad/Clases trackCommunityListingView adoption.
-    const ctx: CommunityGlobalAnalyticsCtx = { listingUuid: listing.id, category: "mascotas-y-perdidos" };
-    trackCommunityListingView(ctx);
     addListingView(listing.id);
   }, [listing.id, skipAnalytics]);
 
