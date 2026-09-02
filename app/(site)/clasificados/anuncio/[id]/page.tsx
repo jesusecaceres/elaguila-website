@@ -111,7 +111,7 @@ type Lang = "es" | "en";
 // failed round trips before the existing shrink-retry loop finds a working column set; the
 // price-drop feature already degrades to "no data" for every real row today regardless.
 const ANUNCIO_LISTING_SELECT_BASE =
-  "id, leonix_ad_id, owner_id, title, description, city, zip, category, price, is_free, detail_pairs, listing_json, profile_json, contact_json, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, is_published, created_at, images, republished_at, mux_playback_id";
+  "id, leonix_ad_id, owner_id, title, description, city, zip, category, price, is_free, detail_pairs, listing_json, profile_json, contact_json, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, is_published, created_at, images, republished_at, mux_playback_id, expires_at";
 
 function classifiedsSampleListingsEnabled(): boolean {
   if (process.env.NODE_ENV === "production") return false;
@@ -614,6 +614,20 @@ function AnuncioDetallePageContent() {
           setFetchedListing(undefined);
           setRemoteState("ready");
           return;
+        }
+        // Globalization Build 4 — this direct-by-id fetch had no expiry check at all (only
+        // is_published/status), so a fixed-term paid listing (currently: Bienes Raíces FSBO —
+        // the only lane in this shared table with a real, populated expires_at) stayed publicly
+        // reachable by direct URL indefinitely past its term. A null/missing expires_at (every
+        // other category and lane sharing this table, none of which have a fixed term) is
+        // treated as "never expires" — this can never hide a subscription-based or free listing.
+        if (typeof row.expires_at === "string" && row.expires_at) {
+          const expiresMs = new Date(row.expires_at).getTime();
+          if (Number.isFinite(expiresMs) && expiresMs <= Date.now()) {
+            setFetchedListing(undefined);
+            setRemoteState("ready");
+            return;
+          }
         }
 
         // Gate G.2.3.4 — an inventory child (Bienes Raíces Negocio) additionally requires an

@@ -11,10 +11,25 @@ import { mapBrListingRowToNegocioCard, type BrListingDbRow } from "../resultados
 
 /** Baseline columns — safe if optional timestamp columns are missing in an older DB. */
 const BR_LISTINGS_SELECT_BASE =
-  "id, title, description, city, price, is_free, images, detail_pairs, listing_json, profile_json, contact_json, seller_type, business_name, owner_id, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, created_at, status, is_published";
+  "id, title, description, city, price, is_free, images, detail_pairs, listing_json, profile_json, contact_json, seller_type, business_name, owner_id, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, created_at, status, is_published, expires_at";
 
 /** Rich timestamps for `reciente` / republish fairness (`mapBrListingRowToNegocioCard`). */
 const BR_LISTINGS_SELECT_RICH = `${BR_LISTINGS_SELECT_BASE}, updated_at, published_at, republish_sort_at, republished_at`;
+
+/**
+ * Globalization Build 4 — Bienes Raíces FSBO ($49.99/45d) is the only lane in this shared table
+ * with a real, populated `expires_at`; BR Negocio (subscription) and every other row leave it
+ * null. `status`/`is_published` alone never flip when a fixed-term listing's time simply runs
+ * out, so an expired FSBO listing stayed live in results indefinitely. Null/missing expires_at
+ * is treated as "never expires" — cannot hide a subscription-based row.
+ */
+function isBrRowWithinTerm(row: Record<string, unknown>): boolean {
+  const raw = row.expires_at;
+  if (typeof raw !== "string" || !raw) return true;
+  const expiresMs = new Date(raw).getTime();
+  if (!Number.isFinite(expiresMs)) return true;
+  return expiresMs > Date.now();
+}
 
 /**
  * Deferred: Optional monetization/placement fields for future highlighted/featured badges.
@@ -77,7 +92,7 @@ export async function fetchBrPublishedListingsForBrowse(opts: {
       return { listings: [], error: error.message };
     }
     const rows = (data ?? []) as BrListingDbRow[];
-    const publicRows = rows.filter((r) => isListingRowActiveAndPublishedForBrowse(r));
+    const publicRows = rows.filter((r) => isListingRowActiveAndPublishedForBrowse(r) && isBrRowWithinTerm(r));
 
     // Gate G.2.3.4 — an inventory child additionally requires an active, published, same-owner
     // canonical main parent to remain publicly visible. One batched parent fetch for every

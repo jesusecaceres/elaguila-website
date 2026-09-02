@@ -127,7 +127,7 @@ async function validateOneTimeActivePaidEditCheckoutOwnership(
   return { ok: true, ownerUserId: String(row[spec.ownerColumn] ?? "").trim() || null };
 }
 
-const AUTOS_PRIVADO_LIFECYCLE_CONFIG: ListingLifecycleConfig = {
+export const AUTOS_PRIVADO_LIFECYCLE_CONFIG: ListingLifecycleConfig = {
   category: "autos",
   packageKey: "autos_privado_30d",
   durationType: "fixed_days",
