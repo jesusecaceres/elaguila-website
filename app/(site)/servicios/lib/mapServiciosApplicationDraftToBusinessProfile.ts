@@ -106,6 +106,9 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   if (websiteUrl) contact.websiteUrl = websiteUrl;
   const websiteLabel = trim(draft.contact?.websiteLabel);
   if (websiteLabel) contact.websiteLabel = websiteLabel;
+  if (Array.isArray(draft.contact?.additionalWebsites) && draft.contact.additionalWebsites.length) {
+    contact.additionalWebsites = draft.contact.additionalWebsites;
+  }
   if (draft.contact?.messageEnabled === true) contact.messageEnabled = true;
 
   const openNow = trim(draft.contact?.hoursOpenNowLabel);

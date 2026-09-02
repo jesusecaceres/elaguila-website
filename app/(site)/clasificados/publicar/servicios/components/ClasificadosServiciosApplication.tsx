@@ -1652,6 +1652,77 @@ export function ClasificadosServiciosApplication() {
                   {websiteInvalid ? <p className="mt-1 text-xs text-amber-800">{copy.labels.invalidUrl}</p> : null}
                 </div>
               </div>
+              <div className="mt-4">
+                <label className={labelClass}>
+                  {lang === "es" ? "Sitios web adicionales" : "Additional websites"}
+                </label>
+                <p className="mt-1 text-xs text-[#6b5c42]">
+                  {lang === "es"
+                    ? "Menú, reservas, portafolio, tienda — agrega los que necesites."
+                    : "Menu, booking, portfolio, shop — add as many as you need."}
+                </p>
+                <div className="mt-2 space-y-2">
+                  {state.additionalWebsites.map((row, index) => (
+                    <div key={index} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <input
+                        className={`${inputClass} sm:w-40 sm:shrink-0`}
+                        placeholder={lang === "es" ? "Título (ej. Menú)" : "Label (e.g. Menu)"}
+                        maxLength={60}
+                        value={row.label}
+                        onChange={(e) =>
+                          setState((s) => ({
+                            ...s,
+                            additionalWebsites: s.additionalWebsites.map((r, i) =>
+                              i === index ? { ...r, label: e.target.value } : r,
+                            ),
+                          }))
+                        }
+                      />
+                      <input
+                        className={`${inputClass} flex-1`}
+                        type="url"
+                        inputMode="url"
+                        placeholder="https://…"
+                        value={row.url}
+                        onChange={(e) =>
+                          setState((s) => ({
+                            ...s,
+                            additionalWebsites: s.additionalWebsites.map((r, i) =>
+                              i === index ? { ...r, url: e.target.value } : r,
+                            ),
+                          }))
+                        }
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setState((s) => ({
+                            ...s,
+                            additionalWebsites: s.additionalWebsites.filter((_, i) => i !== index),
+                          }))
+                        }
+                        className="shrink-0 rounded-xl border border-[#D8C79A]/60 bg-white px-3 py-2 text-xs font-semibold text-[#3D2C12] hover:bg-[#FBF3E3]"
+                      >
+                        {lang === "es" ? "Quitar" : "Remove"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                {state.additionalWebsites.length < 8 ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setState((s) => ({
+                        ...s,
+                        additionalWebsites: [...s.additionalWebsites, { label: "", url: "" }],
+                      }))
+                    }
+                    className="mt-2 rounded-xl border border-[#D8C79A]/60 bg-[#FBF3E3] px-4 py-2 text-sm font-semibold text-[#3D2C12] hover:bg-[#F5E9D0]"
+                  >
+                    {lang === "es" ? "Agregar otro enlace" : "Add another link"}
+                  </button>
+                ) : null}
+              </div>
             </div>
 
             <div className="sm:col-span-2 mt-2 border-t border-[#D8C79A]/35 pt-6">

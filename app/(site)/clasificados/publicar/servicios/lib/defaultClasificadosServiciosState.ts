@@ -73,6 +73,7 @@ export function createDefaultClasificadosServiciosState(): ClasificadosServicios
     phone: "",
     phoneOffice: "",
     website: "",
+    additionalWebsites: [],
     whatsapp: "",
     whatsappBusinessUrl: "",
     quoteMessagePhone: "",

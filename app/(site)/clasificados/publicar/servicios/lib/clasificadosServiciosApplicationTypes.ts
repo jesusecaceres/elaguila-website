@@ -3,6 +3,8 @@
  * Step 3 will map this into `ServiciosApplicationDraft` / shell slots — not exposed in UI.
  */
 
+import type { AdditionalWebsiteEntry } from "@/app/lib/additionalWebsites/additionalWebsiteEntry";
+
 export type ServiciosLang = "es" | "en";
 
 /** Internal grouping for filters/analytics — never shown in the form copy */
@@ -191,6 +193,9 @@ export type ClasificadosServiciosApplicationState = {
   /** Optional second line — same digit rules as `phone` */
   phoneOffice: string;
   website: string;
+  /** Gate Build D-S8 — repeatable Title+URL links (menu, booking, portfolio, etc.), same shared
+   * shape Restaurantes/Comida Local already use. */
+  additionalWebsites: AdditionalWebsiteEntry[];
   whatsapp: string;
   /** Public WhatsApp Business / profile URL if the number field is not used */
   whatsappBusinessUrl: string;

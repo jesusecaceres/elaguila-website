@@ -1,4 +1,5 @@
 import type { ViajesContactChannel } from "@/app/(site)/clasificados/viajes/data/viajesOfferDetailSampleData";
+import { buildInternationalWhatsAppWaMeHref } from "@/app/lib/whatsapp/internationalWhatsApp";
 
 function digitsOnly(s: string) {
   return s.replace(/\D/g, "");
@@ -45,8 +46,8 @@ export function viajesBuildNegociosContactChannels(p: {
   const w = p.whatsapp.trim();
   if (w.startsWith("http")) pushUnique(out, { kind: "whatsapp", href: w, label: "WhatsApp" });
   else {
-    const n = digitsOnly(w);
-    if (n.length >= 8) pushUnique(out, { kind: "whatsapp", href: `https://wa.me/${n}`, label: "WhatsApp" });
+    const waHref = buildInternationalWhatsAppWaMeHref(w);
+    if (waHref) pushUnique(out, { kind: "whatsapp", href: waHref, label: "WhatsApp" });
   }
   const web = withHttp(p.website);
   if (web) pushUnique(out, { kind: "website", href: web, label: "Web" });
@@ -87,8 +88,8 @@ export function viajesBuildPrivadoContactChannels(p: {
   const w = p.whatsapp.trim();
   if (w.startsWith("http")) pushUnique(out, { kind: "whatsapp", href: w, label: "WhatsApp" });
   else {
-    const n = digitsOnly(w);
-    if (n.length >= 8) pushUnique(out, { kind: "whatsapp", href: `https://wa.me/${n}`, label: "WhatsApp" });
+    const waHref = buildInternationalWhatsAppWaMeHref(w);
+    if (waHref) pushUnique(out, { kind: "whatsapp", href: waHref, label: "WhatsApp" });
   }
   const em = p.email.trim();
   if (em.includes("@")) pushUnique(out, { kind: "email", href: `mailto:${encodeURIComponent(em)}`, label: em });

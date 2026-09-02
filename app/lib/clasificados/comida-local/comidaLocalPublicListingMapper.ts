@@ -3,6 +3,7 @@ import { resolveComidaLocalPublishPaymentStatus } from "./comidaLocalPaymentStat
 import type { ComidaLocalListingStatusDb, ComidaLocalPackageTierDb } from "./comidaLocalPublishTypes";
 import { sanitizeComidaLocalImageForDb } from "./comidaLocalPublishValidation";
 import type { ComidaLocalDraft } from "./comidaLocalTypes";
+import { isValidAdditionalWebsiteUrl } from "@/app/lib/additionalWebsites/additionalWebsiteEntry";
 
 export type ComidaLocalPublicListingInsert = {
   slug: string;
@@ -23,6 +24,8 @@ export type ComidaLocalPublicListingInsert = {
   instagram_url: string | null;
   facebook_url: string | null;
   tiktok_url: string | null;
+  google_reviews_url: string | null;
+  yelp_reviews_url: string | null;
   location_note: string | null;
   location_url: string | null;
   availability_note: string | null;
@@ -78,6 +81,8 @@ export function draftToComidaLocalPublicListingInsert(
     instagram_url: emptyToNull(draft.instagramUrl),
     facebook_url: emptyToNull(draft.facebookUrl),
     tiktok_url: emptyToNull(draft.tiktokUrl),
+    google_reviews_url: isValidAdditionalWebsiteUrl(draft.googleReviewsUrl) ? draft.googleReviewsUrl.trim() : null,
+    yelp_reviews_url: isValidAdditionalWebsiteUrl(draft.yelpReviewsUrl) ? draft.yelpReviewsUrl.trim() : null,
     location_note: emptyToNull(draft.locationNote),
     location_url: emptyToNull(draft.locationUrl),
     availability_note: emptyToNull(draft.availabilityNote),

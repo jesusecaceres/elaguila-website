@@ -18,6 +18,7 @@ import {
   MAX_CUSTOM_QUICK_FACTS,
   enforceServiciosSelectionCaps,
 } from "./serviciosSelectionCaps";
+import type { AdditionalWebsiteEntry } from "@/app/lib/additionalWebsites/additionalWebsiteEntry";
 import { BUSINESS_HIGHLIGHT_LABEL_MAX } from "./serviciosHighlightCaps";
 import { isJunkServiciosQuickFactLabel, syncServiciosContactEnables } from "./serviciosContactVisibility";
 import { SERVICIOS_APPLICATION_STEP_COUNT, migrateServiciosApplicationStepIndex } from "./serviciosApplicationStepLabels";
@@ -208,6 +209,17 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
       })
       .filter((e): e is { id: string; label: string; note: string } => e !== null)
       .slice(0, 20);
+  }
+
+  let additionalWebsites: AdditionalWebsiteEntry[] = d.additionalWebsites;
+  if (Array.isArray(o.additionalWebsites)) {
+    additionalWebsites = o.additionalWebsites
+      .filter((e): e is Record<string, unknown> => e !== null && typeof e === "object")
+      .map((e) => ({
+        label: typeof e.label === "string" ? e.label.slice(0, 60) : "",
+        url: typeof e.url === "string" ? e.url.slice(0, 500) : "",
+      }))
+      .slice(0, 8);
   }
 
   let gallery: GalleryItem[] = d.gallery;
@@ -441,6 +453,7 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     phone: str("phone", d.phone),
     phoneOffice: str("phoneOffice", d.phoneOffice),
     website: str("website", d.website),
+    additionalWebsites,
     whatsapp: str("whatsapp", d.whatsapp),
     whatsappBusinessUrl: str("whatsappBusinessUrl", d.whatsappBusinessUrl),
     quoteMessagePhone: str("quoteMessagePhone", d.quoteMessagePhone ?? ""),

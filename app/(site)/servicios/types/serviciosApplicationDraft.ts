@@ -11,6 +11,7 @@ import type {
   ServiciosServiceVisualVariant,
   ServiciosTrustItem,
 } from "./serviciosBusinessProfile";
+import type { AdditionalWebsiteEntry } from "@/app/lib/additionalWebsites/additionalWebsiteEntry";
 
 /** identity.slug · identity.businessName */
 export type ServiciosApplicationIdentityDraft = {
@@ -58,6 +59,8 @@ export type ServiciosApplicationContactDraft = {
   email?: string;
   websiteUrl?: string;
   websiteLabel?: string;
+  /** Gate Build D-S8 — repeatable Title+URL links (menu, booking, portfolio, etc.). */
+  additionalWebsites?: AdditionalWebsiteEntry[];
   messageEnabled?: boolean;
   hoursOpenNowLabel?: string;
   hoursTodayLine?: string;

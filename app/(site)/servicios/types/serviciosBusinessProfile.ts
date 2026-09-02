@@ -3,6 +3,8 @@
  * Map form/API fields into this shape; run through `resolveServiciosProfile` before rendering.
  */
 
+import type { AdditionalWebsiteEntry } from "@/app/lib/additionalWebsites/additionalWebsiteEntry";
+
 export type ServiciosLang = "es" | "en";
 
 export type ServiciosQuickFactKind =
@@ -228,6 +230,8 @@ export type ServiciosContactBlock = {
   email?: string;
   websiteUrl?: string;
   websiteLabel?: string;
+  /** Gate Build D-S8 — repeatable Title+URL links (menu, booking, portfolio, etc.). */
+  additionalWebsites?: AdditionalWebsiteEntry[];
   messageEnabled?: boolean;
   hours?: ServiciosHoursSummary;
   primaryCtaLabel?: string;
@@ -383,6 +387,8 @@ export type ServiciosProfileResolved = {
     emailMailtoHref?: string;
     websiteHref?: string;
     websiteLabel?: string;
+    /** Gate Build D-S8 — repeatable Title+URL links, already URL-safety-validated. */
+    additionalWebsites?: AdditionalWebsiteEntry[];
     messageEnabled: boolean;
     hours?: {
       openNowLabel?: string;

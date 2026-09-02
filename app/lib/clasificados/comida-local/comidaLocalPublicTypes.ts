@@ -33,6 +33,8 @@ export type ComidaLocalPublicListingRow = {
   instagram_url: string | null;
   facebook_url: string | null;
   tiktok_url: string | null;
+  google_reviews_url: string | null;
+  yelp_reviews_url: string | null;
   location_note: string | null;
   location_url: string | null;
   availability_note: string | null;

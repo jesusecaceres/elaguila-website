@@ -13,6 +13,7 @@ import type { ClasificadosServiciosApplicationState, DayKey } from "./clasificad
 import { SERVICIOS_MAX_VIDEO_URLS } from "./clasificadosServiciosApplicationTypes";
 import { inferServiceVisualVariant } from "./inferServiceVisualVariant";
 import { serviciosQuickFactKindFromPresetChip } from "./serviciosQuickFactKindFromChip";
+import { sanitizeAdditionalWebsiteEntries } from "@/app/lib/additionalWebsites/additionalWebsiteEntry";
 import { isJunkServiciosQuickFactLabel } from "./serviciosContactVisibility";
 import { isValidEmail } from "./leonixContactCtaPriority";
 import { buildServiciosLanguageLabels } from "@/app/servicios/lib/serviciosLanguageChips";
@@ -276,6 +277,10 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   if (state.enableWebsite) {
     const w = safeWebsiteForDraft(state.website);
     if (w) contact.websiteUrl = w;
+  }
+  const additionalWebsites = sanitizeAdditionalWebsiteEntries(state.additionalWebsites);
+  if (additionalWebsites.length) {
+    contact.additionalWebsites = additionalWebsites;
   }
   const qm = state.quoteMessagePhone.trim();
   if (qm && digitsOnly(qm).length >= 8) {

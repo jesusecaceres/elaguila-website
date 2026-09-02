@@ -71,6 +71,16 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
     emailRaw && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRaw) ? `mailto:${emailRaw}` : undefined;
   const websiteHref = safeExternalWebsiteHref(contactIn.websiteUrl);
   const websiteLabel = trimText(contactIn.websiteLabel);
+  const additionalWebsites = Array.isArray(contactIn.additionalWebsites)
+    ? contactIn.additionalWebsites
+        .map((entry) => {
+          const label = trimText(entry?.label);
+          const url = safeExternalWebsiteHref(entry?.url);
+          return label && url ? { label, url } : null;
+        })
+        .filter((e): e is { label: string; url: string } => e !== null)
+        .slice(0, 8)
+    : undefined;
 
   // RED #9 (Globalization Build A2) — reuse the shared address-privacy contract for the
   // reveal/hide DECISION only (Servicios' own formatters below keep building the actual display
@@ -260,6 +270,7 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
       emailMailtoHref: emailMailtoHref ?? undefined,
       websiteHref: websiteHref ?? undefined,
       websiteLabel: websiteLabel || undefined,
+      additionalWebsites: additionalWebsites?.length ? additionalWebsites : undefined,
       messageEnabled: contactIn.messageEnabled === true,
       hours: normalizeHours(contactIn.hours),
       primaryCtaLabel: trimText(contactIn.primaryCtaLabel) || undefined,

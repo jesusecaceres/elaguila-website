@@ -165,6 +165,7 @@ function buildApplicationState(preset: BusinessTypePreset): ClasificadosServicio
     phone: "+52 81 4000 2100",
     phoneOffice: "+52 81 4000 2101",
     website: "https://leonix.global/clasificados/servicios",
+    additionalWebsites: [],
     whatsapp: "528140002100",
     quoteMessagePhone: "+1 408 555 7777",
     whatsappBusinessUrl: "",

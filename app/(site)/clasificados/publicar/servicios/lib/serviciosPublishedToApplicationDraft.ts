@@ -390,6 +390,7 @@ export function serviciosPublishedToApplicationDraft(
     phone: clean(contact.phone),
     phoneOffice: clean(contact.phoneOffice),
     website: clean(contact.websiteUrl),
+    additionalWebsites: Array.isArray(contact.additionalWebsites) ? contact.additionalWebsites : [],
     whatsapp: clean(contact.socialLinks?.whatsappUrl),
     whatsappBusinessUrl: clean(contact.socialLinks?.whatsappProfileUrl),
     quoteMessagePhone: clean(contact.quoteMessagePhone),

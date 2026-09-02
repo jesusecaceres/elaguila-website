@@ -115,6 +115,7 @@ export type PipelineClassification =
   | "CLASSIFIED_SCAFFOLD"
   | "SERVICE_BUSINESS_PROFILE"
   | "RESTAURANT_PROFILE"
+  | "FOOD_BUSINESS_PROFILE"
   | "AUTOS_CLASSIFIED"
   | "JOBS_PIPELINE"
   | "TRAVEL_STAGED"
@@ -173,6 +174,7 @@ const SUPPORTED_CATEGORY_SLUGS = [
   "empleos",
   "busco",
   "mascotas-y-perdidos",
+  "comida-local",
 ] as const;
 
 export type CategoryListingMonetizationCategory = (typeof SUPPORTED_CATEGORY_SLUGS)[number];
@@ -243,6 +245,7 @@ function categoryFromSource(source: string): string | null {
   const s = source.trim().toLowerCase();
   if (s.includes("servicios_public")) return "servicios";
   if (s.includes("restaurantes_public")) return "restaurantes";
+  if (s.includes("comida_local_public")) return "comida-local";
   if (s.includes("autos_classifieds")) return "autos";
   if (s.includes("empleos_public")) return "empleos";
   if (s.includes("viajes_staged")) return "viajes";
@@ -278,6 +281,8 @@ function pipelineForCategory(category: string): PipelineClassification {
       return "SERVICE_BUSINESS_PROFILE";
     case "restaurantes":
       return "RESTAURANT_PROFILE";
+    case "comida-local":
+      return "FOOD_BUSINESS_PROFILE";
     case "autos":
       return "AUTOS_CLASSIFIED";
     case "empleos":

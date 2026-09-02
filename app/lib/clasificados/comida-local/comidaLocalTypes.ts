@@ -166,6 +166,11 @@ export type ComidaLocalDraft = {
   instagramUrl: string;
   facebookUrl: string;
   tiktokUrl: string;
+  /** Gate Build D-S1 — real Google/Yelp review page URLs only (never an owner-typed rating,
+   * review count, or fake verification). Reuses the shared Google/Yelp reputation drawer from
+   * Build B; missing URL hides that provider. */
+  googleReviewsUrl: string;
+  yelpReviewsUrl: string;
   /** Gate D5 "Encuéntrame hoy" — today's/current location note+link. Never the permanent address. */
   locationNote: string;
   locationUrl: string;
