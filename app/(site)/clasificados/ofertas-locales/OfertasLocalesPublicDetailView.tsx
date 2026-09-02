@@ -13,7 +13,6 @@ import type {
 import { mapOfertaLocalSourceBboxToDisplayRect } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import {
-  trackOfertaLocalCta,
   trackOfertaLocalEvent,
   trackOfertaLocalListingOpen,
   trackOfertaLocalProductOpen,
@@ -28,6 +27,7 @@ import { ofertasLocalesPublicDetailCopy } from "./ofertasLocalesPublicDetailCopy
 import { useOfertasLocalesShoppingList } from "./useOfertasLocalesShoppingList";
 import { dispatchConnectionHubCta, type ConnectionHubCtaKind } from "@/app/lib/analytics/client/connectionHubCtaDispatch";
 import { useOfertasLocalesPublicTranslation } from "./lib/useOfertasLocalesPublicTranslation";
+import { addListingView } from "@/app/lib/recentlyViewed";
 
 const BTN =
   "inline-flex min-h-11 items-center justify-center rounded-xl border border-[#D4C4A8] bg-white px-3 py-2 text-sm font-semibold text-[#1E1814] hover:border-[#7A1E2C]/40";
@@ -293,14 +293,12 @@ function ContactHub({
   offer,
   c,
   onShare,
-  onCta,
   shareCopied,
 }: {
   lang: OfertasLocalesAppLang;
   offer: OfertaLocalPublicOfferDetail;
   c: ReturnType<typeof ofertasLocalesPublicDetailCopy>;
   onShare: () => void;
-  onCta: (cta: "phone" | "sms" | "whatsapp" | "website" | "directions") => void;
   shareCopied: boolean;
 }) {
   const social = offer.socialLinks ?? {};
@@ -359,7 +357,6 @@ function ContactHub({
               href={offer.phoneHref}
               className={BTN_PRIMARY}
               onClick={() => {
-                onCta("phone");
                 track("phone");
               }}
             >
@@ -371,7 +368,6 @@ function ContactHub({
               href={smsHref}
               className={BTN}
               onClick={() => {
-                onCta("sms");
                 track("phone", "sms");
               }}
             >
@@ -385,7 +381,6 @@ function ContactHub({
               rel="noopener noreferrer"
               className={BTN_PRIMARY}
               onClick={() => {
-                onCta("whatsapp");
                 track("whatsapp");
               }}
             >
@@ -399,7 +394,6 @@ function ContactHub({
               rel="noopener noreferrer"
               className={BTN}
               onClick={() => {
-                onCta("website");
                 track("website");
               }}
             >
@@ -413,7 +407,6 @@ function ContactHub({
               rel="noopener noreferrer"
               className={BTN}
               onClick={() => {
-                onCta("directions");
                 track("directions");
               }}
             >
@@ -424,7 +417,6 @@ function ContactHub({
             type="button"
             className={BTN}
             onClick={() => {
-              track("share");
               void onShare();
             }}
           >
@@ -564,6 +556,15 @@ export function OfertasLocalesPublicDetailView({ lang, offer, items }: Props) {
   useEffect(() => {
     trackOfertaLocalListingOpen(analyticsIdentity, "public_detail");
   }, [analyticsIdentity]);
+
+  // Globalization Build D-F4 — Recently Viewed was entirely missing from Ofertas Locales.
+  // Report is not added here: it's already correctly documented as N/A for this category
+  // (ownerEntityCapabilityRegistry.ts), so only the shared addListingView contract is used
+  // directly rather than the combined RecentlyViewedAndReportMount wrapper.
+  useEffect(() => {
+    if (!offer.id.trim()) return;
+    void addListingView(offer.id);
+  }, [offer.id]);
 
   useEffect(() => {
     for (const item of items.slice(0, 60)) {
@@ -709,7 +710,6 @@ export function OfertasLocalesPublicDetailView({ lang, offer, items }: Props) {
             offer={offer}
             c={c}
             onShare={handleShare}
-            onCta={(cta) => trackOfertaLocalCta(analyticsIdentity, cta, "public_detail")}
             shareCopied={shareCopied}
           />
         </div>

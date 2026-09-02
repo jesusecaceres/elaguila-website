@@ -72,6 +72,7 @@ export type OfertaLocalAdminRow = {
   google_review_url?: string | null;
   yelp_url?: string | null;
   membership_url: string | null;
+  membership_cta_label: string | null;
   membership_note: string | null;
   digital_coupon_url: string | null;
   digital_coupon_note: string | null;

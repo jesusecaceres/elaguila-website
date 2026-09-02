@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 import type { EmpleosPublishEnvelope } from "@/app/publicar/empleos/shared/publish/empleosPublishSnapshots";
 
 import { EmpleoJobFairDetailPage } from "./components/jobFair/EmpleoJobFairDetailPage";
@@ -31,6 +32,7 @@ import { EmpleosJobTranslationLayer } from "./components/EmpleosJobTranslationLa
 import { empleosAnalyticsTrackMeta, type EmpleosPublicListingAnalyticsProps } from "./lib/empleosAnalyticsIdentity";
 import { trackEmpleosApplyStarted, trackEmpleosContactFromHref } from "./lib/empleosCtaTracking";
 import { empleosGlobalListingFromRow } from "./lib/recordEmpleosGlobalAnalytics";
+import { RecentlyViewedAndReportMount } from "@/app/clasificados/components/RecentlyViewedAndReportMount";
 
 type Props = {
   slug: string;
@@ -166,7 +168,9 @@ export function EmpleosPublicLaneDetailClient({
   listingLang = null,
 }: Props) {
   const sp = useSearchParams();
-  const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
+  // Globalization Build D-F4 — was a bare `?lang=` check that ignored the visitor's stored
+  // leonix_lang cookie/localStorage preference, unlike every other Empleos surface.
+  const { copyLang: lang } = useMemo(() => resolveClasificadosPublishLang(sp?.get("lang")), [sp]);
   const [shareAbs, setShareAbs] = useState("");
 
   useEffect(() => {
@@ -241,11 +245,14 @@ export function EmpleosPublicLaneDetailClient({
 
         const profileAnalytics =
           listingSourceId?.trim() ? (
-            <EmpleosJobProfileViewAnalytics
-              listingSourceId={listingSourceId.trim()}
-              slug={slug}
-              leonixAdId={leonixAdId}
-            />
+            <>
+              <EmpleosJobProfileViewAnalytics
+                listingSourceId={listingSourceId.trim()}
+                slug={slug}
+                leonixAdId={leonixAdId}
+              />
+              <RecentlyViewedAndReportMount listingId={listingSourceId.trim()} lang={lang} />
+            </>
           ) : null;
 
         if (lane === "premium") {

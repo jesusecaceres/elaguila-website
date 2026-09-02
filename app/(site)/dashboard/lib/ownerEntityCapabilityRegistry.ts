@@ -237,7 +237,10 @@ export const OWNER_ENTITY_CAPABILITIES: Record<OwnerEntityCategoryKey, OwnerEnti
   }),
   empleos: merge({
     identity: { publicView: "supported", preview: "unsupported", results: "supported", edit: "supported", analytics: "unproven" },
-    engagement: { like: "supported", save: "supported", share: "supported", report: "unproven" },
+    // Globalization Build D-F4 — `save` was declared "supported" but no LeonixSaveButton (or any
+    // Save UI) exists anywhere in Empleos; only a dead, never-called recorder function did.
+    // Corrected to the truthful capability rather than leaving a registry claim the UI can't back.
+    engagement: { like: "supported", save: "unsupported", share: "supported", report: "unproven" },
     video: "supported",
     contactHub: "supported",
     translateAd: "supported",

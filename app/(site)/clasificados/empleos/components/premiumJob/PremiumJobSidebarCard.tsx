@@ -37,6 +37,7 @@ type Props = {
   badgeFeatured: string;
   badgePremium: string;
   contactAnalyticsMeta?: EmpleosAnalyticsTrackMeta;
+  lang: "es" | "en";
 };
 
 const GOLD = "bg-[#B8943F] text-white hover:bg-[#9A7A32]";
@@ -71,6 +72,7 @@ export function PremiumJobSidebarCard({
   badgeFeatured,
   badgePremium,
   contactAnalyticsMeta,
+  lang,
 }: Props) {
   const [ctaIntent, setCtaIntent] = useState<CtaSheetIntent | null>(null);
   const globalListing = contactAnalyticsMeta?.sourceId
@@ -228,7 +230,7 @@ export function PremiumJobSidebarCard({
         </div>
       </div>
 
-      <CtaActionSheet open={ctaIntent != null} onClose={() => setCtaIntent(null)} intent={ctaIntent} lang="es" />
+      <CtaActionSheet open={ctaIntent != null} onClose={() => setCtaIntent(null)} intent={ctaIntent} lang={lang} />
     </div>
   );
 }
