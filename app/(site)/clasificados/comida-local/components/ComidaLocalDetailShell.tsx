@@ -5,6 +5,7 @@ import { BusinessGalleryLightbox, type BusinessGallerySlide } from "@/app/compon
 import type { ComidaLocalAnalyticsContext } from "@/app/lib/clasificados/comida-local/comidaLocalAnalytics";
 import type { ComidaLocalPreviewVm } from "@/app/lib/clasificados/comida-local/comidaLocalPreviewTypes";
 import { ComidaLocalContactActions } from "./ComidaLocalContactActions";
+import { SharedConnectionHubReviewDrawer } from "@/app/components/contact/connectionHub/renderers/SharedConnectionHubReviewDrawer";
 import {
   CL_CARD_SURFACE,
   CL_CHIP,
@@ -180,6 +181,21 @@ export function ComidaLocalDetailShell({ vm, leonixAdId, analyticsContext, lang 
               analyticsContext={analyticsContext}
               businessName={vm.businessName}
               lang={lang}
+            />
+          </div>
+        ) : null}
+
+        {vm.reviewLinks.length > 0 ? (
+          <div className="mt-3">
+            <SharedConnectionHubReviewDrawer
+              links={vm.reviewLinks}
+              lang={lang}
+              businessName={vm.businessName}
+              onLinkClick={(link) => {
+                if (typeof window !== "undefined") {
+                  window.open(link.url, "_blank", "noopener,noreferrer");
+                }
+              }}
             />
           </div>
         ) : null}

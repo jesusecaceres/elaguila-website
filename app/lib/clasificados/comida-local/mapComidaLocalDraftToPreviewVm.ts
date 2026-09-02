@@ -30,6 +30,7 @@ import type {
 } from "./comidaLocalPreviewTypes";
 import type { ComidaLocalDraft, ComidaLocalImageDraft } from "./comidaLocalTypes";
 import { validateComidaLocalDraftForPreview } from "./comidaLocalValidation";
+import { buildComidaLocalReviewLinks } from "./comidaLocalReviewLinks";
 
 function labelFromOptions<T extends string>(
   value: T,
@@ -361,6 +362,7 @@ export function mapComidaLocalDraftToPreviewVm(
     isOpenNow,
     hoursLines,
     contactActions,
+    reviewLinks: buildComidaLocalReviewLinks(draft, lang),
     mainImage,
     logoImage,
     galleryImages,

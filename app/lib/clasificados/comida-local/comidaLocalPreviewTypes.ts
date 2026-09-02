@@ -1,4 +1,5 @@
 import type { ComidaLocalValidationIssue } from "./comidaLocalTypes";
+import type { SharedConnectionHubReviewLink } from "@/app/components/contact/connectionHub/sharedConnectionHubContactTypes";
 
 export type ComidaLocalPreviewContactActionId =
   | "call"
@@ -97,6 +98,9 @@ export type ComidaLocalPreviewVm = {
   /** Gate C-037 — meal-prep recurring-schedule note. */
   mealPrepScheduleNote: string;
   contactActions: ComidaLocalPreviewContactAction[];
+  /** Gate Build D-S2 — real Google/Yelp review-page URLs only, already URL-safety-validated.
+   * Empty array when neither is set; the shared drawer itself renders nothing in that case. */
+  reviewLinks: SharedConnectionHubReviewLink[];
   mainImage: ComidaLocalPreviewImage | null;
   logoImage: ComidaLocalPreviewImage | null;
   galleryImages: ComidaLocalPreviewImage[];
