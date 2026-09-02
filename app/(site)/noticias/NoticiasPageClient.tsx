@@ -69,7 +69,7 @@ function StoryCard({
   article: NewsArticle;
   lang: Lang;
   categoryLabel?: string;
-  variant: "lead" | "row" | "local" | "trend";
+  variant: "lead" | "row" | "local" | "trend" | "compact";
 }) {
   const display = splitDisplayTitle(article.title);
   const title = display.headline || (lang === "es" ? "Sin título" : "Untitled");
@@ -81,7 +81,11 @@ function StoryCard({
       ? "group block w-full overflow-hidden rounded-md border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] text-left shadow-[0_18px_48px_rgba(42,36,22,0.08)] transition hover:border-[color:var(--lx-gold)] focus-visible:outline-none"
       : variant === "row"
         ? "group flex w-full min-h-[44px] flex-col gap-4 rounded-md border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] p-4 text-left transition hover:border-[color:var(--lx-gold)] focus-visible:outline-none md:flex-row"
-        : "group block w-full min-h-[44px] rounded-md border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] p-3 text-left transition hover:border-[color:var(--lx-gold)] focus-visible:outline-none";
+        : variant === "compact"
+          ? "group flex w-full min-h-11 flex-col gap-1 py-3 text-left transition hover:bg-[color:var(--lx-section)] focus-visible:outline-none sm:flex-row sm:items-baseline sm:justify-between sm:gap-4"
+          : variant === "trend"
+            ? "group block w-full min-h-[44px] text-left transition focus-visible:outline-none"
+            : "group block w-full min-h-[44px] rounded-md border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] p-3 text-left transition hover:border-[color:var(--lx-gold)] focus-visible:outline-none";
 
   const inner =
     variant === "lead" ? (
@@ -125,12 +129,21 @@ function StoryCard({
           <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{summary}</p>
         ) : null}
       </>
-    ) : (
+    ) : variant === "compact" ? (
       <>
-        <StoryMeta source={source} date={date} />
-        <h3 className="mt-1 font-serif text-base font-semibold leading-snug text-[color:var(--lx-text)] group-hover:text-[#7A1E2C]">
+        <h3 className="min-w-0 flex-1 font-serif text-base font-semibold leading-snug text-[color:var(--lx-text)] group-hover:text-[#7A1E2C]">
           {title}
         </h3>
+        <StoryMeta source={source} date={date} category={categoryLabel} />
+      </>
+    ) : (
+      <>
+        <h3 className="font-serif text-base font-bold leading-snug text-[color:var(--lx-text)] group-hover:text-[#7A1E2C]">
+          {title}
+        </h3>
+        <div className="mt-1.5">
+          <StoryMeta source={source} date={date} />
+        </div>
       </>
     );
 
@@ -267,6 +280,8 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
     () => excludeShown(feed, [...groups.trendingArticles, ...groups.localArticles]),
     [feed, groups.localArticles, groups.trendingArticles]
   );
+  const richMoreStories = useMemo(() => moreStories.slice(0, 5), [moreStories]);
+  const compactMoreStories = useMemo(() => moreStories.slice(5), [moreStories]);
   const showLocalSection = activeCategory !== "local";
 
   return (
@@ -359,11 +374,11 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
                 >
                   {L.tendencias}
                 </h2>
-                <ol className="mt-4 space-y-3">
+                <ol className="mt-4 divide-y divide-[color:var(--lx-border)]">
                   {groups.trendingArticles.map((article, index) => (
-                    <li key={articleDedupeKey(article)} className="flex gap-3">
-                      <span className="mt-3 w-6 shrink-0 font-serif text-lg font-bold text-[#7A1E2C]">
-                        {index + 1}
+                    <li key={articleDedupeKey(article)} className="flex gap-3 py-4 first:pt-0 last:pb-0">
+                      <span className="w-7 shrink-0 font-serif text-lg font-bold leading-none text-[#7A1E2C]">
+                        {String(index + 1).padStart(2, "0")}
                       </span>
                       <div className="min-w-0 flex-1">
                         <StoryCard article={article} lang={lang} variant="trend" />
@@ -400,7 +415,7 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
                 {L.more}
               </h2>
               <div className="mt-6 space-y-4">
-                {moreStories.map((article) => (
+                {richMoreStories.map((article) => (
                   <StoryCard
                     key={articleDedupeKey(article)}
                     article={article}
@@ -410,6 +425,19 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
                   />
                 ))}
               </div>
+              {compactMoreStories.length > 0 ? (
+                <div className="mt-4 divide-y divide-[color:var(--lx-border)] border-t border-[color:var(--lx-border)]">
+                  {compactMoreStories.map((article) => (
+                    <StoryCard
+                      key={articleDedupeKey(article)}
+                      article={article}
+                      lang={lang}
+                      categoryLabel={activeCategoryLabel}
+                      variant="compact"
+                    />
+                  ))}
+                </div>
+              ) : null}
             </section>
           </>
         )}
