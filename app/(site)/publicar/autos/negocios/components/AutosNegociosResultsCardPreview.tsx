@@ -72,7 +72,7 @@ export function AutosNegociosResultsCardPreview({
     >
       <p className={autosPreviewSectionEyebrowClass}>{autosResultsCardPreviewTitle(lang)}</p>
       <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-stretch">
-        <div className="aspect-[4/3] w-full shrink-0 overflow-hidden rounded-[10px] border border-[#D6C7AD]/70 bg-[#FBF7EF] sm:w-[220px]">
+        <div className="aspect-[4/3] w-full shrink-0 self-start overflow-hidden rounded-[10px] border border-[#D6C7AD]/70 bg-[#FBF7EF] sm:w-[220px]">
           {img ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={img} alt="" className="h-full w-full object-cover" />
