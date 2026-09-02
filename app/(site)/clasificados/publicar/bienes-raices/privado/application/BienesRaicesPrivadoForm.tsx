@@ -165,11 +165,9 @@ export function BienesRaicesPrivadoForm() {
     return saveBienesRaicesPrivadoDraft(stateRef.current);
   }, []);
 
-  // Globalization Build D-F2B: native leave-warning was entirely absent for this lane — a
-  // hard refresh or tab close mid-form unconditionally wipes the draft via
-  // useLeonixPublishFlowExitClear's pagehide handler regardless of dirty state. Autosave
-  // already covers "is it persisted"; this only adds the missing "are you sure" gate before
-  // that clear can run.
+  // Globalization Build D-F2B: native leave-warning was entirely absent for this lane. Autosave
+  // already covers "is it persisted"; this adds the "are you sure" gate on a real tab close and
+  // a best-effort flush on pagehide (useLeonixPublishFlowExitClear no longer clears on refresh).
   const isDirty =
     hydrated &&
     (state.titulo.trim() !== "" ||
