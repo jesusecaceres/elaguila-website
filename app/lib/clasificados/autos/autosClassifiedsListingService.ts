@@ -18,6 +18,7 @@ import type {
 } from "./autosClassifiedsTypes";
 import { autosClassifiedsRowToPublicListing } from "./mapAutosClassifiedsToPublic";
 import { sanitizeAutosListingPayloadForPersistence } from "./autosListingPayloadPersistence";
+import { isAutosChildIdentitySubstitution } from "./autosChildIdentityGuard";
 import {
   STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT,
   countActiveDealerVehicles,
@@ -260,6 +261,25 @@ export async function updateAutosClassifiedsListingDraft(
     autosLane: row.lane,
   });
   const { listing: payload, persistWarnings } = sanitizeAutosListingPayloadForPersistence(normalized);
+
+  // Globalization Build 2 — server-side integrity guard: block a wholesale vehicle-identity
+  // swap on this existing row (same UUID/Leonix Ad ID/analytics/likes silently inherited by an
+  // unrelated vehicle). Ordinary corrections (price, mileage, description, photos, a single
+  // typo fix, adding a previously-missing VIN) are unaffected — see autosChildIdentityGuard.ts.
+  if (
+    isAutosChildIdentitySubstitution(
+      { vin: row.listing_payload.vin, year: row.listing_payload.year, make: row.listing_payload.make, model: row.listing_payload.model },
+      { vin: payload.vin, year: payload.year, make: payload.make, model: payload.model },
+    )
+  ) {
+    return {
+      row: null,
+      persistWarnings,
+      errorCode: "AUTOS_LISTING_IDENTITY_SUBSTITUTION_BLOCKED",
+      errorDetails: "Vehicle identity (VIN, or year/make/model together) does not match the existing listing.",
+    };
+  }
+
   const lang: AutosClassifiedsLang = input.lang === "en" || input.lang === "es" ? input.lang : row.lang;
   const { data, error } = await supabase
     .from("autos_classifieds_listings")
