@@ -1,6 +1,10 @@
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { parseRentasDetailMachineRead } from "@/app/clasificados/rentas/lib/rentasDetailPairRead";
 import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import {
+  parseLeonixContactChannelsV1FromDetailPairs,
+  leonixContactChannelsFormSliceFromPayload,
+} from "@/app/clasificados/lib/leonixContactChannelsV1";
 import { createEmptyRentasPrivadoFormState, mergePartialRentasPrivadoState, type RentasPrivadoFormState } from "../privado/schema/rentasPrivadoFormState";
 import { createEmptyRentasNegocioFormState, mergePartialRentasNegocioState, type RentasNegocioFormState } from "../negocio/schema/rentasNegocioFormState";
 
@@ -71,6 +75,12 @@ function basePartialFromRow(row: Record<string, unknown>): Partial<RentasPrivado
       mensajesTexto: rx.contactSmsDigits ?? "",
       notaContacto: "",
     },
+    // Globalization Build D-F2B — was previously omitted entirely, silently resetting website/
+    // socials/additional-websites to blank on every dashboard edit despite being correctly
+    // persisted and publicly rendered.
+    contactChannels: leonixContactChannelsFormSliceFromPayload(
+      parseLeonixContactChannelsV1FromDetailPairs(row.detail_pairs),
+    ),
     confirmListingAccurate: true,
     confirmPhotosRepresentItem: true,
     confirmCommunityRules: true,

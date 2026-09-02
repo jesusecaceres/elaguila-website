@@ -167,7 +167,7 @@ export async function validateAutosPrivadoActiveEditCheckoutOwnership(
   );
 }
 
-const BR_FSBO_LIFECYCLE_CONFIG: ListingLifecycleConfig = {
+export const BR_FSBO_LIFECYCLE_CONFIG: ListingLifecycleConfig = {
   category: "bienes-raices",
   packageKey: "br_fsbo_45d",
   durationType: "fixed_days",

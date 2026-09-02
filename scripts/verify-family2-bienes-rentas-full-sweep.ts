@@ -113,6 +113,61 @@ function main(): void {
     assert.match(guardSrc, /validateBrFsboActiveEditCheckoutOwnership/);
   });
 
+  // ── Build D-F2B: Lifecycle domain (BRP) ─────────────────────────────────────────────────
+  check("BR_FSBO_LIFECYCLE_CONFIG is exported (was private, only usable by the checkout guard)", () => {
+    const guardSrc = read("app/lib/listingLifecycle/activePaidEditCheckoutOwnership.ts");
+    assert.match(guardSrc, /export const BR_FSBO_LIFECYCLE_CONFIG: ListingLifecycleConfig/);
+    assert.match(guardSrc, /renewalPackageKey: null/);
+  });
+  check("mis-anuncios dashboard now resolves a BR FSBO lifecycle branch mirroring the Rentas branch", () => {
+    const pageSrc = read("app/(site)/dashboard/mis-anuncios/page.tsx");
+    assert.match(pageSrc, /import \{ BR_FSBO_LIFECYCLE_CONFIG \} from "@\/app\/lib\/listingLifecycle\/activePaidEditCheckoutOwnership"/);
+    assert.match(pageSrc, /const brFsboLifecycle =\s*\n\s*catKey === "bienes-raices" && !isBrNegocioListing\(x\)/);
+    assert.match(pageSrc, /lifecycle=\{rentasLifecycle \?\? brFsboLifecycle\}/);
+  });
+  check("ListingRenewalAction safely no-ops when isRenewalEligible is false (confirms no renew button appears for BRP)", () => {
+    const actionSrc = read("app/(site)/dashboard/components/ListingRenewalAction.tsx");
+    assert.match(actionSrc, /if \(!lifecycle\.isRenewalEligible \|\| !onRenew\) return null;/);
+  });
+
+  // ── Build D-F2B: Unsaved-change guard (BRP) ─────────────────────────────────────────────
+  check("BienesRaicesPrivadoForm now uses the shared useBusinessApplicationLeaveGuard hook", () => {
+    const formSrc = read("app/(site)/clasificados/publicar/bienes-raices/privado/application/BienesRaicesPrivadoForm.tsx");
+    assert.match(formSrc, /import \{ useBusinessApplicationLeaveGuard \} from "@\/app\/lib\/businessApplications\/useBusinessApplicationLeaveGuard"/);
+    assert.match(formSrc, /useBusinessApplicationLeaveGuard\(\{ isDirty, persist: flushSave \}\)/);
+  });
+
+  // ── Build D-F2B: Additional websites/socials (BRP/RTP/RTN via shared contract) ──────────
+  check("LeonixContactChannelsV1 contract now carries additionalWebsites end to end (build/parse/merge)", () => {
+    const src = read("app/(site)/clasificados/lib/leonixContactChannelsV1.ts");
+    assert.match(src, /additionalWebsites: AdditionalWebsiteEntry\[\];/);
+    assert.match(src, /additionalWebsites\?: AdditionalWebsiteEntry\[\];/);
+    assert.match(src, /const additionalWebsites = sanitizeAdditionalWebsiteEntries\(slice\.additionalWebsites\);/);
+    assert.match(src, /Array\.isArray\(rec\.additionalWebsites\)/);
+    assert.match(src, /export function leonixContactChannelsFormSliceFromPayload/);
+  });
+  check("Gate12cContactChannelsFields (shared by BRP/RTP/RTN) renders the repeatable additional-websites UI", () => {
+    const src = read("app/(site)/clasificados/publicar/shared/Gate12cContactChannelsFields.tsx");
+    assert.match(src, /value\.additionalWebsites\.map/);
+    assert.match(src, /ch\.additionalWebsitesAdd/);
+  });
+  check("All 4 locale dictionaries (es/en/pt/tl) define the new additionalWebsites channel copy keys, plus the type", () => {
+    const src = read("app/lib/i18n/rentasLaunchUiExtras.ts");
+    const matches = src.match(/additionalWebsitesLabel:/g) ?? [];
+    // 1 type declaration + 4 locale implementations (es/en/pt/tl) = 5
+    assert.equal(matches.length, 5);
+  });
+  check("Rentas dashboard edit-hydration now restores contactChannels (was previously omitted entirely)", () => {
+    const src = read("app/(site)/clasificados/publicar/rentas/shared/rentasDashboardEditHydration.ts");
+    assert.match(src, /leonixContactChannelsFormSliceFromPayload\(/);
+    assert.match(src, /parseLeonixContactChannelsV1FromDetailPairs\(row\.detail_pairs\)/);
+  });
+  check("BR Negocio's own businessExtraUrls lifecycle (independent adoption) is real and untouched", () => {
+    const src = read("app/(site)/clasificados/publicar/bienes-raices/negocio/application/bienesAdditionalBusinessLinks.ts");
+    assert.match(src, /export function durableBusinessExtraLinks/);
+    assert.match(src, /export function parsePublishedBusinessExtraLinks/);
+  });
+
   console.log(`\nverify-family2-bienes-rentas-full-sweep: ${checks - failures}/${checks} checks passed`);
   if (failures > 0) process.exitCode = 1;
 }

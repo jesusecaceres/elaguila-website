@@ -11,6 +11,7 @@ import { LeonixApplicationDataLossNotice } from "@/app/clasificados/lib/leonixAp
 import { LeonixApplicationVerAnuncioActions } from "@/app/clasificados/lib/leonixApplicationStandard/LeonixApplicationVerAnuncioActions";
 import { LeonixCategoryApplicationHeader } from "@/app/clasificados/lib/leonixApplicationStandard/LeonixCategoryApplicationHeader";
 import { gateBienesRaicesPrivadoPreview } from "@/app/clasificados/lib/publish/leonixRequiredForPreviewGates";
+import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
 import {
   BR_NEGOCIO_Q_PROPIEDAD,
   parseBrNegocioPropiedadParam,
@@ -163,6 +164,19 @@ export function BienesRaicesPrivadoForm() {
   const flushSave = useCallback(() => {
     return saveBienesRaicesPrivadoDraft(stateRef.current);
   }, []);
+
+  // Globalization Build D-F2B: native leave-warning was entirely absent for this lane — a
+  // hard refresh or tab close mid-form unconditionally wipes the draft via
+  // useLeonixPublishFlowExitClear's pagehide handler regardless of dirty state. Autosave
+  // already covers "is it persisted"; this only adds the missing "are you sure" gate before
+  // that clear can run.
+  const isDirty =
+    hydrated &&
+    (state.titulo.trim() !== "" ||
+      state.precio.trim() !== "" ||
+      state.descripcion.trim() !== "" ||
+      state.media.photoDataUrls.length > 0);
+  useBusinessApplicationLeaveGuard({ isDirty, persist: flushSave });
 
   const previewHref = withClasificadosPublishLang(BR_PREVIEW_PRIVADO, routeLang, {
     [BR_NEGOCIO_Q_PROPIEDAD]: state.categoriaPropiedad,
