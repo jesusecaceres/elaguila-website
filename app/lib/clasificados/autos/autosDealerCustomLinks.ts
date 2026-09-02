@@ -1,5 +1,6 @@
 import type { DealerCustomLink } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { safeExternalHref } from "@/app/clasificados/autos/negocios/lib/dealerDraftSanitize";
+import type { AdditionalWebsiteEntry } from "@/app/lib/additionalWebsites/additionalWebsiteEntry";
 
 const MAX_CUSTOM_LINKS = 2;
 
@@ -36,7 +37,14 @@ export function normalizeDealerCustomLinks(
   return out;
 }
 
-export type DealerCustomLinkOutput = { label: string; url: string };
+/**
+ * Globalization Build D-F3 — re-exports the shared repeatable Title+URL entry type instead of
+ * maintaining an independent identical `{ label, url }` interface, matching the same pure
+ * consolidation Restaurantes/Comida Local already did (see additionalWebsiteEntry.ts). No data-
+ * shape change: `dealerCustomLinks` keeps its own field name and its own draft-only `id`/optional
+ * fields (`DealerCustomLink`, above) — only this output-stage shape now points at the shared type.
+ */
+export type DealerCustomLinkOutput = AdditionalWebsiteEntry;
 
 /** Output-only rows with safe https URLs (max 2). */
 export function dealerCustomLinksForOutput(

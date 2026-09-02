@@ -29,7 +29,7 @@ import {
   parseMileageInput,
   parseUsdIntegerInput,
 } from "@/app/clasificados/autos/shared/utils/autosNumericInputUi";
-import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import { formatPhoneInputDisplay, formatWhatsAppInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import { getAutosPreviewBlockingStepIndices } from "@/app/clasificados/autos/shared/lib/autosPreviewCompleteness";
 import { autosDraftTextValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
 import { normalizeAutosSocialUrl } from "@/app/lib/clasificados/autos/autosSocialLinkValidation";
@@ -51,6 +51,8 @@ import { AutosVinDecodeBlock } from "@/app/publicar/autos/shared/components/Auto
 import { AutosDraftSessionRestoredBanner } from "@/app/publicar/autos/shared/components/AutosDraftSessionRestoredBanner";
 import { AutosPricingPlanBanner } from "@/app/publicar/autos/shared/components/AutosPricingPlanBanner";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
+import { isMeaningfulAutoDealerDraft } from "@/app/clasificados/autos/negocios/lib/isMeaningfulAutoDealerDraft";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-6";
@@ -97,6 +99,18 @@ export function AutosPrivadoApplication() {
     editorMaxReached,
     setEditorProgress,
   } = useAutoPrivadoDraft(isDashboardListingEditMode ? editListingId : undefined);
+
+  // Globalization Build D-F3 — Autos Privado had zero native browser-exit protection (no
+  // beforeunload prompt, no pagehide flush) on this long-form application; wires the same shared
+  // guard already proven for BR Privado/Servicios/Restaurantes/Comida Local instead of a
+  // category-local duplicate. Never clears the draft — only warns and best-effort persists.
+  useBusinessApplicationLeaveGuard({
+    isDirty: hydrated && isMeaningfulAutoDealerDraft(listing),
+    persist: () => {
+      void flushDraft();
+    },
+  });
+
   const dashboardHydratedRef = useRef(false);
   const [editHydration, setEditHydration] = useState<
     { status: "idle" } | { status: "loading" } | { status: "error"; message: string }
@@ -653,9 +667,9 @@ export function AutosPrivadoApplication() {
                   inputMode="tel"
                   autoComplete="tel"
                   placeholder={t.app.placeholders.whatsapp}
-                  value={formatPhoneInputDisplay(listing.dealerWhatsapp ?? "")}
+                  value={formatWhatsAppInputDisplay(listing.dealerWhatsapp ?? "")}
                   onChange={(e) => {
-                    const v = formatPhoneInputDisplay(e.target.value);
+                    const v = formatWhatsAppInputDisplay(e.target.value);
                     setListingPatch({ dealerWhatsapp: v.trim() ? v : undefined });
                   }}
                 />

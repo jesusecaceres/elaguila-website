@@ -14,6 +14,7 @@ import { emptyAutosPublicFilters } from "../../filters/autosPublicFilterTypes";
 import type { AutosPublicLang } from "../../lib/autosPublicBlueprintCopy";
 import type { AutosClassifiedsLane } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import { LeonixInlineListingReport } from "@/app/clasificados/components/LeonixInlineListingReport";
+import { addListingView } from "@/app/lib/recentlyViewed";
 import { AutosVehicleProfileViewAnalytics } from "../../components/AutosVehicleProfileViewAnalytics";
 import type { AutosPublicListingAnalyticsProps } from "../../lib/autosAnalyticsIdentity";
 import { AutosLiveVehicleOwnerInventoryBar } from "./AutosLiveVehicleOwnerInventoryBar";
@@ -28,6 +29,7 @@ type PublicListingApiOk = {
   inventory_role?: "main" | "inventory_vehicle" | null;
   dealer_inventory_group_id?: string | null;
   dealer_inventory_parent_listing_id?: string | null;
+  owner_user_id?: string | null;
 };
 
 export function AutosLiveVehicleClient({
@@ -44,6 +46,7 @@ export function AutosLiveVehicleClient({
   const [dealerInventoryGroupId, setDealerInventoryGroupId] = useState<string | null>(null);
   const [dealerInventoryParentListingId, setDealerInventoryParentListingId] = useState<string | null>(null);
   const [listingLang, setListingLang] = useState<"es" | "en" | null>(null);
+  const [ownerUserId, setOwnerUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -65,6 +68,7 @@ export function AutosLiveVehicleClient({
           setInventoryRole(payload.inventory_role ?? null);
           setDealerInventoryGroupId(payload.dealer_inventory_group_id?.trim() || null);
           setDealerInventoryParentListingId(payload.dealer_inventory_parent_listing_id?.trim() || null);
+          setOwnerUserId(payload.owner_user_id?.trim() || null);
         } else {
           setData(null);
           setLane(null);
@@ -73,6 +77,7 @@ export function AutosLiveVehicleClient({
           setInventoryRole(null);
           setDealerInventoryGroupId(null);
           setDealerInventoryParentListingId(null);
+          setOwnerUserId(null);
         }
       } catch {
         if (!cancelled) {
@@ -83,6 +88,7 @@ export function AutosLiveVehicleClient({
           setInventoryRole(null);
           setDealerInventoryGroupId(null);
           setDealerInventoryParentListingId(null);
+          setOwnerUserId(null);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -99,6 +105,16 @@ export function AutosLiveVehicleClient({
       data.vehicleTitle?.trim() || [data.year, data.make, data.model].filter(Boolean).join(" ");
     if (t) document.title = `${t} | Leonix Autos`;
   }, [data]);
+
+  // Globalization Build D-F3 — Recently Viewed was entirely missing from Autos. Uses the same
+  // shared contract every other category uses (`addListingView`); `listingId` here is always this
+  // specific vehicle/child row's own canonical id (never the dealer parent), matching how
+  // `getActiveLiveAutosBundle` resolves this exact detail page. Public/live detail only — this
+  // component is never rendered for a draft or preview route.
+  useEffect(() => {
+    if (!data || !lane) return;
+    void addListingView(listingId);
+  }, [data, lane, listingId]);
 
   const resultsQs = serializeAutosBrowseUrl({
     filters: emptyAutosPublicFilters(),
@@ -166,6 +182,7 @@ export function AutosLiveVehicleClient({
                 publicPlaybackOnly
                 publicAnalytics={publicAnalytics}
                 publicUrl={publicUrl}
+                ownerUserId={ownerUserId}
               />
             </>
           )}
@@ -206,6 +223,7 @@ export function AutosLiveVehicleClient({
               publicPlaybackOnly
               publicAnalytics={publicAnalytics}
               publicUrl={publicUrl}
+              ownerUserId={ownerUserId}
             />
           </>
         )}
