@@ -40,8 +40,10 @@ import type { CtaSheetIntent } from "@/app/components/cta/types";
 import {
   trackListingViewOpen,
   trackListingSaveToggleAuthed,
+  trackListingLikeToggle,
   trackListingShare as trackListingShareGlobal,
 } from "@/app/lib/analytics/client/listingEngagementRecorder";
+import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { addListingView } from "@/app/lib/recentlyViewed";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
@@ -2152,6 +2154,22 @@ function AnuncioDetallePageContent() {
                 >
                   {saved ? (lang === "es" ? "★ Guardado" : "★ Saved") : (lang === "es" ? "☆ Guardar" : "☆ Save")}
                 </button>
+
+                <LeonixLikeButton
+                  listingId={listing.id}
+                  ownerUserId={(listing as { owner_id?: string | null }).owner_id ?? null}
+                  category={listing.category}
+                  lang={lang}
+                  variant="large"
+                  recordLikeEvent={(isLike) =>
+                    trackListingLikeToggle(
+                      { sourceTable: "listings", sourceId: listing.id, category: listing.category },
+                      isLike,
+                      { eventSource: "detail" },
+                    )
+                  }
+                  className="w-full [&>button]:w-full"
+                />
 
                 <LeonixShareButton
                   listingId={listing.id}
