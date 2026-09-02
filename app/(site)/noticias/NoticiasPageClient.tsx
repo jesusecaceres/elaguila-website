@@ -18,6 +18,23 @@ import {
   type NewsArticle,
 } from "./noticiasEditorialModel";
 
+/** Restrained masthead dateline: coverage geography + today's date, localized at render time. */
+function buildPublicationLine(lang: Lang): string {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat(lang === "en" ? "en-US" : "es-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).formatToParts(now);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  const weekday = get("weekday");
+  const day = get("day");
+  const month = get("month");
+  const dateLabel = lang === "en" ? `${weekday}, ${month} ${day}` : `${weekday} ${day} de ${month}`;
+  const geo = lang === "en" ? "San Jose · Bay Area" : "San José · Área de la Bahía";
+  return `${geo} · ${dateLabel}`;
+}
+
 function StoryImage({
   src,
   alt,
@@ -92,6 +109,9 @@ function StoryCard({
       <>
         <StoryImage src={article.img} alt={title} className="h-64 w-full md:h-[22rem] lg:h-[26rem]" />
         <div className="space-y-3 px-5 py-6 md:px-7 md:py-7">
+          {!isUsableImageSrc(article.img) ? (
+            <div className="h-1 w-12 rounded-full bg-[#7A1E2C]" aria-hidden="true" />
+          ) : null}
           <StoryMeta source={source} date={date} category={categoryLabel} />
           <h2 className="font-serif text-3xl font-bold leading-[1.12] tracking-tight text-[color:var(--lx-text)] md:text-4xl lg:text-[2.6rem]">
             {title}
@@ -176,12 +196,14 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
         internacional: "Internacional",
         cultura: "Cultura Latina",
         local: "Noticias Locales",
-        localSupport: "Historias con señal geográfica real en este recorte.",
+        localSupport: "San José · Santa Clara · Área de la Bahía",
         more: "Más noticias",
         breaking: shell.es.breakingLabel,
         cargando: "Cargando noticias...",
         empty: "No hay historias disponibles en este momento.",
         emptyLocal: "No hay coincidencias locales verificables en este recorte.",
+        editorialNote:
+          "Leonix Noticias selecciona y organiza historias de medios verificados en español e inglés. Cada historia enlaza directamente a la fuente original.",
       },
       en: {
         eyebrow: "LEONIX NEWS",
@@ -195,18 +217,27 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
         internacional: "International",
         cultura: "Latino Culture",
         local: "Local News",
-        localSupport: "Stories with a real geographic signal in this slice.",
+        localSupport: "San Jose · Santa Clara · Bay Area",
         more: "More stories",
         breaking: shell.en.breakingLabel,
         cargando: "Loading news...",
         empty: "No stories are available right now.",
         emptyLocal: "No verifiable local matches in this slice.",
+        editorialNote:
+          "Leonix News curates and organizes stories from verified outlets in Spanish and English. Every story links directly to its original source.",
       },
     }),
     [shell]
   );
 
   const L = t[lang];
+
+  // Computed client-side only (after mount) to avoid an SSR/client date or
+  // timezone mismatch on hydration; empty on first paint is intentional.
+  const [publicationLine, setPublicationLine] = useState("");
+  useEffect(() => {
+    setPublicationLine(buildPublicationLine(lang));
+  }, [lang]);
 
   const categories = useMemo(
     () =>
@@ -295,6 +326,11 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
           <p className="mt-3 max-w-3xl text-base leading-relaxed text-[color:var(--lx-text-2)] sm:text-lg">
             {L.subtitle}
           </p>
+          {publicationLine ? (
+            <p className="mt-4 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-[color:var(--lx-muted)]">
+              {publicationLine}
+            </p>
+          ) : null}
         </header>
 
         {featured?.title ? (
@@ -367,7 +403,10 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
                 <StoryCard article={featured} lang={lang} categoryLabel={activeCategoryLabel} variant="lead" />
               </section>
 
-              <aside className="lg:col-span-4" aria-labelledby="noticias-trending-title">
+              <aside
+                className="border-t border-[color:var(--lx-gold-border)] pt-5 lg:col-span-4"
+                aria-labelledby="noticias-trending-title"
+              >
                 <h2
                   id="noticias-trending-title"
                   className="font-serif text-2xl font-bold text-[color:var(--lx-text)]"
@@ -391,7 +430,7 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
 
             {showLocalSection ? (
               <section
-                className="mt-12 rounded-md border border-[color:var(--lx-gold-border)] border-l-4 border-l-[#2A4536] bg-[color:var(--lx-section)] px-4 py-8 sm:px-6"
+                className="mt-14 rounded-md border border-[color:var(--lx-gold-border)] border-l-4 border-l-[#2A4536] bg-[color:var(--lx-section)] px-4 py-8 sm:px-6"
                 aria-labelledby="noticias-local-title"
               >
                 <h2 id="noticias-local-title" className="font-serif text-3xl font-bold text-[color:var(--lx-text)]">
@@ -410,7 +449,10 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
               </section>
             ) : null}
 
-            <section className="mt-12" aria-labelledby="noticias-more-title">
+            <section
+              className="mt-14 border-t border-[color:var(--lx-gold-border)] pt-8"
+              aria-labelledby="noticias-more-title"
+            >
               <h2 id="noticias-more-title" className="font-serif text-3xl font-bold text-[color:var(--lx-text)]">
                 {L.more}
               </h2>
@@ -439,6 +481,10 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
                 </div>
               ) : null}
             </section>
+
+            <p className="mt-14 border-t border-[color:var(--lx-gold-border)] pt-6 text-xs leading-relaxed text-[color:var(--lx-muted)]">
+              {L.editorialNote}
+            </p>
           </>
         )}
       </div>
