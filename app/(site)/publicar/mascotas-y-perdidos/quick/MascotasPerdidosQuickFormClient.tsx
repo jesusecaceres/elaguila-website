@@ -40,6 +40,8 @@ import {
   MASCOTAS_SIZE_OPTIONS,
 } from "../shared/mascotasPerdidosTaxonomy";
 import { isPetNoticeType } from "../shared/mascotasPerdidosQuickTypes";
+import { formatWhatsAppInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
 import {
   findMascotasLocationOption,
   isMascotasUsCountry,
@@ -65,6 +67,18 @@ export default function MascotasPerdidosQuickFormClient() {
     emptyMascotasPerdidosQuickDraft(),
     (raw) => normalizeMascotasPerdidosQuickDraft(raw),
   );
+
+  // Globalization Build D-F5 — this application had zero native browser-exit protection.
+  // useCommunityDraftSession already persists synchronously on every state change, so this only
+  // adds the "are you sure" warning on a real tab close; the flush call is a harmless no-op
+  // safety net for the same session storage write.
+  useBusinessApplicationLeaveGuard({
+    isDirty: hydrated && state.title.trim() !== "",
+    persist: () =>
+      flushCommunityDraftToSession(MASCOTAS_PERDIDOS_QUICK_DRAFT_KEY, state, (raw) =>
+        normalizeMascotasPerdidosQuickDraft(raw),
+      ),
+  });
 
   const gate = useMemo(() => gateMascotasPerdidosQuickPreview(state, lang), [state, lang]);
   const previewDisabled = !gate.ok;
@@ -548,7 +562,7 @@ export default function MascotasPerdidosQuickFormClient() {
             <EmpleosFieldLabel lang={lang} optional>
               {copy.fields.whatsapp}
             </EmpleosFieldLabel>
-            <input className={INPUT} type="tel" inputMode="tel" value={state.whatsapp} onChange={(e) => patch({ whatsapp: e.target.value })} />
+            <input className={INPUT} type="tel" inputMode="tel" value={state.whatsapp} onChange={(e) => patch({ whatsapp: formatWhatsAppInputDisplay(e.target.value) })} />
           </label>
           <label className="block text-sm">
             <EmpleosFieldLabel lang={lang} optional>

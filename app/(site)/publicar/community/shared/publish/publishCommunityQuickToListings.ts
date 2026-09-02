@@ -129,8 +129,10 @@ function buildCommonDetailPairs(
   if (spi) pairs.push({ label: "Leonix:socialPinterest", value: spi });
   const pDig = digitsOnly(d.phone);
   if (pDig.length >= 10) pairs.push({ label: "Leonix:phoneDigits", value: pDig.slice(0, 10) });
+  // Globalization Build D-F5 — was hard-truncated to 10 digits, silently corrupting any
+  // international WhatsApp number (>10 digits) at publish time for both Comunidad and Clases.
   const wDig = digitsOnly(d.whatsapp);
-  if (wDig.length >= 10) pairs.push({ label: "Leonix:whatsappDigits", value: wDig.slice(0, 10) });
+  if (wDig.length >= 10) pairs.push({ label: "Leonix:whatsappDigits", value: wDig });
   if (d.smsPhone.trim()) pairs.push({ label: "Leonix:smsPhone", value: digitsOnly(d.smsPhone) });
   if (d.audience.trim()) pairs.push({ label: "Leonix:audience", value: d.audience.trim() });
   if (d.registrationRequired.trim()) pairs.push({ label: "Leonix:registrationRequired", value: d.registrationRequired.trim() });

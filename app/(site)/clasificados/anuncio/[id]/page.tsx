@@ -32,6 +32,7 @@ import {
   isCommunityQuickListing,
 } from "../../community/shared/communityListingDetailPairs";
 import { buildCommunityMapQuery, googleMapsSearchUrl } from "@/app/(site)/publicar/community/shared/lib/communityContactCtas";
+import { isCommunityEventActiveForDiscovery } from "@/app/(site)/clasificados/community/shared/communityEventDiscoveryExpiration";
 import AiInsightsPanel from "../../components/AiInsightsPanel";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { trackEvent } from "@/app/lib/listingAnalytics";
@@ -806,6 +807,16 @@ function AnuncioDetallePageContent() {
         (listing.category === "comunidad" && communityQuickPairMap["Leonix:communityKind"] === "comunidad")),
   );
 
+  // Globalization Build D-F5 — an expired Comunidad/Clases event or class stayed fully live and
+  // reachable at its direct detail URL indefinitely (previously this expiry check only hid rows
+  // from the browse/results grid for `comunidad`, never gated the detail page itself, and never
+  // applied to `clases` at all — a real gap for a category with a live, Stripe-backed $24.99/
+  // 30-day paid package). Missing dates (e.g. an ongoing/no-end-date listing) stay visible, per
+  // the shared helper's own documented behavior.
+  const isExpiredCommunityQuickListing = Boolean(
+    useCommunityQuickWysiwyg && communityQuickPairMap && !isCommunityEventActiveForDiscovery(communityQuickPairMap),
+  );
+
   const buscoQuickPairMap = useMemo(() => {
     if (!listing || listing.category !== "busco") return null;
     const m = buscoDetailPairsToMap(listing.detailPairs);
@@ -1293,7 +1304,7 @@ function AnuncioDetallePageContent() {
     );
   }
 
-  if (!listing) {
+  if (!listing || isExpiredCommunityQuickListing) {
     return (
       <div className="bg-[#D9D9D9] min-h-screen bg-[#D9D9D9] text-[#111111] pb-24">
         <Navbar />

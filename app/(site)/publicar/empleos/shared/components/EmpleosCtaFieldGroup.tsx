@@ -1,6 +1,6 @@
 "use client";
 
-import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import { formatPhoneInputDisplay, formatWhatsAppInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 
 type Primary = "phone" | "whatsapp" | "email";
 
@@ -76,13 +76,16 @@ export function EmpleosCtaFieldGroup({
             value={whatsapp}
             onChange={(e) =>
               onChange({
-                whatsapp: formatUsPhone ? formatPhoneInputDisplay(e.target.value) : e.target.value,
+                // Globalization Build D-F5 — WhatsApp must never use the US-only formatter
+                // (previously shared `formatUsPhone` with the Phone field above, silently
+                // corrupting non-US numbers). International-safe regardless of `formatUsPhone`.
+                whatsapp: formatWhatsAppInputDisplay(e.target.value),
               })
             }
             className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"
             type="tel"
-            inputMode={formatUsPhone ? "numeric" : undefined}
-            maxLength={formatUsPhone ? 14 : undefined}
+            inputMode="tel"
+            maxLength={16}
             placeholder={formatUsPhone ? US_PHONE_PLACEHOLDER : "15551234567"}
           />
         </label>

@@ -45,6 +45,7 @@ import {
 } from "@/app/(site)/publicar/community/shared/publish/communityPublishStaging";
 import { COMMUNITY_IN_FLIGHT_LISTING_ID_KEYS } from "@/app/(site)/publicar/community/shared/constants/communitySessionKeys";
 import { gateComunidadQuickPreview } from "@/app/(site)/publicar/community/shared/required/communityRequiredForPreview";
+import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
 import {
   COMUNIDAD_ACCESSIBILITY_OPTIONS,
   COMUNIDAD_ACCESSIBILITY_UNCERTAIN_VALUE,
@@ -98,6 +99,18 @@ function ComunidadQuickApplicationBody({
   const [publishError, setPublishError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
   const organizerLogoFileRef = useRef<HTMLInputElement>(null);
+
+  // Globalization Build D-F5 — this application had zero native browser-exit protection.
+  // useCommunityDraftSession already persists synchronously on every state change, so this only
+  // adds the "are you sure" warning on a real tab close; the flush call is a harmless no-op
+  // safety net for the same session storage write.
+  useBusinessApplicationLeaveGuard({
+    isDirty: hydrated && state.title.trim() !== "",
+    persist: () =>
+      flushCommunityDraftToSession(COMMUNITY_SESSION_KEYS.comunidad, state, (raw) =>
+        normalizeComunidadQuickDraft(raw),
+      ),
+  });
 
   const gate = useMemo(() => gateComunidadQuickPreview(state, lang), [state, lang]);
   const previewDisabled = !gate.ok;

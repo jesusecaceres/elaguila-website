@@ -73,8 +73,11 @@ function buildMascotasDetailPairs(d: MascotasPerdidosQuickDraft): { label: strin
 
   const smsDig = digitsOnly(d.smsPhone);
   if (smsDig.length >= 10) pairs.push({ label: "Leonix:smsDigits", value: smsDig.slice(0, 10) });
+  // Globalization Build D-F5 — was hard-truncated to 10 digits, silently corrupting any
+  // international WhatsApp number (>10 digits) at publish time. SMS stays US-only by design
+  // (unchanged above); WhatsApp must not be capped.
   const waDig = digitsOnly(d.whatsapp);
-  if (waDig.length >= 10) pairs.push({ label: "Leonix:whatsappDigits", value: waDig.slice(0, 10) });
+  if (waDig.length >= 10) pairs.push({ label: "Leonix:whatsappDigits", value: waDig });
 
   push("Leonix:facebook", d.facebook);
   push("Leonix:instagram", d.instagram);

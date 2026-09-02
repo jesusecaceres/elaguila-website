@@ -1,4 +1,4 @@
-import { navCopyLang, normalizeLang, replaceLangInHref, type SupportedLang } from "@/app/lib/language";
+import { navCopyLang, replaceLangInHref, resolveRouteLang, type SupportedLang } from "@/app/lib/language";
 
 export type MascotasPerdidosShellLang = "es" | "en";
 
@@ -20,13 +20,13 @@ export const MASCOTAS_PERDIDOS_PRODUCT = {
 export function mascotasPerdidosLangFromSearchParams(
   sp: { get: (k: string) => string | null } | null,
 ): MascotasPerdidosShellLang {
-  return navCopyLang(normalizeLang(sp?.get("lang")));
+  return navCopyLang(resolveRouteLang(sp?.get("lang")));
 }
 
 export function mascotasPerdidosRouteLangFromSearchParams(
   sp: { get: (k: string) => string | null } | null,
 ): SupportedLang {
-  return normalizeLang(sp?.get("lang"));
+  return resolveRouteLang(sp?.get("lang"));
 }
 
 export function mascotasPerdidosPathWithLang(path: string, routeLang: SupportedLang): string {

@@ -12,6 +12,7 @@ import {
   CAT_STD_RESULTS_REFINE_PANEL,
 } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardStyles";
 import { MascotasPerdidosShellLayout } from "./shared/MascotasPerdidosShellLayout";
+import { mascotasPerdidosLangFromSearchParams } from "./shared/mascotasPerdidosShellCopy";
 import { buildMascotasPerdidosNoticeCardModel } from "./shared/mascotasPerdidosCardModel";
 import { detailPairsToMap } from "./shared/mascotasPerdidosListingDetailPairs";
 import {
@@ -63,7 +64,9 @@ const COPY = {
 
 export function MascotasPerdidosResultsClient() {
   const sp = useSearchParams();
-  const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
+  // Globalization Build D-F5 — was a bare `?lang=` check that ignored the visitor's stored
+  // leonix_lang cookie/localStorage preference.
+  const lang: Lang = mascotasPerdidosLangFromSearchParams(sp);
   const t = COPY[lang];
 
   const q = (sp?.get("q") ?? "").trim();

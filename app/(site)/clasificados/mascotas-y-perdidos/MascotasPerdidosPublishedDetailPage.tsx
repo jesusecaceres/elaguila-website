@@ -6,6 +6,11 @@ import Link from "next/link";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { addListingView } from "@/app/lib/recentlyViewed";
+import {
+  trackCommunityListingView,
+  type CommunityGlobalAnalyticsCtx,
+} from "@/app/lib/clasificados/comunidad/comunidadClasesBuscoGlobalAnalytics";
+import { LeonixInlineListingReport } from "@/app/clasificados/components/LeonixInlineListingReport";
 import { mascotasPerdidosPublishedQuickToDraft } from "@/app/(site)/publicar/mascotas-y-perdidos/shared/mascotasPerdidosPublishedQuickToDraft";
 import { MascotasPerdidosQuickAdCanvas } from "@/app/(site)/publicar/mascotas-y-perdidos/components/MascotasPerdidosQuickAdCanvas";
 
@@ -48,6 +53,10 @@ export function MascotasPerdidosPublishedDetailPage({
 
   useEffect(() => {
     if (skipAnalytics) return;
+    // Globalization Build D-F5 — this page had zero canonical analytics; only Recently Viewed
+    // was wired. Mirrors the Busco/Comunidad/Clases trackCommunityListingView adoption.
+    const ctx: CommunityGlobalAnalyticsCtx = { listingUuid: listing.id, category: "mascotas-y-perdidos" };
+    trackCommunityListingView(ctx);
     addListingView(listing.id);
   }, [listing.id, skipAnalytics]);
 
@@ -63,6 +72,13 @@ export function MascotasPerdidosPublishedDetailPage({
       </div>
 
       <MascotasPerdidosQuickAdCanvas draft={draft} lang={lang} shell="standalone" leonixAdId={listing.leonix_ad_id ?? null} />
+
+      {/* Globalization Build D-F5 — Report was entirely missing from this page (the one every
+          current Mascotas y Perdidos listing actually renders through), a real gap for a
+          category genuinely susceptible to scam/spam lost-and-found posts. */}
+      <div className="mt-6 max-w-md">
+        <LeonixInlineListingReport listingId={listing.id} lang={lang} />
+      </div>
     </MascotasPerdidosShellLayout>
   );
 }

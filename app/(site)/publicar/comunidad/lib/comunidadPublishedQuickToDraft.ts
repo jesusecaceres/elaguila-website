@@ -38,6 +38,15 @@ function to10Display(rawDigits: string): string {
   return formatPhoneInputDisplay(d);
 }
 
+/**
+ * Globalization Build D-F5 — WhatsApp digits are stored without truncation, so a longer
+ * international number must not be lossily cut to 10 digits and forced into US grouping here.
+ */
+function toWhatsAppDisplay(rawDigits: string): string {
+  const d = rawDigits.replace(/\D/g, "");
+  return d.length === 10 ? formatPhoneInputDisplay(d) : d;
+}
+
 function listingUrlsToImages(urls: string[] | null | undefined): EmpleosImageItem[] {
   if (!urls?.length) return [];
   return urls.map((url, i) => ({
@@ -102,8 +111,8 @@ export function comunidadPublishedQuickToDraft(
   const phoneDigits = pDig.length >= 10 ? pDig : rowPhone;
   d.phone = phoneDigits.length >= 10 ? to10Display(phoneDigits) : formatPhoneInputDisplay(String(listing.contact_phone ?? ""));
 
-  const wDig = (pairs["Leonix:whatsappDigits"] ?? "").replace(/\D/g, "").slice(0, 10);
-  d.whatsapp = wDig.length >= 10 ? to10Display(wDig) : "";
+  const wDig = (pairs["Leonix:whatsappDigits"] ?? "").replace(/\D/g, "");
+  d.whatsapp = wDig.length >= 10 ? toWhatsAppDisplay(wDig) : "";
 
   const smsRaw = (pairs["Leonix:smsPhone"] ?? "").replace(/\D/g, "").slice(0, 10);
   d.smsPhone = smsRaw.length >= 10 ? to10Display(smsRaw) : "";
