@@ -1,13 +1,24 @@
 "use client";
 
-import { insertListingsRowResilient } from "@/app/clasificados/lib/listingsSelectShrink";
+import { insertListingsRowResilient, updateListingsRowResilient } from "@/app/clasificados/lib/listingsSelectShrink";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { digitsOnly } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import {
+  clearSessionPublishAttemptKey,
+  fetchOwnListingIdByPublishAttemptKey,
+  getOrCreateSessionPublishAttemptKey,
+  isPublishAttemptKeyConflict,
+  logQuickListingReuseFailure,
+  quickListingExistingIdentityInvalidMessage,
+  verifyQuickListingReusable,
+} from "@/app/(site)/clasificados/lib/quickListingIdempotency";
 
 import { gateMascotasPerdidosQuickPreview } from "./mascotasPerdidosRequiredForPreview";
 import type { MascotasPerdidosQuickDraft } from "./mascotasPerdidosQuickTypes";
+
+const MASCOTAS_CATEGORY = "mascotas-y-perdidos";
 
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
 
@@ -99,8 +110,13 @@ function orderedImageUrls(images: MascotasPerdidosQuickDraft["images"]): string[
 export async function publishMascotasPerdidosQuickToListings(input: {
   draft: MascotasPerdidosQuickDraft;
   lang: Lang;
+  /** Globalization Build 1 — verified-reusable canonical UUID from a prior in-flight attempt of
+   * this same submission (matches the existing Busco/Comunidad/Clases pattern). */
+  existingListingId?: string | null;
+  /** Invoked as soon as the row id is known (reused or freshly inserted), before photo upload. */
+  onListingIdKnown?: (listingId: string) => void;
 }): Promise<MascotasPerdidosQuickPublishToListingsResult> {
-  const { draft: d, lang } = input;
+  const { draft: d, lang, existingListingId, onListingIdKnown } = input;
   const err = (es: string, en: string) => (lang === "es" ? es : en);
 
   const gate = gateMascotasPerdidosQuickPreview(d, lang);
@@ -156,14 +172,62 @@ export async function publishMascotasPerdidosQuickToListings(input: {
     detail_pairs: pairs.length ? pairs : null,
   };
 
-  const ins = await insertListingsRowResilient(supabase, insertPayload);
-  if (ins.error) {
-    return { ok: false, error: ins.error.message };
+  const reuseCheck = existingListingId
+    ? await verifyQuickListingReusable(supabase, {
+        candidateId: existingListingId,
+        ownerUserId: userId,
+        expectedCategory: MASCOTAS_CATEGORY,
+      })
+    : null;
+
+  let listingId: string | undefined;
+  if (reuseCheck?.safe) {
+    listingId = reuseCheck.listingId;
+    const { category: _category, owner_id: _ownerId, ...updatablePayload } = insertPayload;
+    void _category;
+    void _ownerId;
+    const upd = await updateListingsRowResilient(supabase, listingId, updatablePayload);
+    if (upd.error) {
+      return { ok: false, error: upd.error.message };
+    }
+  } else if (existingListingId) {
+    // An existing-listing intention was supplied but failed verification. Fail closed: never
+    // fall back to an INSERT here, or a failed identity check would silently become a second,
+    // duplicate row. The local draft is left untouched by returning early.
+    logQuickListingReuseFailure("mascotas-y-perdidos", reuseCheck!.reason);
+    return { ok: false, error: quickListingExistingIdentityInvalidMessage(lang) };
+  } else {
+    // Session-stable idempotency key closes the concurrent double-submit race (unique index
+    // listings_owner_publish_attempt_key_uidx; recovery below), matching the existing
+    // Busco/Comunidad/Clases pattern. Fail-open: null key (or an older DB —
+    // insertListingsRowResilient drops the unknown column) preserves pre-gate behavior.
+    const publishAttemptKey = getOrCreateSessionPublishAttemptKey(MASCOTAS_CATEGORY);
+    if (publishAttemptKey) insertPayload.publish_attempt_key = publishAttemptKey;
+    const ins = await insertListingsRowResilient(supabase, insertPayload);
+    if (ins.error && publishAttemptKey && isPublishAttemptKeyConflict(ins.error)) {
+      // This exact submission already created a row (racing click or lost response) — recover
+      // it, never insert a duplicate.
+      const recoveredId = await fetchOwnListingIdByPublishAttemptKey(supabase, {
+        ownerUserId: userId,
+        attemptKey: publishAttemptKey,
+        expectedCategory: MASCOTAS_CATEGORY,
+      });
+      if (recoveredId) {
+        listingId = recoveredId;
+      } else {
+        return { ok: false, error: ins.error.message };
+      }
+    } else if (ins.error) {
+      return { ok: false, error: ins.error.message };
+    } else {
+      listingId = ins.data?.id;
+    }
+    if (listingId) clearSessionPublishAttemptKey(MASCOTAS_CATEGORY);
   }
-  const listingId = ins.data?.id;
   if (!listingId) {
     return { ok: false, error: err("No se recibió el ID del anuncio.", "No listing id returned.") };
   }
+  onListingIdKnown?.(listingId);
 
   const markPublishFailedNonPublic = async () => {
     await supabase.from("listings").update({ status: "removed", is_published: false }).eq("id", listingId);

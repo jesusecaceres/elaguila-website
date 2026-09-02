@@ -13,6 +13,7 @@ import type {
 import { mapOfertaLocalSourceBboxToDisplayRect } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import {
+  trackOfertaLocalCta,
   trackOfertaLocalEvent,
   trackOfertaLocalListingOpen,
   trackOfertaLocalProductOpen,
@@ -369,6 +370,12 @@ function ContactHub({
               className={BTN}
               onClick={() => {
                 track("phone", "sms");
+                // Globalization Build 1 — restores the distinct `message_click` event this
+                // action previously emitted (via the old trackOfertaLocalCta/onCta wiring)
+                // before a dedupe cleanup removed it along with 4 genuinely-redundant events.
+                // phone_click above is intentionally kept (cross-channel "contacted by phone
+                // number" signal); this adds back only the truthful, distinct SMS metric.
+                trackOfertaLocalCta({ ofertaLocalId: offer.id, leonixAdId: offer.leonixAdId }, "sms", "public_detail");
               }}
             >
               {c.sms}
