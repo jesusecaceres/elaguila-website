@@ -1,5 +1,8 @@
+"use client";
+
+import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { HubCategoryKey } from "@/app/(site)/clasificados/config/clasificadosHub";
 import { getClasificadosCategoryCopy } from "@/app/lib/clasificados/clasificadosHubPageCopy";
 import type { SupportedLang } from "@/app/lib/language";
@@ -138,6 +141,10 @@ export type ClasificadosHubCategoryCardProps = {
   accent?: "gold" | "burgundy" | "default";
   icon?: ReactNode;
   category?: HubCategoryKey;
+  /** Gate 5 — local `/selector-cards/...` path. Optional: cards without one render body-only. */
+  imageSrc?: string;
+  /** Falls back to `label` when omitted — no separate alt-copy/translation surface needed. */
+  imageAlt?: string;
 };
 
 export function ClasificadosHubCategoryCard({
@@ -152,10 +159,14 @@ export function ClasificadosHubCategoryCard({
   accent = "default",
   icon,
   category,
+  imageSrc,
+  imageAlt,
 }: ClasificadosHubCategoryCardProps) {
   const exploreLabel = getClasificadosHubExploreCtaLabel(lang);
   const resolvedNote =
     note ?? (category ? getClasificadosCategoryCopy(lang, category).note : undefined);
+  const [imageFailed, setImageFailed] = useState(false);
+  const resolvedIcon = icon ?? (category ? <CategoryMark category={category} /> : null);
 
   const topAccent =
     accent === "burgundy"
@@ -172,31 +183,49 @@ export function ClasificadosHubCategoryCard({
 
   return (
     <article
-      className={`flex h-full min-h-[18rem] flex-col rounded-2xl border-2 border-t-[3px] bg-gradient-to-br from-[#FFFCF7] via-[#FFFCF7] to-[#FAF6EE] p-5 shadow-[0_10px_28px_-18px_rgba(31,36,28,0.18)] ${borderClass} ${topAccent}`}
+      className={`group flex h-full flex-col overflow-hidden rounded-2xl border-2 border-t-[3px] bg-gradient-to-br from-[#FFFCF7] via-[#FFFCF7] to-[#FAF6EE] shadow-[0_10px_28px_-18px_rgba(31,36,28,0.18)] ${borderClass} ${topAccent}`}
     >
-      <span
-        className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border bg-[#FAF6EE] text-[#2A4536] ${
-          accent === "burgundy" ? "border-[#7A1E2C]/25 bg-[#7A1E2C]/5" : "border-[#C9A84A]/40"
-        }`}
-      >
-        {icon ?? (category ? <CategoryMark category={category} /> : null)}
-      </span>
-      <h3 className="mt-4 text-base font-bold leading-snug text-[#1E1810]">{label}</h3>
-      {resolvedNote ? <p className="mt-1 text-xs font-semibold text-[#556B3E]">{resolvedNote}</p> : null}
-      <p className="mt-2 flex-1 text-sm leading-relaxed text-[#3D3428]">{description}</p>
-      <div className="mt-auto flex flex-col gap-3 border-t border-[#D6C7AD]/45 pt-5">
-        <Link
-          href={browseHref}
-          className="inline-flex min-h-[2.75rem] w-full items-center justify-center rounded-xl border-2 border-[#C9A84A]/60 bg-[#FFFCF7] px-4 py-2.5 text-center text-sm font-bold text-[#2A4536] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF]"
+      {imageSrc && !imageFailed ? (
+        <div className="relative aspect-[4/3] w-full overflow-hidden">
+          <Image
+            src={imageSrc}
+            alt={imageAlt ?? label}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition duration-500 group-hover:scale-[1.03]"
+            onError={() => setImageFailed(true)}
+          />
+        </div>
+      ) : imageSrc ? (
+        <div className="flex aspect-[4/3] w-full items-center justify-center bg-[#FAF6EE]" aria-hidden>
+          {resolvedIcon}
+        </div>
+      ) : null}
+      <div className="flex flex-1 flex-col p-5">
+        <span
+          className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border bg-[#FAF6EE] text-[#2A4536] ${
+            accent === "burgundy" ? "border-[#7A1E2C]/25 bg-[#7A1E2C]/5" : "border-[#C9A84A]/40"
+          }`}
         >
-          {exploreLabel}
-        </Link>
-        <Link
-          href={publishHref}
-          className="inline-flex min-h-[2.75rem] w-full items-center justify-center rounded-xl bg-[#7A1E2C] px-4 py-2.5 text-center text-sm font-bold text-[#FFFDF7] shadow-sm transition hover:bg-[#5e1721]"
-        >
-          {publishLabel}
-        </Link>
+          {resolvedIcon}
+        </span>
+        <h3 className="mt-4 text-base font-bold leading-snug text-[#1E1810]">{label}</h3>
+        {resolvedNote ? <p className="mt-1 text-xs font-semibold text-[#556B3E]">{resolvedNote}</p> : null}
+        <p className="mt-2 flex-1 text-sm leading-relaxed text-[#3D3428]">{description}</p>
+        <div className="mt-auto flex flex-col gap-3 border-t border-[#D6C7AD]/45 pt-5">
+          <Link
+            href={browseHref}
+            className="inline-flex min-h-[2.75rem] w-full items-center justify-center rounded-xl border-2 border-[#C9A84A]/60 bg-[#FFFCF7] px-4 py-2.5 text-center text-sm font-bold text-[#2A4536] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF]"
+          >
+            {exploreLabel}
+          </Link>
+          <Link
+            href={publishHref}
+            className="inline-flex min-h-[2.75rem] w-full items-center justify-center rounded-xl bg-[#7A1E2C] px-4 py-2.5 text-center text-sm font-bold text-[#FFFDF7] shadow-sm transition hover:bg-[#5e1721]"
+          >
+            {publishLabel}
+          </Link>
+        </div>
       </div>
     </article>
   );
