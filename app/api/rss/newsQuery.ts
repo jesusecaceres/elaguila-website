@@ -316,13 +316,16 @@ export function buildSearchQuery(category: string, subcategory: string, lang: La
 
   if (category === "ultimas") {
     const latest: Record<string, { es: string; en: string }> = {
-      "ultima hora": {
-        es: "última hora noticias breaking latino",
-        en: "breaking news latest Latino",
+      // Owner-QA Gate 7 (2026-09-03): renamed from "última hora"/"breaking" -- see the matching
+      // SUBCATEGORIES comment in noticiasEditorialModel.ts. The query text itself no longer
+      // claims urgency ("breaking") it can't back up.
+      recientes: {
+        es: "noticias recientes latino",
+        en: "recent news Latino community",
       },
-      breaking: {
-        es: "última hora noticias breaking latino",
-        en: "breaking news latest Latino",
+      recent: {
+        es: "noticias recientes latino",
+        en: "recent news Latino community",
       },
       "estados unidos": {
         es: "Estados Unidos noticias comunidad latina",
@@ -555,4 +558,191 @@ export function dedupeRssArticles<T extends { link?: string; title?: string }>(i
  */
 export function didAllFeedsFail(results: { ok: boolean }[]): boolean {
   return results.length > 0 && results.every((r) => !r.ok);
+}
+
+/**
+ * Owner-QA Gate 6 (2026-09-03) image-recovery audit: direct inspection of live feed items showed
+ * Google News RSS carries zero image fields on every item (no enclosure, no media:content, no
+ * <img> in content) -- a structural limit of that source, not an extraction bug. Publisher feeds
+ * (The Verge, Engadget, NBC Bay Area, Local News Matters) do carry genuine images in varying
+ * fields, so this extraction checks all of them. Kept here (not route.ts) because it has no
+ * dependency on next/server or the rss-parser class, matching this module's existing "pure logic,
+ * unit-testable" role.
+ */
+
+/** An <img src="..."> attribute pulled from raw feed HTML carries HTML entities (WordPress
+ * feeds commonly emit "&#038;" or "&amp;" for a literal "&" in a query string) -- decode the
+ * handful that actually appear in URLs before treating it as one, otherwise a query param like
+ * "&ssl=1" survives as the literal string "&amp;ssl=1" and the request depends on the CDN
+ * silently ignoring an unrecognized "amp;ssl" param instead of genuinely being correct. */
+export function decodeHtmlEntities(value: string): string {
+  return value
+    .replace(/&amp;/g, "&")
+    .replace(/&#0?38;/g, "&")
+    .replace(/&#x26;/gi, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;/g, "'");
+}
+
+/** Accept only absolute http(s) image URLs; never throw on malformed input. */
+export function normalizeImageUrl(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = decodeHtmlEntities(raw.trim());
+  if (!trimmed) return null;
+
+  let url = trimmed;
+  if (url.startsWith("//")) url = `https:${url}`;
+  if (!/^https?:\/\//i.test(url)) return null;
+
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+    return parsed.href;
+  } catch {
+    return null;
+  }
+}
+
+function isHardRejectedImageUrl(url: string): boolean {
+  const lower = url.toLowerCase();
+  if (lower.includes("pixel")) return true;
+  if (lower.includes("tracking")) return true;
+  if (lower.includes("spacer")) return true;
+  if (lower.includes("blank")) return true;
+  if (lower.includes("favicon")) return true;
+  if (lower.endsWith(".gif")) return true;
+  return false;
+}
+
+function isLogoImageUrl(url: string): boolean {
+  return url.toLowerCase().includes("logo");
+}
+
+/** Pick the first usable candidate; defer logo URLs unless nothing else is available. */
+export function selectBestImageUrl(candidates: string[]): string | null {
+  let logoFallback: string | null = null;
+
+  for (const raw of candidates) {
+    const url = normalizeImageUrl(raw);
+    if (!url) continue;
+    if (isHardRejectedImageUrl(url)) continue;
+    if (isLogoImageUrl(url)) {
+      if (!logoFallback) logoFallback = url;
+      continue;
+    }
+    return url;
+  }
+
+  return logoFallback;
+}
+
+function extractMediaUrl(value: unknown): string | null {
+  if (value == null) return null;
+
+  if (typeof value === "string") {
+    return normalizeImageUrl(value);
+  }
+
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const url = extractMediaUrl(entry);
+      if (url) return url;
+    }
+    return null;
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const medium = String(
+      (record.medium as string | undefined) ??
+        ((record.$ as Record<string, unknown> | undefined)?.medium as string | undefined) ??
+        ""
+    ).toLowerCase();
+    if (medium && medium !== "image") return null;
+
+    const direct =
+      normalizeImageUrl(record.url) ??
+      normalizeImageUrl(record.href) ??
+      normalizeImageUrl((record.$ as Record<string, unknown> | undefined)?.url) ??
+      normalizeImageUrl((record.$ as Record<string, unknown> | undefined)?.href);
+    if (direct) return direct;
+  }
+
+  return null;
+}
+
+export function extractImagesFromHtml(html?: string): string[] {
+  if (!html || typeof html !== "string") return [];
+
+  const urls: string[] = [];
+  const imgTagRe = /<img\b[^>]*>/gi;
+  let tagMatch: RegExpExecArray | null;
+
+  while ((tagMatch = imgTagRe.exec(html)) !== null) {
+    const tag = tagMatch[0];
+    const srcMatch =
+      tag.match(/\bsrc=["']([^"']+)["']/i) ?? tag.match(/\bsrc=([^\s>]+)/i);
+    if (srcMatch?.[1]) urls.push(srcMatch[1]);
+
+    const srcsetMatch = tag.match(/\bsrcset=["']([^"']+)["']/i);
+    if (srcsetMatch?.[1]) {
+      const first = srcsetMatch[1].split(",")[0]?.trim().split(/\s+/)[0];
+      if (first) urls.push(first);
+    }
+  }
+
+  return urls;
+}
+
+function itemHtmlContent(item: Record<string, unknown>, encoded?: string): string[] {
+  const blocks: string[] = [];
+  if (encoded) blocks.push(encoded);
+  if (typeof item.description === "string") blocks.push(item.description);
+  if (typeof item.summary === "string") blocks.push(item.summary);
+  if (typeof item.contentSnippet === "string") blocks.push(item.contentSnippet);
+  return blocks;
+}
+
+/** Best-effort image URL from RSS item fields (priority order per Gate 3). */
+export function extractArticleImage(
+  item: { enclosure?: { url?: string; type?: string }; contentSnippet?: string },
+  encodedContent?: string
+): string | null {
+  const record = item as unknown as Record<string, unknown>;
+  const candidates: string[] = [];
+
+  const push = (url: string | null | undefined) => {
+    if (url) candidates.push(url);
+  };
+
+  // 1. media:content
+  push(extractMediaUrl(record["media:content"]));
+  push(extractMediaUrl(record.mediaContent));
+
+  // 2. media:thumbnail
+  push(extractMediaUrl(record["media:thumbnail"]));
+  push(extractMediaUrl(record.mediaThumbnail));
+
+  // 3. enclosure (image/*)
+  if (item.enclosure?.url) {
+    const type = (item.enclosure.type || "").toLowerCase();
+    if (!type || type.startsWith("image/")) {
+      push(item.enclosure.url);
+    }
+  }
+
+  // 4. image / itunes:image
+  push(extractMediaUrl(record.image));
+  if (record.image && typeof record.image === "object") {
+    const imageObj = record.image as Record<string, unknown>;
+    push(normalizeImageUrl(imageObj.url));
+  }
+  push(extractMediaUrl(record["itunes:image"]));
+
+  // 5. <img> inside content / description HTML
+  for (const html of itemHtmlContent(record, encodedContent)) {
+    candidates.push(...extractImagesFromHtml(html));
+  }
+
+  return selectBestImageUrl(candidates);
 }

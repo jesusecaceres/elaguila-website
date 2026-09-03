@@ -5,7 +5,7 @@ import type { NoticiasPageCopy } from "@/app/lib/siteSectionContent/noticiasPage
 import {
   SUBCATEGORIES,
   articleDedupeKey,
-  buildEditorialGroups,
+  composeHomepageFeed,
   excludeShown,
   distinctSummary,
   formatArticleDate,
@@ -33,6 +33,23 @@ function buildPublicationLine(lang: Lang): string {
   const dateLabel = lang === "en" ? `${weekday}, ${month} ${day}` : `${weekday} ${day} de ${month}`;
   const geo = lang === "en" ? "San Jose · Bay Area" : "San José · Área de la Bahía";
   return `${geo} · ${dateLabel}`;
+}
+
+/** Both `/api/rss` (active feed) and the independent Local feed (Gate 4) return the same raw
+ * shape and need the same trust boundary applied to it -- shared here so that boundary can't
+ * drift between the two call sites. */
+function normalizeArticles(data: unknown): NewsArticle[] {
+  return (Array.isArray(data) ? data : []).map((raw: unknown) => {
+    const a = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+    const title = typeof a.title === "string" ? a.title : "";
+    return {
+      title,
+      desc: typeof a.desc === "string" ? a.desc : undefined,
+      img: isUsableImageSrc(a.img) ? a.img.trim() : undefined,
+      link: isUsableArticleLink(a.link) ? a.link.trim() : undefined,
+      date: typeof a.date === "string" ? a.date : undefined,
+    };
+  });
 }
 
 function StoryImage({
@@ -71,7 +88,7 @@ function StoryMeta({
   const parts = [category, source, date].filter(Boolean);
   if (parts.length === 0) return null;
   return (
-    <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[color:var(--lx-muted)]">
+    <p className="text-[0.75rem] font-semibold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">
       {parts.join(" · ")}
     </p>
   );
@@ -110,7 +127,7 @@ function StoryCard({
       : variant === "row"
         ? `group flex w-full min-h-[44px] flex-col gap-4 rounded-md border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] p-4 text-left transition hover:border-[color:var(--lx-gold)] md:flex-row ${focusRing}`
         : variant === "compact"
-          ? `group flex w-full min-h-11 flex-col gap-1 py-3 text-left transition hover:bg-[color:var(--lx-section)] sm:flex-row sm:items-baseline sm:justify-between sm:gap-4 ${focusRing}`
+          ? `group flex min-h-11 w-full flex-col gap-1.5 rounded-sm border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] px-4 py-3 text-left transition hover:border-[color:var(--lx-gold)] hover:bg-[color:var(--lx-section)] ${focusRing}`
           : variant === "trend"
             ? `group block w-full min-h-[44px] text-left transition ${focusRing}`
             : `group block w-full min-h-[44px] rounded-md border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] p-3 text-left transition hover:border-[color:var(--lx-gold)] ${focusRing}`;
@@ -162,7 +179,7 @@ function StoryCard({
       </>
     ) : variant === "compact" ? (
       <>
-        <h3 className="min-w-0 flex-1 font-serif text-base font-semibold leading-snug text-[color:var(--lx-text)] group-hover:text-[#7A1E2C]">
+        <h3 className="font-serif text-[0.95rem] font-semibold leading-snug text-[color:var(--lx-text)] group-hover:text-[#7A1E2C]">
           {title}
         </h3>
         <StoryMeta source={source} date={date} category={categoryLabel} />
@@ -301,17 +318,7 @@ export function NoticiasPageClient({ shell, lang }: { shell: NoticiasPageCopy; l
           `/api/rss?category=${activeCategory}&subcategory=${encodeURIComponent(activeSubcategory)}&lang=${lang}`
         );
         const data = await res.json();
-        const fixed: NewsArticle[] = (Array.isArray(data) ? data : []).map((raw: unknown) => {
-          const a = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-          const title = typeof a.title === "string" ? a.title : "";
-          return {
-            title,
-            desc: typeof a.desc === "string" ? a.desc : undefined,
-            img: isUsableImageSrc(a.img) ? a.img.trim() : undefined,
-            link: isUsableArticleLink(a.link) ? a.link.trim() : undefined,
-            date: typeof a.date === "string" ? a.date : undefined,
-          };
-        });
+        const fixed = normalizeArticles(data);
         if (!cancelled) {
           setArticles(fixed);
           // A 503 from /api/rss means every upstream feed failed for this exact selection (see
@@ -336,30 +343,87 @@ export function NoticiasPageClient({ shell, lang }: { shell: NoticiasPageCopy; l
     };
   }, [activeCategory, activeSubcategory, lang]);
 
+  // Owner-QA Gate 4 (2026-09-03): the homepage Local News module used to derive its content by
+  // keyword-scanning whatever feed happened to be active (Sports selected -> Local scanned Sports
+  // articles for place names) -- so it was almost never genuinely local. It now fetches its own
+  // independent dataset from the same /api/rss endpoint (no new API), keyed only on `lang` so
+  // switching category/subcategory (Sports -> NFL -> Soccer) never re-triggers it; the existing
+  // s-maxage CDN cache already makes repeat mount-time fetches for the same lang cheap.
+  const [localArticles, setLocalArticles] = useState<NewsArticle[]>([]);
+  const [localLoading, setLocalLoading] = useState(true);
+  const [localUnavailable, setLocalUnavailable] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadLocalNews() {
+      try {
+        setLocalLoading(true);
+        const localSubcategory = SUBCATEGORIES.local[lang][0];
+        const res = await fetch(
+          `/api/rss?category=local&subcategory=${encodeURIComponent(localSubcategory)}&lang=${lang}`
+        );
+        const data = await res.json();
+        const fixed = normalizeArticles(data);
+        if (!cancelled) {
+          setLocalArticles(fixed);
+          setLocalUnavailable(!res.ok);
+        }
+      } catch (err) {
+        console.error("LOCAL NEWS LOAD ERROR:", err);
+        if (!cancelled) {
+          setLocalArticles([]);
+          setLocalUnavailable(true);
+        }
+      } finally {
+        if (!cancelled) setLocalLoading(false);
+      }
+    }
+
+    loadLocalNews();
+    return () => {
+      cancelled = true;
+    };
+  }, [lang]);
+
   const featured = articles[0];
   const feed = articles.slice(1);
-  const groups = useMemo(() => buildEditorialGroups(feed, featured), [feed, featured]);
-  const moreStories = useMemo(
-    () => excludeShown(feed, [...groups.trendingArticles, ...groups.localArticles]),
-    [feed, groups.localArticles, groups.trendingArticles]
-  );
-  const richMoreStories = useMemo(() => moreStories.slice(0, 5), [moreStories]);
-  const compactMoreStories = useMemo(() => moreStories.slice(5), [moreStories]);
+  const composed = useMemo(() => composeHomepageFeed(feed, featured), [feed, featured]);
   const showLocalSection = activeCategory !== "local";
+
+  // Independent Local results occasionally overlap with what's already visible in the active
+  // feed (e.g. a San Jose story surfaces in both the Local feed and a broader Latest search) --
+  // drop those duplicates using the same dedupe key the rest of the page already uses.
+  const shownElsewhere = useMemo(
+    () => [
+      ...(featured ? [featured] : []),
+      ...composed.supportArticles,
+      ...composed.trendingArticles,
+      ...composed.richMoreStories,
+      ...composed.compactMoreStories,
+    ],
+    [featured, composed]
+  );
+  const dedupedLocalArticles = useMemo(
+    () => excludeShown(localArticles, shownElsewhere),
+    [localArticles, shownElsewhere]
+  );
+  const localFeature = dedupedLocalArticles[0];
+  const localSupport = dedupedLocalArticles.slice(1, 4);
 
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-[color:var(--lx-page)] text-[color:var(--lx-text)]">
       <div className="mx-auto w-full max-w-[88rem] px-4 pb-20 pt-24 sm:px-6 lg:px-8">
-        <header className="border-b border-[color:var(--lx-gold-border)] pb-6">
-          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-[#7A1E2C]">{L.eyebrow}</p>
+        <header className="border-b border-[color:var(--lx-gold-border)] pb-6 text-center md:text-left">
+          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-[#7A1E2C]">{L.eyebrow}</p>
           <h1 className="mt-2 font-serif text-4xl font-bold leading-none tracking-tight text-[color:var(--lx-text)] sm:text-5xl">
             {L.pageTitle}
           </h1>
-          <p className="mt-3 max-w-3xl text-base leading-relaxed text-[color:var(--lx-text-2)] sm:text-lg">
+          <p className="mx-auto mt-3 max-w-3xl text-base leading-relaxed text-[color:var(--lx-text-2)] sm:text-lg md:mx-0">
             {L.subtitle}
           </p>
           {publicationLine ? (
-            <p className="mt-4 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-[color:var(--lx-muted)]">
+            <p className="mt-4 text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[color:var(--lx-muted)]">
               {publicationLine}
             </p>
           ) : null}
@@ -378,8 +442,12 @@ export function NoticiasPageClient({ shell, lang }: { shell: NoticiasPageCopy; l
           </p>
         ) : null}
 
-        <nav aria-label={categoryNavLabel} className="mt-6 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
-          <div className="flex w-max min-w-0 gap-2 pb-1">
+        {/* Owner-QA Gate 3: mobile keeps the original horizontal-scroll pill rail unchanged; at
+            md+ these become a centered publication section bar (underline tabs, shared bottom
+            rule) instead of a row of filter-style bubbles, so the primary categories read as
+            LEONIX NEWS's actual sections rather than a search filter. */}
+        <nav aria-label={categoryNavLabel} className="mt-6">
+          <div className="flex w-max min-w-0 gap-2 overflow-x-auto overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch] md:w-full md:flex-wrap md:justify-center md:gap-x-7 md:gap-y-2 md:overflow-visible md:border-b md:border-[color:var(--lx-border)] md:pb-0">
             {categories.map((cat) => {
               const active = activeCategory === cat.key;
               return (
@@ -390,8 +458,8 @@ export function NoticiasPageClient({ shell, lang }: { shell: NoticiasPageCopy; l
                   aria-current={active ? "true" : undefined}
                   className={
                     active
-                      ? "min-h-11 shrink-0 rounded-full bg-[#7A1E2C] px-4 py-2 text-sm font-semibold text-[#FFFDF7]"
-                      : "min-h-11 shrink-0 rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:border-[color:var(--lx-gold)]"
+                      ? "min-h-11 shrink-0 rounded-full bg-[#7A1E2C] px-4 py-2 text-sm font-semibold text-[#FFFDF7] md:rounded-none md:border-b-2 md:border-[#7A1E2C] md:bg-transparent md:px-1 md:pb-3 md:tracking-wide md:text-[#7A1E2C]"
+                      : "min-h-11 shrink-0 rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:border-[color:var(--lx-gold)] md:rounded-none md:border-none md:border-b-2 md:border-transparent md:bg-transparent md:px-1 md:pb-3 md:tracking-wide md:hover:border-[color:var(--lx-gold-border)]"
                   }
                 >
                   {cat.label}
@@ -401,8 +469,8 @@ export function NoticiasPageClient({ shell, lang }: { shell: NoticiasPageCopy; l
           </div>
         </nav>
 
-        <nav aria-label={subcategoryNavLabel} className="mt-3 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
-          <div className="flex w-max min-w-0 gap-2 pb-1">
+        <nav aria-label={subcategoryNavLabel} className="mt-3">
+          <div className="flex w-max min-w-0 gap-2 overflow-x-auto overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch] md:w-full md:flex-wrap md:justify-center md:overflow-visible">
             {subcategories.map((sub) => {
               const active = activeSubcategory === sub;
               return (
@@ -413,8 +481,8 @@ export function NoticiasPageClient({ shell, lang }: { shell: NoticiasPageCopy; l
                   aria-current={active ? "true" : undefined}
                   className={
                     active
-                      ? "min-h-10 shrink-0 rounded-full border border-[#7A1E2C] bg-[#7A1E2C]/10 px-3 py-1.5 text-xs font-semibold text-[#7A1E2C] sm:text-sm"
-                      : "min-h-10 shrink-0 rounded-full border border-[color:var(--lx-border)] bg-transparent px-3 py-1.5 text-xs font-medium text-[color:var(--lx-text-2)] hover:border-[color:var(--lx-gold)] hover:text-[color:var(--lx-text)] sm:text-sm"
+                      ? "min-h-10 shrink-0 rounded-full border border-[#7A1E2C]/40 bg-[#7A1E2C]/8 px-3 py-1.5 text-xs font-semibold text-[#7A1E2C] sm:text-sm"
+                      : "min-h-10 shrink-0 rounded-full border border-transparent px-3 py-1.5 text-xs font-medium text-[color:var(--lx-muted)] hover:text-[color:var(--lx-text)] sm:text-sm"
                   }
                 >
                   {sub}
@@ -430,16 +498,33 @@ export function NoticiasPageClient({ shell, lang }: { shell: NoticiasPageCopy; l
           <p className="mt-10 text-sm text-[color:var(--lx-text-2)]">{unavailable ? L.unavailable : L.empty}</p>
         ) : (
           <>
+            {/* Owner-QA Gate 1: the lead story is followed by its own subordinate support grid
+                (same left column) instead of sharing a CSS grid row with the much-taller Trending
+                list -- that mismatch was the giant dead-space bug: the row's height was set by
+                Trending, and nothing filled the gap under a short (imageless) lead. */}
             <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
               <section className="lg:col-span-8" aria-labelledby="noticias-lead-title">
                 <h2 id="noticias-lead-title" className="sr-only">
                   {lang === "es" ? "Historia principal" : "Lead story"}
                 </h2>
                 <StoryCard article={featured} lang={lang} categoryLabel={activeCategoryLabel} variant="lead" />
+                {composed.supportArticles.length > 0 ? (
+                  <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {composed.supportArticles.map((article) => (
+                      <StoryCard
+                        key={articleDedupeKey(article)}
+                        article={article}
+                        lang={lang}
+                        categoryLabel={activeCategoryLabel}
+                        variant="local"
+                      />
+                    ))}
+                  </div>
+                ) : null}
               </section>
 
               <aside
-                className="border-t border-[color:var(--lx-gold-border)] pt-5 lg:col-span-4"
+                className="border-t border-[color:var(--lx-gold-border)] pt-5 lg:col-span-4 lg:border-l lg:border-t-0 lg:border-[color:var(--lx-border)] lg:pl-8 lg:pt-0"
                 aria-labelledby="noticias-trending-title"
               >
                 <h2
@@ -449,7 +534,7 @@ export function NoticiasPageClient({ shell, lang }: { shell: NoticiasPageCopy; l
                   {L.tendencias}
                 </h2>
                 <ol className="mt-4 divide-y divide-[color:var(--lx-border)]">
-                  {groups.trendingArticles.map((article, index) => (
+                  {composed.trendingArticles.map((article, index) => (
                     <li key={articleDedupeKey(article)} className="flex gap-3 py-4 first:pt-0 last:pb-0">
                       <span className="w-7 shrink-0 font-serif text-lg font-bold leading-none text-[#7A1E2C]">
                         {String(index + 1).padStart(2, "0")}
@@ -463,27 +548,44 @@ export function NoticiasPageClient({ shell, lang }: { shell: NoticiasPageCopy; l
               </aside>
             </div>
 
+            {/* Owner-QA Gate 4/5: independently fetched (see the loadLocalNews effect above), not
+                a keyword scan of whatever feed is currently active -- so Local genuinely shows
+                local news on Sports, Tech, or any other category, not just when Local itself is
+                selected. */}
             {showLocalSection ? (
               <section
-                className="mt-14 rounded-md border border-[color:var(--lx-gold-border)] border-l-4 border-l-[#2A4536] bg-[color:var(--lx-section)] px-4 py-8 sm:px-6"
+                className="mt-14 rounded-md border border-[color:var(--lx-gold-border)] border-l-4 border-l-[#2A4536] bg-[color:var(--lx-section)] px-4 py-6 sm:px-6"
                 aria-labelledby="noticias-local-title"
               >
                 <h2 id="noticias-local-title" className="font-serif text-3xl font-bold text-[color:var(--lx-text)]">
                   {L.local}
                 </h2>
                 <p className="mt-2 max-w-2xl text-sm text-[color:var(--lx-text-2)]">{L.localSupport}</p>
-                {groups.localArticles.length === 0 ? (
-                  <p className="mt-6 text-sm text-[color:var(--lx-text-2)]">{L.emptyLocal}</p>
+                {localLoading ? (
+                  <p className="mt-6 text-sm text-[color:var(--lx-text-2)]">{L.cargando}</p>
+                ) : !localFeature ? (
+                  <p className="mt-6 text-sm text-[color:var(--lx-text-2)]">
+                    {localUnavailable ? L.unavailable : L.emptyLocal}
+                  </p>
                 ) : (
-                  <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    {groups.localArticles.map((article) => (
-                      <StoryCard key={articleDedupeKey(article)} article={article} lang={lang} variant="local" />
-                    ))}
+                  <div className="mt-6 space-y-4">
+                    <StoryCard article={localFeature} lang={lang} variant="row" />
+                    {localSupport.length > 0 ? (
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        {localSupport.map((article) => (
+                          <StoryCard key={articleDedupeKey(article)} article={article} lang={lang} variant="local" />
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                 )}
               </section>
             ) : null}
 
+            {/* Owner-QA Gate 2: two intentionally-designed density tiers all the way down --
+                Tier A stays the existing rich row cards; Tier B (previously bare divide-y rows
+                that read as raw database output at scale) is now a contained two-column card
+                grid using the same restrained surface/border language as the rest of the page. */}
             <section
               className="mt-14 border-t border-[color:var(--lx-gold-border)] pt-8"
               aria-labelledby="noticias-more-title"
@@ -492,7 +594,7 @@ export function NoticiasPageClient({ shell, lang }: { shell: NoticiasPageCopy; l
                 {L.more}
               </h2>
               <div className="mt-6 space-y-4">
-                {richMoreStories.map((article) => (
+                {composed.richMoreStories.map((article) => (
                   <StoryCard
                     key={articleDedupeKey(article)}
                     article={article}
@@ -502,9 +604,9 @@ export function NoticiasPageClient({ shell, lang }: { shell: NoticiasPageCopy; l
                   />
                 ))}
               </div>
-              {compactMoreStories.length > 0 ? (
-                <div className="mt-4 divide-y divide-[color:var(--lx-border)] border-t border-[color:var(--lx-border)]">
-                  {compactMoreStories.map((article) => (
+              {composed.compactMoreStories.length > 0 ? (
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {composed.compactMoreStories.map((article) => (
                     <StoryCard
                       key={articleDedupeKey(article)}
                       article={article}

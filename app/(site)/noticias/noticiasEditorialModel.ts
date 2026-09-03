@@ -20,8 +20,12 @@ export type NewsArticle = {
 
 export const SUBCATEGORIES: Record<CategoryKey, Record<Lang, readonly string[]>> = {
   ultimas: {
-    es: ["Última hora", "Estados Unidos", "Mundo", "Comunidad", "Lo más visto"],
-    en: ["Breaking", "U.S.", "World", "Community", "Most read"],
+    // Owner-QA Gate 7 (2026-09-03): this subcategory's query is just "recent Latino news" -- no
+    // real breaking-news determination backs it (the same finding N4 already applied to the main
+    // Top Story/En Portada banner). "Última hora"/"Breaking" overclaimed urgency; "Recientes"/
+    // "Recent" truthfully matches what the query actually returns.
+    es: ["Recientes", "Estados Unidos", "Mundo", "Comunidad", "Lo más visto"],
+    en: ["Recent", "U.S.", "World", "Community", "Most read"],
   },
   tendencias: {
     es: ["Viral", "Redes sociales", "Celebridades", "Comunidad", "Opinión"],
@@ -229,6 +233,40 @@ export function buildEditorialGroups(feed: NewsArticle[], featured?: NewsArticle
     trendingArticles,
     localArticles: takeMatched(LOCAL_KEYWORDS),
   };
+}
+
+/**
+ * Owner-QA Gate 1 (2026-09-03): allocates one active feed into every homepage section with no
+ * article appearing twice. Previously the lead+Trending grid shared one CSS row, so a short
+ * (imageless) lead left the row's height set by the much-taller Trending list and a dead gap
+ * opened before the next section -- this fixes it at the content-composition level: the lead
+ * story is now followed by its own subordinate "support" stories (same visual column, filling
+ * the space Trending's height used to leave empty) before Trending, then More Stories, are
+ * allocated from what's left. Reuses the existing trending-keyword matching and exclusion
+ * primitives rather than inventing new dedupe logic.
+ */
+export function composeHomepageFeed(
+  feed: NewsArticle[],
+  featured: NewsArticle | undefined,
+  limits: { trending?: number; support?: number; rich?: number } = {}
+): {
+  trendingArticles: NewsArticle[];
+  supportArticles: NewsArticle[];
+  richMoreStories: NewsArticle[];
+  compactMoreStories: NewsArticle[];
+} {
+  const trendingLimit = limits.trending ?? SIDEBAR_LIMIT;
+  const supportLimit = limits.support ?? 4;
+  const richLimit = limits.rich ?? 6;
+
+  const { trendingArticles } = buildEditorialGroups(feed, featured, trendingLimit);
+  const afterTrending = excludeShown(feed, trendingArticles);
+  const supportArticles = afterTrending.slice(0, supportLimit);
+  const afterSupport = excludeShown(afterTrending, supportArticles);
+  const richMoreStories = afterSupport.slice(0, richLimit);
+  const compactMoreStories = afterSupport.slice(richLimit);
+
+  return { trendingArticles, supportArticles, richMoreStories, compactMoreStories };
 }
 
 export function excludeShown(feed: NewsArticle[], shown: NewsArticle[]): NewsArticle[] {

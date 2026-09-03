@@ -2,9 +2,14 @@ import {
   buildSearchQuery,
   dedupeRssArticles,
   didAllFeedsFail,
+  decodeHtmlEntities,
+  extractArticleImage,
+  extractImagesFromHtml,
   filterSoccerResultQuality,
   isAmericanFootballNoise,
   normalizedHeadlineKey,
+  normalizeImageUrl,
+  selectBestImageUrl,
   shouldUseSpecializedFeeds,
 } from "../newsQuery";
 
@@ -117,6 +122,61 @@ export function assertRssSoccerQuerySmoke(): boolean {
   checks.push(didAllFeedsFail([{ ok: true }, { ok: false }]) === false);
   checks.push(didAllFeedsFail([{ ok: true }, { ok: true }]) === false);
   checks.push(didAllFeedsFail([]) === false);
+
+  // Owner-QA Gate 6: HTML-entity decoding on image URLs -- WordPress-style feeds (Local News
+  // Matters) emit "&#038;"/"&amp;" for a literal "&" in a query string; a raw src attribute must
+  // not survive as "&amp;ssl=1" (which depends on the CDN ignoring the resulting bogus
+  // "amp;ssl" param instead of genuinely being correct).
+  checks.push(decodeHtmlEntities("a&amp;b") === "a&b");
+  checks.push(decodeHtmlEntities("a&#038;b") === "a&b");
+  checks.push(decodeHtmlEntities("a&#x26;b") === "a&b");
+  checks.push(
+    normalizeImageUrl("https://i0.wp.com/img.jpg?fit=1024%2C768&amp;ssl=1") ===
+      "https://i0.wp.com/img.jpg?fit=1024%2C768&ssl=1"
+  );
+
+  // selectBestImageUrl: rejects tracking pixels/blank/favicon/gif outright, defers (but still
+  // uses) a "logo" URL only when nothing better is available, and otherwise takes the first
+  // usable candidate in priority order.
+  checks.push(
+    selectBestImageUrl(["https://cdn.example.com/tracking-pixel.png", "https://cdn.example.com/real-photo.jpg"]) ===
+      "https://cdn.example.com/real-photo.jpg"
+  );
+  checks.push(selectBestImageUrl(["https://cdn.example.com/site-logo.png"]) === "https://cdn.example.com/site-logo.png");
+  checks.push(
+    selectBestImageUrl(["https://cdn.example.com/site-logo.png", "https://cdn.example.com/real-photo.jpg"]) ===
+      "https://cdn.example.com/real-photo.jpg"
+  );
+  checks.push(selectBestImageUrl(["not-a-url", "javascript:alert(1)"]) === null);
+
+  // extractImagesFromHtml: pulls a real <img src>, ignores tags with no src, and falls back to
+  // the first candidate in a srcset when present.
+  checks.push(
+    extractImagesFromHtml('<figure><img src="https://cdn.example.com/photo.jpg" alt=""></figure>')[0] ===
+      "https://cdn.example.com/photo.jpg"
+  );
+  checks.push(extractImagesFromHtml("<p>no image here</p>").length === 0);
+  checks.push(
+    extractImagesFromHtml('<img srcset="https://cdn.example.com/small.jpg 300w, https://cdn.example.com/big.jpg 800w">')[0] ===
+      "https://cdn.example.com/small.jpg"
+  );
+
+  // extractArticleImage: confirms the full priority chain -- media:content wins over a plain
+  // enclosure, and a bare enclosure is used when nothing richer is present; a Google News-style
+  // item (no enclosure/media fields, plain-text content) genuinely yields no image, matching what
+  // was found live -- Google News RSS carries no image data at all, not an extraction miss.
+  checks.push(
+    extractArticleImage({
+      enclosure: { url: "https://cdn.example.com/enclosure.jpg", type: "image/jpeg" },
+    } as never) === "https://cdn.example.com/enclosure.jpg"
+  );
+  checks.push(
+    extractArticleImage({ contentSnippet: "Plain text, no image fields at all." } as never, undefined) === null
+  );
+  checks.push(
+    extractArticleImage({} as never, '<figure><img src="https://cdn.example.com/from-content.jpg"></figure>') ===
+      "https://cdn.example.com/from-content.jpg"
+  );
 
   return checks.every(Boolean);
 }
