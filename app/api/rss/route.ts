@@ -3,10 +3,23 @@ import Parser from "rss-parser";
 import {
   buildSearchQuery,
   dedupeRssArticles,
+  didAllFeedsFail,
   filterSoccerResultQuality,
   googleNewsRssUrl,
   shouldUseSpecializedFeeds,
 } from "./newsQuery";
+
+/**
+ * A category/subcategory/lang selection's content never changes meaningfully within a couple of
+ * minutes (Google News/RSS sources update on their own schedule, not per-request), so serve the
+ * CDN's cached copy for that window instead of hitting every upstream feed on every request.
+ * stale-while-revalidate keeps serving the last good copy (fresh feeling) while a background
+ * request refreshes it; stale-if-error keeps serving it if that background refresh fails outright
+ * (e.g. Google News is briefly down) instead of a client ever seeing a hard failure. The cache key
+ * is the full request URL, so category/subcategory/lang are never conflated (?category=deportes&
+ * subcategory=Soccer&lang=en is a different cache entry than &subcategory=NFL or &lang=es).
+ */
+const CACHE_CONTROL_SUCCESS = "public, s-maxage=120, stale-while-revalidate=600, stale-if-error=3600";
 
 const parser = new Parser({
   timeout: 8000,
@@ -139,7 +152,7 @@ export async function GET(req: Request) {
     const promises = feeds.map(async (url: string) => {
       try {
         const feed = await parser.parseURL(url);
-        return feed.items.map((item) => {
+        const items = feed.items.map((item) => {
           const record = item as unknown as Record<string, unknown>;
           const content =
             typeof record.content === "string"
@@ -156,24 +169,36 @@ export async function GET(req: Request) {
             desc: item.contentSnippet || "",
           } satisfies RssArticle;
         });
+        return { ok: true, items };
       } catch (err) {
         console.error("Feed error:", url, err);
-        return [];
+        return { ok: false, items: [] as RssArticle[] };
       }
     });
 
-    const results = await Promise.all(promises);
-    const deduped = dedupeRssArticles(results.flat());
+    const feedResults = await Promise.all(promises);
+
+    if (didAllFeedsFail(feedResults)) {
+      // Every feed threw (upstream unreachable/429/timeout/malformed XML) -- a genuine, temporary
+      // failure, not "this narrow query has zero matches". Signal it as an error (503) so the CDN's
+      // stale-if-error can serve the last known-good cached copy for this exact selection instead
+      // of a client ever seeing this empty response; never cache this response itself.
+      return NextResponse.json([], { status: 503, headers: { "Cache-Control": "no-store" } });
+    }
+
+    const deduped = dedupeRssArticles(feedResults.flatMap((r) => r.items));
     const all = filterSoccerResultQuality(deduped, category, subcategory);
 
     all.sort(
       (a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()
     );
 
-    return NextResponse.json(all.slice(0, 40));
+    return NextResponse.json(all.slice(0, 40), {
+      headers: { "Cache-Control": CACHE_CONTROL_SUCCESS },
+    });
   } catch (err) {
     console.error("RSS ENGINE ERROR:", err);
-    return NextResponse.json([]);
+    return NextResponse.json([], { status: 503, headers: { "Cache-Control": "no-store" } });
   }
 }
 

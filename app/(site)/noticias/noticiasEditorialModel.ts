@@ -128,6 +128,15 @@ export function isUsableImageSrc(src: unknown): src is string {
   return trimmed.startsWith("/") || /^https?:\/\//i.test(trimmed);
 }
 
+/** Accept only absolute http(s) article links -- never render a javascript:/data:/malformed
+ * scheme from an RSS feed as a clickable href. */
+export function isUsableArticleLink(src: unknown): src is string {
+  if (typeof src !== "string") return false;
+  const trimmed = src.trim();
+  if (!trimmed) return false;
+  return /^https?:\/\//i.test(trimmed);
+}
+
 export function splitDisplayTitle(title?: string): { headline: string; publisher?: string } {
   const raw = (title || "").trim();
   if (!raw) return { headline: "" };

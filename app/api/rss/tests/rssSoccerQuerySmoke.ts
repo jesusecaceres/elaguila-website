@@ -1,6 +1,7 @@
 import {
   buildSearchQuery,
   dedupeRssArticles,
+  didAllFeedsFail,
   filterSoccerResultQuality,
   isAmericanFootballNoise,
   normalizedHeadlineKey,
@@ -109,6 +110,13 @@ export function assertRssSoccerQuerySmoke(): boolean {
   const dedupedFeed = dedupeRssArticles(rawFeed);
   checks.push(dedupedFeed.length === 2);
   checks.push(dedupedFeed.some((a) => a.title.startsWith("Son Heung-min")));
+
+  // N4: didAllFeedsFail distinguishes "every feed threw" (temporary upstream failure) from a
+  // genuinely empty result (feeds fetched fine, just nothing matched) or partial failure.
+  checks.push(didAllFeedsFail([{ ok: false }, { ok: false }, { ok: false }]) === true);
+  checks.push(didAllFeedsFail([{ ok: true }, { ok: false }]) === false);
+  checks.push(didAllFeedsFail([{ ok: true }, { ok: true }]) === false);
+  checks.push(didAllFeedsFail([]) === false);
 
   return checks.every(Boolean);
 }

@@ -4,12 +4,16 @@ const BASE = {
   es: {
     pageTitle: "Noticias",
     subtitle: "Noticias locales, comunidad, cultura y actualidad para nuestra gente.",
-    breakingLabel: "Última Hora",
+    // N4 editorial-truth audit: this label is the most recent story by publish date (see
+    // NoticiasPageClient's `featured` = articles[0]) -- there is no real breaking-news
+    // determination behind it, so "Última Hora" overclaimed urgency. "En Portada" (front page /
+    // top story) truthfully matches what the code actually surfaces.
+    breakingLabel: "En Portada",
   },
   en: {
     pageTitle: "News",
     subtitle: "Local news, community, culture and current stories for our community.",
-    breakingLabel: "Breaking",
+    breakingLabel: "Top Story",
   },
 };
 

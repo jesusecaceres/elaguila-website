@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import type { NoticiasPageCopy } from "@/app/lib/siteSectionContent/noticiasPageMerge";
 import {
   SUBCATEGORIES,
@@ -10,6 +9,7 @@ import {
   excludeShown,
   distinctSummary,
   formatArticleDate,
+  isUsableArticleLink,
   isUsableImageSrc,
   sourceLabel,
   splitDisplayTitle,
@@ -93,16 +93,27 @@ function StoryCard({
   const source = sourceLabel(article);
   const date = formatArticleDate(article.date, lang);
   const summary = distinctSummary(article.title, article.desc);
+  // The site ships a global accessible focus ring (:where(a, button, input, select,
+  // textarea):focus-visible { outline: none; box-shadow: 0 0 0 3px var(--lx-focus-ring) }), but
+  // verified live in-browser it does not reliably win the box-shadow property on these story
+  // links specifically (confirmed via computed style: box-shadow stays at its zero-value default
+  // on focus even with no competing ring/shadow utility present) -- while it works correctly on
+  // plainer elements elsewhere on the page. Rather than depend on that, set the same ring
+  // directly as a single arbitrary-property declaration (bypassing Tailwind's multi-layer ring
+  // composition, which doesn't compose cleanly across combined ring-* utilities either) with `!`
+  // so it always wins, guaranteeing keyboard focus is visible on every story link.
+  const focusRing =
+    "focus-visible:outline-none focus-visible:[box-shadow:0_0_0_3px_var(--lx-focus-ring)]!";
   const className =
     variant === "lead"
-      ? "group block w-full overflow-hidden rounded-md border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] text-left shadow-[0_18px_48px_rgba(42,36,22,0.08)] transition hover:border-[color:var(--lx-gold)] focus-visible:outline-none"
+      ? `group block w-full overflow-hidden rounded-md border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] text-left shadow-[0_18px_48px_rgba(42,36,22,0.08)] transition hover:border-[color:var(--lx-gold)] ${focusRing}`
       : variant === "row"
-        ? "group flex w-full min-h-[44px] flex-col gap-4 rounded-md border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] p-4 text-left transition hover:border-[color:var(--lx-gold)] focus-visible:outline-none md:flex-row"
+        ? `group flex w-full min-h-[44px] flex-col gap-4 rounded-md border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] p-4 text-left transition hover:border-[color:var(--lx-gold)] md:flex-row ${focusRing}`
         : variant === "compact"
-          ? "group flex w-full min-h-11 flex-col gap-1 py-3 text-left transition hover:bg-[color:var(--lx-section)] focus-visible:outline-none sm:flex-row sm:items-baseline sm:justify-between sm:gap-4"
+          ? `group flex w-full min-h-11 flex-col gap-1 py-3 text-left transition hover:bg-[color:var(--lx-section)] sm:flex-row sm:items-baseline sm:justify-between sm:gap-4 ${focusRing}`
           : variant === "trend"
-            ? "group block w-full min-h-[44px] text-left transition focus-visible:outline-none"
-            : "group block w-full min-h-[44px] rounded-md border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] p-3 text-left transition hover:border-[color:var(--lx-gold)] focus-visible:outline-none";
+            ? `group block w-full min-h-[44px] text-left transition ${focusRing}`
+            : `group block w-full min-h-[44px] rounded-md border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] p-3 text-left transition hover:border-[color:var(--lx-gold)] ${focusRing}`;
 
   const inner =
     variant === "lead" ? (
@@ -178,9 +189,7 @@ function StoryCard({
   return <article className={className}>{inner}</article>;
 }
 
-export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
-  const searchParams = useSearchParams();
-  const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
+export function NoticiasPageClient({ shell, lang }: { shell: NoticiasPageCopy; lang: Lang }) {
 
   const t = useMemo(
     () => ({
@@ -201,6 +210,7 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
         breaking: shell.es.breakingLabel,
         cargando: "Cargando noticias...",
         empty: "No hay historias disponibles en este momento.",
+        unavailable: "No pudimos cargar las noticias en este momento. Intenta de nuevo en unos minutos.",
         emptyLocal: "No hay coincidencias locales verificables en este recorte.",
         editorialNote:
           "Leonix Noticias selecciona y organiza historias de distintas fuentes informativas en español e inglés. Cada historia enlaza directamente a la fuente original.",
@@ -222,6 +232,7 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
         breaking: shell.en.breakingLabel,
         cargando: "Loading news...",
         empty: "No stories are available right now.",
+        unavailable: "We couldn't load the news right now. Please try again in a few minutes.",
         emptyLocal: "No verifiable local matches in this slice.",
         editorialNote:
           "Leonix News curates and organizes stories from news sources in Spanish and English. Every story links directly to its original source.",
@@ -258,6 +269,7 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
   const [activeSubcategory, setActiveSubcategory] = useState<string>(SUBCATEGORIES.ultimas[lang][0]);
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [unavailable, setUnavailable] = useState(false);
 
   const subcategories = useMemo(() => SUBCATEGORIES[activeCategory][lang], [activeCategory, lang]);
   const subcategoryNavLabel = lang === "es" ? "Subcategorías de noticias" : "News subcategories";
@@ -269,6 +281,17 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
   }, [activeCategory, lang]);
 
   useEffect(() => {
+    // A primary-category click updates activeCategory first; the separate reset effect above
+    // then updates activeSubcategory to that category's default on the following render. For
+    // the one render in between, activeSubcategory is still the OLD category's value (e.g.
+    // category="tecnologia" paired with subcategory="NFL"), which is not a real selection and
+    // would otherwise cost a wasted /api/rss request. Skip it -- the reset effect's render will
+    // re-run this effect with a valid pairing right after.
+    const validSubcategories: readonly string[] = SUBCATEGORIES[activeCategory][lang];
+    if (!validSubcategories.includes(activeSubcategory)) {
+      return;
+    }
+
     let cancelled = false;
 
     async function loadNews() {
@@ -285,14 +308,23 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
             title,
             desc: typeof a.desc === "string" ? a.desc : undefined,
             img: isUsableImageSrc(a.img) ? a.img.trim() : undefined,
-            link: typeof a.link === "string" ? a.link : undefined,
+            link: isUsableArticleLink(a.link) ? a.link.trim() : undefined,
             date: typeof a.date === "string" ? a.date : undefined,
           };
         });
-        if (!cancelled) setArticles(fixed);
+        if (!cancelled) {
+          setArticles(fixed);
+          // A 503 from /api/rss means every upstream feed failed for this exact selection (see
+          // route.ts) -- a temporary outage, not a genuinely empty result. Distinguish it so the
+          // empty state can say so truthfully instead of implying there is simply no news.
+          setUnavailable(!res.ok);
+        }
       } catch (err) {
         console.error("NEWS LOAD ERROR:", err);
-        if (!cancelled) setArticles([]);
+        if (!cancelled) {
+          setArticles([]);
+          setUnavailable(true);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -333,7 +365,10 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
           ) : null}
         </header>
 
-        {featured?.title ? (
+        {/* Gated on !loading: `articles` still holds the PREVIOUS selection's results while a
+            new category/subcategory fetch is in flight, so showing this unconditionally could
+            flash the old selection's headline labeled as the new selection's top story. */}
+        {!loading && featured?.title ? (
           <p
             className="mt-5 flex min-h-[44px] flex-wrap items-baseline gap-x-3 gap-y-1 border-y border-[color:var(--lx-gold-border)] bg-[#7A1E2C]/8 px-3 py-3 text-sm sm:px-4"
             role="status"
@@ -392,7 +427,7 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
         {loading ? (
           <p className="mt-10 text-sm font-semibold text-[color:var(--lx-text-2)]">{L.cargando}</p>
         ) : !featured ? (
-          <p className="mt-10 text-sm text-[color:var(--lx-text-2)]">{L.empty}</p>
+          <p className="mt-10 text-sm text-[color:var(--lx-text-2)]">{unavailable ? L.unavailable : L.empty}</p>
         ) : (
           <>
             <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">

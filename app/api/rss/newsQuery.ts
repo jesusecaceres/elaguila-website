@@ -544,3 +544,15 @@ export function dedupeRssArticles<T extends { link?: string; title?: string }>(i
 
   return deduped;
 }
+
+/**
+ * True only when every single feed fetch for this request threw (upstream unreachable, 429,
+ * timeout, malformed XML, etc) -- never when feeds fetched successfully but simply had nothing
+ * matching a narrow query. This distinction (see route.ts GET) lets the API return a distinct
+ * "temporarily unavailable" signal instead of silently reporting a genuinely-empty result as if
+ * upstream were healthy. Deliberately conservative: an empty `results` array (no feeds configured
+ * at all) is not treated as a failure -- there is nothing to have failed.
+ */
+export function didAllFeedsFail(results: { ok: boolean }[]): boolean {
+  return results.length > 0 && results.every((r) => !r.ok);
+}

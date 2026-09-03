@@ -21,12 +21,17 @@ export default async function NoticiasPage(props: { searchParams?: Promise<{ lan
   const lang = normalizeLang(sp.lang);
   const { payload } = await getSiteSectionPayload("noticias_page");
   const shell = mergeNoticiasPagePayload(payload);
+  // Noticias itself only ships es/en copy (unlike the site-wide normalizeLang() above, which
+  // resolves the full multi-locale set for metadata/JSON-LD) -- narrow the same way the client
+  // component used to via its own useSearchParams() read, so this server-computed value is a
+  // drop-in replacement with identical behavior for every existing ?lang= value.
+  const noticiasLang = sp.lang === "en" ? "en" : "es";
 
   return (
     <>
       <PublicPillarJsonLd id="noticias" lang={lang} />
       <Suspense fallback={null}>
-        <NoticiasPageClient shell={shell} />
+        <NoticiasPageClient shell={shell} lang={noticiasLang} />
       </Suspense>
     </>
   );
