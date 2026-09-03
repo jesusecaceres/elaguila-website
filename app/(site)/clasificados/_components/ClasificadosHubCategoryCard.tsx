@@ -183,7 +183,7 @@ export function ClasificadosHubCategoryCard({
 
   return (
     <article
-      className={`group flex h-full flex-col overflow-hidden rounded-2xl border-2 border-t-[3px] bg-gradient-to-br from-[#FFFCF7] via-[#FFFCF7] to-[#FAF6EE] shadow-[0_10px_28px_-18px_rgba(31,36,28,0.18)] ${borderClass} ${topAccent}`}
+      className={`group flex h-full w-full flex-col overflow-hidden rounded-2xl border-2 border-t-[3px] bg-gradient-to-br from-[#FFFCF7] via-[#FFFCF7] to-[#FAF6EE] shadow-[0_10px_28px_-18px_rgba(31,36,28,0.18)] ${borderClass} ${topAccent}`}
     >
       {imageSrc && !imageFailed ? (
         <div className="relative aspect-[4/3] w-full overflow-hidden">
@@ -209,9 +209,15 @@ export function ClasificadosHubCategoryCard({
         >
           {resolvedIcon}
         </span>
-        <h3 className="mt-4 text-base font-bold leading-snug text-[#1E1810]">{label}</h3>
-        {resolvedNote ? <p className="mt-1 text-xs font-semibold text-[#556B3E]">{resolvedNote}</p> : null}
-        <p className="mt-2 flex-1 text-sm leading-relaxed text-[#3D3428]">{description}</p>
+        <h3 className="mt-4 line-clamp-2 min-h-[2.5rem] text-base font-bold leading-snug text-[#1E1810]">
+          {label}
+        </h3>
+        <p
+          className={`mt-1 min-h-[1rem] text-xs font-semibold leading-tight text-[#556B3E] ${resolvedNote ? "" : "invisible"}`}
+        >
+          {resolvedNote || " "}
+        </p>
+        <p className="mt-2 line-clamp-3 flex-1 text-sm leading-relaxed text-[#3D3428]">{description}</p>
         <div className="mt-auto flex flex-col gap-3 border-t border-[#D6C7AD]/45 pt-5">
           <Link
             href={browseHref}
