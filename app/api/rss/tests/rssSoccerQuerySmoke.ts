@@ -1,7 +1,10 @@
 import {
   buildSearchQuery,
+  dedupeRssArticles,
   filterSoccerResultQuality,
   isAmericanFootballNoise,
+  normalizedHeadlineKey,
+  shouldUseSpecializedFeeds,
 } from "../newsQuery";
 
 /**
@@ -20,13 +23,16 @@ export function assertRssSoccerQuerySmoke(): boolean {
 
   const enSoccer = buildSearchQuery("deportes", "soccer", "en");
   const enFutbol = buildSearchQuery("deportes", "futbol", "en");
-  // The old bug: bare "football" with no exclusion, e.g. "soccer football news Latino".
-  // "football" may still appear negated (e.g. -"college football") — that is the fix, not the bug.
+  // The original bug: bare "football" with no exclusion, e.g. "soccer football news Latino".
   checks.push(!/football news/i.test(enSoccer));
   checks.push(!/football news/i.test(enFutbol));
   checks.push(/\bsoccer\b/i.test(enSoccer));
   checks.push(/-NFL/i.test(enSoccer));
-  checks.push(/-"college football"|-college football/i.test(enSoccer));
+  // N3 regression: a quoted multi-word exclusion (e.g. -"college football") combined with this
+  // many other terms was proven (live, 2026-09-03) to make Google News RSS search return ZERO
+  // results — a live, empirically confirmed defect, not a style preference. The query must never
+  // contain a quoted phrase again.
+  checks.push(!/-"/.test(enSoccer));
   checks.push(enSoccer === enFutbol);
 
   const esFutbol = buildSearchQuery("deportes", "futbol", "es");
@@ -60,6 +66,49 @@ export function assertRssSoccerQuerySmoke(): boolean {
 
   const filteredUnrelated = filterSoccerResultQuality(mixedFeed, "tecnologia", "ia");
   checks.push(filteredUnrelated.length === mixedFeed.length);
+
+  // N3: subcategories under a category with a diluting generic base feed (deportes, tecnologia,
+  // negocios, internacional) skip it in English; NFL and NCAA are exempt (proven to benefit from
+  // it); "local"/"ultimas"/"tendencias" are never affected (no diluting base feed to skip); ES is
+  // always false.
+  checks.push(shouldUseSpecializedFeeds("deportes", "nba", "en") === true);
+  checks.push(shouldUseSpecializedFeeds("deportes", "mlb", "en") === true);
+  checks.push(shouldUseSpecializedFeeds("deportes", "nhl", "en") === true);
+  checks.push(shouldUseSpecializedFeeds("deportes", "boxing", "en") === true);
+  checks.push(shouldUseSpecializedFeeds("deportes", "soccer", "en") === true);
+  checks.push(shouldUseSpecializedFeeds("deportes", "nfl", "en") === false);
+  checks.push(shouldUseSpecializedFeeds("deportes", "ncaa", "en") === false);
+  checks.push(shouldUseSpecializedFeeds("negocios", "entrepreneurs", "en") === true);
+  checks.push(shouldUseSpecializedFeeds("tecnologia", "ai", "en") === true);
+  checks.push(shouldUseSpecializedFeeds("internacional", "mexico", "en") === true);
+  checks.push(shouldUseSpecializedFeeds("local", "san jose", "en") === false);
+  checks.push(shouldUseSpecializedFeeds("ultimas", "breaking", "en") === false);
+  checks.push(shouldUseSpecializedFeeds("deportes", "nba", "es") === false);
+  checks.push(shouldUseSpecializedFeeds("negocios", "entrepreneurs", "es") === false);
+
+  // N3: normalized headline key strips a genuine "Headline - Publisher" suffix but leaves a
+  // headline that merely contains a hyphen alone.
+  checks.push(
+    normalizedHeadlineKey("Liga MX Wants Back In: Mexican Clubs Return? - Soy Futbol") ===
+      "liga mx wants back in: mexican clubs return?"
+  );
+  checks.push(
+    normalizedHeadlineKey("Team-building exercises boost morale") ===
+      "team-building exercises boost morale"
+  );
+
+  // N3: dedupe catches the same story surfaced by two different Google News queries with
+  // different tracking-URL blobs (link differs) but an identical or publisher-suffix-only-
+  // different title, while never merging genuinely distinct stories.
+  const rawFeed = [
+    { title: "Liga MX Dominates Leagues Cup - Soy Futbol", link: "https://news.google.com/rss/articles/AAA" },
+    { title: "Liga MX Dominates Leagues Cup - Soy Futbol", link: "https://news.google.com/rss/articles/BBB" },
+    { title: "Liga MX Dominates Leagues Cup - ESPN", link: "https://news.google.com/rss/articles/CCC" },
+    { title: "Son Heung-min scores twice for MLS All-Stars", link: "https://news.google.com/rss/articles/DDD" },
+  ];
+  const dedupedFeed = dedupeRssArticles(rawFeed);
+  checks.push(dedupedFeed.length === 2);
+  checks.push(dedupedFeed.some((a) => a.title.startsWith("Son Heung-min")));
 
   return checks.every(Boolean);
 }

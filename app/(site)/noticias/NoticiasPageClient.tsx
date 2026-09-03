@@ -203,7 +203,7 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
         empty: "No hay historias disponibles en este momento.",
         emptyLocal: "No hay coincidencias locales verificables en este recorte.",
         editorialNote:
-          "Leonix Noticias selecciona y organiza historias de medios verificados en español e inglés. Cada historia enlaza directamente a la fuente original.",
+          "Leonix Noticias selecciona y organiza historias de distintas fuentes informativas en español e inglés. Cada historia enlaza directamente a la fuente original.",
       },
       en: {
         eyebrow: "LEONIX NEWS",
@@ -224,7 +224,7 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
         empty: "No stories are available right now.",
         emptyLocal: "No verifiable local matches in this slice.",
         editorialNote:
-          "Leonix News curates and organizes stories from verified outlets in Spanish and English. Every story links directly to its original source.",
+          "Leonix News curates and organizes stories from news sources in Spanish and English. Every story links directly to its original source.",
       },
     }),
     [shell]

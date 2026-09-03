@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import Parser from "rss-parser";
 import {
   buildSearchQuery,
+  dedupeRssArticles,
   filterSoccerResultQuality,
   googleNewsRssUrl,
-  normalizeSubcategory,
+  shouldUseSpecializedFeeds,
 } from "./newsQuery";
 
 const parser = new Parser({
@@ -29,33 +30,22 @@ type RssArticle = {
 };
 
 const SOURCES_ES: Record<string, string[]> = {
-  deportes: [
-    "https://www.univision.com/feeds/sports.xml",
-    "https://www.telemundodeportes.com/rss.xml",
-    "https://www.espn.com/espn/rss/news",
-    "https://news.google.com/rss/search?q=deportes+latinoamerica&hl=es&gl=US&ceid=US:es",
-  ],
-  tecnologia: [
-    "https://www.xataka.com/tag/rss",
-    "https://cnnespanol.cnn.com/category/tecnologia/rss",
-    "https://news.google.com/rss/search?q=tecnologia+latinoamerica&hl=es&gl=US&ceid=US:es",
-  ],
-  negocios: [
-    "https://cnnespanol.cnn.com/category/economia/rss",
-    "https://www.forbes.com.mx/feed/",
-    "https://news.google.com/rss/search?q=negocios+latinoamerica&hl=es&gl=US&ceid=US:es",
-  ],
+  // N3 (2026-09-03): removed dead/broken publisher feeds confirmed by direct fetch --
+  // univision.com/feeds/sports.xml (404), telemundodeportes.com/rss.xml (serves an HTML page,
+  // not RSS), xataka.com/tag/rss (serves an HTML page, not RSS), cnnespanol.cnn.com/category/
+  // {tecnologia,economia,internacional}/rss (404, CNN Español restructured these endpoints),
+  // forbes.com.mx/feed/ (403 blocked), univision.com/feeds/entertainment.xml (404),
+  // telemundo.com/rss/entretenimiento (404), peopleenespanol.com/feed/ (404). Each was already
+  // failing silently on every request (caught per-feed, logged, contributed nothing) -- removing
+  // them cuts dead-request latency/log noise without changing delivered content.
+  deportes: ["https://news.google.com/rss/search?q=deportes+latinoamerica&hl=es&gl=US&ceid=US:es"],
+  tecnologia: ["https://news.google.com/rss/search?q=tecnologia+latinoamerica&hl=es&gl=US&ceid=US:es"],
+  negocios: ["https://news.google.com/rss/search?q=negocios+latinoamerica&hl=es&gl=US&ceid=US:es"],
   internacional: [
     "https://www.bbc.com/mundo/ultimas_noticias/index.xml",
-    "https://cnnespanol.cnn.com/category/internacional/rss",
     "https://news.google.com/rss/search?q=noticias+internacionales&hl=es&gl=US&ceid=US:es",
   ],
-  cultura: [
-    "https://www.univision.com/feeds/entertainment.xml",
-    "https://www.telemundo.com/rss/entretenimiento",
-    "https://peopleenespanol.com/feed/",
-    "https://news.google.com/rss/search?q=cultura+latina&hl=es&gl=US&ceid=US:es",
-  ],
+  cultura: ["https://news.google.com/rss/search?q=cultura+latina&hl=es&gl=US&ceid=US:es"],
   local: [
     "https://news.google.com/rss/search?q=San+Jos%C3%A9+Santa+Clara+noticias&hl=es&gl=US&ceid=US:es",
     "https://news.google.com/rss/search?q=%C3%81rea+de+la+Bah%C3%ADa+Silicon+Valley+noticias&hl=es&gl=US&ceid=US:es",
@@ -83,15 +73,14 @@ const SOURCES_EN: Record<string, string[]> = {
     "https://www.cnbc.com/id/10001147/device/rss/rss.html",
     "https://news.google.com/rss/search?q=latino+business&hl=en&gl=US&ceid=US:en",
   ],
+  // N3 (2026-09-03): removed rss.cnn.com/rss/cnn_world.rss (DNS/connection failure, unreachable)
+  // and nbcnews.com/latino/latino-news/rss.xml (serves an HTML page, not RSS) -- both confirmed
+  // dead by direct fetch; each already failed silently on every request.
   internacional: [
     "https://feeds.bbci.co.uk/news/world/rss.xml",
-    "https://rss.cnn.com/rss/cnn_world.rss",
     "https://news.google.com/rss/search?q=latin+america+news&hl=en&gl=US&ceid=US:en",
   ],
-  cultura: [
-    "https://news.google.com/rss/search?q=latino+culture&hl=en&gl=US&ceid=US:en",
-    "https://www.nbcnews.com/latino/latino-news/rss.xml",
-  ],
+  cultura: ["https://news.google.com/rss/search?q=latino+culture&hl=en&gl=US&ceid=US:en"],
   local: [
     "https://news.google.com/rss/search?q=San+Jose+Santa+Clara+County+news&hl=en&gl=US&ceid=US:en",
     "https://news.google.com/rss/search?q=Bay+Area+Silicon+Valley+news&hl=en&gl=US&ceid=US:en",
@@ -121,13 +110,11 @@ function getFeedUrls(category: string, subcategory: string | null, lang: Lang): 
       ? `${trimmed} ${category} noticias comunidad latina`
       : `${trimmed} ${category} news Latino community`;
 
-  const normalizedSub = normalizeSubcategory(trimmed);
-  const isSoccerSubcategory =
-    category === "deportes" && (normalizedSub === "futbol" || normalizedSub === "soccer");
-  if (isSoccerSubcategory) {
-    // The general deportes base feeds (e.g. ESPN's all-sports feed) are not soccer-scoped and
-    // flood this subcategory with unrelated sports (golf, NCAA eligibility, MLB, etc). Soccer
-    // relies only on its two dedicated, query-scoped Google News searches.
+  if (shouldUseSpecializedFeeds(category, trimmed, lang)) {
+    // The generic category base feed is not subcategory-scoped and dilutes a narrower
+    // subcategory with unrelated content from the same broad category. This subcategory relies
+    // only on its two dedicated, query-scoped Google News searches. See shouldUseSpecializedFeeds
+    // for which (category, subcategory) pairs this covers and the evidence behind each.
     return [googleNewsRssUrl(primaryQuery, lang), googleNewsRssUrl(secondaryQuery, lang)];
   }
 
@@ -137,29 +124,6 @@ function getFeedUrls(category: string, subcategory: string | null, lang: Lang): 
     // Include two publisher feeds so image-bearing sources (e.g. Engadget enclosures) surface alongside Google News.
     ...baseFeeds.slice(0, 2),
   ];
-}
-
-function dedupeArticles(items: RssArticle[]): RssArticle[] {
-  const seenLinks = new Set<string>();
-  const seenTitles = new Set<string>();
-  const deduped: RssArticle[] = [];
-
-  for (const item of items) {
-    const link = (item.link || "").trim();
-    const title = (item.title || "").trim().toLowerCase();
-
-    if (link) {
-      if (seenLinks.has(link)) continue;
-      seenLinks.add(link);
-    } else if (title) {
-      if (seenTitles.has(title)) continue;
-      seenTitles.add(title);
-    }
-
-    deduped.push(item);
-  }
-
-  return deduped;
 }
 
 export async function GET(req: Request) {
@@ -199,7 +163,7 @@ export async function GET(req: Request) {
     });
 
     const results = await Promise.all(promises);
-    const deduped = dedupeArticles(results.flat());
+    const deduped = dedupeRssArticles(results.flat());
     const all = filterSoccerResultQuality(deduped, category, subcategory);
 
     all.sort(
