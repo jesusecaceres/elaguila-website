@@ -47,7 +47,7 @@ import { ServiciosBusinessHubMapPanel } from "./ServiciosBusinessHubMapPanel";
 import { ServiciosActionPanelAreasMap } from "./ServiciosActionPanelAreasMap";
 import { ServiciosOfferCard } from "./ServiciosOfferCard";
 import { ContactEmailMenu } from "@/app/components/contact/ContactEmailMenu";
-import { SharedConnectionHubReviewButton } from "@/app/components/contact/connectionHub/renderers/SharedConnectionHubReviewButton";
+import { SharedConnectionHubReviewDrawer } from "@/app/components/contact/connectionHub/renderers/SharedConnectionHubReviewDrawer";
 import { buildSendEmailIntent, CtaActionSheet } from "@/app/components/cta";
 import type { CtaSheetIntent } from "@/app/components/cta/types";
 import { copyToClipboard } from "@/app/components/cta/ctaLaunchers";
@@ -625,21 +625,30 @@ export function ServiciosBusinessHubContactCard({
                     <HubSectionTitle>
                       <span id="hub-reviews-heading">{labels.reviews}</span>
                     </HubSectionTitle>
-                    <div className="mt-2 flex flex-col gap-2">
-                      {/* Global Business Hub OS — surgical adoption: swapped from
-                          ServiciosHubReviewLinkButton to the new shared Level-A link-only review
-                          button (behavior-equivalent — this mapper never sets rating/reviewCount,
-                          so the visible output is unchanged; this removes even the latent
-                          possibility of a future caller feeding it a fake rating). The old
-                          component is retained, undeleted (still has other doc/test references). */}
-                      {vm.reviews.map((link) => (
-                        <SharedConnectionHubReviewButton
-                          key={link.id}
-                          link={{ provider: link.id === "yelp" ? "yelp" : "google", label: link.label, url: link.url }}
-                          lang={lang}
-                          onClick={() => openReviewLink(link)}
-                        />
-                      ))}
+                    <div className="mt-2">
+                      {/* Globalization Build B (Gate B5) — the N inline review buttons are now
+                          one shared drawer trigger; the drawer hosts the same Level-A link-only
+                          buttons unchanged (still never a rating/count — this mapper never sets
+                          them). ServiciosHubReviewLinkButton (the old pre-shared component) has
+                          been deleted; nothing else referenced it. */}
+                      <SharedConnectionHubReviewDrawer
+                        links={vm.reviews.map((link) => ({
+                          provider: link.id === "yelp" ? ("yelp" as const) : ("google" as const),
+                          label: link.label,
+                          url: link.url,
+                        }))}
+                        lang={lang}
+                        businessName={profile.identity?.businessName}
+                        onLinkClick={(link) =>
+                          openReviewLink(
+                            vm.reviews.find((r) => r.url === link.url) ?? {
+                              id: link.provider === "yelp" ? "yelp" : "google_review",
+                              label: link.label,
+                              url: link.url,
+                            },
+                          )
+                        }
+                      />
                     </div>
                   </section>
                 ) : null}

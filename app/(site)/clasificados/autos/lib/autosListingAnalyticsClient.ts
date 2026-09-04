@@ -9,8 +9,17 @@ import {
 } from "./recordAutosGlobalAnalytics";
 
 /**
- * Best-effort fire-and-forget: legacy ops log + global /api/analytics/events (AUTO1).
- * Sets `clientListingAnalytics: true` on legacy metadata so a future mirror would skip double-count.
+ * Best-effort fire-and-forget write to the canonical shared /api/analytics/events pipeline
+ * (AUTO1).
+ *
+ * Globalization Build D-F3 — this used to ALSO beacon/fetch a second, Autos-only write to the
+ * legacy `autos_classifieds_analytics_events` table via `/api/clasificados/autos/public/
+ * analytics/event`. That table had zero readers (`rollupAutosListingEventCounts` in
+ * `autosClassifiedsAnalyticsService.ts` has no callers anywhere in the app — the real owner-facing
+ * summary already reads only the canonical `listing_analytics` table) and wasn't gated by the
+ * same self-engagement/dedupe guards the canonical endpoint has, so it was pure duplicate-write
+ * risk with no benefit. The legacy endpoint/table are left in place (dormant, documented) for
+ * backward compatibility, but nothing writes to them anymore.
  */
 export function trackAutosListingEvent(
   listingId: string,
@@ -19,8 +28,6 @@ export function trackAutosListingEvent(
     lane?: AutosClassifiedsLane;
     leonixAdId?: string | null;
     metadata?: Record<string, unknown>;
-    /** Ops-only legacy row — skip global listing_analytics (detail view uses profile analytics). */
-    legacyOnly?: boolean;
   },
 ): void {
   if (typeof window === "undefined" || !listingId || !leonixAnalyticsAllowed()) return;
@@ -30,7 +37,7 @@ export function trackAutosListingEvent(
     id: sourceId,
     leonix_ad_id: opts?.leonixAdId,
   });
-  const globalType = opts?.legacyOnly ? null : mapAutosOpsEventToGlobal(eventType);
+  const globalType = mapAutosOpsEventToGlobal(eventType);
   const eventSource =
     eventType === "result_card_click"
       ? "results_card"
@@ -47,31 +54,5 @@ export function trackAutosListingEvent(
         ...(opts?.metadata ?? {}),
       },
     });
-  }
-
-  try {
-    const body = JSON.stringify({
-      listingId: sourceId,
-      leonixAdId: opts?.leonixAdId?.trim() ? opts.leonixAdId.trim() : undefined,
-      eventType,
-      lane: opts?.lane,
-      metadata: {
-        ...(opts?.metadata ?? {}),
-        clientListingAnalytics: Boolean(listing && globalType),
-      },
-    });
-    if (navigator.sendBeacon) {
-      const blob = new Blob([body], { type: "application/json" });
-      navigator.sendBeacon("/api/clasificados/autos/public/analytics/event", blob);
-      return;
-    }
-    void fetch("/api/clasificados/autos/public/analytics/event", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body,
-      keepalive: true,
-    });
-  } catch {
-    /* ignore */
   }
 }

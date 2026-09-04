@@ -3,6 +3,7 @@
  */
 
 import type { BusinessWeeklyHours } from "@/app/lib/businessHours/computeBusinessHoursStatus";
+import type { AdditionalWebsiteEntry } from "@/app/lib/additionalWebsites/additionalWebsiteEntry";
 
 export type { BusinessWeeklyHours };
 
@@ -165,6 +166,11 @@ export type ComidaLocalDraft = {
   instagramUrl: string;
   facebookUrl: string;
   tiktokUrl: string;
+  /** Gate Build D-S1 — real Google/Yelp review page URLs only (never an owner-typed rating,
+   * review count, or fake verification). Reuses the shared Google/Yelp reputation drawer from
+   * Build B; missing URL hides that provider. */
+  googleReviewsUrl: string;
+  yelpReviewsUrl: string;
   /** Gate D5 "Encuéntrame hoy" — today's/current location note+link. Never the permanent address. */
   locationNote: string;
   locationUrl: string;
@@ -219,7 +225,6 @@ export type ComidaLocalDraft = {
   galleryImages: ComidaLocalImageDraft[];
 };
 
-export type ComidaLocalAdditionalWebsite = {
-  label: string;
-  url: string;
-};
+/** @deprecated Use the shared `AdditionalWebsiteEntry` directly — kept as an alias so existing
+ * imports of `ComidaLocalAdditionalWebsite` continue to resolve unchanged. */
+export type ComidaLocalAdditionalWebsite = AdditionalWebsiteEntry;

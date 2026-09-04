@@ -7,6 +7,7 @@
  */
 
 import type { RestauranteAmenitiesSelection } from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
+import type { AdditionalWebsiteEntry } from "@/app/lib/additionalWebsites/additionalWebsiteEntry";
 import { isRestauranteIdbRef } from "./restauranteDraftMedia";
 import { computePublishGallerySequence } from "./restauranteGalleryMediaSequence";
 import {
@@ -350,10 +351,9 @@ export type RestauranteContactCta = {
   additionalWebsites?: RestauranteAdditionalWebsite[];
 };
 
-export type RestauranteAdditionalWebsite = {
-  label: string;
-  url: string;
-};
+/** @deprecated Use the shared `AdditionalWebsiteEntry` directly — kept as an alias so existing
+ * imports of `RestauranteAdditionalWebsite` continue to resolve unchanged. */
+export type RestauranteAdditionalWebsite = AdditionalWebsiteEntry;
 
 // ---------------------------------------------------------------------------
 // E. Location (address; shares cityCanonical + zipCode with A — not duplicated in type)

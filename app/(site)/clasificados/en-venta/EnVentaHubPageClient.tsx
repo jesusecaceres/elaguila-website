@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { navCopyLang, normalizeLang, replaceLangInHref } from "@/app/lib/language";
+import { navCopyLang, replaceLangInHref, resolveRouteLang } from "@/app/lib/language";
 import { useSearchParams } from "next/navigation";
 import { buildEnVentaResultsUrl } from "./shared/constants/enVentaResultsRoutes";
 import { EN_VENTA_DEPARTMENTS } from "./taxonomy/categories";
@@ -65,7 +65,9 @@ const DISCOVERY_ICONS: Record<(typeof DISCOVERY_DEPT_KEYS)[number], React.Compon
 
 export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }) {
   const sp = useSearchParams();
-  const routeLang = normalizeLang(sp?.get("lang"));
+  // Globalization Build D-F5 — was normalizeLang(), which ignores the visitor's stored
+  // leonix_lang cookie/localStorage preference when the URL has no `?lang=`.
+  const routeLang = resolveRouteLang(sp?.get("lang"));
   const lang: Lang = navCopyLang(routeLang);
 
   const publishHref = replaceLangInHref("/clasificados/publicar/en-venta", routeLang);

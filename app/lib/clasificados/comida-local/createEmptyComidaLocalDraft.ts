@@ -47,6 +47,8 @@ export function createEmptyComidaLocalDraft(): ComidaLocalDraft {
     instagramUrl: "",
     facebookUrl: "",
     tiktokUrl: "",
+    googleReviewsUrl: "",
+    yelpReviewsUrl: "",
     locationNote: "",
     locationUrl: "",
     mobileOrderLinkUrl: "",

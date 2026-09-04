@@ -119,6 +119,7 @@ import {
 } from "../lib/dashboardRepublishUi";
 import { resolveListingLifecycle } from "@/app/lib/listingLifecycle/resolveListingLifecycle";
 import { RENTAS_LISTING_LIFECYCLE_CONFIG } from "@/app/lib/listingLifecycle/listingLifecycleConfig";
+import { BR_FSBO_LIFECYCLE_CONFIG } from "@/app/lib/listingLifecycle/activePaidEditCheckoutOwnership";
 import { startListingRenewalCheckout } from "@/app/lib/listingLifecycle/listingRenewalCheckout";
 import { ComidaLocalDashboardListings } from "@/app/lib/clasificados/comida-local/ComidaLocalDashboardListings";
 import { fetchOwnerComidaLocalListings } from "@/app/lib/clasificados/comida-local/comidaLocalDashboardQueries";
@@ -2123,6 +2124,27 @@ function MyListingsPageContent() {
                           RENTAS_LISTING_LIFECYCLE_CONFIG,
                         )
                       : null;
+                  // Globalization Build D-F2B — Bienes Raíces FSBO ($49.99/45d) already had this
+                  // exact lifecycle config server-side (used only by the checkout no-recharge
+                  // guard); it was never surfaced to the owner dashboard. BR Negocio keeps its own
+                  // separate OwnerFacingStatusKey system (subscription, no fixed expiry) and is
+                  // intentionally excluded here. renewalPackageKey is null in this config, so
+                  // isRenewalEligible always resolves false — no renewal action is added, matching
+                  // this product's real one-shot (not renew-in-place) design.
+                  const brFsboLifecycle =
+                    catKey === "bienes-raices" && !isBrNegocioListing(x)
+                      ? resolveListingLifecycle(
+                          {
+                            category: "bienes-raices",
+                            packageKey: "br_fsbo_45d",
+                            status: x.status,
+                            isPublished: x.is_published,
+                            publishedAt: x.published_at,
+                            expiresAt: x.expires_at,
+                          },
+                          BR_FSBO_LIFECYCLE_CONFIG,
+                        )
+                      : null;
                   // Gate G.2.3.1 — BR-specific client eligibility, paired with the server-side
                   // fix in `applyBrRepublish`: Republish for a Bienes Raíces Negocio row must
                   // never appear enabled for pending/paused/flagged/sold/removed/unknown states,
@@ -2174,7 +2196,7 @@ function MyListingsPageContent() {
                       republishPrimaryLabel={repLabel}
                       onRepublish={repLabel ? () => void renewListingsTableRepublish(x) : undefined}
                       republishBusy={busy}
-                      lifecycle={rentasLifecycle}
+                      lifecycle={rentasLifecycle ?? brFsboLifecycle}
                       renewalBusy={renewalCheckoutBusyId === x.id}
                       onRenew={rentasLifecycle?.isRenewalEligible ? () => void startRentasRenewal(x) : undefined}
                       parentLeonixAdIdByListingId={parentLeonixAdIdByListingId}

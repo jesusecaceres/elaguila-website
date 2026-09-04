@@ -1,6 +1,6 @@
 /** Shared C2 shell copy for Busco / Se busca routes. */
 
-import { navCopyLang, normalizeLang, replaceLangInHref, type SupportedLang } from "@/app/lib/language";
+import { navCopyLang, replaceLangInHref, resolveRouteLang, type SupportedLang } from "@/app/lib/language";
 
 export type BuscoShellLang = "es" | "en";
 
@@ -21,11 +21,11 @@ export const BUSCO_PRODUCT = {
 } as const;
 
 export function buscoLangFromSearchParams(sp: { get: (k: string) => string | null } | null): BuscoShellLang {
-  return navCopyLang(normalizeLang(sp?.get("lang")));
+  return navCopyLang(resolveRouteLang(sp?.get("lang")));
 }
 
 export function buscoRouteLangFromSearchParams(sp: { get: (k: string) => string | null } | null): SupportedLang {
-  return normalizeLang(sp?.get("lang"));
+  return resolveRouteLang(sp?.get("lang"));
 }
 
 export function buscoPathWithLang(path: string, routeLang: SupportedLang): string {

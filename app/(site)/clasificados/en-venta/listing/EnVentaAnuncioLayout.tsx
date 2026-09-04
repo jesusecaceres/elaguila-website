@@ -74,9 +74,9 @@ import {
   buildBrLiveGate12dOpenHouseCard,
   buildBrPublicLocationForLiveDetail,
 } from "@/app/clasificados/lib/leonixBrGate12d";
-import { trackEnVentaListingOpen, trackEnVentaListingView } from "../analytics/enVentaAnalytics";
 import {
   trackEnVentaContactClickGlobal,
+  trackEnVentaListingViewGlobal,
   type EnVentaGlobalAnalyticsContext,
 } from "@/app/lib/clasificados/en-venta/analytics/enVentaGlobalAnalytics";
 import {
@@ -463,8 +463,13 @@ export function EnVentaAnuncioLayout({
       } = await supabase.auth.getUser();
       if (cancelled) return;
       const uid = user?.id ?? null;
-      trackEnVentaListingView(listing.id, uid);
-      trackEnVentaListingOpen(listing.id, uid);
+      // Globalization Build D-F5 — these two calls previously wrote directly to the legacy
+      // listing_analytics table from the client (app/lib/listingAnalytics.ts), bypassing the
+      // canonical POST /api/analytics/events pipeline and its server-side self-engagement guard.
+      trackEnVentaListingViewGlobal({
+        listingUuid: listing.id.trim(),
+        leonixAdId: (listing.leonix_ad_id ?? "").trim() || undefined,
+      });
       if (uid) {
         const { data } = await supabase
           .from("saved_listings")

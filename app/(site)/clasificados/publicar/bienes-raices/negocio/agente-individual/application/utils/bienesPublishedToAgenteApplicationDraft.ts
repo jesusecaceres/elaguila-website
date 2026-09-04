@@ -15,11 +15,17 @@ import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { listingsQueryWithSelectShrink } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
 import { stripLeonixPublishedDescriptionBody } from "@/app/clasificados/lib/leonixListingGalleryMarker";
 import {
+  parseLeonixContactChannelsV1FromDetailPairs,
+  leonixContactChannelsFormSliceFromPayload,
+} from "@/app/clasificados/lib/leonixContactChannelsV1";
+import { parsePublishedBusinessExtraLinks } from "../../../application/bienesAdditionalBusinessLinks";
+import {
   createEmptyBrNegocioAdditionalInventoryPropertyDraft,
   normalizeChildInventoryDraft,
   type BrNegocioAdditionalInventoryPropertyDraft,
 } from "../../../application/brNegocioAdditionalInventoryDraft";
 import {
+  AGENTE_RES_MAX_BUSINESS_URLS,
   createEmptyAgenteIndividualResidencialState,
   type AgenteIndividualResidencialFormState,
 } from "../../schema/agenteIndividualResidencialFormState";
@@ -53,6 +59,16 @@ function durableHttpUrls(raw: unknown): string[] {
     if (!out.includes(url)) out.push(url);
   }
   return out;
+}
+
+function parseBusinessMetaObject(raw: unknown): Record<string, unknown> {
+  if (typeof raw !== "string" || !raw.trim()) return {};
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
 }
 
 function pairValue(detailPairs: unknown, label: string): string {
@@ -126,6 +142,21 @@ export function bienesPublishedRowToAgenteApplicationDraft(input: {
 
   const packEnabled = children.length > 0;
 
+  // Globalization F2B closeout — website/social/business-link fields were previously omitted
+  // entirely here, silently resetting them to blank on every dashboard edit even though the
+  // already-published listing continues to display them correctly. Reuses the same
+  // `Leonix:contact_channels_v1` parser/contract already fixed for Rentas
+  // (rentasDashboardEditHydration.ts) plus BRN's own separate additional-business-links parser
+  // (previously only consumed by the public listing page).
+  const contactChannels = leonixContactChannelsFormSliceFromPayload(
+    parseLeonixContactChannelsV1FromDetailPairs(row.detail_pairs),
+  );
+  const businessMeta = parseBusinessMetaObject(row.business_meta);
+  const businessExtraUrls = parsePublishedBusinessExtraLinks(
+    businessMeta.negocioBusinessExtraUrls,
+    AGENTE_RES_MAX_BUSINESS_URLS,
+  );
+
   return {
     ...base,
     categoriaPropiedad: categoria,
@@ -135,6 +166,14 @@ export function bienesPublishedRowToAgenteApplicationDraft(input: {
     ciudad: trim(row.city),
     fotosDataUrls: photos,
     fotoPortadaIndex: 0,
+    ctaUrlListadoCompleto: contactChannels.masInformacionUrl,
+    socialInstagram: contactChannels.instagram,
+    socialFacebook: contactChannels.facebook,
+    socialYoutube: contactChannels.youtube,
+    socialTiktok: contactChannels.tiktok,
+    permitirLlamar: contactChannels.permitirLlamadas !== "no",
+    permitirWhatsApp: contactChannels.whatsappActivo !== "no",
+    businessExtraUrls,
     inventoryPackAccepted: false,
     additionalInventoryProperties: children,
     confirmListingAccurate: true,

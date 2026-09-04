@@ -181,6 +181,77 @@ async function deliverClaimedEvent(supabase: SupabaseClient, claimed: ClaimedMat
 }
 
 /**
+ * Globalization Build D-S, Gate DS9 — the retry processor the header comment always deferred.
+ * Reuses the exact same atomic claim RPC and delivery path as the synchronous best-effort
+ * attempt above (never a parallel outbox engine): finds durable rows still eligible for another
+ * attempt (`status IN ('pending','failed')` and under the existing `SAVED_SEARCH_EMAIL_MAX_ATTEMPTS`
+ * bound — the claim RPC itself is the authority on that bound and re-checks it atomically, this
+ * query is just a candidate scan) and re-delivers each through `claimOneMatchEvent` +
+ * `deliverClaimedEvent`, so idempotency, no-duplicate-after-success, and no-cross-user-leakage all
+ * come from the SAME guarantees already proven for the synchronous path — nothing new to trust.
+ *
+ * No time-based backoff column exists on `saved_search_match_events` (would need a migration);
+ * this build's "backoff" is simply "not already exhausted" (attempt_count bound) plus whatever
+ * cadence the caller is invoked at — the caller is expected to run this periodically, not in a
+ * tight loop, since the claim RPC already prevents a second concurrent attempt on the same row.
+ */
+export async function retryFailedSavedSearchMatchEvents(opts?: { limit?: number }): Promise<{
+  scanned: number;
+  delivered: number;
+  failed: number;
+  skipped: number;
+}> {
+  const limit = Math.min(Math.max(1, opts?.limit ?? 50), 200);
+  let scanned = 0;
+  let delivered = 0;
+  let failed = 0;
+  let skipped = 0;
+
+  if (!isSupabaseAdminConfigured()) return { scanned, delivered, failed, skipped };
+  const supabase = getAdminSupabase();
+
+  let candidateIds: string[] = [];
+  try {
+    const { data, error } = await supabase
+      .from(MATCH_EVENTS_TABLE)
+      .select("id")
+      .in("status", ["pending", "failed"])
+      .lt("attempt_count", SAVED_SEARCH_EMAIL_MAX_ATTEMPTS)
+      .order("created_at", { ascending: true })
+      .limit(limit);
+    if (error || !data) return { scanned, delivered, failed, skipped };
+    candidateIds = data.map((r) => (r as { id: string }).id);
+  } catch {
+    return { scanned, delivered, failed, skipped };
+  }
+
+  for (const eventId of candidateIds) {
+    scanned += 1;
+    try {
+      const claimed = await claimOneMatchEvent(supabase, eventId);
+      if (!claimed) {
+        skipped += 1;
+        continue;
+      }
+      await deliverClaimedEvent(supabase, claimed);
+      const { data: after } = await supabase
+        .from(MATCH_EVENTS_TABLE)
+        .select("status")
+        .eq("id", eventId)
+        .maybeSingle();
+      const finalStatus = (after as { status?: string } | null)?.status;
+      if (finalStatus === "delivered") delivered += 1;
+      else if (finalStatus === "failed") failed += 1;
+      else skipped += 1;
+    } catch {
+      skipped += 1;
+    }
+  }
+
+  return { scanned, delivered, failed, skipped };
+}
+
+/**
  * The only entrypoint the match orchestrator should call. Attempts delivery for a bounded batch of
  * newly-created match-event ids belonging to the listing that was just activated (Gate 11) — never
  * a global outbox scan. Never throws (Gate 13): every failure inside is caught and either settled

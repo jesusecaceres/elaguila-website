@@ -3,6 +3,8 @@
  * Step 3 will map this into `ServiciosApplicationDraft` / shell slots — not exposed in UI.
  */
 
+import type { AdditionalWebsiteEntry } from "@/app/lib/additionalWebsites/additionalWebsiteEntry";
+
 export type ServiciosLang = "es" | "en";
 
 /** Internal grouping for filters/analytics — never shown in the form copy */
@@ -182,11 +184,18 @@ export type ClasificadosServiciosApplicationState = {
   physicalRegion: string;
   physicalCountry: string;
   physicalPostalCode: string;
+  /** Owner's explicit choice to reveal the exact physical address publicly. Defaults to `true`
+   * (existing/new applications alike) so this addition never silently hides an address that was
+   * always shown before this field existed — see `serviciosBusinessProfile.ts`'s `showExactAddress`. */
+  showExactAddress: boolean;
   serviceAreaNotes: string;
   phone: string;
   /** Optional second line — same digit rules as `phone` */
   phoneOffice: string;
   website: string;
+  /** Gate Build D-S8 — repeatable Title+URL links (menu, booking, portfolio, etc.), same shared
+   * shape Restaurantes/Comida Local already use. */
+  additionalWebsites: AdditionalWebsiteEntry[];
   whatsapp: string;
   /** Public WhatsApp Business / profile URL if the number field is not used */
   whatsappBusinessUrl: string;

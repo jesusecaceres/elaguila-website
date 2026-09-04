@@ -194,6 +194,10 @@ function contactChannelsFromAgente(s: AgenteIndividualResidencialFormState): Leo
     permitirSms: "si",
     whatsappActivo: permit(s.permitirWhatsApp),
     contactoPreferido: "",
+    // BRN's own real additional-links field is `businessExtraUrls` (see
+    // bienesAdditionalBusinessLinks.ts), mapped separately below — this bridge only ever
+    // produces the shared contactChannels fields it already owned before Build D-F2B.
+    additionalWebsites: [],
   };
 }
 

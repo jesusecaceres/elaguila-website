@@ -27,6 +27,7 @@ import {
 import { isListingPackageEntitlementRowActive } from "./listingPackageEntitlementPlacement";
 import { isGraceExpired, reconcileSubscriptionRow, type SubscriptionRecordRow } from "./subscriptionLifecycle";
 import { resolveDealerInventoryGroupingKey } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
+import type { AutosDealerInventoryRole } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 
 export {
   decideCommercialWrite,
@@ -87,18 +88,28 @@ async function loadSubscriptionStatusForParent(
  */
 async function countActiveAutosDealerGroupInventory(
   ownerUserId: string,
-  parent: { lane: "negocios" | "privado"; dealer_inventory_group_id?: string | null; owner_user_id: string },
+  parent: {
+    id: string;
+    lane: "negocios" | "privado";
+    inventory_role?: AutosDealerInventoryRole | null;
+    dealer_inventory_group_id?: string | null;
+    dealer_inventory_parent_listing_id?: string | null;
+    owner_user_id: string;
+  },
   excludeListingId?: string,
 ): Promise<number> {
   const supabase = getAdminSupabase();
   const groupKey = resolveDealerInventoryGroupingKey(parent);
   const { data } = await supabase
     .from("autos_classifieds_listings")
-    .select("id, lane, status, dealer_inventory_group_id, owner_user_id")
+    .select("id, lane, status, inventory_role, dealer_inventory_group_id, dealer_inventory_parent_listing_id, owner_user_id")
     .eq("owner_user_id", ownerUserId)
     .eq("lane", "negocios")
     .eq("status", "active");
+  // Gate 6C.2 — the dealer parent (`inventory_role='main'`) is the commercial/grouping anchor,
+  // never a vehicle; only `inventory_role='inventory_vehicle'` rows may consume a capacity slot.
   return (data ?? []).filter((row) => {
+    if (row.inventory_role !== "inventory_vehicle") return false;
     if (excludeListingId && row.id === excludeListingId) return false;
     return resolveDealerInventoryGroupingKey(row) === groupKey;
   }).length;
@@ -175,9 +186,10 @@ async function verifyBrChildBelongsToParent(input: {
   return { ok: true };
 }
 
+/** Gate 6C.2 — the business/agent parent is the commercial/grouping anchor, never a property;
+ * only `inventory_role='inventory_property'` children may consume a capacity slot. */
 async function countActiveBrInventory(parentListingId: string, ownerUserId: string): Promise<number> {
   const supabase = getAdminSupabase();
-  // Parent counts toward the property limit; children are scoped to the parent.
   const { count: childCount } = await supabase
     .from("listings")
     .select("id", { count: "exact", head: true })
@@ -185,13 +197,7 @@ async function countActiveBrInventory(parentListingId: string, ownerUserId: stri
     .eq("br_inventory_parent_listing_id", parentListingId)
     .eq("inventory_role", "inventory_property")
     .eq("status", "active");
-  const { data: parent } = await supabase
-    .from("listings")
-    .select("id, status")
-    .eq("id", parentListingId)
-    .maybeSingle();
-  const parentActive = parent && String(parent.status) === "active" ? 1 : 0;
-  return (childCount ?? 0) + parentActive;
+  return childCount ?? 0;
 }
 
 export type CommercialWriteInput = {

@@ -1052,6 +1052,26 @@ export default function ComidaLocalApplicationClient() {
                       placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.tiktokUrl, es).placeholder}
                     />
                   </FieldBlock>
+                  <FieldBlock fieldKey="googleReviewsUrl" es={es}>
+                    <input
+                      className={INPUT}
+                      type="url"
+                      inputMode="url"
+                      value={draft.googleReviewsUrl}
+                      onChange={(e) => updateDraft({ googleReviewsUrl: e.target.value })}
+                      placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.googleReviewsUrl, es).placeholder}
+                    />
+                  </FieldBlock>
+                  <FieldBlock fieldKey="yelpReviewsUrl" es={es}>
+                    <input
+                      className={INPUT}
+                      type="url"
+                      inputMode="url"
+                      value={draft.yelpReviewsUrl}
+                      onChange={(e) => updateDraft({ yelpReviewsUrl: e.target.value })}
+                      placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.yelpReviewsUrl, es).placeholder}
+                    />
+                  </FieldBlock>
                   <FieldBlock fieldKey="additionalWebsites" es={es}>
                     <div className="space-y-2">
                       {draft.additionalWebsites.map((site, i) => (

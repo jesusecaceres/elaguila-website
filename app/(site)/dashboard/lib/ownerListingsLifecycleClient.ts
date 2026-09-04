@@ -28,10 +28,12 @@ export type OwnerListingPatchResult = {
  * Gate I.12A — defense-in-depth wrapper around the direct `listings` lifecycle writes used
  * throughout the generic owner dashboard. Every prior call site wrote `.eq("id", id)` only,
  * with no owner predicate in the write itself (only the page's initial read was owner-scoped).
- * This does not by itself prove database-level authorization — no tracked migration defines a
- * `CREATE POLICY` on `public.listings`, so RLS enforcement is unverified from the repository.
- * Certification for owner-write authorization on this pipeline is PARTIAL, not complete, pending
- * a production Supabase RLS/config check (see the I.12A ledger entry).
+ *
+ * Globalization Build D-S, Gate DS5 — corrects this comment's prior claim: migration
+ * `20260421130001_listings_enable_rls_full_policies.sql` DOES define real owner-scoped RLS
+ * policies on `public.listings` (`listings_authenticated_update_own`/`_insert_own`/`_delete_own`,
+ * all `owner_id = auth.uid()`). This app-level `.eq("owner_id", ...)` predicate is real
+ * defense-in-depth on top of an already-enforced DB backstop, not the only protection.
  */
 export async function applyOwnerListingPatch(
   supabase: SupabaseClient,

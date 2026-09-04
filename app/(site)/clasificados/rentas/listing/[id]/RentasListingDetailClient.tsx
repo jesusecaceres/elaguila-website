@@ -14,6 +14,7 @@ import { useRentasListingTranslation } from "@/app/clasificados/rentas/lib/useRe
 import { LeonixCorreoLeadModal } from "@/app/clasificados/lib/LeonixCorreoLeadModal";
 import { RentasVisualMatchPreviewView } from "@/app/clasificados/rentas/preview/shared/RentasVisualMatchPreviewView";
 import { trackRentasListingView, trackRentasMessageSent } from "@/app/clasificados/rentas/analytics/rentasAnalytics";
+import { RecentlyViewedAndReportMount } from "@/app/clasificados/components/RecentlyViewedAndReportMount";
 import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasLandingLang";
 import {
   getRentasListingDetailExtra,
@@ -205,6 +206,10 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
             </p>
           </div>
         ) : null}
+
+        <div className="mx-auto mt-4 max-w-[1240px] px-4 sm:px-6 lg:px-8">
+          <RecentlyViewedAndReportMount listingId={listing.id} lang={lang} />
+        </div>
 
         <section className="mx-auto mt-10 max-w-[1240px] rounded-[1.2rem] border border-[#C9D4E0]/55 bg-gradient-to-b from-[#F8FAFC]/95 to-[#FFFCF7]/90 p-6 text-center shadow-sm sm:p-8">
           <h2 className="font-serif text-lg font-semibold text-[#1E1810]">{copy.detail.relatedTitle}</h2>

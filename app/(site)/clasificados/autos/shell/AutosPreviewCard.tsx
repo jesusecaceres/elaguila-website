@@ -11,6 +11,7 @@ import type { AutoDealerListing } from "../negocios/types/autoDealerListing";
 import { autosAnalyticsTrackMeta, autosSheetCtaAnalyticsProps } from "../lib/autosAnalyticsIdentity";
 import { trackAutosContactFromHref } from "../lib/autosCtaTracking";
 import { AutosSheetCtaLink } from "../shared/components/AutosSheetCtaLink";
+import { buildInternationalWhatsAppWaMeHref } from "@/app/lib/whatsapp/internationalWhatsApp";
 
 const PREVIEW_CARD =
   "rounded-3xl border border-[#D4A574]/30 bg-[#FFFAF0] shadow-[0_12px_48px_-20px_rgba(212,165,116,0.15)] overflow-hidden";
@@ -235,7 +236,7 @@ export function AutosPreviewCard({
             )}
             {data.dealerWhatsapp && (
               <AutosSheetCtaLink
-                href={`https://wa.me/${data.dealerWhatsapp.replace(/\D/g, "")}`}
+                href={buildInternationalWhatsAppWaMeHref(data.dealerWhatsapp) ?? ""}
                 lang={lang}
                 className={`${CTA_BUTTON} ${CTA_SECONDARY}`}
                 {...sheetAnalytics}

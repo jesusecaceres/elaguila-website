@@ -76,6 +76,48 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
 }
 
 /** Shallow sanitize metadata for jsonb insert. */
+// RED #11 (Globalization Build A) — the sanitizer previously only enforced shape/size (key
+// count, key length, string length) with zero PII detection, so any string a caller passed in
+// metadata was stored verbatim. These mirror the proven unmasked-contact-data detectors already
+// used by app/api/translate-ad/route.ts (UNMASKED_EMAIL_RE / UNMASKED_PHONE_RE) — redacting here
+// rather than rejecting the event, since a metadata field failing a PII check should not block
+// the underlying event (a view/click) from being recorded at all.
+const METADATA_EMAIL_RE = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g;
+const METADATA_PHONE_RE = /(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)?\d{3}[\s.-]?\d{4}\b|\+\d{8,15}\b/g;
+
+function redactPiiFromMetadataString(value: string): string {
+  return value
+    .replace(METADATA_EMAIL_RE, "[redacted-email]")
+    .replace(METADATA_PHONE_RE, (m) => (m.replace(/\D/g, "").length >= 7 ? "[redacted-phone]" : m));
+}
+
+// Globalization Build 3 — Comida Local's own client-side wrapper
+// (comidaLocalAnalytics.ts's BLOCKED_METADATA_KEYS) already blocks a small set of contact-
+// identity key names before ever sending metadata, but that protection only covered callers
+// going through that one wrapper. Every other category's metadata reached this shared,
+// authoritative server-side sanitizer with only value-pattern (email/phone regex) redaction —
+// a key like `owner_user_id` or `user_id` holding a bare UUID matches neither pattern and
+// passed through completely unredacted. This adopts the same proven key set here, at the one
+// choke point every category's metadata actually goes through, normalizing away case/
+// underscore/hyphen differences so `ownerUserId`, `owner_user_id`, and `OWNER-USER-ID` are all
+// caught the same way.
+const BLOCKED_METADATA_KEY_NAMES = new Set([
+  "phone",
+  "phonenumber",
+  "tel",
+  "sms",
+  "whatsapp",
+  "whatsappnumber",
+  "email",
+  "owneruserid",
+  "userid",
+]);
+
+function isBlockedMetadataKey(key: string): boolean {
+  const normalized = key.trim().toLowerCase().replace(/[\s_-]/g, "");
+  return BLOCKED_METADATA_KEY_NAMES.has(normalized);
+}
+
 export function sanitizeAnalyticsMetadata(input: unknown): Record<string, unknown> {
   if (!isPlainObject(input)) return {};
   const out: Record<string, unknown> = {};
@@ -84,6 +126,7 @@ export function sanitizeAnalyticsMetadata(input: unknown): Record<string, unknow
     if (n >= MAX_METADATA_KEYS) break;
     const k = trim(key);
     if (!k || k.length > 80) continue;
+    if (isBlockedMetadataKey(k)) continue;
     if (value === null) {
       out[k] = null;
       n++;
@@ -91,7 +134,7 @@ export function sanitizeAnalyticsMetadata(input: unknown): Record<string, unknow
     }
     const t = typeof value;
     if (t === "string") {
-      out[k] = (value as string).slice(0, MAX_STRING_LEN);
+      out[k] = redactPiiFromMetadataString((value as string).slice(0, MAX_STRING_LEN));
       n++;
     } else if (t === "number" && Number.isFinite(value)) {
       out[k] = value;

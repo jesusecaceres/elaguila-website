@@ -4,6 +4,7 @@ import type { PublicarViajesPrivadoCopy } from "../data/publicarViajesPrivadoCop
 import type { ViajesPrivadoDraft } from "./viajesPrivadoDraftTypes";
 import { viajesBuildPrivadoContactChannels } from "../../lib/viajesContactChannelsFromDraft";
 import { viajesResolveFechasDisplay } from "../../lib/viajesResolveFechasDisplay";
+import { buildInternationalWhatsAppWaMeHref } from "@/app/lib/whatsapp/internationalWhatsApp";
 
 const FALLBACK_HERO =
   "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=2000&q=80";
@@ -16,8 +17,7 @@ function waMeHref(raw: string): string | null {
   const w = raw.trim();
   if (!w) return null;
   if (w.startsWith("http")) return w;
-  const num = digitsOnly(w);
-  return num.length >= 8 ? `https://wa.me/${num}` : null;
+  return buildInternationalWhatsAppWaMeHref(w);
 }
 
 function telHrefFrom(raw: string): string | null {

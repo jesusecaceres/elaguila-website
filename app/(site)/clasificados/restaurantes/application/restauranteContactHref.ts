@@ -2,6 +2,7 @@
 
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
 import { normalizeActionableUrl } from "../lib/urlNormalization";
+import { buildInternationalWhatsAppWaMeHrefWithText } from "@/app/lib/whatsapp/internationalWhatsApp";
 
 export function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
@@ -67,11 +68,11 @@ export function buildCateringInquiryPrefill(businessName: string | undefined): s
 }
 
 export function waHref(raw: string, businessName?: string, messageOverride?: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (!digits) return "";
-  const base = `https://wa.me/${digits}`;
-  const text = encodeURIComponent(messageOverride ?? buildRestaurantWhatsAppPrefill(businessName));
-  return `${base}?text=${text}`;
+  // Globalization Build D — reuses the shared international-safe WhatsApp builder instead of a
+  // naive digit-strip, which silently produced a malformed link for any non-US number and no
+  // country-code prefix at all for a bare 10-digit one.
+  const message = messageOverride ?? buildRestaurantWhatsAppPrefill(businessName);
+  return buildInternationalWhatsAppWaMeHrefWithText(raw, message) ?? "";
 }
 
 export function smsHref(phone: string, body?: string): string {

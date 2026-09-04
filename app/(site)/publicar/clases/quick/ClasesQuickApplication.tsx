@@ -50,6 +50,7 @@ import {
   gateClasesQuickPreview,
   shouldBlockClasesPaidPublish,
 } from "@/app/(site)/publicar/community/shared/required/communityRequiredForPreview";
+import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
 import {
   CLASES_CATEGORY_OPTIONS,
   CLASES_SKILL_LEVEL_OPTIONS,
@@ -112,6 +113,18 @@ function ClasesQuickApplicationBody({
   const [publishError, setPublishError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [paidBlockNotice, setPaidBlockNotice] = useState(false);
+
+  // Globalization Build D-F5 — this application had zero native browser-exit protection.
+  // useCommunityDraftSession already persists synchronously on every state change, so this only
+  // adds the "are you sure" warning on a real tab close; the flush call is a harmless no-op
+  // safety net for the same session storage write.
+  useBusinessApplicationLeaveGuard({
+    isDirty: hydrated && state.title.trim() !== "",
+    persist: () =>
+      flushCommunityDraftToSession(COMMUNITY_SESSION_KEYS.clases, state, (raw) =>
+        normalizeClasesQuickDraft(raw),
+      ),
+  });
 
   const gate = useMemo(() => gateClasesQuickPreview(state, lang), [state, lang]);
   const previewDisabled = !gate.ok;

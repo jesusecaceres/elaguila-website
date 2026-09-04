@@ -11,6 +11,7 @@ import type {
   ServiciosServiceVisualVariant,
   ServiciosTrustItem,
 } from "./serviciosBusinessProfile";
+import type { AdditionalWebsiteEntry } from "@/app/lib/additionalWebsites/additionalWebsiteEntry";
 
 /** identity.slug · identity.businessName */
 export type ServiciosApplicationIdentityDraft = {
@@ -58,6 +59,8 @@ export type ServiciosApplicationContactDraft = {
   email?: string;
   websiteUrl?: string;
   websiteLabel?: string;
+  /** Gate Build D-S8 — repeatable Title+URL links (menu, booking, portfolio, etc.). */
+  additionalWebsites?: AdditionalWebsiteEntry[];
   messageEnabled?: boolean;
   hoursOpenNowLabel?: string;
   hoursTodayLine?: string;
@@ -91,6 +94,10 @@ export type ServiciosApplicationContactDraft = {
   physicalRegion?: string;
   physicalCountry?: string;
   physicalPostalCode?: string;
+  /** Owner's explicit choice to reveal the exact physical address publicly. Absent on any
+   * listing before this field existed — treated as `true` at read time, see
+   * `serviciosBusinessProfile.ts`'s `showExactAddress` and `resolveServiciosProfile.ts`. */
+  showExactAddress?: boolean;
 };
 
 export type ServiciosApplicationAboutDraft = {

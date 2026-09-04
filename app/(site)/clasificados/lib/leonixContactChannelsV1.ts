@@ -11,6 +11,10 @@ import {
   normalizeLeonixWebsiteUrl,
   normalizeLeonixYoutubeUrl,
 } from "@/app/clasificados/lib/leonixContactSocialNormalize";
+import {
+  sanitizeAdditionalWebsiteEntries,
+  type AdditionalWebsiteEntry,
+} from "@/app/lib/additionalWebsites/additionalWebsiteEntry";
 
 export const LEONIX_DP_CONTACT_CHANNELS_V1 = "Leonix:contact_channels_v1" as const;
 
@@ -27,6 +31,9 @@ export type LeonixContactChannelsFormSlice = {
   permitirSms: "" | "si" | "no";
   whatsappActivo: "" | "si" | "no";
   contactoPreferido: LeonixPreferredContact;
+  /** Globalization Build D-F2B: repeatable Title+URL rows, shared shape with Servicios/Comida
+   * Local/Restaurantes. Additive-only — every existing single-website/social field is unchanged. */
+  additionalWebsites: AdditionalWebsiteEntry[];
 };
 
 export function createEmptyLeonixContactChannelsFormSlice(): LeonixContactChannelsFormSlice {
@@ -40,6 +47,7 @@ export function createEmptyLeonixContactChannelsFormSlice(): LeonixContactChanne
     permitirSms: "si",
     whatsappActivo: "si",
     contactoPreferido: "",
+    additionalWebsites: [],
   };
 }
 
@@ -55,6 +63,7 @@ export type LeonixContactChannelsV1Payload = {
   facebook?: string | null;
   youtube?: string | null;
   tiktok?: string | null;
+  additionalWebsites?: AdditionalWebsiteEntry[];
 };
 
 function siNoToBool(v: "" | "si" | "no", defaultTrue: boolean): boolean {
@@ -81,6 +90,7 @@ export function buildLeonixContactChannelsV1PayloadFromFormSlice(
   const allowCall = siNoToBool(slice.permitirLlamadas, true);
   const allowSms = siNoToBool(slice.permitirSms, true);
   const whatsappEnabled = siNoToBool(slice.whatsappActivo, true);
+  const additionalWebsites = sanitizeAdditionalWebsiteEntries(slice.additionalWebsites);
 
   const hasAny =
     website ||
@@ -92,7 +102,8 @@ export function buildLeonixContactChannelsV1PayloadFromFormSlice(
     preferred ||
     !allowCall ||
     !allowSms ||
-    !whatsappEnabled;
+    !whatsappEnabled ||
+    additionalWebsites.length > 0;
 
   if (!hasAny) return null;
 
@@ -108,6 +119,7 @@ export function buildLeonixContactChannelsV1PayloadFromFormSlice(
     facebook,
     youtube,
     tiktok,
+    additionalWebsites: additionalWebsites.length > 0 ? additionalWebsites : undefined,
   };
 }
 
@@ -133,6 +145,9 @@ export function parseLeonixContactChannelsV1FromDetailPairs(detailPairs: unknown
     const facebook = typeof rec.facebook === "string" ? normalizeLeonixFacebookUrl(rec.facebook) : null;
     const youtube = typeof rec.youtube === "string" ? normalizeLeonixYoutubeUrl(rec.youtube) : null;
     const tiktok = typeof rec.tiktok === "string" ? normalizeLeonixTiktokUrl(rec.tiktok) : null;
+    const additionalWebsites = Array.isArray(rec.additionalWebsites)
+      ? sanitizeAdditionalWebsiteEntries(rec.additionalWebsites as AdditionalWebsiteEntry[])
+      : [];
 
     return {
       v: 1,
@@ -146,10 +161,37 @@ export function parseLeonixContactChannelsV1FromDetailPairs(detailPairs: unknown
       facebook,
       youtube,
       tiktok,
+      additionalWebsites: additionalWebsites.length > 0 ? additionalWebsites : undefined,
     };
   } catch {
     return null;
   }
+}
+
+/**
+ * Globalization Build D-F2B — inverse of `buildLeonixContactChannelsV1PayloadFromFormSlice`.
+ * Restores a persisted payload back into editable form-slice shape for dashboard edit hydration
+ * (Rentas privado/negocio). Closes a pre-existing gap where edit sessions silently reset the
+ * whole contact-channels block to blank even though the underlying data is intact and correctly
+ * rendered on the public listing.
+ */
+export function leonixContactChannelsFormSliceFromPayload(
+  payload: LeonixContactChannelsV1Payload | null,
+): LeonixContactChannelsFormSlice {
+  const empty = createEmptyLeonixContactChannelsFormSlice();
+  if (!payload) return empty;
+  return {
+    masInformacionUrl: payload.website ?? "",
+    instagram: payload.instagram ?? "",
+    facebook: payload.facebook ?? "",
+    youtube: payload.youtube ?? "",
+    tiktok: payload.tiktok ?? "",
+    permitirLlamadas: payload.allowCall ? "si" : "no",
+    permitirSms: payload.allowSms ? "si" : "no",
+    whatsappActivo: payload.whatsappEnabled ? "si" : "no",
+    contactoPreferido: payload.preferred ?? "",
+    additionalWebsites: Array.isArray(payload.additionalWebsites) ? payload.additionalWebsites : [],
+  };
 }
 
 export type LeonixPublicSocialLink = { kind: "instagram" | "facebook" | "youtube" | "tiktok"; href: string };
@@ -184,6 +226,7 @@ export function mergePartialLeonixContactChannelsFormSlice(
       partial.contactoPreferido !== undefined && partial.contactoPreferido !== null
         ? (partial.contactoPreferido as LeonixPreferredContact)
         : base.contactoPreferido,
+    additionalWebsites: Array.isArray(partial.additionalWebsites) ? partial.additionalWebsites : base.additionalWebsites,
   };
 }
 

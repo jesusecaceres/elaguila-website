@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { addListingView } from "@/app/lib/recentlyViewed";
+import { LeonixInlineListingReport } from "@/app/clasificados/components/LeonixInlineListingReport";
 import { mascotasPerdidosPublishedQuickToDraft } from "@/app/(site)/publicar/mascotas-y-perdidos/shared/mascotasPerdidosPublishedQuickToDraft";
 import { MascotasPerdidosQuickAdCanvas } from "@/app/(site)/publicar/mascotas-y-perdidos/components/MascotasPerdidosQuickAdCanvas";
 
@@ -47,6 +48,12 @@ export function MascotasPerdidosPublishedDetailPage({
   const draft = useMemo(() => mascotasPerdidosPublishedQuickToDraft(listing), [listing]);
 
   useEffect(() => {
+    // Globalization Build 3 — the Build D-F5 trackCommunityListingView addition here was
+    // actually redundant: the generic anuncio/[id]/page.tsx wrapper that renders this component
+    // already fires trackListingViewOpen (identical event types, identity, sourceTable)
+    // unconditionally for every listing, contrary to that commit's "zero canonical analytics"
+    // premise. That generic emission is retained as canonical; addListingView (Recently Viewed)
+    // is untouched — this page genuinely had none of that before D-F5, so it stays.
     if (skipAnalytics) return;
     addListingView(listing.id);
   }, [listing.id, skipAnalytics]);
@@ -63,6 +70,13 @@ export function MascotasPerdidosPublishedDetailPage({
       </div>
 
       <MascotasPerdidosQuickAdCanvas draft={draft} lang={lang} shell="standalone" leonixAdId={listing.leonix_ad_id ?? null} />
+
+      {/* Globalization Build D-F5 — Report was entirely missing from this page (the one every
+          current Mascotas y Perdidos listing actually renders through), a real gap for a
+          category genuinely susceptible to scam/spam lost-and-found posts. */}
+      <div className="mt-6 max-w-md">
+        <LeonixInlineListingReport listingId={listing.id} lang={lang} />
+      </div>
     </MascotasPerdidosShellLayout>
   );
 }

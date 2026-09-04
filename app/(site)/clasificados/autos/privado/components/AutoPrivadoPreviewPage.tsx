@@ -42,12 +42,16 @@ export function AutoPrivadoPreviewPage({
   publicPlaybackOnly = false,
   publicAnalytics,
   publicUrl,
+  ownerUserId,
 }: {
   data: AutoDealerListing;
   editBackHref?: string;
   publicPlaybackOnly?: boolean;
   publicAnalytics?: AutosPublicListingAnalyticsProps;
   publicUrl?: string;
+  /** Globalization Build D-F3 — threaded to AutosEngagementRow so the owner cannot inflate their
+   * own durable Like count from this listing's own detail page. */
+  ownerUserId?: string | null;
 }) {
   const { lang, t } = useAutosPrivadoPreviewCopy();
   const pt = t.preview.title;
@@ -225,6 +229,7 @@ export function AutoPrivadoPreviewPage({
                   listingTitle={h1}
                   listingUrl={publicUrl}
                   likeCount={liveMetrics?.likes}
+                  ownerUserId={ownerUserId}
                 />
               ) : null}
               <PrivadoContactStrip

@@ -17,7 +17,8 @@ import {
   useCommunityDraftSession,
 } from "@/app/publicar/community/shared/hooks/useCommunityDraftSession";
 import { CommunityPublishConfirmationSection } from "@/app/publicar/community/shared/components/CommunityPublishConfirmationSection";
-import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import { formatPhoneInputDisplay, formatWhatsAppInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
 
 import { buscoFormCopy } from "../shared/buscoFormCopy";
 import { buscoHandoffPreviewUrl } from "../shared/buscoPublishRoutes";
@@ -47,6 +48,15 @@ export default function BuscoQuickFormClient() {
     emptyBuscoQuickDraft(),
     (raw) => normalizeBuscoQuickDraft(raw),
   );
+
+  // Globalization Build D-F5 — this application had zero native browser-exit protection.
+  // useCommunityDraftSession already persists synchronously on every state change, so this only
+  // adds the "are you sure" warning on a real tab close; the flush call is a harmless no-op
+  // safety net for the same session storage write.
+  useBusinessApplicationLeaveGuard({
+    isDirty: hydrated && state.title.trim() !== "",
+    persist: () => flushCommunityDraftToSession(BUSCO_QUICK_DRAFT_KEY, state, (raw) => normalizeBuscoQuickDraft(raw)),
+  });
 
   const gate = useMemo(() => gateBuscoQuickPreview(state, lang), [state, lang]);
   const previewDisabled = !gate.ok;
@@ -496,8 +506,8 @@ export default function BuscoQuickFormClient() {
                 type="tel"
                 inputMode="tel"
                 value={state.whatsapp}
-                onChange={(e) => patch({ whatsapp: formatPhoneInputDisplay(e.target.value) })}
-                maxLength={14}
+                onChange={(e) => patch({ whatsapp: formatWhatsAppInputDisplay(e.target.value) })}
+                maxLength={16}
               />
             </label>
             <label className="block text-sm">

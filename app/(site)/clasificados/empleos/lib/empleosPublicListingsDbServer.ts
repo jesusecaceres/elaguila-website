@@ -236,6 +236,26 @@ export async function upsertEmpleosListingFromEnvelope(input: {
   return { ok: true, id: listingId, slug, lifecycle_status: lifecycle };
 }
 
+/**
+ * Globalization Build D-F4 — `empleos_job_post_paid` (Quick/Premium lanes) is a one-time $24.99
+ * / 30-day term (`EMPLEOS_JOB_POST_PAID_PACKAGE_KEY` in revenuePricingMatrix.ts), enforced when
+ * an owner tries to edit/republish (`validateEmpleosJobPostActiveEditCheckoutOwnership`), but
+ * public visibility was never gated on that same term — a paid post whose 30 days elapsed stayed
+ * fully live indefinitely with `lifecycle_status` still "published". Job fairs
+ * (`EMPLEOS_JOB_FAIR_FREE_PACKAGE_KEY`, lane "feria") are free with no duration and are
+ * deliberately excluded from this check.
+ */
+const EMPLEOS_PAID_TERM_DAYS = 30;
+
+function isEmpleosPublicListingRowWithinTerm(row: EmpleosPublicListingRow): boolean {
+  if (row.lane === "feria") return true;
+  if (!row.published_at) return true;
+  const publishedMs = new Date(row.published_at).getTime();
+  if (!Number.isFinite(publishedMs)) return true;
+  const expiresMs = publishedMs + EMPLEOS_PAID_TERM_DAYS * 24 * 60 * 60 * 1000;
+  return Date.now() < expiresMs;
+}
+
 export async function fetchEmpleosPublishedJobRecords(): Promise<EmpleosJobRecord[]> {
   if (!isSupabaseAdminConfigured()) return [];
   const supabase = getAdminSupabase();
@@ -245,7 +265,9 @@ export async function fetchEmpleosPublishedJobRecords(): Promise<EmpleosJobRecor
     .eq("lifecycle_status", "published")
     .order("republish_sort_at", { ascending: false, nullsFirst: true });
   if (error || !data) return [];
-  return (data as EmpleosPublicListingRow[]).map((r) => rowToJobRecord(r));
+  return (data as EmpleosPublicListingRow[])
+    .filter(isEmpleosPublicListingRowWithinTerm)
+    .map((r) => rowToJobRecord(r));
 }
 
 export async function fetchEmpleosListingRowBySlug(slug: string): Promise<EmpleosPublicListingRow | null> {
@@ -256,7 +278,8 @@ export async function fetchEmpleosListingRowBySlug(slug: string): Promise<Empleo
   return data as EmpleosPublicListingRow;
 }
 
-/** Public job detail — only published rows (no draft/pending leakage by slug). */
+/** Public job detail — only published rows (no draft/pending leakage by slug), and only within
+ * the paid 30-day term (see `isEmpleosPublicListingRowWithinTerm`). */
 export async function fetchEmpleosPublishedListingRowBySlug(slug: string): Promise<EmpleosPublicListingRow | null> {
   if (!isSupabaseAdminConfigured()) return null;
   const supabase = getAdminSupabase();
@@ -267,7 +290,9 @@ export async function fetchEmpleosPublishedListingRowBySlug(slug: string): Promi
     .eq("lifecycle_status", "published")
     .maybeSingle();
   if (error || !data) return null;
-  return data as EmpleosPublicListingRow;
+  const row = data as EmpleosPublicListingRow;
+  if (!isEmpleosPublicListingRowWithinTerm(row)) return null;
+  return row;
 }
 
 export function rowToJobRecord(row: EmpleosPublicListingRow): EmpleosJobRecord {

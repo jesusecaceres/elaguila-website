@@ -81,6 +81,7 @@ export function AutosNegociosDealershipPreviewPage({
   embeddedInShell = false,
   draftPreviewMode = false,
   heroSpecItems: heroSpecItemsProp,
+  ownerUserId,
 }: {
   data: AutoDealerListing;
   /** Subtle return link to the listing editor (e.g. Publicar flow). */
@@ -89,6 +90,9 @@ export function AutosNegociosDealershipPreviewPage({
   publicPlaybackOnly?: boolean;
   publicAnalytics?: AutosPublicListingAnalyticsProps;
   publicUrl?: string;
+  /** Globalization Build D-F3 — threaded to AutosNegociosPreviewEngagementStrip so the owner
+   * cannot inflate their own durable Like count from this vehicle's own detail page. */
+  ownerUserId?: string | null;
   /** Draft child preview: related cards are non-navigable placeholders. */
   relatedPreviewOnly?: boolean;
   /** Parent already rendered preview chrome — skip duplicate header/logo. */
@@ -278,6 +282,7 @@ export function AutosNegociosDealershipPreviewPage({
                   listingUrl={publicUrl}
                   likeCount={analyticsMetrics?.likes ?? 0}
                   publicAnalytics={publicPlaybackOnly ? publicAnalytics : undefined}
+                  ownerUserId={publicPlaybackOnly ? ownerUserId : undefined}
                 />
               </div>
             ) : null}

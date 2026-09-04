@@ -237,7 +237,10 @@ export const OWNER_ENTITY_CAPABILITIES: Record<OwnerEntityCategoryKey, OwnerEnti
   }),
   empleos: merge({
     identity: { publicView: "supported", preview: "unsupported", results: "supported", edit: "supported", analytics: "unproven" },
-    engagement: { like: "supported", save: "supported", share: "supported", report: "unproven" },
+    // Globalization Build D-F4 — `save` was declared "supported" but no LeonixSaveButton (or any
+    // Save UI) exists anywhere in Empleos; only a dead, never-called recorder function did.
+    // Corrected to the truthful capability rather than leaving a registry claim the UI can't back.
+    engagement: { like: "supported", save: "unsupported", share: "supported", report: "unproven" },
     video: "supported",
     contactHub: "supported",
     translateAd: "supported",
@@ -254,7 +257,11 @@ export const OWNER_ENTITY_CAPABILITIES: Record<OwnerEntityCategoryKey, OwnerEnti
   // path, not a fabricated one) — Gate 3B surfaces it through `OwnerEntityActivity`.
   clases: merge({
     identity: { publicView: "supported", preview: "supported", results: "supported", edit: "supported", analytics: "supported" },
-    engagement: { like: "supported", save: "supported", share: "supported", report: "supported" },
+    // Globalization Build 3 — like/save were claimed "supported" but the only component that
+    // wires them (CommunityResultCardEngagement.tsx) is unimported anywhere in the app; the real
+    // live detail page (CommunityQuickPublishedDetailPage.tsx) only renders Share (native share
+    // + copy-link) and Report. Corrected to the reachable truth.
+    engagement: { like: "unsupported", save: "unsupported", share: "supported", report: "supported" },
     video: "unsupported",
     contactHub: "supported",
     translateAd: "supported",
@@ -263,7 +270,10 @@ export const OWNER_ENTITY_CAPABILITIES: Record<OwnerEntityCategoryKey, OwnerEnti
   }),
   comunidad: merge({
     identity: { publicView: "supported", preview: "supported", results: "supported", edit: "supported", analytics: "supported" },
-    engagement: { like: "supported", save: "supported", share: "supported", report: "supported" },
+    // Globalization Build 3 — same correction as Clases: like/save's only wiring
+    // (CommunityResultCardEngagement.tsx) is unimported anywhere; the real live detail page
+    // only renders Share (native share + copy-link) and Report.
+    engagement: { like: "unsupported", save: "unsupported", share: "supported", report: "supported" },
     video: "unsupported",
     contactHub: "supported",
     translateAd: "supported",
@@ -281,7 +291,10 @@ export const OWNER_ENTITY_CAPABILITIES: Record<OwnerEntityCategoryKey, OwnerEnti
   }),
   "mascotas-y-perdidos": merge({
     identity: { publicView: "supported", preview: "supported", results: "supported", edit: "supported", analytics: "supported" },
-    engagement: { like: "unsupported", save: "unsupported", share: "unsupported", report: "unsupported" },
+    // Globalization Build 3 — report was still marked "unsupported" here, but
+    // MascotasPerdidosPublishedDetailPage.tsx now renders a real, reachable
+    // <LeonixInlineListingReport>. like/save remain genuinely absent (no component wires them).
+    engagement: { like: "unsupported", save: "unsupported", share: "unsupported", report: "supported" },
     video: "unsupported",
     contactHub: "supported",
     translateAd: "supported",

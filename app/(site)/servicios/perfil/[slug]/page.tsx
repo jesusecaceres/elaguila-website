@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { getServiciosPublicListingBySlugForDiscovery } from "@/app/(site)/clasificados/servicios/lib/serviciosPublicListingsServer";
 import { PREVIEW_NOINDEX_METADATA } from "@/app/lib/seo/previewRouteMetadata";
+import { resolveClasificadosPublishLangFromSearchParams } from "@/app/lib/clasificados/clasificadosPublishLang";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -20,7 +21,9 @@ function langQuery(lang: "es" | "en"): string {
 export async function generateMetadata(props: PageProps): Promise<Metadata> {
   const { slug } = await props.params;
   const sp = (await props.searchParams) ?? {};
-  const lang = sp.lang === "en" ? "en" : "es";
+  // Globalization Build D-F6 — bare `?lang=` ternary didn't handle Next's `string[]` searchParams
+  // shape; kept as a same-request pass-through redirect (no stored-preference lookup needed here).
+  const lang = resolveClasificadosPublishLangFromSearchParams(sp).copyLang;
   const row = await getServiciosPublicListingBySlugForDiscovery(slug);
   if (!row || row.listing_status === "rejected" || row.listing_status === "suspended") {
     return {
@@ -47,7 +50,9 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 export default async function ServiciosPerfilLegacyRedirectPage(props: PageProps) {
   const { slug } = await props.params;
   const sp = (await props.searchParams) ?? {};
-  const lang = sp.lang === "en" ? "en" : "es";
+  // Globalization Build D-F6 — bare `?lang=` ternary didn't handle Next's `string[]` searchParams
+  // shape; kept as a same-request pass-through redirect (no stored-preference lookup needed here).
+  const lang = resolveClasificadosPublishLangFromSearchParams(sp).copyLang;
 
   if (!slug || slug.length > 200) notFound();
 

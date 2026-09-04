@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useLeonixFocusTrap } from "@/app/lib/accessibility/useLeonixFocusTrap";
 
 /**
  * Leonix Global Mobile/PWA Foundation V1 — shared bottom sheet / side drawer.
@@ -80,6 +81,8 @@ export function LeonixMobileBottomSheet({
   useEffect(() => {
     if (open && panelRef.current) panelRef.current.focus();
   }, [open]);
+
+  useLeonixFocusTrap(open, panelRef);
 
   if (!mounted || !open) return null;
 

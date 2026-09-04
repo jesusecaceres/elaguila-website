@@ -328,6 +328,10 @@ export function mapOfertaLocalAdminRowToDraftRecoveryPatch(row: OfertaLocalAdmin
     city: row.city || "",
     state: row.state || "",
     zipCode: row.zip_code || "",
+    // Absent/undefined on any listing published before this column existed — default true so
+    // re-opening an existing listing for edit never silently flips an always-public address to
+    // hidden.
+    showExactAddress: typeof row.show_exact_address === "boolean" ? row.show_exact_address : true,
     serviceZipCodes: Array.isArray(row.service_zips) ? row.service_zips : [],
     phone: row.phone || "",
     whatsapp: row.whatsapp || "",
@@ -341,7 +345,14 @@ export function mapOfertaLocalAdminRowToDraftRecoveryPatch(row: OfertaLocalAdmin
     googleReviewUrl: row.google_review_url || "",
     yelpUrl: row.yelp_url || "",
     membershipUrl: row.membership_url || "",
+    // Globalization Build D-F4 — these three were omitted here, so on the cross-device/cleared-
+    // storage draft-recovery path (a different Preview deployment origin, device, or cleared
+    // storage), an owner's real, independently-editable digital-coupon/membership-CTA fields
+    // silently reset to blank in the reconstructed draft even though they're correctly stored.
+    membershipCtaLabel: row.membership_cta_label || "",
     membershipNote: row.membership_note || "",
+    digitalCouponUrl: row.digital_coupon_url || "",
+    digitalCouponNote: row.digital_coupon_note || "",
     wantsAiSearchableSpecials: Boolean(row.wants_ai_searchable_specials),
     wantsFeaturedPlacement: Boolean(row.wants_featured_placement),
     featuredPlacementScope: row.featured_placement_scope || "none",
