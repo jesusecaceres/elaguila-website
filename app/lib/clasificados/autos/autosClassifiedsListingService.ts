@@ -405,7 +405,13 @@ export async function listAutosClassifiedsListingsForOwner(ownerUserId: string):
  */
 export async function getAutosDealerInventorySummaryForOwner(
   ownerUserId: string,
-  opts?: { excludeListingId?: string; groupScopeParent?: Pick<AutosClassifiedsListingRow, "lane" | "dealer_inventory_group_id" | "owner_user_id"> },
+  opts?: {
+    excludeListingId?: string;
+    groupScopeParent?: Pick<
+      AutosClassifiedsListingRow,
+      "lane" | "id" | "inventory_role" | "dealer_inventory_group_id" | "dealer_inventory_parent_listing_id" | "owner_user_id"
+    >;
+  },
 ): Promise<AutosDealerInventoryCount> {
   const rows = await listAutosClassifiedsListingsForOwner(ownerUserId);
   const activeCount = opts?.groupScopeParent

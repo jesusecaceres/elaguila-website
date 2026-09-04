@@ -216,17 +216,21 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
       const groupKey = resolveAutosDealerInventoryGroupKey(row);
       const existing = byKey.get(groupKey);
       const dealerName = row.sellerName.trim() || (lang === "es" ? "Dealer" : "Dealer");
+      // Gate 6C.2 — the dealer parent (`inventory_role='main'`) is the commercial/grouping
+      // anchor, never a vehicle; only `inventory_role='inventory_vehicle'` rows count toward
+      // the displayed active-inventory tally, matching the corrected RPC/preflight semantics.
+      const countsTowardCapacity = row.inventory_role === "inventory_vehicle";
       if (!existing) {
         byKey.set(groupKey, {
           groupKey,
           dealerName,
           mainListingId: row.inventory_role === "main" ? row.id : row.dealer_inventory_parent_listing_id,
           rows: [row],
-          activeCount: row.status === "active" ? 1 : 0,
+          activeCount: row.status === "active" && countsTowardCapacity ? 1 : 0,
         });
       } else {
         existing.rows.push(row);
-        if (row.status === "active") existing.activeCount += 1;
+        if (row.status === "active" && countsTowardCapacity) existing.activeCount += 1;
         if (row.inventory_role === "main") existing.mainListingId = row.id;
         if (!existing.dealerName && row.sellerName.trim()) existing.dealerName = row.sellerName.trim();
       }
