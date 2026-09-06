@@ -21,10 +21,11 @@ import {
   LeonixCategoryHeroGateway,
   LeonixCategorySearchCanvas,
   LeonixCategoryPartnerSection,
-  LeonixCategoryDiscoveryGrid,
+  LeonixCategoryImageDiscoveryGrid,
   LeonixCategoryShortcutSection,
   type Lang as V2Lang,
 } from "@/app/(site)/clasificados/components/categoryStandardV2";
+import { RESTAURANTES_CHILD_CATEGORY_IMAGE } from "./restaurantesChildCategoryImages";
 
 function RestaurantesLandingPageFallback() {
   return (
@@ -215,20 +216,20 @@ function RestaurantesLandingPageInner(_props: {
         />
 
         {/* Discovery section 1 - Cuisine cards */}
-        <LeonixCategoryDiscoveryGrid
+        <LeonixCategoryImageDiscoveryGrid
           lang={lang as V2Lang}
           surface="landing"
           heading={copy.discoveryTitle}
           subtitle={copy.discoverySubtitle}
           items={[
-            { id: "mexican", label: lang === "es" ? "Mexicana" : "Mexican", href: buildRestaurantesResultsHref(routeLang, { cuisine: "mexican" }), icon: FiCoffee },
-            { id: "italian", label: lang === "es" ? "Italiana" : "Italian", href: buildRestaurantesResultsHref(routeLang, { cuisine: "italian" }), icon: FiCoffee },
-            { id: "chinese", label: lang === "es" ? "China" : "Chinese", href: buildRestaurantesResultsHref(routeLang, { cuisine: "chinese" }), icon: FiCoffee },
-            { id: "burgers", label: lang === "es" ? "Hamburguesas" : "Burgers", href: buildRestaurantesResultsHref(routeLang, { cuisine: "burgers" }), icon: FiCoffee },
-            { id: "pizza", label: "Pizza", href: buildRestaurantesResultsHref(routeLang, { cuisine: "pizza" }), icon: FiCoffee },
-            { id: "dessert", label: lang === "es" ? "Postres" : "Desserts", href: buildRestaurantesResultsHref(routeLang, { cuisine: "dessert" }), icon: FiStar },
-            { id: "foodtruck", label: "Food truck", href: buildRestaurantesResultsHref(routeLang, { ft: "1" }), icon: FiTruck },
-            { id: "catering", label: "Catering", href: buildRestaurantesResultsHref(routeLang, { svc: "catering" }), icon: FiCalendar },
+            { id: "mexican", label: lang === "es" ? "Mexicana" : "Mexican", href: buildRestaurantesResultsHref(routeLang, { cuisine: "mexican" }), imageSrc: RESTAURANTES_CHILD_CATEGORY_IMAGE.mexican, imageAlt: lang === "es" ? "Mexicana" : "Mexican", icon: FiCoffee },
+            { id: "italian", label: lang === "es" ? "Italiana" : "Italian", href: buildRestaurantesResultsHref(routeLang, { cuisine: "italian" }), imageSrc: RESTAURANTES_CHILD_CATEGORY_IMAGE.italian, imageAlt: lang === "es" ? "Italiana" : "Italian", icon: FiCoffee },
+            { id: "chinese", label: lang === "es" ? "China" : "Chinese", href: buildRestaurantesResultsHref(routeLang, { cuisine: "chinese" }), imageSrc: RESTAURANTES_CHILD_CATEGORY_IMAGE.chinese, imageAlt: lang === "es" ? "China" : "Chinese", icon: FiCoffee },
+            { id: "burgers", label: lang === "es" ? "Hamburguesas" : "Burgers", href: buildRestaurantesResultsHref(routeLang, { cuisine: "burgers" }), imageSrc: RESTAURANTES_CHILD_CATEGORY_IMAGE.burgers, imageAlt: lang === "es" ? "Hamburguesas" : "Burgers", icon: FiCoffee },
+            { id: "pizza", label: "Pizza", href: buildRestaurantesResultsHref(routeLang, { cuisine: "pizza" }), imageSrc: RESTAURANTES_CHILD_CATEGORY_IMAGE.pizza, imageAlt: "Pizza", icon: FiCoffee },
+            { id: "dessert", label: lang === "es" ? "Postres" : "Desserts", href: buildRestaurantesResultsHref(routeLang, { cuisine: "dessert" }), imageSrc: RESTAURANTES_CHILD_CATEGORY_IMAGE.dessert, imageAlt: lang === "es" ? "Postres" : "Desserts", icon: FiStar },
+            { id: "foodtruck", label: "Food truck", href: buildRestaurantesResultsHref(routeLang, { ft: "1" }), imageSrc: RESTAURANTES_CHILD_CATEGORY_IMAGE.foodtruck, imageAlt: "Food truck", icon: FiTruck },
+            { id: "catering", label: "Catering", href: buildRestaurantesResultsHref(routeLang, { svc: "catering" }), imageSrc: RESTAURANTES_CHILD_CATEGORY_IMAGE.catering, imageAlt: "Catering", icon: FiCalendar },
           ]}
         />
 
