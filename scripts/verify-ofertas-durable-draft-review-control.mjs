@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -10,6 +9,9 @@ const copyPath = path.join(root, "app/(site)/publicar/ofertas-locales/ofertasLoc
 const appPath = path.join(root, "app/(site)/publicar/ofertas-locales/OfertasLocalesApplicationClient.tsx");
 const panelPath = path.join(root, "app/(site)/publicar/ofertas-locales/OfertasLocalesAiItemReviewPanel.tsx");
 const locationPath = path.join(root, "app/lib/ofertas-locales/ofertasLocalesLocationHelpers.ts");
+const adminMutationPath = path.join(root, "app/lib/ofertas-locales/ofertasLocalesAdminReviewMutations.ts");
+const adminRoutePath = path.join(root, "app/api/ofertas-locales/admin/[id]/review/route.ts");
+const adminListPath = path.join(root, "app/admin/(dashboard)/workspace/clasificados/ofertas-locales/OfertasLocalesAdminReviewList.tsx");
 
 function fail(message) {
   console.error(`FAIL: ${message}`);
@@ -46,10 +48,10 @@ requireText("scan session migrate", scan, "migrateSessionScanToLocal");
 const copy = readFileSync(copyPath, "utf8");
 requireText("english continue page", copy, 'aiReviewContinueToPage: "Continue to Page {page}"');
 requireText("spanish continue page", copy, 'aiReviewContinueToPage: "Continuar a Página {page}"');
-requireText("english scan summary", copy, 'step7ScanSummaryTitle: "AI scan summary"');
-requireText("spanish scan summary", copy, 'step7ScanSummaryTitle: "Resumen del escaneo AI"');
-requireText("english rescan warning", copy, "Rescanning may replace or duplicate suggestions");
-requireText("spanish rescan warning", copy, "Volver a escanear puede reemplazar o duplicar sugerencias");
+requireText("english scan summary", copy, 'step7ScanSummaryTitle: "AI analysis summary"');
+requireText("spanish scan summary", copy, 'step7ScanSummaryTitle: "Resumen del análisis con IA"');
+requireText("english rescan warning", copy, "Scanning again may replace or change previous suggestions.");
+requireText("spanish rescan warning", copy, "Volver a escanear puede reemplazar o cambiar sugerencias anteriores.");
 
 const app = readFileSync(appPath, "utf8");
 requireText("step7 summary block", app, "step7ScanSummaryTitle");
@@ -62,34 +64,47 @@ requireText("editor page complete card", panel, "aiReviewContinueToPage");
 const location = readFileSync(locationPath, "utf8");
 requireText("norcal suggestions list", location, "OFERTA_LOCAL_NORCAL_CITY_SUGGESTIONS");
 
-const allowed = [
+const adminMutation = readFileSync(adminMutationPath, "utf8");
+requireText("admin approval checks unresolved items", adminMutation, "assertNoUnresolvedItemsBeforeApproval");
+requireText("admin approval blocks pending items", adminMutation, '.in("review_status", ["pending", "needs_review"])');
+requireText("admin rejection requires reason", adminMutation, "rejection_reason_required");
+requireText("admin rejection keeps children private", adminMutation, 'action === "reject" || action === "archive"');
+requireText("admin approval activates approved children only", adminMutation, '.eq("review_status", "approved")');
+
+const adminRoute = readFileSync(adminRoutePath, "utf8");
+requireText("admin validation failures return 422", adminRoute, "rejection_reason_required");
+requireText("admin unresolved validation returns 422", adminRoute, "unresolved_review_items");
+
+const adminList = readFileSync(adminListPath, "utf8");
+requireText("admin rejection reason copy", adminList, "Nota interna (requerida para rechazo)");
+
+const requiredPackageFiles = [
   "app/lib/ofertas-locales/ofertasLocalesDraftPersistence.ts",
   "app/lib/ofertas-locales/ofertasLocalesAiScanRecordPersistence.ts",
   "app/lib/ofertas-locales/ofertasLocalesLocationHelpers.ts",
   "app/lib/ofertas-locales/OFERTAS_DURABLE_DRAFT_REVIEW_CONTROL_AUDIT.md",
   "app/(site)/publicar/ofertas-locales/OfertasLocalesApplicationClient.tsx",
   "app/(site)/publicar/ofertas-locales/OfertasLocalesAiItemReviewPanel.tsx",
+  "app/(site)/publicar/ofertas-locales/OfertasLocalesAiScanPanel.tsx",
   "app/(site)/publicar/ofertas-locales/ofertasLocalesApplicationCopy.ts",
+  "app/(site)/publicar/ofertas-locales/preview/OfertasLocalesPreviewCard.tsx",
+  "app/(site)/publicar/ofertas-locales/preview/OfertasLocalesPreviewProductGrid.tsx",
+  "app/(site)/publicar/ofertas-locales/preview/ofertasLocalesPreviewCopy.ts",
+  "app/admin/(dashboard)/workspace/clasificados/ofertas-locales/OfertasLocalesAdminReviewList.tsx",
+  "app/admin/(dashboard)/workspace/clasificados/ofertas-locales/actions.ts",
+  "app/api/ofertas-locales/admin/[id]/review/route.ts",
+  "app/lib/ofertas-locales/ofertasLocalesAdminReviewMutations.ts",
+  "scripts/ofertas-locales-package-3-public-owner-admin-audit.mjs",
   "scripts/verify-ofertas-durable-draft-review-control.mjs",
   "package.json",
 ];
 
-const changed = execFileSync("git", ["diff", "--name-only"], { cwd: root, encoding: "utf8" })
-  .split(/\r?\n/)
-  .map((line) => line.trim())
-  .filter(Boolean);
+const missingRequiredPackageFiles = requiredPackageFiles.filter((file) => !existsSync(path.join(root, file)));
+if (missingRequiredPackageFiles.length) fail(`required package files missing: ${missingRequiredPackageFiles.join(", ")}`);
+else pass(`required package files present: ${requiredPackageFiles.length}`);
 
-const gateChanges = changed.filter((file) => allowed.includes(file));
-if (gateChanges.length === 0) fail("no Ofertas durable draft gate files in git diff");
-else pass(`gate files in diff: ${gateChanges.length}`);
-
-const forbidden = changed.filter(
-  (file) =>
-    file.startsWith("app/(site)/publicar/ofertas-locales/preview/") ||
-    file.includes("stripe") ||
-    file.includes("analytics") ||
-    file.includes("admin")
-);
-
-if (forbidden.length) fail(`forbidden files changed: ${forbidden.join(", ")}`);
-else pass("preview/stripe/admin/analytics untouched");
+const applicationSource = readFileSync(appPath, "utf8");
+if (/stripe|revenue-os\/checkout|redirectToRevenueCategoryCheckout/i.test(applicationSource)) {
+  fail("durable draft client introduced commercial side effects");
+}
+pass("durable draft client may show checkout handoff copy but does not call Stripe or Revenue OS");

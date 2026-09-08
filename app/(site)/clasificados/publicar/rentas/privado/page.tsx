@@ -12,5 +12,10 @@ export default async function RentasPrivadoPublishEntryPage(props: {
 }) {
   const searchParams = (await props.searchParams) ?? {};
   const locale = resolveLocaleFromSearchParams(searchParams);
-  return <RentasPrivadoApplication initialLocale={locale} />;
+  // Gate I.13A — launch languages are Spanish and English only; `resolveLocaleFromSearchParams`
+  // still accepts pt/tl (a deliberately reversible, not-yet-launched extensibility mechanism —
+  // see app/lib/language.ts's ADDITIONAL_LANGUAGES comment), so clamp here rather than in the
+  // shared resolver to avoid touching other, unrelated future-language work.
+  const launchLocale = locale === "es" || locale === "en" ? locale : "es";
+  return <RentasPrivadoApplication initialLocale={launchLocale} />;
 }

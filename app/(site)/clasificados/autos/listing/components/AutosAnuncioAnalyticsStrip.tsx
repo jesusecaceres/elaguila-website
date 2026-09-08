@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { AutosListingAnalyticsRow } from "@/app/clasificados/autos/shared/components/AutosListingAnalyticsRow";
 import {
-  aggregateRawListingAnalyticsEvents,
   AUTOS_LISTING_ANALYTICS_PUBLIC_LABELS,
   type AutosListingAnalyticsSnapshot,
 } from "@/app/clasificados/autos/shared/types/autosListingAnalytics";
@@ -20,18 +18,19 @@ export function AutosAnuncioAnalyticsStrip({ listingId, lang }: { listingId: str
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // Package F Build F2, Gate 1 (P0 security fix) — previously queried listing_analytics
+      // directly from the browser (raw user_id values reached the client for aggregation). Now
+      // calls the server aggregate route, which runs the SAME rollup function and returns only
+      // the final counts, never a raw row.
       try {
-        const supabase = createSupabaseBrowserClient();
-        const { data: events, error } = await supabase
-          .from("listing_analytics")
-          .select("event_type, user_id")
-          .eq("listing_id", listingId);
+        const res = await fetch(`/api/clasificados/autos/listing/${encodeURIComponent(listingId)}/analytics-summary`);
         if (cancelled) return;
-        if (error) {
+        if (!res.ok) {
           setMetrics({ views: 0, uniqueViews: 0, saves: 0, shares: 0, contacts: 0 });
           return;
         }
-        setMetrics(aggregateRawListingAnalyticsEvents(events ?? []));
+        const snapshot = (await res.json()) as AutosListingAnalyticsSnapshot;
+        setMetrics(snapshot);
       } catch {
         if (!cancelled) setMetrics({ views: 0, uniqueViews: 0, saves: 0, shares: 0, contacts: 0 });
       }

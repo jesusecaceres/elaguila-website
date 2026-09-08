@@ -13,6 +13,7 @@ import {
 } from "react-icons/fi";
 import { FaStar, FaWhatsapp } from "react-icons/fa";
 import type { ServiciosLang, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
+import { LeonixCommunityTrust } from "@/app/components/leonixCommunityTrust/LeonixCommunityTrust";
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { nonEmpty } from "../lib/serviciosProfilePrimitives";
 import {
@@ -41,13 +42,15 @@ import {
   BusinessHubSocialBrandIcon,
   businessHubSocialBrandStyle,
 } from "../lib/serviciosBusinessHubSocialBrand";
-import { ServiciosStarRating } from "./ServiciosStarRating";
 import { ServiciosBusinessHubEngagementRow } from "./ServiciosBusinessHubEngagementRow";
 import { ServiciosBusinessHubMapPanel } from "./ServiciosBusinessHubMapPanel";
 import { ServiciosActionPanelAreasMap } from "./ServiciosActionPanelAreasMap";
 import { ServiciosOfferCard } from "./ServiciosOfferCard";
 import { ContactEmailMenu } from "@/app/components/contact/ContactEmailMenu";
-import { ServiciosHubReviewLinkButton } from "./ServiciosHubReviewLinkButton";
+import { SharedConnectionHubReviewButton } from "@/app/components/contact/connectionHub/renderers/SharedConnectionHubReviewButton";
+import { buildSendEmailIntent, CtaActionSheet } from "@/app/components/cta";
+import type { CtaSheetIntent } from "@/app/components/cta/types";
+import { copyToClipboard } from "@/app/components/cta/ctaLaunchers";
 import {
   SCH_COMPACT_CTA,
   SCH_CTA_PRIMARY,
@@ -139,11 +142,13 @@ function HubSectionTitle({ children }: { children: ReactNode }) {
 function CopyChip({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
   const copy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(value);
+    // Global Business Hub OS — surgical adoption of the new shared clipboard helper (same
+    // navigator.clipboard.writeText call, now behind the shared guard/try-catch).
+    const ok = await copyToClipboard(value);
+    if (ok) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    } catch { /* silent */ }
+    }
   }, [value]);
   return (
     <button
@@ -205,6 +210,7 @@ export function ServiciosBusinessHubContactCard({
 }) {
   const L = getServiciosProfileLabels(lang);
   const vm = useMemo(() => mapServiciosProfileToBusinessHubContact(profile, lang), [profile, lang]);
+  const [emailSheetIntent, setEmailSheetIntent] = useState<CtaSheetIntent | null>(null);
 
   const analyticsBase = useMemo(
     () =>
@@ -249,8 +255,6 @@ export function ServiciosBusinessHubContactCard({
     profile.contact.email?.trim() ||
     (profile.contact.emailMailtoHref ? emailFromMailtoHref(profile.contact.emailMailtoHref) : "") ||
     (primaryMailto ? emailFromMailtoHref(primaryMailto) : "");
-  const rating = profile.hero.rating;
-  const reviewCount = profile.hero.reviewCount;
   const featured = profile.contact.isFeatured;
   const featuredLabel = profile.contact.featuredLabel?.trim() || L.featured;
 
@@ -297,8 +301,15 @@ export function ServiciosBusinessHubContactCard({
   const openEmail = () => {
     const mailto = vm.contact.emailMailto;
     if (!mailto) return;
+    const email = emailFromMailtoHref(mailto) || mailto.replace(/^mailto:/i, "");
     trackServiciosListingCta(listingSlug, "cta_email_click", { ...analyticsBase, source: "business_hub" });
-    serviciosOpenMailtoHref(mailto);
+    setEmailSheetIntent(
+      buildSendEmailIntent({
+        email,
+        subject: profile.identity?.businessName ? `Leonix · ${profile.identity.businessName}` : "Leonix",
+        body: "",
+      }),
+    );
   };
 
   const openSocialOutbound = (url: string, _headline: string) => {
@@ -399,6 +410,7 @@ export function ServiciosBusinessHubContactCard({
   };
 
   return (
+    <>
     <div className="flex min-w-0 flex-col gap-3 md:gap-5">
       <section className={SVC_SECTION_CARD} aria-labelledby="servicios-contact-hub-heading">
         <div className={SVC_SECTION_PADDING}>
@@ -412,20 +424,18 @@ export function ServiciosBusinessHubContactCard({
               aria-hidden
             />
 
-            {featured || (rating != null && reviewCount != null) ? (
+            {/* Global Business Hub OS — REVIEWS MASTER RULE (Level A, link-only): the owner-typed
+                hero.rating/reviewCount badge that used to render here (gold stars + "X.X (N)")
+                painted historical, non-provider-verified numbers as if they were a real Google/Yelp
+                aggregate rating. No provider API exists, so it's removed outright rather than
+                replaced — the DB fields are untouched, they simply no longer feed this render path.
+                The `featured` cue below is a real, non-rating trust badge and is unaffected. */}
+            {featured ? (
               <div className="mb-3 flex flex-wrap items-center gap-2 border-b border-[#E8D9C4]/80 pb-2">
-                {featured ? (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-[#D4C4A8] bg-[#F6EBDD] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#1E1814]">
-                    <FaStar className="h-3 w-3 text-[#C9A84A]" aria-hidden />
-                    {featuredLabel}
-                  </span>
-                ) : null}
-                {rating != null && reviewCount != null ? (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#6F6254]">
-                    <ServiciosStarRating value={rating} size="sm" />
-                    {rating.toFixed(1)} ({reviewCount})
-                  </span>
-                ) : null}
+                <span className="inline-flex items-center gap-1 rounded-full border border-[#D4C4A8] bg-[#F6EBDD] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#1E1814]">
+                  <FaStar className="h-3 w-3 text-[#C9A84A]" aria-hidden />
+                  {featuredLabel}
+                </span>
               </div>
             ) : null}
 
@@ -596,6 +606,18 @@ export function ServiciosBusinessHubContactCard({
               ) : null}
             </div>
 
+            {(listingSourceId ?? "").trim() ? (
+              <div className="mt-4 border-t pt-4" style={{ borderColor: SCH_LX.divider }}>
+                <LeonixCommunityTrust
+                  category="servicios"
+                  targetId={listingSourceId as string}
+                  ownerUserId={engagementOwnerUserId}
+                  lang={lang}
+                  surface="servicios_hub"
+                />
+              </div>
+            ) : null}
+
             {showSecondary ? (
               <div className={SCH_SECONDARY_GRID}>
                 {showReviews ? (
@@ -604,10 +626,16 @@ export function ServiciosBusinessHubContactCard({
                       <span id="hub-reviews-heading">{labels.reviews}</span>
                     </HubSectionTitle>
                     <div className="mt-2 flex flex-col gap-2">
+                      {/* Global Business Hub OS — surgical adoption: swapped from
+                          ServiciosHubReviewLinkButton to the new shared Level-A link-only review
+                          button (behavior-equivalent — this mapper never sets rating/reviewCount,
+                          so the visible output is unchanged; this removes even the latent
+                          possibility of a future caller feeding it a fake rating). The old
+                          component is retained, undeleted (still has other doc/test references). */}
                       {vm.reviews.map((link) => (
-                        <ServiciosHubReviewLinkButton
+                        <SharedConnectionHubReviewButton
                           key={link.id}
-                          link={link}
+                          link={{ provider: link.id === "yelp" ? "yelp" : "google", label: link.label, url: link.url }}
                           lang={lang}
                           onClick={() => openReviewLink(link)}
                         />
@@ -718,5 +746,12 @@ export function ServiciosBusinessHubContactCard({
         />
       ) : null}
     </div>
+    <CtaActionSheet
+      open={emailSheetIntent != null}
+      onClose={() => setEmailSheetIntent(null)}
+      intent={emailSheetIntent}
+      lang={lang}
+    />
+    </>
   );
 }

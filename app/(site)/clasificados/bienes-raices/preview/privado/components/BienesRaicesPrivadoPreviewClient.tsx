@@ -7,6 +7,10 @@ import { publishLeonixListingFromBienesRaicesPrivadoDraft } from "@/app/clasific
 import { useLeonixPublishFlowExitClear } from "@/app/clasificados/lib/leonixApplicationStandard/useLeonixPublishFlowExitClear";
 import { PublishCheckoutCheckpoint } from "@/app/clasificados/components/PublishCheckoutCheckpoint";
 import {
+  previewModeSuppressesBasePlanCheckout,
+  resolvePreviewMode,
+} from "@/app/lib/listingIdentity/previewModeContract";
+import {
   BR_NEGOCIO_Q_PROPIEDAD,
   coerceBrNegocioCategoriaPropiedad,
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
@@ -198,7 +202,7 @@ export default function BienesRaicesPrivadoPreviewClient() {
 
   const onStartFsboCheckout = useCallback(
     async (ctx: { newsletterOptIn: boolean; promoCode: string | null }) => {
-      const d = loadBienesRaicesPrivadoDraft();
+      const d = await loadBienesRaicesPrivadoDraft();
       if (!d) return;
       setPublishBusy(true);
       setPublishErr(null);
@@ -249,9 +253,16 @@ export default function BienesRaicesPrivadoPreviewClient() {
   );
 
   useEffect(() => {
-    const d = loadBienesRaicesPrivadoDraft();
-    setDraft(d);
-    setPhase(d ? "ready" : "recovery");
+    let cancelled = false;
+    (async () => {
+      const d = await loadBienesRaicesPrivadoDraft();
+      if (cancelled) return;
+      setDraft(d);
+      setPhase(d ? "ready" : "recovery");
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   /** Keep `?propiedad=` aligned with draft category whenever both are known (survives remounts and query changes). */
@@ -275,13 +286,15 @@ export default function BienesRaicesPrivadoPreviewClient() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-5 overflow-x-hidden bg-[#F9F6F1] px-4 py-8 text-center text-[#2C2416]">
         <p className="max-w-md text-sm leading-relaxed text-[#5C5346] [text-wrap:balance]">
-          No encontramos un borrador de BR Privado en esta sesión. Publica o continúa editando para generar la vista previa.
+          {lang === "en"
+            ? "We couldn't find a BR Privado draft in this session. Publish or keep editing to generate the preview."
+            : "No encontramos un borrador de BR Privado en esta sesión. Publica o continúa editando para generar la vista previa."}
         </p>
         <Link
           href={editHrefRecovery}
           className="inline-flex min-h-[48px] min-w-[200px] items-center justify-center rounded-full bg-[#B8954A] px-6 text-sm font-bold text-[#1E1810] transition hover:brightness-95"
         >
-          Ir a publicar — Privado
+          {lang === "en" ? "Go to publish — Private" : "Ir a publicar — Privado"}
         </Link>
       </div>
     );
@@ -291,20 +304,35 @@ export default function BienesRaicesPrivadoPreviewClient() {
   const editHref = `${BR_PUBLICAR_PRIVADO_PUBLIC_ENTRY}?${BR_NEGOCIO_Q_PROPIEDAD}=${encodeURIComponent(draft.categoriaPropiedad)}`;
   const checkpointConfig = bienesRaicesFsboPreviewCheckpointConfig(lang);
 
+  // Globalization Package A Gate 4 — the guard P3 documented as required "the moment any link
+  // ever points a real listing at this route": when the URL carries a listing-bound context
+  // (the registry's previewRoute shape: source=dashboard + listingId, or preview=listing),
+  // this is an already-identified — typically already-paid — listing, and the base-plan
+  // checkout must never render again (same rule as BR Negocio/Servicios/Rentas). No live href
+  // targets this route with those params today, so live behavior is unchanged; this closes
+  // the latent unguarded branch.
+  const listingBoundPreview =
+    (searchParams?.get("preview") ?? "") === "listing" ||
+    ((searchParams?.get("source") ?? "") === "dashboard" && Boolean((searchParams?.get("listingId") ?? "").trim()));
+  const previewMode = resolvePreviewMode({ listingBound: listingBoundPreview });
+  const suppressCheckout = previewModeSuppressesBasePlanCheckout(previewMode);
+
   return (
     <LeonixPreviewPageShell
       editHref={editHref}
       publishSlot={
-        <PublishCheckoutCheckpoint
-          config={checkpointConfig}
-          lang={lang}
-          busy={publishBusy}
-          errorMessage={publishErr}
-          onPromoApply={(code) => applyBienesRaicesFsboPreviewPromoCode({ code, lang })}
-          onCheckout={(ctx) => void onStartFsboCheckout(ctx)}
-          rulesModal={BIENES_RAICES_FSBO_PREVIEW_RULES_MODAL}
-          className="w-full max-w-[420px]"
-        />
+        suppressCheckout ? undefined : (
+          <PublishCheckoutCheckpoint
+            config={checkpointConfig}
+            lang={lang}
+            busy={publishBusy}
+            errorMessage={publishErr}
+            onPromoApply={(code) => applyBienesRaicesFsboPreviewPromoCode({ code, lang })}
+            onCheckout={(ctx) => void onStartFsboCheckout(ctx)}
+            rulesModal={BIENES_RAICES_FSBO_PREVIEW_RULES_MODAL}
+            className="w-full max-w-[420px]"
+          />
+        )
       }
     >
       <BienesRaicesPrivadoPreviewView vm={vm} lang={lang} />

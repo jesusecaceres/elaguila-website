@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
   let scanJobs: OfertaLocalScanJobSummary[] = [];
   let scanJobsQuery = supabase
     .from("oferta_local_scan_jobs")
-    .select("id, status, items_extracted_count, pages_processed, completed_at")
+    .select("id, status, items_extracted_count, pages_processed, total_pages, completed_pages, failed_pages, current_page, current_stage, completed_at")
     .eq("oferta_local_id", ofertaLocalId)
     .order("created_at", { ascending: false })
     .limit(5);
@@ -128,6 +128,11 @@ export async function GET(req: NextRequest) {
       status: job.status,
       itemsExtractedCount: job.items_extracted_count ?? 0,
       pagesProcessed: job.pages_processed ?? 0,
+      totalPages: job.total_pages ?? job.pages_processed ?? 0,
+      completedPages: job.completed_pages ?? job.pages_processed ?? 0,
+      failedPages: job.failed_pages ?? 0,
+      currentPage: job.current_page ?? null,
+      currentStage: job.current_stage ?? (job.status === "failed" ? "failed" : job.status === "needs_review" ? "awaiting_review" : "preparing"),
       completedAt: job.completed_at ?? null,
     }));
   }

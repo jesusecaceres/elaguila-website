@@ -44,32 +44,26 @@ const clientSrc = read(newsletterClient);
 const docSrc = read(doc);
 const pkgSrc = read(pkg);
 
-// Reusable Launch 25 card is the single source of truth and is reused on surfaces.
-if (!cardSrc.includes("LeonixLaunchCouponCard")) fail("Launch 25 card component missing");
-for (const [name, src] of [["login", loginSrc], ["dashboard", dashboardSrc], ["profile", perfilSrc]]) {
-  if (!src.includes("LeonixLaunchCouponCard")) fail(`${name} surface must render LeonixLaunchCouponCard`);
+// Package C Build 2 (C4) — Launch 25 is retired. The component file itself stays in the repo
+// (dead-code removal was out of scope) but no live surface renders it anymore, and the
+// per-surface CTA-source/gating checks below are moot once the card is gone — this gate now
+// asserts absence on every previously-required surface instead of presence.
+void cardSrc;
+for (const [name, src] of [
+  ["login", loginSrc],
+  ["dashboard", dashboardSrc],
+  ["profile", perfilSrc],
+  ["newsletter", clientSrc],
+]) {
+  if (src.includes("LeonixLaunchCouponCard")) fail(`${name} surface must no longer render LeonixLaunchCouponCard (Launch 25 retired)`);
 }
-ok("reusable Launch 25 card reused on signup/dashboard/profile");
+ok("retired Launch 25 card no longer rendered on signup/dashboard/profile/newsletter");
 
-// Source-tracked CTAs per surface.
-if (!loginSrc.includes("signup_launch_25")) fail("Signup CTA must use source=signup_launch_25");
-if (!dashboardSrc.includes("dashboard_launch_25")) fail("Dashboard CTA must use source=dashboard_launch_25");
-if (!perfilSrc.includes("profile_onboarding_launch_25")) {
-  fail("Profile onboarding CTA must use source=profile_onboarding_launch_25");
-}
-ok("signup/dashboard/profile CTA source tracking present");
-
-// Signup card gated on signup mode; profile card gated on onboarding.
-if (!/mode === "signup"/.test(loginSrc)) fail("Signup card should render in signup mode");
-if (!/onboarding/.test(perfilSrc)) fail("Profile card should render during onboarding");
-ok("signup/onboarding gating present");
-
-// Newsletter remains the claim page and reads source cleanly.
+// Newsletter remains the claim page and still reads source cleanly (unrelated to retirement).
 if (!clientSrc.includes('searchParams?.get("source")')) {
   fail("Newsletter client must read source from query params");
 }
-if (!clientSrc.includes("LeonixLaunchCouponCard")) fail("Newsletter page must still show the Launch 25 card");
-ok("newsletter page preserved as claim page + reads source");
+ok("newsletter page still reads source from query params");
 
 // Doc lists the CTA source values.
 for (const s of ["signup_launch_25", "dashboard_launch_25", "profile_onboarding_launch_25", "PENDING"]) {

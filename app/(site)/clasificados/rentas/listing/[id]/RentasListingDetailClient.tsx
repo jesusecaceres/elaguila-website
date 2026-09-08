@@ -7,10 +7,11 @@ import { FiChevronLeft } from "react-icons/fi";
 import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { trackListingSaveToggleAuthed } from "@/app/lib/analytics/client/listingEngagementRecorder";
 import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
 import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
 import { useRentasListingTranslation } from "@/app/clasificados/rentas/lib/useRentasListingTranslation";
-import { EnVentaCorreoModal } from "@/app/clasificados/en-venta/preview/EnVentaCorreoModal";
+import { LeonixCorreoLeadModal } from "@/app/clasificados/lib/LeonixCorreoLeadModal";
 import { RentasVisualMatchPreviewView } from "@/app/clasificados/rentas/preview/shared/RentasVisualMatchPreviewView";
 import { trackRentasListingView, trackRentasMessageSent } from "@/app/clasificados/rentas/analytics/rentasAnalytics";
 import { useRentasLandingLang } from "@/app/clasificados/rentas/hooks/useRentasLandingLang";
@@ -153,14 +154,32 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
         {listing.branch === "privado" ? (
           <RentasVisualMatchPreviewView vm={vmPrivado} lang={lang} videoUrls={proseListing.videoUrls} listingId={listingUuid ? listing.id : null} />
         ) : (
-          <RentasVisualMatchPreviewView vm={vmNegocio} lang={lang} videoUrls={proseListing.videoUrls} listingId={listingUuid ? listing.id : null} />
+          <RentasVisualMatchPreviewView
+            vm={vmNegocio}
+            lang={lang}
+            videoUrls={proseListing.videoUrls}
+            listingId={listingUuid ? listing.id : null}
+            ownerId={listing.ownerId}
+          />
         )}
         {listingUuid ? (
           <div className="mx-auto mt-8 max-w-[1240px] px-4 sm:px-6 lg:px-8">
             <div className="border-t border-[#C9D4E0]/55 pt-6">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-[#1E1810]">{eg.title}</h2>
               <div className="mt-3 flex flex-wrap items-center gap-3">
-                <LeonixSaveButton listingId={listing.id} category="rentas" variant="small" lang={lang} />
+                <LeonixSaveButton
+                  listingId={listing.id}
+                  category="rentas"
+                  variant="small"
+                  lang={lang}
+                  recordSaveEvent={(isSave) =>
+                    trackListingSaveToggleAuthed(
+                      { sourceTable: "listings", sourceId: listing.id, category: "rentas" },
+                      isSave,
+                      { eventSource: "detail" },
+                    )
+                  }
+                />
               </div>
               <p className="mt-3 text-xs italic text-[#5C5346]/88">{eg.metricsNote}</p>
             </div>
@@ -198,7 +217,7 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
         </section>
       </div>
 
-      <EnVentaCorreoModal
+      <LeonixCorreoLeadModal
         open={correoOpen}
         onClose={() => setCorreoOpen(false)}
         lang={lang}

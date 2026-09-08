@@ -51,16 +51,24 @@ function isPromoEligible(packageKey: string): boolean {
   return def?.promoEligible === true;
 }
 
-/** Restaurantes comida local $199/mes — display on live page; not in Revenue V1 matrix yet. */
-export const RESTAURANTES_COMIDA_LOCAL_DISPLAY_PRICE = "$199/mes";
-
 export function getRestaurantesCheckpointCards(
   lang: PublishCheckpointLang,
   withLang: (path: string, extra?: Record<string, string>) => string,
 ): PublishCheckpointCardData[] {
   const es = lang === "es";
-  const couponAddon = es ? "Opcional: agrega cupones destacados por +$99/mes" : "Optional: add featured coupons for +$99/month";
+  const couponAddon = es
+    ? "Cupones y ofertas destacadas incluidos sin costo adicional."
+    : "Featured coupons and offers included at no extra cost.";
   const establishedPrice = monthlyPrice("restaurantes_base_monthly", "restaurantes");
+  // Comida Local is its own category with its own real price (comida_local_base_monthly) — this
+  // card is a cross-link to that canonical product for a visitor browsing the Restaurantes
+  // selector, never a separate Restaurantes-priced product. It must show the real current Comida
+  // Local price and route to the real Comida Local application, never into the Restaurantes
+  // checkout flow. Fixed defect: this card previously showed a stale "$199/mes" literal and
+  // routed into /publicar/restaurantes?product=mobile_food_vendor, whose checkout always charged
+  // the real Restaurantes $399/mo base price regardless of that display — a real price-mismatch
+  // defect, not a legitimate Restaurantes product tier.
+  const comidaLocalPrice = monthlyPrice("comida_local_base_monthly", "comida-local");
 
   return [
     {
@@ -100,8 +108,8 @@ export function getRestaurantesCheckpointCards(
           ],
       optionalUpgradeLine: couponAddon,
       optionalUpgradeBullets: es
-        ? ["Opcional: cupones destacados por +$99/mes (hasta 4 cupones)"]
-        : ["Optional: featured coupons for +$99/month (up to 4 coupons)"],
+        ? ["Cupones destacados: hasta 4, incluidos en tu plan"]
+        : ["Featured coupons: up to 4, included with your plan"],
       couponEligible: isPromoEligible("restaurantes_base_monthly"),
       highlighted: false,
     },
@@ -110,16 +118,20 @@ export function getRestaurantesCheckpointCards(
       variant: "paid",
       eyebrow: es ? "Comida Local" : "Local Food",
       title: es ? "Puesto, pop-up o vendedor móvil" : "Stand, pop-up, or mobile vendor",
-      priceLabel: RESTAURANTES_COMIDA_LOCAL_DISPLAY_PRICE,
+      priceLabel: comidaLocalPrice,
       shortDescription: es
         ? "Para puestos, pop-ups, comida casera, vendedores móviles y fines de semana. Ideal para negocios que venden por ubicación temporal, eventos o servicio local."
         : "For stands, pop-ups, homemade food, mobile vendors, and weekend operations. Ideal for businesses that sell at temporary locations, events, or local service.",
       ctaLabel: es ? "Publicar comida local" : "Publish local food",
-      ctaHref: withLang("/publicar/restaurantes", { product: "mobile_food_vendor" }),
+      // Comida Local is its own category — route to its own canonical application, never into
+      // the Restaurantes checkout flow (see comment above; this used to route into
+      // /publicar/restaurantes?product=mobile_food_vendor, which charged $399, not the $199 this
+      // card displayed).
+      ctaHref: withLang("/publicar/comida-local"),
       moreLabel: es ? "Ver más" : "See more",
       modalTitle: es
-        ? `Qué incluye Puesto / Pop-up / Vendedor móvil — ${RESTAURANTES_COMIDA_LOCAL_DISPLAY_PRICE}`
-        : `What's included with Stand / Pop-up / Mobile vendor — ${RESTAURANTES_COMIDA_LOCAL_DISPLAY_PRICE}`,
+        ? `Qué incluye Puesto / Pop-up / Vendedor móvil — ${comidaLocalPrice}`
+        : `What's included with Stand / Pop-up / Mobile vendor — ${comidaLocalPrice}`,
       modalIntro: es
         ? "Este plan ayuda a vendedores de comida móviles o temporales a mostrar dónde estarán, qué venden, cómo contactarlos y cómo la comunidad puede encontrarlos."
         : "This plan helps mobile or temporary food vendors show where they'll be, what they sell, how to contact them, and how the community can find them.",
@@ -128,25 +140,22 @@ export function getRestaurantesCheckpointCards(
             "Qué incluye: Perfil compacto y profesional con fotos o flyer",
             "Para quién es: Puestos, pop-ups, comida casera, vendedores móviles, mercados, eventos",
             "Qué aparece en la ficha: Zona de venta, ciudad, horarios, contacto, menú/pedidos",
-            `Precio mensual: ${RESTAURANTES_COMIDA_LOCAL_DISPLAY_PRICE}`,
+            `Precio mensual: ${comidaLocalPrice}`,
             "Nota: La publicación se activa después de revisión final.",
           ]
         : [
             "What's included: Compact, professional profile with photos or flyer",
             "Who it's for: Stands, pop-ups, homemade food, mobile vendors, markets, events",
             "What appears on profile: Sales zone, city, hours, contact, menu/orders",
-            `Monthly price: ${RESTAURANTES_COMIDA_LOCAL_DISPLAY_PRICE}`,
+            `Monthly price: ${comidaLocalPrice}`,
             "Note: Publication activates after final review.",
           ],
       optionalUpgradeLine: couponAddon,
       optionalUpgradeBullets: es
-        ? ["Opcional: cupones destacados por +$99/mes"]
-        : ["Optional: featured coupons for +$99/month"],
-      couponEligible: true,
+        ? ["Cupones destacados incluidos en tu plan"]
+        : ["Featured coupons included with your plan"],
+      couponEligible: isPromoEligible("comida_local_base_monthly"),
       highlighted: true,
-      footnote: es
-        ? "Precio de pantalla Comida Local — verificar matriz Revenue OS en docs si difiere del checkout."
-        : "Comida Local display price — see docs if Revenue OS matrix differs from checkout.",
     },
   ];
 }
@@ -193,8 +202,8 @@ export function getServiciosCheckpointCard(
           "Mobile/PWA ready",
         ],
     optionalUpgradeLine: es
-      ? "Opcional: agrega cupones destacados por +$99/mes dentro de la aplicación."
-      : "Optional: add featured coupons for +$99/mes inside the application.",
+      ? "Cupones y ofertas destacadas incluidos sin costo adicional dentro de la aplicación."
+      : "Featured coupons and offers included at no extra cost inside the application.",
     optionalUpgradeBullets: es
       ? ["Cupones destacados: hasta 4, precio regular/especial, imagen y código"]
       : ["Featured coupons: up to 4, regular/special price, image and code"],
@@ -477,6 +486,363 @@ export function getEmpleosPaidCheckpointCard(
     couponEligible: isPromoEligible(EMPLEOS_JOB_POST_PAID_PACKAGE_KEY),
     highlighted: true,
   };
+}
+
+/**
+ * Globalization Package A Gate 2 — free quick-lane checkpoint cards.
+ *
+ * Before this gate, the seven lanes below had NO checkpoint before their application (recorded
+ * as P3 Gate 6 "NOT YET BUILT"). Each card is truthful against `revenuePricingMatrix.ts`: the
+ * free lanes' matrix entries are genuinely $0 (`busco_free`, `clases_free`, `comunidad_free`,
+ * `mascotas_free`, `en_venta_free_v1`) or absent entirely (comida_local pipeline — no SKU, no
+ * payment wiring), and Viajes prices come from the matrix (`viajes_business_monthly`). The
+ * dormant `clases_paid_30d` SKU is deliberately NOT shown — no checkout path exists for it
+ * (owner decision D2: launch free-only).
+ */
+type FreeQuickCheckpointCopy = {
+  id: string;
+  eyebrow: { es: string; en: string };
+  title: { es: string; en: string };
+  shortDescription: { es: string; en: string };
+  ctaLabel: { es: string; en: string };
+  modalTitle: { es: string; en: string };
+  modalIntro: { es: string; en: string };
+  includedBullets: { es: readonly string[]; en: readonly string[] };
+};
+
+function buildFreeQuickCheckpointCard(
+  copy: FreeQuickCheckpointCopy,
+  lang: PublishCheckpointLang,
+  ctaHref: string,
+): PublishCheckpointCardData {
+  const es = lang === "es";
+  return {
+    id: copy.id,
+    variant: "free",
+    eyebrow: es ? copy.eyebrow.es : copy.eyebrow.en,
+    title: es ? copy.title.es : copy.title.en,
+    priceLabel: es ? "Gratis" : "Free",
+    shortDescription: es ? copy.shortDescription.es : copy.shortDescription.en,
+    ctaLabel: es ? copy.ctaLabel.es : copy.ctaLabel.en,
+    ctaHref,
+    moreLabel: es ? "Ver más" : "See more",
+    modalTitle: es ? copy.modalTitle.es : copy.modalTitle.en,
+    modalIntro: es ? copy.modalIntro.es : copy.modalIntro.en,
+    includedBullets: es ? copy.includedBullets.es : copy.includedBullets.en,
+    couponEligible: false,
+  };
+}
+
+export function getBuscoCheckpointCard(lang: PublishCheckpointLang, quickHref: string): PublishCheckpointCardData {
+  return buildFreeQuickCheckpointCard(
+    {
+      id: "busco_free",
+      eyebrow: { es: "Comunidad", en: "Community" },
+      title: { es: "Publicar Busco / Se Busca", en: "Post a Busco / Wanted ad" },
+      shortDescription: {
+        es: "Publica gratis lo que buscas — artículos, servicios, ayuda, transporte, voluntarios, recursos o trabajo extra — y recibe respuestas de la comunidad.",
+        en: "Post what you're looking for — items, services, help, rides, volunteers, resources, or side work — for free and get responses from the community.",
+      },
+      ctaLabel: { es: "Publicar gratis", en: "Post for free" },
+      modalTitle: { es: "Busco / Se Busca — Gratis", en: "Busco / Wanted — Free" },
+      modalIntro: {
+        es: "Publicación gratuita. Sin pago ni cupón. Vista previa antes de publicar, y puedes editar tu anuncio desde tu panel.",
+        en: "Free publication. No payment or coupon. Preview before publishing, and you can edit your ad from your dashboard.",
+      },
+      includedBullets: {
+        es: [
+          "Solicita un artículo, servicio o ayuda",
+          "Busca transporte/ride, voluntarios o un recurso comunitario",
+          "Busca trabajo o trabajo extra — no es un anuncio de empleador",
+          "Presupuesto opcional (con monto, gratis, intercambio o a convenir) y urgencia",
+          "Imagen de referencia opcional",
+          "Teléfono, texto, WhatsApp, correo y redes — los que prefieras",
+          "Área aproximada, sin dirección privada",
+          "Vista previa antes de publicar",
+          "Comparte tu solicitud con la comunidad",
+        ],
+        en: [
+          "Request an item, service, or help",
+          "Look for a ride, volunteers, or a community resource",
+          "Look for work or side work — not an employer job posting",
+          "Optional budget (amount, free, trade, or negotiable) and urgency",
+          "Optional reference image",
+          "Phone, text, WhatsApp, email, and social — whichever you prefer",
+          "Approximate area, no private address",
+          "Preview before publishing",
+          "Share your request with the community",
+        ],
+      },
+    },
+    lang,
+    quickHref,
+  );
+}
+
+export function getClasesCheckpointCard(lang: PublishCheckpointLang, quickHref: string): PublishCheckpointCardData {
+  return buildFreeQuickCheckpointCard(
+    {
+      id: "clases_free",
+      eyebrow: { es: "Comunidad", en: "Community" },
+      title: { es: "Publicar una clase", en: "Post a class" },
+      shortDescription: {
+        es: "Comparte tu clase, curso o taller — varias disciplinas, horario, materiales, pagos aceptados y más. Publicar en Leonix es gratis; si tu clase tiene costo para el estudiante, eso no cambia la publicación.",
+        en: "Share your class, course, or workshop — multiple disciplines, schedule, materials, accepted payments, and more. Posting on Leonix is free; a paid class for students doesn't change that.",
+      },
+      ctaLabel: { es: "Publicar clase gratis", en: "Post class for free" },
+      modalTitle: { es: "Clases — Gratis", en: "Classes — Free" },
+      modalIntro: {
+        es: "Publicación gratuita para clases y talleres. Sin pago ni cupón. Vista previa antes de publicar.",
+        en: "Free publication for classes and workshops. No payment or coupon. Preview before publishing.",
+      },
+      includedBullets: {
+        es: [
+          "Clase, curso o taller — hasta 4 tipos por anuncio (ej. Boxeo + Yoga + Pilates)",
+          "Presencial, en línea o híbrida, con horario semanal y fechas opcionales",
+          "Materiales, requisitos y nivel de la clase",
+          "Pagos aceptados por el instructor (efectivo, Zelle, Venmo, tarjeta y más)",
+          "Fotos/flyer y contacto directo",
+          "Vista previa antes de publicar",
+          "Edición desde tu panel",
+        ],
+        en: [
+          "Class, course, or workshop — up to 4 types per listing (e.g. Boxing + Yoga + Pilates)",
+          "In person, online, or hybrid, with weekly schedule and optional dates",
+          "Materials, requirements, and class level",
+          "Payments the instructor accepts (cash, Zelle, Venmo, card, and more)",
+          "Photos/flyer and direct contact",
+          "Preview before publishing",
+          "Edit from your dashboard",
+        ],
+      },
+    },
+    lang,
+    quickHref,
+  );
+}
+
+export function getComunidadCheckpointCard(lang: PublishCheckpointLang, quickHref: string): PublishCheckpointCardData {
+  return buildFreeQuickCheckpointCard(
+    {
+      id: "comunidad_free",
+      eyebrow: { es: "Comunidad", en: "Community" },
+      title: { es: "Publicar evento comunitario", en: "Post a community event" },
+      shortDescription: {
+        es: "Anuncia gratis eventos, celebraciones, reuniones y actividades de la comunidad.",
+        en: "Announce community events, celebrations, gatherings, and activities for free.",
+      },
+      ctaLabel: { es: "Publicar evento gratis", en: "Post event for free" },
+      modalTitle: { es: "Comunidad y Eventos — Gratis", en: "Community & Events — Free" },
+      modalIntro: {
+        es: "Leonix ayuda a organizadores comunitarios a dar a su evento una presencia útil: flyer, información clara, enlaces de interés y contacto directo — todo con vista previa antes de publicar.",
+        en: "Leonix helps community organizers give their event a useful presence: flyer, clear info, helpful links, and direct contact — all with a preview before you publish.",
+      },
+      includedBullets: {
+        es: [
+          "Flyer/imagen y datos del evento",
+          "Fechas y horarios",
+          "Estado: gratis, pagado o donación",
+          "Qué llevar y qué no llevar",
+          "Enlaces de registro, boletos, donación y recursos",
+          "Contacto del organizador y redes sociales",
+          "Ubicación con mapa",
+          "Vista previa antes de publicar",
+          "Descubrimiento local en tu comunidad",
+        ],
+        en: [
+          "Flyer/image and event details",
+          "Dates and times",
+          "Status: free, paid, or donation",
+          "What to bring and what not to bring",
+          "Registration, ticket, donation, and resource links",
+          "Organizer contact and social links",
+          "Location with map",
+          "Preview before publishing",
+          "Local discovery in your community",
+        ],
+      },
+    },
+    lang,
+    quickHref,
+  );
+}
+
+export function getMascotasCheckpointCard(lang: PublishCheckpointLang, quickHref: string): PublishCheckpointCardData {
+  return buildFreeQuickCheckpointCard(
+    {
+      id: "mascotas_free",
+      eyebrow: { es: "Comunidad", en: "Community" },
+      title: { es: "Publicar mascota o aviso", en: "Post a pet or notice" },
+      shortDescription: {
+        es: "Publica gratis mascotas en adopción, perdidos y encontrados para tu comunidad.",
+        en: "Post pets for adoption and lost & found notices for your community, free.",
+      },
+      ctaLabel: { es: "Publicar aviso gratis", en: "Post notice for free" },
+      modalTitle: { es: "Mascotas y Perdidos — Gratis", en: "Pets & Lost — Free" },
+      modalIntro: {
+        es: "Publicación gratuita para avisos de mascotas y objetos. Sin pago ni cupón. Tu aviso puede ayudar a reportar una mascota perdida o encontrada, publicar una adopción, o reportar un objeto perdido o encontrado.",
+        en: "Free publication for pet and item notices. No payment or coupon. Your notice can report a lost or found pet, post a pet adoption, or report a lost or found item.",
+      },
+      includedBullets: {
+        es: [
+          "Reporta una mascota perdida o encontrada",
+          "Publica una adopción de mascota",
+          "Reporta un objeto perdido o encontrado",
+          "Hasta 4 fotos y señas particulares",
+          "Recompensa opcional, visible en el aviso",
+          "Teléfono, texto, WhatsApp, correo y redes sociales — el que prefieras",
+          "Área de última vez vista/encontrada",
+          "Vista previa antes de publicar",
+          "Comparte tu aviso con la comunidad",
+        ],
+        en: [
+          "Report a lost or found pet",
+          "Post a pet adoption",
+          "Report a lost or found item",
+          "Up to 4 photos and identifying details",
+          "Optional reward, shown on the notice",
+          "Phone, text, WhatsApp, email, or social — whichever you prefer",
+          "Last-seen/found area",
+          "Preview before publishing",
+          "Share your notice with the community",
+        ],
+      },
+    },
+    lang,
+    quickHref,
+  );
+}
+
+export function getEnVentaCheckpointCard(lang: PublishCheckpointLang, proHref: string): PublishCheckpointCardData {
+  return buildFreeQuickCheckpointCard(
+    {
+      id: "en_venta_free",
+      eyebrow: { es: "En Venta / Varios", en: "For Sale / Misc" },
+      title: { es: "Publicar artículo en venta", en: "Post an item for sale" },
+      shortDescription: {
+        es: "Vende artículos, muebles, electrónicos y más — publicación gratuita con fotos y contacto directo.",
+        en: "Sell items, furniture, electronics, and more — free publication with photos and direct contact.",
+      },
+      ctaLabel: { es: "Publicar gratis", en: "Post for free" },
+      modalTitle: { es: "En Venta — Gratis", en: "For Sale — Free" },
+      modalIntro: {
+        es: "Publicación gratuita. Sin pago ni cupón. Vista previa antes de publicar, y tu anuncio se administra desde tu panel.",
+        en: "Free publication. No payment or coupon. Preview before publishing, and your ad is managed from your dashboard.",
+      },
+      includedBullets: {
+        es: ["Anuncio con galería de fotos", "Precio y contacto directo", "Vista previa antes de publicar", "Edición y republicación desde tu panel"],
+        en: ["Ad with photo gallery", "Price and direct contact", "Preview before publishing", "Edit and republish from your dashboard"],
+      },
+    },
+    lang,
+    proHref,
+  );
+}
+
+export function getComidaLocalCheckpointCard(lang: PublishCheckpointLang, applicationHref: string): PublishCheckpointCardData {
+  const es = lang === "es";
+  const price = monthlyPrice("comida_local_base_monthly", "comida-local");
+  return {
+    id: "comida_local_pipeline",
+    variant: "paid",
+    eyebrow: es ? "Comida Local" : "Local Food",
+    title: es ? "Publicar comida local" : "Post local food",
+    priceLabel: price,
+    shortDescription: es
+      ? "Para puestos, pop-ups, comida casera y vendedores móviles. Ficha con fotos, horario, ubicación y contacto directo."
+      : "For stands, pop-ups, homemade food, and mobile vendors. A listing with photos, schedule, location, and direct contact.",
+    ctaLabel: es ? "Publicar comida local" : "Post local food",
+    ctaHref: applicationHref,
+    moreLabel: es ? "Ver más" : "See more",
+    modalTitle: es ? `Qué incluye Comida Local — ${price}` : `What's included with Local Food — ${price}`,
+    modalIntro: es
+      ? "Este plan crea una ficha para tu puesto o negocio de comida local: dónde te encuentran hoy, qué vendes, horario y cómo contactarte."
+      : "This plan creates a listing for your local food stand or business: where to find you today, what you sell, hours, and how to contact you.",
+    includedBullets: es
+      ? [
+          "Puesto, pop-up, comida casera o vendedor móvil",
+          "«Encuéntrame hoy» — ubicación del día, aparte de tu dirección privada",
+          "Fotos, horario semanal y galería",
+          "Teléfono, WhatsApp, correo y redes sociales",
+          "Vista previa antes de publicar",
+        ]
+      : [
+          "Stand, pop-up, homemade food, or mobile vendor",
+          "“Find me today” — today's location, separate from your private address",
+          "Photos, weekly hours, and gallery",
+          "Phone, WhatsApp, email, and social media",
+          "Preview before publishing",
+        ],
+    couponEligible: isPromoEligible("comida_local_base_monthly"),
+  };
+}
+
+export function getViajesCheckpointCards(
+  lang: PublishCheckpointLang,
+  negociosHref: string,
+  privadoHref: string,
+): PublishCheckpointCardData[] {
+  const es = lang === "es";
+  const businessPrice = monthlyPrice("viajes_business_monthly", "viajes");
+  return [
+    {
+      id: "viajes_negocios",
+      variant: "paid",
+      eyebrow: es ? "Negocio de viajes" : "Travel business",
+      title: es ? "Publicar como negocio de viajes" : "Publish as a travel business",
+      priceLabel: businessPrice,
+      shortDescription: es
+        ? "Para agencias, operadores y negocios de viajes. Perfil con ofertas, galería, contacto y presencia en Leonix Viajes."
+        : "For agencies, operators, and travel businesses. Profile with offers, gallery, contact, and presence on Leonix Viajes.",
+      ctaLabel: es ? "Publicar como negocio" : "Publish as business",
+      ctaHref: negociosHref,
+      moreLabel: es ? "Ver más" : "See more",
+      modalTitle: es
+        ? `Qué incluye Negocio de viajes — ${businessPrice}`
+        : `What's included with Travel business — ${businessPrice}`,
+      modalIntro: es
+        ? "Publicación de negocio de viajes. Tu anuncio pasa por revisión antes de aparecer públicamente."
+        : "Travel business publication. Your listing goes through review before appearing publicly.",
+      includedBullets: es
+        ? [
+            "Perfil de negocio con ofertas de viaje",
+            "Fotos, contacto y enlaces",
+            `Precio mensual: ${businessPrice}`,
+            "Nota: la publicación se activa después de revisión.",
+          ]
+        : [
+            "Business profile with travel offers",
+            "Photos, contact, and links",
+            `Monthly price: ${businessPrice}`,
+            "Note: publication activates after review.",
+          ],
+      couponEligible: isPromoEligible("viajes_business_monthly"),
+      highlighted: true,
+    },
+    buildFreeQuickCheckpointCard(
+      {
+        id: "viajes_privado",
+        eyebrow: { es: "Particular", en: "Private" },
+        title: { es: "Publicar viaje como particular", en: "Publish a trip as a private seller" },
+        shortDescription: {
+          es: "Comparte un viaje, tour o experiencia como particular — publicación gratuita con revisión.",
+          en: "Share a trip, tour, or experience as a private seller — free publication with review.",
+        },
+        ctaLabel: { es: "Publicar como particular", en: "Publish as private" },
+        modalTitle: { es: "Viajes particular — Gratis", en: "Private travel — Free" },
+        modalIntro: {
+          es: "Publicación gratuita para particulares. Sin pago ni cupón. Tu anuncio pasa por revisión antes de aparecer públicamente.",
+          en: "Free publication for private sellers. No payment or coupon. Your listing goes through review before appearing publicly.",
+        },
+        includedBullets: {
+          es: ["Viaje, tour o experiencia", "Fotos y contacto", "Revisión antes de publicación pública"],
+          en: ["Trip, tour, or experience", "Photos and contact", "Review before public publication"],
+        },
+      },
+      lang,
+      privadoHref,
+    ),
+  ];
 }
 
 export function getEmpleosFreeCheckpointCard(

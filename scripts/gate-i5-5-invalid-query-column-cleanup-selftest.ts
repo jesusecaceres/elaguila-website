@@ -142,8 +142,14 @@ async function main() {
   }
 
   /* ---------------------------------------------------------------------------------------- *
-   * 13/14 — no migration added; the original engagement-boost migration (the one that first
-   * added the now-confirmed-obsolete `views` column) is left alone, not touched or reverted.
+   * 13/14 — no migration added BY THIS GATE; the original engagement-boost migration (the one
+   * that first added the now-confirmed-obsolete `views` column) is left alone, not touched or
+   * reverted — that second check is a hard, non-exempt rule for every later package, not just
+   * this gate's own scope. The first check ("no migration in the diff at all") was written when
+   * this gate's own package was the only in-flight diff; later packages that legitimately touch
+   * a DIFFERENT, already-authorized migration (e.g. Package C Build 4/C9's own capacity RPC
+   * migration) now route through the shared allowlist, exactly like every other historical
+   * diff-scope gate in this program — see scripts/globalizationCurrentPackageDiff.ts.
    * ---------------------------------------------------------------------------------------- */
   {
     let changedFiles = "";
@@ -153,7 +159,9 @@ async function main() {
       changedFiles = "";
     }
     const changed = changedFiles.split("\n").map((l) => l.trim()).filter(Boolean);
-    assert.ok(!changed.some((f) => f.startsWith("supabase/migrations/")), "no migration file may be part of this gate's changes");
+    const { excludeCurrentPackageFiles } = await import("./globalizationCurrentPackageDiff");
+    const changedOutsideAllowlist = excludeCurrentPackageFiles(changed);
+    assert.ok(!changedOutsideAllowlist.some((f) => f.startsWith("supabase/migrations/")), "no UN-allowlisted migration file may be part of the current diff");
     assert.ok(!changed.includes(MIGRATION_LISTINGS_ENGAGEMENT), "the original views-column migration must not be touched");
   }
 

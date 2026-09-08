@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
@@ -8,7 +8,7 @@ import { OnboardingWizard } from "./OnboardingWizard";
 
 type Lang = "es" | "en";
 
-export default function OnboardingPage() {
+function OnboardingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname() ?? "/dashboard/business-tools/onboarding";
@@ -74,5 +74,13 @@ export default function OnboardingPage() {
     <LeonixDashboardShell lang={lang} activeNav="business" plan="free" userName={name} email={email} accountRef={accountRef} ownerId={userId} compact>
       <OnboardingWizard lang={lang} intentKey={intentKey} />
     </LeonixDashboardShell>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <OnboardingPageContent />
+    </Suspense>
   );
 }

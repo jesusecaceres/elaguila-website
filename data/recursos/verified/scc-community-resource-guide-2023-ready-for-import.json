@@ -1,0 +1,4195 @@
+[
+  {
+    "candidateId": "2-1-1-bay-area",
+    "verificationPriority": 1,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "211 Bay Area",
+    "programName": "Program of United Way Bay Area",
+    "currentSourceUrl": "https://211bayarea.org/contact/",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "211",
+      "crisisPhone": "800-273-6222",
+      "sms": "Text your ZIP code to 898211",
+      "websiteUrl": "https://211bayarea.org/contact/",
+      "applicationUrl": null,
+      "address": null,
+      "serviceArea": "Santa Clara County and Bay Area",
+      "hours": "24 hours a day, 7 days a week",
+      "is24Hours": true,
+      "languages": [
+        "English",
+        "Spanish",
+        "150 languages via phone interpretation"
+      ],
+      "eligibility": null,
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "crisisPhone",
+      "languages",
+      "is24Hours"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "languages",
+        "pdfValue": "English, Spanish, Vietnamese, and 140 other languages",
+        "currentValue": "150 languages (phone interpretation)"
+      },
+      {
+        "field": "sms",
+        "pdfValue": "(not present in PDF)",
+        "currentValue": "Text ZIP code to 898211 (English and Spanish only)"
+      }
+    ],
+    "addressHandling": "not_applicable",
+    "verificationNotes": "Dial 211 confirmed; alternate 800-273-6222 confirmed current on official Contact page (matches PDF). Text service confirmed: ZIP to 898211. Confirmed 24/7. EXPLICITLY DID NOT use an alternate legacy hotline number found in some outdated third-party directories — unsupported by the current official Contact page, excluded from evidence.",
+    "suggestedResourceCorrections": {
+      "organizationName": "211 Bay Area",
+      "programName": "Program of United Way Bay Area",
+      "primaryCategory": "community-support",
+      "urgencyLevel": "help-now",
+      "phone": "211",
+      "crisisPhone": "800-273-6222",
+      "sms": "Text your ZIP code to 898211",
+      "websiteUrl": "https://211bayarea.org/contact/",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://211bayarea.org/contact/",
+      "address": null,
+      "serviceArea": "Santa Clara County and Bay Area",
+      "hoursNoteEn": "24 hours a day, 7 days a week",
+      "is24Hours": true
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "asian-americans-for-community-involvement-aaci-aaci-asian-women-s-home",
+    "verificationPriority": 1,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Asian Americans for Community Involvement (AACI)",
+    "programName": "Asian Women's Home",
+    "currentSourceUrl": "https://aaci.org/wellness/womens-home/",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 975-2730",
+      "crisisPhone": "(408) 975-2739",
+      "sms": null,
+      "websiteUrl": "https://aaci.org/wellness/womens-home/",
+      "applicationUrl": null,
+      "address": {
+        "line1": "2400 Moorpark Ave. Suite 300",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95128"
+      },
+      "serviceArea": "Santa Clara County",
+      "hours": "24-hour crisis hotline; Family Justice Center Thu 9am-12pm, 1pm-5pm",
+      "is24Hours": true,
+      "languages": [
+        "English",
+        "Spanish",
+        "Arabic",
+        "Armenian",
+        "Chinese",
+        "Filipino",
+        "Hindi",
+        "Hmong",
+        "Japanese",
+        "Khmer",
+        "Korean",
+        "Lao",
+        "Myanmar",
+        "Punjabi",
+        "Russian",
+        "Thai",
+        "Vietnamese",
+        "and other languages (40+ total)"
+      ],
+      "eligibility": "Serves everyone regardless of race, ethnicity, religion, immigration status, socioeconomic background, or sexual orientation",
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "crisisPhone",
+      "phone",
+      "websiteUrl",
+      "address",
+      "is24Hours",
+      "languages",
+      "eligibility"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "address",
+        "pdfValue": "749 Story Rd, Ste. 50, San Jose CA 95122 (Family Justice Center)",
+        "currentValue": "Family Justice Center relocated to 150 E. San Fernando St, Room 324, San Jose, CA 95112; corporate office 2400 Moorpark Ave. Suite 300"
+      }
+    ],
+    "addressHandling": "withheld_for_safety",
+    "verificationNotes": "24-hr crisis hotline (408) 975-2739 confirmed identical to PDF. Shelter address explicitly confidential — never publish. Family Justice Center location moved since 2023. Corporate office address is safe public info.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Asian Americans for Community Involvement (AACI)",
+      "programName": "Asian Women's Home",
+      "primaryCategory": "urgent-safety",
+      "urgencyLevel": "help-now",
+      "phone": "(408) 975-2730",
+      "crisisPhone": "(408) 975-2739",
+      "sms": null,
+      "websiteUrl": "https://aaci.org/wellness/womens-home/",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://aaci.org/wellness/womens-home/",
+      "address": {
+        "line1": "2400 Moorpark Ave. Suite 300",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95128"
+      },
+      "serviceArea": "Santa Clara County",
+      "hoursNoteEn": "24-hour crisis hotline",
+      "is24Hours": true
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "community-solutions-human-trafficking",
+    "verificationPriority": 1,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Community Solutions",
+    "programName": "Human Trafficking / Sexual Assault / Domestic Violence Crisis Line",
+    "currentSourceUrl": "https://communitysolutions.org/",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": null,
+      "crisisPhone": "1-877-363-7238",
+      "sms": null,
+      "websiteUrl": "https://communitysolutions.org/",
+      "applicationUrl": null,
+      "address": null,
+      "serviceArea": "Santa Clara County and San Benito County",
+      "hours": "24-Hour Crisis Line",
+      "is24Hours": true,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "crisisPhone",
+      "websiteUrl",
+      "is24Hours",
+      "serviceArea"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "serviceArea",
+        "pdfValue": "(not specified)",
+        "currentValue": "Santa Clara County and San Benito County"
+      }
+    ],
+    "addressHandling": "not_applicable",
+    "verificationNotes": "24-Hour Crisis Line 1.877.END.SADV (1.877.363.7238) confirmed — same number as PDF's '1-877-END-SADV', different formatting only. Physical address not reconfirmed this pass — omitted.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Community Solutions",
+      "programName": "Human Trafficking / Sexual Assault / Domestic Violence Crisis Line",
+      "primaryCategory": "urgent-safety",
+      "urgencyLevel": "help-now",
+      "phone": null,
+      "crisisPhone": "1-877-363-7238",
+      "sms": null,
+      "websiteUrl": "https://communitysolutions.org/",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://communitysolutions.org/",
+      "address": null,
+      "serviceArea": "Santa Clara County and San Benito County",
+      "hoursNoteEn": "24-Hour Crisis Line",
+      "is24Hours": true
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "crisis-text-line",
+    "verificationPriority": 1,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Crisis Text Line",
+    "programName": null,
+    "currentSourceUrl": "https://www.crisistextline.org/",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": null,
+      "crisisPhone": null,
+      "sms": "Text HOME to 741741 (Text HOLA to 741741 en español)",
+      "websiteUrl": "https://www.crisistextline.org/",
+      "applicationUrl": null,
+      "address": null,
+      "serviceArea": "United States (incl. Puerto Rico)",
+      "hours": "24/7",
+      "is24Hours": true,
+      "languages": [
+        "English",
+        "Spanish"
+      ],
+      "eligibility": null,
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "sms",
+      "websiteUrl",
+      "is24Hours",
+      "languages"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "sms",
+        "pdfValue": "Text BAY to 741741",
+        "currentValue": "Text HOME to 741741 (regional keyword \"BAY\" deprecated in favor of universal \"HOME\"; \"HOLA\" for Spanish)"
+      }
+    ],
+    "addressHandling": "not_applicable",
+    "verificationNotes": "CRITICAL CORRECTION: the PDF's regional keyword 'BAY' is no longer current — official site confirms the keyword is now 'HOME'. Explicitly confirmed 24/7. Safety-critical: the old keyword may not route correctly.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Crisis Text Line",
+      "programName": null,
+      "primaryCategory": "urgent-safety",
+      "urgencyLevel": "help-now",
+      "phone": null,
+      "crisisPhone": null,
+      "sms": "Text HOME to 741741 (Text HOLA to 741741 en español)",
+      "websiteUrl": "https://www.crisistextline.org/",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.crisistextline.org/",
+      "address": null,
+      "serviceArea": "United States (incl. Puerto Rico)",
+      "hoursNoteEn": "24/7 confidential crisis support",
+      "is24Hours": true
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "maitri",
+    "verificationPriority": 1,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Maitri",
+    "programName": null,
+    "currentSourceUrl": "https://maitri.org/",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": null,
+      "crisisPhone": "1-888-862-4874",
+      "sms": null,
+      "websiteUrl": "https://maitri.org/",
+      "applicationUrl": null,
+      "address": null,
+      "serviceArea": "San Francisco Bay Area (South Asian community)",
+      "hours": null,
+      "is24Hours": false,
+      "languages": [
+        "English",
+        "Hindi",
+        "Punjabi",
+        "Gujarati",
+        "Bengali",
+        "Telugu",
+        "Tamil",
+        "Urdu",
+        "and other South Asian languages"
+      ],
+      "eligibility": null,
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "crisisPhone",
+      "websiteUrl",
+      "languages"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "not_applicable",
+    "verificationNotes": "Helpline 1-888-862-4874 confirmed identical to PDF. No 24/7 claim found on official site — consistent with PDF; is24Hours correctly stays false. PO Box from PDF not carried forward as a contact point.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Maitri",
+      "programName": null,
+      "primaryCategory": "urgent-safety",
+      "urgencyLevel": "help-now",
+      "phone": null,
+      "crisisPhone": "1-888-862-4874",
+      "sms": null,
+      "websiteUrl": "https://maitri.org/",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://maitri.org/",
+      "address": null,
+      "serviceArea": "San Francisco Bay Area (South Asian community)",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "next-door-solutions",
+    "verificationPriority": 1,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Next Door Solutions to Domestic Violence",
+    "programName": null,
+    "currentSourceUrl": "https://www.nextdoorsolutions.org/",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 501-7550",
+      "crisisPhone": "(408) 279-2962",
+      "sms": null,
+      "websiteUrl": "https://www.nextdoorsolutions.org/",
+      "applicationUrl": null,
+      "address": {
+        "line1": "234 E. Gish Road",
+        "line2": "Suite 200",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95112"
+      },
+      "serviceArea": "Santa Clara County",
+      "hours": "24/7 hotline",
+      "is24Hours": true,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "crisisPhone",
+      "phone",
+      "websiteUrl",
+      "address",
+      "is24Hours"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "websiteUrl",
+        "pdfValue": "https://www.nextdoor.org",
+        "currentValue": "https://www.nextdoorsolutions.org/"
+      },
+      {
+        "field": "address",
+        "pdfValue": "234 E Gish Road, San Jose, CA 95112",
+        "currentValue": "234 E. Gish Road, Suite 200, San Jose, CA 95112"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "CRITICAL CORRECTION: 2023 candidate website (nextdoor.org) was wrong — that domain belongs to the unrelated 'Nextdoor' neighborhood app. Official domain is nextdoorsolutions.org. 24/7 hotline confirmed unchanged. 234 E. Gish Road, Suite 200 is the community office (not a confidential shelter location) — safe to publish.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Next Door Solutions to Domestic Violence",
+      "programName": null,
+      "primaryCategory": "urgent-safety",
+      "urgencyLevel": "help-now",
+      "phone": "(408) 501-7550",
+      "crisisPhone": "(408) 279-2962",
+      "sms": null,
+      "websiteUrl": "https://www.nextdoorsolutions.org/",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.nextdoorsolutions.org/",
+      "address": {
+        "line1": "234 E. Gish Road",
+        "line2": "Suite 200",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95112"
+      },
+      "serviceArea": "Santa Clara County",
+      "hoursNoteEn": "24/7 hotline",
+      "is24Hours": true
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "santa-clara-county-behavioral-health-services",
+    "verificationPriority": 1,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Santa Clara County Behavioral Health Services",
+    "programName": null,
+    "currentSourceUrl": "https://bhsd.santaclaracounty.gov/get-help-now",
+    "currentSourceType": "government",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(800) 704-0900",
+      "crisisPhone": "988",
+      "sms": null,
+      "websiteUrl": "https://bhsd.santaclaracounty.gov/get-help-now",
+      "applicationUrl": null,
+      "address": null,
+      "serviceArea": "Santa Clara County",
+      "hours": "24/7 including holidays",
+      "is24Hours": true,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "crisisPhone",
+      "websiteUrl",
+      "is24Hours"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "websiteUrl",
+        "pdfValue": "https://www.sccgov.org/sites/bhd/Pages/home.aspx",
+        "currentValue": "https://bhsd.santaclaracounty.gov/get-help-now"
+      },
+      {
+        "field": "crisisPhone",
+        "pdfValue": "988",
+        "currentValue": "988 (local 408/650/669) or (800) 704-0900 (outside-County) — both reach the Behavioral Health Call Center"
+      }
+    ],
+    "addressHandling": "not_applicable",
+    "verificationNotes": "Behavioral Health Call Center confirmed 24/7 including holidays via direct fetch. Local (408/650/669) callers dial 988; outside-County callers use (800) 704-0900. Official site migrated from sccgov.org to bhsd.santaclaracounty.gov.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Santa Clara County Behavioral Health Services",
+      "programName": null,
+      "primaryCategory": "mental-health-recovery",
+      "urgencyLevel": "help-now",
+      "phone": "(800) 704-0900",
+      "crisisPhone": "988",
+      "sms": null,
+      "websiteUrl": "https://bhsd.santaclaracounty.gov/get-help-now",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://bhsd.santaclaracounty.gov/get-help-now",
+      "address": null,
+      "serviceArea": "Santa Clara County",
+      "hoursNoteEn": "24/7 including holidays",
+      "is24Hours": true
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "santa-clara-county-department-of-family-and-children-s-services-dfcs-child-abuse",
+    "verificationPriority": 1,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Santa Clara County Department of Family and Children's Services (DFCS)",
+    "programName": "Child Abuse & Neglect Call Center",
+    "currentSourceUrl": "https://ssa.santaclaracounty.gov/protective-services/report-child-abuse-and-neglect",
+    "currentSourceType": "government",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": null,
+      "crisisPhone": "(833) 722-5437",
+      "sms": null,
+      "websiteUrl": "https://ssa.santaclaracounty.gov/protective-services/report-child-abuse-and-neglect",
+      "applicationUrl": null,
+      "address": null,
+      "serviceArea": "Santa Clara County",
+      "hours": "24 hours a day, 7 days a week, 365 days a year",
+      "is24Hours": true,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "crisisPhone",
+      "hoursNoteEn",
+      "is24Hours"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "websiteUrl",
+        "pdfValue": "https://socialservices.sccgov.org/about-us/department-family-and-childrens-services",
+        "currentValue": "https://ssa.santaclaracounty.gov/protective-services/report-child-abuse-and-neglect"
+      }
+    ],
+    "addressHandling": "not_applicable",
+    "verificationNotes": "Hotline (833) 722-5437 / (833) SCC-KIDS confirmed identical to PDF. Confirmed 24/7/365. Official URL migrated to ssa.santaclaracounty.gov. Current source states: if life is in immediate danger, call 911 — reference only, not a CTA field.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Santa Clara County Department of Family and Children's Services (DFCS)",
+      "programName": "Child Abuse & Neglect Call Center",
+      "primaryCategory": "urgent-safety",
+      "urgencyLevel": "help-now",
+      "phone": null,
+      "crisisPhone": "(833) 722-5437",
+      "sms": null,
+      "websiteUrl": "https://ssa.santaclaracounty.gov/protective-services/report-child-abuse-and-neglect",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://ssa.santaclaracounty.gov/protective-services/report-child-abuse-and-neglect",
+      "address": null,
+      "serviceArea": "Santa Clara County",
+      "hoursNoteEn": "24 hours a day, 7 days a week, 365 days a year",
+      "is24Hours": true
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "santa-clara-county-emergency-psychiatric-services-eps",
+    "verificationPriority": 1,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Santa Clara County Emergency Psychiatric Services (EPS)",
+    "programName": null,
+    "currentSourceUrl": "https://bhsd.santaclaracounty.gov/emergency-psychiatric-services-eps",
+    "currentSourceType": "government",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": null,
+      "crisisPhone": "(408) 885-6100",
+      "sms": null,
+      "websiteUrl": "https://bhsd.santaclaracounty.gov/emergency-psychiatric-services-eps",
+      "applicationUrl": null,
+      "address": {
+        "line1": "871 Enborg Lane",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95128"
+      },
+      "serviceArea": "Santa Clara County",
+      "hours": "24 hours, 7 days a week",
+      "is24Hours": true,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address",
+      "hoursNoteEn",
+      "is24Hours"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "websiteUrl",
+        "pdfValue": "https://www.sccgov.org/sites/bhd/Services/Emergency/EmergencyPsychiatricServices/",
+        "currentValue": "https://bhsd.santaclaracounty.gov/emergency-psychiatric-services-eps"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Phone (408) 885-6100 and address 871 Enborg Lane confirmed identical to PDF. Open 24/7 confirmed explicit. Fax (408) 885-6117 exists but is NOT a public CTA. Official URL migrated to bhsd.santaclaracounty.gov.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Santa Clara County Emergency Psychiatric Services (EPS)",
+      "programName": null,
+      "primaryCategory": "urgent-safety",
+      "urgencyLevel": "help-now",
+      "phone": null,
+      "crisisPhone": "(408) 885-6100",
+      "sms": null,
+      "websiteUrl": "https://bhsd.santaclaracounty.gov/emergency-psychiatric-services-eps",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://bhsd.santaclaracounty.gov/emergency-psychiatric-services-eps",
+      "address": {
+        "line1": "871 Enborg Lane",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95128"
+      },
+      "serviceArea": "Santa Clara County",
+      "hoursNoteEn": "24 hours, 7 days a week",
+      "is24Hours": true
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "ywca-golden-gate-silicon-valley-support-services-department",
+    "verificationPriority": 1,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "YWCA Golden Gate Silicon Valley",
+    "programName": "Support Services Department",
+    "currentSourceUrl": "https://yourywca.org/",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": null,
+      "crisisPhone": "(800) 572-2782",
+      "sms": null,
+      "websiteUrl": "https://yourywca.org/",
+      "applicationUrl": null,
+      "address": {
+        "line1": "375 S. Third St.",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95112"
+      },
+      "serviceArea": "Bay Area",
+      "hours": "24-hour bilingual support line",
+      "is24Hours": true,
+      "languages": [
+        "English",
+        "bilingual support"
+      ],
+      "eligibility": null,
+      "costModel": null
+    },
+    "fieldsConfirmed": [
+      "crisisPhone",
+      "websiteUrl",
+      "address",
+      "is24Hours"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "confirmed",
+    "verificationNotes": "24-HOUR BILINGUAL SUPPORT LINE (800) 572-2782 confirmed identical to PDF, explicitly covers Sexual Assault, Domestic Violence, and Human Trafficking. Address confirmed matching PDF.",
+    "suggestedResourceCorrections": {
+      "organizationName": "YWCA Golden Gate Silicon Valley",
+      "programName": "Support Services Department",
+      "primaryCategory": "urgent-safety",
+      "urgencyLevel": "help-now",
+      "phone": null,
+      "crisisPhone": "(800) 572-2782",
+      "sms": null,
+      "websiteUrl": "https://yourywca.org/",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://yourywca.org/",
+      "address": {
+        "line1": "375 S. Third St.",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95112"
+      },
+      "serviceArea": "Bay Area",
+      "hoursNoteEn": "24-hour bilingual support line",
+      "is24Hours": true
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "bay-area-legal-aid",
+    "verificationPriority": 2,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Bay Area Legal Aid",
+    "programName": null,
+    "currentSourceUrl": "https://baylegal.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": null,
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://baylegal.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "1735 Telegraph Avenue",
+        "line2": null,
+        "city": "Oakland",
+        "state": "CA",
+        "zip": "94612"
+      },
+      "serviceArea": "Alameda, Contra Costa, Marin, Napa, San Francisco, San Mateo, and Santa Clara counties",
+      "hours": null,
+      "is24Hours": false,
+      "languages": [
+        "English",
+        "Arabic",
+        "Chinese (Simplified)",
+        "Korean",
+        "Russian",
+        "Spanish",
+        "Tagalog",
+        "Vietnamese"
+      ],
+      "eligibility": "Free civil legal help to low-income people, regardless of location, language, or disability",
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "websiteUrl",
+      "address",
+      "serviceArea",
+      "languages",
+      "eligibility",
+      "costModel"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "phone",
+        "pdfValue": "408-283-3700",
+        "currentValue": "800-551-5554 (Legal Advice Line — universal number)"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "PDF's local San Jose number could not be reconfirmed on the current official site; using the confirmed universal Legal Advice Line instead.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Bay Area Legal Aid",
+      "programName": null,
+      "primaryCategory": "legal-immigration",
+      "urgencyLevel": "i-need-help",
+      "phone": "800-551-5554",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://baylegal.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://baylegal.org",
+      "address": {
+        "line1": "1735 Telegraph Avenue",
+        "line2": null,
+        "city": "Oakland",
+        "state": "CA",
+        "zip": "94612"
+      },
+      "serviceArea": "Alameda, Contra Costa, Marin, Napa, San Francisco, San Mateo, and Santa Clara counties",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "bill-wilson-center-the-hub",
+    "verificationPriority": 2,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Bill Wilson Center",
+    "programName": "The HUB",
+    "currentSourceUrl": "https://www.billwilsoncenter.org/services/all/bwc-hub.html",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 792-1750",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.billwilsoncenter.org/services/all/bwc-hub.html",
+      "applicationUrl": null,
+      "address": {
+        "line1": "1510 Parkmoor Ave, Ste 101",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95126"
+      },
+      "serviceArea": "Santa Clara County (San Jose + Gilroy)",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": "Current or former foster youth ages 15-24",
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address",
+      "eligibility"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "address",
+        "pdfValue": "591 N. King Rd, Ste 1, San Jose, CA 95133",
+        "currentValue": "1510 Parkmoor Ave, Ste 101, San Jose, CA 95126 (relocated)"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Phone confirmed unchanged. The HUB has relocated since 2023.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Bill Wilson Center",
+      "programName": "The HUB",
+      "primaryCategory": "youth-education",
+      "urgencyLevel": "i-need-help",
+      "phone": "(408) 792-1750",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.billwilsoncenter.org/services/all/bwc-hub.html",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.billwilsoncenter.org/services/all/bwc-hub.html",
+      "address": {
+        "line1": "1510 Parkmoor Ave, Ste 101",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95126"
+      },
+      "serviceArea": "Santa Clara County",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "calworks-child-care-services",
+    "verificationPriority": 2,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Santa Clara County Office of Education — Childcare Resource & Referral",
+    "programName": "CalWORKs Child Care Services",
+    "currentSourceUrl": "https://www.childcarescc.org/child-care-application",
+    "currentSourceType": "government",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(669) 212-5437",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.childcarescc.org/child-care-application",
+      "applicationUrl": "https://www.childcarescc.org/child-care-application",
+      "address": {
+        "line1": "1290 Ridder Park Dr. MC 261",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95131"
+      },
+      "serviceArea": "Santa Clara County",
+      "hours": "Monday - Friday 8:00 AM - 5:00 PM",
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": null
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address",
+      "hours",
+      "websiteUrl"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Exact match to PDF — phone, address, and email all confirmed unchanged.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Santa Clara County Office of Education — Childcare Resource & Referral",
+      "programName": "CalWORKs Child Care Services",
+      "primaryCategory": "babies-kids-parents",
+      "urgencyLevel": "i-need-help",
+      "phone": "(669) 212-5437",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.childcarescc.org/child-care-application",
+      "applicationUrl": "https://www.childcarescc.org/child-care-application",
+      "officialSourceUrl": "https://www.childcarescc.org/child-care-application",
+      "address": {
+        "line1": "1290 Ridder Park Dr. MC 261",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95131"
+      },
+      "serviceArea": "Santa Clara County",
+      "hoursNoteEn": "Monday - Friday 8:00 AM - 5:00 PM",
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "court-appointed-special-advocates-casa-of-silicon-valley",
+    "verificationPriority": 2,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Child Advocates of Silicon Valley",
+    "programName": "CASA (Court Appointed Special Advocates)",
+    "currentSourceUrl": "https://childadvocatessv.org/casa/",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 416-0400",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://childadvocatessv.org/casa/",
+      "applicationUrl": null,
+      "address": {
+        "line1": "1800 Hamilton Ave, Suite #200",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95125"
+      },
+      "serviceArea": "Santa Clara County Dependency Court System (foster care)",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": "Volunteers: info session, interview, background check, 30hr training",
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address",
+      "eligibility"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "organizationName",
+        "pdfValue": "Court Appointed Special Advocates (CASA of Silicon Valley)",
+        "currentValue": "Child Advocates of Silicon Valley (CASA is now a program under this renamed org)"
+      },
+      {
+        "field": "websiteUrl",
+        "pdfValue": "https://www.bemyadvocate.org",
+        "currentValue": "https://childadvocatessv.org/casa/ (old domain now 301-redirects to an unrelated third-party site)"
+      },
+      {
+        "field": "address",
+        "pdfValue": "509 Valley Way, Bldg 2, Milpitas, CA 95035",
+        "currentValue": "1800 Hamilton Ave, Suite #200, San Jose, CA 95125"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "CRITICAL: organization renamed and old domain now redirects to an unrelated skate-park site. Phone unchanged. Relocated from Milpitas to San Jose.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Child Advocates of Silicon Valley",
+      "programName": "CASA (Court Appointed Special Advocates)",
+      "primaryCategory": "babies-kids-parents",
+      "urgencyLevel": "i-need-help",
+      "phone": "(408) 416-0400",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://childadvocatessv.org/casa/",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://childadvocatessv.org/casa/",
+      "address": {
+        "line1": "1800 Hamilton Ave, Suite #200",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95125"
+      },
+      "serviceArea": "Santa Clara County",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "first-5-santa-clara-county",
+    "verificationPriority": 2,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "First 5 Santa Clara County",
+    "programName": null,
+    "currentSourceUrl": "https://www.first5kids.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 260-3700",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.first5kids.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "4000 Moorpark Ave #200",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95117"
+      },
+      "serviceArea": "Santa Clara County",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": null
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address",
+      "websiteUrl"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Exact match to PDF — phone and address unchanged.",
+    "suggestedResourceCorrections": {
+      "organizationName": "First 5 Santa Clara County",
+      "programName": null,
+      "primaryCategory": "babies-kids-parents",
+      "urgencyLevel": "i-need-help",
+      "phone": "(408) 260-3700",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.first5kids.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.first5kids.org",
+      "address": {
+        "line1": "4000 Moorpark Ave #200",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95117"
+      },
+      "serviceArea": "Santa Clara County",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "go-kids-inc-estrella-family-services",
+    "verificationPriority": 2,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Go Kids, Inc.",
+    "programName": "Estrella Family Services",
+    "currentSourceUrl": "https://www.gokids.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 843-9000",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.gokids.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "885 Moro Drive",
+        "line2": null,
+        "city": "Gilroy",
+        "state": "CA",
+        "zip": "95023"
+      },
+      "serviceArea": "Santa Clara, Santa Cruz, San Benito, and Monterey counties",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": null
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address",
+      "serviceArea"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "address",
+        "pdfValue": "885 Moro Drive, Gilroy, CA 95020",
+        "currentValue": "885 Moro Drive, Gilroy, CA 95023 (zip corrected)"
+      },
+      {
+        "field": "serviceArea",
+        "pdfValue": "(not specified)",
+        "currentValue": "Santa Clara, Santa Cruz, San Benito, and Monterey counties"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Phone confirmed unchanged; zip code corrected.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Go Kids, Inc.",
+      "programName": "Estrella Family Services",
+      "primaryCategory": "babies-kids-parents",
+      "urgencyLevel": "i-need-help",
+      "phone": "(408) 843-9000",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.gokids.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.gokids.org",
+      "address": {
+        "line1": "885 Moro Drive",
+        "line2": null,
+        "city": "Gilroy",
+        "state": "CA",
+        "zip": "95023"
+      },
+      "serviceArea": "Santa Clara, Santa Cruz, San Benito, and Monterey counties",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "healthier-kids-foundation",
+    "verificationPriority": 2,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Healthier Kids Foundation",
+    "programName": null,
+    "currentSourceUrl": "https://www.hkidsf.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 564-5114",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.hkidsf.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "Sobrato Center for Nonprofits, 1400 Parkmoor Avenue, Suite 210",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95126"
+      },
+      "serviceArea": "Silicon Valley",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": null
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "address",
+        "pdfValue": "4040 Moorpark Ave, Ste. 100, San Jose, CA 95117",
+        "currentValue": "1400 Parkmoor Avenue, Suite 210, San Jose, CA 95126 (different street — relocated)"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Phone confirmed unchanged. Address has materially changed since 2023.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Healthier Kids Foundation",
+      "programName": null,
+      "primaryCategory": "babies-kids-parents",
+      "urgencyLevel": "i-need-help",
+      "phone": "(408) 564-5114",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.hkidsf.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.hkidsf.org",
+      "address": {
+        "line1": "Sobrato Center for Nonprofits, 1400 Parkmoor Avenue, Suite 210",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95126"
+      },
+      "serviceArea": "Silicon Valley",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "inclusion-support-warmline",
+    "verificationPriority": 2,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Innovations Collaborative (Santa Clara County Office of Education)",
+    "programName": "Warmline",
+    "currentSourceUrl": "https://www.innovationscollaborative.org/warmline.aspx",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 453-6651",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.innovationscollaborative.org/warmline.aspx",
+      "applicationUrl": null,
+      "address": {
+        "line1": "1290 Ridder Park Drive, MC 227",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95131"
+      },
+      "serviceArea": "Santa Clara County",
+      "hours": null,
+      "is24Hours": false,
+      "languages": [
+        "English",
+        "Spanish",
+        "Vietnamese",
+        "additional languages upon request"
+      ],
+      "eligibility": "Parents, teachers, and community members working with children who have disabilities and other needs",
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "languages",
+      "eligibility",
+      "costModel"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "organizationName",
+        "pdfValue": "Inclusion Collaborative",
+        "currentValue": "Renamed to Innovations Collaborative (same SCCOE program)"
+      },
+      {
+        "field": "email",
+        "pdfValue": "inclusion@sccoe.org",
+        "currentValue": "warmline@sccoe.org"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Phone confirmed identical to PDF via the specific /warmline.aspx page.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Innovations Collaborative (Santa Clara County Office of Education)",
+      "programName": "Warmline",
+      "primaryCategory": "babies-kids-parents",
+      "urgencyLevel": "i-need-help",
+      "phone": "(408) 453-6651",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.innovationscollaborative.org/warmline.aspx",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.innovationscollaborative.org/warmline.aspx",
+      "address": {
+        "line1": "1290 Ridder Park Drive, MC 227",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95131"
+      },
+      "serviceArea": "Santa Clara County",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "international-rescue-committee",
+    "verificationPriority": 2,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "International Rescue Committee",
+    "programName": "San Jose Office",
+    "currentSourceUrl": "https://www.rescue.org/SanJose",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 277-0255",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.rescue.org/SanJose",
+      "applicationUrl": null,
+      "address": {
+        "line1": "1210 South Bascom Ave., Suite 227",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95128"
+      },
+      "serviceArea": "San Jose area",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": "Refugees, asylees, trafficking victims, and immigrants",
+      "costModel": null
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address",
+      "eligibility"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Exact match to PDF — phone and address unchanged.",
+    "suggestedResourceCorrections": {
+      "organizationName": "International Rescue Committee",
+      "programName": "San Jose Office",
+      "primaryCategory": "legal-immigration",
+      "urgencyLevel": "i-need-help",
+      "phone": "(408) 277-0255",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.rescue.org/SanJose",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.rescue.org/SanJose",
+      "address": {
+        "line1": "1210 South Bascom Ave., Suite 227",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95128"
+      },
+      "serviceArea": "San Jose area",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "katharine-and-george-alexander-community-law-center",
+    "verificationPriority": 2,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Katharine & George Alexander Community Law Center",
+    "programName": null,
+    "currentSourceUrl": "https://law.scu.edu/centers/kgaclc/",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 288-7030",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://law.scu.edu/centers/kgaclc/",
+      "applicationUrl": null,
+      "address": {
+        "line1": "1030 The Alameda",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95126"
+      },
+      "serviceArea": "Santa Clara County",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": "Individuals and communities in need — Consumer Law, Immigration, Workers' Rights, Unhoused Advocacy",
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address",
+      "eligibility",
+      "costModel"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "websiteUrl",
+        "pdfValue": "http://law.scu.edu/kgaclc",
+        "currentValue": "https://law.scu.edu/centers/kgaclc/ (URL path changed)"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Phone and address confirmed unchanged.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Katharine & George Alexander Community Law Center",
+      "programName": null,
+      "primaryCategory": "legal-immigration",
+      "urgencyLevel": "i-need-help",
+      "phone": "(408) 288-7030",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://law.scu.edu/centers/kgaclc/",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://law.scu.edu/centers/kgaclc/",
+      "address": {
+        "line1": "1030 The Alameda",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95126"
+      },
+      "serviceArea": "Santa Clara County",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "law-foundation-of-silicon-valley",
+    "verificationPriority": 2,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Law Foundation of Silicon Valley",
+    "programName": null,
+    "currentSourceUrl": "https://www.lawfoundation.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 293-4790",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.lawfoundation.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "4 North Second Street, Suite 1300",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95113"
+      },
+      "serviceArea": "Santa Clara County",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": "Low-income individuals — housing, health, children & youth",
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "phone",
+        "pdfValue": "408-280-2424 (listed as main)",
+        "currentValue": "(408) 293-4790 general line; (408) 280-2424 is specifically Housing"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "General line and three program-specific lines all confirmed directly on official site.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Law Foundation of Silicon Valley",
+      "programName": null,
+      "primaryCategory": "legal-immigration",
+      "urgencyLevel": "i-need-help",
+      "phone": "(408) 293-4790",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.lawfoundation.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.lawfoundation.org",
+      "address": {
+        "line1": "4 North Second Street, Suite 1300",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95113"
+      },
+      "serviceArea": "Santa Clara County",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "loaves-and-fishes-family-kitchen",
+    "verificationPriority": 2,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Loaves and Fishes Family Kitchen",
+    "programName": null,
+    "currentSourceUrl": "https://www.loavesfishes.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "408-922-9085",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.loavesfishes.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "1500 Berger Drive",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95112"
+      },
+      "serviceArea": "San Jose",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": "Anyone experiencing food insecurity",
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address",
+      "eligibility"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Exact match to PDF — phone and address unchanged.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Loaves and Fishes Family Kitchen",
+      "programName": null,
+      "primaryCategory": "food-basic-needs",
+      "urgencyLevel": "i-need-help",
+      "phone": "408-922-9085",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.loavesfishes.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.loavesfishes.org",
+      "address": {
+        "line1": "1500 Berger Drive",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95112"
+      },
+      "serviceArea": "San Jose",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "morgan-hill-migrant-educational-program",
+    "verificationPriority": 2,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Morgan Hill Migrant Education Program",
+    "programName": null,
+    "currentSourceUrl": "https://www.mhusd.org/departments/educational-services/migrant-education",
+    "currentSourceType": "government",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 201-6081",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.mhusd.org/departments/educational-services/migrant-education",
+      "applicationUrl": null,
+      "address": {
+        "line1": "15600 Concord Circle",
+        "line2": null,
+        "city": "Morgan Hill",
+        "state": "CA",
+        "zip": "95037"
+      },
+      "serviceArea": "Morgan Hill",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": "Migrant students ages 3-21 and out-of-school youth under 22",
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address",
+      "eligibility"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "websiteUrl",
+        "pdfValue": "https://mhusd.org/educational-services/migrant-education",
+        "currentValue": "https://www.mhusd.org/departments/educational-services/migrant-education (old URL 404s)"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Phone and address confirmed unchanged. URL path changed.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Morgan Hill Migrant Education Program",
+      "programName": null,
+      "primaryCategory": "youth-education",
+      "urgencyLevel": "want-to-connect",
+      "phone": "(408) 201-6081",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.mhusd.org/departments/educational-services/migrant-education",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.mhusd.org/departments/educational-services/migrant-education",
+      "address": {
+        "line1": "15600 Concord Circle",
+        "line2": null,
+        "city": "Morgan Hill",
+        "state": "CA",
+        "zip": "95037"
+      },
+      "serviceArea": "Morgan Hill",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "pars-equality-center",
+    "verificationPriority": 2,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Pars Equality Center",
+    "programName": null,
+    "currentSourceUrl": "https://www.parsequalitycenter.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 261-6405",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.parsequalitycenter.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "1635 The Alameda",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95126"
+      },
+      "serviceArea": "San Jose (Persian-speaking and other immigrant communities)",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": null
+    },
+    "fieldsConfirmed": [
+      "address"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "phone",
+        "pdfValue": "408-261-6400",
+        "currentValue": "(408) 261-6405 (Immigration Legal Services line)"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Address confirmed unchanged. PDF's general number not directly reconfirmed; using confirmed Immigration Legal Services line instead.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Pars Equality Center",
+      "programName": null,
+      "primaryCategory": "legal-immigration",
+      "urgencyLevel": "i-need-help",
+      "phone": "(408) 261-6405",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.parsequalitycenter.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.parsequalitycenter.org",
+      "address": {
+        "line1": "1635 The Alameda",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95126"
+      },
+      "serviceArea": "San Jose",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "pro-bono-project-silicon-valley",
+    "verificationPriority": 2,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Pro Bono Project Silicon Valley",
+    "programName": null,
+    "currentSourceUrl": "https://www.probonoproject.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 998-5298",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.probonoproject.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "900 E Hamilton Avenue Suite 100",
+        "line2": null,
+        "city": "Campbell",
+        "state": "CA",
+        "zip": "95008"
+      },
+      "serviceArea": "Santa Clara County",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": "Clients of limited means",
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address",
+      "eligibility"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "address",
+        "pdfValue": "25 N 14th St #506, San Jose, CA 95112",
+        "currentValue": "900 E Hamilton Avenue Suite 100, Campbell, CA 95008 (relocated to a different city)"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Phone confirmed unchanged. Organization relocated from San Jose to Campbell since 2023.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Pro Bono Project Silicon Valley",
+      "programName": null,
+      "primaryCategory": "legal-immigration",
+      "urgencyLevel": "i-need-help",
+      "phone": "(408) 998-5298",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.probonoproject.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.probonoproject.org",
+      "address": {
+        "line1": "900 E Hamilton Avenue Suite 100",
+        "line2": null,
+        "city": "Campbell",
+        "state": "CA",
+        "zip": "95008"
+      },
+      "serviceArea": "Santa Clara County",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "santa-clara-county-housing-authority",
+    "verificationPriority": 2,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Santa Clara County Housing Authority",
+    "programName": null,
+    "currentSourceUrl": "https://www.scchousingauthority.org",
+    "currentSourceType": "government",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 275-8770",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.scchousingauthority.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "505 West Julian Street",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95110"
+      },
+      "serviceArea": "Santa Clara County",
+      "hours": "Mon-Thu 7:30am-4:30pm; every other Fri 7:30am-4pm",
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": "Low-income families and individuals",
+      "costModel": null
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address",
+      "hours"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Exact match to PDF. TDD (408) 993-3041 also confirmed.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Santa Clara County Housing Authority",
+      "programName": null,
+      "primaryCategory": "housing-rent",
+      "urgencyLevel": "i-need-help",
+      "phone": "(408) 275-8770",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.scchousingauthority.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.scchousingauthority.org",
+      "address": {
+        "line1": "505 West Julian Street",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95110"
+      },
+      "serviceArea": "Santa Clara County",
+      "hoursNoteEn": "Mon-Thu 7:30am-4:30pm; every other Fri 7:30am-4pm",
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "scc-public-health-breastfeeding-chestfeeding-support-program",
+    "verificationPriority": 2,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Nursing Mothers Counsel",
+    "programName": "SCC Breastfeeding/Chestfeeding Support",
+    "currentSourceUrl": "https://www.nursingmothers.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "650-327-6455",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.nursingmothers.org",
+      "applicationUrl": null,
+      "address": null,
+      "serviceArea": "Santa Clara County (pump rental station in Santa Clara, CA) and beyond",
+      "hours": "9am-9pm, 7 days a week",
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": null
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "hours"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "hours",
+        "pdfValue": "(not specified)",
+        "currentValue": "9am-9pm, 7 days a week (not 24/7)"
+      }
+    ],
+    "addressHandling": "not_applicable",
+    "verificationNotes": "Phone confirmed unchanged. Hours confirmed extended but explicitly NOT 24/7.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Nursing Mothers Counsel",
+      "programName": "SCC Breastfeeding/Chestfeeding Support",
+      "primaryCategory": "babies-kids-parents",
+      "urgencyLevel": "want-to-connect",
+      "phone": "650-327-6455",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.nursingmothers.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.nursingmothers.org",
+      "address": null,
+      "serviceArea": "Santa Clara County",
+      "hoursNoteEn": "9am-9pm, 7 days a week",
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "sccoe-migrant-education-program",
+    "verificationPriority": 2,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Santa Clara County Office of Education — Migrant Education Program (Region 1)",
+    "programName": null,
+    "currentSourceUrl": "https://www.sccoe.org/depts/educational-services/migranted/Pages/about.aspx",
+    "currentSourceType": "government",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 453-6500",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.sccoe.org/depts/educational-services/migranted/Pages/about.aspx",
+      "applicationUrl": null,
+      "address": {
+        "line1": "1290 Ridder Park Drive",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95131"
+      },
+      "serviceArea": "Santa Clara, San Mateo, San Francisco, Alameda, San Benito, and Santa Cruz counties",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "address",
+      "serviceArea"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "websiteUrl",
+        "pdfValue": "https://www.mepregion1.org",
+        "currentValue": "https://www.sccoe.org/depts/educational-services/migranted/Pages/about.aspx (old domain no longer resolves)"
+      },
+      {
+        "field": "phone",
+        "pdfValue": "408-453-3630",
+        "currentValue": "(408) 453-6500"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Old domain mepregion1.org no longer resolves (DNS failure). Address confirmed unchanged; phone and website updated.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Santa Clara County Office of Education — Migrant Education Program (Region 1)",
+      "programName": null,
+      "primaryCategory": "youth-education",
+      "urgencyLevel": "want-to-connect",
+      "phone": "(408) 453-6500",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.sccoe.org/depts/educational-services/migranted/Pages/about.aspx",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.sccoe.org/depts/educational-services/migranted/Pages/about.aspx",
+      "address": {
+        "line1": "1290 Ridder Park Drive",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95131"
+      },
+      "serviceArea": "Santa Clara, San Mateo, San Francisco, Alameda, San Benito, and Santa Cruz counties",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "second-harvest-of-silicon-valley",
+    "verificationPriority": 2,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Second Harvest of Silicon Valley",
+    "programName": null,
+    "currentSourceUrl": "https://www.shfb.org/get-food",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "1-800-984-3663",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.shfb.org/get-food",
+      "applicationUrl": null,
+      "address": null,
+      "serviceArea": "Santa Clara and San Mateo counties",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "websiteUrl"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "sms",
+        "pdfValue": "Text \"FOOD\" to 408-455-5181",
+        "currentValue": "not reconfirmed on current page — omitted rather than carried forward unverified"
+      }
+    ],
+    "addressHandling": "not_applicable",
+    "verificationNotes": "Phone confirmed unchanged. Food Locator tool now the primary access method.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Second Harvest of Silicon Valley",
+      "programName": null,
+      "primaryCategory": "food-basic-needs",
+      "urgencyLevel": "i-need-help",
+      "phone": "1-800-984-3663",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.shfb.org/get-food",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.shfb.org/get-food",
+      "address": null,
+      "serviceArea": "Santa Clara and San Mateo counties",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "siren-services-immigrant-rights-education-network",
+    "verificationPriority": 2,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "SIREN (Services, Immigrant Rights & Education Network)",
+    "programName": null,
+    "currentSourceUrl": "https://www.sirenimmigrantrights.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 453-3003",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.sirenimmigrantrights.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "1769 Park Ave., Suite 200",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95126"
+      },
+      "serviceArea": "South Bay",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": "Low-income immigrants and refugees, regardless of legal status",
+      "costModel": null
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "eligibility"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "address",
+        "pdfValue": "1415 Koll Circle, Ste 108, San Jose CA 95112",
+        "currentValue": "1769 Park Ave., Suite 200, San Jose, CA 95126 (relocated)"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Phone confirmed unchanged. Address relocated.",
+    "suggestedResourceCorrections": {
+      "organizationName": "SIREN (Services, Immigrant Rights & Education Network)",
+      "programName": null,
+      "primaryCategory": "legal-immigration",
+      "urgencyLevel": "i-need-help",
+      "phone": "(408) 453-3003",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.sirenimmigrantrights.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.sirenimmigrantrights.org",
+      "address": {
+        "line1": "1769 Park Ave., Suite 200",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95126"
+      },
+      "serviceArea": "South Bay",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "sjb-child-development-centers",
+    "verificationPriority": 2,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "SJB Child Development Centers",
+    "programName": null,
+    "currentSourceUrl": "https://www.sjbcdc.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 414-2700",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.sjbcdc.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "1400 Parkmoor Avenue Suite 220",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95126"
+      },
+      "serviceArea": "Santa Clara County (15 sites)",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": null
+    },
+    "fieldsConfirmed": [
+      "address"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "phone",
+        "pdfValue": "408-414-0242",
+        "currentValue": "(408) 414-2700"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Address confirmed unchanged. Phone number differs from PDF.",
+    "suggestedResourceCorrections": {
+      "organizationName": "SJB Child Development Centers",
+      "programName": null,
+      "primaryCategory": "babies-kids-parents",
+      "urgencyLevel": "want-to-connect",
+      "phone": "(408) 414-2700",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.sjbcdc.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.sjbcdc.org",
+      "address": {
+        "line1": "1400 Parkmoor Avenue Suite 220",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95126"
+      },
+      "serviceArea": "Santa Clara County",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "sunday-friends",
+    "verificationPriority": 2,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Sunday Friends Foundation",
+    "programName": null,
+    "currentSourceUrl": "https://www.sundayfriends.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 217-9587",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.sundayfriends.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "Sobrato Center for Nonprofits, 1400 Parkmoor Avenue, Suite 260",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95126"
+      },
+      "serviceArea": "San Jose (Bay Area)",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": null
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "phone",
+        "pdfValue": "(none listed)",
+        "currentValue": "(408) 217-9587 (newly confirmed)"
+      },
+      {
+        "field": "address",
+        "pdfValue": "1313 Audubon Drive, San Jose, CA 95122 (Santee distribution site)",
+        "currentValue": "1400 Parkmoor Avenue, Suite 260, San Jose, CA 95126 (administrative office)"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "PDF had no phone at all — now confirmed. Address shown is the admin office, not a distribution site.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Sunday Friends Foundation",
+      "programName": null,
+      "primaryCategory": "babies-kids-parents",
+      "urgencyLevel": "want-to-connect",
+      "phone": "(408) 217-9587",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.sundayfriends.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.sundayfriends.org",
+      "address": {
+        "line1": "Sobrato Center for Nonprofits, 1400 Parkmoor Avenue, Suite 260",
+        "line2": null,
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95126"
+      },
+      "serviceArea": "San Jose",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "sunnyvale-community-services",
+    "verificationPriority": 2,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Sunnyvale Community Services",
+    "programName": null,
+    "currentSourceUrl": "https://www.svcommunityservices.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "408.738.4321",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.svcommunityservices.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "1160 Kern Avenue",
+        "line2": null,
+        "city": "Sunnyvale",
+        "state": "CA",
+        "zip": "94085"
+      },
+      "serviceArea": "Sunnyvale",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": null
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Exact match to PDF — phone and address unchanged.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Sunnyvale Community Services",
+      "programName": null,
+      "primaryCategory": "food-basic-needs",
+      "urgencyLevel": "i-need-help",
+      "phone": "408.738.4321",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.svcommunityservices.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.svcommunityservices.org",
+      "address": {
+        "line1": "1160 Kern Avenue",
+        "line2": null,
+        "city": "Sunnyvale",
+        "state": "CA",
+        "zip": "94085"
+      },
+      "serviceArea": "Sunnyvale",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "asian-american-community-service-agency",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "African American Community Service Agency (AACSA)",
+    "programName": null,
+    "currentSourceUrl": "https://www.sjaacsa.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 292-3157",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.sjaacsa.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "304 N. 6th Street",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95112"
+      },
+      "serviceArea": "Santa Clara County",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "organizationName",
+        "pdfValue": "Asian American Community Service Agency",
+        "currentValue": "CRITICAL: this is actually the African American Community Service Agency (AACSA) — the 2023 PDF misnamed it. Phone and address are correct, the org identity in the PDF was wrong."
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "SAFETY-CRITICAL CORRECTION: verified directly on the official site — this organization serves the African American community, not Asian American as the PDF stated. Phone/address unchanged; name must be corrected before publishing to avoid misdirecting users.",
+    "suggestedResourceCorrections": {
+      "organizationName": "African American Community Service Agency (AACSA)",
+      "programName": null,
+      "primaryCategory": "community-support",
+      "urgencyLevel": "want-to-connect",
+      "phone": "(408) 292-3157",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.sjaacsa.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.sjaacsa.org",
+      "address": {
+        "line1": "304 N. 6th Street",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95112"
+      },
+      "serviceArea": "Santa Clara County",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "california-alternative-rates-for-energy-care",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "California Alternative Rates for Energy (CARE)",
+    "programName": null,
+    "currentSourceUrl": "https://www.pge.com/care",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "1-866-743-5832",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.pge.com/care",
+      "applicationUrl": "https://www.pge.com/care",
+      "address": null,
+      "serviceArea": "PG&E service territory",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": "Income-qualified households",
+      "costModel": "eligibility_based"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "websiteUrl",
+      "eligibility"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "phone",
+        "pdfValue": "866-743-2273 (866-PGE-CARE)",
+        "currentValue": "1-866-743-5832"
+      }
+    ],
+    "addressHandling": "not_applicable",
+    "verificationNotes": "Program confirmed active (20%+ gas / 35%+ electric discount). Phone number differs from PDF — updated to confirmed current number.",
+    "suggestedResourceCorrections": {
+      "organizationName": "California Alternative Rates for Energy (CARE)",
+      "programName": null,
+      "primaryCategory": "community-support",
+      "urgencyLevel": "want-to-connect",
+      "phone": "1-866-743-5832",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.pge.com/care",
+      "applicationUrl": "https://www.pge.com/care",
+      "officialSourceUrl": "https://www.pge.com/care",
+      "address": null,
+      "serviceArea": "PG&E service territory",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "campbell-adult-and-community-education-cace",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Campbell Adult and Community Education (CACE)",
+    "programName": null,
+    "currentSourceUrl": "https://www.cace.cuhsd.org",
+    "currentSourceType": "government",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 626-3402",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.cace.cuhsd.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "1224 Del Mar Avenue",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95128"
+      },
+      "serviceArea": "Campbell area",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Exact match to PDF — phone and address unchanged. ESL, GED/diploma, career, citizenship, and community classes confirmed active.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Campbell Adult and Community Education (CACE)",
+      "programName": null,
+      "primaryCategory": "jobs-training",
+      "urgencyLevel": "want-to-connect",
+      "phone": "(408) 626-3402",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.cace.cuhsd.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.cace.cuhsd.org",
+      "address": {
+        "line1": "1224 Del Mar Avenue",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95128"
+      },
+      "serviceArea": "Campbell area",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "cancer-carepoint",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Cancer CAREpoint",
+    "programName": null,
+    "currentSourceUrl": "https://www.cancercarepoint.org/contact-us/",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "408.402.6611",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.cancercarepoint.org/contact-us/",
+      "applicationUrl": null,
+      "address": {
+        "line1": "1165 Lincoln Ave. Suite 300",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95125"
+      },
+      "serviceArea": "Silicon Valley",
+      "hours": "Monday – Friday 9:00am-5:00pm",
+      "is24Hours": false,
+      "languages": [
+        "English",
+        "Spanish"
+      ],
+      "eligibility": "Cancer patients, families, caregivers",
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address",
+      "hours",
+      "languages"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "address",
+        "pdfValue": "2505 Samaritan Dr, Bldg. 400, Suite 402, San Jose, CA 95124",
+        "currentValue": "1165 Lincoln Ave. Suite 300, San Jose, CA 95125 (relocated)"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Phone confirmed unchanged. Organization has relocated — do not publish the old Samaritan Dr address. Hours and Spanish-language availability newly confirmed.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Cancer CAREpoint",
+      "programName": null,
+      "primaryCategory": "health-clinics",
+      "urgencyLevel": "i-need-help",
+      "phone": "408.402.6611",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.cancercarepoint.org/contact-us/",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.cancercarepoint.org/contact-us/",
+      "address": {
+        "line1": "1165 Lincoln Ave. Suite 300",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95125"
+      },
+      "serviceArea": "Silicon Valley",
+      "hoursNoteEn": "Monday – Friday 9:00am-5:00pm",
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "conxion-to-community",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "ConXión to Community",
+    "programName": null,
+    "currentSourceUrl": "https://conxion.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 213-0961",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://conxion.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "749 Story Rd Suite 10",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95122"
+      },
+      "serviceArea": "San Jose",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Exact match to PDF — phone and address unchanged. Education, family, youth, and workforce programs confirmed active.",
+    "suggestedResourceCorrections": {
+      "organizationName": "ConXión to Community",
+      "programName": null,
+      "primaryCategory": "community-support",
+      "urgencyLevel": "want-to-connect",
+      "phone": "(408) 213-0961",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://conxion.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://conxion.org",
+      "address": {
+        "line1": "749 Story Rd Suite 10",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95122"
+      },
+      "serviceArea": "San Jose",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "dress-for-success",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Dress for Success San Jose",
+    "programName": null,
+    "currentSourceUrl": "https://www.sjdress.org/",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "408-935-8299",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.sjdress.org/",
+      "applicationUrl": null,
+      "address": null,
+      "serviceArea": "San Jose / Silicon Valley",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": "Job-ready women",
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "eligibility"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "websiteUrl",
+        "pdfValue": "https://sanjose.dressforsuccess.org",
+        "currentValue": "https://www.sjdress.org/ (old URL now returns HTTP 410 Gone — permanently removed)"
+      }
+    ],
+    "addressHandling": "not_applicable",
+    "verificationNotes": "Phone confirmed unchanged. Old PDF URL is dead (410 Gone); correct current site is sjdress.org. Address not reconfirmed this pass — omitted rather than carried forward.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Dress for Success San Jose",
+      "programName": null,
+      "primaryCategory": "jobs-training",
+      "urgencyLevel": "want-to-connect",
+      "phone": "408-935-8299",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.sjdress.org/",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.sjdress.org/",
+      "address": null,
+      "serviceArea": "San Jose / Silicon Valley",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "earned-income-tax-credit-eitc",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Earned Income Tax Credit (EITC)",
+    "programName": null,
+    "currentSourceUrl": "https://www.irs.gov/credits-deductions/individuals/earned-income-tax-credit",
+    "currentSourceType": "government",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": null,
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.irs.gov/credits-deductions/individuals/earned-income-tax-credit",
+      "applicationUrl": null,
+      "address": null,
+      "serviceArea": "United States",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": "Low- to moderate-income workers and families",
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "websiteUrl",
+      "eligibility"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "not_applicable",
+    "verificationNotes": "Federal IRS page confirmed live (last reviewed March 2026). No phone number was ever provided by the PDF or current source — this is expected for an informational federal tax page.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Earned Income Tax Credit (EITC)",
+      "programName": null,
+      "primaryCategory": "community-support",
+      "urgencyLevel": "want-to-connect",
+      "phone": null,
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.irs.gov/credits-deductions/individuals/earned-income-tax-credit",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.irs.gov/credits-deductions/individuals/earned-income-tax-credit",
+      "address": null,
+      "serviceArea": "United States",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "east-side-adult-education",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "East Side Adult Education",
+    "programName": null,
+    "currentSourceUrl": "http://adulteducation.esuhsd.org",
+    "currentSourceType": "government",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 928-9300",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "http://adulteducation.esuhsd.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "625 Educational Park Drive",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95133"
+      },
+      "serviceArea": "East San Jose",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Exact match to PDF — phone and address unchanged.",
+    "suggestedResourceCorrections": {
+      "organizationName": "East Side Adult Education",
+      "programName": null,
+      "primaryCategory": "jobs-training",
+      "urgencyLevel": "want-to-connect",
+      "phone": "(408) 928-9300",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "http://adulteducation.esuhsd.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "http://adulteducation.esuhsd.org",
+      "address": {
+        "line1": "625 Educational Park Drive",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95133"
+      },
+      "serviceArea": "East San Jose",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "evergreen-valley-college",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Evergreen Valley College",
+    "programName": null,
+    "currentSourceUrl": "https://www.evc.edu",
+    "currentSourceType": "government",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "408-274-7900",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.evc.edu",
+      "applicationUrl": null,
+      "address": {
+        "line1": "3095 Yerba Buena Road",
+        "city": "San José",
+        "state": "CA",
+        "zip": "95135"
+      },
+      "serviceArea": "San Jose",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Exact match to PDF — phone and address unchanged.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Evergreen Valley College",
+      "programName": null,
+      "primaryCategory": "jobs-training",
+      "urgencyLevel": "want-to-connect",
+      "phone": "408-274-7900",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.evc.edu",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.evc.edu",
+      "address": {
+        "line1": "3095 Yerba Buena Road",
+        "city": "San José",
+        "state": "CA",
+        "zip": "95135"
+      },
+      "serviceArea": "San Jose",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "fremont-union-high-school-district-adult-school-fuhsd",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Fremont Union High School District Adult School",
+    "programName": null,
+    "currentSourceUrl": "https://www.fuhsdadultschool.com",
+    "currentSourceType": "government",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "408-522-2700",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.fuhsdadultschool.com",
+      "applicationUrl": null,
+      "address": {
+        "line1": "589 W. Fremont Ave.",
+        "city": "Sunnyvale",
+        "state": "CA",
+        "zip": "94087"
+      },
+      "serviceArea": "Sunnyvale",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Exact match to PDF — phone and address unchanged.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Fremont Union High School District Adult School",
+      "programName": null,
+      "primaryCategory": "jobs-training",
+      "urgencyLevel": "want-to-connect",
+      "phone": "408-522-2700",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.fuhsdadultschool.com",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.fuhsdadultschool.com",
+      "address": {
+        "line1": "589 W. Fremont Ave.",
+        "city": "Sunnyvale",
+        "state": "CA",
+        "zip": "94087"
+      },
+      "serviceArea": "Sunnyvale",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "fresh-success",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Fresh Success (Gavilan College)",
+    "programName": null,
+    "currentSourceUrl": "http://www.gavilan.edu/student/eops/calworks/freshsuccess.php",
+    "currentSourceType": "government",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "408.852.2838",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "http://www.gavilan.edu/student/eops/calworks/freshsuccess.php",
+      "applicationUrl": null,
+      "address": {
+        "line1": "LI 135, 5055 Santa Teresa Blvd",
+        "city": "Gilroy",
+        "state": "CA",
+        "zip": "95020"
+      },
+      "serviceArea": "Santa Clara and San Benito County",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": "Students receiving or eligible for CalFresh (SNAP)",
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address",
+      "eligibility",
+      "serviceArea"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Exact match to PDF — phone and address unchanged.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Fresh Success (Gavilan College)",
+      "programName": null,
+      "primaryCategory": "jobs-training",
+      "urgencyLevel": "want-to-connect",
+      "phone": "408.852.2838",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "http://www.gavilan.edu/student/eops/calworks/freshsuccess.php",
+      "applicationUrl": null,
+      "officialSourceUrl": "http://www.gavilan.edu/student/eops/calworks/freshsuccess.php",
+      "address": {
+        "line1": "LI 135, 5055 Santa Teresa Blvd",
+        "city": "Gilroy",
+        "state": "CA",
+        "zip": "95020"
+      },
+      "serviceArea": "Santa Clara and San Benito County",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "goodwill-of-silicon-valley",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Goodwill of Silicon Valley",
+    "programName": null,
+    "currentSourceUrl": "https://goodwillsv.org/",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 998-5774",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://goodwillsv.org/",
+      "applicationUrl": null,
+      "address": {
+        "line1": "1600 Technology Drive",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95110"
+      },
+      "serviceArea": "San Jose",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "phone/address",
+        "pdfValue": "408-869-9261 / 1080 N. 7th Street",
+        "currentValue": "(408) 998-5774 / 1600 Technology Drive (main Opportunity Center HQ); 1080 N. 7th St is now specifically the Recycling & Sustainability Center, a different facility"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "PDF's number/address matched a secondary Recycling Center location, not the main Opportunity Center — corrected to the primary HQ contact.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Goodwill of Silicon Valley",
+      "programName": null,
+      "primaryCategory": "jobs-training",
+      "urgencyLevel": "want-to-connect",
+      "phone": "(408) 998-5774",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://goodwillsv.org/",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://goodwillsv.org/",
+      "address": {
+        "line1": "1600 Technology Drive",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95110"
+      },
+      "serviceArea": "San Jose",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "goodwill-of-silicon-valley-school-health-clinics-wellness-center",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "School Health Clinics of Santa Clara County",
+    "programName": null,
+    "currentSourceUrl": "https://www.schoolhealthclinics.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "408-284-2280",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.schoolhealthclinics.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "6840 Via Del Oro, #210",
+        "city": "San José",
+        "state": "CA",
+        "zip": "95119"
+      },
+      "serviceArea": "Santa Clara County (five clinic locations)",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": "Low income, medically underserved individuals",
+      "costModel": "low_cost"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address",
+      "eligibility"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "organizationName",
+        "pdfValue": "Goodwill of Silicon Valley (School Health Clinics / Wellness Center)",
+        "currentValue": "CORRECTION: this is 'School Health Clinics of Santa Clara County' — an entirely separate, unaffiliated nonprofit from Goodwill of Silicon Valley. This was a mapping error in the original candidate extraction."
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "MAJOR CORRECTION: confirmed directly on the official site that this organization is NOT part of Goodwill — it is an independent nonprofit ('School Health Clinics of Santa Clara County') providing primary/preventive care to ~4,500 underserved people/year across five clinics. Phone/address confirmed for this corrected identity.",
+    "suggestedResourceCorrections": {
+      "organizationName": "School Health Clinics of Santa Clara County",
+      "programName": null,
+      "primaryCategory": "health-clinics",
+      "urgencyLevel": "i-need-help",
+      "phone": "408-284-2280",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.schoolhealthclinics.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.schoolhealthclinics.org",
+      "address": {
+        "line1": "6840 Via Del Oro, #210",
+        "city": "San José",
+        "state": "CA",
+        "zip": "95119"
+      },
+      "serviceArea": "Santa Clara County",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "integrated-psychological-assessment-services-ipas",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Integrated Psychological Assessment Services (IPAS)",
+    "programName": null,
+    "currentSourceUrl": "https://www.ipasinc.net",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "408-201-9850",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.ipasinc.net",
+      "applicationUrl": null,
+      "address": {
+        "line1": "8355 Church Street",
+        "city": "Gilroy",
+        "state": "CA",
+        "zip": "95020"
+      },
+      "serviceArea": "Gilroy",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "address"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "phone",
+        "pdfValue": "408-359-6700",
+        "currentValue": "408-201-9850 (scheduling line)"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Address confirmed unchanged. Phone number updated. Fax (408-856-2469) confirmed but explicitly not used as a CTA. Accepts Medi-Cal.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Integrated Psychological Assessment Services (IPAS)",
+      "programName": null,
+      "primaryCategory": "mental-health-recovery",
+      "urgencyLevel": "want-to-connect",
+      "phone": "408-201-9850",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.ipasinc.net",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.ipasinc.net",
+      "address": {
+        "line1": "8355 Church Street",
+        "city": "Gilroy",
+        "state": "CA",
+        "zip": "95020"
+      },
+      "serviceArea": "Gilroy",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "metropolitan-education-district-metroed",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Metropolitan Education District (MetroED)",
+    "programName": null,
+    "currentSourceUrl": "https://www.MetroED.net",
+    "currentSourceType": "government",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 723-6400",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.MetroED.net",
+      "applicationUrl": null,
+      "address": {
+        "line1": "760 Hillsdale Avenue",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95136"
+      },
+      "serviceArea": "Santa Clara County",
+      "hours": "Mon-Fri 8am-4:30pm",
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address",
+      "hours"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Exact match to PDF.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Metropolitan Education District (MetroED)",
+      "programName": null,
+      "primaryCategory": "jobs-training",
+      "urgencyLevel": "want-to-connect",
+      "phone": "(408) 723-6400",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.MetroED.net",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.MetroED.net",
+      "address": {
+        "line1": "760 Hillsdale Avenue",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95136"
+      },
+      "serviceArea": "Santa Clara County",
+      "hoursNoteEn": "Mon-Fri 8am-4:30pm",
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "milpitas-adult-education",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Milpitas Adult Education",
+    "programName": null,
+    "currentSourceUrl": "https://adulted.musd.org",
+    "currentSourceType": "government",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 635-2692",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://adulted.musd.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "1331 E. Calaveras Blvd., Building B",
+        "city": "Milpitas",
+        "state": "CA",
+        "zip": "95035"
+      },
+      "serviceArea": "Milpitas",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Exact match to PDF.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Milpitas Adult Education",
+      "programName": null,
+      "primaryCategory": "jobs-training",
+      "urgencyLevel": "want-to-connect",
+      "phone": "(408) 635-2692",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://adulted.musd.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://adulted.musd.org",
+      "address": {
+        "line1": "1331 E. Calaveras Blvd., Building B",
+        "city": "Milpitas",
+        "state": "CA",
+        "zip": "95035"
+      },
+      "serviceArea": "Milpitas",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "mission-college-calworks-program",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Mission College",
+    "programName": "CalWORKs Program",
+    "currentSourceUrl": "https://missioncollege.edu/student_services/calworks",
+    "currentSourceType": "government",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 855-5228",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://missioncollege.edu/student_services/calworks",
+      "applicationUrl": null,
+      "address": {
+        "line1": "3000 Mission College Blvd, Student Engagement Center Office 148",
+        "city": "Santa Clara",
+        "state": "CA",
+        "zip": "95054"
+      },
+      "serviceArea": "Santa Clara",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Exact match to PDF.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Mission College",
+      "programName": "CalWORKs Program",
+      "primaryCategory": "jobs-training",
+      "urgencyLevel": "want-to-connect",
+      "phone": "(408) 855-5228",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://missioncollege.edu/student_services/calworks",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://missioncollege.edu/student_services/calworks",
+      "address": {
+        "line1": "3000 Mission College Blvd, Student Engagement Center Office 148",
+        "city": "Santa Clara",
+        "state": "CA",
+        "zip": "95054"
+      },
+      "serviceArea": "Santa Clara",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "momentum-for-health",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Momentum For Health",
+    "programName": null,
+    "currentSourceUrl": "https://www.momentumforhealth.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "408-596-7290",
+      "crisisPhone": "988",
+      "sms": null,
+      "websiteUrl": "https://www.momentumforhealth.org",
+      "applicationUrl": null,
+      "address": null,
+      "serviceArea": "Santa Clara County",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": "Adults with Medi-Cal",
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "phone"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "phone",
+        "pdfValue": "408-260-4040",
+        "currentValue": "408-596-7290 (or 988)"
+      }
+    ],
+    "addressHandling": "not_applicable",
+    "verificationNotes": "Phone number changed; new TRUST Mobile Response Program confirmed as a new offering not in the 2023 PDF.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Momentum For Health",
+      "programName": null,
+      "primaryCategory": "mental-health-recovery",
+      "urgencyLevel": "i-need-help",
+      "phone": "408-596-7290",
+      "crisisPhone": "988",
+      "sms": null,
+      "websiteUrl": "https://www.momentumforhealth.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.momentumforhealth.org",
+      "address": null,
+      "serviceArea": "Santa Clara County",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "mtn-view-los-altos-adult-school-mvla",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Mtn View-Los Altos Adult School (MVLA)",
+    "programName": null,
+    "currentSourceUrl": "https://as.mvla.net",
+    "currentSourceType": "government",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "650-940-1333",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://as.mvla.net",
+      "applicationUrl": null,
+      "address": {
+        "line1": "333 Moffett Blvd",
+        "city": "Mountain View",
+        "state": "CA",
+        "zip": "94043"
+      },
+      "serviceArea": "Mountain View / Los Altos",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Exact match to PDF.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Mtn View-Los Altos Adult School (MVLA)",
+      "programName": null,
+      "primaryCategory": "jobs-training",
+      "urgencyLevel": "want-to-connect",
+      "phone": "650-940-1333",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://as.mvla.net",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://as.mvla.net",
+      "address": {
+        "line1": "333 Moffett Blvd",
+        "city": "Mountain View",
+        "state": "CA",
+        "zip": "94043"
+      },
+      "serviceArea": "Mountain View / Los Altos",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "new-eyes",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "New Eyes",
+    "programName": null,
+    "currentSourceUrl": "https://www.new-eyes.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": null,
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.new-eyes.org",
+      "applicationUrl": null,
+      "address": null,
+      "serviceArea": "United States",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": "Low income individuals",
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "websiteUrl",
+      "eligibility"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "not_applicable",
+    "verificationNotes": "No phone in either PDF or current source — national mail-based eyeglasses program.",
+    "suggestedResourceCorrections": {
+      "organizationName": "New Eyes",
+      "programName": null,
+      "primaryCategory": "health-clinics",
+      "urgencyLevel": "want-to-connect",
+      "phone": null,
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.new-eyes.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.new-eyes.org",
+      "address": null,
+      "serviceArea": "United States",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "north-east-medical-services-nems",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "North East Medical Services (NEMS)",
+    "programName": null,
+    "currentSourceUrl": "https://www.nems.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "1-888-500-1886",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.nems.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "1870 Lundy Avenue",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95131"
+      },
+      "serviceArea": "San Jose",
+      "hours": "Mon-Fri 8am-6pm, Sat 8am-12pm & 1-5pm",
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "address",
+      "hours"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "phone",
+        "pdfValue": "408-573-9686",
+        "currentValue": "1-888-500-1886 (shared appointment line for both SJ clinics)"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Address confirmed unchanged; phone moved to a shared toll-free line. Second SJ location at 939 Story Road also confirmed.",
+    "suggestedResourceCorrections": {
+      "organizationName": "North East Medical Services (NEMS)",
+      "programName": null,
+      "primaryCategory": "health-clinics",
+      "urgencyLevel": "i-need-help",
+      "phone": "1-888-500-1886",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.nems.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.nems.org",
+      "address": {
+        "line1": "1870 Lundy Avenue",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95131"
+      },
+      "serviceArea": "San Jose",
+      "hoursNoteEn": "Mon-Fri 8am-6pm, Sat 8am-12pm & 1-5pm",
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "novaworks",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "NOVAworks",
+    "programName": null,
+    "currentSourceUrl": "https://novaworks.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "408-730-7232",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://novaworks.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "456 West Olive Ave",
+        "city": "Sunnyvale",
+        "state": "CA",
+        "zip": null
+      },
+      "serviceArea": "Sunnyvale",
+      "hours": "Mon-Fri 8am-5pm",
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "hours"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "address",
+        "pdfValue": "505 W. Olive Ave. Ste 550, Sunnyvale CA 94086",
+        "currentValue": "456 West Olive Ave, Sunnyvale (different street number)"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Phone confirmed unchanged; address street number differs — relocated nearby.",
+    "suggestedResourceCorrections": {
+      "organizationName": "NOVAworks",
+      "programName": null,
+      "primaryCategory": "jobs-training",
+      "urgencyLevel": "want-to-connect",
+      "phone": "408-730-7232",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://novaworks.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://novaworks.org",
+      "address": {
+        "line1": "456 West Olive Ave",
+        "city": "Sunnyvale",
+        "state": "CA",
+        "zip": null
+      },
+      "serviceArea": "Sunnyvale",
+      "hoursNoteEn": "Mon-Fri 8am-5pm",
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "rebekah-children-s-services",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Rebekah Children's Services",
+    "programName": null,
+    "currentSourceUrl": "https://www.rcskids.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 846-2100",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.rcskids.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "290 IOOF Ave",
+        "city": "Gilroy",
+        "state": "CA",
+        "zip": "95020"
+      },
+      "serviceArea": "Gilroy, Campbell, Hollister",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Exact match to PDF. Also has Campbell and Hollister locations.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Rebekah Children's Services",
+      "programName": null,
+      "primaryCategory": "mental-health-recovery",
+      "urgencyLevel": "i-need-help",
+      "phone": "(408) 846-2100",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.rcskids.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.rcskids.org",
+      "address": {
+        "line1": "290 IOOF Ave",
+        "city": "Gilroy",
+        "state": "CA",
+        "zip": "95020"
+      },
+      "serviceArea": "Gilroy, Campbell, Hollister",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "rotacare-bay-area",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "RotaCare Bay Area",
+    "programName": null,
+    "currentSourceUrl": "https://www.rotacarebayarea.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "408-379-8000",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.rotacarebayarea.org",
+      "applicationUrl": null,
+      "address": null,
+      "serviceArea": "Greater Bay Area incl. San Jose",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "free"
+    },
+    "fieldsConfirmed": [
+      "phone"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "not_applicable",
+    "verificationNotes": "Phone confirmed unchanged. Gilroy clinic not reconfirmed on this specific page — org lists San Jose among 9 regional clinics.",
+    "suggestedResourceCorrections": {
+      "organizationName": "RotaCare Bay Area",
+      "programName": null,
+      "primaryCategory": "health-clinics",
+      "urgencyLevel": "i-need-help",
+      "phone": "408-379-8000",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.rotacarebayarea.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.rotacarebayarea.org",
+      "address": null,
+      "serviceArea": "Greater Bay Area incl. San Jose",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "sacred-heart-community-service",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Sacred Heart Community Service",
+    "programName": null,
+    "currentSourceUrl": "https://sacredheartcs.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 278-2160",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://sacredheartcs.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "1381 South First Street",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95110"
+      },
+      "serviceArea": "San Jose",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "address"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Exact match to PDF.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Sacred Heart Community Service",
+      "programName": null,
+      "primaryCategory": "community-support",
+      "urgencyLevel": "i-need-help",
+      "phone": "(408) 278-2160",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://sacredheartcs.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://sacredheartcs.org",
+      "address": {
+        "line1": "1381 South First Street",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95110"
+      },
+      "serviceArea": "San Jose",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "san-jose-state-university-career-center",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "San José State University",
+    "programName": "Career Center",
+    "currentSourceUrl": "https://careercenter.sjsu.edu/",
+    "currentSourceType": "government",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 924-6031",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://careercenter.sjsu.edu/",
+      "applicationUrl": null,
+      "address": {
+        "line1": "One Washington Square (Clark Hall, 1st Floor, Room 140)",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95192"
+      },
+      "serviceArea": "San Jose",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "address"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "phone",
+        "pdfValue": "408-924-1000 (general SJSU line)",
+        "currentValue": "(408) 924-6031 (Career Center-specific line)"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Address confirmed unchanged; phone refined to the Career Center's direct line rather than the university switchboard.",
+    "suggestedResourceCorrections": {
+      "organizationName": "San José State University",
+      "programName": "Career Center",
+      "primaryCategory": "jobs-training",
+      "urgencyLevel": "want-to-connect",
+      "phone": "(408) 924-6031",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://careercenter.sjsu.edu/",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://careercenter.sjsu.edu/",
+      "address": {
+        "line1": "One Washington Square (Clark Hall, 1st Floor, Room 140)",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95192"
+      },
+      "serviceArea": "San Jose",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "santa-clara-family-health-plan-scfhp",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Santa Clara Family Health Plan (SCFHP)",
+    "programName": null,
+    "currentSourceUrl": "https://www.scfhp.com",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "1-800-260-2055",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.scfhp.com",
+      "applicationUrl": null,
+      "address": {
+        "line1": "6201 San Ignacio Ave.",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95119"
+      },
+      "serviceArea": "Santa Clara County",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "address",
+      "phone"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "phone",
+        "pdfValue": "1-888-802-3353",
+        "currentValue": "1-408-376-2000 / 1-800-260-2055 (Customer Service, cross-confirmed against original source notes)"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Address confirmed unchanged. Multiple current phone lines confirmed; Customer Service number (1-800-260-2055) matches what the original source notes already recorded.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Santa Clara Family Health Plan (SCFHP)",
+      "programName": null,
+      "primaryCategory": "health-clinics",
+      "urgencyLevel": "i-need-help",
+      "phone": "1-800-260-2055",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.scfhp.com",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.scfhp.com",
+      "address": {
+        "line1": "6201 San Ignacio Ave.",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95119"
+      },
+      "serviceArea": "Santa Clara County",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "stars-behavioral-health-group-starlight-community-services-in-santa-clara",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "STARS Behavioral Health Group",
+    "programName": "Starlight Community Services in Santa Clara",
+    "currentSourceUrl": "https://www.starsinc.com/santa-clara-county",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 834-3130",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.starsinc.com/santa-clara-county",
+      "applicationUrl": null,
+      "address": {
+        "line1": "1885 Lundy Ave., Ste. 223",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95131"
+      },
+      "serviceArea": "San Jose (North and South centers)",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "address"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "phone",
+        "pdfValue": "408-284-9080 (single number)",
+        "currentValue": "Two location-specific numbers now: North (408) 834-3130 at 1885 Lundy Ave; South (669) 220-1905 at 6203 San Ignacio Ave"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Both addresses confirmed identical to PDF; phone structure changed to per-location numbers.",
+    "suggestedResourceCorrections": {
+      "organizationName": "STARS Behavioral Health Group",
+      "programName": "Starlight Community Services in Santa Clara",
+      "primaryCategory": "mental-health-recovery",
+      "urgencyLevel": "i-need-help",
+      "phone": "(408) 834-3130",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.starsinc.com/santa-clara-county",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.starsinc.com/santa-clara-county",
+      "address": {
+        "line1": "1885 Lundy Ave., Ste. 223",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95131"
+      },
+      "serviceArea": "San Jose",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "valley-transportation-authority-vta",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Valley Transportation Authority (VTA)",
+    "programName": null,
+    "currentSourceUrl": "https://www.vta.org/go",
+    "currentSourceType": "government",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "408-321-2300",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.vta.org/go",
+      "applicationUrl": null,
+      "address": null,
+      "serviceArea": "Santa Clara County",
+      "hours": "Mon-Fri 6am-7pm, Sat 7:30am-4pm",
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "hours"
+    ],
+    "discrepanciesFromPdf": [],
+    "addressHandling": "not_applicable",
+    "verificationNotes": "Exact match to PDF. Hours newly confirmed.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Valley Transportation Authority (VTA)",
+      "programName": null,
+      "primaryCategory": "transportation-access",
+      "urgencyLevel": "want-to-connect",
+      "phone": "408-321-2300",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.vta.org/go",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.vta.org/go",
+      "address": null,
+      "serviceArea": "Santa Clara County",
+      "hoursNoteEn": "Mon-Fri 6am-7pm, Sat 7:30am-4pm",
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "work2future",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Work2Future",
+    "programName": null,
+    "currentSourceUrl": "https://www.work2future.org",
+    "currentSourceType": "government",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "408.794.1101",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.work2future.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "1608 Las Plumas Ave",
+        "city": "San José",
+        "state": "CA",
+        "zip": null
+      },
+      "serviceArea": "San Jose, North San Jose, Gilroy",
+      "hours": "Mon-Fri 8am-5pm, by appointment",
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "hours"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "phone",
+        "pdfValue": "408-794-1100",
+        "currentValue": "408.794.1101 (off by one digit)"
+      },
+      {
+        "field": "address",
+        "pdfValue": "1601 Foxworthy Ave.",
+        "currentValue": "1608 Las Plumas Ave (different street)"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "North San Jose (408-216-6200) and Gilroy (408-758-3477) locations both confirmed unchanged.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Work2Future",
+      "programName": null,
+      "primaryCategory": "jobs-training",
+      "urgencyLevel": "want-to-connect",
+      "phone": "408.794.1101",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.work2future.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.work2future.org",
+      "address": {
+        "line1": "1608 Las Plumas Ave",
+        "city": "San José",
+        "state": "CA",
+        "zip": null
+      },
+      "serviceArea": "San Jose, North San Jose, Gilroy",
+      "hoursNoteEn": "Mon-Fri 8am-5pm, by appointment",
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "working-partnerships-usa-union-community-resources",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Working Partnerships USA",
+    "programName": "Union Community Resources",
+    "currentSourceUrl": "https://www.wpusa.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 809-2120",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.wpusa.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "2302 Zanker Road",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95131"
+      },
+      "serviceArea": "San Jose",
+      "hours": null,
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": null,
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "phone"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "address",
+        "pdfValue": "2102 Almaden Rd, Ste. 112, San Jose, CA 95125",
+        "currentValue": "2302 Zanker Road, San Jose, CA 95131 (relocated)"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Phone confirmed unchanged; organization relocated.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Working Partnerships USA",
+      "programName": "Union Community Resources",
+      "primaryCategory": "jobs-training",
+      "urgencyLevel": "want-to-connect",
+      "phone": "(408) 809-2120",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://www.wpusa.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://www.wpusa.org",
+      "address": {
+        "line1": "2302 Zanker Road",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95131"
+      },
+      "serviceArea": "San Jose",
+      "hoursNoteEn": null,
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  },
+  {
+    "candidateId": "youth-space",
+    "verificationPriority": 3,
+    "researchDisposition": "READY_FOR_COACH_INSERT",
+    "manifestCompleteness": "complete",
+    "organizationName": "Youth Space",
+    "programName": null,
+    "currentSourceUrl": "https://youthspace.org",
+    "currentSourceType": "official_org_site",
+    "organizationConfirmedActive": true,
+    "currentFacts": {
+      "phone": "(408) 343-7940",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://youthspace.org",
+      "applicationUrl": null,
+      "address": {
+        "line1": "2635 Zanker Rd",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95134"
+      },
+      "serviceArea": "San Jose",
+      "hours": "Mon-Fri 3-9pm",
+      "is24Hours": false,
+      "languages": null,
+      "eligibility": "LGBTQ+ youth and young adults, ages 13-25",
+      "costModel": "unknown"
+    },
+    "fieldsConfirmed": [
+      "phone",
+      "hours",
+      "eligibility"
+    ],
+    "discrepanciesFromPdf": [
+      {
+        "field": "address",
+        "pdfValue": "452 S. First St., San Jose, CA 95113",
+        "currentValue": "2635 Zanker Rd, San Jose, CA 95134 (relocated)"
+      }
+    ],
+    "addressHandling": "confirmed",
+    "verificationNotes": "Phone confirmed unchanged; org relocated. Eligibility expanded/clarified (ages 13-25, broader LGBTQIA+ language) vs. PDF's brief description.",
+    "suggestedResourceCorrections": {
+      "organizationName": "Youth Space",
+      "programName": null,
+      "primaryCategory": "mental-health-recovery",
+      "urgencyLevel": "i-need-help",
+      "phone": "(408) 343-7940",
+      "crisisPhone": null,
+      "sms": null,
+      "websiteUrl": "https://youthspace.org",
+      "applicationUrl": null,
+      "officialSourceUrl": "https://youthspace.org",
+      "address": {
+        "line1": "2635 Zanker Rd",
+        "city": "San Jose",
+        "state": "CA",
+        "zip": "95134"
+      },
+      "serviceArea": "San Jose",
+      "hoursNoteEn": "Mon-Fri 3-9pm",
+      "is24Hours": false
+    },
+    "needsReview": null,
+    "dropReason": null
+  }
+]

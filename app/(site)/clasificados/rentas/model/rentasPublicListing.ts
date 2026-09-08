@@ -11,6 +11,10 @@ export type RentasSellerType = "privado" | "negocio";
  */
 export type RentasPublicListing = {
   id: string;
+  /** Listing owner's auth user id (`listings.owner_id`) — the durable identity anchor for Rentas
+   * Negocio Community Trust resolution, never a disposable listing id. Safe to expose client-side
+   * (a bare UUID, no PII); already an established pattern for the equivalent BR field. */
+  ownerId?: string | null;
   /** Future-friendly slug for pretty URLs / SEO. */
   slug?: string;
   /** Human-readable Leonix reference (`public.listings.leonix_ad_id`), e.g. RENT-2026-000163. */
@@ -92,6 +96,9 @@ export type RentasPublicListing = {
   promoted?: boolean;
   layout?: "vertical" | "horizontal";
   recencyRank?: number;
+  /** Package D Build D3, Gate 1 — pre-resolved canonical `leonix_placement_entitlements` weight,
+   * batched server-side. Used only by the default sort, never by precio_asc/precio_desc. */
+  canonicalPlacementRankWeight?: number | null;
   amueblado?: boolean;
   mascotasPermitidas?: boolean;
   /** Parsed interior / lot size when numeric (from detail_pairs text). */
@@ -108,6 +115,8 @@ export type RentasPublicListing = {
   highlightSlugs?: string[];
   /** Rentas machine: `Leonix:rent:lease_term_code` (e.g. mes-a-mes, 12-meses). */
   leaseTermCode?: string | null;
+  /** Package F Build F2, Gate 10 ("Otro" truth fix) — custom text when leaseTermCode is "otro". */
+  leaseTermCustom?: string | null;
   availabilityNote?: string | null;
   servicesIncluded?: string | null;
   requirements?: string | null;

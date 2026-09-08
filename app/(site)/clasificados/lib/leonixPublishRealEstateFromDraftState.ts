@@ -7,6 +7,7 @@ import type { BienesRaicesPrivadoFormState } from "@/app/clasificados/publicar/b
 import { mapBienesRaicesPrivadoStateToPreviewVm } from "@/app/clasificados/publicar/bienes-raices/privado/application/mapping/mapBienesRaicesPrivadoStateToPreviewVm";
 import { mapRentasPrivadoStateToPreviewVm } from "@/app/clasificados/publicar/rentas/privado/application/mapping/mapRentasPrivadoStateToPreviewVm";
 import type { RentasPrivadoFormState } from "@/app/clasificados/publicar/rentas/privado/schema/rentasPrivadoFormState";
+import { rentasCategoriaPropiedadForTipo } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 import { mapBienesRaicesNegocioStateToPreviewVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/mapBienesRaicesNegocioStateToPreviewVm";
 import { mapRentasNegocioStateToPreviewVm } from "@/app/clasificados/publicar/rentas/negocio/application/mapping/mapRentasNegocioStateToPreviewVm";
 import { rentasNegocioToBienesRaicesNegocioState } from "@/app/clasificados/publicar/rentas/negocio/application/mapping/rentasNegocioToBienesRaicesNegocioState";
@@ -47,6 +48,25 @@ import {
   normalizeZipForBrowse,
 } from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
 import { buildRentasStreetLine, orderedRentasGallerySourcesForPublish } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
+import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
+
+/**
+ * Globalization Package B (Gate B6) — shared media contract, additive gate. Deliberately does
+ * NOT touch publishLeonixRealEstateListingCore.ts (locked per the Globalization master plan —
+ * shared BR/Rentas publish core, changed only under Package A's gated fix). This runs one step
+ * earlier, in each lane's own builder, alongside that lane's existing real min-photo check
+ * (never replacing it), re-certifying only the max-count truth (T1/T3) using each lane's own
+ * real registry-pinned limit. Returns the same bilingual error shape these builders already use.
+ */
+function leonixRealEstateMediaCountError(
+  count: number,
+  max: number,
+  lang: "es" | "en",
+): string {
+  return lang === "es"
+    ? `Demasiadas fotos (${count}). El máximo permitido es ${max}. Quita algunas e inténtalo de nuevo.`
+    : `Too many photos (${count}). The maximum allowed is ${max}. Remove a few and try again.`;
+}
 
 /** Draft → core publish params (never conflates with `{ ok: true; listingId }` from persisted publish). */
 export type LeonixBrDraftPublishBuildResult =
@@ -285,6 +305,14 @@ export function buildRentasPrivadoListingParams(
           : "No photos are ready to publish. Return to the form, add at least one photo, and open preview again.",
     };
   }
+  // Gate B6 — additive max-count re-certification (MAX_PHOTOS = 8, rentasPrivadoFormState.ts:163).
+  const rentasPrivadoMedia = validateProposedFinalMediaSet(
+    buildProposedFinalMediaSet({ existing: orderedGallery }),
+    { minImages: 0, maxImages: 8, logoAllowed: false, maxExternalVideos: 0 },
+  );
+  if (!rentasPrivadoMedia.ok) {
+    return { ok: false, error: leonixRealEstateMediaCountError(orderedGallery.length, 8, lang) };
+  }
   const vm = mapRentasPrivadoStateToPreviewVm(state, lang);
   let human = buildDetailPairsFromBienesRaicesPrivadoPreviewVm(vm);
   const note = trim(state.seller.notaContacto);
@@ -295,7 +323,9 @@ export function buildRentasPrivadoListingParams(
   const pairs = mergeLeonixListingContractDetailPairs(withMachine, {
     branch: "rentas_privado",
     operation: "rent",
-    categoriaPropiedad: state.categoriaPropiedad,
+    // Item 13 fix — always write the canonical category derived from tipoDeRenta, defensively,
+    // even if a mismatched state somehow reached publish (the form itself now keeps them in sync).
+    categoriaPropiedad: rentasCategoriaPropiedadForTipo(state.tipoDeRenta),
     machineFacetPairs: buildLeonixMachineFacetPairsFromRentasPrivadoFormState(state),
   });
   const contact = privadoSellerContact(state.seller);
@@ -341,6 +371,17 @@ export function buildPublishParamsFromBienesRaicesNegocioDraft(
 ): LeonixBrDraftPublishBuildResult {
   const petsErr = petsRequiredForBrPublish(state.petsAllowed, lang);
   if (petsErr) return petsErr;
+  // Gate B6 — additive max-count re-certification (max 40, GaleriaMultimediaNegocioSection
+  // steps01-03.tsx:540; min-1 already enforced upstream in the live agente-individual path,
+  // buildPublishParamsFromAgenteResidencialDraft below).
+  const brNegocioOrderedGallery = orderedRentasGallerySourcesForPublish(state.media.photoUrls, state.media.primaryImageIndex);
+  const brNegocioMedia = validateProposedFinalMediaSet(
+    buildProposedFinalMediaSet({ existing: brNegocioOrderedGallery }),
+    { minImages: 0, maxImages: 40, logoAllowed: false, maxExternalVideos: 0 },
+  );
+  if (!brNegocioMedia.ok) {
+    return { ok: false, error: leonixRealEstateMediaCountError(brNegocioOrderedGallery.length, 40, lang) };
+  }
   const vm = mapBienesRaicesNegocioStateToPreviewVm(state);
   const human = buildDetailPairsFromBienesRaicesNegocioPreviewVm(vm);
   const cat = inferCategoriaPropiedadFromBienesNegocioState(state);
@@ -472,6 +513,14 @@ export function buildRentasNegocioListingParams(
           : "No photos are ready to publish. Return to the form, add at least one photo, and open preview again.",
     };
   }
+  // Gate B6 — additive max-count re-certification (mirrors rentas_privado's registry cap).
+  const rentasNegocioMedia = validateProposedFinalMediaSet(
+    buildProposedFinalMediaSet({ existing: orderedGallery }),
+    { minImages: 0, maxImages: 8, logoAllowed: false, maxExternalVideos: 0 },
+  );
+  if (!rentasNegocioMedia.ok) {
+    return { ok: false, error: leonixRealEstateMediaCountError(orderedGallery.length, 8, lang) };
+  }
   const vm = mapRentasNegocioStateToPreviewVm(state);
   let human = buildDetailPairsFromBienesRaicesNegocioPreviewVm(vm);
   const noteN = trim(state.negocioBio);
@@ -483,7 +532,9 @@ export function buildRentasNegocioListingParams(
   const pairs = mergeLeonixListingContractDetailPairs(withMachine, {
     branch: "rentas_negocio",
     operation: "rent",
-    categoriaPropiedad: state.categoriaPropiedad,
+    // Item 13 fix — always write the canonical category derived from tipoDeRenta, defensively,
+    // even if a mismatched state somehow reached publish (the form itself now keeps them in sync).
+    categoriaPropiedad: rentasCategoriaPropiedadForTipo(state.tipoDeRenta),
     machineFacetPairs: [
       ...buildLeonixMachineFacetPairsFromBienesRaicesNegocioState(br),
       ...buildLeonixHighlightSlugPairsFromRentasNegocioNonResidencial(state),

@@ -195,6 +195,18 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
     if (!open) setStatus(null);
   }, [open, intent]);
 
+  // Gate I.13A — mirrors the Escape-to-close pattern already proven in the sibling
+  // LeonixPreviewGalleryLightbox; this dialog previously had a close button but no
+  // keyboard path.
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   const flash = useCallback((msg: string, tone: "ok" | "err" = "ok") => {
     setStatus({ text: msg, tone });
     window.setTimeout(() => setStatus(null), 2400);

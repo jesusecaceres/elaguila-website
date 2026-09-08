@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { FiAward, FiCopy, FiGlobe, FiInfo, FiLock, FiMail, FiMapPin, FiPhone, FiShare2 } from "react-icons/fi";
+import { FiAward, FiGlobe, FiInfo, FiMail, FiMapPin, FiPhone, FiShare2 } from "react-icons/fi";
 import { FaGoogle, FaWhatsapp } from "react-icons/fa";
 import {
   SiFacebook,
@@ -19,9 +19,10 @@ import {
   isOfertaLocalActiveByDates,
   isOfertaLocalExpired,
 } from "@/app/lib/ofertas-locales/ofertasLocalesFormatting";
+import { isOfertaLocalLocalCouponsLane } from "@/app/lib/ofertas-locales/ofertasLocalesTwoLaneProductModel";
+import { isOfertaLocalAiIncludedInPackage } from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
 import type { OfertaLocalSocialLink, OfertaLocalSocialLinkKey } from "@/app/lib/ofertas-locales/ofertasLocalesApplicationHelpers";
 import {
-  buildOfertaLocalMailtoHref,
   buildOfertaLocalTelHref,
   buildOfertaLocalWhatsAppHref,
   formatOfertaLocalDateRange,
@@ -344,48 +345,49 @@ function PreviewBusinessHub({
   telHref,
   waHref,
   webHref,
-  mailtoHref,
+  onShareContact,
+  shareCopied,
   directionsHref,
   locationLine,
+  showMembership,
+  membershipHref,
+  membershipInstructions,
 }: {
   draft: OfertaLocalDraft;
   lang: OfertasLocalesAppLang;
   telHref: string;
   waHref: string;
   webHref: string;
-  mailtoHref: string;
+  /** Correo reuses the SAME native-share mechanism as Compartir (see handleShare) — no mailto. */
+  onShareContact: () => void;
+  shareCopied: boolean;
   directionsHref: string;
   locationLine: string;
+  showMembership: boolean;
+  membershipHref: string;
+  membershipInstructions: string;
 }) {
   const c = OFERTAS_LOCALES_PREVIEW_COPY;
   const contactEmail = resolveOfertaLocalContactEmail(draft);
   const followLinks = getOfertaLocalSocialLinksByCategory(draft, "follow");
   const reviewLinks = getOfertaLocalSocialLinksByCategory(draft, "review");
   const businessLinks = getOfertaLocalSocialLinksByCategory(draft, "business");
-  const [emailCopied, setEmailCopied] = useState(false);
-
-  const copyEmail = useCallback(async () => {
-    if (!contactEmail) return;
-    try {
-      await navigator.clipboard.writeText(contactEmail);
-      setEmailCopied(true);
-      window.setTimeout(() => setEmailCopied(false), 2000);
-    } catch {
-      setEmailCopied(false);
-    }
-  }, [contactEmail]);
 
   const hasContact = Boolean(telHref || waHref || webHref || contactEmail);
   const hasLocation = Boolean(locationLine || directionsHref);
   const hasFollow = followLinks.length > 0;
   const hasReviews = reviewLinks.length > 0;
   const hasBusiness = businessLinks.length > 0;
+  // "Más información" also carries the membership sign-up + instructions CTAs
+  // now (moved out of Contacto so they read with the same visual confidence
+  // as Google Business), so it must stay visible whenever either exists.
+  const hasMoreInfo = hasBusiness || (showMembership && Boolean(membershipHref));
 
-  if (!hasContact && !hasLocation && !hasFollow && !hasReviews && !hasBusiness) return null;
+  if (!hasContact && !hasLocation && !hasFollow && !hasReviews && !hasMoreInfo) return null;
 
   const defaultOpenContact = hasContact;
   const defaultOpenLocation = !hasContact && hasLocation;
-  const defaultOpenSocial = !hasContact && !hasLocation && (hasFollow || hasReviews || hasBusiness);
+  const defaultOpenSocial = !hasContact && !hasLocation && (hasFollow || hasReviews || hasMoreInfo);
 
   return (
     <section className={cx(CARD, "mt-5 p-3 sm:p-4 lg:mt-6 lg:p-5")}>
@@ -423,26 +425,22 @@ function PreviewBusinessHub({
               />
             </div>
             {contactEmail ? (
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-2 text-sm text-[#1E1814]/85">
-                  <FiMail className="h-4 w-4 text-[#7A1E2C]" aria-hidden />
+              <div className="mt-4 rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0]/70 px-3 py-2.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-[#1E1814]/50">
+                  {lang === "en" ? c.emailAddressLabelEn : c.emailAddressLabelEs}
+                </p>
+                <p className="mt-1 flex items-center gap-2 truncate text-sm font-medium text-[#1E1814]/85">
+                  <FiMail className="h-4 w-4 shrink-0 text-[#7A1E2C]" aria-hidden />
                   {contactEmail}
-                </span>
-                {mailtoHref ? (
-                  <a href={mailtoHref} className={BTN_OUTLINE}>
-                    {lang === "en" ? c.emailEn : c.emailEs}
-                  </a>
-                ) : null}
-                <button type="button" className={BTN_OUTLINE} onClick={() => void copyEmail()}>
-                  <FiCopy className="h-4 w-4" aria-hidden />
-                  {emailCopied
-                    ? lang === "en"
-                      ? c.shareCopiedEn
-                      : c.shareCopiedEs
-                    : lang === "en"
-                      ? c.copyEmailEn
-                      : c.copyEmailEs}
+                </p>
+                <button type="button" onClick={onShareContact} className={cx(BTN_PRIMARY, "mt-3")}>
+                  {lang === "en" ? c.emailEn : c.emailEs}
                 </button>
+                {shareCopied ? (
+                  <p className="mt-1.5 text-xs font-medium text-emerald-800">
+                    {lang === "en" ? c.shareCopiedEn : c.shareCopiedEs}
+                  </p>
+                ) : null}
               </div>
             ) : null}
           </HubCollapsibleGroup>
@@ -500,7 +498,7 @@ function PreviewBusinessHub({
           </HubCollapsibleGroup>
         ) : null}
 
-        {hasBusiness ? (
+        {hasMoreInfo ? (
           <HubCollapsibleGroup
             id={hasFollow || hasReviews ? undefined : "redes"}
             title={lang === "en" ? c.moreInfoEn : c.moreInfoEs}
@@ -511,6 +509,29 @@ function PreviewBusinessHub({
               {businessLinks.map((link) => (
                 <SocialLinkButton key={link.key} link={link} />
               ))}
+              {showMembership && membershipHref ? (
+                <a
+                  href={membershipHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#7A1E2C] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#6a1926]"
+                  title={lang === "en" ? c.membershipTitleEn : c.membershipTitleEs}
+                >
+                  <FiAward className="h-4 w-4 shrink-0" aria-hidden />
+                  {lang === "en" ? c.membershipSignUpShortEn : c.membershipSignUpShortEs}
+                </a>
+              ) : null}
+              {showMembership && membershipInstructions ? (
+                <details className="group/instructions max-w-full">
+                  <summary className="inline-flex min-h-11 max-w-full cursor-pointer list-none items-center justify-center gap-2 rounded-xl bg-[#B8860B] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#a5760a] [&::-webkit-details-marker]:hidden">
+                    <FiInfo className="h-4 w-4 shrink-0" aria-hidden />
+                    {lang === "en" ? c.membershipInstructionsLabelEn : c.membershipInstructionsLabelEs}
+                  </summary>
+                  <p className="mt-2 max-w-[min(100%,24rem)] rounded-lg border border-[#D4C4A8]/60 bg-[#FFFCF7] px-3 py-2 text-xs leading-relaxed text-[#1E1814]/80">
+                    {membershipInstructions}
+                  </p>
+                </details>
+              ) : null}
             </div>
           </HubCollapsibleGroup>
         ) : null}
@@ -523,16 +544,12 @@ function OwnerPreviewControls({
   lang,
   editHref,
   editReviewHref,
-  publishing,
-  aiNeedsReviewCount,
-  onSubmitForReview,
+  dashboardHref,
 }: {
   lang: OfertasLocalesAppLang;
   editHref: string;
-  editReviewHref: string;
-  publishing: boolean;
-  aiNeedsReviewCount: number;
-  onSubmitForReview?: () => void;
+  editReviewHref: string | null;
+  dashboardHref: string | null;
 }) {
   const c = OFERTAS_LOCALES_PREVIEW_COPY;
   return (
@@ -544,30 +561,23 @@ function OwnerPreviewControls({
         <Link href={editHref} className={cx(BTN_OUTLINE, "min-h-10 px-3 py-2 text-xs sm:text-sm")}>
           {lang === "en" ? c.backToEditEn : c.backToEdit}
         </Link>
-        <Link href={editReviewHref} className={cx(BTN_OUTLINE, "min-h-10 px-3 py-2 text-xs sm:text-sm")}>
-          {lang === "en" ? c.backToReviewEn : c.backToReviewEs}
-        </Link>
-        <button
-          type="button"
-          className={cx(BTN_PRIMARY, "min-h-10 px-3 py-2 text-xs sm:text-sm")}
-          disabled={publishing || aiNeedsReviewCount > 0 || !onSubmitForReview}
-          onClick={onSubmitForReview}
-          title={
-            aiNeedsReviewCount > 0
-              ? lang === "en"
-                ? c.submitBlockedEn
-                : c.submitBlockedEs
-              : undefined
-          }
-        >
-          {publishing
-            ? lang === "en"
-              ? c.submittingEn
-              : c.submittingEs
-            : lang === "en"
-              ? c.submitForReviewEn
-              : c.submitForReviewEs}
-        </button>
+        {editReviewHref ? (
+          <Link href={editReviewHref} className={cx(BTN_OUTLINE, "min-h-10 px-3 py-2 text-xs sm:text-sm")}>
+            {lang === "en" ? c.backToReviewEn : c.backToReviewEs}
+          </Link>
+        ) : null}
+        {dashboardHref ? (
+          // Routes into the existing owner-dashboard commercial workflow (real
+          // checkout lives there via startRevenueCategoryCheckout) — no new
+          // Stripe/session logic here, this is presentation/routing only.
+          <Link href={dashboardHref} className={cx(BTN_PRIMARY, "min-h-10 px-3 py-2 text-xs sm:text-sm")}>
+            {lang === "en" ? c.continueToDashboardEn : c.continueToDashboardEs}
+          </Link>
+        ) : (
+          <p className="w-full text-xs font-medium text-amber-900">
+            {lang === "en" ? c.dashboardLinkPendingEn : c.dashboardLinkPendingEs}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -577,33 +587,56 @@ export function OfertasLocalesPreviewCard({
   draft,
   lang = "es",
   routeLang,
+  ofertaLocalId = null,
   approvedAiItems = [],
   aiReviewLoading = false,
   aiReviewError = null,
   aiNeedsReviewCount = 0,
   aiTotalCount = 0,
-  publishing = false,
-  publishError = null,
   publishSuccess = null,
-  onSubmitForReview,
 }: {
   draft: OfertaLocalDraft;
   lang?: OfertasLocalesAppLang;
   routeLang?: SupportedLang;
+  ofertaLocalId?: string | null;
   approvedAiItems?: OfertaLocalItemReviewViewModel[];
   aiReviewLoading?: boolean;
   aiReviewError?: string | null;
   aiNeedsReviewCount?: number;
   aiTotalCount?: number;
-  publishing?: boolean;
-  publishError?: string | null;
+  /** Kept only as the dashboardId fallback below — the manual "submit for
+   * review" UI that used to populate this from a button click was removed;
+   * the real submission path is the dashboard's checkout flow. */
   publishSuccess?: { id: string; status: string } | null;
-  onSubmitForReview?: () => void;
 }) {
   const c = OFERTAS_LOCALES_PREVIEW_COPY;
   const resolvedRouteLang = routeLang ?? lang;
-  const editHref = withClasificadosPublishLang("/publicar/ofertas-locales", resolvedRouteLang);
-  const editReviewHref = withClasificadosPublishLang("/publicar/ofertas-locales", resolvedRouteLang, { step: 7 });
+  const isCouponsLocalLane = isOfertaLocalLocalCouponsLane(draft);
+  // Extras lives at Step 6 on the coupon lane, Step 7 on the flyer lane
+  // (Gate: two-lane execution) — "back to edit" lands there in both cases.
+  const editHref = withClasificadosPublishLang("/publicar/ofertas-locales", resolvedRouteLang, {
+    step: isCouponsLocalLane ? 6 : 7,
+    intent: "continue",
+  });
+  // The coupon lane has no AI review step to return to — it never scans.
+  const editReviewHref = isCouponsLocalLane
+    ? null
+    : withClasificadosPublishLang("/publicar/ofertas-locales", resolvedRouteLang, {
+        step: 5,
+        review: 1,
+        intent: "continue",
+      });
+  // Locked doctrine: the normal path is Application → Preview → final
+  // checkout/publish checkpoint → Stripe. This routes straight to the
+  // existing, certified checkout page for the SAME canonical listing id
+  // (preferring the id confirmed by a successful submission over the
+  // AI-scan-session id used before submission) — the dashboard itself is
+  // only the post-payment management destination, or a secondary recovery
+  // path for an unfinished payment, never the required next step here.
+  const dashboardId = publishSuccess?.id ?? ofertaLocalId;
+  const dashboardHref = dashboardId
+    ? `/dashboard/ofertas-locales/${encodeURIComponent(dashboardId)}/checkout?lang=${resolvedRouteLang}`
+    : null;
   const offerLabel = labelForOfferType(draft.offerType, lang);
   const primaryFormatLabel = labelForPrimaryAdFormatLane(draft, lang);
   const categoryLabel = labelForBusinessCategory(draft.businessCategory, lang);
@@ -623,14 +656,14 @@ export function OfertasLocalesPreviewCard({
   const waHref = buildOfertaLocalWhatsAppHref(draft.whatsapp || draft.phone, draft.businessName);
   const webHref = resolveOfertaLocalWebsiteHref(draft.websiteUrl);
   const directionsHref = resolveOfertaLocalDirectionsHref(draft);
-  const mailtoHref = buildOfertaLocalMailtoHref(draft.email, draft.businessName);
   const showMembership = shouldShowMembershipBlock(draft);
   const showDigitalCoupon = shouldShowDigitalCouponBlock(draft);
   const membershipHref = resolveOfertaLocalWebsiteHref(draft.membershipUrl);
   const digitalCouponHref = resolveOfertaLocalWebsiteHref(draft.digitalCouponUrl);
   const membershipInstructions = draft.membershipNote.trim();
   const digitalCouponInstructions = draft.digitalCouponNote.trim();
-  const hasAiProducts = draft.wantsAiSearchableSpecials && approvedAiItems.length > 0;
+  const aiIncluded = isOfertaLocalAiIncludedInPackage(draft);
+  const hasAiProducts = aiIncluded && approvedAiItems.length > 0;
 
   const [shareCopied, setShareCopied] = useState(false);
   const [flyerViewerOpen, setFlyerViewerOpen] = useState(false);
@@ -680,25 +713,41 @@ export function OfertasLocalesPreviewCard({
     }
   }, [heroAsset?.href, heroAsset?.fileName, heroAsset?.kind, flyerDownloading]);
 
-  const handleShare = useCallback(async () => {
-    const url = typeof window !== "undefined" ? window.location.href : "";
-    if (!url) return;
-    try {
-      if (typeof navigator.share === "function") {
-        await navigator.share({ title: draft.title || draft.businessName, url });
-        return;
+  const handleShare = useCallback(
+    async (override?: { title?: string; text?: string }) => {
+      const url = typeof window !== "undefined" ? window.location.href : "";
+      if (!url) return;
+      const title = override?.title ?? (draft.title || draft.businessName);
+      try {
+        if (typeof navigator.share === "function") {
+          await navigator.share({ title, text: override?.text, url });
+          return;
+        }
+        await navigator.clipboard.writeText(override?.text ?? url);
+        setShareCopied(true);
+        window.setTimeout(() => setShareCopied(false), 2000);
+      } catch {
+        /* cancelled */
       }
-      await navigator.clipboard.writeText(url);
-      setShareCopied(true);
-      window.setTimeout(() => setShareCopied(false), 2000);
-    } catch {
-      /* cancelled */
-    }
-  }, [draft.businessName, draft.title]);
+    },
+    [draft.businessName, draft.title]
+  );
 
   const defaultOfferTitle = lang === "en" ? c.defaultOfferTitleEn : c.defaultOfferTitleEs;
 
   const contactEmail = resolveOfertaLocalContactEmail(draft);
+
+  // Correo reuses the exact same native-share mechanism as Compartir above —
+  // no mailto, no fetch — just a different title/text aimed at the business
+  // contact instead of the listing link.
+  const handleShareContact = useCallback(() => {
+    const businessLabel = draft.title || draft.businessName;
+    const emailLabel = lang === "en" ? c.emailEn : c.emailEs;
+    void handleShare({
+      title: businessLabel ? `${businessLabel} · Leonix` : "Leonix",
+      text: [businessLabel, `${emailLabel}: ${contactEmail}`].filter(Boolean).join("\n"),
+    });
+  }, [c.emailEn, c.emailEs, contactEmail, draft.businessName, draft.title, handleShare, lang]);
   const followLinks = getOfertaLocalSocialLinksByCategory(draft, "follow");
   const reviewLinks = getOfertaLocalSocialLinksByCategory(draft, "review");
   const businessLinks = getOfertaLocalSocialLinksByCategory(draft, "business");
@@ -710,10 +759,16 @@ export function OfertasLocalesPreviewCard({
     { id: "oferta", label: lang === "en" ? c.sectionOfferEn : c.sectionOfferEs },
     { id: "volante", label: lang === "en" ? c.sectionFlyerEn : c.sectionFlyerEs },
   ];
-  if (draft.wantsAiSearchableSpecials) {
+  if (aiIncluded) {
     sectionNavItems.push({
       id: "productos",
       label: lang === "en" ? c.sectionProductsEn : c.sectionProductsEs,
+    });
+  }
+  if (isCouponsLocalLane && draft.couponEntries.some((entry) => entry.title.trim())) {
+    sectionNavItems.push({
+      id: "cupones",
+      label: lang === "en" ? c.couponsSectionTitleEn : c.couponsSectionTitleEs,
     });
   }
   if (hasContactNav) {
@@ -734,10 +789,6 @@ export function OfertasLocalesPreviewCard({
       label: lang === "en" ? c.sectionSocialEn : c.sectionSocialEs,
     });
   }
-  sectionNavItems.push({
-    id: "proximamente",
-    label: lang === "en" ? c.sectionComingSoonEn : c.sectionComingSoonEs,
-  });
 
   const flyerStickyLabel =
     heroAsset?.kind === "coupon"
@@ -770,9 +821,7 @@ export function OfertasLocalesPreviewCard({
           lang={lang}
           editHref={editHref}
           editReviewHref={editReviewHref}
-          publishing={publishing}
-          aiNeedsReviewCount={aiNeedsReviewCount}
-          onSubmitForReview={onSubmitForReview}
+          dashboardHref={dashboardHref}
         />
 
         {/* 2. Page header */}
@@ -796,7 +845,6 @@ export function OfertasLocalesPreviewCard({
               <div className="shrink-0">
                 {businessLogoUrl && !logoFailed ? (
                   <div className={cx(LOGO_FRAME, LOGO_SIZE)}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={businessLogoUrl}
                       alt={draft.businessName.trim() || (lang === "en" ? c.businessLogoLabelEn : c.businessLogoLabelEs)}
@@ -824,7 +872,7 @@ export function OfertasLocalesPreviewCard({
                   {offerLabel && offerLabel !== primaryFormatLabel ? (
                     <span className={PILL_MUTED}>{offerLabel}</span>
                   ) : null}
-                  {draft.wantsAiSearchableSpecials ? (
+                  {aiIncluded ? (
                     <span className={PILL_TRUST}>{lang === "en" ? c.aiSearchableEn : c.aiSearchableEs}</span>
                   ) : null}
                 </div>
@@ -1047,9 +1095,12 @@ export function OfertasLocalesPreviewCard({
           </p>
         </section>
 
-        {/* 4. Flyer hero — the star of the page (connected tightly to the header strip) */}
+        {/* 4. Flyer hero — the star of the page (connected tightly to the header strip).
+             Full column width, matching Business Hub/other sections below — this
+             used to be capped at max-w-2xl/3xl, making the flyer look small
+             regardless of how large the rendered canvas itself was. */}
         <section id="volante" className={cx(SECTION_ANCHOR, "mt-2 sm:mt-3")}>
-          <div className="mx-auto w-full max-w-2xl lg:max-w-3xl">
+          <div className="w-full">
             <OfertasLocalesPreviewHeroVisual
               draft={draft}
               heroAsset={heroAsset}
@@ -1060,6 +1111,81 @@ export function OfertasLocalesPreviewCard({
           </div>
         </section>
 
+        {/* 5. Individual coupons — Cupones y promociones (free) lane only */}
+        {isCouponsLocalLane && draft.couponEntries.length > 0 ? (
+          <section id="cupones" className={cx(SECTION_ANCHOR, CARD, "mt-5 p-4 sm:p-5 lg:mt-6")}>
+            <h2 className="font-serif text-lg font-semibold text-[#1E1814] sm:text-xl">
+              {lang === "en" ? c.couponsSectionTitleEn : c.couponsSectionTitleEs}
+            </h2>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {draft.couponEntries
+                .filter((entry) => entry.title.trim())
+                .map((entry) => {
+                  const image = entry.imageUploadedUrl.trim() || entry.imageUrl.trim();
+                  return (
+                    <article
+                      key={entry.id}
+                      className="overflow-hidden rounded-xl border border-[#D4C4A8]/70 bg-white shadow-sm"
+                    >
+                      <div className="flex aspect-[5/4] items-center justify-center bg-[#FDF8F0]">
+                        {image ? (
+                          <img src={image} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="text-3xl" aria-hidden>
+                            🎫
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-1.5 p-3">
+                        {entry.couponCode.trim() ? (
+                          <span className={PILL_PRIMARY}>
+                            {lang === "en" ? c.couponCodeEn : c.couponCodeEs}:{" "}
+                            <span className="font-mono">{entry.couponCode.trim()}</span>
+                          </span>
+                        ) : null}
+                        <h3 className="line-clamp-1 text-sm font-semibold text-[#1E1814]">{entry.title}</h3>
+                        {entry.description.trim() ? (
+                          <p className="line-clamp-2 text-xs text-[#1E1814]/70">{entry.description}</p>
+                        ) : null}
+                        {entry.expirationDate.trim() ? (
+                          <p className="text-[11px] text-[#1E1814]/55">
+                            {lang === "en" ? c.couponValidUntilEn : c.couponValidUntilEs}: {entry.expirationDate}
+                          </p>
+                        ) : null}
+                        {entry.redemptionNote.trim() ? (
+                          <p className="line-clamp-1 text-[11px] text-[#1E1814]/55">{entry.redemptionNote}</p>
+                        ) : null}
+                      </div>
+                    </article>
+                  );
+                })}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {heroAsset?.href ? (
+                <a
+                  href={heroAsset.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={BTN_OUTLINE}
+                >
+                  {lang === "en" ? c.couponsViewFlyerCtaEn : c.couponsViewFlyerCtaEs}
+                </a>
+              ) : null}
+              {draft.couponsMoreOffersUrl.trim() ? (
+                <a
+                  href={resolveOfertaLocalWebsiteHref(draft.couponsMoreOffersUrl) ?? draft.couponsMoreOffersUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={BTN_PRIMARY}
+                >
+                  {draft.couponsMoreOffersLabel.trim() ||
+                    (lang === "en" ? c.viewMoreOffersEn : c.viewMoreOffersEs)}
+                </a>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
+
         {/* 6. Business Hub */}
         <PreviewBusinessHub
           draft={draft}
@@ -1067,9 +1193,13 @@ export function OfertasLocalesPreviewCard({
           telHref={telHref}
           waHref={waHref}
           webHref={webHref}
-          mailtoHref={mailtoHref}
+          onShareContact={handleShareContact}
+          shareCopied={shareCopied}
           directionsHref={directionsHref}
           locationLine={locationLine}
+          showMembership={showMembership}
+          membershipHref={membershipHref}
+          membershipInstructions={membershipInstructions}
         />
 
         {/* 7. Product grid */}
@@ -1098,27 +1228,6 @@ export function OfertasLocalesPreviewCard({
           onCloseDetail={closeProductDetail}
         />
 
-        {/* Future modules */}
-        <section
-          id="proximamente"
-          className={`${SECTION_ANCHOR} mt-8`}
-          aria-label={lang === "en" ? c.futureModulesEn : c.futureModulesEs}
-        >
-          <h2 className="font-serif text-base font-semibold text-[#1E1814]/80">
-            {lang === "en" ? c.futureModulesEn : c.futureModulesEs}
-          </h2>
-          <p className="mt-1 text-xs text-[#1E1814]/50">
-            {lang === "en" ? c.futureModulesNoteEn : c.futureModulesNoteEs}
-          </p>
-          {/* Neutralized future roadmap — one non-interactive info card (no live-looking buttons). */}
-          <div className="mt-3 rounded-xl border border-dashed border-[#D4C4A8]/70 bg-[#FDF8F0]/50 p-4">
-            <p className="flex items-start gap-2 text-xs font-medium leading-relaxed text-[#1E1814]/60">
-              <FiLock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#B8860B]" aria-hidden />
-              {lang === "en" ? c.comingSoonListsRoutesEn : c.comingSoonListsRoutesEs}
-            </p>
-          </div>
-        </section>
-
         {draft.wantsFeaturedPlacement ? (
           <p className="mt-6 rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/80 px-4 py-3 text-center text-xs text-[#1E1814]/60">
             {lang === "en" ? c.featuredInterestEn : c.featuredInterestEs}
@@ -1137,46 +1246,24 @@ export function OfertasLocalesPreviewCard({
             {lang === "en" ? c.ownerControlsEn : c.ownerControlsEs}
           </h2>
 
-          {publishSuccess ? (
-            <div className="mt-4 rounded-xl border border-emerald-300/80 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-              <p className="font-semibold">{lang === "en" ? c.submitSuccessEn : c.submitSuccessEs}</p>
-              <p className="mt-1 text-xs">{lang === "en" ? c.submitSuccessNoteEn : c.submitSuccessNoteEs}</p>
-            </div>
-          ) : null}
-          {publishError ? (
-            <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
-              {publishError}
-            </p>
-          ) : null}
-
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link href={editHref} className={BTN_PRIMARY}>
+            <Link href={editHref} className={BTN_OUTLINE}>
               {lang === "en" ? c.backToEditEn : c.backToEdit}
             </Link>
-            <Link href={editReviewHref} className={BTN_OUTLINE}>
-              {lang === "en" ? c.backToReviewEn : c.backToReviewEs}
-            </Link>
-            <button
-              type="button"
-              className={BTN_PRIMARY}
-              disabled={publishing || aiNeedsReviewCount > 0 || !onSubmitForReview}
-              onClick={onSubmitForReview}
-              title={
-                aiNeedsReviewCount > 0
-                  ? lang === "en"
-                    ? c.submitBlockedEn
-                    : c.submitBlockedEs
-                  : undefined
-              }
-            >
-              {publishing
-                ? lang === "en"
-                  ? c.submittingEn
-                  : c.submittingEs
-                : lang === "en"
-                  ? c.submitForReviewEn
-                  : c.submitForReviewEs}
-            </button>
+            {editReviewHref ? (
+              <Link href={editReviewHref} className={BTN_OUTLINE}>
+                {lang === "en" ? c.backToReviewEn : c.backToReviewEs}
+              </Link>
+            ) : null}
+            {dashboardHref ? (
+              <Link href={dashboardHref} className={BTN_PRIMARY}>
+                {lang === "en" ? c.continueToDashboardEn : c.continueToDashboardEs}
+              </Link>
+            ) : (
+              <p className="w-full text-xs font-medium text-amber-900">
+                {lang === "en" ? c.dashboardLinkPendingEn : c.dashboardLinkPendingEs}
+              </p>
+            )}
           </div>
         </section>
       </LeonixResponsiveShell>

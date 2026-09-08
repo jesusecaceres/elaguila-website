@@ -134,7 +134,13 @@ export function buildLeonixMachineFacetPairsFromRentasPrivadoFormState(
     titulo: state.titulo,
     precio: state.rentaMensual,
     ciudad: state.ciudad,
-    ubicacionLinea: buildRentasStreetLine(state),
+    // Foundation 02 — `ubicacionLinea` here feeds the BR "approximate" map-query branch below
+    // (composeBrApproximateMapQuery) when the address is hidden; it must never carry the exact
+    // street in that case (same `mostrarDireccionExacta === true` gate already used by the
+    // proven-safe `buildRentasGoogleMapsSearchQuery`), or the exact street gets mislabeled as
+    // "neighborhood" and persisted into the publicly-selectable `Leonix:br:map_url` pair.
+    ubicacionLinea:
+      state.mostrarDireccionExacta === true ? buildRentasStreetLine(state) : state.direccionCruceCercano.trim(),
     mostrarDireccionExacta: state.mostrarDireccionExacta !== false,
     enlaceMapa: "",
     descripcion: state.descripcion,

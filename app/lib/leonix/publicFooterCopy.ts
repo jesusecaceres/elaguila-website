@@ -9,6 +9,7 @@ export type PublicFooterCopy = {
   mediaKit: string;
   advertise: string;
   explore: string;
+  community: string;
   contactColumn: string;
   legalTrust: string;
   addressLabel: string;
@@ -28,6 +29,7 @@ const FOOTER_COPY: LaunchUiDictionary<PublicFooterCopy> = {
     mediaKit: "Media Kit",
     advertise: "Anúnciate",
     explore: "Explorar",
+    community: "Comunidad",
     contactColumn: "Contacto",
     legalTrust: "Legal y confianza",
     addressLabel: "Oficina",
@@ -45,6 +47,7 @@ const FOOTER_COPY: LaunchUiDictionary<PublicFooterCopy> = {
     mediaKit: "Media Kit",
     advertise: "Advertise",
     explore: "Explore",
+    community: "Community",
     contactColumn: "Contact",
     legalTrust: "Legal & trust",
     addressLabel: "Office",
@@ -62,6 +65,7 @@ const FOOTER_COPY: LaunchUiDictionary<PublicFooterCopy> = {
     mediaKit: "Media Kit",
     advertise: "Anuncie",
     explore: "Explorar",
+    community: "Comunidade",
     contactColumn: "Contato",
     legalTrust: "Legal e confiança",
     addressLabel: "Escritório",
@@ -79,6 +83,7 @@ const FOOTER_COPY: LaunchUiDictionary<PublicFooterCopy> = {
     mediaKit: "Media Kit",
     advertise: "Mag-advertise",
     explore: "Tuklasin",
+    community: "Komunidad",
     contactColumn: "Kontak",
     legalTrust: "Legal at tiwala",
     addressLabel: "Opisina",

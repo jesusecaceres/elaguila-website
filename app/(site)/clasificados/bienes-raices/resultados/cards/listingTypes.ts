@@ -77,4 +77,9 @@ export type BrNegocioListing = {
   packageEntitlementTier?: string;
   entitlementEndsAt?: string;
   digitalPlacementPriority?: number | null;
+  /** Package D Build D3, Gate 1 — pre-resolved canonical `leonix_placement_entitlements` weight
+   * (server-side, batched via the entitlement-overlay route). Applied only to `negocio`-lane rows
+   * at the point of use in `filterBrListings`'s default sort — a `privado`-lane row must never
+   * benefit even if this field happens to be populated. */
+  canonicalPlacementRankWeight?: number | null;
 };

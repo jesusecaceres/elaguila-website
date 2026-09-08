@@ -23,31 +23,18 @@ import {
 import { categoryStandardSearchPlaceholder } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 import type { ActiveFilterChip } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardActiveFilterChips";
 import {
-  CLASES_CATEGORY_OPTIONS,
-  CLASES_SKILL_LEVEL_OPTIONS,
-  COMUNIDAD_ACCESSIBILITY_OPTIONS,
-  COMUNIDAD_CATEGORY_OPTIONS,
   COMMUNITY_AUDIENCE_OPTIONS,
   COMMUNITY_REGISTRATION_OPTIONS,
-  resolveClasesCategoryPublicLabel,
-  resolveComunidadEventTypePublicLabel,
 } from "@/app/(site)/publicar/community/shared/taxonomy/communityTaxonomy";
+import { optionLabel } from "@/app/(site)/clasificados/community/shared/communityOptionLabel";
+import { pushComunidadDrawerFilterChips } from "@/app/(site)/clasificados/comunidad/shared/comunidadResultsFilterChips";
+import { pushClasesDrawerFilterChips } from "@/app/(site)/clasificados/clases/shared/clasesResultsFilterChips";
 
 type Props = {
   category: "clases" | "comunidad";
   lang: Lang;
   clearHref: string;
 };
-
-function optionLabel(
-  options: readonly { value: string; labelEs: string; labelEn: string }[],
-  value: string,
-  lang: Lang,
-): string {
-  const row = options.find((o) => o.value === value);
-  if (!row) return value;
-  return lang === "en" ? row.labelEn : row.labelEs;
-}
 
 function drawerFilterChips(
   category: "clases" | "comunidad",
@@ -66,75 +53,9 @@ function drawerFilterChips(
   };
 
   if (category === "clases") {
-    if (drawer.classType) {
-      const classLabel = optionLabel(CLASES_CATEGORY_OPTIONS, drawer.classType, lang);
-      push(
-        "classType",
-        `${L ? "Tipo" : "Type"}: ${classLabel || resolveClasesCategoryPublicLabel(drawer.classType, "", lang)}`,
-      );
-    }
-    if (drawer.cost && drawer.cost !== "all") {
-      const costLabel =
-        drawer.cost === "gratis" ? (L ? "Gratis" : "Free") : drawer.cost === "pagada" ? (L ? "Pagada" : "Paid") : drawer.cost;
-      push("cost", `${L ? "Costo" : "Cost"}: ${costLabel}`);
-    }
-    if (drawer.mode && drawer.mode !== "all") {
-      const modeLabel =
-        drawer.mode === "presencial"
-          ? L
-            ? "Presencial"
-            : "In person"
-          : drawer.mode === "enLinea"
-            ? L
-              ? "En línea"
-              : "Online"
-            : drawer.mode === "hibrida"
-              ? L
-                ? "Híbrida"
-                : "Hybrid"
-              : drawer.mode;
-      push("mode", `${L ? "Modalidad" : "Mode"}: ${modeLabel}`);
-    }
-    if (drawer.level && drawer.level !== "all") {
-      push("level", `${L ? "Nivel" : "Level"}: ${optionLabel(CLASES_SKILL_LEVEL_OPTIONS, drawer.level, lang)}`);
-    }
+    pushClasesDrawerFilterChips(lang, drawer, push);
   } else {
-    if (drawer.eventType) {
-      const eventLabel = optionLabel(COMUNIDAD_CATEGORY_OPTIONS, drawer.eventType, lang);
-      push(
-        "eventType",
-        `${L ? "Tipo" : "Type"}: ${eventLabel || resolveComunidadEventTypePublicLabel(drawer.eventType, "", lang)}`,
-      );
-    }
-    if (drawer.eventCost && drawer.eventCost !== "all") {
-      const costLabel =
-        drawer.eventCost === "gratis"
-          ? L
-            ? "Gratis"
-            : "Free"
-          : drawer.eventCost === "pagado"
-            ? L
-              ? "Pagado"
-              : "Paid"
-            : drawer.eventCost === "donacion"
-              ? L
-                ? "Donación"
-                : "Donation"
-              : drawer.eventCost === "noConfirmado"
-                ? L
-                  ? "Por confirmar"
-                  : "TBD"
-                : drawer.eventCost;
-      push("eventCost", `${L ? "Costo" : "Cost"}: ${costLabel}`);
-    }
-    if (drawer.dateFrom) push("dateFrom", `${L ? "Desde" : "From"}: ${drawer.dateFrom}`);
-    if (drawer.dateTo) push("dateTo", `${L ? "Hasta" : "To"}: ${drawer.dateTo}`);
-    if (drawer.accessibility && drawer.accessibility !== "all") {
-      push(
-        "accessibility",
-        `${L ? "Acceso" : "Access"}: ${optionLabel(COMUNIDAD_ACCESSIBILITY_OPTIONS, drawer.accessibility, lang)}`,
-      );
-    }
+    pushComunidadDrawerFilterChips(lang, drawer, push);
   }
 
   if (drawer.audience && drawer.audience !== "all") {

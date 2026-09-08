@@ -29,6 +29,16 @@ export async function POST(request: Request) {
   }
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
+    // Package C Build 1 — explicit source guard (all webhook endpoints share one signing
+    // secret, so every event reaches every registered endpoint). This LEGACY handler may only
+    // process legacy autos sessions: canonical Revenue OS sessions carry the leonix_* metadata
+    // namespace and are fulfilled exclusively by /api/revenue-os/webhook. Without this guard,
+    // the client_reference_id fallback below would fire on every canonical payment.
+    const metadataKeys = Object.keys(session.metadata ?? {});
+    const isCanonicalRevenueOsSession = metadataKeys.some((k) => k.startsWith("leonix_"));
+    if (isCanonicalRevenueOsSession) {
+      return NextResponse.json({ received: true, ignored: true, reason: "canonical_revenue_os_session" });
+    }
     const listingId = session.metadata?.listing_id ?? session.client_reference_id ?? undefined;
     if (listingId && session.payment_status === "paid") {
       const pi = session.payment_intent;

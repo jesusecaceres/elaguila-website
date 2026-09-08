@@ -15,6 +15,13 @@ import type {
 export const OFERTAS_LOCALES_CATEGORY_KEY = "ofertas-locales" as const;
 export const OFERTAS_LOCALES_PRODUCT_NAME = "Ofertas Locales";
 export const OFERTAS_LOCALES_NAV_LABEL = "Ofertas";
+export const OFERTAS_LOCALES_PUBLIC_TERM_DAYS = 30;
+export const OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY = "ofertas_locales_flyer_30d";
+export const OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY = "ofertas_locales_coupons_30d";
+export const OFERTAS_LOCALES_FLYER_PRICE_CENTS = 39900;
+/** Cupones y promociones is a free product (locked) — see ofertasLocalesCommercial.ts. */
+export const OFERTAS_LOCALES_COUPONS_PRICE_CENTS = 0;
+export const OFERTAS_LOCALES_CURRENCY = "usd" as const;
 
 /** Digital-first supermarket value proposition — print is not the core sell. */
 export const OFERTAS_LOCALES_DIGITAL_FIRST_VALUE_PROPS = [
@@ -90,7 +97,7 @@ export const OFERTAS_LOCALES_STEP1_BASE_PRODUCTS = [
     pricingKey: "digitalCouponListing" as const,
     labelEs: "Cupón o promoción",
     labelEn: "Coupon / Promotion",
-    priceDisplayMonthly: 199,
+    priceDisplayMonthly: 0,
     valueCopyEs:
       "Publica cupones, promociones, combos, especiales de temporada o descuentos por tiempo limitado.",
     valueCopyEn:
@@ -111,6 +118,9 @@ export const OFERTAS_LOCALES_COUPON_PROMOTION_SUBTYPE_OPTIONS: ReadonlyArray<{
   { value: "featured_deal", labelEs: "Oferta por tiempo limitado", labelEn: "Limited-time deal" },
 ];
 
+export const OFERTAS_LOCALES_COUPON_PROMOTION_OFFER_TYPES: ReadonlySet<OfertaLocalOfferType> =
+  new Set(OFERTAS_LOCALES_COUPON_PROMOTION_SUBTYPE_OPTIONS.map((option) => option.value));
+
 /**
  * @deprecated Retired commercial AI add-on (+$199). AI is included in both publish products
  * (see OFERTAS_LOCALES_PUBLISH_PRODUCT_CATALOG). Kept for legacy audits only.
@@ -121,6 +131,7 @@ export const OFERTAS_LOCALES_AI_PRODUCT_SEARCH_ADDON_DISPLAY_MONTHLY = 199;
 export const OFERTAS_LOCALES_PUBLISH_PRODUCT_CATALOG = {
   interactive_flyer: {
     key: "interactive_flyer" as const,
+    revenuePackageKey: OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY,
     primaryAdFormat: "shopping_specials" as const,
     labelEs: "Volante interactivo Leonix",
     labelEn: "Leonix Interactive Flyer",
@@ -134,13 +145,15 @@ export const OFERTAS_LOCALES_PUBLISH_PRODUCT_CATALOG = {
   },
   coupons: {
     key: "coupons" as const,
+    revenuePackageKey: OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY,
     primaryAdFormat: "local_coupons" as const,
     labelEs: "Cupones Leonix",
     labelEn: "Leonix Coupons",
-    displayPriceUsd: 199,
+    displayPriceUsd: 0,
     currency: "USD" as const,
     durationDays: 30,
-    aiIncluded: true,
+    /** Cupones y promociones is a free, manual-entry product — no AI scan/review. */
+    aiIncluded: false,
     productSearchIncluded: false,
     productShoppingListIncluded: false,
   },
@@ -224,9 +237,9 @@ export const OFERTAS_LOCALES_PRICING: Record<
   OfertaLocalPricingPackage
 > = {
   digitalCouponListing: {
-    label: "Digital Coupon Listing",
-    regularPriceMonthly: 199,
-    pickupPartnerPriceMonthly: 149,
+    label: "Digital Coupon Listing (Free)",
+    regularPriceMonthly: 0,
+    pickupPartnerPriceMonthly: 0,
     interval: "month",
   },
   digitalWeeklySpecials: {
@@ -260,9 +273,9 @@ export const OFERTAS_LOCALES_PRICING: Record<
     interval: "month",
   },
   aiSearchableSpecialsAddOn: {
-    label: "AI Searchable Specials Add-On",
-    regularPriceMonthly: 249,
-    pickupPartnerPriceMonthly: 199,
+    label: "Legacy AI analysis compatibility (retired)",
+    regularPriceMonthly: 0,
+    pickupPartnerPriceMonthly: 0,
     interval: "month",
     isAddOn: true,
   },
@@ -279,7 +292,6 @@ export const OFERTAS_LOCALES_PRICING: Record<
 export const OFERTAS_LOCALES_APPLICATION_DIGITAL_PRICING_KEYS = [
   "digitalCouponListing",
   "digitalWeeklySpecials",
-  "aiSearchableSpecialsAddOn",
 ] as const satisfies ReadonlyArray<keyof typeof OFERTAS_LOCALES_PRICING>;
 
 /** Featured placement scope options — intent only (Stack 8). */
@@ -312,7 +324,7 @@ export const OFERTAS_LOCALES_VERSION_2_FEATURES = [
   "Item-to-flyer flow",
   "Review and approve workflow",
   "Google Document AI scan jobs",
-  "AI Searchable Specials +$249/mo add-on (pickup partner +$199/mo)",
+  "AI analysis included in both locked publish products",
 ] as const;
 
 export const OFERTAS_LOCALES_DEFAULT_FILTERS = {

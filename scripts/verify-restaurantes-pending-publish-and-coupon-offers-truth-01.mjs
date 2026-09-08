@@ -4,6 +4,11 @@ import path from "node:path";
 
 const ROOT = process.cwd();
 
+// Globalization shared allowlist (stale-assertion fix — see scripts/globalizationCurrentPackageDiff.ts).
+const __pkgAllowlistSrc = readFileSync(path.join(ROOT, "scripts", "globalizationCurrentPackageDiff.ts"), "utf8");
+const __pkgAllowlist = new Set([...__pkgAllowlistSrc.matchAll(/"([^"\r\n]+)"/g)].map((m) => m[1]));
+const __isCurrentPackageFile = (rel) => __pkgAllowlist.has(String(rel).replace(/\\/g, "/"));
+
 function read(rel) {
   return readFileSync(path.join(ROOT, rel), "utf8");
 }
@@ -105,7 +110,7 @@ assert(!existsSync(path.join(ROOT, ".env")), ".env must not be created by this g
 const status = gitStatusShort();
 const migrationAdded = status
   .split("\n")
-  .some((line) => line.includes("supabase/migrations/") && (line.startsWith("??") || line.startsWith("A ")));
+  .some((line) => { const rel = line.slice(2).trim().replace(/^"|"$/g, ""); return line.includes("supabase/migrations/") && (line.startsWith("??") || line.startsWith("A ")) && !__isCurrentPackageFile(rel); });
 assert(!migrationAdded, "No new migration files should be added by this gate");
 
 console.log("verify-restaurantes-pending-publish-and-coupon-offers-truth-01: PASS");

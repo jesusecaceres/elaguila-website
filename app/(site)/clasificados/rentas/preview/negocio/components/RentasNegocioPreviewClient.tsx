@@ -14,6 +14,7 @@ import {
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { LeonixPreviewPageShell } from "@/app/clasificados/lib/preview/LeonixPreviewPageShell";
 import { RentasVisualMatchPreviewView } from "@/app/clasificados/rentas/preview/shared/RentasVisualMatchPreviewView";
+import { rentasServicioIncluidoLabel } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import { RentasPreviewResultCardSection } from "@/app/clasificados/rentas/preview/shared/RentasPreviewResultCardSection";
 import {
   buildRentasResultCardPreviewListingFromNegocioVm,
@@ -61,6 +62,7 @@ import {
   clearRentasListingEditWorkspace,
   loadRentasListingEditWorkspace,
 } from "@/app/clasificados/publicar/rentas/shared/rentasListingEditWorkspace";
+import { previewModeIsListingBound, resolvePreviewMode } from "@/app/lib/listingIdentity";
 
 type Phase = "loading" | "ready" | "recovery";
 
@@ -89,6 +91,14 @@ export default function RentasNegocioPreviewClient() {
     () => parseRentasListingEditContext(new URLSearchParams(searchParams?.toString() ?? ""), "negocio"),
     [searchParams],
   );
+  /* Globalization P3 (Gate 1) — named against the shared preview-mode contract
+     (app/lib/listingIdentity/previewModeContract.ts). `editContext`'s presence is the
+     listing-bound signal this lane already used; `previewModeIsListingBound(previewMode)` below
+     is provably equivalent to `Boolean(editContext)` (same input), so gating on both keeps
+     TypeScript's null-narrowing of `editContext.listingId`/`returnHref` while formally routing
+     the decision through the shared contract. */
+  const previewMode = useMemo(() => resolvePreviewMode({ listingBound: Boolean(editContext) }), [editContext]);
+  const isListingBoundPreview = previewModeIsListingBound(previewMode);
 
   const publishReadiness = useMemo(() => {
     if (!draft) return { ok: false as const, message: null };
@@ -116,7 +126,7 @@ export default function RentasNegocioPreviewClient() {
       setCheckoutErr(null);
       setCheckoutBusy(true);
 
-      const d = loadRentasNegocioDraft();
+      const d = await loadRentasNegocioDraft();
       if (!d) {
         setCheckoutBusy(false);
         return;
@@ -202,20 +212,28 @@ export default function RentasNegocioPreviewClient() {
   );
 
   useEffect(() => {
-    const raw = editContext
-      ? loadRentasListingEditWorkspace<RentasNegocioFormState>({
-          listingId: editContext.listingId,
-          lane: "negocio",
-          merge: mergePartialRentasNegocioState,
-        })
-      : loadRentasNegocioDraft();
-    if (!raw) {
-      setDraft(null);
-      setPhase("recovery");
-      return;
-    }
-    setDraft(raw);
-    setPhase("ready");
+    let cancelled = false;
+    // BR-INV-WAVE1-GATE3: loadRentasNegocioDraft is now async (IndexedDB inline).
+    void (async () => {
+      const raw = editContext
+        ? loadRentasListingEditWorkspace<RentasNegocioFormState>({
+            listingId: editContext.listingId,
+            lane: "negocio",
+            merge: mergePartialRentasNegocioState,
+          })
+        : await loadRentasNegocioDraft();
+      if (cancelled) return;
+      if (!raw) {
+        setDraft(null);
+        setPhase("recovery");
+        return;
+      }
+      setDraft(raw);
+      setPhase("ready");
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [editContext]);
 
   useEffect(() => {
@@ -313,10 +331,16 @@ export default function RentasNegocioPreviewClient() {
               ? [draft.media.videoUrl]
               : []
         }
+        includedServices={[
+          ...draft.serviciosIncluidosKeys
+            .filter((k): k is Exclude<typeof k, "otro"> => k !== "otro")
+            .map((k) => rentasServicioIncluidoLabel(k, lang)),
+          ...(draft.serviciosIncluidosOtro.trim() ? [draft.serviciosIncluidosOtro.trim()] : []),
+        ]}
       />
 
       <div className="mx-auto mt-8 max-w-3xl px-4 pb-10 sm:px-6">
-        {editContext ? (
+        {isListingBoundPreview && editContext ? (
           <div className="rounded-2xl border border-[#C9B46A]/45 bg-[#FFF8E8] p-4 text-sm text-[#3D3428]">
             <p className="font-bold">{lang === "en" ? "Previewing unsaved edit workspace" : "Vista previa del espacio de edición"}</p>
             <p className="mt-1 text-xs text-[#5C5346]">

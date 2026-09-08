@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo } from "react";
+import {useEffect, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type Lang = "es" | "en";
@@ -21,7 +21,7 @@ const COPY = {
   },
 } as const;
 
-export default function RedirectToCuenta() {
+function RedirectToCuentaContent() {
   const sp = useSearchParams();
   const router = useRouter();
 
@@ -54,5 +54,13 @@ export default function RedirectToCuenta() {
         </Link>
       </div>
     </main>
+  );
+}
+
+export default function RedirectToCuenta() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <RedirectToCuentaContent />
+    </Suspense>
   );
 }

@@ -29,6 +29,17 @@ import {
   publishCheckpointPromoDeferredLabel,
   publishCheckpointTotalMonthlyLabel,
 } from "@/app/lib/listingPlans/publishCheckoutCopy";
+import {
+  buildRecurringConsentAcknowledgment,
+  buildRecurringConsentText,
+} from "@/app/lib/listingPlans/recurringConsentCopy";
+import { VerifiedIntroDiscountVerifyPanel } from "./VerifiedIntroDiscountVerifyPanel";
+
+export type RecurringConsentAcknowledgmentPayload = {
+  accepted: true;
+  consentTextVersion: string;
+  lang: "es" | "en";
+};
 
 const LEONIX_CREAM = "#FFFAF3";
 const LEONIX_BORDER = "#D8C2A0";
@@ -38,6 +49,9 @@ const LEONIX_MUTED = "#5A5148";
 const LEONIX_BURGUNDY = "#6B1E2E";
 const LEONIX_BURGUNDY_HOVER = "#541724";
 const LEONIX_SUCCESS = "#1A4D2E";
+const LEONIX_WARNING = "#8B3A3A";
+
+const NEWSLETTER_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type PublishCheckoutCheckpointProps = {
   config: PublishCheckpointConfig;
@@ -53,11 +67,40 @@ export type PublishCheckoutCheckpointProps = {
     newsletterOptIn: boolean;
     promoCode: string | null;
     checkedConfirmationIds: string[];
+    /** Package C Build 1 — present ONLY when the package is a monthly subscription and the
+     * customer affirmatively checked the recurring-billing consent box (Agreement v1.2 §17).
+     * Forward it verbatim in the checkout payload; the server rejects recurring checkout
+     * without it. Null for one-time packages. */
+    recurringConsent: RecurringConsentAcknowledgmentPayload | null;
+    /** Package C Build 2 (C4) — explicit customer request for the verified-15% introductory
+     * discount. Mutually exclusive with promoCode; the server rejects a request carrying both. */
+    requestVerifiedIntroDiscount: boolean;
   }) => void | Promise<void>;
   onFreePublish?: (ctx: {
     newsletterOptIn: boolean;
     checkedConfirmationIds: string[];
   }) => void | Promise<void>;
+  /**
+   * Newsletter Engine v2 — the email address that WILL be subscribed if the opt-in checkbox is
+   * checked. Callers should resolve this from the current session (or user input) BEFORE render
+   * so it is visible even before checkout starts — never a hidden `session.user.email` the
+   * customer never sees. `undefined` hides the whole email row (used by categories not yet
+   * wired into this, so their checkout UI is unchanged); `null`/`""` renders the row with an
+   * honest "no email available" state instead of hiding the problem.
+   */
+  newsletterEmail?: string | null;
+  /**
+   * When provided, the resolved email renders as an editable text input (defaulting to the
+   * caller's resolved value, basic email-format validated inline) instead of read-only text.
+   * Omit this to show the resolved email as read-only text only.
+   */
+  onNewsletterEmailChange?: (email: string) => void;
+  /**
+   * Non-blocking inline note shown under the newsletter row — e.g. after an awaited
+   * `captureCheckoutNewsletterSubscriber` call resolves FAILED. Must never be used to disable
+   * `finalButtonEnabled`; newsletter capture failure must never block the paid transaction.
+   */
+  newsletterCaptureNote?: string | null;
   /** When set, shown as CTA when Restaurante coupon add-on blocks checkout. */
   editHref?: string;
   /** Optional "Ver reglas de Leonix" modal shown above confirmations (opt-in per category). */
@@ -83,6 +126,9 @@ export function PublishCheckoutCheckpoint({
   onPromoApply,
   onCheckout,
   onFreePublish,
+  newsletterEmail,
+  onNewsletterEmailChange,
+  newsletterCaptureNote,
   editHref,
   rulesModal,
   className = "",
@@ -90,12 +136,17 @@ export function PublishCheckoutCheckpoint({
 }: PublishCheckoutCheckpointProps) {
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
   const [newsletterOptIn, setNewsletterOptIn] = useState(false);
+  // Package C Build 1 — recurring-billing consent: unchecked by default, never implied.
+  const [recurringConsentChecked, setRecurringConsentChecked] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [promoInput, setPromoInput] = useState("");
   const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
   const [promoDiscountCents, setPromoDiscountCents] = useState<number | null>(null);
   const [promoMessage, setPromoMessage] = useState<string | null>(null);
   const [promoBusy, setPromoBusy] = useState(false);
+  // Package C Build 2 (C4) — verified 15% introductory discount, mutually exclusive with promo.
+  const [verifiedIntroDiscountApplied, setVerifiedIntroDiscountApplied] = useState(false);
+  const [verifiedIntroDiscountEstimateCents, setVerifiedIntroDiscountEstimateCents] = useState<number | null>(null);
 
   const resolved = useMemo(
     () =>
@@ -113,9 +164,13 @@ export function PublishCheckoutCheckpoint({
   const blockReason = publishCheckpointBlockReason(resolved);
   const draftBlockMessage = !draftReady ? draftReadyMessage?.trim() || null : null;
   const showPromoDeferred = config.promoEligible && !onPromoApply;
-  const finalButtonEnabled = resolved.finalActionEnabled && draftReady && !busy;
   const restaurantCouponBlocked = isRestaurantCouponCheckoutBlocked(config);
   const basePackageIsMonthly = resolved.packageDef?.billingMode === "monthly_subscription";
+  // Package C Build 1 — a monthly subscription checkout additionally requires the affirmative
+  // recurring-billing consent checkbox (Agreement v1.2 §17). One-time/free actions never do.
+  const recurringConsentRequired = basePackageIsMonthly && resolved.mode === "checkout";
+  const finalButtonEnabled =
+    resolved.finalActionEnabled && draftReady && !busy && (!recurringConsentRequired || recurringConsentChecked);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "development") return;
@@ -175,15 +230,22 @@ export function PublishCheckoutCheckpoint({
 
   const handleFinalAction = () => {
     if (!finalButtonEnabled) return;
-    const ctx = {
+    const baseCtx = {
       newsletterOptIn,
       promoCode: appliedPromoCode,
       checkedConfirmationIds: [...checkedIds],
     };
     if (resolved.mode === "checkout") {
-      void onCheckout?.(ctx);
+      void onCheckout?.({
+        ...baseCtx,
+        recurringConsent:
+          recurringConsentRequired && recurringConsentChecked
+            ? buildRecurringConsentAcknowledgment(lang === "en" ? "en" : "es")
+            : null,
+        requestVerifiedIntroDiscount: verifiedIntroDiscountApplied,
+      });
     } else {
-      void onFreePublish?.(ctx);
+      void onFreePublish?.(baseCtx);
     }
   };
 
@@ -252,10 +314,14 @@ export function PublishCheckoutCheckpoint({
                   className={`shrink-0 font-semibold tabular-nums ${addon.selected ? "" : "opacity-60"}`}
                   style={{ color: LEONIX_CHARCOAL }}
                 >
-                  {formatPublishCheckpointMoney(addon.priceCents, lang, {
-                    isAddOn: true,
-                    monthly: true,
-                  })}
+                  {addon.selected && addon.priceCents === 0
+                    ? lang === "es"
+                      ? "Incluido"
+                      : "Included"
+                    : formatPublishCheckpointMoney(addon.priceCents, lang, {
+                        isAddOn: true,
+                        monthly: true,
+                      })}
                 </span>
               </li>
             ))}
@@ -264,13 +330,16 @@ export function PublishCheckoutCheckpoint({
       ) : null}
 
       {/* Promo — enabled categories with real server validation */}
-      {config.promoEligible && onPromoApply ? (
+      {config.promoEligible && onPromoApply && !verifiedIntroDiscountApplied ? (
         <div className="mt-4 space-y-2 border-t pt-4" style={{ borderColor: `${LEONIX_BORDER}99` }}>
-          <label className="block text-xs font-semibold" style={{ color: LEONIX_CHARCOAL }}>
+          {/* Package F Build F2, Gate 9 (P1 accessibility fix) — htmlFor/id pairing added; this
+              field previously had a sibling label with no programmatic association. */}
+          <label htmlFor="publish-checkout-promo-code" className="block text-xs font-semibold" style={{ color: LEONIX_CHARCOAL }}>
             {lang === "es" ? "Código promocional" : "Promo code"}
           </label>
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <input
+              id="publish-checkout-promo-code"
               type="text"
               value={promoInput}
               onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
@@ -318,6 +387,24 @@ export function PublishCheckoutCheckpoint({
         </p>
       ) : null}
 
+      {/* Package C Build 2 (C4) — verified 15% introductory discount, mutually exclusive with
+          the promo-code field above (each hides the other's Apply action once selected). */}
+      {resolved.mode === "checkout" ? (
+        <VerifiedIntroDiscountVerifyPanel
+          category={config.category}
+          packageKey={config.packageKey}
+          listingId={config.listingId}
+          subtotalCents={resolved.totalCents}
+          lang={lang}
+          disabled={busy}
+          promoCodeActive={Boolean(appliedPromoCode)}
+          onActiveChange={(active, estimatedDiscountCents) => {
+            setVerifiedIntroDiscountApplied(active);
+            setVerifiedIntroDiscountEstimateCents(estimatedDiscountCents);
+          }}
+        />
+      ) : null}
+
       {/* Total */}
       <div
         className="mt-4 flex items-center justify-between border-t pt-3 text-sm font-bold"
@@ -334,22 +421,78 @@ export function PublishCheckoutCheckpoint({
           {appliedPromoCode ? ` (${appliedPromoCode})` : ""}
         </p>
       ) : null}
+      {verifiedIntroDiscountApplied && verifiedIntroDiscountEstimateCents != null ? (
+        <p className="mt-1 text-xs" style={{ color: LEONIX_SUCCESS }}>
+          {lang === "es" ? "Descuento de bienvenida (15%, estimado)" : "Welcome discount (15%, estimated)"}:{" "}
+          {formatPublishCheckpointMoney(verifiedIntroDiscountEstimateCents, lang, { monthly: false })}
+        </p>
+      ) : null}
 
       {/* Newsletter opt-in — optional, never blocks */}
       {resolved.newsletterOptIn ? (
-        <label className="mt-4 flex min-h-[44px] cursor-pointer items-start gap-3 text-xs leading-relaxed">
-          <input
-            type="checkbox"
-            className="mt-1 h-4 w-4 shrink-0 rounded"
-            style={{ accentColor: LEONIX_BURGUNDY }}
-            checked={newsletterOptIn}
-            onChange={(e) => setNewsletterOptIn(e.target.checked)}
-            disabled={busy}
-          />
-          <span style={{ color: LEONIX_MUTED }}>
-            {lang === "es" ? resolved.newsletterOptIn.labelEs : resolved.newsletterOptIn.labelEn}
-          </span>
-        </label>
+        <div className="mt-4">
+          <label className="flex min-h-[44px] cursor-pointer items-start gap-3 text-xs leading-relaxed">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 shrink-0 rounded"
+              style={{ accentColor: LEONIX_BURGUNDY }}
+              checked={newsletterOptIn}
+              onChange={(e) => setNewsletterOptIn(e.target.checked)}
+              disabled={busy}
+            />
+            <span style={{ color: LEONIX_MUTED }}>
+              {lang === "es" ? resolved.newsletterOptIn.labelEs : resolved.newsletterOptIn.labelEn}
+            </span>
+          </label>
+          {/* Newsletter Engine v2 — always show (or let the user edit) the email that will
+              actually be subscribed. Never silently pull a hidden session email. */}
+          {newsletterEmail !== undefined ? (
+            <div className="ml-7 mt-1.5">
+              {onNewsletterEmailChange ? (
+                <>
+                  <label htmlFor={`${id}-newsletter-email`} className="sr-only">
+                    {lang === "es" ? "Correo para el boletín" : "Newsletter email"}
+                  </label>
+                  <input
+                    id={`${id}-newsletter-email`}
+                    type="email"
+                    inputMode="email"
+                    value={newsletterEmail ?? ""}
+                    onChange={(e) => onNewsletterEmailChange(e.target.value)}
+                    disabled={busy}
+                    placeholder={lang === "es" ? "tu@correo.com" : "you@email.com"}
+                    className="min-h-[36px] w-full max-w-xs rounded-lg border px-2.5 py-1 text-xs"
+                    style={{ borderColor: LEONIX_BORDER, color: LEONIX_CHARCOAL, background: "#FFF" }}
+                    autoComplete="email"
+                  />
+                  {newsletterOptIn && !NEWSLETTER_EMAIL_RE.test((newsletterEmail ?? "").trim()) ? (
+                    <p className="mt-1 text-[11px]" style={{ color: LEONIX_WARNING }} role="status">
+                      {lang === "es"
+                        ? "Ese correo no parece válido. Corrígelo o desmarca la casilla — esto no afecta tu pago."
+                        : "That email doesn't look valid. Fix it or uncheck the box — this does not affect your payment."}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-[11px]" style={{ color: LEONIX_MUTED }}>
+                      {lang === "es" ? "Se suscribirá este correo." : "This email will be subscribed."}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-[11px]" style={{ color: LEONIX_MUTED }}>
+                  {lang === "es" ? "Se suscribirá: " : "Will subscribe: "}
+                  <span className="font-semibold" style={{ color: LEONIX_CHARCOAL }}>
+                    {newsletterEmail?.trim() || (lang === "es" ? "(sin correo disponible)" : "(no email available)")}
+                  </span>
+                </p>
+              )}
+            </div>
+          ) : null}
+          {newsletterCaptureNote ? (
+            <p className="ml-7 mt-1 text-[11px]" style={{ color: "#8B6914" }} role="status">
+              {newsletterCaptureNote}
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       {/* Required confirmations */}
@@ -391,6 +534,26 @@ export function PublishCheckoutCheckpoint({
           <p className="text-xs" style={{ color: "#8B6914" }}>
             {publishCheckpointConfirmationsHelper(lang, requiredRemaining)}
           </p>
+        ) : null}
+        {recurringConsentRequired ? (
+          // Package C Build 1 — affirmative recurring-billing consent (Agreement v1.2 §17):
+          // exact amount, monthly interval, auto-renewal, cancellation, and the 7-day grace
+          // policy. Unchecked by default; the final action stays disabled without it; the
+          // server independently rejects subscription checkout lacking the acknowledgment.
+          <label className="flex min-h-[44px] cursor-pointer items-start gap-3 border-t pt-3 text-xs leading-relaxed" style={{ borderColor: `${LEONIX_BORDER}99` }}>
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 shrink-0 rounded"
+              style={{ accentColor: LEONIX_BURGUNDY }}
+              checked={recurringConsentChecked}
+              onChange={(e) => setRecurringConsentChecked(e.target.checked)}
+              disabled={busy}
+              aria-describedby={`${id}-recurring-consent-text`}
+            />
+            <span id={`${id}-recurring-consent-text`} style={{ color: LEONIX_MUTED }}>
+              {buildRecurringConsentText({ amountCents: resolved.totalCents, lang: lang === "en" ? "en" : "es" })}
+            </span>
+          </label>
         ) : null}
       </div>
 

@@ -183,6 +183,10 @@ export function normalizeLoadedListing(
     mediaImages: mediaImages ?? [],
     dealerHours,
     dealerSocials: raw.dealerSocials && typeof raw.dealerSocials === "object" ? raw.dealerSocials : base.dealerSocials,
+    privadoSellerSocials:
+      raw.privadoSellerSocials && typeof raw.privadoSellerSocials === "object"
+        ? raw.privadoSellerSocials
+        : base.privadoSellerSocials,
     googleReviewsUrl: liveDraft ? raw.googleReviewsUrl || undefined : raw.googleReviewsUrl?.trim() || undefined,
     yelpReviewsUrl: liveDraft ? raw.yelpReviewsUrl || undefined : raw.yelpReviewsUrl?.trim() || undefined,
     dealerCustomLinks: normalizeDealerCustomLinks(raw.dealerCustomLinks, {

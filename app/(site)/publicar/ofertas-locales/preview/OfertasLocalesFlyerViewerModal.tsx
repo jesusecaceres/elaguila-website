@@ -11,6 +11,7 @@ import type { OfertaLocalPreviewHeroAsset } from "@/app/lib/ofertas-locales/ofer
 import type { OfertaLocalItemReviewViewModel } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { OFERTAS_LOCALES_PREVIEW_COPY } from "./ofertasLocalesPreviewCopy";
+import { acquireSharedPdfPage, releaseSharedPdfDocument } from "./ofertasLocalesPdfDocumentCache";
 
 function bboxRecord(bbox: OfertaLocalItemReviewViewModel["sourceBbox"]): Record<string, unknown> | null {
   if (!bbox) return null;
@@ -152,18 +153,10 @@ export function OfertasLocalesFlyerViewerModal({
       renderTaskRef.current = null;
 
       try {
-        const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-        if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-          pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/legacy/build/pdf.worker.min.mjs`;
-        }
-
-        const pdf = await pdfjs.getDocument({ url: sourceUrl, withCredentials: false }).promise;
+        const { page, numPages } = await acquireSharedPdfPage(sourceUrl, safePage);
         if (cancelled) return;
 
-        setPdfPageCount(pdf.numPages);
-        const pageNum = Math.min(Math.max(1, safePage), pdf.numPages);
-        const page = await pdf.getPage(pageNum);
-        if (cancelled) return;
+        setPdfPageCount(numPages);
 
         const baseViewport = page.getViewport({ scale: 1 });
         setNaturalSize({ width: baseViewport.width, height: baseViewport.height });
@@ -205,6 +198,7 @@ export function OfertasLocalesFlyerViewerModal({
     return () => {
       cancelled = true;
       renderTaskRef.current?.cancel?.();
+      releaseSharedPdfDocument(sourceUrl);
     };
   }, [open, heroAsset?.href, heroAsset?.isPdf, safePage, lang, c.flyerRenderFailedEn, c.flyerRenderFailedEs]);
 
@@ -324,7 +318,7 @@ export function OfertasLocalesFlyerViewerModal({
       <div
         ref={panelRef}
         tabIndex={-1}
-        className="relative z-10 flex h-full w-full max-w-[100vw] flex-col overflow-hidden border border-[#D4C4A8]/60 bg-[#FFFCF7] shadow-2xl outline-none sm:h-auto sm:max-h-[92vh] sm:max-w-2xl sm:rounded-2xl lg:max-w-3xl"
+        className="relative z-10 flex h-full w-full max-w-[100vw] flex-col overflow-hidden border border-[#D4C4A8]/60 bg-[#FFFCF7] shadow-2xl outline-none sm:h-auto sm:max-h-[96vh] sm:max-w-4xl sm:rounded-2xl lg:max-w-6xl xl:max-w-7xl"
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#E8D9C4]/70 bg-gradient-to-r from-[#FDF8F0]/60 to-[#FFFCF7] px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-5 sm:pt-3">
           <div className="min-w-0 flex-1">

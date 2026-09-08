@@ -1,7 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
-import { EMPLEOS_PREVIEW_ROUTES } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
 import {
   autosDealerInventoryEditHref,
   autosDealerListingEditHref,
@@ -9,6 +8,8 @@ import {
 } from "@/app/(site)/dashboard/lib/autosDashboardInventoryAddonCheckout";
 import { autosPaidListingAnalyticsHref } from "@/app/lib/clasificados/autos/autosPaidListingAnalyticsHref";
 import { buildVehicleTitle } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
+import { deriveHeroImageUrls } from "@/app/clasificados/autos/negocios/lib/autoDealerHeroImages";
+import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import {
   buildServiciosDashboardActionContract,
   type CategoryDashboardActionContract,
@@ -18,11 +19,11 @@ import {
   serviciosListingPreviewHref,
 } from "./serviciosDashboardOffersAddonCheckout";
 import {
-  restaurantCouponAddonUpgradeEligibleFromLifecycle,
   restaurantCouponEditEligibleFromLifecycle,
   restauranteListingEditHref,
 } from "./restaurantesDashboardCouponAddonCheckout";
 import type { AddonLifecycleStatus } from "@/app/lib/listingPlans/addonLifecycle";
+import { resolveOwnerDashboardStatusDisplay, type OwnerDashboardStatusDisplay } from "./dashboardOwnerStatusDisplay";
 
 export type DashboardInventoryItem = {
   id: string;
@@ -48,9 +49,7 @@ export type DashboardInventoryItem = {
   promoted?: boolean;
   verified?: boolean;
   draftListingId?: string | null;
-  /** True when published Restaurante can buy coupon add-on only from dashboard. */
-  restaurantCouponUpgradeEligible?: boolean;
-  /** True when published Restaurante has paid coupon module and can edit coupons. */
+  /** True when published Restaurante has real base-package coupon capability and can edit coupons. */
   restaurantCouponEditEligible?: boolean;
   /** Gate E.2.3 — lifecycle truth backing the two flags above (`not_purchased` when not yet resolved). */
   restaurantCouponAddonStatus?: AddonLifecycleStatus;
@@ -65,6 +64,10 @@ export type DashboardInventoryItem = {
   /** e.g. `{ listing_json, lane }` for Viajes affiliate detection */
   planRaw?: Record<string, unknown> | null;
   actionContract?: CategoryDashboardActionContract;
+  /** Work Package I.8A — display-only truthful status (never used for write behavior). Currently
+   * populated for Empleos and Viajes, the two dedicated-table categories whose raw
+   * `lifecycle_status` was previously shown untranslated with a hardcoded color. */
+  statusDisplay?: OwnerDashboardStatusDisplay;
   source:
     | "listings"
     | "restaurantes_public_listings"
@@ -218,8 +221,13 @@ export async function fetchOwnerAutosClassifiedsListings(
   return data as DashboardAutosClassifiedsRow[];
 }
 
+/** Mirrors `autosClassifiedsRowToDashboardRow` (admin) — prefer the stored/edited
+ * `vehicleTitle` before falling back to an auto-built year/make/model/trim string, so the
+ * owner's own dashboard never shows a different title than admin or the live listing. */
 function autosClassifiedsTitleFromPayload(payload: unknown, lang: "es" | "en"): string {
   const p = payload && typeof payload === "object" ? (payload as Record<string, unknown>) : {};
+  const storedTitle = typeof p.vehicleTitle === "string" ? p.vehicleTitle.trim() : "";
+  if (storedTitle) return storedTitle;
   const yearRaw = p.year;
   const year = typeof yearRaw === "number" && Number.isFinite(yearRaw) ? yearRaw : parseInt(String(yearRaw ?? ""), 10);
   const make = typeof p.make === "string" ? p.make : undefined;
@@ -228,6 +236,14 @@ function autosClassifiedsTitleFromPayload(payload: unknown, lang: "es" | "en"): 
   const t = buildVehicleTitle(Number.isFinite(year) ? year : undefined, make, model, trim);
   if (t.trim()) return t;
   return lang === "es" ? "Auto (Leonix)" : "Vehicle (Leonix)";
+}
+
+/** Mirrors `autosClassifiedsRowToDashboardRow` (admin) so the owner's own "Mis anuncios"
+ * dashboard shows the same thumbnail admin and the live listing already show. */
+function autosClassifiedsThumbFromPayload(payload: unknown): string | null {
+  const p = payload && typeof payload === "object" ? (payload as AutoDealerListing) : ({} as AutoDealerListing);
+  const thumbs = deriveHeroImageUrls(p);
+  return thumbs[0] ?? null;
 }
 
 export function buildAutosClassifiedsInventoryItems(
@@ -276,7 +292,7 @@ export function buildAutosClassifiedsInventoryItems(
       }),
       publishedAt: row.published_at,
       updatedAt: row.updated_at,
-      image: null,
+      image: autosClassifiedsThumbFromPayload(row.listing_payload),
       leonixAdId: typeof row.leonix_ad_id === "string" && row.leonix_ad_id.trim() ? row.leonix_ad_id.trim() : null,
       slug: null,
       packageTier: null,
@@ -305,6 +321,7 @@ export function buildServiciosInventoryItems(rows: ServiciosMyListingApiRow[], l
       category: "servicios",
       title: row.business_name?.trim() || row.slug,
       status: row.listing_status,
+      statusDisplay: resolveOwnerDashboardStatusDisplay("servicios", row.listing_status),
       publicHref: actionContract.publicUrl ?? `/clasificados/servicios/${encodeURIComponent(row.slug)}?${q}`,
       editHref:
         serviciosListingEditHref({
@@ -376,14 +393,6 @@ export async function fetchOwnerServiciosListings(accessToken: string | null): P
   }
 }
 
-function empleosPreviewHrefForLane(lane: string, lang: Lang): string | null {
-  const raw = String(lane ?? "").trim().toLowerCase();
-  if (raw !== "quick" && raw !== "premium" && raw !== "feria") return null;
-  const basePath = EMPLEOS_PREVIEW_ROUTES[raw];
-  const withFrom = `${basePath}?from=publicar`;
-  return appendLangToPath(withFrom, lang);
-}
-
 function viajesStagedPreviewPath(lane: string): string {
   const raw = String(lane ?? "").trim().toLowerCase();
   if (raw === "private") return "/clasificados/viajes/preview/privado";
@@ -420,6 +429,7 @@ export function buildRestaurantInventoryItems(
     category: "restaurantes",
     title: row.business_name,
     status: row.status,
+    statusDisplay: resolveOwnerDashboardStatusDisplay("restaurantes", row.status),
     publicHref: `/clasificados/restaurantes/${encodeURIComponent(row.slug)}?${q}`,
     editHref: restauranteListingEditHref({
       lang,
@@ -444,10 +454,6 @@ export function buildRestaurantInventoryItems(
     promoted: row.promoted,
     verified: row.leonix_verified,
     draftListingId: row.draft_listing_id,
-    restaurantCouponUpgradeEligible: restaurantCouponAddonUpgradeEligibleFromLifecycle({
-      status: row.status,
-      addonStatus,
-    }),
     restaurantCouponEditEligible: restaurantCouponEditEligibleFromLifecycle({
       status: row.status,
       addonStatus,
@@ -469,10 +475,20 @@ export function buildEmpleosInventoryItems(
     category: "empleos",
     title: row.title,
     status: row.lifecycle_status,
+    statusDisplay: resolveOwnerDashboardStatusDisplay("empleos", row.lifecycle_status),
     publicHref: appendLangToPath(`/clasificados/empleos/${encodeURIComponent(row.slug)}`, L),
     /** Manage applications + lifecycle — route param is listing id, not slug. */
     editHref: `/dashboard/empleos/${encodeURIComponent(row.id)}?${q}`,
-    previewHref: empleosPreviewHrefForLane(row.lane, L),
+    /* Globalization P3 (Gate 5) — CORRECTED. Was `empleosPreviewHrefForLane(row.lane, L)`, which
+       opens /clasificados/empleos/{lane}-preview?from=publicar with no listingId at all: that
+       page only ever renders whatever generic sessionStorage draft happens to be in this tab
+       (stale, empty, or a different in-progress job) and, when a draft IS present, shows the
+       paid checkout widget again for a listing that is already published and already paid.
+       No DB-hydration/listing-bound mode exists for this preview page today. Same safe pattern
+       already used for Restaurantes/Bienes Raíces Privado: an existing, identified listing's
+       "Vista previa" opens its own real public page (always the true published truth, and
+       structurally has no checkout widget) instead of the draft-based application preview. */
+    previewHref: appendLangToPath(`/clasificados/empleos/${encodeURIComponent(row.slug)}`, L),
     resultsHref: `/clasificados/empleos/resultados?${q}`,
     analyticsHref: `/dashboard/empleos?${q}`,
     publishedAt: null,
@@ -499,6 +515,7 @@ export function buildViajesInventoryItems(
     category: "viajes",
     title: row.title,
     status: row.lifecycle_status,
+    statusDisplay: resolveOwnerDashboardStatusDisplay("viajes", row.lifecycle_status),
     publicHref: appendLangToPath(`/clasificados/viajes/oferta/${encodeURIComponent(row.slug)}`, L),
     editHref: `/dashboard/viajes?${q}&stagedId=${encodeURIComponent(row.id)}`,
     previewHref: appendLangToPath(viajesStagedPreviewPath(row.lane), L),

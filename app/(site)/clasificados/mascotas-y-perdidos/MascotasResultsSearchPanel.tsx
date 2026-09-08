@@ -106,6 +106,14 @@ export function MascotasResultsSearchPanel({ lang, clearHref }: { lang: Lang; cl
         urlHadCountry={spObj.has("country")}
         initialDrawerOpen={sp?.get("filters") === "1"}
         showBrowseAll={false}
+        // Gate I.13B — the Mascotas y Perdidos quick-publish flow never collects state/zip/
+        // country (only city and lastSeenArea), so these controls always returned zero results
+        // once touched. Hidden rather than fake, per Objective G — same principle as I.13A's
+        // Restaurantes country-filter fix, applied here via the shared component's own opt-out
+        // rather than a one-off disabled input.
+        showState={false}
+        showZip={false}
+        showCountry={false}
         drawerContent={
           <MascotasDrawerFields lang={lang} values={drawer} onChange={(k, v) => setDrawer((p) => ({ ...p, [k]: v }))} />
         }

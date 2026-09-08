@@ -45,6 +45,10 @@ export type RestaurantesPublicBlueprintRow = {
   entitlementDigitalPlacementPriority?: number | null;
   entitlementPrintPlacementType?: string | null;
   republishedAt?: string | null;
+  /** Package D Build D3, Gate 1 — pre-resolved canonical `leonix_placement_entitlements` weight
+   * (mapped onto this file's own visibility-bucket scale), batched server-side. Wins over the
+   * legacy `printDigitalVisibilityRank` row-field fallback when present. */
+  canonicalPlacementRankWeight?: number | null;
   /** Leonix editorial verification (from `restaurantes_public_listings.leonix_verified`). */
   leonixVerified?: boolean;
   /** Demo until `weeklyHours` + server “open now” evaluation exists. */

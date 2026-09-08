@@ -7,9 +7,14 @@
  * - NEVER cache authentication cookies/tokens
  * - Truthful offline behavior: show offline page, not fake data
  * - No offline mutation queues
- * - No background sync, no push
+ * - No background sync
  * - One shared worker identity for every authorized user on the device
+ *
+ * Also serves as the single SW for Web Push (Build 12 digital doorbell).
+ * Do not register a second competing worker — everything push-related lives here too.
+ * Never expect Daily API keys or host tokens in push payloads.
  */
+/* eslint-disable no-restricted-globals */
 
 const CACHE_NAME = "leonix-business-concierge-v1";
 const OFFLINE_URL = "/offline";
@@ -81,5 +86,75 @@ self.addEventListener("fetch", (event) => {
       }
       return new Response("Offline", { status: 503, statusText: "Offline" });
     }),
+  );
+});
+
+self.addEventListener("push", (event) => {
+  let data = {
+    type: "digital_contact_doorbell",
+    title: "Leonix",
+    body: "Virtual Front Desk",
+    answerPath: "/admin/digital-contact/doorbell",
+    sessionId: null,
+    test: false,
+  };
+  try {
+    if (event.data) {
+      const parsed = event.data.json();
+      data = { ...data, ...parsed };
+    }
+  } catch {
+    /* keep defaults */
+  }
+
+  const title = String(data.title || "Leonix");
+  const body = String(data.body || "");
+  const answerPath = String(data.answerPath || "/admin/digital-contact/doorbell");
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: "/logo-clean.png",
+      badge: "/logo-clean.png",
+      tag: data.test ? "leonix-doorbell-test" : `leonix-doorbell-${data.sessionId || "session"}`,
+      renotify: true,
+      requireInteraction: !data.test,
+      data: {
+        type: data.type,
+        answerPath,
+        sessionId: data.sessionId,
+        test: Boolean(data.test),
+      },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const payload = event.notification.data || {};
+  const path = String(payload.answerPath || "/admin/digital-contact/doorbell");
+  const targetUrl = new URL(path, self.location.origin);
+  targetUrl.searchParams.set("doorbell", "1");
+
+  event.waitUntil(
+    (async () => {
+      const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const client of all) {
+        if ("focus" in client) {
+          await client.focus();
+          if ("navigate" in client) {
+            try {
+              await client.navigate(targetUrl.href);
+              return;
+            } catch {
+              /* fall through */
+            }
+          }
+        }
+      }
+      if (self.clients.openWindow) {
+        await self.clients.openWindow(targetUrl.href);
+      }
+    })(),
   );
 });

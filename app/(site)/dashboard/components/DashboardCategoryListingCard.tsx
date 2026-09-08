@@ -1,6 +1,8 @@
 "use client";
 
-import { DashboardListingActionBar } from "./DashboardListingActionBar";
+import { DashboardListingActionBar, type ActionItem } from "./DashboardListingActionBar";
+import { DashboardMobileActionSheet } from "./DashboardMobileActionSheet";
+import { lxDashStatusChipClass } from "../lib/dashboardLeonixTheme";
 
 type Lang = "es" | "en";
 
@@ -9,9 +11,20 @@ type DashboardCategoryListingCardProps = {
   categoryLabel: string;
   title: string;
   status: string;
+  /** Work Package I.8A — optional display tone for the status pill. Omitted (or any category
+   * that doesn't yet pass a resolved status) keeps the original hardcoded-emerald look for
+   * backward compatibility with callers not yet updated. */
+  statusTone?: "neutral" | "positive" | "warn" | "danger";
   subtitle?: string | null;
   badges?: string[];
   metaItems?: Array<{ label: string; value: string }>;
+  /**
+   * Gate 2B — optional real performance metrics (e.g. views), rendered in their own row
+   * separate from identity meta (plan/ID/dates) when a caller actually has real data to
+   * supply. Omitted entirely (no placeholder, no synthetic zero) when a category has no
+   * per-card metric wired up yet — never fabricated here.
+   */
+  performanceSnapshot?: Array<{ label: string; value: string }>;
   /** Tiny disclaimer under the meta grid (e.g. listing plan vs account plan). */
   footerHint?: string | null;
   /**
@@ -21,17 +34,19 @@ type DashboardCategoryListingCardProps = {
   lifecycleNote?: { text: string; tone: "urgent" | "warning" | "neutral" } | null;
   /** Compact seller-management layout for Mis anuncios. */
   compact?: boolean;
-  actions: Array<{ href?: string; label: string; tone?: "primary" | "secondary" | "subtle"; onClick?: () => void; disabled?: boolean }>;
+  actions: ActionItem[];
 };
 
 export function DashboardCategoryListingCard({
-  lang: _lang,
+  lang,
   categoryLabel,
   title,
   status,
+  statusTone,
   subtitle,
   badges = [],
   metaItems = [],
+  performanceSnapshot = [],
   footerHint,
   lifecycleNote,
   compact = false,
@@ -39,13 +54,26 @@ export function DashboardCategoryListingCard({
 }: DashboardCategoryListingCardProps) {
   const visibleMeta = compact ? metaItems.slice(0, 3) : metaItems;
 
+  // Gate 2B/2C — presentation-only grouping of the SAME action array/hrefs/callbacks
+  // already resolved by the caller (dashboardMisAnunciosCategoryTools.ts et al). One
+  // dominant primary slot; view-tier, lifecycle, and specialized/premium actions each
+  // render as their own visually-separated row on md:+ instead of one undifferentiated
+  // cluster, and collapse (in that same order) into the mobile overflow sheet below md:.
+  // No action added, removed, relabeled, or rerouted here — Gate 2C classifies actions
+  // it already receives by the `tone` the caller assigned; it doesn't invent new ones.
+  const primaryActions = actions.filter((a) => a.tone === "primary");
+  const viewActions = actions.filter((a) => a.tone === "secondary" || a.tone === "subtle");
+  const lifecycleActions = actions.filter((a) => a.tone === "positive" || a.tone === "warning" || a.tone === "danger");
+  const premiumActions = actions.filter((a) => a.tone === "premium");
+  const restActions = [...viewActions, ...lifecycleActions, ...premiumActions];
+
   const body = (
     <>
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-full bg-[color:var(--lx-section)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-text-2)]">
           {categoryLabel}
         </span>
-        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-900">{status}</span>
+        <span className={lxDashStatusChipClass(statusTone ?? "positive")}>{status}</span>
         {badges.map((badge) => (
           <span key={badge} className="rounded-full border border-[color:var(--lx-border)] px-2 py-0.5 text-[10px] font-semibold text-[color:var(--lx-muted)]">
             {badge}
@@ -56,6 +84,16 @@ export function DashboardCategoryListingCard({
         {title}
       </h3>
       {subtitle ? <p className="mt-0.5 truncate text-xs text-[color:var(--lx-muted)]/90">{subtitle}</p> : null}
+      {performanceSnapshot.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+          {performanceSnapshot.map((item) => (
+            <span key={`${item.label}-${item.value}`} className="inline-flex items-baseline gap-1">
+              <span className="font-bold text-[color:var(--lx-text)]">{item.value}</span>
+              <span className="text-[color:var(--lx-muted)]">{item.label}</span>
+            </span>
+          ))}
+        </div>
+      ) : null}
       {visibleMeta.length > 0 ? (
         <dl className={compact ? "mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs" : "mt-4 grid gap-2 text-sm sm:grid-cols-2"}>
           {visibleMeta.map((item) =>
@@ -91,6 +129,31 @@ export function DashboardCategoryListingCard({
     </>
   );
 
+  // Gate 2B — one dominant primary slot, the rest inline on md:+ (wrapped, organized — not a
+  // cluster) and collapsed into the mobile "More" sheet below md:. Reuses the same
+  // DashboardListingActionBar/DashboardMobileActionSheet for both, so there is exactly one
+  // place actions are actually rendered from.
+  const actionArea = (
+    <div className="flex flex-col gap-2">
+      {primaryActions.length > 0 ? <DashboardListingActionBar actions={primaryActions} /> : null}
+      {restActions.length > 0 ? (
+        <div className="hidden flex-col gap-2 md:flex">
+          {viewActions.length > 0 ? <DashboardListingActionBar actions={viewActions} /> : null}
+          {lifecycleActions.length > 0 ? <DashboardListingActionBar actions={lifecycleActions} /> : null}
+          {premiumActions.length > 0 ? <DashboardListingActionBar actions={premiumActions} /> : null}
+        </div>
+      ) : null}
+      {restActions.length > 0 ? (
+        <DashboardMobileActionSheet
+          triggerLabel={lang === "es" ? "Más opciones" : "More options"}
+          sheetTitle={lang === "es" ? "Más opciones" : "More options"}
+          closeLabel={lang === "es" ? "Cerrar" : "Close"}
+          actions={restActions}
+        />
+      ) : null}
+    </div>
+  );
+
   return (
     <article
       className={
@@ -100,18 +163,14 @@ export function DashboardCategoryListingCard({
       }
     >
       {compact ? (
-        <div className="lg:flex lg:items-start lg:justify-between lg:gap-4">
+        <div className="lg:flex lg:items-start lg:justify-between lg:gap-6">
           <div className="min-w-0 flex-1">{body}</div>
-          <div className="mt-3 shrink-0 lg:mt-0 lg:max-w-md">
-            <DashboardListingActionBar actions={actions} />
-          </div>
+          <div className="mt-3 shrink-0 lg:mt-0 lg:w-auto lg:max-w-sm">{actionArea}</div>
         </div>
       ) : (
         <>
           {body}
-          <div className="mt-4">
-            <DashboardListingActionBar actions={actions} />
-          </div>
+          <div className="mt-4">{actionArea}</div>
         </>
       )}
     </article>

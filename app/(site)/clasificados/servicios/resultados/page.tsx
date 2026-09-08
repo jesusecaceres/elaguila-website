@@ -13,6 +13,7 @@ import {
 } from "../lib/serviciosResultsFilter";
 import { listServiciosPublicListingsRaw } from "../lib/serviciosPublicListingsServer";
 import { overlayActiveEntitlementsForServiciosResults } from "../lib/serviciosEntitlementOverlay";
+import { resolveCanonicalVisibilityBucketWeights } from "@/app/lib/listingPlans/placementResultsOverlay";
 import { ServiciosResultsViewAnalytics } from "../ServiciosResultsViewAnalytics";
 import { CategoryStandardPagination } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardPagination";
 import {
@@ -149,7 +150,15 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
   // Gate G2A: overlay active entitlements onto filtered results only (public-safe fields)
   const overlaid = await overlayActiveEntitlementsForServiciosResults(rows);
 
-  const displayRows = sortServiciosResultsForDisplay(overlaid, lang, filterQuery.sort);
+  // Package D Build D3, Gate 1 — canonical leonix_placement_entitlements weight, batched, mapped
+  // onto this category's existing visibility-bucket scale. Wins over legacy signals inside
+  // resolveServiciosListingRank; rows without a real id are simply excluded from the lookup.
+  const canonicalRankWeightByListingId = await resolveCanonicalVisibilityBucketWeights(
+    overlaid.filter((r): r is typeof r & { id: string } => Boolean(r.id)),
+    { category: "servicios", surface: "category_results" },
+  );
+
+  const displayRows = sortServiciosResultsForDisplay(overlaid, lang, filterQuery.sort, canonicalRankWeightByListingId);
 
   const hasActiveFilters = serviciosResultsHasActiveFilters(filterQuery);
   const perPage = parseCatStdPerPage(sp.perPage);

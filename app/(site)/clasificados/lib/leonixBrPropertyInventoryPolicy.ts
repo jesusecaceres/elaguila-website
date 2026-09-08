@@ -16,11 +16,15 @@ export const BASE_BR_NEGOCIO_MONTHLY_PRICE = 399;
  * re-define its own independent property-count truth again.
  */
 export const BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES = BR_BASE_INCLUDED_PROPERTIES;
-export const BR_PROPERTY_INVENTORY_UPGRADE_MONTHLY_PRICE = 99.99;
+export const BR_PROPERTY_INVENTORY_UPGRADE_MONTHLY_PRICE = 99.00;
 export const BR_PROPERTY_INVENTORY_UPGRADE_EXTRA_ACTIVE_LIMIT = BR_INVENTORY_PACK_MAX_CHILDREN;
 export const BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_LIMIT = BR_TOTAL_ACTIVE_PROPERTY_LIMIT;
-/** Base + upgrade monthly total (BR13D locked product). */
-export const BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_MONTHLY_PRICE = 498.99;
+/** Base + upgrade monthly total (BR13D locked product). Derived, not hardcoded — a locked
+ * literal here previously drifted out of sync when the upgrade price was corrected (99.99 -> 99.00)
+ * without updating this total, producing a $0.99 mismatch between displayed copy and the real
+ * Stripe charge. */
+export const BR_PROPERTY_INVENTORY_TOTAL_WITH_UPGRADE_MONTHLY_PRICE =
+  BASE_BR_NEGOCIO_MONTHLY_PRICE + BR_PROPERTY_INVENTORY_UPGRADE_MONTHLY_PRICE;
 
 /** Approximate active-property value framing (single upgrade package only). */
 export const BR_PROPERTY_INVENTORY_BASE_AVG_PER_PROPERTY = Math.round((BASE_BR_NEGOCIO_MONTHLY_PRICE / BASE_BR_NEGOCIO_INCLUDED_ACTIVE_PROPERTIES) * 100) / 100;
@@ -63,7 +67,7 @@ function trim(v: unknown): string {
 }
 
 /**
- * BR property inventory add-on (+5 @ $99.99/mo → 8 total).
+ * BR property inventory add-on (+3 @ $99.00/mo → 4 total).
  * Production truth: active entitlement only (C6 Stripe). Until then, dev/QA flags are non-production.
  */
 export function isBrInventoryUpgradeActive(opts?: { entitlementActive?: boolean }): boolean {

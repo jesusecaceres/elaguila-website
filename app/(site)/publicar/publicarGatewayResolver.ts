@@ -87,11 +87,15 @@ export function normalizePublicarGatewayDeepLink(raw: string | null | undefined)
 
 /**
  * The single canonical destination for starting a new publish flow in this category — always
- * `adapter.hubRoute ?? adapter.applicationRoute`, read live from the registry, language-tagged.
+ * `adapter.checkpointRoute ?? adapter.hubRoute ?? adapter.applicationRoute`, read live from
+ * the registry, language-tagged. Globalization Package A Gate 2 added `checkpointRoute` so
+ * every lane presents its truthful product checkpoint BEFORE the application; hubs that
+ * already render checkpoint cards (Autos, Bienes Raíces, Rentas, Restaurantes, Empleos) keep
+ * resolving via `hubRoute` unchanged.
  */
 export function resolvePublicarGatewayDestination(key: PublicarGatewayCategoryKey, lang: SupportedLang): string {
   const pipeline = GATEWAY_KEY_TO_PIPELINE[key];
   const adapter = CATEGORY_ROUTE_REGISTRY[pipeline];
-  const dest = adapter.hubRoute ?? adapter.applicationRoute;
+  const dest = adapter.checkpointRoute ?? adapter.hubRoute ?? adapter.applicationRoute;
   return replaceLangInHref(dest, lang);
 }

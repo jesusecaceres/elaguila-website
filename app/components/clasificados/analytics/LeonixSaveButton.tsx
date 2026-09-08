@@ -11,6 +11,7 @@ import {
   readSavedListingForUser,
   upsertSavedListingForUser,
 } from "@/app/lib/savedListingsRuntime";
+import { isSelfEngagement } from "@/app/lib/analytics/selfEngagementGuard";
 
 type Props = {
   /** Analytics / engagement alias key (may be Leonix display id for likes/shares). */
@@ -81,7 +82,11 @@ export function LeonixSaveButton({
 }: Props) {
   const effectiveId = (listingId ?? "").trim();
   const dbListingId = (savedListingKey ?? listingId ?? "").trim();
-  const allowEngage = persistEngagement !== false && Boolean(dbListingId);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const allowEngage =
+    persistEngagement !== false &&
+    Boolean(dbListingId) &&
+    !isSelfEngagement(currentUserId, ownerUserId ?? null);
   const [isSaved, setIsSaved] = useState(initialSaved);
   const [isSaving, setIsSaving] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -125,6 +130,7 @@ export function LeonixSaveButton({
       const sb = createSupabaseBrowserClient();
       const user = await getBrowserAuthUserForEngagement();
       if (cancelled) return;
+      setCurrentUserId(user?.id ?? null);
       if (userToggledRef.current) {
         if (!cancelled) setHydrated(true);
         return;
@@ -149,6 +155,7 @@ export function LeonixSaveButton({
       if (userToggledRef.current) return;
       void (async () => {
         const user = await getBrowserAuthUserForEngagement();
+        setCurrentUserId(user?.id ?? null);
         if (userToggledRef.current) return;
         if (user) {
           const { saved } = await readSavedListingForUser(sb, user.id, dbListingId);

@@ -191,6 +191,8 @@ export default async function AdminPaymentTrackerPage({
                         <th className="px-4 py-3">Listing</th>
                         <th className="px-4 py-3">Promo</th>
                         <th className="px-4 py-3">Entitlement</th>
+                        <th className="px-4 py-3">Grant source</th>
+                        <th className="px-4 py-3">Subscription</th>
                         <th className="px-4 py-3">Sales rep</th>
                         <th className="px-4 py-3">Status</th>
                         <th className="px-4 py-3">Amount</th>
@@ -224,6 +226,11 @@ export default async function AdminPaymentTrackerPage({
               </Link>
               <Link href="/admin/workspace/sales-tracker" className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416] hover:bg-[#FAF7F2]">
                 Sales Tracker →
+              </Link>
+              {/* Package E Build E3, Gate 4/5 — the manual cleared-payment UI lives inside this
+                  same Revenue workflow, not a new top-level admin universe. */}
+              <Link href="/admin/workspace/payment-tracker/manual-payment" className="rounded-xl border border-[#C9B46A]/50 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E] hover:bg-[#F3EBDD]">
+                Record Manual Payment →
               </Link>
             </div>
           </>
@@ -262,6 +269,8 @@ function PaymentRow({ row }: { row: LeonixPaymentRecordRow }) {
     ? `${row.promo_code}${row.promo_redemption_status ? ` (${row.promo_redemption_status})` : ""}`
     : row.promo_redemption_status || "—";
   const entitlementLine = row.entitlement_status ?? (row.package_entitlement_id ? "linked" : "—");
+  const grantSourceLine = row.grant_source ? row.grant_source.replace(/_/g, " ") : "—";
+  const subscriptionLine = row.subscription_status ? row.subscription_status.replace(/_/g, " ") : "—";
   const commissionLine = row.commission_eligible
     ? row.estimated_commission_cents != null
       ? `≈ ${formatMoneyCents(row.estimated_commission_cents)}`
@@ -272,7 +281,18 @@ function PaymentRow({ row }: { row: LeonixPaymentRecordRow }) {
 
   return (
     <tr className="bg-white/80 hover:bg-[#FAF7F2]">
-      <td className="px-4 py-3 text-[#1E1810]">{customerLine}</td>
+      <td className="px-4 py-3 text-[#1E1810]">
+        {/* Package E Build E3, Gate 5 — real navigation to the unified customer support view,
+            only when a real owner_user_id is on this payment record (never guessed by
+            name/email match). */}
+        {row.owner_user_id ? (
+          <Link href={`/admin/usuarios/${row.owner_user_id}`} className="font-semibold text-[#6B5B2E] underline">
+            {customerLine}
+          </Link>
+        ) : (
+          customerLine
+        )}
+      </td>
       <td className="px-4 py-3 text-xs">
         {packageLine}
         {row.category ? <span className="ml-1 text-[#7A7164]">({row.category})</span> : null}
@@ -283,6 +303,8 @@ function PaymentRow({ row }: { row: LeonixPaymentRecordRow }) {
       <td className="px-4 py-3 text-xs text-[#5C5346]">{listingLine}</td>
       <td className="px-4 py-3 font-mono text-xs">{promoLine}</td>
       <td className="px-4 py-3 text-xs capitalize text-[#5C5346]">{entitlementLine}</td>
+      <td className="px-4 py-3 text-xs capitalize text-[#5C5346]">{grantSourceLine}</td>
+      <td className="px-4 py-3 text-xs capitalize text-[#5C5346]">{subscriptionLine}</td>
       <td className="px-4 py-3 text-xs text-[#5C5346]">{repLine}</td>
       <td className="px-4 py-3">
         <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${statusChip(row.payment_status)}`}>

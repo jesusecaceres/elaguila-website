@@ -19,6 +19,10 @@ import { RestauranteAdStoryPreview } from "@/app/clasificados/restaurantes/shell
 import { RestaurantePreviewCard } from "@/app/clasificados/restaurantes/shell/RestaurantePreviewCard";
 import { RestaurantesShellChrome } from "@/app/clasificados/restaurantes/shell/RestaurantesShellChrome";
 import { PublishCheckoutCheckpoint } from "@/app/(site)/clasificados/components/PublishCheckoutCheckpoint";
+import {
+  previewModeSuppressesBasePlanCheckout,
+  resolvePreviewMode,
+} from "@/app/lib/listingIdentity/previewModeContract";
 import { saveRestaurantePendingBeforeCheckout } from "@/app/clasificados/restaurantes/application/saveRestaurantePendingBeforeCheckout";
 import {
   redirectToRevenueCategoryCheckout,
@@ -27,7 +31,6 @@ import {
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
 import { RESTAURANTES_BASE_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
 import {
-  RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
   RESTAURANTES_CHECKPOINT_CONFIRMATIONS,
   type PublishCheckpointConfig,
 } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
@@ -60,17 +63,52 @@ const LEONIX_INFO_BLUE = "#355C7D";
 const LEONIX_ELEVATED_CHIP = "#F6EBDD";
 
 /**
- * Edit link back to the Restaurante application. The `focus=coupon-upgrade`
- * param lets the application page (future follow-up) scroll/highlight the
- * coupon module the user must turn off before secure checkout.
+ * Edit link back to the Restaurante application. Gate C15 fix: this used to hardcode
+ * `?focus=coupon-upgrade`, which force-jumped every "Volver a editar" click straight to the
+ * coupon section — a leftover from the retired paid-coupon-addon flow (coupons/offers are now
+ * included free, so there is no longer a mandatory "turn off the coupon module before checkout"
+ * step to redirect to). Plain return now lands on the application's own default section instead
+ * of hijacking the user's actual editing context.
  */
-const EDIT_HREF_BASE = "/publicar/restaurantes?focus=coupon-upgrade";
+const EDIT_HREF_BASE = "/publicar/restaurantes";
 
 export default function RestaurantePreviewClient() {
   const searchParams = useSearchParams();
   const { hydrated, draft } = useRestauranteDraft({ resolveMediaOnLoad: true });
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutErr, setCheckoutErr] = useState<string | null>(null);
+
+  // Newsletter Engine v2 — resolve the session email up front so it can be shown/edited in the
+  // checkout checkpoint BEFORE checkout starts, instead of silently pulling a hidden
+  // session.user.email only at the moment of checkout.
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterCaptureNote, setNewsletterCaptureNote] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const sb = createSupabaseBrowserClient();
+        const { data: sess } = await sb.auth.getSession();
+        const email = sess.session?.user?.email ?? "";
+        if (!cancelled) setNewsletterEmail((prev) => (prev ? prev : email));
+      } catch {
+        // Best-effort prefill only — the field stays editable/empty either way.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Globalization Package A Gate 4 — shared preview-mode contract guard (see the checkout
+  // section comment below for the P3 rationale).
+  const listingBoundPreview =
+    (searchParams?.get("preview") ?? "") === "listing" ||
+    ((searchParams?.get("source") ?? "") === "dashboard" && Boolean((searchParams?.get("listingId") ?? "").trim()));
+  const suppressListingBoundCheckout = previewModeSuppressesBasePlanCheckout(
+    resolvePreviewMode({ listingBound: listingBoundPreview }),
+  );
 
   const { routeLang, copyLang: lang } = useMemo(
     () => resolveClasificadosPublishLang(searchParams?.get("lang")),
@@ -120,13 +158,13 @@ export default function RestaurantePreviewClient() {
     });
   }, [readiness, normalizedDraft, minOk, normalizedDraft.couponUpgradeEnabled]);
 
+  // Package C Build 3 (C5/C6) — owner-locked: coupons/offers are included in the $399/mo base
+  // package. The toggle stays as content/setup intent (seeds the coupon editor after publish)
+  // but never adds a checkout line item, never adds Stripe cost, and is never sent as an addOn.
   const couponUpgradeSelected = Boolean(normalizedDraft.couponUpgradeEnabled);
   const restaurantBaseCents =
     getRevenuePackageDefinition(RESTAURANTES_BASE_CHECKOUT.packageKey)?.priceCents ?? 39900;
-  const restaurantCouponAddonCents =
-    getRevenuePackageDefinition(RESTAURANTES_COUPON_ADDON_PACKAGE_KEY)?.priceCents ?? 9900;
-  const checkoutSubtotalCents =
-    restaurantBaseCents + (couponUpgradeSelected ? restaurantCouponAddonCents : 0);
+  const checkoutSubtotalCents = restaurantBaseCents;
 
   const handlePromoApply = useCallback(
     async (code: string) => {
@@ -153,9 +191,15 @@ export default function RestaurantePreviewClient() {
   );
 
   const onCheckout = useCallback(
-    async (ctx: { newsletterOptIn: boolean; promoCode: string | null }) => {
+    async (ctx: {
+      newsletterOptIn: boolean;
+      promoCode: string | null;
+      recurringConsent?: { accepted: true; consentTextVersion: string; lang: "es" | "en" } | null;
+      requestVerifiedIntroDiscount?: boolean;
+    }) => {
       setCheckoutBusy(true);
       setCheckoutErr(null);
+      setNewsletterCaptureNote(null);
       try {
         let draftForSave = normalizedDraft;
         try {
@@ -177,9 +221,13 @@ export default function RestaurantePreviewClient() {
           return;
         }
 
-        // Best-effort newsletter capture from the opt-in checkbox. Never blocks checkout.
-        void captureCheckoutNewsletterSubscriber({
-          email: customerEmail,
+        // Best-effort newsletter capture — awaited (never fire-and-forget `void`) so a FAILED
+        // result can be surfaced, but never blocks/gates checkout. Uses the visible/editable
+        // `newsletterEmail` field (not the hidden session email) so the subscriber address the
+        // user saw is the one actually captured.
+        const captureEmail = newsletterEmail.trim() || customerEmail;
+        const capturePromise = captureCheckoutNewsletterSubscriber({
+          email: captureEmail,
           lang,
           preferredLanguage: lang,
           source: CHECKOUT_NEWSLETTER_SOURCES.restaurantes,
@@ -192,6 +240,17 @@ export default function RestaurantePreviewClient() {
           lang,
           accessToken,
         });
+
+        const captureResult = await capturePromise;
+        if (captureResult.status === "FAILED") {
+          console.warn("[restaurantes] newsletter checkout capture failed", captureResult.reason);
+          setNewsletterCaptureNote(
+            lang === "es"
+              ? "No pudimos guardar tu suscripción al boletín. Tu pago no se vio afectado."
+              : "We couldn't save your newsletter subscription. Your payment was not affected.",
+          );
+        }
+
         if (!pending.ok) {
           setCheckoutErr(pending.userMessage);
           setCheckoutBusy(false);
@@ -205,9 +264,8 @@ export default function RestaurantePreviewClient() {
           locale: lang,
           customerEmail,
           promoCode: ctx.promoCode,
-          ...(couponUpgradeSelected
-            ? { addOns: [{ key: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY, quantity: 1 }] }
-            : {}),
+          recurringConsent: ctx.recurringConsent ?? null,
+          requestVerifiedIntroDiscount: ctx.requestVerifiedIntroDiscount ?? false,
         });
 
         if (!checkout.ok) {
@@ -222,7 +280,7 @@ export default function RestaurantePreviewClient() {
         setCheckoutBusy(false);
       }
     },
-    [lang, normalizedDraft, couponUpgradeSelected, pageCopy],
+    [lang, normalizedDraft, couponUpgradeSelected, pageCopy, newsletterEmail],
   );
 
   if (!hydrated) {
@@ -350,23 +408,31 @@ export default function RestaurantePreviewClient() {
           </div>
         </ClasificadosPreviewAdCanvas>
 
-        {/* Section 3: Final checkout — visible after preview, not inside collapsed panels */}
-        <div className="mt-12">
-          <div className="mb-6">
-            <h2
-              className="mb-3 text-2xl font-bold tracking-tight"
-              style={{ color: LEONIX_PRIMARY_TEXT }}
+        {/* Section 3: Final checkout — visible after preview, not inside collapsed panels.
+            Globalization Package A Gate 4 — the guard P3 documented as required "the moment
+            any link ever points a real listing at this route": in a listing-bound context
+            (source=dashboard + listingId, or preview=listing) this is an already-identified —
+            typically already-paid — listing, and the base-plan checkout must never render
+            again. No live href targets this route with those params today (dashboard "Vista
+            previa" goes to the public slug page), so live behavior is unchanged; this closes
+            the latent unguarded branch. */}
+        {suppressListingBoundCheckout ? null : (
+          <div className="mt-12">
+            <div className="mb-6">
+              <h2
+                className="mb-3 text-2xl font-bold tracking-tight"
+                style={{ color: LEONIX_PRIMARY_TEXT }}
+              >
+                {pageCopy.finalCheckoutTitle}
+              </h2>
+              <p className="text-base font-medium leading-relaxed" style={{ color: LEONIX_SECONDARY_TEXT }}>
+                {pageCopy.finalCheckoutBody}
+              </p>
+            </div>
+            <div
+              className="rounded-3xl border p-4 sm:p-6 md:p-8"
+              style={{ background: LEONIX_CARD_SURFACE, borderColor: LEONIX_BORDER }}
             >
-              {pageCopy.finalCheckoutTitle}
-            </h2>
-            <p className="text-base font-medium leading-relaxed" style={{ color: LEONIX_SECONDARY_TEXT }}>
-              {pageCopy.finalCheckoutBody}
-            </p>
-          </div>
-          <div
-            className="rounded-3xl border p-4 sm:p-6 md:p-8"
-            style={{ background: LEONIX_CARD_SURFACE, borderColor: LEONIX_BORDER }}
-          >
               <PublishCheckoutCheckpoint
                 config={checkpointConfig}
                 lang={lang}
@@ -376,10 +442,14 @@ export default function RestaurantePreviewClient() {
                 draftReadyMessage={minOk ? null : pageCopy.draftNotReady}
                 onPromoApply={handlePromoApply}
                 onCheckout={(ctx) => void onCheckout(ctx)}
+                newsletterEmail={newsletterEmail}
+                onNewsletterEmailChange={setNewsletterEmail}
+                newsletterCaptureNote={newsletterCaptureNote}
                 editHref={editHref}
               />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </RestaurantesShellChrome>
   );

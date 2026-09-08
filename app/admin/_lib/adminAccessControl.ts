@@ -352,6 +352,18 @@ export function requireAdminTeamAccess(ctx: AdminAccessContext): void {
   }
 }
 
+/**
+ * Package E Build E3, Gate 3/7 — `canViewActivityLogs()` already existed and already governed
+ * whether the nav link was shown, but the Activity Log PAGE itself never called it: any cookie
+ * holder could browse straight to /admin/activity-log regardless of role. Closes that UI-nav-
+ * only-security gap with the same redirect pattern every other gated workspace page already uses.
+ */
+export function requireActivityLogAccess(ctx: AdminAccessContext): void {
+  if (!canViewActivityLogs(ctx.normalizedRole)) {
+    redirect("/admin?access_denied=activity_log");
+  }
+}
+
 /** Workspace sub-nav hrefs visible for the current admin. */
 export function getAllowedWorkspaceNavHrefs(ctx: AdminAccessContext): string[] {
   if (isSalesRepRole(ctx.normalizedRole)) {
@@ -396,6 +408,7 @@ export function getAllowedGlobalNavHrefs(ctx: AdminAccessContext): string[] {
       "/admin/leads/newsletter",
       "/admin/leads/media-kit",
       "/admin/support",
+      "/admin/recursos",
     );
     if (canViewPaymentTracker(ctx.normalizedRole)) {
       hrefs.push("/admin/workspace/payment-tracker");
@@ -407,7 +420,10 @@ export function getAllowedGlobalNavHrefs(ctx: AdminAccessContext): string[] {
       hrefs.push("/admin/activity-log");
     }
     if (canViewSiteSettings(ctx.normalizedRole)) {
-      hrefs.push("/admin/settings", "/admin/workspace/language-audit");
+      // Package E Build E3, Gate 1 — /admin/site-settings (the real writer) is now a primary
+      // nav entry, gated by the same permission as the /admin/settings stub it used to be
+      // reachable from only via a sidebar-footer shortcut.
+      hrefs.push("/admin/site-settings", "/admin/settings", "/admin/workspace/language-audit");
     }
   }
   return hrefs;

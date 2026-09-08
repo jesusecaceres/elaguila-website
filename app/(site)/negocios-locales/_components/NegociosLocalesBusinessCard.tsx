@@ -13,6 +13,9 @@ export type NegociosLocalesBusinessCardProps = {
   priority?: boolean;
   accent?: "gold" | "burgundy" | "default";
   icon: ReactNode;
+  /** Gate 5 — forwarded straight through to the shared card. */
+  imageSrc?: string;
+  imageAlt?: string;
 };
 
 /** Business sector card — mirrors Clasificados hub card polish (Explorar + Anunciar). */
@@ -27,6 +30,8 @@ export function NegociosLocalesBusinessCard({
   priority,
   accent = "default",
   icon,
+  imageSrc,
+  imageAlt,
 }: NegociosLocalesBusinessCardProps) {
   return (
     <ClasificadosHubCategoryCard
@@ -40,6 +45,8 @@ export function NegociosLocalesBusinessCard({
       priority={priority}
       accent={accent}
       icon={icon}
+      imageSrc={imageSrc}
+      imageAlt={imageAlt}
     />
   );
 }

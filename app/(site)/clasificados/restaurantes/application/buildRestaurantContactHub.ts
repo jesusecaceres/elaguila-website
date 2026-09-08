@@ -2,7 +2,7 @@ import type { RestauranteListingDraft } from "./restauranteDraftTypes";
 import type { RestauranteDaySchedule } from "./restauranteListingApplicationModel";
 import { buildRestauranteInquiryMailto } from "@/app/lib/contactEmailMailto";
 import { normalizeActionableUrl } from "../lib/urlNormalization";
-import { computeShellHoursPreview } from "./restauranteHoursPreview";
+import { computeShellHoursPreview, formatSpecialHoursEntriesLine } from "./restauranteHoursPreview";
 import {
   buildCateringInquiryPrefill,
   formatRestauranteCityStateZipLine,
@@ -68,6 +68,11 @@ export type RestaurantContactHubData = {
     supportingText?: string;
     mapsHref?: string;
     mapsLabel: string;
+    /** Global Business Hub OS — true only when `shouldShowRestaurantStreetAddress()` allows the
+     * exact address to be public. Was computed here but previously dropped after use; now exposed
+     * so the render layer can gate a real map embed on the same signal that already gates the
+     * address text, instead of always showing a decorative faux map. */
+    showExactAddress?: boolean;
   };
   hours?: RestaurantContactHubHours;
 };
@@ -115,7 +120,7 @@ function buildHubHours(d: RestauranteListingDraft, lang: "es" | "en"): Restauran
     sunday: d.sunday,
   };
 
-  const specialNote = d.specialHoursNote?.trim() || undefined;
+  const specialNote = formatSpecialHoursEntriesLine(d.specialHoursEntries) || d.specialHoursNote?.trim() || undefined;
   const hasConfigured =
     Boolean(specialNote) ||
     Boolean(d.temporaryHoursActive && d.temporaryHoursNote?.trim()) ||
@@ -139,12 +144,17 @@ function buildHubHours(d: RestauranteListingDraft, lang: "es" | "en"): Restauran
     weeklyRows.push({ dayLabel: label, line, isToday: key === TODAY_KEY });
   }
 
-  const preview = computeShellHoursPreview({
-    ...weeklyHours,
-    temporaryHoursActive: d.temporaryHoursActive,
-    temporaryHoursNote: d.temporaryHoursNote,
-    specialHoursNote: d.specialHoursNote,
-  });
+  const preview = computeShellHoursPreview(
+    {
+      ...weeklyHours,
+      temporaryHoursActive: d.temporaryHoursActive,
+      temporaryHoursNote: d.temporaryHoursNote,
+      specialHoursNote: d.specialHoursNote,
+      specialHoursEntries: d.specialHoursEntries,
+    },
+    new Date(),
+    lang,
+  );
   let openNowLabel: string | undefined;
   let todayHoursLine: string | undefined;
   if (preview.status === "open") {
@@ -260,6 +270,19 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
       });
     }
   }
+  // Gate C7 — repeatable additional website links (menú, reservas, pedidos, catering, eventos, etc.).
+  (d.additionalWebsites ?? []).forEach((row, index) => {
+    const label = nonEmpty(row.label) ? row.label.trim() : "";
+    if (!nonEmpty(row.url) || !label) return;
+    const url = normalizeRestaurantUrl(row.url);
+    if (!isValidExternalHttpUrl(url)) return;
+    pushUniqueButton(orderReserve, {
+      id: `extra-website-${index}`,
+      label,
+      href: url,
+      action: "website",
+    });
+  });
 
   const social: RestaurantHubSocialLink[] = [];
   const addSocial = (id: string, label: string, raw?: string) => {
@@ -318,7 +341,21 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
   const catering: RestaurantHubButton[] = [];
   if (d.cateringAvailable || d.eventFoodService) {
     const cateringMsg = buildCateringInquiryPrefill(businessName);
-    if (nonEmpty(d.phoneNumber)) {
+    // "Pedir cotización"/"Request a quote" must route to the owner's configured catering quote
+    // URL when one exists — it previously always dialed the phone number, ignoring
+    // `cateringEventsStack.cateringInquiryUrl` entirely. Only fall back to a phone call when no
+    // real quote URL is configured, so phone-only restaurants keep working exactly as before.
+    const inquiry = d.cateringEventsStack?.cateringInquiryUrl?.trim();
+    const quoteUrl = inquiry ? (normalizeActionableUrl(inquiry) ?? normalizeRestaurantUrl(inquiry)) : undefined;
+    const hasValidQuoteUrl = Boolean(quoteUrl && isValidExternalHttpUrl(quoteUrl));
+    if (hasValidQuoteUrl) {
+      pushUniqueButton(catering, {
+        id: "catering-call",
+        label: lang === "en" ? "Request a quote" : "Pedir cotización",
+        href: quoteUrl!,
+        action: "website",
+      });
+    } else if (nonEmpty(d.phoneNumber)) {
       pushUniqueButton(catering, {
         id: "catering-call",
         label: lang === "en" ? "Request a quote" : "Pedir cotización",
@@ -349,18 +386,6 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
         emailBody: cateringMsg,
       });
     }
-    const inquiry = d.cateringEventsStack?.cateringInquiryUrl?.trim();
-    if (inquiry) {
-      const url = normalizeActionableUrl(inquiry) ?? normalizeRestaurantUrl(inquiry);
-      if (isValidExternalHttpUrl(url)) {
-        pushUniqueButton(catering, {
-          id: "catering-form",
-          label: lang === "en" ? "Catering inquiry form" : "Formulario de cotización",
-          href: url,
-          action: "website",
-        });
-      }
-    }
   }
 
   const showStreet = shouldShowRestaurantStreetAddress(d);
@@ -385,6 +410,7 @@ export function buildRestaurantContactHub(d: RestauranteListingDraft, lang: "es"
       supportingText: pickupNote,
       mapsHref,
       mapsLabel: lang === "en" ? "Get directions" : "Cómo llegar",
+      showExactAddress: showStreet,
     };
   }
 

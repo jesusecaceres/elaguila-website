@@ -21,7 +21,11 @@ import {
   type PackageEntitlementTier,
 } from "@/app/lib/listingPlans/packageEntitlements";
 import { resolveMagazinePlacementPriority } from "@/app/lib/listingPlans/magazinePlacementPriority";
+import { CATEGORY_BASE_PACKAGE_KEY } from "@/app/lib/listingPlans/categoryCommercialPlanPolicy";
 import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
+import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
+import { grantComplimentaryAccess, grantPartnerCourtesy } from "@/app/lib/listingPlans/complimentaryGrants";
+import { writePlacementEntitlement } from "@/app/lib/listingPlans/placementEntitlementWriter";
 
 const ALLOWED_TIERS = new Set([
   "premium",
@@ -234,6 +238,20 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
     },
   );
 
+  // Package C Build 1 (Gate 11) — explicit grant provenance. Print tiers are the integrated
+  // print+digital package (Agreement v1.2 §2: the digital component is included, not
+  // separately priced/refundable) → grant_source 'print_included'; everything else granted
+  // here is 'admin_manual'. Never a fake Stripe record either way.
+  const isPrintTier = tier !== "digital_only";
+  const grantSource = isPrintTier ? "print_included" : "admin_manual";
+
+  // Package C Build 3 (C5/C6) — narrow, additive: print-tier grants in restaurantes/servicios
+  // also stamp the real Revenue OS base package_key, so this NEW grant resolves capability via
+  // the exact package_key match (resolveCategoryListingPlan) rather than needing the historical
+  // print-included compatibility fallback. Every other category/tier combination is unaffected;
+  // historical rows are never rewritten.
+  const packageKeyForGrant = isPrintTier ? CATEGORY_BASE_PACKAGE_KEY[category] ?? null : null;
+
   const { data, error } = await supabase
     .from("listing_package_entitlements")
     .insert({
@@ -251,6 +269,8 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
       ends_at: endsAt,
       placement_scope: scopes,
       benefits: def.benefits,
+      grant_source: grantSource,
+      package_key: packageKeyForGrant,
       metadata,
       updated_at: now.toISOString(),
     })
@@ -265,6 +285,45 @@ export async function createPackageEntitlementAction(formData: FormData): Promis
   }
 
   const entitlementId = data?.id ? String((data as { id: string }).id) : null;
+
+  // Package C Build 1 (Gate 11) — print-included grants now ALSO create the matching
+  // placement entitlement row (source 'included_with_print' — first real non-Stripe placement
+  // writer; the public reader remains Package D scope). Placement stays a separate record:
+  // never inferred from the package grant, never a fake payment.
+  if (entitlementId && isPrintTier && listingId) {
+    const placementTierForPrint =
+      tier === "premium"
+        ? "partner_premium"
+        : tier === "full_page"
+          ? "print_full_page"
+          : tier === "half_page"
+            ? "print_half_page"
+            : tier === "quarter_page"
+              ? "print_quarter_page"
+              : null;
+    if (placementTierForPrint) {
+      // Package D Build D2, Gate 9 — routed through the canonical placement writer instead of a
+      // hand-built insert; tier mapping/eligibility above is unchanged, only the write path moved.
+      await writePlacementEntitlement({
+        listingId,
+        category,
+        placementTier: placementTierForPrint,
+        placementSource: "included_with_print",
+        includedWithPrint: true,
+        printContractId: contractCode || entitlementCode,
+        surfaces: scopes?.length ? scopes : ["clasificados", "category_landing", "category_results"],
+        startsAt: new Date(startsAt),
+        endsAt: new Date(endsAt),
+        status: status === "active" ? "active" : "scheduled",
+        metadata: {
+          source: "print_included",
+          package_entitlement_id: entitlementId,
+          gate: "PACKAGE-C-BUILD-1-PRINT-INCLUDED",
+        },
+      });
+    }
+  }
+
   if (entitlementId) {
     const promoLink = await upsertPromoCodeFromPackageEntitlement({
       entitlementId,
@@ -483,4 +542,74 @@ export async function attachListingToPackageEntitlementAction(formData: FormData
   revalidatePath("/admin/workspace/package-entitlements");
   revalidatePath("/admin/workspace/promo-codes");
   redirectWith({ attached: "1" });
+}
+
+const ALLOWED_COMPLIMENTARY_GRANT_TYPES = new Set(["comp", "partner"]);
+
+/**
+ * Package C Build 4 (C8, Gate 7) — the only live admin path onto `complimentaryGrants.ts`
+ * (`grantComplimentaryAccess`/`grantPartnerCourtesy`, built in Package C Build 3 but never wired
+ * to any caller outside its own file/docs). `createPackageEntitlementAction` above can only ever
+ * produce `grant_source` "print_included" or "admin_manual" — this is the one path that can
+ * produce "comp" or "partner", narrowly scoped to those two grant types and always going through
+ * the same package-key-resolved, real-Revenue-OS-package activation path a paid entitlement uses.
+ */
+export async function grantComplimentaryPackageEntitlementAction(formData: FormData): Promise<void> {
+  const c = await cookies();
+  if (!requireAdminCookie(c)) throw new Error("Unauthorized");
+  const access = await getCurrentAdminAccessContext();
+
+  const grantType = String(formData.get("grant_type") ?? "").trim();
+  if (!ALLOWED_COMPLIMENTARY_GRANT_TYPES.has(grantType)) {
+    redirectWith({ error: "invalid_grant_type" });
+  }
+
+  const packageKey = String(formData.get("package_key") ?? "").trim();
+  const packageDef = getRevenuePackageDefinition(packageKey);
+  if (!packageDef) {
+    redirectWith({ error: "invalid_package_key" });
+  }
+
+  const listingId = String(formData.get("listing_id") ?? "").trim();
+  if (!listingId) {
+    redirectWith({ error: "missing_listing_id" });
+  }
+
+  const reason = String(formData.get("reason") ?? "").trim();
+  if (!reason) {
+    redirectWith({ error: "missing_reason" });
+  }
+
+  const customerName = String(formData.get("customer_name") ?? "").trim() || null;
+  const businessName = String(formData.get("business_name") ?? "").trim() || null;
+  const durationDaysRaw = String(formData.get("duration_days") ?? "").trim();
+  const durationDays = durationDaysRaw && Number.isFinite(Number(durationDaysRaw)) ? Number(durationDaysRaw) : null;
+
+  const actorAdminUserId = access.authUserId ?? access.operatorEmail ?? access.rosterMemberId ?? "admin";
+  const grant = grantType === "comp" ? grantComplimentaryAccess : grantPartnerCourtesy;
+  const result = await grant({
+    category: packageDef.category,
+    listingId,
+    packageKey,
+    actorAdminUserId,
+    reason,
+    customerName,
+    businessName,
+    durationDays,
+  });
+
+  if (!result.ok) {
+    redirectWith({ error: "grant_failed", detail: (result.message ?? result.code ?? "").slice(0, 120) });
+  }
+
+  void appendAdminAuditLog({
+    action: grantType === "comp" ? "package_entitlement_comp_granted" : "package_entitlement_partner_granted",
+    targetType: "listing_package_entitlement",
+    targetId: result.packageEntitlementId ?? listingId,
+    meta: { category: packageDef.category, package_key: packageKey, listing_id: listingId, reason, idempotent: result.idempotent ?? false },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/workspace/package-entitlements");
+  redirectWith({ granted: "1" });
 }

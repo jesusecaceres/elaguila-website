@@ -1020,7 +1020,7 @@ function mediaMetaLine(s: BienesRaicesNegocioFormState): string {
   const tour = trim(s.media?.virtualTourUrl) ? 1 : 0;
   const fpUrls = Array.isArray(s.media?.floorPlanUrls) ? s.media.floorPlanUrls : [];
   const nFp = fpUrls.filter((u) => trim(u)).length;
-  const externalVideos = cleanHttpUrls(s.media?.externalVideoUrls, 4);
+  const externalVideos = cleanHttpUrls(s.media?.externalVideoUrls, 8);
   const parts: string[] = [];
   parts.push(`${nPhotos} fotos`);
   parts.push(`${Math.max(nVid, externalVideos.length)} videos`);
@@ -1057,7 +1057,9 @@ export function mapBienesRaicesNegocioStateToPreviewVm(s: BienesRaicesNegocioFor
   const youtubeIds: [string | null, string | null] = [r0.youtubeId, r1.youtubeId];
   const hasVideo1 = Boolean(r0.playback || r0.thumb || r0.youtubeId);
   const hasVideo2 = Boolean(r1.playback || r1.thumb || r1.youtubeId);
-  const externalVideoLinks = cleanHttpUrls(s.media?.externalVideoUrls, 4).map((href, index) => ({
+  // BR-INV-WAVE1-GATE1: raised from 4 to 8 alongside the mapper/schema caps so all entered video
+  // URLs actually render, not just the first 4.
+  const externalVideoLinks = cleanHttpUrls(s.media?.externalVideoUrls, 8).map((href, index) => ({
     label: numberedCtaLabel("Ver video", index),
     href,
   }));

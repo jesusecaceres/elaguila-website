@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import {useEffect, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { categoryConfig, type CategoryKey } from "@/app/clasificados/config/categoryConfig";
 import ClasificadosCategoryComingSoon from "@/app/clasificados/publicar/components/ClasificadosCategoryComingSoon";
@@ -19,7 +19,7 @@ function normalizeCategory(raw: string): CategoryKey | "" {
  * Dispatcher: known categories with dedicated publish routes redirect there; `rentas` → Rentas publish hub
  * (Privado vs Negocio). Other valid slugs fall back to Coming Soon. Invalid slug or `all` → chooser.
  */
-export default function PublicarCategoryPage() {
+function PublicarCategoryPageContent() {
   const params = useParams<{ category?: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -91,4 +91,12 @@ export default function PublicarCategoryPage() {
   }
 
   return <ClasificadosCategoryComingSoon categorySlug={categoryFromUrl} lang={copyLang} />;
+}
+
+export default function PublicarCategoryPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <PublicarCategoryPageContent />
+    </Suspense>
+  );
 }

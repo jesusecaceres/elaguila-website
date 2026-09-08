@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
 
 import { useAdminLang } from "@/app/admin/_components/AdminI18nProvider";
 import {
@@ -48,7 +48,7 @@ type Row = {
   application_health: ApplicationHealth;
 };
 
-export default function AdminEmpleosListingsPage() {
+function AdminEmpleosListingsPageContent() {
   const sp = useSearchParams();
   const actionProof = useMemo(() => (sp ? parseAdminActionResultParams(sp) : null), [sp]);
   const adminLang = useAdminLang();
@@ -323,5 +323,13 @@ export default function AdminEmpleosListingsPage() {
       </div>
       ) : null}
     </div>
+  );
+}
+
+export default function AdminEmpleosListingsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <AdminEmpleosListingsPageContent />
+    </Suspense>
   );
 }

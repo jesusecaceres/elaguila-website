@@ -55,8 +55,9 @@ assertNoVideoSlice2(sanitizer, "sanitizer");
 
 assert(draftMapper.includes("SERVICIOS_MAX_VIDEO_URLS"), "draft mapper: uses SERVICIOS_MAX_VIDEO_URLS");
 assert(sanitizer.includes("MAX_SERVICIOS_PUBLIC_GALLERY_VIDEOS"), "sanitizer: uses MAX_SERVICIOS_PUBLIC_GALLERY_VIDEOS");
-assert(videoCaps.includes("= 4"), "video caps: MAX is 4");
-assert(appTypes.includes("SERVICIOS_MAX_VIDEO_URLS = 4"), "application types: max videos is 4");
+// Global Business Hub OS — pilot-lane video cap raised 4 -> 8.
+assert(videoCaps.includes("= 8"), "video caps: MAX is 8");
+assert(appTypes.includes("SERVICIOS_MAX_VIDEO_URLS = 8"), "application types: max videos is 8");
 
 assert(gallery.includes("serviciosCombinedVideoGridClass"), "gallery: count-aware video grid helper");
 assert(videoLayout.includes("md:grid-cols-4"), "video layout: supports 4-across desktop");
@@ -81,7 +82,17 @@ assert(hubMapper.includes("Google Reviews"), "hub mapper: google reviews label")
 assert(hubMapper.includes("Yelp"), "hub mapper: yelp label");
 assert(hubCard.includes("Búscanos aquí") || hubCard.includes("Find us online"), "hub card: Búscanos aquí section");
 assert(hubMapper.includes("buildServiciosGoogleMapsEmbedSrc"), "hub mapper: map embed helper");
-assert(mapEmbed.includes("output=embed"), "map embed: safe Google Maps pattern");
+// Global Business Hub OS — serviciosBusinessHubMapEmbed.ts is now a thin re-export of the shared
+// helper (app/(site)/clasificados/shared/constants/sharedConnectionHubLocationHelpers.ts), which
+// owns the literal formula now.
+assert(
+  mapEmbed.includes("buildSharedConnectionHubMapEmbedSrc"),
+  "map embed: re-exports the shared helper",
+);
+assert(
+  read("app/(site)/clasificados/shared/constants/sharedConnectionHubLocationHelpers.ts").includes("output=embed"),
+  "shared map embed: safe Google Maps pattern",
+);
 assert(!mapEmbed.includes("API_KEY"), "map embed: no API key");
 assert(mapPanel.includes("iframe"), "map panel: iframe embed path");
 assert(hubCard.includes("ServiciosBusinessHubMapPanel"), "hub card: real map panel wired");

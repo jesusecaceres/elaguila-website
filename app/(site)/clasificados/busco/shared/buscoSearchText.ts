@@ -41,7 +41,12 @@ export function buildBuscoSearchBlob(row: BuscoListingBrowseRow, pairs: BuscoLis
   const zone = pairs["Leonix:buscoZone"] ?? "";
   const state = pairs["Leonix:state"] ?? "";
   const zip = pairs["Leonix:zip"] ?? "";
+  // Legacy free-text budget (Gate 4 structured budget carries no free-text worth indexing).
   const budget = pairs["Leonix:buscoBudget"] ?? "";
+  const workType = pairs["Leonix:buscoWorkType"] ?? "";
+  const workSkills = pairs["Leonix:buscoWorkSkills"] ?? "";
+  const transportOrigin = pairs["Leonix:buscoTransportOrigin"] ?? "";
+  const transportDestination = pairs["Leonix:buscoTransportDestination"] ?? "";
   const contactBits = CONTACT_SEARCH[lang];
   const contact =
     buscoRowHasPhone(row, pairs) && buscoRowHasEmail(row, pairs)
@@ -51,5 +56,5 @@ export function buildBuscoSearchBlob(row: BuscoListingBrowseRow, pairs: BuscoLis
         : buscoRowHasEmail(row, pairs)
           ? contactBits.email
           : "";
-  return `${title} ${desc} ${typeLabel} ${typeCustom} ${typeSlug} ${city} ${state} ${zip} ${zone} ${budget} ${contact}`.toLowerCase();
+  return `${title} ${desc} ${typeLabel} ${typeCustom} ${typeSlug} ${city} ${state} ${zip} ${zone} ${budget} ${workType} ${workSkills} ${transportOrigin} ${transportDestination} ${contact}`.toLowerCase();
 }

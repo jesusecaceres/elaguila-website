@@ -10,17 +10,22 @@ export type RevenueAuditAction =
   | "revenue_payment_completed"
   | "revenue_payment_expired"
   | "revenue_promo_redeemed"
+  | "revenue_verified_intro_discount_redeemed"
   | "revenue_entitlement_activated"
   | "restaurante_listing_activated_after_payment"
   | "servicios_listing_activated_after_payment"
+  | "comida_local_listing_activated_after_payment"
   | "rentas_listing_activated_after_payment"
+  | "clases_listing_activated_after_payment"
   | "empleos_listing_activated_after_payment"
   | "autos_privado_listing_activated_after_payment"
   | "autos_dealer_listing_activated_after_payment"
   | "bienes_fsbo_listing_activated_after_payment"
   | "bienes_negocio_listing_activated_after_payment"
   | "revenue_webhook_ignored"
-  | "revenue_webhook_validation_failed";
+  | "revenue_webhook_validation_failed"
+  | "ofertas_locales_entitlement_fulfilled_after_payment"
+  | "ofertas_locales_listing_activated_after_payment";
 
 export async function writeRevenueAuditLog(entry: {
   action: RevenueAuditAction;

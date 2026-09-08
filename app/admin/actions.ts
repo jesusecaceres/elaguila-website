@@ -23,6 +23,11 @@ export async function submitListingReportAction(listingId: string, reason: strin
 }
 
 export async function updateListingReportStatusAction(reportId: string, status: ListingReportStatus) {
+  // Work Package I.9A — closes a real, confirmed authorization gap: this staff-only mutation had
+  // no permission check at all, unlike its siblings below (`setListingPublishedAction`,
+  // `deleteListingAction`), even though `leonixAdminGate.ts`'s own header comment already
+  // documented `can_manage_reports -> updateListingReportStatusAction` as the intended gate.
+  await requireLeonixAdminPermission("can_manage_reports");
   const supabase = getAdminSupabase();
   const { error } = await supabase.from("listing_reports").update({ status }).eq("id", reportId);
   if (error) throw new Error(error.message);

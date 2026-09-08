@@ -23,6 +23,17 @@ import { RESTAURANTE_PENDING_CHECKOUT_STATUS } from "@/app/lib/listingPlans/reve
 import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
 import { resolveRestauranteOwnerEditTargetStatus } from "@/app/lib/clasificados/restaurantes/restauranteOwnerEditStatusAuthority";
+import { coerceRestauranteImageRefToString } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
+import {
+  collectRestauranteExternalVideoUrls,
+  isValidRestauranteExternalVideoUrl,
+  trimRestauranteVideoUrl,
+  RESTAURANTE_MAX_EXTERNAL_VIDEO_URLS,
+} from "@/app/lib/clasificados/restaurantes/restauranteVideoUrls";
+import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
+
+/** Gallery cap mirrors MAX_GALLERY in RestaurantePublishMediaStrip.tsx:29 (local, unexported). */
+const RESTAURANTE_GALLERY_MAX = 24;
 
 function isUniqueViolation(err: { code?: string; message?: string } | null | undefined): boolean {
   return err?.code === "23505" || /duplicate key|unique constraint/i.test(err?.message ?? "");
@@ -253,6 +264,36 @@ export async function POST(req: Request) {
       mediaAudit,
       mediaDebug: mediaSafe,
     }, { status: 422 });
+  }
+
+  // Globalization Package B (Gate B6) — shared media contract, additive server-side gate. The
+  // real minimum-image truth already ran above (satisfiesRestauranteMinimumValidPreview /
+  // hasRestauranteMinimumPublishImage, which treats hero-OR-gallery as satisfying "at least one
+  // photo") — minImages stays 0 here so this check never duplicates or contradicts that proven
+  // rule. Gallery is already capped at RESTAURANTE_GALLERY_MAX client-side, and
+  // collectRestauranteExternalVideoUrls() already validates/dedupes/caps video URLs using this
+  // category's own validator — this is the authoritative last-line max/video truth for this
+  // single, real save boundary (new listings and listing-edit both route through this handler).
+  const restauranteHeroUrl = coerceRestauranteImageRefToString(draft.heroImage);
+  const restauranteGalleryUrls = (draft.galleryImages ?? [])
+    .map((ref) => coerceRestauranteImageRefToString(ref))
+    .filter((u): u is string => Boolean(u));
+  const restauranteFinalMedia = buildProposedFinalMediaSet({
+    existing: [...(restauranteHeroUrl ? [restauranteHeroUrl] : []), ...restauranteGalleryUrls],
+    externalVideoUrls: collectRestauranteExternalVideoUrls(draft),
+  });
+  const restauranteMediaValidation = validateProposedFinalMediaSet(restauranteFinalMedia, {
+    minImages: 0,
+    maxImages: RESTAURANTE_GALLERY_MAX,
+    logoAllowed: false,
+    maxExternalVideos: RESTAURANTE_MAX_EXTERNAL_VIDEO_URLS,
+    normalizeExternalVideoUrl: (url) => (isValidRestauranteExternalVideoUrl(url) ? trimRestauranteVideoUrl(url) : null),
+  });
+  if (!restauranteMediaValidation.ok) {
+    return NextResponse.json(
+      { ok: false, error: "media_invalid", issues: restauranteMediaValidation.issues },
+      { status: 422 },
+    );
   }
 
   if (!isSupabaseAdminConfigured()) {

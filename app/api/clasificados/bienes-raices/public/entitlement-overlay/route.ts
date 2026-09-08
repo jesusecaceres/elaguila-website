@@ -5,6 +5,7 @@ import {
   packageEntitlementGrantsResultsPriority,
   resolveListingPlacementEntitlement,
 } from "@/app/lib/listingPlans/listingPackageEntitlementPlacement";
+import { resolveCanonicalPlacementRankWeights } from "@/app/lib/listingPlans/placementResultsOverlay";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,8 @@ type OverlayBadge = {
   grantsResultsPriority: boolean;
   digitalPlacementPriority: number | null;
   printPlacementType: string | null;
+  /** Package D Build D3, Gate 1 — canonical leonix_placement_entitlements weight, when active. */
+  canonicalPlacementRankWeight?: number | null;
 };
 
 /**
@@ -56,28 +59,43 @@ export async function POST(req: NextRequest) {
       listingSource: BR_LISTING_SOURCE,
     });
 
+    // Package D Build D3, Gate 1 — canonical leonix_placement_entitlements weight, batched.
+    // Callers gate this to `negocio`-lane rows before use; this route itself does not know seller
+    // lane, so it simply reports what's active for the exact listingId (a Privado listing_id would
+    // never have a real row here anyway, since it's never written for a Privado listing).
+    const canonicalWeights = await resolveCanonicalPlacementRankWeights(
+      listingIds.map((id) => ({ id })),
+      { category: BR_CATEGORY, surface: "category_results" },
+    );
+
     const byListingId: Record<string, OverlayBadge> = {};
     for (const id of listingIds) {
       const ent = lookup.byListingId.get(id) ?? null;
-      if (!ent) continue;
-      const summary = resolveListingPlacementEntitlement({
-        category: BR_CATEGORY,
-        listing: {
-          id,
-          package_entitlement_tier: ent.tier,
-          starts_at: ent.startsAt,
-          ends_at: ent.endsAt,
-        },
-      });
+      const canonicalWeight = canonicalWeights.get(id) ?? null;
+      if (!ent && canonicalWeight == null) continue;
+
+      const summary = ent
+        ? resolveListingPlacementEntitlement({
+            category: BR_CATEGORY,
+            listing: {
+              id,
+              package_entitlement_tier: ent.tier,
+              starts_at: ent.startsAt,
+              ends_at: ent.endsAt,
+            },
+          })
+        : null;
+
       byListingId[id] = {
-        tier: ent.tier,
-        startsAt: ent.startsAt,
-        endsAt: ent.endsAt,
-        grantsDestacado: packageEntitlementGrantsDestacado(summary),
-        grantsResultsPriority: packageEntitlementGrantsResultsPriority(summary),
+        tier: ent?.tier ?? "none",
+        startsAt: ent?.startsAt ?? "",
+        endsAt: ent?.endsAt ?? "",
+        grantsDestacado: summary ? packageEntitlementGrantsDestacado(summary) : false,
+        grantsResultsPriority: summary ? packageEntitlementGrantsResultsPriority(summary) : false,
         digitalPlacementPriority:
-          typeof ent.digitalPlacementPriority === "number" ? ent.digitalPlacementPriority : null,
-        printPlacementType: ent.printPlacementType ?? null,
+          typeof ent?.digitalPlacementPriority === "number" ? ent.digitalPlacementPriority : null,
+        printPlacementType: ent?.printPlacementType ?? null,
+        canonicalPlacementRankWeight: canonicalWeight,
       };
     }
 

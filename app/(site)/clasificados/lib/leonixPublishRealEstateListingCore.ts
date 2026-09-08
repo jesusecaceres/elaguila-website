@@ -522,6 +522,24 @@ export async function publishLeonixRealEstateListingCore(
           .maybeSingle()
       : { data: null, error: null };
 
+  // Globalization Package A Gate 3 — a failed reuse lookup is a HARD STOP, never a silent
+  // fall-through to INSERT. This closes the ledger's long-open "Rentas duplicate-row
+  // protection gap": a transient lookup error previously caused a brand-new row to be
+  // inserted alongside the still-existing pending row (same fail-closed rule Gate I.6C
+  // already applied to Quick Clasificados identity verification). The rule applies
+  // identically to the shared Bienes Raíces Negocio branch — reuse-vs-insert is only ever
+  // decided on a successful lookup; the success path is unchanged.
+  if (reusableRealEstatePending.error) {
+    devLog("pending-reuse lookup error — failing closed, no insert", reusableRealEstatePending.error);
+    return {
+      ok: false,
+      error:
+        lang === "es"
+          ? "No se pudo verificar tu anuncio pendiente. Inténtalo de nuevo — no se creó un anuncio duplicado."
+          : "Could not verify your pending listing. Please try again — no duplicate listing was created.",
+    };
+  }
+
   const reusablePendingId =
     !reusableRealEstatePending.error && typeof reusableRealEstatePending.data?.id === "string"
       ? reusableRealEstatePending.data.id

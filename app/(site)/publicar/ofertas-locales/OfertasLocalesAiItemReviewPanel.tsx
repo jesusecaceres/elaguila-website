@@ -7,6 +7,7 @@ import {
 } from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewClient";
 import {
   getOfertaLocalActiveScanCopy,
+  formatOfertaLocalPersistedScanProgress,
   inferScanningAssetId,
   isOfertaLocalActiveReviewStatus,
   isOfertaLocalScanJobActive,
@@ -23,6 +24,8 @@ import {
   resolveItemCropListStatus,
   summarizeScopedItemReviewCounts,
 } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
+import { normalizeOfertaLocalPrice } from "@/app/lib/ofertas-locales/ofertasLocalesPriceNormalization";
+import { getOfertaProductBilingualCategoryDisplay } from "@/app/lib/ofertas-locales/ofertasLocalesProductTaxonomy";
 import type { ClipReviewViewerItem } from "./OfertasClipReviewViewer";
 import type { OfertaLocalSourceFileRole } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
 import type {
@@ -47,6 +50,9 @@ const BTN_FILTER =
   "min-h-10 rounded-full border px-3 py-2 text-[10px] font-semibold uppercase tracking-wide";
 const BTN_PRIMARY_LG =
   "min-h-12 w-full rounded-lg bg-[#7A1E2C] px-4 py-3 text-sm font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-45";
+// Page-complete / review-complete progression only — never the main product action.
+const BTN_SUCCESS_LG =
+  "min-h-12 w-full rounded-lg bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-45";
 const BTN_NAV =
   "min-h-9 rounded-lg border border-[#D4C4A8] bg-white px-2.5 py-1.5 text-[10px] font-medium text-[#1E1814] hover:border-[#7A1E2C]/40 disabled:cursor-not-allowed disabled:opacity-45";
 const BTN_DANGER =
@@ -83,6 +89,8 @@ export type OfertaLocalAiReviewGateState = {
   approvedCount: number;
   rejectedCount: number;
   reviewLaterCount: number;
+  scanTotalPages: number | null;
+  scanCompletedPages: number | null;
 };
 
 export type OfertaLocalReviewViewerBridge = {
@@ -116,6 +124,7 @@ type Props = {
   }) => void;
   onAssetTabStatuses?: (statuses: Record<string, string>) => void;
   onViewerBridge?: (bridge: OfertaLocalReviewViewerBridge) => void;
+  onContinueToNextStep?: () => void;
   clipInspectorSlot?: ReactNode;
 };
 
@@ -223,10 +232,16 @@ function sourceRoleText(role: OfertaLocalSourceFileRole | null, lang: OfertasLoc
 }
 
 function patchFromDraft(draft: ItemDraft, isCouponMode: boolean, reviewStatus?: OfertaLocalItemReviewStatus) {
+  const normalizedPrice = normalizeOfertaLocalPrice({
+    priceText: draft.priceText,
+    priceAmount: draft.priceAmount.trim() ? draft.priceAmount : null,
+    manual: true,
+  });
   return {
     itemName: draft.itemName,
     priceText: draft.priceText,
-    priceAmount: draft.priceAmount.trim() ? Number(draft.priceAmount) : null,
+    priceAmount: normalizedPrice.amount,
+    priceAmountCents: normalizedPrice.amountCents,
     regularPriceText: draft.regularPriceText,
     unit: draft.unit,
     category: draft.category,
@@ -315,6 +330,11 @@ function ItemReviewCard({
   const [ocrOpen, setOcrOpen] = useState(false);
   const [commerceOpen, setCommerceOpen] = useState(false);
   const ocrContext = item.sourceContext?.trim();
+  const categoryTaxonomyDisplay = getOfertaProductBilingualCategoryDisplay(
+    draftFields.category,
+    lang,
+    item.subcategory
+  );
   const cardClass = compact
     ? "rounded-lg border border-[#D4C4A8]/70 bg-white px-3 py-2.5 shadow-sm"
     : CARD;
@@ -412,6 +432,13 @@ function ItemReviewCard({
               onChange={(e) => onFieldChange("category", e.target.value)}
             />
           </label>
+        ) : null}
+        {!isCouponMode && categoryTaxonomyDisplay.matched ? (
+          <p className="text-[10px] leading-relaxed text-[#1E1814]/55">
+            <span aria-hidden="true">{categoryTaxonomyDisplay.emoji} </span>
+            {categoryTaxonomyDisplay.primary}
+            {categoryTaxonomyDisplay.secondary ? ` · ${categoryTaxonomyDisplay.secondary}` : ""}
+          </p>
         ) : null}
         <label className="block text-[10px] font-semibold uppercase text-[#1E1814]/55">
           {isCouponMode ? c.aiReviewTerms : c.aiReviewDescription}
@@ -585,6 +612,7 @@ export function OfertasLocalesAiItemReviewPanel({
   onScopeChange,
   onAssetTabStatuses,
   onViewerBridge,
+  onContinueToNextStep,
   clipInspectorSlot,
 }: Props) {
   const c = ofertasLocalesAppCopy(lang);
@@ -663,6 +691,8 @@ export function OfertasLocalesAiItemReviewPanel({
       approvedCount: 0,
       rejectedCount: 0,
       reviewLaterCount: 0,
+      scanTotalPages: null,
+      scanCompletedPages: null,
     });
     onScopeChange?.({
       scanActiveForAsset: false,
@@ -819,6 +849,7 @@ export function OfertasLocalesAiItemReviewPanel({
   const scanJobStillActive = highlightedScanJob
     ? isOfertaLocalScanJobActive(highlightedScanJob.status)
     : false;
+  const persistedProgressLabel = formatOfertaLocalPersistedScanProgress(highlightedScanJob, lang);
 
   const scanActiveForAsset = Boolean(
     selectedSourceAssetId &&
@@ -1174,12 +1205,17 @@ export function OfertasLocalesAiItemReviewPanel({
       setActiveQueueOpen(false);
       return;
     }
-    if (selectedItemId && !queueItems.some((item) => item.id === selectedItemId)) {
+    // A deliberately reopened approved/rejected item is legitimate (⚠️31) — it
+    // lives in pageFilteredItems (all statuses on this page) but never in
+    // queueItems (active/non-terminal only), so the orphan check below must
+    // use the wider list. Only a genuinely gone item (removed from the page
+    // entirely) should trigger the default-item fallback.
+    if (selectedItemId && !pageFilteredItems.some((item) => item.id === selectedItemId)) {
       setSelectedItemId(pickDefaultOfertaLocalReviewItemId(queueItems));
     } else if (!selectedItemId && queueItems.length > 0) {
       setSelectedItemId(pickDefaultOfertaLocalReviewItemId(queueItems));
     }
-  }, [selectionContext, queueItems, selectedItemId]);
+  }, [selectionContext, queueItems, pageFilteredItems, selectedItemId]);
 
   const focusIndex = useMemo(() => {
     if (!selectedItemId) return 0;
@@ -1217,8 +1253,6 @@ export function OfertasLocalesAiItemReviewPanel({
       setPageBlockMessage(null);
     }
   }, [currentPageSummary?.needsReview, currentPageSummary?.page]);
-
-  const focusedPageItems = useMemo(() => queueItems, [queueItems]);
 
   const selectedAssetFileLabel = useMemo(() => {
     if (!selectedSourceAssetId || !draft) return "";
@@ -1279,12 +1313,15 @@ export function OfertasLocalesAiItemReviewPanel({
       approvedCount: gateItems.filter((item) => item.reviewStatus === "approved").length,
       rejectedCount: gateItems.filter((item) => item.reviewStatus === "rejected").length,
       reviewLaterCount: gateItems.filter((item) => item.reviewStatus === "needs_review").length,
+      scanTotalPages: highlightedScanJob?.totalPages ?? null,
+      scanCompletedPages: highlightedScanJob?.completedPages ?? null,
     });
   }, [
     activeScanJobId,
     allCurrentScanItems,
     displayItems,
     hasActiveSourceAsset,
+    highlightedScanJob,
     isWorkspace,
     onReviewGateChange,
     selectedSourceAssetId,
@@ -1295,8 +1332,12 @@ export function OfertasLocalesAiItemReviewPanel({
     formPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [selectedItemId, isWorkspace]);
 
+  // Summary boxes must reflect the WHOLE current scan ("Escaneo actual: N"),
+  // not just the current page's still-unresolved queue — otherwise a fully
+  // reviewed page shows a false all-zero breakdown even though real
+  // approved/rejected counts exist elsewhere in the same scan.
   const countLabels = useMemo(() => {
-    const scoped = isWorkspace ? summarizeScopedItemReviewCounts(displayItems) : summary;
+    const scoped = isWorkspace ? summarizeScopedItemReviewCounts(allCurrentScanItems) : summary;
     if (!scoped) return null;
     return [
       { key: "pending" as const, label: c.aiReviewCountPending, count: scoped.pending },
@@ -1304,7 +1345,7 @@ export function OfertasLocalesAiItemReviewPanel({
       { key: "approved" as const, label: c.aiReviewCountApproved, count: scoped.approved },
       { key: "rejected" as const, label: c.aiReviewCountRejected, count: scoped.rejected },
     ];
-  }, [summary, c, isWorkspace, displayItems]);
+  }, [summary, c, isWorkspace, allCurrentScanItems]);
 
   const filterButtons: { key: ReviewFilter; label: string }[] = [
     { key: "all", label: c.aiReviewFilterAll },
@@ -1440,14 +1481,27 @@ export function OfertasLocalesAiItemReviewPanel({
               <li key={job.id}>
                 {lang === "en" ? "Scan" : "Escaneo"} {job.status} · {job.itemsExtractedCount}{" "}
                 {lang === "en" ? "items" : "artículos"}
+                {job.totalPages > 0 ? (
+                  <>
+                    {" "}
+                    · {job.completedPages}/{job.totalPages} {lang === "en" ? "pages completed" : "páginas completas"}
+                  </>
+                ) : null}
+                {job.failedPages > 0 ? (
+                  <>
+                    {" "}
+                    · {job.failedPages} {lang === "en" ? "failed page" : "página fallida"}
+                  </>
+                ) : null}
               </li>
             ))}
           </ul>
         ) : null}
       </div>
       <button type="button" className={BTN_SECONDARY} disabled={loading} onClick={() => void loadItems()}>
-        {loading ? c.aiReviewRefreshing : c.aiReviewRefresh}
+        {loading ? c.aiReviewRefreshing : scanCopy.refreshNow}
       </button>
+      <p className="text-[10px] text-[#1E1814]/55">{scanCopy.refreshBackupHint}</p>
     </div>
   ) : (
     <div className="space-y-1">
@@ -1456,6 +1510,11 @@ export function OfertasLocalesAiItemReviewPanel({
           {scanCopy.currentScan}: {isWorkspace ? allCurrentScanItems.length : displayItems.length}
           {previousScanItems.length > 0 ? ` · ${scanCopy.previousScans}: ${previousScanItems.length}` : ""}
         </p>
+        {persistedProgressLabel ? (
+          <p className="text-xs font-medium text-[#7A1E2C]" aria-live="polite">
+            {persistedProgressLabel}
+          </p>
+        ) : null}
         <button
           type="button"
           className={BTN_SECONDARY}
@@ -1473,7 +1532,7 @@ export function OfertasLocalesAiItemReviewPanel({
     <div
       className={
         isWorkspace
-          ? "flex min-h-0 flex-col rounded-2xl border border-[#D4C4A8]/80 bg-[#FFFCF7] shadow-sm xl:h-full xl:max-h-[calc(100vh-5.5rem)] xl:overflow-hidden"
+          ? "flex min-h-0 flex-col rounded-2xl border border-[#D4C4A8]/80 bg-[#FFFCF7] shadow-sm"
           : "space-y-4 rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0] p-4"
       }
     >
@@ -1530,7 +1589,15 @@ export function OfertasLocalesAiItemReviewPanel({
           </p>
         ) : null}
 
-        {!loading && !error && displayItems.length === 0 ? (
+        {/* Genuinely-empty check: in workspace mode this must ask whether the WHOLE
+            current scan is empty, not whether the current page's remaining queue is
+            empty — a fully-reviewed page (a success state) must never render as
+            "no suggestions found" merely because displayItems (the page's active
+            queue) is temporarily empty. Non-workspace mode is unaffected — its
+            displayItems is not page/queue-narrowed. */}
+        {!loading &&
+        !error &&
+        (isWorkspace ? allCurrentScanItems.length === 0 : displayItems.length === 0) ? (
           <p className="text-xs text-[#1E1814]/60">
             {scanActiveForAsset
               ? scanCopy.scanInProgressEmpty
@@ -1588,9 +1655,7 @@ export function OfertasLocalesAiItemReviewPanel({
                   </p>
                   <p className="mt-1 text-xs text-[#1E1814]/65">
                     {currentPageSummary.needsReview > 0
-                      ? lang === "en"
-                        ? `You still have ${currentPageSummary.needsReview} product(s) to review on this page.`
-                        : `Todavía tienes ${currentPageSummary.needsReview} producto(s) por revisar en esta página.`
+                      ? c.aiReviewPageInstruction
                       : lang === "en"
                         ? "This page is complete."
                         : "Esta página está completa."}
@@ -1600,30 +1665,6 @@ export function OfertasLocalesAiItemReviewPanel({
                       {pageBlockMessage}
                     </p>
                   ) : null}
-                  {allPagesComplete ? (
-                    <p className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-900">
-                      {c.aiReviewAllPagesComplete}
-                    </p>
-                  ) : null}
-                  <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <button
-                      type="button"
-                      className={BTN_PRIMARY}
-                      disabled={currentPageSummary.needsReview > 0 || !nextPageSummary}
-                      onClick={proceedToNextPage}
-                    >
-                      {nextPageSummary
-                        ? formatReviewCopy(c.aiReviewContinueToPage, { page: nextPageSummary.page })
-                        : c.aiReviewAllPagesComplete}
-                    </button>
-                    {currentPageSummary.needsReview > 0 ? (
-                      <p className="text-xs font-medium text-red-800">
-                        {lang === "en"
-                          ? "Approve or reject every item on this page to continue."
-                          : "Aprueba o rechaza cada producto de esta página para continuar."}
-                      </p>
-                    ) : null}
-                  </div>
                 </div>
               ) : null}
             </div>
@@ -1651,6 +1692,47 @@ export function OfertasLocalesAiItemReviewPanel({
                   onSave={() => void handleSave(focusedItem.id)}
                   onStatus={(status) => void handleStatusAction(focusedItem.id, status)}
                 />
+              ) : isWorkspace && currentPageSummary && currentPageSummary.needsReview === 0 ? (
+                // ⚠️66: the current page has nothing left to review — this is
+                // the primary "work area" the advertiser has been looking at,
+                // so it must state the completed page/review state and the
+                // next action here, not leave a one-line placeholder while the
+                // real progression cue sits in a small box further down.
+                allPagesComplete ? (
+                  <div className="rounded-xl border border-emerald-300/80 bg-emerald-50 px-4 py-5">
+                    <p className="text-base font-semibold text-emerald-950">{c.aiReviewCompleteTitle}</p>
+                    <p className="mt-1 text-sm font-medium text-emerald-900">
+                      {formatReviewCopy(c.step5ReviewCompleteCount, { count: allCurrentScanItems.length })}
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-emerald-900">
+                      {formatReviewCopy(c.aiReviewCompletePagesCount, {
+                        completed: pageSummaries.filter((page) => page.needsReview === 0).length,
+                        total: pageSummaries.length,
+                      })}
+                    </p>
+                    <button
+                      type="button"
+                      className={`${BTN_SUCCESS_LG} mt-4`}
+                      onClick={() => onContinueToNextStep?.()}
+                    >
+                      {c.aiReviewContinueToNextStep}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-emerald-300/80 bg-emerald-50 px-4 py-5">
+                    <p className="text-base font-semibold text-emerald-950">
+                      {formatReviewCopy(c.aiReviewPageCompleteCheck, { page: currentPageSummary.page })}
+                    </p>
+                    <p className="mt-1 text-sm text-emerald-900">{c.aiReviewPageCompleteBody}</p>
+                    <p className="mt-1 text-xs font-medium text-emerald-900/80">
+                      {lang === "en" ? "Page" : "Página"} {currentPageSummary.page}{" "}
+                      {lang === "en" ? "of" : "de"} {pageSummaries.length}
+                    </p>
+                    <button type="button" className={`${BTN_SUCCESS_LG} mt-4`} onClick={proceedToNextPage}>
+                      {c.aiReviewContinueToPage}
+                    </button>
+                  </div>
+                )
               ) : (
                 <p className="text-xs text-[#1E1814]/60">
                   {lang === "en" ? "Select a product below to edit it." : "Selecciona un producto abajo para editarlo."}
@@ -1671,17 +1753,17 @@ export function OfertasLocalesAiItemReviewPanel({
                       type="button"
                       className={BTN_SECONDARY}
                       disabled={savingId === focusedItem.id}
-                      onClick={() => handleReviewLater(focusedItem.id)}
+                      onClick={() => void handleSave(focusedItem.id)}
                     >
-                      {c.aiReviewReviewLater}
+                      {c.aiReviewSaveEdits}
                     </button>
                     <button
                       type="button"
                       className={BTN_SECONDARY}
                       disabled={savingId === focusedItem.id}
-                      onClick={() => void handleSave(focusedItem.id)}
+                      onClick={() => handleReviewLater(focusedItem.id)}
                     >
-                      {c.aiReviewSaveEdits}
+                      {c.aiReviewReviewLater}
                     </button>
                   </div>
                   {reviewLaterHint ? (
@@ -1742,6 +1824,24 @@ export function OfertasLocalesAiItemReviewPanel({
                   )}
                 </div>
               ) : null}
+              {focusedItem && !isOfertaLocalActiveReviewStatus(focusedItem.reviewStatus) ? (
+                // Reopened approved/rejected item (⚠️31): editable and saveable, but the
+                // approve/review-later/reject/nav actions belong to the active-review flow
+                // only — re-running them here would invent a revision workflow the current
+                // API doesn't define. Saving preserves the current status unchanged because
+                // handleSave omits reviewStatus from the patch (see patchFromDraft).
+                <div className="mt-4 space-y-2">
+                  <p className="text-xs text-[#1E1814]/60">{c.aiReviewReopenedTerminalNote}</p>
+                  <button
+                    type="button"
+                    className={BTN_SECONDARY}
+                    disabled={savingId === focusedItem.id}
+                    onClick={() => void handleSave(focusedItem.id)}
+                  >
+                    {c.aiReviewSaveEdits}
+                  </button>
+                </div>
+              ) : null}
             </div>
             {clipInspectorSlot ? <div className="xl:hidden">{clipInspectorSlot}</div> : null}
             <div className="rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0] px-2.5 py-2">
@@ -1759,9 +1859,9 @@ export function OfertasLocalesAiItemReviewPanel({
               </p>
             </div>
             {queueItems.length === 0 ? (
-              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-900">
+              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-900">
                 {currentPageNumber != null
-                  ? formatReviewCopy(c.aiReviewPageComplete, { page: currentPageNumber })
+                  ? formatReviewCopy(c.aiReviewPageCompleteCheck, { page: currentPageNumber })
                   : c.aiReviewNoMoreItemsOnPage}
               </p>
             ) : (
@@ -1774,26 +1874,31 @@ export function OfertasLocalesAiItemReviewPanel({
             {isWorkspace && currentPageSummary ? (
               <div className="rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0] px-3 py-3">
                 {currentPageSummary.needsReview === 0 ? (
-                  <>
-                    <p className="text-sm font-semibold text-emerald-900">
-                      {formatReviewCopy(c.aiReviewPageComplete, { page: currentPageSummary.page })}
-                    </p>
-                    {allPagesComplete ? (
-                      <p className="mt-2 text-xs font-medium text-emerald-900/90">{c.aiReviewAllPagesComplete}</p>
-                    ) : nextPageSummary ? (
+                  allPagesComplete ? (
+                    <div className="rounded-xl border border-emerald-300/80 bg-emerald-50 px-4 py-4">
+                      <p className="text-base font-semibold text-emerald-950">{c.aiReviewCompleteTitle}</p>
+                      <p className="mt-1 text-sm text-emerald-900">{c.aiReviewCompleteBody}</p>
+                      <p className="mt-1 text-sm font-medium text-emerald-900">
+                        {formatReviewCopy(c.aiReviewCompletePagesCount, {
+                          completed: pageSummaries.filter((page) => page.needsReview === 0).length,
+                          total: pageSummaries.length,
+                        })}
+                      </p>
                       <button
                         type="button"
-                        className={`${BTN_PRIMARY} mt-3 w-full sm:w-auto`}
-                        onClick={proceedToNextPage}
+                        className={`${BTN_SUCCESS_LG} mt-4`}
+                        onClick={() => onContinueToNextStep?.()}
                       >
-                        {formatReviewCopy(c.aiReviewContinueToPage, { page: nextPageSummary.page })}
+                        {c.aiReviewContinueToNextStep}
                       </button>
-                    ) : null}
-                  </>
+                    </div>
+                  ) : nextPageSummary ? (
+                    <button type="button" className={BTN_SUCCESS_LG} onClick={proceedToNextPage}>
+                      {c.aiReviewContinueToPage}
+                    </button>
+                  ) : null
                 ) : (
-                  <p className="text-xs text-[#1E1814]/70">
-                    {formatReviewCopy(c.aiReviewItemsLeftOnPage, { count: currentPageSummary.needsReview })}
-                  </p>
+                  <p className="text-xs text-[#1E1814]/70">{c.aiReviewPageInstruction}</p>
                 )}
                 {pageBlockMessage ? (
                   <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-800">
@@ -1842,7 +1947,6 @@ export function OfertasLocalesAiItemReviewPanel({
                     }`}
                   >
                     {cropStatus === "crop" ? (
-                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={item.sourceCropUrl}
                         alt=""
@@ -1918,7 +2022,7 @@ export function OfertasLocalesAiItemReviewPanel({
       </div>
 
       {isWorkspace && displayItems.length > 0 ? (
-        <div className="px-3 pb-3 xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:overscroll-contain">
+        <div className="px-3 pb-3">
           {activeScanJobId && previousScanItems.length > 0 ? (
             <div className="border-t border-[#D4C4A8]/50 pt-3">
               <button

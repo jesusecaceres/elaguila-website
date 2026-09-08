@@ -6,6 +6,7 @@ import { FiHeart } from "react-icons/fi";
 import { trackListingLike } from "@/app/lib/clasificadosAnalytics";
 import { createSupabaseBrowserClient, getBrowserAuthUserForEngagement } from "@/app/lib/supabase/browser";
 import { formatEngagementWriteErrorForDev, logEngagementWriteFailure } from "@/app/lib/leonixEngagementClientDiagnostics";
+import { isSelfEngagement } from "@/app/lib/analytics/selfEngagementGuard";
 
 type Props = {
   listingId: string | null | undefined;
@@ -85,7 +86,11 @@ export function LeonixLikeButton({
   previewLabelMode = "preview",
 }: Props) {
   const effectiveId = (listingId ?? "").trim();
-  const allowEngage = persistEngagement !== false && Boolean(effectiveId);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const allowEngage =
+    persistEngagement !== false &&
+    Boolean(effectiveId) &&
+    !isSelfEngagement(currentUserId, ownerUserId ?? null);
   const [isLiked, setIsLiked] = useState(initialLiked);
   const [isLiking, setIsLiking] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -132,6 +137,7 @@ export function LeonixLikeButton({
       const sb = createSupabaseBrowserClient();
       const user = await getBrowserAuthUserForEngagement();
       if (cancelled) return;
+      setCurrentUserId(user?.id ?? null);
       if (userToggledRef.current) {
         if (!cancelled) setHydrated(true);
         return;
@@ -171,6 +177,7 @@ export function LeonixLikeButton({
       if (userToggledRef.current) return;
       void (async () => {
         const user = await getBrowserAuthUserForEngagement();
+        setCurrentUserId(user?.id ?? null);
         if (userToggledRef.current) return;
         if (user) {
           const { data: row } = await sb

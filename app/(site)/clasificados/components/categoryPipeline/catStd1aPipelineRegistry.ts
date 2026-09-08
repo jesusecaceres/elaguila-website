@@ -78,8 +78,10 @@ export const CAT_STD_1A_PIPELINES: readonly CatStd1aPipelineEntry[] = [
     landingRoute: "/clasificados/empleos",
     landingPageFile: "app/(site)/clasificados/empleos/page.tsx",
     landingClients: ["EmpleosLandingServer.tsx", "EmpleosLandingPageClient.tsx"],
-    resultsRoute: "/clasificados/empleos/results",
-    resultsAliasRoute: "/clasificados/empleos/resultados",
+    // I.7A — corrected: "resultados" is the real page file (resultsPageFile below); "/results" is
+    // only the compatibility re-export wrapper (Gate I.5.8). These two fields were reversed.
+    resultsRoute: "/clasificados/empleos/resultados",
+    resultsAliasRoute: "/clasificados/empleos/results",
     resultsPageFile: "app/(site)/clasificados/empleos/resultados/page.tsx (results/ re-exports)",
     resultsClients: ["EmpleosResultsView.tsx"],
     listingCards: ["EmpleosJobResultCard.tsx"],

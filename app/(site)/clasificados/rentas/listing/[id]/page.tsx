@@ -20,10 +20,21 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   const { copyLang: lang } = resolveClasificadosPublishLangFromSearchParams(sp);
   const live = await fetchRentasListingForPublicDetail(id, lang);
   const listing = live ?? (process.env.NODE_ENV !== "production" ? findRentasDemoListingById(id) : undefined);
-  if (!listing) return { title: "Rentas | Leonix" };
+  const canonical = `/clasificados/rentas/listing/${encodeURIComponent(id)}`;
+  if (!listing) return { title: "Rentas | Leonix", alternates: { canonical } };
+  const title = `${listing.title} — ${listing.rentDisplay} | Leonix`;
+  // Package F Build F2, Gate 7 (P1 SEO fix) — this page previously set no `alternates`/`openGraph`
+  // at all.
   return {
-    title: `${listing.title} — ${listing.rentDisplay} | Leonix`,
+    title,
     description: listing.addressLine,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description: listing.addressLine,
+      url: canonical,
+      images: listing.imageUrl ? [{ url: listing.imageUrl }] : undefined,
+    },
   };
 }
 

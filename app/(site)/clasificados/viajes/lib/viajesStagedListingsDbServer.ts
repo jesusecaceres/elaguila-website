@@ -102,8 +102,10 @@ export async function updateViajesStagedListingModeration(input: {
   if (input.lifecycle_status === "unpublished" || input.lifecycle_status === "rejected" || input.lifecycle_status === "expired") {
     patch.is_public = false;
   }
-  const { error } = await supabase.from("viajes_staged_listings").update(patch).eq("id", input.id);
+  const { data: updated, error } = await supabase.from("viajes_staged_listings").update(patch).eq("id", input.id).select("id");
   if (error) return { ok: false, error: error.message };
+  // Gate I.13A — a zero-row match must never be reported as success.
+  if (!updated || updated.length === 0) return { ok: false, error: "listing_not_found" };
   return { ok: true };
 }
 
@@ -191,7 +193,7 @@ export async function updateViajesStagedListingOwnerRevision(input: {
   if (!existing || existing.owner_user_id !== input.owner_user_id) return { ok: false, error: "forbidden" };
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("viajes_staged_listings")
     .update({
       title: input.title,
@@ -206,8 +208,14 @@ export async function updateViajesStagedListingOwnerRevision(input: {
       submitted_at: input.lifecycle_status === "submitted" ? now : existing.submitted_at,
       updated_at: now,
     })
-    .eq("id", input.id);
+    .eq("id", input.id)
+    .eq("owner_user_id", input.owner_user_id)
+    .select("id");
   if (error) return { ok: false, error: error.message };
+  // Gate I.13A — a zero-row match (row changed owner/id between the read above and this
+  // write) must never be reported as success; also narrows the write itself by owner_user_id
+  // rather than relying solely on the prior read for authorization.
+  if (!updated || updated.length === 0) return { ok: false, error: "forbidden" };
   return { ok: true, slug: existing.slug };
 }
 
@@ -220,7 +228,7 @@ export async function ownerResubmitViajesStagedListing(id: string, owner_user_id
   if (!allowed.includes(existing.lifecycle_status)) return { ok: false, error: "invalid_state" };
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("viajes_staged_listings")
     .update({
       lifecycle_status: "submitted",
@@ -228,7 +236,12 @@ export async function ownerResubmitViajesStagedListing(id: string, owner_user_id
       submitted_at: now,
       updated_at: now,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("owner_user_id", owner_user_id)
+    .select("id");
   if (error) return { ok: false, error: error.message };
+  // Gate I.13A — a zero-row match must never be reported as success; also narrows the
+  // write itself by owner_user_id rather than relying solely on the prior read.
+  if (!updated || updated.length === 0) return { ok: false, error: "forbidden" };
   return { ok: true, slug: existing.slug };
 }

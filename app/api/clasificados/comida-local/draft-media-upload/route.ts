@@ -9,6 +9,7 @@ import {
   validateComidaLocalImageRole,
 } from "@/app/lib/clasificados/comida-local/comidaLocalImageValidation";
 import type { ComidaLocalImageRole, ComidaLocalUploadedImage } from "@/app/lib/clasificados/comida-local/comidaLocalTypes";
+import { anonUploadPathSegment, applyAnonUploadSessionCookie, resolveAnonUploadSessionId } from "@/app/api/clasificados/_lib/anonUploadSession";
 
 export const runtime = "nodejs";
 
@@ -21,12 +22,11 @@ function sanitizeFilename(name: string): string {
   return base || "upload.jpg";
 }
 
-function ownerPathSegment(ownerUserId: string | null, draftListingId: string): string {
+function ownerPathSegment(ownerUserId: string | null, anonSessionId: string): string {
   if (ownerUserId) {
     return ownerUserId.replace(/[^a-zA-Z0-9-]+/g, "").slice(0, 36);
   }
-  const safeDraft = draftListingId.replace(/[^a-zA-Z0-9_-]+/g, "").slice(0, 80) || "anon";
-  return `anon-${safeDraft}`;
+  return anonUploadPathSegment(anonSessionId);
 }
 
 /**
@@ -85,7 +85,8 @@ export async function POST(req: NextRequest) {
   }
 
   const ownerUserId = await comidaLocalOwnerIdFromBearer(req);
-  const ownerSeg = ownerPathSegment(ownerUserId, draftListingId);
+  const anonSession = ownerUserId ? null : resolveAnonUploadSessionId(req);
+  const ownerSeg = ownerPathSegment(ownerUserId, anonSession?.id ?? "");
   const role = roleRaw as ComidaLocalImageRole;
   const originalName =
     file instanceof File && file.name ? sanitizeFilename(file.name) : "upload.jpg";
@@ -109,5 +110,7 @@ export async function POST(req: NextRequest) {
     uploadedAt: new Date().toISOString(),
   };
 
-  return NextResponse.json({ ok: true, image });
+  const res = NextResponse.json({ ok: true, image });
+  if (anonSession?.isNew) applyAnonUploadSessionCookie(res, anonSession.id);
+  return res;
 }

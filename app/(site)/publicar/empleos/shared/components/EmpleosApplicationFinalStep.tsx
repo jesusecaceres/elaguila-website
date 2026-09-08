@@ -61,6 +61,15 @@ type Props = {
   /** When true, publish button shows `publishWorkingLabel` instead of `copy.publishCta`. */
   publishWorking?: boolean;
   publishWorkingLabel?: string | null;
+  /**
+   * When false, hides the Publish and Save-draft buttons on this (raw form)
+   * screen entirely — only Preview shows. The actual Publish action then only
+   * exists on the Preview screen (Comunidad Gate 1 QA: the raw form's only
+   * final action should be "Vista previa"; automatic draft-session protection
+   * is unaffected — it runs independently of this button). Defaults to true —
+   * unchanged behavior for every existing caller.
+   */
+  showSecondaryActions?: boolean;
 };
 
 export function EmpleosApplicationFinalStep({
@@ -82,6 +91,7 @@ export function EmpleosApplicationFinalStep({
   publishErrorText,
   publishWorking,
   publishWorkingLabel,
+  showSecondaryActions = true,
 }: Props) {
   const [confirm1, setConfirm1] = useState(false);
   const [confirm2, setConfirm2] = useState(false);
@@ -215,16 +225,18 @@ export function EmpleosApplicationFinalStep({
           <button type="button" className={BTN_PREVIEW} disabled={previewDisabled} title={previewDisabled ? publishGateBlockedHint ?? undefined : undefined} onClick={() => void onVistaPrevia()}>
             {copy.previewCta}
           </button>
-          <button
-            type="button"
-            className={BTN_PUBLISH}
-            disabled={publishBtnDisabled}
-            title={publishTitleHint}
-            onClick={() => void onPublicar()}
-          >
-            {publishWorking && publishWorkingLabel ? publishWorkingLabel : copy.publishCta}
-          </button>
-          {saveDraftCta && onSaveDraft ? (
+          {showSecondaryActions ? (
+            <button
+              type="button"
+              className={BTN_PUBLISH}
+              disabled={publishBtnDisabled}
+              title={publishTitleHint}
+              onClick={() => void onPublicar()}
+            >
+              {publishWorking && publishWorkingLabel ? publishWorkingLabel : copy.publishCta}
+            </button>
+          ) : null}
+          {showSecondaryActions && saveDraftCta && onSaveDraft ? (
             <button
               type="button"
               className={BTN_PUBLISH}

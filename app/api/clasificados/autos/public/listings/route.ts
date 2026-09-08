@@ -10,6 +10,7 @@ import {
   packageEntitlementGrantsResultsPriority,
   resolveListingPlacementEntitlement,
 } from "@/app/lib/listingPlans/listingPackageEntitlementPlacement";
+import { resolveCanonicalPlacementRankWeights } from "@/app/lib/listingPlans/placementResultsOverlay";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ export async function GET() {
     listingSource: "autos_classifieds_listings",
   });
 
-  const listings = rows.map((row) => {
+  let listings = rows.map((row) => {
     const pub = autosClassifiedsRowToPublicListing(row);
     const ent = lookup.byListingId.get(row.id) ?? (row.leonix_ad_id ? lookup.byListingId.get(row.leonix_ad_id) : null) ?? null;
     if (ent) {
@@ -53,6 +54,23 @@ export async function GET() {
     }
     return pub;
   });
+
+  // Package D Build D3, Gate 1 — canonical leonix_placement_entitlements weight, dealer lane only.
+  // Autos Privado listings are never included in this lookup, so they can never receive a Dealer
+  // placement benefit regardless of what canonical rows exist.
+  const dealerListings = listings.filter((l) => l.sellerType === "dealer");
+  if (dealerListings.length > 0) {
+    const canonicalWeights = await resolveCanonicalPlacementRankWeights(dealerListings, {
+      category: "autos",
+      surface: "category_results",
+    });
+    if (canonicalWeights.size > 0) {
+      listings = listings.map((l) => {
+        const w = canonicalWeights.get(l.id);
+        return w != null ? { ...l, canonicalPlacementRankWeight: w } : l;
+      });
+    }
+  }
 
   return NextResponse.json({ ok: true, listings, configured: true });
 }

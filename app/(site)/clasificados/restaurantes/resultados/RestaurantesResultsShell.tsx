@@ -67,7 +67,7 @@ function labelForSvcParam(svc: string, lang: RestaurantesDiscoveryLang): string 
     case "events":
       return lang === "es" ? "Eventos" : "Events";
     case "meal_prep":
-      return lang === "es" ? "Meal prep" : "Meal prep";
+      return lang === "es" ? "Comida preparada" : "Meal prep";
     case "personal_chef":
       return lang === "es" ? "Chef privado" : "Personal chef";
     case "pop_up":
@@ -481,13 +481,22 @@ export function RestaurantesResultsShell({
             <label className="text-xs font-semibold text-[color:var(--lx-muted)]" htmlFor="rx-filter-country">
               {lang === "es" ? "País" : "Country"}
             </label>
+            {/* Gate I.13A — country is not yet stored on restaurantes listings (see
+                restaurantesDiscoveryContract.ts), so a non-default value here silently zeroed
+                results with no indication why. Locked to the real, supported value until the
+                publish field ships, per Objective G ("unsupported filters are hidden rather than
+                fake") — not a redesign, same control, same position. */}
             <input
               id="rx-filter-country"
-              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] px-3 py-2 text-sm outline-none focus:border-[#7A1E2C]/40 focus:ring-2 focus:ring-[#7A1E2C]/20"
-              defaultValue={parsed.country || LEONIX_LB_DEFAULT_COUNTRY}
-              key={`country-${parsed.country}`}
-              onBlur={(e) => pushState(mergeDiscovery(parsed, { country: e.target.value.trim(), page: 1 }))}
+              className="mt-2 min-h-[44px] w-full rounded-[12px] border border-[color:var(--lx-border)]/40 bg-[color:var(--lx-card)] px-3 py-2 text-sm outline-none focus:border-[#7A1E2C]/40 focus:ring-2 focus:ring-[#7A1E2C]/20 disabled:opacity-60"
+              value={LEONIX_LB_DEFAULT_COUNTRY}
+              disabled
+              readOnly
+              aria-describedby="rx-filter-country-note"
             />
+            <p id="rx-filter-country-note" className="mt-1 text-[11px] text-[color:var(--lx-muted)]">
+              {lang === "es" ? "Por ahora, solo Estados Unidos." : "US only for now."}
+            </p>
           </div>
           <div>
             <label className="text-xs font-semibold text-[color:var(--lx-muted)]" htmlFor="rx-filter-nbh">
@@ -527,7 +536,7 @@ export function RestaurantesResultsShell({
               <option value="delivery">{lang === "es" ? "Entrega a domicilio" : "Delivery"}</option>
               <option value="catering">{lang === "es" ? "Catering" : "Catering"}</option>
               <option value="events">{lang === "es" ? "Eventos" : "Events"}</option>
-              <option value="meal_prep">{lang === "es" ? "Meal prep" : "Meal prep"}</option>
+              <option value="meal_prep">{lang === "es" ? "Comida preparada" : "Meal prep"}</option>
               <option value="personal_chef">{lang === "es" ? "Chef privado" : "Personal chef"}</option>
             </select>
           </div>

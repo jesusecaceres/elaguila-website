@@ -10,9 +10,15 @@ import {
   OFERTAS_LOCALES_ADMIN_SELECT,
   parseOfertaLocalAdminMetadataFromInternalNotes,
   type OfertaLocalAdminRow,
+  type OfertaLocalPublicTermStatus,
 } from "./ofertasLocalesAdminHelpers";
-import { isOfertaLocalExpired } from "./ofertasLocalesFormatting";
+import {
+  isOfertaLocalExpired,
+  isOfertaLocalPublicTermActive,
+  isOfertaLocalPublicTermExpired,
+} from "./ofertasLocalesFormatting";
 import type { OfertaLocalPublishStatus } from "./ofertasLocalesTypes";
+import type { OfertaLocalOperationalStatus } from "./ofertasLocalesOperationalStatus";
 
 const ADMIN_REVIEW_PREFIX = "[admin_review]";
 
@@ -25,6 +31,7 @@ export const OFERTAS_LOCALES_OWNER_EDITABLE_STATUSES: readonly OfertaLocalPublis
 
 export type OfertaLocalOwnerListItem = {
   id: string;
+  leonixAdId: string | null;
   businessName: string;
   title: string;
   offerType: string;
@@ -35,12 +42,35 @@ export type OfertaLocalOwnerListItem = {
   displayStatus: string;
   validFrom: string;
   validUntil: string;
+  publishedAt: string | null;
+  expiresAt: string | null;
+  publicTermStatus: OfertaLocalPublicTermStatus;
+  publicTermDaysRemaining: number | null;
+  commercialProductKey: string | null;
+  commercialProductLabel: string | null;
+  commercialAmount: string | null;
+  commercialCurrency: string | null;
+  commercialDurationDays: number | null;
+  commercialAiIncluded: boolean;
+  paymentStatus: string;
+  paidAt: string | null;
+  entitlementStatus: string;
+  entitlementGrantedAt: string | null;
+  entitlementEndsAt: string | null;
+  partnerAssignmentId: string | null;
+  commercialEligibilitySource: string;
+  activeSourceAssetId: string | null;
+  publicSourceAssetId: string | null;
+  assetLifecycleStatus: string;
+  assetReplacementRequiredReview: boolean;
+  checkoutEligible: boolean;
   submittedAt: string;
   assetCount: number;
   wantsAiSearchableSpecials: boolean;
   featuredRequested: boolean;
   featuredPlacementScope: string | null;
   rejectionNote: string | null;
+  operationalStatus: OfertaLocalOperationalStatus;
   canEdit: boolean;
   publicResultsHref: string | null;
 };
@@ -55,6 +85,20 @@ export type OfertaLocalOwnerDetail = Omit<
   canEdit: boolean;
   isExpired: boolean;
   publicResultsHref: string | null;
+  checkoutEligible: boolean;
+  analytics?: {
+    views: number;
+    listingOpens: number;
+    productOpens: number;
+    productSearchClicks: number;
+    shares: number;
+    shoppingListAdds: number;
+    contactActions: number;
+    websiteClicks: number;
+    directionsClicks: number;
+    lastActivity: string | null;
+    unavailable: boolean;
+  };
 };
 
 export function ofertaLocalOwnerStatusLabel(
@@ -89,12 +133,18 @@ export function ofertaLocalOwnerStatusLabel(
 export function ofertaLocalOwnerStatusMessage(
   status: OfertaLocalPublishStatus,
   lang: "es" | "en",
-  rejectionNote: string | null
+  rejectionNote: string | null,
+  isExpired = false
 ): string {
   if (status === "pending_review" || status === "submitted" || status === "draft") {
     return lang === "es" ? "Tu oferta está en revisión." : "Your offer is under review.";
   }
   if (status === "approved") {
+    if (isExpired) {
+      return lang === "es"
+        ? "Tu oferta ya no está visible públicamente porque terminó el término público."
+        : "Your deal is no longer publicly visible because the public term ended.";
+    }
     return lang === "es" ? "Tu oferta fue aprobada." : "Your offer was approved.";
   }
   if (status === "rejected") {
@@ -142,7 +192,9 @@ function resolveDisplayStatus(
   row: OfertaLocalAdminRow,
   lang: "es" | "en"
 ): { displayStatus: string; isExpired: boolean } {
-  const expired = isOfertaLocalExpired(row.valid_until);
+  const expired = row.status === "approved"
+    ? isOfertaLocalPublicTermExpired(row.expires_at)
+    : isOfertaLocalExpired(row.valid_until);
   if (expired && row.status === "approved") {
     return { displayStatus: ofertaLocalOwnerStatusLabel("expired", lang, true), isExpired: true };
   }
@@ -164,10 +216,12 @@ export function mapOfertaLocalRowToOwnerListItem(
   const detail = mapOfertaLocalAdminRowToDetailVm(row);
   const metadata = parseOfertaLocalAdminMetadataFromInternalNotes(row.internal_notes);
   const rejectionNote = parseOfertaLocalOwnerSafeRejectionNote(row.internal_notes);
-  const { displayStatus, isExpired } = resolveDisplayStatus(row, lang);
+  const { isExpired } = resolveDisplayStatus(row, lang);
+  const termActive = isOfertaLocalPublicTermActive(row.published_at, row.expires_at);
 
   return {
     id: row.id,
+    leonixAdId: detail.leonixAdId,
     businessName: detail.businessName,
     title: detail.title,
     offerType: detail.offerType,
@@ -175,17 +229,46 @@ export function mapOfertaLocalRowToOwnerListItem(
     city: detail.city,
     zipCode: detail.zipCode,
     status: row.status,
-    displayStatus,
+    displayStatus: lang === "es" ? detail.operationalStatus.labelEs : detail.operationalStatus.labelEn,
     validFrom: detail.validFrom,
     validUntil: detail.validUntil,
+    publishedAt: detail.publishedAt,
+    expiresAt: detail.expiresAt,
+    publicTermStatus: detail.publicTermStatus,
+    publicTermDaysRemaining: detail.publicTermDaysRemaining,
+    commercialProductKey: detail.commercialProductKey,
+    commercialProductLabel: detail.commercialProductLabel,
+    commercialAmount: detail.commercialAmount,
+    commercialCurrency: detail.commercialCurrency,
+    commercialDurationDays: detail.commercialDurationDays,
+    commercialAiIncluded: detail.commercialAiIncluded,
+    paymentStatus: detail.paymentStatus,
+    paidAt: detail.paidAt,
+    entitlementStatus: detail.entitlementStatus,
+    entitlementGrantedAt: detail.entitlementGrantedAt,
+    entitlementEndsAt: detail.entitlementEndsAt,
+    partnerAssignmentId: detail.partnerAssignmentId,
+    commercialEligibilitySource: detail.commercialEligibilitySource,
+    activeSourceAssetId: detail.activeSourceAssetId,
+    publicSourceAssetId: detail.publicSourceAssetId,
+    assetLifecycleStatus: detail.assetLifecycleStatus,
+    assetReplacementRequiredReview: detail.assetReplacementRequiredReview,
+    checkoutEligible:
+      ["draft", "submitted", "pending_review", "rejected"].includes(row.status) &&
+      detail.commercialEligibilitySource !== "partner_courtesy" &&
+      detail.entitlementStatus !== "active" &&
+      detail.paymentStatus !== "paid",
     submittedAt: detail.submittedAt,
     assetCount: detail.flyerAssets.length + detail.couponAssets.length,
     wantsAiSearchableSpecials: metadata.wantsAiSearchableSpecials,
     featuredRequested: detail.featuredRequested,
     featuredPlacementScope: detail.featuredPlacementScope,
     rejectionNote,
-    canEdit: OFERTAS_LOCALES_OWNER_EDITABLE_STATUSES.includes(row.status),
-    publicResultsHref: publicResultsHrefForStatus(row.status, isExpired),
+    operationalStatus: detail.operationalStatus,
+    canEdit: detail.operationalStatus.editAllowed,
+    publicResultsHref: detail.operationalStatus.publicLinkAllowed
+      ? publicResultsHrefForStatus(row.status, isExpired || !termActive)
+      : null,
   };
 }
 
@@ -195,17 +278,77 @@ export function mapOfertaLocalRowToOwnerDetail(
 ): OfertaLocalOwnerDetail {
   const vm = mapOfertaLocalAdminRowToDetailVm(row);
   const rejectionNote = parseOfertaLocalOwnerSafeRejectionNote(row.internal_notes);
-  const { displayStatus, isExpired } = resolveDisplayStatus(row, lang);
+  const { isExpired } = resolveDisplayStatus(row, lang);
+  const termActive = isOfertaLocalPublicTermActive(row.published_at, row.expires_at);
   const { internalNotes: _i, ownerId: _o, ...safe } = vm;
 
   return {
     ...safe,
-    displayStatus,
-    statusMessage: ofertaLocalOwnerStatusMessage(row.status, lang, rejectionNote),
+    displayStatus: lang === "es" ? safe.operationalStatus.labelEs : safe.operationalStatus.labelEn,
+    statusMessage:
+      lang === "es"
+        ? safe.operationalStatus.explanationEs
+        : safe.operationalStatus.explanationEn,
     rejectionNote,
-    canEdit: OFERTAS_LOCALES_OWNER_EDITABLE_STATUSES.includes(row.status),
+    canEdit: safe.operationalStatus.editAllowed,
     isExpired,
-    publicResultsHref: publicResultsHrefForStatus(row.status, isExpired),
+    publicResultsHref: safe.operationalStatus.publicLinkAllowed
+      ? publicResultsHrefForStatus(row.status, isExpired || !termActive)
+      : null,
+    checkoutEligible:
+      ["draft", "submitted", "pending_review", "rejected"].includes(row.status) &&
+      safe.commercialEligibilitySource !== "partner_courtesy" &&
+      safe.entitlementStatus !== "active" &&
+      safe.paymentStatus !== "paid",
+  };
+}
+
+/**
+ * Reconstructs publish-wizard draft fields from a canonical owner row, for
+ * recovering an in-progress application when browser-local draft state is
+ * unavailable (different origin/device, or storage was cleared). Only
+ * returns fields that map 1:1 onto OfertaLocalDraft — the client is
+ * responsible for sanitizing flyerAssets/couponAssets the same way it
+ * sanitizes a locally-stored draft.
+ */
+export function mapOfertaLocalAdminRowToDraftRecoveryPatch(row: OfertaLocalAdminRow): Record<string, unknown> {
+  return {
+    offerType: row.offer_type || "",
+    businessCategory: row.business_category || "",
+    marketType: row.market_type || "",
+    customMarketType: row.custom_market_type || "",
+    businessName: row.business_name || "",
+    title: row.title || "",
+    description: row.description || "",
+    couponText: row.coupon_text || "",
+    flyerTitle: row.flyer_title || "",
+    validFrom: row.valid_from || "",
+    validUntil: row.valid_until || "",
+    address: row.address || "",
+    city: row.city || "",
+    state: row.state || "",
+    zipCode: row.zip_code || "",
+    serviceZipCodes: Array.isArray(row.service_zips) ? row.service_zips : [],
+    phone: row.phone || "",
+    whatsapp: row.whatsapp || "",
+    websiteUrl: row.website_url || "",
+    directionsUrl: row.directions_url || "",
+    facebookUrl: row.facebook_url || "",
+    instagramUrl: row.instagram_url || "",
+    tiktokUrl: row.tiktok_url || "",
+    youtubeUrl: row.youtube_url || "",
+    googleBusinessUrl: row.google_business_url || "",
+    googleReviewUrl: row.google_review_url || "",
+    yelpUrl: row.yelp_url || "",
+    membershipUrl: row.membership_url || "",
+    membershipNote: row.membership_note || "",
+    wantsAiSearchableSpecials: Boolean(row.wants_ai_searchable_specials),
+    wantsFeaturedPlacement: Boolean(row.wants_featured_placement),
+    featuredPlacementScope: row.featured_placement_scope || "none",
+    isFeaturedRequested: Boolean(row.is_featured_requested),
+    languageTags: Array.isArray(row.language_tags) ? row.language_tags : [],
+    flyerAssets: Array.isArray(row.flyer_assets) ? row.flyer_assets : [],
+    couponAssets: Array.isArray(row.coupon_assets) ? row.coupon_assets : [],
   };
 }
 

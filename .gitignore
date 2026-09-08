@@ -50,3 +50,7 @@ next-env.d.ts
 
 # Servicios local dev publish fallback (see serviciosDevPublishPersistence.ts)
 .servicios-dev-publishes.json
+
+.vapid-keys.local.json
+
+.env.local

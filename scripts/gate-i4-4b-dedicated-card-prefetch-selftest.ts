@@ -40,7 +40,10 @@ function countPrefetchFalse(text: string): number {
 for (const [name, text, expectedPerListingLinks] of [
   ["EnVentaListingManageCard.tsx", enVentaSrc, 5],
   ["LeonixRealEstateListingManageCard.tsx", brCardSrc, 3],
-  ["AutosClassifiedListingManageCard.tsx", autosCardSrc, 1],
+  // Package E Build E2, Gate 4 — added a real, confirmed-live Autos Privado Edit link
+  // (previously unwired), matching the same "add editHref prop, gate on it" pattern every
+  // other dedicated card already used. 1 -> 2, prefetch={false} on the new link too.
+  ["AutosClassifiedListingManageCard.tsx", autosCardSrc, 2],
   ["BrPropertyInventoryDashboardSection.tsx", brInventorySrc, 1],
 ] as const) {
   assert.match(text, /import Link from "next\/link";/, `${name} must still import next/link's <Link>`);
@@ -88,8 +91,11 @@ assert.match(brInventorySrc, /href=\{`\$\{leonixLiveAnuncioPath\(mainId\)\}\?lan
   const endIdx = misAnunciosSrc.indexOf(endMarker, startIdx);
   assert.ok(endIdx > startIdx, "the generic inline card's archive-button marker must still be present after its start");
   const block = misAnunciosSrc.slice(startIdx, endIdx + endMarker.length);
-  assert.equal(countLinks(block), 6, "the generic inline card must still render exactly 6 <Link> elements");
-  assert.equal(countPrefetchFalse(block), 6, "every one of the generic inline card's 6 links must have prefetch disabled");
+  // Package E Build E2, Gate 4 — added a real Edit link for Clases/Comunidad/Busco (the
+  // existing generic listings-table editor, previously unwired for these three categories;
+  // Mascotas still gets none, by design). 6 -> 7, prefetch={false} on the new link too.
+  assert.equal(countLinks(block), 7, "the generic inline card must still render exactly 7 <Link> elements");
+  assert.equal(countPrefetchFalse(block), 7, "every one of the generic inline card's 7 links must have prefetch disabled");
 }
 
 /* ------------------------------------------------------------------------------------------ *

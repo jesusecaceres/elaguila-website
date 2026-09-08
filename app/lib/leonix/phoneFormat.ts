@@ -9,13 +9,13 @@ export function stripPhoneDigits(value: string): string {
   return digits.slice(0, 10);
 }
 
-/** Display/input format: (xxx)xxx-xxxx */
+/** Display/input format: (XXX) XXX-XXXX — the approved shared Leonix phone syntax. */
 export function formatUsPhone(value: string): string {
   const d = stripPhoneDigits(value);
   if (d.length === 0) return "";
   if (d.length <= 3) return `(${d}`;
-  if (d.length <= 6) return `(${d.slice(0, 3)})${d.slice(3)}`;
-  return `(${d.slice(0, 3)})${d.slice(3, 6)}-${d.slice(6, 10)}`;
+  if (d.length <= 6) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
+  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6, 10)}`;
 }
 
 export function isValidUsPhone(value: string, options?: { required?: boolean }): boolean {
@@ -51,8 +51,8 @@ export function phoneTelHref(value: string): string {
 
 export function getPhoneValidationMessage(lang: LeadLang | string): string {
   return lang === "en"
-    ? "Enter a valid 10-digit US phone number, like (408)123-4567."
-    : "Ingresa un teléfono válido de 10 dígitos, como (408)123-4567.";
+    ? "Enter a valid 10-digit US phone number, like (408) 123-4567."
+    : "Ingresa un teléfono válido de 10 dígitos, como (408) 123-4567.";
 }
 
 /** Admin/export: show stored value formatted when possible. */

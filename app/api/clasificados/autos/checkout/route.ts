@@ -33,6 +33,8 @@ import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT, resolveDealerActiveVehicleLimit }
 import { listingHasActiveDealerInventoryPack } from "@/app/lib/clasificados/autos/autosDealerInventoryPackEntitlement";
 import { validateNegociosApplicationPublishInventory } from "@/app/lib/clasificados/autos/autosDealerInventoryApplicationPublishGuard";
 import { buildAutosListingApiErrorPayload } from "@/app/lib/clasificados/autos/autosPublishApiContract";
+import { requiresBaseCheckout } from "@/app/lib/listingPlans/revenueActiveEntitlementGuard";
+import { AUTOS_DEALER_MONTHLY_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,6 +43,12 @@ type Body = {
   listingId?: string;
   lang?: AutosClassifiedsLang;
   returnToListingId?: string;
+  /** Package C Build 1 — the confirm surface asks this route ONLY for QA/internal bypass
+   * publication; when no bypass applies it returns no_bypass_available WITHOUT creating a
+   * Stripe session, and the client proceeds to canonical Revenue OS checkout. This is the
+   * convergence handshake: the env-price Stripe branch below is legacy, retained for rollback
+   * only, and unreachable from the converged UI. */
+  bypassOnly?: boolean;
   /** Negocios QA bundle: additional inventory drafts to publish after main activates (bypass only). */
   additionalInventoryVehicles?: unknown[];
 };
@@ -194,7 +202,10 @@ export async function POST(request: Request) {
     }
 
     const vehicleLimit = resolveDealerActiveVehicleLimit(boostActive);
-    const dealerInventory = await getAutosDealerInventorySummaryForOwner(row.owner_user_id, { excludeListingId: row.id });
+    const dealerInventory = await getAutosDealerInventorySummaryForOwner(row.owner_user_id, {
+      excludeListingId: row.id,
+      groupScopeParent: row,
+    });
     const slotsNeeded = countApplicationInventoryVehicles(additionalDrafts.length);
     if (dealerInventory.activeCount + slotsNeeded > vehicleLimit) {
       return NextResponse.json(
@@ -252,6 +263,13 @@ export async function POST(request: Request) {
     });
   }
 
+  // Package C Build 1 — convergence handshake: no bypass applied, and the caller only wanted
+  // bypass evaluation. Return WITHOUT creating any Stripe session; the client proceeds to
+  // canonical Revenue OS checkout (server-owned matrix pricing, ledgers, consent).
+  if (body.bypassOnly === true) {
+    return NextResponse.json({ ok: false, error: "no_bypass_available" }, { status: 409 });
+  }
+
   if (row.lane === "negocios" && additionalDrafts.length > 0) {
     return NextResponse.json(
       {
@@ -281,6 +299,31 @@ export async function POST(request: Request) {
       );
     }
     return NextResponse.json({ ok: false, error: "stripe_not_configured" }, { status: 503 });
+  }
+
+  // Revenue OS active-entitlement guard — defense in depth for this legacy env-price Stripe
+  // branch (retained for rollback only; the converged UI proceeds to /api/revenue-os/checkout
+  // instead). A dealer parent listing can reach `payment_failed`/`pending_payment` here while its
+  // base entitlement is still within its grace period (listing row status and entitlement status
+  // are independent) — never let that combination create a second real Stripe charge.
+  if (row.lane === "negocios") {
+    const entitlementGuard = await requiresBaseCheckout({
+      listingId,
+      ownerId: userId,
+      category: "autos",
+      packageKey: AUTOS_DEALER_MONTHLY_PACKAGE_KEY,
+    });
+    if (!entitlementGuard.requiresCheckout) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "active_entitlement_no_recharge",
+          message:
+            "This dealer listing already has an active base package. No additional charge is required.",
+        },
+        { status: 409 },
+      );
+    }
   }
 
   const priceId = getStripePriceIdForAutosLane(row.lane);

@@ -1,8 +1,10 @@
+import { createOfertaLocalApplicationSessionId } from "./ofertasLocalesDraftIdentity";
 import type { OfertaLocalDraft } from "./ofertasLocalesTypes";
 
 /** Safe empty draft — no fake business names, prices, coupons, or flyer assets. */
 export function createEmptyOfertaLocalDraft(): OfertaLocalDraft {
   return {
+    applicationSessionId: createOfertaLocalApplicationSessionId(),
     primaryAdFormat: "",
     offerType: "",
     businessCategory: "",
@@ -58,5 +60,8 @@ export function createEmptyOfertaLocalDraft(): OfertaLocalDraft {
     magazineDistributionStatus: "not_offered",
     magazineMonthlyDropEstimate: "",
     internalNotes: "",
+    couponEntries: [],
+    couponsMoreOffersUrl: "",
+    couponsMoreOffersLabel: "",
   };
 }

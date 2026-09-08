@@ -21,6 +21,7 @@ import {
   type BrStripeLane,
 } from "@/app/lib/clasificados/bienes-raices/stripeBrConfig";
 import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { requiresBaseCheckout } from "@/app/lib/listingPlans/revenueActiveEntitlementGuard";
 
 export const dynamic = "force-dynamic";
 
@@ -127,6 +128,31 @@ export async function POST(request: Request) {
 
   if (!brPublishPaymentRequired(lane)) {
     return finishBrBypassCheckout({ listingId, lang: rowLang, returnQ, testPublish: false });
+  }
+
+  // Revenue OS active-entitlement guard — defense in depth. Mirrors the same guard added to the
+  // legacy Autos checkout route: a BR negocio parent listing can reach a payment-pending status
+  // here while its br_agent_monthly base entitlement is still within its grace period (the
+  // listing row's own status and the entitlement's status are independent), so never let that
+  // combination create a second real Stripe charge.
+  if (lane === "negocio") {
+    const entitlementGuard = await requiresBaseCheckout({
+      listingId,
+      ownerId: user.id,
+      category: "bienes-raices",
+      packageKey: "br_agent_monthly",
+    });
+    if (!entitlementGuard.requiresCheckout) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "active_entitlement_no_recharge",
+          message:
+            "This Bienes Raíces business listing already has an active base package. No additional charge is required.",
+        },
+        { status: 409 },
+      );
+    }
   }
 
   const priceId = getStripePriceIdForBrLane(lane);

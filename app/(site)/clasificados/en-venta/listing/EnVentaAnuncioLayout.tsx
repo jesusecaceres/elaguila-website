@@ -16,7 +16,7 @@ import {
   brLuxurySerifHeadingClass,
 } from "@/app/clasificados/bienes-raices/shared/brResultsTheme";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
-import { EnVentaCorreoModal } from "@/app/clasificados/en-venta/preview/EnVentaCorreoModal";
+import { LeonixCorreoLeadModal } from "@/app/clasificados/lib/LeonixCorreoLeadModal";
 import {
   buildCallIntent,
   buildDirectionsIntent,
@@ -45,6 +45,7 @@ import { EnVentaSellerPublicStats } from "./EnVentaSellerPublicStats";
 import { EnVentaItemSpecs } from "./EnVentaItemSpecs";
 import { EnVentaRelatedRail } from "./EnVentaRelatedRail";
 import { enVentaClassifiedAdJsonLd } from "../seo/enVentaJsonLd";
+import { breadcrumbJsonLd } from "@/app/lib/seo/breadcrumbJsonLd";
 import { RentasNegocioDesktopBusinessRail } from "@/app/clasificados/rentas/listing/components/RentasNegocioDesktopBusinessRail";
 import { BrLiveFactsStrip } from "@/app/clasificados/bienes-raices/listing/BrLiveFactsStrip";
 import { BrLiveDetailAnalyticsMount } from "@/app/clasificados/bienes-raices/listing/BrLiveDetailAnalyticsMount";
@@ -78,7 +79,11 @@ import {
   trackEnVentaContactClickGlobal,
   type EnVentaGlobalAnalyticsContext,
 } from "@/app/lib/clasificados/en-venta/analytics/enVentaGlobalAnalytics";
-import { trackListingSave, trackListingShare } from "@/app/lib/clasificadosAnalytics";
+import {
+  trackListingShare,
+  trackListingSaveToggleAuthed,
+} from "@/app/lib/analytics/client/listingEngagementRecorder";
+import { isSelfEngagement } from "@/app/lib/analytics/selfEngagementGuard";
 import {
   enVentaCategoryLine,
   enVentaConditionDisplay,
@@ -522,16 +527,26 @@ export function EnVentaAnuncioLayout({
       window.location.href = `/login?redirect=${encodeURIComponent(here)}`;
       return;
     }
+    if (isSelfEngagement(user.id, ownerId)) return;
+    const engagementCategory = surface === "en-venta" ? "en-venta" : "bienes-raices";
     if (saved) {
       await supabase.from("saved_listings").delete().eq("user_id", user.id).eq("listing_id", listing.id);
       setSaved(false);
-      void trackListingSave(listing.id, false, { ownerUserId: ownerId ?? undefined, category: surface === "en-venta" ? "en-venta" : "bienes-raices" });
+      void trackListingSaveToggleAuthed(
+        { sourceTable: "listings", sourceId: listing.id, category: engagementCategory },
+        false,
+        { eventSource: "detail" },
+      );
     } else {
       await supabase
         .from("saved_listings")
         .upsert({ user_id: user.id, listing_id: listing.id }, { onConflict: "user_id,listing_id" });
       setSaved(true);
-      void trackListingSave(listing.id, true, { ownerUserId: ownerId ?? undefined, category: surface === "en-venta" ? "en-venta" : "bienes-raices" });
+      void trackListingSaveToggleAuthed(
+        { sourceTable: "listings", sourceId: listing.id, category: engagementCategory },
+        true,
+        { eventSource: "detail" },
+      );
     }
   }, [listing.id, saved, ownerId, surface]);
 
@@ -564,13 +579,11 @@ export function EnVentaAnuncioLayout({
       trackBrListingShareGlobal(brAnalyticsCtx, shareMethod);
       return;
     }
-    void trackListingShare(listing.id, {
-      ownerUserId: ownerId ?? undefined,
-      eventSource: "detail",
+    trackListingShare(
+      { sourceTable: "listings", sourceId: listing.id, category: "en-venta" },
       shareMethod,
-      category: "en-venta",
-      metadata: { actorHint: user?.id ?? null },
-    });
+      { eventSource: "detail", metadata: { actorHint: user?.id ?? null } },
+    );
   }, [brAnalyticsCtx, lang, listing.id, listing.title, ownerId, premiumBr, surface]);
 
   const publicListingPath = useMemo(
@@ -587,6 +600,16 @@ export function EnVentaAnuncioLayout({
     priceLabel: listing.priceLabel[lang],
     city: listing.city,
   });
+
+  // Globalization Build 04, Gate 16 — mirrors the visible BR breadcrumb nav below (only rendered
+  // when premiumBr is true); no step this page doesn't already show.
+  const breadcrumb = premiumBr
+    ? breadcrumbJsonLd([
+        { name: lang === "es" ? "Clasificados" : "Classifieds", path: appendLangToPath("/clasificados", lang) },
+        { name: lang === "es" ? "Bienes Raíces" : "Real estate", path: appendLangToPath(BR_CATEGORY_HOME, lang) },
+        { name: listing.title[lang], path: `/clasificados/anuncio/${listing.id}` },
+      ])
+    : null;
 
   const posted = formatPostedAgo(listing.created_at ?? null, lang);
   const contactPrefs = enVentaLiveContactPrefs(contactChannel);
@@ -751,6 +774,9 @@ export function EnVentaAnuncioLayout({
       {premiumBr ? <BrLiveDetailAnalyticsMount {...brAnalyticsCtx} /> : null}
       <Navbar />
       <script type="application/ld+json" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      {breadcrumb ? (
+        <script type="application/ld+json" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
+      ) : null}
 
       <section
         className={
@@ -959,6 +985,7 @@ export function EnVentaAnuncioLayout({
                 listing={{
                   contact_phone: resolvedContact.phoneForTel,
                   contact_email: resolvedContact.emailForMailto,
+                  owner_id: ownerId,
                 }}
                 onRequestInfo={scrollToContact}
                 onScheduleVisit={scrollToContact}
@@ -1401,7 +1428,7 @@ export function EnVentaAnuncioLayout({
       ) : null}
 
       {email && !premiumBr ? (
-        <EnVentaCorreoModal
+        <LeonixCorreoLeadModal
           open={correoOpen}
           onClose={() => setCorreoOpen(false)}
           lang={lang}

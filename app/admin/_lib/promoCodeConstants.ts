@@ -62,15 +62,17 @@ export type PromoQuickPreset = {
 
 /**
  * Quick-create presets for Chuy so routine discount codes need no manual typing.
- * Only Restaurante (fully wired in Revenue OS checkout) and a general category-only
- * discount are enabled. Servicios / Bienes Raíces presets are shown as "coming later"
- * so the UI never fakes readiness for categories not yet wired end to end.
+ * The "Launch 25" (25% off) family has been retired and is shown but disabled —
+ * kept for historical reference only, never selectable. Servicios / Bienes Raíces
+ * presets are shown as "coming later" so the UI never fakes readiness for
+ * categories not yet wired end to end.
  */
 export const PROMO_CODE_QUICK_PRESETS: PromoQuickPreset[] = [
   { id: "custom", label: "Custom discount code" },
   {
     id: "restaurante_launch_25",
-    label: "Restaurante launch 25%",
+    label: "Restaurante launch 25% (Retired)",
+    disabled: true,
     fields: {
       code_type: "discount",
       promo_type: "percent_off",
@@ -84,7 +86,8 @@ export const PROMO_CODE_QUICK_PRESETS: PromoQuickPreset[] = [
   },
   {
     id: "restaurante_qa_25",
-    label: "Restaurante QA 25%",
+    label: "Restaurante QA 25% (Retired)",
+    disabled: true,
     fields: {
       code_type: "discount",
       promo_type: "percent_off",
@@ -100,7 +103,8 @@ export const PROMO_CODE_QUICK_PRESETS: PromoQuickPreset[] = [
   { id: "bienes_raices_launch_25", label: "Bienes Raíces negocio launch 25% (coming later)", disabled: true },
   {
     id: "general_launch_25",
-    label: "General launch discount (25%, any package)",
+    label: "General launch discount (25%, any package) (Retired)",
+    disabled: true,
     fields: {
       code_type: "discount",
       promo_type: "percent_off",
@@ -113,7 +117,8 @@ export const PROMO_CODE_QUICK_PRESETS: PromoQuickPreset[] = [
   },
   {
     id: "newsletter_launch_25",
-    label: "Newsletter launch 25% (draft — email send later)",
+    label: "Newsletter launch 25% (Retired)",
+    disabled: true,
     fields: {
       code_type: "newsletter",
       promo_type: "percent_off",

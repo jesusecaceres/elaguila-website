@@ -31,7 +31,7 @@ function run() {
   const packageJson = read("package.json");
 
   assert.match(extractor, /extractOfertasPageWithGemini/, "gemini page extractor helper");
-  assert.match(prompt, /big 8 with small 99/, "split visual price rules in prompt");
+  assert.match(prompt, /(big|large) 8 with small 99/i, "split visual price rules in prompt");
   assert.match(prompt, /2 FOR \$5/, "multi-buy rules in prompt");
   assert.match(validator, /rejectGeminiCandidateReason/, "candidate rejection helper");
   assert.match(validator, /repairGeminiCandidatePrice/, "gemini price repair helper");

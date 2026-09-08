@@ -184,8 +184,12 @@ check("Roster page: last-updated timestamp is now shown per roster row (desktop 
 
 // --- Attributable audit logging, not the legacy no-actor admin_audit_log --------------------------
 const legacyAuditText = read("app/admin/_lib/adminAuditLogServer.ts");
+// Strip comments before scanning for real code — main's own Package E Build E3, Gate 3 doc
+// comment on this file explains (correctly) that the table has no actor column, which itself
+// contains the word "actor" and would otherwise false-positive this check.
+const legacyAuditCodeOnly = legacyAuditText.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
 check("Confirms the documented root cause: the legacy admin_audit_log insert genuinely has no actor column, which is why a dedicated roster audit table with real FK-based actor attribution was required", () => {
-  assert.ok(!/actor|operator_email|auth_user_id/i.test(legacyAuditText), "if this ever gains an actor column, the roster audit design note in the migration should be revisited");
+  assert.ok(!/actor|operator_email|auth_user_id/i.test(legacyAuditCodeOnly), "if this ever gains an actor column, the roster audit design note in the migration should be revisited");
 });
 check("writeRosterAuditLog: writes actor_roster_id/actor_auth_user_id/actor_email/actor_role to admin_roster_audit_log only when a real roster identity is resolvable — never a placeholder or fabricated actor", () => {
   assert.ok(rosterAuditText.includes("actor_roster_id: actor.rosterId"));

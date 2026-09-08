@@ -10,7 +10,14 @@
  * exact one tested by the adjacent `gate-g2-3-*-br-lifecycle-*-selftest.ts` scripts.
  */
 
-export const BR_LIFECYCLE_MUTATION_KEYS = ["pause", "resume", "archive", "discontinue", "republish"] as const;
+export const BR_LIFECYCLE_MUTATION_KEYS = [
+  "pause",
+  "resume",
+  "archive",
+  "discontinue",
+  "republish",
+  "activate_pending",
+] as const;
 export type BrLifecycleMutationKey = (typeof BR_LIFECYCLE_MUTATION_KEYS)[number];
 
 export const BR_LIFECYCLE_AUTH_REQUIRED_ERROR = "br_lifecycle_auth_required" as const;
@@ -81,6 +88,18 @@ export function brPauseEligible(row: BrLifecycleRowForEligibility): boolean {
 
 export function brResumeEligible(row: BrLifecycleRowForEligibility): boolean {
   return row.status === "paused";
+}
+
+/**
+ * Package C Build 4 (C7, Gate 5) — a freshly-inserted BR negocio row whose insert-time payment
+ * was skipped (already covered by existing capacity, or a dev/QA payment bypass) lands as
+ * `status: "pending"`, never `"active"` (see the corrected insert path in
+ * `AgenteIndividualResidencialPreviewClient.tsx`). This is the one-time transition that turns
+ * that inert row live, capacity/lifecycle-checked by the same RPC as Resume — never Resume itself
+ * (which requires `"paused"`, a different prior state with different history).
+ */
+export function brActivatePendingEligible(row: BrLifecycleRowForEligibility): boolean {
+  return row.status === "pending";
 }
 
 export function brArchiveEligible(row: BrLifecycleRowForEligibility): boolean {

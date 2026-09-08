@@ -102,8 +102,8 @@ export async function hydrateRentasDashboardEditDraft(input: {
   listingId: string;
   lane: "privado" | "negocio";
 }): Promise<
-  | { ok: true; lane: "privado"; draft: RentasPrivadoFormState; leonixAdId: string | null }
-  | { ok: true; lane: "negocio"; draft: RentasNegocioFormState; leonixAdId: string | null }
+  | { ok: true; lane: "privado"; draft: RentasPrivadoFormState; leonixAdId: string | null; sourceUpdatedAt: string | null }
+  | { ok: true; lane: "negocio"; draft: RentasNegocioFormState; leonixAdId: string | null; sourceUpdatedAt: string | null }
   | { ok: false; message: string }
 > {
   const listingId = input.listingId.trim();
@@ -114,17 +114,21 @@ export async function hydrateRentasDashboardEditDraft(input: {
   if (!ownerId) return { ok: false, message: "Sign in required." };
   const { data, error } = await sb
     .from("listings")
-    .select("id, owner_id, title, description, city, state, zip, category, price, images, detail_pairs, contact_phone, contact_email, leonix_ad_id, seller_type, business_name")
+    // Package A closure — `updated_at` added so callers can anchor the local edit workspace
+    // to the row version it was hydrated from (draftWorkspaceContract Rule 3).
+    .select("id, owner_id, title, description, city, state, zip, category, price, images, detail_pairs, contact_phone, contact_email, leonix_ad_id, seller_type, business_name, updated_at")
     .eq("id", listingId)
     .eq("owner_id", ownerId)
     .eq("category", "rentas")
     .maybeSingle();
   if (error || !data?.id) return { ok: false, message: error?.message ?? "Rentas listing not found." };
-  const leonixAdId = trim((data as Record<string, unknown>).leonix_ad_id) || null;
+  const record = data as Record<string, unknown>;
+  const leonixAdId = trim(record.leonix_ad_id) || null;
+  const sourceUpdatedAt = trim(record.updated_at) || null;
   if (input.lane === "negocio") {
-    const draft = mapOwnedRentasListingToNegocioFormState(data as Record<string, unknown>);
-    return { ok: true, lane: "negocio", draft, leonixAdId };
+    const draft = mapOwnedRentasListingToNegocioFormState(record);
+    return { ok: true, lane: "negocio", draft, leonixAdId, sourceUpdatedAt };
   }
-  const draft = mapOwnedRentasListingToPrivadoFormState(data as Record<string, unknown>);
-  return { ok: true, lane: "privado", draft, leonixAdId };
+  const draft = mapOwnedRentasListingToPrivadoFormState(record);
+  return { ok: true, lane: "privado", draft, leonixAdId, sourceUpdatedAt };
 }

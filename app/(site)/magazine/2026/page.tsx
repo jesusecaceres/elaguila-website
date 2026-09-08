@@ -3,7 +3,7 @@
 // app/magazine/2026/page.tsx
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "../../../components/Navbar";
 
@@ -62,7 +62,7 @@ function safeYear(v: any): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-export default function Editions2026Page() {
+function Editions2026PageContent() {
   const params = useSearchParams()!;
   const lang = (params.get("lang") || "es") as Lang;
 
@@ -263,5 +263,13 @@ export default function Editions2026Page() {
         </div>
       </section>
     </main>
+  );
+}
+
+export default function Editions2026Page() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <Editions2026PageContent />
+    </Suspense>
   );
 }

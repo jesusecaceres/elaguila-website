@@ -49,6 +49,8 @@ export type {
   CanonicalCategoryKey,
   CanonicalDbCategory,
   CanonicalSourceTable,
+  CategoryLaneKey,
+  CategoryLaneRecord,
   CategoryRouteAdapter,
   InventoryChildIdentity,
   InventoryRole,
@@ -74,8 +76,12 @@ export type {
 
 export {
   CATEGORY_ROUTE_REGISTRY,
+  getAllCategoryLaneRecords,
+  getCategoryLaneRecordByKey,
+  getCategoryLaneRecords,
   getCategoryRouteAdapter,
   pipelineSupportsInventoryRole,
+  resolveCategoryLaneRecord,
 } from "./categoryRouteRegistry";
 export type { CategoryRouteRegistry } from "./categoryRouteRegistry";
 
@@ -133,3 +139,14 @@ export {
   mapAddonLifecycleStatusToPaidModuleState,
 } from "./businessProfileLifecycleAdapter";
 export type { BusinessProfileFamilyInput } from "./businessProfileLifecycleAdapter";
+
+/**
+ * Globalization P3 (Gate 1) — canonical shared preview-mode contract (new-publish / edit-draft /
+ * published-readonly). See previewModeContract.ts's own header for the full contract.
+ */
+export {
+  previewModeIsListingBound,
+  previewModeSuppressesBasePlanCheckout,
+  resolvePreviewMode,
+} from "./previewModeContract";
+export type { PreviewMode, PreviewModeInput } from "./previewModeContract";

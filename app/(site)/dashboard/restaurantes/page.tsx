@@ -1,23 +1,15 @@
 "use client";
 
-import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { mergeRestauranteDraft } from "@/app/clasificados/restaurantes/application/createEmptyRestauranteDraft";
 import { saveRestauranteDraftToStorageResolved } from "@/app/clasificados/restaurantes/application/restauranteDraftStorage";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
-import { fetchDashboardAnalyticsSummary } from "../lib/fetchDashboardAnalyticsApi";
-import { LeonixListingMetricsSummary } from "@/app/components/clasificados/analytics/LeonixListingMetricsSummary";
-import { DashboardCategoryListingCard } from "../components/DashboardCategoryListingCard";
-import { DashboardStatsCard } from "../components/DashboardStatsCard";
-import type { OwnerAnalyticsTotals } from "../lib/dashboardAnalyticsSummary";
-import type { ListingMetrics } from "@/app/lib/clasificadosAnalytics";
 import type { DashboardRestaurantRow } from "../lib/dashboardInventory";
 import {
   categoryAdPlanDisplayLabel,
-  listingPlanFieldLabel,
   listingPlanFootnote,
   resolveCategoryAdPlan,
 } from "@/app/lib/listingPlans/categoryAdPlans";
@@ -34,12 +26,28 @@ import {
 import {
   dashboardAddonStatusForKey,
   dashboardEntitlementBadgeForKey,
+  dashboardHasCapabilityForKey,
   fetchDashboardListingPackageEntitlementBadges,
   type DashboardEntitlementBadgePayload,
 } from "../lib/dashboardPackageEntitlementBadges";
 import { RESTAURANTES_COUPON_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { buildRestaurantesEligibilityInput } from "@/app/lib/listingIdentity/restaurantesLifecycleAdapter";
 import { resolveAttentionState, resolveOwnerFacingStatus } from "@/app/lib/listingIdentity";
+import {
+  editListingLabel,
+  publicViewLabel,
+  publicResultsListingLabel,
+  publicResultsLabel,
+  analyticsLabel,
+} from "../lib/dashboardMisAnunciosCategoryTools";
+import type { ActionItem } from "../components/DashboardListingActionBar";
+import { getOwnerEntityCapabilities } from "../lib/ownerEntityCapabilityRegistry";
+import { OwnerEntityWorkspace } from "../components/OwnerEntityWorkspace";
+import { OwnerProductPageFrame } from "../components/OwnerProductPageFrame";
+import type { OwnerCommunityTrustEntry } from "../components/OwnerEntityCommunityTrust";
+import { lxDashStatusChipClass } from "../lib/dashboardLeonixTheme";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -77,24 +85,7 @@ function restauranteLifecycleAttentionMessage(severity: "none" | "informational"
   return null;
 }
 
-function ownerTotalsToListingMetrics(totals: OwnerAnalyticsTotals): ListingMetrics {
-  return {
-    views: totals.listingViews + totals.profileViews + totals.listingOpens,
-    uniqueViews: totals.uniqueListingViewsEstimate,
-    likes: totals.likes,
-    saves: totals.saves,
-    shares: totals.shares,
-    messages: totals.messages,
-    profileViews: totals.profileViews,
-    listingOpens: totals.listingOpens,
-    ctaClicks: totals.ctaClicks,
-    leads: totals.leads,
-    applications: totals.applications,
-    lastEngagement: totals.lastEngagement,
-  };
-}
-
-export default function DashboardRestaurantesPage() {
+function DashboardRestaurantesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const lang: Lang = (searchParams?.get("lang") || "es") === "en" ? "en" : "es";
@@ -104,62 +95,42 @@ export default function DashboardRestaurantesPage() {
     () =>
       lang === "es"
         ? {
-            title: "Mis restaurantes (Clasificados)",
-            subtitle:
-              "Gestiona restaurantes publicados de tu cuenta. Edita desde el formulario cargando el anuncio para actualizarlo sin duplicados.",
+            title: "Restaurantes",
+            pageTitle: "Tus restaurantes",
+            subtitle: "Administra tus restaurantes, estado y herramientas.",
             loading: "Cargando…",
             empty: "Aún no hay restaurantes publicados con esta cuenta.",
             publishCta: "Publicar un restaurante",
-            previewCta: "Vista previa (misma sesión)",
-            linkPublic: "Ficha pública",
-            linkResults: "Ver en resultados públicos",
-            linkForm: "Formulario",
-            hydrate: "Editar restaurante",
             hydrateBusy: "Cargando borrador…",
             hydrateHelp: "Carga los datos en el formulario para actualizar esta publicación.",
-            openAnalytics: "Analíticas",
-            openMessages: "Mensajes",
-            cardStatus: "Estado",
             cardSlug: "Slug",
             cardPublished: "Publicado",
             cardUpdated: "Actualizado",
-            cardLeonixAdId: "Leonix Ad ID",
-            cardStatsTitle: "Resumen",
-            statActive: "Activos",
-            statPublished: "Publicados",
-            statPromoted: "Destacados",
-            statVerified: "Verificados",
             errRl: "No se pudieron cargar los listados (revisa sesión y políticas RLS en Supabase).",
             errHydrate: "No se pudo cargar el borrador publicado.",
+            communityTrustTitle: "Confianza de la comunidad",
+            communityTrustHelp: "Lo que la comunidad reconoce en este negocio.",
+            moreOptions: "Más opciones",
+            moreOptionsClose: "Cerrar",
           }
         : {
-            title: "My restaurants (Classifieds)",
-            subtitle:
-              "Manage published restaurants for your account. Edit from the publish form by loading the listing and updating without duplicates.",
+            title: "Restaurants",
+            pageTitle: "Your restaurants",
+            subtitle: "Manage your restaurants, status, and tools.",
             loading: "Loading…",
             empty: "No restaurant listings are published for this account yet.",
             publishCta: "Publish a restaurant",
-            previewCta: "Preview (this session)",
-            linkPublic: "Public page",
-            linkResults: "View in public results",
-            linkForm: "Form",
-            hydrate: "Edit restaurant",
             hydrateBusy: "Loading draft…",
             hydrateHelp: "Loads listing data into the form so you can update this publication.",
-            openAnalytics: "Analytics",
-            openMessages: "Messages",
-            cardStatus: "Status",
             cardSlug: "Slug",
             cardPublished: "Published",
             cardUpdated: "Updated",
-            cardLeonixAdId: "Leonix Ad ID",
-            cardStatsTitle: "Overview",
-            statActive: "Active",
-            statPublished: "Published",
-            statPromoted: "Promoted",
-            statVerified: "Verified",
             errRl: "Could not load listings (check sign-in and Supabase RLS policies).",
             errHydrate: "Could not load published draft.",
+            communityTrustTitle: "Community trust",
+            communityTrustHelp: "What the community recognizes about this business.",
+            moreOptions: "More options",
+            moreOptionsClose: "Close",
           },
     [lang],
   );
@@ -176,10 +147,11 @@ export default function DashboardRestaurantesPage() {
   const [hydrateErr, setHydrateErr] = useState<string | null>(null);
   const [couponEditBusyId, setCouponEditBusyId] = useState<string | null>(null);
   const [couponErr, setCouponErr] = useState<string | null>(null);
-  const [analytics, setAnalytics] = useState<ListingMetrics | null>(null);
-  const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [entitlementBadges, setEntitlementBadges] = useState<
     Record<string, DashboardEntitlementBadgePayload>
+  >({});
+  const [communityTrustById, setCommunityTrustById] = useState<
+    Record<string, { key: string; es: string; en: string; count: number }[]>
   >({});
 
   const load = useCallback(async () => {
@@ -229,38 +201,67 @@ export default function DashboardRestaurantesPage() {
     } else {
       const loaded = (data ?? []) as DashboardRestaurantRow[];
       setRows(loaded);
-      const { data: sessData } = await supabase.auth.getSession();
-      const accessToken = sessData.session?.access_token ?? null;
-      const badges = await fetchDashboardListingPackageEntitlementBadges(
-        loaded.map((r) => ({
-          key: r.id,
-          category: "restaurantes",
-          listingSource: "restaurantes_public_listings",
-          listingId: r.id,
-          slug: r.slug ?? null,
-          leonixAdId: r.leonix_ad_id ?? null,
-          packageKey: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
-        })),
-        accessToken,
-      );
-      setEntitlementBadges(badges);
+      // Gate I.13A — this fetch previously wasn't guarded; a thrown error here (e.g. a
+      // network failure) skipped the setLoading(false) below and left the page stuck on
+      // the loading spinner forever.
+      try {
+        const { data: sessData } = await supabase.auth.getSession();
+        const accessToken = sessData.session?.access_token ?? null;
+        const { badges } = await fetchDashboardListingPackageEntitlementBadges(
+          loaded.map((r) => ({
+            key: r.id,
+            category: "restaurantes",
+            listingSource: "restaurantes_public_listings",
+            listingId: r.id,
+            slug: r.slug ?? null,
+            leonixAdId: r.leonix_ad_id ?? null,
+            packageKey: RESTAURANTES_COUPON_ADDON_PACKAGE_KEY,
+          })),
+          accessToken,
+        );
+        setEntitlementBadges(badges);
+      } catch (badgeErr) {
+        console.error("[dashboard/restaurantes] entitlement badge fetch failed", badgeErr);
+      }
+
+      // Gate 3A — Community Trust is READ ONLY here (no vote/write path touched). One
+      // bounded, concurrent read per real listing, fired once during this same load pass
+      // rather than per rendered card, so this never becomes a per-card fetch.
+      try {
+        const results = await Promise.all(
+          loaded.map(async (r) => {
+            try {
+              const res = await fetch(
+                `/api/leonix-endorsements?category=restaurantes&targetId=${encodeURIComponent(r.id)}`,
+                { cache: "no-store" },
+              );
+              const j = (await res.json()) as {
+                ok?: boolean;
+                summary?: { key: string; es: string; en: string; count: number }[];
+              };
+              if (j.ok && Array.isArray(j.summary)) return [r.id, j.summary] as const;
+            } catch {
+              /* ignore — Community Trust section simply omits for this listing */
+            }
+            return null;
+          }),
+        );
+        const byId: Record<string, { key: string; es: string; en: string; count: number }[]> = {};
+        for (const r of results) {
+          if (!r) continue;
+          const [id, summary] = r;
+          byId[id] = summary;
+        }
+        setCommunityTrustById(byId);
+      } catch {
+        /* ignore */
+      }
     }
     setLoading(false);
-
-    // Load analytics
-    setAnalyticsLoading(true);
-    try {
-      const { data: sess } = await supabase.auth.getSession();
-      const token = sess.session?.access_token ?? "";
-      const summary = token ? await fetchDashboardAnalyticsSummary(token) : null;
-      const categoryTotals = summary?.byCategoryTotals.restaurantes;
-      setAnalytics(categoryTotals ? ownerTotalsToListingMetrics(categoryTotals) : null);
-    } catch (error) {
-      console.warn('Failed to load analytics:', error);
-      setAnalytics(null);
-    } finally {
-      setAnalyticsLoading(false);
-    }
+    // Gate 3A Correction — this page no longer fetches an account-level analytics
+    // aggregate for a page-level KPI block (that class of data belongs to a future
+    // Account Command Center / category-aggregate system, not a bespoke per-category
+    // wrapper here). Real, entity-scoped Community Trust reads above are unaffected.
   }, [q, router, t.errRl]);
 
   useEffect(() => {
@@ -349,13 +350,9 @@ export default function DashboardRestaurantesPage() {
     [lang, router],
   );
 
-  const previewHref = appendLangToPath("/clasificados/restaurantes/preview", lang);
   const publishHref = appendLangToPath("/publicar/restaurantes", lang);
-  const activeCount = rows.filter((row) => row.status === "published").length;
-  const promotedCount = rows.filter((row) =>
-    dashboardEntitlementBadgeForKey(entitlementBadges, [row.id, row.leonix_ad_id ?? ""])?.grantsDestacado,
-  ).length;
-  const verifiedCount = rows.filter((row) => row.leonix_verified).length;
+  const categoryResultsHref = `/clasificados/restaurantes/resultados?${q}`;
+  const frameError = fetchErr || hydrateErr || couponErr || null;
 
   return (
     <LeonixDashboardShell
@@ -366,64 +363,22 @@ export default function DashboardRestaurantesPage() {
       email={email}
       accountRef={accountRef}
       ownerId={ownerId}
+      contentLayout="workbench"
     >
-      <div className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-5 shadow-[0_14px_44px_-16px_rgba(42,36,22,0.14)] sm:p-7">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="font-serif text-2xl font-semibold text-[#1E1810]">{t.title}</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#5C5346]">{t.subtitle}</p>
-          </div>
-          <div className="flex flex-col gap-2 sm:items-end">
-            <Link
-              href={publishHref}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-5 text-sm font-bold text-[#1E1810] shadow-md"
-            >
-              {t.publishCta}
-            </Link>
-            <Link
-              href={previewHref}
-              className="inline-flex min-h-[40px] items-center justify-center rounded-2xl border border-[#C9B46A]/50 px-4 text-xs font-semibold text-[#5C4E2E] hover:bg-[#FFFCF7]"
-            >
-              {t.previewCta}
-            </Link>
-          </div>
-        </div>
-
-        {/* Analytics Summary */}
-        {!analyticsLoading && analytics && (
-          <div className="mt-6">
-            <LeonixListingMetricsSummary
-              metrics={analytics}
-              variant="pills"
-              lang={lang}
-              showTitle={true}
-              title={lang === "es" ? "Estadísticas de tus restaurantes" : "Your restaurant statistics"}
-            />
-          </div>
-        )}
-
-        {fetchErr ? (
-          <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">{fetchErr}</p>
-        ) : null}
-        {hydrateErr ? (
-          <p className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">{hydrateErr}</p>
-        ) : null}
-        {couponErr ? (
-          <p className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">{couponErr}</p>
-        ) : null}
-
-        {loading ? <p className="mt-8 text-sm text-[#5C5346]">{t.loading}</p> : null}
-        {!loading && rows.length === 0 ? <p className="mt-8 text-sm text-[#5C5346]">{t.empty}</p> : null}
-        {!loading && rows.length > 0 ? (
-          <>
-            <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <DashboardStatsCard label={t.statActive} value={activeCount} icon="📣" />
-              <DashboardStatsCard label={t.statPublished} value={rows.length} icon="🧾" />
-              <DashboardStatsCard label={t.statPromoted} value={promotedCount} icon="⭐" />
-              <DashboardStatsCard label={t.statVerified} value={verifiedCount} icon="✅" />
-            </div>
-            <div className="mt-8 grid gap-4">
-              {rows.map((r) => {
+      <OwnerProductPageFrame
+        eyebrow={t.title}
+        title={t.pageTitle}
+        subtitle={t.subtitle}
+        primaryAction={{ href: publishHref, label: t.publishCta }}
+        secondaryAction={{ href: categoryResultsHref, label: publicResultsLabel(lang) }}
+        infoNote={!loading && rows.length > 0 ? t.hydrateHelp : null}
+        loading={loading}
+        loadingLabel={t.loading}
+        error={frameError}
+        empty={!loading && !frameError && rows.length === 0}
+        emptyLabel={t.empty}
+      >
+        {rows.map((r) => {
                 const publicHref = appendLangToPath(`/clasificados/restaurantes/${encodeURIComponent(r.slug)}`, lang);
                 const resultsHref = `/clasificados/restaurantes/resultados?lang=${lang}&q=${encodeURIComponent(r.business_name)}`;
                 const restaurantListingPlan = categoryAdPlanDisplayLabel(
@@ -439,6 +394,17 @@ export default function DashboardRestaurantesPage() {
                   r.slug ?? "",
                   r.leonix_ad_id ?? "",
                 ]);
+                // Package C Build 3 (C5/C6) — coupons are now included in the $399/mo base
+                // package, so a listing with no separate addon entitlement row can still have a
+                // real, server-verified active module via resolveBusinessToolsAccess. Never
+                // downgrade a real "active" addonStatus; only upgrade "not_purchased".
+                const hasCouponsCapability = dashboardHasCapabilityForKey(
+                  entitlementBadges,
+                  [r.id, r.slug ?? "", r.leonix_ad_id ?? ""],
+                  "coupons_offers",
+                );
+                const couponEntitlementStatus =
+                  addonStatus === "not_purchased" && hasCouponsCapability ? "active" : addonStatus;
                 // Gate G.3.2 — real global status/attention pilot, read-only. Every row here is
                 // already scoped to this authenticated owner by the fetch's own
                 // `.eq("owner_user_id", user.id)` filter, so `ownerVerified` is always true.
@@ -447,7 +413,7 @@ export default function DashboardRestaurantesPage() {
                     canonicalListingId: r.id,
                     ownerVerified: true,
                     rawStatus: r.status,
-                    couponEntitlementStatus: addonStatus,
+                    couponEntitlementStatus,
                     now: new Date(),
                   });
                   return {
@@ -457,6 +423,16 @@ export default function DashboardRestaurantesPage() {
                 })();
                 const statusLabel =
                   lang === "es" ? restauranteLifecycleContract.status.labelEs : restauranteLifecycleContract.status.labelEn;
+                const statusChipClass = lxDashStatusChipClass(
+                  restauranteLifecycleContract.status.classification === "terminal"
+                    ? "danger"
+                    : !restauranteLifecycleContract.status.publicVisibility &&
+                        restauranteLifecycleContract.status.attentionRequired
+                      ? "warn"
+                      : restauranteLifecycleContract.status.publicVisibility
+                        ? "positive"
+                        : "neutral",
+                );
                 const lifecycleAttentionMessage = restauranteLifecycleAttentionMessage(
                   restauranteLifecycleContract.attention.severity,
                   lang,
@@ -473,84 +449,110 @@ export default function DashboardRestaurantesPage() {
                   : null;
                 const couponUpgradeEligible = restaurantCouponAddonUpgradeEligibleFromLifecycle({
                   status: r.status,
-                  addonStatus,
+                  addonStatus: couponEntitlementStatus,
                 });
                 const couponEditEligible = restaurantCouponEditEligibleFromLifecycle({
                   status: r.status,
-                  addonStatus,
+                  addonStatus: couponEntitlementStatus,
                 });
-                const cardActions: Array<{
-                  href?: string;
-                  label: string;
-                  tone?: "primary" | "secondary" | "subtle";
-                  onClick?: () => void;
-                  disabled?: boolean;
-                }> = [
-                  { href: publicHref, label: t.linkPublic, tone: "primary" },
-                  { href: resultsHref, label: t.linkResults, tone: "subtle" },
-                  { href: `/dashboard/analytics?${q}`, label: t.openAnalytics, tone: "subtle" },
-                  { href: `/dashboard/mensajes?${q}`, label: t.openMessages, tone: "subtle" },
-                  { href: publishHref, label: t.linkForm },
-                  {
-                    label: hydrateId === r.id ? t.hydrateBusy : t.hydrate,
-                    onClick: () => void loadIntoForm(r),
-                    disabled: hydrateId === r.id,
-                    tone: "primary",
-                  },
+                // Task 2D-B3 — "Mensajes" previously linked every restaurant's card to the SAME
+                // global inbox (not scoped to this listing), which read as listing-specific
+                // messaging that doesn't exist. Not present here — the global inbox remains
+                // reachable from the shared dashboard nav; not replaced with listing-scoped
+                // messaging infrastructure (out of this gate).
+                // Gate 3A Part 17 — "Crear otro anuncio" removed from the per-listing action
+                // cluster entirely. CREATE/PUBLISH is workspace-level: the page-level
+                // "Publicar un restaurante" button above already covers this job once, not once
+                // per listing.
+                const quickActions: ActionItem[] = [
+                  { href: publicHref, label: publicViewLabel(lang), tone: "secondary" },
+                  { href: resultsHref, label: publicResultsListingLabel(lang), tone: "subtle" },
+                  { href: `/dashboard/analytics?${q}`, label: analyticsLabel(lang), tone: "subtle" },
                 ];
-                if (couponEditEligible) {
-                  cardActions.push({
-                    label:
-                      couponEditBusyId === r.id
-                        ? lang === "es"
-                          ? "Cargando…"
-                          : "Loading…"
-                        : restauranteCouponEditLabel(lang),
-                    onClick: () => void openCouponEdit(r),
-                    disabled: couponEditBusyId === r.id,
-                    tone: "primary",
-                  });
-                }
+                const specializedActions: ActionItem[] = couponEditEligible
+                  ? [
+                      {
+                        label:
+                          couponEditBusyId === r.id
+                            ? lang === "es"
+                              ? "Cargando…"
+                              : "Loading…"
+                            : restauranteCouponEditLabel(lang),
+                        onClick: () => void openCouponEdit(r),
+                        disabled: couponEditBusyId === r.id,
+                        tone: "premium",
+                      },
+                    ]
+                  : [];
                 const couponFooterHint = couponUpgradeEligible
                   ? restauranteCouponInactiveDashboardHint(lang)
                   : couponEditEligible
                     ? restauranteCouponEditFooterHint(lang)
                     : null;
                 const cardFooterHint = [listingPlanFootnote(lang), couponFooterHint].filter(Boolean).join(" · ");
+                const capabilities = getOwnerEntityCapabilities("restaurantes");
+                const trustSummary = communityTrustById[r.id];
+                const trustEntries: OwnerCommunityTrustEntry[] | null =
+                  capabilities.communityTrust === "supported" && trustSummary
+                    ? trustSummary.map((s) => ({ key: s.key, label: lang === "es" ? s.es : s.en, count: s.count }))
+                    : null;
                 return (
-                  <DashboardCategoryListingCard
+                  <OwnerEntityWorkspace
                     key={r.id}
                     lang={lang}
-                    categoryLabel={lang === "es" ? "Restaurante" : "Restaurant"}
-                    title={r.business_name}
-                    status={statusLabel}
-                    subtitle={`${t.cardLeonixAdId}: ${r.leonix_ad_id ?? "—"}`}
-                    badges={[
-                      dashboardEntitlementBadgeForKey(entitlementBadges, [r.id, r.leonix_ad_id ?? ""])
-                        ?.grantsDestacado
-                        ? lang === "es"
-                          ? "Destacado"
-                          : "Promoted"
-                        : "",
-                      r.leonix_verified ? (lang === "es" ? "Verificado" : "Verified") : "",
-                    ].filter(Boolean)}
-                    footerHint={cardFooterHint}
-                    lifecycleNote={lifecycleNote}
-                    metaItems={[
-                      { label: listingPlanFieldLabel(lang), value: restaurantListingPlan },
+                    header={{
+                      eyebrow: lang === "es" ? "Restaurante" : "Restaurant",
+                      title: r.business_name,
+                      statusLabel,
+                      statusChipClass,
+                      plan: restaurantListingPlan,
+                      leonixId: r.leonix_ad_id ?? null,
+                      badges: [
+                        dashboardEntitlementBadgeForKey(entitlementBadges, [r.id, r.leonix_ad_id ?? ""])
+                          ?.grantsDestacado
+                          ? lang === "es"
+                            ? "Destacado"
+                            : "Promoted"
+                          : "",
+                        r.leonix_verified ? (lang === "es" ? "Verificado" : "Verified") : "",
+                      ].filter(Boolean),
+                    }}
+                    note={lifecycleNote}
+                    detailItems={[
                       { label: t.cardSlug, value: r.slug },
                       { label: t.cardPublished, value: fmt(r.published_at, lang) },
                       { label: t.cardUpdated, value: fmt(r.updated_at, lang) },
                     ]}
-                    actions={cardActions}
+                    communityTrust={
+                      capabilities.communityTrust === "supported"
+                        ? { title: t.communityTrustTitle, helperText: t.communityTrustHelp, entries: trustEntries }
+                        : undefined
+                    }
+                    primaryAction={{
+                      label: hydrateId === r.id ? t.hydrateBusy : editListingLabel(lang),
+                      onClick: () => void loadIntoForm(r),
+                      disabled: hydrateId === r.id,
+                    }}
+                    quickActions={quickActions}
+                    specialized={
+                      capabilities.specialized.coupons !== "unsupported"
+                        ? { title: restauranteCouponEditLabel(lang), actions: specializedActions }
+                        : undefined
+                    }
+                    footerHint={cardFooterHint || null}
+                    mobileSheetLabels={{ trigger: t.moreOptions, title: t.moreOptions, close: t.moreOptionsClose }}
                   />
                 );
               })}
-            </div>
-            <p className="mt-4 text-xs text-[#5C5346]">{t.hydrateHelp}</p>
-          </>
-        ) : null}
-      </div>
+      </OwnerProductPageFrame>
     </LeonixDashboardShell>
+  );
+}
+
+export default function DashboardRestaurantesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <DashboardRestaurantesPageContent />
+    </Suspense>
   );
 }

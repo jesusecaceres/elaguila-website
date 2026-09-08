@@ -10,6 +10,7 @@ import { fetchDashboardNavCounts } from "../lib/dashboardNavCounts";
 import {
   DASHBOARD_INTERNAL_INBOX_READY,
   DASHBOARD_SAVED_LISTINGS_READY,
+  DASHBOARD_SAVED_SEARCHES_READY,
 } from "../lib/dashboardProductTruth";
 
 import {
@@ -29,6 +30,7 @@ export type LeonixDashboardActiveNav =
   | "messages"
   | "drafts"
   | "saved"
+  | "savedSearches"
   | "analytics"
   | "profile"
   | "security"
@@ -220,11 +222,22 @@ export function LeonixDashboardShell({
     );
   }
 
-  const navItem = (key: ActiveNav, href: string, label: string, badge?: number | null, badgeTitle?: string) => (
+  const navItem = (
+    key: ActiveNav,
+    href: string,
+    label: string,
+    badge?: number | null,
+    badgeTitle?: string,
+    onNavigate?: () => void,
+  ) => (
     <Link
+      key={key}
       href={href}
+      onClick={onNavigate}
       className={cx(
-        "flex items-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-semibold transition",
+        // Package F Build F2, Gate 9 (P1 accessibility fix) — py-2.5 alone netted ~36-39px, under
+        // the 44px minimum touch target; min-h enforces the floor without changing desktop density.
+        "flex min-h-[44px] items-center gap-2 rounded-2xl px-3 py-2.5 text-sm font-semibold transition",
         activeNav === key
           ? varioSidebar
             ? "bg-[#FBF7EF] text-[#1F241C] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] ring-1 ring-[#C9A84A]/35"
@@ -237,6 +250,92 @@ export function LeonixDashboardShell({
       <span className="min-w-0 flex-1 leading-snug">{label}</span>
       {badge != null ? badgePill(badge, badgeTitle ?? "") : null}
     </Link>
+  );
+
+  // Package 1 — sidebar Information Architecture, grouped by owner task. Presentation/grouping
+  // only: every route, gate flag, and badge below is unchanged from the prior flat nav list.
+  const buildNavGroups = (onNavigate?: () => void) =>
+    [
+      { title: L.navGroupInicio, items: [navItem("home", `/dashboard?${q}`, L.home, undefined, undefined, onNavigate)] },
+      {
+        title: L.navGroupMisAnuncios,
+        items: [
+          navItem("listings", `/dashboard/mis-anuncios?${q}`, L.listings, navCounts.expiring, L.badgeExpiring, onNavigate),
+          navItem("drafts", `/dashboard/drafts?${q}`, L.drafts, navCounts.drafts, L.badgeDrafts, onNavigate),
+        ],
+      },
+      {
+        title: L.navGroupClientesYRendimiento,
+        items: [
+          DASHBOARD_INTERNAL_INBOX_READY
+            ? navItem("messages", `/dashboard/mensajes?${q}`, L.messages, navCounts.messages, L.badgeInbox, onNavigate)
+            : null,
+          navItem("analytics", `/dashboard/analytics?${q}`, L.analytics, undefined, undefined, onNavigate),
+          navItem("notifications", `/dashboard/notificaciones?${q}`, L.notifications, undefined, undefined, onNavigate),
+        ].filter(Boolean),
+      },
+      {
+        title: L.navGroupMiActividad,
+        items: [
+          DASHBOARD_SAVED_LISTINGS_READY ? navItem("saved", `/dashboard/guardados?${q}`, L.saved, undefined, undefined, onNavigate) : null,
+          DASHBOARD_SAVED_SEARCHES_READY
+            ? navItem("savedSearches", `/dashboard/busquedas-guardadas?${q}`, L.savedSearches, undefined, undefined, onNavigate)
+            : null,
+          navItem("recent", `/dashboard/vistos-recientes?${q}`, L.recent, undefined, undefined, onNavigate),
+        ].filter(Boolean),
+      },
+      {
+        title: L.navGroupCuenta,
+        items: [
+          navItem("profile", `/dashboard/perfil?${q}`, L.profile, undefined, undefined, onNavigate),
+          navItem("security", `/dashboard/seguridad?${q}`, L.security, undefined, undefined, onNavigate),
+        ],
+      },
+      { title: L.navGroupNegocio, items: [navItem("business", `/dashboard/business-tools?${q}`, L.businessTools, undefined, undefined, onNavigate)] },
+    ].filter((group) => group.items.length > 0);
+
+  function renderNavGroups(onNavigate?: () => void) {
+    return (
+      <nav className="mt-5 space-y-4">
+        {buildNavGroups(onNavigate).map((group) => (
+          <div key={group.title}>
+            <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]/90">{group.title}</p>
+            <div className="space-y-1">{group.items}</div>
+          </div>
+        ))}
+      </nav>
+    );
+  }
+
+  const accountPanel = (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{L.accountStatus}</span>
+        <span className="rounded-full border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] px-2.5 py-1 text-[11px] font-bold text-[color:var(--lx-muted)]">
+          {L.accountMetadata}
+        </span>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-section)]/80 p-4">
+        <p className="text-[15px] font-bold text-[color:var(--lx-text)]">{userName?.trim() || "—"}</p>
+        <p className="mt-1 text-xs text-[color:var(--lx-muted)]/95">{email || "—"}</p>
+        {accountRef ? (
+          <p className="mt-2 font-mono text-[10px] font-semibold text-[color:var(--lx-muted)]/90">
+            Leonix ID · #{accountRef}
+          </p>
+        ) : null}
+        {membershipTier?.trim() ? (
+          <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-[color:var(--lx-muted)]/90">
+            {membershipTier.trim()}
+          </p>
+        ) : null}
+        {accountType?.trim() ? (
+          <p className="mt-0.5 text-[10px] text-[color:var(--lx-muted)]/90">
+            {L.accountType}: {accountType.trim()}
+          </p>
+        ) : null}
+      </div>
+    </>
   );
 
   const workbench = contentLayout === "workbench";
@@ -380,51 +479,8 @@ export function LeonixDashboardShell({
               ) : null}
 
               <div className="p-4 sm:p-5">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]">{L.accountStatus}</span>
-                  <span className="rounded-full border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] px-2.5 py-1 text-[11px] font-bold text-[color:var(--lx-muted)]">
-                    {L.accountMetadata}
-                  </span>
-                </div>
-
-                <div className="mt-4 rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-section)]/80 p-4">
-                  <p className="break-words text-[15px] font-bold text-[color:var(--lx-text)]">{userName?.trim() || "—"}</p>
-                  <p className="mt-1 break-words text-xs text-[color:var(--lx-muted)]/95">{email || "—"}</p>
-                  {accountRef ? (
-                    <p className="mt-2 font-mono text-[10px] text-[color:var(--lx-muted)]/90">
-                      #{accountRef}
-                    </p>
-                  ) : null}
-                  {membershipTier?.trim() ? (
-                    <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-[color:var(--lx-muted)]/90">
-                      {membershipTier.trim()}
-                    </p>
-                  ) : null}
-                  {accountType?.trim() ? (
-                    <p className="mt-0.5 text-[10px] text-[color:var(--lx-muted)]/90">
-                      {L.accountType}: {accountType.trim()}
-                    </p>
-                  ) : null}
-                </div>
-
-                <nav className="mt-5 space-y-1">
-                  {navItem("home", `/dashboard?${q}`, L.home)}
-                  {navItem("listings", `/dashboard/mis-anuncios?${q}`, L.listings, navCounts.expiring, L.badgeExpiring)}
-                  {DASHBOARD_INTERNAL_INBOX_READY
-                    ? navItem("messages", `/dashboard/mensajes?${q}`, L.messages, navCounts.messages, L.badgeInbox)
-                    : null}
-                  {navItem("drafts", `/dashboard/drafts?${q}`, L.drafts, navCounts.drafts, L.badgeDrafts)}
-                  {DASHBOARD_SAVED_LISTINGS_READY ? navItem("saved", `/dashboard/guardados?${q}`, L.saved) : null}
-                  {navItem("analytics", `/dashboard/analytics?${q}`, L.analytics)}
-                  {navItem("profile", `/dashboard/perfil?${q}`, L.profile)}
-                  {navItem("security", `/dashboard/seguridad?${q}`, L.security)}
-                  {navItem("notifications", `/dashboard/notificaciones?${q}`, L.notifications)}
-                  {navItem("business", `/dashboard/business-tools?${q}`, L.businessTools)}
-                  <div className="pt-3">
-                    <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--lx-muted)]/90">{L.activity}</p>
-                    {navItem("recent", `/dashboard/vistos-recientes?${q}`, L.recent)}
-                  </div>
-                </nav>
+                {accountPanel}
+                {renderNavGroups(closeMobileNav)}
 
                 <Link
                   href={`/publicar?${q}`}

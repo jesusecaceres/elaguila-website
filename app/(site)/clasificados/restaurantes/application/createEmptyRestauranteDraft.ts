@@ -1,4 +1,8 @@
-import { sanitizeRestauranteAmenities, hasAnyRestauranteAmenities } from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
+import {
+  sanitizeRestauranteAmenities,
+  hasAnyRestauranteAmenities,
+  sanitizeCustomRestauranteAmenitiesByGroup,
+} from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
 import {
   migrateRestauranteServiceModesAndFlags,
   normalizeRestauranteCustomLanguages,
@@ -8,7 +12,7 @@ import {
   normalizeRestauranteVideoUrlsList,
 } from "@/app/lib/clasificados/restaurantes/restauranteVideoUrls";
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
-import type { RestauranteDaySchedule } from "./restauranteListingApplicationModel";
+import type { RestauranteDaySchedule, RestauranteSpecialHoursEntry } from "./restauranteListingApplicationModel";
 
 /**
  * Browser/API may send `{ url }` / `{ src }` shapes; canonical draft + validators use flat strings.
@@ -91,6 +95,7 @@ export function createEmptyRestauranteDraft(): RestauranteListingDraft {
     friday: closedDay(),
     saturday: closedDay(),
     sunday: closedDay(),
+    specialHoursEntries: [],
     specialHoursNote: undefined,
     temporaryHoursActive: false,
     temporaryHoursNote: undefined,
@@ -141,6 +146,7 @@ export function createEmptyRestauranteDraft(): RestauranteListingDraft {
     testimonialSnippet: undefined,
     aiSummaryEnabled: false,
     restaurantAmenities: undefined,
+    customRestaurantAmenitiesByGroup: {},
     coupons: [],
     couponFlyer: undefined,
     couponMoreOffers: undefined,
@@ -168,6 +174,33 @@ export function mergeRestauranteDraft(loaded: unknown): RestauranteListingDraft 
       merged[d] = { ...prev, closed: Boolean(prev.closed) } as RestauranteDaySchedule;
     }
   }
+  merged.specialHoursEntries = Array.isArray(merged.specialHoursEntries)
+    ? merged.specialHoursEntries
+        .map((row): RestauranteSpecialHoursEntry | null => {
+          if (!row || typeof row !== "object") return null;
+          const r = row as Record<string, unknown>;
+          const label = typeof r.label === "string" ? r.label : "";
+          const note = typeof r.note === "string" ? r.note : "";
+          if (!label && !note) return null;
+          const id = typeof r.id === "string" && r.id.trim() ? r.id : newDraftId();
+          return { id, label, note };
+        })
+        .filter((x): x is RestauranteSpecialHoursEntry => x !== null)
+    : [];
+  // Non-destructive migration (contract §3.4 items 46-48): an older draft carrying the legacy
+  // single-string `specialHoursNote` (the only special-hours field that ever had real UI) but no
+  // entries yet gets that note lifted into a single real entry. The legacy scalar is left
+  // untouched on the draft — this only seeds the new array so existing owners don't lose their
+  // note when the form switches to the multi-entry editor.
+  if (merged.specialHoursEntries.length === 0) {
+    const legacySpecialNote = typeof draft.specialHoursNote === "string" ? draft.specialHoursNote.trim() : "";
+    const legacyTempNote = typeof draft.temporaryHoursNote === "string" ? draft.temporaryHoursNote.trim() : "";
+    const legacyNote = legacySpecialNote || legacyTempNote;
+    if (legacyNote) {
+      merged.specialHoursEntries = [{ id: newDraftId(), label: "", note: legacyNote }];
+    }
+  }
+
   merged.serviceModes = Array.isArray(merged.serviceModes) ? merged.serviceModes : [];
   merged.additionalCuisines = Array.isArray(merged.additionalCuisines) ? merged.additionalCuisines : [];
   merged.languagesSpoken = Array.isArray(merged.languagesSpoken) ? merged.languagesSpoken : [];
@@ -214,6 +247,16 @@ export function mergeRestauranteDraft(loaded: unknown): RestauranteListingDraft 
   const rawAmenities = (draft as Record<string, unknown>).restaurantAmenities;
   merged.restaurantAmenities = sanitizeRestauranteAmenities(rawAmenities);
   if (!hasAnyRestauranteAmenities(merged.restaurantAmenities)) merged.restaurantAmenities = undefined;
+
+  // Non-destructive: existing listings/drafts predating this field simply have no
+  // `customRestaurantAmenitiesByGroup` key — sanitize defaults every group to `[]` so the form
+  // and shell mapper never see `undefined` and older drafts hydrate fine with it empty.
+  const rawCustomAmenities = (draft as Record<string, unknown>).customRestaurantAmenitiesByGroup;
+  merged.customRestaurantAmenitiesByGroup = sanitizeCustomRestauranteAmenitiesByGroup(
+    rawCustomAmenities && typeof rawCustomAmenities === "object"
+      ? (rawCustomAmenities as Record<string, unknown>)
+      : undefined,
+  );
 
   if (draft.movingVendorStack && typeof draft.movingVendorStack === "object") {
     merged.movingVendorStack = { ...(base.movingVendorStack ?? {}), ...(draft.movingVendorStack as object) };

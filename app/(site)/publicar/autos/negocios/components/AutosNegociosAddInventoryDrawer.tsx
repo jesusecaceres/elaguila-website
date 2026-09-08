@@ -98,6 +98,10 @@ export function AutosNegociosAddInventoryDrawer({
   inProgressDraftRef.current = inProgressDraft;
   const additionalVehiclesRef = useRef(additionalVehicles);
   additionalVehiclesRef.current = additionalVehicles;
+  // Package F Build F2, Gate 9 (P1 accessibility fix) — this dialog previously had no focus trap
+  // (Tab could escape to the page behind it) and no focus-restore-on-close.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const shellCopy = getAutosApplicationStepShellCopy(lang);
   const finalStepIndex = 6;
 
@@ -179,10 +183,37 @@ export function AutosNegociosAddInventoryDrawer({
         }
         requestClose();
       }
+      if (e.key === "Tab" && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, requestClose, unsavedModalOpen]);
+
+  useEffect(() => {
+    if (!open) return;
+    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    (focusable?.[0] ?? dialogRef.current)?.focus();
+    return () => {
+      previouslyFocusedRef.current?.focus();
+    };
+  }, [open]);
 
   const handleEditInMainApplication = useCallback(async () => {
     if (isDirty()) {
@@ -230,6 +261,8 @@ export function AutosNegociosAddInventoryDrawer({
   return (
     <>
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         className="fixed inset-0 z-[80] flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-[#FAF7F2] text-[#1E1810]"
         role="dialog"
         aria-modal="true"

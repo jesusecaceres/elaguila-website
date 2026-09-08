@@ -67,6 +67,8 @@ import { RentasResultsShell } from "./components/RentasResultsShell";
 import { RentasResultsToolbar } from "./components/RentasResultsToolbar";
 import { RentasResultsTopBar } from "./components/RentasResultsTopBar";
 import { RentasResultsGatewayPanel } from "./components/RentasResultsGatewayPanel";
+import { SavedSearchButton } from "@/app/clasificados/components/savedSearch/SavedSearchButton";
+import { rentasFilterStateToSavedSearch } from "@/app/lib/saved-search/rentas/savedSearchRentasAdapter";
 
 export type RentasResultsClientProps = {
   /** Server-fetched live catalog (`listings`); never demo. */
@@ -107,12 +109,12 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
   const [sqftMaxDraft, setSqftMaxDraft] = useState("");
   const [highlightKeysDraft, setHighlightKeysDraft] = useState<string[]>([]);
   const [poolDraft, setPoolDraft] = useState(false);
-  const [subtypeDraft, setSubtypeDraft] = useState("");
   const [kindDraft, setKindDraft] = useState("");
   const [view, setView] = useState<"grid" | "list">("list");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const parsed = useMemo(() => parseRentasBrowseParams(searchParams), [searchParams]);
+  const savedSearchNormalized = useMemo(() => rentasFilterStateToSavedSearch(parsed), [parsed]);
 
   useEffect(() => {
     const p = parseRentasBrowseParams(searchParams);
@@ -139,7 +141,6 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
     setSqftMaxDraft(p.sqftMax != null ? String(Math.round(p.sqftMax)) : "");
     setHighlightKeysDraft([...p.highlightsAll]);
     setPoolDraft(p.wantsPool);
-    setSubtypeDraft(p.subtype);
     setKindDraft(p.kind ?? "");
     setRoomBathDraft(p.roomBath);
     setRoomKitchenDraft(p.roomKitchen);
@@ -281,10 +282,6 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
       if (poolDraft) sp.set(RENTAS_QUERY_POOL, "1");
       else sp.delete(RENTAS_QUERY_POOL);
 
-      const sub = subtypeDraft.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 64);
-      if (!sub) sp.delete(RENTAS_QUERY_SUBTYPE);
-      else sp.set(RENTAS_QUERY_SUBTYPE, sub);
-
       const kd = kindDraft.trim().toLowerCase();
       if (!kd || !["casa", "departamento", "terreno", "comercial"].includes(kd)) sp.delete(RENTAS_QUERY_KIND);
       else sp.set(RENTAS_QUERY_KIND, kd);
@@ -316,7 +313,6 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
     spaceType,
     sqftMaxDraft,
     sqftMinDraft,
-    subtypeDraft,
     zipDraft,
     countryDraft,
   ]);
@@ -408,6 +404,10 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
             onView={setView}
             integrated
           />
+        </div>
+
+        <div className="mt-3 flex justify-end">
+          <SavedSearchButton normalized={savedSearchNormalized} lang={lang === "en" ? "en" : "es"} />
         </div>
       </section>
 
@@ -547,8 +547,6 @@ export function RentasResultsClient({ initialLiveListings, includeDemoPool }: Re
         onPoolDraft={setPoolDraft}
         kindDraft={kindDraft}
         onKindDraft={setKindDraft}
-        subtypeDraft={subtypeDraft}
-        onSubtypeDraft={setSubtypeDraft}
         priceOptions={copy.priceOptions}
       />
     </RentasResultsShell>

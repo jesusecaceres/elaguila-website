@@ -7,7 +7,6 @@ import { useSearchParams } from "next/navigation";
 import type { HomeMarketingResolved } from "@/app/lib/siteSectionContent/homeMarketingMerge";
 import { launchUiCopyLang, normalizeLang, replaceLangInHref } from "@/app/lib/language";
 import { AdvertiseDropdown } from "@/app/components/AdvertiseDropdown";
-import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import { HomeDestacadosSection } from "./HomeDestacadosSection";
 import { HomeBusinessToolsSection } from "./HomeBusinessToolsSection";
 import { getPopulatedFeaturedBusinesses } from "./homeFeaturedBusinesses";
@@ -41,7 +40,6 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
   };
 
   const withLang = (href: string) => replaceLangInHref(href, routeLang);
-  const launch25Href = `/newsletter?lang=${routeLang}&source=home&sourceCta=launch_25`;
 
   const primaryHref = injectLang(content.ctaPrimaryHref) || magazineLink;
   const advertiseOverrideHref = injectLang(content.ctaSecondaryHref);
@@ -111,10 +109,6 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
                   <AdvertiseDropdown lang={lang} variant="outline" buttonLabel={L.ctaSecondary} />
                 )
               ) : null}
-            </div>
-
-            <div className="mx-auto mt-6 max-w-xl lg:mx-0 lg:max-w-[34rem]">
-              <LeonixLaunchCouponCard lang={lang} variant="compact" href={launch25Href} />
             </div>
 
             <p className="mt-3.5 text-xs font-medium tracking-wide text-[#3D3428]/70 sm:text-sm">{L.microcopy}</p>

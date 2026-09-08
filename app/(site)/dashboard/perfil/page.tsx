@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import CityAutocomplete from "../../../components/CityAutocomplete";
 import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
 import { getCanonicalCityName } from "../../../data/locations/californiaLocationHelpers";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
-import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
+import { LX_DASH } from "../lib/dashboardLeonixTheme";
 import { fetchDashboardProfile } from "../lib/dashboardProfile";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -44,7 +46,7 @@ function normalizePlanFromMembershipTier(raw: unknown): Plan {
   return "free";
 }
 
-export default function ProfilePage() {
+function ProfilePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname() ?? "/dashboard/perfil";
@@ -434,6 +436,7 @@ export default function ProfilePage() {
       email={email}
       accountRef={accountRef}
       ownerId={userId}
+      contentLayout="workbench"
     >
       {loading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">
@@ -442,7 +445,7 @@ export default function ProfilePage() {
       ) : (
         <>
           <header>
-            <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">{title}</h1>
+            <h1 className={LX_DASH.pageTitle}>{title}</h1>
             <p className="mt-2 text-sm text-[#5C5346]/95">{subtitle}</p>
             {userId ? (
               <p className="mt-1 font-mono text-[11px] text-[#7A7164]">
@@ -455,16 +458,6 @@ export default function ProfilePage() {
           {showSavedBanner && !requirePost && !onboarding ? (
             <div className="mt-6 rounded-2xl border border-emerald-200/90 bg-emerald-50/95 px-4 py-3 text-sm font-semibold text-emerald-950 shadow-sm">
               {L.savedBanner}
-            </div>
-          ) : null}
-
-          {onboarding ? (
-            <div className="mt-6">
-              <LeonixLaunchCouponCard
-                lang={lang}
-                variant="compact"
-                href={`/newsletter?lang=${lang}&source=profile_onboarding_launch_25&sourceCta=launch_25`}
-              />
             </div>
           ) : null}
 
@@ -725,5 +718,13 @@ export default function ProfilePage() {
         </>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <ProfilePageContent />
+    </Suspense>
   );
 }

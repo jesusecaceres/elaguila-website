@@ -43,7 +43,6 @@ import {
 import type { JobModalitySlug } from "@/app/clasificados/empleos/data/empleosJobTypes";
 
 import { EmpleosFieldLabel, EmpleosSectionCard } from "@/app/publicar/empleos/shared/ui/empleosFormPrimitives";
-import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 
 const INPUT = "mt-1 w-full min-h-[44px] rounded-lg border border-black/10 px-3 py-2 text-sm";
 const SELECT = `${INPUT} bg-white`;
@@ -243,12 +242,6 @@ export default function EmpleoQuickApplicationClient() {
                 : "$24.99 for 30 days. Your listing activates after final review."}
             </p>
           </div>
-          <LeonixLaunchCouponCard
-            lang={lang}
-            variant="mini"
-            className="mt-3"
-            href={`/newsletter?lang=${lang}&source=empleos_quick&sourceCta=launch_25`}
-          />
         </header>
 
         <EmpleosReadinessBanner visible={!gate.ok} intro={copy.gateFail} issues={previewIssues} />

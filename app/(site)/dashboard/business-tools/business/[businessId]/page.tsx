@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import {
@@ -41,7 +41,7 @@ function labelFrom(list: readonly { value: string; es: string; en: string }[], v
   return list.find((o) => o.value === value)?.[lang] ?? value;
 }
 
-export default function CompletedBusinessIdentityPage() {
+function CompletedBusinessIdentityPageContent() {
   const router = useRouter();
   const params = useParams<{ businessId: string }>();
   const searchParams = useSearchParams();
@@ -338,5 +338,13 @@ export default function CompletedBusinessIdentityPage() {
         </div>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function CompletedBusinessIdentityPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <CompletedBusinessIdentityPageContent />
+    </Suspense>
   );
 }

@@ -52,22 +52,34 @@ function digitsOnly15(raw: string): string {
   return String(raw ?? "").replace(/\D/g, "").slice(0, 15);
 }
 
+/** F7 fix: `tel:`/`sms:` URIs must be E.164 (a leading `+`, RFC 3966) to be an international-safe
+ * dialing destination -- bare local digits (e.g. `tel:4088021531`) work by accident on some
+ * devices/locales and silently fail on others. A bare 10-digit number is assumed local US/CA
+ * (prefix `1`); anything longer is assumed to already carry its own country code -- never
+ * truncated or reinterpreted, so real international numbers pass through unmodified. */
+function e164FromDigits(x: string): string {
+  return x.length === 10 ? `+1${x}` : `+${x}`;
+}
+
 function telHrefFromDigits(d: string): string | null {
   const x = digitsOnly15(d);
   if (x.length < 10) return null;
-  return `tel:${x}`;
+  return `tel:${e164FromDigits(x)}`;
 }
 
 function smsHrefFromDigits(d: string, lang: "es" | "en"): string | null {
   const x = digitsOnly15(d);
   if (x.length < 10) return null;
-  return `sms:${x}?&body=${encodeURIComponent(rentasLeadSmsBody(lang))}`;
+  return `sms:${e164FromDigits(x)}?&body=${encodeURIComponent(rentasLeadSmsBody(lang))}`;
 }
 
 function waHrefFromDigits(d: string, lang: "es" | "en"): string | null {
   const x = digitsOnly15(d);
   if (x.length < 10) return null;
-  return `https://wa.me/${x}?text=${encodeURIComponent(rentasLeadSmsBody(lang))}`;
+  // wa.me requires the full number with country code, digits only, no leading "+" (WhatsApp's own
+  // spec) -- a bare 10-digit US number was missing its country code entirely.
+  const withCountryCode = x.length === 10 ? `1${x}` : x;
+  return `https://wa.me/${withCountryCode}?text=${encodeURIComponent(rentasLeadSmsBody(lang))}`;
 }
 
 function phoneDisplay(raw: string): string {
@@ -77,9 +89,16 @@ function phoneDisplay(raw: string): string {
   return d.length >= 10 ? formatUsPhoneDisplay(d) : t;
 }
 
-function formatLeaseCode(code: string | null | undefined, lang: "es" | "en"): string {
+function formatLeaseCode(
+  code: string | null | undefined,
+  lang: "es" | "en",
+  custom?: string | null,
+): string {
   const c = (code ?? "").trim();
   if (!c) return "";
+  // Package F Build F2, Gate 10 ("Otro" truth fix) — previously fell through to the raw code
+  // (literally "otro") when the landlord picked a custom lease term; now substitutes the real text.
+  if (c === "otro") return (custom ?? "").trim() || (lang === "es" ? "Otro" : "Other");
   const labels: Record<string, { es: string; en: string }> = {
     "mes-a-mes": { es: "Mes a mes", en: "Month-to-month" },
     "6-meses": { es: "6 meses", en: "6 months" },
@@ -225,7 +244,7 @@ function buildContractRows(listing: RentasPublicListing, lang: "es" | "en"): Bie
   if (tipo) pushRow(rows, "Tipo de renta", tipo);
   const dep = depositDisplay(listing, lang);
   if (dep) rows.push({ label: "Depósito", value: dep });
-  const pl = formatLeaseCode(listing.leaseTermCode, lang);
+  const pl = formatLeaseCode(listing.leaseTermCode, lang, listing.leaseTermCustom);
   if (pl) rows.push({ label: "Plazo del contrato", value: pl });
   const disp = trim(listing.availabilityNote);
   if (disp) rows.push({ label: "Disponibilidad", value: disp });
@@ -369,7 +388,7 @@ function contractQuickStrip(listing: RentasPublicListing, lang: "es" | "en"): Bi
   if (rent) out.push({ label: "Renta mensual", value: rent, icon: "calendar" });
   const dep = depositDisplay(listing, lang);
   if (dep) out.push({ label: "Depósito", value: dep, icon: "pin" });
-  const pl = formatLeaseCode(listing.leaseTermCode, lang);
+  const pl = formatLeaseCode(listing.leaseTermCode, lang, listing.leaseTermCustom);
   if (pl) out.push({ label: "Plazo", value: pl, icon: "calendar" });
   const disp = trim(listing.availabilityNote);
   if (disp) out.push({ label: "Disponibilidad", value: disp, icon: "calendar" });

@@ -8,6 +8,11 @@ import {
   listingsRowIsPublicLive,
 } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server";
+import {
+  ADMIN_INVENTORY_ACTION_FORBIDDEN_CODE,
+  assertBrNegocioActionAllowed,
+} from "@/app/admin/_lib/adminInventoryActionGuard";
+import { activateBrNegocioListingAtomic } from "@/app/lib/listingPlans/capacityActivationRpc";
 
 type ListingsStaffAction =
   | "suspend"
@@ -63,7 +68,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const { data: row, error: rErr } = await supabase
     .from("listings")
     .select(
-      "id, category, leonix_ad_id, owner_id, detail_pairs, is_free, is_published, status, republish_count, republish_override",
+      "id, category, leonix_ad_id, owner_id, detail_pairs, is_free, is_published, status, republish_count, republish_override, seller_type, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role",
     )
     .eq("id", id)
     .maybeSingle();
@@ -75,6 +80,31 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const rowRec = row as Record<string, unknown>;
   const category = String(rowRec.category ?? "").trim();
   const now = new Date().toISOString();
+
+  // Work Package I.9B — server-side parent/child role validation for Bienes Raíces Negocio,
+  // resolved strictly from the freshly-fetched row (never trusts any client-supplied value).
+  // Every other category (Rentas, En Venta, Bienes Privado, Comunidad, Clases, Busco, Mascotas)
+  // and every non-parent-only action for Bienes Raíces are entirely unaffected — this only
+  // rejects "archive" against a confirmed inventory-property child or an unresolved role.
+  if (category.toLowerCase() === "bienes-raices") {
+    const roleCheck = assertBrNegocioActionAllowed(
+      {
+        id: String(rowRec.id ?? ""),
+        category: rowRec.category as string | null,
+        seller_type: rowRec.seller_type as string | null,
+        detail_pairs: rowRec.detail_pairs,
+        status: rowRec.status as string | null,
+        is_published: rowRec.is_published as boolean | null,
+        br_inventory_group_id: rowRec.br_inventory_group_id as string | null,
+        br_inventory_parent_listing_id: rowRec.br_inventory_parent_listing_id as string | null,
+        inventory_role: rowRec.inventory_role as string | null,
+      },
+      action,
+    );
+    if (!roleCheck.ok) {
+      return NextResponse.json({ ok: false, error: ADMIN_INVENTORY_ACTION_FORBIDDEN_CODE }, { status: 403 });
+    }
+  }
 
   if (action === "republish") {
     if (String(rowRec.status ?? "").toLowerCase() === "removed") {
@@ -90,7 +120,27 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       last_republished_source: "admin",
       last_republished_by: null,
     };
-    if (!listingsRowIsPublicLive(rowRec)) {
+    const republishReactivates = !listingsRowIsPublicLive(rowRec);
+    const republishReactivatesBrNegocio = republishReactivates && category.toLowerCase() === "bienes-raices";
+    if (republishReactivatesBrNegocio) {
+      // Package C Build 4 (C7, Gate 4) — reactivating a bienes-raices row via republish is
+      // capacity-increasing; route through the atomic RPC instead of folding status/is_published
+      // into the generic patch below.
+      const rpcResult = await activateBrNegocioListingAtomic({
+        listingId: id,
+        ownerId: String(rowRec.owner_id ?? ""),
+        fromStatus: String(rowRec.status ?? ""),
+      });
+      if (!rpcResult.ok) {
+        return NextResponse.json({ ok: false, error: "capacity_rpc_unavailable" }, { status: 500 });
+      }
+      if (!rpcResult.activated && !rpcResult.idempotent) {
+        return NextResponse.json(
+          { ok: false, error: rpcResult.blockedReason ?? "capacity_reached", activeCount: rpcResult.activeCount, effectiveLimit: rpcResult.effectiveLimit },
+          { status: 409 },
+        );
+      }
+    } else if (republishReactivates) {
       patch.is_published = true;
       patch.status = "active";
     }
@@ -102,7 +152,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       action: "republish",
       targetType: "listings",
       targetId: id,
-      meta: { category, patch, leonix_ad_id: rowRec.leonix_ad_id },
+      meta: { category, patch, leonix_ad_id: rowRec.leonix_ad_id, viaRpc: republishReactivatesBrNegocio },
     });
     revalidatePath("/admin/workspace/clasificados");
     revalidatePath(`/clasificados/anuncio/${id}`);
@@ -132,6 +182,46 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   }
 
   const patch: Record<string, unknown> = {};
+
+  // Package C Build 4 (C7, Gate 4) — reactivating a bienes-raices main/inventory_property row is
+  // capacity-increasing; route it through the atomic RPC instead of an unconditional direct write.
+  // `inventory_role` null is legacy pre-grouping data, treated as 'main' (self-parent) — mirrors
+  // the RPC's own `IS DISTINCT FROM 'inventory_property'` legacy-compatibility branch.
+  const isBrNegocioCapacityRow =
+    category.toLowerCase() === "bienes-raices" &&
+    (rowRec.inventory_role === "main" ||
+      rowRec.inventory_role === "inventory_property" ||
+      rowRec.inventory_role === null ||
+      rowRec.inventory_role === undefined);
+
+  if (action === "unsuspend" && isBrNegocioCapacityRow) {
+    const rpcResult = await activateBrNegocioListingAtomic({
+      listingId: id,
+      ownerId: String(rowRec.owner_id ?? ""),
+      fromStatus: String(rowRec.status ?? ""),
+    });
+    if (!rpcResult.ok) {
+      return NextResponse.json({ ok: false, error: "capacity_rpc_unavailable" }, { status: 500 });
+    }
+    if (!rpcResult.activated && !rpcResult.idempotent) {
+      return NextResponse.json(
+        { ok: false, error: rpcResult.blockedReason ?? "capacity_reached", activeCount: rpcResult.activeCount, effectiveLimit: rpcResult.effectiveLimit },
+        { status: 409 },
+      );
+    }
+    void appendAdminAuditLog({
+      action: `listings_admin_${action}`,
+      targetType: "listings",
+      targetId: id,
+      meta: { category, viaRpc: true, idempotent: rpcResult.idempotent },
+    });
+    revalidatePath("/admin/workspace/clasificados");
+    revalidatePath(`/clasificados/anuncio/${id}`);
+    revalidatePath("/admin/workspace/clasificados/bienes-raices");
+    revalidatePath("/clasificados/bienes-raices");
+    revalidatePath("/clasificados/bienes-raices/resultados");
+    return NextResponse.json({ ok: true, id, is_published: true, status: "active" });
+  }
 
   switch (action) {
     case "suspend":

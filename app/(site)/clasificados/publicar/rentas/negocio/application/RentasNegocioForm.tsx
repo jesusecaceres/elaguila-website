@@ -13,6 +13,7 @@ import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publis
 import { gateRentasNegocioPreview } from "@/app/clasificados/lib/publish/leonixRequiredForPreviewGates";
 import {
   RENTAS_PREVIEW_NEGOCIO,
+  RENTAS_PUBLICAR_HUB,
   RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY,
 } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
@@ -42,6 +43,13 @@ import {
 import { LeonixRealEstateSortablePhotoStrip } from "@/app/clasificados/lib/LeonixRealEstateSortablePhotoStrip";
 import { RentasAnuncioFormSection } from "@/app/clasificados/publicar/rentas/shared/RentasAnuncioFormSection";
 import { RentasShowingTourSection } from "@/app/clasificados/publicar/rentas/shared/RentasShowingTourSection";
+import { LanguagesInput } from "@/app/components/forms/LanguagesInput";
+import {
+  BR_RENTAS_LANGUAGE_OTHER_KEY,
+  brRentasLanguageChipOptions,
+  parseBrRentasLanguagesString,
+  serializeBrRentasLanguagesString,
+} from "@/app/clasificados/publicar/bienes-raices/shared/brRentasLanguagesAdapter";
 import {
   rentasFlowGroupActive,
   rentasResidencialFormRowsMode,
@@ -76,8 +84,10 @@ import { parseRentasListingEditContext, rentasListingEditPreviewParams, type Ren
 import {
   clearRentasListingEditWorkspace,
   loadRentasListingEditWorkspace,
+  readRentasListingEditWorkspaceMeta,
   saveRentasListingEditWorkspace,
 } from "../../shared/rentasListingEditWorkspace";
+import { resolveDraftPrecedence } from "@/app/lib/listingDrafts/draftWorkspaceContract";
 
 const MAX_PHOTOS = 8;
 const MAX_VIDEO_URLS = 4;
@@ -159,6 +169,7 @@ export function RentasNegocioForm() {
     [searchParams],
   );
   const [state, setState] = useState<RentasNegocioFormState>(createEmptyRentasNegocioFormState);
+  const [idiomaOtroPending, setIdiomaOtroPending] = useState("");
   const [hydrated, setHydrated] = useState(false);
   const [editContext, setEditContext] = useState<RentasListingEditContext | null>(routeEditContext);
   const [hydrationStatus, setHydrationStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -167,6 +178,8 @@ export function RentasNegocioForm() {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [previewGateMessage, setPreviewGateMessage] = useState<string | null>(null);
   const [mediaNotice, setMediaNotice] = useState<string | null>(null);
+  /** Package A closure — Rule 3 conflict surfaced to the owner (never silently applied). */
+  const [staleDraftNotice, setStaleDraftNotice] = useState<string | null>(null);
 
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -185,18 +198,51 @@ export function RentasNegocioForm() {
         merge: mergePartialRentasNegocioState,
       });
       if (cached) {
+        // Package A closure — draftWorkspaceContract Rule 3 wired (same pattern as the Privado
+        // form): cached workspace shows immediately, DB row consulted in the background;
+        // canonical DB truth wins when newer, and the conflict is surfaced, never silent.
         setState(cached);
         cleanEditSnapshotRef.current = JSON.stringify(cached);
         setHydrationStatus("ready");
         setEditContext({ ...ctx, originalSnapshotLoaded: true, hydrationStatus: "ready" });
         setHydrated(true);
+        const cachedMeta = readRentasListingEditWorkspaceMeta({ listingId: ctx.listingId, lane: "negocio" });
+        void hydrateRentasDashboardEditDraft({ listingId: ctx.listingId, lane: "negocio" }).then((result) => {
+          if (!(result.ok && result.lane === "negocio")) return;
+          const precedence = resolveDraftPrecedence({
+            hasLocalWorkspace: true,
+            localSourceUpdatedAt: cachedMeta?.sourceUpdatedAt ?? null,
+            dbUpdatedAt: result.sourceUpdatedAt,
+          });
+          if (precedence !== "db-newer-conflict") return;
+          setState(result.draft);
+          cleanEditSnapshotRef.current = JSON.stringify(result.draft);
+          saveRentasListingEditWorkspace({
+            listingId: ctx.listingId,
+            lane: "negocio",
+            draft: result.draft,
+            sourceUpdatedAt: result.sourceUpdatedAt,
+          });
+          setEditContext({ ...ctx, leonixAdId: result.leonixAdId ?? ctx.leonixAdId, originalSnapshotLoaded: true, hydrationStatus: "ready" });
+          setStaleDraftNotice(
+            lang === "es"
+              ? "Este anuncio cambió desde tu último borrador local. Se muestra la versión publicada más reciente; el borrador antiguo se descartó."
+              : "This listing changed since your last local draft. The latest published version is shown; the outdated draft was discarded.",
+          );
+        });
         return;
       }
       void hydrateRentasDashboardEditDraft({ listingId: ctx.listingId, lane: "negocio" }).then((result) => {
         if (result.ok && result.lane === "negocio") {
           setState(result.draft);
           cleanEditSnapshotRef.current = JSON.stringify(result.draft);
-          saveRentasListingEditWorkspace({ listingId: ctx.listingId, lane: "negocio", draft: result.draft });
+          // Anchor the workspace to the row version it was hydrated from (Rule 3).
+          saveRentasListingEditWorkspace({
+            listingId: ctx.listingId,
+            lane: "negocio",
+            draft: result.draft,
+            sourceUpdatedAt: result.sourceUpdatedAt,
+          });
           setHydrationStatus("ready");
           setEditContext({ ...ctx, leonixAdId: result.leonixAdId ?? ctx.leonixAdId, originalSnapshotLoaded: true, hydrationStatus: "ready" });
         } else if (!result.ok) {
@@ -208,9 +254,12 @@ export function RentasNegocioForm() {
       });
       return;
     }
-    const d = loadRentasNegocioDraft();
-    if (d) setState(d);
-    setHydrated(true);
+    // BR-INV-WAVE1-GATE3: loadRentasNegocioDraft is now async (IndexedDB inline).
+    void (async () => {
+      const d = await loadRentasNegocioDraft();
+      if (d) setState(d);
+      setHydrated(true);
+    })();
   }, [routeEditContext]);
 
   useEffect(() => {
@@ -259,9 +308,14 @@ export function RentasNegocioForm() {
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [editContext, dirty]);
 
+  // BR-INV-WAVE1-GATE3: saveRentasNegocioDraft is now async (IndexedDB offload). Returns the
+  // promise so callers that navigate right after can await it.
   const flushSave = useCallback(() => {
-    if (editContext) saveRentasListingEditWorkspace({ listingId: editContext.listingId, lane: "negocio", draft: stateRef.current });
-    else saveRentasNegocioDraft(stateRef.current);
+    if (editContext) {
+      saveRentasListingEditWorkspace({ listingId: editContext.listingId, lane: "negocio", draft: stateRef.current });
+      return Promise.resolve();
+    }
+    return saveRentasNegocioDraft(stateRef.current);
   }, [editContext]);
 
   const previewHref = useMemo(
@@ -398,7 +452,7 @@ export function RentasNegocioForm() {
   }, [editContext, hydrationStatus, lang, router]);
 
   const previewActionsProps = {
-    onPreviewValidated: () => {
+    onPreviewValidated: async () => {
       if (editContext && hydrationStatus !== "ready") return;
       if (!confirmAll) return;
       const g = gateRentasNegocioPreview(stateRef.current);
@@ -407,7 +461,7 @@ export function RentasNegocioForm() {
         return;
       }
       setPreviewGateMessage(null);
-      flushSave();
+      await flushSave();
       router.push(previewHref);
     },
     openPreviewHref: previewHref,
@@ -469,6 +523,36 @@ export function RentasNegocioForm() {
     );
   }
 
+  const parsedIdiomas = parseBrRentasLanguagesString(state.negocioIdiomas);
+  const toggleIdiomaChip = (key: string) => {
+    const next = parsedIdiomas.selectedKeys.includes(key)
+      ? parsedIdiomas.selectedKeys.filter((k) => k !== key)
+      : [...parsedIdiomas.selectedKeys, key];
+    const customValues = next.includes(BR_RENTAS_LANGUAGE_OTHER_KEY) ? parsedIdiomas.customValues : [];
+    setState((s) => ({ ...s, negocioIdiomas: serializeBrRentasLanguagesString(next, customValues, lang) }));
+  };
+  const addCustomIdioma = () => {
+    const trimmed = idiomaOtroPending.trim();
+    if (!trimmed) return;
+    if (parsedIdiomas.customValues.some((v) => v.toLowerCase() === trimmed.toLowerCase())) {
+      setIdiomaOtroPending("");
+      return;
+    }
+    const nextCustom = [...parsedIdiomas.customValues, trimmed];
+    const nextKeys = parsedIdiomas.selectedKeys.includes(BR_RENTAS_LANGUAGE_OTHER_KEY)
+      ? parsedIdiomas.selectedKeys
+      : [...parsedIdiomas.selectedKeys, BR_RENTAS_LANGUAGE_OTHER_KEY];
+    setState((s) => ({ ...s, negocioIdiomas: serializeBrRentasLanguagesString(nextKeys, nextCustom, lang) }));
+    setIdiomaOtroPending("");
+  };
+  const removeCustomIdiomaAt = (index: number) => {
+    const nextCustom = parsedIdiomas.customValues.filter((_, i) => i !== index);
+    const nextKeys = nextCustom.length
+      ? parsedIdiomas.selectedKeys
+      : parsedIdiomas.selectedKeys.filter((k) => k !== BR_RENTAS_LANGUAGE_OTHER_KEY);
+    setState((s) => ({ ...s, negocioIdiomas: serializeBrRentasLanguagesString(nextKeys, nextCustom, lang) }));
+  };
+
   return (
     <main className="min-h-screen w-full min-w-0 overflow-x-hidden bg-[#F6F0E2] px-4 pb-[max(7rem,env(safe-area-inset-bottom,0px))] pt-24 text-[#2C2416] sm:px-5 sm:pb-24 sm:pt-28">
       <div className="mx-auto w-full min-w-0 max-w-3xl space-y-7 md:space-y-8">
@@ -521,7 +605,7 @@ export function RentasNegocioForm() {
 
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <Link
-            href={`/clasificados/rentas?lang=${lang}`}
+            href={`${RENTAS_PUBLICAR_HUB}?lang=${lang}`}
             className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-[#C9B46A]/50 px-6 text-sm font-semibold text-[#6E5418] transition hover:bg-[#FFEFD8] sm:w-auto"
           >
             {lang === "en" ? "Back to Rentals" : "Volver a Rentas"}
@@ -530,18 +614,31 @@ export function RentasNegocioForm() {
 
         <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>{lang === "en" ? "Category" : "Categoría"}</h2>
-          <p className={aiSubClass}>{lang === "en" ? "Choose one; the other fields adapt in the form and preview." : "Elige una; los demás campos se adaptan en el formulario y en la vista previa."}</p>
+          <p className={aiSubClass}>
+            {state.tipoDeRenta
+              ? lang === "en"
+                ? "Determined automatically from the rental type below — it can no longer be set independently."
+                : "Se determina automáticamente según el tipo de renta (abajo) — ya no se puede elegir de forma independiente."
+              : lang === "en"
+                ? "Choose one; the other fields adapt in the form and preview."
+                : "Elige una; los demás campos se adaptan en el formulario y en la vista previa."}
+          </p>
           <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
             {CATEGORIAS.map((c) => (
               <button
                 key={c.id}
                 type="button"
-                onClick={() => setState((s) => ({ ...s, categoriaPropiedad: c.id }))}
+                disabled={Boolean(state.tipoDeRenta)}
+                aria-disabled={Boolean(state.tipoDeRenta)}
+                onClick={() => {
+                  if (state.tipoDeRenta) return;
+                  setState((s) => ({ ...s, categoriaPropiedad: c.id }));
+                }}
                 className={`min-h-[48px] w-full rounded-xl border px-3 py-3 text-center text-sm font-semibold leading-snug transition sm:min-h-[44px] sm:py-2.5 ${
                   cat === c.id
                     ? "border-[#B8954A] bg-[#FFF6E7] text-[#1E1810] ring-1 ring-[#B8954A]/30"
                     : "border-[#E8DFD0] bg-white text-[#5C5346] hover:border-[#C9B46A]/60"
-                }`}
+                } ${state.tipoDeRenta ? "cursor-not-allowed opacity-70" : ""}`}
               >
                 {rentasFormOptionLabel(c.label, lang)}
               </button>
@@ -578,6 +675,11 @@ export function RentasNegocioForm() {
             . Los videos se agregan como enlaces externos (hasta {MAX_VIDEO_URLS}); no se suben archivos de video en esta
             versión pública de Rentas. Nada se sube a servidores en este paso; el borrador vive en esta sesión hasta que exista publicación.
           </p>
+          {staleDraftNotice ? (
+            <p className="mt-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-950" role="status">
+              {staleDraftNotice}
+            </p>
+          ) : null}
           {mediaNotice ? (
             <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50/90 px-3 py-2 text-xs text-amber-950" role="status">
               {mediaNotice}
@@ -590,6 +692,7 @@ export function RentasNegocioForm() {
               type="file"
               accept="image/*"
               multiple
+              aria-label={lang === "en" ? "Listing photos" : "Fotos del anuncio"}
               className="sr-only"
               onChange={(e) => onPhotos(e.target.files)}
             />
@@ -708,6 +811,7 @@ export function RentasNegocioForm() {
                 ref={negocioLogoInputRef}
                 type="file"
                 accept="image/*"
+                aria-label="Logo o foto del equipo"
                 className="sr-only"
                 onChange={async (e) => {
                   const f = e.target.files?.[0];
@@ -854,6 +958,26 @@ export function RentasNegocioForm() {
                   placeholder="https://"
                   value={state.negocioSitioWeb}
                   onChange={(e) => setState((s) => ({ ...s, negocioSitioWeb: e.target.value }))}
+                />
+              </AiField>
+            </div>
+            <div className="sm:col-span-2">
+              <AiField label={rentasUiLabel(lang, "Idiomas (opcional)", "Languages (optional)")}>
+                <LanguagesInput
+                  options={brRentasLanguageChipOptions(lang)}
+                  selectedKeys={parsedIdiomas.selectedKeys}
+                  onToggle={toggleIdiomaChip}
+                  otherKey={BR_RENTAS_LANGUAGE_OTHER_KEY}
+                  customValues={parsedIdiomas.customValues}
+                  customInputValue={idiomaOtroPending}
+                  onCustomInputChange={setIdiomaOtroPending}
+                  onAddCustom={addCustomIdioma}
+                  onRemoveCustom={removeCustomIdiomaAt}
+                  labels={{
+                    otherPlaceholder: rentasUiLabel(lang, "Otro idioma", "Other language"),
+                    add: rentasUiLabel(lang, "Agregar", "Add"),
+                    removeAria: (value) => rentasUiLabel(lang, `Quitar ${value}`, `Remove ${value}`),
+                  }}
                 />
               </AiField>
             </div>

@@ -43,7 +43,7 @@ export function PhoneInput({
       disabled={disabled}
       value={formatUsPhone(value)}
       aria-invalid={ariaInvalid}
-      maxLength={13}
+      maxLength={14}
       placeholder={placeholder}
       className={className}
       onChange={(e) => {

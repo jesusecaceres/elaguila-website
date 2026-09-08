@@ -55,6 +55,15 @@ type Props = {
   initialDrawerOpen?: boolean;
   /** Tighter mobile spacing for results surfaces. */
   density?: "default" | "compact";
+  /**
+   * Gate I.13B — per-field opt-out for pipelines whose publish flow doesn't collect
+   * state/zip/country yet (a visible-but-non-functional control is worse than an honestly
+   * absent one, per Objective G). Defaults preserve existing behavior for every current
+   * consumer; only Mascotas y Perdidos currently sets any of these to `false`.
+   */
+  showState?: boolean;
+  showZip?: boolean;
+  showCountry?: boolean;
 };
 
 export function CategoryStandardCompactSearchBar({
@@ -76,6 +85,9 @@ export function CategoryStandardCompactSearchBar({
   density = "default",
   urlHadState = false,
   urlHadCountry = false,
+  showState = true,
+  showZip = true,
+  showCountry = true,
 }: Props) {
   const ui = categoryStandardUi(lang);
   const router = useRouter();
@@ -115,11 +127,13 @@ export function CategoryStandardCompactSearchBar({
   const currentValues = (): CompactSearchValues => ({
     q: q.trim(),
     city: city.trim(),
-    state: state.trim(),
-    zip: zip.trim(),
-    country: country.trim(),
-    stateTouched,
-    countryTouched,
+    // Gate I.13B — a hidden field must never submit a value (a default/stale one would apply
+    // an invisible filter the user never set), regardless of internal state.
+    state: showState ? state.trim() : "",
+    zip: showZip ? zip.trim() : "",
+    country: showCountry ? country.trim() : "",
+    stateTouched: showState && stateTouched,
+    countryTouched: showCountry && countryTouched,
   });
 
   const submitValues = useCallback(
@@ -219,38 +233,42 @@ export function CategoryStandardCompactSearchBar({
               ))}
             </datalist>
           </label>
-          <label className={`${LX_LB_SEARCH_CELL} sm:col-span-2`}>
-            <select
-              name="state"
-              value={state}
-              onChange={(e) => {
-                setStateTouched(true);
-                setState(e.target.value);
-              }}
-              aria-label={statePh}
-              className={`${LX_LB_SEARCH_INPUT} appearance-none`}
-            >
-              {US_STATE_OPTIONS.map((opt) => (
-                <option key={opt.code} value={opt.code}>
-                  {opt.code}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className={`${LX_LB_SEARCH_CELL} sm:col-span-2`}>
-            <input
-              name="zip"
-              type="text"
-              inputMode="numeric"
-              maxLength={10}
-              value={zip}
-              onChange={(e) => setZip(e.target.value)}
-              placeholder={zipPh}
-              aria-label={zipPh}
-              autoComplete="postal-code"
-              className={LX_LB_SEARCH_INPUT}
-            />
-          </label>
+          {showState ? (
+            <label className={`${LX_LB_SEARCH_CELL} sm:col-span-2`}>
+              <select
+                name="state"
+                value={state}
+                onChange={(e) => {
+                  setStateTouched(true);
+                  setState(e.target.value);
+                }}
+                aria-label={statePh}
+                className={`${LX_LB_SEARCH_INPUT} appearance-none`}
+              >
+                {US_STATE_OPTIONS.map((opt) => (
+                  <option key={opt.code} value={opt.code}>
+                    {opt.code}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          {showZip ? (
+            <label className={`${LX_LB_SEARCH_CELL} sm:col-span-2`}>
+              <input
+                name="zip"
+                type="text"
+                inputMode="numeric"
+                maxLength={10}
+                value={zip}
+                onChange={(e) => setZip(e.target.value)}
+                placeholder={zipPh}
+                aria-label={zipPh}
+                autoComplete="postal-code"
+                className={LX_LB_SEARCH_INPUT}
+              />
+            </label>
+          ) : null}
           <div className="hidden p-1.5 sm:col-span-2 sm:block">
             <button type="submit" className={`${LX_LB_BTN_PRIMARY} w-full`}>
               {ui.search}
@@ -258,21 +276,23 @@ export function CategoryStandardCompactSearchBar({
           </div>
         </div>
         <div className={`flex flex-col ${rowGap} sm:grid sm:grid-cols-12 sm:items-center`}>
-          <label className={`${LX_LB_SEARCH_CELL} order-1 border-b-0 sm:order-none sm:col-span-3 sm:border-r-0`}>
-            <input
-              name="country"
-              type="text"
-              value={country}
-              onChange={(e) => {
-                setCountryTouched(true);
-                setCountry(e.target.value);
-              }}
-              placeholder={countryPh}
-              aria-label={countryPh}
-              autoComplete="country-name"
-              className={LX_LB_SEARCH_INPUT}
-            />
-          </label>
+          {showCountry ? (
+            <label className={`${LX_LB_SEARCH_CELL} order-1 border-b-0 sm:order-none sm:col-span-3 sm:border-r-0`}>
+              <input
+                name="country"
+                type="text"
+                value={country}
+                onChange={(e) => {
+                  setCountryTouched(true);
+                  setCountry(e.target.value);
+                }}
+                placeholder={countryPh}
+                aria-label={countryPh}
+                autoComplete="country-name"
+                className={LX_LB_SEARCH_INPUT}
+              />
+            </label>
+          ) : null}
           <div className="order-2 flex flex-wrap items-center gap-1.5 sm:order-none sm:col-span-4">
             {showFiltersButton && drawerContent ? (
               <button type="button" onClick={() => setDrawerOpen(true)} className={`${LX_LB_BTN_SECONDARY} min-w-[5rem]`}>

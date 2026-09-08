@@ -7,6 +7,7 @@ import {
   listingLifecycleStateLabel,
   type ListingLifecycleLang,
 } from "@/app/lib/listingLifecycle/listingLifecycleLabels";
+import { LX_DASH_STATUS_TONE } from "../lib/dashboardLeonixTheme";
 
 export function ListingLifecycleStatusCard({
   lifecycle,
@@ -19,11 +20,7 @@ export function ListingLifecycleStatusCard({
 }) {
   const danger = lifecycle.lifecycleState === "expired" || lifecycle.lifecycleState === "suspended";
   const warn = lifecycle.lifecycleState === "expiring_soon" || lifecycle.lifecycleState === "pending_payment";
-  const tone = danger
-    ? "border-red-200 bg-red-50 text-red-950"
-    : warn
-      ? "border-amber-200 bg-amber-50 text-amber-950"
-      : "border-emerald-200 bg-emerald-50 text-emerald-950";
+  const tone = LX_DASH_STATUS_TONE[danger ? "danger" : warn ? "warn" : "positive"];
   const expiration = listingLifecycleExpirationLine(lifecycle, lang);
   return (
     <div className={`rounded-2xl border px-3 py-2 text-xs ${tone} ${compact ? "w-full" : "mt-3"}`}>

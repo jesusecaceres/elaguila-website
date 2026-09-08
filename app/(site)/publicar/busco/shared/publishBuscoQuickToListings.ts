@@ -1,10 +1,19 @@
 "use client";
 
-import { insertListingsRowResilient } from "@/app/clasificados/lib/listingsSelectShrink";
+import { insertListingsRowResilient, updateListingsRowResilient } from "@/app/clasificados/lib/listingsSelectShrink";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { digitsOnly } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import {
+  clearSessionPublishAttemptKey,
+  fetchOwnListingIdByPublishAttemptKey,
+  getOrCreateSessionPublishAttemptKey,
+  isPublishAttemptKeyConflict,
+  logQuickListingReuseFailure,
+  quickListingExistingIdentityInvalidMessage,
+  verifyQuickListingReusable,
+} from "@/app/(site)/clasificados/lib/quickListingIdempotency";
 
 import { gateBuscoQuickPreview } from "./buscoRequiredForPreview";
 import type { BuscoQuickDraft } from "./buscoQuickTypes";
@@ -42,12 +51,33 @@ function buildBuscoDetailPairs(d: BuscoQuickDraft): { label: string; value: stri
   if (zip) pairs.push({ label: "Leonix:zip", value: zip });
   const zone = d.zone.trim();
   if (zone) pairs.push({ label: "Leonix:buscoZone", value: zone });
-  // Budget + urgency
-  const budget = d.budget.trim();
-  if (budget) pairs.push({ label: "Leonix:buscoBudget", value: budget });
+  // Budget (structured, Gate 4) + urgency
+  if (d.budgetMode && d.budgetMode !== "no_aplica") {
+    pairs.push({ label: "Leonix:buscoBudgetMode", value: d.budgetMode });
+    if (d.budgetMode === "tiene" && d.budgetAmount.trim()) {
+      pairs.push({ label: "Leonix:buscoBudgetAmount", value: d.budgetAmount.trim() });
+    }
+  }
   if (d.urgency && d.urgency !== "normal") {
     pairs.push({ label: "Leonix:buscoUrgency", value: d.urgency });
   }
+  // Section C — light conditional fields, only the ones relevant to the chosen type are ever filled.
+  const preferredCondition = d.preferredCondition.trim();
+  if (preferredCondition) pairs.push({ label: "Leonix:buscoPreferredCondition", value: preferredCondition });
+  const workType = d.workType.trim();
+  if (workType) pairs.push({ label: "Leonix:buscoWorkType", value: workType });
+  const workSkills = d.workSkills.trim();
+  if (workSkills) pairs.push({ label: "Leonix:buscoWorkSkills", value: workSkills });
+  const workAvailability = d.workAvailability.trim();
+  if (workAvailability) pairs.push({ label: "Leonix:buscoWorkAvailability", value: workAvailability });
+  const transportOrigin = d.transportOrigin.trim();
+  if (transportOrigin) pairs.push({ label: "Leonix:buscoTransportOrigin", value: transportOrigin });
+  const transportDestination = d.transportDestination.trim();
+  if (transportDestination) pairs.push({ label: "Leonix:buscoTransportDestination", value: transportDestination });
+  const volunteersCount = d.volunteersCount.trim();
+  if (volunteersCount) pairs.push({ label: "Leonix:buscoVolunteersCount", value: volunteersCount });
+  const whenNeeded = d.whenNeeded.trim();
+  if (whenNeeded) pairs.push({ label: "Leonix:buscoWhenNeeded", value: whenNeeded });
   // Phone / WhatsApp / SMS
   if (phoneDig.length >= 10) {
     pairs.push({ label: "Leonix:buscoContactPhoneAvailable", value: "1" });
@@ -62,17 +92,15 @@ function buildBuscoDetailPairs(d: BuscoQuickDraft): { label: string; value: stri
     pairs.push({ label: "Leonix:smsPhone", value: smsDig });
   }
   if (d.email.trim()) pairs.push({ label: "Leonix:buscoContactEmailAvailable", value: "1" });
-  // Preferred contact
-  if (d.preferredContact) {
-    pairs.push({ label: "Leonix:buscoPreferredContact", value: d.preferredContact });
-  }
-  // Optional socials
+  // Optional socials — Section M: Facebook, Instagram, TikTok, YouTube + one custom link.
   const fb = d.facebook.trim();
   if (fb) pairs.push({ label: "Leonix:buscoFacebook", value: fb });
   const ig = d.instagram.trim();
   if (ig) pairs.push({ label: "Leonix:buscoInstagram", value: ig });
   const tt = d.tiktok.trim();
   if (tt) pairs.push({ label: "Leonix:buscoTiktok", value: tt });
+  const yt = d.youtube.trim();
+  if (yt) pairs.push({ label: "Leonix:buscoYoutube", value: yt });
   const ocLabel = d.otherContactLabel.trim();
   const ocUrl = d.otherContactUrl.trim();
   if (ocUrl) {
@@ -89,8 +117,12 @@ export type BuscoQuickPublishToListingsResult =
 export async function publishBuscoQuickToListings(input: {
   draft: BuscoQuickDraft;
   lang: Lang;
+  /** I.6B — verified-reusable canonical UUID from a prior in-flight attempt of this same submission. */
+  existingListingId?: string | null;
+  /** I.6B — invoked as soon as the row id is known (reused or freshly inserted), before photo upload. */
+  onListingIdKnown?: (listingId: string) => void;
 }): Promise<BuscoQuickPublishToListingsResult> {
-  const { draft: d, lang } = input;
+  const { draft: d, lang, existingListingId, onListingIdKnown } = input;
   const err = (es: string, en: string) => (lang === "es" ? es : en);
 
   const gate = gateBuscoQuickPreview(d, lang);
@@ -142,14 +174,62 @@ export async function publishBuscoQuickToListings(input: {
     detail_pairs: pairs.length ? pairs : null,
   };
 
-  const ins = await insertListingsRowResilient(supabase, insertPayload);
-  if (ins.error) {
-    return { ok: false, error: ins.error.message };
+  const reuseCheck = existingListingId
+    ? await verifyQuickListingReusable(supabase, {
+        candidateId: existingListingId,
+        ownerUserId: userId,
+        expectedCategory: "busco",
+      })
+    : null;
+
+  let listingId: string | undefined;
+  if (reuseCheck?.safe) {
+    listingId = reuseCheck.listingId;
+    const { category: _category, owner_id: _ownerId, ...updatablePayload } = insertPayload;
+    void _category;
+    void _ownerId;
+    const upd = await updateListingsRowResilient(supabase, listingId, updatablePayload);
+    if (upd.error) {
+      return { ok: false, error: upd.error.message };
+    }
+  } else if (existingListingId) {
+    // I.6C — an existing-listing intention was supplied but failed verification. Fail closed:
+    // never fall back to an INSERT here, or a failed identity check would silently become a
+    // second, duplicate row. The local draft is left untouched by returning early.
+    logQuickListingReuseFailure("busco", reuseCheck!.reason);
+    return { ok: false, error: quickListingExistingIdentityInvalidMessage(lang) };
+  } else {
+    // Globalization Package A Gate 3 — session-stable idempotency key closes the concurrent
+    // double-submit race (unique index listings_owner_publish_attempt_key_uidx; recovery
+    // below). Fail-open: null key (or an older DB — insertListingsRowResilient drops the
+    // unknown column) preserves pre-gate behavior.
+    const publishAttemptKey = getOrCreateSessionPublishAttemptKey("busco");
+    if (publishAttemptKey) insertPayload.publish_attempt_key = publishAttemptKey;
+    const ins = await insertListingsRowResilient(supabase, insertPayload);
+    if (ins.error && publishAttemptKey && isPublishAttemptKeyConflict(ins.error)) {
+      // This exact submission already created a row (racing click or lost response) —
+      // recover it, never insert a duplicate.
+      const recoveredId = await fetchOwnListingIdByPublishAttemptKey(supabase, {
+        ownerUserId: userId,
+        attemptKey: publishAttemptKey,
+        expectedCategory: "busco",
+      });
+      if (recoveredId) {
+        listingId = recoveredId;
+      } else {
+        return { ok: false, error: ins.error.message };
+      }
+    } else if (ins.error) {
+      return { ok: false, error: ins.error.message };
+    } else {
+      listingId = ins.data?.id;
+    }
+    if (listingId) clearSessionPublishAttemptKey("busco");
   }
-  const listingId = ins.data?.id;
   if (!listingId) {
     return { ok: false, error: err("No se recibió el ID del anuncio.", "No listing id returned.") };
   }
+  onListingIdKnown?.(listingId);
 
   const markPublishFailedNonPublic = async () => {
     await supabase.from("listings").update({ status: "removed", is_published: false }).eq("id", listingId);

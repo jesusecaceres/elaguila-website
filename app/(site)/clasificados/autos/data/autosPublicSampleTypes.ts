@@ -22,6 +22,10 @@ export type AutosPublicListing = {
   sellerType: AutosPublicSellerType;
   /** Promoted dealership placement (Tier 1 band). Private listings should remain false. */
   featured: boolean;
+  /** Package D Build D3, Gate 1 — pre-resolved canonical `leonix_placement_entitlements` weight,
+   * dealer-lane listings only (never set for `sellerType: "private"`). Used only by the default
+   * "newest" sort as a tie-break-first key — never by priceAsc/priceDesc/mileage/yearAsc/yearDesc. */
+  canonicalPlacementRankWeight?: number | null;
   year: number;
   make: string;
   model: string;

@@ -79,6 +79,19 @@ export function AutosNegociosApplication() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { lang, routeLang, t } = useAutosNegociosLang();
+
+  const editListingId = searchParams?.get("listingId")?.trim() ?? "";
+  const editLeonixAdId = searchParams?.get("leonixAdId")?.trim() ?? "";
+  const listingIdentity = Boolean(editListingId || editLeonixAdId);
+  const dashboardSource = searchParams?.get("source") === "dashboard";
+  const dashboardMode = searchParams?.get("mode") ?? "";
+  const focusInventoryPack = searchParams?.get("focus") === "inventory-pack";
+  const isDashboardListingEditMode = dashboardSource && dashboardMode === "listing-edit" && listingIdentity;
+  const isDashboardInventoryEditMode = dashboardSource && dashboardMode === "inventory-edit" && listingIdentity;
+  const isDashboardInventoryAddonMode = dashboardSource && dashboardMode === "inventory-addon" && listingIdentity;
+  const isExistingDashboardListingMode =
+    isDashboardListingEditMode || isDashboardInventoryEditMode || isDashboardInventoryAddonMode;
+
   const {
     hydrated,
     restoredFromSession,
@@ -106,21 +119,25 @@ export function AutosNegociosApplication() {
     setInventoryDrawerOpen,
     inventoryBoostSelected,
     setInventoryBoostSelected,
-  } = useAutoDealerDraft();
+  } = useAutoDealerDraft(isExistingDashboardListingMode ? editListingId : undefined);
 
-  const editListingId = searchParams?.get("listingId")?.trim() ?? "";
-  const editLeonixAdId = searchParams?.get("leonixAdId")?.trim() ?? "";
-  const listingIdentity = Boolean(editListingId || editLeonixAdId);
-  const dashboardSource = searchParams?.get("source") === "dashboard";
-  const dashboardMode = searchParams?.get("mode") ?? "";
-  const focusInventoryPack = searchParams?.get("focus") === "inventory-pack";
-  const isDashboardListingEditMode = dashboardSource && dashboardMode === "listing-edit" && listingIdentity;
-  const isDashboardInventoryEditMode = dashboardSource && dashboardMode === "inventory-edit" && listingIdentity;
-  const isDashboardInventoryAddonMode = dashboardSource && dashboardMode === "inventory-addon" && listingIdentity;
-  const isExistingDashboardListingMode =
-    isDashboardListingEditMode || isDashboardInventoryEditMode || isDashboardInventoryAddonMode;
   const dashboardReturnHref = appendLangToPath(buildDashboardMisAnunciosReturnPath(lang, "autos"), lang);
   const dashboardHydratedRef = useRef(false);
+  /* Globalization Package B (Gate B5) — direct child-edit deep link from the dashboard child
+     row: once hydration lands the child (its embedded draft id IS the child row uuid), that
+     vehicle's drawer editor opens — child-bound, sibling/parent drafts untouched. */
+  const editVehicleId = searchParams?.get("editVehicleId")?.trim() ?? "";
+  const editVehicleConsumedRef = useRef(false);
+  useEffect(() => {
+    if (!isExistingDashboardListingMode || !editVehicleId || !hydrated) return;
+    if (editVehicleConsumedRef.current) return;
+    const exists = (additionalInventoryVehicles ?? []).some(
+      (v) => String((v as { id?: unknown }).id ?? "").trim() === editVehicleId,
+    );
+    if (!exists) return; // wait for dashboard hydration to land this child
+    editVehicleConsumedRef.current = true;
+    setInventoryDrawerOpen(true, editVehicleId);
+  }, [isExistingDashboardListingMode, editVehicleId, hydrated, additionalInventoryVehicles, setInventoryDrawerOpen]);
   const [editHydration, setEditHydration] = useState<
     { status: "idle" } | { status: "loading" } | { status: "error"; message: string }
   >({ status: "idle" });

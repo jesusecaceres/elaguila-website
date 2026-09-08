@@ -20,7 +20,15 @@ import {
   revenueCategoryCheckoutLoadingMessage,
   startRevenueCategoryCheckout,
 } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
-import { AUTOS_PRIVADO_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import { AUTOS_DEALER_CHECKOUT, AUTOS_PRIVADO_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
+import {
+  autosDealerCheckoutSubtotalCents,
+  autosDealerSelectedAddOns,
+} from "@/app/clasificados/autos/negocios/lib/autosDealerRevenueCheckout";
+import {
+  buildRecurringConsentAcknowledgment,
+  buildRecurringConsentText,
+} from "@/app/lib/listingPlans/recurringConsentCopy";
 import { RevenuePromoField } from "@/app/(site)/clasificados/components/RevenuePromoField";
 import {
   CHECKOUT_NEWSLETTER_SOURCES,
@@ -40,7 +48,7 @@ import { countApplicationInventoryVehicles } from "@/app/lib/clasificados/autos/
 import {
   AUTOS_BUNDLE_PUBLISH_RESULT_SESSION_KEY,
   type AutosBundlePublishSessionResult,
-} from "@/app/lib/clasificados/autos/autosNegociosBundlePublish";
+} from "@/app/lib/clasificados/autos/autosNegociosBundlePublishSessionResult";
 import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import { autosQaPaymentBypassLabel } from "@/app/lib/clasificados/autos/autosNegociosInventoryBundleCopy";
 import { getAutosConfirmPlanSummaryCopy } from "@/app/lib/clasificados/autos/autosPricingCopy";
@@ -200,6 +208,9 @@ export function AutosPublishConfirmCore({
   const [payBusy, setPayBusy] = useState(false);
   const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
   const [newsletterOptIn, setNewsletterOptIn] = useState(false);
+  // Package C Build 1 — affirmative recurring-billing consent (Agreement v1.2 §17).
+  // Dealer ($399/mo) is a subscription: unchecked by default, required before checkout.
+  const [recurringConsentChecked, setRecurringConsentChecked] = useState(false);
   const [sessionMissing, setSessionMissing] = useState(false);
   const [muxPublishWarnings, setMuxPublishWarnings] = useState<string[]>([]);
   const [persistWarnings, setPersistWarnings] = useState<string[]>([]);
@@ -590,6 +601,9 @@ export function AutosPublishConfirmCore({
       body: JSON.stringify({
         listingId,
         lang,
+        // Package C Build 1 — convergence handshake: this legacy route now only evaluates
+        // QA/internal bypass publication. Real payments proceed to canonical Revenue OS below.
+        bypassOnly: true,
         ...(inventoryCtx?.returnToListingId ? { returnToListingId: inventoryCtx.returnToListingId } : {}),
         ...(lane === "negocios" && additionalInventoryRef.current.length > 0 && !inventoryCtx
           ? { additionalInventoryVehicles: additionalInventoryRef.current }
@@ -615,6 +629,60 @@ export function AutosPublishConfirmCore({
         inventoryLimit: number;
       };
     };
+    if (!res.ok && j.error === "no_bypass_available") {
+      // Package C Build 1 — no QA/internal bypass applies: this is a REAL payment. Converge to
+      // canonical Revenue OS (server-owned matrix price, payment record, entitlement,
+      // subscription record, recurring consent). The legacy env-price Stripe branch is no
+      // longer reachable from this surface.
+      if (lane === "negocios" && !recurringConsentChecked) {
+        setPayBusy(false);
+        setErrorDetail(
+          lang === "es"
+            ? "Para continuar, confirma la autorización de cobro recurrente mensual."
+            : "To continue, confirm the recurring monthly billing authorization.",
+        );
+        setPhase("error");
+        return;
+      }
+      void captureCheckoutNewsletterSubscriber({
+        email: sessionData.session?.user?.email ?? null,
+        lang,
+        preferredLanguage: lang,
+        source:
+          lane === "negocios"
+            ? CHECKOUT_NEWSLETTER_SOURCES.autosDealer
+            : CHECKOUT_NEWSLETTER_SOURCES.autosPrivado,
+        interests: [lane === "negocios" ? "package:autos_dealer" : "package:autos_privado", "launch_25"],
+        checked: newsletterOptIn,
+      });
+      const canonicalCheckout = await startRevenueCategoryCheckout(
+        lane === "negocios"
+          ? {
+              ...AUTOS_DEALER_CHECKOUT,
+              listingId,
+              locale: lang,
+              promoCode: appliedPromoCode,
+              addOns: autosDealerSelectedAddOns(
+                countApplicationInventoryVehicles(additionalInventoryRef.current.length),
+              ),
+              recurringConsent: buildRecurringConsentAcknowledgment(lang),
+            }
+          : {
+              ...AUTOS_PRIVADO_CHECKOUT,
+              listingId,
+              locale: lang,
+              promoCode: appliedPromoCode,
+            },
+      );
+      setPayBusy(false);
+      if (!canonicalCheckout.ok) {
+        setErrorDetail(canonicalCheckout.userMessage);
+        setPhase("error");
+        return;
+      }
+      redirectToRevenueCategoryCheckout(canonicalCheckout.checkoutUrl);
+      return;
+    }
     setPayBusy(false);
     if (!res.ok && j.error === "dealer_active_limit_reached") {
       setErrorDetail(j.message ?? autosDealerInventoryLimitMessage(lang));
@@ -810,6 +878,31 @@ export function AutosPublishConfirmCore({
             </label>
           </li>
         ))}
+        {lane === "negocios" && !qaBypassActive ? (
+          // Package C Build 1 — affirmative recurring-billing consent (Agreement v1.2 §17).
+          // Unchecked by default; states amount, interval, auto-renewal, cancellation, and the
+          // 7-day grace policy. Server-side, canonical checkout rejects subscription-mode
+          // sessions without this acknowledgment.
+          <li>
+            <label className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-5 w-5 shrink-0 rounded border-[color:var(--lx-nav-border)]"
+                checked={recurringConsentChecked}
+                onChange={(e) => setRecurringConsentChecked(e.target.checked)}
+                aria-describedby="autos-dealer-recurring-consent-text"
+              />
+              <span id="autos-dealer-recurring-consent-text">
+                {buildRecurringConsentText({
+                  amountCents: autosDealerCheckoutSubtotalCents(
+                    countApplicationInventoryVehicles(additionalInventoryVehicles.length),
+                  ),
+                  lang: lang === "en" ? "en" : "es",
+                })}
+              </span>
+            </label>
+          </li>
+        ) : null}
       </ul>
       {!allChecked ? <p className="mt-4 text-xs leading-relaxed text-[color:var(--lx-muted)]">{c.mustCheck}</p> : null}
       <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap">

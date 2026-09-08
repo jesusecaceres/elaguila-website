@@ -14,8 +14,15 @@ export function listingPrimaryRecencyMs(l: AutosPublicListing): number {
   return l.year * 1_000_000 + l.price;
 }
 
-/** Descending “newest” comparator for public browse (landing + results). */
+/** Descending “newest” comparator for public browse (landing + results). Package D Build D3, Gate
+ * 1 — canonical placement rank weight (dealer-lane only, resolved server-side) is checked first,
+ * so an active entitlement outranks plain recency in this DEFAULT sort only; priceAsc/priceDesc/
+ * mileage/yearAsc/yearDesc never call this function and are untouched. */
 export function compareNewestAutosPublic(a: AutosPublicListing, b: AutosPublicListing): number {
+  const wa = a.canonicalPlacementRankWeight ?? 0;
+  const wb = b.canonicalPlacementRankWeight ?? 0;
+  if (wa !== wb) return wb - wa;
+
   const tb = listingPrimaryRecencyMs(b);
   const ta = listingPrimaryRecencyMs(a);
   if (tb !== ta) return tb - ta;

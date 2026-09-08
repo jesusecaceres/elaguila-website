@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
 import { getRecentlyViewedIds } from "../../../lib/recentlyViewed";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+import { LX_DASH } from "../lib/dashboardLeonixTheme";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 type Plan = "free" | "pro";
@@ -46,7 +49,7 @@ function firstImage(images: unknown): string | null {
   return null;
 }
 
-export default function VistosRecientesPage() {
+function VistosRecientesPageContent() {
   const searchParams = useSearchParams();
   const lang: Lang = (searchParams?.get("lang") || "es") === "en" ? "en" : "es";
   const q = `lang=${lang}`;
@@ -180,13 +183,14 @@ export default function VistosRecientesPage() {
       membershipTier={membershipTier}
       accountType={accountType}
       ownerId={ownerId}
+      contentLayout="workbench"
     >
       {loading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>
       ) : (
         <>
           <header>
-            <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">{t.title}</h1>
+            <h1 className={LX_DASH.pageTitle}>{t.title}</h1>
             <p className="mt-2 text-sm text-[#5C5346]/95">{t.subtitle}</p>
           </header>
 
@@ -264,5 +268,13 @@ export default function VistosRecientesPage() {
         </>
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function VistosRecientesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <VistosRecientesPageContent />
+    </Suspense>
   );
 }

@@ -1,16 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {useEffect, useMemo, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams, usePathname } from "next/navigation";
 import Navbar from "../../../../../components/Navbar";
 import { createSupabaseBrowserClient } from "../../../../../lib/supabase/browser";
+import { buildProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { readLeonixDetailPairValue } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { stripLeonixPublishedDescriptionBody } from "@/app/clasificados/lib/leonixListingGalleryMarker";
 import {
   OWNER_LISTING_SOFT_ARCHIVE_PATCH,
+  applyOwnerListingPatch,
 } from "../../../lib/ownerListingsLifecycleClient";
+import { dashboardSafeMutationErrorCopy } from "../../../lib/dashboardSafeErrorCopy";
+import {
+  getCategoryLifecycleAdapter,
+  isCompositeDescriptionCategory,
+  rebuildCompositeDescription,
+  splitCompositeDescription,
+  type CategoryLifecycleAdapter,
+} from "./categoryLifecycleAdapters";
+
+export const dynamic = "force-dynamic";
 
 type Lang = "es" | "en";
 
@@ -51,7 +64,7 @@ function minutesSince(iso?: string | null) {
   return (Date.now() - ms) / 1000 / 60;
 }
 
-export default function EditListingPage() {
+function EditListingPageContent() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
 
@@ -136,6 +149,18 @@ export default function EditListingPage() {
   const [title, setTitle] = useState<string>("");
   const [price, setPrice] = useState<string>("");
   const [description, setDescription] = useState<string>("");
+  // Gate 5 (Globalization Build 04) — legacy rows can carry an internal [LEONIX_IMAGES] gallery
+  // marker appended to description (see leonixListingGalleryMarker.ts). The textarea must never
+  // show/edit that raw marker text; this preserves it so save() can reattach it unmodified rather
+  // than risk the owner mangling it into a permanent, confusing remnant in the public description.
+  const [descriptionGalleryTail, setDescriptionGalleryTail] = useState<string>("");
+  // Gate 6 (Globalization Build 04 Final Lifecycle Closure) — Clases/Comunidad store a composite
+  // description (user prose + several auto-generated labeled lines, e.g. "Organizador: ...").
+  // The public canvas only ever displays the first segment (the real user text) — see
+  // categoryLifecycleAdapters.ts. This holds the auto-generated tail so it can be preserved
+  // verbatim on save; the visible `description` textarea shows only the genuine user text.
+  const [compositeDescriptionTail, setCompositeDescriptionTail] = useState<string>("");
+  const [categoryFieldValues, setCategoryFieldValues] = useState<Record<string, string>>({});
 
 
 const [userId, setUserId] = useState<string | null>(null);
@@ -143,6 +168,8 @@ const [userId, setUserId] = useState<string | null>(null);
 const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 const [uploading, setUploading] = useState(false);
 const [uploadNote, setUploadNote] = useState<string | null>(null);
+/** Globalization Package B (Gate B2) — media action busy flag for remove/reorder/hero. */
+const [mediaActionBusy, setMediaActionBusy] = useState(false);
 
 const [sellerPhotoUrl, setSellerPhotoUrl] = useState<string>("");
 const [sellerPhotoUploading, setSellerPhotoUploading] = useState(false);
@@ -184,7 +211,8 @@ const [sellerPhotoError, setSellerPhotoError] = useState<string | null>(null);
       if (!mounted) return;
 
       if (qErr) {
-        setError(qErr.message);
+        console.error("[mis-anuncios/editar]", qErr.message);
+        setError(dashboardSafeMutationErrorCopy(lang));
         setListing(null);
         setLoading(false);
         return;
@@ -200,8 +228,22 @@ const [sellerPhotoError, setSellerPhotoError] = useState<string | null>(null);
       setListing(row);
       setTitle(String(row.title ?? ""));
       setPrice(row.price === null || row.price === undefined ? "" : String(row.price));
-      setDescription(String((row as any).description ?? ""));
+      const rawDescription = String((row as any).description ?? "");
+      const galleryMarkerMatch = /\[LEONIX_IMAGES\][\s\S]*?\[\/LEONIX_IMAGES\]/i.exec(rawDescription);
+      setDescriptionGalleryTail(galleryMarkerMatch ? galleryMarkerMatch[0] : "");
+      const markerFreeDescription = stripLeonixPublishedDescriptionBody(rawDescription);
+      if (isCompositeDescriptionCategory(row.category)) {
+        const { userText, tail } = splitCompositeDescription(markerFreeDescription);
+        setDescription(userText);
+        setCompositeDescriptionTail(tail);
+      } else {
+        setDescription(markerFreeDescription);
+        setCompositeDescriptionTail("");
+      }
       setSellerPhotoUrl(readLeonixDetailPairValue((row as any).detail_pairs, SELLER_PHOTO_DETAIL_LABEL) ?? "");
+
+      const adapter = getCategoryLifecycleAdapter(row.category);
+      setCategoryFieldValues(adapter ? adapter.hydrate(row as Record<string, unknown>) : {});
 
       setLoading(false);
     }
@@ -219,6 +261,11 @@ const [sellerPhotoError, setSellerPhotoError] = useState<string | null>(null);
   const isBrPrivadoListing =
     String(listing?.category ?? "").toLowerCase() === "bienes-raices" &&
     String(listing?.seller_type ?? "").toLowerCase() === "personal";
+  const categoryAdapter: CategoryLifecycleAdapter | null = getCategoryLifecycleAdapter(listing?.category);
+
+  function setCategoryField(key: string, value: string) {
+    setCategoryFieldValues((prev) => ({ ...prev, [key]: value }));
+  }
 
 
 async function uploadImages() {
@@ -280,20 +327,17 @@ async function uploadImages() {
     uploadedUrls.push(publicUrl);
   }
 
-  // Persist to DB (listings.images jsonb only; no image_urls/image)
+  // Persist to DB (listings.images jsonb only; no image_urls/image). Globalization Package B
+  // (Gate B2): the final set = existing + new (shared proposed-final-set semantics); a failed
+  // upload returned above and can never touch proven existing media.
   try {
     const prev = getListingImageUrls(listing?.images);
-    const payload: { images: string[] } = { images: [...prev, ...uploadedUrls] };
-
-    const { error: uErr } = await supabase.from("listings").update(payload).eq("id", id);
-
-    if (uErr) {
-      setError(uErr.message);
+    const finalSet = buildProposedFinalMediaSet({ existing: prev, uploaded: uploadedUrls });
+    const ok = await persistImages(finalSet.images.map((i) => i.url));
+    if (!ok) {
       setUploading(false);
       return;
     }
-
-    setListing((prev: any) => ({ ...(prev || {}), ...payload }));
     setSelectedFiles([]);
     setUploadNote(null);
     setSuccess(lang === "es" ? "Fotos actualizadas" : "Photos updated");
@@ -301,6 +345,95 @@ async function uploadImages() {
     setError(e?.message || "Upload failed");
   } finally {
     setUploading(false);
+  }
+}
+
+/** Package B (Gate B2) — single persistence point for the FINAL ordered image set. */
+async function persistImages(finalImages: string[]): Promise<boolean> {
+  if (!id || !isValidUuid(id) || !userId) return false;
+  const supabase = createSupabaseBrowserClient();
+  const payload: { images: string[] } = { images: finalImages };
+  const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, payload);
+  if (uErr) {
+    console.error("[mis-anuncios/editar]", uErr.message);
+    setError(dashboardSafeMutationErrorCopy(lang));
+    return false;
+  }
+  setListing((prev: any) => ({ ...(prev || {}), ...payload }));
+  return true;
+}
+
+/**
+ * Package B (Gate B2) — minimum-image floor per category, mirroring each lane's REAL publish
+ * rule (never invented): rentas/bienes-raices require 1 photo
+ * (leonixPublishRealEstateFromDraftState.ts publish gates), mascotas requires its single image
+ * (publishMascotasPerdidosQuickToListings.ts:85-86); the other listings-family lanes publish
+ * with zero photos. Removing below the floor is blocked with a truthful message.
+ */
+function minImagesForListingCategory(): number {
+  const cat = String(listing?.category ?? "").toLowerCase();
+  if (cat === "rentas" || cat === "bienes-raices" || cat === "mascotas-y-perdidos") return 1;
+  return 0;
+}
+
+async function removeImageAt(index: number) {
+  if (mediaActionBusy) return;
+  const current = getListingImageUrls(listing?.images);
+  if (index < 0 || index >= current.length) return;
+  if (current.length - 1 < minImagesForListingCategory()) {
+    setError(
+      lang === "es"
+        ? "Este anuncio necesita al menos una foto — sube una nueva antes de quitar esta."
+        : "This listing needs at least one photo — upload a new one before removing this one.",
+    );
+    return;
+  }
+  setError(null);
+  setMediaActionBusy(true);
+  try {
+    const finalSet = buildProposedFinalMediaSet({ existing: current, removedUrls: [current[index]] });
+    const ok = await persistImages(finalSet.images.map((i) => i.url));
+    if (ok) setSuccess(lang === "es" ? "Foto eliminada del anuncio" : "Photo removed from listing");
+  } finally {
+    setMediaActionBusy(false);
+  }
+}
+
+async function moveImage(index: number, direction: -1 | 1) {
+  if (mediaActionBusy) return;
+  const current = getListingImageUrls(listing?.images);
+  const target = index + direction;
+  if (index < 0 || index >= current.length || target < 0 || target >= current.length) return;
+  const reordered = [...current];
+  [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
+  setError(null);
+  setMediaActionBusy(true);
+  try {
+    const finalSet = buildProposedFinalMediaSet({ existing: current, orderedUrls: reordered });
+    const ok = await persistImages(finalSet.images.map((i) => i.url));
+    if (ok) setSuccess(lang === "es" ? "Orden de fotos actualizado" : "Photo order updated");
+  } finally {
+    setMediaActionBusy(false);
+  }
+}
+
+/** Hero = first image — the listings-family cover convention every public shell renders. */
+async function makeHeroImage(index: number) {
+  if (mediaActionBusy || index === 0) return;
+  const current = getListingImageUrls(listing?.images);
+  if (index < 0 || index >= current.length) return;
+  setError(null);
+  setMediaActionBusy(true);
+  try {
+    const finalSet = buildProposedFinalMediaSet({
+      existing: current,
+      orderedUrls: [current[index], ...current.filter((_, i) => i !== index)],
+      heroUrl: current[index],
+    });
+    const ok = await persistImages(finalSet.images.map((i) => i.url));
+    if (ok) setSuccess(lang === "es" ? "Foto de portada actualizada" : "Cover photo updated");
+  } finally {
+    setMediaActionBusy(false);
   }
 }
 
@@ -357,9 +490,10 @@ async function uploadSellerPhoto(file: File) {
   const existingPairs = Array.isArray(listing?.detail_pairs) ? (listing.detail_pairs as Array<{ label?: string; value?: string }>) : [];
   const nextPairs = [...existingPairs.filter((p) => p?.label !== SELLER_PHOTO_DETAIL_LABEL), { label: SELLER_PHOTO_DETAIL_LABEL, value: hostedUrl }];
 
-  const { error: uErr } = await supabase.from("listings").update({ detail_pairs: nextPairs }).eq("id", id);
+  const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, { detail_pairs: nextPairs });
   if (uErr) {
-    setSellerPhotoError(uErr.message || (lang === "es" ? "La foto se subió pero no se pudo guardar." : "Photo uploaded but could not be saved."));
+    console.error("[mis-anuncios/editar]", uErr.message);
+    setSellerPhotoError(lang === "es" ? "La foto se subió pero no se pudo guardar." : "Photo uploaded but could not be saved.");
     setSellerPhotoUploading(false);
     return;
   }
@@ -379,9 +513,10 @@ async function removeSellerPhoto() {
   const existingPairs = Array.isArray(listing?.detail_pairs) ? (listing.detail_pairs as Array<{ label?: string; value?: string }>) : [];
   const nextPairs = existingPairs.filter((p) => p?.label !== SELLER_PHOTO_DETAIL_LABEL);
 
-  const { error: uErr } = await supabase.from("listings").update({ detail_pairs: nextPairs }).eq("id", id);
+  const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, { detail_pairs: nextPairs });
   if (uErr) {
-    setSellerPhotoError(uErr.message || (lang === "es" ? "No se pudo quitar la foto." : "Could not remove the photo."));
+    console.error("[mis-anuncios/editar]", uErr.message);
+    setSellerPhotoError(lang === "es" ? "No se pudo quitar la foto." : "Could not remove the photo.");
     setSellerPhotoUploading(false);
     return;
   }
@@ -409,15 +544,50 @@ async function removeSellerPhoto() {
       price: price.trim() === "" ? null : price.trim(),
     };
 
-    // Only include description if it exists in the row object (avoids guessing schema).
-    if (listing && "description" in listing) {
-      payload.description = description.trim() || null;
+    // Gate 5 (Globalization Build 04) — En Venta is the only category on this shared editor where
+    // price/is_free are both real, owner-facing pricing state (Clases/Comunidad/Busco/Mascotas are
+    // free-only categories where this "Price" field is a meaningless dead input, and BR/Autos are
+    // out of this build's scope). Editing price without also updating is_free left every free-price
+    // renderer (which checks is_free first) silently ignoring the new number.
+    if (listing && String(listing.category ?? "").toLowerCase() === "en-venta") {
+      const numericPrice = Number(price.trim());
+      const hasRealPrice = price.trim() !== "" && Number.isFinite(numericPrice) && numericPrice > 0;
+      payload.is_free = !hasRealPrice;
     }
 
-    const { error: uErr } = await supabase.from("listings").update(payload).eq("id", id);
+    // Only include description if it exists in the row object (avoids guessing schema).
+    if (listing && "description" in listing) {
+      const editedProse = description.trim();
+      // Gate 6 (Globalization Build 04 Final Lifecycle Closure) — Clases/Comunidad rebuild the
+      // full composite blob (edited user text + the untouched auto-generated tail) so the saved
+      // description stays the real "user text + structured summary" shape the publish pipeline
+      // originally wrote, never flattening structured lines into freeform editable prose.
+      const proseWithComposite =
+        listing && isCompositeDescriptionCategory(listing.category)
+          ? rebuildCompositeDescription(editedProse, compositeDescriptionTail)
+          : editedProse;
+      // Gate 5 (Globalization Build 04) — reattach the legacy gallery marker verbatim (it was
+      // stripped for display, never shown/editable in the textarea) so a save can never corrupt
+      // or drop it.
+      const nextDescription = descriptionGalleryTail
+        ? `${proseWithComposite}\n\n${descriptionGalleryTail}`
+        : proseWithComposite;
+      payload.description = nextDescription || null;
+    }
+
+    // Gate 2/8 (Globalization Build 04 Final Lifecycle Closure) — merge in this category's real
+    // owner-editable fields. The adapter's serialize() always returns a full replacement
+    // `detail_pairs` array (built from the current row's real pairs via upsert, not a partial
+    // patch), so assigning it directly here is correct and never silently drops an unrelated pair.
+    if (categoryAdapter && listing) {
+      Object.assign(payload, categoryAdapter.serialize(listing as Record<string, unknown>, categoryFieldValues));
+    }
+
+    const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, payload);
 
     if (uErr) {
-      setError(uErr.message);
+      console.error("[mis-anuncios/editar]", uErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setSaving(false);
       return;
     }
@@ -437,10 +607,11 @@ async function removeSellerPhoto() {
     setError(null);
     setSuccess(null);
 
-    const { error: uErr } = await supabase.from("listings").update({ status }).eq("id", id);
+    const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, { status });
 
     if (uErr) {
-      setError(uErr.message);
+      console.error("[mis-anuncios/editar]", uErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyAction(null);
       return;
     }
@@ -464,10 +635,11 @@ async function removeSellerPhoto() {
     const now = new Date().toISOString();
     const patch = { ...OWNER_LISTING_SOFT_ARCHIVE_PATCH, updated_at: now };
 
-    const { error: dErr } = await supabase.from("listings").update(patch).eq("id", id);
+    const { error: dErr } = await applyOwnerListingPatch(supabase, id, userId, patch);
 
     if (dErr) {
-      setError(dErr.message);
+      console.error("[mis-anuncios/editar]", dErr.message);
+      setError(dashboardSafeMutationErrorCopy(lang));
       setBusyAction(null);
       return;
     }
@@ -569,6 +741,82 @@ async function removeSellerPhoto() {
                   </label>
                 ) : null}
 
+                {categoryAdapter ? (
+                  <div className="mt-2 rounded-2xl border border-white/10 bg-black/30 p-4">
+                    <div className="text-sm font-semibold text-white/90">
+                      {lang === "es" ? "Detalles del anuncio" : "Listing details"}
+                    </div>
+                    <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                      {categoryAdapter.fields.map((field) => {
+                        const value = categoryFieldValues[field.key] ?? "";
+                        const fieldLabel = lang === "es" ? field.labelEs : field.labelEn;
+                        if (field.kind === "select") {
+                          return (
+                            <label key={field.key} className="grid gap-2">
+                              <span className="text-sm text-white/70 break-words">{fieldLabel}</span>
+                              <select
+                                value={value}
+                                onChange={(e) => setCategoryField(field.key, e.target.value)}
+                                disabled={!isEditable || saving}
+                                className="w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 text-white outline-none focus:border-yellow-500/40 disabled:opacity-60"
+                              >
+                                {(field.options ?? []).map((opt) => (
+                                  <option key={opt.value} value={opt.value} className="bg-black">
+                                    {lang === "es" ? opt.labelEs : opt.labelEn}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          );
+                        }
+                        if (field.kind === "textarea") {
+                          return (
+                            <label key={field.key} className="grid gap-2 sm:col-span-2">
+                              <span className="text-sm text-white/70 break-words">{fieldLabel}</span>
+                              <textarea
+                                value={value}
+                                onChange={(e) => setCategoryField(field.key, e.target.value)}
+                                disabled={!isEditable || saving}
+                                rows={3}
+                                className="w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 text-white outline-none focus:border-yellow-500/40 disabled:opacity-60"
+                              />
+                            </label>
+                          );
+                        }
+                        return (
+                          <label key={field.key} className="grid gap-2">
+                            <span className="text-sm text-white/70 break-words">{fieldLabel}</span>
+                            <input
+                              type={field.kind === "tel" ? "tel" : field.kind === "email" ? "email" : "text"}
+                              inputMode={field.kind === "tel" ? "tel" : undefined}
+                              value={value}
+                              onChange={(e) => setCategoryField(field.key, e.target.value)}
+                              disabled={!isEditable || saving}
+                              className="w-full min-w-0 rounded-xl border border-white/15 bg-black/40 px-4 py-3 text-white outline-none focus:border-yellow-500/40 disabled:opacity-60"
+                            />
+                          </label>
+                        );
+                      })}
+                    </div>
+
+                    {categoryAdapter.frozenFields.length > 0 ? (
+                      <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-white/50">
+                          {lang === "es" ? "No editable aquí todavía" : "Not editable here yet"}
+                        </div>
+                        <ul className="mt-2 grid gap-2">
+                          {categoryAdapter.frozenFields.map((f) => (
+                            <li key={f.labelEs} className="text-xs text-white/60">
+                              <span className="font-semibold text-white/80">{lang === "es" ? f.labelEs : f.labelEn}:</span>{" "}
+                              {lang === "es" ? f.reasonEs : f.reasonEn}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
 <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 p-4">
   <div className="flex items-start justify-between gap-3">
     <div>
@@ -614,11 +862,59 @@ async function removeSellerPhoto() {
   ) : null}
 
   {getListingImageUrls(listing?.images).length > 0 ? (
+    /* Globalization Package B (Gate B2) — the gallery is now MANAGEABLE, not read-only:
+       remove, reorder, and cover selection persist the full final ordered set through the
+       same owner-scoped patch. No display cap (previously silently sliced to 8). Index 0 is
+       the cover — the listings-family convention every public shell renders. */
     <div className="mt-4 grid grid-cols-3 sm:grid-cols-4 gap-2">
-      {getListingImageUrls(listing?.images).slice(0, 8).map((url) => (
-        <div key={url} className="aspect-square overflow-hidden rounded-xl border border-white/10 bg-black/40">
+      {getListingImageUrls(listing?.images).map((url, index, all) => (
+        <div key={url} className="group relative aspect-square overflow-hidden rounded-xl border border-white/10 bg-black/40">
           { }
-          <img src={url} alt="photo" className="h-full w-full object-cover" />
+          <img src={url} alt={index === 0 ? (lang === "es" ? "Portada" : "Cover") : "photo"} className="h-full w-full object-cover" />
+          {index === 0 ? (
+            <span className="absolute left-1 top-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">
+              {lang === "es" ? "Portada" : "Cover"}
+            </span>
+          ) : null}
+          <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-black/65 py-1 opacity-90">
+            <button
+              type="button"
+              disabled={mediaActionBusy || index === 0}
+              onClick={() => void moveImage(index, -1)}
+              aria-label={lang === "es" ? "Mover antes" : "Move earlier"}
+              className="rounded px-1.5 text-xs text-white/90 hover:bg-white/15 disabled:opacity-30"
+            >
+              ◀
+            </button>
+            <button
+              type="button"
+              disabled={mediaActionBusy || index === all.length - 1}
+              onClick={() => void moveImage(index, 1)}
+              aria-label={lang === "es" ? "Mover después" : "Move later"}
+              className="rounded px-1.5 text-xs text-white/90 hover:bg-white/15 disabled:opacity-30"
+            >
+              ▶
+            </button>
+            {index !== 0 ? (
+              <button
+                type="button"
+                disabled={mediaActionBusy}
+                onClick={() => void makeHeroImage(index)}
+                className="rounded px-1.5 text-[10px] font-semibold text-amber-200 hover:bg-white/15 disabled:opacity-30"
+              >
+                {lang === "es" ? "Portada" : "Cover"}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              disabled={mediaActionBusy}
+              onClick={() => void removeImageAt(index)}
+              aria-label={lang === "es" ? "Quitar foto" : "Remove photo"}
+              className="rounded px-1.5 text-xs font-bold text-red-300 hover:bg-white/15 disabled:opacity-30"
+            >
+              ✕
+            </button>
+          </div>
         </div>
       ))}
     </div>
@@ -729,5 +1025,13 @@ async function removeSellerPhoto() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function EditListingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <EditListingPageContent />
+    </Suspense>
   );
 }

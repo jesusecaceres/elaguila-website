@@ -853,13 +853,17 @@ export function sortServiciosResultsForDisplay(
   rows: ServiciosPublicListingRow[],
   lang: ServiciosLang,
   sort: ServiciosResultsFilterQuery["sort"],
+  /** Package D Build D3, Gate 1 — pre-resolved canonical `leonix_placement_entitlements` weight,
+   * keyed by listing id, batched server-side before this call. Optional: omitted for callers that
+   * haven't resolved it (keeps every existing caller backward-compatible). */
+  canonicalRankWeightByListingId?: Map<string, number>,
 ): ServiciosPublicListingRow[] {
   const weightOrder = [600, 500, 400, 300, 200, 100, 50, 25, 0] as const;
   const buckets = new Map<number, ServiciosPublicListingRow[]>();
   const rankBySlug = new Map<string, ReturnType<typeof resolveServiciosListingRank>>();
 
   for (const row of rows) {
-    const rank = resolveServiciosListingRank(row);
+    const rank = resolveServiciosListingRank(row, canonicalRankWeightByListingId);
     rankBySlug.set(row.slug, rank);
     const list = buckets.get(rank.rankWeight) ?? [];
     list.push(row);
@@ -870,7 +874,7 @@ export function sortServiciosResultsForDisplay(
   for (const w of weightOrder) {
     const block = buckets.get(w);
     if (!block?.length) continue;
-    const rankedBlock = applyServiciosVisibilityRanking(block);
+    const rankedBlock = applyServiciosVisibilityRanking(block, canonicalRankWeightByListingId);
     sorted.push(...sortServiciosListingRows(rankedBlock, lang, sort, { resultsNewest: true }));
   }
   return sorted;

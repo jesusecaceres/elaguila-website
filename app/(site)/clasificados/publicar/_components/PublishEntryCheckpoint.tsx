@@ -2,10 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
 import type { PublishCheckpointCardData } from "../_lib/categoryPublishCheckpoints";
 import {
-  buildPaidCheckpointNewsletterHref,
   publishCheckpointCouponExclusions,
   publishCheckpointCouponLine,
   publishCheckpointCouponLineShort,
@@ -18,29 +16,33 @@ function hasPaidStyleCard(cards: PublishCheckpointCardData[]): boolean {
   );
 }
 
+/**
+ * The Launch 25 (25% off) campaign this banner advertised has been retired.
+ * Left as a no-op so its single call site in PublishEntryCheckpointLayout does
+ * not need to change; renders nothing.
+ */
 export function PublishEntryCheckpointLaunchBanner({
-  lang,
-  category,
+  lang: _lang,
+  category: _category,
 }: {
   lang: PublishCheckpointLang;
   category: string;
 }) {
-  const href = buildPaidCheckpointNewsletterHref(lang, category);
-  return (
-    <LeonixLaunchCouponCard
-      lang={lang}
-      variant="public"
-      href={href}
-      openInNewTab
-      finePrintMode="full"
-    />
-  );
+  return null;
 }
 
 type PaidPublishCheckpointCardProps = {
   card: PublishCheckpointCardData;
   lang: PublishCheckpointLang;
   onMoreClick: () => void;
+  /**
+   * Gate 2D — owner-QA debt: on Comunidad/Clases the pre-CTA card face had too much vertical
+   * content before reaching Publicar/Ver más. When true, the card-face description clamps to one
+   * line (full copy still shows in the "Ver más" modal — nothing is removed, only the face
+   * layout is leaner) and optional upsell/coupon/coming-soon lines are skipped. Defaults to
+   * false — every existing caller (every other category's checkpoint) renders unchanged.
+   */
+  compact?: boolean;
 };
 
 function cardSurfaceClass(card: PublishCheckpointCardData): string {
@@ -56,6 +58,7 @@ export function PaidPublishCheckpointCard({
   lang,
   onMoreClick,
   compactCouponLine = true,
+  compact = false,
 }: PaidPublishCheckpointCardProps & { compactCouponLine?: boolean }) {
   const couponLine = compactCouponLine
     ? publishCheckpointCouponLineShort(lang, card.couponEligible)
@@ -77,14 +80,14 @@ export function PaidPublishCheckpointCard({
               <span className="ml-1 text-xs font-medium text-[#5C5346]">· {card.billingLabel}</span>
             ) : null}
           </p>
-          <p className="mt-2 text-sm text-[#5C5346]/85">{card.shortDescription}</p>
-          {card.optionalUpgradeLine ? (
+          <p className={`mt-2 text-sm text-[#5C5346]/85 ${compact ? "line-clamp-1" : ""}`}>{card.shortDescription}</p>
+          {!compact && card.optionalUpgradeLine ? (
             <p className="mt-2 text-xs font-semibold text-[#B8954A]">{card.optionalUpgradeLine}</p>
           ) : null}
-          {couponLine ? (
+          {!compact && couponLine ? (
             <p className="mt-2 text-xs font-medium text-emerald-900/90">{couponLine}</p>
           ) : null}
-          {card.comingSoon ? (
+          {!compact && card.comingSoon ? (
             <p className="mt-2 text-xs font-semibold text-[#7A7164]">
               {lang === "es" ? "Próximamente — verificar antes de prometer" : "Coming later — verify before promising"}
             </p>
@@ -241,9 +244,11 @@ export function PublishEntryCheckpointLayout({
 type PublishEntryCheckpointStackProps = {
   cards: PublishCheckpointCardData[];
   lang: PublishCheckpointLang;
+  /** Gate 2D — forwarded to each card; defaults to false (unchanged for every existing caller). */
+  compact?: boolean;
 };
 
-export function PublishEntryCheckpointStack({ cards, lang }: PublishEntryCheckpointStackProps) {
+export function PublishEntryCheckpointStack({ cards, lang, compact = false }: PublishEntryCheckpointStackProps) {
   const [openId, setOpenId] = useState<string | null>(null);
   const openCard = cards.find((c) => c.id === openId) ?? null;
 
@@ -255,6 +260,7 @@ export function PublishEntryCheckpointStack({ cards, lang }: PublishEntryCheckpo
           card={card}
           lang={lang}
           onMoreClick={() => setOpenId(card.id)}
+          compact={compact}
         />
       ))}
       <PaidPublishCheckpointModal

@@ -7,6 +7,10 @@
  * - Preview (pre-live): `BR_PREVIEW_PRIVADO`, `BR_PREVIEW_NEGOCIO`, hub `BR_PREVIEW_HUB`.
  * - Live listing detail (canonical after publish): `leonixLiveAnuncioPath(id)` → `/clasificados/anuncio/:id` (see `leonixRealEstateListingContract.ts`).
  * - Category browse: `BR_CATEGORY_HOME`, results `BR_RESULTS`.
+ *
+ * Gate I.5.7C — `BR_RESULTS` is the canonical `/resultados` surface. The English-slug
+ * `/clasificados/bienes-raices/results` is a compatibility alias only (permanent redirect in
+ * `next.config.ts`, kept for old bookmarks/external links) — do not point this constant at it.
  */
 
 export const BR_PUBLICAR_HUB = "/clasificados/publicar/bienes-raices";
@@ -25,4 +29,4 @@ export const BR_PREVIEW_NEGOCIO = "/clasificados/bienes-raices/preview/negocio";
 export const BR_PREVIEW_PRIVADO = "/clasificados/bienes-raices/preview/privado";
 export const BR_CATEGORY_HOME = "/clasificados/bienes-raices";
 /** Category results: filtered browse (owned by Bienes Raíces, Spanish slug). */
-export const BR_RESULTS = "/clasificados/bienes-raices/results";
+export const BR_RESULTS = "/clasificados/bienes-raices/resultados";

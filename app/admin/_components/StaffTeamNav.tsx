@@ -36,6 +36,12 @@ export function StaffTeamNav({ showRosterLink = false }: { showRosterLink?: bool
             label: "Team roster (owner)",
             active: pathname.startsWith("/admin/team/roster"),
           },
+          {
+            key: "/admin/team/executive-hub",
+            href: "/admin/team/executive-hub",
+            label: "Executive Hub (owner)",
+            active: pathname.startsWith("/admin/team/executive-hub"),
+          },
         ]
       : []),
   ];

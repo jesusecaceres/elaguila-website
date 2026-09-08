@@ -119,6 +119,10 @@ export function BrNegocioChildInventoryFullApplication({
   const parentHubRef = useRef(pickParentHubSlice(parentHubSnapshot));
   const baselinePropertyRef = useRef("");
   const lockedChildCategoriaRef = useRef<BrNegocioCategoriaPropiedad | null>(null);
+  // Package F Build F2, Gate 9 (P1 accessibility fix) — this dialog previously had no focus trap
+  // (Tab could escape to the page behind it) and no focus-restore-on-close.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const [step, setStep] = useState(0);
   const [state, setStateRaw] = useState<AgenteIndividualResidencialFormState>(() =>
     buildChildInventoryEditorState(parentHubRef.current, initialDraft, lang, {
@@ -231,14 +235,31 @@ export function BrNegocioChildInventoryFullApplication({
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      if (brShouldIgnoreWizardShortcut(e)) return;
-      e.preventDefault();
-      confirmClose(() => {
-        clearChildInventoryEditorSession();
-        setErrors({});
-        onClose();
-      });
+      if (e.key === "Escape") {
+        if (brShouldIgnoreWizardShortcut(e)) return;
+        e.preventDefault();
+        confirmClose(() => {
+          clearChildInventoryEditorSession();
+          setErrors({});
+          onClose();
+        });
+        return;
+      }
+      if (e.key === "Tab" && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -250,6 +271,18 @@ export function BrNegocioChildInventoryFullApplication({
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    (focusable?.[0] ?? dialogRef.current)?.focus();
+    return () => {
+      previouslyFocusedRef.current?.focus();
     };
   }, [open]);
 
@@ -418,6 +451,8 @@ export function BrNegocioChildInventoryFullApplication({
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       className="fixed inset-0 z-[80] flex flex-col bg-[#F6F0E2] text-[#2C2416]"
       role="dialog"
       aria-modal="true"

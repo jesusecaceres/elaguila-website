@@ -23,10 +23,12 @@ export type AdminPermissionKey =
   | "can_manage_categories"
   | "can_manage_magazine"
   | "can_manage_website_content"
+  | "can_manage_prayer_wall"
   | "can_view_payments"
   | "can_manage_team"
   | "can_view_activity_logs"
-  | "can_use_replica_mode";
+  | "can_use_replica_mode"
+  | "can_manage_recursos";
 
 /** All keys storable in `admin_team_members.permissions` (JSON array of strings). */
 export const ALL_ADMIN_PERMISSION_KEYS: readonly AdminPermissionKey[] = [
@@ -38,10 +40,12 @@ export const ALL_ADMIN_PERMISSION_KEYS: readonly AdminPermissionKey[] = [
   "can_manage_categories",
   "can_manage_magazine",
   "can_manage_website_content",
+  "can_manage_prayer_wall",
   "can_view_payments",
   "can_manage_team",
   "can_view_activity_logs",
   "can_use_replica_mode",
+  "can_manage_recursos",
 ] as const;
 
 export type AdminTeamMember = {

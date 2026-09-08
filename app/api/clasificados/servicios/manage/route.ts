@@ -63,14 +63,20 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = getAdminSupabase();
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("servicios_public_listings")
     .update({ listing_status: nextStatus, updated_at: new Date().toISOString() })
     .eq("slug", slug)
-    .eq("owner_user_id", ownerUserId);
+    .eq("owner_user_id", ownerUserId)
+    .select("slug");
 
   if (error) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  }
+  // Gate I.13A — a zero-row match (slug/owner changed between the read above and this
+  // write) must never be reported as success; mirrors I.12A's applyOwnerListingPatch fix.
+  if (!updated || updated.length === 0) {
+    return NextResponse.json({ ok: false, error: "listing_not_found_or_forbidden" }, { status: 409 });
   }
 
   await insertServiciosAnalyticsEvent({

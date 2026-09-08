@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
@@ -9,7 +9,7 @@ import { IdeaBuilderWizard } from "./IdeaBuilderWizard";
 type Lang = "es" | "en";
 
 /** TODAY-1 — Idea Builder owner page. Requires sign-in, matching the existing business-tools/page.tsx pattern. */
-export default function IdeaBuilderPage() {
+function IdeaBuilderPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname() ?? "/dashboard/business-tools/idea-builder";
@@ -48,5 +48,13 @@ export default function IdeaBuilderPage() {
         <IdeaBuilderWizard lang={lang} />
       )}
     </LeonixDashboardShell>
+  );
+}
+
+export default function IdeaBuilderPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <IdeaBuilderPageContent />
+    </Suspense>
   );
 }

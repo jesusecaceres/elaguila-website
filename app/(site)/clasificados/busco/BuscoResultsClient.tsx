@@ -9,6 +9,7 @@ import { BuscoShellLayout } from "./shared/BuscoShellLayout";
 import { BuscoRequestCard } from "./BuscoRequestCard";
 import { BuscoResultsSearchPanel } from "./BuscoResultsSearchPanel";
 import { buildBuscoRequestCardModel } from "./shared/buscoCardModel";
+import { resolveBuscoBudgetDisplay } from "@/app/publicar/busco/shared/buscoBudgetDisplay";
 import { detailPairsToMap } from "./shared/buscoListingDetailPairs";
 import { fetchPublishedBuscoListings, type BuscoListingBrowseRow } from "./shared/loadBuscoListings";
 import {
@@ -131,7 +132,20 @@ export function BuscoResultsClient() {
         return false;
       }
       if (zone && !textMatch(pairs["Leonix:buscoZone"] ?? "", zone)) return false;
-      if (budget && !textMatch(pairs["Leonix:buscoBudget"] ?? "", budget)) return false;
+      if (budget) {
+        // Gate 4 — structured budget (mode/amount) replaced the old free-text field for new
+        // listings; resolve the same display text this filter searches against either shape.
+        const budgetDisplay =
+          resolveBuscoBudgetDisplay(
+            {
+              budgetMode: pairs["Leonix:buscoBudgetMode"] ?? "",
+              budgetAmount: pairs["Leonix:buscoBudgetAmount"] ?? "",
+              legacyBudgetText: pairs["Leonix:buscoBudget"] ?? "",
+            },
+            lang,
+          ) ?? "";
+        if (!textMatch(budgetDisplay, budget)) return false;
+      }
 
       if (tipo !== "all") {
         const slug = (pairs["Leonix:buscoType"] ?? "").trim().toLowerCase();

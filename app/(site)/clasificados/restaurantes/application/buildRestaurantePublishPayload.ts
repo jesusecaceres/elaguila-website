@@ -1,4 +1,9 @@
-import { hasAnyRestauranteAmenities, sanitizeRestauranteAmenities } from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
+import {
+  hasAnyRestauranteAmenities,
+  sanitizeRestauranteAmenities,
+  hasAnyCustomRestauranteAmenities,
+  sanitizeCustomRestauranteAmenitiesByGroup,
+} from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
 import { collectRestauranteExternalVideoUrls } from "@/app/lib/clasificados/restaurantes/restauranteVideoUrls";
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
 
@@ -96,6 +101,7 @@ export function buildRestaurantePublishPayload(
 
   const draft = canonicalDraft;
   const amenitiesSanitized = sanitizeRestauranteAmenities(draft.restaurantAmenities);
+  const customAmenitiesSanitized = sanitizeCustomRestauranteAmenitiesByGroup(draft.customRestaurantAmenitiesByGroup);
   const videoUrls = collectRestauranteExternalVideoUrls(draft);
 
   const payload: Record<string, unknown> = {
@@ -128,13 +134,14 @@ export function buildRestaurantePublishPayload(
     xTwitterUrl: blockHeavyMedia(draft.xTwitterUrl, "xTwitterUrl"),
     whatsAppNumber: blockHeavyMedia(draft.whatsAppNumber, "whatsAppNumber"),
     verUbicacionUrl: blockHeavyMedia(draft.verUbicacionUrl, "verUbicacionUrl"),
+    additionalWebsites: blockHeavyMedia((draft.additionalWebsites || []).slice(0, 8), "additionalWebsites"),
     showExactAddress: blockHeavyMedia(draft.showExactAddress, "showExactAddress"),
     locationPrivacyMode: blockHeavyMedia(draft.locationPrivacyMode, "locationPrivacyMode"),
     serviceModes: blockHeavyMedia((draft.serviceModes || []).slice(0, 10), "serviceModes"),
     serviceModeOtherCustom: blockHeavyMedia(draft.serviceModeOtherCustom, "serviceModeOtherCustom"),
     languagesSpoken: blockHeavyMedia((draft.languagesSpoken || []).slice(0, 10), "languagesSpoken"),
     languageOtherCustom: blockHeavyMedia(draft.languageOtherCustom, "languageOtherCustom"),
-    customLanguages: blockHeavyMedia((draft.customLanguages || []).slice(0, 3), "customLanguages"),
+    customLanguages: blockHeavyMedia((draft.customLanguages || []).slice(0, 8), "customLanguages"),
     highlights: blockHeavyMedia((draft.highlights || []).slice(0, 20), "highlights"),
     priceLevel: blockHeavyMedia(draft.priceLevel, "priceLevel"),
     movingVendor: blockHeavyMedia(draft.movingVendor, "movingVendor"),
@@ -148,6 +155,7 @@ export function buildRestaurantePublishPayload(
     friday: blockHeavyMedia(draft.friday, "friday"),
     saturday: blockHeavyMedia(draft.saturday, "saturday"),
     sunday: blockHeavyMedia(draft.sunday, "sunday"),
+    specialHoursEntries: blockHeavyMedia((draft.specialHoursEntries || []).slice(0, 20), "specialHoursEntries"),
     specialHoursNote: blockHeavyMedia(draft.specialHoursNote, "specialHoursNote"),
     heroImage: blockHeavyMedia(draft.heroImage, "heroImage"),
     businessLogo: blockHeavyMedia(draft.businessLogo, "businessLogo"),
@@ -177,6 +185,10 @@ export function buildRestaurantePublishPayload(
     restaurantAmenities: blockHeavyMedia(
       hasAnyRestauranteAmenities(amenitiesSanitized) ? amenitiesSanitized : undefined,
       "restaurantAmenities",
+    ),
+    customRestaurantAmenitiesByGroup: blockHeavyMedia(
+      hasAnyCustomRestauranteAmenities(customAmenitiesSanitized) ? customAmenitiesSanitized : undefined,
+      "customRestaurantAmenitiesByGroup",
     ),
     reservationsAvailable: blockHeavyMedia(draft.reservationsAvailable, "reservationsAvailable"),
     preorderRequired: blockHeavyMedia(draft.preorderRequired, "preorderRequired"),

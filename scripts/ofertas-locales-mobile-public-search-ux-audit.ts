@@ -23,6 +23,16 @@ const ALLOWED = [
   /^app\/lib\/ofertas-locales\/OFERTAS_LOCALES_MOBILE/,
   /^package\.json$/,
   /^scripts\/ofertas-locales-mobile-public-search-ux-audit\.ts$/,
+  /^scripts\/ofertas-package-13-/,
+  /^scripts\/ofertas-package-11-local-certification-audit\.mjs$/,
+  /^scripts\/ofertas-locales-ai-(power|quality)-1-audit\.ts$/,
+  /^scripts\/ofertas-locales-final-1[bcd]/,
+  /^scripts\/ofertas-locales-final-1-pipeline-audit\.ts$/,
+  /^scripts\/ofertas-locales-final-4-public-detail-audit\.ts$/,
+  /^scripts\/ofertas-locales-gate-1-foundation-audit\.ts$/,
+  /^scripts\/ofertas-locales-ol[37]/,
+  /^docs\/OFERTAS_PACKAGE_13_/,
+  /^tests\/ofertas-locales\/scenarios\//,
 ] as const;
 
 const FORBIDDEN_PATHS = [
@@ -79,14 +89,14 @@ function run() {
   assert.match(copy, /Ocultar filtros/, "Spanish filter toggle hide");
   assert.match(copy, /Show filters/, "English filter toggle show");
   assert.match(copy, /Hide filters/, "English filter toggle hide");
-  assert.match(copy, /Todavía estamos agregando ofertas locales/, "Spanish pipeline empty title");
-  assert.match(copy, /We're adding local deals soon/, "English pipeline empty title");
+  assert.match(copy, /Aún no hay ofertas aprobadas publicadas/, "Spanish pipeline empty title");
+  assert.match(copy, /No approved deals published yet/, "English pipeline empty title");
 
-  assert.match(client, /aria-expanded/, "filter toggle uses aria-expanded");
-  assert.match(client, /ofertas-locales-mobile-filters/, "mobile collapsible filter panel id");
-  assert.match(client, /md:hidden/, "mobile-only sections");
-  assert.match(client, /hidden md:block/, "desktop filter grid preserved");
-  assert.match(client, /listButton/, "list button remains");
+  assert.match(client, /OfertasLocalesFiltersDrawer/, "filter drawer is wired");
+  assert.match(client, /filtersOpen/, "filter drawer open state");
+  assert.match(client, /open=\{filtersOpen\}/, "filter drawer receives open state");
+  assert.match(client, /OfertasFloatingShoppingListCart/, "floating shopping list cart remains");
+  assert.match(client, /OfertasLocalesShoppingListPanel/, "shopping list panel remains");
 
   assert.match(searchApi, /\.eq\("review_status", "approved"\)/, "item API approved filter");
   assert.match(searchApi, /\.eq\("is_active", true\)/, "item API active filter");

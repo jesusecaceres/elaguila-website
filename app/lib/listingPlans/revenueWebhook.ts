@@ -13,16 +13,39 @@ import {
 
 export const REVENUE_WEBHOOK_EVENT_CHECKOUT_COMPLETED = "checkout.session.completed";
 export const REVENUE_WEBHOOK_EVENT_CHECKOUT_EXPIRED = "checkout.session.expired";
+// Package C Build 1 (C3) — launch-required subscription lifecycle events + refund/dispute
+// foundations. Every entry has a REAL handler (revenueSubscriptionEvents.ts) — never a
+// string-only claim.
+export const REVENUE_WEBHOOK_EVENT_INVOICE_PAID = "invoice.paid";
+export const REVENUE_WEBHOOK_EVENT_INVOICE_PAYMENT_FAILED = "invoice.payment_failed";
+export const REVENUE_WEBHOOK_EVENT_SUBSCRIPTION_UPDATED = "customer.subscription.updated";
+export const REVENUE_WEBHOOK_EVENT_SUBSCRIPTION_DELETED = "customer.subscription.deleted";
+export const REVENUE_WEBHOOK_EVENT_CHARGE_REFUNDED = "charge.refunded";
+export const REVENUE_WEBHOOK_EVENT_DISPUTE_CREATED = "charge.dispute.created";
+export const REVENUE_WEBHOOK_EVENT_DISPUTE_CLOSED = "charge.dispute.closed";
 
 export const REVENUE_SUPPORTED_WEBHOOK_EVENTS = [
   REVENUE_WEBHOOK_EVENT_CHECKOUT_COMPLETED,
   REVENUE_WEBHOOK_EVENT_CHECKOUT_EXPIRED,
+  REVENUE_WEBHOOK_EVENT_INVOICE_PAID,
+  REVENUE_WEBHOOK_EVENT_INVOICE_PAYMENT_FAILED,
+  REVENUE_WEBHOOK_EVENT_SUBSCRIPTION_UPDATED,
+  REVENUE_WEBHOOK_EVENT_SUBSCRIPTION_DELETED,
+  REVENUE_WEBHOOK_EVENT_CHARGE_REFUNDED,
+  REVENUE_WEBHOOK_EVENT_DISPUTE_CREATED,
+  REVENUE_WEBHOOK_EVENT_DISPUTE_CLOSED,
 ] as const;
 
 export type RevenueOsCheckoutMetadata = {
+  schema: string | null;
   category: string;
   packageKey: string;
   billingMode: string;
+  amountCents: number | null;
+  currency: string | null;
+  durationDays: number | null;
+  aiIncluded: boolean | null;
+  workflow: string | null;
   paymentRecordId: string | null;
   ownerUserId: string | null;
   listingId: string | null;
@@ -46,6 +69,13 @@ function readMetadataValue(
 ): string | null {
   const value = String(metadata?.[key] ?? "").trim();
   return value || null;
+}
+
+function readMetadataInteger(metadata: Stripe.Metadata | null | undefined, key: string): number | null {
+  const raw = readMetadataValue(metadata, key);
+  if (!raw) return null;
+  const n = Number(raw);
+  return Number.isInteger(n) ? n : null;
 }
 
 export function parseCheckoutSessionMetadata(
@@ -113,9 +143,18 @@ export function parseCheckoutSessionMetadata(
   return {
     ok: true,
     metadata: {
+      schema: readMetadataValue(metadata, "leonix_metadata_schema"),
       category,
       packageKey,
       billingMode,
+      amountCents: readMetadataInteger(metadata, "leonix_amount_cents"),
+      currency: readMetadataValue(metadata, "leonix_currency")?.toLowerCase() ?? null,
+      durationDays: readMetadataInteger(metadata, "leonix_duration_days"),
+      aiIncluded:
+        readMetadataValue(metadata, "leonix_ai_included") == null
+          ? null
+          : readMetadataValue(metadata, "leonix_ai_included") === "true",
+      workflow: readMetadataValue(metadata, "leonix_workflow"),
       paymentRecordId,
       ownerUserId: readMetadataValue(metadata, "leonix_owner_user_id"),
       listingId: readMetadataValue(metadata, "leonix_listing_id"),

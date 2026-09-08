@@ -12,6 +12,8 @@ import {
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
   BR_INVENTORY_PACK_PACKAGE_KEY,
   AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY,
+  OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY,
+  OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY,
 } from "./publishCheckoutCheckpoint";
 import { buildDashboardMisAnunciosReturnPath } from "./revenueOsReturnPath";
 
@@ -21,6 +23,15 @@ export const RENTAS_CATEGORY_CHECKOUT = {
   category: "rentas",
   packageKey: "rentas_30d",
   returnPath: "/clasificados/rentas",
+} as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
+
+/** Gate 2B — Clases paid class publication, $24.99/30 days (Revenue OS matrix `clases_paid_30d`). */
+export const CLASES_PAID_30D_PACKAGE_KEY = "clases_paid_30d" as const;
+
+export const CLASES_CATEGORY_CHECKOUT = {
+  category: "clases",
+  packageKey: CLASES_PAID_30D_PACKAGE_KEY,
+  returnPath: "/publicar/clases/quick/preview",
 } as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
 
 export const EMPLEOS_PAID_JOB_CHECKOUT = {
@@ -84,6 +95,13 @@ export const SERVICIOS_OFFERS_ADDON_DASHBOARD_CHECKOUT = {
   returnPath: buildDashboardMisAnunciosReturnPath("es", "servicios"),
 } as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
 
+/** Gate D18/D19 — Comida Local base listing, monthly subscription ($129/mo, Revenue OS matrix). */
+export const COMIDA_LOCAL_BASE_CHECKOUT = {
+  category: "comida-local",
+  packageKey: "comida_local_base_monthly",
+  returnPath: "/clasificados/comida-local",
+} as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
+
 /** Dashboard add-on-only — property inventory pack on an existing published Bienes parent listing ($99/mo). */
 export const BIENES_INVENTORY_PACK_DASHBOARD_CHECKOUT = {
   category: "bienes-raices",
@@ -96,6 +114,18 @@ export const AUTOS_DEALER_INVENTORY_PACK_DASHBOARD_CHECKOUT = {
   category: "autos",
   packageKey: AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY,
   returnPath: buildDashboardMisAnunciosReturnPath("es", "autos"),
+} as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
+
+export const OFERTAS_LOCALES_FLYER_CHECKOUT = {
+  category: "ofertas-locales",
+  packageKey: OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY,
+  returnPath: "/dashboard/ofertas-locales",
+} as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
+
+export const OFERTAS_LOCALES_COUPONS_CHECKOUT = {
+  category: "ofertas-locales",
+  packageKey: OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY,
+  returnPath: "/dashboard/ofertas-locales",
 } as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
 
 export type RevenueCheckoutAddOnPayload = {
@@ -120,7 +150,14 @@ export type RevenueCategoryCheckoutPayload = {
   addOns?: RevenueCheckoutAddOnPayload[];
   sourceTable?: string | null;
   currentExpiresAt?: string | null;
+  renewalAttemptId?: string | null;
   returnContext?: string | null;
+  /** Package C Build 1 — affirmative recurring-billing consent (subscription packages only).
+   * The server hard-rejects subscription-mode checkout without it (Agreement v1.2 §17). */
+  recurringConsent?: { accepted: true; consentTextVersion: string; lang: "es" | "en" } | null;
+  /** Package C Build 2 (C4) — explicit customer request for the verified-15% introductory
+   * discount. Mutually exclusive with promoCode; the server rejects a request carrying both. */
+  requestVerifiedIntroDiscount?: boolean;
 };
 
 export function buildRevenueCategoryCheckoutBody(
@@ -149,6 +186,9 @@ export function buildRevenueCategoryCheckoutBody(
       : {}),
     ...(input.sourceTable?.trim() ? { sourceTable: input.sourceTable.trim() } : {}),
     ...(input.currentExpiresAt?.trim() ? { currentExpiresAt: input.currentExpiresAt.trim() } : {}),
+    ...(input.renewalAttemptId?.trim() ? { renewalAttemptId: input.renewalAttemptId.trim() } : {}),
     ...(input.returnContext?.trim() ? { returnContext: input.returnContext.trim() } : {}),
+    ...(input.recurringConsent ? { recurringConsent: input.recurringConsent } : {}),
+    ...(input.requestVerifiedIntroDiscount ? { requestVerifiedIntroDiscount: true } : {}),
   };
 }

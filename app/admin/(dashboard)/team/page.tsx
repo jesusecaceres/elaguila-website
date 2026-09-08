@@ -112,6 +112,14 @@ export default async function StaffTeamHomePage({
               actionLabel="Manage roster"
               actionHref="/admin/team/roster"
             />
+            <AdminStatCard
+              title="Executive Hub"
+              value="→"
+              hint="Manage executive contact profiles: photo, theme, publish status, preview"
+              icon="🪪"
+              actionLabel="Open Executive Hub"
+              actionHref="/admin/team/executive-hub"
+            />
           </>
         ) : null}
       </div>

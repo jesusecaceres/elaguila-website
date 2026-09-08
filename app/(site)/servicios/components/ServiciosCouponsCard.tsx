@@ -195,14 +195,13 @@ export function ServiciosCouponsCard({
         ) : null}
         {couponFlyer?.imageUrl ? (
           <div className="mt-6 flex justify-center">
-            <a
-              href={couponFlyer.imageUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => openLightbox(couponFlyer.imageUrl)}
               className="flex min-h-[44px] items-center justify-center rounded-full border-2 border-[#C9B46A]/45 bg-[#FFFCF7] px-6 py-2.5 text-sm font-semibold text-[#1E1810] transition hover:bg-[#FFF6E7]"
             >
               {lang === "en" ? "View promotions flyer →" : "Ver flyer de promociones →"}
-            </a>
+            </button>
           </div>
         ) : null}
         {couponMoreOffers?.url ? (

@@ -27,6 +27,12 @@ import { insertServiciosAnalyticsEvent } from "@/app/clasificados/servicios/lib/
 import { isServiciosStrictPublishEnvironment, serviciosOwnerIdFromBearer } from "../lib/serviciosPublishServerAuth";
 import { SERVICIOS_OFFERS_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
+import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
+import { normalizeStrictExternalVideoUrl } from "@/app/lib/media/externalVideoUrlValidation";
+import { SERVICIOS_MAX_VIDEO_URLS } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
+
+/** Gallery cap mirrors GALLERY_MAX in ClasificadosServiciosApplication.tsx:141 (local, unexported). */
+const SERVICIOS_GALLERY_MAX = 24;
 
 export const runtime = "nodejs";
 
@@ -261,6 +267,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "not_ready", missing: readiness.missing }, { status: 422 });
   }
 
+  // Globalization Package B (Gate B6) — shared media contract, additive server-side gate.
+  // The client already caps `state.gallery` at SERVICIOS_GALLERY_MAX and video count at
+  // SERVICIOS_MAX_VIDEO_URLS on every add, so this should never fire for any UI-driven submit;
+  // it exists as the authoritative last-line truth (T1/T3/T7/T8) for this single, real save
+  // boundary — both new listings and listing-edit saves route through this same POST handler.
+  const serviciosFinalMedia = buildProposedFinalMediaSet({
+    existing: state.gallery.map((g) => g.url),
+    externalVideoUrls: state.videos.map((v) => v.url),
+  });
+  const serviciosMediaValidation = validateProposedFinalMediaSet(serviciosFinalMedia, {
+    minImages: 0,
+    maxImages: SERVICIOS_GALLERY_MAX,
+    logoAllowed: false,
+    maxExternalVideos: SERVICIOS_MAX_VIDEO_URLS,
+    normalizeExternalVideoUrl: normalizeStrictExternalVideoUrl,
+  });
+  if (!serviciosMediaValidation.ok) {
+    await insertServiciosAnalyticsEvent({
+      listingSlug: null,
+      eventType: "publish_validation_failed",
+      meta: { mediaIssues: serviciosMediaValidation.issues },
+    });
+    return NextResponse.json(
+      { ok: false, error: "media_invalid", issues: serviciosMediaValidation.issues },
+      { status: 422 },
+    );
+  }
+
   const baseSlug = slugifyServiciosBusinessName(state.businessName || "borrador");
   const existingSlugRaw = typeof b.existingPublicSlug === "string" ? b.existingPublicSlug.trim() : "";
 
@@ -384,6 +418,16 @@ export async function POST(req: NextRequest) {
   }
 
   const listingStatus = pendingPayment ? SERVICIOS_LISTING_STATUS_PENDING_PAYMENT : initialListingStatus();
+  // Gate REVENUE-ACTIVE-ENTITLEMENT-GUARD-01 — the status actually persisted, which can diverge
+  // from the raw `pendingPayment` request flag: an edit-save of an already-published listing
+  // preserves PUBLISHED below (never regresses to pending) even when the client requested
+  // `activationMode: "pending_payment"`. The response must reflect this real outcome — echoing
+  // the raw request flag back as `pendingPayment: true` for an already-published/active listing
+  // previously caused the client to proceed to Revenue OS checkout and recharge a listing that
+  // already has an active `servicios_base_monthly` entitlement (the actual Stripe charge is now
+  // also blocked server-side by the shared guard in /api/revenue-os/checkout, but this keeps the
+  // client from even attempting it).
+  let actualListingStatus: string = listingStatus;
 
   let persistedToDatabase = false;
   let persistedListingId: string | null = null;
@@ -408,6 +452,7 @@ export async function POST(req: NextRequest) {
           pendingPayment && existing.listing_status === SERVICIOS_LISTING_STATUS_PUBLISHED
             ? SERVICIOS_LISTING_STATUS_PUBLISHED
             : listingStatus;
+        actualListingStatus = nextStatus;
         const { data: updated, error } = await supabase
           .from("servicios_public_listings")
           .update({
@@ -585,7 +630,11 @@ export async function POST(req: NextRequest) {
   }
 
   // Revenue OS pending-payment save: require a real DB row so we can hand a listingId to checkout.
-  if (pendingPayment) {
+  // Gated on `actualListingStatus`, not the raw `pendingPayment` request flag — an edit-save of an
+  // already-published listing preserves PUBLISHED above and must respond as such (no checkout
+  // needed), never echo the client's pending-payment intent back as true when nothing was
+  // actually left pending. See the `actualListingStatus` comment above.
+  if (pendingPayment && actualListingStatus === SERVICIOS_LISTING_STATUS_PENDING_PAYMENT) {
     if (!persistedToDatabase || !persistedListingId) {
       if (persistenceDiagnostic) logPersistenceDiagnostic(persistenceDiagnostic);
       await insertServiciosAnalyticsEvent({
@@ -628,7 +677,7 @@ export async function POST(req: NextRequest) {
       listingId: persistedListingId,
       leonixAdId: persistedLeonixAdId,
       slug,
-      listingStatus,
+      listingStatus: actualListingStatus,
     });
   }
 
@@ -646,7 +695,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     slug,
-    listingStatus: persistedToDatabase ? listingStatus : SERVICIOS_LISTING_STATUS_PUBLISHED,
+    listingStatus: persistedToDatabase ? actualListingStatus : SERVICIOS_LISTING_STATUS_PUBLISHED,
     persistence,
     persistedToDatabase,
     persistedToDevWorkspace,

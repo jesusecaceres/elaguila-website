@@ -231,6 +231,25 @@ export const CLASSIFIEDS_OPS_CONTRACTS: ClassifiedsCategoryOpsContract[] = [
     buildStaffEditUrl: listingStaffEditUrl,
   },
   {
+    // Work Package I.9A — added. A real, working Admin page already existed
+    // (app/admin/(dashboard)/workspace/clasificados/busco/page.tsx, generic `listings` table,
+    // covered by the same generic PATCH route as Rentas/En Venta/Comunidad/Clases) but had no
+    // entry in this contract — the same "real capability, stale declaration" bug class already
+    // fixed for Clases/Comunidad in the owner dashboard (Gate I.6B).
+    slug: "busco",
+    displayLabelEs: "Busco / Se busca",
+    displayLabelEn: "Looking for / Wanted",
+    opsKind: "listings",
+    writableTable: "listings",
+    leonixPrefix: "BUSCO",
+    publicListingsAdminPath: "/admin/workspace/clasificados/busco",
+    fieldsNotesAdminPath: "/admin/workspace/clasificados/category/busco#contenido",
+    operationalSpaceAdminPath: "/admin/workspace/clasificados/category/busco#operacion",
+    adQueueAdminPath: "/admin/workspace/clasificados/busco",
+    buildPublicUrl: listingPublicUrl,
+    buildStaffEditUrl: listingStaffEditUrl,
+  },
+  {
     slug: "travel",
     displayLabelEs: "Viajes",
     displayLabelEn: "Travel",

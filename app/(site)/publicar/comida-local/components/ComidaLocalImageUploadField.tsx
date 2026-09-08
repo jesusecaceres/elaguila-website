@@ -18,6 +18,7 @@ type Props = {
   image: ComidaLocalImageDraft | null;
   onImageChange: (image: ComidaLocalImageDraft | null) => void;
   minHeightClass?: string;
+  es?: boolean;
 };
 
 export function ComidaLocalImageUploadField({
@@ -29,6 +30,7 @@ export function ComidaLocalImageUploadField({
   image,
   onImageChange,
   minHeightClass = "min-h-[140px]",
+  es = true,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -40,7 +42,7 @@ export function ComidaLocalImageUploadField({
     async (file: File | null) => {
       if (!file) return;
       if (!draftListingId.trim()) {
-        setError("Guarda el borrador e intenta de nuevo.");
+        setError(es ? "Guarda el borrador e intenta de nuevo." : "Save the draft and try again.");
         return;
       }
       setError(null);
@@ -52,18 +54,18 @@ export function ComidaLocalImageUploadField({
           draftListingId,
         });
         if (!result.ok) {
-          setError(result.detail || result.error || "No se pudo subir la imagen.");
+          setError(result.detail || result.error || (es ? "No se pudo subir la imagen." : "Couldn't upload the image."));
           return;
         }
         onImageChange({ ...result.image, role });
       } catch {
-        setError("Error de red al subir. Intenta otra vez.");
+        setError(es ? "Error de red al subir. Intenta otra vez." : "Network error while uploading. Try again.");
       } finally {
         setUploading(false);
         if (inputRef.current) inputRef.current.value = "";
       }
     },
-    [draftListingId, onImageChange, role]
+    [draftListingId, onImageChange, role, es]
   );
 
   return (
@@ -72,7 +74,9 @@ export function ComidaLocalImageUploadField({
         <span className="block text-xs font-semibold uppercase tracking-wide text-[#1E1814]/70">
           {label}
           {optional ? (
-            <span className="ml-1 font-normal normal-case text-[#1E1814]/45">(opcional)</span>
+            <span className="ml-1 font-normal normal-case text-[#1E1814]/45">
+              {es ? "(opcional)" : "(optional)"}
+            </span>
           ) : null}
         </span>
         {src ? (
@@ -82,7 +86,7 @@ export function ComidaLocalImageUploadField({
             onClick={() => onImageChange(null)}
             disabled={uploading}
           >
-            Quitar
+            {es ? "Quitar" : "Remove"}
           </button>
         ) : null}
       </div>
@@ -99,12 +103,12 @@ export function ComidaLocalImageUploadField({
           />
         ) : (
           <p className="px-4 text-center text-sm text-[#1E1814]/55">
-            {uploading ? "Subiendo…" : "JPEG, PNG o WebP"}
+            {uploading ? (es ? "Subiendo…" : "Uploading…") : "JPEG, PNG, WebP"}
           </p>
         )}
         {uploading ? (
           <div className="absolute inset-0 flex items-center justify-center bg-[#FFFCF7]/80 text-sm font-medium text-[#7A1E2C]">
-            Subiendo…
+            {es ? "Subiendo…" : "Uploading…"}
           </div>
         ) : null}
       </div>
@@ -116,7 +120,7 @@ export function ComidaLocalImageUploadField({
           onClick={() => inputRef.current?.click()}
           className="rounded-lg border border-[#7A1E2C] bg-white px-3 py-2 text-sm font-medium text-[#7A1E2C] hover:bg-[#7A1E2C]/5 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {src ? "Reemplazar" : "Subir imagen"}
+          {src ? (es ? "Reemplazar" : "Replace") : es ? "Subir imagen" : "Upload image"}
         </button>
       </div>
 

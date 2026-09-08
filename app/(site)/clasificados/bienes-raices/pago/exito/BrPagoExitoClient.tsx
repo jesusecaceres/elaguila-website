@@ -32,7 +32,7 @@ export function BrPagoExitoClient() {
   const [summary, setSummary] = useState<SuccessSummary | null>(null);
   const [err, setErr] = useState(false);
 
-  async function loadInventorySummary(listingId: string, liveUrl: string): Promise<SuccessSummary> {
+  async function loadInventorySummary(listingId: string, liveUrl: string | null): Promise<SuccessSummary> {
     const sb = createSupabaseBrowserClient();
     const { data: parent } = await sb
       .from("listings")
@@ -62,7 +62,7 @@ export function BrPagoExitoClient() {
     }
     return {
       listingId,
-      liveUrl,
+      liveUrl: liveUrl ?? leonixLiveAnuncioPath(listingId),
       leonixAdId: parentRow?.leonix_ad_id?.trim() || null,
       title: parentRow?.title?.trim() || null,
       children,
@@ -70,33 +70,17 @@ export function BrPagoExitoClient() {
   }
 
   useEffect(() => {
+    // Package C Build 1 (Gate 13) — success pages are READ-ONLY. The former `internal=1`
+    // branch POSTed to the legacy /api/clasificados/leonix/stripe/checkout route from this
+    // page (a client-initiated, query-param-driven activation trigger — the sole live caller
+    // keeping that legacy lane reachable). Removed: this page now only LOOKS UP state. The
+    // internal/bypass publication paths return their own success context server-side; a bare
+    // `internal=1` URL renders the read-only inventory summary for the listing, never a write.
     if (internal && internalListingId) {
       let cancelled = false;
       void (async () => {
-        const sb = createSupabaseBrowserClient();
-        const { data } = await sb.auth.getSession();
-        const token = data.session?.access_token;
-        if (!token) {
-          if (!cancelled) setErr(true);
-          return;
-        }
-        const r = await fetch("/api/clasificados/leonix/stripe/checkout", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ listingId: internalListingId, lang }),
-        });
-        const j = (await r.json()) as { ok?: boolean; liveUrl?: string; listingId?: string };
-        if (cancelled) return;
-        if (r.ok && j.liveUrl) {
-          const id = String(j.listingId ?? internalListingId).trim();
-          const next = await loadInventorySummary(id, j.liveUrl);
-          if (!cancelled) setSummary(next);
-          return;
-        }
-        setErr(true);
+        const next = await loadInventorySummary(internalListingId, null);
+        if (!cancelled) setSummary(next);
       })();
       return () => {
         cancelled = true;

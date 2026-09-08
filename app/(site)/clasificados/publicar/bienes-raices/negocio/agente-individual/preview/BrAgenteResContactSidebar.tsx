@@ -27,6 +27,29 @@ import {
   type AgenteResPreviewLocale,
 } from "../lib/agenteResidencialPreviewFormat";
 import { digitsOnly } from "../application/utils/phoneMask";
+import {
+  trackBrEmailClickGlobal,
+  trackBrGoogleBusinessClickGlobal,
+  trackBrGoogleReviewsClickGlobal,
+  trackBrMlsClickGlobal,
+  trackBrPhoneClickGlobal,
+  trackBrRequestInfoClickGlobal,
+  trackBrScheduleVisitClickGlobal,
+  trackBrTourVideoClickGlobal,
+  trackBrBrochureClickGlobal,
+  trackBrWebsiteClickGlobal,
+  trackBrWhatsAppClickGlobal,
+  trackBrYelpClickGlobal,
+  type BrGlobalAnalyticsContext,
+} from "@/app/lib/clasificados/bienes-raices/brGlobalAnalytics";
+import { dispatchConnectionHubCta } from "@/app/lib/analytics/client/connectionHubCtaDispatch";
+import { SharedConnectionHubReviewButton } from "@/app/components/contact/connectionHub/renderers/SharedConnectionHubReviewButton";
+import { BrRentasCommunityTrustSection } from "@/app/clasificados/lib/BrRentasCommunityTrustSection";
+
+/** Package D Build D2, Gate 6A — real listing identity for the live published detail render only.
+ * Reuses the existing canonical `brGlobalAnalytics.ts` module; this component fires no analytics of
+ * its own vocabulary. Undefined/null on the pre-publish owner preview, where clicks must not track. */
+export type BrAgenteResContactSidebarAnalyticsContext = BrGlobalAnalyticsContext;
 
 const BORDER = "rgba(44, 36, 22, 0.1)";
 const CREAM = "#FDFBF7";
@@ -69,11 +92,13 @@ function SocialCircle({
   label,
   children,
   color,
+  onClick,
 }: {
   href: string;
   label: string;
   children: ReactNode;
   color?: string;
+  onClick?: () => void;
 }) {
   return (
     <a
@@ -84,13 +109,14 @@ function SocialCircle({
       aria-label={label}
       className="inline-flex h-9 w-9 items-center justify-center rounded-full border bg-white/90 transition hover:bg-white sm:h-8 sm:w-8"
       style={{ borderColor: BORDER, color: color ?? CHARCOAL }}
+      onClick={onClick}
     >
       {children}
     </a>
   );
 }
 
-function ReviewCard({ href, label }: { href: string; label: string }) {
+function ReviewCard({ href, label, onClick }: { href: string; label: string; onClick?: () => void }) {
   return (
     <a
       href={href}
@@ -98,6 +124,7 @@ function ReviewCard({ href, label }: { href: string; label: string }) {
       rel="noopener noreferrer"
       className="flex min-h-[44px] items-center justify-between gap-2 rounded-lg border bg-white/80 px-3 py-2.5 text-[12px] font-semibold transition hover:bg-white"
       style={{ borderColor: "rgba(201, 180, 106, 0.45)", color: CHARCOAL }}
+      onClick={onClick}
     >
       <span>{label}</span>
       <FiExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
@@ -137,12 +164,25 @@ function openInNewTabAnchorProps() {
   return { target: "_blank" as const, rel: "noopener noreferrer" };
 }
 
-function EmailRow({ email, copyLabel }: { email: string; copyLabel: string }) {
+function EmailRow({
+  email,
+  copyLabel,
+  onEmailClick,
+}: {
+  email: string;
+  copyLabel: string;
+  onEmailClick?: () => void;
+}) {
   const trimmed = email.trim();
   if (!trimmed) return null;
   return (
     <div className="flex items-center justify-center gap-2">
-      <a href={`mailto:${trimmed}`} className="truncate text-[12px] font-semibold" style={{ color: BRONZE }}>
+      <a
+        href={`mailto:${trimmed}`}
+        className="truncate text-[12px] font-semibold"
+        style={{ color: BRONZE }}
+        onClick={onEmailClick}
+      >
         {trimmed}
       </a>
       <button
@@ -164,12 +204,46 @@ export function BrAgenteResContactSidebar({
   data,
   locale: _locale,
   p,
+  analyticsContext,
+  ownerId,
 }: {
   data: AgenteIndividualResidencialFormState;
   locale: AgenteResPreviewLocale;
   p: PreviewUi;
+  analyticsContext?: BrAgenteResContactSidebarAnalyticsContext | null;
+  /** Item 21 — listing owner's auth user id, for the BR Negocio Community Trust professional
+   * identity (never a disposable listing id). Optional/best-effort: the widget itself no-ops
+   * until isLeonixEndorsementCategoryLive("bienes_raices_negocio") is true. */
+  ownerId?: string | null;
 }) {
   const cr = buildContactModel(data);
+  const track = (fn: (ctx: BrGlobalAnalyticsContext) => void) => {
+    if (analyticsContext) fn(analyticsContext);
+  };
+  // Item 20 (Final Completion) — Global Business Hub OS adoption doc classifies BR Negocio as
+  // "B — surgical shared-primitive adoption": the review-link BUTTON visuals swap to the shared
+  // Level-A component (behavior-equivalent to Servicios' own swap), analytics stay on the
+  // existing brGlobalAnalytics dispatch this sidebar already uses.
+  const openReview = (url: string | null | undefined, fn: (ctx: BrGlobalAnalyticsContext) => void) => {
+    if (!url) return;
+    track(fn);
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+  // Package D Build D3, Gate 2 — social-icon clicks (the one D2-deferred gap on this component)
+  // use the shared dispatcher directly; no dedicated brGlobalAnalytics.ts export exists for a
+  // generic social-platform click, and the shared contract already covers this exact case.
+  const trackSocial = (provider: string) => {
+    if (!analyticsContext) return;
+    dispatchConnectionHubCta({
+      kind: "social",
+      provider,
+      category: "bienes-raices",
+      sourceTable: "listings",
+      sourceId: analyticsContext.listingUuid,
+      surface: "contact_sidebar",
+      leonixAdId: analyticsContext.leonixAdId,
+    });
+  };
   const locale = _locale;
   const hub = buildMainAgentBusinessHub(data, locale);
   const showBrand = hasBrandBlockVisible(data);
@@ -285,7 +359,11 @@ export function BrAgenteResContactSidebar({
             {agentePersonalOk ? (
               <p className="text-[12px] font-semibold leading-snug">
                 <span className="block text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/90">{p.telPersonal}</span>
-                <a href={`tel:${digitsOnly(agentePersonalRaw)}`} className="text-[#2C2416] underline-offset-2 hover:underline">
+                <a
+                  href={`tel:${digitsOnly(agentePersonalRaw)}`}
+                  className="text-[#2C2416] underline-offset-2 hover:underline"
+                  onClick={() => track(trackBrPhoneClickGlobal)}
+                >
                   {formatPreviewPhoneDisplay(agentePersonalRaw)}
                 </a>
               </p>
@@ -293,7 +371,11 @@ export function BrAgenteResContactSidebar({
             {agenteOfficeOk ? (
               <p className="text-[12px] font-semibold leading-snug">
                 <span className="block text-[10px] font-bold uppercase tracking-wide text-[#5C5346]/90">{p.telOficina}</span>
-                <a href={`tel:${digitsOnly(agenteOfficeRaw)}`} className="text-[#2C2416] underline-offset-2 hover:underline">
+                <a
+                  href={`tel:${digitsOnly(agenteOfficeRaw)}`}
+                  className="text-[#2C2416] underline-offset-2 hover:underline"
+                  onClick={() => track(trackBrPhoneClickGlobal)}
+                >
                   {formatPreviewPhoneDisplay(agenteOfficeRaw)}
                 </a>
               </p>
@@ -302,6 +384,7 @@ export function BrAgenteResContactSidebar({
               <EmailRow
                 email={trim(data.correoPrincipal)}
                 copyLabel={locale === "en" ? "Copy email" : "Copiar correo"}
+                onEmailClick={() => track(trackBrEmailClickGlobal)}
               />
             ) : null}
             {agenteCardSiteHref ? (
@@ -311,6 +394,7 @@ export function BrAgenteResContactSidebar({
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-1 text-[12px] font-semibold"
                 style={{ color: BRONZE }}
+                onClick={() => track(trackBrWebsiteClickGlobal)}
               >
                 {p.sitioWeb}
                 <FiExternalLink className="h-3 w-3 opacity-80" aria-hidden />
@@ -324,60 +408,85 @@ export function BrAgenteResContactSidebar({
             {hub.hasSocialIcons ? (
               <div className="flex flex-wrap justify-center gap-1.5">
                 {hub.socialInstagram ? (
-                  <SocialCircle href={hub.socialInstagram} label="Instagram" color="#E4405F">
+                  <SocialCircle href={hub.socialInstagram} label="Instagram" color="#E4405F" onClick={() => trackSocial("instagram")}>
                     <SiInstagram className="h-3.5 w-3.5" aria-hidden />
                   </SocialCircle>
                 ) : null}
                 {hub.socialFacebook ? (
-                  <SocialCircle href={hub.socialFacebook} label="Facebook" color="#1877F2">
+                  <SocialCircle href={hub.socialFacebook} label="Facebook" color="#1877F2" onClick={() => trackSocial("facebook")}>
                     <SiFacebook className="h-3.5 w-3.5" aria-hidden />
                   </SocialCircle>
                 ) : null}
                 {hub.socialYoutube ? (
-                  <SocialCircle href={hub.socialYoutube} label="YouTube" color="#FF0000">
+                  <SocialCircle href={hub.socialYoutube} label="YouTube" color="#FF0000" onClick={() => trackSocial("youtube")}>
                     <SiYoutube className="h-3.5 w-3.5" aria-hidden />
                   </SocialCircle>
                 ) : null}
                 {hub.socialTiktok ? (
-                  <SocialCircle href={hub.socialTiktok} label="TikTok" color="#010101">
+                  <SocialCircle href={hub.socialTiktok} label="TikTok" color="#010101" onClick={() => trackSocial("tiktok")}>
                     <SiTiktok className="h-3.5 w-3.5" aria-hidden />
                   </SocialCircle>
                 ) : null}
                 {hub.socialLinkedin ? (
-                  <SocialCircle href={hub.socialLinkedin} label="LinkedIn" color="#0A66C2">
+                  <SocialCircle href={hub.socialLinkedin} label="LinkedIn" color="#0A66C2" onClick={() => trackSocial("linkedin")}>
                     <SiLinkedin className="h-3.5 w-3.5" aria-hidden />
                   </SocialCircle>
                 ) : null}
                 {hub.socialX ? (
-                  <SocialCircle href={hub.socialX} label="X" color="#14171A">
+                  <SocialCircle href={hub.socialX} label="X" color="#14171A" onClick={() => trackSocial("x")}>
                     <SiX className="h-3 w-3" aria-hidden />
                   </SocialCircle>
                 ) : null}
                 {hub.socialSnapchat ? (
-                  <SocialCircle href={hub.socialSnapchat} label="Snapchat" color="#FFFC00">
+                  <SocialCircle href={hub.socialSnapchat} label="Snapchat" color="#FFFC00" onClick={() => trackSocial("snapchat")}>
                     <SiSnapchat className="h-3.5 w-3.5" aria-hidden />
                   </SocialCircle>
                 ) : null}
                 {hub.socialOtro ? (
-                  <SocialCircle href={hub.socialOtro} label="Enlace">
+                  <SocialCircle href={hub.socialOtro} label="Enlace" onClick={() => trackSocial("other")}>
                     <FiExternalLink className="h-3.5 w-3.5" aria-hidden />
                   </SocialCircle>
                 ) : null}
               </div>
             ) : null}
-            {hub.googleBusinessUrl ? <ReviewCard href={hub.googleBusinessUrl} label={p.googleBusiness} /> : null}
+            {hub.googleBusinessUrl ? (
+              <SharedConnectionHubReviewButton
+                link={{ provider: "google", label: p.googleBusiness, url: hub.googleBusinessUrl }}
+                lang={locale}
+                onClick={() => openReview(hub.googleBusinessUrl, trackBrGoogleBusinessClickGlobal)}
+              />
+            ) : null}
             {(hub.googleReviewsUrl || hub.yelpReviewsUrl) && (hub.googleBusinessUrl || hub.hasSocialIcons) ? (
               <p className="pt-0.5 text-center text-[9px] font-bold uppercase tracking-[0.12em]" style={{ color: BRONZE }}>
                 {p.businessHubReviews}
               </p>
             ) : null}
-            {hub.googleReviewsUrl ? <ReviewCard href={hub.googleReviewsUrl} label={p.googleReviews} /> : null}
-            {hub.yelpReviewsUrl ? <ReviewCard href={hub.yelpReviewsUrl} label={p.yelpReviews} /> : null}
+            {hub.googleReviewsUrl ? (
+              <SharedConnectionHubReviewButton
+                link={{ provider: "google", label: p.googleReviews, url: hub.googleReviewsUrl }}
+                lang={locale}
+                onClick={() => openReview(hub.googleReviewsUrl, trackBrGoogleReviewsClickGlobal)}
+              />
+            ) : null}
+            {hub.yelpReviewsUrl ? (
+              <SharedConnectionHubReviewButton
+                link={{ provider: "yelp", label: p.yelpReviews, url: hub.yelpReviewsUrl }}
+                lang={locale}
+                onClick={() => openReview(hub.yelpReviewsUrl, trackBrYelpClickGlobal)}
+              />
+            ) : null}
             {hub.businessExtraLinks.map((link) => (
               <ReviewCard key={link.href} href={link.href} label={link.label} />
             ))}
           </div>
         ) : null}
+        <BrRentasCommunityTrustSection
+          category="bienes_raices_negocio"
+          ownerId={ownerId}
+          displayName={trim(data.marcaNombre) || trim(data.agenteNombre) || null}
+          lang={_locale}
+          surface="br_negocio_contact_sidebar"
+        />
       </CardShell>
 
       {showSecondAgentRail ? (
@@ -433,32 +542,32 @@ export function BrAgenteResContactSidebar({
           {agente2Social.showRow ? (
             <div className="mt-3 flex flex-wrap justify-center gap-1.5 border-t pt-3" style={{ borderColor: BORDER }}>
               {agente2Social.socialInstagram ? (
-                <SocialCircle href={agente2Social.socialInstagram} label="Instagram" color="#E4405F">
+                <SocialCircle href={agente2Social.socialInstagram} label="Instagram" color="#E4405F" onClick={() => trackSocial("instagram")}>
                   <SiInstagram className="h-3.5 w-3.5" aria-hidden />
                 </SocialCircle>
               ) : null}
               {agente2Social.socialFacebook ? (
-                <SocialCircle href={agente2Social.socialFacebook} label="Facebook" color="#1877F2">
+                <SocialCircle href={agente2Social.socialFacebook} label="Facebook" color="#1877F2" onClick={() => trackSocial("facebook")}>
                   <SiFacebook className="h-3.5 w-3.5" aria-hidden />
                 </SocialCircle>
               ) : null}
               {agente2Social.socialYoutube ? (
-                <SocialCircle href={agente2Social.socialYoutube} label="YouTube" color="#FF0000">
+                <SocialCircle href={agente2Social.socialYoutube} label="YouTube" color="#FF0000" onClick={() => trackSocial("youtube")}>
                   <SiYoutube className="h-3.5 w-3.5" aria-hidden />
                 </SocialCircle>
               ) : null}
               {agente2Social.socialTiktok ? (
-                <SocialCircle href={agente2Social.socialTiktok} label="TikTok" color="#010101">
+                <SocialCircle href={agente2Social.socialTiktok} label="TikTok" color="#010101" onClick={() => trackSocial("tiktok")}>
                   <SiTiktok className="h-3.5 w-3.5" aria-hidden />
                 </SocialCircle>
               ) : null}
               {agente2Social.socialX ? (
-                <SocialCircle href={agente2Social.socialX} label="X" color="#14171A">
+                <SocialCircle href={agente2Social.socialX} label="X" color="#14171A" onClick={() => trackSocial("x")}>
                   <SiX className="h-3 w-3" aria-hidden />
                 </SocialCircle>
               ) : null}
               {agente2Social.socialOtro ? (
-                <SocialCircle href={agente2Social.socialOtro} label="Enlace">
+                <SocialCircle href={agente2Social.socialOtro} label="Enlace" onClick={() => trackSocial("other")}>
                   <FiExternalLink className="h-3.5 w-3.5" aria-hidden />
                 </SocialCircle>
               ) : null}
@@ -478,6 +587,7 @@ export function BrAgenteResContactSidebar({
                 href={cr.llamarHref}
                 className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg px-2 py-2.5 text-[13px] font-bold text-[#F9F6F1] shadow-sm transition hover:brightness-[1.02] lg:min-h-0"
                 style={{ background: `linear-gradient(180deg, ${BURGUNDY} 0%, #5A2222 100%)` }}
+                onClick={() => track(trackBrPhoneClickGlobal)}
               >
                 {p.llamar}
               </a>
@@ -489,6 +599,7 @@ export function BrAgenteResContactSidebar({
                 rel="noopener noreferrer"
                 className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border bg-white/70 px-2 py-2 text-[13px] font-semibold transition hover:bg-white lg:min-h-0"
                 style={{ borderColor: "rgba(37,211,102,0.35)", color: "#128C7E" }}
+                onClick={() => track(trackBrWhatsAppClickGlobal)}
               >
                 {p.whatsapp}
               </a>
@@ -498,6 +609,7 @@ export function BrAgenteResContactSidebar({
                 href={cr.solicitarInfoHref}
                 className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[13px] font-semibold lg:min-h-0"
                 style={{ borderColor: BORDER, color: CHARCOAL }}
+                onClick={() => track(trackBrRequestInfoClickGlobal)}
               >
                 {p.solicitarInfo}
               </a>
@@ -508,6 +620,7 @@ export function BrAgenteResContactSidebar({
                 className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[13px] font-semibold lg:min-h-0"
                 style={{ borderColor: BORDER, color: CHARCOAL }}
                 {...(cr.programarVisitaHref.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                onClick={() => track(trackBrScheduleVisitClickGlobal)}
               >
                 {p.programarVisita}
               </a>
@@ -519,6 +632,7 @@ export function BrAgenteResContactSidebar({
                 rel="noopener noreferrer"
                 className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[11px] font-bold lg:min-h-0 lg:py-1.5"
                 style={{ borderColor: BORDER, color: CHARCOAL }}
+                onClick={() => track(trackBrWebsiteClickGlobal)}
               >
                 {p.verSitioWeb}
               </a>
@@ -539,6 +653,7 @@ export function BrAgenteResContactSidebar({
                 className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[11px] font-bold lg:min-h-0 lg:py-1.5"
                 style={{ borderColor: BORDER, color: CHARCOAL }}
                 {...openInNewTabAnchorProps()}
+                onClick={() => track(trackBrMlsClickGlobal)}
               >
                 {p.verMls}
               </a>
@@ -549,6 +664,7 @@ export function BrAgenteResContactSidebar({
                 className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[11px] font-bold lg:min-h-0 lg:py-1.5"
                 style={{ borderColor: BORDER, color: CHARCOAL }}
                 {...openInNewTabAnchorProps()}
+                onClick={() => track((ctx) => trackBrTourVideoClickGlobal(ctx, "tour"))}
               >
                 {p.verTour}
               </a>
@@ -559,6 +675,7 @@ export function BrAgenteResContactSidebar({
                 className="flex min-h-[48px] w-full touch-manipulation items-center justify-center rounded-lg border px-2 py-2 text-[11px] font-bold lg:min-h-0 lg:py-1.5"
                 style={{ borderColor: BORDER, color: CHARCOAL }}
                 {...openInNewTabAnchorProps()}
+                onClick={() => track(trackBrBrochureClickGlobal)}
               >
                 {p.verFolleto}
               </a>

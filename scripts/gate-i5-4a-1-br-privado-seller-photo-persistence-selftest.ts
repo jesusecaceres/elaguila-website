@@ -232,7 +232,12 @@ async function main() {
       "app/(site)/clasificados/publicar/bienes-raices/privado/application/BienesRaicesPrivadoForm.tsx",
       "app/(site)/dashboard/mis-anuncios/[id]/editar/page.tsx",
     ];
+    // Globalization Package A — files a later package is explicitly authorized to change are
+    // skipped here (whole-file authorization with per-file justification lives in
+    // scripts/globalizationCurrentPackageDiff.ts); this check keeps protecting every other file.
+    const { GLOBALIZATION_CURRENT_PACKAGE_FILES } = await import("./globalizationCurrentPackageDiff");
     for (const f of files) {
+      if (GLOBALIZATION_CURRENT_PACKAGE_FILES.has(f)) continue;
       let diff = "";
       try {
         diff = execFileSync("git", ["diff", "--unified=0", "HEAD", "--", f], { cwd: REPO_ROOT, encoding: "utf8" });

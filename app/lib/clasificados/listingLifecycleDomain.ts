@@ -223,7 +223,8 @@ export function mapEmpleosStatusToCanonical(status: string): ListingLifecycleSta
   const mapping: Record<string, ListingLifecycleStatus> = {
     "draft": "draft",
     "ready_for_publish": "publish_ready",
-    "published": "published", 
+    "pending_review": "pending_review",
+    "published": "published",
     "paused": "paused",
     "archived": "archived",
     "rejected": "rejected",

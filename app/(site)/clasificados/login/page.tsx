@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import {useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 type Lang = "es" | "en";
 
-export default function ClasificadosLoginRedirect() {
+function ClasificadosLoginRedirectContent() {
   const searchParams = useSearchParams();
 
   const redirectTo = useMemo(() => {
@@ -26,5 +26,13 @@ export default function ClasificadosLoginRedirect() {
     <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] text-white/60 text-sm">
       Redirecting…
     </div>
+  );
+}
+
+export default function ClasificadosLoginRedirect() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" aria-busy="true" />}>
+      <ClasificadosLoginRedirectContent />
+    </Suspense>
   );
 }

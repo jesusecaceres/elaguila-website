@@ -20,7 +20,7 @@ import {
   LeonixCategoryHeroGateway,
   LeonixCategorySearchCanvas,
   LeonixCategoryPartnerSection,
-  LeonixCategoryDiscoveryGrid,
+  LeonixCategoryImageDiscoveryGrid,
   LeonixCategoryVisibilityStrip,
   type Lang as V2Lang,
 } from "@/app/(site)/clasificados/components/categoryStandardV2";
@@ -29,15 +29,13 @@ import {
   LEONIX_LANDING_SECTION_PAD,
 } from "@/app/(site)/clasificados/components/categoryStandardV2/constants";
 import {
-  buildCategoryResultsUrl,
-  categoryPublishPath,
-} from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
-import {
   categoryStandardDescription,
   categoryStandardSearchPlaceholder,
   categoryStandardTitle,
 } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardTheme";
 import { buildEmpleosResultadosUrl } from "./shared/utils/empleosListaUrl";
+import { EMPLEOS_PUBLISH_HUB_PATH } from "./empleosLandingRoutes";
+import { EMPLEOS_CHILD_CATEGORY_IMAGE } from "./empleosChildCategoryImages";
 
 const JOB_CATEGORY_TILES = [
   { slug: "salud", titleEs: "Salud", titleEn: "Health", hintEs: "Cuidado y bienestar", hintEn: "Care and wellness", icon: FiHeart },
@@ -55,11 +53,19 @@ export function EmpleosLandingPage() {
   const routeLang = useMemo(() => resolveRouteLang(sp?.get("lang")), [sp]);
   const lang = useMemo<Lang>(() => resolveHubCopyLang(sp?.get("lang")), [sp]);
   const resultsHref = useMemo(
-    () => buildCategoryResultsUrl("empleos", routeLang as Lang),
+    // I.5.8 — use the Empleos-specific canonical builder (already imported/used below for the
+    // discovery tiles) instead of the generic categoryStandardRoutes builder, whose default
+    // results segment is the English "results" slug and disagreed with the registry's canonical
+    // "/resultados". Same lang input/cast as before — only the target builder changed.
+    () => buildEmpleosResultadosUrl(routeLang as Lang, {}),
     [routeLang],
   );
   const publishHref = useMemo(
-    () => appendRouteLangToPath(categoryPublishPath("empleos"), routeLang),
+    // I.7A — use the registry-canonical "/publicar/empleos" hub directly (matches
+    // EMPLEOS_PUBLISH_HUB_PATH / categoryRouteRegistry's applicationRoute) instead of the legacy
+    // categoryStandardRoutes builder's "/clasificados/publicar/empleos", which only reaches the
+    // same destination via an extra redirect hop.
+    () => appendRouteLangToPath(EMPLEOS_PUBLISH_HUB_PATH, routeLang),
     [routeLang],
   );
   const visibilityHref = `/contacto?lang=${routeLang}&categoria=empleos&surface=landing`;
@@ -90,13 +96,18 @@ export function EmpleosLandingPage() {
     />
   );
 
-  const discoveryItems = JOB_CATEGORY_TILES.map((cat) => ({
-    id: cat.slug,
-    label: lang === "es" ? cat.titleEs : cat.titleEn,
-    hint: lang === "es" ? cat.hintEs : cat.hintEn,
-    href: buildEmpleosResultadosUrl(lang, { category: cat.slug }),
-    icon: cat.icon,
-  }));
+  const discoveryItems = JOB_CATEGORY_TILES.map((cat) => {
+    const label = lang === "es" ? cat.titleEs : cat.titleEn;
+    return {
+      id: cat.slug,
+      label,
+      hint: lang === "es" ? cat.hintEs : cat.hintEn,
+      href: buildEmpleosResultadosUrl(lang, { category: cat.slug }),
+      imageSrc: EMPLEOS_CHILD_CATEGORY_IMAGE[cat.slug],
+      imageAlt: label,
+      icon: cat.icon,
+    };
+  });
 
   const valueBullets =
     lang === "es"
@@ -130,7 +141,7 @@ export function EmpleosLandingPage() {
         />
 
         <main className="space-y-6 overflow-x-hidden sm:space-y-8">
-          <LeonixCategoryDiscoveryGrid
+          <LeonixCategoryImageDiscoveryGrid
             lang={lang as V2Lang}
             surface="landing"
             heading={lang === "es" ? "Explora empleos por categoría" : "Explore jobs by category"}

@@ -22,9 +22,17 @@ import {
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
 } from "./revenueServiciosFulfillment";
 import {
+  activatePaidComidaLocalListingFromRevenueOs,
+  COMIDA_LOCAL_BASE_MONTHLY_PACKAGE_KEY,
+} from "./revenueComidaLocalFulfillment";
+import {
   activatePaidRentasListingFromRevenueOs,
   RENTAS_30D_PACKAGE_KEY,
 } from "./revenueRentasFulfillment";
+import {
+  activatePaidClasesListingFromRevenueOs,
+  CLASES_PAID_30D_PACKAGE_KEY,
+} from "./revenueClasesFulfillment";
 import {
   activatePaidEmpleosListingFromRevenueOs,
 } from "./revenueEmpleosFulfillment";
@@ -41,6 +49,11 @@ import {
   activatePaidBienesNegocioListingFromRevenueOs,
   BIENES_NEGOCIO_BASE_PACKAGE_KEY,
 } from "./revenueBienesNegocioFulfillment";
+import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { getOfertaLocalCommercialProductByPackageKey } from "@/app/lib/ofertas-locales/ofertasLocalesCommercial";
+import { markOfertaLocalEntitlementFulfilled } from "@/app/lib/ofertas-locales/ofertasLocalesCommercialServer";
+import { tryAutoActivateOfertaLocalAfterPayment } from "@/app/lib/ofertas-locales/ofertasLocalesAdminReviewMutations";
+import { OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY } from "./publishCheckoutCheckpoint";
 import { EMPLEOS_JOB_POST_PAID_PACKAGE_KEY, AUTOS_PRIVADO_30D_PACKAGE_KEY } from "./publishCheckoutCheckpoint";
 import {
   loadPaymentRecordById,
@@ -54,6 +67,10 @@ import {
   markPromoRedemptionExpiredOrCancelled,
   markPromoRedemptionRedeemedWithBusinessAttribution,
 } from "./revenuePromoRedemptions";
+import {
+  markVerifiedIntroDiscountRedemptionRedeemed,
+  markVerifiedIntroDiscountRedemptionExpiredOrCancelled,
+} from "./verifiedIntroDiscountRedemptions";
 import {
   isRevenueOsCheckoutSession,
   parseCheckoutSessionMetadata,
@@ -152,6 +169,109 @@ function readBienesInventoryPackPaidFromPaymentRecord(row: LeonixPaymentRecordRo
   );
 }
 
+async function tryFulfillOfertasLocalesParentAfterEntitlement(input: {
+  paymentRecord: LeonixPaymentRecordRow;
+  packageDef: RevenuePackageDefinition;
+  packageEntitlementId: string | null | undefined;
+  packageEntitlementEndsAt: string | null | undefined;
+}): Promise<{ ok: boolean; code?: string; message?: string }> {
+  if (input.packageDef.category !== "ofertas-locales") {
+    return { ok: true };
+  }
+
+  const product = getOfertaLocalCommercialProductByPackageKey(input.packageDef.packageKey);
+  if (!product) {
+    return { ok: false, code: "ofertas_product_unknown", message: "Unknown Ofertas commercial product." };
+  }
+
+  const result = await markOfertaLocalEntitlementFulfilled({
+    supabase: getAdminSupabase(),
+    paymentRecord: input.paymentRecord,
+    product,
+    packageEntitlementId: input.packageEntitlementId,
+    entitlementEndsAt: input.packageEntitlementEndsAt,
+  });
+
+  if (!result.ok) {
+    await writeRevenueAuditLog({
+      action: "revenue_webhook_validation_failed",
+      targetType: "ofertas_locales",
+      targetId: result.listingId ?? input.paymentRecord.listing_id,
+      meta: {
+        code: result.code,
+        message: result.message,
+        payment_record_id: input.paymentRecord.id,
+        package_key: input.packageDef.packageKey,
+      },
+    });
+    return { ok: false, code: result.code, message: result.message };
+  }
+
+  await writeRevenueAuditLog({
+    action: "ofertas_locales_entitlement_fulfilled_after_payment",
+    targetType: "ofertas_locales",
+    targetId: result.listingId,
+    meta: {
+      payment_record_id: input.paymentRecord.id,
+      package_key: input.packageDef.packageKey,
+      package_entitlement_id: input.packageEntitlementId,
+      public_activation: false,
+      starts_public_term: false,
+    },
+  });
+
+  // Commercial doctrine: the $399 flyer auto-publishes on successful payment —
+  // no routine Leonix staff approval step. Only the paid flyer package
+  // auto-activates here; the free coupon lane never reaches Stripe at all
+  // (see the "free" entitlement source) and renewals are handled by their
+  // own admin-review call path, not this first-payment fulfillment.
+  if (input.packageDef.packageKey === OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY && result.listingId) {
+    const activation = await tryAutoActivateOfertaLocalAfterPayment(getAdminSupabase(), result.listingId);
+
+    if (activation.outcome === "already_published" || activation.outcome === "unsafe_status") {
+      await writeRevenueAuditLog({
+        action: "revenue_webhook_ignored",
+        targetType: "ofertas_locales",
+        targetId: result.listingId,
+        meta: {
+          reason: "ofertas_locales_auto_activation_skipped",
+          outcome: activation.outcome,
+          message: activation.message,
+          payment_record_id: input.paymentRecord.id,
+        },
+      });
+    } else if (!activation.ok) {
+      // Payment + entitlement are already recorded correctly at this point —
+      // an activation precondition failing here (e.g. the owner has not
+      // actually finished the item review yet) is an exceptional case for a
+      // human to resolve, not a payment failure. Do not fail the webhook.
+      await writeRevenueAuditLog({
+        action: "revenue_webhook_validation_failed",
+        targetType: "ofertas_locales",
+        targetId: result.listingId,
+        meta: {
+          code: `ofertas_locales_auto_activation_${activation.outcome}`,
+          message: activation.message,
+          payment_record_id: input.paymentRecord.id,
+          package_key: input.packageDef.packageKey,
+        },
+      });
+    } else {
+      await writeRevenueAuditLog({
+        action: "ofertas_locales_listing_activated_after_payment",
+        targetType: "ofertas_locales",
+        targetId: result.listingId,
+        meta: {
+          payment_record_id: input.paymentRecord.id,
+          package_key: input.packageDef.packageKey,
+        },
+      });
+    }
+  }
+
+  return { ok: true };
+}
+
 async function tryActivateRestauranteListingAfterEntitlement(input: {
   paymentRecord: LeonixPaymentRecordRow;
   packageDef: RevenuePackageDefinition;
@@ -218,6 +338,85 @@ async function tryActivateRestauranteListingAfterEntitlement(input: {
   await writeRevenueAuditLog({
     action: "restaurante_listing_activated_after_payment",
     targetType: "restaurantes_public_listings",
+    targetId: activation.listingId ?? null,
+    meta: {
+      listing_id: activation.listingId,
+      package_key: input.packageDef.packageKey,
+      payment_record_id: input.paymentRecord.id,
+      leonix_ad_id: input.paymentRecord.leonix_ad_id,
+      stripe_checkout_session_id: input.stripeCheckoutSessionId,
+      stripe_event_id: input.stripeEventId,
+      outcome: activation.outcome,
+    },
+  });
+
+  return { ok: true };
+}
+
+/** Gate D19 — mirrors tryActivateRestauranteListingAfterEntitlement; no coupon add-on branch
+ * (Comida Local has no coupon feature, Gate D14). */
+async function tryActivateComidaLocalListingAfterEntitlement(input: {
+  paymentRecord: LeonixPaymentRecordRow;
+  packageDef: RevenuePackageDefinition;
+  stripeEventId: string;
+  stripeCheckoutSessionId: string;
+}): Promise<{ ok: boolean; code?: string; message?: string }> {
+  if (input.packageDef.packageKey !== COMIDA_LOCAL_BASE_MONTHLY_PACKAGE_KEY) {
+    return { ok: true };
+  }
+
+  const activation = await activatePaidComidaLocalListingFromRevenueOs({
+    listingId: input.paymentRecord.listing_id,
+    packageKey: input.packageDef.packageKey,
+    paymentRecordId: input.paymentRecord.id,
+    stripeCheckoutSessionId: input.stripeCheckoutSessionId,
+    stripeEventId: input.stripeEventId,
+    leonixAdId: input.paymentRecord.leonix_ad_id,
+  });
+
+  if (activation.outcome === "skipped_wrong_package" || activation.outcome === "already_published") {
+    return { ok: true };
+  }
+
+  if (activation.outcome === "unsafe_status" && activation.ok) {
+    await writeRevenueAuditLog({
+      action: "revenue_webhook_ignored",
+      targetType: "comida_local_public_listings",
+      targetId: activation.listingId ?? null,
+      meta: {
+        reason: "comida_local_activation_unsafe_status",
+        outcome: activation.outcome,
+        message: activation.message,
+        payment_record_id: input.paymentRecord.id,
+        stripe_event_id: input.stripeEventId,
+      },
+    });
+    return { ok: true };
+  }
+
+  if (!activation.ok) {
+    await writeRevenueAuditLog({
+      action: "revenue_webhook_validation_failed",
+      targetType: "comida_local_public_listings",
+      targetId: activation.listingId ?? input.paymentRecord.listing_id,
+      meta: {
+        code: `comida_local_activation_${activation.outcome}`,
+        message: activation.message,
+        payment_record_id: input.paymentRecord.id,
+        package_key: input.packageDef.packageKey,
+        stripe_event_id: input.stripeEventId,
+      },
+    });
+    return {
+      ok: false,
+      code: activation.outcome,
+      message: activation.message ?? "Comida Local listing activation failed.",
+    };
+  }
+
+  await writeRevenueAuditLog({
+    action: "comida_local_listing_activated_after_payment",
+    targetType: "comida_local_public_listings",
     targetId: activation.listingId ?? null,
     meta: {
       listing_id: activation.listingId,
@@ -516,6 +715,89 @@ async function tryActivateRentasListingAfterEntitlement(input: {
 
   await writeRevenueAuditLog({
     action: "rentas_listing_activated_after_payment",
+    targetType: "listings",
+    targetId: activation.listingId ?? null,
+    meta: {
+      listing_id: activation.listingId,
+      package_key: input.packageDef.packageKey,
+      payment_record_id: input.paymentRecord.id,
+      leonix_ad_id: input.paymentRecord.leonix_ad_id,
+      stripe_checkout_session_id: input.stripeCheckoutSessionId,
+      stripe_event_id: input.stripeEventId,
+      outcome: activation.outcome,
+    },
+  });
+
+  return { ok: true };
+}
+
+async function tryActivateClasesListingAfterEntitlement(input: {
+  paymentRecord: LeonixPaymentRecordRow;
+  packageDef: RevenuePackageDefinition;
+  stripeEventId: string;
+  stripeCheckoutSessionId: string;
+  stripePaymentIntentId?: string | null;
+}): Promise<{ ok: boolean; code?: string; message?: string }> {
+  if (input.packageDef.packageKey !== CLASES_PAID_30D_PACKAGE_KEY) {
+    return { ok: true };
+  }
+
+  const activation = await activatePaidClasesListingFromRevenueOs({
+    listingId: input.paymentRecord.listing_id,
+    packageKey: input.packageDef.packageKey,
+    paymentRecordId: input.paymentRecord.id,
+    stripeCheckoutSessionId: input.stripeCheckoutSessionId,
+    stripeEventId: input.stripeEventId,
+    stripePaymentIntentId: input.stripePaymentIntentId ?? null,
+    leonixAdId: input.paymentRecord.leonix_ad_id,
+  });
+
+  if (
+    activation.outcome === "skipped_wrong_package" ||
+    activation.outcome === "already_published" ||
+    activation.outcome === "wrong_category"
+  ) {
+    return { ok: true };
+  }
+
+  if (activation.outcome === "unsafe_status" && activation.ok) {
+    await writeRevenueAuditLog({
+      action: "revenue_webhook_ignored",
+      targetType: "listings",
+      targetId: activation.listingId ?? null,
+      meta: {
+        reason: "clases_activation_unsafe_status",
+        outcome: activation.outcome,
+        message: activation.message,
+        payment_record_id: input.paymentRecord.id,
+        stripe_event_id: input.stripeEventId,
+      },
+    });
+    return { ok: true };
+  }
+
+  if (!activation.ok) {
+    await writeRevenueAuditLog({
+      action: "revenue_webhook_validation_failed",
+      targetType: "listings",
+      targetId: activation.listingId ?? input.paymentRecord.listing_id,
+      meta: {
+        code: `clases_activation_${activation.outcome}`,
+        message: activation.message,
+        payment_record_id: input.paymentRecord.id,
+        package_key: input.packageDef.packageKey,
+        stripe_event_id: input.stripeEventId,
+      },
+    });
+    return {
+      ok: false,
+      code: activation.outcome,
+      message: activation.message ?? "Clases listing activation failed.",
+    };
+  }
+
+  await writeRevenueAuditLog({
+    action: "clases_listing_activated_after_payment",
     targetType: "listings",
     targetId: activation.listingId ?? null,
     meta: {
@@ -992,6 +1274,52 @@ export async function fulfillCheckoutSessionCompleted(input: {
     return { ok: false, code: "amount_mismatch", message: "Stripe amount does not match payment record." };
   }
 
+  const paymentCurrency = String(paymentRecord.currency ?? "").trim().toLowerCase();
+  if (session.currency && paymentCurrency && session.currency.toLowerCase() !== paymentCurrency) {
+    await writeRevenueAuditLog({
+      action: "revenue_webhook_validation_failed",
+      targetType: "leonix_payment_records",
+      targetId: paymentRecord.id,
+      meta: {
+        code: "currency_mismatch",
+        expected_currency: paymentCurrency,
+        stripe_currency: session.currency,
+        stripe_event_id: eventId,
+      },
+    });
+    return { ok: false, code: "currency_mismatch", message: "Stripe currency does not match payment record." };
+  }
+
+  if (packageDef.category === "ofertas-locales") {
+    if (
+      metadata.schema !== "revenue_os_checkout_v2" ||
+      metadata.amountCents !== packageDef.priceCents ||
+      metadata.currency !== "usd" ||
+      metadata.durationDays !== 30 ||
+      metadata.aiIncluded !== true
+    ) {
+      await writeRevenueAuditLog({
+        action: "revenue_webhook_validation_failed",
+        targetType: "leonix_payment_records",
+        targetId: paymentRecord.id,
+        meta: {
+          code: "ofertas_metadata_contract_mismatch",
+          metadata_schema: metadata.schema,
+          metadata_amount_cents: metadata.amountCents,
+          metadata_currency: metadata.currency,
+          metadata_duration_days: metadata.durationDays,
+          metadata_ai_included: metadata.aiIncluded,
+          stripe_event_id: eventId,
+        },
+      });
+      return {
+        ok: false,
+        code: "ofertas_metadata_contract_mismatch",
+        message: "Ofertas checkout metadata does not match the commercial contract.",
+      };
+    }
+  }
+
   const webhookMeta = {
     stripe_event_id: eventId,
     stripe_event_type: eventType,
@@ -1029,6 +1357,25 @@ export async function fulfillCheckoutSessionCompleted(input: {
         ok: false,
         code: restaurantActivation.code,
         message: restaurantActivation.message,
+        paymentRecordId: paymentRecord.id,
+        packageEntitlementId: entitlementResult.packageEntitlementId ?? paymentRecord.package_entitlement_id,
+        placementEntitlementId:
+          entitlementResult.placementEntitlementId ?? paymentRecord.placement_entitlement_id,
+        promoRedemptionId: paymentRecord.promo_redemption_id,
+      };
+    }
+
+    const comidaLocalActivation = await tryActivateComidaLocalListingAfterEntitlement({
+      paymentRecord,
+      packageDef,
+      stripeEventId: eventId,
+      stripeCheckoutSessionId: session.id,
+    });
+    if (!comidaLocalActivation.ok) {
+      return {
+        ok: false,
+        code: comidaLocalActivation.code,
+        message: comidaLocalActivation.message,
         paymentRecordId: paymentRecord.id,
         packageEntitlementId: entitlementResult.packageEntitlementId ?? paymentRecord.package_entitlement_id,
         placementEntitlementId:
@@ -1107,6 +1454,26 @@ export async function fulfillCheckoutSessionCompleted(input: {
         ok: false,
         code: rentasActivation.code,
         message: rentasActivation.message,
+        paymentRecordId: paymentRecord.id,
+        packageEntitlementId: entitlementResult.packageEntitlementId ?? paymentRecord.package_entitlement_id,
+        placementEntitlementId:
+          entitlementResult.placementEntitlementId ?? paymentRecord.placement_entitlement_id,
+        promoRedemptionId: paymentRecord.promo_redemption_id,
+      };
+    }
+
+    const clasesActivation = await tryActivateClasesListingAfterEntitlement({
+      paymentRecord,
+      packageDef,
+      stripeEventId: eventId,
+      stripeCheckoutSessionId: session.id,
+      stripePaymentIntentId: resolveStripePaymentIntentId(session),
+    });
+    if (!clasesActivation.ok) {
+      return {
+        ok: false,
+        code: clasesActivation.code,
+        message: clasesActivation.message,
         paymentRecordId: paymentRecord.id,
         packageEntitlementId: entitlementResult.packageEntitlementId ?? paymentRecord.package_entitlement_id,
         placementEntitlementId:
@@ -1212,6 +1579,25 @@ export async function fulfillCheckoutSessionCompleted(input: {
       };
     }
 
+    const ofertasFulfillment = await tryFulfillOfertasLocalesParentAfterEntitlement({
+      paymentRecord,
+      packageDef,
+      packageEntitlementId: entitlementResult.packageEntitlementId ?? paymentRecord.package_entitlement_id,
+      packageEntitlementEndsAt: entitlementResult.packageEntitlementEndsAt,
+    });
+    if (!ofertasFulfillment.ok) {
+      return {
+        ok: false,
+        code: ofertasFulfillment.code,
+        message: ofertasFulfillment.message,
+        paymentRecordId: paymentRecord.id,
+        packageEntitlementId: entitlementResult.packageEntitlementId ?? paymentRecord.package_entitlement_id,
+        placementEntitlementId:
+          entitlementResult.placementEntitlementId ?? paymentRecord.placement_entitlement_id,
+        promoRedemptionId: paymentRecord.promo_redemption_id,
+      };
+    }
+
     return {
       ok: true,
       idempotent: true,
@@ -1279,6 +1665,26 @@ export async function fulfillCheckoutSessionCompleted(input: {
     }
   }
 
+  // Package C Build 2 (C4) — parallel to the promo-redemption block above. Conditional,
+  // replay-safe 'reserved' -> 'redeemed' UPDATE; without this the reservation never leaves
+  // 'reserved' after a real successful payment.
+  const verifiedIntroDiscountRedemptionId = paymentRecord.verified_intro_discount_redemption_id;
+  if (verifiedIntroDiscountRedemptionId) {
+    const verifiedIntroResult = await markVerifiedIntroDiscountRedemptionRedeemed(verifiedIntroDiscountRedemptionId);
+    if (verifiedIntroResult.ok) {
+      await writeRevenueAuditLog({
+        action: "revenue_verified_intro_discount_redeemed",
+        targetType: "leonix_verified_intro_discount_redemptions",
+        targetId: verifiedIntroDiscountRedemptionId,
+        meta: {
+          payment_record_id: paymentRecord.id,
+          idempotent: verifiedIntroResult.idempotent === true,
+          stripe_event_id: eventId,
+        },
+      });
+    }
+  }
+
   const refreshed = (await loadPaymentRecordById(paymentRecord.id)) ?? paymentRecord;
   const entitlementResult = await activateEntitlementsForPayment({
     paymentRecord: refreshed,
@@ -1312,6 +1718,24 @@ export async function fulfillCheckoutSessionCompleted(input: {
     },
   });
 
+  const ofertasFulfillment = await tryFulfillOfertasLocalesParentAfterEntitlement({
+    paymentRecord: refreshed,
+    packageDef,
+    packageEntitlementId: entitlementResult.packageEntitlementId,
+    packageEntitlementEndsAt: entitlementResult.packageEntitlementEndsAt,
+  });
+  if (!ofertasFulfillment.ok) {
+    return {
+      ok: false,
+      code: ofertasFulfillment.code,
+      message: ofertasFulfillment.message,
+      paymentRecordId: paymentRecord.id,
+      packageEntitlementId: entitlementResult.packageEntitlementId,
+      placementEntitlementId: entitlementResult.placementEntitlementId,
+      promoRedemptionId,
+    };
+  }
+
   const restaurantActivation = await tryActivateRestauranteListingAfterEntitlement({
     paymentRecord: refreshed,
     packageDef,
@@ -1323,6 +1747,24 @@ export async function fulfillCheckoutSessionCompleted(input: {
       ok: false,
       code: restaurantActivation.code,
       message: restaurantActivation.message,
+      paymentRecordId: paymentRecord.id,
+      packageEntitlementId: entitlementResult.packageEntitlementId,
+      placementEntitlementId: entitlementResult.placementEntitlementId,
+      promoRedemptionId,
+    };
+  }
+
+  const comidaLocalActivation = await tryActivateComidaLocalListingAfterEntitlement({
+    paymentRecord: refreshed,
+    packageDef,
+    stripeEventId: eventId,
+    stripeCheckoutSessionId: session.id,
+  });
+  if (!comidaLocalActivation.ok) {
+    return {
+      ok: false,
+      code: comidaLocalActivation.code,
+      message: comidaLocalActivation.message,
       paymentRecordId: paymentRecord.id,
       packageEntitlementId: entitlementResult.packageEntitlementId,
       placementEntitlementId: entitlementResult.placementEntitlementId,
@@ -1397,6 +1839,25 @@ export async function fulfillCheckoutSessionCompleted(input: {
       ok: false,
       code: rentasActivation.code,
       message: rentasActivation.message,
+      paymentRecordId: paymentRecord.id,
+      packageEntitlementId: entitlementResult.packageEntitlementId,
+      placementEntitlementId: entitlementResult.placementEntitlementId,
+      promoRedemptionId,
+    };
+  }
+
+  const clasesActivation = await tryActivateClasesListingAfterEntitlement({
+    paymentRecord: refreshed,
+    packageDef,
+    stripeEventId: eventId,
+    stripeCheckoutSessionId: session.id,
+    stripePaymentIntentId: resolveStripePaymentIntentId(session),
+  });
+  if (!clasesActivation.ok) {
+    return {
+      ok: false,
+      code: clasesActivation.code,
+      message: clasesActivation.message,
       paymentRecordId: paymentRecord.id,
       packageEntitlementId: entitlementResult.packageEntitlementId,
       placementEntitlementId: entitlementResult.placementEntitlementId,
@@ -1586,6 +2047,12 @@ export async function markCheckoutSessionExpired(input: {
       stripeCheckoutSessionId: session.id,
       webhookMeta,
     });
+  }
+
+  // Package C Build 2 (C4) — mirrors the promo-redemption expiry branch above.
+  const verifiedIntroDiscountRedemptionId = paymentRecord.verified_intro_discount_redemption_id;
+  if (verifiedIntroDiscountRedemptionId) {
+    await markVerifiedIntroDiscountRedemptionExpiredOrCancelled(verifiedIntroDiscountRedemptionId);
   }
 
   return {

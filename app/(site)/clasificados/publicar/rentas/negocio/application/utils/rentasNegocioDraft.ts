@@ -2,6 +2,12 @@ import {
   mergePartialRentasNegocioState,
   type RentasNegocioFormState,
 } from "../../schema/rentasNegocioFormState";
+import {
+  clearRentasNegocioDraftMediaIdb,
+  inlineRentasNegocioHeavyMediaFromIdb,
+  offloadRentasNegocioHeavyMediaToIdb,
+} from "./rentasNegocioDraftMedia";
+import { rentasCategoriaPropiedadForTipo } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 
 export const RENTAS_NEGOCIO_DRAFT_STORAGE_KEY = "rentas-negocio-draft-v1";
 
@@ -37,28 +43,39 @@ function readDraftRaw(): string | null {
   return null;
 }
 
-export function loadRentasNegocioDraft(): RentasNegocioFormState | null {
+/** BR-INV-WAVE1-GATE3: now async — resolves IndexedDB-offloaded photo/logo refs. */
+export async function loadRentasNegocioDraft(): Promise<RentasNegocioFormState | null> {
   if (typeof window === "undefined") return null;
   try {
     const raw = readDraftRaw();
     if (!raw) return null;
     const parsed = JSON.parse(raw) as unknown;
     if (!parsed || typeof parsed !== "object") return null;
-    return mergePartialRentasNegocioState(parsed as Partial<RentasNegocioFormState>);
+    const merged = mergePartialRentasNegocioState(parsed as Partial<RentasNegocioFormState>);
+    // Item 13 fix — legacy drafts saved before categoriaPropiedad was derived from tipoDeRenta may
+    // carry a mismatched combination. Normalize on load rather than migrating storage
+    // destructively: every other field is preserved untouched.
+    const normalized = merged.tipoDeRenta
+      ? { ...merged, categoriaPropiedad: rentasCategoriaPropiedadForTipo(merged.tipoDeRenta) }
+      : merged;
+    return await inlineRentasNegocioHeavyMediaFromIdb(normalized);
   } catch {
     return null;
   }
 }
 
-export function saveRentasNegocioDraft(state: RentasNegocioFormState): void {
+/** BR-INV-WAVE1-GATE3: now async — offloads heavy photo/logo data: URLs to IndexedDB first. */
+export async function saveRentasNegocioDraft(state: RentasNegocioFormState): Promise<void> {
   if (typeof window === "undefined") return;
-  const raw = JSON.stringify({
+  const stripped: RentasNegocioFormState = {
     ...state,
     media: {
       ...state.media,
       videoLocalDataUrl: "",
     },
-  } satisfies RentasNegocioFormState);
+  } satisfies RentasNegocioFormState;
+  const toSave = await offloadRentasNegocioHeavyMediaToIdb(stripped);
+  const raw = JSON.stringify(toSave);
   try {
     sessionStorage.setItem(RENTAS_NEGOCIO_DRAFT_STORAGE_KEY, raw);
     try {
@@ -77,7 +94,7 @@ export function saveRentasNegocioDraft(state: RentasNegocioFormState): void {
   }
 }
 
-export function clearRentasNegocioDraft(): void {
+export async function clearRentasNegocioDraft(): Promise<void> {
   if (typeof window === "undefined") return;
   try {
     sessionStorage.removeItem(RENTAS_NEGOCIO_DRAFT_STORAGE_KEY);
@@ -86,4 +103,5 @@ export function clearRentasNegocioDraft(): void {
   } catch {
     /* ignore */
   }
+  await clearRentasNegocioDraftMediaIdb();
 }

@@ -1,7 +1,8 @@
 import { isEmbeddableExternalVideoUrl } from "@/app/clasificados/en-venta/shared/utils/enVentaVideoEmbed";
 import { isRestauranteLocalVideoDataUrl } from "@/app/clasificados/restaurantes/application/restauranteMediaDisplay";
 
-export const RESTAURANTE_MAX_EXTERNAL_VIDEO_URLS = 4;
+// Global Business Hub OS — pilot-lane video cap raised 4 -> 8.
+export const RESTAURANTE_MAX_EXTERNAL_VIDEO_URLS = 8;
 
 export function trimRestauranteVideoUrl(raw: string): string {
   return String(raw ?? "").trim();

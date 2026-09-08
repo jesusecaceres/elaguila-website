@@ -1,6 +1,7 @@
 import type { AutoDealerListing, MediaImageEntry } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
-import { dedupeAutosVideoUrls } from "@/app/lib/clasificados/autos/autosExternalVideoUrlValidation";
+import { AUTOS_MAX_EXTERNAL_VIDEO_URLS, dedupeAutosVideoUrls, normalizeAutosExternalVideoUrl } from "@/app/lib/clasificados/autos/autosExternalVideoUrlValidation";
 import { isAutosIdbPlaceholderRef } from "@/app/lib/clasificados/autos/autosPublishMediaTransport";
+import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
 
 /** Keep JSON payload under typical serverless body limits; inline data URLs belong in blob/Mux flows. */
 const MAX_INLINE_DATA_URL_CHARS = 100_000;
@@ -110,6 +111,30 @@ export function sanitizeAutosListingPayloadForPersistence(listing: AutoDealerLis
   const prunedHero = pruneHeroImages(L.heroImages, persistWarnings);
   if (prunedHero !== undefined && prunedHero !== L.heroImages) {
     L = { ...L, heroImages: prunedHero };
+  }
+
+  // Globalization Package B (Gate B6) — shared media contract, additive gate. Autos images are
+  // truthfully uncapped (no enforced count limit — AUTOS_FREE/PRO constants are confirmed dead
+  // code), so this only re-certifies the T7/T8 truths the pruning above already enforces with
+  // its own logic, plus the video cap/normalization dedupeAutosVideoUrls() already applies. This
+  // is the single, real, shared persistence boundary for both create (Gate 122) and update
+  // (Gate 259) in autosClassifiedsListingService.ts — every listing (parent, child, privado)
+  // passes through it.
+  const autosFinalMedia = buildProposedFinalMediaSet({
+    existing: (L.mediaImages ?? []).map((img) => img.url).filter(Boolean),
+    externalVideoUrls: L.videoUrls ?? [],
+  });
+  const autosMediaValidation = validateProposedFinalMediaSet(autosFinalMedia, {
+    minImages: 0,
+    maxImages: Number.POSITIVE_INFINITY,
+    logoAllowed: false,
+    maxExternalVideos: AUTOS_MAX_EXTERNAL_VIDEO_URLS,
+    normalizeExternalVideoUrl: normalizeAutosExternalVideoUrl,
+  });
+  if (!autosMediaValidation.ok) {
+    persistWarnings.push(
+      ...autosMediaValidation.issues.map((i) => `shared_media_contract_${i.code}`),
+    );
   }
 
   return { listing: L, persistWarnings };

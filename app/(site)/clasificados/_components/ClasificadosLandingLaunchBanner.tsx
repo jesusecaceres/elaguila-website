@@ -1,24 +1,16 @@
 "use client";
 
-import { LeonixLaunchCouponCard } from "@/app/components/leonix/LeonixLaunchCouponCard";
-import { launchUiCopyLang, type SupportedLang } from "@/app/lib/language";
-import { buildClasificadosLandingNewsletterHref } from "../_lib/clasificadosLandingHubCopy";
+import type { SupportedLang } from "@/app/lib/language";
 
 type Props = {
   routeLang: SupportedLang;
 };
 
-export function ClasificadosLandingLaunchBanner({ routeLang }: Props) {
-  const cardLang = launchUiCopyLang(routeLang);
-  const href = buildClasificadosLandingNewsletterHref(routeLang);
-
-  return (
-    <LeonixLaunchCouponCard
-      lang={cardLang}
-      variant="public"
-      href={href}
-      openInNewTab
-      finePrintMode="full"
-    />
-  );
+/**
+ * The Launch 25 (25% off) campaign this banner advertised has been retired.
+ * Left as a no-op so its single call site in clasificados/page.tsx does not
+ * need to change; renders nothing.
+ */
+export function ClasificadosLandingLaunchBanner({ routeLang: _routeLang }: Props) {
+  return null;
 }

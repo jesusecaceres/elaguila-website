@@ -73,13 +73,13 @@ export function QuickJobHeaderCard({
   const recordLikeEvent = globalListing ? async (isLike: boolean) => {
     if (!globalListing) return;
     const { empleosGlobalLikeRecorder } = await import("../../lib/recordEmpleosGlobalAnalytics");
-    empleosGlobalLikeRecorder(globalListing);
+    await empleosGlobalLikeRecorder(globalListing)(isLike);
   } : undefined;
 
-  const recordShareEvent = globalListing ? (shareMethod: string, extraMeta?: Record<string, unknown>) => {
+  const recordShareEvent = globalListing ? async (shareMethod: string, extraMeta?: Record<string, unknown>) => {
     if (!globalListing) return;
-    const { empleosGlobalShareRecorder } = require("../../lib/recordEmpleosGlobalAnalytics");
-    empleosGlobalShareRecorder(globalListing, "detail_share");
+    const { empleosGlobalShareRecorder } = await import("../../lib/recordEmpleosGlobalAnalytics");
+    empleosGlobalShareRecorder(globalListing, "detail_share")(shareMethod, extraMeta);
   } : undefined;
 
   return (

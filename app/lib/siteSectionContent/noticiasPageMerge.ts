@@ -3,13 +3,17 @@ import type { NoticiasPagePayload } from "./payloadTypes";
 const BASE = {
   es: {
     pageTitle: "Noticias",
-    subtitle: "Titulares, cultura y comunidad — actualizado al momento para nuestra gente.",
-    breakingLabel: "Última Hora",
+    subtitle: "Noticias locales, comunidad, cultura y actualidad para nuestra gente.",
+    // N4 editorial-truth audit: this label is the most recent story by publish date (see
+    // NoticiasPageClient's `featured` = articles[0]) -- there is no real breaking-news
+    // determination behind it, so "Última Hora" overclaimed urgency. "En Portada" (front page /
+    // top story) truthfully matches what the code actually surfaces.
+    breakingLabel: "En Portada",
   },
   en: {
     pageTitle: "News",
-    subtitle: "Headlines, culture, and community — updated in real time for our people.",
-    breakingLabel: "Breaking",
+    subtitle: "Local news, community, culture and current stories for our community.",
+    breakingLabel: "Top Story",
   },
 };
 

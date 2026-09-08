@@ -1,6 +1,7 @@
 /**
  * Ofertas Locales formatting helpers — pure, dependency-light.
  */
+import { OFERTAS_LOCALES_PUBLIC_TERM_DAYS } from "./ofertasLocalesConstants";
 
 /** Strip to digits for US phone / WhatsApp input normalization. */
 export function normalizeOfertaLocalPhoneInput(raw: string): string {
@@ -9,9 +10,20 @@ export function normalizeOfertaLocalPhoneInput(raw: string): string {
   return digits;
 }
 
-/** Display US phone as (xxx) xxx-xxxx while typing. */
+function cleanPhoneDisplayInput(raw: string): string {
+  return String(raw ?? "")
+    .replace(/[^\d+().\-\sA-Za-z]/g, "")
+    .replace(/\s+/g, " ")
+    .slice(0, 60);
+}
+
+/** Display US phone as (xxx) xxx-xxxx while typing; preserve international/extension text. */
 export function formatOfertaLocalPhoneDisplay(raw: string): string {
-  const d = normalizeOfertaLocalPhoneInput(raw).slice(0, 10);
+  const clean = cleanPhoneDisplayInput(raw);
+  const hasExtension = /\b(?:ext|extension|x)\b/i.test(clean);
+  const looksInternational = clean.trim().startsWith("+") && !/^\+?1\b/.test(clean.trim());
+  if (hasExtension || looksInternational) return clean;
+  const d = normalizeOfertaLocalPhoneInput(clean).slice(0, 10);
   if (d.length <= 3) return d;
   if (d.length <= 6) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
   return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
@@ -125,4 +137,51 @@ export function isOfertaLocalActiveByDates(
   if (!start || !end) return false;
   const today = todayUtcDateOnly();
   return start.getTime() <= today.getTime() && today.getTime() <= end.getTime();
+}
+
+function parseIsoTimestamp(value: string | null | undefined): Date | null {
+  const t = String(value ?? "").trim();
+  if (!t) return null;
+  const d = new Date(t);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+export function calculateOfertaLocalPublicTermExpiresAt(
+  activationTimestamp: string,
+  durationDays = OFERTAS_LOCALES_PUBLIC_TERM_DAYS
+): string {
+  const activation = parseIsoTimestamp(activationTimestamp);
+  if (!activation) return "";
+  return new Date(activation.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+}
+
+export function isOfertaLocalPublicTermActive(
+  publishedAt: string | null | undefined,
+  expiresAt: string | null | undefined,
+  now: Date = new Date()
+): boolean {
+  const published = parseIsoTimestamp(publishedAt);
+  const expires = parseIsoTimestamp(expiresAt);
+  if (!published || !expires) return false;
+  return published.getTime() <= now.getTime() && now.getTime() < expires.getTime();
+}
+
+export function isOfertaLocalPublicTermExpired(
+  expiresAt: string | null | undefined,
+  now: Date = new Date()
+): boolean {
+  const expires = parseIsoTimestamp(expiresAt);
+  if (!expires) return false;
+  return now.getTime() >= expires.getTime();
+}
+
+export function getOfertaLocalPublicTermDaysRemaining(
+  expiresAt: string | null | undefined,
+  now: Date = new Date()
+): number | null {
+  const expires = parseIsoTimestamp(expiresAt);
+  if (!expires) return null;
+  const remainingMs = expires.getTime() - now.getTime();
+  if (remainingMs <= 0) return 0;
+  return Math.ceil(remainingMs / (24 * 60 * 60 * 1000));
 }

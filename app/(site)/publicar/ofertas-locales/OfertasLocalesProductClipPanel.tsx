@@ -80,11 +80,11 @@ export function OfertasLocalesClipInspectorSection({
   const hasBbox = Boolean(focusedItem?.sourceBbox);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[#D4C4A8]/70 bg-white shadow-sm">
-      <div className="border-b border-[#D4C4A8]/50 bg-[#FFFCF7] px-4 py-3">
-        <p className="text-sm font-semibold text-[#7A1E2C]">
-          {lang === "en" ? "Clip Inspector" : "Inspector de recorte"}
-        </p>
+    <details className="overflow-hidden rounded-xl border border-[#D4C4A8]/70 bg-white shadow-sm">
+      <summary className="cursor-pointer border-b border-[#D4C4A8]/50 bg-[#FFFCF7] px-4 py-3 text-sm font-semibold text-[#7A1E2C]">
+        {lang === "en" ? "Source proof and clip inspector" : "Prueba de origen e inspector de recorte"}
+      </summary>
+      <div className="border-b border-[#D4C4A8]/50 bg-[#FFFCF7] px-4 pb-2">
         <p className="mt-0.5 text-[10px] text-[#1E1814]/55">
           {lang === "en"
             ? "Verify the AI product clip or source location before approving."
@@ -117,7 +117,6 @@ export function OfertasLocalesClipInspectorSection({
               {lang === "en" ? "Product clip ready" : "Recorte de producto listo"}
             </p>
             <div className="overflow-auto rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0]/50 p-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={cropUrl}
                 alt={focusedItem?.itemName ?? scanCopy.cropAdClipPage}
@@ -160,7 +159,7 @@ export function OfertasLocalesClipInspectorSection({
           </p>
         ) : null}
       </div>
-    </div>
+    </details>
   );
 }
 
@@ -200,16 +199,6 @@ export function OfertasLocalesProductClipPanel({
   return (
     <div className="flex min-h-0 w-full min-w-0 flex-col gap-3">
       <div className="hidden xl:block">
-        <OfertasLocalesClipInspectorSection
-          lang={lang}
-          draft={draft}
-          focusedItem={focusedItem}
-          viewerPage={viewerPage}
-          onShowOnFlyer={handleShowOnFlyer}
-        />
-      </div>
-
-      <div className="hidden xl:block">
         <OfertasClipReviewViewer
           lang={lang}
           fileUrl={fileUrl}
@@ -221,6 +210,16 @@ export function OfertasLocalesProductClipPanel({
           highlightOverlay={highlightOverlay}
           onSelectItem={(itemId) => onSelectItem?.(itemId)}
           onPageChange={onPageChange}
+        />
+      </div>
+
+      <div className="hidden xl:block">
+        <OfertasLocalesClipInspectorSection
+          lang={lang}
+          draft={draft}
+          focusedItem={focusedItem}
+          viewerPage={viewerPage}
+          onShowOnFlyer={handleShowOnFlyer}
         />
       </div>
 

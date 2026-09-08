@@ -280,8 +280,8 @@ export function getEnCopy(lang: SupportedLang): ComingSoonV2Copy {
       area: "San José • Silicon Valley • Latino Community",
     },
     newsletter: {
-      title: "Leonix Launch 25",
-      body: "Sign up and get 25% off your first eligible website ad or package.",
+      title: "Join Leonix Media",
+      body: "Sign up and we'll notify you at launch, plus keep you posted on news and advertiser benefits.",
       placeholder: "Your email address",
       button: "Notify Me",
       formAria: "Newsletter signup",

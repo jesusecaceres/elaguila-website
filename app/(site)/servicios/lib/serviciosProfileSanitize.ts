@@ -27,6 +27,7 @@ import {
 } from "./serviciosPaymentMethodCatalog";
 import {
   sanitizeCustomServiciosAmenityLabels,
+  sanitizeCustomServiciosAmenityLabelsByGroup,
   sanitizeServiciosAmenityOptionIds,
   type ServiciosAmenityOptionId,
 } from "./serviciosAmenitiesCatalog";
@@ -159,6 +160,7 @@ export function normalizeHours(
   openNowLabel?: string;
   todayHoursLine?: string;
   weeklyRows?: { dayLabel: string; line: string }[];
+  specialHoursRows?: { label: string; note: string }[];
 } | undefined {
   if (!h) return undefined;
   const openNowLabel = trimText(h.openNowLabel);
@@ -174,11 +176,24 @@ export function normalizeHours(
       .slice(0, 14);
     if (wr.length) weeklyRows = wr;
   }
+  // Multi-entry special hours / holidays (contract §3.4 items 46-48).
+  let specialHoursRows: { label: string; note: string }[] | undefined;
+  if (Array.isArray(h.specialHoursRows)) {
+    const sr = h.specialHoursRows
+      .map((r) => ({
+        label: trimText(r?.label),
+        note: trimText(r?.note),
+      }))
+      .filter((r) => r.label.length > 0 && r.note.length > 0)
+      .slice(0, 20);
+    if (sr.length) specialHoursRows = sr;
+  }
   const hasToday = openNowLabel.length > 0 && todayHoursLine.length > 0;
-  if (!hasToday && !weeklyRows?.length) return undefined;
+  if (!hasToday && !weeklyRows?.length && !specialHoursRows?.length) return undefined;
   return {
     ...(hasToday ? { openNowLabel, todayHoursLine } : {}),
     ...(weeklyRows?.length ? { weeklyRows } : {}),
+    ...(specialHoursRows?.length ? { specialHoursRows } : {}),
   };
 }
 
@@ -449,6 +464,12 @@ export function filterAmenityOptionIds(raw: string[] | undefined): ServiciosAmen
 
 export function filterCustomAmenityOptions(raw: string[] | undefined): string[] {
   return sanitizeCustomServiciosAmenityLabels(raw);
+}
+
+export function filterCustomAmenityOptionsByGroup(
+  raw: Record<string, unknown> | undefined,
+): Record<string, string[]> {
+  return sanitizeCustomServiciosAmenityLabelsByGroup(raw);
 }
 
 /**

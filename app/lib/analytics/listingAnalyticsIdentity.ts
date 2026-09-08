@@ -16,6 +16,7 @@ export const LISTING_ANALYTICS_SOURCE_TABLES = [
   "restaurantes_public_listings",
   "comida_local_public_listings",
   "viajes_staged_listings",
+  "ofertas_locales",
 ] as const;
 
 export type ListingAnalyticsSourceTable = (typeof LISTING_ANALYTICS_SOURCE_TABLES)[number];
@@ -36,6 +37,7 @@ export const LISTING_ANALYTICS_CATEGORIES = [
   "busco",
   "mascotas-y-perdidos",
   "comida-local",
+  "ofertas-locales",
 ] as const;
 
 export type ListingAnalyticsCategory = (typeof LISTING_ANALYTICS_CATEGORIES)[number] | string;

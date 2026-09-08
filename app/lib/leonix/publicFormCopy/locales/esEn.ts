@@ -59,9 +59,9 @@ export const ES_LOCALE: PublicLocaleCopy = {
     promoLink: "contacto de productos promocionales",
   },
   newsletter: {
-    title: "Leonix Launch 25",
-    subtitle: "Obtén 25% de descuento en tu primer anuncio o paquete web elegible.",
-    body: "Regístrate con tu correo y te enviamos tu código único Leonix Launch 25. Sin elegir categoría ahora — el checkout web define después qué producto aplica.",
+    title: "Únete a Leonix Media",
+    subtitle: "Regístrate para recibir novedades y beneficios para anunciantes.",
+    body: "Regístrate con tu correo y te mantendremos al tanto de las novedades de Leonix Media. Los clientes verificados pueden calificar para un beneficio introductorio del 15% en checkout — no se requiere ningún código.",
     fields: {
       email: "Correo electrónico",
       name: "Nombre",
@@ -151,7 +151,7 @@ export const ES_LOCALE: PublicLocaleCopy = {
         "¡Gracias! Recibimos tu solicitud. El equipo de Leonix revisará tu información y te contactará pronto.",
     },
     newsletterSuccess:
-      "¡Gracias! Tu registro está guardado. Revisa tu correo para tu código Leonix Launch 25.",
+      "¡Gracias! Tu registro está guardado.",
     publicError:
       "No pudimos enviar tu información en este momento. Intenta de nuevo o escríbenos a info@leonixmedia.com.",
   },
@@ -230,9 +230,9 @@ export const EN_LOCALE: PublicLocaleCopy = {
     promoLink: "promotional products contact",
   },
   newsletter: {
-    title: "Leonix Launch 25",
-    subtitle: "Get 25% off your first eligible website ad or package.",
-    body: "Sign up with your email and we'll send your unique Leonix Launch 25 code. No category to pick now — website checkout decides what applies later.",
+    title: "Join Leonix Media",
+    subtitle: "Sign up for updates and advertiser benefits.",
+    body: "Sign up with your email and we'll keep you posted on Leonix Media news. Verified customers may qualify for a 15% introductory benefit at checkout — no code required.",
     fields: {
       email: "Email",
       name: "Name",
@@ -322,7 +322,7 @@ export const EN_LOCALE: PublicLocaleCopy = {
         "Thank you! We received your request. The Leonix team will review your information and contact you soon.",
     },
     newsletterSuccess:
-      "Thank you! Your signup is saved. Check your email for your Leonix Launch 25 code.",
+      "Thank you! Your signup is saved.",
     publicError:
       "We could not submit your information right now. Please try again or email us at info@leonixmedia.com.",
   },

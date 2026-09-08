@@ -29,8 +29,36 @@ export type ServiciosRankedRow = {
 /**
  * Resolve visibility rank for a single Servicios listing row.
  * Safe if entitlement fields are missing — returns organic fallback with warnings.
+ *
+ * Package D Build D3, Gate 1 — `canonicalRankWeightByListingId` carries pre-resolved canonical
+ * `leonix_placement_entitlements` weight (already mapped onto this file's own bucket scale via
+ * `placementTierToVisibilityRankWeight`, server-side, batched — see the results page). When a real
+ * canonical entitlement exists for this row's id, it wins over BOTH the legacy
+ * `listing_package_entitlements` check below and the row-field `printDigitalVisibilityRank`
+ * fallback, per the locked "canonical entitlement wins over legacy compatibility signals" rule.
  */
-export function resolveServiciosListingRank(row: ServiciosPublicListingRow): VisibilityRankSummary {
+export function resolveServiciosListingRank(
+  row: ServiciosPublicListingRow,
+  canonicalRankWeightByListingId?: Map<string, number>,
+): VisibilityRankSummary {
+  const canonicalWeight = row.id ? canonicalRankWeightByListingId?.get(row.id) : undefined;
+  if (canonicalWeight != null) {
+    const bucket = (Object.entries(VISIBILITY_RANK_WEIGHTS).find(([, w]) => w === canonicalWeight)?.[0] ??
+      "organic") as VisibilityRankSummary["bucket"];
+    return {
+      category: "servicios",
+      bucket,
+      rankWeight: canonicalWeight,
+      label: "Canonical placement entitlement",
+      reason: "Active leonix_placement_entitlements row for this listing.",
+      source: "leonix_placement_entitlements",
+      eligibleForResultsPriority: canonicalWeight >= VISIBILITY_RANK_WEIGHTS.full_page_print_priority,
+      eligibleForDestacadosModule: canonicalWeight >= VISIBILITY_RANK_WEIGHTS.premium_destacado_module,
+      searchFilterMustMatchFirst: true,
+      warnings: [],
+    };
+  }
+
   const listing = serviciosPublicRowToEntitlementListing(row);
   const entitlement = resolveListingPlacementEntitlement({
     category: "servicios",
@@ -71,10 +99,11 @@ export function resolveServiciosListingRank(row: ServiciosPublicListingRow): Vis
  */
 export function applyServiciosVisibilityRanking(
   filteredRows: ServiciosPublicListingRow[],
+  canonicalRankWeightByListingId?: Map<string, number>,
 ): ServiciosPublicListingRow[] {
   const ranked: ServiciosRankedRow[] = filteredRows.map((row, index) => ({
     row,
-    rank: resolveServiciosListingRank(row),
+    rank: resolveServiciosListingRank(row, canonicalRankWeightByListingId),
     _originalIndex: index,
   })) as (ServiciosRankedRow & { _originalIndex: number })[];
 

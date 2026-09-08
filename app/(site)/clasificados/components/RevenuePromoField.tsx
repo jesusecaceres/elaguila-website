@@ -116,8 +116,8 @@ export function RevenuePromoField({
       </label>
       <p className="text-[11px] leading-relaxed text-[color:var(--lx-muted,#7A7164)]">
         {lang === "es"
-          ? "Usa tu código Leonix Launch 25 si aplica a este pago."
-          : "Use your Leonix Launch 25 code if it applies to this checkout."}
+          ? "Ingresa tu código promocional si tienes uno."
+          : "Enter your promo code if you have one."}
       </p>
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <input

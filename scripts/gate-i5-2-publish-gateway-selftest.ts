@@ -89,26 +89,44 @@ async function main() {
 
   /* ---------------------------------------------------------------------------------------- *
    * 5 — Gate I.5.1 per-category decisions are what the gateway actually links to.
+   * Globalization Package A Gate 2 UPDATE: seven lanes gained a `checkpointRoute` (a truthful
+   * product-checkpoint card page shown before the application), and the gateway now resolves
+   * `checkpointRoute ?? hubRoute ?? applicationRoute`. Hub-based categories are unchanged.
    * ---------------------------------------------------------------------------------------- */
   {
     assert.equal(resolvePublicarGatewayDestination("servicios", "es"), "/publicar/servicios?lang=es");
     assert.equal(resolvePublicarGatewayDestination("empleos", "es"), "/publicar/empleos?lang=es");
     assert.equal(resolvePublicarGatewayDestination("restaurantes", "es"), "/publicar/restaurantes?lang=es");
-    assert.equal(resolvePublicarGatewayDestination("busco", "es"), "/publicar/busco/quick?lang=es");
-    assert.equal(resolvePublicarGatewayDestination("clases", "es"), "/publicar/clases/quick?lang=es");
-    assert.equal(resolvePublicarGatewayDestination("comunidad", "es"), "/publicar/comunidad/quick?lang=es");
+    // Package A Gate 2 — quick lanes now enter through their checkpoint card page; the quick
+    // applications themselves are unchanged one hop deeper.
+    assert.equal(resolvePublicarGatewayDestination("busco", "es"), "/publicar/busco?lang=es");
+    assert.equal(resolvePublicarGatewayDestination("clases", "es"), "/publicar/clases?lang=es");
+    assert.equal(resolvePublicarGatewayDestination("comunidad", "es"), "/publicar/comunidad?lang=es");
     assert.equal(
       resolvePublicarGatewayDestination("mascotas-y-perdidos", "es"),
-      "/publicar/mascotas-y-perdidos/quick?lang=es",
+      "/publicar/mascotas-y-perdidos?lang=es",
     );
-    assert.equal(resolvePublicarGatewayDestination("travel", "es"), "/publicar/viajes?lang=es");
-    assert.equal(resolvePublicarGatewayDestination("comida-local", "es"), "/publicar/comida-local?lang=es");
-    assert.equal(resolvePublicarGatewayDestination("ofertas-locales", "es"), "/publicar/ofertas-locales?lang=es");
-    // En Venta — documented temporary exception, deliberately NOT a modern route.
+    assert.equal(resolvePublicarGatewayDestination("travel", "es"), "/publicar/viajes/checkpoint?lang=es");
     assert.equal(
-      resolvePublicarGatewayDestination("en-venta", "es"),
-      "/clasificados/publicar/en-venta/pro?lang=es",
+      resolvePublicarGatewayDestination("comida-local", "es"),
+      "/publicar/comida-local/checkpoint?lang=es",
     );
+    assert.equal(resolvePublicarGatewayDestination("ofertas-locales", "es"), "/publicar/ofertas-locales?lang=es");
+    // En Venta — the application keeps its documented temporary exception (nested Pro route),
+    // but the gateway now enters through the new modern checkpoint page, whose CTA links to
+    // that unchanged nested application.
+    assert.equal(resolvePublicarGatewayDestination("en-venta", "es"), "/publicar/en-venta?lang=es");
+    // The applications themselves are untouched (checkpoint pages link to these):
+    assert.equal(CATEGORY_ROUTE_REGISTRY.busco.applicationRoute, "/publicar/busco/quick");
+    assert.equal(CATEGORY_ROUTE_REGISTRY.clases.applicationRoute, "/publicar/clases/quick");
+    assert.equal(CATEGORY_ROUTE_REGISTRY.comunidad.applicationRoute, "/publicar/comunidad/quick");
+    assert.equal(
+      CATEGORY_ROUTE_REGISTRY.mascotas_y_perdidos.applicationRoute,
+      "/publicar/mascotas-y-perdidos/quick",
+    );
+    assert.equal(CATEGORY_ROUTE_REGISTRY.en_venta.applicationRoute, "/clasificados/publicar/en-venta/pro");
+    assert.equal(CATEGORY_ROUTE_REGISTRY.comida_local.applicationRoute, "/publicar/comida-local");
+    assert.equal(CATEGORY_ROUTE_REGISTRY.viajes.applicationRoute, "/publicar/viajes");
   }
 
   /* ---------------------------------------------------------------------------------------- *

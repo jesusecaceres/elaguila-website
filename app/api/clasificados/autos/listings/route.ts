@@ -11,6 +11,7 @@ import {
 import { countActiveDealerVehicles, summarizeDealerInventory, isDealerInventoryMainListing } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import { AUTOS_DEALER_INVENTORY_PACK_PACKAGE_KEY, AUTOS_DEALER_TOTAL_WITH_INVENTORY_PACK_LIMIT } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { isListingPackageEntitlementRowActive } from "@/app/lib/listingPlans/listingPackageEntitlementPlacement";
+import { assertCommercialCapacityForWrite } from "@/app/lib/listingPlans/commercialWriteGuard";
 import type { AutosClassifiedsLane, AutosClassifiedsLang } from "@/app/lib/clasificados/autos/autosClassifiedsTypes";
 import {
   AUTOS_LISTING_API_MAX_BODY_BYTES,
@@ -204,6 +205,32 @@ export async function POST(request: Request) {
 
   const lang: AutosClassifiedsLang = body.lang === "en" ? "en" : "es";
   const parentListingId = body.parentListingId?.trim();
+
+  // Package C Build 1 (decision 11) — server-side commercial write guard for dealer child
+  // creation. Verifies the client-supplied parent is REAL, OWNED by the caller, and the dealer
+  // main (closing the trusted-parent-id gap), and enforces capacity (10 base / 20 with boost)
+  // + grace/suspension state: no new inventory during an unresolved payment issue. Existing
+  // children stay editable through the PATCH route (delta-0 semantics).
+  if (body.lane === "negocios" && parentListingId) {
+    const guard = await assertCommercialCapacityForWrite({
+      category: "autos",
+      parentListingId,
+      ownerUserId: userId,
+      operation: "child_create",
+      capacityDelta: 1,
+    });
+    if (!guard.allowed) {
+      return NextResponse.json(
+        buildAutosListingApiErrorPayload({
+          errorCode: "COMMERCIAL_WRITE_BLOCKED",
+          message: lang === "es" ? guard.messageEs : guard.message,
+          legacyError: guard.code,
+        }),
+        { status: guard.code === "parent_not_owned" ? 403 : 409 },
+      );
+    }
+  }
+
   const createInput = {
     ownerUserId: userId,
     lane: body.lane,

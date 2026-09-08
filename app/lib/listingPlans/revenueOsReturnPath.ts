@@ -35,6 +35,8 @@ const CATEGORY_DEFAULT_RETURN_PATHS: Record<string, string> = {
   restaurantes: "/clasificados/restaurantes",
   servicios: "/clasificados/servicios",
   "bienes-raices": "/clasificados/bienes-raices",
+  "ofertas-locales": "/dashboard/ofertas-locales",
+  clases: "/clasificados/clases",
 };
 
 export function resolveRevenueCategoryDefaultReturnPath(
@@ -57,6 +59,20 @@ export function buildDashboardMisAnunciosReturnPath(
   return `/dashboard/mis-anuncios?${q.toString()}`;
 }
 
+/**
+ * Ensures a same-origin internal path carries the current `lang` — appends it only when the path
+ * doesn't already specify one (an explicit `lang` on `returnTo`, e.g. from a caller that built its
+ * own return URL, is never overridden). Fixed defect: `sanitizeRevenueOsReturnPath` returns a
+ * valid non-empty `returnTo` verbatim, so a raw category returnPath with no `lang` (e.g.
+ * SERVICIOS_BASE_CHECKOUT.returnPath = "/clasificados/servicios") silently dropped the user's
+ * locale on the post-checkout "View category" link.
+ */
+function withLangParam(path: string, lang: RevenueOsLang): string {
+  if (/[?&]lang=/.test(path)) return path;
+  const sep = path.includes("?") ? "&" : "?";
+  return `${path}${sep}lang=${lang}`;
+}
+
 export function resolveRevenueOsSuccessReturnPath(input: {
   returnTo?: string | null;
   category?: string | null;
@@ -71,8 +87,8 @@ export function resolveRevenueOsSuccessReturnPath(input: {
   const categoryFallback = resolveRevenueCategoryDefaultReturnPath(category, lang);
 
   if (packageKey.endsWith("_offers_addon") || packageKey.includes("_addon")) {
-    return sanitizeRevenueOsReturnPath(input.returnTo, dashboardFallback);
+    return withLangParam(sanitizeRevenueOsReturnPath(input.returnTo, dashboardFallback), lang);
   }
 
-  return sanitizeRevenueOsReturnPath(input.returnTo, categoryFallback);
+  return withLangParam(sanitizeRevenueOsReturnPath(input.returnTo, categoryFallback), lang);
 }
