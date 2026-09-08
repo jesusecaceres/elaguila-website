@@ -1293,7 +1293,11 @@ export function EnVentaAnuncioLayout({
                 </div>
               ) : null}
               <div className="lg:col-span-12">
-                <EnVentaRelatedRail lang={lang} q={listing.title[lang].split(/\s+/).slice(0, 4).join(" ")} />
+                <EnVentaRelatedRail
+                  lang={lang}
+                  q={listing.title[lang].split(/\s+/).slice(0, 4).join(" ")}
+                  currentListingId={listing.id}
+                />
               </div>
             </>
           ) : null}
@@ -1302,7 +1306,7 @@ export function EnVentaAnuncioLayout({
 
         {surface !== "en-venta" || premiumBr ? (
         <div className="mt-10 grid gap-6 lg:grid-cols-12 lg:gap-10">
-          <div className="space-y-6 lg:col-span-8">
+          <div className="space-y-6 lg:col-span-12">
             {surface === "bienes-raices" ? <BrLiveFactsStrip detailPairs={listing.detailPairs} lang={lang} /> : null}
             {surface === "bienes-raices" && brLocationBlock ? (
               <section
@@ -1413,9 +1417,6 @@ export function EnVentaAnuncioLayout({
                 lang={lang}
               />
             ) : null}
-          </div>
-          <div className="lg:col-span-4">
-            <EnVentaRelatedRail lang={lang} q={listing.title[lang].split(/\s+/).slice(0, 4).join(" ")} />
           </div>
         </div>
         ) : null}

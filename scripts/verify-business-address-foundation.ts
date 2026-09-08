@@ -19,6 +19,8 @@ import {
   normalizeStateRegion,
 } from "@/app/lib/businessAddress/businessAddressNormalize";
 import { buildBusinessDirectionsHref } from "@/app/lib/businessAddress/businessAddressDirections";
+import { getGoogleAddressProviderConfig } from "@/app/lib/businessAddress/providers/googleAddressProviderConfig";
+import { googleAddressProvider, mapGoogleGeocodeResultToBusinessAddress } from "@/app/lib/businessAddress/providers/googleAddressProvider";
 import { createEmptyComidaLocalDraft } from "@/app/lib/clasificados/comida-local/createEmptyComidaLocalDraft";
 import { mapComidaLocalDraftToPreviewVm } from "@/app/lib/clasificados/comida-local/mapComidaLocalDraftToPreviewVm";
 import { resolveServiciosProfile } from "@/app/(site)/servicios/lib/resolveServiciosProfile";
@@ -466,6 +468,101 @@ async function main() {
     const vm = mapComidaLocalDraftToPreviewVm(draft, "es");
     assert.equal(vm.businessAddressLine, "");
     assert.equal(vm.sections.showBusinessAddress, false);
+  });
+
+  // =================================================================================
+  // Gate G23 — real Google address provider adapter (never touches the actual key value)
+  // =================================================================================
+
+  await check(
+    "Google provider config: never reads/logs the key value, only reports presence (this test env has no key configured)",
+    () => {
+      const config = getGoogleAddressProviderConfig();
+      assert.equal(typeof config.isConfigured, "boolean");
+      assert.ok(Array.isArray(config.missingEnv));
+      if (!config.isConfigured) {
+        assert.deepEqual(config.missingEnv, ["GOOGLE_MAPS_API_KEY"]);
+      }
+    }
+  );
+
+  await check(
+    "googleAddressProvider.suggest: fails closed to 'no_provider_configured' (never throws) when the key is absent — no network call is even attempted",
+    async () => {
+      const config = getGoogleAddressProviderConfig();
+      const result = await googleAddressProvider.suggest("123 Main St, San Jose, CA");
+      if (!config.isConfigured) {
+        assert.equal(result.ok, false);
+        if (!result.ok) assert.equal(result.reason, "no_provider_configured");
+      }
+    }
+  );
+
+  await check("googleAddressProvider.suggest: empty query fails closed without ever reaching the config/network check", async () => {
+    const result = await googleAddressProvider.suggest("   ");
+    assert.equal(result.ok, false);
+    if (!result.ok) assert.equal(result.reason, "empty_query");
+  });
+
+  await check(
+    "mapGoogleGeocodeResultToBusinessAddress: a real-shaped Google response maps to 'provider_suggested', never 'verified'",
+    () => {
+      const mapped = mapGoogleGeocodeResultToBusinessAddress({
+        place_id: "ChIJtest123",
+        formatted_address: "123 Main St, San Jose, CA 95112, USA",
+        geometry: { location: { lat: 37.3382, lng: -121.8863 } },
+        address_components: [
+          { long_name: "123", short_name: "123", types: ["street_number"] },
+          { long_name: "Main St", short_name: "Main St", types: ["route"] },
+          { long_name: "San Jose", short_name: "San Jose", types: ["locality"] },
+          { long_name: "California", short_name: "CA", types: ["administrative_area_level_1"] },
+          { long_name: "95112", short_name: "95112", types: ["postal_code"] },
+          { long_name: "United States", short_name: "US", types: ["country"] },
+        ],
+      });
+      assert.ok(mapped);
+      assert.equal(mapped!.verificationStatus, "provider_suggested");
+      assert.notEqual(mapped!.verificationStatus, "verified");
+      assert.equal(mapped!.manualEntry, false);
+      assert.equal(mapped!.provider, "google_geocoding");
+      assert.equal(mapped!.providerPlaceId, "ChIJtest123");
+      assert.equal(mapped!.street, "123 Main St");
+      assert.equal(mapped!.city, "San Jose");
+      assert.equal(mapped!.region, "CA");
+      assert.equal(mapped!.postalCode, "95112");
+      assert.equal(mapped!.latitude, 37.3382);
+      assert.equal(mapped!.longitude, -121.8863);
+    }
+  );
+
+  await check(
+    "mapGoogleGeocodeResultToBusinessAddress: a result with no street/city (e.g. a city-level-only geocode) fails closed to null rather than fabricating a partial address",
+    () => {
+      const mapped = mapGoogleGeocodeResultToBusinessAddress({
+        formatted_address: "San Jose, CA, USA",
+        address_components: [
+          { long_name: "San Jose", short_name: "San Jose", types: ["locality"] },
+          { long_name: "California", short_name: "CA", types: ["administrative_area_level_1"] },
+        ],
+      });
+      assert.equal(mapped, null);
+    }
+  );
+
+  await check("No source in the Google adapter ever assigns verificationStatus: 'verified' (source-level proof)", () => {
+    const stripComments = (src: string) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+    const adapterSrc = stripComments(
+      fs.readFileSync("app/lib/businessAddress/providers/googleAddressProvider.ts", "utf8")
+    );
+    assert.ok(
+      !adapterSrc.includes('"verified"'),
+      "the geocoding adapter must only ever produce 'provider_suggested', never claim 'verified' itself"
+    );
+    const uiSrc = stripComments(fs.readFileSync("app/components/forms/BusinessAddressVerifiedInput.tsx", "utf8"));
+    assert.ok(
+      !uiSrc.includes('"verified"'),
+      "the picker UI must only ever set 'user_confirmed' on selection, never claim 'verified'"
+    );
   });
 
   if (failures.length) {

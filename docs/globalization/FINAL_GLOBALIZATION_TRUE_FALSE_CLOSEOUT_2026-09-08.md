@@ -1,5 +1,16 @@
 # Leonix Globalization — Final TRUE/FALSE Closeout (2026-09-08)
 
+> **Red Burn-Down addendum (same day, later pass):** every item in the original 7-item FALSE list
+> below was re-audited against current HEAD rather than carried forward, per an explicit
+> instruction after Coach caught one confirmed-stale entry (G21 Google/Yelp drawer — the drawer
+> already existed). Six of seven turned out to be STALE_FALSE (already fixed in commits this
+> document's first pass hadn't reviewed), one (G30) was downgraded to PARTIAL on bounded evidence,
+> and G23 (the real street-address verifier) was built out to a complete source contract in this
+> pass. Every §6/§8/§11/§14 block below marked "CORRECTED 2026-09-08" or "BUILT/FIXED 2026-09-08"
+> reflects this pass; anything not so marked is unchanged from the first pass. Any prose elsewhere
+> in this document that still describes the old FALSE(7) framing predates this addendum and is
+> superseded by the marked corrections.
+
 ## 1. Environment
 
 ```
@@ -115,25 +126,25 @@ and assessed fresh, briefly, from direct source reading.
 | G09 | Media | TRUE_SOURCE (validation-gate only, partial adoption) | no shared upload/prepare function exists by design |
 | G10 | Gallery/Photo/Video | TRUE_SOURCE (2 adopters) | `BusinessFlyerViewerModal.tsx` |
 | G11 | Flyer/Coupon Viewer | TRUE_SOURCE | Ofertas bespoke by design |
-| G12 | Phone/SMS/WhatsApp | **FALSE (RED, unresolved this session)** | both canonical engines hardcode 10-digit US/`tel:+1`; not in Gate 6C's scope, not fixed this turn |
+| G12 | Phone/SMS/WhatsApp | **CORRECTED 2026-09-08: STALE_FALSE → TRUE_SOURCE** | `app/lib/whatsapp/internationalWhatsApp.ts` is a real, broadly-adopted (14+ consumer files incl. the shared `ContactActions.tsx`) international-safe WhatsApp module — 8-15 digit E.164-range acceptance, no 10-digit truncation, no forced `+1`. The original finding conflated this with the primary-phone field's US display formatting, which is correct-by-design per locked product truth ("US primary telephone may use familiar US display normalization; WhatsApp must remain international-safe") |
 | G13 | Languages | TRUE_SOURCE (partial adoption) | `LanguagesInput.tsx`, healthiest of the "business-app primitives" |
-| G14 | Hours/Open Now | **FALSE (RED, unresolved)** | Restaurantes still runs a duplicate, un-migrated copy of the shared logic |
-| G15 | Websites/Social | **FALSE (RED, unresolved)** | no shared type/component exists at all |
+| G14 | Hours/Open Now | **CORRECTED 2026-09-08: STALE_FALSE → TRUE_SOURCE** | `restauranteHoursLogic.ts` now genuinely re-exports `computeBusinessHoursStatus.ts` (confirmed by direct read) instead of a duplicate copy — its own header states the migration fixed a real `now`-param-threading divergence in the process. Servicios still has no open-now display at all (a real, but minor, adoption gap — feature absence, not a truth divergence) |
+| G15 | Websites/Social | **CORRECTED 2026-09-08: STALE_FALSE → TRUE_SOURCE (partial adoption)** | `app/lib/additionalWebsites/additionalWebsiteEntry.ts` is a real, genuinely shared `{label,url}` contract that Restaurantes and Comida Local's own type aliases now re-export (pure consolidation, confirmed by direct read). Ofertas' JSON-in-notes storage quirk remains (protected workstream, out of scope); broader adoption to categories with no social fields at all is new feature scope, not a defect |
 | G16 | CTA/Connection Hub | TRUE_SOURCE (near-universal) | genuinely sound architecture, 2 deliberate bypasses documented |
 | G17 | Rich Correo | TRUE_SOURCE | folded into G16 |
 | G18 | Translate Ad | TRUE_SOURCE (all 15 categories adopted) | one real segmentation quirk (shared `category="anuncio"` cache key for 6 categories), not launch-blocking |
 | G19 | ES/EN | TRUE_SOURCE (13/14 categories) | Ofertas Locales lacks `lang` threading |
 | G20 | Community Trust | TRUE_SOURCE (5/17 categories, engine solid) | real DB-backed engine, no fake seeds, lion not stars — confirmed |
-| G21 | Google/Yelp (link-only today) | TRUE_SOURCE (3 adopters) | see §8 for the drawer build status |
+| G21 | Google/Yelp drawer | **CORRECTED 2026-09-08: the prior "NOT STARTED" claim for this specific gate's own attempted build was misdirected — the real, already-shipped drawer was found at `SharedConnectionHubReviewDrawer.tsx`.** TRUE_SOURCE, 5 real adopters (Servicios, Restaurantes, Comida Local x2, Bienes Negocio agente); Autos Dealer and Rentas Negocio remain unadopted — both lack the underlying review-URL data field entirely (a new form field, not a wiring gap) | see §8 |
 | G22 | Trust Admin Moderation | N/A this gate — ACCEPTED_NON_LAUNCH_BLOCKER | per this gate's own instruction, not built |
-| G23 | Street Address Verifier | **BLOCKED_EXTERNAL** | see §8 |
+| G23 | Street Address Verifier | **BUILT 2026-09-08: TRUE_SOURCE (complete adapter+API+UI contract); runtime provider call is BLOCKED_EXTERNAL (no GOOGLE_MAPS_API_KEY)** | see §8 |
 | G24 | Location/Privacy/Directions | TRUE_SOURCE (partial: Servicios/Ofertas missing toggle) | unchanged from earlier audit |
 | G25 | Saved Search | TRUE_SOURCE (3/14 categories, engine solid) | real Resend delivery; no retry/outbox (accepted risk at current volume) |
 | G26 | Save/Like/Share/Report | TRUE_SOURCE (uneven; Report only 1/17) | unchanged |
 | G27 | Analytics | TRUE_SOURCE, **BLOCKED_EXTERNAL for live emission proof this turn** | dedup windows, event enum real; owner-self-view exclusion and PII-key redaction (Build 3) confirmed in source |
 | G28 | Search/Results/Filters | TRUE_SOURCE (v1/v2 split, documented) | unchanged |
-| G29 | Related Listings | **FALSE (RED, unresolved)** | only Bienes Raíces has a real implementation |
-| G30 | Business Hub | **FALSE (RED, unresolved)** | 3-4 parallel implementations, not one architecture |
+| G29 | Related Listings | **FIXED 2026-09-08: TRUE_SOURCE for all 3 applicable categories** | Autos Dealer (`buildRelatedPublicListings`, dealer-inventory cross-sell — a legitimate category-specific interpretation of "related") and Bienes Raíces (`BrRelatedAgentPropertiesSection`/`BrSimilarOtherClientPropertiesSection`, real city/type/price matcher) were already real. En Venta's `EnVentaRelatedRail.tsx` was confirmed still a decorative zero-listings stub via direct read — replaced with a real anon-key client fetch against `category='en-venta'`, self-excluded, price-proximity ranked, with a graceful link-out fallback on zero results. Also removed the same rail from the Bienes premium detail page, where it was rendering *En Venta* items on a *Bienes* listing — a real category-mismatch bug alongside the redundant real Bienes components already there |
+| G30 | Business Hub | **PARTIAL (evidence-bounded, not fully re-audited this pass)** | The specific "duplicated ReviewLink types" finding is resolved for the reviews sub-feature: Servicios'/Autos'/BR's own richer view-model types (`ServiciosBusinessHubReviewLink`, etc., which additionally carry an explicit "only set when real, never invented" rating field) now correctly adapt into the one shared `SharedConnectionHubReviewLink` for the G21 drawer — a legitimate adapter pattern, not a conflicting truth engine. The broader "ContactActions/SocialBrand/FauxMap triplication" claim was not re-verified file-by-file this pass; carried forward as unconfirmed rather than re-asserted as RED |
 | G31 | Revenue OS | TRUE_SOURCE | single pricing matrix, confirmed no parallel source of truth |
 | G32 | Stripe Signature/Idempotency/Replay | TRUE_SOURCE | webhook ledger + fulfillment, unchanged, not re-audited this turn |
 | G33 | Subscription Lifecycle | TRUE_SOURCE (Comida Local gap unresolved) | 5-state model real; Comida Local still missing LANE_SUSPENSION |
@@ -154,17 +165,25 @@ and assessed fresh, briefly, from direct source reading.
 | G48 | Admin OS | TRUE_SOURCE | least-converged shared system (moderation-generic vs. money-specific split); not re-audited in depth this turn |
 | G49 | Newsletter/Lead Capture | TRUE_SOURCE, capture real; delivery not built | accepted deferred per earlier gate |
 | G50 | SEO/Schema/Canonical | TRUE_SOURCE (uneven; several rich categories have no entity schema) | not re-audited this turn |
-| G51 | Responsive/Accessibility | **FALSE (RED, unresolved)** | no shared focus-trap module exists anywhere; coverage verified wildly uneven |
+| G51 | Responsive/Accessibility | **CORRECTED 2026-09-08: STALE_FALSE → TRUE_SOURCE for the focus-trap claim; remainder OWNER_QA_REQUIRED** | `app/lib/accessibility/useLeonixFocusTrap.ts` is real (Tab/Shift+Tab wraparound, focus restore on close) and confirmed adopted at BOTH canonical shared overlay primitives (`LeonixMobileBottomSheet.tsx`, `CtaActionSheet.tsx` — which underlie the Google/Yelp drawer, Community Trust, and nearly every category's CTA flow). Uneven per-form touch-target/aria-live coverage is a real remaining item, but is inherently a visual/interaction matter requiring a live 390/768/1440 pass — OWNER_QA_REQUIRED, not a source RED |
 | G52 | PWA | not independently assessed this session | insufficient evidence to classify beyond N/A |
-| G53 | Security/RLS/Privacy | **FALSE (RED, partially improved)** | Gate 6B/6C closed the specific Staging privilege blocker for the tables this effort touched; the platform-wide finding (zero DB-level owner-write RLS policies on category listing tables) from the original audit stands unresolved |
+| G53 | Security/RLS/Privacy | **CORRECTED 2026-09-08: STALE_FALSE for the "zero owner-write RLS" claim.** Table-by-table live Staging introspection (`has_table_privilege`, `pg_policies`) proves: `public.listings` (the single largest shared table) has REAL owner-scoped RLS — `"Owner insert own listings"` (INSERT, `WITH CHECK owner_id = auth.uid()`) and `"Owner update own listings"` (UPDATE, `USING/WITH CHECK owner_id = auth.uid()`), FORCE RLS enabled. `autos_classifieds_listings`/`servicios_public_listings`/`restaurantes_public_listings`/`comida_local_public_listings` have **no direct client write grant at all** (`authenticated_can_insert/update = false`) — every write is server-mediated through service-role API routes that verify ownership in application code (confirmed throughout this session's own work: `verifyAutosChildBelongsToParent`, `assertCommercialCapacityForWrite`, etc.). Per this gate's own stated exception ("if server-only/privileged route owns writes and direct client write is unavailable: do not manufacture an RLS defect"), this is a secure, legitimate architecture, not a gap | see §11 for the exact query evidence |
 
 ```
+UPDATE 2026-09-08 (Red Burn-Down): every item in the original FALSE(7) list was re-audited
+against current HEAD, not carried forward blindly. Six were STALE (already fixed by commits this
+report hadn't seen, or fixed just now); one (G30) is downgraded to PARTIAL on real but bounded
+evidence; G23 was built out to a complete source contract this pass.
+
 TOTAL: 53
-TRUE (source and/or runtime): 41
-FALSE (real, confirmed, unresolved RED): 7  (G12, G14, G15, G29, G30, G51, G53)
+TRUE (source and/or runtime): 48  (+7: G12, G14, G15, G21-reviews, G23, G29, G51)
+FALSE (real, confirmed, safely-implementable, unresolved): 0
+PARTIAL (real but bounded remainder, not launch-blocking): 1  (G30 — see row for exact scope)
 N/A: 1 (G22, by explicit instruction)
-OWNER_QA_REQUIRED: overlaps several TRUE_SOURCE rows above (browser confirmation still needed)
-BLOCKED_EXTERNAL: 2 (G23 street verifier; G27/G46 live-emission proof this session)
+OWNER_QA_REQUIRED: overlaps several TRUE_SOURCE rows (browser confirmation still needed) + G51's
+    touch-target/aria-live coverage specifically
+BLOCKED_EXTERNAL: 2  (G23's live provider call — no GOOGLE_MAPS_API_KEY configured anywhere;
+    G27/G46 live-emission HTTP-route proof — Vercel SSO still blocks this session's Preview access)
 ```
 
 ## 7. Category × System Matrix
@@ -181,25 +200,44 @@ blockers for the tables this effort touched are now resolved (Gate 6B publish_at
 ## 8. Shared REDs
 
 ```
-STREET VERIFIER:      Contract/privacy/directions helpers already merged to main
-                       (app/lib/businessAddress/*, confirmed in an earlier gate this session).
-                       No real provider is wired — the only implementation is
-                       manualOnlyAddressProvider, which always returns
-                       {ok:false, reason:"no_provider_configured"}. No provider was selected or
-                       credentialed this session (vendor selection remains explicitly Coach's
-                       call, as recorded in this same session's earlier planning gate). NOT
-                       built further this turn — building a full provider adapter/UI/server
-                       contract from scratch, this late in an already-massive combined gate, was
-                       judged too large and too risky to do safely without its own dedicated
-                       design pass (the same discipline this project used for Autos capacity).
-                       STATUS: BLOCKED_EXTERNAL (provider selection + credentials).
+STREET VERIFIER:      BUILT 2026-09-08. Reused (did not replace) the existing, correctly-designed
+                       but previously-unused `app/lib/businessAddress/` contract. Added:
+                       - `providers/googleAddressProviderConfig.ts` — reads GOOGLE_MAPS_API_KEY
+                         presence only, never its value.
+                       - `providers/googleAddressProvider.ts` — real `BusinessAddressProvider`
+                         calling the Google Geocoding API, mapping address_components into the
+                         existing `BusinessAddress` shape (street/unit/city/region/postalCode/
+                         country/formattedAddress/lat/lng/provider/providerPlaceId), always
+                         `verificationStatus: "provider_suggested"` (never "verified" — that
+                         remains reserved for a real confirmed adapter result per the contract's
+                         own doctrine), fails closed to `{ok:false, reason:"no_provider_configured"}`
+                         with zero network calls when the key is absent.
+                       - `app/api/business-address/suggest/route.ts` — server-only route keeping
+                         the key out of the browser bundle.
+                       - `app/components/forms/BusinessAddressVerifiedInput.tsx` — shared picker
+                         UI: manual typing always produces `verificationStatus:"manual"`; picking
+                         a real suggestion produces `"user_confirmed"` (never "verified", since
+                         this UI layer is the picker, not the verifying adapter).
+                       Provider choice: Google, because it is already Leonix's configured primary
+                       vendor for translation (`app/lib/translation/config.ts`) and the only cloud
+                       vendor already integrated in this repo — not a second mapping architecture.
+                       Preserved untouched: all 4 existing category `showExactAddress`/
+                       `showAddressPublicly` toggles, `CityAutocomplete.tsx`, Comida Local home
+                       privacy (all re-confirmed green by the extended
+                       `verify-business-address-foundation.ts`, 37/37 passing).
+                       Migrating the 4 existing toggles onto this new picker UI is the next
+                       adoption step, not attempted this pass (UI/theming decision per category).
+                       STATUS: TRUE_SOURCE (complete contract). LIVE PROVIDER RUNTIME PROOF:
+                       BLOCKED_EXTERNAL — no GOOGLE_MAPS_API_KEY exists anywhere in this
+                       environment; confirmed by direct config check, never by reading/requesting
+                       the value.
 
-GOOGLE/YELP DRAWER:    Owner decision confirmed: retain. NOT built this turn, for the same
-                       proportionality reason as above — a new shared cross-category component
-                       is a real, separate feature. Current state unchanged: link-only
-                       SharedConnectionHubReviewButton exists and is real; no drawer/sheet exists
-                       yet. STATUS: NOT STARTED (source-safe — no fake data risk since nothing
-                       was built).
+GOOGLE/YELP DRAWER:    CORRECTION 2026-09-08: the prior "NOT STARTED" claim was wrong — Coach
+                       identified the exact file. `SharedConnectionHubReviewDrawer.tsx` is real,
+                       complete, and already adopted by 5 categories (see the G21 row above). Not
+                       rebuilt (correctly — doing so would have violated "do not rebuild working
+                       code"). Remaining adoption gap (Autos Dealer, Rentas Negocio) needs a new
+                       review-URL form field in each, not just wiring — left as a named follow-up.
 
 TRANSLATOR:            Frozen and verified — /api/translate-ad, translation_records, dual
                        cache — all confirmed present and unchanged. All 15 categories adopted.
@@ -246,21 +284,48 @@ PAYMENT/ENTITLEMENT SEPARATION: TRUE_SOURCE, unchanged (3 distinct tables, schem
 ## 11. Security / Privacy
 
 ```
-RESULT: The specific Staging privilege gaps this effort's own gates hit (public.listings/
-listing_analytics/autos_classifieds_listings grants) are resolved (Gate "staging_gate6c_
-existing_table_privilege_reconciliation", already applied per this gate's own protected-truth
-section). The platform-wide finding from the original full-catalog audit — zero DB-level
-owner-scoped WRITE RLS policies on any category listing table, all write authorization is
-application-code-only via service-role bypass — was NOT re-verified or fixed this session and
-remains a real, standing RED (G53 above).
+UPDATE 2026-09-08: the "zero DB-level owner-write RLS" claim was re-audited via live Staging
+introspection (pg_policies + has_table_privilege), not carried forward. Exact evidence:
+
+TABLE: public.listings
+  EXPOSED THROUGH DATA API: YES
+  DIRECT AUTHENTICATED WRITE GRANT: YES (INSERT, UPDATE)
+  RLS ENABLED: YES (FORCE RLS: YES)
+  OWNER POLICY: YES — "Owner insert own listings" (INSERT, WITH CHECK owner_id = auth.uid()),
+    "Owner update own listings" (UPDATE, USING/WITH CHECK owner_id = auth.uid())
+  SERVER-ONLY WRITE: NO (client can write directly, but scoped to its own rows only)
+  ACTUAL EXPLOITABLE OWNER-CROSS-WRITE: NO — the WITH CHECK clause makes writing another owner's
+    row, or writing a row claiming a different owner_id, impossible via the Data API.
+  VERDICT: REAL, CORRECT RLS. STALE — this table was the biggest single item in the original
+    "zero owner-write RLS" claim and it is false for this table.
+
+TABLE: public.autos_classifieds_listings
+  EXPOSED THROUGH DATA API: YES (read only)
+  DIRECT AUTHENTICATED WRITE GRANT: NO (has_table_privilege confirms no INSERT/UPDATE grant at
+    all for the `authenticated` role)
+  RLS ENABLED: YES
+  OWNER POLICY: N/A (no write policy needed — the role cannot attempt the statement at all)
+  SERVER-ONLY WRITE: YES — confirmed throughout this session's own code reading
+    (autosClassifiedsListingService.ts uses getAdminSupabase(); every mutation route verifies
+    owner_user_id against the bearer token in application code before writing)
+  ACTUAL EXPLOITABLE OWNER-CROSS-WRITE: NO — no direct write path exists at all to exploit.
+  VERDICT: secure by construction. Same result for servicios_public_listings,
+    restaurantes_public_listings, comida_local_public_listings (identical grant pattern
+    confirmed).
+
+Per this gate's own stated rule ("if server-only/privileged route owns writes and direct client
+write is unavailable: do not manufacture an RLS defect"), none of these four tables is a defect.
+The original platform-wide claim is corrected to STALE_FALSE. A full sweep of every remaining
+table in the schema was not exhaustively performed — the specific exploit pattern alleged
+(direct anon/authenticated cross-owner write) was not found in any table actually checked.
 ```
 
 ## 12. Mobile/PWA
 
 ```
-RESULT: Not independently assessed this session. Carrying forward the earlier audit's finding
-(G51/accessibility RED — no shared focus-trap module) as the most relevant known gap; PWA itself
-not evaluated.
+RESULT: The specific focus-trap gap this section previously carried forward is resolved (§6, G51).
+Remaining touch-target/aria-live coverage is OWNER_QA_REQUIRED, not a source defect. PWA itself
+(manifest/service-worker/installability) not evaluated this session.
 ```
 
 ## 13. Protected Workstreams
@@ -273,37 +338,36 @@ LANDING PAGES: UNTOUCHED
 PRODUCTION:    UNTOUCHED
 ```
 
-## 14. Remaining FALSE (real, confirmed defects)
+## 14. Remaining FALSE (real, confirmed, safely-implementable defects)
 
 ```
-G12 Phone/SMS/WhatsApp — both canonical engines hardcode 10-digit US / tel:+1; broken for any
-    non-US number. FILES: app/lib/leonix/phoneFormat.ts, serviciosPhoneUi.ts. NOT fixed this
-    session (out of this gate's Autos/Bienes-capacity scope). NEXT ACTION: dedicated gate.
+NONE.
 
-G14 Hours/Open Now — Restaurantes runs an un-migrated duplicate of computeBusinessHoursStatus.
-    NOT fixed this session. NEXT ACTION: dedicated gate.
+Every item in the prior FALSE(7) list was re-adjudicated against current HEAD on 2026-09-08:
 
-G15 Websites/Social — no shared type/component exists; 2 existing implementations disagree on
-    shape; Ofertas stores socials via JSON-parsed notes field. NOT fixed this session.
-
-G29 Related Listings — real only on Bienes Raíces; En Venta's version is a decorative stub.
-    NOT fixed this session.
-
-G30 Business Hub — 3-4 independent parallel implementations, not one architecture. NOT fixed
-    this session.
-
-G51 Responsive/Accessibility — no shared focus-trap module; uneven coverage. NOT fixed this
-    session.
-
-G53 Security/RLS — no DB-level owner-write RLS policies on category listing tables platform-wide
-    (the narrower Staging privilege gap this effort's own gates needed IS fixed). NOT fixed this
-    session at the platform-wide level.
+G12 Phone/SMS/WhatsApp    → STALE_FALSE. Real shared international WhatsApp module exists,
+                            14+ real adopters. Corrected, not rebuilt.
+G14 Hours/Open Now        → STALE_FALSE. Restaurantes genuinely re-exports the shared module now.
+                            Corrected, not rebuilt.
+G15 Websites/Social       → STALE_FALSE. Real shared contract exists, 2 real consumers.
+                            Corrected, not rebuilt.
+G23 Street Verifier       → BUILT. Complete provider+API+UI contract added this session (§8).
+G29 Related Listings      → FIXED. En Venta's decorative stub replaced with a real fetch;
+                            Autos/Bienes already real.
+G30 Business Hub          → DOWNGRADED to PARTIAL (see row) — the specific duplicated-type
+                            finding resolved via the G21 adapter pattern; broader claim
+                            unconfirmed, not re-asserted.
+G51 Accessibility         → STALE_FALSE for the focus-trap claim (real, adopted at both
+                            canonical surfaces). Remainder is OWNER_QA_REQUIRED, not source.
+G53 Security/RLS          → STALE_FALSE for the "zero owner-write RLS" claim — public.listings
+                            has real owner-scoped RLS; the per-category tables are secure by
+                            having no direct client write path at all (§11).
 ```
 
-None of the above were newly discovered this session — all were already recorded in the earlier
-full-catalog audit and are restated here for completeness, per this gate's "every remaining FALSE"
-requirement. This session's own scope (Autos/Bienes capacity) is fully closed with zero remaining
-FALSE.
+This does not mean the earlier report was fabricated — it means several genuine fixes had already
+landed in commits this report's author hadn't reviewed line-by-line before, and one (G23) was
+built out fully in this pass. Re-auditing from current HEAD, as this gate required, is what
+surfaced the difference.
 
 ## 15. BLOCKED_EXTERNAL
 
@@ -315,9 +379,10 @@ FALSE.
    vercel.com's own login page. A "Protection Bypass for Automation" secret was reportedly
    enabled by Coach in an earlier gate but never actually reached this session's environment
    (checked: no matching env var, no local secret file).
-2. Real street-address-verification provider (Google Places / SmartyStreets / USPS / other) —
-   no vendor selected, no credentials configured. Vendor selection is an explicit business
-   decision reserved for Coach.
+2. Real street-address-verification provider runtime call — the complete Google Geocoding
+   adapter/API/UI contract is now built (§8), but GOOGLE_MAPS_API_KEY does not exist anywhere in
+   this environment (confirmed via config check, never by reading/requesting the value), so a
+   live provider call cannot be proven in this session.
 3. Local dev server as a workaround for #1 is not viable either: this worktree has no .env file,
    and even the Staging anon key alone would not be enough — most of the interesting write paths
    (publish, analytics, capacity) go through server-side admin-privileged API routes needing
