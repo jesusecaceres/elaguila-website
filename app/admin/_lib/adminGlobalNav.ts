@@ -55,6 +55,12 @@ export function isAdminGlobalNavItemActive(pathname: string, item: AdminGlobalNa
 export const ADMIN_GLOBAL_NAV: AdminGlobalNavItem[] = [
   { href: "/admin", labelKey: "nav.dashboard", icon: "◆", badgeFrom: "tienda", group: "command" },
   {
+    href: "/admin/businesses",
+    labelKey: "nav.businesses",
+    icon: "🏢",
+    group: "people",
+  },
+  {
     href: "/admin/leads/inbox",
     labelKey: "nav.launchLeads",
     icon: "📬",

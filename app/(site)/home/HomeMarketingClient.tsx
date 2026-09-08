@@ -8,8 +8,9 @@ import type { HomeMarketingResolved } from "@/app/lib/siteSectionContent/homeMar
 import { launchUiCopyLang, normalizeLang, replaceLangInHref } from "@/app/lib/language";
 import { AdvertiseDropdown } from "@/app/components/AdvertiseDropdown";
 import { HomeDestacadosSection } from "./HomeDestacadosSection";
+import { HomeBusinessToolsSection } from "./HomeBusinessToolsSection";
 import { getPopulatedFeaturedBusinesses } from "./homeFeaturedBusinesses";
-import { HOME_PAGE_COPY, type HomePageLang } from "./homePageCopy";
+import { HOME_PAGE_COPY } from "./homePageCopy";
 
 export function HomeMarketingClient({ content }: { content: HomeMarketingResolved }) {
   return (
@@ -170,6 +171,8 @@ function HomeMarketingInner({ content }: { content: HomeMarketingResolved }) {
       </section>
 
       <HomeDestacadosSection lang={lang} routeLang={routeLang} businesses={featuredBusinesses} />
+
+      <HomeBusinessToolsSection lang={lang} routeLang={routeLang} />
 
       {/* Ecosystem */}
       <section className="border-t border-[#D6C7AD]/70 bg-[#FFFDF7]/50 py-12 sm:py-14" aria-labelledby="home-ecosystem-title">
