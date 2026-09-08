@@ -7,6 +7,7 @@ import { resolvePublicarGatewayDestination } from "@/app/(site)/publicar/publica
 import RecentlyViewedSection from "./components/RecentlyViewedSection";
 import { ClasificadosFeaturedOfertasModule } from "./_components/ClasificadosFeaturedOfertasModule";
 import { ClasificadosHubCategoryCard } from "./_components/ClasificadosHubCategoryCard";
+import { CLASIFICADOS_HUB_CARD_IMAGE } from "./_lib/clasificadosHubCardImages";
 import type { HubCategoryKey, Lang } from "./config/clasificadosHub";
 import {
   getPublicCategoryCardCopy,
@@ -159,6 +160,7 @@ function ClasificadosPageInner() {
                     description={copy.desc}
                     publishLabel={copy.post}
                     priority={priority}
+                    imageSrc={CLASIFICADOS_HUB_CARD_IMAGE[k]}
                   />
                 </li>
               );
@@ -173,6 +175,7 @@ function ClasificadosPageInner() {
                 publishLabel={dealerCopy.post}
                 icon={<DealerMark />}
                 accent="default"
+                imageSrc={CLASIFICADOS_HUB_CARD_IMAGE["dealers-de-autos"]}
               />
             </li>
           </ul>

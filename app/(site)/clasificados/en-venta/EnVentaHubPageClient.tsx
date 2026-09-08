@@ -10,12 +10,13 @@ import {
   LeonixCategoryPageShell,
   LeonixCategoryHeroGateway,
   LeonixCategoryCta,
-  LeonixCategoryDiscoveryGrid,
+  LeonixCategoryImageDiscoveryGrid,
   LeonixCategoryShortcutSection,
   LeonixCategoryVisibilityStrip,
   type Lang as V2Lang,
 } from "@/app/(site)/clasificados/components/categoryStandardV2";
 import { EnVentaLandingSearchPanel } from "./shared/components/EnVentaLandingSearchPanel";
+import { EN_VENTA_CHILD_CATEGORY_IMAGE } from "./enVentaChildCategoryImages";
 import {
   LEONIX_LANDING_SECTION,
   LEONIX_LANDING_SECTION_PAD,
@@ -89,11 +90,14 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
 
   const discoveryItems = DISCOVERY_DEPT_KEYS.map((key) => {
     const dept = EN_VENTA_DEPARTMENTS.find((d) => d.key === key)!;
+    const label = dept.label[lang];
     return {
       id: key,
-      label: dept.label[lang],
+      label,
       hint: dept.browseHint[lang],
       href: buildEnVentaResultsUrl(routeLang as Lang, { evDept: key }),
+      imageSrc: EN_VENTA_CHILD_CATEGORY_IMAGE[key],
+      imageAlt: label,
       icon: DISCOVERY_ICONS[key],
     };
   });
@@ -140,7 +144,7 @@ export function EnVentaHubPageClient({ hub }: { hub: EnVentaHubLandingResolved }
         />
 
         <main className="space-y-6 overflow-x-hidden sm:space-y-8">
-          <LeonixCategoryDiscoveryGrid
+          <LeonixCategoryImageDiscoveryGrid
             lang={lang as V2Lang}
             surface="landing"
             heading={t.categoriesTitle}

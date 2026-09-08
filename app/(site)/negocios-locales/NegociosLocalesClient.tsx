@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { resolveRouteLang, type SupportedLang } from "@/app/lib/language";
 import { NegociosLocalesBusinessCard } from "./_components/NegociosLocalesBusinessCard";
 import { NegociosLocalesFeaturedOfertasModule } from "./_components/NegociosLocalesFeaturedOfertasModule";
+import { NEGOCIOS_LANE_CARD_IMAGE } from "./_lib/negociosLocalesLaneImages";
 import {
   buildBusinessAdvertiseEntryHref,
   buildNegociosAdvertiseHref,
@@ -14,6 +15,9 @@ import {
   NEGOCIOS_SECTOR_GRID_ORDER,
   type BusinessLaneKey,
 } from "./_lib/negociosLocalesLanes";
+
+/** `NEGOCIOS_SECTOR_GRID_ORDER` structurally excludes "ofertas-locales" — see its own comment. */
+type GridLaneKey = Exclude<BusinessLaneKey, "ofertas-locales">;
 
 type PageLang = "es" | "en";
 
@@ -280,6 +284,7 @@ function NegociosLocalesInner() {
                     priority={priority}
                     accent={accent}
                     icon={<LaneMark lane={lane} />}
+                    imageSrc={NEGOCIOS_LANE_CARD_IMAGE[lane as GridLaneKey]}
                   />
                 </li>
               );

@@ -120,7 +120,7 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
   {
     kind: "business",
     id: "biz-1",
-    imageSrc: "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?auto=format&fit=crop&w=900&q=80",
+    imageSrc: "/child-categories/viajes/editorial-canals.jpg",
     imageAlt: "Venecia canales",
     businessName: "Viajes Del Valle",
     offerTitle: "Europa express: Roma + Venecia",
@@ -168,7 +168,7 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
   {
     kind: "business",
     id: "biz-2",
-    imageSrc: "https://images.unsplash.com/photo-1592405204553-2e719cb02c48?auto=format&fit=crop&w=900&q=80",
+    imageSrc: "/child-categories/viajes/cr.jpg",
     imageAlt: "Selva tropical",
     businessName: "Pura Vida Escapes",
     offerTitle: "Arenal + Manuel Antonio en familia",
@@ -216,7 +216,7 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
   {
     kind: "business",
     id: "biz-3",
-    imageSrc: "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=900&q=80",
+    imageSrc: "/child-categories/viajes/lake-mountains.jpg",
     imageAlt: "Lago y montañas",
     businessName: "Bay Travel Co.",
     offerTitle: "Lago Tahoe · fin de semana",

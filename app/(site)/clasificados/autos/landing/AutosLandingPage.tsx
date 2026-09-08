@@ -26,11 +26,12 @@ import {
   LeonixCategoryHeroGateway,
   LeonixCategorySearchCanvas,
   LeonixCategoryPartnerSection,
-  LeonixCategoryDiscoveryGrid,
+  LeonixCategoryImageDiscoveryGrid,
   LeonixCategoryShortcutSection,
   LeonixCategoryVisibilityStrip,
   type Lang as V2Lang,
 } from "@/app/(site)/clasificados/components/categoryStandardV2";
+import { AUTOS_CHILD_CATEGORY_IMAGE } from "./autosChildCategoryImages";
 import type { AutosPublicMarket } from "@/app/lib/clasificados/autos/autosPublicMarket";
 import { AUTOS_DEFAULT_COUNTRY } from "@/app/lib/clasificados/autos/autosLocationContract";
 import {
@@ -207,123 +208,129 @@ export function AutosLandingPage({ market = "private" }: { market?: AutosPublicM
     window.location.href = searchHref;
   };
 
-  const discoveryItems = isPrivateMarket
-    ? [
-        {
-          id: "sedan",
-          label: lang === "es" ? "Sedán" : "Sedan",
-          hint: lang === "es" ? "Diario y práctico" : "Daily and practical",
-          href: landingHref({ bodyStyle: "Sedan", sellerType: "private" }),
-          icon: FiSettings,
-        },
-        {
-          id: "suv",
-          label: "SUV",
-          hint: lang === "es" ? "Espacio familiar" : "Family space",
-          href: landingHref({ bodyStyle: "SUV", sellerType: "private" }),
-          icon: FiShield,
-        },
-        {
-          id: "truck",
-          label: lang === "es" ? "Camioneta" : "Truck",
-          hint: lang === "es" ? "Trabajo y carga" : "Work and cargo",
-          href: landingHref({ bodyStyle: "Truck", sellerType: "private" }),
-          icon: FiTruck,
-        },
-        {
-          id: "low-mileage",
-          label: lang === "es" ? "Bajo millaje" : "Low mileage",
-          hint: lang === "es" ? "Menos uso" : "Less use",
-          href: landingHref({ mileageMax: "35000", sellerType: "private" }),
-          icon: FiAward,
-        },
-        {
-          id: "under-10k",
-          label: lang === "es" ? "Menos de $10k" : "Under $10k",
-          hint: lang === "es" ? "Opciones económicas" : "Budget options",
-          href: landingHref({ priceMax: "10000", sellerType: "private" }),
-          icon: FiDollarSign,
-        },
-        {
-          id: "hybrid-electric",
-          label: lang === "es" ? "Híbrido / eléctrico" : "Hybrid / electric",
-          hint: lang === "es" ? "Ahorro y tecnología" : "Savings and tech",
-          href: landingHref({ sellerType: "private" }, lang === "es" ? "híbrido eléctrico" : "hybrid electric"),
-          icon: FiBatteryCharging,
-        },
-        {
-          id: "private",
-          label: lang === "es" ? "Privado" : "Private",
-          hint: lang === "es" ? "Vendedores locales" : "Local sellers",
-          href: landingHref({ sellerType: "private" }),
-          icon: FiUser,
-        },
-        {
-          id: "newest",
-          label: lang === "es" ? "Recién publicado" : "Newly posted",
-          hint: lang === "es" ? "Nuevas oportunidades" : "New opportunities",
-          href: landingHref({ sellerType: "private" }),
-          icon: FiClock,
-        },
-      ]
-    : [
-        {
-          id: "dealers",
-          label: "Dealers",
-          hint: lang === "es" ? "Inventario de negocio" : "Business inventory",
-          href: landingHref({ sellerType: "dealer" }),
-          icon: FiBriefcase,
-        },
-        {
-          id: "used",
-          label: lang === "es" ? "Usados" : "Used",
-          hint: lang === "es" ? "Oportunidades disponibles" : "Available opportunities",
-          href: landingHref({ condition: "used", sellerType: "dealer" }),
-          icon: FiStar,
-        },
-        {
-          id: "new",
-          label: lang === "es" ? "Nuevos" : "New",
-          hint: lang === "es" ? "Inventario reciente" : "Recent inventory",
-          href: landingHref({ condition: "new", sellerType: "dealer" }),
-          icon: FiZap,
-        },
-        {
-          id: "suv",
-          label: "SUV",
-          hint: lang === "es" ? "Espacio familiar" : "Family space",
-          href: landingHref({ bodyStyle: "SUV", sellerType: "dealer" }),
-          icon: FiShield,
-        },
-        {
-          id: "truck",
-          label: lang === "es" ? "Camionetas" : "Trucks",
-          hint: lang === "es" ? "Trabajo y carga" : "Work and cargo",
-          href: landingHref({ bodyStyle: "Truck", sellerType: "dealer" }),
-          icon: FiTruck,
-        },
-        {
-          id: "low-mileage",
-          label: lang === "es" ? "Bajo millaje" : "Low mileage",
-          hint: lang === "es" ? "Menos uso" : "Less use",
-          href: landingHref({ mileageMax: "35000", sellerType: "dealer" }),
-          icon: FiAward,
-        },
-        {
-          id: "financing",
-          label: lang === "es" ? "Financiamiento" : "Financing",
-          hint: lang === "es" ? "Opciones disponibles" : "Available options",
-          href: landingHref({ sellerType: "dealer" }, lang === "es" ? "financiamiento" : "financing"),
-          icon: FiDollarSign,
-        },
-        {
-          id: "bay-area",
-          label: lang === "es" ? "San José / Bay Area" : "San Jose / Bay Area",
-          hint: lang === "es" ? "Ciudad inicial" : "Starter city",
-          href: landingHref({ city: "San Jose", sellerType: "dealer" }),
-          icon: FiMapPin,
-        },
-      ];
+  const discoveryItems = (
+    isPrivateMarket
+      ? [
+          {
+            id: "sedan",
+            label: lang === "es" ? "Sedán" : "Sedan",
+            hint: lang === "es" ? "Diario y práctico" : "Daily and practical",
+            href: landingHref({ bodyStyle: "Sedan", sellerType: "private" }),
+            icon: FiSettings,
+          },
+          {
+            id: "suv",
+            label: "SUV",
+            hint: lang === "es" ? "Espacio familiar" : "Family space",
+            href: landingHref({ bodyStyle: "SUV", sellerType: "private" }),
+            icon: FiShield,
+          },
+          {
+            id: "truck",
+            label: lang === "es" ? "Camioneta" : "Truck",
+            hint: lang === "es" ? "Trabajo y carga" : "Work and cargo",
+            href: landingHref({ bodyStyle: "Truck", sellerType: "private" }),
+            icon: FiTruck,
+          },
+          {
+            id: "low-mileage",
+            label: lang === "es" ? "Bajo millaje" : "Low mileage",
+            hint: lang === "es" ? "Menos uso" : "Less use",
+            href: landingHref({ mileageMax: "35000", sellerType: "private" }),
+            icon: FiAward,
+          },
+          {
+            id: "under-10k",
+            label: lang === "es" ? "Menos de $10k" : "Under $10k",
+            hint: lang === "es" ? "Opciones económicas" : "Budget options",
+            href: landingHref({ priceMax: "10000", sellerType: "private" }),
+            icon: FiDollarSign,
+          },
+          {
+            id: "hybrid-electric",
+            label: lang === "es" ? "Híbrido / eléctrico" : "Hybrid / electric",
+            hint: lang === "es" ? "Ahorro y tecnología" : "Savings and tech",
+            href: landingHref({ sellerType: "private" }, lang === "es" ? "híbrido eléctrico" : "hybrid electric"),
+            icon: FiBatteryCharging,
+          },
+          {
+            id: "private",
+            label: lang === "es" ? "Privado" : "Private",
+            hint: lang === "es" ? "Vendedores locales" : "Local sellers",
+            href: landingHref({ sellerType: "private" }),
+            icon: FiUser,
+          },
+          {
+            id: "newest",
+            label: lang === "es" ? "Recién publicado" : "Newly posted",
+            hint: lang === "es" ? "Nuevas oportunidades" : "New opportunities",
+            href: landingHref({ sellerType: "private" }),
+            icon: FiClock,
+          },
+        ]
+      : [
+          {
+            id: "dealers",
+            label: "Dealers",
+            hint: lang === "es" ? "Inventario de negocio" : "Business inventory",
+            href: landingHref({ sellerType: "dealer" }),
+            icon: FiBriefcase,
+          },
+          {
+            id: "used",
+            label: lang === "es" ? "Usados" : "Used",
+            hint: lang === "es" ? "Oportunidades disponibles" : "Available opportunities",
+            href: landingHref({ condition: "used", sellerType: "dealer" }),
+            icon: FiStar,
+          },
+          {
+            id: "new",
+            label: lang === "es" ? "Nuevos" : "New",
+            hint: lang === "es" ? "Inventario reciente" : "Recent inventory",
+            href: landingHref({ condition: "new", sellerType: "dealer" }),
+            icon: FiZap,
+          },
+          {
+            id: "suv",
+            label: "SUV",
+            hint: lang === "es" ? "Espacio familiar" : "Family space",
+            href: landingHref({ bodyStyle: "SUV", sellerType: "dealer" }),
+            icon: FiShield,
+          },
+          {
+            id: "truck",
+            label: lang === "es" ? "Camionetas" : "Trucks",
+            hint: lang === "es" ? "Trabajo y carga" : "Work and cargo",
+            href: landingHref({ bodyStyle: "Truck", sellerType: "dealer" }),
+            icon: FiTruck,
+          },
+          {
+            id: "low-mileage",
+            label: lang === "es" ? "Bajo millaje" : "Low mileage",
+            hint: lang === "es" ? "Menos uso" : "Less use",
+            href: landingHref({ mileageMax: "35000", sellerType: "dealer" }),
+            icon: FiAward,
+          },
+          {
+            id: "financing",
+            label: lang === "es" ? "Financiamiento" : "Financing",
+            hint: lang === "es" ? "Opciones disponibles" : "Available options",
+            href: landingHref({ sellerType: "dealer" }, lang === "es" ? "financiamiento" : "financing"),
+            icon: FiDollarSign,
+          },
+          {
+            id: "bay-area",
+            label: lang === "es" ? "San José / Bay Area" : "San Jose / Bay Area",
+            hint: lang === "es" ? "Ciudad inicial" : "Starter city",
+            href: landingHref({ city: "San Jose", sellerType: "dealer" }),
+            icon: FiMapPin,
+          },
+        ]
+  ).map((item) => ({
+    ...item,
+    imageSrc: AUTOS_CHILD_CATEGORY_IMAGE[item.id as keyof typeof AUTOS_CHILD_CATEGORY_IMAGE],
+    imageAlt: item.label,
+  }));
 
   const practicalChips = isPrivateMarket
     ? [
@@ -384,7 +391,7 @@ export function AutosLandingPage({ market = "private" }: { market?: AutosPublicM
           />
 
           <main className="space-y-6 overflow-x-hidden sm:space-y-8">
-            <LeonixCategoryDiscoveryGrid
+            <LeonixCategoryImageDiscoveryGrid
               lang={lang as V2Lang}
               surface="landing"
               heading={copy.discoveryTitle}

@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { navCopyLang, normalizeLang, replaceLangInHref } from "@/app/lib/language";
-import { FiBriefcase, FiCheckCircle, FiClock, FiGlobe, FiHome, FiMapPin, FiMessageCircle, FiShield, FiTool, FiTruck } from "react-icons/fi";
+import { FiBriefcase, FiCheckCircle, FiClock, FiGlobe, FiHeart, FiHome, FiMapPin, FiMessageCircle, FiShield, FiSun, FiTool, FiTruck, FiZap } from "react-icons/fi";
 import {
   LeonixCategoryPageShell,
   LeonixCategoryHeroGateway,
   LeonixCategoryPartnerSection,
-  LeonixCategoryDiscoveryGrid,
+  LeonixCategoryImageDiscoveryGrid,
   LeonixCategoryShortcutSection,
   LeonixCategoryVisibilityStrip,
 } from "@/app/(site)/clasificados/components/categoryStandardV2";
@@ -16,6 +16,7 @@ import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/ca
 import { SERVICIOS_LANDING_EXPLORE_CATEGORIES } from "./serviciosLandingSampleData";
 import { ServiciosLandingSearchPanel } from "./ServiciosLandingSearchPanel";
 import { buildServiciosResultsBrowseHref } from "../lib/serviciosBrowseParams";
+import { SERVICIOS_CHILD_CATEGORY_IMAGE } from "./serviciosChildCategoryImages";
 
 type Lang = "es" | "en";
 
@@ -96,20 +97,35 @@ export function ServiciosLandingPage() {
     />
   );
 
-  const categoryCards = SERVICIOS_LANDING_EXPLORE_CATEGORIES.slice(0, 8).map((cat, index) => {
+  const categoryIcons: Record<string, typeof FiBriefcase> = {
+    abogado: FiBriefcase,
+    contador: FiCheckCircle,
+    dentista: FiHeart,
+    limpieza: FiHome,
+    plomeria: FiTool,
+    electricista: FiZap,
+    jardineria: FiSun,
+    "reparacion-auto": FiTruck,
+    "belleza-barberia": FiShield,
+    tutoria: FiMapPin,
+  };
+
+  const categoryCards = SERVICIOS_LANDING_EXPLORE_CATEGORIES.slice(0, 8).map((cat) => {
     const qRaw = (lang === "en" ? cat.resultsQueryEn : cat.resultsQueryEs)?.trim() ?? "";
     const href = cat.resultsGroup
       ? appendResultsParams(resultsHref, { group: cat.resultsGroup })
       : qRaw
         ? appendResultsParams(resultsHref, { q: qRaw })
         : buildServiciosResultsBrowseHref(routeLang as Lang, {}, {});
-    const icons = [FiBriefcase, FiCheckCircle, FiShield, FiHome, FiTool, FiClock, FiMapPin, FiTruck];
+    const label = lang === "en" ? cat.labelEn : cat.labelEs;
     return {
       id: cat.id,
-      label: lang === "en" ? cat.labelEn : cat.labelEs,
+      label,
       hint: lang === "en" ? "Open matching results" : "Abrir resultados",
       href,
-      icon: icons[index] ?? FiBriefcase,
+      imageSrc: SERVICIOS_CHILD_CATEGORY_IMAGE[cat.id] ?? SERVICIOS_CHILD_CATEGORY_IMAGE.abogado,
+      imageAlt: label,
+      icon: categoryIcons[cat.id] ?? FiBriefcase,
     };
   });
 
@@ -143,7 +159,7 @@ export function ServiciosLandingPage() {
           secondaryCta={{ label: copy.partnerCta, href: visibilityHref }}
         />
 
-        <LeonixCategoryDiscoveryGrid
+        <LeonixCategoryImageDiscoveryGrid
           lang={lang}
           surface="landing"
           heading={copy.giroTitle}
