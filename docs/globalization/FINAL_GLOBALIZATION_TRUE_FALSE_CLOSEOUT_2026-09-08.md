@@ -144,7 +144,7 @@ and assessed fresh, briefly, from direct source reading.
 | G27 | Analytics | TRUE_SOURCE, **BLOCKED_EXTERNAL for live emission proof this turn** | dedup windows, event enum real; owner-self-view exclusion and PII-key redaction (Build 3) confirmed in source |
 | G28 | Search/Results/Filters | TRUE_SOURCE (v1/v2 split, documented) | unchanged |
 | G29 | Related Listings | **FIXED 2026-09-08: TRUE_SOURCE for all 3 applicable categories** | Autos Dealer (`buildRelatedPublicListings`, dealer-inventory cross-sell — a legitimate category-specific interpretation of "related") and Bienes Raíces (`BrRelatedAgentPropertiesSection`/`BrSimilarOtherClientPropertiesSection`, real city/type/price matcher) were already real. En Venta's `EnVentaRelatedRail.tsx` was confirmed still a decorative zero-listings stub via direct read — replaced with a real anon-key client fetch against `category='en-venta'`, self-excluded, price-proximity ranked, with a graceful link-out fallback on zero results. Also removed the same rail from the Bienes premium detail page, where it was rendering *En Venta* items on a *Bienes* listing — a real category-mismatch bug alongside the redundant real Bienes components already there |
-| G30 | Business Hub | **PARTIAL (evidence-bounded, not fully re-audited this pass)** | The specific "duplicated ReviewLink types" finding is resolved for the reviews sub-feature: Servicios'/Autos'/BR's own richer view-model types (`ServiciosBusinessHubReviewLink`, etc., which additionally carry an explicit "only set when real, never invented" rating field) now correctly adapt into the one shared `SharedConnectionHubReviewLink` for the G21 drawer — a legitimate adapter pattern, not a conflicting truth engine. The broader "ContactActions/SocialBrand/FauxMap triplication" claim was not re-verified file-by-file this pass; carried forward as unconfirmed rather than re-asserted as RED |
+| G30 | Business Hub | **RESOLVED 2026-09-08: PARTIAL → TRUE_SOURCE (final integrity check, all 15 areas)** | A dedicated 15-area audit (Servicios/Restaurantes/Comida Local/Autos Dealer/Bienes Negocio/Rentas Negocio profile paths, shared Connection Hub contact model, shared review-link model, `ownerEntityCapabilityRegistry`, canonical identity resolution, shared media contract, Community Trust eligibility, Google/Yelp eligibility, hide-if-empty, external-link truth) found **zero conflicting sources of truth** anywhere — every "duplicate engine" found is a legitimate per-category adapter (own contact-model type + own builder) that converges on the same shared renderers (Connection Hub CTA sheet, `SharedConnectionHubReviewDrawer`) with real, validated data at the actual rendering boundary. `ownerEntityCapabilityRegistry.ts` and the Community Trust eligibility registry are each confirmed as genuine single sources of truth with no bypassing caller. `listingIdentity`/parts of the media contract are additive scaffolding not wired into any live business-profile path — meaning only ONE engine is ever live per category, not two disagreeing ones. Two real ADOPTION gaps found (not truth conflicts, so not RED per this gate's own doctrine): Autos Negocios has its own review-link renderer and has never adopted the shared drawer; Rentas Negocio's live detail view has no Google/Yelp review section at all (an omission, not fabricated data) and carries one dead, unimported component (`RentasNegocioDesktopBusinessRail.tsx`). Neither was fixed this pass — both are adoption/cleanup follow-ups, not launch-blocking defects |
 | G31 | Revenue OS | TRUE_SOURCE | single pricing matrix, confirmed no parallel source of truth |
 | G32 | Stripe Signature/Idempotency/Replay | TRUE_SOURCE | webhook ledger + fulfillment, unchanged, not re-audited this turn |
 | G33 | Subscription Lifecycle | TRUE_SOURCE (Comida Local gap unresolved) | 5-state model real; Comida Local still missing LANE_SUSPENSION |
@@ -172,13 +172,20 @@ and assessed fresh, briefly, from direct source reading.
 ```
 UPDATE 2026-09-08 (Red Burn-Down): every item in the original FALSE(7) list was re-audited
 against current HEAD, not carried forward blindly. Six were STALE (already fixed by commits this
-report hadn't seen, or fixed just now); one (G30) is downgraded to PARTIAL on real but bounded
-evidence; G23 was built out to a complete source contract this pass.
+report hadn't seen, or fixed just now); G23 was built out to a complete source contract this pass.
+
+UPDATE 2026-09-08 (G30 Final Integrity Check, same day, later pass): the G30 PARTIAL
+classification above is itself now resolved to TRUE_SOURCE — a dedicated 15-area audit (see the
+G30 row) found zero conflicting sources of truth anywhere in Business Hub. Every "duplicate"
+found is a legitimate category adapter converging on shared renderers with real data, exactly
+matching this project's own doctrine. Two real adoption gaps (Autos Negocios' unadopted review
+drawer, Rentas Negocio's missing review section + one dead component) were found and are
+recorded as follow-up adoption/cleanup work, not RED.
 
 TOTAL: 53
-TRUE (source and/or runtime): 48  (+7: G12, G14, G15, G21-reviews, G23, G29, G51)
+TRUE (source and/or runtime): 49  (+8: G12, G14, G15, G21-reviews, G23, G29, G30, G51)
 FALSE (real, confirmed, safely-implementable, unresolved): 0
-PARTIAL (real but bounded remainder, not launch-blocking): 1  (G30 — see row for exact scope)
+PARTIAL: 0
 N/A: 1 (G22, by explicit instruction)
 OWNER_QA_REQUIRED: overlaps several TRUE_SOURCE rows (browser confirmation still needed) + G51's
     touch-target/aria-live coverage specifically
@@ -354,9 +361,10 @@ G15 Websites/Social       → STALE_FALSE. Real shared contract exists, 2 real c
 G23 Street Verifier       → BUILT. Complete provider+API+UI contract added this session (§8).
 G29 Related Listings      → FIXED. En Venta's decorative stub replaced with a real fetch;
                             Autos/Bienes already real.
-G30 Business Hub          → DOWNGRADED to PARTIAL (see row) — the specific duplicated-type
-                            finding resolved via the G21 adapter pattern; broader claim
-                            unconfirmed, not re-asserted.
+G30 Business Hub          → RESOLVED to TRUE_SOURCE (15-area final integrity check, same day) —
+                            zero conflicting truth sources found anywhere; every duplicate is a
+                            legitimate adapter. Two adoption gaps (Autos/Rentas review-drawer
+                            coverage) recorded as follow-up, not RED.
 G51 Accessibility         → STALE_FALSE for the focus-trap claim (real, adopted at both
                             canonical surfaces). Remainder is OWNER_QA_REQUIRED, not source.
 G53 Security/RLS          → STALE_FALSE for the "zero owner-write RLS" claim — public.listings
