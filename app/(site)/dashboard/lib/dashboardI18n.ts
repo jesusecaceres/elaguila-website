@@ -43,6 +43,10 @@ export function dashboardShellCopy(lang: Lang) {
       badgeExpiring: "Visibilidad por expirar",
       dashboardLabel: "Panel",
       accountType: "Tipo",
+      menuOpen: "Menú",
+      menuClose: "Cerrar menú",
+      openAccountMenu: "Abrir menú de cuenta",
+      closeAccountMenu: "Cerrar menú de cuenta",
       // Package 1 — sidebar group headings (presentation/IA only, routes unchanged)
       navGroupInicio: "Inicio",
       navGroupMisAnuncios: "Mis anuncios",
@@ -81,6 +85,10 @@ export function dashboardShellCopy(lang: Lang) {
     badgeExpiring: "Visibility expiring soon",
     dashboardLabel: "Dashboard",
     accountType: "Type",
+    menuOpen: "Menu",
+    menuClose: "Close menu",
+    openAccountMenu: "Open account menu",
+    closeAccountMenu: "Close account menu",
     // Package 1 — sidebar group headings (presentation/IA only, routes unchanged)
     navGroupInicio: "Home",
     navGroupMisAnuncios: "My listings",

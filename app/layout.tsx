@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { ComingSoonGateRoot } from "./components/ComingSoonGateRoot";
 import { LanguagePreferenceSync } from "./components/LanguagePreferenceSync";
 import { LeonixRootJsonLd } from "./components/LeonixRootJsonLd";
+import { ServiceWorkerRegistration } from "./components/ServiceWorkerRegistration";
 import {
   LEONIX_MEDIA_SITE_NAME,
   LEONIX_MEDIA_SLOGAN,
@@ -67,6 +68,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="min-h-screen bg-[color:var(--lx-page)] text-[color:var(--lx-text)] antialiased">
         <LeonixRootJsonLd />
+        <ServiceWorkerRegistration />
         {/*
           Do not wrap `{children}` in a root <Suspense> here: it defers the entire page's SSR to
           this fallback and can leave the reveal client-side stuck indefinitely, showing only this

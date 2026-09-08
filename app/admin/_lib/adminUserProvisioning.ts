@@ -108,10 +108,12 @@ async function upsertRosterMember(input: {
   role: string;
   notes?: string | null;
   permissions: AdminPermissionKey[];
-}): Promise<{ ok: true; rosterMemberId: string } | { ok: false; message: string }> {
+  creatorAuthUserId?: string | null;
+}): Promise<{ ok: true; rosterMemberId: string; created: boolean } | { ok: false; message: string }> {
   const admin = getAdminSupabase();
   const now = new Date().toISOString();
   const email = normalizeEmail(input.email);
+  const actorAuthUserId = input.creatorAuthUserId ?? null;
 
   const { error: insertErr } = await admin.from("admin_team_members").insert({
     email,
@@ -120,12 +122,14 @@ async function upsertRosterMember(input: {
     is_active: true,
     permissions: input.permissions,
     notes: input.notes?.trim() || null,
+    created_by_auth_user_id: actorAuthUserId,
+    updated_by_auth_user_id: actorAuthUserId,
     updated_at: now,
   });
 
   if (!insertErr) {
     const { data: row } = await admin.from("admin_team_members").select("id").eq("email", email).maybeSingle();
-    return { ok: true, rosterMemberId: String(row?.id ?? "") };
+    return { ok: true, rosterMemberId: String(row?.id ?? ""), created: true };
   }
 
   if (insertErr.code === "23505") {
@@ -137,6 +141,7 @@ async function upsertRosterMember(input: {
         is_active: true,
         permissions: input.permissions,
         notes: input.notes?.trim() || null,
+        updated_by_auth_user_id: actorAuthUserId,
         updated_at: now,
       })
       .eq("email", email)
@@ -145,7 +150,7 @@ async function upsertRosterMember(input: {
     if (updateErr || !updated) {
       return { ok: false, message: updateErr?.message ?? "Roster update failed." };
     }
-    return { ok: true, rosterMemberId: String((updated as { id: string }).id) };
+    return { ok: true, rosterMemberId: String((updated as { id: string }).id), created: false };
   }
 
   return { ok: false, message: insertErr.message };
@@ -161,7 +166,8 @@ export async function provisionStaffAuthUser(input: {
   temporaryPassword?: string | null;
   updateExistingPassword?: boolean;
   creatorRosterRole?: string | null;
-}): Promise<ProvisionAuthUserResult & { rosterMemberId?: string }> {
+  creatorAuthUserId?: string | null;
+}): Promise<ProvisionAuthUserResult & { rosterMemberId?: string; rosterCreated?: boolean }> {
   if (!isSupabaseAdminConfigured()) {
     return { ok: false, code: "config", message: "Supabase service role is not configured." };
   }
@@ -248,6 +254,7 @@ export async function provisionStaffAuthUser(input: {
     role: input.role,
     notes: input.notes,
     permissions,
+    creatorAuthUserId: input.creatorAuthUserId ?? null,
   });
 
   if (!roster.ok) {
@@ -269,6 +276,7 @@ export async function provisionStaffAuthUser(input: {
     inviteNote,
     passwordSet,
     rosterMemberId: roster.rosterMemberId,
+    rosterCreated: roster.created,
   };
 }
 

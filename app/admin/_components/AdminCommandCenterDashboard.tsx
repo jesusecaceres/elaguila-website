@@ -526,10 +526,12 @@ export function AdminCommandCenterDashboard({
           body="Revenue lane for partners, offers, leads, clicks, and health. Existing Viajes admin is partial until affiliate tables are proven."
           gate="ADMIN-SUPABASE-BACKING-MATRIX-01"
         />
-        <PlannedCard
+        <OperatorCard
+          eyebrow="Business Concierge"
           title="Business Concierge"
-          body="Future paid service queue for clients who want Leonix to publish, promote, or build for them. No live concierge table yet."
-          gate="Concierge schema gate"
+          status="real"
+          body="Understand businesses, follow up, meet prepared, review opportunities, and create from verified truth."
+          primary={{ href: "/admin/businesses", label: "Open Business Concierge", variant: "primary" }}
         />
       </div>
     </AdminSectionCard>

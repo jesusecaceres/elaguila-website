@@ -114,7 +114,7 @@ export async function verifyAdminSupabaseCredentials(
 }
 
 export type RosterLookupResult =
-  | { ok: true; rosterMemberId: string; role: string; displayName: string | null; isActive: true }
+  | { ok: true; rosterMemberId: string; role: string; displayName: string | null; email: string; isActive: true }
   | { ok: false; code: "not_in_roster" | "inactive" | "db_error" };
 
 /** Active admin_team_members row required for email-based admin login. */
@@ -147,9 +147,79 @@ export async function lookupActiveAdminRosterByEmail(email: string): Promise<Ros
         (data as { display_name?: string | null }).display_name != null
           ? String((data as { display_name: string }).display_name)
           : null,
+      email: String((data as { email: string }).email),
       isActive: true,
     };
   } catch {
     return { ok: false, code: "db_error" };
+  }
+}
+
+/**
+ * Gate BCO-4A.7 — active admin_team_members row required for Sales Workspace access, resolved by
+ * the roster row's own `auth_user_id` column, never by email. A roster row whose `auth_user_id`
+ * is NULL (e.g. an invited-but-not-yet-Auth-linked row created via the legacy "roster row only"
+ * form at /admin/team/roster) can never match `.eq("auth_user_id", authUserId)` — no special-case
+ * NULL handling is required, the query itself is fail-closed by construction.
+ */
+export async function lookupActiveAdminRosterByAuthUserId(authUserId: string): Promise<RosterLookupResult> {
+  if (!isSupabaseAdminConfigured()) {
+    return { ok: false, code: "db_error" };
+  }
+
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from("admin_team_members")
+      .select("id, email, display_name, role, is_active, auth_user_id")
+      .eq("auth_user_id", authUserId)
+      .maybeSingle();
+
+    if (error || !data) {
+      return { ok: false, code: "not_in_roster" };
+    }
+
+    if (!(data as { is_active?: boolean }).is_active) {
+      return { ok: false, code: "inactive" };
+    }
+
+    return {
+      ok: true,
+      rosterMemberId: String((data as { id: string }).id),
+      role: String((data as { role?: string }).role ?? ""),
+      displayName:
+        (data as { display_name?: string | null }).display_name != null
+          ? String((data as { display_name: string }).display_name)
+          : null,
+      email: String((data as { email: string }).email),
+      isActive: true,
+    };
+  } catch {
+    return { ok: false, code: "db_error" };
+  }
+}
+
+export type AuthUserLookupResult = { ok: true; id: string; email: string } | { ok: false };
+
+/**
+ * Gate BCO-4A.7 — confirms an `auth_user_id` cookie value corresponds to a REAL, currently
+ * existing Supabase Auth user, via the Admin API (service-role only — never callable from the
+ * browser). A syntactically valid but non-existent or forged UUID is rejected here, before any
+ * roster lookup runs, closing the gap where a placeholder UUID paired with a real roster email
+ * was previously enough to pass authorization.
+ */
+export async function lookupAuthUserById(authUserId: string): Promise<AuthUserLookupResult> {
+  if (!isSupabaseAdminConfigured()) {
+    return { ok: false };
+  }
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase.auth.admin.getUserById(authUserId);
+    if (error || !data?.user?.email) {
+      return { ok: false };
+    }
+    return { ok: true, id: data.user.id, email: data.user.email.trim().toLowerCase() };
+  } catch {
+    return { ok: false };
   }
 }
