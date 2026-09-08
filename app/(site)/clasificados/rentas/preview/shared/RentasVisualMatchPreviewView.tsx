@@ -23,6 +23,8 @@ import type {
 import { buildOfertaLocalPreviewMapEmbedUrl } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
 import { LeonixListingFactsGrid } from "@/app/clasificados/lib/LeonixListingFactsGrid";
 import { BrRentasCommunityTrustSection } from "@/app/clasificados/lib/BrRentasCommunityTrustSection";
+import { SharedConnectionHubReviewDrawer } from "@/app/components/contact/connectionHub/renderers/SharedConnectionHubReviewDrawer";
+import type { SharedConnectionHubReviewLink } from "@/app/components/contact/connectionHub/sharedConnectionHubContactTypes";
 import {
   trackRentasPhoneClick,
   trackRentasWhatsappClick,
@@ -160,6 +162,9 @@ function contact(vm: Vm) {
       showSolicitarInfo: vm.contact.showSolicitarInfo,
       showWhatsapp: vm.contact.showWhatsapp,
       showSms: vm.contact.showSms,
+      // G21 adoption — real stored Google/Yelp review-URL destinations only.
+      googleReviewsUrl: vm.contact.googleReviewsUrl ?? undefined,
+      yelpReviewsUrl: vm.contact.yelpReviewsUrl ?? undefined,
     };
   }
   return {
@@ -808,6 +813,23 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, i
               <FiMapPin className="h-4 w-4" />
               {lang === "es" ? "Ver mapa" : "View on map"}
             </ActionLink>
+          ) : null}
+          {isNegocio(vm) && (c.googleReviewsUrl || c.yelpReviewsUrl) ? (
+            <SharedConnectionHubReviewDrawer
+              links={
+                [
+                  c.googleReviewsUrl
+                    ? { provider: "google" as const, label: lang === "es" ? "Reseñas de Google" : "Google Reviews", url: c.googleReviewsUrl }
+                    : null,
+                  c.yelpReviewsUrl
+                    ? { provider: "yelp" as const, label: lang === "es" ? "Reseñas de Yelp" : "Yelp Reviews", url: c.yelpReviewsUrl }
+                    : null,
+                ].filter((l): l is SharedConnectionHubReviewLink => l !== null)
+              }
+              lang={lang}
+              businessName={c.name || undefined}
+              onLinkClick={() => {}}
+            />
           ) : null}
           {isNegocio(vm) ? (
             <BrRentasCommunityTrustSection

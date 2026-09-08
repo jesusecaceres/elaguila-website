@@ -131,6 +131,10 @@ export function rentasNegocioToBienesRaicesNegocioState(s: RentasNegocioFormStat
       segundoAgenteActivo: false,
     },
     contactChannels: s.contactChannels,
+    // G21 adoption — reuses the exact BR Negocio business_meta builder unchanged; real stored
+    // URLs only, never a fabricated rating/count.
+    googleReviewsUrl: s.negocioGoogleReviewsUrl,
+    yelpReviewsUrl: s.negocioYelpReviewsUrl,
     cta: {
       permitirSolicitarInfo: true,
       permitirProgramarVisita: false,

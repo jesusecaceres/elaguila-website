@@ -133,6 +133,10 @@ export type RentasPublicListing = {
   businessAgentName?: string | null;
   /** From `listings.business_meta` (`negocioDescripcion` / BR meta) when present. */
   businessDescription?: string | null;
+  /** G21 adoption — real stored Google/Yelp review-URL destinations only (never a fabricated
+   * rating/count), from `listings.business_meta` (`negocioGoogleReviewsUrl`/`negocioYelpReviewsUrl`). */
+  businessGoogleReviewsUrl?: string | null;
+  businessYelpReviewsUrl?: string | null;
   /** When true, public detail may show street-level address from publish. */
   showExactAddress?: boolean;
   /** Tipo-specific rows parsed from published `detail_pairs` (live detail). */

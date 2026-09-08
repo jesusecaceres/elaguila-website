@@ -46,6 +46,11 @@ function businessMetaFromRow(row: ListingRowLike): {
   marca?: string;
   agentName?: string;
   redesFromMeta?: string;
+  /** G21 adoption — real stored Google/Yelp review-URL destinations only (never a fabricated
+   * rating/count), written by the shared BR Negocio business_meta builder that Rentas Negocio's
+   * publish path already reuses via rentasNegocioToBienesRaicesNegocioState. */
+  googleReviewsUrl?: string;
+  yelpReviewsUrl?: string;
 } {
   const raw = row.business_meta;
   if (typeof raw !== "string" || !raw.trim()) return {};
@@ -55,11 +60,15 @@ function businessMetaFromRow(row: ListingRowLike): {
     const marca = trim(o.negocioNombreCorreduria);
     const agentName = trim(o.negocioAgente);
     const redesFromMeta = trim(o.negocioRedes);
+    const googleReviewsUrl = sanitizeHttpUrl(typeof o.negocioGoogleReviewsUrl === "string" ? o.negocioGoogleReviewsUrl : undefined);
+    const yelpReviewsUrl = sanitizeHttpUrl(typeof o.negocioYelpReviewsUrl === "string" ? o.negocioYelpReviewsUrl : undefined);
     return {
       description: d || undefined,
       marca: marca || undefined,
       agentName: agentName || undefined,
       redesFromMeta: redesFromMeta || undefined,
+      googleReviewsUrl,
+      yelpReviewsUrl,
     };
   } catch {
     return {};
@@ -417,6 +426,8 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const businessMarca = bizMeta.marca;
   const businessAgentName = bizMeta.agentName;
   const businessDescription = bizMeta.description;
+  const businessGoogleReviewsUrl = bizMeta.googleReviewsUrl;
+  const businessYelpReviewsUrl = bizMeta.yelpReviewsUrl;
 
   const publishedAt =
     trim(row.republish_sort_at) ||
@@ -555,6 +566,8 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     businessMarca,
     businessAgentName,
     businessDescription,
+    businessGoogleReviewsUrl,
+    businessYelpReviewsUrl,
     showExactAddress,
     flowExtensionRows: flowExtensionRows.length ? flowExtensionRows : undefined,
     showingByAppointment: rx.showingByAppointment,
