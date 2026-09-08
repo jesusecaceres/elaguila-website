@@ -53,9 +53,13 @@ export function isAdminGlobalNavItemActive(pathname: string, item: AdminGlobalNa
  * assert positionally (leads/inbox before tienda, settings before tienda).
  */
 export const ADMIN_GLOBAL_NAV: AdminGlobalNavItem[] = [
-  { href: "/admin", labelKey: "nav.dashboard", icon: "◆", badgeFrom: "tienda", group: "command" },
-  /** LEO-9B — owner executive console; page still enforces owner_admin via leoAccess. */
+  /**
+   * LEO-POLISH.1 — LEO is the owner's primary conversational operating interface and must be
+   * the first destination in the COMMAND group, above Dashboard/Command Center. Page still
+   * enforces owner_admin via leoAccess (LEO-9B); this is nav convenience/ordering only.
+   */
   { href: "/admin/leo", labelKey: "nav.leo", icon: "◈", group: "command" },
+  { href: "/admin", labelKey: "nav.dashboard", icon: "◆", badgeFrom: "tienda", group: "command" },
   {
     href: "/admin/leads/inbox",
     labelKey: "nav.launchLeads",

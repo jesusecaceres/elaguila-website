@@ -1,5 +1,7 @@
 /** Canonical dashboard CTA routes — used by command center + verify smoke matrix. */
 export const ADMIN_DASHBOARD_ROUTES = {
+  /** LEO-POLISH.1 — canonical owner executive console route (single alias, do not duplicate). */
+  leo: "/admin/leo",
   launchLeads: "/admin/leads/inbox",
   promocionales: "/admin/leads/inbox?view=promo",
   newsletter: "/admin/leads/newsletter",

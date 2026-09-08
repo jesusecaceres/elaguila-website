@@ -314,6 +314,36 @@ export function AdminCommandCenterDashboard({
     </header>
   );
 
+  /**
+   * LEO-POLISH.1 — foreground entry card so LEO (the owner's conversational executive
+   * interface) is unmistakably discoverable from Admin, right below the hero. This is a
+   * discovery link into the real /admin/leo experience, not a duplicate of it: no conversation
+   * UI, morning brief, workspace cards, Hands-Free, or LEO controls live here.
+   */
+  const leoExecutiveCta = (
+    <section
+      className={`${adminCardBase} mb-5 border-[#7A1E2C]/25 bg-gradient-to-r from-[#FDF2F4] to-[#FFFCF7] p-4 sm:p-5`}
+      data-testid="admin-leo-executive-cta"
+    >
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7A1E2C]">{m("nav.leo")}</p>
+          <h2 className="mt-1 text-lg font-bold text-[#1E1810]">Your executive operating intelligence</h2>
+          <p className="mt-1 text-sm text-[#5C5346]">
+            Ask LEO what needs your attention, who is waiting, and what changed — before you dig through queues.
+          </p>
+        </div>
+        <AdminDashboardCta
+          href={ADMIN_DASHBOARD_ROUTES.leo}
+          label="Talk to LEO"
+          variant="primary"
+          className="w-full sm:w-auto sm:shrink-0"
+          title="Open the LEO executive conversation"
+        />
+      </div>
+    </section>
+  );
+
   const promoCodeGeneratorTopCta = (
     <section
       className={`${adminCardBase} mb-5 border-[#C9B46A]/40 bg-gradient-to-r from-[#FFF8F0] to-[#FFFCF7] p-4 sm:p-5`}
@@ -864,6 +894,7 @@ export function AdminCommandCenterDashboard({
   return (
     <div className="min-w-0 max-w-7xl overflow-x-hidden" data-testid="admin-ceo-command-center">
       {hero}
+      {leoExecutiveCta}
       {promoCodeGeneratorTopCta}
       <AdminPagePurposeCard
         title="Leonix Command Center"
