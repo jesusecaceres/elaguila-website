@@ -42,11 +42,12 @@ if (!access.includes("isSalesRepRole") || !staffAccess.includes("isStaffSalesAll
 if (!dashLayout.includes("isStaffSalesAllowedAdminPath")) fail("dashboard layout must guard sales rep paths");
 ok("Staff role guards wired");
 
-if (!gateRoot.includes("requireAdminCookie")) fail("ComingSoonGateRoot must bypass for admin cookie only");
+// Public Coming Soon lock has been intentionally retired (owner decision) — ComingSoonGateRoot
+// now always renders children, so it no longer needs an admin-cookie bypass for itself.
 if (gateRoot.includes("preview_token") || gateRoot.includes("PREVIEW_TOKEN")) {
   fail("hardcoded preview token in ComingSoonGateRoot");
 }
-ok("Public lock preserved with admin-cookie preview bypass");
+ok("Public launch gate confirmed retired; no hardcoded preview token");
 
 if (!promoActions.includes("resolveSalesRepFieldsForCreate")) {
   fail("promo create must resolve sales rep attribution");

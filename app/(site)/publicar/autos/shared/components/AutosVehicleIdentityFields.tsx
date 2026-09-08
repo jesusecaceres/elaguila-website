@@ -301,7 +301,7 @@ export function AutosVehicleIdentityFields({
           </div>
         )}
       </div>
-      <div className="sm:col-span-2">
+      <div>
         <label className="block">{labelEl(labels.trim, false)}</label>
         {trimSuggestions.length > 0 && !trimCustomMode ? (
           <select

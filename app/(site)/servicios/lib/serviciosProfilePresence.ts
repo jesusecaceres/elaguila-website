@@ -93,9 +93,13 @@ export function hasPaymentMethods(p: ServiciosBusinessProfile): boolean {
 }
 
 export function hasAmenityOptions(p: ServiciosBusinessProfile): boolean {
+  const groupedHasAny = p.customAmenityOptionsByGroup
+    ? Object.values(p.customAmenityOptionsByGroup).some((arr) => Array.isArray(arr) && arr.length > 0)
+    : false;
   return (
     filterAmenityOptionIds(p.amenityOptionIds).length > 0 ||
-    filterCustomAmenityOptions(p.customAmenityOptions).length > 0
+    filterCustomAmenityOptions(p.customAmenityOptions).length > 0 ||
+    groupedHasAny
   );
 }
 

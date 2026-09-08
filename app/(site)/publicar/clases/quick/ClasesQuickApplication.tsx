@@ -583,8 +583,8 @@ function ClasesQuickApplicationBody({
                 </label>
                 <p className="rounded-lg border border-amber-300/70 bg-amber-50/90 px-3 py-2 text-xs font-medium text-amber-950">
                   {lang === "es"
-                    ? "La clase tiene costo para el estudiante. Publicar el anuncio en Leonix sigue costando $24.99 por 30 días — esa activación de pago aún no está disponible aquí, así que por ahora la publicación queda bloqueada."
-                    : "This class has a cost for the student. The Leonix listing fee is $24.99 per 30 days — that paid activation isn't available here yet, so publishing stays blocked for now."}
+                    ? "La clase tiene costo para el estudiante. Publicar el anuncio en Leonix cuesta $24.99 por 30 días — al publicar te llevaremos a un pago seguro para completar la publicación."
+                    : "This class has a cost for the student. The Leonix listing fee is $24.99 per 30 days — when you publish, we'll take you to secure checkout to complete the listing."}
                 </p>
                 <div className="rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-page)] px-3 py-3">
                   <p className="text-xs font-bold text-[color:var(--lx-text)]">{copy.priceSummary.title}</p>

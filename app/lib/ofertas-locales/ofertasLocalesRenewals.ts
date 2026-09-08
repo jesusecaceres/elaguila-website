@@ -209,6 +209,14 @@ export async function resolveOfertaLocalRenewalEligibility(input: {
     return { code: "blocked_status", product, daysRemaining: null, openAttempt: null, message: "Listing state is not renewal eligible." };
   }
 
+  // A listing that has never completed a first publication has nothing to renew —
+  // without this guard, a pending_review/submitted listing with no published_at
+  // falls through the active/expired checks below (both false) straight to
+  // eligible_paid, showing renewal controls before the first publication exists.
+  if (!input.parent.published_at) {
+    return { code: "blocked_status", product, daysRemaining: null, openAttempt: null, message: "This listing has not completed its first publication yet." };
+  }
+
   const active = isOfertaLocalPublicTermActive(input.parent.published_at, input.parent.expires_at, now);
   const expired = isOfertaLocalPublicTermExpired(input.parent.expires_at, now);
   const daysRemaining = getOfertaLocalPublicTermDaysRemaining(input.parent.expires_at, now);

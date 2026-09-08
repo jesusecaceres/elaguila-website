@@ -81,6 +81,31 @@ function safeCustomLanguages(v: unknown): string[] {
   }
   return out;
 }
+
+const CUSTOM_OTHER_VALUES_MAX = 8;
+
+/** Gate C-023/C-053/C-068 — generic safe loader for the array-backed "Other" custom-value
+ * lists (business type, service option, highlights). Mirrors safeCustomLanguages above. */
+function safeCustomOtherValues(v: unknown, maxLen = 80, maxCount = CUSTOM_OTHER_VALUES_MAX): string[] {
+  if (!Array.isArray(v)) return [];
+  const out: string[] = [];
+  for (const entry of v) {
+    const s = safeString(entry, maxLen).trim();
+    if (!s) continue;
+    out.push(s);
+    if (out.length >= maxCount) break;
+  }
+  return out;
+}
+
+/** Backward-compat migration only — a legacy draft that only ever had the scalar "Other"
+ * field populated (pre-array-chip UI) is migrated non-destructively into a one-element array.
+ * The legacy scalar itself is left untouched/unaffected in the caller's returned draft. */
+function migrateLegacyCustomScalarIntoArray(arrayValues: string[], legacyScalar: string): string[] {
+  if (arrayValues.length > 0) return arrayValues;
+  const s = legacyScalar.trim();
+  return s ? [s] : [];
+}
 const PRICE_VALUES = new Set<ComidaLocalPriceLevel>(["1", "2", "3"]);
 
 const BUSINESS_TYPES = new Set<ComidaLocalBusinessType | "">([
@@ -116,6 +141,10 @@ const HIGHLIGHT_VALUES = new Set<ComidaLocalHighlightOption>([
   "pickup_disponible",
   "familiar",
   "local",
+  "fresco_diario",
+  "ingredientes_locales",
+  "preorder",
+  "disponible_fines_de_semana",
   "otro",
 ]);
 
@@ -221,6 +250,24 @@ export function mergeComidaLocalDraftFromStorage(parsed: unknown): ComidaLocalDr
     ? (priceLevelRaw as ComidaLocalPriceLevel)
     : "";
 
+  // Legacy scalar "Other" fields — preserved as-is (never written by the current UI) and used
+  // only as a non-destructive migration source when the array-backed field is still empty.
+  const businessTypeCustomLegacy = safeString(parsed.businessTypeCustom, 80);
+  const businessTypeCustomValues = migrateLegacyCustomScalarIntoArray(
+    safeCustomOtherValues(parsed.businessTypeCustomValues, 80),
+    businessTypeCustomLegacy,
+  );
+  const serviceOptionOtherCustomLegacy = safeString(parsed.serviceOptionOtherCustom, 80);
+  const serviceOptionOtherCustomValues = migrateLegacyCustomScalarIntoArray(
+    safeCustomOtherValues(parsed.serviceOptionOtherCustomValues, 80),
+    serviceOptionOtherCustomLegacy,
+  );
+  const highlightsOtherCustomLegacy = safeString(parsed.highlightsOtherCustom, 80);
+  const highlightsOtherCustomValues = migrateLegacyCustomScalarIntoArray(
+    safeCustomOtherValues(parsed.highlightsOtherCustomValues, 80),
+    highlightsOtherCustomLegacy,
+  );
+
   return {
     ...base,
     draftListingId: ensureComidaLocalDraftListingId(safeString(parsed.draftListingId, 64)),
@@ -228,7 +275,8 @@ export function mergeComidaLocalDraftFromStorage(parsed: unknown): ComidaLocalDr
     foodType,
     foodTypeCustom: safeString(parsed.foodTypeCustom, 80),
     businessType,
-    businessTypeCustom: safeString(parsed.businessTypeCustom, 80),
+    businessTypeCustom: businessTypeCustomLegacy,
+    businessTypeCustomValues,
     cityCanonical: safeString(parsed.cityCanonical, 80),
     cityDisplay: safeString(parsed.cityDisplay, 80),
     zoneNote: safeString(parsed.zoneNote, 120),
@@ -245,10 +293,17 @@ export function mergeComidaLocalDraftFromStorage(parsed: unknown): ComidaLocalDr
     tiktokUrl: safeString(parsed.tiktokUrl, 512),
     locationNote: safeString(parsed.locationNote, 300),
     locationUrl: safeString(parsed.locationUrl, 512),
+    mobileOrderLinkUrl: safeString(parsed.mobileOrderLinkUrl, 512),
+    eventScheduleNote: safeString(parsed.eventScheduleNote, 160),
+    cateringServiceRadiusNote: safeString(parsed.cateringServiceRadiusNote, 160),
+    cateringEventInfoNote: safeString(parsed.cateringEventInfoNote, 400),
+    mealPrepScheduleNote: safeString(parsed.mealPrepScheduleNote, 160),
+    mealPrepOrderUrl: safeString(parsed.mealPrepOrderUrl, 512),
     availabilityNote: safeString(parsed.availabilityNote, 160),
     weeklyHours: safeWeeklyHours(parsed.weeklyHours),
     serviceOptions,
-    serviceOptionOtherCustom: safeString(parsed.serviceOptionOtherCustom, 80),
+    serviceOptionOtherCustom: serviceOptionOtherCustomLegacy,
+    serviceOptionOtherCustomValues,
     businessAddressLine: safeString(parsed.businessAddressLine, 200),
     showAddressPublicly: parsed.showAddressPublicly === true,
     paymentMethods,
@@ -257,7 +312,8 @@ export function mergeComidaLocalDraftFromStorage(parsed: unknown): ComidaLocalDr
     languages,
     customLanguages: safeCustomLanguages(parsed.customLanguages),
     highlights,
-    highlightsOtherCustom: safeString(parsed.highlightsOtherCustom, 80),
+    highlightsOtherCustom: highlightsOtherCustomLegacy,
+    highlightsOtherCustomValues,
     additionalWebsites: safeAdditionalWebsites(parsed.additionalWebsites),
     mainPhoto: normalizeComidaLocalImageFromStorage(parsed.mainPhoto, "main"),
     logoImage: normalizeComidaLocalImageFromStorage(parsed.logoImage, "logo"),

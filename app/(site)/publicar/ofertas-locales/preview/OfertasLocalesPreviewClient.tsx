@@ -1,15 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { loadOfertaLocalAiScanSession } from "@/app/lib/ofertas-locales/ofertasLocalesAiScanRecordPersistence";
-import {
-  loadOfertaLocalSubmissionSession,
-  saveOfertaLocalSubmissionSession,
-} from "@/app/lib/ofertas-locales/ofertasLocalesDraftPersistence";
+import { loadOfertaLocalSubmissionSession } from "@/app/lib/ofertas-locales/ofertasLocalesDraftPersistence";
 import { fetchOfertaLocalReviewItems } from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewClient";
 import { hasOfertaLocalDraftContent } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
-import { submitOfertaLocalDraftForReview } from "@/app/lib/ofertas-locales/ofertasLocalesPublishSubmit";
 import type { OfertaLocalItemReviewViewModel } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import { useOfertasLocalesDraft } from "@/app/lib/ofertas-locales/useOfertasLocalesDraft";
 import { useOfertasLocalesPublishLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
@@ -27,8 +23,11 @@ export default function OfertasLocalesPreviewClient() {
   const [aiItems, setAiItems] = useState<OfertaLocalItemReviewViewModel[]>([]);
   const [aiReviewLoading, setAiReviewLoading] = useState(false);
   const [aiReviewError, setAiReviewError] = useState<string | null>(null);
-  const [publishing, setPublishing] = useState(false);
-  const [publishError, setPublishError] = useState<string | null>(null);
+  // Only ever populated by loadOfertaLocalSubmissionSession below — the
+  // manual "submit for review" button that used to set this was removed
+  // (the dashboard's checkout flow is the real submission path now); kept
+  // as a fallback source for dashboardId in OfertasLocalesPreviewCard so an
+  // owner who already submitted before this change keeps their working link.
   const [publishSuccess, setPublishSuccess] = useState<{ id: string; status: string } | null>(null);
   const [aiSession, setAiSession] = useState<{ ofertaLocalId: string | null; lastScanJobId: string | null }>({
     ofertaLocalId: null,
@@ -83,36 +82,6 @@ export default function OfertasLocalesPreviewClient() {
     [currentAiItems]
   );
 
-  const handleSubmitForReview = useCallback(async () => {
-    if (needsReviewCount > 0) {
-      setPublishError(
-        lang === "en"
-          ? `Finish reviewing the AI suggestions before submitting. You still have ${needsReviewCount} item(s) that need review.`
-          : `Termina de revisar las sugerencias de AI antes de enviar. Todavía tienes ${needsReviewCount} producto(s) pendientes de revisión.`
-      );
-      return;
-    }
-    setPublishing(true);
-    setPublishError(null);
-    setPublishSuccess(null);
-    const result = await submitOfertaLocalDraftForReview(draft, {
-      ofertaLocalId: aiSession.ofertaLocalId,
-      scanJobId: aiSession.lastScanJobId,
-    });
-    setPublishing(false);
-    if (!result.ok) {
-      const issueText = result.issues?.map((issue) => issue.message).join(" ");
-      setPublishError(issueText || result.detail || result.error);
-      return;
-    }
-    setPublishSuccess({ id: result.id, status: result.status });
-    saveOfertaLocalSubmissionSession({
-      applicationSessionId: draft.applicationSessionId,
-      id: result.id,
-      status: result.status,
-    });
-  }, [aiSession.lastScanJobId, aiSession.ofertaLocalId, draft, lang, needsReviewCount]);
-
   if (!hasLoadedDraft) {
     return (
       <div className={`min-h-screen ${PAGE_BG}`}>
@@ -151,10 +120,7 @@ export default function OfertasLocalesPreviewClient() {
       aiReviewError={aiReviewError}
       aiNeedsReviewCount={needsReviewCount}
       aiTotalCount={currentAiItems.length}
-      publishing={publishing}
-      publishError={publishError}
       publishSuccess={publishSuccess}
-      onSubmitForReview={handleSubmitForReview}
     />
   );
 }

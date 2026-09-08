@@ -11,9 +11,11 @@ import { createEmptyClasificadosPromoRow } from "./clasificadosServiciosPromo";
 import { createDefaultClasificadosServiciosState } from "./defaultClasificadosServiciosState";
 import { isBusinessHighlightPresetId } from "./businessHighlightPresets";
 import { normalizeServiceOfferedDedupeKey } from "./serviciosCustomServicesOffered";
+import { normalizeQuickFactDedupeKey } from "./serviciosCustomQuickFacts";
 import {
   CUSTOM_CHIP_MAX_LENGTH,
   MAX_CUSTOM_SERVICES_OFFERED,
+  MAX_CUSTOM_QUICK_FACTS,
   enforceServiciosSelectionCaps,
 } from "./serviciosSelectionCaps";
 import { BUSINESS_HIGHLIGHT_LABEL_MAX } from "./serviciosHighlightCaps";
@@ -160,19 +162,52 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
       ? Math.max(0, Math.floor(o.couponsMonthlyPrice))
       : d.couponsMonthlyPrice;
 
+  // Non-destructive hours repair (contract shared item 51): a legacy/malformed `hours` array
+  // (wrong length, extra/missing days, corrupted entries) is repaired by keeping any entry
+  // recognizable by its `day` key and filling defaults for the rest, instead of discarding the
+  // whole array back to default just because its length isn't exactly 7.
   let hours = d.hours;
-  if (Array.isArray(o.hours) && o.hours.length === 7) {
-    hours = o.hours.map((row, i) => {
-      const base = d.hours[i]!;
-      if (!row || typeof row !== "object") return base;
+  if (Array.isArray(o.hours)) {
+    const byDay = new Map<DayKey, Record<string, unknown>>();
+    for (const row of o.hours) {
+      if (!row || typeof row !== "object") continue;
       const r = row as Record<string, unknown>;
-      return {
-        day: isDayKey(r.day) ? r.day : base.day,
-        closed: r.closed === true,
-        open: typeof r.open === "string" ? r.open : base.open,
-        close: typeof r.close === "string" ? r.close : base.close,
-      };
-    });
+      if (isDayKey(r.day)) byDay.set(r.day, r);
+    }
+    if (byDay.size > 0) {
+      hours = d.hours.map((base) => {
+        const r = byDay.get(base.day);
+        if (!r) return base;
+        return {
+          day: base.day,
+          closed: r.closed === true,
+          open: typeof r.open === "string" ? r.open : base.open,
+          close: typeof r.close === "string" ? r.close : base.close,
+        };
+      });
+    }
+  }
+
+  // Multi-entry special hours (contract §3.4 items 46-48). Empty array default; each entry needs
+  // a stable string `id` (regenerated if missing/duplicated on load) plus `label`/`note` strings.
+  let specialHoursEntries: ClasificadosServiciosApplicationState["specialHoursEntries"] = d.specialHoursEntries;
+  if (Array.isArray(o.specialHoursEntries)) {
+    const seenIds = new Set<string>();
+    specialHoursEntries = o.specialHoursEntries
+      .map((row, i) => {
+        if (!row || typeof row !== "object") return null;
+        const r = row as Record<string, unknown>;
+        let id = typeof r.id === "string" && r.id.trim() ? r.id.trim() : `special_${i}`;
+        while (seenIds.has(id)) id = `${id}_${i}`;
+        seenIds.add(id);
+        return {
+          id,
+          label: typeof r.label === "string" ? r.label.slice(0, 60) : "",
+          note: typeof r.note === "string" ? r.note.slice(0, 160) : "",
+        };
+      })
+      .filter((e): e is { id: string; label: string; note: string } => e !== null)
+      .slice(0, 20);
   }
 
   let gallery: GalleryItem[] = d.gallery;
@@ -307,16 +342,70 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     customAmenityOptions = o.customAmenityOptions.filter((x): x is string => typeof x === "string");
   }
 
+  // Per-group custom amenities. If no grouped data was ever stored (older draft), migrate the
+  // legacy flat list into the "service" bucket non-destructively — nothing is dropped.
+  let customAmenityOptionsByGroup: Record<string, string[]> =
+    o.customAmenityOptionsByGroup && typeof o.customAmenityOptionsByGroup === "object"
+      ? Object.fromEntries(
+          Object.entries(o.customAmenityOptionsByGroup as Record<string, unknown>).map(([k, v]) => [
+            k,
+            Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [],
+          ]),
+        )
+      : {};
+  const hasGroupedAmenityData = Object.values(customAmenityOptionsByGroup).some((arr) => arr.length > 0);
+  if (!hasGroupedAmenityData && customAmenityOptions.length > 0) {
+    customAmenityOptionsByGroup = { ...customAmenityOptionsByGroup, service: [...customAmenityOptions] };
+  }
+
+  let pendingCustomAmenityOptionByGroup: Record<string, string> =
+    o.pendingCustomAmenityOptionByGroup && typeof o.pendingCustomAmenityOptionByGroup === "object"
+      ? Object.fromEntries(
+          Object.entries(o.pendingCustomAmenityOptionByGroup as Record<string, unknown>).map(([k, v]) => [
+            k,
+            typeof v === "string" ? v : "",
+          ]),
+        )
+      : {};
+
   let certifications = d.certifications;
   if (Array.isArray(o.certifications)) {
     certifications = o.certifications.filter((x): x is string => typeof x === "string");
   }
 
-  let customQuickFactLabel = str("customQuickFactLabel", d.customQuickFactLabel);
-  let customQuickFactIncluded = bool("customQuickFactIncluded", d.customQuickFactIncluded);
-  if (isJunkServiciosQuickFactLabel(customQuickFactLabel)) {
-    customQuickFactLabel = "";
-    customQuickFactIncluded = false;
+  // `customQuickFactLabel` doubles as (a) the live pending-input text for the Quick Facts Add
+  // flow (same role as `customServiceLabel` — preserved by default) and (b), together with the
+  // legacy `customQuickFactIncluded` flag, the old singular custom-quick-fact format. When the
+  // legacy flag was set, its label is migrated into `customQuickFacts` below and the pending
+  // input is cleared (it has been "promoted" into the list); otherwise the raw stored pending
+  // text just passes through untouched.
+  const legacyQuickFactLabelRaw = str("customQuickFactLabel", d.customQuickFactLabel);
+  const legacyQuickFactIncluded = bool("customQuickFactIncluded", d.customQuickFactIncluded);
+  let customQuickFactLabel = legacyQuickFactLabelRaw;
+  const customQuickFactIncluded = false;
+
+  const customQuickFacts: string[] = [];
+  const quickFactSeen = new Set<string>();
+  const pushQuickFact = (raw: string) => {
+    const t = raw.trim().slice(0, CUSTOM_CHIP_MAX_LENGTH);
+    if (!t || isJunkServiciosQuickFactLabel(t)) return;
+    const k = normalizeQuickFactDedupeKey(t);
+    if (quickFactSeen.has(k)) return;
+    if (customQuickFacts.length >= MAX_CUSTOM_QUICK_FACTS) return;
+    quickFactSeen.add(k);
+    customQuickFacts.push(t);
+  };
+  if (Array.isArray(o.customQuickFacts)) {
+    for (const x of o.customQuickFacts) {
+      if (typeof x === "string") pushQuickFact(x);
+    }
+  }
+  if (legacyQuickFactIncluded && legacyQuickFactLabelRaw.trim()) {
+    const beforeLen = customQuickFacts.length;
+    pushQuickFact(legacyQuickFactLabelRaw);
+    if (customQuickFacts.length > beforeLen) {
+      customQuickFactLabel = "";
+    }
   }
 
   const baseBeforeCaps = {
@@ -332,7 +421,22 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     physicalRegion: str("physicalRegion", d.physicalRegion),
     physicalCountry: str("physicalCountry", d.physicalCountry),
     physicalPostalCode: str("physicalPostalCode", d.physicalPostalCode),
-    serviceAreaNotes: str("serviceAreaNotes", d.serviceAreaNotes),
+    // One-time legacy migration: an old single-line comma/semicolon-separated draft (from before
+    // service areas were newline-delimited, S-073) is converted to newline-joined form here, once,
+    // on hydrate. A string that already contains a newline is assumed already-migrated and is left
+    // untouched so a legitimate comma inside one area's own label (e.g. "San Jose, CA") is never
+    // re-split by this or any later read.
+    serviceAreaNotes: (() => {
+      const raw = str("serviceAreaNotes", d.serviceAreaNotes);
+      if (!raw.includes("\n") && /[,;]/.test(raw)) {
+        return raw
+          .split(/[,;]+/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .join("\n");
+      }
+      return raw;
+    })(),
     phone: str("phone", d.phone),
     phoneOffice: str("phoneOffice", d.phoneOffice),
     website: str("website", d.website),
@@ -366,6 +470,7 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     customReasonLabel: str("customReasonLabel", d.customReasonLabel),
     customReasonIncluded: bool("customReasonIncluded", d.customReasonIncluded),
     selectedQuickFactIds,
+    customQuickFacts,
     customQuickFactLabel,
     customQuickFactIncluded,
     selectedBusinessHighlightIds,
@@ -396,6 +501,7 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     extraLink2Url: str("extraLink2Url", d.extraLink2Url),
     extraLink2Label: str("extraLink2Label", d.extraLink2Label).slice(0, 48),
     hours,
+    specialHoursEntries,
     testimonials,
     promotions,
     coupons,
@@ -418,6 +524,8 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
       0,
       CUSTOM_SERVICIOS_AMENITY_LABEL_MAX,
     ),
+    customAmenityOptionsByGroup,
+    pendingCustomAmenityOptionByGroup,
     hasLicense: bool("hasLicense", d.hasLicense),
     isInsured: bool("isInsured", d.isInsured),
     licenseType: str("licenseType", d.licenseType),

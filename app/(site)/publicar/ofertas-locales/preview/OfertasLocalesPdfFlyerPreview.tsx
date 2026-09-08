@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FiFileText } from "react-icons/fi";
+import { FiChevronLeft, FiChevronRight, FiFileText } from "react-icons/fi";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { OFERTAS_LOCALES_PREVIEW_COPY } from "./ofertasLocalesPreviewCopy";
+import { acquireSharedPdfPage, releaseSharedPdfDocument } from "./ofertasLocalesPdfDocumentCache";
+
+const NAV_BTN =
+  "inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-[#D4C4A8] bg-white px-3 py-2 text-xs font-semibold text-[#1E1814] transition hover:border-[#7A1E2C]/40 disabled:cursor-not-allowed disabled:opacity-40 sm:min-h-11 sm:px-4 sm:text-sm";
 
 export function OfertasLocalesPdfFlyerPreview({
   pdfUrl,
@@ -23,6 +27,14 @@ export function OfertasLocalesPdfFlyerPreview({
   const renderTaskRef = useRef<{ cancel?: () => void } | null>(null);
   const [rendering, setRendering] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageCount, setPageCount] = useState<number | null>(null);
+
+  // A new flyer URL always starts back on page 1.
+  useEffect(() => {
+    setCurrentPage(1);
+    setPageCount(null);
+  }, [pdfUrl]);
 
   useEffect(() => {
     if (!pdfUrl) return;
@@ -35,16 +47,9 @@ export function OfertasLocalesPdfFlyerPreview({
       renderTaskRef.current = null;
 
       try {
-        const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-        if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-          pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/legacy/build/pdf.worker.min.mjs`;
-        }
-
-        const pdf = await pdfjs.getDocument({ url: pdfUrl, withCredentials: false }).promise;
+        const { page, numPages } = await acquireSharedPdfPage(pdfUrl, currentPage);
         if (cancelled) return;
-
-        const page = await pdf.getPage(1);
-        if (cancelled) return;
+        setPageCount(numPages);
 
         const baseViewport = page.getViewport({ scale: 1 });
         const containerWidth = containerRef.current?.clientWidth ?? baseViewport.width;
@@ -79,24 +84,29 @@ export function OfertasLocalesPdfFlyerPreview({
     return () => {
       cancelled = true;
       renderTaskRef.current?.cancel?.();
+      releaseSharedPdfDocument(pdfUrl);
     };
-  }, [pdfUrl, lang, c.flyerRenderFailedEn, c.flyerRenderFailedEs]);
+  }, [pdfUrl, currentPage, lang, c.flyerRenderFailedEn, c.flyerRenderFailedEs]);
 
-  const mobileMaxH = compactMobile ? "max-h-[300px]" : "max-h-[420px]";
-  const desktopMaxH = "sm:max-h-[480px] lg:max-h-[520px]";
+  // Uses the full width of its container (no more max-w-2xl/3xl wrapper one
+  // level up) and a viewport-relative height cap so the rendered flyer scales
+  // with real available space instead of a small fixed pixel ceiling.
+  const mobileMaxH = compactMobile ? "max-h-[55vh]" : "max-h-[65vh]";
+  const desktopMaxH = "sm:max-h-[75vh] lg:max-h-[82vh]";
+
+  function goToPage(next: number) {
+    setCurrentPage((prev) => Math.min(Math.max(1, next), pageCount ?? prev));
+  }
 
   return (
-    <div
-      ref={containerRef}
-      className={`relative w-full overflow-hidden bg-[#FDF8F0]/80 p-1.5 sm:p-3 ${compactMobile ? "max-h-[320px] sm:max-h-none" : ""}`}
-    >
+    <div ref={containerRef} className="w-full overflow-hidden bg-[#FDF8F0]/80 p-1.5 sm:p-3">
       <p className="mb-1 flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-wide text-[#B8860B] sm:mb-2 sm:text-[10px]">
         <FiFileText className="h-3 w-3 sm:h-3.5 sm:w-3.5" aria-hidden />
         {lang === "en" ? c.flyerPreviewEn : c.flyerPreviewEs}
       </p>
       {rendering && !error ? (
         <div
-          className={`flex items-center justify-center rounded-lg border border-[#D4C4A8]/60 bg-white/80 px-3 py-8 text-center sm:px-4 sm:py-12 ${mobileMaxH} ${desktopMaxH} ${compactMobile ? "min-h-[120px]" : "min-h-[200px]"}`}
+          className={`flex items-center justify-center rounded-lg border border-[#D4C4A8]/60 bg-white/80 px-3 py-8 text-center sm:px-4 sm:py-12 ${mobileMaxH} ${desktopMaxH} ${compactMobile ? "min-h-[160px]" : "min-h-[260px]"}`}
         >
           <p className="text-xs text-[#1E1814]/55 sm:text-sm">
             {lang === "en" ? c.flyerRenderingEn : c.flyerRenderingEs}
@@ -120,6 +130,31 @@ export function OfertasLocalesPdfFlyerPreview({
           }`}
         />
       )}
+      {pageCount != null && !error ? (
+        <div className="mt-3 flex items-center justify-between gap-2 border-t border-[#E8D9C4]/70 pt-3 sm:mt-4 sm:pt-4">
+          <button
+            type="button"
+            disabled={currentPage <= 1}
+            onClick={() => goToPage(currentPage - 1)}
+            className={NAV_BTN}
+          >
+            <FiChevronLeft className="h-4 w-4 shrink-0" aria-hidden />
+            {lang === "en" ? "Previous" : "Anterior"}
+          </button>
+          <span className="text-xs font-semibold text-[#1E1814]/70 sm:text-sm">
+            {lang === "en" ? "Page" : "Página"} {currentPage} {lang === "en" ? "of" : "de"} {pageCount}
+          </span>
+          <button
+            type="button"
+            disabled={currentPage >= pageCount}
+            onClick={() => goToPage(currentPage + 1)}
+            className={NAV_BTN}
+          >
+            {lang === "en" ? "Next" : "Siguiente"}
+            <FiChevronRight className="h-4 w-4 shrink-0" aria-hidden />
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -360,68 +360,80 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const scanJobValidation = await validateAiReviewScanJob({
-      supabase,
-      ownerId,
-      ofertaLocalId: aiReview.ofertaLocalId,
-      scanJobId: aiReview.scanJobId,
-    });
+    // The AI-review scan-job/approved-source-item checks below prove a real
+    // scan was completed and reviewed — meaningful only for the AI-included
+    // flyer lane. The free coupon lane never scans (Gate: two-lane
+    // execution), so it skips them entirely rather than being blocked by an
+    // "approved source item" check that can never be satisfied without a
+    // scan job. Client-side validation already requires at least one titled
+    // coupon before Preview is reachable for this lane.
+    let aiReviewCounts = { totalCount: 0, incompleteCount: 0, approvedSourceItemCount: 0 };
+    if (entitlement.product.aiIncluded) {
+      const scanJobValidation = await validateAiReviewScanJob({
+        supabase,
+        ownerId,
+        ofertaLocalId: aiReview.ofertaLocalId,
+        scanJobId: aiReview.scanJobId,
+      });
 
-    if (!scanJobValidation.ok) {
-      return NextResponse.json(
-        { ok: false, error: scanJobValidation.error, detail: scanJobValidation.detail },
-        { status: scanJobValidation.status }
-      );
-    }
+      if (!scanJobValidation.ok) {
+        return NextResponse.json(
+          { ok: false, error: scanJobValidation.error, detail: scanJobValidation.detail },
+          { status: scanJobValidation.status }
+        );
+      }
 
-    const aiReviewCounts = await getAiReviewCounts({
-      supabase,
-      ownerId,
-      ofertaLocalId: aiReview.ofertaLocalId,
-      scanJobId: aiReview.scanJobId,
-    });
+      const counts = await getAiReviewCounts({
+        supabase,
+        ownerId,
+        ofertaLocalId: aiReview.ofertaLocalId,
+        scanJobId: aiReview.scanJobId,
+      });
 
-    if (!aiReviewCounts.ok) {
-      return NextResponse.json(
-        { ok: false, error: aiReviewCounts.error, detail: aiReviewCounts.detail },
-        { status: 500 }
-      );
-    }
+      if (!counts.ok) {
+        return NextResponse.json(
+          { ok: false, error: counts.error, detail: counts.detail },
+          { status: 500 }
+        );
+      }
 
-    if (aiReviewCounts.incompleteCount > 0) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "ai_review_incomplete",
-          detail: `Finish reviewing ${aiReviewCounts.incompleteCount} AI suggestion(s) before submitting.`,
-          issues: [
-            {
-              field: "aiReview",
-              message: `Finish reviewing ${aiReviewCounts.incompleteCount} AI suggestion(s) before submitting.`,
-              severity: "error",
-            },
-          ],
-        },
-        { status: 422 }
-      );
-    }
+      if (counts.incompleteCount > 0) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "ai_review_incomplete",
+            detail: `Finish reviewing ${counts.incompleteCount} AI suggestion(s) before submitting.`,
+            issues: [
+              {
+                field: "aiReview",
+                message: `Finish reviewing ${counts.incompleteCount} AI suggestion(s) before submitting.`,
+                severity: "error",
+              },
+            ],
+          },
+          { status: 422 }
+        );
+      }
 
-    if (aiReviewCounts.approvedSourceItemCount < 1) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "ai_review_approved_source_item_required",
-          detail: "Approve at least one item from the scanned source before submitting.",
-          issues: [
-            {
-              field: "aiReview",
-              message: "Approve at least one item from the scanned source before submitting.",
-              severity: "error",
-            },
-          ],
-        },
-        { status: 422 }
-      );
+      if (counts.approvedSourceItemCount < 1) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "ai_review_approved_source_item_required",
+            detail: "Approve at least one item from the scanned source before submitting.",
+            issues: [
+              {
+                field: "aiReview",
+                message: "Approve at least one item from the scanned source before submitting.",
+                severity: "error",
+              },
+            ],
+          },
+          { status: 422 }
+        );
+      }
+
+      aiReviewCounts = counts;
     }
 
     const updateRow = buildOfertasLocalesProductionInsertRow(draft, ownerId, parent.draft_snapshot);

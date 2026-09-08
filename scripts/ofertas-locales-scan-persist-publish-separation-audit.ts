@@ -87,7 +87,11 @@ function run() {
   const caseEReadiness = getOfertaLocalAiScanReadiness(caseE, { signedIn: true, ofertaLocalId: null });
   assert.equal(caseEReadiness.ready, false, "CASE E FAILED: readiness must agree scan is not ready");
 
-  // --- CASE F: coupon flow, valid eligible coupon asset, couponText empty ---
+  // --- CASE F: coupon flow can never scan (Two-Lane Execution ⚠️: Cupones y
+  // promociones is free/manual-entry only — AI is correctly excluded from
+  // its commercial product entry, so the protected scan-persist validator's
+  // existing isOfertaLocalAiIncludedInPackage gate now correctly blocks it,
+  // regardless of couponText/asset state) ---
   const caseF = scanReadyDraft({
     offerType: "coupon",
     flyerAssets: [],
@@ -96,11 +100,11 @@ function run() {
   });
   assert.equal(
     canOfertaLocalDraftPersistForAiScan(caseF),
-    true,
-    "CASE F FAILED: couponText must be final-publish-only, not required to scan"
+    false,
+    "CASE F FAILED: the coupon lane must never be able to persist for AI scan — it has no AI entitlement"
   );
 
-  console.log("Cases A-F (scan-persist minimal requirements) passed.");
+  console.log("Cases A-F (scan-persist minimal requirements; coupon lane correctly has no AI scan) passed.");
 
   // --- CASE G: final publish validation with validFrom missing must still fail ---
   const caseG = scanReadyDraft({ validFrom: "", validUntil: "2026-01-31" });

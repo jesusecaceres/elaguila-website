@@ -322,6 +322,12 @@ export type OfertaLocalSubmissionEntitlementResult =
       leonixAdId: string;
       partnerAssignmentId: string;
     }
+  | {
+      ok: true;
+      source: "free";
+      product: OfertaLocalCommercialProduct;
+      leonixAdId: string;
+    }
   | { ok: false; status: number; code: string; message: string };
 
 export async function validateOfertaLocalSubmissionEntitlement(input: {
@@ -333,6 +339,11 @@ export async function validateOfertaLocalSubmissionEntitlement(input: {
     return { ok: false, status: 403, code: "listing_owner_mismatch", message: "Listing does not belong to this user." };
   }
 
+  // Re-derived from the persisted parent row's own offer_type — never a
+  // client-supplied flag. weekly_flyer always resolves to the $399 flyer
+  // product; only coupon/promotion offer_types can ever resolve to the free
+  // coupon product, so the free path below is structurally unreachable for
+  // the flyer lane regardless of any request body content.
   const product = getOfertaLocalCommercialProductForOfferType(input.parent.offer_type);
   if (!product) {
     return { ok: false, status: 422, code: "commercial_product_missing", message: "Listing has no valid commercial product." };
@@ -341,6 +352,15 @@ export async function validateOfertaLocalSubmissionEntitlement(input: {
   const leonixAdId = String(input.parent.leonix_ad_id ?? "").trim();
   if (!/^LNX-[A-Z0-9]{8}$/.test(leonixAdId)) {
     return { ok: false, status: 422, code: "leonix_ad_id_missing", message: "Listing must have a stable Leonix Ad ID before submission." };
+  }
+
+  // Cupones y Promociones is a free, manual-entry product by commercial
+  // definition (amountCents === 0 on its catalog entry) — no Stripe, no
+  // payment record, and no partner-courtesy assignment are required or
+  // consulted for it. This can never apply to a paid product (flyer is
+  // always $399 per its own catalog entry, checked above via `product`).
+  if (product.amountCents === 0) {
+    return { ok: true, source: "free", product, leonixAdId };
   }
 
   const { data: entitlements } = await input.supabase

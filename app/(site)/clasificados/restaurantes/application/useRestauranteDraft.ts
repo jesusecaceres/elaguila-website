@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createEmptyRestauranteDraft } from "./createEmptyRestauranteDraft";
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
+import { RESTAURANTE_MAX_CUSTOM_LANGUAGES } from "@/app/lib/clasificados/restaurantes/restauranteFormCleanupConfig";
 import {
   clearRestauranteDraftStorageAndIdb,
   loadRestauranteDraftFromStorageForEditor,
@@ -32,7 +33,10 @@ export function trimDraftStrings(d: RestauranteListingDraft): RestauranteListing
     secondaryCuisineCustom: t(d.secondaryCuisineCustom),
     additionalCuisineOtherCustom: t(d.additionalCuisineOtherCustom),
     languageOtherCustom: t(d.languageOtherCustom),
-    customLanguages: d.customLanguages?.map((x) => x.trim()).filter(Boolean).slice(0, 3),
+    customLanguages: d.customLanguages
+      ?.map((x) => x.trim())
+      .filter(Boolean)
+      .slice(0, RESTAURANTE_MAX_CUSTOM_LANGUAGES),
     serviceModeOtherCustom: t(d.serviceModeOtherCustom),
     shortSummary: d.shortSummary?.trim() || undefined,
     longDescription: t(d.longDescription),
@@ -76,6 +80,9 @@ export function useRestauranteDraft(options: UseRestauranteDraftOptions = {}) {
   const [draft, setDraft] = useState<RestauranteListingDraft>(() => createEmptyRestauranteDraft());
   const draftRef = useRef(draft);
   draftRef.current = draft;
+  // Tracks the exact draft object last handed to persist() so the leave-guard can tell
+  // "nothing changed since the last successful save" apart from "form has content".
+  const lastPersistedDraftRef = useRef<RestauranteListingDraft | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,7 +90,10 @@ export function useRestauranteDraft(options: UseRestauranteDraftOptions = {}) {
       const loaded = resolveMediaOnLoad
         ? await loadRestauranteDraftFromStorageResolved()
         : loadRestauranteDraftFromStorageForEditor();
-      if (!cancelled && loaded) setDraft(loaded);
+      if (!cancelled && loaded) {
+        setDraft(loaded);
+        lastPersistedDraftRef.current = loaded;
+      }
       if (!cancelled) setHydrated(true);
     })();
     return () => {
@@ -93,6 +103,7 @@ export function useRestauranteDraft(options: UseRestauranteDraftOptions = {}) {
 
   const persist = useCallback((next: RestauranteListingDraft) => {
     void saveRestauranteDraftToStorageResolved(next);
+    lastPersistedDraftRef.current = next;
   }, []);
 
   const setDraftPatch = useCallback(
@@ -111,9 +122,12 @@ export function useRestauranteDraft(options: UseRestauranteDraftOptions = {}) {
     (next: RestauranteListingDraft) => {
       setDraft(next);
       void saveRestauranteDraftToStorageResolved(next);
+      lastPersistedDraftRef.current = next;
     },
     [],
   );
+
+  const isDraftDirty = draft !== lastPersistedDraftRef.current;
 
   const resetDraft = useCallback(async () => {
     const next = await resetRestauranteDraftInStorage();
@@ -129,6 +143,7 @@ export function useRestauranteDraft(options: UseRestauranteDraftOptions = {}) {
     hydrated,
     draft,
     draftRef,
+    isDraftDirty,
     setDraftPatch,
     replaceDraft,
     resetDraft,

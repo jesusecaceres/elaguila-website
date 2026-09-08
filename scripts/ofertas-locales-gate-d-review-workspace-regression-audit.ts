@@ -51,8 +51,8 @@ function run() {
   );
   assert.match(
     openWorkspaceFnBody,
-    /setStep5ReviewView\("products"\)/,
-    "CASE A FAILED: opening the workspace must set the view-state, not fetch/scan anything"
+    /setStep\(6\)/,
+    "CASE A FAILED: opening the workspace must navigate to the real Step 6, not fetch/scan anything (Gate I)"
   );
   console.log("Case A (Files-to-Products switch never triggers a scan) passed.");
 
@@ -82,8 +82,8 @@ function run() {
   );
   assert.match(
     backToFilesBody,
-    /setStep5ReviewView\("files"\)/,
-    "CASE C FAILED: Back-to-Files must set the view-state back to files"
+    /setStep\(5\)/,
+    "CASE C FAILED: Back-to-Files must navigate the wizard back to Step 5 (Gate I)"
   );
   console.log("Case C (Back-to-Files returns without clearing review data) passed.");
 
@@ -230,15 +230,13 @@ function run() {
   );
   console.log("Case P/Q (scan-prep route + scanner protected manifest paths untouched) passed.");
 
-  // --- Case R: the files/products toggle is genuinely ephemeral; review data stays DB-backed ---
-  const reviewViewStateMatch = clientSrc.match(
-    /const \[step5ReviewView, setStep5ReviewView\] = useState<"files" \| "products">\("files"\);/
-  );
-  assert.ok(reviewViewStateMatch, "CASE R FAILED: step5ReviewView must be a plain ephemeral useState defaulting to files");
-  assert.doesNotMatch(
+  // --- Case R (superseded by Gate I ⚠️55-57): review now lives on its own
+  // real wizard step (Step 6) rather than an ephemeral Step-5 view-state
+  // toggle — see the new Gate I audit for the full step-promotion coverage.
+  assert.match(
     clientSrc,
-    /localStorage[\s\S]{0,80}step5ReviewView|step5ReviewView[\s\S]{0,80}localStorage|sessionStorage[\s\S]{0,80}step5ReviewView/,
-    "CASE R FAILED: the files/products view-state must not be persisted to browser storage"
+    /const showStep6ReviewDesk =\s*\n\s*step === 6 && aiIncludedInPackage && Boolean\(effectiveOfertaLocalId\?\.trim\(\)\);/,
+    "CASE R FAILED: the dedicated review screen must gate on being on the real Step 6, not a Step 5 sub-view toggle"
   );
   // Review items themselves are still fetched from the server on every mount —
   // this is the unchanged, already-certified REVIEW_DATA fetch path.
@@ -247,7 +245,7 @@ function run() {
     /fetchOfertaLocalReviewItems\(\s*ofertaLocalId,/,
     "CASE R FAILED: review items must still be recovered from the server-backed fetch path, unchanged"
   );
-  console.log("Case R (view toggle is ephemeral; review decisions remain DB-backed) passed.");
+  console.log("Case R (review now lives on real Step 6; decisions remain DB-backed) passed.");
 
   console.log("Ofertas Locales Gate D review workspace regression audit passed.");
 }

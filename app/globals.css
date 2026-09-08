@@ -34,6 +34,19 @@
   --lx-cta-dark-hover: #1a1814;
   --lx-cta-light: #fffcf7; /* legacy light CTA background */
 
+  /* Restaurantes category tokens (R-003) — the warm-brown premium header identity, named so it
+     is a category token, not an arbitrary hardcoded literal. Values are unchanged from the
+     existing softened header (Gate C13) — this only names them, it does not restyle them. */
+  --lx-restaurantes-header-bg-1: #2e2620;
+  --lx-restaurantes-header-bg-2: #4a2e20;
+  --lx-restaurantes-header-bg-3: #3a332c;
+  --lx-restaurantes-header-border: #e8d9c4;
+  --lx-restaurantes-header-overlay: #1e1814;
+  --lx-restaurantes-initial-bg: #f5f0e8;
+  --lx-restaurantes-initial-text: #7a1e2c;
+  --lx-restaurantes-open-bg: #2d5a3d;
+  --lx-restaurantes-open-text: #a8d4b8;
+
   --lx-nav-bg: rgba(255, 253, 247, 0.86);
   --lx-nav-border: rgba(201, 180, 106, 0.35);
   --lx-nav-fg: #1e1810;

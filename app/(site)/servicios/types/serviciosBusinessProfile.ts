@@ -117,12 +117,20 @@ export type ServiciosWeeklyHourRow = {
   line: string;
 };
 
+/** One special-hours / holiday row (contract §3.4 items 46-48) — e.g. "Navidad" / "Cerrado". */
+export type ServiciosSpecialHourRow = {
+  label: string;
+  note: string;
+};
+
 export type ServiciosHoursSummary = {
   /** e.g. "Hoy" / "Today" — paired with todayHoursLine for the hero panel */
   openNowLabel?: string;
   todayHoursLine?: string;
   /** Full week from the application — shown under the today line when present */
   weeklyRows?: ServiciosWeeklyHourRow[];
+  /** Multi-entry special hours / holidays, shown alongside the weekly schedule when present */
+  specialHoursRows?: ServiciosSpecialHourRow[];
 };
 
 export type ServiciosPromoOffer = {
@@ -326,7 +334,9 @@ export type ServiciosBusinessProfile = {
   customPaymentMethods?: string[];
   /** Standard amenity/option ids (Opciones y facilidades); sanitized at resolve */
   amenityOptionIds?: string[];
-  /** Custom amenity/option labels; sanitized at resolve */
+  /** Per-group custom amenity/option labels, keyed by `ServiciosAmenityGroupId`; sanitized at resolve */
+  customAmenityOptionsByGroup?: Record<string, string[]>;
+  /** @deprecated Legacy flat custom amenity/option labels — kept for older stored profiles */
   customAmenityOptions?: string[];
   /** License, insurance, certifications (self-serve; not verified by Leonix). */
   credentials?: ServiciosCredentialsWire;
@@ -369,6 +379,7 @@ export type ServiciosProfileResolved = {
       openNowLabel?: string;
       todayHoursLine?: string;
       weeklyRows?: ServiciosWeeklyHourRow[];
+      specialHoursRows?: ServiciosSpecialHourRow[];
     };
     primaryCtaLabel?: string;
     secondaryCtaLabels?: string[];
@@ -418,7 +429,9 @@ export type ServiciosProfileResolved = {
   customPaymentMethods: string[];
   /** Whitelisted amenity option ids */
   amenityOptionIds: string[];
-  /** Sanitized custom amenity labels */
+  /** Sanitized custom amenity labels, per group (keyed by `ServiciosAmenityGroupId`) */
+  customAmenityOptionsByGroup: Record<string, string[]>;
+  /** @deprecated Sanitized flat custom amenity labels — flattened union of all groups, kept for older consumers */
   customAmenityOptions: string[];
   /** Active promotions (max 4); safe hrefs only */
   promotions: Array<{

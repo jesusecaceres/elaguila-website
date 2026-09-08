@@ -1692,6 +1692,47 @@ export function OfertasLocalesAiItemReviewPanel({
                   onSave={() => void handleSave(focusedItem.id)}
                   onStatus={(status) => void handleStatusAction(focusedItem.id, status)}
                 />
+              ) : isWorkspace && currentPageSummary && currentPageSummary.needsReview === 0 ? (
+                // ⚠️66: the current page has nothing left to review — this is
+                // the primary "work area" the advertiser has been looking at,
+                // so it must state the completed page/review state and the
+                // next action here, not leave a one-line placeholder while the
+                // real progression cue sits in a small box further down.
+                allPagesComplete ? (
+                  <div className="rounded-xl border border-emerald-300/80 bg-emerald-50 px-4 py-5">
+                    <p className="text-base font-semibold text-emerald-950">{c.aiReviewCompleteTitle}</p>
+                    <p className="mt-1 text-sm font-medium text-emerald-900">
+                      {formatReviewCopy(c.step5ReviewCompleteCount, { count: allCurrentScanItems.length })}
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-emerald-900">
+                      {formatReviewCopy(c.aiReviewCompletePagesCount, {
+                        completed: pageSummaries.filter((page) => page.needsReview === 0).length,
+                        total: pageSummaries.length,
+                      })}
+                    </p>
+                    <button
+                      type="button"
+                      className={`${BTN_SUCCESS_LG} mt-4`}
+                      onClick={() => onContinueToNextStep?.()}
+                    >
+                      {c.aiReviewContinueToNextStep}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-emerald-300/80 bg-emerald-50 px-4 py-5">
+                    <p className="text-base font-semibold text-emerald-950">
+                      {formatReviewCopy(c.aiReviewPageCompleteCheck, { page: currentPageSummary.page })}
+                    </p>
+                    <p className="mt-1 text-sm text-emerald-900">{c.aiReviewPageCompleteBody}</p>
+                    <p className="mt-1 text-xs font-medium text-emerald-900/80">
+                      {lang === "en" ? "Page" : "Página"} {currentPageSummary.page}{" "}
+                      {lang === "en" ? "of" : "de"} {pageSummaries.length}
+                    </p>
+                    <button type="button" className={`${BTN_SUCCESS_LG} mt-4`} onClick={proceedToNextPage}>
+                      {c.aiReviewContinueToPage}
+                    </button>
+                  </div>
+                )
               ) : (
                 <p className="text-xs text-[#1E1814]/60">
                   {lang === "en" ? "Select a product below to edit it." : "Selecciona un producto abajo para editarlo."}

@@ -216,10 +216,15 @@ export function resolveOfertaLocalContactEmail(draft: Pick<OfertaLocalDraft, "em
 export function buildOfertaLocalMailtoHref(email: string, businessName?: string): string {
   const t = resolveOfertaLocalContactEmail({ email });
   if (!t) return "";
+  // RFC 6068: the recipient address is NOT percent-encoded — only the query
+  // (subject/body) is. encodeURIComponent(t) turns "@" into "%40", which
+  // most mail clients cannot parse back into a valid "To" address, so the
+  // composer opens with no (or a broken) recipient. Only the subject goes
+  // through encodeURIComponent.
   const subject = businessName?.trim()
     ? encodeURIComponent(`${businessName.trim()} · Leonix`)
     : encodeURIComponent("Leonix inquiry");
-  return `mailto:${encodeURIComponent(t)}?subject=${subject}`;
+  return `mailto:${t}?subject=${subject}`;
 }
 
 export function getOfertaLocalSocialLinkPillClass(key: OfertaLocalSocialLinkKey): string {

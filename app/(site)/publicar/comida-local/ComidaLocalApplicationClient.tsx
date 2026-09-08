@@ -3,7 +3,7 @@
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { normalizeLang, replaceLangInHref } from "@/app/lib/language";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { postComidaLocalPublishApi } from "@/app/lib/clasificados/comida-local/comidaLocalPublishClient";
@@ -24,6 +24,7 @@ import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlo
 import { PhoneInput } from "@/app/components/forms/PhoneInput";
 import { LanguagesInput } from "@/app/components/forms/LanguagesInput";
 import { HoursEditor, type HoursEditorDayRow } from "@/app/components/forms/HoursEditor";
+import { AddedConfirmationBadge, useAddedConfirmation } from "@/app/components/forms/AddedConfirmation";
 import {
   COMIDA_LOCAL_BUSINESS_TYPE_OPTIONS,
   COMIDA_LOCAL_FOOD_TYPE_OPTIONS,
@@ -39,6 +40,7 @@ import {
 import { syncComidaLocalCityFromInput } from "@/app/lib/clasificados/comida-local/comidaLocalCity";
 import {
   COMIDA_LOCAL_FIELD_COPY,
+  COMIDA_LOCAL_HIGHLIGHTS_DISCLAIMER,
   COMIDA_LOCAL_SHELL_COPY,
   resolveComidaLocalFieldCopy,
 } from "@/app/lib/clasificados/comida-local/comidaLocalFieldCopy";
@@ -80,6 +82,35 @@ const CHIP_ON =
   "rounded-lg border border-[#7A1E2C] bg-[#7A1E2C]/10 px-3 py-1.5 text-sm font-medium text-[#7A1E2C]";
 const CHIP_OFF =
   "rounded-lg border border-[#D4C4A8] bg-white px-3 py-1.5 text-sm text-[#1E1814]/80 hover:border-[#7A1E2C]/40";
+
+/** Case- and accent-insensitive key for custom-language duplicate detection (contract shared
+ * items 33/39, bounded version) — mirrors Servicios' `normalizeServiceOfferedDedupeKey`. */
+function normalizeComidaLocalLanguageToken(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "");
+}
+
+/**
+ * True when `candidate` duplicates an already-added custom language, or one of
+ * COMIDA_LOCAL_LANGUAGE_OPTIONS' own fixed/suggested labels (in either ES or EN) — e.g. typing
+ * "French"/"francés" is fine, but "Spanish"/"español" duplicates the fixed "es" option. Bounded
+ * lookup against this finite list only; no open-ended cross-language dictionary (item 39 scope).
+ */
+function isDuplicateComidaLocalCustomLanguage(candidate: string, existingCustoms: string[]): boolean {
+  const norm = normalizeComidaLocalLanguageToken(candidate);
+  if (!norm) return true;
+  if (existingCustoms.some((v) => normalizeComidaLocalLanguageToken(v) === norm)) return true;
+  return COMIDA_LOCAL_LANGUAGE_OPTIONS.some((o) => {
+    if (o.value === "otro") return false;
+    return (
+      normalizeComidaLocalLanguageToken(o.labelEs) === norm ||
+      normalizeComidaLocalLanguageToken(o.labelEn) === norm
+    );
+  });
+}
 
 const WEEKDAY_ORDER = [
   "monday",
@@ -152,6 +183,87 @@ function SellerTypeBanner({ text }: { text: string }) {
   );
 }
 
+/** Gate C-023/C-053/C-068 — shared array-backed "Other" custom-value list: an Add button plus
+ * independently-removable chips, mirroring the LanguagesInput custom-entry UX. Blank/whitespace
+ * entries are blocked and near-duplicate (case-insensitive, trimmed) entries are ignored. */
+function CustomChipListField({
+  values,
+  inputValue,
+  onInputChange,
+  onAdd,
+  onRemove,
+  placeholder,
+  addLabel,
+  removeAriaLabel,
+  maxLength = 80,
+  justAdded,
+  addedLabel,
+}: {
+  values: string[];
+  inputValue: string;
+  onInputChange: (value: string) => void;
+  onAdd: () => void;
+  onRemove: (index: number) => void;
+  placeholder?: string;
+  addLabel: string;
+  removeAriaLabel: (value: string) => string;
+  maxLength?: number;
+  /** Owner UX doctrine (INPUT -> ACCEPTED -> PERSISTED): true for a brief moment right after a
+   * genuinely successful add, driven by the caller's own `useAddedConfirmation()` instance so
+   * each of this component's call sites (business type / service mode / highlights) flashes
+   * independently. */
+  justAdded: boolean;
+  addedLabel: string;
+}) {
+  return (
+    <div className="space-y-2">
+      {values.length ? (
+        <div className="flex flex-wrap gap-2">
+          {values.map((value, index) => (
+            <span
+              key={`${value}-${index}`}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#7A1E2C]/25 bg-[#7A1E2C]/5 px-3 py-1 text-sm font-medium text-[#7A1E2C]"
+            >
+              {value}
+              <button
+                type="button"
+                className="ml-0.5 rounded-full px-1 text-[#7A1E2C]/60 hover:text-[#7A1E2C]"
+                aria-label={removeAriaLabel(value)}
+                onClick={() => onRemove(index)}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      ) : null}
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          className={cx(INPUT, "min-w-[10rem] flex-1")}
+          maxLength={maxLength}
+          value={inputValue}
+          onChange={(e) => onInputChange(e.target.value)}
+          placeholder={placeholder}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              onAdd();
+            }
+          }}
+        />
+        <button
+          type="button"
+          onClick={onAdd}
+          className="shrink-0 rounded-lg border border-dashed border-[#D4C4A8] px-3 py-2 text-xs font-medium text-[#1E1814]/70 hover:border-[#7A1E2C]/40"
+        >
+          {addLabel}
+        </button>
+        <AddedConfirmationBadge visible={justAdded} label={addedLabel} />
+      </div>
+    </div>
+  );
+}
+
 function formatSavedAt(ts: number | null, es: boolean): string | null {
   if (!ts) return null;
   try {
@@ -184,12 +296,12 @@ export default function ComidaLocalApplicationClient() {
    * locked "no recharge on active-paid-edit" doctrine used by every other paid category. */
   const editListingId = ((searchParams?.get("edit") ?? "") === "1" ? searchParams?.get("listingId") ?? "" : "").trim();
   const editStorageKey = editListingId ? comidaLocalEditWorkspaceStorageKey(editListingId) : undefined;
-  const { draft, setDraft, updateDraft, resetDraft, hasLoadedDraft, lastSavedAt } = useComidaLocalDraft({
+  const { draft, setDraft, updateDraft, resetDraft, hasLoadedDraft, lastSavedAt, isDraftDirty } = useComidaLocalDraft({
     storageKey: editStorageKey,
   });
 
   useBusinessApplicationLeaveGuard({
-    isDirty: hasLoadedDraft && Boolean(draft.businessName?.trim()),
+    isDirty: hasLoadedDraft && Boolean(draft.businessName?.trim()) && isDraftDirty,
     persist: () => {
       if (editStorageKey) saveComidaLocalDraftToStorage(draft, editStorageKey);
       else saveComidaLocalDraftToStorage(draft);
@@ -205,6 +317,36 @@ export default function ComidaLocalApplicationClient() {
   const [activeSection, setActiveSection] = useState<ComidaLocalSectionKey>("identidad");
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [customLanguageInput, setCustomLanguageInput] = useState("");
+  const [businessTypeCustomInput, setBusinessTypeCustomInput] = useState("");
+  const [serviceOptionOtherInput, setServiceOptionOtherInput] = useState("");
+  const [highlightsOtherInput, setHighlightsOtherInput] = useState("");
+  // Owner UX doctrine — each explicit Add/Accept flow owns its own independent "just added"
+  // flash state so, e.g., adding a highlight never flashes a confirmation next to service mode.
+  const businessTypeAddedConfirmation = useAddedConfirmation();
+  const serviceOptionOtherAddedConfirmation = useAddedConfirmation();
+  const highlightsOtherAddedConfirmation = useAddedConfirmation();
+  const customLanguageAddedConfirmation = useAddedConfirmation();
+  /** Per-row confirmation for repeatable "additional websites" links (dynamic row count, so this
+   * is a small map + timer-ref instead of one `useAddedConfirmation()` per row) — mirrors
+   * Restaurantes' `websiteLinkConfirmVisible`/`flashWebsiteLinkAdded`. Flashes only once a row's
+   * URL is a genuinely valid, non-blank link (on blur), never merely because a blank row slot
+   * was created by the "+ Add link" button. */
+  const [websiteLinkConfirmVisible, setWebsiteLinkConfirmVisible] = useState<Record<number, boolean>>({});
+  const websiteLinkConfirmTimersRef = useRef<Record<number, number>>({});
+  useEffect(() => {
+    const timers = websiteLinkConfirmTimersRef.current;
+    return () => {
+      Object.values(timers).forEach((t) => window.clearTimeout(t));
+    };
+  }, []);
+  const flashAdditionalWebsiteAdded = useCallback((index: number) => {
+    setWebsiteLinkConfirmVisible((prev) => ({ ...prev, [index]: true }));
+    const existing = websiteLinkConfirmTimersRef.current[index];
+    if (existing != null) window.clearTimeout(existing);
+    websiteLinkConfirmTimersRef.current[index] = window.setTimeout(() => {
+      setWebsiteLinkConfirmVisible((prev) => ({ ...prev, [index]: false }));
+    }, 2200);
+  }, []);
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] = useState<{
@@ -333,6 +475,74 @@ export default function ComidaLocalApplicationClient() {
     }
   }, [draft.locationUrl, markTouched, updateDraft]);
 
+  const addBusinessTypeCustomValue = useCallback(() => {
+    const value = businessTypeCustomInput.trim();
+    if (!value) return;
+    setBusinessTypeCustomInput("");
+    if (draft.businessTypeCustomValues.some((v) => v.toLowerCase() === value.toLowerCase())) return;
+    updateDraft({ businessTypeCustomValues: [...draft.businessTypeCustomValues, value] });
+    businessTypeAddedConfirmation.flash();
+  }, [businessTypeCustomInput, draft.businessTypeCustomValues, updateDraft, businessTypeAddedConfirmation]);
+
+  const removeBusinessTypeCustomValue = useCallback(
+    (index: number) => {
+      updateDraft({
+        businessTypeCustomValues: draft.businessTypeCustomValues.filter((_, i) => i !== index),
+      });
+    },
+    [draft.businessTypeCustomValues, updateDraft]
+  );
+
+  const addServiceOptionOtherValue = useCallback(() => {
+    const value = serviceOptionOtherInput.trim();
+    if (!value) return;
+    setServiceOptionOtherInput("");
+    if (draft.serviceOptionOtherCustomValues.some((v) => v.toLowerCase() === value.toLowerCase())) return;
+    updateDraft({
+      serviceOptionOtherCustomValues: [...draft.serviceOptionOtherCustomValues, value],
+    });
+    serviceOptionOtherAddedConfirmation.flash();
+  }, [
+    serviceOptionOtherInput,
+    draft.serviceOptionOtherCustomValues,
+    updateDraft,
+    serviceOptionOtherAddedConfirmation,
+  ]);
+
+  const removeServiceOptionOtherValue = useCallback(
+    (index: number) => {
+      updateDraft({
+        serviceOptionOtherCustomValues: draft.serviceOptionOtherCustomValues.filter(
+          (_, i) => i !== index
+        ),
+      });
+    },
+    [draft.serviceOptionOtherCustomValues, updateDraft]
+  );
+
+  const addHighlightsOtherValue = useCallback(() => {
+    const value = highlightsOtherInput.trim();
+    if (!value) return;
+    setHighlightsOtherInput("");
+    if (draft.highlightsOtherCustomValues.some((v) => v.toLowerCase() === value.toLowerCase())) return;
+    updateDraft({ highlightsOtherCustomValues: [...draft.highlightsOtherCustomValues, value] });
+    highlightsOtherAddedConfirmation.flash();
+  }, [
+    highlightsOtherInput,
+    draft.highlightsOtherCustomValues,
+    updateDraft,
+    highlightsOtherAddedConfirmation,
+  ]);
+
+  const removeHighlightsOtherValue = useCallback(
+    (index: number) => {
+      updateDraft({
+        highlightsOtherCustomValues: draft.highlightsOtherCustomValues.filter((_, i) => i !== index),
+      });
+    },
+    [draft.highlightsOtherCustomValues, updateDraft]
+  );
+
   const hoursDays: HoursEditorDayRow[] = WEEKDAY_ORDER.map((key) => {
     const sched = draft.weeklyHours[key];
     return {
@@ -383,6 +593,17 @@ export default function ComidaLocalApplicationClient() {
   const showPaymentOther = draft.paymentMethods.includes("other");
   const savedLabel = formatSavedAt(lastSavedAt, es);
 
+  /** Gate C-024/C-027/C-034-038 — structural per-seller-type field visibility (not just banner
+   * copy). One application; only visibility of additive fields changes with `businessType`. */
+  const isEventOrMarketSeller =
+    draft.businessType === "pop_up" || draft.businessType === "feria" || draft.businessType === "mercado";
+  const showMobileOrderLink = sellerCategory === "mobile" || draft.businessType === "chef_privado";
+  const showEventScheduleNote = isEventOrMarketSeller;
+  const showCateringExtras = sellerCategory === "catering";
+  const showMealPrepExtras = sellerCategory === "meal_prep";
+  const showChefPrivadoBanner = draft.businessType === "chef_privado";
+  const showBakeryBanner = draft.businessType === "panaderia";
+
   const handlePublish = useCallback(async () => {
     if (!publishReady || publishBusy) return;
     if (editListingId && editHydration.status !== "ready") return;
@@ -400,7 +621,7 @@ export default function ComidaLocalApplicationClient() {
         draft,
         draftListingId,
         packageTier: "basic",
-        lang: "es",
+        lang: es ? "es" : "en",
         accessToken: token,
       });
       if (!res.ok || !data.ok) {
@@ -429,7 +650,7 @@ export default function ComidaLocalApplicationClient() {
     } finally {
       setPublishBusy(false);
     }
-  }, [draft, editHydration.status, editListingId, editStorageKey, publishBusy, publishReady]);
+  }, [draft, editHydration.status, editListingId, editStorageKey, es, publishBusy, publishReady]);
 
   if (!hasLoadedDraft || (editListingId && editHydration.status === "loading")) {
     return (
@@ -607,6 +828,8 @@ export default function ComidaLocalApplicationClient() {
                           businessType: e.target.value as ComidaLocalDraft["businessType"],
                           businessTypeCustom:
                             e.target.value === "otro" ? draft.businessTypeCustom : "",
+                          businessTypeCustomValues:
+                            e.target.value === "otro" ? draft.businessTypeCustomValues : [],
                         })
                       }
                     >
@@ -620,11 +843,17 @@ export default function ComidaLocalApplicationClient() {
                   </FieldBlock>
                   {showBusinessTypeCustom ? (
                     <FieldBlock fieldKey="businessTypeCustom" es={es}>
-                      <input
-                        className={INPUT}
-                        value={draft.businessTypeCustom}
-                        onChange={(e) => updateDraft({ businessTypeCustom: e.target.value })}
+                      <CustomChipListField
+                        values={draft.businessTypeCustomValues}
+                        inputValue={businessTypeCustomInput}
+                        onInputChange={setBusinessTypeCustomInput}
+                        onAdd={addBusinessTypeCustomValue}
+                        onRemove={removeBusinessTypeCustomValue}
                         placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.businessTypeCustom, es).placeholder}
+                        addLabel={es ? "Agregar" : "Add"}
+                        removeAriaLabel={(value) => (es ? `Quitar ${value}` : `Remove ${value}`)}
+                        justAdded={businessTypeAddedConfirmation.visible}
+                        addedLabel={es ? "Añadido" : "Added"}
                       />
                     </FieldBlock>
                   ) : null}
@@ -656,7 +885,7 @@ export default function ComidaLocalApplicationClient() {
                       }}
                       onSelect={() => markTouched("city")}
                       placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.cityDisplay, es).placeholder}
-                      lang="es"
+                      lang={es ? "es" : "en"}
                       variant="light"
                       className={cx(INPUT, cityInvalid && INPUT_INVALID)}
                       stripInvalidOnBlur
@@ -672,6 +901,16 @@ export default function ComidaLocalApplicationClient() {
                       onBlur={() => markTouched("zoneNote")}
                     />
                   </FieldBlock>
+                  {showCateringExtras ? (
+                    <FieldBlock fieldKey="cateringServiceRadiusNote" es={es}>
+                      <input
+                        className={INPUT}
+                        value={draft.cateringServiceRadiusNote}
+                        onChange={(e) => updateDraft({ cateringServiceRadiusNote: e.target.value })}
+                        placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.cateringServiceRadiusNote, es).placeholder}
+                      />
+                    </FieldBlock>
+                  ) : null}
                 </div>
               </section>
             )}
@@ -684,8 +923,17 @@ export default function ComidaLocalApplicationClient() {
                     <SellerTypeBanner
                       text={
                         es
-                          ? "Para catering, describe tamaños de evento, mínimos de pedido y con cuánta anticipación reservar. Agrega tu formulario de cotización en «Enlaces adicionales» (sección Contacto)."
-                          : "For catering, describe event sizes, order minimums, and how much advance notice you need. Add your quote form under “Additional links” (Contact section)."
+                          ? "Para catering, usa «Información de eventos» abajo para tamaños de evento, mínimos y anticipación. Agrega tu formulario de cotización en «Enlaces adicionales» (sección Contacto)."
+                          : "For catering, use “Event information” below for event sizes, minimums, and lead time. Add your quote form under “Additional links” (Contact section)."
+                      }
+                    />
+                  ) : null}
+                  {showChefPrivadoBanner ? (
+                    <SellerTypeBanner
+                      text={
+                        es
+                          ? "Como chef privado, describe tus servicios de reservación/consulta y usa el «Enlace de pedidos o contacto» (sección Encuéntrame Hoy) para que agenden contigo."
+                          : "As a private chef, describe your booking/consultation services and use the “Order or contact link” (Find Me Today section) so people can book with you."
                       }
                     />
                   ) : null}
@@ -693,8 +941,17 @@ export default function ComidaLocalApplicationClient() {
                     <SellerTypeBanner
                       text={
                         es
-                          ? "Para meal prep, describe tu menú semanal y cómo se ordena. Agrega tu enlace de pedidos en «Enlaces adicionales» (sección Contacto)."
-                          : "For meal prep, describe your weekly menu and how to order. Add your order link under “Additional links” (Contact section)."
+                          ? "Para meal prep, describe tu menú semanal. Usa «Frecuencia del meal prep» y «Enlace de pedidos de meal prep» abajo para cómo y cuándo ordenar."
+                          : "For meal prep, describe your weekly menu. Use “Meal prep schedule” and “Meal prep order link” below for how and when to order."
+                      }
+                    />
+                  ) : null}
+                  {showBakeryBanner ? (
+                    <SellerTypeBanner
+                      text={
+                        es
+                          ? "Como panadería/repostería, menciona si haces pedidos por encargo (pasteles, eventos), con cuánta anticipación y si atiendes alergias/restricciones."
+                          : "As a bakery/dessert shop, mention whether you take custom orders (cakes, events), how much notice you need, and any allergy/dietary accommodations."
                       }
                     />
                   ) : null}
@@ -707,6 +964,27 @@ export default function ComidaLocalApplicationClient() {
                       rows={5}
                     />
                   </FieldBlock>
+                  {showCateringExtras ? (
+                    <FieldBlock fieldKey="cateringEventInfoNote" es={es}>
+                      <textarea
+                        className={cx(INPUT, "min-h-[90px] resize-y")}
+                        value={draft.cateringEventInfoNote}
+                        onChange={(e) => updateDraft({ cateringEventInfoNote: e.target.value })}
+                        placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.cateringEventInfoNote, es).placeholder}
+                        rows={3}
+                      />
+                    </FieldBlock>
+                  ) : null}
+                  {showMealPrepExtras ? (
+                    <FieldBlock fieldKey="mealPrepOrderUrl" es={es}>
+                      <input
+                        className={INPUT}
+                        value={draft.mealPrepOrderUrl}
+                        onChange={(e) => updateDraft({ mealPrepOrderUrl: e.target.value })}
+                        placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.mealPrepOrderUrl, es).placeholder}
+                      />
+                    </FieldBlock>
+                  ) : null}
                 </div>
               </section>
             )}
@@ -796,6 +1074,10 @@ export default function ComidaLocalApplicationClient() {
                               next[i] = { ...next[i], url: e.target.value };
                               updateDraft({ additionalWebsites: next });
                             }}
+                            onBlur={(e) => {
+                              const v = e.target.value.trim();
+                              if (v && isValidComidaLocalExternalUrl(v)) flashAdditionalWebsiteAdded(i);
+                            }}
                             placeholder="https://…"
                           />
                           <button
@@ -809,20 +1091,26 @@ export default function ComidaLocalApplicationClient() {
                           >
                             {es ? "Quitar" : "Remove"}
                           </button>
+                          <AddedConfirmationBadge
+                            visible={Boolean(websiteLinkConfirmVisible[i])}
+                            label={es ? "Enlace añadido" : "Link added"}
+                          />
                         </div>
                       ))}
                       {draft.additionalWebsites.length < 6 ? (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateDraft({
-                              additionalWebsites: [...draft.additionalWebsites, { label: "", url: "" }],
-                            })
-                          }
-                          className="rounded-lg border border-dashed border-[#D4C4A8] px-3 py-2 text-xs font-medium text-[#1E1814]/70 hover:border-[#7A1E2C]/40"
-                        >
-                          {es ? "+ Agregar enlace" : "+ Add link"}
-                        </button>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateDraft({
+                                additionalWebsites: [...draft.additionalWebsites, { label: "", url: "" }],
+                              })
+                            }
+                            className="rounded-lg border border-dashed border-[#D4C4A8] px-3 py-2 text-xs font-medium text-[#1E1814]/70 hover:border-[#7A1E2C]/40"
+                          >
+                            {es ? "+ Agregar enlace" : "+ Add link"}
+                          </button>
+                        </div>
                       ) : null}
                     </div>
                   </FieldBlock>
@@ -842,9 +1130,17 @@ export default function ComidaLocalApplicationClient() {
                   {sellerCategory === "mobile" ? (
                     <SellerTypeBanner
                       text={
-                        es
-                          ? "Como vendedor móvil, «Encuéntrame hoy» es tu herramienta principal — complétalo cada vez que cambies de lugar."
-                          : "As a mobile seller, “Find me today” is your main tool — fill it in every time you move."
+                        draft.businessType === "delivery_only"
+                          ? es
+                            ? "Como negocio de solo entrega, no necesitas una ubicación pública fija — usa el «Enlace de pedidos o contacto» abajo para que te encuentren."
+                            : "As a delivery-only business, you don't need a fixed public location — use the “Order or contact link” below so people can find you."
+                          : isEventOrMarketSeller
+                            ? es
+                              ? "Como vendedor de eventos/mercados, agrega la fecha y lugar de tu próximo evento abajo, además de «Encuéntrame hoy»."
+                              : "As an event/market seller, add your next event's date and location below, in addition to “Find me today.”"
+                            : es
+                              ? "Como vendedor móvil, «Encuéntrame hoy» es tu herramienta principal — complétalo cada vez que cambies de lugar."
+                              : "As a mobile seller, “Find me today” is your main tool — fill it in every time you move."
                       }
                     />
                   ) : null}
@@ -866,6 +1162,26 @@ export default function ComidaLocalApplicationClient() {
                       placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.locationUrl, es).placeholder}
                     />
                   </FieldBlock>
+                  {showMobileOrderLink ? (
+                    <FieldBlock fieldKey="mobileOrderLinkUrl" es={es}>
+                      <input
+                        className={INPUT}
+                        value={draft.mobileOrderLinkUrl}
+                        onChange={(e) => updateDraft({ mobileOrderLinkUrl: e.target.value })}
+                        placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.mobileOrderLinkUrl, es).placeholder}
+                      />
+                    </FieldBlock>
+                  ) : null}
+                  {showEventScheduleNote ? (
+                    <FieldBlock fieldKey="eventScheduleNote" es={es}>
+                      <input
+                        className={INPUT}
+                        value={draft.eventScheduleNote}
+                        onChange={(e) => updateDraft({ eventScheduleNote: e.target.value })}
+                        placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.eventScheduleNote, es).placeholder}
+                      />
+                    </FieldBlock>
+                  ) : null}
                   <FieldBlock fieldKey="availabilityNote" es={es}>
                     <input
                       className={INPUT}
@@ -896,6 +1212,16 @@ export default function ComidaLocalApplicationClient() {
                         : "Optional and separate from “Find me today.” Leave it blank if your schedule changes constantly."}
                     </p>
                   </div>
+                  {showMealPrepExtras ? (
+                    <FieldBlock fieldKey="mealPrepScheduleNote" es={es}>
+                      <input
+                        className={INPUT}
+                        value={draft.mealPrepScheduleNote}
+                        onChange={(e) => updateDraft({ mealPrepScheduleNote: e.target.value })}
+                        placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.mealPrepScheduleNote, es).placeholder}
+                      />
+                    </FieldBlock>
+                  ) : null}
                   <FieldBlock fieldKey="serviceOptions" es={es}>
                     <div className="flex flex-wrap gap-2">
                       {COMIDA_LOCAL_SERVICE_OPTIONS.map((o) => (
@@ -921,11 +1247,17 @@ export default function ComidaLocalApplicationClient() {
                   </FieldBlock>
                   {showServiceOptionOther ? (
                     <FieldBlock fieldKey="serviceOptionOtherCustom" es={es}>
-                      <input
-                        className={INPUT}
-                        value={draft.serviceOptionOtherCustom}
-                        onChange={(e) => updateDraft({ serviceOptionOtherCustom: e.target.value })}
+                      <CustomChipListField
+                        values={draft.serviceOptionOtherCustomValues}
+                        inputValue={serviceOptionOtherInput}
+                        onInputChange={setServiceOptionOtherInput}
+                        onAdd={addServiceOptionOtherValue}
+                        onRemove={removeServiceOptionOtherValue}
                         placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.serviceOptionOtherCustom, es).placeholder}
+                        addLabel={es ? "Agregar" : "Add"}
+                        removeAriaLabel={(value) => (es ? `Quitar ${value}` : `Remove ${value}`)}
+                        justAdded={serviceOptionOtherAddedConfirmation.visible}
+                        addedLabel={es ? "Añadido" : "Added"}
                       />
                     </FieldBlock>
                   ) : null}
@@ -1050,8 +1382,13 @@ export default function ComidaLocalApplicationClient() {
                       onAddCustom={() => {
                         const value = customLanguageInput.trim();
                         if (!value) return;
+                        if (isDuplicateComidaLocalCustomLanguage(value, draft.customLanguages)) {
+                          setCustomLanguageInput("");
+                          return;
+                        }
                         updateDraft({ customLanguages: [...draft.customLanguages, value] });
                         setCustomLanguageInput("");
+                        customLanguageAddedConfirmation.flash();
                       }}
                       onRemoveCustom={(index) =>
                         updateDraft({
@@ -1064,6 +1401,11 @@ export default function ComidaLocalApplicationClient() {
                         add: es ? "Agregar" : "Add",
                         removeAria: (value) => (es ? `Quitar ${value}` : `Remove ${value}`),
                       }}
+                    />
+                    <AddedConfirmationBadge
+                      visible={customLanguageAddedConfirmation.visible}
+                      label={es ? "Idioma añadido" : "Language added"}
+                      className="mt-2"
                     />
                   </FieldBlock>
                   <FieldBlock fieldKey="highlights" es={es}>
@@ -1089,13 +1431,22 @@ export default function ComidaLocalApplicationClient() {
                       ))}
                     </div>
                   </FieldBlock>
+                  <p className="text-xs italic leading-relaxed text-[#1E1814]/55">
+                    {es ? COMIDA_LOCAL_HIGHLIGHTS_DISCLAIMER.es : COMIDA_LOCAL_HIGHLIGHTS_DISCLAIMER.en}
+                  </p>
                   {showHighlightsOther ? (
                     <FieldBlock fieldKey="highlightsOtherCustom" es={es}>
-                      <input
-                        className={INPUT}
-                        value={draft.highlightsOtherCustom}
-                        onChange={(e) => updateDraft({ highlightsOtherCustom: e.target.value })}
+                      <CustomChipListField
+                        values={draft.highlightsOtherCustomValues}
+                        inputValue={highlightsOtherInput}
+                        onInputChange={setHighlightsOtherInput}
+                        onAdd={addHighlightsOtherValue}
+                        onRemove={removeHighlightsOtherValue}
                         placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.highlightsOtherCustom, es).placeholder}
+                        addLabel={es ? "Agregar" : "Add"}
+                        removeAriaLabel={(value) => (es ? `Quitar ${value}` : `Remove ${value}`)}
+                        justAdded={highlightsOtherAddedConfirmation.visible}
+                        addedLabel={es ? "Añadido" : "Added"}
                       />
                     </FieldBlock>
                   ) : null}

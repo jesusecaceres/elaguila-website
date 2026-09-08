@@ -42,8 +42,20 @@ export type ServiciosAmenityOptionId =
   | "discount_packages_available";
 
 export const MAX_SERVICIOS_AMENITY_OPTIONS_SELECTED = 80;
+/** @deprecated Legacy flat-list cap — kept only for the retired flat `customAmenityOptions` field. */
 export const MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS = 24;
+/** Max custom entries per amenity group (each of the 5 groups gets its own bucket + cap). */
+export const MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS_PER_GROUP = 12;
 export const CUSTOM_SERVICIOS_AMENITY_LABEL_MAX = 56;
+
+/** The 5 real (non-"other") amenity group ids that get their own custom-entry bucket. */
+export const SERVICIOS_AMENITY_CUSTOM_GROUP_IDS: Exclude<ServiciosAmenityGroupId, "other">[] = [
+  "service",
+  "availability",
+  "customers_served",
+  "accessibility_languages",
+  "discounts_benefits",
+];
 
 export type ServiciosAmenityOptionDef = {
   id: ServiciosAmenityOptionId;
@@ -326,5 +338,60 @@ export function sanitizeCustomServiciosAmenityLabels(raw: string[] | undefined |
     if (out.length >= MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS) break;
   }
   return out;
+}
+
+/** Sanitizes one group's custom-amenity bucket: trims, dedupes (within group), caps length + count. */
+export function sanitizeCustomServiciosAmenityLabelsForGroup(raw: string[] | undefined | null): string[] {
+  if (!Array.isArray(raw)) return [];
+  const blocked = collectStandardAmenityLabelKeys();
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of raw) {
+    if (typeof item !== "string") continue;
+    const t = item.trim().slice(0, CUSTOM_SERVICIOS_AMENITY_LABEL_MAX);
+    if (!t) continue;
+    const k = normalizeServiciosAmenityDedupeKey(t);
+    if (!k || blocked.has(k)) continue;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(t);
+    if (out.length >= MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS_PER_GROUP) break;
+  }
+  return out;
+}
+
+/**
+ * Sanitizes the full per-group custom-amenity map, ensuring every one of the 5 real
+ * groups has an (possibly empty) array and no unknown/"other" keys leak through.
+ */
+export function sanitizeCustomServiciosAmenityLabelsByGroup(
+  raw: Record<string, unknown> | undefined | null,
+): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const groupId of SERVICIOS_AMENITY_CUSTOM_GROUP_IDS) {
+    const bucket = raw && typeof raw === "object" ? (raw as Record<string, unknown>)[groupId] : undefined;
+    out[groupId] = sanitizeCustomServiciosAmenityLabelsForGroup(
+      Array.isArray(bucket) ? (bucket.filter((x): x is string => typeof x === "string")) : [],
+    );
+  }
+  return out;
+}
+
+export function evaluateAddCustomAmenityOptionForGroup(
+  currentGroupBucket: string[],
+  raw: string,
+): { ok: true; label: string } | { ok: false; reason: "blank" | "duplicate" | "cap" } {
+  const label = raw.trim().slice(0, CUSTOM_SERVICIOS_AMENITY_LABEL_MAX);
+  if (!label) return { ok: false, reason: "blank" };
+  const blocked = collectStandardAmenityLabelKeys();
+  const key = normalizeServiciosAmenityDedupeKey(label);
+  if (blocked.has(key)) return { ok: false, reason: "duplicate" };
+  if (currentGroupBucket.length >= MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS_PER_GROUP) {
+    return { ok: false, reason: "cap" };
+  }
+  if (currentGroupBucket.some((x) => normalizeServiciosAmenityDedupeKey(x) === key)) {
+    return { ok: false, reason: "duplicate" };
+  }
+  return { ok: true, label };
 }
 

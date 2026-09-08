@@ -90,20 +90,30 @@ function buildHoursLines(draft: ComidaLocalDraft, lang: "es" | "en"): { dayLabel
 
 function buildBusinessTypeLabel(draft: ComidaLocalDraft, lang: "es" | "en"): string {
   if (!draft.businessType) return "";
-  if (draft.businessType === "otro") return draft.businessTypeCustom.trim();
+  if (draft.businessType === "otro") {
+    const values = draft.businessTypeCustomValues.length
+      ? draft.businessTypeCustomValues
+      : draft.businessTypeCustom.trim()
+        ? [draft.businessTypeCustom.trim()]
+        : [];
+    return values.join(", ");
+  }
   return labelFromBilingualOptions(draft.businessType, COMIDA_LOCAL_BUSINESS_TYPE_OPTIONS, lang);
 }
 
 function buildHighlightChips(draft: ComidaLocalDraft, lang: "es" | "en"): ComidaLocalPreviewChip[] {
   return draft.highlights
-    .map((v) => {
+    .flatMap((v): ComidaLocalPreviewChip[] => {
       if (v === "otro") {
-        const custom = draft.highlightsOtherCustom.trim();
-        return custom ? { key: "highlight-otro", label: custom } : null;
+        const values = draft.highlightsOtherCustomValues.length
+          ? draft.highlightsOtherCustomValues
+          : draft.highlightsOtherCustom.trim()
+            ? [draft.highlightsOtherCustom.trim()]
+            : [];
+        return values.map((label, i) => ({ key: `highlight-otro-${i}`, label }));
       }
-      return { key: v, label: labelFromBilingualOptions(v, COMIDA_LOCAL_HIGHLIGHT_OPTIONS, lang) };
-    })
-    .filter((x): x is ComidaLocalPreviewChip => x !== null);
+      return [{ key: v, label: labelFromBilingualOptions(v, COMIDA_LOCAL_HIGHLIGHT_OPTIONS, lang) }];
+    });
 }
 
 function buildAdditionalWebsiteLinks(draft: ComidaLocalDraft): ComidaLocalPreviewLink[] {
@@ -248,13 +258,22 @@ export function mapComidaLocalDraftToPreviewVm(
   const queVendes = draft.queVendes.trim();
   const availabilityNote = draft.availabilityNote.trim();
   const locationNote = draft.locationNote.trim();
-  const serviceChips: ComidaLocalPreviewChip[] = draft.serviceOptions.map((v) => {
-    let label = labelFromBilingualOptions(v, COMIDA_LOCAL_SERVICE_OPTIONS, lang);
-    if (v === "other" && draft.serviceOptionOtherCustom.trim()) {
-      label = draft.serviceOptionOtherCustom.trim();
+  const serviceChips: ComidaLocalPreviewChip[] = draft.serviceOptions.flatMap(
+    (v): ComidaLocalPreviewChip[] => {
+      if (v === "other") {
+        const values = draft.serviceOptionOtherCustomValues.length
+          ? draft.serviceOptionOtherCustomValues
+          : draft.serviceOptionOtherCustom.trim()
+            ? [draft.serviceOptionOtherCustom.trim()]
+            : [];
+        if (values.length === 0) {
+          return [{ key: v, label: labelFromBilingualOptions(v, COMIDA_LOCAL_SERVICE_OPTIONS, lang) }];
+        }
+        return values.map((label, i) => ({ key: `${v}-${i}`, label }));
+      }
+      return [{ key: v, label: labelFromBilingualOptions(v, COMIDA_LOCAL_SERVICE_OPTIONS, lang) }];
     }
-    return { key: v, label };
-  });
+  );
   const paymentChips = buildPaymentChips(draft, lang);
   const priceLevelLabel = draft.priceLevel
     ? labelFromOptions(draft.priceLevel, COMIDA_LOCAL_PRICE_LEVEL_OPTIONS)
@@ -270,6 +289,15 @@ export function mapComidaLocalDraftToPreviewVm(
   const highlightChips = buildHighlightChips(draft, lang);
   const additionalWebsites = buildAdditionalWebsiteLinks(draft);
   const businessAddressLine = draft.showAddressPublicly ? draft.businessAddressLine.trim() : "";
+  const eventScheduleNote = draft.eventScheduleNote.trim();
+  const cateringServiceRadiusNote = draft.cateringServiceRadiusNote.trim();
+  const cateringEventInfoNote = draft.cateringEventInfoNote.trim();
+  const mealPrepScheduleNote = draft.mealPrepScheduleNote.trim();
+  const orderLinkRaw = draft.mobileOrderLinkUrl.trim() || draft.mealPrepOrderUrl.trim();
+  const orderLinkHref = normalizeLocationHref(orderLinkRaw);
+  const orderLink: ComidaLocalPreviewLink | null = orderLinkHref
+    ? { label: lang === "en" ? "Order / contact link" : "Enlace de pedidos / contacto", href: orderLinkHref }
+    : null;
   const hoursLines = buildHoursLines(draft, lang);
   const isOpenNow =
     hoursLines.length > 0 ? computeBusinessHoursStatus(draft.weeklyHours).isOpenNow : null;
@@ -304,6 +332,10 @@ export function mapComidaLocalDraftToPreviewVm(
     showAdditionalWebsites: additionalWebsites.length > 0,
     showBusinessAddress: Boolean(businessAddressLine),
     showHours: hoursLines.length > 0,
+    showOrderLink: Boolean(orderLink),
+    showEventSchedule: Boolean(eventScheduleNote),
+    showCateringDetails: Boolean(cateringServiceRadiusNote || cateringEventInfoNote),
+    showMealPrepSchedule: Boolean(mealPrepScheduleNote),
   };
 
   return {
@@ -321,6 +353,11 @@ export function mapComidaLocalDraftToPreviewVm(
     highlightChips,
     additionalWebsites,
     businessAddressLine,
+    orderLink,
+    eventScheduleNote,
+    cateringServiceRadiusNote,
+    cateringEventInfoNote,
+    mealPrepScheduleNote,
     isOpenNow,
     hoursLines,
     contactActions,

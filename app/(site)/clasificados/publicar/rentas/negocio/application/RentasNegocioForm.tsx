@@ -614,18 +614,31 @@ export function RentasNegocioForm() {
 
         <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>{lang === "en" ? "Category" : "Categoría"}</h2>
-          <p className={aiSubClass}>{lang === "en" ? "Choose one; the other fields adapt in the form and preview." : "Elige una; los demás campos se adaptan en el formulario y en la vista previa."}</p>
+          <p className={aiSubClass}>
+            {state.tipoDeRenta
+              ? lang === "en"
+                ? "Determined automatically from the rental type below — it can no longer be set independently."
+                : "Se determina automáticamente según el tipo de renta (abajo) — ya no se puede elegir de forma independiente."
+              : lang === "en"
+                ? "Choose one; the other fields adapt in the form and preview."
+                : "Elige una; los demás campos se adaptan en el formulario y en la vista previa."}
+          </p>
           <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
             {CATEGORIAS.map((c) => (
               <button
                 key={c.id}
                 type="button"
-                onClick={() => setState((s) => ({ ...s, categoriaPropiedad: c.id }))}
+                disabled={Boolean(state.tipoDeRenta)}
+                aria-disabled={Boolean(state.tipoDeRenta)}
+                onClick={() => {
+                  if (state.tipoDeRenta) return;
+                  setState((s) => ({ ...s, categoriaPropiedad: c.id }));
+                }}
                 className={`min-h-[48px] w-full rounded-xl border px-3 py-3 text-center text-sm font-semibold leading-snug transition sm:min-h-[44px] sm:py-2.5 ${
                   cat === c.id
                     ? "border-[#B8954A] bg-[#FFF6E7] text-[#1E1810] ring-1 ring-[#B8954A]/30"
                     : "border-[#E8DFD0] bg-white text-[#5C5346] hover:border-[#C9B46A]/60"
-                }`}
+                } ${state.tipoDeRenta ? "cursor-not-allowed opacity-70" : ""}`}
               >
                 {rentasFormOptionLabel(c.label, lang)}
               </button>

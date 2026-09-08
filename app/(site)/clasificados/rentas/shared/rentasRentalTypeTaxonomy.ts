@@ -99,6 +99,28 @@ export function rentasRentalFlowGroupForTipo(tipo: string | undefined | null): R
 }
 
 /**
+ * Item 13 fix — canonical semantic category for a flow group. Every `RentasRentalFlowGroup`
+ * maps to exactly one valid property category; there is no legitimate independent choice left
+ * once `tipoDeRenta` is set (an "Oficina" rental can never legitimately be "residencial"). This
+ * is the single source of truth `categoriaPropiedad` must be derived from — never set
+ * independently — so the two fields can no longer drift into a contradictory combination
+ * (e.g. "Oficina" + "Residencial" rendering a "RENTA RESIDENCIAL" heading for a commercial
+ * listing, the confirmed behavioral defect this fixes).
+ */
+export function rentasCategoriaPropiedadForFlowGroup(g: RentasRentalFlowGroup): "residencial" | "comercial" | "terreno_lote" {
+  if (g === "commercial_space" || g === "storage_parking") return "comercial";
+  if (g === "land_parcel") return "terreno_lote";
+  // full_housing, room_shared, unset — all residential in nature; "unset" defaults here rather
+  // than blocking on an unmade choice, matching rentasRentalFlowGroupForTipo's own "otro" default.
+  return "residencial";
+}
+
+/** Convenience wrapper: canonical category directly from a raw tipoDeRenta value. */
+export function rentasCategoriaPropiedadForTipo(tipo: string | undefined | null): "residencial" | "comercial" | "terreno_lote" {
+  return rentasCategoriaPropiedadForFlowGroup(rentasRentalFlowGroupForTipo(tipo));
+}
+
+/**
  * User-facing tipo label. For `otro`, returns trimmed custom text when present — never the literal "Otro" alone when custom exists.
  */
 export function formatRentasTipoDeRentaDisplay(tipo: string | undefined | null, tipoOtro: string | undefined | null): string {

@@ -12,6 +12,7 @@ import {
   filterGalleryVideos,
   filterAmenityOptionIds,
   filterCustomAmenityOptions,
+  filterCustomAmenityOptionsByGroup,
   filterHeroBadges,
   filterQuickFacts,
   filterServiceAreas,
@@ -195,6 +196,17 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
         ]
       : withoutAdvertiserVerified;
 
+  const groupedCustomAmenities = filterCustomAmenityOptionsByGroup(input.customAmenityOptionsByGroup);
+  const hasGroupedCustomAmenities = Object.values(groupedCustomAmenities).some((arr) => arr.length > 0);
+  // Legacy flat `customAmenityOptions` (pre-per-group) — migrate into the "service" bucket
+  // only when no grouped data exists yet, so older published listings keep their custom
+  // amenities visible non-destructively.
+  const resolvedCustomAmenityOptionsByGroup = hasGroupedCustomAmenities
+    ? groupedCustomAmenities
+    : filterCustomAmenityOptionsByGroup({
+        service: filterCustomAmenityOptions(input.customAmenityOptions),
+      });
+
   return {
     identity: { slug, businessName },
     hero: {
@@ -248,7 +260,8 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
     paymentMethodIds: filterPaymentMethodIds(input.paymentMethodIds),
     customPaymentMethods: filterCustomPaymentMethods(input.customPaymentMethods),
     amenityOptionIds: filterAmenityOptionIds(input.amenityOptionIds),
-    customAmenityOptions: filterCustomAmenityOptions(input.customAmenityOptions),
+    customAmenityOptionsByGroup: resolvedCustomAmenityOptionsByGroup,
+    customAmenityOptions: Object.values(resolvedCustomAmenityOptionsByGroup).flat(),
     promotions,
     coupons,
     ...(couponFlyerUrl ? { couponFlyer: { imageUrl: couponFlyerUrl } } : {}),

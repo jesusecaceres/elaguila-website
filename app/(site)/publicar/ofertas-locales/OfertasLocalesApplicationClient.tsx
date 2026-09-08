@@ -61,25 +61,31 @@ import {
   saveOfertaLocalAiScanSession,
 } from "@/app/lib/ofertas-locales/ofertasLocalesAiScanRecordPersistence";
 import { validateOfertaLocalDraftForServerPublish } from "@/app/lib/ofertas-locales/ofertasLocalesPublishMapper";
+import { fetchOfertaLocalReviewItems } from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewClient";
+import { summarizeScopedItemReviewCounts } from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import type {
   OfertaLocalBusinessCategory,
+  OfertaLocalCouponEntryDraft,
   OfertaLocalDraft,
   OfertaLocalMarketType,
   OfertaLocalOfferType,
 } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import {
   clampWizardStep,
+  getOfertasLocalesWizardStepCount,
   getOfertasLocalesWizardStepHints,
-  OFERTAS_LOCALES_WIZARD_STEP_COUNT,
-  OFERTAS_LOCALES_WIZARD_STEPS,
+  getOfertasLocalesWizardSteps,
   wizardStepTitle,
   type OfertasLocalesWizardStepId,
 } from "@/app/lib/ofertas-locales/ofertasLocalesWizardSteps";
+import {
+  ensureOfertaLocalCouponRecord,
+  syncOfertaLocalCouponItems,
+} from "@/app/lib/ofertas-locales/ofertasLocalesCouponRecordPersistClient";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { normalizeLang } from "@/app/lib/language";
 import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
-import { publicContactHref } from "@/app/lib/leonix/publicRouteHrefs";
 import { useOfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { useOfertasLocalesDraft } from "@/app/lib/ofertas-locales/useOfertasLocalesDraft";
 import { validateOfertaLocalDraftForPreview } from "@/app/lib/ofertas-locales/ofertasLocalesValidation";
@@ -192,6 +198,8 @@ const BTN_PRIMARY =
   "rounded-xl bg-[#7A1E2C] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6a1926] disabled:cursor-not-allowed disabled:opacity-45";
 const BTN_SECONDARY =
   "rounded-xl border border-[#D4C4A8] bg-white px-4 py-2.5 text-sm font-medium text-[#1E1814] hover:border-[#7A1E2C]/40 disabled:cursor-not-allowed disabled:opacity-45";
+const BTN_SUCCESS_LG =
+  "min-h-12 w-full rounded-lg bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto";
 const CALLOUT =
   "rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0] px-4 py-3 text-sm text-[#1E1814]/75";
 const HINT_BOX =
@@ -214,6 +222,8 @@ function formatUsd(amount: number): string {
 function FieldBlock({
   label,
   helper,
+  error,
+  errorId,
   optional,
   optionalLabel = "opcional",
   confirm,
@@ -221,6 +231,8 @@ function FieldBlock({
 }: {
   label: string;
   helper?: string;
+  error?: string;
+  errorId?: string;
   optional?: boolean;
   optionalLabel?: string;
   confirm?: string;
@@ -235,7 +247,16 @@ function FieldBlock({
         ) : null}
       </label>
       {children}
-      {helper ? <p className={HELPER}>{helper}</p> : null}
+      {/* ⚠️65: a real inline error, distinct from the neutral grey helper —
+          shown immediately (not only after Step 8 revalidation) so an
+          invalid optional value never advances silently. */}
+      {error ? (
+        <p id={errorId} role="alert" className="text-xs font-medium text-red-700">
+          {error}
+        </p>
+      ) : helper ? (
+        <p className={HELPER}>{helper}</p>
+      ) : null}
       {confirm ? <p className={CONFIRM}>{confirm}</p> : null}
     </div>
   );
@@ -266,12 +287,6 @@ export default function OfertasLocalesApplicationClient() {
   const routeLang = normalizeLang(searchParams?.get("lang"));
   const lang = useOfertasLocalesAppLang();
   const c = ofertasLocalesAppCopy(lang);
-  const contactMoreExposureHref = publicContactHref({
-    lang: routeLang,
-    sourcePage: "publicar-ofertas-locales",
-    sourceCta: "more_exposure_contact",
-    inquiryType: "advertising",
-  });
   const [signedIn, setSignedIn] = useState(true);
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const { draft, updateDraft, resetDraft, hasLoadedDraft, lastSavedAt } = useOfertasLocalesDraft({
@@ -284,6 +299,13 @@ export default function OfertasLocalesApplicationClient() {
       review: requestedReview,
     },
   });
+  // Computed here (immediately after draft becomes available) rather than
+  // near their other lane-derived siblings below, so the initial-step
+  // hydration effect just below can safely reference them — TypeScript's
+  // TDZ check does not understand that the effect callback only ever runs
+  // after this render fully completes.
+  const isShoppingLane = isOfertaLocalShoppingSpecialsLane(draft);
+  const isCouponsLane = isOfertaLocalLocalCouponsLane(draft);
   const [step, setStep] = useState<OfertasLocalesWizardStepId>(1);
   const [step5PendingFileCount, setStep5PendingFileCount] = useState(0);
   const [submitSuccess, setSubmitSuccess] = useState<{ id: string; status: string } | null>(null);
@@ -310,14 +332,11 @@ export default function OfertasLocalesApplicationClient() {
     scanCompletedPages: null,
   });
   const [step5UploadEditing, setStep5UploadEditing] = useState(false);
-  const [step5ManualCheckpoint, setStep5ManualCheckpoint] = useState<
-    "upload" | "scan" | "review" | null
-  >(null);
-  // Ephemeral only (by design — see Gate D ticket's VIEW-STATE PERSISTENCE section):
-  // a hard refresh always returns to "files"; all review decisions stay DB-backed
-  // and are recovered independently of this toggle.
-  const [step5ReviewView, setStep5ReviewView] = useState<"files" | "products">("files");
+  const [step5ManualCheckpoint, setStep5ManualCheckpoint] = useState<"upload" | "scan" | null>(
+    null
+  );
   const reviewWorkbenchRef = useRef<HTMLElement>(null);
+  const emailFieldRef = useRef<HTMLInputElement>(null);
   // Consolidated to 3 confirmations (Gate F ⚠️42) — businessInfo + filesDates
   // merged into one, aiItems stays required only for AI-included packages.
   const [step7Confirmations, setStep7Confirmations] = useState({
@@ -330,11 +349,11 @@ export default function OfertasLocalesApplicationClient() {
 
   const effectiveOfertaLocalId = submitSuccess?.id ?? aiScanRecordId;
   const aiIncludedInPackage = isOfertaLocalAiIncludedInPackage(draft);
-  const showFullWidthReviewDesk =
-    step === 5 &&
-    aiIncludedInPackage &&
-    Boolean(effectiveOfertaLocalId?.trim()) &&
-    step5ReviewView === "products";
+  // LIVE HUMAN QA CORRECTION (Gate I): product review is now a real wizard
+  // step (Step 6), not a sub-view of Step 5 — gating on the step number
+  // itself is what makes the rail, the footer, and deep-linking all agree.
+  const showStep6ReviewDesk =
+    step === 6 && aiIncludedInPackage && Boolean(effectiveOfertaLocalId?.trim());
   const hasExistingAiScan =
     aiIncludedInPackage &&
     Boolean(lastScanJobId || aiReviewGate.totalItems > 0 || aiReviewGate.activeScanJobId);
@@ -344,12 +363,25 @@ export default function OfertasLocalesApplicationClient() {
     initialStepAppliedRef.current = true;
     const requested = Number.parseInt(requestedInitialStep, 10);
     if (Number.isFinite(requested)) {
-      setStep(clampWizardStep(requested));
+      setStep(clampWizardStep(requested, isCouponsLane));
       return;
     }
     const storedStep = loadOfertaLocalWizardStep(draft.applicationSessionId);
-    if (storedStep) setStep(clampWizardStep(storedStep));
-  }, [draft.applicationSessionId, hasLoadedDraft, requestedInitialStep]);
+    if (storedStep) {
+      // LIVE HUMAN QA CORRECTION (Gate I): a stored step of 6 or 7 may have
+      // been saved under the previous 7-step FLYER wizard (6=Extras,
+      // 7=Revisar), which no longer matches the 8-step flyer model (6=Revisar
+      // productos, 7=Extras, 8=Revisar). Bouncing to Step 5 is always safe —
+      // it never mis-renders a screen, and Step 5's own completion summary
+      // immediately re-offers the correct next step from live, DB-backed
+      // review state. This never applied to the coupon lane's 7-step model
+      // (introduced alongside this mapping), so coupon-lane steps 6/7 are
+      // always genuinely current (Extras/Revisar) and must not be bounced.
+      const safeStoredStep =
+        !isCouponsLane && (storedStep === 6 || storedStep === 7) ? 5 : storedStep;
+      setStep(clampWizardStep(safeStoredStep, isCouponsLane));
+    }
+  }, [draft.applicationSessionId, hasLoadedDraft, isCouponsLane, requestedInitialStep]);
 
   useEffect(() => {
     if (!hasLoadedDraft) return;
@@ -431,9 +463,7 @@ export default function OfertasLocalesApplicationClient() {
   useEffect(() => {
     if (!hasLoadedDraft) return;
     if (requestedReview === "1" || requestedReview === "true") {
-      setStep(5);
-      setStep5ManualCheckpoint("review");
-      setStep5ReviewView("products");
+      setStep(6);
       window.setTimeout(() => {
         reviewWorkbenchRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
         reviewWorkbenchRef.current?.focus();
@@ -507,6 +537,46 @@ export default function OfertasLocalesApplicationClient() {
     setAiScanRecordId(id);
   }, []);
 
+  // Two-Lane Execution — Gap A/B closeout: the coupon lane has no AI scan
+  // panel to trigger canonical-row creation, and its individually authored
+  // coupons need to reach the searchable oferta_local_items table. This
+  // debounced background sync (same debounce-on-change pattern as the
+  // draft's own localStorage autosave) covers both: it ensures the
+  // canonical row exists, then upserts every titled coupon as a stable,
+  // idempotent item row (keyed by the coupon's own client-generated id) and
+  // deactivates any coupon the owner removed. Runs regardless of which step
+  // the wizard is on, so it also covers hard refresh, rail-jumping, and
+  // navigating straight to Preview.
+  const [couponSyncStatus, setCouponSyncStatus] = useState<"idle" | "saving" | "saved" | "error">(
+    "idle"
+  );
+  useEffect(() => {
+    if (!hasLoadedDraft || !isCouponsLane) return;
+    if (!draft.couponEntries.some((entry) => entry.title.trim())) return;
+    let cancelled = false;
+    const t = window.setTimeout(() => {
+      void (async () => {
+        setCouponSyncStatus("saving");
+        const ensured = await ensureOfertaLocalCouponRecord(draft, effectiveOfertaLocalId);
+        if (cancelled) return;
+        if (!ensured.ok) {
+          setCouponSyncStatus("error");
+          return;
+        }
+        if (ensured.id !== aiScanRecordId) {
+          handleAiScanRecordId(ensured.id);
+        }
+        const synced = await syncOfertaLocalCouponItems(ensured.id, draft.couponEntries);
+        if (cancelled) return;
+        setCouponSyncStatus(synced.ok ? "saved" : "error");
+      })();
+    }, 900);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [aiScanRecordId, draft, effectiveOfertaLocalId, handleAiScanRecordId, hasLoadedDraft, isCouponsLane]);
+
   const handleScanStarted = useCallback(() => {
     setScanPollingActive(true);
   }, []);
@@ -524,6 +594,46 @@ export default function OfertasLocalesApplicationClient() {
   const handleAiReviewGateChange = useCallback((state: OfertaLocalAiReviewGateState) => {
     setAiReviewGate(state);
   }, []);
+
+  // LIVE QA CORRECTION: aiReviewGate was previously only ever populated by
+  // OfertasLocalesAiItemReviewPanel's own effect, which only runs while the
+  // dedicated review workspace is mounted (Step 6, since Gate I). On a cold
+  // hard refresh, the wizard doesn't necessarily land on Step 6, so the
+  // workspace never mounts, aiReviewGate stays at its zeroed initial value,
+  // and step5ReviewComplete falsely reads as
+  // incomplete even when every item was already approved. This reconstructs
+  // the same gate state directly from the existing certified read path
+  // (fetchOfertaLocalReviewItems — no new API) so the Files view is correct
+  // BEFORE the user ever opens the workspace. Once the workspace does mount,
+  // its own live effect takes over and this one no-ops (guarded below).
+  useEffect(() => {
+    if (!aiIncludedInPackage) return;
+    if (!effectiveOfertaLocalId?.trim()) return;
+    if (!lastScanJobId) return;
+    if (aiReviewGate.totalItems > 0) return;
+    let cancelled = false;
+    void fetchOfertaLocalReviewItems(effectiveOfertaLocalId, lastScanJobId).then((result) => {
+      if (cancelled || !result.ok) return;
+      const items = result.items ?? [];
+      if (items.length === 0) return;
+      const scoped = summarizeScopedItemReviewCounts(items);
+      const scanJob = result.scanJobs?.find((job) => job.id === lastScanJobId) ?? result.scanJobs?.[0] ?? null;
+      setAiReviewGate({
+        activeSourceAssetId: null,
+        activeScanJobId: lastScanJobId,
+        totalItems: items.length,
+        needsReviewCount: scoped.pending + scoped.needs_review,
+        approvedCount: scoped.approved,
+        rejectedCount: scoped.rejected,
+        reviewLaterCount: scoped.needs_review,
+        scanTotalPages: scanJob?.totalPages ?? null,
+        scanCompletedPages: scanJob?.completedPages ?? null,
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [aiIncludedInPackage, effectiveOfertaLocalId, lastScanJobId, aiReviewGate.totalItems]);
 
   const handleStartFresh = useCallback(() => {
     const msg =
@@ -586,9 +696,6 @@ export default function OfertasLocalesApplicationClient() {
   const previewReady = previewIssues.length === 0;
   const publishFieldsReady = serverPublishIssues.every((i) => i.severity !== "error");
 
-  const isShoppingLane = isOfertaLocalShoppingSpecialsLane(draft);
-  const isCouponsLane = isOfertaLocalLocalCouponsLane(draft);
-
   const step5UploadComplete = useMemo(() => {
     if (step5PendingFileCount > 0 || ofertaLocalDraftHasUnuploadedAssetMetadata(draft)) {
       return false;
@@ -606,6 +713,14 @@ export default function OfertasLocalesApplicationClient() {
     }
     return false;
   }, [draft, isCouponsLane, isShoppingLane, step5PendingFileCount]);
+
+  // Coupon lane's Step 5 is individual coupon authoring, not file upload —
+  // completeness is simply "at least one coupon has a title." No AI/scan
+  // gating applies to this free, manual-entry lane.
+  const couponsStep5Complete = useMemo(
+    () => draft.couponEntries.some((entry) => entry.title.trim().length > 0),
+    [draft.couponEntries]
+  );
 
   const step5ScanRequired = aiIncludedInPackage;
   const step5ScanComplete = !step5ScanRequired || hasExistingAiScan;
@@ -666,18 +781,12 @@ export default function OfertasLocalesApplicationClient() {
       !step5UploadEditing &&
       !step5ScanComplete &&
       step5ActiveCheckpoint === "scan");
-  const step5ReviewCardOpen =
-    step5ManualCheckpoint === "review" ||
-    (step5ScanRequired &&
-      step5ScanComplete &&
-      !step5UploadEditing &&
-      !step5ReviewComplete &&
-      step5ActiveCheckpoint === "review");
 
   const openProductReviewWorkspace = useCallback(() => {
-    // View-state only — never re-triggers a scan or touches persisted review data.
-    setStep5ReviewView("products");
+    // Real wizard-step navigation (Gate I) — never re-triggers a scan or
+    // touches persisted review data; only moves the wizard to Step 6.
     setStep5ManualCheckpoint(null);
+    setStep(6);
     window.setTimeout(() => {
       reviewWorkbenchRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       reviewWorkbenchRef.current?.focus();
@@ -686,9 +795,9 @@ export default function OfertasLocalesApplicationClient() {
 
   const handleBackToFiles = useCallback(() => {
     // Draft, uploaded assets, scan results, and review decisions are all
-    // DB/local-draft persisted already — this only flips which sub-screen
-    // of Step 5 is visible.
-    setStep5ReviewView("files");
+    // DB/local-draft persisted already — this only moves the wizard back to
+    // Step 5 (Gate I: Step 6 is now a real step, not a Step 5 sub-view).
+    setStep(5);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
@@ -696,7 +805,6 @@ export default function OfertasLocalesApplicationClient() {
     if (step !== 5) {
       setStep5UploadEditing(false);
       setStep5ManualCheckpoint(null);
-      setStep5ReviewView("files");
     }
   }, [step]);
 
@@ -724,12 +832,17 @@ export default function OfertasLocalesApplicationClient() {
   const membershipUrlAccepted = hasOfertaLocalUrlAccepted(draft.membershipUrl);
   const digitalCouponUrlAccepted = hasOfertaLocalUrlAccepted(draft.digitalCouponUrl);
 
-  const stepMeta = OFERTAS_LOCALES_WIZARD_STEPS[step - 1];
-  const stepHints = useMemo(() => getOfertasLocalesWizardStepHints(step, draft, lang), [step, draft, lang]);
+  const wizardStepCount = getOfertasLocalesWizardStepCount(isCouponsLane);
+  const wizardSteps = useMemo(() => getOfertasLocalesWizardSteps(isCouponsLane), [isCouponsLane]);
+  const stepMeta = wizardSteps[step - 1] ?? wizardSteps[wizardSteps.length - 1];
+  const stepHints = useMemo(
+    () => getOfertasLocalesWizardStepHints(step, draft, lang, isCouponsLane),
+    [step, draft, lang, isCouponsLane]
+  );
   const progressLabel =
     lang === "en"
-      ? `Step ${step} of ${OFERTAS_LOCALES_WIZARD_STEP_COUNT}`
-      : `Paso ${step} de ${OFERTAS_LOCALES_WIZARD_STEP_COUNT}`;
+      ? `Step ${step} of ${wizardStepCount}`
+      : `Paso ${step} de ${wizardStepCount}`;
 
   useEffect(() => {
     // Guarded so this can't apply the default against the pre-hydration
@@ -793,6 +906,7 @@ export default function OfertasLocalesApplicationClient() {
         | "googleBusinessUrl"
         | "googleReviewUrl"
         | "yelpUrl"
+        | "couponsMoreOffersUrl"
     ) => {
       const raw = draft[field].trim();
       if (!raw) return;
@@ -802,46 +916,138 @@ export default function OfertasLocalesApplicationClient() {
     [draft, updateDraft]
   );
 
+  const addCouponEntry = useCallback(() => {
+    updateDraft({
+      couponEntries: [
+        ...draft.couponEntries,
+        {
+          id: crypto.randomUUID(),
+          title: "",
+          description: "",
+          couponCode: "",
+          expirationDate: "",
+          redemptionNote: "",
+          imageUrl: "",
+          imageUploadedUrl: "",
+          imageUploadedFileName: "",
+        },
+      ],
+    });
+  }, [draft.couponEntries, updateDraft]);
+
+  const patchCouponEntry = useCallback(
+    (id: string, patch: Partial<OfertaLocalCouponEntryDraft>) => {
+      updateDraft({
+        couponEntries: draft.couponEntries.map((entry) =>
+          entry.id === id ? { ...entry, ...patch } : entry
+        ),
+      });
+    },
+    [draft.couponEntries, updateDraft]
+  );
+
+  const removeCouponEntry = useCallback(
+    (id: string) => {
+      updateDraft({ couponEntries: draft.couponEntries.filter((entry) => entry.id !== id) });
+    },
+    [draft.couponEntries, updateDraft]
+  );
+
+  const [couponImageUploading, setCouponImageUploading] = useState<Record<string, boolean>>({});
+  const [couponImageErrors, setCouponImageErrors] = useState<Record<string, string>>({});
+
+  const handleCouponEntryImageFile = useCallback(
+    async (id: string, file: File) => {
+      const validation = validateOfertaLocalClientAssetFile(file, "logo", lang);
+      if (!validation.ok) {
+        setCouponImageErrors((prev) => ({ ...prev, [id]: validation.errors[0] ?? c.couponEntryImageUploadFailed }));
+        return;
+      }
+      setCouponImageUploading((prev) => ({ ...prev, [id]: true }));
+      setCouponImageErrors((prev) => {
+        if (!(id in prev)) return prev;
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      try {
+        const result = await uploadOfertaLocalDraftAsset({ file, assetKind: "logo", assetId: id });
+        if (!result.ok || !result.publicUrl) {
+          setCouponImageErrors((prev) => ({
+            ...prev,
+            [id]: result.errors?.[0] ?? result.detail ?? c.couponEntryImageUploadFailed,
+          }));
+          return;
+        }
+        patchCouponEntry(id, {
+          imageUploadedUrl: result.publicUrl,
+          imageUploadedFileName: result.fileName ?? file.name,
+        });
+      } catch {
+        setCouponImageErrors((prev) => ({ ...prev, [id]: c.couponEntryImageUploadFailed }));
+      } finally {
+        setCouponImageUploading((prev) => ({ ...prev, [id]: false }));
+      }
+    },
+    [c.couponEntryImageUploadFailed, lang, patchCouponEntry]
+  );
+
+  // ⚠️65: Extras is step 6 for the coupon lane and step 7 for the flyer
+  // lane (both render the same shared renderExtrasStepContent()).
+  const isExtrasStep = isCouponsLane ? step === 6 : step === 7;
+
   const goNext = useCallback(() => {
     if (step === 5) {
-      if (!step5UploadComplete) return;
-      if (aiIncludedInPackage && (!step5ScanComplete || !step5ReviewComplete)) return;
+      if (isCouponsLane) {
+        if (!couponsStep5Complete) return;
+      } else {
+        if (!step5UploadComplete) return;
+        if (aiIncludedInPackage && !step5ScanComplete) return;
+      }
     }
-    setStep((s) => clampWizardStep(s + 1));
+    if (isExtrasStep && emailMalformed) {
+      emailFieldRef.current?.focus();
+      emailFieldRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    setStep((s) => clampWizardStep(s + 1, isCouponsLane));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [
     aiIncludedInPackage,
+    couponsStep5Complete,
+    emailMalformed,
+    isCouponsLane,
+    isExtrasStep,
     step,
-    step5ReviewComplete,
     step5ScanComplete,
     step5UploadComplete,
   ]);
 
   const step5UploadBlocksContinue = useMemo(() => {
-    if (step !== 5) return false;
+    if (step !== 5 || isCouponsLane) return false;
     return !step5UploadComplete;
-  }, [step, step5UploadComplete]);
+  }, [isCouponsLane, step, step5UploadComplete]);
 
   const step5HasBlockingWork = useMemo(() => {
+    if (isCouponsLane) return !couponsStep5Complete;
     if (!step5UploadComplete) return true;
     if (!aiIncludedInPackage) return false;
-    return !step5ScanComplete || !step5ReviewComplete;
-  }, [
-    aiIncludedInPackage,
-    step5ReviewComplete,
-    step5ScanComplete,
-    step5UploadComplete,
-  ]);
+    return !step5ScanComplete;
+  }, [aiIncludedInPackage, couponsStep5Complete, isCouponsLane, step5ScanComplete, step5UploadComplete]);
 
   const step5BlocksContinue = useMemo(() => {
     if (step !== 5) return false;
     return step5HasBlockingWork;
   }, [step, step5HasBlockingWork]);
 
-  const step5AiReviewBlocksContinue =
-    step === 5 && aiIncludedInPackage && step5ScanComplete && !step5ReviewComplete;
-
-  const step5AiReviewBlockMessage = c.step5CheckpointLockedNext;
+  // LIVE HUMAN QA CORRECTION (Gate I): Step 5 no longer blocks generic
+  // continuation on review completion — review lives entirely on its own
+  // Step 6 now, so the false "review incomplete" blocker this used to gate
+  // can no longer exist. Step 6 is only the AI review desk on the flyer
+  // lane — the coupon lane's Step 6 (Extras) always uses the generic footer.
+  const hideGenericFooter =
+    (!isCouponsLane && step === 6) ||
+    (!isCouponsLane && step === 5 && aiIncludedInPackage && step5ScanComplete);
 
   const step5PendingBySectionRef = useRef<Map<string, number>>(new Map());
 
@@ -859,17 +1065,17 @@ export default function OfertasLocalesApplicationClient() {
   }, [step]);
 
   const goBack = useCallback(() => {
-    setStep((s) => clampWizardStep(s - 1));
+    setStep((s) => clampWizardStep(s - 1, isCouponsLane));
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
+  }, [isCouponsLane]);
 
   const previewHref = withClasificadosPublishLang("/publicar/ofertas-locales/preview", routeLang, {
     intent: "continue",
   });
 
-  const goToStep6 = useCallback(() => {
+  const goToStep7Extras = useCallback(() => {
     setStep5ManualCheckpoint(null);
-    setStep(6);
+    setStep(7);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
@@ -884,13 +1090,571 @@ export default function OfertasLocalesApplicationClient() {
   }
 
   function renderStepHints() {
-    if (step === 7 || stepHints.length === 0) return null;
+    if (step === wizardStepCount || stepHints.length === 0) return null;
     return (
       <ul className={cx(HINT_BOX, "mb-4 space-y-1")}>
         {stepHints.map((hint) => (
           <li key={hint}>· {hint}</li>
         ))}
       </ul>
+    );
+  }
+
+  function renderCouponsAuthoringStep() {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm leading-relaxed text-[#1E1814]/70">{c.couponsStepIntro}</p>
+
+        <div className="space-y-4">
+          {draft.couponEntries.map((entry, index) => {
+            const uploading = couponImageUploading[entry.id] ?? false;
+            const error = couponImageErrors[entry.id];
+            const resolvedImage = entry.imageUploadedUrl.trim() || entry.imageUrl.trim();
+            return (
+              <div key={entry.id} className="space-y-3 rounded-xl border border-[#D4C4A8]/80 bg-white p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold text-[#1E1814]">
+                    {formatOfertaLocalCopyTemplate(c.couponEntryHeading, { index: index + 1 })}
+                  </p>
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-red-700 underline hover:text-red-800"
+                    onClick={() => removeCouponEntry(entry.id)}
+                  >
+                    {c.couponEntryRemove}
+                  </button>
+                </div>
+                <FieldBlock label={c.couponEntryTitleLabel}>
+                  <input
+                    className={INPUT}
+                    value={entry.title}
+                    onChange={(e) => patchCouponEntry(entry.id, { title: e.target.value })}
+                  />
+                </FieldBlock>
+                <FieldBlock label={c.couponEntryDescriptionLabel} optional optionalLabel={c.optional}>
+                  <textarea
+                    className={cx(INPUT, "min-h-[70px] resize-y")}
+                    value={entry.description}
+                    onChange={(e) => patchCouponEntry(entry.id, { description: e.target.value })}
+                  />
+                </FieldBlock>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <FieldBlock label={c.couponEntryCodeLabel} optional optionalLabel={c.optional}>
+                    <input
+                      className={INPUT}
+                      value={entry.couponCode}
+                      onChange={(e) => patchCouponEntry(entry.id, { couponCode: e.target.value })}
+                    />
+                  </FieldBlock>
+                  <FieldBlock label={c.couponEntryExpirationLabel} optional optionalLabel={c.optional}>
+                    <input
+                      type="date"
+                      className={INPUT}
+                      value={entry.expirationDate}
+                      onChange={(e) => patchCouponEntry(entry.id, { expirationDate: e.target.value })}
+                    />
+                  </FieldBlock>
+                </div>
+                <FieldBlock
+                  label={c.couponEntryRedemptionNoteLabel}
+                  helper={c.couponEntryRedemptionNoteHelper}
+                  optional
+                  optionalLabel={c.optional}
+                >
+                  <input
+                    className={INPUT}
+                    value={entry.redemptionNote}
+                    onChange={(e) => patchCouponEntry(entry.id, { redemptionNote: e.target.value })}
+                  />
+                </FieldBlock>
+
+                <FieldBlock
+                  label={c.couponEntryImageLabel}
+                  optional
+                  optionalLabel={c.optional}
+                  confirm={entry.imageUploadedUrl.trim() ? c.couponEntryImageAdded : undefined}
+                >
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                        className="sr-only"
+                        id={`coupon-entry-image-${entry.id}`}
+                        disabled={uploading}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) void handleCouponEntryImageFile(entry.id, file);
+                          e.target.value = "";
+                        }}
+                      />
+                      <label
+                        htmlFor={`coupon-entry-image-${entry.id}`}
+                        className={cx(BTN_SECONDARY, "cursor-pointer", uploading && "pointer-events-none opacity-45")}
+                      >
+                        {uploading ? c.couponEntryImageUploading : c.couponEntryImageUploadButton}
+                      </label>
+                      {entry.imageUploadedUrl.trim() ? (
+                        <button
+                          type="button"
+                          className={BTN_SECONDARY}
+                          onClick={() =>
+                            patchCouponEntry(entry.id, { imageUploadedUrl: "", imageUploadedFileName: "" })
+                          }
+                        >
+                          {c.couponEntryImageRemove}
+                        </button>
+                      ) : null}
+                    </div>
+                    {error ? <p className="text-xs font-medium text-red-700">{error}</p> : null}
+                    <p className="text-xs text-[#1E1814]/50">{c.couponEntryImageEitherOrHint}</p>
+                    <div>
+                      <input
+                        className={INPUT}
+                        value={entry.imageUrl}
+                        onChange={(e) => patchCouponEntry(entry.id, { imageUrl: e.target.value })}
+                        placeholder="https://"
+                        inputMode="url"
+                      />
+                      <p className="mt-1 text-[11px] text-[#1E1814]/45">{c.couponEntryImageUrlLabel}</p>
+                    </div>
+                    {resolvedImage ? (
+                      <img
+                        src={resolvedImage}
+                        alt=""
+                        className="h-20 w-20 rounded-lg border border-[#D4C4A8]/60 bg-[#FDF8F0] object-cover"
+                      />
+                    ) : null}
+                  </div>
+                </FieldBlock>
+              </div>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          className="w-full rounded-xl border border-dashed border-[#D4C4A8] bg-white px-4 py-3 text-sm font-medium text-[#7A1E2C] hover:border-[#7A1E2C]/50"
+          onClick={addCouponEntry}
+        >
+          {c.couponEntryAddCta}
+        </button>
+
+        {couponSyncStatus === "saving" ? (
+          <p className="text-xs text-[#1E1814]/55">{c.couponsSyncSaving}</p>
+        ) : couponSyncStatus === "saved" ? (
+          <p className="text-xs font-medium text-emerald-800">{c.couponsSyncSaved}</p>
+        ) : couponSyncStatus === "error" ? (
+          <p className="text-xs font-medium text-red-700">{c.couponsSyncError}</p>
+        ) : null}
+
+        <div className="border-t border-[#D4C4A8]/50 pt-4">
+          <OfertasLocalesDraftAssetSection
+            bucket="couponAssets"
+            draft={draft}
+            updateDraft={updateDraft}
+            lang={lang}
+            sectionMode="primaryMainFlyer"
+            sectionTitleOverride={c.couponsPromoFlyerTitle}
+            sectionHelper={c.couponsPromoFlyerHelper}
+            showAiScanFormatsHint={false}
+            onPendingUploadsChange={(count) => reportStep5SectionPending("promo-flyer", count)}
+          />
+        </div>
+
+        <div className="space-y-3 border-t border-[#D4C4A8]/50 pt-4">
+          <FieldBlock
+            label={c.couponsMoreOffersTitle}
+            helper={c.couponsMoreOffersHelper}
+            optional
+            optionalLabel={c.optional}
+            confirm={hasOfertaLocalUrlAccepted(draft.couponsMoreOffersUrl) ? c.urlAccepted : undefined}
+          >
+            <input
+              className={INPUT}
+              value={draft.couponsMoreOffersUrl}
+              onChange={(e) => updateDraft({ couponsMoreOffersUrl: e.target.value })}
+              onBlur={() => handleUrlBlur("couponsMoreOffersUrl")}
+              placeholder={c.couponsMoreOffersUrlPlaceholder}
+              inputMode="url"
+            />
+          </FieldBlock>
+          {draft.couponsMoreOffersUrl.trim() ? (
+            <FieldBlock label={c.couponsMoreOffersButtonLabel} optional optionalLabel={c.optional}>
+              <input
+                className={INPUT}
+                value={draft.couponsMoreOffersLabel}
+                onChange={(e) => updateDraft({ couponsMoreOffersLabel: e.target.value })}
+                placeholder={c.couponsMoreOffersButtonPlaceholder}
+              />
+            </FieldBlock>
+          ) : null}
+        </div>
+
+        <div className="rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/50 px-4 py-3">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-[#1E1814]/45">
+            {c.startOverNeedQuestion}
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-[#1E1814]/55">{c.startOverDeviceWarning}</p>
+          <button
+            type="button"
+            className="mt-3 min-h-11 rounded-xl border border-[#D4C4A8] bg-white px-3 py-2 text-xs font-medium text-[#1E1814]/70 hover:border-red-300 hover:text-red-800"
+            onClick={handleStartFresh}
+          >
+            {c.startOverDeleteCta}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Shared between lanes — Extras lives at Step 7 on the flyer lane and
+  // Step 6 on the coupon lane (Gate: two-lane execution).
+  function renderExtrasStepContent() {
+    return (
+      <div className="space-y-6">
+        <div className="space-y-4 rounded-xl border border-[#D4C4A8]/50 bg-white p-4">
+          <div>
+            <p className="text-sm font-semibold text-[#1E1814]">{c.socialSectionTitle}</p>
+            <p className="mt-1 text-xs font-medium text-[#7A1E2C]">{c.socialSectionSubtitle}</p>
+            <p className={cx(HELPER, "mt-2")}>{c.socialSectionHelper}</p>
+            <p className="mt-2 text-xs leading-relaxed text-[#1E1814]/60">
+              {c.socialLinksVisibilityHelper}
+            </p>
+          </div>
+          <FieldBlock
+            label={c.socialEmail}
+            optional
+            optionalLabel={c.optional}
+            confirm={!emailMalformed && resolveOfertaLocalContactEmail(draft) ? c.urlAccepted : undefined}
+            error={emailMalformed ? c.socialEmailInvalid : undefined}
+            errorId="ofertas-email-error"
+          >
+            <input
+              ref={emailFieldRef}
+              id="ofertas-email-input"
+              className={cx(INPUT, emailMalformed ? "border-red-400 focus:border-red-500" : undefined)}
+              type="email"
+              value={draft.email}
+              onChange={(e) => updateDraft({ email: e.target.value })}
+              onBlur={(e) => updateDraft({ email: normalizeOfertaLocalEmailInput(e.target.value) })}
+              placeholder={lang === "en" ? "hello@business.com" : "hola@negocio.com"}
+              inputMode="email"
+              autoComplete="email"
+              aria-invalid={emailMalformed}
+              aria-describedby={emailMalformed ? "ofertas-email-error" : undefined}
+            />
+          </FieldBlock>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {(
+              [
+                ["facebookUrl", c.socialFacebook],
+                ["instagramUrl", c.socialInstagram],
+                ["tiktokUrl", c.socialTiktok],
+                ["youtubeUrl", c.socialYoutube],
+                ["xTwitterUrl", c.socialXTwitter],
+                ["linkedinUrl", c.socialLinkedin],
+                ["snapchatUrl", c.socialSnapchat],
+                ["pinterestUrl", c.socialPinterest],
+                ["googleBusinessUrl", c.socialGoogleBusiness],
+                ["googleReviewUrl", c.socialGoogleReview],
+                ["yelpUrl", c.socialYelp],
+              ] as const
+            ).map(([field, label]) => (
+              <FieldBlock
+                key={field}
+                label={label}
+                optional
+                optionalLabel={c.optional}
+                confirm={hasOfertaLocalUrlAccepted(draft[field]) ? c.urlAccepted : undefined}
+              >
+                <input
+                  className={INPUT}
+                  value={draft[field]}
+                  onChange={(e) => updateDraft({ [field]: e.target.value })}
+                  onBlur={() => handleUrlBlur(field)}
+                  placeholder="https://…"
+                />
+              </FieldBlock>
+            ))}
+          </div>
+        </div>
+
+        {isShoppingLane ? (
+          <div className="space-y-4 rounded-xl border border-[#D4C4A8]/50 bg-white p-4">
+            <p className="text-sm font-semibold text-[#1E1814]">{c.membershipSectionTitle}</p>
+            <p className="text-xs leading-relaxed text-[#1E1814]/65">{c.membershipSectionPurpose}</p>
+            <p className="text-xs leading-relaxed text-[#1E1814]/55">{c.membershipTrafficCopy}</p>
+            <label className="flex items-center gap-2 text-sm text-[#1E1814]">
+              <input
+                type="checkbox"
+                checked={draft.requiresMembershipForDeals}
+                onChange={(e) => updateDraft({ requiresMembershipForDeals: e.target.checked })}
+                className="rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
+              />
+              {lang === "en"
+                ? "Offers require membership or rewards account"
+                : "Las ofertas requieren membresía o cuenta de recompensas"}
+            </label>
+            <FieldBlock
+              label={lang === "en" ? "Membership / rewards URL" : "URL de membresía / recompensas"}
+              optional
+              optionalLabel={c.optional}
+              confirm={membershipUrlAccepted ? c.urlAccepted : undefined}
+            >
+              <input
+                className={INPUT}
+                value={draft.membershipUrl}
+                onChange={(e) => updateDraft({ membershipUrl: e.target.value })}
+                onBlur={() => handleUrlBlur("membershipUrl")}
+              />
+            </FieldBlock>
+            <FieldBlock
+              label={c.membershipCustomerInstructionLabel}
+              optional
+              optionalLabel={c.optional}
+            >
+              <textarea
+                className={cx(INPUT, "min-h-[60px] resize-y")}
+                value={draft.membershipNote}
+                onChange={(e) => updateDraft({ membershipNote: e.target.value })}
+              />
+            </FieldBlock>
+          </div>
+        ) : null}
+
+        {isCouponsLane ? (
+          <div className="space-y-4 rounded-xl border border-[#D4C4A8]/50 bg-white p-4">
+            <p className="text-sm font-semibold text-[#1E1814]">
+              {lang === "en" ? "Digital coupon" : "Cupón digital"}
+            </p>
+            <FieldBlock
+              label={lang === "en" ? "Digital coupon URL" : "URL de cupón digital"}
+              optional
+              optionalLabel={c.optional}
+              confirm={digitalCouponUrlAccepted ? c.urlAccepted : undefined}
+            >
+              <input
+                className={INPUT}
+                value={draft.digitalCouponUrl}
+                onChange={(e) => updateDraft({ digitalCouponUrl: e.target.value })}
+                onBlur={() => handleUrlBlur("digitalCouponUrl")}
+              />
+            </FieldBlock>
+            <FieldBlock
+              label={c.digitalCouponCustomerInstructionLabel}
+              optional
+              optionalLabel={c.optional}
+            >
+              <textarea
+                className={cx(INPUT, "min-h-[60px] resize-y")}
+                value={draft.digitalCouponNote}
+                onChange={(e) => updateDraft({ digitalCouponNote: e.target.value })}
+              />
+            </FieldBlock>
+          </div>
+        ) : null}
+
+        {/* Featured placement remains gated off until that product is live. */}
+        {false ? ( // eslint-disable-line no-constant-condition
+        <div className="space-y-4 rounded-xl border border-[#D4C4A8]/50 bg-white p-4">
+          <p className="text-sm font-medium text-[#1E1814]">{c.featuredSectionTitle}</p>
+          <p className={HELPER}>{c.featuredQuestion}</p>
+          <label className="flex items-start gap-2 text-sm text-[#1E1814]">
+            <input
+              type="checkbox"
+              checked={draft.wantsFeaturedPlacement}
+              onChange={(e) =>
+                updateDraft({
+                  wantsFeaturedPlacement: e.target.checked,
+                  isFeaturedRequested: e.target.checked,
+                  featuredPlacementScope: e.target.checked ? draft.featuredPlacementScope : "none",
+                })
+              }
+              className="mt-1 rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
+            />
+            <span className="font-medium">{c.featuredCheckbox}</span>
+          </label>
+          {draft.wantsFeaturedPlacement ? (
+            <FieldBlock label={c.featuredScopeLabel} optional optionalLabel={c.optional}>
+              <select
+                className={INPUT}
+                value={draft.featuredPlacementScope === "none" ? "" : draft.featuredPlacementScope}
+                onChange={(e) =>
+                  updateDraft({
+                    featuredPlacementScope: (e.target.value ||
+                      "none") as typeof draft.featuredPlacementScope,
+                  })
+                }
+              >
+                <option value="">{c.selectPlaceholder}</option>
+                {OFERTAS_LOCALES_FEATURED_PLACEMENT_SCOPE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {lang === "en" ? opt.labelEn : opt.labelEs}
+                  </option>
+                ))}
+              </select>
+            </FieldBlock>
+          ) : null}
+        </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  // Shared between lanes — final review lives at Step 8 on the flyer lane
+  // and Step 7 on the coupon lane (Gate: two-lane execution).
+  function renderFinalReviewStepContent() {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0]/90 px-4 py-4">
+          <h3 className="text-base font-semibold text-[#1E1814]">{c.step7FinalReviewTitle}</h3>
+          {submitSuccess ? (
+            <div className="mt-3 rounded-lg border border-emerald-300/80 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+              <p className="font-semibold">{c.submitSuccessTitle}</p>
+              <p className="mt-1 text-xs">{c.submitSuccessBody}</p>
+              <p className="mt-2 text-xs text-emerald-900/85">{c.submitNotPublicUntilReview}</p>
+            </div>
+          ) : (
+            <p className="mt-2 text-xs leading-relaxed text-[#1E1814]/70">{c.submitNotPublicUntilReview}</p>
+          )}
+        </div>
+
+        {aiIncludedInPackage && hasExistingAiScan ? (
+          <details className="rounded-xl border border-[#7A1E2C]/25 bg-[#7A1E2C]/5 px-4 py-3">
+            <summary className="cursor-pointer text-sm font-semibold text-[#7A1E2C]">
+              {c.step7ScanSummaryTitle}
+            </summary>
+            <ul className="mt-3 space-y-1.5 text-sm text-[#1E1814]">
+              <li>{formatOfertaLocalCopyTemplate(c.step7ScanSummaryTotal, { total: aiReviewGate.totalItems })}</li>
+              <li>{formatOfertaLocalCopyTemplate(c.step7ScanSummaryApproved, { approved: aiReviewGate.approvedCount })}</li>
+              <li>
+                {formatOfertaLocalCopyTemplate(c.step7ScanSummaryReviewLater, {
+                  reviewLater: aiReviewGate.reviewLaterCount,
+                })}
+              </li>
+              <li>{formatOfertaLocalCopyTemplate(c.step7ScanSummaryRejected, { rejected: aiReviewGate.rejectedCount })}</li>
+              <li>
+                {formatOfertaLocalCopyTemplate(c.step7ScanSummaryRemaining, {
+                  remaining: aiReviewGate.needsReviewCount,
+                })}
+              </li>
+            </ul>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className={BTN_SECONDARY}
+                onClick={() => setStep(6)}
+              >
+                {c.step7ContinueReviewing}
+              </button>
+            </div>
+          </details>
+        ) : null}
+
+        {aiIncludedInPackage && !hasExistingAiScan ? (
+          <OfertasLocalesAiScanPanel
+            draft={draft}
+            lang={lang}
+            ofertaLocalId={effectiveOfertaLocalId}
+            signedIn={signedIn}
+            onScanStarted={handleScanStarted}
+            onScanComplete={handleScanComplete}
+            onScanFinished={handleScanFinished}
+            onOfertaLocalIdChange={handleAiScanRecordId}
+          />
+        ) : null}
+
+        <OfertasLocalesValidationPanel
+          previewIssues={previewIssues}
+          publishIssues={serverPublishIssues}
+          previewReady={previewReady}
+          publishFieldsReady={publishFieldsReady}
+          lang={lang}
+        />
+
+        <div className="space-y-3 rounded-xl border border-[#D4C4A8]/70 bg-white px-4 py-4">
+          <p className="text-sm font-semibold text-[#1E1814]">{c.step7ConfirmBeforePreview}</p>
+          <label className="flex items-start gap-3 text-sm text-[#1E1814]">
+            <input
+              type="checkbox"
+              checked={step7Confirmations.businessFiles}
+              onChange={(e) =>
+                setStep7Confirmations((prev) => ({ ...prev, businessFiles: e.target.checked }))
+              }
+              className="mt-1 rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
+            />
+            <span>{isCouponsLane ? c.step7ConfirmCouponsBusinessFiles : c.step7ConfirmBusinessFiles}</span>
+          </label>
+          {aiIncludedInPackage ? (
+            <label className="flex items-start gap-3 text-sm text-[#1E1814]">
+              <input
+                type="checkbox"
+                checked={step7Confirmations.aiItems}
+                onChange={(e) =>
+                  setStep7Confirmations((prev) => ({ ...prev, aiItems: e.target.checked }))
+                }
+                className="mt-1 rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
+              />
+              <span>{c.step7ConfirmAi}</span>
+            </label>
+          ) : null}
+          <label className="flex items-start gap-3 text-sm text-[#1E1814]">
+            <input
+              type="checkbox"
+              checked={step7Confirmations.leonixRules}
+              onChange={(e) =>
+                setStep7Confirmations((prev) => ({ ...prev, leonixRules: e.target.checked }))
+              }
+              className="mt-1 rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
+            />
+            <span>{c.step7ConfirmRules}</span>
+          </label>
+          {!step7ConfirmationsComplete ? (
+            <ul className="space-y-1 text-xs font-medium text-amber-900">
+              {emailMalformed ? <li>· {c.step7BlockerEmail}</li> : null}
+              {!step7Confirmations.businessFiles ? <li>· {c.step7BlockerBusinessFiles}</li> : null}
+              {aiIncludedInPackage && (aiReviewGate.needsReviewCount > 0 || !step7Confirmations.aiItems) ? (
+                <li>· {c.step7BlockerAiReview}</li>
+              ) : null}
+              {!step7Confirmations.leonixRules ? <li>· {c.step7BlockerLeonixRules}</li> : null}
+            </ul>
+          ) : null}
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          {step7ConfirmationsComplete ? (
+            <Link href={previewHref} className={`${BTN_PRIMARY} min-h-11`}>
+              {c.step7ViewPreview}
+            </Link>
+          ) : (
+            <span
+              className={cx(BTN_PRIMARY, "min-h-11 cursor-not-allowed opacity-45")}
+              aria-disabled="true"
+              title={c.step7PreviewGatedHelper}
+            >
+              {c.step7ViewPreview}
+            </span>
+          )}
+        </div>
+
+        <OfertasLocalesCommercialSummary draft={draft} lang={lang} />
+        <p className="text-xs text-[#1E1814]/55">{c.publishNotBuilt}</p>
+
+        <div className="rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/50 px-4 py-3">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-[#1E1814]/45">
+            {c.startOverNeedQuestion}
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-[#1E1814]/55">{c.startOverDeviceWarning}</p>
+          <button
+            type="button"
+            className="mt-3 min-h-11 rounded-xl border border-[#D4C4A8] bg-white px-3 py-2 text-xs font-medium text-[#1E1814]/70 hover:border-red-300 hover:text-red-800"
+            onClick={handleStartFresh}
+          >
+            {c.startOverDeleteCta}
+          </button>
+        </div>
+      </div>
     );
   }
 
@@ -928,16 +1692,24 @@ export default function OfertasLocalesApplicationClient() {
                     onClick={() =>
                       updateDraft({
                         ...buildPrimaryAdFormatChangePatch(draft, lane.value),
-                        wantsAiSearchableSpecials: true,
+                        wantsAiSearchableSpecials: isFlyerLane,
                       })
                     }
                   >
                     <p className="text-base font-semibold text-[#1E1814]">{title}</p>
                     <p className="mt-1 text-lg font-bold text-[#7A1E2C]">
-                      {formatUsd(catalog.displayPriceUsd)}
-                      {c.perDuration}
+                      {catalog.displayPriceUsd > 0 ? (
+                        <>
+                          {formatUsd(catalog.displayPriceUsd)}
+                          {c.perDuration}
+                        </>
+                      ) : (
+                        c.freeLabel
+                      )}
                     </p>
-                    <p className="mt-1 text-xs font-medium text-[#7A1E2C]/90">{c.aiIncludedLabel}</p>
+                    {catalog.aiIncluded ? (
+                      <p className="mt-1 text-xs font-medium text-[#7A1E2C]/90">{c.aiIncludedLabel}</p>
+                    ) : null}
                     <p className="mt-2 text-xs leading-relaxed text-[#1E1814]/70">{description}</p>
                     <ul className="mt-3 space-y-1 text-xs leading-relaxed text-[#1E1814]/70">
                       {bullets.map((item) => (
@@ -953,17 +1725,6 @@ export default function OfertasLocalesApplicationClient() {
             </div>
 
             <p className="text-center text-xs text-[#1E1814]/55">{c.step1PackageNote}</p>
-
-            <div className={CALLOUT}>
-              <p className="font-semibold text-[#7A1E2C]">{c.step1MoreExposureTitle}</p>
-              <p className="mt-1 text-xs leading-relaxed">{c.step1MoreExposureBody}</p>
-              <Link
-                href={contactMoreExposureHref}
-                className="mt-3 inline-flex text-xs font-semibold text-[#7A1E2C] underline"
-              >
-                {c.step1MoreExposureCta}
-              </Link>
-            </div>
           </div>
         );
 
@@ -1339,101 +2100,44 @@ export default function OfertasLocalesApplicationClient() {
         );
 
       case 5: {
-        const uploadCheckpointTitle = isCouponsLane
-          ? c.step5CheckpointUploadCouponTitle
-          : c.step5CheckpointUploadTitle;
-        const uploadCompleteLabel = isCouponsLane
-          ? c.step5CheckpointUploadCouponComplete
-          : c.step5CheckpointUploadComplete;
-        const scanLockedMessage = isCouponsLane
-          ? c.step5CheckpointLockedScanCoupon
-          : c.step5CheckpointLockedScan;
-        const reviewLockedMessage = isCouponsLane
-          ? c.step5CheckpointLockedReviewCoupon
-          : c.step5CheckpointLockedReview;
+        if (isCouponsLane) {
+          return renderCouponsAuthoringStep();
+        }
+
+        const uploadCheckpointTitle = c.step5CheckpointUploadTitle;
+        const uploadCompleteLabel = c.step5CheckpointUploadComplete;
+        const scanLockedMessage = c.step5CheckpointLockedScan;
 
         const assetUploadSections = (
-          <>
-            {isShoppingLane ? (
-              <OfertasLocalesDraftAssetSection
-                bucket="flyerAssets"
-                draft={draft}
-                updateDraft={updateDraft}
-                lang={lang}
-                sectionMode="primaryMainFlyer"
-                sectionTitleOverride={lang === "en" ? "Main flyer" : "Volante principal"}
-                sectionHelper={
-                  lang === "en"
-                    ? "Upload your full weekly flyer. AI analysis is included and prepares product suggestions for review."
-                    : "Sube tu volante semanal completo. El análisis con IA está incluido y prepara sugerencias para revisión."
-                }
-                primaryFlyerMultiPageHelper={c.laneShoppingMainFlyerMultiPageHelper}
-                showAiScanFormatsHint={aiIncludedInPackage}
-                onPendingUploadsChange={(count) => reportStep5SectionPending("primary-flyer", count)}
-              />
-            ) : null}
-            {isCouponsLane ? (
-              <>
-                <OfertasLocalesDraftAssetSection
-                  bucket="couponAssets"
-                  draft={draft}
-                  updateDraft={updateDraft}
-                  lang={lang}
-                  sectionMode="mainCoupons"
-                  sectionTitleOverride={c.laneCouponMainAsset}
-                  sectionHelper={c.laneCouponMainAssetHelper}
-                  showAiScanFormatsHint={aiIncludedInPackage}
-                  onPendingUploadsChange={(count) => reportStep5SectionPending("main-coupons", count)}
-                />
-                <div className="border-t border-[#D4C4A8]/50 pt-4">
-                  <OfertasLocalesDraftAssetSection
-                    bucket="flyerAssets"
-                    draft={draft}
-                    updateDraft={updateDraft}
-                    lang={lang}
-                    sectionMode="additionalPromo"
-                    sectionTitleOverride={c.laneCouponAdditionalPromo}
-                    showAiScanFormatsHint={aiIncludedInPackage}
-                    onPendingUploadsChange={(count) => reportStep5SectionPending("add-promo", count)}
-                  />
-                </div>
-              </>
-            ) : null}
-          </>
+          <OfertasLocalesDraftAssetSection
+            bucket="flyerAssets"
+            draft={draft}
+            updateDraft={updateDraft}
+            lang={lang}
+            sectionMode="primaryMainFlyer"
+            sectionTitleOverride={lang === "en" ? "Main flyer" : "Volante principal"}
+            sectionHelper={
+              lang === "en"
+                ? "Upload your full weekly flyer. AI analysis is included and prepares product suggestions for review."
+                : "Sube tu volante semanal completo. El análisis con IA está incluido y prepara sugerencias para revisión."
+            }
+            primaryFlyerMultiPageHelper={c.laneShoppingMainFlyerMultiPageHelper}
+            showAiScanFormatsHint={aiIncludedInPackage}
+            onPendingUploadsChange={(count) => reportStep5SectionPending("primary-flyer", count)}
+          />
         );
 
         return (
           <div className="space-y-3">
-            {step5ReviewView === "products" ? (
-              <div className="rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/50 px-4 py-6 text-center">
-                <p className="text-sm font-medium text-[#1E1814]/70">{c.step5ReviewWorkspaceOpenHint}</p>
-              </div>
+            {!primaryFormat ? (
+              <p className="text-sm text-[#1E1814]/55">
+                {lang === "en"
+                  ? "Choose your primary format in Step 1 first."
+                  : "Elige el formato principal en el Paso 1."}
+              </p>
             ) : (
               <>
-                {step5ReviewComplete && step5UploadComplete ? (
-                  <div className="rounded-xl border border-emerald-300/80 bg-emerald-50 px-4 py-4">
-                    <p className="text-base font-semibold text-emerald-950">{c.step5CheckpointReviewComplete}</p>
-                    {aiReviewGate.totalItems > 0 ? (
-                      <p className="mt-1 text-sm text-emerald-900">
-                        {formatOfertaLocalCopyTemplate(c.step5ReviewCompleteCount, {
-                          count: aiReviewGate.totalItems,
-                        })}
-                      </p>
-                    ) : null}
-                    <button type="button" className={`${BTN_PRIMARY} mt-4 min-h-11`} onClick={goToStep6}>
-                      {c.step5ContinueToNextStep}
-                    </button>
-                  </div>
-                ) : null}
-                {!primaryFormat ? (
-                  <p className="text-sm text-[#1E1814]/55">
-                    {lang === "en"
-                      ? "Choose your primary format in Step 1 first."
-                      : "Elige el formato principal en el Paso 1."}
-                  </p>
-                ) : (
-                  <>
-                    <Step5CheckpointCard
+                <Step5CheckpointCard
                       title={uploadCheckpointTitle}
                       isOpen={step5UploadCardOpen}
                       isLocked={false}
@@ -1521,7 +2225,19 @@ export default function OfertasLocalesApplicationClient() {
                                     count: aiReviewGate.totalItems,
                                   })}`
                                 : null}
+                              {aiReviewGate.scanTotalPages
+                                ? ` · ${formatOfertaLocalCopyTemplate(c.step5ScanPagesProcessed, {
+                                    count: aiReviewGate.scanTotalPages,
+                                  })}`
+                                : null}
                             </>
+                          ) : undefined
+                        }
+                        collapsedActions={
+                          step5ScanComplete ? (
+                            <button type="button" className={BTN_PRIMARY} onClick={openProductReviewWorkspace}>
+                              {step5ReviewOpenCtaLabel}
+                            </button>
                           ) : undefined
                         }
                         onToggle={() => {
@@ -1547,88 +2263,8 @@ export default function OfertasLocalesApplicationClient() {
                         />
                       </Step5CheckpointCard>
                     ) : null}
-
-                    {step5ScanRequired ? (
-                      <Step5CheckpointCard
-                        title={c.step5CheckpointReviewTitle}
-                        isOpen={step5ReviewCardOpen}
-                        isLocked={!step5ScanComplete}
-                        isComplete={step5ReviewComplete}
-                        lockMessage={!step5ScanComplete ? reviewLockedMessage : undefined}
-                        summary={
-                          step5ReviewComplete
-                            ? c.step5CheckpointReviewComplete
-                            : step5ScanComplete
-                              ? (
-                                <>
-                                  {c.step5ScanCompleteCheckTitle}
-                                  {aiReviewGate.totalItems > 0
-                                    ? ` · ${formatOfertaLocalCopyTemplate(c.step5CheckpointProductsFound, {
-                                        count: aiReviewGate.totalItems,
-                                      })}`
-                                    : ""}
-                                  {aiReviewGate.scanTotalPages
-                                    ? ` · ${formatOfertaLocalCopyTemplate(c.step5ScanPagesProcessed, {
-                                        count: aiReviewGate.scanTotalPages,
-                                      })}`
-                                    : ""}
-                                </>
-                              )
-                              : undefined
-                        }
-                        collapsedActions={
-                          step5ScanComplete ? (
-                            <button type="button" className={BTN_PRIMARY} onClick={openProductReviewWorkspace}>
-                              {step5ReviewOpenCtaLabel}
-                            </button>
-                          ) : undefined
-                        }
-                        onToggle={() => {
-                          if (!step5ScanComplete) return;
-                          setStep5ManualCheckpoint(step5ReviewCardOpen ? null : "review");
-                        }}
-                      >
-                        <div className="space-y-3">
-                          {step5ReviewComplete ? (
-                            <>
-                              <p className="text-sm font-medium text-emerald-900">{c.step5CheckpointReviewComplete}</p>
-                              <button type="button" className={BTN_PRIMARY} onClick={openProductReviewWorkspace}>
-                                {c.step5ViewReviewCta}
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <p className="text-sm font-semibold text-emerald-900">{c.step5ScanCompleteCheckTitle}</p>
-                              {aiReviewGate.totalItems > 0 ? (
-                                <p className="text-xs text-[#1E1814]/70">
-                                  {formatOfertaLocalCopyTemplate(c.step5CheckpointProductsFound, {
-                                    count: aiReviewGate.totalItems,
-                                  })}
-                                </p>
-                              ) : null}
-                              {aiReviewGate.scanTotalPages ? (
-                                <p className="text-xs text-[#1E1814]/70">
-                                  {formatOfertaLocalCopyTemplate(c.step5ScanPagesProcessed, {
-                                    count: aiReviewGate.scanTotalPages,
-                                  })}
-                                </p>
-                              ) : null}
-                              <button type="button" className={BTN_PRIMARY} onClick={openProductReviewWorkspace}>
-                                {step5ReviewOpenCtaLabel}
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </Step5CheckpointCard>
-                    ) : null}
-
-                    {step5AiReviewBlocksContinue ? (
-                      <p className={ERROR_BOX}>{step5AiReviewBlockMessage}</p>
-                    ) : null}
                   </>
                 )}
-              </>
-            )}
 
             <div className="rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/50 px-4 py-3">
               <p className="text-[11px] font-medium uppercase tracking-wide text-[#1E1814]/45">
@@ -1648,346 +2284,27 @@ export default function OfertasLocalesApplicationClient() {
       }
 
       case 6:
-        return (
-          <div className="space-y-6">
-            <div className="space-y-4 rounded-xl border border-[#D4C4A8]/50 bg-white p-4">
-              <div>
-                <p className="text-sm font-semibold text-[#1E1814]">{c.socialSectionTitle}</p>
-                <p className="mt-1 text-xs font-medium text-[#7A1E2C]">{c.socialSectionSubtitle}</p>
-                <p className={cx(HELPER, "mt-2")}>{c.socialSectionHelper}</p>
-                <p className="mt-2 text-xs leading-relaxed text-[#1E1814]/60">
-                  {c.socialLinksVisibilityHelper}
-                </p>
-              </div>
-              <FieldBlock
-                label={c.socialEmail}
-                optional
-                optionalLabel={c.optional}
-                confirm={resolveOfertaLocalContactEmail(draft) ? c.urlAccepted : undefined}
-                helper={emailMalformed ? c.socialEmailInvalid : undefined}
-              >
-                <input
-                  className={INPUT}
-                  type="email"
-                  value={draft.email}
-                  onChange={(e) => updateDraft({ email: e.target.value })}
-                  onBlur={(e) => updateDraft({ email: normalizeOfertaLocalEmailInput(e.target.value) })}
-                  placeholder={lang === "en" ? "hello@business.com" : "hola@negocio.com"}
-                  inputMode="email"
-                  autoComplete="email"
-                />
-              </FieldBlock>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {(
-                  [
-                    ["facebookUrl", c.socialFacebook],
-                    ["instagramUrl", c.socialInstagram],
-                    ["tiktokUrl", c.socialTiktok],
-                    ["youtubeUrl", c.socialYoutube],
-                    ["xTwitterUrl", c.socialXTwitter],
-                    ["linkedinUrl", c.socialLinkedin],
-                    ["snapchatUrl", c.socialSnapchat],
-                    ["pinterestUrl", c.socialPinterest],
-                    ["googleBusinessUrl", c.socialGoogleBusiness],
-                    ["googleReviewUrl", c.socialGoogleReview],
-                    ["yelpUrl", c.socialYelp],
-                  ] as const
-                ).map(([field, label]) => (
-                  <FieldBlock
-                    key={field}
-                    label={label}
-                    optional
-                    optionalLabel={c.optional}
-                    confirm={hasOfertaLocalUrlAccepted(draft[field]) ? c.urlAccepted : undefined}
-                  >
-                    <input
-                      className={INPUT}
-                      value={draft[field]}
-                      onChange={(e) => updateDraft({ [field]: e.target.value })}
-                      onBlur={() => handleUrlBlur(field)}
-                      placeholder="https://…"
-                    />
-                  </FieldBlock>
-                ))}
-              </div>
-            </div>
-
-            {isShoppingLane ? (
-              <div className="space-y-4 rounded-xl border border-[#D4C4A8]/50 bg-white p-4">
-                <p className="text-sm font-semibold text-[#1E1814]">{c.membershipSectionTitle}</p>
-                <p className="text-xs leading-relaxed text-[#1E1814]/65">{c.membershipSectionPurpose}</p>
-                <p className="text-xs leading-relaxed text-[#1E1814]/55">{c.membershipTrafficCopy}</p>
-                <label className="flex items-center gap-2 text-sm text-[#1E1814]">
-                  <input
-                    type="checkbox"
-                    checked={draft.requiresMembershipForDeals}
-                    onChange={(e) => updateDraft({ requiresMembershipForDeals: e.target.checked })}
-                    className="rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
-                  />
-                  {lang === "en"
-                    ? "Offers require membership or rewards account"
-                    : "Las ofertas requieren membresía o cuenta de recompensas"}
-                </label>
-                <FieldBlock
-                  label={lang === "en" ? "Membership / rewards URL" : "URL de membresía / recompensas"}
-                  optional
-                  optionalLabel={c.optional}
-                  confirm={membershipUrlAccepted ? c.urlAccepted : undefined}
-                >
-                  <input
-                    className={INPUT}
-                    value={draft.membershipUrl}
-                    onChange={(e) => updateDraft({ membershipUrl: e.target.value })}
-                    onBlur={() => handleUrlBlur("membershipUrl")}
-                  />
-                </FieldBlock>
-                <FieldBlock
-                  label={c.membershipCustomerInstructionLabel}
-                  optional
-                  optionalLabel={c.optional}
-                >
-                  <textarea
-                    className={cx(INPUT, "min-h-[60px] resize-y")}
-                    value={draft.membershipNote}
-                    onChange={(e) => updateDraft({ membershipNote: e.target.value })}
-                  />
-                </FieldBlock>
-              </div>
-            ) : null}
-
-            {isCouponsLane ? (
-              <div className="space-y-4 rounded-xl border border-[#D4C4A8]/50 bg-white p-4">
-                <p className="text-sm font-semibold text-[#1E1814]">
-                  {lang === "en" ? "Digital coupon" : "Cupón digital"}
-                </p>
-                <FieldBlock
-                  label={lang === "en" ? "Digital coupon URL" : "URL de cupón digital"}
-                  optional
-                  optionalLabel={c.optional}
-                  confirm={digitalCouponUrlAccepted ? c.urlAccepted : undefined}
-                >
-                  <input
-                    className={INPUT}
-                    value={draft.digitalCouponUrl}
-                    onChange={(e) => updateDraft({ digitalCouponUrl: e.target.value })}
-                    onBlur={() => handleUrlBlur("digitalCouponUrl")}
-                  />
-                </FieldBlock>
-                <FieldBlock
-                  label={c.digitalCouponCustomerInstructionLabel}
-                  optional
-                  optionalLabel={c.optional}
-                >
-                  <textarea
-                    className={cx(INPUT, "min-h-[60px] resize-y")}
-                    value={draft.digitalCouponNote}
-                    onChange={(e) => updateDraft({ digitalCouponNote: e.target.value })}
-                  />
-                </FieldBlock>
-              </div>
-            ) : null}
-
-            {/* Featured placement remains gated off until that product is live. */}
-            {false ? ( // eslint-disable-line no-constant-condition
-            <div className="space-y-4 rounded-xl border border-[#D4C4A8]/50 bg-white p-4">
-              <p className="text-sm font-medium text-[#1E1814]">{c.featuredSectionTitle}</p>
-              <p className={HELPER}>{c.featuredQuestion}</p>
-              <label className="flex items-start gap-2 text-sm text-[#1E1814]">
-                <input
-                  type="checkbox"
-                  checked={draft.wantsFeaturedPlacement}
-                  onChange={(e) =>
-                    updateDraft({
-                      wantsFeaturedPlacement: e.target.checked,
-                      isFeaturedRequested: e.target.checked,
-                      featuredPlacementScope: e.target.checked ? draft.featuredPlacementScope : "none",
-                    })
-                  }
-                  className="mt-1 rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
-                />
-                <span className="font-medium">{c.featuredCheckbox}</span>
-              </label>
-              {draft.wantsFeaturedPlacement ? (
-                <FieldBlock label={c.featuredScopeLabel} optional optionalLabel={c.optional}>
-                  <select
-                    className={INPUT}
-                    value={draft.featuredPlacementScope === "none" ? "" : draft.featuredPlacementScope}
-                    onChange={(e) =>
-                      updateDraft({
-                        featuredPlacementScope: (e.target.value ||
-                          "none") as typeof draft.featuredPlacementScope,
-                      })
-                    }
-                  >
-                    <option value="">{c.selectPlaceholder}</option>
-                    {OFERTAS_LOCALES_FEATURED_PLACEMENT_SCOPE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {lang === "en" ? opt.labelEn : opt.labelEs}
-                      </option>
-                    ))}
-                  </select>
-                </FieldBlock>
-              ) : null}
-            </div>
-            ) : null}
+        if (isCouponsLane) {
+          return renderExtrasStepContent();
+        }
+        // The wizard shell above already renders "Paso 6 de 8 / Revisar
+        // productos" — this branch stays empty for the normal case so the
+        // workbench (rendered below, outside this card) is what the user
+        // sees immediately, with no redundant intro card repeating it.
+        return aiIncludedInPackage ? null : (
+          <div className="rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0]/90 px-4 py-4">
+            <p className="text-sm text-[#1E1814]/70">{c.step5ReviewScreenSubtitle}</p>
+            <button type="button" className={`${BTN_PRIMARY} mt-4 min-h-11`} onClick={goToStep7Extras}>
+              {c.aiReviewContinueToNextStep}
+            </button>
           </div>
         );
 
       case 7:
-        return (
-          <div className="space-y-6">
-            <div className="rounded-xl border border-[#D4C4A8]/70 bg-[#FDF8F0]/90 px-4 py-4">
-              <h3 className="text-base font-semibold text-[#1E1814]">{c.step7FinalReviewTitle}</h3>
-              {submitSuccess ? (
-                <div className="mt-3 rounded-lg border border-emerald-300/80 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-                  <p className="font-semibold">{c.submitSuccessTitle}</p>
-                  <p className="mt-1 text-xs">{c.submitSuccessBody}</p>
-                  <p className="mt-2 text-xs text-emerald-900/85">{c.submitNotPublicUntilReview}</p>
-                </div>
-              ) : (
-                <p className="mt-2 text-xs leading-relaxed text-[#1E1814]/70">{c.submitNotPublicUntilReview}</p>
-              )}
-            </div>
+        return isCouponsLane ? renderFinalReviewStepContent() : renderExtrasStepContent();
 
-            {aiIncludedInPackage && hasExistingAiScan ? (
-              <details className="rounded-xl border border-[#7A1E2C]/25 bg-[#7A1E2C]/5 px-4 py-3">
-                <summary className="cursor-pointer text-sm font-semibold text-[#7A1E2C]">
-                  {c.step7ScanSummaryTitle}
-                </summary>
-                <ul className="mt-3 space-y-1.5 text-sm text-[#1E1814]">
-                  <li>{formatOfertaLocalCopyTemplate(c.step7ScanSummaryTotal, { total: aiReviewGate.totalItems })}</li>
-                  <li>{formatOfertaLocalCopyTemplate(c.step7ScanSummaryApproved, { approved: aiReviewGate.approvedCount })}</li>
-                  <li>
-                    {formatOfertaLocalCopyTemplate(c.step7ScanSummaryReviewLater, {
-                      reviewLater: aiReviewGate.reviewLaterCount,
-                    })}
-                  </li>
-                  <li>{formatOfertaLocalCopyTemplate(c.step7ScanSummaryRejected, { rejected: aiReviewGate.rejectedCount })}</li>
-                  <li>
-                    {formatOfertaLocalCopyTemplate(c.step7ScanSummaryRemaining, {
-                      remaining: aiReviewGate.needsReviewCount,
-                    })}
-                  </li>
-                </ul>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className={BTN_SECONDARY}
-                    onClick={() => {
-                      setStep(5);
-                      setStep5ReviewView("products");
-                    }}
-                  >
-                    {c.step7ContinueReviewing}
-                  </button>
-                </div>
-              </details>
-            ) : null}
-
-            {aiIncludedInPackage && !hasExistingAiScan ? (
-              <OfertasLocalesAiScanPanel
-                draft={draft}
-                lang={lang}
-                ofertaLocalId={effectiveOfertaLocalId}
-                signedIn={signedIn}
-                onScanStarted={handleScanStarted}
-                onScanComplete={handleScanComplete}
-                onScanFinished={handleScanFinished}
-                onOfertaLocalIdChange={handleAiScanRecordId}
-              />
-            ) : null}
-
-            <OfertasLocalesValidationPanel
-              previewIssues={previewIssues}
-              publishIssues={serverPublishIssues}
-              previewReady={previewReady}
-              publishFieldsReady={publishFieldsReady}
-              lang={lang}
-            />
-
-            <div className="space-y-3 rounded-xl border border-[#D4C4A8]/70 bg-white px-4 py-4">
-              <p className="text-sm font-semibold text-[#1E1814]">{c.step7ConfirmBeforePreview}</p>
-              <label className="flex items-start gap-3 text-sm text-[#1E1814]">
-                <input
-                  type="checkbox"
-                  checked={step7Confirmations.businessFiles}
-                  onChange={(e) =>
-                    setStep7Confirmations((prev) => ({ ...prev, businessFiles: e.target.checked }))
-                  }
-                  className="mt-1 rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
-                />
-                <span>{c.step7ConfirmBusinessFiles}</span>
-              </label>
-              {aiIncludedInPackage ? (
-                <label className="flex items-start gap-3 text-sm text-[#1E1814]">
-                  <input
-                    type="checkbox"
-                    checked={step7Confirmations.aiItems}
-                    onChange={(e) =>
-                      setStep7Confirmations((prev) => ({ ...prev, aiItems: e.target.checked }))
-                    }
-                    className="mt-1 rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
-                  />
-                  <span>{c.step7ConfirmAi}</span>
-                </label>
-              ) : null}
-              <label className="flex items-start gap-3 text-sm text-[#1E1814]">
-                <input
-                  type="checkbox"
-                  checked={step7Confirmations.leonixRules}
-                  onChange={(e) =>
-                    setStep7Confirmations((prev) => ({ ...prev, leonixRules: e.target.checked }))
-                  }
-                  className="mt-1 rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
-                />
-                <span>{c.step7ConfirmRules}</span>
-              </label>
-              {!step7ConfirmationsComplete ? (
-                <ul className="space-y-1 text-xs font-medium text-amber-900">
-                  {emailMalformed ? <li>· {c.step7BlockerEmail}</li> : null}
-                  {!step7Confirmations.businessFiles ? <li>· {c.step7BlockerBusinessFiles}</li> : null}
-                  {aiIncludedInPackage && (aiReviewGate.needsReviewCount > 0 || !step7Confirmations.aiItems) ? (
-                    <li>· {c.step7BlockerAiReview}</li>
-                  ) : null}
-                  {!step7Confirmations.leonixRules ? <li>· {c.step7BlockerLeonixRules}</li> : null}
-                </ul>
-              ) : null}
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              {step7ConfirmationsComplete ? (
-                <Link href={previewHref} className={`${BTN_PRIMARY} min-h-11`}>
-                  {c.step7ViewPreview}
-                </Link>
-              ) : (
-                <span
-                  className={cx(BTN_PRIMARY, "min-h-11 cursor-not-allowed opacity-45")}
-                  aria-disabled="true"
-                  title={c.step7PreviewGatedHelper}
-                >
-                  {c.step7ViewPreview}
-                </span>
-              )}
-            </div>
-
-            <OfertasLocalesCommercialSummary draft={draft} lang={lang} />
-            <p className="text-xs text-[#1E1814]/55">{c.publishNotBuilt}</p>
-
-            <div className="rounded-xl border border-[#D4C4A8]/60 bg-[#FDF8F0]/50 px-4 py-3">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-[#1E1814]/45">
-                {c.startOverNeedQuestion}
-              </p>
-              <p className="mt-1 text-xs leading-relaxed text-[#1E1814]/55">{c.startOverDeviceWarning}</p>
-              <button
-                type="button"
-                className="mt-3 min-h-11 rounded-xl border border-[#D4C4A8] bg-white px-3 py-2 text-xs font-medium text-[#1E1814]/70 hover:border-red-300 hover:text-red-800"
-                onClick={handleStartFresh}
-              >
-                {c.startOverDeleteCta}
-              </button>
-            </div>
-          </div>
-        );
+      case 8:
+        return renderFinalReviewStepContent();
 
       default:
         return null;
@@ -1996,7 +2313,15 @@ export default function OfertasLocalesApplicationClient() {
 
   return (
     <div className={cx("min-h-screen", PAGE_BG)}>
-      <div className="mx-auto max-w-5xl px-4 py-8 pb-24 sm:px-6 lg:pb-16">
+      <div
+        className={cx(
+          "mx-auto max-w-5xl px-4 py-8 sm:px-6",
+          // The review desk (⚠️63) renders its own full-width section directly
+          // beneath this wrapper with no gap intended — the generic bottom
+          // padding here is only for steps that end with this wrapper.
+          showStep6ReviewDesk ? "" : "pb-24 lg:pb-16"
+        )}
+      >
         <header className="mb-6 border-b border-[#D4C4A8]/60 pb-6 lg:mb-8">
           <p className="text-xs font-semibold uppercase tracking-widest text-[#7A1E2C]">
             Leonix · {OFERTAS_LOCALES_PRODUCT_NAME}
@@ -2019,42 +2344,51 @@ export default function OfertasLocalesApplicationClient() {
           </p>
         </header>
 
-        <div className="lg:flex lg:items-start lg:gap-10">
-          <aside className="lg:w-52 lg:shrink-0">
-            <OfertasLocalesWizardProgress
-              currentStep={step}
-              lang={lang}
-              progressLabel={progressLabel}
-              onStepClick={(s) => {
-                // Quick-jump navigation is intentionally permissive — required-field
-                // and publish/scan validation still gate the relevant ACTION, but must
-                // never trap a customer on a step via Atrás/Siguiente-only navigation.
-                setStep(s);
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-            />
-          </aside>
+        {showStep6ReviewDesk ? (
+          // ⚠️63: Step 6's wizard card previously rendered here empty (its
+          // content branch returns null while the review desk mounts below)
+          // — a dead bordered box between the page header and the workbench.
+          // The heading now renders directly on the review desk section
+          // instead, so nothing empty renders in this wrapper at all.
+          null
+        ) : (
+          <div className="lg:flex lg:items-start lg:gap-10">
+            <aside className="lg:w-52 lg:shrink-0">
+              <OfertasLocalesWizardProgress
+                currentStep={step}
+                lang={lang}
+                progressLabel={progressLabel}
+                steps={wizardSteps}
+                onStepClick={(s) => {
+                  // Quick-jump navigation is intentionally permissive — required-field
+                  // and publish/scan validation still gate the relevant ACTION, but must
+                  // never trap a customer on a step via Atrás/Siguiente-only navigation.
+                  setStep(s);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+              />
+            </aside>
 
-          <div className="min-w-0 flex-1">
-            <div className="mb-4 hidden lg:block">
-              <p className="text-xs font-medium uppercase tracking-wide text-[#1E1814]/50">
-                {progressLabel}
-              </p>
-              <h2 className="mt-1 text-xl font-semibold text-[#1E1814]">
-                {wizardStepTitle(stepMeta, lang)}
-              </h2>
-            </div>
-
-            <section className={cx(CARD, "p-5 sm:p-6")}>
-              <h2 className={cx(SECTION_TITLE, "lg:sr-only")}>{wizardStepTitle(stepMeta, lang)}</h2>
-              <div className="mt-4">
-                {renderStepHints()}
-                {renderStepContent()}
+            <div className="min-w-0 flex-1">
+              <div className="mb-4 hidden lg:block">
+                <p className="text-xs font-medium uppercase tracking-wide text-[#1E1814]/50">
+                  {progressLabel}
+                </p>
+                <h2 className="mt-1 text-xl font-semibold text-[#1E1814]">
+                  {wizardStepTitle(stepMeta, lang)}
+                </h2>
               </div>
 
-              {step < 7 ? (
-                <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-[#D4C4A8]/50 pt-6">
-                  <button
+              <section className={cx(CARD, "p-5 sm:p-6")}>
+                <h2 className={cx(SECTION_TITLE, "lg:sr-only")}>{wizardStepTitle(stepMeta, lang)}</h2>
+                <div className="mt-4">
+                  {renderStepHints()}
+                  {renderStepContent()}
+                </div>
+
+                {hideGenericFooter ? null : step < wizardStepCount ? (
+                  <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-[#D4C4A8]/50 pt-6">
+                    <button
                     type="button"
                     className={BTN_SECONDARY}
                     onClick={goBack}
@@ -2078,34 +2412,81 @@ export default function OfertasLocalesApplicationClient() {
                   </button>
                 </div>
               )}
-            </section>
+              </section>
+            </div>
           </div>
-        </div>
+        )}
 
-        <span className="sr-only" aria-hidden>
-          {draft.membershipCtaLabel}
-          {String(draft.isMagazinePickupPartner)}
-          {draft.magazineDistributionStatus}
-          {draft.magazinePickupNotes}
-          {draft.magazineMonthlyDropEstimate}
-        </span>
+        {showStep6ReviewDesk ? null : (
+          <span className="sr-only" aria-hidden>
+            {draft.membershipCtaLabel}
+            {String(draft.isMagazinePickupPartner)}
+            {draft.magazineDistributionStatus}
+            {draft.magazinePickupNotes}
+            {draft.magazineMonthlyDropEstimate}
+          </span>
+        )}
       </div>
 
-      {showFullWidthReviewDesk ? (
+      {showStep6ReviewDesk ? (
         <section
           ref={reviewWorkbenchRef}
           tabIndex={-1}
           aria-label={lang === "en" ? "AI scan review desk" : "Mesa de revisión de escaneo AI"}
-          className="border-t border-[#D4C4A8]/70 bg-[#FAF6F0] px-4 py-8 sm:px-6 lg:py-10 focus:outline-none"
+          className="border-t border-[#D4C4A8]/70 bg-[#FAF6F0] px-4 py-6 sm:px-6 lg:py-8 focus:outline-none"
         >
           <div className="mx-auto w-full max-w-[min(100vw-2rem,1600px)]">
-            <button
-              type="button"
-              className={`${BTN_SECONDARY} mb-4`}
-              onClick={handleBackToFiles}
-            >
-              {c.step5BackToFiles}
-            </button>
+            <div className="mb-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-[#1E1814]/50">
+                {progressLabel}
+              </p>
+              <h2 className="mt-1 text-xl font-semibold text-[#1E1814]">
+                {wizardStepTitle(stepMeta, lang)}
+              </h2>
+            </div>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <button type="button" className={BTN_SECONDARY} onClick={handleBackToFiles}>
+                {c.step5BackToFiles}
+              </button>
+              {aiReviewGate.totalItems > 0 ? (
+                <p className="text-xs font-medium text-[#7A1E2C]">
+                  {formatOfertaLocalCopyTemplate(c.step5ReviewScreenSummary, {
+                    count: aiReviewGate.totalItems,
+                    pages: aiReviewGate.scanTotalPages ?? 0,
+                  })}
+                </p>
+              ) : null}
+            </div>
+            {step5ReviewComplete ? (
+              // ⚠️64: the review workspace already surfaces a completed banner,
+              // but it sits deep inside the right-hand editor column. This
+              // duplicate — same copy keys, same action — sits immediately
+              // under the heading so the primary next step is obvious without
+              // scrolling into the workbench first.
+              <div className="mb-5 rounded-xl border border-emerald-300/80 bg-emerald-50 px-4 py-4">
+                <p className="text-base font-semibold text-emerald-950">{c.aiReviewCompleteTitle}</p>
+                <p className="mt-1 text-sm font-medium text-emerald-900">
+                  {formatOfertaLocalCopyTemplate(c.step5ReviewCompleteCount, {
+                    count: aiReviewGate.totalItems,
+                  })}
+                </p>
+                {aiReviewGate.scanTotalPages ? (
+                  <p className="mt-1 text-sm font-medium text-emerald-900">
+                    {formatOfertaLocalCopyTemplate(c.aiReviewCompletePagesCount, {
+                      completed: aiReviewGate.scanCompletedPages ?? aiReviewGate.scanTotalPages,
+                      total: aiReviewGate.scanTotalPages,
+                    })}
+                  </p>
+                ) : null}
+                <button
+                  type="button"
+                  className={`${BTN_SUCCESS_LG} mt-4`}
+                  onClick={goToStep7Extras}
+                >
+                  {c.aiReviewContinueToNextStep}
+                </button>
+              </div>
+            ) : null}
             <OfertasLocalesAiScanReviewWorkspace
               lang={lang}
               draft={draft}
@@ -2115,7 +2496,7 @@ export default function OfertasLocalesApplicationClient() {
               scanRefreshToken={scanRefreshToken}
               reviewMode={isCouponsLane ? "coupon" : "weekly"}
               onReviewGateChange={handleAiReviewGateChange}
-              onContinueToNextStep={goToStep6}
+              onContinueToNextStep={goToStep7Extras}
             />
           </div>
         </section>

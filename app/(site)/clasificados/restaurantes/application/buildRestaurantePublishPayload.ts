@@ -1,4 +1,9 @@
-import { hasAnyRestauranteAmenities, sanitizeRestauranteAmenities } from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
+import {
+  hasAnyRestauranteAmenities,
+  sanitizeRestauranteAmenities,
+  hasAnyCustomRestauranteAmenities,
+  sanitizeCustomRestauranteAmenitiesByGroup,
+} from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
 import { collectRestauranteExternalVideoUrls } from "@/app/lib/clasificados/restaurantes/restauranteVideoUrls";
 import type { RestauranteListingDraft } from "./restauranteDraftTypes";
 
@@ -96,6 +101,7 @@ export function buildRestaurantePublishPayload(
 
   const draft = canonicalDraft;
   const amenitiesSanitized = sanitizeRestauranteAmenities(draft.restaurantAmenities);
+  const customAmenitiesSanitized = sanitizeCustomRestauranteAmenitiesByGroup(draft.customRestaurantAmenitiesByGroup);
   const videoUrls = collectRestauranteExternalVideoUrls(draft);
 
   const payload: Record<string, unknown> = {
@@ -149,6 +155,7 @@ export function buildRestaurantePublishPayload(
     friday: blockHeavyMedia(draft.friday, "friday"),
     saturday: blockHeavyMedia(draft.saturday, "saturday"),
     sunday: blockHeavyMedia(draft.sunday, "sunday"),
+    specialHoursEntries: blockHeavyMedia((draft.specialHoursEntries || []).slice(0, 20), "specialHoursEntries"),
     specialHoursNote: blockHeavyMedia(draft.specialHoursNote, "specialHoursNote"),
     heroImage: blockHeavyMedia(draft.heroImage, "heroImage"),
     businessLogo: blockHeavyMedia(draft.businessLogo, "businessLogo"),
@@ -178,6 +185,10 @@ export function buildRestaurantePublishPayload(
     restaurantAmenities: blockHeavyMedia(
       hasAnyRestauranteAmenities(amenitiesSanitized) ? amenitiesSanitized : undefined,
       "restaurantAmenities",
+    ),
+    customRestaurantAmenitiesByGroup: blockHeavyMedia(
+      hasAnyCustomRestauranteAmenities(customAmenitiesSanitized) ? customAmenitiesSanitized : undefined,
+      "customRestaurantAmenitiesByGroup",
     ),
     reservationsAvailable: blockHeavyMedia(draft.reservationsAvailable, "reservationsAvailable"),
     preorderRequired: blockHeavyMedia(draft.preorderRequired, "preorderRequired"),

@@ -73,21 +73,48 @@ function run() {
     "CASE A FAILED: interactive_flyer persist-eligibility must not fail solely because the legacy AI flag is false"
   );
 
-  // --- CASE B: coupons lane, AI included by product model, legacy flag false ---
-  const couponDraft = baseCompleteDraft({
+  // --- CASE B: coupons lane is a free, non-AI product by design (Two-Lane Execution) —
+  // its readiness/persist-eligibility must be false because of the canonical
+  // entitlement helper (isOfertaLocalAiIncludedInPackage), never because of the
+  // deprecated legacy flag. Prove that by flipping the legacy flag both ways and
+  // observing the outcome never changes.
+  const couponDraftLegacyFalse = baseCompleteDraft({
     offerType: "coupon",
     couponAssets: [couponAsset()],
+    wantsAiSearchableSpecials: false,
   });
-  const couponReadiness = getOfertaLocalAiScanReadiness(couponDraft, { signedIn: true, ofertaLocalId: null });
+  const couponDraftLegacyTrue = baseCompleteDraft({
+    offerType: "coupon",
+    couponAssets: [couponAsset()],
+    wantsAiSearchableSpecials: true,
+  });
+  const couponReadinessLegacyFalse = getOfertaLocalAiScanReadiness(couponDraftLegacyFalse, {
+    signedIn: true,
+    ofertaLocalId: null,
+  });
+  const couponReadinessLegacyTrue = getOfertaLocalAiScanReadiness(couponDraftLegacyTrue, {
+    signedIn: true,
+    ofertaLocalId: null,
+  });
   assert.equal(
-    couponReadiness.ready,
-    true,
-    "CASE B FAILED: coupons readiness must not fail solely because the legacy AI flag is false"
+    couponReadinessLegacyFalse.ready,
+    false,
+    "CASE B FAILED: coupons (free, no-AI product) must never report AI scan readiness"
   );
   assert.equal(
-    canOfertaLocalDraftPersistForAiScan(couponDraft),
-    true,
-    "CASE B FAILED: coupons persist-eligibility must not fail solely because the legacy AI flag is false"
+    couponReadinessLegacyTrue.ready,
+    false,
+    "CASE B FAILED: coupons AI scan readiness must not be re-enabled by the deprecated legacy flag"
+  );
+  assert.equal(
+    canOfertaLocalDraftPersistForAiScan(couponDraftLegacyFalse),
+    false,
+    "CASE B FAILED: coupons (free, no-AI product) must never report AI persist-eligibility"
+  );
+  assert.equal(
+    canOfertaLocalDraftPersistForAiScan(couponDraftLegacyTrue),
+    false,
+    "CASE B FAILED: coupons AI persist-eligibility must not be re-enabled by the deprecated legacy flag"
   );
 
   // --- CASE C: unresolved/no valid product lane — entitlement must still fail ---

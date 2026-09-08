@@ -1,12 +1,30 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { submitOfertaLocalAiScan } from "@/app/lib/ofertas-locales/ofertasLocalesAiScanSubmit";
-import type { OfertaLocalPublishedAssetMetadata } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
-import { OfertasLocalesAiItemReviewPanel } from "@/app/(site)/publicar/ofertas-locales/OfertasLocalesAiItemReviewPanel";
+import { fetchOfertaLocalReviewItems } from "@/app/lib/ofertas-locales/ofertasLocalesItemReviewClient";
+import {
+  summarizeOfertaLocalPageCompletion,
+  summarizeScopedItemReviewCounts,
+} from "@/app/lib/ofertas-locales/ofertasLocalesScanReviewRuntime";
+import type {
+  OfertaLocalItemReviewStatus,
+  OfertaLocalItemReviewViewModel,
+  OfertaLocalPublishedAssetMetadata,
+} from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
+import { withClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
+import Link from "next/link";
 
 type Lang = "es" | "en";
+
+export type OfertaLocalOwnerReviewSummary = {
+  itemsTotal: number;
+  approvedCount: number;
+  reviewComplete: boolean;
+  totalPages: number;
+  completedPages: number;
+};
 
 type Props = {
   lang: Lang;
@@ -15,6 +33,7 @@ type Props = {
   flyerAssets: OfertaLocalPublishedAssetMetadata[];
   couponAssets: OfertaLocalPublishedAssetMetadata[];
   offerStatus: string;
+  onReviewSummaryChange?: (summary: OfertaLocalOwnerReviewSummary) => void;
 };
 
 const SCANNABLE_OWNER_STATUSES: ReadonlySet<string> = new Set([
@@ -22,6 +41,8 @@ const SCANNABLE_OWNER_STATUSES: ReadonlySet<string> = new Set([
   "submitted",
   "pending_review",
 ]);
+
+const ITEMS_PER_PAGE = 2;
 
 function firstScannableAsset(
   flyerAssets: OfertaLocalPublishedAssetMetadata[],
@@ -50,6 +71,41 @@ function firstScannableAsset(
   return null;
 }
 
+function reviewStatusBadgeText(status: OfertaLocalItemReviewStatus, lang: Lang): string {
+  if (status === "approved") return lang === "es" ? "Aprobado" : "Approved";
+  if (status === "rejected") return lang === "es" ? "Rechazado" : "Rejected";
+  if (status === "needs_review") return lang === "es" ? "Por revisar" : "To review";
+  return lang === "es" ? "Pendiente" : "Pending";
+}
+
+function reviewStatusBadgeClass(status: OfertaLocalItemReviewStatus): string {
+  if (status === "approved") return "bg-emerald-100 text-emerald-900";
+  if (status === "rejected") return "bg-red-100 text-red-900";
+  return "bg-amber-100 text-amber-900";
+}
+
+function ProductSummaryCard({ item, lang }: { item: OfertaLocalItemReviewViewModel; lang: Lang }) {
+  const isCoupon = item.candidateType === "coupon" || item.candidateType === "promo";
+  const name = (isCoupon ? item.couponTitle || item.itemName : item.itemName) || "—";
+  const priceText = isCoupon ? item.offerText || item.priceText : item.priceText;
+  return (
+    <div className="rounded-xl border border-[#D4C4A8]/70 bg-white p-3 text-sm">
+      <div className="flex items-center justify-between gap-2">
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${reviewStatusBadgeClass(item.reviewStatus)}`}>
+          {reviewStatusBadgeText(item.reviewStatus, lang)}
+        </span>
+        {item.sourcePage != null ? (
+          <span className="text-[10px] text-[#7A7164]">
+            {lang === "es" ? "Página" : "Page"} {item.sourcePage}
+          </span>
+        ) : null}
+      </div>
+      <p className="mt-1.5 font-semibold text-[#1E1810]">{name}</p>
+      {priceText ? <p className="text-xs text-[#5C5346]">{priceText}</p> : null}
+    </div>
+  );
+}
+
 export function OfertasLocalesOwnerAiManageSection({
   lang,
   offerId,
@@ -57,10 +113,14 @@ export function OfertasLocalesOwnerAiManageSection({
   flyerAssets,
   couponAssets,
   offerStatus,
+  onReviewSummaryChange,
 }: Props) {
   const [scanJobId, setScanJobId] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
+  const [items, setItems] = useState<OfertaLocalItemReviewViewModel[]>([]);
+  const [itemsLoaded, setItemsLoaded] = useState(false);
+  const [pageOffset, setPageOffset] = useState(0);
 
   const scannable = useMemo(
     () => firstScannableAsset(flyerAssets, couponAssets),
@@ -70,6 +130,27 @@ export function OfertasLocalesOwnerAiManageSection({
   const canScan =
     Boolean(scannable) &&
     SCANNABLE_OWNER_STATUSES.has(offerStatus);
+
+  const loadItems = useCallback(async () => {
+    if (!offerId.trim()) return;
+    const result = await fetchOfertaLocalReviewItems(offerId, null);
+    if (!result.ok) return;
+    setItems(result.items ?? []);
+    setItemsLoaded(true);
+    const counts = summarizeScopedItemReviewCounts(result.items ?? []);
+    const pageCompletion = summarizeOfertaLocalPageCompletion(result.items ?? [], result.scanJobs ?? []);
+    onReviewSummaryChange?.({
+      itemsTotal: (result.items ?? []).length,
+      approvedCount: counts.approved,
+      reviewComplete: (result.items ?? []).length > 0 && counts.pending === 0 && counts.needs_review === 0,
+      totalPages: pageCompletion.totalPages,
+      completedPages: pageCompletion.completedPages,
+    });
+  }, [offerId, onReviewSummaryChange]);
+
+  useEffect(() => {
+    void loadItems();
+  }, [loadItems]);
 
   const handleScan = useCallback(async () => {
     if (!canScan || !scannable) return;
@@ -90,9 +171,26 @@ export function OfertasLocalesOwnerAiManageSection({
     }
     if (result.scanJobId) setScanJobId(result.scanJobId);
     setScanMessage(result.message ?? (lang === "es" ? "Escaneo completado." : "Scan completed."));
-  }, [canScan, scannable, offerId, lang]);
+    void loadItems();
+  }, [canScan, scannable, offerId, lang, loadItems]);
 
   if (!scannable) return null;
+
+  const counts = summarizeScopedItemReviewCounts(items);
+  const reviewComplete = items.length > 0 && counts.pending === 0 && counts.needs_review === 0;
+  const manageHref = withClasificadosPublishLang("/publicar/ofertas-locales", lang, {
+    id: offerId,
+    step: 5,
+    review: 1,
+    intent: "continue",
+  });
+
+  const pageStart = Math.min(pageOffset, Math.max(0, items.length - 1));
+  const visibleItems = items.slice(pageStart, pageStart + ITEMS_PER_PAGE);
+  const rangeLabel =
+    items.length === 0
+      ? ""
+      : `${pageStart + 1}–${Math.min(pageStart + ITEMS_PER_PAGE, items.length)} ${lang === "es" ? "de" : "of"} ${items.length}`;
 
   const t =
     lang === "es"
@@ -102,6 +200,14 @@ export function OfertasLocalesOwnerAiManageSection({
           scanning: "Analizando…",
           scanHint: "El análisis con IA está incluido. Los artículos sugeridos requieren aprobación antes de ser públicos.",
           unavailable: "El análisis nuevo solo está disponible antes de la aprobación final.",
+          analysisComplete: "✅ Análisis completado",
+          productsFound: (n: number) => `${n} productos encontrados`,
+          productsTitle: "PRODUCTOS DEL VOLANTE",
+          summaryLine: (approved: number, total: number) => `${approved} aprobados${total > 0 ? ` de ${total}` : ""}`,
+          manage: "Gestionar productos",
+          prev: "←",
+          next: "→",
+          noItems: "Todavía no hay productos extraídos.",
         }
       : {
           title: "AI analysis review",
@@ -109,6 +215,14 @@ export function OfertasLocalesOwnerAiManageSection({
           scanning: "Analyzing…",
           scanHint: "AI analysis is included. Suggested items require approval before they become public.",
           unavailable: "New analysis is only available before final approval.",
+          analysisComplete: "✅ Analysis complete",
+          productsFound: (n: number) => `${n} products found`,
+          productsTitle: "FLYER PRODUCTS",
+          summaryLine: (approved: number, total: number) => `${approved} approved${total > 0 ? ` of ${total}` : ""}`,
+          manage: "Manage products",
+          prev: "←",
+          next: "→",
+          noItems: "No products extracted yet.",
         };
 
   return (
@@ -117,7 +231,11 @@ export function OfertasLocalesOwnerAiManageSection({
         <h2 className="text-xs font-bold uppercase text-[#7A7164]">{t.title}</h2>
         <p className="mt-1 text-xs text-[#7A7164]">{t.scanHint}</p>
       </div>
-      {canScan ? (
+      {reviewComplete ? (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-900">
+          {t.analysisComplete} · {t.productsFound(items.length)}
+        </div>
+      ) : canScan ? (
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
@@ -132,7 +250,49 @@ export function OfertasLocalesOwnerAiManageSection({
       ) : (
         <p className="text-xs text-[#7A7164]">{t.unavailable}</p>
       )}
-      <OfertasLocalesAiItemReviewPanel lang={lang} ofertaLocalId={offerId} scanJobId={scanJobId} />
+
+      {itemsLoaded && items.length > 0 ? (
+        <div className="rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-4">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">{t.productsTitle}</p>
+          <p className="mt-1 text-sm font-semibold text-[#1E1810]">
+            {t.summaryLine(counts.approved, items.length)}
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {visibleItems.map((item) => (
+              <ProductSummaryCard key={item.id} item={item} lang={lang} />
+            ))}
+          </div>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={pageStart <= 0}
+                onClick={() => setPageOffset((p) => Math.max(0, p - ITEMS_PER_PAGE))}
+                className="min-h-9 rounded-lg border border-[#D4C4A8] bg-white px-3 py-1.5 text-xs font-semibold text-[#1E1810] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {t.prev}
+              </button>
+              <span className="text-xs text-[#7A7164]">{rangeLabel}</span>
+              <button
+                type="button"
+                disabled={pageStart + ITEMS_PER_PAGE >= items.length}
+                onClick={() => setPageOffset((p) => p + ITEMS_PER_PAGE)}
+                className="min-h-9 rounded-lg border border-[#D4C4A8] bg-white px-3 py-1.5 text-xs font-semibold text-[#1E1810] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {t.next}
+              </button>
+            </div>
+            <Link
+              href={manageHref}
+              className="min-h-11 rounded-xl bg-[#2A2620] px-4 py-2 text-sm font-bold text-[#FAF7F2]"
+            >
+              {t.manage}
+            </Link>
+          </div>
+        </div>
+      ) : itemsLoaded ? (
+        <p className="text-xs text-[#7A7164]">{t.noItems}</p>
+      ) : null}
     </section>
   );
 }

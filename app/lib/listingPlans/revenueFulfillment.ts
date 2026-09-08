@@ -52,6 +52,8 @@ import {
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { getOfertaLocalCommercialProductByPackageKey } from "@/app/lib/ofertas-locales/ofertasLocalesCommercial";
 import { markOfertaLocalEntitlementFulfilled } from "@/app/lib/ofertas-locales/ofertasLocalesCommercialServer";
+import { tryAutoActivateOfertaLocalAfterPayment } from "@/app/lib/ofertas-locales/ofertasLocalesAdminReviewMutations";
+import { OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY } from "./publishCheckoutCheckpoint";
 import { EMPLEOS_JOB_POST_PAID_PACKAGE_KEY, AUTOS_PRIVADO_30D_PACKAGE_KEY } from "./publishCheckoutCheckpoint";
 import {
   loadPaymentRecordById,
@@ -217,6 +219,55 @@ async function tryFulfillOfertasLocalesParentAfterEntitlement(input: {
       starts_public_term: false,
     },
   });
+
+  // Commercial doctrine: the $399 flyer auto-publishes on successful payment —
+  // no routine Leonix staff approval step. Only the paid flyer package
+  // auto-activates here; the free coupon lane never reaches Stripe at all
+  // (see the "free" entitlement source) and renewals are handled by their
+  // own admin-review call path, not this first-payment fulfillment.
+  if (input.packageDef.packageKey === OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY && result.listingId) {
+    const activation = await tryAutoActivateOfertaLocalAfterPayment(getAdminSupabase(), result.listingId);
+
+    if (activation.outcome === "already_published" || activation.outcome === "unsafe_status") {
+      await writeRevenueAuditLog({
+        action: "revenue_webhook_ignored",
+        targetType: "ofertas_locales",
+        targetId: result.listingId,
+        meta: {
+          reason: "ofertas_locales_auto_activation_skipped",
+          outcome: activation.outcome,
+          message: activation.message,
+          payment_record_id: input.paymentRecord.id,
+        },
+      });
+    } else if (!activation.ok) {
+      // Payment + entitlement are already recorded correctly at this point —
+      // an activation precondition failing here (e.g. the owner has not
+      // actually finished the item review yet) is an exceptional case for a
+      // human to resolve, not a payment failure. Do not fail the webhook.
+      await writeRevenueAuditLog({
+        action: "revenue_webhook_validation_failed",
+        targetType: "ofertas_locales",
+        targetId: result.listingId,
+        meta: {
+          code: `ofertas_locales_auto_activation_${activation.outcome}`,
+          message: activation.message,
+          payment_record_id: input.paymentRecord.id,
+          package_key: input.packageDef.packageKey,
+        },
+      });
+    } else {
+      await writeRevenueAuditLog({
+        action: "ofertas_locales_listing_activated_after_payment",
+        targetType: "ofertas_locales",
+        targetId: result.listingId,
+        meta: {
+          payment_record_id: input.paymentRecord.id,
+          package_key: input.packageDef.packageKey,
+        },
+      });
+    }
+  }
 
   return { ok: true };
 }
