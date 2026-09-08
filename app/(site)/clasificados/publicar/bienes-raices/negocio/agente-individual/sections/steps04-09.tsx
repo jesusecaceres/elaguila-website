@@ -27,6 +27,14 @@ import {
 } from "../lib/agenteResidencialPreviewFormat";
 import { formatSqftDisplay } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
 import { detectAgenteResBuyerActions } from "../lib/agenteResidencialDetectedActions";
+import { BrGate12dHoaCommunitySection } from "@/app/clasificados/publicar/bienes-raices/shared/BrGate12dHoaCommunitySection";
+import { LanguagesInput } from "@/app/components/forms/LanguagesInput";
+import {
+  BR_RENTAS_LANGUAGE_OTHER_KEY,
+  brRentasLanguageChipOptions,
+  parseBrRentasLanguagesString,
+  serializeBrRentasLanguagesString,
+} from "@/app/clasificados/publicar/bienes-raices/shared/brRentasLanguagesAdapter";
 
 function BrSqftPreview({ value }: { value: string }) {
   const shown = formatSqftDisplay(value);
@@ -41,7 +49,7 @@ export function Step04DetallesEsenciales({
   state: AgenteIndividualResidencialFormState;
   setState: Dispatch<SetStateAction<AgenteIndividualResidencialFormState>>;
 }) {
-  const { t } = useBrAgenteResidencialCopy();
+  const { t, lang } = useBrAgenteResidencialCopy();
   const c = t.previewFormat.condicion;
   const cat = state.categoriaPropiedad;
 
@@ -127,6 +135,27 @@ export function Step04DetallesEsenciales({
           </AiField>
           {condicionSelect}
         </div>
+      ) : null}
+      {/* BR-INV-FINAL-WAVE-D (item 4): HOA is residential-only, reusing the exact shared
+          BrGate12dHoaCommunitySection/slice BR Privado already uses (variant="negocio"), not a
+          divergent duplicate. */}
+      {cat === "residencial" ? (
+        <BrGate12dHoaCommunitySection
+          variant="negocio"
+          lang={lang}
+          gate12d={{
+            hasHoa: state.hasHoa,
+            hoaFee: state.hoaFee,
+            hoaFrequency: state.hoaFrequency,
+            hoaIncludes: state.hoaIncludes,
+            communityRules: state.communityRules,
+            petRules: state.petRules,
+            rentalRestrictions: state.rentalRestrictions,
+            shortTermRentalAllowed: state.shortTermRentalAllowed,
+            parkingRules: state.parkingRules,
+          }}
+          onChange={(patch) => setState((s) => ({ ...s, ...patch }))}
+        />
       ) : null}
 
       {cat === "comercial" ? (
@@ -630,9 +659,40 @@ export function Step07InformacionProfesional({
   state: AgenteIndividualResidencialFormState;
   setState: Dispatch<SetStateAction<AgenteIndividualResidencialFormState>>;
 }) {
-  const { t } = useBrAgenteResidencialCopy();
+  const { t, lang } = useBrAgenteResidencialCopy();
   const s7 = t.step07 as BrAgenteResidencialCopy["step07"];
   const quitar = t.step02.quitar;
+
+  const [idiomaOtroPending, setIdiomaOtroPending] = useState("");
+  const parsedIdiomas = useMemo(() => parseBrRentasLanguagesString(state.agenteIdiomas), [state.agenteIdiomas]);
+  const toggleIdiomaChip = (key: string) => {
+    const next = parsedIdiomas.selectedKeys.includes(key)
+      ? parsedIdiomas.selectedKeys.filter((k) => k !== key)
+      : [...parsedIdiomas.selectedKeys, key];
+    const customValues = next.includes(BR_RENTAS_LANGUAGE_OTHER_KEY) ? parsedIdiomas.customValues : [];
+    setState((s) => ({ ...s, agenteIdiomas: serializeBrRentasLanguagesString(next, customValues, lang) }));
+  };
+  const addCustomIdioma = () => {
+    const trimmed = idiomaOtroPending.trim();
+    if (!trimmed) return;
+    if (parsedIdiomas.customValues.some((v) => v.toLowerCase() === trimmed.toLowerCase())) {
+      setIdiomaOtroPending("");
+      return;
+    }
+    const nextCustom = [...parsedIdiomas.customValues, trimmed];
+    const nextKeys = parsedIdiomas.selectedKeys.includes(BR_RENTAS_LANGUAGE_OTHER_KEY)
+      ? parsedIdiomas.selectedKeys
+      : [...parsedIdiomas.selectedKeys, BR_RENTAS_LANGUAGE_OTHER_KEY];
+    setState((s) => ({ ...s, agenteIdiomas: serializeBrRentasLanguagesString(nextKeys, nextCustom, lang) }));
+    setIdiomaOtroPending("");
+  };
+  const removeCustomIdiomaAt = (index: number) => {
+    const nextCustom = parsedIdiomas.customValues.filter((_, i) => i !== index);
+    const nextKeys = nextCustom.length
+      ? parsedIdiomas.selectedKeys
+      : parsedIdiomas.selectedKeys.filter((k) => k !== BR_RENTAS_LANGUAGE_OTHER_KEY);
+    setState((s) => ({ ...s, agenteIdiomas: serializeBrRentasLanguagesString(nextKeys, nextCustom, lang) }));
+  };
 
   const agentePersonalDigits = digitsOnly(state.agenteTelefonoPersonal || state.telefonoPrincipal);
   const agenteOfficeDigits = digitsOnly(state.agenteTelefonoOficina);
@@ -1160,9 +1220,26 @@ export function Step07InformacionProfesional({
         <AiField label={s7.areaServicio}>
           <input className={aiInputClass} value={state.agenteAreaServicio} onChange={(e) => setState((s) => ({ ...s, agenteAreaServicio: e.target.value }))} autoComplete="off" />
         </AiField>
-        <AiField label={s7.idiomas}>
-          <input className={aiInputClass} value={state.agenteIdiomas} onChange={(e) => setState((s) => ({ ...s, agenteIdiomas: e.target.value }))} placeholder={s7.idiomasPh} autoComplete="off" />
-        </AiField>
+        <div className="sm:col-span-2">
+          <AiField label={s7.idiomas}>
+            <LanguagesInput
+              options={brRentasLanguageChipOptions(lang)}
+              selectedKeys={parsedIdiomas.selectedKeys}
+              onToggle={toggleIdiomaChip}
+              otherKey={BR_RENTAS_LANGUAGE_OTHER_KEY}
+              customValues={parsedIdiomas.customValues}
+              customInputValue={idiomaOtroPending}
+              onCustomInputChange={setIdiomaOtroPending}
+              onAddCustom={addCustomIdioma}
+              onRemoveCustom={removeCustomIdiomaAt}
+              labels={{
+                otherPlaceholder: s7.idiomasPh,
+                add: lang === "es" ? "Agregar" : "Add",
+                removeAria: (value) => (lang === "es" ? `Quitar ${value}` : `Remove ${value}`),
+              }}
+            />
+          </AiField>
+        </div>
       </div>
     </section>
   );

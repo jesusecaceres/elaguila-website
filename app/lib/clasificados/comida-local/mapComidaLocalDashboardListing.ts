@@ -2,7 +2,7 @@ import type { DashboardInventoryItem } from "@/app/(site)/dashboard/lib/dashboar
 import { COMIDA_LOCAL_FOOD_TYPE_OPTIONS } from "./comidaLocalConstants";
 import {
   getComidaLocalPackageLabel,
-  getComidaLocalPackagePriceLabel,
+  getComidaLocalCurrentSalePriceLabel,
 } from "./comidaLocalPackages";
 import { getComidaLocalPaymentStatusLabel } from "./comidaLocalPaymentStatus";
 import { resolveComidaLocalImageUrl } from "./comidaLocalImageValidation";
@@ -15,7 +15,7 @@ function foodTypeLabelForDashboardRow(row: ComidaLocalDashboardListingRow): stri
     return custom || "Otro";
   }
   const opt = COMIDA_LOCAL_FOOD_TYPE_OPTIONS.find((o) => o.value === ft);
-  return (opt?.label ?? ft) || "Comida local";
+  return (opt?.labelEs ?? ft) || "Comida local";
 }
 
 export type ComidaLocalDashboardListingVm = {
@@ -67,7 +67,7 @@ function statusLabel(status: string, lang: "es" | "en"): string {
 
 function packageLabelWithPrice(tier: string, lang: "es" | "en"): string {
   const label = getComidaLocalPackageLabel(tier, lang);
-  const price = getComidaLocalPackagePriceLabel(tier);
+  const price = getComidaLocalCurrentSalePriceLabel(lang);
   return label && price ? `${label} (${price})` : label || tier || "—";
 }
 

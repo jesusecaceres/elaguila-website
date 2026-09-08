@@ -8,12 +8,17 @@ import {
 import type { OfertaLocalSourceBoundingBox } from "@/app/lib/ofertas-locales/ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "@/app/lib/ofertas-locales/useOfertasLocalesAppLang";
 import { OFERTAS_LOCALES_PREVIEW_COPY } from "./ofertasLocalesPreviewCopy";
+import { acquireSharedPdfPage, releaseSharedPdfDocument } from "./ofertasLocalesPdfDocumentCache";
 
 /**
  * Gate 4C Repair — render a real product crop from a PDF page + normalized bbox
  * using pdf.js. Renders only the crop region to a crop-sized canvas via a viewport
  * translate transform (no giant offscreen canvas). No data URLs, no DB writes, no
  * network beyond fetching the already-public PDF. Calls onUnavailable on failure.
+ *
+ * Every card sharing the same flyer URL reuses ONE loaded pdf.js document
+ * (and one loaded page per page number) via ofertasLocalesPdfDocumentCache —
+ * see that module's header for why this matters.
  */
 
 const MAX_CANVAS_PX = 2000;
@@ -66,16 +71,7 @@ export function OfertasPdfItemCropPreview({
       renderTaskRef.current = null;
 
       try {
-        const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-        if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-          pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/legacy/build/pdf.worker.min.mjs`;
-        }
-
-        const doc = await pdfjs.getDocument({ url: pdfUrl, withCredentials: false }).promise;
-        if (cancelled) return;
-
-        const safePage = Math.min(page, doc.numPages || 1);
-        const pdfPage = await doc.getPage(safePage);
+        const { page: pdfPage } = await acquireSharedPdfPage(pdfUrl, page);
         if (cancelled) return;
 
         const base = pdfPage.getViewport({ scale: 1 });
@@ -140,6 +136,7 @@ export function OfertasPdfItemCropPreview({
     return () => {
       cancelled = true;
       renderTaskRef.current?.cancel?.();
+      releaseSharedPdfDocument(pdfUrl);
     };
   }, [pdfUrl, pageNumber, region?.xMin, region?.yMin, region?.xMax, region?.yMax, variant]);
 

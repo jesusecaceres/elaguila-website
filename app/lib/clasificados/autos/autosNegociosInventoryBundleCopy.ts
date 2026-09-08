@@ -269,6 +269,11 @@ export function autosRelatedInventoryDraftCardLabel(lang: AutosClassifiedsLang):
   return lang === "es" ? "Vista previa / borrador" : "Preview / draft";
 }
 
+/** Quieter single-line variant for the additional-inventory bundle card (preview draft-capture only). */
+export function autosPreviewInventoryBundleCardQuietLabel(lang: AutosClassifiedsLang): string {
+  return lang === "es" ? "Vehículo adicional · Borrador" : "Additional vehicle · Draft";
+}
+
 export function autosRelatedInventoryAvailableAfterPublish(lang: AutosClassifiedsLang): string {
   return lang === "es" ? "Disponible después de publicar" : "Available after publishing";
 }

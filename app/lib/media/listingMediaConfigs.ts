@@ -145,8 +145,9 @@ export const LANE_MEDIA_REGISTRY: readonly LaneMediaRecord[] = [
     images: { kind: "counted", min: 1, max: 40 },
     logoSupported: true,
     hero: "hero-first-storage",
-    // AGENTE_RES_MAX_VIDEO_URLS = 4 (agenteIndividualResidencialFormState.ts:62).
-    maxExternalVideos: 4,
+    // AGENTE_RES_MAX_VIDEO_URLS = 8 (agenteIndividualResidencialFormState.ts:62).
+    // Global Business Hub OS — pilot-lane video cap raised 4 -> 8.
+    maxExternalVideos: 8,
     videoValidator: "none",
     mediaOwner: "self",
     editSurface: "category-editor",
@@ -159,7 +160,8 @@ export const LANE_MEDIA_REGISTRY: readonly LaneMediaRecord[] = [
     images: { kind: "counted", min: 0, max: 40 },
     logoSupported: false,
     hero: "index",
-    maxExternalVideos: 4,
+    // Global Business Hub OS — pilot-lane video cap raised 4 -> 8, matching the parent lane.
+    maxExternalVideos: 8,
     videoValidator: "none",
     mediaOwner: "child-owned",
     editSurface: "parent-application",
@@ -175,8 +177,9 @@ export const LANE_MEDIA_REGISTRY: readonly LaneMediaRecord[] = [
     images: { kind: "counted", min: 0, max: 24 },
     logoSupported: true,
     hero: "dedicated-field",
-    // SERVICIOS_MAX_VIDEO_URLS = 4 (clasificadosServiciosApplicationTypes.ts:64).
-    maxExternalVideos: 4,
+    // SERVICIOS_MAX_VIDEO_URLS = 8 (clasificadosServiciosApplicationTypes.ts:64).
+    // Global Business Hub OS — pilot-lane video cap raised 4 -> 8.
+    maxExternalVideos: 8,
     // Package B Gate B3 — validator ADDED (was: any URL accepted).
     videoValidator: "shared-https-strict",
     mediaOwner: "self",
@@ -190,8 +193,9 @@ export const LANE_MEDIA_REGISTRY: readonly LaneMediaRecord[] = [
     images: { kind: "uncapped", min: 0 },
     logoSupported: false,
     hero: "index",
-    // AUTOS_MAX_EXTERNAL_VIDEO_URLS = 4 (autosExternalVideoUrlValidation.ts:1).
-    maxExternalVideos: 4,
+    // AUTOS_MAX_EXTERNAL_VIDEO_URLS = 8 (autosExternalVideoUrlValidation.ts:1).
+    // Global Business Hub OS — pilot-lane video cap raised 4 -> 8.
+    maxExternalVideos: 8,
     videoValidator: "autos-https-strict",
     mediaOwner: "self",
     editSurface: "category-editor",
@@ -203,7 +207,8 @@ export const LANE_MEDIA_REGISTRY: readonly LaneMediaRecord[] = [
     images: { kind: "uncapped", min: 0 },
     logoSupported: true,
     hero: "index",
-    maxExternalVideos: 4,
+    // Global Business Hub OS — pilot-lane video cap raised 4 -> 8.
+    maxExternalVideos: 8,
     videoValidator: "autos-https-strict",
     mediaOwner: "self",
     editSurface: "category-editor",
@@ -215,7 +220,8 @@ export const LANE_MEDIA_REGISTRY: readonly LaneMediaRecord[] = [
     images: { kind: "uncapped", min: 0 },
     logoSupported: false,
     hero: "index",
-    maxExternalVideos: 4,
+    // Global Business Hub OS — pilot-lane video cap raised 4 -> 8, matching the parent lane.
+    maxExternalVideos: 8,
     videoValidator: "autos-https-strict",
     mediaOwner: "child-owned",
     editSurface: "parent-application",
@@ -232,8 +238,9 @@ export const LANE_MEDIA_REGISTRY: readonly LaneMediaRecord[] = [
     images: { kind: "counted", min: 1, max: 24 },
     logoSupported: true,
     hero: "dedicated-field",
-    // RESTAURANTE_MAX_EXTERNAL_VIDEO_URLS = 4 (restauranteVideoUrls.ts:4).
-    maxExternalVideos: 4,
+    // RESTAURANTE_MAX_EXTERNAL_VIDEO_URLS = 8 (restauranteVideoUrls.ts:4).
+    // Global Business Hub OS — pilot-lane video cap raised 4 -> 8.
+    maxExternalVideos: 8,
     videoValidator: "restaurante-embeddable",
     mediaOwner: "self",
     editSurface: "category-editor",

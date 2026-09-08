@@ -33,6 +33,8 @@ import { STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT, resolveDealerActiveVehicleLimit }
 import { listingHasActiveDealerInventoryPack } from "@/app/lib/clasificados/autos/autosDealerInventoryPackEntitlement";
 import { validateNegociosApplicationPublishInventory } from "@/app/lib/clasificados/autos/autosDealerInventoryApplicationPublishGuard";
 import { buildAutosListingApiErrorPayload } from "@/app/lib/clasificados/autos/autosPublishApiContract";
+import { requiresBaseCheckout } from "@/app/lib/listingPlans/revenueActiveEntitlementGuard";
+import { AUTOS_DEALER_MONTHLY_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -297,6 +299,31 @@ export async function POST(request: Request) {
       );
     }
     return NextResponse.json({ ok: false, error: "stripe_not_configured" }, { status: 503 });
+  }
+
+  // Revenue OS active-entitlement guard — defense in depth for this legacy env-price Stripe
+  // branch (retained for rollback only; the converged UI proceeds to /api/revenue-os/checkout
+  // instead). A dealer parent listing can reach `payment_failed`/`pending_payment` here while its
+  // base entitlement is still within its grace period (listing row status and entitlement status
+  // are independent) — never let that combination create a second real Stripe charge.
+  if (row.lane === "negocios") {
+    const entitlementGuard = await requiresBaseCheckout({
+      listingId,
+      ownerId: userId,
+      category: "autos",
+      packageKey: AUTOS_DEALER_MONTHLY_PACKAGE_KEY,
+    });
+    if (!entitlementGuard.requiresCheckout) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "active_entitlement_no_recharge",
+          message:
+            "This dealer listing already has an active base package. No additional charge is required.",
+        },
+        { status: 409 },
+      );
+    }
   }
 
   const priceId = getStripePriceIdForAutosLane(row.lane);

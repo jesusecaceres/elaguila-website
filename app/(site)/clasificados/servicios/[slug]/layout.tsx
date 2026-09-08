@@ -35,10 +35,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const cookieStore = await cookies();
   const lang: ServiciosLang = normalizeLang(cookieStore.get(LEONIX_LANG_COOKIE)?.value) === "en" ? "en" : "es";
 
+  // Globalization Build 04, Gate 18 — this route never set a canonical URL at all (confirmed
+  // absent on every branch below); only the legacy `/servicios/perfil/[slug]` redirect shim had
+  // one. Real public detail pages must always declare their own canonical.
+  const canonical = `/clasificados/servicios/${encodeURIComponent(slug)}`;
+
   try {
     const row = await getServiciosPublicListingBySlugForDiscovery(slug);
     if (!row) {
-      return { title: { absolute: SERVICIOS_METADATA_FALLBACK_TITLE } };
+      return { title: { absolute: SERVICIOS_METADATA_FALLBACK_TITLE }, alternates: { canonical } };
     }
 
     // Package F Build F2, Gate 3 (P0 SEO/indexing fix) — these two states previously changed
@@ -50,6 +55,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         title: {
           absolute: "Anuncio en revisión · Servicios · Leonix",
         },
+        alternates: { canonical },
       };
     }
     if (row.listing_status === "rejected" || row.listing_status === "suspended") {
@@ -58,6 +64,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         title: {
           absolute: "Anuncio no disponible · Leonix",
         },
+        alternates: { canonical },
       };
     }
 
@@ -67,6 +74,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     return {
       title: { absolute: `${profile.identity.businessName} · Servicios · Leonix` },
       description: profile.about?.text?.slice(0, 155) ?? undefined,
+      alternates: { canonical },
       openGraph: {
         title: `${profile.identity.businessName} · Servicios`,
         type: "website",
@@ -75,6 +83,6 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       other: { servicios_slug_probe: slug },
     };
   } catch {
-    return { title: { absolute: SERVICIOS_METADATA_FALLBACK_TITLE } };
+    return { title: { absolute: SERVICIOS_METADATA_FALLBACK_TITLE }, alternates: { canonical } };
   }
 }

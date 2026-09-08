@@ -1,11 +1,16 @@
 import {
+  comidaLocalOptionLabel,
+  COMIDA_LOCAL_BUSINESS_TYPE_OPTIONS,
   COMIDA_LOCAL_FOOD_TYPE_OPTIONS,
+  COMIDA_LOCAL_HIGHLIGHT_OPTIONS,
   COMIDA_LOCAL_LANGUAGE_OPTIONS,
   COMIDA_LOCAL_PAYMENT_OPTIONS,
   COMIDA_LOCAL_PRICE_LEVEL_OPTIONS,
   COMIDA_LOCAL_SERVICE_OPTIONS,
+  type ComidaLocalBilingualOption,
 } from "./comidaLocalConstants";
 import { resolveComidaLocalCityCanonical } from "./comidaLocalCity";
+import { computeBusinessHoursStatus } from "@/app/lib/businessHours/computeBusinessHoursStatus";
 import {
   buildComidaLocalSmsHref,
   buildComidaLocalTelHref,
@@ -20,6 +25,7 @@ import type {
   ComidaLocalPreviewChip,
   ComidaLocalPreviewContactAction,
   ComidaLocalPreviewImage,
+  ComidaLocalPreviewLink,
   ComidaLocalPreviewVm,
 } from "./comidaLocalPreviewTypes";
 import type { ComidaLocalDraft, ComidaLocalImageDraft } from "./comidaLocalTypes";
@@ -32,15 +38,93 @@ function labelFromOptions<T extends string>(
   return options.find((o) => o.value === value)?.label ?? value;
 }
 
-function buildFoodTypeChips(draft: ComidaLocalDraft): ComidaLocalPreviewChip[] {
+/** Gate F2 — bilingual lookup for the three now-{labelEs,labelEn} option sets (business type,
+ * service options, highlights). Stored `value` is unchanged; only the display label varies. */
+function labelFromBilingualOptions<T extends string>(
+  value: T,
+  options: ReadonlyArray<ComidaLocalBilingualOption<T>>,
+  lang: "es" | "en",
+): string {
+  const opt = options.find((o) => o.value === value);
+  return opt ? comidaLocalOptionLabel(opt, lang) : value;
+}
+
+function buildFoodTypeChips(draft: ComidaLocalDraft, lang: "es" | "en"): ComidaLocalPreviewChip[] {
   if (!draft.foodType) return [];
   if (draft.foodType === "otro") {
     const custom = draft.foodTypeCustom.trim();
     if (!custom) return [];
     return [{ key: "food-otro", label: custom }];
   }
-  const label = labelFromOptions(draft.foodType, COMIDA_LOCAL_FOOD_TYPE_OPTIONS);
+  const label = labelFromBilingualOptions(draft.foodType, COMIDA_LOCAL_FOOD_TYPE_OPTIONS, lang);
   return [{ key: draft.foodType, label }];
+}
+
+const WEEKDAY_ORDER_LABELS: Array<{ key: string; labelEs: string; labelEn: string }> = [
+  { key: "monday", labelEs: "Lunes", labelEn: "Monday" },
+  { key: "tuesday", labelEs: "Martes", labelEn: "Tuesday" },
+  { key: "wednesday", labelEs: "Miércoles", labelEn: "Wednesday" },
+  { key: "thursday", labelEs: "Jueves", labelEn: "Thursday" },
+  { key: "friday", labelEs: "Viernes", labelEn: "Friday" },
+  { key: "saturday", labelEs: "Sábado", labelEn: "Saturday" },
+  { key: "sunday", labelEs: "Domingo", labelEn: "Sunday" },
+];
+
+function buildHoursLines(draft: ComidaLocalDraft, lang: "es" | "en"): { dayLabel: string; text: string }[] {
+  const en = lang === "en";
+  const lines: { dayLabel: string; text: string }[] = [];
+  for (const { key, labelEs, labelEn } of WEEKDAY_ORDER_LABELS) {
+    const sched = draft.weeklyHours[key];
+    if (!sched) continue;
+    const dayLabel = en ? labelEn : labelEs;
+    if (sched.closed) {
+      lines.push({ dayLabel, text: en ? "Closed" : "Cerrado" });
+      continue;
+    }
+    if (sched.openTime && sched.closeTime) {
+      lines.push({ dayLabel, text: `${sched.openTime} – ${sched.closeTime}` });
+    }
+  }
+  return lines;
+}
+
+function buildBusinessTypeLabel(draft: ComidaLocalDraft, lang: "es" | "en"): string {
+  if (!draft.businessType) return "";
+  if (draft.businessType === "otro") {
+    const values = draft.businessTypeCustomValues.length
+      ? draft.businessTypeCustomValues
+      : draft.businessTypeCustom.trim()
+        ? [draft.businessTypeCustom.trim()]
+        : [];
+    return values.join(", ");
+  }
+  return labelFromBilingualOptions(draft.businessType, COMIDA_LOCAL_BUSINESS_TYPE_OPTIONS, lang);
+}
+
+function buildHighlightChips(draft: ComidaLocalDraft, lang: "es" | "en"): ComidaLocalPreviewChip[] {
+  return draft.highlights
+    .flatMap((v): ComidaLocalPreviewChip[] => {
+      if (v === "otro") {
+        const values = draft.highlightsOtherCustomValues.length
+          ? draft.highlightsOtherCustomValues
+          : draft.highlightsOtherCustom.trim()
+            ? [draft.highlightsOtherCustom.trim()]
+            : [];
+        return values.map((label, i) => ({ key: `highlight-otro-${i}`, label }));
+      }
+      return [{ key: v, label: labelFromBilingualOptions(v, COMIDA_LOCAL_HIGHLIGHT_OPTIONS, lang) }];
+    });
+}
+
+function buildAdditionalWebsiteLinks(draft: ComidaLocalDraft): ComidaLocalPreviewLink[] {
+  return draft.additionalWebsites
+    .map((site) => {
+      const href = normalizeLocationHref(site.url);
+      if (!href) return null;
+      const label = site.label.trim() || href.replace(/^https?:\/\//i, "");
+      return { label, href };
+    })
+    .filter((x): x is ComidaLocalPreviewLink => x !== null);
 }
 
 function buildLocationLine(draft: ComidaLocalDraft): string {
@@ -70,7 +154,8 @@ function normalizeLocationHref(raw: string): string | null {
   return isValidComidaLocalExternalUrl(withScheme) ? withScheme : null;
 }
 
-function buildContactActions(draft: ComidaLocalDraft): ComidaLocalPreviewContactAction[] {
+function buildContactActions(draft: ComidaLocalDraft, lang: "es" | "en"): ComidaLocalPreviewContactAction[] {
+  const en = lang === "en";
   const actions: ComidaLocalPreviewContactAction[] = [];
   const name = draft.businessName.trim();
 
@@ -78,12 +163,22 @@ function buildContactActions(draft: ComidaLocalDraft): ComidaLocalPreviewContact
   if (phoneDigits.length >= 10) {
     const tel = buildComidaLocalTelHref(draft.phone);
     if (tel) {
-      actions.push({ id: "call", label: "Llamar", href: tel, variant: "primary" });
+      actions.push({ id: "call", label: en ? "Call" : "Llamar", href: tel, variant: "primary" });
     }
     const sms = buildComidaLocalSmsHref(draft.phone);
     if (sms) {
-      actions.push({ id: "sms", label: "Mensaje", href: sms, variant: "secondary" });
+      actions.push({ id: "sms", label: en ? "Message" : "Mensaje", href: sms, variant: "secondary" });
     }
+  }
+
+  const email = draft.email.trim();
+  if (email) {
+    actions.push({
+      id: "email",
+      label: en ? "Email" : "Correo",
+      href: `mailto:${email}`,
+      variant: "secondary",
+    });
   }
 
   const waDigits = normalizeComidaLocalPhoneDigits(draft.whatsapp);
@@ -131,7 +226,7 @@ function buildContactActions(draft: ComidaLocalDraft): ComidaLocalPreviewContact
   if (loc) {
     actions.push({
       id: "location",
-      label: "Dónde está hoy",
+      label: en ? "Where I am today" : "Dónde está hoy",
       href: loc,
       variant: "secondary",
     });
@@ -140,36 +235,73 @@ function buildContactActions(draft: ComidaLocalDraft): ComidaLocalPreviewContact
   return actions;
 }
 
-function buildPaymentChips(draft: ComidaLocalDraft): ComidaLocalPreviewChip[] {
+function buildPaymentChips(draft: ComidaLocalDraft, lang: "es" | "en"): ComidaLocalPreviewChip[] {
   return draft.paymentMethods.map((v) => {
-    let label = labelFromOptions(v, COMIDA_LOCAL_PAYMENT_OPTIONS);
+    let label = labelFromBilingualOptions(v, COMIDA_LOCAL_PAYMENT_OPTIONS, lang);
     if (v === "other" && draft.paymentOtherNote.trim()) {
-      label = `Otro: ${draft.paymentOtherNote.trim()}`;
+      label = `${lang === "en" ? "Other" : "Otro"}: ${draft.paymentOtherNote.trim()}`;
     }
     return { key: v, label };
   });
 }
 
-/** Map session/local draft → preview VM. No fake ids or engagement. */
-export function mapComidaLocalDraftToPreviewVm(draft: ComidaLocalDraft): ComidaLocalPreviewVm {
-  const previewIssues = validateComidaLocalDraftForPreview(draft);
-  const businessName = draft.businessName.trim() || "Tu puesto";
+/** Map session/local draft → preview VM. No fake ids or engagement.
+ * Gate F2 — `lang` defaults to "es" so every existing call site (preview client, which stays
+ * Spanish-only) keeps its prior behavior unchanged; only the public detail read-path passes
+ * "en" explicitly. */
+export function mapComidaLocalDraftToPreviewVm(
+  draft: ComidaLocalDraft,
+  lang: "es" | "en" = "es",
+): ComidaLocalPreviewVm {
+  const previewIssues = validateComidaLocalDraftForPreview(draft, lang === "es");
+  const businessName = draft.businessName.trim() || (lang === "en" ? "Your stand" : "Tu puesto");
   const queVendes = draft.queVendes.trim();
   const availabilityNote = draft.availabilityNote.trim();
   const locationNote = draft.locationNote.trim();
-  const serviceChips: ComidaLocalPreviewChip[] = draft.serviceOptions.map((v) => ({
-    key: v,
-    label: labelFromOptions(v, COMIDA_LOCAL_SERVICE_OPTIONS),
-  }));
-  const paymentChips = buildPaymentChips(draft);
+  const serviceChips: ComidaLocalPreviewChip[] = draft.serviceOptions.flatMap(
+    (v): ComidaLocalPreviewChip[] => {
+      if (v === "other") {
+        const values = draft.serviceOptionOtherCustomValues.length
+          ? draft.serviceOptionOtherCustomValues
+          : draft.serviceOptionOtherCustom.trim()
+            ? [draft.serviceOptionOtherCustom.trim()]
+            : [];
+        if (values.length === 0) {
+          return [{ key: v, label: labelFromBilingualOptions(v, COMIDA_LOCAL_SERVICE_OPTIONS, lang) }];
+        }
+        return values.map((label, i) => ({ key: `${v}-${i}`, label }));
+      }
+      return [{ key: v, label: labelFromBilingualOptions(v, COMIDA_LOCAL_SERVICE_OPTIONS, lang) }];
+    }
+  );
+  const paymentChips = buildPaymentChips(draft, lang);
   const priceLevelLabel = draft.priceLevel
     ? labelFromOptions(draft.priceLevel, COMIDA_LOCAL_PRICE_LEVEL_OPTIONS)
     : "";
-  const languageLabels = draft.languages.map((v) =>
-    labelFromOptions(v, COMIDA_LOCAL_LANGUAGE_OPTIONS)
-  );
-  const contactActions = buildContactActions(draft);
-  const foodLabel = buildFoodTypeChips(draft)[0]?.label ?? "";
+  const languageLabels = [
+    ...draft.languages
+      .filter((v) => v !== "otro")
+      .map((v) => labelFromBilingualOptions(v, COMIDA_LOCAL_LANGUAGE_OPTIONS, lang)),
+    ...draft.customLanguages,
+  ];
+  const contactActions = buildContactActions(draft, lang);
+  const businessTypeLabel = buildBusinessTypeLabel(draft, lang);
+  const highlightChips = buildHighlightChips(draft, lang);
+  const additionalWebsites = buildAdditionalWebsiteLinks(draft);
+  const businessAddressLine = draft.showAddressPublicly ? draft.businessAddressLine.trim() : "";
+  const eventScheduleNote = draft.eventScheduleNote.trim();
+  const cateringServiceRadiusNote = draft.cateringServiceRadiusNote.trim();
+  const cateringEventInfoNote = draft.cateringEventInfoNote.trim();
+  const mealPrepScheduleNote = draft.mealPrepScheduleNote.trim();
+  const orderLinkRaw = draft.mobileOrderLinkUrl.trim() || draft.mealPrepOrderUrl.trim();
+  const orderLinkHref = normalizeLocationHref(orderLinkRaw);
+  const orderLink: ComidaLocalPreviewLink | null = orderLinkHref
+    ? { label: lang === "en" ? "Order / contact link" : "Enlace de pedidos / contacto", href: orderLinkHref }
+    : null;
+  const hoursLines = buildHoursLines(draft, lang);
+  const isOpenNow =
+    hoursLines.length > 0 ? computeBusinessHoursStatus(draft.weeklyHours).isOpenNow : null;
+  const foodLabel = buildFoodTypeChips(draft, lang)[0]?.label ?? "";
   const mainAlt =
     draft.mainPhoto?.altText?.trim() ||
     comidaLocalImageAltText(businessName, foodLabel, "main");
@@ -196,11 +328,20 @@ export function mapComidaLocalDraftToPreviewVm(draft: ComidaLocalDraft): ComidaL
     showPayment: paymentChips.length > 0,
     showExtras: Boolean(priceLevelLabel || languageLabels.length > 0),
     showGallery: galleryImages.length > 0,
+    showHighlights: highlightChips.length > 0,
+    showAdditionalWebsites: additionalWebsites.length > 0,
+    showBusinessAddress: Boolean(businessAddressLine),
+    showHours: hoursLines.length > 0,
+    showOrderLink: Boolean(orderLink),
+    showEventSchedule: Boolean(eventScheduleNote),
+    showCateringDetails: Boolean(cateringServiceRadiusNote || cateringEventInfoNote),
+    showMealPrepSchedule: Boolean(mealPrepScheduleNote),
   };
 
   return {
     businessName,
-    foodTypeChips: buildFoodTypeChips(draft),
+    foodTypeChips: buildFoodTypeChips(draft, lang),
+    businessTypeLabel,
     locationLine: buildLocationLine(draft),
     queVendes,
     availabilityNote,
@@ -209,6 +350,16 @@ export function mapComidaLocalDraftToPreviewVm(draft: ComidaLocalDraft): ComidaL
     paymentChips,
     priceLevelLabel,
     languageLabels,
+    highlightChips,
+    additionalWebsites,
+    businessAddressLine,
+    orderLink,
+    eventScheduleNote,
+    cateringServiceRadiusNote,
+    cateringEventInfoNote,
+    mealPrepScheduleNote,
+    isOpenNow,
+    hoursLines,
     contactActions,
     mainImage,
     logoImage,

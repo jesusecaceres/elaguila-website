@@ -120,7 +120,11 @@ export async function POST(req: NextRequest) {
   }
 
   const ownerUserId = await comidaLocalOwnerIdFromBearer(req);
-  const { draft, draftListingId, packageTier, lang } = parsed.value;
+  const { draft, draftListingId, packageTier, lang, activationMode } = parsed.value;
+  const isPendingPayment = activationMode === "pending_payment";
+  if (isPendingPayment && !ownerUserId) {
+    return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
+  }
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
 
@@ -159,14 +163,20 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // Gate D19 — never let a pending-payment checkout-prep save regress an already-published,
+      // already-paid listing back to pending_payment; that path only applies to a listing that
+      // hasn't gone through checkout successfully yet.
+      const existingStatus = (existing.status as string) ?? "published";
+      const useNewPending = isPendingPayment && existingStatus !== "published";
       const row = draftToComidaLocalPublicListingInsert(draft, existing.slug, {
         ownerUserId: ownerUserId ?? (existing.owner_user_id as string | null) ?? null,
         draftListingId,
         packageTier,
-        status: (existing.status as "published") ?? "published",
-        paymentStatus:
-          (typeof existing.payment_status === "string" && existing.payment_status) ||
-          COMIDA_LOCAL_PAYMENT_STATUS_L5B,
+        status: useNewPending ? "pending_payment" : ((existing.status as "published") ?? "published"),
+        paymentStatus: useNewPending
+          ? "pending"
+          : (typeof existing.payment_status === "string" && existing.payment_status) ||
+            COMIDA_LOCAL_PAYMENT_STATUS_L5B,
       });
 
       const updatePayload: Record<string, unknown> = {
@@ -193,6 +203,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         ok: true,
         persisted: true,
+        pendingPayment: useNewPending,
         id: existing.id,
         slug: existing.slug,
         leonix_ad_id: leonixId,
@@ -207,13 +218,21 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Gate D19 — a brand-new listing (no existing draft_listing_id row) must always go through
+    // Revenue OS checkout; direct-publish-for-free is not a valid path once Comida Local is a
+    // paid product. Editing an already-published listing goes through the `existing?.slug`
+    // branch above instead, which never requires this flag.
+    if (!isPendingPayment) {
+      return NextResponse.json({ ok: false, error: "payment_required" }, { status: 402 });
+    }
+
     const slugOut = await allocateUniqueSlug(supabase, slugBase);
     const insertRow = draftToComidaLocalPublicListingInsert(draft, slugOut, {
       ownerUserId,
       draftListingId,
       packageTier,
-      status: "published",
-      paymentStatus: COMIDA_LOCAL_PAYMENT_STATUS_L5B,
+      status: isPendingPayment ? "pending_payment" : "published",
+      paymentStatus: isPendingPayment ? "pending" : COMIDA_LOCAL_PAYMENT_STATUS_L5B,
     });
 
     let insertedId: string | null = null;
@@ -240,7 +259,7 @@ export async function POST(req: NextRequest) {
         .insert({
           ...insertRow,
           leonix_ad_id,
-          published_at: now,
+          ...(isPendingPayment ? {} : { published_at: now }),
           updated_at: now,
         })
         .select("id, slug, leonix_ad_id, status, package_tier, payment_status")
@@ -268,6 +287,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       persisted: true,
+      pendingPayment: isPendingPayment,
       id: insertedId,
       slug: slugOut,
       leonix_ad_id: leonixOut,

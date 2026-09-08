@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { ComingSoonGateRoot } from "./components/ComingSoonGateRoot";
 import { LanguagePreferenceSync } from "./components/LanguagePreferenceSync";
 import { LeonixRootJsonLd } from "./components/LeonixRootJsonLd";
+import { ServiceWorkerRegistration } from "./components/ServiceWorkerRegistration";
 import {
   LEONIX_MEDIA_SITE_NAME,
   LEONIX_MEDIA_SLOGAN,
@@ -39,13 +40,9 @@ export const metadata: Metadata = {
     "small business",
   ],
   robots: { index: true, follow: true },
-  alternates: {
-    canonical: LEONIX_SITE_ORIGIN,
-  },
   openGraph: {
     title: `${LEONIX_MEDIA_SITE_NAME} — ${LEONIX_MEDIA_SLOGAN}`,
     description: LEONIX_ROOT_META_DESCRIPTION_EN,
-    url: LEONIX_SITE_ORIGIN,
     siteName: LEONIX_MEDIA_SITE_NAME,
     type: "website",
     locale: "en_US",
@@ -71,6 +68,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="min-h-screen bg-[color:var(--lx-page)] text-[color:var(--lx-text)] antialiased">
         <LeonixRootJsonLd />
+        <ServiceWorkerRegistration />
         {/*
           Do not wrap `{children}` in a root <Suspense> here: it defers the entire page's SSR to
           this fallback and can leave the reveal client-side stuck indefinitely, showing only this

@@ -1,11 +1,11 @@
 ﻿"use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/application/restauranteDraftTypes";
-import type { RestauranteCoupon, RestauranteDaySchedule, RestauranteFeaturedDish, RestauranteServiceMode } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
+import type { RestauranteAdditionalWebsite, RestauranteCoupon, RestauranteDaySchedule, RestauranteFeaturedDish, RestauranteServiceMode, RestauranteSpecialHoursEntry } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import {
   RESTAURANTE_CONTACT_PLACEHOLDERS,
   RESTAURANTE_CUISINES,
@@ -19,6 +19,13 @@ import {
 import { RestauranteUploadRow } from "@/app/clasificados/restaurantes/application/RestauranteUploadRow";
 import { useRestauranteDraft } from "@/app/clasificados/restaurantes/application/useRestauranteDraft";
 import { saveRestauranteDraftToStorageResolved } from "@/app/clasificados/restaurantes/application/restauranteDraftStorage";
+import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
+import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import { PhoneInput } from "@/app/components/forms/PhoneInput";
+import { LanguagesInput } from "@/app/components/forms/LanguagesInput";
+import { HoursEditor } from "@/app/components/forms/HoursEditor";
+import { AddedConfirmationBadge, useAddedConfirmation } from "@/app/components/forms/AddedConfirmation";
+import { isProbablyUrl } from "@/app/clasificados/restaurantes/lib/urlNormalization";
 import {
   satisfiesRestauranteMinimumDraftForPreview,
   satisfiesRestauranteServiceModes,
@@ -38,6 +45,7 @@ import { resolveRestauranteDraftMediaToRemoteUrls } from "@/app/clasificados/res
 import {
   redirectRestauranteDashboardCouponAddonCheckout,
   restauranteCouponAddonUpgradeLabel,
+  restauranteCouponAddonUpgradeBusyLabel,
   restauranteCouponEditHref,
   restauranteOffersModuleHeading,
 } from "@/app/(site)/dashboard/lib/restaurantesDashboardCouponAddonCheckout";
@@ -81,6 +89,7 @@ import {
 } from "@/app/lib/clasificados/restaurantes/restauranteFormCleanupConfig";
 
 const PREVIEW_HREF = "/clasificados/restaurantes/preview";
+const RESTAURANTE_ACTIVE_SECTION_STORAGE_KEY = "leonix.restaurantes.activeSection.v1";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_32px_-8px_rgba(42,36,22,0.1)] sm:p-6";
@@ -100,9 +109,15 @@ const OTHER_INPUT =
   "mt-1.5 w-full max-w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm text-[color:var(--lx-text)]";
 
 /** UI cap for additional cuisine tags (stored arrays may be longer from older sessions; user can only add up to this). */
-const MAX_ADDITIONAL_CUISINES = 3;
+const MAX_ADDITIONAL_CUISINES = 6;
 
 const DAY_ROW_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
+
+/** Client-only id for a new special-hours row; falls back when crypto.randomUUID is unavailable. */
+function newSpecialHoursEntryId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return `sh-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
 function dayRows(lang: RestauranteAppUiLang) {
   return DAY_ROW_KEYS.map((key) => ({
@@ -162,6 +177,7 @@ function TaxonomyChipLeading({ chipEmoji }: { chipEmoji?: string }) {
 export default function RestauranteApplicationClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
   const { routeLang, copyLang: lang } = useMemo(
     () => resolveClasificadosPublishLang(searchParams?.get("lang")),
     [searchParams],
@@ -192,10 +208,51 @@ export default function RestauranteApplicationClient() {
     returnPanel === "restaurantes"
       ? appendLangToPath("/dashboard/restaurantes", routeLang)
       : buildDashboardMisAnunciosReturnPath(lang, "restaurantes");
-  const { hydrated, draft, draftRef, setDraftPatch, resetDraft } = useRestauranteDraft();
+  const { hydrated, draft, draftRef, isDraftDirty, setDraftPatch, resetDraft, trimDraftStrings } = useRestauranteDraft();
+
+  useBusinessApplicationLeaveGuard({
+    isDirty: hydrated && Boolean(draft.businessName?.trim()) && isDraftDirty,
+    // Trim only at this one-time exit snapshot, never on every keystroke — trimming inside the
+    // live onChange path would fight normal typing (a trailing space the user just typed to
+    // start a new word would be stripped back out on every keystroke). This closes the gap where
+    // a whitespace-only custom "Otro" cuisine/style/etc. value could otherwise linger in the
+    // persisted draft (it was already correctly excluded from Preview/publish by nonEmpty()/
+    // hasValue() downstream — this just keeps the draft itself clean too).
+    persist: () => {
+      void saveRestauranteDraftToStorageResolved(trimDraftStrings(draftRef.current));
+    },
+  });
   const [serviceErr, setServiceErr] = useState(false);
   /** Pending text before user confirms custom language with Añadir. */
   const [languageOtherPending, setLanguageOtherPending] = useState("");
+
+  // Accepted-confirmation doctrine (INPUT -> ACCEPTED -> PERSISTED) — one instance per explicit
+  // Add/Accept flow in this form; `.flash()` fires only on a genuinely successful/valid add.
+  const businessTypeOtherConfirm = useAddedConfirmation();
+  const primaryCuisineOtherConfirm = useAddedConfirmation();
+  const secondaryCuisineOtherConfirm = useAddedConfirmation();
+  const additionalCuisineOtherConfirm = useAddedConfirmation();
+  const customLanguageConfirm = useAddedConfirmation();
+  const specialHoursConfirm = useAddedConfirmation();
+  const serviceModeOtherConfirm = useAddedConfirmation();
+  /** Per-row confirmation for repeatable "additional websites" links (dynamic row count, so this
+   * is a small map + timer-ref instead of one `useAddedConfirmation()` per row). */
+  const [websiteLinkConfirmVisible, setWebsiteLinkConfirmVisible] = useState<Record<number, boolean>>({});
+  const websiteLinkConfirmTimersRef = useRef<Record<number, number>>({});
+  useEffect(() => {
+    const timers = websiteLinkConfirmTimersRef.current;
+    return () => {
+      Object.values(timers).forEach((t) => window.clearTimeout(t));
+    };
+  }, []);
+  const flashWebsiteLinkAdded = useCallback((index: number) => {
+    setWebsiteLinkConfirmVisible((prev) => ({ ...prev, [index]: true }));
+    const existing = websiteLinkConfirmTimersRef.current[index];
+    if (existing != null) window.clearTimeout(existing);
+    websiteLinkConfirmTimersRef.current[index] = window.setTimeout(() => {
+      setWebsiteLinkConfirmVisible((prev) => ({ ...prev, [index]: false }));
+    }, 2200);
+  }, []);
   /** Display names for last picked files (draft stores data URLs only). */
   const [uploadLabels, setUploadLabels] = useState<Record<string, string>>({});
   /** Coupon detail drawer state */
@@ -213,16 +270,21 @@ export default function RestauranteApplicationClient() {
   const [dashboardSaveBusy, setDashboardSaveBusy] = useState(false);
   const [dashboardContextErr, setDashboardContextErr] = useState<string | null>(null);
 
-  // Initialize pricing based on product query param
+  // Initialize pricing based on product query param.
+  // Fixed defect: Comida Local is its own category at its own real price
+  // (comida_local_base_monthly) — it is never a $199 Restaurantes product, and the checkout below
+  // always charges the single real Restaurantes base price regardless of `productType`. A
+  // "mobile_food_vendor" productType value may still legitimately describe a restaurant that
+  // operates as a food truck/pop-up (kept for copy/labeling only), but it must always be priced
+  // and charged as Restaurantes, never as a fake discounted Comida Local stand-in.
   useEffect(() => {
     if (hydrated && !draft.productType && !isExistingDashboardListingMode) {
       const productParam = searchParams?.get("product");
       const isMobile = productParam === "mobile_food_vendor";
       const productType = isMobile ? "mobile_food_vendor" : "established_restaurant";
-      const baseMonthlyPrice = isMobile ? 199 : 399;
       setDraftPatch({
         productType,
-        baseMonthlyPrice,
+        baseMonthlyPrice: 399,
       });
     }
   }, [hydrated, draft.productType, setDraftPatch, searchParams, isExistingDashboardListingMode]);
@@ -391,13 +453,52 @@ export default function RestauranteApplicationClient() {
 
   const sectionNavItems = useMemo(() => buildRestauranteApplicationSectionNavItems(draft, lang), [draft, lang]);
 
-  const [activeSectionId, setActiveSectionId] = useState("restaurantes-section-a");
-
-  useEffect(() => {
-    if (hydrated && focusCoupon) {
-      setActiveSectionId("restaurantes-section-g");
+  // Persists the owner's current section across a hard refresh / Preview -> "Volver a editar"
+  // round trip (contract shared item #122) — without this, `activeSectionId` reset to Section A
+  // on every remount regardless of where the owner had actually navigated.
+  const [activeSectionId, setActiveSectionIdRaw] = useState<string>(() => {
+    if (typeof window === "undefined") return "restaurantes-section-a";
+    try {
+      return sessionStorage.getItem(RESTAURANTE_ACTIVE_SECTION_STORAGE_KEY) || "restaurantes-section-a";
+    } catch {
+      return "restaurantes-section-a";
     }
-  }, [hydrated, focusCoupon]);
+  });
+  const setActiveSectionId = useCallback((next: string | ((prev: string) => string)) => {
+    setActiveSectionIdRaw((prev) => {
+      const resolved = typeof next === "function" ? (next as (p: string) => string)(prev) : next;
+      try {
+        sessionStorage.setItem(RESTAURANTE_ACTIVE_SECTION_STORAGE_KEY, resolved);
+      } catch {
+        /* ignore */
+      }
+      return resolved;
+    });
+  }, []);
+
+  /**
+   * `focus=coupon-upgrade` is baked permanently into the URL by
+   * `restauranteCouponEditHref` (dashboard "Edit coupon" links) and browsers never drop query
+   * params on reload. Without a one-shot guard, this effect would re-fire on every hard refresh
+   * of that URL and snap the owner back to Section G regardless of where they'd since navigated
+   * (R-026/R-060). Apply the jump only once per mount, then strip the param from the URL so a
+   * later hard refresh has nothing left to re-trigger on.
+   */
+  const focusCouponAppliedRef = useRef(false);
+  useEffect(() => {
+    if (!hydrated || !focusCoupon || focusCouponAppliedRef.current) return;
+    focusCouponAppliedRef.current = true;
+    setActiveSectionId("restaurantes-section-g");
+    // Only strip the param once the coupon-edit link resolved to a real listing — leave the URL
+    // (and its "focus" param) intact when `dashboardListingId` is missing so the malformed-link
+    // warning banner below keeps surfacing on reload instead of silently vanishing.
+    if (pathname && dashboardListingId) {
+      const nextParams = new URLSearchParams(searchParams?.toString() ?? "");
+      nextParams.delete("focus");
+      const query = nextParams.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname);
+    }
+  }, [hydrated, focusCoupon, pathname, router, searchParams, dashboardListingId]);
 
   useEffect(() => {
     setActiveSectionId((prev) => {
@@ -432,9 +533,12 @@ export default function RestauranteApplicationClient() {
     if (isExistingDashboardListingMode) return;
     // Service modes are no longer required for preview - default assumption is brick-and-mortar restaurant
     setServiceErr(false);
-    await saveRestauranteDraftToStorageResolved(draftRef.current);
+    // Trim at this commit boundary (leaving the form for Preview), not on every keystroke — see
+    // the leave-guard's persist callback above for why per-keystroke trimming is unsafe.
+    await saveRestauranteDraftToStorageResolved(trimDraftStrings(draftRef.current));
+    markPublishFlowOpeningPreview();
     window.location.href = previewHrefWithPlan;
-  }, [draftRef, previewHrefWithPlan, isExistingDashboardListingMode]);
+  }, [draftRef, previewHrefWithPlan, isExistingDashboardListingMode, trimDraftStrings]);
 
   const toggleHighlight = useCallback(
     (key: string) => {
@@ -483,7 +587,8 @@ export default function RestauranteApplicationClient() {
     };
     setDraftPatch(patch);
     setLanguageOtherPending("");
-  }, [draft, languageOtherPending, setDraftPatch]);
+    customLanguageConfirm.flash();
+  }, [draft, languageOtherPending, setDraftPatch, customLanguageConfirm]);
 
   const removeCustomLanguageAt = useCallback(
     (index: number) => {
@@ -501,6 +606,60 @@ export default function RestauranteApplicationClient() {
       setLanguageOtherPending("");
     },
     [draft, setDraftPatch]
+  );
+
+  /** Gate C7 — repeatable additional website links (menú, reservas, pedidos, catering, eventos, etc.). */
+  const addAdditionalWebsite = useCallback(() => {
+    const cur = draft.additionalWebsites ?? [];
+    if (cur.length >= 8) return;
+    setDraftPatch({ additionalWebsites: [...cur, { label: "", url: "" }] });
+  }, [draft.additionalWebsites, setDraftPatch]);
+
+  const updateAdditionalWebsiteAt = useCallback(
+    (index: number, patch: Partial<RestauranteAdditionalWebsite>) => {
+      const cur = draft.additionalWebsites ?? [];
+      setDraftPatch({
+        additionalWebsites: cur.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+      });
+    },
+    [draft.additionalWebsites, setDraftPatch]
+  );
+
+  const removeAdditionalWebsiteAt = useCallback(
+    (index: number) => {
+      const cur = draft.additionalWebsites ?? [];
+      const next = cur.filter((_, i) => i !== index);
+      setDraftPatch({ additionalWebsites: next.length ? next : undefined });
+    },
+    [draft.additionalWebsites, setDraftPatch]
+  );
+
+  /** Gate §3.4 items 46-48 — real multi-entry special/holiday hours (supersedes the old single-string note). */
+  const addSpecialHoursEntry = useCallback(() => {
+    const cur = draft.specialHoursEntries ?? [];
+    setDraftPatch({
+      specialHoursEntries: [...cur, { id: newSpecialHoursEntryId(), label: "", note: "" }],
+    });
+    // Unconditional explicit Add (always creates a fresh, always-valid blank row) — flash right away.
+    specialHoursConfirm.flash();
+  }, [draft.specialHoursEntries, setDraftPatch, specialHoursConfirm]);
+
+  const updateSpecialHoursEntry = useCallback(
+    (id: string, patch: Partial<Pick<RestauranteSpecialHoursEntry, "label" | "note">>) => {
+      const cur = draft.specialHoursEntries ?? [];
+      setDraftPatch({
+        specialHoursEntries: cur.map((row) => (row.id === id ? { ...row, ...patch } : row)),
+      });
+    },
+    [draft.specialHoursEntries, setDraftPatch]
+  );
+
+  const removeSpecialHoursEntry = useCallback(
+    (id: string) => {
+      const cur = draft.specialHoursEntries ?? [];
+      setDraftPatch({ specialHoursEntries: cur.filter((row) => row.id !== id) });
+    },
+    [draft.specialHoursEntries, setDraftPatch]
   );
 
   const toggleAdditionalCuisine = useCallback(
@@ -588,8 +747,9 @@ export default function RestauranteApplicationClient() {
   }, []);
 
   const normalizePhoneInput = useCallback((input: string): string => {
-    // Allow user to type normally but format on blur
-    return input.replace(/\D/g, "").slice(0, 11);
+    // WhatsApp-only field (see call site below): international numbers with a country code
+    // commonly exceed 11 digits, so cap at the ITU E.164 max (15 digits) instead of truncating them.
+    return input.replace(/\D/g, "").slice(0, 15);
   }, []);
 
   const [featuredUploading, setFeaturedUploading] = useState<Record<number, boolean>>({});
@@ -773,7 +933,7 @@ export default function RestauranteApplicationClient() {
               onClick={() => void startDashboardAddonCheckout()}
               className="min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50"
             >
-              {dashboardAddonCheckoutBusy ? fc.common.startingCheckout : restauranteCouponAddonUpgradeLabel(lang)}
+              {dashboardAddonCheckoutBusy ? restauranteCouponAddonUpgradeBusyLabel(lang) : restauranteCouponAddonUpgradeLabel(lang)}
             </button>
             <Link
               href={dashboardReturnHref}
@@ -938,6 +1098,14 @@ export default function RestauranteApplicationClient() {
                   placeholder={fc.sectionA.businessTypeOtherPlaceholder}
                   value={draft.businessTypeCustom ?? ""}
                   onChange={(e) => setDraftPatch({ businessTypeCustom: e.target.value || undefined })}
+                  onBlur={(e) => {
+                    if (e.target.value.trim()) businessTypeOtherConfirm.flash();
+                  }}
+                />
+                <AddedConfirmationBadge
+                  visible={businessTypeOtherConfirm.visible}
+                  label={lang === "en" ? "Added" : "Añadido"}
+                  className="mt-1.5"
                 />
               </div>
             ) : null}
@@ -997,6 +1165,14 @@ export default function RestauranteApplicationClient() {
                   placeholder={fc.sectionA.primaryCuisineOtherPlaceholder}
                   value={draft.primaryCuisineCustom ?? ""}
                   onChange={(e) => setDraftPatch({ primaryCuisineCustom: e.target.value || undefined })}
+                  onBlur={(e) => {
+                    if (e.target.value.trim()) primaryCuisineOtherConfirm.flash();
+                  }}
+                />
+                <AddedConfirmationBadge
+                  visible={primaryCuisineOtherConfirm.visible}
+                  label={lang === "en" ? "Added" : "Añadido"}
+                  className="mt-1.5"
                 />
               </div>
             ) : null}
@@ -1010,6 +1186,14 @@ export default function RestauranteApplicationClient() {
                   placeholder={fc.sectionA.secondaryCuisineOtherPlaceholder}
                   value={draft.secondaryCuisineCustom ?? ""}
                   onChange={(e) => setDraftPatch({ secondaryCuisineCustom: e.target.value || undefined })}
+                  onBlur={(e) => {
+                    if (e.target.value.trim()) secondaryCuisineOtherConfirm.flash();
+                  }}
+                />
+                <AddedConfirmationBadge
+                  visible={secondaryCuisineOtherConfirm.visible}
+                  label={lang === "en" ? "Added" : "Añadido"}
+                  className="mt-1.5"
                 />
               </div>
             ) : null}
@@ -1023,7 +1207,7 @@ export default function RestauranteApplicationClient() {
                 ) : null}
               </p>
               <div className="mt-2 max-h-52 overflow-y-auto rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)]/60 p-3">
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {RESTAURANTE_CUISINES.map((o) => {
                     const cur = draft.additionalCuisines ?? [];
                     const checked = cur.includes(o.key);
@@ -1057,6 +1241,14 @@ export default function RestauranteApplicationClient() {
                     placeholder={fc.sectionA.additionalCuisineOtherPlaceholder}
                     value={draft.additionalCuisineOtherCustom ?? ""}
                     onChange={(e) => setDraftPatch({ additionalCuisineOtherCustom: e.target.value || undefined })}
+                    onBlur={(e) => {
+                      if (e.target.value.trim()) additionalCuisineOtherConfirm.flash();
+                    }}
+                  />
+                  <AddedConfirmationBadge
+                    visible={additionalCuisineOtherConfirm.visible}
+                    label={lang === "en" ? "Added" : "Añadido"}
+                    className="mt-1.5"
                   />
                 </div>
               ) : null}
@@ -1101,72 +1293,35 @@ export default function RestauranteApplicationClient() {
             <div>
               <FieldLabel optional lang={lang}>{fc.sectionA.languagesLabel}</FieldLabel>
               <HelperText>{fc.sectionA.languagesHelper}</HelperText>
-              <div className="mt-3 flex flex-wrap gap-2 rounded-xl border border-[color:var(--lx-nav-border)]/80 bg-[color:var(--lx-section)]/40 p-3">
-                {RESTAURANTE_LANGUAGES.map((o) => (
-                  <label key={o.key} className="inline-flex items-center gap-1.5 text-sm">
-                    <input
-                      type="checkbox"
-                      className="shrink-0"
-                      checked={(draft.languagesSpoken ?? []).includes(o.key)}
-                      onChange={() => toggleLanguage(o.key)}
-                    />
-                    <TaxonomyChipLeading chipEmoji={o.chipEmoji} />
-                    <span className="min-w-0">{labelForLanguage(o.key, lang)}</span>
-                  </label>
-                ))}
-              </div>
-              {(draft.languagesSpoken ?? []).includes(TAXONOMY_KEY_OTHER_LANG) ? (
-                <div className="mt-3 max-w-md space-y-3">
-                  {customLanguages.length ? (
-                    <div className="flex flex-wrap gap-2">
-                      {customLanguages.map((lang, index) => (
-                        <span
-                          key={`${lang}-${index}`}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--lx-nav-border)] bg-white px-3 py-1 text-sm font-medium text-[color:var(--lx-text)]"
-                        >
-                          {lang}
-                          <button
-                            type="button"
-                            className="ml-0.5 rounded-full px-1 text-[color:var(--lx-muted)] hover:text-[color:var(--lx-text)]"
-                            aria-label={`${fc.common.removeLanguageAria} ${lang}`}
-                            onClick={() => removeCustomLanguageAt(index)}
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-                  {customLanguages.length < RESTAURANTE_MAX_CUSTOM_LANGUAGES ? (
-                    <>
-                      <FieldLabel optional lang={lang}>{fc.sectionA.languageOtherLabel}</FieldLabel>
-                      <HelperText>{fc.sectionA.languageOtherHelper}</HelperText>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <input
-                          className={`${OTHER_INPUT} mt-0 flex-1 min-w-[10rem]`}
-                          maxLength={48}
-                          placeholder={fc.sectionA.languageOtherPlaceholder}
-                          value={languageOtherPending}
-                          onChange={(e) => setLanguageOtherPending(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              addCustomLanguage();
-                            }
-                          }}
-                        />
-                        <button
-                          type="button"
-                          className="shrink-0 rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
-                          onClick={addCustomLanguage}
-                        >
-                          {fc.common.add}
-                        </button>
-                      </div>
-                    </>
-                  ) : null}
-                </div>
-              ) : null}
+              <LanguagesInput
+                className="mt-3"
+                options={RESTAURANTE_LANGUAGES.map((o) => ({
+                  key: o.key,
+                  label: labelForLanguage(o.key, lang),
+                  emoji: o.chipEmoji,
+                }))}
+                selectedKeys={draft.languagesSpoken ?? []}
+                onToggle={toggleLanguage}
+                otherKey={TAXONOMY_KEY_OTHER_LANG}
+                customValues={customLanguages}
+                customValuesMax={RESTAURANTE_MAX_CUSTOM_LANGUAGES}
+                customInputValue={languageOtherPending}
+                onCustomInputChange={setLanguageOtherPending}
+                onAddCustom={addCustomLanguage}
+                onRemoveCustom={removeCustomLanguageAt}
+                labels={{
+                  otherLabel: fc.sectionA.languageOtherLabel,
+                  otherHelper: fc.sectionA.languageOtherHelper,
+                  otherPlaceholder: fc.sectionA.languageOtherPlaceholder,
+                  add: fc.common.add,
+                  removeAria: (value) => `${fc.common.removeLanguageAria} ${value}`,
+                }}
+              />
+              <AddedConfirmationBadge
+                visible={customLanguageConfirm.visible}
+                label={lang === "en" ? "Added" : "Añadido"}
+                className="mt-2"
+              />
             </div>
           </div>
         </section>
@@ -1298,6 +1453,14 @@ export default function RestauranteApplicationClient() {
                 placeholder={fc.sectionB.serviceModeOtherPlaceholder}
                 value={draft.serviceModeOtherCustom ?? ""}
                 onChange={(e) => setDraftPatch({ serviceModeOtherCustom: e.target.value || undefined })}
+                onBlur={(e) => {
+                  if (e.target.value.trim()) serviceModeOtherConfirm.flash();
+                }}
+              />
+              <AddedConfirmationBadge
+                visible={serviceModeOtherConfirm.visible}
+                label={lang === "en" ? "Added" : "Añadido"}
+                className="mt-1.5"
               />
             </div>
           ) : null}
@@ -1332,54 +1495,33 @@ export default function RestauranteApplicationClient() {
             <span className="font-semibold text-red-600">*</span> {fc.sectionC.requiredNote}
           </p>
           <HelperText>{fc.sectionC.helper}</HelperText>
-          <div className="mt-4 space-y-3">
-            {dayRows(lang).map(({ key, label }) => {
-              const s = draft[key] as RestauranteDaySchedule;
-              return (
-                <div
-                  key={key}
-                  className="grid gap-2 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-section)] p-3 sm:grid-cols-[120px_1fr_1fr_auto]"
-                >
-                  <div className="font-semibold text-sm text-[color:var(--lx-text)]">{label}</div>
-                  <label className="flex items-center gap-2 text-sm sm:col-span-3 lg:col-span-1">
-                    <input
-                      type="checkbox"
-                      checked={s.closed}
-                      onChange={(e) =>
-                        setDay(key, { closed: e.target.checked, openTime: s.openTime, closeTime: s.closeTime })
-                      }
-                    />
-                    {fc.common.closed}
-                  </label>
-                  <input
-                    type="time"
-                    disabled={s.closed}
-                    className="rounded-lg border border-[color:var(--lx-nav-border)] px-2 py-1 text-sm disabled:opacity-50"
-                    value={s.openTime ?? ""}
-                    onChange={(e) => setDay(key, { ...s, openTime: e.target.value || undefined })}
-                  />
-                  <input
-                    type="time"
-                    disabled={s.closed}
-                    className="rounded-lg border border-[color:var(--lx-nav-border)] px-2 py-1 text-sm disabled:opacity-50"
-                    value={s.closeTime ?? ""}
-                    onChange={(e) => setDay(key, { ...s, closeTime: e.target.value || undefined })}
-                  />
-                </div>
-              );
-            })}
-          </div>
-          <div className="mt-4 grid gap-3">
-            <div>
-              <FieldLabel optional lang={lang}>{fc.sectionC.specialHoursLabel}</FieldLabel>
-              <HelperText>{fc.sectionC.specialHoursHelper}</HelperText>
-              <input
-                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                value={draft.specialHoursNote ?? ""}
-                onChange={(e) => setDraftPatch({ specialHoursNote: e.target.value || undefined })}
-              />
-            </div>
-          </div>
+          <HoursEditor
+            className="mt-4"
+            days={dayRows(lang).map(({ key, label }) => ({
+              key,
+              label,
+              schedule: draft[key] as RestauranteDaySchedule,
+            }))}
+            onDayChange={(key, next) => setDay(key as keyof RestauranteListingDraft, next)}
+            closedLabel={fc.common.closed}
+            specialHoursList={{
+              entries: draft.specialHoursEntries ?? [],
+              onAdd: addSpecialHoursEntry,
+              onEntryChange: updateSpecialHoursEntry,
+              onRemove: removeSpecialHoursEntry,
+              sectionLabel: fc.sectionC.specialHoursLabel,
+              sectionHelper: fc.sectionC.specialHoursHelper,
+              addLabel: fc.sectionC.specialHoursAddLabel,
+              labelPlaceholder: fc.sectionC.specialHoursLabelPlaceholder,
+              notePlaceholder: fc.sectionC.specialHoursNotePlaceholder,
+              removeAriaLabel: () => fc.sectionC.specialHoursRemoveAriaLabel,
+            }}
+          />
+          <AddedConfirmationBadge
+            visible={specialHoursConfirm.visible}
+            label={lang === "en" ? "Added" : "Añadido"}
+            className="mt-2"
+          />
         </section>
         ) : null}
 
@@ -1405,18 +1547,67 @@ export default function RestauranteApplicationClient() {
                     onChange={(e) => setDraftPatch({ websiteUrl: e.target.value || undefined })}
                   />
                 </div>
+                <div className="sm:col-span-2">
+                  <FieldLabel optional lang={lang}>
+                    {lang === "en" ? "Additional websites" : "Sitios web adicionales"}
+                  </FieldLabel>
+                  <HelperText>
+                    {lang === "en"
+                      ? "Menu, reservations, ordering, catering, events — add as many as you need."
+                      : "Menú, reservas, pedidos, catering, eventos — agrega los que necesites."}
+                  </HelperText>
+                  <div className="mt-2 space-y-2">
+                    {(draft.additionalWebsites ?? []).map((row, index) => (
+                      <div key={index} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <input
+                          className="w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm sm:w-40 sm:shrink-0"
+                          placeholder={lang === "en" ? "Label (e.g. Menu)" : "Título (ej. Menú)"}
+                          maxLength={40}
+                          value={row.label}
+                          onChange={(e) => updateAdditionalWebsiteAt(index, { label: e.target.value })}
+                        />
+                        <input
+                          className="w-full flex-1 rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
+                          placeholder="https://…"
+                          value={row.url}
+                          onChange={(e) => updateAdditionalWebsiteAt(index, { url: e.target.value })}
+                          onBlur={(e) => {
+                            const v = e.target.value.trim();
+                            if (v && isProbablyUrl(v)) flashWebsiteLinkAdded(index);
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeAdditionalWebsiteAt(index)}
+                          className="shrink-0 rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-xs font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
+                        >
+                          {lang === "en" ? "Remove" : "Quitar"}
+                        </button>
+                        <AddedConfirmationBadge
+                          visible={Boolean(websiteLinkConfirmVisible[index])}
+                          label={lang === "en" ? "Link added" : "Enlace añadido"}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  {(draft.additionalWebsites ?? []).length < 8 ? (
+                    <button
+                      type="button"
+                      onClick={addAdditionalWebsite}
+                      className="mt-2 rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
+                    >
+                      {lang === "en" ? "Add another link" : "Agregar otro enlace"}
+                    </button>
+                  ) : null}
+                </div>
                 <div>
                   <FieldLabel optional lang={lang}>{fc.sectionD.phoneLabel}</FieldLabel>
                   <HelperText>{fc.sectionD.phoneHelper}</HelperText>
-                  <input
+                  <PhoneInput
                     className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
                     placeholder={RESTAURANTE_CONTACT_PLACEHOLDERS.phoneNumber}
                     value={draft.phoneNumber ?? ""}
-                    onChange={(e) => setDraftPatch({ phoneNumber: normalizePhoneInput(e.target.value) || undefined })}
-                    onBlur={(e) => {
-                      const formatted = formatPhoneNumber(e.target.value);
-                      if (formatted) setDraftPatch({ phoneNumber: formatted });
-                    }}
+                    onChange={(next) => setDraftPatch({ phoneNumber: next || undefined })}
                   />
                 </div>
                 <div>
@@ -1542,6 +1733,7 @@ export default function RestauranteApplicationClient() {
                     buttonLabel={fc.common.uploadFile}
                     helperText={fc.sectionD.menuFileUploadHelper}
                     accept="image/*,application/pdf"
+                    lang={lang}
                     selectedLabel={
                       uploadLabels.menu ?? (draft.menuFile ? fc.common.fileSavedInDraft : null)
                     }
@@ -1717,6 +1909,7 @@ export default function RestauranteApplicationClient() {
                         helperText={fc.sectionF.dishImageUploadHelper}
                         accept="image/*"
                         disabled={featuredUploading[i]}
+                        lang={lang}
                         selectedLabel={
                           featuredUploading[i]
                             ? `📤 ${fc.common.processingImage}`
@@ -1789,7 +1982,7 @@ export default function RestauranteApplicationClient() {
                     onClick={() => void startDashboardAddonCheckout()}
                     className="mt-4 min-h-[44px] rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:opacity-50"
                   >
-                    {dashboardAddonCheckoutBusy ? fc.common.startingCheckout : restauranteCouponAddonUpgradeLabel(lang)}
+                    {dashboardAddonCheckoutBusy ? restauranteCouponAddonUpgradeBusyLabel(lang) : restauranteCouponAddonUpgradeLabel(lang)}
                   </button>
                 </div>
               </>
@@ -1801,7 +1994,7 @@ export default function RestauranteApplicationClient() {
                   <h3 className="text-lg font-bold text-[color:var(--lx-text)]">
                     {fc.sectionG.upsellQuestion}
                   </h3>
-                  <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">+${fc.sectionG.upsellPrice}</p>
+                  <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">{fc.sectionG.upsellPrice}</p>
                   <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
                     {fc.sectionG.upsellPriceNote}
                   </p>
@@ -1821,7 +2014,7 @@ export default function RestauranteApplicationClient() {
                     <button
                       type="button"
                       onClick={() => {
-                        setDraftPatch({ couponUpgradeEnabled: true, couponMonthlyPrice: 99 });
+                        setDraftPatch({ couponUpgradeEnabled: true, couponMonthlyPrice: 0 });
                       }}
                       className="min-h-[44px] shrink-0 rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)]"
                     >
@@ -2119,6 +2312,7 @@ export default function RestauranteApplicationClient() {
                   helperText={fc.sectionH.heroUploadHelper}
                   accept="image/*"
                   disabled={mediaUploading.hero}
+                  lang={lang}
                   selectedLabel={
                     mediaUploading.hero
                       ? `📤 ${fc.common.processingImage}`
@@ -2241,6 +2435,7 @@ export default function RestauranteApplicationClient() {
                   helperText={fc.sectionH.logoUploadHelper}
                   accept="image/*"
                   disabled={mediaUploading.logo}
+                  lang={lang}
                   selectedLabel={
                     mediaUploading.logo
                       ? `📤 ${fc.common.processingLogo}`
@@ -2587,14 +2782,6 @@ export default function RestauranteApplicationClient() {
                 {fc.sectionFinal.deleteRequest}
               </button>
             </div>
-            <button
-              type="button"
-              onClick={goPreview}
-              disabled={!canContinueToPreview}
-              className="min-h-[44px] w-full rounded-full bg-[color:var(--lx-text)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:min-w-[200px]"
-            >
-              {fc.sectionFinal.continueToPreview}
-            </button>
             </>
             )}
           </div>

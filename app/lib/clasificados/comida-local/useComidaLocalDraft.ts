@@ -23,6 +23,9 @@ export function useComidaLocalDraft(options?: { storageKey?: string }) {
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const hydratedRef = useRef(false);
   const skipNextSaveRef = useRef(false);
+  // Tracks the exact draft object last written to storage so callers (e.g. the leave-guard)
+  // can tell "nothing changed since the last successful save" apart from "form has content".
+  const lastPersistedDraftRef = useRef<ComidaLocalDraft | null>(null);
 
   useEffect(() => {
     if (hydratedRef.current) return;
@@ -31,6 +34,7 @@ export function useComidaLocalDraft(options?: { storageKey?: string }) {
     if (stored) {
       skipNextSaveRef.current = true;
       setDraft(stored);
+      lastPersistedDraftRef.current = stored;
     }
     setHasLoadedDraft(true);
   }, [storageKey]);
@@ -39,15 +43,19 @@ export function useComidaLocalDraft(options?: { storageKey?: string }) {
     if (!hasLoadedDraft) return;
     if (skipNextSaveRef.current) {
       skipNextSaveRef.current = false;
+      lastPersistedDraftRef.current = draft;
       return;
     }
     const t = window.setTimeout(() => {
       if (storageKey) saveComidaLocalDraftToStorage(draft, storageKey);
       else saveComidaLocalDraftToStorage(draft);
+      lastPersistedDraftRef.current = draft;
       setLastSavedAt(Date.now());
     }, AUTOSAVE_MS);
     return () => window.clearTimeout(t);
   }, [draft, hasLoadedDraft, storageKey]);
+
+  const isDraftDirty = draft !== lastPersistedDraftRef.current;
 
   const updateDraft = useCallback((partial: Partial<ComidaLocalDraft>) => {
     setDraft((prev) => ({ ...prev, ...partial }));
@@ -69,5 +77,6 @@ export function useComidaLocalDraft(options?: { storageKey?: string }) {
     resetDraft,
     hasLoadedDraft,
     lastSavedAt,
+    isDraftDirty,
   };
 }

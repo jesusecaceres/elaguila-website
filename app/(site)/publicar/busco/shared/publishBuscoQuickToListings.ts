@@ -51,12 +51,33 @@ function buildBuscoDetailPairs(d: BuscoQuickDraft): { label: string; value: stri
   if (zip) pairs.push({ label: "Leonix:zip", value: zip });
   const zone = d.zone.trim();
   if (zone) pairs.push({ label: "Leonix:buscoZone", value: zone });
-  // Budget + urgency
-  const budget = d.budget.trim();
-  if (budget) pairs.push({ label: "Leonix:buscoBudget", value: budget });
+  // Budget (structured, Gate 4) + urgency
+  if (d.budgetMode && d.budgetMode !== "no_aplica") {
+    pairs.push({ label: "Leonix:buscoBudgetMode", value: d.budgetMode });
+    if (d.budgetMode === "tiene" && d.budgetAmount.trim()) {
+      pairs.push({ label: "Leonix:buscoBudgetAmount", value: d.budgetAmount.trim() });
+    }
+  }
   if (d.urgency && d.urgency !== "normal") {
     pairs.push({ label: "Leonix:buscoUrgency", value: d.urgency });
   }
+  // Section C — light conditional fields, only the ones relevant to the chosen type are ever filled.
+  const preferredCondition = d.preferredCondition.trim();
+  if (preferredCondition) pairs.push({ label: "Leonix:buscoPreferredCondition", value: preferredCondition });
+  const workType = d.workType.trim();
+  if (workType) pairs.push({ label: "Leonix:buscoWorkType", value: workType });
+  const workSkills = d.workSkills.trim();
+  if (workSkills) pairs.push({ label: "Leonix:buscoWorkSkills", value: workSkills });
+  const workAvailability = d.workAvailability.trim();
+  if (workAvailability) pairs.push({ label: "Leonix:buscoWorkAvailability", value: workAvailability });
+  const transportOrigin = d.transportOrigin.trim();
+  if (transportOrigin) pairs.push({ label: "Leonix:buscoTransportOrigin", value: transportOrigin });
+  const transportDestination = d.transportDestination.trim();
+  if (transportDestination) pairs.push({ label: "Leonix:buscoTransportDestination", value: transportDestination });
+  const volunteersCount = d.volunteersCount.trim();
+  if (volunteersCount) pairs.push({ label: "Leonix:buscoVolunteersCount", value: volunteersCount });
+  const whenNeeded = d.whenNeeded.trim();
+  if (whenNeeded) pairs.push({ label: "Leonix:buscoWhenNeeded", value: whenNeeded });
   // Phone / WhatsApp / SMS
   if (phoneDig.length >= 10) {
     pairs.push({ label: "Leonix:buscoContactPhoneAvailable", value: "1" });
@@ -71,17 +92,15 @@ function buildBuscoDetailPairs(d: BuscoQuickDraft): { label: string; value: stri
     pairs.push({ label: "Leonix:smsPhone", value: smsDig });
   }
   if (d.email.trim()) pairs.push({ label: "Leonix:buscoContactEmailAvailable", value: "1" });
-  // Preferred contact
-  if (d.preferredContact) {
-    pairs.push({ label: "Leonix:buscoPreferredContact", value: d.preferredContact });
-  }
-  // Optional socials
+  // Optional socials — Section M: Facebook, Instagram, TikTok, YouTube + one custom link.
   const fb = d.facebook.trim();
   if (fb) pairs.push({ label: "Leonix:buscoFacebook", value: fb });
   const ig = d.instagram.trim();
   if (ig) pairs.push({ label: "Leonix:buscoInstagram", value: ig });
   const tt = d.tiktok.trim();
   if (tt) pairs.push({ label: "Leonix:buscoTiktok", value: tt });
+  const yt = d.youtube.trim();
+  if (yt) pairs.push({ label: "Leonix:buscoYoutube", value: yt });
   const ocLabel = d.otherContactLabel.trim();
   const ocUrl = d.otherContactUrl.trim();
   if (ocUrl) {

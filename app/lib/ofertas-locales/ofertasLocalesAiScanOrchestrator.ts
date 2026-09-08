@@ -14,6 +14,7 @@ import {
 } from "./ofertasLocalesDocumentAiClient";
 import type { OfertaLocalAiExtractionDebugStats } from "./ofertasLocalesAiExtractionQuality";
 import type { OfertaLocalSearchableItemDraft } from "./ofertasLocalesTypes";
+import type { OfertaLocalPageImage } from "./ofertasLocalesPdfPageImages";
 
 export type OfertaLocalAiScanExtractionParams = {
   fileBuffer: Buffer;
@@ -33,6 +34,9 @@ export type OfertaLocalAiScanExtractionParams = {
   businessZipCode: string;
   validFrom?: string;
   validUntil?: string;
+  onPagesPrepared?: (pages: OfertaLocalPageImage[], totalPageCount: number) => Promise<void> | void;
+  onPageStarted?: (page: OfertaLocalPageImage) => Promise<void> | void;
+  onPageFinished?: (result: { pageNumber: number; ok: boolean; candidatesCount: number; error?: string }) => Promise<void> | void;
 };
 
 export type OfertaLocalAiScanExtractionResult = {
@@ -66,8 +70,11 @@ export async function runOfertaLocalAiScanExtraction(
   console.info("[ofertas-locales ai] provider selected", { provider });
 
   if (provider === "gemini_multimodal") {
+    let gemini: Awaited<ReturnType<typeof runGeminiMultimodalOfertaLocalScan>> | null = null;
+    let geminiError: string | null = null;
+
     try {
-      const gemini = await runGeminiMultimodalOfertaLocalScan({
+      gemini = await runGeminiMultimodalOfertaLocalScan({
         fileBuffer: params.fileBuffer,
         mimeType: params.mimeType,
         assetId: params.assetId,
@@ -85,45 +92,67 @@ export async function runOfertaLocalAiScanExtraction(
         businessZipCode: params.businessZipCode,
         validFrom: params.validFrom,
         validUntil: params.validUntil,
+        onPagesPrepared: params.onPagesPrepared,
+        onPageStarted: params.onPageStarted,
+        onPageFinished: params.onPageFinished,
       });
-
-      if (gemini.items.length > 0 || gemini.ok) {
-        return {
-          items: gemini.items,
-          providerUsed: "gemini_multimodal",
-          modelUsed: gemini.modelUsed,
-          pagesProcessed: gemini.pagesProcessed,
-          rawCandidateCount: gemini.rawCandidateCount,
-          insertedCandidateCount: gemini.insertedCandidateCount,
-          rejectedCount: gemini.rejectedCount,
-          rejectedReasonCounts: gemini.rejectedReasonCounts,
-          averageConfidence: gemini.averageConfidence,
-          priceRepairsApplied: gemini.priceRepairsApplied,
-          confidenceAverage: gemini.averageConfidence,
-          note: gemini.note,
-          pageErrors: gemini.pageErrors,
-          rawOcrSummary: buildGeminiSummary(gemini),
-        };
-      }
-
-      if (isOfertaLocalDocumentAiConfigured()) {
-        console.warn("[ofertas-locales ai] gemini returned no items; falling back to document ai");
-        return runDocumentAiFallback(params);
-      }
-
-      throw new Error(
-        "Gemini extraction failed. Existing OCR fallback unavailable."
-      );
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Gemini extraction failed.";
-      if (isOfertaLocalDocumentAiConfigured()) {
-        console.warn("[ofertas-locales ai] gemini failed; falling back to document ai", {
-          error: message.slice(0, 300),
-        });
-        return runDocumentAiFallback(params);
-      }
-      throw new Error("Gemini extraction failed. Existing OCR fallback unavailable.");
+      geminiError = err instanceof Error ? err.message : "Gemini extraction failed.";
     }
+
+    if (gemini && gemini.items.length > 0) {
+      return {
+        items: gemini.items,
+        providerUsed: "gemini_multimodal",
+        modelUsed: gemini.modelUsed,
+        pagesProcessed: gemini.pagesProcessed,
+        rawCandidateCount: gemini.rawCandidateCount,
+        insertedCandidateCount: gemini.insertedCandidateCount,
+        rejectedCount: gemini.rejectedCount,
+        rejectedReasonCounts: gemini.rejectedReasonCounts,
+        averageConfidence: gemini.averageConfidence,
+        priceRepairsApplied: gemini.priceRepairsApplied,
+        confidenceAverage: gemini.averageConfidence,
+        note: gemini.note,
+        pageErrors: gemini.pageErrors,
+        rawOcrSummary: buildGeminiSummary(gemini),
+      };
+    }
+
+    // Gemini either threw, or technically completed (gemini.ok) without producing any
+    // usable candidates (e.g. every page fell back to raw PDF passthrough because PNG
+    // rasterization was unavailable). Either way, zero candidates is not success — try
+    // the configured Document AI fallback before giving up.
+    if (isOfertaLocalDocumentAiConfigured()) {
+      console.warn("[ofertas-locales ai] gemini produced no candidates; falling back to document ai", {
+        geminiOk: gemini?.ok ?? false,
+        geminiError: geminiError?.slice(0, 300),
+      });
+      return runDocumentAiFallback(params);
+    }
+
+    if (gemini) {
+      // No fallback configured — return Gemini's own (possibly empty) result so the
+      // reviewer sees an honest "no items found" rather than an opaque error.
+      return {
+        items: gemini.items,
+        providerUsed: "gemini_multimodal",
+        modelUsed: gemini.modelUsed,
+        pagesProcessed: gemini.pagesProcessed,
+        rawCandidateCount: gemini.rawCandidateCount,
+        insertedCandidateCount: gemini.insertedCandidateCount,
+        rejectedCount: gemini.rejectedCount,
+        rejectedReasonCounts: gemini.rejectedReasonCounts,
+        averageConfidence: gemini.averageConfidence,
+        priceRepairsApplied: gemini.priceRepairsApplied,
+        confidenceAverage: gemini.averageConfidence,
+        note: gemini.note,
+        pageErrors: gemini.pageErrors,
+        rawOcrSummary: buildGeminiSummary(gemini),
+      };
+    }
+
+    throw new Error("Gemini extraction failed. Existing OCR fallback unavailable.");
   }
 
   return runDocumentAiFallback(params);

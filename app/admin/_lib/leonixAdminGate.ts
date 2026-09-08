@@ -13,6 +13,7 @@
  * - `can_manage_magazine` → magazineIssuesActions
  * - `can_manage_categories` → siteCategoryConfigActions
  * - `can_manage_website_content` → globalSiteActions
+ * - `can_manage_prayer_wall` → iglesiasPrayerActions
  * - `can_manage_reports` → supportTicketActions (internal ops proxy; not a full helpdesk ACL)
  * - `can_manage_ads` → deleteListingAction
  * - `can_manage_reports` → updateListingReportStatusAction
@@ -67,3 +68,15 @@ export async function requireLeonixAdminPermission(permission: AdminPermissionKe
     throw new Error(`Forbidden: missing permission ${permission}`);
   }
 }
+
+export async function hasLeonixAdminPermission(permission: AdminPermissionKey): Promise<boolean> {
+  try {
+    await requireLeonixAdminPermission(permission);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export { adminCanManagePrayerWall } from "@/app/admin/_lib/prayerPermission";
+

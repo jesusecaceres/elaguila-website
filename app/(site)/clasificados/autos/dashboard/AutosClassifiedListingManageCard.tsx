@@ -87,8 +87,8 @@ export function AutosClassifiedListingManageCard({
           autos: "Autos",
           active: "Activo",
           sold: "Vendido",
-          view: "Ver anuncio",
-          edit: "Editar",
+          view: "Ver público",
+          manage: "Administrar anuncio",
           archive: "Archivar anuncio",
           views: "Vistas",
           uniq: "Únicas",
@@ -109,9 +109,9 @@ export function AutosClassifiedListingManageCard({
           autos: "Autos",
           active: "Active",
           sold: "Sold",
-          view: "View listing",
-          edit: "Edit",
-          archive: "Archive ad",
+          view: "View public",
+          manage: "Manage listing",
+          archive: "Archive listing",
           views: "Views",
           uniq: "Unique",
           msg: "Contacts",
@@ -196,22 +196,26 @@ export function AutosClassifiedListingManageCard({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href={`/clasificados/anuncio/${row.id}?lang=${lang}`}
-              prefetch={false}
-              className="inline-flex rounded-xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-4 py-2 text-sm font-semibold text-[#5C4E2E] shadow-sm hover:bg-[#F3EBDD]"
-            >
-              {L.view} →
-            </Link>
             {editHref ? (
+              // Gate 2C, Task 2C-19 — smallest truthful adapter: no dedicated Autos manage
+              // workspace exists yet, so the canonical "Administrar anuncio" doorway points at
+              // the real, existing edit route (same destination as before — only the label and
+              // dominant-primary styling changed, previously plain/"Editar").
               <Link
                 href={editHref}
                 prefetch={false}
-                className="inline-flex rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
+                className="inline-flex rounded-xl border border-[#7A1E2C]/15 bg-[#7A1E2C] px-4 py-2 text-sm font-semibold text-[#FFFCF7] shadow-[0_6px_16px_-4px_rgba(122,30,44,0.35)] hover:bg-[#5e1721]"
               >
-                {L.edit}
+                {L.manage}
               </Link>
             ) : null}
+            <Link
+              href={`/clasificados/anuncio/${row.id}?lang=${lang}`}
+              prefetch={false}
+              className="inline-flex rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
+            >
+              {L.view}
+            </Link>
             <button
               type="button"
               disabled={busy}

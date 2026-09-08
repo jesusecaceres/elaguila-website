@@ -61,6 +61,12 @@ export const ADMIN_GLOBAL_NAV: AdminGlobalNavItem[] = [
   { href: "/admin/leo", labelKey: "nav.leo", icon: "◈", group: "command" },
   { href: "/admin", labelKey: "nav.dashboard", icon: "◆", badgeFrom: "tienda", group: "command" },
   {
+    href: "/admin/businesses",
+    labelKey: "nav.businesses",
+    icon: "🏢",
+    group: "people",
+  },
+  {
     href: "/admin/leads/inbox",
     labelKey: "nav.launchLeads",
     icon: "📬",
@@ -105,6 +111,8 @@ export const ADMIN_GLOBAL_NAV: AdminGlobalNavItem[] = [
   { href: "/admin/workspace/language-audit", labelKey: "nav.languageAudit", icon: "🌐", group: "system" },
   /** Tienda command hub — kept, but deprioritized for launch quote/product follow-up. */
   { href: "/admin/tienda", labelKey: "nav.tienda", icon: "🛒", group: "marketplace-ops" },
+  /** Recursos Data OS (Build 02) — appended last to avoid disturbing existing nav-order gates. */
+  { href: "/admin/recursos", labelKey: "nav.recursos", icon: "🤝", group: "marketplace-ops" },
 ];
 
 /** Index helpers for nav-order verification (Launch leads must precede Tienda). */

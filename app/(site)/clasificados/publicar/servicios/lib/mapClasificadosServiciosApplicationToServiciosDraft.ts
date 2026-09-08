@@ -28,6 +28,7 @@ import { resolveServiciosPublicCategoryLabel } from "./resolveServiciosPublicCat
 import { getBusinessHighlightPreset } from "./businessHighlightPresets";
 import { normalizeBusinessHighlightDedupeKey } from "./serviciosCustomBusinessHighlights";
 import { normalizeServiceOfferedDedupeKey } from "./serviciosCustomServicesOffered";
+import { normalizeQuickFactDedupeKey } from "./serviciosCustomQuickFacts";
 import { BUSINESS_HIGHLIGHT_LABEL_MAX } from "./serviciosHighlightCaps";
 import { CUSTOM_CHIP_MAX_LENGTH } from "./serviciosSelectionCaps";
 import {
@@ -36,6 +37,7 @@ import {
 } from "@/app/servicios/lib/serviciosPaymentMethodCatalog";
 import {
   sanitizeCustomServiciosAmenityLabels,
+  sanitizeCustomServiciosAmenityLabelsByGroup,
   sanitizeServiciosAmenityOptionIds,
 } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
 import { clasificadosCouponRowHasProgress } from "./clasificadosServiciosPromo";
@@ -148,14 +150,28 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
       });
     }
   }
-  if (state.customQuickFactIncluded && state.customQuickFactLabel.trim() && !isJunkServiciosQuickFactLabel(state.customQuickFactLabel)) {
-    const lab = state.customQuickFactLabel.trim().slice(0, 28);
+  const quickFactKeys = new Set<string>();
+  const pushQuickFactDraft = (rawLabel: string) => {
+    const lab = rawLabel.trim().slice(0, 28);
+    if (!lab || isJunkServiciosQuickFactLabel(lab)) return;
+    const key = normalizeQuickFactDedupeKey(lab);
+    if (quickFactKeys.has(key)) return;
+    quickFactKeys.add(key);
     const low = lab.toLowerCase();
     let kind: ServiciosQuickFactKind = "custom";
     if (/emergencia|emergency|urgencias/i.test(low)) kind = "emergency";
     else if (/móvil|mobile/i.test(low)) kind = "mobile_service";
     else if (/bilingüe|bilingual/i.test(low)) kind = "bilingual";
     quickFacts.push({ kind, label: lab });
+  };
+  for (const c of quickFacts) quickFactKeys.add(normalizeQuickFactDedupeKey(c.label));
+  for (const raw of state.customQuickFacts ?? []) {
+    if (typeof raw !== "string") continue;
+    pushQuickFactDraft(raw);
+  }
+  // Legacy single-value fallback for any not-yet-migrated draft in memory.
+  if (state.customQuickFactIncluded && state.customQuickFactLabel.trim()) {
+    pushQuickFactDraft(state.customQuickFactLabel);
   }
 
   const trust: NonNullable<ServiciosApplicationDraft["trust"]> = [];
@@ -214,8 +230,10 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
     });
   }
 
+  // Newline is the only live delimiter (matches the editor's chip parsing) so an area label
+  // containing a comma (e.g. "San Jose, CA") stays one chip end-to-end (S-073).
   const areaLabels = state.serviceAreaNotes
-    .split(/[\n,;]+/)
+    .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
   let serviceAreas: ServiciosApplicationDraft["serviceAreas"];
@@ -286,6 +304,15 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   }
   if (weeklyHoursRows.length === WEEK_ORDER.length) {
     contact.weeklyHoursRows = weeklyHoursRows;
+  }
+
+  // Multi-entry special hours / holidays (contract §3.4 items 46-48) — only rows with both a
+  // label and a note are meaningful on the public profile.
+  const specialHoursRows = (state.specialHoursEntries ?? [])
+    .map((e) => ({ label: e.label.trim(), note: e.note.trim() }))
+    .filter((e) => e.label && e.note);
+  if (specialHoursRows.length > 0) {
+    contact.specialHoursRows = specialHoursRows;
   }
 
   const ig = trimUrl(state.socialInstagram);
@@ -471,8 +498,16 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   if (customPay.length) draft.customPaymentMethods = customPay;
 
   const amenityIds = sanitizeServiciosAmenityOptionIds(state.amenityOptionIds);
-  const customAmenities = sanitizeCustomServiciosAmenityLabels(state.customAmenityOptions);
+  const customAmenitiesByGroup = sanitizeCustomServiciosAmenityLabelsByGroup(state.customAmenityOptionsByGroup);
+  const hasGroupedCustomAmenities = Object.values(customAmenitiesByGroup).some((arr) => arr.length > 0);
+  // Legacy flat list fallback, only if no per-group data was ever entered.
+  const customAmenities = hasGroupedCustomAmenities
+    ? Object.values(customAmenitiesByGroup).flat()
+    : sanitizeCustomServiciosAmenityLabels(state.customAmenityOptions);
   if (amenityIds.length) draft.amenityOptionIds = amenityIds;
+  if (hasGroupedCustomAmenities) {
+    draft.customAmenityOptionsByGroup = customAmenitiesByGroup;
+  }
   if (customAmenities.length) draft.customAmenityOptions = customAmenities;
 
   const credHasLicense = state.hasLicense === true;

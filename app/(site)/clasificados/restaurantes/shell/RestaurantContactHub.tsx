@@ -26,9 +26,13 @@ import {
   restaurantesAnalyticsTrackMeta,
   trackRestaurantesListingCta,
 } from "../lib/restaurantesCtaTracking";
-import { RestauranteShellDataUrlModal } from "./RestauranteShellDataUrlModal";
+import { BusinessFlyerViewerModal } from "@/app/components/media/BusinessFlyerViewerModal";
 import { RestaurantContactHubFauxMap } from "./RestaurantContactHubFauxMap";
-import { RestaurantHubReviewLinkButton } from "./RestaurantHubReviewLinkButton";
+import { buildSharedConnectionHubMapEmbedSrc } from "@/app/(site)/clasificados/shared/constants/sharedConnectionHubLocationHelpers";
+import { copyToClipboard } from "@/app/components/cta/ctaLaunchers";
+import { SharedConnectionHubReviewButton } from "@/app/components/contact/connectionHub/renderers/SharedConnectionHubReviewButton";
+import type { SharedConnectionHubReviewLink } from "@/app/components/contact/connectionHub/sharedConnectionHubContactTypes";
+import { LeonixCommunityTrust } from "@/app/components/leonixCommunityTrust/LeonixCommunityTrust";
 import {
   restaurantHubSocialBrandStyle,
   RestaurantHubSocialBrandIcon,
@@ -92,12 +96,11 @@ function iconForButton(btn: RestaurantHubButton): IconType {
 function CopyChip({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
   const copy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(value);
+    // Global Business Hub OS — surgical adoption of the shared clipboard helper.
+    const ok = await copyToClipboard(value);
+    if (ok) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* silent */
     }
   }, [value]);
   return (
@@ -435,7 +438,26 @@ export function RestaurantContactHub({
               ) : null}
               {(hub.location!.mapsHref || hub.location!.addressLine1) && (
                 <div className="mt-2 overflow-hidden rounded-lg border border-[#D4C4A8] shadow-sm ring-1 ring-[#C9A84A]/15">
-                  <RestaurantContactHubFauxMap />
+                  {/* Global Business Hub OS — real map embed only when the same
+                      shouldShowRestaurantStreetAddress() signal that already gates the address
+                      text also permits an exact address; otherwise the decorative faux map (never
+                      a real pinpoint for a location we're not showing publicly). */}
+                  {hub.location!.showExactAddress &&
+                  buildSharedConnectionHubMapEmbedSrc(
+                    [hub.location!.addressLine1, hub.location!.addressLine2].filter(Boolean).join(", "),
+                  ) ? (
+                    <iframe
+                      src={buildSharedConnectionHubMapEmbedSrc(
+                        [hub.location!.addressLine1, hub.location!.addressLine2].filter(Boolean).join(", "),
+                      )}
+                      className="h-40 w-full border-0"
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title={hub.location!.addressLine1 || hub.businessName}
+                    />
+                  ) : (
+                    <RestaurantContactHubFauxMap />
+                  )}
                 </div>
               )}
               {hub.location!.mapsHref ? (
@@ -492,6 +514,18 @@ export function RestaurantContactHub({
           ) : null}
         </div>
 
+        {(listingSourceId ?? "").trim() ? (
+          <div className="mt-4 border-t pt-4" style={{ borderColor: RCH_LX.divider }}>
+            <LeonixCommunityTrust
+              category="restaurantes"
+              targetId={listingSourceId as string}
+              ownerUserId={ownerUserId}
+              lang={lang}
+              surface="restaurantes_hub"
+            />
+          </div>
+        ) : null}
+
         {/* Secondary row: reviews, social, find-us — compact below hub */}
         {showSecondary ? (
           <div
@@ -504,15 +538,24 @@ export function RestaurantContactHub({
                   <span id="rest-hub-reviews-heading">{labels.reviews}</span>
                 </HubSectionTitle>
                 <div className="mt-2 flex flex-col gap-2">
-                  {hub.reviews.map((btn) => (
-                    <RestaurantHubReviewLinkButton
-                      key={btn.id}
-                      reviewId={btn.id}
-                      label={btn.label}
-                      lang={lang}
-                      onClick={() => openButton(btn)}
-                    />
-                  ))}
+                  {hub.reviews.map((btn) => {
+                    const link: SharedConnectionHubReviewLink = {
+                      provider: btn.id === "google-reviews" ? "google" : "yelp",
+                      label: btn.label,
+                      url: btn.href,
+                    };
+                    return (
+                      <SharedConnectionHubReviewButton
+                        key={btn.id}
+                        link={link}
+                        lang={lang}
+                        onClick={() => openButton(btn)}
+                        goldBorder={RCH_LX.goldBorder}
+                        ivory={RCH_LX.ivory}
+                        gold={RCH_LX.gold}
+                      />
+                    );
+                  })}
                 </div>
               </section>
             ) : null}
@@ -578,11 +621,16 @@ export function RestaurantContactHub({
       </article>
 
       <CtaActionSheet open={ctaIntent != null} onClose={() => setCtaIntent(null)} intent={ctaIntent} lang={lang} />
-      <RestauranteShellDataUrlModal
+      <BusinessFlyerViewerModal
         open={dataModal != null}
         onClose={() => setDataModal(null)}
         href={dataModal?.href ?? ""}
         title={dataModal?.title ?? ""}
+        closeLabel={lang === "en" ? "Close" : "Cerrar"}
+        unavailableLabel={
+          lang === "en" ? "Inline preview not available for this file type." : "Vista integrada no disponible para este tipo de archivo."
+        }
+        downloadLabel={lang === "en" ? "Download / open in another tab" : "Descargar / abrir en otra pestaña"}
       />
     </>
   );

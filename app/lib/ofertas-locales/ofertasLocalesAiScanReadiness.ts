@@ -2,9 +2,27 @@ import {
   activeOfertaLocalDraftAssets,
   assetHasUploadedWithUrl,
 } from "./ofertasLocalesDraftAssetHelpers";
-import { isOfertaLocalCouponPromotionFlow, isOfertaLocalWeeklyFlyerFlow } from "./ofertasLocalesApplicationHelpers";
-import { canOfertaLocalDraftPersistForAiScan } from "./ofertasLocalesAiScanPersist";
+import {
+  isOfertaLocalAiIncludedInPackage,
+  isOfertaLocalCouponPromotionFlow,
+  isOfertaLocalWeeklyFlyerFlow,
+} from "./ofertasLocalesApplicationHelpers";
+import {
+  canOfertaLocalDraftPersistForAiScan,
+  validateOfertaLocalDraftForAiScanPersist,
+} from "./ofertasLocalesAiScanPersist";
 import type { OfertaLocalDraft, OfertaLocalDraftAsset } from "./ofertasLocalesTypes";
+
+/** Bilingual copy for the scan-persist validator's field-level errors (validator text itself is Spanish-only). */
+const SCAN_PERSIST_FIELD_MESSAGES: Record<string, { es: string; en: string }> = {
+  businessCategory: { es: "Elige la categoría del negocio.", en: "Choose the business category." },
+  customMarketType: { es: "Agrega el tipo de negocio.", en: "Add the business type." },
+  businessName: { es: "Completa el nombre del negocio.", en: "Complete the business name." },
+  title: { es: "Agrega un título.", en: "Add a title." },
+  city: { es: "Agrega la ciudad.", en: "Add the city." },
+  zipCode: { es: "Agrega el código postal.", en: "Add the zip code." },
+  phone: { es: "Agrega teléfono, WhatsApp o sitio web.", en: "Add a phone, WhatsApp, or website." },
+};
 
 export type OfertaLocalAiScanReadinessStatus =
   | "not_ready"
@@ -47,6 +65,7 @@ const AI_SCAN_READY_MIMES = new Set([
   "image/jpeg",
   "image/jpg",
   "image/png",
+  "image/webp",
 ]);
 
 function eligibleAssetFromDraft(
@@ -98,7 +117,7 @@ export function getOfertaLocalAiScanReadiness(
   const lang = context.lang ?? "es";
   const missing: string[] = [];
 
-  if (!draft.wantsAiSearchableSpecials) {
+  if (!isOfertaLocalAiIncludedInPackage(draft)) {
     missing.push(
       lang === "en"
         ? "Enable AI Product Search in Step 1."
@@ -110,8 +129,8 @@ export function getOfertaLocalAiScanReadiness(
   if (eligibleAssets.length === 0) {
     missing.push(
       lang === "en"
-        ? "Upload a PDF, JPG, or PNG to activate AI scanning."
-        : "Sube un PDF, JPG o PNG para activar el escaneo AI."
+        ? "Upload a PDF, JPG, PNG, or WebP to activate AI scanning."
+        : "Sube un PDF, JPG, PNG o WebP para activar el escaneo AI."
     );
   }
 
@@ -124,11 +143,25 @@ export function getOfertaLocalAiScanReadiness(
       lang === "en" ? "Sign in to scan with AI." : "Inicia sesión para escanear con AI."
     );
   } else if (!hasOfertaLocalId && !canPersistForScan) {
-    missing.push(
-      lang === "en"
-        ? "Complete business details in Steps 2–4 before scanning."
-        : "Completa los datos del negocio en los Pasos 2–4 antes de escanear."
-    );
+    const persistIssues = validateOfertaLocalDraftForAiScanPersist(draft, null, { skipAuth: true });
+    const businessFieldMessages = persistIssues
+      .filter(
+        (issue) =>
+          issue.severity === "error" &&
+          issue.field !== "wantsAiSearchableSpecials" &&
+          issue.field !== "assets"
+      )
+      .map((issue) => SCAN_PERSIST_FIELD_MESSAGES[issue.field]?.[lang] ?? null)
+      .filter((message): message is string => Boolean(message));
+    if (businessFieldMessages.length > 0) {
+      missing.push(...businessFieldMessages);
+    } else {
+      missing.push(
+        lang === "en"
+          ? "Complete business details in Steps 2–4 before scanning."
+          : "Completa los datos del negocio en los Pasos 2–4 antes de escanear."
+      );
+    }
   }
 
   if (context.serverConfigurationMissing) {
@@ -144,8 +177,8 @@ export function getOfertaLocalAiScanReadiness(
       ? "Scanning may take a few moments. Afterward, you can review and edit suggestions before publishing."
       : "El escaneo puede tardar unos momentos. Después podrás revisar y editar las sugerencias antes de publicarlas.",
     lang === "en"
-      ? "Only uploaded PDF, JPG, or PNG files are AI scan-ready. External links are reference-only."
-      : "Solo archivos subidos PDF, JPG o PNG están listos para escaneo AI. Los enlaces externos son solo referencia.",
+      ? "Only uploaded PDF, JPG, PNG, or WebP files are AI scan-ready. External links are reference-only."
+      : "Solo archivos subidos PDF, JPG, PNG o WebP están listos para escaneo AI. Los enlaces externos son solo referencia.",
     ...(eligibleAssets.length > 1
       ? [
           lang === "en"
@@ -156,7 +189,7 @@ export function getOfertaLocalAiScanReadiness(
   ];
 
   const scanReady =
-    draft.wantsAiSearchableSpecials &&
+    isOfertaLocalAiIncludedInPackage(draft) &&
     eligibleAssets.length > 0 &&
     signedIn &&
     (hasOfertaLocalId || canPersistForScan) &&

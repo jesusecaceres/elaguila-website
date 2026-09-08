@@ -1,10 +1,8 @@
 "use client";
 
 import type { ComponentType } from "react";
-import { useState } from "react";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
-import { EmailContactOptionsSheet } from "@/app/components/clasificados/EmailContactOptionsSheet";
 import {
   digitsOnly,
   formatPhoneInputDisplay,
@@ -18,15 +16,16 @@ import { CommunityLeonixMapVisual } from "./CommunityLeonixMapVisual";
 import {
   buildCommunityMapQuery,
   googleMapsSearchUrl,
-  mailtoCommunity,
-  smsUri,
-  telUriFromUs10,
-  usPhoneDigits10,
   websiteHref,
-  whatsAppUri,
 } from "../lib/communityContactCtas";
-import { normalizeWebsiteForOpen, normalizeSocialUrlForOpen } from "../lib/communityWebsiteAndSocial";
-import type { ClasesClassLinks, ClasesQuickDraft, ComunidadEventLinks, ComunidadQuickDraft } from "../types/communityQuickDraft";
+import { normalizeSocialUrlForOpen } from "../lib/communityWebsiteAndSocial";
+import {
+  buildMailtoHref,
+  buildSmsHref,
+  buildTelHref,
+  buildWhatsAppUrl,
+} from "@/app/lib/digitalContact/humanConnection/nativeChannelHrefs";
+import type { CommunityCommonDraft } from "../types/communityQuickDraft";
 import {
   trackCommunityPhoneClick,
   trackCommunityWhatsAppClick,
@@ -83,129 +82,56 @@ function buildCommunityGoogleMapsDirectionsUrl(locationLine: string): string {
   return `https://www.google.com/maps/dir/?api=1&destination=${encoded}`;
 }
 
-const SMS_BODY = {
-  clases: {
-    es: "Vi tu clase en Leonix Media y quisiera más información.",
-    en: "I saw your class on Leonix Media and would like more information.",
-  },
-  comunidad: {
-    es: "Vi tu evento en Leonix Media y quisiera más información.",
-    en: "I saw your event on Leonix Media and would like more information.",
-  },
-} as const;
+/**
+ * Gate 2C — `buildWhatsAppUrl` (unlike `buildTelHref`/`buildSmsHref`) expects digits that already
+ * include the country code; it never assumes US. Community only ever collects a bare 10-digit US
+ * number (or occasionally an already-international one), so this reuses `buildTelHref`'s own
+ * US/international normalization — rather than duplicating it — and hands WhatsApp fully-qualified
+ * digits instead of a raw 10-digit string.
+ */
+function communityWhatsAppDigits(raw: string): string | null {
+  const tel = buildTelHref(raw);
+  if (!tel) return null;
+  return tel.replace(/^tel:\+/, "");
+}
 
-const MAIL_SUBJECT = {
-  clases: {
-    es: "Información sobre tu clase en Leonix Media",
-    en: "About your class on Leonix Media",
-  },
-  comunidad: {
-    es: "Información sobre tu evento en Leonix Media",
-    en: "About your event on Leonix Media",
-  },
-} as const;
+/**
+ * Gate 0 (community category isolation) — the per-category copy tables
+ * (contact/social/location/link labels), SMS/mail templates, and
+ * registration/tickets/donation/etc. link-item lists used to live here as
+ * `UI_COMUNIDAD` / `UI_CLASES` / `SMS_BODY` / `MAIL_SUBJECT` with an internal
+ * `kindOf(draft)` branch. That category composition now lives in each
+ * category's own model builder — see
+ * app/(site)/publicar/comunidad/lib/buildComunidadContactCanvasModel.ts and
+ * app/(site)/publicar/clases/lib/buildClasesContactCanvasModel.ts — and is
+ * passed in fully resolved via the `model` prop below. This component only
+ * renders it; it does not decide what the labels or links are.
+ */
+export type CommunityContactCanvasLinkItem = {
+  key: string;
+  href: string;
+  label: string;
+  /** Optional group heading (e.g. "Inscripción / asistencia"). Ungrouped items render as a flat list, unchanged from before this existed. */
+  groupLabel?: string;
+};
 
-const UI_COMUNIDAD = {
-  es: {
-    contactTitle: "Contacto del organizador",
-    socialTitle: "Síguenos",
-    locationTitle: "Lugar del evento",
-    moreTitle: "Más información",
-    trustLabel: "Publicado en Leonix",
-    call: "Llamar",
-    text: "Enviar texto",
-    email: "Escribir correo",
-    website: "Sitio web del evento",
-    register: "Registrarse",
-    tickets: "Boletos",
-    donate: "Donar",
-    eventProgram: "Programa del evento",
-    eventGuide: "Guía del evento",
-    vendors: "Vendedores",
-    foodVendors: "Comida / puestos",
-    sponsors: "Patrocinadores",
-    map: "Ver en el mapa",
-    copyEmail: "Copiar correo",
-    copyPhone: "Copiar teléfono",
-  },
-  en: {
-    contactTitle: "Organizer contact",
-    socialTitle: "Follow us",
-    locationTitle: "Event location",
-    moreTitle: "More information",
-    trustLabel: "Published on Leonix",
-    call: "Call",
-    text: "Text message",
-    email: "Email",
-    website: "Event website",
-    register: "Register",
-    tickets: "Tickets",
-    donate: "Donate",
-    eventProgram: "Event program",
-    eventGuide: "Event guide",
-    vendors: "Vendors",
-    foodVendors: "Food / vendors",
-    sponsors: "Sponsors",
-    map: "View on map",
-    copyEmail: "Copy email",
-    copyPhone: "Copy phone",
-  },
-} as const;
-
-const UI_CLASES = {
-  es: {
-    contactTitle: "Contacto del instructor / organizador",
-    socialTitle: "Síguenos",
-    locationTitle: "Lugar de la clase",
-    moreTitle: "Más información de la clase",
-    trustLabel: "Publicado en Leonix",
-    call: "Llamar",
-    text: "Enviar texto",
-    email: "Escribir correo",
-    website: "Sitio web de la clase",
-    register: "Registrarse",
-    pay: "Pagar",
-    tickets: "Boletos",
-    donate: "Donar",
-    materials: "Materiales",
-    syllabus: "Programa / temario",
-    classGuide: "Guía de la clase",
-    instructorPage: "Página del instructor",
-    studentPortal: "Portal del estudiante",
-    vendors: "Vendedores / recursos",
-    foodVendors: "Comida / puestos",
-    sponsors: "Patrocinadores",
-    map: "Ver en el mapa",
-    copyEmail: "Copiar correo",
-    copyPhone: "Copiar teléfono",
-  },
-  en: {
-    contactTitle: "Instructor / organizer contact",
-    socialTitle: "Follow us",
-    locationTitle: "Class location",
-    moreTitle: "More class information",
-    trustLabel: "Published on Leonix",
-    call: "Call",
-    text: "Text message",
-    email: "Email",
-    website: "Class website",
-    register: "Register",
-    pay: "Pay",
-    tickets: "Tickets",
-    donate: "Donate",
-    materials: "Materials",
-    syllabus: "Program / syllabus",
-    classGuide: "Class guide",
-    instructorPage: "Instructor page",
-    studentPortal: "Student portal",
-    vendors: "Vendors / resources",
-    foodVendors: "Food / vendors",
-    sponsors: "Sponsors",
-    map: "View on map",
-    copyEmail: "Copy email",
-    copyPhone: "Copy phone",
-  },
-} as const;
+export type CommunityContactCanvasModel = {
+  labels: {
+    contactTitle: string;
+    socialTitle: string;
+    locationTitle: string;
+    moreTitle: string;
+    call: string;
+    text: string;
+    email: string;
+    website: string;
+    map: string;
+  };
+  /** Resolved, ordered "more information" links (registration/tickets/materials/etc.), category-specific. */
+  linkItems: CommunityContactCanvasLinkItem[];
+  smsBody: string;
+  mailSubject: string;
+};
 
 const SOCIAL_ARIA = {
   es: {
@@ -230,12 +156,6 @@ const SOCIAL_ARIA = {
   },
 } as const;
 
-type Draft = ClasesQuickDraft | ComunidadQuickDraft;
-
-function kindOf(d: Draft): "clases" | "comunidad" {
-  return d.kind;
-}
-
 function btnPrimaryClass(disabled?: boolean): string {
   return [
     "inline-flex min-h-[40px] min-w-0 items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm font-bold shadow-sm transition",
@@ -249,8 +169,9 @@ export function CommunityContactCanvas({
   sectionHtmlId,
   analyticsCtx,
   locationOnlineLabel,
+  model,
 }: {
-  draft: Draft;
+  draft: CommunityCommonDraft;
   lang: Lang;
   /** Optional DOM id for scroll targets (e.g. published anuncio “Ver contacto”). */
   sectionHtmlId?: string;
@@ -258,20 +179,19 @@ export function CommunityContactCanvas({
   analyticsCtx?: CommunityGlobalAnalyticsCtx;
   /** When class/event is online-only, show this instead of a physical map. */
   locationOnlineLabel?: string;
+  /** Category-resolved labels/links/templates — built by the caller's own category-owned builder. */
+  model: CommunityContactCanvasModel;
 }) {
-  const k = kindOf(draft);
-  const t = k === "clases" ? UI_CLASES[lang] : UI_COMUNIDAD[lang];
-  const [emailOpen, setEmailOpen] = useState(false);
-  const phone10 = usPhoneDigits10(draft.phone);
-  const wa10 = usPhoneDigits10(draft.whatsapp);
+  const t = model.labels;
+  const smsBody = model.smsBody;
+  const mailSub = model.mailSubject;
+  const telHref = buildTelHref(draft.phone);
+  const waDigits = communityWhatsAppDigits(draft.whatsapp);
+  const waHref = waDigits ? buildWhatsAppUrl(waDigits, smsBody) : null;
   const smsRaw = draft.smsPhone.trim() ? draft.smsPhone : draft.phone;
-  const sms10 = usPhoneDigits10(smsRaw);
+  const smsHref = buildSmsHref(smsRaw, smsBody);
   const email = draft.email.trim();
   const web = websiteHref(draft.website);
-  const eventLinks: ComunidadEventLinks | null =
-    draft.kind === "comunidad" ? (draft as ComunidadQuickDraft).eventLinks : null;
-  const classLinks: ClasesClassLinks | null =
-    draft.kind === "clases" ? (draft as ClasesQuickDraft).classLinks : null;
 
   const mapQ = buildCommunityMapQuery({
     addressLine1: draft.addressLine1,
@@ -286,12 +206,14 @@ export function CommunityContactCanvas({
   const st = draft.state.trim();
   const zip = draft.zip.trim();
   const country = draft.country?.trim() ?? "";
+  // City/Region line intentionally excludes country — country renders once, on its own line,
+  // right after this one (Gate 1 fix: it previously appeared twice — once folded in here, once
+  // again as its own paragraph below).
   const locationParts: string[] = [];
   if (cityDisplay) locationParts.push(cityDisplay);
   if (st && zip) locationParts.push(`${st} ${zip}`);
   else if (st) locationParts.push(st);
   else if (zip) locationParts.push(zip);
-  if (country) locationParts.push(country);
   const cityStateZip = locationParts.join(", ");
 
   const locationLine = buildCommunityLocationLine({
@@ -304,9 +226,7 @@ export function CommunityContactCanvas({
   const mapsEmbedUrl = buildCommunityGoogleMapsEmbedUrl(locationLine);
   const mapsDirectionsUrl = buildCommunityGoogleMapsDirectionsUrl(locationLine);
 
-  const smsBody = SMS_BODY[k][lang];
-  const mailSub = MAIL_SUBJECT[k][lang];
-  const mailHref = email ? mailtoCommunity({ to: email, subject: mailSub }) : "";
+  const mailHref = email ? (buildMailtoHref(email, mailSub) ?? "") : "";
 
   const sAria = SOCIAL_ARIA[lang];
   const socialItems: {
@@ -327,63 +247,36 @@ export function CommunityContactCanvas({
     { key: "pi", href: normalizeSocialUrlForOpen(draft.socialLinks.pinterest ?? "", "pinterest"), Icon: FaPinterest, ariaLabel: sAria.pinterest, label: "Pinterest", brandColor: "#E60023" },
   ].filter((x) => x.href);
 
-  /** Build the ordered list of event-specific useful link CTAs (Comunidad only). */
-  const eventLinkItems: { key: string; href: string; label: string }[] = [];
-  if (eventLinks) {
-    const el = eventLinks;
-    const push = (key: string, raw: string, label: string) => {
-      const href = normalizeWebsiteForOpen(raw);
-      if (href) eventLinkItems.push({ key, href, label });
-    };
-    const tc = UI_COMUNIDAD[lang];
-    push("reg", el.registrationUrl, tc.register);
-    push("tix", el.ticketsUrl, tc.tickets);
-    push("don", el.donationUrl, tc.donate);
-    push("prg", el.eventProgramUrl, tc.eventProgram);
-    push("gui", el.eventGuideUrl, tc.eventGuide);
-    push("vnd", el.vendorListUrl, tc.vendors);
-    push("fvd", el.foodVendorsUrl, tc.foodVendors);
-    push("spo", el.sponsorsUrl, tc.sponsors);
-    if (el.customLink1Label.trim() && normalizeWebsiteForOpen(el.customLink1Url)) {
-      push("c1", el.customLink1Url, el.customLink1Label.trim());
-    }
-    if (el.customLink2Label.trim() && normalizeWebsiteForOpen(el.customLink2Url)) {
-      push("c2", el.customLink2Url, el.customLink2Label.trim());
-    }
-  }
+  const allLinkItems = model.linkItems;
 
-  /** Build the ordered list of class-specific useful link CTAs (Clases only). */
-  const classLinkItems: { key: string; href: string; label: string }[] = [];
-  if (classLinks) {
-    const cl = classLinks;
-    const tc = UI_CLASES[lang];
-    const push = (key: string, raw: string, label: string) => {
-      const href = normalizeWebsiteForOpen(raw);
-      if (href) classLinkItems.push({ key, href, label });
-    };
-    push("reg", cl.registrationUrl, tc.register);
-    push("pay", cl.paymentUrl, tc.pay);
-    push("tix", cl.ticketsUrl, tc.tickets);
-    push("don", cl.donationUrl, tc.donate);
-    push("mat", cl.classMaterialsUrl, tc.materials);
-    push("syl", cl.syllabusUrl, tc.syllabus);
-    push("gui", cl.classGuideUrl, tc.classGuide);
-    push("ins", cl.instructorPageUrl, tc.instructorPage);
-    push("stu", cl.studentPortalUrl, tc.studentPortal);
-    push("vnd", cl.vendorsResourcesUrl, tc.vendors);
-    push("fvd", cl.foodVendorsUrl, tc.foodVendors);
-    push("spo", cl.sponsorsUrl, tc.sponsors);
-    if (cl.customLink1Label.trim() && normalizeWebsiteForOpen(cl.customLink1Url)) {
-      push("c1", cl.customLink1Url, cl.customLink1Label.trim());
+  // Group link items by their optional groupLabel, preserving first-seen group order; items
+  // without a groupLabel fall into one trailing ungrouped bucket. When nothing sets groupLabel
+  // (every caller before this existed, and Clases today), this collapses to exactly one group
+  // with label=null, and the render path below uses the original flat, ungrouped layout.
+  const linkItemGroups = (() => {
+    const order: string[] = [];
+    const byLabel = new Map<string, CommunityContactCanvasLinkItem[]>();
+    const ungrouped: CommunityContactCanvasLinkItem[] = [];
+    for (const item of allLinkItems) {
+      if (item.groupLabel) {
+        if (!byLabel.has(item.groupLabel)) {
+          order.push(item.groupLabel);
+          byLabel.set(item.groupLabel, []);
+        }
+        byLabel.get(item.groupLabel)!.push(item);
+      } else {
+        ungrouped.push(item);
+      }
     }
-    if (cl.customLink2Label.trim() && normalizeWebsiteForOpen(cl.customLink2Url)) {
-      push("c2", cl.customLink2Url, cl.customLink2Label.trim());
-    }
-  }
+    const groups: { label: string | null; items: CommunityContactCanvasLinkItem[] }[] = order.map((label) => ({
+      label,
+      items: byLabel.get(label)!,
+    }));
+    if (ungrouped.length || !groups.length) groups.push({ label: null, items: ungrouped });
+    return groups;
+  })();
 
-  const allLinkItems = k === "clases" ? classLinkItems : eventLinkItems;
-
-  const hasContactActions = !!(phone10 || wa10 || sms10 || email);
+  const hasContactActions = !!(telHref || waHref || smsHref || mailHref);
   const hasPhysicalLocation = !!(draft.venue.trim() || draft.addressLine1.trim() || cityStateZip);
   const hasOnlineLocation = Boolean(locationOnlineLabel?.trim()) && !hasPhysicalLocation;
   const hasLocation = hasPhysicalLocation || hasOnlineLocation;
@@ -420,9 +313,9 @@ export function CommunityContactCanvas({
               </p>
             ) : null}
             <div className="flex flex-wrap gap-2">
-              {phone10 ? (
+              {telHref ? (
                 <a
-                  href={telUriFromUs10(phone10)}
+                  href={telHref}
                   className={btnPrimaryClass()}
                   style={{ backgroundColor: GH.burgundy, color: "#FFFCF7" }}
                   onClick={() => analyticsCtx && trackCommunityPhoneClick(analyticsCtx)}
@@ -432,9 +325,9 @@ export function CommunityContactCanvas({
                   <span className="font-semibold tabular-nums">{formatPhoneInputDisplay(digitsOnly(draft.phone))}</span>
                 </a>
               ) : null}
-              {wa10 ? (
+              {waHref ? (
                 <a
-                  href={whatsAppUri(wa10, smsBody)}
+                  href={waHref}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={btnPrimaryClass()}
@@ -445,9 +338,9 @@ export function CommunityContactCanvas({
                   WhatsApp
                 </a>
               ) : null}
-              {sms10 ? (
+              {smsHref ? (
                 <a
-                  href={smsUri(sms10, smsBody)}
+                  href={smsHref}
                   className={btnPrimaryClass()}
                   style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.burgundy}` }}
                   onClick={() => analyticsCtx && trackCommunityMessageClick(analyticsCtx)}
@@ -456,16 +349,16 @@ export function CommunityContactCanvas({
                   {t.text}
                 </a>
               ) : null}
-              {email ? (
-                <button
-                  type="button"
+              {mailHref ? (
+                <a
+                  href={mailHref}
                   className={btnPrimaryClass()}
                   style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.goldBorder}` }}
-                  onClick={() => { setEmailOpen(true); analyticsCtx && trackCommunityEmailClick(analyticsCtx); }}
+                  onClick={() => analyticsCtx && trackCommunityEmailClick(analyticsCtx)}
                 >
                   <FiMail className="h-4 w-4 shrink-0" aria-hidden />
                   {t.email}
-                </button>
+                </a>
               ) : null}
             </div>
           </div>
@@ -506,42 +399,89 @@ export function CommunityContactCanvas({
 
         {/* ── Section 3: More information / event links ───────────────────── */}
         {hasMoreInfo ? (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <h3
               className="text-[11px] font-bold uppercase tracking-widest"
               style={{ color: GH.burgundy }}
             >
               {t.moreTitle}
             </h3>
-            <div className="flex flex-wrap gap-2">
-              {web ? (
-                <a
-                  href={web}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={btnPrimaryClass()}
-                  style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.burgundy}` }}
-                  onClick={() => analyticsCtx && trackCommunityWebsiteClick(analyticsCtx, "website")}
-                >
-                  <FiGlobe className="h-4 w-4 shrink-0" aria-hidden />
-                  {t.website}
-                </a>
-              ) : null}
-              {allLinkItems.map(({ key, href, label }) => (
-                <a
-                  key={key}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={btnPrimaryClass()}
-                  style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.burgundy}` }}
-                  onClick={() => analyticsCtx && trackCommunityWebsiteClick(analyticsCtx, key)}
-                >
-                  <FiExternalLink className="h-4 w-4 shrink-0" aria-hidden />
-                  {label}
-                </a>
-              ))}
-            </div>
+            {linkItemGroups.length <= 1 ? (
+              // No grouping requested (e.g. Clases) — identical flat row to before groupLabel existed.
+              <div className="flex flex-wrap gap-2">
+                {web ? (
+                  <a
+                    href={web}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={btnPrimaryClass()}
+                    style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.burgundy}` }}
+                    onClick={() => analyticsCtx && trackCommunityWebsiteClick(analyticsCtx, "website")}
+                  >
+                    <FiGlobe className="h-4 w-4 shrink-0" aria-hidden />
+                    {t.website}
+                  </a>
+                ) : null}
+                {allLinkItems.map(({ key, href, label }) => (
+                  <a
+                    key={key}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={btnPrimaryClass()}
+                    style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.burgundy}` }}
+                    onClick={() => analyticsCtx && trackCommunityWebsiteClick(analyticsCtx, key)}
+                  >
+                    <FiExternalLink className="h-4 w-4 shrink-0" aria-hidden />
+                    {label}
+                  </a>
+                ))}
+              </div>
+            ) : (
+              // Grouped resource links (Comunidad) — logical sections instead of one flat CTA wall.
+              <div className="space-y-3">
+                {web ? (
+                  <div className="flex flex-wrap gap-2">
+                    <a
+                      href={web}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={btnPrimaryClass()}
+                      style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.burgundy}` }}
+                      onClick={() => analyticsCtx && trackCommunityWebsiteClick(analyticsCtx, "website")}
+                    >
+                      <FiGlobe className="h-4 w-4 shrink-0" aria-hidden />
+                      {t.website}
+                    </a>
+                  </div>
+                ) : null}
+                {linkItemGroups.map((group) => (
+                  <div key={group.label ?? "__ungrouped"} className="space-y-1.5">
+                    {group.label ? (
+                      <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: GH.muted }}>
+                        {group.label}
+                      </p>
+                    ) : null}
+                    <div className="flex flex-wrap gap-2">
+                      {group.items.map(({ key, href, label }) => (
+                        <a
+                          key={key}
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={btnPrimaryClass()}
+                          style={{ backgroundColor: GH.cream, color: GH.charcoal, border: `1.5px solid ${GH.burgundy}` }}
+                          onClick={() => analyticsCtx && trackCommunityWebsiteClick(analyticsCtx, key)}
+                        >
+                          <FiExternalLink className="h-4 w-4 shrink-0" aria-hidden />
+                          {label}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ) : null}
 
@@ -565,16 +505,16 @@ export function CommunityContactCanvas({
                     {draft.venue.trim()}
                   </p>
                 ) : null}
-                {cityStateZip ? (
-                  <p className="text-base font-bold" style={{ color: GH.charcoal }}>
-                    {cityStateZip}
-                  </p>
-                ) : null}
                 {draft.addressLine1.trim() ? (
                   <p className="text-sm" style={{ color: GH.muted }}>{draft.addressLine1.trim()}</p>
                 ) : null}
                 {draft.addressLine2?.trim() ? (
                   <p className="text-sm" style={{ color: GH.muted }}>{draft.addressLine2.trim()}</p>
+                ) : null}
+                {cityStateZip ? (
+                  <p className="text-base font-bold" style={{ color: GH.charcoal }}>
+                    {cityStateZip}
+                  </p>
                 ) : null}
                 {country ? (
                   <p className="text-sm" style={{ color: GH.muted }}>{country}</p>
@@ -610,17 +550,6 @@ export function CommunityContactCanvas({
         ) : null}
 
       </div>
-
-      {email ? (
-        <EmailContactOptionsSheet
-          open={emailOpen}
-          onClose={() => setEmailOpen(false)}
-          email={email}
-          lang={lang}
-          mailtoHref={mailHref}
-          mailtoSubject={mailSub}
-        />
-      ) : null}
     </section>
   );
 }

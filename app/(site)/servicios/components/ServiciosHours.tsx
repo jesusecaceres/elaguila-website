@@ -39,7 +39,7 @@ export function ServiciosHours({ profile, lang }: { profile: ServiciosProfileRes
       {hours.weeklyRows && hours.weeklyRows.length > 0 ? (
         <div className="mt-5 space-y-2">
           {hours.weeklyRows.map((row, index) => (
-            <div 
+            <div
               key={index}
               className="flex items-center justify-between rounded-lg border border-black/[0.06] bg-white/95 px-3 py-2 shadow-sm"
               style={{ borderColor: SV.warmBorder }}
@@ -48,6 +48,26 @@ export function ServiciosHours({ profile, lang }: { profile: ServiciosProfileRes
               <span className="text-sm text-[color:var(--lx-text-2)]">{row.line}</span>
             </div>
           ))}
+        </div>
+      ) : null}
+
+      {hours.specialHoursRows && hours.specialHoursRows.length > 0 ? (
+        <div className="mt-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--lx-text-2)]">
+            {L.specialHours}
+          </p>
+          <div className="mt-2 space-y-2">
+            {hours.specialHoursRows.map((row, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-between rounded-lg border border-black/[0.06] bg-white/95 px-3 py-2 shadow-sm"
+                style={{ borderColor: SV.warmBorder }}
+              >
+                <span className="text-sm font-medium text-[color:var(--lx-text)]">{row.label}</span>
+                <span className="text-sm text-[color:var(--lx-text-2)]">{row.note}</span>
+              </div>
+            ))}
+          </div>
         </div>
       ) : null}
     </section>

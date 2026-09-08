@@ -216,17 +216,29 @@ export async function hydrateRestauranteListingForCouponEdit(input: {
       };
     }
 
-    if (!restaurantListingJsonCouponEnabled(data.listing_json)) {
-      return {
-        ok: false,
-        userMessage:
-          input.lang === "es"
-            ? "Activa el módulo de cupones antes de editar."
-            : "Enable the coupon module before editing.",
-      };
+    // Coupons/offers are an included feature of the current $399/mo base package (Package C
+    // Build 3), not a separate purchase — the dashboard already treats any listing with real
+    // base-package capability as coupon-edit-eligible (see couponEntitlementStatus in
+    // dashboard/restaurantes/page.tsx and dashboard/mis-anuncios/page.tsx), without requiring a
+    // prior "Enable" click. `listing_json.couponUpgradeEnabled` is a legacy/derived flag, not the
+    // entitlement authority, so a listing that already has real capability but never had this
+    // flag written (e.g. published before coupons were ever touched) must still open the editor.
+    // Server-verify and sync the flag here instead of rejecting on a stale/never-set value.
+    let listingJson: unknown = data.listing_json;
+    if (!restaurantListingJsonCouponEnabled(listingJson)) {
+      const enableResult = await enableIncludedCommercialCapability({
+        category: "restaurantes",
+        listingId,
+        capability: "coupons_offers",
+        lang: input.lang,
+      });
+      if (!enableResult.ok) {
+        return { ok: false, userMessage: enableResult.userMessage };
+      }
+      listingJson = { ...(listingJson as Record<string, unknown>), couponUpgradeEnabled: true };
     }
 
-    const merged = mergeRestauranteDraft(data.listing_json);
+    const merged = mergeRestauranteDraft(listingJson);
     const stableDraftId =
       typeof data.draft_listing_id === "string" && data.draft_listing_id.trim()
         ? data.draft_listing_id.trim()

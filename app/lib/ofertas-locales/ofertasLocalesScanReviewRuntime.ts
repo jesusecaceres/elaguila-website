@@ -58,7 +58,7 @@ export function getOfertaLocalActiveScanCopy(lang: OfertasLocalesAppLang): Ofert
       scanningFlyer: "Scanning main flyer…",
       scanningCoupon: "Scanning coupon / additional…",
       autoResultsHint: "New results will appear here automatically.",
-      refreshNow: "Refresh now",
+      refreshNow: "Refresh results",
       refreshBackupHint: "Results update automatically. Use this only if something is missing.",
       currentScan: "Current scan",
       previousScans: "Previous scans",
@@ -84,9 +84,9 @@ export function getOfertaLocalActiveScanCopy(lang: OfertasLocalesAppLang): Ofert
     scanningFlyer: "Escaneando Volante principal…",
     scanningCoupon: "Escaneando Cupón / adicional…",
     autoResultsHint: "Resultados nuevos aparecerán aquí automáticamente.",
-    refreshNow: "Actualizar ahora",
+    refreshNow: "Actualizar resultados",
     refreshBackupHint:
-      "Los resultados se actualizan automáticamente. Usa esto solo si algo no aparece.",
+      "Los resultados se actualizan automáticamente. Usa este botón solo si algo no aparece.",
     currentScan: "Escaneo actual",
     previousScans: "Escaneos anteriores",
     readyFlyer: "Volante principal listo para revisar.",
@@ -119,7 +119,7 @@ export function getOfertaLocalScanPhaseMessage(
     generating_crops: "Generando recortes…",
     saving: "Guardando sugerencias…",
     long_wait:
-      "El escaneo sigue procesando. Puedes esperar o revisar los resultados que ya estén disponibles abajo.",
+      "Este volante tiene varias páginas y el análisis está tomando más tiempo de lo normal. Puedes seguir esperando; los resultados aparecerán automáticamente.",
   };
   const en: Record<OfertaLocalScanUiPhase, string> = {
     preparing: "Preparing file…",
@@ -128,7 +128,7 @@ export function getOfertaLocalScanPhaseMessage(
     generating_crops: "Generating ad clips…",
     saving: "Saving suggestions…",
     long_wait:
-      "The scan is still processing. You can wait or review any results already available below.",
+      "This flyer has several pages and the analysis is taking longer than usual. You can keep waiting; results will appear automatically.",
   };
   const copy = lang === "en" ? en : es;
 
@@ -140,6 +140,31 @@ export function getOfertaLocalScanPhaseMessage(
   if (elapsedMs < 120_000) return { phase: "gemini_analysis", message: copy.gemini_analysis, longWait: false };
   if (elapsedMs < 180_000) return { phase: "generating_crops", message: copy.generating_crops, longWait: false };
   return { phase: "saving", message: copy.saving, longWait: false };
+}
+
+export function formatOfertaLocalPersistedScanProgress(
+  job: OfertaLocalScanJobSummary | null | undefined,
+  lang: OfertasLocalesAppLang
+): string {
+  if (!job) return "";
+  const total = Math.max(0, job.totalPages || job.pagesProcessed || 0);
+  const completed = Math.max(0, job.completedPages || 0);
+  const failed = Math.max(0, job.failedPages || 0);
+  const base =
+    total > 0
+      ? lang === "en"
+        ? `${completed}/${total} pages complete`
+        : `${completed}/${total} páginas completas`
+      : lang === "en"
+        ? "Preparing page count"
+        : "Preparando conteo de páginas";
+  const failedText =
+    failed > 0
+      ? lang === "en"
+        ? ` · ${failed} failed`
+        : ` · ${failed} con error`
+      : "";
+  return `${base}${failedText}`;
 }
 
 export function formatScanElapsed(seconds: number, lang: OfertasLocalesAppLang): string {
@@ -194,6 +219,30 @@ export function summarizeScopedItemReviewCounts(
     counts[item.reviewStatus] += 1;
   }
   return counts;
+}
+
+/**
+ * Owner-facing review completion — a page counts as complete only when every
+ * item on it has left the active-review state (approved or rejected), so a
+ * page with zero items never registers as complete. Falls back to the scan
+ * job's own reported page count when it exceeds what items reveal (pages
+ * still rendering with no extracted items yet).
+ */
+export function summarizeOfertaLocalPageCompletion(
+  items: OfertaLocalItemReviewViewModel[],
+  scanJobs: OfertaLocalScanJobSummary[]
+): { totalPages: number; completedPages: number } {
+  const pageResolved = new Map<number, boolean>();
+  for (const item of items) {
+    const page = item.sourcePage && item.sourcePage > 0 ? item.sourcePage : 1;
+    const resolved = isOfertaLocalReviewedStatus(item.reviewStatus);
+    const prev = pageResolved.get(page);
+    pageResolved.set(page, prev === undefined ? resolved : prev && resolved);
+  }
+  const jobTotalPages = scanJobs.reduce((max, job) => Math.max(max, job.totalPages || 0), 0);
+  const totalPages = Math.max(pageResolved.size, jobTotalPages);
+  const completedPages = [...pageResolved.values()].filter(Boolean).length;
+  return { totalPages, completedPages };
 }
 
 /** Latest scan job for a source file — used after hard refresh and tab switches. */

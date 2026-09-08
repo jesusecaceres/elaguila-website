@@ -5,27 +5,21 @@ import { AutosNegociosInventoryValueDrawerTrigger } from "./AutosNegociosInvento
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import type { AutosClassifiedsDashboardRow } from "@/app/lib/clasificados/autos/autosClassifiedsListingService";
-import type { AutosDealerInventoryCount } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
+import { summarizeDealerInventory, type AutosDealerInventoryCount } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import {
   autosListingStatusLabelEn,
   autosListingStatusLabelEs,
 } from "@/app/lib/clasificados/autos/autosClassifiedsVisibility";
 import { withLangParam } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import { autosLiveVehiclePath } from "@/app/clasificados/autos/filters/autosBrowseFilterContract";
-import { dealerInventoryGroupPublicPath } from "@/app/lib/clasificados/autos/autosDealerInventoryAddFlow";
 import { autosDealerInventoryAddVehicleCta } from "@/app/lib/clasificados/autos/autosDealerInventoryValueCopy";
-import { summarizeDealerInventory } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import {
   autosDealerInventoryLimitMessage,
   autosDealerInventoryUpgradePitch,
 } from "@/app/lib/clasificados/autos/autosDealerInventoryCopy";
 import {
-  autosDealerInventoryValueBullets,
-} from "@/app/lib/clasificados/autos/autosDealerInventoryValueCopy";
-import {
   autosDealerInventoryEditHref,
   autosDealerInventoryPackAddonUpgradeLabel,
-  autosDealerInventoryPackEditLabel,
   autosDealerListingEditHref,
   redirectAutosDealerInventoryPackCheckout,
   REVENUE_OS_AUTOS_DEALER_INVENTORY_PACK_SUPPORTED,
@@ -44,6 +38,19 @@ import {
   type DashboardSubscriptionStateEntry,
 } from "@/app/(site)/dashboard/lib/dashboardPackageEntitlementBadges";
 import { resolveCommercialStateBadges, commercialStateBadgesToLifecycleNote } from "@/app/lib/listingPlans/commercialStateBadges";
+import { OwnerEntityWorkspace } from "@/app/(site)/dashboard/components/OwnerEntityWorkspace";
+import { DashboardListingActionBar, type ActionItem } from "@/app/(site)/dashboard/components/DashboardListingActionBar";
+import { getOwnerEntityCapabilities, isLiveCapability } from "@/app/(site)/dashboard/lib/ownerEntityCapabilityRegistry";
+import { resolveListingUiStatus, listingUiStatusLabel, listingUiStatusChipClass } from "@/app/(site)/dashboard/lib/listingDisplayStatus";
+import {
+  editListingLabel,
+  publicViewLabel,
+  previewLabel,
+  analyticsLabel,
+  resumeListingLabel,
+  manageInventoryLabel,
+} from "@/app/(site)/dashboard/lib/dashboardMisAnunciosCategoryTools";
+import { ownerToolsTitle, ownerInventoryModuleTitle } from "@/app/(site)/dashboard/lib/dashboardI18n";
 
 type Lang = "es" | "en";
 
@@ -252,6 +259,14 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
           allListings: "Tus anuncios Autos",
           privado: "Privado",
           negocios: "Negocios",
+          moreOptions: "Más opciones",
+          moreOptionsClose: "Cerrar",
+          price: "Precio",
+          mileage: "Kilometraje",
+          city: "Ciudad",
+          updated: "Actualizado",
+          eyebrowPrivado: "Auto privado",
+          eyebrowDealer: "Autos dealer",
         }
       : {
           title: "Autos listings",
@@ -276,6 +291,14 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
           allListings: "Your Autos listings",
           privado: "Private",
           negocios: "Dealer",
+          moreOptions: "More options",
+          moreOptionsClose: "Close",
+          price: "Price",
+          mileage: "Mileage",
+          city: "City",
+          updated: "Updated",
+          eyebrowPrivado: "Private auto",
+          eyebrowDealer: "Auto dealer",
         };
 
   async function unpublish(id: string) {
@@ -311,17 +334,17 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
 
   if (loading) {
     return (
-      <div className="mt-6 rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-6 text-sm text-[#5C5346]">{t.loading}</div>
+      <div className="mt-6 rounded-3xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-6 text-sm text-[#5C5346]">{t.loading}</div>
     );
   }
 
   if (rows.length === 0) {
     return (
-      <div className="mt-6 rounded-2xl border border-dashed border-[#C9B46A]/45 bg-[#FFFCF7]/80 p-5 text-sm text-[#5C5346]">
-        <p className="font-bold text-[#1E1810]">{t.empty}</p>
+      <div className="mt-6 rounded-3xl border border-dashed border-[#D6C7AD]/85 bg-[#FFFDF7] p-5 text-sm text-[#5C5346]">
+        <p className="font-semibold text-[#1F241C]">{t.empty}</p>
         <Link
           href={withLangParam("/publicar/autos", lang)}
-          className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#2A2620] px-4 text-sm font-bold text-[#FAF7F2]"
+          className="mt-4 inline-flex min-h-[40px] items-center justify-center rounded-xl border border-[#7A1E2C]/15 bg-[#7A1E2C] px-4 text-sm font-semibold text-[#FFFCF7]"
         >
           {t.publishAutos}
         </Link>
@@ -329,357 +352,292 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
     );
   }
 
-  const hasNegociosRows = rows.some((row) => row.lane === "negocios");
+  const privadoCaps = getOwnerEntityCapabilities("autos-privado");
+  const dealerCaps = getOwnerEntityCapabilities("autos-negocios");
+  const privadoRows = rows.filter((row) => row.lane === "privado");
   const limit = dealerInventory?.limit ?? 10;
-  const activeCount = dealerInventory?.activeCount ?? 0;
-  const remaining = dealerInventory?.remainingSlots ?? Math.max(0, limit - activeCount);
+  const remaining = dealerInventory?.remainingSlots ?? Math.max(0, limit - (dealerInventory?.activeCount ?? 0));
   const atLimit = dealerInventory ? !dealerInventory.canAddActiveVehicle : false;
 
+  function vehicleDetailItems(row: AutosClassifiedsDashboardRow) {
+    return [
+      row.priceUsd != null ? { label: t.price, value: formatUsd(row.priceUsd, lang) } : null,
+      row.mileage != null ? { label: t.mileage, value: new Intl.NumberFormat(lang === "es" ? "es-US" : "en-US").format(row.mileage) } : null,
+      row.city ? { label: t.city, value: row.city } : null,
+      row.updated_at ? { label: t.updated, value: new Date(row.updated_at).toLocaleString(lang === "es" ? "es-US" : "en-US") } : null,
+    ].filter((x): x is { label: string; value: string } => x !== null);
+  }
+
+  function autosPrivadoEditHref(id: string) {
+    return `/publicar/autos/privado?edit=1&source=dashboard&listingId=${encodeURIComponent(id)}&returnPanel=autos&lang=${lang}`;
+  }
+  function autosPrivadoPreviewHref(id: string) {
+    return `/clasificados/autos/privado/preview?edit=1&source=dashboard&listingId=${encodeURIComponent(id)}&returnPanel=autos&lang=${lang}`;
+  }
+
   return (
-    <div className="mt-6 rounded-2xl border border-[#C9B46A]/35 bg-gradient-to-br from-[#FFFCF7] to-[#FAF7F2] p-5 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]">
-      <h2 className="text-lg font-bold text-[#1E1810]">{t.title}</h2>
-      <p className="mt-1 text-sm text-[#5C5346]/95">{t.subtitle}</p>
-      {hasNegociosRows ? (
-        <>
-          <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
-            {autosDealerInventoryValueBullets(lang).map((line) => (
-              <li key={line} className="flex gap-2 text-xs font-medium text-[#5C5346]">
-                <span className="text-[#C9B46A]" aria-hidden>
-                  ✓
-                </span>
-                <span>{line}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 text-sm font-semibold text-[#1E1810]">
-            {autosDealerInventoryActiveCountLine(lang, activeCount, limit)}
-          </p>
-          <p className="mt-1 text-xs font-medium text-[#5C5346]">
-            {autosDealerInventoryRemainingSlotsLine(lang, remaining)}
-          </p>
-        </>
-      ) : null}
-      {hasNegociosRows && atLimit ? (
-        <div className="mt-4 rounded-xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-sm text-amber-950">
-          <p>{autosDealerInventoryLimitMessage(lang)}</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {REVENUE_OS_AUTOS_DEALER_INVENTORY_PACK_SUPPORTED && groups[0]?.mainListingId ? (
-              <button
-                type="button"
-                className="inline-flex min-h-[40px] items-center justify-center rounded-lg bg-[#2A2620] px-3 text-xs font-bold text-[#FAF7F2]"
-                onClick={() =>
-                  void redirectAutosDealerInventoryPackCheckout({
-                    listingId: groups[0]!.mainListingId!,
-                    lang,
-                  })
-                }
-              >
-                {autosDealerInventoryPackAddonUpgradeLabel(lang)}
-              </button>
-            ) : null}
-          </div>
-        </div>
-      ) : hasNegociosRows ? (
-        <p className="mt-3 text-xs text-[#5C5346]">{autosDealerInventoryUpgradePitch(lang)}</p>
-      ) : null}
+    <div className="mt-6 flex flex-col gap-4">
+      {privadoRows.map((row) => {
+        const uiStatus = resolveListingUiStatus({ status: row.status });
+        const busy = busyId === row.id;
+        const liveHref = `${autosLiveVehiclePath(row.id)}?lang=${row.lang}`;
+        const quickActions: ActionItem[] = [];
+        if (row.status === "active" && isLiveCapability(privadoCaps.identity.publicView)) {
+          quickActions.push({ href: liveHref, label: publicViewLabel(lang), tone: "secondary" });
+        }
+        if (isLiveCapability(privadoCaps.identity.preview)) {
+          quickActions.push({ href: autosPrivadoPreviewHref(row.id), label: previewLabel(lang), tone: "secondary" });
+        }
+        if (row.status === "active" && isLiveCapability(privadoCaps.identity.analytics)) {
+          quickActions.push({
+            href: autosPaidListingAnalyticsHref({ listingId: row.id, lang, leonixAdId: row.leonix_ad_id }),
+            label: analyticsLabel(lang),
+            tone: "secondary",
+          });
+        }
+        const lifecycleActions: ActionItem[] = [];
+        if (row.status === "active" && isLiveCapability(privadoCaps.lifecycle.archive)) {
+          lifecycleActions.push({ label: t.unpublish, onClick: () => void unpublish(row.id), disabled: busy, tone: "danger" });
+        }
+        if (row.status === "removed" && isLiveCapability(privadoCaps.lifecycle.reactivate)) {
+          lifecycleActions.push({
+            label: resumeListingLabel(lang),
+            onClick: () => void restore(row.id),
+            disabled: busy,
+            tone: "positive",
+          });
+        }
+        return (
+          <OwnerEntityWorkspace
+            key={row.id}
+            lang={lang}
+            header={{
+              eyebrow: t.eyebrowPrivado,
+              title: row.title,
+              statusLabel: listingUiStatusLabel(uiStatus, lang),
+              statusChipClass: listingUiStatusChipClass(uiStatus),
+              leonixId: row.leonix_ad_id,
+            }}
+            detailItems={vehicleDetailItems(row)}
+            primaryAction={{ href: autosPrivadoEditHref(row.id), label: editListingLabel(lang) }}
+            quickActions={quickActions}
+            lifecycleActions={lifecycleActions}
+            mobileSheetLabels={{ trigger: t.moreOptions, title: t.moreOptions, close: t.moreOptionsClose }}
+          />
+        );
+      })}
 
-      <section className="mt-6 rounded-xl border border-[#E8DFD0]/90 bg-white/90 p-4">
-        <h3 className="font-bold text-[#1E1810]">{t.allListings}</h3>
-        <ul className="mt-4 flex flex-col gap-3">
-          {rows.map((row) => {
-            const liveHref = `${autosLiveVehiclePath(row.id)}?lang=${row.lang}`;
-            const busy = busyId === row.id;
-            return (
-              <li key={row.id} className="rounded-lg border border-[#E8DFD0]/80 bg-[#FFFCF7]/80 p-3">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <p className="font-semibold text-[#1E1810]">{row.title}</p>
-                    <p className="mt-0.5 text-xs text-[#5C5346]">
-                      {row.lane === "negocios" ? t.negocios : t.privado} · {formatUsd(row.priceUsd, lang)} · {statusLabel(row.status, lang)}
-                      {row.leonix_ad_id ? ` · ${row.leonix_ad_id}` : ""}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {row.status === "active" ? (
-                      <>
-                        <Link href={liveHref} className="rounded-lg border border-[#C9B46A]/45 px-2.5 py-1.5 text-[11px] font-bold">
-                          {t.viewLive}
-                        </Link>
-                        <Link
-                          href={autosPaidListingAnalyticsHref({
-                            listingId: row.id,
-                            lang,
-                            leonixAdId: row.leonix_ad_id,
-                          })}
-                          className="rounded-lg border border-[#E8DFD0] bg-white/70 px-2.5 py-1.5 text-[11px] font-bold text-[#2C2416]"
-                        >
-                          {t.viewAnalytics}
-                        </Link>
-                        <button
-                          type="button"
-                          disabled={busy}
-                          onClick={() => void unpublish(row.id)}
-                          className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-[11px] font-bold text-red-900 disabled:opacity-50"
-                        >
-                          {t.unpublish}
-                        </button>
-                      </>
-                    ) : row.status === "removed" ? (
-                      /* Package A Gate 5 — the missing resume half of the owner pause cycle:
-                         strictly removed→active via the owner-verified restore API. */
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void restore(row.id)}
-                        className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-bold text-emerald-900 disabled:opacity-50"
-                      >
-                        {t.restore}
-                      </button>
-                    ) : (
-                      <span className="rounded-lg border border-[#E8DFD0] bg-white/70 px-2.5 py-1.5 text-[11px] font-bold text-[#5C5346]">
-                        {t.manageListing}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+      {groups.map((group) => {
+        const parentId =
+          group.mainListingId ??
+          group.rows.find((r) => r.inventory_role === "main")?.id ??
+          group.rows[0]?.id;
+        if (!parentId) return null;
+        const groupId =
+          group.groupKey.startsWith("parent:") || group.groupKey.startsWith("orphan:")
+            ? null
+            : group.groupKey;
+        const addCtx = {
+          parentListingId: parentId,
+          returnToListingId: parentId,
+          dealerInventoryGroupId: groupId,
+        };
+        const groupCounts = summarizeDealerInventory(group.activeCount, limit);
+        const parentRow = group.rows.find((r) => r.id === parentId);
+        const parentCanonical = parentRow
+          ? canonicalAutosNegocioActions(parentRow, false, ownerUserId, lang)
+          : new Map<string, DashboardAction>();
+        const childRows = group.rows.filter((r) => r.inventory_role === "inventory_vehicle" || r.id !== parentId);
+        const uiStatus = resolveListingUiStatus({ status: parentRow?.status });
+        const busy = busyId === parentId;
+        const subState = dashboardSubscriptionStateForKey(subscriptionStates, [parentId]);
+        const note = subState
+          ? commercialStateBadgesToLifecycleNote(
+              resolveCommercialStateBadges({
+                subscriptionStatus: subState.status,
+                cancelAtPeriodEnd: subState.cancelAtPeriodEnd,
+                graceEndsAt: subState.graceEndsAt,
+                suspensionReason: subState.suspensionReason,
+                recoveredAt: subState.recoveredAt,
+              }),
+              lang,
+            )
+          : null;
 
-      <div className="mt-6 flex flex-col gap-6">
-        {groups.map((group) => {
-          const parentId =
-            group.mainListingId ??
-            group.rows.find((r) => r.inventory_role === "main")?.id ??
-            group.rows[0]?.id;
-          if (!parentId) return null;
-          // Synthetic dashboard-local keys (never a real stored dealer_inventory_group_id) must
-          // never leak into the public group page or the Add Vehicle context's explicit group id.
-          const groupId =
-            group.groupKey.startsWith("parent:") || group.groupKey.startsWith("orphan:")
-              ? null
-              : group.groupKey;
-          const addCtx = {
-            parentListingId: parentId,
-            returnToListingId: parentId,
-            dealerInventoryGroupId: groupId,
-          };
-          const groupCounts = summarizeDealerInventory(group.activeCount, limit);
-          const manageHref = groupId
-            ? dealerInventoryGroupPublicPath(groupId, lang)
-            : `/dashboard/mis-anuncios?lang=${lang}&cat=autos`;
-          const parentRow = group.rows.find((r) => r.id === parentId);
-          const parentCanonical = parentRow
-            ? canonicalAutosNegocioActions(parentRow, false, ownerUserId, lang)
-            : new Map<string, DashboardAction>();
-          return (
-            <section key={group.groupKey} className="rounded-xl border border-[#E8DFD0]/90 bg-white/90 p-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <h3 className="font-bold text-[#1E1810]">{group.dealerName}</h3>
-                  <p className="mt-0.5 text-xs text-[#5C5346]">
-                    {group.activeCount} / {limit} {t.activeCount}
-                  </p>
-                  {(() => {
-                    const subState = dashboardSubscriptionStateForKey(subscriptionStates, [parentId]);
-                    if (!subState) return null;
-                    const note = commercialStateBadgesToLifecycleNote(
-                      resolveCommercialStateBadges({
-                        subscriptionStatus: subState.status,
-                        cancelAtPeriodEnd: subState.cancelAtPeriodEnd,
-                        graceEndsAt: subState.graceEndsAt,
-                        suspensionReason: subState.suspensionReason,
-                        recoveredAt: subState.recoveredAt,
-                      }),
-                      lang,
-                    );
-                    if (!note) return null;
-                    const toneClass =
-                      note.tone === "urgent"
-                        ? "text-red-700"
-                        : note.tone === "warning"
-                          ? "text-amber-800"
-                          : "text-[#5C5346]";
-                    return <p className={`mt-1 text-xs font-semibold ${toneClass}`}>{note.text}</p>;
-                  })()}
-                </div>
-                <div className="flex flex-wrap gap-2">
+        const parentDetail = [
+          ...(parentRow ? vehicleDetailItems(parentRow) : []),
+          { label: lang === "es" ? "Inventario activo" : "Active inventory", value: autosDealerInventoryActiveCountLine(lang, group.activeCount, limit) },
+          remaining >= 0 ? { label: lang === "es" ? "Espacios restantes" : "Remaining slots", value: autosDealerInventoryRemainingSlotsLine(lang, remaining) } : null,
+        ].filter((x): x is { label: string; value: string } => x !== null);
+
+        const quickActions: ActionItem[] = [];
+        if (parentRow?.status === "active" && isLiveCapability(dealerCaps.identity.publicView)) {
+          quickActions.push({
+            href: parentCanonical.get("viewPublic")?.href ?? `${autosLiveVehiclePath(parentId)}?lang=${parentRow.lang}`,
+            label: publicViewLabel(lang),
+            tone: "secondary",
+          });
+        }
+        if (isLiveCapability(dealerCaps.identity.preview)) {
+          quickActions.push({
+            href:
+              parentCanonical.get("preview")?.href ??
+              autosDealerListingPreviewHref({ lang, listingId: parentId, leonixAdId: parentRow?.leonix_ad_id ?? null }),
+            label: previewLabel(lang),
+            tone: "secondary",
+          });
+        }
+        if (parentRow?.status === "active" && isLiveCapability(dealerCaps.identity.analytics)) {
+          quickActions.push({
+            href:
+              parentCanonical.get("analytics")?.href ??
+              autosPaidListingAnalyticsHref({ listingId: parentId, lang, leonixAdId: parentRow?.leonix_ad_id ?? null }),
+            label: analyticsLabel(lang),
+            tone: "secondary",
+          });
+        }
+
+        const lifecycleActions: ActionItem[] = [];
+        if (parentRow?.status === "active" && isLiveCapability(dealerCaps.lifecycle.archive)) {
+          lifecycleActions.push({ label: t.unpublish, onClick: () => void unpublish(parentId), disabled: busy, tone: "danger" });
+        }
+        if (parentRow?.status === "removed" && isLiveCapability(dealerCaps.lifecycle.reactivate)) {
+          lifecycleActions.push({
+            label: resumeListingLabel(lang),
+            onClick: () => void restore(parentId),
+            disabled: busy,
+            tone: "positive",
+          });
+        }
+
+        const specializedActions: ActionItem[] = [];
+        if (isLiveCapability(dealerCaps.specialized.inventory)) {
+          specializedActions.push({
+            href: parentCanonical.get("manageInventory")?.href ?? autosDealerInventoryEditHref({ lang, listingId: parentId }),
+            label: manageInventoryLabel(lang),
+            tone: "premium",
+          });
+        }
+        if (atLimit && REVENUE_OS_AUTOS_DEALER_INVENTORY_PACK_SUPPORTED) {
+          specializedActions.push({
+            label: autosDealerInventoryPackAddonUpgradeLabel(lang),
+            onClick: () => void redirectAutosDealerInventoryPackCheckout({ listingId: parentId, lang }),
+            tone: "premium",
+          });
+        }
+
+        return (
+          <OwnerEntityWorkspace
+            key={group.groupKey}
+            lang={lang}
+            header={{
+              eyebrow: t.eyebrowDealer,
+              title: group.dealerName,
+              subtitle: parentRow?.title,
+              statusLabel: listingUiStatusLabel(uiStatus, lang),
+              statusChipClass: listingUiStatusChipClass(uiStatus),
+              leonixId: parentRow?.leonix_ad_id,
+              badges: [t.negocios],
+            }}
+            note={note ? { text: note.text, tone: note.tone } : atLimit ? { text: autosDealerInventoryLimitMessage(lang), tone: "warning" } : null}
+            detailItems={parentDetail}
+            primaryAction={{
+              href: parentCanonical.get("edit")?.href ?? autosDealerListingEditHref({ lang, listingId: parentId }),
+              label: editListingLabel(lang),
+            }}
+            quickActions={quickActions}
+            lifecycleActions={lifecycleActions}
+            specialized={{
+              title: ownerToolsTitle(lang),
+              actions: specializedActions,
+              children: (
+                <div className="flex flex-col gap-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8A6B1F]">{ownerInventoryModuleTitle(lang)}</p>
                   {!atLimit ? (
                     <AutosNegociosInventoryValueDrawerTrigger
                       lang={lang}
                       addCtx={addCtx}
                       counts={groupCounts}
                       label={autosDealerInventoryAddVehicleCta(lang)}
-                      className="!min-h-[40px] !rounded-lg !px-3 !text-xs"
+                      className="!min-h-[40px] !rounded-xl !px-4 !text-sm"
                     />
                   ) : null}
-                  {parentId ? (
-                    <Link
-                      href={
-                        parentCanonical.get("edit")?.href ??
-                        autosDealerListingEditHref({ lang, listingId: parentId })
-                      }
-                      className="inline-flex min-h-[40px] items-center justify-center rounded-lg border border-[#E8DFD0] bg-[#FFFCF7] px-3 text-xs font-bold text-[#2C2416]"
-                    >
-                      {lang === "es" ? "Editar anuncio" : "Edit listing"}
-                    </Link>
-                  ) : null}
-                  {parentId ? (
-                    <Link
-                      href={
-                        parentCanonical.get("preview")?.href ??
-                        autosDealerListingPreviewHref({
-                          lang,
-                          listingId: parentId,
-                          leonixAdId: parentRow?.leonix_ad_id ?? null,
-                        })
-                      }
-                      className="inline-flex min-h-[40px] items-center justify-center rounded-lg border border-[#E8DFD0] bg-white/70 px-3 text-xs font-bold text-[#2C2416]"
-                    >
-                      {t.viewPreview}
-                    </Link>
-                  ) : null}
-                  {parentId && parentRow?.status === "active" ? (
-                    <Link
-                      href={
-                        parentCanonical.get("analytics")?.href ??
-                        autosPaidListingAnalyticsHref({
-                          listingId: parentId,
-                          lang,
-                          leonixAdId: parentRow?.leonix_ad_id ?? null,
-                        })
-                      }
-                      className="inline-flex min-h-[40px] items-center justify-center rounded-lg border border-[#E8DFD0] bg-white/70 px-3 text-xs font-bold text-[#2C2416]"
-                    >
-                      {t.viewAnalytics}
-                    </Link>
-                  ) : null}
-                  {parentId ? (
-                    <Link
-                      href={
-                        parentCanonical.get("manageInventory")?.href ??
-                        autosDealerInventoryEditHref({ lang, listingId: parentId })
-                      }
-                      className="inline-flex min-h-[40px] items-center justify-center rounded-lg border border-[#C9B46A]/45 bg-[#FBF7EF] px-3 text-xs font-bold text-[#5C4E2E]"
-                    >
-                      {autosDealerInventoryPackEditLabel(lang)}
-                    </Link>
-                  ) : null}
-                  <Link
-                    href={manageHref}
-                    className="inline-flex min-h-[40px] items-center justify-center rounded-lg border border-[#E8DFD0] bg-[#FFFCF7] px-3 text-xs font-bold text-[#2C2416]"
-                  >
-                    {t.manage}
-                  </Link>
+                  {childRows.length === 0 ? (
+                    <p className="text-xs text-[#9A9084]">
+                      {lang === "es" ? "Aún no hay vehículos de inventario en este dealer." : "No inventory vehicles on this dealer yet."}
+                    </p>
+                  ) : (
+                    <ul className="flex flex-col gap-3">
+                      {childRows.map((row) => {
+                        const isChildRow = row.inventory_role === "inventory_vehicle";
+                        const rowBusy = busyId === row.id;
+                        const rowCanonical = canonicalAutosNegocioActions(row, isChildRow, ownerUserId, lang);
+                        const childActions: ActionItem[] = [];
+                        if (isChildRow) {
+                          childActions.push({
+                            href: `${autosDealerInventoryEditHref({ lang, listingId: parentId })}&editVehicleId=${encodeURIComponent(row.id)}`,
+                            label: t.editVehicle,
+                            tone: "primary",
+                          });
+                        }
+                        if (row.status === "active") {
+                          childActions.push({
+                            href: rowCanonical.get("viewPublic")?.href ?? `${autosLiveVehiclePath(row.id)}?lang=${row.lang}`,
+                            label: publicViewLabel(lang),
+                            tone: "secondary",
+                          });
+                          childActions.push({
+                            href:
+                              rowCanonical.get("preview")?.href ??
+                              autosDealerListingPreviewHref({ lang, listingId: row.id, leonixAdId: row.leonix_ad_id }),
+                            label: previewLabel(lang),
+                            tone: "secondary",
+                          });
+                          childActions.push({
+                            href:
+                              rowCanonical.get("analytics")?.href ??
+                              autosPaidListingAnalyticsHref({ listingId: row.id, lang, leonixAdId: row.leonix_ad_id }),
+                            label: analyticsLabel(lang),
+                            tone: "secondary",
+                          });
+                          childActions.push({
+                            label: t.unpublish,
+                            onClick: () => void unpublish(row.id),
+                            disabled: rowBusy,
+                            tone: "danger",
+                          });
+                        } else if (row.status === "removed") {
+                          childActions.push({
+                            label: resumeListingLabel(lang),
+                            onClick: () => void restore(row.id),
+                            disabled: rowBusy,
+                            tone: "positive",
+                          });
+                        }
+                        return (
+                          <li key={row.id} className="rounded-xl border border-[#D6C7AD]/70 bg-[#FBF7EF]/70 p-3">
+                            <p className="font-semibold text-[#1F241C]">{row.title}</p>
+                            <p className="mt-0.5 text-xs text-[#5C5346]">
+                              {[formatUsd(row.priceUsd, lang), statusLabel(row.status, lang), t.inventory, row.leonix_ad_id]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </p>
+                            <div className="mt-2">
+                              <DashboardListingActionBar actions={childActions} />
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </div>
-              </div>
-              <ul className="mt-4 flex flex-col gap-3">
-                {group.rows.map((row) => {
-                  const liveHref = `${autosLiveVehiclePath(row.id)}?lang=${row.lang}`;
-                  const isChildRow = row.inventory_role === "inventory_vehicle";
-                  const roleLabel =
-                    row.inventory_role === "main"
-                      ? t.main
-                      : isChildRow
-                        ? t.inventory
-                        : null;
-                  const busy = busyId === row.id;
-                  const rowCanonical = canonicalAutosNegocioActions(row, isChildRow, ownerUserId, lang);
-                  return (
-                    <li key={row.id} className="rounded-lg border border-[#E8DFD0]/80 bg-[#FFFCF7]/80 p-3">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="min-w-0">
-                          <p className="font-semibold text-[#1E1810]">{row.title}</p>
-                          <p className="mt-0.5 text-xs text-[#5C5346]">
-                            {formatUsd(row.priceUsd, lang)} · {statusLabel(row.status, lang)}
-                            {roleLabel ? ` · ${roleLabel}` : ""}
-                            {row.leonix_ad_id ? ` · ${row.leonix_ad_id}` : ""}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {/* Package B (Gate B5) — DIRECT child edit action (ledger defect
-                              D3): deep-links into the parent's inventory-edit context with
-                              editVehicleId, opening THIS vehicle's own drawer editor.
-                              Available in every status (drawer edits propagate to the child's
-                              own row via the Gate B5 server sync). */}
-                          {isChildRow && parentId ? (
-                            <Link
-                              href={`${autosDealerInventoryEditHref({ lang, listingId: parentId })}&editVehicleId=${encodeURIComponent(row.id)}`}
-                              className="rounded-lg border border-[#C9B46A]/60 bg-[#FBF7EF] px-2.5 py-1.5 text-[11px] font-bold text-[#5C4E2E]"
-                            >
-                              {t.editVehicle}
-                            </Link>
-                          ) : null}
-                          {row.status === "active" ? (
-                            <>
-                              <Link
-                                href={rowCanonical.get("viewPublic")?.href ?? liveHref}
-                                className="rounded-lg border border-[#C9B46A]/45 px-2.5 py-1.5 text-[11px] font-bold"
-                              >
-                                {t.viewLive}
-                              </Link>
-                              <Link
-                                href={
-                                  rowCanonical.get("preview")?.href ??
-                                  autosDealerListingPreviewHref({
-                                    lang,
-                                    listingId: row.id,
-                                    leonixAdId: row.leonix_ad_id,
-                                  })
-                                }
-                                className="rounded-lg border border-[#E8DFD0] bg-white/70 px-2.5 py-1.5 text-[11px] font-bold text-[#2C2416]"
-                              >
-                                {t.viewPreview}
-                              </Link>
-                              <Link
-                                href={
-                                  rowCanonical.get("analytics")?.href ??
-                                  autosPaidListingAnalyticsHref({
-                                    listingId: row.id,
-                                    lang,
-                                    leonixAdId: row.leonix_ad_id,
-                                  })
-                                }
-                                className="rounded-lg border border-[#E8DFD0] bg-white/70 px-2.5 py-1.5 text-[11px] font-bold text-[#2C2416]"
-                              >
-                                {t.viewAnalytics}
-                              </Link>
-                              <button
-                                type="button"
-                                disabled={busy}
-                                onClick={() => void unpublish(row.id)}
-                                className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-[11px] font-bold text-red-900 disabled:opacity-50"
-                              >
-                                {t.unpublish}
-                              </button>
-                            </>
-                          ) : row.status === "removed" ? (
-                            /* Package A Gate 5 — owner resume (removed→active). */
-                            <button
-                              type="button"
-                              disabled={busy}
-                              onClick={() => void restore(row.id)}
-                              className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-bold text-emerald-900 disabled:opacity-50"
-                            >
-                              {t.restore}
-                            </button>
-                          ) : (
-                            <span className="rounded-lg border border-[#E8DFD0] bg-white/70 px-2.5 py-1.5 text-[11px] font-bold text-[#5C5346]">
-                              {t.manageListing}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          );
-        })}
-      </div>
+              ),
+            }}
+            mobileSheetLabels={{ trigger: t.moreOptions, title: t.moreOptions, close: t.moreOptionsClose }}
+            footerHint={!atLimit ? autosDealerInventoryUpgradePitch(lang) : null}
+          />
+        );
+      })}
     </div>
   );
 }

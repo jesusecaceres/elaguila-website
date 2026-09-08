@@ -15,7 +15,7 @@ import {
 import { ClasesQuickAdCanvas } from "@/app/(site)/publicar/clases/components/ClasesQuickAdCanvas";
 import { ComunidadQuickAdCanvas } from "@/app/(site)/publicar/comunidad/components/ComunidadQuickAdCanvas";
 import { CommunityDiscoveryListingCard } from "@/app/(site)/clasificados/community/CommunityDiscoveryListingCard";
-import { buildCommunityDiscoveryCardModelFromDraft } from "@/app/(site)/clasificados/community/shared/communityDiscoveryListingCardModel";
+import { buildCommunityDiscoveryCardModelFromDraft } from "@/app/(site)/clasificados/community/shared/communityDiscoveryCardModelDispatch";
 
 import {
   COMMUNITY_SESSION_KEYS,

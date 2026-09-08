@@ -4,7 +4,7 @@
  * Layer 1 of webhook idempotency (row-state guards in fulfillment code remain layer 2).
  * The INSERT doubles as the processing claim: `.upsert({ignoreDuplicates:true}).select("id")`
  * returns a row only for the first delivery of an event id. Duplicate deliveries fall through
- * to a conditional UPDATE-claim that succeeds only for retryable/stale states.
+ * to conditional UPDATE claims that succeed only for retryable/stale states.
  *
  * HTTP semantics are the retry scheduler (no cron exists in this build by design):
  *   completed / ignored / failed_terminal / actively-processing  -> respond 200 (Stripe stops)
@@ -38,6 +38,18 @@ export type LedgerEventInput = {
   payload?: Record<string, unknown> | null;
 };
 
+async function incrementAttemptCount(
+  supabase: ReturnType<typeof getAdminSupabase>,
+  stripeEventId: string,
+  currentAttemptCount: unknown,
+): Promise<void> {
+  const attempt = Number(currentAttemptCount ?? 1) + 1;
+  await supabase
+    .from("leonix_stripe_webhook_events")
+    .update({ attempt_count: attempt })
+    .eq("stripe_event_id", stripeEventId);
+}
+
 /**
  * Claim an event for processing. Returns "process" exactly once per live attempt.
  */
@@ -69,23 +81,37 @@ export async function claimStripeEvent(input: LedgerEventInput): Promise<LedgerC
   if (insertError) return { action: "error", httpStatus: 500, reason: "claim_failed" };
   if (inserted && inserted.length > 0) return { action: "process", reason: "first_delivery" };
 
-  // Duplicate delivery — conditional re-claim mirrors decideDuplicateClaim atomically.
-  const staleBefore = new Date(Date.now() - STALE_PROCESSING_MINUTES * 60_000).toISOString();
-  const { data: reclaimed, error: reclaimError } = await supabase
+  // Duplicate delivery — first reclaim explicit retryable states. Keeping this as a simple
+  // conditional UPDATE avoids the nested PostgREST `or=(...,and(...))` filter that can be
+  // rejected by the REST parser before PostgreSQL evaluates the row condition.
+  const { data: retryable, error: retryableError } = await supabase
     .from("leonix_stripe_webhook_events")
     .update({ status: "processing", processing_started_at: nowIso })
     .eq("stripe_event_id", input.stripeEventId)
-    .or(`status.in.(received,failed_retryable),and(status.eq.processing,processing_started_at.lt.${staleBefore})`)
+    .in("status", ["received", "failed_retryable"])
     .select("id, attempt_count");
 
-  if (reclaimError) return { action: "error", httpStatus: 500, reason: "claim_failed" };
-  if (reclaimed && reclaimed.length > 0) {
-    const attempt = Number(reclaimed[0]?.attempt_count ?? 1) + 1;
-    await supabase
-      .from("leonix_stripe_webhook_events")
-      .update({ attempt_count: attempt })
-      .eq("stripe_event_id", input.stripeEventId);
+  if (retryableError) return { action: "error", httpStatus: 500, reason: "claim_failed" };
+  if (retryable && retryable.length > 0) {
+    await incrementAttemptCount(supabase, input.stripeEventId, retryable[0]?.attempt_count);
     return { action: "process", reason: "reclaimed_retryable" };
+  }
+
+  // If the row is not retryable, independently reclaim a stale processing claim. This preserves
+  // the original crash self-heal semantics without relying on a nested OR expression.
+  const staleBefore = new Date(Date.now() - STALE_PROCESSING_MINUTES * 60_000).toISOString();
+  const { data: stale, error: staleError } = await supabase
+    .from("leonix_stripe_webhook_events")
+    .update({ status: "processing", processing_started_at: nowIso })
+    .eq("stripe_event_id", input.stripeEventId)
+    .eq("status", "processing")
+    .lt("processing_started_at", staleBefore)
+    .select("id, attempt_count");
+
+  if (staleError) return { action: "error", httpStatus: 500, reason: "claim_failed" };
+  if (stale && stale.length > 0) {
+    await incrementAttemptCount(supabase, input.stripeEventId, stale[0]?.attempt_count);
+    return { action: "process", reason: "reclaimed_stale" };
   }
 
   const { data: existing } = await supabase

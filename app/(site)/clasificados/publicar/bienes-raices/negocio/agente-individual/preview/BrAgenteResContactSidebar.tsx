@@ -43,6 +43,8 @@ import {
   type BrGlobalAnalyticsContext,
 } from "@/app/lib/clasificados/bienes-raices/brGlobalAnalytics";
 import { dispatchConnectionHubCta } from "@/app/lib/analytics/client/connectionHubCtaDispatch";
+import { SharedConnectionHubReviewButton } from "@/app/components/contact/connectionHub/renderers/SharedConnectionHubReviewButton";
+import { BrRentasCommunityTrustSection } from "@/app/clasificados/lib/BrRentasCommunityTrustSection";
 
 /** Package D Build D2, Gate 6A — real listing identity for the live published detail render only.
  * Reuses the existing canonical `brGlobalAnalytics.ts` module; this component fires no analytics of
@@ -203,15 +205,29 @@ export function BrAgenteResContactSidebar({
   locale: _locale,
   p,
   analyticsContext,
+  ownerId,
 }: {
   data: AgenteIndividualResidencialFormState;
   locale: AgenteResPreviewLocale;
   p: PreviewUi;
   analyticsContext?: BrAgenteResContactSidebarAnalyticsContext | null;
+  /** Item 21 — listing owner's auth user id, for the BR Negocio Community Trust professional
+   * identity (never a disposable listing id). Optional/best-effort: the widget itself no-ops
+   * until isLeonixEndorsementCategoryLive("bienes_raices_negocio") is true. */
+  ownerId?: string | null;
 }) {
   const cr = buildContactModel(data);
   const track = (fn: (ctx: BrGlobalAnalyticsContext) => void) => {
     if (analyticsContext) fn(analyticsContext);
+  };
+  // Item 20 (Final Completion) — Global Business Hub OS adoption doc classifies BR Negocio as
+  // "B — surgical shared-primitive adoption": the review-link BUTTON visuals swap to the shared
+  // Level-A component (behavior-equivalent to Servicios' own swap), analytics stay on the
+  // existing brGlobalAnalytics dispatch this sidebar already uses.
+  const openReview = (url: string | null | undefined, fn: (ctx: BrGlobalAnalyticsContext) => void) => {
+    if (!url) return;
+    track(fn);
+    window.open(url, "_blank", "noopener,noreferrer");
   };
   // Package D Build D3, Gate 2 — social-icon clicks (the one D2-deferred gap on this component)
   // use the shared dispatcher directly; no dedicated brGlobalAnalytics.ts export exists for a
@@ -434,10 +450,10 @@ export function BrAgenteResContactSidebar({
               </div>
             ) : null}
             {hub.googleBusinessUrl ? (
-              <ReviewCard
-                href={hub.googleBusinessUrl}
-                label={p.googleBusiness}
-                onClick={() => track(trackBrGoogleBusinessClickGlobal)}
+              <SharedConnectionHubReviewButton
+                link={{ provider: "google", label: p.googleBusiness, url: hub.googleBusinessUrl }}
+                lang={locale}
+                onClick={() => openReview(hub.googleBusinessUrl, trackBrGoogleBusinessClickGlobal)}
               />
             ) : null}
             {(hub.googleReviewsUrl || hub.yelpReviewsUrl) && (hub.googleBusinessUrl || hub.hasSocialIcons) ? (
@@ -446,20 +462,31 @@ export function BrAgenteResContactSidebar({
               </p>
             ) : null}
             {hub.googleReviewsUrl ? (
-              <ReviewCard
-                href={hub.googleReviewsUrl}
-                label={p.googleReviews}
-                onClick={() => track(trackBrGoogleReviewsClickGlobal)}
+              <SharedConnectionHubReviewButton
+                link={{ provider: "google", label: p.googleReviews, url: hub.googleReviewsUrl }}
+                lang={locale}
+                onClick={() => openReview(hub.googleReviewsUrl, trackBrGoogleReviewsClickGlobal)}
               />
             ) : null}
             {hub.yelpReviewsUrl ? (
-              <ReviewCard href={hub.yelpReviewsUrl} label={p.yelpReviews} onClick={() => track(trackBrYelpClickGlobal)} />
+              <SharedConnectionHubReviewButton
+                link={{ provider: "yelp", label: p.yelpReviews, url: hub.yelpReviewsUrl }}
+                lang={locale}
+                onClick={() => openReview(hub.yelpReviewsUrl, trackBrYelpClickGlobal)}
+              />
             ) : null}
             {hub.businessExtraLinks.map((link) => (
               <ReviewCard key={link.href} href={link.href} label={link.label} />
             ))}
           </div>
         ) : null}
+        <BrRentasCommunityTrustSection
+          category="bienes_raices_negocio"
+          ownerId={ownerId}
+          displayName={trim(data.marcaNombre) || trim(data.agenteNombre) || null}
+          lang={_locale}
+          surface="br_negocio_contact_sidebar"
+        />
       </CardShell>
 
       {showSecondAgentRail ? (

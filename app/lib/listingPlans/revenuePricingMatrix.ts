@@ -9,6 +9,9 @@ export const EMPLEOS_JOB_POST_PAID_PACKAGE_KEY = "empleos_job_post_paid";
 /** Publicar feria de empleos — always free (no Stripe, no promo). */
 export const EMPLEOS_JOB_FAIR_FREE_PACKAGE_KEY = "empleos_job_fair_free";
 
+export const OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY = "ofertas_locales_flyer_30d";
+export const OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY = "ofertas_locales_coupons_30d";
+
 export type RevenueBillingMode =
   | "one_time"
   | "monthly_subscription"
@@ -22,6 +25,7 @@ export type RevenueCustomerType =
   | "employer"
   | "restaurant_business"
   | "service_business"
+  | "food_business"
   | "travel_business"
   | "community"
   | "affiliate";
@@ -274,6 +278,31 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     newSalesRetired: true,
   },
   {
+    // Gate D18 — owner-locked current sale price for Comida Local (distinct product from
+    // Restaurantes, not routed through the $399 restaurantes_base_monthly package). The prior
+    // Basic/$99 and Plus/$149 tier definitions (comidaLocalPackages.ts) were never wired to
+    // Stripe and are superseded for new sales by this single $129/mo package; they remain in
+    // code only for historical tier-label reads, not touched here.
+    category: "comida-local",
+    packageKey: "comida_local_base_monthly",
+    customerType: "food_business",
+    label: "Comida Local base monthly",
+    priceCents: 12900,
+    billingMode: "monthly_subscription",
+    durationDays: null,
+    includedInventory: "1 profile/listing",
+    addOnInventory: null,
+    promoEligible: true,
+    printCompEligible: true,
+    placementEligible: true,
+    stripeEligible: true,
+    unresolvedOwnerDecision: null,
+    // Gate D14 — Comida Local has no coupon/flyer feature in its product today (verified: no
+    // field, no UI, no data model). Unlike Servicios/Restaurantes, declaring `coupons_offers`
+    // here would be a false capability grant for a feature that doesn't exist to use it.
+    capabilities: [],
+  },
+  {
     category: "empleos",
     packageKey: EMPLEOS_JOB_POST_PAID_PACKAGE_KEY,
     customerType: "employer",
@@ -289,6 +318,40 @@ export const REVENUE_V1_PACKAGE_MATRIX: RevenuePackageDefinition[] = [
     placementEligible: true,
     stripeEligible: true,
     placementTierKey: "paid_private",
+    unresolvedOwnerDecision: null,
+  },
+  {
+    category: "ofertas-locales",
+    packageKey: OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY,
+    customerType: "service_business",
+    pipeline: "interactive_flyer",
+    label: "Ofertas Locales interactive flyer 30-day",
+    priceCents: 39900,
+    billingMode: "one_time",
+    durationDays: 30,
+    includedInventory: "1 interactive flyer listing; AI extraction/review, searchable products, flyer page, product cards, and shopping list included",
+    addOnInventory: null,
+    promoEligible: false,
+    printCompEligible: false,
+    placementEligible: false,
+    stripeEligible: true,
+    unresolvedOwnerDecision: null,
+  },
+  {
+    category: "ofertas-locales",
+    packageKey: OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY,
+    customerType: "service_business",
+    pipeline: "coupons",
+    label: "Cupones Leonix 30-day",
+    priceCents: 19900,
+    billingMode: "one_time",
+    durationDays: 30,
+    includedInventory: "1 coupon or promotion listing; AI extraction/review and public coupon result/detail included",
+    addOnInventory: null,
+    promoEligible: false,
+    printCompEligible: false,
+    placementEligible: false,
+    stripeEligible: true,
     unresolvedOwnerDecision: null,
   },
   {

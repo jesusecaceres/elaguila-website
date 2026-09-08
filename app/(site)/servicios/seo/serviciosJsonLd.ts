@@ -2,6 +2,11 @@
  * Package F Build F2, Gate 15 (P1 SEO fix) — real, non-fabricated LocalBusiness structured data.
  * Every field is sourced from what the provider actually entered (resolveServiciosProfile's
  * already-sanitized output); fields with no real data are simply omitted, never fabricated.
+ *
+ * Leonix Globalization Closeout Foundation 01 — the builder contract intentionally has no
+ * rating/reviewCount input at all: there is no provider-verified (Google/Yelp) rating source,
+ * so owner-entered/self-reported values must never be able to reach AggregateRating, here or via
+ * any future caller. AggregateRating is structurally omitted rather than emitted empty/zeroed.
  */
 export function serviciosJsonLd(params: {
   name: string;
@@ -11,8 +16,6 @@ export function serviciosJsonLd(params: {
   telephone?: string;
   addressText?: string;
   websiteUrl?: string;
-  ratingAverage?: number;
-  ratingCount?: number;
 }) {
   const json: Record<string, unknown> = {
     "@context": "https://schema.org",
@@ -25,12 +28,5 @@ export function serviciosJsonLd(params: {
   if (params.telephone) json.telephone = params.telephone;
   if (params.addressText) json.address = params.addressText;
   if (params.websiteUrl) json.sameAs = params.websiteUrl;
-  if (params.ratingAverage != null && params.ratingCount != null && params.ratingCount > 0) {
-    json.aggregateRating = {
-      "@type": "AggregateRating",
-      ratingValue: params.ratingAverage,
-      reviewCount: params.ratingCount,
-    };
-  }
   return json;
 }

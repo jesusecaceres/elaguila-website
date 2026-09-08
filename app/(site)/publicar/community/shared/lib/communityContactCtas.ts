@@ -1,33 +1,13 @@
-import { digitsOnly } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
-
 import { normalizeWebsiteForOpen } from "./communityWebsiteAndSocial";
 
-export function usPhoneDigits10(raw: string): string | null {
-  const d = digitsOnly(raw);
-  return d.length === 10 ? d : null;
-}
-
-/** E.164-style for tel:/sms: (US +1). */
-export function telUriFromUs10(d10: string): string {
-  return `tel:+1${d10}`;
-}
-
-export function smsUri(d10: string, body: string): string {
-  const enc = encodeURIComponent(body);
-  return `sms:+1${d10}?body=${enc}`;
-}
-
-export function whatsAppUri(d10: string, prefilledText: string): string {
-  const enc = encodeURIComponent(prefilledText);
-  return `https://wa.me/1${d10}?text=${enc}`;
-}
-
-/** mailto:user@x.com?subject=...&body=... */
-export function mailtoCommunity(opts: { to: string; subject: string; body?: string }): string {
-  const sub = encodeURIComponent(opts.subject);
-  const body = opts.body ? `&body=${encodeURIComponent(opts.body)}` : "";
-  return `mailto:${opts.to}?subject=${sub}${body}`;
-}
+/**
+ * Gate 2C — the old US-only tel:/sms:/WhatsApp/mailto builders that used to live here
+ * (`usPhoneDigits10`, `telUriFromUs10`, `smsUri`, `whatsAppUri`, `mailtoCommunity`) were removed
+ * in favor of the canonical, internationally-safe builders in
+ * `@/app/lib/digitalContact/humanConnection/nativeChannelHrefs` (`buildTelHref`, `buildSmsHref`,
+ * `buildWhatsAppUrl`, `buildMailtoHref`), used directly by `CommunityContactCanvas.tsx`. This file
+ * now only keeps the map/website helpers below, which have no canonical-utility equivalent.
+ */
 
 export function googleMapsSearchUrl(query: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;

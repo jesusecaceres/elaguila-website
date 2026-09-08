@@ -24,6 +24,7 @@ type Props = {
   state: string;
   zip: string;
   country: string;
+  business: string;
   category: string;
   marketType: string;
   offerType: string;
@@ -32,6 +33,7 @@ type Props = {
   onStateChange: (v: string) => void;
   onZipChange: (v: string) => void;
   onCountryChange: (v: string) => void;
+  onBusinessChange: (v: string) => void;
   onCategoryChange: (v: string) => void;
   onMarketTypeChange: (v: string) => void;
   onOfferTypeChange: (v: string) => void;
@@ -56,6 +58,7 @@ export function OfertasLocalesFiltersDrawer({
   state,
   zip,
   country,
+  business,
   category,
   marketType,
   offerType,
@@ -64,6 +67,7 @@ export function OfertasLocalesFiltersDrawer({
   onStateChange,
   onZipChange,
   onCountryChange,
+  onBusinessChange,
   onCategoryChange,
   onMarketTypeChange,
   onOfferTypeChange,
@@ -155,6 +159,16 @@ export function OfertasLocalesFiltersDrawer({
 
           <p className={`${GROUP} mt-5`}>{lang === "es" ? "Categoría de oferta" : "Deal category"}</p>
           <div className="mt-3 space-y-3">
+            <label className="block text-xs font-semibold text-[#3D3428]">
+              {c.businessLabel}
+              <input
+                className={INPUT}
+                value={business}
+                onChange={(e) => onBusinessChange(e.target.value)}
+                placeholder={c.businessPlaceholder}
+                autoComplete="organization"
+              />
+            </label>
             <label className="block text-xs font-semibold text-[#3D3428]">
               {c.categoryLabel}
               <input

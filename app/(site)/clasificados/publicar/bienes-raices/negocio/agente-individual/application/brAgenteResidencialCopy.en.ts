@@ -111,7 +111,7 @@ export const BR_COPY_EN = {
     usarUrl: "Use URL",
     video: "Video (optional)",
     videoHint:
-      "Public link only (YouTube, Vimeo, TikTok, Instagram, etc.). Add up to 4 video URLs.",
+      "Public link only (YouTube, Vimeo, TikTok, Instagram, etc.). Add up to 8 video URLs.",
     addVideo: "Add video",
     videoAdded: "Video added",
     videoUrlLabel: (n: number) => (n === 1 ? "Video URL" : `Video URL ${n}`),

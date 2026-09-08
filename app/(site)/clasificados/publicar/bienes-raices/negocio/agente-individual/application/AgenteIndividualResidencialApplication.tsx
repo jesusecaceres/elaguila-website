@@ -1022,17 +1022,11 @@ export default function AgenteIndividualResidencialApplication() {
               >
                 {t.app.anterior}
               </button>
+              {/* BR-INV-FINAL-WAVE-D (item 24): this step-nav bar duplicated the pricing-section's
+                  "Continuar a vista previa" button (same label, same handler, both visible at once
+                  on step 9). Removed the duplicate here — the pricing/confirmations section above
+                  is the contextually correct place for that CTA. */}
               <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-1 sm:flex-row sm:justify-end">
-                {step === 9 && !isExistingDashboardListingMode ? (
-                  <button
-                    type="button"
-                    disabled={!confirmAll}
-                    onClick={openPreview}
-                    className="min-h-[48px] w-full touch-manipulation rounded-xl bg-gradient-to-r from-[#C9A85A] to-[#B8954A] px-5 py-3 text-sm font-bold text-[#1E1810] shadow-md disabled:cursor-not-allowed disabled:opacity-45 sm:min-h-0 sm:py-2.5"
-                  >
-                    {pricingCopy.continueToPreview}
-                  </button>
-                ) : null}
                 <button
                   type="button"
                   disabled={step >= total - 1}

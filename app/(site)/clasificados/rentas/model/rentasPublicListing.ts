@@ -11,6 +11,10 @@ export type RentasSellerType = "privado" | "negocio";
  */
 export type RentasPublicListing = {
   id: string;
+  /** Listing owner's auth user id (`listings.owner_id`) — the durable identity anchor for Rentas
+   * Negocio Community Trust resolution, never a disposable listing id. Safe to expose client-side
+   * (a bare UUID, no PII); already an established pattern for the equivalent BR field. */
+  ownerId?: string | null;
   /** Future-friendly slug for pretty URLs / SEO. */
   slug?: string;
   /** Human-readable Leonix reference (`public.listings.leonix_ad_id`), e.g. RENT-2026-000163. */

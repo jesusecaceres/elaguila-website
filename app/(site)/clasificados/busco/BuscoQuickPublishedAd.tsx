@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
-import type { CommunityGlobalAnalyticsCtx } from "@/app/lib/clasificados/comunidad/comunidadClasesBuscoGlobalAnalytics";
 
 import { BuscoQuickAdCanvas } from "@/app/(site)/publicar/busco/components/BuscoQuickAdCanvas";
 import { buscoViewModelFromPublished } from "@/app/(site)/publicar/busco/shared/buscoQuickAdViewModel";
@@ -21,9 +20,6 @@ export type BuscoPublishedListingLike = {
 
 export function BuscoQuickPublishedAd({ listing, lang }: { listing: BuscoPublishedListingLike; lang: Lang }) {
   const vm = useMemo(() => buscoViewModelFromPublished(listing, lang), [listing, lang]);
-  const analyticsCtx: CommunityGlobalAnalyticsCtx | undefined = listing.id
-    ? { listingUuid: listing.id, category: "busco", leonixAdId: vm.leonixAdId ?? undefined }
-    : undefined;
 
   return (
     <BuscoQuickAdCanvas
@@ -31,7 +27,6 @@ export function BuscoQuickPublishedAd({ listing, lang }: { listing: BuscoPublish
       lang={lang}
       shell="embedded"
       contactSectionId="busco-contact-actions"
-      analyticsCtx={analyticsCtx}
     />
   );
 }

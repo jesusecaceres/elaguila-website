@@ -14,6 +14,17 @@ import {
   clearLeonixReturningToEditSessionFlag,
   markPublishFlowOpeningPreview,
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
+import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
+import { PhoneInput } from "@/app/components/forms/PhoneInput";
+import CityAutocomplete from "@/app/components/CityAutocomplete";
+import { LanguagesInput } from "@/app/components/forms/LanguagesInput";
+import { useAddedConfirmation, AddedConfirmationBadge } from "@/app/components/forms/AddedConfirmation";
+import {
+  HoursEditor,
+  type HoursEditorDayRow,
+  type HoursEditorDaySchedule,
+  type HoursEditorSpecialHoursEntry,
+} from "@/app/components/forms/HoursEditor";
 import {
   BUSINESS_TYPE_PRESETS,
   chipLabel,
@@ -28,6 +39,7 @@ import type {
   DayKey,
   GalleryItem,
   ServiciosLang,
+  ServiciosSpecialHoursEntry,
 } from "../lib/clasificadosServiciosApplicationTypes";
 import {
   LANGUAGE_OPTION_CHIPS,
@@ -81,6 +93,7 @@ import { mergeStateForBusinessTypeChange } from "../lib/presetStateMerge";
 import {
   CUSTOM_CHIP_MAX_LENGTH,
   MAX_CUSTOM_SERVICES_OFFERED,
+  MAX_CUSTOM_QUICK_FACTS,
   MAX_QUICK_FACTS_SELECTION,
   MAX_REASONS_SELECTION,
   MAX_SERVICES_SELECTION,
@@ -88,13 +101,14 @@ import {
 } from "../lib/serviciosSelectionCaps";
 import { BUSINESS_HIGHLIGHT_PRESET_CHIPS } from "../lib/businessHighlightPresets";
 import { evaluateAddCustomBusinessHighlight } from "../lib/serviciosCustomBusinessHighlights";
-import { evaluateAddCustomServiceOffered } from "../lib/serviciosCustomServicesOffered";
+import { evaluateAddCustomServiceOffered, normalizeServiceOfferedDedupeKey } from "../lib/serviciosCustomServicesOffered";
+import { evaluateAddCustomQuickFact } from "../lib/serviciosCustomQuickFacts";
 import {
   BUSINESS_HIGHLIGHT_LABEL_MAX,
   MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION,
   MAX_CUSTOM_BUSINESS_HIGHLIGHTS,
 } from "../lib/serviciosHighlightCaps";
-import { digitsOnly, formatPhoneInputDisplay } from "../lib/serviciosPhoneUi";
+import { digitsOnly, formatPhoneInputDisplay, formatWhatsAppInputDisplay } from "../lib/serviciosPhoneUi";
 import { resolveServiciosBusinessHighlightVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosBusinessHighlightVisual";
 import { resolveServiciosServiceVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosServiceVisualCatalog";
 import {
@@ -104,7 +118,6 @@ import {
   normalizeHttpUrl,
 } from "../lib/socialAndUrlHelpers";
 import { normalizeStrictExternalVideoUrl } from "@/app/lib/media/externalVideoUrlValidation";
-import { ServiciosPublishModal } from "./ServiciosPublishModal";
 import {
   CUSTOM_PAYMENT_LABEL_MAX,
   MAX_CUSTOM_PAYMENT_METHODS,
@@ -116,13 +129,14 @@ import { ServiciosPaymentMethodBadge } from "@/app/servicios/components/Servicio
 import { evaluateAddCustomPaymentMethod } from "../lib/serviciosCustomPaymentMethods";
 import {
   CUSTOM_SERVICIOS_AMENITY_LABEL_MAX,
-  MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS,
+  MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS_PER_GROUP,
+  SERVICIOS_AMENITY_CUSTOM_GROUP_IDS,
   SERVICIOS_AMENITY_GROUPS,
   SERVICIOS_AMENITY_OPTIONS,
+  evaluateAddCustomAmenityOptionForGroup,
   sanitizeServiciosAmenityOptionIds,
 } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
 import { ServiciosAmenityBadge } from "@/app/servicios/components/ServiciosAmenityBadge";
-import { evaluateAddCustomAmenityOption } from "../lib/serviciosCustomAmenityOptions";
 import { evaluateAddCertificationLabel } from "@/app/servicios/lib/serviciosCredentialsCustom";
 import { isValidEmail } from "../lib/leonixContactCtaPriority";
 import {
@@ -251,10 +265,6 @@ export function ClasificadosServiciosApplication() {
   );
   const copy = getClasificadosServiciosCopy(lang);
   const labels = copy.labels as any;
-  const couponDecisionTitle = labels.couponDecisionTitle || (lang === "en" ? "Add featured coupons?" : "¿Quieres agregar cupones destacados?");
-  const couponDecisionBody = labels.couponDecisionBody || (lang === "en" ? "For +$99/month, show up to 4 featured coupons inside your service listing." : "Por +$99/mes puedes mostrar hasta 4 cupones destacados dentro de tu anuncio de servicios.");
-  const couponDecisionAdd = labels.couponDecisionAdd || (lang === "en" ? "Add coupons" : "Agregar cupones");
-  const couponDecisionSkip = labels.couponDecisionSkip || (lang === "en" ? "Continue without coupons" : "Continuar sin cupones");
 
   const [hydrated, setHydrated] = useState(false);
   const [previewGateMissing, setPreviewGateMissing] = useState<PublishReadinessMissingItem[] | null>(null);
@@ -262,6 +272,45 @@ export function ClasificadosServiciosApplication() {
   const [editHydration, setEditHydration] = useState<ServiciosEditHydrationState>({ status: editRequested ? "loading" : "idle" });
   const [editIdentity, setEditIdentity] = useState<ServiciosEditIdentity | null>(null);
   const [newFieldsMissing, setNewFieldsMissing] = useState<string[]>([]);
+  const [languageOtherPending, setLanguageOtherPending] = useState("");
+  const [serviceAreaPending, setServiceAreaPending] = useState("");
+
+  // Owner UX doctrine (INPUT -> ACCEPTED -> PERSISTED): one useAddedConfirmation() instance per
+  // distinct explicit Add flow. Groups/rows that repeat a fixed, bounded set (5 amenity groups,
+  // up to 4 coupon rows) each get their own fixed hook instance below (hooks can't be called
+  // inside .map()), looked up by id/index at render time.
+  const addedCustomService = useAddedConfirmation();
+  const addedCustomQuickFact = useAddedConfirmation();
+  const addedAmenityService = useAddedConfirmation();
+  const addedAmenityAvailability = useAddedConfirmation();
+  const addedAmenityCustomersServed = useAddedConfirmation();
+  const addedAmenityAccessibilityLanguages = useAddedConfirmation();
+  const addedAmenityDiscountsBenefits = useAddedConfirmation();
+  const addedAmenityConfirmationByGroup: Record<string, ReturnType<typeof useAddedConfirmation>> = {
+    service: addedAmenityService,
+    availability: addedAmenityAvailability,
+    customers_served: addedAmenityCustomersServed,
+    accessibility_languages: addedAmenityAccessibilityLanguages,
+    discounts_benefits: addedAmenityDiscountsBenefits,
+  };
+  const addedCustomLanguage = useAddedConfirmation();
+  const addedServiceArea = useAddedConfirmation();
+  const addedVideoUrl = useAddedConfirmation();
+  const addedGalleryImage = useAddedConfirmation();
+  const addedCustomBusinessHighlight = useAddedConfirmation();
+  const addedCustomPaymentMethod = useAddedConfirmation();
+  const addedCertification = useAddedConfirmation();
+  const addedCouponImageRow0 = useAddedConfirmation();
+  const addedCouponImageRow1 = useAddedConfirmation();
+  const addedCouponImageRow2 = useAddedConfirmation();
+  const addedCouponImageRow3 = useAddedConfirmation();
+  const addedCouponImageByIndex: ReturnType<typeof useAddedConfirmation>[] = [
+    addedCouponImageRow0,
+    addedCouponImageRow1,
+    addedCouponImageRow2,
+    addedCouponImageRow3,
+  ];
+  const addedCouponFlyerImage = useAddedConfirmation();
 
   const stepLabels = useMemo(() => getServiciosApplicationStepLabels(lang), [lang]);
   const stepShortLabels = useMemo(() => getServiciosApplicationStepShortLabels(lang), [lang]);
@@ -301,7 +350,6 @@ export function ClasificadosServiciosApplication() {
   const [galleryUrlDraft, setGalleryUrlDraft] = useState("");
   const [videoUrlDraft, setVideoUrlDraft] = useState("");
   const [galleryZoneActive, setGalleryZoneActive] = useState(false);
-  const [publishOpen, setPublishOpen] = useState(false);
   const [couponDetailOpen, setCouponDetailOpen] = useState(false);
   const [leonixRulesOpen, setLeonixRulesOpen] = useState(false);
   const [finalStepPublishBlocked, setFinalStepPublishBlocked] = useState<string | null>(null);
@@ -355,6 +403,9 @@ export function ClasificadosServiciosApplication() {
 
   const stateRef = useRef(state);
   stateRef.current = state;
+  // Tracks the exact state object last written to storage so the leave-guard can tell
+  // "nothing changed since the last successful save" apart from "form has content".
+  const lastPersistedStateRef = useRef<typeof state | null>(null);
 
   useEffect(() => {
     if (!mediaFlash) return;
@@ -486,7 +537,10 @@ export function ClasificadosServiciosApplication() {
 
   useEffect(() => {
     if (!hydrated) return;
-    const t = window.setTimeout(() => void saveClasificadosServiciosApplicationResolved(state), DEBOUNCE_MS);
+    const t = window.setTimeout(() => {
+      void saveClasificadosServiciosApplicationResolved(state);
+      lastPersistedStateRef.current = state;
+    }, DEBOUNCE_MS);
     return () => window.clearTimeout(t);
   }, [state, hydrated]);
 
@@ -558,7 +612,16 @@ export function ClasificadosServiciosApplication() {
     state.couponMoreOffers,
   ]);
 
-  /* Servicios draft is session-persisted; do not register native beforeunload warnings. */
+  useBusinessApplicationLeaveGuard({
+    isDirty:
+      hydrated &&
+      state.businessName.trim().length > 0 &&
+      lastPersistedStateRef.current !== state,
+    persist: () => {
+      void saveClasificadosServiciosApplicationResolved(stateRef.current);
+      lastPersistedStateRef.current = stateRef.current;
+    },
+  });
 
   // Golden-loop: dashboard listing edit → listing-bound preview (keeps identity/mode/focus).
   // New application → plain seller preview from local draft.
@@ -593,16 +656,6 @@ export function ClasificadosServiciosApplication() {
     }
     router.push(previewHref);
   }, [copy.storageWriteFailed, lang, previewHref, router, goToStep]);
-
-  const openPublishModalFromFinalStep = useCallback(() => {
-    const s = stateRef.current;
-    if (!s.confirmListingAccurate || !s.confirmPhotosRepresentBusiness || !s.confirmCommunityRules) {
-      setFinalStepPublishBlocked(copy.publishConfirmMissing);
-      return;
-    }
-    setFinalStepPublishBlocked(null);
-    setPublishOpen(true);
-  }, [copy.publishConfirmMissing]);
 
   const deleteApplicationDraft = useCallback(async () => {
     if (!window.confirm(copy.deleteConfirm)) return;
@@ -675,6 +728,78 @@ export function ClasificadosServiciosApplication() {
     });
   };
 
+  /** `languageOtherLines` stays a single newline-joined string in storage (unchanged field/shape);
+   * these only adapt it to the shared LanguagesInput's removable-chip list presentation. */
+  const customLanguageLines = useMemo(
+    () => state.languageOtherLines.split("\n").map((l) => l.trim()).filter(Boolean),
+    [state.languageOtherLines],
+  );
+
+  // Shared item 39 — the fixed language options' own labels (both locales), so typing "French"/
+  // "francés" as a custom entry is blocked the same way an already-added custom duplicate is,
+  // regardless of whether "Inglés/English" is currently selected.
+  const FIXED_LANGUAGE_LABELS = useMemo(
+    () => ["español", "spanish", "inglés", "ingles", "english"].map(normalizeServiceOfferedDedupeKey),
+    [],
+  );
+
+  const addCustomLanguage = useCallback(() => {
+    const trimmed = languageOtherPending.trim();
+    if (!trimmed) return;
+    const candidateKey = normalizeServiceOfferedDedupeKey(trimmed);
+    if (FIXED_LANGUAGE_LABELS.includes(candidateKey)) {
+      setLanguageOtherPending("");
+      return;
+    }
+    let added = false;
+    setState((s) => {
+      const existing = s.languageOtherLines.split("\n").map((l) => l.trim()).filter(Boolean);
+      if (existing.some((v) => normalizeServiceOfferedDedupeKey(v) === candidateKey)) return s;
+      added = true;
+      return { ...s, languageOtherLines: [...existing, trimmed].join("\n") };
+    });
+    setLanguageOtherPending("");
+    if (added) addedCustomLanguage.flash();
+  }, [languageOtherPending, FIXED_LANGUAGE_LABELS, addedCustomLanguage.flash]);
+
+  const removeCustomLanguageAt = useCallback((index: number) => {
+    setState((s) => {
+      const existing = s.languageOtherLines.split("\n").map((l) => l.trim()).filter(Boolean);
+      return { ...s, languageOtherLines: existing.filter((_, i) => i !== index).join("\n") };
+    });
+  }, []);
+
+  /** `serviceAreaNotes` stays the same free-text string field/shape in storage (no migration) —
+   * each area is one newline-delimited line, same pattern as `languageOtherLines`. Comma is
+   * NEVER treated as a delimiter here so an area label containing a comma (e.g. "San Jose, CA")
+   * stays one chip (S-073). A one-time legacy comma-joined draft is migrated to newline-joined
+   * form in `clasificadosServiciosApplicationNormalize.ts` on hydrate, not here. */
+  const serviceAreaChips = useMemo(
+    () => state.serviceAreaNotes.split("\n").map((s) => s.trim()).filter(Boolean),
+    [state.serviceAreaNotes],
+  );
+
+  const addServiceArea = useCallback(() => {
+    const trimmed = serviceAreaPending.trim();
+    if (!trimmed) return;
+    let added = false;
+    setState((s) => {
+      const existing = s.serviceAreaNotes.split("\n").map((v) => v.trim()).filter(Boolean);
+      if (existing.some((v) => v.toLowerCase() === trimmed.toLowerCase())) return s;
+      added = true;
+      return { ...s, serviceAreaNotes: [...existing, trimmed].join("\n") };
+    });
+    setServiceAreaPending("");
+    if (added) addedServiceArea.flash();
+  }, [serviceAreaPending, addedServiceArea.flash]);
+
+  const removeServiceAreaAt = useCallback((index: number) => {
+    setState((s) => {
+      const existing = s.serviceAreaNotes.split("\n").map((v) => v.trim()).filter(Boolean);
+      return { ...s, serviceAreaNotes: existing.filter((_, i) => i !== index).join("\n") };
+    });
+  }, []);
+
   const toggleChipList = (
     field:
       | "selectedServiceIds"
@@ -698,15 +823,11 @@ export function ClasificadosServiciosApplication() {
               ? MAX_QUICK_FACTS_SELECTION
               : MAX_BUSINESS_HIGHLIGHT_PRESET_SELECTION;
       const customSlot =
-        field === "selectedServiceIds" || field === "selectedBusinessHighlightIds"
-          ? 0
-          : field === "selectedReasonIds"
-            ? prev.customReasonIncluded && prev.customReasonLabel.trim()
-              ? 1
-              : 0
-            : prev.customQuickFactIncluded && prev.customQuickFactLabel.trim()
-              ? 1
-              : 0;
+        field === "selectedReasonIds"
+          ? prev.customReasonIncluded && prev.customReasonLabel.trim()
+            ? 1
+            : 0
+          : 0;
       if (cur.length + customSlot >= max) return prev;
       return { ...prev, [field]: toggleId(cur, id, true) };
     });
@@ -719,10 +840,8 @@ export function ClasificadosServiciosApplication() {
     [state.customReasonIncluded, state.customReasonLabel, state.selectedReasonIds],
   );
   const quickFactsSelectionCount = useMemo(
-    () =>
-      state.selectedQuickFactIds.length +
-      (state.customQuickFactIncluded && state.customQuickFactLabel.trim() ? 1 : 0),
-    [state.customQuickFactIncluded, state.customQuickFactLabel, state.selectedQuickFactIds],
+    () => state.selectedQuickFactIds.length,
+    [state.selectedQuickFactIds],
   );
   const businessHighlightSelectionCount = useMemo(
     () => state.selectedBusinessHighlightIds.length,
@@ -785,6 +904,7 @@ export function ClasificadosServiciosApplication() {
       return;
     }
     const id = newGalleryId();
+    let added = false;
     setState((prev) => {
       if (prev.gallery.length >= GALLERY_MAX) {
         queueMicrotask(() =>
@@ -792,12 +912,14 @@ export function ClasificadosServiciosApplication() {
         );
         return prev;
       }
+      added = true;
       const gallery = [...prev.gallery, { id, url: normalizeHttpUrl(raw), source: "url" as const }];
       const gIds = new Set(gallery.map((g) => g.id));
       const fg = prev.featuredGalleryIds.filter((x) => gIds.has(x));
       if (fg.length < 4 && !fg.includes(id)) fg.push(id);
       return { ...prev, gallery, featuredGalleryIds: fg.slice(0, 4) };
     });
+    if (added) addedGalleryImage.flash();
     setGalleryUrlDraft("");
   };
 
@@ -825,9 +947,12 @@ export function ClasificadosServiciosApplication() {
       return;
     }
     const normalizedUrl = normalizeHttpUrl(strictNormalized);
+    let added = false;
     setState((prev) => {
       if (prev.videos.length >= SERVICIOS_MAX_VIDEO_URLS) {
-        queueMicrotask(() => setMediaFlash(copy.labels.videosLimitHint));
+        queueMicrotask(() =>
+          setMediaFlash(copy.labels.videosLimitHint.replace("{max}", String(SERVICIOS_MAX_VIDEO_URLS))),
+        );
         return prev;
       }
       const duplicate = prev.videos.some(
@@ -837,6 +962,7 @@ export function ClasificadosServiciosApplication() {
         queueMicrotask(() => setMediaFlash(copy.labels.videoDuplicateUrl));
         return prev;
       }
+      added = true;
       const row = { id: newVideoId(), url: normalizedUrl, source: "url" as const };
       const next = [...prev.videos, row].slice(0, SERVICIOS_MAX_VIDEO_URLS);
       if (prev.videos.length === 0) {
@@ -845,6 +971,7 @@ export function ClasificadosServiciosApplication() {
       const primaryId = prev.videos.find((v) => v.isPrimary === true)?.id ?? prev.videos[0]!.id;
       return { ...prev, videos: next.map((v) => ({ ...v, isPrimary: v.id === primaryId })) };
     });
+    if (added) addedVideoUrl.flash();
     setVideoUrlDraft("");
   };
 
@@ -873,10 +1000,53 @@ export function ClasificadosServiciosApplication() {
     }));
   };
 
+  /** Adapter only — `state.hours` stays the same DayHoursRow[] shape/keys ("open"/"close" strings,
+   * never undefined); the shared HoursEditor's optional openTime/closeTime schedule shape is
+   * translated at this boundary so no draft field is renamed. */
+  const hoursEditorDays: HoursEditorDayRow[] = state.hours.map((row) => ({
+    key: row.day,
+    label: WEEK_DAY_LABELS[row.day][lang],
+    schedule: { closed: row.closed, openTime: row.open || undefined, closeTime: row.close || undefined },
+  }));
+
+  const onHoursEditorDayChange = (day: string, next: HoursEditorDaySchedule) => {
+    updateHour(day as DayKey, { closed: next.closed, open: next.openTime ?? "", close: next.closeTime ?? "" });
+  };
+
+  /** Multi-entry special hours (contract §3.4 items 46-48) — Add/change/remove for the shared
+   * HoursEditor's `specialHoursList` prop. Each entry gets its own id so it can be independently
+   * edited/removed without disturbing the others. */
+  const addSpecialHoursEntry = useCallback(() => {
+    setState((s) => ({
+      ...s,
+      specialHoursEntries: [
+        ...s.specialHoursEntries,
+        { id: `special_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, label: "", note: "" },
+      ],
+    }));
+  }, []);
+
+  const changeSpecialHoursEntry = useCallback(
+    (id: string, patch: Partial<Pick<ServiciosSpecialHoursEntry, "label" | "note">>) => {
+      setState((s) => ({
+        ...s,
+        specialHoursEntries: s.specialHoursEntries.map((e) => (e.id === id ? { ...e, ...patch } : e)),
+      }));
+    },
+    [],
+  );
+
+  const removeSpecialHoursEntry = useCallback((id: string) => {
+    setState((s) => ({
+      ...s,
+      specialHoursEntries: s.specialHoursEntries.filter((e) => e.id !== id),
+    }));
+  }, []);
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#F6F0E2] text-[#3D2C12]">
       {isExistingDashboardListingMode && editHydration.status === "error" ? (
-        <main className="mx-auto max-w-lg px-4 py-16">
+        <main className="mx-auto max-w-lg px-4 pb-16 pt-24 sm:pt-28">
           <h1 className="text-xl font-bold text-[#3D2C12]">
             {lang === "en" ? "Edit mode could not load" : "No se pudo cargar el modo edición"}
           </h1>
@@ -889,14 +1059,14 @@ export function ClasificadosServiciosApplication() {
           </Link>
         </main>
       ) : isExistingDashboardListingMode && (editHydration.status === "loading" || !hydrated) ? (
-        <main className="mx-auto max-w-lg px-4 py-16">
+        <main className="mx-auto max-w-lg px-4 pb-16 pt-24 sm:pt-28">
           <p className="text-sm font-semibold text-[#5D4A25]" role="status">
             {lang === "en" ? "Loading saved listing for editing…" : "Cargando anuncio publicado…"}
           </p>
         </main>
       ) : (
       <>
-      <main className="mx-auto max-w-6xl px-4 pb-10 pt-6 sm:pb-12 sm:pt-8">
+      <main className="mx-auto max-w-6xl px-4 pb-10 pt-24 sm:pb-12 sm:pt-28">
         <div className="mb-6 rounded-2xl border border-[#D8C79A]/60 bg-[#FFFDF7]/95 p-4 shadow-sm sm:p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-[#8a7a62]">Leonix Clasificados</p>
           <h1 className="mt-2 text-xl font-extrabold tracking-tight text-[#3D2C12] sm:text-2xl">{copy.pageTitle}</h1>
@@ -979,7 +1149,7 @@ export function ClasificadosServiciosApplication() {
                     </p>
                     {state.couponsAddOn && (
                       <p className="mt-1 text-xs text-[#5D4A25]/90">
-                        + {lang === "en" ? "Coupons — $99/mes" : "Cupones — $99/mes"}
+                        + {lang === "en" ? "Coupons — included" : "Cupones — incluidos"}
                       </p>
                     )}
                   </div>
@@ -1115,8 +1285,8 @@ export function ClasificadosServiciosApplication() {
           </p>
           <p className="mt-2 text-xs leading-relaxed text-[#6b5c42]">
             {lang === "es"
-              ? "¿No encuentras tu categoría? Usa “Otro servicio” o “No veo mi categoría” y detalla en servicios y descripción."
-              : "Don’t see your trade? Pick “Other service” or “I don’t see my category,” then describe your offer in Services and About."}
+              ? "¿No encuentras tu categoría? Elige “Otro servicio” y detalla en servicios y descripción."
+              : "Don’t see your trade? Pick “Other service,” then describe your offer in Services and About."}
           </p>
           <label className={`mt-4 block ${labelClass}`}>
             {copy.labels.businessType} <span className="text-red-600">*</span>
@@ -1128,11 +1298,20 @@ export function ClasificadosServiciosApplication() {
             required
           >
             <option value="">{lang === "es" ? "Selecciona…" : "Select…"}</option>
-            {BUSINESS_TYPE_PRESETS.filter(p => p.id !== "servicio_no_listado").map((p) => (
-              <option key={p.id} value={p.id}>
-                {lang === "en" ? p.labelEn : p.labelEs}
-              </option>
-            ))}
+            {BUSINESS_TYPE_PRESETS
+              .filter((p) => p.id !== "servicio_no_listado")
+              // Sort only the rendered/mapped list by the locale-appropriate display label —
+              // BUSINESS_TYPE_PRESETS itself keeps its declaration order, and stored `value`/id
+              // is untouched, so sorting can never affect stored canonical IDs (S-011).
+              .slice()
+              .sort((a, b) =>
+                (lang === "en" ? a.labelEn : a.labelEs).localeCompare(lang === "en" ? b.labelEn : b.labelEs, lang),
+              )
+              .map((p) => (
+                <option key={p.id} value={p.id}>
+                  {lang === "en" ? p.labelEn : p.labelEs}
+                </option>
+              ))}
           </select>
 
           {state.businessTypeId === "servicio_otro_generico" && (
@@ -1149,15 +1328,6 @@ export function ClasificadosServiciosApplication() {
             </div>
           )}
 
-          <div className="mt-4 text-sm">
-            <button
-              type="button"
-              onClick={() => console.log("No veo mi categoría clicked - placeholder for help modal")}
-              className="text-[#3B66AD] underline hover:text-[#2f5699]"
-            >
-              {lang === "es" ? "¿No ves tu categoría?" : "Don't see your category?"}
-            </button>
-          </div>
         </section>
           </>
         ) : null}
@@ -1191,12 +1361,14 @@ export function ClasificadosServiciosApplication() {
               {copy.labels.cityHelpDetail.trim() ? (
                 <p className="mt-0.5 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.cityHelpDetail}</p>
               ) : null}
-              <input
+              <CityAutocomplete
                 className={inputClass}
                 value={state.city}
                 placeholder={copy.labels.cityPlaceholder}
-                onChange={(e) => setState((s) => ({ ...s, city: e.target.value }))}
-                autoComplete="address-level2"
+                onChange={(next) => setState((s) => ({ ...s, city: next }))}
+                lang={lang}
+                variant="light"
+                freeText
               />
             </div>
             <div>
@@ -1237,12 +1409,51 @@ export function ClasificadosServiciosApplication() {
             <div className="sm:col-span-2">
               <label className={labelClass}>{copy.labels.serviceAreas}</label>
               <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.serviceAreasHelp}</p>
-              <textarea
-                className={inputClass}
-                rows={2}
-                value={state.serviceAreaNotes}
-                onChange={(e) => setState((s) => ({ ...s, serviceAreaNotes: e.target.value }))}
-              />
+              {serviceAreaChips.length ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {serviceAreaChips.map((area, index) => (
+                    <span
+                      key={`${area}-${index}`}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[#D8C79A] bg-white px-3 py-1 text-sm font-medium text-[#3D2C12]"
+                    >
+                      {area}
+                      <button
+                        type="button"
+                        className="ml-0.5 rounded-full px-1 text-[#6b5c42] hover:text-[#3D2C12]"
+                        aria-label={lang === "es" ? `Quitar ${area}` : `Remove ${area}`}
+                        onClick={() => removeServiceAreaAt(index)}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <input
+                  className={`${inputClass} flex-1 min-w-[10rem]`}
+                  placeholder={copy.labels.serviceAreasHelp}
+                  value={serviceAreaPending}
+                  onChange={(e) => setServiceAreaPending(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addServiceArea();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="shrink-0 rounded-xl border border-[#D8C79A] bg-white px-4 py-2 text-sm font-semibold text-[#3D2C12] hover:bg-[#FFFCF2]"
+                  onClick={addServiceArea}
+                >
+                  {lang === "es" ? "Añadir" : "Add"}
+                </button>
+                <AddedConfirmationBadge
+                  visible={addedServiceArea.visible}
+                  label={lang === "en" ? "Added" : "Añadido"}
+                />
+              </div>
             </div>
 
             <div className="sm:col-span-2 mt-1 border-t border-[#D8C79A]/35 pt-6">
@@ -1331,14 +1542,12 @@ export function ClasificadosServiciosApplication() {
               <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2">
                 <div>
                   <label className={labelClass}>{copy.labels.phone}</label>
-                  <input
+                  <PhoneInput
                     className={inputClass}
-                    type="tel"
-                    inputMode="numeric"
                     autoComplete="tel"
                     placeholder={lang === "es" ? "(713) 555-0100" : "(713) 555-0100"}
-                    value={formatPhoneInputDisplay(state.phone)}
-                    onChange={(e) => setState((s) => ({ ...s, phone: formatPhoneInputDisplay(e.target.value) }))}
+                    value={state.phone}
+                    onChange={(next) => setState((s) => ({ ...s, phone: next }))}
                   />
                 </div>
                 <div>
@@ -1359,10 +1568,10 @@ export function ClasificadosServiciosApplication() {
                   <input
                     className={`${inputClass} mt-2`}
                     type="tel"
-                    inputMode="numeric"
-                    placeholder={lang === "es" ? "(713) 555-0100" : "(713) 555-0100"}
-                    value={formatPhoneInputDisplay(state.whatsapp)}
-                    onChange={(e) => setState((s) => ({ ...s, whatsapp: formatPhoneInputDisplay(e.target.value) }))}
+                    inputMode="tel"
+                    placeholder={lang === "es" ? "+1 713 555 0100" : "+1 713 555 0100"}
+                    value={formatWhatsAppInputDisplay(state.whatsapp)}
+                    onChange={(e) => setState((s) => ({ ...s, whatsapp: formatWhatsAppInputDisplay(e.target.value) }))}
                   />
                 </div>
                 <div>
@@ -1563,31 +1772,30 @@ export function ClasificadosServiciosApplication() {
 
             <div className="sm:col-span-2 mt-2 border-t border-[#D8C79A]/35 pt-6">
               <p className={labelClass}>{copy.labels.languages}</p>
-              <div className="-mx-1 mt-2 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible sm:pb-0">
-                {LANGUAGE_OPTION_CHIPS.map((c) => (
-                  <Chip
-                    key={c.id}
-                    selected={state.languageIds.includes(c.id)}
-                    onClick={() => toggleLangChip(c.id)}
-                  >
-                    {lang === "en" ? c.en : c.es}
-                  </Chip>
-                ))}
-              </div>
-              {state.languageIds.includes("lang_otro") ? (
-                <label className={`mt-3 block ${labelClass}`}>
-                  {copy.labels.languageOtherLabel}
-                  <p className="mt-1 text-xs font-normal text-[#6b5c42]">{copy.labels.languageOtherHelp}</p>
-                  <textarea
-                    className={`${inputClass} min-h-[88px]`}
-                    value={state.languageOtherLines}
-                    placeholder={copy.labels.languageOtherPlaceholder}
-                    onChange={(e) => setState((s) => ({ ...s, languageOtherLines: e.target.value }))}
-                    autoComplete="off"
-                    spellCheck={false}
-                  />
-                </label>
-              ) : null}
+              <LanguagesInput
+                className="mt-2"
+                options={LANGUAGE_OPTION_CHIPS.map((c) => ({ key: c.id, label: lang === "en" ? c.en : c.es }))}
+                selectedKeys={state.languageIds}
+                onToggle={toggleLangChip}
+                otherKey="lang_otro"
+                customValues={customLanguageLines}
+                customInputValue={languageOtherPending}
+                onCustomInputChange={setLanguageOtherPending}
+                onAddCustom={addCustomLanguage}
+                onRemoveCustom={removeCustomLanguageAt}
+                labels={{
+                  otherLabel: copy.labels.languageOtherLabel,
+                  otherHelper: copy.labels.languageOtherHelp,
+                  otherPlaceholder: copy.labels.languageOtherPlaceholder,
+                  add: lang === "en" ? "Add" : "Añadir",
+                  removeAria: (value) => (lang === "en" ? `Remove ${value}` : `Quitar ${value}`),
+                }}
+              />
+              <AddedConfirmationBadge
+                visible={addedCustomLanguage.visible}
+                label={lang === "en" ? "Added" : "Añadido"}
+                className="mt-2"
+              />
             </div>
           </div>
         </section>
@@ -1754,6 +1962,10 @@ export function ClasificadosServiciosApplication() {
               >
                 {copy.labels.addUrl}
               </button>
+              <AddedConfirmationBadge
+                visible={addedGalleryImage.visible}
+                label={lang === "en" ? "Image accepted" : "Imagen aceptada"}
+              />
             </div>
             {state.gallery.length >= GALLERY_MAX ? (
               <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.galleryLimitHint.replace("{max}", String(GALLERY_MAX))}</p>
@@ -1803,7 +2015,9 @@ export function ClasificadosServiciosApplication() {
             <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.videosHint}</p>
             <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.videosHelper}</p>
             <p className="mt-2 text-xs font-semibold tabular-nums text-[#5D4A25]">
-              {copy.labels.videosCountLine.replace("{n}", String(state.videos.length))}
+              {copy.labels.videosCountLine
+                .replace("{n}", String(state.videos.length))
+                .replace("{max}", String(SERVICIOS_MAX_VIDEO_URLS))}
             </p>
             {state.videos.length > 0 ? (
               <ul className="mt-4 space-y-2">
@@ -1875,10 +2089,16 @@ export function ClasificadosServiciosApplication() {
                   >
                     {copy.labels.addVideoUrl}
                   </button>
+                  <AddedConfirmationBadge
+                    visible={addedVideoUrl.visible}
+                    label={lang === "en" ? "Video added" : "Video añadido"}
+                  />
                 </div>
               </div>
             ) : (
-              <p className="mt-4 text-xs font-medium text-[#8a7a62]">{copy.labels.videosLimitHint}</p>
+              <p className="mt-4 text-xs font-medium text-[#8a7a62]">
+                {copy.labels.videosLimitHint.replace("{max}", String(SERVICIOS_MAX_VIDEO_URLS))}
+              </p>
             )}
           </div>
         </section>
@@ -1981,19 +2201,26 @@ export function ClasificadosServiciosApplication() {
                   }
                   className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                   onClick={() => {
+                    let added = false;
                     setState((prev) => {
                       const r = evaluateAddCustomServiceOffered(prev, lang, prev.customServiceLabel);
                       if (!r.ok) return prev;
+                      added = true;
                       return enforceServiciosSelectionCaps({
                         ...prev,
                         customServicesOffered: [...prev.customServicesOffered, r.label],
                         customServiceLabel: "",
                       });
                     });
+                    if (added) addedCustomService.flash();
                   }}
                 >
                   {copy.labels.addCustomChip}
                 </button>
+                <AddedConfirmationBadge
+                  visible={addedCustomService.visible}
+                  label={lang === "en" ? "Added" : "Añadido"}
+                />
               </div>
               <p className="mt-2 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.customServicesHelperHint}</p>
               {state.customServicesOffered.length >= MAX_CUSTOM_SERVICES_OFFERED ? (
@@ -2040,7 +2267,7 @@ export function ClasificadosServiciosApplication() {
             <section className={sectionCard}>
               <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.reasons}</h2>
               <p className="mt-1 text-sm text-[#5D4A25]/85">{copy.labels.reasonsHint}</p>
-              <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible sm:pb-0">
+              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {preset.reasonsToChoose.map((c: ChipDef) => {
                   const selected = state.selectedReasonIds.includes(c.id);
                   const disabled = !selected && reasonsSelectionCount >= MAX_REASONS_SELECTION;
@@ -2206,19 +2433,26 @@ export function ClasificadosServiciosApplication() {
                   }
                   className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                   onClick={() => {
+                    let added = false;
                     setState((prev) => {
                       const r = evaluateAddCustomBusinessHighlight(prev, lang, prev.customBusinessHighlightLabel);
                       if (!r.ok) return prev;
+                      added = true;
                       return enforceServiciosSelectionCaps({
                         ...prev,
                         customBusinessHighlights: [...prev.customBusinessHighlights, r.label],
                         customBusinessHighlightLabel: "",
                       });
                     });
+                    if (added) addedCustomBusinessHighlight.flash();
                   }}
                 >
                   {copy.labels.addCustomChip}
                 </button>
+                <AddedConfirmationBadge
+                  visible={addedCustomBusinessHighlight.visible}
+                  label={lang === "en" ? "Added" : "Añadido"}
+                />
               </div>
               {state.customBusinessHighlights.length >= MAX_CUSTOM_BUSINESS_HIGHLIGHTS ? (
                 <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.customHighlightsMax}</p>
@@ -2283,22 +2517,6 @@ export function ClasificadosServiciosApplication() {
                     </Chip>
                   );
                 })}
-                {state.customQuickFactIncluded && state.customQuickFactLabel.trim() ? (
-                  <Chip
-                    selected
-                    truncateLabel
-                    labelTitle={state.customQuickFactLabel.trim()}
-                    onClick={() =>
-                      setState((s) => ({
-                        ...s,
-                        customQuickFactIncluded: false,
-                        customQuickFactLabel: "",
-                      }))
-                    }
-                  >
-                    {state.customQuickFactLabel.trim()}
-                  </Chip>
-                ) : null}
               </div>
               {quickFactsSelectionCount >= MAX_QUICK_FACTS_SELECTION ? (
                 <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.selectionMaxQuickFacts}</p>
@@ -2310,65 +2528,71 @@ export function ClasificadosServiciosApplication() {
                   className={inputClass}
                   placeholder={copy.labels.customChipPlaceholder}
                   maxLength={CUSTOM_CHIP_MAX_LENGTH}
-                  disabled={
-                    !state.customQuickFactIncluded &&
-                    state.selectedQuickFactIds.length >= MAX_QUICK_FACTS_SELECTION
-                  }
                   value={state.customQuickFactLabel}
                   onChange={(e) => {
                     const v = e.target.value.slice(0, CUSTOM_CHIP_MAX_LENGTH);
-                    setState((s) => ({
-                      ...s,
-                      customQuickFactLabel: v,
-                      customQuickFactIncluded: v.trim().length > 0 ? s.customQuickFactIncluded : false,
-                    }));
+                    setState((s) => ({ ...s, customQuickFactLabel: v }));
                   }}
                 />
-                {state.customQuickFactIncluded ? (
-                  <button
-                    type="button"
-                    className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-red-700 hover:bg-neutral-50 sm:w-auto"
-                    onClick={() =>
-                      setState((s) => ({
-                        ...s,
-                        customQuickFactIncluded: false,
+                <button
+                  type="button"
+                  disabled={
+                    !state.customQuickFactLabel.trim() ||
+                    state.customQuickFacts.length >= MAX_CUSTOM_QUICK_FACTS
+                  }
+                  className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                  onClick={() => {
+                    let added = false;
+                    setState((prev) => {
+                      const r = evaluateAddCustomQuickFact(prev, lang, prev.customQuickFactLabel);
+                      if (!r.ok) return prev;
+                      added = true;
+                      return enforceServiciosSelectionCaps({
+                        ...prev,
+                        customQuickFacts: [...prev.customQuickFacts, r.label],
                         customQuickFactLabel: "",
-                      }))
-                    }
-                  >
-                    {copy.labels.remove}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={
-                      !state.customQuickFactLabel.trim() ||
-                      state.selectedQuickFactIds.length +
-                        (state.customQuickFactIncluded ? 1 : 0) >=
-                        MAX_QUICK_FACTS_SELECTION
-                    }
-                    className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-                    onClick={() => {
-                      const t = state.customQuickFactLabel.trim();
-                      if (!t) return;
-                      if (
-                        state.selectedQuickFactIds.length +
-                          (state.customQuickFactIncluded ? 1 : 0) >=
-                        MAX_QUICK_FACTS_SELECTION
-                      ) {
-                        return;
-                      }
-                      setState((s) => ({
-                        ...s,
-                        customQuickFactIncluded: true,
-                        customQuickFactLabel: t.slice(0, CUSTOM_CHIP_MAX_LENGTH),
-                      }));
-                    }}
-                  >
-                    {copy.labels.addCustomChip}
-                  </button>
-                )}
+                      });
+                    });
+                    if (added) addedCustomQuickFact.flash();
+                  }}
+                >
+                  {copy.labels.addCustomChip}
+                </button>
+                <AddedConfirmationBadge
+                  visible={addedCustomQuickFact.visible}
+                  label={lang === "en" ? "Added" : "Añadido"}
+                />
               </div>
+              {state.customQuickFacts.length >= MAX_CUSTOM_QUICK_FACTS ? (
+                <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.customQuickFactsMax}</p>
+              ) : null}
+              {state.customQuickFacts.length > 0 ? (
+                <div className="mt-5">
+                  <p className="text-sm font-semibold text-[#3D2C12]">{copy.labels.addedQuickFactsSection}</p>
+                  <div className="-mx-1 mt-2 flex flex-wrap gap-2 px-1">
+                    {state.customQuickFacts.map((label, i) => (
+                      <button
+                        key={`cqf-${i}-${label}`}
+                        type="button"
+                        title={label}
+                        aria-label={`${copy.labels.remove}: ${label}`}
+                        onClick={() =>
+                          setState((prev) =>
+                            enforceServiciosSelectionCaps({
+                              ...prev,
+                              customQuickFacts: prev.customQuickFacts.filter((_, j) => j !== i),
+                            }),
+                          )
+                        }
+                        className="inline-flex max-w-full min-w-0 min-h-[40px] touch-manipulation items-center gap-1.5 rounded-full border border-[#3B66AD] bg-[#3B66AD]/10 px-3 py-2 text-left text-sm font-medium text-[#1e3a5f] ring-1 ring-[#3B66AD]/20 transition active:scale-[0.99] hover:bg-[#3B66AD]/15"
+                      >
+                        <span className="min-w-0 max-w-[14rem] truncate sm:max-w-[18rem]">{label}</span>
+                        <FiX className="h-3.5 w-3.5 shrink-0 text-[#1e3a5f]/70" aria-hidden />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </section>
           </>
         ) : (
@@ -2438,19 +2662,26 @@ export function ClasificadosServiciosApplication() {
               }
               className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               onClick={() => {
+                let added = false;
                 setState((prev) => {
                   const r = evaluateAddCustomPaymentMethod(prev, prev.customPaymentMethodLabel);
                   if (!r.ok) return prev;
+                  added = true;
                   return enforceServiciosSelectionCaps({
                     ...prev,
                     customPaymentMethods: [...prev.customPaymentMethods, r.label],
                     customPaymentMethodLabel: "",
                   });
                 });
+                if (added) addedCustomPaymentMethod.flash();
               }}
             >
               {copy.labels.paymentsAdd}
             </button>
+            <AddedConfirmationBadge
+              visible={addedCustomPaymentMethod.visible}
+              label={lang === "en" ? "Added" : "Añadido"}
+            />
           </div>
           {state.customPaymentMethods.length >= MAX_CUSTOM_PAYMENT_METHODS ? (
             <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.paymentsCustomMax}</p>
@@ -2490,9 +2721,12 @@ export function ClasificadosServiciosApplication() {
           </h2>
           <p className="mt-1 text-sm text-[#5D4A25]/85">{copy.labels.amenitiesSectionHint}</p>
 
-          <div className="mt-5 space-y-5">
+          <div className="mt-5 space-y-6">
             {SERVICIOS_AMENITY_GROUPS.filter((g) => g.id !== "other").map((group) => {
               const options = SERVICIOS_AMENITY_OPTIONS.filter((o) => o.groupId === group.id);
+              const groupCustoms = state.customAmenityOptionsByGroup?.[group.id] ?? [];
+              const pendingGroupValue = state.pendingCustomAmenityOptionByGroup?.[group.id] ?? "";
+              const groupConfirmation = addedAmenityConfirmationByGroup[group.id];
               if (options.length === 0) return null;
               return (
                 <div key={group.id}>
@@ -2521,79 +2755,99 @@ export function ClasificadosServiciosApplication() {
                       );
                     })}
                   </div>
+
+                  <div className="mt-3 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
+                    <input
+                      className={inputClass}
+                      placeholder={copy.labels.amenitiesPlaceholder}
+                      maxLength={CUSTOM_SERVICIOS_AMENITY_LABEL_MAX}
+                      value={pendingGroupValue}
+                      onChange={(e) => {
+                        const v = e.target.value.slice(0, CUSTOM_SERVICIOS_AMENITY_LABEL_MAX);
+                        setState((s) => ({
+                          ...s,
+                          pendingCustomAmenityOptionByGroup: {
+                            ...s.pendingCustomAmenityOptionByGroup,
+                            [group.id]: v,
+                          },
+                        }));
+                      }}
+                    />
+                    <button
+                      type="button"
+                      disabled={
+                        !pendingGroupValue.trim() ||
+                        groupCustoms.length >= MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS_PER_GROUP
+                      }
+                      className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                      onClick={() => {
+                        let added = false;
+                        setState((prev) => {
+                          const bucket = prev.customAmenityOptionsByGroup?.[group.id] ?? [];
+                          const pending = prev.pendingCustomAmenityOptionByGroup?.[group.id] ?? "";
+                          const r = evaluateAddCustomAmenityOptionForGroup(bucket, pending);
+                          if (!r.ok) return prev;
+                          added = true;
+                          return enforceServiciosSelectionCaps({
+                            ...prev,
+                            customAmenityOptionsByGroup: {
+                              ...prev.customAmenityOptionsByGroup,
+                              [group.id]: [...bucket, r.label],
+                            },
+                            pendingCustomAmenityOptionByGroup: {
+                              ...prev.pendingCustomAmenityOptionByGroup,
+                              [group.id]: "",
+                            },
+                          });
+                        });
+                        if (added) groupConfirmation?.flash();
+                      }}
+                    >
+                      {copy.labels.amenitiesAdd}
+                    </button>
+                    <AddedConfirmationBadge
+                      visible={groupConfirmation?.visible ?? false}
+                      label={lang === "en" ? "Added" : "Añadido"}
+                    />
+                  </div>
+
+                  {groupCustoms.length >= MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS_PER_GROUP ? (
+                    <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.amenitiesCustomMax}</p>
+                  ) : null}
+
+                  {groupCustoms.length > 0 ? (
+                    <div className="-mx-1 mt-2 flex flex-wrap gap-2 px-1">
+                      {groupCustoms.map((label, i) => (
+                        <button
+                          key={`amenity-${group.id}-${i}-${label}`}
+                          type="button"
+                          title={label}
+                          aria-label={`${copy.labels.remove}: ${label}`}
+                          onClick={() =>
+                            setState((prev) =>
+                              enforceServiciosSelectionCaps({
+                                ...prev,
+                                customAmenityOptionsByGroup: {
+                                  ...prev.customAmenityOptionsByGroup,
+                                  [group.id]: (prev.customAmenityOptionsByGroup?.[group.id] ?? []).filter(
+                                    (_, j) => j !== i,
+                                  ),
+                                },
+                              }),
+                            )
+                          }
+                          className="inline-flex max-w-full min-w-0 min-h-[40px] touch-manipulation items-center gap-1.5 rounded-full border border-[#3B66AD] bg-[#3B66AD]/10 px-3 py-2 text-left text-sm font-medium text-[#1e3a5f] ring-1 ring-[#3B66AD]/20"
+                        >
+                          <ServiciosAmenityBadge lang={lang} customLabel={label} compact />
+                          <FiX className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               );
             })}
           </div>
-
-          <label className={`mt-6 block ${labelClass}`}>{copy.labels.amenitiesOtherLabel}</label>
-          <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
-            <input
-              className={inputClass}
-              placeholder={copy.labels.amenitiesPlaceholder}
-              maxLength={CUSTOM_SERVICIOS_AMENITY_LABEL_MAX}
-              value={state.pendingCustomAmenityOption}
-              onChange={(e) =>
-                setState((s) => ({
-                  ...s,
-                  pendingCustomAmenityOption: e.target.value.slice(0, CUSTOM_SERVICIOS_AMENITY_LABEL_MAX),
-                }))
-              }
-            />
-            <button
-              type="button"
-              disabled={
-                !state.pendingCustomAmenityOption.trim() ||
-                state.customAmenityOptions.length >= MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS
-              }
-              className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-              onClick={() => {
-                setState((prev) => {
-                  const r = evaluateAddCustomAmenityOption(prev, prev.pendingCustomAmenityOption);
-                  if (!r.ok) return prev;
-                  return enforceServiciosSelectionCaps({
-                    ...prev,
-                    customAmenityOptions: [...prev.customAmenityOptions, r.label],
-                    pendingCustomAmenityOption: "",
-                  });
-                });
-              }}
-            >
-              {copy.labels.amenitiesAdd}
-            </button>
-          </div>
-
-          {state.customAmenityOptions.length >= MAX_CUSTOM_SERVICIOS_AMENITY_OPTIONS ? (
-            <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.amenitiesCustomMax}</p>
-          ) : null}
-
-          {state.customAmenityOptions.length > 0 ? (
-            <div className="mt-5">
-              <p className="text-sm font-semibold text-[#3D2C12]">{copy.labels.amenitiesAddedList}</p>
-              <div className="-mx-1 mt-2 flex flex-wrap gap-2 px-1">
-                {state.customAmenityOptions.map((label, i) => (
-                  <button
-                    key={`amenity-${i}-${label}`}
-                    type="button"
-                    title={label}
-                    aria-label={`${copy.labels.remove}: ${label}`}
-                    onClick={() =>
-                      setState((prev) =>
-                        enforceServiciosSelectionCaps({
-                          ...prev,
-                          customAmenityOptions: prev.customAmenityOptions.filter((_, j) => j !== i),
-                        }),
-                      )
-                    }
-                    className="inline-flex max-w-full min-w-0 min-h-[40px] touch-manipulation items-center gap-1.5 rounded-full border border-[#3B66AD] bg-[#3B66AD]/10 px-3 py-2 text-left text-sm font-medium text-[#1e3a5f] ring-1 ring-[#3B66AD]/20"
-                  >
-                    <ServiciosAmenityBadge lang={lang} customLabel={label} compact />
-                    <FiX className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
         </section>
 
         <section className={sectionCard} aria-labelledby="sec-credentials">
@@ -2734,22 +2988,29 @@ export function ClasificadosServiciosApplication() {
               }
               className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               onClick={() => {
+                let added = false;
                 setState((prev) => {
                   const r = evaluateAddCertificationLabel({
                     certifications: prev.certifications,
                     raw: prev.pendingCertification,
                   });
                   if (!r.ok) return prev;
+                  added = true;
                   return enforceServiciosSelectionCaps({
                     ...prev,
                     certifications: [...prev.certifications, r.label],
                     pendingCertification: "",
                   });
                 });
+                if (added) addedCertification.flash();
               }}
             >
               {copy.labels.certificationsAdd}
             </button>
+            <AddedConfirmationBadge
+              visible={addedCertification.visible}
+              label={lang === "en" ? "Added" : "Añadido"}
+            />
           </div>
           {state.certifications.length >= MAX_SERVICIOS_CERTIFICATIONS ? (
             <p className="mt-2 text-xs text-[#8a7a62]">{copy.labels.certificationsCustomMax}</p>
@@ -2826,44 +3087,27 @@ export function ClasificadosServiciosApplication() {
         <section className={sectionCard}>
           <h2 className="text-lg font-bold text-[#3D2C12]">{copy.sections.hours}</h2>
           <p className="mt-2 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.hoursOutputHint}</p>
-          <div className="mt-4 space-y-3">
-            {state.hours.map((row) => (
-              <div
-                key={row.day}
-                className="flex flex-col gap-2 rounded-xl border border-neutral-100 bg-[#FFFCF7] px-3 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 sm:py-2"
-              >
-                <span className="shrink-0 text-sm font-semibold text-[#3D2C12] sm:w-28">{WEEK_DAY_LABELS[row.day][lang]}</span>
-                <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
-                  <label className="flex min-h-[40px] cursor-pointer items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={row.closed}
-                      onChange={(e) => updateHour(row.day, { closed: e.target.checked })}
-                      className="h-4 w-4 rounded"
-                    />
-                    {copy.labels.closed}
-                  </label>
-                  {!row.closed ? (
-                    <>
-                      <input
-                        type="time"
-                        className={`${inputClass} w-[min(100%,9rem)] max-w-[140px] sm:w-auto`}
-                        value={row.open}
-                        onChange={(e) => updateHour(row.day, { open: e.target.value })}
-                      />
-                      <span className="text-neutral-500">—</span>
-                      <input
-                        type="time"
-                        className={`${inputClass} w-[min(100%,9rem)] max-w-[140px] sm:w-auto`}
-                        value={row.close}
-                        onChange={(e) => updateHour(row.day, { close: e.target.value })}
-                      />
-                    </>
-                  ) : null}
-                </div>
-              </div>
-            ))}
-          </div>
+          <HoursEditor
+            className="mt-4"
+            days={hoursEditorDays}
+            onDayChange={onHoursEditorDayChange}
+            closedLabel={copy.labels.closed}
+            specialHoursList={{
+              entries: state.specialHoursEntries,
+              onAdd: addSpecialHoursEntry,
+              onEntryChange: changeSpecialHoursEntry,
+              onRemove: removeSpecialHoursEntry,
+              sectionLabel: copy.labels.specialHoursSectionLabel,
+              sectionHelper: copy.labels.specialHoursSectionHelper,
+              addLabel: copy.labels.specialHoursAdd,
+              labelPlaceholder: copy.labels.specialHoursLabelPlaceholder,
+              notePlaceholder: copy.labels.specialHoursNotePlaceholder,
+              removeAriaLabel: (entry: HoursEditorSpecialHoursEntry) =>
+                entry.label.trim()
+                  ? `${copy.labels.specialHoursRemoveAria}: ${entry.label.trim()}`
+                  : copy.labels.specialHoursRemoveAria,
+            }}
+          />
         </section>
           </>
         ) : null}
@@ -2877,7 +3121,7 @@ export function ClasificadosServiciosApplication() {
                   <SectionTitle>{copy.labels.couponsFeaturedStepTitle}</SectionTitle>
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-semibold text-[color:var(--lx-text)]">
-                      {lang === "en" ? "Coupons enabled — +$99/month" : "Cupones activados — +$99/mes"}
+                      {lang === "en" ? "Coupons enabled — included" : "Cupones activados — incluidos"}
                     </span>
                     <button
                       type="button"
@@ -2905,7 +3149,7 @@ export function ClasificadosServiciosApplication() {
                 {(state.coupons ?? []).map((coupon, i) => (
                   <div key={i} className="rounded-xl border border-[color:var(--lx-nav-border)] bg-white p-4">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-semibold">Cupón {i + 1}</span>
+                      <span className="text-sm font-semibold">{lang === "en" ? `Coupon ${i + 1}` : `Cupón ${i + 1}`}</span>
                       <button type="button" className="text-sm text-red-700 underline" onClick={() => {
                         setState((s) => ({
                           ...s,
@@ -2914,7 +3158,7 @@ export function ClasificadosServiciosApplication() {
                             : [createEmptyCouponRow()],
                         }));
                       }}>
-                        Quitar
+                        {lang === "en" ? "Remove" : "Quitar"}
                       </button>
                     </div>
                     <div className="mt-3 grid gap-3">
@@ -3045,6 +3289,9 @@ export function ClasificadosServiciosApplication() {
                                   next[i] = { ...cur, imageUrl: url };
                                   return { ...s, coupons: next };
                                 });
+                                // Accepted/stored moment (S-042): the data URL is now committed to
+                                // state and rendered as the preview chip below, not just selected.
+                                addedCouponImageByIndex[i]?.flash();
                               });
                             }}
                           >
@@ -3062,6 +3309,7 @@ export function ClasificadosServiciosApplication() {
                                       next[i] = { ...cur, imageUrl: url };
                                       return { ...s, coupons: next };
                                     });
+                                    addedCouponImageByIndex[i]?.flash();
                                   });
                                 }
                               }}
@@ -3100,6 +3348,10 @@ export function ClasificadosServiciosApplication() {
                               >
                                 {lang === "en" ? "Remove" : "Eliminar"}
                               </button>
+                              <AddedConfirmationBadge
+                                visible={addedCouponImageByIndex[i]?.visible ?? false}
+                                label={lang === "en" ? "Image accepted" : "Imagen aceptada"}
+                              />
                             </div>
                           )}
                         </div>
@@ -3118,14 +3370,14 @@ export function ClasificadosServiciosApplication() {
                     }
                     className="rounded-full border border-dashed border-[color:var(--lx-gold-border)] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
                   >
-                    + Añadir cupón
+                    {lang === "en" ? "+ Add coupon" : "+ Añadir cupón"}
                   </button>
                 ) : null}
               </div>
 
           <div className="mt-6 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4">
             <label className="block text-xs font-semibold text-[#6b5c42]">
-              {lang === "en" ? "Flyer de cupones o promociones" : "Flyer de cupones o promociones"}
+              {lang === "en" ? "Coupon or promotions flyer" : "Flyer de cupones o promociones"}
             </label>
             <p className="mt-1 text-xs text-[#5D4A25]/80">
               {lang === "en" ? "Upload or paste an image with more promotions. It will appear below the main coupons." : "Sube o pega una imagen con más promociones. Se mostrará debajo de los cupones principales."}
@@ -3141,12 +3393,14 @@ export function ClasificadosServiciosApplication() {
                   e.preventDefault();
                   const f = e.dataTransfer.files?.[0];
                   if (!f?.type.startsWith("image/")) return;
-                  void readFileAsDataUrl(f).then((url) =>
+                  void readFileAsDataUrl(f).then((url) => {
                     setState((s) => ({
                       ...s,
                       couponFlyer: { imageUrl: url },
-                    })),
-                  );
+                    }));
+                    // Accepted/stored moment (S-042), not the instant the file was picked.
+                    addedCouponFlyerImage.flash();
+                  });
                 }}
               >
                 <input
@@ -3156,12 +3410,13 @@ export function ClasificadosServiciosApplication() {
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     if (f) {
-                      void readFileAsDataUrl(f).then((url) =>
+                      void readFileAsDataUrl(f).then((url) => {
                         setState((s) => ({
                           ...s,
                           couponFlyer: { imageUrl: url },
-                        })),
-                      );
+                        }));
+                        addedCouponFlyerImage.flash();
+                      });
                     }
                   }}
                 />
@@ -3185,6 +3440,10 @@ export function ClasificadosServiciosApplication() {
                   >
                     {lang === "en" ? "Remove" : "Eliminar"}
                   </button>
+                  <AddedConfirmationBadge
+                    visible={addedCouponFlyerImage.visible}
+                    label={lang === "en" ? "Image accepted" : "Imagen aceptada"}
+                  />
                 </div>
               )}
             </div>
@@ -3192,7 +3451,7 @@ export function ClasificadosServiciosApplication() {
 
           <div className="mt-4 rounded-xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-4">
             <label className="block text-xs font-semibold text-[#6b5c42]">
-              {lang === "en" ? "Enlace para ver más ofertas" : "Enlace para ver más ofertas"}
+              {lang === "en" ? "Link to see more offers" : "Enlace para ver más ofertas"}
             </label>
             <p className="mt-1 text-xs text-[#5D4A25]/80">
               {lang === "en" ? "External URL where customers can see more coupons or promotions." : "URL externa donde los clientes pueden ver más cupones o promociones."}
@@ -3206,11 +3465,11 @@ export function ClasificadosServiciosApplication() {
                   couponMoreOffers: { ...(s.couponMoreOffers || { url: "", buttonLabel: "" }), url: e.target.value },
                 }))
               }
-              placeholder="https://ejemplo.com/mas-cupones"
+              placeholder={lang === "en" ? "https://example.com/more-coupons" : "https://ejemplo.com/mas-cupones"}
             />
             <div className="mt-3">
               <label className="block text-xs font-semibold text-[#6b5c42]">
-                {lang === "en" ? "Texto del botón" : "Texto del botón"}
+                {lang === "en" ? "Button text" : "Texto del botón"}
               </label>
               <p className="mt-1 text-xs text-[#5D4A25]/80">
                 {lang === "en" ? "Custom button text (default: See more coupons)." : "Texto personalizado para el botón (por defecto: Ver más cupones)."}
@@ -3224,22 +3483,26 @@ export function ClasificadosServiciosApplication() {
                     couponMoreOffers: { ...(s.couponMoreOffers || { url: "", buttonLabel: "" }), buttonLabel: e.target.value },
                   }))
                 }
-                placeholder="Ej. Ver menú con especiales"
+                placeholder={lang === "en" ? "e.g. See menu with specials" : "Ej. Ver menú con especiales"}
               />
             </div>
           </div>
               </section>
             ) : isExistingDashboardListingMode ? (
-              /* Dashboard existing-listing add-on activation — real add-on-only Stripe checkout ($99/mo). */
+              /* Dashboard existing-listing offers-module activation — capability check only, included
+                 in the $399/mo base package; no separate Stripe checkout (see
+                 startServiciosDashboardOffersAddonCheckout). */
               <>
                 <SectionTitle>{serviciosOffersModuleHeading(lang)}</SectionTitle>
                 <div className="mt-6 rounded-2xl border-2 border-[color:var(--lx-gold-border)] bg-gradient-to-b from-[color:var(--lx-section)] to-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-10px_rgba(42,36,22,0.18)] ring-2 ring-[color:var(--lx-gold-border)]/25">
                   <h3 className="text-lg font-bold text-[color:var(--lx-text)]">{serviciosOffersModuleHeading(lang)}</h3>
-                  <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">+${lang === "en" ? "99/mo" : "99/mes"}</p>
+                  <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">
+                    {lang === "en" ? "Included with your plan" : "Incluido en tu plan"}
+                  </p>
                   <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
                     {lang === "en"
-                      ? "Add up to 4 featured offers/coupons to your listing to attract more customers. Activate the module for $99/mo, then you can save your offers."
-                      : "Agrega hasta 4 ofertas/cupones destacados a tu anuncio para atraer más clientes. Activa el módulo por $99/mes y luego podrás guardar tus ofertas."}
+                      ? "Add up to 4 featured offers/coupons to your listing to attract more customers. Activate the module, then you can save your offers."
+                      : "Agrega hasta 4 ofertas/cupones destacados a tu anuncio para atraer más clientes. Activa el módulo y luego podrás guardar tus ofertas."}
                   </p>
                   <button
                     type="button"
@@ -3272,9 +3535,11 @@ export function ClasificadosServiciosApplication() {
                     <h3 className="text-lg font-bold text-[color:var(--lx-text)]">
                       {copy.labels.couponsFeaturedStepTitle}
                     </h3>
-                    <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">+${lang === "en" ? "99/month" : "99/mes"}</p>
+                    <p className="mt-1 text-sm font-semibold text-[color:var(--lx-text)]">
+                      {lang === "en" ? "Included with your plan" : "Incluido en tu plan"}
+                    </p>
                     <p className="mt-1 text-xs text-[color:var(--lx-muted)]">
-                      {lang === "en" ? "Special price for services. Monthly add-on inside your listing." : "Precio especial para servicios. Complemento mensual dentro de tu anuncio."}
+                      {lang === "en" ? "No extra cost — included inside your listing." : "Sin costo adicional — incluido dentro de tu anuncio."}
                     </p>
                     <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
                       {copy.labels.couponsFeaturedStepBody}
@@ -3298,13 +3563,13 @@ export function ClasificadosServiciosApplication() {
                           setState((s) => ({
                             ...s,
                             couponsAddOn: true,
-                            couponsMonthlyPrice: 99,
+                            couponsMonthlyPrice: 0,
                             coupons: s.coupons && s.coupons.length > 0 ? s.coupons : [createEmptyCouponRow()],
                           }));
                         }}
                         className="min-h-[44px] shrink-0 rounded-full bg-[color:var(--lx-text)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--lx-text-2)]"
                       >
-                        {lang === "en" ? "Add coupons for $99/month" : "Agregar cupones por $99/mes"}
+                        {lang === "en" ? "Add coupons" : "Agregar cupones"}
                       </button>
                       <button
                         type="button"
@@ -3385,6 +3650,16 @@ export function ClasificadosServiciosApplication() {
                         </span>
                       </div>
                     )}
+                    {state.couponsAddOn && state.couponsMonthlyPrice <= 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-[#5D4A25]">
+                          {lang === "en" ? "Coupons & offers" : "Cupones y ofertas"}
+                        </span>
+                        <span className="font-semibold text-[#3D2C12]">
+                          {lang === "en" ? "Included" : "Incluido"}
+                        </span>
+                      </div>
+                    )}
                     <div className="mt-2 flex justify-between border-t border-[#D8C79A]/40 pt-2">
                       <span className="font-semibold text-[#3D2C12]">
                         {lang === "en" ? "Total monthly" : "Total mensual"}
@@ -3407,13 +3682,6 @@ export function ClasificadosServiciosApplication() {
                     className="inline-flex min-h-[48px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl bg-[#3B66AD] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699] sm:max-w-xs"
                   >
                     {copy.previewCta}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={openPublishModalFromFinalStep}
-                    className="inline-flex min-h-[48px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl border-2 border-[#3B66AD]/45 bg-white px-4 py-3 text-sm font-bold leading-tight text-[#2f5699] shadow-sm transition hover:bg-[#3B66AD]/5 sm:max-w-xs"
-                  >
-                    {copy.publishCta}
                   </button>
                 </div>
                 {finalStepPublishBlocked ? (
@@ -3485,17 +3753,15 @@ export function ClasificadosServiciosApplication() {
                           }
 
                           const pendingQuickFact = w.customQuickFactLabel.trim();
-                          if (!w.customQuickFactIncluded && pendingQuickFact) {
-                            const total =
-                              w.selectedQuickFactIds.length +
-                              (w.customQuickFactIncluded && w.customQuickFactLabel.trim() ? 1 : 0);
-                            if (total < MAX_QUICK_FACTS_SELECTION) {
-                              w = {
-                                ...w,
-                                customQuickFactIncluded: true,
-                                customQuickFactLabel: pendingQuickFact.slice(0, CUSTOM_CHIP_MAX_LENGTH),
-                              };
-                            }
+                          if (pendingQuickFact) {
+                            const r = evaluateAddCustomQuickFact(w, lang, pendingQuickFact);
+                            w = r.ok
+                              ? enforceServiciosSelectionCaps({
+                                  ...w,
+                                  customQuickFacts: [...w.customQuickFacts, r.label],
+                                  customQuickFactLabel: "",
+                                })
+                              : enforceServiciosSelectionCaps({ ...w, customQuickFactLabel: "" });
                           }
 
                           const pendingHighlight = w.customBusinessHighlightLabel.trim();
@@ -3516,6 +3782,7 @@ export function ClasificadosServiciosApplication() {
                             customServiceIncluded: w.customServiceIncluded,
                             customReasonIncluded: w.customReasonIncluded,
                             customReasonLabel: w.customReasonLabel,
+                            customQuickFacts: w.customQuickFacts,
                             customQuickFactIncluded: w.customQuickFactIncluded,
                             customQuickFactLabel: w.customQuickFactLabel,
                             selectedBusinessHighlightIds: w.selectedBusinessHighlightIds,
@@ -3538,16 +3805,30 @@ export function ClasificadosServiciosApplication() {
                                 })
                               : enforceServiciosSelectionCaps({ ...w, customPaymentMethodLabel: "" });
                           }
-                          const pendingAmenity = w.pendingCustomAmenityOption.trim();
-                          if (pendingAmenity) {
-                            const r = evaluateAddCustomAmenityOption(w, pendingAmenity);
+                          for (const groupId of SERVICIOS_AMENITY_CUSTOM_GROUP_IDS) {
+                            const pendingGroupAmenity = (w.pendingCustomAmenityOptionByGroup?.[groupId] ?? "").trim();
+                            if (!pendingGroupAmenity) continue;
+                            const bucket = w.customAmenityOptionsByGroup?.[groupId] ?? [];
+                            const r = evaluateAddCustomAmenityOptionForGroup(bucket, pendingGroupAmenity);
                             w = r.ok
                               ? enforceServiciosSelectionCaps({
                                   ...w,
-                                  customAmenityOptions: [...w.customAmenityOptions, r.label],
-                                  pendingCustomAmenityOption: "",
+                                  customAmenityOptionsByGroup: {
+                                    ...w.customAmenityOptionsByGroup,
+                                    [groupId]: [...bucket, r.label],
+                                  },
+                                  pendingCustomAmenityOptionByGroup: {
+                                    ...w.pendingCustomAmenityOptionByGroup,
+                                    [groupId]: "",
+                                  },
                                 })
-                              : enforceServiciosSelectionCaps({ ...w, pendingCustomAmenityOption: "" });
+                              : enforceServiciosSelectionCaps({
+                                  ...w,
+                                  pendingCustomAmenityOptionByGroup: {
+                                    ...w.pendingCustomAmenityOptionByGroup,
+                                    [groupId]: "",
+                                  },
+                                });
                           }
                           const pendingCert = w.pendingCertification.trim();
                           if (pendingCert) {
@@ -3570,6 +3851,8 @@ export function ClasificadosServiciosApplication() {
                             amenityOptionIds: w.amenityOptionIds,
                             customAmenityOptions: w.customAmenityOptions,
                             pendingCustomAmenityOption: w.pendingCustomAmenityOption,
+                            customAmenityOptionsByGroup: w.customAmenityOptionsByGroup,
+                            pendingCustomAmenityOptionByGroup: w.pendingCustomAmenityOptionByGroup,
                             certifications: w.certifications,
                             pendingCertification: w.pendingCertification,
                           };
@@ -3587,18 +3870,6 @@ export function ClasificadosServiciosApplication() {
         </div>
       </main>
 
-      <ServiciosPublishModal
-        open={publishOpen}
-        onClose={() => setPublishOpen(false)}
-        state={state}
-        lang={lang}
-        copy={copy}
-        onPersistDraft={async () => {
-          await saveClasificadosServiciosApplicationResolved(stateRef.current);
-        }}
-        getLatestState={() => stateRef.current}
-      />
-
       {couponDetailOpen ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
@@ -3613,8 +3884,8 @@ export function ClasificadosServiciosApplication() {
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-[#5C5346]">
               {lang === "en"
-                ? "Featured coupons and offers are an optional +$99/mo add-on to show up to 4 offers inside your listing. Use it for clear discounts, packages, specials, or promotions with conditions."
-                : "Cupones y ofertas destacadas son un add-on opcional de +$99/mes para mostrar hasta 4 ofertas dentro de tu anuncio. Úsalo para descuentos claros, paquetes, especiales o promociones con condiciones."}
+                ? "Featured coupons and offers are included with your plan at no extra cost — show up to 4 offers inside your listing. Use it for clear discounts, packages, specials, or promotions with conditions."
+                : "Cupones y ofertas destacadas están incluidos en tu plan sin costo adicional — muestra hasta 4 ofertas dentro de tu anuncio. Úsalo para descuentos claros, paquetes, especiales o promociones con condiciones."}
             </p>
             <p className="mt-3 text-sm leading-relaxed text-[#5C5346]">
               {lang === "en"

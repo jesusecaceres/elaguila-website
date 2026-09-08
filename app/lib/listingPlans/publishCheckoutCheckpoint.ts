@@ -44,6 +44,12 @@ export const RENTAS_30D_PACKAGE_KEY = "rentas_30d";
 /** Canonical Revenue OS package key for Empleos regular paid job post ($24.99 / 30 days). */
 export const EMPLEOS_JOB_POST_PAID_PACKAGE_KEY = "empleos_job_post_paid";
 
+/** Canonical Revenue OS package key for Ofertas interactive flyer ($399 / 30 days). */
+export const OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY = "ofertas_locales_flyer_30d";
+
+/** Canonical Revenue OS package key for Cupones Leonix ($199 / 30 days). */
+export const OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY = "ofertas_locales_coupons_30d";
+
 /** Canonical Revenue OS package key for Autos privado 30-day listing ($24.99 one-time). */
 export const AUTOS_PRIVADO_30D_PACKAGE_KEY = "autos_privado_30d";
 
@@ -663,6 +669,40 @@ export const SERVICIOS_CHECKPOINT_CONFIRMATIONS: PublishCheckpointConfirmation[]
       "I understand payment is required before this Servicios listing and any selected offers/coupons module become active.",
     labelEs:
       "Entiendo que el pago es requerido antes de que este anuncio de Servicios y cualquier módulo de ofertas/cupones seleccionado queden activos.",
+  },
+];
+
+/** Gate D19 — Comida Local checkout confirmations, mirroring SERVICIOS_CHECKPOINT_CONFIRMATIONS. */
+export const COMIDA_LOCAL_CHECKPOINT_CONFIRMATIONS: PublishCheckpointConfirmation[] = [
+  {
+    id: "accurate_info",
+    required: true,
+    labelEn:
+      "I confirm my business information, location, hours, and contact details are accurate and up to date.",
+    labelEs:
+      "Confirmo que la información de mi negocio, ubicación, horario y datos de contacto es correcta y está actualizada.",
+  },
+  {
+    id: "authorized_to_publish",
+    required: true,
+    labelEn:
+      "I confirm I am authorized to sell this food and to publish any photos or business details included in this listing.",
+    labelEs:
+      "Confirmo que estoy autorizado para vender esta comida y publicar cualquier foto o detalle del negocio incluido en esta ficha.",
+  },
+  {
+    id: "marketplace_rules",
+    required: true,
+    labelEn:
+      "I confirm this listing follows Leonix marketplace rules and that I am responsible for the published information.",
+    labelEs:
+      "Confirmo que esta ficha sigue las reglas del marketplace de Leonix y que soy responsable por la información publicada.",
+  },
+  {
+    id: "payment_required",
+    required: true,
+    labelEn: "I understand payment is required before this Comida Local listing becomes active.",
+    labelEs: "Entiendo que el pago es requerido antes de que esta ficha de Comida Local quede activa.",
   },
 ];
 

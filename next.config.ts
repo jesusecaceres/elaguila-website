@@ -1,6 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  /**
+   * Gate BCO-3R-B.5/B.6 — the Next.js dev-tools indicator (the floating circular "N" control) is
+   * development-only chrome, never rendered in a production build (`next build && next start`
+   * strips it entirely — this setting has zero effect on production behavior). Repositioning it
+   * (Gate B.5, top-right) still collided with the wizard's language/menu controls at narrow
+   * widths, so per the gate's own preferred remedy it's now fully disabled for local development
+   * instead. This is a local dev-config setting only — no application-owned replacement control
+   * was added in its place.
+   */
+  devIndicators: false,
   /** Native modules used by Ofertas Locales Gemini PDF rasterization (server-only). */
   serverExternalPackages: ["@napi-rs/canvas", "pdfjs-dist", "@google/generative-ai", "sharp"],
   /** Reduce parallel manifest writers on Windows (intermittent ENOENT during `collecting page data`). */

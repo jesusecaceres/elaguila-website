@@ -89,6 +89,8 @@ export type EntitlementFulfillmentResult = {
   ok: boolean;
   idempotent?: boolean;
   packageEntitlementId?: string | null;
+  placementEntitlementId?: string | null;
+  packageEntitlementEndsAt?: string | null;
   code?: string;
   message?: string;
 };
@@ -438,6 +440,7 @@ export async function activateEntitlementsForPayment(input: {
     idempotent: entResult.idempotent,
     packageEntitlementId: entResult.packageEntitlementId,
     placementEntitlementId,
+    packageEntitlementEndsAt: endsAt.toISOString(),
   };
 }
 

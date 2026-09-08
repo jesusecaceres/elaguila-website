@@ -2,6 +2,7 @@ import type {
   ServiciosBusinessProfile,
   ServiciosCouponWire,
   ServiciosPromoOffer,
+  ServiciosSpecialHourRow,
   ServiciosWeeklyHourRow,
 } from "@/app/servicios/types/serviciosBusinessProfile";
 import { sanitizeCustomServiciosAmenityLabels, sanitizeServiciosAmenityOptionIds } from "@/app/servicios/lib/serviciosAmenitiesCatalog";
@@ -19,6 +20,7 @@ import type {
 import { normalizeClasificadosServiciosApplicationState } from "./clasificadosServiciosApplicationNormalize";
 import { createEmptyClasificadosPromoRow } from "./clasificadosServiciosPromo";
 import { createDefaultClasificadosServiciosState } from "./defaultClasificadosServiciosState";
+import { getBusinessTypePreset } from "./businessTypePresets";
 
 export type ServiciosPublishedListingHydrationSource = {
   id?: string | null;
@@ -102,6 +104,21 @@ function mapWeeklyHours(rows: ServiciosWeeklyHourRow[] | undefined, fallback: Cl
   return next;
 }
 
+/** Multi-entry special hours / holidays (contract §3.4 items 46-48) — regenerate stable ids on
+ * hydrate since the public profile only stores label/note, not the editor's internal row id. */
+function mapSpecialHours(
+  rows: ServiciosSpecialHourRow[] | undefined,
+): ClasificadosServiciosApplicationState["specialHoursEntries"] {
+  if (!Array.isArray(rows) || rows.length === 0) return [];
+  return rows
+    .map((row, i) => ({
+      id: `special_${i}`,
+      label: clean(row?.label).slice(0, 60),
+      note: clean(row?.note).slice(0, 160),
+    }))
+    .filter((row) => row.label || row.note);
+}
+
 function mapPromotions(promotions: ServiciosPromoOffer[] | undefined, fallback: ClasificadosServiciosPromoRow[]): ClasificadosServiciosPromoRow[] {
   const raw = Array.isArray(promotions) ? promotions : [];
   const rows = raw
@@ -168,6 +185,31 @@ function mapCoupons(
   return rows.length ? rows : fallback;
 }
 
+/**
+ * Reconstructs the custom "Otro" language lines (shared item 23) from `profile.hero.badges`.
+ * Every hero badge is language-derived (built exclusively from `buildServiciosLanguageLabels` at
+ * publish time — see `mapClasificadosServiciosApplicationToServiciosDraft.ts`), but English also
+ * gets tagged `kind:"custom"` there (only Spanish is special-cased), so the fixed Spanish/English
+ * labels in both locales must be excluded here to avoid injecting a fake custom language line.
+ */
+function mapCustomLanguageOtherLines(profile: ServiciosBusinessProfile | null | undefined): string {
+  const badges = profile?.hero?.badges;
+  if (!Array.isArray(badges)) return "";
+  const fixedLabels = new Set(["español", "spanish", "english", "inglés", "ingles"]);
+  const lines: string[] = [];
+  const seen = new Set<string>();
+  for (const b of badges) {
+    if (b?.kind !== "custom") continue;
+    const label = clean(b.label);
+    if (!label) continue;
+    const key = label.toLowerCase();
+    if (fixedLabels.has(key) || seen.has(key)) continue;
+    seen.add(key);
+    lines.push(label);
+  }
+  return lines.join("\n");
+}
+
 function mapGallery(profile: ServiciosBusinessProfile): { gallery: GalleryItem[]; featuredGalleryIds: string[]; videos: VideoItem[] } {
   const gallery = (Array.isArray(profile.gallery) ? profile.gallery : [])
     .map((item, index) => ({
@@ -228,13 +270,36 @@ function inferCouponsAddOnFromProfile(profile: ServiciosBusinessProfile | null |
   return hasCoupon || hasFlyer || hasMore;
 }
 
-function mapSelectedServiceIds(profile: ServiciosBusinessProfile | null | undefined): string[] {
+/**
+ * Recovers `svc_<chipId>` ids from a published listing's service cards, then migrates any
+ * pre-namespacing legacy id (e.g. "carp_muebles", stored before chip ids were namespaced as
+ * "carpinteria::carp_muebles" — see businessTypePresets.ts `namespaceChips`) to its namespaced
+ * form using this listing's own recorded business type, which is always the exact preset that
+ * id was originally selected under, so the mapping is never ambiguous. An id that still doesn't
+ * resolve to a real chip on that business type's preset (already-namespaced ids pass through
+ * unchanged; anything else that can't be matched) is dropped rather than guessed at, per the
+ * "clear rather than mislabel" rule this migration exists to uphold.
+ */
+function mapSelectedServiceIds(
+  profile: ServiciosBusinessProfile | null | undefined,
+  businessTypeId: string,
+): string[] {
   if (!Array.isArray(profile?.services)) return [];
+  const preset = getBusinessTypePreset(businessTypeId);
+  const validIds = new Set(preset?.suggestedServices.map((c) => c.id) ?? []);
   const ids: string[] = [];
   for (const card of profile.services) {
     const id = clean(card.id);
     const match = /^svc_(.+)$/.exec(id);
-    if (match?.[1]) ids.push(match[1]);
+    const raw = match?.[1];
+    if (!raw) continue;
+    if (validIds.has(raw)) {
+      ids.push(raw);
+      continue;
+    }
+    const migrated = `${businessTypeId}::${raw}`;
+    if (validIds.has(migrated)) ids.push(migrated);
+    // else: legacy id no longer resolvable against this business type's preset — dropped.
   }
   return ids;
 }
@@ -290,6 +355,7 @@ export function serviciosPublishedToApplicationDraft(
   const couponFlyerUrl = fromUrl(profile?.couponFlyer?.imageUrl);
   const couponMoreOffersUrl = clean(profile?.couponMoreOffers?.url);
   const couponMoreOffersLabel = clean(profile?.couponMoreOffers?.buttonLabel);
+  const businessTypeId = clean(profile?.opsMeta?.businessTypeId);
 
   const state = normalizeClasificadosServiciosApplicationState({
     ...base,
@@ -297,13 +363,16 @@ export function serviciosPublishedToApplicationDraft(
     baseMonthlyPrice: 399,
     categoryPlan: "Servicios profesionales — $399/mes",
     couponsAddOn,
-    couponsMonthlyPrice: couponsAddOn ? 99 : 0,
+    // Coupons/offers are included at $0 — the retired +$99/mes tier must never be
+    // resurrected via the edit-hydration path (see live coupon-decision code, which
+    // always sets couponsAddOn: true, couponsMonthlyPrice: 0).
+    couponsMonthlyPrice: 0,
     couponFlyer: couponFlyerUrl ? { imageUrl: couponFlyerUrl } : base.couponFlyer,
     couponMoreOffers:
       couponMoreOffersUrl || couponMoreOffersLabel
         ? { url: couponMoreOffersUrl, buttonLabel: couponMoreOffersLabel }
         : base.couponMoreOffers,
-    businessTypeId: clean(profile?.opsMeta?.businessTypeId),
+    businessTypeId,
     businessName,
     city,
     state: clean(profile?.opsMeta?.discovery?.state) || clean(hero.state) || base.state,
@@ -325,6 +394,7 @@ export function serviciosPublishedToApplicationDraft(
     languageIds: Array.isArray(profile?.opsMeta?.discovery?.languageChipIds) && profile.opsMeta.discovery.languageChipIds.length
       ? profile.opsMeta.discovery.languageChipIds.filter((id): id is string => typeof id === "string")
       : base.languageIds,
+    languageOtherLines: mapCustomLanguageOtherLines(profile) || base.languageOtherLines,
     logoUrl: fromUrl(hero.logoUrl),
     coverUrl: fromUrl(hero.coverImageUrl),
     gallery: media.gallery,
@@ -332,7 +402,7 @@ export function serviciosPublishedToApplicationDraft(
     videos: media.videos,
     aboutText: clean(profile?.about?.text),
     specialtiesLine: clean(profile?.about?.specialtiesLine),
-    selectedServiceIds: mapSelectedServiceIds(profile),
+    selectedServiceIds: mapSelectedServiceIds(profile, businessTypeId),
     customServicesOffered: (Array.isArray(profile?.services) ? profile.services : [])
       .map((item) => clean(item.title))
       .filter(Boolean),
@@ -361,6 +431,7 @@ export function serviciosPublishedToApplicationDraft(
     extraLink2Url: clean(contact.extraLinks?.[1]?.url),
     extraLink2Label: clean(contact.extraLinks?.[1]?.label),
     hours: mapWeeklyHours(contact.hours?.weeklyRows, base.hours),
+    specialHoursEntries: mapSpecialHours(contact.hours?.specialHoursRows),
     testimonials: profile ? mapTestimonials(profile) : [],
     promotions: mapPromotions(profile?.promotions ?? (profile?.promo ? [profile.promo] : undefined), base.promotions),
     coupons: mappedCoupons,
@@ -370,6 +441,7 @@ export function serviciosPublishedToApplicationDraft(
     paymentMethodIds: sanitizeServiciosPaymentMethodIds(profile?.paymentMethodIds),
     customPaymentMethods: sanitizeCustomPaymentMethodLabels(profile?.customPaymentMethods),
     amenityOptionIds: sanitizeServiciosAmenityOptionIds(profile?.amenityOptionIds),
+    customAmenityOptionsByGroup: profile?.customAmenityOptionsByGroup ?? {},
     customAmenityOptions: sanitizeCustomServiciosAmenityLabels(profile?.customAmenityOptions),
     hasLicense: profile?.credentials?.hasLicense === true,
     licenseType: clean(profile?.credentials?.licenseType),

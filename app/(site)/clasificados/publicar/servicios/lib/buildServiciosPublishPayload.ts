@@ -120,6 +120,7 @@ export function buildServiciosPublishPayload(state: ClasificadosServiciosApplica
     customServiceLabel: cleanPlainText(n.customServiceLabel),
     customServiceDescription: cleanPlainText(n.customServiceDescription ?? ""),
     customReasonLabel: cleanPlainText(n.customReasonLabel),
+    customQuickFacts: (n.customQuickFacts ?? []).map((x) => cleanPlainText(x)).filter(Boolean).slice(0, 20),
     customQuickFactLabel: cleanPlainText(n.customQuickFactLabel),
     customBusinessHighlights: (n.customBusinessHighlights ?? []).map((x) => cleanPlainText(x)).filter(Boolean).slice(0, 20),
     customBusinessHighlightLabel: cleanPlainText(n.customBusinessHighlightLabel),
@@ -141,6 +142,18 @@ export function buildServiciosPublishPayload(state: ClasificadosServiciosApplica
     customPaymentMethodLabel: cleanPlainText(n.customPaymentMethodLabel),
     customAmenityOptions: (n.customAmenityOptions ?? []).map((x) => cleanPlainText(x)).filter(Boolean).slice(0, 24),
     pendingCustomAmenityOption: cleanPlainText(n.pendingCustomAmenityOption),
+    customAmenityOptionsByGroup: Object.fromEntries(
+      Object.entries(n.customAmenityOptionsByGroup ?? {}).map(([groupId, labels]) => [
+        groupId,
+        (labels ?? []).map((x) => cleanPlainText(x)).filter(Boolean).slice(0, 12),
+      ]),
+    ),
+    pendingCustomAmenityOptionByGroup: Object.fromEntries(
+      Object.entries(n.pendingCustomAmenityOptionByGroup ?? {}).map(([groupId, v]) => [
+        groupId,
+        cleanPlainText(v ?? ""),
+      ]),
+    ),
     licenseType: cleanPlainText(n.licenseType),
     licenseNumber: cleanPlainText(n.licenseNumber),
     licenseAuthority: cleanPlainText(n.licenseAuthority),

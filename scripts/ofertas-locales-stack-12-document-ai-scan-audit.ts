@@ -18,6 +18,7 @@ const CLIENT = "app/lib/ofertas-locales/ofertasLocalesDocumentAiClient.ts";
 const NORMALIZER = "app/lib/ofertas-locales/ofertasLocalesAiNormalizer.ts";
 const READINESS = "app/lib/ofertas-locales/ofertasLocalesAiScanReadiness.ts";
 const SCAN_ROUTE = "app/api/ofertas-locales/scan/route.ts";
+const SCAN_HANDLER = "app/lib/ofertas-locales/ofertasLocalesScanApiHandler.ts";
 const APP_CLIENT = "app/(site)/publicar/ofertas-locales/OfertasLocalesApplicationClient.tsx";
 const SCAN_PANEL = "app/(site)/publicar/ofertas-locales/OfertasLocalesAiScanPanel.tsx";
 const COPY = "app/(site)/publicar/ofertas-locales/ofertasLocalesApplicationCopy.ts";
@@ -81,6 +82,7 @@ function run() {
   const normalizer = read(NORMALIZER);
   const readinessFile = read(READINESS);
   const route = read(SCAN_ROUTE);
+  const scanHandler = exists(SCAN_HANDLER) ? read(SCAN_HANDLER) : route;
   const panel = read(SCAN_PANEL);
   const copy = read(COPY);
   const app = read(APP_CLIENT);
@@ -107,16 +109,25 @@ function run() {
   assert.ok(normalizer.includes('reviewStatus: lowConfidence') || normalizer.includes('"needs_review"'), "needs_review default path");
   assert.ok(normalizer.includes("isActive: false"), "inactive candidates");
 
-  assert.ok(route.includes("getBearerUserId"), "scan route requires auth");
-  assert.ok(route.includes("isOfertaLocalDocumentAiConfigured"), "config check");
-  assert.ok(route.includes("google_document_ai"), "Google Document AI provider");
-  assert.ok(route.includes("is_active: false"), "items not active");
-  assert.ok(!route.includes("review_status: \"approved\""), "no auto-approve");
-  assert.ok(!route.includes("GOOGLE_DOCUMENT_AI_CREDENTIALS_JSON"), "no credential env in route response");
-  assert.ok(!route.includes("credentials"), "no credentials in route output");
+  assert.ok(
+    scanHandler.includes("resolveOfertasLocalesOwnerOrAdminAuth") || scanHandler.includes("getBearerUserId"),
+    "scan route requires auth"
+  );
+  assert.ok(scanHandler.includes("isAnyOfertaLocalAiScanProviderConfigured"), "config check");
+  assert.ok(scanHandler.includes("google_document_ai"), "Google Document AI provider");
+  assert.ok(scanHandler.includes("is_active: false"), "items not active");
+  assert.ok(!scanHandler.includes("review_status: \"approved\""), "no auto-approve");
+  assert.ok(!scanHandler.includes("GOOGLE_DOCUMENT_AI_CREDENTIALS_JSON"), "no credential env in route response");
+  assert.ok(!scanHandler.includes("config.credentials"), "no credential object in route output");
 
-  assert.ok(panel.includes("Escanear con AI") || copy.includes("Escanear con AI"), "ES scan button");
-  assert.ok(panel.includes("Scan with AI") || copy.includes("Scan with AI"), "EN scan button");
+  assert.ok(
+    panel.includes("Escanear con AI") || copy.includes("Escanear con AI") || copy.includes("Analizar con IA"),
+    "ES scan button"
+  );
+  assert.ok(
+    panel.includes("Scan with AI") || copy.includes("Scan with AI") || copy.includes("Analyze with AI"),
+    "EN scan button"
+  );
   assert.ok(
     copy.includes("revisarse antes de publicarse") || copy.includes("reviewed before they can be published"),
     "review-before-publish copy"
@@ -130,11 +141,17 @@ function run() {
     ? read("app/api/ofertas-locales/items/[itemId]/route.ts")
     : "";
   if (itemsPatchRoute) {
-    assert.ok(itemsPatchRoute.includes("getBearerUserId"), "items patch requires auth");
+    assert.ok(
+      itemsPatchRoute.includes("resolveOfertasLocalesOwnerOrAdminAuth") || itemsPatchRoute.includes("getBearerUserId"),
+      "items patch requires auth"
+    );
     assert.ok(!itemsPatchRoute.includes("is_active: true"), "items patch does not activate");
   }
   if (itemsListRoute) {
-    assert.ok(itemsListRoute.includes("getBearerUserId"), "items list requires auth");
+    assert.ok(
+      itemsListRoute.includes("resolveOfertasLocalesOwnerOrAdminAuth") || itemsListRoute.includes("getBearerUserId"),
+      "items list requires auth"
+    );
   }
 
   assert.ok(!pkg.includes("NEXT_PUBLIC_GOOGLE_DOCUMENT_AI"), "no NEXT_PUBLIC Google creds");

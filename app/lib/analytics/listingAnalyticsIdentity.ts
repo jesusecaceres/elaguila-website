@@ -16,7 +16,6 @@ export const LISTING_ANALYTICS_SOURCE_TABLES = [
   "restaurantes_public_listings",
   "comida_local_public_listings",
   "viajes_staged_listings",
-  /** Package D Build D2, Gate 6B — Ofertas Locales CTA analytics (previously unimplemented). */
   "ofertas_locales",
 ] as const;
 

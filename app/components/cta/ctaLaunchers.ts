@@ -125,3 +125,22 @@ export async function tryWebShare(payload: WebSharePayload): Promise<"shared" | 
     return "unsupported";
   }
 }
+
+/**
+ * Global Business Hub OS — shared clipboard helper. New call sites only; the ~40 existing
+ * standalone `navigator.clipboard.writeText` implementations across the app are intentionally left
+ * untouched (out of scope broad refactor).
+ */
+export async function copyToClipboard(value: string): Promise<boolean> {
+  if (typeof navigator === "undefined" || typeof navigator.clipboard?.writeText !== "function") {
+    return false;
+  }
+  const v = trim(value);
+  if (!v) return false;
+  try {
+    await navigator.clipboard.writeText(v);
+    return true;
+  } catch {
+    return false;
+  }
+}

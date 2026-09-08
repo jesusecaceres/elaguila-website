@@ -129,47 +129,39 @@ export function DashboardMisAnunciosCategorySelector({
         ) : null}
       </div>
 
-      <div className="relative mt-3 w-full min-w-0">
-        <div
-          className="pointer-events-none absolute inset-y-0 left-0 z-10 w-5 bg-gradient-to-r from-[#FFFDF7] via-[#FFFDF7]/80 to-transparent sm:w-8"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute inset-y-0 right-0 z-10 w-5 bg-gradient-to-r from-transparent via-[#FFFDF7]/80 to-[#FFFDF7] sm:w-8"
-          aria-hidden
-        />
-        <div
-          ref={chipScrollRef}
-          className="flex w-full min-w-0 flex-nowrap gap-2 overflow-x-auto overscroll-x-contain scroll-smooth px-2 pb-1 [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#C9A84A]/45"
-          role="tablist"
-          aria-label={lang === "es" ? "Categorías rápidas" : "Quick categories"}
-        >
-          {categories.map((cat) => {
-            const count = counts[cat.key] ?? 0;
-            const isSelected = selected === cat.key;
-            return (
-              <button
-                key={cat.key}
-                ref={(node) => setChipRef(cat.key, node)}
-                type="button"
-                role="tab"
-                aria-selected={isSelected}
-                onClick={() => onSelect(cat.key)}
-                className={cx(
-                  "shrink-0 snap-start whitespace-nowrap rounded-full border px-3.5 py-2 text-xs font-semibold tabular-nums transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A84A]",
-                  isSelected
-                    ? "border-[#7A1E2C]/20 bg-[#7A1E2C] text-[#FFFCF7] shadow-sm"
-                    : "border-[#D6C7AD]/70 bg-[#FFFCF7] text-[#3D3428] hover:border-[#C9A84A]/45 hover:bg-[#FBF7EF]",
-                )}
-              >
-                {chipLabel(cat, count, lang)}
-              </button>
-            );
-          })}
-        </div>
-        <p className="mt-1 text-[10px] text-[#7A7164]/90 lg:hidden">
-          {lang === "es" ? "Desliza para ver más categorías →" : "Swipe for more categories →"}
-        </p>
+      {/* Gate 2B — desktop/tablet (md: and up) shows every category in a wrapped grid, no
+          horizontal scrolling and no hidden categories. Below md:, the dropdown above is the
+          sole category selector; this row is hidden entirely rather than shown as a scrollable
+          rail, so there is never a duplicate/simultaneous mobile selector experience. Same
+          `categories`/`counts`/`selected`/`onSelect` contract as before — layout-only change. */}
+      <div
+        ref={chipScrollRef}
+        className="mt-3 hidden w-full min-w-0 flex-wrap gap-2 md:flex"
+        role="tablist"
+        aria-label={lang === "es" ? "Categorías" : "Categories"}
+      >
+        {categories.map((cat) => {
+          const count = counts[cat.key] ?? 0;
+          const isSelected = selected === cat.key;
+          return (
+            <button
+              key={cat.key}
+              ref={(node) => setChipRef(cat.key, node)}
+              type="button"
+              role="tab"
+              aria-selected={isSelected}
+              onClick={() => onSelect(cat.key)}
+              className={cx(
+                "shrink-0 whitespace-nowrap rounded-full border px-3.5 py-2 text-xs font-semibold tabular-nums transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A84A]",
+                isSelected
+                  ? "border-[#7A1E2C]/20 bg-[#7A1E2C] text-[#FFFCF7] shadow-sm"
+                  : "border-[#D6C7AD]/70 bg-[#FFFCF7] text-[#3D3428] hover:border-[#C9A84A]/45 hover:bg-[#FBF7EF]",
+              )}
+            >
+              {chipLabel(cat, count, lang)}
+            </button>
+          );
+        })}
       </div>
     </nav>
   );

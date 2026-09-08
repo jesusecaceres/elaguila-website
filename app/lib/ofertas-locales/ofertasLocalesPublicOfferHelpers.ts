@@ -2,7 +2,12 @@
  * Ofertas Locales public approved offers — pure helpers (FINAL-1).
  */
 
-import { isOfertaLocalExpired, normalizeOfertaLocalSearchText } from "./ofertasLocalesFormatting";
+import { OFERTAS_LOCALES_COUPON_PROMOTION_OFFER_TYPES } from "./ofertasLocalesConstants";
+import {
+  isOfertaLocalActiveByDates,
+  isOfertaLocalPublicTermActive,
+  normalizeOfertaLocalSearchText,
+} from "./ofertasLocalesFormatting";
 import {
   effectiveOfertaLocalCountryForMatching,
   locationTokensMatch,
@@ -14,10 +19,19 @@ import {
 import { getSafeOfertaLocalSourceAssetHref } from "./ofertasLocalesClickableItemPreviewHelpers";
 import { buildOfertaLocalTelHref } from "./ofertasLocalesPreviewHelpers";
 import { parseOfertaLocalDraftSnapshot, readDraftSnapshotLocationFields } from "./ofertasLocalesDbSchema";
-import type { OfertaLocalPublicOfferCard, OfertaLocalPublishStatus } from "./ofertasLocalesTypes";
+import {
+  compareOfertaLocalDefaultRanking,
+  type OfertaLocalPartnerPublicVm,
+} from "./ofertasLocalesPartnerOperations";
+import type {
+  OfertaLocalOfferType,
+  OfertaLocalPublicOfferCard,
+  OfertaLocalPublishStatus,
+} from "./ofertasLocalesTypes";
 
 export type OfertaLocalPublicOfferRow = {
   id: string;
+  leonix_ad_id?: string | null;
   status: OfertaLocalPublishStatus;
   offer_type: string;
   business_category: string;
@@ -25,6 +39,7 @@ export type OfertaLocalPublicOfferRow = {
   business_name: string;
   title: string;
   description: string | null;
+  coupon_text: string | null;
   valid_from: string;
   valid_until: string;
   address: string | null;
@@ -38,12 +53,19 @@ export type OfertaLocalPublicOfferRow = {
   draft_snapshot: unknown;
   flyer_assets: unknown;
   coupon_assets: unknown;
+  published_at: string | null;
+  expires_at: string | null;
+  partner_assignment_id?: string | null;
+  commercial_eligibility_source?: string | null;
+  public_source_asset_id?: string | null;
+  asset_lifecycle_status?: string | null;
   submitted_at: string;
   updated_at: string;
 };
 
 export type OfertaLocalPublicOfferSearchQuery = {
   q?: string;
+  business?: string;
   city?: string;
   state?: string;
   zip?: string;
@@ -51,10 +73,18 @@ export type OfertaLocalPublicOfferSearchQuery = {
   category?: string;
   marketType?: string;
   offerType?: string;
-  sort?: "newest" | "expiring_soon";
+  sort?: "relevance" | "newest" | "expiring_soon";
 };
 
 const PUBLIC_OFFER_STATUSES: ReadonlySet<OfertaLocalPublishStatus> = new Set(["approved"]);
+const EMPTY_PARTNER_VM: OfertaLocalPartnerPublicVm = {
+  isVerifiedPartner: false,
+  badgeLabel: null,
+  partnerName: null,
+  highlightedPlacement: false,
+  placementPriority: 0,
+  pickupLocations: [],
+};
 
 function sanitizeText(raw: string | null | undefined, max: number): string {
   return String(raw ?? "")
@@ -81,15 +111,28 @@ export function isOfertaLocalPublicOfferRowEligible(
   now: Date = new Date()
 ): boolean {
   if (!PUBLIC_OFFER_STATUSES.has(row.status)) return false;
-  if (isOfertaLocalExpired(row.valid_until, now)) return false;
+  if (!isOfertaLocalPublicTermActive(row.published_at, row.expires_at, now)) return false;
+  if (
+    OFERTAS_LOCALES_COUPON_PROMOTION_OFFER_TYPES.has(row.offer_type as OfertaLocalOfferType) &&
+    !isOfertaLocalActiveByDates(row.valid_from, row.valid_until, now)
+  ) {
+    return false;
+  }
+  if (!String(row.public_source_asset_id ?? "").trim()) return false;
+  if ((row.asset_lifecycle_status ?? "current") !== "current") return false;
   if (!sanitizeText(row.business_name, 200) || !sanitizeText(row.title, 200)) return false;
   return true;
 }
 
-export function mapOfertaLocalPublicOfferRowToCard(row: OfertaLocalPublicOfferRow): OfertaLocalPublicOfferCard {
+export function mapOfertaLocalPublicOfferRowToCard(
+  row: OfertaLocalPublicOfferRow,
+  partner: OfertaLocalPartnerPublicVm = EMPTY_PARTNER_VM,
+): OfertaLocalPublicOfferCard {
   const flyer = firstAssetHref(row.flyer_assets);
   const coupon = firstAssetHref(row.coupon_assets);
-  const primary = flyer.href ? flyer : coupon;
+  const isCouponLane =
+    row.offer_type === "coupon" || row.offer_type === "promotion" || row.offer_type === "featured_deal";
+  const primary = isCouponLane ? (coupon.href ? coupon : flyer) : (flyer.href ? flyer : coupon);
   const phone = sanitizeText(row.phone || row.whatsapp, 40);
   const address = sanitizeText(row.address, 200);
   const city = sanitizeText(row.city, 80);
@@ -109,8 +152,11 @@ export function mapOfertaLocalPublicOfferRowToCard(row: OfertaLocalPublicOfferRo
 
   return {
     id: row.id,
+    leonixAdId: sanitizeText(row.leonix_ad_id, 40),
     businessName: sanitizeText(row.business_name, 200),
     title: sanitizeText(row.title, 200),
+    description: sanitizeText(row.description, 8000),
+    couponText: sanitizeText(row.coupon_text, 4000),
     offerType: sanitizeText(row.offer_type, 64),
     businessCategory: sanitizeText(row.business_category, 80),
     marketType: sanitizeText(row.market_type, 64),
@@ -121,6 +167,15 @@ export function mapOfertaLocalPublicOfferRowToCard(row: OfertaLocalPublicOfferRo
     address,
     validFrom: sanitizeText(row.valid_from, 32),
     validUntil: sanitizeText(row.valid_until, 32),
+    publishedAt: sanitizeText(row.published_at, 40),
+    expiresAt: sanitizeText(row.expires_at, 40),
+    partner: {
+      isVerifiedPartner: partner.isVerifiedPartner,
+      badgeLabel: partner.badgeLabel,
+      partnerName: partner.partnerName,
+      highlightedPlacement: partner.highlightedPlacement,
+      placementPriority: partner.placementPriority,
+    },
     phoneHref: buildOfertaLocalTelHref(phone) || null,
     websiteHref: getSafeOfertaLocalSourceAssetHref(row.website_url),
     directionsHref,
@@ -153,6 +208,7 @@ export function filterAndSortOfertaLocalPublicOffers(
       if (!hay) return false;
     }
     if (!locationTokensMatch(query.city ?? "", offer.city)) return false;
+    if (query.business?.trim() && !locationTokensMatch(query.business, offer.businessName)) return false;
     if (!matchesOfferState(offer, query.state ?? "")) return false;
     if (!matchesOfferZip(offer, query.zip ?? "")) return false;
     if (!matchesOfferCountry(offer, query.country ?? "")) return false;
@@ -179,10 +235,14 @@ export function filterAndSortOfertaLocalPublicOffers(
     return true;
   });
 
-  const sort = query.sort ?? "newest";
+  const sort = query.sort ?? "relevance";
   out = [...out].sort((a, b) => {
     if (sort === "expiring_soon") return a.validUntil.localeCompare(b.validUntil);
-    return b.updatedAt.localeCompare(a.updatedAt);
+    if (sort === "newest") return b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id);
+    return compareOfertaLocalDefaultRanking(
+      { partner: a.partner, updatedAt: a.updatedAt, id: a.id },
+      { partner: b.partner, updatedAt: b.updatedAt, id: b.id },
+    );
   });
   return out;
 }
@@ -220,10 +280,12 @@ function matchesOfferCountry(offer: OfertaLocalPublicOfferCard, country: string)
 export function parseOfertaLocalPublicOfferSearchQuery(
   params: URLSearchParams
 ): OfertaLocalPublicOfferSearchQuery {
-  const sortRaw = params.get("sort")?.trim() ?? "newest";
-  const sort: "newest" | "expiring_soon" = sortRaw === "expiring_soon" ? "expiring_soon" : "newest";
+  const sortRaw = params.get("sort")?.trim() ?? "relevance";
+  const sort: "relevance" | "newest" | "expiring_soon" =
+    sortRaw === "expiring_soon" || sortRaw === "newest" ? sortRaw : "relevance";
   return {
     q: params.get("q")?.trim() ?? "",
+    business: params.get("business")?.trim() ?? "",
     city: params.get("city")?.trim() ?? "",
     state: params.get("state")?.trim() ?? "",
     zip: readOfertaLocalPostalFromSearchParams(params),

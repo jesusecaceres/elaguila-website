@@ -194,8 +194,6 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
         telephone: profile.contact.phoneDisplay,
         addressText: profile.contact.physicalAddressDisplay,
         websiteUrl: profile.contact.websiteHref,
-        ratingAverage: profile.hero.rating,
-        ratingCount: profile.hero.reviewCount,
       })
     : null;
 

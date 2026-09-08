@@ -16,6 +16,7 @@ export const CLASES_CATEGORY_OPTIONS: readonly CommunitySelectOption[] = [
   { value: "boxeo", labelEs: "Boxeo", labelEn: "Boxing" },
   { value: "artes_marciales", labelEs: "Artes marciales", labelEn: "Martial arts" },
   { value: "yoga", labelEs: "Yoga", labelEn: "Yoga" },
+  { value: "pilates", labelEs: "Pilates", labelEn: "Pilates" },
   { value: "baile_danza", labelEs: "Baile / Danza", labelEn: "Dance" },
   { value: "musica", labelEs: "Música", labelEn: "Music" },
   { value: "arte", labelEs: "Arte", labelEn: "Art" },
@@ -93,6 +94,15 @@ export const COMUNIDAD_ACCESSIBILITY_OPTIONS: readonly CommunitySelectOption[] =
   { value: "no_seguro", labelEs: "No estoy seguro", labelEn: "Not sure" },
 ] as const;
 
+/**
+ * "No estoy seguro" is an uncertainty state, not a real accessibility feature —
+ * it must never render as if it were a concrete positive attribute chip
+ * alongside familiar/accesible/al_aire_libre/interior (Gate 1 fix). Selecting
+ * it in the form is mutually exclusive with the concrete options, and it is
+ * filtered out of any public "positive attributes" chip list.
+ */
+export const COMUNIDAD_ACCESSIBILITY_UNCERTAIN_VALUE = "no_seguro";
+
 export type CommunityAudienceSlug = "ninos" | "jovenes" | "adultos" | "familias" | "todos";
 export type CommunityRegistrationSlug = "si" | "no" | "noSeguro";
 export type ClasesSkillLevelSlug = "principiante" | "intermedio" | "avanzado" | "todos";
@@ -101,6 +111,7 @@ export const COMMUNITY_AUDIENCE_OPTIONS: readonly CommunitySelectOption[] = [
   { value: "ninos", labelEs: "Niños", labelEn: "Children" },
   { value: "jovenes", labelEs: "Jóvenes", labelEn: "Teens / youth" },
   { value: "adultos", labelEs: "Adultos", labelEn: "Adults" },
+  { value: "adultos_mayores", labelEs: "Adultos mayores", labelEn: "Older adults" },
   { value: "familias", labelEs: "Familias", labelEn: "Families" },
   { value: "todos", labelEs: "Todos", labelEn: "Everyone" },
 ] as const;

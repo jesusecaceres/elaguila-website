@@ -1,13 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import {useEffect, useMemo, useState, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { listLocalServiciosPublishSummaries } from "@/app/clasificados/servicios/lib/localServiciosPublishStorage";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
-import type { OwnerAnalyticsTotals } from "../lib/dashboardAnalyticsSummary";
-import { fetchDashboardAnalyticsSummary } from "../lib/fetchDashboardAnalyticsApi";
 import {
   fetchOwnerEngagementDashboard,
   type ServiciosListingEngagementMetricsClient,
@@ -17,8 +14,24 @@ import {
   serviciosListingPreviewHref,
   serviciosOffersEditHref,
   serviciosOffersEditLabel,
-  serviciosOffersInactiveDashboardHint,
 } from "../lib/serviciosDashboardOffersAddonCheckout";
+import {
+  editListingLabel,
+  publicViewLabel,
+  previewLabel,
+  pauseListingLabel,
+  resumeListingLabel,
+  publicResultsLabel,
+  publicResultsListingLabel,
+  analyticsLabel,
+} from "../lib/dashboardMisAnunciosCategoryTools";
+import { resolveListingUiStatus, listingUiStatusLabel, listingUiStatusChipClass } from "../lib/listingDisplayStatus";
+import { getOwnerEntityCapabilities } from "../lib/ownerEntityCapabilityRegistry";
+import { OwnerEntityWorkspace } from "../components/OwnerEntityWorkspace";
+import { OwnerProductPageFrame } from "../components/OwnerProductPageFrame";
+import type { ActionItem } from "../components/DashboardListingActionBar";
+import type { OwnerCommunityTrustEntry } from "../components/OwnerEntityCommunityTrust";
+import type { OwnerEntityActivityItem } from "../components/OwnerEntityActivity";
 
 export const dynamic = "force-dynamic";
 
@@ -37,68 +50,6 @@ type MergedRow = {
   offersAddonActive?: boolean;
   metrics?: ServiciosListingEngagementMetricsClient;
 };
-
-function buildServiciosCategoryTotals(rows: MergedRow[]): OwnerAnalyticsTotals | null {
-  const metricRows = rows.filter((row) => row.source === "cloud" && row.metrics);
-  if (metricRows.length === 0) return null;
-  return metricRows.reduce<OwnerAnalyticsTotals>(
-    (totals, row) => {
-      const metrics = row.metrics!;
-      totals.listingViews += metrics.views;
-      totals.likes += metrics.likes;
-      totals.saves += metrics.saves;
-      totals.shares += metrics.shares;
-      totals.ctaClicks += metrics.ctaClicks;
-      return totals;
-    },
-    {
-      listingViews: 0,
-      uniqueListingViewsEstimate: 0,
-      saves: 0,
-      shares: 0,
-      messages: 0,
-      profileViews: 0,
-      listingOpens: 0,
-      likes: 0,
-      ctaClicks: 0,
-      leads: 0,
-      applications: 0,
-    },
-  );
-}
-
-function ServiciosListingMetricsPills({
-  metrics,
-  lang,
-}: {
-  metrics: ServiciosListingEngagementMetricsClient;
-  lang: Lang;
-}) {
-  const labels =
-    lang === "es"
-      ? { views: "Vistas", likes: "Me gusta", saves: "Guardados", shares: "Compartidos", ctas: "Clics CTA" }
-      : { views: "Views", likes: "Likes", saves: "Saves", shares: "Shares", ctas: "CTA clicks" };
-  const items = [
-    { k: labels.views, v: metrics.views },
-    { k: labels.likes, v: metrics.likes },
-    { k: labels.saves, v: metrics.saves },
-    { k: labels.shares, v: metrics.shares },
-    { k: labels.ctas, v: metrics.ctaClicks },
-  ];
-  return (
-    <dl className="mt-2 flex flex-wrap gap-1.5" data-servicios-dashboard-listing-metrics="1">
-      {items.map((item) => (
-        <div
-          key={item.k}
-          className="inline-flex items-center gap-1 rounded-full border border-[#E8DFD0]/90 bg-[#FAF7F2]/95 px-2 py-0.5 text-[10px] font-semibold text-[#5C5346]"
-        >
-          <dt className="text-[#7A7164]">{item.k}</dt>
-          <dd className="tabular-nums text-[#1E1810]">{item.v}</dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
 
 function accountRefFromId(id: string): string {
   const s = (id ?? "").replace(/-/g, "").trim();
@@ -122,74 +73,67 @@ function DashboardServiciosPageContent() {
     () =>
       lang === "es"
         ? {
-            title: "My Servicios showcases",
-            subtitle:
-              "Your Leonix-saved listings (linked account) plus optional local backups on this device or dev file.",
-            loading: "Loading…",
-            empty: "No Servicios showcases linked to your account yet.",
+            title: "Servicios",
+            subtitle: "Administra tus anuncios de servicios, estado y herramientas.",
+            loading: "Cargando…",
+            empty: "Aún no tienes anuncios de Servicios en tu cuenta.",
             slug: "Slug",
-            city: "City",
-            status: "Status",
-            source: "Source",
-            sourceBrowser: "Browser",
-            sourceDev: "Dev file",
-            sourceCloud: "Leonix (account)",
-            view: "View showcase",
-            results: "View in public results",
-            edit: "Edit listing",
-            preview: "Vista previa",
-            publish: "Publish another",
-            leadsTitle: "Recent inquiries",
-            leadsEmpty: "No inquiries recorded for your account yet.",
-            pause: "Pause listing",
-            resume: "Resume listing",
-            colLinks: "Links",
-            colManage: "Visibility",
-            colMetrics: "Analytics",
+            city: "Ciudad",
+            source: "Origen",
+            sourceBrowser: "Navegador",
+            sourceDev: "Archivo de desarrollo",
+            sourceCloud: "Leonix (cuenta)",
+            publish: "Publicar otro anuncio",
+            leadsTitle: "Solicitudes recientes",
+            leadsEmpty: "Aún no hay solicitudes registradas para tu cuenta.",
+            colLinks: "Enlaces",
+            colManage: "Gestionar",
+            colMetrics: "Analíticas",
             devHint:
-              "“Leonix” rows come from authenticated publish. “Dev file” only appears in development when dev publish is on.",
-            engagementTitle: "Engagement summary (Servicios)",
-            engagementViews: "Profile views",
-            engagementLikes: "Likes",
-            engagementSaves: "Saves",
-            engagementShares: "Shares",
-            engagementCtas: "Contact clicks",
-            engagementLink: "View full analytics",
-            engagementUnavailable: "Detailed analytics are not available in this environment.",
+              "Los registros “Leonix” provienen de una publicación autenticada. “Archivo de desarrollo” solo aparece en desarrollo cuando la publicación de desarrollo está activada.",
+            engagementViews: "Vistas de perfil",
+            engagementLikes: "Me gusta",
+            engagementSaves: "Guardados",
+            engagementShares: "Compartidos",
+            engagementCtas: "Clics de contacto",
+            performanceTitle: "Rendimiento",
+            communityTrustTitle: "Confianza de la comunidad",
+            communityTrustHelp: "Lo que la comunidad reconoce en este negocio.",
+            activityTitle: "Solicitudes recientes",
+            moreOptions: "Más opciones",
+            moreOptionsClose: "Cerrar",
+            pageTitle: "Tus anuncios de servicios",
           }
         : {
-            title: "My Servicios showcases",
-            subtitle: "Your Leonix-saved listings (linked account) plus optional local backups on this device or dev file.",
+            title: "Services",
+            subtitle: "Manage your Servicios listings, status, and tools.",
             loading: "Loading…",
-            empty: "No Servicios showcases linked to your account yet.",
+            empty: "No Servicios listings linked to your account yet.",
             slug: "Slug",
             city: "City",
-            status: "Status",
             source: "Source",
             sourceBrowser: "Browser",
             sourceDev: "Dev file",
             sourceCloud: "Leonix (account)",
-            view: "View showcase",
-            results: "View in public results",
-            edit: "Edit listing",
-            preview: "Preview",
-            publish: "Publish another",
+            publish: "Publish another listing",
             leadsTitle: "Recent inquiries",
             leadsEmpty: "No inquiries recorded for your account yet.",
-            pause: "Pause listing",
-            resume: "Resume listing",
             colLinks: "Links",
-            colManage: "Visibility",
+            colManage: "Manage",
             colMetrics: "Analytics",
             devHint: "“Leonix” rows come from authenticated publish. “Dev file” only appears in development when dev publish is on.",
-            engagementTitle: "Engagement summary (Servicios)",
             engagementViews: "Profile views",
             engagementLikes: "Likes",
             engagementSaves: "Saves",
             engagementShares: "Shares",
             engagementCtas: "Contact clicks",
-            engagementLink: "View full analytics",
-            engagementUnavailable: "Detailed analytics are not available in this environment.",
+            performanceTitle: "Performance",
+            communityTrustTitle: "Community trust",
+            communityTrustHelp: "What the community recognizes about this business.",
+            activityTitle: "Recent inquiries",
+            moreOptions: "More options",
+            moreOptionsClose: "Close",
+            pageTitle: "Your Servicios listings",
           },
     [lang],
   );
@@ -204,8 +148,9 @@ function DashboardServiciosPageContent() {
     { id: string; listing_slug: string; sender_name: string; sender_email: string; message: string; request_kind: string; created_at: string }[]
   >([]);
   const [manageBusy, setManageBusy] = useState<string | null>(null);
-  const [engagementTotals, setEngagementTotals] = useState<OwnerAnalyticsTotals | null>(null);
-  const [engagementUnavailable, setEngagementUnavailable] = useState(false);
+  const [communityTrustById, setCommunityTrustById] = useState<
+    Record<string, { key: string; es: string; en: string; count: number }[]>
+  >({});
 
   function serviciosEditHref(row: MergedRow): string {
     return serviciosListingEditHref({
@@ -264,25 +209,19 @@ function DashboardServiciosPageContent() {
         /* ignore */
       }
 
+      // Gate 3A Correction — this page no longer surfaces an account-level engagement
+      // aggregate (that class of data belongs to a future Account Command Center /
+      // category-aggregate system, not a bespoke per-category wrapper here). The real
+      // per-listing metrics fetch below is preserved unchanged — it feeds each listing's
+      // OwnerEntityWorkspace performance section, which is still real, entity-scoped data.
       let serviciosMetricsBySlug: Record<string, ServiciosListingEngagementMetricsClient> = {};
       try {
         const engagementPayload = await fetchOwnerEngagementDashboard(sb);
         if (engagementPayload?.ok) {
           serviciosMetricsBySlug = engagementPayload.serviciosBySlug ?? {};
-          if (mounted) {
-            setEngagementUnavailable(engagementPayload.listingAnalyticsUnavailable);
-          }
-        } else {
-          const { data: sess } = await sb.auth.getSession();
-          const token = sess.session?.access_token ?? "";
-          const summary = token ? await fetchDashboardAnalyticsSummary(token) : null;
-          if (mounted) {
-            setEngagementTotals(summary?.byCategoryTotals.servicios ?? null);
-            setEngagementUnavailable(summary?.listingAnalyticsUnavailable ?? true);
-          }
         }
       } catch {
-        if (mounted) setEngagementUnavailable(true);
+        /* ignore — per-listing performance section simply omits for this account */
       }
 
       const bySlug = new Map<string, MergedRow>();
@@ -384,8 +323,41 @@ function DashboardServiciosPageContent() {
 
       if (!mounted) return;
       setRows(merged);
-      if (Object.keys(serviciosMetricsBySlug).length > 0) {
-        setEngagementTotals(buildServiciosCategoryTotals(merged));
+
+      // Gate 3A — Community Trust is READ ONLY here (no vote/write path touched). One bounded,
+      // concurrent read per real cloud listing, fired once during this same load pass rather
+      // than per rendered card, so this never becomes a per-card fetch as the row count grows.
+      const cloudIds = merged.filter((r) => r.source === "cloud" && r.id).map((r) => r.id as string);
+      if (cloudIds.length > 0) {
+        void Promise.all(
+          cloudIds.map(async (id) => {
+            try {
+              const res = await fetch(
+                `/api/leonix-endorsements?category=servicios&targetId=${encodeURIComponent(id)}`,
+                { cache: "no-store" },
+              );
+              const j = (await res.json()) as {
+                ok?: boolean;
+                summary?: { key: string; es: string; en: string; count: number }[];
+              };
+              if (j.ok && Array.isArray(j.summary)) {
+                return [id, j.summary] as const;
+              }
+            } catch {
+              /* ignore — Community Trust section simply omits for this listing */
+            }
+            return null;
+          }),
+        ).then((results) => {
+          if (!mounted) return;
+          const byId: Record<string, { key: string; es: string; en: string; count: number }[]> = {};
+          for (const r of results) {
+            if (!r) continue;
+            const [id, summary] = r;
+            byId[id] = summary;
+          }
+          setCommunityTrustById(byId);
+        });
       }
       } finally {
         if (mounted) setLoading(false);
@@ -424,267 +396,131 @@ function DashboardServiciosPageContent() {
   };
 
   return (
-    <LeonixDashboardShell lang={lang} activeNav="listings" plan={plan} userName={name} email={email} accountRef={accountRef} ownerId={userId}>
-      {loading ? (
-        <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>
-      ) : (
-        <>
-          <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">{t.title}</h1>
-              <p className="mt-2 max-w-2xl text-sm text-[#5C5346]/95">{t.subtitle}</p>
-              <p className="mt-2 max-w-2xl text-xs text-[#7A7164]">{t.devHint}</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Link
-                href={`/publicar/servicios?${q}`}
-                className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-[#E8DFD0] bg-white px-4 text-sm font-semibold text-[#1E1810] shadow-sm hover:bg-[#FFFCF7]"
-              >
-                {t.publish}
-              </Link>
-              <Link
-                href={`/clasificados/servicios/resultados?${q}`}
-                className="inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-[#3B66AD] px-4 text-sm font-bold text-white shadow-md hover:bg-[#2f5699]"
-              >
-                {t.results}
-              </Link>
-            </div>
-          </header>
-
-          {engagementUnavailable ? (
-            <p className="mt-4 rounded-2xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-sm text-amber-950">
-              {t.engagementUnavailable}
-            </p>
-          ) : engagementTotals ? (
-            <section
-              className="mt-6 rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-4 sm:p-5"
-              aria-labelledby="servicios-dashboard-engagement"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 id="servicios-dashboard-engagement" className="text-sm font-bold text-[#1E1810]">
-                  {t.engagementTitle}
-                </h2>
-                <Link href={`/dashboard/analytics?${q}`} className="text-xs font-semibold text-[#3B66AD] underline">
-                  {t.engagementLink}
-                </Link>
-              </div>
-              <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
-                <div>
-                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.engagementViews}</dt>
-                  <dd className="text-lg font-bold tabular-nums text-[#1E1810]">
-                    {engagementTotals.profileViews + engagementTotals.listingViews}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.engagementLikes}</dt>
-                  <dd className="text-lg font-bold tabular-nums text-[#1E1810]">{engagementTotals.likes}</dd>
-                </div>
-                <div>
-                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.engagementSaves}</dt>
-                  <dd className="text-lg font-bold tabular-nums text-[#1E1810]">{engagementTotals.saves}</dd>
-                </div>
-                <div>
-                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.engagementShares}</dt>
-                  <dd className="text-lg font-bold tabular-nums text-[#1E1810]">{engagementTotals.shares}</dd>
-                </div>
-                <div>
-                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-[#7A7164]">{t.engagementCtas}</dt>
-                  <dd className="text-lg font-bold tabular-nums text-[#1E1810]">{engagementTotals.ctaClicks}</dd>
-                </div>
-              </dl>
-            </section>
-          ) : null}
-
-          {rows.length === 0 ? (
-            <div className="mt-8 rounded-3xl border border-dashed border-[#E8DFD0] bg-[#FAF7F2]/90 p-10 text-center text-sm text-[#5C5346]">
-              {t.empty}
-            </div>
-          ) : (
-            <>
-              <ul className="mt-8 space-y-3 md:hidden">
-                {rows.map((r) => (
-                  <li key={r.slug} className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-4">
-                    <p className="text-base font-bold text-[#1E1810]">{r.businessName}</p>
-                    <p className="mt-1 font-mono text-[11px] text-[#7A7164]">{r.slug}</p>
-                    <p className="mt-2 text-xs text-[#5C5346]">
-                      {t.city}: {r.city || "—"} · {t.status}: {r.listingStatus ?? "—"}
-                    </p>
-                    <p className="mt-1 text-xs text-[#5C5346]">
-                      {t.source}: {sourceLabel(r)}
-                    </p>
-                    {r.metrics ? <ServiciosListingMetricsPills metrics={r.metrics} lang={lang} /> : null}
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Link href={`/clasificados/servicios/${encodeURIComponent(r.slug)}?${q}`} className="rounded-xl border border-[#C9B46A]/40 bg-[#FBF7EF] px-3 py-2 text-xs font-semibold text-[#5C4E2E]">
-                        {t.view}
-                      </Link>
-                      <Link href={`/clasificados/servicios/resultados?${q}&q=${encodeURIComponent(r.businessName)}`} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416]">
-                        {t.results}
-                      </Link>
-                      <Link href={serviciosEditHref(r)} className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416]">
-                        {t.edit}
-                      </Link>
-                      {r.source === "cloud" && r.listingStatus === "published" ? (
-                        <Link
-                          href={serviciosPreviewHref(r)}
-                          className="rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-semibold text-[#2C2416]"
-                        >
-                          {t.preview}
-                        </Link>
-                      ) : null}
-                      {r.source === "cloud" && r.listingStatus === "published" && r.offersAddonActive ? (
-                        <Link
-                          href={serviciosOffersShortcutHref(r)}
-                          className="rounded-xl border border-[#C9B46A]/50 bg-[#FBF7EF] px-3 py-2 text-xs font-semibold text-[#5C4E2E]"
-                        >
-                          {serviciosOffersEditLabel(lang)}
-                        </Link>
-                      ) : null}
-                      {r.source === "cloud" && r.listingStatus === "published" ? (
-                        <button
-                          type="button"
-                          disabled={manageBusy !== null}
-                          onClick={() => void manageListing(r.slug, "pause")}
-                          className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900 disabled:opacity-50"
-                        >
-                          {t.pause}
-                        </button>
-                      ) : r.source === "cloud" && r.listingStatus === "paused_unpublished" ? (
-                        <button
-                          type="button"
-                          disabled={manageBusy !== null}
-                          onClick={() => void manageListing(r.slug, "resume")}
-                          className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-900 disabled:opacity-50"
-                        >
-                          {t.resume}
-                        </button>
-                      ) : null}
-                    </div>
-                    {r.source === "cloud" && r.listingStatus === "published" && !r.offersAddonActive ? (
-                      <p className="mt-2 text-[11px] leading-relaxed text-[#7A7164]">
-                        {serviciosOffersInactiveDashboardHint(lang)}
-                      </p>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-8 hidden overflow-x-auto rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 md:block">
-                <table className="min-w-full border-collapse text-sm">
-                <thead className="bg-[#FAF7F2]/95 text-left text-xs font-bold uppercase text-[#7A7164]">
-                  <tr>
-                    <th className="p-3">{t.slug}</th>
-                    <th className="p-3">Negocio / Business</th>
-                    <th className="p-3">{t.city}</th>
-                    <th className="p-3">{t.status}</th>
-                    <th className="p-3">{t.source}</th>
-                    <th className="p-3">{t.colMetrics}</th>
-                    <th className="p-3">{t.colLinks}</th>
-                    <th className="p-3">{t.colManage}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r) => (
-                    <tr key={r.slug} className="border-t border-[#E8DFD0]/80">
-                      <td className="p-3 font-mono text-xs text-[#3D3428]">{r.slug}</td>
-                      <td className="p-3 font-semibold text-[#1E1810]">{r.businessName}</td>
-                      <td className="p-3 text-xs text-[#5C5346]">{r.city}</td>
-                      <td className="p-3 text-xs text-[#5C5346]">{r.listingStatus ?? "—"}</td>
-                      <td className="p-3 text-xs text-[#5C5346]">{sourceLabel(r)}</td>
-                      <td className="p-3 text-xs text-[#5C5346]">
-                        {r.metrics ? <ServiciosListingMetricsPills metrics={r.metrics} lang={lang} /> : "—"}
-                      </td>
-                      <td className="p-3">
-                        <div className="flex flex-wrap gap-2">
-                          <Link
-                            href={`/clasificados/servicios/${encodeURIComponent(r.slug)}?${q}`}
-                            className="text-xs font-bold text-[#3B66AD] underline"
-                          >
-                            {t.view}
-                          </Link>
-                          <Link
-                            href={`/clasificados/servicios/resultados?${q}&q=${encodeURIComponent(r.businessName)}`}
-                            className="text-xs font-semibold text-[#6B5B2E] underline"
-                          >
-                            {t.results}
-                          </Link>
-                          <Link href={serviciosEditHref(r)} className="text-xs font-semibold text-[#7A7164] underline">
-                            {t.edit}
-                          </Link>
-                          {r.source === "cloud" && r.listingStatus === "published" ? (
-                            <Link href={serviciosPreviewHref(r)} className="text-xs font-semibold text-[#7A7164] underline">
-                              {t.preview}
-                            </Link>
-                          ) : null}
-                          {r.source === "cloud" && r.listingStatus === "published" && r.offersAddonActive ? (
-                            <Link
-                              href={serviciosOffersShortcutHref(r)}
-                              className="text-xs font-semibold text-[#6B5B2E] underline"
-                            >
-                              {serviciosOffersEditLabel(lang)}
-                            </Link>
-                          ) : null}
-                        </div>
-                        {r.source === "cloud" && r.listingStatus === "published" && !r.offersAddonActive ? (
-                          <p className="mt-1 text-[10px] leading-relaxed text-[#9A9084]">
-                            {serviciosOffersInactiveDashboardHint(lang)}
-                          </p>
-                        ) : null}
-                      </td>
-                      <td className="p-3">
-                        {r.source === "cloud" && r.listingStatus === "published" ? (
-                          <button
-                            type="button"
-                            disabled={manageBusy !== null}
-                            onClick={() => void manageListing(r.slug, "pause")}
-                            className="text-xs font-bold text-amber-900 underline disabled:opacity-50"
-                          >
-                            {t.pause}
-                          </button>
-                        ) : r.source === "cloud" && r.listingStatus === "paused_unpublished" ? (
-                          <button
-                            type="button"
-                            disabled={manageBusy !== null}
-                            onClick={() => void manageListing(r.slug, "resume")}
-                            className="text-xs font-bold text-emerald-900 underline disabled:opacity-50"
-                          >
-                            {t.resume}
-                          </button>
-                        ) : (
-                          <span className="text-[10px] text-[#b0a89c]">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                </table>
-              </div>
-            </>
-          )}
-
-          {leads.length > 0 ? (
-            <div className="mt-10 rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-6">
-              <h2 className="text-lg font-bold text-[#1E1810]">{t.leadsTitle}</h2>
-              <ul className="mt-4 space-y-4 text-sm">
-                {leads.map((l) => (
-                  <li key={l.id} className="rounded-2xl border border-[#E8DFD0]/80 bg-white/90 p-4">
-                    <p className="text-xs font-mono text-[#7A7164]">
-                      {l.listing_slug} · {new Date(l.created_at).toLocaleString()}
-                    </p>
-                    <p className="mt-1 font-semibold text-[#1E1810]">
-                      {l.sender_name} ·{" "}
-                      <a className="text-[#3B66AD] underline" href={`mailto:${l.sender_email}`}>
-                        {l.sender_email}
-                      </a>
-                    </p>
-                    <p className="mt-2 whitespace-pre-wrap text-[#5C5346]">{l.message}</p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : rows.some((r) => r.source === "cloud") ? (
-            <p className="mt-8 text-center text-xs text-[#9A9084]">{t.leadsEmpty}</p>
-          ) : null}
-        </>
-      )}
+    <LeonixDashboardShell
+      lang={lang}
+      activeNav="listings"
+      plan={plan}
+      userName={name}
+      email={email}
+      accountRef={accountRef}
+      ownerId={userId}
+      contentLayout="workbench"
+    >
+      <OwnerProductPageFrame
+        eyebrow={t.title}
+        title={t.pageTitle}
+        subtitle={t.subtitle}
+        infoNote={t.devHint}
+        primaryAction={{ href: `/publicar/servicios?${q}`, label: t.publish }}
+        secondaryAction={{ href: `/clasificados/servicios/resultados?${q}`, label: publicResultsLabel(lang) }}
+        loading={loading}
+        loadingLabel={t.loading}
+        empty={!loading && rows.length === 0}
+        emptyLabel={t.empty}
+      >
+        {rows.map((r) => {
+                const capabilities = getOwnerEntityCapabilities("servicios");
+                const uiStatus = resolveListingUiStatus({ status: r.listingStatus });
+                const isCloudPublished = r.source === "cloud" && r.listingStatus === "published";
+                const detailItems = [
+                  { label: t.slug, value: r.slug },
+                  { label: t.city, value: r.city || "—" },
+                  { label: t.source, value: sourceLabel(r) },
+                ];
+                const metrics =
+                  capabilities.identity.analytics !== "unsupported" && r.metrics
+                    ? [
+                        { key: "views", label: t.engagementViews, value: r.metrics.views },
+                        { key: "likes", label: t.engagementLikes, value: r.metrics.likes },
+                        { key: "saves", label: t.engagementSaves, value: r.metrics.saves },
+                        { key: "shares", label: t.engagementShares, value: r.metrics.shares },
+                        { key: "ctas", label: t.engagementCtas, value: r.metrics.ctaClicks },
+                      ]
+                    : [];
+                const trustSummary = r.source === "cloud" && r.id ? communityTrustById[r.id] : undefined;
+                const trustEntries: OwnerCommunityTrustEntry[] | null =
+                  capabilities.communityTrust === "supported" && trustSummary
+                    ? trustSummary.map((s) => ({ key: s.key, label: lang === "es" ? s.es : s.en, count: s.count }))
+                    : null;
+                const quickActions: ActionItem[] = [
+                  { href: `/clasificados/servicios/${encodeURIComponent(r.slug)}?${q}`, label: publicViewLabel(lang), tone: "secondary" },
+                  {
+                    href: `/clasificados/servicios/resultados?${q}&q=${encodeURIComponent(r.businessName)}`,
+                    label: publicResultsListingLabel(lang),
+                    tone: "subtle",
+                  },
+                ];
+                if (isCloudPublished) {
+                  quickActions.push({ href: serviciosPreviewHref(r), label: previewLabel(lang), tone: "subtle" });
+                  if (capabilities.identity.analytics !== "unsupported") {
+                    quickActions.push({ href: `/dashboard/analytics?${q}`, label: analyticsLabel(lang), tone: "subtle" });
+                  }
+                }
+                const lifecycleActions: ActionItem[] = [];
+                if (r.source === "cloud" && r.listingStatus === "published") {
+                  lifecycleActions.push({
+                    label: pauseListingLabel(lang),
+                    onClick: () => void manageListing(r.slug, "pause"),
+                    disabled: manageBusy !== null,
+                    tone: "warning",
+                  });
+                } else if (r.source === "cloud" && r.listingStatus === "paused_unpublished") {
+                  lifecycleActions.push({
+                    label: resumeListingLabel(lang),
+                    onClick: () => void manageListing(r.slug, "resume"),
+                    disabled: manageBusy !== null,
+                    tone: "positive",
+                  });
+                }
+                const specializedActions: ActionItem[] =
+                  isCloudPublished && r.offersAddonActive
+                    ? [{ href: serviciosOffersShortcutHref(r), label: serviciosOffersEditLabel(lang), tone: "premium" }]
+                    : [];
+                const rowLeads = leads.filter((l) => l.listing_slug === r.slug);
+                const activityItems: OwnerEntityActivityItem[] = rowLeads.map((l) => ({
+                  id: l.id,
+                  actor: l.sender_name,
+                  date: l.created_at,
+                  contactHref: `mailto:${l.sender_email}`,
+                  contactLabel: l.sender_email,
+                  message: l.message,
+                }));
+                return (
+                  <OwnerEntityWorkspace
+                    key={r.slug}
+                    lang={lang}
+                    header={{
+                      eyebrow: t.title,
+                      title: r.businessName,
+                      statusLabel: listingUiStatusLabel(uiStatus, lang),
+                      statusChipClass: listingUiStatusChipClass(uiStatus),
+                      leonixId: r.leonixAdId ?? null,
+                    }}
+                    detailItems={detailItems}
+                    performance={{ title: t.performanceTitle, metrics }}
+                    communityTrust={
+                      capabilities.communityTrust === "supported"
+                        ? { title: t.communityTrustTitle, helperText: t.communityTrustHelp, entries: trustEntries }
+                        : undefined
+                    }
+                    primaryAction={{ href: serviciosEditHref(r), label: editListingLabel(lang) }}
+                    quickActions={quickActions}
+                    lifecycleActions={lifecycleActions}
+                    specialized={
+                      capabilities.specialized.offers !== "unsupported"
+                        ? { title: serviciosOffersEditLabel(lang), actions: specializedActions }
+                        : undefined
+                    }
+                    activity={
+                      capabilities.specialized.leads === "supported" && r.source === "cloud"
+                        ? { title: t.activityTitle, items: activityItems, emptyLabel: t.leadsEmpty }
+                        : undefined
+                    }
+                    mobileSheetLabels={{ trigger: t.moreOptions, title: t.moreOptions, close: t.moreOptionsClose }}
+                  />
+                );
+              })}
+      </OwnerProductPageFrame>
     </LeonixDashboardShell>
   );
 }

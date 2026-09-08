@@ -3,6 +3,7 @@
  */
 
 import { canOfertaLocalItemBePubliclyEligible } from "./ofertasLocalesAiDbMapper";
+import { normalizeOfertaLocalSourceBbox } from "./ofertasLocalesBoundingBoxes";
 import {
   formatOfertaLocalItemPriceDisplay,
   getOfertaLocalClickablePreviewBoundingBoxNote,
@@ -10,6 +11,7 @@ import {
 } from "./ofertasLocalesClickableItemPreviewHelpers";
 import {
   isOfertaLocalExpired,
+  isOfertaLocalPublicTermActive,
   normalizeOfertaLocalSearchText,
   normalizeOfertaLocalUrlInput,
 } from "./ofertasLocalesFormatting";
@@ -37,6 +39,10 @@ import type {
 } from "./ofertasLocalesTypes";
 import type { OfertasLocalesAppLang } from "./useOfertasLocalesAppLang";
 import {
+  compareOfertaLocalDefaultRanking,
+  type OfertaLocalPartnerPublicVm,
+} from "./ofertasLocalesPartnerOperations";
+import {
   OFERTAS_LOCALES_PUBLIC_SEARCH_PARENT_SELECT,
   parseOfertaLocalDraftSnapshot,
   readDraftSnapshotLocationFields,
@@ -48,6 +54,7 @@ const PUBLIC_PARENT_STATUSES: ReadonlySet<OfertaLocalPublishStatus> = new Set(["
 
 export type OfertaLocalPublicSearchQuery = {
   q?: string;
+  business?: string;
   city?: string;
   state?: string;
   zip?: string;
@@ -60,6 +67,7 @@ export type OfertaLocalPublicSearchQuery = {
 
 export type OfertaLocalPublicSearchParentRow = {
   id: string;
+  leonix_ad_id?: string | null;
   status: OfertaLocalPublishStatus;
   offer_type: string;
   business_category: string;
@@ -83,6 +91,12 @@ export type OfertaLocalPublicSearchParentRow = {
   coupon_assets: unknown;
   draft_snapshot: unknown;
   internal_notes: string | null;
+  published_at: string | null;
+  expires_at: string | null;
+  partner_assignment_id?: string | null;
+  commercial_eligibility_source?: string | null;
+  public_source_asset_id?: string | null;
+  asset_lifecycle_status?: string | null;
 };
 
 export type OfertaLocalPublicSearchJoinedRow = OfertaLocalItemDbRow & {
@@ -102,6 +116,15 @@ function safePublicHref(raw: string | null | undefined): string | null {
   if (!normalized) return null;
   return normalized;
 }
+
+const EMPTY_PARTNER_VM: OfertaLocalPartnerPublicVm = {
+  isVerifiedPartner: false,
+  badgeLabel: null,
+  partnerName: null,
+  highlightedPlacement: false,
+  placementPriority: 0,
+  pickupLocations: [],
+};
 
 function parseAssetArray(raw: unknown): OfertaLocalPublishedAssetMetadata[] {
   if (!Array.isArray(raw)) return [];
@@ -193,9 +216,13 @@ export function isOfertaLocalPublicSearchRowEligible(
 ): boolean {
   const parent = row.ofertas_locales;
   if (!PUBLIC_PARENT_STATUSES.has(parent.status)) return false;
-  if (isOfertaLocalExpired(parent.valid_until, now)) return false;
+  if (!isOfertaLocalPublicTermActive(parent.published_at, parent.expires_at, now)) return false;
   if (row.review_status !== "approved") return false;
   if (!row.is_active) return false;
+  if ((row.source_lifecycle_status ?? "active") !== "active") return false;
+  if (parent.public_source_asset_id && parent.public_source_asset_id !== (row.source_asset_version_id ?? "")) {
+    return false;
+  }
   if (!sanitizePublicText(row.item_name, 200)) return false;
 
   const itemFrom = row.valid_from?.trim() ?? "";
@@ -218,28 +245,24 @@ export function isOfertaLocalPublicSearchRowEligible(
 function parseOfertaLocalPublicSourceBbox(
   raw: Record<string, unknown> | null | undefined
 ): OfertaLocalSourceBoundingBox | null {
-  if (!raw) return null;
-  const xMin = Number(raw.xMin);
-  const yMin = Number(raw.yMin);
-  const xMax = Number(raw.xMax);
-  const yMax = Number(raw.yMax);
-  if (![xMin, yMin, xMax, yMax].every((n) => Number.isFinite(n))) return null;
-  return { xMin, yMin, xMax, yMax };
+  return normalizeOfertaLocalSourceBbox(raw);
 }
 
 export function mapOfertaLocalPublicDetailHubItemFromRow(
   row: OfertaLocalPublicSearchJoinedRow,
-  lang: OfertasLocalesAppLang = "es"
+  lang: OfertasLocalesAppLang = "es",
+  partner: OfertaLocalPartnerPublicVm = EMPTY_PARTNER_VM,
 ): OfertaLocalPublicDetailHubItem {
   return {
-    ...mapOfertaLocalPublicSearchRowToItem(row, lang),
+    ...mapOfertaLocalPublicSearchRowToItem(row, lang, partner),
     sourceBbox: parseOfertaLocalPublicSourceBbox(row.source_bbox),
   };
 }
 
 export function mapOfertaLocalPublicSearchRowToItem(
   row: OfertaLocalPublicSearchJoinedRow,
-  lang: OfertasLocalesAppLang = "es"
+  lang: OfertasLocalesAppLang = "es",
+  partner: OfertaLocalPartnerPublicVm = EMPTY_PARTNER_VM
 ): OfertaLocalPublicSearchItem {
   const parent = row.ofertas_locales;
   const snapshot = parseOfertaLocalDraftSnapshot(parent.draft_snapshot);
@@ -274,6 +297,8 @@ export function mapOfertaLocalPublicSearchRowToItem(
 
   return {
     id: row.id,
+    ofertaLocalId: parent.id,
+    leonixAdId: sanitizePublicText(parent.leonix_ad_id, 40),
     itemName: sanitizePublicText(row.item_name, 200),
     normalizedItemName: sanitizePublicText(row.normalized_item_name, 200),
     priceText: sanitizePublicText(row.price_text, 64),
@@ -283,8 +308,11 @@ export function mapOfertaLocalPublicSearchRowToItem(
     subcategory: sanitizePublicText(row.subcategory, 80),
     searchTags: (row.search_tags ?? []).map((t) => sanitizePublicText(t, 64)).filter(Boolean),
     sourcePage: row.source_page,
+    sourceCropHref: getSafeOfertaLocalSourceAssetHref(row.source_crop_url),
     sourceAssetLabel: source.label,
     sourceAssetHref: source.href,
+    sourceAssetVersionId: row.source_asset_version_id ?? null,
+    sourceLifecycleStatus: row.source_lifecycle_status ?? "active",
     validFrom: itemFrom || null,
     validUntil: itemUntil || null,
     businessName,
@@ -306,6 +334,13 @@ export function mapOfertaLocalPublicSearchRowToItem(
     offerType: sanitizePublicText(parent.offer_type, 64),
     marketType: sanitizePublicText(parent.market_type, 64),
     businessCategory: sanitizePublicText(parent.business_category, 64),
+    partner: {
+      isVerifiedPartner: partner.isVerifiedPartner,
+      badgeLabel: partner.badgeLabel,
+      partnerName: partner.partnerName,
+      highlightedPlacement: partner.highlightedPlacement,
+      placementPriority: partner.placementPriority,
+    },
     socialLinks: parseOfertaLocalPublishedSocialLinksFromInternalNotes(parent.internal_notes),
     boundingBoxNote: getOfertaLocalClickablePreviewBoundingBoxNote(lang),
     updatedAt: row.updated_at,
@@ -318,6 +353,7 @@ function matchesKeyword(item: OfertaLocalPublicSearchItem, q: string): boolean {
   const haystacks = [
     item.itemName,
     item.normalizedItemName,
+    item.businessName,
     item.category,
     item.subcategory,
     item.city,
@@ -381,6 +417,7 @@ export function filterAndSortOfertaLocalPublicSearchItems(
       return false;
     }
     if (!matchesKeyword(item, query.q ?? "")) return false;
+    if (query.business?.trim() && !locationTokensMatch(query.business, item.businessName)) return false;
     if (!matchesCity(item, query.city ?? "")) return false;
     if (!matchesState(item, query.state ?? "")) return false;
     if (!matchesZip(item, query.zip ?? "")) return false;
@@ -388,19 +425,25 @@ export function filterAndSortOfertaLocalPublicSearchItems(
     return true;
   });
 
-  const sort = query.sort ?? "newest";
+  const sort = query.sort ?? "relevance";
   out = [...out].sort((a, b) => {
     if (sort === "price_low") {
       const ap = a.priceAmount ?? Number.POSITIVE_INFINITY;
       const bp = b.priceAmount ?? Number.POSITIVE_INFINITY;
-      return ap - bp;
+      return ap - bp || a.itemName.localeCompare(b.itemName) || a.id.localeCompare(b.id);
     }
     if (sort === "expiring_soon") {
       const ae = a.validUntil ?? "9999-12-31";
       const be = b.validUntil ?? "9999-12-31";
-      return ae.localeCompare(be);
+      return ae.localeCompare(be) || a.id.localeCompare(b.id);
     }
-    return b.updatedAt.localeCompare(a.updatedAt);
+    if (sort === "newest") {
+      return b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id);
+    }
+    return compareOfertaLocalDefaultRanking(
+      { partner: a.partner, updatedAt: a.updatedAt, id: a.id },
+      { partner: b.partner, updatedAt: b.updatedAt, id: b.id },
+    );
   });
 
   return out;
@@ -436,11 +479,14 @@ export function formatOfertaLocalPublicItemValidDates(
 export function parseOfertaLocalPublicSearchQuery(
   params: URLSearchParams
 ): OfertaLocalPublicSearchQuery {
-  const sortRaw = params.get("sort")?.trim() ?? "newest";
+  const sortRaw = params.get("sort")?.trim() ?? "relevance";
   const sort: OfertaLocalPublicSearchSort =
-    sortRaw === "price_low" || sortRaw === "expiring_soon" ? sortRaw : "newest";
+    sortRaw === "price_low" || sortRaw === "expiring_soon" || sortRaw === "newest"
+      ? sortRaw
+      : "relevance";
   return {
     q: params.get("q")?.trim() ?? "",
+    business: params.get("business")?.trim() ?? "",
     city: params.get("city")?.trim() ?? "",
     state: params.get("state")?.trim() ?? "",
     zip: readOfertaLocalPostalFromSearchParams(params),

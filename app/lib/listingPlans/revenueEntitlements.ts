@@ -122,6 +122,11 @@ export type StripeCheckoutMetadataInput = {
   packageKey: string;
   placementTier?: string | null;
   billingMode: string;
+  amountCents?: number | null;
+  currency?: string | null;
+  durationDays?: number | null;
+  aiIncluded?: boolean | null;
+  workflow?: string | null;
   promoCodeId?: string | null;
   promoRedemptionId?: string | null;
   packageEntitlementId?: string | null;
@@ -161,9 +166,11 @@ export function buildStripeCheckoutMetadataPayload(
   }
 
   const payload: Record<string, string> = {
+    leonix_metadata_schema: "revenue_os_checkout_v2",
     leonix_category: String(input.category),
     leonix_package_key: packageKey,
     leonix_billing_mode: String(input.billingMode),
+    leonix_workflow: input.workflow?.trim() || "category_checkout",
   };
 
   const optional: Array<[string, string | null | undefined]> = [
@@ -176,6 +183,10 @@ export function buildStripeCheckoutMetadataPayload(
     ["leonix_promo_redemption_id", input.promoRedemptionId],
     ["leonix_package_entitlement_id", input.packageEntitlementId],
     ["leonix_sales_rep_id", input.salesRepId],
+    ["leonix_amount_cents", input.amountCents == null ? null : String(input.amountCents)],
+    ["leonix_currency", input.currency],
+    ["leonix_duration_days", input.durationDays == null ? null : String(input.durationDays)],
+    ["leonix_ai_included", input.aiIncluded == null ? null : String(input.aiIncluded)],
   ];
 
   for (const [key, value] of optional) {

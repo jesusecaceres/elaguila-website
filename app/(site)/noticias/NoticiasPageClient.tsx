@@ -1,288 +1,217 @@
 "use client";
 
-import Image from "next/image";
 import React, { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import { useSearchParams } from "next/navigation";
-import newLogo from "../../../public/logo.png";
 import type { NoticiasPageCopy } from "@/app/lib/siteSectionContent/noticiasPageMerge";
+import {
+  SUBCATEGORIES,
+  articleDedupeKey,
+  composeHomepageFeed,
+  excludeShown,
+  distinctSummary,
+  formatArticleDate,
+  isUsableArticleLink,
+  isUsableImageSrc,
+  sourceLabel,
+  splitDisplayTitle,
+  type CategoryKey,
+  type Lang,
+  type NewsArticle,
+} from "./noticiasEditorialModel";
 
-type Lang = "es" | "en";
-
-type CategoryKey =
-  | "ultimas"
-  | "tendencias"
-  | "deportes"
-  | "tecnologia"
-  | "negocios"
-  | "internacional"
-  | "cultura"
-  | "local";
-
-type NewsArticle = {
-  title?: string;
-  desc?: string;
-  img?: string;
-  link?: string;
-};
-
-const SUBCATEGORIES: Record<CategoryKey, Record<Lang, readonly string[]>> = {
-  ultimas: {
-    es: ["Última hora", "Estados Unidos", "Mundo", "Comunidad", "Lo más visto"],
-    en: ["Breaking", "U.S.", "World", "Community", "Most read"],
-  },
-  tendencias: {
-    es: ["Viral", "Redes sociales", "Celebridades", "Comunidad", "Opinión"],
-    en: ["Viral", "Social media", "Celebrities", "Community", "Opinion"],
-  },
-  deportes: {
-    es: ["NFL", "NBA", "MLB", "NHL", "Fútbol", "Boxeo", "NCAA"],
-    en: ["NFL", "NBA", "MLB", "NHL", "Soccer", "Boxing", "NCAA"],
-  },
-  tecnologia: {
-    es: ["IA", "Móviles", "Apps", "Internet", "Negocios tech", "Seguridad"],
-    en: ["AI", "Mobile", "Apps", "Internet", "Tech business", "Security"],
-  },
-  negocios: {
-    es: ["Emprendedores", "Economía", "Mercado", "Pequeños negocios", "Finanzas"],
-    en: ["Entrepreneurs", "Economy", "Markets", "Small business", "Finance"],
-  },
-  internacional: {
-    es: [
-      "El Salvador",
-      "Honduras",
-      "México",
-      "Latinoamérica",
-      "Europa",
-      "Asia",
-      "Migración",
-      "Mundo",
-    ],
-    en: [
-      "El Salvador",
-      "Honduras",
-      "Mexico",
-      "Latin America",
-      "Europe",
-      "Asia",
-      "Migration",
-      "World",
-    ],
-  },
-  cultura: {
-    es: ["Música", "Comida", "Tradiciones", "Arte", "Eventos", "Familia"],
-    en: ["Music", "Food", "Traditions", "Art", "Events", "Family"],
-  },
-  local: {
-    es: ["Pensilvania", "Filadelfia", "Negocios locales", "Eventos", "Comunidad"],
-    en: ["Pennsylvania", "Philadelphia", "Local business", "Events", "Community"],
-  },
-};
-
-const SIDEBAR_LIMIT = 6;
-
-const SPORTS_KEYWORDS = [
-  "nba",
-  "nfl",
-  "mlb",
-  "nhl",
-  "ncaa",
-  "soccer",
-  "futbol",
-  "fútbol",
-  "boxeo",
-  "boxing",
-  "playoffs",
-  "playoff",
-  "league",
-  "liga",
-  "team",
-  "equipo",
-  "partido",
-  "match",
-  "deportes",
-  "sports",
-  "basketball",
-  "baloncesto",
-  "baseball",
-  "beisbol",
-  "béisbol",
-  "hockey",
-  "futbol americano",
-  "football",
-] as const;
-
-const TECH_KEYWORDS = [
-  "ai",
-  "ia",
-  "inteligencia artificial",
-  "artificial intelligence",
-  "tecnologia",
-  "tecnología",
-  "technology",
-  "tech",
-  "app",
-  "apps",
-  "aplicacion",
-  "aplicación",
-  "mobile",
-  "movil",
-  "móvil",
-  "smartphone",
-  "internet",
-  "security",
-  "seguridad",
-  "ciberseguridad",
-  "cybersecurity",
-  "software",
-  "hardware",
-  "google",
-  "apple",
-  "microsoft",
-  "startup",
-] as const;
-
-const LOCAL_KEYWORDS = [
-  "pennsylvania",
-  "pensilvania",
-  "philadelphia",
-  "filadelfia",
-  "lancaster",
-  "reading",
-  "allentown",
-  "comunidad",
-  "community",
-  "local",
-  "locales",
-  "inmigracion",
-  "inmigración",
-  "immigration",
-  "migration",
-  "migracion",
-  "migración",
-  "negocio local",
-  "local business",
-  "small business",
-  "pequeños negocios",
-  "hispanic",
-  "latino",
-  "latina",
-  "hispana",
-] as const;
-
-const TRENDING_KEYWORDS = [
-  "viral",
-  "trending",
-  "tendencia",
-  "tendencias",
-  "breaking",
-  "ultima hora",
-  "última hora",
-  "most read",
-  "lo mas visto",
-  "lo más visto",
-  "redes sociales",
-  "social media",
-  "celebridad",
-  "celebrity",
-] as const;
-
-type SidebarArticleGroups = {
-  trendingArticles: NewsArticle[];
-  localArticles: NewsArticle[];
-  sportsArticles: NewsArticle[];
-  techArticles: NewsArticle[];
-};
-
-function normalizeMatchText(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
+/** Restrained masthead dateline: coverage geography + today's date, localized at render time. */
+function buildPublicationLine(lang: Lang): string {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat(lang === "en" ? "en-US" : "es-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).formatToParts(now);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  const weekday = get("weekday");
+  const day = get("day");
+  const month = get("month");
+  const dateLabel = lang === "en" ? `${weekday}, ${month} ${day}` : `${weekday} ${day} de ${month}`;
+  const geo = lang === "en" ? "San Jose · Bay Area" : "San José · Área de la Bahía";
+  return `${geo} · ${dateLabel}`;
 }
 
-function articleText(article: NewsArticle): string {
-  return normalizeMatchText(`${article.title || ""} ${article.desc || ""}`);
+/** Both `/api/rss` (active feed) and the independent Local feed (Gate 4) return the same raw
+ * shape and need the same trust boundary applied to it -- shared here so that boundary can't
+ * drift between the two call sites. */
+function normalizeArticles(data: unknown): NewsArticle[] {
+  return (Array.isArray(data) ? data : []).map((raw: unknown) => {
+    const a = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+    const title = typeof a.title === "string" ? a.title : "";
+    return {
+      title,
+      desc: typeof a.desc === "string" ? a.desc : undefined,
+      img: isUsableImageSrc(a.img) ? a.img.trim() : undefined,
+      link: isUsableArticleLink(a.link) ? a.link.trim() : undefined,
+      date: typeof a.date === "string" ? a.date : undefined,
+    };
+  });
 }
 
-function matchesKeywords(text: string, keywords: readonly string[]): boolean {
-  if (keywords.length === 0) return false;
-  return keywords.some((keyword) => text.includes(normalizeMatchText(keyword)));
+function StoryImage({
+  src,
+  alt,
+  className,
+}: {
+  src?: string;
+  alt: string;
+  className: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (!isUsableImageSrc(src) || failed) return null;
+  return (
+    // RSS images are remote and not in next/image allowlists per provider.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={alt}
+      className={`${className} object-cover`}
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
-function articleDedupeKey(article: NewsArticle): string {
-  const link = (article.link || "").trim();
-  if (link) return `link:${link}`;
-  return `title:${(article.title || "").trim().toLowerCase()}`;
+function StoryMeta({
+  source,
+  date,
+  category,
+}: {
+  source?: string;
+  date?: string;
+  category?: string;
+}) {
+  const parts = [category, source, date].filter(Boolean);
+  if (parts.length === 0) return null;
+  return (
+    <p className="text-[0.75rem] font-semibold uppercase tracking-[0.14em] text-[color:var(--lx-muted)]">
+      {parts.join(" · ")}
+    </p>
+  );
 }
 
-function isSameArticle(a: NewsArticle, b: NewsArticle): boolean {
-  return articleDedupeKey(a) === articleDedupeKey(b);
+function StoryCard({
+  article,
+  lang,
+  categoryLabel,
+  variant,
+}: {
+  article: NewsArticle;
+  lang: Lang;
+  categoryLabel?: string;
+  variant: "lead" | "row" | "local" | "trend" | "compact";
+}) {
+  const display = splitDisplayTitle(article.title);
+  const title = display.headline || (lang === "es" ? "Sin título" : "Untitled");
+  const source = sourceLabel(article);
+  const date = formatArticleDate(article.date, lang);
+  const summary = distinctSummary(article.title, article.desc);
+  // The site ships a global accessible focus ring (:where(a, button, input, select,
+  // textarea):focus-visible { outline: none; box-shadow: 0 0 0 3px var(--lx-focus-ring) }), but
+  // verified live in-browser it does not reliably win the box-shadow property on these story
+  // links specifically (confirmed via computed style: box-shadow stays at its zero-value default
+  // on focus even with no competing ring/shadow utility present) -- while it works correctly on
+  // plainer elements elsewhere on the page. Rather than depend on that, set the same ring
+  // directly as a single arbitrary-property declaration (bypassing Tailwind's multi-layer ring
+  // composition, which doesn't compose cleanly across combined ring-* utilities either) with `!`
+  // so it always wins, guaranteeing keyboard focus is visible on every story link.
+  const focusRing =
+    "focus-visible:outline-none focus-visible:[box-shadow:0_0_0_3px_var(--lx-focus-ring)]!";
+  const className =
+    variant === "lead"
+      ? `group block w-full overflow-hidden rounded-md border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] text-left shadow-[0_18px_48px_rgba(42,36,22,0.08)] transition hover:border-[color:var(--lx-gold)] ${focusRing}`
+      : variant === "row"
+        ? `group flex w-full min-h-[44px] flex-col gap-4 rounded-md border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] p-4 text-left transition hover:border-[color:var(--lx-gold)] md:flex-row ${focusRing}`
+        : variant === "compact"
+          ? `group flex min-h-11 w-full flex-col gap-1.5 rounded-sm border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] px-4 py-3 text-left transition hover:border-[color:var(--lx-gold)] hover:bg-[color:var(--lx-section)] ${focusRing}`
+          : variant === "trend"
+            ? `group block w-full min-h-[44px] text-left transition ${focusRing}`
+            : `group block w-full min-h-[44px] rounded-md border border-[color:var(--lx-border)] bg-[color:var(--lx-card)] p-3 text-left transition hover:border-[color:var(--lx-gold)] ${focusRing}`;
+
+  const inner =
+    variant === "lead" ? (
+      <>
+        <StoryImage src={article.img} alt={title} className="h-64 w-full md:h-[22rem] lg:h-[26rem]" />
+        <div className="space-y-3 px-5 py-6 md:px-7 md:py-7">
+          {!isUsableImageSrc(article.img) ? (
+            <div className="h-1 w-12 rounded-full bg-[#7A1E2C]" aria-hidden="true" />
+          ) : null}
+          <StoryMeta source={source} date={date} category={categoryLabel} />
+          <h2 className="font-serif text-3xl font-bold leading-[1.12] tracking-tight text-[color:var(--lx-text)] md:text-4xl lg:text-[2.6rem]">
+            {title}
+          </h2>
+          {summary ? (
+            <p className="max-w-3xl text-base leading-relaxed text-[color:var(--lx-text-2)] md:text-lg">
+              {summary}
+            </p>
+          ) : null}
+        </div>
+      </>
+    ) : variant === "row" ? (
+      <>
+        <StoryImage
+          src={article.img}
+          alt={title}
+          className="h-44 w-full shrink-0 rounded-sm md:h-28 md:w-44"
+        />
+        <div className="min-w-0 space-y-2">
+          <StoryMeta source={source} date={date} category={categoryLabel} />
+          <h3 className="font-serif text-lg font-bold leading-snug text-[color:var(--lx-text)] md:text-xl">
+            {title}
+          </h3>
+          {summary ? (
+            <p className="line-clamp-3 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{summary}</p>
+          ) : null}
+        </div>
+      </>
+    ) : variant === "local" ? (
+      <>
+        <StoryImage src={article.img} alt={title} className="mb-3 h-36 w-full rounded-sm" />
+        <StoryMeta source={source} date={date} />
+        <h3 className="mt-2 font-serif text-lg font-bold leading-snug text-[color:var(--lx-text)]">{title}</h3>
+        {summary ? (
+          <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-[color:var(--lx-text-2)]">{summary}</p>
+        ) : null}
+      </>
+    ) : variant === "compact" ? (
+      <>
+        <h3 className="font-serif text-[0.95rem] font-semibold leading-snug text-[color:var(--lx-text)] group-hover:text-[#7A1E2C]">
+          {title}
+        </h3>
+        <StoryMeta source={source} date={date} category={categoryLabel} />
+      </>
+    ) : (
+      <>
+        <h3 className="font-serif text-base font-bold leading-snug text-[color:var(--lx-text)] group-hover:text-[#7A1E2C]">
+          {title}
+        </h3>
+        <div className="mt-1.5">
+          <StoryMeta source={source} date={date} />
+        </div>
+      </>
+    );
+
+  if (article.link) {
+    return (
+      <a href={article.link} target="_blank" rel="noopener noreferrer" className={className}>
+        {inner}
+      </a>
+    );
+  }
+
+  return <article className={className}>{inner}</article>;
 }
 
-function buildSidebarGroups(
-  feed: NewsArticle[],
-  featured?: NewsArticle,
-  limit = SIDEBAR_LIMIT
-): SidebarArticleGroups {
-  const pool = featured
-    ? feed.filter((article) => !isSameArticle(article, featured))
-    : [...feed];
-
-  const usedKeys = new Set<string>();
-
-  const takeMatched = (keywords: readonly string[]): NewsArticle[] => {
-    const matched: NewsArticle[] = [];
-    for (const article of pool) {
-      if (matched.length >= limit) break;
-      const key = articleDedupeKey(article);
-      if (usedKeys.has(key)) continue;
-      if (!matchesKeywords(articleText(article), keywords)) continue;
-      matched.push(article);
-      usedKeys.add(key);
-    }
-    return matched;
-  };
-
-  const takeFallback = (count: number): NewsArticle[] => {
-    const fallback: NewsArticle[] = [];
-    for (const article of pool) {
-      if (fallback.length >= count) break;
-      const key = articleDedupeKey(article);
-      if (usedKeys.has(key)) continue;
-      fallback.push(article);
-      usedKeys.add(key);
-    }
-    return fallback;
-  };
-
-  const fillSection = (keywords: readonly string[]): NewsArticle[] => {
-    const matched = takeMatched(keywords);
-    if (matched.length >= limit) return matched;
-    return [...matched, ...takeFallback(limit - matched.length)];
-  };
-
-  const trendingMatched = takeMatched(TRENDING_KEYWORDS);
-  const trendingArticles =
-    trendingMatched.length > 0
-      ? [...trendingMatched, ...takeFallback(Math.max(0, limit - trendingMatched.length))]
-      : takeFallback(limit);
-
-  return {
-    trendingArticles,
-    localArticles: fillSection(LOCAL_KEYWORDS),
-    sportsArticles: fillSection(SPORTS_KEYWORDS),
-    techArticles: fillSection(TECH_KEYWORDS),
-  };
-}
-
-export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
-  const searchParams = useSearchParams();
-  const lang: Lang = searchParams?.get("lang") === "en" ? "en" : "es";
+export function NoticiasPageClient({ shell, lang }: { shell: NoticiasPageCopy; lang: Lang }) {
 
   const t = useMemo(
     () => ({
       es: {
+        eyebrow: "LEONIX NOTICIAS",
         pageTitle: shell.es.pageTitle,
         subtitle: shell.es.subtitle,
         ultimas: "Últimas",
@@ -293,12 +222,18 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
         internacional: "Internacional",
         cultura: "Cultura Latina",
         local: "Noticias Locales",
+        localSupport: "San José · Santa Clara · Área de la Bahía",
+        more: "Más noticias",
         breaking: shell.es.breakingLabel,
         cargando: "Cargando noticias...",
-        verMas: "Ver artículo completo →",
-        close: "Cerrar",
+        empty: "No hay historias disponibles en este momento.",
+        unavailable: "No pudimos cargar las noticias en este momento. Intenta de nuevo en unos minutos.",
+        emptyLocal: "No hay coincidencias locales verificables en este recorte.",
+        editorialNote:
+          "Leonix Noticias selecciona y organiza historias de distintas fuentes informativas en español e inglés. Cada historia enlaza directamente a la fuente original.",
       },
       en: {
+        eyebrow: "LEONIX NEWS",
         pageTitle: shell.en.pageTitle,
         subtitle: shell.en.subtitle,
         ultimas: "Latest",
@@ -309,16 +244,28 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
         internacional: "International",
         cultura: "Latino Culture",
         local: "Local News",
+        localSupport: "San Jose · Santa Clara · Bay Area",
+        more: "More stories",
         breaking: shell.en.breakingLabel,
         cargando: "Loading news...",
-        verMas: "Read full article →",
-        close: "Close",
+        empty: "No stories are available right now.",
+        unavailable: "We couldn't load the news right now. Please try again in a few minutes.",
+        emptyLocal: "No verifiable local matches in this slice.",
+        editorialNote:
+          "Leonix News curates and organizes stories from news sources in Spanish and English. Every story links directly to its original source.",
       },
     }),
     [shell]
   );
 
   const L = t[lang];
+
+  // Computed client-side only (after mount) to avoid an SSR/client date or
+  // timezone mismatch on hydration; empty on first paint is intentional.
+  const [publicationLine, setPublicationLine] = useState("");
+  useEffect(() => {
+    setPublicationLine(buildPublicationLine(lang));
+  }, [lang]);
 
   const categories = useMemo(
     () =>
@@ -332,379 +279,352 @@ export function NoticiasPageClient({ shell }: { shell: NoticiasPageCopy }) {
         { key: "cultura" as const, label: L.cultura },
         { key: "local" as const, label: L.local },
       ] satisfies Array<{ key: CategoryKey; label: string }>,
-    [
-      L.ultimas,
-      L.tendencias,
-      L.deportes,
-      L.tecnologia,
-      L.negocios,
-      L.internacional,
-      L.cultura,
-      L.local,
-    ]
+    [L.cultura, L.deportes, L.internacional, L.local, L.negocios, L.tecnologia, L.tendencias, L.ultimas]
   );
 
   const [activeCategory, setActiveCategory] = useState<CategoryKey>("ultimas");
-  const [activeSubcategory, setActiveSubcategory] = useState<string>(
-    SUBCATEGORIES.ultimas[lang][0]
-  );
+  const [activeSubcategory, setActiveSubcategory] = useState<string>(SUBCATEGORIES.ultimas[lang][0]);
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState<NewsArticle | null>(null);
+  const [unavailable, setUnavailable] = useState(false);
 
-  const subcategories = useMemo(
-    () => SUBCATEGORIES[activeCategory][lang],
-    [activeCategory, lang]
-  );
-
-  const subcategoryNavLabel =
-    lang === "es" ? "Subcategorías de noticias" : "News subcategories";
+  const subcategories = useMemo(() => SUBCATEGORIES[activeCategory][lang], [activeCategory, lang]);
+  const subcategoryNavLabel = lang === "es" ? "Subcategorías de noticias" : "News subcategories";
+  const categoryNavLabel = lang === "es" ? "Categorías de noticias" : "News categories";
+  const activeCategoryLabel = categories.find((cat) => cat.key === activeCategory)?.label;
 
   useEffect(() => {
     setActiveSubcategory(SUBCATEGORIES[activeCategory][lang][0]);
   }, [activeCategory, lang]);
 
-  const THUMBS: Record<CategoryKey, string> = {
-    ultimas: "/el-aguila/public/images/news/ultimas.jpg",
-    tendencias: "/el-aguila/public/images/news/tendencias.jpg",
-    deportes: "/el-aguila/public/images/news/deportes.jpg",
-    tecnologia: "/el-aguila/public/images/news/tecnologia.jpg",
-    negocios: "/el-aguila/public/images/news/negocios.jpg",
-    internacional: "/el-aguila/public/images/news/internacional.jpg",
-    cultura: "/el-aguila/public/images/news/cultura-latina.jpg",
-    local: "/el-aguila/public/images/news/noticias-locales.jpg",
-  };
-
-  const getThumbForArticle = (title: string, category: CategoryKey) => {
-    const tt = (title || "").toLowerCase();
-
-    if (tt.includes("deporte") || tt.includes("sport")) return THUMBS.deportes;
-    if (tt.includes("tech") || tt.includes("tecnolog")) return THUMBS.tecnologia;
-    if (tt.includes("negocio") || tt.includes("business")) return THUMBS.negocios;
-    if (tt.includes("internacional")) return THUMBS.internacional;
-    if (tt.includes("cultura")) return THUMBS.cultura;
-    if (tt.includes("local")) return THUMBS.local;
-    if (tt.includes("tendencia") || tt.includes("trend")) return THUMBS.tendencias;
-
-    return THUMBS[category] || THUMBS.ultimas;
-  };
-
-  const isUsableImageSrc = (src: unknown): src is string => {
-    if (typeof src !== "string") return false;
-    const trimmed = src.trim();
-    if (!trimmed) return false;
-    return trimmed.startsWith("/") || /^https?:\/\//i.test(trimmed);
-  };
-
-  const resolveArticleImage = (apiImg: unknown, title: string, category: CategoryKey) =>
-    isUsableImageSrc(apiImg) ? apiImg.trim() : getThumbForArticle(title, category);
-
-  const onArticleImageError = (
-    event: React.SyntheticEvent<HTMLImageElement>,
-    title: string,
-    category: CategoryKey
-  ) => {
-    const el = event.currentTarget;
-    const fallback = getThumbForArticle(title, category);
-    if (!el.src.endsWith(fallback)) {
-      el.src = fallback;
-    }
-  };
-
-  async function loadNews() {
-    try {
-      setLoading(true);
-
-      const res = await fetch(
-        `/api/rss?category=${activeCategory}&subcategory=${encodeURIComponent(activeSubcategory)}&lang=${lang}`
-      );
-      const data = await res.json();
-
-      const fixed: NewsArticle[] = (Array.isArray(data) ? data : []).map((raw: unknown) => {
-        const a = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-        const title = typeof a.title === "string" ? a.title : "";
-        return {
-          title,
-          desc: typeof a.desc === "string" ? a.desc : undefined,
-          img: resolveArticleImage(a.img, title, activeCategory),
-          link: typeof a.link === "string" ? a.link : undefined,
-        };
-      });
-
-      setArticles(fixed);
-    } catch (err) {
-      console.error("NEWS LOAD ERROR:", err);
-      setArticles([]);
-    }
-
-    setLoading(false);
-  }
-
   useEffect(() => {
+    // A primary-category click updates activeCategory first; the separate reset effect above
+    // then updates activeSubcategory to that category's default on the following render. For
+    // the one render in between, activeSubcategory is still the OLD category's value (e.g.
+    // category="tecnologia" paired with subcategory="NFL"), which is not a real selection and
+    // would otherwise cost a wasted /api/rss request. Skip it -- the reset effect's render will
+    // re-run this effect with a valid pairing right after.
+    const validSubcategories: readonly string[] = SUBCATEGORIES[activeCategory][lang];
+    if (!validSubcategories.includes(activeSubcategory)) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadNews() {
+      try {
+        setLoading(true);
+        const res = await fetch(
+          `/api/rss?category=${activeCategory}&subcategory=${encodeURIComponent(activeSubcategory)}&lang=${lang}`
+        );
+        const data = await res.json();
+        const fixed = normalizeArticles(data);
+        if (!cancelled) {
+          setArticles(fixed);
+          // A 503 from /api/rss means every upstream feed failed for this exact selection (see
+          // route.ts) -- a temporary outage, not a genuinely empty result. Distinguish it so the
+          // empty state can say so truthfully instead of implying there is simply no news.
+          setUnavailable(!res.ok);
+        }
+      } catch (err) {
+        console.error("NEWS LOAD ERROR:", err);
+        if (!cancelled) {
+          setArticles([]);
+          setUnavailable(true);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
     loadNews();
+    return () => {
+      cancelled = true;
+    };
   }, [activeCategory, activeSubcategory, lang]);
 
-  const featured: NewsArticle =
-    articles[0] ||
-    {
-      title:
-        lang === "es"
-          ? "Leonix Media amplía su plataforma digital 2026"
-          : "Leonix Media expands its digital platform in 2026",
-      img: "/featured.png",
-      desc:
-        lang === "es"
-          ? "Noticias en vivo, cultura y comunidad en un solo lugar."
-          : "Live news, culture and community in one place.",
+  // Owner-QA Gate 4 (2026-09-03): the homepage Local News module used to derive its content by
+  // keyword-scanning whatever feed happened to be active (Sports selected -> Local scanned Sports
+  // articles for place names) -- so it was almost never genuinely local. It now fetches its own
+  // independent dataset from the same /api/rss endpoint (no new API), keyed only on `lang` so
+  // switching category/subcategory (Sports -> NFL -> Soccer) never re-triggers it; the existing
+  // s-maxage CDN cache already makes repeat mount-time fetches for the same lang cheap.
+  const [localArticles, setLocalArticles] = useState<NewsArticle[]>([]);
+  const [localLoading, setLocalLoading] = useState(true);
+  const [localUnavailable, setLocalUnavailable] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadLocalNews() {
+      try {
+        setLocalLoading(true);
+        const localSubcategory = SUBCATEGORIES.local[lang][0];
+        const res = await fetch(
+          `/api/rss?category=local&subcategory=${encodeURIComponent(localSubcategory)}&lang=${lang}`
+        );
+        const data = await res.json();
+        const fixed = normalizeArticles(data);
+        if (!cancelled) {
+          setLocalArticles(fixed);
+          setLocalUnavailable(!res.ok);
+        }
+      } catch (err) {
+        console.error("LOCAL NEWS LOAD ERROR:", err);
+        if (!cancelled) {
+          setLocalArticles([]);
+          setLocalUnavailable(true);
+        }
+      } finally {
+        if (!cancelled) setLocalLoading(false);
+      }
+    }
+
+    loadLocalNews();
+    return () => {
+      cancelled = true;
     };
+  }, [lang]);
 
+  const featured = articles[0];
   const feed = articles.slice(1);
+  const composed = useMemo(() => composeHomepageFeed(feed, featured), [feed, featured]);
+  const showLocalSection = activeCategory !== "local";
 
-  const sidebarGroups = useMemo(
-    () => buildSidebarGroups(feed, articles.length > 0 ? articles[0] : undefined),
-    [feed, articles]
+  // Independent Local results occasionally overlap with what's already visible in the active
+  // feed (e.g. a San Jose story surfaces in both the Local feed and a broader Latest search) --
+  // drop those duplicates using the same dedupe key the rest of the page already uses.
+  const shownElsewhere = useMemo(
+    () => [
+      ...(featured ? [featured] : []),
+      ...composed.supportArticles,
+      ...composed.trendingArticles,
+      ...composed.richMoreStories,
+      ...composed.compactMoreStories,
+    ],
+    [featured, composed]
   );
+  const dedupedLocalArticles = useMemo(
+    () => excludeShown(localArticles, shownElsewhere),
+    [localArticles, shownElsewhere]
+  );
+  const localFeature = dedupedLocalArticles[0];
+  const localSupport = dedupedLocalArticles.slice(1, 4);
 
   return (
-    <main
-      className="min-h-screen w-full text-[color:var(--lx-text)]"
-      style={{
-        backgroundColor: "var(--lx-page)",
-        backgroundImage: `
-          radial-gradient(ellipse 120% 80% at 50% -20%, rgba(201, 180, 106, 0.22), transparent 55%),
-          radial-gradient(ellipse 55% 40% at 100% 30%, rgba(255, 255, 255, 0.55), transparent 52%),
-          radial-gradient(ellipse 45% 35% at 0% 75%, rgba(201, 164, 74, 0.10), transparent 50%)
-        `,
-      }}
-    >
-      <div
-        className="pointer-events-none fixed inset-0 -z-10 opacity-[0.03]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-        }}
-        aria-hidden
-      />
-
-      <section className="max-w-screen-2xl mx-auto px-6 pt-28 pb-24">
-        <motion.header
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55 }}
-          className="text-center mb-10"
-        >
-          <Image src={newLogo} alt="LEONIX" width={320} className="mx-auto mb-6" priority />
-
-          <h1 className="text-5xl md:text-6xl font-bold text-[color:var(--lx-text)]">{L.pageTitle}</h1>
-          <p className="mt-4 text-[color:var(--lx-text-2)]/85 max-w-3xl mx-auto text-base md:text-lg">{L.subtitle}</p>
-        </motion.header>
-
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45 }}
-          className="w-full max-w-full mb-10 rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)]/70 backdrop-blur px-5 py-4 shadow-[0_14px_34px_rgba(42,36,22,0.08)]"
-        >
-          <p className="text-center font-semibold tracking-wide text-[color:var(--lx-text-2)]">
-            🔥 {L.breaking}: <span className="text-[color:var(--lx-text)]">{featured.title}</span>
+    <main className="min-h-screen w-full overflow-x-hidden bg-[color:var(--lx-page)] text-[color:var(--lx-text)]">
+      <div className="mx-auto w-full max-w-[88rem] px-4 pb-20 pt-24 sm:px-6 lg:px-8">
+        <header className="border-b border-[color:var(--lx-gold-border)] pb-6 text-center md:text-left">
+          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-[#7A1E2C]">{L.eyebrow}</p>
+          <h1 className="mt-2 font-serif text-4xl font-bold leading-none tracking-tight text-[color:var(--lx-text)] sm:text-5xl">
+            {L.pageTitle}
+          </h1>
+          <p className="mx-auto mt-3 max-w-3xl text-base leading-relaxed text-[color:var(--lx-text-2)] sm:text-lg md:mx-0">
+            {L.subtitle}
           </p>
-        </motion.div>
+          {publicationLine ? (
+            <p className="mt-4 text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[color:var(--lx-muted)]">
+              {publicationLine}
+            </p>
+          ) : null}
+        </header>
 
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45 }}
-          className="flex flex-wrap justify-center gap-3 md:gap-4 mb-4 max-w-full"
-        >
-          {categories.map((cat) => {
-            const active = activeCategory === cat.key;
-            return (
-              <button
-                key={cat.key}
-                type="button"
-                onClick={() => {
-                  setActiveCategory(cat.key);
-                  setActiveSubcategory(SUBCATEGORIES[cat.key][lang][0]);
-                }}
-                className={
-                  active
-                    ? "px-4 py-2 text-sm md:text-base rounded-full bg-[color:var(--lx-nav-active)] text-[color:var(--lx-text)] font-semibold border border-[color:var(--lx-nav-border)]"
-                    : "px-4 py-2 text-sm md:text-base rounded-full border border-[color:var(--lx-nav-border)] bg-white/60 text-[color:var(--lx-text)] font-semibold hover:bg-white/80 transition"
-                }
-              >
-                {cat.label}
-              </button>
-            );
-          })}
-        </motion.div>
-
-        <div className="w-full max-w-full overflow-hidden mb-10">
-          <nav
-            aria-label={subcategoryNavLabel}
-            className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]"
+        {/* Gated on !loading: `articles` still holds the PREVIOUS selection's results while a
+            new category/subcategory fetch is in flight, so showing this unconditionally could
+            flash the old selection's headline labeled as the new selection's top story. */}
+        {!loading && featured?.title ? (
+          <p
+            className="mt-5 flex min-h-[44px] flex-wrap items-baseline gap-x-3 gap-y-1 border-y border-[color:var(--lx-gold-border)] bg-[#7A1E2C]/8 px-3 py-3 text-sm sm:px-4"
+            role="status"
           >
-            <motion.div
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.05 }}
-              className="flex flex-nowrap gap-2 pb-1 w-max max-w-none md:w-full md:max-w-full md:flex-wrap md:justify-center min-w-0"
-            >
-              {subcategories.map((sub) => {
-                const active = activeSubcategory === sub;
-                return (
-                  <button
-                    key={sub}
-                    type="button"
-                    onClick={() => setActiveSubcategory(sub)}
-                    aria-current={active ? "true" : undefined}
-                    className={
-                      active
-                        ? "shrink-0 px-3 py-1.5 text-xs md:text-sm rounded-full bg-[color:var(--lx-nav-active)] text-[color:var(--lx-text)] font-semibold border border-[color:var(--lx-gold)] shadow-[0_2px_10px_rgba(201,164,74,0.18)]"
-                        : "shrink-0 px-3 py-1.5 text-xs md:text-sm rounded-full border border-[color:var(--lx-nav-border)] bg-white/55 text-[color:var(--lx-text-2)] font-medium hover:bg-white/80 hover:text-[color:var(--lx-text)] transition"
-                    }
-                  >
-                    {sub}
-                  </button>
-                );
-              })}
-            </motion.div>
-          </nav>
-        </div>
+            <span className="shrink-0 font-bold uppercase tracking-[0.18em] text-[#7A1E2C]">{L.breaking}</span>
+            <span className="min-w-0 font-medium text-[color:var(--lx-text)]">{featured.title}</span>
+          </p>
+        ) : null}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          <div className="lg:col-span-2 space-y-8">
-            <motion.button
-              type="button"
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55 }}
-              className="w-full text-left rounded-2xl overflow-hidden border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] hover:bg-white/90 transition shadow-[0_18px_48px_rgba(42,36,22,0.10)]"
-              onClick={() => setModal(featured)}
-            >
-              <img
-                src={featured.img}
-                className="w-full h-72 md:h-80 object-cover"
-                alt={featured.title}
-                loading="lazy"
-                onError={(e) => onArticleImageError(e, featured.title || "", activeCategory)}
-              />
-              <div className="p-6">
-                <h2 className="text-2xl md:text-3xl font-bold text-[color:var(--lx-text)]">{featured.title}</h2>
-                <p className="mt-3 text-[color:var(--lx-text-2)]/85">{featured.desc}</p>
-              </div>
-            </motion.button>
-
-            {loading && (
-              <div className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)]/70 p-6">
-                <p className="text-[color:var(--lx-text-2)] font-semibold">{L.cargando}</p>
-              </div>
-            )}
-
-            {!loading &&
-              feed.map((a, i) => (
-                <motion.button
+        {/* Owner-QA Gate 3: mobile keeps the original horizontal-scroll pill rail unchanged; at
+            md+ these become a centered publication section bar (underline tabs, shared bottom
+            rule) instead of a row of filter-style bubbles, so the primary categories read as
+            LEONIX NEWS's actual sections rather than a search filter. */}
+        <nav aria-label={categoryNavLabel} className="mt-6">
+          <div className="flex w-max min-w-0 gap-2 overflow-x-auto overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch] md:w-full md:flex-wrap md:justify-center md:gap-x-7 md:gap-y-2 md:overflow-visible md:border-b md:border-[color:var(--lx-border)] md:pb-0">
+            {categories.map((cat) => {
+              const active = activeCategory === cat.key;
+              return (
+                <button
+                  key={cat.key}
                   type="button"
-                  key={`${a?.title ?? "article"}-${i}`}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35, delay: Math.min(i * 0.03, 0.18) }}
-                  className="w-full text-left flex flex-col md:flex-row gap-4 p-4 rounded-2xl bg-[color:var(--lx-card)]/70 hover:bg-[color:var(--lx-card)] transition border border-[color:var(--lx-nav-border)] shadow-[0_10px_34px_rgba(42,36,22,0.06)]"
-                  onClick={() => setModal(a)}
+                  onClick={() => setActiveCategory(cat.key)}
+                  aria-current={active ? "true" : undefined}
+                  className={
+                    active
+                      ? "min-h-11 shrink-0 rounded-full bg-[#7A1E2C] px-4 py-2 text-sm font-semibold text-[#FFFDF7] md:rounded-none md:border-b-2 md:border-[#7A1E2C] md:bg-transparent md:px-1 md:pb-3 md:tracking-wide md:text-[#7A1E2C]"
+                      : "min-h-11 shrink-0 rounded-full border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:border-[color:var(--lx-gold)] md:rounded-none md:border-none md:border-b-2 md:border-transparent md:bg-transparent md:px-1 md:pb-3 md:tracking-wide md:hover:border-[color:var(--lx-gold-border)]"
+                  }
                 >
-                  <img
-                    src={a.img}
-                    className="w-full md:w-44 h-44 md:h-28 object-cover rounded-2xl border border-black/10"
-                    alt={a.title}
-                    loading="lazy"
-                    onError={(e) => onArticleImageError(e, a.title || "", activeCategory)}
-                  />
-                  <div className="min-w-0">
-                    <h3 className="text-lg md:text-xl font-bold text-[color:var(--lx-text)] leading-snug">{a.title}</h3>
-                    <p className="mt-2 text-[color:var(--lx-text-2)]/85 line-clamp-3">{a.desc}</p>
+                  {cat.label}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+
+        <nav aria-label={subcategoryNavLabel} className="mt-3">
+          <div className="flex w-max min-w-0 gap-2 overflow-x-auto overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch] md:w-full md:flex-wrap md:justify-center md:overflow-visible">
+            {subcategories.map((sub) => {
+              const active = activeSubcategory === sub;
+              return (
+                <button
+                  key={sub}
+                  type="button"
+                  onClick={() => setActiveSubcategory(sub)}
+                  aria-current={active ? "true" : undefined}
+                  className={
+                    active
+                      ? "min-h-10 shrink-0 rounded-full border border-[#7A1E2C]/40 bg-[#7A1E2C]/8 px-3 py-1.5 text-xs font-semibold text-[#7A1E2C] sm:text-sm"
+                      : "min-h-10 shrink-0 rounded-full border border-transparent px-3 py-1.5 text-xs font-medium text-[color:var(--lx-muted)] hover:text-[color:var(--lx-text)] sm:text-sm"
+                  }
+                >
+                  {sub}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+
+        {loading ? (
+          <p className="mt-10 text-sm font-semibold text-[color:var(--lx-text-2)]">{L.cargando}</p>
+        ) : !featured ? (
+          <p className="mt-10 text-sm text-[color:var(--lx-text-2)]">{unavailable ? L.unavailable : L.empty}</p>
+        ) : (
+          <>
+            {/* Owner-QA Gate 1: the lead story is followed by its own subordinate support grid
+                (same left column) instead of sharing a CSS grid row with the much-taller Trending
+                list -- that mismatch was the giant dead-space bug: the row's height was set by
+                Trending, and nothing filled the gap under a short (imageless) lead. */}
+            <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
+              <section className="lg:col-span-8" aria-labelledby="noticias-lead-title">
+                <h2 id="noticias-lead-title" className="sr-only">
+                  {lang === "es" ? "Historia principal" : "Lead story"}
+                </h2>
+                <StoryCard article={featured} lang={lang} categoryLabel={activeCategoryLabel} variant="lead" />
+                {composed.supportArticles.length > 0 ? (
+                  <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {composed.supportArticles.map((article) => (
+                      <StoryCard
+                        key={articleDedupeKey(article)}
+                        article={article}
+                        lang={lang}
+                        categoryLabel={activeCategoryLabel}
+                        variant="local"
+                      />
+                    ))}
                   </div>
-                </motion.button>
-              ))}
-          </div>
+                ) : null}
+              </section>
 
-          <div className="min-w-0 max-w-full space-y-8">
-            <Sidebar title={L.tendencias} items={sidebarGroups.trendingArticles} setModal={setModal} />
-            <Sidebar title={L.local} items={sidebarGroups.localArticles} setModal={setModal} />
-            <Sidebar title={L.deportes} items={sidebarGroups.sportsArticles} setModal={setModal} />
-            <Sidebar title={L.tecnologia} items={sidebarGroups.techArticles} setModal={setModal} />
-          </div>
-        </div>
-      </section>
-
-      {modal && (
-        <div
-          className="fixed inset-0 bg-black/45 flex items-center justify-center z-[999] px-4"
-          onClick={() => setModal(null)}
-        >
-          <div
-            className="w-full max-w-2xl mx-auto rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] backdrop-blur p-6 shadow-[0_22px_70px_rgba(42,36,22,0.22)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between gap-4">
-              <h2 className="text-2xl md:text-3xl font-bold text-[color:var(--lx-text)]">{modal.title}</h2>
-              <button
-                type="button"
-                onClick={() => setModal(null)}
-                className="shrink-0 px-4 py-2 rounded-full border border-[color:var(--lx-nav-border)] bg-white/60 text-[color:var(--lx-text)] font-semibold hover:bg-white/80 transition"
+              <aside
+                className="border-t border-[color:var(--lx-gold-border)] pt-5 lg:col-span-4 lg:border-l lg:border-t-0 lg:border-[color:var(--lx-border)] lg:pl-8 lg:pt-0"
+                aria-labelledby="noticias-trending-title"
               >
-                {L.close}
-              </button>
+                <h2
+                  id="noticias-trending-title"
+                  className="font-serif text-2xl font-bold text-[color:var(--lx-text)]"
+                >
+                  {L.tendencias}
+                </h2>
+                <ol className="mt-4 divide-y divide-[color:var(--lx-border)]">
+                  {composed.trendingArticles.map((article, index) => (
+                    <li key={articleDedupeKey(article)} className="flex gap-3 py-4 first:pt-0 last:pb-0">
+                      <span className="w-7 shrink-0 font-serif text-lg font-bold leading-none text-[#7A1E2C]">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <StoryCard article={article} lang={lang} variant="trend" />
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </aside>
             </div>
 
-            <img
-              src={modal.img}
-              className="mt-5 w-full h-56 md:h-64 object-cover rounded-2xl border border-black/10"
-              alt={modal.title}
-              loading="lazy"
-              onError={(e) => onArticleImageError(e, modal.title || "", activeCategory)}
-            />
-            <p className="mt-4 text-[color:var(--lx-text-2)]/90">{modal.desc}</p>
-
-            {modal.link ? (
-              <a
-                href={modal.link}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-block mt-5 text-[color:var(--lx-text)] font-semibold underline decoration-[color:var(--lx-gold)] underline-offset-4 hover:text-[color:var(--lx-gold)] transition"
+            {/* Owner-QA Gate 4/5: independently fetched (see the loadLocalNews effect above), not
+                a keyword scan of whatever feed is currently active -- so Local genuinely shows
+                local news on Sports, Tech, or any other category, not just when Local itself is
+                selected. */}
+            {showLocalSection ? (
+              <section
+                className="mt-14 rounded-md border border-[color:var(--lx-gold-border)] border-l-4 border-l-[#2A4536] bg-[color:var(--lx-section)] px-4 py-6 sm:px-6"
+                aria-labelledby="noticias-local-title"
               >
-                {L.verMas}
-              </a>
+                <h2 id="noticias-local-title" className="font-serif text-3xl font-bold text-[color:var(--lx-text)]">
+                  {L.local}
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm text-[color:var(--lx-text-2)]">{L.localSupport}</p>
+                {localLoading ? (
+                  <p className="mt-6 text-sm text-[color:var(--lx-text-2)]">{L.cargando}</p>
+                ) : !localFeature ? (
+                  <p className="mt-6 text-sm text-[color:var(--lx-text-2)]">
+                    {localUnavailable ? L.unavailable : L.emptyLocal}
+                  </p>
+                ) : (
+                  <div className="mt-6 space-y-4">
+                    <StoryCard article={localFeature} lang={lang} variant="row" />
+                    {localSupport.length > 0 ? (
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        {localSupport.map((article) => (
+                          <StoryCard key={articleDedupeKey(article)} article={article} lang={lang} variant="local" />
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+              </section>
             ) : null}
-          </div>
-        </div>
-      )}
-    </main>
-  );
-}
 
-function Sidebar({
-  title,
-  items,
-  setModal,
-}: {
-  title: string;
-  items: NewsArticle[];
-  setModal: (value: NewsArticle) => void;
-}) {
-  return (
-    <div className="rounded-2xl border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)]/70 p-5 shadow-[0_14px_34px_rgba(42,36,22,0.08)]">
-      <h3 className="text-xl md:text-2xl font-bold text-[color:var(--lx-text)] mb-4">{title}</h3>
+            {/* Owner-QA Gate 2: two intentionally-designed density tiers all the way down --
+                Tier A stays the existing rich row cards; Tier B (previously bare divide-y rows
+                that read as raw database output at scale) is now a contained two-column card
+                grid using the same restrained surface/border language as the rest of the page. */}
+            <section
+              className="mt-14 border-t border-[color:var(--lx-gold-border)] pt-8"
+              aria-labelledby="noticias-more-title"
+            >
+              <h2 id="noticias-more-title" className="font-serif text-3xl font-bold text-[color:var(--lx-text)]">
+                {L.more}
+              </h2>
+              <div className="mt-6 space-y-4">
+                {composed.richMoreStories.map((article) => (
+                  <StoryCard
+                    key={articleDedupeKey(article)}
+                    article={article}
+                    lang={lang}
+                    categoryLabel={activeCategoryLabel}
+                    variant="row"
+                  />
+                ))}
+              </div>
+              {composed.compactMoreStories.length > 0 ? (
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {composed.compactMoreStories.map((article) => (
+                    <StoryCard
+                      key={articleDedupeKey(article)}
+                      article={article}
+                      lang={lang}
+                      categoryLabel={activeCategoryLabel}
+                      variant="compact"
+                    />
+                  ))}
+                </div>
+              ) : null}
+            </section>
 
-      <div className="space-y-3">
-        {items.map((a, i) => (
-          <button
-            type="button"
-            key={`${articleDedupeKey(a)}-${i}`}
-            className="w-full text-left p-3 rounded-2xl border border-black/10 bg-white/60 hover:bg-white/80 transition"
-            onClick={() => setModal(a)}
-          >
-            <p className="text-[color:var(--lx-text-2)] font-semibold leading-snug line-clamp-3">{a.title}</p>
-          </button>
-        ))}
+            <p className="mt-14 border-t border-[color:var(--lx-gold-border)] pt-6 text-xs leading-relaxed text-[color:var(--lx-muted)]">
+              {L.editorialNote}
+            </p>
+          </>
+        )}
       </div>
-    </div>
+    </main>
   );
 }

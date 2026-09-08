@@ -7,7 +7,7 @@ import { getServiciosProfileLabels, getServiciosPromocionesSectionCopy } from ".
 import { hasOfferSectionResolved } from "../lib/serviciosProfilePresence";
 import { SV } from "./serviciosDesignTokens";
 import { LX, LX_SECTION_CARD, LX_SECTION_HEADING } from "./serviciosLeonixBrand";
-import { ServiciosPromoImageLightbox } from "./ServiciosPromoImageLightbox";
+import { BusinessFlyerViewerModal } from "@/app/components/media/BusinessFlyerViewerModal";
 import { serviciosAnalyticsTrackMeta, trackServiciosListingCta } from "../lib/serviciosCtaIntents";
 
 type PromoRow = ServiciosProfileResolved["promotions"][number];
@@ -116,7 +116,7 @@ function PromoCtaButton({
     trackServiciosListingCta(listingSlug, eventType, { ...analyticsMeta, source: "promo_card", promoKind: kind });
   };
 
-  if (kind === "image") {
+  if (kind === "image" || kind === "pdf") {
     return (
       <button
         type="button"
@@ -407,11 +407,12 @@ export function ServiciosPromocionesCard({
 
   return (
     <>
-      <ServiciosPromoImageLightbox
-        src={lightboxSrc}
+      <BusinessFlyerViewerModal
+        open={lightboxSrc != null}
+        href={lightboxSrc ?? ""}
         onClose={closeLightbox}
+        title={L.promoImageLightboxAria}
         closeLabel={L.promoModalClose}
-        dialogLabel={L.promoImageLightboxAria}
       />
       <section
         className={premiumLeonixTone ? "scroll-mt-24" : "rounded-2xl border p-3 shadow-sm sm:p-6 md:p-8"}

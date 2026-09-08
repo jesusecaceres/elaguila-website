@@ -7,6 +7,7 @@ import CityAutocomplete from "../../../components/CityAutocomplete";
 import { createSupabaseBrowserClient } from "../../../lib/supabase/browser";
 import { getCanonicalCityName } from "../../../data/locations/californiaLocationHelpers";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+import { LX_DASH } from "../lib/dashboardLeonixTheme";
 import { fetchDashboardProfile } from "../lib/dashboardProfile";
 
 export const dynamic = "force-dynamic";
@@ -435,6 +436,7 @@ function ProfilePageContent() {
       email={email}
       accountRef={accountRef}
       ownerId={userId}
+      contentLayout="workbench"
     >
       {loading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">
@@ -443,7 +445,7 @@ function ProfilePageContent() {
       ) : (
         <>
           <header>
-            <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">{title}</h1>
+            <h1 className={LX_DASH.pageTitle}>{title}</h1>
             <p className="mt-2 text-sm text-[#5C5346]/95">{subtitle}</p>
             {userId ? (
               <p className="mt-1 font-mono text-[11px] text-[#7A7164]">

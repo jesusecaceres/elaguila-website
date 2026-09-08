@@ -7,7 +7,7 @@ import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/categoryStandard/categoryStandardRoutes";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { CommunityDiscoveryListingCard } from "@/app/(site)/clasificados/community/CommunityDiscoveryListingCard";
-import { buildCommunityDiscoveryCardModel } from "@/app/(site)/clasificados/community/shared/communityDiscoveryListingCardModel";
+import { buildCommunityDiscoveryCardModel } from "@/app/(site)/clasificados/community/shared/communityDiscoveryCardModelDispatch";
 import { prepareComunidadDiscoveryRows } from "@/app/(site)/clasificados/community/shared/communityEventDiscoveryExpiration";
 import {
   fetchPublishedCommunityCategoryListings,

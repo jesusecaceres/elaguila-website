@@ -2,12 +2,25 @@
 
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
+import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
 
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
+import { OwnerEntityWorkspace } from "../../components/OwnerEntityWorkspace";
+import type { OwnerEntityActivityItem } from "../../components/OwnerEntityActivity";
+import type { ActionItem } from "../../components/DashboardListingActionBar";
+import { getOwnerEntityCapabilities, isLiveCapability } from "../../lib/ownerEntityCapabilityRegistry";
+import { resolveListingUiStatus, listingUiStatusLabel, listingUiStatusChipClass } from "../../lib/listingDisplayStatus";
+import {
+  editListingLabel,
+  publicViewLabel,
+  pauseListingLabel,
+  resumeListingLabel,
+  archiveListingLabel,
+} from "../../lib/dashboardMisAnunciosCategoryTools";
+import { ownerToolsTitle, ownerApplicationsModuleTitle } from "../../lib/dashboardI18n";
 
 export const dynamic = "force-dynamic";
 
@@ -38,8 +51,19 @@ type AppRow = {
   created_at: string;
 };
 
-const BTN =
-  "inline-flex items-center justify-center rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 text-xs font-bold text-[#1E1810] hover:bg-[#FAF7F2] disabled:opacity-40";
+function laneLabel(lane: string, lang: Lang): string {
+  if (lane === "quick") return lang === "es" ? "Empleo local" : "Local job ad";
+  if (lane === "premium") return lang === "es" ? "Preservado (premium)" : "Preserved (premium)";
+  if (lane === "feria") return lang === "es" ? "Feria de empleo" : "Job fair";
+  return lane;
+}
+
+function empleosEditHref(lane: string, id: string, q: string): string | null {
+  if (lane === "quick") return `/publicar/empleos/quick?edit=${id}&${q}`;
+  if (lane === "premium") return `/publicar/empleos/premium?edit=${id}&${q}`;
+  if (lane === "feria") return `/publicar/empleos/feria?edit=${id}&${q}`;
+  return null;
+}
 
 function EmpleosEmployerManagePageContent() {
   const params = useParams();
@@ -48,41 +72,52 @@ function EmpleosEmployerManagePageContent() {
   const sp = useSearchParams();
   const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
   const q = `lang=${lang}`;
+  const capabilities = getOwnerEntityCapabilities("empleos");
 
   const t = useMemo(
     () =>
       lang === "es"
         ? {
-            title: "Gestionar vacante",
             loading: "Cargando…",
             notFound: "No encontramos este listado o no tienes acceso.",
             back: "Volver a mis vacantes",
-            applications: "Solicitudes",
-            noApps: "Sin solicitudes aún.",
-            status: "Estado",
-            actions: "Acciones",
+            noApps: "Sin aplicaciones aún.",
+            company: "Empresa",
+            updated: "Actualizado",
+            published: "Publicado",
             moderation: "Moderación",
-            applyCount: "Solicitudes",
-            viewCount: "Vistas",
+            views: "Vistas",
+            applications: "Aplicaciones",
             setViewed: "Marcar visto",
             setShort: "Preseleccionar",
             setReject: "Rechazar",
+            moreOptions: "Más opciones",
+            moreOptionsClose: "Cerrar",
+            performanceTitle: "Rendimiento",
+            feriaNote:
+              "Esta publicación usa contacto del organizador en la página pública. Leonix no recopila aplicaciones internas para ferias.",
+            eyebrow: "Empleos",
           }
         : {
-            title: "Manage listing",
             loading: "Loading…",
             notFound: "We could not find this listing or you do not have access.",
             back: "Back to my listings",
-            applications: "Applications",
             noApps: "No applications yet.",
-            status: "Status",
-            actions: "Actions",
-            applyCount: "Applications",
-            viewCount: "Views",
+            company: "Company",
+            updated: "Updated",
+            published: "Published",
             moderation: "Moderation",
+            views: "Views",
+            applications: "Applications",
             setViewed: "Mark viewed",
             setShort: "Shortlist",
             setReject: "Reject",
+            moreOptions: "More options",
+            moreOptionsClose: "Close",
+            performanceTitle: "Performance",
+            feriaNote:
+              "This post uses organizer contact on the public page. Leonix does not collect internal applications for job fairs.",
+            eyebrow: "Jobs",
           },
     [lang],
   );
@@ -90,13 +125,12 @@ function EmpleosEmployerManagePageContent() {
   const [loading, setLoading] = useState(true);
   const [row, setRow] = useState<ListingRow | null>(null);
   const [apps, setApps] = useState<AppRow[]>([]);
+  const [appsLoaded, setAppsLoaded] = useState(false);
   const [ownerId, setOwnerId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const refresh = useCallback(async () => {
+  const refreshListing = useCallback(async () => {
     const supabase = createSupabaseBrowserClient();
-    // Gate I.13A — the applications fetch below previously wasn't guarded; a thrown
-    // error there skipped setLoading(false) and left the page stuck on the loading
-    // spinner forever.
     try {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) {
@@ -110,15 +144,6 @@ function EmpleosEmployerManagePageContent() {
         return;
       }
       setRow(listing as ListingRow);
-      const { data: session } = await supabase.auth.getSession();
-      const token = session.session?.access_token;
-      if (token) {
-        const res = await fetch(`/api/clasificados/empleos/listings/${listingId}/applications`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = (await res.json()) as { ok?: boolean; rows?: AppRow[] };
-        if (json.ok && json.rows) setApps(json.rows);
-      }
     } catch (err) {
       console.error("[dashboard/empleos/listing] refresh failed", err);
       setRow(null);
@@ -127,9 +152,35 @@ function EmpleosEmployerManagePageContent() {
     }
   }, [listingId, router]);
 
+  const refreshApplications = useCallback(async () => {
+    const supabase = createSupabaseBrowserClient();
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const token = session.session?.access_token;
+      if (!token) return;
+      const res = await fetch(`/api/clasificados/empleos/listings/${listingId}/applications`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = (await res.json()) as { ok?: boolean; rows?: AppRow[] };
+      if (json.ok && json.rows) setApps(json.rows);
+    } catch (err) {
+      console.error("[dashboard/empleos/listing] applications load failed", err);
+    } finally {
+      setAppsLoaded(true);
+    }
+  }, [listingId]);
+
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    void refreshListing();
+  }, [refreshListing]);
+
+  useEffect(() => {
+    if (!row || row.lane === "feria") {
+      setAppsLoaded(true);
+      return;
+    }
+    void refreshApplications();
+  }, [row, refreshApplications]);
 
   async function patchAppStatus(appId: string, status: "viewed" | "shortlisted" | "rejected") {
     const supabase = createSupabaseBrowserClient();
@@ -142,7 +193,7 @@ function EmpleosEmployerManagePageContent() {
       body: JSON.stringify({ status }),
     });
     const json = (await res.json()) as { ok?: boolean };
-    if (json.ok) void refresh();
+    if (json.ok) void refreshApplications();
   }
 
   async function patchStatus(next: "published" | "paused" | "archived") {
@@ -150,18 +201,23 @@ function EmpleosEmployerManagePageContent() {
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
     if (!token) return;
-    const res = await fetch(`/api/clasificados/empleos/listings/${listingId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ lifecycle_status: next }),
-    });
-    const json = (await res.json()) as { ok?: boolean };
-    if (json.ok) void refresh();
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/clasificados/empleos/listings/${listingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ lifecycle_status: next }),
+      });
+      const json = (await res.json()) as { ok?: boolean };
+      if (json.ok) void refreshListing();
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (loading) {
     return (
-      <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId}>
+      <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId} contentLayout="workbench">
         <p className="text-sm text-[#5C5346]">{t.loading}</p>
       </LeonixDashboardShell>
     );
@@ -169,7 +225,7 @@ function EmpleosEmployerManagePageContent() {
 
   if (!row) {
     return (
-      <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId}>
+      <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId} contentLayout="workbench">
         <p className="text-[#5C5346]">{t.notFound}</p>
         <Link href={`/dashboard/empleos?${q}`} className="mt-4 inline-block font-semibold underline">
           {t.back}
@@ -178,99 +234,116 @@ function EmpleosEmployerManagePageContent() {
     );
   }
 
+  const uiStatus = resolveListingUiStatus({ status: row.lifecycle_status });
+  const editHref = empleosEditHref(row.lane, row.id, q);
+  const supportsApplications = row.lane !== "feria" && isLiveCapability(capabilities.specialized.applications);
+
+  const detailItems = [
+    row.company_name ? { label: t.company, value: row.company_name } : null,
+    row.published_at ? { label: t.published, value: new Date(row.published_at).toLocaleString(lang === "es" ? "es-US" : "en-US") } : null,
+    row.updated_at ? { label: t.updated, value: new Date(row.updated_at).toLocaleString(lang === "es" ? "es-US" : "en-US") } : null,
+  ].filter((x): x is { label: string; value: string } => x !== null);
+
+  const performanceMetrics = [
+    typeof row.view_count === "number" ? { key: "views", label: t.views, value: row.view_count } : null,
+    supportsApplications && typeof row.apply_count === "number"
+      ? { key: "applications", label: t.applications, value: row.apply_count }
+      : null,
+  ].filter((x): x is { key: string; label: string; value: number } => x !== null);
+
+  const quickActions: ActionItem[] = [];
+  if (row.lifecycle_status === "published" && isLiveCapability(capabilities.identity.publicView)) {
+    quickActions.push({
+      href: appendLangToPath(`/clasificados/empleos/${row.slug}`, lang),
+      label: publicViewLabel(lang),
+      tone: "secondary",
+    });
+  }
+
+  const lifecycleActions: ActionItem[] = [];
+  if (isLiveCapability(capabilities.lifecycle.pause) && row.lifecycle_status === "published") {
+    lifecycleActions.push({ label: pauseListingLabel(lang), onClick: () => void patchStatus("paused"), disabled: busy, tone: "warning" });
+  }
+  if (
+    isLiveCapability(capabilities.lifecycle.reactivate) &&
+    (row.lifecycle_status === "paused" || row.lifecycle_status === "archived" || row.lifecycle_status === "draft")
+  ) {
+    lifecycleActions.push({ label: resumeListingLabel(lang), onClick: () => void patchStatus("published"), disabled: busy, tone: "positive" });
+  }
+  if (isLiveCapability(capabilities.lifecycle.archive) && row.lifecycle_status !== "archived") {
+    lifecycleActions.push({ label: archiveListingLabel(lang), onClick: () => void patchStatus("archived"), disabled: busy, tone: "danger" });
+  }
+
+  const activityItems: OwnerEntityActivityItem[] = supportsApplications
+    ? apps.map((a) => {
+        const extra =
+          a.answers_json && typeof a.answers_json === "object" && Object.keys(a.answers_json as object).length
+            ? `\n${JSON.stringify(a.answers_json, null, 2)}`
+            : "";
+        return {
+          id: a.id,
+          actor: a.applicant_name,
+          date: a.created_at,
+          contactHref: a.applicant_email ? `mailto:${a.applicant_email}` : null,
+          contactLabel: a.applicant_email || null,
+          message: `${a.message ?? ""}${extra}`.trim(),
+          status: a.status,
+          actions: [
+            { label: t.setViewed, onClick: () => void patchAppStatus(a.id, "viewed"), tone: "secondary" },
+            { label: t.setShort, onClick: () => void patchAppStatus(a.id, "shortlisted"), tone: "positive" },
+            { label: t.setReject, onClick: () => void patchAppStatus(a.id, "rejected"), tone: "danger" },
+          ],
+        };
+      })
+    : [];
+
   return (
-    <LeonixDashboardShell lang={lang} activeNav="listings" plan="free" userName={null} email={null} accountRef={null} ownerId={ownerId}>
-      <header className="mb-8">
-        <h1 className="text-2xl font-bold text-[#1E1810]">{t.title}</h1>
-        <p className="mt-2 text-sm text-[#5C5346]">{row.title}</p>
-        <p className="text-xs text-[#7A7164]">{row.company_name}</p>
-        <p className="mt-2 text-xs">
-          <span className="font-semibold">{t.status}:</span> {row.lifecycle_status}
-        </p>
-        {row.lane !== "feria" && typeof row.apply_count === "number" ? (
-          <p className="mt-1 text-xs">
-            <span className="font-semibold">{t.applyCount}:</span> {row.apply_count}
-          </p>
-        ) : null}
-        {typeof row.view_count === "number" ? (
-          <p className="mt-1 text-xs">
-            <span className="font-semibold">{t.viewCount}:</span> {row.view_count}
-          </p>
-        ) : null}
-        {row.moderation_reason ? (
-          <p className="mt-2 rounded-lg border border-amber-200/80 bg-amber-50/90 p-2 text-xs text-[#5C5346]">
-            <span className="font-semibold">{t.moderation}:</span> {row.moderation_reason}
-          </p>
-        ) : null}
-      </header>
-
-      <div className="mb-8 flex flex-wrap gap-2">
-        <button type="button" className={BTN} onClick={() => void patchStatus("published")}>
-          Publish
-        </button>
-        <button type="button" className={BTN} onClick={() => void patchStatus("paused")}>
-          Pause
-        </button>
-        <button type="button" className={BTN} onClick={() => void patchStatus("archived")}>
-          Archive
-        </button>
-        {row.lifecycle_status === "published" ? (
-          <Link href={appendLangToPath(`/clasificados/empleos/${row.slug}`, lang)} className={`${BTN} border-[#C9B46A]`}>
-            Public
-          </Link>
-        ) : null}
-      </div>
-
-      <section className="rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7]/95 p-5">
-        {row.lane === "feria" ? (
-          <>
-            <h2 className="text-sm font-bold uppercase text-[#7A7164]">
-              {lang === "es" ? "Feria de empleo" : "Job fair"}
-            </h2>
-            <p className="mt-2 text-sm text-[#5C5346]">
-              {lang === "es"
-                ? "Esta publicación usa contacto del organizador en la página pública. Leonix no recopila solicitudes internas para ferias."
-                : "This post uses organizer contact on the public page. Leonix does not collect internal applications for job fairs."}
-            </p>
-          </>
-        ) : (
-          <>
-            <h2 className="text-sm font-bold uppercase text-[#7A7164]">{t.applications}</h2>
-            {apps.length === 0 ? (
-              <p className="mt-2 text-sm text-[#5C5346]">{t.noApps}</p>
-            ) : (
-              <ul className="mt-3 space-y-3 text-sm">
-                {apps.map((a) => (
-                  <li key={a.id} className="rounded-lg border border-[#E8DFD0]/80 bg-white p-3">
-                    <p className="font-semibold text-[#1E1810]">{a.applicant_name}</p>
-                    <p className="text-xs text-[#7A7164]">{a.applicant_email}</p>
-                    <p className="mt-2 text-[#4A4744]">{a.message}</p>
-                    {a.answers_json && typeof a.answers_json === "object" && Object.keys(a.answers_json as object).length ? (
-                      <pre className="mt-2 max-h-32 overflow-auto rounded bg-[#FAF7F2] p-2 text-[11px] text-[#4A4744]">
-                        {JSON.stringify(a.answers_json, null, 2)}
-                      </pre>
-                    ) : null}
-                    <p className="mt-1 text-[10px] uppercase text-[#9A9084]">{a.status}</p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <button type="button" className={BTN} onClick={() => void patchAppStatus(a.id, "viewed")}>
-                        {t.setViewed}
-                      </button>
-                      <button type="button" className={BTN} onClick={() => void patchAppStatus(a.id, "shortlisted")}>
-                        {t.setShort}
-                      </button>
-                      <button type="button" className={BTN} onClick={() => void patchAppStatus(a.id, "rejected")}>
-                        {t.setReject}
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </>
-        )}
-      </section>
-
-      <Link href={`/dashboard/empleos?${q}`} className="mt-10 inline-flex text-sm font-semibold underline">
+    <LeonixDashboardShell
+      lang={lang}
+      activeNav="listings"
+      plan="free"
+      userName={null}
+      email={null}
+      accountRef={null}
+      ownerId={ownerId}
+      contentLayout="workbench"
+    >
+      <OwnerEntityWorkspace
+        lang={lang}
+        header={{
+          eyebrow: t.eyebrow,
+          title: row.title,
+          subtitle: row.company_name,
+          statusLabel: listingUiStatusLabel(uiStatus, lang),
+          statusChipClass: listingUiStatusChipClass(uiStatus),
+          badges: [laneLabel(row.lane, lang)],
+        }}
+        note={row.moderation_reason ? { text: `${t.moderation}: ${row.moderation_reason}`, tone: "warning" } : null}
+        detailItems={detailItems}
+        performance={performanceMetrics.length > 0 ? { title: t.performanceTitle, metrics: performanceMetrics } : undefined}
+        primaryAction={{ href: editHref ?? `/dashboard/empleos/${row.id}?${q}`, label: editListingLabel(lang) }}
+        quickActions={quickActions}
+        lifecycleActions={lifecycleActions}
+        specialized={{
+          title: ownerToolsTitle(lang),
+          actions: supportsApplications
+            ? [{ href: `#empleos-applications`, label: ownerApplicationsModuleTitle(lang), tone: "premium" }]
+            : [],
+        }}
+        activity={
+          supportsApplications
+            ? {
+                title: ownerApplicationsModuleTitle(lang),
+                items: activityItems,
+                emptyLabel: appsLoaded ? t.noApps : t.loading,
+              }
+            : undefined
+        }
+        mobileSheetLabels={{ trigger: t.moreOptions, title: t.moreOptions, close: t.moreOptionsClose }}
+        footerHint={row.lane === "feria" ? t.feriaNote : null}
+      />
+      {supportsApplications ? <div id="empleos-applications" className="sr-only" /> : null}
+      <Link href={`/dashboard/empleos?${q}`} className="mt-6 inline-flex text-sm font-semibold underline">
         ← {t.back}
       </Link>
     </LeonixDashboardShell>

@@ -111,6 +111,11 @@ export async function createRevenueStripeCheckoutSession(
     packageKey: input.packageDef.packageKey,
     placementTier: input.packageDef.placementTierKey,
     billingMode: input.packageDef.billingMode,
+    amountCents: input.amountCents,
+    currency: input.currency,
+    durationDays: input.packageDef.durationDays,
+    aiIncluded: input.packageDef.category === "ofertas-locales" ? true : null,
+    workflow: input.packageDef.category === "ofertas-locales" ? "ofertas_locales_package_5_checkout" : "category_checkout",
     promoCodeId: input.promoCodeId,
     promoRedemptionId: input.promoRedemptionId,
   });

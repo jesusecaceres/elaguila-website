@@ -98,14 +98,17 @@ if (!middleware.includes("hasPreviewBypassCookie")) {
 }
 ok("Coming Soon lock checks preview cookie in middleware");
 
-// 13. Existing admin/staff auth preserved
+// 13. Existing admin/staff auth preserved. The public Coming Soon gate itself has since been
+// intentionally retired by owner decision (ComingSoonGateRoot now always renders children), so
+// it no longer references requireAdminCookie — that's expected, not a regression. The still-real
+// /admin login gate in middleware is what actually protects admin, and remains untouched.
 if (!middleware.includes('req.cookies.get(ADMIN_COOKIE)?.value === "1"')) {
   fail("middleware must preserve leonix_admin bypass");
 }
-if (!gateRoot.includes("requireAdminCookie")) {
-  fail("ComingSoonGateRoot must preserve requireAdminCookie bypass");
+if (gateRoot.includes("NEXT_PUBLIC_COMING_SOON_LOCK")) {
+  fail("ComingSoonGateRoot must not still read the retired public launch lock flag");
 }
-ok("existing admin/staff auth behavior preserved");
+ok("existing admin/staff auth behavior preserved; public launch gate confirmed retired");
 
 // 14. Secret not hardcoded
 const scanFiles = [

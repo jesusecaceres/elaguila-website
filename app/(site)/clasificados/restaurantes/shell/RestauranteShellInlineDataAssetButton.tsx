@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { RestauranteShellDataUrlModal } from "./RestauranteShellDataUrlModal";
+import { BusinessFlyerViewerModal } from "@/app/components/media/BusinessFlyerViewerModal";
 
 /** Menu/brochure file: data URLs open in modal; http(s) keep normal link (optional new tab for external). */
 export function RestauranteShellInlineDataAssetButton({
@@ -20,7 +20,7 @@ export function RestauranteShellInlineDataAssetButton({
         <button type="button" onClick={() => setOpen(true)} className={className}>
           {label}
         </button>
-        <RestauranteShellDataUrlModal open={open} onClose={() => setOpen(false)} href={href} title={label} />
+        <BusinessFlyerViewerModal open={open} onClose={() => setOpen(false)} href={href} title={label} />
       </>
     );
   }

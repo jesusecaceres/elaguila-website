@@ -28,6 +28,7 @@ import {
 } from "@/app/lib/auth/dashboardPasswordMode";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+import { LX_DASH } from "../lib/dashboardLeonixTheme";
 import { fetchDashboardProfile } from "../lib/dashboardProfile";
 
 export const dynamic = "force-dynamic";
@@ -325,6 +326,7 @@ function DashboardSecurityPageContent() {
       email={email}
       accountRef={null}
       ownerId={ownerId}
+      contentLayout="workbench"
     >
       {loading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">
@@ -333,7 +335,7 @@ function DashboardSecurityPageContent() {
       ) : (
         <>
           <header>
-            <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">
+            <h1 className={LX_DASH.pageTitle}>
               {mode === "recovery"
                 ? t.recoveryTitle
                 : mode === "oauth_create"

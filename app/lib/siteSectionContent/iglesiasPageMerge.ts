@@ -4,16 +4,16 @@ const BASE = {
   es: {
     title: "Iglesias",
     subtitle:
-      "Muy pronto: un directorio gratuito y neutral para ayudar a familias a encontrar un lugar de adoración. Sin rankings pagados. Sin monetización.",
-    note: "¿Tu iglesia quiere aparecer aquí cuando abramos? Escríbenos por ahora desde la página de Contacto.",
-    backCta: "Volver a Clasificados",
+      "La oración es para todos. Iglesias existe para ayudar a las personas a encontrar apoyo, comunidad de fe y una iglesia cerca. Leonix no vende posiciones, no rankingea congregaciones y no respalda una teología.",
+    note: "¿Representas una iglesia? Envía los datos de tu congregación. Revisamos cada solicitud antes de publicarla.",
+    backCta: "Volver a Iglesias",
   },
   en: {
     title: "Churches",
     subtitle:
-      "Coming soon: a free, neutral directory to help families find a place of worship. No paid rankings. No monetization.",
-    note: "Want your church listed when we open? For now, please reach out using the Contact page.",
-    backCta: "Back to Classifieds",
+      "Prayer is for everyone. Iglesias exists to help people find support, faith community, and a church nearby. Leonix does not sell rankings, does not rank congregations, and does not endorse a theology.",
+    note: "Do you represent a church? Submit your congregation. Every application is reviewed before it is published.",
+    backCta: "Back to Churches",
   },
 };
 

@@ -16,6 +16,7 @@ export const COMIDA_LOCAL_ANALYTICS_EVENT_TYPES = [
   "call_click",
   "sms_click",
   "whatsapp_click",
+  "email_click",
   "instagram_click",
   "facebook_click",
   "tiktok_click",
@@ -97,6 +98,8 @@ export function mapComidaLocalEventToGlobal(
       return "message_click";
     case "whatsapp_click":
       return "whatsapp_click";
+    case "email_click":
+      return "email_click";
     case "instagram_click":
     case "facebook_click":
     case "tiktok_click":
@@ -120,6 +123,8 @@ export function comidaLocalContactActionToEventType(
       return "sms_click";
     case "whatsapp":
       return "whatsapp_click";
+    case "email":
+      return "email_click";
     case "instagram":
       return "instagram_click";
     case "facebook":

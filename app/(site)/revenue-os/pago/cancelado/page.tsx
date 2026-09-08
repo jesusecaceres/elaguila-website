@@ -27,6 +27,7 @@ export default async function RevenueOsPagoCanceladoPage({
 
   const paidDespiteCancel =
     proof?.found && proof.paymentState === "confirmed" && proof.entitlementState === "active";
+  const isOfertas = category === "ofertas-locales" || proof?.category === "ofertas-locales";
 
   const dashboardHref = lang === "es" ? "/dashboard/mis-anuncios?lang=es" : "/dashboard/mis-anuncios?lang=en";
   const returnHref = resolveRevenueOsSuccessReturnPath({
@@ -49,8 +50,12 @@ export default async function RevenueOsPagoCanceladoPage({
         {paidDespiteCancel ? (
           <p className="mt-3 text-sm leading-relaxed text-emerald-900">
             {lang === "es"
-              ? "Encontramos un pago confirmado para esta sesión. Tu plan del anuncio ya está activo."
-              : "We found a confirmed payment for this session. Your ad plan is already active."}
+              ? isOfertas
+                ? "Encontramos un pago confirmado para esta sesión. Tu entitlement está listo, pero la oferta aún requiere revisión y aprobación."
+                : "Encontramos un pago confirmado para esta sesión. Tu plan del anuncio ya está activo."
+              : isOfertas
+                ? "We found a confirmed payment for this session. Your entitlement is ready, but the listing still requires review and approval."
+                : "We found a confirmed payment for this session. Your ad plan is already active."}
           </p>
         ) : (
           <p className="mt-3 text-sm leading-relaxed text-[#5C5346]">

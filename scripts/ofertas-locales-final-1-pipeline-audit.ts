@@ -19,8 +19,11 @@ const PUBLIC_PAGE = "app/(site)/clasificados/ofertas-locales/page.tsx";
 const PUBLIC_CLIENT = "app/(site)/clasificados/ofertas-locales/OfertasLocalesPublicSearchClient.tsx";
 const APP_CLIENT = "app/(site)/publicar/ofertas-locales/OfertasLocalesApplicationClient.tsx";
 const APP_COPY = "app/(site)/publicar/ofertas-locales/ofertasLocalesApplicationCopy.ts";
+const PREVIEW_COPY = "app/(site)/publicar/ofertas-locales/preview/ofertasLocalesPreviewCopy.ts";
+const PREVIEW_CLIENT = "app/(site)/publicar/ofertas-locales/preview/OfertasLocalesPreviewClient.tsx";
 const PUBLISH_MAPPER = "app/lib/ofertas-locales/ofertasLocalesPublishMapper.ts";
 const HUB_PAGE = "app/(site)/clasificados/page.tsx";
+const FEATURED_MODULE = "app/(site)/clasificados/_components/ClasificadosFeaturedOfertasModule.tsx";
 const PUBLIC_COPY = "app/(site)/clasificados/ofertas-locales/ofertasLocalesPublicSearchCopy.ts";
 
 const STACK_PATTERNS = [
@@ -29,8 +32,14 @@ const STACK_PATTERNS = [
   /^app\/\(site\)\/publicar\/ofertas-locales\//,
   /^app\/\(site\)\/clasificados\/ofertas-locales\//,
   /^app\/\(site\)\/clasificados\/page\.tsx$/,
+  /^app\/\(site\)\/clasificados\/_components\/ClasificadosFeaturedOfertasModule\.tsx$/,
   /^package\.json$/,
   /^scripts\/ofertas-locales-final-1-pipeline-audit\.ts$/,
+  /^scripts\/ofertas-package-13-/,
+  /^scripts\/ofertas-package-11-local-certification-audit\.mjs$/,
+  /^scripts\/ofertas-locales-/,
+  /^docs\/OFERTAS_PACKAGE_13_/,
+  /^tests\/ofertas-locales\/scenarios\//,
 ] as const;
 
 function read(rel: string): string {
@@ -73,14 +82,17 @@ function run() {
   assert.ok(exists(PUBLISH_ROUTE), "publish API must exist");
   assert.ok(exists(PUBLIC_PAGE), "public route must exist");
   assert.ok(exists(PUBLIC_CLIENT), "public search client must exist");
+  assert.ok(exists(APP_CLIENT), "application client must exist");
 
   const publish = read(PUBLISH_ROUTE);
   const offersRoute = read(PUBLIC_OFFERS_ROUTE);
   const client = read(PUBLIC_CLIENT);
-  const app = read(APP_CLIENT);
   const appCopy = read(APP_COPY);
+  const previewCopy = read(PREVIEW_COPY);
+  const previewClient = read(PREVIEW_CLIENT);
   const mapper = read(PUBLISH_MAPPER);
   const hub = read(HUB_PAGE);
+  const featuredModule = read(FEATURED_MODULE);
   const pubCopy = read(PUBLIC_COPY);
   const pkg = read("package.json");
 
@@ -91,14 +103,15 @@ function run() {
   assert.ok(!publish.includes("published") && !publish.includes("live"), "publish does not publish/live");
 
   assert.ok(
-    appCopy.includes("Enviar para revisión") && appCopy.includes("Submit for review"),
-    "submit for review copy"
+    (appCopy.includes("Enviar a Leonix para aprobación") || previewCopy.includes("Enviar a Leonix para aprobación")) &&
+      (appCopy.includes("Send to Leonix for approval") || previewCopy.includes("Send to Leonix for approval")),
+    "send to Leonix for approval copy"
   );
   assert.ok(
     appCopy.includes("no aparecerá públicamente") || appCopy.includes("will not appear publicly"),
     "reviewed-before-public copy"
   );
-  assert.ok(app.includes("submitForReview") || app.includes("submitOfertaLocalDraftForReview"), "wizard submits");
+  assert.ok(previewClient.includes("submitOfertaLocalDraftForReview"), "preview submits to Leonix");
 
   assert.ok(exists(PUBLIC_OFFERS_ROUTE), "public offers API exists");
   assert.ok(offersRoute.includes('"status", "approved"') || offersRoute.includes('.eq("status", "approved")'), "offers API approved only");
@@ -111,7 +124,8 @@ function run() {
   assert.ok(pubCopy.includes("Ofertas Locales") || pubCopy.includes("Local Deals"), "landing hero copy");
   assert.ok(client.includes("pipelineEmptyTitle") || pubCopy.includes("Todavía estamos agregando"), "pipeline empty state");
   assert.ok(client.includes("/publicar/ofertas-locales"), "business CTA to publish");
-  assert.ok(hub.includes("/clasificados/ofertas-locales"), "hub links to public route");
+  assert.ok(hub.includes("ClasificadosFeaturedOfertasModule"), "hub renders featured Ofertas module");
+  assert.ok(featuredModule.includes("/clasificados/ofertas-locales"), "hub module links to public route");
 
   const changed = changedFiles().filter(isStackFile);
   assert.ok(!changed.some((f) => f.startsWith("app/admin/")), "admin untouched");
