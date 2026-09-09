@@ -274,3 +274,73 @@ export async function listEventsForCommitment(commitmentId: string, businessId: 
   if (error || !data) return [];
   return (data as Record<string, unknown>[]).map(mapEventRow);
 }
+
+export type CommitmentAttentionReason = "blocked" | "overdue";
+
+export type CommitmentAttentionRow = {
+  businessId: string;
+  displayName: string;
+  commitmentId: string;
+  titleEn: string;
+  dueAt: string | null;
+  reason: CommitmentAttentionReason;
+};
+
+const COMMITMENT_ATTENTION_LIMIT = 20;
+
+/**
+ * Gate 1 — bounded Command Center read model: blocked or overdue commitments only. Blocked rows
+ * are listed first (more severe than a merely-late date). Two queries max total (commitments +
+ * matching businesses, run as two small lookups plus one batch business lookup). Not N+1.
+ */
+export async function listCommitmentsAttentionForStaffAttention(): Promise<CommitmentAttentionRow[]> {
+  const supabase = getAdminSupabase();
+  const nowIso = new Date().toISOString();
+  const [blockedResult, overdueResult] = await Promise.all([
+    supabase
+      .from("business_commitments")
+      .select("id, business_id, title_en, due_at")
+      .eq("status", "blocked")
+      .order("updated_at", { ascending: false })
+      .limit(COMMITMENT_ATTENTION_LIMIT),
+    supabase
+      .from("business_commitments")
+      .select("id, business_id, title_en, due_at")
+      .eq("status", "active")
+      .not("due_at", "is", null)
+      .lt("due_at", nowIso)
+      .order("due_at", { ascending: true })
+      .limit(COMMITMENT_ATTENTION_LIMIT),
+  ]);
+  if (blockedResult.error || overdueResult.error) return [];
+
+  const rows: CommitmentAttentionRow[] = [
+    ...((blockedResult.data ?? []) as Record<string, unknown>[]).map((row) => ({
+      businessId: String(row.business_id),
+      displayName: "",
+      commitmentId: String(row.id),
+      titleEn: String(row.title_en ?? ""),
+      dueAt: (row.due_at as string | null) ?? null,
+      reason: "blocked" as const,
+    })),
+    ...((overdueResult.data ?? []) as Record<string, unknown>[]).map((row) => ({
+      businessId: String(row.business_id),
+      displayName: "",
+      commitmentId: String(row.id),
+      titleEn: String(row.title_en ?? ""),
+      dueAt: (row.due_at as string | null) ?? null,
+      reason: "overdue" as const,
+    })),
+  ].slice(0, COMMITMENT_ATTENTION_LIMIT);
+  if (rows.length === 0) return [];
+
+  const businessIds = [...new Set(rows.map((r) => r.businessId))];
+  const { data: businesses, error: businessError } = await supabase
+    .from("businesses")
+    .select("id, display_name")
+    .in("id", businessIds);
+  if (businessError || !businesses) return [];
+
+  const names = new Map((businesses as Record<string, unknown>[]).map((row) => [String(row.id), String(row.display_name ?? "")]));
+  return rows.map((row) => ({ ...row, displayName: names.get(row.businessId) || "Business" }));
+}
