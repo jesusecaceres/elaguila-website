@@ -920,4 +920,129 @@ NOT DONE THIS PASS: PREVIEW/PUBLIC-read runtime click-through verification for e
     Experience Globals), Wave 5 (Admin OS + G22 moderation UI), Wave 6 (Commercial/Revenue), Wave 7
     (Special Category Contracts), Wave 8 (Platform Finish), Final Reconciliation, and the mandatory
     Owner QA Playbook are all not yet started as of this section.
+
+================================================================================
+SECTION 26 -- GLOBALIZATION FINAL EXECUTION -- WAVE 3 (PUBLIC EXPERIENCE GLOBALS)
+G09-G12 + G25-G30 AUDIT AND G12 FIX -- 2026-09-09
+================================================================================
+
+CONTEXT: dispatched 2 parallel research agents (read-only, no edits) to trace G09 Media,
+    G10 Gallery/Photo/Video, G11 Flyer/Coupon Viewer, G12 Phone/SMS/WhatsApp, G25 Saved Search,
+    G26 Save/Like/Share/Report, G27 Analytics, G28 Search/Results/Filters, G29 Related Listings,
+    G30 Business Hub across every category, per Coach's Wave 3 scope. Findings below are
+    evidence-backed (file:line citations retained by the agents, summarized here); one concrete,
+    well-scoped defect (G12) was fixed and verified this pass. The rest are recorded as real,
+    named, NOT-yet-fixed findings -- explicitly not silently dropped, per standing instruction.
+
+--- G12 PHONE/SMS/WHATSAPP: TRUE_SOURCE, FIXED (see also commit 9ae1a0f2) ---
+  Confirmed: `formatPhoneInputDisplay` (serviciosPhoneUi.ts) hard-truncates to 10 digits and
+  forces US grouping -- correct and intentional for Servicios' own primary-phone contract, but
+  6 other call sites imported it directly for THEIR OWN primary/dealer/finance phone fields,
+  silently corrupting any real international number as the owner typed it: Autos Privado
+  (dealer office phone), Autos Negocios (dealer office/mobile/SMS phone + finance-contact
+  phone), Empleos Premium, Clases/Comunidad quick (via `formatUsPhone`), Busco Quick, and the
+  shared Community contact-fields component. The sibling WhatsApp field in most of these same
+  files had ALREADY been fixed for this exact bug (explicit "Build D-F5" comments in the code
+  cite it) -- the phone field was simply missed in that earlier pass.
+  Also found and fixed a second-order consequence: 3 "PublishedQuickToDraft.ts" reverse mappers
+  (Clases/Comunidad/Mascotas quick dashboard hydration) re-truncated an already-stored phone to
+  10 digits on every re-edit, via a `.slice(0, 10)` that ran BEFORE the length check that was
+  supposed to gate the truncation -- this was low-impact while the input-side bug also existed
+  (long numbers rarely reached storage), but became a live, real data-loss risk the moment the
+  input-side fix stopped truncating at storage time.
+  Fixed via a new `formatUsStylePhoneInputSafe` helper (serviciosPhoneUi.ts) that still formats
+  a plain 10-digit US number identically, but never truncates/discards digits or drops a leading
+  "+" for a number that looks international -- applied at all 6 input-time call sites plus the
+  3 hydration call sites. `formatPhoneInputDisplay` itself and its use inside Servicios' own
+  fields are untouched (that field's US-only behavior is a deliberate, documented contract, not
+  a bug). Verified: scripts/verify-wave3-g12-international-phone-truncation-2026-09-09.ts,
+  16/16 passing. Repointed one stale assertion in gate-p2-phone-formatting-selftest.ts.
+  TypeScript: 7/7 baseline (e2e-only), 0 new.
+  Known collateral (not a regression, documented in the commit): 4 unrelated pre-existing
+  Community-family gate self-tests (gate-2b/2c/2d/3/4) assert via live `git diff` that no other
+  category's files are touched -- they report a false-positive scope violation when run against
+  this diff, since it legitimately touches Comunidad/Clases/Mascotas hydration files together
+  for one shared bug class. Every OTHER check in each of those scripts still passes; only that
+  tail-end isolation assertion fires. Also found, NOT caused by and NOT fixed in this pass: a
+  stale assertion in community-quick-publish-contract-smoke.ts (checks for a substring missing
+  an `activationMode` clause that current code correctly has) and a large, apparently
+  long-abandoned feature audit in busco-b1-quick-connection-audit.ts (36 pre-existing failures on
+  a "preferredContact"/urgency-chip/contact-card feature set this pass never touched). Both
+  flagged as separate spawned tasks, not fixed here (out of scope, unrelated root cause).
+
+--- G09/G10 MEDIA/GALLERY: REAL DEFECT FOUND, NOT FIXED THIS PASS ---
+  `buildProposedFinalMediaSet` (app/lib/media/listingMediaContract.ts) returns a documented
+  `droppedUnpersistable` field specifically so callers can warn instead of silently losing
+  intent -- confirmed via repo-wide search that ZERO of its ~7 real call sites (Servicios,
+  Restaurantes, Autos, Comida Local, Empleos, Bienes Raices/Rentas, the generic dashboard
+  editor) ever read it. Practically: a stray unpersistable URL surviving into a draft is
+  dropped from the persisted photo set with zero owner-facing warning -- the owner believes N
+  photos saved, only N-1 did. Real bug in already-adopted code, not an adoption gap.
+  FIX SIZE: small (surface the existing field at each call site). NOT FIXED THIS PASS.
+
+--- G11 FLYER/COUPON VIEWER: REAL DEFECT FOUND, NOT FIXED THIS PASS ---
+  Ofertas Locales' LIVE PUBLIC flyer viewer (`PublicFlyerViewer` inside
+  OfertasLocalesPublicDetailView.tsx) does not render PDFs inline at all (shows an "Open PDF"
+  link instead) and explicitly disables the clickable-product-overlay feature for any PDF asset
+  -- both of which the owner's OWN preview viewer (OfertasLocalesFlyerViewerModal.tsx, pdf.js
+  canvas render + page nav) already does correctly. Most real printed flyers are PDFs, so this
+  materially degrades the shopper-facing surface versus both the owner's preview and the shared
+  Restaurantes/Servicios BusinessFlyerViewerModal.tsx. FIX SIZE: medium (port the already-proven
+  pdf.js render path into the live viewer). NOT FIXED THIS PASS.
+
+--- G25 SAVED SEARCH: REAL, SELF-ACKNOWLEDGED GAP, NOT FIXED THIS PASS ---
+  The generic engine's retry processor for failed match-email deliveries
+  (`retryFailedSavedSearchMatchEvents`) exists and is exposed at an admin API route, but that
+  route's own comment admits nothing calls it periodically -- no cron/vercel.json entry or
+  scheduled task exists anywhere in the repo. A Resend outage during a publish burst still
+  silently strands match emails today. FIX SIZE: small (wire a scheduled task to the existing
+  endpoint). NOT FIXED THIS PASS.
+
+--- G26 SAVE/LIKE/SHARE/REPORT: REAL DEFECTS FOUND, NOT FIXED THIS PASS ---
+  Rentas' own live listing detail page (RentasListingDetailClient.tsx) mounts LeonixSaveButton
+  with NO `ownerUserId`, and the embedded RentasVisualMatchPreviewView mounts LeonixLikeButton
+  with no `ownerUserId` either, despite the enclosing component already receiving an `ownerId`
+  prop used elsewhere -- an owner can save/like their own Rentas listing (every other adopted
+  category correctly threads this prop). The underlying `saved_listings`/like insert has no
+  server-side owner check at all -- the only backstop is the separate analytics self-engagement
+  guard, which doesn't block the save/like row itself. FIX SIZE: small (thread the existing prop
+  through 2 call sites). Separately: NEITHER Report implementation (shared
+  LeonixInlineListingReport or En Venta's own reason-code drawer) checks listing ownership before
+  accepting a report -- an owner can report their own listing. FIX SIZE: medium. NOT FIXED THIS
+  PASS.
+
+--- G27 ANALYTICS: STALE CLAIM, ALREADY FIXED (CONFIRMED) ---
+  Both defects recorded in the original Forensic Delta Map (owner self-view inflation, zero PII
+  redaction in metadata) are confirmed ALREADY FIXED on current HEAD, with explicit "RED #10 /
+  RED #11" fix-comments in the code documenting the repair. No further action needed; ledger
+  updated to reflect TRUE, not carried forward as FALSE.
+
+--- G28 SEARCH/RESULTS/FILTERS: CONFIRMED TRUE AS PREVIOUSLY CLAIMED ---
+  categoryStandardV2's own README concedes it was extracted FROM Rentas/Bienes Raices, and
+  neither category was ever migrated onto it -- confirmed via zero grep hits for the V2
+  shell/components in either category's real results-page files. 12 other categories genuinely
+  use it. FIX SIZE: large (not attempted this pass; recorded as-is).
+
+--- G29 RELATED LISTINGS: ONE CLAIM CORRECTED, ONE STALE CLAIM RETIRED ---
+  En Venta's related rail is confirmed ALREADY FIXED (a real fetch + price-proximity ranking now
+  exists; the "decorative stub" description is stale). Bienes Raices' matcher is confirmed to be
+  an agent/inventory "same group" matcher, NOT a general city/type/price similarity engine as
+  previously described, and it is rendered ONLY on the Negocio/agente shell -- Bienes Privado
+  listings (the bulk of BR inventory) have no related-listings section at all. FIX SIZE: medium
+  (a true Privado-facing matcher would be net-new work). NOT FIXED THIS PASS.
+
+--- G30 BUSINESS HUB: CONFIRMED TRUE AS PREVIOUSLY CLAIMED, PLUS ONE NEW FINDING ---
+  3 confirmed independent parallel full stacks (Servicios, Restaurantes, Autos Negocios) each
+  with their own ReviewLink/SocialPlatform/ContactActions types and SocialBrand/FauxMap
+  renderers. New finding: a broader shared view-model (`sharedConnectionHubContactModel.ts`) was
+  already built specifically to consolidate these, but has ZERO callers outside its own
+  definition file -- built and then never adopted. FIX SIZE: large (migrate 3 stacks onto the
+  already-built-but-unused shared model). NOT FIXED THIS PASS.
+
+TESTS: scripts/verify-wave3-g12-international-phone-truncation-2026-09-09.ts, 16/16 passing.
+    TypeScript 7/7 baseline, 0 new.
+
+NOT DONE THIS PASS: G09/G10/G11/G25/G26/G29/G30 fixes (recorded above, not fixed); G28 (large,
+    recorded as-is); owner browser QA for the G12 fix; the rest of Wave 3's category coverage
+    beyond these 10 systems; Waves 5-8, Final Reconciliation, and the Owner QA Playbook.
 ```

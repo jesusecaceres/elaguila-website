@@ -109,11 +109,30 @@ in ledger section 25. NOT YET DONE: owner browser QA (published row → edit →
 same row → zero field loss, end-to-end in a real browser) for either fix — source-level proof
 only so far.
 
+**Wave 3 (2026-09-09) — G09-G12, G25-G30 audited (2 parallel research agents); G12 FIXED.**
+G12 Phone/SMS/WhatsApp: **FIXED.** 6 categories' primary-phone fields (Autos Privado, Autos
+Negocios dealer+finance, Empleos Premium, Clases/Comunidad quick, Busco Quick) were silently
+truncating any real international phone number to 10 digits at input time — the sibling
+WhatsApp field in the same files had already been fixed for this exact bug, phone was missed.
+Also fixed 3 dashboard-hydration reverse mappers (Clases/Comunidad/Mascotas quick) that
+re-truncated an already-stored phone on every re-edit. Full detail in ledger section 26.
+G27 Analytics: **STALE FALSE, now confirmed TRUE** — both previously-recorded defects (owner
+self-view inflation, no PII redaction) are already fixed on current HEAD.
+G28 Search/Results, G29 Related Listings (En Venta), G30 Business Hub: **confirmed TRUE/stale
+claims corrected** per ledger section 26 — no new fix needed for the previously-recorded claims,
+though G29's Bienes Raíces claim was corrected (agent/inventory matcher, not general
+similarity, and Privado has none) and G30 has one new finding (an already-built consolidation
+model with zero adopters).
+G09/G10 Media, G11 Flyer/Coupon Viewer, G25 Saved Search, G26 Save/Like/Share/Report, G29
+(Bienes Privado gap): **real defects found, NOT fixed this pass** — see ledger section 26 for
+full detail and fix-size estimates on each.
+
 ## Remaining waves
 
 Wave 2 — G13/G14/G15/G16/G17/G18/G20/G21/G24 across Restaurantes/Comida Local/Bienes Negocio/
 Rentas Negocio/Autos Dealer. DONE (see above).
-Wave 3 — G09-G12, G25-G30 (public experience globals). NOT STARTED.
+Wave 3 — G09-G12, G25-G30 (public experience globals). AUDITED; G12 FIXED (2026-09-09, see
+above); G09/G10/G11/G25/G26/G29(Privado)/G30 real defects recorded, not yet fixed.
 Wave 4 — Dashboard/edit round-trip. P0 items (Bienes Negocio + Rentas Negocio reverse mappers)
 DONE (2026-09-09, see above); remaining categories' dashboard/edit round-trip not yet audited.
 Wave 5 — Admin OS + G22 moderation UI. NOT STARTED.
