@@ -8,8 +8,8 @@ import type { BusinessLaneKey } from "./negociosLocalesLanes";
  */
 export const NEGOCIOS_LANE_CARD_IMAGE: Record<Exclude<BusinessLaneKey, "ofertas-locales">, string> = {
   servicios: "/selector-cards/servicios-locales.jpg",
-  restaurantes: "/selector-cards/restaurantes-negocio-premium.jpg",
+  restaurantes: "/selector-cards/restaurantes-mesa.jpg",
   "comida-local": "/selector-cards/comida-local-vendedor-movil.jpg",
   "autos-dealer": "/selector-cards/dealers-de-autos-inventario.jpg",
-  "bienes-raices": "/selector-cards/bienes-raices-vitrina-agente.jpg",
+  "bienes-raices": "/selector-cards/bienes-raices-propiedad.jpg",
 } as const;
