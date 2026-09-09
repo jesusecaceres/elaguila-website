@@ -3,7 +3,7 @@
  * Validates status transitions and pricing source truth.
  */
 import { isValidProposalStatusTransition } from "./constants";
-import type { ProposalActor, ProposalPricingSnapshot, ProposalStatus } from "./types";
+import type { BusinessProposal, ProposalActor, ProposalPricingSnapshot, ProposalStatus } from "./types";
 
 export function canTransitionProposalStatus(from: ProposalStatus, to: ProposalStatus): boolean {
   return isValidProposalStatusTransition(from, to);
@@ -77,4 +77,89 @@ export function previousCurrentShouldBecomeSuperseded(status: ProposalStatus): b
 /** Status the previous current row must have after a successful later-proposal create. */
 export function previousCurrentReplacementStatus(status: ProposalStatus): ProposalStatus {
   return previousCurrentShouldBecomeSuperseded(status) ? "superseded" : status;
+}
+
+/**
+ * Gate 2 — owner-safe proposal visibility. A proposal is only visible to the business owner once
+ * it has actually left internal staff working state (draft / staff_review are staff-only —
+ * mirrors the same "not yet shared" doctrine as stewardship's ownerVisible check).
+ */
+export function isOwnerVisibleProposalStatus(status: ProposalStatus): boolean {
+  return status !== "draft" && status !== "staff_review";
+}
+
+export type OwnerSafeProposal = {
+  id: string;
+  businessId: string;
+  status: ProposalStatus;
+  version: number;
+  isCurrent: boolean;
+  ownerGoalEn: string | null;
+  ownerGoalEs: string | null;
+  verifiedNeedEn: string;
+  verifiedNeedEs: string;
+  recommendedIntervention: string;
+  freeOptionEn: string | null;
+  freeOptionEs: string | null;
+  scopeEn: string;
+  scopeEs: string;
+  deliverablesEn: string;
+  deliverablesEs: string;
+  exclusionsEn: string | null;
+  exclusionsEs: string | null;
+  responsibilitiesEn: string;
+  responsibilitiesEs: string;
+  timelineEn: string;
+  timelineEs: string;
+  reviewDate: string | null;
+  pricingSnapshot: ProposalPricingSnapshot | null;
+  successMetricEn: string;
+  successMetricEs: string;
+  acceptedActorType: "staff" | "owner" | null;
+  acceptedAt: string | null;
+  declinedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
+ * Gate 2 — owner-safe proposal shape. Never the staff/owner actor-attribution identity fields
+ * (createdByRosterId/AuthUserId/Email/Role, acceptedByRosterId/AuthUserId/Email/Role) — those are
+ * internal attribution, not owner-facing content. `entitlementReference` is also excluded (an
+ * internal cross-reference, not owner-meaningful).
+ */
+export function shapeProposalForOwner(proposal: BusinessProposal): OwnerSafeProposal {
+  return {
+    id: proposal.id,
+    businessId: proposal.businessId,
+    status: proposal.status,
+    version: proposal.version,
+    isCurrent: proposal.isCurrent,
+    ownerGoalEn: proposal.ownerGoalEn,
+    ownerGoalEs: proposal.ownerGoalEs,
+    verifiedNeedEn: proposal.verifiedNeedEn,
+    verifiedNeedEs: proposal.verifiedNeedEs,
+    recommendedIntervention: proposal.recommendedIntervention,
+    freeOptionEn: proposal.freeOptionEn,
+    freeOptionEs: proposal.freeOptionEs,
+    scopeEn: proposal.scopeEn,
+    scopeEs: proposal.scopeEs,
+    deliverablesEn: proposal.deliverablesEn,
+    deliverablesEs: proposal.deliverablesEs,
+    exclusionsEn: proposal.exclusionsEn,
+    exclusionsEs: proposal.exclusionsEs,
+    responsibilitiesEn: proposal.responsibilitiesEn,
+    responsibilitiesEs: proposal.responsibilitiesEs,
+    timelineEn: proposal.timelineEn,
+    timelineEs: proposal.timelineEs,
+    reviewDate: proposal.reviewDate,
+    pricingSnapshot: proposal.pricingSnapshot,
+    successMetricEn: proposal.successMetricEn,
+    successMetricEs: proposal.successMetricEs,
+    acceptedActorType: proposal.acceptedActorType,
+    acceptedAt: proposal.acceptedAt,
+    declinedAt: proposal.declinedAt,
+    createdAt: proposal.createdAt,
+    updatedAt: proposal.updatedAt,
+  };
 }
