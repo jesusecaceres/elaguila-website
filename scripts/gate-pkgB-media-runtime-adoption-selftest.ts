@@ -88,16 +88,19 @@ const CALL = /buildProposedFinalMediaSet\(|validateProposedFinalMediaSet\(/;
   const src = read("app/(site)/clasificados/lib/leonixPublishRealEstateFromDraftState.ts");
   const callCount = (src.match(CALL) ? src.match(new RegExp(CALL.source, "g")) ?? [] : []).length;
   assert.ok(callCount >= 3, "must call the shared engine at least 3 times: rentas privado, rentas negocio, bienes raices negocio");
+  // Wave 3 G09/G10 fix — windows widened slightly (900->1100, 700->1000) to fit the added
+  // `warnDroppedUnpersistableMedia(...)` call each builder now makes right before validating
+  // (see listingMediaContract.ts) — same real code, a couple more lines away.
   assert.ok(
-    /function buildRentasPrivadoListingParams[\s\S]{0,900}rentasPrivadoMedia/.test(src),
+    /function buildRentasPrivadoListingParams[\s\S]{0,1100}rentasPrivadoMedia/.test(src),
     "Rentas Privado's builder must validate the real ordered gallery it just built",
   );
   assert.ok(
-    /function buildRentasNegocioListingParams[\s\S]{0,900}rentasNegocioMedia/.test(src),
+    /function buildRentasNegocioListingParams[\s\S]{0,1100}rentasNegocioMedia/.test(src),
     "Rentas Negocio's builder must validate the real ordered gallery it just built",
   );
   assert.ok(
-    /function buildPublishParamsFromBienesRaicesNegocioDraft[\s\S]{0,700}brNegocioMedia/.test(src),
+    /function buildPublishParamsFromBienesRaicesNegocioDraft[\s\S]{0,1000}brNegocioMedia/.test(src),
     "BR Negocio's builder (shared by the parent lane and, via mapAgenteResidencialFormStateToNegocioForPublish, the live agente-individual/child-embedding path) must validate the real ordered gallery",
   );
   const core = read("app/(site)/clasificados/lib/leonixPublishRealEstateListingCore.ts");
