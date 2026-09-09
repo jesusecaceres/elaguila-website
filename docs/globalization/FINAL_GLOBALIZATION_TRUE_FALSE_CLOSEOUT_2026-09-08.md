@@ -810,4 +810,114 @@ TESTS: new scripts/verify-wave2-owner-critical-globals-2026-09-09.ts, 16/16 pass
 
 NOT DONE THIS WAVE: PREVIEW/PUBLIC-read runtime click-through verification for the 6 fixes
     (source-level proof only); Waves 3-8 not started.
+
+================================================================================
+SECTION 25 -- GLOBALIZATION FINAL EXECUTION -- WAVE 4 P0 (DASHBOARD/ACTIVE-EDIT
+DATA LOSS), BIENES NEGOCIO + RENTAS NEGOCIO REVERSE MAPPERS -- 2026-09-09
+================================================================================
+
+CONTEXT: Coach's "FINISH THE ENTIRE GLOBALIZATION PROGRAM" directive named these two items
+    explicitly as P0 DATA LOSS, carried forward from Wave 2's audit (Section 24 above), with an
+    explicit instruction not to defer them to "some later optional pass" and to reuse the
+    already-proven public parsing logic instead of maintaining a second incomplete parser. Given
+    the size of the full remaining program (Waves 3, 5-8, reconciliation, QA playbook), this pass
+    prioritized these two named P0s first as the most concretely and completely scoped items,
+    stated transparently to Coach at the start of execution rather than attempting a shallow sweep
+    of everything at once.
+
+FIX 1 -- BIENES NEGOCIO (bienesPublishedToAgenteApplicationDraft.ts): TRUE_SOURCE, FIXED.
+  - Extracted the live public shell's `buildPublishedState()` (BienesRaicesNegocioLiveDetailShell.tsx)
+    verbatim into a new shared, pure module:
+    app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/parseBienesAgenteResidencialPublishedState.ts.
+    Both the public shell and the dashboard-edit reverse mapper now call this one function --
+    there is exactly one place that knows how to read a published Bienes Negocio row back into
+    form state, eliminating the "second incomplete parser" Coach flagged.
+  - `bienesPublishedRowToAgenteApplicationDraft()` now builds a small row-shape adapter (title/
+    price/description have no per-language storage at the row level, so both `es`/`en` are set to
+    the same raw value -- honest, not a fabricated translation) and calls the shared parser, then
+    merges the Bienes-inventory-pack-specific fields (child properties, pack-pricing confirmation --
+    genuinely not covered by the shared parser, a dashboard-edit-only concern) on top of its full
+    output instead of returning a thin ~17-field object.
+  - Added `contact_phone, contact_email, zip` to `OWNER_LISTING_SELECT` (previously missing), which
+    the shared parser's phone/email/postal-code fallback chain needs for older listings.
+  - Restored (previously dropped on every edit): full agent identity, brand/brokerage block,
+    second-agent block, broker/advisor block, all property-type-specific sections, business extra
+    URLs, Google/Yelp review URLs, socials, open house, CTA visibility toggles, listing status,
+    languages, address verification metadata -- effectively all ~150 fields the public page was
+    already correctly rendering.
+  - One Wave 2 verifier check (BIENES G16 4) was pointing at the shell file for logic that moved
+    into the new shared module -- repointed to the new file, not weakened.
+  - Committed: 733408dd.
+
+FIX 2 -- RENTAS NEGOCIO (rentasDashboardEditHydration.ts): TRUE_SOURCE, FIXED.
+  - Unlike Bienes, there was no single function whose output shape already matched
+    `RentasNegocioFormState` (the public render path outputs a different display VM,
+    `RentasPublicListing`), so "reuse the already-proven parsing" meant extending
+    `basePartialFromRow()`/`mapOwnedRentasListingToNegocioFormState()` to read every field using
+    the exact same detail_pairs/business_meta primitives already proven correct in
+    `mapListingRowToRentasPublicListing.ts` (parseRentasDetailMachineRead,
+    readLeonixPropertyLocationFromRow, rentasShowExactAddressFromDetailPairs, the shared BR
+    Negocio business_meta key schema, and the same human label/value detail_pairs rows the
+    property-fact and flow-extension row builders already write and the public page already
+    reads back) -- traced key-by-key against the real write side (mergeRentasNegocioMachinePairs,
+    leonixNegocioBusinessMetaFromFormState.ts) before restoring each field, not guessed.
+  - Fixed the confirmed "doubly-broken" WhatsApp/SMS bug: `rx.contactWhatsappDigits`/
+    `rx.contactSmsDigits` were already computed correctly but written to a `seller.*` partial key
+    that `mergePartialRentasNegocioState` never reads back for the Negocio lane (it only maps
+    top-level `negocioWhatsapp`/`negocioMensajesTexto`) -- silently discarded on every Negocio
+    edit despite the parse succeeding. Now written to the correct top-level keys.
+  - Restored the full business-identity block (negocioMarca, negocioLogoDataUrl, negocioLicencia,
+    negocioTelOficina, negocioSitioWeb, negocioRedes, negocioGoogleReviewsUrl,
+    negocioYelpReviewsUrl, negocioBio, negocioIdiomas) -- previously only negocioNombre/
+    negocioTelDirecto/negocioEmail were read from plain row columns; everything else was never
+    read back at all.
+  - Restored the entire address block (direccionLinea1, mostrarDireccionExacta, zonaVecindario) --
+    previously zero read-back existed for any of it (zonaVecindario was hardcoded to "").
+  - Restored the structured residencial/comercial/terreno property-fact objects (recamaras/banos/
+    mediosBanos/interiorSqft/loteSqft/estacionamiento/ano for residencial; uso/interiorSqft/
+    oficinas/banos/niveles/estacionamiento/zonificacion/condicion/accesoCarga for comercial;
+    loteSqft/usoZonificacion/acceso/servicios/topografia/listoConstruir/cercado for terreno) via
+    the exact human labels those blocks' row-builders already write. tipoCodigo/subtipo are left
+    at schema defaults rather than reverse-matched from display labels -- the same accepted
+    limitation already present in the proven Bienes shared parser (which also hardcodes
+    comercialTipoCodigo/terrenoTipoCodigo defaults), not a new gap introduced here.
+  - Restored all 4 flow-specific extension blocks (room_shared, storage_parking, commercial_space,
+    land_parcel), gated by the active rental-type flow group, same human-label read-back pattern.
+  - Added `listing_json, contact_json, business_meta` to the owner SELECT plus
+    `augmentLeonixDetailPairsFromStructuredColumns` -- the same resilience the proven public
+    mapper already has for older rows.
+  - `serviciosIncluidosKeys` (the structured checklist) is confirmed NOT reconstructable from the
+    published row -- only the flattened multiline display text persists at publish time
+    (`formatRentasServiciosIncluidosOutputMultiline`), no per-key machine storage exists anywhere.
+    `serviciosIncluidosLegacy` (already correctly read) remains the most faithful achievable
+    representation; not a regression, a genuine platform limitation predating this fix.
+  - One pre-existing verifier assertion (verify-family2-bienes-rentas-full-sweep.ts) was pointing
+    at the raw `row.detail_pairs` column instead of the new listing_json/contact_json-augmented
+    variable -- repointed to match the more resilient (not weaker) code.
+  - Committed: 67919479.
+
+OUT-OF-SCOPE ITEM FLAGGED, NOT FIXED THIS PASS: while tracing the Rentas Negocio write path,
+    found `scripts/verify-rentas-published-edit-recovery-cancel-safe-hydration-01.mjs` failing on
+    an assertion unrelated to this fix (expects literal "Guardar cambios"/"Save changes" copy in
+    RentasPrivadoForm.tsx/RentasNegocioForm.tsx that no longer exists verbatim in either file --
+    pre-existing stale verifier, confirmed via grep that neither form file was touched by this
+    session's diff). Spun off as a separate flagged task rather than fixed inline, to keep this
+    P0 commit scoped to the two named data-loss defects.
+
+TESTS: two new focused verifiers --
+    scripts/verify-wave4-p0-bienes-negocio-reverse-mapper-2026-09-09.ts (12/12 passing) and
+    scripts/verify-wave4-p0-rentas-negocio-hydration-2026-09-09.ts (13/13 passing). Re-ran and
+    confirmed still-green: verify-wave2-owner-critical-globals-2026-09-09.ts (16/16, after the
+    Bienes repoint), verify-family2-bienes-rentas-full-sweep.ts (23/23, after the Rentas
+    repoint), gate-pkgA-stale-draft-precedence-selftest (PASS),
+    verify-rentas-lifecycle-renewal-dashboard-global-engine-01 (PASS),
+    verify-rentas-published-edit-round-trip-01 (PASS). TypeScript back to the established 7-error
+    e2e baseline, 0 new, after both fixes.
+
+NOT DONE THIS PASS: PREVIEW/PUBLIC-read runtime click-through verification for either fix
+    (source-level proof only -- owner QA required to confirm published row -> edit -> preview ->
+    republish -> same row -> zero field loss end-to-end in a real browser); Wave 3 (Public
+    Experience Globals), Wave 5 (Admin OS + G22 moderation UI), Wave 6 (Commercial/Revenue), Wave 7
+    (Special Category Contracts), Wave 8 (Platform Finish), Final Reconciliation, and the mandatory
+    Owner QA Playbook are all not yet started as of this section.
 ```

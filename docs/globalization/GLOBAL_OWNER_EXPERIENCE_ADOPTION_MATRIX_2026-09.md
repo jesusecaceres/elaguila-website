@@ -78,13 +78,13 @@ FULLY WIRED with no defect. 6 real, safely-fixable defects found and fixed (comm
 | G20 Community Trust | Autos Dealer | **CONFIRMED NOT MOUNTED** — genuine, real gap (previously flagged, re-confirmed on current HEAD); not fixed this wave (requires an eligibility-mechanism design decision — does Autos Dealer use the listing id directly like Servicios, or a professional-identity anchor like BR/Rentas?) | FALSE (real, not fixed — recommend as a dedicated follow-up with an explicit eligibility-mechanism decision) |
 | G21 Google/Yelp | Restaurantes | TRUE (fully wired, no defect) | TRUE |
 | G21 Google/Yelp | Comida Local | **CRITICAL DEFECT FIXED this wave** — was unconditionally wiped on every publish by the same allowlist trap function already known-dangerous from Wave 1's G23 work; every Comida Local listing's Google/Yelp URLs were silently discarded before reaching the database | TRUE |
-| G21 Google/Yelp | Bienes Negocio | PARTIALLY WIRED — publish→render solid; dashboard-edit reverse mapper drops both URLs (Wave 4 carry-forward) | FALSE (deferred to Wave 4) |
-| G21 Google/Yelp | Rentas Negocio | PARTIALLY WIRED — publish→render solid and hide-if-empty confirmed; dashboard-edit reverse mapper drops both URLs (Wave 4 carry-forward) | FALSE (deferred to Wave 4) |
+| G21 Google/Yelp | Bienes Negocio | **FIXED Wave 4 P0** — dashboard-edit reverse mapper now calls the shared `parseBienesAgenteResidencialPublishedState()` parser (same one the public page uses), restoring both URLs on every edit | TRUE |
+| G21 Google/Yelp | Rentas Negocio | **FIXED Wave 4 P0** — dashboard-edit hydration now reads `negocioGoogleReviewsUrl`/`negocioYelpReviewsUrl` back from business_meta using the same key schema the shared BR Negocio serializer writes | TRUE |
 | G21 Google/Yelp | Autos Dealer | TRUE (re-verified fully wired, no defect) | TRUE |
 | G24 Location/Privacy/Directions | Restaurantes | **FIXED this wave** — `showExactAddress` had zero UI control anywhere (permanently defaulted to showing exact address, no owner opt-out); downstream privacy plumbing was already real and correct, just unreachable | TRUE |
 | G24 Location/Privacy/Directions | Comida Local | TRUE (fully wired, no regression from Wave 1's G23 address-picker mount) | TRUE |
-| G24 Location/Privacy/Directions | Bienes Negocio | PARTIALLY WIRED — real, working, respected toggle on publish/render; dashboard-edit reverse mapper drops it (Wave 4 carry-forward, confirmed with citations) | FALSE (deferred to Wave 4) |
-| G24 Location/Privacy/Directions | Rentas Negocio | PARTIALLY WIRED — real toggle and correct public-render respect; dashboard-edit reverse mapper drops it and all address sub-fields, Republish confirmed destructive (Wave 4 carry-forward) | FALSE (deferred to Wave 4) |
+| G24 Location/Privacy/Directions | Bienes Negocio | **FIXED Wave 4 P0** — dashboard-edit reverse mapper now restores the address block (verification status, exact-address toggle) via the shared public-page parser | TRUE |
+| G24 Location/Privacy/Directions | Rentas Negocio | **FIXED Wave 4 P0** — dashboard-edit hydration now restores direccionLinea1/mostrarDireccionExacta/zonaVecindario via the same detail_pairs primitives already proven correct on the public page | TRUE |
 | G24 Location/Privacy/Directions | Autos Dealer | N/A (correct, not a gap) — dealership addresses are inherently public business info; no privacy toggle needed or missing | N/A |
 
 **Real defects found, fixed this wave:** Comida Local G21 (critical), Bienes Negocio G16
@@ -98,18 +98,27 @@ dropped):**
   category to reuse (larger build than the Restaurantes fix).
 - Restaurantes/Comida Local/Bienes Negocio G17 — no lead-capture infrastructure exists; would
   require a new DB table + API route + dashboard UI (larger build, not a "smallest adapter" fix).
-- Bienes Negocio & Rentas Negocio's G13/G15/G21/G24 dashboard-edit reverse-mapper gaps — all part
-  of the SAME already-carried-forward Wave 4 defect (see ledger section 24 for full field scope,
-  now confirmed far larger than originally known: Bienes drops ~130 of ~150 fields, Rentas drops
-  its entire structured property-fact blocks, and Republish is confirmed destructive for both).
 
-## Remaining waves (not yet started)
+**Wave 4 P0 (2026-09-09) — Bienes Negocio & Rentas Negocio dashboard-edit reverse mappers: FIXED.**
+Both G13/G15/G21/G24 dashboard-edit-reverse-mapper cells above are now TRUE. Bienes Negocio's
+reverse mapper now calls the same shared parser the public page uses
+(`parseBienesAgenteResidencialPublishedState`); Rentas Negocio's hydration now reads every
+business-identity/address/structured-property/flow-extension field back using the same
+detail_pairs/business_meta primitives already proven correct on its own public page. Full detail
+in ledger section 25. NOT YET DONE: owner browser QA (published row → edit → preview → republish →
+same row → zero field loss, end-to-end in a real browser) for either fix — source-level proof
+only so far.
+
+## Remaining waves
 
 Wave 2 — G13/G14/G15/G16/G17/G18/G20/G21/G24 across Restaurantes/Comida Local/Bienes Negocio/
-Rentas Negocio/Autos Dealer.
-Wave 3 — G09-G12, G25-G30 (public experience globals).
-Wave 4 — Dashboard/edit round-trip, all categories.
-Wave 5 — Admin OS.
-Wave 6 — Revenue/commercial (coordinate with the active parallel term-engine work).
-Wave 7 — Special category systems (G40-G46).
-Wave 8 — Platform finish (G49-G53).
+Rentas Negocio/Autos Dealer. DONE (see above).
+Wave 3 — G09-G12, G25-G30 (public experience globals). NOT STARTED.
+Wave 4 — Dashboard/edit round-trip. P0 items (Bienes Negocio + Rentas Negocio reverse mappers)
+DONE (2026-09-09, see above); remaining categories' dashboard/edit round-trip not yet audited.
+Wave 5 — Admin OS + G22 moderation UI. NOT STARTED.
+Wave 6 — Revenue/commercial (coordinate with the active parallel term-engine work). NOT STARTED.
+Wave 7 — Special category systems (G40-G46). NOT STARTED.
+Wave 8 — Platform finish (G49 Newsletter, G50 SEO, G51 Accessibility, G52 PWA, G53 Security/RLS).
+NOT STARTED.
+Final Reconciliation + mandatory Owner QA Playbook. NOT STARTED.
