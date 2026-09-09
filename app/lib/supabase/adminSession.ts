@@ -1,5 +1,6 @@
 import "server-only";
 
+import { createHmac, timingSafeEqual } from "node:crypto";
 import type { CookieStore } from "@/app/lib/supabase/server";
 import { getAdminSupabase, getServerSupabaseAnon, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 
@@ -10,6 +11,71 @@ export const LEONIX_ADMIN_AUTH_USER_ID_COOKIE = "leonix_admin_auth_user_id";
 export const LEONIX_ADMIN_BOOTSTRAP_COOKIE = "leonix_admin_bootstrap";
 
 const ADMIN_SESSION_MAX_AGE_SEC = 60 * 60 * 24 * 7;
+
+// =====================================================================================================
+// Bootstrap session hardening (Staging Release Blocker Hardening).
+//
+// Finding: leonix_admin_bootstrap used to be a bare, unsigned "1" — a raw HTTP client could send
+// that literal cookie value and reach ownerBootstrapAccess() (super_admin capabilities) without
+// ever knowing ADMIN_PASSWORD, because nothing re-verified the cookie against anything. Every
+// other admin identity path (real per-person staff login) is safe because
+// requireSalesWorkspaceAccess() independently re-verifies the operator-email/auth-user-id cookies
+// against real Supabase Auth + roster on every request — bootstrap has no such identity to
+// re-check against, so the session token itself must now carry its own proof.
+//
+// Fix: leonix_admin_bootstrap's value is now a signed, expiring token —
+// "<issuedAtMs>.<expiresAtMs>.<hmacSha256Hex>" — computed with ADMIN_BOOTSTRAP_SESSION_SECRET, a
+// dedicated server-only secret (never ADMIN_PASSWORD itself, so a signing-key leak and a
+// password leak are independent failures). isAdminBootstrapSession() is confirmed by a
+// repository-wide grep to be the ONLY place that ever reads this cookie — every caller
+// (adminAuthBoundary.ts, leonixAdminGate.ts's re-export, businessWorkspaceAccess.ts) goes through
+// it, so hardening this one function closes the gap everywhere at once. leonix_admin itself is
+// intentionally left as a coarse "an admin session exists" marker — it spans both /admin/** pages
+// and /api/admin/** routes (no single path prefix narrower than "/" covers both, so it cannot be
+// path-scoped without breaking one of them), and it was never the actual authority boundary for
+// bootstrap or for real staff (both re-verify identity downstream); signing it too would touch 6+
+// unrelated admin domains (viajes/empleos/magazine/executive-hub raw cookie checks) for no
+// additional security benefit.
+//
+// Fails closed: with ADMIN_BOOTSTRAP_SESSION_SECRET unset, no bootstrap session can be created OR
+// verified — bootstrap becomes entirely unavailable rather than falling back to the old bare "1"
+// behavior.
+// =====================================================================================================
+
+/** Shorter-lived than the 7-day staff session — bootstrap is emergency/owner-only access, not a daily-use identity. */
+const ADMIN_BOOTSTRAP_SESSION_MAX_AGE_SEC = 60 * 60 * 12;
+
+function getBootstrapSessionSecret(): string | null {
+  const key = process.env.ADMIN_BOOTSTRAP_SESSION_SECRET?.trim();
+  return key ? key : null;
+}
+
+function signBootstrapPayload(payload: string, secret: string): string {
+  return createHmac("sha256", secret).update(payload, "utf8").digest("hex");
+}
+
+function safeEqualHex(a: string, b: string): boolean {
+  const left = Buffer.from(a, "utf8");
+  const right = Buffer.from(b, "utf8");
+  if (left.length !== right.length) return false;
+  return timingSafeEqual(left, right);
+}
+
+/**
+ * Creates a signed, expiring bootstrap session token. Returns null (fail closed — no bootstrap
+ * session can be created) when ADMIN_BOOTSTRAP_SESSION_SECRET is not configured. `issuedAtMs`/
+ * `expiresAtMs` overrides exist only so regression tests can construct an already-expired or
+ * not-yet-valid token against the real signing implementation, rather than reimplementing it —
+ * production callers (applyLeonixAdminSessionCookies) never pass them.
+ */
+export function createBootstrapSessionToken(issuedAtMs?: number, expiresAtMs?: number): string | null {
+  const secret = getBootstrapSessionSecret();
+  if (!secret) return null;
+  const issuedAt = issuedAtMs ?? Date.now();
+  const expiresAt = expiresAtMs ?? issuedAt + ADMIN_BOOTSTRAP_SESSION_MAX_AGE_SEC * 1000;
+  const payload = `${issuedAt}.${expiresAt}`;
+  return `${payload}.${signBootstrapPayload(payload, secret)}`;
+}
 
 export function getAdminOperatorEmailFromCookies(cookies: CookieStore): string | null {
   const raw = cookies.get(LEONIX_ADMIN_OPERATOR_EMAIL_COOKIE)?.value;
@@ -28,26 +94,61 @@ export type AdminSessionCookieOptions = {
   maxAge?: number;
 };
 
+/**
+ * Verifies the bootstrap session token's signature and expiry. Fails closed (returns false) when
+ * ADMIN_BOOTSTRAP_SESSION_SECRET is not configured, the cookie is missing/malformed, the
+ * signature does not match (constant-time compare — never a plain === on attacker-controlled
+ * input), or the token has expired or claims to be issued in the future. A forged legacy "1", or
+ * any value without a valid signature over its own exact issuedAt/expiresAt pair, can never verify.
+ */
 export function isAdminBootstrapSession(cookies: CookieStore): boolean {
-  return cookies.get(LEONIX_ADMIN_BOOTSTRAP_COOKIE)?.value === "1";
+  const secret = getBootstrapSessionSecret();
+  if (!secret) return false;
+  const raw = cookies.get(LEONIX_ADMIN_BOOTSTRAP_COOKIE)?.value;
+  if (!raw) return false;
+  const parts = raw.split(".");
+  if (parts.length !== 3) return false;
+  const [issuedAtStr, expiresAtStr, signature] = parts;
+  const issuedAt = Number(issuedAtStr);
+  const expiresAt = Number(expiresAtStr);
+  if (!Number.isFinite(issuedAt) || !Number.isFinite(expiresAt)) return false;
+  if (issuedAt > Date.now()) return false;
+  if (expiresAt <= Date.now()) return false;
+  const expectedSignature = signBootstrapPayload(`${issuedAtStr}.${expiresAtStr}`, secret);
+  return safeEqualHex(signature, expectedSignature);
 }
+
+export type ApplyBootstrapSessionResult = { ok: true } | { ok: false; reason: "bootstrap_secret_not_configured" };
 
 export function applyLeonixAdminSessionCookies(
   res: { cookies: { set: (name: string, value: string, opts: Record<string, unknown>) => void } },
   opts: { operatorEmail?: string | null; authUserId?: string | null; bootstrap?: boolean },
   cookieOpts: AdminSessionCookieOptions = {},
-) {
+): ApplyBootstrapSessionResult {
   const path = cookieOpts.path ?? "/";
   const maxAge = cookieOpts.maxAge ?? ADMIN_SESSION_MAX_AGE_SEC;
-  const base = { path, httpOnly: true, sameSite: "lax" as const, maxAge };
+  // Secure is skipped only in local (non-production) dev, where the app is served over plain
+  // http://localhost; every deployed environment (Preview and Production alike) runs with
+  // NODE_ENV=production and is HTTPS-only on Vercel.
+  const secure = process.env.NODE_ENV === "production";
+  const base = { path, httpOnly: true, sameSite: "strict" as const, secure, maxAge };
 
   res.cookies.set(LEONIX_ADMIN_COOKIE, "1", base);
 
   if (opts.bootstrap) {
-    res.cookies.set(LEONIX_ADMIN_BOOTSTRAP_COOKIE, "1", base);
+    const token = createBootstrapSessionToken();
+    if (!token) {
+      // Fail closed: never issue a bootstrap session under any cookie name without a valid
+      // signed token — clear anything that might already be set instead of leaving a stray
+      // leonix_admin=1 cookie behind with no matching bootstrap proof.
+      res.cookies.set(LEONIX_ADMIN_COOKIE, "", { ...base, maxAge: 0 });
+      res.cookies.set(LEONIX_ADMIN_BOOTSTRAP_COOKIE, "", { ...base, maxAge: 0 });
+      return { ok: false, reason: "bootstrap_secret_not_configured" };
+    }
+    res.cookies.set(LEONIX_ADMIN_BOOTSTRAP_COOKIE, token, { ...base, maxAge: ADMIN_BOOTSTRAP_SESSION_MAX_AGE_SEC });
     res.cookies.set(LEONIX_ADMIN_OPERATOR_EMAIL_COOKIE, "", { ...base, maxAge: 0 });
     res.cookies.set(LEONIX_ADMIN_AUTH_USER_ID_COOKIE, "", { ...base, maxAge: 0 });
-    return;
+    return { ok: true };
   }
 
   res.cookies.set(LEONIX_ADMIN_BOOTSTRAP_COOKIE, "", { ...base, maxAge: 0 });
@@ -58,15 +159,19 @@ export function applyLeonixAdminSessionCookies(
   if (opts.authUserId) {
     res.cookies.set(LEONIX_ADMIN_AUTH_USER_ID_COOKIE, opts.authUserId, base);
   }
+  return { ok: true };
 }
 
 export function clearLeonixAdminSessionCookies(
   res: { cookies: { set: (name: string, value: string, opts: Record<string, unknown>) => void } },
 ) {
-  const expired = { path: "/", httpOnly: true, sameSite: "lax" as const, maxAge: 0 };
+  const secure = process.env.NODE_ENV === "production";
+  const expired = { path: "/", httpOnly: true, sameSite: "strict" as const, secure, maxAge: 0 };
   res.cookies.set(LEONIX_ADMIN_COOKIE, "", expired);
   res.cookies.set(LEONIX_ADMIN_OPERATOR_EMAIL_COOKIE, "", expired);
   res.cookies.set(LEONIX_ADMIN_AUTH_USER_ID_COOKIE, "", expired);
+  // A logged-out bootstrap token can never re-verify anyway (blank string fails the 3-part split
+  // check), but clearing it explicitly still removes it from the browser/cookie jar on logout.
   res.cookies.set(LEONIX_ADMIN_BOOTSTRAP_COOKIE, "", expired);
 }
 
