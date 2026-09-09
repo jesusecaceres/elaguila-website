@@ -9,6 +9,7 @@ import {
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { navCopyLang, resolveRouteLang } from "@/app/lib/language";
 import {
   detailPairsToMap,
   isCommunityQuickListing,
@@ -60,7 +61,9 @@ export function CommunityListingsResultsClient({
 }: Props) {
   const sp = useSearchParams();
   const pathname = usePathname();
-  const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
+  // Globalization Build D-F5 — was a bare `?lang=` check that ignored the visitor's stored
+  // leonix_lang cookie/localStorage preference.
+  const lang: Lang = navCopyLang(resolveRouteLang(sp?.get("lang")));
   const [rows, setRows] = useState<CommunityListingBrowseRow[]>([]);
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -98,7 +101,10 @@ export function CommunityListingsResultsClient({
   const filtered = useMemo(() => {
     const list = rows.filter((row) => {
       const pairs = detailPairsToMap(row.detail_pairs);
-      if (category === "comunidad" && !isCommunityEventActiveForDiscovery(pairs)) return false;
+      // Globalization Build D-F5 — this expiry check used to only apply to `comunidad`; Clases
+      // (which has a real paid $24.99/30-day package) got no discovery-expiration filtering at
+      // all. communityEventDiscoveryExpiryDateKey now reads both categories' own date keys.
+      if (!isCommunityEventActiveForDiscovery(pairs)) return false;
       const quick = isCommunityQuickListing(pairs);
       const blob = buildCommunityDiscoverySearchBlob(row, category, pairs, lang);
       if (!textMatch(blob, q)) return false;

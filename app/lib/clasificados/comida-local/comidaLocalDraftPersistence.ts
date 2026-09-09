@@ -291,6 +291,11 @@ export function mergeComidaLocalDraftFromStorage(parsed: unknown): ComidaLocalDr
     instagramUrl: safeString(parsed.instagramUrl, 512),
     facebookUrl: safeString(parsed.facebookUrl, 512),
     tiktokUrl: safeString(parsed.tiktokUrl, 512),
+    // Gate G21 — these two fields were never listed here, so every publish silently wiped them
+    // (this function runs on every ~400ms autosave, on publish normalization, and on both
+    // edit/public-page hydration). Confirmed unconditional data loss, not an edge case.
+    googleReviewsUrl: safeString(parsed.googleReviewsUrl, 512),
+    yelpReviewsUrl: safeString(parsed.yelpReviewsUrl, 512),
     locationNote: safeString(parsed.locationNote, 300),
     locationUrl: safeString(parsed.locationUrl, 512),
     mobileOrderLinkUrl: safeString(parsed.mobileOrderLinkUrl, 512),
@@ -306,6 +311,14 @@ export function mergeComidaLocalDraftFromStorage(parsed: unknown): ComidaLocalDr
     serviceOptionOtherCustomValues,
     businessAddressLine: safeString(parsed.businessAddressLine, 200),
     showAddressPublicly: parsed.showAddressPublicly === true,
+    physicalVerificationStatus: (["unverified", "manual", "user_confirmed", "provider_suggested", "verified"] as const).includes(
+      parsed.physicalVerificationStatus as never,
+    )
+      ? (parsed.physicalVerificationStatus as ComidaLocalDraft["physicalVerificationStatus"])
+      : "unverified",
+    physicalProvider: typeof parsed.physicalProvider === "string" ? parsed.physicalProvider : null,
+    physicalProviderPlaceId:
+      typeof parsed.physicalProviderPlaceId === "string" ? parsed.physicalProviderPlaceId : null,
     paymentMethods,
     paymentOtherNote: safeString(parsed.paymentOtherNote, 80),
     priceLevel,

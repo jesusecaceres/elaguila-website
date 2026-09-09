@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { BuscoShellLayout } from "./shared/BuscoShellLayout";
+import { buscoLangFromSearchParams } from "./shared/buscoShellCopy";
 import { BuscoRequestCard } from "./BuscoRequestCard";
 import { BuscoResultsSearchPanel } from "./BuscoResultsSearchPanel";
 import { buildBuscoRequestCardModel } from "./shared/buscoCardModel";
@@ -88,7 +89,9 @@ const COPY = {
 
 export function BuscoResultsClient() {
   const sp = useSearchParams();
-  const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
+  // Globalization Build D-F5 — was a bare `?lang=` check that ignored the visitor's stored
+  // leonix_lang cookie/localStorage preference.
+  const lang: Lang = buscoLangFromSearchParams(sp);
   const t = COPY[lang];
 
   const q = (sp?.get("q") ?? "").trim();

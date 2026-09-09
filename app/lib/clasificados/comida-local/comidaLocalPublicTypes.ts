@@ -13,6 +13,10 @@ export type ComidaLocalPublicListingRow = {
   id: string;
   slug: string;
   leonix_ad_id: string | null;
+  /** Globalization Build D — public read of owner_user_id, same accepted pattern already used by
+   * Restaurantes' public row (RestauranteAdStoryPreview's analyticsOwnerUserId) — needed only for
+   * client-side self-engagement suppression on Like/Save, never rendered as PII. */
+  owner_user_id: string | null;
   status: string;
   package_tier: string;
   payment_status: string;
@@ -29,6 +33,8 @@ export type ComidaLocalPublicListingRow = {
   instagram_url: string | null;
   facebook_url: string | null;
   tiktok_url: string | null;
+  google_reviews_url: string | null;
+  yelp_reviews_url: string | null;
   location_note: string | null;
   location_url: string | null;
   availability_note: string | null;

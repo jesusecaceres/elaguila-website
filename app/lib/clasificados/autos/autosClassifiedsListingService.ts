@@ -18,6 +18,8 @@ import type {
 } from "./autosClassifiedsTypes";
 import { autosClassifiedsRowToPublicListing } from "./mapAutosClassifiedsToPublic";
 import { sanitizeAutosListingPayloadForPersistence } from "./autosListingPayloadPersistence";
+import { isAutosChildIdentitySubstitution } from "./autosChildIdentityGuard";
+import { AUTOS_PRIVADO_LIFECYCLE_CONFIG } from "@/app/lib/listingLifecycle/activePaidEditCheckoutOwnership";
 import {
   STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT,
   countActiveDealerVehicles,
@@ -260,6 +262,25 @@ export async function updateAutosClassifiedsListingDraft(
     autosLane: row.lane,
   });
   const { listing: payload, persistWarnings } = sanitizeAutosListingPayloadForPersistence(normalized);
+
+  // Globalization Build 2 — server-side integrity guard: block a wholesale vehicle-identity
+  // swap on this existing row (same UUID/Leonix Ad ID/analytics/likes silently inherited by an
+  // unrelated vehicle). Ordinary corrections (price, mileage, description, photos, a single
+  // typo fix, adding a previously-missing VIN) are unaffected — see autosChildIdentityGuard.ts.
+  if (
+    isAutosChildIdentitySubstitution(
+      { vin: row.listing_payload.vin, year: row.listing_payload.year, make: row.listing_payload.make, model: row.listing_payload.model },
+      { vin: payload.vin, year: payload.year, make: payload.make, model: payload.model },
+    )
+  ) {
+    return {
+      row: null,
+      persistWarnings,
+      errorCode: "AUTOS_LISTING_IDENTITY_SUBSTITUTION_BLOCKED",
+      errorDetails: "Vehicle identity (VIN, or year/make/model together) does not match the existing listing.",
+    };
+  }
+
   const lang: AutosClassifiedsLang = input.lang === "en" || input.lang === "es" ? input.lang : row.lang;
   const { data, error } = await supabase
     .from("autos_classifieds_listings")
@@ -384,7 +405,13 @@ export async function listAutosClassifiedsListingsForOwner(ownerUserId: string):
  */
 export async function getAutosDealerInventorySummaryForOwner(
   ownerUserId: string,
-  opts?: { excludeListingId?: string; groupScopeParent?: Pick<AutosClassifiedsListingRow, "lane" | "dealer_inventory_group_id" | "owner_user_id"> },
+  opts?: {
+    excludeListingId?: string;
+    groupScopeParent?: Pick<
+      AutosClassifiedsListingRow,
+      "lane" | "id" | "inventory_role" | "dealer_inventory_group_id" | "dealer_inventory_parent_listing_id" | "owner_user_id"
+    >;
+  },
 ): Promise<AutosDealerInventoryCount> {
   const rows = await listAutosClassifiedsListingsForOwner(ownerUserId);
   const activeCount = opts?.groupScopeParent
@@ -464,6 +491,25 @@ export async function markAutosClassifiedsListingRestoredIfOwner(listingId: stri
   return updateAutosListingStatus(listingId, "active");
 }
 
+/**
+ * Globalization Build 4 — Autos Privado ($24.99/30d, fixed term) has no `expires_at` column; its
+ * only term source is `AUTOS_PRIVADO_LIFECYCLE_CONFIG.durationDays` (already used by the
+ * checkout no-recharge guard), computed here from `published_at`. `status` never flips away from
+ * "active" when a Privado listing's 30 days simply elapse, so it stayed live in public results
+ * indefinitely. Autos Dealer ("negocios", subscription, no fixed term) is explicitly exempt —
+ * only `lane === "privado"` is ever time-gated here.
+ */
+function isAutosRowWithinTerm(row: AutosClassifiedsListingRow): boolean {
+  if (row.lane !== "privado") return true;
+  if (!row.published_at) return true;
+  const durationDays = AUTOS_PRIVADO_LIFECYCLE_CONFIG.durationDays;
+  if (!durationDays) return true;
+  const publishedMs = new Date(row.published_at).getTime();
+  if (!Number.isFinite(publishedMs)) return true;
+  const expiresMs = publishedMs + durationDays * 24 * 60 * 60 * 1000;
+  return Date.now() < expiresMs;
+}
+
 export async function listActiveAutosClassifiedsRows(): Promise<AutosClassifiedsListingRow[]> {
   if (!isSupabaseAdminConfigured()) return [];
   const supabase = getAdminSupabase();
@@ -483,7 +529,7 @@ export async function listActiveAutosClassifiedsRows(): Promise<AutosClassifieds
     error = fb.error;
   }
   if (error || !data?.length) return [];
-  const rows = data.map((r) => rowFromDb(r as Record<string, unknown>));
+  const rows = data.map((r) => rowFromDb(r as Record<string, unknown>)).filter(isAutosRowWithinTerm);
   // Gate I.13B — a suspended/removed dealer's parent row no longer appears in this
   // active-only fetch; exclude any inventory_vehicle child whose parent isn't in this same
   // active set, mirroring Bienes Raíces Negocio's proven parent-liveness gate. Every real
@@ -780,6 +826,11 @@ export async function getActiveLiveAutosBundle(
 } | null> {
   const row = await getAutosClassifiedsListingById(id);
   if (!row || row.status !== "active") return null;
+  // Globalization Build 4 — this row is fetched directly by id, bypassing
+  // listActiveAutosClassifiedsRows' own term filter below; an expired Autos Privado listing
+  // needs the same explicit re-check here. Autos Dealer ("negocios") rows are exempt inside
+  // isAutosRowWithinTerm itself (no fixed term).
+  if (!isAutosRowWithinTerm(row)) return null;
   // Gate I.13B — a child (inventory_vehicle) row must not be publicly reachable at its own
   // direct detail URL unless its main parent is itself active; mirrors the Bienes Raíces
   // Negocio parent-liveness gate (this row bypasses listActiveAutosClassifiedsRows' own gate

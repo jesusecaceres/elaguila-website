@@ -13,6 +13,7 @@ import type {
 import { buildShellAmenitiesSection } from "../lib/restauranteAmenitiesCatalog";
 import { normalizeRestaurantFeatures } from "../lib/restauranteFeaturesNormalization";
 import { computePublishGallerySequence } from "./restauranteGalleryMediaSequence";
+import { buildInternationalWhatsAppWaMeHrefWithText } from "@/app/lib/whatsapp/internationalWhatsApp";
 import { resolveRestauranteCustomLanguages } from "@/app/lib/clasificados/restaurantes/restauranteFormCleanupConfig";
 import {
   firstRestauranteBucketImageRef,
@@ -188,11 +189,9 @@ function buildRestaurantWhatsAppPrefill(businessName: string | undefined): strin
 }
 
 function waHref(raw: string, businessName?: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (!digits) return "";
-  const base = `https://wa.me/${digits}`;
-  const text = encodeURIComponent(buildRestaurantWhatsAppPrefill(businessName));
-  return `${base}?text=${text}`;
+  // Globalization Build D — reuses the shared international-safe WhatsApp builder (was a naive
+  // digit-strip with no country-code prefix logic, unlike this file's telHref/smsHref siblings).
+  return buildInternationalWhatsAppWaMeHrefWithText(raw, buildRestaurantWhatsAppPrefill(businessName)) ?? "";
 }
 
 function websiteDisplayFromUrl(url: string): string {

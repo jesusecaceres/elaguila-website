@@ -33,6 +33,7 @@ export const EMPLEOS_URL_PARAM_KEYS = [
   "city",
   "state",
   "zip",
+  "country",
   "category",
   "jobType",
   "modality",

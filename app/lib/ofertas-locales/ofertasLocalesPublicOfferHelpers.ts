@@ -28,6 +28,7 @@ import type {
   OfertaLocalPublicOfferCard,
   OfertaLocalPublishStatus,
 } from "./ofertasLocalesTypes";
+import { resolveBusinessAddressPublicView } from "@/app/lib/businessAddress/businessAddressPrivacy";
 
 export type OfertaLocalPublicOfferRow = {
   id: string;
@@ -46,6 +47,7 @@ export type OfertaLocalPublicOfferRow = {
   city: string;
   state: string | null;
   zip_code: string;
+  show_exact_address: boolean;
   phone: string | null;
   whatsapp: string | null;
   website_url: string | null;
@@ -134,21 +136,43 @@ export function mapOfertaLocalPublicOfferRowToCard(
     row.offer_type === "coupon" || row.offer_type === "promotion" || row.offer_type === "featured_deal";
   const primary = isCouponLane ? (coupon.href ? coupon : flyer) : (flyer.href ? flyer : coupon);
   const phone = sanitizeText(row.phone || row.whatsapp, 40);
-  const address = sanitizeText(row.address, 200);
+  const rawAddress = sanitizeText(row.address, 200);
   const city = sanitizeText(row.city, 80);
   const state = sanitizeText(row.state, 40);
   const zipCode = sanitizeText(row.zip_code, 20);
   const country =
     readDraftSnapshotLocationFields(parseOfertaLocalDraftSnapshot(row.draft_snapshot)).country ?? "";
+
+  // Globalization Build A3 (RED #9) — gate the exact street address and its auto-derived
+  // directions query through the shared privacy contract. The owner's own separately pasted
+  // `directions_url` is never gated here — that is an explicit share, not a derivation from the
+  // private street address (mirrors Comida Local's `locationUrl` exception).
+  const addressPublicView = resolveBusinessAddressPublicView({
+    address: rawAddress
+      ? {
+          street: rawAddress,
+          city,
+          region: state,
+          country,
+          postalCode: zipCode,
+          verificationStatus: "manual",
+          manualEntry: true,
+        }
+      : null,
+    showExactAddress: row.show_exact_address,
+    cityOrServiceArea: city,
+  });
+  const address = addressPublicView.showExactAddress ? rawAddress : "";
+
   const directionsRaw = sanitizeText(row.directions_url, 500);
+  const derivedDirectionsHref =
+    addressPublicView.directionsAllowed && address
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+          [address, city, state, country, zipCode].filter(Boolean).join(", ")
+        )}`
+      : null;
   const directionsHref =
-    directionsRaw && directionsRaw.startsWith("http")
-      ? directionsRaw
-      : address || city
-        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-            [address, city, state, country, zipCode].filter(Boolean).join(", ")
-          )}`
-        : null;
+    directionsRaw && directionsRaw.startsWith("http") ? directionsRaw : derivedDirectionsHref;
 
   return {
     id: row.id,

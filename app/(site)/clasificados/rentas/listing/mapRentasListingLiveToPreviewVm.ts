@@ -646,6 +646,9 @@ export function mapRentasListingToNegocioPreviewVm(
       verifiedLine: "",
       licenseLine: trim(listing.businessLicense ?? ""),
       bioLine: trim(listing.businessDescription ?? ""),
+      // Gate G13 — was persisted at publish but never read back before this fix; see
+      // mapListingRowToRentasPublicListing.ts's businessMetaFromRow.
+      languagesLine: trim(listing.businessIdiomas ?? ""),
       socialLinks,
       profileCtaLabel: lang === "es" ? "Sitio web" : "Website",
       profileHref: web,
@@ -686,6 +689,10 @@ export function mapRentasListingToNegocioPreviewVm(
       websiteHref: ch?.website?.trim() ? ch.website : null,
       socialIconLinks: gateSocialIcons.length ? gateSocialIcons : undefined,
       preferredContactLine: formatLeonixPreferredContactLine(ch, lang) || undefined,
+      // G21 adoption — real stored Google/Yelp review-URL destinations only, read back from
+      // listings.business_meta via mapListingRowToRentasPublicListing.ts's businessMetaFromRow.
+      googleReviewsUrl: listing.businessGoogleReviewsUrl ?? undefined,
+      yelpReviewsUrl: listing.businessYelpReviewsUrl ?? undefined,
     },
     deepBlocks: [],
     detailClusters: [],

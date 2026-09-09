@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
+import { navCopyLang, resolveRouteLang } from "@/app/lib/language";
 import { leonixPromotedFromDetailPairs } from "@/app/(site)/dashboard/lib/dashboardListingMeta";
 import { isListingSaved, onSavedListingsChange, toggleListingSaved } from "@/app/clasificados/components/savedListings";
 import { EN_VENTA_DEPARTMENTS } from "../taxonomy/categories";
@@ -114,7 +115,9 @@ function resolveEffectiveDept(dto: EnVentaAnuncioDTO): string | null {
 export function EnVentaResultsClient() {
   const router = useRouter();
   const sp = useSearchParams();
-  const lang: Lang = sp?.get("lang") === "en" ? "en" : "es";
+  // Globalization Build D-F5 — was a bare `?lang=` check that ignored the visitor's stored
+  // leonix_lang cookie/localStorage preference.
+  const lang: Lang = navCopyLang(resolveRouteLang(sp?.get("lang")));
 
   const q = (sp?.get("q") ?? "").trim();
   const evDept = (sp?.get("evDept") ?? "").trim();

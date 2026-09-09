@@ -250,6 +250,7 @@ export function mapOfertaLocalDraftToInsertPayload(
     city: sanitizeText(draft.city, 120),
     state: sanitizeOptionalState(draft.state),
     zip_code: zip,
+    show_exact_address: draft.showExactAddress,
     service_zips: sanitizeZipList(draft.serviceZipCodes),
     phone: sanitizeOptionalPhone(draft.phone),
     whatsapp: sanitizeOptionalPhone(draft.whatsapp),

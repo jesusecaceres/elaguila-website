@@ -23,6 +23,8 @@ import type {
 import { buildOfertaLocalPreviewMapEmbedUrl } from "@/app/lib/ofertas-locales/ofertasLocalesPreviewHelpers";
 import { LeonixListingFactsGrid } from "@/app/clasificados/lib/LeonixListingFactsGrid";
 import { BrRentasCommunityTrustSection } from "@/app/clasificados/lib/BrRentasCommunityTrustSection";
+import { SharedConnectionHubReviewDrawer } from "@/app/components/contact/connectionHub/renderers/SharedConnectionHubReviewDrawer";
+import type { SharedConnectionHubReviewLink } from "@/app/components/contact/connectionHub/sharedConnectionHubContactTypes";
 import {
   trackRentasPhoneClick,
   trackRentasWhatsappClick,
@@ -141,7 +143,7 @@ function isUuid(id: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id.trim());
 }
 
-function contact(vm: Vm) {
+function contact(vm: Vm, lang: "es" | "en") {
   if (isNegocio(vm)) {
     return {
       title: vm.contactRailTitle || "Contact advertiser",
@@ -155,11 +157,23 @@ function contact(vm: Vm) {
       waHref: vm.contact.whatsappHref,
       websiteHref: vm.contact.websiteHref ?? vm.identity.profileHref,
       mapHref: vm.location.mapsUrl,
-      note: vm.contact.instructionsLine || vm.contact.preferredContactLine || vm.identity.bioLine,
+      note: [
+        vm.contact.instructionsLine || vm.contact.preferredContactLine || vm.identity.bioLine,
+        // Gate G13 — languages spoken, when captured; appended rather than replacing the primary
+        // note above so neither is silently dropped.
+        vm.identity.languagesLine
+          ? (lang === "es" ? `Idiomas: ${vm.identity.languagesLine}` : `Languages: ${vm.identity.languagesLine}`)
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" · "),
       showLlamar: vm.contact.showLlamar,
       showSolicitarInfo: vm.contact.showSolicitarInfo,
       showWhatsapp: vm.contact.showWhatsapp,
       showSms: vm.contact.showSms,
+      // G21 adoption — real stored Google/Yelp review-URL destinations only.
+      googleReviewsUrl: vm.contact.googleReviewsUrl ?? undefined,
+      yelpReviewsUrl: vm.contact.yelpReviewsUrl ?? undefined,
     };
   }
   return {
@@ -348,7 +362,7 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, i
   const ph = photos(vm);
   const [hero, ...rest] = ph;
   const videos = mediaVideos(vm, videoUrls, lang);
-  const c = contact(vm);
+  const c = contact(vm, lang);
   const quickFacts = (vm.quickFacts ?? []).filter((f) => isMeaningfulValue(text(f.value)));
   const detailRows = cleanRows(vm.propertyDetailsRows);
   const detailGroups = groupDetails(detailRows, lang);
@@ -741,6 +755,7 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, i
           <div className="mt-4 flex items-center gap-2">
             <LeonixLikeButton
               listingId={listingId}
+              ownerUserId={ownerId}
               lang={lang}
               category="rentas"
               variant="small"
@@ -808,6 +823,23 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, i
               <FiMapPin className="h-4 w-4" />
               {lang === "es" ? "Ver mapa" : "View on map"}
             </ActionLink>
+          ) : null}
+          {isNegocio(vm) && (c.googleReviewsUrl || c.yelpReviewsUrl) ? (
+            <SharedConnectionHubReviewDrawer
+              links={
+                [
+                  c.googleReviewsUrl
+                    ? { provider: "google" as const, label: lang === "es" ? "Reseñas de Google" : "Google Reviews", url: c.googleReviewsUrl }
+                    : null,
+                  c.yelpReviewsUrl
+                    ? { provider: "yelp" as const, label: lang === "es" ? "Reseñas de Yelp" : "Yelp Reviews", url: c.yelpReviewsUrl }
+                    : null,
+                ].filter((l): l is SharedConnectionHubReviewLink => l !== null)
+              }
+              lang={lang}
+              businessName={c.name || undefined}
+              onLinkClick={() => {}}
+            />
           ) : null}
           {isNegocio(vm) ? (
             <BrRentasCommunityTrustSection

@@ -1,6 +1,7 @@
 import { LEONIX_GLOBAL_EMAIL } from "@/app/data/leonixGlobalContact";
 import { sendLeonixResendEmail } from "@/app/lib/email/sendLeonixResendEmail";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { isSelfEngagement } from "@/app/lib/analytics/selfEngagementGuard";
 import {
   formatEnVentaReportReasonForStorage,
   isHighSeverityEnVentaReport,
@@ -32,6 +33,19 @@ export async function submitEnVentaListingReport(
   ).slice(0, 2000);
 
   const supabase = getAdminSupabase();
+
+  // Wave 3 G26 fix — this write previously accepted a report from anyone, including the
+  // listing's own owner, with no ownership check at all. Fails open (allows the report) only
+  // when the owner is genuinely unknown, matching isSelfEngagement's existing fail-open contract.
+  const { data: listing } = await supabase
+    .from("listings")
+    .select("id, title, leonix_ad_id, category, owner_id")
+    .eq("id", listingId)
+    .maybeSingle();
+  if (input.reporterId && isSelfEngagement(input.reporterId, listing?.owner_id ?? null)) {
+    return { ok: false, error: "self_report_not_allowed" };
+  }
+
   const { data: inserted, error } = await supabase
     .from("listing_reports")
     .insert({
@@ -47,12 +61,6 @@ export async function submitEnVentaListingReport(
 
   let adminEmailSent = false;
   if (isHighSeverityEnVentaReport(input.reasonCode)) {
-    const { data: listing } = await supabase
-      .from("listings")
-      .select("id, title, leonix_ad_id, category")
-      .eq("id", listingId)
-      .maybeSingle();
-
     const alertTo =
       process.env.LEONIX_ADMIN_ALERT_EMAIL?.trim() ||
       process.env.LEONIX_REPORTS_ALERT_EMAIL?.trim() ||

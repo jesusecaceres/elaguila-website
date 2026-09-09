@@ -17,9 +17,26 @@ export type MascotasPerdidosPublishedListingLike = {
   detailPairs?: unknown;
 };
 
+/**
+ * Wave 3 fix — mirrors `toWhatsAppDisplay` below (Build D-F5): a longer international phone
+ * number must not be lossily cut to 10 digits and forced into US grouping on hydration, or a
+ * dashboard re-edit silently truncates it on Republish. Only the common 10-digit case gets the
+ * cosmetic (XXX) XXX-XXXX grouping.
+ */
 function to10Display(rawDigits: string): string {
-  const d = rawDigits.replace(/\D/g, "").slice(0, 10);
-  return formatPhoneInputDisplay(d);
+  const d = rawDigits.replace(/\D/g, "");
+  return d.length === 10 ? formatPhoneInputDisplay(d) : d;
+}
+
+/**
+ * Globalization Build D-F5 — WhatsApp digits are stored (and, since this fix, published) without
+ * truncation, so a longer international number must not be lossily cut to 10 digits and forced
+ * into US grouping here. Stored digits never retain a leading "+", so the safest correct display
+ * for a non-10-digit number is the raw digit string, not a fabricated US-style grouping.
+ */
+function toWhatsAppDisplay(rawDigits: string): string {
+  const d = rawDigits.replace(/\D/g, "");
+  return d.length === 10 ? formatPhoneInputDisplay(d) : d;
 }
 
 function listingUrlsToImages(urls: string[] | null | undefined): EmpleosImageItem[] {
@@ -86,16 +103,19 @@ export function mascotasPerdidosPublishedQuickToDraft(
 
   d.objectType = (pairs["Leonix:objectType"] ?? "").trim();
 
-  const pDig = (pairs["Leonix:phoneDigits"] ?? "").replace(/\D/g, "").slice(0, 10);
-  const rowPhone = digitsOnly(String(listing.contact_phone ?? "")).slice(0, 10);
+  // Wave 3 fix — the previous `.slice(0, 10)` here ran BEFORE the length check below, so a
+  // stored international number longer than 10 digits was truncated regardless of to10Display's
+  // own fix above. Read the full digit string and let to10Display decide the display treatment.
+  const pDig = (pairs["Leonix:phoneDigits"] ?? "").replace(/\D/g, "");
+  const rowPhone = digitsOnly(String(listing.contact_phone ?? ""));
   const phoneDigits = pDig.length >= 10 ? pDig : rowPhone;
   d.phone = phoneDigits.length >= 10 ? to10Display(phoneDigits) : formatPhoneInputDisplay(String(listing.contact_phone ?? ""));
 
-  const smsDig = (pairs["Leonix:smsDigits"] ?? "").replace(/\D/g, "").slice(0, 10);
+  const smsDig = (pairs["Leonix:smsDigits"] ?? "").replace(/\D/g, "");
   d.smsPhone = smsDig.length >= 10 ? to10Display(smsDig) : "";
 
-  const waDig = (pairs["Leonix:whatsappDigits"] ?? "").replace(/\D/g, "").slice(0, 10);
-  d.whatsapp = waDig.length >= 10 ? to10Display(waDig) : "";
+  const waDig = (pairs["Leonix:whatsappDigits"] ?? "").replace(/\D/g, "");
+  d.whatsapp = waDig.length >= 10 ? toWhatsAppDisplay(waDig) : "";
 
   d.email = String(listing.contact_email ?? "").trim();
   d.facebook = (pairs["Leonix:facebook"] ?? "").trim();

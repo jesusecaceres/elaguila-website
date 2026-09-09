@@ -3,6 +3,7 @@
  * Sin capa VM intermedia (patrón Autos: datos de aplicación = fuente de verdad).
  */
 import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndividualResidencialFormState";
+import { buildInternationalWhatsAppWaMeHrefWithText } from "@/app/lib/whatsapp/internationalWhatsApp";
 import {
   AGENTE_RES_DESTACADOS_DEFS,
   AGENTE_RES_MAX_OPEN_HOUSE_SLOTS,
@@ -776,10 +777,11 @@ function buildTelHref(phoneDigits: string): string | null {
 }
 
 function buildWhatsappHref(phoneDigits: string, msg: string): string | null {
-  const d = digitsOnly(phoneDigits);
-  if (d.length < 10) return null;
+  // Globalization Build D-F2 — was unconditionally prepending "1" regardless of digit count,
+  // silently producing a malformed international link for any non-US number (or a number
+  // already carrying its own country code). Now uses the shared international-safe builder.
   const text = trim(msg) || "Hola, vi su anuncio en Leonix y quiero más información.";
-  return `https://wa.me/1${d}?text=${encodeURIComponent(text)}`;
+  return buildInternationalWhatsAppWaMeHrefWithText(phoneDigits, text);
 }
 
 function hrefListadoCompleto(s: AgenteIndividualResidencialFormState): string | null {

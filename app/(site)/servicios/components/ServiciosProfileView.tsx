@@ -33,11 +33,14 @@ import { LX_LINK_ACCENT, LX_PRO_INNER_PAD, LX_PRO_MAIN_MAX } from "./serviciosLe
 import { ServiciosTrackedLink } from "./ServiciosTrackedLink";
 import { ServiciosLikeEngagementCluster } from "./ServiciosLikeEngagementCluster";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import {
   serviciosGlobalLikeRecorder,
   serviciosGlobalListingFromRow,
+  serviciosGlobalSaveRecorder,
   serviciosGlobalShareRecorder,
 } from "@/app/(site)/clasificados/servicios/lib/recordServiciosGlobalAnalytics";
+import { resolveListingsTableSavedListingKey } from "@/app/lib/listingSaveDbKey";
 
 function hasCouponBlock(profile: ServiciosProfileResolved): boolean {
   return (
@@ -125,6 +128,17 @@ export function ServiciosProfileView({
           tone="hero"
           recordLikeEvent={globalListing ? serviciosGlobalLikeRecorder(globalListing) : undefined}
         />
+        <LeonixSaveButton
+          listingId={lxListingId}
+          savedListingKey={resolveListingsTableSavedListingKey(sourceId, lxListingId)}
+          ownerUserId={lxOwner}
+          variant="small"
+          lang={lang}
+          category="servicios"
+          persistEngagement={persistListingEngagement}
+          recordSaveEvent={globalListing ? serviciosGlobalSaveRecorder(globalListing) : undefined}
+          iconStyle="bookmark"
+        />
         <LeonixShareButton
           listingId={lxListingId}
           listingUrl={listingShareUrl}
@@ -151,6 +165,7 @@ export function ServiciosProfileView({
     lxOwner,
     persistListingEngagement,
     profile.identity.businessName,
+    sourceId,
   ]);
 
   return (

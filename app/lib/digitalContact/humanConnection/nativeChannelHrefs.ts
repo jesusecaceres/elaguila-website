@@ -34,8 +34,12 @@ export function buildSmsHref(phone: string | null | undefined, body = ""): strin
 }
 
 export function buildWhatsAppUrl(phone: string | null | undefined, body = ""): string | null {
-  const digits = getCleanPhone(phone);
-  if (!isValidPublicPhoneDigits(digits)) return null;
+  const rawDigits = getCleanPhone(phone);
+  if (!isValidPublicPhoneDigits(rawDigits)) return null;
+  // Globalization Build D — matches the same "bare 10-digit number assumed US" prepend already
+  // applied by buildTelHref/buildSmsHref above; wa.me previously got no country-code prefix at
+  // all for a bare 10-digit number, silently producing a malformed international link.
+  const digits = rawDigits.length === 10 ? `1${rawDigits}` : rawDigits;
   const b = String(body ?? "").trim();
   return b
     ? `https://wa.me/${digits}?text=${encodeURIComponent(b)}`

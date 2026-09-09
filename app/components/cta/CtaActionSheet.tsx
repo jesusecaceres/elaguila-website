@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useId, useState, type MouseEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } from "react";
+import { useLeonixFocusTrap } from "@/app/lib/accessibility/useLeonixFocusTrap";
 
 import {
   buildContactShareText,
@@ -190,10 +191,16 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
   const t = COPY[lang];
   const titleId = useId();
   const [status, setStatus] = useState<{ text: string; tone: "ok" | "err" } | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useLeonixFocusTrap(open, panelRef);
 
   useEffect(() => {
     if (!open) setStatus(null);
   }, [open, intent]);
+
+  useEffect(() => {
+    if (open && panelRef.current) panelRef.current.focus();
+  }, [open]);
 
   // Gate I.13A — mirrors the Escape-to-close pattern already proven in the sibling
   // LeonixPreviewGalleryLightbox; this dialog previously had a close button but no
@@ -1048,7 +1055,11 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
       aria-labelledby={titleId}
       onClick={onBackdrop}
     >
-      <div className="w-full max-w-md rounded-2xl border border-black/10 bg-[#FCF9F2] p-5 text-[#333333] shadow-xl">
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        className="w-full max-w-md rounded-2xl border border-black/10 bg-[#FCF9F2] p-5 text-[#333333] shadow-xl outline-none"
+      >
         <div className="flex items-start justify-between gap-3">
           <h2 id={titleId} className="text-lg font-bold">
             {heading}

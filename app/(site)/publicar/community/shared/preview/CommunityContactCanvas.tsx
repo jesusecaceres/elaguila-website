@@ -3,10 +3,7 @@
 import type { ComponentType } from "react";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
-import {
-  digitsOnly,
-  formatPhoneInputDisplay,
-} from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import { formatUsStylePhoneInputSafe } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
 import { FaFacebook, FaInstagram, FaLinkedin, FaPinterest, FaSnapchat, FaTiktok, FaWhatsapp, FaYoutube } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
@@ -322,7 +319,7 @@ export function CommunityContactCanvas({
                 >
                   <FiPhone className="h-4 w-4 shrink-0" aria-hidden />
                   {t.call}{" "}
-                  <span className="font-semibold tabular-nums">{formatPhoneInputDisplay(digitsOnly(draft.phone))}</span>
+                  <span className="font-semibold tabular-nums">{formatUsStylePhoneInputSafe(draft.phone)}</span>
                 </a>
               ) : null}
               {waHref ? (

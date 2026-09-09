@@ -18,6 +18,7 @@ import {
   prepareLeonixListingTitleForPublish,
   toLeonixListingsDescriptionForDb,
 } from "@/app/clasificados/lib/leonixPublishPublicDescription";
+import { isBienesChildIdentitySubstitution } from "@/app/lib/clasificados/bienes-raices/brChildIdentityGuard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -44,6 +45,9 @@ type ListingRow = {
   br_inventory_group_id?: string | null;
   br_inventory_parent_listing_id?: string | null;
   inventory_role?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
 };
 
 function trim(raw: unknown): string {
@@ -199,6 +203,26 @@ async function updateOneListing(input: {
   lang: "es" | "en";
   parentListingId?: string | null;
 }): Promise<{ ok: true; id: string } | { ok: false; message: string }> {
+  // Globalization Build 2 — server-side integrity guard: block a wholesale property-identity
+  // swap on this existing row (same UUID/Leonix Ad ID/analytics/saved-engagement silently
+  // inherited by an unrelated property). Ordinary corrections (price, description, HOA, open
+  // house, amenities, availability, an address-formatting/casing fix) are unaffected — see
+  // brChildIdentityGuard.ts.
+  if (
+    isBienesChildIdentitySubstitution(
+      { city: input.existing.city, state: input.existing.state, zip: input.existing.zip },
+      { city: input.params.city, state: input.params.state, zip: input.params.zip },
+    )
+  ) {
+    return {
+      ok: false,
+      message:
+        input.lang === "es"
+          ? "Esta ubicación parece pertenecer a una propiedad diferente a la publicada aquí. Crea un anuncio nuevo para una propiedad diferente en vez de editar esta."
+          : "This location looks like a different property than the one currently listed here. Create a new listing for a different property instead of editing this one.",
+    };
+  }
+
   const media = await resolvePublicImages({
     supabase: input.supabase,
     ownerId: input.ownerId,
@@ -256,7 +280,7 @@ export async function POST(request: NextRequest) {
   const supabase = getAdminSupabase();
   const { data: existing, error: readError } = await supabase
     .from("listings")
-    .select("id, owner_id, category, seller_type, status, is_published, published_at, expires_at, leonix_ad_id, detail_pairs, images, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role")
+    .select("id, owner_id, category, seller_type, status, is_published, published_at, expires_at, leonix_ad_id, detail_pairs, images, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, city, state, zip")
     .eq("id", listingId)
     .maybeSingle();
 
@@ -320,7 +344,7 @@ export async function POST(request: NextRequest) {
   const groupId = trim(parent.br_inventory_group_id) || listingId;
   const { data: childRows, error: childReadError } = await supabase
     .from("listings")
-    .select("id, owner_id, category, seller_type, status, is_published, published_at, expires_at, leonix_ad_id, detail_pairs, images, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role")
+    .select("id, owner_id, category, seller_type, status, is_published, published_at, expires_at, leonix_ad_id, detail_pairs, images, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, city, state, zip")
     .eq("owner_id", bearerUserId)
     .eq("category", "bienes-raices")
     .eq("br_inventory_group_id", groupId)

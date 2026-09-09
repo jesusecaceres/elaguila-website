@@ -36,6 +36,9 @@ export function hydrateQuickDraftFromEnvelope(e: EmpleosPublishEnvelope): Empleo
     categoryCustom: d.categoryCustom ?? "",
     experienceLevel: d.experienceLevel,
     workModality: d.workModality,
+    // Globalization Build D-F4 — was omitted here, so a "Otro" workplace-type label the owner
+    // typed and published silently reset to blank on reopening the Quick lane for edit.
+    workModalityCustom: d.workModalityCustom ?? "",
     city: d.city,
     state: d.state,
     jobType: d.jobType,

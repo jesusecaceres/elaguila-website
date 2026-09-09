@@ -48,7 +48,7 @@ import {
   normalizeZipForBrowse,
 } from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
 import { buildRentasStreetLine, orderedRentasGallerySourcesForPublish } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
-import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
+import { buildProposedFinalMediaSet, validateProposedFinalMediaSet, warnDroppedUnpersistableMedia } from "@/app/lib/media/listingMediaContract";
 
 /**
  * Globalization Package B (Gate B6) — shared media contract, additive gate. Deliberately does
@@ -306,10 +306,14 @@ export function buildRentasPrivadoListingParams(
     };
   }
   // Gate B6 — additive max-count re-certification (MAX_PHOTOS = 8, rentasPrivadoFormState.ts:163).
-  const rentasPrivadoMedia = validateProposedFinalMediaSet(
-    buildProposedFinalMediaSet({ existing: orderedGallery }),
-    { minImages: 0, maxImages: 8, logoAllowed: false, maxExternalVideos: 0 },
-  );
+  const rentasPrivadoFinalMedia = buildProposedFinalMediaSet({ existing: orderedGallery });
+  warnDroppedUnpersistableMedia("rentas-privado-publish", rentasPrivadoFinalMedia);
+  const rentasPrivadoMedia = validateProposedFinalMediaSet(rentasPrivadoFinalMedia, {
+    minImages: 0,
+    maxImages: 8,
+    logoAllowed: false,
+    maxExternalVideos: 0,
+  });
   if (!rentasPrivadoMedia.ok) {
     return { ok: false, error: leonixRealEstateMediaCountError(orderedGallery.length, 8, lang) };
   }
@@ -375,10 +379,14 @@ export function buildPublishParamsFromBienesRaicesNegocioDraft(
   // steps01-03.tsx:540; min-1 already enforced upstream in the live agente-individual path,
   // buildPublishParamsFromAgenteResidencialDraft below).
   const brNegocioOrderedGallery = orderedRentasGallerySourcesForPublish(state.media.photoUrls, state.media.primaryImageIndex);
-  const brNegocioMedia = validateProposedFinalMediaSet(
-    buildProposedFinalMediaSet({ existing: brNegocioOrderedGallery }),
-    { minImages: 0, maxImages: 40, logoAllowed: false, maxExternalVideos: 0 },
-  );
+  const brNegocioFinalMedia = buildProposedFinalMediaSet({ existing: brNegocioOrderedGallery });
+  warnDroppedUnpersistableMedia("bienes-negocio-publish", brNegocioFinalMedia);
+  const brNegocioMedia = validateProposedFinalMediaSet(brNegocioFinalMedia, {
+    minImages: 0,
+    maxImages: 40,
+    logoAllowed: false,
+    maxExternalVideos: 0,
+  });
   if (!brNegocioMedia.ok) {
     return { ok: false, error: leonixRealEstateMediaCountError(brNegocioOrderedGallery.length, 40, lang) };
   }
@@ -514,10 +522,14 @@ export function buildRentasNegocioListingParams(
     };
   }
   // Gate B6 — additive max-count re-certification (mirrors rentas_privado's registry cap).
-  const rentasNegocioMedia = validateProposedFinalMediaSet(
-    buildProposedFinalMediaSet({ existing: orderedGallery }),
-    { minImages: 0, maxImages: 8, logoAllowed: false, maxExternalVideos: 0 },
-  );
+  const rentasNegocioFinalMedia = buildProposedFinalMediaSet({ existing: orderedGallery });
+  warnDroppedUnpersistableMedia("rentas-negocio-publish", rentasNegocioFinalMedia);
+  const rentasNegocioMedia = validateProposedFinalMediaSet(rentasNegocioFinalMedia, {
+    minImages: 0,
+    maxImages: 8,
+    logoAllowed: false,
+    maxExternalVideos: 0,
+  });
   if (!rentasNegocioMedia.ok) {
     return { ok: false, error: leonixRealEstateMediaCountError(orderedGallery.length, 8, lang) };
   }

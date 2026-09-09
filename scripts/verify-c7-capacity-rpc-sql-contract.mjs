@@ -1,15 +1,20 @@
 // Package C Build 4 (C7) — Gate 3 structural/textual SQL-contract verifier.
-// No DB connection — parses the authored-but-never-applied migration file's text and asserts the
-// required financial-authority shape by pattern match. Live execution/concurrency certification
-// is explicitly deferred to a separate, later, controlled pre-Production migration-certification
-// gate — this script proves the SQL contract only.
+// Gate 6C.2 — repointed at the corrected migration (20260903150000), which CREATE OR REPLACEs
+// both functions on top of the original 20260810120000 migration (left untouched as historical
+// source). Every property this script already asserted still holds in the corrected bodies;
+// checks 13/14 below are new, proving the actual defect Gate 6C.1 found (the dealer/agent parent
+// consuming one of its own inventory slots) is fixed, not merely that limits are declared right.
+// No DB connection — parses the migration file's text and asserts the required financial-
+// authority shape by pattern match. Live execution/concurrency certification is explicitly
+// deferred to a separate, later, controlled pre-Production migration-certification gate — this
+// script proves the SQL contract only.
 // Run: node scripts/verify-c7-capacity-rpc-sql-contract.mjs
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const MIGRATION = "supabase/migrations/20260810120000_autos_br_negocio_capacity_activation_rpc.sql";
+const MIGRATION = "supabase/migrations/20260903150000_fix_parent_inventory_capacity_counting.sql";
 
 let failures = 0;
 const check = (ok, label) => {
@@ -84,6 +89,26 @@ for (const [name, body] of [["autos_dealer_activate_listing", autos], ["br_negoc
 
   // 6. Advisory lock present, with a distinct namespace constant per category.
   check(/pg_advisory_xact_lock\(\d+,/.test(body), `${name}: pg_advisory_xact_lock call present`);
+
+  // 6b. Gate 6C.2 — the capacity COUNT query must filter on the real child inventory_role, so
+  // the commercial parent (inventory_role='main'/'main' equivalent) can never satisfy it
+  // regardless of what its own group key resolves to. Scoped to the count query itself (not the
+  // whole body) so this can't accidentally match an unrelated role reference elsewhere.
+  const countQueryMatch = body.match(/select count\(\*\) into v_count[\s\S]*?;/);
+  const countQuery = countQueryMatch ? countQueryMatch[0] : "";
+  const expectedChildRole = name === "autos_dealer_activate_listing" ? "inventory_vehicle" : "inventory_property";
+  check(
+    new RegExp(`inventory_role\\s*=\\s*'${expectedChildRole}'`).test(countQuery),
+    `${name}: capacity COUNT query filters on c.inventory_role = '${expectedChildRole}' (excludes the parent)`,
+  );
+
+  // 6c. Gate 6C.2 — no post-count addition may re-include the parent (the exact defect Gate 6C.1
+  // found in the original br_negocio_activate_listing body: `v_count := v_count + case when
+  // ... parent ... then 1 else 0 end`).
+  check(
+    !/v_count\s*:=\s*v_count\s*\+/.test(body),
+    `${name}: no post-count addition re-includes the parent in v_count`,
+  );
 
   // 7. Idempotent already-active branch precedes p_from_status check and the lock.
   const idempotentIdx = body.search(/status\s*=\s*'active'[\s\S]{0,80}?then/i);

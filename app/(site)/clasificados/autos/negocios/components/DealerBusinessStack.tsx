@@ -23,7 +23,7 @@ import {
   autosBusinessHubSocialBrandStyle,
 } from "../lib/autosNegociosBusinessHubSocialBrand";
 import { AutosNegociosBusinessHubMapPreview } from "./AutosNegociosBusinessHubMapPreview";
-import { AutosNegociosHubReviewLinkButton } from "./AutosNegociosHubReviewLinkButton";
+import { SharedConnectionHubReviewDrawer } from "@/app/components/contact/connectionHub/renderers/SharedConnectionHubReviewDrawer";
 import type { AutosNegociosBusinessHubSocialPlatform } from "../lib/autosNegociosBusinessHubContactTypes";
 import {
   autosAnalyticsTrackMeta,
@@ -339,21 +339,22 @@ export function DealerBusinessStack({
         >
           <p className={sectionLabelClass}>{sb.reviewsHeading}</p>
           <div className={`flex flex-col gap-3 ${showPremiumHubHeader ? "mt-5" : "mt-4"}`}>
-            {hub.reviews.map((link) => (
-              <AutosNegociosHubReviewLinkButton
-                key={link.id}
-                link={link}
-                lang={lang}
-                onOpen={
-                  contactMeta
-                    ? () => {
-                        if (link.id === "google") trackAutosGoogleReviewsCta(contactMeta);
-                        else if (link.id === "yelp") trackAutosYelpCta(contactMeta);
-                      }
-                    : undefined
-                }
-              />
-            ))}
+            {/* G21 adoption — the two direct-link buttons are now one shared drawer trigger; the
+                drawer hosts the same real-URL-only, no-fake-rating links unchanged. */}
+            <SharedConnectionHubReviewDrawer
+              links={hub.reviews.map((link) => ({
+                provider: link.id,
+                label: link.label,
+                url: link.url,
+              }))}
+              lang={lang}
+              businessName={data.dealerName?.trim() || undefined}
+              onLinkClick={(link) => {
+                if (!contactMeta) return;
+                if (link.provider === "google") trackAutosGoogleReviewsCta(contactMeta);
+                else if (link.provider === "yelp") trackAutosYelpCta(contactMeta);
+              }}
+            />
           </div>
         </SectionBlock>
       ) : null}

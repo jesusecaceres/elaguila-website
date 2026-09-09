@@ -140,6 +140,8 @@ function publicRowToComidaLocalDraftFromColumns(row: ComidaLocalPublicListingRow
     instagramUrl: row.instagram_url?.trim() ?? "",
     facebookUrl: row.facebook_url?.trim() ?? "",
     tiktokUrl: row.tiktok_url?.trim() ?? "",
+    googleReviewsUrl: row.google_reviews_url?.trim() ?? "",
+    yelpReviewsUrl: row.yelp_reviews_url?.trim() ?? "",
     locationNote: row.location_note?.trim() ?? "",
     locationUrl: row.location_url?.trim() ?? "",
     availabilityNote: row.availability_note?.trim() ?? "",

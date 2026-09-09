@@ -1,6 +1,7 @@
 "use client";
 
 import CityAutocomplete from "@/app/components/CityAutocomplete";
+import { BusinessAddressVerifiedInput } from "@/app/components/forms/BusinessAddressVerifiedInput";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -1052,6 +1053,26 @@ export default function ComidaLocalApplicationClient() {
                       placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.tiktokUrl, es).placeholder}
                     />
                   </FieldBlock>
+                  <FieldBlock fieldKey="googleReviewsUrl" es={es}>
+                    <input
+                      className={INPUT}
+                      type="url"
+                      inputMode="url"
+                      value={draft.googleReviewsUrl}
+                      onChange={(e) => updateDraft({ googleReviewsUrl: e.target.value })}
+                      placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.googleReviewsUrl, es).placeholder}
+                    />
+                  </FieldBlock>
+                  <FieldBlock fieldKey="yelpReviewsUrl" es={es}>
+                    <input
+                      className={INPUT}
+                      type="url"
+                      inputMode="url"
+                      value={draft.yelpReviewsUrl}
+                      onChange={(e) => updateDraft({ yelpReviewsUrl: e.target.value })}
+                      placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.yelpReviewsUrl, es).placeholder}
+                    />
+                  </FieldBlock>
                   <FieldBlock fieldKey="additionalWebsites" es={es}>
                     <div className="space-y-2">
                       {draft.additionalWebsites.map((site, i) => (
@@ -1271,11 +1292,37 @@ export default function ComidaLocalApplicationClient() {
                     />
                   ) : null}
                   <FieldBlock fieldKey="businessAddressLine" es={es}>
-                    <input
+                    <BusinessAddressVerifiedInput
+                      lang={es ? "es" : "en"}
                       className={INPUT}
-                      value={draft.businessAddressLine}
-                      onChange={(e) => updateDraft({ businessAddressLine: e.target.value })}
-                      placeholder={resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.businessAddressLine, es).placeholder}
+                      value={{
+                        // Comida Local's address is a single free-text line (no structured
+                        // street/city/region/postal split) -- the whole line lives in `street`,
+                        // the rest is intentionally always blank. See the documented pattern in
+                        // app/lib/businessAddress/examples/comidaLocalAddressMappingExample.ts.
+                        street: draft.businessAddressLine,
+                        city: "",
+                        region: "",
+                        postalCode: "",
+                        country: "",
+                        verificationStatus: draft.physicalVerificationStatus,
+                        provider: draft.physicalProvider,
+                        providerPlaceId: draft.physicalProviderPlaceId,
+                        manualEntry: draft.physicalVerificationStatus !== "user_confirmed",
+                      }}
+                      onChange={(next) =>
+                        updateDraft({
+                          // A picked suggestion's formatted address is folded into the single
+                          // free-text line (there's nowhere structured to put city/state/zip).
+                          businessAddressLine:
+                            next.verificationStatus === "user_confirmed"
+                              ? next.formattedAddress || next.street
+                              : next.street,
+                          physicalVerificationStatus: next.verificationStatus,
+                          physicalProvider: next.provider ?? null,
+                          physicalProviderPlaceId: next.providerPlaceId ?? null,
+                        })
+                      }
                     />
                   </FieldBlock>
                   {draft.businessAddressLine.trim() ? (

@@ -305,16 +305,53 @@ function mapSelectedServiceIds(
 }
 
 function mapSelectedBusinessHighlightIds(profile: ServiciosBusinessProfile | null | undefined): string[] {
-  const raw = [
-    ...(Array.isArray(profile?.businessHighlights) ? profile.businessHighlights : []),
-    ...(Array.isArray(profile?.trust) ? profile.trust : []),
-  ];
+  const raw = Array.isArray(profile?.businessHighlights) ? profile.businessHighlights : [];
   const ids: string[] = [];
   for (const item of raw) {
     const id = clean(item?.id);
     if (id) ids.push(id);
   }
   return ids;
+}
+
+/** Reverse of the draft mapper's `trust_${id}` prefix (mapClasificadosServiciosApplicationToServiciosDraft.ts) —
+ * restores preset "reasons to choose you" selections on edit. The literal `custom_reason` entry is handled
+ * separately by `mapCustomReason` below, never treated as a preset id. */
+function mapSelectedReasonIds(profile: ServiciosBusinessProfile | null | undefined, businessTypeId: string): string[] {
+  const preset = getBusinessTypePreset(businessTypeId);
+  if (!preset) return [];
+  const validIds = new Set(preset.reasonsToChoose.map((c) => c.id));
+  const raw = Array.isArray(profile?.trust) ? profile.trust : [];
+  const ids: string[] = [];
+  for (const item of raw) {
+    const rawId = clean(item?.id);
+    const match = /^trust_(.+)$/.exec(rawId);
+    const id = match?.[1];
+    if (id && validIds.has(id)) ids.push(id);
+  }
+  return ids;
+}
+
+/** Restores the single free-text "custom reason" entry (id `custom_reason`) on edit. */
+function mapCustomReason(profile: ServiciosBusinessProfile | null | undefined): { label: string; included: boolean } {
+  const raw = Array.isArray(profile?.trust) ? profile.trust : [];
+  const entry = raw.find((item) => clean(item?.id) === "custom_reason");
+  const label = clean(entry?.label);
+  return { label, included: Boolean(label) };
+}
+
+/** Quick Facts are persisted as `{kind, label}` with no stable preset-chip id to reverse-match against, so
+ * every persisted quick fact is restored as free text (`customQuickFacts`) rather than a preset selection —
+ * this always preserves the owner's exact prior wording with zero data loss, even though a fact that started
+ * as a preset chip re-opens as its equivalent custom-text entry instead of a re-checked preset chip. */
+function mapCustomQuickFacts(profile: ServiciosBusinessProfile | null | undefined): string[] {
+  const raw = Array.isArray(profile?.quickFacts) ? profile.quickFacts : [];
+  const out: string[] = [];
+  for (const item of raw) {
+    const label = clean(item?.label);
+    if (label) out.push(label);
+  }
+  return out;
 }
 
 function detectNewFieldsAvailable(profile: ServiciosBusinessProfile): string[] {
@@ -383,10 +420,17 @@ export function serviciosPublishedToApplicationDraft(
     physicalRegion: clean(contact.physicalRegion),
     physicalCountry: clean(contact.physicalCountry),
     physicalPostalCode: clean(contact.physicalPostalCode),
+    // Absent on any listing published before this field existed — default true so re-opening an
+    // existing listing for edit never silently flips an always-public address to hidden.
+    showExactAddress: typeof contact.showExactAddress === "boolean" ? contact.showExactAddress : true,
+    physicalVerificationStatus: contact.physicalVerificationStatus ?? "unverified",
+    physicalProvider: contact.physicalProvider ?? null,
+    physicalProviderPlaceId: contact.physicalProviderPlaceId ?? null,
     serviceAreaNotes,
     phone: clean(contact.phone),
     phoneOffice: clean(contact.phoneOffice),
     website: clean(contact.websiteUrl),
+    additionalWebsites: Array.isArray(contact.additionalWebsites) ? contact.additionalWebsites : [],
     whatsapp: clean(contact.socialLinks?.whatsappUrl),
     whatsappBusinessUrl: clean(contact.socialLinks?.whatsappProfileUrl),
     quoteMessagePhone: clean(contact.quoteMessagePhone),
@@ -410,6 +454,11 @@ export function serviciosPublishedToApplicationDraft(
     customBusinessHighlights: (Array.isArray(profile?.businessHighlights) ? profile.businessHighlights : [])
       .map((item) => clean(item.label))
       .filter(Boolean),
+    selectedReasonIds: mapSelectedReasonIds(profile, businessTypeId),
+    customReasonLabel: mapCustomReason(profile).label,
+    customReasonIncluded: mapCustomReason(profile).included,
+    selectedQuickFactIds: [],
+    customQuickFacts: mapCustomQuickFacts(profile),
     leonixVerifiedInterest: profile?.opsMeta?.leonixVerifiedInterest === true,
     enableCall: Boolean(clean(contact.phone) || clean(contact.phoneOffice)),
     enableMessage: contact.messageEnabled === true,

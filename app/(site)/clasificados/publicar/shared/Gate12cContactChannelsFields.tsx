@@ -3,6 +3,9 @@
 import type { LeonixContactChannelsFormSlice } from "@/app/clasificados/lib/leonixContactChannelsV1";
 import { getLaunchUiMessages } from "@/app/lib/i18n/launchUiDictionaries";
 import type { OfficialLocale } from "@/app/lib/language";
+import type { AdditionalWebsiteEntry } from "@/app/lib/additionalWebsites/additionalWebsiteEntry";
+
+const MAX_ADDITIONAL_WEBSITES = 8;
 
 type Props = {
   lang: OfficialLocale;
@@ -96,6 +99,56 @@ export function Gate12cContactChannelsFields({ lang, value, onChange, fieldClass
             <option value="sms">{ch.prefSms}</option>
             <option value="website">{ch.prefWeb}</option>
           </select>
+        </div>
+        <div className="sm:col-span-2">
+          <label className="mb-1 block text-sm font-medium text-[#111111]/85">{ch.additionalWebsitesLabel}</label>
+          <p className="mb-2 text-xs text-[#111111]/55">{ch.additionalWebsitesHint}</p>
+          <div className="flex flex-col gap-2">
+            {value.additionalWebsites.map((entry, i) => (
+              <div key={i} className="flex flex-col gap-2 sm:flex-row">
+                <input
+                  className={fieldClass}
+                  placeholder={ch.additionalWebsitesLabelPlaceholder}
+                  value={entry.label}
+                  onChange={(e) => {
+                    const next = value.additionalWebsites.slice();
+                    next[i] = { ...next[i], label: e.target.value };
+                    set({ additionalWebsites: next });
+                  }}
+                />
+                <input
+                  className={fieldClass}
+                  type="url"
+                  placeholder={ch.additionalWebsitesUrlPlaceholder}
+                  value={entry.url}
+                  onChange={(e) => {
+                    const next = value.additionalWebsites.slice();
+                    next[i] = { ...next[i], url: e.target.value };
+                    set({ additionalWebsites: next });
+                  }}
+                />
+                <button
+                  type="button"
+                  className="shrink-0 rounded-lg border border-[#E8DFD0] px-3 py-2 text-xs font-semibold text-[#111111]/70 hover:bg-[#F7F3EA]"
+                  onClick={() => set({ additionalWebsites: value.additionalWebsites.filter((_, j) => j !== i) })}
+                >
+                  {ch.additionalWebsitesRemove}
+                </button>
+              </div>
+            ))}
+          </div>
+          {value.additionalWebsites.length < MAX_ADDITIONAL_WEBSITES ? (
+            <button
+              type="button"
+              className="mt-2 rounded-lg border border-[#E8DFD0] px-3 py-2 text-xs font-semibold text-[#111111]/80 hover:bg-[#F7F3EA]"
+              onClick={() => {
+                const next: AdditionalWebsiteEntry[] = [...value.additionalWebsites, { label: "", url: "" }];
+                set({ additionalWebsites: next });
+              }}
+            >
+              {ch.additionalWebsitesAdd}
+            </button>
+          ) : null}
         </div>
       </div>
     </section>

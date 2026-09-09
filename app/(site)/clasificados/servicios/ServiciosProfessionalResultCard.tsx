@@ -53,30 +53,6 @@ function getProfileCtaSecondary(_template: ServiciosListingTemplate, lang: Servi
   return lang === "en" ? "View profile" : "Ver perfil";
 }
 
-function StarRow({ rating, lang }: { rating: number; lang: ServiciosLang }) {
-  const aria =
-    lang === "en" ? `${rating.toFixed(1)} out of 5 stars` : `${rating.toFixed(1)} de 5 estrellas`;
-  return (
-    <div className="flex items-center gap-1" role="img" aria-label={aria}>
-      {Array.from({ length: 5 }, (_, i) => {
-        const v = rating - i;
-        const pct = Math.round(Math.min(1, Math.max(0, v)) * 100);
-        return (
-          <span key={i} className="relative h-3.5 w-[0.9em] text-[12px] leading-none">
-            <span className="absolute text-[#d4cfc4]" aria-hidden>
-              ★
-            </span>
-            <span className="absolute overflow-hidden text-[#C9A84A]" style={{ width: `${pct}%` }} aria-hidden>
-              ★
-            </span>
-          </span>
-        );
-      })}
-      <span className="ml-0.5 text-xs font-bold text-[#2A2620]">{rating.toFixed(1)}</span>
-    </div>
-  );
-}
-
 export function ServiciosProfessionalResultCard({
   row,
   lang,
@@ -131,15 +107,6 @@ export function ServiciosProfessionalResultCard({
   const serviceChips = useMemo(() => collectProfessionalServiceChips(profile, 12), [profile]);
   const trustChips = useMemo(() => collectHeroTrustChips(profile, 3), [profile]);
   const allChips = useMemo(() => [...serviceChips, ...trustChips], [serviceChips, trustChips]);
-
-  const ratingValue =
-    typeof profile.hero.rating === "number" && Number.isFinite(profile.hero.rating) && profile.hero.rating > 0
-      ? profile.hero.rating
-      : undefined;
-  const reviewCount =
-    typeof profile.hero.reviewCount === "number" && profile.hero.reviewCount > 0
-      ? profile.hero.reviewCount
-      : undefined;
 
   const likeBadgeCount =
     typeof row.public_like_net_count === "number" && row.public_like_net_count > 0
@@ -254,16 +221,6 @@ export function ServiciosProfessionalResultCard({
               </p>
             ) : null}
 
-            {ratingValue != null ? (
-              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                <StarRow rating={ratingValue} lang={lang} />
-                {reviewCount != null ? (
-                  <span className="text-[11px] font-semibold text-[#6F6254]">
-                    ({reviewCount} {lang === "en" ? "reviews" : "reseñas"})
-                  </span>
-                ) : null}
-              </div>
-            ) : null}
           </div>
         </div>
 

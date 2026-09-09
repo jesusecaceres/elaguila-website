@@ -70,7 +70,10 @@ function telHrefFromPhoneDisplay(raw: string): string | null {
 function waHrefFromPhoneDisplay(raw: string): string | null {
   const d = digitsOnly15(raw);
   if (d.length < 10) return null;
-  return `https://wa.me/${d}?text=${encodeURIComponent(RENTAS_LEAD_MESSAGE_ES)}`;
+  // Globalization Build D — matches the fix already applied in the sibling live-listing mapper
+  // (mapRentasListingLiveToPreviewVm.ts): a bare 10-digit number needs its US country code.
+  const withCountryCode = d.length === 10 ? `1${d}` : d;
+  return `https://wa.me/${withCountryCode}?text=${encodeURIComponent(RENTAS_LEAD_MESSAGE_ES)}`;
 }
 
 function smsHrefFromState(raw: string, lang: "es" | "en"): string | null {

@@ -14,6 +14,10 @@ type Body = {
 
 /**
  * Public, best-effort analytics (active listings only). No auth; rate-limit at edge if needed.
+ *
+ * Globalization Build D-F3 — no client code calls this route anymore; `trackAutosListingEvent`
+ * (its only caller) now writes solely to the canonical shared `/api/analytics/events` pipeline.
+ * Left in place, dormant, for backward compatibility rather than removed.
  */
 export async function POST(request: Request) {
   let body: Body;

@@ -4,6 +4,7 @@ import {
   enVentaWhatsappDigitsValid,
   formatEnVentaPhoneDisplay,
 } from "./enVentaPhoneDisplay";
+import { normalizeInternationalWhatsAppDigits } from "@/app/lib/whatsapp/internationalWhatsApp";
 
 export type EnVentaContactActionId = "call" | "sms" | "email" | "whatsapp";
 
@@ -63,10 +64,14 @@ export function buildEnVentaContactActions(
 
   if (showWa) {
     const text = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
+    // Globalization Build D — a bare 10-digit number needs its US country code prefixed;
+    // anything else already carries its own (naive digit-strip previously silently produced a
+    // malformed international link).
+    const waHrefDigits = normalizeInternationalWhatsAppDigits(waDigits) ?? waDigits;
     actions.push({
       id: "whatsapp",
       label: "WhatsApp",
-      href: `https://wa.me/${waDigits}?text=${text}`,
+      href: `https://wa.me/${waHrefDigits}?text=${text}`,
       displayNumber: waDisplay || undefined,
     });
   }
@@ -135,10 +140,11 @@ export function buildEnVentaLiveContactActions(input: EnVentaLiveContactInput): 
 
   if (waValid && waOk) {
     const text = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
+    const waHrefDigits = normalizeInternationalWhatsAppDigits(waDigits) ?? waDigits;
     actions.push({
       id: "whatsapp",
       label: "WhatsApp",
-      href: `https://wa.me/${waDigits}?text=${text}`,
+      href: `https://wa.me/${waHrefDigits}?text=${text}`,
       displayNumber: waDisplay || undefined,
     });
   }
@@ -208,11 +214,11 @@ export function buildEnVentaPrimaryContactHref(
   }
   if (method === "whatsapp" && enVentaWhatsappDigitsValid(waDigits)) {
     const text = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
-    return `https://wa.me/${waDigits}?text=${text}`;
+    return `https://wa.me/${normalizeInternationalWhatsAppDigits(waDigits) ?? waDigits}?text=${text}`;
   }
   if (enVentaWhatsappDigitsValid(waDigits)) {
     const text = encodeURIComponent(lang === "es" ? SMS_PREFILL_ES : SMS_PREFILL_EN);
-    return `https://wa.me/${waDigits}?text=${text}`;
+    return `https://wa.me/${normalizeInternationalWhatsAppDigits(waDigits) ?? waDigits}?text=${text}`;
   }
   if (method === "both") {
     if (phoneDigits) return `tel:${phoneDigits}`;

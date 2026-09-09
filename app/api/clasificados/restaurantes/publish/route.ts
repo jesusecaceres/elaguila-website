@@ -30,7 +30,7 @@ import {
   trimRestauranteVideoUrl,
   RESTAURANTE_MAX_EXTERNAL_VIDEO_URLS,
 } from "@/app/lib/clasificados/restaurantes/restauranteVideoUrls";
-import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
+import { buildProposedFinalMediaSet, validateProposedFinalMediaSet, warnDroppedUnpersistableMedia } from "@/app/lib/media/listingMediaContract";
 
 /** Gallery cap mirrors MAX_GALLERY in RestaurantePublishMediaStrip.tsx:29 (local, unexported). */
 const RESTAURANTE_GALLERY_MAX = 24;
@@ -282,6 +282,7 @@ export async function POST(req: Request) {
     existing: [...(restauranteHeroUrl ? [restauranteHeroUrl] : []), ...restauranteGalleryUrls],
     externalVideoUrls: collectRestauranteExternalVideoUrls(draft),
   });
+  warnDroppedUnpersistableMedia("restaurantes-publish", restauranteFinalMedia);
   const restauranteMediaValidation = validateProposedFinalMediaSet(restauranteFinalMedia, {
     minImages: 0,
     maxImages: RESTAURANTE_GALLERY_MAX,

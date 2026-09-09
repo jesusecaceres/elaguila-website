@@ -3,6 +3,7 @@
  */
 
 import { canOfertaLocalItemBePubliclyEligible } from "./ofertasLocalesAiDbMapper";
+import { resolveBusinessAddressPublicView } from "@/app/lib/businessAddress/businessAddressPrivacy";
 import { normalizeOfertaLocalSourceBbox } from "./ofertasLocalesBoundingBoxes";
 import {
   formatOfertaLocalItemPriceDisplay,
@@ -77,6 +78,7 @@ export type OfertaLocalPublicSearchParentRow = {
   city: string;
   state: string | null;
   zip_code: string;
+  show_exact_address: boolean;
   phone: string | null;
   whatsapp: string | null;
   website_url: string | null;
@@ -275,19 +277,39 @@ export function mapOfertaLocalPublicSearchRowToItem(
   const city = sanitizePublicText(row.business_city || parent.city, 80);
   const state = sanitizePublicText(row.business_state || parent.state, 40);
   const zipCode = sanitizePublicText(row.business_zip_code || parent.zip_code, 20);
-  const address = sanitizePublicText(row.business_address || parent.address, 200);
+  const rawAddress = sanitizePublicText(row.business_address || parent.address, 200);
   const phoneRaw = sanitizePublicText(parent.phone || parent.whatsapp, 40);
   const phoneHref = buildOfertaLocalTelHref(phoneRaw);
   const whatsappHref = buildOfertaLocalWhatsAppHref(parent.whatsapp ?? parent.phone ?? "", businessName);
   const websiteHref = safePublicHref(parent.website_url);
   const directionsDirect = safePublicHref(parent.directions_url);
-  const directionsHref =
-    directionsDirect ||
-    (address || city || zipCode
+
+  // Globalization Build A3 (RED #9) — same shared privacy gate as mapOfertaLocalPublicOfferRowToCard
+  // in ofertasLocalesPublicOfferHelpers.ts. The owner's own explicit `directions_url` is never
+  // gated (an explicit share, not a derivation from the private street address).
+  const addressPublicView = resolveBusinessAddressPublicView({
+    address: rawAddress
+      ? {
+          street: rawAddress,
+          city,
+          region: state,
+          country: locationFields.country ?? "",
+          postalCode: zipCode,
+          verificationStatus: "manual",
+          manualEntry: true,
+        }
+      : null,
+    showExactAddress: parent.show_exact_address,
+    cityOrServiceArea: city,
+  });
+  const address = addressPublicView.showExactAddress ? rawAddress : "";
+  const derivedDirectionsHref =
+    addressPublicView.directionsAllowed && address
       ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
           [address, city, state, locationFields.country, zipCode].filter(Boolean).join(", ")
         )}`
-      : null);
+      : null;
+  const directionsHref = directionsDirect || derivedDirectionsHref;
 
   const priceVm: Pick<OfertaLocalItemReviewViewModel, "priceText" | "priceAmount" | "unit"> = {
     priceText: row.price_text ?? "",

@@ -109,6 +109,11 @@ export type RentasPrivadoFormState = {
   direccionCruceCercano: string;
   /** Cuando es true, la salida pública puede usar la dirección exacta (líneas 1/2). */
   mostrarDireccionExacta: boolean;
+  /** Gate G23 — set only by the shared BusinessAddressVerifiedInput picker (never invented/
+   * guessed). Absent on any listing before this field existed. */
+  direccionVerificationStatus: "unverified" | "manual" | "user_confirmed" | "provider_suggested" | "verified";
+  direccionProvider: string | null;
+  direccionProviderPlaceId: string | null;
   direccionNumero: string;
   direccionCalle: string;
   direccionEstado: string;
@@ -312,6 +317,9 @@ export function createEmptyRentasPrivadoFormState(): RentasPrivadoFormState {
     direccionLinea2: "",
     direccionCruceCercano: "",
     mostrarDireccionExacta: false,
+    direccionVerificationStatus: "unverified",
+    direccionProvider: null,
+    direccionProviderPlaceId: null,
     direccionNumero: "",
     direccionCalle: "",
     direccionEstado: "CA",
@@ -418,6 +426,22 @@ export function mergePartialRentasPrivadoState(partial: Partial<RentasPrivadoFor
     typeof (partial as { mostrarDireccionExacta?: unknown }).mostrarDireccionExacta === "boolean"
       ? Boolean((partial as { mostrarDireccionExacta: boolean }).mostrarDireccionExacta)
       : base.mostrarDireccionExacta;
+  const direccionVerificationStatusAllowed = new Set([
+    "unverified",
+    "manual",
+    "user_confirmed",
+    "provider_suggested",
+    "verified",
+  ]);
+  const direccionVerificationStatus =
+    typeof partial.direccionVerificationStatus === "string" &&
+    direccionVerificationStatusAllowed.has(partial.direccionVerificationStatus)
+      ? (partial.direccionVerificationStatus as RentasPrivadoFormState["direccionVerificationStatus"])
+      : base.direccionVerificationStatus;
+  const direccionProvider =
+    typeof partial.direccionProvider === "string" ? partial.direccionProvider : base.direccionProvider;
+  const direccionProviderPlaceId =
+    typeof partial.direccionProviderPlaceId === "string" ? partial.direccionProviderPlaceId : base.direccionProviderPlaceId;
 
   return {
     v: RENTAS_PRIVADO_FORM_VERSION,
@@ -498,6 +522,9 @@ export function mergePartialRentasPrivadoState(partial: Partial<RentasPrivadoFor
     direccionLinea2,
     direccionCruceCercano,
     mostrarDireccionExacta,
+    direccionVerificationStatus,
+    direccionProvider,
+    direccionProviderPlaceId,
     direccionNumero: mergedNum,
     direccionCalle: mergedCalle,
     direccionEstado:

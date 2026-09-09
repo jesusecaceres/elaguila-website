@@ -3,7 +3,7 @@
 import type { ComponentType } from "react";
 
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
-import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import { formatUsStylePhoneInputSafe } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import { EmpleosFieldLabel } from "@/app/publicar/empleos/shared/ui/empleosFormPrimitives";
 import { FaFacebook, FaInstagram, FaLinkedin, FaPinterest, FaSnapchat, FaTiktok, FaYoutube } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
@@ -171,7 +171,7 @@ export function CommunityExtendedContactFields({ lang, smsPhone, socialLinks, on
         </EmpleosFieldLabel>
         <input
           value={smsPhone}
-          onChange={(e) => onChange({ smsPhone: formatPhoneInputDisplay(e.target.value) })}
+          onChange={(e) => onChange({ smsPhone: formatUsStylePhoneInputSafe(e.target.value) })}
           className={INPUT}
           type="tel"
           inputMode="numeric"

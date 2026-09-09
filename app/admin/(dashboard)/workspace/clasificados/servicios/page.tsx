@@ -11,6 +11,7 @@ import { ClasificadosQueueActionChrome } from "../_components/ClasificadosQueueA
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { adminCardBase, adminCtaChipSecondary } from "@/app/admin/_components/adminTheme";
 import { AdminPagePurposeCard } from "@/app/admin/_components/AdminPagePurposeCard";
+import { AdminListingMonetizationSummary } from "../_components/AdminListingMonetizationSummary";
 import {
   isServiciosDevPublishPersistenceEnabled,
   listServiciosDevPublishRows,
@@ -348,6 +349,7 @@ export default async function AdminServiciosWorkspacePage(props: {
                       <th className="p-2">Status</th>
                       <th className="p-2">Owner</th>
                       <th className="p-2">Updated</th>
+                      <th className="p-2">Monetization</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -360,6 +362,13 @@ export default async function AdminServiciosWorkspacePage(props: {
                         <td className="p-2 text-xs">{r.listing_status}</td>
                         <td className="p-2 font-mono text-[10px]">{r.owner_user_id?.slice(0, 8) ?? "—"}</td>
                         <td className="p-2 text-xs">{r.updated_at ? new Date(r.updated_at).toLocaleString() : "—"}</td>
+                        <td className="p-2 align-top">
+                          <AdminListingMonetizationSummary
+                            category="servicios"
+                            source="servicios_public_listings"
+                            listing={r as unknown as Record<string, unknown>}
+                          />
+                        </td>
                       </tr>
                     ))}
                   </tbody>

@@ -32,6 +32,7 @@ import {
   isCommunityQuickListing,
 } from "../../community/shared/communityListingDetailPairs";
 import { buildCommunityMapQuery, googleMapsSearchUrl } from "@/app/(site)/publicar/community/shared/lib/communityContactCtas";
+import { isCommunityEventActiveForDiscovery } from "@/app/(site)/clasificados/community/shared/communityEventDiscoveryExpiration";
 import AiInsightsPanel from "../../components/AiInsightsPanel";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
 import { trackEvent } from "@/app/lib/listingAnalytics";
@@ -40,14 +41,16 @@ import type { CtaSheetIntent } from "@/app/components/cta/types";
 import {
   trackListingViewOpen,
   trackListingSaveToggleAuthed,
+  trackListingLikeToggle,
   trackListingShare as trackListingShareGlobal,
 } from "@/app/lib/analytics/client/listingEngagementRecorder";
+import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
 import { addListingView } from "@/app/lib/recentlyViewed";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
-import { submitListingReportAction } from "@/app/admin/actions";
 import { formatListingPrice } from "@/app/lib/formatListingPrice";
 import { copyToClipboard } from "@/app/components/cta";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { LeonixInlineListingReport } from "@/app/clasificados/components/LeonixInlineListingReport";
 import { TranslateAdControl } from "@/app/components/translation/TranslateAdControl";
 import { requestAdTranslation } from "@/app/lib/translation/requestAdTranslation";
 import { useAnuncioListingTranslation } from "@/app/lib/translation/useAnuncioListingTranslation";
@@ -108,7 +111,7 @@ type Lang = "es" | "en";
 // failed round trips before the existing shrink-retry loop finds a working column set; the
 // price-drop feature already degrades to "no data" for every real row today regardless.
 const ANUNCIO_LISTING_SELECT_BASE =
-  "id, leonix_ad_id, owner_id, title, description, city, zip, category, price, is_free, detail_pairs, listing_json, profile_json, contact_json, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, is_published, created_at, images, republished_at, mux_playback_id";
+  "id, leonix_ad_id, owner_id, title, description, city, zip, category, price, is_free, detail_pairs, listing_json, profile_json, contact_json, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, is_published, created_at, images, republished_at, mux_playback_id, expires_at";
 
 function classifiedsSampleListingsEnabled(): boolean {
   if (process.env.NODE_ENV === "production") return false;
@@ -612,6 +615,20 @@ function AnuncioDetallePageContent() {
           setRemoteState("ready");
           return;
         }
+        // Globalization Build 4 — this direct-by-id fetch had no expiry check at all (only
+        // is_published/status), so a fixed-term paid listing (currently: Bienes Raíces FSBO —
+        // the only lane in this shared table with a real, populated expires_at) stayed publicly
+        // reachable by direct URL indefinitely past its term. A null/missing expires_at (every
+        // other category and lane sharing this table, none of which have a fixed term) is
+        // treated as "never expires" — this can never hide a subscription-based or free listing.
+        if (typeof row.expires_at === "string" && row.expires_at) {
+          const expiresMs = new Date(row.expires_at).getTime();
+          if (Number.isFinite(expiresMs) && expiresMs <= Date.now()) {
+            setFetchedListing(undefined);
+            setRemoteState("ready");
+            return;
+          }
+        }
 
         // Gate G.2.3.4 — an inventory child (Bienes Raíces Negocio) additionally requires an
         // active, published, same-owner canonical main parent to render publicly. Defense in
@@ -804,6 +821,16 @@ function AnuncioDetallePageContent() {
         (listing.category === "comunidad" && communityQuickPairMap["Leonix:communityKind"] === "comunidad")),
   );
 
+  // Globalization Build D-F5 — an expired Comunidad/Clases event or class stayed fully live and
+  // reachable at its direct detail URL indefinitely (previously this expiry check only hid rows
+  // from the browse/results grid for `comunidad`, never gated the detail page itself, and never
+  // applied to `clases` at all — a real gap for a category with a live, Stripe-backed $24.99/
+  // 30-day paid package). Missing dates (e.g. an ongoing/no-end-date listing) stay visible, per
+  // the shared helper's own documented behavior.
+  const isExpiredCommunityQuickListing = Boolean(
+    useCommunityQuickWysiwyg && communityQuickPairMap && !isCommunityEventActiveForDiscovery(communityQuickPairMap),
+  );
+
   const buscoQuickPairMap = useMemo(() => {
     if (!listing || listing.category !== "busco") return null;
     const m = buscoDetailPairsToMap(listing.detailPairs);
@@ -965,10 +992,6 @@ function AnuncioDetallePageContent() {
   const [viewCount, setViewCount] = useState<number | null>(null);
   const [viewsToday, setViewsToday] = useState<number | null>(null);
   const [savedSyncDone, setSavedSyncDone] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [reportReason, setReportReason] = useState("");
-  const [reportSubmitting, setReportSubmitting] = useState(false);
-  const [reportDone, setReportDone] = useState(false);
   const [sellerStats, setSellerStats] = useState<{ avgRating: number | null; totalRatings: number } | null>(null);
   const [showChatModal, setShowChatModal] = useState(false);
   const [chatMessages, setChatMessages] = useState<Array<{ id: string; sender_id: string; message: string; created_at: string }>>([]);
@@ -1092,12 +1115,6 @@ function AnuncioDetallePageContent() {
     el?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const handleReportarAnuncio = () => {
-    setReportReason("");
-    setReportDone(false);
-    setShowReportModal(true);
-  };
-
   useEffect(() => {
     if (!showChatModal || !listing?.id) return;
     const ownerId = (listing as any)?.owner_id;
@@ -1148,31 +1165,6 @@ function AnuncioDetallePageContent() {
       setChatSending(false);
     }
   };
-
-  const handleReportSubmit = async () => {
-    if (!listing?.id) return;
-    const reason = reportReason.trim();
-    if (!reason) {
-      alert(lang === "es" ? "Escribe el motivo del reporte." : "Please enter a reason for the report.");
-      return;
-    }
-    setReportSubmitting(true);
-    try {
-      const supabase = createSupabaseBrowserClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      await submitListingReportAction(listing.id, reason, user?.id ?? null);
-      setReportDone(true);
-      setTimeout(() => {
-        setShowReportModal(false);
-        setReportReason("");
-      }, 1500);
-    } catch {
-      alert(lang === "es" ? "No se pudo enviar el reporte. Intenta de nuevo." : "Could not submit report. Please try again.");
-    } finally {
-      setReportSubmitting(false);
-    }
-  };
-
 
   const status: ListingStatus = listing?.status ? listing.status : "active";
   const isSold = status === "sold";
@@ -1326,7 +1318,7 @@ function AnuncioDetallePageContent() {
     );
   }
 
-  if (!listing) {
+  if (!listing || isExpiredCommunityQuickListing) {
     return (
       <div className="bg-[#D9D9D9] min-h-screen bg-[#D9D9D9] text-[#111111] pb-24">
         <Navbar />
@@ -2037,55 +2029,11 @@ function AnuncioDetallePageContent() {
               <div className="mt-2 text-[#111111]">{t.guardBody}</div>
 
               <div className="mt-4">
-                <button
-                  type="button"
-                  className="cta-free px-5 py-2.5 rounded-full border border-gray-300 bg-white text-[#111111] font-semibold hover:bg-gray-50 transition"
-                  onClick={handleReportarAnuncio}
-                >
-                  {t.report}
-                </button>
+                {listing?.id ? (
+                  <LeonixInlineListingReport listingId={listing.id} lang={lang === "en" ? "en" : "es"} />
+                ) : null}
               </div>
             </div>
-
-            {/* Report modal */}
-            {showReportModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true">
-                <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 text-[#111111]">
-                  <h3 className="text-lg font-bold">{t.report}</h3>
-                  {reportDone ? (
-                    <p className="mt-4 text-[#111111]">{t.reportThankYou}</p>
-                  ) : (
-                    <>
-                      <textarea
-                        className="mt-4 w-full rounded-xl border border-gray-300 p-3 text-sm min-h-[100px] resize-y"
-                        placeholder={t.reportReasonPlaceholder}
-                        value={reportReason}
-                        onChange={(e) => setReportReason(e.target.value)}
-                        disabled={reportSubmitting}
-                      />
-                      <div className="mt-4 flex gap-3 justify-end">
-                        <button
-                          type="button"
-                          className="px-4 py-2 rounded-full border border-gray-300 bg-white font-medium hover:bg-gray-50 disabled:opacity-50"
-                          onClick={() => setShowReportModal(false)}
-                          disabled={reportSubmitting}
-                        >
-                          {t.reportCancel}
-                        </button>
-                        <button
-                          type="button"
-                          className="px-4 py-2 rounded-full bg-[#C9B46A] text-[#111111] font-medium hover:opacity-90 disabled:opacity-50"
-                          onClick={handleReportSubmit}
-                          disabled={reportSubmitting}
-                        >
-                          {reportSubmitting ? (lang === "es" ? "Enviando…" : "Sending…") : t.reportSubmit}
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
 
             {/* Chat modal — Contactar vendedor */}
             {showChatModal && (
@@ -2231,6 +2179,22 @@ function AnuncioDetallePageContent() {
                 >
                   {saved ? (lang === "es" ? "★ Guardado" : "★ Saved") : (lang === "es" ? "☆ Guardar" : "☆ Save")}
                 </button>
+
+                <LeonixLikeButton
+                  listingId={listing.id}
+                  ownerUserId={(listing as { owner_id?: string | null }).owner_id ?? null}
+                  category={listing.category}
+                  lang={lang}
+                  variant="large"
+                  recordLikeEvent={(isLike) =>
+                    trackListingLikeToggle(
+                      { sourceTable: "listings", sourceId: listing.id, category: listing.category },
+                      isLike,
+                      { eventSource: "detail" },
+                    )
+                  }
+                  className="w-full [&>button]:w-full"
+                />
 
                 <LeonixShareButton
                   listingId={listing.id}

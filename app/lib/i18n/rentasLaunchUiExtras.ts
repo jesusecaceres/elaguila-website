@@ -105,6 +105,12 @@ export type RentasLaunchUiExtras = {
     prefSms: string;
     prefWeb: string;
     prefNone: string;
+    additionalWebsitesLabel: string;
+    additionalWebsitesHint: string;
+    additionalWebsitesAdd: string;
+    additionalWebsitesLabelPlaceholder: string;
+    additionalWebsitesUrlPlaceholder: string;
+    additionalWebsitesRemove: string;
   };
   showings: {
     sectionTitle: string;
@@ -477,6 +483,12 @@ const es: RentasLaunchUiExtras = {
     prefSms: "SMS",
     prefWeb: "Sitio web",
     prefNone: "Sin preferencia",
+    additionalWebsitesLabel: "Otros sitios web / redes (opcional)",
+    additionalWebsitesHint: "Agrega enlaces adicionales, por ejemplo un portafolio o listado en otro sitio.",
+    additionalWebsitesAdd: "+ Agregar sitio",
+    additionalWebsitesLabelPlaceholder: "Ej. Zillow, Redfin, Portafolio",
+    additionalWebsitesUrlPlaceholder: "https://",
+    additionalWebsitesRemove: "Quitar",
   },
   showings: {
     sectionTitle: "Visitas y recorridos",
@@ -850,6 +862,12 @@ const en: RentasLaunchUiExtras = {
     prefSms: "SMS",
     prefWeb: "Website",
     prefNone: "No preference",
+    additionalWebsitesLabel: "Other websites / social links (optional)",
+    additionalWebsitesHint: "Add extra links, like a portfolio or a listing on another site.",
+    additionalWebsitesAdd: "+ Add website",
+    additionalWebsitesLabelPlaceholder: "E.g. Zillow, Redfin, Portfolio",
+    additionalWebsitesUrlPlaceholder: "https://",
+    additionalWebsitesRemove: "Remove",
   },
   showings: {
     sectionTitle: "Showings and tours",
@@ -1224,6 +1242,12 @@ const pt: RentasLaunchUiExtras = {
     prefSms: "SMS",
     prefWeb: "Site",
     prefNone: "Sem preferência",
+    additionalWebsitesLabel: "Outros sites / redes (opcional)",
+    additionalWebsitesHint: "Adicione links extras, como um portfólio ou um anúncio em outro site.",
+    additionalWebsitesAdd: "+ Adicionar site",
+    additionalWebsitesLabelPlaceholder: "Ex. Zillow, Redfin, Portfólio",
+    additionalWebsitesUrlPlaceholder: "https://",
+    additionalWebsitesRemove: "Remover",
   },
   showings: {
     sectionTitle: "Visitas e tours",
@@ -1598,6 +1622,12 @@ const tl: RentasLaunchUiExtras = {
     prefSms: "SMS",
     prefWeb: "Website",
     prefNone: "Walang preference",
+    additionalWebsitesLabel: "Iba pang website / social links (optional)",
+    additionalWebsitesHint: "Magdagdag ng extra links, tulad ng portfolio o listing sa ibang site.",
+    additionalWebsitesAdd: "+ Magdagdag ng website",
+    additionalWebsitesLabelPlaceholder: "Hal. Zillow, Redfin, Portfolio",
+    additionalWebsitesUrlPlaceholder: "https://",
+    additionalWebsitesRemove: "Alisin",
   },
   showings: {
     sectionTitle: "Mga showing at tour",

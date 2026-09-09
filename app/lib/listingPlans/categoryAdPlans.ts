@@ -24,6 +24,7 @@ export type ListingCategoryPlanKind =
   | "autos_paid_private"
   | "autos_paid_business"
   | "servicios_paid_business"
+  | "comida_local_paid_business"
   | "viajes_paid"
   | "viajes_affiliate"
   | "unknown_from_row";
@@ -171,6 +172,7 @@ export function effectiveListingCategoryForPlan(input: CategoryAdPlanResolverInp
   const st = str(input.sourceTable).toLowerCase();
   if (st.includes("restaurantes_public")) return "restaurantes";
   if (st.includes("servicios_public")) return "servicios";
+  if (st.includes("comida_local_public")) return "comida-local";
   if (st.includes("empleos_public")) return "empleos";
   if (st.includes("autos_classifieds")) return "autos";
   if (st.includes("viajes_staged")) return "viajes";
@@ -210,6 +212,22 @@ export function resolveCategoryAdPlan(input: CategoryAdPlanResolverInput): Categ
 
   if (cat === "servicios") {
     return finalize("servicios_paid_business", {
+      labelEn: "Paid business",
+      labelEs: "Negocio pagado",
+      isPaid: true,
+      isFree: false,
+      isAffiliate: false,
+      isBusiness: true,
+      isPrivate: false,
+    });
+  }
+
+  if (cat === "comida-local") {
+    // Comida Local has a single real package (comida_local_base_monthly, $129/mo) — no free
+    // tier exists (confirmed: no coupon/flyer feature, no $99/$149/$199/$399 legacy path), so
+    // this mirrors Servicios' unconditional paid-business branch rather than Restaurantes'
+    // package_tier-branching one.
+    return finalize("comida_local_paid_business", {
       labelEn: "Paid business",
       labelEs: "Negocio pagado",
       isPaid: true,

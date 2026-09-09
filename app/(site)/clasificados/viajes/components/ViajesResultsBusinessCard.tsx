@@ -8,13 +8,13 @@ import type { ViajesUi } from "../data/viajesUiCopy";
 import type { ViajesBusinessResult } from "../data/viajesResultsSampleData";
 import { withViajesOfferBackParam } from "../lib/viajesOfferLink";
 import { ViajesSheetCtaLink } from "./ViajesSheetCtaLink";
+import { buildInternationalWhatsAppWaMeHref } from "@/app/lib/whatsapp/internationalWhatsApp";
 
 export function ViajesResultsBusinessCard({ row, ui }: { row: ViajesBusinessResult; ui: ViajesUi }) {
   const sp = useSearchParams();
   const backHref = `/clasificados/viajes/resultados${sp?.toString() ? `?${sp.toString()}` : ""}`;
   const offerHref = row.href.includes("/oferta/") ? withViajesOfferBackParam(row.href, backHref) : row.href;
-  const whatsappDigits = row.whatsapp?.replace(/\D/g, "") ?? "";
-  const whatsappHref = whatsappDigits.length >= 10 ? `https://wa.me/${whatsappDigits}` : "";
+  const whatsappHref = row.whatsapp ? (buildInternationalWhatsAppWaMeHref(row.whatsapp) ?? "") : "";
 
   return (
     <article className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-card)] shadow-[0_10px_30px_-18px_rgba(42,36,22,0.2)]">

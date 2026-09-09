@@ -21,6 +21,7 @@ import { clearEmpleosStagedPublish } from "@/app/publicar/empleos/shared/publish
 import { replaceRouteForEmpleosResumeEdit } from "@/app/publicar/empleos/shared/lib/empleosEditLaneRedirect";
 import { hydrateQuickDraftFromEnvelope } from "@/app/publicar/empleos/shared/lib/empleosDraftFromEnvelope";
 import { flushEmpleosDraftToSession } from "@/app/publicar/empleos/shared/lib/flushEmpleosDraftToSession";
+import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
 import { gateEmpleosQuickPreview } from "@/app/publicar/empleos/shared/required/empleosRequiredForPreview";
 import { EMPLEOS_SESSION_KEYS } from "@/app/publicar/empleos/shared/constants/empleosSessionKeys";
 import { empleosHandoffPreviewUrl } from "@/app/publicar/empleos/shared/constants/empleosPublishRoutes";
@@ -80,6 +81,15 @@ export default function EmpleoQuickApplicationClient() {
   const [stagedNotice, setStagedNotice] = useState(false);
   const [serverListingId, setServerListingId] = useState<string | null>(null);
   const loadedEditRef = useRef<string | null>(null);
+
+  // Globalization Build D-F4 — this application had zero native browser-exit protection.
+  // useEmpleosDraftSession already persists synchronously on every state change, so this only
+  // adds the "are you sure" warning on a real tab close; the flush call is a harmless no-op
+  // safety net for the same session storage write.
+  useBusinessApplicationLeaveGuard({
+    isDirty: hydrated && state.title.trim() !== "",
+    persist: () => flushEmpleosDraftToSession(EMPLEOS_SESSION_KEYS.quick, state),
+  });
 
   useEffect(() => {
     if (!hydrated) return;

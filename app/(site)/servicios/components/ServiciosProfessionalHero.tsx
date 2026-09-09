@@ -22,30 +22,6 @@ import {
 import { ServiciosAdaptiveLogoPlate } from "./ServiciosAdaptiveLogoPlate";
 import { ServiciosLanguageChipRow } from "./ServiciosLanguageChipRow";
 
-function StarRow({ rating, lang }: { rating: number; lang: ServiciosLang }) {
-  const aria =
-    lang === "en" ? `${rating.toFixed(1)} out of 5 stars` : `${rating.toFixed(1)} de 5 estrellas`;
-  return (
-    <div className="flex items-center gap-1" role="img" aria-label={aria}>
-      {Array.from({ length: 5 }, (_, i) => {
-        const v = rating - i;
-        const pct = Math.round(Math.min(1, Math.max(0, v)) * 100);
-        return (
-          <span key={i} className="relative h-3.5 w-[0.9em] text-[12px] leading-none">
-            <span className="absolute text-white/25" aria-hidden>
-              ★
-            </span>
-            <span className="absolute overflow-hidden text-[#C9A84A]" style={{ width: `${pct}%` }} aria-hidden>
-              ★
-            </span>
-          </span>
-        );
-      })}
-      <span className="ml-0.5 text-xs font-bold text-[#FFFCF7]">{rating.toFixed(1)}</span>
-    </div>
-  );
-}
-
 export function ServiciosProfessionalHero({
   profile,
   lang,
@@ -72,14 +48,12 @@ export function ServiciosProfessionalHero({
   const category = profile.hero.categoryLine?.trim();
   const location = profile.hero.locationSummary?.trim() || cityFallback?.trim() || "";
   const thumb = profile.hero.logoUrl || null;
-  const ratingValue =
-    typeof profile.hero.rating === "number" && Number.isFinite(profile.hero.rating) && profile.hero.rating > 0
-      ? profile.hero.rating
-      : undefined;
-  const reviewCount =
-    typeof profile.hero.reviewCount === "number" && profile.hero.reviewCount > 0
-      ? profile.hero.reviewCount
-      : undefined;
+  // Globalization Build B (Gate B3) — the 1-5 star hero badge computed from
+  // profile.hero.rating/reviewCount was removed: Leonix first-party reputation is
+  // Community Trust (lion) only, never a star rating, per doctrine. The underlying
+  // rating/reviewCount aggregation and the real DB-backed review rows (author name + quote)
+  // are untouched — real customer testimonials still render as text via ServiciosReviews.tsx,
+  // just never behind a "star score" visual claiming to be Leonix's own judgment.
   const isLeonixVerified = profile.hero.badges.some((b) => b.kind === "verified");
   const showDirections = hasPhysicalAddress(profile);
   const tel = profile.contact.phoneTelHref?.trim();
@@ -206,16 +180,6 @@ export function ServiciosProfessionalHero({
                 chipClassName="rounded-md border border-white/20 bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-[#FFFCF7]/92 shrink-0"
                 className="flex min-w-0 max-w-full flex-wrap items-center justify-center gap-1.5 sm:justify-start"
               />
-              {ratingValue != null ? (
-                <div className="inline-flex items-center gap-1.5 rounded-md border border-white/15 bg-white/10 px-2 py-0.5">
-                  <StarRow rating={ratingValue} lang={lang} />
-                  {reviewCount != null ? (
-                    <span className="text-[10px] font-medium text-[#FFFCF7]/85">
-                      ({reviewCount})
-                    </span>
-                  ) : null}
-                </div>
-              ) : null}
             </div>
 
           </div>

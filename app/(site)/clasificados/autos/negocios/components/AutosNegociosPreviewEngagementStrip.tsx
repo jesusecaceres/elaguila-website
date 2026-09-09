@@ -22,6 +22,7 @@ export function AutosNegociosPreviewEngagementStrip({
   listingUrl,
   likeCount = 0,
   publicAnalytics,
+  ownerUserId,
 }: {
   lang: "es" | "en";
   className?: string;
@@ -33,6 +34,9 @@ export function AutosNegociosPreviewEngagementStrip({
   listingUrl?: string | null;
   likeCount?: number;
   publicAnalytics?: AutosPublicListingAnalyticsProps;
+  /** Globalization Build D-F3 — the vehicle/dealer owner's user id, so LeonixLikeButton can
+   * block self-engagement the same way the results-grid cards already do. */
+  ownerUserId?: string | null;
 }) {
   const sourceId = listingSourceId?.trim() ?? "";
   const isPublic = Boolean(sourceId && publicAnalytics);
@@ -68,6 +72,7 @@ export function AutosNegociosPreviewEngagementStrip({
             numericShowZero
             previewLabelMode="iconOnly"
             recordLikeEvent={autosGlobalLikeRecorderFromContext(analyticsCtx)}
+            ownerUserId={ownerUserId}
           />
           <LeonixShareButton
             listingId={sourceId}
@@ -79,6 +84,7 @@ export function AutosNegociosPreviewEngagementStrip({
             persistEngagement
             directNativeShare
             recordShareEvent={autosGlobalShareRecorderFromContext(analyticsCtx, "detail_share")}
+            ownerUserId={ownerUserId}
           />
         </>
       ) : (

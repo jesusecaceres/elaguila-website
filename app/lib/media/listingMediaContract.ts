@@ -1,14 +1,16 @@
 /**
  * Gate I.11A — Shared listing-media contract.
  *
- * Additive foundation only: these types/predicates are not wired into any existing category's
- * publish/draft pipeline. Each category keeps its own bespoke media shape (Autos `MediaImageEntry`,
- * Bienes Raíces `BrChildMediaImage`, Servicios `GalleryItem`/`VideoItem`, plain `string[]` for
- * En Venta/Bienes Raíces main listing, etc.) — this module does not migrate or replace any of
- * them. It exists so new code (and, incrementally, future work packages) has one place to express
- * "what kind of media state is this" and "is this URL safe to persist" without re-deriving the
- * blob/data-URL rejection logic that already exists ad hoc in a few places (e.g. Bienes Raíces'
- * `sourceToUpload` throwing on a `blob:` prefix).
+ * `buildProposedFinalMediaSet`/`validateProposedFinalMediaSet` are genuinely wired at the real
+ * persistence boundary for Servicios, Restaurantes, Autos, Comida Local, Empleos, Bienes
+ * Raíces/Rentas, and the generic dashboard editor (Wave 3 G09/G10 audit, 2026-09-09) — this is
+ * no longer an unused foundation. Each category still keeps its own bespoke media shape (Autos
+ * `MediaImageEntry`, Bienes Raíces `BrChildMediaImage`, Servicios `GalleryItem`/`VideoItem`,
+ * plain `string[]` for En Venta/Bienes Raíces main listing, etc.) — this module does not migrate
+ * or replace any of them; it exists as the one shared place that expresses "what kind of media
+ * state is this" and "is this URL safe to persist" at each category's own save boundary, without
+ * re-deriving the blob/data-URL rejection logic that already existed ad hoc in a few places
+ * (e.g. Bienes Raíces' `sourceToUpload` throwing on a `blob:` prefix).
  */
 
 /** A local file the user picked but that has not been uploaded anywhere yet. */
@@ -200,6 +202,22 @@ export function buildProposedFinalMediaSet(input: {
     .filter(Boolean);
 
   return { images, heroIndex, logoUrl, externalVideoUrls, droppedUnpersistable: dropped };
+}
+
+/**
+ * Wave 3 G09/G10 fix — `droppedUnpersistable` was returned by every one of this engine's real
+ * call sites but never read by any of them, so an unpersistable URL surviving into a draft was
+ * dropped from the saved gallery with zero warning anywhere: the owner believed N photos saved,
+ * only N-1 did. Callers should call this right after `buildProposedFinalMediaSet` so the drop is
+ * at least visible in server logs (a category-level, user-facing warning is a separate, larger
+ * follow-up needing product copy per category — not attempted here).
+ */
+export function warnDroppedUnpersistableMedia(context: string, set: ProposedFinalMediaSet): void {
+  if (set.droppedUnpersistable.length === 0) return;
+  console.warn(
+    `[listingMediaContract] ${context}: dropped ${set.droppedUnpersistable.length} unpersistable media URL(s) — the owner's saved gallery has fewer items than they selected`,
+    set.droppedUnpersistable,
+  );
 }
 
 export type ProposedMediaIssueCode =

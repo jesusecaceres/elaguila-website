@@ -134,6 +134,11 @@ export type AgenteIndividualResidencialFormState = {
   direccion: string;
   /** When false (default), preview map query and location line avoid street-level `direccion`. */
   mostrarDireccionExacta: boolean;
+  /** Gate G23 — set only by the shared BusinessAddressVerifiedInput picker (never invented/
+   * guessed). Absent on any listing before this field existed. */
+  direccionVerificationStatus: "unverified" | "manual" | "user_confirmed" | "provider_suggested" | "verified";
+  direccionProvider: string | null;
+  direccionProviderPlaceId: string | null;
   estadoAnuncio: AgenteResidencialEstadoAnuncio;
 
   tipoPropiedadCodigo: TipoPropiedadCodigo;
@@ -605,6 +610,9 @@ export function createEmptyAgenteIndividualResidencialFormState(): AgenteIndivid
     direccionCodigoPostal: "",
     direccion: "",
     mostrarDireccionExacta: false,
+    direccionVerificationStatus: "unverified",
+    direccionProvider: null,
+    direccionProviderPlaceId: null,
     estadoAnuncio: "disponible",
 
     tipoPropiedadCodigo: "casa",

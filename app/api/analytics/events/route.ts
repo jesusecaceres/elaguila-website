@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getBearerUserId } from "@/app/api/clasificados/_lib/bearerUser";
 import { findRecentDuplicateAnalyticsEvent } from "@/app/lib/analytics/server/analyticsEventDedupe";
 import { resolveListingAnalyticsIdentity } from "@/app/lib/analytics/server/resolveListingAnalyticsIdentity";
+import { isSelfEngagement } from "@/app/lib/analytics/selfEngagementGuard";
 import {
   assertAnalyticsEventAuth,
   parseAnalyticsEventBody,
@@ -68,6 +69,24 @@ export async function POST(req: NextRequest) {
 
   const identity = resolved.identity;
   const supabase = getAdminSupabase();
+
+  // RED #10 (Globalization Build A) — the write endpoint previously never compared owner_user_id
+  // to the acting user_id, so a logged-in owner browsing/clicking their own listing silently
+  // inflated their own counts. This is the single shared choke point every caller goes through,
+  // so the fix belongs here rather than in each category's own client code (the pre-existing
+  // client-side `isSelfEngagement` guard only covered Like/Save on 5 files and could never catch
+  // every caller). Anonymous self-views (an owner not logged in) remain undetectable — that
+  // requires new session-identity infrastructure and is out of scope for this fix.
+  if (isSelfEngagement(authenticatedUserId, identity.ownerUserId)) {
+    return NextResponse.json({
+      ok: true,
+      selfAction: true,
+      canonical_ad_id: identity.canonicalAdId,
+      category: identity.category,
+      source_table: identity.sourceTable,
+      source_id: identity.sourceId,
+    });
+  }
 
   const isDuplicate = await findRecentDuplicateAnalyticsEvent(supabase, {
     canonicalAdId: identity.canonicalAdId,

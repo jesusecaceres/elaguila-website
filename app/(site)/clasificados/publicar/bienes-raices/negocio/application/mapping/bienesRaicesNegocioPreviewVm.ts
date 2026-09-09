@@ -19,6 +19,8 @@ export type BienesRaicesPreviewIdentityVm = {
   licenseLine: string;
   /** Short bio when captured (agent/equipo/oficina). */
   bioLine: string;
+  /** Gate G13 — languages spoken, when captured. Empty string hides the row. */
+  languagesLine: string;
   /** Clickable redes when URL resolves; omit malformed entries. */
   socialLinks: Array<{ label: string; href: string }>;
   profileCtaLabel: string;

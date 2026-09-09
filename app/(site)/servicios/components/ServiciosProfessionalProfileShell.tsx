@@ -37,9 +37,12 @@ import { ServiciosPagosBeneficiosSection } from "./ServiciosPagosBeneficiosSecti
 import {
   serviciosGlobalListingFromRow,
   serviciosGlobalLikeRecorder,
+  serviciosGlobalSaveRecorder,
   serviciosGlobalShareRecorder,
 } from "@/app/(site)/clasificados/servicios/lib/recordServiciosGlobalAnalytics";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
+import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
+import { resolveListingsTableSavedListingKey } from "@/app/lib/listingSaveDbKey";
 import { ServiciosLikeEngagementCluster } from "./ServiciosLikeEngagementCluster";
 
 const SECTION_SCROLL =
@@ -230,6 +233,17 @@ export function ServiciosProfessionalProfileShell({
                     recordLikeEvent={
                       globalListing ? serviciosGlobalLikeRecorder(globalListing) : undefined
                     }
+                  />
+                  <LeonixSaveButton
+                    listingId={lxListingId}
+                    savedListingKey={resolveListingsTableSavedListingKey(sourceId, lxListingId)}
+                    ownerUserId={lxOwner}
+                    variant="small"
+                    lang={lang}
+                    category="servicios"
+                    persistEngagement={persistListingEngagement}
+                    recordSaveEvent={globalListing ? serviciosGlobalSaveRecorder(globalListing) : undefined}
+                    iconStyle="bookmark"
                   />
                   <LeonixShareButton
                     listingId={lxListingId}

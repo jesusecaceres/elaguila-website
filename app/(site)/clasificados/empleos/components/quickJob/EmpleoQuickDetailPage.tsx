@@ -8,6 +8,7 @@ import { useSearchParams } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 
 import {
   EMPLEO_QUICK_JOB_SAMPLE,
@@ -160,7 +161,9 @@ export function EmpleoQuickDetailPage({
   leonixAdId = null,
 }: Props) {
   const sp = useSearchParams();
-  const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
+  // Globalization Build D-F4 — was a bare `?lang=` check that ignored the visitor's stored
+  // leonix_lang cookie/localStorage preference, unlike every other Empleos surface.
+  const { copyLang: lang } = useMemo(() => resolveClasificadosPublishLang(sp?.get("lang")), [sp]);
   const t = COPY[lang];
 
   const [locationOpen, setLocationOpen] = useState(false);

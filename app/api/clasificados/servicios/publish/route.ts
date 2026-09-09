@@ -27,7 +27,7 @@ import { insertServiciosAnalyticsEvent } from "@/app/clasificados/servicios/lib/
 import { isServiciosStrictPublishEnvironment, serviciosOwnerIdFromBearer } from "../lib/serviciosPublishServerAuth";
 import { SERVICIOS_OFFERS_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
-import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
+import { buildProposedFinalMediaSet, validateProposedFinalMediaSet, warnDroppedUnpersistableMedia } from "@/app/lib/media/listingMediaContract";
 import { normalizeStrictExternalVideoUrl } from "@/app/lib/media/externalVideoUrlValidation";
 import { SERVICIOS_MAX_VIDEO_URLS } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 
@@ -276,6 +276,7 @@ export async function POST(req: NextRequest) {
     existing: state.gallery.map((g) => g.url),
     externalVideoUrls: state.videos.map((v) => v.url),
   });
+  warnDroppedUnpersistableMedia("servicios-publish", serviciosFinalMedia);
   const serviciosMediaValidation = validateProposedFinalMediaSet(serviciosFinalMedia, {
     minImages: 0,
     maxImages: SERVICIOS_GALLERY_MAX,

@@ -40,6 +40,7 @@ export function buildBusinessMetaJsonFromBienesRaicesNegocioState(s: BienesRaice
     if (trim(id.brokerage)) meta.negocioNombreCorreduria = trim(id.brokerage);
     if (trim(id.licencia)) meta.negocioLicencia = trim(id.licencia);
     if (trim(id.telOficina)) meta.negocioTelOficina = trim(id.telOficina);
+    if (trim(id.whatsapp)) meta.negocioWhatsapp = trim(id.whatsapp);
     if (trim(id.email)) meta.negocioEmail = trim(id.email);
     if (trim(id.sitioWeb)) meta.negocioSitioWeb = trim(id.sitioWeb);
     const redes = joinRedes(id.redes ?? []);
@@ -141,6 +142,11 @@ export function buildBusinessMetaJsonFromBienesRaicesNegocioState(s: BienesRaice
   if (/^https?:\/\/\S+/i.test(googleReviews)) meta.negocioGoogleReviewsUrl = googleReviews;
   const yelpReviews = trim(s.yelpReviewsUrl);
   if (/^https?:\/\/\S+/i.test(yelpReviews)) meta.negocioYelpReviewsUrl = yelpReviews;
+
+  // Gate G23 — set only by the shared BusinessAddressVerifiedInput picker.
+  if (s.direccionVerificationStatus) meta.negocioDireccionVerificationStatus = s.direccionVerificationStatus;
+  if (trim(s.direccionProvider ?? "")) meta.negocioDireccionProvider = trim(s.direccionProvider ?? "");
+  if (trim(s.direccionProviderPlaceId ?? "")) meta.negocioDireccionProviderPlaceId = trim(s.direccionProviderPlaceId ?? "");
 
   return Object.keys(meta).length ? JSON.stringify(meta) : null;
 }

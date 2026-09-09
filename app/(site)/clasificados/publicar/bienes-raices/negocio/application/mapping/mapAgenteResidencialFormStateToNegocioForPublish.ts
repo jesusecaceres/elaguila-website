@@ -194,6 +194,10 @@ function contactChannelsFromAgente(s: AgenteIndividualResidencialFormState): Leo
     permitirSms: "si",
     whatsappActivo: permit(s.permitirWhatsApp),
     contactoPreferido: "",
+    // BRN's own real additional-links field is `businessExtraUrls` (see
+    // bienesAdditionalBusinessLinks.ts), mapped separately below — this bridge only ever
+    // produces the shared contactChannels fields it already owned before Build D-F2B.
+    additionalWebsites: [],
   };
 }
 
@@ -240,6 +244,9 @@ export function mapAgenteResidencialFormStateToNegocioForPublish(
     direccion: trim(s.direccionLinea1) || trim(s.direccion),
     direccionLinea2: s.direccionLinea2,
     mostrarDireccionExacta: s.mostrarDireccionExacta,
+    direccionVerificationStatus: s.direccionVerificationStatus,
+    direccionProvider: s.direccionProvider,
+    direccionProviderPlaceId: s.direccionProviderPlaceId,
     descripcionLarga: s.descripcionPrincipal,
     descripcionCorta: s.notasAdicionales,
     tipoPropiedad: formatTipoPropiedadLine(s, "es"),
@@ -301,6 +308,7 @@ export function mapAgenteResidencialFormStateToNegocioForPublish(
       licencia: trim(s.agenteLicencia) || trim(s.marcaLicencia),
       telDirecto: trim(s.agenteTelefonoPersonal) || trim(s.telefonoPrincipal),
       telOficina: s.agenteTelefonoOficina,
+      whatsapp: trim(s.agenteWhatsapp),
       email: s.correoPrincipal,
       sitioWeb: trim(s.agenteSitioWeb) || trim(s.marcaSitioWeb),
       redes: agenteRedes(s),

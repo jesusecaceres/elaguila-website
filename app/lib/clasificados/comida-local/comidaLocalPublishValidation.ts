@@ -25,7 +25,7 @@ import type {
   ComidaLocalPackageTierDb,
 } from "./comidaLocalPublishTypes";
 import { validateComidaLocalDraftForFuturePublish } from "./comidaLocalValidation";
-import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
+import { buildProposedFinalMediaSet, validateProposedFinalMediaSet, warnDroppedUnpersistableMedia } from "@/app/lib/media/listingMediaContract";
 
 const MAX_TEXT = {
   businessName: 120,
@@ -220,6 +220,7 @@ export function parseComidaLocalPublishRequest(body: Record<string, unknown>): {
     existing: draft.galleryImages.map((g) => g.url).filter(Boolean),
     logoUrl: draft.logoImage?.url ?? null,
   });
+  warnDroppedUnpersistableMedia("comida-local-publish", comidaLocalFinalMedia);
   const comidaLocalMediaValidation = validateProposedFinalMediaSet(comidaLocalFinalMedia, {
     minImages: 0,
     maxImages: comidaLocalLimits.maxGalleryImages,

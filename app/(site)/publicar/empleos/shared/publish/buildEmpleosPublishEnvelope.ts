@@ -13,7 +13,7 @@ import type {
 import { sanitizeHttpUrl } from "./empleosPublishSanitize";
 import { syncLegacyPayField, syncPublishPayField } from "../lib/empleosPayDisplay";
 import { joinScheduleRowsForPublish } from "../lib/empleosScheduleDisplay";
-import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
+import { buildProposedFinalMediaSet, validateProposedFinalMediaSet, warnDroppedUnpersistableMedia } from "@/app/lib/media/listingMediaContract";
 
 /**
  * Globalization Package B (Gate B6) — shared media contract, additive gate. Empleos images are
@@ -24,10 +24,15 @@ import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app
  * replacement.
  */
 function auditEmpleosEnvelopeMedia(imageUrls: readonly string[], videoUrls: readonly string[]): void {
-  const result = validateProposedFinalMediaSet(
-    buildProposedFinalMediaSet({ existing: imageUrls, externalVideoUrls: videoUrls }),
-    { minImages: 0, maxImages: Number.POSITIVE_INFINITY, logoAllowed: true, maxExternalVideos: 4, normalizeExternalVideoUrl: sanitizeHttpUrl },
-  );
+  const empleosFinalMedia = buildProposedFinalMediaSet({ existing: imageUrls, externalVideoUrls: videoUrls });
+  warnDroppedUnpersistableMedia("empleos-publish-envelope", empleosFinalMedia);
+  const result = validateProposedFinalMediaSet(empleosFinalMedia, {
+    minImages: 0,
+    maxImages: Number.POSITIVE_INFINITY,
+    logoAllowed: true,
+    maxExternalVideos: 4,
+    normalizeExternalVideoUrl: sanitizeHttpUrl,
+  });
   if (!result.ok && process.env.NODE_ENV === "development") {
     console.warn("[empleos publish envelope] shared media contract flagged", result.issues);
   }

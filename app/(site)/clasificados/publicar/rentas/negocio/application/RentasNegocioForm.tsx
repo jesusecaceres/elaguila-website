@@ -962,6 +962,42 @@ export function RentasNegocioForm() {
               </AiField>
             </div>
             <div className="sm:col-span-2">
+              <AiField
+                label={rentasUiLabel(lang, "Perfil/reseñas de Google (opcional)", "Google profile/reviews (optional)")}
+                hint={rentasUiLabel(
+                  lang,
+                  "Enlace externo — Leonix no calcula ni importa tu calificación de Google.",
+                  "External link — Leonix does not compute or import your Google rating.",
+                )}
+              >
+                <input
+                  className={fieldClass}
+                  type="url"
+                  placeholder="https://"
+                  value={state.negocioGoogleReviewsUrl}
+                  onChange={(e) => setState((s) => ({ ...s, negocioGoogleReviewsUrl: e.target.value }))}
+                />
+              </AiField>
+            </div>
+            <div className="sm:col-span-2">
+              <AiField
+                label={rentasUiLabel(lang, "Perfil/reseñas de Yelp (opcional)", "Yelp profile/reviews (optional)")}
+                hint={rentasUiLabel(
+                  lang,
+                  "Enlace externo — Leonix no calcula ni importa tu calificación de Yelp.",
+                  "External link — Leonix does not compute or import your Yelp rating.",
+                )}
+              >
+                <input
+                  className={fieldClass}
+                  type="url"
+                  placeholder="https://"
+                  value={state.negocioYelpReviewsUrl}
+                  onChange={(e) => setState((s) => ({ ...s, negocioYelpReviewsUrl: e.target.value }))}
+                />
+              </AiField>
+            </div>
+            <div className="sm:col-span-2">
               <AiField label={rentasUiLabel(lang, "Idiomas (opcional)", "Languages (optional)")}>
                 <LanguagesInput
                   options={brRentasLanguageChipOptions(lang)}

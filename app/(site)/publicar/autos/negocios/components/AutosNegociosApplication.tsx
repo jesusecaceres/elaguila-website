@@ -32,7 +32,7 @@ import {
   formatUsdIntegerInputDisplay,
   parseUsdIntegerInput,
 } from "@/app/clasificados/autos/shared/utils/autosNumericInputUi";
-import { formatPhoneInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import { formatUsStylePhoneInputSafe, formatWhatsAppInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import { getAutosPreviewBlockingStepIndices } from "@/app/clasificados/autos/shared/lib/autosPreviewCompleteness";
 import { autosDraftTextValue, autosDraftUrlValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
 import { AUTOS_PUBLISH_FINAL_STEP_INDEX } from "@/app/lib/clasificados/autos/autosEditorDraftStep";
@@ -48,6 +48,8 @@ import {
 import { resolveDealerActiveVehicleLimit } from "@/app/lib/clasificados/autos/autosDealerInventoryPolicy";
 import { buildDashboardMisAnunciosReturnPath } from "@/app/lib/listingPlans/revenueOsReturnPath";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
+import { isMeaningfulAutoDealerDraft } from "@/app/clasificados/autos/negocios/lib/isMeaningfulAutoDealerDraft";
 
 const CARD =
   "rounded-[20px] border border-[color:var(--lx-nav-border)] bg-[color:var(--lx-card)] p-5 shadow-[0_8px_28px_-12px_rgba(42,36,22,0.12)] sm:p-6";
@@ -120,6 +122,18 @@ export function AutosNegociosApplication() {
     inventoryBoostSelected,
     setInventoryBoostSelected,
   } = useAutoDealerDraft(isExistingDashboardListingMode ? editListingId : undefined);
+
+  // Globalization Build D-F3 — the main Dealer application flow had zero native browser-exit
+  // protection (the existing AutosUnsavedChangesModal only guards the narrow add-inventory-vehicle
+  // drawer). Wires the same shared guard already proven for BR Privado/Servicios/Restaurantes/
+  // Comida Local instead of a category-local duplicate. Never clears the draft — only warns and
+  // best-effort persists.
+  useBusinessApplicationLeaveGuard({
+    isDirty: hydrated && isMeaningfulAutoDealerDraft(listing),
+    persist: () => {
+      void flushDraft();
+    },
+  });
 
   const dashboardReturnHref = appendLangToPath(buildDashboardMisAnunciosReturnPath(lang, "autos"), lang);
   const dashboardHydratedRef = useRef(false);
@@ -414,9 +428,9 @@ export function AutosNegociosApplication() {
                   className={`${INPUT} tabular-nums`}
                   inputMode="tel"
                   autoComplete="tel"
-                  value={formatPhoneInputDisplay(listing.dealerPhoneOffice ?? "")}
+                  value={formatUsStylePhoneInputSafe(listing.dealerPhoneOffice ?? "")}
                   onChange={(e) => {
-                    const v = formatPhoneInputDisplay(e.target.value);
+                    const v = formatUsStylePhoneInputSafe(e.target.value);
                     setListingPatch({ dealerPhoneOffice: v.trim() ? v : undefined });
                   }}
                 />
@@ -427,9 +441,9 @@ export function AutosNegociosApplication() {
                   className={`${INPUT} tabular-nums`}
                   inputMode="tel"
                   autoComplete="tel"
-                  value={formatPhoneInputDisplay(listing.dealerPhoneMobile ?? "")}
+                  value={formatUsStylePhoneInputSafe(listing.dealerPhoneMobile ?? "")}
                   onChange={(e) => {
-                    const v = formatPhoneInputDisplay(e.target.value);
+                    const v = formatUsStylePhoneInputSafe(e.target.value);
                     setListingPatch({ dealerPhoneMobile: v.trim() ? v : undefined });
                   }}
                 />
@@ -442,9 +456,9 @@ export function AutosNegociosApplication() {
                   inputMode="tel"
                   autoComplete="tel"
                   placeholder={t.app.placeholders.whatsapp}
-                  value={formatPhoneInputDisplay(listing.dealerWhatsapp ?? "")}
+                  value={formatWhatsAppInputDisplay(listing.dealerWhatsapp ?? "")}
                   onChange={(e) => {
-                    const v = formatPhoneInputDisplay(e.target.value);
+                    const v = formatWhatsAppInputDisplay(e.target.value);
                     setListingPatch({ dealerWhatsapp: v.trim() ? v : undefined });
                   }}
                 />
@@ -456,13 +470,24 @@ export function AutosNegociosApplication() {
                   className={`${INPUT} tabular-nums`}
                   inputMode="tel"
                   autoComplete="tel"
-                  value={formatPhoneInputDisplay(listing.dealerSmsPhone ?? "")}
+                  value={formatUsStylePhoneInputSafe(listing.dealerSmsPhone ?? "")}
                   onChange={(e) => {
-                    const v = formatPhoneInputDisplay(e.target.value);
+                    const v = formatUsStylePhoneInputSafe(e.target.value);
                     setListingPatch({ dealerSmsPhone: v.trim() ? v : undefined });
                   }}
                 />
                 <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.dealer.smsPhoneHint}</p>
+              </div>
+              <div>
+                <label className={LABEL}>{t.app.labels.email}</label>
+                <input
+                  className={INPUT}
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  value={listing.dealerEmail ?? ""}
+                  onChange={(e) => setListingPatch({ dealerEmail: autosDraftTextValue(e.target.value) })}
+                />
               </div>
               <div>
                 <label className={LABEL}>{t.app.labels.website}</label>

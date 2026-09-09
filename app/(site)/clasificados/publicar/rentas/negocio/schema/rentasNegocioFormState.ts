@@ -80,6 +80,11 @@ export type RentasNegocioFormState = {
   direccionLinea2: string;
   direccionCruceCercano: string;
   mostrarDireccionExacta: boolean;
+  /** Gate G23 — set only by the shared BusinessAddressVerifiedInput picker (never invented/
+   * guessed). Absent on any listing before this field existed. */
+  direccionVerificationStatus: "unverified" | "manual" | "user_confirmed" | "provider_suggested" | "verified";
+  direccionProvider: string | null;
+  direccionProviderPlaceId: string | null;
   direccionNumero: string;
   direccionCalle: string;
   direccionEstado: string;
@@ -114,6 +119,10 @@ export type RentasNegocioFormState = {
   negocioMensajesTexto: string;
   negocioSitioWeb: string;
   negocioRedes: string;
+  /** G21 adoption — real stored Google/Yelp review-URL destinations only, never a fabricated
+   * rating/count. Optional; absent/blank hides the shared reputation drawer entirely. */
+  negocioGoogleReviewsUrl: string;
+  negocioYelpReviewsUrl: string;
   negocioBio: string;
   negocioIdiomas: string;
   residencial: BienesRaicesPrivadoResidencialFields;
@@ -177,6 +186,9 @@ export function createEmptyRentasNegocioFormState(): RentasNegocioFormState {
     direccionLinea2: p.direccionLinea2,
     direccionCruceCercano: p.direccionCruceCercano,
     mostrarDireccionExacta: p.mostrarDireccionExacta,
+    direccionVerificationStatus: p.direccionVerificationStatus,
+    direccionProvider: p.direccionProvider,
+    direccionProviderPlaceId: p.direccionProviderPlaceId,
     direccionNumero: "",
     direccionCalle: "",
     direccionEstado: p.direccionEstado,
@@ -198,6 +210,8 @@ export function createEmptyRentasNegocioFormState(): RentasNegocioFormState {
     negocioMensajesTexto: "",
     negocioSitioWeb: "",
     negocioRedes: "",
+    negocioGoogleReviewsUrl: "",
+    negocioYelpReviewsUrl: "",
     negocioBio: "",
     negocioIdiomas: "",
     residencial: { ...p.residencial },
@@ -231,6 +245,8 @@ export function mergePartialRentasNegocioState(partial: Partial<RentasNegocioFor
     negocioMensajesTexto: nSms,
     negocioSitioWeb: ns,
     negocioRedes: nr,
+    negocioGoogleReviewsUrl: ngg,
+    negocioYelpReviewsUrl: nyy,
     negocioBio: nb,
     negocioIdiomas: nidi,
     ...propLike
@@ -301,6 +317,9 @@ export function mergePartialRentasNegocioState(partial: Partial<RentasNegocioFor
     direccionLinea2: asPrivado.direccionLinea2,
     direccionCruceCercano: asPrivado.direccionCruceCercano,
     mostrarDireccionExacta: asPrivado.mostrarDireccionExacta,
+    direccionVerificationStatus: asPrivado.direccionVerificationStatus,
+    direccionProvider: asPrivado.direccionProvider,
+    direccionProviderPlaceId: asPrivado.direccionProviderPlaceId,
     direccionNumero: asPrivado.direccionNumero,
     direccionCalle: asPrivado.direccionCalle,
     direccionEstado: asPrivado.direccionEstado,
@@ -322,6 +341,8 @@ export function mergePartialRentasNegocioState(partial: Partial<RentasNegocioFor
     negocioMensajesTexto: typeof nSms === "string" ? nSms : base.negocioMensajesTexto,
     negocioSitioWeb: typeof ns === "string" ? ns : base.negocioSitioWeb,
     negocioRedes: typeof nr === "string" ? nr : base.negocioRedes,
+    negocioGoogleReviewsUrl: typeof ngg === "string" ? ngg : base.negocioGoogleReviewsUrl,
+    negocioYelpReviewsUrl: typeof nyy === "string" ? nyy : base.negocioYelpReviewsUrl,
     negocioBio: typeof nb === "string" ? nb : base.negocioBio,
     negocioIdiomas: typeof nidi === "string" ? nidi : base.negocioIdiomas,
     residencial: br.residencial,

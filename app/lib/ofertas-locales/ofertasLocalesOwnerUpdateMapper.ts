@@ -32,6 +32,7 @@ export type OfertaLocalOwnerUpdateInput = {
   city?: string;
   state?: string;
   zipCode?: string;
+  showExactAddress?: boolean;
   phone?: string;
   whatsapp?: string;
   websiteUrl?: string;
@@ -218,6 +219,8 @@ export function buildOfertaLocalOwnerUpdatePayload(
     state: input.state !== undefined ? sanitizeText(input.state, 40) : row.state,
     zip_code:
       input.zipCode !== undefined ? normalizeOfertaLocalZipInput(input.zipCode) : row.zip_code,
+    show_exact_address:
+      input.showExactAddress !== undefined ? Boolean(input.showExactAddress) : row.show_exact_address,
     phone: input.phone !== undefined ? sanitizeOptionalPhone(input.phone) : row.phone,
     whatsapp: input.whatsapp !== undefined ? sanitizeOptionalPhone(input.whatsapp) : row.whatsapp,
     website_url: input.websiteUrl !== undefined ? sanitizeOptionalUrl(input.websiteUrl) : row.website_url,

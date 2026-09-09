@@ -98,6 +98,9 @@ export function rentasNegocioToBienesRaicesNegocioState(s: RentasNegocioFormStat
     codigoPostal: coerceRentasPostalDigits5(s.direccionCodigoPostal),
     colonia: s.zonaVecindario,
     mostrarDireccionExacta: s.mostrarDireccionExacta === true,
+    direccionVerificationStatus: s.direccionVerificationStatus,
+    direccionProvider: s.direccionProvider,
+    direccionProviderPlaceId: s.direccionProviderPlaceId,
     descripcionLarga: s.descripcion,
     descripcionCorta: "",
     listingStatus: listingStatusFromRentas(s.estadoAnuncio),
@@ -122,6 +125,7 @@ export function rentasNegocioToBienesRaicesNegocioState(s: RentasNegocioFormStat
       licencia: s.negocioLicencia,
       telDirecto: s.negocioTelDirecto,
       telOficina: s.negocioTelOficina,
+      whatsapp: "",
       email: s.negocioEmail,
       sitioWeb: s.negocioSitioWeb,
       redes: buildRedesArray(s.negocioRedes),
@@ -131,6 +135,10 @@ export function rentasNegocioToBienesRaicesNegocioState(s: RentasNegocioFormStat
       segundoAgenteActivo: false,
     },
     contactChannels: s.contactChannels,
+    // G21 adoption — reuses the exact BR Negocio business_meta builder unchanged; real stored
+    // URLs only, never a fabricated rating/count.
+    googleReviewsUrl: s.negocioGoogleReviewsUrl,
+    yelpReviewsUrl: s.negocioYelpReviewsUrl,
     cta: {
       permitirSolicitarInfo: true,
       permitirProgramarVisita: false,

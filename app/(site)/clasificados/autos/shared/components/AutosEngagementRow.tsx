@@ -31,6 +31,7 @@ export function AutosEngagementRow({
   likeCount = 0,
   eventSource = "detail_share",
   publicAnalytics,
+  ownerUserId,
   className = "",
 }: {
   /** autos_classifieds_listings.id */
@@ -43,6 +44,9 @@ export function AutosEngagementRow({
   likeCount?: number;
   eventSource?: "detail_share" | "results_card_share";
   publicAnalytics?: AutosPublicListingAnalyticsProps;
+  /** Globalization Build D-F3 — the listing/vehicle owner's user id, so LeonixLikeButton can
+   * block self-engagement the same way the results-grid cards already do. */
+  ownerUserId?: string | null;
   className?: string;
 }) {
   const sourceId = listingSourceId?.trim() ?? "";
@@ -84,6 +88,7 @@ export function AutosEngagementRow({
             numericShowZero
             previewLabelMode="iconOnly"
             recordLikeEvent={autosGlobalLikeRecorderFromContext(analyticsCtx)}
+            ownerUserId={ownerUserId}
           />
           <LeonixShareButton
             listingId={sourceId}
@@ -95,6 +100,7 @@ export function AutosEngagementRow({
             persistEngagement
             directNativeShare
             recordShareEvent={autosGlobalShareRecorderFromContext(analyticsCtx, shareEventSource)}
+            ownerUserId={ownerUserId}
           />
         </div>
       </div>

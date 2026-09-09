@@ -106,6 +106,9 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   if (websiteUrl) contact.websiteUrl = websiteUrl;
   const websiteLabel = trim(draft.contact?.websiteLabel);
   if (websiteLabel) contact.websiteLabel = websiteLabel;
+  if (Array.isArray(draft.contact?.additionalWebsites) && draft.contact.additionalWebsites.length) {
+    contact.additionalWebsites = draft.contact.additionalWebsites;
+  }
   if (draft.contact?.messageEnabled === true) contact.messageEnabled = true;
 
   const openNow = trim(draft.contact?.hoursOpenNowLabel);
@@ -210,6 +213,10 @@ export function mapServiciosApplicationDraftToBusinessProfile(draft: ServiciosAp
   if (physRegion) contact.physicalRegion = physRegion;
   if (physCountry) contact.physicalCountry = physCountry;
   if (physZip) contact.physicalPostalCode = physZip;
+  if (typeof c?.showExactAddress === "boolean") contact.showExactAddress = c.showExactAddress;
+  if (c?.physicalVerificationStatus) contact.physicalVerificationStatus = c.physicalVerificationStatus;
+  if (c?.physicalProvider) contact.physicalProvider = c.physicalProvider;
+  if (c?.physicalProviderPlaceId) contact.physicalProviderPlaceId = c.physicalProviderPlaceId;
 
   const quickFacts = mapQuickFacts(draft.quickFacts);
   const about = mapAbout(draft.about);

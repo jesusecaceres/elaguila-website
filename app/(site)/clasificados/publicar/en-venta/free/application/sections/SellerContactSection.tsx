@@ -7,6 +7,7 @@ import SectionShell from "@/app/clasificados/en-venta/shared/components/SectionS
 import type { EnVentaFreeApplicationState } from "../schema/enVentaFreeFormState";
 import type { EnVentaFreeSectionProps } from "../types/sectionProps";
 import { formatEnVentaPhoneInput } from "@/app/clasificados/en-venta/shared/utils/enVentaPhoneDisplay";
+import { formatWhatsAppInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import { inputClass, labelClass } from "../helpers/fieldCx";
 
 const COPY = {
@@ -207,7 +208,7 @@ export function SellerContactSection<S extends EnVentaFreeApplicationState>({
           inputMode="tel"
           autoComplete="tel"
           value={state.whatsapp}
-          onChange={(e) => setState((s) => ({ ...s, whatsapp: formatEnVentaPhoneInput(e.target.value) }))}
+          onChange={(e) => setState((s) => ({ ...s, whatsapp: formatWhatsAppInputDisplay(e.target.value) }))}
         />
       </div>
       <div>

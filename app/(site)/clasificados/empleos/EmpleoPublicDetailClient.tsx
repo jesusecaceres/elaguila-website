@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
+import { resolveClasificadosPublishLang } from "@/app/lib/clasificados/clasificadosPublishLang";
 
 import type { EmpleosJobRecord } from "./data/empleosJobTypes";
 import { getRelatedJobs } from "./data/empleosSampleCatalog";
@@ -24,6 +24,7 @@ import { EmpleosJobTranslationLayer } from "./components/EmpleosJobTranslationLa
 import { empleosAnalyticsTrackMeta } from "./lib/empleosAnalyticsIdentity";
 import { trackEmpleosApplyStarted, trackEmpleosContactFromHref } from "./lib/empleosCtaTracking";
 import { empleosGlobalListingFromRow } from "./lib/recordEmpleosGlobalAnalytics";
+import { RecentlyViewedAndReportMount } from "@/app/clasificados/components/RecentlyViewedAndReportMount";
 
 type Props = {
   slug: string;
@@ -58,7 +59,10 @@ export function EmpleoPublicDetailClient({
   listingLang = null,
 }: Props) {
   const sp = useSearchParams();
-  const lang = useMemo<Lang>(() => (sp?.get("lang") === "en" ? "en" : "es"), [sp]);
+  // Globalization Build D-F4 — was a bare `?lang=` check that ignored the visitor's stored
+  // leonix_lang cookie/localStorage preference, silently defaulting to Spanish whenever the URL
+  // had no explicit ?lang= param, unlike every other Empleos surface.
+  const { copyLang: lang } = useMemo(() => resolveClasificadosPublishLang(sp?.get("lang")), [sp]);
   const job = initialJob;
   const [shareAbs, setShareAbs] = useState("");
 
@@ -142,11 +146,14 @@ export function EmpleoPublicDetailClient({
       {(displayJob, translateControl) => (
     <div className="min-h-screen overflow-x-hidden bg-[#FAF7F2] pb-20 text-[#2A2826]">
       {listingSourceId?.trim() ? (
-        <EmpleosJobProfileViewAnalytics
-          listingSourceId={listingSourceId.trim()}
-          slug={slug}
-          leonixAdId={leonixAdId}
-        />
+        <>
+          <EmpleosJobProfileViewAnalytics
+            listingSourceId={listingSourceId.trim()}
+            slug={slug}
+            leonixAdId={leonixAdId}
+          />
+          <RecentlyViewedAndReportMount listingId={listingSourceId.trim()} lang={lang} />
+        </>
       ) : null}
       <header className="border-b border-[#E8DFD0] bg-[#FFFBF7]/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">

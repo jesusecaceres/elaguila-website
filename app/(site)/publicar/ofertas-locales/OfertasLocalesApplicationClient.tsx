@@ -30,6 +30,7 @@ import {
   formatOfertaLocalPhoneDisplay,
   normalizeOfertaLocalUrlInput,
 } from "@/app/lib/ofertas-locales/ofertasLocalesFormatting";
+import { formatWhatsAppInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import {
   OfertaLocalPostalInput,
   OfertaLocalRegionStateInput,
@@ -106,6 +107,8 @@ import {
 } from "@/app/lib/ofertas-locales/ofertasLocalesDraftAssetHelpers";
 import { OfertasLocalesWizardProgress } from "./OfertasLocalesWizardProgress";
 import type { OfertaLocalAiReviewGateState } from "./OfertasLocalesAiItemReviewPanel";
+import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
+import { saveOfertaLocalDraftToStorage } from "@/app/lib/ofertas-locales/ofertasLocalesDraftPersistence";
 
 function formatOfertaLocalCopyTemplate(
   template: string,
@@ -306,6 +309,15 @@ export default function OfertasLocalesApplicationClient() {
   // after this render fully completes.
   const isShoppingLane = isOfertaLocalShoppingSpecialsLane(draft);
   const isCouponsLane = isOfertaLocalLocalCouponsLane(draft);
+
+  // Globalization Build D-F4 — this 2500+ line multi-step wizard had zero native browser-exit
+  // protection. useOfertasLocalesDraft debounces its own autosave, so a best-effort synchronous
+  // flush on pagehide (via the same saveOfertaLocalDraftToStorage the hook already uses) matters
+  // here, unlike Empleos' synchronous session-storage save.
+  useBusinessApplicationLeaveGuard({
+    isDirty: hasLoadedDraft && (draft.businessName.trim() !== "" || draft.title.trim() !== ""),
+    persist: () => saveOfertaLocalDraftToStorage(draft),
+  });
   const [step, setStep] = useState<OfertasLocalesWizardStepId>(1);
   const [step5PendingFileCount, setStep5PendingFileCount] = useState(0);
   const [submitSuccess, setSubmitSuccess] = useState<{ id: string; status: string } | null>(null);
@@ -2005,6 +2017,19 @@ export default function OfertasLocalesApplicationClient() {
                 autoComplete="street-address"
               />
             </FieldBlock>
+            <label className="flex items-start gap-3 text-sm text-[#1E1814]">
+              <input
+                type="checkbox"
+                checked={draft.showExactAddress}
+                onChange={(e) => updateDraft({ showExactAddress: e.target.checked })}
+                className="mt-1 rounded border-[#D4C4A8] text-[#7A1E2C] focus:ring-[#7A1E2C]/30"
+              />
+              <span>
+                {lang === "en"
+                  ? "Show my exact address publicly"
+                  : "Mostrar mi dirección exacta públicamente"}
+              </span>
+            </label>
             <div className="grid gap-4 sm:grid-cols-2">
               <FieldBlock label={c.locationCityLabel} helper={c.cityHelper}>
                 <input
@@ -2077,7 +2102,7 @@ export default function OfertasLocalesApplicationClient() {
                 <input
                   className={INPUT}
                   value={draft.whatsapp}
-                  onChange={(e) => updateDraft({ whatsapp: formatOfertaLocalPhoneDisplay(e.target.value) })}
+                  onChange={(e) => updateDraft({ whatsapp: formatWhatsAppInputDisplay(e.target.value) })}
                   inputMode="tel"
                 />
               </FieldBlock>

@@ -5,7 +5,7 @@ import {useEffect, useMemo, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams, usePathname } from "next/navigation";
 import Navbar from "../../../../../components/Navbar";
 import { createSupabaseBrowserClient } from "../../../../../lib/supabase/browser";
-import { buildProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
+import { buildProposedFinalMediaSet, warnDroppedUnpersistableMedia } from "@/app/lib/media/listingMediaContract";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { readLeonixDetailPairValue } from "@/app/clasificados/lib/leonixRealEstateListingContract";
@@ -333,6 +333,7 @@ async function uploadImages() {
   try {
     const prev = getListingImageUrls(listing?.images);
     const finalSet = buildProposedFinalMediaSet({ existing: prev, uploaded: uploadedUrls });
+    warnDroppedUnpersistableMedia("dashboard-mis-anuncios-editar-upload", finalSet);
     const ok = await persistImages(finalSet.images.map((i) => i.url));
     if (!ok) {
       setUploading(false);
@@ -392,6 +393,7 @@ async function removeImageAt(index: number) {
   setMediaActionBusy(true);
   try {
     const finalSet = buildProposedFinalMediaSet({ existing: current, removedUrls: [current[index]] });
+    warnDroppedUnpersistableMedia("dashboard-mis-anuncios-editar-remove", finalSet);
     const ok = await persistImages(finalSet.images.map((i) => i.url));
     if (ok) setSuccess(lang === "es" ? "Foto eliminada del anuncio" : "Photo removed from listing");
   } finally {
@@ -410,6 +412,7 @@ async function moveImage(index: number, direction: -1 | 1) {
   setMediaActionBusy(true);
   try {
     const finalSet = buildProposedFinalMediaSet({ existing: current, orderedUrls: reordered });
+    warnDroppedUnpersistableMedia("dashboard-mis-anuncios-editar-reorder", finalSet);
     const ok = await persistImages(finalSet.images.map((i) => i.url));
     if (ok) setSuccess(lang === "es" ? "Orden de fotos actualizado" : "Photo order updated");
   } finally {
@@ -430,6 +433,7 @@ async function makeHeroImage(index: number) {
       orderedUrls: [current[index], ...current.filter((_, i) => i !== index)],
       heroUrl: current[index],
     });
+    warnDroppedUnpersistableMedia("dashboard-mis-anuncios-editar-hero", finalSet);
     const ok = await persistImages(finalSet.images.map((i) => i.url));
     if (ok) setSuccess(lang === "es" ? "Foto de portada actualizada" : "Cover photo updated");
   } finally {

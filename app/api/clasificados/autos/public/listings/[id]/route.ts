@@ -29,5 +29,9 @@ export async function GET(request: Request, { params }: Props) {
     inventory_role: bundle.inventory_role,
     dealer_inventory_group_id: bundle.dealer_inventory_group_id,
     dealer_inventory_parent_listing_id: bundle.dealer_inventory_parent_listing_id,
+    // Globalization Build D-F3 — same field the public results-grid cards already expose
+    // (`autosClassifiedsRowToPublicListing`'s `ownerUserId`), so the detail-page engagement row
+    // can block self-Like/self-Share the same way the results cards already do.
+    owner_user_id: bundle.publicRow.ownerUserId ?? null,
   });
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { BrPrivadoCiudadZonaCombobox } from "@/app/clasificados/publicar/bienes-raices/privado/application/components/BrPrivadoCiudadZonaCombobox";
+import { BusinessAddressVerifiedInput } from "@/app/components/forms/BusinessAddressVerifiedInput";
 import {
   AiField,
   aiCardClass,
@@ -348,19 +349,42 @@ export function RentasAnuncioFormSection<T extends RentasPrivadoFormState | Rent
         </div>
         <div className="sm:col-span-2">
           <AiField label={c.addressLine1Label} hint={c.addressLine1Hint}>
-            <input
+            <BusinessAddressVerifiedInput
+              lang={lang === "en" ? "en" : "es"}
               className={fieldClass}
-              value={state.direccionLinea1}
-              onChange={(e) =>
+              value={{
+                street: state.direccionLinea1,
+                unit: state.direccionLinea2 || undefined,
+                city: state.ciudad,
+                region: state.direccionEstado,
+                postalCode: state.direccionCodigoPostal,
+                country: state.direccionPais,
+                verificationStatus: state.direccionVerificationStatus,
+                provider: state.direccionProvider,
+                providerPlaceId: state.direccionProviderPlaceId,
+                manualEntry: state.direccionVerificationStatus !== "user_confirmed",
+              }}
+              onChange={(next) =>
                 setState((s) => ({
                   ...s,
-                  direccionLinea1: e.target.value,
+                  direccionLinea1: next.street,
                   direccionNumero: "",
                   direccionCalle: "",
+                  // A picked suggestion carries its own city/state/zip/country — auto-fill those
+                  // too. Manual typing (verificationStatus stays "manual") only touches street.
+                  ...(next.verificationStatus === "user_confirmed"
+                    ? {
+                        ciudad: next.city || s.ciudad,
+                        direccionEstado: next.region || s.direccionEstado,
+                        direccionCodigoPostal: next.postalCode || s.direccionCodigoPostal,
+                        direccionPais: next.country || s.direccionPais,
+                      }
+                    : {}),
+                  direccionVerificationStatus: next.verificationStatus,
+                  direccionProvider: next.provider ?? null,
+                  direccionProviderPlaceId: next.providerPlaceId ?? null,
                 }))
               }
-              autoComplete="street-address"
-              placeholder={c.addressLine1Placeholder}
             />
           </AiField>
         </div>

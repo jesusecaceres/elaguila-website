@@ -55,6 +55,11 @@ const RESTAURANT_HUB_PATH = "app/(site)/clasificados/restaurantes/shell/Restaura
 const SERVICIOS_HUB_PATH = "app/(site)/servicios/components/ServiciosBusinessHubContactCard.tsx";
 const ANUNCIO_PAGE_PATH = "app/(site)/clasificados/anuncio/[id]/page.tsx";
 const EVENT_TYPES_PATH = "app/lib/listingAnalyticsEventTypes.ts";
+const SERVICIOS_HERO_PATH = "app/(site)/servicios/components/ServiciosProfessionalHero.tsx";
+const SERVICIOS_RESULT_CARD_PATH = "app/(site)/clasificados/servicios/ServiciosProfessionalResultCard.tsx";
+const REVIEW_DRAWER_PATH = "app/components/contact/connectionHub/renderers/SharedConnectionHubReviewDrawer.tsx";
+const BR_AGENTE_SIDEBAR_PATH =
+  "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/preview/BrAgenteResContactSidebar.tsx";
 
 const registrySrc = read(REGISTRY_PATH);
 const serverSrc = read(SERVER_PATH);
@@ -71,6 +76,10 @@ const restaurantHubSrc = read(RESTAURANT_HUB_PATH);
 const serviciosHubSrc = read(SERVICIOS_HUB_PATH);
 const anuncioPageSrc = read(ANUNCIO_PAGE_PATH);
 const eventTypesSrc = read(EVENT_TYPES_PATH);
+const serviciosHeroSrc = read(SERVICIOS_HERO_PATH);
+const serviciosResultCardSrc = read(SERVICIOS_RESULT_CARD_PATH);
+const reviewDrawerSrc = read(REVIEW_DRAWER_PATH);
+const brAgenteSidebarSrc = read(BR_AGENTE_SIDEBAR_PATH);
 
 // =================================================================================
 // A. Business Hub
@@ -350,6 +359,94 @@ check("no new/duplicate media or video stack introduced by this build", () => {
   assert.ok(!fs.existsSync(path.join(root, "app/lib/media/leonixCommunityTrustVideo.ts")));
   const allNew = [registrySrc, serverSrc, clientSrc, uiSrc, apiRouteSrc].join("\n");
   assert.ok(!/videoValidator|maxExternalVideos|VideoGallery/.test(allNew));
+});
+
+// =================================================================================
+// G. Globalization Build B — legacy Servicios star debt closed + shared reputation drawer
+// =================================================================================
+
+check("Servicios Professional Hero no longer computes or renders a 1-5 star hero badge", () => {
+  const code = stripJsComments(serviciosHeroSrc);
+  assert.ok(!/function StarRow/.test(code), "StarRow component must be removed from the Hero");
+  assert.ok(!/★/.test(code), "no star glyph literal may remain");
+  assert.ok(!/ratingValue/.test(code), "the rating-badge variable must be removed");
+  // Community Trust must remain reachable from the same public Servicios surfaces (not deleted
+  // alongside the star debt).
+  assert.ok(fs.existsSync(path.join(root, "app/components/leonixCommunityTrust/LeonixCommunityTrust.tsx")));
+});
+
+check("Servicios public result card no longer computes or renders a 1-5 star badge", () => {
+  const code = stripJsComments(serviciosResultCardSrc);
+  assert.ok(!/function StarRow/.test(code), "StarRow component must be removed from the result card");
+  assert.ok(!/★/.test(code), "no star glyph literal may remain");
+  assert.ok(!/ratingValue/.test(code), "the rating-badge variable must be removed");
+});
+
+check("the 3 dead-but-present legacy star components are actually deleted, not just unwired", () => {
+  for (const rel of [
+    "app/(site)/servicios/components/ServiciosStarRating.tsx",
+    "app/(site)/servicios/components/ServiciosHubReviewLinkButton.tsx",
+    "app/(site)/servicios/components/ServiciosActionPanel.tsx",
+  ]) {
+    assert.ok(!fs.existsSync(path.join(root, rel)), `${rel} must be deleted — confirmed zero real importers before removal`);
+  }
+});
+
+check("real DB-backed review testimonials (author name + quote) are untouched — only the star-score PRESENTATION was removed, not the underlying legitimate review data/table", () => {
+  const mergeSrc = read("app/(site)/clasificados/servicios/lib/serviciosDbReviewsMerge.ts");
+  assert.ok(mergeSrc.includes("authorName") && mergeSrc.includes("quote"), "real testimonial fields must still be read from DB reviews");
+  assert.ok(fs.existsSync(path.join(root, "app/(site)/servicios/components/ServiciosReviews.tsx")), "the real text-testimonial rendering surface must still exist, untouched");
+});
+
+check("shared Google/Yelp quick-view drawer exists and never renders a rating/count/snippet it wasn't given", () => {
+  const code = stripJsComments(reviewDrawerSrc);
+  assert.ok(code.includes("SharedConnectionHubReviewButton"), "drawer must host the existing Level-A link-only button, not a new renderer");
+  // Distinguish a legitimate disclaimer PROSE string ("does not compute or store ... ratings")
+  // from an actual new rating/count/snippet FIELD being introduced (e.g. `rating:`/`rating?:` as
+  // an object key, or a star glyph/JSX render of one).
+  assert.ok(!/\brating\??\s*:/i.test(code), "must not declare/assign a rating field");
+  assert.ok(!/\breviewCount\??\s*:/i.test(code), "must not declare/assign a reviewCount field");
+  assert.ok(!/★/.test(code), "must not render a star glyph");
+  assert.ok(!/\bsnippet\b/i.test(code), "must not introduce a review-snippet concept");
+});
+
+check("drawer hides entirely (no trigger, no empty drawer) when there are zero review links", () => {
+  const code = stripJsComments(reviewDrawerSrc);
+  assert.ok(/if \(links\.length === 0\) return null;/.test(code));
+});
+
+check("drawer reuses the shared mobile/desktop sheet primitive, not a new modal implementation", () => {
+  assert.ok(reviewDrawerSrc.includes('from "@/app/(site)/components/mobile/LeonixMobileBottomSheet"'));
+});
+
+check("drawer supports both ES and EN copy", () => {
+  assert.ok(reviewDrawerSrc.includes('es:') && reviewDrawerSrc.includes('en:'));
+  assert.ok(reviewDrawerSrc.includes("Reseñas externas") && reviewDrawerSrc.includes("External reviews"));
+});
+
+check("all 3 existing category adopters (Servicios, Restaurantes, BR agente) now use the shared drawer, not N raw inline review buttons", () => {
+  assert.ok(serviciosHubSrc.includes("SharedConnectionHubReviewDrawer"));
+  assert.ok(restaurantHubSrc.includes("SharedConnectionHubReviewDrawer"));
+  assert.ok(brAgenteSidebarSrc.includes("SharedConnectionHubReviewDrawer"));
+});
+
+check("Community Trust adapter contract is structurally ready for new adopters without engine changes: category union, per-category definitions, target-type mapping, and a live-readiness flag all exist as data, not hardcoded per-caller logic", () => {
+  assert.ok(registrySrc.includes("export type LeonixEndorsementCategory"));
+  assert.ok(registrySrc.includes("export const LEONIX_ENDORSEMENT_REGISTRY"));
+  assert.ok(registrySrc.includes("leonixEndorsementTargetTypeForCategory"));
+  assert.ok(registrySrc.includes("isLeonixEndorsementCategoryLive"));
+});
+
+check("existing Community Trust adopters (Servicios, Restaurantes, Comida Local, BR/Rentas Negocio) remain in the registry unchanged — Build B did not silently drop or rename any category", () => {
+  for (const cat of ["servicios", "restaurantes", '"comida-local"', "bienes_raices_negocio", "rentas_negocio"]) {
+    assert.ok(registrySrc.includes(cat), `registry must still list ${cat}`);
+  }
+});
+
+check("an invalid/unregistered category fails closed at the type-guard boundary, not silently passed through", () => {
+  assert.ok(registrySrc.includes("export function isLeonixEndorsementCategory"));
+  const fnBody = registrySrc.match(/export function isLeonixEndorsementCategory[\s\S]*?\n}/)?.[0] ?? "";
+  assert.ok(/includes\(category\)/.test(fnBody), "must check membership, not just truthiness, before accepting a category string");
 });
 
 // =================================================================================

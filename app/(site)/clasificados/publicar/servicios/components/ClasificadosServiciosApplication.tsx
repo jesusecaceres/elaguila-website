@@ -17,6 +17,8 @@ import {
 import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
 import { PhoneInput } from "@/app/components/forms/PhoneInput";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
+import { BusinessAddressVerifiedInput } from "@/app/components/forms/BusinessAddressVerifiedInput";
+import type { BusinessAddress } from "@/app/lib/businessAddress/businessAddressContract";
 import { LanguagesInput } from "@/app/components/forms/LanguagesInput";
 import { useAddedConfirmation, AddedConfirmationBadge } from "@/app/components/forms/AddedConfirmation";
 import {
@@ -1462,11 +1464,41 @@ export function ClasificadosServiciosApplication() {
               <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <label className={labelClass}>{copy.labels.physicalStreet}</label>
-                  <input
+                  <BusinessAddressVerifiedInput
+                    lang={lang}
                     className={inputClass}
-                    value={state.physicalStreet}
-                    onChange={(e) => setState((s) => ({ ...s, physicalStreet: e.target.value }))}
-                    autoComplete="street-address"
+                    value={{
+                      street: state.physicalStreet,
+                      unit: state.physicalSuite || undefined,
+                      city: state.physicalAddressCity,
+                      region: state.physicalRegion,
+                      postalCode: state.physicalPostalCode,
+                      country: state.physicalCountry,
+                      verificationStatus: state.physicalVerificationStatus,
+                      provider: state.physicalProvider,
+                      providerPlaceId: state.physicalProviderPlaceId,
+                      manualEntry: state.physicalVerificationStatus !== "user_confirmed",
+                    }}
+                    onChange={(next: BusinessAddress) =>
+                      setState((s) => ({
+                        ...s,
+                        physicalStreet: next.street,
+                        // A picked suggestion carries its own city/region/postal/country — auto-fill
+                        // those fields too so the owner doesn't have to retype them. Manual typing
+                        // (verificationStatus stays "manual") only ever touches the street field.
+                        ...(next.verificationStatus === "user_confirmed"
+                          ? {
+                              physicalAddressCity: next.city || s.physicalAddressCity,
+                              physicalRegion: next.region || s.physicalRegion,
+                              physicalPostalCode: next.postalCode || s.physicalPostalCode,
+                              physicalCountry: next.country || s.physicalCountry,
+                            }
+                          : {}),
+                        physicalVerificationStatus: next.verificationStatus,
+                        physicalProvider: next.provider ?? null,
+                        physicalProviderPlaceId: next.providerPlaceId ?? null,
+                      }))
+                    }
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -1533,6 +1565,26 @@ export function ClasificadosServiciosApplication() {
                     onChange={(e) => setState((s) => ({ ...s, physicalPostalCode: e.target.value }))}
                     autoComplete="postal-code"
                   />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="flex items-start gap-2 text-sm font-medium text-[#3D2C12]">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#D8C79A]"
+                      checked={state.showExactAddress}
+                      onChange={(e) => setState((s) => ({ ...s, showExactAddress: e.target.checked }))}
+                    />
+                    <span>
+                      {lang === "en"
+                        ? "Show my exact street address publicly and allow “Get directions”"
+                        : "Mostrar mi dirección exacta públicamente y permitir “Cómo llegar”"}
+                    </span>
+                  </label>
+                  <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">
+                    {lang === "en"
+                      ? "When off, your street address stays private — your city still shows to help customers find you."
+                      : "Si está desactivado, tu dirección exacta se mantiene privada — tu ciudad sigue mostrándose para que los clientes te encuentren."}
+                  </p>
                 </div>
               </div>
             </div>
@@ -1631,6 +1683,77 @@ export function ClasificadosServiciosApplication() {
                   />
                   {websiteInvalid ? <p className="mt-1 text-xs text-amber-800">{copy.labels.invalidUrl}</p> : null}
                 </div>
+              </div>
+              <div className="mt-4">
+                <label className={labelClass}>
+                  {lang === "es" ? "Sitios web adicionales" : "Additional websites"}
+                </label>
+                <p className="mt-1 text-xs text-[#6b5c42]">
+                  {lang === "es"
+                    ? "Menú, reservas, portafolio, tienda — agrega los que necesites."
+                    : "Menu, booking, portfolio, shop — add as many as you need."}
+                </p>
+                <div className="mt-2 space-y-2">
+                  {state.additionalWebsites.map((row, index) => (
+                    <div key={index} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <input
+                        className={`${inputClass} sm:w-40 sm:shrink-0`}
+                        placeholder={lang === "es" ? "Título (ej. Menú)" : "Label (e.g. Menu)"}
+                        maxLength={60}
+                        value={row.label}
+                        onChange={(e) =>
+                          setState((s) => ({
+                            ...s,
+                            additionalWebsites: s.additionalWebsites.map((r, i) =>
+                              i === index ? { ...r, label: e.target.value } : r,
+                            ),
+                          }))
+                        }
+                      />
+                      <input
+                        className={`${inputClass} flex-1`}
+                        type="url"
+                        inputMode="url"
+                        placeholder="https://…"
+                        value={row.url}
+                        onChange={(e) =>
+                          setState((s) => ({
+                            ...s,
+                            additionalWebsites: s.additionalWebsites.map((r, i) =>
+                              i === index ? { ...r, url: e.target.value } : r,
+                            ),
+                          }))
+                        }
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setState((s) => ({
+                            ...s,
+                            additionalWebsites: s.additionalWebsites.filter((_, i) => i !== index),
+                          }))
+                        }
+                        className="shrink-0 rounded-xl border border-[#D8C79A]/60 bg-white px-3 py-2 text-xs font-semibold text-[#3D2C12] hover:bg-[#FBF3E3]"
+                      >
+                        {lang === "es" ? "Quitar" : "Remove"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                {state.additionalWebsites.length < 8 ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setState((s) => ({
+                        ...s,
+                        additionalWebsites: [...s.additionalWebsites, { label: "", url: "" }],
+                      }))
+                    }
+                    className="mt-2 rounded-xl border border-[#D8C79A]/60 bg-[#FBF3E3] px-4 py-2 text-sm font-semibold text-[#3D2C12] hover:bg-[#F5E9D0]"
+                  >
+                    {lang === "es" ? "Agregar otro enlace" : "Add another link"}
+                  </button>
+                ) : null}
               </div>
             </div>
 

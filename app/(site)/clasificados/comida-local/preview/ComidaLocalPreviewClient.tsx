@@ -30,7 +30,12 @@ import { resolvePreviewMode } from "@/app/lib/listingIdentity/previewModeContrac
 import { PublishCheckoutCheckpoint } from "@/app/(site)/clasificados/components/PublishCheckoutCheckpoint";
 import { COMIDA_LOCAL_CHECKPOINT_CONFIRMATIONS, type PublishCheckpointConfig } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { COMIDA_LOCAL_BASE_CHECKOUT } from "@/app/lib/listingPlans/revenueCategoryCheckoutPayload";
-import { redirectToRevenueCategoryCheckout, startRevenueCategoryCheckout } from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
+import {
+  redirectToRevenueCategoryCheckout,
+  startRevenueCategoryCheckout,
+  validateRevenuePromoForCheckout,
+} from "@/app/lib/listingPlans/revenueCategoryCheckoutClient";
+import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import { saveComidaLocalPendingBeforeCheckout } from "../lib/saveComidaLocalPendingBeforeCheckout";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { validateComidaLocalDraftForFuturePublish } from "@/app/lib/clasificados/comida-local/comidaLocalValidation";
@@ -121,8 +126,34 @@ export function ComidaLocalPreviewClient() {
   );
   const publishReady = publishIssues.every((i) => i.severity !== "error");
 
+  const comidaLocalBaseCents =
+    getRevenuePackageDefinition(COMIDA_LOCAL_BASE_CHECKOUT.packageKey)?.priceCents ?? 12900;
+
+  const handlePromoApply = useCallback(
+    async (code: string) => {
+      const result = await validateRevenuePromoForCheckout({
+        code,
+        category: COMIDA_LOCAL_BASE_CHECKOUT.category,
+        packageKey: COMIDA_LOCAL_BASE_CHECKOUT.packageKey,
+        subtotalCents: comidaLocalBaseCents,
+        locale: es ? "es" : "en",
+      });
+      if (!result.ok) {
+        return { ok: false as const, message: result.userMessage };
+      }
+      return {
+        ok: true as const,
+        discountCents: result.discountCents,
+        message: es
+          ? `${result.discountLabel} aplicado. Total: $${(result.totalCents / 100).toFixed(2)}/mes`
+          : `${result.discountLabel} applied. Total: $${(result.totalCents / 100).toFixed(2)}/mo`,
+      };
+    },
+    [es, comidaLocalBaseCents],
+  );
+
   const onCheckout = useCallback(
-    async (ctx: { newsletterOptIn: boolean }) => {
+    async (ctx: { newsletterOptIn: boolean; promoCode: string | null }) => {
       if (!draft) return;
       setCheckoutBusy(true);
       setCheckoutError(null);
@@ -180,6 +211,7 @@ export function ComidaLocalPreviewClient() {
           leonixAdId: pending.leonixAdId,
           locale: es ? "es" : "en",
           customerEmail,
+          promoCode: ctx.promoCode,
         });
 
         if (!checkout.ok) {
@@ -208,6 +240,7 @@ export function ComidaLocalPreviewClient() {
         lang: es ? "es" : "en",
         mode: "checkout",
         confirmations: COMIDA_LOCAL_CHECKPOINT_CONFIRMATIONS,
+        promoEligible: true,
       }
     : null;
 
@@ -310,6 +343,7 @@ export function ComidaLocalPreviewClient() {
                     ? "Completa los campos de «Lista para publicar» en el formulario para habilitar el pago."
                     : "Complete the fields in the “Ready to publish” checklist in the form to enable payment."
               }
+              onPromoApply={handlePromoApply}
               onCheckout={(ctx) => void onCheckout(ctx)}
               newsletterEmail={newsletterEmail}
               onNewsletterEmailChange={setNewsletterEmail}

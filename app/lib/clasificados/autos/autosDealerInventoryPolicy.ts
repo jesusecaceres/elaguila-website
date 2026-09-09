@@ -38,26 +38,62 @@ export function isDealerInventoryVehicle(row: Pick<AutosClassifiedsListingRow, "
   return row.lane === "negocios" && getInventoryRole(row) === "inventory_vehicle";
 }
 
+/**
+ * Gate 6C.2 — corrected to resolve to the SAME key for a dealer parent and its own children.
+ * Previously a parent (no explicit `dealer_inventory_group_id`) fell back to an owner-wide
+ * `owner:{owner_user_id}` key, while its children (which DO get an explicit
+ * `dealer_inventory_group_id` set to the parent's own id at creation — see
+ * `autosNegociosBundlePublish.ts`) resolved to that parent id instead — two different keys that
+ * could never match each other. Mirrors the RPC's own group-key derivation
+ * (`coalesce(dealer_inventory_group_id, id)` on the PARENT row) rather than inventing a second
+ * grouping architecture: an explicit group id always wins; a vehicle child with no group id falls
+ * back to its own `dealer_inventory_parent_listing_id`; anything else (the parent itself, or a
+ * malformed/legacy row) falls back to its own id.
+ */
 export function resolveDealerInventoryGroupingKey(
-  row: Pick<AutosClassifiedsListingRow, "lane" | "dealer_inventory_group_id" | "owner_user_id">,
+  row: Pick<
+    AutosClassifiedsListingRow,
+    "lane" | "id" | "inventory_role" | "dealer_inventory_group_id" | "dealer_inventory_parent_listing_id"
+  >,
 ): string | null {
   if (row.lane !== "negocios") return null;
-  return getDealerInventoryGroupId(row) ?? `owner:${row.owner_user_id}`;
+  const explicitGroupId = getDealerInventoryGroupId(row);
+  if (explicitGroupId) return explicitGroupId;
+  if (getInventoryRole(row) === "inventory_vehicle") {
+    const parentId = getDealerInventoryParentListingId(row);
+    if (parentId) return parentId;
+  }
+  return row.id;
 }
 
-export function countActiveDealerVehicles(rows: readonly Pick<AutosClassifiedsListingRow, "lane" | "status" | "id">[], excludeListingId?: string): number {
+/** Gate 6C.2 — the dealer parent (`inventory_role='main'`) is commercial/grouping anchor, never
+ * a vehicle; only `inventory_role='inventory_vehicle'` rows may consume a capacity slot. */
+export function countActiveDealerVehicles(
+  rows: readonly Pick<AutosClassifiedsListingRow, "lane" | "status" | "id" | "inventory_role">[],
+  excludeListingId?: string,
+): number {
   const exclude = excludeListingId?.trim();
-  return rows.filter((row) => row.lane === "negocios" && row.status === "active" && (!exclude || row.id !== exclude)).length;
+  return rows.filter(
+    (row) =>
+      row.lane === "negocios" &&
+      row.status === "active" &&
+      getInventoryRole(row) === "inventory_vehicle" &&
+      (!exclude || row.id !== exclude),
+  ).length;
 }
 
 export function countActiveDealerInventoryVehicles(
-  rows: readonly Pick<AutosClassifiedsListingRow, "lane" | "status" | "id" | "dealer_inventory_group_id" | "owner_user_id">[],
+  rows: readonly Pick<
+    AutosClassifiedsListingRow,
+    "lane" | "status" | "id" | "inventory_role" | "dealer_inventory_group_id" | "dealer_inventory_parent_listing_id" | "owner_user_id"
+  >[],
   opts?: { groupingKey?: string | null; excludeListingId?: string | null },
 ): number {
   const exclude = opts?.excludeListingId?.trim();
   const groupingKey = opts?.groupingKey?.trim() || null;
   return rows.filter((row) => {
     if (row.lane !== "negocios" || row.status !== "active") return false;
+    if (getInventoryRole(row) !== "inventory_vehicle") return false;
     if (exclude && row.id === exclude) return false;
     if (!groupingKey) return true;
     return resolveDealerInventoryGroupingKey(row) === groupingKey;

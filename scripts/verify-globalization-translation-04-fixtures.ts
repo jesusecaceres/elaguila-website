@@ -60,6 +60,7 @@ function comidaLocalFixtureVm(): ComidaLocalPreviewVm {
       { id: "instagram", label: "Instagram", href: "https://instagram.com/tacosdonalupe", variant: "social", platform: "instagram" },
       { id: "facebook", label: "Facebook", href: "https://facebook.com/tacosdonalupe", variant: "social", platform: "facebook" },
     ],
+    reviewLinks: [],
     galleryImages: [],
     businessTypeLabel: "",
     highlightChips: [],

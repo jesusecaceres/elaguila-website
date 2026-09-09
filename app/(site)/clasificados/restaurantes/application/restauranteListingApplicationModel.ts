@@ -7,6 +7,7 @@
  */
 
 import type { RestauranteAmenitiesSelection } from "@/app/clasificados/restaurantes/lib/restauranteAmenitiesCatalog";
+import type { AdditionalWebsiteEntry } from "@/app/lib/additionalWebsites/additionalWebsiteEntry";
 import { isRestauranteIdbRef } from "./restauranteDraftMedia";
 import { computePublishGallerySequence } from "./restauranteGalleryMediaSequence";
 import {
@@ -350,10 +351,9 @@ export type RestauranteContactCta = {
   additionalWebsites?: RestauranteAdditionalWebsite[];
 };
 
-export type RestauranteAdditionalWebsite = {
-  label: string;
-  url: string;
-};
+/** @deprecated Use the shared `AdditionalWebsiteEntry` directly — kept as an alias so existing
+ * imports of `RestauranteAdditionalWebsite` continue to resolve unchanged. */
+export type RestauranteAdditionalWebsite = AdditionalWebsiteEntry;
 
 // ---------------------------------------------------------------------------
 // E. Location (address; shares cityCanonical + zipCode with A — not duplicated in type)
@@ -370,6 +370,11 @@ export type RestauranteLocationDetails = {
   serviceAreaText?: string;
   deliveryRadiusMiles?: number;
   locationPrivacyMode?: RestauranteLocationPrivacyMode;
+  /** Gate G23 — set only by the shared BusinessAddressVerifiedInput picker (never invented/
+   * guessed). Absent on any listing before this field existed. */
+  physicalVerificationStatus?: "unverified" | "manual" | "user_confirmed" | "provider_suggested" | "verified";
+  physicalProvider?: string | null;
+  physicalProviderPlaceId?: string | null;
 };
 
 // ---------------------------------------------------------------------------

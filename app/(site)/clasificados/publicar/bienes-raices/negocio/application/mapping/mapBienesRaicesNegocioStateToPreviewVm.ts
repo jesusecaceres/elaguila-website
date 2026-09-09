@@ -657,7 +657,10 @@ function buildWhatsappHref(phone: string, message: string): string | null {
   const text =
     trim(message) ||
     "Hola, vi su anuncio en Leonix Clasificados y me gustaría más información.";
-  return `https://wa.me/${d}?text=${encodeURIComponent(text)}`;
+  // Globalization Build D — a bare 10-digit number needs its US country code prefixed for wa.me
+  // (naive digit-strip previously produced a link missing the country code entirely).
+  const withCountryCode = d.length === 10 ? `1${d}` : d;
+  return `https://wa.me/${withCountryCode}?text=${encodeURIComponent(text)}`;
 }
 
 function buildSmsHref(phone: string): string | null {
@@ -797,6 +800,7 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
       verifiedLine: "Equipo anunciante",
       licenseLine: trim(ie.agentePrincipalRol) ? `Rol principal: ${trim(ie.agentePrincipalRol)}` : "",
       bioLine,
+      languagesLine: "",
       socialLinks,
       profileCtaLabel: "Ver perfil del equipo →",
       profileHref,
@@ -826,6 +830,7 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
       verifiedLine: "Oficina",
       licenseLine,
       bioLine: trim(io.bio),
+      languagesLine: "",
       socialLinks,
       profileCtaLabel: "Ver oficina →",
       profileHref,
@@ -863,6 +868,7 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
       verifiedLine: entrega ? `Entrega estimada: ${entrega}` : "Desarrollo inmobiliario",
       licenseLine,
       bioLine: trim(ic.descripcionProyecto),
+      languagesLine: "",
       socialLinks,
       profileCtaLabel: "Ver centro de ventas →",
       profileHref,
@@ -892,6 +898,7 @@ function buildIdentity(s: BienesRaicesNegocioFormState): BienesRaicesNegocioPrev
     verifiedLine: trust.mostrarLicencia && lic ? "Agente verificado" : "",
     licenseLine: trust.mostrarLicencia && lic ? `Lic. ${lic}` : "",
     bioLine,
+    languagesLine: trim(ia.idiomas),
     socialLinks,
     profileCtaLabel: "Ver perfil profesional →",
     profileHref,

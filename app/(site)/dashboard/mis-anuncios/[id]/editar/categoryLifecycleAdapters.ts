@@ -145,7 +145,20 @@ const BUSCO_FIELDS: LifecycleFieldSpec[] = [
   { key: "city", labelEs: "Ciudad", labelEn: "City", kind: "text" },
   { key: "state", labelEs: "Estado", labelEn: "State", kind: "text" },
   { key: "zip", labelEs: "Código postal", labelEn: "ZIP code", kind: "text" },
-  { key: "budget", labelEs: "Presupuesto", labelEn: "Budget", kind: "text" },
+  {
+    key: "budgetMode",
+    labelEs: "Presupuesto",
+    labelEn: "Budget",
+    kind: "select",
+    options: [
+      { value: "tiene", labelEs: "Tengo presupuesto", labelEn: "I have a budget" },
+      { value: "gratis", labelEs: "Gratis / busco ayuda gratuita", labelEn: "Free / looking for free help" },
+      { value: "intercambio", labelEs: "Intercambio", labelEn: "Trade / exchange" },
+      { value: "convenir", labelEs: "A convenir / negociable", labelEn: "Negotiable" },
+      { value: "no_aplica", labelEs: "No aplica", labelEn: "Not applicable" },
+    ],
+  },
+  { key: "budgetAmount", labelEs: "Monto del presupuesto", labelEn: "Budget amount", kind: "text" },
   {
     key: "urgency",
     labelEs: "Urgencia",
@@ -153,7 +166,9 @@ const BUSCO_FIELDS: LifecycleFieldSpec[] = [
     kind: "select",
     options: [
       { value: "normal", labelEs: "Normal", labelEn: "Normal" },
-      { value: "urgente", labelEs: "Urgente", labelEn: "Urgent" },
+      { value: "esta_semana", labelEs: "Esta semana", labelEn: "This week" },
+      { value: "lo_antes_posible", labelEs: "Lo antes posible", labelEn: "As soon as possible" },
+      { value: "urgente_hoy", labelEs: "Urgente hoy", labelEn: "Urgent today" },
     ],
   },
   { key: "phone", labelEs: "Teléfono", labelEn: "Phone", kind: "tel" },
@@ -177,7 +192,15 @@ function hydrateBusco(row: Record<string, unknown>): Record<string, string> {
     city: readColumn(row, "city"),
     state: readPair(row, "Leonix:state"),
     zip: readPair(row, "Leonix:zip"),
-    budget: readPair(row, "Leonix:buscoBudget"),
+    /**
+     * Globalization Build D-F5 — the real Busco quick form writes a structured budget
+     * (Leonix:buscoBudgetMode + Leonix:buscoBudgetAmount); Leonix:buscoBudget is a legacy
+     * free-text fallback only present on pre-structured listings. Editing the legacy key alone
+     * silently did nothing to what the public listing actually displays (resolveBuscoBudgetDisplay
+     * prefers the structured pair), so this hydrates/serializes the real structured keys instead.
+     */
+    budgetMode: readPair(row, "Leonix:buscoBudgetMode") || "no_aplica",
+    budgetAmount: readPair(row, "Leonix:buscoBudgetAmount"),
     urgency: readPair(row, "Leonix:buscoUrgency") || "normal",
     phone: readColumn(row, "contact_phone"),
     whatsapp: readPair(row, "Leonix:whatsappDigits"),
@@ -197,7 +220,8 @@ function serializeBusco(row: Record<string, unknown>, values: Record<string, str
     detail_pairs: upsertDetailPairs(row, {
       "Leonix:state": values.state,
       "Leonix:zip": values.zip,
-      "Leonix:buscoBudget": values.budget,
+      "Leonix:buscoBudgetMode": values.budgetMode,
+      "Leonix:buscoBudgetAmount": values.budgetMode === "tiene" ? values.budgetAmount : null,
       "Leonix:buscoUrgency": values.urgency,
       "Leonix:phoneDigits": phoneDigits || null,
       "Leonix:buscoContactPhoneAvailable": phoneDigits ? "1" : null,
@@ -366,13 +390,17 @@ const MASCOTAS_FIELDS: LifecycleFieldSpec[] = [
     labelEn: "Notice type",
     kind: "select",
     options: [
-      { value: "perdido", labelEs: "Perdido", labelEn: "Lost" },
-      { value: "encontrado", labelEs: "Encontrado", labelEn: "Found" },
+      { value: "mascota-perdida", labelEs: "Mascota perdida", labelEn: "Lost pet" },
+      { value: "mascota-encontrada", labelEs: "Mascota encontrada", labelEn: "Found pet" },
+      { value: "adopcion-mascota", labelEs: "Adopción de mascota", labelEn: "Pet adoption" },
+      { value: "objeto-perdido", labelEs: "Objeto perdido", labelEn: "Lost item" },
+      { value: "objeto-encontrado", labelEs: "Objeto encontrado", labelEn: "Found item" },
     ],
   },
   { key: "city", labelEs: "Ciudad", labelEn: "City", kind: "text" },
   { key: "lastSeenLocation", labelEs: "Última ubicación vista", labelEn: "Last seen location", kind: "text" },
   { key: "phone", labelEs: "Teléfono", labelEn: "Phone", kind: "tel" },
+  { key: "whatsapp", labelEs: "WhatsApp", labelEn: "WhatsApp", kind: "tel" },
   { key: "email", labelEs: "Correo", labelEn: "Email", kind: "email" },
 ];
 
@@ -380,18 +408,24 @@ const MASCOTAS_FROZEN: LifecycleFrozenField[] = [];
 
 function hydrateMascotas(row: Record<string, unknown>): Record<string, string> {
   return {
-    noticeType: readPair(row, "Leonix:noticeType") || "perdido",
+    noticeType: readPair(row, "Leonix:noticeType") || "mascota-perdida",
     city: readColumn(row, "city"),
     lastSeenLocation: readPair(row, "Leonix:lastSeenLocation"),
     phone: readColumn(row, "contact_phone"),
+    whatsapp: readPair(row, "Leonix:whatsappDigits"),
     email: readColumn(row, "contact_email"),
   };
 }
 
 function serializeMascotas(row: Record<string, unknown>, values: Record<string, string>): Record<string, unknown> {
-  // Real publish pipeline sets phoneDigits/whatsappDigits to the SAME value from one phone input
-  // (publishMascotasPerdidosQuickToListings.ts:34-35) — mirrored here, not two independent fields.
+  /**
+   * Globalization Build D-F5 — the real quick form has an independent WhatsApp field
+   * (publishMascotasPerdidosQuickToListings.ts writes Leonix:whatsappDigits from d.whatsapp,
+   * a distinct value from d.phone). This adapter previously overwrote Leonix:whatsappDigits
+   * with the Phone value on every save, silently destroying a real, different WhatsApp number.
+   */
   const phoneDigits = values.phone.replace(/\D/g, "").slice(0, 15);
+  const waDigits = values.whatsapp.replace(/\D/g, "").slice(0, 15);
   return {
     city: values.city.trim() || null,
     contact_phone: values.phone.trim() || null,
@@ -400,7 +434,7 @@ function serializeMascotas(row: Record<string, unknown>, values: Record<string, 
       "Leonix:noticeType": values.noticeType,
       "Leonix:lastSeenLocation": values.lastSeenLocation,
       "Leonix:phoneDigits": phoneDigits || null,
-      "Leonix:whatsappDigits": phoneDigits || null,
+      "Leonix:whatsappDigits": waDigits || null,
       "Leonix:contactEmailAvailable": values.email.trim() ? "1" : null,
     }),
   };

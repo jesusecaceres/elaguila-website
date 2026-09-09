@@ -9,7 +9,7 @@ import type { ListingAnalyticsEventType } from "@/app/lib/listingAnalyticsEventT
 
 export const COMMUNITY_ANALYTICS_SOURCE_TABLE = "listings" as const;
 
-export type CommunityAnalyticsCategory = "comunidad" | "clases" | "busco";
+export type CommunityAnalyticsCategory = "comunidad" | "clases" | "busco" | "mascotas-y-perdidos";
 
 export type CommunityGlobalAnalyticsCtx = {
   /** listings.id — internal UUID, used as source_id in DB writes. */

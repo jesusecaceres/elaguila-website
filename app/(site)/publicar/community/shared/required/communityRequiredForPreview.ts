@@ -2,7 +2,7 @@ import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 
 import type { DayHoursRow } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 import { getCanonicalCityName } from "@/app/data/locations/californiaLocationHelpers";
-import { digitsOnly } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import { digitsOnly, isValidWhatsAppNumber } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 
 import { isActiveDayValid, isWeeklyScheduleSatisfied } from "../lib/communityWeeklySchedule";
 import { normalizeWebsiteForOpen } from "../lib/communityWebsiteAndSocial";
@@ -34,7 +34,7 @@ const GATE_CLASES = {
     publicCity: "Ciudad donde se ofrece la clase",
     publicCityInvalid: "Selecciona una ciudad válida de la lista de NorCal.",
     phoneDigits: "Teléfono: ingresa 10 dígitos o déjalo vacío",
-    whatsappDigits: "WhatsApp: ingresa 10 dígitos o déjalo vacío",
+    whatsappDigits: "WhatsApp: ingresa un número válido (7 a 15 dígitos) o déjalo vacío",
     smsDigits: "Mensajes de texto: ingresa 10 dígitos o déjalo vacío",
     websiteInvalid: "Sitio web: ingresa una URL válida (ej. https://… o www.…)",
     audience: "¿Para quién es la clase?",
@@ -62,7 +62,7 @@ const GATE_CLASES = {
     publicCity: "City where the class is offered",
     publicCityInvalid: "Select a valid city from the NorCal list.",
     phoneDigits: "Phone: enter 10 digits or leave blank",
-    whatsappDigits: "WhatsApp: enter 10 digits or leave blank",
+    whatsappDigits: "WhatsApp: enter a valid number (7 to 15 digits) or leave it blank",
     smsDigits: "Text number: enter 10 digits or leave blank",
     websiteInvalid: "Website: enter a valid URL (e.g. https://… or www.…)",
     audience: "Who is this class for?",
@@ -95,7 +95,7 @@ const GATE_COMUNIDAD = {
     scheduleNeedWeeklyOrSession:
       "Cuándo ocurre el evento: activa días en el horario semanal o completa horario puntual (inicio y fin).",
     phoneDigits: "Teléfono: ingresa 10 dígitos o déjalo vacío",
-    whatsappDigits: "WhatsApp: ingresa 10 dígitos o déjalo vacío",
+    whatsappDigits: "WhatsApp: ingresa un número válido (7 a 15 dígitos) o déjalo vacío",
     smsDigits: "Mensajes de texto: ingresa 10 dígitos o déjalo vacío",
     websiteInvalid: "Sitio web: ingresa una URL válida (ej. https://… o www.…)",
     audience: "¿Para quién es el evento?",
@@ -121,7 +121,7 @@ const GATE_COMUNIDAD = {
     scheduleNeedWeeklyOrSession:
       "When the event runs: enable days in the weekly schedule or fill one-time start and end times.",
     phoneDigits: "Phone: enter 10 digits or leave blank",
-    whatsappDigits: "WhatsApp: enter 10 digits or leave blank",
+    whatsappDigits: "WhatsApp: enter a valid number (7 to 15 digits) or leave it blank",
     smsDigits: "Text number: enter 10 digits or leave blank",
     websiteInvalid: "Website: enter a valid URL (e.g. https://… or www.…)",
     audience: "Who is this event for?",
@@ -208,7 +208,7 @@ export function gateClasesQuickPreview(d: ClasesQuickDraft, lang: Lang = "es"): 
   if (!cityRaw) issues.push(L.publicCity);
   else if (!getCanonicalCityName(cityRaw)) issues.push(L.publicCityInvalid);
   if (st(d.phone) && digitsOnly(d.phone).length !== 10) issues.push(L.phoneDigits);
-  if (st(d.whatsapp) && digitsOnly(d.whatsapp).length !== 10) issues.push(L.whatsappDigits);
+  if (st(d.whatsapp) && !isValidWhatsAppNumber(d.whatsapp)) issues.push(L.whatsappDigits);
   if (st(d.smsPhone) && digitsOnly(d.smsPhone).length !== 10) issues.push(L.smsDigits);
   if (st(d.website) && !normalizeWebsiteForOpen(d.website)) issues.push(L.websiteInvalid);
   return issues.length ? { ok: false, issues } : { ok: true };
@@ -239,7 +239,7 @@ export function gateComunidadQuickPreview(d: ComunidadQuickDraft, lang: Lang = "
   if (!cityRawC) issues.push(L.publicCity);
   else if (!getCanonicalCityName(cityRawC)) issues.push(L.publicCityInvalid);
   if (st(d.phone) && digitsOnly(d.phone).length !== 10) issues.push(L.phoneDigits);
-  if (st(d.whatsapp) && digitsOnly(d.whatsapp).length !== 10) issues.push(L.whatsappDigits);
+  if (st(d.whatsapp) && !isValidWhatsAppNumber(d.whatsapp)) issues.push(L.whatsappDigits);
   if (st(d.smsPhone) && digitsOnly(d.smsPhone).length !== 10) issues.push(L.smsDigits);
   if (st(d.website) && !normalizeWebsiteForOpen(d.website)) issues.push(L.websiteInvalid);
   return issues.length ? { ok: false, issues } : { ok: true };

@@ -132,6 +132,20 @@ export async function PATCH(request: Request, { params }: Props) {
         { status: 409 },
       );
     }
+    if (result.errorCode === "AUTOS_LISTING_IDENTITY_SUBSTITUTION_BLOCKED") {
+      // Globalization Build 2 — the existing row is left completely unchanged (the guard runs
+      // before any write). No media deletion, no analytics mutation, no partial update.
+      return NextResponse.json(
+        buildAutosListingApiErrorPayload({
+          errorCode: "UPDATE_FAILED",
+          message:
+            "This looks like a different vehicle than the one currently listed here. Create a new listing for a different vehicle instead of editing this one.",
+          details: result.errorDetails,
+          legacyError: "identity_substitution_blocked",
+        }),
+        { status: 409 },
+      );
+    }
     const errorCode =
       result.errorCode === "AUTOS_SUPABASE_UPDATE_FAILED"
         ? "AUTOS_SUPABASE_UPDATE_FAILED"

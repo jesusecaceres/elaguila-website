@@ -11,7 +11,7 @@ function parseMinutes(hhmm: string | undefined): number | null {
 }
 
 /** Maps JS getUTCDay()-style index: 0=Sun .. 6=Sat → weeklyHours key */
-function weekdayKeyFromDateInTimeZone(now: Date, timeZone: string): keyof RestauranteWeeklyHours | null {
+export function weekdayKeyFromDateInTimeZone(now: Date, timeZone: string): keyof RestauranteWeeklyHours | null {
   const w = new Intl.DateTimeFormat("en-US", { timeZone, weekday: "short" }).format(now);
   const map: Record<string, keyof RestauranteWeeklyHours> = {
     Sun: "sunday",
@@ -25,7 +25,7 @@ function weekdayKeyFromDateInTimeZone(now: Date, timeZone: string): keyof Restau
   return map[w] ?? null;
 }
 
-function minutesInTimeZone(now: Date, timeZone: string): number {
+export function minutesInTimeZone(now: Date, timeZone: string): number {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
     hour: "2-digit",

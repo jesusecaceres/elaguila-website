@@ -253,6 +253,7 @@ export type OfertaLocalDbInsertPayload = {
   city: string;
   state: string | null;
   zip_code: string;
+  show_exact_address: boolean;
   service_zips: string[];
   phone: string | null;
   whatsapp: string | null;
@@ -304,6 +305,15 @@ export type OfertaLocalDraft = {
   state: string;
   country: string;
   zipCode: string;
+  /** Owner's explicit choice to reveal the exact street address publicly (and allow an
+   * address-derived "get directions" link). Defaults to `true` so existing/new drafts alike
+   * never silently hide an address that was always shown before this field existed — mirrors
+   * the same privacy contract shipped for Servicios/Restaurantes/Comida Local/Bienes Raíces/
+   * Rentas, see `app/lib/businessAddress/businessAddressPrivacy.ts`. The owner's own separately
+   * pasted `directionsUrl` (below) is never gated by this — that is an explicit share, not a
+   * derivation from the private street address. Persisted in `ofertas_locales.show_exact_address`
+   * (migration 20260901120000_ofertas_locales_address_privacy.sql). */
+  showExactAddress: boolean;
   serviceZipCodes: string[];
   phone: string;
   whatsapp: string;

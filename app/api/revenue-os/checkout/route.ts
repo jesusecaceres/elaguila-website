@@ -18,6 +18,7 @@ import {
   AUTOS_DEALER_MONTHLY_PACKAGE_KEY,
   AUTOS_PRIVADO_30D_PACKAGE_KEY,
   BR_INVENTORY_PACK_PACKAGE_KEY,
+  EMPLEOS_JOB_POST_PAID_PACKAGE_KEY,
   OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY,
   OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY,
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
@@ -57,6 +58,11 @@ import {
   sanitizeRevenueOsReturnPath,
 } from "@/app/lib/listingPlans/revenueOsReturnPath";
 import { validateRentasRenewalCheckoutOwnership } from "@/app/lib/listingLifecycle/listingRenewalFulfillment";
+import {
+  validateAutosPrivadoActiveEditCheckoutOwnership,
+  validateBrFsboActiveEditCheckoutOwnership,
+  validateEmpleosJobPostActiveEditCheckoutOwnership,
+} from "@/app/lib/listingLifecycle/activePaidEditCheckoutOwnership";
 import { assertCommercialCapacityForWrite } from "@/app/lib/listingPlans/commercialWriteGuard";
 import {
   isRevenueBaseEntitlementGuardedPackage,
@@ -123,6 +129,17 @@ export async function POST(request: NextRequest) {
     categoryEarly === "ofertas-locales" &&
     (packageKeyEarly === OFERTAS_LOCALES_FLYER_30D_PACKAGE_KEY ||
       packageKeyEarly === OFERTAS_LOCALES_COUPONS_30D_PACKAGE_KEY);
+  // Globalization Build C (RED #14) — these three one-time lanes always pass an existing
+  // listingId (the row is pre-created in draft/pending status before checkout, same shape as
+  // Comida Local's saveComidaLocalPendingBeforeCheckout), so the guard fires on every checkout
+  // call for them, not just an explicit "renewal" operation — there is no renewal operation for
+  // these packages, only "don't recharge a row that's already active."
+  const isAutosPrivadoActiveEditEarly =
+    categoryEarly === "autos" && packageKeyEarly === AUTOS_PRIVADO_30D_PACKAGE_KEY;
+  const isBrFsboActiveEditEarly =
+    categoryEarly === "bienes-raices" && packageKeyEarly === "br_fsbo_45d";
+  const isEmpleosJobPostActiveEditEarly =
+    categoryEarly === "empleos" && packageKeyEarly === EMPLEOS_JOB_POST_PAID_PACKAGE_KEY;
 
   // Package C Build 3 (C5/C6) — cheap, no-DB-call defense-in-depth: the retired restaurantes/
   // servicios offers add-ons can no longer be purchased standalone. The central guard
@@ -233,8 +250,47 @@ export async function POST(request: NextRequest) {
     serverVerifiedLeonixAdId = ownerGate.leonixAdId;
     serverVerifiedOwnerUserId = ownerGate.ownerUserId;
   }
+  if (isAutosPrivadoActiveEditEarly) {
+    const ownerGate = await validateAutosPrivadoActiveEditCheckoutOwnership({
+      listingId: String(body.listingId ?? "").trim(),
+      bearerUserId,
+    });
+    if (!ownerGate.ok) {
+      return NextResponse.json(
+        { ok: false, code: ownerGate.code, message: ownerGate.message },
+        { status: ownerGate.status },
+      );
+    }
+    serverVerifiedOwnerUserId = ownerGate.ownerUserId;
+  }
+  if (isBrFsboActiveEditEarly) {
+    const ownerGate = await validateBrFsboActiveEditCheckoutOwnership({
+      listingId: String(body.listingId ?? "").trim(),
+      bearerUserId,
+    });
+    if (!ownerGate.ok) {
+      return NextResponse.json(
+        { ok: false, code: ownerGate.code, message: ownerGate.message },
+        { status: ownerGate.status },
+      );
+    }
+    serverVerifiedOwnerUserId = ownerGate.ownerUserId;
+  }
+  if (isEmpleosJobPostActiveEditEarly) {
+    const ownerGate = await validateEmpleosJobPostActiveEditCheckoutOwnership({
+      listingId: String(body.listingId ?? "").trim(),
+      bearerUserId,
+    });
+    if (!ownerGate.ok) {
+      return NextResponse.json(
+        { ok: false, code: ownerGate.code, message: ownerGate.message },
+        { status: ownerGate.status },
+      );
+    }
+    serverVerifiedOwnerUserId = ownerGate.ownerUserId;
+  }
 
-  const ownerUserId = isRestauranteAddonOnlyEarly || isAutosDealerInventoryAddonEarly || isBienesInventoryAddonOnlyEarly || isServiciosOffersAddonOnlyEarly || isRentasRenewalEarly || isOfertasLocalesCheckoutEarly
+  const ownerUserId = isRestauranteAddonOnlyEarly || isAutosDealerInventoryAddonEarly || isBienesInventoryAddonOnlyEarly || isServiciosOffersAddonOnlyEarly || isRentasRenewalEarly || isOfertasLocalesCheckoutEarly || isAutosPrivadoActiveEditEarly || isBrFsboActiveEditEarly || isEmpleosJobPostActiveEditEarly
     ? serverVerifiedOwnerUserId ?? bearerUserId
     : body.ownerUserId?.trim() || bearerUserId || null;
 

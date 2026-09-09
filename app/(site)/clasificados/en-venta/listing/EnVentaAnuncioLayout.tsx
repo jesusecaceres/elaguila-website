@@ -74,9 +74,9 @@ import {
   buildBrLiveGate12dOpenHouseCard,
   buildBrPublicLocationForLiveDetail,
 } from "@/app/clasificados/lib/leonixBrGate12d";
-import { trackEnVentaListingOpen, trackEnVentaListingView } from "../analytics/enVentaAnalytics";
 import {
   trackEnVentaContactClickGlobal,
+  trackEnVentaListingViewGlobal,
   type EnVentaGlobalAnalyticsContext,
 } from "@/app/lib/clasificados/en-venta/analytics/enVentaGlobalAnalytics";
 import {
@@ -463,8 +463,13 @@ export function EnVentaAnuncioLayout({
       } = await supabase.auth.getUser();
       if (cancelled) return;
       const uid = user?.id ?? null;
-      trackEnVentaListingView(listing.id, uid);
-      trackEnVentaListingOpen(listing.id, uid);
+      // Globalization Build D-F5 — these two calls previously wrote directly to the legacy
+      // listing_analytics table from the client (app/lib/listingAnalytics.ts), bypassing the
+      // canonical POST /api/analytics/events pipeline and its server-side self-engagement guard.
+      trackEnVentaListingViewGlobal({
+        listingUuid: listing.id.trim(),
+        leonixAdId: (listing.leonix_ad_id ?? "").trim() || undefined,
+      });
       if (uid) {
         const { data } = await supabase
           .from("saved_listings")
@@ -1288,7 +1293,11 @@ export function EnVentaAnuncioLayout({
                 </div>
               ) : null}
               <div className="lg:col-span-12">
-                <EnVentaRelatedRail lang={lang} q={listing.title[lang].split(/\s+/).slice(0, 4).join(" ")} />
+                <EnVentaRelatedRail
+                  lang={lang}
+                  q={listing.title[lang].split(/\s+/).slice(0, 4).join(" ")}
+                  currentListingId={listing.id}
+                />
               </div>
             </>
           ) : null}
@@ -1297,7 +1306,7 @@ export function EnVentaAnuncioLayout({
 
         {surface !== "en-venta" || premiumBr ? (
         <div className="mt-10 grid gap-6 lg:grid-cols-12 lg:gap-10">
-          <div className="space-y-6 lg:col-span-8">
+          <div className="space-y-6 lg:col-span-12">
             {surface === "bienes-raices" ? <BrLiveFactsStrip detailPairs={listing.detailPairs} lang={lang} /> : null}
             {surface === "bienes-raices" && brLocationBlock ? (
               <section
@@ -1408,9 +1417,6 @@ export function EnVentaAnuncioLayout({
                 lang={lang}
               />
             ) : null}
-          </div>
-          <div className="lg:col-span-4">
-            <EnVentaRelatedRail lang={lang} q={listing.title[lang].split(/\s+/).slice(0, 4).join(" ")} />
           </div>
         </div>
         ) : null}

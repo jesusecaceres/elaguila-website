@@ -44,6 +44,7 @@ import {
 } from "@/app/lib/clasificados/bienes-raices/brGlobalAnalytics";
 import { dispatchConnectionHubCta } from "@/app/lib/analytics/client/connectionHubCtaDispatch";
 import { SharedConnectionHubReviewButton } from "@/app/components/contact/connectionHub/renderers/SharedConnectionHubReviewButton";
+import { SharedConnectionHubReviewDrawer } from "@/app/components/contact/connectionHub/renderers/SharedConnectionHubReviewDrawer";
 import { BrRentasCommunityTrustSection } from "@/app/clasificados/lib/BrRentasCommunityTrustSection";
 
 /** Package D Build D2, Gate 6A — real listing identity for the live published detail render only.
@@ -461,20 +462,25 @@ export function BrAgenteResContactSidebar({
                 {p.businessHubReviews}
               </p>
             ) : null}
-            {hub.googleReviewsUrl ? (
-              <SharedConnectionHubReviewButton
-                link={{ provider: "google", label: p.googleReviews, url: hub.googleReviewsUrl }}
-                lang={locale}
-                onClick={() => openReview(hub.googleReviewsUrl, trackBrGoogleReviewsClickGlobal)}
-              />
-            ) : null}
-            {hub.yelpReviewsUrl ? (
-              <SharedConnectionHubReviewButton
-                link={{ provider: "yelp", label: p.yelpReviews, url: hub.yelpReviewsUrl }}
-                lang={locale}
-                onClick={() => openReview(hub.yelpReviewsUrl, trackBrYelpClickGlobal)}
-              />
-            ) : null}
+            {/* Globalization Build B (Gate B5) — the 2 review buttons (Google Reviews, Yelp) are
+                now one shared drawer trigger. hub.googleBusinessUrl above is a distinct concept
+                (the Google Business profile link, not a review source) and stays its own
+                standalone button, untouched. */}
+            <SharedConnectionHubReviewDrawer
+              links={[
+                ...(hub.googleReviewsUrl
+                  ? [{ provider: "google" as const, label: p.googleReviews, url: hub.googleReviewsUrl }]
+                  : []),
+                ...(hub.yelpReviewsUrl
+                  ? [{ provider: "yelp" as const, label: p.yelpReviews, url: hub.yelpReviewsUrl }]
+                  : []),
+              ]}
+              lang={locale}
+              onLinkClick={(link) => {
+                if (link.provider === "google") openReview(hub.googleReviewsUrl, trackBrGoogleReviewsClickGlobal);
+                else openReview(hub.yelpReviewsUrl, trackBrYelpClickGlobal);
+              }}
+            />
             {hub.businessExtraLinks.map((link) => (
               <ReviewCard key={link.href} href={link.href} label={link.label} />
             ))}

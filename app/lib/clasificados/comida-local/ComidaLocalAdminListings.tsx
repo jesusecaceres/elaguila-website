@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { ComidaLocalAdminListingVm } from "./mapComidaLocalAdminListing";
+import { AdminListingMonetizationSummary } from "@/app/admin/(dashboard)/workspace/clasificados/_components/AdminListingMonetizationSummary";
 
 type Lang = "es" | "en";
 
@@ -59,6 +60,7 @@ export function ComidaLocalAdminListings({
               <th className="border-b border-[#E8DFD0] px-3 py-2">Tipo</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Estado</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Paquete / pago</th>
+              <th className="border-b border-[#E8DFD0] px-3 py-2">Monetization</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Owner</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Publicado</th>
               <th className="border-b border-[#E8DFD0] px-3 py-2">Foto</th>
@@ -91,6 +93,21 @@ export function ComidaLocalAdminListings({
                   <div className="text-[10px] text-[#7A7164]" title={item.rawPaymentStatus}>
                     {item.paymentStatusLabel}
                   </div>
+                </td>
+                <td className="px-3 py-2 align-top">
+                  <AdminListingMonetizationSummary
+                    category="comida-local"
+                    source="comida_local_public_listings"
+                    listing={{
+                      id: item.id,
+                      leonixAdId: item.leonixAdId,
+                      slug: item.slug,
+                      status: item.rawStatus,
+                      packageTier: item.rawPackageTier,
+                      paymentStatus: item.rawPaymentStatus,
+                      ownerUserId: item.ownerUserId,
+                    }}
+                  />
                 </td>
                 <td
                   className="max-w-[120px] truncate px-3 py-2 font-mono text-[10px]"
