@@ -479,3 +479,96 @@ No other source files modified. No migrations created or applied. No Production 
 
 See end-of-task final report for exact commit/push confirmation (this document is written before
 that step).
+
+## 20. Global Staging service_role privilege reconciliation (2026-09-09)
+
+```
+ROOT CAUSE: Postgres 42501 "permission denied for table servicios_public_listings",
+    confirmed via live Vercel runtime error logs (TRUE_RUNTIME, not inferred). The
+    service_role Postgres role -- authenticated by every server route via
+    getAdminSupabase() -- was never granted SELECT/INSERT/UPDATE/DELETE on any table
+    created before the Business Concierge merge. Traced to two competing default-ACL
+    entries for schema public: a supabase_admin default (full DML to all roles, the
+    platform standard) and a narrower default explicitly set for role postgres --
+    confirmed as owner of all 122 current tables -- granting service_role only
+    TRUNCATE/REFERENCES/TRIGGER.
+SCOPE: 45 tables fixed, explicitly enumerated (not GRANT ... ON ALL TABLES), including
+    the shared `listings` table and the entire Revenue OS payment pipeline
+    (leonix_payment_records, leonix_stripe_webhook_events, leonix_subscription_records,
+    leonix_promo_codes, leonix_placement_entitlements). anon/authenticated grants and
+    RLS were explicitly left untouched.
+MIGRATION: supabase/migrations/20260909120000_service_role_dml_grants_global_fix.sql
+    (commit 14a78d46), plus ALTER DEFAULT PRIVILEGES FOR ROLE postgres to prevent
+    recurrence on future tables.
+VERIFIED: post-migration grant audit, 45/45 tables TRUE for SELECT/INSERT/UPDATE/DELETE;
+    functional proof via SET LOCAL ROLE service_role (the exact role the deployed app
+    authenticates as) performing real INSERT/SELECT/UPDATE/DELETE against
+    servicios_public_listings and the Revenue OS tables -- all succeed where they
+    previously threw 42501.
+SEPARATE RECONCILIATION (same session): two already-authored, already-committed
+    migrations from commit 313338ce ("verified introductory discount", 2026-08-05)
+    had never been applied to this Staging project --
+    20260805100100_leonix_phone_verification_challenges.sql and
+    20260805100200_leonix_verified_phone_identities.sql. A sibling migration from the
+    same commit (leonix_verified_intro_discount_redemptions) WAS applied, confirming
+    this was a real gap, not an intentional omission. Applied both additively,
+    unmodified from their authored source, in FK dependency order. This is the schema
+    the 15% verified-intro-discount promo path (checkout/route.ts) reads from --
+    previously a genuine BLOCKED gap ("table does not exist"), now reconciled.
+PRODUCTION: not touched.
+STATUS: TRUE_RUNTIME (DB layer). Full HTTP-level re-proof (POST publish -> 2xx ->
+    Stripe TEST open) remains OWNER_QA_REQUIRED -- this session's automated tooling is
+    still blocked from the Preview deployment by Vercel SSO (reconfirmed this gate,
+    not carried forward untested); Coach's own browser session is the proven channel.
+```
+
+## 21. Global Commercial Term + Revenue OS Engine — audit finding, NOT YET BUILT
+
+```
+REQUESTED: advertiser-selectable billing commitment term (month-to-month / 3 / 6 / 12
+    months) for recurring paid categories, reflected in price display, legal consent
+    copy, server-side calculation, Stripe subscription behavior, payment/subscription
+    records, and Dashboard/Admin.
+FINDING (exhaustive source audit, file:line evidence, not inferred): this concept does
+    NOT exist anywhere in the live Revenue OS classifieds checkout/webhook/entitlement
+    pipeline today.
+    - revenuePricingMatrix.ts: flat priceCents + billingMode only (one_time |
+      monthly_subscription | free | affiliate). No term/commitment field of any kind.
+    - /api/revenue-os/checkout: accepts no term parameter; calls only
+      stripe.checkout.sessions.create with a hardcoded interval:"month". Zero
+      stripe.subscriptionSchedules usage anywhere in the repo.
+    - /api/revenue-os/webhook: fixed 9-event set, no subscription_schedule.* events.
+    - subscriptionLifecyclePolicy.ts: expiry computed from a single Stripe period end
+      + flat 7-day grace; no "commitment months remaining" concept.
+    - Dashboard/Admin billing surfaces: status/grace/cancel-at-period-end badges only;
+      no next-payment, remaining-payments, or term-end display anywhere.
+    - Recurring-consent checkbox copy (recurringConsentCopy.ts): one hardcoded
+      month-to-month string per language, not category- or term-varying.
+    - Promo model (revenuePromoRedemptions.ts): flat one-time percent/amount-off; no
+      duration-by-invoice-count or term-eligibility field.
+    - A superficially similar "3_month/6_month/12_month contract term" concept exists
+      ONLY in app/lib/listingPlans/packagePricingRules.ts -- an intentionally isolated,
+      Stripe/DB-disconnected pricing calculator for a different product entirely
+      (print-to-digital magazine packages sold by sales reps through the Admin
+      sales-tracker workspace). Not wired to the classifieds checkout in any way; at
+      most a naming/shape reference.
+CONCLUSION: this is a ground-up feature build, not an adoption/fix gap. Building it in
+    one uninstrumented pass -- real money, real Stripe subscription-schedule behavior,
+    real legal consent text -- was assessed as unsafe without first resolving the open
+    commercial-policy questions below (owner explicitly instructed not to have these
+    guessed). Recommend scoping as its own dedicated, gated build once policy is
+    locked, following this engagement's established grouped-build pattern.
+POLICY QUESTIONS REQUIRING OWNER LOCK (none silently assumed):
+    1. Does a 3/6/12-month commitment END after the final payment, or CONTINUE
+       month-to-month?
+    2. Early cancellation during a committed term -- what is allowed?
+    3. Mid-term package upgrade -- immediate charge, prorated, or next invoice?
+    4. Mid-term add-on -- co-terminates with the base term or runs independently?
+    5. Promo discount duration default -- one invoice, the full selected term, or
+       configurable per promo code?
+    6. Renewal notice requirements, if any.
+    7. Fixed-term products -- automatic renewal policy, if any.
+STATUS: TERM_END_POLICY_OWNER_CONFIRMATION_REQUIRED and the six related questions
+    above. Architecture should support both "cancel at term end" and "continue
+    month-to-month" once built; neither was implemented or assumed this gate.
+```
