@@ -11,9 +11,18 @@ import {
   splitAdminDashboardExpiringQueue,
 } from "@/app/admin/_lib/adminDashboardData";
 import { fetchPaymentTrackerSnapshot } from "@/app/admin/_lib/paymentTrackerData";
+import { listBusinessesForWorkspace } from "@/app/admin/_lib/businessWorkspaceData";
+import { getWebsiteEditingSummary } from "@/app/admin/_lib/websiteEditingTruthMatrix";
+import { getClasificadosCategoryRegistryMerged, summarizeRegistryForDashboard } from "@/app/lib/clasificados/clasificadosCategoryRegistry";
 import { formatMoneyCents } from "@/app/lib/listingPlans/packagePricingRules";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionContentData";
+import { dbListCommunityResources } from "@/app/lib/recursos/server/communityResourcesDb";
+import { dbListCandidateReviews } from "@/app/lib/recursos/server/communityResourceCandidateReviewsDb";
+import { dbCountActiveResourceIntakeJobs } from "@/app/lib/recursos/intake/server/resourceIntakeJobsDb";
+import { dbCountPendingResourceChangeProposals } from "@/app/lib/recursos/intake/server/resourceChangeProposalsDb";
+import { dbCountPendingPartnerUpdateRequests } from "@/app/lib/recursos/intake/server/partnerUpdateRequestsDb";
+import { buildReverificationQueue } from "@/app/lib/recursos/intake/reverificationQueue";
 import { isLeoGoogleWorkspaceConfigured } from "@/app/leo/_lib/leoGoogleWorkspaceConfig";
 import { isWebPushConfigured } from "@/app/lib/digitalContact/humanConnection/webPushConfig";
 import {
@@ -811,6 +820,487 @@ export const leoSystemReportingAdapter: LeoExecutiveReportingAdapter = {
   },
 };
 
+/**
+ * LEO-ADMIN-OS-FINAL.2 item 1 — Business Concierge pipeline intelligence.
+ * Reuses the canonical Staff Command Center source (businesses / business_follow_ups
+ * via businessWorkspaceData.ts) — NOT leonix_leads/support_tickets, and no second
+ * businesses table. listBusinessesForWorkspace() never returns raw contact values
+ * (boolean has-* flags only), so it is safe to call from this read-only, owner-gated
+ * adapter without a StrictSalesActor.
+ */
+export const leoBusinessPipelineReportingAdapter: LeoExecutiveReportingAdapter = {
+  domain: "BUSINESS_PIPELINE",
+  async getExecutiveSignals(input) {
+    const nowMs = input.nowMs;
+    const limit = clampAdapterLimit(input);
+    if (!isSupabaseAdminConfigured()) {
+      return emptyAdapterResult("BUSINESS_PIPELINE", "UNAVAILABLE", nowMs, "Supabase admin client is not configured.");
+    }
+    let items: Awaited<ReturnType<typeof listBusinessesForWorkspace>>["items"];
+    try {
+      ({ items } = await listBusinessesForWorkspace({ limit: 500 }));
+    } catch {
+      return emptyAdapterResult("BUSINESS_PIPELINE", "UNAVAILABLE", nowMs, "Business pipeline query failed.");
+    }
+
+    const needsFollowUp = items.filter((i) => i.nextFollowUpStatus !== null);
+    const overdue = needsFollowUp.filter((i) => i.nextFollowUpStatus === "overdue");
+    const total = items.length;
+
+    const signals = [
+      buildLeoExecutiveSignal({
+        domain: "BUSINESS_PIPELINE",
+        sourceKind: "businesses",
+        sourceRef: "total",
+        nowMs,
+        title: "Businesses in the pipeline",
+        summary: `${total} business${total === 1 ? "" : "es"} in the Staff Command Center (bounded to the most recent 500).`,
+        signalType: "CUSTOMER",
+        severity: "INFORMATIONAL",
+        status: total === 0 ? "EMPTY" : "INFORMATIONAL",
+        count: total,
+        ownerAttentionRequired: false,
+        actionable: false,
+        deepLink: "/admin/businesses",
+        evidenceRefs: ["businesses:total"],
+        availability: total === 0 ? "EMPTY" : "AVAILABLE",
+        priorityRank: 7,
+      }),
+      buildLeoExecutiveSignal({
+        domain: "BUSINESS_PIPELINE",
+        sourceKind: "business_follow_ups",
+        sourceRef: "open",
+        nowMs,
+        title: "Businesses needing follow-up",
+        summary: `${needsFollowUp.length} business${needsFollowUp.length === 1 ? "" : "es"} with an open follow-up${overdue.length ? `; ${overdue.length} overdue` : ""}.`,
+        signalType: "QUEUE",
+        severity: overdue.length > 0 ? "HIGH" : needsFollowUp.length > 0 ? "NORMAL" : "INFORMATIONAL",
+        status: overdue.length > 0 ? "NEEDS_ATTENTION" : needsFollowUp.length > 0 ? "OPEN" : "EMPTY",
+        count: needsFollowUp.length,
+        ownerAttentionRequired: overdue.length > 0,
+        actionable: needsFollowUp.length > 0,
+        deepLink: "/admin/businesses",
+        evidenceRefs: ["business_follow_ups:open"],
+        availability: needsFollowUp.length === 0 ? "EMPTY" : "AVAILABLE",
+        priorityRank: overdue.length > 0 ? 4 : 6,
+      }),
+    ].slice(0, limit);
+
+    return {
+      domain: "BUSINESS_PIPELINE",
+      availability: "AVAILABLE",
+      signals,
+      limitations: [
+        "Bounded to the most recent 500 businesses — not a full census beyond that.",
+        "Sales notes and business_facts detail are not summarized here; open the business profile for full context.",
+      ],
+      generatedAt: new Date(nowMs).toISOString(),
+    };
+  },
+};
+
+/**
+ * LEO-ADMIN-OS-FINAL.2 item 2 — Team intelligence.
+ * admin_team_members has no existing lib-level read wrapper (confirmed by source
+ * discovery); this queries the exact same table/columns/limit as
+ * app/admin/(dashboard)/team/roster/page.tsx rather than inventing a new shape.
+ */
+export const leoTeamReportingAdapter: LeoExecutiveReportingAdapter = {
+  domain: "TEAM",
+  async getExecutiveSignals(input) {
+    const nowMs = input.nowMs;
+    const limit = clampAdapterLimit(input);
+    if (!isSupabaseAdminConfigured()) {
+      return emptyAdapterResult("TEAM", "UNAVAILABLE", nowMs, "Supabase admin client is not configured.");
+    }
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from("admin_team_members")
+      .select("id, email, display_name, role, is_active, created_at")
+      .order("created_at", { ascending: false })
+      .limit(80);
+    if (error) {
+      return emptyAdapterResult("TEAM", "UNAVAILABLE", nowMs, "Team roster query failed.");
+    }
+    const rows = (data ?? []) as Array<{ is_active: boolean }>;
+    const total = rows.length;
+    const active = rows.filter((r) => r.is_active).length;
+    const inactive = total - active;
+
+    const signals = [
+      buildLeoExecutiveSignal({
+        domain: "TEAM",
+        sourceKind: "admin_team_members",
+        sourceRef: "active",
+        nowMs,
+        title: "Active team members",
+        summary: `${active} active team member${active === 1 ? "" : "s"} of ${total} on the roster (bounded to the most recent 80).`,
+        signalType: "METRIC",
+        severity: "INFORMATIONAL",
+        status: total === 0 ? "EMPTY" : "INFORMATIONAL",
+        count: active,
+        metric: { value: active, unit: "members" },
+        ownerAttentionRequired: false,
+        actionable: false,
+        deepLink: "/admin/team/roster",
+        evidenceRefs: ["admin_team_members:active"],
+        availability: total === 0 ? "EMPTY" : "AVAILABLE",
+        priorityRank: 7,
+      }),
+    ];
+    if (inactive > 0) {
+      signals.push(
+        buildLeoExecutiveSignal({
+          domain: "TEAM",
+          sourceKind: "admin_team_members",
+          sourceRef: "inactive",
+          nowMs,
+          title: "Inactive team members",
+          summary: `${inactive} team member${inactive === 1 ? "" : "s"} marked inactive.`,
+          signalType: "METRIC",
+          severity: "INFORMATIONAL",
+          status: "INFORMATIONAL",
+          count: inactive,
+          ownerAttentionRequired: false,
+          actionable: false,
+          deepLink: "/admin/team/roster",
+          evidenceRefs: ["admin_team_members:inactive"],
+          availability: "AVAILABLE",
+          priorityRank: 8,
+        }),
+      );
+    }
+
+    return {
+      domain: "TEAM",
+      availability: total === 0 ? "EMPTY" : "AVAILABLE",
+      signals: signals.slice(0, limit),
+      limitations: ["Roster is bounded to the most recent 80 members — not scoped per-owner (single flat roster)."],
+      generatedAt: new Date(nowMs).toISOString(),
+    };
+  },
+};
+
+/**
+ * LEO-ADMIN-OS-FINAL.2 item 3 — Categories intelligence.
+ * Reuses the canonical classifieds category registry + the Admin dashboard's
+ * already-bounded pending review queue — no second category registry.
+ */
+export const leoCategoriesReportingAdapter: LeoExecutiveReportingAdapter = {
+  domain: "CATEGORIES",
+  async getExecutiveSignals(input) {
+    const nowMs = input.nowMs;
+    const limit = clampAdapterLimit(input);
+    const [registry, snap] = await Promise.all([
+      getClasificadosCategoryRegistryMerged(),
+      getAdminDashboardSnapshot(),
+    ]);
+    const lifecycle = summarizeRegistryForDashboard(registry);
+    const attentionCategories = [
+      ...new Set(snap.pendingReviewQueueItems.map((r) => r.categorySource).filter(Boolean)),
+    ];
+
+    const signals = [
+      buildLeoExecutiveSignal({
+        domain: "CATEGORIES",
+        sourceKind: "clasificados_category_registry",
+        sourceRef: "live",
+        nowMs,
+        title: "Live categories",
+        summary: `${lifecycle.live} live categor${lifecycle.live === 1 ? "y" : "ies"}, ${lifecycle.staged} staged, ${lifecycle.comingSoon} coming soon.`,
+        signalType: "CONTENT",
+        severity: "INFORMATIONAL",
+        status: "INFORMATIONAL",
+        count: lifecycle.live,
+        ownerAttentionRequired: false,
+        actionable: false,
+        deepLink: ADMIN_DASHBOARD_ROUTES.categories,
+        evidenceRefs: ["clasificados_category_registry:live"],
+        availability: "AVAILABLE",
+        priorityRank: 8,
+      }),
+      buildLeoExecutiveSignal({
+        domain: "CATEGORIES",
+        sourceKind: "pending_review_queue",
+        sourceRef: "categories_with_pending_items",
+        nowMs,
+        title: "Categories with pending review items",
+        summary:
+          attentionCategories.length > 0
+            ? `${attentionCategories.length} categor${attentionCategories.length === 1 ? "y" : "ies"} with pending/flagged items in the bounded preview sample: ${attentionCategories.slice(0, 5).join(", ")}.`
+            : "No categories with pending/flagged items in the bounded preview sample.",
+        signalType: "QUEUE",
+        severity: attentionCategories.length > 0 ? "NORMAL" : "INFORMATIONAL",
+        status: attentionCategories.length > 0 ? "OPEN" : "EMPTY",
+        count: attentionCategories.length,
+        ownerAttentionRequired: attentionCategories.length > 0,
+        actionable: attentionCategories.length > 0,
+        deepLink: ADMIN_DASHBOARD_ROUTES.classifiedsReviewQueue,
+        evidenceRefs: ["pending_review_queue:by_category"],
+        availability: "PARTIAL",
+        metadataSummary: "Derived from a sitewide bounded preview (max 12 rows) — not an exhaustive per-category count.",
+        priorityRank: attentionCategories.length > 0 ? 5 : 8,
+      }),
+    ].slice(0, limit);
+
+    return {
+      domain: "CATEGORIES",
+      availability: "PARTIAL",
+      signals,
+      limitations: [
+        "Category-level pending counts are derived from the sitewide bounded review-queue preview (≤12 rows), not an exhaustive per-category query.",
+      ],
+      generatedAt: new Date(nowMs).toISOString(),
+    };
+  },
+};
+
+/**
+ * LEO-ADMIN-OS-FINAL.2 item 4 — Recursos intelligence.
+ * Reuses the exact 5 canonical Recursos read functions the admin page itself calls
+ * (app/lib/recursos/**) — no new table/query. Spanish reconciliation is intentionally
+ * omitted here (page-only bucketing helper, not a bounded count primitive).
+ */
+export const leoRecursosReportingAdapter: LeoExecutiveReportingAdapter = {
+  domain: "RECURSOS",
+  async getExecutiveSignals(input) {
+    const nowMs = input.nowMs;
+    const limit = clampAdapterLimit(input);
+    const [resources, candidates, intakeJobs, changeProposals, partnerUpdates] = await Promise.all([
+      dbListCommunityResources(),
+      dbListCandidateReviews(),
+      dbCountActiveResourceIntakeJobs(),
+      dbCountPendingResourceChangeProposals(),
+      dbCountPendingPartnerUpdateRequests(),
+    ]);
+
+    if (resources.unavailable) {
+      return emptyAdapterResult("RECURSOS", "UNAVAILABLE", nowMs, "Community resources table is unavailable — not zero resources.");
+    }
+
+    const all = resources.rows;
+    const total = all.length;
+    const active = all.filter((r) => r.verification.active).length;
+    const helpNow = all.filter((r) => r.urgencyLevel === "help-now").length;
+    const reverification = buildReverificationQueue(all, new Date(nowMs));
+    const overdueReverification = reverification.overdue.length;
+    const pendingCandidates = candidates.unavailable
+      ? null
+      : candidates.rows.filter((r) => r.disposition !== "promoted").length;
+
+    const signals = [
+      buildLeoExecutiveSignal({
+        domain: "RECURSOS",
+        sourceKind: "community_resources",
+        sourceRef: "active",
+        nowMs,
+        title: "Active community resources",
+        summary: `${active} active resource${active === 1 ? "" : "s"} of ${total} total. ${helpNow} flagged help-now urgency.`,
+        signalType: "CONTENT",
+        severity: "INFORMATIONAL",
+        status: total === 0 ? "EMPTY" : "INFORMATIONAL",
+        count: active,
+        ownerAttentionRequired: false,
+        actionable: false,
+        deepLink: "/admin/recursos",
+        evidenceRefs: ["community_resources:active"],
+        availability: total === 0 ? "EMPTY" : "AVAILABLE",
+        priorityRank: 7,
+      }),
+      buildLeoExecutiveSignal({
+        domain: "RECURSOS",
+        sourceKind: "community_resources",
+        sourceRef: "overdue_reverification",
+        nowMs,
+        title: "Resources overdue for re-verification",
+        summary: `${overdueReverification} resource${overdueReverification === 1 ? "" : "s"} overdue for re-verification.`,
+        signalType: "QUEUE",
+        severity: overdueReverification > 0 ? "NORMAL" : "INFORMATIONAL",
+        status: overdueReverification > 0 ? "NEEDS_ATTENTION" : "EMPTY",
+        count: overdueReverification,
+        ownerAttentionRequired: overdueReverification > 0,
+        actionable: overdueReverification > 0,
+        deepLink: "/admin/recursos",
+        evidenceRefs: ["community_resources:overdue_reverification"],
+        availability: "AVAILABLE",
+        priorityRank: overdueReverification > 0 ? 5 : 8,
+      }),
+      buildLeoExecutiveSignal({
+        domain: "RECURSOS",
+        sourceKind: "resource_intake_jobs",
+        sourceRef: "active",
+        nowMs,
+        title: "Resource intake jobs in progress",
+        summary: `${intakeJobs.count} intake job${intakeJobs.count === 1 ? "" : "s"} pending, processing, or needing review.`,
+        signalType: "QUEUE",
+        severity: intakeJobs.count > 0 ? "NORMAL" : "INFORMATIONAL",
+        status: intakeJobs.count > 0 ? "OPEN" : "EMPTY",
+        count: intakeJobs.count,
+        ownerAttentionRequired: false,
+        actionable: intakeJobs.count > 0,
+        deepLink: "/admin/recursos",
+        evidenceRefs: ["resource_intake_jobs:active"],
+        availability: intakeJobs.unavailable ? "UNAVAILABLE" : "AVAILABLE",
+        priorityRank: 7,
+      }),
+    ];
+
+    if (pendingCandidates != null && pendingCandidates > 0) {
+      signals.push(
+        buildLeoExecutiveSignal({
+          domain: "RECURSOS",
+          sourceKind: "community_resource_candidate_reviews",
+          sourceRef: "pending",
+          nowMs,
+          title: "Candidate resources awaiting review",
+          summary: `${pendingCandidates} candidate resource${pendingCandidates === 1 ? "" : "s"} not yet promoted.`,
+          signalType: "QUEUE",
+          severity: "NORMAL",
+          status: "OPEN",
+          count: pendingCandidates,
+          ownerAttentionRequired: false,
+          actionable: true,
+          deepLink: "/admin/recursos",
+          evidenceRefs: ["community_resource_candidate_reviews:pending"],
+          availability: "AVAILABLE",
+          priorityRank: 6,
+        }),
+      );
+    }
+    if (!changeProposals.unavailable && changeProposals.count > 0) {
+      signals.push(
+        buildLeoExecutiveSignal({
+          domain: "RECURSOS",
+          sourceKind: "resource_change_proposals",
+          sourceRef: "pending",
+          nowMs,
+          title: "Pending resource change proposals",
+          summary: `${changeProposals.count} pending change proposal${changeProposals.count === 1 ? "" : "s"}.`,
+          signalType: "APPROVAL",
+          severity: "NORMAL",
+          status: "PENDING",
+          count: changeProposals.count,
+          ownerAttentionRequired: true,
+          actionable: true,
+          deepLink: "/admin/recursos",
+          evidenceRefs: ["resource_change_proposals:pending"],
+          availability: "AVAILABLE",
+          priorityRank: 5,
+        }),
+      );
+    }
+    if (!partnerUpdates.unavailable && partnerUpdates.count > 0) {
+      signals.push(
+        buildLeoExecutiveSignal({
+          domain: "RECURSOS",
+          sourceKind: "partner_update_requests",
+          sourceRef: "pending",
+          nowMs,
+          title: "Pending partner update requests",
+          summary: `${partnerUpdates.count} pending partner update request${partnerUpdates.count === 1 ? "" : "s"}.`,
+          signalType: "APPROVAL",
+          severity: "NORMAL",
+          status: "PENDING",
+          count: partnerUpdates.count,
+          ownerAttentionRequired: true,
+          actionable: true,
+          deepLink: "/admin/recursos",
+          evidenceRefs: ["partner_update_requests:pending"],
+          availability: "AVAILABLE",
+          priorityRank: 5,
+        }),
+      );
+    }
+
+    return {
+      domain: "RECURSOS",
+      availability: "AVAILABLE",
+      signals: signals.slice(0, limit),
+      limitations: [
+        candidates.unavailable ? "Candidate review counts are unavailable — not zero." : "",
+        "Spanish reconciliation queue status is not summarized here; open Recursos for that detail.",
+      ].filter(Boolean),
+      generatedAt: new Date(nowMs).toISOString(),
+    };
+  },
+};
+
+/**
+ * LEO-ADMIN-OS-FINAL.2 item 5 — Website / Site Settings intelligence.
+ * PARTIAL by design: WEBSITE_EDITING_TRUTH_ROWS is a real, already-computed,
+ * code-authored truth table (the same one Admin's own workspace hub reads) rather
+ * than a live per-request query, and site_section_content contributes exactly one
+ * genuine live timestamp. No richer live metrics exist for this surface.
+ */
+export const leoWebsiteReportingAdapter: LeoExecutiveReportingAdapter = {
+  domain: "WEBSITE",
+  async getExecutiveSignals(input) {
+    const nowMs = input.nowMs;
+    const limit = clampAdapterLimit(input);
+    const editingSummary = getWebsiteEditingSummary();
+
+    const signals = [
+      buildLeoExecutiveSignal({
+        domain: "WEBSITE",
+        sourceKind: "website_editing_truth_matrix",
+        sourceRef: "editable_sections",
+        nowMs,
+        title: "Website sections fully editable",
+        summary: `${editingSummary.TRUE} section${editingSummary.TRUE === 1 ? "" : "s"} fully editable, ${editingSummary.PARTIAL} partial, ${editingSummary.MISSING} missing, ${editingSummary.needsBuild} needing build.`,
+        signalType: "CONTENT",
+        severity: "INFORMATIONAL",
+        status: "INFORMATIONAL",
+        count: editingSummary.TRUE,
+        ownerAttentionRequired: false,
+        actionable: false,
+        deepLink: "/admin/workspace",
+        evidenceRefs: ["website_editing_truth_matrix:TRUE"],
+        availability: "PARTIAL",
+        metadataSummary: "Code-authored editability truth table, not a live per-request query.",
+        priorityRank: 8,
+      }),
+    ];
+
+    try {
+      const { updatedAt } = await getSiteSectionPayload("global_site");
+      signals.push(
+        buildLeoExecutiveSignal({
+          domain: "WEBSITE",
+          sourceKind: "site_section_content",
+          sourceRef: "global_site",
+          nowMs,
+          title: "Global site settings last updated",
+          summary: updatedAt
+            ? `Global site settings last saved ${updatedAt}.`
+            : "Global site settings have no recorded save yet.",
+          signalType: "CONTENT",
+          severity: "INFORMATIONAL",
+          status: "INFORMATIONAL",
+          ownerAttentionRequired: false,
+          actionable: false,
+          deepLink: ADMIN_DASHBOARD_ROUTES.siteSettings,
+          evidenceRefs: ["site_section_content:global_site"],
+          availability: updatedAt ? "AVAILABLE" : "EMPTY",
+          priorityRank: 8,
+        }),
+      );
+    } catch {
+      // Fail-soft: editing summary above still stands on its own.
+    }
+
+    return {
+      domain: "WEBSITE",
+      availability: "PARTIAL",
+      signals: signals.slice(0, limit),
+      limitations: [
+        "Website editability is a static, code-authored truth table — not live database state.",
+        "Beyond the last-saved timestamp, no richer live website metrics exist yet.",
+      ],
+      generatedAt: new Date(nowMs).toISOString(),
+    };
+  },
+};
+
 export const LEO_EXECUTIVE_LIVE_ADAPTERS: LeoExecutiveReportingAdapter[] = [
   leoLeadsReportingAdapter,
   leoContactsReportingAdapter,
@@ -820,4 +1310,9 @@ export const LEO_EXECUTIVE_LIVE_ADAPTERS: LeoExecutiveReportingAdapter[] = [
   leoIglesiasReportingAdapter,
   leoSystemReportingAdapter,
   leoAnalyticsReportingAdapter,
+  leoBusinessPipelineReportingAdapter,
+  leoTeamReportingAdapter,
+  leoCategoriesReportingAdapter,
+  leoRecursosReportingAdapter,
+  leoWebsiteReportingAdapter,
 ];

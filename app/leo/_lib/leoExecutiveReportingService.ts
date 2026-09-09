@@ -260,6 +260,16 @@ export function filterExecutiveSnapshotByQuestion(
   else if (/\bleads?\b/.test(q)) domains = new Set(["LEADS", "CLIENTS"]);
   else if (/\bmoderat|\breports?\b|\bqueue/.test(q) && !/\ball reports\b/.test(q) && !/\badmin report/.test(q)) {
     domains = new Set(["MODERATION", "LISTINGS"]);
+  } else if (/\bbusiness(es)?\b.*\bfollow[- ]?up|\bfollow[- ]?up.*\bbusiness(es)?\b|\bbusiness concierge\b.*follow|\bclient\/business pipeline\b|\bbusiness pipeline\b/.test(q)) {
+    domains = new Set(["BUSINESS_PIPELINE"]);
+  } else if (/\bteam\b/.test(q)) {
+    domains = new Set(["TEAM"]);
+  } else if (/\bcategor(y|ies)\b/.test(q)) {
+    domains = new Set(["CATEGORIES"]);
+  } else if (/\brecursos\b/.test(q)) {
+    domains = new Set(["RECURSOS"]);
+  } else if (/\bwebsite\b|\bsite settings\b/.test(q)) {
+    domains = new Set(["WEBSITE"]);
   }
   if (!domains) return snap;
   const signals = snap.signals.filter((s) => domains!.has(s.domain));

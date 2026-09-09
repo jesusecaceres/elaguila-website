@@ -9,7 +9,7 @@
 import "server-only";
 
 import { fetchListingFlagContextMaps } from "@/app/admin/_lib/adminReviewFlagContext";
-import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { requireLeoOwnerAccess } from "@/app/leo/_lib/leoAccess";
 import {
   assembleLeoListingReasonChain,
@@ -35,6 +35,9 @@ export async function getLeoListingReasonChain(listingId: string): Promise<LeoLi
     });
   }
 
+  if (!isSupabaseAdminConfigured()) {
+    return assembleLeoListingReasonChain({ listingId: id, status: "" });
+  }
   const supabase = getAdminSupabase();
   const { data: row, error } = await supabase
     .from("listings")

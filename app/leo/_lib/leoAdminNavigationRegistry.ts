@@ -184,6 +184,8 @@ export const LEO_ADMIN_NAVIGATION_REGISTRY: readonly LeoAdminNavigationEntry[] =
       "take me to activity log",
       "show activity log",
       "go to activity log",
+      "show recent activity",
+      "show me recent activity",
       "abre el registro de actividad",
     ],
   },

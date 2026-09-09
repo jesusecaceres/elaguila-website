@@ -26,10 +26,15 @@ export const ADMIN_DASHBOARD_ROUTES = {
   catalog: "/admin/tienda/catalog",
   viewSite: "/",
   reviewQueue: "/admin#review",
+  /** Trust & Safety listing-reports queue — real page, actively consumed by
+   * the Command Center CTAs and LEO's executive-reporting deep links below. */
   reports: "/admin/reportes",
   users: "/admin/usuarios",
   customerOps: "/admin/ops",
-  payments: "/admin/payments",
+  /** LEO-ADMIN-OS-FINAL.2 — was "/admin/payments" (a retired, unlinked stub
+   * with zero consumers repo-wide); corrected to the real payment tracker,
+   * the same canonical route paymentTracker already points to below. */
+  payments: "/admin/workspace/payment-tracker",
   paymentTracker: "/admin/workspace/payment-tracker",
   iglesias: "/admin/workspace/iglesias",
   support: "/admin/support",

@@ -1,6 +1,8 @@
 import "server-only";
 
-import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+
+const SERVICE_UNAVAILABLE = "service_unavailable: Supabase admin client is not configured.";
 
 import type {
   LeoActionProposal,
@@ -108,6 +110,7 @@ export async function getLeoActionProposalForOwner(
   ownerActorId: string,
 ): Promise<LeoActionProposal | null> {
   if (!proposalId || !ownerActorId) return null;
+  if (!isSupabaseAdminConfigured()) return null;
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
     .from("leo_action_proposals")
@@ -128,6 +131,7 @@ export async function listLeoActionProposalsForOwner(
   limit = 40,
 ): Promise<LeoActionProposal[]> {
   if (!ownerActorId) return [];
+  if (!isSupabaseAdminConfigured()) return [];
   const capped = Math.min(Math.max(1, limit), 80);
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
@@ -207,6 +211,7 @@ export async function claimLeoActionProposalExecutionAtomic(input: {
   | { ok: true; proposal: LeoActionProposal }
   | { ok: false; error: "not_claimable" | "expired_or_terminal" | "already_claimed" | string }
 > {
+  if (!isSupabaseAdminConfigured()) return { ok: false, error: SERVICE_UNAVAILABLE };
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
 
@@ -241,6 +246,7 @@ export async function approveLeoActionProposalAtomic(input: {
   | { ok: true; proposal: LeoActionProposal }
   | { ok: false; error: "not_approvable" | "expired_or_terminal" | "fingerprint_mismatch" | string }
 > {
+  if (!isSupabaseAdminConfigured()) return { ok: false, error: SERVICE_UNAVAILABLE };
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
 
@@ -272,6 +278,7 @@ export async function cancelLeoActionProposal(
   proposalId: string,
   ownerActorId: string,
 ): Promise<{ ok: true; proposal: LeoActionProposal } | { ok: false; error: string }> {
+  if (!isSupabaseAdminConfigured()) return { ok: false, error: SERVICE_UNAVAILABLE };
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
 
@@ -302,6 +309,7 @@ export async function markLeoActionProposalExecuted(input: {
   proposalId: string;
   ownerActorId: string;
 }): Promise<{ ok: true; proposal: LeoActionProposal } | { ok: false; error: string }> {
+  if (!isSupabaseAdminConfigured()) return { ok: false, error: SERVICE_UNAVAILABLE };
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
 
@@ -330,6 +338,7 @@ export async function markLeoActionProposalVerified(input: {
   proposalId: string;
   ownerActorId: string;
 }): Promise<{ ok: true; proposal: LeoActionProposal } | { ok: false; error: string }> {
+  if (!isSupabaseAdminConfigured()) return { ok: false, error: SERVICE_UNAVAILABLE };
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
 
@@ -358,6 +367,7 @@ export async function markLeoActionProposalFailed(input: {
   proposalId: string;
   ownerActorId: string;
 }): Promise<{ ok: true; proposal: LeoActionProposal } | { ok: false; error: string }> {
+  if (!isSupabaseAdminConfigured()) return { ok: false, error: SERVICE_UNAVAILABLE };
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
 
@@ -384,6 +394,7 @@ export async function markLeoActionProposalFailed(input: {
  * Expired proposals are no longer claimable/approvable/executable.
  */
 export async function expireLeoActionProposals(input: { ownerActorId: string }): Promise<void> {
+  if (!isSupabaseAdminConfigured()) return;
   const supabase = getAdminSupabase();
   const now = new Date().toISOString();
   await supabase

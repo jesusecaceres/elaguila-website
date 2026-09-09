@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { resolveLeoAccess } from "@/app/leo/_lib/leoAccess";
 import { loadLeoAttentionCockpit, loadLeoGovernedActionsCockpit } from "@/app/leo/_lib/leoCockpitLoaders";
 import { getLeoGoogleWorkspaceCapabilityTruth } from "@/app/leo/_lib/leoGoogleWorkspaceCapabilityTruth";
+import { getLeoCapabilityRuntimeTruth } from "@/app/leo/_lib/leoCapabilityRuntimeTruth";
 import { getLeoProjectConfigDiagnostic } from "@/app/leo/_lib/leoProjectConfig";
 import { getLeoClientCareWatch } from "@/app/leo/_lib/leoClientCareService";
 import { leoListRecentMemory } from "@/app/leo/_lib/leoLivingBookService";
@@ -144,6 +145,12 @@ export default async function LeoExecutiveConsolePage() {
         : "NOT_CONFIGURED",
     webPushConfigured: isWebPushConfigured(),
   });
+  const capabilityRuntime = getLeoCapabilityRuntimeTruth({
+    supabaseConfigured: isSupabaseAdminConfigured(),
+    google: googleTruth,
+    project,
+    webPushConfigured: isWebPushConfigured(),
+  });
 
   const home = (
     <div className="min-w-0 space-y-4">
@@ -178,7 +185,7 @@ export default async function LeoExecutiveConsolePage() {
             </h2>
             <LeoNotificationSettings />
             <LeoGovernanceLegend />
-            <LeoCapabilityStrip project={project} google={googleTruth} />
+            <LeoCapabilityStrip project={project} google={googleTruth} runtime={capabilityRuntime} />
           </section>
           </LeoSpokenSessionProvider>
         </LeoWorkspaceProvider>

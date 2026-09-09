@@ -4,7 +4,7 @@
  */
 import "server-only";
 
-import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type {
   LeoCommitment,
   LeoCommitmentCreatedBy,
@@ -152,6 +152,9 @@ export async function createLeoCommitmentRecord(
 ): Promise<{ ok: true; commitment: LeoCommitment } | { ok: false; error: string }> {
   const invalid = validateCreate(input);
   if (invalid) return { ok: false, error: invalid };
+  if (!isSupabaseAdminConfigured()) {
+    return { ok: false, error: "service_unavailable: Supabase admin client is not configured." };
+  }
 
   const now = new Date().toISOString();
   const supabase = getAdminSupabase();
@@ -193,6 +196,7 @@ export async function getLeoCommitmentForOwner(
 ): Promise<LeoCommitment | null> {
   const owner = nonEmpty(ownerAuthUserId);
   if (!owner || !nonEmpty(id)) return null;
+  if (!isSupabaseAdminConfigured()) return null;
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
     .from("leo_commitments")

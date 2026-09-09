@@ -13,6 +13,7 @@ import {
 } from "@/app/leo/_lib/leoConversationRouter";
 import { runLeoPersistentConversation } from "@/app/leo/_lib/leoConversationService";
 import { resolveLeoAccess } from "@/app/leo/_lib/leoAccess";
+import { logLeoObservabilityEvent } from "@/app/leo/_lib/leoObservability";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,10 +42,16 @@ export async function DELETE() {
 }
 
 export async function POST(req: Request) {
+  const startedAt = Date.now();
   try {
     const access = await resolveLeoAccess();
     if (!access.allowed) {
       const status = access.reason === "unauthenticated" ? 401 : 403;
+      logLeoObservabilityEvent({
+        route: "leo/conversation",
+        failureClass: "AUTH_DENIED",
+        durationMs: Date.now() - startedAt,
+      });
       return NextResponse.json(
         { ok: false, error: "forbidden", reason: access.reason },
         { status },
@@ -102,6 +109,12 @@ export async function POST(req: Request) {
         result.error === "session_not_found" || result.error === "session_archived"
           ? 404
           : 409;
+      logLeoObservabilityEvent({
+        route: "leo/conversation",
+        failureClass: status === 404 ? "NOT_FOUND" : "CONFLICT",
+        durationMs: Date.now() - startedAt,
+        connectionState: result.error,
+      });
       return NextResponse.json(
         {
           ok: false,
@@ -114,6 +127,13 @@ export async function POST(req: Request) {
     }
 
     const { answer } = result;
+    logLeoObservabilityEvent({
+      route: "leo/conversation",
+      intent: answer.intent ?? null,
+      failureClass: "NONE",
+      durationMs: Date.now() - startedAt,
+      connectionState: answer.persistenceState ?? null,
+    });
     return NextResponse.json(
       {
         ok: true,
@@ -128,6 +148,11 @@ export async function POST(req: Request) {
     );
   } catch (err) {
     const classified = classifyLeoConversationFailure(err);
+    logLeoObservabilityEvent({
+      route: "leo/conversation",
+      failureClass: classified.status >= 500 ? "INTERNAL_ERROR" : "VALIDATION_FAILED",
+      durationMs: Date.now() - startedAt,
+    });
     return NextResponse.json(
       { ok: false, error: classified.code, message: classified.message },
       { status: classified.status },

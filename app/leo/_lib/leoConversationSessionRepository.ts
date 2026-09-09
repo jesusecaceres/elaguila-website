@@ -4,7 +4,7 @@
  */
 import "server-only";
 
-import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type {
   LeoConversationEntityRef,
   LeoConversationLanguage,
@@ -271,6 +271,7 @@ export async function listRecentLeoConversationSessionsForOwner(
 ): Promise<LeoConversationSession[]> {
   const owner = nonEmpty(ownerAuthUserId);
   if (!owner) return [];
+  if (!isSupabaseAdminConfigured()) return [];
   const capped = Math.min(Math.max(1, Math.floor(limit)), LEO_SESSION_LIST_MAX);
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
@@ -290,6 +291,7 @@ export async function touchLeoConversationSession(
 ): Promise<LeoConversationSession | null> {
   const owner = nonEmpty(ownerAuthUserId);
   if (!owner || !nonEmpty(sessionId)) return null;
+  if (!isSupabaseAdminConfigured()) return null;
   const now = new Date().toISOString();
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
@@ -310,6 +312,7 @@ export async function archiveLeoConversationSession(
 ): Promise<LeoConversationSession | null> {
   const owner = nonEmpty(ownerAuthUserId);
   if (!owner || !nonEmpty(sessionId)) return null;
+  if (!isSupabaseAdminConfigured()) return null;
   const now = new Date().toISOString();
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
@@ -332,6 +335,7 @@ export async function updateLeoConversationSessionMode(
   const owner = nonEmpty(ownerAuthUserId);
   if (!owner || !nonEmpty(sessionId)) return null;
   if (!["TEXT", "HANDS_FREE", "LOW_ATTENTION"].includes(mode)) return null;
+  if (!isSupabaseAdminConfigured()) return null;
   const now = new Date().toISOString();
   const supabase = getAdminSupabase();
   const { data, error } = await supabase

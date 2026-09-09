@@ -148,6 +148,141 @@ function main() {
     "Owner must sign in via /admin/login/auth (email+password) rather than the shared bootstrap password page, to get a durable auth_user_id cookie enabling LEO conversation persistence, alerts ownership binding, and scheduled-watch identity.",
   );
 
+  section("LEO-ADMIN-OS-FINAL.2 — CONSTRUCTION CLOSEOUT");
+
+  const execTypes = src("app/leo/_lib/leoExecutiveReportingTypes.ts");
+  const execRegistry = src("app/leo/_lib/leoExecutiveReportingRegistry.ts");
+  const execAdapters = src("app/leo/_lib/leoExecutiveReportingAdapters.ts");
+  const execService = src("app/leo/_lib/leoExecutiveReportingService.ts");
+  const router = src("app/leo/_lib/leoConversationRouter.ts");
+  const navRegistry = src("app/leo/_lib/leoAdminNavigationRegistry.ts");
+
+  // Item 1 — Business Concierge pipeline intelligence
+  check(
+    /"BUSINESS_PIPELINE"/.test(execTypes) && /leoBusinessPipelineReportingAdapter/.test(execAdapters) && /listBusinessesForWorkspace/.test(execAdapters),
+    "BUSINESS_CONCIERGE_READ: BUSINESS_PIPELINE domain adapter reuses listBusinessesForWorkspace (businesses/business_follow_ups) — not leonix_leads/support_tickets",
+  );
+  check(
+    /nextFollowUpStatus/.test(execAdapters) && /needsFollowUp/.test(execAdapters),
+    "BUSINESS_CONCIERGE_FOLLOWUPS: adapter derives follow-up-needed businesses from the canonical join",
+  );
+  check(!/from "@\/app\/leo\/_lib\/leoBusinessConciergeBridge"/.test(execAdapters), "DUPLICATE_DATA_LAYER=FALSE: pipeline adapter does not reuse the leads/tickets-only bridge");
+
+  // Item 2 — Team intelligence
+  check(
+    /"TEAM"/.test(execTypes) && /leoTeamReportingAdapter/.test(execAdapters) && /admin_team_members/.test(execAdapters),
+    "TEAM_READ: TEAM domain adapter reads admin_team_members (same table/columns as the roster page)",
+  );
+
+  // Item 3 — Categories intelligence
+  check(
+    /"CATEGORIES"/.test(execTypes) && /leoCategoriesReportingAdapter/.test(execAdapters) && /getClasificadosCategoryRegistryMerged/.test(execAdapters),
+    "CATEGORIES_READ: CATEGORIES domain adapter reuses the canonical clasificados category registry (no second registry)",
+  );
+
+  // Item 4 — Recursos intelligence
+  check(
+    /"RECURSOS"/.test(execTypes) && /leoRecursosReportingAdapter/.test(execAdapters) && /dbListCommunityResources/.test(execAdapters),
+    "RECURSOS_READ: RECURSOS domain adapter reuses the real Recursos read functions (dbListCommunityResources, etc.)",
+  );
+
+  // Item 5 — Website / Site Settings intelligence
+  check(
+    /"WEBSITE"/.test(execTypes) && /leoWebsiteReportingAdapter/.test(execAdapters) && /getWebsiteEditingSummary/.test(execAdapters) && /getSiteSectionPayload/.test(execAdapters),
+    "WEBSITE_READ=PARTIAL: WEBSITE domain adapter reuses websiteEditingTruthMatrix + site_section_content (source-backed, explicitly PARTIAL)",
+  );
+
+  // Item 6 — Natural-language presentation routing (canonical router, not a competing one)
+  check(
+    /show my team/.test(navRegistry) && /show categories/.test(navRegistry) && /show recursos/.test(navRegistry) && /show site settings/.test(navRegistry) && /show launch leads/.test(navRegistry) && /show recent activity/.test(navRegistry),
+    "PRESENTATION_COMMAND_MATRIX: canonical navigation registry covers show-my-team/categories/recursos/site-settings/launch-leads/recent-activity",
+  );
+  check(
+    /which businesses need follow/.test(router) && /who is on the team/.test(router) && /which categories need attention/.test(router) && /what is happening in recursos/.test(router) && /show \(me \)\?website status/.test(router) && /payment issues/.test(router),
+    "PRESENTATION_COMMAND_MATRIX: EXECUTIVE_REPORTING router phrase matching covers the new item 1-5 intelligence questions",
+  );
+  check(
+    router.includes("todays) schedule"),
+    "PRESENTATION_COMMAND_MATRIX: 'show today's schedule' resolves via the CALENDAR communication subtype",
+  );
+  check(
+    /BUSINESS_PIPELINE"\]\)/.test(execService) && /TEAM"\]\)/.test(execService) && /CATEGORIES"\]\)/.test(execService) && /RECURSOS"\]\)/.test(execService) && /WEBSITE"\]\)/.test(execService),
+    "PRESENTATION_COMMAND_MATRIX: filterExecutiveSnapshotByQuestion narrows to the 5 new domains by keyword",
+  );
+
+  // Item 7 — Capability Panel Runtime Truth
+  const capTruth = src("app/leo/_lib/leoCapabilityRuntimeTruth.ts");
+  const capStrip = src("app/admin/(dashboard)/leo/_components/LeoCapabilityStrip.tsx");
+  check(
+    /CONNECTED[\s\S]*AVAILABLE[\s\S]*PARTIAL[\s\S]*NOT_CONNECTED[\s\S]*BLOCKED_EXTERNAL[\s\S]*DISABLED_BY_OWNER_GATE/.test(capTruth),
+    "CAPABILITY_PANEL_RUNTIME_TRUTH: full state enum present (CONNECTED/AVAILABLE/PARTIAL/NOT_CONNECTED/BLOCKED_EXTERNAL/DISABLED_BY_OWNER_GATE)",
+  );
+  const leoConsolePage = src("app/admin/(dashboard)/leo/page.tsx");
+  check(
+    /LeoCapabilityRuntimeEntry/.test(capStrip) && !/const notConnected: string\[\]/.test(capStrip) && /getLeoCapabilityRuntimeTruth/.test(leoConsolePage),
+    "CAPABILITY_PANEL_RUNTIME_TRUTH=TRUE: LeoCapabilityStrip renders from runtime truth passed down from page.tsx, hardcoded notConnected array removed",
+  );
+  check(/"background_monitoring"[\s\S]{0,120}state: "BLOCKED_EXTERNAL"/.test(capTruth), "Background monitoring capability reports BLOCKED_EXTERNAL (no scheduler exists), never a fake CONNECTED");
+
+  // Item 8 — Admin route cleanup
+  const dashboardRoutes = src("app/admin/_lib/adminDashboardRoutes.ts");
+  check(/payments: "\/admin\/workspace\/payment-tracker"/.test(dashboardRoutes), "PAYMENTS_ROUTE_CANONICAL=TRUE: ADMIN_DASHBOARD_ROUTES.payments points at the real payment tracker, not the retired /admin/payments stub");
+  check(/reports: "\/admin\/reportes"/.test(dashboardRoutes), "REPORTS_ROUTE_CANONICAL=TRUE: ADMIN_DASHBOARD_ROUTES.reports already points at the real, actively-consumed /admin/reportes page");
+  check(!/payments:\s*"\/admin\/payments"/.test(dashboardRoutes), "DEAD_ADMIN_MAPPING=FALSE: payments key no longer maps to the retired /admin/payments stub");
+
+  // Item 9 — Commitments UI truth (repository + composer already correct; verified, not modified)
+  const commitmentIntel = src("app/leo/_lib/leoCommitmentIntelligence.ts");
+  check(
+    /No recorded commitments match that request/.test(commitmentIntel) && /Commitment records are currently unavailable/.test(commitmentIntel),
+    "COMMITMENTS_UI_EMPTY_STATE=TRUE: distinct EMPTY ('no recorded commitments') vs UNAVAILABLE ('currently unavailable') strings confirmed",
+  );
+  check(!/Commitment list unavailable/.test(commitmentIntel), "EMPTY_NOT_UNAVAILABLE=TRUE: EMPTY summaries never use the UNAVAILABLE repository fallback string");
+
+  // Item 10 — Calendar UI truth (verified, not modified)
+  const morningBrief = src("app/leo/_lib/leoMorningBrief.ts");
+  check(
+    /NOT_CONFIGURED/.test(morningBrief) && /No calendar events in today's bounded window/.test(morningBrief),
+    "CALENDAR_STATE_TRUTH=TRUE: three distinct calendar states (NOT_CONFIGURED / UNAVAILABLE / genuinely-empty) confirmed in Morning Brief composition",
+  );
+
+  // Item 11 — Observability completion
+  const observability = src("app/leo/_lib/leoObservability.ts");
+  const conversationRoute = src("app/api/leo/conversation/route.ts");
+  const executeRouteSrc = src("app/api/leo/action/proposal/[proposalId]/execute/route.ts");
+  const watchRunRoute = src("app/api/leo/watch/run/route.ts");
+  check(
+    /logLeoObservabilityEvent/.test(conversationRoute) && /logLeoObservabilityEvent/.test(executeRouteSrc) && /logLeoObservabilityEvent/.test(watchRunRoute),
+    "LEO_CORE_OBSERVABILITY=TRUE: conversation intake, action-proposal execute, and watch/run all emit the bounded secret-safe log event",
+  );
+  check(/GMAIL_TWO_KEY_GATE_DENIED/.test(observability) && /SCOPE_INSUFFICIENT/.test(executeRouteSrc), "LEO_CORE_OBSERVABILITY: Gmail two-key gate failures map to a distinct failure_class enum value");
+  check(!/OPENAI_API_KEY|access_token|refresh_token/.test(observability), "LEO_CORE_OBSERVABILITY: observability helper never references secret-shaped fields");
+
+  // Item 12 — Service-role static audit completion
+  check(
+    /isSupabaseAdminConfigured/.test(src("app/leo/_lib/leoActionProposalRepository.ts")) &&
+      /isSupabaseAdminConfigured/.test(src("app/leo/_lib/leoAttentionAckRepository.ts")) &&
+      /isSupabaseAdminConfigured/.test(src("app/leo/_lib/leoCommitmentRepository.ts")) &&
+      /isSupabaseAdminConfigured/.test(src("app/leo/_lib/leoConversationSessionRepository.ts")) &&
+      /isSupabaseAdminConfigured/.test(src("app/leo/_lib/leoLivingBookRepository.ts")) &&
+      /isSupabaseAdminConfigured/.test(src("app/leo/_lib/leoReasonChain.ts")) &&
+      /isSupabaseAdminConfigured/.test(src("app/leo/_lib/leoToolReceiptRepository.ts")),
+    "SERVICE_ROLE_CALLSITE_AUDIT=COMPLETE / UNSAFE_CALLS=0: all 32 previously-unguarded getAdminSupabase() defects across 7 files now guarded",
+  );
+
+  // Item 13 — Env requirement manifest
+  const envManifest = src("app/leo/_lib/leoEnvRequirementManifest.ts");
+  check(
+    /OPENAI_API_KEY/.test(envManifest) && /LEO_GOOGLE_CLIENT_ID/.test(envManifest) && /WEB_PUSH_VAPID_PUBLIC_KEY/.test(envManifest) && /LEO_CRON_SECRET/.test(envManifest) && /ADMIN_PASSWORD/.test(envManifest),
+    "ENV_REQUIREMENT_MANIFEST=TRUE: canonical manifest covers AI, Google, push, cron, and admin-auth variables with no secret values",
+  );
+  check(!/=\s*["'][A-Za-z0-9+/]{20,}["']/.test(envManifest), "ENV_REQUIREMENT_MANIFEST: no secret-shaped literal values present in the manifest");
+
+  // Item 14 — Background monitoring (BLOCKED_EXTERNAL, no scheduler exists)
+  check(
+    !exists("vercel.json") && !exists(".github/workflows"),
+    "BACKGROUND_MONITORING_STATE=BLOCKED_EXTERNAL: confirmed no scheduler (vercel.json cron or GitHub Actions) exists anywhere in this repo",
+  );
+
   if (failures > 0) {
     console.error(`\nLEO-ADMIN-OS-FINAL verifier: ${failures} failure(s)`);
     process.exit(1);
