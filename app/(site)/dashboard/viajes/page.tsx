@@ -296,7 +296,7 @@ function DashboardViajesStagedPageContent() {
   return (
     <LeonixDashboardShell
       lang={lang}
-      activeNav="listings"
+      activeNav="viajes"
       plan={plan}
       userName={name}
       email={email}

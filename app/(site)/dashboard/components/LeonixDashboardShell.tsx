@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } 
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import newLogo from "../../../../public/logo.png";
 import { fetchDashboardNavCounts } from "../lib/dashboardNavCounts";
+import { fetchDedicatedCategoryCounts } from "../lib/dashboardMisAnunciosCategoryLoadPlan";
 import {
   DASHBOARD_INTERNAL_INBOX_READY,
   DASHBOARD_SAVED_LISTINGS_READY,
@@ -27,6 +28,7 @@ export type LeonixDashboardActiveNav =
   | "restaurantes"
   | "servicios"
   | "viajes"
+  | "empleos"
   | "messages"
   | "drafts"
   | "saved"
@@ -103,6 +105,17 @@ export function LeonixDashboardShell({
     drafts: null,
     expiring: null,
   });
+  // Mis Espacios — real owned-category gate for the sidebar. Reuses the existing
+  // fetchDedicatedCategoryCounts (already used by /dashboard/mis-anuncios) rather than a new
+  // query; only categories with a real dedicated collection page AND a browser-safe direct
+  // count (Servicios/Ofertas Locales are excluded — their owner-scoped rows are only reachable
+  // through an authenticated API route, not a direct RLS-readable count query; see
+  // dashboardMisAnunciosCategoryLoadPlan.ts) are gated here.
+  const [spaceCounts, setSpaceCounts] = useState<{ restaurantes: number; empleos: number; viajes: number }>({
+    restaurantes: 0,
+    empleos: 0,
+    viajes: 0,
+  });
   // Package 1 — mobile dashboard navigation (drawer). Desktop sidebar is unaffected.
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -128,13 +141,17 @@ export function LeonixDashboardShell({
           resolvedOwnerId = user?.id ?? null;
         }
         if (!resolvedOwnerId || cancelled) return;
-        const c = await fetchDashboardNavCounts(sb, resolvedOwnerId);
+        const [c, spaces] = await Promise.all([
+          fetchDashboardNavCounts(sb, resolvedOwnerId),
+          fetchDedicatedCategoryCounts(sb, resolvedOwnerId),
+        ]);
         if (cancelled) return;
         setNavCounts({
           messages: c.messageInbox,
           drafts: c.drafts,
           expiring: c.expiringSoon,
         });
+        setSpaceCounts({ restaurantes: spaces.restaurantes, empleos: spaces.empleos, viajes: spaces.viajes });
       } catch {
         /* ignore */
       }
@@ -247,6 +264,20 @@ export function LeonixDashboardShell({
         ],
       },
       { title: L.navGroupNegocio, items: [navItem("business", `/dashboard/business-tools?${q}`, L.businessTools, undefined, undefined, onNavigate)] },
+      {
+        title: L.navGroupMisEspacios,
+        items: [
+          spaceCounts.restaurantes > 0
+            ? navItem("restaurantes", `/dashboard/restaurantes?${q}`, L.navSpaceRestaurantes, undefined, undefined, onNavigate)
+            : null,
+          spaceCounts.empleos > 0
+            ? navItem("empleos", `/dashboard/empleos?${q}`, L.navSpaceEmpleos, undefined, undefined, onNavigate)
+            : null,
+          spaceCounts.viajes > 0
+            ? navItem("viajes", `/dashboard/viajes?${q}`, L.navSpaceViajes, undefined, undefined, onNavigate)
+            : null,
+        ].filter(Boolean),
+      },
     ].filter((group) => group.items.length > 0);
 
   function renderNavGroups(onNavigate?: () => void) {
@@ -326,9 +357,10 @@ export function LeonixDashboardShell({
   const activeNavLabel: Partial<Record<ActiveNav, string>> = {
     home: L.home,
     listings: L.listings,
-    restaurantes: L.restaurants,
+    restaurantes: L.navSpaceRestaurantes,
     servicios: L.servicios,
-    viajes: L.viajesStaged,
+    viajes: L.navSpaceViajes,
+    empleos: L.navSpaceEmpleos,
     messages: L.messages,
     drafts: L.drafts,
     saved: L.saved,

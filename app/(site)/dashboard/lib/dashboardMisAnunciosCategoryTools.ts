@@ -375,8 +375,6 @@ export function buildInventoryListingActions(
   lang: Lang,
   q: string,
   opts?: {
-    onCouponUpgrade?: () => void;
-    couponUpgradeBusy?: boolean;
     onCouponEdit?: () => void;
     couponEditBusy?: boolean;
     /** Servicios P0C listing-edit route (mode=listing-edit, returnPanel=servicios, identity). */
@@ -457,26 +455,13 @@ export function buildInventoryListingActions(
     });
   }
 
-  if (
-    category === "restaurantes" &&
-    item.restaurantCouponUpgradeEligible &&
-    listingToolIsReady(category, "couponUpgrade") &&
-    opts?.onCouponUpgrade
-  ) {
-    // Gate 2C — specialized/add-on action, gold "premium" role; not a second primary.
-    actions.push({
-      label: opts.couponUpgradeBusy
-        ? lang === "es"
-          ? "Iniciando pago…"
-          : "Starting checkout…"
-        : lang === "es"
-          ? "Agregar cupones +$99/mes"
-          : "Add coupons +$99/mo",
-      onClick: opts.onCouponUpgrade,
-      disabled: opts.couponUpgradeBusy,
-      tone: "premium",
-    });
-  }
+  // The standalone Restaurantes coupon add-on ($79/mo — never $99, the price this dead block
+  // used to show) is retired (revenuePricingMatrix.ts: newSalesRetired=true, stripeEligible=
+  // false); coupons/offers are now included in the $399/mo base package. No caller in this
+  // codebase has ever passed `onCouponUpgrade`/`couponUpgradeBusy`, so this "upgrade" CTA for a
+  // no-longer-sellable product could never actually render — removed as dead, misleading
+  // commercial-truth debt (Owner Command Center final organization pass, Phase H) rather than
+  // left as an unreachable stale offer.
 
   if (
     category === "restaurantes" &&

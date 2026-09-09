@@ -26,6 +26,11 @@ import {
   analyticsLabel,
 } from "../lib/dashboardMisAnunciosCategoryTools";
 import { resolveListingUiStatus, listingUiStatusLabel, listingUiStatusChipClass } from "../lib/listingDisplayStatus";
+import {
+  dashboardHasCapabilityForKey,
+  fetchDashboardListingPackageEntitlementBadges,
+  type DashboardEntitlementBadgePayload,
+} from "../lib/dashboardPackageEntitlementBadges";
 import { getOwnerEntityCapabilities } from "../lib/ownerEntityCapabilityRegistry";
 import { OwnerEntityWorkspace } from "../components/OwnerEntityWorkspace";
 import { OwnerProductPageFrame } from "../components/OwnerProductPageFrame";
@@ -150,6 +155,9 @@ function DashboardServiciosPageContent() {
   const [manageBusy, setManageBusy] = useState<string | null>(null);
   const [communityTrustById, setCommunityTrustById] = useState<
     Record<string, { key: string; es: string; en: string; count: number }[]>
+  >({});
+  const [entitlementBadges, setEntitlementBadges] = useState<
+    Record<string, DashboardEntitlementBadgePayload>
   >({});
 
   function serviciosEditHref(row: MergedRow): string {
@@ -324,6 +332,33 @@ function DashboardServiciosPageContent() {
       if (!mounted) return;
       setRows(merged);
 
+      // Fixes the Servicios/Restaurantes entitlement asymmetry found in the Owner Command
+      // Center final organization pass: `/api/clasificados/servicios/my-listings`'s
+      // `offers_addon_active` only reflects the retired standalone `servicios_offers_addon`
+      // entitlement, never the canonical `coupons_offers` capability that the $399/mo base
+      // package includes (see revenuePricingMatrix.ts). Restaurantes already resolves this via
+      // the same canonical lookup (restaurantes/page.tsx); this mirrors that exact pattern for
+      // Servicios rather than inventing a new resolver. Real listing ids only — never fabricated.
+      const cloudRows = merged.filter((r) => r.source === "cloud" && r.id);
+      if (token && cloudRows.length > 0) {
+        try {
+          const { badges } = await fetchDashboardListingPackageEntitlementBadges(
+            cloudRows.map((r) => ({
+              key: r.id as string,
+              category: "servicios",
+              listingSource: "servicios_public_listings",
+              listingId: r.id as string,
+              slug: r.slug,
+              leonixAdId: r.leonixAdId ?? null,
+            })),
+            token,
+          );
+          if (mounted) setEntitlementBadges(badges);
+        } catch (badgeErr) {
+          console.error("[dashboard/servicios] entitlement badge fetch failed", badgeErr);
+        }
+      }
+
       // Gate 3A — Community Trust is READ ONLY here (no vote/write path touched). One bounded,
       // concurrent read per real cloud listing, fired once during this same load pass rather
       // than per rendered card, so this never becomes a per-card fetch as the row count grows.
@@ -472,8 +507,17 @@ function DashboardServiciosPageContent() {
                     tone: "positive",
                   });
                 }
+                // Never downgrade a real "active" addon flag; only upgrade a false/stale one when
+                // canonical package truth (resolveBusinessToolsAccess -> coupons_offers) says the
+                // capability is genuinely included in this listing's current package.
+                const hasCouponsCapability = dashboardHasCapabilityForKey(
+                  entitlementBadges,
+                  [r.id ?? "", r.slug, r.leonixAdId ?? ""],
+                  "coupons_offers",
+                );
+                const offersEntitlementActive = r.offersAddonActive || hasCouponsCapability;
                 const specializedActions: ActionItem[] =
-                  isCloudPublished && r.offersAddonActive
+                  isCloudPublished && offersEntitlementActive
                     ? [{ href: serviciosOffersShortcutHref(r), label: serviciosOffersEditLabel(lang), tone: "premium" }]
                     : [];
                 const rowLeads = leads.filter((l) => l.listing_slug === r.slug);

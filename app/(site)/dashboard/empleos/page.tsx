@@ -175,7 +175,7 @@ function EmpleosEmployerDashboardPageContent() {
   return (
     <LeonixDashboardShell
       lang={lang}
-      activeNav="listings"
+      activeNav="empleos"
       plan="free"
       userName={null}
       email={null}

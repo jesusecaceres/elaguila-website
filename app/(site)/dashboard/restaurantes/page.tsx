@@ -357,7 +357,7 @@ function DashboardRestaurantesPageContent() {
   return (
     <LeonixDashboardShell
       lang={lang}
-      activeNav="listings"
+      activeNav="restaurantes"
       plan={plan}
       userName={name}
       email={email}
