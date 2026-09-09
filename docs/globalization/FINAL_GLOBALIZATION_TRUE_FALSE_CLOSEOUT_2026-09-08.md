@@ -970,15 +970,26 @@ CONTEXT: dispatched 2 parallel research agents (read-only, no edits) to trace G0
   a "preferredContact"/urgency-chip/contact-card feature set this pass never touched). Both
   flagged as separate spawned tasks, not fixed here (out of scope, unrelated root cause).
 
---- G09/G10 MEDIA/GALLERY: REAL DEFECT FOUND, NOT FIXED THIS PASS ---
+--- G09/G10 MEDIA/GALLERY: TRUE_SOURCE, FIXED (commit bd2ee01e) ---
   `buildProposedFinalMediaSet` (app/lib/media/listingMediaContract.ts) returns a documented
   `droppedUnpersistable` field specifically so callers can warn instead of silently losing
   intent -- confirmed via repo-wide search that ZERO of its ~7 real call sites (Servicios,
   Restaurantes, Autos, Comida Local, Empleos, Bienes Raices/Rentas, the generic dashboard
-  editor) ever read it. Practically: a stray unpersistable URL surviving into a draft is
-  dropped from the persisted photo set with zero owner-facing warning -- the owner believes N
+  editor) ever read it. Practically: a stray unpersistable URL surviving into a draft was
+  dropped from the persisted photo set with zero owner-facing warning -- the owner believed N
   photos saved, only N-1 did. Real bug in already-adopted code, not an adoption gap.
-  FIX SIZE: small (surface the existing field at each call site). NOT FIXED THIS PASS.
+  FIXED: added a shared `warnDroppedUnpersistableMedia` helper, wired at all 11 real call sites
+  across the 7 files (including all 4 photo-management actions in the generic dashboard
+  editor). This is a server/console-log-level fix only, per standing "smallest safe change"
+  doctrine -- making the drop newly BLOCK the save (vs. just warn) would be a real behavior
+  change with its own risk (a routine in-progress blob: preview could wrongly fail a save) and
+  was not attempted; a category-level, user-facing toast/message is a separate, larger follow-up
+  needing product copy per category. Verified:
+  scripts/verify-wave3-g09-dropped-media-warning-2026-09-09.ts, 8/8 passing. Widened two
+  brittle character-distance regex windows in an existing verifier that the added lines pushed
+  past their old limit (same code, a couple lines further away). Also corrected this module's
+  own stale header comment ("not wired into any existing category's publish/draft pipeline" --
+  7 real call sites already existed).
 
 --- G11 FLYER/COUPON VIEWER: REAL DEFECT FOUND, NOT FIXED THIS PASS ---
   Ofertas Locales' LIVE PUBLIC flyer viewer (`PublicFlyerViewer` inside
@@ -998,18 +1009,22 @@ CONTEXT: dispatched 2 parallel research agents (read-only, no edits) to trace G0
   silently strands match emails today. FIX SIZE: small (wire a scheduled task to the existing
   endpoint). NOT FIXED THIS PASS.
 
---- G26 SAVE/LIKE/SHARE/REPORT: REAL DEFECTS FOUND, NOT FIXED THIS PASS ---
-  Rentas' own live listing detail page (RentasListingDetailClient.tsx) mounts LeonixSaveButton
-  with NO `ownerUserId`, and the embedded RentasVisualMatchPreviewView mounts LeonixLikeButton
+--- G26 SAVE/LIKE/SHARE/REPORT: TRUE_SOURCE, FIXED (commit 3eacdec9) ---
+  Rentas' own live listing detail page (RentasListingDetailClient.tsx) mounted LeonixSaveButton
+  with NO `ownerUserId`, and the embedded RentasVisualMatchPreviewView mounted LeonixLikeButton
   with no `ownerUserId` either, despite the enclosing component already receiving an `ownerId`
-  prop used elsewhere -- an owner can save/like their own Rentas listing (every other adopted
-  category correctly threads this prop). The underlying `saved_listings`/like insert has no
-  server-side owner check at all -- the only backstop is the separate analytics self-engagement
-  guard, which doesn't block the save/like row itself. FIX SIZE: small (thread the existing prop
-  through 2 call sites). Separately: NEITHER Report implementation (shared
-  LeonixInlineListingReport or En Venta's own reason-code drawer) checks listing ownership before
-  accepting a report -- an owner can report their own listing. FIX SIZE: medium. NOT FIXED THIS
-  PASS.
+  prop used elsewhere -- an owner could save/like their own Rentas listing (every other adopted
+  category correctly threads this prop). FIXED: threaded `listing.ownerId`/the component's own
+  `ownerId` prop through both the Privado and Negocio detail branches and the embedded preview's
+  Like button.
+  Separately: NEITHER Report implementation (shared LeonixInlineListingReport's
+  `submitListingReportAction`, or En Venta's own `submitEnVentaListingReport`) checked listing
+  ownership before accepting a report at all -- an owner could report their own listing. FIXED:
+  both now fetch the listing's owner and reuse the existing `isSelfEngagement` guard (updated
+  its docstring, since it now covers Report too, not just Like/Save); the En Venta report API
+  route surfaces that specific rejection as 403 instead of a generic 500.
+  Verified: scripts/verify-wave3-g26-self-engagement-2026-09-09.ts, 6/6 passing. TypeScript:
+  7/7 baseline, 0 new.
 
 --- G27 ANALYTICS: STALE CLAIM, ALREADY FIXED (CONFIRMED) ---
   Both defects recorded in the original Forensic Delta Map (owner self-view inflation, zero PII
@@ -1039,10 +1054,16 @@ CONTEXT: dispatched 2 parallel research agents (read-only, no edits) to trace G0
   definition file -- built and then never adopted. FIX SIZE: large (migrate 3 stacks onto the
   already-built-but-unused shared model). NOT FIXED THIS PASS.
 
-TESTS: scripts/verify-wave3-g12-international-phone-truncation-2026-09-09.ts, 16/16 passing.
-    TypeScript 7/7 baseline, 0 new.
+TESTS: scripts/verify-wave3-g12-international-phone-truncation-2026-09-09.ts (16/16),
+    scripts/verify-wave3-g26-self-engagement-2026-09-09.ts (6/6),
+    scripts/verify-wave3-g09-dropped-media-warning-2026-09-09.ts (8/8), all passing.
+    TypeScript 7/7 baseline, 0 new, across all three fix commits (9ae1a0f2, 3eacdec9, bd2ee01e).
 
-NOT DONE THIS PASS: G09/G10/G11/G25/G26/G29/G30 fixes (recorded above, not fixed); G28 (large,
-    recorded as-is); owner browser QA for the G12 fix; the rest of Wave 3's category coverage
-    beyond these 10 systems; Waves 5-8, Final Reconciliation, and the Owner QA Playbook.
+FIXED THIS PASS (beyond G12 above): G09/G10 (media data-loss warning, commit bd2ee01e), G26
+    (self-engagement gaps on save/like/report, commit 3eacdec9).
+NOT DONE THIS PASS: G11 (Ofertas Locales PDF viewer), G25 (saved-search retry cron wiring), G29
+    Bienes Privado related-listings gap, G30 (Business Hub consolidation) -- all recorded above
+    with fix-size estimates, not fixed; G28 (large, recorded as-is); owner browser QA for every
+    fix in this section; the rest of Wave 3's category coverage beyond these 10 systems; Waves
+    5-8, Final Reconciliation, and the Owner QA Playbook.
 ```
