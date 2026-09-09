@@ -19,7 +19,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { formatUsPhone, getPhoneValidationMessage } from "../app/lib/leonix/phoneFormat";
 import { formatUsPhoneDisplay } from "../app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/phoneMask";
-import { formatPhoneInputDisplay } from "../app/(site)/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import { formatPhoneInputDisplay, formatUsStylePhoneInputSafe } from "../app/(site)/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import { formatEmpleosPhoneDisplay } from "../app/(site)/publicar/empleos/shared/lib/empleosPhoneDisplay";
 
 const REPO_ROOT = path.resolve(__dirname, "..");
@@ -64,14 +64,38 @@ assert.ok(getPhoneValidationMessage("en").includes("(408) 123-4567"), "English v
 /* ================================================================================================
  * 5. The paid Empleos application's own phone field (EmpleosPremiumCtaFieldGroup.tsx) now applies
  * the same shared formatting as every other phone field, instead of being a raw, unmasked input.
+ * Globalization Wave 3 G12 — repointed from the raw `formatPhoneInputDisplay` (which hard-
+ * truncates to 10 digits and silently corrupts any real international number as the owner types)
+ * to `formatUsStylePhoneInputSafe`, which still formats the common 10-digit US case identically
+ * but never destructively truncates/discards a number that looks international.
  * ============================================================================================== */
 {
   const src = readSource("app/(site)/publicar/empleos/shared/components/EmpleosPremiumCtaFieldGroup.tsx");
-  assert.ok(src.includes("formatPhoneInputDisplay"), "the paid Empleos phone field must use the shared phone formatter");
+  assert.ok(src.includes("formatUsStylePhoneInputSafe"), "the paid Empleos phone field must use the shared, international-safe phone formatter");
   assert.ok(
-    /onChange=\{\(e\)\s*=>\s*onChange\(\{\s*phone:\s*formatPhoneInputDisplay\(e\.target\.value\)\s*\}\)\}/.test(src),
+    /onChange=\{\(e\)\s*=>\s*onChange\(\{\s*phone:\s*formatUsStylePhoneInputSafe\(e\.target\.value\)\s*\}\)\}/.test(src),
     "the phone field's onChange must format the value through the shared formatter before storing it",
   );
 }
+
+/* ================================================================================================
+ * 6. formatUsStylePhoneInputSafe itself must still agree with the other formatters for the common
+ * 10-digit US case (same EXPECTED output), while never truncating an international-looking number.
+ * ============================================================================================== */
+assert.equal(
+  formatUsStylePhoneInputSafe(SAMPLE_10_DIGITS),
+  EXPECTED,
+  "formatUsStylePhoneInputSafe must still produce (XXX) XXX-XXXX for a plain 10-digit US number",
+);
+assert.equal(
+  formatUsStylePhoneInputSafe("+525512345678"),
+  "+525512345678",
+  "formatUsStylePhoneInputSafe must preserve a leading + and every digit for an international number",
+);
+assert.equal(
+  formatUsStylePhoneInputSafe("14085550182123"),
+  "14085550182123",
+  "formatUsStylePhoneInputSafe must not truncate a number with more than 10 digits even without a leading +",
+);
 
 console.log("gate-p2-phone-formatting-selftest: OK");

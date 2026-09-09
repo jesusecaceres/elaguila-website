@@ -17,7 +17,7 @@ import {
   useCommunityDraftSession,
 } from "@/app/publicar/community/shared/hooks/useCommunityDraftSession";
 import { CommunityPublishConfirmationSection } from "@/app/publicar/community/shared/components/CommunityPublishConfirmationSection";
-import { formatPhoneInputDisplay, formatWhatsAppInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import { formatUsStylePhoneInputSafe, formatWhatsAppInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
 
 import { buscoFormCopy } from "../shared/buscoFormCopy";
@@ -493,7 +493,7 @@ export default function BuscoQuickFormClient() {
                 inputMode="tel"
                 autoComplete="tel"
                 value={state.phone}
-                onChange={(e) => patch({ phone: formatPhoneInputDisplay(e.target.value) })}
+                onChange={(e) => patch({ phone: formatUsStylePhoneInputSafe(e.target.value) })}
                 maxLength={14}
               />
             </label>
@@ -519,7 +519,7 @@ export default function BuscoQuickFormClient() {
                 type="tel"
                 inputMode="tel"
                 value={state.smsPhone}
-                onChange={(e) => patch({ smsPhone: formatPhoneInputDisplay(e.target.value) })}
+                onChange={(e) => patch({ smsPhone: formatUsStylePhoneInputSafe(e.target.value) })}
                 maxLength={14}
                 placeholder={lang === "es" ? "Si es diferente al teléfono" : "If different from call phone"}
               />

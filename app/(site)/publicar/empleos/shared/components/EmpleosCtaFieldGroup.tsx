@@ -1,6 +1,6 @@
 "use client";
 
-import { formatPhoneInputDisplay, formatWhatsAppInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import { formatUsStylePhoneInputSafe, formatWhatsAppInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 
 type Primary = "phone" | "whatsapp" | "email";
 
@@ -59,7 +59,10 @@ export function EmpleosCtaFieldGroup({
             value={phone}
             onChange={(e) =>
               onChange({
-                phone: formatUsPhone ? formatPhoneInputDisplay(e.target.value) : e.target.value,
+                // Wave 3 fix — mirrors the WhatsApp fix below (Build D-F5): `formatUsPhone` must
+                // only control the cosmetic (XXX) XXX-XXXX grouping for the common 10-digit US
+                // case, never destructively truncate/discard a number that looks international.
+                phone: formatUsPhone ? formatUsStylePhoneInputSafe(e.target.value) : e.target.value,
               })
             }
             className="mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm"

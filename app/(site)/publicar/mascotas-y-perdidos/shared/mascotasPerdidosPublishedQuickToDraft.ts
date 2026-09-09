@@ -17,9 +17,15 @@ export type MascotasPerdidosPublishedListingLike = {
   detailPairs?: unknown;
 };
 
+/**
+ * Wave 3 fix — mirrors `toWhatsAppDisplay` below (Build D-F5): a longer international phone
+ * number must not be lossily cut to 10 digits and forced into US grouping on hydration, or a
+ * dashboard re-edit silently truncates it on Republish. Only the common 10-digit case gets the
+ * cosmetic (XXX) XXX-XXXX grouping.
+ */
 function to10Display(rawDigits: string): string {
-  const d = rawDigits.replace(/\D/g, "").slice(0, 10);
-  return formatPhoneInputDisplay(d);
+  const d = rawDigits.replace(/\D/g, "");
+  return d.length === 10 ? formatPhoneInputDisplay(d) : d;
 }
 
 /**
@@ -97,12 +103,15 @@ export function mascotasPerdidosPublishedQuickToDraft(
 
   d.objectType = (pairs["Leonix:objectType"] ?? "").trim();
 
-  const pDig = (pairs["Leonix:phoneDigits"] ?? "").replace(/\D/g, "").slice(0, 10);
-  const rowPhone = digitsOnly(String(listing.contact_phone ?? "")).slice(0, 10);
+  // Wave 3 fix — the previous `.slice(0, 10)` here ran BEFORE the length check below, so a
+  // stored international number longer than 10 digits was truncated regardless of to10Display's
+  // own fix above. Read the full digit string and let to10Display decide the display treatment.
+  const pDig = (pairs["Leonix:phoneDigits"] ?? "").replace(/\D/g, "");
+  const rowPhone = digitsOnly(String(listing.contact_phone ?? ""));
   const phoneDigits = pDig.length >= 10 ? pDig : rowPhone;
   d.phone = phoneDigits.length >= 10 ? to10Display(phoneDigits) : formatPhoneInputDisplay(String(listing.contact_phone ?? ""));
 
-  const smsDig = (pairs["Leonix:smsDigits"] ?? "").replace(/\D/g, "").slice(0, 10);
+  const smsDig = (pairs["Leonix:smsDigits"] ?? "").replace(/\D/g, "");
   d.smsPhone = smsDig.length >= 10 ? to10Display(smsDig) : "";
 
   const waDig = (pairs["Leonix:whatsappDigits"] ?? "").replace(/\D/g, "");

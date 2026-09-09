@@ -46,3 +46,19 @@ export function isValidWhatsAppNumber(raw: string): boolean {
   const d = digitsOnly(raw);
   return d.length === 0 || (d.length >= 7 && d.length <= 15);
 }
+
+/**
+ * Safe drop-in for callers that opt a *primary phone* field into US `(XXX) XXX-XXXX` grouping
+ * (e.g. Empleos Premium, Clases/Comunidad quick via `formatUsPhone`). Mirrors the WhatsApp fix
+ * already applied in `EmpleosCtaFieldGroup.tsx` (Build D-F5): the US grouping is cosmetic only
+ * for the common 10-digit case and must never destructively truncate/discard a number that
+ * looks international (a leading "+" or more than 10 digits) the way `formatPhoneInputDisplay`
+ * does on its own. Does not change `formatPhoneInputDisplay` itself — that function is also
+ * Servicios' own deliberately US-only primary-phone contract and must stay as-is for it.
+ */
+export function formatUsStylePhoneInputSafe(raw: string): string {
+  const hasLeadingPlus = raw.trim().startsWith("+");
+  const digitCount = digitsOnly(raw).length;
+  if (hasLeadingPlus || digitCount > 10) return formatWhatsAppInputDisplay(raw);
+  return formatPhoneInputDisplay(raw);
+}

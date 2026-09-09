@@ -29,7 +29,7 @@ import {
   parseMileageInput,
   parseUsdIntegerInput,
 } from "@/app/clasificados/autos/shared/utils/autosNumericInputUi";
-import { formatPhoneInputDisplay, formatWhatsAppInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
+import { formatUsStylePhoneInputSafe, formatWhatsAppInputDisplay } from "@/app/clasificados/publicar/servicios/lib/serviciosPhoneUi";
 import { getAutosPreviewBlockingStepIndices } from "@/app/clasificados/autos/shared/lib/autosPreviewCompleteness";
 import { autosDraftTextValue } from "@/app/lib/clasificados/autos/autosPublishFormText";
 import { normalizeAutosSocialUrl } from "@/app/lib/clasificados/autos/autosSocialLinkValidation";
@@ -653,9 +653,9 @@ export function AutosPrivadoApplication() {
                   className={`${INPUT} tabular-nums`}
                   inputMode="tel"
                   autoComplete="tel"
-                  value={formatPhoneInputDisplay(listing.dealerPhoneOffice ?? "")}
+                  value={formatUsStylePhoneInputSafe(listing.dealerPhoneOffice ?? "")}
                   onChange={(e) => {
-                    const v = formatPhoneInputDisplay(e.target.value);
+                    const v = formatUsStylePhoneInputSafe(e.target.value);
                     setListingPatch({ dealerPhoneOffice: v.trim() ? v : undefined });
                   }}
                 />
