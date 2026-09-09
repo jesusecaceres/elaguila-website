@@ -479,6 +479,17 @@ export function AutosNegociosApplication() {
                 <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{t.app.dealer.smsPhoneHint}</p>
               </div>
               <div>
+                <label className={LABEL}>{t.app.labels.email}</label>
+                <input
+                  className={INPUT}
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  value={listing.dealerEmail ?? ""}
+                  onChange={(e) => setListingPatch({ dealerEmail: autosDraftTextValue(e.target.value) })}
+                />
+              </div>
+              <div>
                 <label className={LABEL}>{t.app.labels.website}</label>
                 <input
                   className={INPUT}

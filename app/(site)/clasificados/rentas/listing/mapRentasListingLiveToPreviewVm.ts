@@ -646,6 +646,9 @@ export function mapRentasListingToNegocioPreviewVm(
       verifiedLine: "",
       licenseLine: trim(listing.businessLicense ?? ""),
       bioLine: trim(listing.businessDescription ?? ""),
+      // Gate G13 — was persisted at publish but never read back before this fix; see
+      // mapListingRowToRentasPublicListing.ts's businessMetaFromRow.
+      languagesLine: trim(listing.businessIdiomas ?? ""),
       socialLinks,
       profileCtaLabel: lang === "es" ? "Sitio web" : "Website",
       profileHref: web,

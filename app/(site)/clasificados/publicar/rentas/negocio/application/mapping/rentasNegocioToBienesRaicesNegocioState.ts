@@ -125,6 +125,7 @@ export function rentasNegocioToBienesRaicesNegocioState(s: RentasNegocioFormStat
       licencia: s.negocioLicencia,
       telDirecto: s.negocioTelDirecto,
       telOficina: s.negocioTelOficina,
+      whatsapp: "",
       email: s.negocioEmail,
       sitioWeb: s.negocioSitioWeb,
       redes: buildRedesArray(s.negocioRedes),

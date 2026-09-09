@@ -137,6 +137,8 @@ export type RentasPublicListing = {
    * rating/count), from `listings.business_meta` (`negocioGoogleReviewsUrl`/`negocioYelpReviewsUrl`). */
   businessGoogleReviewsUrl?: string | null;
   businessYelpReviewsUrl?: string | null;
+  /** Gate G13 — from `listings.business_meta` (`negocioIdiomas`). */
+  businessIdiomas?: string | null;
   /** When true, public detail may show street-level address from publish. */
   showExactAddress?: boolean;
   /** Tipo-specific rows parsed from published `detail_pairs` (live detail). */

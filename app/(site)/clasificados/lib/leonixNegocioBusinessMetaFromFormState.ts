@@ -40,6 +40,7 @@ export function buildBusinessMetaJsonFromBienesRaicesNegocioState(s: BienesRaice
     if (trim(id.brokerage)) meta.negocioNombreCorreduria = trim(id.brokerage);
     if (trim(id.licencia)) meta.negocioLicencia = trim(id.licencia);
     if (trim(id.telOficina)) meta.negocioTelOficina = trim(id.telOficina);
+    if (trim(id.whatsapp)) meta.negocioWhatsapp = trim(id.whatsapp);
     if (trim(id.email)) meta.negocioEmail = trim(id.email);
     if (trim(id.sitioWeb)) meta.negocioSitioWeb = trim(id.sitioWeb);
     const redes = joinRedes(id.redes ?? []);

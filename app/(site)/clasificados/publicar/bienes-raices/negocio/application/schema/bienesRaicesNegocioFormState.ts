@@ -193,6 +193,10 @@ export type BienesRaicesNegocioFormState = {
     licencia: string;
     telDirecto: string;
     telOficina: string;
+    /** Gate G16 — distinct WhatsApp number, separate from telDirecto/telOficina. Was captured on
+     * the agente-individual form but never forwarded here; the live CTA silently fell back to
+     * telDirecto/telOficina instead. */
+    whatsapp: string;
     email: string;
     sitioWeb: string;
     redes: string[];
@@ -581,6 +585,7 @@ export function createEmptyBienesRaicesNegocioFormState(): BienesRaicesNegocioFo
       licencia: "",
       telDirecto: "",
       telOficina: "",
+      whatsapp: "",
       email: "",
       sitioWeb: "",
       redes: emptyRedes(),

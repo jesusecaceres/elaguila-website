@@ -291,6 +291,11 @@ export function mergeComidaLocalDraftFromStorage(parsed: unknown): ComidaLocalDr
     instagramUrl: safeString(parsed.instagramUrl, 512),
     facebookUrl: safeString(parsed.facebookUrl, 512),
     tiktokUrl: safeString(parsed.tiktokUrl, 512),
+    // Gate G21 — these two fields were never listed here, so every publish silently wiped them
+    // (this function runs on every ~400ms autosave, on publish normalization, and on both
+    // edit/public-page hydration). Confirmed unconditional data loss, not an edge case.
+    googleReviewsUrl: safeString(parsed.googleReviewsUrl, 512),
+    yelpReviewsUrl: safeString(parsed.yelpReviewsUrl, 512),
     locationNote: safeString(parsed.locationNote, 300),
     locationUrl: safeString(parsed.locationUrl, 512),
     mobileOrderLinkUrl: safeString(parsed.mobileOrderLinkUrl, 512),

@@ -308,6 +308,7 @@ export function mapAgenteResidencialFormStateToNegocioForPublish(
       licencia: trim(s.agenteLicencia) || trim(s.marcaLicencia),
       telDirecto: trim(s.agenteTelefonoPersonal) || trim(s.telefonoPrincipal),
       telOficina: s.agenteTelefonoOficina,
+      whatsapp: trim(s.agenteWhatsapp),
       email: s.correoPrincipal,
       sitioWeb: trim(s.agenteSitioWeb) || trim(s.marcaSitioWeb),
       redes: agenteRedes(s),

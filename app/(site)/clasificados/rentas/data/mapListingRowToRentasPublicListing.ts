@@ -51,6 +51,9 @@ function businessMetaFromRow(row: ListingRowLike): {
    * publish path already reuses via rentasNegocioToBienesRaicesNegocioState. */
   googleReviewsUrl?: string;
   yelpReviewsUrl?: string;
+  /** Gate G13 — was persisted to business_meta.negocioIdiomas at publish but never read back
+   * here, so it never reached the public page despite surviving the full write path. */
+  idiomas?: string;
 } {
   const raw = row.business_meta;
   if (typeof raw !== "string" || !raw.trim()) return {};
@@ -62,6 +65,7 @@ function businessMetaFromRow(row: ListingRowLike): {
     const redesFromMeta = trim(o.negocioRedes);
     const googleReviewsUrl = sanitizeHttpUrl(typeof o.negocioGoogleReviewsUrl === "string" ? o.negocioGoogleReviewsUrl : undefined);
     const yelpReviewsUrl = sanitizeHttpUrl(typeof o.negocioYelpReviewsUrl === "string" ? o.negocioYelpReviewsUrl : undefined);
+    const idiomas = trim(o.negocioIdiomas);
     return {
       description: d || undefined,
       marca: marca || undefined,
@@ -69,6 +73,7 @@ function businessMetaFromRow(row: ListingRowLike): {
       redesFromMeta: redesFromMeta || undefined,
       googleReviewsUrl,
       yelpReviewsUrl,
+      idiomas: idiomas || undefined,
     };
   } catch {
     return {};
@@ -428,6 +433,7 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
   const businessDescription = bizMeta.description;
   const businessGoogleReviewsUrl = bizMeta.googleReviewsUrl;
   const businessYelpReviewsUrl = bizMeta.yelpReviewsUrl;
+  const businessIdiomas = bizMeta.idiomas;
 
   const publishedAt =
     trim(row.republish_sort_at) ||
@@ -568,6 +574,7 @@ export function mapListingRowToRentasPublicListing(row: ListingRowLike, lang: "e
     businessDescription,
     businessGoogleReviewsUrl,
     businessYelpReviewsUrl,
+    businessIdiomas,
     showExactAddress,
     flowExtensionRows: flowExtensionRows.length ? flowExtensionRows : undefined,
     showingByAppointment: rx.showingByAppointment,

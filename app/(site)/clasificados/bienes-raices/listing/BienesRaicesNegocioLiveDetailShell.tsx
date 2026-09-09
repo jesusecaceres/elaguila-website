@@ -259,7 +259,9 @@ function buildPublishedState(input: {
     agenteLicencia: trim(identityMeta.negocioLicencia),
     agenteTelefonoPersonal: phone,
     agenteTelefonoOficina: phone,
-    agenteWhatsapp: phone,
+    // Gate G16 — prefer the agent's own distinct WhatsApp number when set; fall back to the
+    // office/personal phone (the pre-fix behavior) only when no dedicated number was published.
+    agenteWhatsapp: trim(identityMeta.negocioWhatsapp) || phone,
     agenteSitioWeb: website,
     correoPrincipal: email,
     marcaNombre: trim(identityMeta.negocioNombreCorreduria) || trim(parentIdentity?.business_name) || trim(listing.business_name),

@@ -1874,6 +1874,19 @@ export default function RestauranteApplicationClient() {
                 placeholder={fc.sectionE.countryPlaceholder}
               />
             </div>
+            <div className="sm:col-span-2 flex items-start gap-3 rounded-lg border border-[color:var(--lx-nav-border)] bg-white/80 px-3 py-2.5">
+              <input
+                id="restaurante-show-exact-address"
+                type="checkbox"
+                className="mt-1 h-4 w-4 shrink-0"
+                checked={draft.showExactAddress ?? true}
+                onChange={(e) => setDraftPatch({ showExactAddress: e.target.checked })}
+              />
+              <label htmlFor="restaurante-show-exact-address" className="text-sm leading-snug">
+                <span className="font-semibold">{fc.sectionE.showExactAddressLabel}</span>
+                <span className="mt-1 block text-xs text-[color:var(--lx-muted)]">{fc.sectionE.showExactAddressHelper}</span>
+              </label>
+            </div>
           </div>
         </section>
         ) : null}
