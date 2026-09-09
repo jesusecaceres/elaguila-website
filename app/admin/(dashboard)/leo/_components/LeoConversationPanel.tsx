@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 import { adminCardBase } from "@/app/admin/_components/adminTheme";
 import type {
@@ -173,6 +174,7 @@ export function LeoConversationPanel({ coldStart = false }: { coldStart?: boolea
   const composerDirtySinceSubmitRef = useRef(false);
   const lastSubmittedRef = useRef<string>("");
   const workspace = useLeoWorkspaceController();
+  const router = useRouter();
   const spoken = useLeoSpokenSession();
 
   useEffect(() => {
@@ -359,6 +361,14 @@ export function LeoConversationPanel({ coldStart = false }: { coldStart?: boolea
         writeDraft("");
         return;
       }
+      if (presentationIntent.kind === "OPEN_ADMIN_ROUTE") {
+        // Real Admin page navigation (GREEN, read-only) — destination page
+        // enforces its own permission exactly as if the owner clicked it.
+        setQuestion("");
+        writeDraft("");
+        router.push(presentationIntent.href);
+        return;
+      }
       if (leoIntentIsWorkspaceCommand(presentationIntent)) {
         workspace.markConversationActive();
         workspace.applyPresentationIntent(presentationIntent);
@@ -530,7 +540,7 @@ export function LeoConversationPanel({ coldStart = false }: { coldStart?: boolea
         }
       });
     },
-    [pending, selectedCardId, selectedEntityRef, sessionId, turns, workspace, spoken],
+    [pending, router, selectedCardId, selectedEntityRef, sessionId, turns, workspace, spoken],
   );
 
   const onSelectCard = useCallback((card: LeoResultCard, entityRef: LeoConversationEntityRef) => {

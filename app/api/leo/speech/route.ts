@@ -41,11 +41,42 @@ export async function DELETE() {
   return methodNotAllowed();
 }
 
+/**
+ * Minimal secret-safe structured observability (LEO-ADMIN-OS-FINAL, Phase 24).
+ * Never logs API keys, the spoken text, or model output — route/outcome
+ * metadata only, for diagnosability of Preview/Production TTS failures.
+ */
+function logLeoSpeechOutcome(meta: {
+  fallbackUsed: boolean;
+  failureClass:
+    | "NONE"
+    | "AUTH_DENIED"
+    | "PROVIDER_NOT_CONFIGURED"
+    | "PROVIDER_ERROR"
+    | "PROVIDER_TIMEOUT"
+    | "INTERNAL_ERROR";
+  durationMs: number;
+  providerHttpCategory?: string | null;
+}) {
+  console.log(
+    JSON.stringify({
+      route: "leo/speech",
+      provider_attempted: "openai_tts",
+      fallback_used: meta.fallbackUsed,
+      failure_class: meta.failureClass,
+      duration_ms: meta.durationMs,
+      provider_http_category: meta.providerHttpCategory ?? null,
+    }),
+  );
+}
+
 export async function POST(req: Request) {
+  const startedAt = Date.now();
   try {
     const access = await resolveLeoAccess();
     if (!access.allowed) {
       const status = access.reason === "unauthenticated" ? 401 : 403;
+      logLeoSpeechOutcome({ fallbackUsed: true, failureClass: "AUTH_DENIED", durationMs: Date.now() - startedAt });
       return Response.json({ ok: false, error: "forbidden", reason: access.reason }, { status });
     }
 
@@ -72,6 +103,11 @@ export async function POST(req: Request) {
     const bounded = text.length > LEO_TTS_BOUNDS.maxTextChars ? text.slice(0, LEO_TTS_BOUNDS.maxTextChars) : text;
 
     if (!isLeoTtsConfigured()) {
+      logLeoSpeechOutcome({
+        fallbackUsed: true,
+        failureClass: "PROVIDER_NOT_CONFIGURED",
+        durationMs: Date.now() - startedAt,
+      });
       return Response.json(
         { ok: false, error: "provider_unconfigured", message: "Neural speech is not configured." },
         { status: 503 },
@@ -98,7 +134,13 @@ export async function POST(req: Request) {
       });
 
       if (!res.ok || !res.body) {
-        // Never log secrets or the spoken text; status code only.
+        // Never log secrets or the spoken text; status code bucket only.
+        logLeoSpeechOutcome({
+          fallbackUsed: true,
+          failureClass: "PROVIDER_ERROR",
+          durationMs: Date.now() - startedAt,
+          providerHttpCategory: `${Math.floor(res.status / 100)}xx`,
+        });
         return Response.json(
           { ok: false, error: `provider_http_${res.status}`, message: "Speech synthesis failed." },
           { status: 502 },
@@ -107,12 +149,14 @@ export async function POST(req: Request) {
 
       const audio = await res.arrayBuffer();
       if (!audio.byteLength) {
+        logLeoSpeechOutcome({ fallbackUsed: true, failureClass: "PROVIDER_ERROR", durationMs: Date.now() - startedAt });
         return Response.json(
           { ok: false, error: "empty_provider_response", message: "Speech synthesis returned no audio." },
           { status: 502 },
         );
       }
 
+      logLeoSpeechOutcome({ fallbackUsed: false, failureClass: "NONE", durationMs: Date.now() - startedAt });
       return new Response(audio, {
         status: 200,
         headers: {
@@ -123,6 +167,11 @@ export async function POST(req: Request) {
       });
     } catch (err) {
       const aborted = err instanceof Error && err.name === "AbortError";
+      logLeoSpeechOutcome({
+        fallbackUsed: true,
+        failureClass: aborted ? "PROVIDER_TIMEOUT" : "PROVIDER_ERROR",
+        durationMs: Date.now() - startedAt,
+      });
       return Response.json(
         { ok: false, error: aborted ? "provider_timeout" : "provider_request_failed", message: "Speech synthesis failed." },
         { status: aborted ? 504 : 502 },
@@ -131,6 +180,7 @@ export async function POST(req: Request) {
       clearTimeout(timer);
     }
   } catch {
+    logLeoSpeechOutcome({ fallbackUsed: true, failureClass: "INTERNAL_ERROR", durationMs: Date.now() - startedAt });
     return Response.json({ ok: false, error: "internal_error", message: "Unexpected error." }, { status: 500 });
   }
 }
