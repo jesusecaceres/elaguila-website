@@ -1,5 +1,6 @@
 /**
- * Gate I.10A — Owner self-engagement guard (Like/Save only; Share is never gated).
+ * Gate I.10A — Owner self-engagement guard (Like/Save; Share is never gated). Wave 3 G26 also
+ * reuses this for the Report action (an owner must not be able to report their own listing).
  */
 
 function normalize(id: string | null | undefined): string {

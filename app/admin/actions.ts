@@ -7,11 +7,21 @@ import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { appendAdminAuditLog } from "@/app/admin/_lib/adminAuditLogServer";
 import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
 import { requireLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
+import { isSelfEngagement } from "@/app/lib/analytics/selfEngagementGuard";
 
 export type ListingReportStatus = "pending" | "reviewed" | "dismissed";
 
 export async function submitListingReportAction(listingId: string, reason: string, reporterId: string | null) {
   const supabase = getAdminSupabase();
+  // Wave 3 G26 fix — this write previously accepted a report from anyone, including the
+  // listing's own owner, with no ownership check at all. Fails open (allows the report) only
+  // when the owner is genuinely unknown, matching isSelfEngagement's existing fail-open contract.
+  if (reporterId) {
+    const { data: ownerRow } = await supabase.from("listings").select("owner_id").eq("id", listingId).maybeSingle();
+    if (isSelfEngagement(reporterId, ownerRow?.owner_id ?? null)) {
+      throw new Error("You cannot report your own listing.");
+    }
+  }
   const { error } = await supabase.from("listing_reports").insert({
     listing_id: listingId,
     reporter_id: reporterId,

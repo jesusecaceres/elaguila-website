@@ -755,6 +755,7 @@ export function RentasVisualMatchPreviewView({ vm, lang, videoUrls, listingId, i
           <div className="mt-4 flex items-center gap-2">
             <LeonixLikeButton
               listingId={listingId}
+              ownerUserId={ownerId}
               lang={lang}
               category="rentas"
               variant="small"

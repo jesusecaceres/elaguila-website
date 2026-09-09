@@ -153,7 +153,13 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
         {translateControl}
 
         {listing.branch === "privado" ? (
-          <RentasVisualMatchPreviewView vm={vmPrivado} lang={lang} videoUrls={proseListing.videoUrls} listingId={listingUuid ? listing.id : null} />
+          <RentasVisualMatchPreviewView
+            vm={vmPrivado}
+            lang={lang}
+            videoUrls={proseListing.videoUrls}
+            listingId={listingUuid ? listing.id : null}
+            ownerId={listing.ownerId}
+          />
         ) : (
           <RentasVisualMatchPreviewView
             vm={vmNegocio}
@@ -170,6 +176,7 @@ export function RentasListingDetailClient({ listing, extra }: Props) {
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <LeonixSaveButton
                   listingId={listing.id}
+                  ownerUserId={listing.ownerId}
                   category="rentas"
                   variant="small"
                   lang={lang}
