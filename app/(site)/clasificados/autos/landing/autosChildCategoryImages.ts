@@ -4,11 +4,6 @@
  * `market` prop) and several ids overlap (suv, truck, low-mileage), so one
  * unified map keeps a single photo per concept instead of duplicating it.
  * Kept out of the copy/i18n layer on purpose — paths are language-independent.
- *
- * Assets are NOT yet installed. Until real photos are added under
- * `public/child-categories/autos/`, LeonixCategoryImageDiscoveryGrid's
- * built-in onError fallback renders each card's react-icons glyph instead of
- * a broken image, so the page stays fully functional either way.
  */
 export const AUTOS_CHILD_CATEGORY_IMAGE: Record<
   | "sedan"

@@ -11,8 +11,7 @@ import {
   viajesTripKeysFromNegociosLike,
 } from "./viajesDraftToPublicBrowseFacets";
 
-const FALLBACK_HERO =
-  "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=2000&q=80";
+const FALLBACK_HERO = "/child-categories/viajes/hero.jpg";
 
 const NEGOCIOS_OFFER_TO_TRIP_KEYS: Record<string, string[]> = {
   paquete: ["tours", "paquete"],
