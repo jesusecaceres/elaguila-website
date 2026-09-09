@@ -663,3 +663,58 @@ NOT DONE THIS GATE (explicitly, not silently): the other 52 systems and the othe
     evidence, fix what's real, leave carried-forward status explicitly labeled as such) is the
     recommended pattern for closing out the remaining categories in dedicated follow-up gates.
 ```
+
+## 23. Master Integration Continuation — Wave 1: G23 global adoption (2026-09-09)
+
+```
+MASTER MATRIX: docs/globalization/GLOBAL_OWNER_EXPERIENCE_ADOPTION_MATRIX_2026-09.md created,
+    Wave 1 rows filled (G23 x 7 categories incl. Rentas Privado). Will be extended wave-by-wave,
+    not filled in one pass.
+
+SCOPE: this wave covered G23 (Street Address Verifier) adoption only, per explicit Wave 1
+    instruction. G23 was proven FALSE outside Servicios in the prior gate (component fully built,
+    zero mount points anywhere else in the app). Mounted this gate in 5 additional categories --
+    Restaurantes, Comida Local, Autos Dealer, Bienes Negocio, Rentas Negocio (which shares its
+    form-state/merge infrastructure with Rentas Privado, so Privado is covered as a byproduct).
+
+REAL TRAPS FOUND AND FIXED PER CATEGORY (each would have silently discarded the new fields
+    without explicit wiring, confirmed by direct code trace, not assumed):
+  - Restaurantes: buildRestaurantePublishPayload.ts is a hard-coded client->API-body allowlist.
+  - Comida Local: mergeComidaLocalDraftFromStorage() rebuilds the whole draft field-by-field and
+    runs on every ~400ms autosave, on publish normalization, AND on both edit/public-page
+    hydration -- the most dangerous of the traps found (a value would visibly vanish within half
+    a second of being set if this hadn't been fixed).
+  - Autos Dealer: none found -- spread-based merge everywhere, safest category found.
+  - Bienes Negocio: mapAgenteResidencialFormStateToNegocioForPublish.ts hand-lists every field
+    crossing from the live agente-individual form into the shared BienesRaicesNegocioFormState
+    pipeline.
+  - Rentas Negocio: THREE chained allowlist functions (mergePartialRentasPrivadoState,
+    mergePartialRentasNegocioState, rentasNegocioToBienesRaicesNegocioState's basePartial) all
+    needed explicit wiring -- confirmed the most structurally fragile category for this class of
+    defect.
+
+PERSISTENCE: no migrations needed anywhere -- Restaurantes/Comida Local already dump the whole
+    draft into a JSONB `listing_json` column (spread-safe at that layer); Autos Dealer does the
+    same via `listing_payload`; Bienes Negocio and Rentas Negocio both reuse the SAME shared
+    `buildBusinessMetaJsonFromBienesRaicesNegocioState()` serializer already proven for G21's
+    Google/Yelp fields, extended with 3 more explicit lines -- meaning Rentas Negocio required
+    zero new serialization work of its own once its 3 allowlist functions correctly fed the
+    shared Bienes shape.
+
+REAL PRE-EXISTING DEFECT FOUND, NOT FIXED THIS WAVE (out of G23's specific scope, flagged not
+    silently absorbed): Bienes Negocio's dashboard-edit reverse mapper
+    (bienesPublishedRowToAgenteApplicationDraft.ts) already did not restore
+    direccionLinea1/direccionLinea2/direccionEstado/direccionCodigoPostal/direccionPais/
+    mostrarDireccionExacta BEFORE this wave touched anything -- a genuine G47-class silent-data-
+    loss defect, pre-existing, unrelated to this wave's own change, recommended for a dedicated
+    Wave 4 (Dashboard round-trip) fix.
+
+TESTS: new scripts/verify-g23-wave1-global-adoption-2026-09-09.ts, 24/24 passing. TypeScript
+    unchanged at the established 7-error e2e baseline, 0 new (checked after all 5 categories'
+    wiring). git diff --check clean. Full existing regression suite green (g21 21/21,
+    servicios-p0 20/20, address-foundation PASS, gate6c2 12/12, build2 26/26).
+
+NOT DONE THIS WAVE: PREVIEW/PUBLIC-read/DASHBOARD-render runtime verification for the 5 new
+    categories (source-level proof only, matching Servicios' own OWNER_QA_REQUIRED runtime status
+    from the prior gate); Waves 2-8 (all other systems) not started.
+```
