@@ -55,10 +55,14 @@ console.log("verify-wave2-owner-critical-globals-2026-09-09: starting");
     "BIENES G16 3: business_meta serializer persists negocioWhatsapp",
     meta.includes("meta.negocioWhatsapp = trim(id.whatsapp)"),
   );
-  const shell = read("app/(site)/clasificados/bienes-raices/listing/BienesRaicesNegocioLiveDetailShell.tsx");
+  // Wave 4 P0 fix relocated this read-back logic out of the shell and into the shared parser
+  // that both the public shell and the dashboard-edit reverse mapper now call.
+  const sharedParser = read(
+    "app/(site)/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/parseBienesAgenteResidencialPublishedState.ts",
+  );
   check(
     "BIENES G16 4: public read-back prefers the real negocioWhatsapp over the phone fallback",
-    shell.includes("agenteWhatsapp: trim(identityMeta.negocioWhatsapp) || phone"),
+    sharedParser.includes("agenteWhatsapp: trim(identityMeta.negocioWhatsapp) || phone"),
   );
 }
 
