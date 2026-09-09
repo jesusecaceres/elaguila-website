@@ -718,3 +718,96 @@ NOT DONE THIS WAVE: PREVIEW/PUBLIC-read/DASHBOARD-render runtime verification fo
     categories (source-level proof only, matching Servicios' own OWNER_QA_REQUIRED runtime status
     from the prior gate); Waves 2-8 (all other systems) not started.
 ```
+
+## 24. Master Integration Continuation — Wave 2: owner-critical business globals (2026-09-09)
+
+```
+MASTER MATRIX: docs/globalization/GLOBAL_OWNER_EXPERIENCE_ADOPTION_MATRIX_2026-09.md, Wave 2
+    section added (45 system x category cells across G13/G14/G15/G16/G17/G18/G20/G21/G24 x
+    Restaurantes/Comida Local/Bienes Negocio/Rentas Negocio/Autos Dealer).
+
+METHOD: 5 parallel research agents, one per category, each tracing all 9 systems end-to-end
+    (input -> draft -> hard refresh -> preview -> publish -> DB -> public render -> business hub
+    -> dashboard hydration -> active edit -> republish -> admin) with file:line citations and,
+    where possible, live Staging queries. Most systems confirmed FULLY WIRED with zero defect --
+    this was not a rubber-stamp pass; 6 real defects were found and fixed, and several more real
+    (but larger-scope) gaps were found and explicitly deferred with a stated reason, not silently
+    absorbed.
+
+REAL DEFECTS FOUND AND FIXED (commit 652e2556):
+  - Comida Local G21 (CRITICAL, unconditional): the same allowlist-trap function already known
+    dangerous from Wave 1's G23 work was ALSO missing googleReviewsUrl/yelpReviewsUrl entirely --
+    every Comida Local listing's Google/Yelp review URLs were silently wiped before ever reaching
+    the database, on every single publish, not an edge case. Fixed with 2 lines.
+  - Bienes Negocio G16: the agente-individual form's dedicated `agenteWhatsapp` field (shown
+    correctly in pre-publish Preview) was never forwarded by the publish mapper -- the live
+    WhatsApp CTA silently fell back to office/personal phone instead of the number the agent
+    actually entered for WhatsApp. Fixed end-to-end (type, mapper, business_meta serializer,
+    public read-back).
+  - Restaurantes G24: `showExactAddress` has existed on the type/payload/render path since an
+    earlier gate but had ZERO UI control anywhere in the live application form -- permanently
+    defaulting every restaurant to showing its exact address with no owner opt-out. Added the
+    missing checkbox with bilingual copy.
+  - Rentas Negocio G13: `negocioIdiomas` survived all 3 chained allowlist functions and was
+    correctly persisted, but was never read back (businessMetaFromRow only parsed 4 of 5 relevant
+    keys) or rendered (the shared BR/Rentas preview VM type had no languages field at all) -- a
+    write-only field. Fixed with a new `languagesLine` field on the shared VM type (also wired for
+    Bienes Negocio's own advertiser branches) plus the missing read-back and render line.
+  - Restaurantes G14: the live detail page's "Open now/Closed" badge read server-local
+    now.getDay()/getHours()/getMinutes() directly -- wrong by several hours on most hosts. The
+    same category already has a correct, timezone-pinned implementation for its discovery-card
+    badge; exported those two helpers and reused them instead of a second, differently-wrong
+    server-local computation.
+  - Autos Dealer G17: `dealerEmail` exists on the type with correct render/mapper code, but the
+    Negocios application form had zero email input anywhere -- the field (and the live Email CTA)
+    was structurally unreachable for every real dealer listing. Added the missing input, mirroring
+    the Privado lane's already-existing identical field+input.
+
+REAL DEFECTS FOUND, EXPLICITLY NOT FIXED THIS WAVE (reason stated, not silently dropped):
+  - Autos Dealer G20 (Community Trust): confirmed still genuinely never adopted -- not fixed
+    because it needs an eligibility-mechanism design decision first (listing-id-direct like
+    Servicios, or professional-identity-anchor like BR/Rentas?).
+  - Autos Dealer G14: hours render but there is no real Open/Closed computation and no existing
+    timezone-safe pattern in this category to reuse -- larger build than the Restaurantes fix.
+  - Restaurantes / Comida Local / Bienes Negocio G17 (Rich Correo): all have a real composer but
+    no lead-capture persistence layer or owner-visible leads surface -- would require a new DB
+    table + API route + dashboard UI, out of "smallest adapter" scope for this wave.
+
+CARRY-FORWARD DEFECT SCOPE DRAMATICALLY EXPANDED (same already-known Wave 4 item, now fully
+    audited -- do not lose this): both Bienes Negocio's and Rentas Negocio's dashboard-edit
+    reverse mappers were found to drop far more than just address fields.
+  - Bienes Negocio (bienesPublishedRowToAgenteApplicationDraft.ts): drops ~130 of ~150 form
+    fields on every edit -- the entire main-agent identity block, brand/brokerage block, second-
+    agent block (entire), broker/advisor block (entire), all property-type-specific sections
+    (residential highlights, commercial, land), the full HOA/gate12d block, open house (entire),
+    listing status, remaining socials + all 3 review URLs, CTA visibility toggles and targets, and
+    languages. The public page's OWN `buildPublishedState()` (BienesRaicesNegocioLiveDetailShell.tsx)
+    already correctly parses nearly all of this from the same business_meta/detail_pairs source --
+    the recommended Wave 4 fix is to make the reverse mapper reuse that already-proven-correct
+    parsing logic instead of reimplementing a much thinner subset from scratch.
+  - Rentas Negocio (rentasDashboardEditHydration.ts): drops the entire structured
+    residencial/comercial/terreno property-fact objects (every bedroom/bathroom/sqft/lot-size/
+    parking/year-built/condition/highlight value), the full business-identity block (brand, logo,
+    license, website, socials, bio, languages, Google/Yelp URLs), a doubly-broken WhatsApp/SMS
+    parse (computed but written to a `seller` field that doesn't exist on this form-state type,
+    so it's discarded even though the parse itself succeeds), several flow-specific structured
+    blocks (room/storage/commercial/lote details), the services-included checklist, and the entire
+    address block (already known). CONFIRMED that Republish is destructive for every one of these
+    fields, not just address -- re-editing without manually re-entering everything and then
+    republishing overwrites the DB row's previously-correct business_meta/detail_pairs with the
+    blanked-out defaults.
+  - Both of these are now understood to be much larger fixes than the single-field gap originally
+    flagged in Wave 1 -- Wave 4 should be scoped accordingly (likely its own dedicated multi-file
+    refactor per category, not a quick field-list patch).
+
+TESTS: new scripts/verify-wave2-owner-critical-globals-2026-09-09.ts, 16/16 passing (one
+    self-authored test-bug found and fixed during this process: an early check matched this
+    fix's own explanatory code comment instead of the actual code pattern -- re-verified after
+    tightening the check). TypeScript back to the established 7-error e2e baseline, 0 new (fixed
+    4 incidental type errors from the new required `whatsapp` field in 3 QA-fixture object
+    literals + 1 mapper). Full existing regression suite green (g23-wave1 24/24, g21 21/21,
+    servicios-p0 20/20, address-foundation PASS, gate6c2 12/12). git diff --check clean.
+
+NOT DONE THIS WAVE: PREVIEW/PUBLIC-read runtime click-through verification for the 6 fixes
+    (source-level proof only); Waves 3-8 not started.
+```

@@ -41,6 +41,68 @@ status.
 reverse mapper was already missing several address fields before this wave touched anything —
 flagged for a dedicated G47 follow-up, not silently left unlabeled.
 
+## Wave 2 — Owner-critical business globals (2026-09-09)
+
+5 parallel research agents (one per category) traced G13/G14/G15/G16/G17/G18/G20/G21/G24 across
+Restaurantes, Comida Local, Bienes Negocio, Rentas Negocio, Autos Dealer. Most systems confirmed
+FULLY WIRED with no defect. 6 real, safely-fixable defects found and fixed (commit `652e2556`).
+
+| SYSTEM | CATEGORY | SOURCE | FINAL |
+|---|---|---|---|
+| G13 Languages | Restaurantes | TRUE (fully wired, no defect) | TRUE |
+| G13 Languages | Comida Local | TRUE (fully wired, no defect) | TRUE |
+| G13 Languages | Bienes Negocio | PARTIALLY WIRED — publish→render solid; dashboard-edit reverse mapper drops it (part of the Wave 4 carry-forward) | FALSE (deferred to Wave 4) |
+| G13 Languages | Rentas Negocio | **FIXED this wave** — was write-only (persisted, never read back or rendered) | TRUE |
+| G13 Languages | Autos Dealer | TRUE (fully wired, no defect) | TRUE |
+| G14 Hours/Open Now | Restaurantes | **FIXED this wave** — live detail page used server-local (non-timezone-aware) clock instead of the timezone-pinned computation already proven correct for the same category's discovery-card badge | TRUE |
+| G14 Hours/Open Now | Comida Local | TRUE (confirmed real reference implementation, unchanged) | TRUE |
+| G14 Hours/Open Now | Bienes Negocio | N/A — no hours/office-hours concept exists for agente-individual by design | N/A |
+| G14 Hours/Open Now | Rentas Negocio | N/A — no hours/office-hours concept exists by design | N/A |
+| G14 Hours/Open Now | Autos Dealer | PARTIALLY WIRED — hours render correctly; no real time-computed Open/Closed status exists (static "today's hours" line only) | FALSE (not fixed this wave — larger build than the Restaurantes fix, no existing timezone-safe pattern in this category to reuse) |
+| G15 Websites/Social | Restaurantes | TRUE (fully wired, no defect) | TRUE |
+| G15 Websites/Social | Comida Local | TRUE (fully wired; premise correction — real dedicated social fields exist, contrary to an earlier assumption) | TRUE |
+| G15 Websites/Social | Bienes Negocio | PARTIALLY WIRED — publish→render solid; dashboard-edit reverse mapper drops most social/website fields (Wave 4 carry-forward) | FALSE (deferred to Wave 4) |
+| G15 Websites/Social | Rentas Negocio | PARTIALLY WIRED — publish→render solid via detail_pairs; dashboard-edit reverse mapper drops website/social (Wave 4 carry-forward) | FALSE (deferred to Wave 4) |
+| G15 Websites/Social | Autos Dealer | TRUE (fully wired, no defect) | TRUE |
+| G16 Connection Hub | all 5 categories | TRUE — all fully wired, null-safe, WhatsApp confirmed international-safe in every category (bespoke per-category CTA architecture is functionally correct even where not using the shared CtaActionSheet) | TRUE |
+| G17 Rich Correo | Restaurantes | PARTIALLY WIRED — real composer; no lead-capture/inquiry persistence exists for this category (product gap, not a broken wire) | FALSE (not fixed — requires new lead-capture infrastructure, out of "smallest adapter" scope) |
+| G17 Rich Correo | Comida Local | PARTIALLY WIRED — real composer; no owner-visible lead surface (analytics-only) | FALSE (not fixed — same reason) |
+| G17 Rich Correo | Bienes Negocio | NOT MOUNTED — plain mailto only, no composer, no lead capture, no owner-visible leads | FALSE (not fixed — larger build) |
+| G17 Rich Correo | Rentas Negocio | TRUE (fully wired, no defect — real composer, real authenticated API, real `messages` table, real owner dashboard inbox) | TRUE |
+| G17 Rich Correo | Autos Dealer | **PARTIALLY FIXED this wave** — dealerEmail form input added (was structurally missing, making the correct render/mapper code unreachable); no lead-capture system exists (separate, larger gap, not fixed) | FALSE (composer/lead-capture still absent; the specific "unreachable field" defect is now fixed) |
+| G18 Translate Ad | all 5 categories | TRUE — all fully wired, no defect | TRUE |
+| G20 Community Trust | Restaurantes | PARTIALLY WIRED — widget + owner dashboard view both real and live; unreachable for any non-`published` listing status (same pattern as Servicios, likely intentional); no admin moderation UI (platform-wide gap, not category-specific) | TRUE (core adoption); OWNER_QA_REQUIRED (status-gate runtime) |
+| G20 Community Trust | Comida Local | PARTIALLY WIRED — widget live; same status-gate issue; no owner-dashboard view for this category (present for Servicios/Restaurantes, absent here); no admin moderation UI | TRUE (core adoption); real adoption gap (owner dashboard) noted, not fixed |
+| G20 Community Trust | Bienes Negocio | PARTIALLY WIRED — widget live via real `leonix_professional_identities` eligibility mechanism, auto-created on first view (not gated by payment status, unlike Servicios); no owner-dashboard view; no admin moderation UI | TRUE (core adoption) |
+| G20 Community Trust | Rentas Negocio | PARTIALLY WIRED — widget live, confirmed undisturbed by Wave 1's G23 changes to the same file; same professional-identity mechanism; no owner-dashboard view; no admin moderation UI | TRUE (core adoption) |
+| G20 Community Trust | Autos Dealer | **CONFIRMED NOT MOUNTED** — genuine, real gap (previously flagged, re-confirmed on current HEAD); not fixed this wave (requires an eligibility-mechanism design decision — does Autos Dealer use the listing id directly like Servicios, or a professional-identity anchor like BR/Rentas?) | FALSE (real, not fixed — recommend as a dedicated follow-up with an explicit eligibility-mechanism decision) |
+| G21 Google/Yelp | Restaurantes | TRUE (fully wired, no defect) | TRUE |
+| G21 Google/Yelp | Comida Local | **CRITICAL DEFECT FIXED this wave** — was unconditionally wiped on every publish by the same allowlist trap function already known-dangerous from Wave 1's G23 work; every Comida Local listing's Google/Yelp URLs were silently discarded before reaching the database | TRUE |
+| G21 Google/Yelp | Bienes Negocio | PARTIALLY WIRED — publish→render solid; dashboard-edit reverse mapper drops both URLs (Wave 4 carry-forward) | FALSE (deferred to Wave 4) |
+| G21 Google/Yelp | Rentas Negocio | PARTIALLY WIRED — publish→render solid and hide-if-empty confirmed; dashboard-edit reverse mapper drops both URLs (Wave 4 carry-forward) | FALSE (deferred to Wave 4) |
+| G21 Google/Yelp | Autos Dealer | TRUE (re-verified fully wired, no defect) | TRUE |
+| G24 Location/Privacy/Directions | Restaurantes | **FIXED this wave** — `showExactAddress` had zero UI control anywhere (permanently defaulted to showing exact address, no owner opt-out); downstream privacy plumbing was already real and correct, just unreachable | TRUE |
+| G24 Location/Privacy/Directions | Comida Local | TRUE (fully wired, no regression from Wave 1's G23 address-picker mount) | TRUE |
+| G24 Location/Privacy/Directions | Bienes Negocio | PARTIALLY WIRED — real, working, respected toggle on publish/render; dashboard-edit reverse mapper drops it (Wave 4 carry-forward, confirmed with citations) | FALSE (deferred to Wave 4) |
+| G24 Location/Privacy/Directions | Rentas Negocio | PARTIALLY WIRED — real toggle and correct public-render respect; dashboard-edit reverse mapper drops it and all address sub-fields, Republish confirmed destructive (Wave 4 carry-forward) | FALSE (deferred to Wave 4) |
+| G24 Location/Privacy/Directions | Autos Dealer | N/A (correct, not a gap) — dealership addresses are inherently public business info; no privacy toggle needed or missing | N/A |
+
+**Real defects found, fixed this wave:** Comida Local G21 (critical), Bienes Negocio G16
+(agenteWhatsapp), Restaurantes G24 (privacy toggle UI), Rentas Negocio G13 (idiomas write-only),
+Restaurantes G14 (timezone-unsafe hours), Autos Dealer G17 (dealerEmail unreachable field).
+
+**Real defects found, explicitly NOT fixed this wave (reason given per item, not silently
+dropped):**
+- Autos Dealer G20 — Community Trust never adopted; needs an eligibility-mechanism decision first.
+- Autos Dealer G14 — no real Open/Closed computation; no existing timezone-safe pattern in this
+  category to reuse (larger build than the Restaurantes fix).
+- Restaurantes/Comida Local/Bienes Negocio G17 — no lead-capture infrastructure exists; would
+  require a new DB table + API route + dashboard UI (larger build, not a "smallest adapter" fix).
+- Bienes Negocio & Rentas Negocio's G13/G15/G21/G24 dashboard-edit reverse-mapper gaps — all part
+  of the SAME already-carried-forward Wave 4 defect (see ledger section 24 for full field scope,
+  now confirmed far larger than originally known: Bienes drops ~130 of ~150 fields, Rentas drops
+  its entire structured property-fact blocks, and Republish is confirmed destructive for both).
+
 ## Remaining waves (not yet started)
 
 Wave 2 — G13/G14/G15/G16/G17/G18/G20/G21/G24 across Restaurantes/Comida Local/Bienes Negocio/
