@@ -474,13 +474,13 @@ check("Staff Health Map API: every route calls requireSalesWorkspaceAccess() and
   }
 });
 
-check("Staff API: GET requires view_business_health_map, POST requires run_business_health_assessment", () => {
+check("Staff API: GET requires view_business_health_map, POST requires run_business_health_assessment (POST now goes through the canonical Systemic Repair Build staff-write guard, which folds the capability check and the bootstrap-write denial into one call)", () => {
   assert.ok(HEALTH_ROUTE.includes('actorHasCapability(access.actor, "view_business_health_map")'));
-  assert.ok(HEALTH_ROUTE.includes('actorHasCapability(access.actor, "run_business_health_assessment")'));
+  assert.ok(HEALTH_ROUTE.includes('requireStaffWorkspaceWriteAccess("run_business_health_assessment")'));
 });
 
-check("Staff API: PATCH (mark human review) requires mark_health_human_review", () => {
-  assert.ok(HEALTH_RUN_ROUTE.includes('actorHasCapability(access.actor, "mark_health_human_review")'));
+check("Staff API: PATCH (mark human review) requires mark_health_human_review via the canonical staff-write guard", () => {
+  assert.ok(HEALTH_RUN_ROUTE.includes('requireStaffWorkspaceWriteAccess("mark_health_human_review")'));
 });
 
 check("Staff API: supporting facts/evidence are only included when the caller has view_private_health_support", () => {
@@ -521,7 +521,7 @@ const GATE6_FILES = [
   "app/lib/business/healthMap/logic.ts",
   "app/lib/business/healthMap/repository.ts",
   "app/lib/business/healthMap/featureFlag.ts",
-  "app/admin/_lib/healthMapActor.ts",
+  "app/admin/_lib/businessWorkspaceAccess.ts",
   "app/admin/_lib/salesWorkspaceCapabilities.ts",
   "app/admin/(dashboard)/businesses/[businessId]/HealthMapActions.tsx",
   "app/admin/(dashboard)/businesses/[businessId]/page.tsx",
@@ -543,10 +543,11 @@ check("Owner-facing API: businessId is never read from the request (query/body) 
   assert.ok(!/req\.json\(\)/.test(OWNER_HEALTH_ROUTE), "owner GET route must not read a request body at all");
 });
 
-check("Staff API: no route accepts a caller-supplied actor field for attribution (createdByEmail/actorEmail/rosterId in a POST/PATCH body)", () => {
+check("Staff API: no route accepts a caller-supplied actor field for attribution (createdByEmail/actorEmail/rosterId in a POST/PATCH body); the actor comes exclusively from the canonical staff-write guard's verified session", () => {
   for (const src of [HEALTH_ROUTE, HEALTH_RUN_ROUTE]) {
     assert.ok(!/b\.(createdByEmail|actorEmail|rosterId|authUserId)/.test(src), "route reads a caller-supplied actor field from the body");
-    assert.ok(src.includes("staffActorToHealthMapActor(access.actor)"), "route must build the actor exclusively from the verified session");
+    assert.ok(src.includes("requireStaffWorkspaceWriteAccess("), "route must resolve the actor exclusively via the canonical staff-write guard");
+    assert.ok(src.includes("access.actor)"), "route must pass the guard's own actor through to the repository call, not a re-derived one");
   }
 });
 

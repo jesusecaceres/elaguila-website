@@ -1,7 +1,7 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { actorHasCapability, requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { getFieldDiscoveryAssetStorageFolder, sanitizeFieldDiscoveryStorageSegment } from "@/app/lib/business/fieldDiscovery/storagePaths";
 import { validateFieldDiscoveryUploadMeta } from "@/app/lib/business/fieldDiscovery/uploadValidation";
 import { FIELD_DISCOVERY_UPLOAD_MIME_TYPES } from "@/app/lib/business/fieldDiscovery/constants";
@@ -27,11 +27,8 @@ function isPathAuthorized(pathname: string, businessId: string): boolean {
 
 /** Client-direct Vercel Blob upload token handler (supports files above the server-form threshold). */
 export async function POST(req: NextRequest) {
-  const access = await requireSalesWorkspaceAccess();
-  if (!access.ok) return NextResponse.json({ ok: false, error: access.reason }, { status: 401 });
-  if (!actorHasCapability(access.actor, "upload_discovery_files")) {
-    return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
-  }
+  const access = await requireStaffWorkspaceWriteAccess("upload_discovery_files");
+  if (!access.ok) return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
 
   const token = process.env.BLOB_READ_WRITE_TOKEN?.trim();
   if (!token) {

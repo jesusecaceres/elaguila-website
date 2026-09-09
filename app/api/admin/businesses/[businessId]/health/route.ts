@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
-import { staffActorToHealthMapActor } from "@/app/admin/_lib/healthMapActor";
+import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess, requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { HEALTH_RUN_TRIGGER_TYPES } from "@/app/lib/business/healthMap/constants";
 import { getFullRun, getLatestCompletedRun, listRunsForBusiness, runHealthAssessment } from "@/app/lib/business/healthMap/repository";
 import { listEvidenceForBusiness, listFactsForBusiness } from "@/app/lib/business/livingBook/repository";
@@ -55,12 +54,9 @@ export async function GET(req: Request, ctx: { params: Promise<{ businessId: str
 
 /** POST — run a new, immutable assessment. Staff-triggered runs are always trigger_type=staff_requested. */
 export async function POST(req: Request, ctx: { params: Promise<{ businessId: string }> }) {
-  const access = await requireSalesWorkspaceAccess();
+  const access = await requireStaffWorkspaceWriteAccess("run_business_health_assessment");
   if (!access.ok) {
-    return NextResponse.json({ ok: false, error: access.reason }, { status: denialStatusCode(access.reason) });
-  }
-  if (!actorHasCapability(access.actor, "run_business_health_assessment")) {
-    return NextResponse.json({ ok: false, error: "role_not_permitted" }, { status: 403 });
+    return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
   }
   const { businessId } = await ctx.params;
 
@@ -75,7 +71,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ businessId: st
     ? (requestedTrigger as "staff_requested")
     : "staff_requested";
 
-  const result = await runHealthAssessment(businessId, triggerType, staffActorToHealthMapActor(access.actor));
+  const result = await runHealthAssessment(businessId, triggerType, access.actor);
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 400 });
   return NextResponse.json({ ok: true, run: result.result.run, dimensionResults: result.result.dimensionResults, findings: result.result.findings, readiness: result.result.readiness }, { status: 201 });
 }

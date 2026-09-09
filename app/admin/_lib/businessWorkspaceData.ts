@@ -22,8 +22,11 @@ import { listCustomLinksForBusiness } from "@/app/lib/business/repositories/cust
 import { listListingLinksForBusiness } from "@/app/lib/business/repositories/listingLinksRepo";
 import type { Business, BusinessContact, BusinessCustomLink, BusinessDigitalProfile, BusinessListingLink, BusinessServiceArea } from "@/app/lib/business/types";
 import { deriveFollowUpDisplayStatus, type BusinessSalesStatus, type FollowUpStoredStatus, type SalesContactMethod, type SalesNoteOutcome, type SalesNoteType } from "./salesWorkspaceLogic";
-import { isOwnerBootstrapActor, type StrictSalesActor } from "./businessWorkspaceAccess";
+import type { StaffWriteActor, StrictSalesActor } from "./businessWorkspaceAccess";
 import { hasCapability } from "./salesWorkspaceCapabilities";
+
+/** Minimal shape every audit-log write needs — satisfied by both StrictSalesActor and StaffWriteActor. */
+type AttributedActor = { rosterId: string; authUserId: string; email: string; role: string };
 
 const BUSINESS_LIST_COLUMNS =
   "id, display_name, legal_name, public_name, normalized_name, slug, broad_business_type, specific_business_type, custom_specific_type, business_stage, primary_language, business_primary_language, business_additional_languages, year_started, operating_models, sales_relationships, sales_channels, preferred_response_method, status, onboarding_status, creation_source, created_by_user_id, created_at, updated_at, archived_at";
@@ -48,7 +51,7 @@ export type SalesAuditAction =
   | "archived";
 
 async function writeAuditLog(
-  actor: StrictSalesActor,
+  actor: AttributedActor,
   businessId: string,
   action: SalesAuditAction,
   recordType: "sales_profile" | "sales_note" | "follow_up",
@@ -348,6 +351,12 @@ export async function getOrCreateSalesProfile(businessId: string, actor: StrictS
   if (existing) {
     return { status: (existing as { status: BusinessSalesStatus }).status, lastContactedAt: (existing as { last_contacted_at: string | null }).last_contacted_at, updatedAt: (existing as { updated_at: string }).updated_at };
   }
+  // Bootstrap (or any actor missing a link in the real staff identity chain) may still VIEW a
+  // business detail page, but this get-or-create must never perform the create half of that under
+  // a placeholder attribution — return a virtual default instead of writing a real row.
+  if (actor.actorType === "owner_bootstrap" || !actor.rosterId || !actor.authUserId) {
+    return { status: "new", lastContactedAt: null, updatedAt: new Date().toISOString() };
+  }
   const { data: created, error } = await supabase
     .from("business_sales_profiles")
     .insert({
@@ -368,9 +377,37 @@ export async function getOrCreateSalesProfile(businessId: string, actor: StrictS
   return { status: (created as { status: BusinessSalesStatus }).status, lastContactedAt: (created as { last_contacted_at: string | null }).last_contacted_at, updatedAt: (created as { updated_at: string }).updated_at };
 }
 
-export async function updateSalesStatus(businessId: string, status: BusinessSalesStatus, actor: StrictSalesActor): Promise<boolean> {
+/** Same get-or-create, but for callers that have already converted to a real StaffWriteActor — used
+ * by updateSalesStatus, which is itself always a real staff write (bootstrap is denied upstream). */
+async function getOrCreateSalesProfileForStaffWrite(businessId: string, actor: StaffWriteActor): Promise<BusinessSalesProfileRecord> {
   const supabase = getAdminSupabase();
-  const before = await getOrCreateSalesProfile(businessId, actor);
+  const { data: existing } = await supabase.from("business_sales_profiles").select("status, last_contacted_at, updated_at").eq("business_id", businessId).maybeSingle();
+  if (existing) {
+    return { status: (existing as { status: BusinessSalesStatus }).status, lastContactedAt: (existing as { last_contacted_at: string | null }).last_contacted_at, updatedAt: (existing as { updated_at: string }).updated_at };
+  }
+  const { data: created, error } = await supabase
+    .from("business_sales_profiles")
+    .insert({
+      business_id: businessId,
+      status: "new",
+      created_by_roster_id: actor.rosterId,
+      created_by_auth_user_id: actor.authUserId,
+      created_by_email: actor.email,
+      created_by_role: actor.role,
+      updated_by_roster_id: actor.rosterId,
+      updated_by_auth_user_id: actor.authUserId,
+      updated_by_email: actor.email,
+      updated_by_role: actor.role,
+    })
+    .select("status, last_contacted_at, updated_at")
+    .maybeSingle();
+  if (error || !created) return { status: "new", lastContactedAt: null, updatedAt: new Date().toISOString() };
+  return { status: (created as { status: BusinessSalesStatus }).status, lastContactedAt: (created as { last_contacted_at: string | null }).last_contacted_at, updatedAt: (created as { updated_at: string }).updated_at };
+}
+
+export async function updateSalesStatus(businessId: string, status: BusinessSalesStatus, actor: StaffWriteActor): Promise<boolean> {
+  const supabase = getAdminSupabase();
+  const before = await getOrCreateSalesProfileForStaffWrite(businessId, actor);
   const patch: Record<string, unknown> = {
     status,
     updated_by_roster_id: actor.rosterId,
@@ -419,10 +456,7 @@ export type CreateSalesNoteInput = {
   followUpDate: string | null;
 };
 
-export async function createSalesNote(input: CreateSalesNoteInput, actor: StrictSalesActor): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
-  if (isOwnerBootstrapActor(actor) || !actor.rosterId) {
-    return { ok: false, error: "owner_bootstrap_cannot_write_sales_notes" };
-  }
+export async function createSalesNote(input: CreateSalesNoteInput, actor: StaffWriteActor): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   const trimmedBody = input.body.trim();
   if (!trimmedBody) return { ok: false, error: "empty_body" };
   if (trimmedBody.length > 4000) return { ok: false, error: "body_too_long" };
@@ -491,10 +525,7 @@ export type UpsertFollowUpInput = {
  * (business_follow_ups_one_current_per_business) is the actual guarantee; this function just
  * makes the "replace" UX explicit rather than surfacing a raw constraint-violation error.
  */
-export async function upsertCurrentFollowUp(input: UpsertFollowUpInput, actor: StrictSalesActor): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (isOwnerBootstrapActor(actor) || !actor.rosterId) {
-    return { ok: false, error: "owner_bootstrap_cannot_write_follow_ups" };
-  }
+export async function upsertCurrentFollowUp(input: UpsertFollowUpInput, actor: StaffWriteActor): Promise<{ ok: true } | { ok: false; error: string }> {
   const trimmedPurpose = input.purpose.trim();
   if (!trimmedPurpose) return { ok: false, error: "empty_purpose" };
   const supabase = getAdminSupabase();
@@ -525,7 +556,7 @@ export async function upsertCurrentFollowUp(input: UpsertFollowUpInput, actor: S
   return { ok: true };
 }
 
-export async function completeFollowUp(followUpId: string, businessId: string, outcome: string | null, actor: StrictSalesActor): Promise<boolean> {
+export async function completeFollowUp(followUpId: string, businessId: string, outcome: string | null, actor: StaffWriteActor): Promise<boolean> {
   const supabase = getAdminSupabase();
   const { error } = await supabase
     .from("business_follow_ups")
@@ -540,7 +571,7 @@ export async function markFollowUpStatus(
   followUpId: string,
   businessId: string,
   status: Extract<FollowUpStoredStatus, "cancelled" | "waiting_on_owner">,
-  actor: StrictSalesActor,
+  actor: StaffWriteActor,
 ): Promise<boolean> {
   const supabase = getAdminSupabase();
   const { error } = await supabase.from("business_follow_ups").update({ status, updated_at: new Date().toISOString() }).eq("id", followUpId);

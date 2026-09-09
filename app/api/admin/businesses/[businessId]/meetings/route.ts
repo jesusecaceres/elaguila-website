@@ -3,7 +3,7 @@
  * Requires view_meeting_studio + prepare_business_meeting capabilities.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { requireSalesWorkspaceAccess, actorHasCapability, denialStatusCode } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { requireSalesWorkspaceAccess, actorHasCapability, denialStatusCode, toStaffWriteActor } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { createMeeting } from "@/app/lib/business/meetingStudio/repository";
 import type { MeetingType, MeetingLanguage } from "@/app/lib/business/meetingStudio/types";
 
@@ -13,6 +13,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ bus
   if (!actorHasCapability(access.actor, "view_meeting_studio") || !actorHasCapability(access.actor, "prepare_business_meeting")) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
+  const staffWrite = toStaffWriteActor(access.actor);
+  if (!staffWrite.ok) return NextResponse.json({ error: staffWrite.reason }, { status: staffWrite.status });
 
   const { businessId } = await params;
   const body = await req.json().catch(() => null);
@@ -28,7 +30,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ bus
 
   const result = await createMeeting(
     { businessId, meetingType, language, scheduledAt: scheduledAt ?? null },
-    { type: "staff", rosterId: access.actor.rosterId, authUserId: access.actor.authUserId, email: access.actor.email, role: access.actor.role },
+    staffWrite.actor,
   );
 
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });

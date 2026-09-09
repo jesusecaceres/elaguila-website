@@ -3,12 +3,7 @@
  * Path carries both businessId and signalId so a signal cannot be mutated across businesses.
  */
 import { NextResponse } from "next/server";
-import {
-  actorHasCapability,
-  denialStatusCode,
-  requireSalesWorkspaceAccess,
-  salesActorToAdvisorActor,
-} from "@/app/admin/_lib/businessWorkspaceAccess";
+import { requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { isAdvisorEnabled } from "@/app/lib/business/advisor/featureFlag";
 import { canAcknowledgeSignal, canDismissSignal, canResolveSignal } from "@/app/lib/business/advisor/logic";
 import { acknowledgeSignal, dismissSignal, getSignalById, resolveSignal } from "@/app/lib/business/advisor/repository";
@@ -24,12 +19,9 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ businessId: string; signalId: string }> },
 ) {
-  const access = await requireSalesWorkspaceAccess();
+  const access = await requireStaffWorkspaceWriteAccess("view_business_detail");
   if (!access.ok) {
-    return NextResponse.json({ error: access.reason }, { status: denialStatusCode(access.reason) });
-  }
-  if (!actorHasCapability(access.actor, "view_business_detail")) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    return NextResponse.json({ error: access.reason }, { status: access.status });
   }
   if (!(await isAdvisorEnabled())) {
     return NextResponse.json({ error: "feature_disabled" }, { status: 404 });
@@ -57,7 +49,7 @@ export async function POST(
     return NextResponse.json({ error: "invalid_status_transition" }, { status: 400 });
   }
 
-  const actor = salesActorToAdvisorActor(access.actor);
+  const actor = access.actor;
   const updated =
     action === "acknowledge"
       ? await acknowledgeSignal(businessId, signalId, actor)

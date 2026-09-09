@@ -222,12 +222,15 @@ check("Scenario: valid owner-bootstrap session -> allowed as owner_bootstrap ove
   const staffLookupIdx = accessText.indexOf("lookupActiveAdminRosterByAuthUserId(authUserId)");
   assert.ok(bootstrapIdx >= 0 && staffLookupIdx > bootstrapIdx, "owner-bootstrap branch must run before the staff roster lookup so bootstrap is never treated as staff");
 });
-check("Owner-bootstrap override never fabricates a roster row or a Supabase Auth user", () => {
+check("Owner-bootstrap override never fabricates a roster row or a Supabase Auth user, and (Systemic Repair Build) never gets remapped to a fake staff OR a fake owner shape for a Business Concierge write — the only outcome for a write is a clean denial via toStaffWriteActor()/requireStaffWorkspaceWriteAccess()", () => {
   assert.ok(accessText.includes('rosterId: ""'), "owner_bootstrap rosterId must be empty — not a fabricated roster UUID");
   assert.ok(!accessText.includes("insert(") && !accessText.includes(".from(\"admin_team_members\")"), "access helper must not write roster rows");
   assert.ok(!accessText.includes("auth.admin.createUser") && !accessText.includes("signUp"), "must not create a Supabase Auth user");
-  assert.ok(accessText.includes("salesActorToCreativeActor") && accessText.includes("salesActorToOpportunityActor"), "Package A/B routes must be able to reuse shared owner adapters");
-  assert.ok(/if \(actor\.actorType === "owner_bootstrap"\) \{\s*return \{\s*type: "owner"/.test(accessText), "owner bootstrap must map to domain type owner, not staff");
+  assert.ok(accessText.includes("export function toStaffWriteActor") && accessText.includes("export async function requireStaffWorkspaceWriteAccess"), "canonical staff-write guard must exist");
+  assert.ok(!/export function salesActorToCreativeActor\(/.test(accessText) && !/export function salesActorToOpportunityActor\(/.test(accessText), "the retired bootstrap-to-owner Package A/B adapters must be gone, not merely unused — the new policy is deny-outright, never remap");
+  const guardBody = accessText.match(/export function toStaffWriteActor\(actor: StrictSalesActor\): StaffWorkspaceWriteAccessResult \{([\s\S]*?)\n\}/);
+  assert.ok(guardBody, "toStaffWriteActor body not found");
+  assert.ok(/isOwnerBootstrapActor\(actor\)/.test(guardBody![1]), "owner bootstrap must be denied outright — never mapped to any writable domain actor shape");
 });
 check("Scenario: cookie present but no operator email/auth-user-id pair -> denied (no_operator_identity)", () => {
   assert.ok(accessText.includes('reason: "no_operator_identity"'));
@@ -290,13 +293,17 @@ check("getBusinessWorkspaceDetail shapes/redacts contact values by capability BE
   assert.ok(dataText.includes('hasCapability(actor.capabilities, "view_private_contacts")'), "must gate on the actor's real capability set");
   assert.ok(/contactsRaw\.map\(\(c\) => \(\{ \.\.\.c, value: REDACTED, normalizedValue: REDACTED \}\)\)/.test(dataText), "must overwrite the value fields server-side, not just flag them");
 });
-check("Every write function requires a StrictSalesActor argument — no function accepts a bare actor email string", () => {
-  for (const fn of ["export async function updateSalesStatus", "export async function createSalesNote", "export async function upsertCurrentFollowUp", "export async function completeFollowUp", "export async function markFollowUpStatus", "export async function getOrCreateSalesProfile"]) {
+check("Every write function requires a real actor object — no function accepts a bare actor email string. (Systemic Repair Build) updateSalesStatus/createSalesNote/upsertCurrentFollowUp/completeFollowUp/markFollowUpStatus now require the stricter, already-guarded StaffWriteActor rather than a bare StrictSalesActor that could still be owner_bootstrap; getOrCreateSalesProfile alone keeps StrictSalesActor since it is also called from the read path and internally refuses to write under bootstrap", () => {
+  for (const fn of ["export async function updateSalesStatus", "export async function createSalesNote", "export async function upsertCurrentFollowUp", "export async function completeFollowUp", "export async function markFollowUpStatus"]) {
     const idx = dataText.indexOf(fn);
     assert.ok(idx >= 0, `${fn} not found`);
     const signatureLine = dataText.slice(idx, dataText.indexOf(")", dataText.indexOf(")", idx) + 1) + 1);
-    assert.ok(signatureLine.includes("actor: StrictSalesActor") || signatureLine.includes("actor,"), `${fn} must take a StrictSalesActor, found: ${signatureLine}`);
+    assert.ok(signatureLine.includes("actor: StaffWriteActor"), `${fn} must take actor: StaffWriteActor, found: ${signatureLine}`);
   }
+  const getOrCreateIdx = dataText.indexOf("export async function getOrCreateSalesProfile");
+  assert.ok(getOrCreateIdx >= 0, "getOrCreateSalesProfile not found");
+  const getOrCreateSignature = dataText.slice(getOrCreateIdx, dataText.indexOf(")", dataText.indexOf(")", getOrCreateIdx) + 1) + 1);
+  assert.ok(getOrCreateSignature.includes("actor: StrictSalesActor"), `getOrCreateSalesProfile must take actor: StrictSalesActor, found: ${getOrCreateSignature}`);
   assert.ok(!/actorEmail: string/.test(dataText), "no write function may accept a bare actorEmail: string");
 });
 check("Notes and follow-up creation reject an empty/whitespace-only body or purpose before any write is attempted", () => {
@@ -323,24 +330,24 @@ const routeFiles = [
   "app/api/admin/businesses/[businessId]/notes/route.ts",
   "app/api/admin/businesses/[businessId]/follow-up/route.ts",
 ];
-check("Every app/api/admin/businesses/** route handler calls requireSalesWorkspaceAccess() — never just the bare cookie check other admin routes use", () => {
+check("Every app/api/admin/businesses/** route handler calls requireSalesWorkspaceAccess() (directly, or via the canonical requireStaffWorkspaceWriteAccess() wrapper which calls it internally) — never just the bare cookie check other admin routes use", () => {
   for (const rel of routeFiles) {
     const text = read(rel);
     const handlerCount = (text.match(/export async function (GET|POST|PATCH|PUT|DELETE)/g) ?? []).length;
-    const guardCount = (text.match(/requireSalesWorkspaceAccess\(\)/g) ?? []).length;
+    const guardCount = (text.match(/requireSalesWorkspaceAccess\(\)/g) ?? []).length + (text.match(/requireStaffWorkspaceWriteAccess\(/g) ?? []).length;
     assert.ok(handlerCount > 0, `${rel} has no exported route handler`);
-    assert.ok(guardCount >= handlerCount, `${rel} has ${handlerCount} handler(s) but only ${guardCount} requireSalesWorkspaceAccess() call(s) — every handler must gate itself, not rely on the page layout alone`);
+    assert.ok(guardCount >= handlerCount, `${rel} has ${handlerCount} handler(s) but only ${guardCount} access-guard call(s) — every handler must gate itself, not rely on the page layout alone`);
     assert.ok(!text.includes("requireAdminCookie"), `${rel} must not fall back to the bare cookie-only pattern`);
   }
 });
-check("Mutating routes (POST/PATCH) each check a specific capability beyond bare access — a sales rep cannot archive a record via the status route", () => {
+check("Mutating routes (POST/PATCH) each check a specific capability beyond bare access — a sales rep cannot archive a record via the status route. (Systemic Repair Build) the primary capability for each route's write now runs inside the canonical requireStaffWorkspaceWriteAccess() guard; archive_sales_record remains a separate, stricter actorHasCapability check layered on top", () => {
   const detailRoute = read("app/api/admin/businesses/[businessId]/route.ts");
-  assert.ok(detailRoute.includes('actorHasCapability(access.actor, "update_sales_status")'));
+  assert.ok(detailRoute.includes('requireStaffWorkspaceWriteAccess("update_sales_status")'));
   assert.ok(detailRoute.includes('actorHasCapability(access.actor, "archive_sales_record")'), "archiving must require its own, stricter capability check even inside the status-update route");
   const notesRoute = read("app/api/admin/businesses/[businessId]/notes/route.ts");
-  assert.ok(notesRoute.includes('actorHasCapability(access.actor, "create_internal_note")'));
+  assert.ok(notesRoute.includes('requireStaffWorkspaceWriteAccess("create_internal_note")'));
   const followUpRoute = read("app/api/admin/businesses/[businessId]/follow-up/route.ts");
-  assert.ok(followUpRoute.includes('actorHasCapability(access.actor, "create_follow_up")'));
+  assert.ok(followUpRoute.includes('requireStaffWorkspaceWriteAccess("create_follow_up")'));
 });
 check("Denial responses use denialStatusCode() (handles all eight SalesWorkspaceDenialReason values, including the BCO-4A.7 identity-binding reasons) — not a two-way ternary that only knows about two", () => {
   for (const rel of routeFiles) {
@@ -684,9 +691,10 @@ check("Gate 04: follow-up source remains business_follow_ups; no Promise Keeper 
   assert.ok(!outreachActionsGate04.includes("PromiseKeeper"));
   assert.ok(!dataText.includes("CREATE TABLE"));
 });
-check("Gate 04: owner bootstrap cannot fabricate a sales-note roster write", () => {
-  assert.ok(dataText.includes("owner_bootstrap_cannot_write_sales_notes"));
-  assert.ok(dataText.includes("isOwnerBootstrapActor(actor)"));
+check("Gate 04: owner bootstrap cannot fabricate a sales-note roster write. (Systemic Repair Build) this is now enforced at the type level — createSalesNote only accepts an already-guarded StaffWriteActor, which requireStaffWorkspaceWriteAccess() in the route never produces for a bootstrap caller — rather than a runtime isOwnerBootstrapActor check inside createSalesNote itself", () => {
+  const notesRoute = read("app/api/admin/businesses/[businessId]/notes/route.ts");
+  assert.ok(notesRoute.includes('requireStaffWorkspaceWriteAccess("create_internal_note")'));
+  assert.ok(/createSalesNote\([\s\S]*?actor: StaffWriteActor/.test(dataText), "createSalesNote must require the already-guarded StaffWriteActor shape");
   assert.ok(outreachPageGate04.includes("isOwnerBootstrapActor(access.actor)"));
   assert.ok(outreachActionsGate04.includes("Owner bootstrap cannot write roster-attributed sales notes"));
 });
@@ -934,7 +942,13 @@ check("Gate 08: Owner Handoff is a bounded accepted-proposal read model; follow-
   assert.ok(commandCenterGate08.includes("#proposals"));
   assert.ok(commandCenterPageGate08.includes("listAcceptedCurrentProposalsForHandoff"));
   assert.ok(proposalActionsGate08.includes("/api/admin/businesses/${businessId}/follow-up"));
-  assert.ok(followUpDataGate08.includes("owner_bootstrap_cannot_write_follow_ups"));
+  // (Systemic Repair Build) owner-bootstrap denial for follow-up writes is now enforced at the type
+  // level — upsertCurrentFollowUp/completeFollowUp/markFollowUpStatus require the already-guarded
+  // StaffWriteActor shape, which requireStaffWorkspaceWriteAccess() never produces for bootstrap —
+  // rather than a runtime "owner_bootstrap_cannot_write_follow_ups" string inside the data module.
+  assert.ok(/upsertCurrentFollowUp\([\s\S]*?actor: StaffWriteActor/.test(followUpDataGate08));
+  const followUpRouteGate08 = read("app/api/admin/businesses/[businessId]/follow-up/route.ts");
+  assert.ok(followUpRouteGate08.includes('requireStaffWorkspaceWriteAccess("create_follow_up")'));
   assert.ok(proposalActionsGate08.includes("A staff roster assignment is required"));
   assert.ok(!opportunityTypesGate08.includes('| "accepted"'));
   assert.ok(!opportunityTypesGate08.includes('| "declined"'));

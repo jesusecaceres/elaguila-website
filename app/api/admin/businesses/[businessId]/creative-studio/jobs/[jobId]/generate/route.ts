@@ -10,7 +10,7 @@
  * existing transitionJobStatus() status machine (constants.ts).
  */
 import { NextResponse, type NextRequest } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess, salesActorToCreativeActor } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import {
   createInputSnapshot, createJobVersion, createProviderRun, getJobById, getLastProviderRunForJob,
   getLatestBriefForJob, transitionJobStatus,
@@ -29,12 +29,9 @@ export async function POST(
   { params }: { params: Promise<{ businessId: string; jobId: string }> },
 ) {
   const { businessId, jobId } = await params;
-  const access = await requireSalesWorkspaceAccess();
+  const access = await requireStaffWorkspaceWriteAccess("generate_creative_draft");
   if (!access.ok) {
-    return NextResponse.json({ ok: false, error: access.reason }, { status: denialStatusCode(access.reason) });
-  }
-  if (!actorHasCapability(access.actor, "generate_creative_draft")) {
-    return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+    return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
   }
 
   const job = await getJobById(businessId, jobId);
@@ -59,7 +56,7 @@ export async function POST(
     // Body is optional — providerKey defaults to the job's stored provider or the global default.
   }
 
-  const actor = salesActorToCreativeActor(access.actor);
+  const actor = access.actor;
 
   // 1. Assemble a fresh verified truth snapshot and persist it (append-only).
   const packet = await assembleResearchPacket(businessId, { sourceOpportunityId: job.sourceOpportunityId });

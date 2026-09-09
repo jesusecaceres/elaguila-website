@@ -1,18 +1,14 @@
 import { NextResponse } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
-import { staffActorToLivingBookActor } from "@/app/admin/_lib/livingBookActor";
+import { requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { resolveContradiction } from "@/app/lib/business/livingBook/repository";
 
 export const dynamic = "force-dynamic";
 
 /** PATCH — resolve a contradiction. Never silent: an explanation is required (also DB-enforced). */
 export async function PATCH(req: Request, ctx: { params: Promise<{ businessId: string; contradictionId: string }> }) {
-  const access = await requireSalesWorkspaceAccess();
+  const access = await requireStaffWorkspaceWriteAccess("resolve_contradictions");
   if (!access.ok) {
-    return NextResponse.json({ ok: false, error: access.reason }, { status: denialStatusCode(access.reason) });
-  }
-  if (!actorHasCapability(access.actor, "resolve_contradictions")) {
-    return NextResponse.json({ ok: false, error: "role_not_permitted" }, { status: 403 });
+    return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
   }
   const { businessId, contradictionId } = await ctx.params;
 
@@ -26,7 +22,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ businessId: s
   if (!resolution.trim()) return NextResponse.json({ ok: false, error: "empty_resolution" }, { status: 400 });
   const resolvedCanonicalFactId = typeof (body as { resolvedCanonicalFactId?: unknown }).resolvedCanonicalFactId === "string" ? ((body as { resolvedCanonicalFactId: string }).resolvedCanonicalFactId as string) : null;
 
-  const success = await resolveContradiction(businessId, contradictionId, resolution, resolvedCanonicalFactId, staffActorToLivingBookActor(access.actor));
+  const success = await resolveContradiction(businessId, contradictionId, resolution, resolvedCanonicalFactId, access.actor);
   if (!success) return NextResponse.json({ ok: false, error: "update_failed" }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

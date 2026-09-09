@@ -110,6 +110,14 @@ export async function createCommitment(
   input: CreateCommitmentInput,
   actor: CommitmentActor,
 ): Promise<{ ok: true; commitment: BusinessCommitment } | { ok: false; error: string }> {
+  // Application-boundary validation for business_commitments_staff_requires_roster_chk — a staff-
+  // responsible commitment with no assignee is a genuine input error, not a server fault; catching
+  // it here returns a clean, specific code instead of letting the raw Postgres CHECK-violation
+  // text reach the client. The DB constraint itself stays in place as defense-in-depth.
+  if (input.responsibleParty === "staff" && !input.assignedRosterId) {
+    return { ok: false, error: "staff_assignee_required" };
+  }
+
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
     .from("business_commitments")
@@ -136,7 +144,10 @@ export async function createCommitment(
     })
     .select(COMMITMENT_COLUMNS)
     .maybeSingle();
-  if (error || !data) return { ok: false, error: error?.message ?? "insert_failed" };
+  if (error || !data) {
+    if (error) console.error(`[promiseKeeper] createCommitment failed for business ${input.businessId}:`, error.message);
+    return { ok: false, error: "commitment_create_failed" };
+  }
   const commitment = mapCommitmentRow(data as Record<string, unknown>);
   await writeEvent(commitment.id, input.businessId, "created", actor, { title: input.titleEn });
   return { ok: true, commitment };
@@ -191,6 +202,14 @@ export async function updateCommitment(
     }
   }
 
+  // Same application-boundary check as createCommitment: responsibleParty is immutable via patch,
+  // but assignedRosterId can be cleared — reject that combination cleanly before it can hit
+  // business_commitments_staff_requires_roster_chk.
+  const nextAssignedRosterId = patch.assignedRosterId !== undefined ? patch.assignedRosterId : existing.assignedRosterId;
+  if (existing.responsibleParty === "staff" && !nextAssignedRosterId) {
+    return { ok: false, error: "staff_assignee_required" };
+  }
+
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (patch.status) update.status = patch.status;
   if (patch.blocker !== undefined) update.blocker = patch.blocker;
@@ -209,7 +228,10 @@ export async function updateCommitment(
     .eq("business_id", businessId)
     .select(COMMITMENT_COLUMNS)
     .maybeSingle();
-  if (error || !data) return { ok: false, error: error?.message ?? "update_failed" };
+  if (error || !data) {
+    if (error) console.error(`[promiseKeeper] updateCommitment failed for commitment ${commitmentId}:`, error.message);
+    return { ok: false, error: "commitment_update_failed" };
+  }
 
   const updated = mapCommitmentRow(data as Record<string, unknown>);
 

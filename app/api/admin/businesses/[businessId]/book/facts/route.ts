@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
-import { staffActorToLivingBookActor } from "@/app/admin/_lib/livingBookActor";
+import { actorHasCapability, requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { FACT_CATEGORIES, CONFIDENCE_LEVELS, FACT_VISIBILITIES, FACT_SENSITIVITIES, SOURCE_CLASSES } from "@/app/lib/business/livingBook/constants";
 import { requiresManagerReviewToOverwrite } from "@/app/lib/business/livingBook/logic";
 import { getFactHistory, upsertFact } from "@/app/lib/business/livingBook/repository";
@@ -15,12 +14,9 @@ const SOURCE_CLASS_VALUES = new Set<string>(SOURCE_CLASSES.map((o) => o.value));
 
 /** POST — create or (if an active fact with this key exists) supersede a business fact. */
 export async function POST(req: Request, ctx: { params: Promise<{ businessId: string }> }) {
-  const access = await requireSalesWorkspaceAccess();
+  const access = await requireStaffWorkspaceWriteAccess("create_business_fact");
   if (!access.ok) {
-    return NextResponse.json({ ok: false, error: access.reason }, { status: denialStatusCode(access.reason) });
-  }
-  if (!actorHasCapability(access.actor, "create_business_fact")) {
-    return NextResponse.json({ ok: false, error: "role_not_permitted" }, { status: 403 });
+    return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
   }
   const { businessId } = await ctx.params;
 
@@ -67,7 +63,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ businessId: st
       sensitivity: sensitivity as never,
       effectiveDate,
     },
-    staffActorToLivingBookActor(access.actor),
+    access.actor,
   );
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 400 });
   return NextResponse.json({ ok: true, id: result.id, superseded: result.superseded }, { status: 201 });

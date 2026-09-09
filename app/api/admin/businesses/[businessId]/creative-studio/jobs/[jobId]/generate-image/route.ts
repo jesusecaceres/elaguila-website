@@ -19,7 +19,7 @@
  */
 import { put } from "@vercel/blob";
 import { NextResponse, type NextRequest } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess, salesActorToCreativeActor } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { createGeneratedImageAsset, createProviderRun, getJobById, getLastProviderRunForJob } from "@/app/lib/business/creativeStudio/repository";
 import { isImageGenerationLive } from "@/app/lib/business/creativeStudio/providerTypes";
 import { resolveCreativeProvider } from "@/app/lib/business/creativeStudio/providerRegistry";
@@ -39,12 +39,9 @@ export async function POST(
     );
   }
 
-  const access = await requireSalesWorkspaceAccess();
+  const access = await requireStaffWorkspaceWriteAccess("generate_creative_draft");
   if (!access.ok) {
-    return NextResponse.json({ ok: false, error: access.reason }, { status: denialStatusCode(access.reason) });
-  }
-  if (!actorHasCapability(access.actor, "generate_creative_draft")) {
-    return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+    return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
   }
 
   const token = process.env.BLOB_READ_WRITE_TOKEN?.trim();
@@ -73,7 +70,7 @@ export async function POST(
     return NextResponse.json({ ok: false, error: "prompt_required" }, { status: 400 });
   }
 
-  const actor = salesActorToCreativeActor(access.actor);
+  const actor = access.actor;
 
   const provider = await resolveCreativeProvider("openai");
   if (!provider?.generateImage) {

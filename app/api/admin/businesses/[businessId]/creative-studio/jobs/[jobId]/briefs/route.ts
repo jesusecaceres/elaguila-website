@@ -8,7 +8,7 @@
  * to compile against, and Package A would be "demo-only" as explicitly disallowed.
  */
 import { NextResponse, type NextRequest } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess, salesActorToCreativeActor } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { createBrief, getJobById, type CreateBriefInput } from "@/app/lib/business/creativeStudio/repository";
 import { CREATIVE_LANES, RISK_CLASSES } from "@/app/lib/business/creativeStudio/constants";
 
@@ -21,12 +21,9 @@ export async function POST(
   { params }: { params: Promise<{ businessId: string; jobId: string }> },
 ) {
   const { businessId, jobId } = await params;
-  const access = await requireSalesWorkspaceAccess();
+  const access = await requireStaffWorkspaceWriteAccess(["approve_creative_brief", "create_creative_job"]);
   if (!access.ok) {
-    return NextResponse.json({ ok: false, error: access.reason }, { status: denialStatusCode(access.reason) });
-  }
-  if (!actorHasCapability(access.actor, "approve_creative_brief") && !actorHasCapability(access.actor, "create_creative_job")) {
-    return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+    return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
   }
 
   const job = await getJobById(businessId, jobId);
@@ -56,7 +53,7 @@ export async function POST(
     return NextResponse.json({ ok: false, error: "bad_risk_class" }, { status: 400 });
   }
 
-  const actor = salesActorToCreativeActor(access.actor);
+  const actor = access.actor;
 
   const input: CreateBriefInput = {
     businessGoal: String(body.businessGoal),

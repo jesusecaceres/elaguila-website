@@ -9,6 +9,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   auth: "Invalid email or password.",
   inactive: "Your team account is inactive. Contact an owner admin.",
   not_roster: "This account is not authorized for admin access. Customer logins cannot access /admin.",
+  bootstrap_unavailable: "Owner bootstrap login is not configured on this server. Contact an owner admin.",
 };
 
 function AdminLoginPageContent() {

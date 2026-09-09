@@ -4,7 +4,7 @@
  * business_id — see opportunity/repository.ts), not by this route alone.
  */
 import { NextResponse, type NextRequest } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess, salesActorToOpportunityActor } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { approveOpportunity, dismissOpportunity, reviewOpportunity } from "@/app/lib/business/opportunity/repository";
 import type { ReviewOpportunityInput } from "@/app/lib/business/opportunity/types";
 
@@ -20,12 +20,9 @@ export async function PATCH(
   { params }: { params: Promise<{ businessId: string; opportunityId: string }> },
 ) {
   const { businessId, opportunityId } = await params;
-  const access = await requireSalesWorkspaceAccess();
+  const access = await requireStaffWorkspaceWriteAccess("review_opportunity");
   if (!access.ok) {
-    return NextResponse.json({ ok: false, error: access.reason }, { status: denialStatusCode(access.reason) });
-  }
-  if (!actorHasCapability(access.actor, "review_opportunity")) {
-    return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+    return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
   }
 
   let body: Record<string, unknown> = {};
@@ -42,7 +39,7 @@ export async function PATCH(
   const input: ReviewOpportunityInput = {
     reviewNote: typeof body.reviewNote === "string" && body.reviewNote.trim() ? body.reviewNote.trim() : null,
   };
-  const actor = salesActorToOpportunityActor(access.actor);
+  const actor = access.actor;
 
   const result = body.action === "approve"
     ? await approveOpportunity(businessId, opportunityId, input, actor)

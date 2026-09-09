@@ -46,6 +46,7 @@ import { OutcomesPanel } from "./OutcomesPanel";
 import { listOpportunitiesForBusiness } from "@/app/lib/business/opportunity/repository";
 import { isOpportunityEnabled } from "@/app/lib/business/opportunity/featureFlag";
 import { OpportunitiesPanel } from "./OpportunityActions";
+import { OwnershipClaimPanel } from "./OwnershipClaimPanel";
 import { listAllSignals } from "@/app/lib/business/advisor/repository";
 import { isAdvisorEnabled } from "@/app/lib/business/advisor/featureFlag";
 import { AdvisorPanel } from "./AdvisorPanel";
@@ -250,6 +251,7 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
 
   // Package B — Contextual Opportunity / Sponsorship Bridge
   const canViewOpportunities = actorHasCapability(access.actor, "view_opportunities");
+  const canGenerateOwnershipClaim = actorHasCapability(access.actor, "generate_ownership_claim");
   const opportunityEnabled = canViewOpportunities ? await isOpportunityEnabled() : false;
   const opportunities = (canViewOpportunities && opportunityEnabled) ? await listOpportunitiesForBusiness(business.id) : [];
   const canReviewOpportunity = actorHasCapability(access.actor, "review_opportunity");
@@ -1141,6 +1143,13 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
                 canCreateCreativeRequest={canCreateOpportunityCreativeRequest}
               />
               </div>
+            </section>
+          ) : null}
+
+          {business.creationSource === "staff_assisted" ? (
+            <section id="ownership-claim" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
+              <h2 className="font-serif text-lg font-bold text-[#1E1810]">Owner Handoff</h2>
+              <OwnershipClaimPanel businessId={business.id} canGenerate={canGenerateOwnershipClaim} />
             </section>
           ) : null}
 

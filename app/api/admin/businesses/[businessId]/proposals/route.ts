@@ -3,7 +3,7 @@
  * Requires create_proposal / review_proposal / record_proposal_decision capabilities.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { requireSalesWorkspaceAccess, actorHasCapability, denialStatusCode, isOwnerBootstrapActor } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { requireSalesWorkspaceAccess, actorHasCapability, denialStatusCode, toStaffWriteActor } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { createProposal, listProposalsForBusiness } from "@/app/lib/business/proposals/repository";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ businessId: string }> }) {
@@ -23,15 +23,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ bus
   if (!actorHasCapability(access.actor, "create_proposal")) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
-  if (isOwnerBootstrapActor(access.actor) || !access.actor.rosterId) {
-    return NextResponse.json({ error: "staff_roster_required" }, { status: 400 });
-  }
+  const staffWrite = toStaffWriteActor(access.actor);
+  if (!staffWrite.ok) return NextResponse.json({ error: staffWrite.reason }, { status: staffWrite.status });
+  const actor = staffWrite.actor;
 
   const { businessId } = await params;
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "invalid_body" }, { status: 400 });
-
-  const actor = { type: "staff" as const, rosterId: access.actor.rosterId, authUserId: access.actor.authUserId, email: access.actor.email, role: access.actor.role };
 
   const result = await createProposal({
     businessId,

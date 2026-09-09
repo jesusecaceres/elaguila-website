@@ -7,7 +7,7 @@ import {
   actorHasCapability,
   denialStatusCode,
   requireSalesWorkspaceAccess,
-  salesActorToAssistantActor,
+  requireStaffWorkspaceWriteAccess,
 } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { isAssistantEnabled } from "@/app/lib/business/assistant/featureFlag";
 import { generateAssistantReply } from "@/app/lib/business/assistant/replyOrchestrator";
@@ -54,12 +54,9 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ businessId: string; threadId: string }> },
 ) {
-  const access = await requireSalesWorkspaceAccess();
+  const access = await requireStaffWorkspaceWriteAccess("view_business_detail");
   if (!access.ok) {
-    return NextResponse.json({ error: access.reason }, { status: denialStatusCode(access.reason) });
-  }
-  if (!actorHasCapability(access.actor, "view_business_detail")) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    return NextResponse.json({ error: access.reason }, { status: access.status });
   }
   if (!(await isAssistantEnabled())) {
     return NextResponse.json({ error: "feature_disabled" }, { status: 404 });
@@ -77,7 +74,7 @@ export async function POST(
     return NextResponse.json({ error: "missing_content" }, { status: 400 });
   }
 
-  const actor = salesActorToAssistantActor(access.actor);
+  const actor = access.actor;
   const contextType: AssistantContextType = thread.primaryContextType;
   const result = await generateAssistantReply(businessId, threadId, contextType, content, actor);
 

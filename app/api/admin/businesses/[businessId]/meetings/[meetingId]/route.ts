@@ -3,7 +3,7 @@
  * records consent, creates notes, imports transcripts.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { requireSalesWorkspaceAccess, actorHasCapability, denialStatusCode } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { requireSalesWorkspaceAccess, actorHasCapability, denialStatusCode, toStaffWriteActor } from "@/app/admin/_lib/businessWorkspaceAccess";
 import {
   updateMeeting, addAttendee, recordConsent, createNote, importTranscript,
   promoteMeetingNote, getPromotionsForMeeting,
@@ -40,7 +40,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ bu
   const action = body.action as string | undefined;
   if (!action) return NextResponse.json({ error: "missing_action" }, { status: 400 });
 
-  const actor = { type: "staff" as const, rosterId: access.actor.rosterId, authUserId: access.actor.authUserId, email: access.actor.email, role: access.actor.role };
+  // Every action below is a write — convert once, denying bootstrap/incomplete identity before any
+  // branch runs, rather than trusting each branch's own capability check alone.
+  const staffWrite = toStaffWriteActor(access.actor);
+  if (!staffWrite.ok) return NextResponse.json({ error: staffWrite.reason }, { status: staffWrite.status });
+  const actor = staffWrite.actor;
 
   if (action === "update_status") {
     if (!actorHasCapability(access.actor, "conduct_business_meeting")) {

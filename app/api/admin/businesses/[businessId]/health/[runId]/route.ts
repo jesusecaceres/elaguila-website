@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
-import { staffActorToHealthMapActor } from "@/app/admin/_lib/healthMapActor";
+import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess, requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { getFullRun, markHumanReview } from "@/app/lib/business/healthMap/repository";
 import { MAX_HUMAN_REVIEW_NOTE_LENGTH } from "@/app/lib/business/healthMap/constants";
 
@@ -23,12 +22,9 @@ export async function GET(_req: Request, ctx: { params: Promise<{ businessId: st
 
 /** PATCH — mark (or unmark) human review on this run's readiness gate. Never rewrites the computed conclusion itself. */
 export async function PATCH(req: Request, ctx: { params: Promise<{ businessId: string; runId: string }> }) {
-  const access = await requireSalesWorkspaceAccess();
+  const access = await requireStaffWorkspaceWriteAccess("mark_health_human_review");
   if (!access.ok) {
-    return NextResponse.json({ ok: false, error: access.reason }, { status: denialStatusCode(access.reason) });
-  }
-  if (!actorHasCapability(access.actor, "mark_health_human_review")) {
-    return NextResponse.json({ ok: false, error: "role_not_permitted" }, { status: 403 });
+    return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
   }
   const { businessId, runId } = await ctx.params;
 
@@ -45,7 +41,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ businessId: s
   const full = await getFullRun(runId);
   if (!full || full.run.businessId !== businessId) return NextResponse.json({ ok: false, error: "run_not_found" }, { status: 404 });
 
-  const success = await markHumanReview(full.readiness.id, b.required, note, staffActorToHealthMapActor(access.actor));
+  const success = await markHumanReview(full.readiness.id, b.required, note, access.actor);
   if (!success) return NextResponse.json({ ok: false, error: "update_failed" }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

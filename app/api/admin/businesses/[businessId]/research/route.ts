@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { actorHasCapability, requireSalesWorkspaceAccess, denialStatusCode } from "@/app/admin/_lib/businessWorkspaceAccess";
-import { staffActorToFieldDiscoveryActor } from "@/app/admin/_lib/fieldDiscoveryActor";
+import { actorHasCapability, requireSalesWorkspaceAccess, denialStatusCode, requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { isAiResearchEnabled } from "@/app/lib/business/aiResearch/featureFlag";
 import { getDefaultBusinessIntelligenceProvider } from "@/app/lib/business/aiResearch/providerRegistry";
 import { listResearchRunsForBusiness, runBusinessAiResearch } from "@/app/lib/business/aiResearch/repository";
@@ -49,16 +48,15 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ bus
 
 /** POST — start a new bounded AI research run for this exact business. */
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ businessId: string }> }) {
-  const access = await requireSalesWorkspaceAccess();
-  if (!access.ok) return NextResponse.json({ ok: false, error: access.reason }, { status: denialStatusCode(access.reason) });
-  if (!actorHasCapability(access.actor, "run_ai_research")) return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+  const access = await requireStaffWorkspaceWriteAccess("run_ai_research");
+  if (!access.ok) return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
   if (!(await isAiResearchEnabled())) return NextResponse.json({ ok: false, error: "feature_disabled" }, { status: 503 });
 
   const { businessId } = await params;
   const identity = await loadBusinessIdentity(businessId);
   if (!identity) return NextResponse.json({ ok: false, error: "business_not_found" }, { status: 404 });
 
-  const result = await runBusinessAiResearch(businessId, identity, staffActorToFieldDiscoveryActor(access.actor));
+  const result = await runBusinessAiResearch(businessId, identity, access.actor);
   if (!result.ok) {
     const status = result.error === "provider_unavailable" || result.error === "consent_not_provided" || result.error === "source_not_found" ? 409 : 500;
     return NextResponse.json({ ok: false, error: result.error }, { status });
