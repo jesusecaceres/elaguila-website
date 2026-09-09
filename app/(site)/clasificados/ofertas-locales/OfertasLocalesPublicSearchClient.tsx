@@ -23,7 +23,7 @@ import {
   LeonixCategorySearchCanvas,
   LeonixCategoryCta,
   LeonixCategoryPartnerSection,
-  LeonixCategoryDiscoveryGrid,
+  LeonixCategoryImageDiscoveryGrid,
   LeonixCategoryVisibilityStrip,
   LeonixCategoryActiveFilters,
   LeonixCategoryResultsShell,
@@ -726,7 +726,7 @@ export function OfertasLocalesPublicSearchClient({
           <>
             {hero}
             <main className="mt-6 space-y-6 overflow-x-hidden sm:mt-8 sm:space-y-8">
-              <LeonixCategoryDiscoveryGrid
+              <LeonixCategoryImageDiscoveryGrid
                 lang={lang as V2Lang}
                 surface="landing"
                 heading={c.discoveryTitle}
@@ -739,6 +739,7 @@ export function OfertasLocalesPublicSearchClient({
                           label: lang === "es" ? "Cupones" : "Coupons",
                           hint: lang === "es" ? "Descuentos directos" : "Direct discounts",
                           href: cuponesResultsHref("coupon"),
+                          imageAlt: lang === "es" ? "Cupones" : "Coupons",
                           icon: FiTag,
                         },
                         {
@@ -746,6 +747,7 @@ export function OfertasLocalesPublicSearchClient({
                           label: lang === "es" ? "Promociones" : "Promotions",
                           hint: lang === "es" ? "Ofertas por tiempo limitado" : "Limited-time deals",
                           href: cuponesResultsHref("promotion"),
+                          imageAlt: lang === "es" ? "Promociones" : "Promotions",
                           icon: FiGift,
                         },
                         {
@@ -753,6 +755,7 @@ export function OfertasLocalesPublicSearchClient({
                           label: lang === "es" ? "Combos" : "Bundles",
                           hint: lang === "es" ? "Paquetes y combos" : "Bundles and combos",
                           href: cuponesResultsHref("bundle"),
+                          imageAlt: lang === "es" ? "Combos" : "Bundles",
                           icon: FiShoppingBag,
                         },
                         {
@@ -760,6 +763,7 @@ export function OfertasLocalesPublicSearchClient({
                           label: lang === "es" ? "Especiales" : "Seasonal specials",
                           hint: lang === "es" ? "Temporada y eventos" : "Seasonal and events",
                           href: cuponesResultsHref("seasonal_special"),
+                          imageAlt: lang === "es" ? "Especiales" : "Seasonal specials",
                           icon: FiStar,
                         },
                       ]
@@ -769,6 +773,7 @@ export function OfertasLocalesPublicSearchClient({
                           label: lang === "es" ? "Volante semanal" : "Weekly flyer",
                           hint: lang === "es" ? "Especiales de tienda" : "Store specials",
                           href: intentResultsHref({ offerType: "weekly_flyer", mode: "flyers" }),
+                          imageAlt: lang === "es" ? "Volante semanal" : "Weekly flyer",
                           icon: FiShoppingCart,
                         },
                         {
@@ -776,6 +781,7 @@ export function OfertasLocalesPublicSearchClient({
                           label: lang === "es" ? "Cupón" : "Coupon",
                           hint: lang === "es" ? "Descuentos directos" : "Direct discounts",
                           href: intentResultsHref({ offerType: "coupon", mode: "coupons" }),
+                          imageAlt: lang === "es" ? "Cupón" : "Coupon",
                           icon: FiTag,
                         },
                         {
@@ -783,6 +789,7 @@ export function OfertasLocalesPublicSearchClient({
                           label: lang === "es" ? "Promoción" : "Promotion",
                           hint: lang === "es" ? "Ofertas por tiempo limitado" : "Limited-time deals",
                           href: intentResultsHref({ offerType: "promotion", mode: "promos" }),
+                          imageAlt: lang === "es" ? "Promoción" : "Promotion",
                           icon: FiGift,
                         },
                         {
@@ -790,6 +797,8 @@ export function OfertasLocalesPublicSearchClient({
                           label: lang === "es" ? "Tienda local" : "Local store",
                           hint: lang === "es" ? "Negocios cerca de ti" : "Nearby businesses",
                           href: intentResultsHref({ marketType: "retail", mode: "stores" }),
+                          imageSrc: "/selector-cards/varios-resale-comunitario.jpg",
+                          imageAlt: lang === "es" ? "Tienda local" : "Local store",
                           icon: FiShoppingBag,
                         },
                         {
@@ -797,6 +806,8 @@ export function OfertasLocalesPublicSearchClient({
                           label: lang === "es" ? "Servicio local" : "Local service",
                           hint: lang === "es" ? "Promos de servicios" : "Service promos",
                           href: intentResultsHref({ marketType: "service", mode: "services" }),
+                          imageSrc: "/selector-cards/servicios-locales.jpg",
+                          imageAlt: lang === "es" ? "Servicio local" : "Local service",
                           icon: FiTool,
                         },
                         {
@@ -804,6 +815,8 @@ export function OfertasLocalesPublicSearchClient({
                           label: lang === "es" ? "Comida" : "Food",
                           hint: lang === "es" ? "Restaurantes y mercados" : "Restaurants and markets",
                           href: intentResultsHref({ category: "food", mode: "food" }),
+                          imageSrc: "/selector-cards/comida-local-vendedor-movil.jpg",
+                          imageAlt: lang === "es" ? "Comida" : "Food",
                           icon: FiCoffee,
                         },
                       ]

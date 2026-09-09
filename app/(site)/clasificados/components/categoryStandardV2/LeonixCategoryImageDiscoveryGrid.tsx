@@ -4,7 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import type { ImageDiscoveryGridItem, LeonixCategoryImageDiscoveryGridProps } from "./types";
-import { LEONIX_LANDING_SECTION, LEONIX_LANDING_SECTION_PAD } from "./constants";
+import {
+  LEONIX_LANDING_SECTION,
+  LEONIX_LANDING_SECTION_PAD,
+  LEONIX_IMAGE_DISCOVERY_GRID,
+} from "./constants";
 
 /**
  * Leonix Category Image Discovery Grid
@@ -40,7 +44,7 @@ export function LeonixCategoryImageDiscoveryGrid({
           {heading}
         </h2>
         <p className="mt-1 text-xs text-[#5C5346]/90">{subtitle}</p>
-        <div className="mt-4 grid min-w-0 grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
+        <div className={LEONIX_IMAGE_DISCOVERY_GRID}>
           {items.map((item) => (
             <ImageDiscoveryCard key={item.id} item={item} />
           ))}

@@ -142,7 +142,7 @@ function ClasificadosPageInner() {
             {t.sectionBrowse}
           </h2>
 
-          <ul className="mt-8 grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="mt-8 grid min-w-0 grid-cols-1 items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {C1_CATEGORY_ORDER.map((k) => {
               const copy = getPublicCategoryCardCopy(k, routeLang);
               const browseHref = buildHubCategoryPageUrl(k, routeLang);
@@ -150,7 +150,7 @@ function ClasificadosPageInner() {
               const priority = PRIORITY_KEYS.has(k);
 
               return (
-                <li key={k} className="flex h-full">
+                <li key={k} className="flex h-full min-w-0">
                   <ClasificadosHubCategoryCard
                     category={k}
                     lang={routeLang}
@@ -165,7 +165,7 @@ function ClasificadosPageInner() {
                 </li>
               );
             })}
-            <li className="flex h-full">
+            <li className="flex h-full min-w-0">
               <ClasificadosHubCategoryCard
                 lang={routeLang}
                 browseHref={dealerBrowseHref}

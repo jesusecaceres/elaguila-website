@@ -261,7 +261,7 @@ function NegociosLocalesInner() {
             {t.sectionLanes}
           </h2>
 
-          <ul className="mt-8 grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="mt-8 grid min-w-0 grid-cols-1 items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {NEGOCIOS_SECTOR_GRID_ORDER.map((lane) => {
               const copy = NEGOCIOS_LANE_COPY[lane];
               const label = pageLang === "es" ? copy.labelEs : copy.labelEn;
@@ -272,7 +272,7 @@ function NegociosLocalesInner() {
               const accent = lane === "autos-dealer" ? "gold" : undefined;
 
               return (
-                <li key={lane} className="flex h-full">
+                <li key={lane} className="flex h-full min-w-0">
                   <NegociosLocalesBusinessCard
                     lang={routeLang}
                     browseHref={buildNegociosExploreHref(lane, routeLang)}

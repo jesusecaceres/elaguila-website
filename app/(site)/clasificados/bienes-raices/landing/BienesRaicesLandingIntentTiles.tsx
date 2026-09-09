@@ -7,7 +7,7 @@ import {
   BR_LANDING_TILES_INTEGRATED,
 } from "@/app/clasificados/bienes-raices/shared/bienesRaicesLeonixPublicUi";
 import { buildBrResultsUrl } from "@/app/clasificados/bienes-raices/shared/constants/brResultsRoutes";
-import { ImageDiscoveryCard } from "@/app/(site)/clasificados/components/categoryStandardV2";
+import { ImageDiscoveryCard, LEONIX_IMAGE_DISCOVERY_GRID } from "@/app/(site)/clasificados/components/categoryStandardV2";
 
 type Props = {
   lang: "es" | "en";
@@ -34,7 +34,7 @@ export function BienesRaicesLandingIntentTiles({ lang, routeLang, headingEs, hea
       <p className="mt-1 text-xs text-[#5C5346]/90">
         {lang === "es" ? "Elige una opción para empezar." : "Pick an option to get started."}
       </p>
-      <div className="mt-4 grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
+      <div className={LEONIX_IMAGE_DISCOVERY_GRID}>
         {tiles.map((tile) => {
           const href = buildBrResultsUrl({ ...tile.params, lang: routeLang });
           const label = lang === "es" ? tile.labelEs : tile.labelEn;
