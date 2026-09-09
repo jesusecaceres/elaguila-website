@@ -204,6 +204,13 @@ export type ComidaLocalDraft = {
   /** Gate D6 — optional permanent business address, private by default. */
   businessAddressLine: string;
   showAddressPublicly: boolean;
+  /** Gate G23 — set only by the shared BusinessAddressVerifiedInput picker. Comida Local's address
+   * is a single free-text line (no structured street/city/region/postal split), so a picked
+   * suggestion's formatted address is folded into `businessAddressLine` itself — these 3 fields
+   * only ever carry the verification metadata. Absent on any listing from before this existed. */
+  physicalVerificationStatus: "unverified" | "manual" | "user_confirmed" | "provider_suggested" | "verified";
+  physicalProvider: string | null;
+  physicalProviderPlaceId: string | null;
   paymentMethods: ComidaLocalPaymentMethod[];
   paymentOtherNote: string;
   priceLevel: ComidaLocalPriceLevel | "";

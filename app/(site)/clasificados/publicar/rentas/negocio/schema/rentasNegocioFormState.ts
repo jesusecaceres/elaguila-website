@@ -80,6 +80,11 @@ export type RentasNegocioFormState = {
   direccionLinea2: string;
   direccionCruceCercano: string;
   mostrarDireccionExacta: boolean;
+  /** Gate G23 — set only by the shared BusinessAddressVerifiedInput picker (never invented/
+   * guessed). Absent on any listing before this field existed. */
+  direccionVerificationStatus: "unverified" | "manual" | "user_confirmed" | "provider_suggested" | "verified";
+  direccionProvider: string | null;
+  direccionProviderPlaceId: string | null;
   direccionNumero: string;
   direccionCalle: string;
   direccionEstado: string;
@@ -181,6 +186,9 @@ export function createEmptyRentasNegocioFormState(): RentasNegocioFormState {
     direccionLinea2: p.direccionLinea2,
     direccionCruceCercano: p.direccionCruceCercano,
     mostrarDireccionExacta: p.mostrarDireccionExacta,
+    direccionVerificationStatus: p.direccionVerificationStatus,
+    direccionProvider: p.direccionProvider,
+    direccionProviderPlaceId: p.direccionProviderPlaceId,
     direccionNumero: "",
     direccionCalle: "",
     direccionEstado: p.direccionEstado,
@@ -309,6 +317,9 @@ export function mergePartialRentasNegocioState(partial: Partial<RentasNegocioFor
     direccionLinea2: asPrivado.direccionLinea2,
     direccionCruceCercano: asPrivado.direccionCruceCercano,
     mostrarDireccionExacta: asPrivado.mostrarDireccionExacta,
+    direccionVerificationStatus: asPrivado.direccionVerificationStatus,
+    direccionProvider: asPrivado.direccionProvider,
+    direccionProviderPlaceId: asPrivado.direccionProviderPlaceId,
     direccionNumero: asPrivado.direccionNumero,
     direccionCalle: asPrivado.direccionCalle,
     direccionEstado: asPrivado.direccionEstado,

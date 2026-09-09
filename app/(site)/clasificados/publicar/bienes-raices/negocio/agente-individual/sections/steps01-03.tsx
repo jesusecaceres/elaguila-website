@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { AgenteIndividualResidencialFormState } from "../schema/agenteIndividualResidencialFormState";
 import { AGENTE_RES_MAX_VIDEO_URLS } from "../schema/agenteIndividualResidencialFormState";
 import { AiField, aiCardClass, aiInputClass, aiSubClass, aiTitleClass } from "../application/formPrimitives";
+import { BusinessAddressVerifiedInput } from "@/app/components/forms/BusinessAddressVerifiedInput";
 import { readFileAsDataUrl } from "../application/utils/readFileAsDataUrl";
 import { LeonixRealEstateSortablePhotoStrip } from "@/app/(site)/clasificados/lib/LeonixRealEstateSortablePhotoStrip";
 import {
@@ -453,14 +454,41 @@ export function Step02InformacionBasica({
         </AiField>
         <div className="sm:col-span-2">
           <AiField label={t.step02.direccion} hint={t.step02.direccionHint}>
-            <input
+            <BusinessAddressVerifiedInput
+              lang={lang}
               className={aiInputClass}
-              value={state.direccionLinea1}
-              onChange={(ev) => {
-                const v = ev.target.value;
-                setState((s) => ({ ...s, direccionLinea1: v, direccion: v }));
+              value={{
+                street: state.direccionLinea1,
+                unit: state.direccionLinea2 || undefined,
+                city: state.ciudad,
+                region: state.direccionEstado,
+                postalCode: state.direccionCodigoPostal,
+                country: state.direccionPais,
+                verificationStatus: state.direccionVerificationStatus,
+                provider: state.direccionProvider,
+                providerPlaceId: state.direccionProviderPlaceId,
+                manualEntry: state.direccionVerificationStatus !== "user_confirmed",
               }}
-              autoComplete="street-address"
+              onChange={(next) =>
+                setState((s) => ({
+                  ...s,
+                  direccionLinea1: next.street,
+                  direccion: next.street,
+                  // A picked suggestion carries its own city/state/zip/country — auto-fill those
+                  // too. Manual typing (verificationStatus stays "manual") only touches street.
+                  ...(next.verificationStatus === "user_confirmed"
+                    ? {
+                        ciudad: next.city || s.ciudad,
+                        direccionEstado: next.region || s.direccionEstado,
+                        direccionCodigoPostal: next.postalCode || s.direccionCodigoPostal,
+                        direccionPais: next.country || s.direccionPais,
+                      }
+                    : {}),
+                  direccionVerificationStatus: next.verificationStatus,
+                  direccionProvider: next.provider ?? null,
+                  direccionProviderPlaceId: next.providerPlaceId ?? null,
+                }))
+              }
             />
           </AiField>
         </div>

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
+import { BusinessAddressVerifiedInput } from "@/app/components/forms/BusinessAddressVerifiedInput";
 import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/application/restauranteDraftTypes";
 import type { RestauranteAdditionalWebsite, RestauranteCoupon, RestauranteDaySchedule, RestauranteFeaturedDish, RestauranteServiceMode, RestauranteSpecialHoursEntry } from "@/app/clasificados/restaurantes/application/restauranteListingApplicationModel";
 import {
@@ -1787,10 +1788,39 @@ export default function RestauranteApplicationClient() {
             <div>
               <FieldLabel optional lang={lang}>{fc.sectionE.addressLine1Label}</FieldLabel>
               <HelperText>{fc.sectionE.addressLine1Helper}</HelperText>
-              <input
-                className="mt-1 w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-white px-3 py-2 text-sm"
-                value={draft.addressLine1 ?? ""}
-                onChange={(e) => setDraftPatch({ addressLine1: e.target.value || undefined })}
+              <BusinessAddressVerifiedInput
+                lang={lang}
+                className="mt-1"
+                value={{
+                  street: draft.addressLine1 ?? "",
+                  unit: draft.addressLine2 || undefined,
+                  city: draft.cityCanonical ?? "",
+                  region: draft.state ?? "",
+                  postalCode: draft.zipCode ?? "",
+                  country: draft.country ?? "",
+                  verificationStatus: draft.physicalVerificationStatus ?? "unverified",
+                  provider: draft.physicalProvider ?? null,
+                  providerPlaceId: draft.physicalProviderPlaceId ?? null,
+                  manualEntry: (draft.physicalVerificationStatus ?? "unverified") !== "user_confirmed",
+                }}
+                onChange={(next) =>
+                  setDraftPatch({
+                    addressLine1: next.street || undefined,
+                    // A picked suggestion carries its own city/state/zip/country — auto-fill those
+                    // too. Manual typing (verificationStatus stays "manual") only touches street.
+                    ...(next.verificationStatus === "user_confirmed"
+                      ? {
+                          cityCanonical: next.city || draft.cityCanonical,
+                          state: next.region || draft.state,
+                          zipCode: next.postalCode || draft.zipCode,
+                          country: next.country || draft.country,
+                        }
+                      : {}),
+                    physicalVerificationStatus: next.verificationStatus,
+                    physicalProvider: next.provider ?? null,
+                    physicalProviderPlaceId: next.providerPlaceId ?? null,
+                  })
+                }
               />
             </div>
             <div>

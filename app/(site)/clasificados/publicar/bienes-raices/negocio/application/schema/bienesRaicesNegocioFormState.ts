@@ -120,6 +120,11 @@ export type BienesRaicesNegocioFormState = {
   pais: string;
   /** When false (default), public rows omit street-level `direccion` from persisted `Dirección` / map query. */
   mostrarDireccionExacta: boolean;
+  /** Gate G23 — set only by the shared BusinessAddressVerifiedInput picker. Absent on any listing
+   * before this field existed. */
+  direccionVerificationStatus?: "unverified" | "manual" | "user_confirmed" | "provider_suggested" | "verified";
+  direccionProvider?: string | null;
+  direccionProviderPlaceId?: string | null;
   descripcionCorta: string;
   listingStatus: BienesRaicesListingStatus;
 
@@ -520,6 +525,9 @@ export function createEmptyBienesRaicesNegocioFormState(): BienesRaicesNegocioFo
     colonia: "",
     pais: "United States",
     mostrarDireccionExacta: false,
+    direccionVerificationStatus: "unverified",
+    direccionProvider: null,
+    direccionProviderPlaceId: null,
     descripcionCorta: "",
     listingStatus: "en_venta",
     tipoPropiedad: "",

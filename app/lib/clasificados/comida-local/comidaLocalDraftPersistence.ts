@@ -306,6 +306,14 @@ export function mergeComidaLocalDraftFromStorage(parsed: unknown): ComidaLocalDr
     serviceOptionOtherCustomValues,
     businessAddressLine: safeString(parsed.businessAddressLine, 200),
     showAddressPublicly: parsed.showAddressPublicly === true,
+    physicalVerificationStatus: (["unverified", "manual", "user_confirmed", "provider_suggested", "verified"] as const).includes(
+      parsed.physicalVerificationStatus as never,
+    )
+      ? (parsed.physicalVerificationStatus as ComidaLocalDraft["physicalVerificationStatus"])
+      : "unverified",
+    physicalProvider: typeof parsed.physicalProvider === "string" ? parsed.physicalProvider : null,
+    physicalProviderPlaceId:
+      typeof parsed.physicalProviderPlaceId === "string" ? parsed.physicalProviderPlaceId : null,
     paymentMethods,
     paymentOtherNote: safeString(parsed.paymentOtherNote, 80),
     priceLevel,

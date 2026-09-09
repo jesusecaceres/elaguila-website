@@ -1,6 +1,7 @@
 "use client";
 
 import CityAutocomplete from "@/app/components/CityAutocomplete";
+import { BusinessAddressVerifiedInput } from "@/app/components/forms/BusinessAddressVerifiedInput";
 import type { DealerStructuredAddressPatch } from "@/app/lib/clasificados/autos/autosDealerStructuredAddress";
 import {
   AUTOS_DEFAULT_COUNTRY,
@@ -62,11 +63,39 @@ export function AutosDealerStructuredAddressFields({
         </div>
         <div>
           <label className={LABEL}>{labels.streetName}</label>
-          <input
+          <BusinessAddressVerifiedInput
+            lang={lang}
             className={INPUT}
-            value={values.dealerStreetName ?? ""}
-            onChange={(e) => onPatch({ dealerStreetName: autosDraftTextValue(e.target.value) })}
-            autoComplete="street-address"
+            value={{
+              // A picked suggestion's street text (e.g. "1550 Constitution Ave") typically already
+              // includes the number, so this deliberately does not try to split it back into the
+              // separate Street Number field above -- that field stays independently owner-editable.
+              street: values.dealerStreetName ?? "",
+              city: values.dealerAddressCity ?? "",
+              region: values.dealerAddressState ?? "",
+              postalCode: values.dealerAddressZip ?? "",
+              country: values.dealerAddressCountry ?? "",
+              verificationStatus: values.dealerAddressVerificationStatus ?? "unverified",
+              provider: values.dealerAddressProvider ?? null,
+              providerPlaceId: values.dealerAddressProviderPlaceId ?? null,
+              manualEntry: (values.dealerAddressVerificationStatus ?? "unverified") !== "user_confirmed",
+            }}
+            onChange={(next) =>
+              onPatch({
+                dealerStreetName: autosDraftTextValue(next.street),
+                ...(next.verificationStatus === "user_confirmed"
+                  ? {
+                      dealerAddressCity: next.city || values.dealerAddressCity,
+                      dealerAddressState: next.region || values.dealerAddressState,
+                      dealerAddressZip: next.postalCode || values.dealerAddressZip,
+                      dealerAddressCountry: next.country || values.dealerAddressCountry,
+                    }
+                  : {}),
+                dealerAddressVerificationStatus: next.verificationStatus,
+                dealerAddressProvider: next.provider ?? null,
+                dealerAddressProviderPlaceId: next.providerPlaceId ?? null,
+              })
+            }
           />
         </div>
         <div className="sm:col-span-2">

@@ -370,6 +370,11 @@ export type RestauranteLocationDetails = {
   serviceAreaText?: string;
   deliveryRadiusMiles?: number;
   locationPrivacyMode?: RestauranteLocationPrivacyMode;
+  /** Gate G23 — set only by the shared BusinessAddressVerifiedInput picker (never invented/
+   * guessed). Absent on any listing before this field existed. */
+  physicalVerificationStatus?: "unverified" | "manual" | "user_confirmed" | "provider_suggested" | "verified";
+  physicalProvider?: string | null;
+  physicalProviderPlaceId?: string | null;
 };
 
 // ---------------------------------------------------------------------------

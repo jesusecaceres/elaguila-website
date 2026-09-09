@@ -251,6 +251,11 @@ export type AutoDealerListing = {
   dealerAddressZip?: string;
   /** Dealership country — defaults to United States when empty. */
   dealerAddressCountry?: string;
+  /** Gate G23 — set only by the shared BusinessAddressVerifiedInput picker (never invented/
+   * guessed). Absent on any listing before this field existed. */
+  dealerAddressVerificationStatus?: "unverified" | "manual" | "user_confirmed" | "provider_suggested" | "verified";
+  dealerAddressProvider?: string | null;
+  dealerAddressProviderPlaceId?: string | null;
   /** Catalog engine value for filter facets; omit when seller enters custom motor text. */
   engineNormalized?: string;
   dealerHours?: DealerHoursEntry[];

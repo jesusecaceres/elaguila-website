@@ -142,5 +142,10 @@ export function buildBusinessMetaJsonFromBienesRaicesNegocioState(s: BienesRaice
   const yelpReviews = trim(s.yelpReviewsUrl);
   if (/^https?:\/\/\S+/i.test(yelpReviews)) meta.negocioYelpReviewsUrl = yelpReviews;
 
+  // Gate G23 — set only by the shared BusinessAddressVerifiedInput picker.
+  if (s.direccionVerificationStatus) meta.negocioDireccionVerificationStatus = s.direccionVerificationStatus;
+  if (trim(s.direccionProvider ?? "")) meta.negocioDireccionProvider = trim(s.direccionProvider ?? "");
+  if (trim(s.direccionProviderPlaceId ?? "")) meta.negocioDireccionProviderPlaceId = trim(s.direccionProviderPlaceId ?? "");
+
   return Object.keys(meta).length ? JSON.stringify(meta) : null;
 }
