@@ -434,6 +434,16 @@ export function normalizeClasificadosServiciosApplicationState(raw: unknown): Cl
     physicalCountry: str("physicalCountry", d.physicalCountry),
     physicalPostalCode: str("physicalPostalCode", d.physicalPostalCode),
     showExactAddress: bool("showExactAddress", d.showExactAddress),
+    physicalVerificationStatus: (() => {
+      const v = o.physicalVerificationStatus;
+      const allowed = ["unverified", "manual", "user_confirmed", "provider_suggested", "verified"] as const;
+      return typeof v === "string" && (allowed as readonly string[]).includes(v)
+        ? (v as (typeof allowed)[number])
+        : d.physicalVerificationStatus;
+    })(),
+    physicalProvider: typeof o.physicalProvider === "string" ? o.physicalProvider : d.physicalProvider,
+    physicalProviderPlaceId:
+      typeof o.physicalProviderPlaceId === "string" ? o.physicalProviderPlaceId : d.physicalProviderPlaceId,
     // One-time legacy migration: an old single-line comma/semicolon-separated draft (from before
     // service areas were newline-delimited, S-073) is converted to newline-joined form here, once,
     // on hydrate. A string that already contains a newline is assumed already-migrated and is left

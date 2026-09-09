@@ -93,6 +93,12 @@ export function mapServiciosProfileToBusinessHubContact(
       url: googleBusiness,
     });
   }
+  for (const row of profile.contact.additionalWebsites ?? []) {
+    const url = row.url?.trim();
+    if (!url) continue;
+    moreLinks.push({ label: row.label?.trim() || (lang === "en" ? "Additional link" : "Enlace adicional"), url });
+    if (moreLinks.length >= 6) break;
+  }
   for (const row of profile.contact.extraLinks ?? []) {
     const url = row.url?.trim();
     if (!url) continue;

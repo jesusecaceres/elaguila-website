@@ -17,6 +17,8 @@ import {
 import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
 import { PhoneInput } from "@/app/components/forms/PhoneInput";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
+import { BusinessAddressVerifiedInput } from "@/app/components/forms/BusinessAddressVerifiedInput";
+import type { BusinessAddress } from "@/app/lib/businessAddress/businessAddressContract";
 import { LanguagesInput } from "@/app/components/forms/LanguagesInput";
 import { useAddedConfirmation, AddedConfirmationBadge } from "@/app/components/forms/AddedConfirmation";
 import {
@@ -1462,11 +1464,41 @@ export function ClasificadosServiciosApplication() {
               <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <label className={labelClass}>{copy.labels.physicalStreet}</label>
-                  <input
+                  <BusinessAddressVerifiedInput
+                    lang={lang}
                     className={inputClass}
-                    value={state.physicalStreet}
-                    onChange={(e) => setState((s) => ({ ...s, physicalStreet: e.target.value }))}
-                    autoComplete="street-address"
+                    value={{
+                      street: state.physicalStreet,
+                      unit: state.physicalSuite || undefined,
+                      city: state.physicalAddressCity,
+                      region: state.physicalRegion,
+                      postalCode: state.physicalPostalCode,
+                      country: state.physicalCountry,
+                      verificationStatus: state.physicalVerificationStatus,
+                      provider: state.physicalProvider,
+                      providerPlaceId: state.physicalProviderPlaceId,
+                      manualEntry: state.physicalVerificationStatus !== "user_confirmed",
+                    }}
+                    onChange={(next: BusinessAddress) =>
+                      setState((s) => ({
+                        ...s,
+                        physicalStreet: next.street,
+                        // A picked suggestion carries its own city/region/postal/country — auto-fill
+                        // those fields too so the owner doesn't have to retype them. Manual typing
+                        // (verificationStatus stays "manual") only ever touches the street field.
+                        ...(next.verificationStatus === "user_confirmed"
+                          ? {
+                              physicalAddressCity: next.city || s.physicalAddressCity,
+                              physicalRegion: next.region || s.physicalRegion,
+                              physicalPostalCode: next.postalCode || s.physicalPostalCode,
+                              physicalCountry: next.country || s.physicalCountry,
+                            }
+                          : {}),
+                        physicalVerificationStatus: next.verificationStatus,
+                        physicalProvider: next.provider ?? null,
+                        physicalProviderPlaceId: next.providerPlaceId ?? null,
+                      }))
+                    }
                   />
                 </div>
                 <div className="sm:col-span-2">
