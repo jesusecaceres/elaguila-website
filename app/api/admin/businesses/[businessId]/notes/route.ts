@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess, requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { createSalesNote, listSalesNotes } from "@/app/admin/_lib/businessWorkspaceData";
 import {
   SALES_CONTACT_METHODS,
@@ -26,12 +26,9 @@ export async function GET(_req: Request, ctx: { params: Promise<{ businessId: st
 }
 
 export async function POST(req: Request, ctx: { params: Promise<{ businessId: string }> }) {
-  const access = await requireSalesWorkspaceAccess();
+  const access = await requireStaffWorkspaceWriteAccess("create_internal_note");
   if (!access.ok) {
-    return NextResponse.json({ ok: false, error: access.reason }, { status: denialStatusCode(access.reason) });
-  }
-  if (!actorHasCapability(access.actor, "create_internal_note")) {
-    return NextResponse.json({ ok: false, error: "role_not_permitted" }, { status: 403 });
+    return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
   }
   const { businessId } = await ctx.params;
 

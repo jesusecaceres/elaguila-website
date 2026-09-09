@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
-import { staffActorToLivingBookActor } from "@/app/admin/_lib/livingBookActor";
+import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess, requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { findQuestionByKey } from "@/app/lib/business/livingBook/questionRegistry";
 import { completeDiscoverySession, listAnswersForSession, recordDiscoveryAnswer } from "@/app/lib/business/livingBook/repository";
 import { MAX_DISCOVERY_ANSWER_TEXT_LENGTH, MAX_DISCOVERY_SUMMARY_LENGTH } from "@/app/lib/business/livingBook/constants";
@@ -23,12 +22,9 @@ export async function GET(_req: Request, ctx: { params: Promise<{ businessId: st
 
 /** PATCH — action: "answer" records one discovery-question answer; action: "complete" closes the session. */
 export async function PATCH(req: Request, ctx: { params: Promise<{ businessId: string; sessionId: string }> }) {
-  const access = await requireSalesWorkspaceAccess();
+  const access = await requireStaffWorkspaceWriteAccess("conduct_discovery");
   if (!access.ok) {
-    return NextResponse.json({ ok: false, error: access.reason }, { status: denialStatusCode(access.reason) });
-  }
-  if (!actorHasCapability(access.actor, "conduct_discovery")) {
-    return NextResponse.json({ ok: false, error: "role_not_permitted" }, { status: 403 });
+    return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
   }
   const { businessId, sessionId } = await ctx.params;
 
@@ -50,7 +46,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ businessId: s
 
     const result = await recordDiscoveryAnswer(
       { sessionId, businessId, questionKey, answerValue, answerText, skipped, createdFactId: null, createdUnknownId: null },
-      staffActorToLivingBookActor(access.actor),
+      access.actor,
     );
     if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 400 });
     return NextResponse.json({ ok: true, id: result.id });
@@ -58,7 +54,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ businessId: s
 
   if (b.action === "complete") {
     const summary = typeof b.summary === "string" && b.summary.trim() ? b.summary.trim().slice(0, MAX_DISCOVERY_SUMMARY_LENGTH) : null;
-    const success = await completeDiscoverySession(businessId, sessionId, summary, staffActorToLivingBookActor(access.actor));
+    const success = await completeDiscoverySession(businessId, sessionId, summary, access.actor);
     if (!success) return NextResponse.json({ ok: false, error: "update_failed" }, { status: 500 });
     return NextResponse.json({ ok: true });
   }

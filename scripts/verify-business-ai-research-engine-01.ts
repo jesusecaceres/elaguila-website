@@ -204,9 +204,9 @@ check("28. Owner route enforces exact-business membership (cross-business denial
 });
 
 // 29. Role denial
-check("29. Staff routes enforce capability checks (role denial)", () => {
+check("29. Staff routes enforce capability checks (role denial) -- research/route.ts's POST now goes through the canonical Systemic Repair Build staff-write guard, which folds the capability check and the bootstrap-write denial into one call", () => {
   const researchSrc = read("app/api/admin/businesses/[businessId]/research/route.ts");
-  assert.ok(researchSrc.includes('actorHasCapability(access.actor, "run_ai_research")'));
+  assert.ok(researchSrc.includes('requireStaffWorkspaceWriteAccess("run_ai_research")'));
   const briefingSrc = read("app/api/admin/businesses/[businessId]/briefing/[draftId]/route.ts");
   assert.ok(briefingSrc.includes('actorHasCapability(access.actor, "promote_ai_briefing")'));
 });

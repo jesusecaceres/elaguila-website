@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
-import { staffActorToLivingBookActor } from "@/app/admin/_lib/livingBookActor";
+import { requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { CONTRADICTION_SEVERITIES, CONTRADICTION_TYPES } from "@/app/lib/business/livingBook/constants";
 import { createContradiction } from "@/app/lib/business/livingBook/repository";
 
@@ -11,12 +10,9 @@ const SEVERITY_VALUES = new Set<string>(CONTRADICTION_SEVERITIES.map((o) => o.va
 
 /** POST — record two disagreeing claims side by side. Requires resolve_contradictions (manager+). */
 export async function POST(req: Request, ctx: { params: Promise<{ businessId: string }> }) {
-  const access = await requireSalesWorkspaceAccess();
+  const access = await requireStaffWorkspaceWriteAccess("resolve_contradictions");
   if (!access.ok) {
-    return NextResponse.json({ ok: false, error: access.reason }, { status: denialStatusCode(access.reason) });
-  }
-  if (!actorHasCapability(access.actor, "resolve_contradictions")) {
-    return NextResponse.json({ ok: false, error: "role_not_permitted" }, { status: 403 });
+    return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
   }
   const { businessId } = await ctx.params;
 
@@ -47,7 +43,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ businessId: st
       claimBFactId: typeof b.claimBFactId === "string" ? b.claimBFactId : null,
       claimBEvidenceId: typeof b.claimBEvidenceId === "string" ? b.claimBEvidenceId : null,
     },
-    staffActorToLivingBookActor(access.actor),
+    access.actor,
   );
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 400 });
   return NextResponse.json({ ok: true, id: result.id }, { status: 201 });

@@ -8,7 +8,7 @@
  * (Package A).
  */
 import { NextResponse, type NextRequest } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess, salesActorToCreativeActor } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { getOpportunityById, markOpportunityCreativeRequested } from "@/app/lib/business/opportunity/repository";
 import type { OpportunityType } from "@/app/lib/business/opportunity/types";
 import { createJob } from "@/app/lib/business/creativeStudio/repository";
@@ -34,12 +34,9 @@ export async function POST(
   { params }: { params: Promise<{ businessId: string; opportunityId: string }> },
 ) {
   const { businessId, opportunityId } = await params;
-  const access = await requireSalesWorkspaceAccess();
+  const access = await requireStaffWorkspaceWriteAccess("create_opportunity_creative_request");
   if (!access.ok) {
-    return NextResponse.json({ ok: false, error: access.reason }, { status: denialStatusCode(access.reason) });
-  }
-  if (!actorHasCapability(access.actor, "create_opportunity_creative_request")) {
-    return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+    return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
   }
 
   const opportunity = await getOpportunityById(businessId, opportunityId);
@@ -52,7 +49,7 @@ export async function POST(
 
   const language = await getBusinessPrimaryLanguage(businessId);
 
-  const creativeActor = salesActorToCreativeActor(access.actor);
+  const creativeActor = access.actor;
 
   const job = await createJob(
     businessId,

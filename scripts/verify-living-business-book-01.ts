@@ -269,12 +269,22 @@ const routeCapabilityMap: Record<string, string> = {
   "discovery/route.ts": "conduct_discovery",
   "discovery/[sessionId]/route.ts": "conduct_discovery",
 };
-check("Staff Living Business Book API: every route calls requireSalesWorkspaceAccess() and checks the correct capability before touching the repository", () => {
+// (Systemic Repair Build) route.ts is read-only (GET view_business_book) and still uses the plain
+// requireSalesWorkspaceAccess() + actorHasCapability() + denialStatusCode() pattern. Every other
+// route here is a WRITE and now goes through the canonical requireStaffWorkspaceWriteAccess(cap)
+// guard, which folds the same capability check plus the bootstrap-write denial into one call and
+// returns access.status directly instead of denialStatusCode(access.reason).
+const READ_ONLY_BOOK_ROUTES = new Set(["route.ts"]);
+check("Staff Living Business Book API: the read-only route calls requireSalesWorkspaceAccess() + actorHasCapability(); every write route calls the canonical requireStaffWorkspaceWriteAccess() staff-write guard", () => {
   for (const [rel, capability] of Object.entries(routeCapabilityMap)) {
     const text = read(`${bookRoutesDir}/${rel}`);
-    assert.ok(text.includes("requireSalesWorkspaceAccess()"), `${rel} does not call requireSalesWorkspaceAccess()`);
-    assert.ok(text.includes(`actorHasCapability(access.actor, "${capability}")`), `${rel} does not check capability ${capability}`);
-    assert.ok(text.includes("denialStatusCode(access.reason)"), `${rel} does not use denialStatusCode()`);
+    if (READ_ONLY_BOOK_ROUTES.has(rel)) {
+      assert.ok(text.includes("requireSalesWorkspaceAccess()"), `${rel} does not call requireSalesWorkspaceAccess()`);
+      assert.ok(text.includes(`actorHasCapability(access.actor, "${capability}")`), `${rel} does not check capability ${capability}`);
+      assert.ok(text.includes("denialStatusCode(access.reason)"), `${rel} does not use denialStatusCode()`);
+    } else {
+      assert.ok(text.includes(`requireStaffWorkspaceWriteAccess("${capability}")`), `${rel} does not call requireStaffWorkspaceWriteAccess("${capability}")`);
+    }
   }
 });
 check("Staff API: fact creation independently re-checks confirm_business_fact before allowing an overwrite of an already-trusted sensitive fact (defense in depth beyond the base create_business_fact capability)", () => {
@@ -298,7 +308,7 @@ check("Owner corrections API only allows owner_confirms/owner_corrects/owner_rej
 const GATE5_FILES = [
   "app/lib/business/livingBook/types.ts", "app/lib/business/livingBook/constants.ts", "app/lib/business/livingBook/logic.ts",
   "app/lib/business/livingBook/questionRegistry.ts", "app/lib/business/livingBook/repository.ts", "app/lib/business/livingBook/featureFlag.ts",
-  "app/admin/_lib/livingBookActor.ts", "app/admin/_lib/livingBookVisibility.ts", "app/admin/_lib/salesWorkspaceCapabilities.ts",
+  "app/admin/_lib/businessWorkspaceAccess.ts", "app/admin/_lib/livingBookVisibility.ts", "app/admin/_lib/salesWorkspaceCapabilities.ts",
   MIGRATION_PATH,
 ];
 check("No secret pattern or the production Supabase ref appears in any Gate BCO-5A file", () => {

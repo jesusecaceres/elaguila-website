@@ -1,18 +1,14 @@
 import { NextResponse } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
-import { staffActorToLivingBookActor } from "@/app/admin/_lib/livingBookActor";
+import { requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { decideCorrection, submitCorrection } from "@/app/lib/business/livingBook/repository";
 
 export const dynamic = "force-dynamic";
 
 /** POST — staff clarification request. (Owner-submitted corrections go through the entrepreneur-facing route, not this staff-only one.) */
 export async function POST(req: Request, ctx: { params: Promise<{ businessId: string }> }) {
-  const access = await requireSalesWorkspaceAccess();
+  const access = await requireStaffWorkspaceWriteAccess("create_business_fact");
   if (!access.ok) {
-    return NextResponse.json({ ok: false, error: access.reason }, { status: denialStatusCode(access.reason) });
-  }
-  if (!actorHasCapability(access.actor, "create_business_fact")) {
-    return NextResponse.json({ ok: false, error: "role_not_permitted" }, { status: 403 });
+    return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
   }
   const { businessId } = await ctx.params;
 
@@ -28,7 +24,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ businessId: st
 
   const result = await submitCorrection(
     { businessId, relatedFactId, correctionType: "staff_clarification_request", submittedValue: null, submittedDisplayValue: null, explanation },
-    staffActorToLivingBookActor(access.actor),
+    access.actor,
   );
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 400 });
   return NextResponse.json({ ok: true, id: result.id }, { status: 201 });
@@ -36,12 +32,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ businessId: st
 
 /** PATCH — decide (accept/decline) a pending correction. Requires review_owner_corrections (manager+). */
 export async function PATCH(req: Request, ctx: { params: Promise<{ businessId: string }> }) {
-  const access = await requireSalesWorkspaceAccess();
+  const access = await requireStaffWorkspaceWriteAccess("review_owner_corrections");
   if (!access.ok) {
-    return NextResponse.json({ ok: false, error: access.reason }, { status: denialStatusCode(access.reason) });
-  }
-  if (!actorHasCapability(access.actor, "review_owner_corrections")) {
-    return NextResponse.json({ ok: false, error: "role_not_permitted" }, { status: 403 });
+    return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
   }
   const { businessId } = await ctx.params;
 
@@ -57,7 +50,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ businessId: s
   if (b.action !== "accept" && b.action !== "decline") return NextResponse.json({ ok: false, error: "invalid_action" }, { status: 400 });
   const decisionNote = typeof b.decisionNote === "string" && b.decisionNote.trim() ? b.decisionNote.trim() : null;
 
-  const success = await decideCorrection(businessId, correctionId, b.action === "accept", decisionNote, staffActorToLivingBookActor(access.actor));
+  const success = await decideCorrection(businessId, correctionId, b.action === "accept", decisionNote, access.actor);
   if (!success) return NextResponse.json({ ok: false, error: "update_failed" }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

@@ -1,18 +1,14 @@
 import { NextResponse } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
-import { staffActorToLivingBookActor } from "@/app/admin/_lib/livingBookActor";
+import { requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { confirmFact } from "@/app/lib/business/livingBook/repository";
 
 export const dynamic = "force-dynamic";
 
 /** PATCH — confirm or reject a fact. Requires confirm_business_fact (manager+ / super_admin). */
 export async function PATCH(req: Request, ctx: { params: Promise<{ businessId: string; factId: string }> }) {
-  const access = await requireSalesWorkspaceAccess();
+  const access = await requireStaffWorkspaceWriteAccess("confirm_business_fact");
   if (!access.ok) {
-    return NextResponse.json({ ok: false, error: access.reason }, { status: denialStatusCode(access.reason) });
-  }
-  if (!actorHasCapability(access.actor, "confirm_business_fact")) {
-    return NextResponse.json({ ok: false, error: "role_not_permitted" }, { status: 403 });
+    return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
   }
   const { businessId, factId } = await ctx.params;
 
@@ -27,7 +23,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ businessId: s
     return NextResponse.json({ ok: false, error: "invalid_action" }, { status: 400 });
   }
 
-  const success = await confirmFact(businessId, factId, staffActorToLivingBookActor(access.actor), action === "confirm");
+  const success = await confirmFact(businessId, factId, access.actor, action === "confirm");
   if (!success) return NextResponse.json({ ok: false, error: "update_failed" }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

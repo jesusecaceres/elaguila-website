@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { actorHasCapability, requireSalesWorkspaceAccess, denialStatusCode } from "@/app/admin/_lib/businessWorkspaceAccess";
-import { staffActorToFieldDiscoveryActor } from "@/app/admin/_lib/fieldDiscoveryActor";
+import { requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { createFieldDiscoveryStoragePath } from "@/app/lib/business/fieldDiscovery/storagePaths";
 import { validateFieldDiscoveryUploadMeta } from "@/app/lib/business/fieldDiscovery/uploadValidation";
 import { createSourceFile } from "@/app/lib/business/fieldDiscovery/repository";
@@ -27,9 +26,8 @@ async function businessExists(businessId: string): Promise<boolean> {
  * receiving the file body.
  */
 export async function POST(req: NextRequest) {
-  const access = await requireSalesWorkspaceAccess();
-  if (!access.ok) return NextResponse.json({ ok: false, error: access.reason }, { status: denialStatusCode(access.reason) });
-  if (!actorHasCapability(access.actor, "upload_discovery_files")) return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+  const access = await requireStaffWorkspaceWriteAccess("upload_discovery_files");
+  if (!access.ok) return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
 
   let body: unknown;
   try {
@@ -71,9 +69,8 @@ export async function POST(req: NextRequest) {
  * client-supplied storage path outside the exact-business folder produced above.
  */
 export async function PUT(req: NextRequest) {
-  const access = await requireSalesWorkspaceAccess();
-  if (!access.ok) return NextResponse.json({ ok: false, error: access.reason }, { status: denialStatusCode(access.reason) });
-  if (!actorHasCapability(access.actor, "upload_discovery_files")) return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+  const access = await requireStaffWorkspaceWriteAccess("upload_discovery_files");
+  if (!access.ok) return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
 
   let body: unknown;
   try {
@@ -101,7 +98,7 @@ export async function PUT(req: NextRequest) {
 
   const result = await createSourceFile(
     { businessId, relatedDiscoverySessionId, fileKind: fileKindRaw, storagePath, publicUrl, mimeType, originalFilename, sizeBytes, consentRecordId: null },
-    staffActorToFieldDiscoveryActor(access.actor),
+    access.actor,
   );
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
   return NextResponse.json({ ok: true, id: result.id });

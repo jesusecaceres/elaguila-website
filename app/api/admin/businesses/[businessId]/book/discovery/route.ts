@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
-import { staffActorToLivingBookActor } from "@/app/admin/_lib/livingBookActor";
+import { requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { DISCOVERY_CONSENT_STATES, DISCOVERY_SESSION_TYPES } from "@/app/lib/business/livingBook/constants";
 import { startDiscoverySession } from "@/app/lib/business/livingBook/repository";
 
@@ -11,12 +10,9 @@ const CONSENT_VALUES = new Set<string>(DISCOVERY_CONSENT_STATES.map((o) => o.val
 
 /** POST — start a discovery session. No recording/transcription in this package — structured Q&A only. */
 export async function POST(req: Request, ctx: { params: Promise<{ businessId: string }> }) {
-  const access = await requireSalesWorkspaceAccess();
+  const access = await requireStaffWorkspaceWriteAccess("conduct_discovery");
   if (!access.ok) {
-    return NextResponse.json({ ok: false, error: access.reason }, { status: denialStatusCode(access.reason) });
-  }
-  if (!actorHasCapability(access.actor, "conduct_discovery")) {
-    return NextResponse.json({ ok: false, error: "role_not_permitted" }, { status: 403 });
+    return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
   }
   const { businessId } = await ctx.params;
 
@@ -35,7 +31,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ businessId: st
 
   const result = await startDiscoverySession(
     { businessId, sessionType: sessionType as never, language, consentState: consentState as never },
-    staffActorToLivingBookActor(access.actor),
+    access.actor,
   );
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 400 });
   return NextResponse.json({ ok: true, id: result.id }, { status: 201 });

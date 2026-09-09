@@ -2,10 +2,10 @@
  * Program 5 — Proposal Studio staff API. Transitions proposal status.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { requireSalesWorkspaceAccess, actorHasCapability, denialStatusCode, isOwnerBootstrapActor } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { requireSalesWorkspaceAccess, actorHasCapability, denialStatusCode, toStaffWriteActor } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { updateProposalStatus, getProposalById, listVersionsForProposal } from "@/app/lib/business/proposals/repository";
 import { isValidAcceptanceActor, staffAcceptanceRequiresRoster } from "@/app/lib/business/proposals/logic";
-import type { ProposalActor, ProposalStatus } from "@/app/lib/business/proposals/types";
+import type { ProposalStatus } from "@/app/lib/business/proposals/types";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ businessId: string; proposalId: string }> }) {
   const access = await requireSalesWorkspaceAccess();
@@ -40,18 +40,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ bu
     if (!actorHasCapability(access.actor, "record_proposal_decision")) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
-    if (isOwnerBootstrapActor(access.actor) || !access.actor.rosterId) {
-      return NextResponse.json({ error: "staff_roster_required" }, { status: 400 });
-    }
   }
 
-  const actor: ProposalActor = {
-    type: "staff",
-    rosterId: access.actor.rosterId,
-    authUserId: access.actor.authUserId,
-    email: access.actor.email,
-    role: access.actor.role,
-  };
+  // Every status transition below is a write and requires a real, fully-linked staff identity —
+  // never just the capability check above, which bootstrap can also pass.
+  const staffWrite = toStaffWriteActor(access.actor);
+  if (!staffWrite.ok) return NextResponse.json({ error: staffWrite.reason }, { status: staffWrite.status });
+  const actor = staffWrite.actor;
 
   if ((newStatus === "accepted" || newStatus === "declined") && (!isValidAcceptanceActor(actor) || !staffAcceptanceRequiresRoster(actor))) {
     return NextResponse.json({ error: "staff_roster_required" }, { status: 400 });

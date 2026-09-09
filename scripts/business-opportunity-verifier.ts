@@ -77,14 +77,22 @@ function verifyDomainAndSecurity(): VerifyCheck[] {
 
   const routeContent = readSourceFile("app/api/admin/businesses/[businessId]/opportunities/[opportunityId]/route.ts");
   checks.push({ name: "Review/approve/dismiss route requires review_opportunity capability", passed: routeContent.includes('"review_opportunity"') });
-  checks.push({ name: "Review/approve/dismiss route requires authorized Sales Workspace access", passed: routeContent.includes("requireSalesWorkspaceAccess") });
+  // (Systemic Repair Build) requireStaffWorkspaceWriteAccess() calls requireSalesWorkspaceAccess()
+  // internally and additionally denies owner_bootstrap outright for this write — a strictly
+  // stronger authorization boundary than the bare requireSalesWorkspaceAccess() call this used to
+  // require directly.
+  checks.push({ name: "Review/approve/dismiss route requires authorized Sales Workspace access", passed: routeContent.includes("requireStaffWorkspaceWriteAccess") });
 
   const listRouteContent = readSourceFile("app/api/admin/businesses/[businessId]/opportunities/route.ts");
   checks.push({ name: "List/generate route requires view_opportunities capability", passed: listRouteContent.includes('"view_opportunities"') });
-  checks.push({ name: "List/generate route accepts owner bootstrap through shared helper (not a parallel staff session)", passed: listRouteContent.includes("salesActorToOpportunityActor") && !listRouteContent.includes("roster_required") });
+  // (Systemic Repair Build, locked PM policy) owner_bootstrap must NEVER perform a Business
+  // Concierge write — the prior "map bootstrap to a safe owner actor" pattern (salesActorToOpportunityActor)
+  // is retired in favor of denying bootstrap outright via requireStaffWorkspaceWriteAccess(), which
+  // returns access.actor directly (a real, already-guarded staff actor) with no further mapping.
+  checks.push({ name: "List/generate route denies owner bootstrap outright via the canonical staff-write guard (never remaps it to a safe owner actor)", passed: listRouteContent.includes("requireStaffWorkspaceWriteAccess") && !listRouteContent.includes("salesActorToOpportunityActor") });
 
   const reviewRouteContent = readSourceFile("app/api/admin/businesses/[businessId]/opportunities/[opportunityId]/route.ts");
-  checks.push({ name: "Review route accepts owner bootstrap through shared helper", passed: reviewRouteContent.includes("salesActorToOpportunityActor") && !reviewRouteContent.includes("roster_required") });
+  checks.push({ name: "Review route denies owner bootstrap outright via the canonical staff-write guard (never remaps it to a safe owner actor)", passed: reviewRouteContent.includes("requireStaffWorkspaceWriteAccess") && !reviewRouteContent.includes("salesActorToOpportunityActor") });
 
   return checks;
 }

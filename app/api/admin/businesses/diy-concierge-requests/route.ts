@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { requireSalesWorkspaceAccess, toStaffWriteActor } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { hasCapability } from "@/app/admin/_lib/salesWorkspaceCapabilities";
-import { staffActorToDiyConciergeActor } from "@/app/admin/_lib/diyConciergeActor";
 import { acknowledgeServiceRequest, decideOwnerApproval, getApprovalById, listAllPendingServiceRequests } from "@/app/lib/business/diyConcierge/repository";
 
 /**
@@ -46,9 +45,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (!hasCapability(access.actor.capabilities, "view_diy_concierge_requests")) {
       return NextResponse.json({ ok: false, error: "capability_denied" }, { status: 403 });
     }
+    const staffWrite = toStaffWriteActor(access.actor);
+    if (!staffWrite.ok) return NextResponse.json({ ok: false, error: staffWrite.reason }, { status: staffWrite.status });
     const requestId = typeof body.requestId === "string" ? body.requestId : "";
     if (!requestId) return NextResponse.json({ ok: false, error: "missing_request_id" }, { status: 400 });
-    const updated = await acknowledgeServiceRequest(access.actor.rosterId, access.actor.email, requestId);
+    const updated = await acknowledgeServiceRequest(staffWrite.actor.rosterId, staffWrite.actor.email, requestId);
     if (!updated) return NextResponse.json({ ok: false, error: "not_found_or_not_pending" }, { status: 404 });
     return NextResponse.json({ ok: true, request: updated });
   }
@@ -67,8 +68,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ ok: false, error: "capability_denied" }, { status: 403 });
     }
 
-    const actor = staffActorToDiyConciergeActor(access.actor);
-    const result = await decideOwnerApproval(actor, businessId, approvalId, action === "approve" ? "approved" : "declined", note);
+    const staffWrite = toStaffWriteActor(access.actor);
+    if (!staffWrite.ok) return NextResponse.json({ ok: false, error: staffWrite.reason }, { status: staffWrite.status });
+    const result = await decideOwnerApproval(staffWrite.actor, businessId, approvalId, action === "approve" ? "approved" : "declined", note);
     if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: result.error === "not_found" ? 404 : 409 });
     return NextResponse.json({ ok: true, approval: result.approval });
   }

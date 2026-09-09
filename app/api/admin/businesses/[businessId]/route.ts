@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess, requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { getBusinessWorkspaceDetail, updateSalesStatus } from "@/app/admin/_lib/businessWorkspaceData";
 import { BUSINESS_SALES_STATUSES, type BusinessSalesStatus } from "@/app/admin/_lib/salesWorkspaceLogic";
 
@@ -22,12 +22,9 @@ export async function GET(_req: Request, ctx: { params: Promise<{ businessId: st
 }
 
 export async function PATCH(req: Request, ctx: { params: Promise<{ businessId: string }> }) {
-  const access = await requireSalesWorkspaceAccess();
+  const access = await requireStaffWorkspaceWriteAccess("update_sales_status");
   if (!access.ok) {
-    return NextResponse.json({ ok: false, error: access.reason }, { status: denialStatusCode(access.reason) });
-  }
-  if (!actorHasCapability(access.actor, "update_sales_status")) {
-    return NextResponse.json({ ok: false, error: "role_not_permitted" }, { status: 403 });
+    return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
   }
   const { businessId } = await ctx.params;
 

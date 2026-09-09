@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { actorHasCapability, requireSalesWorkspaceAccess, denialStatusCode } from "@/app/admin/_lib/businessWorkspaceAccess";
-import { staffActorToFieldDiscoveryActor } from "@/app/admin/_lib/fieldDiscoveryActor";
+import { requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { isFieldDiscoveryCanvassingEnabled } from "@/app/lib/business/fieldDiscovery/featureFlag";
 import { validateCanvassIntake } from "@/app/lib/business/fieldDiscovery/logic";
 import {
@@ -11,7 +10,6 @@ import {
   searchCanvassDuplicateCandidates,
 } from "@/app/lib/business/fieldDiscovery/repository";
 import { addEvidence, startDiscoverySession } from "@/app/lib/business/livingBook/repository";
-import { staffActorToLivingBookActor } from "@/app/admin/_lib/livingBookActor";
 import type { CanvassIntakeInput } from "@/app/lib/business/fieldDiscovery/types";
 
 export const runtime = "nodejs";
@@ -23,9 +21,8 @@ function fail(status: number, error: string, extra: Record<string, unknown> = {}
 }
 
 export async function POST(req: NextRequest) {
-  const access = await requireSalesWorkspaceAccess();
-  if (!access.ok) return fail(denialStatusCode(access.reason), access.reason);
-  if (!actorHasCapability(access.actor, "conduct_canvassing")) return fail(403, "forbidden");
+  const access = await requireStaffWorkspaceWriteAccess("conduct_canvassing");
+  if (!access.ok) return fail(access.status, access.reason);
   if (!(await isFieldDiscoveryCanvassingEnabled())) return fail(503, "feature_disabled");
 
   let body: CanvassRequestBody;
@@ -40,8 +37,8 @@ export async function POST(req: NextRequest) {
   const errors = validateCanvassIntake({ businessName, email });
   if (errors.length > 0) return fail(400, "invalid_input", { errors });
 
-  const fieldDiscoveryActor = staffActorToFieldDiscoveryActor(access.actor);
-  const livingBookActor = staffActorToLivingBookActor(access.actor);
+  const fieldDiscoveryActor = access.actor;
+  const livingBookActor = access.actor;
 
   const duplicateWarning = await searchCanvassDuplicateCandidates({
     actorAuthUserId: access.actor.authUserId,

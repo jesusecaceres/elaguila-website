@@ -115,7 +115,11 @@ export type SalesWorkspaceCapability =
   // create_creative_job precedent exactly.
   | "view_opportunities"
   | "review_opportunity"
-  | "create_opportunity_creative_request";
+  | "create_opportunity_creative_request"
+  // Systemic Repair Build — Owner Claim / Handoff. Generating an invitation link is a
+  // consequential, attributed staff write (never a bootstrap action) — granted at the same tier
+  // as conduct_canvassing since it is the natural continuation of the same prospecting workflow.
+  | "generate_ownership_claim";
 
 export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] = [
   "view_business_list",
@@ -180,6 +184,7 @@ export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] =
   "view_opportunities",
   "review_opportunity",
   "create_opportunity_creative_request",
+  "generate_ownership_claim",
 ];
 
 /**
@@ -265,6 +270,7 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "view_opportunities",
     "review_opportunity",
     "create_opportunity_creative_request",
+    "generate_ownership_claim",
   ],
   sales_manager: [
     "view_business_list",
@@ -327,6 +333,7 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "view_opportunities",
     "review_opportunity",
     "create_opportunity_creative_request",
+    "generate_ownership_claim",
   ],
   sales_rep: [
     "view_business_list",
@@ -359,6 +366,7 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "view_creative_studio",
     "upload_creative_assets",
     "view_opportunities",
+    "generate_ownership_claim",
   ],
 };
 

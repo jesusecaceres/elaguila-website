@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess, toStaffWriteActor } from "@/app/admin/_lib/businessWorkspaceAccess";
 import {
   approveRecommendation, getRecommendationById, listOverridesForRecommendation, listTestsForRecommendation,
   shareRecommendation, submitForReview,
 } from "@/app/lib/business/stewardship/repository";
-import { staffActorToStewardshipActor } from "@/app/admin/_lib/stewardshipActor";
 
 export const dynamic = "force-dynamic";
 
@@ -50,16 +49,18 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ businessId: s
 
   if (action === "approve") {
     if (!actorHasCapability(access.actor, "approve_recommendation")) return NextResponse.json({ ok: false, error: "role_not_permitted" }, { status: 403 });
-    const actor = staffActorToStewardshipActor(access.actor);
-    const result = await approveRecommendation(actor, businessId, id);
+    const staffWrite = toStaffWriteActor(access.actor);
+    if (!staffWrite.ok) return NextResponse.json({ ok: false, error: staffWrite.reason }, { status: staffWrite.status });
+    const result = await approveRecommendation(staffWrite.actor, businessId, id);
     if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: result.error === "not_found" ? 404 : 409 });
     return NextResponse.json({ ok: true, recommendation: result.recommendation });
   }
 
   if (action === "share") {
     if (!actorHasCapability(access.actor, "approve_recommendation")) return NextResponse.json({ ok: false, error: "role_not_permitted" }, { status: 403 });
-    const actor = staffActorToStewardshipActor(access.actor);
-    const result = await shareRecommendation(actor, businessId, id);
+    const staffWrite = toStaffWriteActor(access.actor);
+    if (!staffWrite.ok) return NextResponse.json({ ok: false, error: staffWrite.reason }, { status: staffWrite.status });
+    const result = await shareRecommendation(staffWrite.actor, businessId, id);
     if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: result.error === "not_found" ? 404 : 409 });
     return NextResponse.json({ ok: true, recommendation: result.recommendation });
   }

@@ -62,10 +62,6 @@ import {
   lookupAuthUserById,
 } from "@/app/lib/supabase/adminSession";
 import { requireAdminCookie } from "@/app/lib/supabase/server";
-import type { CreativeActor } from "@/app/lib/business/creativeStudio/repository";
-import type { OpportunityActor } from "@/app/lib/business/opportunity/types";
-import type { AdvisorActor } from "@/app/lib/business/advisor/types";
-import type { AssistantActor } from "@/app/lib/business/assistant/types";
 import { capabilitiesForRole, isSalesWorkspaceRole, type SalesWorkspaceCapability, type SalesWorkspaceRole } from "./salesWorkspaceCapabilities";
 
 export type SalesWorkspaceActorType = "staff" | "owner_bootstrap";
@@ -190,84 +186,98 @@ export function isOwnerBootstrapActor(actor: StrictSalesActor): boolean {
   return actor.actorType === "owner_bootstrap";
 }
 
-/** Maps a verified workspace actor onto Creative Studio's staff|owner writer shape. */
-export function salesActorToCreativeActor(actor: StrictSalesActor): CreativeActor {
-  if (actor.actorType === "owner_bootstrap") {
-    return {
-      type: "owner",
-      rosterId: null,
-      authUserId: OWNER_BOOTSTRAP_ATTRIBUTION_AUTH_USER_ID,
-      email: actor.email,
-      role: actor.role,
-    };
-  }
-  return {
-    type: "staff",
-    rosterId: actor.rosterId,
-    authUserId: actor.authUserId,
-    email: actor.email,
-    role: actor.role,
-  };
-}
-
-/** Maps a verified workspace actor onto Package B's opportunity writer shape. Never emits a fake staff roster row. */
-export function salesActorToOpportunityActor(actor: StrictSalesActor): Extract<OpportunityActor, { type: "staff" | "owner" }> {
-  if (actor.actorType === "owner_bootstrap") {
-    return {
-      type: "owner",
-      authUserId: OWNER_BOOTSTRAP_ATTRIBUTION_AUTH_USER_ID,
-      role: actor.role,
-    };
-  }
-  return {
-    type: "staff",
-    rosterId: actor.rosterId,
-    authUserId: actor.authUserId,
-    role: actor.role,
-  };
-}
-
-/** Maps a verified workspace actor onto Program 7 Advisor writer shape. Never fabricates a roster row. */
-export function salesActorToAdvisorActor(actor: StrictSalesActor): AdvisorActor {
-  if (actor.actorType === "owner_bootstrap" || !actor.rosterId) {
-    return {
-      type: "owner",
-      authUserId: OWNER_BOOTSTRAP_ATTRIBUTION_AUTH_USER_ID,
-      email: actor.email,
-    };
-  }
-  return {
-    type: "staff",
-    rosterId: actor.rosterId,
-    authUserId: actor.authUserId,
-    email: actor.email,
-    role: actor.role,
-  };
-}
-
-/** Maps a verified workspace actor onto Program 7 Assistant writer shape. Never fabricates a roster row. */
-export function salesActorToAssistantActor(actor: StrictSalesActor): AssistantActor {
-  if (actor.actorType === "owner_bootstrap" || !actor.rosterId) {
-    return {
-      type: "owner",
-      authUserId: OWNER_BOOTSTRAP_ATTRIBUTION_AUTH_USER_ID,
-      email: actor.email,
-    };
-  }
-  return {
-    type: "staff",
-    rosterId: actor.rosterId,
-    authUserId: actor.authUserId,
-    email: actor.email,
-    role: actor.role,
-  };
-}
-
 /** Convenience guard for a single capability — use in every route/page that needs more than "is a valid actor." */
-export function actorHasCapability(actor: StrictSalesActor, capability: SalesWorkspaceCapability): boolean {
+export function actorHasCapability(actor: { capabilities: ReadonlySet<SalesWorkspaceCapability> }, capability: SalesWorkspaceCapability): boolean {
   return actor.capabilities.has(capability);
 }
 
 export function denialStatusCode(reason: SalesWorkspaceDenialReason): number {
   return reason === "no_admin_cookie" || reason === "no_operator_identity" || reason === "bootstrap_session_not_allowed" || reason === "auth_user_not_found" ? 401 : 403;
+}
+
+// =====================================================================================================
+// Systemic Repair Build — canonical staff-write standard.
+//
+// Locked PM policy (overrides/deprecates every prior "map bootstrap to owner" pattern that used to
+// live in this file as salesActorToCreativeActor / salesActorToOpportunityActor /
+// salesActorToAdvisorActor / salesActorToAssistantActor, and in livingBookActor.ts as
+// salesActorToLivingBookActor):
+//   - owner_bootstrap may NEVER perform a Business Concierge write. Not by fabricating a staff
+//     roster row, and not by remapping to a fake "owner" actor either — both are attribution
+//     bypasses, not safety measures.
+//   - a real staff write requires the full linked identity chain (already verified above:
+//     auth.users.id <-> profiles.id <-> admin_team_members.auth_user_id <-> admin_team_members.id)
+//     — i.e. a non-empty rosterId AND authUserId on a "staff" actorType.
+//   - there is exactly one way to obtain a writable staff actor: requireStaffWorkspaceWriteAccess()
+//     (for the common single/either-of capability check) or toStaffWriteActor() (for routes whose
+//     capability logic branches per action and only converts once, right before the write). Every
+//     other construction of a `{ type: "staff", ... }` actor object on the admin surface is
+//     forbidden — see scripts/verify-business-concierge-actor-safety-01.ts.
+// =====================================================================================================
+
+export type StaffWriteDenialReason = SalesWorkspaceDenialReason | "bootstrap_write_denied" | "staff_identity_incomplete";
+
+/**
+ * The one canonical writable-staff-actor shape. Structurally compatible with every module's own
+ * `Extract<XActor, { type: "staff" }>` (FieldDiscoveryActor, HealthMapActor, DiyConciergeActor,
+ * StewardshipStaffActor, LivingBookActor, AdvisorActor, AssistantActor, ProposalActor,
+ * meetingStudio/promiseKeeper's inline staff actor shape) and assignable to CreativeActor /
+ * OpportunityActor's staff variant — pass it directly, no per-module mapper needed.
+ */
+export type StaffWriteActor = {
+  type: "staff";
+  rosterId: string;
+  authUserId: string;
+  email: string;
+  role: SalesWorkspaceRole;
+  capabilities: ReadonlySet<SalesWorkspaceCapability>;
+};
+
+export type StaffWorkspaceWriteAccessResult =
+  | { ok: true; actor: StaffWriteActor }
+  | { ok: false; status: number; reason: StaffWriteDenialReason };
+
+/**
+ * Core guard: converts an already-verified StrictSalesActor into a StaffWriteActor, denying
+ * bootstrap and any staff actor missing a link in the identity chain. Use this directly (after
+ * requireSalesWorkspaceAccess() and your own capability checks) when a route's capability logic
+ * branches per action and only needs to convert once, right before the write.
+ */
+export function toStaffWriteActor(actor: StrictSalesActor): StaffWorkspaceWriteAccessResult {
+  if (isOwnerBootstrapActor(actor)) {
+    return { ok: false, status: 403, reason: "bootstrap_write_denied" };
+  }
+  if (!actor.rosterId || !actor.authUserId) {
+    return { ok: false, status: 403, reason: "staff_identity_incomplete" };
+  }
+  return {
+    ok: true,
+    actor: {
+      type: "staff",
+      rosterId: actor.rosterId,
+      authUserId: actor.authUserId,
+      email: actor.email,
+      role: actor.role,
+      capabilities: actor.capabilities,
+    },
+  };
+}
+
+/**
+ * Convenience wrapper for the common case: one call resolves access, checks a single capability
+ * (or that at least one of several applies), and denies bootstrap/incomplete-identity writes —
+ * all with one clean HTTP status/error contract. Never returns a raw DB error to the caller.
+ */
+export async function requireStaffWorkspaceWriteAccess(
+  capability: SalesWorkspaceCapability | readonly SalesWorkspaceCapability[],
+): Promise<StaffWorkspaceWriteAccessResult> {
+  const access = await requireSalesWorkspaceAccess();
+  if (!access.ok) {
+    return { ok: false, status: denialStatusCode(access.reason), reason: access.reason };
+  }
+  const capabilities = Array.isArray(capability) ? capability : [capability as SalesWorkspaceCapability];
+  if (!capabilities.some((c) => actorHasCapability(access.actor, c))) {
+    return { ok: false, status: 403, reason: "role_not_permitted" };
+  }
+  return toStaffWriteActor(access.actor);
 }

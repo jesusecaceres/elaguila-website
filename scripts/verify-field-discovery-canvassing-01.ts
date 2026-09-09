@@ -53,7 +53,7 @@ const AUTHORIZED_UI_FILES = [
 
 // 1. Domain files exist
 check("1. Domain files exist", () => {
-  for (const rel of [...AUTHORIZED_LIB_FILES, ...AUTHORIZED_API_FILES, ...AUTHORIZED_UI_FILES, "app/admin/_lib/fieldDiscoveryActor.ts"]) {
+  for (const rel of [...AUTHORIZED_LIB_FILES, ...AUTHORIZED_API_FILES, ...AUTHORIZED_UI_FILES, "app/admin/_lib/businessWorkspaceAccess.ts"]) {
     assert.ok(exists(rel), `missing ${rel}`);
   }
 });
@@ -185,10 +185,9 @@ check("16. Role matrix: sales_rep may canvass but never run_ai_research/review_a
 });
 
 // 17. Canvass route uses existing staff access
-check("17. Canvass route uses requireSalesWorkspaceAccess (existing staff access)", () => {
+check("17. Canvass route uses the canonical Systemic Repair Build staff-write guard (folds requireSalesWorkspaceAccess + the capability check + bootstrap-write denial into one call)", () => {
   const src = read("app/api/admin/businesses/canvass/route.ts");
-  assert.ok(src.includes("requireSalesWorkspaceAccess"));
-  assert.ok(src.includes('actorHasCapability(access.actor, "conduct_canvassing")'));
+  assert.ok(src.includes('requireStaffWorkspaceWriteAccess("conduct_canvassing")'));
 });
 
 // 18. Duplicate-warning logic used

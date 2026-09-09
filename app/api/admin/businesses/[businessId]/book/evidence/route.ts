@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
-import { salesActorToLivingBookActor } from "@/app/admin/_lib/livingBookActor";
+import { requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { CONSENT_STATES, CONFIDENCE_LEVELS, EVIDENCE_TYPES, FACT_VISIBILITIES, MAX_EVIDENCE_CAPTURED_TEXT_LENGTH } from "@/app/lib/business/livingBook/constants";
 import { addEvidence } from "@/app/lib/business/livingBook/repository";
 
@@ -13,12 +12,9 @@ const VISIBILITY_VALUES = new Set<string>(FACT_VISIBILITIES.map((o) => o.value))
 
 /** POST — attach one piece of evidence, optionally linked to a fact or unknown. */
 export async function POST(req: Request, ctx: { params: Promise<{ businessId: string }> }) {
-  const access = await requireSalesWorkspaceAccess();
+  const access = await requireStaffWorkspaceWriteAccess("create_evidence");
   if (!access.ok) {
-    return NextResponse.json({ ok: false, error: access.reason }, { status: denialStatusCode(access.reason) });
-  }
-  if (!actorHasCapability(access.actor, "create_evidence")) {
-    return NextResponse.json({ ok: false, error: "role_not_permitted" }, { status: 403 });
+    return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
   }
   const { businessId } = await ctx.params;
 
@@ -57,7 +53,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ businessId: st
       reliability: reliability as never,
       visibility: visibility as never,
     },
-    salesActorToLivingBookActor(access.actor),
+    access.actor,
   );
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 400 });
   return NextResponse.json({ ok: true, id: result.id }, { status: 201 });

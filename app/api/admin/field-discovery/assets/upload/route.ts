@@ -1,8 +1,7 @@
 import { put } from "@vercel/blob";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { actorHasCapability, requireSalesWorkspaceAccess, denialStatusCode } from "@/app/admin/_lib/businessWorkspaceAccess";
-import { staffActorToFieldDiscoveryActor } from "@/app/admin/_lib/fieldDiscoveryActor";
+import { requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { FIELD_DISCOVERY_SERVER_UPLOAD_MAX_BYTES, SOURCE_FILE_KIND_VALUES } from "@/app/lib/business/fieldDiscovery/constants";
 import { createSourceFile } from "@/app/lib/business/fieldDiscovery/repository";
 import { createFieldDiscoveryStoragePath } from "@/app/lib/business/fieldDiscovery/storagePaths";
@@ -24,11 +23,8 @@ async function businessExists(businessId: string): Promise<boolean> {
 
 /** Upload one canvassing/discovery file to Vercel Blob (small files only — see upload-intent for larger files). */
 export async function POST(req: NextRequest) {
-  const access = await requireSalesWorkspaceAccess();
-  if (!access.ok) return NextResponse.json({ ok: false, error: access.reason }, { status: denialStatusCode(access.reason) });
-  if (!actorHasCapability(access.actor, "upload_discovery_files")) {
-    return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
-  }
+  const access = await requireStaffWorkspaceWriteAccess("upload_discovery_files");
+  if (!access.ok) return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
 
   const token = process.env.BLOB_READ_WRITE_TOKEN?.trim();
   if (!token) {
@@ -88,7 +84,7 @@ export async function POST(req: NextRequest) {
       sizeBytes: file.size,
       consentRecordId: null,
     },
-    staffActorToFieldDiscoveryActor(access.actor),
+    access.actor,
   );
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
 

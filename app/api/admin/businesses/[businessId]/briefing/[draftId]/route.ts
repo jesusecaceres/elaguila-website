@@ -1,9 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { actorHasCapability, requireSalesWorkspaceAccess, denialStatusCode } from "@/app/admin/_lib/businessWorkspaceAccess";
-import { staffActorToFieldDiscoveryActor } from "@/app/admin/_lib/fieldDiscoveryActor";
+import { actorHasCapability, requireSalesWorkspaceAccess, denialStatusCode, toStaffWriteActor } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { getBriefingDraftById, markBriefingReviewed, updateDraftItems } from "@/app/lib/business/aiResearch/repository";
-import { staffActorToLivingBookActor } from "@/app/admin/_lib/livingBookActor";
 import { createContradiction, createUnknown, upsertFact } from "@/app/lib/business/livingBook/repository";
 import type { BusinessAiBriefingDraft } from "@/app/lib/business/aiResearch/types";
 
@@ -63,8 +61,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ bu
   const itemId = typeof o.itemId === "string" ? o.itemId : null;
   if (!ACTIONS.has(action as PatchAction)) return fail(400, "bad_request");
 
-  const fieldDiscoveryActor = staffActorToFieldDiscoveryActor(access.actor);
-  const livingBookActor = staffActorToLivingBookActor(access.actor);
+  // Every action below is a write — deny bootstrap/incomplete identity before any branch runs.
+  const staffWrite = toStaffWriteActor(access.actor);
+  if (!staffWrite.ok) return fail(staffWrite.status, staffWrite.reason);
+  const fieldDiscoveryActor = staffWrite.actor;
+  const livingBookActor = staffWrite.actor;
 
   if (action === "mark_reviewed") {
     if (!actorHasCapability(access.actor, "review_ai_briefing")) return fail(403, "forbidden");
@@ -149,7 +150,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ bu
   }
 
   if (action === "promote_contradiction") {
-    if (!(livingBookActor.type === "staff")) return fail(403, "forbidden");
     const item = draft.contradictions.find((i) => i.itemId === itemId);
     if (!item) return fail(404, "draft_not_found");
     if (item.promotionStatus === "promoted") return fail(409, "item_already_promoted");

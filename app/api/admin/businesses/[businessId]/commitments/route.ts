@@ -2,7 +2,7 @@
  * Program 5 — Promise Keeper staff API. Creates and updates commitments.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { requireSalesWorkspaceAccess, actorHasCapability, denialStatusCode } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { requireSalesWorkspaceAccess, actorHasCapability, denialStatusCode, toStaffWriteActor } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { createCommitment, listCommitmentsForBusiness } from "@/app/lib/business/promiseKeeper/repository";
 import type { ResponsibleParty } from "@/app/lib/business/promiseKeeper/types";
 
@@ -23,12 +23,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ bus
   if (!actorHasCapability(access.actor, "manage_own_commitments") && !actorHasCapability(access.actor, "manage_team_commitments")) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
+  const staffWrite = toStaffWriteActor(access.actor);
+  if (!staffWrite.ok) return NextResponse.json({ error: staffWrite.reason }, { status: staffWrite.status });
+  const actor = staffWrite.actor;
 
   const { businessId } = await params;
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "invalid_body" }, { status: 400 });
-
-  const actor = { type: "staff" as const, rosterId: access.actor.rosterId, authUserId: access.actor.authUserId, email: access.actor.email, role: access.actor.role };
 
   const result = await createCommitment({
     businessId,

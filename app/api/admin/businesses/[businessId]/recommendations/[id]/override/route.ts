@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
-import { staffActorToStewardshipActor } from "@/app/admin/_lib/stewardshipActor";
+import { requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { recordOverride, type OverridePatch } from "@/app/lib/business/stewardship/repository";
 import { COST_BANDS, EXPECTED_EFFORTS, PRIMARY_INTERVENTIONS } from "@/app/lib/business/stewardship/constants";
 
@@ -24,11 +23,8 @@ const PATCHABLE_STRING_FIELDS = [
  * never a free-form field update, never a bypass of readiness or a rewrite of a test row.
  */
 export async function POST(req: Request, ctx: { params: Promise<{ businessId: string; id: string }> }) {
-  const access = await requireSalesWorkspaceAccess();
-  if (!access.ok) return NextResponse.json({ ok: false, error: access.reason }, { status: denialStatusCode(access.reason) });
-  if (!actorHasCapability(access.actor, "override_recommendation")) {
-    return NextResponse.json({ ok: false, error: "role_not_permitted" }, { status: 403 });
-  }
+  const access = await requireStaffWorkspaceWriteAccess("override_recommendation");
+  if (!access.ok) return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
   const { businessId, id } = await ctx.params;
 
   let body: OverrideBody;
@@ -63,8 +59,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ businessId: st
 
   if (Object.keys(patch).length === 0) return NextResponse.json({ ok: false, error: "no_changes" }, { status: 400 });
 
-  const actor = staffActorToStewardshipActor(access.actor);
-  const result = await recordOverride(actor, businessId, id, reason, patch);
+  const result = await recordOverride(access.actor, businessId, id, reason, patch);
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: result.error === "not_found" ? 404 : 400 });
   return NextResponse.json({ ok: true, recommendation: result.recommendation, override: result.override });
 }
