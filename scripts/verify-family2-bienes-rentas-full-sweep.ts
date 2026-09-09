@@ -160,7 +160,9 @@ function main(): void {
   check("Rentas dashboard edit-hydration now restores contactChannels (was previously omitted entirely)", () => {
     const src = read("app/(site)/clasificados/publicar/rentas/shared/rentasDashboardEditHydration.ts");
     assert.match(src, /leonixContactChannelsFormSliceFromPayload\(/);
-    assert.match(src, /parseLeonixContactChannelsV1FromDetailPairs\(row\.detail_pairs\)/);
+    // Wave 4 P0 fix — now reads the listing_json/contact_json-augmented `detailPairs`, the same
+    // resilience the proven public mapper already has, instead of the raw column directly.
+    assert.match(src, /parseLeonixContactChannelsV1FromDetailPairs\(detailPairs\)/);
   });
   check("BR Negocio's own businessExtraUrls lifecycle (independent adoption) is real and untouched", () => {
     const src = read("app/(site)/clasificados/publicar/bienes-raices/negocio/application/bienesAdditionalBusinessLinks.ts");
