@@ -3,11 +3,6 @@
  * Kept out of the copy/i18n layer on purpose — these paths are
  * language-independent. Keyed by the same `id`s as
  * SERVICIOS_LANDING_EXPLORE_CATEGORIES (serviciosLandingSampleData.ts).
- *
- * Assets are NOT yet installed. Until real photos are added under
- * `public/child-categories/servicios/`, LeonixCategoryImageDiscoveryGrid's
- * built-in onError fallback renders each card's react-icons glyph instead of
- * a broken image, so the page stays fully functional either way.
  */
 /**
  * `id` on ServiciosLandingExploreCategory is a bare `string`, not a literal

@@ -1,15 +1,15 @@
 /**
- * Premium hero fallbacks (Unsplash, whitelisted in next.config) + kind inference.
+ * Premium hero fallbacks (local Leonix-controlled assets) + kind inference.
  */
 
 export type ViajesHeroVisualKind = "default" | "resort" | "car" | "itinerary";
 
-/** Fallback chain ends here — all URLs must be reachable or we show gradient-only. */
+/** Fallback chain ends here — all paths must resolve locally or we show gradient-only. */
 export const VIAJES_HERO_FALLBACK_BY_KIND: Record<ViajesHeroVisualKind, string> = {
-  default: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=2000&q=80",
-  resort: "https://images.unsplash.com/photo-1552074284-5e88f742d1f5?auto=format&fit=crop&w=2000&q=80",
-  car: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&w=2000&q=80",
-  itinerary: "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?auto=format&fit=crop&w=2000&q=80",
+  default: "/child-categories/viajes/hero.jpg",
+  resort: "/child-categories/viajes/editorial-resort-pool.jpg",
+  car: "/child-categories/viajes/hero.jpg",
+  itinerary: "/child-categories/viajes/editorial-canals.jpg",
 };
 
 export type ViajesOfferHeroInferInput = {

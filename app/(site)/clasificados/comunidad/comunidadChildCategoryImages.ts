@@ -8,11 +8,6 @@
  * reachable via the search drawer/results filters but are not shown as
  * landing cards, matching the ~8-card convention used on every other
  * category landing.
- *
- * Assets are NOT yet installed. Until real photos are added under
- * `public/child-categories/comunidad/`, LeonixCategoryImageDiscoveryGrid's
- * built-in onError fallback renders each card's react-icons glyph instead of
- * a broken image, so the page stays fully functional either way.
  */
 export const COMUNIDAD_CHILD_CATEGORY_IMAGE: Record<
   "feria" | "festival" | "comida" | "iglesia" | "ciudad" | "familia" | "taller" | "otro",

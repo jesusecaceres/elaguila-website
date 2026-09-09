@@ -395,6 +395,10 @@ export function getAllowedGlobalNavHrefs(ctx: AdminAccessContext): string[] {
     return ["/admin/team", "/admin/support", "/admin/businesses"];
   }
   const hrefs = ["/admin", "/admin/businesses"];
+  // LEO-9B — nav convenience only; /admin/leo page still requires owner_admin via leoAccess.
+  if (isOwnerAdminRole(ctx.normalizedRole)) {
+    hrefs.push("/admin/leo");
+  }
   if (canViewGlobalAdminNav(ctx.normalizedRole)) {
     hrefs.push(
       "/admin/team",
