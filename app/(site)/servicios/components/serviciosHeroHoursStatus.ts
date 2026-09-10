@@ -1,4 +1,8 @@
 import type { ServiciosHoursSummary, ServiciosLang } from "../types/serviciosBusinessProfile";
+import {
+  serviciosZonedNow,
+  type ServiciosZonedNow,
+} from "../lib/serviciosBusinessTimeZone";
 
 const DAY_TOKEN_TO_JS: Record<string, number> = {
   domingo: 0,
@@ -111,8 +115,17 @@ export function formatHoursRange12h(range: { startMin: number; endMin: number })
 }
 
 /** Best-effort: convert common 24h fragments inside a freeform line to 12h (hero readability). */
+/**
+ * Gate SERVICIOS-3 — a time that ALREADY carries an AM/PM marker is now left alone.
+ *
+ * The previous pattern re-formatted it and the original marker survived, so "9:00 AM - 5:00 PM"
+ * rendered as "9:00 AM AM - 5:00 AM PM". That bug predates this gate, but the neutral
+ * "Horario · …" branch this helper feeds is now reachable for every listing whose business
+ * timezone cannot be resolved, so a rare cosmetic glitch would have become a common one. Minimal
+ * fix: only rewrite a `HH:MM` that is not already followed by am/pm.
+ */
 export function formatHoursLineDisplay12h(line: string): string {
-  return line.replace(/\b(\d{1,2}):(\d{2})\b/g, (_, hh: string, mm: string) => {
+  return line.replace(/\b(\d{1,2}):(\d{2})\b(?!\s*[ap]\.?m\.?)/gi, (_, hh: string, mm: string) => {
     const h = parseInt(hh, 10);
     const m = parseInt(mm, 10);
     if (h > 23 || m > 59) return `${hh}:${mm}`;
@@ -133,13 +146,20 @@ function firstOpenTimeFromLine(line: string): number | null {
   return parseOneTime(line);
 }
 
+/**
+ * Gate SERVICIOS-3 (D-1) — takes the BUSINESS-LOCAL weekday rather than a host `Date`.
+ *
+ * It previously built `new Date(from.getFullYear(), …)` and read `getDay()`, which is the
+ * runtime host's calendar. Near local midnight that names the wrong day. Only the weekday is
+ * ever needed here, so the day is passed in already resolved in the business's own zone and no
+ * host date arithmetic remains.
+ */
 function findNextWeeklyOpen(
   weekly: { dayLabel: string; line: string }[],
-  from: Date,
+  fromJsDay: number,
 ): { dayOffset: number; timeMin: number; dayLabel: string } | null {
   for (let offset = 1; offset <= 7; offset++) {
-    const d = new Date(from.getFullYear(), from.getMonth(), from.getDate() + offset);
-    const jsD = d.getDay();
+    const jsD = (fromJsDay + offset) % 7;
     const row = weekly.find((r) => serviciosHeroDayLabelToJsDay(r.dayLabel) === jsD);
     if (!row) continue;
     const t = firstOpenTimeFromLine(row.line);
@@ -185,26 +205,51 @@ function closedRelativePhrase(
 }
 
 /**
- * Whether published hours currently read as “open” using the same rules as the vitrina hero pill
- * (`buildServiciosHeroHoursPill`). Used by Servicios discovery filters (e.g. open_now).
+ * Gate SERVICIOS-3 (D-1) — the shared evaluation context. Both the public badge and the
+ * discovery filter pass this, so they cannot drift apart: one function, one clock, one answer.
+ *
+ * `timeZone` is the BUSINESS's IANA zone, resolved from its persisted location by
+ * `resolveServiciosBusinessTimeZone`. It is required for any open/closed CLAIM. When it is
+ * absent or unresolvable, this engine states the hours without asserting a status — it never
+ * falls back to the host clock, because on a server that clock is UTC and on a browser it is the
+ * viewer's, and neither is the business's local time.
+ */
+export type ServiciosHoursEvalContext = {
+  /** IANA zone for the business's own location, or null when it cannot be determined. */
+  timeZone?: string | null;
+  /** Test seam. Defaults to the real clock. */
+  at?: Date;
+};
+
+/**
+ * Whether published hours currently read as “open”, using EXACTLY the same rules as the vitrina
+ * hero pill (`buildServiciosHeroHoursPill`) — this delegates to it rather than re-deriving.
+ *
+ * Fails CLOSED: with no resolvable business timezone the pill can never be `open`, so a listing
+ * whose local time is unknown is excluded from the `open_now` filter rather than advertised on a
+ * guess.
  */
 export function serviciosHoursSummaryIsOpenNow(
   hours: ServiciosHoursSummary | undefined,
   lang: ServiciosLang,
-  at: Date = new Date(),
+  ctx?: ServiciosHoursEvalContext,
 ): boolean {
-  const pill = buildServiciosHeroHoursPill(hours, lang, at);
+  const pill = buildServiciosHeroHoursPill(hours, lang, ctx);
   return pill?.variant === "open";
 }
 
 /**
  * Builds the premium hero status line (12h times, no bare "Hoy").
- * Uses today's hours + weekly rows + current local time when parseable.
+ *
+ * Gate SERVICIOS-3 (D-1): the clock is now read in the BUSINESS's timezone, not the runtime
+ * host's. When that zone is unknown every open/closed CLAIM is suppressed and the builder falls
+ * through to the neutral "Horario · …" / "Hours · …" line, which states the published hours
+ * truthfully without asserting a status nobody can compute. ES/EN copy is unchanged.
  */
 export function buildServiciosHeroHoursPill(
   hours: ServiciosHoursSummary | undefined,
   lang: ServiciosLang,
-  now: Date = new Date(),
+  ctx?: ServiciosHoursEvalContext,
 ): ServiciosHeroHoursPill | null {
   if (!hours) return null;
 
@@ -215,9 +260,12 @@ export function buildServiciosHeroHoursPill(
   if (!openLbl && !todayLine && weekly.length === 0) return null;
 
   const range = parseTodayHoursRange(todayLine);
-  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const zoned: ServiciosZonedNow | null = serviciosZonedNow(ctx?.timeZone, ctx?.at ?? new Date());
 
-  if (range) {
+  // No business-local clock -> no status claim. Skip every open/closed branch and let the
+  // neutral hours line at the end of this function answer instead.
+  if (range && zoned) {
+    const nowMin = zoned.minutesFromMidnight;
     const inWindow = nowMin >= range.startMin && nowMin <= range.endMin;
     if (inWindow) {
       const span = formatHoursRange12h(range);
@@ -233,7 +281,7 @@ export function buildServiciosHeroHoursPill(
         variant: "closed",
       };
     }
-    const nw = weekly.length ? findNextWeeklyOpen(weekly, now) : null;
+    const nw = weekly.length ? findNextWeeklyOpen(weekly, zoned.jsDay) : null;
     const tStr = nw ? formatMinutes12h(nw.timeMin) : formatMinutes12h(range.startMin);
     if (nw) {
       return {
@@ -247,8 +295,11 @@ export function buildServiciosHeroHoursPill(
     };
   }
 
+  // A stored label that literally says "Cerrado"/"Closed" is the owner's own assertion, not a
+  // computed one, so it stands without a timezone. The relative "opens <day> <time>" hint does
+  // need a local weekday, so it is only added when the zone is known.
   if (labelHintsClosed(openLbl)) {
-    const nw = weekly.length ? findNextWeeklyOpen(weekly, now) : null;
+    const nw = weekly.length && zoned ? findNextWeeklyOpen(weekly, zoned.jsDay) : null;
     if (nw) {
       return {
         text: closedRelativePhrase(lang, nw.dayOffset, nw.dayLabel, formatMinutes12h(nw.timeMin)),
@@ -269,7 +320,11 @@ export function buildServiciosHeroHoursPill(
     };
   }
 
-  if (openLabelHintsOpen(openLbl) && todayLine) {
+  // `openNowLabel` is frozen at publish time (Gate SERVICIOS-1 recorded it as always "Hoy"/
+  // "Today" in practice). Honouring it as a live "Abierto ahora" claim without a business clock
+  // would reintroduce exactly the stale-status defect this engine replaced, so it now also
+  // requires a resolvable zone.
+  if (openLabelHintsOpen(openLbl) && todayLine && zoned) {
     const parsed = parseTodayHoursRange(todayLine);
     const span = parsed ? formatHoursRange12h(parsed) : formatHoursLineDisplay12h(todayLine);
     return {

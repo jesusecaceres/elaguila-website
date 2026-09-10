@@ -424,6 +424,14 @@ export type ServiciosProfileResolved = {
     /** Formatted for display; omitted when no physical address provided */
     physicalAddressDisplay?: string;
     /** https://www.google.com/maps/search/... built in resolver */
+    /**
+     * Gate SERVICIOS-3 (D-1) — the business's own IANA timezone, resolved ONCE in
+     * `resolveServiciosProfile` from the persisted location and carried here so the public badge
+     * and the results open-now filter read the SAME answer. `undefined` means it could not be
+     * determined; consumers must then decline to claim open/closed rather than fall back to the
+     * runtime host clock, which is UTC on the server and the viewer's zone in the browser.
+     */
+    businessTimeZone?: string;
     mapsSearchHref?: string;
   };
   quickFacts: ServiciosQuickFact[];

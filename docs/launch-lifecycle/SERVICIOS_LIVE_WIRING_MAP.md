@@ -15,10 +15,17 @@ Classification vocabulary (master §14): `LIVE` · `LIVE-SHARED` · `BUILT-NOT-W
 |---|---|---|
 | **SERVICIOS-1** | Launch-critical lifecycle repairs (§6.1–6.6, §5.1) | **CLOSED** — see §10 |
 | **SERVICIOS-2** | Discovery + adoption (§5.3–5.6) + cleanup readiness (§4) | **CLOSED** — see §11 |
+| **SERVICIOS-3** | Source readiness before runtime certification (audit D-1…D-4) | **CLOSED** — see §12 |
 
-Everything marked **CLOSED (SERVICIOS-1 / SERVICIOS-2)** below is implemented on
-`completion/launch-lifecycle-2026-09-09`. The only items still OPEN are the
-subscription-sweep scheduler (§5.2, a platform decision) and aesthetic work.
+Everything marked **CLOSED (SERVICIOS-1 / SERVICIOS-2 / SERVICIOS-3)** below is implemented on
+`completion/launch-lifecycle-2026-09-09`.
+
+**§2 was STALE until SERVICIOS-3** and has been corrected in place: it still described republish as
+slug-keyed (§5.1 had already recorded the id-keyed repair) and predated the SERVICIOS-2 discovery
+additions. Both are fixed above.
+
+Still OPEN: the subscription-sweep SCHEDULER (§5.2 / §12.4 — invocation only, no source defect),
+overnight hour ranges (§12.1, new P3), and aesthetic work.
 
 ---
 
@@ -145,12 +152,22 @@ PUBLISH/ACTIVATION revenueFulfillment.tryActivateServiciosListingAfterEntitlemen
                       suspended/rejected are never auto-activated
                       audit: "servicios_listing_activated_after_payment"                        LIVE
   |
+SAVED SEARCH       app/lib/saved-search/servicios/* (6-file adapter set)                     LIVE
+                   CTA mounted on results; match trigger fires from the real fulfillment
+                   ledger CHECK migration 20260910120000 — UNAPPLIED (QA prerequisite)
+RELATED LISTINGS   components/ServiciosRelatedListingsSection + lib/serviciosRelatedListings  LIVE
+SEO / JSON-LD      app/(site)/servicios/seo/serviciosJsonLd.ts                               LIVE
+SITEMAP            app/sitemap.ts -> serviciosSitemapEntries (canonical /clasificados/…)      LIVE
+                   (SAVED SEARCH / RELATED / SITEMAP added by SERVICIOS-2; §2 previously
+                    predated them — corrected by SERVICIOS-3)
 RESULTS/SEARCH     /clasificados/servicios/results          <-- CANONICAL
                    results/page.tsx  = 3-line re-export of ../resultados/page.tsx
                    next.config.ts:115 permanently redirects /resultados -> /results
                    data     lib/serviciosPublicListingsServer.listServiciosPublicListingsRaw
                    gate     .ilike("listing_status","published") + in-code re-check
                    filters  lib/serviciosResultsFilter.ts (+ open_now via
+                            SERVICIOS-3: open_now is evaluated in the BUSINESS's timezone
+                            (contact.businessTimeZone), the same rule the public badge uses
                             serviciosHeroHoursStatus.serviciosHoursSummaryIsOpenNow)
                    placement resolveCanonicalVisibilityBucketWeights +
                             serviciosEntitlementOverlay                                         LIVE
@@ -191,11 +208,15 @@ PUBLISHED EDIT     serviciosListingEditHref() -> /publicar/servicios
                    (app/(site)/dashboard/lib/serviciosDashboardOffersAddonCheckout.ts:89)       LIVE
   |
 SAME-ROW REPUBLISH POST /api/clasificados/servicios/publish
-                   identity resolution (route.ts:299-310):
-                     b.existingPublicSlug -> getServiciosPublicListingBySlugFromDb
-                                          -> owner check -> .update().eq("slug", slug)
-                     else                 -> allocateSlug() -> .insert()
-                   <-- SLUG-KEYED, not id-keyed (see §5.1)
+                   identity resolution — CORRECTED BY SERVICIOS-3 (this block was stale; §5.1
+                   already recorded the repair, §2 had not been updated to match):
+                     b.existingListingId  -> getServiciosPublicListingByIdFromDb
+                                          -> owner check (403 listing_owner_mismatch)
+                                          -> adopts that row's OWN slug
+                                          -> .update().eq("id", canonicalListingId)
+                     fallback slug        -> only when no canonical id was ever obtained
+                     neither              -> allocateSlug() -> .insert()
+                   <-- ID-KEYED. The slug is public routing/display identity only.
                    no-downgrade rule: an already-`published` row is never regressed to
                    pending on re-save (route.ts:452-456)                                        LIVE
   |
@@ -901,7 +922,120 @@ Application/Preview surface **not at all**.
    and the save/list/dashboard half of Saved Search works without it — but **match emails will not
    deliver until the migration is applied**.
 4. Owner-browser QA of the discovery circuit, especially: save a filtered Servicios search → confirm
-   it appears in `/dashboard/busquedas-guardadas` → reopen it → confirm the same result set.
+   it appears in `/dashboard/busquedas-guardadas` → reopen it → confirm the same result set.
+---
+
+## 12. GATE SERVICIOS-3 — SOURCE READINESS (evidence)
+
+Closes the source defects the launch-certification audit raised, so what gets runtime-certified
+is safe to reuse as the platform reference. Verifier:
+`scripts/verify-servicios-gate3-source-readiness.ts` — **97/97 PASS**. All twelve other locked
+verifiers still pass. No migration applied, no env changed, nothing deployed.
+
+### 12.1 D-1 — open-now now uses the BUSINESS's timezone (P1, closed)
+
+The hours engine computed with `now.getHours()` and had no timezone handling at all. The
+`open_now` filter runs inside `resultados/page.tsx`, a SERVER component, so on Vercel it
+evaluated in UTC — a Sonoma County business open 9–5 Pacific was misjudged for ~7 hours a day —
+while the public badge rendered in the viewer's zone, so the two could disagree about the same
+listing at the same moment.
+
+- NEW `app/(site)/servicios/lib/serviciosBusinessTimeZone.ts` (pure, zero imports):
+  `resolveServiciosBusinessTimeZone` maps the persisted US state to an IANA zone (CA →
+  `America/Los_Angeles`), and `serviciosZonedNow` reads the wall clock in that zone via
+  `Intl.DateTimeFormat` — DST-correct, no manual offset arithmetic.
+- The zone is resolved ONCE, in `resolveServiciosProfile`, beside the address-privacy gate (the
+  one place still holding the raw location), and exposed as `contact.businessTimeZone`. All four
+  consumers read that single answer; none re-resolves it.
+- **Honest failure.** An unresolvable zone never falls back to the host clock: the filter fails
+  CLOSED (excluded rather than advertised on a guess) and the badge states the hours WITHOUT
+  claiming open or closed. Both proven behaviorally.
+- The stored publish-time `openNowLabel` can no longer be re-interpreted into a status colour.
+- ES/EN copy unchanged; only correctness changed.
+
+Proven with a DISCRIMINATING instant (`2026-09-10T23:00Z` = 16:00 PDT): Pacific reads OPEN, UTC
+reads CLOSED. Badge and filter return the same answer for every zone tested, because the
+predicate delegates to the badge builder rather than re-deriving.
+
+**Known limitation, recorded not hidden:** one zone per US state. The few counties in split
+states (AZ Navajo Nation, parts of ID/KS/ND/NE/OR/SD/TX) get their state's predominant zone —
+wrong by one hour rather than by seven. ZIP-level precision needs a real ZIP→timezone dataset
+this repo does not have, and this gate would not invent one. Non-US resolves to UNKNOWN.
+
+**Also found, NOT fixed (new, P3):** the engine has no overnight-range support —
+`nowMin >= startMin && nowMin <= endMin` can never be true for a 10pm–2am business. Out of this
+gate's stated scope ("preserve overnight behavior if supported" — it is not supported). Recorded
+for a later gate.
+
+**Pre-existing display bug repaired because this change amplified it:**
+`formatHoursLineDisplay12h("9:00 AM - 5:00 PM")` returned `"9:00 AM AM - 5:00 AM PM"`. That
+predates this gate, but the neutral branch it feeds is now reachable for every listing without a
+resolvable zone, so a rare glitch would have become common. Minimal fix: do not rewrite a time
+that already carries an am/pm marker.
+
+### 12.2 D-3 — Admin sandbox: AUDIT FINDING CORRECTED, no change needed
+
+The certification audit rated the sandbox a P2 risk ("could mislead an operator"). Re-reading the
+page itself shows that was **overstated**, and the honest action was to change nothing:
+
+- the sandbox page carries an amber banner: *"Local sandbox (localStorage) … not part of the
+  public Servicios flow. Data is not saved to `servicios_public_listings`."*
+- the client renders a **"Local simulation"** badge and persists only to
+  `localStorage['leonix_admin_servicios_listings_v2']`; it never references the canonical table;
+- the canonical queue links to it under a labelled **"Tier sandbox (localStorage)"** card;
+- `app/admin/layout.tsx` sets `robots: { index: false, follow: false }` for the whole tree.
+
+**SAFELY_SCOPED already.** Manufacturing a change to justify the finding would have been worse
+than the finding. The non-canonical `active｜paused｜removed` vocabulary is a tier-pricing
+simulator's own vocabulary, not a competing claim about `listing_status`.
+
+### 12.3 D-4 — Admin payment / entitlement / subscription truth (closed)
+
+The queue showed `listing_status` and nothing else, so an operator could not tell a paid listing
+from an unpaid one. The linkage already existed and nothing was invented:
+
+| Fact | Canonical source | Key |
+|---|---|---|
+| entitlement | `listing_package_entitlements` via the shared `fetchAddonEntitlementsForListings` | category `servicios` + `servicios_base_monthly` + listing id |
+| subscription / payment | `leonix_subscription_records` | `listing_id` + `listing_source = "servicios"` (written by `revenueSubscriptionEvents`) |
+
+NEW `app/admin/_lib/serviciosCommercialOps.ts` — read-only, bounded to the rows already on the
+page, never sweeps, and contains no `update`/`insert`/`upsert`/`delete` (asserted). Rendered by a
+small truth-state block inside the EXISTING card — no second Admin surface.
+
+Admin OS Book §6 semantics enforced and asserted: a value is printed only when the state is REAL;
+PARTIAL / NEEDS_PROOF / UNAVAILABLE print the state plus an operator-safe note instead. **Payment
+is never inferred from listing status**, no `|| 0` appears anywhere, and a listing with no
+subscription record reads *"Payment state cannot be proven from the listing alone"* — explicitly
+**not** "unpaid".
+
+`loadSubscriptionStatusForParent` was deliberately NOT reused: its `GuardCategory` is
+`autos | bienes-raices` and it hardcodes `listing_source = "listings"`, the wrong table for
+Servicios. Widening a write-guard helper to serve a read-only panel would couple two unrelated
+concerns.
+
+### 12.4 D-2 — subscription sweep traced; NO source defect; scheduling is ops work
+
+| Question | Answer |
+|---|---|
+| What it does | selects `leonix_subscription_records` where `status = "grace"` AND `grace_ends_at < now`, then `reconcileSubscriptionRow` on each; also reaps stale event-ledger claims |
+| Auth | constant-time `x-leonix-sweep-key` vs `LEONIX_SUBSCRIPTION_SWEEP_KEY`, **or** an admin with `can_view_payments`; everything else 401. The env value is never logged or echoed |
+| Rows changed | only grace-EXPIRED subscription records and their listing status |
+| Bounded | `limit` clamped to 1–500, default 100 — never an unbounded sweep |
+| Idempotent | yes — a second run finds no rows; `dryRun` writes nothing |
+| Webhook still primary | yes. Stripe deliveries are the primary crank, and `loadSubscriptionStatusForParent` ALSO reconciles an expired grace at write time. The sweep is a backstop, not the only path |
+
+**No source defect found — nothing was changed.** The only gap is invocation. Eventual
+requirement, for the integration/ops gate:
+
+```
+POST /api/revenue-os/admin/subscription-sweep
+  header: x-leonix-sweep-key: <LEONIX_SUBSCRIPTION_SWEEP_KEY>
+  body:   {}            (or {"limit":100}; {"dryRun":true} to rehearse)
+  cadence: hourly is sufficient — grace windows are day-scale
+```
+
+No `vercel.json` was created (asserted). Scheduling stays **integration/operations work**.
 
 ---
 

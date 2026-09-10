@@ -16,9 +16,16 @@ export function ServiciosHours({ profile, lang }: { profile: ServiciosProfileRes
    * results `open_now` filter already uses (serviciosResultsFilter.ts →
    * serviciosHoursSummaryIsOpenNow), so the public profile and search now agree. Falls back to the
    * stored label when the hours text cannot be parsed into a time range. */
-  const pill = buildServiciosHeroHoursPill(hours, lang);
+  const pill = buildServiciosHeroHoursPill(hours, lang, {
+    // Gate SERVICIOS-3 (D-1) — same business-timezone rule as the hero badge and the results
+    // filter. `profile.contact` carries the persisted location this resolves from.
+    timeZone: profile.contact.businessTimeZone ?? null,
+  });
   const pillText = pill?.text || hours.openNowLabel;
-  const pillIsClosed = pill ? pill.variant === "closed" : (hours.openNowLabel ?? "").toLowerCase().includes("cerrado");
+  // When the engine returns no pill at all there is nothing to colour as open/closed; the stored
+  // `openNowLabel` is a publish-time string, not a live status, so it is shown as neutral text
+  // rather than being re-interpreted into a colour the engine declined to assert.
+  const pillIsClosed = pill ? pill.variant === "closed" : false;
 
   return (
     <section
