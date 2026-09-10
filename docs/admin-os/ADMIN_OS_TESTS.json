@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-09-final-master-book-completeness-pass",
+  "updatedAt": "2026-09-09-final-close-out-pass",
   "masterOperatingBookAdopted": true,
   "cableMapPass": {
     "status": "substantially_complete",
@@ -550,11 +550,57 @@
       "cableMapDocumentationCorrections": ["Global Search dedicated-category coverage (was stale 'not fixed yet')", "Command Center review triage (Review workbench preview already exists)", "Media Kit routing (already fixed)", "Users tier-vocabulary mismatch (already fixed)"]
     }
   },
+  "finalCloseOutPass": {
+    "status": "complete",
+    "trigger": "Owner rejected prior pass's LOCAL_WORK_REMAINING:NO claim; required closing gaps deferred merely because they needed new query/wiring code or an additive local migration.",
+    "gates": {
+      "gate1_globalSearchComplete": {
+        "status": "complete",
+        "newModule": "app/admin/_lib/adminExtendedGlobalSearch.ts",
+        "sourcesClosed": ["admin_team_members", "leonix_leads", "leonix_payment_records (payments/entitlements)", "community_resources (Recursos)", "magazine_issues (Revista)", "support_tickets (standalone)"],
+        "sourcesDocumentedUnsupported": [{ "source": "Noticias", "reason": "RSS aggregator only, no article entity/table exists" }],
+        "evidence": "app/admin/(dashboard)/ops/page.tsx new 'ops-extended' section, grouped by entityType"
+      },
+      "gate2_auditActorTruth": {
+        "status": "complete_pending_owner_migration_approval",
+        "migrationCreatedLocally": "supabase/migrations/20260909140000_admin_audit_log_actor_attribution.sql",
+        "migrationAppliedRemotely": false,
+        "mechanism": "Reuses the same actor-resolution pattern already proven for admin_roster_audit_log (resolveActingRosterIdentity) via a new resolveActorForAuditWrite() helper in adminAuditLogServer.ts",
+        "writerUpdated": "appendAdminAuditLog() — best-effort actor capture, retries without actor columns on unknown-column error so pre-migration behavior is unchanged for every existing caller",
+        "readersUpdated": ["fetchAdminAuditLogFiltered", "fetchAdminAuditLogForTarget"],
+        "uiFixed": "app/admin/(dashboard)/activity-log/page.tsx — 'Actor' column previously hardcoded the literal string 'server' for every row; now shows r.actor_email with 'server' as an honest fallback"
+      },
+      "gate3_moderationLifecycle": {
+        "status": "complete",
+        "newType": "AdminModerationLifecycleState (OPEN | TRIAGE | ACTION_REQUIRED | RESOLVED)",
+        "derivedFrom": "existing needsReview/canExplain/sourceKind fields already computed by classifyAdminReviewFlagTruth() — no new persisted state, no invented transitions",
+        "evidence": "app/admin/_lib/adminReviewFlagTruth.ts; surfaced as 'AI triage'/'Action required' badges in AdminCommandCenterDashboard.tsx's CompactReviewRow",
+        "fullStatefulCaseLifecycle": "OWNER_DECISION_REQUIRED — listing_moderation_reviews.decision confirmed still a flat enum, genuinely needs new schema"
+      },
+      "gate4_commercialTruthFinal": {
+        "status": "complete",
+        "correction": "business_proposals (+ business_proposal_versions, business_commitments, business_commitment_events) is a real, mature, already-built quote/proposal system already wired into Business 360's 'Client Decision' tab — an earlier pass incorrectly claimed no such table exists",
+        "quoteProposal": "CLOSED",
+        "contract": "OWNER_DECISION_REQUIRED — evidenced by the proposal UI's own copy admitting 'Downstream contract, DocuSign, Stripe, and publication still remain', not assumed from schema absence",
+        "renewal": "NOT_APPLICABLE — business_commitments is a post-acceptance task tracker, not subscription-renewal semantics; confirmed no business-level renewal schema exists"
+      },
+      "gate5_systemHealthRuntimeObservability": {
+        "status": "complete",
+        "upgraded": "Stripe — buildStripeHealthComponent() now reads leonix_stripe_webhook_events (last 24h, bounded, zero outbound calls) for DEGRADED/HEALTHY instead of config-presence alone",
+        "unchanged": "Resend, Twilio — no durable local evidence table exists for either (confirmed via migration search); config-presence remains the strongest safely-available truth"
+      },
+      "gate6_masterBookZeroLocalGap": {
+        "status": "complete",
+        "note": "Zero items remain classified as future-pass/worthwhile-later/not-launch-critical while still being locally implementable Master Book scope. See ADMIN_OS_PROGRESS.md Gate 6 table for the full final reconciliation."
+      }
+    }
+  },
   "DEFERRED_TO_INTEGRATION_GATE": [
     "Full tsc --noEmit across the whole project for Gates A-F, Gates 1-5, and Gates 1-6's changed files",
     "npm run build / next build",
     "Any dev-server / browser verification of: the promo-lead tile/inbox count match, /admin/businesses/[id]'s new Connected records linking workflow (link/duplicate/not-found/deleted-record display), and everything already deferred from prior passes (/admin/system-health, /admin/team/roster invite controls, /admin/categories n/a rendering and Comida Local row, /admin/usuarios/[id] tier-edit fix, /admin/payments disambiguation banner)",
-    "Applying supabase/migrations/20260909130000_business_external_links_foundation.sql to any remote database"
+    "Applying supabase/migrations/20260909130000_business_external_links_foundation.sql to any remote database",
+    "Applying supabase/migrations/20260909140000_admin_audit_log_actor_attribution.sql to any remote database"
   ],
   "DEFERRED_RUNTIME_QA_AFTER_RELEASE_GATE": [
     "npm run typecheck (plain, default heap) still OOMs on this project — future runs should default to NODE_OPTIONS=--max-old-space-size=8192 or higher",

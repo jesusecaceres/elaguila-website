@@ -5,6 +5,7 @@ import { fetchAdminSupportContextForProfile, type AdminSupportContext } from "./
 import { listTiendaOrdersForAdmin } from "./tiendaOrdersData";
 import { searchDedicatedCategoryListingsForAdminOps } from "./adminDedicatedCategorySearch";
 import { listBusinessesForWorkspace } from "./businessWorkspaceData";
+import { searchExtendedAdminSources } from "./adminExtendedGlobalSearch";
 
 export type AdminUnifiedSearchBundle = {
   q: string;
@@ -26,6 +27,13 @@ export type AdminUnifiedSearchBundle = {
    * keyword-filtered read the businesses workspace list already uses — no new query logic.
    */
   businesses: Awaited<ReturnType<typeof listBusinessesForWorkspace>>;
+  /**
+   * Master Operating Book §17 — team roster, leads, payments/entitlements, Recursos, and Revista,
+   * plus a standalone support-ticket keyword match. `unsupportedSources` documents entities named
+   * in the contract that have no canonical searchable record today (currently: Noticias), so they
+   * are explicitly disclosed rather than silently absent.
+   */
+  extended: Awaited<ReturnType<typeof searchExtendedAdminSources>>;
   /** Present when exactly one profile row matched — read-only operational summary. */
   supportContext: AdminSupportContext | null;
 };
@@ -33,13 +41,14 @@ export type AdminUnifiedSearchBundle = {
 /** Parallel cross-entity search for customer operations (no fake persistence). */
 export async function runAdminUnifiedSearch(q: string): Promise<AdminUnifiedSearchBundle> {
   const trimmed = q.trim();
-  const [profiles, listings, orders, reports, dedicatedCategories, businesses] = await Promise.all([
+  const [profiles, listings, orders, reports, dedicatedCategories, businesses, extended] = await Promise.all([
     fetchProfilesForAdminList({ q: trimmed, searchLimit: 40, recentLimit: 200 }),
     searchListingsForAdminOps(trimmed, 25),
     listTiendaOrdersForAdmin({ search: trimmed, limit: 25 }),
     searchListingReportsForOps(trimmed, 20),
     searchDedicatedCategoryListingsForAdminOps(trimmed),
     trimmed ? listBusinessesForWorkspace({ keyword: trimmed, limit: 8 }) : Promise.resolve({ items: [], total: 0 }),
+    searchExtendedAdminSources(trimmed),
   ]);
 
   let supportContext: AdminSupportContext | null = null;
@@ -50,5 +59,5 @@ export async function runAdminUnifiedSearch(q: string): Promise<AdminUnifiedSear
     }
   }
 
-  return { q: trimmed, profiles, listings, orders, reports, dedicatedCategories, businesses, supportContext };
+  return { q: trimmed, profiles, listings, orders, reports, dedicatedCategories, businesses, extended, supportContext };
 }

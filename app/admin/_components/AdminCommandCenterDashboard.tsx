@@ -255,6 +255,22 @@ function CompactReviewRow({
               >
                 Needs triage
               </span>
+            ) : truth.lifecycleState === "TRIAGE" ? (
+              <span
+                className="mr-1.5 inline-block rounded-md border border-[#6B5B2E]/35 bg-[#FFFCF7] px-1.5 py-0.5 text-[10px] font-bold uppercase text-[#6B5B2E]"
+                title="AI has produced a decision and reason. No human has acted on it yet."
+                data-testid="admin-flag-lifecycle-triage-badge"
+              >
+                AI triage
+              </span>
+            ) : truth.lifecycleState === "ACTION_REQUIRED" ? (
+              <span
+                className="mr-1.5 inline-block rounded-md border border-amber-700/35 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-900"
+                title="A human-legible reason exists (report, manual flag, or status) and this listing is still live/pending — a person needs to act."
+                data-testid="admin-flag-lifecycle-action-required-badge"
+              >
+                Action required
+              </span>
             ) : null}
             {m("dashboard.reasonLabel")} {truth.ownerFacingExplanation}
           </p>

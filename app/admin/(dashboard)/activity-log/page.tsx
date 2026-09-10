@@ -66,7 +66,10 @@ export default async function AdminActivityLogPage(props: PageProps) {
     ? audit.rows.map((r: AdminAuditLogRow) => ({
         id: r.id,
         createdAt: r.created_at,
-        actor: "server",
+        // Master Operating Book §8/§22 — real when the acting staff member was resolvable at
+        // write time (20260909140000_admin_audit_log_actor_attribution.sql, not yet applied
+        // remotely); "server" is an honest fallback for rows with no attribution, not a fake name.
+        actor: r.actor_email ?? "server",
         action: r.action,
         targetType: r.target_type ?? "—",
         targetId: r.target_id ?? "—",

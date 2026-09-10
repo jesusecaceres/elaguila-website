@@ -580,3 +580,54 @@ and whether Business Concierge uses `admin_audit_log` or a separate audit mechan
   autos/comida-local/restaurantes `pending_payment`-style statuses was not built this pass — exact
   column/status names for comida-local and restaurantes were not verified with enough confidence
   within a source-inspection-only budget. `OWNER_DECISION_REQUIRED`, not guessed.
+
+---
+
+## SYSTEM: Business Proposals / Promise Keeper ("Program 5") — real, mature, previously
+## unmapped commercial-lifecycle system; corrects an earlier pass's error
+
+**Correction of record**: an earlier pass classified "business quote/estimate object" as
+`OWNER_DECISION_REQUIRED` with the note "no such table exists anywhere in the schema." That was
+wrong — it was never actually verified against the schema, only assumed. `business_proposals`
+(`supabase/migrations/20260810150000_business_proposal_promise_keeper_foundation.sql`) is a real,
+mature system:
+- SYSTEM: Business Proposals (`business_proposals`, `business_proposal_versions`)
+- DOMAIN: PEOPLE / REVENUE (business commercial lifecycle)
+- CANONICAL_ENTITY: proposal, keyed to `business_id`
+- CANONICAL_DATA_SOURCE: `business_proposals` — real lifecycle
+  (`draft → staff_review → owner_review → accepted/declined/expired/superseded/cancelled`),
+  pricing snapshotted from `revenue_pricing_matrix` (never invented), scope/deliverables/timeline/
+  success-metric fields, atomic acceptance attribution enforced by CHECK constraints (staff actor
+  requires roster_id; owner actor must not carry one; accepted requires full atomic attribution).
+- PRIMARY_ADMIN_ROUTE: `/admin/businesses/[businessId]` → "Client Decision" tab
+  (`ProposalActions.tsx`'s `CreateProposalForm`/`ProposalDetailPanel`)
+- ADMIN_READ_CAPABILITY / ADMIN_WRITE_CAPABILITY: real, gated by `create_proposal`/
+  `review_proposal`/`record_proposal_decision` capabilities — not open to every role
+- GLOBAL_SEARCH_SUPPORT: none (not added this pass — proposals are reached via Business 360, which
+  is itself now searchable; a separate direct proposal search was not identified as a named gap)
+- RELATED: `business_commitments`/`business_commitment_events` ("Promise Keeper") — a real
+  post-acceptance task/follow-through tracker (planned/active/blocked/completed/released), linked
+  to `proposal_id`. This is NOT renewal/subscription semantics — it is follow-through tracking on
+  work already agreed to.
+- KNOWN_BROKEN_OR_SPLIT_WIRING: none found. This is a well-built, honest, doctrine-compliant
+  system — the UI's own copy explicitly discloses what acceptance does NOT do: "Downstream
+  contract, DocuSign, Stripe, and publication still remain." This is the direct evidence that
+  contract execution (signed document) is genuinely not built yet — `OWNER_DECISION_REQUIRED`,
+  not a wiring gap.
+- NOTES: This system was apparently mapped by neither this project's original cable-mapping pass
+  nor any subsequent pass until now — a real miss. Recorded here so it isn't lost again.
+
+---
+
+## SYSTEM: Stripe observability (`leonix_stripe_webhook_events`) — real local evidence,
+## now wired into System Health
+
+`leonix_stripe_webhook_events` (`20260805090000_leonix_stripe_webhook_events.sql`) is a real,
+already-populated durable log of every Stripe webhook Leonix has received (`status` state machine:
+received/processing/completed/failed_retryable/failed_terminal/ignored; `last_error`;
+`received_at`). This was previously undiscovered/unused by System Health, which relied on
+config-presence only for Stripe. **Fixed**: `adminSystemHealth.ts`'s `buildStripeHealthComponent()`
+now reads the last 24h of this table (bounded, no outbound calls) and reports `DEGRADED` on any
+`failed_terminal` row, `HEALTHY` on all-clear, falling back to config-presence-only `HEALTHY` when
+there's no recent data to compare against. No equivalent durable log exists for Resend or Twilio
+(confirmed via migration search) — those two correctly remain config-presence-only.

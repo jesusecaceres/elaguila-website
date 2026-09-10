@@ -44,6 +44,70 @@ async function probeTableReachable(
   }
 }
 
+/**
+ * Master Operating Book §22 — "do not reduce provider health to config-presence if stronger
+ * existing truth already exists." `leonix_stripe_webhook_events` is a real, already-populated
+ * local record of what Stripe has actually told us (received_at, status, last_error) — no
+ * outbound network call is made here, this only reads rows Stripe already delivered to our own
+ * webhook endpoint in the past. Config-presence remains the fallback when Stripe is configured
+ * but has no recent webhook rows yet (that's a "no data" case, not a failure — never inferred as
+ * either healthy or broken beyond what config-presence already established).
+ */
+async function buildStripeHealthComponent(
+  stripeConfigured: boolean,
+  supabase: ReturnType<typeof getAdminSupabase> | null,
+): Promise<LeoSystemHealthComponent> {
+  if (!stripeConfigured) {
+    return {
+      key: "stripe_payments",
+      label: "Stripe (payments)",
+      state: "NOT_CONFIGURED",
+      ownerMessage: "Stripe is not configured — real checkout/payment processing cannot run.",
+    };
+  }
+
+  if (supabase) {
+    try {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data, error } = await supabase
+        .from("leonix_stripe_webhook_events")
+        .select("status, last_error, received_at")
+        .gte("received_at", since)
+        .order("received_at", { ascending: false })
+        .limit(50);
+      if (!error && data && data.length > 0) {
+        const rows = data as { status: string; last_error: string | null; received_at: string }[];
+        const failed = rows.filter((r) => r.status === "failed_terminal");
+        if (failed.length > 0) {
+          return {
+            key: "stripe_payments",
+            label: "Stripe (payments)",
+            state: "DEGRADED",
+            ownerMessage: `${failed.length} Stripe webhook event(s) failed permanently in the last 24 hours — some payments may not have recorded correctly. Check Payment Tracker.`,
+          };
+        }
+        return {
+          key: "stripe_payments",
+          label: "Stripe (payments)",
+          state: "HEALTHY",
+          ownerMessage: null,
+        };
+      }
+      // No rows in the last 24h (or table unreachable) — not evidence of failure, just no
+      // stronger truth than config-presence to report. Fall through to config-presence-only.
+    } catch {
+      // Same: fall through to config-presence-only rather than reporting a fake failure.
+    }
+  }
+
+  return {
+    key: "stripe_payments",
+    label: "Stripe (payments)",
+    state: "HEALTHY",
+    ownerMessage: null,
+  };
+}
+
 function overallFromComponents(states: LeoSystemHealthState[]): LeoSystemHealthState {
   if (states.some((s) => s === "UNAVAILABLE")) return "DEGRADED";
   if (states.some((s) => s === "DEGRADED")) return "DEGRADED";
@@ -116,12 +180,7 @@ export async function buildAdminSystemHealthSnapshot(): Promise<LeoSystemHealthS
   // emails, and phone verification can actually run depends on these, but this never touches
   // or exposes the credential values themselves.
   const stripeConfigured = isRevenueStripeConfigured();
-  components.push({
-    key: "stripe_payments",
-    label: "Stripe (payments)",
-    state: stripeConfigured ? "HEALTHY" : "NOT_CONFIGURED",
-    ownerMessage: stripeConfigured ? null : "Stripe is not configured — real checkout/payment processing cannot run.",
-  });
+  components.push(await buildStripeHealthComponent(stripeConfigured, configured ? getAdminSupabase() : null));
 
   const emailConfig = resolveLeonixResendConfig();
   components.push({
