@@ -194,7 +194,21 @@ export function ComidaLocalDetailShell({ vm, leonixAdId, analyticsContext, lang 
       {vm.sections.showLocationAvailability ? (
         <DetailSection title={copy.findMeToday}>
           <div className="space-y-2 text-sm text-[#1E1814]/85">
+            {/* Gate COMIDA-LOCAL-1 — `vm.locationNote` is already empty on a public read once
+                the temporary location is older than 24h, so this block cannot render a stale
+                location under a heading that says "today". The freshness line only ever
+                accompanies a location that is genuinely current. */}
             {vm.locationNote ? <p>{vm.locationNote}</p> : null}
+            {vm.temporaryLocation.freshnessLabel ? (
+              <p className="text-[11px] font-medium uppercase tracking-wide text-[#1E1814]/50">
+                {vm.temporaryLocation.freshnessLabel}
+              </p>
+            ) : null}
+            {vm.temporaryLocation.ownerWarning ? (
+              <p className="rounded-lg border border-[#D4C4A8] bg-[#FFF7E8] px-3 py-2 text-xs leading-relaxed text-[#1E1814]/80">
+                {vm.temporaryLocation.ownerWarning}
+              </p>
+            ) : null}
             {vm.availabilityNote ? (
               <p>
                 <span className="font-medium text-[#1E1814]/65">{copy.availability}</span>

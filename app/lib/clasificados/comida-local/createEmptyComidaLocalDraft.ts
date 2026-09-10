@@ -49,6 +49,8 @@ export function createEmptyComidaLocalDraft(): ComidaLocalDraft {
     tiktokUrl: "",
     locationNote: "",
     locationUrl: "",
+    /** Gate COMIDA-LOCAL-1 — no temporary location yet, so no freshness to claim. */
+    locationUpdatedAt: "",
     mobileOrderLinkUrl: "",
     eventScheduleNote: "",
     cateringServiceRadiusNote: "",

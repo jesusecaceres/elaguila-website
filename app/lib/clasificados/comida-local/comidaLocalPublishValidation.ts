@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { resolveComidaLocalCityCanonical } from "./comidaLocalCity";
 import { mergeComidaLocalDraftFromStorage } from "./comidaLocalDraftPersistence";
 import {
+  hasUsableComidaLocalWhatsApp,
   isValidComidaLocalExternalUrl,
   normalizeComidaLocalPhoneDigits,
   normalizeComidaLocalSocialInput,
@@ -25,7 +26,11 @@ import type {
   ComidaLocalPackageTierDb,
 } from "./comidaLocalPublishTypes";
 import { validateComidaLocalDraftForFuturePublish } from "./comidaLocalValidation";
-import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
+import {
+  buildProposedFinalMediaSet,
+  validateProposedFinalMediaSet,
+  warnDroppedUnpersistableMedia,
+} from "@/app/lib/media/listingMediaContract";
 
 const MAX_TEXT = {
   businessName: 120,
@@ -125,8 +130,9 @@ export function validateComidaLocalPublishPayload(
   }
 
   const phone = normalizeComidaLocalPhoneDigits(draft.phone);
-  const wa = normalizeComidaLocalPhoneDigits(draft.whatsapp);
-  if (phone.length < 10 && wa.length < 8) {
+  // Gate COMIDA-LOCAL-1 — same shared WhatsApp contract as the preview validator and the href
+  // builder, so publish cannot accept a number that renders no usable WhatsApp action.
+  if (phone.length < 10 && !hasUsableComidaLocalWhatsApp(draft.whatsapp)) {
     errors.push({
       field: "phone",
       message: "Agrega teléfono o WhatsApp.",
@@ -238,6 +244,14 @@ export function parseComidaLocalPublishRequest(body: Record<string, unknown>): {
     };
   }
 
+  // Gate COMIDA-LOCAL-1 — the engine has always reported the URLs it could not persist
+  // (blob:/data:/malformed); this category built the set and then dropped that report on the
+  // floor, so an owner whose gallery silently shrank was never told. Warn server-side through
+  // the shared helper here, where the real media set lives, and carry the list out in the
+  // normalized value so the route can return it to the client. Same adoption Servicios
+  // (Gate SERVICIOS-1) and Restaurantes (Gate RESTAURANTES-1) already made.
+  warnDroppedUnpersistableMedia("comida-local-publish", comidaLocalFinalMedia);
+
   const draftListingId =
     typeof body.draftListingId === "string" && body.draftListingId.trim()
       ? body.draftListingId.trim().slice(0, 64)
@@ -254,6 +268,9 @@ export function parseComidaLocalPublishRequest(body: Record<string, unknown>): {
       packageTier,
       lang,
       ...(activationMode ? { activationMode } : {}),
+      // Gate COMIDA-LOCAL-1 — carried out of this parse boundary instead of being discarded;
+      // the route warns on it and returns it so the owner is told their gallery shrank.
+      droppedUnpersistableMedia: [...comidaLocalFinalMedia.droppedUnpersistable],
     },
   };
 }

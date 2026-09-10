@@ -352,6 +352,8 @@ export default function ComidaLocalApplicationClient() {
   const [publishSuccess, setPublishSuccess] = useState<{
     publicPath: string;
     leonixAdId?: string;
+    /** Gate COMIDA-LOCAL-1 — how many selected photos the save could not persist. */
+    droppedMediaCount?: number;
   } | null>(null);
 
   useEffect(() => {
@@ -636,6 +638,12 @@ export default function ComidaLocalApplicationClient() {
             typeof data.leonix_ad_id === "string" && data.leonix_ad_id.trim()
               ? data.leonix_ad_id.trim()
               : undefined,
+          // Gate COMIDA-LOCAL-1 — a save that silently persisted fewer photos than the owner
+          // selected must say so; the shared media contract reports exactly which URLs it
+          // could not keep.
+          ...(data.droppedUnpersistableMedia?.length
+            ? { droppedMediaCount: data.droppedUnpersistableMedia.length }
+            : {}),
         });
         // Package A closure — a confirmed same-row save ends this edit session: the edit
         // workspace and context marker are cleared (the new-ad draft key is never touched).
@@ -1519,6 +1527,13 @@ export default function ComidaLocalApplicationClient() {
                   <p className="mt-2 text-xs text-emerald-800/90">
                     {es ? "ID Leonix" : "Leonix ID"}:{" "}
                     <span className="font-mono font-medium">{publishSuccess.leonixAdId}</span>
+                  </p>
+                ) : null}
+                {publishSuccess.droppedMediaCount ? (
+                  <p className="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900">
+                    {es
+                      ? `No pudimos guardar ${publishSuccess.droppedMediaCount} foto(s) que seleccionaste. Vuelve a subirlas desde la sección de fotos.`
+                      : `We couldn't save ${publishSuccess.droppedMediaCount} photo(s) you selected. Please re-upload them from the photos section.`}
                   </p>
                 ) : null}
                 <div className="mt-3 flex flex-wrap gap-2">

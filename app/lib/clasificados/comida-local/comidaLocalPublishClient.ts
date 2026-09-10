@@ -17,6 +17,9 @@ export type ComidaLocalPublishApiResponse = {
   error?: string;
   detail?: string;
   issues?: { field: string; message: string; severity?: string }[];
+  /** Gate COMIDA-LOCAL-1 — media URLs the shared contract could not persist; present only when
+   * non-empty, so the owner can be told their gallery saved fewer photos than they selected. */
+  droppedUnpersistableMedia?: string[];
 };
 
 export async function postComidaLocalPublishApi(args: {

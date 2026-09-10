@@ -1,6 +1,9 @@
 import type { ComidaLocalDraft, ComidaLocalValidationIssue } from "./comidaLocalTypes";
 import { resolveComidaLocalCityCanonical } from "./comidaLocalCity";
-import { normalizeComidaLocalPhoneDigits } from "./comidaLocalFormatting";
+import {
+  hasUsableComidaLocalWhatsApp,
+  normalizeComidaLocalPhoneDigits,
+} from "./comidaLocalFormatting";
 import {
   COMIDA_LOCAL_GALLERY_MAX,
   hasComidaLocalMainPhoto,
@@ -12,8 +15,10 @@ const MIN_QUE_VENDES = 20;
 
 function hasContact(draft: ComidaLocalDraft): boolean {
   const phone = normalizeComidaLocalPhoneDigits(draft.phone);
-  const wa = normalizeComidaLocalPhoneDigits(draft.whatsapp);
-  return phone.length >= 10 || wa.length >= 8;
+  // Gate COMIDA-LOCAL-1 — WhatsApp eligibility now comes from the shared international
+  // contract, the same rule that decides whether a wa.me href can actually be built. The old
+  // check counted digits through `normalizeComidaLocalPhoneDigits`, which truncates to 10.
+  return phone.length >= 10 || hasUsableComidaLocalWhatsApp(draft.whatsapp);
 }
 
 function hasFoodType(draft: ComidaLocalDraft): boolean {

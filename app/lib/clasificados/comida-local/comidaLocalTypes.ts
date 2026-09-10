@@ -168,6 +168,18 @@ export type ComidaLocalDraft = {
   /** Gate D5 "Encuéntrame hoy" — today's/current location note+link. Never the permanent address. */
   locationNote: string;
   locationUrl: string;
+  /**
+   * Gate COMIDA-LOCAL-1 — ISO instant of the last REAL owner update to the temporary-location
+   * payload (`locationNote` + `locationUrl`), or "" when there is none. This is what makes
+   * "Find Me Today" true: the public surface only renders the temporary location while this
+   * stamp is under 24 hours old (`comidaLocalTemporaryLocation.ts`).
+   *
+   * Written ONLY by the publish route, which compares the incoming payload against the stored
+   * row's payload — an ordinary edit that leaves the temporary location alone preserves this
+   * value and must never falsely refresh it. The client's own value is never trusted as the
+   * new stamp; it round-trips through the draft so an edit session does not lose it.
+   */
+  locationUpdatedAt: string;
   /** Gate C-027/C-038 — dedicated order/contact link for mobile-bucket sellers (food truck,
    * puesto, mercado, delivery-only, pop-up, feria) and private chefs (booking/quote requests).
    * Additive and distinct from the generic `additionalWebsites` list. */
