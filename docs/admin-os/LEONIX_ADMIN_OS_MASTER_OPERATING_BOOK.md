@@ -1,9 +1,9 @@
 # LEONIX ADMIN OS — MASTER OPERATING BOOK
 
-**Document role:** Canonical product/operations contract for the Leonix Admin OS launch-certification pass.  
-**Primary audience:** Owner/CEO, Claude implementation agent, future LEO integration work.  
-**Status:** Locked operating doctrine + current verified repository baseline + required cable-mapping contract.  
-**Purpose:** Make the Leonix Admin the complete, reliable, understandable control plane for the company and make LEO a reader of that same canonical truth.
+**Document role:** Permanent operating constitution, control-plane contract, human operations manual specification, and launch-certification standard for the Leonix Admin OS.  
+**Primary audience:** Owner/CEO, authorized Leonix staff, Claude implementation agent, future LEO integration work, and any future operator responsible for continuity of the company.  
+**Status:** Locked operating constitution + current verified repository baseline + required cable-mapping, human-operability, continuity, and LEO-readiness contract.  
+**Purpose:** Make Leonix Admin the complete, reliable, searchable, teachable, independently operable control plane and book of record for the entire company — past, present, and future — while making LEO an optional intelligent assistant that reads and acts through that same canonical truth without becoming a dependency.
 
 ---
 
@@ -21,6 +21,348 @@ The core analogy is an **organized network rack**:
 - LEO is the intelligent operator who reads the labeled rack, understands the company state, and tells the owner what matters.
 
 The goal is not to cut working wires or rebuild the rack. The goal is to know exactly where every wire begins, where it ends, what it controls, whether it is tangled with another wire, whether it is split incorrectly, whether it is mislabeled, and whether it is actually working.
+
+---
+
+# 0A. CONSTITUTIONAL NORTH STAR — ADMIN MUST STAND ON ITS OWN
+
+Leonix Admin is the **human operating system for the company**.
+
+LEO is an assistant, not the company control plane.
+
+The permanent architecture is:
+
+```text
+LEONIX PRODUCT / WEBSITE / BUSINESS OPERATIONS
+        ↓
+CANONICAL TRUTH SOURCES
+        ↓
+LEONIX ADMIN OS
+        ↓
+HUMAN OWNER / AUTHORIZED STAFF
+        ↘
+          LEO — OPTIONAL INTELLIGENT ASSISTANT OVER THE SAME TRUTH
+```
+
+The Admin OS must remain usable if LEO is unavailable, degraded, misconfigured, disabled, or wrong.
+
+A company capability is not considered operationally complete merely because LEO can reach it. If the capability is necessary to run Leonix, an authorized human must be able to locate, understand, and operate it directly from Admin.
+
+## ADMIN INDEPENDENCE DOCTRINE
+
+The owner must be able to run Leonix manually from Admin without relying on:
+
+- LEO
+- ChatGPT or another external assistant
+- source code for ordinary operations
+- direct Supabase inspection for ordinary operations
+- hidden or undocumented URLs
+- personal memory of where a feature was built
+- tribal knowledge held by one employee
+
+True provider-owned administration may still require provider dashboards when unavoidable, such as legal identity verification or provider-level account recovery. In those cases, Admin must explain that dependency clearly and point the operator to the correct next step.
+
+## MANUAL CONTROL PARITY
+
+For every meaningful capability LEO can inspect, recommend, prepare, or invoke, the human Admin must provide the corresponding manual operating path where the action is permitted.
+
+Examples:
+
+- If LEO can identify a listing that should be reviewed, Admin must let a human open that listing, inspect evidence, and perform the authorized action manually.
+- If LEO can identify a failed payment, Admin must let a human inspect the payment/customer context manually.
+- If LEO can identify a staff follow-up, Admin must let a human see the owner, due date, notes, and next action manually.
+- If LEO can navigate to a system, that system must also be discoverable without LEO.
+
+No important operational control may exist only behind an AI interaction.
+
+---
+
+# 0B. HUMAN OPERABILITY AND BUSINESS CONTINUITY
+
+Leonix must be operable by more than the person who built it.
+
+The continuity test is:
+
+> If the owner is unavailable for two weeks, can a qualified, authorized staff member open Admin, find the correct operational area, understand what it does, understand what they are allowed to do, and safely keep their assigned portion of Leonix operating?
+
+If the answer is no, institutional knowledge is still trapped in the owner and the Admin OS is incomplete.
+
+The Admin OS therefore must support:
+
+- clear module ownership
+- plain-language purpose and instructions
+- discoverable manual paths
+- role-aware permissions
+- visible status meanings
+- safe-action guidance
+- escalation guidance
+- continuity when one person is absent
+- enough persisted history that operators do not need the owner's memory
+
+This does not require creating a second staff product. The default architecture is **one Admin OS with permission-aware views and actions**. Specialized staff workspaces may exist where already justified, but they should remain part of the same company operating system.
+
+---
+
+# 0C. ADMIN GUIDE / OPERATIONS MANUAL DOCTRINE
+
+Admin must be both:
+
+1. the **cockpit** used to operate Leonix, and
+2. the **flight manual** that teaches an authorized human how to operate it.
+
+The manual must exist independently from LEO.
+
+## TWO DIFFERENT SEARCH JOBS
+
+### COMPANY SEARCH
+Finds company records and entities, such as:
+
+- a business
+- customer/user
+- listing
+- payment/order
+- lead
+- support case
+- report
+- staff member
+- magazine issue
+- other canonical records
+
+### ADMIN GUIDE SEARCH
+Finds operational knowledge, such as:
+
+- "How do I turn off a listing?"
+- "Where do I change the homepage?"
+- "How do I see failed payments?"
+- "What does Needs Triage mean?"
+- "Where do I create a staff login?"
+- "How do I update a staff contact page?"
+- "What do I do if Stripe is unavailable?"
+
+These are different systems and must not be confused.
+
+LEO may later provide a conversational interface over both, but neither search function may depend on LEO existing.
+
+## EVERY ADMIN MODULE NEEDS A GUIDE ENTRY
+
+Every meaningful Admin module should be registrable in a common operational-guide structure that can be searched, browsed, and linked contextually.
+
+A guide entry should contain, where relevant:
+
+```text
+MODULE_NAME
+OPERATING_DOMAIN
+PURPOSE
+WHEN_TO_USE_THIS
+PRIMARY_ADMIN_ROUTE
+ALTERNATE_ENTRY_POINTS
+COMMON_TASKS
+COMMON_SEARCH_TERMS / ALIASES
+CANONICAL_ENTITIES
+KEY_STATUSES_AND_MEANINGS
+WHAT_THE_OPERATOR_CAN_DO
+WHAT_REQUIRES_HIGHER_PERMISSION
+DANGEROUS / RED_ACTIONS
+RELATED_MODULES
+DEPENDENCIES
+COMMON_FAILURES
+MANUAL_RECOVERY_PATH
+WHO_NORMALLY_USES_THIS
+PUBLIC_OR_CUSTOMER_IMPACT
+AUDIT_EXPECTATION
+LAST_VERIFIED_STATE
+```
+
+The guide should be accessible in at least two ways:
+
+- centrally through **Admin Guide / Operations Manual**
+- contextually through a **Help with this page / What can I do here?** entry point on meaningful Admin modules
+
+The goal is not to bury paragraphs on every screen. The goal is to make guidance one click or one search away.
+
+---
+
+# 0D. PAST / PRESENT / FUTURE COMPANY MEMORY
+
+The Leonix company book must represent more than current rows.
+
+## PAST
+Where supported, Admin should preserve and expose enough persisted evidence to answer:
+
+- what happened
+- who did it
+- what changed
+- what the prior state was where recorded
+- previous interactions
+- completed follow-ups
+- payment history
+- moderation/report decisions
+- prior publication or listing state
+- prior staff/customer actions
+
+## PRESENT
+Admin must clearly represent current operational truth:
+
+- current customer/business state
+- current listing/publication state
+- current money/payment state
+- current support state
+- current staff assignments
+- current website/content state
+- current system/provider health
+
+## FUTURE
+Where persisted future obligations exist, Admin should represent:
+
+- scheduled follow-ups
+- due dates
+- expirations
+- renewals where supported
+- future publication commitments
+- pending approvals
+- outstanding client actions
+- future meetings or tasks
+- deadlines
+
+"Future" means persisted obligations and known scheduled state, not invented forecasting.
+
+Any important operational fact that exists only in the owner's memory is a company-memory gap.
+
+---
+
+# 0E. ROLE-BASED OPERABILITY
+
+Leonix Admin should remain one coherent operating system while respecting least privilege.
+
+The owner/super-admin can see the whole company where authorized. Other staff should see or operate only what their role permits.
+
+For unauthorized capabilities, the product may either:
+
+- hide the control when revealing it would create confusion or risk, or
+- show the module with an honest "Admin clearance required" state when discoverability and training are useful.
+
+The decision should favor clarity, security, and maintainability — not duplicate dashboards.
+
+Every staff-facing module should make clear:
+
+- what the staff member can see
+- what the staff member can do
+- what requires escalation
+- who owns the next action where known
+
+---
+
+# 0F. OWNER IDENTITY AND BREAK-GLASS ACCESS
+
+The normal owner operating identity should be an attributable per-person account tied to the canonical staff roster and authorization model.
+
+A bootstrap/shared-owner path, where retained, is an **emergency break-glass recovery mechanism**, not the preferred daily identity.
+
+The break-glass path exists so a failure in ordinary staff authentication does not permanently lock the owner out of the company control plane.
+
+Break-glass access must:
+
+- remain protected
+- remain clearly distinguishable from a normal staff identity
+- not silently masquerade as a named person
+- not be required for ordinary daily operations
+- not become the only path into any normal operational system
+- be documented in the Admin operations manual
+
+Normal owner and staff activity should be attributable to real identities whenever the schema supports it.
+
+---
+
+# 0G. STAFF LIFECYCLE AND STAFF CONTACT IDENTITY
+
+Staff operations are more than login creation.
+
+Where Leonix already has staff contact/public-profile capability, Team administration must make that capability discoverable from the logical staff home.
+
+The staff lifecycle should be understandable as separate but related concerns:
+
+```text
+STAFF PERSON
+  ├── LOGIN / AUTH IDENTITY
+  ├── ROSTER / ROLE / PERMISSIONS
+  ├── STAFF CONTACT PROFILE / PUBLIC CONTACT PAGE, WHERE APPLICABLE
+  ├── ASSIGNMENTS / CLIENTS
+  ├── NOTES / FOLLOW-UPS
+  └── AUDIT / ACTIVITY
+```
+
+Creating a staff login must not make the operator assume all staff setup is complete if an additional staff profile/contact-page step exists.
+
+Admin should guide the operator through the relationship and provide clear navigation to manage or complete each applicable part.
+
+Authorized staff should be able to maintain their own allowed profile/contact fields where product policy permits, while owner/admin retains appropriate control.
+
+---
+
+# 0H. OPERATIONAL CONTINUITY AND MANUAL RECOVERY
+
+Automation and external providers will sometimes fail. Leonix must degrade intelligibly.
+
+For critical integrations and automation, Admin should answer where detectable:
+
+- what is unavailable
+- what still works
+- what data is trustworthy
+- what action is blocked
+- whether a safe manual path exists
+- whether the issue requires the owner, staff, provider dashboard, or engineering
+
+If a provider-owned operation cannot be reproduced manually inside Leonix, Admin should say so plainly rather than presenting a dead control.
+
+The system must avoid a "button shut off" mentality where the operator sees a diagnosis but cannot reach the underlying human control.
+
+---
+
+# 0I. FUTURE-SYSTEM ADMISSION CONTRACT
+
+The Admin OS must remain extensible without becoming a maze.
+
+A new Leonix operational capability is not considered company-ready until its Admin relationship is declared.
+
+Every future operational system should identify, where applicable:
+
+```text
+SYSTEM_NAME
+OPERATING_DOMAIN
+CANONICAL_ENTITY
+CANONICAL_ID
+CANONICAL_DATA_SOURCE
+PRIMARY_ADMIN_HOME
+COMPANY_SEARCH_SUPPORT
+ADMIN_GUIDE_ENTRY
+BUSINESS/CUSTOMER_RELATIONSHIP
+PAYMENT/ENTITLEMENT_RELATIONSHIP
+MODERATION/REPORT_RELATIONSHIP
+ANALYTICS_RELATIONSHIP
+AUDIT_RELATIONSHIP
+SYSTEM_HEALTH / FAILURE STATE
+MANUAL_OPERATING_PATH
+ROLE/PERMISSION MODEL
+LEO_SAFE_READ_SOURCE
+```
+
+This is the standard "paper and pen" for adding future chapters to the Leonix company book.
+
+New capabilities should plug into this structure rather than creating new hidden islands.
+
+---
+
+# 0J. LEO FAILURE TEST
+
+Before LEO integration can be certified, the Admin OS must pass this test:
+
+> If LEO is completely unavailable, can the owner still locate the affected entity, understand its state, inspect the evidence, determine the appropriate next action, and perform every authorized manual action that the business requires?
+
+And this continuity test:
+
+> If the owner is unavailable, can an authorized staff member use Admin guidance, search, permissions, and persisted company truth to safely perform their assigned responsibilities without relying on undocumented owner knowledge?
+
+If either answer is no for a launch-critical operational area, Admin is not independently operable.
 
 ---
 
@@ -512,6 +854,7 @@ This is aligned with the operating model in this document.
 - `/admin/site-settings`
 - `/admin/clasificados/viajes`
 - `/admin/activity-log`
+- `/admin/system-health`
 - `/admin/settings`
 - `/admin/workspace/language-audit`
 - `/admin/tienda`
@@ -541,10 +884,10 @@ The current nav source itself documents some compatibility/legacy route decision
 - Revenue tools distributed across multiple trackers/pages
 - some pages acting as aliases, planning surfaces, or partial read models
 
-## 11.5 Current repository evidence already shows newer additions
+## 11.5 Current repository evidence also shows newer additions
 The current nav includes `/admin/recursos`, explicitly described in code as "Recursos Data OS".
 
-The repository baseline also contains Website/Admin workspace support for Iglesias and Noticias in earlier Admin audits. These newer/expanded systems must be verified against current code, not assumed complete from historical docs alone.
+The repository baseline also contains Website/Admin workspace support for Iglesias and Noticias in earlier Admin audits, and a real staff public-contact system ("Executive Hub", `public.executives`, `/contact/[slug]`) previously under-linked from Team. These newer/expanded systems must be verified against current code, not assumed complete from historical docs alone.
 
 ---
 
@@ -562,10 +905,16 @@ Branch:
 worktree-admin-os+canonical-truth-2026-09
 ```
 
-Starting/base HEAD:
+Starting/base HEAD (original V1 cable-mapping pass):
 
 ```text
 a0a4783971b42ea1d71ab2602d4720d0d590baf8
+```
+
+V2 Constitution alignment audit base HEAD:
+
+```text
+d458cd1e6fd998e1eb36c0275004fd31f6b1ee81
 ```
 
 Rules:
@@ -576,61 +925,21 @@ Rules:
 - do not push until the owner explicitly approves
 - preserve existing uncommitted Admin OS work
 
-Current known uncommitted Admin OS changes were reported in:
-- `app/admin/_components/AdminCommandCenterDashboard.tsx`
-- `app/admin/_lib/adminDashboardData.ts`
-- `app/admin/_lib/adminReviewFlagTruth.ts`
-- `docs/admin-os/`
-
 ---
 
-# 13. CURRENT IMPLEMENTATION STATE FROM THIS PASS
+# 13. CURRENT IMPLEMENTATION STATE
 
-## Phase 1 — Attention Truth
-Partial.
-
-A real double-counting bug was found in Command Center review attention.
-
-The old logic added:
-
-```text
-raw pending/flagged listings count
-+
-a merged review queue preview that already included overlapping listings
-```
-
-This could count the same listing more than once.
-
-The new direction uses canonical unique review attention rather than summing overlapping sources.
-
-"Reports & complaints" was also reframed as "Report submissions" so raw report rows are evidence, not a second attention total.
-
-Still required:
-- trace remaining priority metrics to canonical sources
-- prove support/payment/publication-blocker provenance
-- remove any remaining duplicate/proxy truth
-
-## Phase 2 — Moderation Truth
-Partial.
-
-Existing real AI moderation infrastructure was found:
-- `listing_moderation_reviews`
-- `classifyAdminReviewFlagTruth()`
-
-A real defect was found where fetched AI moderation data was not being carried through correctly into dashboard classification.
-
-`needsTriage` was added as an explicit truth state.
-
-Still required:
-- full source taxonomy
-- CATEGORY_RULE source class if repository evidence supports it
-- per-item evidence surface
-- lifecycle/resolution model
-- clear separation between listing risk and action impact
-- no status-only flag should appear as proven high risk without evidence
-
-## Phases 3+
-Do not assume started unless progress files prove otherwise.
+See `docs/admin-os/ADMIN_OS_PROGRESS.md` for the full pass-by-pass history. As of the V2
+Constitution alignment audit, the V1-era Master Book's launch-certification requirements
+(§32 v1, now superseded by §32 below) were reported complete and code-integration-ready across
+multiple validation gates (typecheck, targeted lint, production build, targeted verification,
+static migration validation — see PROGRESS.md's "FINAL CODE/RELEASE VALIDATION GATE" section).
+The V2 Constitution alignment pass (this section's current owner) audits that same implementation
+against the expanded V2 doctrine above (§0A–§0J) and records its findings in PROGRESS.md's "V2
+CONSTITUTION ALIGNMENT AUDIT" section — do not assume V1 completeness implies V2 completeness;
+V2 introduces materially new requirements (Admin Guide, Admin Guide Search distinct from Company
+Search, staff contact/profile continuity, owner break-glass doctrine, future-system admission
+contract) that the V1-era work was never scoped to satisfy.
 
 ---
 
@@ -761,9 +1070,10 @@ Global Search and LEO should use this same relationship model.
 
 ---
 
-# 17. GLOBAL SEARCH CONTRACT
+# 17. GLOBAL SEARCH CONTRACT (= COMPANY SEARCH, see §0C)
 
-Global Search is the company patch panel.
+Global Search is the company patch panel — this is the same system §0C calls "Company Search,"
+distinct from Admin Guide Search.
 
 It should locate supported entities by real identifiers such as:
 - business name
@@ -776,6 +1086,7 @@ It should locate supported entities by real identifiers such as:
 - support case
 - lead
 - report
+- staff member
 - other real searchable IDs where supported
 
 Search should navigate to canonical Admin context, not a generic dead-end result.
@@ -919,6 +1230,10 @@ Where possible, support should link directly to:
 - report/moderation case
 - Business Concierge record
 
+See also §0G for the staff lifecycle (login/auth identity, roster/role, staff contact profile,
+assignments, notes/follow-ups, audit) — staff are people too, and their own continuity matters as
+much as customer continuity.
+
 ---
 
 # 22. SYSTEM HEALTH CONTRACT
@@ -945,6 +1260,10 @@ System Health may report:
 - needs proof
 
 If a dependency cannot be detected reliably, do not fake a green status.
+
+Per §0H, where a critical integration is unavailable, System Health (or the affected module) must
+say what still works, what is blocked, and whether a safe manual path exists — not just report the
+failure and leave the operator with a dead control.
 
 ---
 
@@ -982,6 +1301,9 @@ Must not autonomously:
 - release production
 - invent missing evidence
 - create a second truth model
+
+Per §0A, LEO must never become the only path to a launch-critical operational control or company
+fact — see the LEO Failure Test (§0J) for the certification standard.
 
 ---
 
@@ -1062,14 +1384,10 @@ support
 renewal
 ```
 
-Classify each field:
-
-```text
-TRUE
-PARTIAL
-FALSE
-NOT APPLICABLE
-```
+Classify each field using the allowed final classification vocabulary (see ADMIN_OS_PROGRESS.md):
+`CLOSED`, `NEEDS_MIGRATION`, `NEEDS_RUNTIME_PROOF`, `EXTERNAL_BLOCKER`, `OWNER_DECISION_REQUIRED`,
+`NOT_APPLICABLE`. Vague `TRUE`/`PARTIAL`/`FALSE` labels are historical only — final matrices must
+use the six-class vocabulary.
 
 Any field that requires the owner's memory instead of persisted company truth is an operational gap.
 
@@ -1101,12 +1419,15 @@ PRIMARY_ADMIN_ROUTE
 ALTERNATE_ADMIN_ENTRY_POINTS
 ADMIN_READ_CAPABILITY
 ADMIN_WRITE_CAPABILITY
-GLOBAL_SEARCH_SUPPORT
+GLOBAL_SEARCH_SUPPORT (= COMPANY_SEARCH_SUPPORT, §0C)
+ADMIN_GUIDE_ENTRY (§0C — new, V2)
 CUSTOMER_OR_BUSINESS_CONTEXT_LINK
 PAYMENT_OR_ENTITLEMENT_LINK_IF_APPLICABLE
 MODERATION_OR_REPORT_LINK_IF_APPLICABLE
 ANALYTICS_LINK_IF_APPLICABLE
 AUDIT_LINK
+SYSTEM_HEALTH_RELATIONSHIP (§0I — new, V2)
+MANUAL_OPERATING_PATH (§0A — new, V2)
 LEO_SAFE_READ_SOURCE
 CTA_DESTINATIONS
 CURRENT_TRUTH_STATUS
@@ -1117,9 +1438,12 @@ MISSING_RELATIONSHIP
 NOTES
 ```
 
+This is also the Future-System Admission Contract's (§0I) practical schema — a new system is not
+company-ready until it can fill in this row honestly.
+
 The Cable Map is the electrician's schematic.
 
-This Master Operating Book is the company operating contract.
+This Master Operating Book is the company operating constitution.
 
 ---
 
@@ -1136,7 +1460,7 @@ docs/admin-os/ADMIN_OS_TESTS.json
 
 Meaning:
 
-- **MASTER OPERATING BOOK** = expected company behavior and launch contract
+- **MASTER OPERATING BOOK** = expected company behavior and launch constitution (this file — now V2)
 - **CABLE MAP** = current repository wiring and gaps
 - **PROGRESS** = current phase/bookmark
 - **TESTS** = what has actually been proven
@@ -1172,7 +1496,7 @@ Then inspect:
 - git status
 - recent git log
 
-The Master Operating Book defines expected Leonix behavior.
+The Master Operating Book defines expected Leonix behavior (V2 constitution).
 The Cable Map defines current repository wiring.
 The Progress file defines current work.
 The Tests file defines proven behavior.
@@ -1204,6 +1528,8 @@ CTA / TRUTH / RELATIONSHIP CERTIFICATION
     ↓
 30-CLIENT TEST
     ↓
+V2 CONSTITUTION ALIGNMENT (ADMIN INDEPENDENCE, GUIDE, SEARCH, AUTH CONTINUITY, STAFF CONTINUITY)
+    ↓
 LAUNCH CERTIFICATION
     ↓
 LEO INTEGRATION
@@ -1211,7 +1537,7 @@ LEO INTEGRATION
 
 Do not skip the cable-map gate.
 
-Do not restart broad auditing after the map is complete unless new code materially changes the architecture.
+Do not restart broad auditing after the map is complete unless new code materially changes the architecture, or a new constitutional revision (like this V2 pass) expands what "done" means.
 
 ---
 
@@ -1273,7 +1599,7 @@ Once the cable map is complete:
 
 # 32. FINAL LAUNCH CERTIFICATION
 
-The Admin OS is launch-ready only when:
+The Admin OS is launch-ready only when all of the following are true or explicitly classified as a genuine external/owner-controlled dependency:
 
 1. The current public website/product is cross-referenced against Admin.
 2. The current Admin is cross-referenced against real product/company systems.
@@ -1287,11 +1613,39 @@ The Admin OS is launch-ready only when:
 10. Moderation/report/payment/expiration/support states explain why they matter and what to do.
 11. System Health surfaces real detectable dependency failures.
 12. 30-client simulation does not require owner memory for critical operational state.
-13. LEO has a clear read/navigation contract to the same canonical truth.
-14. Production build/typecheck/lint/targeted verification are green except explicitly documented pre-existing unrelated failures.
-15. Remaining gaps are genuine external blockers, irreversible production decisions requiring owner approval, unavailable providers, or unresolved business decisions.
+13. Company Search can locate supported canonical records and route to meaningful Admin context.
+14. Admin Guide / Operations Manual can teach an authorized human where to go, what a module does, what statuses mean, what actions are available, and what to do when common failures occur.
+15. Every meaningful Admin module has a discoverable guide/manual relationship or is explicitly documented as not applicable.
+16. Owner can operate launch-critical Leonix functions manually without LEO.
+17. LEO is not the only path to any launch-critical operational control or company fact.
+18. An authorized staff member can operate their assigned responsibilities without relying on undocumented owner memory.
+19. Staff login, roster/permissions, and existing staff contact/profile capabilities are correctly related and discoverable.
+20. Normal owner activity uses an attributable identity; any bootstrap path is clearly treated as emergency break-glass access rather than the daily operating identity.
+21. Past operational evidence, present state, and persisted future obligations are surfaced where supported by current schema.
+22. Manual recovery/degradation guidance exists for critical provider/system failures where a manual path is possible.
+23. Future-system admission rules are documented so new features cannot become orphaned operational islands.
+24. LEO has a clear read/navigation/prepare/action-safety contract to the same canonical truth and the same operational guide.
+25. Production build/typecheck/lint/targeted verification are green except explicitly documented pre-existing unrelated failures.
+26. Remaining gaps are genuine external blockers, irreversible production decisions requiring owner approval, unavailable providers, or unresolved business decisions — not locally fixable omissions.
 
-Final verdict must be one of:
+## REQUIRED INDEPENDENCE VERDICTS
+
+Before LEO integration, certification must explicitly answer:
+
+```text
+ADMIN_INDEPENDENTLY_OPERABLE: YES | NO
+STAFF_CONTINUITY_READY: YES | NO
+ADMIN_GUIDE_COMPLETE: YES | NO
+COMPANY_SEARCH_COMPLETE: YES | NO
+BREAK_GLASS_RECOVERY_DEFINED: YES | NO
+PAST_PRESENT_FUTURE_TRUTH_COVERED: YES | NO
+```
+
+A single NO on a launch-critical requirement means the Admin OS is not ready for LEO integration.
+
+## FINAL PROJECT VERDICT
+
+Final verdict must be exactly one of:
 
 ```text
 READY_FOR_LEO_INTEGRATION
@@ -1299,6 +1653,10 @@ NOT_READY_FOR_LEO_INTEGRATION
 ```
 
 No "almost done."
+No "LEO will make up for it."
+No "the owner remembers how."
+No hidden manual steps.
+No undocumented operational islands.
 
 ---
 
@@ -1325,6 +1683,50 @@ Do not begin broad repair implementation until the map is sufficiently complete 
 
 ---
 
+# 33A. PERMANENT BOOK-MAINTENANCE RULE
+
+The Admin operating book is a living company asset, not a one-time launch document.
+
+Whenever a new system is added, an old system is replaced, a route changes, a provider changes, or a staff workflow changes, the corresponding operational chapter must be updated as part of completion.
+
+The book must remain easier to extend than to bypass.
+
+The required maintenance loop is:
+
+```text
+NEW / CHANGED CAPABILITY
+        ↓
+DECLARE CANONICAL TRUTH + ADMIN HOME
+        ↓
+UPDATE CABLE MAP
+        ↓
+UPDATE ADMIN GUIDE ENTRY + SEARCH TERMS
+        ↓
+UPDATE ROLE / PERMISSION / FAILURE / RECOVERY GUIDANCE
+        ↓
+UPDATE TEST / PROOF STATE
+        ↓
+ONLY THEN CALL THE CAPABILITY OPERATIONALLY COMPLETE
+```
+
+This prevents future Leonix growth from recreating the hidden-route and tribal-knowledge problem this Admin OS exists to eliminate.
+
+---
+
+# 33B. HUMAN-FIRST OPERATING PRINCIPLE
+
+The Admin OS must always be understandable first by an authorized human operator.
+
+LEO may summarize, explain, prioritize, and accelerate work, but the underlying human path must remain visible and teachable.
+
+The owner should be able to hand Leonix operations to a trusted authorized person and say:
+
+> "Open Admin. Search what you need. The system will show you where it lives, what it means, what you are allowed to do, and what to do next."
+
+That is the standard for a true company operating book.
+
+---
+
 # 34. OWNER INTENT — LOCKED
 
 The owner's intent is:
@@ -1335,4 +1737,11 @@ The end state is not "a better dashboard."
 
 The end state is:
 
-> **A clean, launch-ready Leonix company operating system with Admin as the book of record and LEO as the intelligent reader of that book.**
+> **A clean, launch-ready, searchable, teachable, independently operable Leonix company operating system — Admin as the human control plane and book of record, authorized staff able to continue the company safely, and LEO as the optional intelligent reader and assistant over that same truth.**
+
+---
+
+# REVISION HISTORY
+
+- **V1** — original Admin OS Master Operating Book (base commit `a0a4783971b42ea1d71ab2602d4720d0d590baf8`): six-domain ownership model, Operator Truth/Truth-State/CTA/Governance contracts, canonical entity relationships, per-domain contracts (Moderation/Priority/Business 360/Global Search/Website/Marketplace/Revenue/People/System Health), Daily Owner Questions, 30-Client Scale Test, Cable Map schema, 15-point Final Launch Certification.
+- **V2 (this revision, adopted `d458cd1e6fd998e1eb36c0275004fd31f6b1ee81`)** — adds the Constitutional North Star and Admin Independence Doctrine (§0A), Human Operability and Business Continuity (§0B), Admin Guide / Operations Manual Doctrine with the Company-Search-vs-Admin-Guide-Search distinction (§0C), Past/Present/Future Company Memory (§0D), Role-Based Operability (§0E), Owner Identity and Break-Glass Access (§0F), Staff Lifecycle and Staff Contact Identity (§0G), Operational Continuity and Manual Recovery (§0H), Future-System Admission Contract (§0I), the LEO Failure Test (§0J), the Permanent Book-Maintenance Rule (§33A), the Human-First Operating Principle (§33B), and expands Final Launch Certification to 26 points plus six Required Independence Verdicts (§32). V1's per-domain contracts (§1–§31, §33–§34) are retained as still-governing detail; V2's new sections take precedence wherever they add or tighten a requirement.

@@ -208,7 +208,11 @@ export default async function AdminTeamPage(props: {
 
   return (
     <div>
-      <StaffTeamNav showRosterLink={false} />
+      {/* This page is itself owner_admin-only (requireAdminTeamAccess/canViewAdminTeam), the
+          same gate every other showRosterLink={true}-equivalent Team page uses — showing the
+          Executive Hub tab here too closes a real discoverability gap: an operator managing
+          staff login/roster had no visible path to the staff contact-profile system. */}
+      <StaffTeamNav showRosterLink />
       <div className="mb-3 flex flex-wrap gap-2">
         {membersUnavailable ? (
           <span className={adminStubBadgeClass}>Roster: table unavailable</span>

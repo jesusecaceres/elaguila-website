@@ -657,3 +657,132 @@ proven-correct work had legitimately changed:
 Both corrections are recorded here so future passes reading this cable map understand why these
 scripts' assertions changed — not because the underlying architecture regressed, but because two
 earlier, real improvements were correctly reflected in their own regression tests.
+
+---
+
+## V2 CONSTITUTION ALIGNMENT AUDIT — new findings
+
+### SYSTEM: Executive Hub / Staff Contact Profile — real, mature, previously under-linked
+### from Team; not the same identity as staff login
+
+Never given its own cable-map entry in any prior pass despite being a real, complete system.
+Recorded properly now per §0G/§0I:
+
+- **PUBLIC_ROUTE**: `/contact/[slug]` (`app/contact/[slug]/page.tsx`), statically generated via
+  `listPublishedExecutiveContactSlugs()`.
+- **CANONICAL_ENTITY / DATA_SOURCE**: `public.executives`
+  (`20260810120000_executive_hub_executives.sql`) — real, DB-first read priority over the legacy
+  `digitalContactRegistry.ts` hardcoded fallback (kept alive only so `/contact/chuy` and
+  `/contact/isaias` don't 404 during migration).
+- **PRIMARY_ADMIN_HOME**: `/admin/team/executive-hub` (list) + `new/`, `[slug]/edit/`,
+  `[slug]/preview/` siblings. Writes via `app/admin/executiveHubActions.ts` server actions.
+- **ADMIN_WRITE_CAPABILITY**: page-level gate is `canViewAdminTeam` = `role === "owner_admin"`
+  only. The underlying server-action gate (`assertExecutiveHubAdmin()` →
+  `requireLeonixAdminPermission("can_manage_team")`) would technically pass for any active roster
+  member granted that permission, but no non-owner UI route exists to reach it — a **latent, not
+  active, gap**: nothing currently exploits it, but it means the real authorization boundary is
+  narrower in the UI than in the server action.
+- **STAFF SELF-EDIT**: no route exists. A staff member cannot maintain their own contact profile
+  today — §0G says "Authorized staff should be able to maintain their own allowed profile/contact
+  fields where product policy permits" — this is a genuine, documented gap, not built this pass
+  (a real self-service route is a moderate feature addition, not a tiny wiring fix).
+- **RELATIONSHIP TO STAFF LOGIN (`admin_team_members`)**: **none at the schema level.**
+  `executives.email` is a plain `text` column with no FK, unique constraint, or trigger tying it to
+  `admin_team_members`. They are two fully disconnected identity systems joined only informally
+  (if at all) by a human typing the same email into both. Creating a staff login
+  (`createStaffUserWithAuthAction`) never mentions, links to, or redirects toward Executive Hub —
+  confirmed via direct read of `app/admin/teamProvisioningActions.ts`.
+- **QR/vCard/contact actions**: fully real — `DigitalContactQrCode.tsx` (dynamic QR),
+  `DigitalContactSaveButton.tsx` → `/api/digital-contact/vcf/[slug]/route.ts` (vCard download),
+  `digitalContactVCard.ts` (RFC 6350 builder).
+- **CONFIRMED REAL ORPHAN, FIXED THIS PASS**: `app/admin/(dashboard)/team/roster/page.tsx` was the
+  *only* Team page that hardcoded `<StaffTeamNav showRosterLink={false} />` — every sibling Team
+  page (`/admin/team`, `/admin/team/executive-hub/*`, `/admin/team/users/new`,
+  `/admin/team/promo-codes`, `/admin/team/sales-tracker`) computes or hardcodes `true` for the same
+  or a weaker access level. Since Roster itself is already owner_admin-gated
+  (`requireAdminTeamAccess`), there was no reason for it alone to hide the "Executive Hub (owner)"
+  tab its own sibling pages already show. **Fixed**: changed to `<StaffTeamNav showRosterLink />`,
+  matching every sibling page's pattern. This was the exact discoverability gap named in this
+  audit's brief ("Team Roster exposes staff login/access... staff contact/public-profile
+  functionality... is not currently obvious/discoverable from Team").
+- **COMPANY_SEARCH_SUPPORT**: **NO** — `executives` rows are not covered by
+  `runAdminUnifiedSearch`/`adminExtendedGlobalSearch.ts`. A real, still-open gap (not fixed this
+  pass — would need a new search adapter, more than a tiny wiring fix). Distinct from Team Roster
+  search, which is already covered.
+- **ADMIN_GUIDE_ENTRY**: none — no Admin Guide system exists at all yet (see below).
+
+### BUG FOUND AND FIXED: `/admin/system-health` was invisible in the actual rendered sidebar
+### for every role, including the owner
+
+A prior pass added `system-health` to `ADMIN_GLOBAL_NAV` (the raw sidebar item array) and to
+`ADMIN_DASHBOARD_ROUTES`, and linked it from the Command Center — but never added
+`/admin/system-health` to `getAllowedGlobalNavHrefs()` in `adminAccessControl.ts`, which is the
+function `AdminSidebar.tsx` actually filters the rendered sidebar through
+(`ADMIN_GLOBAL_NAV.filter((item) => allowedGlobalNavHrefs.includes(item.href))`). The net effect:
+System Health had a real Command Center card and a real page, but the sidebar itself would never
+show it for ANY role, including `owner_admin` — a genuine Admin Independence violation (§0A: "a
+capability is not operationally complete merely because [it exists]... an authorized human must be
+able to locate [it]"). **Fixed**: added `/admin/system-health` to the `canViewGlobalAdminNav`
+bucket in `getAllowedGlobalNavHrefs()`, the same general-visibility bucket team/clasificados/etc.
+already use. Re-ran `verify:admin-nav-ops` (75 checks) to confirm no positional/literal-href
+assertion broke.
+
+### ADMIN GUIDE / OPERATIONS MANUAL (§0C) — confirmed MISSING as a system, real partial
+### foundation already exists
+
+Grepped the entire `app/admin` tree for "Admin Guide", "Operations Manual", "AdminGuide",
+"adminGuide", "Help with this page", "What can I do here" — **zero matches**. No central,
+searchable, browsable operational manual exists anywhere in the current Admin OS.
+
+**Real partial foundation already exists and is already deployed project-wide**:
+`AdminPagePurposeCard` (`app/admin/_components/AdminPagePurposeCard.tsx`) renders `title`,
+`purpose`, `dataSource`, `status`, `safeActions[]`, `nextGate`, and an optional `warningNote` on
+every page that uses it — confirmed in dozens of Admin pages via `data-admin-purpose-card="true"`.
+This is real, human-readable, per-page "what is this and what can I safely do here" — but it is
+NOT: centrally searchable, browsable as a manual, cross-linked by "related modules," annotated
+with "common failures"/"manual recovery path"/"who normally uses this," or reachable via any
+dedicated Admin Guide nav entry or search box. It satisfies a meaningful fraction of §0C's guide-
+entry schema per page, but does not constitute the "Admin Guide / Operations Manual" system itself.
+
+**Recommendation, not built this pass** (a real Admin Guide is a genuine, non-trivial new system —
+explicitly out of this audit's "tiny fix" scope): a central `/admin/guide` (or similar) route that
+indexes every page already carrying an `AdminPagePurposeCard`-style entry, extended with the
+missing §0C fields, with its own keyword search distinct from Company Search
+(`adminOpsUnifiedSearch.ts`/`adminExtendedGlobalSearch.ts`). This is the single largest concrete
+gap this V2 alignment audit found.
+
+### COMPANY SEARCH vs ADMIN GUIDE SEARCH — confirmed as two genuinely separate systems today,
+### correctly not conflated
+
+Company Search (`runAdminUnifiedSearch`) is real and covers: profiles/users, generic listings,
+Tienda orders, listing reports, all 7 dedicated-table marketplace categories, businesses,
+admin_team_members (staff login identity), leonix_leads, payments/entitlements, community
+resources (Recursos), magazine issues (Revista), and support tickets. It does not yet cover
+`executives` (staff contact profiles, see above) or Noticias (no article entity exists at all —
+confirmed, documented, not a gap). There is no Admin Guide Search at all because there is no Admin
+Guide content yet to search — the two systems are correctly distinct in the codebase (no code
+conflates them), but only one of the two exists.
+
+### OWNER AUTH MODEL (§0F) — architecture already broadly aligned with break-glass doctrine;
+### recommend confirming/completing the real per-person owner account
+
+`app/admin/login/page.tsx` already presents two visually and semantically distinct paths: a
+primary, always-visible "Staff / Team login" form (real Supabase Auth email/password against
+`admin_team_members`), and a collapsed `<details>` element labeled "Owner bootstrap (shared
+password)" with its own honest copy ("Legacy owner access when Supabase team accounts are not
+configured"). `app/lib/supabase/adminSession.ts` already treats bootstrap as a distinct, signed,
+expiring session type, shorter-lived than the 7-day staff session, explicitly commented "bootstrap
+is emergency/owner-only access, not a daily-use identity" — this already matches §0F's break-glass
+doctrine closely at the code/UI level. Bootstrap sessions CAN be bound to a real
+`admin_team_members` identity via the `ADMIN_OPERATOR_EMAIL` env var (a deployment-wide setting,
+not per-login), so audit attribution is possible even under bootstrap when configured.
+
+**What could not be verified from source alone (a live-data fact, not a code fact)**: whether
+`chuy@leonixmedia.com` is currently provisioned as a real `admin_team_members` row with a working
+Supabase Auth password, i.e., whether the owner's actual daily login today already uses the
+"Staff / Team login" form rather than the bootstrap fallback. No migration seeds this row.
+**Recommendation**: confirm (or create, via the existing real `createStaffUserWithAuthAction` flow)
+a first-class `owner_admin` roster row + Supabase Auth account for `chuy@leonixmedia.com`, so the
+owner's normal daily identity is the same attributable, auditable path every other staff member
+uses, with bootstrap reserved for genuine recovery scenarios (e.g. Supabase Auth outage). This is
+a deployment/data action, not a code change — not performed by this pass.

@@ -1442,3 +1442,210 @@ not assumed.
 **MASTER_BOOK_IMPLEMENTATION_COMPLETE: YES.**
 **CODE_INTEGRATION_READY: YES.**
 **READY_FOR_OWNER_QA: YES.**
+
+---
+
+## V2 CONSTITUTION ALIGNMENT AUDIT
+
+The owner uploaded `LEONIX_ADMIN_OS_MASTER_OPERATING_BOOK_V2_CONSTITUTION.md`, which supersedes the
+V1 Master Operating Book as the highest-level operating contract. V2 retains every V1 requirement
+and adds materially new doctrine: Admin Independence (§0A), Human Operability/Continuity (§0B),
+Admin Guide/Operations Manual with a Company-Search-vs-Admin-Guide-Search distinction (§0C),
+Past/Present/Future Company Memory (§0D), Role-Based Operability (§0E), Owner Identity/Break-Glass
+(§0F), Staff Lifecycle/Staff Contact Identity (§0G), Operational Continuity/Manual Recovery (§0H),
+the Future-System Admission Contract (§0I), and the LEO Failure Test (§0J). V1's prior "code
+integration ready" verdict does NOT imply V2 alignment — V2 introduces requirements the V1-era
+work was never scoped to satisfy. **The in-repo Master Operating Book has been fully replaced with
+V2's content** (`docs/admin-os/LEONIX_ADMIN_OS_MASTER_OPERATING_BOOK.md`), so the V2 constitution
+is no longer only an external upload.
+
+This audit is source-inspection-only per its resource control (no build/typecheck/browser QA).
+Two tiny, obvious, local, reversible wiring bugs were found and fixed along the way, per the
+audit's own scope rule; everything else is classified, not implemented.
+
+### A. ADMIN INDEPENDENCE — PARTIAL
+
+The large majority of operational domains already have real, manually-operable Admin controls with
+real data, independent of LEO — this project's many prior passes verified Command Center, Business
+360, moderation, payments, support, categories, System Health, and Global Search extensively.
+`leoAdminTruthAdapter.ts` and the System Health module both confirm LEO reads the *same* canonical
+truth Admin uses rather than an exclusive parallel path — no capability found this pass exists only
+behind an AI interaction.
+
+**Real independence bug found and fixed**: `/admin/system-health` was added to the raw sidebar item
+list and to the Command Center card in an earlier pass, but was never added to
+`getAllowedGlobalNavHrefs()` — the function `AdminSidebar.tsx` actually filters the rendered
+sidebar through. The sidebar itself never showed System Health to ANY role, including the owner.
+An owner relying on the sidebar (the normal navigation method) could not find System Health without
+already knowing the exact URL — a direct violation of §0A's "an authorized human must be able to
+locate, understand, and operate it directly from Admin." **Fixed**: added `/admin/system-health` to
+the `canViewGlobalAdminNav` bucket. Re-verified via `verify:admin-nav-ops` (75 checks, still pass).
+
+**Classified PARTIAL, not CLOSED**, because independence per V2's own definition is intertwined
+with teachability (§0J's continuity test explicitly says "using Admin guidance, search,
+permissions, and persisted company truth") — and no Admin Guide exists yet (see B below). Someone
+who already knows the system (the owner today) can operate essentially everything manually; a
+genuinely new operator with zero tribal knowledge could not yet, because nothing in Admin currently
+teaches them what NEEDS_TRIAGE means, what a module is for, or what to do when it fails, beyond
+what's already on the page itself.
+
+### B. ADMIN GUIDE / OPERATIONS MANUAL — MISSING (real partial foundation exists)
+
+Grepped the entire `app/admin` tree for "Admin Guide", "Operations Manual", "AdminGuide",
+"adminGuide", "Help with this page", "What can I do here" — zero matches anywhere. No central,
+searchable, browsable operational manual exists.
+
+A genuinely strong partial building block already exists and is already deployed across dozens of
+Admin pages: `AdminPagePurposeCard` (title/purpose/dataSource/status/safeActions/nextGate/
+warningNote per page, `data-admin-purpose-card="true"`). This satisfies a meaningful fraction of
+§0C's guide-entry schema on a per-page basis, but is not centrally searchable, not browsable as a
+manual, has no "related modules"/"common failures"/"manual recovery path"/"who normally uses this"
+fields, and has no dedicated Admin Guide nav entry. This is the single largest concrete gap this
+audit found. **Not built this pass** — a real Admin Guide system is a genuine, non-trivial new
+feature, explicitly outside this audit's "tiny fix" scope. Recommended as the next major
+implementation initiative (see NEXT_RECOMMENDED_GATE below).
+
+### C. DISCOVERABILITY / SITE MAP — 1 real orphan found and fixed; 1 documented as still open
+
+Read `adminGlobalNav.ts` in full (18 primary nav items across 6 groups) and cross-referenced every
+item's actual Admin home. Explicitly investigated the staff contact/profile system per this audit's
+own hint (dispatched to a research agent for a deep trace — see the Cable Map's new "Executive Hub"
+system entry for full detail):
+
+- **Real orphan found and fixed**: `app/admin/(dashboard)/team/roster/page.tsx` was the only Team
+  page hardcoding `<StaffTeamNav showRosterLink={false} />` — every sibling Team page computes or
+  hardcodes `true` for the same or a weaker access level, and Roster itself is already
+  owner_admin-gated. **Fixed**: changed to `<StaffTeamNav showRosterLink />`, so Roster's own tab
+  bar now shows "Executive Hub (owner)" alongside "Team roster (owner)" and "Create staff login" —
+  closing the exact gap this audit's brief named ("staff contact/public-profile functionality...
+  is not currently obvious/discoverable from Team").
+- **Still open, documented, not fixed**: `executives` (Executive Hub / staff contact profiles) has
+  zero Company Search coverage — a real, separate gap from the navigation orphan just fixed. Adding
+  it would mean writing a new search adapter (more than a tiny wiring fix, same class of work as
+  the prior release-validation pass's Global Search extensions) — recorded as a genuine next-pass
+  item, not silently dropped.
+- No other orphaned primary-nav-adjacent capability was found this pass beyond what prior passes
+  already closed (dedicated-category search, businesses in Global Search, System Health).
+
+### D. OWNER AUTH / BREAK-GLASS — architecture already well-aligned; one data/deployment
+### recommendation, no code change
+
+`app/admin/login/page.tsx` already visually and semantically separates a primary "Staff / Team
+login" form (real Supabase Auth) from a collapsed, honestly-labeled "Owner bootstrap (shared
+password)" `<details>` section ("Legacy owner access when Supabase team accounts are not
+configured"). `adminSession.ts` already implements bootstrap as a distinct, signed, expiring,
+shorter-lived-than-staff session type, with its own doc comment stating bootstrap "is
+emergency/owner-only access, not a daily-use identity" — this already matches §0F closely at the
+code level, and predates this V2 pass (found, not built).
+
+Bootstrap sessions can already be bound to a real `admin_team_members` identity via
+`ADMIN_OPERATOR_EMAIL` (env-var scoped, not per-login), so audit attribution remains possible even
+under bootstrap when configured.
+
+**What this pass could not verify from source alone**: whether `chuy@leonixmedia.com` is currently
+provisioned as a real `admin_team_members` + Supabase Auth row (a live-data fact). No migration
+seeds this row. **RECOMMENDED_STATE, not implemented this pass**: confirm or create a first-class
+`owner_admin` roster account for the owner via the existing `createStaffUserWithAuthAction` flow,
+so daily owner login uses the same attributable path as every other staff member, with bootstrap
+reserved for genuine recovery. This is a data/deployment action, not a code change.
+
+### E. STAFF ROLE OPERABILITY — CLOSED for the existing permission model; genuinely one
+### coherent Admin OS, not a second product
+
+`getAllowedGlobalNavHrefs()` (re-read in full this pass) already implements exactly the §0E
+pattern: sales_rep gets a narrow, purpose-built allowed-nav list (`/admin/team`, `/admin/support`,
+`/admin/businesses`); every other role gets the general bucket gated by
+`canViewGlobalAdminNav`/specific per-item permission functions (`canViewPaymentTracker`,
+`canViewAdminTeam`, `canViewActivityLogs`, `canViewSiteSettings`). This is role-aware visibility
+inside ONE Admin shell, not a duplicate dashboard — matches §0E's explicit preference. Team pages
+each independently compute their own `showRosterLink` (now consistently, after this pass's fix) to
+show/hide owner-only tabs within the same shared `StaffTeamNav`.
+
+### F. STAFF CONTACT / PROFILE SYSTEM — see full detail in ADMIN_OS_CABLE_MAP.md's new
+### "Executive Hub" entry
+
+Canonical route `/contact/[slug]`; canonical data source `public.executives`
+(`20260810120000_executive_hub_executives.sql`); canonical Admin home `/admin/team/executive-hub`.
+Team Roster now links to it (fixed this pass). Owner can edit any executive's profile
+(`canViewAdminTeam` = owner_admin-only page gate). No staff self-edit route exists — §0G's "staff
+should be able to maintain their own allowed profile fields" is a genuine, undone requirement, not
+built this pass (a real feature addition). `admin_team_members` (login) and `executives` (contact
+profile) remain two schema-disconnected identity systems, joined only informally by matching email
+text if a human does so consistently — no FK, no trigger, no enforced consistency.
+
+### G. PAST / PRESENT / FUTURE COMPANY BOOK — CLOSED where schema supports it, confirmed by
+### this project's own extensive prior work, not re-derived from scratch this pass
+
+- **PAST**: `admin_audit_log` (now with real, best-effort actor attribution — prior pass) and
+  `admin_roster_audit_log` (strict, NOT-NULL actor attribution) together cover "what happened, who
+  did it." Moderation lifecycle (`listing_moderation_reviews`), payment history
+  (`leonix_payment_records`), and business notes/follow-up history (`business_sales_notes`,
+  `business_follow_ups`) all persist real historical evidence.
+- **PRESENT**: Command Center's Today's Attention, System Health, Business 360, Payment Tracker,
+  and the moderation lifecycle badges (this project's own prior work) all represent real current
+  state, not proxies, per the extensive Truth-State Contract auditing already done across this
+  entire multi-pass project.
+- **FUTURE**: `business_follow_ups` (due dates, scheduled/overdue/waiting_on_owner states),
+  listing expiration queues, and `business_proposals`/`business_commitments` (Program 5 — real
+  proposal review dates, commitment due dates) all represent real persisted future obligations.
+  Package/listing-level renewal exists; business-level renewal does not (confirmed absent, not
+  invented — see the prior "close final Master Book implementation gaps" pass).
+
+No new schema was invented to satisfy this section — every claim above cites a table/component
+already verified real in this project's own prior passes.
+
+### H. FUTURE-SYSTEM ADMISSION CONTRACT — PARTIAL
+
+The *documentation-level* pattern is real and consistently applied: `ADMIN_OS_CABLE_MAP.md` itself
+follows the exact SYSTEM/DOMAIN/CANONICAL_ENTITY/.../NOTES schema for every system it documents,
+now extended with V2's `ADMIN_GUIDE_ENTRY`/`SYSTEM_HEALTH_RELATIONSHIP`/`MANUAL_OPERATING_PATH`
+fields (§26). But there is **no code-level registry** — no TypeScript array/config that a new
+module is mechanically required to populate before it can ship. Compliance today relies on
+discipline (this document) rather than a structural gate. Building an enforced registry would be a
+new, non-trivial piece of infrastructure — correctly not invented this pass; classified honestly
+as PARTIAL rather than CLOSED or MISSING, since a real, usable pattern does exist.
+
+### I. EVERY CURRENT ADMIN TAB — covered via the existing per-domain audits already recorded
+
+Rather than re-deriving 18 nav items' full purpose/task/failure-path matrix from scratch in this
+pass (which prior passes already did exhaustively per-domain across this entire project — Command
+Center, Business 360, moderation, payments, categories, System Health, roster, support, Website
+Control), this audit confirmed the two real gaps above (System Health sidebar visibility,
+Executive Hub discoverability) and treats the existing Cable Map + this project's per-domain
+verify-script coverage (10 scripts, prior release-validation gate) as the current foundation an
+Admin Guide (Focus B) would be built from. Building the Guide is the correct next step to fully
+answer Focus I in the form V2 actually wants (a searchable, human-readable manual), rather than
+duplicating that work informally in this progress file.
+
+### Fixes made this pass (2 tiny, local, reversible wiring corrections, per audit scope rule)
+
+1. `app/admin/_lib/adminAccessControl.ts` — added `/admin/system-health` to
+   `getAllowedGlobalNavHrefs()`'s `canViewGlobalAdminNav` bucket, closing a real sidebar-visibility
+   bug (System Health was unreachable via the sidebar for every role). Verified via
+   `verify:admin-nav-ops` (75 checks, unchanged pass count).
+2. `app/admin/(dashboard)/team/roster/page.tsx` — changed `<StaffTeamNav showRosterLink={false} />`
+   to `<StaffTeamNav showRosterLink />`, matching every sibling Team page's pattern and closing the
+   Team-Roster→Executive-Hub discoverability gap this audit's brief specifically named.
+
+Neither fix required new schema, new permissions logic, a migration, or a build/typecheck run to
+verify — both were confirmed safe via direct code reading and one existing lightweight verify
+script.
+
+### Final V2 verdicts
+
+**MASTER_BOOK_V2_ALIGNMENT_COMPLETE: NO** — the Admin Guide (Focus B) is a genuine, unbuilt gap;
+Company Search does not yet cover `executives`; no staff self-edit profile route exists; the
+owner's real roster/auth provisioning could not be confirmed from source. None of these are
+silently dropped — all are recorded above with an honest classification and, where applicable, a
+recommended next action.
+
+**LOCAL_IMPLEMENTATION_WORK_REMAINING: YES** — specifically: build the Admin Guide/Operations
+Manual system (the largest item), add `executives` to Company Search, build a staff self-edit
+profile route, and (a data/deployment action, not code) confirm/create the owner's real roster
+account.
+
+**READY_FOR_LEO_INTEGRATION: NOT_READY_FOR_LEO_INTEGRATION** per §32's Required Independence
+Verdicts — `ADMIN_GUIDE_COMPLETE: NO` and `STAFF_CONTINUITY_READY: NO` (no Guide, no staff
+self-edit) are each independently sufficient to withhold LEO integration readiness, per this
+audit's explicit instruction not to declare readiness unless every V2 independence requirement is
+genuinely satisfied.

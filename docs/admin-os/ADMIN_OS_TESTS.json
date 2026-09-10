@@ -670,5 +670,80 @@
     "MASTER_BOOK_IMPLEMENTATION_COMPLETE": "YES",
     "CODE_INTEGRATION_READY": "YES",
     "READY_FOR_OWNER_QA": "YES"
+  },
+  "v2ConstitutionAlignmentAudit": {
+    "status": "complete",
+    "v2AdoptedIntoRepoMasterBook": true,
+    "auditedAtHead": "d458cd1e6fd998e1eb36c0275004fd31f6b1ee81",
+    "classifications": {
+      "adminIndependence": "PARTIAL",
+      "adminGuideManual": "MISSING",
+      "companySearch": "PARTIAL",
+      "adminGuideSearch": "MISSING",
+      "staffRoleOperability": "CLOSED",
+      "pastPresentFuture": "CLOSED",
+      "futureSystemAdmission": "PARTIAL"
+    },
+    "ownerNormalLogin": {
+      "currentState": "app/admin/login/page.tsx presents a primary 'Staff / Team login' form (real Supabase Auth against admin_team_members) as the first, always-visible option; bootstrap is a collapsed, honestly-labeled fallback. Whether chuy@leonixmedia.com is currently provisioned as a real admin_team_members + Supabase Auth row could not be verified from source (a live-data fact, no seed migration exists).",
+      "recommendedState": "Confirm or create (via the existing createStaffUserWithAuthAction flow) a first-class owner_admin roster account for chuy@leonixmedia.com so daily owner login uses the same attributable path as every other staff member. Data/deployment action, not a code change."
+    },
+    "bootstrapBreakGlass": {
+      "currentState": "Already implemented as a distinct, signed, expiring session type (adminSession.ts), shorter-lived than the 7-day staff session, with its own doc comment stating it is 'emergency/owner-only access, not a daily-use identity'. UI collapses it under a <details> labeled 'Owner bootstrap (shared password)' with honest 'Legacy owner access' copy. Can be bound to a real roster identity via ADMIN_OPERATOR_EMAIL (env-scoped, not per-login) for audit attribution.",
+      "recommendedState": "Already well-aligned with §0F break-glass doctrine at the code/UI level — no code change recommended. Once the owner's real roster account (above) is confirmed/created, bootstrap should be exercised only for genuine recovery scenarios (e.g. Supabase Auth outage)."
+    },
+    "staffContactProfile": {
+      "currentRoute": "/contact/[slug] (app/contact/[slug]/page.tsx)",
+      "currentDataSource": "public.executives (20260810120000_executive_hub_executives.sql), DB-first over the legacy digitalContactRegistry.ts hardcoded fallback",
+      "adminHome": "/admin/team/executive-hub (+ new/, [slug]/edit/, [slug]/preview/)",
+      "teamRosterWired": true,
+      "teamRosterWiredNote": "Fixed this pass — app/admin/(dashboard)/team/roster/page.tsx was the only Team page hardcoding StaffTeamNav showRosterLink={false}; changed to showRosterLink (true), matching every sibling Team page.",
+      "ownerCanEdit": true,
+      "ownerCanEditNote": "canViewAdminTeam (owner_admin only) gates the Executive Hub page itself.",
+      "staffSelfEdit": "NO",
+      "staffSelfEditNote": "No self-service route exists. Underlying server-action gate (can_manage_team permission) would technically pass for a non-owner with that permission granted, but no UI route reaches it — a latent, not active, gap.",
+      "identityLinkToAdminTeamMembers": "NONE at schema level — executives.email is a plain text column with no FK/unique constraint/trigger tying it to admin_team_members.id. Two fully disconnected identity systems.",
+      "companySearchCoverage": "NO — executives rows are not covered by runAdminUnifiedSearch/adminExtendedGlobalSearch.ts. Documented gap, not fixed this pass."
+    },
+    "orphanedExistingCapabilitiesFound": [
+      "/admin/system-health — added to ADMIN_GLOBAL_NAV and the Command Center card in an earlier pass, but never added to getAllowedGlobalNavHrefs(), so the actual rendered sidebar never showed it to any role including the owner. FIXED this pass.",
+      "Executive Hub / staff contact profile — real, complete system with zero cross-navigation from Team Roster (the only Team page hardcoding showRosterLink={false}). FIXED this pass."
+    ],
+    "manualOperabilityGaps": [
+      "No staff self-edit route for the Executive Hub contact profile (§0G) — owner-only today.",
+      "No code-level Future-System Admission registry — only a documentation-level pattern (the Cable Map's own schema) exists; nothing mechanically blocks a new module from skipping it."
+    ],
+    "guideManualGaps": [
+      "No Admin Guide / Operations Manual system exists at all — zero matches for 'Admin Guide'/'Operations Manual'/'Help with this page' anywhere in app/admin.",
+      "AdminPagePurposeCard (already deployed across dozens of pages) is a real partial foundation — title/purpose/dataSource/status/safeActions/nextGate/warningNote — but is not centrally searchable, not browsable, and lacks 'related modules'/'common failures'/'manual recovery path'/'who normally uses this' fields.",
+      "No Admin Guide Search exists — correctly distinct from Company Search in the codebase (nothing conflates them), but only Company Search currently exists."
+    ],
+    "authContinuityGaps": [
+      "Cannot confirm from source whether chuy@leonixmedia.com has a real admin_team_members + Supabase Auth row today (live-data fact, no seed migration) — recommend confirming/creating one via the existing createStaffUserWithAuthAction flow."
+    ],
+    "staffContinuityGaps": [
+      "No Admin Guide means an unfamiliar authorized staff member cannot yet learn 'what do I do here'/'what does this status mean' from Admin itself without the owner's tribal knowledge.",
+      "No staff self-edit profile route for Executive Hub.",
+      "Executive Hub not covered by Company Search, so a staff member searching for a colleague's public contact profile by name would find nothing."
+    ],
+    "newV2RequirementsNotMet": [
+      "Admin Guide / Operations Manual system (§0C) — not built.",
+      "Admin Guide Search (§0C) — not built (no content to search yet).",
+      "Company Search coverage of executives/staff contact profiles (§17, §0C) — not built.",
+      "Staff self-service profile editing (§0G) — not built.",
+      "Code-level Future-System Admission registry (§0I) — only a documentation-level pattern exists.",
+      "Confirmed real per-person owner_admin roster account for the owner (§0F) — could not verify from source; recommended as a data/deployment action."
+    ],
+    "canCurrentAdminBeOperatedWithoutLeo": "YES",
+    "canAuthorizedStaffRunAssignedWorkWithoutChuy": "NO",
+    "adminIndependentlyOperable": "NO",
+    "masterBookV2AlignmentComplete": "NO",
+    "localImplementationWorkRemaining": "YES",
+    "nextRecommendedGate": "ADMIN GUIDE / OPERATIONS MANUAL BUILD GATE — design and implement a central, searchable Admin Guide (extending the AdminPagePurposeCard pattern with the full §0C schema, plus a distinct Admin Guide Search), then add executives to Company Search and build a staff self-edit profile route, before any owner/browser QA or LEO integration gate.",
+    "fixesAppliedThisPass": [
+      "app/admin/_lib/adminAccessControl.ts — added /admin/system-health to getAllowedGlobalNavHrefs()'s canViewGlobalAdminNav bucket",
+      "app/admin/(dashboard)/team/roster/page.tsx — StaffTeamNav showRosterLink={false} -> showRosterLink (true)"
+    ],
+    "verificationRun": "verify:admin-nav-ops (75 checks, unchanged pass count after the system-health fix)"
   }
 }

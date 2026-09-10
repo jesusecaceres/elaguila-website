@@ -413,6 +413,7 @@ export function getAllowedGlobalNavHrefs(ctx: AdminAccessContext): string[] {
       "/admin/leads/media-kit",
       "/admin/support",
       "/admin/recursos",
+      "/admin/system-health",
     );
     if (canViewPaymentTracker(ctx.normalizedRole)) {
       hrefs.push("/admin/workspace/payment-tracker");
