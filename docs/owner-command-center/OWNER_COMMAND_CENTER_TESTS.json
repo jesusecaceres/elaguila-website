@@ -959,6 +959,102 @@
           "status": "PASS"
         }
       ]
+    },
+    {
+      "gate": "owner-final-pre-release-product-construction-audit-2026-09-10",
+      "note": "Last construction gate before main/Production, on top of committed checkpoint f2508a9a566216ce0bc2eba78449510ff1fc9ab3 (Preview READY). Four parallel evidence-only research passes (mechanical defect scan, dead/built-not-wired component scan, cognitive-load/information-architecture review, skeptical spot-check of 5 prior-gate fixes) found and repaired 5 real defects. FINAL PRODUCT CONSTRUCTION CERTIFICATION: 100% PASS.",
+      "checks": [
+        {
+          "name": "worktree_branch_head_verification",
+          "result": "C:\\projects\\elaguila-website-owner-command-center, integration/owner-command-center-globalization-2026-08, starting HEAD f2508a9a566216ce0bc2eba78449510ff1fc9ab3 == origin, only .claude/ untracked",
+          "status": "PASS"
+        },
+        {
+          "name": "mechanical_defect_scan",
+          "result": "3 real defects found across 102 dashboard files: raw JS/HTTP error strings in viajes/page.tsx (3 sites), off-palette stone-gray Archive button in mis-anuncios/page.tsx, internal Supabase/RLS terminology leaked into restaurantes/page.tsx error copy - all 3 repaired. Checked clean: TODO/placeholder strings, empty hrefs, disabled-control gating, duplicate primary buttons, mobile/desktop-hidden required actions, hardcoded fake data",
+          "status": "PASS"
+        },
+        {
+          "name": "dead_built_not_wired_scan",
+          "result": "LeonixDashboardShell/OwnerProductPageFrame/OwnerEntityWorkspace confirmed singular (no duplicate shells repo-wide); no orphaned routes found (every route resolves to a real nav link or documented alias redirect); capability-registry unconsumed fields confirmed self-documented forward-declared truth, not a hidden gap; 2 dead zero-consumer legacy components found (DashboardCategoryLauncherCard, DashboardQuickActionCard) - never rendered, not owner-facing, left as pre-existing debt",
+          "status": "PASS"
+        },
+        {
+          "name": "cognitive_load_review",
+          "result": "2 real CTA-hierarchy defects found and repaired: En Venta's renew button visually outranking the canonical primary doorway (default-selected category, highest traffic), and a duplicated Publicar CTA on the Account Command Center. Business Tools hero-tier promotion re-confirmed holding; uniform secondary-tier panels judged acceptable editorial pattern, not a directory-of-equal-cards violation",
+          "status": "PASS"
+        },
+        {
+          "name": "spot_check_reverification",
+          "result": "5/5 prior-gate fixes CONFIRMED_CORRECT against actual current source (Rentas Mark Sold gating, Autos Privado reactivate + Archive color, Servicios offers footer hint, Bienes Negocio duplicate-CTA + unlock-button gating, Business Tools disclosure + hierarchy) - not superficial patches, real traced logic with real callers",
+          "status": "PASS"
+        },
+        {
+          "name": "repairs_implemented_count",
+          "result": "5 real defects repaired across 5 application files (27 insertions, 12 deletions), using only existing shared components/patterns",
+          "status": "PASS"
+        },
+        {
+          "name": "eslint_touched_files",
+          "filesChecked": 5,
+          "newFindings": 0,
+          "preExistingFindings": 9,
+          "preExistingLocation": "mis-anuncios/page.tsx (6 findings, unchanged lines) + EnVentaListingManageCard.tsx (3 findings, confirmed present at HEAD f2508a9a, untouched by this gate's isolated diff)",
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_attention_truth",
+          "result": "22/22 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_shared_specialized_tools",
+          "result": "33/33 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_lifecycle_contract",
+          "result": "OK",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_rentas_lifecycle_renewal",
+          "result": "PASS - all 9 checks including the protected-file guard (clean this time, no Bienes Raices files touched)",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_paid_listing_lifecycle_engine",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_whole_product_final_reconciliation",
+          "result": "182/182 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "typescript_full_typecheck",
+          "result": "exactly 7 errors, all e2e/** Playwright specs, byte-identical to the established session-wide baseline",
+          "newErrorsFound": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "full_production_build",
+          "command": "npm run build (NODE_OPTIONS=--max-old-space-size=12288)",
+          "result": "PASS - exit 0, Compiled successfully in 2.9min, all key routes present, only pre-existing unrelated themeColor warnings",
+          "status": "PASS"
+        },
+        {
+          "name": "final_product_construction_certification",
+          "result": "100% PASS - FUNCTION/UX/UI/RESPONSIVE/COPY-STATE/NAVIGATION/CATEGORY-COVERAGE/CTA-CONSISTENCY/COMMERCIAL-LIFECYCLE/BUSINESS-TOOLS/OWNER-ATTENTION all PASS, zero required BUILT_NOT_WIRED, zero source-fixable product blockers remaining",
+          "status": "PASS"
+        }
+      ]
     }
   ]
 }

@@ -217,7 +217,11 @@ function DashboardViajesStagedPageContent() {
         await loadRows(sb, user.id);
       } catch (e) {
         if (!mounted) return;
-        setErr(e instanceof Error ? e.message : "error");
+        // Pre-release audit fix: was surfacing the raw JS/network error message to the owner;
+        // this file's own load-rows path (above) already uses this safe-copy helper for the
+        // same class of failure — matching that established convention here.
+        console.error("[dashboard/viajes]", e instanceof Error ? e.message : String(e));
+        setErr(dashboardSafeMutationErrorCopy(lang));
         setRows([]);
       } finally {
         if (mounted) setLoading(false);
@@ -227,7 +231,7 @@ function DashboardViajesStagedPageContent() {
     return () => {
       mounted = false;
     };
-  }, [loadRows, pathname, router]);
+  }, [loadRows, pathname, router, lang]);
 
   const ownerAction = useCallback(
     async (id: string, action: "resubmit" | "unpublish") => {
@@ -245,19 +249,23 @@ function DashboardViajesStagedPageContent() {
         });
         const json = (await res.json()) as { ok?: boolean; error?: string };
         if (!res.ok || !json.ok) {
-          setErr(json.error ?? `HTTP ${res.status}`);
+          // Pre-release audit fix: was surfacing a raw `error` string or a bare "HTTP 500" to
+          // the owner; use the same safe-copy convention as this file's other error paths.
+          console.error("[dashboard/viajes]", json.error ?? `HTTP ${res.status}`);
+          setErr(dashboardSafeMutationErrorCopy(lang));
           return;
         }
         const sb = createSupabaseBrowserClient();
         const u = await withAuthTimeout(sb.auth.getUser(), AUTH_CHECK_TIMEOUT_MS);
         if (u.data.user?.id) await loadRows(sb, u.data.user.id);
       } catch (e) {
-        setErr(e instanceof Error ? e.message : "error");
+        console.error("[dashboard/viajes]", e instanceof Error ? e.message : String(e));
+        setErr(dashboardSafeMutationErrorCopy(lang));
       } finally {
         setBusyId(null);
       }
     },
-    [loadRows, pathname, router, token]
+    [loadRows, pathname, router, token, lang]
   );
 
   const editHref = (r: ViajesStagedListingRow) => {

@@ -1390,7 +1390,8 @@ Durable state files (all committed at this checkpoint):
 | 13 | FINAL SHIP-READINESS SOURCE/BUILD CERTIFICATION | PASS, **uncommitted** | Heavy validation authorized and performed on the Gate 10+11 candidate. Confirmed 10-file diff (6 app + 4 docs, 86/-10 lines) traces entirely to Gates 10-11 — no scope expansion. Re-ran all 6 focused verifiers (22/22, 33/33, OK, PASS, PASS, 182/182) — all still PASS, confirming Gate 10's Empleos edits did not disturb the multi-group specialized-tools contract. Full `tsc --noEmit` byte-identical to the established 7-error e2e-only baseline — 0 new errors. Lint: 0 new findings across the 6 changed files (the same 6 pre-existing `mis-anuncios/page.tsx` findings, already confirmed present in the committed checkpoint). `git diff --check` PASS. One full production build PASS (`NODE_OPTIONS=--max-old-space-size=12288`, exit 0, "Compiled successfully in 2.2min," all key routes present). Final regression trace confirmed lifecycle destinations, specialized mobile actions, Business Tools, external reputation, Empleos applications anchor, category adapters, and the Ofertas/Viajes boundary are all intact. **Source-fixable ship blockers: NONE.** One environment condition (a competing heavy process, 48 node workers, free memory as low as ~600KB) was correctly waited out rather than raced against, per this gate's resource-control directive. **Runtime owner QA remains NOT performed — §33.3's distinction still applies.** See `docs/owner-command-center/OWNER_COMMAND_CENTER_PROGRESS.md` Gate 12 for full detail. **Subsequently committed as `ce82252e22c9d75c815875627cfcdae6f0dd53b0` and pushed (see §33.1/PROGRESS.md Gate 13); superseded by Gates 14-15 below, which remain uncommitted on top of it.** |
 | 14 | PRE-QA 100% Product Completion Pass | PASS, **uncommitted** | Coach-clarified doctrine: runtime QA locked until the product is 100% complete, not used to discover missing UX/UI. Six parallel evidence-only research passes across every owner surface found and repaired 9 real defects (Rentas showing an unsupported Mark Sold action; Autos Privado missing a reactivate action + miscolored Archive; Servicios' coupons section silently vanishing with no explanation; Bienes Negocio duplicate add-property CTAs + an always-visible "unlock" button; Business Tools' Work With Leonix counts undisclosed as read-only; the `wide` detail-grid escape hatch not propagated to 6 other long-text call sites; account panel truncation risk) across 12 files, using only existing shared components/patterns. One hypothesis (Comida Local `contactHub`/`translateAd`) investigated and found NOT a defect; one latent gap (Autos Privado's unreachable generic-page fallback) investigated and left unfixed as genuinely unreachable. See `docs/owner-command-center/OWNER_COMMAND_CENTER_PROGRESS.md` Gate 14 for full detail. |
 | 14.1 | Business Tools Visual Hierarchy Hard Close | PASS, **uncommitted** | Coach flagged a real contradiction in Gate 14 (WEAK_UI open alongside "zero blockers"). Fully implemented the Master Bible §27 locked hierarchy in `BusinessConciergeOwnerHome.tsx` using only existing theme primitives — What Matters Now promoted to the existing `LX_DASH.pageHero` treatment with a real umbrella heading (activating a previously-unused copy key); Business Health + Action Plan grouped as the secondary tier; the remaining sections left as the plain-panel supporting tier. Re-confirmed Recent Activity and Business Growth entry already read as intentionally complete. See PROGRESS.md Gate 14.1 for full detail. |
-| 15 | FINAL PRE-QA SOURCE/BUILD CERTIFICATION | PASS, **uncommitted** | Heavy validation on the complete Gates 14+14.1 candidate (12 app files + 4 docs). All 6 canonical verifiers re-run (22/22, 33/33, OK, PASS-with-one-explained-scope-boundary-exception, PASS, 182/182); full `tsc --noEmit` byte-identical to the 7-error e2e-only baseline (0 new); full production build PASS ("Compiled successfully in 89s"); architecture regression trace confirmed zero core/protected files touched. Resource contention (another session spiking to 47 node.exe workers) waited out twice rather than raced. **PRE-QA PRODUCT CONSTRUCTION: COMPLETE. FINAL PRE-QA SOURCE/BUILD CERTIFICATION: PASS. OWNER QA: NOT YET PERFORMED** — its purpose from here is final runtime confirmation/polish of an already-complete product. See PROGRESS.md Gate 15 for full detail. |
+| 15 | FINAL PRE-QA SOURCE/BUILD CERTIFICATION | PASS, **uncommitted** | Heavy validation on the complete Gates 14+14.1 candidate (12 app files + 4 docs). All 6 canonical verifiers re-run (22/22, 33/33, OK, PASS-with-one-explained-scope-boundary-exception, PASS, 182/182); full `tsc --noEmit` byte-identical to the 7-error e2e-only baseline (0 new); full production build PASS ("Compiled successfully in 89s"); architecture regression trace confirmed zero core/protected files touched. Resource contention (another session spiking to 47 node.exe workers) waited out twice rather than raced. **PRE-QA PRODUCT CONSTRUCTION: COMPLETE. FINAL PRE-QA SOURCE/BUILD CERTIFICATION: PASS. OWNER QA: NOT YET PERFORMED** — its purpose from here is final runtime confirmation/polish of an already-complete product. Subsequently committed as `f2508a9a`, pushed, Preview READY. See PROGRESS.md Gate 15 for full detail. |
+| 16 | FINAL PRE-RELEASE PRODUCT-CONSTRUCTION AUDIT | PASS, **uncommitted** | Last construction gate before main/Production, on top of committed checkpoint `f2508a9a`. Four parallel evidence-only passes (mechanical TODO/placeholder/dead-control scan, dead/built-not-wired component scan confirming shell singularity, cognitive-load/information-architecture review, skeptical spot-check re-verification of 5 prior-gate fixes) found and repaired 5 real defects: En Venta's renewal CTA visually outranking the canonical primary doorway on the default-selected category, 3 raw error/internal-terminology leaks (Viajes ×3 sites, Restaurantes RLS/Supabase copy), an off-palette stone-gray Archive button, and a duplicate "Publicar" CTA on the Account Command Center. All 6 canonical verifiers re-run (22/22, 33/33, OK, PASS, PASS, 182/182 — Rentas verifier's protected-file guard clean this time, no Bienes files touched); full `tsc --noEmit` 0 new errors; full production build PASS ("Compiled successfully in 2.9min"). **FINAL PRODUCT CONSTRUCTION CERTIFICATION: 100% PASS.** See PROGRESS.md Gate 16 for full detail. |
 
 ---
 
@@ -1978,32 +1979,27 @@ The dashboard should make the platform feel organized even if the underlying cod
 
 The current next engineering move is:
 
-> **FINAL PRE-QA CHECKPOINT + PREVIEW, THEN OWNER QA**
+> **PM REVIEW OF THE FINAL PRODUCT-CONSTRUCTION AUDIT, THEN THE FINAL RELEASE COMMIT**
 
-**PRE-QA 100% PRODUCT COMPLETION is now COMPLETE, and FINAL PRE-QA SOURCE/BUILD CERTIFICATION has
-PASSED (Gates 14, 14.1, 15 — §33.2 rows 14/14.1/15).** Runtime owner QA (§50) is now unlockable in
-principle — the product is source-certified complete — but it has **NOT YET BEEN PERFORMED**, and
-the certified candidate (12 app files + 4 docs) is still **uncommitted** on top of checkpoint
-`ce82252e22c9d75c815875627cfcdae6f0dd53b0`. The next engineering move is therefore:
+**Checkpoint `f2508a9a566216ce0bc2eba78449510ff1fc9ab3` (parent `ce82252e`) is committed, pushed to
+the feature branch, and has a READY Vercel Preview.** On top of that checkpoint, Gate 16 (the
+final pre-release product-construction audit — §33.2, `docs/owner-command-center/
+OWNER_COMMAND_CENTER_PROGRESS.md`) found and repaired 5 real, cited defects across FUNCTION, UX,
+UI, and COPY, then re-ran every canonical verifier, a full typecheck, and one production build —
+all PASS. **FINAL PRODUCT CONSTRUCTION CERTIFICATION: 100% PASS**, as of this revision.
 
-1. Checkpoint the certified candidate as a new commit on the feature branch (never `main`, never
-   Production).
-2. Push it and confirm/produce a READY Vercel Preview for that exact commit.
-3. Only then may runtime owner QA (§50) begin — and only once a real owner/smoke-test credential or
-   session is available (§33.3's SAFE AUTH gap is a QA-tooling prerequisite, separate from and not
-   blocking this checkpoint step).
+That Gate 16 repair set (5 files) is currently **uncommitted** on top of `f2508a9a`, deliberately
+left for PM review before the final release commit — per that gate's own explicit instruction, it
+does not create the release commit itself. The next engineering move is therefore:
 
-QA from this point on is reserved strictly for final runtime confirmation/polish of an
-already-complete product — never for discovering missing UX, missing UI, unfinished flows, missing
-category tools, incomplete screens, broken hierarchy, missing states, missing navigation, or
-incomplete responsive layouts. See §33.4 for the doctrine and `docs/owner-command-center/
-OWNER_COMMAND_CENTER_PROGRESS.md` (Gates 14/14.1/15) for the full completeness/certification
-evidence.
-
-Source integration and source certification are **COMPLETE** (checkpoint `ea99e57c`, §33.1-§33.2).
-A Vercel Deployment Protection (SSO) bypass was already proven reachable via the project's existing
-`VERCEL_AUTOMATION_BYPASS_SECRET`, so the next checkpoint's Preview should be reachable the same
-way once deployed.
+1. PM reviews Gate 16's report and the 5 repaired files.
+2. Create the final release commit on the feature branch (never `main` directly).
+3. Only after that commit is authorized for `main` does the actual merge/Production release
+   sequence begin — a separate, later gate, not this one.
+4. Runtime owner QA (§50) may begin once a real owner/smoke-test credential or session is
+   available (§33.3's SAFE AUTH gap remains a QA-tooling prerequisite, unrelated to product
+   completeness) — QA from that point is reserved strictly for final runtime confirmation/polish,
+   never for discovering missing UX/UI/function. See §33.4 for the doctrine.
 
 `Owner Command Center ← Business Concierge owner-safe bridge reconciliation` (an earlier move this
 section used to describe) is DONE — see §33 for closure and §33.2 for the full completed-gate

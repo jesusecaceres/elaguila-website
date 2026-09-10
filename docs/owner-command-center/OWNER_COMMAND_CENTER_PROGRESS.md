@@ -1334,3 +1334,133 @@ UX/UI/function.
 
 Not committed, not pushed, main/Production untouched, Owner QA not started. The next gate is
 FINAL PRE-QA CHECKPOINT + PREVIEW for this exact certified candidate.
+
+**Update:** this candidate was subsequently committed as `f2508a9a566216ce0bc2eba78449510ff1fc9ab3`
+(parent `ce82252e22c9d75c815875627cfcdae6f0dd53b0`), pushed to the feature branch, and deployed to
+a READY Vercel Preview. See Gate 16 below for the final pre-release construction audit performed
+on top of this checkpoint.
+
+---
+
+## Gate 16 — Final Owner Command Center Pre-Release Product-Construction Audit
+
+**Date:** 2026-09-10
+**Base checkpoint:** `f2508a9a566216ce0bc2eba78449510ff1fc9ab3` (already committed/pushed, Preview
+READY — see Gate 15's update above)
+
+This is the last construction gate before main/Production. Scope: prove — not assume — that
+FUNCTION, UX, UI, RESPONSIVE, COPY, STATE HANDLING, NAVIGATION, CATEGORY COVERAGE, CAPABILITY
+TRUTH, CTA CONSISTENCY, BUSINESS TOOLS, and OWNER ACTIONABILITY are all complete, repairing any
+genuine gap found rather than deferring it into QA. Runtime Owner QA remains the phase strictly
+after this one.
+
+### Method
+
+Four parallel, evidence-only research passes, each required to cite file:line for every claim and
+to be skeptical of its own findings (this codebase has already been through 15 prior certification
+gates, so most surface-level "hits" were expected to be noise):
+
+1. **Mechanical defect scan** — TODO/FIXME/placeholder/coming-soon strings, dead-click controls,
+   empty hrefs, hardcoded fake data, duplicate primary buttons, off-palette CTA colors, mobile/
+   desktop-only-hidden required actions, raw technical error copy, leaked internal terminology —
+   across all 102 files in `app/(site)/dashboard/**` plus the category dashboard adapters.
+2. **Dead/built-not-wired component scan** — confirmed `LeonixDashboardShell`, `OwnerProductPageFrame`,
+   and `OwnerEntityWorkspace` remain singular (no duplicate shells anywhere in the repo); confirmed
+   every route resolves to a real nav link or a documented alias redirect (no orphaned pages);
+   traced every capability-registry field to its real consumers.
+3. **Cognitive-load / information-architecture review** — read the actual composition of
+   `/dashboard`, `/dashboard/mis-anuncios`, and `/dashboard/business-tools` top-to-bottom asking
+   whether a real owner could understand "where am I / what do I own / what matters / what's my
+   one primary action" within ~10 seconds.
+4. **Skeptical spot-check re-verification** — re-traced 5 of the most recent prior-gate fixes
+   (Rentas Mark Sold gating, Autos Privado reactivate, Servicios offers footer hint, Bienes Negocio
+   duplicate-CTA fix, Business Tools disclosure/hierarchy) against actual current source, not prior
+   reports, to confirm they are genuinely correct, not superficially patched.
+
+### Real defects found and repaired (5)
+
+1. **En Venta's "Refrescar anuncio" (renew) button visually outranked the canonical primary
+   doorway** — `EnVentaListingManageCard.tsx`: the renewal CTA rendered full-width with a bold
+   gold gradient inside its own bordered info box, louder than the actual primary "Administrar
+   anuncio" button in the card's action row. En Venta is the default-selected category on
+   `/dashboard/mis-anuncios`, making this the highest-traffic instance of a real CTA-hierarchy
+   violation. Resized to match the card's other secondary-button convention (outlined, non-full-
+   width) — the renewal capability is unchanged, only its visual weight relative to the primary
+   doorway.
+2. **Raw JS/HTTP error strings shown to the owner** — `viajes/page.tsx` had 3 catch/error paths
+   (initial load, resubmit/unpublish action + its catch) that surfaced `e.message`, a raw
+   `json.error`, or a bare `` `HTTP ${status}` `` string directly in the owner-facing error banner,
+   inconsistent with this exact file's own established pattern (its list-load path already uses
+   `dashboardSafeMutationErrorCopy(lang)`). All 3 now route through that same shared helper, with
+   the real technical detail preserved only in `console.error` for developers.
+3. **Internal Supabase/RLS terminology leaked into an owner-facing error message** —
+   `restaurantes/page.tsx`'s load-failure copy read "revisa sesión y políticas RLS en Supabase" /
+   "check sign-in and Supabase RLS policies" in both languages — meaningless, alarming internal
+   jargon for a real business owner. Replaced with honest, human copy conveying the same meaning
+   (a load failure, check your session, try again) with zero internal terms.
+4. **Off-palette destructive CTA** — `mis-anuncios/page.tsx`'s generic Clases/Comunidad/Busco/
+   Mascotas card-row Archive button hardcoded literal `stone-300/100/900` Tailwind classes instead
+   of the locked canonical red (`btnDanger`) semantic every other Archive/destructive action in the
+   app uses — corrected to the same canonical red palette already used elsewhere in this exact
+   file for the same action on other categories.
+5. **Duplicate "Publicar" CTA on the Account Command Center** — `OwnerBusinessGrowthEntry.tsx`
+   repeated the exact same "Publicar" link (same href, same label) that the page's own header
+   already renders as the page-level primary CTA (`OwnerAccountCommandCenter.tsx`), in a different
+   (secondary) visual treatment at the bottom of the page — two renderings of one action with no
+   clear reason for the duplication. Removed the redundant copy, keeping this section's own
+   distinct "Herramientas de negocio" entry point.
+
+### Reviewed and judged NOT a defect (documented reasoning, no change made)
+
+- **`OwnerRecentActivity`'s honest placeholder sharing equal visual weight with real actionable
+  sections** (flagged by the cognitive-load pass) — reviewed and judged acceptable: using the same
+  `LX_DASH.panel` chrome for structurally-different-but-equally-legitimate section types (an urgent
+  list, a historical log, a marketing entry point) is the correct "one Leonix system" pattern
+  (same job = same place/color/behavior), not the "flat directory of equal cards" anti-pattern the
+  doctrine actually warns about (which concerns *repeated, competing* cards doing the *same* job).
+  Inventing a new "lesser-weight" section style for just this one honest empty state would be the
+  kind of unnecessary visual novelty the visual standard explicitly prohibits.
+- **Business Tools' secondary tier (Health/Action Plan/Understands/Work With Leonix/Progress/
+  Assistant) remains a uniform stack below the promoted "What Matters Now" hero tier** — reviewed
+  and judged acceptable: one clear hero/priority zone followed by a uniform stack of supporting
+  detail sections is a standard, legitimate editorial hierarchy pattern, not a "generic directory
+  of equal cards" violation (which is specifically about the *absence* of any dominant tier, not
+  about supporting sections sharing consistent chrome once a real hierarchy exists above them).
+- **Two dead, zero-consumer legacy components** (`DashboardCategoryLauncherCard`,
+  `DashboardQuickActionCard`) — confirmed genuinely unreferenced anywhere in the repo, but they are
+  never rendered to any real owner (not a capability gap, not a discoverable defect) — left as
+  pre-existing dead-code debt rather than touched in this gate, consistent with the repair policy's
+  "smallest correction" principle.
+- **Capability-registry fields with no real consumer yet** (`engagement.*`, `video`, `contactHub`,
+  `translateAd`, `relatedListings`, `lifecycle.{republish,renew,close}`,
+  `specialized.{requests,businessConcierge}`, `commercial.*`) — the registry's own file header
+  self-documents these as forward-declared capability truth for future gates, not fabricated or
+  broken features; no Master Bible category-matrix citation was found proving any of them represent
+  a currently-required owner-facing gap.
+- **Spot-check of 5 prior-gate fixes** — all 5 CONFIRMED_CORRECT against actual current source
+  (exact evidence in each case, not just "looks similar to what was described").
+
+### Verification
+
+| Check | Result |
+|---|---|
+| Candidate scope | 5 files, 27 insertions/12 deletions, 0 unrelated files |
+| `git diff --check` | PASS |
+| Lint (all 5 touched files) | 0 new findings — 6 pre-existing `mis-anuncios/page.tsx` findings (unchanged lines) + 3 pre-existing `EnVentaListingManageCard.tsx` findings (confirmed present at HEAD `f2508a9a`, untouched by this gate's isolated 6-line diff to that file) |
+| Owner Attention Truth verifier | 22/22 PASS |
+| Shared Specialized Tools verifier | 33/33 PASS |
+| Lifecycle contract selftest | OK |
+| Rentas lifecycle/renewal verifier | PASS (all 9 checks, including the protected-file guard — clean this time since no Bienes Raíces files were touched) |
+| Paid listing lifecycle engine verifier | PASS |
+| Whole-product final reconciliation verifier | 182/182 PASS |
+| Full `tsc --noEmit` | Exactly 7 errors, all `e2e/**` Playwright specs — 0 new (re-confirmed byte-identical to the established baseline across this entire session) |
+| Full production build (`NODE_OPTIONS=--max-old-space-size=12288`) | PASS — exit 0, "Compiled successfully in 2.9min," all key routes present, only pre-existing `themeColor` warnings |
+
+### Explicitly not done (per constraints, this gate)
+
+- No merge to `main`, no push to `main`, no Production deploy, no new Vercel Preview created.
+- No source edits beyond the 5 real, cited defects above — no speculative features, no protected-
+  engine rewrites (Ofertas/Viajes internals untouched), no broad refactor of `mis-anuncios/page.tsx`.
+- No browser/runtime QA performed.
+- Final release commit deliberately NOT created — left for PM review of this report first, per
+  this gate's own instructions.

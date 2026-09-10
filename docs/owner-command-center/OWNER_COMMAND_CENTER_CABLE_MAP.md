@@ -375,3 +375,35 @@ fields exists anywhere in the repo, by design.
 **PRE-QA PRODUCT CONSTRUCTION: COMPLETE. FINAL PRE-QA SOURCE/BUILD CERTIFICATION: PASS.
 OWNER QA: NOT YET PERFORMED — its purpose from here is final runtime confirmation/polish of an
 already-complete product, not continuation of construction.**
+
+Subsequently committed as `f2508a9a566216ce0bc2eba78449510ff1fc9ab3`, pushed, Preview READY.
+
+## FINAL PRE-RELEASE PRODUCT-CONSTRUCTION AUDIT (2026-09-10) — Gate 16
+
+Last construction gate before main/Production, on top of `f2508a9a`. Four parallel evidence-only
+passes (mechanical defect scan, dead/built-not-wired scan, cognitive-load review, skeptical
+spot-check of 5 prior fixes) found and repaired 5 real defects — no speculative features, no
+protected-engine changes:
+
+| System | Route/Component | Defect | Fix |
+|---|---|---|---|
+| En Venta renewal CTA | `EnVentaListingManageCard.tsx` | Full-width gold-gradient renew button visually outranked the canonical primary "Administrar anuncio" doorway, on the default-selected (highest-traffic) category | Resized to match the card's other secondary-button convention |
+| Viajes error copy | `viajes/page.tsx` (3 sites) | Raw JS/HTTP error strings shown to the owner, inconsistent with this file's own established safe-copy pattern | Routed through `dashboardSafeMutationErrorCopy(lang)`, same as the file's existing load path |
+| Restaurantes error copy | `restaurantes/page.tsx` | Internal "Supabase RLS policies" terminology leaked into an owner-facing error message (both languages) | Replaced with honest, human copy, zero internal terms |
+| Mis Anuncios Archive CTA | `mis-anuncios/page.tsx` | Generic-category Archive button used literal `stone-*` classes instead of the locked canonical red destructive semantic | Corrected to the same canonical red palette used elsewhere in the file for the same action |
+| Account Command Center CTA | `OwnerBusinessGrowthEntry.tsx` | Duplicate "Publicar" CTA — same action already rendered as the page's own primary CTA in the header | Removed the redundant copy |
+
+Reviewed and judged NOT a defect (documented reasoning, no change): `OwnerRecentActivity`'s
+shared panel chrome with real content sections (correct "one Leonix system" consistency, not a
+competing-cards violation); Business Tools' uniform secondary tier below the promoted hero tier
+(standard hero + supporting-detail pattern); 2 dead zero-consumer legacy components (never
+rendered, left as pre-existing debt); capability-registry fields with no consumer yet
+(self-documented forward-declared truth).
+
+Verification: `git diff --check` PASS; lint 0 new findings (9 confirmed pre-existing); all 6
+canonical verifiers PASS (22/22, 33/33, OK, PASS, PASS, 182/182); full `tsc --noEmit` 0 new errors
+(byte-identical to the session-wide 7-error e2e-only baseline); full production build PASS
+("Compiled successfully in 2.9min").
+
+**FINAL PRODUCT CONSTRUCTION CERTIFICATION: 100% PASS.** Not committed yet — left for PM review of
+this gate's report before the final release commit.
