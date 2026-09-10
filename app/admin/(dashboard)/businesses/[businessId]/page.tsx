@@ -36,6 +36,7 @@ import { listProposalsForBusiness } from "@/app/lib/business/proposals/repositor
 import { CreateProposalForm, ProposalDetailPanel } from "./ProposalActions";
 import { listCommitmentsForBusiness, listEventsForCommitment } from "@/app/lib/business/promiseKeeper/repository";
 import { CreateCommitmentForm, CommitmentDetailPanel } from "./PromiseKeeperActions";
+import { commitmentPriorityBucket, COMMITMENT_PRIORITY_ORDER, COMMITMENT_PRIORITY_LABEL, type CommitmentPriorityBucket } from "./commitmentPriority";
 import { listJobsForBusiness } from "@/app/lib/business/creativeStudio/repository";
 import { isCreativeStudioEnabled } from "@/app/lib/business/creativeStudio/featureFlag";
 import { getConfiguredCreativeProviders } from "@/app/lib/business/creativeStudio/providerRegistry";
@@ -1194,7 +1195,7 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
           <div id="decide" className="scroll-mt-24" />
           <h2 className="font-serif text-lg font-bold text-[#1E1810]">Client Decision</h2>
           <p className="mt-1 text-xs text-[#7A7164]">
-            Meetings → recommendations → opportunities → creative → this proposal → client decision → commitments / owner handoff.
+            Meetings → recommendations → opportunities → creative → this proposal → client decision → owner handoff (if accepted) → commitments.
             Acceptance is a human record that the client accepted this proposal. It does not charge, sign a contract, publish, or confirm an opportunity.
           </p>
           <nav aria-label="Proposal journey" className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
@@ -1281,22 +1282,102 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
         </section>
       ) : null}
 
+      {/* Owner Handoff — commercial/operational escalation after client acceptance. Only renders
+          when a real accepted current proposal exists. Composed entirely from already-loaded page
+          data (proposals, creative jobs, commitments) — no new queries, no new domain. Distinct
+          from the Ownership Claim account-access mechanism further down the page (id="ownership-claim"). */}
+      {program5Data && canViewCommitments ? (() => {
+        const acceptedProposal = program5Data.proposals.find((p) => p.isCurrent && p.status === "accepted") ?? null;
+        if (!acceptedProposal) return null;
+        const openCommitments = program5Data.commitmentsWithEvents.filter(
+          ({ commitment }) => commitment.status !== "completed" && commitment.status !== "released",
+        );
+        const latestCreativeJob = creativeJobViews[0]?.job ?? null;
+        return (
+          <section id="owner-handoff" className="scroll-mt-24 rounded-2xl border border-[#C9A84A]/50 bg-[#FBF7EF] p-4">
+            <h2 className="font-serif text-lg font-bold text-[#1E1810]">Owner Handoff</h2>
+            <p className="mt-1 text-xs text-[#7A7164]">
+              The client accepted the commercial direction below. This summarizes what Chuy needs next. It does not replace contract, payment, or publication — those remain separate steps outside Business Concierge.
+            </p>
+            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="rounded-lg border border-[#E8DFD0] bg-white p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Accepted proposal</p>
+                <p className="mt-1 text-xs font-semibold text-[#1E1810]">{acceptedProposal.recommendedIntervention.replace(/_/g, " ")}</p>
+                <p className="mt-1 break-words text-xs text-[#3D3428]">{acceptedProposal.verifiedNeedEn}</p>
+                <p className="mt-1 text-[10px] text-[#7A7164]">
+                  Accepted {acceptedProposal.acceptedAt ? new Date(acceptedProposal.acceptedAt).toLocaleString() : "—"}
+                  {acceptedProposal.acceptedByEmail ? ` by ${acceptedProposal.acceptedByEmail}` : ""}.
+                </p>
+              </div>
+              <div className="rounded-lg border border-[#E8DFD0] bg-white p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Creative status</p>
+                {latestCreativeJob ? (
+                  <p className="mt-1 text-xs text-[#3D3428]">{latestCreativeJob.assetType.replace(/_/g, " ")} — {latestCreativeJob.status.replace(/_/g, " ")}</p>
+                ) : (
+                  <p className="mt-1 text-xs text-[#7A7164]">No creative request has been created yet.</p>
+                )}
+                <a href="#creative" className="mt-1 inline-flex min-h-[36px] items-center text-[11px] font-semibold text-[#7A1E2C] underline">Open Creative Studio</a>
+              </div>
+              <div className="rounded-lg border border-[#E8DFD0] bg-white p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Open commitments</p>
+                {openCommitments.length === 0 ? (
+                  <p className="mt-1 text-xs text-[#7A7164]">No open commitments for this business.</p>
+                ) : (
+                  <p className="mt-1 text-xs text-[#3D3428]">{openCommitments.length} still open.</p>
+                )}
+                <a href="#promises" className="mt-1 inline-flex min-h-[36px] items-center text-[11px] font-semibold text-[#7A1E2C] underline">Review Commitments</a>
+              </div>
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-amber-900">Not tracked in Business Concierge</p>
+                <p className="mt-1 text-xs text-amber-900">
+                  Contract signature, payment, and publication status are not recorded in this system. Confirm those directly before treating this relationship as executed.
+                </p>
+              </div>
+            </div>
+            {business.creationSource === "staff_assisted" ? (
+              <a href="#ownership-claim" className="mt-3 inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-white px-4 py-2 text-xs font-semibold text-[#1E1810]">
+                Owner account access (Ownership Claim)
+              </a>
+            ) : null}
+          </section>
+        );
+      })() : null}
+
       {/* Promise Keeper */}
       {program5Data && canViewCommitments ? (
         <section id="promises" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
           <h2 className="font-serif text-lg font-bold text-[#1E1810]">Commitments</h2>
           <p className="mt-1 text-xs text-[#7A7164]">What Leonix and relevant actors promised to do. Commitments are not sales follow-ups.</p>
           {canManageCommitments ? <CreateCommitmentForm businessId={business.id} /> : null}
-          <div className="mt-3 space-y-3">
-            {program5Data.commitmentsWithEvents.map(({ commitment, events }) => (
-              <CommitmentDetailPanel
-                key={commitment.id}
-                businessId={business.id}
-                commitment={commitment}
-                events={events}
-              />
-            ))}
-            {program5Data.commitmentsWithEvents.length === 0 ? <p className="text-sm text-[#7A7164]">No commitments yet.</p> : null}
+          <div className="mt-3 space-y-4">
+            {program5Data.commitmentsWithEvents.length === 0 ? (
+              <p className="text-sm text-[#7A7164]">No open commitments for this business.</p>
+            ) : (() => {
+              const nowMs = Date.now();
+              const buckets: Record<CommitmentPriorityBucket, typeof program5Data.commitmentsWithEvents> = {
+                overdue: [], blocked: [], due_soon: [], open: [], history: [],
+              };
+              for (const row of program5Data.commitmentsWithEvents) {
+                buckets[commitmentPriorityBucket(row.commitment, nowMs)].push(row);
+              }
+              return COMMITMENT_PRIORITY_ORDER.map((bucket) => (
+                buckets[bucket].length === 0 ? null : (
+                  <div key={bucket} className="space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">
+                      {COMMITMENT_PRIORITY_LABEL[bucket]} ({buckets[bucket].length})
+                    </p>
+                    {buckets[bucket].map(({ commitment, events }) => (
+                      <CommitmentDetailPanel
+                        key={commitment.id}
+                        businessId={business.id}
+                        commitment={commitment}
+                        events={events}
+                      />
+                    ))}
+                  </div>
+                )
+              ));
+            })()}
           </div>
         </section>
       ) : null}
@@ -1309,6 +1390,17 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
           <>
             <p className="mt-1 text-xs text-[#7A7164]">Truthful measurement with bounded result/confidence/causation. Never guaranteed or proven.</p>
             <OutcomesPanel outcomes={program7Outcomes.map((o) => ({ id: o.id, metricKey: o.metricKey, metricLabelEs: o.metricLabelEs, metricLabelEn: o.metricLabelEn, baselineValue: o.baselineValue, measuredValue: o.measuredValue, result: o.result, confidence: o.confidence, causationClaim: o.causationClaim, reviewStatus: o.reviewStatus, createdAt: o.createdAt }))} />
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+              <p className="text-xs text-[#7A7164] sm:mr-2 sm:self-center">Close the loop — what should Leonix do next for this business?</p>
+              {canViewRecommendations && stewardshipData ? (
+                <a href="#recommend" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
+                  Review Next Right Move
+                </a>
+              ) : null}
+              <a href="#advisor" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#E8DFD0] px-4 py-2 text-xs font-semibold text-[#3D3428]">
+                Proactive Advisor
+              </a>
+            </div>
           </>
         ) : (
           <p className="mt-2 text-xs text-[#7A7164]">This module is not enabled in this environment.</p>
@@ -1349,12 +1441,17 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
         )}
       </section>
 
-      {/* Owner Handoff (staff-prospect -> real-owner account claim). Intentionally separated from
-          the normal working journey above — last on the page, muted styling, not a primary nav tab. */}
+      {/* Ownership Claim — technical/business account-authorship mechanism (staff-prospect -> real
+          owner account claim). Distinct from the commercial "Owner Handoff" section above
+          (id="owner-handoff"): this is account access, not a post-acceptance escalation summary,
+          and does not require an accepted proposal. Intentionally separated from the normal working
+          journey above — last on the page, muted styling, not a primary nav tab. */}
       {business.creationSource === "staff_assisted" ? (
         <section id="ownership-claim" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-[#FAF7F2] p-4">
-          <h2 className="font-serif text-base font-bold text-[#5C5346]">Owner Handoff</h2>
-          <p className="mt-1 text-xs text-[#7A7164]">Separate from normal staff workflow — invites the real business owner to claim this account.</p>
+          <h2 className="font-serif text-base font-bold text-[#5C5346]">Ownership Claim — Owner Account Access</h2>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            Technical account handoff — invites the real business owner to claim this existing account. Separate from the commercial Owner Handoff summary above; not tied to proposal acceptance.
+          </p>
           <OwnershipClaimPanel businessId={business.id} canGenerate={canGenerateOwnershipClaim} />
         </section>
       ) : null}

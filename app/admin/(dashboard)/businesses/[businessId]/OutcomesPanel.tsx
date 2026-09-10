@@ -41,7 +41,7 @@ export function OutcomesPanel({ outcomes }: { outcomes: OutcomeRow[] }) {
             Recorded observation or result — not guaranteed business impact, not ROI, and not automatic attribution.
           </p>
           {outcomes.length === 0 ? (
-            <p className="text-xs text-[color:var(--lx-text-muted)]">No outcomes have been recorded yet.</p>
+            <p className="text-xs text-[color:var(--lx-text-muted)]">No outcomes have been recorded yet. Record outcomes after execution or delivery.</p>
           ) : (
             outcomes.map((o) => (
               <div key={o.id} className="rounded border border-[color:var(--lx-border)] p-3 text-xs">

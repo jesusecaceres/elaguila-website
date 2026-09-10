@@ -339,7 +339,10 @@ export function ProposalDetailPanel({
             {acceptedLabel ? ` by ${acceptedLabel}` : ""}.
           </p>
           <p className="mt-1 text-xs text-[#7A7164]">Owner Handoff next: contract/payment/publication remain downstream and are not complete.</p>
-          <a href="#promises" className="mt-2 inline-flex min-h-[44px] items-center text-xs font-semibold text-[#7A1E2C] underline">Commitments</a>
+          <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <a href="#owner-handoff" className="inline-flex min-h-[44px] items-center text-xs font-semibold text-[#7A1E2C] underline">Owner Handoff</a>
+            <a href="#promises" className="inline-flex min-h-[44px] items-center text-xs font-semibold text-[#7A1E2C] underline">Commitments</a>
+          </div>
         </div>
       ) : null}
 
