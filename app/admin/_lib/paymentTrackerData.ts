@@ -386,6 +386,14 @@ export type PaymentTrackerDashboardSnapshot = {
   pendingCount: number;
   paidCount: number;
   commissionEligibleCount: number;
+  /**
+   * Master Operating Book §15/§24 — "What payments failed?" / "What money is at risk?" had no
+   * canonical Command Center answer even though this exact count was already computed by
+   * fetchPaymentTrackerSnapshot() and silently discarded before reaching the dashboard. Counts
+   * failed/canceled/refunded/disputed payment_status rows among the most recent 500 payment
+   * records (same bounded-scan honesty as the rest of this snapshot).
+   */
+  failedCanceledRefundedCount: number;
 };
 
 export async function getPaymentTrackerDashboardSnapshot(): Promise<PaymentTrackerDashboardSnapshot> {
@@ -396,5 +404,6 @@ export async function getPaymentTrackerDashboardSnapshot(): Promise<PaymentTrack
     pendingCount: snap.pendingCount,
     paidCount: snap.paidCount,
     commissionEligibleCount: snap.commissionEligibleCount,
+    failedCanceledRefundedCount: snap.failedCanceledRefundedCount,
   };
 }

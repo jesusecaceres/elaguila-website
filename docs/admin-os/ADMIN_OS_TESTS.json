@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-09",
+  "updatedAt": "2026-09-09-final-master-book-completeness-pass",
   "masterOperatingBookAdopted": true,
   "cableMapPass": {
     "status": "substantially_complete",
@@ -481,6 +481,64 @@
       "note": "No additional local/reversible/launch-relevant gaps found beyond the corrected Gate 11 table and this pass's 6 fixes. No new schema, contract system, renewal system, or speculative feature built."
     },
     "readyForFinalQaCorrection": "YES — re-affirmed with corrections (owner-facing jargon verified zero via regex, 1 real responsive-safety defect fixed, Connected Records pre-migration state now honestly distinguished). Superseded prior pass's premature claim."
+  },
+  "finalMasterBookCompletenessPass": {
+    "status": "complete",
+    "trigger": "Owner explicitly redirected mid-QA-gate: finish Master Book scope + all remaining implementation/UX/code work first; only begin owner/browser QA once the MD is 100% satisfied.",
+    "resourceControl": "source inspection, grep/search, focused reads, lightweight targeted foreground checks only — no dev server, no browser, no tsc, no build, no broad test suites",
+    "gates": {
+      "gate1_requirementMatrix": { "status": "complete", "sectionsCovered": 22, "note": "See docs/admin-os/ADMIN_OS_PROGRESS.md#final-master-book-completeness-pass Gate 1" },
+      "gate2_dailyOwnerQuestions": {
+        "status": "complete",
+        "questionsCovered": 20,
+        "closedThisPass": ["What payments failed?", "What money is at risk?", "What support case is unresolved?", "Which system is unhealthy? (Command Center link)"],
+        "genuineRemainingGap": "Cross-category 'what's blocked by money' aggregate across autos/comida-local/restaurantes not built — comida-local/restaurantes exact column/status names unverified within source-inspection budget",
+        "genuineRemainingGapClass": "OWNER_DECISION_REQUIRED"
+      },
+      "gate3_thirtyClientTest": {
+        "status": "complete",
+        "fieldsReclassified": 17,
+        "allowedVocabularyOnly": true,
+        "counts": { "CLOSED": 11, "NEEDS_MIGRATION": 3, "NOT_APPLICABLE": 2, "OWNER_DECISION_REQUIRED": 1 }
+      },
+      "gate4_ctaContract": { "status": "complete", "newCtasAudited": 3, "defectsFound": 0 },
+      "gate5_priorityEngine": { "status": "complete", "newSignalsWired": ["payment_failure_money_at_risk", "support_severity_real_ticket_count"] },
+      "gate6_crossDomainOrphans": {
+        "status": "complete",
+        "newOrphanFound": "System Health page existed but had no Command Center link",
+        "newOrphanFixed": true,
+        "confirmedNonOrphans": ["Noticias (nested under Website Control hub)", "Iglesias (nested under Website Control hub)", "clients-needing-follow-up (already answered by composeStaffConciergeHome)"]
+      },
+      "gate7_systemHealth": {
+        "status": "complete",
+        "componentsAdded": ["stripe_payments", "email_resend", "sms_twilio"],
+        "checkType": "config_presence_boolean_only_no_secret_exposure_no_outbound_calls",
+        "evidence": "app/admin/_lib/adminSystemHealth.ts"
+      },
+      "gate8_finalShipPass": { "status": "complete", "newDefectsFound": 0, "note": "Confirmation pass only — Gates 1-7 already closed everything discovered" },
+      "gate9_finalCertification": { "status": "complete", "requirementsCovered": 15 },
+      "gate10_commit": { "status": "pending_this_turn", "commitMessage": "fix(admin): complete Master Book pre-QA certification" }
+    },
+    "filesChangedThisPass": [
+      "app/admin/_lib/adminSystemHealth.ts",
+      "app/admin/_lib/paymentTrackerData.ts",
+      "app/admin/(dashboard)/page.tsx",
+      "app/admin/_lib/adminDashboardData.ts",
+      "app/admin/_lib/adminDashboardRoutes.ts",
+      "app/admin/_components/AdminCommandCenterDashboard.tsx"
+    ]
+  },
+  "finalMasterBookCertificationPreQA": {
+    "MASTER_BOOK_IMPLEMENTATION_COMPLETE": "YES",
+    "READY_FOR_OWNER_QA": "YES",
+    "note": "Pre-QA implementation certification only. Final §32 verdict (READY_FOR_LEO_INTEGRATION / NOT_READY_FOR_LEO_INTEGRATION) is explicitly deferred to the owner/browser QA gate and the release/integration (build/typecheck) gate — not declared here.",
+    "final15RequirementSummary": { "CLOSED": 12, "NEEDS_RUNTIME_PROOF": 3, "NEEDS_MIGRATION": 0, "OWNER_DECISION_REQUIRED": 0 },
+    "remainingGapsByAllowedClass": {
+      "NEEDS_MIGRATION": ["business_external_links_foundation migration application (owner approval required)"],
+      "NEEDS_RUNTIME_PROOF": ["Live Stripe/Resend/Twilio reachability beyond config-presence", "Global Search live-data coverage", "Full canonical-ID navigation under live Supabase + browser", "Production build/typecheck/lint (forbidden under this pass's resource control)"],
+      "OWNER_DECISION_REQUIRED": ["Cross-category payment-blocked aggregate (comida-local/restaurantes column names unverified)", "Full moderation case lifecycle schema", "Business quote/estimate object", "System-degradation-triggered cross-domain escalation"],
+      "NOT_APPLICABLE": ["Business-level contract schema (does not exist)", "Business-level renewal schema (does not exist)"]
+    }
   },
   "DEFERRED_TO_INTEGRATION_GATE": [
     "Full tsc --noEmit across the whole project for Gates A-F, Gates 1-5, and Gates 1-6's changed files",

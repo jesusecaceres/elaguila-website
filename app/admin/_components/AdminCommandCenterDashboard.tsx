@@ -285,7 +285,7 @@ export function AdminCommandCenterDashboard({
   regSummary: { live: number; staged: number; comingSoon: number };
   entSnap: { dataUnavailable: boolean; activeCount: number };
   promoSnap: { dataUnavailable: boolean; activeCount: number };
-  paySnap: { unavailable: boolean; pendingCount: number };
+  paySnap: { unavailable: boolean; pendingCount: number; failedCanceledRefundedCount: number };
   catalogStats: { total: number; live: number; error: string | null };
   showPaymentTracker: boolean;
   executiveReports: LeoExecutiveReportingSnapshot | null;
@@ -470,6 +470,32 @@ export function AdminCommandCenterDashboard({
           metric={snap.pendingReports}
           body="Raw pending report rows from listing_reports (evidence, not a separate attention count — a listing already counted in “Needs review” may have several of these)."
           primary={{ href: ADMIN_DASHBOARD_ROUTES.reports, label: "Open reports", variant: "warning" }}
+        />
+        {showPaymentTracker ? (
+          <OperatorCard
+            eyebrow="Money"
+            title="Payments at risk"
+            status={paySnap.unavailable ? "needs proof" : "real"}
+            metric={paySnap.unavailable ? "Unavailable" : paySnap.failedCanceledRefundedCount}
+            body={
+              paySnap.unavailable
+                ? "Payment Tracker data needs live Supabase proof before operators rely on it."
+                : "Failed, canceled, refunded, or disputed payments among the most recent 500 payment records — money that didn't come through as expected."
+            }
+            primary={{ href: "/admin/workspace/payment-tracker", label: "Open Payment Tracker", variant: "warning" }}
+          />
+        ) : null}
+        <OperatorCard
+          eyebrow="Support"
+          title="Unresolved support"
+          status={snap.openSupportTicketsFallback ? "needs proof" : "real"}
+          metric={snap.openSupportTicketsFallback ? "Unavailable" : snap.openSupportTicketsCount}
+          body={
+            snap.openSupportTicketsFallback
+              ? "Support ticket data needs live Supabase proof before operators rely on it."
+              : "Open or in-progress internal support tickets (support_tickets.status)."
+          }
+          primary={{ href: ADMIN_DASHBOARD_ROUTES.support, label: "Open support", variant: "neutral" }}
         />
         <OperatorCard
           eyebrow="Visibility"
@@ -739,8 +765,13 @@ export function AdminCommandCenterDashboard({
         <OperatorCard
           eyebrow="Support"
           title="Support tickets"
-          status="partial"
-          body="Internal support log exists. Full safe support view is planned and must avoid passwords, raw cards, and uncontrolled impersonation."
+          status={snap.openSupportTicketsFallback ? "needs proof" : "real"}
+          metric={snap.openSupportTicketsFallback ? "Unavailable" : snap.openSupportTicketsCount}
+          body={
+            snap.openSupportTicketsFallback
+              ? "Support ticket data needs live Supabase proof before operators rely on it."
+              : "Open or in-progress internal support tickets. Full safe support view is planned and must avoid passwords, raw cards, and uncontrolled impersonation."
+          }
           primary={{ href: ADMIN_DASHBOARD_ROUTES.support, label: "Open support", variant: "neutral" }}
         />
         <OperatorCard
@@ -769,6 +800,13 @@ export function AdminCommandCenterDashboard({
   const systemHealthSection = (
     <AdminSectionCard title="System Health / Bug Finder" subtitle="Truthful system-risk teaser. No fake health status and no missing routes linked as live.">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <OperatorCard
+          eyebrow="Dependencies"
+          title="System Health"
+          status="real"
+          body="Live checks: Supabase data access, marketplace data, the audit pipeline, team roster data, and whether Stripe/email/SMS/roster-permission enforcement are configured. Never a fake green."
+          primary={{ href: ADMIN_DASHBOARD_ROUTES.systemHealth, label: "Open System Health", variant: "warning" }}
+        />
         <PlannedCard
           title="Bug Finder"
           body="Planned command center for publishing, upload, storage, visibility, payment, magazine, and API alerts."

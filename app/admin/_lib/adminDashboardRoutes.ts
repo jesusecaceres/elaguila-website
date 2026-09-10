@@ -37,6 +37,7 @@ export const ADMIN_DASHBOARD_ROUTES = {
   iglesias: "/admin/workspace/iglesias",
   support: "/admin/support",
   promoCodes: "/admin/workspace/promo-codes",
+  systemHealth: "/admin/system-health",
 } as const;
 
 export type AdminDashboardRouteKey = keyof typeof ADMIN_DASHBOARD_ROUTES;

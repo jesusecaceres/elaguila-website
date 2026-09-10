@@ -532,3 +532,49 @@ MARKETPLACE OPS, REVENUE, PEOPLE, WEBSITE sections will be appended here verbati
 background agents return, then reconciled for duplication against the COMMAND/SYSTEM findings
 above (in particular: which categories share the generic `listings` table vs. have their own,
 and whether Business Concierge uses `admin_audit_log` or a separate audit mechanism).
+
+---
+
+## FINAL MASTER-BOOK COMPLETENESS PASS — new/repaired cable entries
+
+- **SYSTEM HEALTH — Stripe/Email/SMS config-presence, newly wired.** `adminSystemHealth.ts` now
+  calls `isRevenueStripeConfigured()` (`app/lib/listingPlans/revenueStripe.ts`),
+  `resolveLeonixResendConfig().ok` (`app/lib/email/leonixResendConfig.ts`), and
+  `isTwilioVerifyConfigured()` (`app/lib/sms/twilioVerifyProvider.ts`) as three new
+  `LeoSystemHealthComponent`s (`stripe_payments`, `email_resend`, `sms_twilio`). All three are pure
+  boolean config-presence checks — no secret value is ever read into the component, no outbound
+  network call is made. Live provider reachability (as opposed to config presence) remains
+  unwired — a genuine `NEEDS_RUNTIME_PROOF` gap, not fabricated as healthy.
+- **REVENUE — `failedCanceledRefundedCount`, previously computed-and-discarded, now wired end to
+  end.** `fetchPaymentTrackerSnapshot()` (`app/admin/_lib/paymentTrackerData.ts`) already computed
+  this count (payment_status IN `failed`/`canceled`/`refunded`/`disputed`, bounded to the most
+  recent 500 records) but `getPaymentTrackerDashboardSnapshot()` dropped it before it reached any
+  UI — the same "computed but discarded" bug pattern found repeatedly elsewhere in this project.
+  Now threaded through `PaymentTrackerDashboardSnapshot` → `app/admin/(dashboard)/page.tsx`'s
+  `paySnap` → a new "Payments at risk" `OperatorCard` in the Command Center.
+- **PEOPLE/SUPPORT — real `support_tickets.status` count, replacing a stale disabled-accounts
+  proxy.** `adminDashboardData.ts`'s `getAdminDashboardSnapshot()` previously had no query against
+  `support_tickets` at all; the only "support-shaped" number on the dashboard was
+  `usersNeedingHelpProxy` (disabled `profiles` count — a materially different signal). Added a real
+  `openSupportTicketsCount`/`openSupportTicketsFallback` query
+  (`.from("support_tickets").select("id", {count:"exact", head:true}).in("status", ["open",
+  "in_progress"])`, matching the table's real CHECK constraint values `open`/`in_progress`/
+  `closed`). Surfaced as a new "Unresolved support" card in Today's Attention and as the real
+  metric on the existing "Support tickets" card in People+Support (previously body-text-only, no
+  metric).
+- **SYSTEM HEALTH — Command Center orphan closed.** The real `/admin/system-health` page (built in
+  an earlier session) had no entry in `ADMIN_DASHBOARD_ROUTES` and no link anywhere in the Command
+  Center's own "System Health / Bug Finder" section, which showed only `PlannedCard` placeholders
+  next to it. Added `systemHealth: "/admin/system-health"` to `ADMIN_DASHBOARD_ROUTES` and a real
+  `OperatorCard` linking to it — this was a genuine orphan (existing product control, invisible from
+  the Command Center), not a missing feature.
+- **Confirmed non-orphans (verified via grep, not assumed)**: Noticias/Iglesias are absent from
+  `adminGlobalNav.ts` by design — both are correctly nested and linked from the Website Control
+  workspace hub (`app/admin/(dashboard)/workspace/page.tsx`), the same nested-IA pattern already
+  used for Servicios/Autos/Restaurantes under Clasificados. "Which clients need follow-up" already
+  has a real, previously-verified answer via `composeStaffConciergeHome()` on `/admin/businesses`
+  — no new code needed.
+- **Still-open, not fabricated**: cross-category "what's blocked by money" aggregate spanning
+  autos/comida-local/restaurantes `pending_payment`-style statuses was not built this pass — exact
+  column/status names for comida-local and restaurantes were not verified with enough confidence
+  within a source-inspection-only budget. `OWNER_DECISION_REQUIRED`, not guessed.

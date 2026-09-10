@@ -124,6 +124,9 @@ export type AdminDashboardSnapshot = {
   /** Explained in UI: best-effort proxy, not a ticket count. */
   usersNeedingHelpNote: string;
   disabledUsersCount: number;
+  /** Master Operating Book §24 — "What support case is unresolved?" real answer: support_tickets.status IN (open, in_progress). */
+  openSupportTicketsCount: number;
+  openSupportTicketsFallback: boolean;
   magazineFeaturedLabel: string | null;
   magazineUpdated: string | null;
   categoryCounts: Array<{ category: string; count: number }>;
@@ -811,6 +814,23 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     listingsQueryFallback = true;
   }
 
+  // Master Operating Book §24 — "What support case is unresolved?" had no canonical Command
+  // Center answer at all (the usersNeedingHelpProxy field below is a different, weaker proxy —
+  // disabled accounts, not actual support tickets — and its own TODO comment predates
+  // support_tickets existing as a real table). Real, minimal query against the real table.
+  let openSupportTicketsCount = 0;
+  let openSupportTicketsFallback = false;
+  try {
+    const { count, error } = await supabase
+      .from("support_tickets")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["open", "in_progress"]);
+    if (error) openSupportTicketsFallback = true;
+    else if (typeof count === "number") openSupportTicketsCount = count;
+  } catch {
+    openSupportTicketsFallback = true;
+  }
+
   let disabledUsersCount = 0;
   try {
     const { count } = await supabase
@@ -850,8 +870,10 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     pendingReports: typeof pendingReports === "number" ? pendingReports : 0,
     usersNeedingHelpProxy: disabledUsersCount,
     usersNeedingHelpNote:
-      "Proxy: disabled accounts count. TODO: wire support_tickets or help_queue when available.",
+      "Proxy: disabled accounts count. See Support below for actual unresolved support tickets.",
     disabledUsersCount,
+    openSupportTicketsCount,
+    openSupportTicketsFallback,
     magazineFeaturedLabel: mag.label,
     magazineUpdated: mag.updated,
     categoryCounts,

@@ -23,6 +23,9 @@
 import "server-only";
 
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { isRevenueStripeConfigured } from "@/app/lib/listingPlans/revenueStripe";
+import { resolveLeonixResendConfig } from "@/app/lib/email/leonixResendConfig";
+import { isTwilioVerifyConfigured } from "@/app/lib/sms/twilioVerifyProvider";
 import type {
   LeoSystemHealthComponent,
   LeoSystemHealthSnapshot,
@@ -106,6 +109,34 @@ export async function buildAdminSystemHealthSnapshot(): Promise<LeoSystemHealthS
     ownerMessage: enforceRoster
       ? null
       : "Off — every admin with the shared password can take every action regardless of their roster role. This is expected on single-operator deployments.",
+  });
+
+  // Master Operating Book §22 — payment provider, email, and SMS readiness. Config-presence
+  // only (same honesty bar as every other component here): whether real payments, order
+  // emails, and phone verification can actually run depends on these, but this never touches
+  // or exposes the credential values themselves.
+  const stripeConfigured = isRevenueStripeConfigured();
+  components.push({
+    key: "stripe_payments",
+    label: "Stripe (payments)",
+    state: stripeConfigured ? "HEALTHY" : "NOT_CONFIGURED",
+    ownerMessage: stripeConfigured ? null : "Stripe is not configured — real checkout/payment processing cannot run.",
+  });
+
+  const emailConfig = resolveLeonixResendConfig();
+  components.push({
+    key: "email_resend",
+    label: "Email delivery (Resend)",
+    state: emailConfig.ok ? "HEALTHY" : "NOT_CONFIGURED",
+    ownerMessage: emailConfig.ok ? null : "Resend is not configured — order confirmations and other transactional email cannot send.",
+  });
+
+  const smsConfigured = isTwilioVerifyConfigured();
+  components.push({
+    key: "sms_twilio",
+    label: "SMS verification (Twilio)",
+    state: smsConfigured ? "HEALTHY" : "NOT_CONFIGURED",
+    ownerMessage: smsConfigured ? null : "Twilio is not configured — phone/SMS verification cannot run.",
   });
 
   const limitations: string[] = [];

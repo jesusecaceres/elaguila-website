@@ -39,6 +39,7 @@ export default async function AdminHomePage() {
           pendingCount: 0,
           paidCount: 0,
           commissionEligibleCount: 0,
+          failedCanceledRefundedCount: 0,
         }),
     getClasificadosCategoryRegistryMerged(),
     getAdminCatalogStats(),
