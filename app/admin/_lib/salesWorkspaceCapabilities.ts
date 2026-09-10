@@ -119,7 +119,20 @@ export type SalesWorkspaceCapability =
   // Systemic Repair Build — Owner Claim / Handoff. Generating an invitation link is a
   // consequential, attributed staff write (never a bootstrap action) — granted at the same tier
   // as conduct_canvassing since it is the natural continuation of the same prospecting workflow.
-  | "generate_ownership_claim";
+  | "generate_ownership_claim"
+  // Business Development & Growth Engine, Gate A. Kept in this same matrix, matching every prior
+  // program's precedent. sales_rep may view the Growth Plan (same tier as view_opportunities/
+  // view_recommendations) but may never create/review an assessment, promote a solution, manage
+  // the roadmap, or create/approve a campaign/official-requirement verification — those are
+  // manager+ actions, matching the create_recommendation/approve_recommendation and
+  // review_opportunity precedent exactly.
+  | "view_growth_engine"
+  | "create_growth_assessment"
+  | "review_growth_assessment"
+  | "manage_growth_roadmap"
+  | "manage_growth_solutions"
+  | "manage_growth_campaigns"
+  | "manage_official_requirements_research";
 
 export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] = [
   "view_business_list",
@@ -185,6 +198,13 @@ export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] =
   "review_opportunity",
   "create_opportunity_creative_request",
   "generate_ownership_claim",
+  "view_growth_engine",
+  "create_growth_assessment",
+  "review_growth_assessment",
+  "manage_growth_roadmap",
+  "manage_growth_solutions",
+  "manage_growth_campaigns",
+  "manage_official_requirements_research",
 ];
 
 /**
@@ -271,6 +291,13 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "review_opportunity",
     "create_opportunity_creative_request",
     "generate_ownership_claim",
+    "view_growth_engine",
+    "create_growth_assessment",
+    "review_growth_assessment",
+    "manage_growth_roadmap",
+    "manage_growth_solutions",
+    "manage_growth_campaigns",
+    "manage_official_requirements_research",
   ],
   sales_manager: [
     "view_business_list",
@@ -334,6 +361,13 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "review_opportunity",
     "create_opportunity_creative_request",
     "generate_ownership_claim",
+    "view_growth_engine",
+    "create_growth_assessment",
+    "review_growth_assessment",
+    "manage_growth_roadmap",
+    "manage_growth_solutions",
+    "manage_growth_campaigns",
+    "manage_official_requirements_research",
   ],
   sales_rep: [
     "view_business_list",
@@ -367,6 +401,7 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "upload_creative_assets",
     "view_opportunities",
     "generate_ownership_claim",
+    "view_growth_engine",
   ],
 };
 
