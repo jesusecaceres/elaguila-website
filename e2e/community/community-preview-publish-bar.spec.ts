@@ -14,7 +14,7 @@ test.describe("Community quick preview publish bar (session draft)", () => {
   test("clases preview shows Volver a editar and Publicar anuncio", async ({ page }) => {
     const draft = buildMinimalClasesQuickDraftForPreviewContract();
     await page.addInitScript(
-      ([key, json]: [string, string]) => {
+      ([key, json]) => {
         sessionStorage.setItem(key, json);
       },
       [COMMUNITY_SESSION_KEYS.clases, JSON.stringify(draft)],
@@ -27,7 +27,7 @@ test.describe("Community quick preview publish bar (session draft)", () => {
   test("comunidad preview shows Volver a editar and Publicar anuncio", async ({ page }) => {
     const draft = buildMinimalComunidadQuickDraftForPreviewContract();
     await page.addInitScript(
-      ([key, json]: [string, string]) => {
+      ([key, json]) => {
         sessionStorage.setItem(key, json);
       },
       [COMMUNITY_SESSION_KEYS.comunidad, JSON.stringify(draft)],
@@ -40,7 +40,7 @@ test.describe("Community quick preview publish bar (session draft)", () => {
   test("paid clases preview keeps CTA visible but disabled with paid copy", async ({ page }) => {
     const draft = buildPaidClasesQuickDraftForPreviewContract();
     await page.addInitScript(
-      ([key, json]: [string, string]) => {
+      ([key, json]) => {
         sessionStorage.setItem(key, json);
       },
       [COMMUNITY_SESSION_KEYS.clases, JSON.stringify(draft)],

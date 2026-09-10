@@ -334,7 +334,12 @@ test.describe("A5.RECOVERY-25 child inventory media browser proof", () => {
       }
       if (["E", "F"].includes(String(snap.label))) {
         const inProg = snap.inProgressMediaImagesCount;
-        if (inProg !== null && snap.mediaImagesCount > 0) {
+        // `ProofSnap` is `Record<string, unknown>`, so an arithmetic comparison needs the value
+        // narrowed first — the same reason `String(snap.label)` is used two lines above. The
+        // equality checks below already type-check against `unknown`; only `> 0` did not.
+        // `captureProof` writes this field as `imgs.length`, so `Number(...)` is exact, not lossy.
+        const mediaImages = Number(snap.mediaImagesCount);
+        if (inProg !== null && mediaImages > 0) {
           expect(inProg === 0 || inProg === snap.mediaImagesCount).toBeTruthy();
         }
       }

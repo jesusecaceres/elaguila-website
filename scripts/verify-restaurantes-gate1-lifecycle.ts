@@ -46,6 +46,11 @@ const CAPABILITY_HELPER = "app/(site)/clasificados/restaurantes/lib/restauranteC
 const baseDef = getRevenuePackageDefinition("restaurantes_base_monthly");
 assert.ok(baseDef, "restaurantes_base_monthly must exist");
 assert.equal(baseDef.priceCents, 39900, "$399/mo server pricing");
+// `capabilities` is optional on `RevenuePackageDefinition`, so under `strict` it must be proven
+// present before it is read. Asserting it separately is also a STRONGER check than the original
+// non-null read: "the base package declares capabilities at all" and "those capabilities include
+// coupons_offers" are two distinct product facts, and this now fails loudly on either.
+assert.ok(baseDef.capabilities, "restaurantes_base_monthly must declare capabilities");
 assert.ok(baseDef.capabilities.includes("coupons_offers"), "coupons must be INCLUDED in the base package");
 const retired = getRevenuePackageDefinition("restaurantes_offers_addon");
 assert.ok(retired, "the retired add-on definition must be kept for historical rows");
