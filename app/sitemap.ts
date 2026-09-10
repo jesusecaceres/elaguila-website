@@ -7,6 +7,8 @@ import { listServiciosPublicListingsRaw } from "@/app/(site)/clasificados/servic
 import { tryListRestaurantesPublicListingsFromDb } from "@/app/(site)/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
 import { listPublishedComidaLocalListings } from "@/app/lib/clasificados/comida-local/comidaLocalPublicQueries";
 import { emptyComidaLocalResultsFilters } from "@/app/lib/clasificados/comida-local/comidaLocalResultsUrl";
+import { listPublishedBrListingsForSitemap } from "@/app/(site)/clasificados/bienes-raices/lib/brPublishedListingsServer";
+import { leonixLiveAnuncioPath } from "@/app/(site)/clasificados/lib/leonixRealEstateListingContract";
 import { buildLeonixSitemap } from "@/app/lib/seo/leonixDiscoveryContracts";
 
 export {
@@ -183,6 +185,50 @@ async function comidaLocalSitemapEntries(base: string, now: Date): Promise<Metad
  * select projects (`COMIDA_LOCAL_PUBLIC_LISTING_SELECT` carries no `updated_at`).
  */
 
+/**
+ * Gate BIENES-NEGOCIO-2 — published Bienes Raíces property URLs, the FIFTH DB-backed section,
+ * composed the same way as the Recursos, Servicios, Restaurantes and Comida Local sections above:
+ * in this route module, from the category's own safety-gated reader, never inside the pure
+ * `buildLeonixSitemap` contract and never a direct table query.
+ *
+ * Two eligibility gates, both the category's own shared predicates rather than a re-expression:
+ *   1. `status="active"` + `is_published=true` + `isListingRowActiveAndPublishedForBrowse` — so a
+ *      pending, paused, archived, sold or suspended row can never be advertised.
+ *   2. the Gate G.2.3.4 PARENT-LIVENESS gate — a Negocio inventory child is dropped unless its
+ *      canonical parent (resolved by real UUID) is itself an active, published, same-owner `main`
+ *      bienes-raices business row. A suspended parent therefore removes its children from the
+ *      sitemap exactly as it removes them from browse and public detail.
+ *
+ * `ok:false` (including a failed PARENT read) yields NO entries rather than a partial list that
+ * could advertise an orphan child, and the whole section is try/catch-isolated so one unavailable
+ * read cannot fail the sitemap route.
+ *
+ * The URL is the canonical `leonixLiveAnuncioPath(id)` — `/clasificados/anuncio/:id`, the same path
+ * the detail page's JSON-LD `url` uses and the same one the branch-scoped
+ * `/clasificados/bienes-raices/anuncio/[id]` alias redirects to.
+ */
+async function bienesRaicesSitemapEntries(base: string, now: Date): Promise<MetadataRoute.Sitemap> {
+  try {
+    const listed = await listPublishedBrListingsForSitemap();
+    if (!listed.ok) return [];
+    return listed.rows
+      .filter((row) => Boolean(row.id?.trim()))
+      .map((row) => {
+        const updated = row.updated_at || row.published_at || row.created_at;
+        const lastModified = updated ? new Date(updated) : now;
+        return {
+          url: `${base}${leonixLiveAnuncioPath(row.id)}`,
+          lastModified: Number.isNaN(lastModified.getTime()) ? now : lastModified,
+          changeFrequency: "weekly" as const,
+          priority: 0.6,
+        };
+      });
+  } catch {
+    // A sitemap must never fail the whole route because one DB-backed section is unavailable.
+    return [];
+  }
+}
+
 /** Upper bound for the Restaurantes section. Unlike the Servicios reader, this one has no smaller
  * internal fetch cap — it passes the limit straight to Supabase — so 2000 is the real ceiling here.
  * Well under the 50k per-sitemap limit; a larger catalog needs a paginated sitemap index. */
@@ -210,5 +256,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...(await serviciosSitemapEntries(base, now)),
     ...(await restaurantesSitemapEntries(base, now)),
     ...(await comidaLocalSitemapEntries(base, now)),
+    ...(await bienesRaicesSitemapEntries(base, now)),
   ];
 }

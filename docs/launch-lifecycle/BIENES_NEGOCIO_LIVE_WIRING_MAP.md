@@ -19,6 +19,7 @@ Servicios, Restaurantes and Comida Local are **SOURCE-LOCKED** and were not reop
 |---|---|---|
 | **BIENES-NEGOCIO-0** | Gate Zero + live wiring MRI | **COMPLETE (this document)** |
 | **BIENES-NEGOCIO-1** | Identity / hydration / owner-truth repairs | **COMPLETE — see §16** |
+| **BIENES-NEGOCIO-2** | Discovery (JSON-LD, sitemap) + Admin operational truth | **COMPLETE — see §17** |
 
 ---
 
@@ -782,4 +783,220 @@ name. **Applying it remains an explicit, owner-authorized integration/runtime st
 | no BR-parent → `public.businesses.id` linkage; Business Tools eligibility unprovable | P2 | owner/product decision, explicitly out of scope here |
 | commercial/land `destacados` cannot round-trip (persisted as prose only) | P3 | §16.1 — needs a publish-side slug vocabulary before it can be restored honestly |
 | `sourceUpdatedAt` captured, precedence unwired | P3 | unchanged |
+| 26 dead modules + 35 historical audit `.md` in the source tree | P4 | cleanup gate, after integration |
+
+---
+
+## 17. GATE BIENES-NEGOCIO-2 — DISCOVERY + ADMIN OPERATIONAL TRUTH
+
+One gate: real-estate structured data, the DB-backed sitemap section, and the Admin commercial/
+capacity truth this lane was missing. Verifier
+`scripts/verify-bienes-negocio-gate2-discovery.ts` — **38/38 PASS**. **No migration applied.**
+Saved Search, Related Listings, pricing, the capacity authority and the Application/Preview surfaces
+were not touched. Servicios, Restaurantes, Comida Local and BIENES-NEGOCIO-1 all still pass.
+
+### 17.1 CORRECTION to the Gate-Zero MRI — BR emitted NO structured data at all
+
+§12 of this document recorded: *"the canonical detail page emits `@type: "ClassifiedAd"` with a
+relative `url`"*. Re-tracing for this gate shows that is **wrong**. The
+`listing.category === "bienes-raices"` branch in `app/(site)/clasificados/anuncio/[id]/page.tsx`
+**returns early**, before the generic `ClassifiedAd` block further down the same file. Bienes Raíces
+therefore emitted **no JSON-LD whatsoever** — the `ClassifiedAd` block belongs to the fall-through
+categories only.
+
+The practical difference: this was not "weak schema to upgrade", it was "no schema to add". The
+generic block is left untouched for the categories that do use it (asserted).
+
+Worth recording for whoever fixes that generic block later: it hardcodes `addressRegion: "CA"` and
+puts the **formatted price label** ("$850,000") in `price`, which must be a number. This gate's
+builder repeats neither mistake, and the verifier asserts the builder contains no `"CA"` and no
+`"US"` literal at all.
+
+### 17.2 Real-estate JSON-LD — the honest structure, not the MRI's guess
+
+The MRI named `RealEstateListing`. That type is real, **but it is a subtype of `WebPage`** — it
+describes the listing PAGE and has no `numberOfBedrooms`, `numberOfBathroomsTotal` or `floorSize`.
+Hanging those on it would be invalid vocabulary. So the emitted shape is two nodes:
+
+```
+RealEstateListing (the page)  --mainEntity-->  the property itself
+```
+
+The property node type comes from the category's OWN persisted `Leonix:results_property_kind`
+facet, never from prose:
+
+| Facet | Node type | Why |
+|---|---|---|
+| `casa` | `SingleFamilyResidence` | an `Accommodation` — bedrooms/bathrooms/floorSize are valid |
+| `departamento` | `Apartment` | an `Accommodation` — same |
+| `terreno` | `Place` | land is not an Accommodation |
+| `comercial` | `Place` | schema.org has no commercial-property type, and `LocalBusiness` would assert an operating business that a for-sale building is not |
+| absent | `Place` | no facet, no guess |
+
+Because `Place` is not an `Accommodation`, room and floor-area properties are **omitted** for
+terreno/comercial rather than emitted where the vocabulary does not define them — asserted.
+
+**Price** lives on an `Offer` as a real number (from the row's numeric `price`, exposed this gate as
+`Listing.priceNumber`), with `priceCurrency`, a `businessFunction` of Sell/LeaseOut from the real
+`Leonix:operation` facet, and `availability` **only** for the two seller statuses that have an
+honest schema.org equivalent — `disponible` → InStock, `vendido` → SoldOut. `bajo_contrato` and
+`pendiente` are omitted rather than approximated. No price → no `Offer` node at all.
+
+**Lot area** is expressed as a labelled `PropertyValue` in `additionalProperty`, because `lotSize`
+is not schema.org vocabulary on `Accommodation`/`Place` — an invented field name would be worse
+than an explicit one.
+
+**Privacy — three rules, all asserted:**
+1. `streetAddress` is emitted only when `Leonix:br:show_exact_address` is genuinely true; the page
+   passes `brShowExactAddress ? gate12d.streetAddress : null`.
+2. City, region, postal code and country are the category's own declared public set — the listing
+   contract states verbatim that without the opt-in, public surfaces may still use "city / zona /
+   CP". Region and country come from `Leonix:state` / `Leonix:country` and are **omitted when
+   absent**, never hardcoded.
+3. The seller node is business identity only (`RealEstateAgent` with name/telephone/url, the agent
+   as `employee`), and only when a real name exists. No personal address, ever.
+
+**No ratings, structurally** — the builder has no rating or review parameter at all, so no
+owner-entered value can reach `aggregateRating` here or via a future caller.
+
+`identifier` uses the real `leonix_ad_id`, falling back to the row id, and is omitted when neither
+exists — never a generated identifier. Plus the shared `breadcrumbJsonLd`, ES/EN aware.
+
+### 17.3 Sitemap — the fifth DB-backed section, with the parent gate
+
+BR was entirely absent from `app/sitemap.ts`. It is now composed the same way as the Recursos,
+Servicios, Restaurantes and Comida Local sections: in the route module, from a category reader,
+never inside the pure `buildLeonixSitemap` contract and never a direct table query.
+
+**Why a new server reader was needed** (and why it is not a second engine): unlike the other three
+categories, BR's public browse is a **BROWSER** reader (`fetchBrPublishedListingsBrowser`,
+RLS-scoped). A server route cannot call it. `brPublishedListingsServer.ts` therefore reads rows and
+then applies the category's **existing shared predicates verbatim**:
+
+- `isListingRowActiveAndPublishedForBrowse` — the shared row-level public rule;
+- `collectBrChildParentIds` + `filterBrRowsByActiveParent` — the shared Gate G.2.3.4 parent-liveness
+  gate, imported unchanged.
+
+The verifier asserts the module contains **no re-expression** of the gate logic, and behaviorally
+proves the gate itself: a live child is kept under a live parent and excluded when the parent is
+suspended, paused, unpublished, differently-owned, wrongly-roled, or missing entirely.
+
+Safety: a failed row read **or a failed parent read** returns `ok:false` → the section emits nothing
+rather than a partial list that could advertise an orphan child; the whole section is
+try/catch-isolated. URLs are the canonical `leonixLiveAnuncioPath(id)` — the same path the JSON-LD
+`url`, the Saved Search delivery resolver and the `/clasificados/bienes-raices/anuncio/[id]` alias
+all resolve to. Ceiling is an explicit `BR_SITEMAP_MAX = 2000`.
+
+### 17.4 Admin ops — capacity, entitlement and payment truth
+
+Gate Zero found the BR Admin queue showed rows but no commercial truth, on a lane whose entire
+product is a capacity contract. New READ-ONLY projection `app/admin/_lib/bienesNegocioCommercialOps.ts`
+plus an additive `BienesNegocioOpsPanel` on the **existing** queue.
+
+**No second commercial model.** Every value comes from the same canonical readers the write path
+uses — `hasActiveAddonEntitlement`, `loadSubscriptionStatusForParent`, `countActiveBrInventory`,
+all three exported read-only from `commercialWriteGuard.ts` this gate (they were module-private).
+The verifier asserts the projection **never queries `listing_package_entitlements` or
+`leonix_subscription_records` itself**, never references the pricing matrix, and contains no
+`.update(`/`.insert(`/`.upsert(`/`.delete(`.
+
+Surfaced per parent: canonical listing id + Leonix ad id, inventory role, group id, parent
+status/publication, **base entitlement** (`br_agent_monthly`), **boost entitlement**
+(`br_inventory_pack_monthly`), **capacity** (active count / effective limit, with `incl 1 · pack +3`
+and an explicit "at limit" flag), **subscription state**, and the child list.
+
+**Truth states are real, and zero is never a stand-in.** Per Admin OS Book §6, every field carries
+`REAL | PARTIAL | NEEDS_PROOF | BROKEN | UNAVAILABLE`. Asserted: `activeCount`, `active` and
+`effectiveLimit` are all nullable and the panel renders a truth badge instead of a value when the
+source is unproven — no `|| 0` anywhere. Two deliberate degradations worth naming:
+- boost entitlement unproven → the **effective limit is `null`** and capacity renders `n / ?` with a
+  PARTIAL badge, because a limit cannot be stated without knowing the boost;
+- no subscription record linked → **PARTIAL** with "payment state cannot be proven from the listing
+  alone", never "unpaid".
+
+Paid state is never inferred from listing status, and entitlement never from pricing configuration —
+both asserted.
+
+### 17.5 Parent → child navigation
+
+Children are resolved by canonical `br_inventory_parent_listing_id` + `inventory_role`, and each row
+links to the **existing** `/admin/workspace/clasificados/listings/[id]/edit` destination. No new
+child dashboard, no duplicate Admin route family — asserted. The href builder lives in a pure
+`bienesNegocioAdminHrefs.ts` (a URL builder has no business being `server-only`), which the
+projection re-exports so callers keep one import surface.
+
+### 17.6 The unapplied capacity authority is surfaced, honestly
+
+Admin must not imply the lane is healthy while activations cannot execute. The panel leads with a
+**Capacity authority** banner whose state comes from a real probe: `br_negocio_activate_listing` is
+called with an **all-zero UUID that can match no row**, so the only outcomes are "the function does
+not exist" or "the function ran and found nothing". Nothing is read, locked, written, activated or
+bypassed.
+
+- function absent → **UNAVAILABLE**, with an operator-safe explanation that names the unapplied
+  migration (`20260810120000`) and states the consequence: paid activation, owner resume/reactivate
+  and Admin republish all refuse and **fail closed** — no listing activates, no capacity is
+  bypassed, and no customer is charged for an activation that did not happen.
+- The raw Postgres error is **never** shown (asserted: `error.message` does not appear in the probe).
+- The write path still routes through the RPC (asserted) — this gate added no fallback.
+
+### 17.7 Owner Command Center — contract verified, architecture untouched
+
+No OCC file was modified. Verified only that the launch-lifecycle source still exposes the data the
+Bible's §12/§18 Bienes Negocio contract depends on: inventory capacity (`computeBrPropertyInventoryCounts`
++ the entitlement-sourced `upgradeActive`), payment/entitlement (the same canonical readers this gate
+now also projects into Admin), and same-row child management (the Gate-1 boundary, re-asserted here).
+
+**`public.businesses.id` linkage: still absent, still NOT invented.** The verifier asserts none of
+this gate's four new/changed modules queries `businesses` or introduces a `businessId`. It remains a
+cross-workstream product gap: Business Tools authorizes on `(businessId, userId)` and a BR Negocio
+parent has no such id, so Business Tools eligibility for this lane cannot be proven from source.
+
+### 17.8 Discovery continuity — the connected circuit
+
+Asserted end to end: paid/entitled parent → capacity truth (Admin projection from canonical
+entitlement + count) → published child → the parent visibility gate → results/Saved Search → public
+detail → Related Listings → canonical structured data → sitemap → the same canonical parent/child
+ids on both the Owner and Admin surfaces.
+
+Two structural proofs hold that circuit together:
+- **one canonical detail path**: `leonixLiveAnuncioPath` is the single builder used by the JSON-LD
+  `url`, the sitemap entry and the Saved Search delivery resolver;
+- **one parent gate**: `isBrChildParentGateSatisfied` / `filterBrRowsByActiveParent` is asserted
+  present on all **four** surfaces — browser browse, public detail, Saved Search eligibility, and
+  the new sitemap reader.
+
+Saved Search and Related Listings were **not rebuilt and not touched** — asserted by checking their
+five modules contain no reference to this gate.
+
+### 17.9 Cleanup prep — untouched
+
+The 26 dead modules and 35 historical audit `.md` files are unchanged; the verifier asserts three of
+the most notable dead modules still exist. Nothing deleted, nothing moved.
+
+### 17.10 Validation
+
+| Check | Result |
+|---|---|
+| `verify-bienes-negocio-gate2-discovery.ts` (new) | **38/38 PASS** |
+| `verify-bienes-negocio-gate1-identity.ts` | 33/33 PASS |
+| `verify-comida-local-gate1` / `gate2` | 49/49 · 45/45 PASS |
+| `verify-restaurantes-gate1` / `gate2` | PASS / PASS |
+| `verify-servicios-gate1` / `gate2` | PASS / PASS |
+| ESLint over the changed scope | **0 errors** |
+
+**DEFERRED TO INTEGRATION GATE:** `npm run typecheck`, `npm run build`, owner-browser QA, and
+**applying the capacity RPC migration** — still the single highest-value action for this category.
+
+### 17.11 Remaining Bienes Negocio source gaps after this gate
+
+| Gap | Severity | Note |
+|---|---|---|
+| capacity RPC migration unapplied | **P0** | operational; Admin now states this honestly instead of implying health |
+| no scheduler cranks the subscription sweep | P1 | platform-wide, unchanged |
+| no BR-parent → `public.businesses.id` linkage; Business Tools eligibility unprovable | P2 | cross-workstream product decision, deliberately not invented |
+| the GENERIC `ClassifiedAd` block hardcodes `addressRegion: "CA"` and puts a formatted label in `price` | P2 | affects the fall-through categories, not BR — out of this gate's scope, recorded in §17.1 |
+| commercial/land `destacados` cannot round-trip (persisted as prose only) | P3 | unchanged from Gate 1 |
+| `sourceUpdatedAt` captured, precedence unwired | P3 | unchanged |
+| Admin moderation is generic, not parent/child-aware | P3 | out of scope here |
 | 26 dead modules + 35 historical audit `.md` in the source tree | P4 | cleanup gate, after integration |

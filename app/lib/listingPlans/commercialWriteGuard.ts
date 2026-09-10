@@ -37,7 +37,13 @@ import { decideCommercialWrite, type CommercialWriteDecision, type CommercialWri
 
 type GuardCategory = "autos" | "bienes-raices";
 
-async function hasActiveAddonEntitlement(listingId: string, packageKey: string): Promise<boolean> {
+/**
+ * Gate BIENES-NEGOCIO-2 — exported (was module-local) so the Admin ops surface can READ the same
+ * canonical entitlement truth this guard already reads, instead of a second commercial model.
+ * Read-only: it decides nothing. This guard remains UX/preflight only and
+ * `br_negocio_activate_listing` remains the atomic capacity authority.
+ */
+export async function hasActiveAddonEntitlement(listingId: string, packageKey: string): Promise<boolean> {
   const supabase = getAdminSupabase();
   const { data } = await supabase
     .from("listing_package_entitlements")
@@ -53,7 +59,8 @@ async function hasActiveAddonEntitlement(listingId: string, packageKey: string):
   );
 }
 
-async function loadSubscriptionStatusForParent(
+/** Gate BIENES-NEGOCIO-2 — exported for read-only Admin visibility (see above). */
+export async function loadSubscriptionStatusForParent(
   category: GuardCategory,
   parentListingId: string,
 ): Promise<"none" | "pending" | "active" | "grace" | "suspended" | "canceled"> {
@@ -175,7 +182,8 @@ async function verifyBrChildBelongsToParent(input: {
   return { ok: true };
 }
 
-async function countActiveBrInventory(parentListingId: string, ownerUserId: string): Promise<number> {
+/** Gate BIENES-NEGOCIO-2 — exported for read-only Admin visibility (see above). */
+export async function countActiveBrInventory(parentListingId: string, ownerUserId: string): Promise<number> {
   const supabase = getAdminSupabase();
   // Parent counts toward the property limit; children are scoped to the parent.
   const { count: childCount } = await supabase

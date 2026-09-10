@@ -78,6 +78,21 @@ import { missingListingsColumnName, stripSelectColumn } from "../../lib/listings
 import { augmentLeonixDetailPairsFromStructuredColumns } from "../../lib/leonixListingStructuredPayload";
 import { resolveLeonixLiveListingContact } from "../../lib/leonixListingContactResolve";
 import { readLeonixDetailPairValue } from "../../lib/leonixRealEstateListingContract";
+import {
+  brShowExactAddressFromDetailPairs,
+  LEONIX_DP_BR_LISTING_STATUS,
+  parseLeonixListingContract,
+  parseLeonixMachineFacetRead,
+  leonixLiveAnuncioPath,
+} from "../../lib/leonixRealEstateListingContract";
+import { parseBrGate12dV1 } from "../../lib/leonixBrGate12d";
+import {
+  bienesRaicesPropertyJsonLd,
+  brSqftFromDetailPairs,
+  parseBrBusinessMetaForSeo,
+} from "@/app/clasificados/bienes-raices/seo/bienesRaicesJsonLd";
+import { breadcrumbJsonLd } from "@/app/lib/seo/breadcrumbJsonLd";
+import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 import { stripLeonixPublishedDescriptionBody } from "../../lib/leonixListingGalleryMarker";
 import {
   RENTAS_DP_CONTACT_SMS_DIGITS,
@@ -171,6 +186,9 @@ type Listing = {
   contact_email?: string | null;
   mux_playback_id?: string | null;
   zip?: string | null;
+  /** Gate BIENES-NEGOCIO-2 — the real numeric price the row stores. `priceLabel` is a formatted
+   * string ("$850,000") and is not valid for schema.org `Offer.price`, which must be a number. */
+  priceNumber?: number | null;
 };
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -401,6 +419,7 @@ function mapDbListingRowToListing(row: Record<string, unknown>): Listing {
 
   const out = base as Listing & { detailPairs?: unknown; seller_type?: string };
   out.isFree = isFree;
+  out.priceNumber = Number.isFinite(priceNum) && priceNum > 0 ? priceNum : null;
   out.detailPairs = detailPairs;
   out.contact_phone = normalizedContactPhone;
   out.contact_email = normalizedContactEmail;
@@ -1459,8 +1478,61 @@ function AnuncioDetallePageContent() {
       br_inventory_parent_listing_id: listing.br_inventory_parent_listing_id ?? null,
       inventory_role: listing.inventory_role ?? null,
     };
+    // Gate BIENES-NEGOCIO-2 — real-estate structured data. This branch RETURNS EARLY, before the
+    // generic `ClassifiedAd` block further down, so Bienes Raíces previously emitted NO structured
+    // data at all (correcting the Gate-Zero MRI, which recorded it as emitting a weak ClassifiedAd).
+    // Every value below comes from a real persisted facet; the builder omits whatever is absent.
+    const brFacets = parseLeonixMachineFacetRead(proseListing!.detailPairs);
+    const brContract = parseLeonixListingContract(proseListing!.detailPairs);
+    const brShowExactAddress = brShowExactAddressFromDetailPairs(proseListing!.detailPairs);
+    const brGate12d = parseBrGate12dV1(proseListing!.detailPairs);
+    const brBusinessMeta = parseBrBusinessMetaForSeo(listing.business_meta ?? null);
+    const brJsonLd = bienesRaicesPropertyJsonLd({
+      url: `${LEONIX_SITE_ORIGIN}${leonixLiveAnuncioPath(listing.id)}`,
+      name: proseListing!.title[lang],
+      description: proseListing!.blurb[lang],
+      images: listing.images ?? [],
+      leonixAdId: listing.leonix_ad_id ?? null,
+      listingId: listing.id,
+      propertyKind: brFacets.resultsPropertyKind,
+      propertySubtype: readLeonixDetailPairValue(proseListing!.detailPairs, "Subtipo"),
+      city: listing.city,
+      addressRegion: readLeonixDetailPairValue(proseListing!.detailPairs, "Leonix:state"),
+      addressCountry: readLeonixDetailPairValue(proseListing!.detailPairs, "Leonix:country"),
+      // City / zona / CP are this category's own declared public set even without the exact-address
+      // opt-in (see `LEONIX_DP_BR_SHOW_EXACT_ADDRESS`'s contract comment). Street text is gated.
+      postalCode: brFacets.postalCode ?? (listing as Listing).zip ?? null,
+      streetAddress: brShowExactAddress ? brGate12d?.streetAddress ?? null : null,
+      bedrooms: brFacets.bedroomsCount,
+      bathrooms: brFacets.bathroomsCount,
+      floorSizeSqft: brSqftFromDetailPairs(proseListing!.detailPairs, ["Pies cuadrados", "Superficie", "Sq ft", "Interior"]),
+      lotSizeSqft: brSqftFromDetailPairs(proseListing!.detailPairs, ["Lote", "Tamaño del lote", "Lot"]),
+      priceNumber: (listing as Listing).priceNumber ?? null,
+      operation: brContract.operation ?? null,
+      listingStatus: readLeonixDetailPairValue(proseListing!.detailPairs, LEONIX_DP_BR_LISTING_STATUS),
+      sellerBusinessName: listing.business_name ?? listing.businessName ?? null,
+      sellerAgentName: brBusinessMeta.agentName,
+      sellerTelephone: listing.contact_phone ?? brBusinessMeta.telephone,
+      sellerUrl: brBusinessMeta.website,
+    });
+    const brBreadcrumb = breadcrumbJsonLd([
+      { name: lang === "en" ? "Classifieds" : "Clasificados", path: `/clasificados?lang=${lang}` },
+      { name: lang === "en" ? "Real Estate" : "Bienes Raíces", path: `/clasificados/bienes-raices?lang=${lang}` },
+      { name: proseListing!.title[lang], path: `${leonixLiveAnuncioPath(listing.id)}?lang=${lang}` },
+    ]);
+
     return (
       <>
+        <script
+          type="application/ld+json"
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(brJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(brBreadcrumb) }}
+        />
         {brPublishBanner ? (
           <div className="bg-amber-100 px-4 py-3 text-center text-sm text-amber-950" role="status">
             {brPublishBanner}
