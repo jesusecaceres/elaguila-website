@@ -78,6 +78,13 @@ export default function RentasNegocioPreviewClient() {
   const [draft, setDraft] = useState<RentasNegocioFormState | null>(null);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutErr, setCheckoutErr] = useState<string | null>(null);
+  /**
+   * Gate RENTAS-NEGOCIO-1 — a NON-BLOCKING owner note, deliberately separate from
+   * `checkoutErr`. Reusing the error channel would render a successful publish as a failure.
+   * Fed from the core publish result's existing `warnings` array (the shared media contract's
+   * dropped-photo warning arrives there), never from a second engine.
+   */
+  const [publishNote, setPublishNote] = useState<string | null>(null);
 
   const lang = useMemo(
     () => resolveClasificadosPublishLang(searchParams?.get("lang")).copyLang,
@@ -124,6 +131,7 @@ export default function RentasNegocioPreviewClient() {
       }
       rentasPublishStepTracePatch({ publishClicked: true, errorClearedAtStart: true });
       setCheckoutErr(null);
+      setPublishNote(null);
       setCheckoutBusy(true);
 
       const d = await loadRentasNegocioDraft();
@@ -164,6 +172,10 @@ export default function RentasNegocioPreviewClient() {
         setCheckoutErr(r.error);
         return;
       }
+
+      // The listing SAVED. Any warning here is informational — it must never block or gate
+      // checkout, so it is only surfaced, and the flow continues to payment unchanged.
+      if (r.warnings.length) setPublishNote(r.warnings.join(" "));
 
       let leonixAdId: string | null = r.leonixAdId?.trim() || null;
       let customerEmail: string | null = null;
@@ -376,6 +388,14 @@ export default function RentasNegocioPreviewClient() {
               : "La vista previa no requiere confirmaciones. Completa el resumen y las casillas abajo solo cuando estés listo para el pago seguro."}
           </p>
         </div>
+        {publishNote ? (
+          <p
+            role="status"
+            className="mb-4 rounded-[12px] border border-[#E8DFD0] bg-[#FFFCF7] px-3 py-2 text-sm text-[#5C5346]"
+          >
+            {publishNote}
+          </p>
+        ) : null}
         <PublishCheckoutCheckpoint
           id="rentas-negocio-publish-checkout-checkpoint"
           config={checkpointConfig}

@@ -5,7 +5,6 @@
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { mainListingInventoryPatchAfterInsert } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
 import { triggerBienesRaicesSavedSearchMatchBestEffort } from "@/app/lib/saved-search/bienes-raices/bienesRaicesSavedSearchMatchOrchestrator";
-import { triggerRentasSavedSearchMatchBestEffort } from "@/app/lib/saved-search/rentas/rentasSavedSearchMatchOrchestrator";
 import {
   BR_BASE_INCLUDED_PROPERTIES,
   BR_INVENTORY_PACK_MAX_CHILDREN,
@@ -14,6 +13,10 @@ import {
 } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
 import { activateBrNegocioListingAtomic } from "@/app/lib/listingPlans/capacityActivationRpc";
+import {
+  FIXED_TERM_ACTIVATION_BLOCKED_ERROR,
+  requiresCanonicalTermOnActivation,
+} from "@/app/lib/listingLifecycle/fixedTermActivationGuard";
 
 export type BrListingRowForPayment = {
   id: string;
@@ -26,6 +29,8 @@ export type BrListingRowForPayment = {
   br_inventory_group_id?: string | null;
   br_inventory_parent_listing_id?: string | null;
   published_at?: string | null;
+  /** Gate RENTAS-NEGOCIO-1 — read only to resolve the BR lane for the fixed-term guard. */
+  listing_json?: unknown;
 };
 
 export async function getBrListingById(listingId: string): Promise<BrListingRowForPayment | null> {
@@ -34,7 +39,10 @@ export async function getBrListingById(listingId: string): Promise<BrListingRowF
   const { data, error } = await supabase
     .from("listings")
     .select(
-      "id, owner_id, category, seller_type, status, is_published, inventory_role, br_inventory_group_id, br_inventory_parent_listing_id, published_at",
+      // Gate RENTAS-NEGOCIO-1 — `listing_json` added so the fixed-term guard below can tell a
+      // Bienes Raíces FSBO row (paid 45-day term) from a Negocio subscription row. Both live in
+      // this same table and only one of them may be activated by a generic path.
+      "id, owner_id, category, seller_type, listing_json, status, is_published, inventory_role, br_inventory_group_id, br_inventory_parent_listing_id, published_at",
     )
     .eq("id", listingId)
     .maybeSingle();
@@ -170,7 +178,10 @@ export async function setBrListingPendingPayment(
 export type TryActivateBrResult = {
   ok: boolean;
   transitioned: boolean;
-  error?: typeof BR_ACTIVE_PROPERTY_LIMIT_ERROR | typeof BR_INVENTORY_PARENT_INVALID_ERROR;
+  error?:
+    | typeof BR_ACTIVE_PROPERTY_LIMIT_ERROR
+    | typeof BR_INVENTORY_PARENT_INVALID_ERROR
+    | typeof FIXED_TERM_ACTIVATION_BLOCKED_ERROR;
 };
 
 /**
@@ -259,6 +270,31 @@ export async function tryActivateBrListingAfterPayment(
     return { ok: true, transitioned: true };
   }
 
+  // Gate RENTAS-NEGOCIO-1 — THE FIXED-TERM BOUNDARY.
+  //
+  // The generic branch below flips a row to active/published and cannot write `expires_at`: it
+  // has no package key, no duration, no payment record and no renewal state. For a fixed-term
+  // lane that is not activation with a field missing — it is activation that destroys the
+  // product, because a term-less row is publicly live forever.
+  //
+  // Rentas ($24.99/30d) and Bienes Raíces FSBO ($49.99/45d) each already have a dedicated
+  // Revenue OS fulfillment that DOES write the term, and neither reaches this branch in the
+  // canonical flow. So refusing here removes a bypass without removing any legitimate path.
+  // Fails CLOSED: nothing is written, and the caller gets a typed refusal rather than a
+  // half-activated listing.
+  const termVerdict = requiresCanonicalTermOnActivation(existing);
+  if (termVerdict.required) {
+    console.error(
+      "tryActivateBrListingAfterPayment refused fixed-term activation",
+      {
+        listingId,
+        lane: termVerdict.lane,
+        canonicalFulfillment: termVerdict.canonicalFulfillment,
+      },
+    );
+    return { ok: false, transitioned: false, error: termVerdict.code };
+  }
+
   // Every other category on the shared `listings` table — not capacity-relevant, unchanged
   // direct path.
   const { data, error } = await supabase
@@ -287,9 +323,12 @@ export async function tryActivateBrListingAfterPayment(
     // above for the same failure-boundary rationale).
     if (existing.category === "bienes-raices") {
       await triggerBienesRaicesSavedSearchMatchBestEffort(listingId, "bienes_raices_publish_activation");
-    } else if (existing.category === "rentas") {
-      await triggerRentasSavedSearchMatchBestEffort(listingId, "rentas_publish_activation");
     }
+    // Gate RENTAS-NEGOCIO-1 — the former `rentas` dispatch here is unreachable by construction:
+    // the fixed-term guard above returns before this branch for every Rentas row. Rentas Saved
+    // Search matching is triggered by its own canonical fulfillment
+    // (`revenueRentasFulfillment`), on both publish and renewal. Leaving a dead dispatch here
+    // would imply this path still legitimately activates Rentas — it does not.
     return { ok: true, transitioned: true };
   }
   const again = await getBrListingById(listingId);

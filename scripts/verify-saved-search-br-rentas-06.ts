@@ -208,8 +208,29 @@ check("Rentas canonical public URL helper reused — rentasListingPublicPath, no
   assert.ok(rentasResolverSrc.includes("rentasListingPublicPath(listingId)"));
 });
 
-check("Rentas has TWO real publication hooks — legacy shared-table branch AND Revenue OS branch", () => {
-  assert.ok(brPaymentServiceSrc.includes('existing.category === "rentas"') && brPaymentServiceSrc.includes("triggerRentasSavedSearchMatchBestEffort"));
+/**
+ * CORRECTED BY GATE RENTAS-NEGOCIO-1 (assertion, not code).
+ *
+ * This previously asserted Rentas had TWO publication hooks: the legacy shared-table branch in
+ * `brListingPaymentService` AND the Revenue OS branch. That second hook has been retired on
+ * purpose. The legacy generic branch cannot write `listings.expires_at` — it has no package key,
+ * duration or payment record — so activating a Rentas row through it published a $24.99/30-day
+ * listing with no enforceable term. `requiresCanonicalTermOnActivation` now refuses every Rentas
+ * row BEFORE that write, which makes the branch's Saved Search dispatch unreachable; leaving it
+ * would have implied a live publication path that no longer exists.
+ *
+ * The Saved Search guarantee is unchanged and is now stronger: exactly ONE Rentas publication
+ * hook, on the only path that can legitimately activate a Rentas listing, firing for both first
+ * publication and renewal.
+ */
+check("Rentas has exactly ONE real publication hook — the canonical Revenue OS fulfillment", () => {
+  // The legacy generic branch can no longer activate a Rentas row at all …
+  assert.ok(brPaymentServiceSrc.includes("requiresCanonicalTermOnActivation"), "legacy branch consults the fixed-term boundary");
+  // … so it must no longer carry a Rentas Saved Search dispatch.
+  assert.ok(!brPaymentServiceSrc.includes("triggerRentasSavedSearchMatchBestEffort"), "no unreachable Rentas dispatch remains on the legacy path");
+  // The Bienes Raíces dispatch on that same branch is untouched — BR Negocio still activates here.
+  assert.ok(brPaymentServiceSrc.includes("triggerBienesRaicesSavedSearchMatchBestEffort"), "the BR dispatch is unaffected");
+
   assert.ok(rentasRevenueSrc.includes("triggerRentasSavedSearchMatchBestEffort"));
   const idx = rentasRevenueSrc.indexOf("triggerRentasSavedSearchMatchBestEffort(listingId");
   const returnIdx = rentasRevenueSrc.indexOf('return { ok: true, outcome: renewal ? "renewed" : "activated"');

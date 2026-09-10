@@ -74,7 +74,17 @@ function leonixRealEstateMediaCountError(
 
 /** Draft → core publish params (never conflates with `{ ok: true; listingId }` from persisted publish). */
 export type LeonixBrDraftPublishBuildResult =
-  | { ok: true; params: PublishLeonixRealEstateListingCoreParams }
+  | {
+      ok: true;
+      params: PublishLeonixRealEstateListingCoreParams;
+      /**
+       * Gate RENTAS-NEGOCIO-1 — media URLs the shared media contract could not persist (a
+       * `blob:`/object URL that did not survive to publish). Additive and optional: every
+       * pre-existing caller reads only `ok`/`params` and is unaffected. Present so a caller
+       * that CAN show the owner something does not have to re-derive it.
+       */
+      droppedUnpersistableMedia?: readonly string[];
+    }
   | { ok: false; error: string };
 
 function digitsOnly(raw: string): string {
@@ -309,11 +319,12 @@ export async function publishLeonixListingFromRentasPrivadoDraft(
 ): Promise<PublishLeonixRealEstateListingCoreResult> {
   const built = buildRentasPrivadoListingParams(state, lang, mux);
   if (!built.ok) return built;
-  return publishLeonixRealEstateListingCore({
+  const published = await publishLeonixRealEstateListingCore({
     ...built.params,
     activationMode: opts?.activationMode,
     rentasPaymentLane: "privado",
   });
+  return withRentasDroppedMediaWarning(published, built.droppedUnpersistableMedia, lang);
 }
 
 export function buildRentasPrivadoListingParams(
@@ -332,10 +343,18 @@ export function buildRentasPrivadoListingParams(
     };
   }
   // Gate B6 — additive max-count re-certification (MAX_PHOTOS = 8, rentasPrivadoFormState.ts:163).
-  const rentasPrivadoMedia = validateProposedFinalMediaSet(
-    buildProposedFinalMediaSet({ existing: orderedGallery }),
-    { minImages: 0, maxImages: 8, logoAllowed: false, maxExternalVideos: 0 },
-  );
+  // Gate RENTAS-NEGOCIO-1 — adopt the shared media-drop warning. `droppedUnpersistable` was
+  // already computed by this engine on every call and then discarded, so a photo that failed to
+  // become a durable URL simply vanished from the published listing with nothing recorded.
+  // Observability only: the gallery handed downstream is byte-for-byte the same list.
+  const rentasPrivadoProposedMedia = buildProposedFinalMediaSet({ existing: orderedGallery });
+  warnDroppedUnpersistableMedia("rentas privado publish", rentasPrivadoProposedMedia);
+  const rentasPrivadoMedia = validateProposedFinalMediaSet(rentasPrivadoProposedMedia, {
+    minImages: 0,
+    maxImages: 8,
+    logoAllowed: false,
+    maxExternalVideos: 0,
+  });
   if (!rentasPrivadoMedia.ok) {
     return { ok: false, error: leonixRealEstateMediaCountError(orderedGallery.length, 8, lang) };
   }
@@ -358,6 +377,7 @@ export function buildRentasPrivadoListingParams(
   const muxPid = mux?.muxPlaybackId?.trim() ?? "";
   return {
     ok: true,
+    droppedUnpersistableMedia: rentasPrivadoProposedMedia.droppedUnpersistable,
     params: {
     title: state.titulo,
     description: state.descripcion,
@@ -509,6 +529,28 @@ export async function publishLeonixListingFromAgenteResidencialDraft(
   return built;
 }
 
+/**
+ * Gate RENTAS-NEGOCIO-1 — turns a silent media drop into a concise owner-facing warning.
+ *
+ * Reuses `PublishLeonixRealEstateListingCoreResult.warnings`, the channel the core publish path
+ * already returns and the Rentas previews already receive — no new channel, no new engine, and
+ * no blocking behavior: publishing and payment proceed exactly as before. Says what was lost
+ * and what to do about it, never a raw URL.
+ */
+function withRentasDroppedMediaWarning(
+  result: PublishLeonixRealEstateListingCoreResult,
+  dropped: readonly string[] | undefined,
+  lang: "es" | "en",
+): PublishLeonixRealEstateListingCoreResult {
+  if (!result.ok || !dropped?.length) return result;
+  const n = dropped.length;
+  const message =
+    lang === "en"
+      ? `${n} photo(s) could not be saved and are not on your listing. Open "Back to edit", add them again, and save.`
+      : `${n} foto(s) no se pudieron guardar y no están en tu anuncio. Abre «Volver a editar», agrégalas de nuevo y guarda.`;
+  return { ...result, warnings: [...result.warnings, message] };
+}
+
 export async function publishLeonixListingFromRentasNegocioDraft(
   state: RentasNegocioFormState,
   lang: "es" | "en",
@@ -517,11 +559,12 @@ export async function publishLeonixListingFromRentasNegocioDraft(
 ): Promise<PublishLeonixRealEstateListingCoreResult> {
   const built = buildRentasNegocioListingParams(state, lang, mux);
   if (!built.ok) return built;
-  return publishLeonixRealEstateListingCore({
+  const published = await publishLeonixRealEstateListingCore({
     ...built.params,
     activationMode: opts?.activationMode,
     rentasPaymentLane: "negocio",
   });
+  return withRentasDroppedMediaWarning(published, built.droppedUnpersistableMedia, lang);
 }
 
 export function buildRentasNegocioListingParams(
@@ -540,10 +583,15 @@ export function buildRentasNegocioListingParams(
     };
   }
   // Gate B6 — additive max-count re-certification (mirrors rentas_privado's registry cap).
-  const rentasNegocioMedia = validateProposedFinalMediaSet(
-    buildProposedFinalMediaSet({ existing: orderedGallery }),
-    { minImages: 0, maxImages: 8, logoAllowed: false, maxExternalVideos: 0 },
-  );
+  // Gate RENTAS-NEGOCIO-1 — same shared media-drop warning as the Privado boundary above.
+  const rentasNegocioProposedMedia = buildProposedFinalMediaSet({ existing: orderedGallery });
+  warnDroppedUnpersistableMedia("rentas negocio publish", rentasNegocioProposedMedia);
+  const rentasNegocioMedia = validateProposedFinalMediaSet(rentasNegocioProposedMedia, {
+    minImages: 0,
+    maxImages: 8,
+    logoAllowed: false,
+    maxExternalVideos: 0,
+  });
   if (!rentasNegocioMedia.ok) {
     return { ok: false, error: leonixRealEstateMediaCountError(orderedGallery.length, 8, lang) };
   }
@@ -575,6 +623,7 @@ export function buildRentasNegocioListingParams(
   const muxPid = mux?.muxPlaybackId?.trim() ?? "";
   return {
     ok: true,
+    droppedUnpersistableMedia: rentasNegocioProposedMedia.droppedUnpersistable,
     params: {
     title: state.titulo,
     description: state.descripcion,

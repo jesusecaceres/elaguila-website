@@ -23,6 +23,7 @@ import {
   rentasPublishedVideoShouldAppearInGallery,
 } from "@/app/clasificados/rentas/lib/rentasListingPublishedMediaGuards";
 import { rentasLeadSmsBody } from "@/app/clasificados/rentas/shared/rentasLeadContactCopy";
+import { buildInternationalWhatsAppWaMeHrefWithText } from "@/app/lib/whatsapp/internationalWhatsApp";
 import { filterRentasLivePropertyRowsForFlow } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
 import { buildRentasShowingPreviewCard } from "@/app/clasificados/rentas/lib/leonixRentasShowing";
 import { normalizeLeonixHttpsUrl } from "@/app/clasificados/lib/leonixContactSocialNormalize";
@@ -73,13 +74,15 @@ function smsHrefFromDigits(d: string, lang: "es" | "en"): string | null {
   return `sms:${e164FromDigits(x)}?&body=${encodeURIComponent(rentasLeadSmsBody(lang))}`;
 }
 
+/**
+ * Gate RENTAS-NEGOCIO-1 — this was already CORRECT (it prefixed the US country code), but it
+ * was a third local copy of a rule the platform owns in one place. Behavior is unchanged for
+ * every 10+ digit number; the shared contract additionally accepts legitimate 8- and 9-digit
+ * international numbers that the old `< 10 return null` floor silently rejected, and enforces
+ * the 15-digit E.164 ceiling. Preview and public now resolve WhatsApp through the same function.
+ */
 function waHrefFromDigits(d: string, lang: "es" | "en"): string | null {
-  const x = digitsOnly15(d);
-  if (x.length < 10) return null;
-  // wa.me requires the full number with country code, digits only, no leading "+" (WhatsApp's own
-  // spec) -- a bare 10-digit US number was missing its country code entirely.
-  const withCountryCode = x.length === 10 ? `1${x}` : x;
-  return `https://wa.me/${withCountryCode}?text=${encodeURIComponent(rentasLeadSmsBody(lang))}`;
+  return buildInternationalWhatsAppWaMeHrefWithText(d, rentasLeadSmsBody(lang));
 }
 
 function phoneDisplay(raw: string): string {
