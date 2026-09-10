@@ -5,7 +5,7 @@
 
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { isListingRowActiveAndPublishedForBrowse } from "@/app/(site)/clasificados/lib/listingPublicBrowseEligibility";
-import { isBrFsboRowWithinTerm } from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
+import { isBrFsboRow, isBrFsboRowWithinTerm } from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
 import { listingsQueryWithSelectShrink } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
 import {
   getBrInventoryGroupId,
@@ -18,6 +18,23 @@ import type { BrNegocioListing } from "../resultados/cards/listingTypes";
 const SIMILAR_SELECT =
   "id, title, description, city, price, is_free, images, detail_pairs, listing_json, contact_json, category, seller_type, business_name, owner_id, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, status, is_published, expires_at, created_at";
 
+/**
+ * Gate BIENES-PRIVADO-2 — this reader now serves BOTH BR lanes from ONE engine.
+ *
+ * FSBO could not use the Negocio same-agent/portfolio rail
+ * (`fetchBrRelatedInventoryListingsBrowser`): that reader is keyed on
+ * `br_inventory_group_id` / `br_inventory_parent_listing_id`, and a private seller has no
+ * parent, no group and no inventory. But FSBO does not need a NEW engine either — this
+ * other-seller similarity reader already scores exactly the persisted relationships a private
+ * property has (city, property type, price proximity, recency), and it already applies the
+ * shared public-eligibility and FSBO fixed-term rules. So it gained a `lane` switch rather
+ * than a sibling file.
+ *
+ * `lane` defaults to `"negocio"`, so every pre-existing caller is byte-identical: same query,
+ * same filters, same scoring, same output. Nothing about Negocio behavior changed.
+ */
+export type BrSimilarLane = "negocio" | "privado";
+
 export type BrSimilarOtherClientFetchArgs = {
   currentListingId: string;
   excludeGroupId?: string | null;
@@ -25,6 +42,18 @@ export type BrSimilarOtherClientFetchArgs = {
   city?: string | null;
   price?: number | null;
   propertyType?: string | null;
+  /** Which BR lane to draw candidates from. Omitted = the original Negocio behavior. */
+  lane?: BrSimilarLane;
+  /**
+   * The CURRENT listing's operation. Privado only, and a hard FILTER rather than a score: a
+   * property for sale must never be offered as "similar" to a rental. `null`/absent means the
+   * current listing's own operation could not be read, in which case no operation filter is
+   * applied — the rail degrades to city/type/price rather than guessing.
+   */
+  operation?: "venta" | "renta" | null;
+  /** Bedrooms/bathrooms of the current listing, when structured. Privado scoring only. */
+  bedrooms?: number | null;
+  bathrooms?: number | null;
   lang: "es" | "en";
   limit?: number;
 };
@@ -41,6 +70,15 @@ function rotationScore(listingId: string, seed: string): number {
     h = (h * 31 + s.charCodeAt(i)) >>> 0;
   }
   return h;
+}
+
+function closeCount(a: number | null | undefined, b: number | null | undefined): number {
+  if (typeof a !== "number" || typeof b !== "number") return 0;
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return 0;
+  const diff = Math.abs(a - b);
+  if (diff === 0) return 2;
+  if (diff <= 1) return 1;
+  return 0;
 }
 
 function relevanceScore(
@@ -68,6 +106,14 @@ function relevanceScore(
   }
   const created = trim(row.created_at);
   if (created) score += 5;
+  // Privado-only refinement. Bedrooms/bathrooms are the facts a private buyer actually
+  // compares, and they are already structured on the row (`Leonix:` machine facets). Scoped to
+  // the Privado lane so Negocio's score is byte-identical to what it has always been, and
+  // weighted BELOW city so it refines an ordering rather than becoming a new ranking model.
+  if (args.lane === "privado") {
+    score += closeCount(facets.machine?.bedroomsCount ?? null, args.bedrooms ?? null) * 10;
+    score += closeCount(facets.machine?.bathroomsCount ?? null, args.bathrooms ?? null) * 8;
+  }
   return score;
 }
 
@@ -75,6 +121,8 @@ export async function fetchBrSimilarOtherClientListingsForDetail(
   args: BrSimilarOtherClientFetchArgs,
 ): Promise<BrNegocioListing[]> {
   const limit = args.limit ?? 6;
+  const lane: BrSimilarLane = args.lane ?? "negocio";
+  const wantOperation = args.operation ?? null;
   const excludeGroup = trim(args.excludeGroupId);
   const excludeOwner = trim(args.excludeOwnerId);
 
@@ -101,9 +149,21 @@ export async function fetchBrSimilarOtherClientListingsForDetail(
       // Gate BIENES-PRIVADO-1 — same shared FSBO term rule as browse/detail/Saved Search/sitemap.
       if (!isBrFsboRowWithinTerm(row)) return false;
       if (row.id === args.currentListingId) return false;
-      if (!isBrNegocioListing(row)) return false;
-      const group = getBrInventoryGroupId(row);
-      if (excludeGroup && group && group === excludeGroup) return false;
+      if (lane === "privado") {
+        // Canonical published private-seller rows only — the SAME shared lane predicate the
+        // term rule, the webhook and the renewal gate use. No inventory-group or parent
+        // relationship is consulted, because an FSBO row has none.
+        if (!isBrFsboRow(row)) return false;
+        // Never mix a sale with a rental.
+        if (wantOperation) {
+          const rowOperation = extractBrFacetsFromDetailPairs(row.detail_pairs).operation;
+          if (rowOperation !== wantOperation) return false;
+        }
+      } else {
+        if (!isBrNegocioListing(row)) return false;
+        const group = getBrInventoryGroupId(row);
+        if (excludeGroup && group && group === excludeGroup) return false;
+      }
       const owner = trim(row.owner_id);
       if (excludeOwner && owner && owner === excludeOwner) return false;
       return true;

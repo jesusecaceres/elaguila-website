@@ -79,6 +79,29 @@ function clearCachedPendingListingId(): void {
   }
 }
 
+/**
+ * Gate BIENES-PRIVADO-2 — appends one owner-facing warning to the EXISTING FSBO publish-warnings
+ * channel (`lx_br_publish_warnings`), the same `string[]` the published detail page already reads,
+ * joins and renders as its amber banner (Gate I.5.4A.1), and the same channel the Negocio preview
+ * already merges multiple warning sources into.
+ *
+ * This channel is the right one for this lane specifically because checkout redirects to Stripe:
+ * a note held in component state would be destroyed by the redirect and the owner would never see
+ * it. sessionStorage survives the round trip, so the warning is delivered on the published page
+ * where the owner actually lands. No second newsletter engine, and no new persistence model —
+ * this reuses a key, a shape and a renderer that all already exist.
+ */
+function appendBrPublishWarning(text: string): void {
+  try {
+    const raw = sessionStorage.getItem("lx_br_publish_warnings");
+    const parsed = raw ? (JSON.parse(raw) as unknown) : null;
+    const existing = Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === "string") : [];
+    if (existing.includes(text)) return;
+    sessionStorage.setItem("lx_br_publish_warnings", JSON.stringify([...existing, text]));
+  } catch {
+    /* a warning is best-effort; it must never break checkout */
+  }
+}
 export default function BienesRaicesPrivadoPreviewClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -206,14 +229,13 @@ export default function BienesRaicesPrivadoPreviewClient() {
       if (!d) return;
       setPublishBusy(true);
       setPublishErr(null);
-      const pending = await savePendingFsboListing(d);
-      if (!pending.ok) {
-        setPublishBusy(false);
-        setPublishErr(pending.error);
-        return;
-      }
 
-      void captureCheckoutNewsletterSubscriber({
+      // Gate BIENES-PRIVADO-2 — the newsletter capture was `void`: fire-and-forget, so a real
+      // FAILED result was structurally unreachable and the owner was told nothing. It is now
+      // STARTED here (not awaited) so it still overlaps the pending save and adds no checkout
+      // latency, and AWAITED below so its result can actually be surfaced. Identical in spirit to
+      // the Comida Local adoption; nothing about the shared capture engine changed.
+      const capturePromise = captureCheckoutNewsletterSubscriber({
         checked: ctx.newsletterOptIn,
         email: d.seller.correo,
         name: d.seller.nombre,
@@ -228,6 +250,25 @@ export default function BienesRaicesPrivadoPreviewClient() {
             ? "Acepto recibir promociones y novedades de Leonix relacionadas con mi checkout FSBO."
             : "I agree to receive Leonix promotions and updates related to my FSBO checkout.",
       });
+
+      const pending = await savePendingFsboListing(d);
+      if (!pending.ok) {
+        setPublishBusy(false);
+        setPublishErr(pending.error);
+        return;
+      }
+
+      // Publishing and payment are never blocked or gated by the newsletter: this runs strictly
+      // after the pending save has already succeeded, and a FAILED capture only appends a warning.
+      const captureResult = await capturePromise;
+      if (captureResult.status === "FAILED") {
+        console.warn("[bienes-raices/privado] newsletter checkout capture failed", captureResult.reason);
+        appendBrPublishWarning(
+          lang === "es"
+            ? "No pudimos guardar tu suscripción al boletín. Tu anuncio y tu pago no se vieron afectados."
+            : "We couldn't save your newsletter subscription. Your listing and payment were not affected.",
+        );
+      }
 
       const checkout = await startRevenueCategoryCheckout({
         ...BIENES_RAICES_FSBO_CHECKOUT,

@@ -196,18 +196,35 @@ export function brRelatedAgentPropertiesCopy(
       };
 }
 
-export function brSimilarOtherClientPropertiesCopy(lang: BrPropertyInventoryLang) {
+/**
+ * Gate BIENES-PRIVADO-2 — lane-aware, using this file's own established options pattern
+ * (`brRelatedAgentPropertiesCopy(lang, { brokerage })`). The default branch is byte-identical
+ * to what it has always been, so the Negocio/En Venta callers are unchanged.
+ *
+ * The Privado subtitle must not borrow the Negocio wording: a private seller has no inventory
+ * group, so "outside this inventory group" would be meaningless to an FSBO viewer and would
+ * imply an inventory relationship that does not exist.
+ */
+export function brSimilarOtherClientPropertiesCopy(
+  lang: BrPropertyInventoryLang,
+  opts?: { lane?: "negocio" | "privado" },
+) {
+  const privado = opts?.lane === "privado";
   return lang === "es"
     ? {
         title: "Propiedades similares en Leonix",
-        subtitle: "Otros anuncios de Bienes Raíces de clientes Leonix — no del mismo inventario.",
+        subtitle: privado
+          ? "Otras propiedades de dueños particulares en Leonix."
+          : "Otros anuncios de Bienes Raíces de clientes Leonix — no del mismo inventario.",
         viewProperty: "Ver propiedad",
         browseAll: "Ver más en resultados",
         loading: "Buscando propiedades similares…",
       }
     : {
         title: "Similar properties on Leonix",
-        subtitle: "Other Bienes Raíces listings from Leonix clients — outside this inventory group.",
+        subtitle: privado
+          ? "Other properties from private owners on Leonix."
+          : "Other Bienes Raíces listings from Leonix clients — outside this inventory group.",
         viewProperty: "View property",
         browseAll: "Browse more results",
         loading: "Finding similar properties…",

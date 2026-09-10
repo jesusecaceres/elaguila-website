@@ -20,13 +20,16 @@ export function BrSimilarOtherClientProperties({
   lang,
   loading,
   sourceListingId,
+  lane,
 }: {
   listings: BrNegocioListing[];
   lang: BrPropertyInventoryLang;
   loading?: boolean;
   sourceListingId: string;
+  /** Gate BIENES-PRIVADO-2 — selects honest lane copy. Omitted = the original Negocio copy. */
+  lane?: "negocio" | "privado";
 }) {
-  const copy = brSimilarOtherClientPropertiesCopy(lang);
+  const copy = brSimilarOtherClientPropertiesCopy(lang, { lane });
 
   if (!loading && !listings.length) return null;
 

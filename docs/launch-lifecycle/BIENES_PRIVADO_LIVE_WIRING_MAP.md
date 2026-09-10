@@ -19,6 +19,7 @@ reopened.
 |---|---|---|
 | **BIENES-PRIVADO-0** | Gate Zero + live wiring MRI | **COMPLETE (this document)** |
 | **BIENES-PRIVADO-1** | Fixed-term lifecycle + private-seller safety | **COMPLETE (see §14)** |
+| **BIENES-PRIVADO-2** | Related Listings, discovery continuity, Owner/Admin truth | **COMPLETE (see §15)** |
 
 ---
 
@@ -691,6 +692,300 @@ preview client) and is left for a later gate rather than widened here.
 Deferred to the final integration gate as standing items: `npm run typecheck`, `npm run build`,
 owner-browser QA, and the four unapplied Saved Search / `suspended_reason` migrations plus the
 Negocio capacity RPC (`20260810120000`, which needs explicit owner authorization).
+
+---
+
+## 15. GATE BIENES-PRIVADO-2 — WHAT WAS BUILT (evidence)
+
+Gate status: **BIENES-PRIVADO-2 COMPLETE.** One commit, 14 files. No migration authored or applied.
+Nothing deleted. No branch merged. No OCC or Admin OS worktree opened. Application/Preview view
+components untouched. Negocio capacity authority and Negocio lifecycle service untouched.
+
+Verifier: `scripts/verify-bienes-privado-gate2-discovery.ts` — **236/236 PASS**. All ten previously
+locked verifiers re-run green, including Gate BIENES-PRIVADO-1 at 182/182. ESLint over the changed
+scope: **0 new errors** (one pre-existing unused-var error in `AdminListingsTable.tsx` was proved
+pre-existing by linting the HEAD revision — it sits at line 207 there and line 249 here, unchanged).
+Targeted `tsc --noEmit` over the ten changed non-trivial modules and the four changed client
+surfaces: **0 errors**. Full typecheck/build remain deferred per the resource contract.
+
+### 15.1 Related Listings — FSBO, without a second engine
+
+§7 recorded this as the one genuine (P3) gap: `RelatedBrAgentProperties` is mounted only by the
+Negocio shell and is keyed on `br_inventory_group_id` / `br_inventory_parent_listing_id`, which an
+FSBO row does not have. That reader was **not** reused — instruction and architecture agree it
+cannot be.
+
+What was reused instead is `fetchBrSimilarOtherClientListingsBrowser`, the OTHER-seller similarity
+reader. It already scores exactly the persisted relationships a private property has, and already
+applies both the shared public-eligibility rule and (since Gate 1) the shared FSBO term rule. So it
+gained a `lane` switch rather than a sibling file:
+
+| Concern | How it is satisfied |
+|---|---|
+| canonical published Privado rows only | `isBrFsboRow(row)` — the same shared lane predicate the webhook, the term rule and the renewal gate use |
+| shared FSBO expiry rule applies | `isBrFsboRowWithinTerm(row)` — the same predicate as browse/detail/Saved Search/sitemap |
+| exact current listing excluded | excluded twice: `.neq("id", …)` at the query and `row.id === currentListingId` in the filter |
+| no expired rows | falls out of the shared term rule |
+| no Negocio inventory assumptions | the privado branch is asserted to contain **no** reference to `br_inventory_group_id`, `br_inventory_parent_listing_id`, `getBrInventoryGroupId` or `isBrNegocioListing` |
+| no promoted/paid ranking weight | asserted absent for `promoted`, `featured`, `placement`, `boost`, `sponsor` |
+| no fake filler | the section renders `null` when there is no real match; asserted no `sample`/`placeholder`/`filler`/`demo` |
+| no model/recommendation engine | asserted absent for `embedding`, `vector`, `recommend`, `model`, `cosine`, `tensor` |
+| reuses existing shapes | `mapBrListingRowToNegocioCard` + `BrSimilarOtherClientProperties` — zero new components |
+
+**Relationships used**, all from this listing's own persisted facets:
+
+- **operation is a hard FILTER, not a score.** A property for sale must never be offered as
+  "similar" to a rental. When the current listing's own operation cannot be read the filter is
+  skipped entirely — the rail degrades to city/type/price rather than guessing.
+- **city (40), property type (25), price proximity (30/15), recency (5)** — the existing scorer,
+  unchanged. Price proximity was admissible because Gate BIENES-NEGOCIO-2 established a stable
+  numeric contract (`Listing.priceNumber`, already used by the JSON-LD `Offer`); this gate threads
+  that same number onto `BienesLiveListingLike` rather than re-parsing a formatted label.
+- **bedrooms (±0 → 20, ±1 → 10) and bathrooms (±0 → 16, ±1 → 8)** — the facts a private buyer
+  actually compares, read from the structured `Leonix:` machine facets. Added **only** in the
+  privado lane and weighted below city, so it refines an ordering rather than becoming a new
+  ranking model, and Negocio's score is byte-identical to what it has always been.
+
+`lane` defaults to `"negocio"`, so the one pre-existing caller (`EnVentaAnuncioLayout`) is
+unchanged — asserted by checking it passes no `lane` at all.
+
+**Copy honesty:** the Negocio subtitle says "outside this inventory group", which would be
+meaningless to an FSBO viewer and would imply a relationship that does not exist. The shared copy
+helper gained a lane option using this file's own established pattern
+(`brRelatedAgentPropertiesCopy(lang, { brokerage })`); the Privado subtitle reads "Other properties
+from private owners on Leonix." Asserted: the two subtitles differ, the privado one never says
+"inventory", the Negocio one still does, and the shared title is unchanged.
+
+### 15.2 Discovery continuity — one FSBO circuit, proven
+
+```
+paid activation (webhook)  →  expires_at written on the SAME row
+      →  browse/results        isBrFsboRowWithinTerm
+      →  Saved Search          isBrFsboRowWithinTerm  (+ the G.2.3.4 parent gate, intact)
+      →  public detail         isBrFsboRowWithinTerm  (fails closed to "not found")
+      →  Related Listings      isBrFsboRowWithinTerm  ← NEW this gate
+      →  JSON-LD               RealEstateListing --mainEntity--> property, url = leonixLiveAnuncioPath
+      →  sitemap               isBrFsboRowWithinTerm  (+ the parent gate, intact)
+      →  Owner Dashboard       row.expires_at → resolveListingLifecycle → renew action
+      →  Admin                 lane:privado · term:<state> · d:<n> · renew:eligible · exp <date>
+```
+
+Held together by two structural proofs, both asserted:
+
+1. **One expiry rule.** All five public surfaces `import` `isBrFsboRowWithinTerm` from
+   `bienesFsboLifecycle` rather than re-expressing it.
+2. **One canonical detail path.** `leonixLiveAnuncioPath` is the single builder behind the sitemap
+   entry, the Saved Search delivery resolver, the related-listing card link, and the JSON-LD `url`.
+
+A correction worth recording: the JSON-LD **builder** does not call `leonixLiveAnuncioPath` — it
+takes `url` as an input and never hardcodes a detail path. That is better design, not a gap, so the
+proof is asserted at the call site (`url: \`${LEONIX_SITE_ORIGIN}${leonixLiveAnuncioPath(listing.id)}\``)
+plus a check that the builder contains no `/clasificados/anuncio/` literal of its own. The first
+version of this gate's verifier asserted it in the wrong file; the **assertion** was corrected, never
+the code.
+
+Saved Search, JSON-LD and the sitemap were **not rewritten** — asserted by checking each still
+carries its own prior contract and contains no reference to this gate's new symbols.
+
+### 15.3 One real defect found while proving continuity — and repaired
+
+Instruction 2 permits repair when proving continuity surfaces a genuine defect. It did.
+
+`app/lib/listingLifecycle/listingRenewalCheckout.ts` still declared its parameters as the Rentas
+literals (`category: "rentas"; packageKey: "rentas_30d"`), while Gate BIENES-PRIVADO-1's
+`startFixedTermRenewal` passes `"bienes-raices"` / `"br_fsbo_45d"` into it. **That is a real
+TypeScript assignability error that shipped in Gate 1.** ESLint does not check assignability and
+full typecheck is deferred, so it survived that gate's validation.
+
+Repaired by widening the parameters to an explicit `ListingRenewalCheckoutLane` union of the two
+lanes that genuinely have a server-verified renewal gate behind them. The union is documentation and
+a client-side guard, not authorization — the server gate remains the authority. Proven by a targeted
+`tsc --noEmit` over the renewal chain and the four changed client surfaces: 0 errors.
+
+### 15.4 Owner Command Center — LIVE (Bible as contract only)
+
+No OCC file was copied and the OCC worktree was not opened. Re-classified against **this** branch,
+superseding §8's Gate-Zero table:
+
+| Bible §12 (BR Privado/FSBO) requirement | This branch | Class |
+|---|---|---|
+| one canonical manage doorway | `mis-anuncios` card + `/dashboard/mis-anuncios/[id]` workspace | **LIVE** |
+| public view | `leonixLiveAnuncioPath(id)` | **LIVE** |
+| same-row edit | id + owner scoped, zero-row checked | **LIVE** |
+| analytics | engagement recorder + self-engagement guard | **LIVE-SHARED** |
+| lifecycle state | server-authorized transitions (Gate 1) | **LIVE** |
+| **expiration** | real `expires_at` → `listingExpireIso` + days chip | **LIVE** *(was BUILT-NOT-WIRED)* |
+| **renewal action** | `startFsboRenewal` on the canonical workspace, `startFixedTermRenewal` on the card | **LIVE** *(was BUILT-NOT-WIRED)* |
+| payment/entitlement presentation | real plan; entitlement badge path generic but unconfirmed | **PARTIAL — honestly** |
+| no Negocio-only inventory tools | asserted absent | **LIVE** |
+| no Business Tools for a private seller | asserted absent | **LIVE** |
+| same-row / no-recharge | §4.2 + Gate 1 | **PROVEN** |
+
+**OWNER COMMAND CENTER: LIVE.**
+
+Two changes made this true, both minimal read-registrations rather than new architecture:
+
+**(a) The capability registry told three lies.** `bienes-raices-privado` still declared
+`renew: "unsupported"`, no `relatedListings` entry (defaulting to unsupported) and no `commercial`
+block at all — understating what Gate 1 and this gate actually shipped, and instructing the shared
+shell to hide real capabilities. Corrected to `renew: "supported"`,
+`relatedListings: "supported"`, `commercial.plan: "supported"`.
+
+`commercial.entitlement` was deliberately left **`unproven`**. The entitlement route is generic and
+does receive FSBO items, but no source proof exists that an FSBO `listing_package_entitlements` row
+renders a badge end to end, and owner-browser QA is deferred. Per the registry's own doctrine that
+is exactly `unproven`; claiming `supported` would fabricate entitlement truth, which both master
+contracts forbid. `businessTools`, `businessConcierge` and `inventory` stay `unsupported` and must:
+a private seller has no business identity, no `businesses.id`, no parent/child inventory and no
+Business Tools entitlement. Asserted, and the Negocio row is asserted unchanged.
+
+**(b) The canonical workspace could display an expiry it could not act on.** Bible §9 makes
+`/dashboard/mis-anuncios/[id]` the one canonical workspace with Lifecycle as a required section, but
+Gate 1 wired renewal only onto the Mis Anuncios list card. An owner opening their own listing saw
+the expiration date and had to navigate back to the list to do anything about it. A renewal action
+was added there using the **same** shared lifecycle reader and the **same** shared renewal checkout —
+no second renewal path, no price or payment authority on the client. It renders only when the shared
+reader says the row is genuinely renewal-eligible, so a mid-term listing is never nudged toward an
+early charge (proven behaviorally at 30 days out, 3 days out, expired, and termless).
+
+### 15.4b `public.businesses` linkage — still absent, still not invented
+
+Unchanged from the Negocio map: Business Tools authorizes on `(businessId, userId)` and no BR row
+has such an id. For FSBO this is not even a gap — a private seller must never have Business Tools —
+and nothing in this gate creates or implies one.
+
+### 15.5 Admin truth — Admin OS Book as acceptance
+
+The Admin OS worktree was **not opened or modified**. Re-classified, superseding §9:
+
+| Admin capability | Class (Book §7) | Evidence |
+|---|---|---|
+| canonical listing id + Leonix ad id | **WORKS** | selected and rendered |
+| **seller lane = Privado** | **WORKS** *(was invisible)* | `lane:privado` / `lane:negocio` from the shared `isBrFsboRow` |
+| status · is_published | **WORKS** | existing queue columns |
+| **expires_at** | **WORKS** *(was NEEDS_DATA)* | `AdminListingMonetizationSummary` renders `exp <date>`; the data now exists |
+| **current term state** | **WORKS** *(new)* | `term:active` / `term:expiring_soon` / `term:expired` / `term:pending_payment` / `term:none`, plus `d:<days>` |
+| **renewal eligibility** | **WORKS** *(new)* | `renew:eligible` |
+| payment / entitlement state | **PARTIAL** | the existing monetization column reads the real entitlement source; nothing FSBO-specific was added, and nothing is inferred |
+| moderation / report path | **WORKS** | existing `ClassifiedAdminQueueRowActionsPanel` + `AdminListingFlagTruthBlock`, untouched |
+| edit / control destination | **WORKS** | existing `/admin/workspace/clasificados/listings/[id]/edit` |
+
+**ADMIN OS: term truth PROVEN; payment/entitlement PARTIAL and honestly labelled.**
+
+The whole repair was a **read registration**: `seller_type` and `expires_at` were ALREADY selected by
+`fetchListingsForAdminWorkspaceFiltered` (`LISTINGS_ADMIN_CORE`), but the Admin row TYPE never
+declared them, so no Admin control could consume them. Declaring them plus deriving lane and term
+through the shared predicates is the entire change. This is precisely the case instruction 4
+anticipated: the source has the data, the surface could not read it.
+
+Three rules held, and asserted:
+- **payment is never inferred from listing status** — the lane/term bits are asserted to contain no
+  `paid`/`unpaid`/`payment`/`entitlement`/`subscription` token at all;
+- **`term:none` means "no term persisted"** (a legacy row published before the `expires_at` write
+  existed), never "unpaid" — and an actually-unpaid row reads `term:pending_payment`, proven
+  behaviorally;
+- **nothing unreadable collapses to zero** — asserted no `|| 0` in the changed scope.
+
+Admin was **not redesigned**: no new page, route, panel or column. The Gate BN-2 Negocio ops panel is
+untouched and still correctly scoped to `inventory_role === "main"`, which excludes FSBO.
+
+### 15.6 Newsletter failure — IMPLEMENTED (was deferred)
+
+The FSBO capture was `void captureCheckoutNewsletterSubscriber({…})` — fire-and-forget, so a real
+`FAILED` result was structurally unreachable and the owner was told nothing.
+
+The shared engine already returns a usable result (`{ status: "FAILED"; reason }`), so this was the
+tiny adoption Comida Local proved, and it is implemented in the same spirit:
+
+- the capture is **started** before the pending save (so it still overlaps and adds no checkout
+  latency) and **awaited** after it (so its result is reachable);
+- it is awaited strictly **after** the listing save has already succeeded, and a failure never
+  returns early and never becomes a blocking publish error — asserted by ordering and by checking
+  the failure block contains no `return;` and no `setPublishErr`;
+- no second newsletter engine and no new transport — asserted;
+- **no new persistence model.** The warning goes onto the EXISTING `lx_br_publish_warnings`
+  `string[]` channel, which the published detail page already reads, joins and renders as its amber
+  banner (Gate I.5.4A.1), and which the Negocio preview already merges multiple warning sources into.
+
+That channel choice matters for this lane specifically: FSBO checkout **redirects to Stripe**, so a
+note held in component state would be destroyed by the redirect and the owner would never see it.
+`sessionStorage` survives the round trip, so the warning is delivered on the published page where
+the owner actually lands.
+
+### 15.7 ES/EN one-time cadence — a real cross-category customer-facing repair
+
+`oneTimePrice` had **no `lang` parameter at all** and hardcoded the Spanish `días`, so the ENGLISH
+checkpoint of every fixed-term category rendered e.g. `$49.99 / 45 días` at the decision point. The
+same class of defect `monthlyPrice` carried before Gate COMIDA-LOCAL-1, in the one-time lane.
+
+Five live cards across four categories, all proven behaviorally in both languages:
+
+| Card | ES (unchanged) | EN (repaired) |
+|---|---|---|
+| Bienes Privado | `$49.99 / 45 días` | `$49.99 / 45 days` |
+| Autos Privado | `$24.99 / 30 días` | `$24.99 / 30 days` |
+| Rentas Privado | `$24.99 / 30 días` | `$24.99 / 30 days` |
+| Empleos paid | `$24.99 / 30 días` | `$24.99 / 30 days` |
+| Rentas Negocio matrix bullet | `(matriz: $24.99 / 30 días)` | `(matrix: $24.99 / 30 days)` |
+
+Amount authority is preserved and **duration authority is improved**. Callers previously passed the
+day count as a literal argument that could silently drift from the product; it is now read from the
+same `revenuePricingMatrix` definition that supplies the price, with the caller's value kept only as
+a last-resort fallback. Every current fallback was verified to equal the matrix value
+(`autos_privado_30d` 30, `rentas_30d` 30, `br_fsbo_45d` 45, `empleos_job_post_paid` 30), which is why
+the Spanish output is display-identical. The verifier asserts each English label carries the
+matrix's own duration.
+
+No dead copy was edited to simulate the fix: all four getters are asserted to be imported by real
+rendered hub clients.
+
+### 15.8 Cleanup prep — re-verified, untouched
+
+All six dead Privado modules re-checked this gate. **All six still exist. None revived. None
+deleted.**
+
+| Module | Referencing files |
+|---|---|
+| `privadoPreviewMapStub.ts` | 0 |
+| `privadoFormStub.ts` | 0 |
+| `privadoDraftStub.ts` | 0 |
+| `sections/PrivadoApplicationNotice.tsx` | 0 |
+| `preview/privado/components/BrPrivadoGalleryLightbox.tsx` | 0 |
+| `preview/privado/model/buildBienesRaicesPrivadoTemplateVm.ts` | **0 real** — its only mention is still a Spanish prose comment inside `privadoPreviewMapStub.ts`, a dead file referencing a dead file |
+
+> **PRESERVED WARNING — DO NOT REVIVE.**
+> `buildBienesRaicesPrivadoTemplateVm.ts` **still hardcodes `mostrarDireccionExacta: true`** (line 98,
+> re-confirmed this gate). It is harmless only because it is dead. Reviving it would publish exact
+> street addresses for private sellers who never opted in — the exact defect Gate BIENES-PRIVADO-1
+> repaired by construction in the live mapper. The verifier asserts both that the file still exists
+> (not deleted) and that the hardcode is still there (so the warning cannot silently go stale), and
+> that neither the live Privado shell nor the canonical detail page imports it.
+
+### 15.9 Explicitly NOT done in this gate
+
+- **No migration** authored or applied; no schema change implied (asserted).
+- **No scheduler** (asserted). Term enforcement is read-time, which is why none is needed.
+- **Negocio capacity RPC** untouched; the Negocio lifecycle service and ops panel untouched
+  (asserted).
+- **No Business Hub / Business Tools** added to FSBO (asserted).
+- **Application/Preview view components not redesigned** — only the preview client's newsletter
+  handling changed, and the protected `BienesRaicesPrivadoPreviewView` was not touched.
+- **Nothing deleted**; no push, no `main`, no production.
+- No browser QA, no full typecheck, no full build.
+
+### 15.10 Remaining Bienes Privado source gaps
+
+| Priority | Item |
+|---|---|
+| P2 | `commercial.entitlement` for FSBO is `unproven` — needs one real end-to-end confirmation that an FSBO `listing_package_entitlements` row renders an owner badge (runtime, not source) |
+| P2 | Owner-visible dropped-media count on the FSBO publish banner (the `lx_br_publish_warnings` channel now proven to work end to end would carry it) |
+| P2 | Admin staff edit page (`workspace/clasificados/listings/[id]/edit`) renders no monetization summary and omits `expires_at` — affects every category, not just FSBO |
+| P3 | Expiry-reminder delivery: `reminderScheduleDays` is declared for both fixed-term lanes but nothing sweeps expiries (platform-wide) |
+| P4 | Six dead Privado modules — cleanup gate, after integration |
+
+Standing deferrals to the final integration gate: `npm run typecheck`, `npm run build`,
+owner-browser QA, and the four unapplied Saved Search / `suspended_reason` migrations plus the
+Negocio capacity RPC `20260810120000` (which still needs explicit owner authorization).
 
 
 ---

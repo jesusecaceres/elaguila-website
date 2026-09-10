@@ -1490,6 +1490,8 @@ function AnuncioDetallePageContent() {
       br_inventory_group_id: listing.br_inventory_group_id ?? null,
       br_inventory_parent_listing_id: listing.br_inventory_parent_listing_id ?? null,
       inventory_role: listing.inventory_role ?? null,
+      // Gate BIENES-PRIVADO-2 — the same numeric price the JSON-LD Offer already uses.
+      priceNumber: (listing as Listing).priceNumber ?? null,
     };
     // Gate BIENES-NEGOCIO-2 — real-estate structured data. This branch RETURNS EARLY, before the
     // generic `ClassifiedAd` block further down, so Bienes Raíces previously emitted NO structured

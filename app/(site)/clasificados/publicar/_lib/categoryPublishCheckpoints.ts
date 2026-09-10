@@ -51,10 +51,41 @@ function monthlyPrice(packageKey: string, category: string, lang: PublishCheckpo
   return `${formatRevenuePriceLabel(priceCents)}${lang === "en" ? "/month" : "/mes"}`;
 }
 
-function oneTimePrice(packageKey: string, category: string, days: number): string {
-  const { priceCents } = getRevenuePackagePriceCents({ category, packageKey });
+/**
+ * Gate BIENES-PRIVADO-2 — the same class of defect `monthlyPrice` carried above, in the
+ * one-time lane: this helper had NO `lang` parameter at all and hardcoded the Spanish `días`,
+ * so the ENGLISH checkpoint of every fixed-term category rendered e.g. "$49.99 / 45 días" at
+ * the decision point. It is live customer-facing copy on five cards across four categories
+ * (Autos Privado, Rentas Privado, Rentas Negocio's matrix cross-check bullet, Bienes Privado
+ * and Empleos paid), and the same fix repairs all of them at once.
+ *
+ * Duration authority is IMPROVED, not merely preserved. Callers previously passed the day
+ * count as a literal argument that could silently drift from the product; the count is now read
+ * from the same `revenuePricingMatrix` definition that supplies the price, so a re-termed
+ * product changes in exactly one place. `fallbackDays` is a last-resort guard for a matrix
+ * entry with no `durationDays`, and every current caller's fallback equals the matrix value
+ * (autos_privado_30d 30, rentas_30d 30, br_fsbo_45d 45, empleos_job_post_paid 30) — verified,
+ * so this change is display-identical in Spanish and repairs the English.
+ *
+ * The amount itself stays authoritative from the matrix: nothing here formats, rounds, or
+ * hardcodes a price.
+ */
+function oneTimePrice(
+  packageKey: string,
+  category: string,
+  lang: PublishCheckpointLang,
+  fallbackDays?: number,
+): string {
+  const { priceCents, definition } = getRevenuePackagePriceCents({ category, packageKey });
   if (priceCents == null) return "—";
-  return `${formatRevenuePriceLabel(priceCents)} / ${days} días`;
+  const amount = formatRevenuePriceLabel(priceCents);
+  const days =
+    typeof definition?.durationDays === "number" && definition.durationDays > 0
+      ? definition.durationDays
+      : fallbackDays ?? null;
+  // A package with no real duration says only the price, rather than inventing a term.
+  if (days == null) return amount;
+  return `${amount} / ${days} ${lang === "en" ? "days" : "días"}`;
 }
 
 function isPromoEligible(packageKey: string): boolean {
@@ -228,7 +259,7 @@ export function getAutosCheckpointCards(
   negociosHref: string,
 ): PublishCheckpointCardData[] {
   const es = lang === "es";
-  const privadoPrice = oneTimePrice("autos_privado_30d", "autos", 30);
+  const privadoPrice = oneTimePrice("autos_privado_30d", "autos", lang, 30);
   const dealerPrice = monthlyPrice("autos_dealer_monthly", "autos", lang);
   const upgradeDef = getRevenuePackageDefinition("autos_dealer_inventory_pack_monthly");
   const upgradePrice = upgradeDef ? formatRevenuePriceLabel(upgradeDef.priceCents) : "$129";
@@ -310,7 +341,7 @@ export function getRentasPrivadoCheckpointCard(
   privadoHref: string,
 ): PublishCheckpointCardData {
   const es = lang === "es";
-  const price = oneTimePrice("rentas_30d", "rentas", 30);
+  const price = oneTimePrice("rentas_30d", "rentas", lang, 30);
   return {
     id: "rentas_privado",
     variant: "paid",
@@ -352,7 +383,7 @@ export function getRentasNegocioCheckpointCard(
 ): PublishCheckpointCardData {
   const es = lang === "es";
   const pricePerListing = es ? "$24.99 / 30 días por anuncio" : "$24.99 / 30 days per listing";
-  const matrixPrice = oneTimePrice("rentas_30d", "rentas", 30);
+  const matrixPrice = oneTimePrice("rentas_30d", "rentas", lang, 30);
   return {
     id: "rentas_negocio",
     variant: "paid",
@@ -398,7 +429,7 @@ export function getBienesRaicesCheckpointCards(
 ): PublishCheckpointCardData[] {
   const es = lang === "es";
   const agentPrice = monthlyPrice("br_agent_monthly", "bienes-raices", lang);
-  const fsboPrice = oneTimePrice("br_fsbo_45d", "bienes-raices", 45);
+  const fsboPrice = oneTimePrice("br_fsbo_45d", "bienes-raices", lang, 45);
   const packPrice = formatRevenuePriceLabel(
     getRevenuePackageDefinition("br_inventory_pack_monthly")?.priceCents ?? 9900,
   );
@@ -469,7 +500,7 @@ export function getEmpleosPaidCheckpointCard(
   quickHref: string,
 ): PublishCheckpointCardData {
   const es = lang === "es";
-  const price = oneTimePrice(EMPLEOS_JOB_POST_PAID_PACKAGE_KEY, "empleos", 30);
+  const price = oneTimePrice(EMPLEOS_JOB_POST_PAID_PACKAGE_KEY, "empleos", lang, 30);
   return {
     id: "empleos_paid",
     variant: "paid",

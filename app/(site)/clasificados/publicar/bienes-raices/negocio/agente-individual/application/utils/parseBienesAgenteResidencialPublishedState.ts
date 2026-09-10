@@ -62,6 +62,14 @@ export type BienesLiveListingLike = {
   br_inventory_parent_listing_id?: string | null;
   inventory_role?: string | null;
   zip?: string | null;
+  /**
+   * Gate BIENES-PRIVADO-2 — the row's real numeric price, the same value Gate BIENES-NEGOCIO-2
+   * exposed as `Listing.priceNumber` for the JSON-LD Offer. Additive and optional: the
+   * published-state parser never reads it, and the Negocio shell ignores it. It exists so the
+   * Privado related-properties rail can score price proximity against a real number instead of
+   * re-parsing a formatted price label.
+   */
+  priceNumber?: number | null;
 };
 
 export type ParentIdentityRow = {
