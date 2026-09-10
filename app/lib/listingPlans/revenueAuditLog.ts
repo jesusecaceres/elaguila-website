@@ -21,6 +21,16 @@ export type RevenueAuditAction =
   | "autos_privado_listing_activated_after_payment"
   | "autos_dealer_listing_activated_after_payment"
   | "bienes_fsbo_listing_activated_after_payment"
+  /**
+   * Gate BIENES-PRIVADO-1 gave the FSBO lane a real same-row renewal, and its fulfillment already
+   * emits this distinct action so a term EXTENSION is never conflated with a first activation in
+   * the audit trail. Registering it here was missed in that gate — the shipped emitter is correct
+   * and is deliberately NOT renamed to match the older value.
+   *
+   * FSBO is the only lane that currently needs a separate renewal action: it is the one fixed-term
+   * product whose renewal patches an already-active row rather than activating a pending one.
+   */
+  | "bienes_fsbo_listing_renewed_after_payment"
   | "bienes_negocio_listing_activated_after_payment"
   | "revenue_webhook_ignored"
   | "revenue_webhook_validation_failed"
