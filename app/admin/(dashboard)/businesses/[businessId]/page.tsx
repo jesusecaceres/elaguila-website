@@ -1331,7 +1331,9 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
         const openCommitments = program5Data.commitmentsWithEvents.filter(
           ({ commitment }) => commitment.status !== "completed" && commitment.status !== "released",
         );
-        const latestCreativeJob = creativeJobViews[0]?.job ?? null;
+        const latestCreativeWorkspace = creativeJobViews[0] ?? null;
+        const latestCreativeJob = latestCreativeWorkspace?.job ?? null;
+        const outstandingCreativeItems = latestCreativeWorkspace?.brief?.missingAssetDescriptions ?? [];
         return (
           <section id="owner-handoff" className="scroll-mt-24 rounded-2xl border border-[#C9A84A]/50 bg-[#FBF7EF] p-4">
             <h2 className="font-serif text-lg font-bold text-[#1E1810]">Entrega al Dueño / Owner Handoff</h2>
@@ -1355,6 +1357,11 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
                 ) : (
                   <p className="mt-1 text-xs text-[#7A7164]">No se ha creado ninguna solicitud creativa aún. / No creative request has been created yet.</p>
                 )}
+                {outstandingCreativeItems.length > 0 ? (
+                  <p className="mt-1 text-[11px] text-amber-900">
+                    Pendiente / Outstanding: {outstandingCreativeItems.join("; ")}
+                  </p>
+                ) : null}
                 <a href="#creative" className="mt-1 inline-flex min-h-[36px] items-center text-[11px] font-semibold text-[#7A1E2C] underline">Abrir Estudio Creativo / Open Creative Studio</a>
               </div>
               <div className="rounded-lg border border-[#E8DFD0] bg-white p-3">
@@ -1362,7 +1369,17 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
                 {openCommitments.length === 0 ? (
                   <p className="mt-1 text-xs text-[#7A7164]">No hay compromisos abiertos para este negocio. / No open commitments for this business.</p>
                 ) : (
-                  <p className="mt-1 text-xs text-[#3D3428]">{openCommitments.length} aún abiertos / still open.</p>
+                  <ul className="mt-1 space-y-0.5">
+                    {openCommitments.slice(0, 3).map(({ commitment }) => (
+                      <li key={commitment.id} className="text-xs text-[#3D3428]">
+                        {commitment.titleEn}
+                        {commitment.dueAt ? ` — ${new Date(commitment.dueAt).toLocaleDateString()}` : ""}
+                      </li>
+                    ))}
+                    {openCommitments.length > 3 ? (
+                      <li className="text-[10px] text-[#7A7164]">+{openCommitments.length - 3} más / more</li>
+                    ) : null}
+                  </ul>
                 )}
                 <a href="#promises" className="mt-1 inline-flex min-h-[36px] items-center text-[11px] font-semibold text-[#7A1E2C] underline">Revisar Compromisos / Review Commitments</a>
               </div>

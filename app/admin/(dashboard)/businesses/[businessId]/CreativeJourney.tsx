@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { CreativeTruthPacket } from "./CreativeTruthPacket";
-import { CreateBriefForm, GenerateDraftButton, ProviderAvailabilityRow } from "./CreativeStudioActions";
+import { BRIEF_FIELD_COPY, briefLaneForAssetType, CreateBriefForm, GenerateDraftButton, ProviderAvailabilityRow } from "./CreativeStudioActions";
 import type { SnapshotCategory } from "@/app/lib/business/creativeStudio/types";
 import type {
   CreativeBrief,
@@ -118,20 +118,21 @@ function Step({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function BriefReadout({ brief }: { brief: CreativeBrief }) {
+function BriefReadout({ brief, assetType }: { brief: CreativeBrief; assetType?: string }) {
+  const copy = BRIEF_FIELD_COPY[briefLaneForAssetType(assetType)];
   const rows: { label: string; value: string | null }[] = [
     { label: "Estado / Status", value: brief.status },
-    { label: "Objetivo de negocio / Business goal", value: brief.businessGoal },
-    { label: "Objetivo de campaña / Campaign objective", value: brief.campaignObjective },
-    { label: "Necesidad del lector / Reader need", value: brief.readerNeed },
-    { label: "Público / Audience", value: brief.targetAudience },
-    { label: "Mensaje principal / Primary message", value: brief.primaryMessage },
+    { label: copy.businessGoal, value: brief.businessGoal },
+    { label: copy.campaignObjective, value: brief.campaignObjective },
+    { label: copy.readerNeed, value: brief.readerNeed },
+    { label: copy.targetAudience, value: brief.targetAudience },
+    { label: copy.primaryMessage, value: brief.primaryMessage },
     { label: "Oferta / Offer", value: brief.offer },
-    { label: "CTA", value: brief.cta },
-    { label: "Ruta de contacto / Contact path", value: brief.contactPath },
+    { label: copy.cta, value: brief.cta },
+    { label: copy.contactPath, value: brief.contactPath },
     { label: "Destino QR / QR target", value: brief.qrTarget },
-    { label: "Estrategia de imagen / Image strategy", value: brief.imageStrategy },
-    { label: "Acción deseada / Desired action", value: brief.desiredAction },
+    { label: copy.imageStrategy, value: brief.imageStrategy },
+    { label: copy.desiredAction, value: brief.desiredAction },
   ];
   return (
     <dl className="space-y-2">
@@ -141,6 +142,12 @@ function BriefReadout({ brief }: { brief: CreativeBrief }) {
           <dd className="break-all text-xs text-[#3D3428]">{row.value?.trim() ? row.value : "—"}</dd>
         </div>
       ))}
+      {brief.supportingMessage?.trim() ? (
+        <div>
+          <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">{copy.extra?.label ?? "Notas adicionales / Additional notes"}</dt>
+          <dd className="break-words text-xs text-[#3D3428]">{brief.supportingMessage}</dd>
+        </div>
+      ) : null}
       {brief.missingAssetDescriptions.length > 0 ? (
         <div>
           <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Recursos faltantes / Missing assets</dt>
@@ -149,8 +156,20 @@ function BriefReadout({ brief }: { brief: CreativeBrief }) {
       ) : null}
       {brief.prohibitedClaims.length > 0 ? (
         <div>
-          <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Reclamos prohibidos / Prohibited claims</dt>
+          <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">{copy.avoid?.label ?? "Reclamos prohibidos / Prohibited claims"}</dt>
           <dd className="break-words text-xs text-[#3D3428]">{brief.prohibitedClaims.join("; ")}</dd>
+        </div>
+      ) : null}
+      {brief.requiredDisclaimers.length > 0 ? (
+        <div>
+          <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">{copy.disclosure?.label ?? "Divulgaciones requeridas / Required disclaimers"}</dt>
+          <dd className="break-words text-xs text-[#3D3428]">{brief.requiredDisclaimers.join("; ")}</dd>
+        </div>
+      ) : null}
+      {brief.trustEvidence.length > 0 ? (
+        <div>
+          <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Prueba / confianza / Trust evidence</dt>
+          <dd className="break-words text-xs text-[#3D3428]">{brief.trustEvidence.join("; ")}</dd>
         </div>
       ) : null}
     </dl>
@@ -218,13 +237,14 @@ export function CreativeJobCard({
 
       <Step title="2. Brief — dirección de trabajo derivada / 2. Brief — derived working direction">
         {brief ? (
-          <BriefReadout brief={brief} />
+          <BriefReadout brief={brief} assetType={job.assetType} />
         ) : (
           <CreateBriefForm
             businessId={businessId}
             jobId={job.id}
             canCreateBrief={canCreateBrief}
             creativeLane={job.creativeLane}
+            assetType={job.assetType}
             prefill={briefPrefill}
           />
         )}
