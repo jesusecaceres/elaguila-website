@@ -1103,3 +1103,135 @@ recovery engine end-to-end — no second implementation, no forked security logi
   checks: `verify:owner-auth-break-glass` (16/16, unchanged), `verify:admin-nav-ops` (75/75,
   unchanged). Targeted eslint clean on every file touched/created. `git diff --check` clean (only
   benign LF→CRLF warnings).
+
+---
+
+## SYSTEM: Launch Placeholder / Fake-Capability Eradication (Master Operating Book V2 §33C)
+
+Full-Admin audit (delegated to a dedicated research pass across Command Center, Revenue,
+Marketplace Ops, People, Website Control, and System) for visible "Coming Soon"/"V2"/"planned"
+language, dead-end CTAs, fake permissions, mock data, and raw technical errors. This is an audit +
+targeted-fix gate, not a full Admin rewrite — findings too large for a focused gate were
+classified HIDE_FROM_LAUNCH/OWNER_DECISION_REQUIRED and recorded rather than rushed.
+
+### FIXED this gate (REAL_LAUNCH_CAPABILITY restored / MAKE_REAL_NOW applied)
+
+- **`can_reset_passwords`, `can_view_users`, `can_view_activity_logs`, `can_use_replica_mode`** —
+  confirmed by full-repo search to control zero real actions (no `requireLeonixAdminPermission`/
+  `hasLeonixAdminPermission` call site for any of the four). Removed from
+  `AdminPermissionKey`/`ALL_ADMIN_PERMISSION_KEYS` (`teamTypes.ts`) and both label maps (Team
+  Roster's `PERM_SHORT`, Create Staff Login's `PERM_LABELS`). Per this gate's own instruction,
+  `can_reset_passwords` was **not** wired to a dangerous direct-password-set action — the
+  documented future-safe design (staff triggers a Supabase recovery email for a customer, never
+  knows/sets a password) is recorded below as a dormant, deliberately-deferred capability. Also
+  deleted `getPlaceholderTeamMembers()` (dead code, zero callers, `@deprecated` already).
+- **`/admin/settings`** — a "Not persisted" stub with every control (theme picker, save button)
+  permanently disabled, still linked from primary nav (`adminGlobalNav.ts`) and from a Command
+  Center card. Removed from `ADMIN_GLOBAL_NAV`, removed from `getAllowedGlobalNavHrefs()`, removed
+  from the Admin Guide (its own `id: "settings"` entry and the dangling `relatedAdminRoutes`
+  reference in `site-settings`'s entry). The route file itself now does
+  `redirect("/admin/site-settings")` — the real, already-in-nav settings writer — instead of being
+  deleted, so any stale bookmark/link still lands somewhere real.
+- **Viajes overview (`/admin/clasificados/viajes`)** — was ~90% mock data: hardcoded illustrative
+  stat tiles (affiliate offers, expired/paused, featured homepage cards, seasonal campaigns,
+  editorial pieces), a mock analytics panel with invented click/lead/CTR numbers labeled "Sample
+  only," and quick links into Affiliate Cards / Campaigns / Editorial / Settings sub-pages whose
+  Save buttons are all `disabled` (`"Save (no API yet)"`, `"Save plan (staged)"`, etc.) — the ONE
+  real, working Viajes capability is Business Offers moderation
+  (`viajes_staged_listings`, real Supabase counts, working Approve/Reject/Request-changes
+  actions). Rewrote the overview page to show only the two real counts and link only to Business
+  Offers + the public Viajes page — the mock sub-pages are no longer linked from anywhere in the
+  app (dormant code, not deleted, per this gate's "keep dormant code, remove the live route" rule).
+  Updated the Admin Guide's `viajes-ops` entry to match (no more "manage affiliate cards" as a
+  common task).
+- **Command Center dashboard** — removed the entire `PlannedCard` roadmap-card component and its 5
+  call sites (Viajes Affiliate Ops, Homepage/Banners/Announcements placeholder, Bug Finder, System
+  Alerts, High-priority email alerts) plus 2 dead `OperatorCard`s with no CTA at all (Safe User
+  Support View, Password reset support) and one more naming an unbuilt `admin_system_alerts`
+  table. Reworded roughly a dozen genuinely-real cards whose copy carried stale roadmap language
+  ("still needs proof," "canonical manager still needs cleanup," "final ... is planned," etc.) —
+  in every case the underlying capability (Global site settings, Language audit, Magazine Manager,
+  Viajes ops routed workspace, Customer/listing search, Team roster, Staff permissions, Support
+  tickets, Newsletter, Tienda catalog) was already real; only the copy was stale. Removed the
+  hero's "future OS tools marked planned until schema proof exists" line and the "Partial labeled"
+  chip. Renamed the `StatusBadge`'s literal `"needs proof"` display text to "Temporarily
+  unavailable" (plain operator language; the underlying `DashboardTruthStatus` type/values are
+  unchanged, only the rendered label changed) and "real"/"partial" badge display text to
+  "Live"/"Partial". Removed raw `moderation_reason`/`review_notes`/`listings.status = flagged`
+  column names from the page footer.
+- **`AdminPagePurposeCard`** — made `nextGate` optional (previously required, forcing every one of
+  its ~7 call sites to always render a "What's needed to finish this" roadmap block even when a
+  page was fully real); renamed the rendered label from "What's needed to finish this" to "Next
+  step" for when it genuinely is provided. Backward-compatible change (making a required prop
+  optional never breaks an existing caller passing a string). Updated the Command Center's own
+  purpose card to `status="real"` with no `nextGate`/`warningNote`.
+- **Raw technical errors softened** in Support (`/admin/support`), Team Roster
+  (`/admin/team/roster`), and Activity Log (`/admin/activity-log`) primary visible banners/badges:
+  removed every rendered migration filename (`20260408...sql`, `20260410...sql`) and raw table
+  name (`support_tickets`, `admin_team_members`, `admin_team_invites`) from banners, badges, and
+  error messages, replacing with plain operator language ("Setup required," "Temporarily
+  unavailable," "check System Health"). Activity Log no longer interpolates the raw Supabase
+  `error.message` (`audit.detail`) into its visible helper text.
+- **Cupones hub card** (`/admin/workspace`) — the confirmed-broken write path (content saved there
+  never renders on the live public page) was already honestly disclosed once you opened the Guide
+  entry or the sub-page itself, but the FIRST thing staff saw (the workspace hub card) still
+  described it as a normal working editor. Reworded the hub card body to disclose the limitation
+  before the click, not after.
+
+### CLASSIFIED, NOT FIXED this gate (recorded, not silently dropped)
+
+- **HIDE_FROM_LAUNCH candidates already effectively hidden by the fixes above**: Viajes Affiliate
+  Cards/Campaigns/Editorial/Settings sub-pages (mock data, disabled save buttons) — dormant, no
+  longer linked from any real nav path; files intentionally left in place per "keep dormant code
+  the same file, remove the live route."
+- **OWNER_DECISION_REQUIRED — `can_reset_passwords`, dormant future design**: staff triggering a
+  Supabase `auth.admin.generateLink({ type: "recovery" })` email for an existing customer (never
+  knowing or setting a password directly) is a real, desired, and *safe* future capability — but
+  wiring it is new product work (a support action, an audit trail, a UI entry point) beyond this
+  gate's focused scope. The permission key was hidden rather than fake-wired, exactly per this
+  gate's own instruction. Owner should decide when this becomes a priority.
+- **OWNER_DECISION_REQUIRED — LEO surfaces** (`/admin/leo`): multiple "NOT_IMPLEMENTED"/"Partial"/
+  "not live yet"/`Placeholder` labels exist inside LEO's own panels. LEO integration is explicitly
+  out of scope for this gate ("Do NOT implement LEO") — these are pre-existing, self-contained
+  labels inside an already-owner-only, already-labeled-experimental surface, not a Command Center
+  or primary-nav-level launch-truth violation. Left untouched; recommended as LEO's own dedicated
+  gate when LEO integration begins in earnest.
+- **OWNER_DECISION_REQUIRED — `can_view_payments`**: enforced only in two API routes
+  (subscription-sweep, manual-payments), not on the Payment Tracker page itself. Left as-is (it is
+  partially real, not fully fake) — recommend either fully wiring it to gate the Payment Tracker
+  page, or removing it if Payment Tracker access should remain purely role-based.
+- **OWNER_DECISION_REQUIRED — Website Preview staff links** (`/admin/team/website-preview`):
+  engineering-status badges ("In progress," "Needs QA") shown to staff for 9 public pages, plus a
+  literal `"Coming Soon (ES/EN)"` link to the real, existing `/coming-soon-v2` marketing page
+  (`staffAdminAccess.ts`). The `/coming-soon-v2` link is not broken (the page exists), but showing
+  it as a staff "preview" destination post-launch is stale — recommend removing or updating once
+  the real site is live.
+- **DEFERRED_LARGER_WORK — remaining raw-technical-error sites**: `adminAuditLogServer.ts`'s
+  `detail`/`e.message` passthrough (only the Activity Log page's *rendering* of it was fixed this
+  gate — other lower-traffic consumers of `fetchAdminAuditLogFiltered`/`fetchAdminAuditLogForTarget`
+  were not individually audited), `leonixAdminGate.ts`'s raw permission-key error messages,
+  `adminStrings.ts`'s several raw-table-name strings (`adminAuditLog.*`, `hub.statusReason.*`),
+  and the Tienda order detail page's "Full submission payload (v2)" block — the latter is already
+  correctly inside an opt-in `<details>` disclosure, which this doctrine explicitly allows
+  ("retain technical detail in expandable/debug form"). A full burndown of every remaining raw
+  string across ~20 files is a larger, lower-risk-tolerance pass better suited to its own gate with
+  full typecheck coverage, per this gate's resource control (no full typecheck).
+- **INTERNAL_ONLY_KEEP — everything under `app/components/ComingSoonGate.tsx`,
+  `coming-soon-v2/**`, `coming-soon-live/**`, `publicLaunchLock.ts`**: confirmed, by direct read,
+  to be a real, deliberate, owner-controlled pre-launch marketing landing page (real newsletter
+  signup, real advertise/media-kit CTAs, real language toggle) — exactly the case this gate's own
+  doctrine explicitly protects ("Coming Soon may exist only when explicitly chosen as real
+  marketing communication"). Not touched.
+- **Two pre-existing, unrelated lint findings** confirmed via `git diff` to predate this gate:
+  `AdminCommandCenterDashboard.tsx`'s unused `CommandCard` function and `CompactExpiringRow`'s
+  unused `locale` param; `support/page.tsx`'s unused `i` in `tickets.map((t, i) => ...)`. Not
+  fixed — out of this gate's scope (dead-code cleanup, not launch-truth).
+- NOTES: 24/24 targeted checks pass (`verify:launch-truth`, new script). Regression checks:
+  `verify:admin-nav-ops` (74/74 — one assertion updated to reflect the intentional `/admin/settings`
+  removal, not a weakened check), `verify:owner-auth-break-glass` (16/16), `verify:admin-password-recovery`
+  (21/21), `verify:executive-company-search` (21/21), `verify:executive-hub-self-service` (20/20),
+  `verify:admin-roster-foundation` (32/32, same 1 pre-existing unrelated migration-ordering
+  failure as every prior pass), `verify:sales-business-workspace` (104/106, same 2 pre-existing
+  unrelated failures as every prior pass) — all unchanged. Targeted eslint clean on every file
+  touched/created (the 2 pre-existing unrelated errors noted above are unrelated to this gate's
+  edits, confirmed via `git diff`).

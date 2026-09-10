@@ -106,7 +106,7 @@ export default async function AdminActivityLogPage(props: PageProps) {
                 : m("activityLog.subtitleUnknown")
         }
         helperText={
-          audit.detail ? `${m("activityLog.detailPrefix")} ${audit.detail}` : m("activityLog.helperNoSecrets")
+          audit.detail ? "The activity log is temporarily unavailable — check System Health." : m("activityLog.helperNoSecrets")
         }
       />
 

@@ -428,9 +428,9 @@ export function getAllowedGlobalNavHrefs(ctx: AdminAccessContext): string[] {
     }
     if (canViewSiteSettings(ctx.normalizedRole)) {
       // Package E Build E3, Gate 1 — /admin/site-settings (the real writer) is now a primary
-      // nav entry, gated by the same permission as the /admin/settings stub it used to be
-      // reachable from only via a sidebar-footer shortcut.
-      hrefs.push("/admin/site-settings", "/admin/settings", "/admin/workspace/language-audit");
+      // nav entry. Launch Truth Doctrine (2026-09): the /admin/settings stub it used to be
+      // reachable from was removed entirely (every control was disabled/unpersisted).
+      hrefs.push("/admin/site-settings", "/admin/workspace/language-audit");
     }
   }
   return hrefs;

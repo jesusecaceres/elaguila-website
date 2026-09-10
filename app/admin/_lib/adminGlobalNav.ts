@@ -111,7 +111,6 @@ export const ADMIN_GLOBAL_NAV: AdminGlobalNavItem[] = [
   /** Master Operating Book V2 §0C — the Admin Guide / Operations Manual, distinct from Company
    * Search (nav.customerOps). Placed in SYSTEM per this project's own architecture preference. */
   { href: "/admin/guide", labelKey: "nav.adminGuide", icon: "📖", group: "system" },
-  { href: "/admin/settings", labelKey: "nav.settings", icon: "⚙", group: "system" },
   { href: "/admin/workspace/language-audit", labelKey: "nav.languageAudit", icon: "🌐", group: "system" },
   /** Tienda command hub — kept, but deprioritized for launch quote/product follow-up. */
   { href: "/admin/tienda", labelKey: "nav.tienda", icon: "🛒", group: "marketplace-ops" },

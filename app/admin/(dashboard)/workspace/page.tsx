@@ -101,8 +101,8 @@ const WORKSPACE_CARDS = [
   {
     href: "/admin/workspace/cupones",
     title: "Cupones",
-    body: "Routes `/cupones` and `/coupons` share `cupones_page` (title, intro, bilingual cards).",
-    teach: "Editor at /workspace/cupones/content.",
+    body: "Content saved here does not appear on the live public page yet — for reference/legacy use only.",
+    teach: "Editor at /workspace/cupones/content (not connected to live output).",
   },
   {
     href: "/admin/workspace/anunciate",

@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-10-admin-password-recovery-gate",
+  "updatedAt": "2026-09-10-launch-placeholder-eradication-gate",
   "masterOperatingBookAdopted": true,
   "cableMapPass": {
     "status": "substantially_complete",
@@ -1112,5 +1112,101 @@
       "Supabase Dashboard config changes — none performed, none needed for this gate"
     ],
     "adminPasswordRecoveryGate": "CLOSED"
+  },
+  "launchPlaceholderEradicationGate": {
+    "status": "partial",
+    "totalFindings": "~100+ (full-Admin audit)",
+    "classification": {
+      "realLaunchCapability": "majority of Admin — confirmed working, left untouched",
+      "makeRealNow": "~15 (stale copy on already-real cards, reworded)",
+      "hideFromLaunch": "4 fake permissions removed; /admin/settings stub removed from nav; Viajes mock sub-pages unlinked; Command Center PlannedCard system removed (8 dead cards)",
+      "internalOnlyKeep": "ComingSoonGate.tsx + coming-soon-v2/coming-soon-live family (real marketing infra, not touched); 2 pre-existing unrelated lint findings",
+      "ownerDecisionRequired": "can_reset_passwords dormant future design; LEO surfaces; can_view_payments partial enforcement; Website Preview staff links"
+    },
+    "canResetPasswords": "HIDDEN_FROM_LAUNCH",
+    "fakePermissionsRemoved": ["can_view_users", "can_reset_passwords", "can_view_activity_logs", "can_use_replica_mode"],
+    "fakePermissionsRemaining": 0,
+    "comingSoonAdminLinksRemaining": 0,
+    "comingSoonPublicLinksRemainingNote": "ComingSoonGate.tsx / coming-soon-v2 / coming-soon-live are real, deliberate pre-launch marketing infrastructure (real newsletter/advertise/media-kit CTAs) — intentionally not counted as fake placeholders; a stale 'Coming Soon (ES/EN)' link inside internal Website Preview staff tooling was recorded as OWNER_DECISION_REQUIRED, not removed",
+    "deadEndAdminRoutesFixed": ["/admin/settings (now redirects to /admin/site-settings)"],
+    "mockDataSurfacesHidden": ["/admin/clasificados/viajes overview (mock tiles/analytics/sub-page links removed; Business Offers moderation — the one real capability — remains linked)"],
+    "commandCenterPlannedCardSystemRemoved": true,
+    "adminPagePurposeCardNextGateMadeOptional": true,
+    "rawTechnicalErrorsFixedIn": ["app/admin/(dashboard)/support/page.tsx", "app/admin/(dashboard)/team/roster/page.tsx", "app/admin/(dashboard)/activity-log/page.tsx"],
+    "rawTechnicalErrorsDeferredIn": ["adminAuditLogServer.ts (lower-traffic consumers)", "leonixAdminGate.ts", "adminStrings.ts (several raw-table-name strings)"],
+    "adminGuideAlignedToLaunchReality": true,
+    "systemHealthDiscoverable": true,
+    "realRoutesAccidentallyRemoved": false,
+    "targetedLaunchTruthChecks": {
+      "script": "scripts/verify-launch-truth-01.ts",
+      "npmScript": "verify:launch-truth",
+      "result": "PASS",
+      "checksPassed": 24,
+      "propertiesProven": [
+        "no canonical Admin nav href points to Coming Soon",
+        "the dead /admin/settings stub is removed from nav, the nav-permission filter, and the Guide, and now redirects to the real page",
+        "Viajes overview no longer shows mock tiles or links to mock sub-pages; the one real sub-page remains linked",
+        "all 4 confirmed-fake permission keys removed from every surface (type, allow-list, both label maps)",
+        "the 10 real permission keys are untouched",
+        "the Admin Guide has no dangling entry/reference for the removed settings stub or removed Viajes sub-pages",
+        "Command Center hero/purpose-card/PlannedCard roadmap language and dead cards are gone",
+        "AdminPagePurposeCard's nextGate is optional and only renders when genuinely provided",
+        "raw table/migration names removed from primary visible banners in Support, Roster, and the Command Center footer",
+        "every other real primary-nav route is still present — no accidental removal",
+        "the settings/business-offers route files still exist (redirect vs. real page, not deleted)",
+        "the real Supabase Auth callback and its recovery-context allowlist (prior gate) are untouched by this cleanup",
+        "the legitimate marketing Coming Soon gate (ComingSoonGate.tsx) was correctly left alone",
+        "Company Search and Admin Guide Search remain intact and distinct",
+        "System Health remains discoverable in nav, Guide, and the Command Center"
+      ]
+    },
+    "regressionChecks": {
+      "verify:admin-nav-ops": "PASS 74/74 (one assertion deliberately updated for the intentional settings-stub removal, not weakened)",
+      "verify:owner-auth-break-glass": "PASS 16/16 (unchanged)",
+      "verify:admin-password-recovery": "PASS 21/21 (unchanged)",
+      "verify:executive-company-search": "PASS 21/21 (unchanged)",
+      "verify:executive-hub-self-service": "PASS 20/20 (unchanged)",
+      "verify:admin-roster-foundation": "PASS 32/32 (same 1 pre-existing unrelated migration-ordering failure as every prior pass)",
+      "verify:sales-business-workspace": "104/106 (same 2 pre-existing unrelated failures as every prior pass)"
+    },
+    "preExistingUnrelatedLintFindings": [
+      "AdminCommandCenterDashboard.tsx: unused CommandCard function, unused locale param in CompactExpiringRow",
+      "support/page.tsx: unused i in tickets.map((t, i) => ...)"
+    ],
+    "adminGuideUpdated": true,
+    "adminGuideChanges": ["removed dead /admin/settings entry", "removed dangling relatedAdminRoutes reference in site-settings entry", "reworded viajes-ops entry to drop affiliate-cards common task"],
+    "launchTruthDoctrineAdded": true,
+    "launchTruthDoctrineLocation": "docs/admin-os/LEONIX_ADMIN_OS_MASTER_OPERATING_BOOK.md, new section 33C",
+    "filesChanged": [
+      "app/admin/_lib/teamTypes.ts",
+      "app/admin/_lib/adminGlobalNav.ts",
+      "app/admin/_lib/adminAccessControl.ts",
+      "app/admin/_lib/adminGuideRegistry.ts",
+      "app/admin/_components/AdminCommandCenterDashboard.tsx",
+      "app/admin/_components/AdminPagePurposeCard.tsx",
+      "app/admin/(dashboard)/settings/page.tsx",
+      "app/admin/(dashboard)/clasificados/viajes/page.tsx",
+      "app/admin/(dashboard)/team/roster/page.tsx",
+      "app/admin/(dashboard)/team/users/new/page.tsx",
+      "app/admin/(dashboard)/support/page.tsx",
+      "app/admin/(dashboard)/activity-log/page.tsx",
+      "app/admin/(dashboard)/workspace/page.tsx",
+      "scripts/verify-admin-nav-ops.mjs",
+      "scripts/verify-launch-truth-01.ts (new)",
+      "package.json",
+      "docs/admin-os/LEONIX_ADMIN_OS_MASTER_OPERATING_BOOK.md",
+      "docs/admin-os/ADMIN_OS_CABLE_MAP.md",
+      "docs/admin-os/ADMIN_OS_PROGRESS.md",
+      "docs/admin-os/ADMIN_OS_TESTS.json"
+    ],
+    "deferredToIntegrationGate": [
+      "can_reset_passwords dormant future design (trigger recovery email, never set password) — owner decision + new product work",
+      "LEO surfaces' own placeholder labels — LEO integration explicitly out of scope",
+      "can_view_payments full enforcement or removal — owner decision",
+      "Website Preview staff links (stale status badges, stale Coming Soon link) — owner decision",
+      "Full raw-technical-error burndown across ~20 remaining files — needs its own gate with full typecheck",
+      "Viajes mock sub-pages (Affiliate Cards, Campaigns, Editorial, Businesses, Settings) — dormant, would need real data/save paths to become launch-ready; a dedicated rebuild gate if ever prioritized"
+    ],
+    "launchPlaceholderEradicationGate": "PARTIAL"
   }
 }

@@ -63,7 +63,9 @@ export function AdminPagePurposeCard({
   dataSource: string;
   status: AdminTruthStatus;
   safeActions: string[];
-  nextGate: string;
+  /** Only render when there is a genuine, specific next action — never a generic engineering
+   * roadmap placeholder (Launch Truth Doctrine). Omit entirely for a fully real page. */
+  nextGate?: string;
   warningNote?: string;
   className?: string;
 }) {
@@ -84,7 +86,7 @@ export function AdminPagePurposeCard({
         </div>
       </div>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-3">
+      <div className={`mt-4 grid gap-4 ${nextGate ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
         <InfoBlock label="Data source">{dataSource}</InfoBlock>
         <InfoBlock label="Safe actions">
           <ul className="space-y-1">
@@ -93,7 +95,7 @@ export function AdminPagePurposeCard({
             ))}
           </ul>
         </InfoBlock>
-        <InfoBlock label="What's needed to finish this">{nextGate}</InfoBlock>
+        {nextGate ? <InfoBlock label="Next step">{nextGate}</InfoBlock> : null}
       </div>
 
       {warningNote ? (

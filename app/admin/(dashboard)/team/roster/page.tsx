@@ -35,9 +35,7 @@ import { StaffTeamNav } from "../../../_components/StaffTeamNav";
 export const dynamic = "force-dynamic";
 
 const PERM_SHORT: Record<AdminPermissionKey, string> = {
-  can_view_users: "Users (view)",
   can_edit_users: "Users (edit)",
-  can_reset_passwords: "Reset passwords",
   can_manage_ads: "Ads",
   can_manage_reports: "Reports",
   can_manage_categories: "Categories",
@@ -46,8 +44,6 @@ const PERM_SHORT: Record<AdminPermissionKey, string> = {
   can_manage_prayer_wall: "Prayer wall",
   can_view_payments: "Payments (view)",
   can_manage_team: "Team",
-  can_view_activity_logs: "Activity",
-  can_use_replica_mode: "Replica mode",
   can_manage_recursos: "Recursos",
 };
 
@@ -215,17 +211,17 @@ export default async function AdminTeamPage(props: {
       <StaffTeamNav showRosterLink />
       <div className="mb-3 flex flex-wrap gap-2">
         {membersUnavailable ? (
-          <span className={adminStubBadgeClass}>Roster: table unavailable</span>
+          <span className={adminStubBadgeClass}>Roster: temporarily unavailable</span>
         ) : (
           <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-900">
-            Roster: admin_team_members
+            Roster: connected
           </span>
         )}
         {invitesUnavailable ? (
-          <span className={adminStubBadgeClass}>Invites: table unavailable</span>
+          <span className={adminStubBadgeClass}>Invites: temporarily unavailable</span>
         ) : (
           <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase text-amber-900">
-            Invites: admin_team_invites
+            Invites: connected
           </span>
         )}
       </div>
@@ -236,7 +232,7 @@ export default async function AdminTeamPage(props: {
       ) : null}
       {sp.member_error === "1" ? (
         <div className={`${adminCardBase} mb-4 border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-950`}>
-          Could not save member (check data or migration <code className="rounded bg-white/80 px-1">20260408183000_control_center_extensions.sql</code>).
+          Could not save member — check the values you entered, or check System Health for a Supabase issue.
         </div>
       ) : null}
       {sp.member_error === "duplicate" ? (
@@ -348,8 +344,8 @@ export default async function AdminTeamPage(props: {
 
       {membersUnavailable ? (
         <div className={adminWarningCallout}>
-          <strong>admin_team_members</strong> unavailable — apply migration{" "}
-          <code className="rounded bg-white/80 px-1 text-[11px]">20260408183000_control_center_extensions.sql</code>.
+          <strong>Team roster is temporarily unavailable.</strong> Check System Health, or contact an owner_admin if this
+          continues.
         </div>
       ) : members.length === 0 ? (
         <AdminEmptyState
@@ -607,7 +603,7 @@ export default async function AdminTeamPage(props: {
         </p>
         {invitesUnavailable ? (
           <p className="mt-3 text-sm font-semibold text-amber-900">
-            Table unavailable: apply migration <code className="rounded bg-white/80 px-1">20260410120000_admin_audit_log_and_team_invites.sql</code>.
+            Temporarily unavailable — check System Health, or contact an owner_admin if this continues.
           </p>
         ) : (
           <form action={createTeamInviteIntentAction} className="mt-4 grid gap-3 sm:grid-cols-2">

@@ -1750,6 +1750,39 @@ That is the standard for a true company operating book.
 
 ---
 
+# 33C. LAUNCH TRUTH DOCTRINE
+
+At production launch, and permanently thereafter:
+
+- **Visible capabilities must be real.** If an owner, staff member, or customer can see a CTA, a
+  permission checkbox, a status badge, or a purpose card that implies a capability, that
+  capability must actually work when used — right now, not "once a gate is finished."
+- **Unfinished capabilities remain hidden.** A feature that is not real yet must not be shown as a
+  disabled control, a "planned" card, an illustrative/mock number, or a dead-end route. Dormant or
+  internal code may remain in the repository — it must simply not be reachable through any live
+  navigation, button, or link an operator or customer would actually use.
+- **"Coming Soon" may exist only as a deliberate, real marketing or product communication** — e.g.
+  a genuine pre-launch landing page, or a marketplace category the public site honestly has not
+  opened yet — never as a technical fallback for a control nobody finished wiring. If a "Coming
+  Soon" label is standing in for "we didn't build this," hide the control instead of labeling it.
+- **Engineering-lifecycle labels must not substitute for operator truth.** Words like "partial,"
+  "needs proof," "needs schema gate," "V2," "next gate," raw migration filenames, and raw
+  table/column names describe the codebase's own history — they are not something an owner or
+  staff member should have to decode to understand whether they can trust a number or use a
+  button. Translate every visible status into plain operating language: Live, Setup required,
+  Temporarily unavailable, Configuration required, Admin clearance required. A genuine, meaningful
+  limitation is stated honestly in plain language — it is explained, never hidden and never
+  disguised as an engineering artifact.
+- **Permissions shown to staff must correspond to actual enforced capabilities.** A permission
+  checkbox that controls nothing is a fake promise of authority — remove it from the type/UI
+  surface the moment it is confirmed unenforced, and only reintroduce it once it is wired to a
+  real, checked action.
+- This doctrine does not require deleting legitimate historical, internal, or future-facing code.
+  It requires that nothing visible to a real operator or customer implies a capability that does
+  not exist behind it.
+
+---
+
 # 34. OWNER INTENT — LOCKED
 
 The owner's intent is:

@@ -2351,3 +2351,115 @@ entry, admin-branded reset destination, shared-engine reuse, hardcoded recovery-
 zero authorization-boundary or bootstrap impact, zero customer-flow regression). Admin-driven
 customer password resets and the `can_reset_passwords` permission remain open, correctly
 classified as separate, deliberately deferred gates — not silently dropped.
+
+## COMING-SOON / PLACEHOLDER / FAKE-CAPABILITY ERADICATION — 2026-09-10
+
+Launch-readiness audit + targeted-fix gate, per Master Operating Book V2 §33C Launch Truth
+Doctrine (new). HEAD at start: `281a4442494d24ae71d1e231d84763f83fcd30bc`.
+
+### Investigation
+
+Delegated a broad, read-only research pass across all of `app/admin/**` (Command Center, Revenue,
+Marketplace Ops, People, Website Control, System, plus the Admin Guide and canonical nav
+definitions) to find every instance of "coming soon," "V2," "planned," "next gate," "placeholder,"
+raw migration filenames/table names, disabled dead-end buttons, and permission checkboxes with no
+enforcement. The resulting report enumerated roughly 100+ individual findings across dozens of
+files. Given this gate's explicit resource control (no full build/typecheck, "focused
+implementation gate," "do not rewrite entire Admin UI"), triaged the findings into what could be
+fixed safely and completely in one gate versus what needed to be classified and recorded per this
+gate's own explicit allowance: *"If something would take a major new subsystem to make real:
+HIDE_FROM_LAUNCH and record it."*
+
+### What was fixed (see Cable Map for full detail)
+
+- Removed 4 confirmed-100%-unenforced permission checkboxes (`can_view_users`,
+  `can_reset_passwords`, `can_view_activity_logs`, `can_use_replica_mode`) from the permission
+  type, allow-list, and both label maps — proven unenforced by a full-repo search for every
+  `requireLeonixAdminPermission`/`hasLeonixAdminPermission` call site. `can_reset_passwords` was
+  explicitly NOT wired to a dangerous direct-password-set action, per this gate's own instruction;
+  its safe future design (trigger a Supabase recovery email, never know/set a password) is
+  recorded as a dormant, owner-decision capability.
+- Removed the `/admin/settings` dead stub (every control permanently disabled, "Not persisted")
+  from primary nav, the nav-permission filter, and the Admin Guide; the route itself now redirects
+  to the real `/admin/site-settings`.
+- Rewrote the Viajes overview (`/admin/clasificados/viajes`) to remove ~90% mock/illustrative
+  content (fake stat tiles, a mock analytics panel, links to sub-pages whose Save buttons are all
+  `disabled`) — the page now shows only the one real, working capability (Business Offers
+  moderation) plus a link to the public Viajes page. Mock sub-pages remain in the repo, dormant,
+  unlinked from anywhere.
+- Removed the Command Center's entire `PlannedCard` roadmap-card system (5 call sites: Viajes
+  Affiliate Ops, Homepage/Banners placeholder, Bug Finder, System Alerts, High-priority email
+  alerts) and 2 dead cards with no CTA (Safe User Support View, Password reset support). Reworded
+  roughly a dozen genuinely-real cards whose copy still carried stale roadmap language even though
+  the underlying capability was already real and working. Renamed the dashboard's status-badge
+  display text to plain operator language (Live / Partial / Temporarily unavailable). Removed raw
+  column names from the page footer.
+- Made `AdminPagePurposeCard`'s `nextGate` prop optional (backward-compatible) so a fully-real page
+  is no longer forced to render a "What's needed to finish this" roadmap block; updated the label
+  to "Next step" when genuinely provided. Fixed the Command Center's own purpose card to
+  `status="real"` with no roadmap fields.
+- Softened raw migration-filename/table-name exposure in Support, Team Roster, and Activity Log's
+  primary visible banners/badges to plain operator language ("Setup required," "Temporarily
+  unavailable," "check System Health"); Activity Log no longer echoes the raw Supabase error
+  message into its visible helper text.
+- Reworded the Cupones workspace hub card to disclose its confirmed-broken write path before the
+  click, not only after (the Guide entry and sub-page already disclosed it correctly).
+
+### What was classified but NOT fixed (recorded, not silently dropped)
+
+- **`can_reset_passwords` dormant future design** (OWNER_DECISION_REQUIRED): a real, safe,
+  desired capability (staff triggers a recovery email for a customer, never sets a password
+  directly) — new product work beyond this gate's scope; hidden rather than fake-wired, exactly
+  per this gate's own instruction.
+- **LEO surfaces** (OWNER_DECISION_REQUIRED): several "NOT_IMPLEMENTED"/"Partial"/placeholder
+  labels exist inside LEO's own owner-only panels — LEO integration is explicitly out of scope for
+  this gate; left untouched, recommended as LEO's own dedicated gate.
+- **`can_view_payments`** (OWNER_DECISION_REQUIRED): enforced in only 2 API routes, not on the
+  Payment Tracker page itself — partially real, not fully fake; owner should decide whether to
+  fully wire it or remove it.
+- **Website Preview staff links** (OWNER_DECISION_REQUIRED): engineering-status badges shown to
+  staff, plus a stale `"Coming Soon"` link to the real `/coming-soon-v2` marketing page shown as a
+  staff preview destination — not broken, but stale post-launch framing.
+- **Remaining raw-technical-error sites** (DEFERRED_LARGER_WORK): `adminAuditLogServer.ts`'s raw
+  error passthrough to lower-traffic consumers, `leonixAdminGate.ts`'s raw permission-key error
+  text, several `adminStrings.ts` raw-table-name strings, and the Tienda order detail page's
+  payload-parsing note (already correctly inside an opt-in `<details>` disclosure, which this
+  doctrine explicitly allows). A full burndown across the remaining ~20 files needs its own gate
+  with full typecheck coverage.
+- **`app/components/ComingSoonGate.tsx` and the `coming-soon-v2`/`coming-soon-live` family**
+  (INTERNAL_ONLY_KEEP / REAL_LAUNCH_CAPABILITY): confirmed by direct read to be a real, deliberate,
+  owner-controlled pre-launch marketing landing page (real newsletter signup, real advertise/
+  media-kit CTAs) — exactly the case this gate's own doctrine protects. Not touched.
+
+### Verification
+
+New `scripts/verify-launch-truth-01.ts` (`npm run verify:launch-truth`), 24 hand-rolled
+`node:assert` checks proving: no nav href points to Coming Soon; the dead settings stub is fully
+removed from nav, the permission filter, and the Guide, and now redirects to the real page; Viajes
+no longer shows mock tiles/links; all 4 fake permissions are gone from every surface while the 10
+real ones are untouched; the Command Center's roadmap language and dead cards are gone; raw
+table/migration names are gone from primary banners; every other real nav route is still present
+(no accidental removal); the real Supabase Auth callback and its recovery-context allowlist (prior
+gate) are untouched by this cleanup; the legitimate marketing Coming Soon gate was correctly left
+alone; Company Search and Admin Guide Search both remain intact and distinct; System Health
+remains discoverable in nav, Guide, and the Command Center.
+
+Regression checks: `verify:admin-nav-ops` (74/74 — one assertion deliberately updated to require
+the settings stub's absence rather than its presence, reflecting the intentional removal, not a
+weakened check), `verify:owner-auth-break-glass` (16/16), `verify:admin-password-recovery` (21/21),
+`verify:executive-company-search` (21/21), `verify:executive-hub-self-service` (20/20),
+`verify:admin-roster-foundation` (32/32, same 1 pre-existing unrelated migration-ordering failure
+as every prior pass), `verify:sales-business-workspace` (104/106, same 2 pre-existing unrelated
+failures as every prior pass) — all unchanged by this gate. Targeted eslint clean on every
+touched/created file; 2 additional pre-existing, unrelated unused-variable lint errors were found
+and confirmed (via `git diff`) to predate this gate — not fixed, out of scope.
+
+### Final status
+
+**LAUNCH_PLACEHOLDER_ERADICATION_GATE: PARTIAL.** The highest-visibility, highest-confidence,
+lowest-risk fixes across Command Center, permissions, nav, and raw-error exposure are complete and
+verified. Several genuine findings were correctly triaged as OWNER_DECISION_REQUIRED or
+DEFERRED_LARGER_WORK rather than rushed into an unverified, high-risk, whole-Admin rewrite —
+consistent with this gate's own scope control. Full detail and every classified finding is
+recorded in the Cable Map's "Launch Placeholder / Fake-Capability Eradication" section so nothing
+is silently dropped.
