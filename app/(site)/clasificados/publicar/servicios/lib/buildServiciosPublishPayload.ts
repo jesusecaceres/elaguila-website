@@ -179,6 +179,14 @@ export function buildServiciosPublishPayload(state: ClasificadosServiciosApplica
 export type ServiciosPublishTransportBody = {
   state: ClasificadosServiciosApplicationState;
   lang: "es" | "en";
+  /**
+   * Gate SERVICIOS-1 — canonical persistence identity of the row being edited (the
+   * `servicios_public_listings` UUID). When present the server resolves the target row by this id
+   * and ignores the slug for persistence, so renaming the business can never allocate a new slug
+   * and INSERT a duplicate listing. `existingPublicSlug` remains only as the legacy fallback for a
+   * session that has no canonical id yet.
+   */
+  existingListingId?: string;
   existingPublicSlug?: string;
   videoPublishDiagnostics?: { videoId: string; reason: string }[];
   /** "pending_payment" saves hidden before Revenue OS checkout (Stripe webhook activates). */
@@ -191,12 +199,14 @@ export function buildServiciosPublishTransportBody(
   existingPublicSlug?: string,
   videoPublishDiagnostics?: { videoId: string; reason: string }[],
   activationMode?: "pending_payment",
+  existingListingId?: string,
 ): ServiciosPublishTransportBody {
   const payload: ServiciosPublishTransportBody = {
     state: buildServiciosPublishPayload(state),
     lang,
   };
   if (activationMode === "pending_payment") payload.activationMode = "pending_payment";
+  if (existingListingId?.trim()) payload.existingListingId = existingListingId.trim();
   if (existingPublicSlug?.trim()) payload.existingPublicSlug = existingPublicSlug.trim();
   if (videoPublishDiagnostics?.length) {
     payload.videoPublishDiagnostics = videoPublishDiagnostics

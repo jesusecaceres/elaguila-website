@@ -200,6 +200,44 @@ export async function getServiciosPublicListingBySlugFromDb(
   }
 }
 
+/**
+ * Gate SERVICIOS-1 — canonical-id read for the publish/republish boundary.
+ *
+ * The row's own UUID is the durable persistence identity: unlike the slug it never changes when
+ * the owner renames the business, so an edit-save can always find and UPDATE the real published
+ * row instead of allocating a fresh slug and INSERTing a duplicate. Visibility defaults to "all"
+ * because the caller (publish route) must be able to see `pending_payment` / `paused_unpublished`
+ * rows it owns, not only public ones.
+ */
+export async function getServiciosPublicListingByIdFromDb(
+  id: string,
+  opts?: { visibility?: ServiciosListingSlugDbVisibility },
+): Promise<ServiciosPublicListingRow | null> {
+  if (!isSupabaseAdminConfigured()) return null;
+  const trimmed = (id ?? "").trim();
+  if (!trimmed) return null;
+  const visibility = opts?.visibility ?? "all";
+  try {
+    const supabase = getAdminSupabase();
+    const { data, error } = await supabase
+      .from("servicios_public_listings")
+      .select(SERVICIOS_PUBLIC_LISTING_SELECT)
+      .eq("id", trimmed)
+      .maybeSingle();
+    if (error || !data) return null;
+    const row = mapDbRowToServiciosPublicListingRow(data as ServiciosPublicListingRow);
+    const listingStatus = row.listing_status;
+    if (visibility === "published_only") {
+      if (listingStatus !== SERVICIOS_LISTING_STATUS_PUBLISHED) return null;
+    } else if (visibility === "slug_page") {
+      if (!(SLUG_PAGE_STATUSES as readonly string[]).includes(listingStatus)) return null;
+    }
+    return row;
+  } catch {
+    return null;
+  }
+}
+
 export async function listServiciosPublicListingsForOwner(ownerUserId: string, limit = 80): Promise<ServiciosPublicListingRow[]> {
   if (!isSupabaseAdminConfigured()) return [];
   try {

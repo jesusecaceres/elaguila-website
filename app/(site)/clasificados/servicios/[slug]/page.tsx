@@ -40,6 +40,7 @@ type PageProps = {
     persistence?: string;
     listingStatus?: string;
     videoSkipped?: string;
+    mediaDropped?: string;
   }>;
 };
 
@@ -61,6 +62,15 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
     lang === "en"
       ? "Some videos were too large and were not published. The listing was published with compatible media."
       : "Algunos videos eran demasiado grandes y no se publicaron. El anuncio se publicó con los medios compatibles.";
+  // Gate SERVICIOS-1 — the shared media contract dropped media it could not persist. The publish
+  // succeeded, so the owner must be told explicitly rather than assume every photo saved.
+  const mediaDroppedCount = Number.parseInt(typeof sp.mediaDropped === "string" ? sp.mediaDropped : "", 10);
+  const mediaDropped = Number.isFinite(mediaDroppedCount) && mediaDroppedCount > 0 ? mediaDroppedCount : 0;
+  const mediaDroppedNotice = mediaDropped
+    ? lang === "en"
+      ? `${mediaDropped} media file(s) could not be saved and are not on your listing. Open Edit service, add them again, and republish.`
+      : `${mediaDropped} archivo(s) multimedia no se pudieron guardar y no están en tu anuncio. Abre Editar servicio, agrégalos de nuevo y vuelve a publicar.`
+    : null;
   if (row.listing_status === "pending_review") {
     const justPublished = sp.justPublished === "1";
     return (
@@ -76,6 +86,7 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
               : "Leonix está revisando esta vitrina antes de mostrarla en la búsqueda pública. Puedes ver el estado en tu panel."}
         </p>
         {videoSkipped ? <p className="text-sm text-amber-900">{videoSkippedNotice}</p> : null}
+        {mediaDroppedNotice ? <p className="text-sm text-amber-900">{mediaDroppedNotice}</p> : null}
         <Link href={`/dashboard/servicios?${q}`} className="text-sm font-bold text-[#3B66AD] underline">
           {lang === "en" ? "Open dashboard" : "Abrir panel"}
         </Link>
@@ -122,6 +133,7 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
         leonixAdId={leonixAdIdFooter}
         persistence={persistence || undefined}
         videoSkippedNotice={videoSkipped ? videoSkippedNotice : null}
+        mediaDroppedNotice={mediaDroppedNotice}
         discoveryResultsHref={`/clasificados/servicios/resultados?lang=${lang}`}
       />
     ) : null;
