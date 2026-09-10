@@ -609,7 +609,19 @@ export function filterServiciosPublicListingRows(
 
     if (wantWa || wantPromo || wantCall || wantOpenNow || wantHasPhotos || wantHasVideos || wantHasOffers) {
       const profile = resolvedProfile(row, lang);
-      if (wantOpenNow && !serviciosHoursSummaryIsOpenNow(profile.contact.hours, lang)) return false;
+      // Gate SERVICIOS-3 (D-1) — this filter runs inside a SERVER component, so before this
+      // gate it evaluated “open now” against the server clock (UTC on Vercel) and misjudged every
+      // Pacific business by roughly seven hours. The zone now comes from the listing's own
+      // persisted location, and a listing whose zone cannot be resolved is excluded rather than
+      // advertised on a guess.
+      if (
+        wantOpenNow &&
+        !serviciosHoursSummaryIsOpenNow(profile.contact.hours, lang, {
+          timeZone: profile.contact.businessTimeZone ?? null,
+        })
+      ) {
+        return false;
+      }
       if (wantWa && !profile.contact.socialLinks?.whatsapp) return false;
       if (wantPromo && !profile.promotions.some((p) => p.headline?.trim())) return false;
       if (wantCall && !(profile.contact.phoneDisplay && profile.contact.phoneTelHref)) return false;
@@ -815,7 +827,12 @@ export function sortServiciosListingRows(
     for (const row of copy) {
       try {
         const p = resolvedProfile(row, lang);
-        openMap.set(row.slug, serviciosHoursSummaryIsOpenNow(p.contact.hours, lang));
+        openMap.set(
+          row.slug,
+          serviciosHoursSummaryIsOpenNow(p.contact.hours, lang, {
+            timeZone: p.contact.businessTimeZone ?? null,
+          }),
+        );
       } catch {
         openMap.set(row.slug, false);
       }

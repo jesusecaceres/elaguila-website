@@ -44,6 +44,7 @@ import {
   isServiciosWhatsAppSocialDuplicateOfContact,
 } from "./serviciosWhatsAppHref";
 import { resolveBusinessAddressPublicView } from "@/app/lib/businessAddress/businessAddressPrivacy";
+import { resolveServiciosBusinessTimeZone } from "./serviciosBusinessTimeZone";
 
 /**
  * Turn canonical wire data into a presentation-safe model (filtered lists, safe URLs, fallbacks).
@@ -79,6 +80,16 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
   // loss — just one shared gate instead of a category-local one. `showExactAddress` absent on the
   // wire (any listing published before this field existed) defaults to `true`, so no existing
   // listing's already-public address is silently hidden by this addition.
+  // Gate SERVICIOS-3 (D-1) — resolved HERE, beside the address-privacy gate, because this is
+  // the one place that still holds the raw persisted location. The resolved contact below
+  // exposes only the answer, so the public badge and the results filter cannot diverge.
+  const businessTimeZone = resolveServiciosBusinessTimeZone({
+    physicalRegion: contactIn.physicalRegion,
+    physicalCountry: contactIn.physicalCountry,
+    physicalPostalCode: contactIn.physicalPostalCode,
+    physicalCity: contactIn.physicalCity,
+  });
+
   const addressPublicView = resolveBusinessAddressPublicView({
     address: contactIn.physicalStreet?.trim()
       ? {
@@ -253,6 +264,7 @@ export function resolveServiciosProfile(input: ServiciosBusinessProfile, lang: S
       country: trimText(heroIn.country) || undefined,
     },
     contact: {
+      businessTimeZone: businessTimeZone ?? undefined,
       phoneDisplay: phoneDisplay ?? undefined,
       phoneTelHref: phoneTelHref ?? undefined,
       phoneOfficeDisplay: phoneOfficeDisplay ?? undefined,
