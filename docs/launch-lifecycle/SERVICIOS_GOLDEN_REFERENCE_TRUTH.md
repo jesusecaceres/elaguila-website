@@ -956,3 +956,53 @@ different workstream, has its own alias, and does **not** affect the Servicios P
 3. Confirm `STRIPE_SECRET_KEY` is `sk_test_…`, never `sk_live_…`.
 4. Register the Stripe TEST webhook against the Preview URL with all nine events (§G.3).
 5. Then authorize **one** intentional push + Preview deploy at the then-current HEAD.
+
+---
+
+## N. TEMPORARY RUNTIME-READINESS PROBE — SCHEDULED FOR REMOVAL
+
+**Gate:** `SERVICIOS-RUNTIME-CONFIG-PROBE-DEPLOY-1` · **Date:** 2026-09-10
+
+### N.1 What it is
+
+| Field | Value |
+| --- | --- |
+| Path | `GET /api/internal/servicios-runtime-readiness` |
+| Files | `app/api/internal/servicios-runtime-readiness/route.ts`, `…/readinessReport.ts` |
+| Verifier | `scripts/verify-servicios-runtime-readiness-probe.ts` (22/22 PASS) |
+| Purpose | Report **sanitized** runtime-config readiness on the protected Preview so the exact missing environment items can be identified without the owner hand-copying secrets |
+| Lifetime | **TEMPORARY** — delete immediately after Servicios runtime certification |
+
+It exists because §M established that Vercel environment state is not readable through any
+tooling available to this session, and hand-auditing a dozen variables across seven vendors is
+both slow and error-prone. It rides along with the deployment that was **already required** for
+the P0/P1 source fixes — it did not cause an extra build.
+
+### N.2 Safety contract (each item machine-verified)
+
+- **Sanitized output only** — booleans, the Stripe mode classification (`test`/`live`/`unknown`),
+  the PUBLIC Supabase project ref parsed from the URL hostname, the Vercel env name and the
+  Vercel git SHA. Nothing else.
+- **No secret, and no fragment of one.** The verifier feeds fabricated secrets through the real
+  classifier and asserts that no full value *and no 8-character fragment* appears in the output.
+- **No length disclosure** — the report contains no numeric field at all.
+- **No token decoding** — the project ref comes from the URL hostname; base64/JWT decoding is
+  absent and asserted absent.
+- **Production hard-disabled** — `VERCEL_ENV === "production"` returns 404, and the guard runs
+  *before* any report is constructed.
+- **Zero external calls** — the route imports only `next/server` and the local pure classifier;
+  the classifier has **zero imports**. No fetch, DB, Stripe, Google or Twilio call exists.
+- **GET only**, `force-dynamic`, `revalidate = 0`, `no-store`, `x-robots-tag: noindex`.
+
+### N.3 Doctrine
+
+This is **diagnostic scaffolding, not product architecture.** It must not be treated as a
+pattern, must not be copied into other categories, and must not survive certification. Removing
+it means deleting the route directory and its verifier — it has no other consumers by design.
+
+### N.4 Removal checklist (run after §J certification)
+
+- [ ] Delete `app/api/internal/servicios-runtime-readiness/`
+- [ ] Delete `scripts/verify-servicios-runtime-readiness-probe.ts`
+- [ ] Delete this section N
+- [ ] Confirm no remaining reference: `grep -r "servicios-runtime-readiness"`
