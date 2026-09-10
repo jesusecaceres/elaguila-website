@@ -124,7 +124,7 @@ export function OpportunitiesPanel({
     <div className="space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <p className="text-xs text-[#7A7164]">
-          Contextual editorial / sponsorship / advertising candidates. Related to Next Right Move, not the same object.
+          This recommendation is the relationship decision. Opportunities are contextual editorial / sponsorship / advertising candidates — ways Leonix may help execute it, not the same object and not an approval of it.
         </p>
         <button
           onClick={() => void handleGenerate()}
@@ -150,63 +150,69 @@ export function OpportunitiesPanel({
         <p className="text-xs text-[#7A7164]">Your role can view opportunities. Review, approve, dismiss, and creative request remain manager / super-admin actions.</p>
       ) : null}
 
-      {waitingReview.length === 0 ? (
-        <p className="text-sm text-[#7A7164]">No contextual opportunities are waiting for review.</p>
+      {opportunities.length === 0 ? (
+        <p className="text-sm text-[#7A7164]">No relevant opportunities are ready for review yet.</p>
       ) : (
-        <div className="space-y-3">
-          {waitingReview.map((o) => (
-            <OpportunityCard
-              key={o.id}
-              opportunity={o}
-              canReview={canReview}
-              canCreateCreativeRequest={canCreateCreativeRequest}
-              actioning={actioning}
-              onReview={handleReviewAction}
-              onCreative={handleCreateCreativeRequest}
-            />
-          ))}
-        </div>
+        <>
+          {waitingReview.length === 0 ? (
+            <p className="text-sm text-[#7A7164]">No contextual opportunities are waiting for review.</p>
+          ) : (
+            <div className="space-y-3">
+              {waitingReview.map((o) => (
+                <OpportunityCard
+                  key={o.id}
+                  opportunity={o}
+                  canReview={canReview}
+                  canCreateCreativeRequest={canCreateCreativeRequest}
+                  actioning={actioning}
+                  onReview={handleReviewAction}
+                  onCreative={handleCreateCreativeRequest}
+                />
+              ))}
+            </div>
+          )}
+
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Approved, awaiting creative</p>
+            {waitingCreative.length === 0 ? (
+              <p className="mt-2 text-sm text-[#7A7164]">No approved opportunities are waiting for creative.</p>
+            ) : (
+              <div className="mt-2 space-y-3">
+                {waitingCreative.map((o) => (
+                  <OpportunityCard
+                    key={o.id}
+                    opportunity={o}
+                    canReview={canReview}
+                    canCreateCreativeRequest={canCreateCreativeRequest}
+                    actioning={actioning}
+                    onReview={handleReviewAction}
+                    onCreative={handleCreateCreativeRequest}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {others.length > 0 ? (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Closed or already requested</p>
+              <div className="mt-2 space-y-3">
+                {others.map((o) => (
+                  <OpportunityCard
+                    key={o.id}
+                    opportunity={o}
+                    canReview={canReview}
+                    canCreateCreativeRequest={canCreateCreativeRequest}
+                    actioning={actioning}
+                    onReview={handleReviewAction}
+                    onCreative={handleCreateCreativeRequest}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </>
       )}
-
-      <div>
-        <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Approved, awaiting creative</p>
-        {waitingCreative.length === 0 ? (
-          <p className="mt-2 text-sm text-[#7A7164]">No approved opportunities are waiting for creative.</p>
-        ) : (
-          <div className="mt-2 space-y-3">
-            {waitingCreative.map((o) => (
-              <OpportunityCard
-                key={o.id}
-                opportunity={o}
-                canReview={canReview}
-                canCreateCreativeRequest={canCreateCreativeRequest}
-                actioning={actioning}
-                onReview={handleReviewAction}
-                onCreative={handleCreateCreativeRequest}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {others.length > 0 ? (
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Closed or already requested</p>
-          <div className="mt-2 space-y-3">
-            {others.map((o) => (
-              <OpportunityCard
-                key={o.id}
-                opportunity={o}
-                canReview={canReview}
-                canCreateCreativeRequest={canCreateCreativeRequest}
-                actioning={actioning}
-                onReview={handleReviewAction}
-                onCreative={handleCreateCreativeRequest}
-              />
-            ))}
-          </div>
-        </div>
-      ) : null}
 
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <a href="#recommend" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">

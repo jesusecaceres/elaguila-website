@@ -143,7 +143,7 @@ export function RecommendJourney({
       />
 
       {!current ? (
-        <p className="mt-3 text-sm text-[#7A7164]">No active recommendation.</p>
+        <p className="mt-3 text-sm text-[#7A7164]">Leonix is still learning enough to recommend responsibly.</p>
       ) : (
         <div className="mt-3 space-y-3 rounded-lg border border-[#C9A84A]/40 bg-[#FFFDF7] p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -288,7 +288,12 @@ export function RecommendJourney({
         </>
       ) : null}
 
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+      {hasOpportunity ? (
+        <p className="mt-4 text-xs text-[#7A7164]">
+          This recommendation is the relationship decision. Opportunities are contextual ways Leonix may help execute it — reviewing one is not the same as approving this recommendation.
+        </p>
+      ) : null}
+      <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         {hasOpportunity ? (
           <a href="#opportunity" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
             Review Opportunities

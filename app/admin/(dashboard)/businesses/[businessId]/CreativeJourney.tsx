@@ -89,13 +89,19 @@ export async function loadCreativeJobWorkspaces(
 
 function jobStatusMeaning(status: string): string {
   switch (status) {
+    case "draft":
+      return "Draft — Creative Truth Packet and brief are still being prepared. Not ready for generation.";
+    case "ready_for_generation":
+      return "Ready for generation — brief is complete. Awaiting an explicit, human-triggered draft generation.";
     case "generated":
       return "Generated — output exists. Not approved and not published.";
-    case "approved":
-      return "Approved — staff/owner approved this job. Not published.";
+    case "changes_requested":
+      return "Changes requested — a reviewer asked for a revision before this can move forward.";
     case "in_review":
     case "owner_review":
       return "In review — human assessment. Not client acceptance.";
+    case "approved":
+      return "Approved — staff/owner approved this job. Not published.";
     case "archived":
       return "Archived.";
     default:
@@ -180,6 +186,9 @@ export function CreativeJobCard({
         <span className="rounded-full bg-[#EDE6D6] px-2 py-0.5 text-[10px] font-bold text-[#3D3428]">{job.status.replace(/_/g, " ")}</span>
       </div>
       <p className="text-xs text-[#3D3428]">{jobStatusMeaning(job.status)}</p>
+      <p className="text-[10px] text-[#7A7164]">
+        Created {new Date(job.createdAt).toLocaleString()} by {job.createdByEmail} ({job.createdByRole}).
+      </p>
       <p className="text-[10px] text-[#7A7164]">Leonix staff shell uses Leonix colors. Client creative must use this job&apos;s stored client truth, not Leonix cream/burgundy/gold.</p>
 
       {job.sourceOpportunityId ? (
@@ -335,7 +344,7 @@ export function CreativeJourney({
       )}
 
       {jobs.length === 0 ? (
-        <p className="text-sm text-[#7A7164]">No creative work has been requested yet.</p>
+        <p className="text-sm text-[#7A7164]">No creative request has been created yet.</p>
       ) : (
         jobs.map((workspace) => (
           <CreativeJobCard

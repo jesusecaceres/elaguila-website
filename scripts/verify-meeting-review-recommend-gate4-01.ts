@@ -162,7 +162,7 @@ check("24. All six stewardship tests remain present and unreduced (need, readine
   }
 });
 check("25. A blocked/absent recommendation shows a truthful reason, not a blank panel", () => {
-  assert.ok(recommendJourney.includes("No active recommendation."));
+  assert.ok(recommendJourney.includes("Leonix is still learning enough to recommend responsibly."));
   assert.ok(recommendJourney.includes("No six-test results are stored for this recommendation."));
 });
 
