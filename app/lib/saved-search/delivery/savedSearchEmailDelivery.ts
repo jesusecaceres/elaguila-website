@@ -31,6 +31,7 @@ import type { SavedSearchDeliveryCategoryResolver } from "./savedSearchDeliveryC
 import { autosSavedSearchDeliveryResolver } from "../autos/autosSavedSearchDeliveryResolver";
 import { bienesRaicesSavedSearchDeliveryResolver } from "../bienes-raices/bienesRaicesSavedSearchDeliveryResolver";
 import { rentasSavedSearchDeliveryResolver } from "../rentas/rentasSavedSearchDeliveryResolver";
+import { serviciosSavedSearchDeliveryResolver } from "../servicios/serviciosSavedSearchDeliveryResolver";
 
 /** Category registry — the one place delivery dispatches to a category's resolver. Adding a
  * category means adding one entry here, never cloning this file. */
@@ -38,6 +39,7 @@ const CATEGORY_RESOLVERS: Record<string, SavedSearchDeliveryCategoryResolver> = 
   autos: autosSavedSearchDeliveryResolver,
   "bienes-raices": bienesRaicesSavedSearchDeliveryResolver,
   rentas: rentasSavedSearchDeliveryResolver,
+  servicios: serviciosSavedSearchDeliveryResolver,
 };
 
 const MATCH_EVENTS_TABLE = "saved_search_match_events";
@@ -155,7 +157,9 @@ async function deliverClaimedEvent(supabase: SupabaseClient, claimed: ClaimedMat
     return;
   }
 
-  const detailUrl = resolver.buildDetailUrl(claimed.listing_id);
+  // Gate SERVICIOS-2 — `buildDetailUrl` may be sync (Autos/BR/Rentas) or async (Servicios, whose
+  // canonical URL is slug-addressed and must be read from the row). `await` handles both.
+  const detailUrl = await resolver.buildDetailUrl(claimed.listing_id);
   const manageUrl = `${new URL(detailUrl).origin}/dashboard/busquedas-guardadas`;
 
   const { subject, text, html } = buildSavedSearchMatchEmail({

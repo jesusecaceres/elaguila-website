@@ -2,7 +2,8 @@
 
 /**
  * Saved Search 03/06 — owner "Búsquedas guardadas / Saved searches" management surface.
- * Autos, Bienes Raíces, and Rentas as of Saved Search 06. Reuses the existing dashboard shell
+ * Autos, Bienes Raíces and Rentas as of Saved Search 06; Servicios as of Gate SERVICIOS-2.
+ * Reuses the existing dashboard shell
  * (`LeonixDashboardShell`) and the Saved Search 02 Bearer-token API (`app/api/saved-search/**`) —
  * never a direct Supabase table query, since that table's application-layer contract is the API,
  * not RLS-only browser access (see `savedSearchServerCrud.ts`'s header comment on why this table
@@ -29,6 +30,8 @@ import { describeBienesRaicesSavedSearchFacets } from "@/app/lib/saved-search/bi
 import { buildBienesRaicesSavedSearchResultsUrl } from "@/app/lib/saved-search/bienes-raices/bienesRaicesSavedSearchResultsUrl";
 import { describeRentasSavedSearchFacets } from "@/app/lib/saved-search/rentas/savedSearchRentasAdapter";
 import { buildRentasSavedSearchResultsUrl } from "@/app/lib/saved-search/rentas/rentasSavedSearchResultsUrl";
+import { describeServiciosSavedSearchFacets } from "@/app/lib/saved-search/servicios/savedSearchServiciosAdapter";
+import { buildServiciosSavedSearchResultsUrl } from "@/app/lib/saved-search/servicios/serviciosSavedSearchResultsUrl";
 import type { SavedSearchNormalizedInput, SavedSearchRow } from "@/app/lib/saved-search/savedSearchTypes";
 
 type SavedSearchCategoryEntry = {
@@ -57,6 +60,12 @@ const CATEGORY_REGISTRY: Record<string, SavedSearchCategoryEntry> = {
     describeFacets: describeRentasSavedSearchFacets,
     buildResultsUrl: buildRentasSavedSearchResultsUrl,
   },
+  servicios: {
+    label: { es: "Servicios", en: "Services" },
+    browsePath: "/clasificados/servicios/results",
+    describeFacets: describeServiciosSavedSearchFacets,
+    buildResultsUrl: buildServiciosSavedSearchResultsUrl,
+  },
 };
 
 type Lang = "es" | "en";
@@ -79,11 +88,12 @@ function BusquedasGuardadasPageContent() {
       lang === "es"
         ? {
             title: "Búsquedas guardadas",
-            subtitle: "Vuelve fácilmente a tus búsquedas guardadas de Autos, Bienes Raíces y Rentas.",
+            subtitle: "Vuelve fácilmente a tus búsquedas guardadas de Autos, Bienes Raíces, Rentas y Servicios.",
             back: "Volver al resumen",
             browse: "Explorar Autos",
             browseBr: "Explorar Bienes Raíces",
             browseRentas: "Explorar Rentas",
+            browseServicios: "Explorar Servicios",
             loading: "Cargando…",
             empty: "No tienes búsquedas guardadas todavía.",
             emptyHint: "Guarda una búsqueda desde cualquier página de resultados para verla aquí.",
@@ -101,11 +111,12 @@ function BusquedasGuardadasPageContent() {
           }
         : {
             title: "Saved searches",
-            subtitle: "Quickly return to your saved Autos, Real Estate, and Rentals searches.",
+            subtitle: "Quickly return to your saved Autos, Real Estate, Rentals, and Services searches.",
             back: "Back to overview",
             browse: "Browse Autos",
             browseBr: "Browse Real Estate",
             browseRentas: "Browse Rentals",
+            browseServicios: "Browse Services",
             loading: "Loading…",
             empty: "You don't have any saved searches yet.",
             emptyHint: "Save a search from any results page to see it here.",
@@ -241,6 +252,9 @@ function BusquedasGuardadasPageContent() {
                 </Link>
                 <Link href={`/clasificados/rentas/results?${q}`} className={LX_DASH.btnSecondary}>
                   {t.browseRentas}
+                </Link>
+                <Link href={`/clasificados/servicios/results?${q}`} className={LX_DASH.btnSecondary}>
+                  {t.browseServicios}
                 </Link>
                 <Link href={`/dashboard?${q}`} className={LX_DASH.btnSecondary}>
                   {t.back}

@@ -29,6 +29,9 @@ import { ServiciosJustPublishedSuccessBanner } from "@/app/(site)/clasificados/p
 import { SERVICIOS_OFFERS_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
 import { serviciosJsonLd } from "@/app/servicios/seo/serviciosJsonLd";
+import { listRelatedServiciosListings } from "../lib/serviciosRelatedListings";
+import { ServiciosRelatedListingsSection } from "../components/ServiciosRelatedListingsSection";
+import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 
 export const dynamic = "force-dynamic";
 
@@ -112,6 +115,11 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
   const paused = row.listing_status === "paused_unpublished";
   const isPublishedLive = row.listing_status === SERVICIOS_LISTING_STATUS_PUBLISHED && !paused;
   const dbApproved = isPublishedLive ? await listApprovedServiciosReviewsForSlug(slug) : [];
+  // Gate SERVICIOS-2 — related published listings, from the same canonical public reader the
+  // results page uses. Only computed for a live public profile.
+  const related = isPublishedLive
+    ? await listRelatedServiciosListings(row)
+    : { rows: [], matchedByTrade: false };
   const wireMerged = mergeServiciosProfileWithApprovedDbReviews({ ...row.profile_json }, dbApproved);
   wireMerged.identity = { ...wireMerged.identity, leonixVerified: row.leonix_verified === true };
   const profile = resolveServiciosProfile(wireMerged, lang);
@@ -201,11 +209,21 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
     ? serviciosJsonLd({
         name: profile.identity.businessName,
         description: profile.about?.text?.slice(0, 300) || undefined,
-        url: `/clasificados/servicios/${encodeURIComponent(slug)}`,
+        // Gate SERVICIOS-2 — absolute canonical detail URL (was a relative path, unusable as a
+        // schema.org entity `url`). Same value this route declares as `alternates.canonical`.
+        url: `${LEONIX_SITE_ORIGIN}/clasificados/servicios/${encodeURIComponent(slug)}`,
         imageUrl: profile.hero.coverImageUrl,
         telephone: profile.contact.phoneDisplay,
+        // Already privacy-gated by `resolveServiciosProfile` (Gate SERVICIOS-1): a listing whose
+        // owner turned off `showExactAddress` emits no address here either.
         addressText: profile.contact.physicalAddressDisplay,
         websiteUrl: profile.contact.websiteHref,
+        // Real published keyword truth — trade line, city, and the provider's own service titles.
+        categoryLabel: profile.hero.categoryLine,
+        // City is always public-safe: the address privacy contract governs the exact street line,
+        // never the city (`publicCityOrServiceArea` is safe in every branch).
+        areaServed: row.city || wireMerged.contact?.physicalCity || profile.hero.locationSummary,
+        serviceNames: profile.services.map((s) => s.title),
       })
     : null;
 
@@ -231,6 +249,17 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
       ) : (
         <ServiciosProfileView {...profileShellProps} showTopBar={false} />
       )}
+      {/* Gate SERVICIOS-2 — Related Listings, derived from real published rows by shared trade
+          family + location (see serviciosRelatedListings.ts). Only on a live public profile: a
+          paused/pending vitrina must not advertise competitors, and its own page is noindex. */}
+      {isPublishedLive ? (
+        <ServiciosRelatedListingsSection
+          rows={related.rows}
+          matchedByTrade={related.matchedByTrade}
+          lang={lang}
+          browseHref={`/clasificados/servicios/resultados?lang=${lang}`}
+        />
+      ) : null}
     </>
   );
 }

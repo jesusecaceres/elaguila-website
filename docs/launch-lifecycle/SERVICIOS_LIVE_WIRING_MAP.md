@@ -14,10 +14,11 @@ Classification vocabulary (master §14): `LIVE` · `LIVE-SHARED` · `BUILT-NOT-W
 | Gate | Scope | Status |
 |---|---|---|
 | **SERVICIOS-1** | Launch-critical lifecycle repairs (§6.1–6.6, §5.1) | **CLOSED** — see §10 |
+| **SERVICIOS-2** | Discovery + adoption (§5.3–5.6) + cleanup readiness (§4) | **CLOSED** — see §11 |
 
-Everything marked **CLOSED (SERVICIOS-1)** below is implemented on
-`completion/launch-lifecycle-2026-09-09`. Items still marked OPEN are deliberately out of Gate 1
-scope (Saved Search, Related Listings, landing DB adoption, sitemap, scheduler).
+Everything marked **CLOSED (SERVICIOS-1 / SERVICIOS-2)** below is implemented on
+`completion/launch-lifecycle-2026-09-09`. The only items still OPEN are the
+subscription-sweep scheduler (§5.2, a platform decision) and aesthetic work.
 
 ---
 
@@ -56,7 +57,7 @@ LANDING            /clasificados/servicios
                    app/(site)/clasificados/servicios/page.tsx
                      -> landing/ServiciosLandingPage.tsx  ("use client")                       LIVE
                    publish CTA -> /clasificados/publicar/servicios/checkpoint (line 37)
-                   NOTE: this landing renders NO live DB listings (see §5.5)
+                   NOTE: static category navigation by design — no DB read (see §5.5)
   |
 CHECKPOINT         /clasificados/publicar/servicios  -> redirect() -> .../checkpoint            LIVE
                    checkpoint/page.tsx -> ServiciosCheckpointClient.tsx
@@ -231,9 +232,9 @@ ANALYTICS          client  lib/recordServiciosGlobalAnalytics.ts + serviciosCtaI
 | **Community Trust** | `/api/leonix-endorsements`, `leonixEndorsementClient/Server` | hub card + `/dashboard/servicios` (read-only) | **LIVE-SHARED** | PRESERVE |
 | **Save / Like / Share** | `LeonixShareButton`, `ServiciosLikeEngagementCluster`, `recordServiciosGlobalAnalytics` | both profile shells, result cards | **LIVE-SHARED** | none |
 | **Coupons / flyer** | offers module gated by `listing_package_entitlements` (`SERVICIOS_OFFERS_ADDON_PACKAGE_KEY`), rendered by `ServiciosCouponsCard` / `ServiciosPromocionesCard`; server truth enforced in `publish/route.ts` (`enforceServiciosOffersEntitlementServerTruth`) | preview, `[slug]`, dashboard shortcut | **LIVE** | none |
-| **Saved Search** | `app/lib/saved-search/*` — engine + `SavedSearchButton` + adapters for **autos, bienes-raices, rentas** only | **ZERO servicios references** | **BUILT-NOT-WIRED** | ADOPT (§7 G-5) |
-| **Related Listings** | No shared engine exists. Per-category readers only (`EnVentaRelatedRail`, `RelatedDealerCars`, `BrRelatedAgentPropertiesSection`) | **NONE**; `ownerEntityCapabilityRegistry` already declares `relatedListings: "unsupported"` for servicios | **absent** | NEW CODE (§7 N-2) |
-| **SEO** | `serviciosJsonLd.ts`, `PREVIEW_NOINDEX_METADATA`, `leonixDiscoveryContracts` | `[slug]/layout.tsx` (canonical + noindex states) and `[slug]/page.tsx` (JSON-LD) | **LIVE** | sitemap omits detail URLs (§5.6) |
+| **Saved Search** | `app/lib/saved-search/*` — shared engine + `SavedSearchButton`, now with a **servicios** adapter alongside autos/bienes-raices/rentas | `resultados/page.tsx` (CTA), `savedSearchServiciosAdapter`, `serviciosSavedSearchResultsUrl`, `savedSearchServiciosMatcher`, `serviciosSavedSearchMatchOrchestrator`, `serviciosSavedSearchDeliveryResolver`, dashboard `CATEGORY_REGISTRY`, delivery `CATEGORY_RESOLVERS` | **LIVE-SHARED** | done (§11) |
+| **Related Listings** | No shared engine exists (by design). Per-category readers only — `EnVentaRelatedRail`, `RelatedDealerCars`, `BrRelatedAgentPropertiesSection`, and now `serviciosRelatedListings` | `lib/serviciosRelatedListings.ts` + `components/ServiciosRelatedListingsSection.tsx`, rendered by `[slug]/page.tsx` on live public profiles only | **LIVE** (category reader, no new ranking engine) | done (§11) |
+| **SEO** | `serviciosJsonLd.ts`, `PREVIEW_NOINDEX_METADATA`, `leonixDiscoveryContracts`, `app/sitemap.ts` | `[slug]/layout.tsx` (canonical + noindex states), `[slug]/page.tsx` (absolute-URL JSON-LD with real trade/city/service keywords), `app/sitemap.ts` (published detail URLs) | **LIVE** | done (§11) |
 | **Analytics** | `listing_analytics` canonical + `selfEngagementGuard` | ops table + mirror + admin canonical reader (Servicios is the only category with a dedicated admin analytics reader) | **LIVE-SHARED** | none |
 | **Dashboard / Admin** | `LeonixDashboardShell`, `OwnerEntityWorkspace`, `ownerEntityCapabilityRegistry`, admin workspace chrome | `/dashboard/servicios`, `/admin/workspace/clasificados/servicios` | **LIVE-SHARED** | none |
 | **Revenue OS / Stripe / entitlement** | `revenueCategoryCheckout*`, `revenuePricingMatrix`, `revenueStripe`, `revenueWebhook`, `revenueFulfillment`, `revenueServiciosFulfillment`, `stripeEventLedger`, `revenueActiveEntitlementGuard` | preview checkout → webhook → activation | **LIVE-SHARED** | none |
@@ -371,29 +372,121 @@ plus write-time guards do reconcile subscriptions. But `/api/revenue-os/admin/su
 `vercel.json`, no cron route, and no `pg_cron` anywhere in the repo. The route's own header says so.
 A lapsed Servicios subscription is only caught if Stripe happens to deliver an event.
 
-### 5.3 Saved Search not offered on Servicios results — **P2**
-Engine, CRUD, fingerprinting, email delivery and `SavedSearchButton` all exist; adapters exist for
-autos, bienes-raices and rentas. Zero servicios references. Servicios results already produce a
-canonical, fully-parameterized query string — the adapter has a clean input.
+### 5.3 Saved Search not offered on Servicios results — **P2 — CLOSED (SERVICIOS-2)**
+**Was:** engine, CRUD, fingerprinting, email delivery and `SavedSearchButton` all existed with
+adapters for autos, bienes-raices and rentas; zero servicios references.
 
-### 5.4 Related Listings absent on the public vitrina — **P2**
-No related reader for Servicios, and `ownerEntityCapabilityRegistry` already declares it
-`unsupported` — the registry is honest, not broken. No business-profile-shaped shared engine exists
-to adopt; the closest reference shape is `EnVentaRelatedRail`.
+**Now:** Servicios plugs into the same shared engine. No Servicios-specific saved-search engine was
+created — the new files are category translation only (the verifier asserts the adapter contains no
+hashing, no `saved_searches` query and no Supabase client).
 
-### 5.5 The Servicios landing renders no live listings — **P2**
-`clasificados/servicios/page.tsx` declares `export const dynamic = "force-dynamic"` and carries the
-comment *"Marketplace landing must always reflect current `servicios_public_listings`"*, but
-`ServiciosLandingPage.tsx` is a `"use client"` component that performs **no DB read**. The two
-components that would have rendered real rows (`FeaturedBusinessSection`, `RecentServicesSection`)
-are zero-consumer (§4.4). Discovery works — it just happens entirely at `/results`. The comment and
-the `force-dynamic` directive are stale relative to the runtime.
+| Piece | File |
+|---|---|
+| Filter ↔ normalized translation | `app/lib/saved-search/servicios/savedSearchServiciosAdapter.ts` |
+| Results-URL rebuild | `.../serviciosSavedSearchResultsUrl.ts` |
+| Eligibility (branded type) | `.../serviciosPublicEligibleListing.ts` |
+| Matcher | `.../savedSearchServiciosMatcher.ts` |
+| Match orchestrator | `.../serviciosSavedSearchMatchOrchestrator.ts` |
+| Delivery resolver | `.../serviciosSavedSearchDeliveryResolver.ts` |
+| Results CTA | `resultados/page.tsx` → shared `SavedSearchButton` |
+| Owner dashboard | `dashboard/busquedas-guardadas/page.tsx` `CATEGORY_REGISTRY` |
+| Email delivery | `delivery/savedSearchEmailDelivery.ts` `CATEGORY_RESOLVERS` |
+| DB | `supabase/migrations/20260910120000_saved_search_match_events_servicios.sql` |
 
-### 5.6 Sitemap omits per-listing detail URLs — **P2 (platform-wide)**
-`app/sitemap.ts` emits category hubs and marketing paths only; its header documents that safely
-enumerating publishable rows needs a DB-backed generator, deferred. Published Servicios vitrinas are
-therefore not in the sitemap, though each one does carry a correct canonical and correct
-`noindex` for non-public states.
+Filter truth is exact: the CTA passes the results page's **own** `filterQuery`, and the matcher runs
+the **same three functions in the same order** the results page runs
+(`filterServiciosPublicListingRows` → `filterServiciosRowsByKeyword` → `filterServiciosRowsBySeller`).
+`sort`/`page`/`perPage` are deliberately excluded from the fingerprint (presentation, not
+inclusion), and `seller=all` is treated as no filter. `minPrice`/`maxPrice` are truthfully `null` —
+Servicios has no price filter at all.
+
+**Two boundaries found and handled honestly:**
+1. `saved_search_match_events.category` / `saved_search_processing_failures.category` carried a
+   `CHECK (category IN ('autos','bienes-raices','rentas'))`. Widened by the migration above,
+   following `20260819150000`'s own documented pattern. `seller_lane` likewise widened to accept
+   Servicios' real vocabulary (`business`/`independent`, the return type of
+   `inferServiciosSellerPresentation`) rather than forcing a false uniformity.
+2. The shared `SavedSearchDeliveryCategoryResolver.buildDetailUrl` was **synchronous**, but the
+   Servicios canonical URL is slug-addressed and must be read from the row. Return type widened to
+   `string | Promise<string>` and the single call site now awaits it — Autos/BR/Rentas still return
+   a plain string and are untouched.
+
+### 5.3b Saved Search match delivery trigger — **wired**
+`revenueFulfillment.tryActivateServiciosListingAfterEntitlement` fires
+`triggerServiciosSavedSearchMatchBestEffort` after a real `pending_payment → published` activation
+(guarded on `outcome === "activated"`, so a re-delivered webhook cannot re-fire). Same
+never-throws, strictly-after-commit contract as the Autos/BR/Rentas call sites.
+
+### 5.4 Related Listings absent on the public vitrina — **P2 — CLOSED (SERVICIOS-2)**
+**Was:** no related reader for Servicios. There is no shared related-listings engine on the platform
+(confirmed again this gate: `EnVentaRelatedRail` on HEAD is still the decorative zero-fetch stub —
+the real fetch version exists only on the sealed branch), so every category ships its own reader.
+
+**Now:** `lib/serviciosRelatedListings.ts` + `components/ServiciosRelatedListingsSection.tsx`,
+rendered by `[slug]/page.tsx` **only when `isPublishedLive`** (a paused/pending vitrina must not
+advertise competitors, and its own page is noindex).
+
+- Candidates come from `listServiciosPublicListingsRaw` — the **same canonical published reader the
+  results page uses**, already published-only and already in discovery order. No bespoke query.
+- Relationships are the category's real facets: `internal_group` (the same trade family the results
+  `group=` filter matches and the landing's "Explora por giro" cards link into) and location,
+  normalized with the **same helpers the results filter uses** (`normalizeServiciosSearchText` for
+  city, `normalizeLeonixLbStateCode` for state).
+- Scoring is a 4-tier explicit rule, not a tuned model: same trade + same city (4) > same trade +
+  same state (3) > same trade (2) > same city (1) > **excluded (0)**. A shared state *alone* is
+  deliberately not a relationship.
+- **No fabrication:** nothing relevant → empty list → the section renders a real browse link into
+  `/resultados` instead of filler rows. The verifier asserts no `Math.random`/placeholder/sample.
+- **Not an ad slot:** the reader deliberately does not consult
+  `resolveCanonicalVisibilityBucketWeights` — relatedness is editorial.
+- Rendering reuses the existing `ServiciosHorizontalResultCard` (`density="compact"`). No card
+  redesign, per this gate's scope.
+
+`ownerEntityCapabilityRegistry` still declares `relatedListings: "unsupported"` for the **owner
+dashboard** entity workspace — that is a different surface (owner tooling, not the public vitrina)
+and remains accurate.
+
+### 5.5 The Servicios landing declared a data contract it did not have — **P2 — CLOSED (SERVICIOS-2)**
+**Was:** `clasificados/servicios/page.tsx` declared `export const dynamic = "force-dynamic"` under
+the comment *"Marketplace landing must always reflect current `servicios_public_listings`"*, while
+`ServiciosLandingPage.tsx` is a `"use client"` component that performs **no DB read**. The route was
+paying a per-request dynamic render to display nothing dynamic.
+
+**Traced intent first, as instructed.** Every section of the live landing is navigation or
+marketing — search panel, "Explora por giro" trade cards, trust shortcuts, publisher/visibility
+copy — and every one routes into `/clasificados/servicios/results`, where the real
+`servicios_public_listings` pipeline (filter → entitlement overlay → visibility ranking) actually
+runs. The two components that would have rendered live rows (`FeaturedBusinessSection`,
+`RecentServicesSection`) are zero-consumer (§4.4). **Its product role is legitimately static
+category navigation**, and live data is one deliberate navigation step away.
+
+**Smallest truthful repair applied:** the false `force-dynamic` + data claim was removed and
+replaced with an explicit contract note; **no query was added**, because the page has no surface to
+render one. The `<Suspense>` boundary stays (it is what lets the client `useSearchParams()` read
+language/search state under a static shell). The note records that reinstating a live Featured/
+Recent rail is what would reintroduce the data dependency — and must reinstate a dynamic contract
+with it.
+
+### 5.6 Sitemap omitted per-listing detail URLs — **P2 — CLOSED for Servicios (SERVICIOS-2)**
+**Was:** `app/sitemap.ts` emitted category hubs and marketing paths only, its header deferring
+per-listing URLs until "a dedicated DB-backed sitemap generator" existed.
+
+**Now:** that generator is what a category's own safety-gated reader already is — **Recursos had
+already proved the platform mechanism** (a DB-backed section composed in `app/sitemap.ts` itself,
+not in the pure contract). `serviciosSitemapEntries()` applies the same pattern to published
+Servicios vitrinas:
+- sourced from `listServiciosPublicListingsRaw` — published-only, so paused / pending-review /
+  pending-payment / rejected / suspended rows can never be advertised;
+- emits the canonical `/clasificados/servicios/[slug]`, never the robots-disallowed legacy
+  `/servicios/perfil/[slug]` shim (verifier asserts this against comment-stripped code);
+- `lastModified` from the row's real `updated_at`/`published_at`;
+- wrapped in try/catch — one unavailable DB section can never fail the whole sitemap route;
+- capped at the reader's real 800-row ceiling, stated honestly rather than implying more.
+
+`leonixSitemapOmitsPerListingDetailUrls()` is **unchanged and still returns `true`** — the LEO
+discovery sensor asserts it. Its docstring now records the scope precisely: it is a fact about the
+pure `buildLeonixSitemap` contract, which still emits hubs/marketing only; DB-backed sections are
+composed on top in the route module.
 
 ### 5.7 Dashboard lifecycle surface is pause/resume only — **P3, honest**
 `ownerEntityCapabilityRegistry` declares `republish`, `renew`, `archive` as `unsupported` for
@@ -710,6 +803,105 @@ Carry into the integration gate:
    fail-closed manual-entry mode and no suggestion has ever been exercised against the live
    provider. Provider-backed verification remains `BLOCKED_EXTERNAL` until that key is configured —
    the contract, the fail-closed path and manual entry are all proven.
+
+---
+
+## 11. GATE SERVICIOS-2 — IMPLEMENTATION EVIDENCE
+
+Branch `completion/launch-lifecycle-2026-09-09`, one coherent commit on top of `849b45ea`. Not
+pushed. `main` untouched. **Nothing from §4 was deleted.**
+
+### Files changed (10 modified, 9 new)
+
+**New — Servicios adapters into existing shared engines (no new global engine)**
+
+| File | Role |
+|---|---|
+| `app/lib/saved-search/servicios/savedSearchServiciosAdapter.ts` | filter ↔ normalized translation + dashboard facet summary |
+| `app/lib/saved-search/servicios/serviciosSavedSearchResultsUrl.ts` | rebuild a real results URL from a saved search |
+| `app/lib/saved-search/servicios/serviciosPublicEligibleListing.ts` | branded published-only eligibility type |
+| `app/lib/saved-search/servicios/savedSearchServiciosMatcher.ts` | reuses the live results filter pipeline verbatim |
+| `app/lib/saved-search/servicios/serviciosSavedSearchMatchOrchestrator.ts` | durable best-effort match ledger writer |
+| `app/lib/saved-search/servicios/serviciosSavedSearchDeliveryResolver.ts` | eligibility revalidation + canonical detail URL |
+| `app/(site)/clasificados/servicios/lib/serviciosRelatedListings.ts` | related reader (trade family + location) |
+| `app/(site)/clasificados/servicios/components/ServiciosRelatedListingsSection.tsx` | rail using the existing result card |
+| `supabase/migrations/20260910120000_saved_search_match_events_servicios.sql` | widen ledger CHECKs for `servicios` |
+| `scripts/verify-servicios-gate2-discovery.ts` | this gate's verifier |
+
+**Modified**
+
+| File | Change |
+|---|---|
+| `clasificados/servicios/resultados/page.tsx` | mount shared `SavedSearchButton` with the page's own `filterQuery` |
+| `clasificados/servicios/[slug]/page.tsx` | related listings (live-only) + absolute-URL JSON-LD with real keywords |
+| `clasificados/servicios/page.tsx` | remove the false `force-dynamic`/live-data contract |
+| `servicios/seo/serviciosJsonLd.ts` | absolute `url` doctrine + `additionalType` / `areaServed` / `makesOffer` |
+| `app/sitemap.ts` | Servicios published-detail section; corrected stale header claim |
+| `lib/seo/leonixDiscoveryContracts.ts` | scope-clarify `leonixSitemapOmitsPerListingDetailUrls` (value unchanged) |
+| `lib/saved-search/delivery/savedSearchDeliveryCategoryResolver.ts` | `buildDetailUrl` → `string \| Promise<string>` |
+| `lib/saved-search/delivery/savedSearchEmailDelivery.ts` | register servicios resolver; `await buildDetailUrl` |
+| `dashboard/busquedas-guardadas/page.tsx` | `CATEGORY_REGISTRY` + browse link + bilingual copy |
+| `lib/listingPlans/revenueFulfillment.ts` | fire the match trigger on real activation |
+
+### Discovery-circuit proof (verifier check 6)
+
+```
+published row        listServiciosPublicListingsRaw (published-only)
+  -> results         filterServiciosPublicListingRows -> ByKeyword -> BySeller
+  -> Saved Search    SavedSearchButton(serviciosFilterQueryToSavedSearch(filterQuery))
+                     -> shared fingerprint/CRUD -> dashboard -> rebuilt results URL
+                     -> activation trigger -> ledger -> email -> canonical detail URL
+  -> public detail   getServiciosPublicListingBySlugForDiscovery
+  -> Related         listRelatedServiciosListings (same reader, trade family + location)
+  -> canonical SEO   alternates.canonical + absolute-URL JSON-LD + sitemap entry
+```
+
+### Validation
+
+| Check | Result |
+|---|---|
+| `scripts/verify-servicios-gate2-discovery.ts` | **19/19 PASS** — includes real adapter round-trip, fingerprint order/sort independence, eligibility rejection of all five non-published statuses, and JSON-LD omission behaviour |
+| `scripts/verify-servicios-gate1-lifecycle.ts` | **20/20 PASS** — no Gate 1 regression |
+| ESLint over the full Gate 2 changed scope | **0 errors, 0 warnings** |
+| TypeScript / build | **DEFERRED TO INTEGRATION GATE** (machine-wide resource lock; see below) |
+
+### Cleanup readiness — §4 dead paths re-verified, nothing deleted
+
+Re-proved this gate by walking every `.ts/.tsx/.mjs` under `app/`, `scripts/`, `e2e/`, `tests/` and
+matching real import specifiers (the dead island's own internal imports excluded):
+
+| Path group | Zero-import proof | Route proof | Safe to remove after Servicios completion? |
+|---|---|---|---|
+| `servicios/publicar/{components,hooks,lib}`, `serviciosCategories.ts`, `serviciosPublicarCopy.ts` | 0 live importers | not routes | **YES** — but keep `servicios/publicar/page.tsx`, a live redirect shim |
+| `servicios/perfil/preview/{page,layout,ServiciosPreviewClient}.tsx` | 0 live importers | **IS a reachable route** (`page.tsx`), robots-disallowed via `/servicios/perfil` | **YES, with a routing decision** — removing it removes a live URL; decide 410 vs redirect |
+| `servicios/data/{demoServiciosBusinessProfile,serviciosApplicationDraftSamples}.ts` | 0 live importers | n/a | **YES** |
+| `servicios/lib/{serviciosDraftStorage,serviciosDraftParse}.ts` | 0 live importers | n/a | **YES** — only the dead island referenced them |
+| 14 dead `servicios/components/*` (incl. `ServiciosHeroActions`, with its own localStorage fork) | 0 live importers | n/a | **YES** — but `serviciosHeroHoursStatus.ts` is **LIVE**, do not sweep it with the folder |
+| 12 dead `clasificados/servicios/landing/*` | 0 live importers | n/a | **YES** — note `FeaturedBusinessSection`/`RecentServicesSection` are the components §5.5 would need if a live rail is ever reinstated |
+| `resultados/page_temp.tsx` | 0 live importers | **not a route** (Next routes only `page.tsx`) | **YES** — pure scratch file inside the App Router tree |
+| `ServiciosListingResultCard`, `analytics/serviciosAnalytics`, `shell/ServiciosPreviewCard`, `shared/fields/serviciosTaxonomy`, `shared/mapping/serviciosTier`, `components/ServiciosDestacado*`, `lib/serviciosDiscoveryContract`, `lib/serviciosLandingPublicMappers`, `lib/serviciosResultsRanking`, `ServiciosPublishModal`, `serviciosCustomAmenityOptions`, `serviciosPromoPdfUi` | 0 live importers | n/a | **YES** |
+
+Re-verified by the Gate 2 verifier itself (check 7a/7b), so the cleanup gate starts from a proof
+that is re-runnable rather than a snapshot.
+
+### Not done in this gate (by instruction)
+
+Subscription-sweep scheduler (§5.2), owner-browser QA, and all aesthetic work. Community Trust,
+Google/Yelp, Business Hub, PWA, Application and Preview were not redesigned — Gate 2 touched the
+Application/Preview surface **not at all**.
+
+### Deferred to the integration gate
+
+1. `npm run typecheck` — not attempted; the machine is under a hard multi-worktree resource lock and
+   this repo's `tsc` exhausted the V8 heap in Gate 1 even when scoped.
+2. `npm run build` — not attempted, same reason.
+3. **`supabase/migrations/20260910120000_saved_search_match_events_servicios.sql` has not been
+   applied anywhere.** Until it runs, a Servicios match-event insert is rejected by the existing
+   CHECK constraint. The orchestrator degrades safely (the write failure is recorded, never thrown),
+   and the save/list/dashboard half of Saved Search works without it — but **match emails will not
+   deliver until the migration is applied**.
+4. Owner-browser QA of the discovery circuit, especially: save a filtered Servicios search → confirm
+   it appears in `/dashboard/busquedas-guardadas` → reopen it → confirm the same result set.
 
 ---
 
