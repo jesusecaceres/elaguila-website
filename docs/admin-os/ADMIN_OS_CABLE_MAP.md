@@ -852,3 +852,58 @@ a deployment/data action, not a code change — not performed by this pass.
   found and fixed once for `/admin/system-health` in the prior V2 audit pass — worth remembering
   as a recurring failure mode: adding a route to the SIDEBAR array alone is not sufficient, the
   permission-filter functions must be updated in the same change).
+
+---
+
+## SYSTEM: Executive Hub / Staff Contact Profile — updated: staff self-service, real FK linkage
+
+Updates the Executive Hub cable-map entry from the prior V2 audit pass now that staff self-service
+exists (Master Operating Book V2 §0G).
+
+- **NEW CANONICAL LINKAGE**: `executives.linked_roster_id uuid REFERENCES admin_team_members(id)
+  ON DELETE SET NULL` (`supabase/migrations/20260910120000_executives_linked_roster_id.sql`,
+  additive, nullable, NOT applied remotely). A partial unique index
+  (`executives_linked_roster_id_uidx WHERE linked_roster_id IS NOT NULL`) prevents the same
+  roster member being linked to two different executive profiles. This is the first real,
+  FK-based relationship between `admin_team_members` (login/roster identity) and `executives`
+  (public contact profile) — previously these were two fully disconnected identity systems joined
+  only informally by a human typing the same email into both, confirmed absent in the prior pass.
+- **PRE-MIGRATION SAFETY**: every existing read/write path against `executives`
+  (`dbListExecutiveHubRecords`, `dbGetExecutiveHubRecord`, `dbGetPublishedExecutiveProfile`,
+  `dbCreateExecutiveHubRecord`, `dbUpdateExecutiveHubRecord`) now requests `linked_roster_id`
+  first and gracefully retries without it on an unknown-column error — the same pattern already
+  proven for `admin_audit_log`'s actor columns. The live public `/contact/[slug]` page is
+  unaffected either before or after the migration is applied.
+- **NEW STAFF-FACING ADMIN ROUTE**: `/admin/team/my-profile` — staff self-service, reachable by
+  any authenticated Admin user (any role, including sales_rep — already covered by
+  `isStaffSalesAllowedAdminPath`'s existing `/admin/team/*` prefix). Resolves the caller's
+  identity via `resolveActingRosterIdentity()` and their linked profile via
+  `getExecutiveHubRecordByRosterId()`; renders the self-service `ExecutiveHubForm` (`mode="self"`)
+  only when both resolve, otherwise an honest explanatory message — never a form it cannot save.
+- **NEW SERVER ACTION**: `app/admin/executiveHubSelfServiceActions.ts` —
+  `updateOwnExecutiveHubProfileAction`. The actual security boundary: resolves identity
+  server-side only, reads an explicit allow-list of safe field names from FormData, and writes via
+  the existing `updateExecutiveHubRecord()` store function scoped to the caller's own resolved
+  slug. Never reads a client-supplied slug/id/executiveId. See ADMIN_OS_PROGRESS.md's "STAFF
+  SELF-SERVICE EXECUTIVE HUB PROFILE" section for the full security argument and the 7 required
+  properties this satisfies.
+- **ADMIN_WRITE_CAPABILITY, updated**: owner_admin retains full write capability over every field
+  (unchanged). A staff member whose profile is linked (`linked_roster_id` set by an owner) may
+  additionally self-edit exactly: preferredName, title, bio, phone, whatsapp, email, socials,
+  theme, photo. Every other field (slug, status, company, legalEntity, address, website, logo,
+  cover, businessHubLink, connectionHubLink, workingHours, trustChips, languages, notes,
+  metaDescription, and the linked_roster_id assignment itself) remains owner_admin-only.
+- **ADMIN_GUIDE_ENTRY, updated**: `executive-hub` entry revised to describe the owner-management
+  surface accurately post-linkage; new dedicated `my-profile` entry added for the staff-facing
+  side. Both entries cross-reference each other and the real `/contact/[slug]` public route.
+- **COMPANY_SEARCH_SUPPORT**: still NO — unchanged from the prior pass's documented gap. This
+  gate's scope was authorization/profile wiring, not search indexing; explicitly the next
+  recommended gate.
+- **MISSING_ADMIN_CONTROL, closed this pass**: "staff cannot edit their own Executive Hub contact
+  profile from anywhere" (flagged in the prior V2 audit pass) is now closed for the edit case.
+  Self-service profile CREATION remains a genuine, separate, not-yet-built capability — a staff
+  member can only edit a profile an owner has already created and linked.
+- **KNOWN_BROKEN_OR_SPLIT_WIRING**: none found or introduced.
+- NOTES: 20/20 targeted security checks pass (`verify:executive-hub-self-service`, new script);
+  `verify:admin-nav-ops` (75/75) and `verify:admin-roster-foundation` (32/32, same 1 pre-existing
+  unrelated failure as every prior pass) both re-confirmed unaffected.

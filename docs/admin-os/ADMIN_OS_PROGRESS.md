@@ -1790,3 +1790,173 @@ stays stable, new chapters are one array entry.
 **LOCAL_WORK_REMAINING_FOR_V2: YES** — staff self-edit profile route and Company Search coverage
 of `executives` remain open, both already documented as deliberate, correctly-scoped deferrals in
 this and the prior pass, not silently dropped.
+
+---
+
+## STAFF SELF-SERVICE EXECUTIVE HUB PROFILE
+
+Closes the "staff self-edit profile route" gap named at the end of the Admin Guide pass. Focused
+authorization + profile wiring only — Executive Hub itself, the public `/contact/[slug]` page, and
+Team were not redesigned; no second staff dashboard was created.
+
+### Identity investigation (before writing any code)
+
+Confirmed via direct schema read (`supabase/migrations/20260810120000_executive_hub_executives.sql`)
+that `public.executives` has genuinely no trustworthy relationship to any staff identity —
+`email` is a plain, non-unique `text` column, not a foreign key. Per this gate's own identity_rule,
+an email-only runtime authorization shortcut was correctly rejected. The smallest durable canonical
+linkage was identified: `executives.linked_roster_id uuid references admin_team_members(id)`,
+nullable, set only by an owner_admin. This required a genuinely additive migration — created
+locally, NOT applied remotely, per the gate's own scope control.
+
+### Migration: `20260910120000_executives_linked_roster_id.sql`
+
+Purely additive: one nullable `ADD COLUMN IF NOT EXISTS linked_roster_id uuid REFERENCES
+admin_team_members(id) ON DELETE SET NULL` (never CASCADE — deleting a staff account must not
+delete or orphan their public contact page, it simply becomes unlinked/owner-only again), plus a
+partial unique index preventing the same roster member from being linked to two different
+executive profiles at once. No existing row or column touched.
+
+**Every read/write path against `executives` was made pre-migration-safe**, mirroring the exact
+retry-without-the-new-column pattern already proven for `admin_audit_log`'s actor attribution
+(`adminAuditLogServer.ts`): `dbListExecutiveHubRecords`, `dbGetExecutiveHubRecord`,
+`dbGetPublishedExecutiveProfile` (the live public `/contact/[slug]` read path),
+`dbCreateExecutiveHubRecord`, and `dbUpdateExecutiveHubRecord` all request `linked_roster_id`
+first and gracefully retry without it on an unknown-column error — so nothing breaks, including
+the public page, before the owner approves applying the migration. `dbGetExecutiveHubRecordByRosterId`
+(the new self-service lookup) is the sole exception, and deliberately so: pre-migration it
+correctly returns the same honest `null` a genuinely unlinked profile would — the caller (a
+staff member) cannot and should not be able to tell "not linked yet" apart from "not enabled yet."
+
+### Server-side identity resolution — the actual security boundary
+
+`app/admin/executiveHubSelfServiceActions.ts`'s `updateOwnExecutiveHubProfileAction` resolves the
+caller via `resolveActingRosterIdentity()` (`adminRosterAudit.ts`) — the same, already-proven
+function `writeRosterAuditLog()` uses — never from anything in the request body. This one reuse
+closes three of the gate's seven required security properties for free, by construction, not by
+new code:
+- **Inactive/non-roster staff blocked**: `resolveActingRosterIdentity()` already checks
+  `is_active` and returns `null` for any inactive or non-existent roster row.
+- **Bootstrap never broadened into a fake staff identity**: confirmed by direct trace that
+  `resolveActingRosterIdentity()` reads ONLY the `LEONIX_ADMIN_OPERATOR_EMAIL_COOKIE`/
+  `LEONIX_ADMIN_AUTH_USER_ID_COOKIE` session cookies (never the `ADMIN_OPERATOR_EMAIL` env
+  fallback `adminAccessControl.ts`'s own broader resolution uses), and that
+  `/admin/login/submit/route.ts` (bootstrap) calls `applyLeonixAdminSessionCookies(res, {
+  bootstrap: true })` **without** ever passing `operatorEmail`/`authUserId` — only the real
+  Staff/Team email+password login (`/admin/login/auth/route.ts`, `bootstrap: false`) sets those
+  two cookies. A pure bootstrap session therefore cannot resolve an identity here.
+- **No cross-staff bypass**: the target row is looked up exclusively via
+  `getExecutiveHubRecordByRosterId(actor.rosterId)` — `actor.rosterId` is a value the caller
+  cannot set (it comes from the DB row matched to their own session's real email), and the action
+  never reads any slug/id/executiveId field from FormData at all — there is no parameter to tamper
+  with.
+
+The action additionally allow-lists the ONLY field names it will ever read from FormData
+(`preferredName, title, bio, phoneDisplay, phoneDigits, whatsappDigits, email, photoPath, socials,
+theme`) — every governance/identity field (`status, slug, company, legalEntity, address*, website,
+businessHubLink, connectionHubLink, workingHoursJson, notes, metaDescription, trustChips,
+languages, linkedRosterId` itself) is never parsed here regardless of what a crafted request might
+include. Hiding those fields in the UI is a courtesy; this allow-list is the actual boundary.
+
+### Field classification
+
+**SELF_EDITABLE** (matches the task's own "safe personal-profile fields" list almost verbatim):
+`preferredName` (display name shown), `title`, `bio`, `phoneDisplay`/`phoneDigits`,
+`whatsappDigits`, `email` (public contact email), `socials` (6 platforms), `theme`, `photoPath`
+(headshot only).
+
+**OWNER_ONLY** (everything else, deliberately conservative — kept the self-service surface to
+exactly what the task named, not expanded): `fullName` (identity-adjacent, shown read-only for
+context on the self-service page), `slug`, `status` (publishing state), `company`, `legalEntity`,
+`address` (all fields), `website`, `logoPath`, `coverPath`, `businessHubLink`, `connectionHubLink`,
+`workingHours`, `trustChips`, `languages`, `notes` (internal), `metaDescription`, and the
+`linkedRosterId` assignment itself.
+
+### UI reuse — one form, one new mode, not a duplicate editor
+
+`ExecutiveHubForm.tsx` gained a third `mode: "self"` alongside the existing `"create"`/`"edit"`.
+In self mode: the Company, Business Hub, Availability, and Publishing sections do not render at
+all (not just disabled); `fullName` renders as read-only context text instead of an input; the
+`languages`/`trustChips`/`website` fields and the owner's `linked_roster_id` selector are omitted;
+no hidden `slug` field is rendered at all (the self-service action never needs or reads one). Every
+other section (Identity's preferredName/title/bio, Contact minus website, all of Social, Theme,
+Images' headshot upload) renders and submits exactly as it does for an owner — same components
+(`PhoneInput`, `ExecutiveHubAssetUpload`), same validation, same upload handling. This satisfies
+"reuse... existing form... with a self-service mode" rather than building a parallel editor.
+
+New route `/admin/team/my-profile` (`MyExecutiveProfilePage`) is reachable by any authenticated
+Admin user (the dashboard layout already enforces login) and does its own identity/profile
+resolution to decide what to render: an honest "we could not confirm your staff identity" message,
+an honest "no profile is linked to your account yet — ask an owner" message, or the self-service
+form — never a form it could not actually save. Added to `StaffTeamNav.tsx`'s always-visible item
+list (not gated behind `showRosterLink`) as "My Profile," reachable by every role including
+sales_rep (already allowed under `/admin/team/*` by `isStaffSalesAllowedAdminPath`'s existing
+prefix check — no change needed there). A "View my public page →" link goes straight to the real
+`/contact/[slug]` route once a profile is linked — the owner-gated Live Preview panel
+(`/admin/team/executive-hub/[slug]/preview`) was deliberately NOT reused here, since it requires
+`requireAdminTeamAccess` (owner_admin) and embedding it would have created a dead link for staff.
+
+### Owner side — additive, capability unchanged
+
+Owner's edit page (`[slug]/edit/page.tsx`) gained a new "Link to staff account (self-service)"
+select in the Identity section (owner-only, hidden in create mode — linking happens after a
+profile exists), populated by a new small read-only helper
+`listActiveRosterMembersForExecutiveLink()` (bounded to 200 active roster rows, id/email/display
+name only — no permissions or secrets exposed). `createExecutiveHubAction`/`updateExecutiveHubAction`
+already accepted a generic patch object, so wiring `linkedRosterId` through only required adding
+one field to `readCommonFields()` — every existing owner capability (create, edit every field
+including the ones now hidden from staff, publish/suspend/archive, preview) is unchanged and still
+gated by the same `assertExecutiveHubAdmin()`/`requireAdminTeamAccess` checks as before this pass.
+
+### Audit attribution
+
+`updateOwnExecutiveHubProfileAction` calls the existing `appendAdminAuditLog()` with the real
+resolved `actor.email`/`actor.rosterId` on every successful self-service save
+(`action: "executive_hub_self_profile_updated"`) — reuses the same best-effort, never-fabricated
+attribution mechanism built in the prior release-validation pass. No parallel audit system was
+created.
+
+### Targeted security verification — new script, 20/20 checks pass
+
+`scripts/verify-executive-hub-self-service-01.ts` (registered as `npm run
+verify:executive-hub-self-service`), same hand-rolled `node:assert` convention as every other
+`verify-*.ts` in this repo. Proves, from source, all 7 of the gate's required properties plus 3
+migration-safety checks:
+1–2. No client-suppliable slug/id/executiveId is ever read by the self-service action; the only
+   write target is resolved via `getExecutiveHubRecordByRosterId(actor.rosterId)`.
+3. `readSelfServiceFields()` contains only the allow-listed safe fields; the action's source
+   (comments stripped) never contains a `str(formData, "<forbidden field>")` call for any of the
+   14 owner-only field names, and never mentions `linkedRosterId` in real code at all.
+4. `resolveActingRosterIdentity()`'s exact `is_active` guard clause is present and unchanged.
+5. The owner action file's create/update/status actions remain gated by `assertExecutiveHubAdmin()`;
+   the owner editor still renders every owner-only section.
+6. `dbGetPublishedExecutiveProfile` still reads the same table via the same row mapper, with the
+   new pre-migration fallback; `rowToDigitalContactProfile` (the public shape) never exposes
+   `linked_roster_id`.
+7. `resolveActingRosterIdentity()` never falls back to the env var; the bootstrap login route
+   never sets the two identity cookies; the real login route always does.
+
+Plus 3 migration checks: purely additive (no DROP/ALTER COLUMN/TRUNCATE/DELETE), correct nullable
+FK with `ON DELETE SET NULL`, and the partial unique index's exact shape.
+
+Also re-ran `verify:admin-nav-ops` (75/75, unchanged — `/admin/team/my-profile` is not a primary
+nav item so this was a pure regression check) and `verify:admin-roster-foundation` (32/32 the
+gate's own checks still pass, same 1 pre-existing unrelated July-migration failure as every prior
+pass, unchanged by this gate's work).
+
+### Deferred to a future gate, not built here
+
+- **Executive Hub / staff contact profiles → Company Search coverage** — unchanged from the prior
+  pass's documented gap; this gate's scope was self-service authorization, not search indexing.
+  This is explicitly the next recommended gate.
+- **Self-service profile CREATION** — a staff member can only edit a profile an owner already
+  linked; self-creation was deliberately out of scope (would need new slug-uniqueness/creation
+  authorization logic, not the smallest safe path).
+- Remote application of `20260910120000_executives_linked_roster_id.sql` — owner approval
+  required, not performed.
+
+### Final status
+
+**STAFF_SELF_SERVICE_PROFILE_GATE: CLOSED** for the scope this gate defined (edit an already-linked
+profile's safe fields). Self-service profile creation and Company Search coverage remain open,
+correctly classified as separate, deliberately deferred gates — not silently dropped.

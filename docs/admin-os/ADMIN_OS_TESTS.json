@@ -786,5 +786,72 @@
     "verificationRun": "verify:admin-nav-ops (75 checks, unchanged after the new nav item); targeted eslint on all new/changed files (2 pre-existing unrelated issues confirmed via prior-pass precedent, 1 new real issue found and fixed)",
     "adminGuideBuildComplete": "YES",
     "localWorkRemainingForV2": "YES"
+  },
+  "staffSelfServiceExecutiveHubProfile": {
+    "status": "complete_for_scope",
+    "canonicalExecutiveSource": "public.executives (20260810120000_executive_hub_executives.sql)",
+    "staffIdentitySource": "admin_team_members via resolveActingRosterIdentity() (session-cookie-only, no env fallback)",
+    "staffToExecutiveRelationship": {
+      "status": "ADDED",
+      "migrationFile": "supabase/migrations/20260910120000_executives_linked_roster_id.sql",
+      "column": "executives.linked_roster_id uuid REFERENCES admin_team_members(id) ON DELETE SET NULL",
+      "uniqueIndex": "executives_linked_roster_id_uidx (partial, WHERE linked_roster_id IS NOT NULL)",
+      "appliedRemotely": false
+    },
+    "selfServiceRoute": "/admin/team/my-profile",
+    "selfServiceUiReusedExistingEditor": true,
+    "selfEditableFields": ["preferredName", "title", "bio", "phoneDisplay", "phoneDigits", "whatsappDigits", "email", "photoPath", "socials", "theme"],
+    "ownerOnlyFields": ["fullName", "slug", "status", "company", "legalEntity", "addressLine1", "addressLine2", "city", "state", "postalCode", "website", "logoPath", "coverPath", "businessHubLink", "connectionHubLink", "workingHours", "trustChips", "languages", "notes", "metaDescription", "linkedRosterId"],
+    "ownerCanManageAllProfiles": true,
+    "staffCanEditOwnProfile": true,
+    "staffCanEditOtherProfile": false,
+    "inactiveStaffBlocked": true,
+    "bootstrapFakeIdentityIntroduced": false,
+    "publicContactRouteUnchanged": true,
+    "guideUpdated": true,
+    "auditAttribution": "CLOSED",
+    "migrationCreated": true,
+    "migrationFile": "supabase/migrations/20260910120000_executives_linked_roster_id.sql",
+    "remoteMigrationApplied": false,
+    "targetedSecurityChecks": {
+      "script": "scripts/verify-executive-hub-self-service-01.ts",
+      "npmScript": "verify:executive-hub-self-service",
+      "result": "PASS",
+      "checksPassed": 20,
+      "propertiesProven": [
+        "Staff A cannot edit Staff B's profile (no client-suppliable target selector)",
+        "Caller cannot select another executive ID and bypass ownership (target resolved server-side via linked_roster_id)",
+        "Caller cannot change owner-only security/governance fields (explicit field allow-list, verified against 14 forbidden field names)",
+        "Inactive/non-roster staff cannot self-edit (resolveActingRosterIdentity's is_active guard)",
+        "Owner management still works (assertExecutiveHubAdmin gate unchanged; every owner-only form section still renders)",
+        "Public contact page still reads the same canonical profile (dbGetPublishedExecutiveProfile unchanged behavior, pre/post migration)",
+        "Bootstrap behavior is not accidentally broadened into fake staff identity (cookie-only resolution, bootstrap route never sets identity cookies)"
+      ]
+    },
+    "regressionChecks": {
+      "verify:admin-nav-ops": "PASS 75/75 (unchanged)",
+      "verify:admin-roster-foundation": "32/32 gate checks pass; 1 pre-existing unrelated failure unchanged from every prior pass"
+    },
+    "filesChanged": [
+      "supabase/migrations/20260910120000_executives_linked_roster_id.sql (new, not applied)",
+      "app/lib/digitalContact/digitalContactExecutivesDb.ts",
+      "app/admin/_lib/executiveHubTypes.ts",
+      "app/admin/_lib/executiveHubStore.ts",
+      "app/admin/executiveHubActions.ts",
+      "app/admin/executiveHubSelfServiceActions.ts (new)",
+      "app/admin/_components/executiveHub/ExecutiveHubForm.tsx",
+      "app/admin/(dashboard)/team/executive-hub/[slug]/edit/page.tsx",
+      "app/admin/(dashboard)/team/my-profile/page.tsx (new)",
+      "app/admin/_components/StaffTeamNav.tsx",
+      "app/admin/_lib/adminGuideRegistry.ts",
+      "scripts/verify-executive-hub-self-service-01.ts (new)",
+      "package.json"
+    ],
+    "deferredToIntegrationGate": [
+      "Remote application of 20260910120000_executives_linked_roster_id.sql",
+      "Executive Hub / staff contact profiles -> Company Search coverage",
+      "Self-service profile CREATION (staff can only edit an already owner-linked profile)"
+    ],
+    "staffSelfServiceProfileGate": "CLOSED"
   }
 }
