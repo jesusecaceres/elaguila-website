@@ -200,7 +200,7 @@ export function StaffCommandCenter({
               {ownerHandoff.map((row) => (
                 <li key={row.proposalId}>
                   <Link
-                    href={`/admin/businesses/${row.businessId}#proposals`}
+                    href={`/admin/businesses/${row.businessId}#owner-handoff`}
                     className="flex min-h-[44px] flex-col justify-center gap-0.5 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <span className="min-w-0">

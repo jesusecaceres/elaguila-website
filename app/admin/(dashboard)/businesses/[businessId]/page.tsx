@@ -16,7 +16,7 @@ import { FollowUpPanel, NotesPanel, StatusQuickActions } from "./BusinessWorkspa
 import { CreateFactForm, CreateUnknownForm, DiscoveryPanel, FactDecisionButtons, ResolveUnknownForm } from "./LivingBusinessBookActions";
 import { shapeFactsForStaffActor } from "../../../_lib/livingBookVisibility";
 import {
-  listContradictionsForBusiness, listDiscoverySessionsForBusiness, listFactsForBusiness, listUnknownsForBusiness,
+  listContradictionsForBusiness, listDiscoverySessionsForBusiness, listEvidenceForBusiness, listFactsForBusiness, listUnknownsForBusiness,
 } from "@/app/lib/business/livingBook/repository";
 import { computeBookCompleteness } from "@/app/lib/business/livingBook/logic";
 import { MarkHumanReviewForm, RunAssessmentButton } from "./HealthMapActions";
@@ -61,6 +61,15 @@ export const dynamic = "force-dynamic";
 function labelFromList(list: readonly { value: string; es: string; en: string }[], value: string | null, lang: "en" | "es" = "en"): string {
   if (!value) return "—";
   return list.find((o) => o.value === value)?.[lang] ?? value;
+}
+
+// Gate MD-completion — visibly distinguish a fact's source class so an unreviewed AI inference
+// never reads the same as an owner-confirmed fact at a glance. Mirrors the truth-class palette
+// already established in MeetingJourney.tsx (emerald = confirmed, purple = AI inference).
+function factSourceClassBadgeClass(sourceClass: string): string {
+  if (sourceClass === "owner_confirmed") return "bg-emerald-100 text-emerald-900";
+  if (sourceClass === "ai_inference") return "bg-purple-100 text-purple-800";
+  return "bg-[#EDE6D6] text-[#3D3428]";
 }
 
 const IDENTITY_DENIAL_REASONS: readonly SalesWorkspaceDenialReason[] = ["no_admin_cookie", "bootstrap_session_not_allowed", "no_operator_identity", "auth_user_not_found"];
@@ -125,11 +134,12 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
   const canConductDiscovery = actorHasCapability(access.actor, "conduct_discovery");
   const bookData = canViewBook
     ? await (async () => {
-        const [factsRaw, unknowns, contradictions, discoverySessions] = await Promise.all([
+        const [factsRaw, unknowns, contradictions, discoverySessions, evidence] = await Promise.all([
           listFactsForBusiness(business.id),
           listUnknownsForBusiness(business.id),
           listContradictionsForBusiness(business.id),
           listDiscoverySessionsForBusiness(business.id),
+          listEvidenceForBusiness(business.id),
         ]);
         const facts = shapeFactsForStaffActor(factsRaw, access.actor.capabilities);
         const completeness = computeBookCompleteness({
@@ -140,7 +150,7 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
           discoveryTotal: null,
           nowIso: new Date().toISOString(),
         });
-        return { facts, unknowns, contradictions, discoverySessions, completeness };
+        return { facts, unknowns, contradictions, discoverySessions, evidence, completeness };
       })()
     : null;
 
@@ -817,7 +827,7 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
               <li key={f.id} className="rounded-lg border border-[#E8DFD0] p-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-sm font-semibold text-[#1E1810]">{f.factKey}</span>
-                  <span className="rounded-full bg-[#EDE6D6] px-2 py-0.5 text-[10px] font-bold text-[#3D3428]">{f.sourceClass}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${factSourceClassBadgeClass(f.sourceClass)}`}>{f.sourceClass}</span>
                 </div>
                 <p className="mt-1 text-sm text-[#3D3428]">{f.displayValue ?? "—"}</p>
                 <p className="mt-1 text-[10px] text-[#9A9184]">
@@ -831,6 +841,27 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
           <div className="mt-3">
             <CreateFactForm businessId={business.id} canConfirm={canConfirmFact} />
           </div>
+
+          <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Evidence</h3>
+          <p className="text-[11px] text-[#9A9184]">
+            Staff notes, field discovery uploads, and other supporting observations. Evidence is not a fact until a human explicitly promotes it above.
+          </p>
+          <ul className="mt-2 space-y-2">
+            {bookData.evidence.slice(0, 20).map((e) => (
+              <li key={e.id} className="rounded-lg border border-[#E8DFD0] p-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-sm font-semibold text-[#1E1810]">{e.sourceTitle}</span>
+                  <span className="rounded-full bg-[#EDE6D6] px-2 py-0.5 text-[10px] font-bold text-[#3D3428]">{e.evidenceType.replace(/_/g, " ")}</span>
+                </div>
+                {e.capturedText ? <p className="mt-1 break-words text-sm text-[#3D3428]">{e.capturedText}</p> : null}
+                <p className="mt-1 text-[10px] text-[#9A9184]">
+                  {new Date(e.createdAt).toLocaleString()} · {e.collectedByRole} · reliability: {e.reliability}
+                </p>
+              </li>
+            ))}
+            {bookData.evidence.length === 0 ? <li className="text-sm text-[#7A7164]">No evidence recorded yet.</li> : null}
+            {bookData.evidence.length > 20 ? <li className="text-[10px] text-[#9A9184]">Showing the 20 most recent of {bookData.evidence.length}.</li> : null}
+          </ul>
 
           <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Unknowns</h3>
           <p className="text-[11px] text-[#9A9184]">What Leonix still needs to confirm before recommending responsibly.</p>
