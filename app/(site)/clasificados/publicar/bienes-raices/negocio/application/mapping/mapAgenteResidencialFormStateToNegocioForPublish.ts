@@ -87,7 +87,12 @@ function agenteRedes(s: AgenteIndividualResidencialFormState): string[] {
  * stable canonical preset key, and `extraLines`/`customHighlightsText` stays as a safety net for
  * any future id this map doesn't yet cover, not the primary path.
  */
-const AGENTE_RES_TO_HIGHLIGHT_PRESET: Partial<Record<AgenteResidencialDestacadoId, string>> = {
+/**
+ * Gate BIENES-NEGOCIO-1 — exported (was module-local) so the published-row parser can INVERT this
+ * one map instead of declaring a second highlight vocabulary. Nothing about the forward direction
+ * changed.
+ */
+export const AGENTE_RES_TO_HIGHLIGHT_PRESET: Partial<Record<AgenteResidencialDestacadoId, string>> = {
   piscina: "piscina",
   patio: "patio",
   terraza: "terraza",

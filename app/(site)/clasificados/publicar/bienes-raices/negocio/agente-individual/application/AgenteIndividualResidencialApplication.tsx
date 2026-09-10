@@ -83,6 +83,7 @@ import {
   hydrateBienesListingForDashboardEdit,
   redirectBienesDashboardInventoryPackCheckout,
 } from "@/app/(site)/dashboard/lib/bienesDashboardInventoryAddonCheckout";
+import { brCapacityOwnerFeedbackText } from "@/app/lib/clasificados/bienes-raices/brCapacityOwnerFeedback";
 import { buildDashboardMisAnunciosReturnPath } from "@/app/lib/listingPlans/revenueOsReturnPath";
 import { appendLangToPath } from "@/app/clasificados/lib/hubUrl";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
@@ -435,11 +436,26 @@ export default function AgenteIndividualResidencialApplication() {
       });
       const json = (await res.json().catch(() => ({}))) as {
         ok?: boolean;
+        code?: string;
         message?: string;
+        messageEs?: string;
         skippedNewChildren?: unknown[];
+        droppedUnpersistableMedia?: unknown[];
       };
       if (!res.ok || !json.ok) {
-        setSaveEditError(json.message ?? (lang === "en" ? "Could not save changes." : "No se pudieron guardar los cambios."));
+        // Gate BIENES-NEGOCIO-1 — the identity guard and the capacity guard both return owner-safe
+        // bilingual copy; prefer it over a generic failure so the owner learns WHAT happened and
+        // WHAT to do next, never a raw code.
+        const guarded = lang === "en" ? json.message : json.messageEs ?? json.message;
+        const capacityText =
+          json.code === "capacity_reached" || json.code === "capacity_rpc_unavailable"
+            ? brCapacityOwnerFeedbackText({ reason: json.code, lang })
+            : null;
+        setSaveEditError(
+          capacityText ??
+            guarded ??
+            (lang === "en" ? "Could not save changes." : "No se pudieron guardar los cambios."),
+        );
         return;
       }
       const verified = await hydrateBienesListingForDashboardEdit({ listingId: editListingId, lang });
@@ -454,16 +470,29 @@ export default function AgenteIndividualResidencialApplication() {
       setEditDirty(false);
       setSaveEditSuccess(true);
       // Package B (Gate B4) — skippedNewChildren surfaced, never silent (ledger defect D2).
+      // Gate BIENES-NEGOCIO-1 — dropped media joins it on the same non-blocking success channel:
+      // a save that quietly persisted fewer photos than the owner selected must say so.
       const skippedCount = Array.isArray(json.skippedNewChildren) ? json.skippedNewChildren.length : 0;
-      setSaveEditMessage(
-        skippedCount > 0
-          ? lang === "en"
-            ? `Changes saved. ${skippedCount} new propert${skippedCount === 1 ? "y was" : "ies were"} NOT created from this edit — use "Add property" from your dashboard to add them.`
-            : `Cambios guardados. ${skippedCount} propiedad(es) nueva(s) NO se crearon desde esta edición — usa "Agregar propiedad" en tu panel para añadirlas.`
-          : lang === "en"
-            ? "Changes saved"
-            : "Cambios guardados",
-      );
+      const droppedCount = Array.isArray(json.droppedUnpersistableMedia)
+        ? json.droppedUnpersistableMedia.length
+        : 0;
+      const notes: string[] = [];
+      notes.push(lang === "en" ? "Changes saved" : "Cambios guardados");
+      if (skippedCount > 0) {
+        notes.push(
+          lang === "en"
+            ? `${skippedCount} new propert${skippedCount === 1 ? "y was" : "ies were"} NOT created from this edit — use "Add property" from your dashboard to add them.`
+            : `${skippedCount} propiedad(es) nueva(s) NO se crearon desde esta edición — usa "Agregar propiedad" en tu panel para añadirlas.`,
+        );
+      }
+      if (droppedCount > 0) {
+        notes.push(
+          lang === "en"
+            ? `${droppedCount} photo(s) could not be saved and are not on your listing. Add them again and save.`
+            : `${droppedCount} foto(s) no se pudieron guardar y no están en tu anuncio. Agrégalas de nuevo y guarda.`,
+        );
+      }
+      setSaveEditMessage(notes.join(" "));
       clearBienesListingEditWorkspace({ parentListingId: editListingId, state: stateRef.current });
       clearAgenteIndividualResidencialPublishTempState({ applicationInstanceId });
     } catch (e) {

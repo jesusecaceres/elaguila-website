@@ -3,10 +3,21 @@ import { getBearerUserId } from "@/app/api/clasificados/_lib/bearerUser";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { assertCommercialCapacityForWrite } from "@/app/lib/listingPlans/commercialWriteGuard";
 import {
+  buildProposedFinalMediaSet,
+  warnDroppedUnpersistableMedia,
+} from "@/app/lib/media/listingMediaContract";
+import {
+  BR_CHILD_IDENTITY_ERRORS,
+  brChildIdentityOwnerMessage,
+  brChildListingIdFromDraftId,
+  isBienesChildIdentitySubstitution,
+  resolveBrChildIdentity,
+  type BrChildIdentityRowLike,
+} from "@/app/lib/clasificados/bienes-raices/brChildIdentityGuard";
+import {
   buildPublishParamsFromAgenteResidencialDraft,
 } from "@/app/clasificados/lib/leonixPublishRealEstateFromDraftState";
 import type { AgenteIndividualResidencialFormState } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteIndividualResidencialFormState";
-import type { BrNegocioAdditionalInventoryPropertyDraft } from "@/app/clasificados/publicar/bienes-raices/negocio/application/brNegocioAdditionalInventoryDraft";
 import { buildChildInventoryEditorState } from "@/app/clasificados/publicar/bienes-raices/negocio/application/brNegocioChildInventoryFormMapping";
 import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import {
@@ -41,6 +52,12 @@ type ListingRow = {
   leonix_ad_id?: string | null;
   detail_pairs?: unknown;
   images?: unknown;
+  /** Gate BIENES-NEGOCIO-1 — read only, so the identity-substitution guard can compare the stored
+   * property location against the incoming one. `buildEditablePatch` still writes these as ordinary
+   * content; they are never treated as a mutable identity key. */
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
   br_inventory_group_id?: string | null;
   br_inventory_parent_listing_id?: string | null;
   inventory_role?: string | null;
@@ -118,11 +135,13 @@ async function resolvePublicImages(input: {
   listingId: string;
   imageSources: readonly string[];
   existingImages: unknown;
-}): Promise<{ ok: true; images: string[] } | { ok: false; message: string }> {
+}): Promise<{ ok: true; images: string[]; droppedUnpersistableMedia?: string[] } | { ok: false; message: string }> {
   const ordered = input.imageSources.map(trim).filter(Boolean);
   if (!ordered.length) {
     const existing = imagesArray(input.existingImages);
-    return existing.length ? { ok: true, images: existing } : { ok: false, message: "At least one photo is required." };
+    return existing.length
+      ? { ok: true, images: existing, droppedUnpersistableMedia: [] }
+      : { ok: false, message: "At least one photo is required." };
   }
 
   const out: string[] = [];
@@ -153,7 +172,17 @@ async function resolvePublicImages(input: {
       };
     }
   }
-  return out.length ? { ok: true, images: out } : { ok: false, message: "No public photos could be saved." };
+  if (!out.length) return { ok: false, message: "No public photos could be saved." };
+
+  // Gate BIENES-NEGOCIO-1 — the shared media contract has always reported which of the owner's
+  // selected URLs could not be persisted (blob:/data:/malformed); this route computed nothing and
+  // reported nothing, so a gallery that silently shrank was never surfaced. Same adoption already
+  // made for Servicios, Restaurantes and Comida Local. No new media engine: the shared builder and
+  // the shared warn helper do the work.
+  const finalMedia = buildProposedFinalMediaSet({ existing: ordered });
+  warnDroppedUnpersistableMedia("bienes-negocio-listing-edit", finalMedia);
+
+  return { ok: true, images: out, droppedUnpersistableMedia: [...finalMedia.droppedUnpersistable] };
 }
 
 function buildEditablePatch(input: {
@@ -186,10 +215,9 @@ function buildEditablePatch(input: {
   };
 }
 
-function existingChildListingIdFromDraft(draft: BrNegocioAdditionalInventoryPropertyDraft): string | null {
-  const id = trim(draft.id);
-  return id.startsWith("br-db-child-") ? id.slice("br-db-child-".length).trim() || null : null;
-}
+// Gate BIENES-NEGOCIO-1 — the local `br-db-child-` parser moved into
+// `brChildIdentityGuard.brChildListingIdFromDraftId` so the convention lives beside the rules that
+// depend on it. One parser, one guard.
 
 async function updateOneListing(input: {
   supabase: ReturnType<typeof getAdminSupabase>;
@@ -198,7 +226,7 @@ async function updateOneListing(input: {
   params: PublishLeonixRealEstateListingCoreParams;
   lang: "es" | "en";
   parentListingId?: string | null;
-}): Promise<{ ok: true; id: string } | { ok: false; message: string }> {
+}): Promise<{ ok: true; id: string; droppedUnpersistableMedia: string[] } | { ok: false; message: string }> {
   const media = await resolvePublicImages({
     supabase: input.supabase,
     ownerId: input.ownerId,
@@ -228,7 +256,7 @@ async function updateOneListing(input: {
     .select("id, leonix_ad_id, status, is_published, published_at, expires_at")
     .maybeSingle();
   if (error || !data?.id) return { ok: false, message: error?.message ?? "Update did not apply." };
-  return { ok: true, id: data.id };
+  return { ok: true, id: data.id, droppedUnpersistableMedia: media.droppedUnpersistableMedia ?? [] };
 }
 
 export async function POST(request: NextRequest) {
@@ -256,7 +284,7 @@ export async function POST(request: NextRequest) {
   const supabase = getAdminSupabase();
   const { data: existing, error: readError } = await supabase
     .from("listings")
-    .select("id, owner_id, category, seller_type, status, is_published, published_at, expires_at, leonix_ad_id, detail_pairs, images, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role")
+    .select("id, owner_id, category, seller_type, status, is_published, published_at, expires_at, leonix_ad_id, detail_pairs, images, city, state, zip, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role")
     .eq("id", listingId)
     .maybeSingle();
 
@@ -306,6 +334,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, code: "invalid_parent_draft", message: parentBuilt.error }, { status: 422 });
   }
 
+  // Gate BIENES-NEGOCIO-1 — the parent row is itself a property, so the same substitution guard
+  // applies to it. Checked BEFORE the write, so a rejected edit changes nothing at all.
+  if (
+    isBienesChildIdentitySubstitution(
+      { city: trim((parent as unknown as Record<string, unknown>).city), state: trim((parent as unknown as Record<string, unknown>).state), zip: trim((parent as unknown as Record<string, unknown>).zip) },
+      { city: parentBuilt.params.city, state: parentBuilt.params.state ?? "", zip: parentBuilt.params.zip ?? "" },
+    )
+  ) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: BR_CHILD_IDENTITY_ERRORS.SUBSTITUTION,
+        scope: "parent",
+        message: brChildIdentityOwnerMessage(BR_CHILD_IDENTITY_ERRORS.SUBSTITUTION, "en"),
+        messageEs: brChildIdentityOwnerMessage(BR_CHILD_IDENTITY_ERRORS.SUBSTITUTION, "es"),
+      },
+      { status: 409 },
+    );
+  }
+
   const parentUpdate = await updateOneListing({
     supabase,
     existing: parent,
@@ -316,11 +364,12 @@ export async function POST(request: NextRequest) {
   if (!parentUpdate.ok) {
     return NextResponse.json({ ok: false, code: "parent_update_failed", message: parentUpdate.message }, { status: 500 });
   }
+  const droppedMedia: string[] = [...parentUpdate.droppedUnpersistableMedia];
 
   const groupId = trim(parent.br_inventory_group_id) || listingId;
   const { data: childRows, error: childReadError } = await supabase
     .from("listings")
-    .select("id, owner_id, category, seller_type, status, is_published, published_at, expires_at, leonix_ad_id, detail_pairs, images, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role")
+    .select("id, owner_id, category, seller_type, status, is_published, published_at, expires_at, leonix_ad_id, detail_pairs, images, city, state, zip, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role")
     .eq("owner_id", bearerUserId)
     .eq("category", "bienes-raices")
     .eq("br_inventory_group_id", groupId)
@@ -331,15 +380,45 @@ export async function POST(request: NextRequest) {
   const childById = new Map((childRows as ListingRow[] | null ?? []).map((row) => [row.id, row]));
   const childUpdates: string[] = [];
   const skippedNewChildren: string[] = [];
+  // Gate BIENES-NEGOCIO-1 — every child row already written in THIS request, so two drafts can
+  // never claim the same row (the "one child draft silently mutates a different child" shape).
+  const claimedChildIds = new Set<string>();
 
   for (const childDraft of draft.additionalInventoryProperties ?? []) {
-    const childId = existingChildListingIdFromDraft(childDraft);
+    const childId = brChildListingIdFromDraftId(childDraft.id);
     if (!childId) {
+      // A draft with no canonical `br-db-child-` id has no row yet. This route deliberately does
+      // NOT create one — creation belongs to the Add Property flow, which allocates a real row,
+      // a Leonix Ad ID and its own capacity check. Reported so the client can tell the owner
+      // instead of silently doing nothing (see the response `skippedNewChildren`).
       skippedNewChildren.push(trim(childDraft.title) || trim(childDraft.id) || "new child");
       continue;
     }
-    const existingChild = childById.get(childId);
-    if (!existingChild) continue;
+
+    // Gate BIENES-NEGOCIO-1 — resolve to exactly one real row or FAIL CLOSED. Previously an
+    // unresolvable id was silently `continue`d, so an owner could believe a property saved when
+    // nothing was written.
+    const resolution = resolveBrChildIdentity({
+      childListingId: childId,
+      childrenById: childById as ReadonlyMap<string, BrChildIdentityRowLike>,
+      expectedParentListingId: listingId,
+      expectedOwnerId: bearerUserId,
+      alreadyClaimed: claimedChildIds,
+    });
+    if (!resolution.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: resolution.error,
+          scope: "child",
+          message: brChildIdentityOwnerMessage(resolution.error, "en"),
+          messageEs: brChildIdentityOwnerMessage(resolution.error, "es"),
+        },
+        { status: 409 },
+      );
+    }
+    const existingChild = resolution.row as ListingRow;
+
     const childState = buildChildInventoryEditorState(draft, childDraft, lang);
     const childBuilt = buildPublishParamsFromAgenteResidencialDraft(childState, lang, {
       mode: "add",
@@ -349,6 +428,26 @@ export async function POST(request: NextRequest) {
     if (!childBuilt.ok) {
       return NextResponse.json({ ok: false, code: "invalid_child_draft", message: childBuilt.error }, { status: 422 });
     }
+
+    // Substitution guard — checked BEFORE the write so a rejected child changes nothing.
+    if (
+      isBienesChildIdentitySubstitution(
+        { city: existingChild.city, state: existingChild.state, zip: existingChild.zip },
+        { city: childBuilt.params.city, state: childBuilt.params.state ?? "", zip: childBuilt.params.zip ?? "" },
+      )
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: BR_CHILD_IDENTITY_ERRORS.SUBSTITUTION,
+          scope: "child",
+          message: brChildIdentityOwnerMessage(BR_CHILD_IDENTITY_ERRORS.SUBSTITUTION, "en"),
+          messageEs: brChildIdentityOwnerMessage(BR_CHILD_IDENTITY_ERRORS.SUBSTITUTION, "es"),
+        },
+        { status: 409 },
+      );
+    }
+
     const childUpdate = await updateOneListing({
       supabase,
       existing: existingChild,
@@ -360,7 +459,9 @@ export async function POST(request: NextRequest) {
     if (!childUpdate.ok) {
       return NextResponse.json({ ok: false, code: "child_update_failed", message: childUpdate.message }, { status: 500 });
     }
+    claimedChildIds.add(childId);
     childUpdates.push(childUpdate.id);
+    droppedMedia.push(...childUpdate.droppedUnpersistableMedia);
   }
 
   const { data: proof } = await supabase
@@ -373,6 +474,9 @@ export async function POST(request: NextRequest) {
     parentListingId: listingId,
     updatedChildListingIds: childUpdates,
     skippedNewChildren,
+    // Gate BIENES-NEGOCIO-1 — owner-facing, non-blocking: photos the shared media contract could
+    // not persist. Present only when non-empty.
+    ...(droppedMedia.length ? { droppedUnpersistableMedia: [...new Set(droppedMedia)] } : {}),
     proof: proof ?? [],
   });
 }
