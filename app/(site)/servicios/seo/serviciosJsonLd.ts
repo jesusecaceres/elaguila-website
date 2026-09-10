@@ -11,11 +11,21 @@
 export function serviciosJsonLd(params: {
   name: string;
   description?: string;
+  /** Gate SERVICIOS-2 — must be the ABSOLUTE canonical detail URL. schema.org `url` is resolved by
+   * consumers without page context, so a relative path (what this previously received) produces an
+   * unusable entity URL. Callers pass `${LEONIX_SITE_ORIGIN}/clasificados/servicios/[slug]`, the
+   * same value the route declares as `alternates.canonical`. */
   url: string;
   imageUrl?: string;
   telephone?: string;
   addressText?: string;
   websiteUrl?: string;
+  /** Trade/category label the provider actually publishes under (e.g. "Plomería"). */
+  categoryLabel?: string;
+  /** City the listing actually published with — never inferred. */
+  areaServed?: string;
+  /** Real service titles the provider entered, already sanitized by `resolveServiciosProfile`. */
+  serviceNames?: string[];
 }) {
   const json: Record<string, unknown> = {
     "@context": "https://schema.org",
@@ -28,5 +38,25 @@ export function serviciosJsonLd(params: {
   if (params.telephone) json.telephone = params.telephone;
   if (params.addressText) json.address = params.addressText;
   if (params.websiteUrl) json.sameAs = params.websiteUrl;
+
+  // Every field below is the provider's own published data — omitted entirely when absent, never
+  // fabricated, exactly as the rating/reviewCount omission doctrine above requires.
+  const categoryLabel = params.categoryLabel?.trim();
+  if (categoryLabel) json.additionalType = categoryLabel;
+
+  const areaServed = params.areaServed?.trim();
+  if (areaServed) json.areaServed = areaServed;
+
+  const serviceNames = (params.serviceNames ?? [])
+    .map((s) => s?.trim())
+    .filter((s): s is string => Boolean(s))
+    .slice(0, 12);
+  if (serviceNames.length) {
+    json.makesOffer = serviceNames.map((serviceName) => ({
+      "@type": "Offer",
+      itemOffered: { "@type": "Service", name: serviceName },
+    }));
+  }
+
   return json;
 }

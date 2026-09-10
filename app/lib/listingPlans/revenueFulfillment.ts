@@ -21,6 +21,7 @@ import {
   SERVICIOS_BASE_MONTHLY_PACKAGE_KEY,
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
 } from "./revenueServiciosFulfillment";
+import { triggerServiciosSavedSearchMatchBestEffort } from "@/app/lib/saved-search/servicios/serviciosSavedSearchMatchOrchestrator";
 import {
   activatePaidComidaLocalListingFromRevenueOs,
   COMIDA_LOCAL_BASE_MONTHLY_PACKAGE_KEY,
@@ -599,6 +600,17 @@ async function tryActivateServiciosListingAfterEntitlement(input: {
       outcome: activation.outcome,
     },
   });
+
+  // Gate SERVICIOS-2 — Saved Search match is a durable, best-effort side effect of the listing
+  // genuinely becoming publicly active, fired strictly AFTER the real activation has committed and
+  // only on the actual pending -> published transition (a re-delivered webhook resolves to
+  // `already_published` and returns earlier, never reaching here).
+  // `triggerServiciosSavedSearchMatchBestEffort` never throws, so it can never fail this
+  // function's own success — the same failure-boundary contract as the Autos/Bienes Raíces/Rentas
+  // activation call sites.
+  if (activation.outcome === "activated" && activation.listingId) {
+    await triggerServiciosSavedSearchMatchBestEffort(activation.listingId, "servicios_publish_activation");
+  }
 
   return { ok: true };
 }

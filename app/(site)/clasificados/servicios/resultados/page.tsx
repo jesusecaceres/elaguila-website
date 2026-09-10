@@ -21,6 +21,8 @@ import {
   parseCatStdPerPage,
 } from "@/app/(site)/clasificados/components/categoryPipeline/catStdPerPage";
 import { resolveClasificadosPublishLangFromSearchParams } from "@/app/lib/clasificados/clasificadosPublishLang";
+import { SavedSearchButton } from "@/app/(site)/clasificados/components/savedSearch/SavedSearchButton";
+import { serviciosFilterQueryToSavedSearch } from "@/app/lib/saved-search/servicios/savedSearchServiciosAdapter";
 
 export const dynamic = "force-dynamic";
 
@@ -187,6 +189,10 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                 {lang === "en" ? "Listings" : "Anuncios"}
                 <span className="ml-2 tabular-nums text-[#64748b]">({displayRows.length})</span>
               </p>
+              {/* Gate SERVICIOS-2 — shared Saved Search CTA. `normalized` is built by the Servicios
+                  adapter from THIS page's own `filterQuery`, so a saved search always carries the
+                  exact filter/location truth that produced the results on screen. */}
+              <SavedSearchButton normalized={serviciosFilterQueryToSavedSearch(filterQuery)} lang={lang} />
               {filterQuery.sort === "name" ? (
                 <span className="text-xs font-medium text-[#64748b]">
                   {lang === "en" ? "A–Z within each block (featured first)." : "A–Z en cada bloque (destacados primero)."}
