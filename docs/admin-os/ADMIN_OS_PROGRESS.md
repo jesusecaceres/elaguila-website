@@ -1255,3 +1255,190 @@ each with direct repository evidence, not an assumption).
 **MASTER_BOOK_IMPLEMENTATION_COMPLETE: YES.**
 **LOCAL_WORK_REMAINING: NO.**
 **READY_FOR_QA: YES.**
+
+---
+
+## FINAL CODE/RELEASE VALIDATION GATE — full typecheck, targeted lint, production build,
+## targeted verification, and static migration validation before owner/browser QA
+
+Substantial code had changed since the last full integration validation (Global Search extension,
+audit actor attribution, moderation lifecycle, System Health upgrade, commercial-truth
+correction). This gate re-validated the complete code state at HEAD `ce25c643` before any
+browser QA. One heavy command at a time, foreground only; waited via Monitor for another
+worktree's concurrent `tsc`/`next build` to finish before running this worktree's own heavy
+commands, per the shared-machine resource rule already established across this project.
+
+### Gate 1 — git integrity: PASS
+`git rev-parse HEAD` = `ce25c64330c569dce78cb0b97be2338f1187d7b4`. `git status --short` clean.
+`.env.local` confirmed `git check-ignore`d and untracked. Both pending migration files confirmed
+committed (`git ls-files --error-unmatch`). `git diff a0a47839..HEAD --stat`: 67 files, all inside
+`app/admin/`, `app/(site)/`, `app/api/admin/`, `app/lib/business/`, `app/leo/_lib/`, `docs/admin-os/`,
+`supabase/migrations/` — no unrelated worktree files. Secret-pattern scan (`sk_live|sk_test|
+SUPABASE_SERVICE_ROLE_KEY=|api[_-]?key|AKIA...`) across the full diff since base: zero matches.
+
+### Gate 2 — typecheck: 2 real regressions found and fixed
+`NODE_OPTIONS=--max-old-space-size=8192 npx tsc --noEmit --incremental false` (plain default heap
+still OOMs on this project, per this project's own prior documented finding). Found 9 total
+errors:
+- **2 ADMIN_OS_REGRESSION** (`app/admin/_lib/adminAuditLogServer.ts:172,217`): the pre-migration
+  retry reassignment (`({ data, error } = await retryQuery)`) narrowed the inferred row type
+  (fewer selected columns), which TypeScript correctly flagged as incompatible with the richer
+  type inferred from the first query. **Fixed** by explicitly typing both query results as
+  `{ data: AdminAuditLogRow[] | null; error: { message: string } | null }` (only `.message` is
+  ever read off `error`, so this narrowing is safe) at all 4 assignment sites across both
+  `fetchAdminAuditLogFiltered` and `fetchAdminAuditLogForTarget`.
+- **7 PRE_EXISTING_UNRELATED**: all in `e2e/autos/*.spec.ts` and `e2e/community/*.spec.ts`.
+  Confirmed via `git log -1` on those files (last touched in `c7781a0a`, long before this branch's
+  base) and `git diff a0a47839..HEAD --stat -- e2e/` (zero e2e files touched by this entire
+  multi-pass project).
+
+Re-ran after the fix: 0 Admin OS errors, only the same 7 pre-existing e2e errors remain.
+
+### Gate 3 — targeted lint over all 61 changed TS/TSX files: 1 real regression found and fixed
+The project's own `npm run lint` script is scoped to Autos only (confirmed by reading
+`package.json`), exactly as this gate anticipated — ran targeted `npx eslint` directly over the
+61 `.ts`/`.tsx` files changed since base (`git diff --name-only a0a47839 HEAD -- '*.ts' '*.tsx'`).
+Found 11 issues total:
+- **1 ADMIN_OS_REGRESSION**: `AdminCommandCenterDashboard.tsx:184` — `react/no-unescaped-entities`
+  on `What's needed to build this: {gate}`. Confirmed via `git show a0a47839:...` that the base
+  version read `Next gate: {gate}` (no apostrophe) — an earlier pass in this same project's
+  owner-facing-jargon cleanup introduced the apostrophe when rewording it. **Fixed**: reworded to
+  `What is needed to build this: {gate}`.
+- **10 PRE_EXISTING_UNRELATED**, each confirmed via `git diff a0a47839..HEAD -- <file>` showing
+  either zero changes to the file, or changes nowhere near the flagged line: `support/page.tsx`
+  unused `i` (file's only change was an unrelated helperText string, confirmed unchanged at base
+  too), `team/executive-hub/page.tsx` 2 unused `eslint-disable` warnings (identical lines already
+  present at base, this branch only touched unrelated prop strings 80+ lines earlier),
+  `AdminCommandCenterDashboard.tsx`'s `CommandCard` (present at base, line 74, never touched) and
+  `CompactReviewRow`'s `locale` param (confirmed unused even in the base version — my edits to
+  that function added lifecycle badges but never touched or removed any `locale` usage, because
+  there was none to begin with), `workspace/clasificados/autos/page.tsx`'s unused `AdminLang`
+  import (this branch's only edit to that file was an unrelated `nextGate` string, far from the
+  import block), `adminStrings.ts`'s unused `ES` (this branch's only edits were 2 new nav-key
+  lines, far from the flagged line), and `paymentTrackerData.ts`'s 3 unused imports (this branch's
+  only edits were to the `PaymentTrackerDashboardSnapshot` type/return statement, nowhere near the
+  top-of-file import block).
+
+Re-ran the fixed file individually: clean except the 2 confirmed-pre-existing issues.
+
+### Gate 4 — production build: full PASS, all phases
+`NODE_OPTIONS=--max-old-space-size=8192 npm run build` (`node scripts/next-build.js`) with the
+real, gitignored `.env.local` present. Completed every phase in order: Compiled successfully
+(2.2min) → Checking validity of types → Collecting page data → Generating static pages (379/379)
+→ Finalizing page optimization → Collecting build traces → full route table printed. Exit code 0.
+Confirmed every Admin OS route touched by this project compiled and appears in the route table
+(`/admin/ops`, `/admin/system-health`, `/admin/support`, `/admin/reportes`, `/admin/team/roster`,
+`/admin/businesses/[businessId]`, `/admin/recursos/[id]`, etc.). The only warnings present are a
+site-wide, pre-existing Next.js 15 `themeColor`-in-metadata deprecation notice repeated across
+dozens of unrelated public routes (`/tienda/*`, `/clasificados/*`, `/coming-soon-v2`,
+`/admin/login`) — none of which this project touched; a framework-level API migration notice, not
+an Admin OS defect. This was NOT accepted as PASS merely on "Compiled successfully" — every later
+phase (type validity, page-data collection, static generation, trace collection) was confirmed to
+complete without error before calling this gate green.
+
+### Gate 5 — targeted verification: 2 stale pre-existing assertions found and corrected; all real
+### checks pass
+No dedicated verify script exists yet for Comida Local specifically, tier vocabulary, the new
+Global Search extension, System Health, or the audit log — all confirmed via targeted grep across
+every `verify:*` script in `package.json` (consistent with these being newer work this project
+itself just built; per this gate's own instruction, no new test infrastructure was created to
+cover them). Ran every existing script that does cover a named area:
+
+| Script | Result |
+|---|---|
+| `verify:admin-review-queue-truth` | PASS (31 checks) |
+| `verify:admin-review-mobile-moderation-truth` | PASS (23 checks) |
+| `verify:admin-dashboard-ceo-command-center` | **1 stale check found and corrected**, then PASS (23 checks) |
+| `verify:admin-nav-ops` | PASS (75 checks) |
+| `verify:admin-categories-command-center` | PASS (47 checks) |
+| `verify:admin-roster-foundation` | **1 stale check found and corrected** (+1 confirmed pre-existing unrelated failure left as-is), then 32 passed / 1 pre-existing fail |
+| `verify:sales-business-workspace` | PASS (106 checks) |
+| `verify:admin-leads-promocionales-tab` | PASS (33 checks) |
+| `verify:stripe-payment-tracker-foundation` | 36 passed / 3 confirmed pre-existing unrelated fails |
+| `verify:business-identity-core` | PASS (45 checks) |
+
+**Stale check #1** — `verify-admin-dashboard-ceo-command-center.mjs` asserted
+`AdminCommandCenterDashboard.tsx` directly calls `classifyDashboardReviewRowFlagTruth`. An earlier
+pass in this same project (commit `2710cb9e`, "ADMIN-OS-01 GATE C") deliberately moved that call
+into the data layer (`adminDashboardData.ts`) so the dashboard reads each row's own pre-computed
+`row.flagTruth` instead of re-deriving it from a flattened string — an intentional, documented,
+correctness-improving refactor (confirmed real and working by the 31/23-check PASSes above), not a
+defect. **Corrected the check** to assert the call exists where it now correctly lives
+(`adminDashboardData.ts`) and that the dashboard consumes `row.flagTruth` — reverting the refactor
+to satisfy the old check would have reintroduced the exact provenance-mislabeling bug it was built
+to prevent, which would have been the actual regression.
+
+**Stale check #2** — `verify-admin-roster-foundation-01.ts` asserted `admin_audit_log`'s writer
+code contains no mention of "actor" at all, as historical proof that a separate
+`admin_roster_audit_log` table was necessary. This gate's own Gate 2 (prior task) legitimately gave
+`admin_audit_log` real, best-effort actor attribution — the check's own comment anticipated this
+exact scenario ("if this ever gains an actor column, the roster audit design note... should be
+revisited"). **Corrected the check** to assert the new code is honest (best-effort,
+never-fabricated, nullable) and that `admin_roster_audit_log` remains the stricter, NOT-NULL-enforced
+authority for roster-specific actions — both true today, confirmed by reading both files directly.
+
+**Confirmed pre-existing, left untouched** (each verified via `git diff a0a47839..HEAD -- <file>`
+showing zero changes): the July 31st roster migration's REVOKE/GRANT regex-pairing check (file
+never touched by this project), and all 3 `stripe-payment-tracker-foundation` content-string
+checks against `payment-tracker/page.tsx` and `(dashboard)/page.tsx` (neither file's relevant
+content was ever touched or ever matched those checks' expected strings, even at base).
+
+### Gate 6 — static migration validation: both migrations structurally VALID
+
+**Migration 1 (`business_external_links_foundation`)**: cross-read against
+`businessExternalLinksRepo.ts`, the API route, and `app/lib/business/types.ts` —
+- Column names/types match the repo's `ExternalLinkRow`/`BusinessExternalLink` mapping exactly.
+- `relationship_role`/`status` CHECK constraints match the `ListingRelationshipRole`/
+  `ListingLinkStatus` type unions exactly (both reused from `business_listing_links`, no drift).
+- Duplicate prevention is two-layered and consistent: an app-level pre-check (any status, same
+  business+record) plus the DB's own unique-when-verified partial index (blocks the same record
+  being verified to two different businesses) — the two protect different, non-conflicting cases.
+- `isTableMissingError()` (PGRST205 / "does not exist" / "schema cache") is checked on both the
+  pre-check query and the insert, giving the API route's real distinct `503 table_missing` outcome
+  — confirmed the UI (`BusinessWorkspaceActions.tsx`) already handles this outcome gracefully.
+- RLS: SELECT policy reuses the existing `is_active_business_member()` helper (no new function, no
+  new recursion surface); no authenticated mutation policy exists — writes are service-role only,
+  matching every write call site using an `adminClient`.
+- Purely additive: `CREATE TABLE IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`,
+  `DROP POLICY IF EXISTS` + recreate (not a data-affecting drop) — no `ALTER COLUMN`, no `DROP
+  TABLE`, no `DELETE`/`TRUNCATE` anywhere.
+
+**Migration 2 (`admin_audit_log_actor_attribution`)**: cross-read against the current
+`adminAuditLogServer.ts` (post Gate-2-typecheck-fix) —
+- All 4 column names/types (`actor_roster_id uuid`, `actor_auth_user_id uuid`, `actor_email text`,
+  `actor_role text`) match `resolveActorForAuditWrite()`'s return shape and `AdminAuditLogRow`'s
+  optional fields exactly.
+- `actor_roster_id` FK references `admin_team_members(id)` — the same canonical staff table used
+  everywhere else (roster, proposals, commitments) — `ON DELETE SET NULL`, confirmed non-destructive
+  to historical audit rows if a staff account is ever removed.
+- All 4 columns NULLABLE — existing rows remain valid with no backfill; `appendAdminAuditLog()`'s
+  signature is unchanged so no existing caller needs to change.
+- Unknown-column fallback verified structurally correct in both the writer (1 retry path) and both
+  readers (`fetchAdminAuditLogFiltered`, `fetchAdminAuditLogForTarget`) — `isMissingActorColumnError()`
+  matches on the actor column names themselves, which PostgREST's real "column does not exist" /
+  "could not find the column in the schema cache" error messages include verbatim, consistent with
+  the same message-substring pattern already proven elsewhere in this codebase
+  (`isTableMissingError` in `businessExternalLinksRepo.ts`).
+- `resolveActorForAuditWrite()` returns an all-null object on any failure path (missing cookie,
+  missing roster row, inactive roster row, any exception) — never fabricates a placeholder.
+- Single partial index `(actor_roster_id, created_at DESC) WHERE actor_roster_id IS NOT NULL` —
+  appropriate, matches the existing `admin_roster_audit_log_actor_idx` pattern.
+- Purely additive: 4× `ADD COLUMN IF NOT EXISTS`, 1× `COMMENT ON COLUMN`, 1×
+  `CREATE INDEX IF NOT EXISTS`. No destructive statement anywhere.
+
+Neither migration was applied remotely by this gate.
+
+### Final status
+
+**ADMIN_OS_DEFECTS_FOUND**: 5 (2 typecheck, 1 lint, 2 stale verify-script assertions).
+**ADMIN_OS_DEFECTS_FIXED**: 5 (all of the above — 3 application-code fixes, 2 verify-script
+corrections to match deliberate, already-proven-correct architecture rather than reverting real
+improvements to satisfy outdated checks).
+**PRE_EXISTING_UNRELATED**: 7 tsc errors (e2e specs), 10 lint issues, 1 verify-script failure
+(July 31st migration regex), 3 verify-script failures (stale payment-tracker page-copy checks) —
+all individually confirmed via `git diff`/`git log` against the exact files and lines involved,
+not assumed.
+
+**MASTER_BOOK_IMPLEMENTATION_COMPLETE: YES.**
+**CODE_INTEGRATION_READY: YES.**
+**READY_FOR_OWNER_QA: YES.**

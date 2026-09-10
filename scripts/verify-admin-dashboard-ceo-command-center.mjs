@@ -148,7 +148,10 @@ ok("rectangular CTA style mapping exists");
 if (/AI-generated|artificial intelligence/i.test(dash) && !/not AI/i.test(dash)) {
   fail("dashboard must not fake AI review");
 }
-if (!data.includes("adminDashboardReviewSourceLabel") || !dash.includes("classifyDashboardReviewRowFlagTruth")) {
+// ADMIN-OS-01 GATE C moved the classify call into the data layer so the dashboard reads each
+// row's own pre-computed truth (row.flagTruth) instead of re-deriving it from a flattened reason
+// string, which used to silently mislabel provenance. Check the classify call where it now lives.
+if (!data.includes("adminDashboardReviewSourceLabel") || !data.includes("classifyDashboardReviewRowFlagTruth") || !dash.includes("flagTruth")) {
   fail("review source truth helper must stay wired");
 }
 if (!dash.includes("not AI")) fail("review AI disclaimer missing");

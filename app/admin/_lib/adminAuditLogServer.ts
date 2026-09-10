@@ -155,7 +155,10 @@ export async function fetchAdminAuditLogFiltered(filters: AdminAuditLogFilters):
     if (filters.targetId?.trim()) query = query.eq("target_id", filters.targetId.trim());
     if (filters.since?.trim()) query = query.gte("created_at", filters.since.trim());
 
-    let { data, error } = await query;
+    // Explicitly widened to AdminAuditLogRow (whose actor_* fields are optional) so the
+    // pre-migration retry below — which selects fewer columns — can assign into the same
+    // variables without a structural type mismatch.
+    let { data, error } = (await query) as { data: AdminAuditLogRow[] | null; error: { message: string } | null };
 
     if (error && isMissingActorColumnError(error.message)) {
       // Pre-migration environment: retry with only the columns every admin_audit_log row has
@@ -169,7 +172,7 @@ export async function fetchAdminAuditLogFiltered(filters: AdminAuditLogFilters):
       if (filters.targetType?.trim()) retryQuery = retryQuery.eq("target_type", filters.targetType.trim());
       if (filters.targetId?.trim()) retryQuery = retryQuery.eq("target_id", filters.targetId.trim());
       if (filters.since?.trim()) retryQuery = retryQuery.gte("created_at", filters.since.trim());
-      ({ data, error } = await retryQuery);
+      ({ data, error } = (await retryQuery) as { data: AdminAuditLogRow[] | null; error: { message: string } | null });
     }
 
     if (error) {
@@ -206,20 +209,20 @@ export async function fetchAdminAuditLogForTarget(
   if (ids.length === 0) return { rows: [], mode: "empty" };
   try {
     const supabase = getAdminSupabase();
-    let { data, error } = await supabase
+    let { data, error } = (await supabase
       .from("admin_audit_log")
       .select(AUDIT_LOG_WITH_ACTOR_COLUMNS)
       .in("target_id", ids)
       .order("created_at", { ascending: false })
-      .limit(limit);
+      .limit(limit)) as { data: AdminAuditLogRow[] | null; error: { message: string } | null };
 
     if (error && isMissingActorColumnError(error.message)) {
-      ({ data, error } = await supabase
+      ({ data, error } = (await supabase
         .from("admin_audit_log")
         .select(AUDIT_LOG_BASE_COLUMNS)
         .in("target_id", ids)
         .order("created_at", { ascending: false })
-        .limit(limit));
+        .limit(limit)) as { data: AdminAuditLogRow[] | null; error: { message: string } | null });
     }
 
     if (error) {

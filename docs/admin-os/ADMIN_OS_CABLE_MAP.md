@@ -631,3 +631,29 @@ now reads the last 24h of this table (bounded, no outbound calls) and reports `D
 `failed_terminal` row, `HEALTHY` on all-clear, falling back to config-presence-only `HEALTHY` when
 there's no recent data to compare against. No equivalent durable log exists for Resend or Twilio
 (confirmed via migration search) — those two correctly remain config-presence-only.
+
+---
+
+## FINAL CODE/RELEASE VALIDATION GATE — 2 verify-script assertions found stale, corrected
+
+Full typecheck/lint/build/targeted-verification/migration-static-validation pass at HEAD
+`ce25c643` (see ADMIN_OS_PROGRESS.md for the complete gate-by-gate record). Two existing verify
+scripts asserted facts about the codebase that this project's own earlier, deliberate, already-
+proven-correct work had legitimately changed:
+- `scripts/verify-admin-dashboard-ceo-command-center.mjs` expected
+  `classifyDashboardReviewRowFlagTruth` to be called directly inside
+  `AdminCommandCenterDashboard.tsx`. Commit `2710cb9e` ("ADMIN-OS-01 GATE C") moved that call into
+  the data layer so the dashboard reads each row's pre-computed `row.flagTruth` instead —
+  preventing exactly the provenance-mislabeling bug the old inline call risked. Corrected the
+  script to check the call where it now lives, rather than reverting the improvement.
+- `scripts/verify-admin-roster-foundation-01.ts` asserted `admin_audit_log`'s writer contains no
+  actor-related code at all, as historical proof `admin_roster_audit_log` was needed. This
+  project's own audit-actor-attribution work (see the Stripe/audit sections above) gave
+  `admin_audit_log` real, best-effort, never-fabricated actor attribution — the check's own
+  comment anticipated this exact scenario. Corrected the script to assert the new code is honest
+  (nullable, best-effort) and that `admin_roster_audit_log` remains the stricter, NOT-NULL-enforced
+  authority for roster-specific actions.
+
+Both corrections are recorded here so future passes reading this cable map understand why these
+scripts' assertions changed — not because the underlying architecture regressed, but because two
+earlier, real improvements were correctly reflected in their own regression tests.

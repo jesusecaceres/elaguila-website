@@ -181,7 +181,7 @@ function PlannedCard({
       <h3 className="mt-2 text-base font-bold text-[#1E1810]">{title}</h3>
       <p className="mt-2 text-sm leading-snug text-[#5C5346]">{body}</p>
       <p className="mt-3 rounded-lg border border-[#E8DFD0] bg-white/70 px-3 py-2 text-xs font-semibold text-[#5C4E2E]">
-        What's needed to build this: {gate}
+        What is needed to build this: {gate}
       </p>
     </article>
   );
