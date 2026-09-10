@@ -3,6 +3,11 @@ import {
   mergePartialBienesRaicesPrivadoState,
   type BienesRaicesPrivadoFormState,
 } from "../../schema/bienesRaicesPrivadoFormState";
+import {
+  clearBienesRaicesPrivadoDraftMediaIdb,
+  inlineBienesRaicesPrivadoHeavyMediaFromIdb,
+  offloadBienesRaicesPrivadoHeavyMediaToIdb,
+} from "./bienesRaicesPrivadoDraftMedia";
 
 export const BR_PRIVADO_DRAFT_STORAGE_KEY = "br-privado-draft-v1";
 
@@ -42,21 +47,42 @@ function readDraftRaw(): string | null {
   return null;
 }
 
-export function loadBienesRaicesPrivadoDraft(): BienesRaicesPrivadoFormState | null {
+/**
+ * BR-INV-WAVE1-GATE3 — resolves any IndexedDB-offloaded photo/seller-photo ref tokens back to
+ * real data: URLs. Async because IndexedDB is async; every caller of `loadBienesRaicesPrivadoDraft`
+ * must await it (was previously synchronous).
+ */
+export async function loadBienesRaicesPrivadoDraft(): Promise<BienesRaicesPrivadoFormState | null> {
   if (typeof window === "undefined") return null;
   try {
     const raw = readDraftRaw();
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<BienesRaicesPrivadoFormState>;
-    return mergePartialBienesRaicesPrivadoState(parsed);
+    const merged = mergePartialBienesRaicesPrivadoState(parsed);
+    return await inlineBienesRaicesPrivadoHeavyMediaFromIdb(merged);
   } catch {
     return null;
   }
 }
 
-export function saveBienesRaicesPrivadoDraft(state: BienesRaicesPrivadoFormState): void {
+/**
+ * BR-INV-WAVE1-GATE3 — offloads heavy photo/seller-photo data: URLs to IndexedDB before writing
+ * the (now small) JSON to sessionStorage/localStorage, instead of storing them inline. Async
+ * because IndexedDB is async — existing fire-and-forget callers (`queueMicrotask(() =>
+ * saveBienesRaicesPrivadoDraft(out))`) keep working unchanged since they never awaited the prior
+ * synchronous version either.
+ */
+export async function saveBienesRaicesPrivadoDraft(state: BienesRaicesPrivadoFormState): Promise<void> {
   if (typeof window === "undefined") return;
-  const raw = JSON.stringify(state);
+  // BR-INV-WAVE1-GATE2: device video upload was removed from the live form (external URL only),
+  // but a draft saved before this change — or hydrated from a stale tab — can still carry a raw
+  // base64 videoLocalDataUrl blob. Strip it before persisting so it never sits inline in
+  // sessionStorage/localStorage (matches the pattern already used by rentasPrivadoDraft.ts).
+  const stripped: BienesRaicesPrivadoFormState = state.media.videoLocalDataUrl
+    ? { ...state, media: { ...state.media, videoLocalDataUrl: "" } }
+    : state;
+  const toSave = await offloadBienesRaicesPrivadoHeavyMediaToIdb(stripped);
+  const raw = JSON.stringify(toSave);
   try {
     sessionStorage.setItem(BR_PRIVADO_DRAFT_STORAGE_KEY, raw);
     try {
@@ -75,7 +101,7 @@ export function saveBienesRaicesPrivadoDraft(state: BienesRaicesPrivadoFormState
   }
 }
 
-export function clearBienesRaicesPrivadoDraft(): void {
+export async function clearBienesRaicesPrivadoDraft(): Promise<void> {
   if (typeof window === "undefined") return;
   try {
     sessionStorage.removeItem(BR_PRIVADO_DRAFT_STORAGE_KEY);
@@ -84,6 +110,7 @@ export function clearBienesRaicesPrivadoDraft(): void {
   } catch {
     /* ignore */
   }
+  await clearBienesRaicesPrivadoDraftMediaIdb();
 }
 
 export function readBienesRaicesPrivadoDraftRaw(): string | null {
@@ -96,6 +123,6 @@ export function readBienesRaicesPrivadoDraftRaw(): string | null {
 }
 
 /** First paint on publish route: restore saved draft or empty. */
-export function bootstrapBienesRaicesPrivadoApplicationState(): BienesRaicesPrivadoFormState {
-  return loadBienesRaicesPrivadoDraft() ?? createEmptyBienesRaicesPrivadoFormState();
+export async function bootstrapBienesRaicesPrivadoApplicationState(): Promise<BienesRaicesPrivadoFormState> {
+  return (await loadBienesRaicesPrivadoDraft()) ?? createEmptyBienesRaicesPrivadoFormState();
 }

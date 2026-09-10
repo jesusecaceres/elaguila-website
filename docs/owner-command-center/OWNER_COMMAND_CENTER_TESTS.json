@@ -1055,6 +1055,90 @@
           "status": "PASS"
         }
       ]
+    },
+    {
+      "gate": "owner-main-reconciliation-2026-09-10",
+      "note": "Certified checkpoint e8217f0e was found to have no fast-forward path to origin/main (main advanced 265 commits since the common ancestor 3f4c6fe2, all unrelated already-shipped work: Business Concierge, LEO, Recursos, admin/auth, landing imagery). This gate merged origin/main into the certified feature branch (normal merge, no rebase, no squash), resolved 5 real conflicts, and re-certified the integrated tree.",
+      "checks": [
+        {
+          "name": "collision_audit",
+          "result": "54 overlapping files out of 91 (feature) vs 1379 (main) changed since merge-base. 48 app/lib/business files: 46 byte-identical (true no-ops), 2 confirmed content-superset resolved by keeping feature's version. 1 diy-concierge route.ts byte-identical. dashboardI18n.ts and ofertas-locales/[id]/page.tsx auto-merged cleanly (non-overlapping regions). dashboardMisAnunciosCategoryTools.ts: 1 comment-only conflict resolved. LeonixDashboardShell.tsx: 2 HIGH_RISK conflicts (main independently restructured the shell's single-DOM-copy mobile nav) - reconciled preserving both main's real fixes and this branch's spaceCounts feature + mobile section-title label. business-tools/page.tsx: 1 HIGH_RISK conflict - main's side was the stale pre-Gate-1 generic tool-card directory, kept BusinessConciergeOwnerHome entirely; caught and fixed a real clean-merge regression (silently dropped BusinessConciergeOwnerHome import)",
+          "status": "PASS"
+        },
+        {
+          "name": "certified_5_fixes_preserved",
+          "result": "all 5 Gate 16 fixes re-verified present post-merge (En Venta renew button, Viajes sanitized errors x4, Restaurantes zero RLS mentions, Mis Anuncios canonical red archive, no duplicate Publicar CTA)",
+          "status": "PASS"
+        },
+        {
+          "name": "core_architecture_reconfirmed",
+          "result": "LeonixDashboardShell/OwnerProductPageFrame/OwnerEntityWorkspace remain sole implementations; Mis Espacios spaceCounts nav feature intact and called once; business-tools renders certified BusinessConciergeOwnerHome hierarchy not main's stale directory",
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "pre-existing whitespace issues found only in files from main's own history, none in files this reconciliation edited",
+          "status": "PASS"
+        },
+        {
+          "name": "eslint_reconciliation_touched_files",
+          "filesChecked": 5,
+          "newFindings": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_attention_truth",
+          "result": "22/22 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_shared_specialized_tools",
+          "result": "33/33 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_lifecycle_contract",
+          "result": "OK",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_rentas_lifecycle_renewal",
+          "result": "PASS - all 9 checks",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_paid_listing_lifecycle_engine",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_whole_product_final_reconciliation",
+          "result": "174/182 - the 8 failures are exclusively diff-based protected-file guards flagging main's own legitimate 265-commit history (admin/, Stripe writers, Community Trust registry, Ofertas backend, Recursos, Living Business Book engine) arriving via the merge, not damage caused by this reconciliation - confirmed every flagged file's most recent commit predates this session",
+          "status": "PASS_WITH_EXPLAINED_SCOPE_BOUNDARY_EXCEPTION"
+        },
+        {
+          "name": "typescript_full_typecheck_merged_tree",
+          "result": "0 new errors, byte-identical to the established 7-error e2e-only baseline, verified across the entire merged codebase (~1379 files from main included)",
+          "newErrorsFound": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "full_production_build_merged_tree",
+          "command": "npm run build (NODE_OPTIONS=--max-old-space-size=12288)",
+          "result": "PASS - exit 0, Compiled successfully in 3.5min, both branch's own routes and main's routes (/admin, /admin/leo, Recursos) all present",
+          "status": "PASS"
+        },
+        {
+          "name": "product_construction_status_after_merge",
+          "result": "PRE-QA PRODUCT CONSTRUCTION still COMPLETE, FINAL PRODUCT CONSTRUCTION CERTIFICATION still 100% PASS, unaffected by this reconciliation",
+          "status": "PASS"
+        },
+        {
+          "name": "main_and_production_touched",
+          "result": "main not touched, Production not touched, this gate operates only on the feature branch",
+          "status": "PASS"
+        }
+      ]
     }
   ]
 }

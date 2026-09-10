@@ -58,7 +58,7 @@ export function getOfertaLocalActiveScanCopy(lang: OfertasLocalesAppLang): Ofert
       scanningFlyer: "Scanning main flyer…",
       scanningCoupon: "Scanning coupon / additional…",
       autoResultsHint: "New results will appear here automatically.",
-      refreshNow: "Refresh now",
+      refreshNow: "Refresh results",
       refreshBackupHint: "Results update automatically. Use this only if something is missing.",
       currentScan: "Current scan",
       previousScans: "Previous scans",
@@ -84,9 +84,9 @@ export function getOfertaLocalActiveScanCopy(lang: OfertasLocalesAppLang): Ofert
     scanningFlyer: "Escaneando Volante principal…",
     scanningCoupon: "Escaneando Cupón / adicional…",
     autoResultsHint: "Resultados nuevos aparecerán aquí automáticamente.",
-    refreshNow: "Actualizar ahora",
+    refreshNow: "Actualizar resultados",
     refreshBackupHint:
-      "Los resultados se actualizan automáticamente. Usa esto solo si algo no aparece.",
+      "Los resultados se actualizan automáticamente. Usa este botón solo si algo no aparece.",
     currentScan: "Escaneo actual",
     previousScans: "Escaneos anteriores",
     readyFlyer: "Volante principal listo para revisar.",
@@ -219,6 +219,30 @@ export function summarizeScopedItemReviewCounts(
     counts[item.reviewStatus] += 1;
   }
   return counts;
+}
+
+/**
+ * Owner-facing review completion — a page counts as complete only when every
+ * item on it has left the active-review state (approved or rejected), so a
+ * page with zero items never registers as complete. Falls back to the scan
+ * job's own reported page count when it exceeds what items reveal (pages
+ * still rendering with no extracted items yet).
+ */
+export function summarizeOfertaLocalPageCompletion(
+  items: OfertaLocalItemReviewViewModel[],
+  scanJobs: OfertaLocalScanJobSummary[]
+): { totalPages: number; completedPages: number } {
+  const pageResolved = new Map<number, boolean>();
+  for (const item of items) {
+    const page = item.sourcePage && item.sourcePage > 0 ? item.sourcePage : 1;
+    const resolved = isOfertaLocalReviewedStatus(item.reviewStatus);
+    const prev = pageResolved.get(page);
+    pageResolved.set(page, prev === undefined ? resolved : prev && resolved);
+  }
+  const jobTotalPages = scanJobs.reduce((max, job) => Math.max(max, job.totalPages || 0), 0);
+  const totalPages = Math.max(pageResolved.size, jobTotalPages);
+  const completedPages = [...pageResolved.values()].filter(Boolean).length;
+  return { totalPages, completedPages };
 }
 
 /** Latest scan job for a source file — used after hard refresh and tab switches. */

@@ -13,6 +13,7 @@ import {
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import {
   RENTAS_PREVIEW_PRIVADO,
+  RENTAS_PUBLICAR_HUB,
 } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
 import { Gate12cContactChannelsFields } from "@/app/clasificados/publicar/shared/Gate12cContactChannelsFields";
@@ -249,19 +250,22 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
       });
       return;
     }
-    const d = loadRentasPrivadoDraft();
-    if (d) {
-      setState(d);
+    // BR-INV-WAVE1-GATE3: loadRentasPrivadoDraft is now async (IndexedDB inline).
+    void (async () => {
+      const d = await loadRentasPrivadoDraft();
+      if (d) {
+        setState(d);
+        setHydrated(true);
+        return;
+      }
+      try {
+        const p = parseBrNegocioPropiedadParam(sp.get(BR_NEGOCIO_Q_PROPIEDAD));
+        if (p) setState((s) => ({ ...s, categoriaPropiedad: p }));
+      } catch {
+        /* ignore */
+      }
       setHydrated(true);
-      return;
-    }
-    try {
-      const p = parseBrNegocioPropiedadParam(sp.get(BR_NEGOCIO_Q_PROPIEDAD));
-      if (p) setState((s) => ({ ...s, categoriaPropiedad: p }));
-    } catch {
-      /* ignore */
-    }
-    setHydrated(true);
+    })();
   }, [routeEditContext]);
 
   useEffect(() => {
@@ -314,9 +318,15 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [editContext, dirty]);
 
+  // BR-INV-WAVE1-GATE3: saveRentasPrivadoDraft is now async (IndexedDB offload). Returns the
+  // promise so callers that navigate right after can await it — otherwise router.push could race
+  // ahead of the write and the preview page would read a stale draft.
   const flushSave = useCallback(() => {
-    if (editContext) saveRentasListingEditWorkspace({ listingId: editContext.listingId, lane: "privado", draft: stateRef.current });
-    else saveRentasPrivadoDraft(stateRef.current);
+    if (editContext) {
+      saveRentasListingEditWorkspace({ listingId: editContext.listingId, lane: "privado", draft: stateRef.current });
+      return Promise.resolve();
+    }
+    return saveRentasPrivadoDraft(stateRef.current);
   }, [editContext]);
 
   const previewHref = useMemo(
@@ -449,7 +459,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
   }, [editContext, hydrationStatus, lang, router, rm.actions]);
 
   const previewActionsProps = {
-    onPreviewValidated: () => {
+    onPreviewValidated: async () => {
       if (editContext && hydrationStatus !== "ready") return;
       if (!confirmAll) return;
       const g = gateRentasPrivadoPreview(stateRef.current);
@@ -458,7 +468,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
         return;
       }
       setPreviewGateMessage(null);
-      flushSave();
+      await flushSave();
       router.push(previewHref);
     },
     openPreviewHref: previewHref,
@@ -553,7 +563,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
 
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <Link
-            href={withClasificadosPublishLang("/clasificados/rentas", routeLang)}
+            href={withClasificadosPublishLang(RENTAS_PUBLICAR_HUB, routeLang)}
             className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-[#C9B46A]/50 px-6 text-sm font-semibold text-[#6E5418] transition hover:bg-[#FFEFD8] sm:w-auto"
           >
             {rm.actions.backToRentals}
@@ -579,22 +589,54 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
               </button>
             ))}
           </div>
+          {state.posterType === "business" || state.posterType === "property_manager" ? (
+            <p className="mt-3 text-xs leading-relaxed text-[#5C5346]/88">
+              {lang === "es" ? (
+                <>
+                  ¿Publicas a nombre de un negocio? El{" "}
+                  <Link href={withClasificadosPublishLang(RENTAS_PUBLICAR_HUB, routeLang)} className="font-semibold text-[#6E5418] underline">
+                    formulario de Rentas Negocio
+                  </Link>{" "}
+                  agrega perfil de negocio, logotipo, sitio web y redes — opcional, el precio no cambia.
+                </>
+              ) : (
+                <>
+                  Posting on behalf of a business? The{" "}
+                  <Link href={withClasificadosPublishLang(RENTAS_PUBLICAR_HUB, routeLang)} className="font-semibold text-[#6E5418] underline">
+                    Rentas Business form
+                  </Link>{" "}
+                  adds a business profile, logo, website, and social links — optional, price stays the same.
+                </>
+              )}
+            </p>
+          ) : null}
         </section>
 
         <section className={`${aiCardClass} min-w-0`}>
           <h2 className={aiTitleClass}>{rm.category.title}</h2>
-          <p className={aiSubClass}>{rm.category.hint}</p>
+          <p className={aiSubClass}>
+            {state.tipoDeRenta
+              ? lang === "en"
+                ? "Determined automatically from the rental type below — it can no longer be set independently."
+                : "Se determina automáticamente según el tipo de renta (abajo) — ya no se puede elegir de forma independiente."
+              : rm.category.hint}
+          </p>
           <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
             {CATEGORIAS.map((c) => (
               <button
                 key={c.id}
                 type="button"
-                onClick={() => setState((s) => ({ ...s, categoriaPropiedad: c.id }))}
+                disabled={Boolean(state.tipoDeRenta)}
+                aria-disabled={Boolean(state.tipoDeRenta)}
+                onClick={() => {
+                  if (state.tipoDeRenta) return;
+                  setState((s) => ({ ...s, categoriaPropiedad: c.id }));
+                }}
                 className={`min-h-[48px] w-full rounded-xl border px-3 py-3 text-center text-sm font-semibold leading-snug transition sm:min-h-[44px] sm:py-2.5 ${
                   cat === c.id
                     ? "border-[#B8954A] bg-[#FFF6E7] text-[#1E1810] ring-1 ring-[#B8954A]/30"
                     : "border-[#E8DFD0] bg-white text-[#5C5346] hover:border-[#C9B46A]/60"
-                }`}
+                } ${state.tipoDeRenta ? "cursor-not-allowed opacity-70" : ""}`}
               >
                 {rm.category[c.labelKey]}
               </button>
@@ -639,6 +681,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
               type="file"
               accept="image/*"
               multiple
+              aria-label={rm.media.listingPhotos}
               className="sr-only"
               onChange={(e) => onPhotos(e.target.files)}
             />
@@ -756,6 +799,7 @@ export function RentasPrivadoForm({ initialLocale }: { initialLocale: OfficialLo
                 ref={ownerPhotoInputRef}
                 type="file"
                 accept="image/*"
+                aria-label={rm.contact.contactPhoto}
                 className="sr-only"
                 onChange={async (e) => {
                   const f = e.target.files?.[0];

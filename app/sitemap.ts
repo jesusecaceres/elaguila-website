@@ -3,30 +3,31 @@ import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 import { PRIMARY_CATEGORIES } from "@/app/lib/recursos/categories";
 import { recursosCategoryPath, recursosResourcePath } from "@/app/lib/recursos/recursosUrls";
 import { listPublicCommunityResources } from "@/app/lib/recursos/server/communityResourcesPublicQueries";
+import { buildLeonixSitemap } from "@/app/lib/seo/leonixDiscoveryContracts";
+
+export {
+  buildLeonixSitemap,
+  leonixSitemapOmitsPerListingDetailUrls,
+  LEONIX_SITEMAP_CATEGORY_HUBS,
+  LEONIX_SITEMAP_MARKETING_PATHS,
+} from "@/app/lib/seo/leonixDiscoveryContracts";
 
 /**
- * Package F Build F2, Gate 16 (P1 SEO fix) — canonical public category hubs, added so a real
- * sitemap-driven discovery path exists for the catalog (previously only 8 marketing URLs).
- * Every path below is a confirmed-real, publicly indexable `page.tsx` on this branch. Per-listing
- * detail URLs are intentionally NOT generated here — safely enumerating only published/active rows
- * (excluding draft/preview/pending/rejected/suspended/archived) needs a dedicated DB-backed
- * sitemap generator. Iglesias `/iglesias/[slug]` church URLs are deferred on the same basis.
+ * Package F Build F2, Gate 16 (P1 SEO fix) — canonical public category hubs and marketing paths
+ * are sourced from the shared `leonixDiscoveryContracts` module (also used by robots.ts and LEO
+ * Self-Intelligence's discovery-SEO sensor) so there is one source of truth. Marketing paths added
+ * on main after that module was created live in `EXTRA_MARKETING_PATHS` below until they're folded
+ * into the canonical list. Per-listing detail URLs are intentionally NOT generated here — safely
+ * enumerating only published/active rows (excluding draft/preview/pending/rejected/suspended/
+ * archived) needs a dedicated DB-backed sitemap generator. Iglesias `/iglesias/[slug]` church URLs
+ * are deferred on the same basis.
  */
-const CLASIFICADOS_CATEGORY_HUBS = [
-  "/clasificados/en-venta",
-  "/clasificados/rentas",
-  "/clasificados/empleos",
-  "/clasificados/autos",
-  "/clasificados/bienes-raices",
-  "/clasificados/servicios",
-  "/clasificados/restaurantes",
-  "/clasificados/comida-local",
-  "/clasificados/viajes",
-  "/clasificados/comunidad",
-  "/clasificados/clases",
-  "/clasificados/busco",
-  "/clasificados/mascotas-y-perdidos",
-  "/clasificados/ofertas-locales",
+const EXTRA_MARKETING_PATHS = [
+  "/recursos-comunitarios",
+  "/iglesias",
+  "/iglesias/registrar",
+  "/productos-promocion",
+  "/media-kit",
 ];
 
 /**
@@ -58,35 +59,13 @@ async function recursosSitemapEntries(base: string, now: Date): Promise<Metadata
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = LEONIX_SITE_ORIGIN;
   const now = new Date();
-  const main = [
-    "",
-    "/home",
-    "/about",
-    "/contacto",
-    "/clasificados",
-    "/noticias",
-    "/legal",
-    "/magazine",
-    "/magazine/2026",
-    "/negocios-locales",
-    "/recursos-comunitarios",
-    "/iglesias",
-    "/iglesias/registrar",
-    "/productos-promocion",
-    "/media-kit",
-  ];
   return [
-    ...main.map((path) => ({
+    ...buildLeonixSitemap(now),
+    ...EXTRA_MARKETING_PATHS.map((path) => ({
       url: `${base}${path}`,
       lastModified: now,
-      changeFrequency: (path === "" || path === "/home" ? "weekly" : "monthly") as "weekly" | "monthly",
-      priority: path === "" || path === "/home" ? 1 : 0.7,
-    })),
-    ...CLASIFICADOS_CATEGORY_HUBS.map((path) => ({
-      url: `${base}${path}`,
-      lastModified: now,
-      changeFrequency: "daily" as const,
-      priority: 0.8,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
     })),
     ...(await recursosSitemapEntries(base, now)),
   ];

@@ -202,7 +202,7 @@ export default function BienesRaicesPrivadoPreviewClient() {
 
   const onStartFsboCheckout = useCallback(
     async (ctx: { newsletterOptIn: boolean; promoCode: string | null }) => {
-      const d = loadBienesRaicesPrivadoDraft();
+      const d = await loadBienesRaicesPrivadoDraft();
       if (!d) return;
       setPublishBusy(true);
       setPublishErr(null);
@@ -253,9 +253,16 @@ export default function BienesRaicesPrivadoPreviewClient() {
   );
 
   useEffect(() => {
-    const d = loadBienesRaicesPrivadoDraft();
-    setDraft(d);
-    setPhase(d ? "ready" : "recovery");
+    let cancelled = false;
+    (async () => {
+      const d = await loadBienesRaicesPrivadoDraft();
+      if (cancelled) return;
+      setDraft(d);
+      setPhase(d ? "ready" : "recovery");
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   /** Keep `?propiedad=` aligned with draft category whenever both are known (survives remounts and query changes). */
@@ -279,13 +286,15 @@ export default function BienesRaicesPrivadoPreviewClient() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-5 overflow-x-hidden bg-[#F9F6F1] px-4 py-8 text-center text-[#2C2416]">
         <p className="max-w-md text-sm leading-relaxed text-[#5C5346] [text-wrap:balance]">
-          No encontramos un borrador de BR Privado en esta sesión. Publica o continúa editando para generar la vista previa.
+          {lang === "en"
+            ? "We couldn't find a BR Privado draft in this session. Publish or keep editing to generate the preview."
+            : "No encontramos un borrador de BR Privado en esta sesión. Publica o continúa editando para generar la vista previa."}
         </p>
         <Link
           href={editHrefRecovery}
           className="inline-flex min-h-[48px] min-w-[200px] items-center justify-center rounded-full bg-[#B8954A] px-6 text-sm font-bold text-[#1E1810] transition hover:brightness-95"
         >
-          Ir a publicar — Privado
+          {lang === "en" ? "Go to publish — Private" : "Ir a publicar — Privado"}
         </Link>
       </div>
     );

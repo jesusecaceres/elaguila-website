@@ -1,0 +1,94 @@
+/**
+ * Package B, Gate 7 — "Create Creative Request" bridge.
+ * Uses the EXISTING Creative Studio job pipeline (createJob) — no second creative system. Only
+ * valid from an "approved" opportunity; seeds the job with opportunity context and marks the
+ * opportunity "creative_requested" with a traceable back-reference (source_opportunity_id).
+ * Never auto-generates creative — creating the job is enough; generation remains a separate,
+ * explicit staff action against the existing /creative-studio/jobs/[jobId]/generate route
+ * (Package A).
+ */
+import { NextResponse, type NextRequest } from "next/server";
+import { requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { getOpportunityById, markOpportunityCreativeRequested } from "@/app/lib/business/opportunity/repository";
+import type { OpportunityType } from "@/app/lib/business/opportunity/types";
+import { createJob } from "@/app/lib/business/creativeStudio/repository";
+import { CREATIVE_DOCTRINE_VERSION, CREATIVE_TEMPLATE_VERSION, type CreativeAssetType, type CreativeLanguage } from "@/app/lib/business/creativeStudio/types";
+import { getAdminSupabase } from "@/app/lib/supabase/server";
+
+const OPPORTUNITY_TYPE_TO_ASSET_TYPE: Record<OpportunityType, CreativeAssetType> = {
+  editorial_match: "sponsored_insert",
+  sponsored_feature: "sponsored_insert",
+  category_feature: "sponsored_insert",
+  seasonal_campaign: "campaign_plan_30_day",
+  business_campaign: "campaign_plan_30_day",
+};
+
+async function getBusinessPrimaryLanguage(businessId: string): Promise<CreativeLanguage> {
+  const supabase = getAdminSupabase();
+  const { data } = await supabase.from("businesses").select("primary_language").eq("id", businessId).maybeSingle();
+  return data?.primary_language === "en" ? "en_primary_es_support" : "es_primary_en_support";
+}
+
+export async function POST(
+  _req: NextRequest,
+  { params }: { params: Promise<{ businessId: string; opportunityId: string }> },
+) {
+  const { businessId, opportunityId } = await params;
+  const access = await requireStaffWorkspaceWriteAccess("create_opportunity_creative_request");
+  if (!access.ok) {
+    return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
+  }
+
+  const opportunity = await getOpportunityById(businessId, opportunityId);
+  if (!opportunity) {
+    return NextResponse.json({ ok: false, error: "opportunity_not_found" }, { status: 404 });
+  }
+  if (opportunity.lifecycleState !== "approved") {
+    return NextResponse.json({ ok: false, error: "opportunity_not_approved" }, { status: 409 });
+  }
+
+  const language = await getBusinessPrimaryLanguage(businessId);
+
+  const creativeActor = access.actor;
+
+  const job = await createJob(
+    businessId,
+    {
+      sourceRecommendationId: null,
+      sourceProposalId: null,
+      sourceOpportunityId: opportunity.id,
+      assetType: OPPORTUNITY_TYPE_TO_ASSET_TYPE[opportunity.opportunityType],
+      language,
+      format: "FULL_PAGE",
+      archetype: "SPONSORED_EDITORIAL",
+      layoutVariant: "A",
+      inputSnapshotId: null,
+      doctrineVersion: CREATIVE_DOCTRINE_VERSION,
+      templateVersion: CREATIVE_TEMPLATE_VERSION,
+      providerKey: "gemini",
+      modelKey: "gemini-2.5-flash",
+      creativeLane: "LANE_C_SPONSORED_EDITORIAL",
+      riskClass: "NORMAL",
+      createdActorType: creativeActor.type,
+      createdByRosterId: creativeActor.rosterId,
+      createdByAuthUserId: creativeActor.authUserId,
+      createdByEmail: creativeActor.email,
+      createdByRole: creativeActor.role,
+    },
+    creativeActor,
+  );
+
+  if (!job) {
+    return NextResponse.json({ ok: false, error: "job_create_failed" }, { status: 500 });
+  }
+
+  const marked = await markOpportunityCreativeRequested(businessId, opportunityId, job.id);
+  if (!marked.ok) {
+    // The job was created (durable, not rolled back — matches the "no invisible history rewrite"
+    // convention elsewhere in Creative Studio); report the opportunity-side failure so staff can
+    // retry marking it, without losing the already-created job.
+    return NextResponse.json({ ok: false, error: "opportunity_mark_failed", job }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true, job, opportunity: marked.opportunity });
+}

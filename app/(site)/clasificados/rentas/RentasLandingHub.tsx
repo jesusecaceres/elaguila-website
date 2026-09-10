@@ -233,8 +233,6 @@ export function RentasLandingHub() {
         onPoolDraft={() => {}}
         kindDraft=""
         onKindDraft={() => {}}
-        subtypeDraft=""
-        onSubtypeDraft={() => {}}
         priceOptions={copy.priceOptions}
       />
     </RentasLandingShell>

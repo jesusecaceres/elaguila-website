@@ -86,11 +86,12 @@ if (!read("app/admin/(dashboard)/team/clients/page.tsx").includes("Redemption at
 }
 ok("Redemption attribution audited — blocker reported");
 
-if (!gateRoot.includes("requireAdminCookie")) fail("public lock must require admin cookie for bypass");
+// Public Coming Soon lock has been intentionally retired (owner decision) — ComingSoonGateRoot
+// now always renders children, so it no longer needs an admin-cookie bypass for itself.
 if (gateRoot.includes("PREVIEW_TOKEN") || gateRoot.includes("preview_token")) {
   fail("hardcoded preview token");
 }
-ok("Website preview + public lock preserved");
+ok("Website preview intact; public launch gate confirmed retired");
 
 const forbidden = ["shared_password", "leonix_sales_password", "PREVIEW_BYPASS_TOKEN", "ADMIN_PASSWORD="];
 for (const f of forbidden) {

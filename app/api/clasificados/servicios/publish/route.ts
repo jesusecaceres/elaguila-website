@@ -418,6 +418,16 @@ export async function POST(req: NextRequest) {
   }
 
   const listingStatus = pendingPayment ? SERVICIOS_LISTING_STATUS_PENDING_PAYMENT : initialListingStatus();
+  // Gate REVENUE-ACTIVE-ENTITLEMENT-GUARD-01 — the status actually persisted, which can diverge
+  // from the raw `pendingPayment` request flag: an edit-save of an already-published listing
+  // preserves PUBLISHED below (never regresses to pending) even when the client requested
+  // `activationMode: "pending_payment"`. The response must reflect this real outcome — echoing
+  // the raw request flag back as `pendingPayment: true` for an already-published/active listing
+  // previously caused the client to proceed to Revenue OS checkout and recharge a listing that
+  // already has an active `servicios_base_monthly` entitlement (the actual Stripe charge is now
+  // also blocked server-side by the shared guard in /api/revenue-os/checkout, but this keeps the
+  // client from even attempting it).
+  let actualListingStatus: string = listingStatus;
 
   let persistedToDatabase = false;
   let persistedListingId: string | null = null;
@@ -442,6 +452,7 @@ export async function POST(req: NextRequest) {
           pendingPayment && existing.listing_status === SERVICIOS_LISTING_STATUS_PUBLISHED
             ? SERVICIOS_LISTING_STATUS_PUBLISHED
             : listingStatus;
+        actualListingStatus = nextStatus;
         const { data: updated, error } = await supabase
           .from("servicios_public_listings")
           .update({
@@ -619,7 +630,11 @@ export async function POST(req: NextRequest) {
   }
 
   // Revenue OS pending-payment save: require a real DB row so we can hand a listingId to checkout.
-  if (pendingPayment) {
+  // Gated on `actualListingStatus`, not the raw `pendingPayment` request flag — an edit-save of an
+  // already-published listing preserves PUBLISHED above and must respond as such (no checkout
+  // needed), never echo the client's pending-payment intent back as true when nothing was
+  // actually left pending. See the `actualListingStatus` comment above.
+  if (pendingPayment && actualListingStatus === SERVICIOS_LISTING_STATUS_PENDING_PAYMENT) {
     if (!persistedToDatabase || !persistedListingId) {
       if (persistenceDiagnostic) logPersistenceDiagnostic(persistenceDiagnostic);
       await insertServiciosAnalyticsEvent({
@@ -662,7 +677,7 @@ export async function POST(req: NextRequest) {
       listingId: persistedListingId,
       leonixAdId: persistedLeonixAdId,
       slug,
-      listingStatus,
+      listingStatus: actualListingStatus,
     });
   }
 
@@ -680,7 +695,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     slug,
-    listingStatus: persistedToDatabase ? listingStatus : SERVICIOS_LISTING_STATUS_PUBLISHED,
+    listingStatus: persistedToDatabase ? actualListingStatus : SERVICIOS_LISTING_STATUS_PUBLISHED,
     persistence,
     persistedToDatabase,
     persistedToDevWorkspace,

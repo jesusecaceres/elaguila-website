@@ -41,6 +41,8 @@ export type RentasGatewayLink = {
 };
 
 export type RentasGatewayTile = RentasGatewayLink & {
+  /** Stable key for image-map lookups (LeonixCategoryImageDiscoveryGrid). */
+  id: string;
   Icon: IconType;
   accent: "burgundy" | "green" | "gold";
   hintEs?: string;
@@ -56,6 +58,7 @@ export type RentasDrawerSpaceType = {
 /** Visual intent tiles — subtype or safe keyword search only. */
 export const RENTAS_INTENT_TILES: RentasGatewayTile[] = [
   {
+    id: "cuarto",
     labelEs: "Cuarto",
     labelEn: "Room",
     hintEs: "Para una persona o pareja",
@@ -66,6 +69,7 @@ export const RENTAS_INTENT_TILES: RentasGatewayTile[] = [
     wired: true,
   },
   {
+    id: "garage",
     labelEs: "Garage",
     labelEn: "Garage",
     hintEs: "Espacio convertido o privado",
@@ -76,6 +80,7 @@ export const RENTAS_INTENT_TILES: RentasGatewayTile[] = [
     wired: true,
   },
   {
+    id: "sala",
     labelEs: "Sala / espacio",
     labelEn: "Living space",
     hintEs: "Algo sencillo y económico",
@@ -86,6 +91,7 @@ export const RENTAS_INTENT_TILES: RentasGatewayTile[] = [
     wired: true,
   },
   {
+    id: "estudio",
     labelEs: "Estudio",
     labelEn: "Studio",
     hintEs: "Todo en un solo espacio",
@@ -96,6 +102,7 @@ export const RENTAS_INTENT_TILES: RentasGatewayTile[] = [
     wired: true,
   },
   {
+    id: "apartamento",
     labelEs: "Apartamento",
     labelEn: "Apartment",
     hintEs: "Más privacidad",
@@ -106,6 +113,7 @@ export const RENTAS_INTENT_TILES: RentasGatewayTile[] = [
     wired: true,
   },
   {
+    id: "adu-casita",
     labelEs: "ADU / Casita",
     labelEn: "ADU / Casita",
     hintEs: "Entrada independiente si aplica",
@@ -116,6 +124,7 @@ export const RENTAS_INTENT_TILES: RentasGatewayTile[] = [
     wired: true,
   },
   {
+    id: "casa-movil",
     labelEs: "Casa móvil",
     labelEn: "Mobile home",
     hintEs: "Opción práctica",
@@ -126,6 +135,7 @@ export const RENTAS_INTENT_TILES: RentasGatewayTile[] = [
     wired: true,
   },
   {
+    id: "para-familia",
     labelEs: "Para familia",
     labelEn: "For family",
     hintEs: "Más espacio para vivir",

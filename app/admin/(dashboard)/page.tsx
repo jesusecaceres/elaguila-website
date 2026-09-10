@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { AdminCommandCenterDashboard } from "../_components/AdminCommandCenterDashboard";
+import { collectLeoExecutiveReportingSnapshot } from "@/app/leo/_lib/leoExecutiveReportingService";
 import { getAdminDashboardLeadsCounts, getAdminDashboardSnapshot } from "../_lib/adminDashboardData";
 import { getClasificadosCategoryRegistryMerged, summarizeRegistryForDashboard } from "@/app/lib/clasificados/clasificadosCategoryRegistry";
 import { getPackageEntitlementDashboardSnapshot } from "../_lib/packageEntitlementData";
@@ -25,7 +26,7 @@ export default async function AdminHomePage() {
   const m = adminMessages(lang);
   const locale = "en-US";
 
-  const [snap, leads, entSnap, promoSnap, paySnap, registry, catalogStats] = await Promise.all([
+  const [snap, leads, entSnap, promoSnap, paySnap, registry, catalogStats, execReports] = await Promise.all([
     getAdminDashboardSnapshot(),
     getAdminDashboardLeadsCounts(),
     getPackageEntitlementDashboardSnapshot(),
@@ -41,6 +42,7 @@ export default async function AdminHomePage() {
         }),
     getClasificadosCategoryRegistryMerged(),
     getAdminCatalogStats(),
+    collectLeoExecutiveReportingSnapshot({ limit: 8 }).catch(() => null),
   ]);
   const regSum = summarizeRegistryForDashboard(registry);
 
@@ -56,6 +58,7 @@ export default async function AdminHomePage() {
       paySnap={paySnap}
       catalogStats={catalogStats}
       showPaymentTracker={canViewPaymentTracker(access.normalizedRole)}
+      executiveReports={execReports}
     />
   );
 }

@@ -11,10 +11,11 @@ import {
 import {
   clearOfertaLocalDraftStorage,
   loadOfertaLocalDraftFromStorage,
-  peekStoredOfertaLocalApplicationSessionId,
   readActiveOfertaLocalApplicationSessionId,
+  readOfertaLocalDraftOwnerStamp,
   saveOfertaLocalDraftToStorage,
   writeActiveOfertaLocalApplicationSessionId,
+  writeOfertaLocalDraftOwnerStamp,
 } from "./ofertasLocalesDraftPersistence";
 import type { OfertaLocalDraft } from "./ofertasLocalesTypes";
 
@@ -24,6 +25,8 @@ export type UseOfertasLocalesDraftOptions = {
   /** Preview and explicit continue/edit always restore the stored application. */
   forceContinue?: boolean;
   signals?: OfertaLocalDraftLoadSignals;
+  /** Authenticated owner id, once known — used to keep one browser's draft from leaking across accounts. */
+  ownerId?: string | null;
 };
 
 export function useOfertasLocalesDraft(options?: UseOfertasLocalesDraftOptions) {
@@ -33,6 +36,7 @@ export function useOfertasLocalesDraft(options?: UseOfertasLocalesDraftOptions) 
   const hydratedRef = useRef(false);
   const skipNextSaveRef = useRef(false);
   const allowSaveRef = useRef(false);
+  const ownerReconciledRef = useRef<string | null>(null);
 
   const forceContinue = Boolean(options?.forceContinue);
   const signalIntent = options?.signals?.intent ?? "";
@@ -40,13 +44,17 @@ export function useOfertasLocalesDraft(options?: UseOfertasLocalesDraftOptions) 
   const signalStep = options?.signals?.step ?? "";
   const signalListingId = options?.signals?.listingId ?? "";
   const signalReview = options?.signals?.review ?? "";
+  const ownerId = options?.ownerId?.trim() || null;
 
   useEffect(() => {
     if (hydratedRef.current) return;
     hydratedRef.current = true;
 
     const stored = loadOfertaLocalDraftFromStorage();
-    const storedSessionId = peekStoredOfertaLocalApplicationSessionId();
+    // Read directly off the same merged draft used to restore state below —
+    // a second independent loadOfertaLocalDraftFromStorage() call would run
+    // mergeDraft() again and could synthesize a different fallback id.
+    const storedSessionId = stored?.applicationSessionId || null;
     const activeSessionId = readActiveOfertaLocalApplicationSessionId();
     const decision = forceContinue
       ? "continue"
@@ -99,6 +107,27 @@ export function useOfertasLocalesDraft(options?: UseOfertasLocalesDraftOptions) 
     return () => window.clearTimeout(t);
   }, [draft, hasLoadedDraft]);
 
+  // A signed-out visitor's anonymous draft is claimed by whichever account first
+  // signs in on this browser. Once claimed, a DIFFERENT authenticated owner must
+  // never silently inherit it — reset to a blank draft and re-claim it for them.
+  useEffect(() => {
+    if (!hasLoadedDraft || !ownerId || ownerReconciledRef.current === ownerId) return;
+    ownerReconciledRef.current = ownerId;
+    const stamp = readOfertaLocalDraftOwnerStamp();
+    if (stamp && stamp !== ownerId) {
+      skipNextSaveRef.current = true;
+      const empty = createEmptyOfertaLocalDraft();
+      clearOfertaLocalDraftStorage();
+      writeActiveOfertaLocalApplicationSessionId(empty.applicationSessionId);
+      saveOfertaLocalDraftToStorage(empty);
+      writeOfertaLocalDraftOwnerStamp(ownerId);
+      setDraft(empty);
+      setLastSavedAt(null);
+      return;
+    }
+    writeOfertaLocalDraftOwnerStamp(ownerId);
+  }, [hasLoadedDraft, ownerId]);
+
   const updateDraft = useCallback((partial: Partial<OfertaLocalDraft>) => {
     setDraft((prev) => ({ ...prev, ...partial }));
   }, []);
@@ -110,8 +139,9 @@ export function useOfertasLocalesDraft(options?: UseOfertasLocalesDraftOptions) 
     clearOfertaLocalDraftStorage();
     writeActiveOfertaLocalApplicationSessionId(empty.applicationSessionId);
     saveOfertaLocalDraftToStorage(empty);
+    if (ownerId) writeOfertaLocalDraftOwnerStamp(ownerId);
     setLastSavedAt(null);
-  }, []);
+  }, [ownerId]);
 
   return {
     draft,

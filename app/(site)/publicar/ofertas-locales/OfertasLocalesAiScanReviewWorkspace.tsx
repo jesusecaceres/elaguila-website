@@ -157,7 +157,11 @@ export function OfertasLocalesAiScanReviewWorkspace({
       ) : null}
 
       <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,54fr)_minmax(0,46fr)]">
-        <div className="order-2 min-w-0 xl:order-1">
+        {/* Flyer/source viewer renders before the editor on every breakpoint: on
+            mobile this keeps the source visible ahead of the form (not buried
+            below it), and on desktop it becomes the sticky left column so the
+            source stays visible while the editor scrolls on the right. */}
+        <div className="order-1 min-w-0 xl:sticky xl:top-20 xl:order-1">
           <OfertasLocalesProductClipPanel
             lang={lang}
             draft={draft}
@@ -177,7 +181,7 @@ export function OfertasLocalesAiScanReviewWorkspace({
           />
         </div>
 
-        <div className="order-1 min-w-0 xl:order-2">
+        <div className="order-2 min-w-0 xl:order-2">
           <OfertasLocalesAiItemReviewPanel
             lang={lang}
             ofertaLocalId={ofertaLocalId}

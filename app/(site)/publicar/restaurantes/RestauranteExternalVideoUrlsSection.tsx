@@ -12,6 +12,7 @@ import {
 import type { RestauranteListingDraft } from "@/app/clasificados/restaurantes/application/restauranteDraftTypes";
 import type { RestauranteDraftPatch } from "@/app/clasificados/restaurantes/application/useRestauranteDraft";
 import { resolveRestauranteGallerySequence } from "@/app/clasificados/restaurantes/application/restauranteGalleryMediaSequence";
+import { AddedConfirmationBadge, useAddedConfirmation } from "@/app/components/forms/AddedConfirmation";
 import { tr, type RestauranteAppUiLang } from "./restauranteApplicationFormCopy";
 
 const OTHER_INPUT =
@@ -49,6 +50,9 @@ export function RestauranteExternalVideoUrlsSection({ draft, setDraftPatch, lang
   const atLimit = urls.length >= RESTAURANTE_MAX_EXTERNAL_VIDEO_URLS;
   const [draftUrl, setDraftUrl] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
+  // Accepted-confirmation doctrine (INPUT -> ACCEPTED -> PERSISTED) — flashes only on a genuinely
+  // successful add (never for blank/invalid/duplicate/at-limit cases below).
+  const videoAddedConfirm = useAddedConfirmation();
 
   function tryAdd() {
     const next = trimRestauranteVideoUrl(draftUrl);
@@ -69,6 +73,7 @@ export function RestauranteExternalVideoUrlsSection({ draft, setDraftPatch, lang
     setDraftPatch((prev) => syncVideoGallerySequence(prev, merged));
     setDraftUrl("");
     setAddError(null);
+    videoAddedConfirm.flash();
   }
 
   function removeAt(index: number) {
@@ -149,14 +154,20 @@ export function RestauranteExternalVideoUrlsSection({ draft, setDraftPatch, lang
               {addError}
             </p>
           ) : null}
-          <button
-            type="button"
-            className="mt-3 inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] px-4 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)] disabled:opacity-50"
-            onClick={() => tryAdd()}
-            disabled={!trimRestauranteVideoUrl(draftUrl)}
-          >
-            {tr(lang, "Añadir video", "Add video")}
-          </button>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[color:var(--lx-gold-border)] bg-[color:var(--lx-section)] px-4 py-2.5 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)] disabled:opacity-50"
+              onClick={() => tryAdd()}
+              disabled={!trimRestauranteVideoUrl(draftUrl)}
+            >
+              {tr(lang, "Añadir video", "Add video")}
+            </button>
+            <AddedConfirmationBadge
+              visible={videoAddedConfirm.visible}
+              label={tr(lang, "Video añadido", "Video added")}
+            />
+          </div>
         </div>
       ) : (
         <p className="mt-4 text-xs font-medium text-[color:var(--lx-muted)]">

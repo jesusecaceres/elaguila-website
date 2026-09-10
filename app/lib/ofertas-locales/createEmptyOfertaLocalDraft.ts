@@ -60,5 +60,8 @@ export function createEmptyOfertaLocalDraft(): OfertaLocalDraft {
     magazineDistributionStatus: "not_offered",
     magazineMonthlyDropEstimate: "",
     internalNotes: "",
+    couponEntries: [],
+    couponsMoreOffersUrl: "",
+    couponsMoreOffersLabel: "",
   };
 }

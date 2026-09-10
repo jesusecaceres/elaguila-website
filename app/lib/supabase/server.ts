@@ -55,7 +55,17 @@ export function getAdminSupabase(): SupabaseClient {
 export type CookieStore = { get: (name: string) => { value?: string } | undefined };
 
 /**
- * Returns true if the leonix_admin cookie is set to "1".
+ * Returns true if the leonix_admin cookie is set to "1". Intentionally a coarse "an admin
+ * session exists" marker, not a security boundary by itself, and NOT signed (Staging Release
+ * Blocker Hardening audit, see app/lib/supabase/adminSession.ts): it spans both /admin/** pages
+ * and /api/admin/** routes, which share no path prefix narrower than "/", so it cannot be
+ * cookie-path-scoped without breaking one of them, and several unrelated admin domains
+ * (viajes/empleos/magazine/executive-hub) read it directly rather than through this function.
+ * Real identity is always re-verified independently downstream of this check: staff sessions via
+ * requireSalesWorkspaceAccess() (re-checks the operator-email/auth-user-id cookies against live
+ * Supabase Auth + roster on every request) and bootstrap sessions via the signed, expiring token
+ * in isAdminBootstrapSession() (app/lib/supabase/adminSession.ts) — that is the actual authority
+ * boundary that was hardened, since bootstrap has no downstream identity to re-check against.
  */
 export function requireAdminCookie(cookies: CookieStore): boolean {
   return cookies.get("leonix_admin")?.value === "1";

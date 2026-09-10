@@ -672,6 +672,40 @@ export const SERVICIOS_CHECKPOINT_CONFIRMATIONS: PublishCheckpointConfirmation[]
   },
 ];
 
+/** Gate D19 — Comida Local checkout confirmations, mirroring SERVICIOS_CHECKPOINT_CONFIRMATIONS. */
+export const COMIDA_LOCAL_CHECKPOINT_CONFIRMATIONS: PublishCheckpointConfirmation[] = [
+  {
+    id: "accurate_info",
+    required: true,
+    labelEn:
+      "I confirm my business information, location, hours, and contact details are accurate and up to date.",
+    labelEs:
+      "Confirmo que la información de mi negocio, ubicación, horario y datos de contacto es correcta y está actualizada.",
+  },
+  {
+    id: "authorized_to_publish",
+    required: true,
+    labelEn:
+      "I confirm I am authorized to sell this food and to publish any photos or business details included in this listing.",
+    labelEs:
+      "Confirmo que estoy autorizado para vender esta comida y publicar cualquier foto o detalle del negocio incluido en esta ficha.",
+  },
+  {
+    id: "marketplace_rules",
+    required: true,
+    labelEn:
+      "I confirm this listing follows Leonix marketplace rules and that I am responsible for the published information.",
+    labelEs:
+      "Confirmo que esta ficha sigue las reglas del marketplace de Leonix y que soy responsable por la información publicada.",
+  },
+  {
+    id: "payment_required",
+    required: true,
+    labelEn: "I understand payment is required before this Comida Local listing becomes active.",
+    labelEs: "Entiendo que el pago es requerido antes de que esta ficha de Comida Local quede activa.",
+  },
+];
+
 export const RENTAS_CHECKPOINT_CONFIRMATIONS: PublishCheckpointConfirmation[] = [
   {
     id: "accurate_rental_info",

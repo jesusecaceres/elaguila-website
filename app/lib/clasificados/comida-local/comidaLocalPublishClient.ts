@@ -5,6 +5,7 @@ import type { ComidaLocalPackageTierDb } from "./comidaLocalPublishTypes";
 
 export type ComidaLocalPublishApiResponse = {
   ok?: boolean;
+  pendingPayment?: boolean;
   id?: string;
   slug?: string;
   leonix_ad_id?: string;
@@ -24,6 +25,8 @@ export async function postComidaLocalPublishApi(args: {
   packageTier?: ComidaLocalPackageTierDb;
   lang?: "es" | "en";
   accessToken?: string | null;
+  /** Gate D19 — pass "pending_payment" to save hidden ahead of Revenue OS checkout. */
+  activationMode?: "pending_payment";
 }): Promise<{ res: Response; data: ComidaLocalPublishApiResponse }> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (args.accessToken) {
@@ -38,6 +41,7 @@ export async function postComidaLocalPublishApi(args: {
       draftListingId: args.draftListingId,
       packageTier: args.packageTier ?? "basic",
       lang: args.lang ?? "es",
+      ...(args.activationMode ? { activationMode: args.activationMode } : {}),
     }),
   });
 

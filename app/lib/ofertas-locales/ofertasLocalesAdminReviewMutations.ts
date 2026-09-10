@@ -304,3 +304,71 @@ export async function mutateOfertaLocalAdminReview(
 
 /** Documented reviewable queue statuses for audits. */
 export const OFERTAS_LOCALES_REVIEWABLE_STATUSES = OFERTAS_LOCALES_QUEUE_STATUSES;
+
+export type OfertaLocalAutoActivationOutcome =
+  | "activated"
+  | "already_published"
+  | "unsafe_status"
+  | "preconditions_not_met"
+  | "error";
+
+export type OfertaLocalAutoActivationResult = {
+  ok: boolean;
+  outcome: OfertaLocalAutoActivationOutcome;
+  message?: string;
+};
+
+/**
+ * Commercial doctrine: the $399 flyer publishes automatically on successful
+ * payment — there is no routine Leonix staff approval step. This calls the
+ * SAME mutateOfertaLocalAdminReview("approve") mutation the admin UI uses
+ * (same preconditions: all items reviewed, source version ready, valid
+ * leonix_ad_id, paid/courtesy entitlement — all satisfied by the time this
+ * runs, since it is only called after the payment webhook has already
+ * marked payment_status="paid" and entitlement_status="active") so the
+ * exact-same DB writes (status, published_at, expires_at, item activation)
+ * happen whether a listing is approved by staff or by payment. If the
+ * owner has not actually finished their 127-item review yet (an edge case
+ * this doctrine does not expect but must not crash on), the preconditions
+ * inside mutateOfertaLocalAdminReview simply fail and this degrades to
+ * "payment recorded, publication pending" rather than a hard error — an
+ * exceptional case a human can still resolve manually, never the routine
+ * path.
+ */
+export async function tryAutoActivateOfertaLocalAfterPayment(
+  sb: SupabaseClient,
+  offerId: string
+): Promise<OfertaLocalAutoActivationResult> {
+  const id = offerId.trim();
+  if (!id) return { ok: false, outcome: "error", message: "missing_id" };
+
+  const { data: row, error: fetchError } = await sb
+    .from("ofertas_locales")
+    .select("status")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (fetchError) return { ok: false, outcome: "error", message: fetchError.message };
+  if (!row) return { ok: false, outcome: "error", message: "not_found" };
+
+  const status = String(row.status ?? "").trim() as OfertaLocalPublishStatus;
+  if (status === OFERTAS_LOCALES_LIVE_STATUS) {
+    return { ok: true, outcome: "already_published" };
+  }
+  if (!APPROVE_FROM.has(status)) {
+    return { ok: true, outcome: "unsafe_status", message: `Cannot auto-activate from status "${status}".` };
+  }
+
+  const result = await mutateOfertaLocalAdminReview(
+    sb,
+    id,
+    "approve",
+    "Auto-activado: pago de $399 (Volante interactivo) completado exitosamente."
+  );
+
+  if (!result.ok) {
+    return { ok: false, outcome: "preconditions_not_met", message: result.error };
+  }
+
+  return { ok: true, outcome: "activated" };
+}

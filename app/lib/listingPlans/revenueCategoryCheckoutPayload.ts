@@ -25,6 +25,15 @@ export const RENTAS_CATEGORY_CHECKOUT = {
   returnPath: "/clasificados/rentas",
 } as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
 
+/** Gate 2B — Clases paid class publication, $24.99/30 days (Revenue OS matrix `clases_paid_30d`). */
+export const CLASES_PAID_30D_PACKAGE_KEY = "clases_paid_30d" as const;
+
+export const CLASES_CATEGORY_CHECKOUT = {
+  category: "clases",
+  packageKey: CLASES_PAID_30D_PACKAGE_KEY,
+  returnPath: "/publicar/clases/quick/preview",
+} as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
+
 export const EMPLEOS_PAID_JOB_CHECKOUT = {
   category: "empleos",
   packageKey: EMPLEOS_JOB_POST_PAID_PACKAGE_KEY,
@@ -84,6 +93,13 @@ export const SERVICIOS_OFFERS_ADDON_DASHBOARD_CHECKOUT = {
   category: "servicios",
   packageKey: SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
   returnPath: buildDashboardMisAnunciosReturnPath("es", "servicios"),
+} as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
+
+/** Gate D18/D19 — Comida Local base listing, monthly subscription ($129/mo, Revenue OS matrix). */
+export const COMIDA_LOCAL_BASE_CHECKOUT = {
+  category: "comida-local",
+  packageKey: "comida_local_base_monthly",
+  returnPath: "/clasificados/comida-local",
 } as const satisfies Pick<RevenueCategoryCheckoutPayload, "category" | "packageKey" | "returnPath">;
 
 /** Dashboard add-on-only — property inventory pack on an existing published Bienes parent listing ($99/mo). */

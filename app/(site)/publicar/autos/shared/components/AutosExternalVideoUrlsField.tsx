@@ -6,9 +6,17 @@ import {
   AUTOS_MAX_EXTERNAL_VIDEO_URLS,
   dedupeAutosVideoUrls,
   normalizeAutosExternalVideoUrl,
+  parseBulkAutosExternalVideoUrls,
 } from "@/app/lib/clasificados/autos/autosExternalVideoUrlValidation";
 import {
   autosExternalVideoAddCta,
+  autosExternalVideoBulkAddCta,
+  autosExternalVideoBulkCancelCta,
+  autosExternalVideoBulkEmpty,
+  autosExternalVideoBulkHelper,
+  autosExternalVideoBulkPlaceholder,
+  autosExternalVideoBulkResultSummary,
+  autosExternalVideoBulkToggleCta,
   autosExternalVideoDescription,
   autosExternalVideoDuplicate,
   autosExternalVideoHelper,
@@ -37,6 +45,9 @@ type Props = {
 export function AutosExternalVideoUrlsField({ lang, videoUrls, onChange, insideModal = false }: Props) {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkDraft, setBulkDraft] = useState("");
+  const [bulkSummary, setBulkSummary] = useState<string | null>(null);
   const urls = dedupeAutosVideoUrls(videoUrls ?? []);
   const atLimit = urls.length >= AUTOS_MAX_EXTERNAL_VIDEO_URLS;
 
@@ -59,6 +70,27 @@ export function AutosExternalVideoUrlsField({ lang, videoUrls, onChange, insideM
     setError(null);
   };
 
+  const addBulkUrls = () => {
+    if (!bulkDraft.trim()) {
+      setBulkSummary(autosExternalVideoBulkEmpty(lang));
+      return;
+    }
+    const result = parseBulkAutosExternalVideoUrls(bulkDraft, urls);
+    if (result.added.length > 0) {
+      onChange([...urls, ...result.added]);
+    }
+    setBulkSummary(
+      autosExternalVideoBulkResultSummary(
+        lang,
+        result.added.length,
+        result.skippedInvalid,
+        result.skippedDuplicate,
+        result.skippedLimit,
+      ),
+    );
+    setBulkDraft("");
+  };
+
   const modalHandlers = insideModal
     ? {
         onMouseDown: (e: React.MouseEvent) => e.stopPropagation(),
@@ -76,33 +108,86 @@ export function AutosExternalVideoUrlsField({ lang, videoUrls, onChange, insideM
 
       {!atLimit ? (
         <div className="mt-4">
-          <label className={LABEL}>{autosExternalVideoAddCta(lang)}</label>
-          <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-end">
-            <input
-              className={`${INPUT} sm:min-w-0 sm:flex-1`}
-              placeholder={autosExternalVideoPlaceholder(lang)}
-              value={draft}
-              onChange={(e) => {
-                setDraft(e.target.value);
-                if (error) setError(null);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addUrl();
-                }
-              }}
-              {...modalHandlers}
-            />
-            <button type="button" className={BTN_SECONDARY} onClick={addUrl}>
-              {autosExternalVideoAddCta(lang)}
-            </button>
-          </div>
-          {error ? (
-            <p className="mt-2 text-xs font-medium text-red-800" role="alert">
-              {error}
-            </p>
-          ) : null}
+          {!bulkMode ? (
+            <>
+              <label className={LABEL}>{autosExternalVideoAddCta(lang)}</label>
+              <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-end">
+                <input
+                  className={`${INPUT} sm:min-w-0 sm:flex-1`}
+                  placeholder={autosExternalVideoPlaceholder(lang)}
+                  value={draft}
+                  onChange={(e) => {
+                    setDraft(e.target.value);
+                    if (error) setError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addUrl();
+                    }
+                  }}
+                  {...modalHandlers}
+                />
+                <button type="button" className={BTN_SECONDARY} onClick={addUrl}>
+                  {autosExternalVideoAddCta(lang)}
+                </button>
+              </div>
+              {error ? (
+                <p className="mt-2 text-xs font-medium text-red-800" role="alert">
+                  {error}
+                </p>
+              ) : null}
+              <button
+                type="button"
+                className="mt-2 text-xs font-semibold text-[color:var(--lx-gold)] underline"
+                onClick={() => {
+                  setBulkMode(true);
+                  setBulkSummary(null);
+                  setError(null);
+                }}
+              >
+                {autosExternalVideoBulkToggleCta(lang)}
+              </button>
+            </>
+          ) : (
+            <>
+              <label className={LABEL}>{autosExternalVideoBulkToggleCta(lang)}</label>
+              <textarea
+                className={`${INPUT} mt-1 min-h-[96px]`}
+                placeholder={autosExternalVideoBulkPlaceholder(lang)}
+                value={bulkDraft}
+                onChange={(e) => {
+                  setBulkDraft(e.target.value);
+                  if (bulkSummary) setBulkSummary(null);
+                }}
+                {...modalHandlers}
+              />
+              <p className="mt-1 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">
+                {autosExternalVideoBulkHelper(lang)}
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <button type="button" className={BTN_SECONDARY} onClick={addBulkUrls}>
+                  {autosExternalVideoBulkAddCta(lang)}
+                </button>
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-[color:var(--lx-gold)] underline"
+                  onClick={() => {
+                    setBulkMode(false);
+                    setBulkDraft("");
+                    setBulkSummary(null);
+                  }}
+                >
+                  {autosExternalVideoBulkCancelCta(lang)}
+                </button>
+              </div>
+              {bulkSummary ? (
+                <p className="mt-2 text-xs font-medium text-[color:var(--lx-text-2)]" role="status">
+                  {bulkSummary}
+                </p>
+              ) : null}
+            </>
+          )}
         </div>
       ) : (
         <p className="mt-4 text-xs font-semibold text-[#6E5418]">{autosExternalVideoLimitReached(lang)}</p>

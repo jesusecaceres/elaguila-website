@@ -1464,3 +1464,110 @@ gates, so most surface-level "hits" were expected to be noise):
 - No browser/runtime QA performed.
 - Final release commit deliberately NOT created — left for PM review of this report first, per
   this gate's own instructions.
+
+**Update:** subsequently committed as `e8217f0e88bb824d78fd2b99cf8cd80c4c663ab3` (parent
+`f2508a9a`), pushed to the feature branch. A controlled fast-forward of `main` to this commit was
+then attempted and correctly blocked (see Gate 17 below) — `main` had advanced 265 commits since
+this branch's common ancestor, making a fast-forward destructive to real, unrelated, already-shipped
+work. Gate 17 reconciles that divergence.
+
+---
+
+## Gate 17 — Main Reconciliation (merge origin/main into the certified feature branch)
+
+**Date:** 2026-09-10
+**Feature starting SHA:** `e8217f0e88bb824d78fd2b99cf8cd80c4c663ab3`
+**origin/main integrated:** `a0a4783971b42ea1d71ab2602d4720d0d590baf8`
+**Merge base:** `3f4c6fe28aea07e816186a93a1c03e3856939bb9`
+**Divergence:** feature 6 commits ahead of merge-base; main 265 commits ahead (Business Concierge
+systemic repair, LEO executive assistant, classifieds landing imagery, Recursos, admin/auth fixes,
+and dozens of prior release-reconciliation merges) — none of that work ever previously reached this
+branch, and this branch's own 8-gate Owner Command Center construction never reached `main`.
+
+### Collision audit (before merging)
+
+91 files changed on the feature branch since merge-base; 1379 files changed on `origin/main`; **54
+overlapping files**. Of those:
+
+- **48 files under `app/lib/business/**`** (the ported Business Concierge owner-safe dependency
+  closure from Gate 1) — **46 byte-identical** on both sides (both branches independently received
+  the exact same content from the same ultimate source, so these are true no-ops). The remaining
+  **2 files** (`proposals/logic.ts`, `proposals/repository.ts`) — confirmed by direct diff that the
+  feature branch's version is a strict content **superset** of main's (every line main has is
+  present verbatim in feature's version, plus real additive owner-safe-shaping work from this
+  branch's own Gate 2). Resolved by keeping the feature branch's superset version.
+- **`app/api/dashboard/business/diy-concierge/my-businesses/route.ts`** — confirmed byte-identical
+  on both sides, trivial no-op.
+- **`app/(site)/dashboard/lib/dashboardI18n.ts`** and **`.../ofertas-locales/[id]/page.tsx`** —
+  both sides changed these substantially but in non-overlapping regions; git's 3-way merge resolved
+  both with zero conflict markers, verified clean by the subsequent full typecheck.
+- **`app/(site)/dashboard/lib/dashboardMisAnunciosCategoryTools.ts`** — 1 conflict, comment-only
+  (both branches independently removed the same dead coupon-upgrade CTA block with differently
+  worded explanatory comments describing the identical removal); resolved by keeping one comment,
+  zero functional difference.
+- **`app/(site)/dashboard/components/LeonixDashboardShell.tsx`** — HIGH_RISK, 2 conflicts,
+  SEMANTIC_RECONCILIATION_REQUIRED. Main independently restructured this shared global shell (Gate
+  BCO-3R-B.5/B.6/B.7: collapsed a two-DOM-copy mobile/desktop sidebar pattern into one real,
+  accessible single-copy drawer; fixed a root-cause CSS Grid overflow bug; added focus-trap/
+  scroll-lock). This branch had independently added the "Mis Espacios" `spaceCounts`-gated sidebar
+  section and a per-page mobile header title (`currentSectionTitle`). Reconciled by: keeping main's
+  real single-DOM-copy/overflow fixes entirely intact; keeping this branch's `spaceCounts` state and
+  its "Mis Espacios" nav group (auto-merged cleanly, verified reachable); removing the now-dead
+  `renderSidebarBottom()` function whose two call sites were both eliminated by main's single-copy
+  restructuring (confirmed zero remaining call sites — genuinely dead, not silently broken); and
+  re-inserting the `currentSectionTitle` "where am I" label into main's new single-copy mobile
+  trigger button (replacing the generic "Estado de cuenta" sub-label in that same visual slot) so
+  that already-certified functionality is not silently lost inside main's redesign.
+- **`app/(site)/dashboard/business-tools/page.tsx`** — HIGH_RISK, 1 conflict. Main's side was the
+  **pre-integration, pre-Gate-1 generic tool-card directory** (Learning Center / Idea Builder /
+  Concierge / Health Map / etc. cards, a flat `t.cards.map()` grid, a simple capabilities list) —
+  literally the "generic directory of equal cards" pattern Master Bible §27 explicitly says this
+  page must not feel like. Main never received this branch's Gates 1–16 Business Tools integration
+  work on this exact page. Resolved by keeping this branch's `<BusinessConciergeOwnerHome ... />`
+  composition entirely — there was no main improvement to preserve here, only a stale prior version
+  to discard. **Caught and fixed a genuine "clean merge, silent regression" defect in the process**:
+  git's 3-way auto-merge of the import block (outside any conflict marker) silently dropped this
+  branch's `import { BusinessConciergeOwnerHome } from "../components/BusinessConciergeOwnerHome";`
+  while keeping main's now-unused `Link`/`BusinessIdentityAccessPanel` imports — this would have
+  been a hard TypeScript compile error had it gone unnoticed. Re-added the missing import and
+  removed the two now-genuinely-unused ones.
+
+### Preservation proof
+
+All 5 of Gate 16's certified fixes re-verified present after the merge (none of their 5 files were
+in the 54-file overlap set, so this is a clean confirmation, not a reconciliation): En Venta renew
+button styling, Viajes sanitized error copy (4 call sites), Restaurantes zero RLS/Supabase mentions,
+Mis Anuncios canonical red Archive, no duplicate Publicar CTA.
+
+Core architecture reconfirmed post-merge: `LeonixDashboardShell`/`OwnerProductPageFrame`/
+`OwnerEntityWorkspace` remain the sole implementations (no duplicates introduced by the merge); the
+"Mis Espacios" `spaceCounts` nav feature and `renderNavGroups()` are called exactly once, unaffected
+by main's restructuring; `/dashboard/business-tools` renders the certified
+`BusinessConciergeOwnerHome` hierarchy, not main's stale directory.
+
+### Validation
+
+| Check | Result |
+|---|---|
+| `git diff --cached --check` | Pre-existing whitespace issues found only in files that are part of main's own history (e.g. `app/leo/_lib/*`, a `supabase/migrations/*` file, `scripts/test-staging-connection.ts`) — none in any file this reconciliation actually edited |
+| Lint (5 reconciliation-touched files) | 0 findings |
+| Owner Attention Truth verifier | 22/22 PASS |
+| Shared Specialized Tools verifier | 33/33 PASS |
+| Lifecycle contract selftest | OK |
+| Rentas lifecycle/renewal verifier | PASS (all 9 checks) |
+| Paid listing lifecycle engine verifier | PASS |
+| Whole-product final reconciliation verifier | **174/182** — the 8 failures are exclusively this verifier's diff-based "protected file untouched" guards (no `app/admin/**`, no Stripe writers, no Community Trust registry, no Ofertas backend, no Recursos, no Living Business Book engine files in the diff), which is a scope-boundary artifact identical in kind to the earlier Rentas-verifier false positive: this verifier was built to police one narrow gate's own small diff, and a real 265-commit main merge necessarily touches all of those areas because that is main's own legitimate, already-shipped history arriving, not damage. Confirmed by direct inspection that every flagged file's most recent commit predates this session and was never touched by any edit in this reconciliation. |
+| Full `tsc --noEmit` | 0 new errors — byte-identical to the established 7-error e2e-only baseline, across the **entire merged codebase** (main's ~1379 changed files included) |
+| Full production build | PASS — exit 0, "Compiled successfully in 3.5min," both this branch's routes (`/dashboard`, `/dashboard/business-tools`, `/dashboard/mis-anuncios`) and main's routes (`/admin`, `/admin/leo`, Recursos, etc.) present |
+
+**Note for a future gate (not a blocker):** main's discarded `business-tools/page.tsx` directory
+used to link to several dedicated sub-routes (`/dashboard/business-tools/concierge`,
+`/idea-builder`, `/proximo-paso`, `/what-we-understand`, `/business-health`) that still exist as
+real pages (confirmed present in the production build's route list) but are no longer linked from
+the certified top-level page. Not investigated further in this gate — out of scope for a
+reconciliation pass, worth a follow-up product decision on whether/how the certified page should
+surface them.
+
+**PRE-QA PRODUCT CONSTRUCTION: still COMPLETE — unaffected by this reconciliation.**
+**FINAL PRODUCT CONSTRUCTION CERTIFICATION: still 100% PASS — reconfirmed on the merged tree.**
+**MAIN TOUCHED: NO. PRODUCTION TOUCHED: NO.**

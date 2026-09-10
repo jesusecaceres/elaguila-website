@@ -40,6 +40,9 @@ const GATE_CLASES = {
     audience: "¿Para quién es la clase?",
     skillLevel: "Nivel",
     registrationRequired: "¿Requiere registro?",
+    oneTimeDate: "Fecha de la clase (clase única)",
+    oneTimeStart: "Hora de inicio (clase única)",
+    oneTimeEnd: "Hora de fin (clase única)",
   },
   en: {
     title: "Class title",
@@ -65,6 +68,9 @@ const GATE_CLASES = {
     audience: "Who is this class for?",
     skillLevel: "Level",
     registrationRequired: "Registration required?",
+    oneTimeDate: "Class date (one-time class)",
+    oneTimeStart: "Start time (one-time class)",
+    oneTimeEnd: "End time (one-time class)",
   },
 } as const;
 
@@ -184,7 +190,17 @@ export function gateClasesQuickPreview(d: ClasesQuickDraft, lang: Lang = "es"): 
   if (!st(d.audience)) issues.push(L.audience);
   if (!st(d.skillLevel)) issues.push(L.skillLevel);
   if (!st(d.registrationRequired)) issues.push(L.registrationRequired);
-  pushWeeklyScheduleGateIssues(issues, d.weeklySchedule, L);
+  /** Gate 2D — explicit schedule mode: a one-time class needs its own date/time, not the weekly grid. */
+  if (d.scheduleMode === "one_time") {
+    if (!st(d.oneTimeDate)) issues.push(L.oneTimeDate);
+    if (!st(d.oneTimeStart)) issues.push(L.oneTimeStart);
+    if (!st(d.oneTimeEnd)) issues.push(L.oneTimeEnd);
+    if (st(d.oneTimeStart) && st(d.oneTimeEnd) && !isActiveDayValid({ day: "mon", closed: false, open: d.oneTimeStart, close: d.oneTimeEnd })) {
+      issues.push(L.weeklyInvalidRange);
+    }
+  } else {
+    pushWeeklyScheduleGateIssues(issues, d.weeklySchedule, L);
+  }
   if (!st(d.description)) issues.push(L.description);
   if (!hasMainImage(d)) issues.push(L.image);
   if (!hasContact(d)) issues.push(L.cta);

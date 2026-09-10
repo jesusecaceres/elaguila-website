@@ -97,7 +97,7 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
   {
     kind: "affiliate",
     id: "aff-1",
-    imageSrc: "https://images.unsplash.com/photo-1506929562872-bb421503ef21?auto=format&fit=crop&w=900&q=80",
+    imageSrc: "/child-categories/viajes/cancun.jpg",
     imageAlt: "Playa tropical",
     inventoryLabel: "Socio de viaje",
     title: "Cancún · resort frente al mar",
@@ -120,7 +120,7 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
   {
     kind: "business",
     id: "biz-1",
-    imageSrc: "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?auto=format&fit=crop&w=900&q=80",
+    imageSrc: "/child-categories/viajes/editorial-canals.jpg",
     imageAlt: "Venecia canales",
     businessName: "Viajes Del Valle",
     offerTitle: "Europa express: Roma + Venecia",
@@ -145,7 +145,7 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
   {
     kind: "affiliate",
     id: "aff-2",
-    imageSrc: "https://images.unsplash.com/photo-1542259670-48a73e819d9c?auto=format&fit=crop&w=900&q=80",
+    imageSrc: "/child-categories/viajes/maui.jpg",
     imageAlt: "Costa hawaiana",
     inventoryLabel: "Oferta especial",
     title: "Maui · boutique junto a la playa",
@@ -168,7 +168,7 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
   {
     kind: "business",
     id: "biz-2",
-    imageSrc: "https://images.unsplash.com/photo-1592405204553-2e719cb02c48?auto=format&fit=crop&w=900&q=80",
+    imageSrc: "/child-categories/viajes/cr.jpg",
     imageAlt: "Selva tropical",
     businessName: "Pura Vida Escapes",
     offerTitle: "Arenal + Manuel Antonio en familia",
@@ -193,7 +193,7 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
   {
     kind: "affiliate",
     id: "aff-3",
-    imageSrc: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80",
+    imageSrc: "/child-categories/viajes/riviera.jpg",
     imageAlt: "Piscina infinita resort",
     inventoryLabel: "Reserva con socio",
     title: "Riviera Maya · todo incluido 5★",
@@ -216,7 +216,7 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
   {
     kind: "business",
     id: "biz-3",
-    imageSrc: "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=900&q=80",
+    imageSrc: "/child-categories/viajes/lake-mountains.jpg",
     imageAlt: "Lago y montañas",
     businessName: "Bay Travel Co.",
     offerTitle: "Lago Tahoe · fin de semana",
@@ -240,7 +240,7 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
   {
     kind: "affiliate",
     id: "aff-car-1",
-    imageSrc: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=900&q=80",
+    imageSrc: "/child-categories/viajes/cancun-col.jpg",
     imageAlt: "Auto en carretera costera",
     inventoryLabel: "Socio de viaje",
     title: "Renta de auto · Cancún aeropuerto (CUN)",
@@ -261,7 +261,7 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
   {
     kind: "affiliate",
     id: "aff-4",
-    imageSrc: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?auto=format&fit=crop&w=900&q=80",
+    imageSrc: "/child-categories/viajes/cabos.jpg",
     imageAlt: "Mar en Los Cabos",
     inventoryLabel: "Socio de viaje",
     title: "Los Cabos · snorkel y El Arco",
@@ -283,7 +283,7 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
   {
     kind: "affiliate",
     id: "aff-5",
-    imageSrc: "https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?auto=format&fit=crop&w=900&q=80",
+    imageSrc: "/child-categories/viajes/near.jpg",
     imageAlt: "Viñedos Napa",
     inventoryLabel: "Oferta especial",
     title: "Napa Valley · boutique y viñedos",
@@ -305,7 +305,7 @@ export const VIAJES_RESULTS_SAMPLE: ViajesResultRow[] = [
   {
     kind: "editorial",
     id: "edi-1",
-    imageSrc: "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?auto=format&fit=crop&w=900&q=80",
+    imageSrc: "/child-categories/viajes/editorial-canals.jpg",
     imageAlt: "Canales europeos",
     title: "Primer viaje a Europa con niños",
     dek: "Ciudades caminables, tramos cortos en tren y hoteles con espacio para maletas.",

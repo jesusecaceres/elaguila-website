@@ -144,6 +144,7 @@ export type OfertaLocalAdminListVm = {
   commercialProductKey: string | null;
   commercialProductLabel: string | null;
   commercialAmount: string | null;
+  commercialAmountCents: number | null;
   commercialCurrency: string | null;
   commercialDurationDays: number | null;
   commercialAiIncluded: boolean;
@@ -445,6 +446,7 @@ function mapRowToListVm(row: OfertaLocalAdminRow): OfertaLocalAdminListVm {
       row.commercial_amount_cents == null
         ? null
         : formatOfertaLocalCommercialAmount(row.commercial_amount_cents, row.commercial_currency),
+    commercialAmountCents: row.commercial_amount_cents ?? null,
     commercialCurrency: row.commercial_currency ?? null,
     commercialDurationDays: row.commercial_duration_days ?? null,
     commercialAiIncluded: row.commercial_ai_included === true,

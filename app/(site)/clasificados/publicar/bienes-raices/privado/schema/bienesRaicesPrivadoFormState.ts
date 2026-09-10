@@ -77,12 +77,14 @@ export function createEmptyBrPrivadoGate12dSlice(): BrPrivadoGate12dSlice {
   };
 }
 
-function coerceBrPrivadoTriBool(raw: unknown): BrPrivadoTriBool {
+// BR-INV-FINAL-WAVE-D (item 4): exported so BR Negocio's agente-individual schema can reuse the
+// exact same HOA tri-bool/frequency coercion instead of duplicating it.
+export function coerceBrPrivadoTriBool(raw: unknown): BrPrivadoTriBool {
   if (raw === "yes" || raw === "no" || raw === "unknown") return raw;
   return "";
 }
 
-function coerceBrPrivadoHoaFrequency(raw: unknown): BrPrivadoHoaFrequency {
+export function coerceBrPrivadoHoaFrequency(raw: unknown): BrPrivadoHoaFrequency {
   if (raw === "monthly" || raw === "quarterly" || raw === "yearly" || raw === "unknown") return raw;
   return "";
 }

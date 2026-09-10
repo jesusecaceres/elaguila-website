@@ -8,7 +8,7 @@ import { buildCategoryResultsUrl } from "@/app/(site)/clasificados/components/ca
 import type { Lang } from "@/app/clasificados/config/clasificadosHub";
 import { LEONIX_LANDING_SECTION } from "@/app/(site)/clasificados/components/categoryStandardV2/constants";
 import { CommunityDiscoveryListingCard } from "@/app/(site)/clasificados/community/CommunityDiscoveryListingCard";
-import { buildCommunityDiscoveryCardModel } from "@/app/(site)/clasificados/community/shared/communityDiscoveryListingCardModel";
+import { buildComunidadDiscoveryCardModel } from "@/app/(site)/clasificados/comunidad/shared/comunidadDiscoveryCardModel";
 import { prepareComunidadDiscoveryRows } from "@/app/(site)/clasificados/community/shared/communityEventDiscoveryExpiration";
 import {
   fetchPublishedCommunityCategoryListings,
@@ -107,7 +107,7 @@ export function ComunidadLandingRecentListings({
         <ul className="mt-3 grid gap-3 sm:grid-cols-2">
           {rows.map((r) => {
             const href = appendLangToPath(`/clasificados/anuncio/${r.id}`, lang);
-            const model = buildCommunityDiscoveryCardModel(r, "comunidad", lang, href);
+            const model = buildComunidadDiscoveryCardModel(r, lang, href);
             return (
               <li key={r.id} className="min-w-0">
                 <CommunityDiscoveryListingCard model={model} lang={lang} variant="comunidad" />

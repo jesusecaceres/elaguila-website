@@ -13,6 +13,8 @@ import {
 } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { BuscoQuickAdCanvas } from "@/app/(site)/publicar/busco/components/BuscoQuickAdCanvas";
 import { buscoViewModelFromDraft } from "@/app/(site)/publicar/busco/shared/buscoQuickAdViewModel";
+import { BuscoRequestCard } from "@/app/(site)/clasificados/busco/BuscoRequestCard";
+import { buildBuscoRequestCardModelFromDraft } from "@/app/(site)/clasificados/busco/shared/buscoCardModel";
 
 import { normalizeBuscoQuickDraft } from "../shared/buscoQuickDraft";
 import { buscoQuickEditUrl } from "../shared/buscoPublishRoutes";
@@ -26,12 +28,16 @@ const COPY = {
     backToForm: "Volver al formulario",
     edit: "Volver a editar",
     previewNote: "Vista previa — aún no se publica en Leonix Clasificados.",
+    resultCardTitle: "Vista previa en resultados",
+    resultCardHint: "Así se verá tu solicitud en los resultados de búsqueda de Leonix.",
   },
   en: {
     noDraft: "No draft to preview.",
     backToForm: "Back to form",
     edit: "Back to edit",
     previewNote: "Preview — not published on Leonix Classifieds yet.",
+    resultCardTitle: "Preview in results",
+    resultCardHint: "This is how your request will look in Leonix search results.",
   },
 } as const;
 
@@ -117,12 +123,25 @@ export default function BuscoQuickPreviewClient() {
         </div>
       }
       adBody={
-        <BuscoQuickAdCanvas
-          vm={vm}
-          lang={lang}
-          shell="embedded"
-          contactSectionId="contact-actions"
-        />
+        <>
+          <BuscoQuickAdCanvas
+            vm={vm}
+            lang={lang}
+            shell="embedded"
+            contactSectionId="contact-actions"
+          />
+          {/* Section T — real result-card preview, same component discovery uses */}
+          <section className="mt-6" data-testid="busco-preview-result-card">
+            <h2 className="text-sm font-bold uppercase tracking-wide text-[#6B5A32]">{t.resultCardTitle}</h2>
+            <p className="mt-1 text-xs text-[#5C5346]/85">{t.resultCardHint}</p>
+            <div className="mt-3 max-w-sm">
+              <BuscoRequestCard
+                model={buildBuscoRequestCardModelFromDraft(draft, lang, editHref)}
+                lang={lang}
+              />
+            </div>
+          </section>
+        </>
       }
       sidebar={
         <CommunityQuickPublicDetailSidebar

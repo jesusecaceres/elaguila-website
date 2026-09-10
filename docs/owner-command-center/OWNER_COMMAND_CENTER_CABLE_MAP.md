@@ -407,3 +407,30 @@ canonical verifiers PASS (22/22, 33/33, OK, PASS, PASS, 182/182); full `tsc --no
 
 **FINAL PRODUCT CONSTRUCTION CERTIFICATION: 100% PASS.** Not committed yet — left for PM review of
 this gate's report before the final release commit.
+
+Subsequently committed as `e8217f0e88bb824d78fd2b99cf8cd80c4c663ab3`, pushed. A fast-forward to
+`main` was then attempted and correctly blocked — `main` had advanced 265 commits since this
+branch's common ancestor (`3f4c6fe2`). See below.
+
+## MAIN RECONCILIATION (2026-09-10) — Gate 17
+
+Merged `origin/main` (`a0a4783971b42ea1d71ab2602d4720d0d590baf8`) into the certified feature branch
+(normal merge, no rebase/squash). 54 files overlapped between the two histories; 5 required real
+conflict resolution:
+
+| File | Resolution |
+|---|---|
+| `app/lib/business/proposals/{logic,repository}.ts` | Feature's version confirmed a strict content superset of main's — kept feature's |
+| `app/(site)/dashboard/lib/dashboardMisAnunciosCategoryTools.ts` | Comment-only conflict (both sides independently removed the same dead code) — kept one |
+| `app/(site)/dashboard/components/LeonixDashboardShell.tsx` | Kept main's real single-DOM-copy/overflow fixes; kept feature's `spaceCounts` Mis Espacios feature; removed the now-dead `renderSidebarBottom()` (both its call sites were eliminated by main's restructuring); re-inserted the certified mobile "current section" label into main's new trigger button |
+| `app/(site)/dashboard/business-tools/page.tsx` | Main's side was the stale pre-Gate-1 generic tool-card directory — kept `BusinessConciergeOwnerHome` entirely; caught and fixed a real clean-merge regression (silently dropped import) |
+
+All 5 Gate 16 fixes reverified intact post-merge. `tsc --noEmit`: 0 new errors across the entire
+merged codebase (byte-identical to the 7-error e2e-only baseline). Production build PASS. Whole-
+product verifier: 174/182 — the 8 failures are diff-based protected-file guards correctly flagging
+main's own legitimate history (admin/, Stripe, Ofertas backend, Recursos, Community Trust registry,
+Living Business Book) arriving via the merge, not damage; confirmed none of those files were
+touched by this reconciliation itself.
+
+**PRODUCT CONSTRUCTION CERTIFICATION: still 100% PASS on the merged tree. MAIN: not touched.
+PRODUCTION: not touched.**

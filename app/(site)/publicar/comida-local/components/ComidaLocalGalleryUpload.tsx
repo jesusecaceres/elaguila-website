@@ -1,7 +1,10 @@
 "use client";
 
 import { COMIDA_LOCAL_GALLERY_MAX } from "@/app/lib/clasificados/comida-local/comidaLocalConstants";
-import { COMIDA_LOCAL_FIELD_COPY } from "@/app/lib/clasificados/comida-local/comidaLocalFieldCopy";
+import {
+  COMIDA_LOCAL_FIELD_COPY,
+  resolveComidaLocalFieldCopy,
+} from "@/app/lib/clasificados/comida-local/comidaLocalFieldCopy";
 import type { ComidaLocalImageDraft } from "@/app/lib/clasificados/comida-local/comidaLocalTypes";
 import { ComidaLocalImageUploadField } from "./ComidaLocalImageUploadField";
 
@@ -9,10 +12,11 @@ type Props = {
   draftListingId: string;
   images: ComidaLocalImageDraft[];
   onChange: (images: ComidaLocalImageDraft[]) => void;
+  es: boolean;
 };
 
-export function ComidaLocalGalleryUpload({ draftListingId, images, onChange }: Props) {
-  const copy = COMIDA_LOCAL_FIELD_COPY.galleryImages;
+export function ComidaLocalGalleryUpload({ draftListingId, images, onChange, es }: Props) {
+  const copy = resolveComidaLocalFieldCopy(COMIDA_LOCAL_FIELD_COPY.galleryImages, es);
   const atCap = images.length >= COMIDA_LOCAL_GALLERY_MAX;
 
   const addSlot = !atCap ? (
@@ -25,6 +29,7 @@ export function ComidaLocalGalleryUpload({ draftListingId, images, onChange }: P
       draftListingId={draftListingId}
       image={null}
       minHeightClass="min-h-[100px]"
+      es={es}
       onImageChange={(img) => {
         if (!img) return;
         onChange([...images, { ...img, role: "gallery" }]);
@@ -38,12 +43,13 @@ export function ComidaLocalGalleryUpload({ draftListingId, images, onChange }: P
         <ComidaLocalImageUploadField
           key={img.id || `gallery-${i}`}
           role="gallery"
-          label={`Galería — foto ${i + 1}`}
-          helper="Foto extra para tu ficha."
+          label={es ? `Galería — foto ${i + 1}` : `Gallery — photo ${i + 1}`}
+          helper={es ? "Foto extra para tu ficha." : "Extra photo for your listing."}
           optional
           draftListingId={draftListingId}
           image={img}
           minHeightClass="min-h-[100px]"
+          es={es}
           onImageChange={(next) => {
             if (!next) {
               onChange(images.filter((_, j) => j !== i));

@@ -36,36 +36,45 @@ export function ComidaLocalValidationPanel({
   previewIssues,
   publishIssues,
   publishReady,
+  es,
 }: {
   previewIssues: ComidaLocalValidationIssue[];
   publishIssues: ComidaLocalValidationIssue[];
   publishReady: boolean;
+  es: boolean;
 }) {
   const publishErrors = publishIssues.filter((i) => i.severity === "error");
   const publishWarnings = publishIssues.filter((i) => i.severity === "warning");
+  const shellCopy = COMIDA_LOCAL_SHELL_COPY[es ? "es" : "en"];
 
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <div className="rounded-lg border border-[#D4C4A8]/70 bg-[#FDF8F0] p-4">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-[#7A1E2C]">
-          {COMIDA_LOCAL_SHELL_COPY.validationPreviewTitle}
+          {shellCopy.validationPreviewTitle}
         </h3>
         <div className="mt-2">
           <IssueList
             issues={previewIssues}
-            emptyMessage="Tienes lo básico para la vista previa cuando esté disponible."
+            emptyMessage={
+              es
+                ? "Tienes lo básico para la vista previa cuando esté disponible."
+                : "You have the basics for the preview once it's available."
+            }
             tone="preview"
           />
         </div>
       </div>
       <div className="rounded-lg border border-[#D4C4A8]/70 bg-white p-4">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-[#1E1814]/70">
-          {COMIDA_LOCAL_SHELL_COPY.validationPublishTitle}
+          {shellCopy.validationPublishTitle}
         </h3>
         <div className="mt-2">
           {publishReady ? (
             <p className="text-xs text-[#1E1814]/65">
-              Campos obligatorios completos. Usa el botón «Publicar ficha» al final del formulario.
+              {es
+                ? "Campos obligatorios completos. Usa el botón «Publicar ficha» al final del formulario."
+                : "Required fields complete. Use the “Publish listing” button at the end of the form."}
             </p>
           ) : (
             <>

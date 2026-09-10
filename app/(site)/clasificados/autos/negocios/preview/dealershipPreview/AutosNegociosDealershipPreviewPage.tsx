@@ -21,6 +21,7 @@ import {
 import { PreviewAutoGallery } from "./PreviewAutoGallery";
 import { PreviewDealerBusinessStack } from "./PreviewDealerBusinessStack";
 import { PreviewRelatedDealerCars } from "./PreviewRelatedDealerCars";
+import { AutosNegociosPreviewEngagementStrip } from "../../components/AutosNegociosPreviewEngagementStrip";
 import { PreviewVehicleDescription } from "./PreviewVehicleDescription";
 import { PreviewVehicleHighlights } from "./PreviewVehicleHighlights";
 import { PreviewVehicleSpecsGrid } from "./PreviewVehicleSpecsGrid";
@@ -262,6 +263,24 @@ export function AutosNegociosDealershipPreviewPage({
             ) : null}
 
             {showHeroSpecs ? <PreviewVehicleHeroSpecsStrip items={heroSpecItems} /> : null}
+
+            {showGallery ? (
+              <div
+                className="mt-4 border-t border-[#D6C7AD]/55 pt-4"
+                data-autos-unified-canvas-utility="1"
+              >
+                <AutosNegociosPreviewEngagementStrip
+                  lang={lang}
+                  alignStart
+                  listingSourceId={publicPlaybackOnly ? publicAnalytics?.listingSourceId : undefined}
+                  leonixAdId={publicAnalytics?.leonixAdId}
+                  listingTitle={h1}
+                  listingUrl={publicUrl}
+                  likeCount={analyticsMetrics?.likes ?? 0}
+                  publicAnalytics={publicPlaybackOnly ? publicAnalytics : undefined}
+                />
+              </div>
+            ) : null}
           </section>
         ) : null}
 

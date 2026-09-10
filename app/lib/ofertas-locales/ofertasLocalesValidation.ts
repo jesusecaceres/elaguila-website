@@ -23,7 +23,7 @@ function pushIssue(
   issues.push({ field, message, severity });
 }
 
-function hasContactChannel(draft: OfertaLocalDraft): boolean {
+export function hasContactChannel(draft: OfertaLocalDraft): boolean {
   const phone = normalizeOfertaLocalPhoneInput(draft.phone);
   const whatsapp = normalizeOfertaLocalPhoneInput(draft.whatsapp);
   const website = normalizeOfertaLocalUrlInput(draft.websiteUrl);
@@ -73,7 +73,11 @@ function appendDraftAssetValidation(issues: OfertaLocalValidationIssue[], draft:
 }
 
 function hasCouponContent(draft: OfertaLocalDraft): boolean {
-  return Boolean(draft.couponText.trim() || draft.description.trim());
+  return Boolean(
+    draft.couponText.trim() ||
+      draft.description.trim() ||
+      draft.couponEntries.some((entry) => entry.title.trim())
+  );
 }
 
 function isIsoDate(value: string): boolean {

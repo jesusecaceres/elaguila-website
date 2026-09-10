@@ -62,6 +62,24 @@ function BusinessToolsPageContent() {
             loading: "Cargando…",
             completeness: "Completitud del perfil",
             nextSteps: "Siguientes pasos sugeridos",
+            learningCenterTitle: "Centro de aprendizaje",
+            learningCenterDesc: "Educación práctica y gratuita sobre publicidad, SEO local, WhatsApp Business, reseñas y más.",
+            learningCenterCta: "Explorar lecciones",
+            ideaBuilderTitle: "Constructor de ideas",
+            ideaBuilderDesc: "Organiza tu idea de negocio paso a paso, guarda tu progreso y descarga un resumen.",
+            ideaBuilderCta: "Empezar",
+            conciergeTitle: "Concierge DIY",
+            conciergeDesc: "Tu mapa de salud, tus acciones personalizadas y tu progreso real, en un solo lugar.",
+            conciergeCta: "Abrir Concierge",
+            nextMoveTitle: "Tu próximo paso",
+            nextMoveDesc: "La única acción más importante para tu negocio ahora mismo, explicada con transparencia.",
+            nextMoveCta: "Ver mi próximo paso",
+            healthMapTitle: "Mapa de salud del negocio",
+            healthMapDesc: "Una mirada en lenguaje claro a lo que Leonix entiende sobre tu negocio.",
+            healthMapCta: "Ver mapa de salud",
+            bookTitle: "Lo que Leonix entiende",
+            bookDesc: "Revisa, confirma o corrige la información que Leonix tiene sobre tu negocio.",
+            bookCta: "Revisar información",
             capabilitiesTitle: "Capacidades por anuncio",
             capabilitiesHint: "Estado real según tu paquete activo — nunca según el plan de tu cuenta.",
             capabilitiesEmpty: "No tienes anuncios de Restaurantes o Servicios todavía. Esta capacidad aplica a esas categorías.",
@@ -85,6 +103,24 @@ function BusinessToolsPageContent() {
             loading: "Loading…",
             completeness: "Profile completeness",
             nextSteps: "Suggested next steps",
+            learningCenterTitle: "Learning Center",
+            learningCenterDesc: "Free, practical education on advertising, local SEO, WhatsApp Business, reviews, and more.",
+            learningCenterCta: "Explore lessons",
+            ideaBuilderTitle: "Idea Builder",
+            ideaBuilderDesc: "Organize your business idea step by step, save your progress, and download a summary.",
+            ideaBuilderCta: "Get started",
+            conciergeTitle: "DIY Concierge",
+            conciergeDesc: "Your Health Map, your personalized actions, and your real progress, in one place.",
+            conciergeCta: "Open Concierge",
+            nextMoveTitle: "Your Next Right Move",
+            nextMoveDesc: "The single most important action for your business right now, explained transparently.",
+            nextMoveCta: "See my Next Right Move",
+            healthMapTitle: "Business Health Map",
+            healthMapDesc: "A plain-language look at what Leonix understands about your business.",
+            healthMapCta: "View Health Map",
+            bookTitle: "What Leonix understands",
+            bookDesc: "Review, confirm, or correct the information Leonix has about your business.",
+            bookCta: "Review information",
             capabilitiesTitle: "Per-listing capabilities",
             capabilitiesHint: "Real status from your active package — never from your account plan.",
             capabilitiesEmpty: "You don't have any Restaurantes or Servicios listings yet. This capability applies to those categories.",
@@ -237,6 +273,11 @@ function BusinessToolsPageContent() {
       {loading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>
       ) : (
+        // Main reconciliation: main's side of this conflict was the pre-integration generic
+        // tool-card directory (Learning Center / Idea Builder / Concierge / etc. cards) that
+        // Gates 1-16 on this branch replaced with the real, certified BusinessConciergeOwnerHome
+        // composition — main simply never received that integration work on this exact page, so
+        // there is no main improvement to preserve here. Kept HEAD's certified version entirely.
         <BusinessConciergeOwnerHome
           lang={lang}
           q={q}

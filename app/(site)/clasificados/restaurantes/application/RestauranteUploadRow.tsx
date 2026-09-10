@@ -14,6 +14,9 @@ type RestauranteUploadRowProps = {
   multiple?: boolean;
   disabled?: boolean;
   onFilesSelected: (files: FileList | null) => void | Promise<void>;
+  /** Locale for the built-in "Seleccionado:"/"Selected:" prefix; defaults to "es" for existing
+   * Spanish-only call sites (contract: never let a bilingual form show one hardcoded locale). */
+  lang?: "es" | "en";
 };
 
 /**
@@ -27,6 +30,7 @@ export function RestauranteUploadRow({
   multiple,
   disabled,
   onFilesSelected,
+  lang = "es",
 }: RestauranteUploadRowProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const id = useId();
@@ -54,7 +58,7 @@ export function RestauranteUploadRow({
       {helperText ? <p className="mt-1.5 text-xs leading-relaxed text-[color:var(--lx-muted)]">{helperText}</p> : null}
       {selectedLabel ? (
         <p className="mt-2 text-xs font-medium text-[color:var(--lx-text-2)]">
-          Seleccionado: <span className="text-[color:var(--lx-text)]">{selectedLabel}</span>
+          {lang === "en" ? "Selected:" : "Seleccionado:"} <span className="text-[color:var(--lx-text)]">{selectedLabel}</span>
         </p>
       ) : null}
     </div>

@@ -4,15 +4,12 @@
  */
 
 /**
- * Public launch lock is OFF by default so certified public routes are reachable.
- * Emergency re-lock: PUBLIC_LAUNCH_LOCK=true or NEXT_PUBLIC_COMING_SOON_LOCK=true
- * Explicit off: PUBLIC_LAUNCH_LOCK=false or NEXT_PUBLIC_COMING_SOON_LOCK=false
+ * Public launch lock has been permanently retired for launch.
+ * Keep this function as the single middleware contract so the rest of the
+ * routing/security middleware stays intact without honoring stale environment
+ * variables that could redirect the public site back to Coming Soon V2.
  */
 export function isPublicLaunchLockEnabled(): boolean {
-  if (process.env.PUBLIC_LAUNCH_LOCK === "false") return false;
-  if (process.env.NEXT_PUBLIC_COMING_SOON_LOCK === "false") return false;
-  if (process.env.PUBLIC_LAUNCH_LOCK === "true") return true;
-  if (process.env.NEXT_PUBLIC_COMING_SOON_LOCK === "true") return true;
   return false;
 }
 

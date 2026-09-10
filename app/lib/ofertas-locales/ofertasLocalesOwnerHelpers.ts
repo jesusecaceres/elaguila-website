@@ -303,6 +303,55 @@ export function mapOfertaLocalRowToOwnerDetail(
   };
 }
 
+/**
+ * Reconstructs publish-wizard draft fields from a canonical owner row, for
+ * recovering an in-progress application when browser-local draft state is
+ * unavailable (different origin/device, or storage was cleared). Only
+ * returns fields that map 1:1 onto OfertaLocalDraft — the client is
+ * responsible for sanitizing flyerAssets/couponAssets the same way it
+ * sanitizes a locally-stored draft.
+ */
+export function mapOfertaLocalAdminRowToDraftRecoveryPatch(row: OfertaLocalAdminRow): Record<string, unknown> {
+  return {
+    offerType: row.offer_type || "",
+    businessCategory: row.business_category || "",
+    marketType: row.market_type || "",
+    customMarketType: row.custom_market_type || "",
+    businessName: row.business_name || "",
+    title: row.title || "",
+    description: row.description || "",
+    couponText: row.coupon_text || "",
+    flyerTitle: row.flyer_title || "",
+    validFrom: row.valid_from || "",
+    validUntil: row.valid_until || "",
+    address: row.address || "",
+    city: row.city || "",
+    state: row.state || "",
+    zipCode: row.zip_code || "",
+    serviceZipCodes: Array.isArray(row.service_zips) ? row.service_zips : [],
+    phone: row.phone || "",
+    whatsapp: row.whatsapp || "",
+    websiteUrl: row.website_url || "",
+    directionsUrl: row.directions_url || "",
+    facebookUrl: row.facebook_url || "",
+    instagramUrl: row.instagram_url || "",
+    tiktokUrl: row.tiktok_url || "",
+    youtubeUrl: row.youtube_url || "",
+    googleBusinessUrl: row.google_business_url || "",
+    googleReviewUrl: row.google_review_url || "",
+    yelpUrl: row.yelp_url || "",
+    membershipUrl: row.membership_url || "",
+    membershipNote: row.membership_note || "",
+    wantsAiSearchableSpecials: Boolean(row.wants_ai_searchable_specials),
+    wantsFeaturedPlacement: Boolean(row.wants_featured_placement),
+    featuredPlacementScope: row.featured_placement_scope || "none",
+    isFeaturedRequested: Boolean(row.is_featured_requested),
+    languageTags: Array.isArray(row.language_tags) ? row.language_tags : [],
+    flyerAssets: Array.isArray(row.flyer_assets) ? row.flyer_assets : [],
+    couponAssets: Array.isArray(row.coupon_assets) ? row.coupon_assets : [],
+  };
+}
+
 export async function listOfertasLocalesForOwner(
   sb: SupabaseClient,
   ownerId: string,

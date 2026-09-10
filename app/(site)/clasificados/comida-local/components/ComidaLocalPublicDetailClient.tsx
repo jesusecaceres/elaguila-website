@@ -9,6 +9,7 @@ import {
 import { ComidaLocalDetailShell } from "./ComidaLocalDetailShell";
 import { useComidaLocalPublicTranslation } from "../lib/useComidaLocalPublicTranslation";
 import type { Locale } from "@/app/lib/translation/types";
+import { LeonixCommunityTrust } from "@/app/components/leonixCommunityTrust/LeonixCommunityTrust";
 
 type Props = {
   vm: ComidaLocalPublicListingDetailVm;
@@ -36,7 +37,16 @@ export function ComidaLocalPublicDetailClient({ vm, lang = "es" }: Props) {
         vm={displayVm}
         leonixAdId={displayVm.leonixAdId}
         analyticsContext={analyticsContext}
+        lang={lang === "en" ? "en" : "es"}
       />
+      <div className="mx-auto mt-4 max-w-2xl">
+        <LeonixCommunityTrust
+          category="comida-local"
+          targetId={vm.id}
+          lang={lang === "en" ? "en" : "es"}
+          surface="comida_local_detail"
+        />
+      </div>
     </>
   );
 }

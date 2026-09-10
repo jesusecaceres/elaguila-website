@@ -8,6 +8,8 @@ import {
 } from "@/app/(site)/dashboard/lib/autosDashboardInventoryAddonCheckout";
 import { autosPaidListingAnalyticsHref } from "@/app/lib/clasificados/autos/autosPaidListingAnalyticsHref";
 import { buildVehicleTitle } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
+import { deriveHeroImageUrls } from "@/app/clasificados/autos/negocios/lib/autoDealerHeroImages";
+import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import {
   buildServiciosDashboardActionContract,
   type CategoryDashboardActionContract,
@@ -17,7 +19,6 @@ import {
   serviciosListingPreviewHref,
 } from "./serviciosDashboardOffersAddonCheckout";
 import {
-  restaurantCouponAddonUpgradeEligibleFromLifecycle,
   restaurantCouponEditEligibleFromLifecycle,
   restauranteListingEditHref,
 } from "./restaurantesDashboardCouponAddonCheckout";
@@ -48,9 +49,7 @@ export type DashboardInventoryItem = {
   promoted?: boolean;
   verified?: boolean;
   draftListingId?: string | null;
-  /** True when published Restaurante can buy coupon add-on only from dashboard. */
-  restaurantCouponUpgradeEligible?: boolean;
-  /** True when published Restaurante has paid coupon module and can edit coupons. */
+  /** True when published Restaurante has real base-package coupon capability and can edit coupons. */
   restaurantCouponEditEligible?: boolean;
   /** Gate E.2.3 — lifecycle truth backing the two flags above (`not_purchased` when not yet resolved). */
   restaurantCouponAddonStatus?: AddonLifecycleStatus;
@@ -222,8 +221,13 @@ export async function fetchOwnerAutosClassifiedsListings(
   return data as DashboardAutosClassifiedsRow[];
 }
 
+/** Mirrors `autosClassifiedsRowToDashboardRow` (admin) — prefer the stored/edited
+ * `vehicleTitle` before falling back to an auto-built year/make/model/trim string, so the
+ * owner's own dashboard never shows a different title than admin or the live listing. */
 function autosClassifiedsTitleFromPayload(payload: unknown, lang: "es" | "en"): string {
   const p = payload && typeof payload === "object" ? (payload as Record<string, unknown>) : {};
+  const storedTitle = typeof p.vehicleTitle === "string" ? p.vehicleTitle.trim() : "";
+  if (storedTitle) return storedTitle;
   const yearRaw = p.year;
   const year = typeof yearRaw === "number" && Number.isFinite(yearRaw) ? yearRaw : parseInt(String(yearRaw ?? ""), 10);
   const make = typeof p.make === "string" ? p.make : undefined;
@@ -232,6 +236,14 @@ function autosClassifiedsTitleFromPayload(payload: unknown, lang: "es" | "en"): 
   const t = buildVehicleTitle(Number.isFinite(year) ? year : undefined, make, model, trim);
   if (t.trim()) return t;
   return lang === "es" ? "Auto (Leonix)" : "Vehicle (Leonix)";
+}
+
+/** Mirrors `autosClassifiedsRowToDashboardRow` (admin) so the owner's own "Mis anuncios"
+ * dashboard shows the same thumbnail admin and the live listing already show. */
+function autosClassifiedsThumbFromPayload(payload: unknown): string | null {
+  const p = payload && typeof payload === "object" ? (payload as AutoDealerListing) : ({} as AutoDealerListing);
+  const thumbs = deriveHeroImageUrls(p);
+  return thumbs[0] ?? null;
 }
 
 export function buildAutosClassifiedsInventoryItems(
@@ -280,7 +292,7 @@ export function buildAutosClassifiedsInventoryItems(
       }),
       publishedAt: row.published_at,
       updatedAt: row.updated_at,
-      image: null,
+      image: autosClassifiedsThumbFromPayload(row.listing_payload),
       leonixAdId: typeof row.leonix_ad_id === "string" && row.leonix_ad_id.trim() ? row.leonix_ad_id.trim() : null,
       slug: null,
       packageTier: null,
@@ -442,10 +454,6 @@ export function buildRestaurantInventoryItems(
     promoted: row.promoted,
     verified: row.leonix_verified,
     draftListingId: row.draft_listing_id,
-    restaurantCouponUpgradeEligible: restaurantCouponAddonUpgradeEligibleFromLifecycle({
-      status: row.status,
-      addonStatus,
-    }),
     restaurantCouponEditEligible: restaurantCouponEditEligibleFromLifecycle({
       status: row.status,
       addonStatus,

@@ -17,9 +17,28 @@ import {
   trimField,
   type LeadLang,
 } from "./leadCaptureValidation";
+import { generateNewsletterUnsubscribeToken } from "../newsletter/newsletterUnsubscribeToken";
 
 export type SaveNewsletterResult =
-  | { ok: true; id: string; updated: boolean }
+  | {
+      ok: true;
+      id: string;
+      updated: boolean;
+      /**
+       * The subscriber's `status` value BEFORE this write (null when this call inserted a brand
+       * new row). Callers use this to tell an idempotent re-confirmation of an already-subscribed
+       * email (ALREADY_SUBSCRIBED) apart from a genuine new/re- subscription (SUCCESS) without
+       * re-querying. See CHECKOUT-NEWSLETTER-CHECKBOX-CAPTURE-01.
+       */
+      previousStatus: string | null;
+      /**
+       * True when the existing row was `unsubscribed` and `explicitOptIn` was NOT set — the write
+       * was skipped entirely (no fields touched, status preserved) rather than silently
+       * reactivating or updating an opted-out subscriber. Callers must report this truthfully
+       * (e.g. UNSUBSCRIBE_PRESERVED), never as SUCCESS.
+       */
+      unsubscribePreserved: boolean;
+    }
   | { ok: false; error: "invalid_email" | "email_required" | "save_failed" };
 
 export type SaveMediaKitLeadResult =
@@ -64,6 +83,16 @@ export async function saveNewsletterSubscriber(
     source?: unknown;
     lang?: unknown;
     consentTimestamp: string;
+    /**
+     * True only when THIS request represents a real, current, explicit opt-in action by the
+     * subscriber (a submitted newsletter signup form, or a checkout request that only ever
+     * reaches this function when the opt-in checkbox was checked — see checkoutNewsletterCapture.ts
+     * / checkout-capture/route.ts, both gate on real checked-box before calling this). An
+     * `unsubscribed` row is reactivated ONLY when this is true; any other write (background
+     * capture, a stale/replayed request) must never resurrect an opted-out subscriber. Defaults
+     * to false — callers must opt in explicitly, not the other way around.
+     */
+    explicitOptIn?: boolean;
   }
 ): Promise<SaveNewsletterResult> {
   const email = normalizeLeadEmail(input.email);
@@ -88,7 +117,7 @@ export async function saveNewsletterSubscriber(
 
   const { data: existing, error: selectError } = await supabase
     .from("leonix_newsletter_subscribers")
-    .select("id")
+    .select("id, status, unsubscribe_token")
     .eq("email", email)
     .maybeSingle();
 
@@ -98,30 +127,116 @@ export async function saveNewsletterSubscriber(
   }
 
   if (existing?.id) {
+    // Opt-out protection: never let an ordinary (non-explicit) write reactivate or otherwise
+    // touch an unsubscribed subscriber. Skip the write entirely — no fields change, status stays
+    // "unsubscribed" — and report that truthfully to the caller.
+    if (existing.status === "unsubscribed" && !input.explicitOptIn) {
+      return {
+        ok: true,
+        id: existing.id,
+        updated: false,
+        previousStatus: existing.status,
+        unsubscribePreserved: true,
+      };
+    }
+
+    // Every subscriber should end up with a working unsubscribe link over time; backfill lazily
+    // on write rather than a bulk migration, and never rotate an already-issued token.
+    const unsubscribeTokenPatch = existing.unsubscribe_token
+      ? {}
+      : {
+          unsubscribe_token: generateNewsletterUnsubscribeToken(),
+          unsubscribe_token_expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 730).toISOString(),
+        };
+
     const { error: updateError } = await supabase
       .from("leonix_newsletter_subscribers")
-      .update(row)
+      .update({ ...row, ...unsubscribeTokenPatch })
       .eq("id", existing.id);
 
     if (updateError) {
       console.error("[newsletter] update failed", { code: updateError.code });
       return { ok: false, error: "save_failed" };
     }
-    return { ok: true, id: existing.id, updated: true };
+    return {
+      ok: true,
+      id: existing.id,
+      updated: true,
+      previousStatus: existing.status ?? null,
+      unsubscribePreserved: false,
+    };
   }
+
+  const insertUnsubscribeToken = generateNewsletterUnsubscribeToken();
+  const insertUnsubscribeTokenExpiresAt = new Date(
+    Date.now() + 1000 * 60 * 60 * 24 * 730,
+  ).toISOString();
 
   const { data: inserted, error: insertError } = await supabase
     .from("leonix_newsletter_subscribers")
-    .insert({ ...row, created_at: now })
+    .insert({
+      ...row,
+      created_at: now,
+      unsubscribe_token: insertUnsubscribeToken,
+      unsubscribe_token_expires_at: insertUnsubscribeTokenExpiresAt,
+    })
     .select("id")
     .single();
 
   if (insertError || !inserted?.id) {
+    // Idempotency: a concurrent request (e.g. two checkout tabs) may have inserted the same
+    // email between our SELECT and this INSERT. The unique index on `email` rejects the second
+    // insert (unique_violation, Postgres code 23505) rather than creating a duplicate row — fall
+    // back to an update so the caller still gets a truthful ok:true instead of a false negative.
+    if (insertError?.code === "23505") {
+      const { data: raced, error: racedSelectError } = await supabase
+        .from("leonix_newsletter_subscribers")
+        .select("id, status, unsubscribe_token")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (!racedSelectError && raced?.id) {
+        if (raced.status === "unsubscribed" && !input.explicitOptIn) {
+          return {
+            ok: true,
+            id: raced.id,
+            updated: false,
+            previousStatus: raced.status,
+            unsubscribePreserved: true,
+          };
+        }
+
+        const racedUnsubscribeTokenPatch = raced.unsubscribe_token
+          ? {}
+          : {
+              unsubscribe_token: generateNewsletterUnsubscribeToken(),
+              unsubscribe_token_expires_at: new Date(
+                Date.now() + 1000 * 60 * 60 * 24 * 730,
+              ).toISOString(),
+            };
+
+        const { error: racedUpdateError } = await supabase
+          .from("leonix_newsletter_subscribers")
+          .update({ ...row, ...racedUnsubscribeTokenPatch })
+          .eq("id", raced.id);
+
+        if (!racedUpdateError) {
+          return {
+            ok: true,
+            id: raced.id,
+            updated: true,
+            previousStatus: raced.status ?? null,
+            unsubscribePreserved: false,
+          };
+        }
+      }
+    }
+
     console.error("[newsletter] insert failed", { code: insertError?.code });
     return { ok: false, error: "save_failed" };
   }
 
-  return { ok: true, id: inserted.id, updated: false };
+  return { ok: true, id: inserted.id, updated: false, previousStatus: null, unsubscribePreserved: false };
 }
 
 export async function saveMediaKitLead(

@@ -125,7 +125,7 @@ export function rentasNegocioToBienesRaicesNegocioState(s: RentasNegocioFormStat
       email: s.negocioEmail,
       sitioWeb: s.negocioSitioWeb,
       redes: buildRedesArray(s.negocioRedes),
-      idiomas: "",
+      idiomas: s.negocioIdiomas,
       areasServicio: "",
       bio: s.negocioBio,
       segundoAgenteActivo: false,
