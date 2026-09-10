@@ -18,6 +18,7 @@ toward" another category's shape.
 |---|---|---|
 | **COMIDA-LOCAL-0** | Gate Zero + live wiring MRI | **COMPLETE (this document)** |
 | **COMIDA-LOCAL-1** | Launch-critical lifecycle repairs | **COMPLETE — see §10** |
+| **COMIDA-LOCAL-2** | Discovery adoption (Saved Search, Related, JSON-LD, sitemap) | **COMPLETE — see §11** |
 
 Servicios (Gates 1–2) and Restaurantes (Gates 1–2) are **LOCKED** and were not reopened.
 
@@ -600,3 +601,217 @@ Saved Search migrations are in the same state.
 | Related Listings | P3 | thin category-local reader, no engine |
 | `oneTimePrice` hardcodes `dias` in EN | P3 | see §10.6 — sibling of the cadence bug, outside this gate's stated scope |
 | 21 historical audit `.md` files inside `app/lib/clasificados/comida-local/` | P4 | harmless; belong in `docs/` |
+
+---
+
+## 11. GATE COMIDA-LOCAL-2 — DISCOVERY ADOPTION
+
+Saved Search, Related Listings, JSON-LD and the sitemap, all built on existing Leonix foundations.
+Verifier `scripts/verify-comida-local-gate2-discovery.ts` — **45/45 PASS**. Gate COMIDA-LOCAL-1's
+Find Me Today policy was not touched; its verifier still passes 49/49.
+
+### 11.1 Saved Search — the shared engine adopted, not a copy (§5.3 closed)
+
+Comida Local now plugs into `app/lib/saved-search/*` exactly as Autos, Bienes Raíces, Rentas,
+Servicios and Restaurantes do. The six new files are **category translation only** — the verifier
+asserts each one contains no hashing, no `saved_searches` query and no Supabase client, and that
+the shared canonicalizer, CRUD layer and `SavedSearchButton` remain category-agnostic (zero
+`comida` references in any of them).
+
+| New file | Role |
+|---|---|
+| `savedSearchComidaLocalAdapter.ts` | filters ↔ normalized contract, facet summary |
+| `comidaLocalSavedSearchResultsUrl.ts` | rebuilds a real results URL |
+| `comidaLocalPublicEligibleListing.ts` | branded public-eligibility type |
+| `savedSearchComidaLocalMatcher.ts` | runs the REAL live filter |
+| `comidaLocalSavedSearchMatchOrchestrator.ts` | durable, best-effort match writer |
+| `comidaLocalSavedSearchDeliveryResolver.ts` | re-certify + canonical detail URL |
+
+**Filter truth is exact, not approximated.** The whole live filter contract is five fields — `q`,
+`city`, `foodType`, `service`, `priceLevel` — and all five are saved. Unlike the larger categories
+there was no presentation-vs-inclusion judgement call to make: this results page has no `sort`,
+`page`, `perPage`, `saved` or `near` state at all. The only excluded key is `lang` (route/display,
+never match semantics), and the verifier proves it cannot reach the payload.
+
+`minPrice`/`maxPrice` are truthfully `null`: `priceLevel` is a LEVEL token ("1"/"2"/"3", rendered
+`$`/`$$`/`$$$`), not a numeric band. `city` is stored verbatim because the live filter matches it
+as a case-insensitive **substring** over `city_display + city_canonical` — normalizing it here
+would make a saved search match a different set of rows than the shopper saw. The verifier proves
+`"San Jose"`, `"san jose"`, `"jose"` and `"san-jose"` all still match.
+
+**Better reuse than the earlier categories got.** Rentas and Servicios had to hand-roll a
+serializer because their results pages build query strings ad hoc. Rather than add a third parallel
+serializer, this gate extracted `comidaLocalResultsUrl.ts` (pure, framework-free) and pointed the
+**live filter component** at it too — so the form, the Saved Search URL builder and the owner
+dashboard now emit through one function. The verifier proves the form no longer hand-rolls the
+query string, and round-trips a rebuilt URL back through the **live**
+`parseComidaLocalResultsSearchParams`.
+
+**The matcher runs the real filter.** `filterComidaLocalPublicRows` was extracted verbatim from
+`comidaLocalPublicQueries.ts` into a pure `comidaLocalPublicFilter.ts` (with the queries module
+re-exporting it, so every existing import is unchanged) — because it is pure, and leaving it behind
+`server-only` would have forced any consumer of the real semantics to become server-only too, which
+is exactly how a category ends up with a second drifting copy of its own filter. The verifier
+asserts **one** implementation exists on disk and that the live reader applies that same function.
+
+**Eligibility mirrors the live readers exactly.** `status === "published"` — the single check both
+`fetchAllPublishedRows` and `getPublishedComidaLocalListingBySlug` apply.
+`isComidaLocalPublishPubliclyVisible` (which additionally requires a complete `payment_status`) is
+deliberately **not** used: a whole-repo search proves it has **zero runtime consumers**, so
+adopting it would make Saved Search apply a stricter visibility rule than the pages themselves — a
+second interpretation of visibility. Recorded as BUILT-NOT-WIRED in §11.7. (In practice the two
+agree: activation writes `status:"published"` and `payment_status:"paid"` in the same patch.)
+
+**Ledger.** `20260911120000_saved_search_match_events_comida_local.sql` widens the two category
+CHECKs to include `comida-local`, following the BR/Rentas → Servicios → Restaurantes precedent
+exactly; additive only, dedupe contract unchanged. `seller_lane` stays **null**: like Restaurantes,
+this category draws no business-vs-private distinction — every listing is a food seller — and the
+existing `IS NULL OR ...` constraint already accepts it. Inventing a lane would misrepresent a
+distinction the category does not make. `listing_price` is null for the same reason the adapter
+reports no numeric price. Verified against its own migration: `saved_searches.category` has **no
+value enum**, so saving a `comida-local` search needs no schema change at all.
+
+**Trigger.** Fired from the real `pending_payment → published` activation in `revenueFulfillment`,
+guarded on `activation.outcome === "activated"` so a re-delivered webhook cannot re-fire, and
+through a function that can never throw — the same failure boundary the other five lanes use.
+
+### 11.2 Related Listings — real relationships, no engine (§5.3 closed)
+
+`comidaLocalRelatedListings.ts` scores candidates from the same canonical published reader the
+results page uses, on three relationships that are each a column the **live filter itself** matches
+on:
+
+| Tier | Relationship |
+|---|---|
+| 3 | same food type **and** same city |
+| 2 | same food type, anywhere |
+| 1 | same city **and** a shared service mode |
+| 0 | excluded — no real relationship |
+
+Same city **alone** is deliberately not a relationship: for a lane of stands, pop-ups and mobile
+vendors spread across a metro, "another food seller somewhere in San José" is not something a
+reader would recognize as related. Requiring a shared service mode keeps tier 1 a real statement.
+`food_type === "otro"` matches on `food_type_custom`, not on the bare token — otherwise pupusas
+would relate to birria.
+
+Nothing is fabricated: an empty result renders a real browse link, never filler. The verifier
+asserts the reader never consults `promoted`, `package_tier`, `payment_status`, entitlement or any
+visibility-bucket weight (this category has no `promoted` column at all, and none was introduced),
+and that the rail reuses the existing `ComidaLocalListingCard` + `mapComidaLocalRowToCardVm` rather
+than introducing a new card or row shape.
+
+### 11.3 JSON-LD — the category's first structured data (§5.4 partly closed)
+
+`comidaLocalJsonLd.ts` emits **`FoodEstablishment`**, not `Restaurant`: this lane is stands,
+pop-ups, home kitchens and mobile vendors, and `Restaurant` would assert a sit-down establishment
+these sellers explicitly are not — the whole product distinction from the Restaurantes category.
+
+Real data only: absolute canonical `url` (the same value `generateMetadata` declares), name,
+description, image, telephone, `areaServed` (city), `servesCuisine` (the seller's own food-type
+label), `priceRange` (their own `$`/`$$`/`$$$` token), and `sameAs` from the VM's already
+host-validated social URLs. Empty fields are omitted, never emitted blank. Plus the shared
+`breadcrumbJsonLd`, mirroring the trail the page actually shows, ES/EN aware.
+
+**No ratings, structurally.** Like the Restaurantes builder, the contract has no rating or
+review-count parameter at all, so no owner-entered value can reach `aggregateRating` here or via
+any future caller. The verifier asserts the word cannot appear in the module.
+
+**Two privacy rules, both proven:**
+1. `addressText` comes from `vm.businessAddressLine`, which the shared VM mapper only populates
+   when the owner set `showAddressPublicly` (default false) — a private home address can never
+   reach structured data. The verifier asserts the page passes the gated VM field and never a raw
+   draft/`listing_json` value.
+2. **Find Me Today is never emitted.** `schema.org/address` is a permanent property with no expiry
+   semantics, so publishing today's pop-up corner as the entity's address would outlive its own
+   24-hour freshness window in every consumer that caches it. The builder has no parameter for it.
+
+### 11.4 Sitemap (§5.4 closed)
+
+Published Comida Local detail URLs now enter the existing platform mechanism as the **fourth**
+DB-backed section, composed in the route module exactly as the Recursos, Servicios and Restaurantes
+sections are — never inside the pure `buildLeonixSitemap` contract, never a direct table query.
+Sourced from `listPublishedComidaLocalListings`, so a `pending_payment`/`draft`/`paused`/`suspended`
+row can never be advertised; its non-`"published"` outcomes are honoured explicitly so a query
+error yields no entries rather than a partial list; try/catch-isolated so one unavailable read
+cannot fail the sitemap route. URLs are the canonical `/clasificados/comida-local/[slug]`.
+
+Honest ceiling: the reader takes no limit argument, so its own `FETCH_CAP` of 300 rows is this
+section's real bound. `lastModified` uses `published_at` because that is the only timestamp the
+category's public select projects.
+
+### 11.5 Discovery continuity + Find Me Today isolation (both PROVEN)
+
+One connected circuit, asserted end to end in a single check: a published row → the live results
+filter → a saved search that matches it through that same filter → a rebuilt URL the **live**
+parser reads back to the identical filters → one canonical detail path shared by the delivery
+resolver, the JSON-LD `url` and the sitemap entry → the Related rail → structured data.
+
+**Find Me Today isolation is proven four ways**, and the answer to "unless a real durable filter
+exists for freshness/current-location state" is that **none exists**:
+- the live filter contract is exactly `["q","city","foodType","service","priceLevel"]` — asserted
+  against the real key list, and the real filter body is asserted to read no `location_note`,
+  `location_url` or freshness field. There is nothing durable to fingerprint.
+- no temporary-location field can appear in a saved payload or its canonicalized fingerprint.
+- **behavioral**: the same saved search matches the same listing before a move, after a move, and
+  after the location is cleared entirely.
+- Related Listings and JSON-LD both refuse it, and the Gate-1 policy module is asserted unmodified
+  (24h window intact, no Gate-2 edits).
+
+### 11.6 Google / Yelp and Business Hub — NOT built, recorded accurately
+
+Instruction 6 honoured: nothing was built, and no stale Globalization field was ported to satisfy a
+checklist.
+
+| Feature | Status on HEAD |
+|---|---|
+| **Google / Yelp** | **ABSENT from the live draft model.** `googleReviewsUrl` / `yelpReviewsUrl` do not exist on `ComidaLocalDraft`, in the publish mapper, on the table, or in any renderer. This is a **feature gap, not data loss** — there is no field losing a value. Globalization `652e2556` (G21) presupposes those fields and remains **not portable**: porting it would mean building the feature (type + form + publish + render), of which its merge line is the last step. |
+| **Business Hub** | **ABSENT — zero `connectionHub/*` references.** Recorded as an open product decision rather than a defect: a stand or pop-up is not obviously a Business Hub product, and the master lists Business Hub under differentiators, not as required for every lane. |
+
+Neither is a launch-blocking lifecycle defect; both stay owner decisions for a later gate.
+
+### 11.7 Cleanup prep — recorded, nothing deleted
+
+Re-proved by walking every `ts`/`tsx` under the five Comida Local trees (now including
+`app/lib/saved-search/comida-local/`) and matching real import specifiers, excluding Next.js route
+conventions the framework enters without an import:
+
+**DEAD RUNTIME MODULES: NONE.** Still the cleanest category traced.
+
+| Non-runtime artifact | Count | Disposition |
+|---|---|---|
+| `COMIDA_LOCAL_*_AUDIT.md` inside `app/lib/clasificados/comida-local/` | **21** (asserted exactly) | HISTORICAL — belong under `docs/`, but a **move is a routing-safe operation only after the integration gate**; not deleted, not moved here |
+| `comidaLocalPackages.ts` legacy `$99`/`$149` tiers | 1 file | KEEP — the module is genuinely live (tier limits + tier labels); the verifier re-asserts no checkpoint, results or detail file reads a legacy price label, so the customer-facing price stays matrix-derived |
+| `isComidaLocalPublishPubliclyVisible` | 1 function | **BUILT-NOT-WIRED** (new finding this gate) — a stricter payment-aware visibility rule with zero runtime consumers. Deliberately not adopted (§11.1). Needs an explicit owner decision: adopt it in the public readers, or retire it. |
+
+### 11.8 Validation
+
+| Check | Result |
+|---|---|
+| `verify-comida-local-gate2-discovery.ts` (new) | **45/45 PASS** |
+| `verify-comida-local-gate1-lifecycle.ts` | **49/49 PASS** (no regression) |
+| `verify-restaurantes-gate1` / `gate2` | PASS / PASS |
+| `verify-servicios-gate1` / `gate2` | PASS / PASS |
+| ESLint over the changed scope | **0 errors.** Two warnings are pre-existing unused eslint-disable directives; the two known pre-existing errors (`comidaLocalPublicTypes.ts:2`, `mapComidaLocalPublicListing.ts:8`) were re-checked and are unchanged and untouched |
+
+**DEFERRED TO INTEGRATION GATE:** `npm run typecheck`, `npm run build`, owner-browser QA. A scoped
+`tsc` run on the new pure modules is inconclusive standalone (the `@/` path alias needs the project
+tsconfig); the verifier does import and execute every new module through tsx, which resolves those
+aliases — that is real load-and-run evidence, not a substitute for a full typecheck.
+
+**DEFERRED / REQUIRED BEFORE MATCH EMAILS WORK:** the new ledger migration has not been applied
+anywhere. Until it runs, a `comida-local` match-event insert is rejected by the existing CHECK. The
+orchestrator degrades safely (the write failure is recorded, never thrown) and the
+save/list/dashboard/results-URL half of Saved Search works without it, but match emails will not
+deliver. The Servicios, Restaurantes and Gate-1 `suspended_reason` migrations are in the same state.
+
+### 11.9 Remaining Comida Local source gaps after this gate
+
+| Gap | Severity | Note |
+|---|---|---|
+| no scheduler cranks `/api/revenue-os/admin/subscription-sweep` | P1 | platform-wide, unchanged across all three completed categories |
+| four unapplied migrations (Servicios + Restaurantes Saved Search, Comida Local Saved Search, Comida Local `suspended_reason`) | P1 | one integration-gate migration pass covers all |
+| Google / Yelp absent from the draft model | P2 | §11.6 — feature gap, owner decision |
+| Business Hub absent | P2 | §11.6 — owner decision |
+| `isComidaLocalPublishPubliclyVisible` built-not-wired | P3 | §11.7 — adopt or retire |
+| `oneTimePrice` hardcodes `dias` in EN | P3 | §10.6 — sibling of the cadence bug, outside both gates' stated scope |
+| 21 historical audit `.md` files in the source tree | P4 | §11.7 — move after the integration gate |

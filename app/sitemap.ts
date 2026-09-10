@@ -5,6 +5,8 @@ import { recursosCategoryPath, recursosResourcePath } from "@/app/lib/recursos/r
 import { listPublicCommunityResources } from "@/app/lib/recursos/server/communityResourcesPublicQueries";
 import { listServiciosPublicListingsRaw } from "@/app/(site)/clasificados/servicios/lib/serviciosPublicListingsServer";
 import { tryListRestaurantesPublicListingsFromDb } from "@/app/(site)/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
+import { listPublishedComidaLocalListings } from "@/app/lib/clasificados/comida-local/comidaLocalPublicQueries";
+import { emptyComidaLocalResultsFilters } from "@/app/lib/clasificados/comida-local/comidaLocalResultsUrl";
 import { buildLeonixSitemap } from "@/app/lib/seo/leonixDiscoveryContracts";
 
 export {
@@ -136,6 +138,51 @@ async function restaurantesSitemapEntries(base: string, now: Date): Promise<Meta
   }
 }
 
+/**
+ * Gate COMIDA-LOCAL-2 — published Comida Local vitrinas, the fourth DB-backed section, composed the
+ * same way as the Recursos, Servicios and Restaurantes sections above: in this route module, from
+ * the category's own safety-gated public reader, never inside the pure `buildLeonixSitemap`
+ * contract and never a direct table query.
+ *
+ * `listPublishedComidaLocalListings` applies `.eq("status","published")`, so a `pending_payment`,
+ * `draft`, `paused` or `suspended` row can never reach the sitemap — the same single status check
+ * the public detail route enforces (a non-published slug 404s there). It is called with the
+ * category's own empty filters so the full published pool is returned, and its non-`"published"`
+ * outcomes (`inventory_unavailable` / `inventory_table_missing` / `inventory_query_failed`) are
+ * honoured explicitly, so a query error yields no entries rather than a partial list.
+ *
+ * The URL is the canonical `/clasificados/comida-local/[slug]`, matching each page's own
+ * `alternates.canonical` and the absolute JSON-LD `url` this same gate established.
+ */
+async function comidaLocalSitemapEntries(base: string, now: Date): Promise<MetadataRoute.Sitemap> {
+  try {
+    const listed = await listPublishedComidaLocalListings(emptyComidaLocalResultsFilters());
+    if (listed.source !== "published") return [];
+    return listed.rows
+      .filter((row) => Boolean(row.slug?.trim()))
+      .map((row) => {
+        const lastModified = row.published_at ? new Date(row.published_at) : now;
+        return {
+          url: `${base}/clasificados/comida-local/${encodeURIComponent(row.slug)}`,
+          lastModified: Number.isNaN(lastModified.getTime()) ? now : lastModified,
+          changeFrequency: "weekly" as const,
+          priority: 0.6,
+        };
+      });
+  } catch {
+    // A sitemap must never fail the whole route because one DB-backed section is unavailable.
+    return [];
+  }
+}
+
+/**
+ * The Comida Local reader takes no limit argument: its own internal `FETCH_CAP` of 300 rows is the
+ * real ceiling of this section, stated honestly here rather than implying a larger number it cannot
+ * return. Well under the 50k per-sitemap limit; a larger catalog needs a paginated sitemap index.
+ * `lastModified` uses `published_at` because that is the only timestamp this category's public
+ * select projects (`COMIDA_LOCAL_PUBLIC_LISTING_SELECT` carries no `updated_at`).
+ */
+
 /** Upper bound for the Restaurantes section. Unlike the Servicios reader, this one has no smaller
  * internal fetch cap — it passes the limit straight to Supabase — so 2000 is the real ceiling here.
  * Well under the 50k per-sitemap limit; a larger catalog needs a paginated sitemap index. */
@@ -162,5 +209,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...(await recursosSitemapEntries(base, now)),
     ...(await serviciosSitemapEntries(base, now)),
     ...(await restaurantesSitemapEntries(base, now)),
+    ...(await comidaLocalSitemapEntries(base, now)),
   ];
 }

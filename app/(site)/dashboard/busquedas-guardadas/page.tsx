@@ -35,6 +35,8 @@ import { describeServiciosSavedSearchFacets } from "@/app/lib/saved-search/servi
 import { buildServiciosSavedSearchResultsUrl } from "@/app/lib/saved-search/servicios/serviciosSavedSearchResultsUrl";
 import { describeRestaurantesSavedSearchFacets } from "@/app/lib/saved-search/restaurantes/savedSearchRestaurantesAdapter";
 import { buildRestaurantesSavedSearchResultsUrl } from "@/app/lib/saved-search/restaurantes/restaurantesSavedSearchResultsUrl";
+import { describeComidaLocalSavedSearchFacets } from "@/app/lib/saved-search/comida-local/savedSearchComidaLocalAdapter";
+import { buildComidaLocalSavedSearchResultsUrl } from "@/app/lib/saved-search/comida-local/comidaLocalSavedSearchResultsUrl";
 import type { SavedSearchNormalizedInput, SavedSearchRow } from "@/app/lib/saved-search/savedSearchTypes";
 
 type SavedSearchCategoryEntry = {
@@ -74,6 +76,14 @@ const CATEGORY_REGISTRY: Record<string, SavedSearchCategoryEntry> = {
     browsePath: "/clasificados/restaurantes/results",
     describeFacets: describeRestaurantesSavedSearchFacets,
     buildResultsUrl: buildRestaurantesSavedSearchResultsUrl,
+  },
+  // Gate COMIDA-LOCAL-2 — landing and results are the same route for this category, so the browse
+  // path is the hub itself (the same path already registered in LEONIX_SITEMAP_CATEGORY_HUBS).
+  "comida-local": {
+    label: { es: "Comida Local", en: "Local Food" },
+    browsePath: "/clasificados/comida-local",
+    describeFacets: describeComidaLocalSavedSearchFacets,
+    buildResultsUrl: buildComidaLocalSavedSearchResultsUrl,
   },
 };
 

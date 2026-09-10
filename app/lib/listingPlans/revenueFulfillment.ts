@@ -23,6 +23,7 @@ import {
 } from "./revenueServiciosFulfillment";
 import { triggerServiciosSavedSearchMatchBestEffort } from "@/app/lib/saved-search/servicios/serviciosSavedSearchMatchOrchestrator";
 import { triggerRestaurantesSavedSearchMatchBestEffort } from "@/app/lib/saved-search/restaurantes/restaurantesSavedSearchMatchOrchestrator";
+import { triggerComidaLocalSavedSearchMatchBestEffort } from "@/app/lib/saved-search/comida-local/comidaLocalSavedSearchMatchOrchestrator";
 import {
   activatePaidComidaLocalListingFromRevenueOs,
   COMIDA_LOCAL_BASE_MONTHLY_PACKAGE_KEY,
@@ -440,6 +441,17 @@ async function tryActivateComidaLocalListingAfterEntitlement(input: {
       outcome: activation.outcome,
     },
   });
+
+  // Gate COMIDA-LOCAL-2 — Saved Search match is a durable, best-effort side effect of the listing
+  // genuinely becoming publicly active, fired strictly AFTER the real activation has committed and
+  // only on the actual pending -> published transition (a re-delivered webhook resolves to
+  // `already_published` and returns earlier, never reaching here).
+  // `triggerComidaLocalSavedSearchMatchBestEffort` never throws, so it can never fail this
+  // function's own success — same failure-boundary contract as the Autos/BR/Rentas/Servicios/
+  // Restaurantes sites.
+  if (activation.outcome === "activated" && activation.listingId) {
+    await triggerComidaLocalSavedSearchMatchBestEffort(activation.listingId, "comida_local_publish_activation");
+  }
 
   return { ok: true };
 }

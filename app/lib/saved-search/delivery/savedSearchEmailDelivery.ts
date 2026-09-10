@@ -33,6 +33,7 @@ import { bienesRaicesSavedSearchDeliveryResolver } from "../bienes-raices/bienes
 import { rentasSavedSearchDeliveryResolver } from "../rentas/rentasSavedSearchDeliveryResolver";
 import { serviciosSavedSearchDeliveryResolver } from "../servicios/serviciosSavedSearchDeliveryResolver";
 import { restaurantesSavedSearchDeliveryResolver } from "../restaurantes/restaurantesSavedSearchDeliveryResolver";
+import { comidaLocalSavedSearchDeliveryResolver } from "../comida-local/comidaLocalSavedSearchDeliveryResolver";
 
 /** Category registry — the one place delivery dispatches to a category's resolver. Adding a
  * category means adding one entry here, never cloning this file. */
@@ -42,6 +43,7 @@ const CATEGORY_RESOLVERS: Record<string, SavedSearchDeliveryCategoryResolver> = 
   rentas: rentasSavedSearchDeliveryResolver,
   servicios: serviciosSavedSearchDeliveryResolver,
   restaurantes: restaurantesSavedSearchDeliveryResolver,
+  "comida-local": comidaLocalSavedSearchDeliveryResolver,
 };
 
 const MATCH_EVENTS_TABLE = "saved_search_match_events";

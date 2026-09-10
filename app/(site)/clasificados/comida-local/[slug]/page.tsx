@@ -14,6 +14,11 @@ import {
   CL_PAGE,
 } from "../components/comidaLocalCustomerStyles";
 import { ComidaLocalPublicDetailClient } from "../components/ComidaLocalPublicDetailClient";
+import { ComidaLocalRelatedListingsSection } from "../components/ComidaLocalRelatedListingsSection";
+import { listRelatedComidaLocalListings } from "../lib/comidaLocalRelatedListings";
+import { comidaLocalJsonLd } from "../seo/comidaLocalJsonLd";
+import { breadcrumbJsonLd } from "@/app/lib/seo/breadcrumbJsonLd";
+import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
 import { normalizeLang, replaceLangInHref } from "@/app/lib/language";
 
 export const dynamic = "force-dynamic";
@@ -68,11 +73,50 @@ export default async function ComidaLocalPublicDetailPage(props: PageProps) {
   const row = await getPublishedComidaLocalListingBySlug(slug);
   if (!row) notFound();
 
-  const vm = mapComidaLocalRowToDetailVm(row, lang === "en" ? "en" : "es");
+  const pageLang = lang === "en" ? "en" : "es";
+  const vm = mapComidaLocalRowToDetailVm(row, pageLang);
   const hubHref = replaceLangInHref("/clasificados/comida-local", lang);
+  const related = await listRelatedComidaLocalListings(row);
+
+  // Gate COMIDA-LOCAL-2 — real structured data from published values only.
+  //
+  // `vm.businessAddressLine` is already empty unless the owner opted in via `showAddressPublicly`
+  // (the single privacy gate in `mapComidaLocalDraftToPreviewVm`), so a private home address can
+  // never reach `address` here. `vm.locationNote` — the 24h Find Me Today value — is deliberately
+  // NOT passed: `schema.org/address` has no expiry semantics, so a temporary corner published as a
+  // permanent address would outlive its own freshness window in every consumer that caches it.
+  //
+  // `sameAs` comes from the VM's already-normalized social actions (real host-validated URLs),
+  // never from raw draft text. No rating is emitted — the builder has no parameter for one.
+  const canonicalUrl = `${LEONIX_SITE_ORIGIN}/clasificados/comida-local/${encodeURIComponent(row.slug.trim())}`;
+  const jsonLd = comidaLocalJsonLd({
+    name: vm.businessName,
+    description: vm.queVendes ? vm.queVendes.slice(0, 300) : undefined,
+    url: canonicalUrl,
+    imageUrl: vm.mainImage?.src,
+    telephone: row.phone?.trim() || undefined,
+    addressText: vm.businessAddressLine || undefined,
+    areaServed: row.city_display?.trim() || row.city_canonical?.trim() || undefined,
+    servesCuisine: vm.foodTypeChips[0]?.label || undefined,
+    priceRange: vm.priceLevelLabel || undefined,
+    sameAs: vm.contactActions.filter((a) => a.variant === "social").map((a) => a.href),
+  });
+
+  // Mirrors the visible trail this page actually shows (Clasificados / Comida Local / this seller)
+  // as real structured data; no step the page does not render.
+  const breadcrumb = breadcrumbJsonLd([
+    { name: pageLang === "en" ? "Classifieds" : "Clasificados", path: `/clasificados?lang=${pageLang}` },
+    { name: pageLang === "en" ? "Local Food" : "Comida Local", path: `/clasificados/comida-local?lang=${pageLang}` },
+    {
+      name: vm.businessName,
+      path: `/clasificados/comida-local/${encodeURIComponent(row.slug.trim())}?lang=${pageLang}`,
+    },
+  ]);
 
   return (
     <div className={CL_PAGE}>
+      <script type="application/ld+json" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
       <div className={CL_HEADER_BAR}>
         <div className={`${CL_CONTAINER_NARROW} flex flex-wrap items-center justify-between gap-2 py-3.5`}>
           <Link
@@ -86,7 +130,13 @@ export default async function ComidaLocalPublicDetailPage(props: PageProps) {
       </div>
 
       <div className={`${CL_CONTAINER_NARROW} py-6 sm:py-8`}>
-        <ComidaLocalPublicDetailClient vm={vm} lang={lang === "en" ? "en" : "es"} />
+        <ComidaLocalPublicDetailClient vm={vm} lang={pageLang} />
+        <ComidaLocalRelatedListingsSection
+          rows={related.rows}
+          matchedByFood={related.matchedByFood}
+          lang={pageLang}
+          browseHref={hubHref}
+        />
       </div>
     </div>
   );
