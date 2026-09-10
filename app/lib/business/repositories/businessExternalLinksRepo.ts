@@ -101,7 +101,14 @@ export type CreateVerifiedExternalLinkInput = {
 
 export type CreateVerifiedExternalLinkResult =
   | { ok: true; id: string }
-  | { ok: false; error: "duplicate" | "insert_failed" };
+  | { ok: false; error: "duplicate" | "insert_failed" | "table_missing" };
+
+function isTableMissingError(err: { message?: string; code?: string } | null | undefined): boolean {
+  if (!err) return false;
+  if (err.code === "PGRST205") return true;
+  const msg = (err.message ?? "").toLowerCase();
+  return msg.includes("does not exist") || msg.includes("schema cache");
+}
 
 /**
  * ADMIN-OS-01 GATE 2 — the one write path into this table. Server/admin-only (no client
@@ -123,13 +130,16 @@ export async function createVerifiedExternalLink(
   // Prevent a duplicate row for the SAME business + record (any status) — distinct from the
   // DB's own unique-when-verified index, which only guards against the same record being
   // verified-linked to two DIFFERENT businesses.
-  const { data: existing } = await adminClient
+  const { data: existing, error: existingErr } = await adminClient
     .from("business_external_links")
     .select("id")
     .eq("business_id", input.businessId)
     .eq("record_type", input.recordType)
     .eq("record_id", input.recordId)
     .maybeSingle();
+  // Before the migration is applied, this table doesn't exist yet — fail with an honest,
+  // distinct outcome rather than falling through to a confusing generic insert failure.
+  if (isTableMissingError(existingErr)) return { ok: false, error: "table_missing" };
   if (existing) return { ok: false, error: "duplicate" };
 
   const { data, error } = await adminClient
@@ -150,6 +160,7 @@ export async function createVerifiedExternalLink(
     // is the last line of defense against linking the same record to two businesses — surface
     // that as the same honest "duplicate" outcome rather than a raw constraint-violation error.
     if (error?.code === "23505") return { ok: false, error: "duplicate" };
+    if (isTableMissingError(error)) return { ok: false, error: "table_missing" };
     return { ok: false, error: "insert_failed" };
   }
   return { ok: true, id: String((data as { id: string }).id) };

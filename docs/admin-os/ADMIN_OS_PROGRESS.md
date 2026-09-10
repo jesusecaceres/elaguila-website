@@ -507,3 +507,185 @@ tile/inbox count match, and every other Admin OS page's actual behavior under li
 `NEEDS_RUNTIME_PROOF`: this environment has no `.env.local`/live Supabase connection and this gate
 ran no dev server, so nothing here constitutes browser/runtime proof. That gap is an environment
 limitation, not a defect — it does not invalidate the repository-level implementation.
+
+---
+
+## IMPLEMENTATION/UX FINISH PASS (fifth pass) — owner deferred runtime QA until code+UX is complete
+
+Owner explicitly stopped the started runtime-QA gate mid-flight (before any login attempt — see
+below) and redirected to a full implementation-completion pass: finish the Admin OS's remaining
+functional and UX/UI gaps before asking for any owner-facing QA. `.env.local` remains recovered
+and present in this worktree from the prior gate; a dev server was started, then stopped
+immediately per the owner's instruction, with no page interaction beyond loading the login screen.
+
+**Note on the stopped runtime QA**: the login screen loaded correctly (both "Team login" and
+"Owner bootstrap" options rendered), but authenticating would have required either typing the
+admin password into the login form or forging the signed bootstrap-session cookie from its
+signing secret — both of which are hard-line prohibited actions regardless of whose password it
+is. The agent asked the owner how to proceed; before an answer arrived, the owner's own follow-up
+message (this pass's task) pre-empted the question and redirected to implementation mode instead.
+No credentials were touched at any point.
+
+### Investigation: Viajes "duplicate" admin routes — CLOSED, not a duplicate
+Dispatched a focused read-only investigation of `/admin/workspace/clasificados/travel` vs.
+`/admin/clasificados/viajes/business-offers` (both read/write `viajes_staged_listings`).
+**Finding: not duplicates.** They are genuinely different lifecycle stages sharing one table —
+`business-offers` is the pre-approval intake/moderation queue (approve/reject/request-edits),
+`travel` is the post-approval live-catalog ops queue (suspend/feature/verify/archive/republish).
+Their action sets never overlap; no nav registry treats them as interchangeable. **Real secondary
+finding**: `business-offers`'s own copy ("Viajes · business lane", "Business Offers") claims to be
+business-lane-only, but its query has no lane filter — private-lane submissions appear there too,
+and no separate private-lane moderation queue exists. Rather than add a lane filter (which would
+silently orphan private-lane moderation — a worse regression than the mislabeling), fixed the
+page's own header copy to honestly describe current behavior (reviews submissions from both lanes
+today). No query/data logic touched. **Both routes are correctly closed as REAL / no action
+needed** beyond this copy fix.
+
+### Owner-facing developer-jargon sweep — 19 real fixes
+Grepped the entire Admin surface for gate-codes and internal-audit language rendered directly in
+owner-facing JSX (not code comments, which are fine). Found and fixed:
+- **16 files** used the literal string `nextGate="ADMIN-XXX-YYY-01"` as a prop value rendered
+  verbatim under a card labeled "Next gate" — a raw internal ticket code with zero meaning to the
+  owner. Reduced to 3 distinct underlying meanings (schema-proof, website-control consolidation,
+  nav-architecture) and rewrote each to a one-sentence plain-English description of what's
+  actually needed. Also renamed the shared `AdminPagePurposeCard` label itself from "Next gate" to
+  "What's needed to finish this" (benefits all 26 pages using this component, including the ones
+  not touched this pass whose gate-code values are a known remaining item — see below).
+- **3 more instances** of raw jargon found outside the `nextGate` prop, each in owner-visible
+  `helperText`/body text: Cupones workspace page cited an internal audit filename and
+  "ADMIN-OS-01"; Media Kit legacy leads page did the same; the new Global Search "Categories"
+  section literally said "ADMIN-OS-01: ... this section was previously missing entirely" (dev
+  changelog language, not operational truth). All three rewritten to plain operator language,
+  same underlying facts preserved.
+- Checked every other file matching the gate-code pattern (12 files) and confirmed the remaining
+  matches are all in `//`/`/** */` code comments, never rendered — correctly left untouched.
+- **Known remaining item, not fixed this pass**: the `AdminPagePurposeCard` component is used in
+  26 files total; only the ones with a shared, high-confidence gate-code meaning were rewritten
+  this pass (16 of them, covering 3 distinct meanings). The label wording fix benefits all 26
+  regardless. Any remaining raw-looking `nextGate` values on files not touched this pass should be
+  spot-checked in a future pass rather than assumed clean.
+
+### Raw technical error leaks — 2 real fixes
+Found two admin pages rendering `{error.message}` directly from a raw Supabase/Postgrest query
+result into a red owner-facing banner — a direct, confirmed violation of the Operator Truth
+Contract's "no raw technical errors" rule (Master Book §7):
+- `app/admin/(dashboard)/workspace/clasificados/page.tsx` — `error` traced to
+  `fetchListingsForAdminWorkspaceFiltered()`'s `{ message, code }` passthrough of `res.error`
+  (the live Supabase query result), confirmed via direct source read, not assumed.
+- `app/admin/(dashboard)/reportes/page.tsx` — `error` traced to a direct
+  `const { data, error } = await query` destructure — the rawest possible case.
+
+Both replaced with an honest, curated banner ("Could not load X right now. This is a database
+connection issue, not a data problem... check System Health.") that preserves the real signal
+(something failed) without ever surfacing the underlying technical string. A third file
+(`adminClasificadosCategoryOpsAudit.ts`) also passes through raw `error.message` values, but only
+into a specialized internal diagnostic/audit tool's per-row `reason` field, not a primary owner
+flow — reviewed and left as-is; a genuinely technical diagnostic surface showing precise technical
+detail is a different case from a primary operator flow doing the same.
+
+### Command Center duplicate-metric fix
+The Marketplace Ops section's "Reports / complaints" card showed the exact same
+`snap.pendingReports` number as its own metric, in a different section from where "Today's
+Attention" already shows and correctly contextualizes that count (with its own "not a second
+attention total" caveat). To an owner glancing at two different sections, this reads as two
+independent numbers that happen to match, not obviously the same fact — the DUPLICATE-METRIC
+class of defect this pass's Gate 1 explicitly asks to remove. Fixed by dropping the redundant
+numeric display from the Marketplace card and stating explicitly that it's the same total shown
+elsewhere, keeping the card's real purpose (a link to the reports queue) intact.
+
+### Gate 11 — final gap classification (using this pass's evidence + all prior passes' findings)
+
+| Item | Classification | Note |
+|---|---|---|
+| Viajes route "duplication" | CLOSED | Confirmed not duplicates this pass; cosmetic label fix applied |
+| Owner-facing jargon (nextGate/gate codes, ~19 instances) | CLOSED | Fixed this pass. Correction to this row's original note: the "~10 more nextGate instances" flagged as unfixed were re-checked in the following pass and found to already be plain-language text (Spanish "Ninguno planeado..." sentences, route references) — only 1 of those 10 (`team/executive-hub`) was a real violation, and it has since been fixed too. See "IMPLEMENTATION/UX FINISH PASS (sixth pass)" below. |
+| Raw `error.message` leaks (2 primary-flow instances) | CLOSED | Fixed this pass |
+| Command Center duplicate reports metric | CLOSED | Fixed this pass |
+| `business_external_links` migration application | NEEDS_MIGRATION | Owner action required; not applied by any pass |
+| Connected Records / promo-lead-count / most page runtime behavior | NEEDS_RUNTIME_PROOF | No dev-server browser QA has been performed against live data yet (owner deferred it) |
+| Dead `/api/ofertas-locales/admin/[id]/review` duplicate route | NOT_LAUNCH_CRITICAL | Confirmed dead for live UI but still referenced by 4 verify/test scripts; deleting is a net-negative risk for no operator-facing benefit |
+| `LISTING_SOURCE_OWNERSHIP_CONTRACT` extension for `business_listing_links` | NOT_LAUNCH_CRITICAL | `business_listing_links` itself has zero write callers; extending an unrelated narrow-scoped contract for it was already correctly declined |
+| Bug Finder / System Alerts / high-priority email alerts | NOT_LAUNCH_CRITICAL | Already honestly labeled PLANNED in the UI with a real (now plain-English) description of what's needed — this is the doctrine-correct state, not a defect |
+| Full moderation case lifecycle (OPEN→TRIAGE→...→RESOLVED per Master Book §14) | OWNER_DECISION_REQUIRED | Would need a new case/resolution table — genuinely new schema, not a wiring fix; no such table exists today. Flagged, not built, per "do not create speculative abstractions" |
+| Users tier-vocabulary mismatch between edit page and provisioning flow | CLOSED (prior pass) | Resolved in the Gates 1-5 pass |
+| Promo-lead duplicate-truth (3 classifiers) | CLOSED (prior pass) | Resolved in the Gates 1-6 pass |
+| Comida Local / categories count truth / System Health / team invite lifecycle | CLOSED (prior passes) | See Gates A-F and Gates 1-5 sections above |
+
+---
+
+## IMPLEMENTATION/UX FINISH PASS (sixth pass) — owner correctly rejected premature READY_FOR_FINAL_QA
+
+The owner explicitly noted the prior pass's "READY_FOR_FINAL_QA: YES" was premature — it had
+itself documented unfinished owner-facing strings and unverified UX/UI details in the same
+breath. This pass finished that remaining, already-identified work rather than re-opening a
+broad audit. `.env.local` remains present (restored after an accidental `rm` during this pass's
+own file cleanup — immediately re-copied from the main repo before any other work continued; the
+main repo's source file was never touched).
+
+### Gate 1 — finished remaining owner-language jargon
+Re-checked the ~10 `nextGate=` instances flagged as "not fixed" in the prior pass. **Correction**:
+9 of them were already plain-language text (mostly Spanish "Ninguno planeado — ..." sentences in
+the Recursos family, or references to real Admin routes) — the prior pass's characterization of
+them as "sharing the same 3 known-safe gate-code strings" was simply wrong; they were never gate
+codes. Only **1 genuine violation** existed: `team/executive-hub/page.tsx`'s `nextGate` cited an
+internal filename (`businessHubAdapter.ts`) and its `dataSource` cited a migration filename plus
+an internal `.ts` path — both fixed to plain operator language.
+
+Broadened the sweep beyond `nextGate=` to `dataSource=`/`helperText=`/`warningNote=` props
+containing migration filenames, exact `.ts` paths, or "Gate N" references. Found and fixed 4 more:
+- `recursos/solicitudes/nueva/page.tsx` — removed a "Gate 5 (resourceChangeDetection.ts)" citation
+- `recursos/solicitudes/page.tsx` — removed a migration filename citation
+- `recursos/page.tsx` — removed a migration filename + internal `.ts` path citation
+- `support/page.tsx` — removed an exact migration filename citation from `helperText`
+
+Verified via a precise regex (`(dataSource|helperText|subtitle|warningNote|purpose|nextGate|body)="[^"]*[Gg]ate[ -][A-Z0-9]`) that zero remaining owner-facing props contain a "Gate N" style reference. Spot-checked the 33 files matching a broader "Gate" grep and confirmed the rest are all in `//`/`/** */` comments (never rendered).
+
+### Gate 2 — static UX/UI: 1 real responsive-safety defect found and fixed
+`/admin/team/roster`'s "Roster (Supabase)" table used `<div className={adminDesktopTableOnly}>`
+(`"hidden md:block"`) with **no `overflow-x-auto` wrapper**, while its sibling "invites" table
+on the exact same page correctly used `overflow-x-auto ${adminDesktopTableOnly}`. With 6 columns
+including a variable-width "Permissions" badge list, this table could force horizontal page
+overflow on a narrow-but-still-desktop viewport. Fixed to match the sibling table's pattern.
+Confirmed via grep that no other bare `className={adminDesktopTableOnly}` usage exists elsewhere
+in the codebase — this was an isolated instance, not a repeated mistake.
+
+Reviewed `/admin/system-health` (pure read-only status display, no interactive controls — no
+touch-target or overflow concerns) and confirmed no other raw `error.message`/`err.message`
+patterns exist beyond the 2 already fixed and the 1 already-reviewed diagnostic-tool exception.
+
+### Gate 3 — Business 360 Connected Records polish
+Two real, closeable gaps found in the linking panel:
+1. The panel's own copy never explicitly stated that linking does not mutate the original
+   lead/payment/ticket record — added that reassurance directly to the intro text.
+2. **Pre-migration state was not distinctly handled** — before `business_external_links` exists,
+   attempting to link a record would fall through generic error handling to an unhelpful "Could
+   not create the link" message, indistinguishable from any other failure. Added a dedicated
+   `table_missing` outcome (detected via the same PGRST205/"does not exist" pattern used
+   elsewhere in this codebase) at the repository layer, threaded through the API route (503
+   status) to a specific, honest client message: "Linking isn't turned on in this environment yet
+   — the underlying feature hasn't been enabled here." This directly satisfies "unavailable
+   pre-migration state is understandable" without requiring runtime proof to verify the code path
+   exists and is reachable.
+
+### Gates 4/5 — Command Center and six-domain consistency
+Re-reviewed for any further duplicate-metric or unexplained-status issues beyond what the prior
+pass already fixed. Found none beyond what's already closed. The Today's-Attention-vs-priority-
+strip overlap (expired listings shown in both) was reviewed and judged an acceptable "summary +
+detail" pattern within the same tab, not a duplicate-truth violation like the cross-tab Reports
+case already fixed — both draw from the same source and sit adjacent to each other, not
+presented as independently-sourced facts in separate domains.
+
+### Gate 6 — final local gap closure
+No additional local/reversible/launch-relevant gaps were found beyond what's listed in the Gate
+11 table above (now corrected) and the 6 fixes made this pass. No new schema, contract system,
+renewal system, or speculative feature was built, per instruction.
+
+### READY_FOR_FINAL_QA correction
+The prior pass's "YES" is superseded. As of this pass: all known owner-facing jargon is removed
+(verified by targeted regex, not assumption), the one real static responsive-safety defect found
+is fixed, Connected Records' pre-migration behavior is now honestly distinguished rather than
+falling through to a generic error, and no further local/reversible implementation gaps remain
+in the current cable map. Remaining items are genuinely `NEEDS_MIGRATION`,
+`NEEDS_RUNTIME_PROOF`, `OWNER_DECISION_REQUIRED`, or `NOT_LAUNCH_CRITICAL` — none are fixable
+local implementation work being deferred. **`READY_FOR_FINAL_QA: YES`** (re-affirmed with the
+corrections above, not merely repeated).

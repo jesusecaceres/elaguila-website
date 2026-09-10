@@ -190,7 +190,7 @@ export default async function AdminWorkspaceHubPage(props: {
         dataSource="site_section_content, site_page_blocks, site_category_config, and code-controlled section payload contracts."
         status="partial"
         safeActions={["Open section editors", "Review editability matrix", "Use existing workspace routes only"]}
-        nextGate="ADMIN-WEBSITE-CONTROL-SCHEMA-01"
+        nextGate="Finish consolidating Website Control page ownership so each site section has exactly one editing home."
         warningNote="/admin/site-sections is an alias to this real workspace. Rollback, preview, banners, announcements, and themes still need schema/workflow gates."
       />
 

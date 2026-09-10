@@ -172,7 +172,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         dataSource="public.listings plus category source tables, listing_reports, and listing_moderation_reviews after live schema is applied."
         status="needs live proof"
         safeActions={["View public", "Edit listing where supported", "Suspend", "Archive", "Republish", "Run AI review after schema proof"]}
-        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        nextGate="Confirm every button and count on this page against live Supabase data before relying on it for daily decisions."
         warningNote="AI review proof and promote/verify columns depend on the live schema drift migration being applied in production."
       />
 
@@ -384,7 +384,10 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
             </div>
 
             {error ? (
-              <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error.message}</div>
+              <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                Could not load listings right now. This is a database connection issue, not a data problem — try
+                refreshing the page. If it keeps happening, check System Health.
+              </div>
             ) : (
               <Suspense fallback={<div className="min-h-[200px]" aria-busy="true" />}>
                 <AdminListingsTable

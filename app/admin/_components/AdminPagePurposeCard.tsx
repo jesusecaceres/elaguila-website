@@ -93,7 +93,7 @@ export function AdminPagePurposeCard({
             ))}
           </ul>
         </InfoBlock>
-        <InfoBlock label="Next gate">{nextGate}</InfoBlock>
+        <InfoBlock label="What's needed to finish this">{nextGate}</InfoBlock>
       </div>
 
       {warningNote ? (

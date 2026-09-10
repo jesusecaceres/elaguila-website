@@ -89,7 +89,7 @@ export default async function AdminReportesPage(props: PageProps) {
         dataSource="public.listing_reports joined operationally with listing and owner context from admin tools."
         status="partial"
         safeActions={["Search reports", "Open related listing/user", "Review report rows"]}
-        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        nextGate="Confirm every button and count on this page against live Supabase data before relying on it for daily decisions."
         warningNote="Mark reviewed, clear flag, and resolution workflow need action QA before they are treated as complete."
       />
 
@@ -146,7 +146,10 @@ export default async function AdminReportesPage(props: PageProps) {
       </div>
 
       {error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error.message}</div>
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          Could not load reports right now. This is a database connection issue, not a data problem — try refreshing
+          the page. If it keeps happening, check System Health.
+        </div>
       ) : (
         <AdminReportsTable reports={list} highlightReportId={highlightId} />
       )}

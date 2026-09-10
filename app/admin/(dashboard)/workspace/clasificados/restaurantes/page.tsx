@@ -103,7 +103,7 @@ export default async function AdminRestaurantesPublicListingsPage(props: PagePro
         dataSource="public.restaurantes_public_listings plus package entitlement and owner profile context."
         status="partial"
         safeActions={["View public", "View in results", "Suspend", "Archive", "Republish", "Feature", "Verify Leonix"]}
-        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        nextGate="Confirm every button and count on this page against live Supabase data before relying on it for daily decisions."
         warningNote="Paid-only category behavior is real, but package/payment alignment and action QA still need proof."
       />
 

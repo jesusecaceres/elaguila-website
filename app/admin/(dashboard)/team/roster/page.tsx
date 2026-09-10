@@ -357,7 +357,7 @@ export default async function AdminTeamPage(props: {
           <div className="border-b border-[#E8DFD0]/80 bg-[#FAF7F2]/90 px-4 py-2 text-xs font-semibold text-[#5C5346]">
             Roster (Supabase)
           </div>
-          <div className={adminDesktopTableOnly}>
+          <div className={`overflow-x-auto ${adminDesktopTableOnly}`}>
           <table className="min-w-full border-collapse text-sm">
             <thead className="bg-[#FBF7EF]/90 text-left text-xs font-bold uppercase tracking-wide text-[#7A7164]">
               <tr>

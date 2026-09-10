@@ -205,7 +205,7 @@ export default async function RecursosAdminListPage(props: {
       <AdminPagePurposeCard
         title="Recursos — Data OS"
         purpose="Manage verified community-help organizations and programs (identity, bilingual content, category/urgency, contact CTAs, verification freshness, and editorial status) without code changes."
-        dataSource="Supabase `public.community_resources` table (supabase/migrations/20260818150000_community_resources.sql). The public search/directory at /recursos-comunitarios reads this same table live via app/lib/recursos/server/communityResourcesPublicQueries.ts."
+        dataSource="Supabase `public.community_resources` table. The public search/directory at /recursos-comunitarios reads this same table live."
         status="real"
         safeActions={[
           "Search / filter by category, urgency, verification, active",

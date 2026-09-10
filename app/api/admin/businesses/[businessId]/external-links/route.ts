@@ -57,7 +57,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ businessId: st
     linkedByAuthUserId: access.actor.authUserId,
   });
   if (!result.ok) {
-    return NextResponse.json({ ok: false, error: result.error }, { status: result.error === "duplicate" ? 409 : 400 });
+    const status = result.error === "duplicate" ? 409 : result.error === "table_missing" ? 503 : 400;
+    return NextResponse.json({ ok: false, error: result.error }, { status });
   }
 
   await appendAdminAuditLog({

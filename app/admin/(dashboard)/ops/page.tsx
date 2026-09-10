@@ -356,9 +356,9 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
           >
             <h2 className="text-base font-bold text-[#1E1810]">Categories (Servicios, Autos, Restaurantes, Empleos, Viajes, Comida Local, Ofertas Locales)</h2>
             <p className="mt-1 text-xs text-[#7A7164]">
-              ADMIN-OS-01: these 7 categories live on their own dedicated tables, not the generic{" "}
-              <code className="rounded bg-white/70 px-1">listings</code> table above — this section was previously
-              missing entirely.
+              These 7 categories live on their own dedicated tables, not the generic{" "}
+              <code className="rounded bg-white/70 px-1">listings</code> table above, so they need their own search
+              results.
             </p>
             {bundle.dedicatedCategories.errors.length > 0 ? (
               <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/90 p-3 text-xs text-amber-950">

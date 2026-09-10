@@ -15,7 +15,7 @@ export default function AdminWorkspaceCuponesPage() {
         eyebrow="Workspace · Cupones"
         title="Cupones"
         subtitle="`/cupones` and `/coupons` are rebuilt on the real Ofertas Locales search system (Cupones V1). The old `cupones_page` payload/editor below is no longer rendered anywhere — control the live pages from the Ofertas Locales queue instead."
-        helperText="ADMIN-OS-01: confirmed via app/lib/website-audit/CUPONES_V1_PUBLIC_LANDING_RESULTS_SPLIT_AUDIT.md and direct code trace — CuponesPageClient.tsx (the old consumer) has zero live imports."
+        helperText="Confirmed by direct code review: the old Cupones editor's page component is never loaded by the live site anymore, so nothing you save here can reach a customer."
       />
 
       <AdminSectionOwnershipCallout

@@ -393,6 +393,95 @@
       "reason": "No .env.local / live Supabase connection in this environment and no dev server run this gate — the Connected Records linking workflow and every Admin OS page's live behavior remain NEEDS_RUNTIME_PROOF. This is an environment limitation, not a defect in the implementation."
     }
   },
+  "implementationUxFinishPass": {
+    "note": "Owner stopped a starting runtime-QA gate (before any login attempt) and redirected to implementation-completion mode. .env.local remained present; dev server started then stopped immediately per instruction, no page interaction beyond the login screen load.",
+    "viajesRouteInvestigation": {
+      "status": "CLOSED_not_a_duplicate",
+      "finding": "business-offers = pre-approval intake/moderation queue; travel = post-approval live-catalog ops queue. Same table (viajes_staged_listings), non-overlapping action sets, neither subsumes the other.",
+      "secondaryDefectFound": "business-offers page copy claimed business-lane-only but its query has no lane filter; private-lane submissions appear there too with no separate queue to catch them",
+      "fix": "Corrected page header copy to honestly describe current (both-lanes) behavior rather than adding a lane filter, which would have orphaned private-lane moderation entirely — a worse regression",
+      "file": "app/admin/(dashboard)/clasificados/viajes/business-offers/page.tsx"
+    },
+    "ownerFacingJargonSweep": {
+      "status": "fixed",
+      "totalRealFixes": 19,
+      "tests": [
+        { "name": "nextGate_gate_codes_16_files", "description": "16 files rendered a raw 'ADMIN-XXX-YYY-01' ticket-code string verbatim under a 'Next gate' label; reduced to 3 distinct meanings and rewrote each to plain English", "result": "fixed", "evidence": "AdminCommandCenterDashboard.tsx (5 gate= props), plus 15 other page.tsx files' nextGate= props" },
+        { "name": "shared_component_label_renamed", "description": "AdminPagePurposeCard's 'Next gate' label renamed to 'What's needed to finish this' — benefits all 26 usages of the component, not just the 16 touched this pass", "result": "fixed", "evidence": "app/admin/_components/AdminPagePurposeCard.tsx" },
+        { "name": "cupones_helperText_jargon", "result": "fixed", "evidence": "app/admin/(dashboard)/workspace/cupones/page.tsx" },
+        { "name": "media_kit_helperText_jargon", "result": "fixed", "evidence": "app/admin/(dashboard)/leads/media-kit/page.tsx" },
+        { "name": "ops_page_categories_section_jargon", "description": "Removed 'ADMIN-OS-01: ... this section was previously missing entirely' dev-changelog language from a live JSX text node", "result": "fixed", "evidence": "app/admin/(dashboard)/ops/page.tsx" },
+        { "name": "remaining_gate_code_matches_confirmed_comments_only", "description": "12 other files matching the gate-code grep pattern checked individually; all matches are in // or /** */ comments, never rendered", "result": "verified_ok_no_change_needed" },
+        { "name": "remaining_nextGate_instances_not_individually_rewritten", "result": "not_done", "note": "~10 more nextGate= usages across other files share the same 3 known-safe string values already rewritten elsewhere but were not individually touched this pass — NOT_LAUNCH_CRITICAL, component label fix already applies" }
+      ]
+    },
+    "rawTechnicalErrorLeaks": {
+      "status": "fixed",
+      "tests": [
+        { "name": "workspace_clasificados_raw_error_message", "description": "error traced to fetchListingsForAdminWorkspaceFiltered()'s {message,code} passthrough of the live Supabase query error — confirmed via source read, not assumed", "result": "fixed", "evidence": "app/admin/(dashboard)/workspace/clasificados/page.tsx" },
+        { "name": "reportes_raw_error_message", "description": "error traced to a direct const {data,error} = await query destructure — the rawest possible case", "result": "fixed", "evidence": "app/admin/(dashboard)/reportes/page.tsx" },
+        { "name": "category_ops_audit_error_message_reviewed", "description": "adminClasificadosCategoryOpsAudit.ts also passes through raw error.message, but only into a specialized internal diagnostic tool's per-row reason field, not a primary owner flow", "result": "verified_ok_no_change_needed" }
+      ]
+    },
+    "commandCenterDuplicateMetric": {
+      "status": "fixed",
+      "test": { "name": "marketplace_reports_metric_deduplicated", "description": "Marketplace Ops 'Reports/complaints' card showed the same snap.pendingReports number as Today's Attention's own reports card, in a different section, without the dedup caveat — read as two independent counts. Dropped the redundant metric, kept the card explicit that it's the same total.", "result": "fixed", "evidence": "app/admin/_components/AdminCommandCenterDashboard.tsx" }
+    },
+    "gate11FinalGapClassification": [
+      { "item": "Viajes route duplication", "classification": "CLOSED" },
+      { "item": "Owner-facing jargon (19 instances)", "classification": "CLOSED" },
+      { "item": "Raw error.message leaks (2 primary-flow instances)", "classification": "CLOSED" },
+      { "item": "Command Center duplicate reports metric", "classification": "CLOSED" },
+      { "item": "business_external_links migration application", "classification": "NEEDS_MIGRATION" },
+      { "item": "Connected Records / promo-lead-count / most page runtime behavior", "classification": "NEEDS_RUNTIME_PROOF" },
+      { "item": "Dead /api/ofertas-locales/admin/[id]/review route", "classification": "NOT_LAUNCH_CRITICAL" },
+      { "item": "LISTING_SOURCE_OWNERSHIP_CONTRACT extension", "classification": "NOT_LAUNCH_CRITICAL" },
+      { "item": "Bug Finder / System Alerts / email alerts", "classification": "NOT_LAUNCH_CRITICAL", "note": "Already honestly labeled PLANNED — doctrine-correct, not a defect" },
+      { "item": "Full moderation case lifecycle (OPEN->TRIAGE->...->RESOLVED)", "classification": "OWNER_DECISION_REQUIRED", "note": "Needs a genuinely new case/resolution table — not a wiring fix" },
+      { "item": "Users tier-vocabulary mismatch", "classification": "CLOSED", "note": "prior pass" },
+      { "item": "Promo-lead duplicate-truth (3 classifiers)", "classification": "CLOSED", "note": "prior pass" },
+      { "item": "Comida Local / categories count truth / System Health / team invite lifecycle", "classification": "CLOSED", "note": "prior passes" }
+    ]
+  },
+  "implementationUxFinishPassSix": {
+    "note": "Owner correctly rejected the prior pass's premature READY_FOR_FINAL_QA: YES. .env.local was accidentally deleted during this pass's own cleanup and immediately restored from the main repo before continuing; main repo source file untouched throughout.",
+    "gate1_ownerLanguageCorrection": {
+      "status": "fixed",
+      "tests": [
+        { "name": "reexamined_10_flagged_nextGate_instances", "description": "Prior pass claimed ~10 more nextGate instances shared the same 3 known-safe gate-code strings — re-checked and found this was incorrect: 9 were already plain-language (Spanish 'Ninguno planeado' sentences, real route references), only 1 (team/executive-hub) was a genuine violation", "result": "fixed", "evidence": "app/admin/(dashboard)/team/executive-hub/page.tsx — nextGate + dataSource both cited internal filenames, rewritten" },
+        { "name": "broadened_sweep_to_dataSource_helperText_warningNote", "description": "Searched (dataSource|helperText|subtitle|warningNote|purpose|nextGate|body)=\"...\" for migration filenames, .ts paths, 'Gate N' references", "result": "fixed", "evidence": "4 more fixes: recursos/solicitudes/nueva, recursos/solicitudes, recursos, support pages" },
+        { "name": "verified_zero_remaining_gate_n_references_in_rendered_props", "description": "Precise regex confirms no owner-facing prop contains a 'Gate N' style reference", "result": "verified_ok_no_change_needed" },
+        { "name": "confirmed_remaining_gate_word_matches_are_comments", "description": "33 files matching a broad 'Gate' grep spot-checked; all non-fixed matches are in // or /** */ comments, never rendered", "result": "verified_ok_no_change_needed" }
+      ]
+    },
+    "gate2_staticUxUiReview": {
+      "status": "fixed",
+      "tests": [
+        { "name": "team_roster_table_missing_overflow_wrapper", "description": "Roster (Supabase) table used className={adminDesktopTableOnly} ('hidden md:block') with no overflow-x-auto, unlike its sibling invites table on the same page — 6 columns including variable-width Permissions badges could force horizontal page overflow", "result": "fixed", "evidence": "app/admin/(dashboard)/team/roster/page.tsx" },
+        { "name": "confirmed_isolated_not_repeated", "description": "Grepped for other bare className={adminDesktopTableOnly} usages — none found", "result": "verified_ok_no_change_needed" },
+        { "name": "system_health_touch_target_review", "description": "Pure read-only status display, no interactive controls — no touch-target or overflow concerns", "result": "verified_ok_no_change_needed" },
+        { "name": "repo_wide_raw_error_message_recheck", "description": "Confirmed no additional {error.message}/{err.message}/{String(error)} patterns exist in app/admin beyond the 2 already fixed and the 1 already-reviewed diagnostic-tool exception", "result": "verified_ok_no_change_needed" }
+      ]
+    },
+    "gate3_business360Polish": {
+      "status": "fixed",
+      "tests": [
+        { "name": "linking_panel_no_mutation_reassurance_added", "description": "Panel copy now explicitly states linking never changes the original lead/payment/ticket record", "result": "fixed", "evidence": "app/admin/(dashboard)/businesses/[businessId]/BusinessWorkspaceActions.tsx" },
+        { "name": "pre_migration_table_missing_state_distinguished", "description": "Added a dedicated table_missing outcome (PGRST205/'does not exist' detection) threaded from repo -> API (503) -> client, replacing a generic 'Could not create the link' fallback with an honest 'Linking isn't turned on in this environment yet' message", "result": "fixed", "evidence": "app/lib/business/repositories/businessExternalLinksRepo.ts, app/api/admin/businesses/[businessId]/external-links/route.ts, BusinessWorkspaceActions.tsx" }
+      ]
+    },
+    "gate4_5_commandAndDomainConsistency": {
+      "status": "reviewed_no_new_defects",
+      "tests": [
+        { "name": "reviewed_today_vs_priority_strip_overlap", "description": "Expired listings shown in both the priority strip and Today's Attention — judged an acceptable summary+detail pattern within the same tab (same source, adjacent placement), distinct from the already-fixed cross-tab Reports duplicate", "result": "verified_ok_no_change_needed" }
+      ]
+    },
+    "gate6_finalLocalGapClosure": {
+      "status": "complete",
+      "note": "No additional local/reversible/launch-relevant gaps found beyond the corrected Gate 11 table and this pass's 6 fixes. No new schema, contract system, renewal system, or speculative feature built."
+    },
+    "readyForFinalQaCorrection": "YES — re-affirmed with corrections (owner-facing jargon verified zero via regex, 1 real responsive-safety defect fixed, Connected Records pre-migration state now honestly distinguished). Superseded prior pass's premature claim."
+  },
   "DEFERRED_TO_INTEGRATION_GATE": [
     "Full tsc --noEmit across the whole project for Gates A-F, Gates 1-5, and Gates 1-6's changed files",
     "npm run build / next build",

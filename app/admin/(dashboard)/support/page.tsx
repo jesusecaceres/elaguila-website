@@ -209,7 +209,7 @@ async function SupportTicketsSection(props: {
       <AdminPageHeader
         title="Support"
         subtitle="Account search and real queues: Users, Ops, and Reports. Tickets here are a minimal internal log — not a public helpdesk."
-        helperText="Full follow-up (status + notes + escalation) requires migration 20260408210000_support_tickets_staff_followup.sql applied in Supabase; each save goes to admin_audit_log. Accounts: Users → profile; password only via Auth."
+        helperText="Full follow-up (status + notes + escalation) needs a pending database update applied before it's fully live; each save is recorded in the activity log. Accounts: Users → profile; password only via Auth."
       />
 
       <div className="grid gap-6 lg:grid-cols-2">

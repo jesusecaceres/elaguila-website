@@ -437,7 +437,9 @@ export function LinkExternalRecordPanel({
           ? "No record with that id was found in that table — double-check the id."
           : err === "duplicate"
             ? "This record is already linked (to this business or another one)."
-            : "Could not create the link.",
+            : err === "table_missing"
+              ? "Linking isn't turned on in this environment yet — the underlying feature hasn't been enabled here."
+              : "Could not create the link.",
       );
       return;
     }
@@ -452,7 +454,8 @@ export function LinkExternalRecordPanel({
           <fieldset className="space-y-3">
             <legend className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Link an existing record</legend>
             <p className="text-[11px] text-[#7A7164]">
-              You must know the record&apos;s real id — this never searches or guesses by business name.
+              You must know the record&apos;s real id — this never searches or guesses by business name, and it
+              never changes the original lead, payment, or ticket. It only records that the two belong together.
             </p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div>

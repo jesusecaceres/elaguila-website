@@ -22,7 +22,7 @@ export default async function AdminSettingsPage() {
         dataSource="Code-defined settings copy, staged theme presets, admin access helpers, and links to real workspace/site settings routes."
         status="planned"
         safeActions={["Review environment notes", "Open Site Settings", "Open Website Control"]}
-        nextGate="ADMIN-WEBSITE-CONTROL-SCHEMA-01"
+        nextGate="Finish consolidating Website Control page ownership so each site section has exactly one editing home."
         warningNote="Theme preference form is intentionally disabled; no secrets or production env values are displayed."
       />
 

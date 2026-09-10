@@ -35,6 +35,30 @@ locally validated end-to-end against the repository/API and found `MIGRATION_REA
 (one stale doc-comment fixed, no functional SQL changed). Full detail in `ADMIN_OS_PROGRESS.md`'s
 "INTEGRATION / RELEASE VALIDATION GATE" section.
 
+**IMPLEMENTATION/UX FINISH PASS UPDATE (fifth pass)**: owner stopped a starting runtime-QA gate
+before any login attempt and redirected to implementation-completion mode. Closed the long-open
+Viajes "duplicate route" ambiguity with real evidence (not duplicates — different lifecycle
+stages on one table; fixed a real secondary mislabeling on the business-offers page's own header
+copy). Found and fixed 19 instances of raw developer/gate-code jargon rendered directly in
+owner-facing text across the Admin surface (not comments — actual visible UI strings), plus 2
+confirmed raw-Supabase-error leaks into primary owner flows (`/admin/workspace/clasificados`,
+`/admin/reportes`), plus a duplicate-metric presentation bug on the Command Center. Full detail
+and the Gate 11 final gap classification (CLOSED/NEEDS_MIGRATION/NEEDS_RUNTIME_PROOF/
+NOT_LAUNCH_CRITICAL/OWNER_DECISION_REQUIRED) are in `ADMIN_OS_PROGRESS.md`'s "IMPLEMENTATION/UX
+FINISH PASS" section — not duplicated here.
+
+**IMPLEMENTATION/UX FINISH PASS UPDATE (sixth pass)**: the owner correctly rejected the fifth
+pass's "READY_FOR_FINAL_QA: YES" as premature (that pass had itself documented unfinished
+owner-language and unverified UX/UI details). This pass: re-checked and corrected the fifth
+pass's inaccurate claim about ~10 remaining jargon instances (only 1 was real —
+`team/executive-hub` cited an internal filename — now fixed, plus 4 more found via a broadened
+`dataSource`/`helperText`/`warningNote` sweep); fixed one real responsive-safety defect
+(`/admin/team/roster`'s roster table was missing the `overflow-x-auto` wrapper its sibling
+invites table on the same page correctly has); and closed two Business 360 Connected Records
+gaps (an explicit "never mutates the original record" reassurance, and a distinct, honest
+pre-migration `table_missing` error state instead of a generic failure message). Full detail in
+`ADMIN_OS_PROGRESS.md`'s "IMPLEMENTATION/UX FINISH PASS (sixth pass)" section.
+
 Status: IN PROGRESS. This is a persistent, incrementally-updated artifact per the Admin OS
 launch-certification project's execution rules. Domains below are filled in as investigation
 completes; unfilled domains are marked PENDING with the background-agent task they depend on.

@@ -21,7 +21,7 @@ export default async function AdminMediaKitLeadsPage() {
       <AdminPageHeader
         title="Media kit leads (legacy table)"
         subtitle="This page reads the dedicated leonix_media_kit_leads table, but the public /media-kit page's real CTAs never write to it — they go to /contacto (inquiryType=mediaKit), which lands in the main Launch Leads table instead."
-        helperText="ADMIN-OS-01: confirmed by direct code trace. This page is kept live in case rows exist here already; new media-kit interest will not appear below."
+        helperText="Confirmed by direct code review. This page is kept live in case rows exist here already; new media-kit interest will not appear below."
       />
 
       <div className={`${adminCardBase} border-[#C9A84A]/50 bg-[#FBF3D9] p-4 text-sm text-[#5C4E1E]`}>

@@ -62,7 +62,7 @@ export default async function AdminLanguageAuditPage() {
         dataSource="Static admin language audit rows plus translation_records/server translation cache where used elsewhere."
         status="partial"
         safeActions={["Review coverage", "Identify pages needing translation QA", "Keep public copy changes for separate gates"]}
-        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        nextGate="Confirm every button and count on this page against live Supabase data before relying on it for daily decisions."
         warningNote="This is a QA/readout surface, not an automatic translation editor."
       />
       <div className={`${adminCardBase} overflow-hidden p-0`}>

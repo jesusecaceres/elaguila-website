@@ -180,7 +180,7 @@ function PlannedCard({
       <h3 className="mt-2 text-base font-bold text-[#1E1810]">{title}</h3>
       <p className="mt-2 text-sm leading-snug text-[#5C5346]">{body}</p>
       <p className="mt-3 rounded-lg border border-[#E8DFD0] bg-white/70 px-3 py-2 text-xs font-semibold text-[#5C4E2E]">
-        Next gate: {gate}
+        What's needed to build this: {gate}
       </p>
     </article>
   );
@@ -577,7 +577,7 @@ export function AdminCommandCenterDashboard({
         <PlannedCard
           title="Viajes Affiliate Ops"
           body="Revenue lane for partners, offers, leads, clicks, and health. Existing Viajes admin is partial until affiliate tables are proven."
-          gate="ADMIN-SUPABASE-BACKING-MATRIX-01"
+          gate="Confirm the affiliate database tables are real and reading live data before this is shown as active."
         />
         <OperatorCard
           eyebrow="Business Concierge"
@@ -603,10 +603,9 @@ export function AdminCommandCenterDashboard({
         />
         <OperatorCard
           eyebrow="Trust"
-          title="Reports / complaints"
+          title="Report submissions"
           status="real"
-          metric={snap.pendingReports}
-          body="Reads listing_reports. Resolve/dismiss actions still need the action truth map."
+          body="Same pending-report total already shown in Today's Attention — not a second count. Resolve/dismiss actions still need the action truth map."
           primary={{ href: ADMIN_DASHBOARD_ROUTES.reports, label: "Open reports", variant: "warning" }}
         />
         <OperatorCard
@@ -705,8 +704,8 @@ export function AdminCommandCenterDashboard({
         />
         <PlannedCard
           title="Homepage / Banners / Announcements / Category visibility"
-          body="Planned controlled modules from the audit. No live route is linked until backing and route gates exist."
-          gate="Website Control gate"
+          body="Planned controlled modules from the audit. No live route is linked until each one has a real editing surface."
+          gate="Not built yet — each module needs its own admin editor before it can be linked here."
         />
       </div>
       {snap.magazineFeaturedLabel ? (
@@ -773,17 +772,17 @@ export function AdminCommandCenterDashboard({
         <PlannedCard
           title="Bug Finder"
           body="Planned command center for publishing, upload, storage, visibility, payment, magazine, and API alerts."
-          gate="ADMIN-BUG-FINDER-DASHBOARD-01"
+          gate="Not built yet — needs its own real-time alert tracking table before it can show anything."
         />
         <PlannedCard
           title="System Alerts"
-          body="Needs admin_system_alerts before live alert counts, acknowledge, resolve, dedupe, and safe debug context."
-          gate="ADMIN-SYSTEM-ALERTS-SCHEMA-01"
+          body="Needs a real alerts table before live alert counts, acknowledge, resolve, dedupe, and safe debug context can work."
+          gate="Not built yet — needs a dedicated system-alerts database table."
         />
         <PlannedCard
           title="High-priority email alerts"
-          body="Planned alerts to chuy@leonixmedia.com with dedupe and no secrets. Not active until schema and Resend proof exist."
-          gate="ADMIN-SYSTEM-ALERTS-SCHEMA-01"
+          body="Planned alerts to chuy@leonixmedia.com with dedupe and no secrets. Not active until the alerts table and email delivery are confirmed working."
+          gate="Not built yet — needs the same system-alerts table plus a confirmed email-sending connection."
         />
         <OperatorCard
           eyebrow="Audit trail"
@@ -923,7 +922,7 @@ export function AdminCommandCenterDashboard({
         dataSource="Live Supabase-backed snapshots where available: listings, leads, reports, package entitlements, promo codes, payment records, Tienda catalog, and category registry."
         status="partial"
         safeActions={["Open real queues", "Inspect reports and leads", "Navigate to existing admin tools"]}
-        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        nextGate="Confirm every button and count on this page against live Supabase data before relying on it for daily decisions."
         warningNote="Bug Finder, System Health, Concierge, and final Viajes affiliate ops remain planned until their schema/actions are proven."
       />
       {priorityStrip}
