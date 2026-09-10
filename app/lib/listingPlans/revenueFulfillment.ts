@@ -1300,7 +1300,31 @@ export async function fulfillCheckoutSessionCompleted(input: {
   }
 
   const expectedAmount = paymentRecord.amount_total_cents ?? paymentRecord.amount_cents ?? packageDef.priceCents;
-  if (session.amount_total != null && expectedAmount > 0 && session.amount_total !== expectedAmount) {
+
+  // Package C Build 2 (C4) — verified-intro-15% on a monthly subscription is applied as a
+  // server-attached Stripe coupon with duration:"once" (revenueStripe.ts), deliberately NOT as a
+  // reduced line item, so the subscription's own price stays full and every renewal bills full
+  // price. That means the Checkout Session's amount_total is the DISCOUNTED FIRST INVOICE while
+  // the payment record correctly stores the full recurring plan price — the two legitimately
+  // differ, and comparing them blindly rejected fulfillment AFTER the customer had already been
+  // charged (money taken, nothing published).
+  //
+  // Exactly ONE additional value is accepted, derived from the discount this server itself
+  // computed and persisted on the record — never a tolerance window, never a percentage
+  // recomputed here, and only for a subscription record that actually carries a verified-intro
+  // redemption. Any other amount is still a hard mismatch.
+  const verifiedIntroFirstChargeCents =
+    paymentRecord.verified_intro_discount_redemption_id != null &&
+    paymentRecord.billing_mode === "monthly_subscription" &&
+    (paymentRecord.amount_discount_cents ?? 0) > 0
+      ? Math.max(0, expectedAmount - (paymentRecord.amount_discount_cents ?? 0))
+      : null;
+
+  const amountAccepted =
+    session.amount_total === expectedAmount ||
+    (verifiedIntroFirstChargeCents != null && session.amount_total === verifiedIntroFirstChargeCents);
+
+  if (session.amount_total != null && expectedAmount > 0 && !amountAccepted) {
     await writeRevenueAuditLog({
       action: "revenue_webhook_validation_failed",
       targetType: "leonix_payment_records",
@@ -1308,6 +1332,7 @@ export async function fulfillCheckoutSessionCompleted(input: {
       meta: {
         code: "amount_mismatch",
         expected_amount_cents: expectedAmount,
+        verified_intro_first_charge_cents: verifiedIntroFirstChargeCents,
         stripe_amount_total: session.amount_total,
         stripe_event_id: eventId,
       },

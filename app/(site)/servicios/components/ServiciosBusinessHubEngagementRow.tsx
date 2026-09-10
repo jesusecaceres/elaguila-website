@@ -1,11 +1,14 @@
 "use client";
 
+import { LeonixSaveButton } from "@/app/components/clasificados/analytics/LeonixSaveButton";
 import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import { ServiciosLikeEngagementCluster } from "./ServiciosLikeEngagementCluster";
 import type { ServiciosLang, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
+import { serviciosSavedListingExtras } from "@/app/lib/serviciosSavedListingIdentity";
 import {
   serviciosGlobalLikeRecorder,
   serviciosGlobalListingFromRow,
+  serviciosGlobalSaveRecorder,
   serviciosGlobalShareRecorder,
 } from "@/app/(site)/clasificados/servicios/lib/recordServiciosGlobalAnalytics";
 
@@ -60,9 +63,54 @@ export function ServiciosBusinessHubEngagementRow({
 
   const showEngagementActions = showEngagementControls && Boolean(lxListingId);
 
-  if (!showEngagementActions || hubEngagementVariant === "save_only") return null;
+  if (!showEngagementActions) return null;
 
   const title = lang === "en" ? "Actions" : "Acciones";
+
+  /**
+   * Save — canonical `saved_listings` write through the shared LeonixSaveButton (auth prompt,
+   * self-engagement guard, Guardados dashboard, analytics), never local-only browser state.
+   * The identity helper, the global save recorder and the `save_only` variant all already
+   * existed; only this render was missing, so `save_only` previously produced no Save control
+   * at all and the hero-engagement layout shipped with no way to save a Servicios business.
+   */
+  const saveExtras =
+    sourceId && slug
+      ? serviciosSavedListingExtras({
+          slug,
+          id: sourceId,
+          leonix_ad_id: /^[A-Z]+-\d{4}-\d{6}$/.test(lxListingId) ? lxListingId : null,
+        })
+      : undefined;
+
+  const saveButton = (
+    <LeonixSaveButton
+      listingId={lxListingId}
+      savedListingKey={sourceId || undefined}
+      ownerUserId={lxOwner}
+      variant="default"
+      lang={lang}
+      category="servicios"
+      persistEngagement={persistEngagement}
+      saveExtras={saveExtras}
+      recordSaveEvent={globalListing ? serviciosGlobalSaveRecorder(globalListing) : undefined}
+      className="!w-full !border-[color:var(--lx-border,#E8D7B8)]"
+    />
+  );
+
+  if (hubEngagementVariant === "save_only") {
+    return (
+      <section aria-labelledby="hub-engagement-heading" className="mt-4" data-servicios-business-hub-engagement="save_only">
+        <h3
+          id="hub-engagement-heading"
+          className="text-[11px] font-bold uppercase tracking-wide text-[color:var(--lx-text-2)]"
+        >
+          {title}
+        </h3>
+        <div className={`mt-2.5 max-w-full ${utilityCellClass}`}>{saveButton}</div>
+      </section>
+    );
+  }
 
   return (
     <section aria-labelledby="hub-engagement-heading" className="mt-4" data-servicios-business-hub-engagement="1">
@@ -102,6 +150,7 @@ export function ServiciosBusinessHubEngagementRow({
           />
         </div>
       </div>
+      <div className={`mt-2 max-w-full sm:mt-2.5 ${utilityCellClass}`}>{saveButton}</div>
     </section>
   );
 }
