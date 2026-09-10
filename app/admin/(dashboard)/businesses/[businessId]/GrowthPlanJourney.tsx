@@ -6,16 +6,17 @@ import {
   SolutionStateButtons,
   CreateCreativeRequestButton,
   CreateFollowUpFromSolutionButton,
+  CreateCommitmentButton,
   ResearchOfficialRequirementButton,
   VerifyOfficialRequirementForm,
   RoadmapStepControl,
   QuestionsBatchAddForm,
   CampaignBuilderForm,
   CampaignStatusControl,
-  providerClassLabel,
-  roadmapStateLabel,
 } from "./GrowthPlanActions";
+import { providerClassLabel, roadmapStateLabel } from "./growthPlanLabels";
 import { roadmapStepCatalog } from "@/app/lib/business/growthEngine/roadmapCatalog";
+import { classifyGrowthSolutionExecutionRoute, growthExecutionRouteIsCreativeStudio } from "@/app/lib/business/growthEngine/executionMatrix";
 import type {
   GrowthAssessment,
   GrowthCampaign,
@@ -58,6 +59,8 @@ const ASSESSMENT_STATUS_LABEL: Record<GrowthAssessment["status"], { es: string; 
   draft: { es: "Borrador", en: "Draft", className: "bg-[#EDE6D6] text-[#7A7164]" },
   needs_review: { es: "Necesita revisión", en: "Needs Review", className: "bg-amber-100 text-amber-800" },
   reviewed: { es: "Revisado", en: "Reviewed", className: "bg-emerald-100 text-emerald-900" },
+  needs_correction: { es: "Necesita corrección", en: "Needs Correction", className: "bg-amber-100 text-amber-900" },
+  rejected: { es: "Rechazado", en: "Rejected", className: "bg-red-100 text-red-800" },
   superseded: { es: "Reemplazado", en: "Superseded", className: "bg-[#EDE6D6] text-[#7A7164]" },
 };
 
@@ -130,6 +133,18 @@ function GrowthSnapshotSection({
         <div className="mt-3 border-t border-dashed border-[#E8DFD0] pt-3">
           <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Revisar evaluación / Review Assessment</p>
           <ReviewAssessmentButton businessId={businessId} assessmentId={currentAssessment.id} />
+        </div>
+      ) : null}
+
+      {currentAssessment && (currentAssessment.status === "needs_correction" || currentAssessment.status === "rejected") ? (
+        <div className={`mt-3 rounded-xl border p-3 ${currentAssessment.status === "rejected" ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"}`}>
+          <p className={`text-[10px] font-bold uppercase tracking-wide ${currentAssessment.status === "rejected" ? "text-red-800" : "text-amber-900"}`}>
+            {currentAssessment.status === "rejected" ? "Rechazado — no es guía de trabajo / Rejected — not working guidance" : "Necesita corrección — no es guía de trabajo / Needs correction — not working guidance"}
+          </p>
+          {currentAssessment.operatorReviewNotes ? <p className="mt-1 text-sm text-[#3D3428]">{currentAssessment.operatorReviewNotes}</p> : null}
+          <p className="mt-1 text-[11px] text-[#7A7164]">
+            Vuelva a analizar para crear una nueva versión que incorpore esto. / Re-analyze to create a new version that incorporates this.
+          </p>
         </div>
       ) : null}
     </section>
@@ -250,36 +265,81 @@ function GrowthOpportunitiesSection({ assessment }: { assessment: GrowthAssessme
 // =================================================================================================
 // SECTION 6 — Recommended Solutions (suggested, from the assessment, + canonical promoted ones)
 // =================================================================================================
-function SolutionExecutionActions({ businessId, solution, canManageSolutions }: { businessId: string; solution: GrowthSolution; canManageSolutions: boolean }) {
+/**
+ * Gate D — routes every solution through the ONE canonical execution matrix
+ * (classifyGrowthSolutionExecutionRoute) instead of Gate C's inline regex, and adds the three
+ * routes Gate C left unrepresented: EXTERNAL PROFESSIONAL, PARTNER COORDINATION, and PROMOTIONAL
+ * MATERIAL — each a real Promise Keeper commitment via CreateCommitmentButton, never a fake
+ * Creative Studio job (growthExecutionRouteIsCreativeStudio is the explicit guard for that rule).
+ */
+function SolutionExecutionActions({
+  businessId,
+  solution,
+  canManageSolutions,
+  canManageCommitments,
+}: {
+  businessId: string;
+  solution: GrowthSolution;
+  canManageSolutions: boolean;
+  canManageCommitments: boolean;
+}) {
   if (!canManageSolutions || solution.state === "dismissed") return null;
-  if (solution.linkedCreativeJobId || solution.linkedCampaignId || solution.linkedOfficialRequirementId) {
+  if (solution.linkedCreativeJobId || solution.linkedCampaignId || solution.linkedOfficialRequirementId || solution.linkedCommitmentId) {
     return <p className="mt-1 text-[10px] text-emerald-800">Vinculado a trabajo existente / Linked to existing work</p>;
   }
 
-  const lower = `${solution.category} ${solution.titleEn}`.toLowerCase();
-  const isLegal = /legal|licens|regulat|tax|permit/i.test(lower);
-  const isLogo = /logo|brand identity/.test(lower);
-  const isWebsite = /website|web site|domain/.test(lower);
-  const isEditorial = /editorial|sponsored feature/.test(lower);
+  const { route } = classifyGrowthSolutionExecutionRoute(solution);
+  const commitmentTitleEs = `Acción de crecimiento: ${solution.titleEs}`;
+  const commitmentTitleEn = `Growth action: ${solution.titleEn}`;
 
   return (
     <div className="mt-2 flex flex-wrap gap-2">
-      {solution.providerClass === "external_professional_required" || isLegal ? (
+      {route === "official_requirement" ? (
         <ResearchOfficialRequirementButton businessId={businessId} jurisdiction={solution.category} topicEs={solution.titleEs} topicEn={solution.titleEn} />
-      ) : (
-        <>
-          {isLogo ? <CreateCreativeRequestButton businessId={businessId} solutionId={solution.id} lane="logo" /> : null}
-          {isWebsite ? <CreateCreativeRequestButton businessId={businessId} solutionId={solution.id} lane="website" /> : null}
-          {isEditorial ? <CreateCreativeRequestButton businessId={businessId} solutionId={solution.id} lane="sponsored_editorial" /> : null}
-          {!isLogo && !isWebsite && !isEditorial ? <CreateCreativeRequestButton businessId={businessId} solutionId={solution.id} lane="ad" /> : null}
-        </>
-      )}
+      ) : null}
+      {growthExecutionRouteIsCreativeStudio(route) ? (
+        <CreateCreativeRequestButton
+          businessId={businessId}
+          solutionId={solution.id}
+          lane={route === "creative_logo" ? "logo" : route === "creative_website" ? "website" : route === "creative_sponsored_editorial" ? "sponsored_editorial" : "ad"}
+        />
+      ) : null}
+      {(route === "external_professional" || route === "partner_coordination" || route === "promotional_material") && canManageCommitments ? (
+        <CreateCommitmentButton
+          businessId={businessId}
+          solutionId={solution.id}
+          titleEs={commitmentTitleEs}
+          titleEn={commitmentTitleEn}
+          buttonLabelEs={route === "external_professional" ? "Crear compromiso: profesional externo" : route === "promotional_material" ? "Crear compromiso: pedido Promocionales" : "Crear compromiso: coordinar socio"}
+          buttonLabelEn={route === "external_professional" ? "Create commitment: external professional" : route === "promotional_material" ? "Create commitment: Promocionales order" : "Create commitment: coordinate partner"}
+        />
+      ) : null}
       <CreateFollowUpFromSolutionButton businessId={businessId} purpose={`${solution.titleEs} / ${solution.titleEn}`} />
+      {canManageCommitments ? (
+        <CreateCommitmentButton
+          businessId={businessId}
+          solutionId={solution.id}
+          titleEs={commitmentTitleEs}
+          titleEn={commitmentTitleEn}
+          buttonLabelEs="Crear compromiso"
+          buttonLabelEn="Create commitment"
+        />
+      ) : null}
     </div>
   );
 }
 
-function SolutionCard({ businessId, solution, canManageSolutions }: { businessId: string; solution: GrowthSolution; canManageSolutions: boolean }) {
+function SolutionCard({
+  businessId,
+  solution,
+  canManageSolutions,
+  canManageCommitments,
+}: {
+  businessId: string;
+  solution: GrowthSolution;
+  canManageSolutions: boolean;
+  canManageCommitments: boolean;
+}) {
   return (
     <li className="rounded-lg border border-[#E8DFD0] p-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -294,7 +354,7 @@ function SolutionCard({ businessId, solution, canManageSolutions }: { businessId
         </p>
       ) : null}
       {canManageSolutions ? <SolutionStateButtons businessId={businessId} solutionId={solution.id} state={solution.state} /> : null}
-      <SolutionExecutionActions businessId={businessId} solution={solution} canManageSolutions={canManageSolutions} />
+      <SolutionExecutionActions businessId={businessId} solution={solution} canManageSolutions={canManageSolutions} canManageCommitments={canManageCommitments} />
     </li>
   );
 }
@@ -304,11 +364,13 @@ function RecommendedSolutionsSection({
   assessment,
   solutions,
   canManageSolutions,
+  canManageCommitments,
 }: {
   businessId: string;
   assessment: GrowthAssessment | null;
   solutions: readonly GrowthSolution[];
   canManageSolutions: boolean;
+  canManageCommitments: boolean;
 }) {
   const byClass = (pc: GrowthProviderClass) => solutions.filter((s) => s.providerClass === pc);
   const groups: { pc: GrowthProviderClass; items: GrowthSolution[] }[] = [
@@ -333,7 +395,7 @@ function RecommendedSolutionsSection({
             <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A1E2C]">{providerClassLabel(g.pc)}</p>
             <ul className="mt-1 space-y-2">
               {g.items.map((s) => (
-                <SolutionCard key={s.id} businessId={businessId} solution={s} canManageSolutions={canManageSolutions} />
+                <SolutionCard key={s.id} businessId={businessId} solution={s} canManageSolutions={canManageSolutions} canManageCommitments={canManageCommitments} />
               ))}
             </ul>
           </div>
@@ -427,11 +489,11 @@ function RoadmapSection({
         {preview.map(({ def, step }) => {
           const state = step?.state ?? "not_started";
           return (
-            <li key={def.stepKey} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#E8DFD0] p-2">
+            <li key={def.stepKey} className="flex flex-col gap-2 rounded-lg border border-[#E8DFD0] p-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
               <span className="text-sm font-semibold text-[#1E1810]">
                 {def.labelEs} / {def.labelEn}
               </span>
-              <span className="flex items-center gap-2">
+              <span className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5 text-[10px] uppercase text-[#7A7164]">{roadmapStateLabel(state)}</span>
                 {canManageRoadmap ? <RoadmapStepControl businessId={businessId} stepKey={def.stepKey} state={state} /> : null}
               </span>
@@ -561,13 +623,16 @@ function AssessmentHistorySection({ history }: { history: readonly { id: string;
     <details className="mt-1 rounded-2xl border border-[#E8DFD0] bg-white p-4">
       <summary className="cursor-pointer text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Historial de evaluaciones / Assessment History</summary>
       <ul className="mt-2 space-y-1">
-        {history.map((h) => (
-          <li key={h.id} className="flex items-center justify-between gap-2 text-xs text-[#6B5E47]">
-            <span>{new Date(h.createdAt).toLocaleDateString()}</span>
-            <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5 text-[10px] uppercase">{h.status}</span>
-            <span>{h.reviewedAt ? `Revisado ${new Date(h.reviewedAt).toLocaleDateString()}` : "—"}</span>
-          </li>
-        ))}
+        {history.map((h) => {
+          const label = ASSESSMENT_STATUS_LABEL[h.status as GrowthAssessment["status"]];
+          return (
+            <li key={h.id} className="flex items-center justify-between gap-2 text-xs text-[#6B5E47]">
+              <span>{new Date(h.createdAt).toLocaleDateString()}</span>
+              <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5 text-[10px] uppercase">{label ? `${label.es} / ${label.en}` : h.status}</span>
+              <span>{h.reviewedAt ? `Revisado ${new Date(h.reviewedAt).toLocaleDateString()}` : "—"}</span>
+            </li>
+          );
+        })}
       </ul>
     </details>
   );
@@ -593,6 +658,7 @@ export function GrowthPlanPanel({
   canManageCampaigns,
   canManageRoadmap,
   canManageOfficialRequirements,
+  canManageCommitments,
 }: {
   businessId: string;
   businessStage: BusinessStage;
@@ -610,6 +676,7 @@ export function GrowthPlanPanel({
   canManageCampaigns: boolean;
   canManageRoadmap: boolean;
   canManageOfficialRequirements: boolean;
+  canManageCommitments: boolean;
 }) {
   const reviewedAssessment = currentAssessment?.status === "reviewed" ? currentAssessment : null;
   const pendingRequirements = officialRequirements.filter((r) => r.state !== "human_verified" && r.state !== "not_applicable");
@@ -634,7 +701,13 @@ export function GrowthPlanPanel({
         </>
       ) : null}
 
-      <RecommendedSolutionsSection businessId={businessId} assessment={currentAssessment} solutions={solutions} canManageSolutions={canManageSolutions} />
+      <RecommendedSolutionsSection
+        businessId={businessId}
+        assessment={currentAssessment}
+        solutions={solutions}
+        canManageSolutions={canManageSolutions}
+        canManageCommitments={canManageCommitments}
+      />
 
       {pendingRequirements.length > 0 ? (
         <section className={CARD}>

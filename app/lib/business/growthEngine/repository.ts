@@ -12,7 +12,7 @@
 import "server-only";
 
 import { getAdminSupabase } from "@/app/lib/supabase/server";
-import { isValidGrowthCampaignTransition, isValidGrowthSolutionTransition } from "./constants";
+import { isValidGrowthAssessmentStatusTransition, isValidGrowthCampaignTransition, isValidGrowthSolutionTransition } from "./constants";
 import { roadmapStepCatalog } from "./roadmapCatalog";
 import type {
   CreateGrowthAssessmentInput,
@@ -34,7 +34,15 @@ import type {
   GrowthSolutionExecutionTarget,
   GrowthSolutionState,
   GrowthEngineActor,
+  GrowthAssessmentReviewDecision,
+  GrowthAssessmentStatus,
 } from "./types";
+
+const REVIEW_DECISION_TO_STATUS: Record<GrowthAssessmentReviewDecision, GrowthAssessmentStatus> = {
+  accepted: "reviewed",
+  needs_correction: "needs_correction",
+  rejected: "rejected",
+};
 
 function actorRosterId(actor: GrowthEngineActor): string | null {
   return actor.type === "staff" ? actor.rosterId : null;
@@ -253,11 +261,26 @@ export async function createGrowthAssessment(
 
 export type ReviewGrowthAssessmentResult =
   | { ok: true; assessment: GrowthAssessment }
-  | { ok: false; reason: "not_found" | "update_failed" };
+  | { ok: false; reason: "not_found" | "invalid_transition" | "update_failed" };
 
-export async function markGrowthAssessmentReviewed(
+/**
+ * Records a human review decision against a `needs_review` assessment (Gate D — MD Part 1).
+ * Generalizes what was a single "accept" write in Gate C into the three real outcomes:
+ *   - accepted           -> status 'reviewed' (working guidance; still never auto-promotes facts)
+ *   - needs_correction   -> status 'needs_correction' (preserved as-is; NOT working guidance;
+ *                           the note records what must be incorporated in the next re-analysis)
+ *   - rejected           -> status 'rejected' (preserved as-is; NEVER shown as working guidance)
+ * The reviewed_at / reviewed_by_* / operator_review_notes columns are reused for all three decisions —
+ * they were already generic "who decided, when, why" fields, not literally "accepted_*" columns,
+ * so no new column was needed (see the Gate D migration's own comment). Only a `needs_review`
+ * assessment can receive a decision (isValidGrowthAssessmentStatusTransition) — an
+ * already-decided assessment must be re-analyzed (a new version) rather than re-decided in place,
+ * so no review decision ever silently overwrites a prior one.
+ */
+export async function recordGrowthAssessmentReviewDecision(
   businessId: string,
   assessmentId: string,
+  decision: GrowthAssessmentReviewDecision,
   actor: Extract<GrowthEngineActor, { type: "staff" | "owner" }>,
   notes: string | null,
 ): Promise<ReviewGrowthAssessmentResult> {
@@ -270,10 +293,16 @@ export async function markGrowthAssessmentReviewed(
     .maybeSingle();
   if (!existingRow) return { ok: false, reason: "not_found" };
 
+  const previousStatus = String((existingRow as { status: string }).status) as GrowthAssessmentStatus;
+  const newStatus = REVIEW_DECISION_TO_STATUS[decision];
+  if (!isValidGrowthAssessmentStatusTransition(previousStatus, newStatus)) {
+    return { ok: false, reason: "invalid_transition" };
+  }
+
   const { data, error } = await supabase
     .from("business_growth_assessments")
     .update({
-      status: "reviewed",
+      status: newStatus,
       reviewed_at: new Date().toISOString(),
       reviewed_by_roster_id: actor.type === "staff" ? actor.rosterId : null,
       reviewed_by_auth_user_id: actor.authUserId,
@@ -292,13 +321,32 @@ export async function markGrowthAssessmentReviewed(
     businessId,
     entityType: "assessment",
     entityId: assessmentId,
-    eventType: "reviewed",
-    previousState: String((existingRow as { status: string }).status),
-    newState: "reviewed",
+    eventType: `review_${decision}`,
+    previousState: previousStatus,
+    newState: newStatus,
     source: "staff_review",
+    note: notes,
     actor,
   });
   return { ok: true, assessment: reviewed };
+}
+
+/**
+ * Best-effort telemetry event only (Gate D — MD Part 6.6/6.8): records that opening the Growth Plan
+ * returned a cached assessment rather than generating a new one, so a later owner-reporting surface
+ * can compute a real cache-hit rate (cache_hit events / (cache_hit + created events)) without a
+ * finance dashboard existing yet. Never affects the assessment row itself and never blocks the
+ * cached-response path on a logging failure (appendGrowthEvent already swallows its own errors).
+ */
+export async function recordGrowthAssessmentCacheHit(businessId: string, assessmentId: string, actor: GrowthEngineActor): Promise<void> {
+  await appendGrowthEvent({
+    businessId,
+    entityType: "assessment",
+    entityId: assessmentId,
+    eventType: "cache_hit",
+    source: "cache",
+    actor,
+  });
 }
 
 // =================================================================================================
@@ -981,16 +1029,70 @@ export async function markOfficialRequirementVerified(
 // =================================================================================================
 export type GrowthAssessmentAttentionRow = { businessId: string; displayName: string; createdAt: string };
 
-export async function listBusinessesWithGrowthAssessmentNeedingReview(limit = 20): Promise<GrowthAssessmentAttentionRow[]> {
+/**
+ * Generalized (Gate D) to accept any single assessment status — Gate C only ever queried
+ * 'needs_review'; Gate D's Command Center bridge also needs a 'needs_correction' bucket. Kept as
+ * one function (not two near-duplicates) since the query shape is identical, only the status
+ * differs.
+ */
+export async function listBusinessesWithGrowthAssessmentByStatus(status: GrowthAssessmentStatus, limit = 20): Promise<GrowthAssessmentAttentionRow[]> {
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
     .from("business_growth_assessments")
     .select("business_id, created_at, businesses(display_name)")
-    .eq("status", "needs_review")
+    .eq("status", status)
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error || !data) return [];
   return (data as unknown as { business_id: string; created_at: string; businesses: { display_name: string } | null }[])
     .filter((row) => row.businesses)
     .map((row) => ({ businessId: String(row.business_id), displayName: String(row.businesses!.display_name), createdAt: String(row.created_at) }));
+}
+
+// =================================================================================================
+// Gate D — two more bounded, capped, read-only Command Center attention sources (MD Part 12),
+// mirroring the exact same pattern as listBusinessesWithGrowthAssessmentByStatus above. Overdue
+// Growth-sourced Promise Keeper commitments deliberately have NO function here — a real commitment
+// created through the Gate D bridge already resurfaces via the EXISTING
+// listCommitmentsAttentionForStaffAttention() (Promise Keeper's own canonical overdue/blocked
+// query); adding a second, Growth-scoped overdue-commitment query would itself be the prohibited
+// "second attention engine".
+// =================================================================================================
+export type GrowthCampaignAttentionRow = { businessId: string; displayName: string; status: GrowthCampaignStatus; updatedAt: string };
+
+const CAMPAIGN_ATTENTION_STATUSES: readonly GrowthCampaignStatus[] = ["needs_client_input", "ready_for_review"];
+
+export async function listBusinessesWithGrowthCampaignsNeedingAttention(limit = 20): Promise<GrowthCampaignAttentionRow[]> {
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("business_growth_campaigns")
+    .select("business_id, status, updated_at, businesses(display_name)")
+    .in("status", CAMPAIGN_ATTENTION_STATUSES)
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return (data as unknown as { business_id: string; status: GrowthCampaignStatus; updated_at: string; businesses: { display_name: string } | null }[])
+    .filter((row) => row.businesses)
+    .map((row) => ({ businessId: String(row.business_id), displayName: String(row.businesses!.display_name), status: row.status, updatedAt: String(row.updated_at) }));
+}
+
+export type GrowthOfficialRequirementAttentionRow = { businessId: string; displayName: string; requirementTopicEn: string; createdAt: string };
+
+export async function listBusinessesWithPendingOfficialRequirements(limit = 20): Promise<GrowthOfficialRequirementAttentionRow[]> {
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("business_growth_official_requirements")
+    .select("business_id, requirement_topic_en, created_at, businesses(display_name)")
+    .not("state", "in", "(human_verified,not_applicable)")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return (data as unknown as { business_id: string; requirement_topic_en: string; created_at: string; businesses: { display_name: string } | null }[])
+    .filter((row) => row.businesses)
+    .map((row) => ({
+      businessId: String(row.business_id),
+      displayName: String(row.businesses!.display_name),
+      requirementTopicEn: String(row.requirement_topic_en),
+      createdAt: String(row.created_at),
+    }));
 }

@@ -58,13 +58,19 @@ async function main(): Promise<void> {
     'import { roadmapStepCatalog } from "@/app/lib/business/growthEngine/roadmapCatalog";',
     'import { roadmapStepCatalog } from "./roadmapCatalog";',
   );
+  journeySource = journeySource.replace(
+    'import { classifyGrowthSolutionExecutionRoute, growthExecutionRouteIsCreativeStudio } from "@/app/lib/business/growthEngine/executionMatrix";',
+    'import { classifyGrowthSolutionExecutionRoute, growthExecutionRouteIsCreativeStudio } from "./executionMatrix";',
+  );
   assert.notEqual(journeySource, journeyBefore, "expected to patch at least one import in GrowthPlanJourney.tsx");
   writeFileSync(path.join(scratchDir, "GrowthPlanJourney.tsx"), `import React from "react";\n${journeySource}`, "utf8");
 
-  // roadmapCatalog.ts only has a type-only import of "./types" (erased at runtime by esbuild), so
-  // it can be copied unmodified with no sibling types.ts required.
+  // roadmapCatalog.ts and growthPlanLabels.ts only have type-only imports (erased at runtime by
+  // esbuild), so both can be copied unmodified with no sibling types.ts required.
   cpSync(path.join(ROOT, "app/lib/business/growthEngine/roadmapCatalog.ts"), path.join(scratchDir, "roadmapCatalog.ts"));
   cpSync(path.join(ROOT, "app/admin/_lib/staffWriteErrorMessages.ts"), path.join(scratchDir, "staffWriteErrorMessages.ts"));
+  cpSync(path.join(SRC_DIR, "growthPlanLabels.ts"), path.join(scratchDir, "growthPlanLabels.ts"));
+  cpSync(path.join(ROOT, "app/lib/business/growthEngine/executionMatrix.ts"), path.join(scratchDir, "executionMatrix.ts"));
 
   writeFileSync(path.join(scratchDir, "stubNavigation.ts"), "export function useRouter() { return { refresh() {} }; }\n", "utf8");
   writeFileSync(
@@ -233,6 +239,7 @@ async function main(): Promise<void> {
     canManageCampaigns: true,
     canManageRoadmap: true,
     canManageOfficialRequirements: true,
+    canManageCommitments: true,
   };
 
   const RAW_CODES_NEVER_VISIBLE = ["bootstrap_write_denied", "provider_unavailable", "invalid_provider_output", "persistence_failed"];
@@ -298,7 +305,9 @@ async function main(): Promise<void> {
       assert.ok(html.includes("¿Cuál es su capacidad máxima?"), "expected client question rendered");
       assert.ok(html.includes("Revisar evaluación / Review Assessment"), "expected review-assessment action block");
       assert.ok(html.includes("Aceptar como guía de trabajo / Accept as working guidance"), "expected accept-as-working-guidance button");
-      assert.ok(html.includes("Esto no confirma hechos automáticamente"), "expected the no-silent-fact-promotion disclaimer");
+      assert.ok(html.includes("Ninguna decisión confirma hechos automáticamente"), "expected the no-silent-fact-promotion disclaimer");
+      assert.ok(html.includes("Necesita corrección / Needs correction"), "expected the needs-correction review decision button");
+      assert.ok(html.includes("Rechazar / Reject"), "expected the reject review decision button");
       assertNoRawCodes(html, "Scenario 2");
     });
 
@@ -492,11 +501,20 @@ async function main(): Promise<void> {
         canManageCampaigns: false,
         canManageRoadmap: false,
         canManageOfficialRequirements: false,
+        canManageCommitments: false,
       });
       assert.ok(html.includes("Confirmado por el dueño."), "view-only actor must still see What We Found content");
       assert.ok(html.includes("¿Cuál es su presupuesto mensual?"), "view-only actor must still see client questions");
       assert.ok(!html.includes("Aceptar como guía de trabajo"), "view-only actor must not see the review action");
-      assert.ok(!html.includes("Aprobar / Approve") && !html.includes("Descartar / Dismiss"), "view-only actor must not see solution state controls");
+      // "Descartar / Dismiss" is ambiguous on its own since Gate D reuses the same label for the
+      // ephemeral, ungated per-question dismiss control (QuestionsBatchAddForm) — scope the
+      // solution-state-dismiss check to the Recommended Solutions section specifically.
+      const solutionsSectionStart = html.indexOf("Soluciones recomendadas / Recommended Solutions");
+      assert.ok(solutionsSectionStart !== -1, "expected the Recommended Solutions section to render");
+      const solutionsSectionEnd = html.indexOf("Hoja de ruta / Roadmap", solutionsSectionStart);
+      const solutionsSectionHtml = html.slice(solutionsSectionStart, solutionsSectionEnd === -1 ? undefined : solutionsSectionEnd);
+      assert.ok(!solutionsSectionHtml.includes("Aprobar / Approve") && !solutionsSectionHtml.includes("Descartar / Dismiss"), "view-only actor must not see solution state controls");
+      assert.ok(!solutionsSectionHtml.includes("Crear compromiso") && !solutionsSectionHtml.includes("Create commitment"), "view-only actor must not see the commitment-creation bridge");
       // "Verificar / Verify" is ambiguous on its own — the established roadmap's "verify" step
       // shares the exact same bilingual label text. Scope the check to the Official Requirements
       // section itself (between its own heading and the next top-level section) to confirm the
@@ -512,6 +530,51 @@ async function main(): Promise<void> {
       assert.ok(!html.includes("Crear campaña / Build Campaign"), "view-only actor must not see the campaign builder");
       assert.ok(!html.includes("Avanzar a / Move to"), "view-only actor must not see campaign status advance control");
       assertNoRawCodes(html, "Scenario 8");
+    });
+
+    // === Scenario 9 (Gate D) — Needs Correction / Rejected banners, never shown as working guidance
+    check("Scenario 9: needs_correction and rejected assessments show a clear non-working-guidance banner with the reviewer note", () => {
+      const correctionAssessment = makeAssessment({ status: "needs_correction", operatorReviewNotes: "El nombre del negocio está mal escrito." });
+      const htmlCorrection = render(GrowthPlanPanel, {
+        businessId: "biz-9a", businessStage: "operating", roadmapType: "established",
+        currentAssessment: correctionAssessment, assessmentHistory: [], solutions: [], campaigns: [],
+        officialRequirements: [], roadmapSteps: [], mediaChannels: [], ...basePermissions,
+      });
+      assert.ok(htmlCorrection.includes("Necesita corrección — no es guía de trabajo"), "expected the needs_correction banner");
+      assert.ok(htmlCorrection.includes("El nombre del negocio está mal escrito."), "expected the reviewer's correction note to render");
+      assert.ok(htmlCorrection.includes("Vuelva a analizar"), "expected the re-analyze prompt");
+      assertNoRawCodes(htmlCorrection, "Scenario 9a");
+
+      const rejectedAssessment = makeAssessment({ status: "rejected", operatorReviewNotes: "La información de origen no es confiable." });
+      const htmlRejected = render(GrowthPlanPanel, {
+        businessId: "biz-9b", businessStage: "operating", roadmapType: "established",
+        currentAssessment: rejectedAssessment, assessmentHistory: [], solutions: [], campaigns: [],
+        officialRequirements: [], roadmapSteps: [], mediaChannels: [], ...basePermissions,
+      });
+      assert.ok(htmlRejected.includes("Rechazado — no es guía de trabajo"), "expected the rejected banner");
+      assert.ok(htmlRejected.includes("La información de origen no es confiable."), "expected the reviewer's rejection reason to render");
+      assert.ok(!htmlRejected.includes("Revisado / Reviewed"), "a rejected assessment must never show as Reviewed");
+      assertNoRawCodes(htmlRejected, "Scenario 9b");
+    });
+
+    // === Scenario 10 (Gate D) — execution matrix routes external professional / partner / promo to commitments
+    check("Scenario 10: external professional, partner coordination, and promotional material solutions offer a Promise Keeper commitment bridge, never a fake Creative Studio job", () => {
+      const assessment = makeAssessment({ status: "reviewed", reviewedAt: NOW });
+      const solutions = [
+        makeSolution({ providerClass: "external_professional_required", category: "specialized_it_security", titleEs: "Auditoría de seguridad de TI", titleEn: "IT security audit", state: "reviewed" }),
+        makeSolution({ providerClass: "leonix_coordinates_partner", category: "radio", titleEs: "Spot de radio", titleEn: "Radio spot", state: "reviewed" }),
+        makeSolution({ providerClass: "leonix_provides", category: "promotional_material", titleEs: "Pedido de volantes", titleEn: "Flyer order", state: "reviewed" }),
+      ];
+      const html = render(GrowthPlanPanel, {
+        businessId: "biz-10", businessStage: "operating", roadmapType: "established",
+        currentAssessment: assessment, assessmentHistory: [], solutions, campaigns: [],
+        officialRequirements: [], roadmapSteps: [], mediaChannels: [], ...basePermissions,
+      });
+      assert.ok(html.includes("Crear compromiso: profesional externo"), "expected the external-professional commitment bridge");
+      assert.ok(html.includes("Crear compromiso: coordinar socio"), "expected the partner-coordination commitment bridge");
+      assert.ok(html.includes("Crear compromiso: pedido Promocionales"), "expected the promotional-material commitment bridge");
+      assert.ok(!html.includes("Crear proyecto de logo") && !html.includes("Crear proyecto de sitio web"), "none of these three routes should ever open a Creative Studio job");
+      assertNoRawCodes(html, "Scenario 10");
     });
   }
 

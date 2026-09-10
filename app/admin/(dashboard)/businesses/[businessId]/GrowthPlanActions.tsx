@@ -3,7 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { humanizeStaffWriteError } from "@/app/admin/_lib/staffWriteErrorMessages";
-import type { GrowthProviderClass, GrowthSolutionState, GrowthCampaignStatus, GrowthRoadmapStepState } from "@/app/lib/business/growthEngine/types";
+import { roadmapStateLabel, ROADMAP_STATE_KEYS } from "./growthPlanLabels";
+import type {
+  GrowthProviderClass,
+  GrowthSolutionState,
+  GrowthCampaignStatus,
+  GrowthRoadmapStepState,
+  GrowthAssessmentReviewDecision,
+} from "@/app/lib/business/growthEngine/types";
 
 async function postJson(url: string, method: string, body: unknown): Promise<{ ok: boolean; body: Record<string, unknown> | null; status: number }> {
   const res = await fetch(url, { method, credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -68,17 +75,32 @@ export function AnalyzeBusinessButton({ businessId, hasAssessment }: { businessI
 // Review assessment ("Accept as working guidance")
 // ---------------------------------------------------------------------------
 
+/**
+ * Gate D — the full three-way review decision (MD Part 1). Accept keeps the note optional (Gate C
+ * behavior preserved); Needs Correction and Reject both REQUIRE a note (enforced again server-side
+ * — review_note_required — this is only the UI-side mirror) since a correction/rejection without a
+ * reason is not useful to a future re-analysis. Neither decision ever silently marks the assessment
+ * accepted — see the disclaimer line, which is now decision-agnostic.
+ */
 export function ReviewAssessmentButton({ businessId, assessmentId }: { businessId: string; assessmentId: string }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState("");
-  const [showNote, setShowNote] = useState(false);
+  const [pendingDecision, setPendingDecision] = useState<Exclude<GrowthAssessmentReviewDecision, "accepted"> | null>(null);
 
-  async function submit() {
+  async function submit(decision: GrowthAssessmentReviewDecision) {
+    if ((decision === "needs_correction" || decision === "rejected") && !note.trim()) {
+      setError(
+        decision === "needs_correction"
+          ? "Se requiere una nota que explique qué corregir. / A note explaining what to correct is required."
+          : "Se requiere una razón de rechazo. / A rejection reason is required.",
+      );
+      return;
+    }
     setSubmitting(true);
     setError(null);
-    const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/growth/assessment`, "PATCH", { assessmentId, note: note.trim() || null });
+    const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/growth/assessment`, "PATCH", { assessmentId, decision, note: note.trim() || null });
     setSubmitting(false);
     if (!ok) {
       setError(humanizeStaffWriteError(body?.error as string | undefined, "No se pudo guardar este cambio. No se perdió nada en esta pantalla. / We couldn't save this change. Nothing was lost from this screen."));
@@ -87,36 +109,58 @@ export function ReviewAssessmentButton({ businessId, assessmentId }: { businessI
     router.refresh();
   }
 
+  if (pendingDecision) {
+    return (
+      <div className="mt-2">
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder={
+            pendingDecision === "needs_correction"
+              ? "¿Qué se debe corregir? (requerido) / What needs correcting? (required)"
+              : "¿Por qué se rechaza? (requerido) / Why is this rejected? (required)"
+          }
+          className="min-h-[44px] w-full rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
+          rows={2}
+        />
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={() => void submit(pendingDecision)}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
+          >
+            {submitting ? "Guardando… / Saving…" : pendingDecision === "needs_correction" ? "Confirmar corrección / Confirm correction" : "Confirmar rechazo / Confirm rejection"}
+          </button>
+          <button type="button" onClick={() => { setPendingDecision(null); setNote(""); setError(null); }} className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#E8DFD0] px-4 py-2 text-xs font-semibold text-[#3D3428]">
+            Cancelar / Cancel
+          </button>
+        </div>
+        {error ? <p role="alert" className="mt-2 text-xs text-red-700">{error}</p> : null}
+      </div>
+    );
+  }
+
   return (
     <div className="mt-2">
-      {showNote ? (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Nota del operador (opcional) / Operator note (optional)"
-            className="min-h-[44px] flex-1 rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm"
-            rows={2}
-          />
-        </div>
-      ) : null}
-      <div className="mt-2 flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2">
         <button
           type="button"
           disabled={submitting}
-          onClick={() => void submit()}
+          onClick={() => void submit("accepted")}
           className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#1F3A2D] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
         >
           Aceptar como guía de trabajo / Accept as working guidance
         </button>
-        {!showNote ? (
-          <button type="button" onClick={() => setShowNote(true)} className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#E8DFD0] px-4 py-2 text-xs font-semibold text-[#3D3428]">
-            Agregar nota / Add note
-          </button>
-        ) : null}
+        <button type="button" onClick={() => setPendingDecision("needs_correction")} className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-900">
+          Necesita corrección / Needs correction
+        </button>
+        <button type="button" onClick={() => setPendingDecision("rejected")} className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#E8DFD0] px-4 py-2 text-xs font-semibold text-[#7A1E2C]">
+          Rechazar / Reject
+        </button>
       </div>
       <p className="mt-1 text-[10px] text-[#9A9184]">
-        Esto no confirma hechos automáticamente. Use el Libro del Negocio para confirmar hechos. / This does not automatically confirm facts. Use the Business Book to confirm facts.
+        Ninguna decisión confirma hechos automáticamente. Use el Libro del Negocio para confirmar hechos. / No decision automatically confirms facts. Use the Business Book to confirm facts.
       </p>
       {error ? <p role="alert" className="mt-2 text-xs text-red-700">{error}</p> : null}
     </div>
@@ -126,17 +170,6 @@ export function ReviewAssessmentButton({ businessId, assessmentId }: { businessI
 // ---------------------------------------------------------------------------
 // Solution actions — state transitions + Creative Studio bridge
 // ---------------------------------------------------------------------------
-
-const PROVIDER_CLASS_LABEL: Record<GrowthProviderClass, { es: string; en: string }> = {
-  leonix_provides: { es: "Leonix puede ayudar", en: "Leonix can help" },
-  leonix_coordinates_partner: { es: "Leonix + socio", en: "Leonix + partner" },
-  external_professional_required: { es: "Profesional externo", en: "External professional" },
-};
-
-export function providerClassLabel(providerClass: GrowthProviderClass): string {
-  const l = PROVIDER_CLASS_LABEL[providerClass];
-  return `${l.es} / ${l.en}`;
-}
 
 export function PromoteSuggestionButton({
   businessId,
@@ -328,6 +361,89 @@ export function CreateFollowUpFromSolutionButton({ businessId, purpose }: { busi
   );
 }
 
+/**
+ * Gate D (MD Part 3/4) — the generic Growth Solution -> Promise Keeper commitment bridge. Reused
+ * for four different execution routes that all resolve to "create a real commitment" with only the
+ * prefilled title/context differing: a general per-solution commitment, PARTNER COORDINATION (e.g.
+ * "contact radio partner"), EXTERNAL PROFESSIONAL (e.g. "contact a CPA" — never routed into
+ * Creative Studio as if Leonix were the provider), and PROMOTIONAL MATERIAL (the smallest truthful
+ * handoff to Leonix Promocionales fulfillment, since no canonical order system exists in this
+ * worktree yet). No fake completion: success only shows after the real commitment row is created
+ * and linked back to the solution.
+ */
+export function CreateCommitmentButton({
+  businessId,
+  solutionId,
+  titleEs,
+  titleEn,
+  buttonLabelEs,
+  buttonLabelEn,
+}: {
+  businessId: string;
+  solutionId: string;
+  titleEs: string;
+  titleEn: string;
+  buttonLabelEs: string;
+  buttonLabelEn: string;
+}) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+  const [dueAt, setDueAt] = useState("");
+
+  async function create() {
+    setSubmitting(true);
+    setError(null);
+    const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/growth/solutions/${solutionId}/commitment-request`, "POST", {
+      titleEs,
+      titleEn,
+      responsibleParty: "staff",
+      dueAt: dueAt || null,
+    });
+    setSubmitting(false);
+    if (!ok) {
+      setError(humanizeStaffWriteError(body?.error as string | undefined, "No se pudo crear el compromiso. / Could not create the commitment."));
+      return;
+    }
+    setDone(true);
+    router.refresh();
+  }
+
+  if (done) return <span className="text-[10px] font-semibold text-emerald-800">Compromiso creado / Commitment created</span>;
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="inline-flex min-h-[40px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-white px-3 py-2 text-[11px] font-bold text-[#7A1E2C]">
+        {buttonLabelEs} / {buttonLabelEn}
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-[#E8DFD0] p-2">
+      <span className="text-xs text-[#3D3428]">{titleEs} / {titleEn}</span>
+      <input
+        type="date"
+        value={dueAt}
+        onChange={(e) => setDueAt(e.target.value)}
+        className="min-h-[40px] rounded-lg border border-[#E8DFD0] bg-white px-2 py-1 text-xs"
+        aria-label="Fecha límite / Due date"
+      />
+      <button
+        type="button"
+        disabled={submitting}
+        onClick={() => void create()}
+        className="inline-flex min-h-[40px] items-center justify-center rounded-lg bg-[#7A1E2C] px-3 py-2 text-[11px] font-bold text-white disabled:opacity-50"
+      >
+        {submitting ? "Creando… / Creating…" : "Confirmar compromiso / Confirm commitment"}
+      </button>
+      {error ? <p role="alert" className="w-full text-[10px] text-red-700">{error}</p> : null}
+    </div>
+  );
+}
+
 export function ResearchOfficialRequirementButton({ businessId, jurisdiction, topicEs, topicEn }: { businessId: string; jurisdiction: string; topicEs: string; topicEn: string }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -416,21 +532,6 @@ export function VerifyOfficialRequirementForm({ businessId, requirementId }: { b
 // Roadmap step controls
 // ---------------------------------------------------------------------------
 
-const ROADMAP_STATE_LABEL: Record<GrowthRoadmapStepState, { es: string; en: string }> = {
-  not_started: { es: "Sin empezar", en: "Upcoming" },
-  in_progress: { es: "En curso", en: "Current" },
-  needs_client_input: { es: "Requiere info del cliente", en: "Needs Client Input" },
-  needs_official_research: { es: "Requiere investigación oficial", en: "Needs Official Research" },
-  blocked: { es: "Bloqueado", en: "Blocked" },
-  complete: { es: "Completo", en: "Complete" },
-  not_applicable: { es: "No aplica", en: "Not Applicable" },
-};
-
-export function roadmapStateLabel(state: GrowthRoadmapStepState): string {
-  const l = ROADMAP_STATE_LABEL[state];
-  return `${l.es} / ${l.en}`;
-}
-
 export function RoadmapStepControl({ businessId, stepKey, state }: { businessId: string; stepKey: string; state: GrowthRoadmapStepState }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -454,9 +555,9 @@ export function RoadmapStepControl({ businessId, stepKey, state }: { businessId:
         value={state}
         disabled={submitting}
         onChange={(e) => void setState(e.target.value as GrowthRoadmapStepState)}
-        className="min-h-[36px] rounded-lg border border-[#E8DFD0] bg-white px-2 py-1 text-[11px]"
+        className="min-h-[36px] max-w-full rounded-lg border border-[#E8DFD0] bg-white px-2 py-1 text-[11px]"
       >
-        {(Object.keys(ROADMAP_STATE_LABEL) as GrowthRoadmapStepState[]).map((s) => (
+        {ROADMAP_STATE_KEYS.map((s) => (
           <option key={s} value={s}>{roadmapStateLabel(s)}</option>
         ))}
       </select>
@@ -469,9 +570,20 @@ export function RoadmapStepControl({ businessId, stepKey, state }: { businessId:
 // Questions batch-add to meeting
 // ---------------------------------------------------------------------------
 
+/**
+ * Gate D (MD Part 2) — per-question review: an operator can DISMISS an irrelevant generated
+ * question (never force-accepting a bad suggestion just because the overall assessment is useful)
+ * or SELECT it for meeting prep, same as Gate C. Dismissal is deliberately ephemeral/client-side
+ * only (this component's own state) — matching the mission's own "do not create a complicated
+ * annotation system unless needed" instruction: the model's output history in
+ * business_growth_assessments.client_questions is never rewritten, so nothing about the AI's
+ * original output is lost; dismissing only hides a bad suggestion from THIS operator's current
+ * pass, and a page reload naturally shows the full original list again since nothing was persisted.
+ */
 export function QuestionsBatchAddForm({ businessId, questions }: { businessId: string; questions: readonly { textEs: string; textEn: string }[] }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [dismissed, setDismissed] = useState<Set<number>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
@@ -481,6 +593,16 @@ export function QuestionsBatchAddForm({ businessId, questions }: { businessId: s
       const next = new Set(prev);
       if (next.has(i)) next.delete(i);
       else next.add(i);
+      return next;
+    });
+  }
+
+  function dismiss(i: number) {
+    setDismissed((prev) => new Set(prev).add(i));
+    setSelected((prev) => {
+      if (!prev.has(i)) return prev;
+      const next = new Set(prev);
+      next.delete(i);
       return next;
     });
   }
@@ -508,17 +630,33 @@ export function QuestionsBatchAddForm({ businessId, questions }: { businessId: s
   }
 
   if (questions.length === 0) return null;
+  const visible = questions.map((q, i) => ({ q, i })).filter(({ i }) => !dismissed.has(i));
+  if (visible.length === 0) {
+    return <p className="mt-3 text-sm text-[#6B5E47]">Todas las preguntas fueron descartadas en esta sesión. / All questions were dismissed this session.</p>;
+  }
 
   return (
     <div className="mt-3">
       <ul className="space-y-1.5">
-        {questions.map((q, i) => (
+        {visible.map(({ q, i }) => (
           <li key={i} className="flex items-start gap-2 rounded-lg border border-[#E8DFD0] bg-white p-2">
-            <input type="checkbox" checked={selected.has(i)} onChange={() => toggle(i)} className="mt-1 h-[18px] w-[18px] shrink-0" aria-label={q.textEn} />
-            <span className="text-sm">
-              <span className="block">{q.textEs}</span>
-              <span className="block text-[#6B5E47]">{q.textEn}</span>
-            </span>
+            {/* The whole label (not just the 18px checkbox) is the real tap target — meets the
+                44px touch-target requirement without needing an oversized checkbox graphic. */}
+            <label className="flex min-h-[44px] flex-1 cursor-pointer items-start gap-2">
+              <input type="checkbox" checked={selected.has(i)} onChange={() => toggle(i)} className="mt-1 h-[18px] w-[18px] shrink-0" aria-label={q.textEn} />
+              <span className="flex-1 text-sm">
+                <span className="block">{q.textEs}</span>
+                <span className="block text-[#6B5E47]">{q.textEn}</span>
+              </span>
+            </label>
+            <button
+              type="button"
+              onClick={() => dismiss(i)}
+              className="inline-flex min-h-[36px] shrink-0 items-center rounded-lg border border-[#E8DFD0] px-2 py-1 text-[10px] font-semibold text-[#7A7164]"
+              aria-label={`Descartar / Dismiss: ${q.textEn}`}
+            >
+              Descartar / Dismiss
+            </button>
           </li>
         ))}
       </ul>
@@ -644,19 +782,21 @@ export function CampaignBuilderForm({
       <h5 className="mt-3 text-[11px] font-bold uppercase tracking-wide text-[#8A6B1F]">Canales / Channels</h5>
       <ul className="mt-1 space-y-1.5">
         {mediaChannels.map((c) => (
-          <li key={c.id} className="flex items-start gap-2 rounded-lg border border-[#E8DFD0] p-2">
-            <input type="checkbox" checked={selectedChannels.has(c.id)} onChange={() => toggleChannel(c.id)} className="mt-1 h-[18px] w-[18px] shrink-0" aria-label={c.labelEn} />
-            <span className="text-sm">
-              <span className="block font-semibold text-[#1E1810]">
-                {c.labelEs} / {c.labelEn}
-                {c.channelClass === "partner" ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold uppercase text-amber-800">Socio / Partner</span> : null}
-              </span>
-              {c.channelClass === "partner" && c.notesEs ? (
-                <span className="block text-[11px] text-[#6B5E47]">
-                  {c.notesEs} / {c.notesEn}
+          <li key={c.id} className="rounded-lg border border-[#E8DFD0] p-2">
+            <label className="flex min-h-[44px] cursor-pointer items-start gap-2">
+              <input type="checkbox" checked={selectedChannels.has(c.id)} onChange={() => toggleChannel(c.id)} className="mt-1 h-[18px] w-[18px] shrink-0" aria-label={c.labelEn} />
+              <span className="text-sm">
+                <span className="block font-semibold text-[#1E1810]">
+                  {c.labelEs} / {c.labelEn}
+                  {c.channelClass === "partner" ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold uppercase text-amber-800">Socio / Partner</span> : null}
                 </span>
-              ) : null}
-            </span>
+                {c.channelClass === "partner" && c.notesEs ? (
+                  <span className="block text-[11px] text-[#6B5E47]">
+                    {c.notesEs} / {c.notesEn}
+                  </span>
+                ) : null}
+              </span>
+            </label>
           </li>
         ))}
       </ul>

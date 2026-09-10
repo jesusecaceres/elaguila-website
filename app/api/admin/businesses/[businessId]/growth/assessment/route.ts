@@ -7,16 +7,21 @@
  *         requireStaffWorkspaceWriteAccess("create_growth_assessment") — the server builds the
  *         actor and the input packet itself; nothing about identity or business truth is ever
  *         trusted from the request body.
- * PATCH — Gate C's review workflow: "ACCEPT AS WORKING GUIDANCE" (mark reviewed with an optional
- *         operator note). This NEVER promotes any assessment content into Business Book truth —
- *         it only records that a human looked at the draft. Fact confirmation still requires the
- *         existing Living Book promotion pathway, entirely separate from this endpoint.
+ * PATCH — Gate D's full review-decision workflow: accept ("ACCEPT AS WORKING GUIDANCE"), needs
+ *         correction, or reject — each with an optional/required operator note (see
+ *         recordGrowthAssessmentReviewDecision). None of the three decisions ever promotes any
+ *         assessment content into Business Book truth — they only record that a human looked at
+ *         the draft and what they decided. Fact confirmation still requires the existing Living
+ *         Book promotion pathway, entirely separate from this endpoint.
  */
 import { NextResponse, type NextRequest } from "next/server";
 
 import { actorHasCapability, denialStatusCode, requireSalesWorkspaceAccess, requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
 import { generateOrGetGrowthAssessment } from "@/app/lib/business/growthEngine/analyst/engine";
-import { getCurrentGrowthAssessment, listGrowthAssessmentsForBusiness, markGrowthAssessmentReviewed } from "@/app/lib/business/growthEngine/repository";
+import { getCurrentGrowthAssessment, listGrowthAssessmentsForBusiness, recordGrowthAssessmentReviewDecision } from "@/app/lib/business/growthEngine/repository";
+import type { GrowthAssessmentReviewDecision } from "@/app/lib/business/growthEngine/types";
+
+const VALID_REVIEW_DECISIONS: readonly GrowthAssessmentReviewDecision[] = ["accepted", "needs_correction", "rejected"];
 
 export const runtime = "nodejs";
 
@@ -49,7 +54,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ bus
 
   const result = await generateOrGetGrowthAssessment(businessId, access.actor, { forceReanalysis });
   if (!result.ok) {
-    const status = result.reason === "business_not_found" ? 404 : result.reason === "provider_unavailable" ? 503 : 502;
+    const status =
+      result.reason === "business_not_found" ? 404 :
+      result.reason === "provider_unavailable" ? 503 :
+      result.reason === "rate_limited" ? 429 :
+      502;
     return NextResponse.json({ ok: false, error: result.reason, detail: result.detail }, { status });
   }
 
@@ -61,15 +70,25 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ bu
   if (!access.ok) return NextResponse.json({ ok: false, error: access.reason }, { status: access.status });
 
   const { businessId } = await params;
-  const body = (await req.json().catch(() => ({}))) as { assessmentId?: unknown; note?: unknown };
+  const body = (await req.json().catch(() => ({}))) as { assessmentId?: unknown; decision?: unknown; note?: unknown };
   if (typeof body.assessmentId !== "string" || !body.assessmentId) {
     return NextResponse.json({ ok: false, error: "assessment_id_required" }, { status: 400 });
   }
+  const decision: GrowthAssessmentReviewDecision = VALID_REVIEW_DECISIONS.includes(body.decision as GrowthAssessmentReviewDecision)
+    ? (body.decision as GrowthAssessmentReviewDecision)
+    : "accepted";
   const note = typeof body.note === "string" && body.note.trim() ? body.note.trim() : null;
+  // A correction/rejection without a note is not useful to a future re-analysis — require one for
+  // those two decisions specifically, matching the mission's "preserve correction note" /
+  // "preserve reviewer and reason/note" requirement. Acceptance keeps the note optional (Gate C
+  // behavior preserved).
+  if ((decision === "needs_correction" || decision === "rejected") && !note) {
+    return NextResponse.json({ ok: false, error: "review_note_required" }, { status: 400 });
+  }
 
-  const result = await markGrowthAssessmentReviewed(businessId, body.assessmentId, access.actor, note);
+  const result = await recordGrowthAssessmentReviewDecision(businessId, body.assessmentId, decision, access.actor, note);
   if (!result.ok) {
-    const status = result.reason === "not_found" ? 404 : 500;
+    const status = result.reason === "not_found" ? 404 : result.reason === "invalid_transition" ? 409 : 500;
     return NextResponse.json({ ok: false, error: result.reason }, { status });
   }
   return NextResponse.json({ ok: true, assessment: result.assessment });

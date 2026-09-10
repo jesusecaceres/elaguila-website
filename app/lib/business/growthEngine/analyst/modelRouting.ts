@@ -31,6 +31,20 @@ export function resolveGrowthAnalystModel(taskClass: GrowthAnalystTaskClass): st
 }
 
 /**
+ * Gate D (MD Part 5 "max-output controls") — a single centralized output-token ceiling for every
+ * Growth Analyst generation, same env-override convention as the model selection above. This is
+ * intentionally NOT the shared serverClient.ts's default (that file changes nothing for its other
+ * caller, Creative Studio) — only the Growth Analyst provider opts into a cap, here.
+ */
+const DEFAULT_MAX_OUTPUT_TOKENS = 4_000;
+
+export function resolveGrowthAnalystMaxOutputTokens(): number {
+  const raw = process.env.OPENAI_GROWTH_MAX_OUTPUT_TOKENS?.trim();
+  const parsed = raw ? Number(raw) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : DEFAULT_MAX_OUTPUT_TOKENS;
+}
+
+/**
  * Deterministic task-class classifier — never scattered inline at call sites. A first-ever
  * assessment, any unresolved Business Book contradiction, or a startup/idea roadmap all warrant
  * the more careful (and more expensive) reasoning tier; a routine re-assessment of an established

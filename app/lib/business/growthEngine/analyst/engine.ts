@@ -29,6 +29,7 @@ import {
   createGrowthAssessment,
   getCurrentGrowthAssessment,
   listGrowthAssessmentsForBusiness,
+  recordGrowthAssessmentCacheHit,
 } from "../repository";
 import type { GrowthAssessment, GrowthEngineActor } from "../types";
 
@@ -43,6 +44,7 @@ export type GenerateGrowthAssessmentResult =
         | "provider_unavailable"
         | "provider_failed"
         | "invalid_provider_output"
+        | "rate_limited"
         | "persistence_failed";
       detail?: string;
     };
@@ -65,6 +67,7 @@ export async function generateOrGetGrowthAssessment(
   const inputHash = computeGrowthAnalystInputHash(packet);
   const current = await getCurrentGrowthAssessment(businessId);
   if (current && shouldUseCachedAssessment(current, inputHash, options.forceReanalysis ?? false)) {
+    await recordGrowthAssessmentCacheHit(businessId, current.id, actor);
     return { ok: true, assessment: current, cached: true, taskClass: null };
   }
 
@@ -72,10 +75,10 @@ export async function generateOrGetGrowthAssessment(
   const generation = await generateGrowthAssessmentContent(packet, taskClass);
 
   if (!generation.ok) {
-    const reason =
-      generation.failureCode === "provider_unavailable" || generation.failureCode === "provider_failed" || generation.failureCode === "invalid_provider_output"
-        ? generation.failureCode
-        : "provider_failed";
+    const knownReasons = ["provider_unavailable", "provider_failed", "invalid_provider_output", "rate_limited"] as const;
+    const reason = (knownReasons as readonly string[]).includes(generation.failureCode)
+      ? (generation.failureCode as (typeof knownReasons)[number])
+      : "provider_failed";
     return { ok: false, reason, detail: generation.failureReason };
   }
 

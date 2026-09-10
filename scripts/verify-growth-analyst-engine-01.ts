@@ -125,14 +125,20 @@ check("5d. The POST route never accepts business truth (findings/facts) from the
     assert.ok(field === "body.forceReanalysis", `route reads unexpected client-supplied field ${field}`);
   }
 });
-check("5d-2. The PATCH route (review workflow) only ever reads assessmentId/note — never business-truth fields — and never marks facts confirmed", () => {
-  assert.ok(postBlockEnd !== -1, "expected a PATCH handler for the Gate C review workflow");
+check("5d-2. The PATCH route (review workflow) only ever reads assessmentId/decision/note — never business-truth fields — and never marks facts confirmed", () => {
+  assert.ok(postBlockEnd !== -1, "expected a PATCH handler for the Gate C/D review workflow");
   const block = route.slice(postBlockEnd);
   const bodyFieldsRead = block.match(/body\.\w+/g) ?? [];
+  // Gate D added `decision` (accepted/needs_correction/rejected) — still just a review-outcome
+  // selector picked from a closed 3-value enum server-side (VALID_REVIEW_DECISIONS), never a piece
+  // of business truth the client supplies.
   for (const field of bodyFieldsRead) {
-    assert.ok(field === "body.assessmentId" || field === "body.note", `PATCH route reads unexpected client-supplied field ${field}`);
+    assert.ok(
+      field === "body.assessmentId" || field === "body.note" || field === "body.decision",
+      `PATCH route reads unexpected client-supplied field ${field}`,
+    );
   }
-  assert.ok(block.includes("markGrowthAssessmentReviewed("), "PATCH must delegate to the canonical review-marking repository function, not write status directly");
+  assert.ok(block.includes("recordGrowthAssessmentReviewDecision("), "PATCH must delegate to the canonical review-decision repository function, not write status directly");
   assert.ok(!/business_facts|business_unknowns|confirmed\s*:\s*true/.test(block), "PATCH must never promote assessment content into confirmed Business Book truth");
 });
 check("5e. Every input-packet read is scoped to exactly one businessId (business isolation)", () => {

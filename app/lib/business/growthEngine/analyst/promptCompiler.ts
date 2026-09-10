@@ -45,6 +45,28 @@ const TRUTH_GOVERNANCE_RULES = [
   "Radio and any other partner media channel must never be presented as having confirmed pricing, inventory, or rotation — if you include a partner channel in media_mix, its text must say commercial terms require confirmation.",
 ].join(" ");
 
+// Gate D (MD Part 7) — the exact reasoning order the analyst must follow, spelled out explicitly
+// rather than left implicit in the truth-governance prose above. This does not change the JSON
+// output SHAPE (still the same 15 fields) — it disciplines the ORDER the model reasons in before
+// producing that JSON, so e.g. possible_solutions is never populated before found/unknown/
+// needs_verification are genuinely considered.
+const QUALITY_CONTRACT_REASONING_ORDER = [
+  "Reason in this exact order before writing your JSON answer:",
+  "1. What do we actually know? 2. What is unknown? 3. What requires verification? 4. What is the client trying to accomplish? 5. What capacity/constraints exist? 6. What have they already tried? 7. What current promotions/activity exist? 8. What questions would change our recommendation? 9. What possible solutions fit? 10. Is Leonix actually the right provider? 11. What media, if any, fits? 12. How would we measure? 13. What is the next right move?",
+  "No recommendation may exist simply because Leonix sells it — step 10 must be answered honestly for every possible_solutions item, and 'no solution yet' (captured in next_right_move instead) is an acceptable, often correct, answer to step 9.",
+].join(" ");
+
+// Gate D (MD Part 8) — current-promotion intelligence. When research/cockpit data shows a current
+// promotion, the model must reason about it with this exact discipline: FOUND that it exists is not
+// the same as knowing it worked, and no possible_solutions amplification may be proposed until
+// readiness (goal/capacity/offer/timing/client interest) is understood — matching MD §21's own
+// guardrail, not just MD §12.
+const CURRENT_PROMOTION_REASONING = [
+  "If the input shows a current/recent promotion: put 'a promotion exists' in found (with its evidence_ref), but its RESULTS (inquiries, conversions, whether it outperformed normal activity) belong in unknown UNLESS the client or a verified source explicitly states them — never assume a promotion worked or failed without evidence.",
+  "Generate promotion-specific questions_to_ask from this exact set where relevant: Is it still active? What are the exact terms? What is the end date? Where has it been promoted? How many inquiries has it produced? How many conversions? Did it outperform normal activity? Can the business support more demand right now? Do they want to extend or amplify it?",
+  "Only propose a promotion-amplification possible_solutions item (e.g. Business Hub, Leonix digital, newsletter, social, print, radio partner) AFTER the input shows real readiness signals (goal, capacity, offer, and timing are known) — if readiness is still unknown, say so in next_right_move instead of recommending media.",
+].join(" ");
+
 const QUESTIONS_ENGINE_GUIDANCE = [
   "questions_to_ask must be derived from THIS business's specific research findings and gaps — never generic boilerplate like 'Do you have a website?' when a website is already known.",
   "If a current promotion is detected in the input, ask whether it is still active, its exact terms, end date, channels used, results so far, and whether the business can fulfill increased demand from it.",
@@ -76,7 +98,9 @@ export function buildGrowthAssessmentPrompt(packet: GrowthAnalystInputPacket): {
     "You are the Leonix Business Development Analyst — a disciplined business-development consultant, not a generic chatbot and not a salesperson maximizing what Leonix can sell.",
     "Both Leonix and the client must win: recommend only what the client genuinely needs, is ready for, and can support.",
     TRUTH_GOVERNANCE_RULES,
+    QUALITY_CONTRACT_REASONING_ORDER,
     QUESTIONS_ENGINE_GUIDANCE,
+    CURRENT_PROMOTION_REASONING,
     roadmapGuidance(packet),
     "Respond with strict JSON only, matching exactly this shape (no markdown, no prose outside the JSON):",
     JSON.stringify(OUTPUT_SHAPE_EXAMPLE),
@@ -101,5 +125,18 @@ export function buildGrowthAssessmentPrompt(packet: GrowthAnalystInputPacket): {
     }),
   ].join("\n\n");
 
-  return { systemInstruction, prompt };
+  return { systemInstruction, prompt: enforceInputSizeDiscipline(prompt) };
+}
+
+// Gate D (MD Part 6.5 "input size discipline") — a defensive ceiling on top of inputPacket.ts's own
+// per-array caps (6+6 research evidence items, 8 opportunities, 8 campaigns, 8 outcomes). Those
+// caps are expected to keep every real prompt well under this limit; this is a fail-safe, not the
+// primary control — if the compiled cockpit briefing itself ever grows unexpectedly large, this
+// truncates the RAW JSON DATA block only (never the instruction/guardrail text above it) rather
+// than silently sending an unbounded prompt.
+const MAX_PROMPT_CHARS = 60_000;
+
+function enforceInputSizeDiscipline(prompt: string): string {
+  if (prompt.length <= MAX_PROMPT_CHARS) return prompt;
+  return `${prompt.slice(0, MAX_PROMPT_CHARS)}\n\n[INPUT TRUNCATED — exceeded ${MAX_PROMPT_CHARS} chars; treat any cut-off JSON above as absent, not as a fact.]`;
 }

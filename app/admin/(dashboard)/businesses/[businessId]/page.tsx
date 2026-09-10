@@ -866,6 +866,7 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
             canManageCampaigns={canManageGrowthCampaigns}
             canManageRoadmap={canManageGrowthRoadmap}
             canManageOfficialRequirements={canManageOfficialRequirements}
+            canManageCommitments={canManageCommitments}
           />
         </section>
       ) : null}

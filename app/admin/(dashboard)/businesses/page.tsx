@@ -22,7 +22,11 @@ import type { AdvisorSignalType } from "@/app/lib/business/advisor/types";
 import { listUpcomingMeetingsForStaffAttention } from "@/app/lib/business/meetingStudio/repository";
 import { listCommitmentsAttentionForStaffAttention } from "@/app/lib/business/promiseKeeper/repository";
 import { listCreativeAwaitingReviewForStaffAttention } from "@/app/lib/business/creativeStudio/repository";
-import { listBusinessesWithGrowthAssessmentNeedingReview } from "@/app/lib/business/growthEngine/repository";
+import {
+  listBusinessesWithGrowthAssessmentByStatus,
+  listBusinessesWithGrowthCampaignsNeedingAttention,
+  listBusinessesWithPendingOfficialRequirements,
+} from "@/app/lib/business/growthEngine/repository";
 
 export const dynamic = "force-dynamic";
 
@@ -114,14 +118,30 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
   let upcomingMeetings: Awaited<ReturnType<typeof listUpcomingMeetingsForStaffAttention>> = [];
   let commitmentsAttention: Awaited<ReturnType<typeof listCommitmentsAttentionForStaffAttention>> = [];
   let creativeAwaitingReview: Awaited<ReturnType<typeof listCreativeAwaitingReviewForStaffAttention>> = [];
-  let growthAssessmentsNeedingReview: Awaited<ReturnType<typeof listBusinessesWithGrowthAssessmentNeedingReview>> = [];
-  const [ownerHandoffResult, proposalsResult, meetingsResult, commitmentsResult, creativeResult, growthResult] = await Promise.allSettled([
+  let growthAssessmentsNeedingReview: Awaited<ReturnType<typeof listBusinessesWithGrowthAssessmentByStatus>> = [];
+  let growthAssessmentsNeedingCorrection: Awaited<ReturnType<typeof listBusinessesWithGrowthAssessmentByStatus>> = [];
+  let growthCampaignsNeedingAttention: Awaited<ReturnType<typeof listBusinessesWithGrowthCampaignsNeedingAttention>> = [];
+  let growthOfficialRequirementsPending: Awaited<ReturnType<typeof listBusinessesWithPendingOfficialRequirements>> = [];
+  const [
+    ownerHandoffResult,
+    proposalsResult,
+    meetingsResult,
+    commitmentsResult,
+    creativeResult,
+    growthReviewResult,
+    growthCorrectionResult,
+    growthCampaignResult,
+    growthOfficialRequirementResult,
+  ] = await Promise.allSettled([
     listAcceptedCurrentProposalsForHandoff(),
     listProposalsAwaitingDecisionForStaffAttention(),
     listUpcomingMeetingsForStaffAttention(),
     listCommitmentsAttentionForStaffAttention(),
     listCreativeAwaitingReviewForStaffAttention(),
-    actorHasCapability(access.actor, "view_growth_engine") ? listBusinessesWithGrowthAssessmentNeedingReview() : Promise.resolve([]),
+    actorHasCapability(access.actor, "view_growth_engine") ? listBusinessesWithGrowthAssessmentByStatus("needs_review") : Promise.resolve([]),
+    actorHasCapability(access.actor, "view_growth_engine") ? listBusinessesWithGrowthAssessmentByStatus("needs_correction") : Promise.resolve([]),
+    actorHasCapability(access.actor, "view_growth_engine") ? listBusinessesWithGrowthCampaignsNeedingAttention() : Promise.resolve([]),
+    actorHasCapability(access.actor, "view_growth_engine") ? listBusinessesWithPendingOfficialRequirements() : Promise.resolve([]),
   ]);
   if (ownerHandoffResult.status === "fulfilled") ownerHandoff = ownerHandoffResult.value;
   else ownerHandoffUnavailable = true;
@@ -129,7 +149,10 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
   if (meetingsResult.status === "fulfilled") upcomingMeetings = meetingsResult.value;
   if (commitmentsResult.status === "fulfilled") commitmentsAttention = commitmentsResult.value;
   if (creativeResult.status === "fulfilled") creativeAwaitingReview = creativeResult.value;
-  if (growthResult.status === "fulfilled") growthAssessmentsNeedingReview = growthResult.value;
+  if (growthReviewResult.status === "fulfilled") growthAssessmentsNeedingReview = growthReviewResult.value;
+  if (growthCorrectionResult.status === "fulfilled") growthAssessmentsNeedingCorrection = growthCorrectionResult.value;
+  if (growthCampaignResult.status === "fulfilled") growthCampaignsNeedingAttention = growthCampaignResult.value;
+  if (growthOfficialRequirementResult.status === "fulfilled") growthOfficialRequirementsPending = growthOfficialRequirementResult.value;
 
   // Advisor: bounded, idempotent refresh (write) then a read. The refresh only ever runs for a
   // real staff actor — owner_bootstrap has no roster identity to attribute the write to, so a
@@ -219,6 +242,33 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
     detailText: new Date(row.createdAt).toLocaleDateString("en-US"),
     href: `/admin/businesses/${row.businessId}#growth-plan`,
   }));
+  // Gate D (MD Part 12) — three more Growth Engine attention sources, same bounded/capped/
+  // read-only pattern as growthAssessmentEntries above. Overdue Growth-sourced Promise Keeper
+  // commitments deliberately have NO entry here — a real commitment created through the Gate D
+  // commitment-request bridge already resurfaces via the EXISTING commitmentEntries above (Promise
+  // Keeper's own canonical overdue/blocked query); a second, Growth-scoped overdue-commitment query
+  // would itself be the prohibited "second attention engine".
+  const growthCorrectionEntries: StaffConciergeAttentionEntry[] = growthAssessmentsNeedingCorrection.map((row) => ({
+    businessId: row.businessId,
+    displayName: row.displayName,
+    reasonLabel: "Growth assessment needs correction",
+    detailText: new Date(row.createdAt).toLocaleDateString("en-US"),
+    href: `/admin/businesses/${row.businessId}#growth-plan`,
+  }));
+  const growthCampaignAttentionEntries: StaffConciergeAttentionEntry[] = growthCampaignsNeedingAttention.map((row) => ({
+    businessId: row.businessId,
+    displayName: row.displayName,
+    reasonLabel: row.status === "needs_client_input" ? "Growth campaign needs client input" : "Growth campaign ready for review",
+    detailText: new Date(row.updatedAt).toLocaleDateString("en-US"),
+    href: `/admin/businesses/${row.businessId}#growth-plan`,
+  }));
+  const growthOfficialRequirementEntries: StaffConciergeAttentionEntry[] = growthOfficialRequirementsPending.map((row) => ({
+    businessId: row.businessId,
+    displayName: row.displayName,
+    reasonLabel: "Official requirement needs verification",
+    detailText: row.requirementTopicEn,
+    href: `/admin/businesses/${row.businessId}#growth-plan`,
+  }));
 
   const needsAttention = composeNeedsAttentionList([
     followUpEntries,
@@ -229,6 +279,9 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
     advisorOnlyEntries,
     missingInfoEntries,
     growthAssessmentEntries,
+    growthCorrectionEntries,
+    growthCampaignAttentionEntries,
+    growthOfficialRequirementEntries,
   ]);
 
   return (

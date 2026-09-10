@@ -18,7 +18,17 @@ export type GrowthEngineActor =
 // ---------------------------------------------------------------------------------------------
 // Assessment (Section A, MD §3.1 / §19)
 // ---------------------------------------------------------------------------------------------
-export type GrowthAssessmentStatus = "draft" | "needs_review" | "reviewed" | "superseded";
+export type GrowthAssessmentStatus = "draft" | "needs_review" | "reviewed" | "needs_correction" | "rejected" | "superseded";
+
+/**
+ * The three review outcomes an operator can record against a `needs_review` assessment (Gate D).
+ * "accepted" maps to status 'reviewed'; the other two preserve the draft as historical, non-working
+ * guidance with a reviewer + note, and require a fresh re-analysis (a new version) before the
+ * business can be reviewed again — re-analyzing never silently discards the corrected/rejected
+ * version, it only supersedes it (see createGrowthAssessment's existing supersede-on-new-version
+ * behavior).
+ */
+export type GrowthAssessmentReviewDecision = "accepted" | "needs_correction" | "rejected";
 
 /** One structured finding/question/solution-candidate item. Bilingual, evidence-traceable. */
 export type GrowthFindingItem = {
@@ -211,6 +221,30 @@ export interface GrowthMediaChannel {
   notesEs: string | null;
   notesEn: string | null;
   isActive: boolean;
+}
+
+/**
+ * Gate D (MD Part 10) — the future shape `config` (the existing untyped jsonb column above) can
+ * hold once a partner channel's real commercial terms are confirmed, WITHOUT any schema/migration
+ * change: config is already an open jsonb blob, so this type is documentation/forward-compatibility
+ * only — it is never read, validated, or enforced anywhere yet, and no field here is populated by
+ * this gate. Kept loosely typed (every field optional) on purpose: partial configuration (e.g. just
+ * station + market, pricing still pending) must remain representable.
+ */
+export interface GrowthPartnerMediaChannelConfig {
+  station?: string;
+  market?: string;
+  language?: string;
+  audience?: string;
+  spotLengthSeconds?: number;
+  rotation?: string;
+  scheduleDaysTimes?: string;
+  campaignStart?: string;
+  campaignEnd?: string;
+  productionRequirements?: string;
+  pricing?: string;
+  inventoryNotes?: string;
+  partnerTermsConfirmed?: boolean;
 }
 
 // ---------------------------------------------------------------------------------------------

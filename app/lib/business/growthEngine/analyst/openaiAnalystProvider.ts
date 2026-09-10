@@ -6,7 +6,7 @@
 import "server-only";
 
 import { isOpenAiConfigured, requestOpenAiChatCompletion } from "@/app/lib/openai/serverClient";
-import { resolveGrowthAnalystModel, type GrowthAnalystTaskClass } from "./modelRouting";
+import { resolveGrowthAnalystMaxOutputTokens, resolveGrowthAnalystModel, type GrowthAnalystTaskClass } from "./modelRouting";
 import { validateGrowthAssessmentJson, type GrowthAssessmentGeneratedContent } from "./schema";
 import { buildGrowthAssessmentPrompt } from "./promptCompiler";
 import type { GrowthAnalystInputPacket } from "./inputPacket";
@@ -61,7 +61,13 @@ export async function generateGrowthAssessmentContent(
 
   const { systemInstruction, prompt } = buildGrowthAssessmentPrompt(packet);
 
-  const result = await requestOpenAiChatCompletion({ model: modelKey, systemInstruction, prompt, temperature: 0 });
+  const result = await requestOpenAiChatCompletion({
+    model: modelKey,
+    systemInstruction,
+    prompt,
+    temperature: 0,
+    maxOutputTokens: resolveGrowthAnalystMaxOutputTokens(),
+  });
   const latencyMs = Date.now() - startedAt;
 
   if (!result.ok) {

@@ -25,6 +25,8 @@ const STAFF_WRITE_ERROR_MESSAGES: Readonly<Record<string, string>> = {
     "Se requiere una asignación de personal para programar el seguimiento. / A staff roster assignment is required to schedule follow-up.",
   staff_roster_required:
     "Se requiere una asignación de personal para registrar esta decisión. / A staff roster assignment is required to record this decision.",
+  rate_limited:
+    "El análisis está muy solicitado en este momento. Intenta de nuevo en un minuto. / Analysis is in high demand right now. Try again in a minute.",
 };
 
 /**
