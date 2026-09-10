@@ -22,6 +22,7 @@ import type { AdvisorSignalType } from "@/app/lib/business/advisor/types";
 import { listUpcomingMeetingsForStaffAttention } from "@/app/lib/business/meetingStudio/repository";
 import { listCommitmentsAttentionForStaffAttention } from "@/app/lib/business/promiseKeeper/repository";
 import { listCreativeAwaitingReviewForStaffAttention } from "@/app/lib/business/creativeStudio/repository";
+import { listBusinessesWithGrowthAssessmentNeedingReview } from "@/app/lib/business/growthEngine/repository";
 
 export const dynamic = "force-dynamic";
 
@@ -113,12 +114,14 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
   let upcomingMeetings: Awaited<ReturnType<typeof listUpcomingMeetingsForStaffAttention>> = [];
   let commitmentsAttention: Awaited<ReturnType<typeof listCommitmentsAttentionForStaffAttention>> = [];
   let creativeAwaitingReview: Awaited<ReturnType<typeof listCreativeAwaitingReviewForStaffAttention>> = [];
-  const [ownerHandoffResult, proposalsResult, meetingsResult, commitmentsResult, creativeResult] = await Promise.allSettled([
+  let growthAssessmentsNeedingReview: Awaited<ReturnType<typeof listBusinessesWithGrowthAssessmentNeedingReview>> = [];
+  const [ownerHandoffResult, proposalsResult, meetingsResult, commitmentsResult, creativeResult, growthResult] = await Promise.allSettled([
     listAcceptedCurrentProposalsForHandoff(),
     listProposalsAwaitingDecisionForStaffAttention(),
     listUpcomingMeetingsForStaffAttention(),
     listCommitmentsAttentionForStaffAttention(),
     listCreativeAwaitingReviewForStaffAttention(),
+    actorHasCapability(access.actor, "view_growth_engine") ? listBusinessesWithGrowthAssessmentNeedingReview() : Promise.resolve([]),
   ]);
   if (ownerHandoffResult.status === "fulfilled") ownerHandoff = ownerHandoffResult.value;
   else ownerHandoffUnavailable = true;
@@ -126,6 +129,7 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
   if (meetingsResult.status === "fulfilled") upcomingMeetings = meetingsResult.value;
   if (commitmentsResult.status === "fulfilled") commitmentsAttention = commitmentsResult.value;
   if (creativeResult.status === "fulfilled") creativeAwaitingReview = creativeResult.value;
+  if (growthResult.status === "fulfilled") growthAssessmentsNeedingReview = growthResult.value;
 
   // Advisor: bounded, idempotent refresh (write) then a read. The refresh only ever runs for a
   // real staff actor — owner_bootstrap has no roster identity to attribute the write to, so a
@@ -208,6 +212,13 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
     detailText: `${item.completenessMet}/${item.completenessTotal} complete`,
     href: `/admin/businesses/${item.businessId}#overview`,
   }));
+  const growthAssessmentEntries: StaffConciergeAttentionEntry[] = growthAssessmentsNeedingReview.map((row) => ({
+    businessId: row.businessId,
+    displayName: row.displayName,
+    reasonLabel: "Growth assessment needs review",
+    detailText: new Date(row.createdAt).toLocaleDateString("en-US"),
+    href: `/admin/businesses/${row.businessId}#growth-plan`,
+  }));
 
   const needsAttention = composeNeedsAttentionList([
     followUpEntries,
@@ -217,6 +228,7 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
     meetingEntries,
     advisorOnlyEntries,
     missingInfoEntries,
+    growthAssessmentEntries,
   ]);
 
   return (

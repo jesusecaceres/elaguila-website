@@ -971,3 +971,26 @@ export async function markOfficialRequirementVerified(
   });
   return { ok: true, requirement: updated };
 }
+
+// =================================================================================================
+// Cross-business Command Center bridge (Gate C). Mirrors the exact pattern every other Command
+// Center attention source already uses (e.g. creative-jobs-awaiting-review, proposals-awaiting-
+// decision) — a bounded, capped, cross-business read feeding the SAME existing
+// composeNeedsAttentionList() composer on the Staff Command Center, never a second/duplicate
+// attention engine. Read-only; never touches Advisor's own signal table or detection logic.
+// =================================================================================================
+export type GrowthAssessmentAttentionRow = { businessId: string; displayName: string; createdAt: string };
+
+export async function listBusinessesWithGrowthAssessmentNeedingReview(limit = 20): Promise<GrowthAssessmentAttentionRow[]> {
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("business_growth_assessments")
+    .select("business_id, created_at, businesses(display_name)")
+    .eq("status", "needs_review")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return (data as unknown as { business_id: string; created_at: string; businesses: { display_name: string } | null }[])
+    .filter((row) => row.businesses)
+    .map((row) => ({ businessId: String(row.business_id), displayName: String(row.businesses!.display_name), createdAt: String(row.created_at) }));
+}

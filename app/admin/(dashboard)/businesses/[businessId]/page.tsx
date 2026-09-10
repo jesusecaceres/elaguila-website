@@ -56,6 +56,17 @@ import { AdvisorPanel } from "./AdvisorPanel";
 import { listThreadsForBusiness } from "@/app/lib/business/assistant/repository";
 import { isAssistantEnabled } from "@/app/lib/business/assistant/featureFlag";
 import { AssistantPanel } from "./AssistantPanel";
+import {
+  getCurrentGrowthAssessment,
+  listGrowthAssessmentsForBusiness,
+  listGrowthSolutionsForBusiness,
+  listGrowthCampaignsForBusiness,
+  listOfficialRequirementsForBusiness,
+  ensureGrowthRoadmapForBusiness,
+  listGrowthMediaChannels,
+} from "@/app/lib/business/growthEngine/repository";
+import { growthRoadmapTypeForBusinessStage } from "@/app/lib/business/growthEngine/lifeStage";
+import { GrowthPlanPanel } from "./GrowthPlanJourney";
 
 export const dynamic = "force-dynamic";
 
@@ -312,12 +323,39 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
     assistantUnavailable = true;
   }
 
+  // Growth Engine, Gate C — Growth Plan. view_growth_engine gates the whole section; the finer
+  // manage_* / review_* / create_* capabilities gate individual actions inside it (server-side,
+  // not just UI hiding — every write route re-checks its own capability independently).
+  const canViewGrowthEngine = actorHasCapability(access.actor, "view_growth_engine");
+  const canCreateGrowthAssessment = actorHasCapability(access.actor, "create_growth_assessment");
+  const canReviewGrowthAssessment = actorHasCapability(access.actor, "review_growth_assessment");
+  const canManageGrowthSolutions = actorHasCapability(access.actor, "manage_growth_solutions");
+  const canManageGrowthCampaigns = actorHasCapability(access.actor, "manage_growth_campaigns");
+  const canManageGrowthRoadmap = actorHasCapability(access.actor, "manage_growth_roadmap");
+  const canManageOfficialRequirements = actorHasCapability(access.actor, "manage_official_requirements_research");
+  const growthRoadmapType = growthRoadmapTypeForBusinessStage(business.businessStage);
+  const growthPlanData = canViewGrowthEngine
+    ? await (async () => {
+        const [currentAssessment, assessmentHistory, solutions, campaigns, officialRequirements, roadmapSteps, mediaChannels] = await Promise.all([
+          getCurrentGrowthAssessment(business.id),
+          listGrowthAssessmentsForBusiness(business.id),
+          listGrowthSolutionsForBusiness(business.id),
+          listGrowthCampaignsForBusiness(business.id),
+          listOfficialRequirementsForBusiness(business.id),
+          ensureGrowthRoadmapForBusiness(business.id, growthRoadmapType, { type: "system", role: "growth_roadmap_seed" }),
+          listGrowthMediaChannels(),
+        ]);
+        return { currentAssessment, assessmentHistory, solutions, campaigns, officialRequirements, roadmapSteps, mediaChannels };
+      })()
+    : null;
+
   // Gate 2 — Business Dashboard cockpit. Local nav order matches the canonical staff journey
   // (Understand -> Diagnose -> Outreach -> Meet -> Recommend -> Opportunity -> Create -> Agree ->
   // Follow Through). Ownership Claim intentionally stays off this list — it is a separate,
   // staff-prospect-to-real-owner handoff flow, not part of the normal working journey.
   const dashboardTabs = [
     { id: "overview", label: "Resumen / Overview" },
+    ...(canViewGrowthEngine && growthPlanData ? [{ id: "growth-plan", label: "Plan de Crecimiento / Growth Plan" }] : []),
     ...(canViewBook && bookData ? [{ id: "business-book", label: "Libro del Negocio / Business Book" }] : []),
     ...(fieldDiscoveryData ? [{ id: "discover", label: "Descubrir / Discover" }] : []),
     ...(canViewHealthMap && healthData ? [{ id: "health", label: "Salud / Health" }] : []),
@@ -798,6 +836,39 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
         </ul>
       </section>
       </div>
+
+      {/* Growth Engine, Gate C — Growth Plan. The interpretive layer over Business Book/Health/
+          Meetings/Opportunities/Creative/Proposals/Commitments — never a duplicate of their own
+          detail screens, only a summary + deep links + the assessment-specific actions. Entirely
+          absent from the page when the actor lacks view_growth_engine, not just visually hidden. */}
+      {canViewGrowthEngine && growthPlanData ? (
+        <section id="growth-plan" className="scroll-mt-24 space-y-3">
+          <div className="rounded-2xl border border-[#D6C7AD]/70 bg-[#FFFDF7] p-4">
+            <h2 className="font-serif text-lg font-bold text-[#1E1810]">Plan de Crecimiento / Growth Plan</h2>
+            <p className="mt-1 text-xs text-[#7A7164]">
+              Lo que sabemos, lo que falta, qué preguntar y el próximo paso correcto — conectado al trabajo real, no un reporte aislado. / What we know, what is missing, what to ask, and the next right move — connected to real work, not an isolated report.
+            </p>
+          </div>
+          <GrowthPlanPanel
+            businessId={business.id}
+            businessStage={business.businessStage}
+            roadmapType={growthRoadmapType}
+            currentAssessment={growthPlanData.currentAssessment}
+            assessmentHistory={growthPlanData.assessmentHistory.map((a) => ({ id: a.id, status: a.status, createdAt: a.createdAt, reviewedAt: a.reviewedAt }))}
+            solutions={growthPlanData.solutions}
+            campaigns={growthPlanData.campaigns}
+            officialRequirements={growthPlanData.officialRequirements}
+            roadmapSteps={growthPlanData.roadmapSteps}
+            mediaChannels={growthPlanData.mediaChannels}
+            canCreateAssessment={canCreateGrowthAssessment}
+            canReviewAssessment={canReviewGrowthAssessment}
+            canManageSolutions={canManageGrowthSolutions}
+            canManageCampaigns={canManageGrowthCampaigns}
+            canManageRoadmap={canManageGrowthRoadmap}
+            canManageOfficialRequirements={canManageOfficialRequirements}
+          />
+        </section>
+      ) : null}
 
       {/* Living Business Book (Gate BCO-5A) — capability-gated; entirely absent from the page when the actor lacks view_business_book, not just visually hidden. */}
       {canViewBook && bookData ? (

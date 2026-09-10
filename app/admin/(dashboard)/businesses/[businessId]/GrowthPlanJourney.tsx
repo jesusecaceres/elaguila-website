@@ -1,0 +1,673 @@
+import Link from "next/link";
+import {
+  AnalyzeBusinessButton,
+  ReviewAssessmentButton,
+  PromoteSuggestionButton,
+  SolutionStateButtons,
+  CreateCreativeRequestButton,
+  CreateFollowUpFromSolutionButton,
+  ResearchOfficialRequirementButton,
+  VerifyOfficialRequirementForm,
+  RoadmapStepControl,
+  QuestionsBatchAddForm,
+  CampaignBuilderForm,
+  CampaignStatusControl,
+  providerClassLabel,
+  roadmapStateLabel,
+} from "./GrowthPlanActions";
+import { roadmapStepCatalog } from "@/app/lib/business/growthEngine/roadmapCatalog";
+import type {
+  GrowthAssessment,
+  GrowthCampaign,
+  GrowthMediaChannel,
+  GrowthOfficialRequirement,
+  GrowthProviderClass,
+  GrowthRoadmapStep,
+  GrowthRoadmapType,
+  GrowthSolution,
+} from "@/app/lib/business/growthEngine/types";
+import type { BusinessStage } from "@/app/lib/business/types";
+
+const CARD = "rounded-2xl border border-[#E8DFD0] bg-white p-4";
+
+// ---------------------------------------------------------------------------
+// Readiness — a display-only heuristic derived transparently from the current assessment's own
+// content and its promoted solutions' own readiness fields. Never a stored/fabricated value —
+// business_growth_assessments has no readiness column; this is purely how Growth Plan presents
+// what the assessment and solutions already say.
+// ---------------------------------------------------------------------------
+type DisplayReadiness = "ready" | "needs_preparation" | "needs_more_information" | "blocked";
+
+const READINESS_LABEL: Record<DisplayReadiness, { es: string; en: string; className: string }> = {
+  ready: { es: "Listo", en: "Ready", className: "bg-emerald-100 text-emerald-900" },
+  needs_preparation: { es: "Necesita preparación", en: "Needs Preparation", className: "bg-amber-100 text-amber-800" },
+  needs_more_information: { es: "Necesita más información", en: "Need More Information", className: "bg-[#EDE6D6] text-[#3D3428]" },
+  blocked: { es: "Bloqueado", en: "Blocked", className: "bg-red-100 text-red-800" },
+};
+
+function deriveDisplayReadiness(assessment: GrowthAssessment, solutions: readonly GrowthSolution[]): DisplayReadiness {
+  if (solutions.some((s) => s.state !== "dismissed" && s.state !== "complete" && s.readiness === "blocked")) return "blocked";
+  const knownWeight = assessment.whatKnown.length + assessment.whatFound.length;
+  const unknownWeight = assessment.whatUnknown.length + assessment.needsVerification.length;
+  if (unknownWeight > knownWeight) return "needs_more_information";
+  if (solutions.some((s) => s.state !== "dismissed" && s.readiness === "ready")) return "ready";
+  return "needs_preparation";
+}
+
+const ASSESSMENT_STATUS_LABEL: Record<GrowthAssessment["status"], { es: string; en: string; className: string }> = {
+  draft: { es: "Borrador", en: "Draft", className: "bg-[#EDE6D6] text-[#7A7164]" },
+  needs_review: { es: "Necesita revisión", en: "Needs Review", className: "bg-amber-100 text-amber-800" },
+  reviewed: { es: "Revisado", en: "Reviewed", className: "bg-emerald-100 text-emerald-900" },
+  superseded: { es: "Reemplazado", en: "Superseded", className: "bg-[#EDE6D6] text-[#7A7164]" },
+};
+
+// =================================================================================================
+// SECTION 1 — Growth Snapshot
+// =================================================================================================
+function GrowthSnapshotSection({
+  businessId,
+  businessStage,
+  currentAssessment,
+  solutions,
+  canCreateAssessment,
+  canReviewAssessment,
+}: {
+  businessId: string;
+  businessStage: BusinessStage;
+  currentAssessment: GrowthAssessment | null;
+  solutions: readonly GrowthSolution[];
+  canCreateAssessment: boolean;
+  canReviewAssessment: boolean;
+}) {
+  const isStartup = businessStage === "planning_prelaunch" || businessStage === "newly_opened";
+  const statusLabel = currentAssessment ? ASSESSMENT_STATUS_LABEL[currentAssessment.status] : null;
+  const readiness = currentAssessment ? deriveDisplayReadiness(currentAssessment, solutions) : null;
+  const readinessLabel = readiness ? READINESS_LABEL[readiness] : null;
+
+  return (
+    <section className={CARD}>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded-full bg-[#FAF7F2] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">
+          {isStartup ? "Idea / Startup" : "Negocio establecido / Established"}
+        </span>
+        {statusLabel ? (
+          <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${statusLabel.className}`}>
+            {statusLabel.es} / {statusLabel.en}
+          </span>
+        ) : (
+          <span className="rounded-full bg-[#EDE6D6] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#7A7164]">
+            Sin analizar / Not Analyzed
+          </span>
+        )}
+        {readinessLabel ? (
+          <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${readinessLabel.className}`}>
+            {readinessLabel.es} / {readinessLabel.en}
+          </span>
+        ) : null}
+      </div>
+
+      {currentAssessment ? (
+        <div className="mt-3 rounded-xl border border-[#C9A84A]/40 bg-[#FFFDF7] p-3">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Próximo paso correcto / Next Right Move</p>
+          <p className="mt-1 text-sm font-semibold text-[#1E1810]">{currentAssessment.nextRightMoveEs}</p>
+          <p className="text-sm text-[#6B5E47]">{currentAssessment.nextRightMoveEn}</p>
+        </div>
+      ) : (
+        <p className="mt-3 text-sm text-[#6B5E47]">
+          Analice este negocio para identificar vacíos, preguntas del cliente y próximos pasos. / Analyze this business to identify gaps, client questions, and next steps.
+        </p>
+      )}
+
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        {canCreateAssessment ? (
+          <AnalyzeBusinessButton businessId={businessId} hasAssessment={Boolean(currentAssessment)} />
+        ) : !currentAssessment ? (
+          <p className="text-xs text-[#7A7164]">Se requiere un gerente para analizar este negocio. / A manager is required to analyze this business.</p>
+        ) : null}
+      </div>
+
+      {currentAssessment && currentAssessment.status === "needs_review" && canReviewAssessment ? (
+        <div className="mt-3 border-t border-dashed border-[#E8DFD0] pt-3">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Revisar evaluación / Review Assessment</p>
+          <ReviewAssessmentButton businessId={businessId} assessmentId={currentAssessment.id} />
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+// =================================================================================================
+// SECTION 2 — What We Found
+// =================================================================================================
+function WhatWeFoundSection({ assessment }: { assessment: GrowthAssessment }) {
+  const items = [...assessment.whatFound, ...assessment.whatKnown].slice(0, 6);
+  return (
+    <section className={CARD}>
+      <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Lo que encontramos / What We Found</h3>
+      {items.length === 0 ? (
+        <p className="mt-2 text-sm text-[#6B5E47]">No hay hallazgos todavía. / No findings yet.</p>
+      ) : (
+        <ul className="mt-2 space-y-1.5">
+          {items.map((item, i) => (
+            <li key={i} className="rounded-lg border border-dashed border-[#E8DFD0] p-2 text-sm">
+              <span className="block">{item.textEs}</span>
+              <span className="block text-[#6B5E47]">{item.textEn}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Link href={`#business-book`} className="inline-flex min-h-[36px] items-center rounded-lg border border-[#E8DFD0] px-3 py-1.5 text-[11px] font-semibold text-[#3D3428]">
+          Ver Libro del Negocio / View Business Book
+        </Link>
+        <Link href={`#discover`} className="inline-flex min-h-[36px] items-center rounded-lg border border-[#E8DFD0] px-3 py-1.5 text-[11px] font-semibold text-[#3D3428]">
+          Ver Investigación / View Research
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+// =================================================================================================
+// SECTION 3 — Missing / Needs Confirmation
+// =================================================================================================
+function MissingInformationSection({ assessment }: { assessment: GrowthAssessment }) {
+  const groups: { titleEs: string; titleEn: string; items: readonly { textEs: string; textEn: string }[] }[] = [
+    { titleEs: "Información faltante", titleEn: "Missing Information", items: assessment.whatUnknown },
+    { titleEs: "Requiere confirmación del cliente", titleEn: "Needs Client Confirmation", items: assessment.needsVerification },
+    { titleEs: "Requiere atención", titleEn: "Needs Attention", items: assessment.weakOrMissing },
+  ];
+  const total = groups.reduce((n, g) => n + g.items.length, 0);
+
+  return (
+    <section className={CARD}>
+      <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Falta / Requiere confirmación — Missing / Needs Confirmation</h3>
+      {total === 0 ? (
+        <p className="mt-2 text-sm text-[#6B5E47]">No hay vacíos identificados en este momento. / No gaps identified right now.</p>
+      ) : (
+        groups
+          .filter((g) => g.items.length > 0)
+          .map((g) => (
+            <div key={g.titleEn} className="mt-2">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A1E2C]">{g.titleEs} / {g.titleEn}</p>
+              <ul className="mt-1 space-y-1.5">
+                {g.items.slice(0, 6).map((item, i) => (
+                  <li key={i} className="rounded-lg border border-dashed border-[#E8DFD0] p-2 text-sm">
+                    <span className="block">{item.textEs}</span>
+                    <span className="block text-[#6B5E47]">{item.textEn}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+      )}
+    </section>
+  );
+}
+
+// =================================================================================================
+// SECTION 4 — Questions for the Client
+// =================================================================================================
+function QuestionsSection({ businessId, assessment }: { businessId: string; assessment: GrowthAssessment }) {
+  return (
+    <section className={CARD}>
+      <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Preguntas para el cliente / Questions for the Client</h3>
+      {assessment.clientQuestions.length === 0 ? (
+        <p className="mt-2 text-sm text-[#6B5E47]">No hay preguntas de crecimiento sin responder en este momento. / No unanswered growth questions right now.</p>
+      ) : (
+        <QuestionsBatchAddForm businessId={businessId} questions={assessment.clientQuestions} />
+      )}
+    </section>
+  );
+}
+
+// =================================================================================================
+// SECTION 5 — Growth Opportunities (informational — the canonical Opportunity system stays separate)
+// =================================================================================================
+function GrowthOpportunitiesSection({ assessment }: { assessment: GrowthAssessment }) {
+  return (
+    <section className={CARD}>
+      <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Oportunidades de crecimiento / Growth Opportunities</h3>
+      {assessment.growthOpportunities.length === 0 ? (
+        <p className="mt-2 text-sm text-[#6B5E47]">No se identificaron oportunidades de crecimiento todavía. / No growth opportunities identified yet.</p>
+      ) : (
+        <ul className="mt-2 space-y-1.5">
+          {assessment.growthOpportunities.slice(0, 6).map((item, i) => (
+            <li key={i} className="rounded-lg border border-dashed border-[#E8DFD0] p-2 text-sm">
+              <span className="block">{item.textEs}</span>
+              <span className="block text-[#6B5E47]">{item.textEn}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <Link href="#opportunity" className="mt-3 inline-flex min-h-[36px] items-center rounded-lg border border-[#E8DFD0] px-3 py-1.5 text-[11px] font-semibold text-[#3D3428]">
+        Ver Oportunidades / View Opportunities
+      </Link>
+    </section>
+  );
+}
+
+// =================================================================================================
+// SECTION 6 — Recommended Solutions (suggested, from the assessment, + canonical promoted ones)
+// =================================================================================================
+function SolutionExecutionActions({ businessId, solution, canManageSolutions }: { businessId: string; solution: GrowthSolution; canManageSolutions: boolean }) {
+  if (!canManageSolutions || solution.state === "dismissed") return null;
+  if (solution.linkedCreativeJobId || solution.linkedCampaignId || solution.linkedOfficialRequirementId) {
+    return <p className="mt-1 text-[10px] text-emerald-800">Vinculado a trabajo existente / Linked to existing work</p>;
+  }
+
+  const lower = `${solution.category} ${solution.titleEn}`.toLowerCase();
+  const isLegal = /legal|licens|regulat|tax|permit/i.test(lower);
+  const isLogo = /logo|brand identity/.test(lower);
+  const isWebsite = /website|web site|domain/.test(lower);
+  const isEditorial = /editorial|sponsored feature/.test(lower);
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {solution.providerClass === "external_professional_required" || isLegal ? (
+        <ResearchOfficialRequirementButton businessId={businessId} jurisdiction={solution.category} topicEs={solution.titleEs} topicEn={solution.titleEn} />
+      ) : (
+        <>
+          {isLogo ? <CreateCreativeRequestButton businessId={businessId} solutionId={solution.id} lane="logo" /> : null}
+          {isWebsite ? <CreateCreativeRequestButton businessId={businessId} solutionId={solution.id} lane="website" /> : null}
+          {isEditorial ? <CreateCreativeRequestButton businessId={businessId} solutionId={solution.id} lane="sponsored_editorial" /> : null}
+          {!isLogo && !isWebsite && !isEditorial ? <CreateCreativeRequestButton businessId={businessId} solutionId={solution.id} lane="ad" /> : null}
+        </>
+      )}
+      <CreateFollowUpFromSolutionButton businessId={businessId} purpose={`${solution.titleEs} / ${solution.titleEn}`} />
+    </div>
+  );
+}
+
+function SolutionCard({ businessId, solution, canManageSolutions }: { businessId: string; solution: GrowthSolution; canManageSolutions: boolean }) {
+  return (
+    <li className="rounded-lg border border-[#E8DFD0] p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5 text-[10px] font-bold uppercase text-[#8A6B1F]">{solution.state}</span>
+        <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5 text-[10px] uppercase text-[#7A7164]">{solution.priority}</span>
+      </div>
+      <p className="mt-1 text-sm font-semibold text-[#1E1810]">{solution.titleEs}</p>
+      <p className="text-sm text-[#6B5E47]">{solution.titleEn}</p>
+      {solution.rationaleEs ? (
+        <p className="mt-1 text-xs text-[#7A7164]">
+          {solution.rationaleEs} / {solution.rationaleEn}
+        </p>
+      ) : null}
+      {canManageSolutions ? <SolutionStateButtons businessId={businessId} solutionId={solution.id} state={solution.state} /> : null}
+      <SolutionExecutionActions businessId={businessId} solution={solution} canManageSolutions={canManageSolutions} />
+    </li>
+  );
+}
+
+function RecommendedSolutionsSection({
+  businessId,
+  assessment,
+  solutions,
+  canManageSolutions,
+}: {
+  businessId: string;
+  assessment: GrowthAssessment | null;
+  solutions: readonly GrowthSolution[];
+  canManageSolutions: boolean;
+}) {
+  const byClass = (pc: GrowthProviderClass) => solutions.filter((s) => s.providerClass === pc);
+  const groups: { pc: GrowthProviderClass; items: GrowthSolution[] }[] = [
+    { pc: "leonix_provides", items: byClass("leonix_provides") },
+    { pc: "leonix_coordinates_partner", items: byClass("leonix_coordinates_partner") },
+    { pc: "external_professional_required", items: byClass("external_professional_required") },
+  ];
+  const suggestions = assessment?.suggestedSolutions ?? [];
+
+  return (
+    <section className={CARD}>
+      <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Soluciones recomendadas / Recommended Solutions</h3>
+      {solutions.length === 0 && suggestions.length === 0 ? (
+        <p className="mt-2 text-sm text-[#6B5E47]">
+          No se debe recomendar ninguna solución hasta que sepamos más. / No solution should be recommended until we know more.
+        </p>
+      ) : null}
+
+      {groups.map((g) =>
+        g.items.length > 0 ? (
+          <div key={g.pc} className="mt-3">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A1E2C]">{providerClassLabel(g.pc)}</p>
+            <ul className="mt-1 space-y-2">
+              {g.items.map((s) => (
+                <SolutionCard key={s.id} businessId={businessId} solution={s} canManageSolutions={canManageSolutions} />
+              ))}
+            </ul>
+          </div>
+        ) : null,
+      )}
+
+      {suggestions.length > 0 && assessment ? (
+        <div className="mt-3 border-t border-dashed border-[#E8DFD0] pt-3">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Sugerencias de IA sin revisar / Unreviewed AI suggestions</p>
+          <ul className="mt-1 space-y-2">
+            {suggestions.slice(0, 8).map((s, i) => (
+              <li key={i} className="rounded-lg border border-dashed border-[#E8DFD0] p-2">
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold uppercase text-amber-800">Sugerencia / Suggestion</span>
+                <p className="mt-1 text-sm">{s.textEs}</p>
+                <p className="text-sm text-[#6B5E47]">{s.textEn}</p>
+                <p className="mt-0.5 text-[10px] text-[#9A9184]">{providerClassLabel(s.providerClass)}</p>
+                {canManageSolutions ? (
+                  <PromoteSuggestionButton businessId={businessId} assessmentId={assessment.id} suggestion={{ ...s, evidenceRefs: s.evidenceRefs ?? [] }} />
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+// =================================================================================================
+// SECTION 7 — Media / Exposure Plan
+// =================================================================================================
+function MediaMixSection({ assessment, mediaChannels }: { assessment: GrowthAssessment | null; mediaChannels: readonly GrowthMediaChannel[] }) {
+  if (!assessment || assessment.recommendedMediaMix.length === 0) return null;
+  const byKey = new Map(mediaChannels.map((c) => [c.channelKey, c]));
+
+  return (
+    <section className={CARD}>
+      <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Plan de medios / exposición — Media / Exposure Plan</h3>
+      <ul className="mt-2 space-y-1.5">
+        {assessment.recommendedMediaMix.map((item, i) => {
+          const channel = byKey.get(item.channelKey);
+          const isPartner = channel?.channelClass === "partner";
+          return (
+            <li key={i} className="rounded-lg border border-dashed border-[#E8DFD0] p-2 text-sm">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-[#1E1810]">{channel ? `${channel.labelEs} / ${channel.labelEn}` : item.channelKey}</span>
+                {isPartner ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold uppercase text-amber-800">Canal socio / Partner channel</span> : null}
+              </div>
+              <p className="mt-0.5">{item.textEs}</p>
+              <p className="text-[#6B5E47]">{item.textEn}</p>
+              {isPartner ? (
+                <p className="mt-1 text-[10px] text-[#9A9184]">
+                  Los términos comerciales requieren confirmación. / Commercial terms require confirmation.
+                </p>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+// =================================================================================================
+// SECTION 8 — Roadmap
+// =================================================================================================
+function RoadmapSection({
+  businessId,
+  roadmapType,
+  steps,
+  canManageRoadmap,
+}: {
+  businessId: string;
+  roadmapType: GrowthRoadmapType;
+  steps: readonly GrowthRoadmapStep[];
+  canManageRoadmap: boolean;
+}) {
+  const catalog = roadmapStepCatalog(roadmapType);
+  const byKey = new Map(steps.map((s) => [s.stepKey, s]));
+  const ordered = catalog.map((def) => ({ def, step: byKey.get(def.stepKey) ?? null }));
+
+  const currentIndex = ordered.findIndex(({ step }) => step?.state === "in_progress");
+  const firstIncompleteIndex = ordered.findIndex(({ step }) => !step || (step.state !== "complete" && step.state !== "not_applicable"));
+  const focusIndex = currentIndex !== -1 ? currentIndex : firstIncompleteIndex !== -1 ? firstIncompleteIndex : 0;
+  const preview = ordered.slice(Math.max(0, focusIndex - 1), focusIndex + 3);
+
+  return (
+    <section className={CARD}>
+      <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Hoja de ruta / Roadmap</h3>
+      <ol className="mt-2 space-y-1.5">
+        {preview.map(({ def, step }) => {
+          const state = step?.state ?? "not_started";
+          return (
+            <li key={def.stepKey} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#E8DFD0] p-2">
+              <span className="text-sm font-semibold text-[#1E1810]">
+                {def.labelEs} / {def.labelEn}
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5 text-[10px] uppercase text-[#7A7164]">{roadmapStateLabel(state)}</span>
+                {canManageRoadmap ? <RoadmapStepControl businessId={businessId} stepKey={def.stepKey} state={state} /> : null}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+      <details className="mt-2">
+        <summary className="cursor-pointer text-[11px] font-semibold text-[#7A1E2C]">Ver hoja de ruta completa / View full roadmap</summary>
+        <ol className="mt-2 space-y-1">
+          {ordered.map(({ def, step }) => (
+            <li key={def.stepKey} className="flex items-center justify-between gap-2 rounded-lg border border-dashed border-[#E8DFD0] px-2 py-1.5 text-xs">
+              <span>{def.labelEs} / {def.labelEn}</span>
+              <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5 text-[10px] uppercase text-[#7A7164]">{roadmapStateLabel(step?.state ?? "not_started")}</span>
+            </li>
+          ))}
+        </ol>
+      </details>
+    </section>
+  );
+}
+
+// =================================================================================================
+// SECTION 9 — Projects / Campaigns
+// =================================================================================================
+function ProjectsCampaignsSection({
+  businessId,
+  campaigns,
+  solutions,
+  canManageCampaigns,
+  mediaChannels,
+  reviewedAssessment,
+}: {
+  businessId: string;
+  campaigns: readonly GrowthCampaign[];
+  solutions: readonly GrowthSolution[];
+  canManageCampaigns: boolean;
+  mediaChannels: readonly GrowthMediaChannel[];
+  reviewedAssessment: GrowthAssessment | null;
+}) {
+  const activeCampaigns = campaigns.filter((c) => c.status !== "complete" && c.status !== "cancelled");
+  const activeProjects = solutions.filter((s) => s.state === "in_progress" && (s.linkedCreativeJobId || s.linkedOfficialRequirementId));
+
+  return (
+    <section className={CARD}>
+      <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Proyectos / Campañas — Projects / Campaigns</h3>
+
+      {activeProjects.length > 0 ? (
+        <ul className="mt-2 space-y-1.5">
+          {activeProjects.map((s) => (
+            <li key={s.id} className="flex items-center justify-between gap-2 rounded-lg border border-dashed border-[#E8DFD0] p-2 text-sm">
+              <span>{s.titleEs} / {s.titleEn}</span>
+              <Link href={s.linkedCreativeJobId ? "#creative" : "#growth-plan"} className="text-[11px] font-semibold text-[#7A1E2C]">
+                Abrir / Open
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {activeCampaigns.length === 0 ? (
+        <p className="mt-2 text-sm text-[#6B5E47]">No hay campaña de crecimiento activa. / No active growth campaign.</p>
+      ) : (
+        <ul className="mt-2 space-y-2">
+          {activeCampaigns.map((c) => (
+            <li key={c.id} className="rounded-lg border border-[#E8DFD0] p-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5 text-[10px] font-bold uppercase text-[#8A6B1F]">{c.status}</span>
+              </div>
+              <p className="mt-1 text-sm font-semibold text-[#1E1810]">{c.objectiveEs}</p>
+              <p className="text-sm text-[#6B5E47]">{c.objectiveEn}</p>
+              {canManageCampaigns ? <CampaignStatusControl businessId={businessId} campaignId={c.id} status={c.status} /> : null}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {canManageCampaigns ? (
+        <div className="mt-3">
+          <CampaignBuilderForm
+            businessId={businessId}
+            prefillObjectiveEs={reviewedAssessment?.nextRightMoveEs ?? undefined}
+            prefillObjectiveEn={reviewedAssessment?.nextRightMoveEn ?? undefined}
+            mediaChannels={mediaChannels}
+          />
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+// =================================================================================================
+// SECTION 10 — Measurement
+// =================================================================================================
+function MeasurementSection({ assessment, campaigns }: { assessment: GrowthAssessment | null; campaigns: readonly GrowthCampaign[] }) {
+  const hasMeasurable = campaigns.some((c) => c.status === "live" || c.status === "measuring" || c.status === "complete");
+  return (
+    <section className={CARD}>
+      <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Medición / Measurement</h3>
+      {assessment && assessment.measurementPlan.length > 0 ? (
+        <ul className="mt-2 space-y-1.5">
+          {assessment.measurementPlan.map((item, i) => (
+            <li key={i} className="rounded-lg border border-dashed border-[#E8DFD0] p-2 text-sm">
+              <span className="block">{item.textEs}</span>
+              <span className="block text-[#6B5E47]">{item.textEn}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-2 text-sm text-[#6B5E47]">
+          No se está midiendo nada todavía. Una campaña o proyecto debe definir qué éxito se puede observar realmente. / Nothing is being measured yet. A campaign or project must define what success can realistically be observed.
+        </p>
+      )}
+      {!hasMeasurable ? (
+        <p className="mt-2 text-[11px] text-[#9A9184]">Sin resultados todavía — no hay campañas activas o medidas. / No results yet — no active or measured campaigns.</p>
+      ) : null}
+    </section>
+  );
+}
+
+// =================================================================================================
+// SECTION 11 — Assessment History
+// =================================================================================================
+function AssessmentHistorySection({ history }: { history: readonly { id: string; status: string; createdAt: string; reviewedAt: string | null }[] }) {
+  if (history.length === 0) return null;
+  return (
+    <details className="mt-1 rounded-2xl border border-[#E8DFD0] bg-white p-4">
+      <summary className="cursor-pointer text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Historial de evaluaciones / Assessment History</summary>
+      <ul className="mt-2 space-y-1">
+        {history.map((h) => (
+          <li key={h.id} className="flex items-center justify-between gap-2 text-xs text-[#6B5E47]">
+            <span>{new Date(h.createdAt).toLocaleDateString()}</span>
+            <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5 text-[10px] uppercase">{h.status}</span>
+            <span>{h.reviewedAt ? `Revisado ${new Date(h.reviewedAt).toLocaleDateString()}` : "—"}</span>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+// =================================================================================================
+// Top-level orchestrator
+// =================================================================================================
+export function GrowthPlanPanel({
+  businessId,
+  businessStage,
+  roadmapType,
+  currentAssessment,
+  assessmentHistory,
+  solutions,
+  campaigns,
+  officialRequirements,
+  roadmapSteps,
+  mediaChannels,
+  canCreateAssessment,
+  canReviewAssessment,
+  canManageSolutions,
+  canManageCampaigns,
+  canManageRoadmap,
+  canManageOfficialRequirements,
+}: {
+  businessId: string;
+  businessStage: BusinessStage;
+  roadmapType: GrowthRoadmapType;
+  currentAssessment: GrowthAssessment | null;
+  assessmentHistory: readonly { id: string; status: string; createdAt: string; reviewedAt: string | null }[];
+  solutions: readonly GrowthSolution[];
+  campaigns: readonly GrowthCampaign[];
+  officialRequirements: readonly GrowthOfficialRequirement[];
+  roadmapSteps: readonly GrowthRoadmapStep[];
+  mediaChannels: readonly GrowthMediaChannel[];
+  canCreateAssessment: boolean;
+  canReviewAssessment: boolean;
+  canManageSolutions: boolean;
+  canManageCampaigns: boolean;
+  canManageRoadmap: boolean;
+  canManageOfficialRequirements: boolean;
+}) {
+  const reviewedAssessment = currentAssessment?.status === "reviewed" ? currentAssessment : null;
+  const pendingRequirements = officialRequirements.filter((r) => r.state !== "human_verified" && r.state !== "not_applicable");
+
+  return (
+    <div className="space-y-3">
+      <GrowthSnapshotSection
+        businessId={businessId}
+        businessStage={businessStage}
+        currentAssessment={currentAssessment}
+        solutions={solutions}
+        canCreateAssessment={canCreateAssessment}
+        canReviewAssessment={canReviewAssessment}
+      />
+
+      {currentAssessment ? (
+        <>
+          <WhatWeFoundSection assessment={currentAssessment} />
+          <MissingInformationSection assessment={currentAssessment} />
+          <QuestionsSection businessId={businessId} assessment={currentAssessment} />
+          <GrowthOpportunitiesSection assessment={currentAssessment} />
+        </>
+      ) : null}
+
+      <RecommendedSolutionsSection businessId={businessId} assessment={currentAssessment} solutions={solutions} canManageSolutions={canManageSolutions} />
+
+      {pendingRequirements.length > 0 ? (
+        <section className={CARD}>
+          <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Requisitos oficiales / Official Requirements</h3>
+          <ul className="mt-2 space-y-2">
+            {pendingRequirements.map((r) => (
+              <li key={r.id} className="rounded-lg border border-amber-200 bg-amber-50 p-2">
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold uppercase text-amber-800">Requiere investigación oficial / Needs Official Research</span>
+                <p className="mt-1 text-sm font-semibold text-[#1E1810]">{r.requirementTopicEs}</p>
+                <p className="text-sm text-[#6B5E47]">{r.requirementTopicEn}</p>
+                {canManageOfficialRequirements ? <VerifyOfficialRequirementForm businessId={businessId} requirementId={r.id} /> : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      <MediaMixSection assessment={currentAssessment} mediaChannels={mediaChannels} />
+
+      <RoadmapSection businessId={businessId} roadmapType={roadmapType} steps={roadmapSteps} canManageRoadmap={canManageRoadmap} />
+
+      <ProjectsCampaignsSection
+        businessId={businessId}
+        campaigns={campaigns}
+        solutions={solutions}
+        canManageCampaigns={canManageCampaigns}
+        mediaChannels={mediaChannels}
+        reviewedAssessment={reviewedAssessment}
+      />
+
+      <MeasurementSection assessment={currentAssessment} campaigns={campaigns} />
+
+      <AssessmentHistorySection history={assessmentHistory} />
+    </div>
+  );
+}

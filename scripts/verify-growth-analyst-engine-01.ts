@@ -107,18 +107,33 @@ check("5b. create_growth_assessment and review capabilities are registered in th
   assert.ok(capabilities.includes('"create_growth_assessment"'));
   assert.ok(capabilities.includes('"review_growth_assessment"'));
 });
+// Gate C (Growth Plan UI) appended a PATCH handler below POST for the human review workflow
+// ("accept as working guidance") — it legitimately reads body.assessmentId (which draft to mark
+// reviewed) and body.note (an operator-authored note), neither of which is AI-sourced business
+// truth. The POST block must therefore be bounded to end before PATCH, not run to EOF.
+const postBlockEnd = route.indexOf("export async function PATCH");
 check("5c. The route never accepts an actor from the request body — the actor always comes from the resolver", () => {
   const postIdx = route.indexOf("export async function POST");
-  const block = route.slice(postIdx);
+  const block = route.slice(postIdx, postBlockEnd === -1 ? undefined : postBlockEnd);
   assert.ok(!/body\.actor|body\.rosterId|body\.authUserId/.test(block), "route must never trust actor identity from the client");
 });
-check("5d. The route never accepts business truth (findings/facts) from the request body — only forceReanalysis is read", () => {
+check("5d. The POST route never accepts business truth (findings/facts) from the request body — only forceReanalysis is read", () => {
   const postIdx = route.indexOf("export async function POST");
-  const block = route.slice(postIdx);
+  const block = route.slice(postIdx, postBlockEnd === -1 ? undefined : postBlockEnd);
   const bodyFieldsRead = block.match(/body\.\w+/g) ?? [];
   for (const field of bodyFieldsRead) {
     assert.ok(field === "body.forceReanalysis", `route reads unexpected client-supplied field ${field}`);
   }
+});
+check("5d-2. The PATCH route (review workflow) only ever reads assessmentId/note — never business-truth fields — and never marks facts confirmed", () => {
+  assert.ok(postBlockEnd !== -1, "expected a PATCH handler for the Gate C review workflow");
+  const block = route.slice(postBlockEnd);
+  const bodyFieldsRead = block.match(/body\.\w+/g) ?? [];
+  for (const field of bodyFieldsRead) {
+    assert.ok(field === "body.assessmentId" || field === "body.note", `PATCH route reads unexpected client-supplied field ${field}`);
+  }
+  assert.ok(block.includes("markGrowthAssessmentReviewed("), "PATCH must delegate to the canonical review-marking repository function, not write status directly");
+  assert.ok(!/business_facts|business_unknowns|confirmed\s*:\s*true/.test(block), "PATCH must never promote assessment content into confirmed Business Book truth");
 });
 check("5e. Every input-packet read is scoped to exactly one businessId (business isolation)", () => {
   const functionNames = ["loadBusinessIdentity", "loadRawResearchEvidence", "buildGrowthAnalystInputPacket"];
