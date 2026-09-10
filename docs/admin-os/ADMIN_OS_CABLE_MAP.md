@@ -956,3 +956,89 @@ Book V2 §17 Global Search Contract / §0C Company-Search-vs-Admin-Guide-Search 
   prose-mention match, both corrected to test actual code rather than comment text, consistent with
   this project's established comment-stripping convention). `verify:admin-nav-ops` (75/75) and
   `verify:executive-hub-self-service` (20/20) both re-confirmed unaffected.
+
+---
+
+## SYSTEM: Owner Normal Login + Break-Glass Continuity (Master Operating Book V2 §0F)
+
+Focused authentication-continuity gate. Confirms the intended NORMAL LOGIN vs. OWNER BOOTSTRAP
+architecture against real source, and documents one genuine, pre-existing, not-yet-repaired
+architectural inconsistency discovered during this pass.
+
+- **CANONICAL_ENTITY / DATA_SOURCE**: `admin_team_members` (Supabase Auth-linked staff roster) +
+  Supabase Auth (`auth.users`) for normal identity; a signed, expiring, HMAC-verified
+  `leonix_admin_bootstrap` cookie (`app/lib/supabase/adminSession.ts`) for emergency-only access —
+  never a roster row, never a Supabase Auth user.
+- **PRIMARY_ADMIN_HOME**: `/admin/login` (`app/admin/login/page.tsx`) — two forms: "Staff / Team
+  login" (`/admin/login/auth`, real Supabase Auth + active-roster check) and "Owner bootstrap
+  (shared password)" (`/admin/login/submit`, shared `ADMIN_PASSWORD`, emergency only).
+- **NORMAL LOGIN CONTRACT — CONFIRMED REAL**: `/admin/login/auth/route.ts` verifies Supabase Auth
+  credentials (`verifyAdminSupabaseCredentials`) AND an active `admin_team_members` row
+  (`lookupActiveAdminRosterByEmail`) BEFORE ever calling `applyLeonixAdminSessionCookies` — an
+  inactive or non-existent roster row is denied (`?error=inactive` / `?error=not_roster`) even with
+  correct Supabase Auth credentials. Logging in this way always clears any prior bootstrap cookie.
+- **BREAK-GLASS CONTRACT — CONFIRMED REAL**: `applyLeonixAdminSessionCookies(..., { bootstrap: true
+  })` sets ONLY the signed `leonix_admin_bootstrap` token and explicitly clears the
+  operator-email/auth-user-id cookies — a bootstrap session can never carry a real per-person
+  identity. `isAdminBootstrapSession()` fails closed (returns false) whenever
+  `ADMIN_BOOTSTRAP_SESSION_SECRET` is not configured — bootstrap becomes entirely unavailable
+  rather than falling back to a forgeable bare marker. Bootstrap's session lifetime (12h) is
+  intentionally shorter than a real staff session's (7 days).
+- **BUSINESS CONCIERGE / BUSINESS 360 — CONFIRMED REAL, ALREADY CORRECT**:
+  `requireSalesWorkspaceAccess()` (`app/admin/_lib/businessWorkspaceAccess.ts`, Gate BCO-4A.1/4A.7)
+  is the hardened boundary actually used by every `/admin/businesses/**` page and virtually every
+  `/api/admin/businesses/**` route (confirmed by direct grep — dozens of call sites). A valid
+  bootstrap session is granted `ownerBootstrapAccess()`: broad `super_admin`-equivalent READ
+  capabilities under a fixed, clearly-labeled sentinel identity
+  (`OWNER_BOOTSTRAP_ATTRIBUTION_AUTH_USER_ID` / `owner.bootstrap@leonix.internal`) — never a real
+  roster lookup, never a fabricated person. Crucially, `toStaffWriteActor()` unconditionally denies
+  `owner_bootstrap` (`reason: "bootstrap_write_denied"`) before any write-capable actor is ever
+  constructed — bootstrap can read Business Concierge but can **never** write to it under any
+  identity, real or fabricated. This is exactly "emergency access without identity fabrication":
+  bootstrap is not arbitrarily locked out of the surface (closing the historical "bootstrap
+  rejected by Business Concierge" failure mode named in this gate's brief), and it is never
+  remapped into a fake staff/owner identity to allow a write either.
+- **AUDIT ATTRIBUTION — CONFIRMED REAL**: both `resolveActorForAuditWrite()`
+  (`adminAuditLogServer.ts`, the general `admin_audit_log` path) and
+  `resolveActingRosterIdentity()` (`adminRosterAudit.ts`, the roster-mutation audit trail) resolve
+  the acting identity ONLY from session cookies (`getAdminOperatorEmailFromCookies` /
+  `getAdminAuthUserIdFromCookies`) — neither ever falls back to the shared `ADMIN_OPERATOR_EMAIL`
+  env var. An audit row can never be attributed to a named person merely because that env var
+  happens to be configured; attribution requires a real per-person session.
+- **KNOWN_ARCHITECTURAL_GAP — NOT FIXED THIS PASS (see below)**: `getCurrentAdminAccessContext()`
+  (`app/admin/_lib/adminAccessControl.ts`) — the "legacy" role resolver used for most page/nav
+  gating (`canViewAdminTeam`, `canViewPaymentTracker`, the Company Search viewer context built in
+  the prior gate's `ops/page.tsx`, etc.) — still falls back to the shared `ADMIN_OPERATOR_EMAIL` env
+  var for **role resolution** when no operator-email cookie is present. Concretely: if
+  `ADMIN_OPERATOR_EMAIL` is ever configured on the live deployment, a bootstrap session (which
+  carries no cookie identity of its own) would inherit that one named person's real roster role and
+  `rosterMemberId` for permission decisions across most of Admin — even though (a) any write it
+  attempts is still never audit-attributed to that person (audit attribution stays cookie-only, see
+  above) and (b) it can never perform a Business Concierge write (that boundary is independently
+  cookie-only, see above). This is a real, narrow, **pre-existing** gap (not introduced or widened
+  by this gate) between the "legacy" resolver's fail-open env-fallback design and the stricter
+  cookie-only model already proven correct for Business Concierge and both audit paths. Per this
+  gate's own scope control ("do not redesign Admin login," "do not weaken bootstrap protections,"
+  "do not change staff permissions unless a proven defect requires it") this was documented, not
+  patched — a cross-cutting change to `adminAccessControl.ts`'s role-resolution semantics touches
+  nav visibility and page gating throughout Admin and is a job for a dedicated, explicitly-scoped
+  hardening gate, not a side effect of an auth-continuity proof gate.
+- **OWNER RUNTIME IDENTITY — NEEDS_OWNER_RUNTIME_PROOF**: the canonical Supabase project was
+  confirmed to be **Leonix Media** (`xuieateniufcrsfdomwl`, matched by name via a live, read-only
+  `list_projects` call — not staging, not certification). A further read-only query checking
+  whether `chuy@leonixmedia.com` has a real Supabase Auth user and a matching active
+  `admin_team_members` row was blocked by this session's own safety controls (a direct PII/identity
+  query against production is outside what this session will run unattended). Source contracts are
+  proven correct; the specific owner identity's live state is not — see
+  `ADMIN_OS_PROGRESS.md` for the exact manual proof steps handed to the owner.
+- **ADMIN_GUIDE_ENTRY, new**: `admin-login` — documents Normal Login vs. Owner Bootstrap as
+  distinct, non-interchangeable paths, cross-referencing Team Roster and Executive Hub without
+  duplicating their content.
+- **KNOWN_BROKEN_OR_SPLIT_WIRING**: none found or introduced.
+- NOTES: 16/16 targeted checks pass (`verify:owner-auth-break-glass`, new script). Regression
+  checks: `verify:admin-nav-ops` (75/75, unchanged), `verify:executive-hub-self-service` (20/20,
+  unchanged), `verify:executive-company-search` (21/21, unchanged),
+  `verify:sales-business-workspace` (104/106 — the 2 failures are pre-existing and unrelated:
+  fragile exact-string-literal regex checks against `adminAccessControl.ts`'s
+  `getAllowedGlobalNavHrefs()` array formatting; confirmed via `git diff` that this file was not
+  touched by this gate).

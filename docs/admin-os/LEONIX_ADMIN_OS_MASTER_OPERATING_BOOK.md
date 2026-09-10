@@ -489,6 +489,29 @@ LEO reads the same canonical Admin truth. LEO should not scrape the dashboard, d
 
 ---
 
+# 3A. ENVIRONMENT TRUTH DOCTRINE
+
+Leonix operates more than one Supabase project. As of this pass, known projects include:
+
+```text
+Leonix Media              — canonical production truth
+Leonix Media Staging      — isolated staging/test work only
+Leonix Certification      — isolated certification/test work only
+```
+
+**Production Admin/business truth = Leonix Media.** Staging and certification projects must never become implicit substitutes for it — not for reasoning about real owner/staff/customer state, not for citing "current" data in a report to the owner, and not for any decision that assumes the outcome applies to production.
+
+Before any live Supabase inspection or mutation, in this order:
+
+1. Identify the configured Supabase project (by its real project name, not by assumption).
+2. Prove which project ref/environment is actually being targeted — do not infer this from a worktree's `.env.local` alone; confirm it against the real project list.
+3. State explicitly whether the confirmed project is Leonix Media (production).
+4. If the target is staging, certification, or cannot be confirmed, **STOP** — do not proceed as if it were production, and do not silently substitute it as evidence for a production claim.
+
+This doctrine exists because local/dev configuration can point at any of the three projects, and a worktree's own `.env.local` is not, by itself, proof of which project it names — the name must be cross-checked against the real Supabase project list before any live inspection is trusted as production truth.
+
+---
+
 # 4. GLOBAL ADMIN OWNERSHIP MODEL
 
 Every meaningful operational system should have **one primary Admin home**.

@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-10-executive-company-search-gate",
+  "updatedAt": "2026-09-10-owner-auth-break-glass-gate",
   "masterOperatingBookAdopted": true,
   "cableMapPass": {
     "status": "substantially_complete",
@@ -927,5 +927,113 @@
       "Global Search UI redesign, Executive Hub redesign, LEO integration — all explicitly out of scope"
     ],
     "executiveCompanySearchGate": "CLOSED"
+  },
+  "ownerAuthBreakGlassGate": {
+    "status": "needs_owner_runtime_proof",
+    "environment": {
+      "environmentTargetProven": true,
+      "canonicalSupabaseProject": "Leonix Media (xuieateniufcrsfdomwl)",
+      "confirmedVia": "live read-only Supabase list_projects call, cross-checked against the worktree's local NEXT_PUBLIC_SUPABASE_URL project ref",
+      "stagingUsedAsProductionEvidence": false,
+      "otherKnownProjects": ["Leonix Media Staging (cgeehvnfyrdoperdotdh)", "Leonix Certification (mvasgrdzmupsnuicwyjl)"]
+    },
+    "ownerIdentity": {
+      "candidateEmail": "chuy@leonixmedia.com",
+      "supabaseAuthUserProven": "needs_runtime_proof",
+      "rosterRowProven": "needs_runtime_proof",
+      "roleProven": "needs_runtime_proof",
+      "blockedReason": "a direct read-only SQL query against auth.users/admin_team_members for this specific email was blocked by this session's own safety controls before executing (production PII/identity query) — respected, not bypassed",
+      "manualProofStepsDocumented": true,
+      "manualProofStepsLocation": "docs/admin-os/ADMIN_OS_PROGRESS.md, 'Owner runtime identity — NEEDS_OWNER_RUNTIME_PROOF' section"
+    },
+    "normalLoginContract": {
+      "result": "PASS",
+      "requiresSupabaseAuthCredentials": true,
+      "requiresActiveRosterRow": true,
+      "deniesInactiveOrMissingRoster": true,
+      "clearsBootstrapCookieOnLogin": true,
+      "route": "app/admin/login/auth/route.ts"
+    },
+    "breakGlassContract": {
+      "result": "PASS",
+      "separateSessionFromStaff": true,
+      "neverFabricatesRosterIdentity": true,
+      "fixedSentinelIdentity": { "authUserId": "00000000-0000-4000-a000-0000000000b7", "email": "owner.bootstrap@leonix.internal" },
+      "failsClosedWithoutSigningSecret": true,
+      "sessionLifetimeHours": 12,
+      "normalStaffSessionLifetimeDays": 7,
+      "loginRouteFailsClosedOnTokenCreationFailure": true,
+      "route": "app/admin/login/submit/route.ts"
+    },
+    "businessConciergeRegression": {
+      "normalOwnerAccess": "PASS",
+      "bootstrapReadAccess": "PASS (broad super_admin-equivalent, sentinel identity, no roster fabrication)",
+      "bootstrapWriteAccess": "DENIED (toStaffWriteActor() unconditionally denies owner_bootstrap before any write-capable actor is constructed)",
+      "historicalFailureModeAvoided": "bootstrap is not arbitrarily locked out of Business Concierge reads, and is never remapped into a fake staff/owner identity to obtain a write",
+      "hardenedBoundaryFile": "app/admin/_lib/businessWorkspaceAccess.ts",
+      "confirmedCallSites": "requireSalesWorkspaceAccess()/toStaffWriteActor() gate essentially every /admin/businesses/** page and dozens of /api/admin/businesses/** routes (confirmed via grep)"
+    },
+    "auditAttribution": {
+      "result": "PASS",
+      "generalAuditPath": { "function": "resolveActorForAuditWrite (adminAuditLogServer.ts)", "cookieOnly": true, "envFallback": false },
+      "rosterMutationAuditPath": { "function": "resolveActingRosterIdentity (adminRosterAudit.ts)", "cookieOnly": true, "envFallback": false }
+    },
+    "knownArchitecturalGap": {
+      "location": "getCurrentAdminAccessContext() in app/admin/_lib/adminAccessControl.ts",
+      "description": "role resolution (used for most nav/page gating, e.g. canViewAdminTeam, canViewPaymentTracker, and the Company Search viewer context) falls back to the shared ADMIN_OPERATOR_EMAIL env var when no operator-email cookie is present — if that env var is ever configured in production, a bootstrap session could inherit a specific named person's real roster role/rosterMemberId for permission decisions, though never for audit attribution or Business Concierge writes (both independently cookie-only)",
+      "preExisting": true,
+      "introducedOrWidenedThisGate": false,
+      "fixedThisGate": false,
+      "reasonNotFixed": "cross-cutting change to role-resolution semantics touches nav visibility and page gating throughout Admin; out of scope for this gate's 'do not redesign login / do not weaken bootstrap / do not change permissions without proven need' constraints — recommended as its own dedicated hardening gate",
+      "verifiedNotRegressedByThisGate": true
+    },
+    "duplicateOwnerAccountCreated": false,
+    "liveAuthMutationPerformed": false,
+    "vercelEnvChanged": false,
+    "migrationApplied": false,
+    "adminGuideUpdated": true,
+    "adminGuideNewEntry": "admin-login (people domain, /admin/login)",
+    "environmentTruthDoctrineAdded": true,
+    "environmentTruthDoctrineLocation": "docs/admin-os/LEONIX_ADMIN_OS_MASTER_OPERATING_BOOK.md, new section 3A",
+    "targetedAuthChecks": {
+      "script": "scripts/verify-owner-auth-break-glass-01.ts",
+      "npmScript": "verify:owner-auth-break-glass",
+      "result": "PASS",
+      "checksPassed": 16,
+      "propertiesProven": [
+        "normal Admin email login requires active roster identity before any cookie is set",
+        "bootstrap and staff sessions never overlap in the same response",
+        "staff login clears bootstrap state unconditionally",
+        "bootstrap cannot fabricate a roster identity (fixed sentinel constants only)",
+        "bootstrap session token fails closed without its signing secret; bootstrap login route fails closed on token-creation failure",
+        "owner role/capabilities resolve through the real roster row when one exists",
+        "inactive roster access is denied everywhere it is checked",
+        "Business Concierge's write boundary denies bootstrap unconditionally before any actor is returned",
+        "both audit-attribution paths are cookie-only, never the env fallback",
+        "Admin Guide documents normal vs. emergency login distinctly, without duplicating Team Roster/Executive Hub content"
+      ]
+    },
+    "regressionChecks": {
+      "verify:admin-nav-ops": "PASS 75/75 (unchanged)",
+      "verify:executive-hub-self-service": "PASS 20/20 (unchanged)",
+      "verify:executive-company-search": "PASS 21/21 (unchanged)",
+      "verify:sales-business-workspace": "104/106 — 2 pre-existing unrelated failures (fragile exact-string regex against adminAccessControl.ts formatting), confirmed via git diff that this gate did not touch that file"
+    },
+    "filesChanged": [
+      "app/admin/_lib/adminGuideRegistry.ts",
+      "scripts/verify-owner-auth-break-glass-01.ts (new)",
+      "package.json",
+      "docs/admin-os/LEONIX_ADMIN_OS_MASTER_OPERATING_BOOK.md",
+      "docs/admin-os/ADMIN_OS_CABLE_MAP.md",
+      "docs/admin-os/ADMIN_OS_PROGRESS.md",
+      "docs/admin-os/ADMIN_OS_TESTS.json"
+    ],
+    "deferredToIntegrationGate": [
+      "Fixing getCurrentAdminAccessContext()'s ADMIN_OPERATOR_EMAIL env-fallback role-resolution gap (own dedicated hardening gate)",
+      "Actually provisioning/repairing the owner's live Supabase Auth user / roster row (owner action required)",
+      "Applying any pending migration",
+      "Browser QA, LEO integration — explicitly out of scope"
+    ],
+    "ownerAuthBreakGlassGate": "NEEDS_OWNER_RUNTIME_PROOF"
   }
 }

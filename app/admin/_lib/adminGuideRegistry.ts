@@ -426,6 +426,31 @@ export const ADMIN_GUIDE_ENTRIES: AdminGuideEntry[] = [
 
   // ============================================================= PEOPLE =============================================================
   {
+    id: "admin-login",
+    title: "Admin Login (Normal Login vs. Owner Bootstrap)",
+    domain: "people",
+    route: "/admin/login",
+    purpose: "There are two distinct ways into Admin, and they are not interchangeable. NORMAL LOGIN (\"Staff / Team login\") is your individual Leonix staff/admin account — real Supabase Auth credentials tied to an active Team Roster row — and is how you should sign in every day. OWNER BOOTSTRAP (\"Owner bootstrap\" shared password) is emergency break-glass recovery only, for when normal login is unavailable — it is not a daily identity and does not create or use a personal roster identity.",
+    useWhen: "You need to sign in to Admin. Use normal login unless your own account is broken, inaccessible, or Supabase Auth itself is unavailable — bootstrap exists only for that emergency case.",
+    commonTasks: ["Sign in day-to-day with your Leonix staff/admin email and password", "Use owner bootstrap only when normal login cannot be used", "Log out to clear your session"],
+    howTo: [
+      "Open Admin Login and use the 'Staff / Team login' form with your Leonix team email and Supabase Auth password",
+      "Signing in this way requires an active Team Roster row — an inactive or missing roster row is denied even with correct credentials",
+      "Only if normal login is unavailable, open 'Owner bootstrap (shared password)' and use the shared password known to the owner",
+      "Signing in either way replaces the other session's cookies — you cannot be both a real staff identity and bootstrap at the same time",
+      "Use Log out to end your session cleanly before switching between a real account and bootstrap",
+    ],
+    permissionNote: "Normal login: any active Team Roster member, scoped to their own role's capabilities. Owner bootstrap: broad emergency owner-level read access intended for recovery, but it can never perform a Business Concierge write or any write that requires a real staff identity — those always require a real per-person login.",
+    relatedAdminRoutes: ["/admin/team/roster", "/admin/team/users/new", "/admin/team/my-profile"],
+    actionLevel: "yellow",
+    failureGuidance: "\"Your team account is inactive\" or \"This account is not authorized for admin access\" means the Supabase Auth credentials were correct but no active Team Roster row exists for that email — ask an owner_admin to check Team Roster. \"Owner bootstrap login is not configured on this server\" means the emergency recovery path itself is not available in this environment — contact an owner_admin, do not keep retrying the shared password.",
+    keywords: ["login", "sign in", "admin login", "bootstrap", "owner bootstrap", "emergency access", "locked out", "shared password", "break glass", "break-glass", "normal login", "daily login"],
+    canonicalEntity: "admin_team_members (Supabase Auth-backed), owner bootstrap session (emergency-only, no roster identity)",
+    audience: "both",
+    leoSafeReadSource: false,
+    notes: "Owner bootstrap is intentionally broad for emergency recovery reads, but by design cannot write to Business Concierge or any surface that requires an attributable staff identity (see requireStaffWorkspaceWriteAccess() — bootstrap is always denied there). If normal login is broken for the owner specifically, use bootstrap to reach Team Roster / Create staff login and repair or (re)create the owner's own real account rather than continuing to operate day-to-day as bootstrap.",
+  },
+  {
     id: "business-360",
     title: "Businesses (Business Concierge / Business 360)",
     domain: "people",
