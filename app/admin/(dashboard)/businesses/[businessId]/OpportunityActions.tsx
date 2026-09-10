@@ -42,19 +42,27 @@ function stateBadgeClass(state: string): string {
 function stateMeaning(state: string): string {
   switch (state) {
     case "suggested":
-      return "Suggested — the system found a plausible fit.";
+      return "Sugerido — el sistema encontró una posible coincidencia. / Suggested — the system found a plausible fit.";
     case "reviewed":
-      return "Reviewed — staff assessed it.";
+      return "Revisado — el personal lo evaluó. / Reviewed — staff assessed it.";
     case "approved":
-      return "Approved — staff judges this opportunity worth pursuing. Not client acceptance and not confirmed sponsorship.";
+      return "Aprobado — el personal considera que vale la pena buscar esta oportunidad. No es aceptación del cliente ni patrocinio confirmado. / Approved — staff judges this opportunity worth pursuing. Not client acceptance and not confirmed sponsorship.";
     case "dismissed":
-      return "Dismissed — not appropriate or not worth pursuing.";
+      return "Descartado — no es apropiado o no vale la pena buscarlo. / Dismissed — not appropriate or not worth pursuing.";
     case "creative_requested":
-      return "Creative requested — an approved opportunity moved into the existing Creative Studio bridge.";
+      return "Creatividad solicitada — una oportunidad aprobada pasó al puente existente de Estudio Creativo. / Creative requested — an approved opportunity moved into the existing Creative Studio bridge.";
     default:
       return state;
   }
 }
+
+const LIFECYCLE_STATE_LABELS: Record<string, string> = {
+  suggested: "sugerido / suggested",
+  reviewed: "revisado / reviewed",
+  approved: "aprobado / approved",
+  dismissed: "descartado / dismissed",
+  creative_requested: "creatividad solicitada / creative requested",
+};
 
 async function readApiError(res: Response, fallback: string): Promise<string> {
   const data = await res.json().catch(() => ({} as { error?: string }));
@@ -86,7 +94,7 @@ export function OpportunitiesPanel({
     const res = await fetch(`/api/admin/businesses/${businessId}/opportunities`, { method: "POST" });
     setGenerating(false);
     if (!res.ok) {
-      setError(await readApiError(res, "Could not check for opportunities."));
+      setError(await readApiError(res, "No se pudo revisar oportunidades. / Could not check for opportunities."));
       return;
     }
     window.location.reload();
@@ -102,7 +110,7 @@ export function OpportunitiesPanel({
     });
     if (!res.ok) {
       setActioning(null);
-      setError(await readApiError(res, `Could not ${action} this opportunity.`));
+      setError(await readApiError(res, `No se pudo completar esta acción. / Could not ${action} this opportunity.`));
       return;
     }
     window.location.reload();
@@ -114,7 +122,7 @@ export function OpportunitiesPanel({
     const res = await fetch(`/api/admin/businesses/${businessId}/opportunities/${opportunityId}/creative-request`, { method: "POST" });
     if (!res.ok) {
       setActioning(null);
-      setError(await readApiError(res, "Could not request creative. Opportunity was not marked creative_requested."));
+      setError(await readApiError(res, "No se pudo solicitar creatividad. La oportunidad no se marcó como creative_requested. / Could not request creative. Opportunity was not marked creative_requested."));
       return;
     }
     window.location.reload();
@@ -124,21 +132,21 @@ export function OpportunitiesPanel({
     <div className="space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <p className="text-xs text-[#7A7164]">
-          This recommendation is the relationship decision. Opportunities are contextual editorial / sponsorship / advertising candidates — ways Leonix may help execute it, not the same object and not an approval of it.
+          Esta recomendación es la decisión de la relación. Las Oportunidades son candidatos contextuales editoriales / de patrocinio / publicitarios — formas en que Leonix puede ayudar a ejecutarla, no el mismo objeto y no una aprobación de ella. / This recommendation is the relationship decision. Opportunities are contextual editorial / sponsorship / advertising candidates — ways Leonix may help execute it, not the same object and not an approval of it.
         </p>
         <button
           onClick={() => void handleGenerate()}
           disabled={generating}
           className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810] disabled:opacity-50"
         >
-          {generating ? "Checking…" : "Check for opportunities"}
+          {generating ? "Revisando… / Checking…" : "Buscar oportunidades / Check for opportunities"}
         </button>
       </div>
 
       <div className="rounded-lg border border-[#E8DFD0] bg-[#FFFDF7] p-3 text-xs text-[#3D3428]">
-        <p className="font-semibold">Approved means staff judges this worth pursuing.</p>
+        <p className="font-semibold">Aprobado significa que el personal considera que vale la pena buscarlo. / Approved means staff judges this worth pursuing.</p>
         <p className="mt-1 text-[#7A7164]">
-          Approved does not mean the client accepted, sponsorship sold, contract signed, payment received, editorial endorsement, or creative published. Payment cannot buy false claims or editorial endorsement. Human review is required.
+          Aprobado no significa que el cliente aceptó, que se vendió el patrocinio, que se firmó un contrato, que se recibió el pago, respaldo editorial o creatividad publicada. El pago no puede comprar afirmaciones falsas ni respaldo editorial. Se requiere revisión humana. / Approved does not mean the client accepted, sponsorship sold, contract signed, payment received, editorial endorsement, or creative published. Payment cannot buy false claims or editorial endorsement. Human review is required.
         </p>
       </div>
 
@@ -147,15 +155,15 @@ export function OpportunitiesPanel({
       ) : null}
 
       {!canReview && !canCreateCreativeRequest ? (
-        <p className="text-xs text-[#7A7164]">Your role can view opportunities. Review, approve, dismiss, and creative request remain manager / super-admin actions.</p>
+        <p className="text-xs text-[#7A7164]">Tu rol puede ver las oportunidades. Revisar, aprobar, descartar y solicitar creatividad siguen siendo acciones de gerente / super administrador. / Your role can view opportunities. Review, approve, dismiss, and creative request remain manager / super-admin actions.</p>
       ) : null}
 
       {opportunities.length === 0 ? (
-        <p className="text-sm text-[#7A7164]">No relevant opportunities are ready for review yet.</p>
+        <p className="text-sm text-[#7A7164]">No hay oportunidades relevantes listas para revisión todavía. / No relevant opportunities are ready for review yet.</p>
       ) : (
         <>
           {waitingReview.length === 0 ? (
-            <p className="text-sm text-[#7A7164]">No contextual opportunities are waiting for review.</p>
+            <p className="text-sm text-[#7A7164]">No hay oportunidades contextuales esperando revisión. / No contextual opportunities are waiting for review.</p>
           ) : (
             <div className="space-y-3">
               {waitingReview.map((o) => (
@@ -173,9 +181,9 @@ export function OpportunitiesPanel({
           )}
 
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Approved, awaiting creative</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Aprobadas, esperando creatividad / Approved, awaiting creative</p>
             {waitingCreative.length === 0 ? (
-              <p className="mt-2 text-sm text-[#7A7164]">No approved opportunities are waiting for creative.</p>
+              <p className="mt-2 text-sm text-[#7A7164]">No hay oportunidades aprobadas esperando creatividad. / No approved opportunities are waiting for creative.</p>
             ) : (
               <div className="mt-2 space-y-3">
                 {waitingCreative.map((o) => (
@@ -195,7 +203,7 @@ export function OpportunitiesPanel({
 
           {others.length > 0 ? (
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Closed or already requested</p>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Cerradas o ya solicitadas / Closed or already requested</p>
               <div className="mt-2 space-y-3">
                 {others.map((o) => (
                   <OpportunityCard
@@ -216,10 +224,10 @@ export function OpportunitiesPanel({
 
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <a href="#recommend" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
-          Review Next Right Move
+          Revisar Próximo paso correcto / Review Next Right Move
         </a>
         <a href="#creative" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#E8DFD0] px-4 py-2 text-xs font-semibold text-[#3D3428]">
-          Creative Studio
+          Estudio Creativo / Creative Studio
         </a>
       </div>
     </div>
@@ -250,13 +258,13 @@ function OpportunityCard({
           <p className="mt-1 text-[10px] uppercase tracking-wide text-[#8A6B1F]">{o.opportunityType.replace(/_/g, " ")}</p>
         </div>
         <span className={`shrink-0 rounded px-2 py-0.5 text-[11px] font-semibold ${stateBadgeClass(o.lifecycleState)}`}>
-          {o.lifecycleState.replace(/_/g, " ")}
+          {LIFECYCLE_STATE_LABELS[o.lifecycleState] ?? o.lifecycleState.replace(/_/g, " ")}
         </span>
       </div>
       <p className="mt-2 text-[11px] text-[#3D3428]">{stateMeaning(o.lifecycleState)}</p>
 
       <div className="mt-2 rounded-lg border border-[#E8DFD0] bg-[#FAF6EE] p-2">
-        <p className="text-[11px] font-semibold text-[#3D3428]">Why this was suggested</p>
+        <p className="text-[11px] font-semibold text-[#3D3428]">Por qué se sugirió esto / Why this was suggested</p>
         <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-[#3D3428]">
           {o.matchReasons.map((reason) => (
             <li key={`${reason.category}-${reason.explanationEn}`}>
@@ -285,7 +293,7 @@ function OpportunityCard({
               disabled={actioning === o.id}
               className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#E8DFD0] px-4 py-2 text-xs font-semibold text-[#3D3428] disabled:opacity-50"
             >
-              Mark reviewed
+              Marcar revisado / Mark reviewed
             </button>
           ) : null}
           {canReview && (o.lifecycleState === "suggested" || o.lifecycleState === "reviewed") ? (
@@ -294,7 +302,7 @@ function OpportunityCard({
               disabled={actioning === o.id}
               className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#1F3A2D] px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
             >
-              Approve
+              Aprobar / Approve
             </button>
           ) : null}
           {canReview && (o.lifecycleState === "suggested" || o.lifecycleState === "reviewed" || o.lifecycleState === "approved") ? (
@@ -303,7 +311,7 @@ function OpportunityCard({
               disabled={actioning === o.id}
               className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-red-200 px-4 py-2 text-xs font-semibold text-red-800 disabled:opacity-50"
             >
-              Dismiss
+              Descartar / Dismiss
             </button>
           ) : null}
           {canCreateCreativeRequest && o.lifecycleState === "approved" ? (
@@ -312,7 +320,7 @@ function OpportunityCard({
               disabled={actioning === o.id}
               className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
             >
-              Request Creative
+              Solicitar Creatividad / Request Creative
             </button>
           ) : null}
         </div>

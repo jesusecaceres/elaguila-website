@@ -315,20 +315,20 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
   // Follow Through). Ownership Claim intentionally stays off this list — it is a separate,
   // staff-prospect-to-real-owner handoff flow, not part of the normal working journey.
   const dashboardTabs = [
-    { id: "overview", label: "Overview" },
-    ...(canViewBook && bookData ? [{ id: "business-book", label: "Business Book" }] : []),
-    ...(fieldDiscoveryData ? [{ id: "discover", label: "Discover" }] : []),
-    ...(canViewHealthMap && healthData ? [{ id: "health", label: "Health" }] : []),
-    { id: "outreach", label: "Outreach" },
-    ...(program5Data ? [{ id: "meetings", label: "Meetings" }] : []),
-    ...(canViewRecommendations && stewardshipData ? [{ id: "recommend", label: "Next Right Move" }] : []),
-    ...(canViewOpportunities && opportunityEnabled ? [{ id: "opportunity", label: "Opportunities" }] : []),
-    ...(canViewCreativeStudio && creativeStudioEnabled ? [{ id: "creative", label: "Creative Studio" }] : []),
-    ...(program5Data && canViewCommitments ? [{ id: "proposals", label: "Client Decision" }] : []),
-    ...(program5Data && canViewCommitments ? [{ id: "promises", label: "Commitments" }] : []),
-    ...(outcomesEnabled ? [{ id: "outcomes", label: "Outcomes" }] : []),
-    ...(advisorEnabled ? [{ id: "advisor", label: "Advisor" }] : []),
-    ...(assistantEnabled ? [{ id: "assistant", label: "Assistant" }] : []),
+    { id: "overview", label: "Resumen / Overview" },
+    ...(canViewBook && bookData ? [{ id: "business-book", label: "Libro del Negocio / Business Book" }] : []),
+    ...(fieldDiscoveryData ? [{ id: "discover", label: "Descubrir / Discover" }] : []),
+    ...(canViewHealthMap && healthData ? [{ id: "health", label: "Salud / Health" }] : []),
+    { id: "outreach", label: "Contacto / Outreach" },
+    ...(program5Data ? [{ id: "meetings", label: "Reuniones / Meetings" }] : []),
+    ...(canViewRecommendations && stewardshipData ? [{ id: "recommend", label: "Próximo Paso / Next Right Move" }] : []),
+    ...(canViewOpportunities && opportunityEnabled ? [{ id: "opportunity", label: "Oportunidades / Opportunities" }] : []),
+    ...(canViewCreativeStudio && creativeStudioEnabled ? [{ id: "creative", label: "Estudio Creativo / Creative Studio" }] : []),
+    ...(program5Data && canViewCommitments ? [{ id: "proposals", label: "Decisión del Cliente / Client Decision" }] : []),
+    ...(program5Data && canViewCommitments ? [{ id: "promises", label: "Compromisos / Commitments" }] : []),
+    ...(outcomesEnabled ? [{ id: "outcomes", label: "Resultados / Outcomes" }] : []),
+    ...(advisorEnabled ? [{ id: "advisor", label: "Asesor / Advisor" }] : []),
+    ...(assistantEnabled ? [{ id: "assistant", label: "Asistente / Assistant" }] : []),
   ];
 
   const locationChip = primaryArea?.country ? countryLabel(primaryArea.country, "en") : null;
@@ -365,7 +365,7 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
   return (
     <div className="max-w-5xl space-y-6">
       <Link href="/admin/businesses" className="text-xs font-semibold text-[#7A1E2C] underline">
-        ← Back to businesses
+        ← Volver a negocios / Back to businesses
       </Link>
 
       <header className="rounded-2xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-4 sm:p-5">
@@ -377,9 +377,9 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
               <h1 className="mt-1 font-serif text-2xl font-bold leading-tight tracking-tight text-[#1E1810] sm:text-3xl">
                 {business.displayName}
               </h1>
-              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#8A6B1F]">Business Dashboard</p>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#8A6B1F]">Panel del Negocio / Business Dashboard</p>
               {business.publicName && business.publicName !== business.displayName ? (
-                <p className="mt-1 text-xs text-[#7A7164]">Public name: {business.publicName}</p>
+                <p className="mt-1 text-xs text-[#7A7164]">Nombre público / Public name: {business.publicName}</p>
               ) : null}
             </div>
           </div>
@@ -388,42 +388,42 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
 
         <dl className="mt-4 flex flex-wrap gap-2">
           <div className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2">
-            <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Status</dt>
+            <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Estado / Status</dt>
             <dd className="text-xs font-semibold text-[#1E1810]">{labelFromList(BUSINESS_SALES_STATUSES, salesProfile.status)}</dd>
           </div>
           {business.businessStage ? (
             <div className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2">
-              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Stage</dt>
+              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Etapa / Stage</dt>
               <dd className="text-xs font-semibold text-[#1E1810]">{labelFromList(BUSINESS_STAGES, business.businessStage)}</dd>
             </div>
           ) : null}
           {business.broadBusinessType ? (
             <div className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2">
-              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Category</dt>
+              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Categoría / Category</dt>
               <dd className="text-xs font-semibold text-[#1E1810]">{labelFromList(BROAD_BUSINESS_TYPES, business.broadBusinessType)}</dd>
             </div>
           ) : null}
           {locationChip ? (
             <div className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2">
-              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Location</dt>
+              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Ubicación / Location</dt>
               <dd className="text-xs font-semibold text-[#1E1810]">{locationChip}</dd>
             </div>
           ) : null}
           <div className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2">
-            <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Complete</dt>
+            <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Completo / Complete</dt>
             <dd className="text-xs font-semibold text-[#1E1810]">
               {completeness.metCount}/{completeness.totalCount}
             </dd>
           </div>
           {salesProfile.lastContactedAt ? (
             <div className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2">
-              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Last contact</dt>
+              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Último contacto / Last contact</dt>
               <dd className="text-xs font-semibold text-[#1E1810]">{new Date(salesProfile.lastContactedAt).toLocaleDateString("en-US")}</dd>
             </div>
           ) : null}
           {currentFollowUp ? (
             <div className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2">
-              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Follow-up</dt>
+              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Seguimiento / Follow-up</dt>
               <dd className="text-xs font-semibold text-[#1E1810]">
                 {currentFollowUp.scheduledDate}
                 {currentFollowUp.scheduledTime ? ` · ${currentFollowUp.scheduledTime.slice(0, 5)}` : ""}
@@ -434,36 +434,36 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
           ) : null}
           {upcomingMeeting ? (
             <div className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2">
-              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Next meeting</dt>
+              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Próxima reunión / Next meeting</dt>
               <dd className="text-xs font-semibold text-[#1E1810]">{upcomingMeeting.scheduledAt ? new Date(upcomingMeeting.scheduledAt).toLocaleString("en-US") : "—"}</dd>
             </div>
           ) : null}
           {commitmentCount && commitmentCount > 0 ? (
             <div className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2">
-              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Active commitments</dt>
+              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Compromisos activos / Active commitments</dt>
               <dd className="text-xs font-semibold text-[#1E1810]">
                 {commitmentCount}
-                {blockedOrOverdueCommitmentCount > 0 ? <span className="ml-1 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-800">{blockedOrOverdueCommitmentCount} overdue/blocked</span> : null}
+                {blockedOrOverdueCommitmentCount > 0 ? <span className="ml-1 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-800">{blockedOrOverdueCommitmentCount} atrasado/bloqueado · overdue/blocked</span> : null}
               </dd>
             </div>
           ) : null}
           {opportunityCount && opportunityCount > 0 ? (
             <div className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2">
-              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Opportunities</dt>
+              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Oportunidades / Opportunities</dt>
               <dd className="text-xs font-semibold text-[#1E1810]">{opportunityCount}</dd>
             </div>
           ) : null}
           {creativeAwaitingReviewCount > 0 ? (
             <div className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2">
-              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Creative awaiting review</dt>
+              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Creativo en revisión / Creative awaiting review</dt>
               <dd className="text-xs font-semibold text-[#1E1810]">{creativeAwaitingReviewCount}</dd>
             </div>
           ) : null}
           {currentProposal ? (
             <div className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2">
-              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Proposal</dt>
+              <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Propuesta / Proposal</dt>
               <dd className="text-xs font-semibold text-[#1E1810]">
-                {currentProposal.status === "owner_review" ? "Awaiting client decision" : currentProposal.status === "accepted" ? "Accepted — handoff pending" : currentProposal.status}
+                {currentProposal.status === "owner_review" ? "Esperando decisión del cliente / Awaiting client decision" : currentProposal.status === "accepted" ? "Aceptada — entrega al dueño pendiente / Accepted — handoff pending" : currentProposal.status}
               </dd>
             </div>
           ) : null}
@@ -471,41 +471,41 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
 
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <a href="#outreach" className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-semibold text-white">
-            Add note
+            Agregar nota / Add note
           </a>
           <a href="#outreach" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
-            Follow-up
+            Seguimiento / Follow-up
           </a>
           <Link
             href={`/admin/field/${business.id}`}
             className="inline-flex min-h-[44px] flex-col items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-white px-4 py-2 text-xs font-semibold text-[#7A1E2C]"
           >
-            <span>Field Agent</span>
-            <span className="text-[10px] font-normal text-[#7A7164]">Quick capture in the field.</span>
+            <span>Agente de Campo / Field Agent</span>
+            <span className="text-[10px] font-normal text-[#7A7164]">Captura rápida en el campo. / Quick capture in the field.</span>
           </Link>
           {fieldDiscoveryData ? (
             <a href="#discover" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
-              Discover
+              Descubrir / Discover
             </a>
           ) : null}
           {program5Data ? (
             <a href="#meetings" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
-              Start meeting
+              Iniciar reunión / Start meeting
             </a>
           ) : null}
           {canViewOpportunities && opportunityEnabled ? (
             <a href="#opportunity" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
-              Review opportunities
+              Revisar oportunidades / Review opportunities
             </a>
           ) : null}
           {canViewCreativeStudio && creativeStudioEnabled ? (
             <a href="#creative" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
-              Creative Studio
+              Estudio Creativo / Creative Studio
             </a>
           ) : null}
           {program5Data && canViewCommitments ? (
             <a href="#proposals" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
-              Client Decision
+              Decisión del Cliente / Client Decision
             </a>
           ) : null}
         </div>
@@ -515,7 +515,7 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
           data already loaded above (never a second AI recommendation engine). Sits above the fold,
           immediately after the hero, so staff never have to hunt for "what do I do right now." */}
       <section className="rounded-2xl border border-[#C9A84A]/50 bg-[#FBF7EF] p-4">
-        <h2 className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Next right action</h2>
+        <h2 className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Próxima acción / Next right action</h2>
         <p className="mt-1 text-base font-bold text-[#7A1E2C]">{nextRightAction.what}</p>
         <p className="mt-1 text-xs text-[#5C5346]">{nextRightAction.why}</p>
         <a href={nextRightAction.whereHref} className="mt-3 inline-flex min-h-[40px] items-center justify-center rounded-lg bg-[#7A1E2C] px-3 py-2 text-xs font-bold text-white">
@@ -526,108 +526,110 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
       <BusinessDashboardNav tabs={dashboardTabs} />
 
       <div id="overview" className="scroll-mt-24 space-y-4">
-        <h2 className="font-serif text-lg font-bold text-[#1E1810]">Overview</h2>
-        <p className="text-xs text-[#7A7164]">The executive brief — who this business is, what Leonix knows, how healthy the relationship is, and what is waiting for a decision.</p>
+        <h2 className="font-serif text-lg font-bold text-[#1E1810]">Resumen / Overview</h2>
+        <p className="text-xs text-[#7A7164]">
+          Resumen ejecutivo: quién es este negocio, qué sabe Leonix, qué tan sana está la relación y qué espera una decisión. / The executive brief — who this business is, what Leonix knows, how healthy the relationship is, and what is waiting for a decision.
+        </p>
 
         {/* Gate 2 — Overview executive-brief summary cards. Every number here is derived from data
             already loaded for the deeper sections below; nothing is queried twice and nothing is
             fabricated when a domain has no data yet. */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-            <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Business snapshot</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Datos del negocio / Business snapshot</h3>
             <dl className="mt-2 space-y-1 text-xs text-[#3D3428]">
               <div>{labelFromList(BROAD_BUSINESS_TYPES, business.broadBusinessType)} · {labelFromList(BUSINESS_STAGES, business.businessStage)}</div>
-              <div>{locationChip ?? "Location not on file"}</div>
-              <div>{business.businessPrimaryLanguage ?? "Primary language not on file"}</div>
+              <div>{locationChip ?? "Ubicación no registrada / Location not on file"}</div>
+              <div>{business.businessPrimaryLanguage ?? "Idioma principal no registrado / Primary language not on file"}</div>
             </dl>
           </section>
 
           {canViewBook && bookData ? (
             <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-              <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Current understanding</h3>
+              <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Lo que entendemos / Current understanding</h3>
               <dl className="mt-2 grid grid-cols-3 gap-2 text-center text-xs">
-                <div><p className="text-lg font-bold text-[#1E1810]">{bookData.completeness.confirmedFactCount}</p><p className="text-[10px] text-[#7A7164]">Confirmed</p></div>
-                <div><p className="text-lg font-bold text-amber-800">{bookData.completeness.openUnknownCount}</p><p className="text-[10px] text-[#7A7164]">Unknowns</p></div>
-                <div><p className="text-lg font-bold text-red-700">{bookData.completeness.unresolvedContradictionCount}</p><p className="text-[10px] text-[#7A7164]">Conflicts</p></div>
+                <div><p className="text-lg font-bold text-[#1E1810]">{bookData.completeness.confirmedFactCount}</p><p className="text-[10px] text-[#7A7164]">Confirmado / Confirmed</p></div>
+                <div><p className="text-lg font-bold text-amber-800">{bookData.completeness.openUnknownCount}</p><p className="text-[10px] text-[#7A7164]">Incógnitas / Unknowns</p></div>
+                <div><p className="text-lg font-bold text-red-700">{bookData.completeness.unresolvedContradictionCount}</p><p className="text-[10px] text-[#7A7164]">Conflictos / Conflicts</p></div>
               </dl>
-              <a href="#business-book" className="mt-2 inline-block text-xs font-semibold text-[#7A1E2C] underline">Open Business Book</a>
+              <a href="#business-book" className="mt-2 inline-block text-xs font-semibold text-[#7A1E2C] underline">Abrir Libro del Negocio / Open Business Book</a>
             </section>
           ) : null}
 
           {canViewHealthMap && healthData ? (
             <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-              <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Business health</h3>
+              <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Salud del negocio / Business health</h3>
               {!healthData.latestRun ? (
-                <p className="mt-2 text-xs text-[#7A7164]">We need more verified information before assessing this area.</p>
+                <p className="mt-2 text-xs text-[#7A7164]">Necesitamos más información verificada antes de evaluar esta área. / We need more verified information before assessing this area.</p>
               ) : (
                 <>
                   <dl className="mt-2 grid grid-cols-4 gap-1 text-center text-xs">
-                    <div><p className="text-lg font-bold text-emerald-700">{healthData.latestRun.strongCount}</p><p className="text-[10px] text-[#7A7164]">Strong</p></div>
-                    <div><p className="text-lg font-bold text-amber-800">{healthData.latestRun.needsAttentionCount}</p><p className="text-[10px] text-[#7A7164]">Attention</p></div>
-                    <div><p className="text-lg font-bold text-[#7A7164]">{healthData.latestRun.insufficientInformationCount}</p><p className="text-[10px] text-[#7A7164]">Unclear</p></div>
-                    <div><p className="text-lg font-bold text-red-700">{healthData.latestRun.contradictionBlockedCount}</p><p className="text-[10px] text-[#7A7164]">Blocked</p></div>
+                    <div><p className="text-lg font-bold text-emerald-700">{healthData.latestRun.strongCount}</p><p className="text-[10px] text-[#7A7164]">Fuerte / Strong</p></div>
+                    <div><p className="text-lg font-bold text-amber-800">{healthData.latestRun.needsAttentionCount}</p><p className="text-[10px] text-[#7A7164]">Atención / Attention</p></div>
+                    <div><p className="text-lg font-bold text-[#7A7164]">{healthData.latestRun.insufficientInformationCount}</p><p className="text-[10px] text-[#7A7164]">Poco claro / Unclear</p></div>
+                    <div><p className="text-lg font-bold text-red-700">{healthData.latestRun.contradictionBlockedCount}</p><p className="text-[10px] text-[#7A7164]">Bloqueado / Blocked</p></div>
                   </dl>
-                  <a href="#health" className="mt-2 inline-block text-xs font-semibold text-[#7A1E2C] underline">Open Health Map</a>
+                  <a href="#health" className="mt-2 inline-block text-xs font-semibold text-[#7A1E2C] underline">Abrir Mapa de Salud / Open Health Map</a>
                 </>
               )}
             </section>
           ) : null}
 
           <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-            <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Relationship</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Relación / Relationship</h3>
             <dl className="mt-2 space-y-1 text-xs text-[#3D3428]">
-              <div>Status: {labelFromList(BUSINESS_SALES_STATUSES, salesProfile.status)}</div>
-              <div>Last contact: {salesProfile.lastContactedAt ? new Date(salesProfile.lastContactedAt).toLocaleDateString("en-US") : "not recorded"}</div>
+              <div>Estado / Status: {labelFromList(BUSINESS_SALES_STATUSES, salesProfile.status)}</div>
+              <div>Último contacto / Last contact: {salesProfile.lastContactedAt ? new Date(salesProfile.lastContactedAt).toLocaleDateString("en-US") : "no registrado / not recorded"}</div>
               <div>
                 {currentFollowUp
-                  ? `Next follow-up: ${currentFollowUp.scheduledDate} · ${labelFromList(FOLLOW_UP_STATUSES, followUpDisplayStatus)}`
-                  : "No follow-up is currently scheduled."}
+                  ? `Próximo seguimiento / Next follow-up: ${currentFollowUp.scheduledDate} · ${labelFromList(FOLLOW_UP_STATUSES, followUpDisplayStatus)}`
+                  : "No hay seguimiento programado actualmente. / No follow-up is currently scheduled."}
               </div>
             </dl>
-            <a href="#outreach" className="mt-2 inline-block text-xs font-semibold text-[#7A1E2C] underline">Open Outreach</a>
+            <a href="#outreach" className="mt-2 inline-block text-xs font-semibold text-[#7A1E2C] underline">Abrir Contacto / Open Outreach</a>
           </section>
 
           {canViewRecommendations && stewardshipData ? (
             <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-              <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Next right move</h3>
+              <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Próximo paso / Next right move</h3>
               {!stewardshipData.current ? (
-                <p className="mt-2 text-xs text-[#7A7164]">Leonix is still learning enough to recommend responsibly.</p>
+                <p className="mt-2 text-xs text-[#7A7164]">Leonix aún está aprendiendo lo suficiente para recomendar responsablemente. / Leonix is still learning enough to recommend responsibly.</p>
               ) : (
                 <>
                   <p className="mt-2 text-sm font-semibold text-[#1E1810]">{stewardshipData.current.primaryIntervention}</p>
-                  <p className="mt-1 text-xs text-[#7A7164]">Status: {stewardshipData.current.status}</p>
+                  <p className="mt-1 text-xs text-[#7A7164]">Estado / Status: {stewardshipData.current.status}</p>
                 </>
               )}
-              <a href="#recommend" className="mt-2 inline-block text-xs font-semibold text-[#7A1E2C] underline">Open Recommendations</a>
+              <a href="#recommend" className="mt-2 inline-block text-xs font-semibold text-[#7A1E2C] underline">Abrir Recomendaciones / Open Recommendations</a>
             </section>
           ) : null}
 
           {(canViewOpportunities && opportunityEnabled) || (canViewCreativeStudio && creativeStudioEnabled) ? (
             <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-              <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Opportunities &amp; creative</h3>
+              <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Oportunidades y creatividad / Opportunities &amp; creative</h3>
               <dl className="mt-2 space-y-1 text-xs text-[#3D3428]">
                 {canViewOpportunities && opportunityEnabled ? (
-                  <div>{opportunities.length === 0 ? "No relevant opportunities are ready for review yet." : `${opportunities.length} opportunit${opportunities.length === 1 ? "y" : "ies"} on record.`}</div>
+                  <div>{opportunities.length === 0 ? "No hay oportunidades listas para revisión. / No relevant opportunities are ready for review yet." : `${opportunities.length} opportunit${opportunities.length === 1 ? "y" : "ies"} on record.`}</div>
                 ) : null}
                 {canViewCreativeStudio && creativeStudioEnabled ? (
-                  <div>{creativeJobViews.length === 0 ? "No creative request has been created yet." : `${creativeAwaitingReviewCount} awaiting review of ${creativeJobViews.length} job(s).`}</div>
+                  <div>{creativeJobViews.length === 0 ? "No se ha creado ninguna solicitud creativa aún. / No creative request has been created yet." : `${creativeAwaitingReviewCount} awaiting review of ${creativeJobViews.length} job(s).`}</div>
                 ) : null}
               </dl>
               <div className="mt-2 flex gap-3">
-                {canViewOpportunities && opportunityEnabled ? <a href="#opportunity" className="text-xs font-semibold text-[#7A1E2C] underline">Open Opportunities</a> : null}
-                {canViewCreativeStudio && creativeStudioEnabled ? <a href="#creative" className="text-xs font-semibold text-[#7A1E2C] underline">Open Creative</a> : null}
+                {canViewOpportunities && opportunityEnabled ? <a href="#opportunity" className="text-xs font-semibold text-[#7A1E2C] underline">Abrir Oportunidades / Open Opportunities</a> : null}
+                {canViewCreativeStudio && creativeStudioEnabled ? <a href="#creative" className="text-xs font-semibold text-[#7A1E2C] underline">Abrir Creativo / Open Creative</a> : null}
               </div>
             </section>
           ) : null}
 
           {program5Data && canViewCommitments ? (
             <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-              <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Commitments</h3>
+              <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Compromisos / Commitments</h3>
               <dl className="mt-2 space-y-1 text-xs text-[#3D3428]">
-                <div>{program5Data.commitmentsWithEvents.length} open</div>
-                <div className={blockedOrOverdueCommitmentCount > 0 ? "font-semibold text-red-700" : ""}>{blockedOrOverdueCommitmentCount} overdue or blocked</div>
+                <div>{program5Data.commitmentsWithEvents.length} abiertos / open</div>
+                <div className={blockedOrOverdueCommitmentCount > 0 ? "font-semibold text-red-700" : ""}>{blockedOrOverdueCommitmentCount} atrasados o bloqueados / overdue or blocked</div>
               </dl>
-              <a href="#promises" className="mt-2 inline-block text-xs font-semibold text-[#7A1E2C] underline">Open Commitments</a>
+              <a href="#promises" className="mt-2 inline-block text-xs font-semibold text-[#7A1E2C] underline">Abrir Compromisos / Open Commitments</a>
             </section>
           ) : null}
         </div>
@@ -798,30 +800,32 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
       {/* Living Business Book (Gate BCO-5A) — capability-gated; entirely absent from the page when the actor lacks view_business_book, not just visually hidden. */}
       {canViewBook && bookData ? (
         <section id="business-book" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
-          <h2 className="font-serif text-lg font-bold text-[#1E1810]">Business Book</h2>
-          <p className="mt-1 text-xs text-[#7A7164]">Verified facts, evidence, unknowns, contradictions, and the evolving Leonix understanding of this business. AI inference is never shown as equivalent to a confirmed fact.</p>
+          <h2 className="font-serif text-lg font-bold text-[#1E1810]">Libro del Negocio / Business Book</h2>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            Hechos verificados, evidencia, incógnitas, contradicciones y el entendimiento en evolución de Leonix sobre este negocio. Una inferencia de IA nunca se muestra como equivalente a un hecho confirmado. / Verified facts, evidence, unknowns, contradictions, and the evolving Leonix understanding of this business. AI inference is never shown as equivalent to a confirmed fact.
+          </p>
 
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <div className="rounded-lg border border-[#E8DFD0] p-2 text-center">
               <p className="text-lg font-bold text-[#1E1810]">{bookData.completeness.confirmedFactCount}</p>
-              <p className="text-[10px] text-[#7A7164]">Confirmed facts</p>
+              <p className="text-[10px] text-[#7A7164]">Hechos confirmados / Confirmed facts</p>
             </div>
             <div className="rounded-lg border border-[#E8DFD0] p-2 text-center">
               <p className="text-lg font-bold text-[#1E1810]">{bookData.completeness.ownerStatementCount}</p>
-              <p className="text-[10px] text-[#7A7164]">Owner statements</p>
+              <p className="text-[10px] text-[#7A7164]">Declaraciones del dueño / Owner statements</p>
             </div>
             <div className="rounded-lg border border-[#E8DFD0] p-2 text-center">
               <p className="text-lg font-bold text-amber-800">{bookData.completeness.openUnknownCount}</p>
-              <p className="text-[10px] text-[#7A7164]">Open unknowns</p>
+              <p className="text-[10px] text-[#7A7164]">Incógnitas abiertas / Open unknowns</p>
             </div>
             <div className="rounded-lg border border-[#E8DFD0] p-2 text-center">
               <p className="text-lg font-bold text-red-700">{bookData.completeness.unresolvedContradictionCount}</p>
-              <p className="text-[10px] text-[#7A7164]">Unresolved contradictions</p>
+              <p className="text-[10px] text-[#7A7164]">Contradicciones sin resolver / Unresolved contradictions</p>
             </div>
           </div>
 
-          <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Facts</h3>
-          <p className="text-[11px] text-[#9A9184]">Durable, verified business truth — distinct from a staff note, an owner statement, or an AI inference.</p>
+          <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Hechos / Facts</h3>
+          <p className="text-[11px] text-[#9A9184]">Verdad duradera y verificada del negocio — distinta de una nota del personal, una declaración del dueño o una inferencia de IA. / Durable, verified business truth — distinct from a staff note, an owner statement, or an AI inference.</p>
           <ul className="mt-2 space-y-2">
             {bookData.facts.map((f) => (
               <li key={f.id} className="rounded-lg border border-[#E8DFD0] p-2">
@@ -831,20 +835,20 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
                 </div>
                 <p className="mt-1 text-sm text-[#3D3428]">{f.displayValue ?? "—"}</p>
                 <p className="mt-1 text-[10px] text-[#9A9184]">
-                  {f.confirmationState} · confidence: {f.confidence} · {f.sensitivity}
+                  {f.confirmationState} · confianza / confidence: {f.confidence} · {f.sensitivity}
                 </p>
                 {canConfirmFact && f.confirmationState !== "owner_confirmed" ? <FactDecisionButtons businessId={business.id} factId={f.id} /> : null}
               </li>
             ))}
-            {bookData.facts.length === 0 ? <li className="text-sm text-[#7A7164]">No facts recorded yet.</li> : null}
+            {bookData.facts.length === 0 ? <li className="text-sm text-[#7A7164]">Aún no hay hechos registrados. / No facts recorded yet.</li> : null}
           </ul>
           <div className="mt-3">
             <CreateFactForm businessId={business.id} canConfirm={canConfirmFact} />
           </div>
 
-          <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Evidence</h3>
+          <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Evidencia / Evidence</h3>
           <p className="text-[11px] text-[#9A9184]">
-            Staff notes, field discovery uploads, and other supporting observations. Evidence is not a fact until a human explicitly promotes it above.
+            Notas del personal, cargas de descubrimiento de campo y otras observaciones de apoyo. La evidencia no es un hecho hasta que un humano la promueve explícitamente arriba. / Staff notes, field discovery uploads, and other supporting observations. Evidence is not a fact until a human explicitly promotes it above.
           </p>
           <ul className="mt-2 space-y-2">
             {bookData.evidence.slice(0, 20).map((e) => (
@@ -855,16 +859,16 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
                 </div>
                 {e.capturedText ? <p className="mt-1 break-words text-sm text-[#3D3428]">{e.capturedText}</p> : null}
                 <p className="mt-1 text-[10px] text-[#9A9184]">
-                  {new Date(e.createdAt).toLocaleString()} · {e.collectedByRole} · reliability: {e.reliability}
+                  {new Date(e.createdAt).toLocaleString()} · {e.collectedByRole} · confiabilidad / reliability: {e.reliability}
                 </p>
               </li>
             ))}
-            {bookData.evidence.length === 0 ? <li className="text-sm text-[#7A7164]">No evidence recorded yet.</li> : null}
-            {bookData.evidence.length > 20 ? <li className="text-[10px] text-[#9A9184]">Showing the 20 most recent of {bookData.evidence.length}.</li> : null}
+            {bookData.evidence.length === 0 ? <li className="text-sm text-[#7A7164]">Aún no hay evidencia registrada. / No evidence recorded yet.</li> : null}
+            {bookData.evidence.length > 20 ? <li className="text-[10px] text-[#9A9184]">Mostrando las 20 más recientes de {bookData.evidence.length}. / Showing the 20 most recent of {bookData.evidence.length}.</li> : null}
           </ul>
 
-          <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Unknowns</h3>
-          <p className="text-[11px] text-[#9A9184]">What Leonix still needs to confirm before recommending responsibly.</p>
+          <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Incógnitas / Unknowns</h3>
+          <p className="text-[11px] text-[#9A9184]">Lo que Leonix aún necesita confirmar antes de recomendar responsablemente. / What Leonix still needs to confirm before recommending responsibly.</p>
           <ul className="mt-2 space-y-2">
             {bookData.unknowns.map((u) => (
               <li key={u.id} className="rounded-lg border border-[#E8DFD0] p-2">
@@ -873,10 +877,10 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
                   <span className="rounded-full bg-[#FFF4E0] px-2 py-0.5 text-[10px] font-bold text-[#5C4E2E]">{u.status}</span>
                 </div>
                 {u.status === "open" && canManageUnknowns ? <ResolveUnknownForm businessId={business.id} unknown={u} /> : null}
-                {u.status === "answered" ? <p className="mt-1 text-xs text-[#7A7164]">Resolution: {u.resolution}</p> : null}
+                {u.status === "answered" ? <p className="mt-1 text-xs text-[#7A7164]">Resolución / Resolution: {u.resolution}</p> : null}
               </li>
             ))}
-            {bookData.unknowns.length === 0 ? <li className="text-sm text-[#7A7164]">No open unknowns.</li> : null}
+            {bookData.unknowns.length === 0 ? <li className="text-sm text-[#7A7164]">No hay incógnitas abiertas. / No open unknowns.</li> : null}
           </ul>
           {canManageUnknowns ? (
             <div className="mt-3">
@@ -884,8 +888,8 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
             </div>
           ) : null}
 
-          <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Contradictions</h3>
-          <p className="text-[11px] text-[#9A9184]">Two claims that cannot both be true — must be resolved, never silently picked.</p>
+          <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Contradicciones / Contradictions</h3>
+          <p className="text-[11px] text-[#9A9184]">Dos afirmaciones que no pueden ser ambas ciertas — deben resolverse, nunca elegirse en silencio. / Two claims that cannot both be true — must be resolved, never silently picked.</p>
           <ul className="mt-2 space-y-2">
             {bookData.contradictions.map((c) => (
               <li key={c.id} className="rounded-lg border border-[#E8DFD0] p-2 text-xs">
@@ -913,8 +917,10 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
           both are the "what do we know" phase before Health's "what does it mean" diagnosis. */}
       {fieldDiscoveryData ? (
         <section id="discover" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
-          <h2 className="font-serif text-lg font-bold text-[#1E1810]">Discover</h2>
-          <p className="mt-1 text-xs text-[#7A7164]">Gather evidence, public-source context, missing information, photos/files, and AI-supported briefing drafts. AI inference is not a confirmed fact.</p>
+          <h2 className="font-serif text-lg font-bold text-[#1E1810]">Descubrir / Discover</h2>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            Reunir evidencia, contexto de fuentes públicas, información faltante, fotos/archivos y borradores de resumen apoyados por IA. Una inferencia de IA no es un hecho confirmado. / Gather evidence, public-source context, missing information, photos/files, and AI-supported briefing drafts. AI inference is not a confirmed fact.
+          </p>
           <div className="mt-3 space-y-3">
             <ConsentStatusPanel consent={fieldDiscoveryData.consent} />
             <SourceLinksPanel sourceLinks={fieldDiscoveryData.sourceLinks} />
@@ -939,11 +945,11 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
       {canViewHealthMap && healthData ? (
         <section id="health" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-serif text-lg font-bold text-[#1E1810]">Business Health</h2>
+            <h2 className="font-serif text-lg font-bold text-[#1E1810]">Salud del Negocio / Business Health</h2>
             {canRunHealthAssessment ? <RunAssessmentButton businessId={business.id} /> : null}
           </div>
           <p className="mt-1 text-xs text-[#7A7164]">
-            Where the business is strong, stable, needs attention, lacks information, or is blocked by contradiction. Never a numeric score.
+            Dónde el negocio está fuerte, estable, necesita atención, carece de información o está bloqueado por una contradicción. Nunca una puntuación numérica. / Where the business is strong, stable, needs attention, lacks information, or is blocked by contradiction. Never a numeric score.
           </p>
           <StewardshipOpportunityFlowNav
             current="health"
@@ -953,36 +959,36 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
           />
 
           {!healthData.latestRun ? (
-            <p className="mt-3 text-sm text-[#7A7164]">We need more verified information before assessing this area.</p>
+            <p className="mt-3 text-sm text-[#7A7164]">Necesitamos más información verificada antes de evaluar esta área. / We need more verified information before assessing this area.</p>
           ) : (
             <>
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
                 <div className="rounded-lg border border-[#E8DFD0] p-2 text-center">
                   <p className="text-lg font-bold text-emerald-700">{healthData.latestRun.strongCount}</p>
-                  <p className="text-[10px] text-[#7A7164]">Strong</p>
+                  <p className="text-[10px] text-[#7A7164]">Fuerte / Strong</p>
                 </div>
                 <div className="rounded-lg border border-[#E8DFD0] p-2 text-center">
                   <p className="text-lg font-bold text-[#1E1810]">{healthData.latestRun.stableCount}</p>
-                  <p className="text-[10px] text-[#7A7164]">Stable</p>
+                  <p className="text-[10px] text-[#7A7164]">Estable / Stable</p>
                 </div>
                 <div className="rounded-lg border border-[#E8DFD0] p-2 text-center">
                   <p className="text-lg font-bold text-amber-800">{healthData.latestRun.needsAttentionCount}</p>
-                  <p className="text-[10px] text-[#7A7164]">Needs attention</p>
+                  <p className="text-[10px] text-[#7A7164]">Necesita atención / Needs attention</p>
                 </div>
                 <div className="rounded-lg border border-[#E8DFD0] p-2 text-center">
                   <p className="text-lg font-bold text-[#7A7164]">{healthData.latestRun.insufficientInformationCount}</p>
-                  <p className="text-[10px] text-[#7A7164]">Insufficient info</p>
+                  <p className="text-[10px] text-[#7A7164]">Información insuficiente / Insufficient info</p>
                 </div>
                 <div className="rounded-lg border border-[#E8DFD0] p-2 text-center">
                   <p className="text-lg font-bold text-red-700">{healthData.latestRun.contradictionBlockedCount}</p>
-                  <p className="text-[10px] text-[#7A7164]">Blocked</p>
+                  <p className="text-[10px] text-[#7A7164]">Bloqueado / Blocked</p>
                 </div>
               </div>
               <p className="mt-2 text-[10px] text-[#9A9184]">
-                Calculation version {healthData.latestRun.calculationVersion} · last calculated {healthData.latestRun.completedAt ? new Date(healthData.latestRun.completedAt).toLocaleString("en-US") : "—"}
+                Versión de cálculo / Calculation version {healthData.latestRun.calculationVersion} · último cálculo / last calculated {healthData.latestRun.completedAt ? new Date(healthData.latestRun.completedAt).toLocaleString("en-US") : "—"}
               </p>
 
-              <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Dimensions</h3>
+              <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Dimensiones / Dimensions</h3>
               <ul className="mt-2 space-y-2">
                 {HEALTH_DIMENSION_KEYS.map((key) => {
                   const dim = healthData.dimensionResults.find((d) => d.dimensionKey === key);
@@ -1023,30 +1029,30 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
 
       <div id="outreach" className="scroll-mt-24 space-y-4">
         <div>
-          <h2 className="font-serif text-lg font-bold text-[#1E1810]">Outreach</h2>
+          <h2 className="font-serif text-lg font-bold text-[#1E1810]">Contacto / Outreach</h2>
           <p className="mt-1 text-xs text-[#7A7164]">
-            Have we contacted this business, what happened, who handled it, and whether another contact is needed.
+            Si hemos contactado a este negocio, qué pasó, quién lo atendió y si se necesita otro contacto. / Have we contacted this business, what happened, who handled it, and whether another contact is needed.
             Sales follow-ups are relationship actions in <code className="text-[11px]">business_follow_ups</code> — not Promise Keeper commitments.
           </p>
         </div>
 
         {/* Gate 3 — Relationship status leads Outreach: "have we contacted them, what's the state." */}
         <section className="rounded-2xl border border-[#E8DFD0] bg-[#FFFDF7] p-4">
-          <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Relationship status</h3>
+          <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Estado de la relación / Relationship status</h3>
           <p className="mt-2 text-sm font-semibold text-[#1E1810]">{labelFromList(BUSINESS_SALES_STATUSES, salesProfile.status)}</p>
           <p className="mt-1 text-xs text-[#7A7164]">
-            Last contacted: {salesProfile.lastContactedAt ? new Date(salesProfile.lastContactedAt).toLocaleString("en-US") : "not recorded"}
+            Último contacto / Last contacted: {salesProfile.lastContactedAt ? new Date(salesProfile.lastContactedAt).toLocaleString("en-US") : "no registrado / not recorded"}
           </p>
-          <p className="mt-1 text-[11px] text-[#7A7164]">Change status with the Status control in the dashboard header. Existing canonical values only.</p>
+          <p className="mt-1 text-[11px] text-[#7A7164]">Cambie el estado con el control de Estado en el encabezado del panel. Solo valores canónicos existentes. / Change status with the Status control in the dashboard header. Existing canonical values only.</p>
         </section>
 
         {/* Gate 3 — Recent activity. This repo has no separate structured contact-attempt
             timeline (confirmed by direct inspection); internal notes ARE the real recent-activity
             record, so this section honestly serves that role rather than fabricating a feed. */}
         <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-          <h3 className="text-sm font-bold text-[#1E1810]">Recent activity — internal notes</h3>
+          <h3 className="text-sm font-bold text-[#1E1810]">Actividad reciente — notas internas / Recent activity — internal notes</h3>
           <p className="mt-1 text-xs text-[#7A7164]">
-            Internal relationship notes (<code className="text-[11px]">business_sales_notes</code>). Never shown to the owner. Not a confirmed business fact and not a Field Agent Living Book staff note.
+            Notas internas de la relación (<code className="text-[11px]">business_sales_notes</code>). Nunca se muestran al dueño. No es un hecho confirmado del negocio ni una nota de personal del Living Book de Field Agent. / Internal relationship notes. Never shown to the owner. Not a confirmed business fact and not a Field Agent Living Book staff note.
           </p>
           <div className="mt-3">
             <NotesPanel
@@ -1058,9 +1064,9 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
         </section>
 
         <section id="follow-up" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
-          <h3 className="text-sm font-bold text-[#1E1810]">Follow-up</h3>
+          <h3 className="text-sm font-bold text-[#1E1810]">Seguimiento / Follow-up</h3>
           <p className="mt-1 text-xs text-[#7A7164]">
-            Next relationship contact — when, why, and expected action. Distinct from Field Agent Living Book notes, confirmed facts, meeting notes, and Promise Keeper commitments.
+            Próximo contacto de relación — cuándo, por qué y la acción esperada. Distinto de las notas del Living Book de Field Agent, hechos confirmados, notas de reunión y compromisos de Promise Keeper. / Next relationship contact — when, why, and expected action. Distinct from Field Agent Living Book notes, confirmed facts, meeting notes, and Promise Keeper commitments.
           </p>
           <div className="mt-3">
             <FollowUpPanel
@@ -1072,11 +1078,11 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
         </section>
 
         <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-          <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Contact actions</h3>
+          <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Acciones de contacto / Contact actions</h3>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             {primaryPhone ? (
               <a href={`tel:${primaryPhone.normalizedValue}`} className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#7A1E2C] px-3 py-2 text-xs font-bold text-white">
-                Call {formatUsPhoneForDisplay(primaryPhone.value)}
+                Llamar / Call {formatUsPhoneForDisplay(primaryPhone.value)}
               </a>
             ) : null}
             {primaryPhone?.capabilities.includes("sms") ? (
@@ -1091,18 +1097,18 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
             ) : null}
             {primaryEmail ? (
               <a href={`mailto:${primaryEmail.value}`} className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#E8DFD0] px-3 py-2 text-xs font-semibold text-[#3D3428]">
-                Email
+                Correo / Email
               </a>
             ) : null}
             {websiteContact ? (
               <a href={websiteContact.value.startsWith("http") ? websiteContact.value : `https://${websiteContact.value}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#E8DFD0] px-3 py-2 text-xs font-semibold text-[#3D3428]">
-                Website
+                Sitio web / Website
               </a>
             ) : null}
             {!canViewPrivateContacts ? (
-              <p className="text-xs text-[#7A7164]">Your role does not include permission to view private contact details.</p>
+              <p className="text-xs text-[#7A7164]">Su rol no incluye permiso para ver detalles de contacto privados. / Your role does not include permission to view private contact details.</p>
             ) : !primaryPhone && !primaryEmail && !websiteContact ? (
-              <p className="text-xs text-[#7A7164]">No verified contact method on file yet.</p>
+              <p className="text-xs text-[#7A7164]">Aún no hay ningún método de contacto verificado registrado. / No verified contact method on file yet.</p>
             ) : null}
           </div>
         </section>
@@ -1162,9 +1168,9 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
           Recommendations and before Creative, matching RECOMMEND -> OPPORTUNITY -> CREATE. */}
       {canViewOpportunities && opportunityEnabled ? (
         <section id="opportunity" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
-          <h2 className="font-serif text-lg font-bold text-[#1E1810]">Opportunities</h2>
+          <h2 className="font-serif text-lg font-bold text-[#1E1810]">Oportunidades / Opportunities</h2>
           <p className="mt-1 text-xs text-[#7A7164]">
-            Is there a contextual Leonix editorial / sponsorship / advertising opportunity worth reviewing? Approving one never confirms sponsorship, never accepts for the client, and never sends outreach.
+            ¿Hay una oportunidad editorial / patrocinio / publicidad de Leonix que valga la pena revisar? Aprobar una nunca confirma patrocinio, nunca acepta en nombre del cliente y nunca envía contacto. / Is there a contextual Leonix editorial / sponsorship / advertising opportunity worth reviewing? Approving one never confirms sponsorship, never accepts for the client, and never sends outreach.
           </p>
           <StewardshipOpportunityFlowNav
             current="opportunity"
@@ -1201,8 +1207,10 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
           decision it feeds. */}
       {canViewCreativeStudio && creativeStudioEnabled ? (
         <section id="creative" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
-          <h2 className="font-serif text-lg font-bold text-[#1E1810]">Creative Studio</h2>
-          <p className="mt-1 text-xs text-[#7A7164]">Transform verified business truth into print-ready / Canva-ready creative production packets. Creative jobs are not created automatically when an opportunity is approved. Approval is not publication.</p>
+          <h2 className="font-serif text-lg font-bold text-[#1E1810]">Estudio Creativo / Creative Studio</h2>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            Transformar la verdad verificada del negocio en paquetes de producción creativa listos para imprimir o para Canva. Los trabajos creativos no se crean automáticamente cuando se aprueba una oportunidad. La aprobación no es publicación. / Transform verified business truth into print-ready / Canva-ready creative production packets. Creative jobs are not created automatically when an opportunity is approved. Approval is not publication.
+          </p>
           <StewardshipOpportunityFlowNav
             current="creative"
             hasHealth={Boolean(canViewHealthMap && healthData)}
@@ -1224,10 +1232,10 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
       {program5Data && canViewCommitments ? (
         <section id="proposals" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
           <div id="decide" className="scroll-mt-24" />
-          <h2 className="font-serif text-lg font-bold text-[#1E1810]">Client Decision</h2>
+          <h2 className="font-serif text-lg font-bold text-[#1E1810]">Decisión del Cliente / Client Decision</h2>
           <p className="mt-1 text-xs text-[#7A7164]">
-            Meetings → recommendations → opportunities → creative → this proposal → client decision → owner handoff (if accepted) → commitments.
-            Acceptance is a human record that the client accepted this proposal. It does not charge, sign a contract, publish, or confirm an opportunity.
+            Reuniones → recomendaciones → oportunidades → creatividad → esta propuesta → decisión del cliente → entrega al dueño (si se acepta) → compromisos.
+            La aceptación es un registro humano de que el cliente aceptó esta propuesta. No cobra, no firma un contrato, no publica ni confirma una oportunidad. / Meetings → recommendations → opportunities → creative → this proposal → client decision → owner handoff (if accepted) → commitments. Acceptance is a human record that the client accepted this proposal. It does not charge, sign a contract, publish, or confirm an opportunity.
           </p>
           <nav aria-label="Proposal journey" className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             {program5Data ? <a href="#meetings" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#E8DFD0] px-3 py-2 text-xs font-semibold text-[#3D3428]">Meetings</a> : null}
@@ -1326,48 +1334,48 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
         const latestCreativeJob = creativeJobViews[0]?.job ?? null;
         return (
           <section id="owner-handoff" className="scroll-mt-24 rounded-2xl border border-[#C9A84A]/50 bg-[#FBF7EF] p-4">
-            <h2 className="font-serif text-lg font-bold text-[#1E1810]">Owner Handoff</h2>
+            <h2 className="font-serif text-lg font-bold text-[#1E1810]">Entrega al Dueño / Owner Handoff</h2>
             <p className="mt-1 text-xs text-[#7A7164]">
-              The client accepted the commercial direction below. This summarizes what Chuy needs next. It does not replace contract, payment, or publication — those remain separate steps outside Business Concierge.
+              El cliente aceptó la dirección comercial a continuación. Esto resume lo que Chuy necesita hacer a continuación. No reemplaza el contrato, el pago ni la publicación — esos siguen siendo pasos separados fuera de Business Concierge. / The client accepted the commercial direction below. This summarizes what Chuy needs next. It does not replace contract, payment, or publication — those remain separate steps outside Business Concierge.
             </p>
             <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
               <div className="rounded-lg border border-[#E8DFD0] bg-white p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Accepted proposal</p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Propuesta aceptada / Accepted proposal</p>
                 <p className="mt-1 text-xs font-semibold text-[#1E1810]">{acceptedProposal.recommendedIntervention.replace(/_/g, " ")}</p>
                 <p className="mt-1 break-words text-xs text-[#3D3428]">{acceptedProposal.verifiedNeedEn}</p>
                 <p className="mt-1 text-[10px] text-[#7A7164]">
-                  Accepted {acceptedProposal.acceptedAt ? new Date(acceptedProposal.acceptedAt).toLocaleString() : "—"}
+                  Aceptada / Accepted {acceptedProposal.acceptedAt ? new Date(acceptedProposal.acceptedAt).toLocaleString() : "—"}
                   {acceptedProposal.acceptedByEmail ? ` by ${acceptedProposal.acceptedByEmail}` : ""}.
                 </p>
               </div>
               <div className="rounded-lg border border-[#E8DFD0] bg-white p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Creative status</p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Estado creativo / Creative status</p>
                 {latestCreativeJob ? (
                   <p className="mt-1 text-xs text-[#3D3428]">{latestCreativeJob.assetType.replace(/_/g, " ")} — {latestCreativeJob.status.replace(/_/g, " ")}</p>
                 ) : (
-                  <p className="mt-1 text-xs text-[#7A7164]">No creative request has been created yet.</p>
+                  <p className="mt-1 text-xs text-[#7A7164]">No se ha creado ninguna solicitud creativa aún. / No creative request has been created yet.</p>
                 )}
-                <a href="#creative" className="mt-1 inline-flex min-h-[36px] items-center text-[11px] font-semibold text-[#7A1E2C] underline">Open Creative Studio</a>
+                <a href="#creative" className="mt-1 inline-flex min-h-[36px] items-center text-[11px] font-semibold text-[#7A1E2C] underline">Abrir Estudio Creativo / Open Creative Studio</a>
               </div>
               <div className="rounded-lg border border-[#E8DFD0] bg-white p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Open commitments</p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Compromisos abiertos / Open commitments</p>
                 {openCommitments.length === 0 ? (
-                  <p className="mt-1 text-xs text-[#7A7164]">No open commitments for this business.</p>
+                  <p className="mt-1 text-xs text-[#7A7164]">No hay compromisos abiertos para este negocio. / No open commitments for this business.</p>
                 ) : (
-                  <p className="mt-1 text-xs text-[#3D3428]">{openCommitments.length} still open.</p>
+                  <p className="mt-1 text-xs text-[#3D3428]">{openCommitments.length} aún abiertos / still open.</p>
                 )}
-                <a href="#promises" className="mt-1 inline-flex min-h-[36px] items-center text-[11px] font-semibold text-[#7A1E2C] underline">Review Commitments</a>
+                <a href="#promises" className="mt-1 inline-flex min-h-[36px] items-center text-[11px] font-semibold text-[#7A1E2C] underline">Revisar Compromisos / Review Commitments</a>
               </div>
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-amber-900">Not tracked in Business Concierge</p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-amber-900">No registrado en Business Concierge / Not tracked in Business Concierge</p>
                 <p className="mt-1 text-xs text-amber-900">
-                  Contract signature, payment, and publication status are not recorded in this system. Confirm those directly before treating this relationship as executed.
+                  La firma del contrato, el pago y el estado de publicación no se registran en este sistema. Confírmelos directamente antes de considerar esta relación como ejecutada. / Contract signature, payment, and publication status are not recorded in this system. Confirm those directly before treating this relationship as executed.
                 </p>
               </div>
             </div>
             {business.creationSource === "staff_assisted" ? (
               <a href="#ownership-claim" className="mt-3 inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-white px-4 py-2 text-xs font-semibold text-[#1E1810]">
-                Owner account access (Ownership Claim)
+                Acceso a la cuenta del dueño (Reclamo de Propiedad) / Owner account access (Ownership Claim)
               </a>
             ) : null}
           </section>
@@ -1377,8 +1385,8 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
       {/* Promise Keeper */}
       {program5Data && canViewCommitments ? (
         <section id="promises" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
-          <h2 className="font-serif text-lg font-bold text-[#1E1810]">Commitments</h2>
-          <p className="mt-1 text-xs text-[#7A7164]">What Leonix and relevant actors promised to do. Commitments are not sales follow-ups.</p>
+          <h2 className="font-serif text-lg font-bold text-[#1E1810]">Compromisos / Commitments</h2>
+          <p className="mt-1 text-xs text-[#7A7164]">Lo que Leonix y los actores relevantes prometieron hacer. Los compromisos no son seguimientos de ventas. / What Leonix and relevant actors promised to do. Commitments are not sales follow-ups.</p>
           {canManageCommitments ? <CreateCommitmentForm businessId={business.id} /> : null}
           <div className="mt-3 space-y-4">
             {program5Data.commitmentsWithEvents.length === 0 ? (
@@ -1414,61 +1422,61 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
       ) : null}
 
       <section id="outcomes" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
-        <h2 className="font-serif text-lg font-bold text-[#1E1810]">Outcomes</h2>
+        <h2 className="font-serif text-lg font-bold text-[#1E1810]">Resultados / Outcomes</h2>
         {outcomesUnavailable ? (
-          <p className="mt-2 text-xs text-[#7A7164]">Outcomes could not be loaded. No recorded result was invented.</p>
+          <p className="mt-2 text-xs text-[#7A7164]">No se pudieron cargar los resultados. No se inventó ningún resultado registrado. / Outcomes could not be loaded. No recorded result was invented.</p>
         ) : outcomesEnabled ? (
           <>
-            <p className="mt-1 text-xs text-[#7A7164]">Truthful measurement with bounded result/confidence/causation. Never guaranteed or proven.</p>
+            <p className="mt-1 text-xs text-[#7A7164]">Medición veraz con resultado/confianza/causalidad acotados. Nunca garantizado ni probado. / Truthful measurement with bounded result/confidence/causation. Never guaranteed or proven.</p>
             <OutcomesPanel outcomes={program7Outcomes.map((o) => ({ id: o.id, metricKey: o.metricKey, metricLabelEs: o.metricLabelEs, metricLabelEn: o.metricLabelEn, baselineValue: o.baselineValue, measuredValue: o.measuredValue, result: o.result, confidence: o.confidence, causationClaim: o.causationClaim, reviewStatus: o.reviewStatus, createdAt: o.createdAt }))} />
             <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-              <p className="text-xs text-[#7A7164] sm:mr-2 sm:self-center">Close the loop — what should Leonix do next for this business?</p>
+              <p className="text-xs text-[#7A7164] sm:mr-2 sm:self-center">Cerrar el ciclo — ¿qué debería hacer Leonix a continuación para este negocio? / Close the loop — what should Leonix do next for this business?</p>
               {canViewRecommendations && stewardshipData ? (
                 <a href="#recommend" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
-                  Review Next Right Move
+                  Revisar Próximo Paso / Review Next Right Move
                 </a>
               ) : null}
               <a href="#advisor" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#E8DFD0] px-4 py-2 text-xs font-semibold text-[#3D3428]">
-                Proactive Advisor
+                Asesor Proactivo / Proactive Advisor
               </a>
             </div>
           </>
         ) : (
-          <p className="mt-2 text-xs text-[#7A7164]">This module is not enabled in this environment.</p>
+          <p className="mt-2 text-xs text-[#7A7164]">Este módulo no está habilitado en este entorno. / This module is not enabled in this environment.</p>
         )}
       </section>
 
       <section id="advisor" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
-        <h2 className="font-serif text-lg font-bold text-[#1E1810]">Proactive Advisor</h2>
+        <h2 className="font-serif text-lg font-bold text-[#1E1810]">Asesor Proactivo / Proactive Advisor</h2>
         {advisorUnavailable ? (
-          <p className="mt-2 text-xs text-[#7A7164]">Advisor signals could not be loaded. The dashboard remains available.</p>
+          <p className="mt-2 text-xs text-[#7A7164]">No se pudieron cargar las señales del asesor. El panel sigue disponible. / Advisor signals could not be loaded. The dashboard remains available.</p>
         ) : advisorEnabled ? (
           <>
-            <p className="mt-1 text-xs text-[#7A7164]">Deterministic signals from existing truth. Not a second recommendation engine. Never auto-acts or auto-sends.</p>
+            <p className="mt-1 text-xs text-[#7A7164]">Señales deterministas a partir de la verdad existente. No es un segundo motor de recomendación. Nunca actúa ni envía automáticamente. / Deterministic signals from existing truth. Not a second recommendation engine. Never auto-acts or auto-sends.</p>
             <AdvisorPanel
               businessId={business.id}
               signals={program7Signals.map((s) => ({ id: s.id, signalType: s.signalType, severity: s.severity, status: s.status, titleEn: s.titleEn, titleEs: s.titleEs, explanationEn: s.explanationEn, explanationEs: s.explanationEs, detectedAt: s.detectedAt }))}
             />
           </>
         ) : (
-          <p className="mt-2 text-xs text-[#7A7164]">This module is not enabled in this environment.</p>
+          <p className="mt-2 text-xs text-[#7A7164]">Este módulo no está habilitado en este entorno. / This module is not enabled in this environment.</p>
         )}
       </section>
 
       <section id="assistant" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
-        <h2 className="font-serif text-lg font-bold text-[#1E1810]">Business Concierge Assistant</h2>
+        <h2 className="font-serif text-lg font-bold text-[#1E1810]">Asistente de Business Concierge / Business Concierge Assistant</h2>
         {assistantUnavailable ? (
-          <p className="mt-2 text-xs text-[#7A7164]">Assistant could not be loaded. No fake thread or answer is shown.</p>
+          <p className="mt-2 text-xs text-[#7A7164]">No se pudo cargar el asistente. No se muestra ningún hilo o respuesta falsos. / Assistant could not be loaded. No fake thread or answer is shown.</p>
         ) : assistantEnabled ? (
           <>
-            <p className="mt-1 text-xs text-[#7A7164]">Bounded to this business context. AI may READ, EXPLAIN, SUMMARIZE, GUIDE, DRAFT, SUGGEST — never autonomously mutate state.</p>
+            <p className="mt-1 text-xs text-[#7A7164]">Limitado al contexto de este negocio. La IA puede LEER, EXPLICAR, RESUMIR, GUIAR, REDACTAR, SUGERIR — nunca mutar el estado de forma autónoma. / Bounded to this business context. AI may READ, EXPLAIN, SUMMARIZE, GUIDE, DRAFT, SUGGEST — never autonomously mutate state.</p>
             <AssistantPanel
               businessId={business.id}
               threads={program7Threads.map((t) => ({ id: t.id, status: t.status, titleEn: t.titleEn, titleEs: t.titleEs, primaryContextType: t.primaryContextType, lastMessageAt: t.lastMessageAt, createdAt: t.createdAt }))}
             />
           </>
         ) : (
-          <p className="mt-2 text-xs text-[#7A7164]">This module is not enabled in this environment.</p>
+          <p className="mt-2 text-xs text-[#7A7164]">Este módulo no está habilitado en este entorno. / This module is not enabled in this environment.</p>
         )}
       </section>
 
@@ -1479,9 +1487,9 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
           journey above — last on the page, muted styling, not a primary nav tab. */}
       {business.creationSource === "staff_assisted" ? (
         <section id="ownership-claim" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-[#FAF7F2] p-4">
-          <h2 className="font-serif text-base font-bold text-[#5C5346]">Ownership Claim — Owner Account Access</h2>
+          <h2 className="font-serif text-base font-bold text-[#5C5346]">Reclamo de Propiedad — Acceso a la Cuenta del Dueño / Ownership Claim — Owner Account Access</h2>
           <p className="mt-1 text-xs text-[#7A7164]">
-            Technical account handoff — invites the real business owner to claim this existing account. Separate from the commercial Owner Handoff summary above; not tied to proposal acceptance.
+            Entrega técnica de la cuenta — invita al verdadero dueño del negocio a reclamar esta cuenta existente. Separado del resumen comercial de Entrega al Dueño arriba; no está ligado a la aceptación de una propuesta. / Technical account handoff — invites the real business owner to claim this existing account. Separate from the commercial Owner Handoff summary above; not tied to proposal acceptance.
           </p>
           <OwnershipClaimPanel businessId={business.id} canGenerate={canGenerateOwnershipClaim} />
         </section>

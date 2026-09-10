@@ -70,7 +70,7 @@ check("6. Owner Handoff renders only from a real accepted current proposal, neve
 });
 check("7. Owner Handoff and Ownership Claim remain visually and conceptually distinct sections", () => {
   assert.ok(page.includes('id="owner-handoff"') && page.includes('id="ownership-claim"'));
-  assert.ok(page.includes(">Owner Handoff<"));
+  assert.ok(page.includes("Owner Handoff<"));
   assert.ok(page.includes("Ownership Claim — Owner Account Access"));
   assert.ok(/Distinct\s+from the Ownership Claim account-access mechanism/.test(page));
   assert.ok(page.includes("Separate from the commercial Owner Handoff summary above"));

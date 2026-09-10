@@ -23,7 +23,7 @@ export function CreateFactForm({ businessId, canConfirm }: { businessId: string;
 
   async function submit() {
     if (!factKey.trim() || !displayValue.trim()) {
-      setError("Fact key and value are required.");
+      setError("Se requieren la clave y el valor del hecho. / Fact key and value are required.");
       return;
     }
     setSubmitting(true);
@@ -38,7 +38,7 @@ export function CreateFactForm({ businessId, canConfirm }: { businessId: string;
     });
     setSubmitting(false);
     if (!ok) {
-      setError("Could not save — a manager may need to review this fact first, or check the fact key.");
+      setError("No se pudo guardar — un gerente puede necesitar revisar este hecho primero, o verifique la clave. / Could not save — a manager may need to review this fact first, or check the fact key.");
       return;
     }
     setFactKey("");
@@ -49,7 +49,7 @@ export function CreateFactForm({ businessId, canConfirm }: { businessId: string;
   return (
     <div className="rounded-2xl border border-dashed border-[#D6C7AD] bg-[#FAF7F2]/60 p-4">
       <fieldset className="space-y-3">
-        <legend className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Add a fact</legend>
+        <legend className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Agregar un hecho / Add a fact</legend>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label htmlFor="fact-key" className="block text-xs font-semibold text-[#3D3428]">Fact key</label>
@@ -80,7 +80,7 @@ export function CreateFactForm({ businessId, canConfirm }: { businessId: string;
         </div>
         {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
         <button type="button" onClick={() => void submit()} disabled={submitting} className="min-h-[40px] rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white disabled:opacity-50">
-          {submitting ? "Saving…" : "Save fact"}
+          {submitting ? "Guardando… / Saving…" : "Guardar hecho / Save fact"}
         </button>
       </fieldset>
     </div>
@@ -98,8 +98,8 @@ export function FactDecisionButtons({ businessId, factId }: { businessId: string
   }
   return (
     <div className="mt-1 flex gap-2">
-      <button type="button" disabled={busy} onClick={() => void decide("confirm")} className="min-h-[32px] rounded-lg border border-emerald-600 px-2 py-1 text-[11px] font-semibold text-emerald-800 disabled:opacity-50">Confirm</button>
-      <button type="button" disabled={busy} onClick={() => void decide("reject")} className="min-h-[32px] rounded-lg border border-[#E8DFD0] px-2 py-1 text-[11px] font-semibold text-[#3D3428] disabled:opacity-50">Reject</button>
+      <button type="button" disabled={busy} onClick={() => void decide("confirm")} className="min-h-[32px] rounded-lg border border-emerald-600 px-2 py-1 text-[11px] font-semibold text-emerald-800 disabled:opacity-50">Confirmar / Confirm</button>
+      <button type="button" disabled={busy} onClick={() => void decide("reject")} className="min-h-[32px] rounded-lg border border-[#E8DFD0] px-2 py-1 text-[11px] font-semibold text-[#3D3428] disabled:opacity-50">Rechazar / Reject</button>
     </div>
   );
 }
@@ -122,13 +122,13 @@ export function CreateUnknownForm({ businessId }: { businessId: string }) {
   return (
     <div className="flex flex-wrap items-end gap-2 rounded-xl border border-dashed border-[#D6C7AD] bg-[#FAF7F2]/60 p-3">
       <div className="min-w-[200px] flex-1">
-        <label htmlFor="unknown-label" className="block text-xs font-semibold text-[#3D3428]">New unknown</label>
-        <input id="unknown-label" value={questionLabel} onChange={(e) => setQuestionLabel(e.target.value)} placeholder="What don't we know yet?" className="mt-1 min-h-[40px] w-full rounded-lg border border-[#E8DFD0] bg-white px-3 py-1.5 text-sm" />
+        <label htmlFor="unknown-label" className="block text-xs font-semibold text-[#3D3428]">Nueva incógnita / New unknown</label>
+        <input id="unknown-label" value={questionLabel} onChange={(e) => setQuestionLabel(e.target.value)} placeholder="¿Qué no sabemos todavía? / What don't we know yet?" className="mt-1 min-h-[40px] w-full rounded-lg border border-[#E8DFD0] bg-white px-3 py-1.5 text-sm" />
       </div>
       <select value={priority} onChange={(e) => setPriority(e.target.value)} className="min-h-[40px] rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-sm">
         {UNKNOWN_PRIORITIES.map((o) => <option key={o.value} value={o.value}>{o.en}</option>)}
       </select>
-      <button type="button" onClick={() => void submit()} disabled={submitting} className="min-h-[40px] rounded-lg bg-[#7A1E2C] px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Add</button>
+      <button type="button" onClick={() => void submit()} disabled={submitting} className="min-h-[40px] rounded-lg bg-[#7A1E2C] px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Agregar / Add</button>
     </div>
   );
 }
@@ -146,8 +146,8 @@ export function ResolveUnknownForm({ businessId, unknown }: { businessId: string
   }
   return (
     <div className="mt-1 flex flex-wrap gap-2">
-      <input value={resolution} onChange={(e) => setResolution(e.target.value)} placeholder="Resolution…" className="min-h-[32px] flex-1 rounded-lg border border-[#E8DFD0] bg-white px-2 py-1 text-xs" />
-      <button type="button" disabled={submitting} onClick={() => void submit()} className="min-h-[32px] rounded-lg border border-emerald-600 px-2 py-1 text-[11px] font-semibold text-emerald-800 disabled:opacity-50">Resolve</button>
+      <input value={resolution} onChange={(e) => setResolution(e.target.value)} placeholder="Resolución… / Resolution…" className="min-h-[32px] flex-1 rounded-lg border border-[#E8DFD0] bg-white px-2 py-1 text-xs" />
+      <button type="button" disabled={submitting} onClick={() => void submit()} className="min-h-[32px] rounded-lg border border-emerald-600 px-2 py-1 text-[11px] font-semibold text-emerald-800 disabled:opacity-50">Resolver / Resolve</button>
     </div>
   );
 }
@@ -199,7 +199,7 @@ export function DiscoveryPanel({ businessId, session }: { businessId: string; se
           <option value="en">English</option>
           <option value="es">Español</option>
         </select>
-        <button type="button" onClick={() => void start()} disabled={submitting} className="min-h-[40px] rounded-lg bg-[#7A1E2C] px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Start discovery session</button>
+        <button type="button" onClick={() => void start()} disabled={submitting} className="min-h-[40px] rounded-lg bg-[#7A1E2C] px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Iniciar sesión de descubrimiento / Start discovery session</button>
       </div>
     );
   }
@@ -209,21 +209,21 @@ export function DiscoveryPanel({ businessId, session }: { businessId: string; se
 
   return (
     <div className="rounded-xl border border-[#E8DFD0] bg-white p-3">
-      <p className="text-xs font-semibold text-[#8A6B1F]">Session in progress — {session.sessionType}</p>
+      <p className="text-xs font-semibold text-[#8A6B1F]">Sesión en curso — {session.sessionType} / Session in progress — {session.sessionType}</p>
       {question ? (
         <div className="mt-2">
           <p className="text-sm font-semibold text-[#1E1810]">{session.language === "es" ? question.es : question.en}</p>
           {question.whyWeAsk ? <p className="mt-1 text-[11px] text-[#7A7164]">{session.language === "es" ? question.whyWeAsk.es : question.whyWeAsk.en}</p> : null}
-          <textarea value={answerText} onChange={(e) => setAnswerText(e.target.value)} rows={2} className="mt-2 w-full rounded-lg border border-[#E8DFD0] px-3 py-2 text-sm" placeholder="Answer…" />
+          <textarea value={answerText} onChange={(e) => setAnswerText(e.target.value)} rows={2} className="mt-2 w-full rounded-lg border border-[#E8DFD0] px-3 py-2 text-sm" placeholder="Respuesta… / Answer…" />
           <div className="mt-2 flex flex-wrap gap-2">
-            <button type="button" disabled={submitting} onClick={() => void answer(question.key, false)} className="min-h-[36px] rounded-lg bg-[#7A1E2C] px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50">Save answer</button>
-            <button type="button" disabled={submitting} onClick={() => void answer(question.key, true)} className="min-h-[36px] rounded-lg border border-[#E8DFD0] px-3 py-1.5 text-xs font-semibold text-[#3D3428] disabled:opacity-50">Prefer not to answer</button>
+            <button type="button" disabled={submitting} onClick={() => void answer(question.key, false)} className="min-h-[36px] rounded-lg bg-[#7A1E2C] px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50">Guardar respuesta / Save answer</button>
+            <button type="button" disabled={submitting} onClick={() => void answer(question.key, true)} className="min-h-[36px] rounded-lg border border-[#E8DFD0] px-3 py-1.5 text-xs font-semibold text-[#3D3428] disabled:opacity-50">Prefiero no responder / Prefer not to answer</button>
           </div>
         </div>
       ) : (
-        <p className="mt-2 text-xs text-[#7A7164]">All registry questions answered for this session.</p>
+        <p className="mt-2 text-xs text-[#7A7164]">Todas las preguntas del registro han sido respondidas para esta sesión. / All registry questions answered for this session.</p>
       )}
-      <button type="button" disabled={submitting} onClick={() => void complete()} className="mt-3 min-h-[36px] rounded-lg border border-emerald-600 px-3 py-1.5 text-xs font-semibold text-emerald-800 disabled:opacity-50">Complete session</button>
+      <button type="button" disabled={submitting} onClick={() => void complete()} className="mt-3 min-h-[36px] rounded-lg border border-emerald-600 px-3 py-1.5 text-xs font-semibold text-emerald-800 disabled:opacity-50">Completar sesión / Complete session</button>
     </div>
   );
 }

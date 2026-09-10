@@ -21,7 +21,7 @@ export function ProviderAvailabilityRow({ providerAvailability }: { providerAvai
   return (
     <div className="space-y-1">
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        <span className="text-[#7A7164]">Generation providers:</span>
+        <span className="text-[#7A7164]">Proveedores de generación: / Generation providers:</span>
         {([
           { label: "Gemini", configured: providerAvailability.gemini },
           { label: "OpenAI", configured: providerAvailability.openai },
@@ -30,12 +30,12 @@ export function ProviderAvailabilityRow({ providerAvailability }: { providerAvai
             key={entry.label}
             className={`rounded px-2 py-0.5 font-medium ${entry.configured ? "bg-emerald-100 text-emerald-800" : "bg-[#EDE6D6] text-[#7A7164]"}`}
           >
-            {entry.label} {entry.configured ? "configured" : "not configured"}
+            {entry.label} {entry.configured ? "configurado / configured" : "no configurado / not configured"}
           </span>
         ))}
       </div>
       {!anyConfigured ? (
-        <p className="text-sm text-[#7A7164]">Creative generation provider is not available.</p>
+        <p className="text-sm text-[#7A7164]">El proveedor de generación creativa no está disponible. / Creative generation provider is not available.</p>
       ) : null}
     </div>
   );
@@ -59,13 +59,13 @@ export function GenerateDraftButton({
   const [error, setError] = useState<string | null>(null);
 
   if (!canGenerate) {
-    return <p className="text-xs text-[#7A7164]">Generation remains a manager / super-admin action.</p>;
+    return <p className="text-xs text-[#7A7164]">Solo gerentes o super-admins pueden generar. / Generation remains a manager / super-admin action.</p>;
   }
   if (!hasBrief) {
-    return <p className="text-xs text-[#7A7164]">A Creative Brief is required before generation.</p>;
+    return <p className="text-xs text-[#7A7164]">Se requiere un Brief Creativo antes de generar. / A Creative Brief is required before generation.</p>;
   }
   if (!providerAvailable) {
-    return <p className="text-sm text-[#7A7164]">Creative generation provider is not available.</p>;
+    return <p className="text-sm text-[#7A7164]">El proveedor de generación creativa no está disponible. / Creative generation provider is not available.</p>;
   }
 
   async function run() {
@@ -79,7 +79,7 @@ export function GenerateDraftButton({
     const data = await res.json().catch(() => ({} as { error?: string; detail?: string }));
     setSubmitting(false);
     if (!res.ok) {
-      setError(readApiError(data, "Could not generate. No output was created."));
+      setError(readApiError(data, "No se pudo generar. No se creó ningún resultado. / Could not generate. No output was created."));
       return;
     }
     router.refresh();
@@ -93,7 +93,7 @@ export function GenerateDraftButton({
         onClick={() => void run()}
         className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
       >
-        {submitting ? "Generating…" : "Generate draft"}
+        {submitting ? "Generando… / Generating…" : "Generar borrador / Generate draft"}
       </button>
       {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
     </div>
@@ -139,7 +139,7 @@ export function CreateBriefForm({
   const [lane, setLane] = useState(creativeLane || CREATIVE_LANES[0]);
 
   if (!canCreateBrief) {
-    return <p className="text-xs text-[#7A7164]">Creating a Creative Brief remains a manager / super-admin action.</p>;
+    return <p className="text-xs text-[#7A7164]">Solo gerentes o super-admins pueden crear un Brief Creativo. / Creating a Creative Brief remains a manager / super-admin action.</p>;
   }
 
   async function submit() {
@@ -165,7 +165,7 @@ export function CreateBriefForm({
     const data = await res.json().catch(() => ({} as { error?: string; detail?: string }));
     setSubmitting(false);
     if (!res.ok) {
-      setError(readApiError(data, "Could not save the Creative Brief."));
+      setError(readApiError(data, "No se pudo guardar el Brief Creativo. / Could not save the Creative Brief."));
       return;
     }
     router.refresh();
@@ -181,17 +181,17 @@ export function CreateBriefForm({
         void submit();
       }}
     >
-      <p className="text-xs text-[#7A7164]">Creative Brief is derived working direction. It is not the Truth Packet. Prefill is editable and is not saved until you click Save.</p>
-      <input className={fieldClass} value={businessGoal} onChange={(e) => setBusinessGoal(e.target.value)} placeholder="Business goal" required />
-      <input className={fieldClass} value={campaignObjective} onChange={(e) => setCampaignObjective(e.target.value)} placeholder="Campaign objective" required />
-      <input className={fieldClass} value={readerNeed} onChange={(e) => setReaderNeed(e.target.value)} placeholder="Reader need" required />
-      <input className={fieldClass} value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} placeholder="Target audience" required />
-      <textarea className={fieldClass} value={primaryMessage} onChange={(e) => setPrimaryMessage(e.target.value)} placeholder="Primary message" rows={2} required />
+      <p className="text-xs text-[#7A7164]">El Brief Creativo es una dirección de trabajo derivada. No es el Paquete de Verdad. El prellenado es editable y no se guarda hasta que hagas clic en Guardar. / Creative Brief is derived working direction. It is not the Truth Packet. Prefill is editable and is not saved until you click Save.</p>
+      <input className={fieldClass} value={businessGoal} onChange={(e) => setBusinessGoal(e.target.value)} placeholder="Objetivo de negocio / Business goal" required />
+      <input className={fieldClass} value={campaignObjective} onChange={(e) => setCampaignObjective(e.target.value)} placeholder="Objetivo de campaña / Campaign objective" required />
+      <input className={fieldClass} value={readerNeed} onChange={(e) => setReaderNeed(e.target.value)} placeholder="Necesidad del lector / Reader need" required />
+      <input className={fieldClass} value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} placeholder="Público objetivo / Target audience" required />
+      <textarea className={fieldClass} value={primaryMessage} onChange={(e) => setPrimaryMessage(e.target.value)} placeholder="Mensaje principal / Primary message" rows={2} required />
       <input className={fieldClass} value={cta} onChange={(e) => setCta(e.target.value)} placeholder="CTA" required />
-      <input className={`${fieldClass} break-all`} value={contactPath} onChange={(e) => setContactPath(e.target.value)} placeholder="Contact path" required />
-      <input className={fieldClass} value={keyServicesText} onChange={(e) => setKeyServicesText(e.target.value)} placeholder="Key services (optional)" />
-      <input className={fieldClass} value={imageStrategy} onChange={(e) => setImageStrategy(e.target.value)} placeholder="Image strategy" required />
-      <input className={fieldClass} value={desiredAction} onChange={(e) => setDesiredAction(e.target.value)} placeholder="Desired action" required />
+      <input className={`${fieldClass} break-all`} value={contactPath} onChange={(e) => setContactPath(e.target.value)} placeholder="Ruta de contacto / Contact path" required />
+      <input className={fieldClass} value={keyServicesText} onChange={(e) => setKeyServicesText(e.target.value)} placeholder="Servicios clave (opcional) / Key services (optional)" />
+      <input className={fieldClass} value={imageStrategy} onChange={(e) => setImageStrategy(e.target.value)} placeholder="Estrategia de imagen / Image strategy" required />
+      <input className={fieldClass} value={desiredAction} onChange={(e) => setDesiredAction(e.target.value)} placeholder="Acción deseada / Desired action" required />
       <select className={fieldClass} value={lane} onChange={(e) => setLane(e.target.value)}>
         {CREATIVE_LANES.map((option) => (
           <option key={option} value={option}>{option.replace(/_/g, " ")}</option>
@@ -202,7 +202,7 @@ export function CreateBriefForm({
         disabled={submitting}
         className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
       >
-        {submitting ? "Saving…" : "Save Creative Brief"}
+        {submitting ? "Guardando… / Saving…" : "Guardar Brief Creativo / Save Creative Brief"}
       </button>
       {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
     </form>

@@ -57,7 +57,7 @@ check("Repair 2b. Business Book renders evidence with a truthful empty state, ho
   const end = page.indexOf('id="discover"', idx) >= 0 ? page.indexOf("Program 4", idx) : page.length;
   const block = page.slice(idx, end);
   assert.ok(block.includes("Verified facts, evidence, unknowns, contradictions"));
-  assert.ok(block.includes(">Evidence<"));
+  assert.ok(block.includes("Evidence<"));
   assert.ok(block.includes("bookData.evidence.slice(0, 20).map"));
   assert.ok(block.includes("No evidence recorded yet."));
 });

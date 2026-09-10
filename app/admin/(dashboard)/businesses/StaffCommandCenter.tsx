@@ -39,7 +39,7 @@ function TodayChip({ label, count }: { label: string; count: number }) {
 
 function AttentionList({ items }: { items: readonly StaffConciergeAttentionEntry[] }) {
   if (items.length === 0) {
-    return <p className="mt-2 text-xs text-[#7A7164]">No businesses need immediate attention right now.</p>;
+    return <p className="mt-2 text-xs text-[#7A7164]">Ningún negocio necesita atención inmediata en este momento. / No businesses need immediate attention right now.</p>;
   }
   return (
     <ul className="mt-2 space-y-2">
@@ -107,7 +107,7 @@ export function StaffCommandCenter({
             <p className="font-serif text-lg font-bold leading-tight tracking-tight text-[#1E1810] sm:text-2xl">
               Leonix Business Concierge
             </p>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8A6B1F]">Staff Command Center</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8A6B1F]">Centro de Comando del Personal / Staff Command Center</p>
           </div>
         </div>
         <BusinessConciergeInstallBanner />
@@ -115,19 +115,19 @@ export function StaffCommandCenter({
 
       {summaryUnavailable ? (
         <p className="mt-4 rounded-xl border border-[#E8DFD0] bg-white px-3 py-3 text-xs text-[#7A7164]">
-          Command Center summary is unavailable right now. Business inventory below is still available.
+          El resumen del Centro de Comando no está disponible en este momento. El inventario de negocios abajo sigue disponible. / Command Center summary is unavailable right now. Business inventory below is still available.
         </p>
       ) : (
         <>
           <div className="mt-4">
-            <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Today</h2>
+            <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Hoy / Today</h2>
             <div className="mt-2 flex flex-wrap gap-2">
-              <TodayChip label="Follow-ups due today" count={home.dueFollowUps.length} />
-              <TodayChip label="Overdue follow-ups" count={home.overdueFollowUps.length} />
-              <TodayChip label="Meetings" count={upcomingMeetings.length} />
-              <TodayChip label="Commitments due/blocked" count={commitmentsAttention.length} />
-              <TodayChip label="Proposals awaiting decision" count={proposalsAwaitingDecision.length} />
-              <TodayChip label="Creative awaiting review" count={creativeAwaitingReview.length} />
+              <TodayChip label="Seguimientos vencidos hoy / Follow-ups due today" count={home.dueFollowUps.length} />
+              <TodayChip label="Seguimientos atrasados / Overdue follow-ups" count={home.overdueFollowUps.length} />
+              <TodayChip label="Reuniones / Meetings" count={upcomingMeetings.length} />
+              <TodayChip label="Compromisos vencidos/bloqueados / Commitments due/blocked" count={commitmentsAttention.length} />
+              <TodayChip label="Propuestas en espera de decisión / Proposals awaiting decision" count={proposalsAwaitingDecision.length} />
+              <TodayChip label="Creativo en revisión / Creative awaiting review" count={creativeAwaitingReview.length} />
             </div>
             {home.dueFollowUps.length === 0 &&
             home.overdueFollowUps.length === 0 &&
@@ -135,12 +135,12 @@ export function StaffCommandCenter({
             commitmentsAttention.length === 0 &&
             proposalsAwaitingDecision.length === 0 &&
             creativeAwaitingReview.length === 0 ? (
-              <p className="mt-2 text-xs text-[#7A7164]">Nothing due right now.</p>
+              <p className="mt-2 text-xs text-[#7A7164]">Nada pendiente en este momento. / Nothing due right now.</p>
             ) : null}
           </div>
 
           <div className="mt-4">
-            <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Needs attention</h2>
+            <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Necesita atención / Needs attention</h2>
             <AttentionList items={needsAttention} />
           </div>
         </>
@@ -148,15 +148,15 @@ export function StaffCommandCenter({
 
       {advisorEnabled ? (
         <div className="mt-4">
-          <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Advisor</h2>
+          <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Asesor / Advisor</h2>
           {advisorUnavailable ? (
-            <p className="mt-2 text-xs text-[#7A7164]">Advisor signals are unavailable right now. Follow-ups and inventory below are still available.</p>
+            <p className="mt-2 text-xs text-[#7A7164]">Las señales del asesor no están disponibles en este momento. Los seguimientos y el inventario abajo siguen disponibles. / Advisor signals are unavailable right now. Follow-ups and inventory below are still available.</p>
           ) : advisorSignals.length === 0 ? (
-            <p className="mt-2 text-xs text-[#7A7164]">No active advisor signals.</p>
+            <p className="mt-2 text-xs text-[#7A7164]">No hay señales activas del asesor. / No active advisor signals.</p>
           ) : (
             <>
               <p className="mt-1 text-xs text-[#3D3428]">
-                {advisorSignals.length} active advisor signal{advisorSignals.length === 1 ? "" : "s"} from canonical Program 7 truth. This is not a second notification store.
+                {advisorSignals.length} active advisor signal{advisorSignals.length === 1 ? "" : "s"} from canonical Program 7 truth. Esto no es un segundo almacén de notificaciones. / This is not a second notification store.
               </p>
               <ul className="mt-2 space-y-2">
                 {advisorSignals.map((row) => {
@@ -186,15 +186,15 @@ export function StaffCommandCenter({
       ) : null}
 
       <div className="mt-4">
-        <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Owner Handoff</h2>
+        <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Entrega al Dueño / Owner Handoff</h2>
         {ownerHandoffUnavailable ? (
-          <p className="mt-2 text-xs text-[#7A7164]">Owner Handoff is unavailable right now. Follow-ups and inventory below are still available.</p>
+          <p className="mt-2 text-xs text-[#7A7164]">La Entrega al Dueño no está disponible en este momento. Los seguimientos y el inventario abajo siguen disponibles. / Owner Handoff is unavailable right now. Follow-ups and inventory below are still available.</p>
         ) : ownerHandoff.length === 0 ? (
-          <p className="mt-2 text-xs text-[#7A7164]">No accepted proposals are waiting for owner handoff.</p>
+          <p className="mt-2 text-xs text-[#7A7164]">No hay propuestas aceptadas esperando entrega al dueño. / No accepted proposals are waiting for owner handoff.</p>
         ) : (
           <>
             <p className="mt-1 text-xs text-[#3D3428]">
-              {ownerHandoff.length} accepted proposal{ownerHandoff.length === 1 ? "" : "s"} need attention. Accepted is not signed, paid, or published.
+              {ownerHandoff.length} accepted proposal{ownerHandoff.length === 1 ? "" : "s"} need attention. Aceptado no es firmado, pagado ni publicado. / Accepted is not signed, paid, or published.
             </p>
             <ul className="mt-2 space-y-2">
               {ownerHandoff.map((row) => (
@@ -220,55 +220,55 @@ export function StaffCommandCenter({
       </div>
 
       <div className="mt-4">
-        <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Quick actions</h2>
+        <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Acciones rápidas / Quick actions</h2>
         <div className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <a href="#businesses-inventory" className={`${adminBtnPrimary} min-h-[44px]`}>
-            Find business
+            Buscar negocio / Find business
           </a>
           <Link href="/admin/businesses/canvass" className={`${adminBtnSecondary} min-h-[44px] border-[#C9A84A]/70`}>
-            Add prospect
+            Agregar prospecto / Add prospect
           </Link>
           <a
             href="#businesses-inventory"
             className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2 text-[#7A1E2C]`}
           >
-            <span>Add note</span>
-            <span className="text-[10px] font-normal text-[#7A7164]">Search, then add a note.</span>
+            <span>Agregar nota / Add note</span>
+            <span className="text-[10px] font-normal text-[#7A7164]">Busque y luego agregue una nota. / Search, then add a note.</span>
           </a>
           <a
             href="#businesses-inventory"
             className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2 text-[#7A1E2C]`}
           >
-            <span>Create follow-up</span>
-            <span className="text-[10px] font-normal text-[#7A7164]">Search, then schedule.</span>
+            <span>Crear seguimiento / Create follow-up</span>
+            <span className="text-[10px] font-normal text-[#7A7164]">Busque y luego programe. / Search, then schedule.</span>
           </a>
           <a
             href="#businesses-inventory"
             className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2 text-[#7A1E2C]`}
           >
-            <span>Start meeting</span>
-            <span className="text-[10px] font-normal text-[#7A7164]">Search, then start.</span>
+            <span>Iniciar reunión / Start meeting</span>
+            <span className="text-[10px] font-normal text-[#7A7164]">Busque y luego inicie. / Search, then start.</span>
           </a>
           <a
             href="#businesses-inventory"
             className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2 text-[#7A1E2C]`}
           >
-            <span>Research</span>
-            <span className="text-[10px] font-normal text-[#7A7164]">Search, then research.</span>
+            <span>Investigar / Research</span>
+            <span className="text-[10px] font-normal text-[#7A7164]">Busque y luego investigue. / Search, then research.</span>
           </a>
           <a
             href="#businesses-inventory"
             className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2 text-[#7A1E2C]`}
           >
-            <span>Creative Studio</span>
-            <span className="text-[10px] font-normal text-[#7A7164]">Search, then create.</span>
+            <span>Estudio Creativo / Creative Studio</span>
+            <span className="text-[10px] font-normal text-[#7A7164]">Busque y luego cree. / Search, then create.</span>
           </a>
           <Link
             href="/admin/field"
             className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2 text-[#7A1E2C]`}
           >
-            <span>Field Agent</span>
-            <span className="text-[10px] font-normal text-[#7A7164]">Quick capture in the field.</span>
+            <span>Agente de Campo / Field Agent</span>
+            <span className="text-[10px] font-normal text-[#7A7164]">Captura rápida en el campo. / Quick capture in the field.</span>
           </Link>
         </div>
       </div>
@@ -277,7 +277,7 @@ export function StaffCommandCenter({
         <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
           {home.recentBusinesses.length > 0 ? (
             <div>
-              <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Recent businesses</h2>
+              <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Negocios recientes / Recent businesses</h2>
               <ul className="mt-2 flex flex-wrap gap-2">
                 {home.recentBusinesses.map((item) => (
                   <li key={item.businessId}>
@@ -295,7 +295,7 @@ export function StaffCommandCenter({
 
           {upcomingMeetings.length > 0 ? (
             <div>
-              <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Upcoming</h2>
+              <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Próximo / Upcoming</h2>
               <ul className="mt-2 space-y-1.5">
                 {upcomingMeetings.slice(0, 5).map((row) => (
                   <li key={row.meetingId}>

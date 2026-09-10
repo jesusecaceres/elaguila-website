@@ -88,10 +88,10 @@ check("9. A real, reachable post-meeting Review action is visible once a meeting
 check("10. Meeting Review visually distinguishes Fact / Evidence / Unknown / Contradiction / Meeting note", () => {
   const idx = journey.indexOf("3. Meeting Review");
   const block = journey.slice(idx, idx + 2000);
-  assert.ok(block.includes(">Fact<"));
-  assert.ok(block.includes(">Unknown<"));
-  assert.ok(block.includes(">Contradiction<"));
-  assert.ok(block.includes(">Meeting note<"));
+  assert.ok(block.includes("Fact<") || block.includes("Hecho / Fact<"));
+  assert.ok(block.includes("Unknown<") || block.includes("Incógnita / Unknown<"));
+  assert.ok(block.includes("Contradiction<") || block.includes("Contradicción / Contradiction<"));
+  assert.ok(block.includes("Meeting note<") || block.includes("Nota de reunión / Meeting note<"));
 });
 
 // --- 11/12/13/14. Candidate facts / promotion / unknowns / contradictions -----------------------------

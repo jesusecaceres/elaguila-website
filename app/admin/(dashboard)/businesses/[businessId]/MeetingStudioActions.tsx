@@ -31,7 +31,7 @@ export function CreateMeetingForm({ businessId }: { businessId: string }) {
     });
     setSaving(false);
     if (!res.ok) {
-      setError(await readApiError(res, "Could not create meeting."));
+      setError(await readApiError(res, "No se pudo crear la reunión. / Could not create meeting."));
       return;
     }
     router.refresh();
@@ -55,7 +55,7 @@ export function CreateMeetingForm({ businessId }: { businessId: string }) {
       </div>
       {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
       <button type="submit" disabled={saving} className="inline-flex min-h-[44px] items-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white disabled:opacity-50">
-        {saving ? "Creating…" : "Create meeting"}
+        {saving ? "Creando… / Creating…" : "Crear reunión / Create meeting"}
       </button>
     </form>
   );
@@ -76,16 +76,16 @@ export function MeetingStatusButtons({ businessId, meetingId, currentStatus }: {
     });
     setSaving(false);
     if (!res.ok) {
-      setError(await readApiError(res, "Could not update meeting status."));
+      setError(await readApiError(res, "No se pudo actualizar el estado de la reunión. / Could not update meeting status."));
       return;
     }
     router.refresh();
   }
 
   const transitions: Record<string, { label: string; to: string }[]> = {
-    planned: [{ label: "Prepare", to: "prepared" }, { label: "Cancel", to: "cancelled" }],
-    prepared: [{ label: "Start", to: "in_progress" }, { label: "Cancel", to: "cancelled" }],
-    in_progress: [{ label: "Complete", to: "completed" }, { label: "Cancel", to: "cancelled" }],
+    planned: [{ label: "Preparar / Prepare", to: "prepared" }, { label: "Cancelar / Cancel", to: "cancelled" }],
+    prepared: [{ label: "Iniciar / Start", to: "in_progress" }, { label: "Cancelar / Cancel", to: "cancelled" }],
+    in_progress: [{ label: "Completar / Complete", to: "completed" }, { label: "Cancelar / Cancel", to: "cancelled" }],
     completed: [],
     cancelled: [],
   };
@@ -130,7 +130,7 @@ export function AddAttendeeForm({ businessId, meetingId }: { businessId: string;
     });
     setSaving(false);
     if (!res.ok) {
-      setError(await readApiError(res, "Could not add attendee."));
+      setError(await readApiError(res, "No se pudo agregar al asistente. / Could not add attendee."));
       return;
     }
     setName("");
@@ -147,7 +147,7 @@ export function AddAttendeeForm({ businessId, meetingId }: { businessId: string;
         </select>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" className="min-h-[44px] rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs" />
         <button type="submit" disabled={saving || !name.trim()} className="inline-flex min-h-[44px] items-center rounded-lg border border-[#E8DFD0] px-4 py-2 text-xs font-semibold text-[#3D3428] disabled:opacity-50">
-          Add attendee
+          Agregar asistente / Add attendee
         </button>
       </div>
       {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
@@ -158,17 +158,17 @@ export function AddAttendeeForm({ businessId, meetingId }: { businessId: string;
 function consentTypeLabel(consentType: string): string {
   switch (consentType) {
     case "notes":
-      return "notes";
+      return "notas / notes";
     case "audio_recording":
-      return "audio_recording (type only — live recording is not available)";
+      return "grabación de audio (solo tipo — la grabación en vivo no está disponible) / audio_recording (type only — live recording is not available)";
     case "transcription":
-      return "transcription (import consent — not live ASR)";
+      return "transcripción (consentimiento de importación — no es ASR en vivo) / transcription (import consent — not live ASR)";
     case "connected_account_review":
-      return "connected_account_review";
+      return "revisión de cuenta conectada / connected_account_review";
     case "file_photo_review":
-      return "file_photo_review";
+      return "revisión de archivos y fotos / file_photo_review";
     case "followup_messages":
-      return "followup_messages";
+      return "mensajes de seguimiento / followup_messages";
     default:
       return consentType;
   }
@@ -189,7 +189,7 @@ export function ConsentButtons({ businessId, meetingId }: { businessId: string; 
     });
     setSaving(false);
     if (!res.ok) {
-      setError(await readApiError(res, "Could not record consent."));
+      setError(await readApiError(res, "No se pudo registrar el consentimiento. / Could not record consent."));
       return;
     }
     router.refresh();
@@ -199,13 +199,13 @@ export function ConsentButtons({ businessId, meetingId }: { businessId: string; 
 
   return (
     <div className="space-y-2">
-      <p className="text-[10px] text-[#7A7164]">Existing Meeting Studio consent types. Recording these does not turn on a live recorder.</p>
+      <p className="text-[10px] text-[#7A7164]">Tipos de consentimiento existentes en Meeting Studio. Registrarlos no activa una grabadora en vivo. / Existing Meeting Studio consent types. Recording these does not turn on a live recorder.</p>
       {consentTypes.map((ct) => (
         <div key={ct} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2 text-xs">
           <span className="font-semibold text-[#3D3428]">{consentTypeLabel(ct)}</span>
           <div className="flex gap-2">
-            <button onClick={() => record(ct, "provided")} disabled={saving} className="inline-flex min-h-[44px] items-center rounded bg-emerald-100 px-3 py-1 text-[10px] font-bold text-emerald-800 disabled:opacity-50">Provided</button>
-            <button onClick={() => record(ct, "declined")} disabled={saving} className="inline-flex min-h-[44px] items-center rounded bg-red-100 px-3 py-1 text-[10px] font-bold text-red-800 disabled:opacity-50">Declined</button>
+            <button onClick={() => record(ct, "provided")} disabled={saving} className="inline-flex min-h-[44px] items-center rounded bg-emerald-100 px-3 py-1 text-[10px] font-bold text-emerald-800 disabled:opacity-50">Proporcionado / Provided</button>
+            <button onClick={() => record(ct, "declined")} disabled={saving} className="inline-flex min-h-[44px] items-center rounded bg-red-100 px-3 py-1 text-[10px] font-bold text-red-800 disabled:opacity-50">Rechazado / Declined</button>
           </div>
         </div>
       ))}
@@ -233,7 +233,7 @@ export function NoteForm({ businessId, meetingId }: { businessId: string; meetin
     });
     setSaving(false);
     if (!res.ok) {
-      setError(await readApiError(res, "Could not save meeting note."));
+      setError(await readApiError(res, "No se pudo guardar la nota de la reunión. / Could not save meeting note."));
       return;
     }
     setContent("");
@@ -243,18 +243,18 @@ export function NoteForm({ businessId, meetingId }: { businessId: string; meetin
   return (
     <form onSubmit={submit} className="space-y-2">
       <select value={noteType} onChange={(e) => setNoteType(e.target.value)} className="min-h-[44px] rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs">
-        <option value="owner_statement">Owner statement</option>
-        <option value="staff_observation">Staff observation</option>
-        <option value="potential_fact">Potential fact</option>
-        <option value="unknown">Unknown</option>
-        <option value="contradiction">Contradiction</option>
-        <option value="decision">Decision</option>
-        <option value="action_item">Action item</option>
+        <option value="owner_statement">Declaración del dueño / Owner statement</option>
+        <option value="staff_observation">Observación del personal / Staff observation</option>
+        <option value="potential_fact">Hecho potencial / Potential fact</option>
+        <option value="unknown">Incógnita / Unknown</option>
+        <option value="contradiction">Contradicción / Contradiction</option>
+        <option value="decision">Decisión / Decision</option>
+        <option value="action_item">Tarea pendiente / Action item</option>
       </select>
       <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Meeting note…" rows={3} className="w-full rounded-lg border border-[#E8DFD0] px-2 py-2 text-xs" />
       {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
       <button type="submit" disabled={saving || !content.trim()} className="inline-flex min-h-[44px] items-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white disabled:opacity-50">
-        {saving ? "Saving…" : "Add note"}
+        {saving ? "Guardando… / Saving…" : "Agregar nota / Add note"}
       </button>
     </form>
   );
@@ -293,7 +293,7 @@ export function ImportTranscriptForm({
     });
     setSaving(false);
     if (!res.ok) {
-      setError(await readApiError(res, "Could not import transcript."));
+      setError(await readApiError(res, "No se pudo importar la transcripción. / Could not import transcript."));
       return;
     }
     setTranscriptText("");
@@ -311,7 +311,7 @@ export function ImportTranscriptForm({
       />
       {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
       <button type="submit" disabled={saving || !transcriptText.trim()} className="inline-flex min-h-[44px] items-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810] disabled:opacity-50">
-        {saving ? "Importing…" : "Import Transcript"}
+        {saving ? "Importando… / Importing…" : "Importar transcripción / Import Transcript"}
       </button>
     </form>
   );
@@ -329,13 +329,13 @@ const FACT_CATEGORIES = [
 
 function noteTypeLabel(noteType: string): string {
   switch (noteType) {
-    case "owner_statement": return "Owner statement";
-    case "staff_observation": return "Staff observation";
-    case "potential_fact": return "Potential fact";
-    case "unknown": return "Unknown";
-    case "contradiction": return "Contradiction";
-    case "decision": return "Decision";
-    case "action_item": return "Action item";
+    case "owner_statement": return "Declaración del dueño / Owner statement";
+    case "staff_observation": return "Observación del personal / Staff observation";
+    case "potential_fact": return "Hecho potencial / Potential fact";
+    case "unknown": return "Incógnita / Unknown";
+    case "contradiction": return "Contradicción / Contradiction";
+    case "decision": return "Decisión / Decision";
+    case "action_item": return "Tarea pendiente / Action item";
     default: return noteType;
   }
 }
@@ -409,13 +409,13 @@ function NoteCard({ note, businessId, meetingId, initialPromotion, canReviewNote
     setSubmitting(false);
 
     if (res.status === 409) {
-      setFormError("Already promoted.");
+      setFormError("Ya fue promovido. / Already promoted.");
       setShowForm(false);
       return;
     }
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setFormError(data.error ?? "Promotion failed.");
+      setFormError(data.error ?? "Error al promover. / Promotion failed.");
       return;
     }
 
@@ -443,22 +443,22 @@ function NoteCard({ note, businessId, meetingId, initialPromotion, canReviewNote
           <span className="font-semibold text-[#3D3428]">{noteTypeLabel(note.noteType)}</span>{" "}
           <span className="text-[#9A9184]">({note.sourceClass})</span>
           {note.requiresConfirmation ? (
-            <span className="ml-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-800">Needs confirmation</span>
+            <span className="ml-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-800">Necesita confirmación / Needs confirmation</span>
           ) : null}
           {note.noteType === "owner_statement" ? (
-            <span className="ml-1 rounded-full bg-blue-50 px-1.5 py-0.5 text-[9px] text-blue-700">Owner statement — not yet confirmed</span>
+            <span className="ml-1 rounded-full bg-blue-50 px-1.5 py-0.5 text-[9px] text-blue-700">Declaración del dueño — aún no confirmada / Owner statement — not yet confirmed</span>
           ) : null}
         </div>
         {promotion ? (
           <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold text-emerald-800">
-            Promoted as {destinationLabel(promotion.destinationType)}
+            Promovido como / Promoted as {destinationLabel(promotion.destinationType)}
           </span>
         ) : isEligible && !showForm && canReviewNotes ? (
           <button
             onClick={() => setShowForm(true)}
             className="inline-flex min-h-[44px] items-center rounded border border-[#C8A94A] px-3 py-1 text-[10px] font-semibold text-[#8A6B1F] hover:bg-[#FAF7F2]"
           >
-            Promote to Living Book
+            Promover al Living Book / Promote to Living Book
           </button>
         ) : null}
       </div>
@@ -470,7 +470,7 @@ function NoteCard({ note, businessId, meetingId, initialPromotion, canReviewNote
       {showForm && primaryDest && !promotion ? (
         <div className="mt-2 space-y-2 rounded border border-[#D4B896] bg-[#FAF7F2] p-2">
           <p className="text-[10px] font-bold text-[#8A6B1F] uppercase tracking-wide">
-            Promote to Living Book — {destinationLabel(primaryDest)}
+            Promover al Living Book / Promote to Living Book — {destinationLabel(primaryDest)}
           </p>
 
           {primaryDest === "fact" ? (
@@ -554,14 +554,14 @@ function NoteCard({ note, businessId, meetingId, initialPromotion, canReviewNote
               disabled={submitting}
               className="inline-flex min-h-[44px] items-center rounded-lg bg-[#7A1E2C] px-3 py-1 text-[10px] font-bold text-white disabled:opacity-50"
             >
-              {submitting ? "Promoting…" : "Confirm promotion"}
+              {submitting ? "Promoviendo… / Promoting…" : "Confirmar promoción / Confirm promotion"}
             </button>
             <button
               onClick={() => { setShowForm(false); setFormError(null); }}
               disabled={submitting}
               className="inline-flex min-h-[44px] items-center rounded-lg border border-[#E8DFD0] px-3 py-1 text-[10px] text-[#3D3428] disabled:opacity-50"
             >
-              Cancel
+              Cancelar / Cancel
             </button>
           </div>
         </div>
@@ -596,9 +596,9 @@ function NotesSection({ notes, businessId, meetingId, activeOnly, canReviewNotes
 
   return (
     <>
-      <h4 className="mt-4 text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Meeting notes</h4>
+      <h4 className="mt-4 text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Notas de la reunión / Meeting notes</h4>
       <p className="mt-1 text-[10px] text-[#7A7164]">
-        Meeting notes remain meeting notes. They are not automatically Business Book facts, sales notes, recommendations, commitments, creative inputs, or proposal decisions.
+        Las notas de reunión siguen siendo notas de reunión. No se convierten automáticamente en hechos del Business Book, notas de ventas, recomendaciones, compromisos, insumos creativos ni decisiones de propuesta. / Meeting notes remain meeting notes. They are not automatically Business Book facts, sales notes, recommendations, commitments, creative inputs, or proposal decisions.
       </p>
       <ul className="mt-1 space-y-2">
         {notes.map((n) => (
@@ -611,7 +611,7 @@ function NotesSection({ notes, businessId, meetingId, activeOnly, canReviewNotes
             canReviewNotes={canReviewNotes}
           />
         ))}
-        {notes.length === 0 ? <li className="text-xs text-[#7A7164]">No notes yet.</li> : null}
+        {notes.length === 0 ? <li className="text-xs text-[#7A7164]">Aún no hay notas. / No notes yet.</li> : null}
       </ul>
       {activeOnly ? <div className="mt-2"><NoteForm businessId={businessId} meetingId={meetingId} /></div> : null}
     </>
@@ -644,7 +644,7 @@ export function MeetingDetailPanel({
         {meeting.language.toUpperCase()} · {meeting.scheduledAt ? new Date(meeting.scheduledAt).toLocaleString("en-US") : "No schedule"} · created {new Date(meeting.createdAt).toLocaleString("en-US")}
       </p>
       <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
-        Live meeting recording is not currently available. Browser dictation elsewhere is not a meeting recorder.
+        La grabación de reuniones en vivo no está disponible actualmente. El dictado del navegador en otras partes no es una grabadora de reuniones. / Live meeting recording is not currently available. Browser dictation elsewhere is not a meeting recorder.
       </p>
 
       <div className="mt-3">
@@ -653,31 +653,31 @@ export function MeetingDetailPanel({
 
       {isActive ? (
         <>
-          <h4 className="mt-4 text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Attendees</h4>
+          <h4 className="mt-4 text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Asistentes / Attendees</h4>
           <ul className="mt-1 space-y-1">
             {attendees.map((a) => (
               <li key={a.id} className="text-xs text-[#3D3428]">
                 {a.displayName} <span className="text-[#9A9184]">({a.attendeeType} · {a.attendanceState})</span>
               </li>
             ))}
-            {attendees.length === 0 ? <li className="text-xs text-[#7A7164]">No attendees yet.</li> : null}
+            {attendees.length === 0 ? <li className="text-xs text-[#7A7164]">Aún no hay asistentes. / No attendees yet.</li> : null}
           </ul>
           <div className="mt-2"><AddAttendeeForm businessId={businessId} meetingId={meeting.id} /></div>
 
-          <h4 className="mt-4 text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Consent</h4>
+          <h4 className="mt-4 text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Consentimiento / Consent</h4>
           <ul className="mt-1 space-y-1">
             {consents.map((c) => (
               <li key={c.id} className="text-xs text-[#3D3428]">
                 {consentTypeLabel(c.consentType)} — <span className={c.state === "provided" ? "text-emerald-700" : "text-red-700"}>{c.state}</span> <span className="text-[#9A9184]">({c.method})</span>
               </li>
             ))}
-            {consents.length === 0 ? <li className="text-xs text-[#7A7164]">No consent recorded yet.</li> : null}
+            {consents.length === 0 ? <li className="text-xs text-[#7A7164]">Aún no se ha registrado consentimiento. / No consent recorded yet.</li> : null}
           </ul>
           <div className="mt-2"><ConsentButtons businessId={businessId} meetingId={meeting.id} /></div>
         </>
       ) : attendees.length > 0 ? (
         <>
-          <h4 className="mt-4 text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Attendees</h4>
+          <h4 className="mt-4 text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Asistentes / Attendees</h4>
           <ul className="mt-1 space-y-1">
             {attendees.map((a) => (
               <li key={a.id} className="text-xs text-[#3D3428]">
@@ -690,15 +690,15 @@ export function MeetingDetailPanel({
 
       {surface === "review" ? (
         <p className="mt-4 text-[11px] text-[#3D3428]">
-          Review each note. Promote only with an explicit human action. Transcript sentences and recaps never become facts automatically.
+          Revisa cada nota. Promueve solo con una acción humana explícita. Las oraciones de la transcripción y los resúmenes nunca se convierten en hechos automáticamente. / Review each note. Promote only with an explicit human action. Transcript sentences and recaps never become facts automatically.
         </p>
       ) : null}
 
       {surface === "review" && canCreateCommitment ? (
         <div className="mt-4 rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] p-3">
-          <h4 className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Record a commitment from this meeting</h4>
+          <h4 className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Registrar un compromiso de esta reunión / Record a commitment from this meeting</h4>
           <p className="mt-1 text-[10px] text-[#7A7164]">
-            Uses the canonical Promise Keeper path. This does not happen automatically — create one only for a promise actually made.
+            Usa el camino canónico de Promise Keeper. Esto no ocurre automáticamente — crea uno solo para una promesa realmente hecha. / Uses the canonical Promise Keeper path. This does not happen automatically — create one only for a promise actually made.
           </p>
           <div className="mt-2">
             <CreateCommitmentForm businessId={businessId} meetingId={meeting.id} sourceLabel="this meeting" />
@@ -714,9 +714,9 @@ export function MeetingDetailPanel({
         canReviewNotes={canReviewNotes}
       />
 
-      <h4 className="mt-4 text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Import Transcript</h4>
+      <h4 className="mt-4 text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Importar transcripción / Import Transcript</h4>
       <p className="mt-1 text-[10px] text-[#7A7164]">
-        Use a transcript created manually or by an external tool. This is not live recording. Imported text is not automatically promoted to Living Book truth.
+        Usa una transcripción creada manualmente o por una herramienta externa. Esto no es grabación en vivo. El texto importado no se promueve automáticamente a la verdad del Living Book. / Use a transcript created manually or by an external tool. This is not live recording. Imported text is not automatically promoted to Living Book truth.
       </p>
       {transcripts.length > 0 ? (
         <ul className="mt-2 space-y-1">
@@ -727,7 +727,7 @@ export function MeetingDetailPanel({
           ))}
         </ul>
       ) : (
-        <p className="mt-2 text-xs text-[#7A7164]">No transcript imported.</p>
+        <p className="mt-2 text-xs text-[#7A7164]">No se ha importado ninguna transcripción. / No transcript imported.</p>
       )}
       {isActive ? (
         <div className="mt-2">
@@ -742,8 +742,8 @@ export function MeetingDetailPanel({
 
       {meeting.recapEn ? (
         <div className="mt-3 rounded border border-[#E8DFD0] bg-[#FAF7F2] p-2">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Recap</p>
-          <p className="mt-1 text-[10px] text-[#7A7164]">Existing recap text. Not an automatic Living Book fact.</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Resumen / Recap</p>
+          <p className="mt-1 text-[10px] text-[#7A7164]">Texto de resumen existente. No es un hecho automático del Living Book. / Existing recap text. Not an automatic Living Book fact.</p>
           <p className="mt-1 text-xs text-[#3D3428]">{meeting.recapEn}</p>
         </div>
       ) : null}

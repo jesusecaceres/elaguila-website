@@ -7,7 +7,7 @@ import type { BusinessProposal } from "@/app/lib/business/proposals/types";
 
 function readApiError(data: { error?: string }, fallback: string): string {
   if (data.error === "staff_roster_required") {
-    return "A staff roster assignment is required to record this decision.";
+    return "Se requiere una asignación de personal para registrar esta decisión. / A staff roster assignment is required to record this decision.";
   }
   if (typeof data.error === "string" && data.error.trim()) return data.error;
   return fallback;
@@ -16,21 +16,21 @@ function readApiError(data: { error?: string }, fallback: string): string {
 function statusMeaning(status: string): string {
   switch (status) {
     case "draft":
-      return "Draft — not ready for a client decision.";
+      return "Borrador — no está listo para una decisión del cliente. / Draft — not ready for a client decision.";
     case "staff_review":
-      return "Staff review — not a client decision.";
+      return "Revisión de personal — no es una decisión del cliente. / Staff review — not a client decision.";
     case "owner_review":
-      return "Ready for a client decision. Recording Accepted means the client accepted this proposal.";
+      return "Listo para una decisión del cliente. Registrar Aceptado significa que el cliente aceptó esta propuesta. / Ready for a client decision. Recording Accepted means the client accepted this proposal.";
     case "accepted":
-      return "Client accepted this proposal. Not signed, not paid, not published.";
+      return "El cliente aceptó esta propuesta. No firmado, no pagado, no publicado. / Client accepted this proposal. Not signed, not paid, not published.";
     case "declined":
-      return "Client declined this proposal. History is preserved. The relationship is not automatically archived.";
+      return "El cliente rechazó esta propuesta. El historial se conserva. La relación no se archiva automáticamente. / Client declined this proposal. History is preserved. The relationship is not automatically archived.";
     case "expired":
-      return "Expired — not a client decision.";
+      return "Expirada — no es una decisión del cliente. / Expired — not a client decision.";
     case "superseded":
-      return "Superseded by a later version.";
+      return "Reemplazada por una versión posterior. / Superseded by a later version.";
     case "cancelled":
-      return "Cancelled.";
+      return "Cancelada. / Cancelled.";
     default:
       return status.replace(/_/g, " ");
   }
@@ -63,7 +63,7 @@ export function ProposalTransitionButtons({
     setSaving(false);
     if (!res.ok) {
       setPending(null);
-      setError(readApiError(data, status === "accepted" ? "Could not record Accepted." : status === "declined" ? "Could not record Declined." : status === "staff_review" ? "Could not return this proposal for revision." : "Could not update the proposal."));
+      setError(readApiError(data, status === "accepted" ? "No se pudo registrar Aceptado. / Could not record Accepted." : status === "declined" ? "No se pudo registrar Rechazado. / Could not record Declined." : status === "staff_review" ? "No se pudo devolver esta propuesta para revisión. / Could not return this proposal for revision." : "No se pudo actualizar la propuesta. / Could not update the proposal."));
       return;
     }
     setPending(null);
@@ -104,23 +104,23 @@ export function ProposalTransitionButtons({
 
       {showClientDecision ? (
         <div className="rounded-lg border border-[#C9A84A]/40 bg-[#FFFDF7] p-3">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Client Decision</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Decisión del Cliente / Client Decision</p>
           <p className="mt-1 text-xs text-[#3D3428]">
-            Accepted means a staff member records that the <span className="font-semibold">client</span> accepted this proposal.
+            Aceptado significa que un miembro del personal registra que el <span className="font-semibold">cliente</span> aceptó esta propuesta. No significa aprobación de oportunidad, aprobación de Creative, contrato firmado, pago ni publicación. / Accepted means a staff member records that the <span className="font-semibold">client</span> accepted this proposal.
             It does not mean opportunity approval, Creative approval, signed contract, payment, or publication.
           </p>
           {!canRecord || !canRecordDecision ? (
             <p className="mt-2 text-xs text-[#7A7164]">
               {canRecord
-                ? "A staff roster assignment is required to record Accepted or Declined."
-                : "Recording a client decision remains a manager / super-admin action."}
+                ? "Se requiere una asignación de personal para registrar Aceptado o Rechazado. / A staff roster assignment is required to record Accepted or Declined."
+                : "Registrar una decisión del cliente sigue siendo una acción de gerente / super-admin. / Recording a client decision remains a manager / super-admin action."}
             </p>
           ) : pending === "accepted" || pending === "declined" ? (
             <div className="mt-3 space-y-2">
               <p className="text-xs font-semibold text-[#1E1810]">
                 {pending === "accepted"
-                  ? "Confirm: the client accepted this proposal. Downstream contract, DocuSign, Stripe, and publication still remain."
-                  : "Confirm: the client declined this proposal. History stays. The business is not archived."}
+                  ? "Confirmar: el cliente aceptó esta propuesta. El contrato, DocuSign, Stripe y la publicación aún quedan pendientes. / Confirm: the client accepted this proposal. Downstream contract, DocuSign, Stripe, and publication still remain."
+                  : "Confirmar: el cliente rechazó esta propuesta. El historial se conserva. El negocio no se archiva. / Confirm: the client declined this proposal. History stays. The business is not archived."}
               </p>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <button
@@ -131,7 +131,7 @@ export function ProposalTransitionButtons({
                     pending === "accepted" ? "bg-[#1F3A2D]" : "bg-[#7A1E2C]"
                   }`}
                 >
-                  {saving ? "Saving…" : pending === "accepted" ? "Confirm Accepted" : "Confirm Declined"}
+                  {saving ? "Saving…" : pending === "accepted" ? "Confirmar Aceptado / Confirm Accepted" : "Confirmar Rechazado / Confirm Declined"}
                 </button>
                 <button
                   type="button"
@@ -146,7 +146,7 @@ export function ProposalTransitionButtons({
           ) : pending === "needs_changes" ? (
             <div className="mt-3 space-y-2">
               <p className="text-xs font-semibold text-[#1E1810]">
-                Confirm: the client/owner review requires changes before a decision. This returns the current proposal to staff review. It is not Declined, not Follow Up Later, and not Accepted. It does not create a new proposal version.
+                Confirmar: la revisión del cliente/propietario requiere cambios antes de una decisión. Esto devuelve la propuesta actual a revisión de personal. No es Rechazado, no es Seguimiento Posterior, y no es Aceptado. No crea una nueva versión de propuesta. / Confirm: the client/owner review requires changes before a decision. This returns the current proposal to staff review. It is not Declined, not Follow Up Later, and not Accepted. It does not create a new proposal version.
               </p>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <button
@@ -155,7 +155,7 @@ export function ProposalTransitionButtons({
                   onClick={() => void transition("staff_review", "needs_changes")}
                   className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
                 >
-                  {saving ? "Saving…" : "Confirm Needs Changes"}
+                  {saving ? "Saving…" : "Confirmar Necesita Cambios / Confirm Needs Changes"}
                 </button>
                 <button
                   type="button"
@@ -175,7 +175,7 @@ export function ProposalTransitionButtons({
                 onClick={() => setPending("accepted")}
                 className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#1F3A2D] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
               >
-                Accepted
+                Aceptado / Accepted
               </button>
               <button
                 type="button"
@@ -183,7 +183,7 @@ export function ProposalTransitionButtons({
                 onClick={() => setPending("declined")}
                 className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-red-200 px-4 py-2 text-xs font-semibold text-red-800 disabled:opacity-50"
               >
-                Declined
+                Rechazado / Declined
               </button>
               {canReview ? (
                 <button
@@ -192,10 +192,10 @@ export function ProposalTransitionButtons({
                   onClick={() => setPending("needs_changes")}
                   className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810] disabled:opacity-50"
                 >
-                  Needs Changes
+                  Necesita Cambios / Needs Changes
                 </button>
               ) : (
-                <p className="text-xs text-[#7A7164]">Returning a proposal for revision remains a manager / super-admin action.</p>
+                <p className="text-xs text-[#7A7164]">Devolver una propuesta para revisión sigue siendo una acción de gerente / super-admin. / Returning a proposal for revision remains a manager / super-admin action.</p>
               )}
             </div>
           )}
@@ -225,7 +225,7 @@ function FollowUpLaterForm({
   if (!canWriteFollowUp) {
     return (
       <p className="text-xs text-[#7A7164]">
-        Owner bootstrap cannot create roster-attributed follow-ups. A staff roster assignment is required.
+        El bootstrap del propietario no puede crear seguimientos atribuidos al personal. Se requiere una asignación de personal. / Owner bootstrap cannot create roster-attributed follow-ups. A staff roster assignment is required.
       </p>
     );
   }
@@ -245,8 +245,8 @@ function FollowUpLaterForm({
     setSaving(false);
     if (!res.ok) {
       setError(data.error === "owner_bootstrap_cannot_write_follow_ups"
-        ? "A staff roster assignment is required to schedule follow-up."
-        : "Could not schedule the follow-up.");
+        ? "Se requiere una asignación de personal para programar el seguimiento. / A staff roster assignment is required to schedule follow-up."
+        : "No se pudo programar el seguimiento. / Could not schedule the follow-up.");
       return;
     }
     setScheduledDate("");
@@ -263,7 +263,7 @@ function FollowUpLaterForm({
       }}
     >
       <p className="text-xs text-[#7A7164]">
-        Follow Up Later does not change proposal status. It uses the canonical sales follow-up. A business has one current follow-up.
+        Seguimiento Posterior no cambia el estado de la propuesta. Usa el seguimiento de ventas canónico. Un negocio tiene un seguimiento actual. / Follow Up Later does not change proposal status. It uses the canonical sales follow-up. A business has one current follow-up.
       </p>
       <input
         type="date"
@@ -283,7 +283,7 @@ function FollowUpLaterForm({
         disabled={saving || !scheduledDate}
         className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810] disabled:opacity-50"
       >
-        {saving ? "Saving…" : "Follow Up Later"}
+        {saving ? "Saving…" : "Seguimiento Posterior / Follow Up Later"}
       </button>
       {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
     </form>
@@ -328,17 +328,17 @@ export function ProposalDetailPanel({
           Pricing snapshot: {proposal.pricingSnapshot.packageLabel ?? "—"} · {proposal.pricingSnapshot.priceCents != null ? `$${(proposal.pricingSnapshot.priceCents / 100).toFixed(2)}` : "—"} · {proposal.pricingSnapshot.pricingSource}. Snapshot is not payment.
         </p>
       ) : (
-        <p className="text-[10px] text-[#7A7164]">No pricing snapshot.</p>
+        <p className="text-[10px] text-[#7A7164]">Sin resumen de precio. / No pricing snapshot.</p>
       )}
 
       {proposal.status === "accepted" ? (
         <div className="rounded-lg border border-[#1F3A2D]/20 bg-white p-3">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[#1F3A2D]">Accepted — client decision</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#1F3A2D]">Aceptado — decisión del cliente / Accepted — client decision</p>
           <p className="mt-1 break-words text-xs text-[#3D3428]">
             Recorded {proposal.acceptedAt ? new Date(proposal.acceptedAt).toLocaleString() : "—"}
             {acceptedLabel ? ` by ${acceptedLabel}` : ""}.
           </p>
-          <p className="mt-1 text-xs text-[#7A7164]">Owner Handoff next: contract/payment/publication remain downstream and are not complete.</p>
+          <p className="mt-1 text-xs text-[#7A7164]">Próximo Traspaso al Propietario: el contrato/pago/publicación siguen pendientes y no están completos. / Owner Handoff next: contract/payment/publication remain downstream and are not complete.</p>
           <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <a href="#owner-handoff" className="inline-flex min-h-[44px] items-center text-xs font-semibold text-[#7A1E2C] underline">Owner Handoff</a>
             <a href="#promises" className="inline-flex min-h-[44px] items-center text-xs font-semibold text-[#7A1E2C] underline">Commitments</a>
@@ -348,7 +348,7 @@ export function ProposalDetailPanel({
 
       {proposal.status === "declined" ? (
         <div className="rounded-lg border border-[#E8DFD0] bg-white p-3">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Declined — client decision</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Rechazado — decisión del cliente / Declined — client decision</p>
           <p className="mt-1 text-xs text-[#3D3428]">
             Recorded {proposal.declinedAt ? new Date(proposal.declinedAt).toLocaleString() : "—"}. Notes, meetings, creative, and commitments are not deleted.
           </p>
@@ -369,8 +369,8 @@ export function ProposalDetailPanel({
 
       {proposal.isCurrent && (proposal.status === "owner_review" || proposal.status === "declined" || proposal.status === "accepted") ? (
         <div className="rounded-lg border border-[#E8DFD0] bg-white p-3">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Follow Up Later</p>
-          {hasCurrentFollowUp ? <p className="mt-1 text-xs text-[#7A7164]">A current follow-up already exists. Saving a new date replaces it.</p> : <p className="mt-1 text-xs text-[#7A7164]">No follow-up is scheduled.</p>}
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Seguimiento Posterior / Follow Up Later</p>
+          {hasCurrentFollowUp ? <p className="mt-1 text-xs text-[#7A7164]">Ya existe un seguimiento actual. Guardar una nueva fecha lo reemplaza. / A current follow-up already exists. Saving a new date replaces it.</p> : <p className="mt-1 text-xs text-[#7A7164]">No hay ningún seguimiento programado. / No follow-up is scheduled.</p>}
           <div className="mt-2">
             <FollowUpLaterForm businessId={businessId} proposalVersion={proposal.version} canWriteFollowUp={canWriteFollowUp} />
           </div>
@@ -438,7 +438,7 @@ export function CreateProposalForm({
   if (!canCreate) {
     return (
       <p className="text-sm text-[#7A7164]">
-        Your role can view Client Decision. Creating a proposal remains a manager / super-admin action.
+        Su rol puede ver la Decisión del Cliente. Crear una propuesta sigue siendo una acción de gerente / super-admin. / Your role can view Client Decision. Creating a proposal remains a manager / super-admin action.
       </p>
     );
   }
@@ -477,7 +477,7 @@ export function CreateProposalForm({
     const data = await res.json().catch(() => ({} as { error?: string }));
     setSaving(false);
     if (!res.ok) {
-      setError(readApiError(data, "Could not create the proposal."));
+      setError(readApiError(data, "No se pudo crear la propuesta. / Could not create the proposal."));
       return;
     }
     setOpen(false);
@@ -486,13 +486,13 @@ export function CreateProposalForm({
 
   const replacingWorking = Boolean(hasCurrentProposal && currentProposal && previousCurrentShouldBecomeSuperseded(currentProposal.status));
   const replacingTerminal = Boolean(hasCurrentProposal && currentProposal && isTerminalProposalHistoryStatus(currentProposal.status));
-  const title = !hasCurrentProposal ? "Create Proposal" : replacingTerminal ? "Create New Proposal" : "Create next proposal version";
+  const title = !hasCurrentProposal ? "Crear Propuesta / Create Proposal" : replacingTerminal ? "Crear Nueva Propuesta / Create New Proposal" : "Crear siguiente versión de propuesta / Create next proposal version";
   const actionLabel = !hasCurrentProposal ? "Create Proposal" : replacingWorking ? "Create Next Version" : "Create New Proposal";
   const help = !hasCurrentProposal
-    ? "Human-triggered. A recommendation does not create a proposal automatically."
+    ? "Iniciado por humano. Una recomendación no crea una propuesta automáticamente. / Human-triggered. A recommendation does not create a proposal automatically."
     : replacingTerminal
-      ? "This creates a new current draft. The previous proposal keeps its historical status (accepted, declined, expired, or cancelled) and is no longer current. Status records what happened; current records which proposal is active."
-      : "This creates a new draft version. The previous in-flight proposal is marked superseded and is no longer current. Needs Changes returns the same row to staff review without creating a version.";
+      ? "Esto crea un nuevo borrador actual. La propuesta anterior conserva su estado histórico (aceptada, rechazada, expirada o cancelada) y deja de ser la actual. El estado registra lo que pasó; actual registra qué propuesta está activa. / This creates a new current draft. The previous proposal keeps its historical status (accepted, declined, expired, or cancelled) and is no longer current. Status records what happened; current records which proposal is active."
+      : "Esto crea una nueva versión de borrador. La propuesta anterior en curso se marca como reemplazada y deja de ser la actual. Necesita Cambios devuelve la misma fila a revisión de personal sin crear una versión. / This creates a new draft version. The previous in-flight proposal is marked superseded and is no longer current. Needs Changes returns the same row to staff review without creating a version.";
 
   return (
     <div className="rounded-lg border border-[#C9A84A]/40 bg-white p-3">

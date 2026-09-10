@@ -87,7 +87,7 @@ check("12. Opportunity/Creative summary card exists in Overview with truthful em
   assert.ok(page.includes("No creative request has been created yet."));
 });
 check("13. Commitment summary card exists in Overview, gated on real commitment data", () => {
-  const idx = page.indexOf("<h3 className=\"text-xs font-bold uppercase tracking-wide text-[#8A6B1F]\">Commitments</h3>");
+  const idx = page.indexOf("<h3 className=\"text-xs font-bold uppercase tracking-wide text-[#8A6B1F]\">Compromisos / Commitments</h3>");
   assert.ok(idx >= 0, "Commitments Overview card not found");
 });
 

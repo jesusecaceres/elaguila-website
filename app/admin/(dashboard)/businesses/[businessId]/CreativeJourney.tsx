@@ -90,20 +90,20 @@ export async function loadCreativeJobWorkspaces(
 function jobStatusMeaning(status: string): string {
   switch (status) {
     case "draft":
-      return "Draft — Creative Truth Packet and brief are still being prepared. Not ready for generation.";
+      return "Borrador — el Paquete de Verdad Creativa y el brief aún se están preparando. No está listo para generación. / Draft — Creative Truth Packet and brief are still being prepared. Not ready for generation.";
     case "ready_for_generation":
-      return "Ready for generation — brief is complete. Awaiting an explicit, human-triggered draft generation.";
+      return "Listo para generación — el brief está completo. Esperando una generación de borrador activada explícitamente por un humano. / Ready for generation — brief is complete. Awaiting an explicit, human-triggered draft generation.";
     case "generated":
-      return "Generated — output exists. Not approved and not published.";
+      return "Generado — el resultado existe. No está aprobado ni publicado. / Generated — output exists. Not approved and not published.";
     case "changes_requested":
-      return "Changes requested — a reviewer asked for a revision before this can move forward.";
+      return "Cambios solicitados — un revisor pidió una revisión antes de continuar. / Changes requested — a reviewer asked for a revision before this can move forward.";
     case "in_review":
     case "owner_review":
-      return "In review — human assessment. Not client acceptance.";
+      return "En revisión — evaluación humana. No es aceptación del cliente. / In review — human assessment. Not client acceptance.";
     case "approved":
-      return "Approved — staff/owner approved this job. Not published.";
+      return "Aprobado — el personal/propietario aprobó este trabajo. No está publicado. / Approved — staff/owner approved this job. Not published.";
     case "archived":
-      return "Archived.";
+      return "Archivado. / Archived.";
     default:
       return status.replace(/_/g, " ");
   }
@@ -120,18 +120,18 @@ function Step({ title, children }: { title: string; children: ReactNode }) {
 
 function BriefReadout({ brief }: { brief: CreativeBrief }) {
   const rows: { label: string; value: string | null }[] = [
-    { label: "Status", value: brief.status },
-    { label: "Business goal", value: brief.businessGoal },
-    { label: "Campaign objective", value: brief.campaignObjective },
-    { label: "Reader need", value: brief.readerNeed },
-    { label: "Audience", value: brief.targetAudience },
-    { label: "Primary message", value: brief.primaryMessage },
-    { label: "Offer", value: brief.offer },
+    { label: "Estado / Status", value: brief.status },
+    { label: "Objetivo de negocio / Business goal", value: brief.businessGoal },
+    { label: "Objetivo de campaña / Campaign objective", value: brief.campaignObjective },
+    { label: "Necesidad del lector / Reader need", value: brief.readerNeed },
+    { label: "Público / Audience", value: brief.targetAudience },
+    { label: "Mensaje principal / Primary message", value: brief.primaryMessage },
+    { label: "Oferta / Offer", value: brief.offer },
     { label: "CTA", value: brief.cta },
-    { label: "Contact path", value: brief.contactPath },
-    { label: "QR target", value: brief.qrTarget },
-    { label: "Image strategy", value: brief.imageStrategy },
-    { label: "Desired action", value: brief.desiredAction },
+    { label: "Ruta de contacto / Contact path", value: brief.contactPath },
+    { label: "Destino QR / QR target", value: brief.qrTarget },
+    { label: "Estrategia de imagen / Image strategy", value: brief.imageStrategy },
+    { label: "Acción deseada / Desired action", value: brief.desiredAction },
   ];
   return (
     <dl className="space-y-2">
@@ -143,13 +143,13 @@ function BriefReadout({ brief }: { brief: CreativeBrief }) {
       ))}
       {brief.missingAssetDescriptions.length > 0 ? (
         <div>
-          <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Missing assets</dt>
+          <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Recursos faltantes / Missing assets</dt>
           <dd className="break-words text-xs text-[#3D3428]">{brief.missingAssetDescriptions.join("; ")}</dd>
         </div>
       ) : null}
       {brief.prohibitedClaims.length > 0 ? (
         <div>
-          <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Prohibited claims</dt>
+          <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Reclamos prohibidos / Prohibited claims</dt>
           <dd className="break-words text-xs text-[#3D3428]">{brief.prohibitedClaims.join("; ")}</dd>
         </div>
       ) : null}
@@ -209,14 +209,14 @@ export function CreativeJobCard({
         </p>
       )}
 
-      <Step title="1. Input — Creative Truth Packet">
+      <Step title="1. Entrada — Paquete de Verdad Creativa / 1. Input — Creative Truth Packet">
         <CreativeTruthPacket
           snapshot={snapshot ? { id: snapshot.id, version: snapshot.version, snapshotTimestamp: snapshot.snapshotTimestamp, categories: snapshot.categories as readonly SnapshotCategory[] } : null}
           loadError={snapshotLoadError}
         />
       </Step>
 
-      <Step title="2. Brief — derived working direction">
+      <Step title="2. Brief — dirección de trabajo derivada / 2. Brief — derived working direction">
         {brief ? (
           <BriefReadout brief={brief} />
         ) : (
@@ -230,7 +230,7 @@ export function CreativeJobCard({
         )}
       </Step>
 
-      <Step title="3. Create — generate from snapshot + brief">
+      <Step title="3. Crear — generar a partir de la instantánea + brief / 3. Create — generate from snapshot + brief">
         {lastRun ? (
           <p className="mb-2 break-words text-xs text-[#7A7164]">
             Last provider run: {lastRun.providerKey} · {lastRun.status}
@@ -238,9 +238,9 @@ export function CreativeJobCard({
           </p>
         ) : null}
         {lastRun?.errorState === "provider_unavailable" ? (
-          <p className="mb-2 text-sm text-[#7A7164]">Creative generation provider is not available.</p>
+          <p className="mb-2 text-sm text-[#7A7164]">El proveedor de generación creativa no está disponible. / Creative generation provider is not available.</p>
         ) : lastRun?.status === "failed" ? (
-          <p className="mb-2 text-xs text-red-700">Last generation failed. No fake output was created.</p>
+          <p className="mb-2 text-xs text-red-700">La última generación falló. No se creó ningún resultado falso. / Last generation failed. No fake output was created.</p>
         ) : null}
         <GenerateDraftButton
           businessId={businessId}
@@ -251,10 +251,10 @@ export function CreativeJobCard({
         />
       </Step>
 
-      <Step title="4. Review — human assessment">
+      <Step title="4. Revisión — evaluación humana / 4. Review — human assessment">
         {generatedReady ? (
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-[#1E1810]">Generated copy (not approved, not published)</p>
+            <p className="text-xs font-semibold text-[#1E1810]">Copia generada (no aprobada, no publicada) / Generated copy (not approved, not published)</p>
             {currentVersion?.generatedHeadlines?.length ? (
               <ul className="list-disc space-y-1 pl-4 text-xs text-[#3D3428]">
                 {currentVersion.generatedHeadlines.map((line) => <li key={line} className="break-words">{line}</li>)}
@@ -269,10 +269,10 @@ export function CreativeJobCard({
             {currentVersion?.generatedDisclaimer ? <p className="break-words text-xs text-[#7A7164]">{currentVersion.generatedDisclaimer}</p> : null}
           </div>
         ) : (
-          <p className="text-xs text-[#7A7164]">No generated output is stored yet.</p>
+          <p className="text-xs text-[#7A7164]">Aún no hay resultado generado guardado. / No generated output is stored yet.</p>
         )}
         {reviews.length === 0 ? (
-          <p className="mt-2 text-xs text-[#7A7164]">No review notes are stored. Generated is not approved. Reviewed is not client accepted.</p>
+          <p className="mt-2 text-xs text-[#7A7164]">No hay notas de revisión guardadas. Generado no es aprobado. Revisado no es aceptado por el cliente. / No review notes are stored. Generated is not approved. Reviewed is not client accepted.</p>
         ) : (
           <ul className="mt-2 space-y-1">
             {reviews.map((review, index) => (
@@ -284,10 +284,10 @@ export function CreativeJobCard({
         )}
       </Step>
 
-      <Step title="5. Export / handoff — not publication">
-        <p className="text-xs text-[#7A7164]">Canva remains manual finishing / handoff. Export is not website, magazine, social, email, or SMS publish.</p>
+      <Step title="5. Exportar / entrega — no es publicación / 5. Export / handoff — not publication">
+        <p className="text-xs text-[#7A7164]">Canva sigue siendo un acabado / entrega manual. Exportar no es publicar en sitio web, revista, redes sociales, correo electrónico o SMS. / Canva remains manual finishing / handoff. Export is not website, magazine, social, email, or SMS publish.</p>
         {generatedExport.length === 0 && exports.length === 0 ? (
-          <p className="mt-2 text-sm text-[#7A7164]">No approved export is ready.</p>
+          <p className="mt-2 text-sm text-[#7A7164]">No hay ninguna exportación aprobada lista. / No approved export is ready.</p>
         ) : (
           <ul className="mt-2 space-y-1">
             {exports.map((row) => (
@@ -298,7 +298,7 @@ export function CreativeJobCard({
             ))}
           </ul>
         )}
-        <p className="mt-2 text-xs font-semibold text-[#1E1810]">Ready for Canva finishing</p>
+        <p className="mt-2 text-xs font-semibold text-[#1E1810]">Listo para acabado en Canva / Ready for Canva finishing</p>
         <p className="text-[10px] text-[#7A7164]">Manual production pack / Canva handoff. No Canva API is claimed.</p>
       </Step>
     </article>
@@ -325,26 +325,26 @@ export function CreativeJourney({
   return (
     <div className="mt-3 space-y-4">
       <ol className="flex flex-col gap-2 text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F] sm:flex-row sm:flex-wrap">
-        <li>Input</li>
+        <li>Entrada / Input</li>
         <li className="hidden sm:inline">→</li>
         <li>Brief</li>
         <li className="hidden sm:inline">→</li>
-        <li>Create</li>
+        <li>Crear / Create</li>
         <li className="hidden sm:inline">→</li>
-        <li>Review</li>
+        <li>Revisión / Review</li>
         <li className="hidden sm:inline">→</li>
-        <li>Export / Handoff</li>
+        <li>Exportar / Entrega / Export / Handoff</li>
       </ol>
 
       <ProviderAvailabilityRow providerAvailability={providerAvailability} />
       {!imageGenerationLive ? (
-        <p className="text-xs text-[#7A7164]">Image generation remains feature-gated and is not enabled here. No image-generation button is shown.</p>
+        <p className="text-xs text-[#7A7164]">La generación de imágenes sigue restringida por función y no está habilitada aquí. No se muestra ningún botón de generación de imágenes. / Image generation remains feature-gated and is not enabled here. No image-generation button is shown.</p>
       ) : (
-        <p className="text-xs text-[#7A7164]">Image generation flag is live on this server, but Gate 07 does not add an image-generation button.</p>
+        <p className="text-xs text-[#7A7164]">La bandera de generación de imágenes está activa en este servidor, pero Gate 07 no agrega un botón de generación de imágenes. / Image generation flag is live on this server, but Gate 07 does not add an image-generation button.</p>
       )}
 
       {jobs.length === 0 ? (
-        <p className="text-sm text-[#7A7164]">No creative request has been created yet.</p>
+        <p className="text-sm text-[#7A7164]">Aún no se ha creado ninguna solicitud creativa. / No creative request has been created yet.</p>
       ) : (
         jobs.map((workspace) => (
           <CreativeJobCard
