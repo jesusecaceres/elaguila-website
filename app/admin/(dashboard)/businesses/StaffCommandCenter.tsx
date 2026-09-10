@@ -104,10 +104,10 @@ export function StaffCommandCenter({
             priority
           />
           <div className="min-w-0">
-            <p className="font-serif text-lg font-bold leading-tight tracking-tight text-[#1E1810] sm:text-2xl">
+            <p className="font-serif text-xl font-bold leading-tight tracking-tight text-[#1E1810] sm:text-3xl">
               Leonix Business Concierge
             </p>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8A6B1F]">Centro de Comando del Personal / Staff Command Center</p>
+            <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[#9A8B6A]">Centro de Comando del Personal / Staff Command Center</p>
           </div>
         </div>
         <BusinessConciergeInstallBanner />
@@ -119,7 +119,7 @@ export function StaffCommandCenter({
         </p>
       ) : (
         <>
-          <div className="mt-4">
+          <div className="mt-3 rounded-2xl border border-[#E8DFD0] bg-white p-4">
             <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Hoy / Today</h2>
             <div className="mt-2 flex flex-wrap gap-2">
               <TodayChip label="Seguimientos vencidos hoy / Follow-ups due today" count={home.dueFollowUps.length} />
@@ -139,7 +139,7 @@ export function StaffCommandCenter({
             ) : null}
           </div>
 
-          <div className="mt-4">
+          <div className="mt-3 rounded-2xl border border-[#E8DFD0] bg-white p-4">
             <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Necesita atención / Needs attention</h2>
             <AttentionList items={needsAttention} />
           </div>
@@ -147,7 +147,7 @@ export function StaffCommandCenter({
       )}
 
       {advisorEnabled ? (
-        <div className="mt-4">
+        <div className="mt-3 rounded-2xl border border-[#E8DFD0] bg-white p-4">
           <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Asesor / Advisor</h2>
           {advisorUnavailable ? (
             <p className="mt-2 text-xs text-[#7A7164]">Las señales del asesor no están disponibles en este momento. Los seguimientos y el inventario abajo siguen disponibles. / Advisor signals are unavailable right now. Follow-ups and inventory below are still available.</p>
@@ -185,7 +185,7 @@ export function StaffCommandCenter({
         </div>
       ) : null}
 
-      <div className="mt-4">
+      <div className="mt-3 rounded-2xl border border-[#E8DFD0] bg-white p-4">
         <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Entrega al Dueño / Owner Handoff</h2>
         {ownerHandoffUnavailable ? (
           <p className="mt-2 text-xs text-[#7A7164]">La Entrega al Dueño no está disponible en este momento. Los seguimientos y el inventario abajo siguen disponibles. / Owner Handoff is unavailable right now. Follow-ups and inventory below are still available.</p>
@@ -219,7 +219,7 @@ export function StaffCommandCenter({
         )}
       </div>
 
-      <div className="mt-4">
+      <div className="mt-3 rounded-2xl border border-[#E8DFD0] bg-white p-4">
         <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Acciones rápidas / Quick actions</h2>
         <div className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <a href="#businesses-inventory" className={`${adminBtnPrimary} min-h-[44px]`}>
@@ -274,7 +274,7 @@ export function StaffCommandCenter({
       </div>
 
       {!summaryUnavailable && (home.recentBusinesses.length > 0 || upcomingMeetings.length > 0) ? (
-        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="mt-3 grid grid-cols-1 gap-4 rounded-2xl border border-[#E8DFD0] bg-white p-4 lg:grid-cols-2">
           {home.recentBusinesses.length > 0 ? (
             <div>
               <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Negocios recientes / Recent businesses</h2>
