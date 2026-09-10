@@ -13,6 +13,7 @@ import type {
 import { buildShellAmenitiesSection } from "../lib/restauranteAmenitiesCatalog";
 import { normalizeRestaurantFeatures } from "../lib/restauranteFeaturesNormalization";
 import { computePublishGallerySequence } from "./restauranteGalleryMediaSequence";
+import { buildInternationalWhatsAppWaMeHrefWithText } from "@/app/lib/whatsapp/internationalWhatsApp";
 import { resolveRestauranteCustomLanguages } from "@/app/lib/clasificados/restaurantes/restauranteFormCleanupConfig";
 import {
   firstRestauranteBucketImageRef,
@@ -187,12 +188,13 @@ function buildRestaurantWhatsAppPrefill(businessName: string | undefined): strin
   return RESTAURANT_WA_MSG_GENERIC_ES;
 }
 
+/**
+ * Gate RESTAURANTES-1 (Globalization Build D semantics) — reuses the shared international-safe
+ * WhatsApp builder. Was a naive digit-strip with no country-code logic, unlike this file's own
+ * `telHref`/`smsHref` siblings; it silently produced a malformed link for any non-US number.
+ */
 function waHref(raw: string, businessName?: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (!digits) return "";
-  const base = `https://wa.me/${digits}`;
-  const text = encodeURIComponent(buildRestaurantWhatsAppPrefill(businessName));
-  return `${base}?text=${text}`;
+  return buildInternationalWhatsAppWaMeHrefWithText(raw, buildRestaurantWhatsAppPrefill(businessName)) ?? "";
 }
 
 function websiteDisplayFromUrl(url: string): string {

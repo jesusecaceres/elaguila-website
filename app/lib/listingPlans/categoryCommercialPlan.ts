@@ -26,6 +26,23 @@ import {
 const ENTITLEMENTS_TABLE = "listing_package_entitlements";
 const SUBSCRIPTIONS_TABLE = "leonix_subscription_records";
 
+/**
+ * Gate RESTAURANTES-1 — `listing_source` is deliberately NOT part of this filter.
+ *
+ * That column has been written inconsistently across the platform: the canonical Stripe
+ * fulfillment path writes the bare CATEGORY string (`revenueEntitlementFulfillment.ts:179` —
+ * `listing_source: input.category`, e.g. `"restaurantes"`), while callers of this resolver pass
+ * the TABLE name (`"restaurantes_public_listings"`). Filtering on it therefore matched **zero
+ * rows for a genuinely paid listing**, so `resolveBusinessToolsAccess` reported "no plan" for a
+ * real $399/mo subscriber and the included-coupon capability was unreachable.
+ *
+ * This is the same defect and the same remedy already documented and applied in
+ * `addonEntitlementReader.ts` ("Never filters by `listing_source` — Gate E.1 found that column
+ * has been written inconsistently"). `category` + `listing_id` is the durable identity; a listing
+ * id is globally unique, so dropping the column narrows nothing that matters and stops the
+ * resolver silently under-reporting real entitlements. `listingSource` is retained on the input
+ * type because callers legitimately identify the listing by its table.
+ */
 async function fetchEntitlementRows(input: {
   category: string;
   listingSource: string;
@@ -37,7 +54,6 @@ async function fetchEntitlementRows(input: {
     .from(ENTITLEMENTS_TABLE)
     .select("id, package_key, grant_source, package_tier, status, starts_at, ends_at")
     .eq("category", input.category)
-    .eq("listing_source", input.listingSource)
     .eq("listing_id", input.listingId)
     .in("status", ["active", "scheduled", "expired"]);
   return (data ?? []).map((row) => {

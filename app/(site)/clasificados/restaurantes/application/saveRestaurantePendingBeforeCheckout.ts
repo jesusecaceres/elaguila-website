@@ -12,6 +12,13 @@ export type RestaurantePendingPublishResult =
       listingId: string;
       leonixAdId: string | null;
       draftListingId: string;
+      /**
+       * Gate RESTAURANTES-1 — media refs the shared listing-media contract could not persist
+       * (local `blob:` / `data:` / unuploaded picks) and therefore dropped from the saved
+       * listing. Present (non-empty) means the save SUCCEEDED but with fewer media items than
+       * the owner selected, so checkout may proceed while the owner is told what was lost.
+       */
+      droppedUnpersistableMedia?: string[];
     }
   | { ok: false; userMessage: string };
 
@@ -41,6 +48,7 @@ export async function saveRestaurantePendingBeforeCheckout(
       listingId?: string;
       leonixAdId?: string | null;
       draftListingId?: string;
+      droppedUnpersistableMedia?: string[];
     };
 
     if (res.ok && j.ok && j.pendingPayment && typeof j.listingId === "string" && j.listingId.trim()) {
@@ -49,6 +57,9 @@ export async function saveRestaurantePendingBeforeCheckout(
         listingId: j.listingId.trim(),
         leonixAdId: j.leonixAdId?.trim() || null,
         draftListingId: j.draftListingId?.trim() || draft.draftListingId,
+        ...(Array.isArray(j.droppedUnpersistableMedia) && j.droppedUnpersistableMedia.length
+          ? { droppedUnpersistableMedia: j.droppedUnpersistableMedia }
+          : {}),
       };
     }
 
