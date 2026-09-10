@@ -1097,6 +1097,7 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
           }}
           followThrough={{
             canViewCommitments,
+            canCreateCommitment: canManageCommitments,
             hasCurrentProposal: program5Data.proposals.some((p) => p.isCurrent),
             hasRecommend: Boolean(canViewRecommendations && stewardshipData),
             hasOpportunity: Boolean(canViewOpportunities && opportunityEnabled),

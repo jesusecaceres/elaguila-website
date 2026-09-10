@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import type { BusinessMeeting, MeetingAttendee, MeetingConsentRecord, MeetingNote, MeetingNotePromotion, MeetingTranscriptImport } from "@/app/lib/business/meetingStudio/types";
 import type { FactCategory } from "@/app/lib/business/livingBook/types";
 import { eligiblePromotionDestinations } from "@/app/lib/business/meetingStudio/logic";
+import { CreateCommitmentForm } from "./PromiseKeeperActions";
 
 async function readApiError(res: Response, fallback: string): Promise<string> {
   const data = await res.json().catch(() => ({} as { error?: string }));
@@ -618,7 +619,7 @@ function NotesSection({ notes, businessId, meetingId, activeOnly, canReviewNotes
 }
 
 export function MeetingDetailPanel({
-  businessId, meeting, attendees, consents, notes, transcripts, canReviewNotes = false, surface = "conduct",
+  businessId, meeting, attendees, consents, notes, transcripts, canReviewNotes = false, canCreateCommitment = false, surface = "conduct",
 }: {
   businessId: string;
   meeting: BusinessMeeting;
@@ -627,6 +628,7 @@ export function MeetingDetailPanel({
   notes: MeetingNote[];
   transcripts: MeetingTranscriptImport[];
   canReviewNotes?: boolean;
+  canCreateCommitment?: boolean;
   surface?: "conduct" | "review";
 }) {
   const isActive = meeting.status !== "cancelled" && meeting.status !== "completed";
@@ -690,6 +692,18 @@ export function MeetingDetailPanel({
         <p className="mt-4 text-[11px] text-[#3D3428]">
           Review each note. Promote only with an explicit human action. Transcript sentences and recaps never become facts automatically.
         </p>
+      ) : null}
+
+      {surface === "review" && canCreateCommitment ? (
+        <div className="mt-4 rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] p-3">
+          <h4 className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Record a commitment from this meeting</h4>
+          <p className="mt-1 text-[10px] text-[#7A7164]">
+            Uses the canonical Promise Keeper path. This does not happen automatically — create one only for a promise actually made.
+          </p>
+          <div className="mt-2">
+            <CreateCommitmentForm businessId={businessId} meetingId={meeting.id} sourceLabel="this meeting" />
+          </div>
+        </div>
       ) : null}
 
       <NotesSection

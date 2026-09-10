@@ -30,6 +30,7 @@ type MeetingJourneyProps = {
   };
   followThrough: {
     canViewCommitments: boolean;
+    canCreateCommitment: boolean;
     hasCurrentProposal: boolean;
     hasRecommend: boolean;
     hasOpportunity: boolean;
@@ -285,6 +286,11 @@ export function MeetingJourney({
                   <span className="text-[#9A9184]">
                     {meeting.scheduledAt ? new Date(meeting.scheduledAt).toLocaleString("en-US") : new Date(meeting.createdAt).toLocaleString("en-US")}
                   </span>
+                  {meeting.status === "completed" ? (
+                    <a href="#meeting-review" className="inline-flex min-h-[36px] items-center text-[11px] font-semibold text-[#7A1E2C] underline">
+                      Review Meeting →
+                    </a>
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -312,7 +318,7 @@ export function MeetingJourney({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-[#E8DFD0] bg-[#FFFDF7] p-4">
+      <section id="meeting-review" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-[#FFFDF7] p-4">
         <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">3. Meeting Review</p>
         <h3 className="mt-1 text-sm font-bold text-[#1E1810]">Human review</h3>
         <p className="mt-1 text-xs text-[#7A7164]">
@@ -336,6 +342,7 @@ export function MeetingJourney({
               notes={row.notes}
               transcripts={row.transcripts}
               canReviewNotes={canReviewNotes}
+              canCreateCommitment={followThrough.canCreateCommitment}
               surface="review"
             />
           ))}
