@@ -107,6 +107,7 @@ export const ADMIN_GLOBAL_NAV: AdminGlobalNavItem[] = [
   { href: "/admin/site-settings", labelKey: "nav.siteSettings", icon: "🛠", group: "website-control" },
   { href: "/admin/clasificados/viajes", labelKey: "nav.viajes", icon: "✈", group: "marketplace-ops" },
   { href: "/admin/activity-log", labelKey: "nav.activityLog", icon: "📋", group: "system" },
+  { href: "/admin/system-health", labelKey: "nav.systemHealth", icon: "🩺", group: "system" },
   { href: "/admin/settings", labelKey: "nav.settings", icon: "⚙", group: "system" },
   { href: "/admin/workspace/language-audit", labelKey: "nav.languageAudit", icon: "🌐", group: "system" },
   /** Tienda command hub — kept, but deprioritized for launch quote/product follow-up. */

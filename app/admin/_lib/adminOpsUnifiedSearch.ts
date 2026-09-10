@@ -3,6 +3,7 @@ import { searchListingsForAdminOps } from "./adminListingsOpsSearch";
 import { searchListingReportsForOps } from "./adminOpsReportsSearch";
 import { fetchAdminSupportContextForProfile, type AdminSupportContext } from "./adminOpsSupportContext";
 import { listTiendaOrdersForAdmin } from "./tiendaOrdersData";
+import { searchDedicatedCategoryListingsForAdminOps } from "./adminDedicatedCategorySearch";
 
 export type AdminUnifiedSearchBundle = {
   q: string;
@@ -10,6 +11,12 @@ export type AdminUnifiedSearchBundle = {
   listings: Awaited<ReturnType<typeof searchListingsForAdminOps>>;
   orders: Awaited<ReturnType<typeof listTiendaOrdersForAdmin>>;
   reports: Awaited<ReturnType<typeof searchListingReportsForOps>>;
+  /**
+   * ADMIN-OS-01 — the 7 dedicated-table marketplace categories (Servicios,
+   * Restaurantes, Comida Local, Ofertas Locales, Empleos, Viajes, Autos),
+   * previously invisible to this search entirely.
+   */
+  dedicatedCategories: Awaited<ReturnType<typeof searchDedicatedCategoryListingsForAdminOps>>;
   /** Present when exactly one profile row matched — read-only operational summary. */
   supportContext: AdminSupportContext | null;
 };
@@ -17,11 +24,12 @@ export type AdminUnifiedSearchBundle = {
 /** Parallel cross-entity search for customer operations (no fake persistence). */
 export async function runAdminUnifiedSearch(q: string): Promise<AdminUnifiedSearchBundle> {
   const trimmed = q.trim();
-  const [profiles, listings, orders, reports] = await Promise.all([
+  const [profiles, listings, orders, reports, dedicatedCategories] = await Promise.all([
     fetchProfilesForAdminList({ q: trimmed, searchLimit: 40, recentLimit: 200 }),
     searchListingsForAdminOps(trimmed, 25),
     listTiendaOrdersForAdmin({ search: trimmed, limit: 25 }),
     searchListingReportsForOps(trimmed, 20),
+    searchDedicatedCategoryListingsForAdminOps(trimmed),
   ]);
 
   let supportContext: AdminSupportContext | null = null;
@@ -32,5 +40,5 @@ export async function runAdminUnifiedSearch(q: string): Promise<AdminUnifiedSear
     }
   }
 
-  return { q: trimmed, profiles, listings, orders, reports, supportContext };
+  return { q: trimmed, profiles, listings, orders, reports, dedicatedCategories, supportContext };
 }

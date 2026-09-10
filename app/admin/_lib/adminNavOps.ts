@@ -1,6 +1,14 @@
 /** Launch Leads inbox — promo / print-quote filtered view (query param, not a separate route). */
 export const ADMIN_LEADS_PROMO_INBOX_HREF = "/admin/leads/inbox?view=promo";
 
+/**
+ * ADMIN-OS-01: real media-kit interest lands here (leonix_leads, inquiry_type
+ * "mediaKit", set by mediaKitInterestContactHref()) — the dedicated
+ * `/admin/leads/media-kit` page (leonix_media_kit_leads) has no live caller.
+ * See docs/admin-os/ADMIN_OS_CABLE_MAP.md, REVENUE domain, "Media Kit requests".
+ */
+export const ADMIN_LEADS_MEDIA_KIT_INBOX_HREF = "/admin/leads/inbox?view=media_kit";
+
 export const ADMIN_LAUNCH_LEADS_INBOX_HREF = "/admin/leads/inbox";
 
 export const ADMIN_LEADS_PROMO_EMPTY_STATE =
@@ -14,7 +22,23 @@ export function isAdminLeadsPromoViewParam(raw: string | null | undefined): bool
   return ADMIN_LEADS_PROMO_VIEW_PARAMS.has(raw.trim().toLowerCase());
 }
 
-/** Identify promotional product / print quote leads using persisted lead fields. */
+/**
+ * Identify promotional product / print quote leads using persisted lead fields.
+ *
+ * GATE 4 — DUPLICATE-TRUTH NOTICE: this is the BROADEST of 3 independent "is this a promo
+ * lead" definitions on `leonix_leads` (confirmed by direct trace, not fixed this pass — a
+ * live-count change needs an explicit decision, not a silent one):
+ *   1. THIS function (inbox "promo" view filter) — exact match OR broad regex over
+ *      page/cta/message.
+ *   2. `getAdminDashboardLeadsCounts()` in adminDashboardData.ts (dashboard tile count) —
+ *      exact match only (`source_cta.eq.promo_quote,inquiry_type.eq.promotionalProducts`),
+ *      no regex fallback. Narrower than this function — undercounts relative to it.
+ *   3. `detectLeadReplyKind()` in leonixLeadReplyTemplates.ts (reply-template suggestion) —
+ *      the same exact-match rule as #2, hand-duplicated rather than shared.
+ * #2 and #3 agree with each other; only #1 disagrees (broader). Not unified here because
+ * changing the dashboard tile's live count is a product decision, not a pure code dedup.
+ * See docs/admin-os/ADMIN_OS_CABLE_MAP.md, REVENUE domain.
+ */
 export function isPromotionalLeadRow(row: {
   inquiry_type?: string | null;
   source_cta?: string | null;

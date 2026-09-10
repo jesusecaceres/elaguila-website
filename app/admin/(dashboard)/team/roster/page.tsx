@@ -26,6 +26,7 @@ import { resolveActingRosterIdentity } from "@/app/admin/_lib/adminRosterAudit";
 import {
   createTeamInviteIntentAction,
   createTeamMemberRecordAction,
+  resolveTeamInviteIntentAction,
   toggleTeamMemberActiveAction,
   updateTeamMemberPermissionsAction,
 } from "../../../adminTeamActions";
@@ -144,6 +145,45 @@ function DeactivateControl({ member, isSelf }: { member: MemberRow; isSelf: bool
   );
 }
 
+/**
+ * ADMIN-OS-01 GATE D: the schema already supports pending/accepted/revoked, but
+ * nothing ever wrote accepted/revoked before — every intent row sat as "pending"
+ * forever, even once the admin manually finished onboarding elsewhere via
+ * "Create staff login". This gives the lifecycle an honest, manual close-out step
+ * without inventing any new auth/email automation.
+ */
+function InviteResolveControls({ invite }: { invite: InviteRow }) {
+  if (invite.status !== "pending") {
+    return <span className="text-[#9A9084]">—</span>;
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      <form action={resolveTeamInviteIntentAction}>
+        <input type="hidden" name="id" value={invite.id} />
+        <input type="hidden" name="next_status" value="accepted" />
+        <button
+          type="submit"
+          className="min-h-[32px] rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase text-emerald-900"
+          title="Mark accepted — only after you've actually created their staff login"
+        >
+          Mark accepted
+        </button>
+      </form>
+      <form action={resolveTeamInviteIntentAction}>
+        <input type="hidden" name="id" value={invite.id} />
+        <input type="hidden" name="next_status" value="revoked" />
+        <button
+          type="submit"
+          className="min-h-[32px] rounded-lg border border-[#E8DFD0] bg-white px-2 py-1 text-[10px] font-bold uppercase text-[#5C5346]"
+          title="Revoke this invite intent"
+        >
+          Revoke
+        </button>
+      </form>
+    </div>
+  );
+}
+
 function parsePermissions(raw: unknown): AdminPermissionKey[] {
   if (!Array.isArray(raw)) return [];
   const out: AdminPermissionKey[] = [];
@@ -248,7 +288,9 @@ export default async function AdminTeamPage(props: {
       {!invitesUnavailable && invites.length > 0 ? (
         <div className={`${adminCardBase} mb-8 overflow-hidden`}>
           <div className="border-b border-[#E8DFD0]/80 bg-[#FFF8F0]/90 px-4 py-3 text-xs text-[#5C5346]">
-            Registered invites (intent). Complete signup in Supabase Auth or your IdP.
+            Registered invites (intent only — no email is sent). This status never changes on its own: create the
+            person&apos;s real access with &ldquo;Create staff login&rdquo; below, then come back and mark this row
+            Accepted or Revoked so it doesn&apos;t sit here indefinitely.
           </div>
           <div className={`overflow-x-auto ${adminDesktopTableOnly}`}>
             <table className="min-w-full border-collapse text-sm">
@@ -258,6 +300,7 @@ export default async function AdminTeamPage(props: {
                   <th className="p-3">Role</th>
                   <th className="p-3">Status</th>
                   <th className="p-3">Date</th>
+                  <th className="p-3">Close out</th>
                 </tr>
               </thead>
               <tbody>
@@ -268,6 +311,9 @@ export default async function AdminTeamPage(props: {
                     <td className="p-3 text-xs font-semibold">{inv.status}</td>
                     <td className="p-3 text-xs text-[#7A7164]">
                       {inv.created_at ? new Date(inv.created_at).toLocaleString("en-US") : "—"}
+                    </td>
+                    <td className="p-3 text-xs">
+                      <InviteResolveControls invite={inv} />
                     </td>
                   </tr>
                 ))}
@@ -286,6 +332,9 @@ export default async function AdminTeamPage(props: {
                   <span className="text-[#7A7164]">
                     {inv.created_at ? new Date(inv.created_at).toLocaleString("en-US") : "—"}
                   </span>
+                </div>
+                <div className="mt-2">
+                  <InviteResolveControls invite={inv} />
                 </div>
               </article>
             ))}

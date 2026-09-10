@@ -369,3 +369,171 @@ export function FollowUpPanel({
     </div>
   );
 }
+
+/**
+ * ADMIN-OS-01 GATE 2/3 — explicit, admin-only linking to `business_external_links`. The record
+ * type + id are chosen deliberately by staff; the server re-verifies the record is real before
+ * writing anything (see /api/admin/businesses/[businessId]/external-links). Never auto-matches
+ * on business_name, never mutates the linked lead/payment/support-ticket row.
+ */
+type ExternalRecordType = "lead" | "payment" | "support_ticket";
+
+const EXTERNAL_RECORD_TYPE_OPTIONS: Array<{ value: ExternalRecordType; label: string }> = [
+  { value: "lead", label: "Lead (leonix_leads)" },
+  { value: "payment", label: "Payment record (leonix_payment_records)" },
+  { value: "support_ticket", label: "Support ticket" },
+];
+
+export type ExternalLinkSummaryEntry = {
+  link: {
+    id: string;
+    recordType: string;
+    recordId: string;
+    status: string;
+    linkedAt: string;
+  };
+  summary: {
+    title: string;
+    status: string | null;
+    amountLabel: string | null;
+    contextLabel: string | null;
+    adminHref: string;
+  } | null;
+};
+
+export function LinkExternalRecordPanel({
+  businessId,
+  links,
+  canWrite = true,
+}: {
+  businessId: string;
+  links: ExternalLinkSummaryEntry[];
+  canWrite?: boolean;
+}) {
+  const router = useRouter();
+  const [recordType, setRecordType] = useState<ExternalRecordType>("lead");
+  const [recordId, setRecordId] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    if (!recordId.trim()) {
+      setError("Enter the record's id.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    const res = await fetch(`/api/admin/businesses/${businessId}/external-links`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ recordType, recordId: recordId.trim() }),
+    });
+    setSubmitting(false);
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      const err = String(body?.error ?? "");
+      setError(
+        err === "record_not_found"
+          ? "No record with that id was found in that table — double-check the id."
+          : err === "duplicate"
+            ? "This record is already linked (to this business or another one)."
+            : "Could not create the link.",
+      );
+      return;
+    }
+    setRecordId("");
+    router.refresh();
+  }
+
+  return (
+    <div className="space-y-4">
+      {canWrite ? (
+        <div className="rounded-2xl border border-dashed border-[#D6C7AD] bg-[#FAF7F2]/60 p-4">
+          <fieldset className="space-y-3">
+            <legend className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Link an existing record</legend>
+            <p className="text-[11px] text-[#7A7164]">
+              You must know the record&apos;s real id — this never searches or guesses by business name.
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div>
+                <label htmlFor="ext-link-type" className="block text-xs font-semibold text-[#3D3428]">
+                  Record type
+                </label>
+                <select
+                  id="ext-link-type"
+                  value={recordType}
+                  onChange={(e) => setRecordType(e.target.value as ExternalRecordType)}
+                  className="mt-1 min-h-[40px] w-full rounded-lg border border-[#E8DFD0] bg-white px-2 py-1.5 text-sm"
+                >
+                  {EXTERNAL_RECORD_TYPE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="ext-link-id" className="block text-xs font-semibold text-[#3D3428]">
+                  Record id
+                </label>
+                <input
+                  id="ext-link-id"
+                  value={recordId}
+                  onChange={(e) => setRecordId(e.target.value)}
+                  className="mt-1 min-h-[40px] w-full rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 text-sm font-mono"
+                  placeholder="uuid"
+                />
+              </div>
+            </div>
+            {error ? (
+              <p role="alert" className="text-xs text-red-700">
+                {error}
+              </p>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => void submit()}
+              disabled={submitting}
+              className="min-h-[44px] rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
+            >
+              {submitting ? "Linking…" : "Link record"}
+            </button>
+          </fieldset>
+        </div>
+      ) : (
+        <p className="text-xs text-[#7A7164]">Owner bootstrap cannot create roster-attributed links.</p>
+      )}
+
+      <ul className="space-y-2">
+        {links.map(({ link, summary }) => (
+          <li key={link.id} className="rounded-xl border border-[#E8DFD0] bg-white p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#7A7164]">
+              <span className="rounded-full bg-[#EDE6D6] px-2 py-0.5 font-bold text-[#3D3428]">{link.recordType}</span>
+              <span>Linked {new Date(link.linkedAt).toLocaleDateString("en-US")}</span>
+            </div>
+            {summary ? (
+              <>
+                <p className="mt-1 break-words text-sm font-semibold text-[#1E1810]">{summary.title}</p>
+                <p className="mt-0.5 text-xs text-[#5C5346]">
+                  {summary.status ? `Status: ${summary.status}` : null}
+                  {summary.status && summary.amountLabel ? " · " : null}
+                  {summary.amountLabel}
+                  {(summary.status || summary.amountLabel) && summary.contextLabel ? " · " : null}
+                  {summary.contextLabel}
+                </p>
+                <a href={summary.adminHref} className="mt-1 inline-block text-xs font-bold text-[#7A1E2C] underline">
+                  Open in Admin →
+                </a>
+              </>
+            ) : (
+              <p className="mt-1 text-xs font-semibold text-amber-800">
+                Record {link.recordId} no longer exists in its source table (deleted after linking).
+              </p>
+            )}
+          </li>
+        ))}
+        {links.length === 0 ? <li className="text-sm text-[#7A7164]">No connected payments, leads, or support tickets yet.</li> : null}
+      </ul>
+    </div>
+  );
+}

@@ -22,7 +22,6 @@ import {
   type AdminDashboardPendingReviewQueueRow,
   type AdminDashboardSnapshot,
 } from "../_lib/adminDashboardData";
-import { classifyDashboardReviewRowFlagTruth } from "../_lib/adminReviewFlagTruth";
 import { ADMIN_DASHBOARD_ROUTES } from "../_lib/adminDashboardRoutes";
 import type { adminMessages } from "../_lib/adminI18n";
 import type { LeoExecutiveReportingSnapshot } from "@/app/leo/_lib/leoExecutiveReportingTypes";
@@ -222,11 +221,11 @@ function CompactReviewRow({
   locale: string;
 }) {
   const urgent = isAdminDashboardUrgentReviewRow(row);
-  const truth = classifyDashboardReviewRowFlagTruth({
-    source: row.source,
-    status: row.status,
-    reason: row.reason,
-  });
+  // ADMIN-OS-01 GATE C: read the row's own pre-computed truth (full report/AI
+  // context) instead of re-deriving from the flattened reason string, which
+  // silently mislabeled provenance (an AI- or report-sourced flag would
+  // re-classify as "Manual" once its reason text lost its original context).
+  const truth = row.flagTruth;
   const reviewSource = adminDashboardReviewSourceLabel(row);
 
   return (
@@ -247,6 +246,15 @@ function CompactReviewRow({
             >
               {truth.sourceLabel}
             </span>
+            {truth.needsTriage ? (
+              <span
+                className="mr-1.5 inline-block rounded-md border border-[#7A1E2C]/35 bg-[#FDF2F4] px-1.5 py-0.5 text-[10px] font-bold uppercase text-[#7A1E2C]"
+                title="Flagged for review but no reason was ever stored — needs manual triage."
+                data-testid="admin-flag-needs-triage-badge"
+              >
+                Needs triage
+              </span>
+            ) : null}
             {m("dashboard.reasonLabel")} {truth.ownerFacingExplanation}
           </p>
           <p className="mt-0.5 text-[10px] text-[#9A9084]">{reviewSource}</p>
@@ -286,7 +294,10 @@ export function AdminCommandCenterDashboard({
   const reviewPreview = snap.pendingReviewQueueItems.slice(0, REVIEW_PREVIEW_LIMIT);
   const expiringSoonPreview = expiringSoon.slice(0, EXPIRING_PREVIEW_LIMIT);
   const expiredPreview = expired.slice(0, EXPIRING_PREVIEW_LIMIT);
-  const pendingReviewCount = snap.pendingListingsReview + snap.pendingReviewQueueItems.length;
+  // ADMIN-OS-01: canonical deduplicated count — never sum raw pendingListingsReview
+  // with the (capped, preview-only) pendingReviewQueueItems.length. A listing that
+  // is both flagged AND has pending reports must count once, not twice.
+  const pendingReviewCount = snap.reviewAttentionTruth.uniqueListingsNeedingReview;
 
   const hero = (
     <header
@@ -379,7 +390,11 @@ export function AdminCommandCenterDashboard({
       <PriorityTile
         label="Review / pending ads"
         value={pendingReviewCount}
-        hint={snap.listingsQueryFallback ? m("dashboard.pendingAdsHintDb") : "Flagged or pending listings"}
+        hint={
+          snap.listingsQueryFallback || snap.reviewAttentionTruth.fallback
+            ? m("dashboard.pendingAdsHintDb")
+            : "Unique listings needing review (deduplicated)"
+        }
         href={ADMIN_DASHBOARD_ROUTES.classifiedsReviewQueue}
         ctaLabel={m("dashboard.reviewAds")}
         variant="warning"
@@ -439,17 +454,21 @@ export function AdminCommandCenterDashboard({
         <OperatorCard
           eyebrow="Listings"
           title="Needs review"
-          status={snap.listingsQueryFallback ? "needs proof" : "real"}
+          status={snap.listingsQueryFallback || snap.reviewAttentionTruth.fallback ? "needs proof" : "real"}
           metric={pendingReviewCount}
-          body={snap.listingsQueryFallback ? m("dashboard.pendingAdsHintDb") : "Flagged or pending listings from persisted listing state and review rows."}
+          body={
+            snap.listingsQueryFallback || snap.reviewAttentionTruth.fallback
+              ? m("dashboard.pendingAdsHintDb")
+              : "Unique listings needing review — flagged/pending status or a pending report, deduplicated so one listing never counts twice."
+          }
           primary={{ href: ADMIN_DASHBOARD_ROUTES.classifiedsReviewQueue, label: "Review listings", variant: "warning" }}
         />
         <OperatorCard
           eyebrow="Trust"
-          title="Reports & complaints"
+          title="Report submissions"
           status="real"
           metric={snap.pendingReports}
-          body="Pending reports from listing_reports. Resolution actions still need the action truth gate."
+          body="Raw pending report rows from listing_reports (evidence, not a separate attention count — a listing already counted in “Needs review” may have several of these)."
           primary={{ href: ADMIN_DASHBOARD_ROUTES.reports, label: "Open reports", variant: "warning" }}
         />
         <OperatorCard

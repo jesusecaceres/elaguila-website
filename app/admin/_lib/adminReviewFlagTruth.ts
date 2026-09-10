@@ -24,6 +24,12 @@ export type AdminReviewFlagTruth = {
   needsReview: boolean;
   canExplain: boolean;
   confidenceText: string | null;
+  /**
+   * ADMIN-OS-01 doctrine #6: a real, distinct operational condition — this item
+   * needs human review AND no reason was ever stored for why it was flagged.
+   * Never auto-classified as high risk merely because it is unexplained.
+   */
+  needsTriage: boolean;
 };
 
 export type AdminReviewFlagTruthInput = {
@@ -82,6 +88,13 @@ function formatStoredAiReviewExplanation(review: ListingModerationReviewSummary)
 }
 
 export function classifyAdminReviewFlagTruth(input: AdminReviewFlagTruthInput): AdminReviewFlagTruth {
+  const result = classifyAdminReviewFlagTruthInner(input);
+  return { ...result, needsTriage: result.needsReview && !result.canExplain };
+}
+
+function classifyAdminReviewFlagTruthInner(
+  input: AdminReviewFlagTruthInput,
+): Omit<AdminReviewFlagTruth, "needsTriage"> {
   const status = (input.status ?? "").trim() || "—";
   const needsReview = isReviewStatus(status);
 
@@ -223,7 +236,12 @@ export function classifyDashboardReviewRowFlagTruth(
     status: string;
     reason: string | null;
   },
-  report?: { pendingReportReason?: string | null; latestReportReason?: string | null },
+  report?: {
+    pendingReportReason?: string | null;
+    latestReportReason?: string | null;
+    /** Latest stored AI moderation row for this listing, when one exists (listing_moderation_reviews). */
+    aiReview?: ListingModerationReviewSummary | null;
+  },
 ): AdminReviewFlagTruth {
   const table =
     row.source === "empleos_public_listings"
@@ -239,6 +257,7 @@ export function classifyDashboardReviewRowFlagTruth(
     reviewNotes: row.reason,
     pendingReportReason: report?.pendingReportReason,
     latestReportReason: report?.latestReportReason,
+    storedAiReview: report?.aiReview ?? null,
   });
 }
 
