@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 import { GateDestinationShell } from "@/app/components/leonix/GateDestinationShell";
@@ -111,6 +112,41 @@ export default function NewsletterPageClient() {
         preserveQueryKeys={preserveQueryKeys ? [...preserveQueryKeys] : undefined}
       >
         <p className="text-sm font-medium text-[#556B3E]">{promoMessage}</p>
+
+        {/*
+          ACQUISITION BRIDGE — marketing only.
+          The newsletter is a lead surface, NOT an eligibility authority: subscribing does not
+          verify anyone and does not confer the discount. Supabase Auth remains the single
+          identity authority, so this only tells the subscriber the benefit exists and sends them
+          into the existing canonical sign-in flow. No promo code is minted, emailed or implied.
+
+          Hidden when the subscriber arrived from a publish checkpoint: they are already inside
+          the advertising funnel (where the verified-intro panel renders at checkout) and are
+          being told to close this window, so a second competing CTA would derail that flow.
+        */}
+        {!returnCheckpoint ? (
+          <div className="mt-4 rounded-xl border border-[#C9A84A]/50 bg-[#FFFCF7] p-4 text-left">
+            <p className="text-sm font-medium text-[#3D3428]">
+              {lang === "en"
+                ? "Advertise your business with Leonix? Verify your account and unlock 15% off your first eligible payment."
+                : "¿Anuncias tu negocio con Leonix? Verifica tu cuenta y desbloquea 15% de descuento en tu primer pago elegible."}
+            </p>
+            <p className="mt-1 text-xs text-[#7A7164]">
+              {lang === "en"
+                ? "Applies to your first eligible payment only — renewals are billed at the regular price."
+                : "Aplica solo a tu primer pago elegible; las renovaciones se cobran al precio normal."}
+            </p>
+            <Link
+              href={`/login?redirect=${encodeURIComponent(
+                `/clasificados/publicar/servicios?lang=${lang}`,
+              )}&lang=${lang}`}
+              className="mt-3 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#7A1E2C] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#5E1722]"
+            >
+              {lang === "en" ? "Verify my account" : "Verificar mi cuenta"}
+            </Link>
+          </div>
+        ) : null}
+
         {returnCheckpoint ? (
           <div className="mt-4 rounded-xl border border-[#C9A84A]/50 bg-[#FFFCF7] p-4 text-sm text-[#3D3428]">
             <p className="font-medium">

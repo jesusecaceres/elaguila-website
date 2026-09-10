@@ -164,9 +164,10 @@ Email verification truth = **Supabase Auth `email_confirmed_at`** (read server-s
 bearer token, never client-asserted). SMS verification truth = a row in
 `leonix_verified_phone_identities`, written only after Twilio Verify returns `approved`.
 
-> **Launch requirement.** The SMS path is launch functionality, so `TWILIO_*` must be configured
-> and the two phone tables must exist. Until then the panel honestly degrades to email-only —
-> but that is a temporary preflight state, **not** the launch target.
+> **Corrected by §O.5 — this is NOT a launch requirement.** SMS is an OPTIONAL alternate
+> verification path. A confirmed email alone qualifies, so `TWILIO_*` is expected to stay unset
+> for Servicios certification and the panel's email-only state is the intended launch behaviour,
+> not a temporary degradation. (The two phone tables exist regardless — applied in §L.)
 
 ### C.4 Published listing — customer actions
 
@@ -430,7 +431,11 @@ The 15% coupon is **created automatically** on first use — no manual Stripe co
 `BLOB_READ_WRITE_TOKEN` — required. Without it, Servicios draft media upload returns
 `blob_unconfigured` and no media can be attached.
 
-### G.6 SMS (Twilio Verify) — launch functionality
+### G.6 SMS (Twilio Verify) — OPTIONAL, NOT launch-blocking
+
+> **Superseded by §O.5.** This was previously written as launch functionality. It is not: a
+> confirmed email alone qualifies for the 15%, so SMS is an optional alternate verification path
+> and `TWILIO_*` is not required for Servicios certification.
 
 | Var | Purpose |
 | --- | --- |
@@ -614,8 +619,9 @@ Every item is pass/fail. There is no "skip during QA."
 - [ ] `LEONIX_IDENTITY_HASH_KEY` set
 - [ ] `BLOB_READ_WRITE_TOKEN` set
 - [ ] `GOOGLE_MAPS_API_KEY` set, Geocoding enabled, no referrer restriction
-- [ ] All three `TWILIO_*` vars set
 - [ ] Stripe TEST keys + Preview webhook endpoint + all 9 events
+- [ ] *(OPTIONAL — not launch-blocking, see §O.5)* `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`,
+      `TWILIO_VERIFY_SERVICE_SID`. Leave unset to certify Servicios on the email path alone.
 - [ ] §I Actions 1–4 applied and verified
 
 ### PATH A — BASE $399, NO DISCOUNT
@@ -646,13 +652,30 @@ Every item is pass/fail. There is no "skip during QA."
 - [ ] B8 Redemption row `status = 'redeemed'`, `discount_cents = 5985`
 - [ ] B9 `leonix_payment_records.verified_intro_discount_redemption_id` populated
 
-**B-SMS**
-- [ ] B10 Second account, **no** confirmed email → panel shows `needs_verification`
-- [ ] B11 "Send code" delivers a real SMS *(first live send — outside this gate)*
-- [ ] B12 Wrong code is rejected; no identity row written
-- [ ] B13 Correct code writes `leonix_verified_phone_identities`
-- [ ] B14 Panel flips to `eligible`; checkout shows $339.15; publishes correctly
-- [ ] B15 Rate limits: 6th request within an hour is refused
+**PATH C — SMS · OPTIONAL, NOT REQUIRED FOR CURRENT GOLDEN CERTIFICATION**
+
+Run these ONLY once an SMS provider is deliberately configured (§O.5). Their absence does not
+block certification — with `TWILIO_*` unset the path fails closed and email-confirmed customers
+remain fully eligible.
+
+- [ ] C1 Second account, **no** confirmed email → panel shows `needs_verification`
+- [ ] C2 With `TWILIO_*` UNSET: the panel honestly states SMS is unavailable and points to the
+      confirmed-email route; nothing errors and nothing claims false eligibility *(this one IS
+      worth running now, because it certifies the fail-closed behaviour)*
+- [ ] C3 "Send code" delivers a real SMS
+- [ ] C4 Wrong code is rejected; no identity row written
+- [ ] C5 Correct code writes `leonix_verified_phone_identities`
+- [ ] C6 Panel flips to `eligible`; checkout shows $339.15; publishes correctly
+- [ ] C7 Rate limits: 6th request within an hour is refused
+
+**NEWSLETTER ACQUISITION SURFACE** (marketing only — verifies nobody)
+- [ ] N1 Newsletter signup succeeds
+- [ ] N2 Success page states the 15% benefit and that VERIFYING unlocks it — never that signing
+      up earned it
+- [ ] N3 "Verify my account" CTA lands on the existing `/login` flow with a safe internal redirect
+- [ ] N4 The bridge is hidden when arriving from a publish checkpoint (no competing CTA)
+- [ ] N5 No promo code is minted, shown or emailed at any point
+- [ ] N6 A subscriber who never signs in is NOT eligible — subscribing alone confers nothing
 
 **B-ENFORCEMENT**
 - [ ] B16 The B-EMAIL account starting a second checkout sees `already_redeemed`
@@ -835,7 +858,8 @@ from this session. Every value below is therefore honestly **NEEDS OWNER MANUAL 
 
 1. Verify Vercel Preview resolves to Leonix Media with a **matching** URL/anon/service-role trio.
 2. Set/confirm `SERVICIOS_STRICT_PUBLISH=1`, `LEONIX_IDENTITY_HASH_KEY`, `BLOB_READ_WRITE_TOKEN`,
-   `TWILIO_*`, Stripe TEST keys + Preview webhook (9 events), Google Geocoding.
+   Stripe TEST keys + Preview webhook (9 events), Google Geocoding.
+   (`TWILIO_*` is OPTIONAL and expected unset — see §O.5.)
 3. Redeploy Preview **only if** an env value changes (env edits do not take effect until a new
    deployment). No redeploy is required by this gate's database work alone.
 
@@ -927,7 +951,7 @@ Read-only avenues attempted and their outcome:
 | Supabase | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | NEEDS OWNER MANUAL VERIFICATION — project-ref alignment unproven |
 | Servicios | `SERVICIOS_STRICT_PUBLISH`, `SERVICIOS_DEV_PUBLISH`, `SERVICIOS_MODERATION_MODE` | NEEDS OWNER MANUAL VERIFICATION |
 | Identity | `LEONIX_IDENTITY_HASH_KEY` | NEEDS OWNER MANUAL VERIFICATION |
-| Twilio | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID` | NEEDS OWNER MANUAL VERIFICATION |
+| Twilio | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID` | **OPTIONAL — NOT REQUIRED** for certification (§O.5). Expected unset. |
 | Stripe | `STRIPE_SECRET_KEY` (TEST vs LIVE), `STRIPE_WEBHOOK_SECRET` | NEEDS OWNER MANUAL VERIFICATION — **mode unknown** |
 | Google | `GOOGLE_MAPS_API_KEY` + Geocoding enabled + server-compatible restriction | NEEDS OWNER MANUAL VERIFICATION |
 | Media | `BLOB_READ_WRITE_TOKEN` | NEEDS OWNER MANUAL VERIFICATION |
@@ -1006,3 +1030,124 @@ it means deleting the route directory and its verifier — it has no other consu
 - [ ] Delete `scripts/verify-servicios-runtime-readiness-probe.ts`
 - [ ] Delete this section N
 - [ ] Confirm no remaining reference: `grep -r "servicios-runtime-readiness"`
+
+---
+
+## O. DISCOUNT ARCHITECTURE — LOCKED DOCTRINE
+
+**Gate:** `SERVICIOS-VERIFIED-INTRO-NEWSLETTER-FOUNDATION-LOCK` · **Date:** 2026-09-10
+**Status:** OWNER-LOCKED. This section overrides any earlier implication elsewhere in this document.
+
+### O.1 GLOBAL DOCTRINE — carry this to every category
+
+> **A monthly-subscription introductory discount MUST NOT use the billing-mode-blind generic
+> promo-code path, unless that path is first explicitly upgraded to first-payment-only semantics.**
+
+**Why this is load-bearing, not stylistic.** `revenuePromoValidation.ts` computes
+`totalCents = subtotalCents − discountCents`, and checkout assigns that to `finalAmountCents`
+with **no billing-mode branch**. There is no Stripe coupon and no "duration" concept anywhere in
+`promoCodeRules` / `promoCodeLifecycle` / `revenuePromoValidation`. On a `monthly_subscription`
+package that reduced total becomes the **recurring** price. A "15% intro" promo code on Servicios
+would therefore discount **every month forever** — roughly **$718/year of permanent margin per
+customer** — while appearing to be an introductory offer.
+
+`verified_intro_15` exists precisely to express *first payment only*: for a subscription it
+attaches a `duration:"once"` Stripe coupon and leaves the line item at full price.
+
+**Applies to every current and future `monthly_subscription` package**, explicitly including:
+**Servicios**, **Restaurantes**, **Bienes Negocio**, **Autos Dealer**.
+
+### O.2 Servicios commercial truth (restated, canonical)
+
+| Fact | Value |
+| --- | --- |
+| Regular price | **$399.00 / month** |
+| Verified introductory benefit | **15% off the FIRST eligible payment only** |
+| First verified payment | **$339.15** |
+| Every renewal | **$399.00 / month** |
+| Promo code required | **NO** — the benefit is identity-bound |
+
+### O.3 The two discount systems are COMPLEMENTARY, not duplicates
+
+| | Generic promo codes | `verified_intro_15` |
+| --- | --- | --- |
+| Purpose | Admin/sales-led campaigns, negotiated offers | Identity-bound introductory benefit |
+| Entry | A typed code | Verified identity — no code exists |
+| Amount | Arbitrary % or $ | Exactly 15% |
+| Subscription semantics | **None** — discounts the recurring price | First payment only (`duration:"once"`) |
+| Anti-repeat | `max_redemptions` + `per_customer_limit` | 4 partial-unique identity boundaries |
+| Admin | `/admin/workspace/promo-codes` | Redemption ledger + audit log |
+
+They **cannot stack** — checkout rejects a request carrying both (`discount_conflict`).
+
+**The generic promo-code system is NOT deprecated.** It remains a valid Revenue OS capability for
+custom campaigns, negotiated discounts, sales-led codes, and category/package-scoped offers, with
+its own admin, generator, normalization/uniqueness, redemption ledger and webhook finalization.
+
+**Launch-25 remains RETIRED** (retired by commit `313338ce`, the same commit that introduced
+`verified_intro_15`; existing rows flipped to `revoked`, history preserved, zero deletions).
+Newsletter-issued promo codes must **not** be resurrected for subscription intro pricing.
+
+### O.4 Newsletter = MARKETING SURFACE, never an eligibility authority
+
+**Supabase Auth (`email_confirmed_at`) is the single identity authority.** Subscribing to the
+newsletter verifies nobody and confers nothing.
+
+Canonical customer flow:
+
+```
+Newsletter signup
+  → success page states the benefit exists and that VERIFICATION unlocks it
+  → CTA "Verify my account" → existing /login?redirect=… magic-link flow
+  → Supabase Auth confirms the email
+  → verified identity becomes eligible automatically
+  → Servicios checkout recognizes it — NO promo code
+  → first payment $339.15
+  → every renewal $399.00
+```
+
+Implemented as marketing copy plus a link into the **existing** auth entry. No promo code is
+minted or emailed, no newsletter eligibility logic exists, no second identity table was created,
+and a subscriber is never marked verified merely for subscribing. The bridge is hidden when the
+subscriber arrived from a publish checkpoint, since they are already inside the funnel and are
+being told to return to it.
+
+### O.5 SMS / Twilio — OPTIONAL, explicitly NOT launch-blocking
+
+| Path | Status |
+| --- | --- |
+| **Email** | **REQUIRED / canonical.** Supabase Auth `email_confirmed_at`. Complete and live. |
+| **SMS** | **OPTIONAL alternate** verification, for customers with no confirmed email. |
+| **Twilio** | **Optional implementation adapter** behind `SmsVerificationProvider`, referenced at 2 call sites. Not required for Servicios certification. |
+
+`TWILIO_*` is **removed from the launch-blocking configuration list.** With it absent:
+
+- the phone-verification path fails closed (503 `sms_not_configured`) and the panel honestly says
+  to use a confirmed email instead;
+- **email-confirmed customers remain fully eligible**;
+- **Servicios launch certification can still PASS.**
+
+The phone-verification architecture and its DB tables stay intact and its fail-closed behaviour is
+unchanged — nothing was removed or weakened. Supabase phone auth is not implemented anywhere and
+would not avoid a vendor anyway, since it also requires an SMS provider configured inside Supabase.
+
+### O.6 Customer-facing copy corrections made in this gate
+
+| Surface | Was | Now |
+| --- | --- | --- |
+| Verified-intro panel, unverified state | "Verify your **phone** to unlock 15%…" — implied phone was required, contradicting email-alone eligibility | Names both routes: sign in with a confirmed email, **or** verify a phone |
+| Verified-intro panel, eligible state | The renewal note appeared only **after** applying, so "Apply 15% discount" could read as recurring | The first-payment-only note is disclosed **before** the customer applies |
+| Newsletter success | "You're subscribed." — no mention of the benefit | Adds the acquisition bridge + verify CTA, worded so verification (not signup) unlocks eligibility |
+
+### O.7 Newsletter double opt-in — BUILT-NOT-WIRED (recorded, not a blocker)
+
+`newsletterVerificationState.ts` is a pure state machine and the DB columns exist
+(`pending_verification`, `verification_token`, `verification_token_expires_at`, `verified_at` —
+migration `20260826130000`), but there is **no `/api/newsletter/verify` route and no confirmation
+email**; subscribe writes `status: "subscribed"` directly. This does not block anything, because
+newsletter verification is deliberately **not** an eligibility authority (§O.4).
+
+`buildNewsletterPromoCodeEmail()` is a **zero-consumer** Launch-25 artifact, classified **MIXED**
+(parameterized amounts, hardcoded "Launch 25" wording) and therefore **retained and labelled** in
+-file as the layout for a future admin-issued campaign email. It must never be used for the
+verified-intro benefit, which mints no code.

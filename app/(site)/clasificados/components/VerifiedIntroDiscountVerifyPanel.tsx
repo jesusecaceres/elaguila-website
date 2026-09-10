@@ -51,7 +51,10 @@ const COPY = {
       discount_already_active: "No puedes combinar este descuento con un código promocional.",
       not_verified: "",
     },
-    needsVerification: "Verifica tu teléfono para desbloquear 15% de descuento en tu primer pago.",
+    // Either verified identity qualifies (server policy: emailVerified OR phoneVerified), so this
+    // must not imply that phone verification is required — a confirmed email alone unlocks it.
+    needsVerification:
+      "Desbloquea 15% de descuento en tu primer pago verificando tu cuenta: inicia sesión con un correo confirmado, o verifica tu teléfono aquí.",
     phoneLabel: "Número de teléfono",
     phonePlaceholder: "+1 555 555 5555",
     sendCode: "Enviar código",
@@ -75,7 +78,8 @@ const COPY = {
       discount_already_active: "You can't combine this discount with a promo code.",
       not_verified: "",
     },
-    needsVerification: "Verify your phone to unlock 15% off your first payment.",
+    needsVerification:
+      "Unlock 15% off your first payment by verifying your account: sign in with a confirmed email, or verify your phone here.",
     phoneLabel: "Phone number",
     phonePlaceholder: "+1 555 555 5555",
     sendCode: "Send code",
@@ -255,16 +259,25 @@ export function VerifiedIntroDiscountVerifyPanel({
       ) : null}
 
       {state.kind === "eligible" ? (
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={handleApplyToggle}
-            className="min-h-[44px] rounded-xl border px-4 text-sm font-semibold"
-            style={{ borderColor: "#D8C2A0", background: applied ? "#1A4D2E" : "#FFF", color: applied ? "#FFF" : "#1F1A17" }}
-          >
-            {applied ? t.remove : t.apply}
-          </button>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={handleApplyToggle}
+              className="min-h-[44px] rounded-xl border px-4 text-sm font-semibold"
+              style={{ borderColor: "#D8C2A0", background: applied ? "#1A4D2E" : "#FFF", color: applied ? "#FFF" : "#1F1A17" }}
+            >
+              {applied ? t.remove : t.apply}
+            </button>
+          </div>
+          {/* The benefit is introductory — first eligible payment only. Disclosed BEFORE the
+              customer applies it, not only afterwards, so "15% off" can never read as recurring. */}
+          {!applied ? (
+            <p className="text-xs" style={{ color: "#6B6560" }}>
+              {t.renewalNote}
+            </p>
+          ) : null}
         </div>
       ) : null}
 
