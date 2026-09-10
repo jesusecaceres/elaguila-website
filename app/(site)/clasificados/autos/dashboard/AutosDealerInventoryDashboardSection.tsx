@@ -467,9 +467,13 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
 
         const parentDetail = [
           ...(parentRow ? vehicleDetailItems(parentRow) : []),
-          { label: lang === "es" ? "Inventario activo" : "Active inventory", value: autosDealerInventoryActiveCountLine(lang, group.activeCount, limit) },
-          remaining >= 0 ? { label: lang === "es" ? "Espacios restantes" : "Remaining slots", value: autosDealerInventoryRemainingSlotsLine(lang, remaining) } : null,
-        ].filter((x): x is { label: string; value: string } => x !== null);
+          // UI Completion Gate — these two are full sentences ("10 de 10 vehículos activos",
+          // "Te quedan N espacios disponibles"), long enough to clip in the shared detail grid's
+          // 2-column mobile cell; marked `wide` so they span the full row instead of truncating
+          // real capacity data an Autos Dealer owner needs to see in full.
+          { label: lang === "es" ? "Inventario activo" : "Active inventory", value: autosDealerInventoryActiveCountLine(lang, group.activeCount, limit), wide: true },
+          remaining >= 0 ? { label: lang === "es" ? "Espacios restantes" : "Remaining slots", value: autosDealerInventoryRemainingSlotsLine(lang, remaining), wide: true } : null,
+        ].filter((x): x is { label: string; value: string; wide?: boolean } => x !== null);
 
         const quickActions: ActionItem[] = [];
         if (parentRow?.status === "active" && isLiveCapability(dealerCaps.identity.publicView)) {

@@ -259,6 +259,77 @@ lint, diff-check) instead, then re-checked process count and memory before runni
 once conditions cleared (1 process, 5-7GB free). No ENVIRONMENT_BLOCKED state was ultimately
 reached — the certification completed in full.
 
+## Product/UX Completion Gate (2026-09-09, eighth pass — not committed)
+
+### Repair
+
+| Action | Category | Was | Now |
+|---|---|---|---|
+| Mark Sold | generic entity workspace (`mis-anuncios/[id]/page.tsx`) | fired immediately, no confirm | confirms (text matches BR's card) |
+| Mark Sold | En Venta (`EnVentaListingManageCard` via `mis-anuncios/page.tsx`) | fired immediately, no confirm | confirms (text matches BR's card) |
+| Archive | Empleos list (`empleos/page.tsx`) | fired immediately, no confirm | confirms |
+| Archive | Empleos detail (`empleos/[listingId]/page.tsx`) | fired immediately, no confirm | confirms |
+
+BR Negocio's card and the generic entity workspace's own Archive action already confirmed and
+were not changed. All four repaired call sites use the app's existing native `confirm()`/
+`window.confirm()` pattern — no new UI/interaction pattern introduced.
+
+### Investigated, not changed
+
+Empleos' Archive label reads "Archivar anuncio," not the Master Bible §10 example "Cerrar
+vacante" — confirmed via `OWNER_COMMAND_CENTER_PACKAGE3_GATE3C_AUDIT.md` that no distinct
+close-vacancy mutation exists; the generic label is the honest one for this identical underlying
+action. Not renamed.
+
+### UX review summary (all 16 categories)
+
+Every category was traced against the 8 UX dimensions (navigation, information hierarchy,
+primary action, status comprehension, empty/unavailable states, action completion, category
+consistency, ES/EN language). All SHIP_READY except the confirm-dialog gap above (now repaired).
+No dashboard islands, no competing primary CTAs, no raw internal status/jargon leakage, no fake
+empty-state data found anywhere.
+
+## UI + Responsive Completion Gate (2026-09-09, ninth pass — not committed)
+
+### Repair
+
+| Component | Was | Now |
+|---|---|---|
+| `OwnerEntityDetailGrid.tsx` | `OwnerEntityDetailItem` had no way to opt out of `truncate`/2-column sizing | new optional `wide?: boolean` — `col-span-full` + no truncate when `true`; default `false` leaves every other caller byte-identical |
+| Autos Dealer parent capacity lines (`AutosDealerInventoryDashboardSection.tsx`) | "10 de 10 vehículos activos" / "Te quedan N espacios disponibles" risked clipping in the 2-column mobile detail grid | marked `wide: true` — always renders in full |
+
+### Shared-component responsive audit (all confirmed already correct, no changes)
+
+`LeonixDashboardShell` (single nav mechanism per breakpoint), `OwnerEntityPerformance` (metrics
+flex-wrap), `DashboardListingActionBar` (single tone→color mapping, CTA semantics guaranteed
+consistent by construction), `DashboardMobileActionSheet` (scrollable, full-width stacked
+buttons, `md:hidden`), `OwnerEntityHeader` (badge wrap, mobile-stretch CTA), BR Negocio's own
+capacity paragraph (already full-width, not through the narrow grid).
+
+### Deferred, re-evaluated, not changed
+
+Real-estate secondary "Editar" shortcut color — re-checked from a pure visual-system angle: does
+not violate the locked CTA semantics (the card's real primary doorway is already correctly
+burgundy elsewhere); subjective preference only, left deferred.
+
+## FINAL SHIP-READINESS SOURCE/BUILD CERTIFICATION (2026-09-09, tenth pass — not committed)
+
+Heavy validation authorized and performed for the Gate 10 (UX) + Gate 11 (UI) candidate on top of
+checkpoint `ea99e57c`/`d715d0f3`.
+
+| Check | Result |
+|---|---|
+| Candidate diff scope | 10 files (6 app + 4 docs), 86/-10 lines, all traceable to Gate 10 or 11 |
+| Focused verifiers | 22/22 + 33/33 + OK + PASS + PASS + 182/182 |
+| TypeScript baseline | byte-identical to established 7-error e2e-only baseline — 0 new |
+| Lint | 0 new findings (6 pre-existing, confirmed unrelated) |
+| `git diff --check` | PASS |
+| Production build | PASS — exit 0, "Compiled successfully in 2.2min" |
+| Regression trace | lifecycle, specialized tools, Business Tools, external reputation, Empleos applications, category adapters, Ofertas/Viajes boundary — all intact |
+
+**Source-fixable ship blockers: NONE. Runtime owner QA: NOT performed (§33.3 distinction still
+applies — this is a source/build certification, not a browser QA pass).**
+
 ## Known gaps (not launch blockers, per Master Bible §47)
 
 - No multi-business switcher UI — first active membership wins. A second membership only

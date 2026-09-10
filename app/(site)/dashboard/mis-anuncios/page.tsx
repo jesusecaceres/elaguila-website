@@ -2245,7 +2245,18 @@ function MyListingsPageContent() {
                       priceText={priceText}
                       dateText={dateText}
                       busy={busy}
-                      onMarkSold={() => markStatus(x.id, "sold")}
+                      onMarkSold={() => {
+                        // UX Completion Gate — same confirm text this file already uses for the
+                        // BR-family card's onMarkSold above; this En Venta card had none, an
+                        // inconsistent safety gap for the identical Red/terminal action.
+                        const ok = window.confirm(
+                          lang === "es"
+                            ? "¿Marcar este anuncio como vendido? Dejará de aparecer en resultados públicos."
+                            : "Mark this listing as sold? It will leave public results.",
+                        );
+                        if (!ok) return;
+                        markStatus(x.id, "sold");
+                      }}
                       onMarkActive={() => markStatus(x.id, "active")}
                       onPause={() => void markPauseListing(x.id)}
                       onResume={() => void markResumeListing(x.id)}

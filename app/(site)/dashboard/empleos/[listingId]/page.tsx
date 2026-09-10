@@ -271,7 +271,24 @@ function EmpleosEmployerManagePageContent() {
     lifecycleActions.push({ label: resumeListingLabel(lang), onClick: () => void patchStatus("published"), disabled: busy, tone: "positive" });
   }
   if (isLiveCapability(capabilities.lifecycle.archive) && row.lifecycle_status !== "archived") {
-    lifecycleActions.push({ label: archiveListingLabel(lang), onClick: () => void patchStatus("archived"), disabled: busy, tone: "danger" });
+    // UX Completion Gate — this Red/terminal action (Master Bible SS10) had no confirmation,
+    // unlike the generic entity workspace's and BR's equivalent archive actions.
+    lifecycleActions.push({
+      label: archiveListingLabel(lang),
+      onClick: () => {
+        if (
+          !confirm(
+            lang === "es"
+              ? "¿Archivar esta vacante? Dejará de mostrarse al público."
+              : "Archive this job listing? It will stop showing publicly.",
+          )
+        )
+          return;
+        void patchStatus("archived");
+      },
+      disabled: busy,
+      tone: "danger",
+    });
   }
 
   const activityItems: OwnerEntityActivityItem[] = supportsApplications

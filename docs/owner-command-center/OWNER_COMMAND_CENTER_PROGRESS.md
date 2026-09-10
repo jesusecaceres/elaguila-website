@@ -798,3 +798,267 @@ Source is coherent as one integrated system: 0 new TypeScript errors, 0 new lint
 `git diff --check`, a passing full production build, and 182+22+33+lifecycle-verifier PASS across
 every accumulated gate's own focused proof. No source-fixable blockers remain. Browser/owner QA
 was not begun this gate, per instruction.
+
+---
+
+## Gate 10 — Product/UX Completion (2026-09-09, new session, not committed)
+
+Resource control: no build, no full typecheck, lightweight foreground checks only. Followed
+throughout. This gate reviewed the finished PRODUCT EXPERIENCE (not source wiring, already
+certified in Gates 1-9) against the 10-question UX Definition of Done and 8 UX dimensions across
+all 16 categories.
+
+### What was found
+
+The overwhelming majority of the UX surface was already SHIP_READY, corroborating the prior 9
+gates' correctness work: honest, well-written empty states (spot-checked `attentionEmpty`,
+`whatMattersEmpty`, `proposalsEmpty` — all explain WHY and set real expectations, no jargon);
+consistent "where am I" via the mobile header's `currentSectionTitle` (verified all 16
+`ActiveNav` values are mapped, no fallback-to-generic-label path is ever actually reached) plus
+the desktop sidebar's active-item highlight; a single well-designed canonical status resolver
+(`resolveListingUiStatus`/`listingUiStatusLabel`) that every category funnels through, so no raw
+internal status string (`removed`, `flagged`, `pending_review`, etc.) reaches owner-facing copy;
+and a navigation model that correctly varies by page type (inline collection pages like
+Servicios/Restaurantes need no "back" link since the owner never leaves them; drill-down pages
+like the generic entity workspace, Empleos, and Ofertas correctly all have one).
+
+**One genuine, real, cross-category INCONSISTENCY found and repaired**: the "Mark Sold" and
+"Archive" actions are both the same Red/terminal semantic tone everywhere (Master Bible §10), but
+had inconsistent confirmation-dialog safety nets:
+- BR Negocio's library card (`LeonixRealEstateListingManageCard.tsx`) already confirms both
+  Archive and Mark Sold.
+- The generic entity workspace (`mis-anuncios/[id]/page.tsx`) already confirmed Archive, but its
+  Mark Sold action fired immediately with no confirmation.
+- En Venta's library card (`EnVentaListingManageCard`, rendered from `mis-anuncios/page.tsx`) had
+  no confirmation on Mark Sold at all.
+- Empleos' Archive/close-vacancy action (both the list page and the detail page) had no
+  confirmation at all.
+
+An owner could accidentally close a job vacancy or mark an En Venta item sold with a single
+misclick and no chance to back out, while an equivalent BR action already protects them. Repaired
+by adding the same native `confirm()`/`window.confirm()` pattern the app already uses elsewhere
+(not a new UI pattern) to all 3 missing spots, using text consistent with what BR's card and the
+generic archive action already say. Zero logic/route/label changes — purely an added safety gate
+before the same existing mutation call.
+
+**One investigated, deliberately NOT changed**: Empleos' archive button reads "Archivar anuncio"
+(generic), not "Cerrar vacante" as the Master Bible §10 example list names it. Traced this to a
+prior, deliberate audit finding already recorded in
+`OWNER_COMMAND_CENTER_PACKAGE3_GATE3C_AUDIT.md`: "No distinct 'cerrar vacante' mutation exists;
+`close` corrected to `unsupported`." Empleos' archive IS the same generic archive
+mutation/lifecycle_status transition as every other category — inventing a distinct "Cerrar
+vacante" label for an identical underlying action would be LESS honest (implying a specialized
+closing flow that doesn't exist), not more. The Master Bible's §10 example list is a stale
+illustrative reference to a state that was already superseded by this earlier audit; left the
+current, correct, honest copy as-is and did not rename it.
+
+### Deferred items re-evaluated (per instruction #8) — none promoted to blockers
+
+- **Business Tools read-only Work With Leonix** — confirmed still correct as designed: real
+  counts/data, honestly non-interactive because no review/decision route exists. Not a
+  comprehension blocker (the owner sees real numbers, understands what they mean); building a
+  review UI is a feature, not a UX-clarity fix. Left deferred.
+- **Real-estate secondary "Editar" shortcut color** — re-confirmed as the softer, no-explicit-
+  rule-violated case from Gate 7 (the card's real primary doorway is already correctly burgundy
+  elsewhere in the same row). Does not block comprehension or action. Left deferred.
+- **Legacy Servicios star rating field** — confirmed still isolated from Community Trust/Google/
+  Yelp (Master Bible §23), does not create actual confusion in the areas this gate reviewed. Left
+  deferred (requires a deliberate product decision per the Bible, not a UX-completion fix).
+- **Large `mis-anuncios/page.tsx` implementation debt** — confirmed via lint that this file
+  carries 6 pre-existing unused-variable findings, unrelated to and unaffected by this gate's
+  isolated 11-line addition (verified against the committed checkpoint `ea99e57c`'s own copy of
+  the file — identical lines). Does not affect owner-facing UX. Left deferred; no refactor
+  performed (guardrail).
+
+### Verification run
+
+- `eslint` on all 4 touched files — 3 clean, 1 (`mis-anuncios/page.tsx`) shows the same 6
+  pre-existing findings confirmed present in the committed checkpoint before this gate's change.
+- `git diff` on each touched file — confirmed isolated, minimal (8-18 line) additions, no other
+  changes.
+- `git diff --check` — PASS.
+- No commit, no push, per this gate's guardrails.
+
+### Explicitly not done (per constraints / doctrine, this gate)
+
+- No owner/browser QA performed or claimed.
+- No new UI component, engine, or product concept — the confirm-dialog fix reuses an existing,
+  already-present interaction pattern.
+- No rename of Empleos' archive copy (would have been dishonest — see investigation above).
+- No fix to `mis-anuncios/page.tsx`'s pre-existing lint debt (unrelated, out of scope).
+- No commit/push — docs and source updated in the working tree only.
+
+---
+
+## Gate 11 — UI + Responsive Completion (2026-09-09, new session, not committed)
+
+Resource control: no build, no full typecheck, lightweight foreground checks only. Reviewed the
+actual Tailwind/CSS composition of every shared workspace component and every category's real
+usage of them at 390px/768px/1440px, rather than re-deriving generic responsive theory.
+
+### What was found
+
+Every shared component inspected was already deliberately, carefully built for the 3 target
+widths — this is not a system that needed a redesign:
+- `LeonixDashboardShell`: exactly one navigation mechanism per breakpoint (`lg:hidden` mobile
+  drawer vs `hidden ... lg:block` desktop sidebar — never both), `min-w-0` on the content grid
+  column, `minmax(0, Npx)` grid tracks (no blowout), all 16 `ActiveNav` values mapped for "where
+  am I."
+- `OwnerEntityPerformance` (metrics): `flex flex-wrap` pill row — the one shared component every
+  category's metrics funnel through, so "metrics stack/wrap" (§38) is satisfied by construction,
+  not per-category markup.
+- `OwnerEntityDetailGrid`: progressive `grid-cols-2 → sm:grid-cols-3 → lg:grid-cols-4`, `min-w-0`
+  per cell — correct for the short label/value pairs (slug, dates, refs) every category passes,
+  **except** one real case found and repaired (below).
+- `DashboardListingActionBar` (the single tone→color mapping every category's every button goes
+  through): guarantees CTA visual semantics (burgundy/cream/green/amber/red/gold) are consistent
+  by construction — there is no per-category color logic to drift.
+- `DashboardMobileActionSheet`: `max-h-[75vh] overflow-y-auto` (scrolls if many actions
+  accumulate, never overflows viewport), forced full-width stacked buttons inside, body
+  scroll-lock, Escape-to-close, focus management, `md:hidden` — correctly the ONLY place
+  secondary/lifecycle/specialized actions live below 768px (the primary action is the sole
+  inline-visible action at 390px, which is stricter than and satisfies §38's "max two important
+  quick actions directly visible").
+- `OwnerEntityHeader`: title/status-chip/badges in one `flex flex-wrap` row; `createAction`
+  stretches full-width at mobile (`flex-col`, default `align-items: stretch`) and becomes a
+  natural-width button at `sm:+` (`sm:flex-row sm:items-start`) — exactly the "full-width primary
+  CTA where appropriate" / "usable workbench" split the Bible describes.
+- BR Negocio's own capacity summary (`BrPropertyInventoryDashboardSection.tsx`) already renders
+  its "X of Y included" / "X of Y additional" lines as a standalone full-width paragraph, not
+  inside a narrow grid cell — already safe by design.
+
+**One genuine, real presentation defect found and repaired**: Autos Dealer's inventory-capacity
+detail lines — `"10 de 10 vehículos activos"` / `"Te quedan N espacios disponibles"` — are full
+sentences (26-34 characters), long enough to visibly clip inside `OwnerEntityDetailGrid`'s
+2-column 390px mobile cell (`truncate` was silently hiding the tail of real capacity numbers an
+owner needs in full). BR Negocio's equivalent capacity text was already safe (rendered as its own
+full-width paragraph, not through this grid); Autos Dealer's was the one category actually passing
+long sentence-length values through the shared grid.
+
+**Repair (smallest shared correction, fixed once in the shared component)**: added an optional
+`wide?: boolean` field to `OwnerEntityDetailItem` (`OwnerEntityDetailGrid.tsx`) — defaults to
+`false`, every existing caller across every other category is completely unaffected. When `true`,
+the cell uses `col-span-full` (spans the grid's full width at whatever breakpoint is active) and
+skips `truncate`. Set `wide: true` on Autos Dealer's two capacity detail items only. No new
+component, no per-category duplicate markup, no visual redesign — one 2-line type addition plus
+one conditional className.
+
+### Verification run
+
+- `eslint` on both touched files — 0 problems.
+- `git diff` on `AutosDealerInventoryDashboardSection.tsx` — confirmed isolated, minimal (2-line
+  value + type-guard) change.
+- `git diff --check` — PASS.
+- No commit, no push, per this gate's guardrails.
+
+### Explicitly not done (per constraints / doctrine, this gate)
+
+- No redesign of any shared component's layout, spacing, or color system.
+- No category-specific duplicate responsive markup — the one real fix lives in the shared
+  `OwnerEntityDetailGrid`, consumed by one category via an opt-in flag.
+- Real-estate secondary "Editar" shortcut color (Gate 8/10) re-evaluated from a visual-system
+  perspective only, per instruction — it does not objectively violate the CTA semantic system
+  (the card's actual primary doorway is already correctly burgundy elsewhere in the same row; this
+  is a secondary/subordinate action, not competing for primary status). Confirmed subjective, left
+  deferred, not touched.
+- Business Tools read-only behavior, legacy Servicios star product semantics, and the large Mis
+  Anuncios architecture were not touched — no concrete visible UI blocker was found in any of them
+  requiring a presentation fix.
+- No commit/push — docs and source updated in the working tree only.
+
+---
+
+## Gate 12 — FINAL SHIP-READINESS SOURCE/BUILD CERTIFICATION (2026-09-09, new session, not committed)
+
+Heavy validation authorized and performed. Resource control followed: checked `tasklist`/free
+memory before every heavy step; a genuinely active competing heavy process (48 node.exe workers,
+free memory as low as ~600MB-1.6GB) was observed at the start of this gate — waited rather than
+compete for RAM, used the wait productively for the lightweight scope/regression trace below, and
+only ran the focused verifiers/tsc/build once process count returned to single digits and free
+memory recovered to 3-4GB.
+
+### Candidate diff (from HEAD `d715d0f3`, which already included Gates 10-11's docs)
+
+10 files changed: 6 application source (all confirmed traceable to Gate 10 UX or Gate 11 UI —
+`AutosDealerInventoryDashboardSection.tsx`, `OwnerEntityDetailGrid.tsx` [Gate 11]; both Empleos
+pages, both mis-anuncios pages [Gate 10]) + 4 documentation. 86 insertions / 10 deletions across
+application source — small, isolated, zero unrelated/unexpected files. **Scope result: PASS, no
+accidental expansion.**
+
+### Focused verifiers (re-run, foreground, sequential)
+
+- `npx tsx scripts/verify-owner-attention-truth-01.ts` — **22/22 PASS**
+- `npx tsx scripts/verify-owner-shared-specialized-tools-01.ts` — **33/33 PASS** (confirms Gate
+  10's Empleos edits did not disturb the multi-group `specialized` contract)
+- `npx tsx scripts/gate-g1-owner-lifecycle-contract-selftest.ts` — **OK**
+- `node scripts/verify-rentas-lifecycle-renewal-dashboard-global-engine-01.mjs` — **PASS**
+- `node scripts/verify-leonix-paid-listing-lifecycle-engine-01.mjs` — **PASS**
+- `npx tsx scripts/verify-owner-command-center-final-reconciliation.ts` — **182/182 PASS**
+  (every protected-file non-touch check still holds after Gates 10-11)
+
+### TypeScript baseline comparison
+
+Full `tsc --noEmit` re-run: exactly 7 `error TS` occurrences, **byte-identical diff** to the
+established `tsc_baseline.log` (the same 7 pre-existing, unrelated `e2e/**` Playwright-spec
+errors carried since before this integration began). **0 new errors.**
+
+### Lint — complete Gate 10+11 change set (6 files)
+
+5 of 6 files clean. `mis-anuncios/page.tsx` shows the same 6 pre-existing findings already
+identified and confirmed in Gate 10 (unused vars at lines 16, 79, 105, 548, 549, 2013 — verified
+present in committed checkpoint `ea99e57c`, untouched by this gate's edits at line ~2245+).
+**0 new source-caused findings.**
+
+### git diff --check
+
+**PASS.**
+
+### Final production build
+
+`npm run build` (`NODE_OPTIONS=--max-old-space-size=12288`, the proven Gate 9 configuration) —
+run once, foreground, after confirming healthy process/memory state. **PASS** — exit 0,
+"✓ Compiled successfully in 2.2min", every route present (`/api/dashboard/business/home`,
+`/api/clasificados/servicios/my-listings`, `/api/dashboard/listing-moderation-reasons`,
+`/dashboard/business-tools`). Only the same pre-existing, unrelated Next.js `themeColor`
+viewport-export warnings from Gate 9.
+
+### Final regression trace (source inspection, proving Gate 10/11 did not damage anything)
+
+- **Lifecycle destinations**: confirmed all 4 confirm-dialog-wrapped call sites still invoke the
+  exact same real mutation functions (`markStatus("sold")`, `patchStatus("archived")`) with no
+  route/logic change.
+- **Specialized mobile actions**: `OwnerEntityWorkspace.tsx` untouched this gate; verifier 33/33
+  re-confirms the multi-group contract.
+- **Business Tools**: zero Business Tools files (`business-tools/page.tsx`,
+  `BusinessConciergeOwnerHome.tsx`, `ownerBusinessToolsSpecializedGroup.ts`) touched since the
+  certified checkpoint.
+- **External reputation**: zero related files (`servicios/page.tsx`, `restaurantes/page.tsx`,
+  `my-listings/route.ts`, `OwnerEntityExternalReputation.tsx`) touched this pass.
+- **Empleos applications**: `id="empleos-applications"` anchor and `supportsApplications` logic
+  confirmed intact and unmodified in the same file the archive-confirm edit landed in.
+- **Category adapters**: Autos Dealer's diff isolated to exactly the 2 `wide: true` value lines
+  plus the type guard — nothing else in the 700+ line file changed.
+- **Ofertas/Viajes boundary**: zero files touched, confirmed by both `git diff --name-only` and
+  the 182-check verifier's own protected-file assertions.
+
+### Certification result
+
+| Dimension | Result |
+|---|---|
+| Architecture | PASS |
+| Functional (lifecycle/same-row/no-recharge/identity/CTA/analytics/entitlement) | PASS |
+| UX (navigation/primary action/status/terminal-action-confirm/no-dead-ends/ES-EN/empty-states) | PASS |
+| UI/Responsive (390/768/1440 contract, no overflow, Autos Dealer wide fix, CTA semantics) | PASS |
+| Security (exact-business auth, cross-business fail-closed, no staff leakage) | PASS |
+| Documentation (Master Bible/progress/tests/cable-map match this candidate) | PASS |
+
+**Source-fixable ship blockers: NONE. Environment blockers: NONE (the process contention
+encountered was waited out, not worked around). Owner/runtime QA: NOT performed — still the
+correctly-labeled next step, per §33.3.**
+
+### Explicitly not done (per constraints / doctrine, this gate)
+
+- No feature added, no redesign, no new abstraction — this gate was validation only.
+- No commit/push — the candidate now has a clean certification result but the operator commits
+  it (per instruction #11).
+- No owner/browser QA begun.

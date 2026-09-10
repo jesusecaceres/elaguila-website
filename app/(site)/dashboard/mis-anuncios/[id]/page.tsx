@@ -685,7 +685,29 @@ function ListingWorkspacePageContent() {
 
   const rawLifecycleActions: Array<ActionItem | null> = row
     ? [
-        canMarkSold ? { label: t.markSold, onClick: () => void markStatus("sold"), disabled: busy, tone: "danger" } : null,
+        canMarkSold
+          ? {
+              label: t.markSold,
+              onClick: () => {
+                // UX Completion Gate — "Mark sold" is the same Red/terminal semantic as
+                // "Archive" (Master Bible SS10) and already confirms elsewhere (the BR-family
+                // card in mis-anuncios/page.tsx); this generic entity-workspace path had no
+                // confirmation at all, unlike this same file's own archiveListing() a few lines
+                // above. Matching the existing confirm copy style for consistency.
+                if (
+                  !confirm(
+                    lang === "es"
+                      ? "¿Marcar este anuncio como vendido? Dejará de aparecer en resultados públicos."
+                      : "Mark this listing as sold? It will leave public results.",
+                  )
+                )
+                  return;
+                void markStatus("sold");
+              },
+              disabled: busy,
+              tone: "danger",
+            }
+          : null,
         canReactivate && (String(row.status ?? "").toLowerCase() === "paused" || String(row.status ?? "").toLowerCase() === "unpublished")
           ? { label: busy ? (lang === "es" ? "Restaurando…" : "Restoring…") : t.resumeAd, onClick: () => void resumeListing(), disabled: busy, tone: "positive" }
           : null,

@@ -545,6 +545,227 @@
           "status": "PASS"
         }
       ]
+    },
+    {
+      "gate": "owner-ux-completion-2026-09-09",
+      "note": "Product/UX quality pass, not committed. 1 genuine cross-category confirm-dialog inconsistency found and repaired; 1 copy question investigated and deliberately left unchanged (honest); 4 deferred items re-evaluated, none promoted to blockers.",
+      "checks": [
+        {
+          "name": "recovery_check",
+          "result": "branch/HEAD unchanged (d715d0f3), worktree clean except pre-existing untracked .claude/, no active git op, 1 node.exe process",
+          "status": "PASS"
+        },
+        {
+          "name": "where_am_i_navigation_check",
+          "method": "confirmed all 16 LeonixDashboardActiveNav values are mapped in activeNavLabel; fallback-to-generic-label path is unreachable in practice",
+          "status": "PASS"
+        },
+        {
+          "name": "status_comprehension_check",
+          "method": "confirmed resolveListingUiStatus/listingUiStatusLabel is the single canonical status resolver every category funnels through; no raw internal status string reaches owner copy",
+          "status": "PASS"
+        },
+        {
+          "name": "empty_state_copy_spot_check",
+          "method": "read attentionEmpty, whatMattersEmpty, proposalsEmpty copy",
+          "result": "all explain WHY and set real expectations, no jargon, no fake data",
+          "status": "PASS"
+        },
+        {
+          "name": "confirm_dialog_consistency_found",
+          "method": "traced every Archive/Mark Sold call site across BR, generic entity workspace, En Venta, Empleos (list+detail)",
+          "result": "INCONSISTENT - BR confirms both; generic workspace confirmed Archive but not Mark Sold; En Venta confirmed neither; Empleos confirmed neither",
+          "status": "REPAIRED"
+        },
+        {
+          "name": "confirm_dialog_repair",
+          "method": "added the same existing confirm()/window.confirm() pattern (not a new UI pattern) to: generic entity workspace Mark Sold, En Venta card Mark Sold, Empleos archive (list + detail pages)",
+          "status": "PASS"
+        },
+        {
+          "name": "empleos_close_vacante_copy_investigated",
+          "method": "traced Master Bible SS10's 'Cerrar vacante' example against OWNER_COMMAND_CENTER_PACKAGE3_GATE3C_AUDIT.md",
+          "result": "deliberately NOT renamed - audit doc confirms no distinct close-vacancy mutation exists; current generic 'Archivar anuncio' copy is the honest choice for an identical underlying action",
+          "status": "NO_CHANGE_NEEDED"
+        },
+        {
+          "name": "deferred_items_reevaluated",
+          "result": "Business Tools read-only Work With Leonix, real-estate Editar shortcut color, legacy Servicios star rating, large mis-anuncios/page.tsx debt - all re-confirmed non-blocking, none promoted",
+          "status": "PASS"
+        },
+        {
+          "name": "eslint_touched_files",
+          "filesChecked": 4,
+          "problems": 6,
+          "problemDetail": "all 6 in mis-anuncios/page.tsx, confirmed pre-existing in committed checkpoint ea99e57c, unrelated to this gate's isolated 11-line addition",
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "PASS",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "owner-ui-responsive-completion-2026-09-09",
+      "note": "UI/responsive quality pass at 390/768/1440px, not committed. 1 genuine clipped-text defect found and repaired via a backward-compatible shared-component addition; all other shared components confirmed already correctly responsive.",
+      "checks": [
+        {
+          "name": "recovery_check",
+          "result": "branch/HEAD unchanged (d715d0f3), Gate 10 changes preserved exactly, no active git op, 1 node.exe process",
+          "status": "PASS"
+        },
+        {
+          "name": "shell_navigation_mechanism_check",
+          "method": "traced LeonixDashboardShell's mobile drawer (lg:hidden) vs desktop sidebar (hidden ... lg:block)",
+          "result": "exactly one navigation mechanism visible per breakpoint, never both",
+          "status": "PASS"
+        },
+        {
+          "name": "metrics_wrap_check",
+          "method": "read OwnerEntityPerformance.tsx",
+          "result": "flex flex-wrap pill row, single shared component every category funnels through",
+          "status": "PASS"
+        },
+        {
+          "name": "detail_grid_clipped_text_found",
+          "method": "traced Autos Dealer's autosDealerInventoryActiveCountLine/autosDealerInventoryRemainingSlotsLine values through OwnerEntityDetailGrid's truncate class at 390px grid-cols-2",
+          "result": "OVERFLOW/clipped text - 26-34 character sentences risk truncation in a 2-column mobile cell, hiding real capacity numbers",
+          "status": "REPAIRED"
+        },
+        {
+          "name": "detail_grid_repair",
+          "method": "added optional wide?: boolean to OwnerEntityDetailItem (col-span-full + skip truncate when true), defaults false, zero effect on any other caller; set wide:true on Autos Dealer's 2 capacity items only",
+          "status": "PASS"
+        },
+        {
+          "name": "br_negocio_capacity_display_already_safe",
+          "method": "checked BrPropertyInventoryDashboardSection.tsx's equivalent capacity text",
+          "result": "already renders as a standalone full-width paragraph, not through the narrow detail grid - no fix needed",
+          "status": "PASS"
+        },
+        {
+          "name": "mobile_action_sheet_check",
+          "method": "read DashboardMobileActionSheet.tsx",
+          "result": "max-h-[75vh] overflow-y-auto, forced full-width stacked buttons, body scroll-lock, Escape-to-close, focus management, md:hidden - correctly the only secondary-action surface below 768px",
+          "status": "PASS"
+        },
+        {
+          "name": "header_badge_wrap_and_cta_stretch_check",
+          "method": "read OwnerEntityHeader.tsx",
+          "result": "title/status/badges in one flex-wrap row; createAction stretches full-width at mobile (flex-col default stretch), natural width at sm:+ (flex-row items-start)",
+          "status": "PASS"
+        },
+        {
+          "name": "cta_visual_semantics_construction_proof",
+          "method": "confirmed DashboardListingActionBar.actionClass() is the single tone-to-color mapping every category's every action goes through",
+          "result": "burgundy/cream/green/amber/red/gold consistency guaranteed by construction, no per-category color logic exists to drift",
+          "status": "PASS"
+        },
+        {
+          "name": "editar_shortcut_color_revisited",
+          "method": "re-evaluated from a visual-system perspective per instruction 9",
+          "result": "does not objectively violate the CTA semantic system - subjective preference, the card's real primary doorway is already correctly burgundy elsewhere; left deferred",
+          "status": "DEFERRED_COSMETIC"
+        },
+        {
+          "name": "eslint_touched_files",
+          "filesChecked": 2,
+          "problems": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "PASS",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "owner-final-ship-readiness-certification-2026-09-09",
+      "note": "Final source/build certification after Gates 10-11 UX/UI completion. Heavy validation authorized and performed. Not committed.",
+      "checks": [
+        {
+          "name": "recovery_and_scope_check",
+          "result": "branch/HEAD unchanged (d715d0f3), 10 files changed from HEAD (6 application + 4 docs), all application changes traceable to Gate 10 (UX) or Gate 11 (UI), 86 insertions/10 deletions, zero unrelated files",
+          "status": "PASS"
+        },
+        {
+          "name": "environment_contention_handled",
+          "result": "48 node.exe workers and free memory as low as ~600KB-1.6GB observed at gate start; waited and used the time for lightweight regression trace; proceeded with heavy steps only once process count returned to single digits and free memory recovered to 3-4GB",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_attention_truth",
+          "command": "npx tsx scripts/verify-owner-attention-truth-01.ts",
+          "result": "22/22 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_shared_specialized_tools",
+          "command": "npx tsx scripts/verify-owner-shared-specialized-tools-01.ts",
+          "result": "33/33 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_lifecycle_contract",
+          "command": "npx tsx scripts/gate-g1-owner-lifecycle-contract-selftest.ts",
+          "result": "OK",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_rentas_renewal_engine",
+          "command": "node scripts/verify-rentas-lifecycle-renewal-dashboard-global-engine-01.mjs",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_paid_listing_lifecycle_engine",
+          "command": "node scripts/verify-leonix-paid-listing-lifecycle-engine-01.mjs",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_whole_product_final_reconciliation",
+          "command": "npx tsx scripts/verify-owner-command-center-final-reconciliation.ts",
+          "result": "182/182 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "typescript_baseline_comparison",
+          "method": "tsc --noEmit -p tsconfig.json, diffed against tsc_baseline.log",
+          "baselineErrorCount": 7,
+          "currentErrorCount": 7,
+          "newErrorsFound": 0,
+          "result": "byte-identical diff to baseline",
+          "status": "PASS"
+        },
+        {
+          "name": "eslint_gate_10_11_change_set",
+          "filesChecked": 6,
+          "newFindings": 0,
+          "preExistingFindings": 6,
+          "preExistingLocation": "mis-anuncios/page.tsx lines 16, 79, 105, 548, 549, 2013 - confirmed present in committed checkpoint ea99e57c",
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "final_production_build",
+          "command": "npm run build (NODE_OPTIONS=--max-old-space-size=12288)",
+          "result": "PASS - exit 0, Compiled successfully in 2.2min, all key routes present, only pre-existing unrelated themeColor warnings",
+          "status": "PASS"
+        },
+        {
+          "name": "regression_trace",
+          "result": "lifecycle destinations, specialized mobile actions, Business Tools, external reputation, Empleos applications anchor, category adapters, Ofertas/Viajes boundary - all confirmed intact via source inspection and re-run verifiers",
+          "status": "PASS"
+        }
+      ]
     }
   ]
 }

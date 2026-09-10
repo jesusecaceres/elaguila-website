@@ -236,9 +236,21 @@ function EmpleosEmployerDashboardPageContent() {
             });
           }
           if (isLiveCapability(capabilities.lifecycle.archive) && r.lifecycle_status !== "archived") {
+            // UX Completion Gate — same confirmation added to the Empleos detail page for
+            // this identical Red/terminal action; keeps both surfaces consistent.
             lifecycleActions.push({
               label: archiveListingLabel(lang),
-              onClick: () => void patchStatus(r.id, "archived"),
+              onClick: () => {
+                if (
+                  !confirm(
+                    lang === "es"
+                      ? "¿Archivar esta vacante? Dejará de mostrarse al público."
+                      : "Archive this job listing? It will stop showing publicly.",
+                  )
+                )
+                  return;
+                void patchStatus(r.id, "archived");
+              },
               disabled: busy,
               tone: "danger",
             });
