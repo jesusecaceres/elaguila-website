@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { AiResearchInputPacket, BusinessAiBriefingDraft, BusinessAiResearchRun } from "@/app/lib/business/aiResearch/types";
 import type { BusinessConsentRecord, BusinessSourceFile, BusinessSourceLink } from "@/app/lib/business/fieldDiscovery/types";
 import { findSourceDefinition } from "@/app/lib/business/fieldDiscovery/sourceRegistry";
+import { humanizeStaffWriteError } from "@/app/admin/_lib/staffWriteErrorMessages";
 
 async function postJson(url: string, method: string, body: unknown): Promise<{ ok: boolean; body: Record<string, unknown> | null }> {
   const res = await fetch(url, { method, credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -123,7 +124,7 @@ export function RunResearchButton({
     const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/research`, "POST", {});
     setSubmitting(false);
     if (!ok) {
-      setError(String(body?.error ?? "run_failed"));
+      setError(humanizeStaffWriteError(body?.error as string | undefined, "No se pudo iniciar la investigación. / Could not start research."));
       return;
     }
     router.refresh();

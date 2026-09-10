@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { humanizeStaffWriteError } from "@/app/admin/_lib/staffWriteErrorMessages";
 
 /**
  * Package B, Gate 6 / Gate 06 — Opportunities panel for the existing Business Concierge workspace.
@@ -66,7 +67,7 @@ const LIFECYCLE_STATE_LABELS: Record<string, string> = {
 
 async function readApiError(res: Response, fallback: string): Promise<string> {
   const data = await res.json().catch(() => ({} as { error?: string }));
-  return typeof data.error === "string" && data.error.trim() ? data.error : fallback;
+  return humanizeStaffWriteError(data.error, fallback);
 }
 
 export function OpportunitiesPanel({

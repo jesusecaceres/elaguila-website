@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { BusinessConciergeInstallBanner } from "@/app/admin/(dashboard)/businesses/BusinessConciergeInstallBanner";
+import { humanizeStaffWriteError } from "@/app/admin/_lib/staffWriteErrorMessages";
 
 /**
  * Program 7, Gate 7G — Mobile Staff Field Agent shell.
@@ -131,7 +132,7 @@ export function CameraFileCapture({
       });
       const body = await res.json().catch(() => null);
       if (!res.ok || !body?.ok) {
-        setError(String(body?.error ?? "upload_failed"));
+        setError(humanizeStaffWriteError(body?.error as string | undefined, "No se pudo subir el archivo. / Could not upload the file."));
         return;
       }
       setUploaded(true);

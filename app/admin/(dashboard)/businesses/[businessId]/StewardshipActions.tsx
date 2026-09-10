@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { humanizeStaffWriteError } from "@/app/admin/_lib/staffWriteErrorMessages";
 
 async function postJson(url: string, method: string, body: unknown): Promise<{ ok: boolean; error?: string }> {
   const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -21,7 +22,7 @@ export function CreateRecommendationButton({ businessId }: { businessId: string 
     const result = await postJson(`/api/admin/businesses/${businessId}/recommendations`, "POST", {});
     setSubmitting(false);
     if (!result.ok) {
-      setError(result.error ?? "No se pudo evaluar un Próximo paso correcto (es posible que la preparación no esté lista). / Could not evaluate a Next Right Move (readiness may not be ready).");
+      setError(humanizeStaffWriteError(result.error, "No se pudo evaluar un Próximo paso correcto (es posible que la preparación no esté lista). / Could not evaluate a Next Right Move (readiness may not be ready)."));
       return;
     }
     router.refresh();
@@ -55,7 +56,7 @@ export function RecommendationTransitionButtons({
     const result = await postJson(`/api/admin/businesses/${businessId}/recommendations/${recommendationId}`, "PATCH", { action });
     setSubmitting(false);
     if (!result.ok) {
-      setError(result.error ?? "No se pudo completar esta transición. / Could not complete this transition.");
+      setError(humanizeStaffWriteError(result.error, "No se pudo completar esta transición. / Could not complete this transition."));
       return;
     }
     router.refresh();
@@ -103,7 +104,7 @@ export function OverrideForm({ businessId, recommendationId }: { businessId: str
     });
     setSubmitting(false);
     if (!result.ok) {
-      setError(result.error ?? "No se pudo registrar la anulación. / Could not record the override.");
+      setError(humanizeStaffWriteError(result.error, "No se pudo registrar la anulación. / Could not record the override."));
       return;
     }
     setReason("");

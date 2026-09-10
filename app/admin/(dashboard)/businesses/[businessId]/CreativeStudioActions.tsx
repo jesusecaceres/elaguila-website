@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CREATIVE_LANES } from "@/app/lib/business/creativeStudio/constants";
+import { humanizeStaffWriteError } from "@/app/admin/_lib/staffWriteErrorMessages";
 
 export type CreativeProviderAvailability = {
   gemini: boolean;
@@ -11,8 +12,7 @@ export type CreativeProviderAvailability = {
 
 function readApiError(data: { error?: string; detail?: string }, fallback: string): string {
   if (typeof data.detail === "string" && data.detail.trim()) return data.detail;
-  if (typeof data.error === "string" && data.error.trim()) return data.error;
-  return fallback;
+  return humanizeStaffWriteError(data.error, fallback);
 }
 
 export function ProviderAvailabilityRow({ providerAvailability }: { providerAvailability?: CreativeProviderAvailability }) {

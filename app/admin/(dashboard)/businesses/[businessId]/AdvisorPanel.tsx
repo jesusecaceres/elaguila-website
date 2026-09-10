@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { advisorSignalDashboardAnchor } from "@/app/lib/business/advisor/logic";
 import type { AdvisorSignalType } from "@/app/lib/business/advisor/types";
+import { humanizeStaffWriteError } from "@/app/admin/_lib/staffWriteErrorMessages";
 
 /**
  * Program 7 — Admin UI panel for Proactive Advisor signals.
@@ -39,7 +40,7 @@ export function AdvisorPanel({ businessId, signals }: { businessId: string; sign
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        setError(typeof body?.error === "string" ? body.error : "La acción del asesor falló. La señal no cambió. / Advisor action failed. The signal was not changed.");
+        setError(humanizeStaffWriteError(typeof body?.error === "string" ? body.error : undefined, "La acción del asesor falló. La señal no cambió. / Advisor action failed. The signal was not changed."));
         return;
       }
       window.location.reload();

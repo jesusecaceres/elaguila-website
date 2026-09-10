@@ -13,6 +13,7 @@ import {
   type BusinessSalesStatus,
   type FollowUpStoredStatus,
 } from "@/app/admin/_lib/salesWorkspaceLogic";
+import { humanizeStaffWriteError } from "@/app/admin/_lib/staffWriteErrorMessages";
 import type { FollowUpRecord, SalesNoteRecord } from "@/app/admin/_lib/businessWorkspaceData";
 
 function followUpStatusClass(status: FollowUpStoredStatus): string {
@@ -112,7 +113,7 @@ export function NotesPanel({
     setSubmitting(false);
     if (!res.ok) {
       const body = await res.json().catch(() => null);
-      setError(String(body?.error ?? "No se pudo guardar la nota. / Could not save the note."));
+      setError(humanizeStaffWriteError(body?.error, "No se pudo guardar la nota. / Could not save the note."));
       return;
     }
     setBody("");
@@ -255,7 +256,7 @@ export function FollowUpPanel({
     setSubmitting(false);
     if (!res.ok) {
       const body = await res.json().catch(() => null);
-      setError(String(body?.error ?? "No se pudo programar el seguimiento. / Could not schedule the follow-up."));
+      setError(humanizeStaffWriteError(body?.error, "No se pudo programar el seguimiento. / Could not schedule the follow-up."));
       return;
     }
     setScheduledDate("");

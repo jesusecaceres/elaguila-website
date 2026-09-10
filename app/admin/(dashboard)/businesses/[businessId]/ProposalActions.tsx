@@ -4,13 +4,10 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { isTerminalProposalHistoryStatus, previousCurrentShouldBecomeSuperseded } from "@/app/lib/business/proposals/logic";
 import type { BusinessProposal } from "@/app/lib/business/proposals/types";
+import { humanizeStaffWriteError } from "@/app/admin/_lib/staffWriteErrorMessages";
 
 function readApiError(data: { error?: string }, fallback: string): string {
-  if (data.error === "staff_roster_required") {
-    return "Se requiere una asignación de personal para registrar esta decisión. / A staff roster assignment is required to record this decision.";
-  }
-  if (typeof data.error === "string" && data.error.trim()) return data.error;
-  return fallback;
+  return humanizeStaffWriteError(data.error, fallback);
 }
 
 function statusMeaning(status: string): string {
@@ -244,9 +241,7 @@ function FollowUpLaterForm({
     const data = await res.json().catch(() => ({} as { error?: string }));
     setSaving(false);
     if (!res.ok) {
-      setError(data.error === "owner_bootstrap_cannot_write_follow_ups"
-        ? "Se requiere una asignación de personal para programar el seguimiento. / A staff roster assignment is required to schedule follow-up."
-        : "No se pudo programar el seguimiento. / Could not schedule the follow-up.");
+      setError(humanizeStaffWriteError(data.error, "No se pudo programar el seguimiento. / Could not schedule the follow-up."));
       return;
     }
     setScheduledDate("");

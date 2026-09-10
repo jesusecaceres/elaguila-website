@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { DictationButton } from "../FieldAgentComponents";
+import { humanizeStaffWriteError } from "@/app/admin/_lib/staffWriteErrorMessages";
 
 /**
  * Program 7, Gate 7G — Voice note capture using client-side dictation only.
@@ -53,13 +54,13 @@ export function FieldAgentDictationSection({ businessId }: { businessId: string 
       });
       const body = await res.json().catch(() => null);
       if (!res.ok || !body?.ok) {
-        setError(String(body?.error ?? "save_failed"));
+        setError(humanizeStaffWriteError(body?.error as string | undefined, "No se pudo guardar la nota. / Could not save the note."));
         return;
       }
       setTranscript("");
       setSaved(true);
     } catch {
-      setError("save_failed");
+      setError("No se pudo guardar la nota. / Could not save the note.");
     } finally {
       inflightRef.current = false;
       setSaving(false);

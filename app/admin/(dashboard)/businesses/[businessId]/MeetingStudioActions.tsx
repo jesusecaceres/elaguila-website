@@ -6,10 +6,11 @@ import type { BusinessMeeting, MeetingAttendee, MeetingConsentRecord, MeetingNot
 import type { FactCategory } from "@/app/lib/business/livingBook/types";
 import { eligiblePromotionDestinations } from "@/app/lib/business/meetingStudio/logic";
 import { CreateCommitmentForm } from "./PromiseKeeperActions";
+import { humanizeStaffWriteError } from "@/app/admin/_lib/staffWriteErrorMessages";
 
 async function readApiError(res: Response, fallback: string): Promise<string> {
   const data = await res.json().catch(() => ({} as { error?: string }));
-  return typeof data.error === "string" && data.error.trim() ? data.error : fallback;
+  return humanizeStaffWriteError(data.error, fallback);
 }
 
 export function CreateMeetingForm({ businessId }: { businessId: string }) {
