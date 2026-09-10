@@ -25,7 +25,8 @@ function AdminLoginPageContent() {
         <div className="rounded-2xl border border-black/20 bg-[#1a1a1a] p-6 shadow-xl">
           <h1 className="text-xl font-bold mb-2 text-[#F5F5F5]">Staff / Team login</h1>
           <p className="text-sm text-[#999] mb-4">
-            Sign in with your Leonix team email and Supabase Auth password.
+            Sign in with your Leonix team email and Supabase Auth password. This is full authorized
+            operational access — use this even if you are the owner, if your team account is set up.
           </p>
           {errorMessage ? (
             <p className="text-sm text-red-400 mb-3" role="alert">
@@ -70,11 +71,13 @@ function AdminLoginPageContent() {
 
         <details className="rounded-2xl border border-black/20 bg-[#1a1a1a] p-6 shadow-xl">
           <summary className="cursor-pointer text-sm font-semibold text-[#C9B46A]">
-            Owner bootstrap (shared password)
+            Legacy owner bootstrap
           </summary>
           <p className="mt-3 text-sm text-[#999] mb-4">
-            Legacy owner access when Supabase team accounts are not configured. Sets admin cookie only — bind roster via{" "}
-            <code className="text-[#bbb]">ADMIN_OPERATOR_EMAIL</code> on the server.
+            Emergency / read-only compatibility access for when a team account is not set up yet.
+            Business Concierge changes (adding prospects, notes, follow-ups, and everything else
+            that saves data) are not available in this mode. If you have a team account, use
+            Staff / Team login above instead — it works for owners too.
           </p>
           <form action="/admin/login/submit" method="POST" className="flex flex-col gap-3">
             <input
@@ -97,7 +100,7 @@ function AdminLoginPageContent() {
               type="submit"
               className="w-full rounded-xl border border-[#A98C2A]/40 px-4 py-3 font-semibold text-[#C9B46A] hover:bg-[#2a2a2a] focus:outline-none focus:ring-2 focus:ring-[#A98C2A]/50"
             >
-              Owner bootstrap login
+              Legacy owner bootstrap login
             </button>
           </form>
         </details>

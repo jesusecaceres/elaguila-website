@@ -61,7 +61,7 @@ import {
   lookupActiveAdminRosterByAuthUserId,
   lookupAuthUserById,
 } from "@/app/lib/supabase/adminSession";
-import { requireAdminCookie } from "@/app/lib/supabase/server";
+import { requireAdminCookie, type CookieStore } from "@/app/lib/supabase/server";
 import { capabilitiesForRole, isSalesWorkspaceRole, type SalesWorkspaceCapability, type SalesWorkspaceRole } from "./salesWorkspaceCapabilities";
 
 export type SalesWorkspaceActorType = "staff" | "owner_bootstrap";
@@ -105,20 +105,45 @@ export type SalesWorkspaceAccessResult = { ok: true; actor: StrictSalesActor } |
  */
 export async function requireSalesWorkspaceAccess(): Promise<SalesWorkspaceAccessResult> {
   const jar = await cookies();
+  return resolveSalesWorkspaceAccess(jar);
+}
 
+/**
+ * The actual resolution logic, factored out from requireSalesWorkspaceAccess() so it can be
+ * exercised in a regression test with a fake CookieStore — next/headers' cookies() only works
+ * inside a real Next.js request, so this split is what makes the precedence guarantee below
+ * (real staff session over legacy bootstrap) independently testable without a request context.
+ * Exported for tests only; every real call site should use requireSalesWorkspaceAccess() above.
+ */
+export async function resolveSalesWorkspaceAccess(jar: CookieStore): Promise<SalesWorkspaceAccessResult> {
   if (!requireAdminCookie(jar)) {
     return { ok: false, reason: "no_admin_cookie" };
   }
+
+  // Precedence hardening (Real-Owner-Login repair): a real per-person staff session always takes
+  // precedence over legacy bootstrap, checked BEFORE isAdminBootstrapSession() rather than after.
+  // Every login route already clears the *other* cookie set on login (see
+  // applyLeonixAdminSessionCookies in adminSession.ts), so in normal operation the two cookie sets
+  // should never coexist — but that invariant lived only in the login routes' care to clear
+  // cookies correctly. This makes it a structural guarantee of the resolver itself: if both
+  // staff-identity cookies are present, staff resolution runs to completion (success, or a
+  // specific staff denial reason) and bootstrap is never even consulted. An incomplete or invalid
+  // staff session still denies — it never silently falls back to bootstrap access, which would be
+  // a privilege escalation, not a safety measure.
+  const operatorEmail = getAdminOperatorEmailFromCookies(jar);
+  const authUserId = getAdminAuthUserIdFromCookies(jar);
+  if (operatorEmail && authUserId) {
+    return resolveStaffSession(operatorEmail, authUserId);
+  }
+
   if (isAdminBootstrapSession(jar)) {
     return ownerBootstrapAccess();
   }
 
-  const operatorEmail = getAdminOperatorEmailFromCookies(jar);
-  const authUserId = getAdminAuthUserIdFromCookies(jar);
-  if (!operatorEmail || !authUserId) {
-    return { ok: false, reason: "no_operator_identity" };
-  }
+  return { ok: false, reason: "no_operator_identity" };
+}
 
+async function resolveStaffSession(operatorEmail: string, authUserId: string): Promise<SalesWorkspaceAccessResult> {
   // Step 1: authUserId must be a REAL, currently-existing Supabase Auth user — never trusted as a
   // bare cookie string. A forged, stale, or syntactically-valid-but-nonexistent UUID is rejected
   // here, before any roster lookup even runs.
