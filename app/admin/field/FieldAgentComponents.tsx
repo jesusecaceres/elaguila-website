@@ -107,15 +107,18 @@ export function CameraFileCapture({
 }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploaded, setUploaded] = useState(false);
   const network = useNetworkState();
 
   async function handleFile(file: File) {
     if (network === "offline") {
       setError("Sin conexión. No se puede subir el archivo. / Offline. Cannot upload the file.");
+      setUploaded(false);
       return;
     }
     setUploading(true);
     setError(null);
+    setUploaded(false);
     try {
       const form = new FormData();
       form.append("businessId", businessId);
@@ -131,6 +134,7 @@ export function CameraFileCapture({
         setError(String(body?.error ?? "upload_failed"));
         return;
       }
+      setUploaded(true);
       onUploaded?.(String(body.sourceFile?.id ?? ""));
     } finally {
       setUploading(false);
@@ -170,6 +174,11 @@ export function CameraFileCapture({
         />
       </label>
       {uploading ? <p className="text-xs text-[#7A7164]">Subiendo… / Uploading…</p> : null}
+      {uploaded ? (
+        <p role="status" className="text-xs font-semibold text-[#1F3A2D]">
+          Archivo guardado como evidencia de campo. / File saved as field evidence.
+        </p>
+      ) : null}
       {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
     </div>
   );

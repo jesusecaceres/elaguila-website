@@ -998,13 +998,45 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
           </p>
         </div>
 
+        {/* Gate 3 — Relationship status leads Outreach: "have we contacted them, what's the state." */}
         <section className="rounded-2xl border border-[#E8DFD0] bg-[#FFFDF7] p-4">
-          <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Outreach status</h3>
+          <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Relationship status</h3>
           <p className="mt-2 text-sm font-semibold text-[#1E1810]">{labelFromList(BUSINESS_SALES_STATUSES, salesProfile.status)}</p>
           <p className="mt-1 text-xs text-[#7A7164]">
             Last contacted: {salesProfile.lastContactedAt ? new Date(salesProfile.lastContactedAt).toLocaleString("en-US") : "not recorded"}
           </p>
           <p className="mt-1 text-[11px] text-[#7A7164]">Change status with the Status control in the dashboard header. Existing canonical values only.</p>
+        </section>
+
+        {/* Gate 3 — Recent activity. This repo has no separate structured contact-attempt
+            timeline (confirmed by direct inspection); internal notes ARE the real recent-activity
+            record, so this section honestly serves that role rather than fabricating a feed. */}
+        <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
+          <h3 className="text-sm font-bold text-[#1E1810]">Recent activity — internal notes</h3>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            Internal relationship notes (<code className="text-[11px]">business_sales_notes</code>). Never shown to the owner. Not a confirmed business fact and not a Field Agent Living Book staff note.
+          </p>
+          <div className="mt-3">
+            <NotesPanel
+              businessId={business.id}
+              notes={notes}
+              canWrite={actorHasCapability(access.actor, "create_internal_note") && !isOwnerBootstrapActor(access.actor)}
+            />
+          </div>
+        </section>
+
+        <section id="follow-up" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
+          <h3 className="text-sm font-bold text-[#1E1810]">Follow-up</h3>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            Next relationship contact — when, why, and expected action. Distinct from Field Agent Living Book notes, confirmed facts, meeting notes, and Promise Keeper commitments.
+          </p>
+          <div className="mt-3">
+            <FollowUpPanel
+              businessId={business.id}
+              current={currentFollowUp}
+              canWrite={actorHasCapability(access.actor, "create_follow_up") && !isOwnerBootstrapActor(access.actor)}
+            />
+          </div>
         </section>
 
         <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
@@ -1040,34 +1072,6 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
             ) : !primaryPhone && !primaryEmail && !websiteContact ? (
               <p className="text-xs text-[#7A7164]">No verified contact method on file yet.</p>
             ) : null}
-          </div>
-        </section>
-
-        <section id="follow-up" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-white p-4">
-          <h3 className="text-sm font-bold text-[#1E1810]">Follow-up</h3>
-          <p className="mt-1 text-xs text-[#7A7164]">
-            Next relationship contact — when, why, and expected action. Distinct from Field Agent Living Book notes, confirmed facts, meeting notes, and Promise Keeper commitments.
-          </p>
-          <div className="mt-3">
-            <FollowUpPanel
-              businessId={business.id}
-              current={currentFollowUp}
-              canWrite={actorHasCapability(access.actor, "create_follow_up") && !isOwnerBootstrapActor(access.actor)}
-            />
-          </div>
-        </section>
-
-        <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-          <h3 className="text-sm font-bold text-[#1E1810]">Internal notes</h3>
-          <p className="mt-1 text-xs text-[#7A7164]">
-            Internal relationship notes (<code className="text-[11px]">business_sales_notes</code>). Never shown to the owner. Not a confirmed business fact and not a Field Agent Living Book staff note.
-          </p>
-          <div className="mt-3">
-            <NotesPanel
-              businessId={business.id}
-              notes={notes}
-              canWrite={actorHasCapability(access.actor, "create_internal_note") && !isOwnerBootstrapActor(access.actor)}
-            />
           </div>
         </section>
       </div>

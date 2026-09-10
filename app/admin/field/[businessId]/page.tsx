@@ -97,19 +97,36 @@ export default async function FieldAgentBusinessPage({ params }: { params: Promi
         {notesUnavailable ? (
           <p className="text-xs text-[#7A7164]">Notas recientes no disponibles. / Recent field notes unavailable.</p>
         ) : recentNotes.length === 0 ? (
-          <p className="text-xs text-[#7A7164]">No hay notas de campo recientes. / No recent field notes.</p>
+          <p className="text-xs text-[#7A7164]">No hay actividad de campo guardada para este negocio. / No field activity has been saved for this business yet.</p>
         ) : (
-          <ul className="space-y-2">
-            {recentNotes.map((note) => (
-              <li key={note.id} className="rounded-lg border border-[#E8DFD0] bg-white p-2">
-                <p className="text-[10px] text-[#7A7164]">
-                  {note.createdAt.replace("T", " ").slice(0, 16)}
-                  {note.actorLabel ? ` · ${note.actorLabel}` : ""}
-                </p>
-                <p className="mt-0.5 text-xs text-[#1E1810]">{note.preview}</p>
-              </li>
-            ))}
-          </ul>
+          <>
+            <p className="text-[11px] text-[#7A7164]">
+              Destino: evidencia del Living Business Book. / Destination: Living Business Book evidence.
+            </p>
+            <ul className="mt-2 space-y-2">
+              {recentNotes.map((note) => (
+                <li key={note.id} className="rounded-lg border border-[#E8DFD0] bg-white p-2">
+                  <p className="text-[10px] text-[#7A7164]">
+                    {note.createdAt.replace("T", " ").slice(0, 16)}
+                    {note.actorLabel ? ` · ${note.actorLabel}` : ""}
+                  </p>
+                  <p className="mt-0.5 text-xs text-[#1E1810]">{note.preview}</p>
+                  <Link
+                    href={`/admin/businesses/${businessId}#business-book`}
+                    className="mt-1.5 inline-flex min-h-[36px] items-center text-[11px] font-semibold text-[#7A1E2C] underline"
+                  >
+                    Ver nota / View Note
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <Link
+              href={`/admin/businesses/${businessId}#outreach`}
+              className="mt-3 inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-white px-3 py-2 text-xs font-semibold text-[#1E1810]"
+            >
+              Crear seguimiento / Create Follow-up
+            </Link>
+          </>
         )}
       </section>
     </div>
