@@ -22,6 +22,7 @@ import {
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
 } from "./revenueServiciosFulfillment";
 import { triggerServiciosSavedSearchMatchBestEffort } from "@/app/lib/saved-search/servicios/serviciosSavedSearchMatchOrchestrator";
+import { triggerRestaurantesSavedSearchMatchBestEffort } from "@/app/lib/saved-search/restaurantes/restaurantesSavedSearchMatchOrchestrator";
 import {
   activatePaidComidaLocalListingFromRevenueOs,
   COMIDA_LOCAL_BASE_MONTHLY_PACKAGE_KEY,
@@ -350,6 +351,16 @@ async function tryActivateRestauranteListingAfterEntitlement(input: {
       outcome: activation.outcome,
     },
   });
+
+  // Gate RESTAURANTES-2 — Saved Search match is a durable, best-effort side effect of the listing
+  // genuinely becoming publicly active, fired strictly AFTER the real activation has committed and
+  // only on the actual pending -> published transition (a re-delivered webhook resolves to
+  // `already_published` and returns earlier, never reaching here).
+  // `triggerRestaurantesSavedSearchMatchBestEffort` never throws, so it can never fail this
+  // function's own success — same failure-boundary contract as the Autos/BR/Rentas/Servicios sites.
+  if (activation.outcome === "activated" && activation.listingId) {
+    await triggerRestaurantesSavedSearchMatchBestEffort(activation.listingId, "restaurantes_publish_activation");
+  }
 
   return { ok: true };
 }

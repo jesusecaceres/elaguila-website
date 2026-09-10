@@ -2,7 +2,8 @@
 
 /**
  * Saved Search 03/06 — owner "Búsquedas guardadas / Saved searches" management surface.
- * Autos, Bienes Raíces and Rentas as of Saved Search 06; Servicios as of Gate SERVICIOS-2.
+ * Autos, Bienes Raíces and Rentas as of Saved Search 06; Servicios as of Gate SERVICIOS-2;
+ * Restaurantes as of Gate RESTAURANTES-2.
  * Reuses the existing dashboard shell
  * (`LeonixDashboardShell`) and the Saved Search 02 Bearer-token API (`app/api/saved-search/**`) —
  * never a direct Supabase table query, since that table's application-layer contract is the API,
@@ -32,6 +33,8 @@ import { describeRentasSavedSearchFacets } from "@/app/lib/saved-search/rentas/s
 import { buildRentasSavedSearchResultsUrl } from "@/app/lib/saved-search/rentas/rentasSavedSearchResultsUrl";
 import { describeServiciosSavedSearchFacets } from "@/app/lib/saved-search/servicios/savedSearchServiciosAdapter";
 import { buildServiciosSavedSearchResultsUrl } from "@/app/lib/saved-search/servicios/serviciosSavedSearchResultsUrl";
+import { describeRestaurantesSavedSearchFacets } from "@/app/lib/saved-search/restaurantes/savedSearchRestaurantesAdapter";
+import { buildRestaurantesSavedSearchResultsUrl } from "@/app/lib/saved-search/restaurantes/restaurantesSavedSearchResultsUrl";
 import type { SavedSearchNormalizedInput, SavedSearchRow } from "@/app/lib/saved-search/savedSearchTypes";
 
 type SavedSearchCategoryEntry = {
@@ -66,6 +69,12 @@ const CATEGORY_REGISTRY: Record<string, SavedSearchCategoryEntry> = {
     describeFacets: describeServiciosSavedSearchFacets,
     buildResultsUrl: buildServiciosSavedSearchResultsUrl,
   },
+  restaurantes: {
+    label: { es: "Restaurantes", en: "Restaurants" },
+    browsePath: "/clasificados/restaurantes/results",
+    describeFacets: describeRestaurantesSavedSearchFacets,
+    buildResultsUrl: buildRestaurantesSavedSearchResultsUrl,
+  },
 };
 
 type Lang = "es" | "en";
@@ -88,12 +97,13 @@ function BusquedasGuardadasPageContent() {
       lang === "es"
         ? {
             title: "Búsquedas guardadas",
-            subtitle: "Vuelve fácilmente a tus búsquedas guardadas de Autos, Bienes Raíces, Rentas y Servicios.",
+            subtitle: "Vuelve fácilmente a tus búsquedas guardadas de Autos, Bienes Raíces, Rentas, Servicios y Restaurantes.",
             back: "Volver al resumen",
             browse: "Explorar Autos",
             browseBr: "Explorar Bienes Raíces",
             browseRentas: "Explorar Rentas",
             browseServicios: "Explorar Servicios",
+            browseRestaurantes: "Explorar Restaurantes",
             loading: "Cargando…",
             empty: "No tienes búsquedas guardadas todavía.",
             emptyHint: "Guarda una búsqueda desde cualquier página de resultados para verla aquí.",
@@ -111,12 +121,13 @@ function BusquedasGuardadasPageContent() {
           }
         : {
             title: "Saved searches",
-            subtitle: "Quickly return to your saved Autos, Real Estate, Rentals, and Services searches.",
+            subtitle: "Quickly return to your saved Autos, Real Estate, Rentals, Services, and Restaurants searches.",
             back: "Back to overview",
             browse: "Browse Autos",
             browseBr: "Browse Real Estate",
             browseRentas: "Browse Rentals",
             browseServicios: "Browse Services",
+            browseRestaurantes: "Browse Restaurants",
             loading: "Loading…",
             empty: "You don't have any saved searches yet.",
             emptyHint: "Save a search from any results page to see it here.",
@@ -255,6 +266,9 @@ function BusquedasGuardadasPageContent() {
                 </Link>
                 <Link href={`/clasificados/servicios/results?${q}`} className={LX_DASH.btnSecondary}>
                   {t.browseServicios}
+                </Link>
+                <Link href={`/clasificados/restaurantes/results?${q}`} className={LX_DASH.btnSecondary}>
+                  {t.browseRestaurantes}
                 </Link>
                 <Link href={`/dashboard?${q}`} className={LX_DASH.btnSecondary}>
                   {t.back}

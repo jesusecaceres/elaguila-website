@@ -4,6 +4,7 @@ import { PRIMARY_CATEGORIES } from "@/app/lib/recursos/categories";
 import { recursosCategoryPath, recursosResourcePath } from "@/app/lib/recursos/recursosUrls";
 import { listPublicCommunityResources } from "@/app/lib/recursos/server/communityResourcesPublicQueries";
 import { listServiciosPublicListingsRaw } from "@/app/(site)/clasificados/servicios/lib/serviciosPublicListingsServer";
+import { tryListRestaurantesPublicListingsFromDb } from "@/app/(site)/clasificados/restaurantes/lib/restaurantesPublicListingsServer";
 import { buildLeonixSitemap } from "@/app/lib/seo/leonixDiscoveryContracts";
 
 export {
@@ -96,6 +97,50 @@ async function serviciosSitemapEntries(base: string, now: Date): Promise<Metadat
   }
 }
 
+/**
+ * Gate RESTAURANTES-2 — published Restaurantes vitrinas, the third DB-backed section, composed the
+ * same way as the Recursos and Servicios sections above: in this route module, from the category's
+ * own safety-gated public reader, never inside the pure `buildLeonixSitemap` contract and never a
+ * direct table query.
+ *
+ * `tryListRestaurantesPublicListingsFromDb` applies `.eq("status","published")`, so a
+ * `pending_payment`, `archived` or `suspended` row can never reach the sitemap — the same single
+ * status check the public detail route enforces (a non-published slug 404s there). Its `ok:false`
+ * outcome is honoured explicitly, so a query error yields no entries rather than a partial list.
+ *
+ * The `restaurantesResultsInventoryServer` variant is deliberately NOT used: it exists to apply the
+ * paid entitlement/placement overlay, which affects presentation, never whether a URL is public.
+ *
+ * The URL is the canonical `/clasificados/restaurantes/[slug]`, matching each page's own
+ * `alternates.canonical` and the absolute JSON-LD `url` Gate RESTAURANTES-1 established.
+ */
+async function restaurantesSitemapEntries(base: string, now: Date): Promise<MetadataRoute.Sitemap> {
+  try {
+    const listed = await tryListRestaurantesPublicListingsFromDb(RESTAURANTES_SITEMAP_MAX);
+    if (!listed.ok) return [];
+    return listed.rows
+      .filter((row) => Boolean(row.slug?.trim()))
+      .map((row) => {
+        const updated = row.updated_at || row.published_at;
+        const lastModified = updated ? new Date(updated) : now;
+        return {
+          url: `${base}/clasificados/restaurantes/${encodeURIComponent(row.slug)}`,
+          lastModified: Number.isNaN(lastModified.getTime()) ? now : lastModified,
+          changeFrequency: "weekly" as const,
+          priority: 0.6,
+        };
+      });
+  } catch {
+    // A sitemap must never fail the whole route because one DB-backed section is unavailable.
+    return [];
+  }
+}
+
+/** Upper bound for the Restaurantes section. Unlike the Servicios reader, this one has no smaller
+ * internal fetch cap — it passes the limit straight to Supabase — so 2000 is the real ceiling here.
+ * Well under the 50k per-sitemap limit; a larger catalog needs a paginated sitemap index. */
+const RESTAURANTES_SITEMAP_MAX = 2000;
+
 /** Upper bound requested from the reader. Its own internal fetch cap is 800 rows
  * (`listServiciosPublicListingsFromDb`), so 800 is the real ceiling of this section — stated
  * honestly here rather than implying a larger number this reader cannot return. Well under the
@@ -116,5 +161,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
     ...(await recursosSitemapEntries(base, now)),
     ...(await serviciosSitemapEntries(base, now)),
+    ...(await restaurantesSitemapEntries(base, now)),
   ];
 }

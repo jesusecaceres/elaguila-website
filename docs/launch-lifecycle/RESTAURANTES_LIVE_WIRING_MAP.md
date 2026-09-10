@@ -18,6 +18,7 @@ those are recorded as such, not "fixed toward" the Servicios shape.
 |---|---|---|
 | **RESTAURANTES-0** | Gate Zero + live wiring MRI | **COMPLETE** |
 | **RESTAURANTES-1** | Launch-critical lifecycle repairs (§5.1, §5.5, §6.1–6.6) | **CLOSED** — see §10 |
+| **RESTAURANTES-2** | Discovery adoption (§5.3, §5.4) + cleanup readiness (§4) | **CLOSED** — see §11 |
 
 Servicios (Gates 1–2) is **LOCKED** and was not reopened.
 
@@ -219,8 +220,8 @@ that Gate SERVICIOS-1 had to repair defensively.
 | **Google / Yelp** | — | `buildRestaurantContactHub`, `buildRestaurantePublishPayload`, `createEmptyRestauranteDraft`, `mapRestauranteDraftToShell` | **LIVE** | none |
 | **Business Hub** | `app/components/contact/connectionHub/*` | Restaurantes runs its own `shell/RestaurantContactHub.tsx` | **DUPLICATE-REFERENCED** (working, differentiated) | PRESERVE — master §C |
 | **Coupons** | base package `capabilities: ["coupons_offers"]`; `enableRestauranteCouponModuleFromCapability`; `activateRestauranteCouponAddonFromRevenueOs`; `fetchAddonEntitlementsForListings` | publish route + public detail + dashboard coupon edit | **BROKEN BRIDGE** | **P0 — §5.1** |
-| **Saved Search** | `app/lib/saved-search/*` — engine + `SavedSearchButton` + adapters for autos, bienes-raices, rentas, **servicios** (Gate 2) | **ZERO refs** | **BUILT-NOT-WIRED** | ADOPT |
-| **Related Listings** | no shared engine; per-category readers (`serviciosRelatedListings` is the newest reference) | **ZERO refs** | **absent** | NEW CODE (thin reader) |
+| **Saved Search** | `app/lib/saved-search/*` — shared engine + `SavedSearchButton`, now with a **restaurantes** adapter alongside autos/bienes-raices/rentas/servicios | `RestaurantesResultsShell` (CTA), the 6-file `app/lib/saved-search/restaurantes/*` adapter set, dashboard `CATEGORY_REGISTRY`, delivery `CATEGORY_RESOLVERS`, activation trigger in `revenueFulfillment` | **LIVE-SHARED** | done (§11) |
+| **Related Listings** | no shared engine (by design); per-category readers — `serviciosRelatedListings`, and now `restaurantesRelatedListings` | `lib/restaurantesRelatedListings.ts` + `components/RestaurantesRelatedListingsSection.tsx`, rendered by `[slug]/page.tsx`, reusing `RestaurantePublishedListingCard` | **LIVE** (category reader, no ranking engine) | done (§11) |
 | **SEO** | `seo/restauranteJsonLd.ts`, `breadcrumbJsonLd`, `leonixDiscoveryContracts` | `[slug]/page.tsx` — canonical `alternates`, LocalBusiness JSON-LD, breadcrumb JSON-LD, lang-aware category label | **LIVE** | relative JSON-LD `url`; not in sitemap (§5.4) |
 | **Hours / open-now** | category-local | results: `isRestauranteOpenNowFromWeeklyHours` (tz-aware, `Intl.DateTimeFormat`); detail: `restauranteHoursPreview` + `new Date()` | **LIVE — real runtime evaluation on both surfaces** | two implementations (§6.5) |
 | **Analytics** | `listing_analytics` canonical + `restaurantesAnalyticsIdentity` | 6 files | **LIVE** | `selfEngagementGuard` not referenced (0) |
@@ -349,19 +350,93 @@ plus write-time guards reconcile subscriptions. But `/api/revenue-os/admin/subsc
 has **no caller** — no `vercel.json`, no cron route, no `pg_cron`. Identical to the Servicios finding;
 it is one platform decision covering both categories.
 
-### 5.3 Saved Search and Related Listings absent — **P2**
-Zero references to either. Saved Search is now a four-category shared engine (Gate 2 added the
-Servicios adapter), so this is a clean ADOPT: build a `savedSearchRestaurantesAdapter` against the
-real `RestaurantesResultsShell` filter contract. Related Listings has no shared engine — a thin
-category reader (cuisine + city) modeled on `serviciosRelatedListings` is the proven shape.
+### 5.3 Saved Search and Related Listings absent — **P2 — CLOSED (RESTAURANTES-2)**
+**Was:** zero references to either.
 
-Note: the ledger CHECK constraint widened for `servicios` in the Gate 2 migration does **not**
-include `restaurantes`; adopting Saved Search here needs the same one-line widening.
+**Now — SAVED SEARCH.** Restaurantes plugs into the same shared engine as Autos / Bienes Raíces /
+Rentas / Servicios. No category-local engine: the verifier asserts the adapter contains no hashing,
+no `saved_searches` query and no Supabase client.
 
-### 5.4 Published detail URLs are not in the sitemap — **P2**
-`app/sitemap.ts` now emits Servicios detail URLs via `serviciosSitemapEntries` (Gate 2). Restaurantes
-has only its hub in `LEONIX_SITEMAP_CATEGORY_HUBS`. The mechanism and the safety-gated reader
-(`tryListRestaurantesPublicListingsFromDb`, published-only) both already exist — this is an ADOPT.
+| Piece | File |
+|---|---|
+| Discovery-state ↔ normalized translation + facet summary | `app/lib/saved-search/restaurantes/savedSearchRestaurantesAdapter.ts` |
+| Results-URL rebuild | `.../restaurantesSavedSearchResultsUrl.ts` |
+| Eligibility (branded type) | `.../restaurantesPublicEligibleListing.ts` |
+| Matcher | `.../savedSearchRestaurantesMatcher.ts` |
+| Match orchestrator | `.../restaurantesSavedSearchMatchOrchestrator.ts` |
+| Delivery resolver | `.../restaurantesSavedSearchDeliveryResolver.ts` |
+| Results CTA | `RestaurantesResultsShell.tsx` → shared `SavedSearchButton` |
+| Owner dashboard | `dashboard/busquedas-guardadas/page.tsx` `CATEGORY_REGISTRY` |
+| Email delivery | `delivery/savedSearchEmailDelivery.ts` `CATEGORY_RESOLVERS` |
+| Activation trigger | `revenueFulfillment.tryActivateRestauranteListingAfterEntitlement` |
+| DB | `supabase/migrations/20260910180000_saved_search_match_events_restaurantes.sql` |
+
+Filter truth is exact: the CTA passes the shell's **own** live `parsed` discovery state, and the
+matcher runs the **same** `filterRestaurantesBlueprintRows` the results page runs, over the same
+row shape produced by the category's own `mapRestaurantesPublicListingDbRowToShellInventoryRow`
+(which is also what computes the timezone-pinned `openNowDemo`, so an `open=1` saved search is
+evaluated against real current hours at match time).
+
+Four fields are deliberately **excluded** from the fingerprint, each for a stated reason:
+- `sort` / `page` / `perPage` — presentation and pagination, never inclusion;
+- `saved` — filters to ids saved locally on *this device* (first-party, consent-gated). It is not a
+  shareable or matchable facet and would mean something different on every device;
+- `near` — the filter itself documents that without city/zip it excludes nothing ("honest until geo
+  radius ships"), so saving it would save a promise the engine does not keep (the same call the
+  Autos adapter made about `radiusMiles`);
+- `lang` — route/display, not match semantics.
+
+`minPrice`/`maxPrice` are truthfully `null`: Restaurantes filters on a price **level** token
+(`"$$"`), not a numeric band.
+
+**A better reuse than the earlier categories got.** Rentas and Servicios had to hand-roll a
+serializer because their results pages build query strings ad hoc. Restaurantes already owns
+`restaurantesDiscoveryStateToParams` + `buildRestaurantesResultsHref`, so the URL builder composes
+those instead of introducing a second query contract — and the verifier proves the round trip
+against the **live** `parseRestaurantesResultsSearchParams`, not just against the adapter's own
+inverse.
+
+**Now — RELATED LISTINGS.** `lib/restaurantesRelatedListings.ts` +
+`components/RestaurantesRelatedListingsSection.tsx`, rendered by `[slug]/page.tsx`. Candidates come
+from `tryListRestaurantesPublicListingsFromDb` — the same published-only reader the results page
+uses. Scored on the category's real facets: `primary_cuisine` / `secondary_cuisine` /
+`business_type` (the columns `cuisine=` and `biz=` match on) and `city_canonical` / `zip_code` (the
+columns the location filter matches on). Explicit 4-tier rule, no model:
+same cuisine + same city (4) > same cuisine + same ZIP (3) > same cuisine (2) > same city + same
+business type (1) > **excluded (0)**.
+
+Unlike Servicios, **same city alone is deliberately not a relationship** here: "another restaurant
+somewhere in San José" is not something a reader would recognize as related, whereas for a service
+provider locality alone genuinely is. Nothing is fabricated — an empty result renders a real browse
+link, never filler. No placement-weight logic: the reader does not consult `promoted`, entitlement
+tier or `resolveCanonicalVisibilityBucketWeights`, and deliberately does **not** reuse
+`restaurantesResultsInventoryServer`, which exists precisely to apply that paid overlay. Rendering
+reuses the existing `RestaurantePublishedListingCard` and row mapper — no new card, no new shape.
+
+**Ledger CHECK.** Widened for `restaurantes` following the same pattern as the BR/Rentas and
+Servicios migrations. No `seller_lane` vocabulary was added: Restaurantes draws no
+business-vs-private seller distinction (every listing is a food business), so its orchestrator
+writes `seller_lane: null`, which the existing `IS NULL OR …` constraint already accepts — inventing
+a lane would misrepresent a distinction this category does not make.
+
+### 5.4 Published detail URLs were not in the sitemap — **P2 — CLOSED (RESTAURANTES-2)**
+**Was:** `app/sitemap.ts` emitted Recursos and Servicios detail URLs; Restaurantes had only its hub
+in `LEONIX_SITEMAP_CATEGORY_HUBS`.
+
+**Now:** `restaurantesSitemapEntries()` is the third DB-backed section, composed in the route module
+exactly as the Recursos and Servicios sections are — never inside the pure `buildLeonixSitemap`
+contract, never a direct table query. It sources from `tryListRestaurantesPublicListingsFromDb`
+(`.eq("status","published")`), so a `pending_payment`, `archived` or `suspended` row can never be
+advertised — the same single status check the public detail route enforces. Its `ok:false` outcome
+is honoured explicitly, so a query error yields **no** entries rather than a partial list, and the
+whole section is try/catch-isolated so one unavailable DB read cannot fail the sitemap route. URLs
+are the canonical `/clasificados/restaurantes/[slug]`, matching each page's `alternates.canonical`
+and the absolute JSON-LD `url` Gate RESTAURANTES-1 established.
+
+`restaurantesResultsInventoryServer` is deliberately not used — it exists to apply the paid
+entitlement/placement overlay, which affects presentation, never whether a URL is public.
+`leonixSitemapOmitsPerListingDetailUrls()` remains unchanged and still returns `true`; it describes
+the pure contract, on top of which the route composes DB-backed sections.
 
 ### 5.5 JSON-LD `url` was relative — **P2 — CLOSED (RESTAURANTES-1)**
 **Was:** `restauranteJsonLd({ url: "/clasificados/restaurantes/<slug>" })` — a relative path, which
@@ -634,6 +709,108 @@ the `listing_source` filter breaking the whole capability resolver (§5.1), and
 Saved Search (§5.3), Related Listings (§5.3), sitemap (§5.4), subscription-sweep scheduler (§5.2),
 dead-code deletion (§4), browser QA, aesthetics. The shared `businessAddress` contract remains
 unadopted for Restaurantes by choice (§6.6). `openNowDemo`'s misleading name (§6.5) left as-is.
+
+---
+
+## 11. GATE RESTAURANTES-2 — IMPLEMENTATION EVIDENCE
+
+One coherent commit on `completion/launch-lifecycle-2026-09-09`, on top of `9d9753a0`
+(Gate RESTAURANTES-1). Not pushed. `main` untouched. Servicios not reopened. **Nothing deleted.**
+Application/Preview UX, the Gate-1 coupon architecture, and the scheduler were not touched.
+
+### Files changed (5 modified, 9 new)
+
+**New — Restaurantes adapters into existing shared engines (no new global engine)**
+
+| File | Role |
+|---|---|
+| `app/lib/saved-search/restaurantes/savedSearchRestaurantesAdapter.ts` | discovery-state ↔ normalized + dashboard facet summary |
+| `.../restaurantesSavedSearchResultsUrl.ts` | rebuild a real results URL by composing the category's own serializer |
+| `.../restaurantesPublicEligibleListing.ts` | branded published-only eligibility type |
+| `.../savedSearchRestaurantesMatcher.ts` | reuses the live results filter verbatim |
+| `.../restaurantesSavedSearchMatchOrchestrator.ts` | durable best-effort match-ledger writer |
+| `.../restaurantesSavedSearchDeliveryResolver.ts` | eligibility revalidation + canonical detail URL |
+| `clasificados/restaurantes/lib/restaurantesRelatedListings.ts` | related reader (cuisine/type + city/ZIP) |
+| `clasificados/restaurantes/components/RestaurantesRelatedListingsSection.tsx` | rail reusing the existing results card |
+| `supabase/migrations/20260910180000_saved_search_match_events_restaurantes.sql` | widen ledger CHECKs for `restaurantes` |
+| `scripts/verify-restaurantes-gate2-discovery.ts` | this gate's verifier |
+
+**Modified**
+
+| File | Change |
+|---|---|
+| `clasificados/restaurantes/resultados/RestaurantesResultsShell.tsx` | mount shared `SavedSearchButton` with the shell's own `parsed` state |
+| `clasificados/restaurantes/[slug]/page.tsx` | compute + render Related Listings (parallel with the existing reads) |
+| `lib/saved-search/delivery/savedSearchEmailDelivery.ts` | register the restaurantes resolver |
+| `dashboard/busquedas-guardadas/page.tsx` | `CATEGORY_REGISTRY` + browse link + bilingual copy |
+| `lib/listingPlans/revenueFulfillment.ts` | fire the match trigger on real activation |
+| `app/sitemap.ts` | Restaurantes published-detail section |
+
+### Discovery-circuit proof (verifier check 4)
+
+```
+published row      tryListRestaurantesPublicListingsFromDb  (.eq status published)
+  -> results       filterRestaurantesBlueprintRows over the category's own row mapper
+  -> Saved Search  SavedSearchButton(restaurantesDiscoveryStateToSavedSearch(parsed))
+                   -> shared fingerprint/CRUD -> dashboard -> rebuilt URL, re-parsed by the
+                      LIVE parseRestaurantesResultsSearchParams
+                   -> activation trigger -> ledger -> email -> canonical detail URL
+  -> public detail getRestaurantePublicListingBySlugFromDb (404s if not published)
+  -> Related       listRelatedRestaurantesListings (same reader, cuisine/type + city/ZIP)
+  -> canonical SEO alternates.canonical + absolute JSON-LD (Gate 1) + sitemap entry
+```
+
+### Validation
+
+| Check | Result |
+|---|---|
+| `scripts/verify-restaurantes-gate2-discovery.ts` | **16/16 PASS** — includes a real adapter round-trip, fingerprint order/sort/pagination independence, a **live-parser** URL round trip, eligibility rejection of every non-published status, and the re-runnable dead-path proof |
+| `scripts/verify-restaurantes-gate1-lifecycle.ts` | **15/15 PASS** — no Gate 1 regression |
+| `scripts/verify-servicios-gate1-lifecycle.ts` | **20/20 PASS** |
+| `scripts/verify-servicios-gate2-discovery.ts` | **19/19 PASS** |
+| ESLint over the new/changed scope | **0 errors, 0 warnings** |
+| TypeScript / build | **DEFERRED TO INTEGRATION GATE** |
+
+### Cleanup readiness — §4 dead paths re-verified, nothing deleted
+
+Re-proved this gate by walking every `.ts/.tsx/.mjs` under `app/`, `scripts/`, `e2e/`, `tests/` and
+matching real import specifiers. All **22** recorded dead modules still have **zero** importers and
+all still exist. The proof is embedded in the verifier (check 5b), so it is re-runnable rather than
+a snapshot.
+
+**LIVE shell explicitly preserved and asserted (check 5a).** `shell/RestauranteAdStoryPreview`,
+`shell/RestaurantesShellChrome`, `shell/RestaurantContactHub` and `shell/RestaurantePreviewCard`
+render the live public vitrina despite sitting beside a demo-only route. The verifier fails if any
+of them disappears or if `[slug]/page.tsx` stops rendering through them. Only three files *inside*
+`shell/` are dead (`RestaurantHubReviewLinkButton`, `RestauranteDetailShell`,
+`RestauranteShellDataUrlModal`).
+
+**Route-level items still needing an explicit routing decision before any cleanup gate (check 5c):**
+
+| Route | State | Decision needed |
+|---|---|---|
+| `/clasificados/restaurantes/shell` | live route, production-`redirect()`ed, `robots: noindex`, robots-disallowed. Renders demo fixtures — but its folder holds the LIVE public renderer | Keep the route (harmless) or remove it — **removing the folder is not an option**; only the route file and the three dead files inside are candidates |
+| `/clasificados/restaurantes/publicar` | live redirect shim → `/publicar/restaurantes`, preserving `lang`/`plan`/`placeType` | Keep, or remove and accept the lost inbound URL |
+| `/clasificados/restaurantes/results` | one-line re-export of `../resultados/page` — and now the canonical path every saved-search URL is built with | **Keep** — Saved Search URLs depend on it |
+
+### Not done in this gate (by instruction)
+
+Subscription-sweep scheduler (§5.2), dead-code deletion (§4), owner-browser QA, aesthetics.
+Application/Preview UX and the Gate-1 coupon architecture untouched. `openNowDemo`'s misleading name
+(§6.5) and the owner dashboard's missing lifecycle controls (§5.6) remain as recorded.
+
+### Deferred to the integration gate
+
+1. `npm run typecheck` and `npm run build` — not attempted; four Leonix worktrees are active under a
+   hard resource lock and this repo's `tsc` has exhausted the V8 heap before, even scoped.
+2. **`supabase/migrations/20260910180000_…` has not been applied anywhere.** Until it runs, a
+   Restaurantes match-event insert is rejected by the existing CHECK. The orchestrator degrades
+   safely (the write failure is recorded, never thrown) and the save/list/dashboard/results-URL half
+   of Saved Search works without it — but **match emails will not deliver until it is applied**. The
+   Servicios migration from Gate SERVICIOS-2 is in the same state.
+3. Owner-browser QA: save a filtered Restaurantes search → confirm it appears in
+   `/dashboard/busquedas-guardadas` → reopen it → confirm the same result set; open a published
+   restaurant → confirm the related rail shows real same-cuisine listings and never filler.
 
 ---
 

@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { SavedSearchButton } from "@/app/(site)/clasificados/components/savedSearch/SavedSearchButton";
+import { restaurantesDiscoveryStateToSavedSearch } from "@/app/lib/saved-search/restaurantes/savedSearchRestaurantesAdapter";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -1265,6 +1267,14 @@ export function RestaurantesResultsShell({
             {parsed.near && !parsed.city?.trim() && !parsed.zip?.trim() ? (
               <p className="text-xs leading-relaxed text-[color:var(--lx-muted)]">{t.nearHonest}</p>
             ) : null}
+            {/* Gate RESTAURANTES-2 — shared Saved Search CTA. `normalized` is built by the
+                Restaurantes adapter from THIS shell's own live `parsed` discovery state, so a saved
+                search always carries the exact filter/location truth that produced the results on
+                screen. */}
+            <SavedSearchButton
+              normalized={restaurantesDiscoveryStateToSavedSearch(parsed)}
+              lang={lang as "es" | "en"}
+            />
           </>
         }
         toolbar={

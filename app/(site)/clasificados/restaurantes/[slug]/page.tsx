@@ -11,6 +11,8 @@ import { fetchRestauranteLinkedOffersForPublicPage } from "@/app/lib/clasificado
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { RestaurantesShellChrome } from "@/app/clasificados/restaurantes/shell/RestaurantesShellChrome";
 import { restauranteCouponsCapabilityActive } from "@/app/clasificados/restaurantes/lib/restauranteCouponCapabilityServer";
+import { listRelatedRestaurantesListings } from "@/app/clasificados/restaurantes/lib/restaurantesRelatedListings";
+import { RestaurantesRelatedListingsSection } from "@/app/clasificados/restaurantes/components/RestaurantesRelatedListingsSection";
 import { restauranteJsonLd } from "../seo/restauranteJsonLd";
 import { breadcrumbJsonLd } from "@/app/lib/seo/breadcrumbJsonLd";
 import { LEONIX_SITE_ORIGIN } from "@/app/lib/leonixBrand";
@@ -66,11 +68,15 @@ export default async function RestaurantePublicDetailPage(props: PageProps) {
   const draft = listingJsonToDraft(row.listing_json);
   const shellData = mapRestauranteDraftToShellData(draft, { lang });
 
-  const [linkedOffers, couponsIncluded] = await Promise.all([
+  const [linkedOffers, couponsIncluded, related] = await Promise.all([
     isSupabaseAdminConfigured()
       ? fetchRestauranteLinkedOffersForPublicPage(getAdminSupabase(), row.id, lang)
       : Promise.resolve([]),
     restauranteCouponsCapabilityActive(row.id),
+    // Gate RESTAURANTES-2 — related published listings, from the same canonical published reader
+    // the results page uses. This route only ever renders a `status = "published"` row (the reader
+    // above 404s otherwise), so no extra visibility guard is needed here.
+    listRelatedRestaurantesListings(row),
   ]);
 
   // Gate E.2.2 (preserved) — public coupon module visibility is live commercial truth only, never
@@ -152,6 +158,14 @@ export default async function RestaurantePublicDetailPage(props: PageProps) {
           </p>
         ) : null}
       </div>
+      {/* Gate RESTAURANTES-2 — Related Listings, derived from real published rows by shared
+          cuisine/type + city (see restaurantesRelatedListings.ts). Reuses the results card. */}
+      <RestaurantesRelatedListingsSection
+        rows={related.rows}
+        matchedByCuisine={related.matchedByCuisine}
+        lang={lang}
+        browseHref={`/clasificados/restaurantes/resultados?lang=${lang}`}
+      />
     </RestaurantesShellChrome>
   );
 }
