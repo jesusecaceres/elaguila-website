@@ -127,6 +127,13 @@ export const serviciosCategories: ServiciosCategoryGroup[] = [
   },
 ];
 
+/**
+ * The catalog's own escape hatch: selecting it reveals the free-text "describe your service"
+ * field. Exported so the "¿No ves tu categoría?" helper can select it directly instead of
+ * repeating the literal.
+ */
+export const OTRO_SERVICIO_CATEGORY = "Otro servicio";
+
 export function isOtroServicio(category: string): boolean {
-  return category === "Otro servicio";
+  return category === OTRO_SERVICIO_CATEGORY;
 }

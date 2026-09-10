@@ -453,6 +453,16 @@ export async function POST(request: NextRequest) {
     // ── Decision 8 — coupon-first sequencing. Resolved BEFORE any reservation or payment-
     // record write. A requested-but-unavailable discount stops checkout creation entirely: no
     // Stripe session, no reservation, no payment record — never a silent full-price fallback.
+    // BOTH mechanisms discount the customer's FIRST payment by the same 15%, so the amount is
+    // computed for both. Only `unit_amount_reduction` additionally reduces the Stripe line item;
+    // `stripe_once_coupon` must leave `finalAmountCents` untouched so the subscription's own
+    // price stays full and renewals bill full price (the duration:"once" coupon discounts only
+    // the first invoice). Computing this for the coupon mechanism too is what lets the
+    // redemption ledger and the payment record store the REAL first-charge discount instead of
+    // zero — and the webhook's amount guard needs that value to recognise the discounted Stripe
+    // total as legitimate rather than rejecting fulfillment after a successful charge.
+    verifiedIntroDiscountCents = Math.floor((prelim.subtotalCents * 15) / 100);
+
     if (verifiedIntroDiscountMechanism === "stripe_once_coupon") {
       const couponResult = await ensureVerifiedIntroDiscountStripeCoupon();
       if (!couponResult.ok) {
@@ -467,7 +477,6 @@ export async function POST(request: NextRequest) {
       }
       verifiedIntroDiscountStripeCouponId = couponResult.couponId;
     } else {
-      verifiedIntroDiscountCents = Math.floor((prelim.subtotalCents * 15) / 100);
       finalAmountCents = Math.max(0, prelim.subtotalCents - verifiedIntroDiscountCents);
     }
 

@@ -287,6 +287,14 @@ export type LeonixPaymentRecordRow = {
   placement_tier: string | null;
   amount_cents: number | null;
   amount_total_cents: number | null;
+  /**
+   * Both columns are already in PAYMENT_RECORD_SELECT and are written on insert; they were
+   * simply never surfaced on this row type. Declaring them is required by the webhook's amount
+   * guard, which must be able to recognise a verified-intro `duration:"once"` Stripe coupon's
+   * discounted first-invoice total as legitimate.
+   */
+  amount_subtotal_cents: number | null;
+  amount_discount_cents: number | null;
   currency: string | null;
   payment_status: string;
   source: string | null;
