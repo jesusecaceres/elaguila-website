@@ -838,3 +838,121 @@ from this session. Every value below is therefore honestly **NEEDS OWNER MANUAL 
    `TWILIO_*`, Stripe TEST keys + Preview webhook (9 events), Google Geocoding.
 3. Redeploy Preview **only if** an env value changes (env edits do not take effect until a new
    deployment). No redeploy is required by this gate's database work alone.
+
+---
+
+## M. RUNTIME CONFIG CERTIFICATION
+
+**Gate:** `SERVICIOS-RUNTIME-CONFIG-CERTIFICATION-1` · **Date:** 2026-09-10 · **Result: BLOCKED**
+**Method:** read-only only. No Vercel/Stripe/Google/SMS/Supabase mutation, no deploy, no push.
+
+### M.1 Deployment truth (proven)
+
+| Fact | Value |
+| --- | --- |
+| Vercel team | `Jesus Caceres' projects` · `team_wSqEzL32gCp3YGEB9T41fpxo` (Pro) |
+| Project | `leonix-media` · `prj_AOEx7UeAvVCKwuKFIa65wcot4rw9` |
+| Preview alias | `leonix-media-git-completion-launc-b1b333-jesus-caceres-projects.vercel.app` |
+| Alias resolves to | `dpl_Ewts6oLMD1VA3shgeUd1w76vuFnY` · state **READY** |
+| Deployed commit | **`e98c5d908ad6e717f9f71ec8dfeef0e5b7d391e1`** |
+| Local HEAD | `9dfe3c8d5dedf4552a0d956ca045d9877042a83b` |
+| `origin` branch ref | `e98c5d90…` — **2 commits unpushed** |
+
+### M.2 BLOCKER 1 — the deployed Preview predates the P0 fix (proven)
+
+`e98c5d90` is an ancestor of HEAD. The two commits not yet deployed touch **six runtime files**:
+
+```
+app/api/revenue-os/checkout/route.ts
+app/lib/listingPlans/revenueFulfillment.ts
+app/lib/listingPlans/revenuePaymentRecords.ts
+app/(site)/servicios/components/ServiciosBusinessHubEngagementRow.tsx
+app/(site)/servicios/publicar/components/ServiciosApplicationForm.tsx
+app/(site)/servicios/publicar/serviciosCategories.ts
+```
+
+The live Preview therefore still contains the **PATH B money-taken-nothing-published P0** and
+has **no working Save**. Running the §J checklist against it today would charge a real TEST card,
+fail fulfillment with `amount_mismatch`, and look like an application defect rather than a stale
+build. **REDEPLOY REQUIRED** — and because `origin` is still at `e98c5d90`, the branch must be
+pushed first.
+
+### M.3 BLOCKER 2 — Vercel SSO protection will block Stripe webhooks (proven)
+
+Project deployment protection:
+
+```
+passwordProtection : disabled
+ssoProtection      : ENABLED, deploymentType = "all_except_custom_domains"
+trustedIps         : disabled
+```
+
+The Preview alias is a `*.vercel.app` host, **not** a custom domain, so it is SSO-protected.
+Consequences:
+
+- A browser QA session works normally (the signed-in owner passes SSO), so this failure is
+  invisible from the browser.
+- **Stripe cannot reach `POST /api/revenue-os/webhook`** — it receives Vercel's authentication
+  challenge (401), not the app. `checkout.session.completed` is never delivered, so no
+  entitlement is granted and no listing is published, on **both** PATH A and PATH B.
+
+Stripe webhook endpoints cannot send custom headers, so a header-based bypass will not work.
+Owner options, in preference order:
+
+1. **Protection Bypass for Automation** — enable it on the project and append the secret to the
+   webhook URL as a query parameter (`…/api/revenue-os/webhook?x-vercel-protection-bypass=<secret>`).
+   Keeps SSO on for humans while letting Stripe through. Recommended.
+2. Point the Stripe TEST webhook at a **custom domain** route excluded from protection.
+3. Disable SSO protection for Preview deployments for the duration of QA (weakest — exposes the
+   Preview publicly).
+
+### M.4 Environment variable presence — NOT PROVABLE IN THIS SESSION
+
+Every required variable is **NEEDS OWNER MANUAL VERIFICATION**. This is a capability limit, not
+a finding of absence — nothing here should be read as "missing".
+
+Read-only avenues attempted and their outcome:
+
+| Avenue | Outcome |
+| --- | --- |
+| Vercel MCP tools | No environment-variable tool exists in this session's toolset |
+| `get_project` / `get_deployment` metadata | Returns no env names |
+| Vercel CLI (`vercel env pull`) | No CLI installed, no `.vercel` link, no `VERCEL_TOKEN`, no CLI auth file; installing it is barred by resource control and login is non-interactive |
+| Local `.env*` | None exist in the worktree |
+| Stripe CLI/API | No `STRIPE_SECRET_KEY` in env, no Stripe CLI config |
+| Google Cloud | No `gcloud` credentials, no `GOOGLE_MAPS_API_KEY` in env |
+
+| Group | Variables | Status |
+| --- | --- | --- |
+| Supabase | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | NEEDS OWNER MANUAL VERIFICATION — project-ref alignment unproven |
+| Servicios | `SERVICIOS_STRICT_PUBLISH`, `SERVICIOS_DEV_PUBLISH`, `SERVICIOS_MODERATION_MODE` | NEEDS OWNER MANUAL VERIFICATION |
+| Identity | `LEONIX_IDENTITY_HASH_KEY` | NEEDS OWNER MANUAL VERIFICATION |
+| Twilio | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID` | NEEDS OWNER MANUAL VERIFICATION |
+| Stripe | `STRIPE_SECRET_KEY` (TEST vs LIVE), `STRIPE_WEBHOOK_SECRET` | NEEDS OWNER MANUAL VERIFICATION — **mode unknown** |
+| Google | `GOOGLE_MAPS_API_KEY` + Geocoding enabled + server-compatible restriction | NEEDS OWNER MANUAL VERIFICATION |
+| Media | `BLOB_READ_WRITE_TOKEN` | NEEDS OWNER MANUAL VERIFICATION |
+
+No secret value was printed, requested, or written anywhere.
+
+### M.5 SMS circuit — source facts proven (no OTP sent)
+
+| Requirement | Proven |
+| --- | --- |
+| Provider is Twilio Verify | YES — `app/lib/sms/twilioVerifyProvider.ts` |
+| Raw OTP never persisted | YES — no insert/upsert writes a code; every `code:` occurrence in the two routes is an HTTP error code |
+| Fails closed when unconfigured | YES — both routes return 503 `sms_not_configured` on `NOT_CONFIGURED` |
+| Challenge persistence table exists | YES — created and verified in §L |
+
+### M.6 Unrelated concurrent deployment (noted, not ours)
+
+At the time of this gate, `dpl_Af7uurxzkNR8eKugHzs34wiTybJD` was BUILDING on branch
+`feature/business-concierge-systemic-repair-2026-09` (commit `e39b9df5`). It belongs to a
+different workstream, has its own alias, and does **not** affect the Servicios Preview alias.
+
+### M.7 Owner actions required before the next Preview deploy
+
+1. Decide and apply the SSO-protection approach for the Stripe webhook (§M.3).
+2. Confirm/set the seven env groups in §M.4 on the **Preview** scope.
+3. Confirm `STRIPE_SECRET_KEY` is `sk_test_…`, never `sk_live_…`.
+4. Register the Stripe TEST webhook against the Preview URL with all nine events (§G.3).
+5. Then authorize **one** intentional push + Preview deploy at the then-current HEAD.
