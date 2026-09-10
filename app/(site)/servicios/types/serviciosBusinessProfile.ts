@@ -244,6 +244,22 @@ export type ServiciosContactBlock = {
   physicalRegion?: string;
   physicalCountry?: string;
   physicalPostalCode?: string;
+  /** Gate G23 — set only by the shared BusinessAddressVerifiedInput picker (app/components/forms/
+   * BusinessAddressVerifiedInput.tsx). Absent on any listing published before this field existed —
+   * never inferred/backfilled. "manual" for hand-typed text; "user_confirmed" only when the owner
+   * explicitly picked a real provider suggestion; never "verified" from this UI layer. */
+  physicalVerificationStatus?: "unverified" | "manual" | "user_confirmed" | "provider_suggested" | "verified";
+  physicalProvider?: string | null;
+  physicalProviderPlaceId?: string | null;
+  /**
+   * Owner's explicit choice to reveal the exact physical address publicly (and allow a
+   * "get directions" CTA to it). Absent on any listing published before this field existed —
+   * treated as `true` at read time (see `resolveServiciosProfile.ts`) so no existing listing's
+   * already-public address is silently hidden by this addition; going forward the owner can
+   * explicitly turn it off. Mirrors the shared privacy contract in
+   * `app/lib/businessAddress/businessAddressPrivacy.ts`.
+   */
+  showExactAddress?: boolean;
 };
 
 export type ServiciosAboutBlock = {

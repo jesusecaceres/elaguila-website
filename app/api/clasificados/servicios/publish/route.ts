@@ -13,7 +13,10 @@ import {
   isServiciosDevPublishPersistenceEnabled,
   upsertServiciosDevPublishRow,
 } from "@/app/clasificados/servicios/lib/serviciosDevPublishPersistence";
-import { getServiciosPublicListingBySlugFromDb } from "@/app/clasificados/servicios/lib/serviciosPublicListingsServer";
+import {
+  getServiciosPublicListingByIdFromDb,
+  getServiciosPublicListingBySlugFromDb,
+} from "@/app/clasificados/servicios/lib/serviciosPublicListingsServer";
 import {
   SERVICIOS_LISTING_STATUS_PENDING_PAYMENT,
   SERVICIOS_LISTING_STATUS_PENDING_REVIEW,
@@ -27,7 +30,11 @@ import { insertServiciosAnalyticsEvent } from "@/app/clasificados/servicios/lib/
 import { isServiciosStrictPublishEnvironment, serviciosOwnerIdFromBearer } from "../lib/serviciosPublishServerAuth";
 import { SERVICIOS_OFFERS_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
-import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
+import {
+  buildProposedFinalMediaSet,
+  validateProposedFinalMediaSet,
+  warnDroppedUnpersistableMedia,
+} from "@/app/lib/media/listingMediaContract";
 import { normalizeStrictExternalVideoUrl } from "@/app/lib/media/externalVideoUrlValidation";
 import { SERVICIOS_MAX_VIDEO_URLS } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 
@@ -276,6 +283,12 @@ export async function POST(req: NextRequest) {
     existing: state.gallery.map((g) => g.url),
     externalVideoUrls: state.videos.map((v) => v.url),
   });
+  // Gate SERVICIOS-1 — this engine has always returned `droppedUnpersistable` so callers can warn,
+  // and no caller ever read it: a `blob:`/`data:` gallery entry that survived into the draft was
+  // dropped from the saved listing and the owner was still told "published". Now logged server-side
+  // AND returned to the client (`droppedUnpersistableMedia`) so the success screen can say so.
+  warnDroppedUnpersistableMedia("servicios-publish", serviciosFinalMedia);
+  const serviciosDroppedMedia = [...serviciosFinalMedia.droppedUnpersistable];
   const serviciosMediaValidation = validateProposedFinalMediaSet(serviciosFinalMedia, {
     minImages: 0,
     maxImages: SERVICIOS_GALLERY_MAX,
@@ -297,9 +310,39 @@ export async function POST(req: NextRequest) {
 
   const baseSlug = slugifyServiciosBusinessName(state.businessName || "borrador");
   const existingSlugRaw = typeof b.existingPublicSlug === "string" ? b.existingPublicSlug.trim() : "";
+  const existingListingIdRaw = typeof b.existingListingId === "string" ? b.existingListingId.trim() : "";
 
+  /**
+   * Gate SERVICIOS-1 — CANONICAL REPUBLISH IDENTITY.
+   *
+   * The `servicios_public_listings` row UUID is the persistence authority. The slug is public
+   * routing/display identity only: it is derived from the business name, so resolving the target
+   * row by slug meant that renaming a business allocated a fresh slug and INSERTed a duplicate
+   * listing (leaving the paid row orphaned). When the client supplies `existingListingId` we
+   * resolve the row by id, verify ownership, and adopt THAT ROW'S OWN SLUG as the update target —
+   * so the public URL also stays stable across a rename. `existingPublicSlug` remains only as the
+   * fallback for a session that never obtained a canonical id.
+   */
   let slug = await allocateSlug(baseSlug);
-  if (existingSlugRaw && /^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(existingSlugRaw) && isSupabaseAdminConfigured()) {
+  let canonicalListingId: string | null = null;
+  if (existingListingIdRaw && isSupabaseAdminConfigured()) {
+    const row = await getServiciosPublicListingByIdFromDb(existingListingIdRaw, { visibility: "all" });
+    if (row?.slug) {
+      const owner = row.owner_user_id;
+      if (!owner || !ownerUserId || owner === ownerUserId) {
+        canonicalListingId = row.id?.trim() || existingListingIdRaw;
+        slug = row.slug;
+      } else {
+        await insertServiciosAnalyticsEvent({
+          listingSlug: row.slug,
+          eventType: "publish_failure",
+          meta: { reason: "listing_owner_mismatch" },
+        });
+        return NextResponse.json({ ok: false, error: "listing_owner_mismatch" }, { status: 403 });
+      }
+    }
+  }
+  if (!canonicalListingId && existingSlugRaw && /^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(existingSlugRaw) && isSupabaseAdminConfigured()) {
     const row = await getServiciosPublicListingBySlugFromDb(existingSlugRaw, { visibility: "all" });
     if (row && ownerUserId) {
       const owner = row.owner_user_id;
@@ -340,7 +383,12 @@ export async function POST(req: NextRequest) {
   let previousWire: ServiciosBusinessProfile | null = null;
   let previousListingId: string | null = null;
   if (isSupabaseAdminConfigured()) {
-    const prevRow = await getServiciosPublicListingBySlugFromDb(slug, { visibility: "all" });
+    // Gate SERVICIOS-1 — read the prior row by canonical id when we have one, so ops-controlled
+    // fields and the paid offers entitlement are carried forward from the ACTUAL published row
+    // even when the owner renamed the business.
+    const prevRow = canonicalListingId
+      ? await getServiciosPublicListingByIdFromDb(canonicalListingId, { visibility: "all" })
+      : await getServiciosPublicListingBySlugFromDb(slug, { visibility: "all" });
     previousWire = prevRow?.profile_json ?? null;
     previousListingId = prevRow?.id?.trim() || null;
   }
@@ -388,7 +436,9 @@ export async function POST(req: NextRequest) {
 
   /** Production: first publication requires Revenue OS checkout (pending_payment save or paid webhook). */
   if (strict && isSupabaseAdminConfigured() && !pendingPayment) {
-    const existingForGuard = await getServiciosPublicListingBySlugFromDb(slug, { visibility: "all" });
+    const existingForGuard = canonicalListingId
+      ? await getServiciosPublicListingByIdFromDb(canonicalListingId, { visibility: "all" })
+      : await getServiciosPublicListingBySlugFromDb(slug, { visibility: "all" });
     const ownerOk =
       existingForGuard &&
       ownerUserId &&
@@ -436,7 +486,11 @@ export async function POST(req: NextRequest) {
   if (isSupabaseAdminConfigured()) {
     try {
       const supabase = getAdminSupabase();
-      const existing = await getServiciosPublicListingBySlugFromDb(slug, { visibility: "all" });
+      // Gate SERVICIOS-1 — when a canonical row id was resolved above, read (and below, update)
+      // BY THAT ID. The slug lookup stays as the legacy/no-id path only.
+      const existing = canonicalListingId
+        ? await getServiciosPublicListingByIdFromDb(canonicalListingId, { visibility: "all" })
+        : await getServiciosPublicListingBySlugFromDb(slug, { visibility: "all" });
 
       if (existing) {
         if (ownerUserId && existing.owner_user_id && existing.owner_user_id !== ownerUserId) {
@@ -453,7 +507,7 @@ export async function POST(req: NextRequest) {
             ? SERVICIOS_LISTING_STATUS_PUBLISHED
             : listingStatus;
         actualListingStatus = nextStatus;
-        const { data: updated, error } = await supabase
+        const updateQuery = supabase
           .from("servicios_public_listings")
           .update({
             business_name: businessName,
@@ -463,8 +517,13 @@ export async function POST(req: NextRequest) {
             listing_status: nextStatus,
             updated_at: now,
             ...(ownerUserId ? { owner_user_id: ownerUserId } : {}),
-          })
-          .eq("slug", slug)
+          });
+        // Gate SERVICIOS-1 — target the canonical row id when we have one (it survives a business
+        // rename); the slug predicate stays only for the legacy no-id path.
+        const { data: updated, error } = await (canonicalListingId
+          ? updateQuery.eq("id", canonicalListingId)
+          : updateQuery.eq("slug", slug)
+        )
           .select("id, leonix_ad_id")
           .maybeSingle();
         if (!error) {
@@ -678,6 +737,7 @@ export async function POST(req: NextRequest) {
       leonixAdId: persistedLeonixAdId,
       slug,
       listingStatus: actualListingStatus,
+      ...(serviciosDroppedMedia.length ? { droppedUnpersistableMedia: serviciosDroppedMedia } : {}),
     });
   }
 
@@ -695,7 +755,12 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     slug,
+    /** Gate SERVICIOS-1 — canonical persistence identity, so the client can prime it and the next
+     * save in this session targets this exact row rather than re-deriving a slug from the name. */
+    listingId: persistedListingId,
+    leonixAdId: persistedLeonixAdId,
     listingStatus: persistedToDatabase ? actualListingStatus : SERVICIOS_LISTING_STATUS_PUBLISHED,
+    ...(serviciosDroppedMedia.length ? { droppedUnpersistableMedia: serviciosDroppedMedia } : {}),
     persistence,
     persistedToDatabase,
     persistedToDevWorkspace,
