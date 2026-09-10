@@ -1062,3 +1062,275 @@ correctly-labeled next step, per §33.3.**
 - No commit/push — the candidate now has a clean certification result but the operator commits
   it (per instruction #11).
 - No owner/browser QA begun.
+
+---
+
+## Gate 13 — Checkpoint + Preview Deployment (post-certification)
+
+Committed exactly the 10 certified files (6 app + 4 docs, 655 insertions/12 deletions) as
+`ce82252e22c9d75c815875627cfcdae6f0dd53b0` on `integration/owner-command-center-globalization-2026-08`.
+Pushed; origin HEAD confirmed identical. Vercel Preview `dpl_CA5Xvdt91kQLKZwsyJiuJHBoHjfd`
+(`https://leonix-media-n2wy2e4n0-jesus-caceres-projects.vercel.app`) built and reached `READY` for
+this exact commit/branch. Production and `main` untouched throughout.
+
+## Gate 13.1 — Vercel Deployment Protection Bypass Verification
+
+The immutable Preview is gated by Vercel's own platform-level "Vercel Authentication" (SSO),
+independent of and upstream from the Leonix app itself — confirmed via
+`get_project_deployment_protection` (`ssoProtection.enabled: true`,
+`deploymentType: "all_except_custom_domains"`). The project's existing, owner-provisioned
+`VERCEL_AUTOMATION_BYPASS_SECRET` (Vercel's documented "Protection Bypass for Automation")
+was used — via `x-vercel-protection-bypass` header, referenced only through shell/`process.env`
+indirection, never printed or written to a persistent file — to reach the Leonix app cleanly
+(`<title>Mi cuenta | Leonix Media</title>`, exact host, no Vercel branding). This proves the
+protection layer can be crossed for the eventual runtime QA pass; it does not itself constitute
+owner QA.
+
+## Gate 13.2 — Runtime Owner QA Discovery Attempt: BLOCKED (SAFE AUTH, not a product defect)
+
+With the Vercel layer crossed, unsigned `/dashboard` rendered exactly the honest gate this repo's
+own prior QA campaign already documented (`app/(site)/dashboard/OWNER_COMMAND_CENTER_TRUE_FINAL_QA.md`,
+2026-08-24): "Inicia sesión para ver tu panel," with a real `/login` offering Google, Facebook,
+password, and magic-email-link sign-in. No owner/smoke-test credential, session, or Playwright
+`storageState` exists anywhere in this repo, `.env.local`, or this session's shell — confirmed by
+direct search. Per repo policy, no password may be requested in chat or guessed. **Runtime QA
+remains genuinely NOT YET PERFORMED — this is a QA-tooling prerequisite gap (an owner must sign in
+once), not a Pre-QA product-completeness defect.**
+
+---
+
+## Gate 14 — PRE-QA 100% PRODUCT COMPLETION PASS
+
+**Doctrine correction (Coach-clarified)**: runtime owner QA is not a development phase and must
+not be used to discover missing product. Master Bible §45/§51/§53 corrected in place; new §33.4
+records this doctrine and points here for the dated evidence. See Master Bible §33.4 for the full
+doctrine text.
+
+**Method**: six parallel, evidence-only research passes (no fabricated findings; every claim
+required a file:line citation) covering: (1) global shell + Account Command Center, (2) Business
+Tools, (3) category batch — Comida Local/Autos Privado/Bienes Privado/Rentas/Clases, (4) category
+batch — Comunidad-Eventos/Busco/Mascotas/Ofertas-outer/Viajes-outer/Iglesias, (5) a source-level
+responsive/shared-component sweep, (6) a completeness re-check of the six most heavily-worked
+categories (Servicios/Restaurantes/Autos Dealer/Bienes Negocio/Empleos/En Venta-Varios). Findings
+classified COMPLETE / MISSING / INCOMPLETE / WEAK_UX / WEAK_UI / INCONSISTENT / UNWIRED /
+DEFERRED_TRULY_NONBLOCKING.
+
+### Real defects found and repaired (9)
+
+1. **Rentas showed "Marcar vendido" despite the registry declaring `markSold: "unsupported"`**
+   (renting is never "sold") — `mis-anuncios/page.tsx`: `onMarkSold` now passed as `undefined` when
+   `catKey === "rentas"`, for both `rentas-privado` and `rentas-negocio`. Correctness fix, not
+   cosmetic — the card only renders the button when the prop is truthy.
+2. **Autos Privado had no reactivate action for an archived listing**, despite the registry
+   declaring `lifecycle.reactivate: "supported"` — `AutosClassifiedListingManageCard.tsx` gained an
+   `onReactivate` prop, rendered (green, canonical tone) only when `status === "removed"`; wired in
+   `mis-anuncios/page.tsx` to the same `markStatus(id, "active")` already used by every other
+   category's relist path.
+3. **Autos Privado's Archive button used non-canonical neutral gray** instead of the locked Red
+   consequential-action semantic — recolored to match every other category's Archive/Mark-Sold
+   button.
+4. **Servicios' entire "Cupones y ofertas" section silently vanished** (title included) whenever
+   the offers entitlement/content wasn't active, with zero explanation — unlike Restaurantes'
+   identical case, which explains it via a footer hint. `servicios/page.tsx` now passes the same
+   `serviciosOffersInactiveDashboardHint(lang)` as a `footerHint` whenever the offers group would
+   otherwise render with zero actions.
+5. **Bienes Negocio rendered two near-duplicate "add property" CTAs together** ("Agregar
+   propiedad" and "Añadir más propiedades," both opening the identical drawer with identical
+   props) whenever the inventory pack was active — `BrNegocioListingInventoryActions.tsx` now shows
+   exactly one, chosen by `counts.activeCount` (first property vs. additional property).
+6. **Bienes Negocio's "Activar inventario de propiedades" (Unlock) trigger rendered
+   unconditionally**, so an owner who already unlocked the pack still saw an "unlock" CTA —
+   gated behind `!upgradeActive`, matching its sibling checkout button's existing gate.
+7. **Business Tools' "Work With Leonix" showed real pending-approval/service-request counts as
+   plain, unlinked text with no disclosure that it's a read-only summary** — on a page where every
+   adjacent section is a live link, this read as broken rather than intentional.
+   `BusinessConciergeOwnerHome.tsx` now shows an explanatory line (new `workWithLeonixReadOnlyNote`
+   copy key, both languages) whenever either count is nonzero.
+8. **The `wide` detail-grid escape hatch** (built for the Autos Dealer capacity-text fix,
+   `OwnerEntityDetailGrid.tsx`) **was not propagated to other genuinely long, real-world text**
+   that will truncate at 390px with no escape hatch: Viajes moderation notes, Ofertas Locales
+   rejection notes and next-action copy (both the list and detail pages), and Empleos company
+   names (both the list and detail pages). All 6 call sites now set `wide: true`.
+9. **The account panel (mobile drawer + desktop sidebar) had no truncation guard** on owner
+   name/email — `LeonixDashboardShell.tsx` now uses `break-words`/`break-all` so a long unbroken
+   value wraps instead of risking overflow.
+
+### WEAK_UI — closed in Gate 14.1 (Business Tools hierarchy hard close)
+
+Business Tools' 9 sections previously used identical panel/title styling end to end — a genuine
+match for §27's "must not feel like a directory of equal cards" rule. Gate 14's first pass only
+gave Business Identity an accent ring, which was correctly judged insufficient — a single accent on
+one section does not communicate a *hierarchy* across the other eight. Gate 14.1 closed this fully
+using only existing theme primitives (no new design system):
+
+- **BUSINESS IDENTITY** (context/header level): kept its existing subtle ring accent — an anchor,
+  not the loudest element.
+- **WHAT MATTERS NOW** (highest operational emphasis — Next Right Move + Needs Attention): now
+  wrapped in the exact `LX_DASH.pageHero` treatment (gradient background + stronger ring) already
+  used for the page's own header, with the previously-unused `t.whatMattersTitle` copy key
+  ("Lo que importa ahora" / "What matters now") rendered as a real umbrella heading above the
+  existing two-card grid. This is now visibly the loudest section on the page, matching its named
+  priority.
+- **BUSINESS HEALTH + YOUR ACTION PLAN** (secondary operational work): now grouped side by side in
+  a `md:grid-cols-2` row (the same grid pattern What Matters Now already used), each keeping plain
+  `LX_DASH.panel` weight — visibly a paired, subordinate tier beneath What Matters Now.
+- **WHAT LEONIX UNDERSTANDS / WORK WITH LEONIX / PROGRESS / ASSISTANT**: left as plain, full-width
+  `LX_DASH.panel` sections — by contrast with the two tiers above them, these now read as the
+  supporting/outcome tier the hierarchy always intended, without touching their internals.
+
+No new component, color token, or design system was introduced — every treatment used
+(`pageHero`, `panel`, the `grid md:grid-cols-2` pattern, an existing unused copy key) already
+existed elsewhere in this exact theme/file before this gate.
+
+### Investigated and confirmed NOT a defect (corrects an initial research-pass hypothesis)
+
+- Comida Local's capability registry marks `contactHub`/`translateAd` as `"supported"`, and no
+  owner-dashboard `.tsx` file anywhere in the repo renders either as a dashboard action — initially
+  flagged as UNWIRED. Direct investigation of every other consumer of these two registry fields
+  (`RestauranteDetailShell.tsx`, `TranslateAdControl.tsx`) shows they describe **public-listing-page**
+  capabilities (a Connection Hub of contact CTAs; a public Translate Ad toggle), not an owner
+  dashboard action — and this is true uniformly for every category, not a Comida-Local-specific
+  regression. No existing pattern exists for rendering these as dashboard buttons. Building one
+  would be a new, unrequested feature, not a completeness repair. Left as-is.
+
+### Investigated and confirmed genuinely unreachable (no fix made)
+
+- Autos Privado listings have no link anywhere to the generic `/dashboard/mis-anuncios/{id}` detail
+  page (`AutosClassifiedListingManageCard.tsx`'s "Administrar anuncio" always points straight to
+  the edit route) — confirmed by search. That generic page's capability-key switch
+  (`mis-anuncios/[id]/page.tsx`) has no `"autos"` branch and fails open (`capabilities === null` →
+  every lifecycle button unconditionally enabled) if it were ever reached — a latent, currently
+  unreachable defense-in-depth gap. Not fixed: doing so would require inventing new dealer/privado
+  detection logic in a file that has never needed it, for a path no owner-facing control leads to —
+  speculative work outside this gate's scope, not a repair to something broken.
+
+### Confirmed genuinely complete (no findings)
+
+Global dashboard shell, Account Command Center (`/dashboard`), Comunidad/Eventos, Busco,
+Mascotas/Perdidos/Adopción, Ofertas Locales outer surface, Viajes outer surface, Iglesias
+(correctly unbuilt, not half-built), Clases (paid lane correctly dormant by product decision D2,
+not a bug), Bienes Raíces Privado/FSBO, and the shared responsive components
+(`LeonixDashboardShell`, `OwnerProductPageFrame`, `OwnerEntityWorkspace`,
+`DashboardListingActionBar`, `mis-anuncios` listing cards) — one nav pattern per breakpoint, no
+button walls, specialized groups stack correctly at 390px, no fixed-width overflow risk.
+
+### Verification (normal gate — no full build/typecheck per this gate's own instruction)
+
+- `git diff --check`: **PASS** (only line-ending-normalization notices, no real whitespace errors).
+- Targeted `eslint` on all 12 touched application files: **6 pre-existing findings in
+  `mis-anuncios/page.tsx`, all confirmed present at HEAD before this gate's edits** (same line
+  numbers as Gate 12/13's baseline: 16, 79, 105, 548, 549, 2013) — **0 new findings**. The other 11
+  files: 0 findings.
+- No full production build/typecheck run this gate, per its own verification instruction.
+
+### Explicitly not done (per constraints / doctrine, this gate)
+
+- No browser/runtime QA performed or attempted.
+- No commit/push — pending Coach review of this completeness pass.
+- No migrations, no Stripe/pricing changes, no Ofertas/Viajes internal changes.
+- No speculative features built (see "confirmed NOT a defect" and "confirmed genuinely
+  unreachable" above) — every change repairs a proven, cited defect using an existing shared
+  component/pattern.
+
+---
+
+## Gate 14.1 — Business Tools Visual Hierarchy Hard Close
+
+Coach flagged a real contradiction in Gate 14's report: "WEAK_UI: Business Tools flat visual
+hierarchy — only partially addressed" cannot coexist with "SOURCE-FIXABLE PRE-QA BLOCKERS: NONE" /
+"READY: YES" under the doctrine that QA is final polish only, never discovery. This gate closed the
+hierarchy issue completely rather than re-labeling it non-blocking.
+
+**Fix** (`BusinessConciergeOwnerHome.tsx` only — see the "WEAK_UI — closed" entry above for full
+detail): What Matters Now promoted to `LX_DASH.pageHero` treatment with a real umbrella heading
+(the previously-unused `t.whatMattersTitle` copy key); Business Health + Action Plan grouped into a
+shared `md:grid-cols-2` row as the secondary tier; Understands/Work With Leonix/Progress/Assistant
+left as the plain-panel supporting/outcome tier. All three theme primitives reused
+(`pageHero`, `panel`, the existing 2-col grid pattern) — no new design system, no redesign.
+
+**Re-checked (per instruction #7), left unchanged**: `OwnerRecentActivity.tsx` and
+`OwnerBusinessGrowthEntry.tsx` both use the standard `LX_DASH.emptyState`/`panel` styling already
+used for every other honest empty state in the product, with real explanatory copy and (for Growth
+Entry) two real working CTAs — neither reads as unfinished placeholder software. No change made.
+
+**Verification**: `git diff --check` PASS (line-ending notices only); targeted `eslint` on the one
+touched file — 0 findings.
+
+**Doctrine correction applied**: the prior "TRULY OPTIONAL POST-LAUNCH ENHANCEMENTS" item "Full
+Business Tools visual-hierarchy redesign beyond the one accent-ring fix" is retired — the actual
+hierarchy requirement (Master Bible §27) is now met, not deferred. What remains genuinely optional
+post-launch is enhancement beyond the locked hierarchy (animation, richer visual polish) — not a
+completeness gap.
+
+---
+
+## Gate 15 — FINAL PRE-QA SOURCE/BUILD CERTIFICATION
+
+Heavy validation authorized and performed on the complete Gate 14 + 14.1 candidate (12 application
+files + 4 docs, uncommitted, on top of checkpoint `ce82252e`). Resource contention (another Leonix
+session spiking to 47 node.exe workers mid-gate) was correctly waited out twice rather than raced
+against, per this gate's own resource-control directive.
+
+| Check | Result |
+|---|---|
+| Candidate scope | 16 files (12 app + 4 docs); 0 unrelated files; `.claude/` correctly excluded |
+| `git diff --check` | PASS (line-ending notices only) |
+| Lint (12 touched app files) | 0 new findings; same 6 pre-existing `mis-anuncios/page.tsx` findings (lines 16, 79, 105, 548, 549, 2013), confirmed present at HEAD before this session's edits |
+| Owner Attention Truth verifier | 22/22 PASS |
+| Shared Specialized Tools verifier | 33/33 PASS |
+| Lifecycle contract selftest | PASS (OK) |
+| Rentas lifecycle/renewal verifier | 7/8 substantive checks PASS; 1 scope-boundary check flagged `BrNegocioListingInventoryActions.tsx` — investigated and confirmed a false positive, not a regression (see below) |
+| Paid listing lifecycle engine verifier | PASS |
+| Whole-product final reconciliation verifier | **182/182 PASS** — notably, this verifier's own (broader, current) protected-file list does not include Bienes Raíces, independently corroborating that the Rentas verifier's flag was a narrow, gate-5-era scope check rather than a real architectural boundary |
+| Full `tsc --noEmit` | Exactly 7 errors, all `e2e/**` Playwright specs, byte-diffed **byte-identical** to the saved `tsc_baseline.log` — **0 new errors** |
+| Full production build (`NODE_OPTIONS=--max-old-space-size=12288`) | **PASS** — exit 0, "Compiled successfully in 89s," all key routes present (`/dashboard`, `/dashboard/business-tools`, `/dashboard/mis-anuncios`, `/dashboard/servicios`, `/api/dashboard/business/home`, `/api/clasificados/servicios/my-listings`, `/api/dashboard/listing-moderation-reasons`), only the same pre-existing `themeColor`-viewport warnings |
+
+### Rentas verifier false-positive — investigated and explained, not repaired
+
+`scripts/verify-rentas-lifecycle-renewal-dashboard-global-engine-01.mjs` contains a blanket check
+(`if (forbidden.length) fail(...)`) that fails if *any* file under `app/(site)/clasificados/
+bienes-raices/` or `app/lib/clasificados/bienes-raices/` appears in `git diff --name-only`. This
+check was written for an earlier, narrower gate (Gate 5, "verification-only, 0 source changes") to
+prove that gate's Rentas-scoped work never leaked into Bienes Raíces — it is a gate-specific
+scope-boundary self-check, not a permanent architectural invariant. This candidate legitimately and
+intentionally includes a Bienes Negocio UX fix (`BrNegocioListingInventoryActions.tsx`, Gate 14:
+removed a duplicate add-property CTA, gated the "Activar inventario" button behind
+`!upgradeActive`). Direct diff inspection confirms that change is 100% presentation/label-gating
+logic — zero Rentas, lifecycle, pricing, or checkout logic touched. Every substantive check in that
+same verifier (package truth, renewal checkout, idempotency, expiration enforcement, dashboard UI,
+edit hydration, admin fields, reminder schedule) independently PASSED, and the newer, broader
+182/182 whole-product verifier's own protected-file list does not flag this file at all. Not
+repaired — repairing it would mean either reverting an already-certified, real UX fix, or editing
+certification tooling to force a pass, neither of which is appropriate.
+
+### Architecture regression trace (source inspection)
+
+Direct `git diff --name-only` cross-check against every protected/shared file confirms **zero**
+core architecture files touched: `OwnerProductPageFrame.tsx`, `OwnerEntityWorkspace.tsx`,
+`OwnerEntityDetailGrid.tsx`, `ownerEntityCapabilityRegistry.ts`, `businessHome/access.ts`,
+`membershipsRepo.ts`, `businessesRepo.ts`, `OwnerEntityCommunityTrust.tsx`,
+`OwnerEntityExternalReputation.tsx`, `AutosDealerInventoryDashboardSection.tsx` — none appear in
+the diff. `LeonixDashboardShell.tsx` is touched only for a 2-line truncation-class fix (no nav/shell
+structure change). `BusinessConciergeOwnerHome.tsx` (a category-level composer, not the shared
+shell) is touched only for disclosure copy and layout grouping — its data-fetching and
+authorization logic is untouched. Confirmed intact: one dashboard shell; canonical listing/business
+identity; same-row/no-recharge (no checkout/lifecycle engine files touched, independently confirmed
+by the Rentas and paid-lifecycle verifiers); Autos Dealer and Bienes Negocio parent-child identity;
+shared analytics/entitlement/media; the Business Concierge owner-safe bridge and exact business
+membership authorization; Community Trust truth; real-only Google/Yelp; protected Ofertas/Viajes
+internals (only their dashboard-owned *outer* presentation files were touched, exactly as Gate 14
+already did and the whole-product verifier already re-confirmed); no duplicate engines.
+
+### Final PRE-QA completion state
+
+FUNCTION: PASS · UX: PASS · UI: PASS · RESPONSIVE SOURCE (390/768/1440): PASS · COPY/STATES: PASS ·
+CATEGORY COVERAGE: PASS · KNOWN UX/UI INCOMPLETENESS: NONE · SOURCE-FIXABLE PRE-QA BLOCKERS: NONE.
+
+**PRE-QA PRODUCT CONSTRUCTION: COMPLETE.**
+**FINAL PRE-QA SOURCE/BUILD CERTIFICATION: PASS.**
+**OWNER QA: NOT YET PERFORMED.** QA's purpose from here is final runtime confirmation/polish of an
+already-complete product — not continuation of construction, not a phase for discovering missing
+UX/UI/function.
+
+Not committed, not pushed, main/Production untouched, Owner QA not started. The next gate is
+FINAL PRE-QA CHECKPOINT + PREVIEW for this exact certified candidate.

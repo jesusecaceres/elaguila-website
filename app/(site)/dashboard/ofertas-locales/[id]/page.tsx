@@ -377,8 +377,8 @@ function OfertasLocalesOwnerManagePageContent() {
     { label: t.publicTermTitle, value: publicTermLine },
     locationLine ? { label: t.location, value: locationLine } : null,
     datesLine ? { label: t.dates, value: datesLine } : null,
-    nextAction ? { label: t.nextActionTitle, value: nextAction } : null,
-  ].filter((x): x is { label: string; value: string } => x !== null);
+    nextAction ? { label: t.nextActionTitle, value: nextAction, wide: true } : null,
+  ].filter((x): x is { label: string; value: string; wide?: boolean } => x !== null);
 
   const analyticsLive = Boolean(offer.analytics && !offer.analytics.unavailable);
   const performance =

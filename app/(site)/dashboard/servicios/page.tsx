@@ -14,6 +14,7 @@ import {
   serviciosListingPreviewHref,
   serviciosOffersEditHref,
   serviciosOffersEditLabel,
+  serviciosOffersInactiveDashboardHint,
 } from "../lib/serviciosDashboardOffersAddonCheckout";
 import {
   editListingLabel,
@@ -542,6 +543,15 @@ function DashboardServiciosPageContent() {
                   isCloudPublished && offersEntitlementActive
                     ? [{ href: serviciosOffersShortcutHref(r), label: serviciosOffersEditLabel(lang), tone: "premium" }]
                     : [];
+                // Mirror Restaurantes' equivalent (restaurantesDashboardCouponAddonCheckout.ts):
+                // when the offers group would otherwise render with zero actions, OwnerEntityWorkspace
+                // silently drops the whole group (title included) — the owner saw the "Cupones y
+                // ofertas" section vanish with no explanation instead of Restaurantes' explained
+                // empty state (Master Bible §15's provisioning-gap case). Reuse the same hint copy.
+                const offersFooterHint =
+                  capabilities.specialized.offers !== "unsupported" && specializedActions.length === 0
+                    ? serviciosOffersInactiveDashboardHint(lang)
+                    : null;
                 const rowLeads = leads.filter((l) => l.listing_slug === r.slug);
                 const activityItems: OwnerEntityActivityItem[] = rowLeads.map((l) => ({
                   id: l.id,
@@ -588,6 +598,7 @@ function DashboardServiciosPageContent() {
                         ? { title: t.activityTitle, items: activityItems, emptyLabel: t.leadsEmpty }
                         : undefined
                     }
+                    footerHint={offersFooterHint}
                     mobileSheetLabels={{ trigger: t.moreOptions, title: t.moreOptions, close: t.moreOptionsClose }}
                   />
                 );

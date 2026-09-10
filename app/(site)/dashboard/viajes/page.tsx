@@ -333,8 +333,8 @@ function DashboardViajesStagedPageContent() {
             submitted ? { label: t.submitted, value: submitted } : null,
             updated ? { label: t.updated, value: updated } : null,
             { label: t.visibility, value: r.is_public ? t.visibilityPublic : t.visibilityHidden },
-            notes !== t.moderationEmpty ? { label: t.moderation, value: notes } : null,
-          ].filter((x): x is { label: string; value: string } => x !== null);
+            notes !== t.moderationEmpty ? { label: t.moderation, value: notes, wide: true } : null,
+          ].filter((x): x is { label: string; value: string; wide?: boolean } => x !== null);
 
           const primaryAction: ActionItem =
             isLiveCapability(capabilities.identity.edit) && !privateBlocked

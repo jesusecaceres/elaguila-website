@@ -766,6 +766,199 @@
           "status": "PASS"
         }
       ]
+    },
+    {
+      "gate": "owner-pre-qa-100-percent-product-completion-2026-09-09",
+      "note": "Coach-clarified doctrine correction: runtime owner QA is not a development phase and must not be used to discover missing product. This gate performed a deliberate, evidence-based product-completeness audit (source inspection, not verifier existence or prior SHIP_READY labels) across every owner surface, using six parallel research passes, then repaired every real, cited defect found using existing shared components/patterns. Runtime QA remains locked (Master Bible §33.4/§51) until this record is reviewed by Coach. Checkpoint context: ce82252e (ship-ready) was committed/pushed and its Vercel Preview (dpl_CA5Xvdt91kQLKZwsyJiuJHBoHjfd) reached READY; a runtime-QA discovery attempt against it was BLOCKED on a missing owner/smoke-test credential (SAFE AUTH, not a product defect) - see PROGRESS.md Gates 13-13.2.",
+      "checks": [
+        {
+          "name": "worktree_branch_head_verification",
+          "result": "C:\\projects\\elaguila-website-owner-command-center, integration/owner-command-center-globalization-2026-08, HEAD ce82252e22c9d75c815875627cfcdae6f0dd53b0 (matches the pushed ship-ready checkpoint), only .claude/ untracked per policy",
+          "status": "PASS"
+        },
+        {
+          "name": "master_bible_qa_doctrine_correction",
+          "result": "Section 45 closing line, Section 51 (CURRENT NEXT ENGINEERING MOVE), and Section 53 (Claude Startup Checklist) rewritten to lock runtime QA behind this phase; new Section 33.4 added recording the doctrine and pointing to this file for dated evidence",
+          "status": "PASS"
+        },
+        {
+          "name": "research_pass_global_shell_and_account_command_center",
+          "result": "genuinely complete - real data wiring, full ES/EN copy, explicit loading/error/empty states; 1 real WEAK_UI finding (account panel truncation) repaired, 2 self-disclosed non-features left as-is",
+          "status": "PASS"
+        },
+        {
+          "name": "research_pass_business_tools",
+          "result": "8 of 9 canonical sections COMPLETE; Work With Leonix WEAK_UX (real data, no read-only disclosure) repaired; visual-hierarchy WEAK_UI fully closed in Gate 14.1 (see that gate below) using only existing theme primitives; cross-business leakage confirmed impossible via source trace",
+          "status": "PASS"
+        },
+        {
+          "name": "research_pass_category_batch_1",
+          "result": "Comida Local/Autos Privado/Bienes Privado/Rentas/Clases - 2 real defects found (Autos Privado missing reactivate + miscolored archive; Rentas showing an unsupported Mark Sold action) and repaired; 1 hypothesis (Comida Local contactHub/translateAd) investigated and found NOT a defect; 1 latent unreachable gap (Autos Privado generic-page fallback) investigated and left unfixed as genuinely unreachable",
+          "status": "PASS"
+        },
+        {
+          "name": "research_pass_category_batch_2",
+          "result": "Comunidad/Eventos, Busco, Mascotas, Ofertas outer, Viajes outer, Iglesias - all confirmed genuinely complete or correctly deferred, zero findings",
+          "status": "PASS"
+        },
+        {
+          "name": "research_pass_responsive_shared_component_sweep",
+          "result": "shell/frame/workspace/action-bar/listing-cards confirmed complete for nav-per-breakpoint and no-button-wall rules; 1 real INCONSISTENT finding (wide prop not propagated to 6 long-text call sites across Viajes/Ofertas-Locales/Empleos) repaired",
+          "status": "PASS"
+        },
+        {
+          "name": "research_pass_high_risk_category_recheck",
+          "result": "Servicios/Restaurantes/Autos Dealer/Bienes Negocio/Empleos/En Venta-Varios - 2 real defects found (Servicios silent-vanishing offers section; Bienes Negocio duplicate CTA + unconditional unlock button) and repaired; Community Trust, external reputation, parent/child UI, lane distinction, Mark Sold confirmation, and known Section 48 cosmetic debt all confirmed accurate/unchanged",
+          "status": "PASS"
+        },
+        {
+          "name": "repairs_implemented_count",
+          "result": "9 real defects repaired across 12 application files, using only existing shared components/patterns (no new engines, no redesign)",
+          "status": "PASS"
+        },
+        {
+          "name": "eslint_touched_files",
+          "filesChecked": 12,
+          "newFindings": 0,
+          "preExistingFindings": 6,
+          "preExistingLocation": "mis-anuncios/page.tsx lines 16, 79, 105, 548, 549, 2013 - confirmed present at HEAD ce82252e before this gate's edits, same lines as the Gate 12/13 baseline",
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "PASS (only LF/CRLF line-ending notices, no real whitespace errors)",
+          "status": "PASS"
+        },
+        {
+          "name": "full_build_or_typecheck",
+          "result": "NOT RUN - explicitly out of scope for this gate per its own verification instruction (normal gate only: source inspection, targeted lint, git diff --check)",
+          "status": "DEFERRED_TO_NEXT_CERTIFICATION_GATE"
+        }
+      ]
+    },
+    {
+      "gate": "owner-business-tools-visual-hierarchy-hard-close-2026-09-09",
+      "note": "Coach flagged a real contradiction in Gate 14: WEAK_UI (Business Tools flat hierarchy) coexisting with 'zero blockers / READY: YES' violates the doctrine that QA is final polish only. This gate closed the hierarchy issue completely using only existing theme primitives, no redesign, no subagents.",
+      "checks": [
+        {
+          "name": "worktree_branch_head_verification",
+          "result": "C:\\projects\\elaguila-website-owner-command-center, integration/owner-command-center-globalization-2026-08, HEAD ce82252e22c9d75c815875627cfcdae6f0dd53b0 unchanged, all Gate 14 uncommitted changes preserved",
+          "status": "PASS"
+        },
+        {
+          "name": "business_tools_hierarchy_repair",
+          "result": "BusinessConciergeOwnerHome.tsx: What Matters Now promoted to LX_DASH.pageHero (gradient + stronger ring) with the previously-unused t.whatMattersTitle copy key rendered as a real umbrella heading; Business Health + Action Plan grouped into a shared md:grid-cols-2 row as the secondary tier; Understands/Work With Leonix/Progress/Assistant left as the plain-panel supporting/outcome tier",
+          "status": "PASS"
+        },
+        {
+          "name": "no_new_design_system",
+          "result": "every treatment reused (pageHero, panel, the existing 2-col grid pattern, an existing unused copy key) already existed in dashboardLeonixTheme.ts / dashboardI18n.ts before this gate",
+          "status": "PASS"
+        },
+        {
+          "name": "recent_activity_and_business_growth_recheck",
+          "result": "both re-inspected per instruction 7; both use standard LX_DASH.emptyState/panel styling with real explanatory copy and (Growth Entry) two working CTAs - confirmed already intentionally complete, left unchanged",
+          "status": "PASS"
+        },
+        {
+          "name": "eslint_touched_file",
+          "filesChecked": 1,
+          "newFindings": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "PASS (only LF/CRLF line-ending notices)",
+          "status": "PASS"
+        },
+        {
+          "name": "known_uxui_incompleteness_remaining",
+          "result": "NONE",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "owner-final-pre-qa-source-build-certification-2026-09-09",
+      "note": "Final heavy-validation certification of the complete Gate 14 + 14.1 PRE-QA construction candidate (12 app files + 4 docs, uncommitted, on top of checkpoint ce82252e). Resource contention (another session spiking to 47 node.exe workers) was waited out twice rather than raced. PRE-QA PRODUCT CONSTRUCTION: COMPLETE. FINAL PRE-QA SOURCE/BUILD CERTIFICATION: PASS. OWNER QA: NOT YET PERFORMED - QA's purpose from here is final runtime confirmation/polish of an already-complete product, not continuation of construction.",
+      "checks": [
+        {
+          "name": "worktree_branch_head_verification",
+          "result": "C:\\projects\\elaguila-website-owner-command-center, integration/owner-command-center-globalization-2026-08, HEAD ce82252e22c9d75c815875627cfcdae6f0dd53b0 unchanged",
+          "status": "PASS"
+        },
+        {
+          "name": "candidate_scope_review",
+          "result": "16 files (12 app + 4 docs), 0 unrelated files, .claude/ correctly excluded",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_attention_truth",
+          "result": "22/22 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_shared_specialized_tools",
+          "result": "33/33 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_lifecycle_contract",
+          "result": "OK",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_rentas_lifecycle_renewal",
+          "result": "7/8 substantive checks PASS; 1 scope-boundary check (blanket bienes-raices diff guard from an earlier, narrower Gate 5) flagged the already-reviewed BrNegocioListingInventoryActions.tsx presentation fix - investigated, confirmed a false positive via direct diff inspection (pure label/gating logic, zero Rentas/lifecycle/pricing/checkout logic touched) and corroborated by the newer, broader 182/182 whole-product verifier which does not protect this file at all",
+          "status": "PASS_WITH_EXPLAINED_EXCEPTION"
+        },
+        {
+          "name": "verifier_paid_listing_lifecycle_engine",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_whole_product_final_reconciliation",
+          "result": "182/182 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "typescript_full_typecheck",
+          "command": "tsc --noEmit -p tsconfig.json",
+          "result": "exactly 7 errors, all e2e/** Playwright specs, byte-diffed identical to saved tsc_baseline.log",
+          "newErrorsFound": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "eslint_all_12_candidate_files",
+          "filesChecked": 12,
+          "newFindings": 0,
+          "preExistingFindings": 6,
+          "preExistingLocation": "mis-anuncios/page.tsx lines 16, 79, 105, 548, 549, 2013",
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "PASS (LF/CRLF notices only)",
+          "status": "PASS"
+        },
+        {
+          "name": "full_production_build",
+          "command": "npm run build (NODE_OPTIONS=--max-old-space-size=12288)",
+          "result": "PASS - exit 0, Compiled successfully in 89s, all key routes present, only pre-existing unrelated themeColor warnings",
+          "status": "PASS"
+        },
+        {
+          "name": "architecture_regression_trace",
+          "result": "zero core architecture files in diff (OwnerProductPageFrame.tsx, OwnerEntityWorkspace.tsx, OwnerEntityDetailGrid.tsx, ownerEntityCapabilityRegistry.ts, businessHome/access.ts, membershipsRepo.ts, businessesRepo.ts, OwnerEntityCommunityTrust.tsx, OwnerEntityExternalReputation.tsx, AutosDealerInventoryDashboardSection.tsx); LeonixDashboardShell.tsx touched only for a 2-line truncation fix; BusinessConciergeOwnerHome.tsx touched only for disclosure copy/layout grouping, not data-fetching/authorization; one dashboard shell, same-row/no-recharge, both parent-child identities, shared analytics/entitlement/media, exact business membership auth, Community Trust truth, real-only Google/Yelp, protected Ofertas/Viajes internals, and no duplicate engines all confirmed intact",
+          "status": "PASS"
+        },
+        {
+          "name": "final_preqa_completion_state",
+          "result": "FUNCTION PASS, UX PASS, UI PASS, RESPONSIVE 390/768/1440 PASS, COPY/STATES PASS, CATEGORY COVERAGE PASS, KNOWN UX/UI INCOMPLETENESS NONE, SOURCE-FIXABLE PRE-QA BLOCKERS NONE",
+          "status": "PASS"
+        }
+      ]
     }
   ]
 }

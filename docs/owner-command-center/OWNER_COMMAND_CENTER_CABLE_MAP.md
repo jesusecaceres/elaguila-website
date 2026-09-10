@@ -336,4 +336,42 @@ applies — this is a source/build certification, not a browser QA pass).**
   surfaces as `otherBusinessCount > 0` with a hint string.
 - Promise Keeper has no dedicated owner route; due/blocked signals already reach the owner via
   the Advisor `needsAttention` signals this bridge already consumes.
+
+## PRE-QA 100% PRODUCT COMPLETION PASS (2026-09-09) — wiring changes
+
+| System | Route/Component | Change | Data source (unchanged) |
+|---|---|---|---|
+| Rentas lifecycle | `mis-anuncios/page.tsx` → `LeonixRealEstateListingManageCard` | `onMarkSold` now `undefined` when `catKey === "rentas"` (was unconditional) | registry truth: `rentas-privado`/`rentas-negocio` `lifecycle.markSold: "unsupported"` |
+| Autos Privado lifecycle | `AutosClassifiedListingManageCard.tsx`, wired from `mis-anuncios/page.tsx` | new `onReactivate` prop → `markStatus(id, "active")`, rendered only when `status === "removed"`; Archive recolored to canonical red | registry: `autos-privado` `lifecycle.reactivate: "supported"` |
+| Servicios coupons/offers | `servicios/page.tsx` → `OwnerEntityWorkspace` | new `footerHint` via `serviciosOffersInactiveDashboardHint(lang)` whenever the offers group has zero actions | same entitlement truth (`offersEntitlementActive`), no new data source |
+| Bienes Negocio inventory | `BrNegocioListingInventoryActions.tsx` | one canonical add-property CTA (was two duplicates); "Activar inventario" gated behind `!upgradeActive` | `computeBrPropertyInventoryCounts` (unchanged) |
+| Business Tools | `BusinessConciergeOwnerHome.tsx` + `dashboardI18n.ts` (`businessHomeCopy.workWithLeonixReadOnlyNote`) | disclosure line shown when pending approvals/service-requests count > 0; Business Identity section gained a subtle ring accent | `home.workWithLeonix` (unchanged) |
+| Business Tools hierarchy (Gate 14.1 hard close) | `BusinessConciergeOwnerHome.tsx` | What Matters Now promoted to `LX_DASH.pageHero` with a real umbrella heading (`t.whatMattersTitle`, previously unused); Business Health + Action Plan grouped into a shared `md:grid-cols-2` row; Understands/Work With Leonix/Progress/Assistant left as plain-panel supporting tier | unchanged — presentation only |
+| Detail-grid long text | `viajes/page.tsx`, `ofertas-locales/page.tsx`, `ofertas-locales/[id]/page.tsx`, `empleos/page.tsx`, `empleos/[listingId]/page.tsx` | `wide: true` added to moderation notes, rejection notes, next-action copy, company name | unchanged |
+| Global shell | `LeonixDashboardShell.tsx` | account panel name/email gained `break-words`/`break-all` | unchanged |
+
+**Investigated, confirmed NOT a defect**: `contactHub`/`translateAd` registry fields describe
+public-listing-page capabilities (Connection Hub, Translate Ad control), not an owner-dashboard
+action — true for every category, not Comida-Local-specific. No dashboard consumer of these two
+fields exists anywhere in the repo, by design.
+
+**Investigated, confirmed unreachable, left unfixed**: Autos Privado has no link to the generic
+`/dashboard/mis-anuncios/{id}` page, so that page's missing `"autos"` capability-key branch
+(which would fail open if ever reached) is latent, not live.
 - Learning stays `null` until a real recommendation→lesson mapping module exists.
+
+## FINAL PRE-QA SOURCE/BUILD CERTIFICATION (2026-09-09)
+
+| Check | Result |
+|---|---|
+| Candidate scope | 12 app files + 4 docs, 0 unrelated files |
+| Owner Attention / Shared Specialized Tools / lifecycle / paid-lifecycle verifiers | 22/22, 33/33, PASS, PASS |
+| Whole-product final reconciliation | 182/182 PASS |
+| Rentas verifier | 7/8 substantive checks PASS; 1 scope-boundary false positive on `BrNegocioListingInventoryActions.tsx`, investigated and explained (see PROGRESS.md Gate 15) |
+| Full `tsc --noEmit` | byte-identical to the 7-error e2e-only baseline — 0 new |
+| Full production build | PASS — exit 0, "Compiled successfully in 89s" |
+| Architecture regression trace | zero core/protected files touched — one shell, both parent-child identities, shared analytics/entitlement/media, exact business membership auth, protected Ofertas/Viajes internals all intact |
+
+**PRE-QA PRODUCT CONSTRUCTION: COMPLETE. FINAL PRE-QA SOURCE/BUILD CERTIFICATION: PASS.
+OWNER QA: NOT YET PERFORMED — its purpose from here is final runtime confirmation/polish of an
+already-complete product, not continuation of construction.**

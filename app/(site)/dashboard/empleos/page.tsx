@@ -201,10 +201,10 @@ function EmpleosEmployerDashboardPageContent() {
           const busy = busyId === r.id;
           const supportsApplications = r.lane !== "feria" && isLiveCapability(capabilities.specialized.applications);
           const detailItems = [
-            r.company_name ? { label: t.company, value: r.company_name } : null,
+            r.company_name ? { label: t.company, value: r.company_name, wide: true } : null,
             locationLine ? { label: t.location, value: locationLine } : null,
             r.updated_at ? { label: t.updated, value: new Date(r.updated_at).toLocaleString(lang === "es" ? "es-US" : "en-US") } : null,
-          ].filter((x): x is { label: string; value: string } => x !== null);
+          ].filter((x): x is { label: string; value: string; wide?: boolean } => x !== null);
 
           const quickActions: ActionItem[] = [];
           if (r.lifecycle_status === "published" && isLiveCapability(capabilities.identity.publicView)) {

@@ -239,10 +239,10 @@ function EmpleosEmployerManagePageContent() {
   const supportsApplications = row.lane !== "feria" && isLiveCapability(capabilities.specialized.applications);
 
   const detailItems = [
-    row.company_name ? { label: t.company, value: row.company_name } : null,
+    row.company_name ? { label: t.company, value: row.company_name, wide: true } : null,
     row.published_at ? { label: t.published, value: new Date(row.published_at).toLocaleString(lang === "es" ? "es-US" : "en-US") } : null,
     row.updated_at ? { label: t.updated, value: new Date(row.updated_at).toLocaleString(lang === "es" ? "es-US" : "en-US") } : null,
-  ].filter((x): x is { label: string; value: string } => x !== null);
+  ].filter((x): x is { label: string; value: string; wide?: boolean } => x !== null);
 
   const performanceMetrics = [
     typeof row.view_count === "number" ? { key: "views", label: t.views, value: row.view_count } : null,

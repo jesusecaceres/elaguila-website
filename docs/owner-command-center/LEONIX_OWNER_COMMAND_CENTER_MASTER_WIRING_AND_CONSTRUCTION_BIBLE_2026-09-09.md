@@ -1156,10 +1156,17 @@ only when real recommendation→lesson mapping exists
 composed by `BusinessConciergeOwnerHome.tsx` from the real `GET /api/dashboard/business/home`
 response. Learning renders `null`/unavailable honestly — no real recommendation→lesson mapping
 exists yet (unchanged, §47). Approvals/Service Requests/Proposals render real counts and data as
-plain, non-interactive text — no individual review/decision action route exists anywhere in the
-repo yet (confirmed by search during the CTA Truth gate). This is an honest absence of
-interactivity, not a fake or dead control; a review/decision UI is future work, not a launch
-blocker (§48).
+plain text with an explicit read-only disclosure line when either count is nonzero (Gate 14) — no
+individual review/decision action route exists anywhere in the repo yet (confirmed by search
+during the CTA Truth gate). This is an honest absence of interactivity, not a fake or dead control;
+a review/decision UI is future work, not a launch blocker (§48).
+
+**STATUS (Gate 14.1 — visual hierarchy hard close)**: the "must not feel like a generic directory
+of equal cards" rule above is now visually enforced, not just structurally correct. What Matters
+Now (highest operational emphasis) renders in the same `LX_DASH.pageHero` treatment as the page's
+own header, under a real umbrella heading; Business Health + Action Plan are grouped as the
+secondary operational tier; Understands/Work With Leonix/Progress/Assistant remain the plain-panel
+supporting/outcome tier. No new design system — every treatment reused an existing theme primitive.
 
 ---
 
@@ -1380,7 +1387,10 @@ Durable state files (all committed at this checkpoint):
 | 10 | Documentation Durability (this Bible → repo) | PASS | Copied this reconciled Bible into `docs/owner-command-center/` (byte-identical), added canonical-location pointers to progress/tests/cable-map, committed `d715d0f3` and pushed |
 | 11 | Product/UX Completion | PASS, **uncommitted** | Reviewed all 16 categories against the 10-question UX Definition of Done and 8 UX dimensions. Found and repaired one real cross-category safety inconsistency: "Mark Sold"/"Archive" (same Red/terminal semantic everywhere) lacked a confirmation dialog in 3 spots (generic entity workspace Mark Sold, En Venta card Mark Sold, Empleos Archive list+detail) while BR's card already confirmed both — added the app's existing `confirm()` pattern to all 3. Investigated and deliberately did NOT rename Empleos' "Archivar anuncio" to "Cerrar vacante" (a prior audit already established no distinct close-vacancy mutation exists — the generic label is the honest one). 4 previously-deferred items re-evaluated, none promoted to blockers. See `docs/owner-command-center/OWNER_COMMAND_CENTER_PROGRESS.md` Gate 10 for full detail. **Not yet committed/pushed as of this revision.** |
 | 12 | UI + Responsive Completion | PASS, **uncommitted** | Reviewed actual Tailwind/CSS composition at 390/768/1440px for every shared workspace component and every category's real usage. Confirmed `LeonixDashboardShell`, `OwnerEntityPerformance`, `DashboardListingActionBar`, `DashboardMobileActionSheet`, and `OwnerEntityHeader` were already correctly responsive by construction (single nav mechanism per breakpoint, metrics/badges flex-wrap, one tone→color mapping guaranteeing CTA semantics, scrollable full-width mobile action sheet). Found and repaired one real clipped-text defect: Autos Dealer's inventory-capacity sentences ("10 de 10 vehículos activos", "Te quedan N espacios disponibles") could truncate in `OwnerEntityDetailGrid`'s 2-column 390px cell. Fixed with a new optional `wide?: boolean` on `OwnerEntityDetailItem` (spans full row, skips truncate) — backward-compatible, every other caller unaffected. Re-evaluated the deferred real-estate "Editar" shortcut color from a pure visual-system angle: does not violate locked CTA semantics, left deferred. See `docs/owner-command-center/OWNER_COMMAND_CENTER_PROGRESS.md` Gate 11 for full detail. **Not yet committed/pushed as of this revision.** |
-| 13 | FINAL SHIP-READINESS SOURCE/BUILD CERTIFICATION | PASS, **uncommitted** | Heavy validation authorized and performed on the Gate 10+11 candidate. Confirmed 10-file diff (6 app + 4 docs, 86/-10 lines) traces entirely to Gates 10-11 — no scope expansion. Re-ran all 6 focused verifiers (22/22, 33/33, OK, PASS, PASS, 182/182) — all still PASS, confirming Gate 10's Empleos edits did not disturb the multi-group specialized-tools contract. Full `tsc --noEmit` byte-identical to the established 7-error e2e-only baseline — 0 new errors. Lint: 0 new findings across the 6 changed files (the same 6 pre-existing `mis-anuncios/page.tsx` findings, already confirmed present in the committed checkpoint). `git diff --check` PASS. One full production build PASS (`NODE_OPTIONS=--max-old-space-size=12288`, exit 0, "Compiled successfully in 2.2min," all key routes present). Final regression trace confirmed lifecycle destinations, specialized mobile actions, Business Tools, external reputation, Empleos applications anchor, category adapters, and the Ofertas/Viajes boundary are all intact. **Source-fixable ship blockers: NONE.** One environment condition (a competing heavy process, 48 node workers, free memory as low as ~600KB) was correctly waited out rather than raced against, per this gate's resource-control directive. **Runtime owner QA remains NOT performed — §33.3's distinction still applies.** See `docs/owner-command-center/OWNER_COMMAND_CENTER_PROGRESS.md` Gate 12 for full detail. **Not yet committed/pushed as of this revision.** |
+| 13 | FINAL SHIP-READINESS SOURCE/BUILD CERTIFICATION | PASS, **uncommitted** | Heavy validation authorized and performed on the Gate 10+11 candidate. Confirmed 10-file diff (6 app + 4 docs, 86/-10 lines) traces entirely to Gates 10-11 — no scope expansion. Re-ran all 6 focused verifiers (22/22, 33/33, OK, PASS, PASS, 182/182) — all still PASS, confirming Gate 10's Empleos edits did not disturb the multi-group specialized-tools contract. Full `tsc --noEmit` byte-identical to the established 7-error e2e-only baseline — 0 new errors. Lint: 0 new findings across the 6 changed files (the same 6 pre-existing `mis-anuncios/page.tsx` findings, already confirmed present in the committed checkpoint). `git diff --check` PASS. One full production build PASS (`NODE_OPTIONS=--max-old-space-size=12288`, exit 0, "Compiled successfully in 2.2min," all key routes present). Final regression trace confirmed lifecycle destinations, specialized mobile actions, Business Tools, external reputation, Empleos applications anchor, category adapters, and the Ofertas/Viajes boundary are all intact. **Source-fixable ship blockers: NONE.** One environment condition (a competing heavy process, 48 node workers, free memory as low as ~600KB) was correctly waited out rather than raced against, per this gate's resource-control directive. **Runtime owner QA remains NOT performed — §33.3's distinction still applies.** See `docs/owner-command-center/OWNER_COMMAND_CENTER_PROGRESS.md` Gate 12 for full detail. **Subsequently committed as `ce82252e22c9d75c815875627cfcdae6f0dd53b0` and pushed (see §33.1/PROGRESS.md Gate 13); superseded by Gates 14-15 below, which remain uncommitted on top of it.** |
+| 14 | PRE-QA 100% Product Completion Pass | PASS, **uncommitted** | Coach-clarified doctrine: runtime QA locked until the product is 100% complete, not used to discover missing UX/UI. Six parallel evidence-only research passes across every owner surface found and repaired 9 real defects (Rentas showing an unsupported Mark Sold action; Autos Privado missing a reactivate action + miscolored Archive; Servicios' coupons section silently vanishing with no explanation; Bienes Negocio duplicate add-property CTAs + an always-visible "unlock" button; Business Tools' Work With Leonix counts undisclosed as read-only; the `wide` detail-grid escape hatch not propagated to 6 other long-text call sites; account panel truncation risk) across 12 files, using only existing shared components/patterns. One hypothesis (Comida Local `contactHub`/`translateAd`) investigated and found NOT a defect; one latent gap (Autos Privado's unreachable generic-page fallback) investigated and left unfixed as genuinely unreachable. See `docs/owner-command-center/OWNER_COMMAND_CENTER_PROGRESS.md` Gate 14 for full detail. |
+| 14.1 | Business Tools Visual Hierarchy Hard Close | PASS, **uncommitted** | Coach flagged a real contradiction in Gate 14 (WEAK_UI open alongside "zero blockers"). Fully implemented the Master Bible §27 locked hierarchy in `BusinessConciergeOwnerHome.tsx` using only existing theme primitives — What Matters Now promoted to the existing `LX_DASH.pageHero` treatment with a real umbrella heading (activating a previously-unused copy key); Business Health + Action Plan grouped as the secondary tier; the remaining sections left as the plain-panel supporting tier. Re-confirmed Recent Activity and Business Growth entry already read as intentionally complete. See PROGRESS.md Gate 14.1 for full detail. |
+| 15 | FINAL PRE-QA SOURCE/BUILD CERTIFICATION | PASS, **uncommitted** | Heavy validation on the complete Gates 14+14.1 candidate (12 app files + 4 docs). All 6 canonical verifiers re-run (22/22, 33/33, OK, PASS-with-one-explained-scope-boundary-exception, PASS, 182/182); full `tsc --noEmit` byte-identical to the 7-error e2e-only baseline (0 new); full production build PASS ("Compiled successfully in 89s"); architecture regression trace confirmed zero core/protected files touched. Resource contention (another session spiking to 47 node.exe workers) waited out twice rather than raced. **PRE-QA PRODUCT CONSTRUCTION: COMPLETE. FINAL PRE-QA SOURCE/BUILD CERTIFICATION: PASS. OWNER QA: NOT YET PERFORMED** — its purpose from here is final runtime confirmation/polish of an already-complete product. See PROGRESS.md Gate 15 for full detail. |
 
 ---
 
@@ -1400,6 +1410,39 @@ visible with real rows) doesn't exist.
 
 **Do not mark §50's checklist as passed, and do not tell a business owner the dashboard is ready,
 until runtime QA has actually been performed on the Preview URL above.**
+
+---
+
+## 33.4 PRE-QA 100% PRODUCT COMPLETION — DOCTRINE AND CURRENT RECORD
+
+**Doctrine (Coach-clarified, supersedes any earlier statement that runtime QA is "the only phase
+remaining"):**
+
+> **Owner QA is not a development phase. QA begins only after the entire Owner Command Center is
+> already 100% complete in function, UX, UI, responsive behavior, navigation, states, copy,
+> category coverage, owner actions, and empty/error/loading behavior. QA is reserved strictly for
+> final polish/confirmation, never for discovering missing product.**
+
+Concretely, this means:
+
+- Runtime owner QA (§50) is **LOCKED** until this section records zero source-fixable pre-QA
+  completeness blockers.
+- A prior gate labeling something `SHIP_READY`, a passing verifier, a compiling build, or a route
+  existing are NOT by themselves evidence of product completeness — only evidence of source
+  correctness (§33.3 still applies: SOURCE CERTIFIED ≠ product-complete ≠ runtime-QA-passed; these
+  are three distinct, non-substitutable claims).
+- A deferred item (§48, §47) may remain deferred for launch only if its absence does not make the
+  intended owner workflow feel incomplete. Being written down earlier as "deferred" is not itself a
+  justification to leave it deferred forever — it must be re-examined each time this section is
+  revisited.
+
+**Current completeness record**: see `docs/owner-command-center/OWNER_COMMAND_CENTER_PROGRESS.md`
+for the dated, per-surface Pre-QA Product Completeness Pass entry (surfaces reviewed, exact
+COMPLETE/MISSING/INCOMPLETE/WEAK_UX/WEAK_UI/INCONSISTENT/UNWIRED/DEFERRED_TRULY_NONBLOCKING
+findings per category, and every repair implemented as a result). Do not consider this phase closed
+by reading this paragraph alone — read the dated PROGRESS entry for the actual evidence.
+
+---
 
 # 34. LIVE / LEGACY / DUPLICATE CLASSIFICATION
 
@@ -1773,8 +1816,10 @@ Verify all visible CTAs go somewhere real.
 Ensure consistent shell and semantics across all categories.
 
 All 8 phases were then re-certified together in Gate 8 (Final Source Integration Certification)
-and shipped as checkpoint `ea99e57c` in Gate 9. **Runtime owner QA is the only phase remaining —
-see §33.3, §50, §51.**
+and shipped as checkpoint `ea99e57c` in Gate 9. **Source certification and the pre-QA checkpoint
+(`ce82252e`) are complete. PRE-QA 100% PRODUCT COMPLETION (§33.4) is the current phase; runtime
+owner QA (§50) remains LOCKED until that phase certifies the product complete — see §33.3, §33.4,
+§50, §51.**
 
 ---
 
@@ -1933,29 +1978,34 @@ The dashboard should make the platform feel organized even if the underlying cod
 
 The current next engineering move is:
 
-> **OWNER QA / RUNTIME CERTIFICATION ON THE CERTIFIED PREVIEW**
+> **FINAL PRE-QA CHECKPOINT + PREVIEW, THEN OWNER QA**
 
-Source integration and source certification are **COMPLETE** (checkpoint
-`ea99e57c1695138ec433766f33835830361b6ba7`, §33.1-§33.2). Product/UX completion (Gate 11), UI/
-Responsive completion (Gate 12), and the FINAL SHIP-READINESS SOURCE/BUILD CERTIFICATION (Gate 13,
-§33.2) have all now passed — full production build PASS, `tsc` byte-identical to baseline, all 6
-focused verifiers PASS, `git diff --check` PASS, zero source-fixable ship blockers. The 6-file
-source fix (confirm-dialog safety: generic entity workspace, `mis-anuncios/page.tsx`, both Empleos
-pages; clipped-text fix: `OwnerEntityDetailGrid.tsx`, `AutosDealerInventoryDashboardSection.tsx`)
-is currently **UNCOMMITTED** in the working tree, now carrying a clean certification result.
-Commit and push it (and re-deploy Preview) as the next checkpoint before or as part of runtime QA;
-it does not change architecture. The next step is to **TEST the existing implementation** at:
+**PRE-QA 100% PRODUCT COMPLETION is now COMPLETE, and FINAL PRE-QA SOURCE/BUILD CERTIFICATION has
+PASSED (Gates 14, 14.1, 15 — §33.2 rows 14/14.1/15).** Runtime owner QA (§50) is now unlockable in
+principle — the product is source-certified complete — but it has **NOT YET BEEN PERFORMED**, and
+the certified candidate (12 app files + 4 docs) is still **uncommitted** on top of checkpoint
+`ce82252e22c9d75c815875627cfcdae6f0dd53b0`. The next engineering move is therefore:
 
-`https://leonix-media-o5ca0sah9-jesus-caceres-projects.vercel.app`
+1. Checkpoint the certified candidate as a new commit on the feature branch (never `main`, never
+   Production).
+2. Push it and confirm/produce a READY Vercel Preview for that exact commit.
+3. Only then may runtime owner QA (§50) begin — and only once a real owner/smoke-test credential or
+   session is available (§33.3's SAFE AUTH gap is a QA-tooling prerequisite, separate from and not
+   blocking this checkpoint step).
 
-— **NOT** to design, wire, or architect anything new. Use §50 (Final Completion Gate) as the
-runtime QA script. Any real defect found during QA should be logged and repaired as a targeted,
-source-fixable fix against this same checkpoint's architecture — not a redesign, not a new engine,
-not a re-integration of anything already reconciled in §33.2.
+QA from this point on is reserved strictly for final runtime confirmation/polish of an
+already-complete product — never for discovering missing UX, missing UI, unfinished flows, missing
+category tools, incomplete screens, broken hierarchy, missing states, missing navigation, or
+incomplete responsive layouts. See §33.4 for the doctrine and `docs/owner-command-center/
+OWNER_COMMAND_CENTER_PROGRESS.md` (Gates 14/14.1/15) for the full completeness/certification
+evidence.
 
-Do not commit/push further integration changes until QA findings (if any) are reviewed.
+Source integration and source certification are **COMPLETE** (checkpoint `ea99e57c`, §33.1-§33.2).
+A Vercel Deployment Protection (SSO) bypass was already proven reachable via the project's existing
+`VERCEL_AUTOMATION_BYPASS_SECRET`, so the next checkpoint's Preview should be reachable the same
+way once deployed.
 
-`Owner Command Center ← Business Concierge owner-safe bridge reconciliation` (the move this
+`Owner Command Center ← Business Concierge owner-safe bridge reconciliation` (an earlier move this
 section used to describe) is DONE — see §33 for closure and §33.2 for the full completed-gate
 ledger. Do not re-run it.
 
@@ -2013,9 +2063,15 @@ Do not re-integrate Concierge, re-wire Business Tools, or redo any completed gat
 consumption first; if something is genuinely missing or has regressed since `ea99e57c`, repair
 with the smallest adapter — do not rebuild.
 
-If the task is "do owner QA" or similar: that means §50 (Final Completion Gate) has not yet been
-run against the Preview URL in §33.1. Perform it; do not assume it already happened because
-source certification passed (§33.3).
+If the task is "do owner QA" or similar: check §33.4 and §51 first. As of Gates 14/14.1/15,
+PRE-QA 100% PRODUCT COMPLETION and FINAL PRE-QA SOURCE/BUILD CERTIFICATION have both PASSED — but
+that certified candidate is still uncommitted and has no Preview of its own yet. §50 must not be
+run against a stale Preview (e.g. the `ea99e57c`/`ce82252e` Preview URLs in §33.1, which predate
+this candidate) and must not begin at all until: (a) the certified candidate is checkpointed and
+pushed, (b) a READY Preview exists for that exact new commit, and (c) a real owner/smoke-test
+credential or session is available (§33.3's SAFE AUTH gap). Do not run §50 to discover missing
+product — that is a doctrine violation. Do not assume any phase already happened because a
+different phase's certification passed (§33.3).
 
 ---
 

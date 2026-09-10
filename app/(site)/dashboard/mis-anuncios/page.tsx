@@ -2084,6 +2084,7 @@ function MyListingsPageContent() {
                       dateText={dateText}
                       busy={busy}
                       onArchive={() => void softArchiveListing(x.id)}
+                      onReactivate={() => void markStatus(x.id, "active")}
                       thumbUrl={thumbUrl}
                       analytics={{
                         views: stats?.views ?? 0,
@@ -2162,15 +2163,22 @@ function MyListingsPageContent() {
                       onPause={() => void markPauseListing(x.id)}
                       onResume={() => void markResumeListing(x.id)}
                       onArchive={() => void softArchiveListing(x.id)}
-                      onMarkSold={() => {
-                        const ok = window.confirm(
-                          lang === "es"
-                            ? "¿Marcar este anuncio como vendido? Dejará de aparecer en resultados públicos."
-                            : "Mark this listing as sold? It will leave public results.",
-                        );
-                        if (!ok) return;
-                        void markStatus(x.id, "sold");
-                      }}
+                      onMarkSold={
+                        // Registry truth (ownerEntityCapabilityRegistry.ts): both rentas-privado and
+                        // rentas-negocio declare lifecycle.markSold as "unsupported" — a rental is
+                        // never "sold". Only BR rows should offer this action.
+                        catKey === "rentas"
+                          ? undefined
+                          : () => {
+                              const ok = window.confirm(
+                                lang === "es"
+                                  ? "¿Marcar este anuncio como vendido? Dejará de aparecer en resultados públicos."
+                                  : "Mark this listing as sold? It will leave public results.",
+                              );
+                              if (!ok) return;
+                              void markStatus(x.id, "sold");
+                            }
+                      }
                       republishPrimaryLabel={repLabel}
                       onRepublish={repLabel ? () => void renewListingsTableRepublish(x) : undefined}
                       republishBusy={busy}

@@ -303,8 +303,8 @@ export function LeonixDashboardShell({
       </div>
 
       <div className="mt-4 rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-section)]/80 p-4">
-        <p className="text-[15px] font-bold text-[color:var(--lx-text)]">{userName?.trim() || "—"}</p>
-        <p className="mt-1 text-xs text-[color:var(--lx-muted)]/95">{email || "—"}</p>
+        <p className="break-words text-[15px] font-bold text-[color:var(--lx-text)]">{userName?.trim() || "—"}</p>
+        <p className="mt-1 break-all text-xs text-[color:var(--lx-muted)]/95">{email || "—"}</p>
         {accountRef ? (
           <p className="mt-2 font-mono text-[10px] font-semibold text-[color:var(--lx-muted)]/90">
             Leonix ID · #{accountRef}

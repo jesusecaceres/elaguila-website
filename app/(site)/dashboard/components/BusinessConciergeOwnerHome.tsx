@@ -78,8 +78,12 @@ export function BusinessConciergeOwnerHome({
         <p className={`mt-2 max-w-3xl ${LX_DASH.bodyMuted}`}>{t.subtitle}</p>
       </header>
 
-      {/* BUSINESS IDENTITY */}
-      <section className={LX_DASH.panel}>
+      {/* BUSINESS IDENTITY — the page's orientation anchor, so it carries the same subtle gold
+          ring accent OwnerEntityWorkspace already uses for its own header panel (Pre-QA
+          completeness fix for §27's "must not feel like a directory of equal cards" rule; a
+          fuller visual-hierarchy pass across every section is a real design decision beyond this
+          gate's minimal-repair scope). */}
+      <section className={`${LX_DASH.panel} ring-1 ring-[#C9A84A]/15`}>
         <h2 className={LX_DASH.sectionTitle}>{t.identityTitle}</h2>
         {activeBusiness ? (
           <>
@@ -130,8 +134,14 @@ export function BusinessConciergeOwnerHome({
           <section className={LX_DASH.emptyState}>{t.identityMissing}</section>
         ) : (
           <>
-            {/* WHAT MATTERS NOW: Next Right Move + Needs Your Attention */}
-            <section className="grid gap-3 md:grid-cols-2">
+            {/* WHAT MATTERS NOW: Next Right Move + Needs Your Attention — highest operational
+                emphasis per Master Bible §27's locked hierarchy. Reuses the exact pageHero
+                treatment (gradient + stronger ring) already used for the page's own header, so
+                this tier reads as more urgent than the plain-panel sections below it instead of
+                the whole page looking like a flat directory of equal cards. */}
+            <section className={`${LX_DASH.pageHero} p-5 sm:p-6`}>
+              <h2 className={LX_DASH.sectionTitle}>{t.whatMattersTitle}</h2>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
               <ModuleCard
                 title={t.nrmTitle}
                 available={!!home.whatMattersNow?.available && !!home.whatMattersNow?.recommendation}
@@ -169,64 +179,68 @@ export function BusinessConciergeOwnerHome({
                   <p className={`mt-2 ${LX_DASH.bodyMuted}`}>{t.whatMattersEmpty}</p>
                 )}
               </ModuleCard>
+              </div>
             </section>
 
-            {/* BUSINESS HEALTH */}
-            <section className={LX_DASH.panel}>
-              <h2 className={LX_DASH.sectionTitle}>{t.healthTitle}</h2>
-              {home.businessHealth?.available && (home.businessHealth.strengths.length > 0 || home.businessHealth.needsAttention.length > 0) ? (
-                <div className="mt-3 grid gap-3 md:grid-cols-2">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[#8A6B1F]">{th.healthStrongTitle}</p>
-                    {home.businessHealth.strengths.length > 0 ? (
-                      <ul className="mt-2 space-y-1 text-sm text-[#3D3428]">
-                        {home.businessHealth.strengths.map((d) => (
-                          <li key={d.dimensionKey}>{es ? d.explanationEs : d.explanationEn}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className={`mt-2 ${LX_DASH.emptyState}`}>—</p>
-                    )}
+            {/* BUSINESS HEALTH + YOUR ACTION PLAN — grouped side by side as the secondary
+                operational-work tier (same grid pattern as What Matters Now, plain panel weight
+                so this tier visibly ranks below it), per Master Bible §27's locked hierarchy. */}
+            <section className="grid gap-3 md:grid-cols-2">
+              <div className={LX_DASH.panel}>
+                <h2 className={LX_DASH.sectionTitle}>{t.healthTitle}</h2>
+                {home.businessHealth?.available && (home.businessHealth.strengths.length > 0 || home.businessHealth.needsAttention.length > 0) ? (
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[#8A6B1F]">{th.healthStrongTitle}</p>
+                      {home.businessHealth.strengths.length > 0 ? (
+                        <ul className="mt-2 space-y-1 text-sm text-[#3D3428]">
+                          {home.businessHealth.strengths.map((d) => (
+                            <li key={d.dimensionKey}>{es ? d.explanationEs : d.explanationEn}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className={`mt-2 ${LX_DASH.emptyState}`}>—</p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[#8A6B1F]">{th.healthAttentionTitle}</p>
+                      {home.businessHealth.needsAttention.length > 0 ? (
+                        <ul className="mt-2 space-y-1 text-sm text-[#3D3428]">
+                          {home.businessHealth.needsAttention.map((d) => (
+                            <li key={d.dimensionKey}>{es ? d.explanationEs : d.explanationEn}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className={`mt-2 ${LX_DASH.emptyState}`}>—</p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[#8A6B1F]">{th.healthAttentionTitle}</p>
-                    {home.businessHealth.needsAttention.length > 0 ? (
-                      <ul className="mt-2 space-y-1 text-sm text-[#3D3428]">
-                        {home.businessHealth.needsAttention.map((d) => (
-                          <li key={d.dimensionKey}>{es ? d.explanationEs : d.explanationEn}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className={`mt-2 ${LX_DASH.emptyState}`}>—</p>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <p className={`mt-2 ${LX_DASH.bodyMuted}`}>{t.healthUnsupported}</p>
-              )}
-            </section>
+                ) : (
+                  <p className={`mt-2 ${LX_DASH.bodyMuted}`}>{t.healthUnsupported}</p>
+                )}
+              </div>
 
-            {/* YOUR ACTION PLAN */}
-            <section className={LX_DASH.panel}>
-              <h2 className={LX_DASH.sectionTitle}>{t.actionTitle}</h2>
-              {home.actionPlan?.available && home.actionPlan.progress ? (
-                <div className="mt-3 flex flex-wrap gap-4">
-                  <div>
-                    <p className={LX_DASH.metricLabel}>{th.actionPlanTotal}</p>
-                    <p className={LX_DASH.metricValue}>{home.actionPlan.progress.total}</p>
+              <div className={LX_DASH.panel}>
+                <h2 className={LX_DASH.sectionTitle}>{t.actionTitle}</h2>
+                {home.actionPlan?.available && home.actionPlan.progress ? (
+                  <div className="mt-3 flex flex-wrap gap-4">
+                    <div>
+                      <p className={LX_DASH.metricLabel}>{th.actionPlanTotal}</p>
+                      <p className={LX_DASH.metricValue}>{home.actionPlan.progress.total}</p>
+                    </div>
+                    <div>
+                      <p className={LX_DASH.metricLabel}>{th.actionPlanCompleted}</p>
+                      <p className={LX_DASH.metricValue}>{home.actionPlan.progress.completed}</p>
+                    </div>
+                    <div>
+                      <p className={LX_DASH.metricLabel}>{th.actionPlanInProgress}</p>
+                      <p className={LX_DASH.metricValue}>{home.actionPlan.progress.inProgressOrAvailable}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className={LX_DASH.metricLabel}>{th.actionPlanCompleted}</p>
-                    <p className={LX_DASH.metricValue}>{home.actionPlan.progress.completed}</p>
-                  </div>
-                  <div>
-                    <p className={LX_DASH.metricLabel}>{th.actionPlanInProgress}</p>
-                    <p className={LX_DASH.metricValue}>{home.actionPlan.progress.inProgressOrAvailable}</p>
-                  </div>
-                </div>
-              ) : (
-                <p className={`mt-2 ${LX_DASH.bodyMuted}`}>{t.actionUnsupported}</p>
-              )}
+                ) : (
+                  <p className={`mt-2 ${LX_DASH.bodyMuted}`}>{t.actionUnsupported}</p>
+                )}
+              </div>
             </section>
 
             {/* WHAT LEONIX UNDERSTANDS */}
@@ -265,6 +279,14 @@ export function BusinessConciergeOwnerHome({
                   <p className={LX_DASH.metricValue}>{home.workWithLeonix?.pendingServiceRequestsCount ?? 0}</p>
                 </div>
               </div>
+              {(home.workWithLeonix?.pendingApprovalsCount ?? 0) > 0 ||
+              (home.workWithLeonix?.pendingServiceRequestsCount ?? 0) > 0 ? (
+                // Pre-QA completeness fix: these counts are real but there is no individual
+                // review/decision route yet (Master Bible §48). Without this line a real "3
+                // pending approvals" with zero clickable affordance reads as a broken feature
+                // rather than an intentional read-only summary.
+                <p className={`mt-2 ${LX_DASH.bodyMuted}`}>{th.workWithLeonixReadOnlyNote}</p>
+              ) : null}
               <p className="mt-4 text-sm font-semibold text-[#5C5346]">{th.proposalsTitle}</p>
               {home.workWithLeonix?.proposalsAwaitingDecision && home.workWithLeonix.proposalsAwaitingDecision.length > 0 ? (
                 <ul className="mt-2 space-y-2">
