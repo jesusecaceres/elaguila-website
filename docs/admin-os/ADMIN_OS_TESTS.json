@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-10-owner-auth-break-glass-gate",
+  "updatedAt": "2026-09-10-admin-password-recovery-gate",
   "masterOperatingBookAdopted": true,
   "cableMapPass": {
     "status": "substantially_complete",
@@ -1035,5 +1035,82 @@
       "Browser QA, LEO integration — explicitly out of scope"
     ],
     "ownerAuthBreakGlassGate": "NEEDS_OWNER_RUNTIME_PROOF"
+  },
+  "adminPasswordRecoveryGate": {
+    "status": "closed",
+    "canonicalRecoveryEngine": "app/lib/auth/authCallbackSession.ts (establishSessionFromAuthCallback) + app/(site)/auth/callback/page.tsx — shared by customer and admin, not duplicated",
+    "sharedPrimitives": ["supabase.auth.resetPasswordForEmail", "establishSessionFromAuthCallback (verifyOtp/setSession/exchangeCodeForSession)", "evaluatePassword", "PasswordInputField", "PasswordStrengthMeter", "supabase.auth.updateUser({ password })"],
+    "adminRecoveryEntry": "app/admin/login/forgot/page.tsx (new)",
+    "adminResetDestination": "app/admin/login/reset/page.tsx (new)",
+    "recoveryContextAllowlist": {
+      "mechanism": "authCallbackSession.ts resolveRecoveryContext()/isAllowedRecoveryDestination() — hardcoded map, exactly 2 entries",
+      "customer": "/dashboard/seguridad",
+      "admin": "/admin/login/reset",
+      "enforcedBeforeSessionEstablishment": true,
+      "failureMode": "throws recovery_destination_not_allowed, mapped to the same generic non-revealing message as an invalid/expired link"
+    },
+    "accountEnumerationSafe": true,
+    "openRedirectSafe": true,
+    "validRecoverySessionRequired": true,
+    "invalidExpiredLinksFailSafe": true,
+    "noRoleOrPermissionChanges": true,
+    "adminAccessStillRequiresActiveRoster": true,
+    "bootstrapUntouched": true,
+    "noRecoveryTokensLogged": true,
+    "noStagingUrlIntroduced": true,
+    "sharedAuthRecoveryEngineConfirmed": true,
+    "customerRecoveryUnchanged": true,
+    "customerRecoveryErrorRouting": "/login (unchanged)",
+    "adminRecoveryErrorRouting": "/admin/login?error=recovery (new, isolated from customer flow)",
+    "targetedRecoveryChecks": {
+      "script": "scripts/verify-admin-password-recovery-01.ts",
+      "npmScript": "verify:admin-password-recovery",
+      "result": "PASS",
+      "checksPassed": 21,
+      "propertiesProven": [
+        "/admin/login has a working Forgot password? link",
+        "admin forgot-password reuses the same resetPasswordForEmail primitive as the customer flow, no duplicate implementation",
+        "no account enumeration — fixed success message regardless of account existence, only a rate-limit branch differs",
+        "recovery-context allowlist contains exactly the two hardcoded destinations",
+        "the allowlist is enforced before any recovery session is established",
+        "an unrecognized recovery destination fails safe (throws, never falls through to an arbitrary redirect)",
+        "customer recovery destination and error routing (/login) are unchanged",
+        "admin recovery errors route to /admin/login, never the customer login or dashboard",
+        "admin reset page reuses updateUser({password}) and the shared password-policy/UI primitives, no new logic",
+        "admin reset page never uses a Supabase service-role/admin API in browser code",
+        "admin reset page requires an existing session before rendering the form; offers a request-another-link path otherwise",
+        "neither new page touches admin_team_members, roster role, or permissions",
+        "neither new page touches bootstrap cookies/session primitives; bootstrap route files reference neither new page",
+        "the real staff login route (/admin/login/auth) is unaffected — still requires Supabase Auth + active roster",
+        "redirectTo values are hardcoded literals, never client-suppliable, in both admin and customer forgot-password pages",
+        "the Admin Guide's admin-login entry documents the forgot-password flow and still explains bootstrap as unrelated/emergency-only"
+      ]
+    },
+    "regressionChecks": {
+      "verify:owner-auth-break-glass": "PASS 16/16 (unchanged)",
+      "verify:admin-nav-ops": "PASS 75/75 (unchanged)"
+    },
+    "adminGuideUpdated": true,
+    "adminGuideEntryUpdated": "admin-login",
+    "filesChanged": [
+      "app/lib/auth/authCallbackSession.ts",
+      "app/(site)/auth/callback/page.tsx",
+      "app/admin/login/page.tsx",
+      "app/admin/login/forgot/page.tsx (new)",
+      "app/admin/login/reset/page.tsx (new)",
+      "app/admin/_lib/adminGuideRegistry.ts",
+      "scripts/verify-admin-password-recovery-01.ts (new)",
+      "package.json",
+      "docs/admin-os/ADMIN_OS_CABLE_MAP.md",
+      "docs/admin-os/ADMIN_OS_PROGRESS.md",
+      "docs/admin-os/ADMIN_OS_TESTS.json"
+    ],
+    "deferredToIntegrationGate": [
+      "Admin-driven customer password resets (support action to reset an existing customer's password)",
+      "Wiring the still-unenforced can_reset_passwords permission to any real action",
+      "Browser QA of the actual email-click round-trip",
+      "Supabase Dashboard config changes — none performed, none needed for this gate"
+    ],
+    "adminPasswordRecoveryGate": "CLOSED"
   }
 }

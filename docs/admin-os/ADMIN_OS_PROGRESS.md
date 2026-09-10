@@ -2232,3 +2232,122 @@ be verified this session and is not reported as closed from code inspection alon
 manual steps above are the smallest path to closing it. One real, narrow, pre-existing architectural
 gap (the env-fallback in the legacy role resolver) was discovered, documented, and correctly
 deferred rather than patched under this gate's narrow scope.
+
+## ADMIN PASSWORD RECOVERY ROUTING — 2026-09-10
+
+Focused auth UX/wiring gate. Adds a proper Admin/staff forgot-password experience by reusing the
+existing canonical Supabase customer recovery engine end-to-end, per a prior focused audit
+("Leonix Auth Recovery — Existing Flow Audit") that proved the customer recovery engine was
+already complete and secure, but `/admin/login` had no forgot-password entry at all. HEAD at
+start: `bdd6caf40183a1a43589be407db55decf31a8c61`.
+
+### Investigation
+
+Re-read `app/admin/login/**`, `app/(site)/login/page.tsx`, `app/(site)/auth/callback/page.tsx`,
+`app/lib/auth/authCallbackSession.ts`, `app/(site)/dashboard/seguridad/page.tsx`, the shared
+`PasswordInputField`/`PasswordStrengthMeter`/`evaluatePassword` primitives, and
+`app/lib/supabase/browser.ts`. Confirmed customer recovery already flows:
+`resetPasswordForEmail()` → `/auth/callback` → `establishSessionFromAuthCallback()` (verifyOtp /
+setSession / exchangeCodeForSession, with a PKCE-code-verifier check specifically for recovery) →
+`/dashboard/seguridad?recovery=1` → `updateUser({ password })`. Confirmed `/admin/login` had zero
+forgot-password affordance and that admin/staff and customer Auth users share one Supabase Auth
+pool (same project, same `auth.users` table, same anon browser client), meaning the recovery
+*engine* did not need to be rebuilt — only a new admin-appropriate destination and routing.
+
+### Implementation
+
+- `app/lib/auth/authCallbackSession.ts`: added a hardcoded recovery-context allowlist —
+  `resolveRecoveryContext()` / `isAllowedRecoveryDestination()` — mapping exactly two destinations
+  (`customer` → `/dashboard/seguridad`, `admin` → `/admin/login/reset`). This is intentionally
+  stricter than the callback's existing general `safeInternalRedirect()` (unchanged, still governs
+  every non-recovery redirect target). Added `recovery_destination_not_allowed` to the existing
+  generic error-message mapping (same copy as an invalid/expired link — never reveals *why*).
+- `app/(site)/auth/callback/page.tsx`: computes `recoveryContext` once (shared between the effect
+  and the render); when a recovery flow's destination fails the allowlist, throws
+  `recovery_destination_not_allowed` before any session is established. When the resolved context
+  is `admin`, both the error path and the "Try again" button route back to `/admin/login?error=recovery`
+  instead of the customer `/login` page — customer recovery errors are completely unchanged
+  (still `/login`).
+- `app/admin/login/forgot/page.tsx` (new): admin-branded forgot-password entry. Calls the same
+  `supabase.auth.resetPasswordForEmail()` primitive with a hardcoded `redirectTo` of
+  `/auth/callback?redirect=/admin/login/reset?recovery=1&lang=en` — never a client-suppliable
+  value. Always shows "If an account exists for that email, check your inbox…" regardless of the
+  outcome (only a rate-limit response gets a distinct cooldown message, which reveals request
+  volume, not account existence).
+- `app/admin/login/reset/page.tsx` (new): admin-branded reset destination. Requires an existing
+  Supabase session (`supabase.auth.getUser()`) before showing the password form — no session shows
+  an "invalid/expired" state with a link back to `/admin/login/forgot`. Reuses `evaluatePassword`,
+  `PasswordInputField`, `PasswordStrengthMeter`, and `updateUser({ password })` verbatim — no new
+  password-policy or update logic. On success, links back to `/admin/login` ("Return to Staff /
+  Team login"). No Supabase service-role/admin API is used anywhere in this browser-side page.
+- `app/admin/login/page.tsx`: added a "Forgot password?" link under the Staff / Team login form
+  (not under bootstrap), and an `error=recovery` message mapping.
+- `app/admin/_lib/adminGuideRegistry.ts`: updated the existing `admin-login` entry (from the prior
+  gate) to document the forgot-password flow, the non-enumerating recovery email, and returning to
+  Staff / Team login — the bootstrap explanation is unchanged and explicitly still described as
+  unrelated/emergency-only.
+
+### Security properties proven
+
+1. **No account enumeration** — the admin forgot-password page's success message never depends on
+   whether the account exists; Supabase's own `resetPasswordForEmail` already never reveals this
+   either.
+2. **No open redirect** — `resetPasswordForEmail`'s `redirectTo` is a hardcoded literal path in
+   both admin and customer flows; recovery destinations are additionally restricted to the
+   two-entry allowlist regardless of any `redirect` query value an attacker might supply.
+3. **Valid recovery session required** — `/admin/login/reset` never renders the password form
+   without a real, already-established Supabase session; `updateUser` itself operates on that
+   session, not on any client-supplied identity.
+4. **Invalid/expired links fail safely** — both an expired/used Supabase link (existing
+   `recovery_link_invalid_or_expired` handling, unchanged) and a disallowed destination (new
+   `recovery_destination_not_allowed`) resolve to the same generic, non-revealing message and a
+   safe "request another link" path.
+5. **No role/permission changes** — neither new page references `admin_team_members`, roster role,
+   or permissions anywhere; confirmed by direct source check.
+6. **Admin access still requires active roster** — `/admin/login/auth` is untouched by this gate
+   and still independently re-checks `lookupActiveAdminRosterByEmail()` after Supabase Auth
+   succeeds, reset password or not.
+7. **Bootstrap untouched** — `app/admin/login/submit/route.ts` and
+   `app/lib/supabase/adminSession.ts`'s bootstrap primitives contain zero references to either new
+   page; confirmed by direct source check.
+8. **No recovery tokens logged** — neither new page logs the URL, tokens, or Supabase response
+   bodies; the existing `stripAuthTokensFromUrl()` call (unchanged) still scrubs tokens/code from
+   the browser URL after the callback runs.
+9. **No staging URL introduced** — both new pages build `redirectTo` from `window.location.origin`
+   at runtime (the same pattern the existing customer pages already use), never a hardcoded
+   staging/certification domain.
+10. **Shared engine** — customer and admin recovery are proven, by direct source reference, to call
+    the identical `resetPasswordForEmail` / `establishSessionFromAuthCallback` /
+    `updateUser({ password })` functions; only the destination differs.
+
+### Verification
+
+New `scripts/verify-admin-password-recovery-01.ts` (`npm run verify:admin-password-recovery`),
+21 hand-rolled `node:assert` checks covering all of the above plus: the admin login page's
+forgot-password link, the allowlist's exact two-entry shape, the callback's early allowlist
+enforcement before session establishment, customer-vs-admin error-routing isolation, reuse (not
+reimplementation) of the password-policy/UI primitives, absence of any service-role API in browser
+code, and the Admin Guide update. Regression checks: `verify:owner-auth-break-glass` (16/16,
+unchanged), `verify:admin-nav-ops` (75/75, unchanged). Targeted eslint clean on every touched/new
+file. `git diff --check` clean (only benign LF→CRLF warnings). Two other worktrees' node processes
+were observed running during this gate (not this worktree's); since this gate only required
+lightweight lint/verify commands (no full build/typecheck), no resource contention occurred and
+no heavy command was started.
+
+### Deferred to a future/integration gate, not built here
+
+- Admin-driven customer password resets (a support action to reset an *existing customer's*
+  password from `/admin/usuarios`) — explicitly out of scope per this gate's brief.
+- Wiring the still-unenforced `can_reset_passwords` permission to any real action.
+- Supabase Dashboard config changes, live recovery emails, production Auth mutations, Vercel env
+  changes, migrations — none performed, none needed for this gate.
+- Browser QA of the actual email-click round-trip — source-level verification only, per this
+  gate's resource control.
+
+### Final status
+
+**ADMIN_PASSWORD_RECOVERY_GATE: CLOSED** for the scope this gate defined (admin forgot-password
+entry, admin-branded reset destination, shared-engine reuse, hardcoded recovery-context allowlist,
+zero authorization-boundary or bootstrap impact, zero customer-flow regression). Admin-driven
+customer password resets and the `can_reset_passwords` permission remain open, correctly
+classified as separate, deliberately deferred gates — not silently dropped.

@@ -26,6 +26,7 @@
     "verify:executive-hub-self-service": "npx tsx scripts/verify-executive-hub-self-service-01.ts",
     "verify:executive-company-search": "npx tsx scripts/verify-executive-company-search-01.ts",
     "verify:owner-auth-break-glass": "npx tsx scripts/verify-owner-auth-break-glass-01.ts",
+    "verify:admin-password-recovery": "npx tsx scripts/verify-admin-password-recovery-01.ts",
     "verify:living-business-book": "npx tsx scripts/verify-living-business-book-01.ts",
     "verify:business-health-map": "npx tsx scripts/verify-business-health-map-01.ts",
     "verify:business-learning-center": "npx tsx scripts/verify-business-learning-center-01.ts",

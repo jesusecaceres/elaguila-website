@@ -1042,3 +1042,64 @@ architectural inconsistency discovered during this pass.
   fragile exact-string-literal regex checks against `adminAccessControl.ts`'s
   `getAllowedGlobalNavHrefs()` array formatting; confirmed via `git diff` that this file was not
   touched by this gate).
+
+---
+
+## SYSTEM: Admin Password Recovery Routing
+
+Adds an Admin/staff forgot-password experience by reusing the existing canonical customer
+recovery engine end-to-end — no second implementation, no forked security logic.
+
+- **CANONICAL_ENTITY / DATA_SOURCE**: Supabase Auth (`auth.users`), same single pool customer and
+  staff already share. No new table, no new column, no `admin_team_members` involvement anywhere
+  in this flow.
+- **CANONICAL_RECOVERY_ENGINE**: `app/lib/auth/authCallbackSession.ts`
+  (`establishSessionFromAuthCallback`) + `app/(site)/auth/callback/page.tsx` — the SAME code path
+  both customer and admin recovery links resolve through. `resetPasswordForEmail()` and
+  `updateUser({ password })` are called from exactly two places in the whole app: the pre-existing
+  customer `/login` (mode=reset) and `/dashboard/seguridad`, and the two new admin pages below —
+  no third implementation was created.
+- **PRIMARY_ADMIN_HOME**: `/admin/login` — new "Forgot password?" link under the Staff / Team
+  login form, pointing to `/admin/login/forgot` (new). Recovery lands on `/admin/login/reset`
+  (new) — an admin-branded, dedicated password-update screen, never the customer dashboard.
+- **RECOVERY_CONTEXT_ALLOWLIST (new)**: `authCallbackSession.ts` exports
+  `resolveRecoveryContext()` / `isAllowedRecoveryDestination()` — a hardcoded map of exactly two
+  destinations (`customer` → `/dashboard/seguridad`, `admin` → `/admin/login/reset`). This is
+  deliberately stricter than the callback's general `safeInternalRedirect()` (which still governs
+  every non-recovery redirect — OAuth, magic link, signup, "post" continuation — unchanged): a
+  recovery link proves control of an email address only, so `/auth/callback` now refuses to land a
+  recovery flow anywhere outside this allowlist, throwing `recovery_destination_not_allowed`
+  (mapped to the same generic "couldn't open your recovery link" message) rather than following an
+  arbitrary `redirect` value.
+- **ADMIN_RECOVERY_ENTRY**: `app/admin/login/forgot/page.tsx` (new) — email input,
+  `resetPasswordForEmail(email, { redirectTo: .../auth/callback?redirect=/admin/login/reset... })`.
+  Always shows the fixed message "If an account exists for that email, check your inbox…"
+  regardless of whether the address belongs to a real account or a staff member — the only
+  distinct branch is a rate-limit cooldown (reveals request volume, never account existence).
+- **ADMIN_RESET_DESTINATION**: `app/admin/login/reset/page.tsx` (new) — on mount, requires an
+  existing Supabase session (`supabase.auth.getUser()`); no session → "invalid/expired" state with
+  a link back to `/admin/login/forgot`. When a session exists: new/confirm password fields reusing
+  the exact same `evaluatePassword`, `PasswordInputField`, `PasswordStrengthMeter` primitives the
+  customer destination uses, `updateUser({ password })`, success state with "Return to Staff /
+  Team login" → `/admin/login`. No Supabase service-role/admin API used anywhere in this
+  browser-side page.
+- **AUTHORIZATION_BOUNDARY, confirmed unchanged**: neither new page reads or writes
+  `admin_team_members`, roster role, or permissions — a password reset changes only the Supabase
+  Auth credential. After a reset, `/admin/login/auth` still independently re-checks
+  `lookupActiveAdminRosterByEmail()` before granting any admin session; merely having valid
+  Supabase Auth credentials (reset or not) still does not grant Admin access without an active
+  roster row.
+- **BOOTSTRAP**: untouched — `app/admin/login/submit/route.ts` and
+  `app/lib/supabase/adminSession.ts`'s bootstrap primitives contain zero references to either new
+  page; confirmed by direct source check.
+- **CUSTOMER_REGRESSION**: none. The customer destination (`/dashboard/seguridad`) is still the
+  first, unmodified entry in the new allowlist; customer recovery/callback errors still redirect
+  to `/login` (only an `admin`-context recovery error is diverted to `/admin/login`).
+- **ADMIN_GUIDE_ENTRY, updated**: `admin-login` — now documents the forgot-password flow,
+  non-enumerating recovery email behavior, and returning to Staff / Team login after reset,
+  alongside the unchanged bootstrap explanation.
+- **KNOWN_BROKEN_OR_SPLIT_WIRING**: none found or introduced.
+- NOTES: 21/21 targeted checks pass (`verify:admin-password-recovery`, new script). Regression
+  checks: `verify:owner-auth-break-glass` (16/16, unchanged), `verify:admin-nav-ops` (75/75,
+  unchanged). Targeted eslint clean on every file touched/created. `git diff --check` clean (only
+  benign LF→CRLF warnings).
