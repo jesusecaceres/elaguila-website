@@ -119,6 +119,18 @@ import {
 } from "../lib/dashboardRepublishUi";
 import { resolveListingLifecycle } from "@/app/lib/listingLifecycle/resolveListingLifecycle";
 import { RENTAS_LISTING_LIFECYCLE_CONFIG } from "@/app/lib/listingLifecycle/listingLifecycleConfig";
+import { leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import {
+  callBrFsboStatusMutation,
+  brFsboStatusErrorMessage,
+} from "@/app/(site)/dashboard/lib/brFsboStatusClient";
+import type { BrFsboOwnerStatusAction } from "@/app/lib/clasificados/bienes-raices/brFsboOwnerStatusAuthority";
+import {
+  BIENES_FSBO_LIFECYCLE_CATEGORY,
+  BIENES_FSBO_LIFECYCLE_PACKAGE_KEY,
+  BIENES_FSBO_LISTING_LIFECYCLE_CONFIG,
+  isBrFsboRow,
+} from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
 import { startListingRenewalCheckout } from "@/app/lib/listingLifecycle/listingRenewalCheckout";
 import { ComidaLocalDashboardListings } from "@/app/lib/clasificados/comida-local/ComidaLocalDashboardListings";
 import { fetchOwnerComidaLocalListings } from "@/app/lib/clasificados/comida-local/comidaLocalDashboardQueries";
@@ -481,18 +493,34 @@ function MyListingsPageContent() {
 
     for (const row of listings) {
       const cat = String(row.category ?? "").toLowerCase();
-      if (cat !== "rentas") continue;
-      const lifecycle = resolveListingLifecycle(
-        {
-          category: "rentas",
-          packageKey: "rentas_30d",
-          status: row.status,
-          isPublished: row.is_published,
-          publishedAt: row.published_at,
-          expiresAt: row.expires_at,
-        },
-        RENTAS_LISTING_LIFECYCLE_CONFIG,
-      );
+      // Gate BIENES-PRIVADO-1 — the two fixed-term lanes share this attention pass. Rentas is
+      // unchanged; a Bienes Raices private-seller row is admitted only when `isBrFsboRow` accepts
+      // it, so a Negocio subscription row is still skipped entirely and gains no expiry copy.
+      const fsbo = cat === "bienes-raices" && isBrFsboRow(row);
+      if (cat !== "rentas" && !fsbo) continue;
+      const lifecycle = fsbo
+        ? resolveListingLifecycle(
+            {
+              category: BIENES_FSBO_LIFECYCLE_CATEGORY,
+              packageKey: BIENES_FSBO_LIFECYCLE_PACKAGE_KEY,
+              status: row.status,
+              isPublished: row.is_published,
+              publishedAt: row.published_at,
+              expiresAt: row.expires_at,
+            },
+            BIENES_FSBO_LISTING_LIFECYCLE_CONFIG,
+          )
+        : resolveListingLifecycle(
+            {
+              category: "rentas",
+              packageKey: "rentas_30d",
+              status: row.status,
+              isPublished: row.is_published,
+              publishedAt: row.published_at,
+              expiresAt: row.expires_at,
+            },
+            RENTAS_LISTING_LIFECYCLE_CONFIG,
+          );
       const statusDisplayKey =
         lifecycle.lifecycleState === "pending_payment"
           ? "pending_payment"
@@ -504,13 +532,15 @@ function MyListingsPageContent() {
       out.push(
         ...resolveOwnerDashboardAttentionItems({
           id: row.id,
-          category: "rentas",
+          category: fsbo ? BIENES_FSBO_LIFECYCLE_CATEGORY : "rentas",
           statusDisplayKey,
           isPublished: row.is_published,
           // Edit route not evaluated in this narrow loop (left undefined, not "confirmed
           // missing") — the real edit href is computed per-row inside LeonixRealEstateListingManageCard's
           // own render path; this attention pass only claims what it has actually verified.
-          publicHref: rentasListingPublicPath(row.id),
+          publicHref: fsbo ? leonixLiveAnuncioPath(row.id) : rentasListingPublicPath(row.id),
+          // `hasRealAction` is true for both lanes because `startFixedTermRenewal` is a real,
+          // wired handler for each — never asserted for a category without a renewal path.
           renewal: { isRenewalEligible: lifecycle.isRenewalEligible, hasRealAction: true },
         }),
       );
@@ -866,6 +896,10 @@ function MyListingsPageContent() {
   }, [inventoryReady, categoryFilter, restaurantRawRows, serviciosRawRows, autosPaidRawRows, listings, accessToken]);
 
   async function markPauseListing(id: string) {
+    // Gate BIENES-PRIVADO-1 — Privado rows now go through their own server authority too, so
+    // the "client-direct behavior" note below applies to Rentas and En Venta only.
+    if (await applyBrFsboStatusAction(id, "pause")) return;
+
     // Gate G.2.3.1 — Bienes Raíces Negocio rows go through the new server-authorized mutation
     // route; every other listings-table category (Rentas, En Venta, Bienes Raíces Privado) keeps
     // its existing client-direct behavior exactly as-is, unchanged by this gate.
@@ -908,6 +942,10 @@ function MyListingsPageContent() {
   }
 
   async function markResumeListing(id: string) {
+    // Gate BIENES-PRIVADO-1 — Privado resume is server-validated: only a genuinely `paused`
+    // row resumes, and an unpaid row is refused with a payment-required message.
+    if (await applyBrFsboStatusAction(id, "resume")) return;
+
     // Gate G.2.3.1 — same BR/other-category split as markPauseListing. Resume additionally
     // rechecks the canonical main parent, entitlement, and capacity server-side for an inventory
     // child (Gate G.2.3A's confirmed most severe gap) — this client function never knows or
@@ -1028,7 +1066,38 @@ function MyListingsPageContent() {
     }
   }
 
+  /**
+   * Gate BIENES-PRIVADO-1 — one helper for every Privado status transition. It owns no rules:
+   * the server decides whether the transition is legal from the row's REAL current status, and
+   * this only reflects the result. Returns true when it handled the row.
+   */
+  async function applyBrFsboStatusAction(id: string, action: BrFsboOwnerStatusAction): Promise<boolean> {
+    const row = listings.find((x) => x.id === id);
+    if (!row || !isBrFsboRow(row)) return false;
+    setBusyId(id);
+    setError(null);
+    const result = await callBrFsboStatusMutation({ listingId: id, action });
+    if (!result.ok) {
+      setError(brFsboStatusErrorMessage(result.code, lang));
+      setBusyId(null);
+      return true;
+    }
+    const now = new Date().toISOString();
+    setListings((prev) =>
+      prev.map((x) =>
+        x.id === id ? { ...x, status: result.status, is_published: result.isPublished, updated_at: now } : x,
+      ),
+    );
+    setBusyId(null);
+    return true;
+  }
+
   async function markStatus(id: string, status: "active" | "sold") {
+    // Gate BIENES-PRIVADO-1 — a Privado row can no longer be published or sold by a direct
+    // client table write. "active" here means RELIST, and the server refuses it out of an
+    // unpaid `pending` row (payment authority belongs to the Revenue OS webhook alone).
+    if (await applyBrFsboStatusAction(id, status === "sold" ? "mark_sold" : "relist")) return;
+
     // Gate G.2.3.1 — only the BR "mark sold" case (maps to Discontinue) moves to the server
     // route; En Venta's "active" (relist) and "sold" calls through this same shared function
     // keep their existing client-direct behavior unchanged.
@@ -1169,16 +1238,27 @@ function MyListingsPageContent() {
     setBusyId(null);
   }
 
-  async function startRentasRenewal(row: ListingRow) {
+  /**
+   * Gate BIENES-PRIVADO-1 — one renewal starter for both fixed-term lanes. The category/package
+   * pair is chosen from the ROW, never from UI state, and the server re-verifies ownership, lane
+   * and eligibility before a Stripe session exists (`validateBienesFsboRenewalCheckoutOwnership`
+   * / `validateRentasRenewalCheckoutOwnership`). This client has no payment authority: it can
+   * only
+   * request a checkout, and a cancelled or failed checkout extends nothing.
+   */
+  async function startFixedTermRenewal(row: ListingRow) {
+    const fsbo = isBrFsboRow(row);
+    const category = fsbo ? BIENES_FSBO_LIFECYCLE_CATEGORY : "rentas";
+    const packageKey = fsbo ? BIENES_FSBO_LIFECYCLE_PACKAGE_KEY : "rentas_30d";
     setRenewalCheckoutBusyId(row.id);
     setError(null);
     const result = await startListingRenewalCheckout({
-      category: "rentas",
-      packageKey: "rentas_30d",
+      category,
+      packageKey,
       listingId: row.id,
       leonixAdId: row.leonix_ad_id,
       lang,
-      returnPath: `${pathname}?lang=${lang}&cat=rentas`,
+      returnPath: `${pathname}?lang=${lang}&cat=${category}`,
     });
     if (!result.ok) {
       setError(result.userMessage);
@@ -1254,6 +1334,11 @@ function MyListingsPageContent() {
   /** Soft archive (Admin-aligned): row stays in DB; Leonix Ad ID and history preserved. */
   async function softArchiveListing(id: string) {
     if (!confirm(lang === "es" ? "¿Archivar este anuncio? Dejará de mostrarse al público." : "Archive this listing? It will stop showing publicly.")) return;
+
+    // Gate BIENES-PRIVADO-1 — Privado archive is server-validated. It is still a SOFT archive:
+    // the same `status: removed` / `is_published: false` patch as before, so the row, its media,
+    // its analytics and its leonix_ad_id all survive. Nothing is deleted.
+    if (await applyBrFsboStatusAction(id, "archive")) return;
 
     // Gate G.2.3.1 — same BR/other-category split as the other lifecycle handlers. Active-child
     // disposition for a BR main parent (Gate G.2.3A Scenario C) is not yet implemented — this
@@ -2109,7 +2194,16 @@ function MyListingsPageContent() {
                 if (lx.branch) {
                   const catKey = String(x.category ?? "").toLowerCase();
                   const rowRec = x as unknown as Record<string, unknown>;
-                  const rentasLifecycle =
+                  // Gate BIENES-PRIVADO-1 — the same shared lifecycle reader now also serves the
+                  // Bienes Raíces FSBO lane, whose rows carry a real 45-day `expires_at` as of
+                  // this gate. The config is passed EXPLICITLY and only for a row `isBrFsboRow`
+                  // accepts,
+                  // so a Negocio subscription row never resolves through a fixed-term contract and
+                  // keeps rendering exactly as before (null lifecycle, no renewal affordance).
+                  // A legacy FSBO row published before this gate has no `expires_at`; the shared
+                  // reader reports it as `unknown` / `missing_expires_at` rather than inventing a
+                  // term, and the card shows no countdown — honest, not fabricated.
+                  const fixedTermLifecycle =
                     catKey === "rentas"
                       ? resolveListingLifecycle(
                           {
@@ -2121,6 +2215,18 @@ function MyListingsPageContent() {
                             expiresAt: x.expires_at,
                           },
                           RENTAS_LISTING_LIFECYCLE_CONFIG,
+                        )
+                      : isBrFsboRow(x)
+                      ? resolveListingLifecycle(
+                          {
+                            category: BIENES_FSBO_LIFECYCLE_CATEGORY,
+                            packageKey: BIENES_FSBO_LIFECYCLE_PACKAGE_KEY,
+                            status: x.status,
+                            isPublished: x.is_published,
+                            publishedAt: x.published_at,
+                            expiresAt: x.expires_at,
+                          },
+                          BIENES_FSBO_LISTING_LIFECYCLE_CONFIG,
                         )
                       : null;
                   // Gate G.2.3.1 — BR-specific client eligibility, paired with the server-side
@@ -2174,9 +2280,13 @@ function MyListingsPageContent() {
                       republishPrimaryLabel={repLabel}
                       onRepublish={repLabel ? () => void renewListingsTableRepublish(x) : undefined}
                       republishBusy={busy}
-                      lifecycle={rentasLifecycle}
+                      lifecycle={fixedTermLifecycle}
                       renewalBusy={renewalCheckoutBusyId === x.id}
-                      onRenew={rentasLifecycle?.isRenewalEligible ? () => void startRentasRenewal(x) : undefined}
+                      onRenew={
+                        fixedTermLifecycle?.isRenewalEligible
+                          ? () => void startFixedTermRenewal(x)
+                          : undefined
+                      }
                       parentLeonixAdIdByListingId={parentLeonixAdIdByListingId}
                       brNegocioInventoryRows={brNegocioInventoryRows as BrPropertyInventoryRowLike[]}
                       packageEntitlementBadge={dashboardEntitlementBadgeForKey(entitlementBadges, [

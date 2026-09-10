@@ -48,7 +48,11 @@ import {
   normalizeZipForBrowse,
 } from "@/app/clasificados/rentas/shared/rentasLocationNormalize";
 import { buildRentasStreetLine, orderedRentasGallerySourcesForPublish } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
-import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
+import {
+  buildProposedFinalMediaSet,
+  validateProposedFinalMediaSet,
+  warnDroppedUnpersistableMedia,
+} from "@/app/lib/media/listingMediaContract";
 
 /**
  * Globalization Package B (Gate B6) — shared media contract, additive gate. Deliberately does
@@ -222,6 +226,28 @@ export function buildPublishParamsFromBienesRaicesPrivadoDraft(
   const contact = privadoSellerContact(state.seller);
   const zipPriv = zipFromBrPrivadoDraft(state);
 
+  /**
+   * Gate BIENES-PRIVADO-1 — adopt the shared media-drop warning.
+   *
+   * The two sibling lanes in this same file (Rentas Privado above, BR Negocio below) already run
+   * their gallery through `buildProposedFinalMediaSet`, whose `droppedUnpersistable` list names
+   * every `blob:`/object-URL entry that cannot survive a page reload. FSBO passed its gallery
+   * straight through, so when a seller's photo silently failed to become a durable URL the
+   * listing simply published with fewer photos than they selected and nothing recorded it.
+   *
+   * This is observability, not a new gate: the ordered gallery handed to the core publish path
+   * is byte-for-byte the same list as before, so no publish that used to succeed can now fail.
+   * `warnDroppedUnpersistableMedia` no-ops when nothing was dropped.
+   */
+  const brPrivadoOrderedGallery = orderedRentasGallerySourcesForPublish(
+    state.media.photoDataUrls,
+    state.media.primaryImageIndex,
+  );
+  warnDroppedUnpersistableMedia(
+    "bienes-raices privado publish",
+    buildProposedFinalMediaSet({ existing: brPrivadoOrderedGallery }),
+  );
+
   return {
     ok: true,
     params: {
@@ -241,7 +267,7 @@ export function buildPublishParamsFromBienesRaicesPrivadoDraft(
       // pattern already used for Rentas Privado below), so the published detail page and
       // results card — which both assume "first image = cover" — actually show the cover the
       // seller picked in preview, instead of always reverting to raw upload order.
-      imageSources: orderedRentasGallerySourcesForPublish(state.media.photoDataUrls, state.media.primaryImageIndex),
+      imageSources: brPrivadoOrderedGallery,
       // Gate I.5.4A.1 — durable seller photo: a `data:` value is uploaded to hosted storage and
       // patched into `detailPairs` by the core publish function; an already-hosted URL was
       // already embedded above by `buildDetailPairsFromBienesRaicesPrivadoPreviewVm`.

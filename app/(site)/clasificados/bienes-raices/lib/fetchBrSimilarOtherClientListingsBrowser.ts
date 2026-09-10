@@ -5,6 +5,7 @@
 
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { isListingRowActiveAndPublishedForBrowse } from "@/app/(site)/clasificados/lib/listingPublicBrowseEligibility";
+import { isBrFsboRowWithinTerm } from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
 import { listingsQueryWithSelectShrink } from "@/app/(site)/clasificados/lib/listingsSelectShrink";
 import {
   getBrInventoryGroupId,
@@ -15,7 +16,7 @@ import { extractBrFacetsFromDetailPairs } from "../resultados/lib/brFacetFromDet
 import type { BrNegocioListing } from "../resultados/cards/listingTypes";
 
 const SIMILAR_SELECT =
-  "id, title, description, city, price, is_free, images, detail_pairs, listing_json, contact_json, seller_type, business_name, owner_id, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, status, is_published, created_at";
+  "id, title, description, city, price, is_free, images, detail_pairs, listing_json, contact_json, category, seller_type, business_name, owner_id, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, status, is_published, expires_at, created_at";
 
 export type BrSimilarOtherClientFetchArgs = {
   currentListingId: string;
@@ -97,6 +98,8 @@ export async function fetchBrSimilarOtherClientListingsForDetail(
 
     const candidates = (fetched.data as BrListingDbRow[]).filter((row) => {
       if (!isListingRowActiveAndPublishedForBrowse(row)) return false;
+      // Gate BIENES-PRIVADO-1 — same shared FSBO term rule as browse/detail/Saved Search/sitemap.
+      if (!isBrFsboRowWithinTerm(row)) return false;
       if (row.id === args.currentListingId) return false;
       if (!isBrNegocioListing(row)) return false;
       const group = getBrInventoryGroupId(row);

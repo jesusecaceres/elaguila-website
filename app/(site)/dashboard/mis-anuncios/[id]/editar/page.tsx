@@ -15,6 +15,8 @@ import {
   applyOwnerListingPatch,
 } from "../../../lib/ownerListingsLifecycleClient";
 import { dashboardSafeMutationErrorCopy } from "../../../lib/dashboardSafeErrorCopy";
+import { callBrFsboStatusMutation, brFsboStatusErrorMessage } from "../../../lib/brFsboStatusClient";
+import { isBrFsboRow } from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
 import {
   getCategoryLifecycleAdapter,
   isCompositeDescriptionCategory,
@@ -606,6 +608,30 @@ async function removeSellerPhoto() {
     setBusyAction("status");
     setError(null);
     setSuccess(null);
+
+    // Gate BIENES-PRIVADO-1 — this editor previously wrote `status` straight through RLS with
+    // no from-status validation at all, so an unpaid `pending` FSBO row could be published
+    // from here for free. A Privado row now asks the server instead; "active" is a RELIST and
+    // is refused out of any unpaid state with a payment-required message. Note this branch
+    // patches ONLY status: the editor's own field save path is untouched by this gate.
+    if (isBrFsboRow(listing ?? {})) {
+      const result = await callBrFsboStatusMutation({
+        listingId: id,
+        action: status === "sold" ? "mark_sold" : "relist",
+      });
+      if (!result.ok) {
+        setError(brFsboStatusErrorMessage(result.code, lang));
+        setBusyAction(null);
+        return;
+      }
+      setListing((prev: any) => ({
+        ...(prev || {}),
+        status: result.status,
+        is_published: result.isPublished,
+      }));
+      setBusyAction(null);
+      return;
+    }
 
     const { error: uErr } = await applyOwnerListingPatch(supabase, id, userId, { status });
 

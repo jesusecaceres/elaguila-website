@@ -24,6 +24,7 @@ import "server-only";
  */
 import { getAdminSupabase, getServerSupabaseAnon, isSupabaseAdminConfigured, isSupabasePublicReadConfigured } from "@/app/lib/supabase/server";
 import { isListingRowActiveAndPublishedForBrowse } from "@/app/(site)/clasificados/lib/listingPublicBrowseEligibility";
+import { isBrFsboRowWithinTerm } from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
 import {
   collectBrChildParentIds,
   filterBrRowsByActiveParent,
@@ -34,6 +35,10 @@ import {
 export type BrPublishedSitemapRow = {
   id: string;
   owner_id: string | null;
+  /** Gate BIENES-PRIVADO-1 — the two fields the shared FSBO term rule evaluates. */
+  category: string | null;
+  seller_type: string | null;
+  expires_at: string | null;
   status: string | null;
   is_published: boolean | null;
   inventory_role: string | null;
@@ -44,7 +49,7 @@ export type BrPublishedSitemapRow = {
 };
 
 const SITEMAP_SELECT =
-  "id, owner_id, status, is_published, inventory_role, br_inventory_parent_listing_id, updated_at, published_at, created_at";
+  "id, owner_id, category, seller_type, expires_at, status, is_published, inventory_role, br_inventory_parent_listing_id, updated_at, published_at, created_at";
 
 /** Parent candidates carry only the fields `isBrChildParentGateSatisfied` actually evaluates. */
 const PARENT_SELECT = "id, category, seller_type, inventory_role, owner_id, status, is_published";
@@ -86,9 +91,13 @@ export async function listPublishedBrListingsForSitemap(
       .limit(limit);
     if (error) return { ok: false, error: error.message };
 
-    const rows = ((data ?? []) as unknown as BrPublishedSitemapRow[]).filter((row) =>
-      // The shared row-level public rule, applied verbatim — never re-expressed here.
-      isListingRowActiveAndPublishedForBrowse(row),
+    const rows = ((data ?? []) as unknown as BrPublishedSitemapRow[]).filter(
+      (row) =>
+        // The shared row-level public rule, applied verbatim — never re-expressed here.
+        isListingRowActiveAndPublishedForBrowse(row) &&
+        // Gate BIENES-PRIVADO-1 — and the shared FSBO fixed-term rule, also verbatim, so an
+        // expired private-seller listing is not advertised to crawlers after it has left browse.
+        isBrFsboRowWithinTerm(row),
     );
 
     // The shared parent-liveness gate, applied verbatim. Parents are resolved by real UUID.

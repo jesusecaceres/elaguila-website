@@ -54,6 +54,7 @@ import { useAnuncioListingTranslation } from "@/app/lib/translation/useAnuncioLi
 import { BienesRaicesNegocioLiveDetailShell } from "@/app/clasificados/bienes-raices/listing/BienesRaicesNegocioLiveDetailShell";
 import { BienesRaicesPrivadoLiveDetailShell } from "@/app/clasificados/bienes-raices/listing/BienesRaicesPrivadoLiveDetailShell";
 import { resolveBrListingLane } from "@/app/clasificados/bienes-raices/listing/brListingLane";
+import { isBrFsboRowWithinTerm, type BrFsboRowLike } from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
 import { useRentasAnuncioDerived } from "../../rentas/listing/hooks/useRentasAnuncioDerived";
 import { RentasAnuncioHeroMonthlyRent } from "../../rentas/listing/components/RentasAnuncioHeroMonthlyRent";
 import { RentasAnuncioMetaFactChips } from "../../rentas/listing/components/RentasAnuncioMetaFactChips";
@@ -123,7 +124,7 @@ type Lang = "es" | "en";
 // failed round trips before the existing shrink-retry loop finds a working column set; the
 // price-drop feature already degrades to "no data" for every real row today regardless.
 const ANUNCIO_LISTING_SELECT_BASE =
-  "id, leonix_ad_id, owner_id, title, description, city, zip, category, price, is_free, detail_pairs, listing_json, profile_json, contact_json, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, is_published, created_at, images, republished_at, mux_playback_id";
+  "id, leonix_ad_id, owner_id, title, description, city, zip, category, price, is_free, detail_pairs, listing_json, profile_json, contact_json, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, seller_type, rentas_tier, business_name, business_meta, contact_phone, contact_email, status, is_published, expires_at, created_at, images, republished_at, mux_playback_id";
 
 function classifiedsSampleListingsEnabled(): boolean {
   if (process.env.NODE_ENV === "production") return false;
@@ -627,6 +628,18 @@ function AnuncioDetallePageContent() {
           return;
         }
         if (st !== "active" && st !== "sold") {
+          setFetchedListing(undefined);
+          setRemoteState("ready");
+          return;
+        }
+
+        // Gate BIENES-PRIVADO-1 — a private-seller (FSBO) Bienes Raíces listing whose paid fixed
+        // term has elapsed fails closed to the SAME "not found" outcome the checks above use: no
+        // expiry date, no owner identity and no internal lifecycle detail is leaked to the public.
+        // The shared rule is reused verbatim — a Negocio subscription row and any row without a
+        // real `expires_at` are untouched by it. Applied before the parent gate because an expired
+        // FSBO row has no parent concept at all.
+        if (!isBrFsboRowWithinTerm(row as BrFsboRowLike)) {
           setFetchedListing(undefined);
           setRemoteState("ready");
           return;

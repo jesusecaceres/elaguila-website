@@ -1063,6 +1063,9 @@ async function tryActivateBienesFsboListingAfterEntitlement(input: {
     listingId: input.paymentRecord.listing_id,
     packageKey: input.packageDef.packageKey,
     stripePaymentIntentId: input.stripePaymentIntentId ?? null,
+    // Gate BIENES-PRIVADO-1: the payment record is the ONLY source of renewal truth. Passing it
+    // here lets the fulfillment distinguish a first activation from a renewal of the same row.
+    paymentRecordId: input.paymentRecord.id,
   });
 
   if (
@@ -1111,7 +1114,10 @@ async function tryActivateBienesFsboListingAfterEntitlement(input: {
   }
 
   await writeRevenueAuditLog({
-    action: "bienes_fsbo_listing_activated_after_payment",
+    action:
+      activation.outcome === "renewed"
+        ? "bienes_fsbo_listing_renewed_after_payment"
+        : "bienes_fsbo_listing_activated_after_payment",
     targetType: "listings",
     targetId: activation.listingId ?? null,
     meta: {

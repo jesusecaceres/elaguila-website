@@ -14,7 +14,7 @@ import type { BrPublicParentCandidate } from "@/app/clasificados/lib/brPublicChi
 import type { BienesRaicesListingDbRow } from "./bienesRaicesPublicEligibleListing";
 
 const BR_LISTING_SELECT =
-  "id, category, title, description, city, price, is_free, images, detail_pairs, listing_json, profile_json, contact_json, seller_type, business_name, owner_id, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, created_at, updated_at, published_at, status, is_published, leonix_ad_id";
+  "id, category, title, description, city, price, is_free, images, detail_pairs, listing_json, profile_json, contact_json, seller_type, business_name, owner_id, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, created_at, updated_at, published_at, expires_at, status, is_published, leonix_ad_id";
 
 /** Server-side (admin client) single-row loader for BR match orchestration/delivery — no existing
  * function selects full display columns by id (the payment-service loader only selects lifecycle

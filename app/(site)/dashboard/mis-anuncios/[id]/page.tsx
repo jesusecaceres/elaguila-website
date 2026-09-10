@@ -12,6 +12,8 @@ import {
 } from "../../lib/ownerListingsLifecycleClient";
 import { isBrNegocioListing, isBrInventoryMainListing, isBrInventoryProperty } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
 import { callBrLifecycleMutation } from "../../lib/brDashboardLifecycleClient";
+import { callBrFsboStatusMutation, brFsboStatusErrorMessage } from "../../lib/brFsboStatusClient";
+import { isBrFsboRow } from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { LeonixDashboardShell } from "../../components/LeonixDashboardShell";
@@ -479,6 +481,23 @@ function ListingWorkspacePageContent() {
   async function markStatus(status: "active" | "sold") {
     if (!row) return;
     setBusy(true);
+    // Gate BIENES-PRIVADO-1 — a Privado row's status is decided by the server, never by a
+    // direct client table write. "active" is a RELIST and is refused out of an unpaid row.
+    if (isBrFsboRow(row)) {
+      const result = await callBrFsboStatusMutation({
+        listingId: row.id,
+        action: status === "sold" ? "mark_sold" : "relist",
+      });
+      if (!result.ok) {
+        setResumeError(brFsboStatusErrorMessage(result.code, lang));
+        setBusy(false);
+        return;
+      }
+      const now = new Date().toISOString();
+      setRow((r) => (r ? { ...r, status: result.status, is_published: result.isPublished, updated_at: now } : r));
+      setBusy(false);
+      return;
+    }
     if (status === "sold" && isBrNegocioListing(row)) {
       const result = await callBrLifecycleMutation({ listingId: row.id, mutation: "discontinue" });
       if (!result.ok) {
@@ -503,6 +522,20 @@ function ListingWorkspacePageContent() {
     if (!row) return;
     if (!confirm(lang === "es" ? "¿Archivar este anuncio? Dejará de mostrarse al público." : "Archive this listing? It will stop showing publicly.")) return;
     setBusy(true);
+    // Gate BIENES-PRIVADO-1 — soft archive for Privado also goes through the server authority.
+    // Same `removed` / unpublished patch as before; the row and its media are never deleted.
+    if (isBrFsboRow(row)) {
+      const result = await callBrFsboStatusMutation({ listingId: row.id, action: "archive" });
+      if (!result.ok) {
+        setResumeError(brFsboStatusErrorMessage(result.code, lang));
+        setBusy(false);
+        return;
+      }
+      const now = new Date().toISOString();
+      setRow((r) => (r ? { ...r, status: result.status, is_published: result.isPublished, updated_at: now } : r));
+      setBusy(false);
+      return;
+    }
     if (isBrNegocioListing(row)) {
       const result = await callBrLifecycleMutation({ listingId: row.id, mutation: "archive" });
       if (!result.ok) {
