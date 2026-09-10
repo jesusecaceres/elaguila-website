@@ -492,11 +492,11 @@ export const ADMIN_GUIDE_ENTRIES: AdminGuideEntry[] = [
     relatedPublicRoutes: ["/contact/[slug]"],
     actionLevel: "red",
     failureGuidance: "Staff self-editing is now available (see 'My Profile') for a limited, safe field set once an owner links their account here — publishing, slug, company/legal details, and Business Hub links always remain owner-only, even for a linked staff member.",
-    keywords: ["staff contact", "contact page", "vcard", "qr code", "business card page", "public profile", "contact slug", "update staff contact page", "link staff account"],
+    keywords: ["staff contact", "contact page", "vcard", "qr code", "business card page", "public profile", "contact slug", "update staff contact page", "link staff account", "find staff contact", "search staff profile"],
     canonicalEntity: "executives",
     audience: "owner",
     leoSafeReadSource: true,
-    notes: "QR code, vCard download, and the public /contact/[slug] page are all real and already built (DigitalContactQrCode.tsx, the vcf API route, digitalContactVCard.ts). Staff↔profile linkage is a real FK (executives.linked_roster_id -> admin_team_members.id, 20260910120000, additive, not yet applied remotely) — see the Cable Map for the pre-migration fallback behavior.",
+    notes: "QR code, vCard download, and the public /contact/[slug] page are all real and already built (DigitalContactQrCode.tsx, the vcf API route, digitalContactVCard.ts). Staff↔profile linkage is a real FK (executives.linked_roster_id -> admin_team_members.id, 20260910120000, additive, not yet applied remotely) — see the Cable Map for the pre-migration fallback behavior. Company Search (Customer Ops, /admin/ops) can now find these profiles by name, title, email, slug, company, or phone — labeled distinctly as 'Staff contact profile,' never merged with a 'Staff' (Team Roster login) result. Do not confuse this with Admin Guide Search (this page): Company Search finds the real record, this entry teaches how to operate the system that owns it.",
   },
   {
     id: "my-profile",

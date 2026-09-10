@@ -1960,3 +1960,93 @@ pass, unchanged by this gate's work).
 **STAFF_SELF_SERVICE_PROFILE_GATE: CLOSED** for the scope this gate defined (edit an already-linked
 profile's safe fields). Self-service profile creation and Company Search coverage remain open,
 correctly classified as separate, deliberately deferred gates — not silently dropped.
+
+## EXECUTIVE HUB / STAFF CONTACT PROFILES → COMPANY SEARCH COVERAGE — 2026-09-10
+
+Focused canonical search wiring gate, per Master Operating Book V2 §17 Global Search Contract and
+§0C Company-Search-vs-Admin-Guide-Search distinction. Closes the "Executive Hub records exist but
+are absent from Company Search" gap documented at the end of both the V2 audit and the staff
+self-service gates. HEAD at start: `be7b93bd`.
+
+### Investigation
+
+Read `adminExtendedGlobalSearch.ts` (the extended-source union: team roster, leads, payments,
+resources, magazine issues, support tickets), `adminOpsUnifiedSearch.ts` (the canonical
+`runAdminUnifiedSearch()` entry point rendered at `/admin/ops`), `ops/page.tsx` (confirmed it had
+no existing role/permission-context wiring — only `requireAdminCookie`), `adminAccessControl.ts`
+(`AdminAccessContext.rosterMemberId`, `isOwnerAdminRole()`, `canViewAdminTeam()` = owner_admin
+only), and `executiveHubStore.ts` (`listExecutiveHubRecords()` — the same pre-migration-safe
+function the owner's own Executive Hub list page already uses).
+
+Confirmed the real risk named in the task brief: `canViewAdminTeam` gates
+`/admin/team/executive-hub/*` to `owner_admin` only, but several other roles (`sales_manager`,
+`admin_manager`, `content_admin`) can already reach `/admin/ops`. Adding executives to Company
+Search without permission-aware routing would have hand a restricted role a search result whose
+only CTA is a route they cannot open — the exact "unusable owner-only CTA" failure mode the task
+warned against.
+
+### Implementation
+
+- `adminExtendedGlobalSearch.ts`: imported `listExecutiveHubRecords` (no new table/query/index);
+  added `"executive_profile"` to the `entityType` union and an optional `linkedRosterId` field to
+  `AdminExtendedSearchRow`; added an exported `AdminExtendedSearchViewer` type
+  (`{ rosterId, isOwnerAdmin }`); `searchExtendedAdminSources()` now takes an optional `viewer`
+  parameter; new search block matches on `fullName`/`preferredName`/`title`/`email`/`slug`/
+  `company`/`phoneDisplay`/`phoneDigits` (an exact `linkedRosterId` match when the query is a
+  UUID), deliberately never `notes`/`metaDescription`. Result gets
+  `entityType: "executive_profile"`, `entityLabel: "Staff contact profile"` (distinct from the
+  pre-existing `"team_member"`/`"Staff"` result), and a permission-aware `adminHref`: owner_admin
+  → real edit route; the row's own linked staff member → `/admin/team/my-profile`; everyone else
+  → the always-safe public `/contact/{slug}`.
+- `adminOpsUnifiedSearch.ts`: `runAdminUnifiedSearch()` now accepts and forwards the optional
+  `viewer` parameter to `searchExtendedAdminSources()`.
+- `ops/page.tsx`: computes `viewer = { rosterId: access.rosterMemberId, isOwnerAdmin:
+  isOwnerAdminRole(access.normalizedRole) }` from `getCurrentAdminAccessContext()` and passes it
+  into `runAdminUnifiedSearch()` — the first time this page reads access context at all. Added a
+  "Linked to a staff login account" relationship line for results with a `linkedRosterId`, and
+  updated the section heading to mention "Contact Profiles."
+- `adminGuideRegistry.ts`: updated the existing `executive-hub` entry's `keywords`/`notes` only —
+  states Company Search can now find these profiles, explicitly distinguishing that from Admin
+  Guide Search itself. No new entry; no duplicated instructions elsewhere.
+
+### Verification
+
+New `scripts/verify-executive-company-search-01.ts` (`npm run verify:executive-company-search`),
+21 hand-rolled `node:assert` checks proving: the executives source is registered with no duplicate
+table; only the named safe fields are searched and `notes`/`metaDescription` are not; the result
+type is distinct from `team_member`; the owner/self/default destination routing is correct and the
+owner route is strictly gated behind `viewer.isOwnerAdmin`; `ops/page.tsx` computes a real (not
+hardcoded) viewer context; the displayed title never leaks internal fields;
+`rowToDigitalContactProfile` still never exposes `linked_roster_id`; the search path never issues
+its own query against `linked_roster_id` (inherits the existing pre-migration fallback by
+construction); Company Search and Admin Guide Search have no cross-import in either direction; and
+every pre-existing entityLabel/search source is still present and unchanged.
+
+Two checks initially false-failed and were fixed before commit, both caused by prose rather than a
+real defect: (1) a code comment containing the literal string "row.notes" (explaining what the
+code deliberately does *not* read) tripped a naive regex — fixed by stripping comments before
+testing, the same convention already used in `verify-executive-hub-self-service-01.ts` and
+`verify-admin-roster-foundation-01.ts`; (2) the Admin Guide registry's own top-of-file doc comment,
+which explains the §0C Company-Search-vs-Guide-Search distinction by name-dropping
+`adminOpsUnifiedSearch.ts`/`adminExtendedGlobalSearch.ts` in prose, tripped a bare-string-match
+check — fixed to test for an actual `import ... from` statement instead of any mention of the
+filename.
+
+Also re-ran `verify:admin-nav-ops` (75/75, unchanged) and `verify:executive-hub-self-service`
+(20/20, unchanged) as regression checks — this gate touched no nav arrays and no self-service
+authorization logic.
+
+### Deferred to a future/integration gate, not built here
+
+- Owner-login runtime proof, applying the `linked_roster_id` migration, new staff account
+  creation behavior, Global Search UI redesign, Executive Hub redesign, LEO integration, browser
+  QA — all explicitly out of scope per this gate's brief.
+- Remote application of `20260910120000_executives_linked_roster_id.sql` — owner approval
+  required, not performed; search remains correct and unaffected either way.
+
+### Final status
+
+**EXECUTIVE_COMPANY_SEARCH_GATE: CLOSED** for the scope this gate defined (search coverage +
+permission-aware routing for existing Executive Hub records). Self-service profile creation, the
+owner-login runtime proof, and migration application remain open, correctly classified as separate,
+deliberately deferred gates — not silently dropped.

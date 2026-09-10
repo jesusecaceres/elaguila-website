@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-09-final-close-out-pass",
+  "updatedAt": "2026-09-10-executive-company-search-gate",
   "masterOperatingBookAdopted": true,
   "cableMapPass": {
     "status": "substantially_complete",
@@ -853,5 +853,79 @@
       "Self-service profile CREATION (staff can only edit an already owner-linked profile)"
     ],
     "staffSelfServiceProfileGate": "CLOSED"
+  },
+  "executiveCompanySearchGate": {
+    "status": "complete_for_scope",
+    "executiveSource": "public.executives via listExecutiveHubRecords() (executiveHubStore.ts) — no duplicate table/query",
+    "companySearchAdapter": "adminExtendedGlobalSearch.ts new source block, unioned into runAdminUnifiedSearch() (adminOpsUnifiedSearch.ts), rendered at /admin/ops",
+    "searchableFields": [
+      "fullName",
+      "preferredName",
+      "title",
+      "email",
+      "slug",
+      "company",
+      "phoneDisplay",
+      "phoneDigits",
+      "linkedRosterId (exact match only, when query is a UUID)"
+    ],
+    "sensitiveFieldsExcluded": ["notes", "metaDescription"],
+    "resultType": {
+      "entityType": "executive_profile",
+      "entityLabel": "Staff contact profile",
+      "distinctFrom": "team_member / \"Staff\" (Team Roster login/access identity)"
+    },
+    "permissionAwareRouting": {
+      "ownerAdmin": "/admin/team/executive-hub/{slug}/edit",
+      "linkedStaffSelf": "/admin/team/my-profile",
+      "everyoneElseDefault": "/contact/{slug}",
+      "ownerRouteGatedBy": "viewer.isOwnerAdmin (computed server-side in ops/page.tsx from getCurrentAdminAccessContext(), never client-suppliable)"
+    },
+    "preMigrationSafe": true,
+    "preMigrationSafeMechanism": "search block never queries linked_roster_id directly; only reads the field off ExecutiveHubRecord already produced by the existing pre-migration-safe dbListExecutiveHubRecords() fallback",
+    "companySearchDistinctFromGuideSearch": true,
+    "guideUpdated": true,
+    "guideUpdateScope": "existing executive-hub entry's keywords/notes only, no new entry, no duplicated instructions",
+    "existingSearchCategoriesUnchanged": true,
+    "targetedSearchChecks": {
+      "script": "scripts/verify-executive-company-search-01.ts",
+      "npmScript": "verify:executive-company-search",
+      "result": "PASS",
+      "checksPassed": 21,
+      "selfCorrections": [
+        "notes-field check initially matched a code comment's prose mention of 'row.notes' — fixed by stripping comments before testing",
+        "cross-import check initially matched the guide registry's own doc-comment prose naming the search module filenames — fixed to test for an actual `import ... from` statement instead of a bare string match"
+      ],
+      "propertiesProven": [
+        "executives source registered in Company Search, no duplicate table/query",
+        "expected safe fields searchable; notes/metaDescription excluded",
+        "result type (executive_profile/\"Staff contact profile\") unambiguous vs team_member/\"Staff\"",
+        "canonical Admin destination correct for owner_admin, linked staff self, and default viewer",
+        "restricted roles never receive an unusable owner-only CTA (routing gated behind viewer.isOwnerAdmin, computed from real access context)",
+        "no sensitive/internal fields exposed in result title or match fields",
+        "missing linked_roster_id migration cannot break search (inherits existing fallback by construction)",
+        "Company Search remains distinct from Admin Guide Search (no cross-import either direction)",
+        "every pre-existing entityLabel and search source remains present and unchanged"
+      ]
+    },
+    "regressionChecks": {
+      "verify:admin-nav-ops": "PASS 75/75 (unchanged)",
+      "verify:executive-hub-self-service": "PASS 20/20 (unchanged)"
+    },
+    "filesChanged": [
+      "app/admin/_lib/adminExtendedGlobalSearch.ts",
+      "app/admin/_lib/adminOpsUnifiedSearch.ts",
+      "app/admin/(dashboard)/ops/page.tsx",
+      "app/admin/_lib/adminGuideRegistry.ts",
+      "scripts/verify-executive-company-search-01.ts (new)",
+      "package.json"
+    ],
+    "deferredToIntegrationGate": [
+      "Owner-login runtime proof",
+      "Remote application of 20260910120000_executives_linked_roster_id.sql",
+      "Self-service profile CREATION (staff can only edit an already owner-linked profile)",
+      "Global Search UI redesign, Executive Hub redesign, LEO integration — all explicitly out of scope"
+    ],
+    "executiveCompanySearchGate": "CLOSED"
   }
 }

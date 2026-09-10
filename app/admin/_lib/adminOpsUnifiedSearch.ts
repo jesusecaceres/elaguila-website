@@ -5,7 +5,7 @@ import { fetchAdminSupportContextForProfile, type AdminSupportContext } from "./
 import { listTiendaOrdersForAdmin } from "./tiendaOrdersData";
 import { searchDedicatedCategoryListingsForAdminOps } from "./adminDedicatedCategorySearch";
 import { listBusinessesForWorkspace } from "./businessWorkspaceData";
-import { searchExtendedAdminSources } from "./adminExtendedGlobalSearch";
+import { searchExtendedAdminSources, type AdminExtendedSearchViewer } from "./adminExtendedGlobalSearch";
 
 export type AdminUnifiedSearchBundle = {
   q: string;
@@ -38,8 +38,12 @@ export type AdminUnifiedSearchBundle = {
   supportContext: AdminSupportContext | null;
 };
 
-/** Parallel cross-entity search for customer operations (no fake persistence). */
-export async function runAdminUnifiedSearch(q: string): Promise<AdminUnifiedSearchBundle> {
+/**
+ * Parallel cross-entity search for customer operations (no fake persistence). `viewer` is
+ * optional and, today, only consumed by the Executive Hub / staff-contact-profile source inside
+ * `searchExtendedAdminSources` — every other source's destination is already role-agnostic.
+ */
+export async function runAdminUnifiedSearch(q: string, viewer?: AdminExtendedSearchViewer): Promise<AdminUnifiedSearchBundle> {
   const trimmed = q.trim();
   const [profiles, listings, orders, reports, dedicatedCategories, businesses, extended] = await Promise.all([
     fetchProfilesForAdminList({ q: trimmed, searchLimit: 40, recentLimit: 200 }),
@@ -48,7 +52,7 @@ export async function runAdminUnifiedSearch(q: string): Promise<AdminUnifiedSear
     searchListingReportsForOps(trimmed, 20),
     searchDedicatedCategoryListingsForAdminOps(trimmed),
     trimmed ? listBusinessesForWorkspace({ keyword: trimmed, limit: 8 }) : Promise.resolve({ items: [], total: 0 }),
-    searchExtendedAdminSources(trimmed),
+    searchExtendedAdminSources(trimmed, viewer),
   ]);
 
   let supportContext: AdminSupportContext | null = null;

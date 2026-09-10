@@ -25,15 +25,37 @@ import { listLeonixLeadsForAdmin } from "./leonixLeadsData";
 import { fetchPaymentTrackerSnapshot } from "./paymentTrackerData";
 import { dbListCommunityResources } from "@/app/lib/recursos/server/communityResourcesDb";
 import { fetchAllMagazineIssuesForAdmin } from "@/app/lib/magazine/magazineManifestServer";
+import { listExecutiveHubRecords } from "@/app/admin/_lib/executiveHubStore";
 
 export type AdminExtendedSearchRow = {
   id: string;
   title: string | null;
-  entityType: "team_member" | "lead" | "payment" | "resource" | "magazine_issue" | "support_ticket";
+  entityType: "team_member" | "lead" | "payment" | "resource" | "magazine_issue" | "support_ticket" | "executive_profile";
   entityLabel: string;
   status: string | null;
   adminHref: string;
+  /**
+   * Master Operating Book V2 §0G/§17 — present only for entityType "executive_profile". Shows
+   * the real linked_roster_id relationship (admin_team_members.id) when one exists, WITHOUT
+   * merging the two identity concepts: a "Staff contact profile" result stays visually and
+   * structurally distinct from a "Staff" (Team Roster/login) result even when both refer to the
+   * same person.
+   */
+  linkedRosterId?: string | null;
 };
+
+/**
+ * Master Operating Book V2 §17 permission doctrine — Company Search must not become a permission
+ * bypass. Passed in by the caller (already has the viewer's real access context); used only to
+ * compute the executive-profile result's destination:
+ *   - owner_admin: the real owner-management edit route (they can already reach it directly).
+ *   - the linked staff member themselves: their own self-service route (never someone else's).
+ *   - everyone else: the real public /contact/[slug] page — always safe, always reachable, never
+ *     a route they'd be redirected away from.
+ * No other search source in this file needs viewer context; none of their destinations are
+ * role-restricted the way Executive Hub's owner-only editor is.
+ */
+export type AdminExtendedSearchViewer = { rosterId: string | null; isOwnerAdmin: boolean };
 
 export type AdminExtendedSearchBundle = {
   rows: AdminExtendedSearchRow[];
@@ -70,7 +92,7 @@ type SupportTicketSearchRow = {
   user_id: string | null;
 };
 
-export async function searchExtendedAdminSources(q: string): Promise<AdminExtendedSearchBundle> {
+export async function searchExtendedAdminSources(q: string, viewer?: AdminExtendedSearchViewer): Promise<AdminExtendedSearchBundle> {
   const trimmed = q.trim();
   const rows: AdminExtendedSearchRow[] = [];
   const errors: string[] = [];
@@ -109,6 +131,51 @@ export async function searchExtendedAdminSources(q: string): Promise<AdminExtend
     } catch (e) {
       errors.push(`Staff roster: ${e instanceof Error ? e.message : "search failed"}`);
     }
+  }
+
+  // --- Executive Hub / staff PUBLIC contact profiles (public.executives) — Master Operating
+  // Book V2 §0G/§17. Deliberately a distinct entityType from "team_member" above: Team Roster
+  // (admin_team_members) is login/authorization identity, this is the public contact-page
+  // record. Reuses the same canonical, already-pre-migration-safe admin list function
+  // (listExecutiveHubRecords -> dbListExecutiveHubRecords) the owner's own Executive Hub list
+  // page uses — no duplicate table, no parallel index, no new fallback logic needed here: the
+  // function already gracefully degrades if linked_roster_id isn't applied remotely yet.
+  try {
+    const { records, unavailable } = await listExecutiveHubRecords();
+    if (unavailable) throw new Error("executive hub unavailable");
+    const found = records
+      .filter((row) =>
+        isUuid(trimmed)
+          ? row.linkedRosterId === trimmed
+          : matches(
+              [row.fullName, row.preferredName, row.title, row.email, row.slug, row.company, row.phoneDisplay, row.phoneDigits],
+              trimmed,
+            ),
+      )
+      .slice(0, PER_SOURCE_LIMIT);
+    for (const row of found) {
+      // Permission-aware destination (never expose an owner-only route to a viewer who can't
+      // open it): owner_admin gets the real editor; the linked staff member themselves gets
+      // their own self-service page; everyone else gets the real, always-safe public page.
+      let adminHref = `/contact/${row.slug}`;
+      if (viewer?.isOwnerAdmin) {
+        adminHref = `/admin/team/executive-hub/${row.slug}/edit`;
+      } else if (viewer?.rosterId && row.linkedRosterId && viewer.rosterId === row.linkedRosterId) {
+        adminHref = "/admin/team/my-profile";
+      }
+      rows.push({
+        id: row.slug,
+        // Name + title only — never row.notes (internal-only) or any other non-public field.
+        title: (row.preferredName || row.fullName) + (row.title ? ` — ${row.title}` : ""),
+        entityType: "executive_profile",
+        entityLabel: "Staff contact profile",
+        status: row.status,
+        adminHref,
+        linkedRosterId: row.linkedRosterId,
+      });
+    }
+  } catch (e) {
+    errors.push(`Staff contact profiles: ${e instanceof Error ? e.message : "search failed"}`);
   }
 
   // --- Leonix leads (advertising/promo/general inquiries) — bounded scan + in-memory match ---

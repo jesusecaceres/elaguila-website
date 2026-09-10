@@ -705,10 +705,10 @@ Recorded properly now per §0G/§0I:
   matching every sibling page's pattern. This was the exact discoverability gap named in this
   audit's brief ("Team Roster exposes staff login/access... staff contact/public-profile
   functionality... is not currently obvious/discoverable from Team").
-- **COMPANY_SEARCH_SUPPORT**: **NO** — `executives` rows are not covered by
-  `runAdminUnifiedSearch`/`adminExtendedGlobalSearch.ts`. A real, still-open gap (not fixed this
-  pass — would need a new search adapter, more than a tiny wiring fix). Distinct from Team Roster
-  search, which is already covered.
+- **COMPANY_SEARCH_SUPPORT**: **NO** at the time of this pass — `executives` rows were not covered
+  by `runAdminUnifiedSearch`/`adminExtendedGlobalSearch.ts`. **Closed in a later gate** — see the
+  "Executive Hub / Staff Contact Profile — Company Search coverage" section at the end of this
+  document.
 - **ADMIN_GUIDE_ENTRY**: none — no Admin Guide system exists at all yet (see below).
 
 ### BUG FOUND AND FIXED: `/admin/system-health` was invisible in the actual rendered sidebar
@@ -896,9 +896,10 @@ exists (Master Operating Book V2 §0G).
 - **ADMIN_GUIDE_ENTRY, updated**: `executive-hub` entry revised to describe the owner-management
   surface accurately post-linkage; new dedicated `my-profile` entry added for the staff-facing
   side. Both entries cross-reference each other and the real `/contact/[slug]` public route.
-- **COMPANY_SEARCH_SUPPORT**: still NO — unchanged from the prior pass's documented gap. This
-  gate's scope was authorization/profile wiring, not search indexing; explicitly the next
-  recommended gate.
+- **COMPANY_SEARCH_SUPPORT**: still NO at the time of this pass — unchanged from the prior pass's
+  documented gap. This gate's scope was authorization/profile wiring, not search indexing.
+  **Closed in the next gate** — see the "Executive Hub / Staff Contact Profile — Company Search
+  coverage" section at the end of this document.
 - **MISSING_ADMIN_CONTROL, closed this pass**: "staff cannot edit their own Executive Hub contact
   profile from anywhere" (flagged in the prior V2 audit pass) is now closed for the edit case.
   Self-service profile CREATION remains a genuine, separate, not-yet-built capability — a staff
@@ -907,3 +908,51 @@ exists (Master Operating Book V2 §0G).
 - NOTES: 20/20 targeted security checks pass (`verify:executive-hub-self-service`, new script);
   `verify:admin-nav-ops` (75/75) and `verify:admin-roster-foundation` (32/32, same 1 pre-existing
   unrelated failure as every prior pass) both re-confirmed unaffected.
+
+---
+
+## SYSTEM: Executive Hub / Staff Contact Profile — Company Search coverage
+
+Closes the `COMPANY_SEARCH_SUPPORT: NO` gap documented in both sections above (Master Operating
+Book V2 §17 Global Search Contract / §0C Company-Search-vs-Admin-Guide-Search distinction).
+
+- **COMPANY_SEARCH_SUPPORT**: **YES**, as of this gate. `public.executives` rows are now one of
+  the sources `adminExtendedGlobalSearch.ts` unions into `runAdminUnifiedSearch()` (rendered at
+  `/admin/ops`). No new table, no new query engine — reuses `listExecutiveHubRecords()`
+  (`executiveHubStore.ts` → `dbListExecutiveHubRecords()`) exactly as the owner's own Executive
+  Hub list page already does, so it automatically inherits that function's existing
+  pre-migration-safe fallback for `linked_roster_id`.
+- **SEARCHABLE_FIELDS**: `fullName`, `preferredName`, `title`, `email`, `slug`, `company`,
+  `phoneDisplay`, `phoneDigits` — plus an exact `linkedRosterId` match when the query itself is a
+  UUID. Deliberately excludes `notes` and `metaDescription` (internal-only per the schema's own
+  intent) and every other non-public field.
+- **RESULT_TYPE**: `entityType: "executive_profile"`, `entityLabel: "Staff contact profile"` — a
+  new, distinct classification from the pre-existing `entityType: "team_member"` /
+  `entityLabel: "Staff"` result (Team Roster login/access identity). The two are never merged or
+  made to look interchangeable; a result linked to a real roster identity additionally shows
+  "Linked to a staff login account" in the Ops UI.
+- **PERMISSION-AWARE DESTINATION**: this was the actual hard part, since `/admin/ops` (where
+  Company Search renders) is reachable by more roles than `/admin/team/executive-hub/*` (owner-only,
+  gated by `canViewAdminTeam`). `ops/page.tsx` now computes a real `viewer` context
+  (`{ rosterId, isOwnerAdmin }`) from `getCurrentAdminAccessContext()` for the first time and
+  threads it through `runAdminUnifiedSearch()` → `searchExtendedAdminSources()`. Per result:
+  `owner_admin` → the real edit route `/admin/team/executive-hub/{slug}/edit`; the row's own
+  linked staff member (`viewer.rosterId === row.linkedRosterId`) → their own
+  `/admin/team/my-profile`; every other viewer → the always-reachable public `/contact/{slug}`
+  route. No viewer is ever handed a route they lack authorization to open — Company Search does
+  not become a permission bypass, and no existing route guard was weakened.
+- **PRE-MIGRATION SAFETY**: unchanged/inherited, not re-implemented — the search block never runs
+  its own query against `linked_roster_id`; it only reads the field off the already-resolved,
+  already-safe `ExecutiveHubRecord` returned by the existing store function. A remotely-missing
+  `linked_roster_id` column (the migration is still not applied) cannot break Company Search.
+- **GUIDE_ALIGNMENT**: the `executive-hub` Admin Guide entry's `notes`/`keywords` were updated to
+  state that Company Search can now find these profiles — no new entry, no duplicated instructions.
+  Company Search and Admin Guide Search remain fully separate systems (confirmed: no import in
+  either direction between `adminGuideRegistry.ts` and `adminExtendedGlobalSearch.ts`/
+  `adminOpsUnifiedSearch.ts`).
+- **KNOWN_BROKEN_OR_SPLIT_WIRING**: none found or introduced.
+- NOTES: 21/21 targeted checks pass (`verify:executive-company-search`, new script — two initial
+  false-positive checks caught and fixed before commit: a doc-comment string match and a
+  prose-mention match, both corrected to test actual code rather than comment text, consistent with
+  this project's established comment-stripping convention). `verify:admin-nav-ops` (75/75) and
+  `verify:executive-hub-self-service` (20/20) both re-confirmed unaffected.

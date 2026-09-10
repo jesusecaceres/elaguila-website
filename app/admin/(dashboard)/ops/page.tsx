@@ -15,6 +15,7 @@ import {
 import { runAdminUnifiedSearch } from "../../_lib/adminOpsUnifiedSearch";
 import { adminMessages, getAdminLang } from "../../_lib/adminI18n";
 import { OpsGlobalLookupEmptyState } from "./_components/OpsGlobalLookupEmptyState";
+import { getCurrentAdminAccessContext, isOwnerAdminRole } from "../../_lib/adminAccessControl";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,13 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
   const qRaw = typeof sp.q === "string" ? sp.q : Array.isArray(sp.q) ? (sp.q[0] ?? "") : "";
   const q = qRaw.trim();
 
-  const bundle = q ? await runAdminUnifiedSearch(q) : null;
+  // Master Operating Book V2 §17 — passed through to the Executive Hub / staff-contact-profile
+  // search source so its result destination is never an owner-only route a restricted viewer
+  // would be redirected away from (see adminExtendedGlobalSearch.ts's AdminExtendedSearchViewer).
+  const access = await getCurrentAdminAccessContext();
+  const viewer = { rosterId: access.rosterMemberId, isOwnerAdmin: isOwnerAdminRole(access.normalizedRole) };
+
+  const bundle = q ? await runAdminUnifiedSearch(q, viewer) : null;
   const lang = await getAdminLang();
   const m = adminMessages(lang);
 
@@ -450,7 +457,7 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
           </section>
 
           <section id="ops-extended" className={`${adminCardBase} scroll-mt-24 p-5`} data-testid="ops-results-extended">
-            <h2 className="text-base font-bold text-[#1E1810]">Staff, Leads, Payments, Recursos, Revista, Support</h2>
+            <h2 className="text-base font-bold text-[#1E1810]">Staff, Contact Profiles, Leads, Payments, Recursos, Revista, Support</h2>
             <p className="mt-1 text-xs text-[#7A7164]">
               Grouped by type. Entities with no per-record deep link open the correct queue instead of a specific row.
             </p>
@@ -474,6 +481,9 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#9A9084]">{row.entityLabel}</p>
                       <p className="truncate font-semibold text-[#1E1810]">{row.title ?? "—"}</p>
                       {row.status ? <p className="text-xs text-[#7A7164]">{row.status}</p> : null}
+                      {row.entityType === "executive_profile" && row.linkedRosterId ? (
+                        <p className="text-[10px] text-[#9A9084]">Linked to a staff login account</p>
+                      ) : null}
                     </div>
                     <Link href={row.adminHref} className="shrink-0 text-xs font-bold text-[#6B5B2E] underline">
                       Open →
