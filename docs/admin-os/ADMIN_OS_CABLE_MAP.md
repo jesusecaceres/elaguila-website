@@ -1343,3 +1343,45 @@ plus a further raw-technical-error burndown pass.
   in files this gate never touched (`digitalContactExecutivesDb.ts`'s `linked_roster_id` typing
   gap from a prior gate, and 6 unrelated `e2e/**` Playwright spec type errors) — confirmed via
   `git diff` to predate this gate; zero new type errors introduced.
+
+---
+
+## FINAL MASTER BLUEPRINT COMPLETION AUDIT — cable-map completeness confirmation (2026-09-10)
+
+Cross-checked every SYSTEM entry above against this document's own §26/§0I schema fields
+(CANONICAL_ENTITY, CANONICAL_ID, ADMIN_HOME, COMPANY_SEARCH_SUPPORT, ADMIN_GUIDE_ENTRY,
+PERMISSION_MODEL, AUDIT_RELATIONSHIP, CURRENT_TRUTH_STATUS) rather than re-deriving new entries.
+Findings, not previously consolidated in one place:
+
+- **No system in this map is missing a primary Admin home.** The two real orphans this project
+  ever found (System Health invisible in the sidebar; Team Roster hiding the Executive Hub tab)
+  are both fixed and re-verified (see the V2 alignment audit entries above).
+- **Company Search coverage, confirmed against V2 §4's named entity list**: businesses, users
+  (`profiles`), staff login (`admin_team_members`), staff contact profiles (`executives`), leads
+  (`leonix_leads`), payments/entitlements, generic listings, all 7 dedicated-table marketplace
+  categories (Servicios/Autos/Restaurantes/Empleos/Viajes/Comida Local/Ofertas Locales), Tienda
+  orders, listing reports, Recursos, Revista — all covered. Clases/Busco/Comunidad ride the
+  generic `listings` table search already covered. **Not covered, confirmed NOT a gap**: Noticias
+  (no article/entity table exists to search — confirmed absent, not omitted).
+- **Known duplication/split-truth items are all still correctly open, not silently closed**: the
+  `businesses.id` ↔ payments/leads/support/analytics join gap (the "La Taquiza" scenario) remains
+  the single largest unclosed structural item in this entire map — real, additive linking exists
+  (`business_external_links`) but is unpopulated pending migration + adoption. Moderation
+  case-lifecycle schema, a formal quote/estimate object, and business-level renewal all remain
+  correctly `NOT_APPLICABLE`/`OWNER_DECISION_REQUIRED` (no schema exists; inventing one was
+  correctly declined every prior pass).
+- **New finding this audit, not previously flagged at this severity**: `POST
+  /api/admin/revenue-os/manual-payments` and `POST /api/revenue-os/admin/subscription-sweep` (both
+  documented above under Gate A's "explicitly NOT changed" note) authorize solely via
+  `requireLeonixAdminPermission("can_view_payments")`
+  (`app/admin/_lib/leonixAdminGate.ts:38-70`), whose Layer 2 role/permission check is a no-op
+  unless `ADMIN_ENFORCE_ROSTER_PERMISSIONS=1` (confirmed absent from this worktree's `.env.local`).
+  Layer 1 alone (`leonix_admin=1` cookie) is the only real gate today — reclassified in the Gap
+  Register as `MUST_FIX_BEFORE_PRODUCTION`, not merely `OWNER_DECISION_REQUIRED`, because it is a
+  live authorization gap on money-moving write endpoints, not a missing feature.
+- **Pending remote migrations, confirmed complete list (3, none applied)**:
+  `20260909130000_business_external_links_foundation.sql`,
+  `20260909140000_admin_audit_log_actor_attribution.sql`,
+  `20260910120000_executives_linked_roster_id.sql`. All three are additive-only (verified
+  structurally in the Final Code/Release Validation Gate above and re-confirmed present as files
+  this pass); none touched by this audit.

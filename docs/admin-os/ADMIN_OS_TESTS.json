@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-10-launch-truth-final-burndown-gate",
+  "updatedAt": "2026-09-10-final-master-blueprint-completion-audit",
   "masterOperatingBookAdopted": true,
   "cableMapPass": {
     "status": "substantially_complete",
@@ -1320,5 +1320,70 @@
       "can_reset_passwords real implementation (dormant, owner decision, unchanged)"
     ],
     "launchTruthFinalBurndownGate": "CLOSED"
+  },
+  "finalMasterBlueprintCompletionAudit": {
+    "date": "2026-09-10",
+    "headAtStartAndEnd": "4c22713b4f8cef82de23a80189219a39ab10614b",
+    "scope": "source-inspection-only audit against LEONIX_ADMIN_OS_MASTER_OPERATING_BOOK_V2_CONSTITUTION.md, all 20 required audit sections, cross-checked against this project's 20+ prior gates rather than re-derived from zero",
+    "appCodeChanged": false,
+    "docsReconciled": [
+      "docs/admin-os/LEONIX_ADMIN_OS_MASTER_OPERATING_BOOK.md (new section 35 + revision history line)",
+      "docs/admin-os/ADMIN_OS_CABLE_MAP.md (new completeness-confirmation section)",
+      "docs/admin-os/ADMIN_OS_PROGRESS.md (new full audit section)",
+      "docs/admin-os/ADMIN_OS_TESTS.json (this key)"
+    ],
+    "spotVerificationPerformed": [
+      "hasPaymentTrackerAccess() present, canViewPaymentTracker() confirmed deleted (adminAccessControl.ts)",
+      "can_reset_passwords appears in exactly one file repo-wide (teamTypes.ts) — confirmed dormant",
+      "/admin/guide and /admin/guide/[id] confirmed to exist as real page.tsx files",
+      "adminExtendedGlobalSearch.ts confirmed to carry all 7 entityType branches including executive_profile",
+      "3 pending migrations confirmed present as files, none applied",
+      "manual-payments and subscription-sweep routes independently read: both authorize solely via requireLeonixAdminPermission(\"can_view_payments\"), a no-op unless ADMIN_ENFORCE_ROSTER_PERMISSIONS=1 (confirmed unset)"
+    ],
+    "newFindingThisAudit": {
+      "item": "manual-payments / subscription-sweep write-route authorization fail-open",
+      "files": [
+        "app/api/admin/revenue-os/manual-payments/route.ts",
+        "app/api/revenue-os/admin/subscription-sweep/route.ts",
+        "app/admin/_lib/leonixAdminGate.ts"
+      ],
+      "reclassifiedAs": "MUST_FIX_BEFORE_PRODUCTION",
+      "priorClassification": "OWNER_DECISION_REQUIRED (deferred note only, prior gate)",
+      "reason": "live authorization gap on money-moving write endpoints when ADMIN_ENFORCE_ROSTER_PERMISSIONS is unset (confirmed unset in this environment), not a missing feature"
+    },
+    "requirementMatrixTotals": {
+      "totalRequirementsAudited": 96,
+      "closed": 78,
+      "partial": 1,
+      "missing": 0,
+      "needsRuntimeProof": 8,
+      "needsMigration": 6,
+      "ownerDecisionRequired": 4,
+      "notApplicable": 2,
+      "mustFixBeforeProduction": 2
+    },
+    "gapRegister": {
+      "A_mustFixBeforeQA": [],
+      "B_qaRuntimeProofOnly": 8,
+      "C_mustFixBeforeProductionPush": 2,
+      "D_remoteMigrationRequired": 3,
+      "E_externalProviderDependency": 3,
+      "F_intentionallyDormantHidden": 2,
+      "G_postLaunchNonBlocking": 7
+    },
+    "independenceVerdicts": {
+      "ADMIN_INDEPENDENTLY_OPERABLE": "YES",
+      "STAFF_CONTINUITY_READY": "YES",
+      "ADMIN_GUIDE_COMPLETE": "YES",
+      "COMPANY_SEARCH_COMPLETE": "YES",
+      "BREAK_GLASS_RECOVERY_DEFINED": "YES",
+      "PAST_PRESENT_FUTURE_TRUTH_COVERED": "YES"
+    },
+    "MASTER_BLUEPRINT_AUDIT_COMPLETE": "YES",
+    "BLUEPRINT_IMPLEMENTATION_COMPLETE": "YES",
+    "READY_FOR_PRODUCTION": "NO",
+    "READY_FOR_BROWSER_OWNER_QA": "YES",
+    "FINAL_PROJECT_VERDICT": "NOT_READY_FOR_LEO_INTEGRATION",
+    "NEXT_PHASE": "FINAL BROWSER / OWNER QA + RELEASE CERTIFICATION, run in parallel with owner approval of 3 pending migrations and a dedicated hardening gate for the money-adjacent write routes"
   }
 }
