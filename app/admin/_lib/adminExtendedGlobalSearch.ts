@@ -55,7 +55,7 @@ export type AdminExtendedSearchRow = {
  * No other search source in this file needs viewer context; none of their destinations are
  * role-restricted the way Executive Hub's owner-only editor is.
  */
-export type AdminExtendedSearchViewer = { rosterId: string | null; isOwnerAdmin: boolean };
+export type AdminExtendedSearchViewer = { rosterId: string | null; isOwnerAdmin: boolean; canViewPayments: boolean };
 
 export type AdminExtendedSearchBundle = {
   rows: AdminExtendedSearchRow[];
@@ -204,21 +204,27 @@ export async function searchExtendedAdminSources(q: string, viewer?: AdminExtend
   }
 
   // --- Payments / entitlements (leonix_payment_records) — server-side q already supported ---
-  try {
-    const snap = await fetchPaymentTrackerSnapshot({ q: trimmed, limit: 200 });
-    if (snap.unavailable) throw new Error(snap.note ?? "payment tracker unavailable");
-    for (const row of snap.rows.slice(0, PER_SOURCE_LIMIT)) {
-      rows.push({
-        id: row.id,
-        title: row.business_name ?? row.customer_name ?? row.customer_email,
-        entityType: "payment",
-        entityLabel: "Payment / entitlement",
-        status: row.payment_status,
-        adminHref: `/admin/workspace/payment-tracker?q=${encodeURIComponent(trimmed)}`,
-      });
+  // Launch Truth Doctrine (2026-09) — Company Search must not become a payment-visibility bypass:
+  // this source is gated by the exact same hasPaymentTrackerAccess() check as the Payment
+  // Tracker page itself (owner_admin, or an active roster member with can_view_payments). A
+  // viewer without that access sees no payment results here at all, never a partial leak.
+  if (viewer?.isOwnerAdmin || viewer?.canViewPayments) {
+    try {
+      const snap = await fetchPaymentTrackerSnapshot({ q: trimmed, limit: 200 });
+      if (snap.unavailable) throw new Error(snap.note ?? "payment tracker unavailable");
+      for (const row of snap.rows.slice(0, PER_SOURCE_LIMIT)) {
+        rows.push({
+          id: row.id,
+          title: row.business_name ?? row.customer_name ?? row.customer_email,
+          entityType: "payment",
+          entityLabel: "Payment / entitlement",
+          status: row.payment_status,
+          adminHref: `/admin/workspace/payment-tracker?q=${encodeURIComponent(trimmed)}`,
+        });
+      }
+    } catch (e) {
+      errors.push(`Payments/entitlements: ${e instanceof Error ? e.message : "search failed"}`);
     }
-  } catch (e) {
-    errors.push(`Payments/entitlements: ${e instanceof Error ? e.message : "search failed"}`);
   }
 
   // --- Community resources (Recursos) — no q param on the read fn; bounded in-memory match ---

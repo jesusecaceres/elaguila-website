@@ -988,7 +988,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
           Only events truthfully linked by exact id (this profile or one of their real listing ids) — nothing fuzzy-matched.
         </p>
         {auditHistory.mode === "unavailable" ? (
-          <p className="mt-3 text-sm text-amber-900">{auditHistory.detail ?? "Activity log unavailable."}</p>
+          <p className="mt-3 text-sm text-amber-900">Activity log is temporarily unavailable — check System Health.</p>
         ) : auditHistory.rows.length === 0 ? (
           <p className="mt-3 text-sm text-[#5C5346]">No linked admin activity found.</p>
         ) : (

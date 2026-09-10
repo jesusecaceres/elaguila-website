@@ -10,11 +10,13 @@
  * | super_admin      | owner_admin       | Full                       |
  * | sales_manager    | sales_manager     | Full sales records         |
  * | sales_rep        | sales_rep         | Own records only           |
- * | billing_support  | admin_manager     | Full (no payment tracker*) |
+ * | billing_support  | admin_manager     | Full (payment tracker needs can_view_payments*) |
  * | content_manager  | content_admin     | Full CMS nav (monetization full) |
  * | others           | owner_admin**     | Full (legacy cookie admins) |
  *
- * * Payment tracker: owner_admin + sales_manager only (not billing_support sales totals).
+ * * Payment tracker: owner_admin always; any other role only if their own roster row's
+ *   `permissions` includes `can_view_payments` (see `hasPaymentTrackerAccess()`) — a real,
+ *   per-person permission, not a role-wide grant.
  * ** When no roster email is configured, cookie admins keep full owner access.
  */
 import "server-only";
@@ -27,7 +29,7 @@ import {
   getAdminAuthUserIdFromCookies,
   getAdminOperatorEmailFromCookies,
 } from "@/app/lib/supabase/adminSession";
-import type { AdminTeamRole } from "@/app/admin/_lib/teamTypes";
+import type { AdminPermissionKey, AdminTeamRole } from "@/app/admin/_lib/teamTypes";
 import { ADMIN_LEADS_PROMO_INBOX_HREF } from "@/app/admin/_lib/adminNavOps";
 
 export type NormalizedAdminRole =
@@ -57,6 +59,14 @@ export type AdminAccessContext = {
   salesRepName: string | null;
   /** When true, roster row was found and role drives scoping. */
   rosterResolved: boolean;
+  /**
+   * Launch Truth Doctrine (2026-09) — the resolved roster row's granular `can_*` permissions,
+   * always populated here (unlike `leonixAdminGate.ts`'s `requireLeonixAdminPermission`, which is
+   * a no-op unless `ADMIN_ENFORCE_ROSTER_PERMISSIONS=1`). Empty when no roster row resolved —
+   * every non-resolved branch already defaults `normalizedRole` to `owner_admin` (full access),
+   * so an empty permissions array there is harmless, never a silent downgrade.
+   */
+  permissions: AdminPermissionKey[];
 };
 
 const OWNER_ROLES = new Set<NormalizedAdminRole>(["owner_admin", "admin_manager", "sales_manager", "content_admin"]);
@@ -121,8 +131,19 @@ export function canManageOwnPackageEntitlements(role: NormalizedAdminRole): bool
   return isSalesRepRole(role) || canManageAllPackageEntitlements(role);
 }
 
-export function canViewPaymentTracker(role: NormalizedAdminRole): boolean {
-  return role === "owner_admin";
+/**
+ * Launch Truth Doctrine (2026-09) — the canonical, always-enforced (no `ADMIN_ENFORCE_ROSTER_
+ * PERMISSIONS` env dependency) Payment Tracker authorization check. Replaces the old
+ * role-only `canViewPaymentTracker()` (owner_admin only), which left `can_view_payments` as a
+ * fake, unenforced permission checkbox. Owner/super_admin always has full access; any other
+ * active roster member is granted access only when their own `permissions` array explicitly
+ * includes `can_view_payments` — never merely because a nav link, direct URL, or API route
+ * exists. This does not grant refund/money-moving authority: it is a read-visibility gate only,
+ * matching the existing `fetchPaymentTrackerSnapshot` read surface.
+ */
+export function hasPaymentTrackerAccess(ctx: AdminAccessContext): boolean {
+  if (isOwnerAdminRole(ctx.normalizedRole)) return true;
+  return ctx.permissions.includes("can_view_payments");
 }
 
 export function canViewAdminUsers(role: NormalizedAdminRole): boolean {
@@ -200,6 +221,7 @@ export async function getCurrentAdminAccessContext(): Promise<AdminAccessContext
       salesRepId: null,
       salesRepName: null,
       rosterResolved: false,
+      permissions: [],
     };
   }
 
@@ -216,6 +238,7 @@ export async function getCurrentAdminAccessContext(): Promise<AdminAccessContext
       salesRepId: null,
       salesRepName: null,
       rosterResolved: false,
+      permissions: [],
     };
   }
 
@@ -223,7 +246,7 @@ export async function getCurrentAdminAccessContext(): Promise<AdminAccessContext
     const supabase = getAdminSupabase();
     const { data: row } = await supabase
       .from("admin_team_members")
-      .select("id, email, display_name, role, is_active")
+      .select("id, email, display_name, role, is_active, permissions")
       .eq("email", operatorEmail)
       .maybeSingle();
 
@@ -240,6 +263,7 @@ export async function getCurrentAdminAccessContext(): Promise<AdminAccessContext
         salesRepId: null,
         salesRepName: null,
         rosterResolved: false,
+        permissions: [],
       };
     }
 
@@ -254,6 +278,10 @@ export async function getCurrentAdminAccessContext(): Promise<AdminAccessContext
       id: rosterMemberId,
       display_name: rosterDisplayName,
     });
+    const rawPermissions = (row as { permissions?: unknown }).permissions;
+    const permissions = (Array.isArray(rawPermissions) ? rawPermissions : []).filter(
+      (p): p is AdminPermissionKey => typeof p === "string",
+    );
 
     return {
       hasAdminCookie: true,
@@ -267,6 +295,7 @@ export async function getCurrentAdminAccessContext(): Promise<AdminAccessContext
       salesRepId,
       salesRepName,
       rosterResolved: true,
+      permissions,
     };
   } catch {
     return {
@@ -281,6 +310,7 @@ export async function getCurrentAdminAccessContext(): Promise<AdminAccessContext
       salesRepId: null,
       salesRepName: null,
       rosterResolved: false,
+      permissions: [],
     };
   }
 }
@@ -341,7 +371,7 @@ export function resolveSalesRepFieldsForCreate(
 }
 
 export function requirePaymentTrackerAccess(ctx: AdminAccessContext): void {
-  if (!canViewPaymentTracker(ctx.normalizedRole)) {
+  if (!hasPaymentTrackerAccess(ctx)) {
     redirect("/admin?access_denied=payment_tracker");
   }
 }
@@ -369,14 +399,13 @@ export function getAllowedWorkspaceNavHrefs(ctx: AdminAccessContext): string[] {
   if (isSalesRepRole(ctx.normalizedRole)) {
     return [];
   }
-  return [
+  const hrefs = [
     "/admin/workspace/home",
     "/admin/workspace/clasificados",
     "/admin/workspace/package-entitlements",
     "/admin/workspace/promo-codes",
     ADMIN_LEADS_PROMO_INBOX_HREF,
     "/admin/workspace/sales-tracker",
-    "/admin/workspace/payment-tracker",
     "/admin/workspace/tienda",
     "/admin/workspace/nosotros",
     "/admin/workspace/revista",
@@ -386,6 +415,14 @@ export function getAllowedWorkspaceNavHrefs(ctx: AdminAccessContext): string[] {
     "/admin/workspace/cupones",
     "/admin/workspace/anunciate",
   ];
+  // Launch Truth Doctrine (2026-09) — this sub-nav previously listed payment-tracker
+  // unconditionally for every non-sales-rep role, even though the page itself only ever allowed
+  // owner_admin — a visible-but-inaccessible mismatch. Now matches the real, permission-aware
+  // access check (owner_admin, or an active roster member with can_view_payments).
+  if (hasPaymentTrackerAccess(ctx)) {
+    hrefs.push("/admin/workspace/payment-tracker");
+  }
+  return hrefs;
 }
 
 /** Global sidebar hrefs (top-level admin shell). */
@@ -417,7 +454,7 @@ export function getAllowedGlobalNavHrefs(ctx: AdminAccessContext): string[] {
       "/admin/recursos",
       "/admin/system-health",
     );
-    if (canViewPaymentTracker(ctx.normalizedRole)) {
+    if (hasPaymentTrackerAccess(ctx)) {
       hrefs.push("/admin/workspace/payment-tracker");
     }
     if (canViewAdminTeam(ctx.normalizedRole)) {

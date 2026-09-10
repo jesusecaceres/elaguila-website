@@ -166,8 +166,7 @@ export default async function AdminActivityLogPage(props: PageProps) {
             </p>
           ) : displayRows.length === 0 && showUnavailable ? (
             <p className="p-6 text-sm text-[#5C5346]">
-              {m("activityLog.unavailableP1")}{" "}
-              <code className="rounded bg-white/80 px-1">listing_audit_event</code> {m("activityLog.unavailableP2")}
+              {m("activityLog.unavailableP1")} {m("activityLog.unavailableP2")}
             </p>
           ) : (
             <table className="min-w-full border-collapse text-sm">

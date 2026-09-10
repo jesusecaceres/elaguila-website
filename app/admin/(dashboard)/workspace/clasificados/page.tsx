@@ -226,10 +226,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
           className={`${adminCardBase} mb-4 max-w-3xl border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950`}
           role="status"
         >
-          <strong className="font-bold">{m("clasificados.detailPairsMissingTitle")}</strong> {m("clasificados.detailPairsMissingBody")}{" "}
-          <code className="rounded bg-white/80 px-1 text-[11px]">20250316200000_listings_detail_pairs.sql</code> or{" "}
-          <code className="rounded bg-white/80 px-1 text-[11px]">20260407140000_ensure_listings_detail_pairs.sql</code> (idempotent)
-          and reload.
+          <strong className="font-bold">{m("clasificados.detailPairsMissingTitle")}</strong> {m("clasificados.detailPairsMissingBody")}
         </div>
       ) : null}
 
@@ -238,9 +235,8 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
           className={`${adminCardBase} mb-4 max-w-3xl border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950`}
           role="status"
         >
-          <strong className="font-bold">Republish columns missing</strong> Apply{" "}
-          <code className="rounded bg-white/80 px-1 text-[11px]">20260509120000_classifieds_republish_capability.sql</code> in Supabase and
-          reload.
+          <strong className="font-bold">Setup required for republish tracking.</strong> Republish/move-to-top timestamps are
+          not available yet — contact an owner_admin if this continues.
         </div>
       ) : null}
 

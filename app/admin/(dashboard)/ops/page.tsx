@@ -15,7 +15,7 @@ import {
 import { runAdminUnifiedSearch } from "../../_lib/adminOpsUnifiedSearch";
 import { adminMessages, getAdminLang } from "../../_lib/adminI18n";
 import { OpsGlobalLookupEmptyState } from "./_components/OpsGlobalLookupEmptyState";
-import { getCurrentAdminAccessContext, isOwnerAdminRole } from "../../_lib/adminAccessControl";
+import { getCurrentAdminAccessContext, hasPaymentTrackerAccess, isOwnerAdminRole } from "../../_lib/adminAccessControl";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +43,13 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
   // search source so its result destination is never an owner-only route a restricted viewer
   // would be redirected away from (see adminExtendedGlobalSearch.ts's AdminExtendedSearchViewer).
   const access = await getCurrentAdminAccessContext();
-  const viewer = { rosterId: access.rosterMemberId, isOwnerAdmin: isOwnerAdminRole(access.normalizedRole) };
+  const viewer = {
+    rosterId: access.rosterMemberId,
+    isOwnerAdmin: isOwnerAdminRole(access.normalizedRole),
+    // Launch Truth Doctrine (2026-09) — Company Search's Payments/entitlements source must not
+    // bypass the same permission the dedicated Payment Tracker page enforces.
+    canViewPayments: hasPaymentTrackerAccess(access),
+  };
 
   const bundle = q ? await runAdminUnifiedSearch(q, viewer) : null;
   const lang = await getAdminLang();

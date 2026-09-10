@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-10-launch-placeholder-eradication-gate",
+  "updatedAt": "2026-09-10-launch-truth-final-burndown-gate",
   "masterOperatingBookAdopted": true,
   "cableMapPass": {
     "status": "substantially_complete",
@@ -1208,5 +1208,117 @@
       "Viajes mock sub-pages (Affiliate Cards, Campaigns, Editorial, Businesses, Settings) — dormant, would need real data/save paths to become launch-ready; a dedicated rebuild gate if ever prioritized"
     ],
     "launchPlaceholderEradicationGate": "PARTIAL"
+  },
+  "launchTruthFinalBurndownGate": {
+    "status": "closed",
+    "ownerLockedDecisionsEnacted": {
+      "canResetPasswords": "HIDDEN (unchanged, confirmed not reintroduced)",
+      "viajesMockSurfaces": "DORMANT_AND_HIDDEN (re-confirmed with a permanent test)",
+      "websitePreviewRealOnly": true,
+      "canViewPayments": "FULLY_ENFORCED"
+    },
+    "paymentPermission": {
+      "rootCause": "AdminAccessContext never carried the roster row's permissions array; canViewPaymentTracker() was hardcoded role===owner_admin only; the granular can_view_payments permission only reached the fail-open (unless ADMIN_ENFORCE_ROSTER_PERMISSIONS=1) requireLeonixAdminPermission()",
+      "fix": "getCurrentAdminAccessContext() now fetches+populates permissions: AdminPermissionKey[]; new hasPaymentTrackerAccess(ctx) = owner_admin always, else ctx.permissions.includes('can_view_payments')",
+      "enforcedAt": ["requirePaymentTrackerAccess() (payment-tracker + manual-payment pages)", "getAllowedWorkspaceNavHrefs()", "getAllowedGlobalNavHrefs()", "(dashboard)/page.tsx data-fetch + showPaymentTracker card", "adminExtendedGlobalSearch.ts Payments/entitlements Company Search source"],
+      "bypassFoundAndClosed": "Company Search's Payments/entitlements source called fetchPaymentTrackerSnapshot() unconditionally — any non-sales-rep role could see real payment records via /admin/ops regardless of can_view_payments; fixed via AdminExtendedSearchViewer.canViewPayments",
+      "explicitlyNotChanged": "the two WRITE/action API routes (manual-payments, subscription-sweep) that also reuse can_view_payments via the pre-existing, still fail-open requireLeonixAdminPermission() — per owner instruction not to grant money-moving authority; recorded as ownerDecisionRequired",
+      "moneyMovingAuthorityGranted": false,
+      "canViewPaymentTrackerRoleOnlyFunctionRemoved": true
+    },
+    "websitePreview": {
+      "statusLabelsRemoved": ["ready_for_partners", "internal_review", "in_progress", "needs_qa"],
+      "comingSoonEntriesRemoved": 2,
+      "realEntriesRemaining": 15,
+      "rawEnvVarNameRemovedFromStaffCopy": "NEXT_PUBLIC_COMING_SOON_LOCK"
+    },
+    "viajesDormancy": {
+      "reVerifiedNotReVisited": true,
+      "mockSubPagesReachableFromNav": false,
+      "mockSubPagesReachableFromGuideActionableFields": false,
+      "guideNotesFieldAllowedToExplainHistory": true,
+      "realSubPageStillLinked": "/admin/clasificados/viajes/business-offers"
+    },
+    "rawTechnicalErrorBurndown": {
+      "newLeaksFoundThisPass": ["usuarios/[id]/page.tsx rendering auditHistory.detail raw Supabase error message"],
+      "sourceOfMostActivityLogLeaksTraced": "app/admin/_lib/adminStrings.ts (shared EN/ES i18n dictionary), not the page component itself",
+      "adminStringsKeysFixed": ["activityLog.badgeLive", "activityLog.subtitleLive", "activityLog.subtitleUnavailable", "activityLog.helperNoSecrets", "activityLog.unavailableP1/P2", "clasificados.detailPairsMissingTitle/Body", "clasificados.boostMissingTitle/Body"],
+      "fixedInBothLanguages": true,
+      "deliberatelyDeferred": ["remaining adminStrings.ts raw table/column strings (clasificados.autosTitle, serviciosTitle, categoriesTitle, homeChipsTitle, and others not individually audited)", "leonixAdminGate.ts raw permission-key Error messages (fail-open unless ADMIN_ENFORCE_ROSTER_PERMISSIONS=1; no admin error.tsx boundary exists either way, so Next.js's own production error redaction already prevents delivery to the browser today)"],
+      "operatorErrorContractApplied": true
+    },
+    "targetedHardeningChecks": {
+      "script": "scripts/verify-launch-truth-final-burndown-01.ts",
+      "npmScript": "verify:launch-truth-final-burndown",
+      "result": "PASS",
+      "checksPassed": 18,
+      "propertiesProven": [
+        "can_view_payments checked by the canonical payment-tracker page guard",
+        "Company Search Payments source enforces the same permission",
+        "direct URL cannot bypass — fresh per-request access context resolution before any data fetch",
+        "owner/super_admin access preserved unconditionally",
+        "unrelated permissions do not grant payment visibility",
+        "old role-only canViewPaymentTracker() fully removed",
+        "nav visibility matches real access in both workspace sub-nav and global sidebar",
+        "no Website Preview CTA points to Coming Soon",
+        "no V2/Planned/Next Gate/engineering-status copy remains in Website Preview",
+        "Viajes mock sub-pages absent from nav and actionable guide fields; real sub-page remains reachable",
+        "known raw migration/table/column messages gone from primary operator UI",
+        "raw table/migration strings gone from the i18n dictionary in both languages for the fixed keys",
+        "replacement copy communicates real degraded state, never fakes healthy status",
+        "Admin Guide remains searchable",
+        "System Health remains discoverable",
+        "Company Search remains intact",
+        "auth recovery (customer + admin) remains intact",
+        "can_reset_passwords remains hidden, not reintroduced"
+      ]
+    },
+    "regressionChecks": {
+      "verify:launch-truth": "PASS 24/24 (unchanged)",
+      "verify:owner-auth-break-glass": "PASS 16/16 (unchanged)",
+      "verify:admin-password-recovery": "PASS 21/21 (unchanged)",
+      "verify:executive-company-search": "PASS 21/21 (unchanged)",
+      "verify:executive-hub-self-service": "PASS 20/20 (unchanged)",
+      "verify:admin-nav-ops": "PASS 74/74 (unchanged)"
+    },
+    "fullTypecheck": {
+      "run": true,
+      "command": "NODE_OPTIONS=--max-old-space-size=8192 npx tsc --noEmit --incremental false",
+      "result": "admin_clean_with_preexisting_baseline_errors",
+      "preExistingBaselineErrorCount": 7,
+      "preExistingBaselineErrorFiles": ["app/lib/digitalContact/digitalContactExecutivesDb.ts (2 errors, linked_roster_id typing gap from a prior gate)", "e2e/autos/autos-a5-recovery-25-child-media-persistence.spec.ts (1 error)", "e2e/community/community-preview-publish-bar.spec.ts (3 errors)", "e2e/community/community-preview-published-shell-parity.spec.ts (3 errors)"],
+      "confirmedPreExistingViaGitDiff": true,
+      "newTypeErrorsIntroduced": 0
+    },
+    "preExistingUnrelatedLintFindings": ["adminStrings.ts: unused const ES"],
+    "adminGuideUpdated": false,
+    "adminGuideUpdatedNote": "no Guide changes were needed this gate beyond what was already correct from the prior gate (viajes-ops entry already accurate; no dedicated Website Preview or Payment Tracker guide entry exists to misalign)",
+    "masterOperatingBookUpdated": true,
+    "masterOperatingBookChange": "added a 'LOCKED LAUNCH DECISIONS (2026-09-10)' status addendum under section 33C confirming all 4 owner decisions are enacted, current-state",
+    "filesChanged": [
+      "app/admin/_lib/adminAccessControl.ts",
+      "app/admin/_lib/adminExtendedGlobalSearch.ts",
+      "app/admin/(dashboard)/page.tsx",
+      "app/admin/(dashboard)/ops/page.tsx",
+      "app/admin/_lib/staffAdminAccess.ts",
+      "app/admin/(dashboard)/team/website-preview/page.tsx",
+      "app/admin/(dashboard)/usuarios/[id]/page.tsx",
+      "app/admin/_lib/adminStrings.ts",
+      "app/admin/(dashboard)/activity-log/page.tsx",
+      "app/admin/(dashboard)/workspace/clasificados/page.tsx",
+      "scripts/verify-launch-truth-final-burndown-01.ts (new)",
+      "package.json",
+      "docs/admin-os/LEONIX_ADMIN_OS_MASTER_OPERATING_BOOK.md",
+      "docs/admin-os/ADMIN_OS_CABLE_MAP.md",
+      "docs/admin-os/ADMIN_OS_PROGRESS.md",
+      "docs/admin-os/ADMIN_OS_TESTS.json"
+    ],
+    "deferredToIntegrationGate": [
+      "Full adminStrings.ts raw-string burndown (2700+ line shared i18n file) — needs its own dedicated gate with full typecheck coverage",
+      "leonixAdminGate.ts / manual-payments / subscription-sweep fail-open ADMIN_ENFORCE_ROSTER_PERMISSIONS gap — real, pre-existing, separate from this gate's read-visibility scope",
+      "Adding a proper app/admin/error.tsx boundary for friendlier permission-denial error pages",
+      "can_reset_passwords real implementation (dormant, owner decision, unchanged)"
+    ],
+    "launchTruthFinalBurndownGate": "CLOSED"
   }
 }

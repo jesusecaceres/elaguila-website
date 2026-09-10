@@ -2463,3 +2463,118 @@ DEFERRED_LARGER_WORK rather than rushed into an unverified, high-risk, whole-Adm
 consistent with this gate's own scope control. Full detail and every classified finding is
 recorded in the Cable Map's "Launch Placeholder / Fake-Capability Eradication" section so nothing
 is silently dropped.
+
+## FINAL LAUNCH-TRUTH BURNDOWN — 2026-09-10
+
+Resolves the 4 owner-locked decisions from the prior gate's PARTIAL close, plus a further raw-
+technical-error burndown pass, per Master Operating Book V2 §33C. HEAD at start:
+`c15bb912db426760ff0ce1ecc7c17d97ab3521c4`.
+
+### Gate A — can_view_payments: MAKE REAL NOW
+
+Traced the full payment-read permission map. Found the root cause: `AdminAccessContext` (the
+always-enforced context used for every other page/nav authorization check in Admin) never carried
+the roster row's `permissions` array at all, so `can_view_payments` had no real always-on
+enforcement point — `canViewPaymentTracker()` was hardcoded `role === "owner_admin"` only, and the
+granular permission only reached `leonixAdminGate.ts`'s `requireLeonixAdminPermission()`, which is
+a no-op unless `ADMIN_ENFORCE_ROSTER_PERMISSIONS=1` (not set in this environment).
+
+Fixed by extending `getCurrentAdminAccessContext()` to also fetch and populate
+`permissions: AdminPermissionKey[]` (empty on every non-roster-resolved branch, which already
+defaults to full owner_admin access — harmless), and adding `hasPaymentTrackerAccess(ctx)`:
+owner_admin always allowed; any other active roster member only if their own permissions include
+`can_view_payments`. Wired identically into: the Payment Tracker page guard
+(`requirePaymentTrackerAccess`, used by both `/admin/workspace/payment-tracker` and its
+manual-payment sub-page — both server components that call it before any data fetch, so a direct
+URL re-runs the exact check every request); workspace and global nav visibility (closing a real
+visible-but-inaccessible mismatch — the workspace sub-nav previously listed Payment Tracker for
+every non-sales-rep role even though only owner_admin could ever open it); and the Command
+Center's data-fetch/card-visibility.
+
+**Found and closed a real permission bypass while auditing**: Company Search's
+"Payments / entitlements" source (`adminExtendedGlobalSearch.ts`) called
+`fetchPaymentTrackerSnapshot()` completely unconditionally — any non-sales-rep role could search
+and see real payment records via `/admin/ops` regardless of `can_view_payments`, exactly the kind
+of alternate-read-path bypass this gate's brief explicitly warned against. Fixed by threading a
+`canViewPayments` field through `AdminExtendedSearchViewer`, computed in `ops/page.tsx` from the
+same `hasPaymentTrackerAccess()`, and skipping the search block entirely (not just hiding results)
+when absent.
+
+**Explicitly did not touch** (per owner instruction not to grant money-moving authority): the two
+WRITE/action API routes (`manual-payments`, `subscription-sweep`) that also reuse
+`can_view_payments` as their own gate via the pre-existing `requireLeonixAdminPermission()` — a
+real, separate, pre-existing architectural gap (fail-open unless `ADMIN_ENFORCE_ROSTER_PERMISSIONS`
+is set), recorded as OWNER_DECISION_REQUIRED rather than silently expanded or silently ignored.
+
+Deleted the now-fully-superseded `canViewPaymentTracker()` role-only function (zero remaining
+callers after the migration).
+
+### Gate B — Website Preview: CLEAN NOW
+
+Removed `StaffPreviewLinkStatus` and every per-link "Ready for partners"/"In progress"/"Needs QA"
+engineering-status badge from `staffAdminAccess.ts` and the website-preview page — every remaining
+entry is a real, live public page shown plainly. Removed the two "Coming Soon (ES/EN)" preview
+entries (the list's purpose is previewing real site pages while the public lock is on, not
+previewing the lock page). Removed the raw `NEXT_PUBLIC_COMING_SOON_LOCK` env var name from
+staff-facing helper text.
+
+### Gate C — Viajes dormancy: re-confirmed
+
+Already closed in the prior gate. Added a permanent test proving no reference to the mock
+Affiliate Cards/Campaigns/Editorial sub-pages remains in nav, the Viajes overview, or any
+*actionable* Guide field — while correctly still allowing the Guide's own `notes` field to explain
+(as history) what was removed and why.
+
+### Gate D — Raw technical error burndown: further pass
+
+Found and fixed a second, independent leak of the same class fixed in the prior gate:
+`usuarios/[id]/page.tsx` rendered `auditHistory.detail` (a raw Supabase error message) directly.
+Traced the actual SOURCE of most of Activity Log's remaining raw strings to `adminStrings.ts` (the
+shared EN/ES i18n dictionary) — `badgeLive`, `subtitleLive`, `subtitleUnavailable`, and
+`helperNoSecrets` all named the raw `admin_audit_log`/`listing_audit_event` tables and/or specific
+migration filenames; rewrote all four keys, in both languages, to plain operator language, and
+removed the page's own hardcoded `<code>listing_audit_event</code>` fallback. Also fixed
+Clasificados Ops's (`/admin/workspace/clasificados`, a primary Marketplace Ops page)
+`detailPairsMissingTitle`/`Body` and `boostMissingTitle`/`Body` — previously named raw
+`listings.detail_pairs`/`listings.republished_at` columns and rendered raw migration filenames as
+`<code>` tags — now plain "Setup required..." degraded-state banners, both languages.
+
+**Deliberately not exhaustively burned down**: the remaining raw table/column names scattered
+throughout the rest of `adminStrings.ts` (several more Clasificados card-title strings) and
+`leonixAdminGate.ts`'s raw permission-key `Error` messages (which only reach a rendered page when
+`ADMIN_ENFORCE_ROSTER_PERMISSIONS=1` — not the current default — and even then Next.js's own
+production error redaction and the absence of a custom admin `error.tsx` boundary mean the raw
+text isn't actually delivered to the browser today). A full line-by-line audit of a 2700+-line
+shared i18n file needs its own dedicated gate with full typecheck coverage, not a partial pass
+squeezed into this gate's resource control.
+
+### Verification
+
+New `scripts/verify-launch-truth-final-burndown-01.ts` (`npm run verify:launch-truth-final-burndown`),
+18 hand-rolled `node:assert` checks covering all 14 items in this gate's own verification brief:
+`can_view_payments` enforcement (page guard, Company Search parity, direct-URL non-bypass via
+fresh per-request context resolution, owner preservation, no cross-permission grant), Website
+Preview cleanliness, Viajes dormancy, raw-error removal with real-degraded-state replacement copy,
+and confirmation that Admin Guide Search, System Health, Company Search, and both customer/admin
+auth recovery flows remain fully intact.
+
+Regression checks: `verify:launch-truth` (24/24), `verify:owner-auth-break-glass` (16/16),
+`verify:admin-password-recovery` (21/21), `verify:executive-company-search` (21/21),
+`verify:executive-hub-self-service` (20/20), `verify:admin-nav-ops` (74/74) — all unchanged.
+Targeted eslint clean on every touched file (one pre-existing, unrelated `const ES` unused-var
+error in `adminStrings.ts`, confirmed via `git diff` to predate this gate).
+
+One authorized full `NODE_OPTIONS=--max-old-space-size=8192 npx tsc --noEmit --incremental false`
+run at the end of implementation (machine confirmed clear first) found exactly 7 pre-existing
+baseline errors, all in files this gate never touched: 2 in `digitalContactExecutivesDb.ts`
+(a `linked_roster_id` typing gap from the executive-hub self-service gate) and 5 in unrelated
+`e2e/**` Playwright spec files. Confirmed via `git diff` that none of these files were modified by
+this gate — zero new type errors introduced.
+
+### Final status
+
+**LAUNCH_TRUTH_FINAL_BURNDOWN: CLOSED** for the scope this gate defined — all 4 owner-locked
+decisions are enacted and verified, plus a real permission-bypass (Company Search payments) was
+found and closed along the way. The remaining raw-string volume in `adminStrings.ts` and the
+`leonixAdminGate.ts`/manual-payment-API fail-open gap are honestly recorded as
+DEFERRED_LARGER_WORK / OWNER_DECISION_REQUIRED — not silently dropped, not rushed.

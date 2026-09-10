@@ -1781,6 +1781,28 @@ At production launch, and permanently thereafter:
   It requires that nothing visible to a real operator or customer implies a capability that does
   not exist behind it.
 
+## LOCKED LAUNCH DECISIONS (2026-09-10, Final Launch-Truth Burndown gate)
+
+The following owner decisions are now enacted and current-state, not merely proposed:
+
+1. **`can_reset_passwords`** — stays hidden/dormant for launch. Leonix already has canonical
+   user self-service password recovery; staff/admin-triggered customer password resets are not
+   built for launch. The permission key is absent from every permission UI surface. A safe future
+   design (trigger a Supabase recovery email, never know/set a password) remains documented and
+   dormant, to be built only as its own future gate if the owner later prioritizes it.
+2. **Viajes mock sub-pages** (Affiliate Cards, Campaigns, Editorial, Businesses, Settings) — stay
+   dormant/hidden. No visible Admin navigation or guide path sends an operator into them. Business
+   Offers moderation is the one real, launch-ready Viajes capability today.
+3. **Website Preview staff links** — cleaned for launch. Stale engineering-status labels
+   ("Ready for partners," "In progress," "Needs QA") and the Coming Soon preview entries were
+   removed; every remaining link is a real, live public page shown plainly.
+4. **`can_view_payments`** — fully, consistently enforced. Owner/super_admin always has full
+   Payment Tracker access; any other active roster member is granted access only when their own
+   roster row's permissions include `can_view_payments` — enforced identically on the Payment
+   Tracker page, its workspace/global nav visibility, and Company Search's Payments/entitlements
+   source (never merely because a nav link or alternate read path exists). This is a read-
+   visibility permission only; it does not grant refund/money-moving authority.
+
 ---
 
 # 34. OWNER INTENT — LOCKED

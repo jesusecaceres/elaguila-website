@@ -9,8 +9,8 @@ import { getPaymentTrackerDashboardSnapshot } from "../_lib/paymentTrackerData";
 import { getAdminCatalogStats } from "../_lib/tiendaCatalogAdminData";
 import { buildAdminSystemHealthSnapshot } from "../_lib/adminSystemHealth";
 import {
-  canViewPaymentTracker,
   getCurrentAdminAccessContext,
+  hasPaymentTrackerAccess,
   isSalesRepRole,
 } from "../_lib/adminAccessControl";
 import { getAdminLang, adminMessages } from "../_lib/adminI18n";
@@ -33,7 +33,7 @@ export default async function AdminHomePage() {
       getAdminDashboardLeadsCounts(),
       getPackageEntitlementDashboardSnapshot(),
       getPromoCodeDashboardSnapshot(),
-      canViewPaymentTracker(access.normalizedRole)
+      hasPaymentTrackerAccess(access)
         ? getPaymentTrackerDashboardSnapshot()
         : Promise.resolve({
             unavailable: true,
@@ -61,7 +61,7 @@ export default async function AdminHomePage() {
       promoSnap={promoSnap}
       paySnap={paySnap}
       catalogStats={catalogStats}
-      showPaymentTracker={canViewPaymentTracker(access.normalizedRole)}
+      showPaymentTracker={hasPaymentTrackerAccess(access)}
       executiveReports={execReports}
       systemHealthSnapshot={systemHealthSnapshot}
     />

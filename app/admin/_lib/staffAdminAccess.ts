@@ -8,36 +8,34 @@ import { isStaffSalesAllowedAdminPath } from "@/app/admin/_lib/staffSalesAllowed
 
 export { isStaffSalesAllowedAdminPath };
 
-export type StaffPreviewLinkStatus =
-  | "ready_for_partners"
-  | "internal_review"
-  | "in_progress"
-  | "needs_qa";
-
 export type StaffPreviewLink = {
   label: string;
   href: string;
-  status: StaffPreviewLinkStatus;
 };
 
+/**
+ * Launch Truth Doctrine (2026-09) — every entry here is a real, live public page (no per-link
+ * "ready_for_partners"/"in_progress"/"needs_qa" engineering-status labels anymore; those
+ * described development tracking, not operator truth). The "Coming Soon" marketing-lock preview
+ * entries were removed — this list exists specifically to preview REAL SITE PAGES while the
+ * public lock is on, not to preview the lock page itself.
+ */
 export const STAFF_PREVIEW_LINKS: StaffPreviewLink[] = [
-  { label: "Coming Soon (ES)", href: "/coming-soon-v2?lang=es", status: "ready_for_partners" },
-  { label: "Coming Soon (EN)", href: "/coming-soon-v2?lang=en", status: "ready_for_partners" },
-  { label: "Home (ES)", href: "/home?lang=es", status: "internal_review" },
-  { label: "Home (EN)", href: "/home?lang=en", status: "internal_review" },
-  { label: "Clasificados (ES)", href: "/clasificados?lang=es", status: "internal_review" },
-  { label: "Clasificados (EN)", href: "/clasificados?lang=en", status: "internal_review" },
-  { label: "Magazine (ES)", href: "/magazine?lang=es", status: "in_progress" },
-  { label: "Magazine (EN)", href: "/magazine?lang=en", status: "in_progress" },
-  { label: "Contact (ES)", href: "/contact?lang=es", status: "ready_for_partners" },
-  { label: "Contact (EN)", href: "/contact?lang=en", status: "ready_for_partners" },
-  { label: "En Venta", href: "/clasificados/en-venta?lang=es", status: "needs_qa" },
-  { label: "Rentas", href: "/clasificados/rentas?lang=es", status: "needs_qa" },
-  { label: "Empleos", href: "/clasificados/empleos?lang=es", status: "needs_qa" },
-  { label: "Autos", href: "/clasificados/autos?lang=es", status: "needs_qa" },
-  { label: "Bienes Raíces", href: "/clasificados/bienes-raices?lang=es", status: "needs_qa" },
-  { label: "Servicios", href: "/clasificados/servicios?lang=es", status: "needs_qa" },
-  { label: "Restaurantes", href: "/clasificados/restaurantes?lang=es", status: "needs_qa" },
+  { label: "Home (ES)", href: "/home?lang=es" },
+  { label: "Home (EN)", href: "/home?lang=en" },
+  { label: "Clasificados (ES)", href: "/clasificados?lang=es" },
+  { label: "Clasificados (EN)", href: "/clasificados?lang=en" },
+  { label: "Magazine (ES)", href: "/magazine?lang=es" },
+  { label: "Magazine (EN)", href: "/magazine?lang=en" },
+  { label: "Contact (ES)", href: "/contact?lang=es" },
+  { label: "Contact (EN)", href: "/contact?lang=en" },
+  { label: "En Venta", href: "/clasificados/en-venta?lang=es" },
+  { label: "Rentas", href: "/clasificados/rentas?lang=es" },
+  { label: "Empleos", href: "/clasificados/empleos?lang=es" },
+  { label: "Autos", href: "/clasificados/autos?lang=es" },
+  { label: "Bienes Raíces", href: "/clasificados/bienes-raices?lang=es" },
+  { label: "Servicios", href: "/clasificados/servicios?lang=es" },
+  { label: "Restaurantes", href: "/clasificados/restaurantes?lang=es" },
 ];
 
 export const STAFF_TEAM_BASE = "/admin/team";
@@ -88,19 +86,4 @@ export function staffCanCreateAdminUsers(_ctx: AdminAccessContext): boolean {
 
 export function isStaffSalesLimitedRole(role: NormalizedAdminRole): boolean {
   return isSalesRepRole(role);
-}
-
-export function staffPreviewStatusLabel(status: StaffPreviewLinkStatus): string {
-  switch (status) {
-    case "ready_for_partners":
-      return "Ready for partners";
-    case "internal_review":
-      return "Internal review";
-    case "in_progress":
-      return "In progress";
-    case "needs_qa":
-      return "Needs QA";
-    default:
-      return status;
-  }
 }

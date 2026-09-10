@@ -1235,3 +1235,111 @@ classified HIDE_FROM_LAUNCH/OWNER_DECISION_REQUIRED and recorded rather than rus
   unrelated failures as every prior pass) — all unchanged. Targeted eslint clean on every file
   touched/created (the 2 pre-existing unrelated errors noted above are unrelated to this gate's
   edits, confirmed via `git diff`).
+
+---
+
+## SYSTEM: Final Launch-Truth Burndown (can_view_payments, Website Preview, Viajes proof, raw errors)
+
+Resolves the 4 owner-locked decisions from the prior placeholder-eradication gate's PARTIAL close,
+plus a further raw-technical-error burndown pass.
+
+### Gate A — `can_view_payments` fully enforced (MAKE REAL NOW)
+
+- **Root cause found**: `AdminAccessContext` (the always-enforced context — no
+  `ADMIN_ENFORCE_ROSTER_PERMISSIONS` env dependency, unlike `leonixAdminGate.ts`'s
+  `requireLeonixAdminPermission`) never carried the roster row's `permissions` array at all —
+  `can_view_payments` had nowhere real to be checked from for page/nav-level authorization.
+  `canViewPaymentTracker()` was hardcoded `role === "owner_admin"` only.
+- **Fix**: `getCurrentAdminAccessContext()`'s Supabase select now also fetches `permissions`,
+  populated on `AdminAccessContext.permissions: AdminPermissionKey[]` (empty on every
+  non-roster-resolved branch — harmless, since those already default to full `owner_admin`
+  access). New `hasPaymentTrackerAccess(ctx)`: owner_admin always; any other active roster member
+  only if `ctx.permissions.includes("can_view_payments")`. `canViewPaymentTracker()` (the old,
+  now-fully-superseded role-only function) was deleted — zero remaining callers.
+- **Every consumer updated to the same check**: `requirePaymentTrackerAccess()` (the page guard
+  for `/admin/workspace/payment-tracker` and its `manual-payment` sub-page — both server
+  components that call this before any data fetch, so a direct URL re-runs the exact same check
+  every request, no bypass possible); `getAllowedWorkspaceNavHrefs()` and
+  `getAllowedGlobalNavHrefs()` (nav visibility now matches real access, closing a real
+  visible-but-inaccessible mismatch — the workspace sub-nav previously listed Payment Tracker
+  unconditionally for every non-sales-rep role even though only owner_admin could ever open it);
+  `(dashboard)/page.tsx`'s Command Center data-fetch and `showPaymentTracker` card visibility.
+- **Real bypass found and closed**: `adminExtendedGlobalSearch.ts`'s Company Search
+  "Payments / entitlements" source called `fetchPaymentTrackerSnapshot()` completely
+  unconditionally — any role that could reach `/admin/ops` (every non-sales-rep role) could
+  search and see real payment records regardless of `can_view_payments`, a genuine
+  permission-bypass via an alternate read path exactly matching this gate's own warning ("must
+  not gain access merely because ... an API endpoint exists"). Fixed: `AdminExtendedSearchViewer`
+  gained a `canViewPayments` field, computed in `ops/page.tsx` from the same
+  `hasPaymentTrackerAccess()`, and the Payments search block is now skipped entirely (not merely
+  hidden) when absent.
+- **Explicitly NOT changed** (per owner instruction, "Do NOT grant refund/money-moving
+  authority... unless existing explicit money-action permissions already exist"): the two
+  WRITE/action API routes that also reuse `can_view_payments` as their gate —
+  `POST /api/admin/revenue-os/manual-payments` (record/verify/reject/reverse manual payments) and
+  `POST /api/revenue-os/admin/subscription-sweep` (suspends grace-expired subscriptions, primarily
+  machine-key authenticated) — both still go through the pre-existing, unmodified
+  `requireLeonixAdminPermission("can_view_payments")` gate. This is a **known, pre-existing,
+  separate architectural gap** (that gate is a no-op unless `ADMIN_ENFORCE_ROSTER_PERMISSIONS=1`,
+  which is not set in this environment) — real, but out of this gate's explicit read-visibility
+  scope; recorded as OWNER_DECISION_REQUIRED for a future dedicated hardening gate, not silently
+  fixed or silently ignored.
+
+### Gate B — Website Preview cleanup (CLEAN NOW)
+
+- `staffAdminAccess.ts`'s `STAFF_PREVIEW_LINKS` dropped its `status` field entirely
+  (`StaffPreviewLinkStatus` type and `staffPreviewStatusLabel()` deleted) — every remaining entry
+  is a real, live public page, shown plainly with no "Ready for partners"/"In progress"/"Needs QA"
+  engineering-status badge. The two "Coming Soon (ES/EN)" entries (linking to the real
+  `/coming-soon-v2` marketing page) were removed — this list's whole purpose is previewing REAL
+  SITE PAGES while the public lock is on, not previewing the lock page itself.
+  `/admin/team/website-preview/page.tsx` no longer renders the status badge; its helper text no
+  longer names the raw `NEXT_PUBLIC_COMING_SOON_LOCK` env var to staff.
+
+### Gate C — Viajes dormancy (re-confirmed, not re-touched)
+
+- Already closed in the prior gate (mock overview rewritten, Guide entry updated). This gate adds
+  a permanent, targeted test proving it stays true: no reference to `affiliate-cards`, `campaigns`,
+  or `editorial` remains in `adminGlobalNav.ts`, the Viajes overview page, or any *actionable*
+  Admin Guide field (`commonTasks`/`howTo`/`keywords`) — the Guide's own `notes` field explaining,
+  as history, what was removed and why is correctly left alone (explaining a past removal is not
+  the same as advertising a live capability).
+
+### Gate D — Raw technical error burndown (further pass)
+
+- **New leaks found and fixed**: `usuarios/[id]/page.tsx` rendered `auditHistory.detail` (a raw
+  Supabase error message) directly when the audit history source was unavailable — same class of
+  bug already fixed on `/admin/activity-log` in the prior gate, missed there because it's a
+  second, independent consumer of `fetchAdminAuditLogForTarget()`.
+- **`adminStrings.ts` (the shared EN/ES admin i18n dictionary) — the actual source of most of
+  `/admin/activity-log`'s remaining raw strings**: `activityLog.badgeLive` ("Supabase
+  (admin_audit_log)"), `subtitleLive` (raw `` `admin_audit_log` `` table name), `subtitleUnavailable`
+  (raw migration filename `20260410120000_admin_audit_log_and_team_invites.sql`), and
+  `helperNoSecrets` (raw `listings`/`listing_audit_event` table names + migration number
+  `20260423180000`) were rewritten to plain operator language in both EN and ES. The page's own
+  hardcoded `<code>listing_audit_event</code>` fallback text was removed too.
+- **Clasificados Ops** (`/admin/workspace/clasificados`, a primary Marketplace Ops page):
+  `detailPairsMissingTitle`/`Body` ("Database missing listings.detail_pairs column"/raw migration
+  filenames rendered as `<code>` tags) and `boostMissingTitle`/`Body` (raw
+  `listings.republished_at` column name + another raw migration filename) rewritten to "Setup
+  required..." plain-language degraded-state banners, in both EN and ES.
+- **Scope boundary held**: a large remaining volume of raw table/column names throughout the rest
+  of `adminStrings.ts` (Clasificados card-title strings like `clasificados.autosTitle`
+  ("Table autos_classifieds_listings..."), `serviciosTitle`, `categoriesTitle`, `homeChipsTitle`),
+  plus `leonixAdminGate.ts`'s raw permission-key `Error` messages (which only reach a rendered
+  page when `ADMIN_ENFORCE_ROSTER_PERMISSIONS=1` — not the current environment default — and even
+  then Next.js's production error handling redacts thrown Server Component error text by default,
+  no custom `app/admin/error.tsx` boundary exists either way) were **not** exhaustively burned
+  down this pass. A full line-by-line audit of a 2700+-line shared i18n dictionary is a
+  DEFERRED_LARGER_WORK item for its own dedicated gate with full typecheck coverage throughout,
+  not a partial pass rushed against this gate's resource control.
+- NOTES: 18/18 targeted checks pass (`verify:launch-truth-final-burndown`, new script).
+  Regression checks: `verify:launch-truth` (24/24), `verify:owner-auth-break-glass` (16/16),
+  `verify:admin-password-recovery` (21/21), `verify:executive-company-search` (21/21),
+  `verify:executive-hub-self-service` (20/20), `verify:admin-nav-ops` (74/74) — all unchanged.
+  Targeted eslint clean on every touched file (one pre-existing, unrelated `const ES` unused-var
+  lint error in `adminStrings.ts` confirmed via `git diff` to predate this gate). One authorized
+  full `tsc --noEmit` run at the end of implementation found 7 pre-existing baseline errors, all
+  in files this gate never touched (`digitalContactExecutivesDb.ts`'s `linked_roster_id` typing
+  gap from a prior gate, and 6 unrelated `e2e/**` Playwright spec type errors) — confirmed via
+  `git diff` to predate this gate; zero new type errors introduced.
