@@ -309,13 +309,16 @@ draft
 
 ### F.1 Migration reconciliation
 
-| # | Migration | Creates | Present? | Action |
+> **Superseded by §L.** The table below records the state *before* gate
+> `SERVICIOS-FOUNDATION-COMPLETION-1`. The post-mutation truth is in §L.
+
+| # | Migration | Creates | Present (pre-gate)? | Action taken |
 | --- | --- | --- | --- | --- |
-| 1 | `20260805100000_leonix_verified_intro_discount_redemptions.sql` | table `leonix_verified_intro_discount_redemptions` (+5 indexes, +4 partial-unique, RLS) | **YES** | **DO NOT REAPPLY** |
-| 2 | `20260805100100_leonix_phone_verification_challenges.sql` | table `leonix_phone_verification_challenges` (+3 indexes, +2 partial-unique, RLS) | **NO** | **APPLY — 1st** |
-| 3 | `20260805100200_leonix_verified_phone_identities.sql` | table `leonix_verified_phone_identities` (+2 indexes, unique, RLS) | **NO** | **APPLY — 2nd** |
-| 4 | `20260805100300_leonix_payment_records_verified_intro_discount_link.sql` | **column** `leonix_payment_records.verified_intro_discount_redemption_id` (+index) | **UNKNOWN** | **VERIFY, then apply only if absent** |
-| 5 | `20260910120000_saved_search_match_events_servicios.sql` | widens 3 CHECK constraints | **NO** | **APPLY** |
+| 1 | `20260805100000_leonix_verified_intro_discount_redemptions.sql` | table `leonix_verified_intro_discount_redemptions` (+5 indexes, +4 partial-unique, RLS) | **YES** | **SKIPPED — not reapplied** |
+| 2 | `20260805100100_leonix_phone_verification_challenges.sql` | table `leonix_phone_verification_challenges` (+3 indexes, +2 partial-unique, RLS) | **NO** | **APPLIED — 1st** |
+| 3 | `20260805100200_leonix_verified_phone_identities.sql` | table `leonix_verified_phone_identities` (+2 indexes, unique, RLS) | **NO** | **APPLIED — 2nd** |
+| 4 | `20260805100300_leonix_payment_records_verified_intro_discount_link.sql` | **column** `leonix_payment_records.verified_intro_discount_redemption_id` (+index) | **YES — resolved: already present** | **SKIPPED — not reapplied** |
+| 5 | `20260910120000_saved_search_match_events_servicios.sql` | widens 3 CHECK constraints | **NO** | **APPLIED — 3rd** |
 
 ### F.2 Hard ordering dependency
 
@@ -731,3 +734,107 @@ Every item is pass/fail. There is no "skip during QA."
 
 Servicios is source-complete for golden-reference certification. What remains is one controlled
 environment/database pass (§I + §G), then the §J runtime certification.
+
+---
+
+## L. FOUNDATION COMPLETION — EXECUTED
+
+**Gate:** `SERVICIOS-FOUNDATION-COMPLETION-1` · **Date:** 2026-09-10
+**Target:** Leonix Media `xuieateniufcrsfdomwl` (verified `ACTIVE_HEALTHY`, Postgres 17.6, us-west-1)
+**Method:** sequential — READ → DECIDE → APPLY ONE → VERIFY → APPLY NEXT. No batched mutations.
+
+### L.1 Migrations applied (3)
+
+| Order | Migration | Result |
+| --- | --- | --- |
+| 1 | `20260805100100_leonix_phone_verification_challenges.sql` | APPLIED, verified |
+| 2 | `20260805100200_leonix_verified_phone_identities.sql` | APPLIED, verified (FK resolved — ordering correct) |
+| 3 | `20260910120000_saved_search_match_events_servicios.sql` | APPLIED, verified |
+
+### L.2 Migrations deliberately NOT applied (2)
+
+| Migration | Reason |
+| --- | --- |
+| `20260805100000_..._redemptions.sql` | Table already present **and structurally complete** — 35/35 columns, all 4 anti-repeat partial-unique indexes with the exact `status IN ('reserved','redeemed')` predicate, all 5 supporting indexes, RLS on, 0 policies. Nothing to add; never to be dropped/recreated. |
+| `20260805100300_..._verified_intro_discount_link.sql` | **The pre-gate UNKNOWN is now resolved: the column already exists.** `leonix_payment_records.verified_intro_discount_redemption_id` is `uuid`, with FK `REFERENCES leonix_verified_intro_discount_redemptions(id) ON DELETE SET NULL` and index `leonix_payment_records_verified_intro_discount_redemption_idx` — matching the migration source exactly. |
+
+### L.3 Post-mutation schema truth (verified, not inferred)
+
+| Object | State |
+| --- | --- |
+| `leonix_verified_intro_discount_redemptions` | PRESENT · 35 cols · RLS on · 0 policies |
+| `leonix_phone_verification_challenges` | **PRESENT (new)** · 17 cols · 5 CHECKs · 6 indexes incl. `open_reservation_uidx` + `rate_slot_uidx` · RLS on · 0 policies |
+| `leonix_verified_phone_identities` | **PRESENT (new)** · 8 cols · UNIQUE `(owner_user_id, phone_e164)` · FK → challenges `ON DELETE SET NULL` · RLS on · 0 policies |
+| `leonix_payment_records.verified_intro_discount_redemption_id` | PRESENT (pre-existing) · uuid · FK + index verified |
+| `saved_search_match_events_category_check` | `('autos','bienes-raices','rentas','servicios')` · `convalidated = true` |
+| `saved_search_match_events_seller_lane_check` | `NULL OR ('negocios','negocio','privado','business','independent')` · `convalidated = true` |
+| `saved_search_processing_failures_category_check` | `('autos','bienes-raices','rentas','servicios')` · `convalidated = true` |
+
+`convalidated = true` means Postgres re-validated **every existing row** against each new
+constraint. Old categories remain valid and no existing row was invalidated — proven by the
+constraint's own validation, not by assumption. No durable QA rows were inserted.
+
+### L.4 Promo circuit proof (schema inspection only — no Stripe call, no OTP sent)
+
+A column-existence assertion across all 34 columns the live code reads or writes on the promo
+path returned **zero missing**:
+
+- eligibility read → `leonix_verified_phone_identities.phone_e164`, Supabase Auth email
+- atomic reservation → all 18 reservation-write columns, incl. `reservation_expires_at`
+  (NOT NULL), `checkout_attempt_key`, `verification_method`, `base_amount_cents`,
+  `discount_cents`, `business_identity_*`
+- payment record link → `verified_intro_discount_redemption_id`
+- **P0 amount-guard dependencies** → `amount_subtotal_cents`, `amount_discount_cents`,
+  `amount_total_cents`, `billing_mode` all present (without these the shipped fix would be inert)
+- webhook fulfillment → `leonix_stripe_webhook_events` (idempotency ledger),
+  `leonix_subscription_records` (37 cols), `admin_audit_log`
+- Save (P1) → `saved_listings` has `category`, `source_table`, `source_id`, `canonical_ad_id`;
+  `listing_id` is `uuid` and `servicios_public_listings.id` is `uuid`, so the canonical key type
+  matches. In preview `persistEngagement` defaults to false, so the non-uuid fallback is never
+  written.
+
+**Anti-repeat boundaries — all four confirmed present with the exact required predicate:**
+
+| Boundary | Index | Predicate |
+| --- | --- | --- |
+| owner (global) | `..._owner_uniq` | `status IN ('reserved','redeemed')` |
+| email hash | `..._email_hash_uniq` | `status IN (...)` AND hash NOT NULL |
+| phone hash | `..._phone_hash_uniq` | `status IN (...)` AND hash NOT NULL |
+| business identity | `..._business_uniq` | `status IN ('reserved','redeemed')` |
+
+All four cover **both** `reserved` and `redeemed`, so two concurrent checkouts cannot both hold
+an unresolved reservation. **PROMO UNIQUENESS: PASS.**
+
+### L.5 Environment readiness
+
+No `.env*` file exists in the worktree, and Vercel Preview environment variables cannot be read
+from this session. Every value below is therefore honestly **NEEDS OWNER MANUAL VERIFICATION**
+— not assumed configured, and not assumed missing.
+
+| Group | Variables | Status |
+| --- | --- | --- |
+| Supabase | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | NEEDS OWNER MANUAL VERIFICATION — all three must resolve to `xuieateniufcrsfdomwl` |
+| Servicios flags | `SERVICIOS_STRICT_PUBLISH=1`; `SERVICIOS_DEV_PUBLISH` unset; `SERVICIOS_MODERATION_MODE` unset | NEEDS OWNER MANUAL VERIFICATION |
+| Promo identity | `LEONIX_IDENTITY_HASH_KEY` | NEEDS OWNER MANUAL VERIFICATION — absence disables the **entire** 15% feature (503) |
+| SMS | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID` | NEEDS OWNER MANUAL VERIFICATION |
+| Stripe TEST | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, Preview webhook endpoint + 9 events | NEEDS OWNER MANUAL VERIFICATION |
+| Google | `GOOGLE_MAPS_API_KEY`, Geocoding enabled, server-compatible restriction | NEEDS OWNER MANUAL VERIFICATION |
+| Media | `BLOB_READ_WRITE_TOKEN` | NEEDS OWNER MANUAL VERIFICATION |
+
+### L.6 Standing statements
+
+- **No customer-visible Servicios feature is intentionally out of scope.** Every launch-visible
+  control either works end to end or does not render. The `save_only` branch that previously
+  rendered nothing now renders a working Save.
+- **Runtime certification must exercise BOTH commercial paths**: PATH A (base $399/month) and
+  PATH B (verified 15% intro — email path *and* SMS path, one-time enforcement, correct Stripe
+  amount `33915`, and full-price `39900` renewal).
+- **No source blocker remains.** Everything outstanding is configuration/runtime.
+
+### L.7 Remaining prerequisites before browser QA
+
+1. Verify Vercel Preview resolves to Leonix Media with a **matching** URL/anon/service-role trio.
+2. Set/confirm `SERVICIOS_STRICT_PUBLISH=1`, `LEONIX_IDENTITY_HASH_KEY`, `BLOB_READ_WRITE_TOKEN`,
+   `TWILIO_*`, Stripe TEST keys + Preview webhook (9 events), Google Geocoding.
+3. Redeploy Preview **only if** an env value changes (env edits do not take effect until a new
+   deployment). No redeploy is required by this gate's database work alone.
