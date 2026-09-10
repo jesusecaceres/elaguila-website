@@ -2,8 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { BusinessAiBriefingDraft, BusinessAiResearchRun } from "@/app/lib/business/aiResearch/types";
+import type { AiResearchInputPacket, BusinessAiBriefingDraft, BusinessAiResearchRun } from "@/app/lib/business/aiResearch/types";
 import type { BusinessConsentRecord, BusinessSourceFile, BusinessSourceLink } from "@/app/lib/business/fieldDiscovery/types";
+import { findSourceDefinition } from "@/app/lib/business/fieldDiscovery/sourceRegistry";
 
 async function postJson(url: string, method: string, body: unknown): Promise<{ ok: boolean; body: Record<string, unknown> | null }> {
   const res = await fetch(url, { method, credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -45,14 +46,26 @@ export function SourceLinksPanel({ sourceLinks }: { sourceLinks: readonly Busine
     <div className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
       <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Fuentes / Sources</h3>
       <ul className="mt-2 space-y-1 text-sm">
-        {sourceLinks.map((s) => (
-          <li key={s.id} className="flex items-center justify-between gap-2">
-            <span className="truncate">
-              <span className="font-semibold">{s.sourceType}:</span> {s.normalizedUrl}
-            </span>
-            <span className="shrink-0 rounded-full bg-[#FAF7F2] px-2 py-0.5 text-xs">{s.status}</span>
-          </li>
-        ))}
+        {sourceLinks.map((s) => {
+          const definition = findSourceDefinition(s.sourceType);
+          const isLive = definition.researchSupport === "live_v1";
+          return (
+            <li key={s.id} className="flex items-center justify-between gap-2">
+              <span className="truncate">
+                <span className="font-semibold">{s.sourceType}:</span> {s.normalizedUrl}
+              </span>
+              <span className="flex shrink-0 items-center gap-1">
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${isLive ? "bg-emerald-100 text-emerald-900" : "bg-[#FAF7F2] text-[#6B5E47]"}`}
+                  title={isLive ? "Investigado automáticamente por Leonix. / Automatically researched by Leonix." : "Enlace manual — Leonix no puede investigar esta plataforma automáticamente todavía (requiere acceso de API con permiso comercial). / Manual link — Leonix cannot automatically research this platform yet (requires business-permissioned API access)."}
+                >
+                  {isLive ? "Auto" : "Manual"}
+                </span>
+                <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5 text-xs">{s.status}</span>
+              </span>
+            </li>
+          );
+        })}
         {sourceLinks.length === 0 ? <li className="text-[#6B5E47]">Sin fuentes todavía. / No sources yet.</li> : null}
       </ul>
     </div>
@@ -90,11 +103,13 @@ export function RunResearchButton({
   businessId,
   canRun,
   providerAvailable,
+  googlePlacesAvailable,
   runs,
 }: {
   businessId: string;
   canRun: boolean;
   providerAvailable: boolean;
+  googlePlacesAvailable: boolean;
   runs: readonly BusinessAiResearchRun[];
 }) {
   const router = useRouter();
@@ -118,7 +133,10 @@ export function RunResearchButton({
     <div className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
       <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Investigación con IA / AI Research</h3>
       <p className="mt-1 text-sm text-[#6B5E47]">
-        Proveedor: {providerAvailable ? "Gemini disponible / available" : "No configurado / Not configured"}
+        Proveedor de síntesis / Synthesis provider: {providerAvailable ? "Gemini disponible / available" : "No configurado / Not configured"}
+      </p>
+      <p className="mt-1 text-sm text-[#6B5E47]">
+        Google Business Profile: {googlePlacesAvailable ? "Búsqueda en vivo disponible / Live lookup available" : "No configurado (GOOGLE_PLACES_API_KEY) / Not configured (GOOGLE_PLACES_API_KEY)"}
       </p>
       {latest ? (
         <p className="mt-1 text-sm">
@@ -139,6 +157,98 @@ export function RunResearchButton({
       ) : (
         <p className="mt-2 text-xs text-[#6B5E47]">Se requiere un manager para ejecutar. / A manager is required to run this.</p>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 7b. Raw per-source findings from the latest run — transparency into what was actually
+// checked and found, distinct from the LLM's synthesized draft below. Staff should never have
+// to trust a summary alone; every source-level fact here is exactly what the adapters returned,
+// with its own requiresConfirmation flags.
+// ---------------------------------------------------------------------------
+
+function websiteStatusLabel(status: string): string {
+  if (status === "completed") return "Revisado / Checked";
+  if (status === "unreachable") return "No se pudo acceder / Unreachable";
+  if (status === "blocked") return "Bloqueado / Blocked";
+  if (status === "unsupported") return "No compatible / Unsupported";
+  return status;
+}
+
+function googlePlacesStatusLabel(status: string): string {
+  if (status === "completed") return "Encontrado / Found";
+  if (status === "not_configured") return "No configurado / Not configured";
+  if (status === "not_found") return "No se encontró coincidencia / No match found";
+  if (status === "unreachable") return "No se pudo acceder / Unreachable";
+  if (status === "unauthorized") return "Clave rechazada / Key rejected";
+  return status;
+}
+
+export function SourceFindingsPanel({ latestRun }: { latestRun: BusinessAiResearchRun | null }) {
+  const packet = (latestRun?.inputSnapshot ?? null) as AiResearchInputPacket | null;
+  const website = packet?.websiteResearch ?? null;
+  const places = packet?.googlePlacesResearch ?? null;
+
+  if (!latestRun || (!website && !places)) {
+    return (
+      <div className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
+        <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Fuentes revisadas / Sources checked</h3>
+        <p className="mt-1 text-sm text-[#6B5E47]">Todavía no se ha ejecutado una investigación. / No research run yet.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
+      <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Fuentes revisadas / Sources checked</h3>
+      <p className="mt-1 text-xs text-[#9A9184]">
+        Estos son los hallazgos crudos de cada fuente, no un resumen de IA. Todo requiere confirmación de un humano antes de convertirse en un hecho. / These are the raw findings from each source, not an AI summary. Everything requires human confirmation before becoming a fact.
+      </p>
+
+      {website ? (
+        <div className="mt-3 rounded-lg border border-dashed border-[#E8DFD0] p-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold">Sitio web / Website</span>
+            <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5 text-[10px] uppercase">{websiteStatusLabel(website.status)}</span>
+          </div>
+          {website.title ? <p className="mt-1 text-xs">{website.title}</p> : null}
+          {website.evidence.length > 0 ? (
+            <ul className="mt-1 list-inside list-disc text-xs text-[#6B5E47]">
+              {website.evidence.slice(0, 8).map((e, i) => (
+                <li key={i}>{e.claim}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+
+      {places ? (
+        <div className="mt-3 rounded-lg border border-dashed border-[#E8DFD0] p-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold">Google Business Profile</span>
+            <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5 text-[10px] uppercase">{googlePlacesStatusLabel(places.status)}</span>
+          </div>
+          {places.matchedName ? <p className="mt-1 text-xs">{places.matchedName} — {places.formattedAddress ?? "sin dirección / no address"}</p> : null}
+          {places.evidence.length > 0 ? (
+            <ul className="mt-1 list-inside list-disc text-xs text-[#6B5E47]">
+              {places.evidence.map((e, i) => (
+                <li key={i}>
+                  {e.claim}
+                  {e.requiresConfirmation ? <span className="ml-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-800">Confirmar / Confirm</span> : null}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {places.limitations.length > 0 ? (
+            <ul className="mt-1 list-inside list-disc text-[10px] text-[#9A9184]">
+              {places.limitations.map((l, i) => (
+                <li key={i}>{l}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -10,6 +10,7 @@ import type {
   BriefingContradiction,
   BriefingStrengthOrOpportunity,
   BriefingUnknown,
+  GooglePlacesResearchResult,
   WebsiteResearchResult,
 } from "./types";
 
@@ -169,6 +170,7 @@ export function buildAiResearchInputPacket(input: {
   sourceLinks: readonly { sourceType: string; url: string }[];
   fileEvidence: readonly { fileKind: string; excerptOrCaption: string | null }[];
   websiteResearch: WebsiteResearchResult | null;
+  googlePlacesResearch: GooglePlacesResearchResult | null;
   unknowns: readonly { questionLabel: string }[];
   contradictions: readonly { claimALabel: string; claimBLabel: string }[];
   latestHealthFindings: readonly { dimensionKey: string; findingLabel: string }[];
@@ -182,6 +184,7 @@ export function buildAiResearchInputPacket(input: {
     sourceLinks: input.sourceLinks,
     fileEvidence: input.fileEvidence,
     websiteResearch: input.websiteResearch,
+    googlePlacesResearch: input.googlePlacesResearch,
     unknowns: input.unknowns,
     contradictions: input.contradictions,
     latestHealthFindings: input.latestHealthFindings,

@@ -24,9 +24,10 @@ import { getFullRun, getLatestCompletedRun, listRunsForBusiness } from "@/app/li
 import { HEALTH_DIMENSION_KEYS } from "@/app/lib/business/healthMap/constants";
 import { RecommendJourney, StewardshipOpportunityFlowNav } from "./RecommendJourney";
 import { listLedgerForBusiness, listOverridesForRecommendation, listRecommendationsForBusiness, listTestsForRecommendation } from "@/app/lib/business/stewardship/repository";
-import { BriefingReviewPanel, ConsentStatusPanel, RunResearchButton, SourceFilesPanel, SourceLinksPanel } from "./FieldDiscoveryActions";
+import { BriefingReviewPanel, ConsentStatusPanel, RunResearchButton, SourceFilesPanel, SourceFindingsPanel, SourceLinksPanel } from "./FieldDiscoveryActions";
 import { listConsentForBusiness, listSourceFilesForBusiness, listSourceLinksForBusiness } from "@/app/lib/business/fieldDiscovery/repository";
 import { getDefaultBusinessIntelligenceProvider } from "@/app/lib/business/aiResearch/providerRegistry";
+import { isGooglePlacesConfigured } from "@/app/lib/business/aiResearch/googlePlacesAdapter";
 import { listBriefingDraftsForBusiness, listResearchRunsForBusiness } from "@/app/lib/business/aiResearch/repository";
 import { assembleCockpitBriefing } from "@/app/lib/business/meetingStudio/cockpitBriefing";
 import { listMeetingsForBusiness, listAttendeesForMeeting, listConsentsForMeeting, listNotesForMeeting, listTranscriptsForMeeting } from "@/app/lib/business/meetingStudio/repository";
@@ -201,7 +202,8 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
         const latestRun = runs[0] ?? null;
         const latestDraft = latestRun ? drafts.find((d) => d.researchRunId === latestRun.id) ?? null : null;
         const providerAvailable = await provider.isConfigured();
-        return { sourceLinks, sourceFiles, consent, runs, latestDraft, providerAvailable };
+        const googlePlacesAvailable = isGooglePlacesConfigured();
+        return { sourceLinks, sourceFiles, consent, runs, latestRun, latestDraft, providerAvailable, googlePlacesAvailable };
       })()
     : null;
 
@@ -929,8 +931,10 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
               businessId={business.id}
               canRun={canRunAiResearch}
               providerAvailable={fieldDiscoveryData.providerAvailable}
+              googlePlacesAvailable={fieldDiscoveryData.googlePlacesAvailable}
               runs={fieldDiscoveryData.runs}
             />
+            <SourceFindingsPanel latestRun={fieldDiscoveryData.latestRun} />
             <BriefingReviewPanel
               businessId={business.id}
               draft={fieldDiscoveryData.latestDraft}

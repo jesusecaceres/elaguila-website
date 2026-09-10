@@ -128,6 +128,35 @@ export type WebsiteResearchResult = {
 };
 
 // ---------------------------------------------------------------------------
+// Google Business Profile / Places V1 research adapter contract
+// ---------------------------------------------------------------------------
+
+export type GooglePlacesResearchStatus = "completed" | "not_configured" | "not_found" | "unreachable" | "unauthorized";
+
+export type GooglePlacesResearchEvidence = {
+  category: string;
+  claim: string;
+  confidence: BriefingConfidence;
+  requiresConfirmation: boolean;
+};
+
+export type GooglePlacesResearchResult = {
+  status: GooglePlacesResearchStatus;
+  observedAt: string;
+  matchedName: string | null;
+  formattedAddress: string | null;
+  phone: string | null;
+  websiteUri: string | null;
+  mapsUri: string | null;
+  rating: number | null;
+  userRatingCount: number | null;
+  businessStatus: string | null;
+  types: string[];
+  evidence: GooglePlacesResearchEvidence[];
+  limitations: string[];
+};
+
+// ---------------------------------------------------------------------------
 // AI input packet / output contract
 // ---------------------------------------------------------------------------
 
@@ -138,6 +167,7 @@ export type AiResearchInputPacket = {
   sourceLinks: readonly { sourceType: string; url: string }[];
   fileEvidence: readonly { fileKind: string; excerptOrCaption: string | null }[];
   websiteResearch: WebsiteResearchResult | null;
+  googlePlacesResearch: GooglePlacesResearchResult | null;
   unknowns: readonly { questionLabel: string }[];
   contradictions: readonly { claimALabel: string; claimBLabel: string }[];
   latestHealthFindings: readonly { dimensionKey: string; findingLabel: string }[];
