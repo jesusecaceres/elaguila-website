@@ -4,6 +4,7 @@ import { listServiciosPublicListingsForOwner } from "@/app/clasificados/servicio
 import { SERVICIOS_OFFERS_ADDON_PACKAGE_KEY } from "@/app/(site)/dashboard/lib/serviciosDashboardOffersAddonCheckout";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
+import { safeExternalWebsiteHref } from "@/app/(site)/servicios/lib/serviciosProfileSanitize";
 
 export const runtime = "nodejs";
 
@@ -75,6 +76,13 @@ export async function GET(req: NextRequest) {
       leonix_ad_id: r.leonix_ad_id ?? null,
       // Gate E.3.3 — canonical `id` only; slug/leonix_ad_id are never entitlement identity.
       offers_addon_active: Boolean(r.id?.trim() && activeOffersEntitlementKeys.has(r.id.trim())),
+      // Owner Actionability Gate — real provider links only, read from the same raw wire fields
+      // (profile_json.contact.externalReviewLinks.{googleReviewsUrl,yelpReviewsUrl}) the public
+      // Servicios Business Hub resolver (resolveServiciosProfile.ts) reads before reshaping them
+      // into its own resolved `google`/`yelp` keys. Never invented; omitted when the owner never
+      // entered a real Google/Yelp URL.
+      google_review_url: safeExternalWebsiteHref(r.profile_json?.contact?.externalReviewLinks?.googleReviewsUrl),
+      yelp_review_url: safeExternalWebsiteHref(r.profile_json?.contact?.externalReviewLinks?.yelpReviewsUrl),
     })),
   });
 }

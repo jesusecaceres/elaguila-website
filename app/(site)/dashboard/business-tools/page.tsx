@@ -13,6 +13,7 @@ import {
   dashboardHasCapabilityForKey,
   type DashboardEntitlementLookupItem,
 } from "../lib/dashboardPackageEntitlementBadges";
+import { fetchMyBusinesses, fetchBusinessHome, type OwnerBusinessSummary, type BusinessHomeResponse } from "../lib/businessHomeClient";
 
 export const dynamic = "force-dynamic";
 
@@ -103,6 +104,10 @@ function BusinessToolsPageContent() {
   const [capabilityRows, setCapabilityRows] = useState<CapabilityRow[]>([]);
   const [capabilitiesChecked, setCapabilitiesChecked] = useState(false);
   const [hasBusinessListings, setHasBusinessListings] = useState(false);
+  const [activeBusiness, setActiveBusiness] = useState<OwnerBusinessSummary | null>(null);
+  const [otherBusinessCount, setOtherBusinessCount] = useState(0);
+  const [businessHome, setBusinessHome] = useState<BusinessHomeResponse | null>(null);
+  const [businessHomeChecked, setBusinessHomeChecked] = useState(false);
 
   useEffect(() => {
     const sb = createSupabaseBrowserClient();
@@ -195,6 +200,28 @@ function BusinessToolsPageContent() {
         /* fail closed to empty — never fabricate a capability */
       }
       if (mounted) setCapabilitiesChecked(true);
+
+      // Gate 2 (Owner-Safe Bridge Reconciliation) — resolve the exact public.businesses.id this
+      // owner has an active membership in, then compose the real Business Home payload for it.
+      // No canonical business => activeBusiness stays null and the UI shows only honest
+      // setup/idea opportunities (never a fabricated business context).
+      try {
+        const { data: sess } = await sb.auth.getSession();
+        const token = sess.session?.access_token ?? null;
+        const businesses = await fetchMyBusinesses(token);
+        if (businesses.length > 0) {
+          const chosen = businesses[0];
+          if (mounted) {
+            setActiveBusiness(chosen);
+            setOtherBusinessCount(businesses.length - 1);
+          }
+          const home = await fetchBusinessHome(chosen.businessId, token);
+          if (mounted) setBusinessHome(home);
+        }
+      } catch {
+        /* fail closed to no business context — never fabricate one */
+      }
+      if (mounted) setBusinessHomeChecked(true);
       setLoading(false);
     }
     void run();
@@ -224,6 +251,10 @@ function BusinessToolsPageContent() {
             active: row.active,
           }))}
           capabilitiesChecked={capabilitiesChecked}
+          activeBusiness={activeBusiness}
+          otherBusinessCount={otherBusinessCount}
+          businessHome={businessHome}
+          businessHomeChecked={businessHomeChecked}
         />
       )}
     </LeonixDashboardShell>

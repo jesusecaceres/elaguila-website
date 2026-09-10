@@ -38,9 +38,10 @@ import {
   type DashboardSubscriptionStateEntry,
 } from "@/app/(site)/dashboard/lib/dashboardPackageEntitlementBadges";
 import { resolveCommercialStateBadges, commercialStateBadgesToLifecycleNote } from "@/app/lib/listingPlans/commercialStateBadges";
-import { OwnerEntityWorkspace } from "@/app/(site)/dashboard/components/OwnerEntityWorkspace";
+import { OwnerEntityWorkspace, type OwnerEntitySpecializedGroup } from "@/app/(site)/dashboard/components/OwnerEntityWorkspace";
 import { DashboardListingActionBar, type ActionItem } from "@/app/(site)/dashboard/components/DashboardListingActionBar";
 import { getOwnerEntityCapabilities, isLiveCapability } from "@/app/(site)/dashboard/lib/ownerEntityCapabilityRegistry";
+import { ownerBusinessToolsSpecializedGroup } from "@/app/(site)/dashboard/lib/ownerBusinessToolsSpecializedGroup";
 import { resolveListingUiStatus, listingUiStatusLabel, listingUiStatusChipClass } from "@/app/(site)/dashboard/lib/listingDisplayStatus";
 import {
   editListingLabel,
@@ -547,10 +548,11 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
             }}
             quickActions={quickActions}
             lifecycleActions={lifecycleActions}
-            specialized={{
-              title: ownerToolsTitle(lang),
-              actions: specializedActions,
-              children: (
+            specialized={[
+              {
+                title: ownerToolsTitle(lang),
+                actions: specializedActions,
+                children: (
                 <div className="flex flex-col gap-3">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8A6B1F]">{ownerInventoryModuleTitle(lang)}</p>
                   {!atLimit ? (
@@ -632,7 +634,9 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
                   )}
                 </div>
               ),
-            }}
+              },
+              ownerBusinessToolsSpecializedGroup(dealerCaps.specialized.businessTools, lang),
+            ].filter((group): group is OwnerEntitySpecializedGroup => group !== null)}
             mobileSheetLabels={{ trigger: t.moreOptions, title: t.moreOptions, close: t.moreOptionsClose }}
             footerHint={!atLimit ? autosDealerInventoryUpgradePitch(lang) : null}
           />

@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { LX_DASH } from "../lib/dashboardLeonixTheme";
-import { businessConciergeHubCopy, type Lang } from "../lib/dashboardI18n";
+import { businessConciergeHubCopy, businessHomeCopy, type Lang } from "../lib/dashboardI18n";
+import type { BusinessHomeResponse, OwnerBusinessSummary } from "../lib/businessHomeClient";
+import { mapAdvisorSignalToAttention } from "../lib/ownerAttentionModel";
+import { OwnerAttentionItemCard } from "./OwnerAttentionItemCard";
 
 function ModuleCard({
   title,
@@ -10,12 +13,14 @@ function ModuleCard({
   available,
   liveLabel,
   unavailableLabel,
+  children,
 }: {
   title: string;
-  body: string;
+  body?: string;
   available: boolean;
   liveLabel: string;
   unavailableLabel: string;
+  children?: React.ReactNode;
 }) {
   return (
     <article className="rounded-2xl border border-[#D6C7AD]/80 bg-[#FFFCF7] p-4">
@@ -25,7 +30,8 @@ function ModuleCard({
           {available ? liveLabel : unavailableLabel}
         </span>
       </div>
-      <p className={`mt-2 ${LX_DASH.bodyMuted}`}>{body}</p>
+      {body ? <p className={`mt-2 ${LX_DASH.bodyMuted}`}>{body}</p> : null}
+      {children}
     </article>
   );
 }
@@ -39,6 +45,10 @@ export function BusinessConciergeOwnerHome({
   completenessRecommendations,
   capabilityRows,
   capabilitiesChecked,
+  activeBusiness,
+  otherBusinessCount,
+  businessHome,
+  businessHomeChecked,
 }: {
   lang: Lang;
   q: string;
@@ -48,8 +58,17 @@ export function BusinessConciergeOwnerHome({
   completenessRecommendations: string[];
   capabilityRows: Array<{ key: string; label: string; href: string; active: boolean }>;
   capabilitiesChecked: boolean;
+  /** Gate 2 — the exact public.businesses.id row this owner is authorized for, if any. */
+  activeBusiness: OwnerBusinessSummary | null;
+  /** Count of additional businesses this owner also has active membership in (switcher is future work). */
+  otherBusinessCount: number;
+  businessHome: BusinessHomeResponse | null;
+  businessHomeChecked: boolean;
 }) {
   const t = businessConciergeHubCopy(lang);
+  const th = businessHomeCopy(lang);
+  const es = lang === "es";
+  const home = businessHome;
 
   return (
     <div className="flex min-w-0 flex-col gap-6 overflow-x-hidden">
@@ -59,7 +78,30 @@ export function BusinessConciergeOwnerHome({
         <p className={`mt-2 max-w-3xl ${LX_DASH.bodyMuted}`}>{t.subtitle}</p>
       </header>
 
-      {!hasBusinessListings ? (
+      {/* BUSINESS IDENTITY */}
+      <section className={LX_DASH.panel}>
+        <h2 className={LX_DASH.sectionTitle}>{t.identityTitle}</h2>
+        {activeBusiness ? (
+          <>
+            <p className={`mt-2 ${LX_DASH.bodyMuted}`}>{th.activeBusinessLabel}</p>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <span className="font-serif text-lg font-semibold text-[#1F241C]">{activeBusiness.displayName}</span>
+              {home?.business?.businessStage ? (
+                <span className={LX_DASH.subtleBadge}>{th.stageLabel[home.business.businessStage] ?? home.business.businessStage}</span>
+              ) : null}
+              {home?.entitlement?.state ? (
+                <span className={LX_DASH.subtleBadge}>{th.entitlementState[home.entitlement.state] ?? home.entitlement.state}</span>
+              ) : null}
+            </div>
+            {otherBusinessCount > 0 ? <p className={`mt-2 text-xs ${LX_DASH.bodyMuted}`}>{th.switchBusinessHint}</p> : null}
+          </>
+        ) : (
+          <p className={`mt-2 ${LX_DASH.bodyMuted}`}>{hasBusinessListings ? t.identityListingBased : t.identityMissing}</p>
+        )}
+      </section>
+
+      {/* No canonical business — honest setup/idea/learning opportunities only, per doctrine. */}
+      {!activeBusiness ? (
         <section className={LX_DASH.panel}>
           <h2 className={LX_DASH.sectionTitle}>{t.generalTitle}</h2>
           <p className={`mt-2 max-w-3xl ${LX_DASH.bodyMuted}`}>{t.generalBody}</p>
@@ -71,7 +113,7 @@ export function BusinessConciergeOwnerHome({
               {t.profileCta}
             </Link>
             <a
-              href={`mailto:hola@leonix.com?subject=${encodeURIComponent(lang === "es" ? "Leonix Concierge" : "Leonix Concierge")}`}
+              href={`mailto:hola@leonix.com?subject=${encodeURIComponent("Leonix Concierge")}`}
               className={LX_DASH.btnManage}
             >
               {t.mailtoCta}
@@ -80,34 +122,195 @@ export function BusinessConciergeOwnerHome({
         </section>
       ) : null}
 
-      <section className={LX_DASH.panel}>
-        <h2 className={LX_DASH.sectionTitle}>{t.identityTitle}</h2>
-        <p className={`mt-2 ${LX_DASH.bodyMuted}`}>{hasBusinessListings ? t.identityListingBased : t.identityMissing}</p>
-      </section>
-
-      <section className={LX_DASH.panel}>
-        <h2 className={LX_DASH.sectionTitle}>{t.whatMattersTitle}</h2>
-        {completenessRecommendations.length > 0 ? (
-          <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-[#3D3428]">
-            {completenessRecommendations.slice(0, 3).map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
+      {/* Canonical business exists — render the real Business Home hierarchy. */}
+      {activeBusiness ? (
+        !businessHomeChecked ? (
+          <p className={LX_DASH.bodyMuted}>{t.loading}</p>
+        ) : !home ? (
+          <section className={LX_DASH.emptyState}>{t.identityMissing}</section>
         ) : (
-          <p className={`mt-2 ${LX_DASH.emptyState}`}>{t.whatMattersEmpty}</p>
-        )}
-      </section>
+          <>
+            {/* WHAT MATTERS NOW: Next Right Move + Needs Your Attention */}
+            <section className="grid gap-3 md:grid-cols-2">
+              <ModuleCard
+                title={t.nrmTitle}
+                available={!!home.whatMattersNow?.available && !!home.whatMattersNow?.recommendation}
+                liveLabel={t.moduleLive}
+                unavailableLabel={t.moduleUnavailable}
+              >
+                {home.whatMattersNow?.recommendation ? (
+                  <p className={`mt-2 ${LX_DASH.bodyMuted}`}>
+                    {String(
+                      es
+                        ? (home.whatMattersNow.recommendation as Record<string, unknown>).verifiedNeedEs
+                        : (home.whatMattersNow.recommendation as Record<string, unknown>).verifiedNeedEn
+                    )}
+                  </p>
+                ) : (
+                  <p className={`mt-2 ${LX_DASH.bodyMuted}`}>{t.nrmUnsupported}</p>
+                )}
+              </ModuleCard>
 
-      <section className="grid gap-3 md:grid-cols-2">
-        <ModuleCard title={t.nrmTitle} body={t.nrmUnsupported} available={false} liveLabel={t.moduleLive} unavailableLabel={t.moduleUnavailable} />
-        <ModuleCard title={t.healthTitle} body={t.healthUnsupported} available={false} liveLabel={t.moduleLive} unavailableLabel={t.moduleUnavailable} />
-        <ModuleCard title={t.actionTitle} body={t.actionUnsupported} available={false} liveLabel={t.moduleLive} unavailableLabel={t.moduleUnavailable} />
-        <ModuleCard title={t.understandTitle} body={t.understandUnsupported} available={false} liveLabel={t.moduleLive} unavailableLabel={t.moduleUnavailable} />
-        <ModuleCard title={t.learnTitle} body={t.learnUnsupported} available={false} liveLabel={t.moduleLive} unavailableLabel={t.moduleUnavailable} />
-        <ModuleCard title={t.progressTitle} body={t.progressUnsupported} available={false} liveLabel={t.moduleLive} unavailableLabel={t.moduleUnavailable} />
-        <ModuleCard title={t.assistantTitle} body={t.assistantUnsupported} available={false} liveLabel={t.moduleLive} unavailableLabel={t.moduleUnavailable} />
-        <ModuleCard title={t.approvalsTitle} body={t.noPendingApprovals} available={false} liveLabel={t.moduleLive} unavailableLabel={t.moduleUnavailable} />
-      </section>
+              <ModuleCard
+                title={t.attentionTitle}
+                available={!!home.needsAttention?.available && (home.needsAttention?.signals?.length ?? 0) > 0}
+                liveLabel={t.moduleLive}
+                unavailableLabel={t.moduleUnavailable}
+              >
+                {home.needsAttention?.signals && home.needsAttention.signals.length > 0 && activeBusiness ? (
+                  <ul className="mt-2 space-y-2">
+                    {home.needsAttention.signals.map((s) => (
+                      <li key={s.id}>
+                        <OwnerAttentionItemCard item={mapAdvisorSignalToAttention(s, lang, activeBusiness.businessId)} lang={lang} />
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className={`mt-2 ${LX_DASH.bodyMuted}`}>{t.whatMattersEmpty}</p>
+                )}
+              </ModuleCard>
+            </section>
+
+            {/* BUSINESS HEALTH */}
+            <section className={LX_DASH.panel}>
+              <h2 className={LX_DASH.sectionTitle}>{t.healthTitle}</h2>
+              {home.businessHealth?.available && (home.businessHealth.strengths.length > 0 || home.businessHealth.needsAttention.length > 0) ? (
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#8A6B1F]">{th.healthStrongTitle}</p>
+                    {home.businessHealth.strengths.length > 0 ? (
+                      <ul className="mt-2 space-y-1 text-sm text-[#3D3428]">
+                        {home.businessHealth.strengths.map((d) => (
+                          <li key={d.dimensionKey}>{es ? d.explanationEs : d.explanationEn}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className={`mt-2 ${LX_DASH.emptyState}`}>—</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#8A6B1F]">{th.healthAttentionTitle}</p>
+                    {home.businessHealth.needsAttention.length > 0 ? (
+                      <ul className="mt-2 space-y-1 text-sm text-[#3D3428]">
+                        {home.businessHealth.needsAttention.map((d) => (
+                          <li key={d.dimensionKey}>{es ? d.explanationEs : d.explanationEn}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className={`mt-2 ${LX_DASH.emptyState}`}>—</p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className={`mt-2 ${LX_DASH.bodyMuted}`}>{t.healthUnsupported}</p>
+              )}
+            </section>
+
+            {/* YOUR ACTION PLAN */}
+            <section className={LX_DASH.panel}>
+              <h2 className={LX_DASH.sectionTitle}>{t.actionTitle}</h2>
+              {home.actionPlan?.available && home.actionPlan.progress ? (
+                <div className="mt-3 flex flex-wrap gap-4">
+                  <div>
+                    <p className={LX_DASH.metricLabel}>{th.actionPlanTotal}</p>
+                    <p className={LX_DASH.metricValue}>{home.actionPlan.progress.total}</p>
+                  </div>
+                  <div>
+                    <p className={LX_DASH.metricLabel}>{th.actionPlanCompleted}</p>
+                    <p className={LX_DASH.metricValue}>{home.actionPlan.progress.completed}</p>
+                  </div>
+                  <div>
+                    <p className={LX_DASH.metricLabel}>{th.actionPlanInProgress}</p>
+                    <p className={LX_DASH.metricValue}>{home.actionPlan.progress.inProgressOrAvailable}</p>
+                  </div>
+                </div>
+              ) : (
+                <p className={`mt-2 ${LX_DASH.bodyMuted}`}>{t.actionUnsupported}</p>
+              )}
+            </section>
+
+            {/* WHAT LEONIX UNDERSTANDS */}
+            <section className={LX_DASH.panel}>
+              <h2 className={LX_DASH.sectionTitle}>{t.understandTitle}</h2>
+              {home.whatLeonixUnderstands?.available ? (
+                <div className="mt-3 flex flex-wrap gap-4">
+                  <div>
+                    <p className={LX_DASH.metricLabel}>{th.understandConfirmed}</p>
+                    <p className={LX_DASH.metricValue}>{home.whatLeonixUnderstands.confirmedFactCount}</p>
+                  </div>
+                  <div>
+                    <p className={LX_DASH.metricLabel}>{th.understandNeedsConfirmation}</p>
+                    <p className={LX_DASH.metricValue}>{home.whatLeonixUnderstands.needsConfirmationCount}</p>
+                  </div>
+                  <div>
+                    <p className={LX_DASH.metricLabel}>{th.understandOpenQuestions}</p>
+                    <p className={LX_DASH.metricValue}>{home.whatLeonixUnderstands.openQuestionsCount}</p>
+                  </div>
+                </div>
+              ) : (
+                <p className={`mt-2 ${LX_DASH.bodyMuted}`}>{t.understandUnsupported}</p>
+              )}
+            </section>
+
+            {/* WORK WITH LEONIX: approvals, service requests, proposals */}
+            <section className={LX_DASH.panel}>
+              <h2 className={LX_DASH.sectionTitle}>{t.approvalsTitle}</h2>
+              <div className="mt-3 flex flex-wrap gap-4">
+                <div>
+                  <p className={LX_DASH.metricLabel}>{th.approvalsCountLabel}</p>
+                  <p className={LX_DASH.metricValue}>{home.workWithLeonix?.pendingApprovalsCount ?? 0}</p>
+                </div>
+                <div>
+                  <p className={LX_DASH.metricLabel}>{th.serviceRequestsCountLabel}</p>
+                  <p className={LX_DASH.metricValue}>{home.workWithLeonix?.pendingServiceRequestsCount ?? 0}</p>
+                </div>
+              </div>
+              <p className="mt-4 text-sm font-semibold text-[#5C5346]">{th.proposalsTitle}</p>
+              {home.workWithLeonix?.proposalsAwaitingDecision && home.workWithLeonix.proposalsAwaitingDecision.length > 0 ? (
+                <ul className="mt-2 space-y-2">
+                  {home.workWithLeonix.proposalsAwaitingDecision.map((p) => (
+                    <li key={p.id} className="rounded-xl border border-[#D6C7AD]/70 bg-white p-3">
+                      <p className="text-sm font-semibold text-[#1F241C]">{es ? p.verifiedNeedEs : p.verifiedNeedEn}</p>
+                      <p className={`mt-1 ${LX_DASH.bodyMuted}`}>{p.recommendedIntervention}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className={`mt-2 ${LX_DASH.bodyMuted}`}>{th.proposalsEmpty}</p>
+              )}
+            </section>
+
+            {/* PROGRESS / RESULTS */}
+            <section className={LX_DASH.panel}>
+              <h2 className={LX_DASH.sectionTitle}>{t.progressTitle}</h2>
+              {home.progress?.available && home.progress.outcomes.length > 0 ? (
+                <ul className="mt-3 space-y-2">
+                  {home.progress.outcomes.map((o) => (
+                    <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#D6C7AD]/70 bg-white px-4 py-3">
+                      <span className="text-sm font-medium text-[#1F241C]">{es ? o.metricLabelEs : o.metricLabelEn}</span>
+                      <span className={LX_DASH.subtleBadge}>
+                        {o.baselineValue ?? "—"} → {o.measuredValue ?? "—"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className={`mt-2 ${LX_DASH.bodyMuted}`}>{home.progress?.available ? th.outcomesEmpty : t.progressUnsupported}</p>
+              )}
+            </section>
+
+            {/* ASSISTANT — only rendered when genuinely available */}
+            {home.assistant?.available ? (
+              <section className={LX_DASH.panel}>
+                <h2 className={LX_DASH.sectionTitle}>{t.assistantTitle}</h2>
+                <p className={`mt-2 ${LX_DASH.bodyMuted}`}>{home.assistant.hasActiveThread ? th.assistantActive : th.assistantInactive}</p>
+              </section>
+            ) : null}
+
+            {/* LEARNING — intentionally omitted: no real recommendation→lesson mapping exists yet. */}
+          </>
+        )
+      ) : null}
 
       {completenessScore != null && completenessMax != null ? (
         <section className={LX_DASH.panel}>

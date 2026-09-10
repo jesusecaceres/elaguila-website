@@ -336,13 +336,17 @@ function EmpleosEmployerManagePageContent() {
                 title: ownerApplicationsModuleTitle(lang),
                 items: activityItems,
                 emptyLabel: appsLoaded ? t.noApps : t.loading,
+                // Real scroll target for the "Aplicaciones" specialized-tools CTA above — was
+                // previously an empty marker placed AFTER this whole card (so the anchor scrolled
+                // past the actual applications list instead of to it); now the applications
+                // section itself carries the id the CTA jumps to.
+                id: "empleos-applications",
               }
             : undefined
         }
         mobileSheetLabels={{ trigger: t.moreOptions, title: t.moreOptions, close: t.moreOptionsClose }}
         footerHint={row.lane === "feria" ? t.feriaNote : null}
       />
-      {supportsApplications ? <div id="empleos-applications" className="sr-only" /> : null}
       <Link href={`/dashboard/empleos?${q}`} className="mt-6 inline-flex text-sm font-semibold underline">
         ← {t.back}
       </Link>

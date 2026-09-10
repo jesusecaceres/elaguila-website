@@ -428,30 +428,30 @@ export function businessConciergeHubCopy(lang: Lang) {
           "Esta página organiza lo que Leonix ya puede mostrar con seguridad. No recrea el Libro de negocio, el Mapa de salud ni el motor de recomendaciones.",
         identityTitle: "Identidad de negocio",
         identityMissing:
-          "No hay un registro canónico public.businesses.id en este espacio de trabajo. La identidad comercial hoy es el anuncio y tu cuenta.",
+          "No hay un negocio canónico (public.businesses.id) vinculado a tu cuenta todavía. La identidad comercial hoy es el anuncio y tu cuenta.",
         identityListingBased: "Identidad actual: tus anuncios de Restaurantes o Servicios, con el id de anunciante Leonix cuando existe.",
         whatMattersTitle: "Lo que importa ahora",
         nrmTitle: "Siguiente paso correcto",
         nrmUnsupported:
-          "Leonix todavía está aprendiendo lo suficiente para recomendar con responsabilidad. No hay un motor de Next Right Move expuesto al dueño en este espacio de trabajo.",
+          "Leonix todavía no tiene un siguiente paso recomendado y compartido contigo para este negocio.",
         attentionTitle: "Necesita tu atención",
         healthTitle: "Salud del negocio",
         healthUnsupported:
-          "El Mapa de salud del dueño no está publicado aquí. No mostramos un puntaje 0–100 ni un diagnóstico inventado.",
+          "Todavía no hay una evaluación de salud completada para este negocio. No mostramos un puntaje 0–100 ni un diagnóstico inventado.",
         actionTitle: "Plan de acción",
         actionUnsupported:
-          "El plan DIY Concierge del dueño no está publicado en este espacio de trabajo. No creamos tareas falsas.",
+          "Todavía no hay un plan de acción DIY Concierge activo para este negocio. No creamos tareas falsas.",
         understandTitle: "Lo que Leonix entiende",
         understandUnsupported:
-          "La vista de dueño de “lo que entendemos” no está publicada aquí. No mostramos notas de staff ni borradores internos.",
+          "Esta capacidad no está habilitada para tu cuenta todavía. No mostramos notas de staff ni borradores internos.",
         learnTitle: "Aprendizaje",
         learnUnsupported: "El Centro de aprendizaje (/aprender) no está en este espacio de trabajo. No inventamos lecciones personalizadas.",
         approvalsTitle: "Aprobaciones / trabajar con Leonix",
         progressTitle: "Progreso / resultados",
-        progressUnsupported: "No hay resultados de Business Concierge con evidencia para mostrar. No convertimos analíticas de anuncios en ROI.",
+        progressUnsupported: "No hay resultados de Business Concierge con evidencia para mostrar todavía. No convertimos analíticas de anuncios en ROI.",
         assistantTitle: "Asistente",
         assistantUnsupported:
-          "El asistente de negocio para dueños no está listo en este espacio de trabajo. No implica que Leonix cobre, publique o apruebe solo.",
+          "El asistente de negocio para dueños no está habilitado para tu cuenta todavía. No implica que Leonix cobre, publique o apruebe solo.",
         generalTitle: "¿Tienes una idea o un oficio?",
         generalBody:
           "Si aún no administras un negocio real en Leonix, puedes publicar un anuncio o completar tu perfil. No hay Mapa de salud ni Siguiente paso correcto hasta que exista un negocio canónico y APIs seguras para el dueño.",
@@ -481,30 +481,30 @@ export function businessConciergeHubCopy(lang: Lang) {
           "This page organizes what Leonix can already show safely. It does not recreate the Living Business Book, Health Map, or recommendation engine.",
         identityTitle: "Business identity",
         identityMissing:
-          "There is no canonical public.businesses.id record in this workspace. Commercial identity today is the listing plus your account.",
+          "There is no canonical business (public.businesses.id) linked to your account yet. Commercial identity today is the listing plus your account.",
         identityListingBased: "Current identity: your Restaurantes or Servicios listings, with the Leonix ad id when it exists.",
         whatMattersTitle: "What matters now",
         nrmTitle: "Next right move",
         nrmUnsupported:
-          "Leonix is still learning enough to recommend responsibly. No owner-facing Next Right Move engine is published in this workspace.",
+          "Leonix does not have a recommended, owner-shared next move for this business yet.",
         attentionTitle: "Needs your attention",
         healthTitle: "Business health",
         healthUnsupported:
-          "The owner Health Map is not published here. We do not show a 0–100 score or a fabricated diagnosis.",
+          "There is no completed health assessment for this business yet. We do not show a 0–100 score or a fabricated diagnosis.",
         actionTitle: "Action plan",
         actionUnsupported:
-          "The owner DIY Concierge plan is not published in this workspace. We do not create fake tasks.",
+          "There is no active DIY Concierge action plan for this business yet. We do not create fake tasks.",
         understandTitle: "What Leonix understands",
         understandUnsupported:
-          "The owner view of “what we understand” is not published here. We do not show staff notes or internal drafts.",
+          "This capability is not enabled for your account yet. We do not show staff notes or internal drafts.",
         learnTitle: "Learning",
         learnUnsupported: "The Learning Center (/aprender) is not in this workspace. We do not invent personalized lessons.",
         approvalsTitle: "Approvals / work with Leonix",
         progressTitle: "Progress / results",
-        progressUnsupported: "There are no evidence-backed Business Concierge outcomes to show. Listing analytics are not treated as ROI.",
+        progressUnsupported: "There are no evidence-backed Business Concierge outcomes to show yet. Listing analytics are not treated as ROI.",
         assistantTitle: "Assistant",
         assistantUnsupported:
-          "The owner business assistant is not ready in this workspace. This does not imply Leonix will charge, publish, or approve on its own.",
+          "The owner business assistant is not enabled for your account yet. This does not imply Leonix will charge, publish, or approve on its own.",
         generalTitle: "Have an idea or a trade?",
         generalBody:
           "If you do not yet manage a real business on Leonix, you can publish a listing or complete your profile. There is no Health Map or Next Right Move until a canonical business and owner-safe APIs exist.",
@@ -526,5 +526,98 @@ export function businessConciergeHubCopy(lang: Lang) {
         whatMattersEmpty:
           "There is no approved Next Right Move. Real missing profile fields appear below when they exist.",
         loading: "Loading…",
+      };
+}
+
+/**
+ * Gate 2 (Owner-Safe Bridge Reconciliation) — copy for the real Business Home sections wired to
+ * app/api/dashboard/business/home/route.ts. Kept separate from businessConciergeHubCopy(), which
+ * still serves the "no canonical business" fallback state.
+ */
+export function businessHomeCopy(lang: Lang) {
+  return lang === "es"
+    ? {
+        activeBusinessLabel: "Negocio activo",
+        stageLabel: {
+          planning_prelaunch: "En planeación",
+          newly_opened: "Recién abierto",
+          operating: "En operación",
+          growing: "Creciendo",
+          established_mature: "Establecido",
+          paused_restructuring: "En pausa / reestructurando",
+        } as Record<string, string>,
+        severityLabel: {
+          blocked: "Bloqueado",
+          priority: "Prioritario",
+          opportunity: "Oportunidad",
+          information: "Informativo",
+        } as Record<string, string>,
+        healthStrongTitle: "Puntos fuertes",
+        healthAttentionTitle: "Necesita atención",
+        healthAssessedAt: "Evaluado",
+        actionPlanTotal: "Acciones totales",
+        actionPlanCompleted: "Completadas",
+        actionPlanInProgress: "Disponibles / en curso",
+        understandConfirmed: "Datos confirmados",
+        understandNeedsConfirmation: "Por confirmar",
+        understandOpenQuestions: "Preguntas abiertas",
+        approvalsCountLabel: "Aprobaciones pendientes",
+        serviceRequestsCountLabel: "Solicitudes de servicio pendientes",
+        proposalsTitle: "Propuestas esperando tu decisión",
+        proposalsEmpty: "No hay propuestas esperando tu decisión.",
+        outcomesEmpty: "Todavía no hay resultados con evidencia para este negocio.",
+        assistantActive: "Tienes una conversación activa con el asistente.",
+        assistantInactive: "No tienes una conversación activa con el asistente todavía.",
+        entitlementState: {
+          public_learning_only: "Acceso público — sin plan personalizado activo",
+          quarter_preview: "Vista previa — plan básico",
+          personalized_access_active: "Acceso personalizado activo",
+          pending_entitlement_linkage: "Vinculación de paquete pendiente",
+          temporarily_unavailable: "Temporalmente no disponible",
+          emergency_disabled: "Desactivado temporalmente",
+        } as Record<string, string>,
+        switchBusinessHint: "Administras más de un negocio. Mostrando el primero por ahora.",
+      }
+    : {
+        activeBusinessLabel: "Active business",
+        stageLabel: {
+          planning_prelaunch: "Planning",
+          newly_opened: "Newly opened",
+          operating: "Operating",
+          growing: "Growing",
+          established_mature: "Established",
+          paused_restructuring: "Paused / restructuring",
+        } as Record<string, string>,
+        severityLabel: {
+          blocked: "Blocked",
+          priority: "Priority",
+          opportunity: "Opportunity",
+          information: "Informational",
+        } as Record<string, string>,
+        healthStrongTitle: "Strengths",
+        healthAttentionTitle: "Needs attention",
+        healthAssessedAt: "Assessed",
+        actionPlanTotal: "Total actions",
+        actionPlanCompleted: "Completed",
+        actionPlanInProgress: "Available / in progress",
+        understandConfirmed: "Confirmed facts",
+        understandNeedsConfirmation: "Needs confirmation",
+        understandOpenQuestions: "Open questions",
+        approvalsCountLabel: "Pending approvals",
+        serviceRequestsCountLabel: "Pending service requests",
+        proposalsTitle: "Proposals awaiting your decision",
+        proposalsEmpty: "There are no proposals awaiting your decision.",
+        outcomesEmpty: "There are no evidence-backed outcomes for this business yet.",
+        assistantActive: "You have an active assistant conversation.",
+        assistantInactive: "You don't have an active assistant conversation yet.",
+        entitlementState: {
+          public_learning_only: "Public access — no personalized plan active",
+          quarter_preview: "Preview — basic tier",
+          personalized_access_active: "Personalized access active",
+          pending_entitlement_linkage: "Package linkage pending",
+          temporarily_unavailable: "Temporarily unavailable",
+          emergency_disabled: "Temporarily disabled",
+        } as Record<string, string>,
+        switchBusinessHint: "You manage more than one business. Showing the first one for now.",
       };
 }

@@ -45,12 +45,13 @@ import {
 } from "@/app/clasificados/en-venta/boosts/enVentaVisibilityRenewal";
 import { listingsRowIsPublicLive } from "@/app/admin/_lib/classifiedsRepublishCapability";
 import { misAnunciosDetailCopy, genericCategoryEyebrow, ownerToolsTitle } from "../../lib/dashboardI18n";
-import { OwnerEntityWorkspace } from "../../components/OwnerEntityWorkspace";
+import { OwnerEntityWorkspace, type OwnerEntitySpecializedGroup } from "../../components/OwnerEntityWorkspace";
 import type { ActionItem } from "../../components/DashboardListingActionBar";
 import type { OwnerEntityDetailItem } from "../../components/OwnerEntityDetailGrid";
 import type { OwnerEntityMetric } from "../../components/OwnerEntityPerformance";
 import type { OwnerEntityActivityItem } from "../../components/OwnerEntityActivity";
 import { getOwnerEntityCapabilities, type OwnerEntityCategoryKey } from "../../lib/ownerEntityCapabilityRegistry";
+import { ownerBusinessToolsSpecializedGroup } from "../../lib/ownerBusinessToolsSpecializedGroup";
 import {
   bienesInventoryEditHref,
   bienesListingEditHref,
@@ -798,7 +799,10 @@ function ListingWorkspacePageContent() {
             }}
             quickActions={quickActions}
             lifecycleActions={lifecycleActions}
-            specialized={{ title: isBrNegocio ? ownerToolsTitle(lang) : t.visibilityTitle, actions: specializedActions }}
+            specialized={[
+              { title: isBrNegocio ? ownerToolsTitle(lang) : t.visibilityTitle, actions: specializedActions },
+              capabilities ? ownerBusinessToolsSpecializedGroup(capabilities.specialized.businessTools, lang) : null,
+            ].filter((group): group is OwnerEntitySpecializedGroup => group !== null)}
             activity={{ title: t.activityTitle, items: activityItems, emptyLabel: t.activityEmpty }}
             mobileSheetLabels={{ trigger: t.moreOptions, title: t.moreOptions, close: t.moreOptionsClose }}
             footerHint={

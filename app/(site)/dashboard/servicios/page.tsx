@@ -32,10 +32,12 @@ import {
   type DashboardEntitlementBadgePayload,
 } from "../lib/dashboardPackageEntitlementBadges";
 import { getOwnerEntityCapabilities } from "../lib/ownerEntityCapabilityRegistry";
-import { OwnerEntityWorkspace } from "../components/OwnerEntityWorkspace";
+import { ownerBusinessToolsSpecializedGroup } from "../lib/ownerBusinessToolsSpecializedGroup";
+import { OwnerEntityWorkspace, type OwnerEntitySpecializedGroup } from "../components/OwnerEntityWorkspace";
 import { OwnerProductPageFrame } from "../components/OwnerProductPageFrame";
 import type { ActionItem } from "../components/DashboardListingActionBar";
 import type { OwnerCommunityTrustEntry } from "../components/OwnerEntityCommunityTrust";
+import type { OwnerExternalReviewLink } from "../components/OwnerEntityExternalReputation";
 import type { OwnerEntityActivityItem } from "../components/OwnerEntityActivity";
 
 export const dynamic = "force-dynamic";
@@ -54,6 +56,8 @@ type MergedRow = {
   leonixAdId?: string | null;
   offersAddonActive?: boolean;
   metrics?: ServiciosListingEngagementMetricsClient;
+  googleReviewUrl?: string | null;
+  yelpReviewUrl?: string | null;
 };
 
 function accountRefFromId(id: string): string {
@@ -104,6 +108,7 @@ function DashboardServiciosPageContent() {
             performanceTitle: "Rendimiento",
             communityTrustTitle: "Confianza de la comunidad",
             communityTrustHelp: "Lo que la comunidad reconoce en este negocio.",
+            externalReputationTitle: "Reputación externa",
             activityTitle: "Solicitudes recientes",
             moreOptions: "Más opciones",
             moreOptionsClose: "Cerrar",
@@ -135,6 +140,7 @@ function DashboardServiciosPageContent() {
             performanceTitle: "Performance",
             communityTrustTitle: "Community trust",
             communityTrustHelp: "What the community recognizes about this business.",
+            externalReputationTitle: "External reputation",
             activityTitle: "Recent inquiries",
             moreOptions: "More options",
             moreOptionsClose: "Close",
@@ -253,6 +259,8 @@ function DashboardServiciosPageContent() {
               listing_status?: string | null;
               leonix_ad_id?: string | null;
               offers_addon_active?: boolean;
+              google_review_url?: string | null;
+              yelp_review_url?: string | null;
             }[];
           };
           if (j.ok && Array.isArray(j.listings)) {
@@ -268,6 +276,8 @@ function DashboardServiciosPageContent() {
                 leonixAdId: r.leonix_ad_id ?? null,
                 offersAddonActive: r.offers_addon_active === true,
                 metrics: serviciosMetricsBySlug[r.slug],
+                googleReviewUrl: r.google_review_url ?? null,
+                yelpReviewUrl: r.yelp_review_url ?? null,
               });
             }
           }
@@ -455,6 +465,18 @@ function DashboardServiciosPageContent() {
       >
         {rows.map((r) => {
                 const capabilities = getOwnerEntityCapabilities("servicios");
+                // Real provider links only — already-validated by the API route
+                // (safeExternalWebsiteHref) from the same profile_json.contact.externalReviewLinks
+                // the public Servicios Business Hub renders. Never invented here.
+                const externalReviewLinks: OwnerExternalReviewLink[] = [];
+                if (capabilities.externalReviews === "supported") {
+                  if (r.googleReviewUrl) {
+                    externalReviewLinks.push({ provider: "google", label: lang === "es" ? "Opiniones en Google" : "Reviews on Google", href: r.googleReviewUrl });
+                  }
+                  if (r.yelpReviewUrl) {
+                    externalReviewLinks.push({ provider: "yelp", label: lang === "es" ? "Opiniones en Yelp" : "Reviews on Yelp", href: r.yelpReviewUrl });
+                  }
+                }
                 const uiStatus = resolveListingUiStatus({ status: r.listingStatus });
                 const isCloudPublished = r.source === "cloud" && r.listingStatus === "published";
                 const detailItems = [
@@ -547,14 +569,20 @@ function DashboardServiciosPageContent() {
                         ? { title: t.communityTrustTitle, helperText: t.communityTrustHelp, entries: trustEntries }
                         : undefined
                     }
+                    externalReputation={
+                      externalReviewLinks.length > 0
+                        ? { title: t.externalReputationTitle, links: externalReviewLinks }
+                        : undefined
+                    }
                     primaryAction={{ href: serviciosEditHref(r), label: editListingLabel(lang) }}
                     quickActions={quickActions}
                     lifecycleActions={lifecycleActions}
-                    specialized={
+                    specialized={[
                       capabilities.specialized.offers !== "unsupported"
                         ? { title: serviciosOffersEditLabel(lang), actions: specializedActions }
-                        : undefined
-                    }
+                        : null,
+                      ownerBusinessToolsSpecializedGroup(capabilities.specialized.businessTools, lang),
+                    ].filter((group): group is OwnerEntitySpecializedGroup => group !== null)}
                     activity={
                       capabilities.specialized.leads === "supported" && r.source === "cloud"
                         ? { title: t.activityTitle, items: activityItems, emptyLabel: t.leadsEmpty }

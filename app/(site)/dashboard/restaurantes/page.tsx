@@ -42,9 +42,16 @@ import {
 } from "../lib/dashboardMisAnunciosCategoryTools";
 import type { ActionItem } from "../components/DashboardListingActionBar";
 import { getOwnerEntityCapabilities } from "../lib/ownerEntityCapabilityRegistry";
-import { OwnerEntityWorkspace } from "../components/OwnerEntityWorkspace";
+import { ownerBusinessToolsSpecializedGroup } from "../lib/ownerBusinessToolsSpecializedGroup";
+import { OwnerEntityWorkspace, type OwnerEntitySpecializedGroup } from "../components/OwnerEntityWorkspace";
 import { OwnerProductPageFrame } from "../components/OwnerProductPageFrame";
 import type { OwnerCommunityTrustEntry } from "../components/OwnerEntityCommunityTrust";
+import type { OwnerExternalReviewLink } from "../components/OwnerEntityExternalReputation";
+import {
+  isValidExternalHttpUrl,
+  nonEmpty,
+  normalizeRestaurantUrl,
+} from "@/app/(site)/clasificados/restaurantes/application/restauranteContactHref";
 import { lxDashStatusChipClass } from "../lib/dashboardLeonixTheme";
 
 export const dynamic = "force-dynamic";
@@ -110,6 +117,7 @@ function DashboardRestaurantesPageContent() {
             errHydrate: "No se pudo cargar el borrador publicado.",
             communityTrustTitle: "Confianza de la comunidad",
             communityTrustHelp: "Lo que la comunidad reconoce en este negocio.",
+            externalReputationTitle: "Reputación externa",
             moreOptions: "Más opciones",
             moreOptionsClose: "Cerrar",
           }
@@ -129,6 +137,7 @@ function DashboardRestaurantesPageContent() {
             errHydrate: "Could not load published draft.",
             communityTrustTitle: "Community trust",
             communityTrustHelp: "What the community recognizes about this business.",
+            externalReputationTitle: "External reputation",
             moreOptions: "More options",
             moreOptionsClose: "Close",
           },
@@ -496,6 +505,28 @@ function DashboardRestaurantesPageContent() {
                   capabilities.communityTrust === "supported" && trustSummary
                     ? trustSummary.map((s) => ({ key: s.key, label: lang === "es" ? s.es : s.en, count: s.count }))
                     : null;
+                // Real provider links only — read from the same googleReviewUrl/yelpReviewUrl
+                // fields the public Restaurant Contact Hub already renders
+                // (buildRestaurantContactHub.ts), off the same `listing_json` this row already
+                // fetches. Never invented; omitted entirely when absent/invalid.
+                const listingJsonForReviews = (r.listing_json ?? {}) as Record<string, unknown>;
+                const externalReviewLinks: OwnerExternalReviewLink[] = [];
+                if (capabilities.externalReviews === "supported") {
+                  const rawGoogle = listingJsonForReviews.googleReviewUrl;
+                  if (typeof rawGoogle === "string" && nonEmpty(rawGoogle)) {
+                    const url = normalizeRestaurantUrl(rawGoogle);
+                    if (isValidExternalHttpUrl(url)) {
+                      externalReviewLinks.push({ provider: "google", label: lang === "es" ? "Opiniones en Google" : "Reviews on Google", href: url });
+                    }
+                  }
+                  const rawYelp = listingJsonForReviews.yelpReviewUrl;
+                  if (typeof rawYelp === "string" && nonEmpty(rawYelp)) {
+                    const url = normalizeRestaurantUrl(rawYelp);
+                    if (isValidExternalHttpUrl(url)) {
+                      externalReviewLinks.push({ provider: "yelp", label: lang === "es" ? "Opiniones en Yelp" : "Reviews on Yelp", href: url });
+                    }
+                  }
+                }
                 return (
                   <OwnerEntityWorkspace
                     key={r.id}
@@ -528,17 +559,23 @@ function DashboardRestaurantesPageContent() {
                         ? { title: t.communityTrustTitle, helperText: t.communityTrustHelp, entries: trustEntries }
                         : undefined
                     }
+                    externalReputation={
+                      externalReviewLinks.length > 0
+                        ? { title: t.externalReputationTitle, links: externalReviewLinks }
+                        : undefined
+                    }
                     primaryAction={{
                       label: hydrateId === r.id ? t.hydrateBusy : editListingLabel(lang),
                       onClick: () => void loadIntoForm(r),
                       disabled: hydrateId === r.id,
                     }}
                     quickActions={quickActions}
-                    specialized={
+                    specialized={[
                       capabilities.specialized.coupons !== "unsupported"
                         ? { title: restauranteCouponEditLabel(lang), actions: specializedActions }
-                        : undefined
-                    }
+                        : null,
+                      ownerBusinessToolsSpecializedGroup(capabilities.specialized.businessTools, lang),
+                    ].filter((group): group is OwnerEntitySpecializedGroup => group !== null)}
                     footerHint={cardFooterHint || null}
                     mobileSheetLabels={{ trigger: t.moreOptions, title: t.moreOptions, close: t.moreOptionsClose }}
                   />
