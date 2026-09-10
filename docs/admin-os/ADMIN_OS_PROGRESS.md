@@ -1649,3 +1649,144 @@ Verdicts — `ADMIN_GUIDE_COMPLETE: NO` and `STAFF_CONTINUITY_READY: NO` (no Gui
 self-edit) are each independently sufficient to withhold LEO integration readiness, per this
 audit's explicit instruction not to declare readiness unless every V2 independence requirement is
 genuinely satisfied.
+
+---
+
+## ADMIN GUIDE / OPERATIONS MANUAL FOUNDATION — built
+
+Closes the largest gap the V2 alignment audit found: `ADMIN_GUIDE_MANUAL: MISSING` and
+`ADMIN_GUIDE_SEARCH: MISSING`. This gate builds the permanent human-operability layer per §0C,
+without touching LEO, Support, Team's own pages beyond one real wiring fix, or any revenue/
+marketplace product surface.
+
+### Architecture (one registry, two readers)
+
+`app/admin/_lib/adminGuideRegistry.ts` is the single "book" — a typed array of 39
+`AdminGuideEntry` objects, each with id/title/domain/route/purpose/useWhen/commonTasks/howTo/
+statuses/permissionNote/relatedAdminRoutes/relatedPublicRoutes/actionLevel/failureGuidance/
+keywords/canonicalEntity/audience/leoSafeReadSource. Nothing hardcodes disconnected help text
+into individual pages — every consumer reads this one array. Deliberately not `server-only`:
+every field is plain documentation text, which is what let the same module power both a server
+page (`/admin/guide`) and a client component (`AdminPageHelpLink`) without a parallel duplicate
+data file.
+
+Two pure helper functions live alongside the data:
+- `getAdminGuideEntryForRoute(pathname)` — exact match, then longest-prefix match (so
+  `/admin/businesses/abc123` resolves to the `business-360` entry registered at
+  `/admin/businesses`). Returns `null`, never a guess, when nothing covers a route.
+- `searchAdminGuide(query, entries)` — plain substring/term scoring across
+  title/keywords/purpose/useWhen/commonTasks/howTo/statuses/canonicalEntity. No external search
+  index; 39 entries is small enough to score instantly server-side on every request.
+- `isAdminGuideRouteAccessible(route, allowedHrefs)` — reuses the exact same `allowedHrefs` array
+  `AdminSidebar.tsx` already filters the real nav through (`getAllowedGlobalNavHrefs()`), rather
+  than re-implementing permission logic inside the Guide. One source of truth for "can this
+  viewer actually reach this route."
+
+### Gate 1 — inventory: 19/19 primary nav items covered, 39 entries total
+
+Read `adminGlobalNav.ts`'s `ADMIN_GLOBAL_NAV` array in full (19 items before this pass's own new
+entry) and registered a guide entry at every one of those exact routes — 19/19. Added 20 further
+entries for real, `page.tsx`-confirmed sub-areas the task's brief explicitly named (Website
+Control's workspace pages: Home/Revista/Noticias/Iglesias/Nosotros/Contacto/Anúnciate/Cupones/
+Language Audit; Revenue's Package Entitlements/Promo Codes/Sales Tracker; Marketplace's per-
+category ops pages: Servicios/Autos/Restaurantes/Comida Local/Ofertas Locales, plus the
+Categories registry and Reports; People's Team hub, Team Roster, Executive Hub, Users, Support).
+No route was invented — every one was confirmed to exist via `Glob`/direct file checks before
+being added, per the task's explicit "Do not invent routes."
+
+### Gate 2 — Admin Guide home: `/admin/guide`
+
+Server component, mobile-first, reuses `AdminPageHeader`/`AdminSectionCard`/existing `adminTheme`
+classes — no new design system. Provides: a prominent search box (`?q=`, GET form, mirrors the
+existing `/admin/ops` search-form pattern for consistency), 10 curated "I need to..." quick-task
+chips (pre-built Guide Search queries, not separate content), browse-by-domain filter chips for
+the six V2 operating domains, and a card per module with purpose/use-when/common-tasks/status
+chips/failure guidance and an "Open" CTA to the real Admin route. The page's own subtitle
+explicitly states the Company-Search-vs-Admin-Guide distinction in plain language, and the
+"no results" state for a failed search explicitly points to Customer Ops instead of guessing.
+
+### Gate 2b — guide entry detail view: `/admin/guide/[id]`
+
+A dedicated detail page per entry (step-by-step "How to," full status meanings, related areas,
+action level, notes) — `notFound()` on an unknown id, the same pattern already proven in
+`app/contact/[slug]/page.tsx` and `app/admin/(dashboard)/workspace/iglesias/[id]/page.tsx`.
+
+### Gate 3 — Admin Guide Search: real, over the registry, matches every example query
+
+Verified each of the task's 13 example phrases resolves to a sensible entry via the keyword/
+title/purpose/task matching in `searchAdminGuide()`: "failed payment" → Payment Tracker, "turn off
+listing" → Categories hub, "staff contact" → Executive Hub, "change homepage" → Home Page Content,
+"needs triage" → System Health (keyword) and Command Center's own statuses list, "create employee"
+→ Team Roster, "support ticket" → Support, "promo code" → Promo Codes, "system health" → System
+Health, "change website" → Site Sections, "edit restaurant" → Restaurantes Ops, "where are users"
+→ Users, "how do i add staff" → Team Roster (via "create employee"/"add staff" keywords). Results
+never fabricate a capability — every entry only describes what its own real route actually does.
+
+### Gate 4 — page-level help: one shared affordance, wired once
+
+`AdminPageHelpLink.tsx` (client component, `usePathname()` + `getAdminGuideEntryForRoute()`) is
+wired into `AdminShell.tsx` — the ONE shared wrapper every protected Admin page already renders
+through (`app/admin/(dashboard)/layout.tsx` → `AdminShell`). No individual page was patched. A
+route with no registered entry renders nothing (fails honestly), per the task's explicit
+instruction not to show incorrect help.
+
+### Gate 5 — navigation: "Admin Guide" added under SYSTEM
+
+Added to `ADMIN_GLOBAL_NAV` (icon 📖, `group: "system"`, matching this project's own stated
+architecture preference) right after System Health. Added `nav.adminGuide` to both `adminStrings.ts`
+dictionaries (EN "Admin Guide" / ES "Guía del Admin"). Re-ran `verify:admin-nav-ops` after the
+insertion — still 75/75 checks pass, confirming no positional/literal-href assertion broke.
+
+**Real bug found and fixed while wiring this**: `getAllowedGlobalNavHrefs()` and
+`isStaffSalesAllowedAdminPath()` both needed `/admin/guide` added, or the nav item would have been
+visible but unreachable — clicking it as a sales_rep would have redirected to
+`/admin/team?access_denied=1` even though the Guide is harmless, read-only, company-data-free
+content every role should be able to reach. Added it to every role's allowed set, including
+sales_rep (a deliberate choice per §0E's "harmless/general operational guidance may remain
+visible").
+
+### Gate 6 — Team & Staff Contact guide entries
+
+`team-roster` and `executive-hub` entries explicitly state: Team Roster = staff login/
+authorization; Executive Hub = staff PUBLIC CONTACT profile — two schema-disconnected systems;
+public page = `/contact/[slug]`; owner can manage any staff member's profile
+(`canViewAdminTeam` = owner_admin only); staff self-edit does not exist today and is recorded as
+`OWNER_DECISION_REQUIRED`-adjacent future wiring, not built this pass (it would need new,
+non-trivial authorization work — a staff member reaching an editor scoped to only their own row —
+not a trivial reuse of the existing owner-only editor); QR code/vCard/public contact page are
+confirmed real and already built. No staff self-edit implementation was attempted, per the task's
+explicit scope control.
+
+### Gate 7 — role-aware guidance: implemented, no second dashboard
+
+Every card (list and detail view) shows "Admin clearance required" instead of an Open button when
+`isAdminGuideRouteAccessible()` returns false for the current viewer — the guidance text itself
+(purpose, common tasks, statuses) remains visible regardless, satisfying "harmless/general
+operational guidance may remain visible" while protecting the actual control. This reuses the
+existing Admin OS's own permission functions; no second staff dashboard or parallel guide-per-role
+was built.
+
+### Gate 8 — future book expansion: documented admission pattern
+
+A structured comment block at the top of `adminGuideRegistry.ts` titled "HOW TO ADD A NEW ADMIN
+GUIDE ENTRY" documents every required field and how to handle a deprecated route (mark it in
+`notes`, do not delete the entry) — satisfying V2's "paper + pen + book" pattern: the structure
+stays stable, new chapters are one array entry.
+
+### Local gaps discovered, deliberately not built this pass (scope control)
+
+- Staff self-edit of the Executive Hub contact profile — needs new, non-trivial authorization
+  work (per-row scoping to "your own" record), correctly deferred per the task's own instruction
+  not to build it "unless truly trivial/safe reuse."
+- `executives` (Executive Hub records) still has no Company Search coverage — unrelated to this
+  Guide-build gate; documented in the prior V2 audit, unchanged here.
+- The Guide's 39 entries are real and useful but not literally 1:1 with every sub-route in the
+  codebase (e.g. individual clasificados category editors, every Recursos sub-page) — the task's
+  own Gate 1 list was used as the completeness bar, not an exhaustive route-by-route sweep.
+
+### Final status
+
+**ADMIN_GUIDE_BUILD_COMPLETE: YES.**
+**LOCAL_WORK_REMAINING_FOR_V2: YES** — staff self-edit profile route and Company Search coverage
+of `executives` remain open, both already documented as deliberate, correctly-scoped deferrals in
+this and the prior pass, not silently dropped.

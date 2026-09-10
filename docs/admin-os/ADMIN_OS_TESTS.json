@@ -745,5 +745,46 @@
       "app/admin/(dashboard)/team/roster/page.tsx — StaffTeamNav showRosterLink={false} -> showRosterLink (true)"
     ],
     "verificationRun": "verify:admin-nav-ops (75 checks, unchanged pass count after the system-health fix)"
+  },
+  "adminGuideOperationsManualFoundation": {
+    "status": "complete",
+    "registry": "app/admin/_lib/adminGuideRegistry.ts",
+    "totalEntries": 39,
+    "primaryNavCoverage": "19/19 (100%)",
+    "additionalRealSubAreaEntries": 20,
+    "newRoutes": ["/admin/guide", "/admin/guide/[id]"],
+    "newComponents": ["app/admin/_components/AdminPageHelpLink.tsx"],
+    "classifications": {
+      "adminGuideRegistry": "CLOSED",
+      "adminGuideHome": "CLOSED",
+      "adminGuideSearch": "CLOSED",
+      "pageLevelHelp": "CLOSED",
+      "navEntry": "CLOSED",
+      "companySearchDistinctFromGuideSearch": true,
+      "teamRosterGuide": "CLOSED",
+      "executiveHubGuide": "CLOSED",
+      "roleAwareGuidance": "CLOSED",
+      "futureGuideAdmissionPattern": "CLOSED"
+    },
+    "guideSearchExampleQueriesVerified": [
+      "failed payment", "turn off listing", "staff contact", "change homepage", "needs triage",
+      "create employee", "support ticket", "promo code", "system health", "change website",
+      "edit restaurant", "where are users", "how do i add staff"
+    ],
+    "bugsFoundAndFixed": [
+      "getAllowedGlobalNavHrefs() and isStaffSalesAllowedAdminPath() both needed /admin/guide added, or the new nav item would have been visible but unreachable for sales_rep (same failure class as the /admin/system-health bug found in the prior V2 audit pass)."
+    ],
+    "localGapsDiscovered": [
+      "Staff self-edit of the Executive Hub contact profile still does not exist — needs new, non-trivial per-row authorization work; correctly deferred per this gate's own scope control.",
+      "executives (Executive Hub) still has no Company Search coverage — pre-existing gap from the prior V2 audit, unrelated to and unchanged by this gate."
+    ],
+    "deferredGaps": [
+      "Executive Hub staff self-edit route",
+      "Company Search coverage of executives",
+      "Exhaustive route-by-route Guide coverage beyond the task's own Gate 1 completeness bar (e.g. every individual clasificados category editor sub-page)"
+    ],
+    "verificationRun": "verify:admin-nav-ops (75 checks, unchanged after the new nav item); targeted eslint on all new/changed files (2 pre-existing unrelated issues confirmed via prior-pass precedent, 1 new real issue found and fixed)",
+    "adminGuideBuildComplete": "YES",
+    "localWorkRemainingForV2": "YES"
   }
 }

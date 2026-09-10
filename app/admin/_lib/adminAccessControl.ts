@@ -392,9 +392,11 @@ export function getAllowedWorkspaceNavHrefs(ctx: AdminAccessContext): string[] {
 export function getAllowedGlobalNavHrefs(ctx: AdminAccessContext): string[] {
   if (isSalesRepRole(ctx.normalizedRole)) {
     // Gate BCO-4A — the Sales Team Business Workspace is the sales_rep role's primary tool.
-    return ["/admin/team", "/admin/support", "/admin/businesses"];
+    // Master Operating Book V2 §0C/§0E — the Admin Guide is harmless, read-only operational
+    // knowledge (no company data), so every role including sales_rep can find it.
+    return ["/admin/team", "/admin/support", "/admin/businesses", "/admin/guide"];
   }
-  const hrefs = ["/admin", "/admin/businesses"];
+  const hrefs = ["/admin", "/admin/businesses", "/admin/guide"];
   // LEO-9B — nav convenience only; /admin/leo page still requires owner_admin via leoAccess.
   if (isOwnerAdminRole(ctx.normalizedRole)) {
     hrefs.push("/admin/leo");

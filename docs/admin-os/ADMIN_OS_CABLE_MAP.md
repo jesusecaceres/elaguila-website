@@ -786,3 +786,69 @@ a first-class `owner_admin` roster row + Supabase Auth account for `chuy@leonixm
 owner's normal daily identity is the same attributable, auditable path every other staff member
 uses, with bootstrap reserved for genuine recovery scenarios (e.g. Supabase Auth outage). This is
 a deployment/data action, not a code change — not performed by this pass.
+
+---
+
+## SYSTEM: Admin Guide / Operations Manual — new, first-class SYSTEM (Master Operating Book
+## V2 §0C)
+
+- SYSTEM: Admin Guide / Operations Manual
+- DOMAIN: SYSTEM (nav group), but its content spans all six operating domains
+- PUBLIC_OR_BUSINESS_PURPOSE: Internal-only — teaches an authorized human (owner or staff) how to
+  operate Leonix from Admin without LEO, source code, or tribal knowledge. Not customer-facing.
+- CANONICAL_ENTITY: `AdminGuideEntry` (a documentation record, not a business entity)
+- CANONICAL_DATA_SOURCE: `app/admin/_lib/adminGuideRegistry.ts` — a single in-repo TypeScript
+  array, 39 entries, no database table. Deliberately data-in-code rather than data-in-DB: this
+  content changes with the codebase, not with business data, and keeping it in the same file
+  reviewed alongside route/permission changes is the intended maintenance model (see §33A).
+- READ_SERVICE: `getAdminGuideEntryForRoute()`, `getAdminGuideEntryById()`, `searchAdminGuide()`,
+  `isAdminGuideRouteAccessible()` — all pure functions in the same file.
+- WRITE_SERVICE_OR_SERVER_ACTION: none — the registry is edited directly as source code per the
+  "HOW TO ADD A NEW ADMIN GUIDE ENTRY" doc block at the top of the file.
+- PRIMARY_ADMIN_ROUTE: `/admin/guide`
+- ALTERNATE_ADMIN_ENTRY_POINTS: `/admin/guide/[id]` (detail view), the shared
+  `AdminPageHelpLink` floating "Help with this page" affordance (wired into `AdminShell.tsx`,
+  present on every protected Admin page), 10 curated "I need to..." quick-task links on the Guide
+  home itself.
+- ADMIN_READ_CAPABILITY: every authenticated Admin role, including sales_rep (harmless, read-only,
+  no company data — a deliberate §0E choice, not an oversight).
+- ADMIN_WRITE_CAPABILITY: none (read-only system by design).
+- GLOBAL_SEARCH_SUPPORT (= COMPANY_SEARCH_SUPPORT): intentionally NO — Company Search finds
+  records, this system finds operational knowledge. See ADMIN_GUIDE_SEARCH below for its own,
+  separate search.
+- ADMIN_GUIDE_ENTRY (V2, new field): not applicable to itself — the Guide does not need a guide
+  entry pointing at the Guide.
+- CUSTOMER_OR_BUSINESS_CONTEXT_LINK: none — this system is about Admin itself, not company records.
+- AUDIT_LINK: none — read-only, nothing to audit.
+- SYSTEM_HEALTH_RELATIONSHIP (V2, new field): none — the Guide has no external dependency to
+  monitor; it is static, in-repo content.
+- MANUAL_OPERATING_PATH (V2, new field): this system IS the manual operating path for every other
+  system — it has no path of its own beyond "open the page and read/search."
+- LEO_SAFE_READ_SOURCE: YES for the registry itself (`leoSafeReadSource: true` on nearly every
+  entry) — a future LEO integration should read this same registry as its own operational
+  knowledge base rather than building a second, parallel explanation of what each Admin page does.
+- CTA_DESTINATIONS: every entry's "Open" CTA points at that entry's own real, already-cable-mapped
+  `route` — no new destinations were created, only pointers to existing ones.
+- CURRENT_TRUTH_STATUS: REAL — confirmed via direct code read (this system, built this pass) and
+  `verify:admin-nav-ops` (75 checks, unchanged pass count after the new nav item).
+- ADMIN GUIDE SEARCH (distinct system, §0C): `searchAdminGuide()` — plain term-scoring over
+  title/keywords/purpose/useWhen/commonTasks/howTo/statuses/canonicalEntity. Confirmed to resolve
+  every one of the task brief's 13 example phrases ("failed payment," "turn off listing," "staff
+  contact," "create employee," etc.) to a sensible entry. This is genuinely separate code from
+  Company Search (`adminOpsUnifiedSearch.ts`/`adminExtendedGlobalSearch.ts`) — no shared query
+  path, no conflation.
+- KNOWN_BROKEN_OR_SPLIT_WIRING: none found.
+- MISSING_ADMIN_CONTROL: staff cannot edit their own Executive Hub contact profile from anywhere,
+  including from this Guide — the Guide correctly documents this as a real gap rather than
+  implying it exists (`executive-hub` entry's `failureGuidance` field states this explicitly).
+- MISSING_RELATIONSHIP: `executives` (Executive Hub) is not yet covered by Company Search — a
+  pre-existing gap from the prior V2 audit pass, unrelated to and unchanged by this Guide-build
+  gate.
+- NOTES: 39 entries across all 6 domains, covering 19/19 primary `ADMIN_GLOBAL_NAV` items (100%)
+  plus 20 additional real sub-area routes explicitly named in this gate's brief. A real bug was
+  found and fixed while wiring the nav entry: `getAllowedGlobalNavHrefs()` and
+  `isStaffSalesAllowedAdminPath()` both needed `/admin/guide` added, or the new nav item would
+  have been visible-but-unreachable for a sales_rep (the same class of bug this project already
+  found and fixed once for `/admin/system-health` in the prior V2 audit pass — worth remembering
+  as a recurring failure mode: adding a route to the SIDEBAR array alone is not sufficient, the
+  permission-filter functions must be updated in the same change).
