@@ -1,5 +1,10 @@
 # OWNER COMMAND CENTER — PROGRESS LEDGER
 
+**Canonical Master Bible**: `docs/owner-command-center/LEONIX_OWNER_COMMAND_CENTER_MASTER_WIRING_AND_CONSTRUCTION_BIBLE_2026-09-09.md`
+— read it first. It is the controlling architecture/doctrine document and the current-state
+source of truth (certified checkpoint, completed gate ledger, next move). This ledger records
+per-gate execution detail; it does not replace the Bible.
+
 ## Gate 2 — Owner Command Center ← Business Concierge Owner-Safe Bridge Reconciliation
 
 **Date:** 2026-09-09

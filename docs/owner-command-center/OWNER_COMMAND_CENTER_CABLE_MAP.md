@@ -1,5 +1,8 @@
 # OWNER COMMAND CENTER — CABLE MAP (Business Home bridge)
 
+**Canonical Master Bible**: `docs/owner-command-center/LEONIX_OWNER_COMMAND_CENTER_MASTER_WIRING_AND_CONSTRUCTION_BIBLE_2026-09-09.md`
+— controlling architecture/doctrine document and current-state source of truth.
+
 | SYSTEM | OWNER_PURPOSE | CANONICAL_ROUTE | COMPONENT | API | DATA SOURCE | CANONICAL BUSINESS ID | CTA/CONSUMER | STATUS |
 |---|---|---|---|---|---|---|---|---|
 | Business identity resolution | Which business am I looking at? | `/dashboard/business-tools` | `page.tsx` → `fetchMyBusinesses()` | `GET /api/dashboard/business/diy-concierge/my-businesses` | `business_memberships` + `businesses` (RLS, exact user) | `public.businesses.id` | first active membership chosen as canonical | LIVE |

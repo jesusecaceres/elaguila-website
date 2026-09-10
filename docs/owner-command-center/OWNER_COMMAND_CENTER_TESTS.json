@@ -1,7 +1,9 @@
 {
+  "masterBible": "docs/owner-command-center/LEONIX_OWNER_COMMAND_CENTER_MASTER_WIRING_AND_CONSTRUCTION_BIBLE_2026-09-09.md",
   "worktree": "C:\\projects\\elaguila-website-owner-command-center",
   "branch": "integration/owner-command-center-globalization-2026-08",
   "startHead": "4cdbfb3abde7a6a57a5d610287bb04c654d6677b",
+  "certifiedCheckpoint": "ea99e57c1695138ec433766f33835830361b6ba7",
   "gates": [
     {
       "gate": "owner-command-center-concierge-bridge-reconciliation-2026-09-09",
