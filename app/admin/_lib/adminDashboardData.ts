@@ -127,6 +127,17 @@ export type AdminDashboardSnapshot = {
   /** Master Operating Book §24 — "What support case is unresolved?" real answer: support_tickets.status IN (open, in_progress). */
   openSupportTicketsCount: number;
   openSupportTicketsFallback: boolean;
+  /**
+   * Master Operating Book §24 — "What ads/listings are blocked [by money]?" / §20 "Is anything
+   * blocked by money?". Scoped to Autos only: autos_public_listings.status has real, currently-live
+   * pending_payment/payment_failed values (confirmed in classifiedsRepublishCapability.ts). Restaurantes
+   * has no such status in its schema (NOT_APPLICABLE). Comida Local's payment_status is a pre-Stripe
+   * stub ('not_required_for_l5b' — see 20260604120000_comida_local_public_listings.sql) with payment
+   * not yet enforced, so including it would misrepresent an inactive feature as a live money-blocked
+   * signal — deliberately excluded until Comida Local's own Stripe integration ships.
+   */
+  autosPaymentBlockedCount: number;
+  autosPaymentBlockedFallback: boolean;
   magazineFeaturedLabel: string | null;
   magazineUpdated: string | null;
   categoryCounts: Array<{ category: string; count: number }>;
@@ -842,6 +853,19 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     /* ignore */
   }
 
+  let autosPaymentBlockedCount = 0;
+  let autosPaymentBlockedFallback = false;
+  try {
+    const { count, error } = await supabase
+      .from("autos_public_listings")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["pending_payment", "payment_failed"]);
+    if (error) autosPaymentBlockedFallback = true;
+    else if (typeof count === "number") autosPaymentBlockedCount = count;
+  } catch {
+    autosPaymentBlockedFallback = true;
+  }
+
   const mag = await readMagazineFeatured();
 
   let categoryRows: { category: string | null }[] = [];
@@ -874,6 +898,8 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     disabledUsersCount,
     openSupportTicketsCount,
     openSupportTicketsFallback,
+    autosPaymentBlockedCount,
+    autosPaymentBlockedFallback,
     magazineFeaturedLabel: mag.label,
     magazineUpdated: mag.updated,
     categoryCounts,

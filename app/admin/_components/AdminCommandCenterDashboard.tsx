@@ -25,6 +25,7 @@ import {
 import { ADMIN_DASHBOARD_ROUTES } from "../_lib/adminDashboardRoutes";
 import type { adminMessages } from "../_lib/adminI18n";
 import type { LeoExecutiveReportingSnapshot } from "@/app/leo/_lib/leoExecutiveReportingTypes";
+import type { LeoSystemHealthSnapshot } from "@/app/leo/_lib/leoTypes";
 
 type Msg = ReturnType<typeof adminMessages>;
 
@@ -277,6 +278,7 @@ export function AdminCommandCenterDashboard({
   catalogStats,
   showPaymentTracker,
   executiveReports,
+  systemHealthSnapshot,
 }: {
   m: Msg;
   locale: string;
@@ -289,6 +291,7 @@ export function AdminCommandCenterDashboard({
   catalogStats: { total: number; live: number; error: string | null };
   showPaymentTracker: boolean;
   executiveReports: LeoExecutiveReportingSnapshot | null;
+  systemHealthSnapshot: LeoSystemHealthSnapshot | null;
 }) {
   const { expiringSoon, expired } = splitAdminDashboardExpiringQueue(snap.expiringQueueItems);
   const reviewPreview = snap.pendingReviewQueueItems.slice(0, REVIEW_PREVIEW_LIMIT);
@@ -298,6 +301,16 @@ export function AdminCommandCenterDashboard({
   // with the (capped, preview-only) pendingReviewQueueItems.length. A listing that
   // is both flagged AND has pending reports must count once, not twice.
   const pendingReviewCount = snap.reviewAttentionTruth.uniqueListingsNeedingReview;
+  // Master Operating Book §15 — "system outage/degradation" is a real Priority Engine
+  // factor. Only escalate on an actual live-probe failure (DEGRADED/UNAVAILABLE); NOT_CONFIGURED
+  // components (e.g. Stripe/Twilio unset on a single-operator deployment) are expected and must
+  // not be treated as an incident — see adminSystemHealth.ts's own overallFromComponents().
+  const systemHealthDegraded =
+    systemHealthSnapshot != null &&
+    (systemHealthSnapshot.overall === "DEGRADED" || systemHealthSnapshot.overall === "UNAVAILABLE");
+  const degradedHealthComponents = systemHealthSnapshot?.components.filter(
+    (c) => c.state === "DEGRADED" || c.state === "UNAVAILABLE",
+  ) ?? [];
 
   const hero = (
     <header
@@ -443,6 +456,16 @@ export function AdminCommandCenterDashboard({
         </div>
       ) : null}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {systemHealthDegraded ? (
+          <OperatorCard
+            eyebrow="System"
+            title="System issue detected"
+            status="real"
+            metric={degradedHealthComponents.length}
+            body={`${degradedHealthComponents.map((c) => c.label).join(", ")} unreachable right now — this can affect data on every page, not just one section.`}
+            primary={{ href: ADMIN_DASHBOARD_ROUTES.systemHealth, label: "Open System Health", variant: "warning" }}
+          />
+        ) : null}
         <OperatorCard
           eyebrow="Leads"
           title="Needs response"
@@ -485,6 +508,18 @@ export function AdminCommandCenterDashboard({
             primary={{ href: "/admin/workspace/payment-tracker", label: "Open Payment Tracker", variant: "warning" }}
           />
         ) : null}
+        <OperatorCard
+          eyebrow="Money"
+          title="Autos blocked by payment"
+          status={snap.autosPaymentBlockedFallback ? "needs proof" : "real"}
+          metric={snap.autosPaymentBlockedFallback ? "Unavailable" : snap.autosPaymentBlockedCount}
+          body={
+            snap.autosPaymentBlockedFallback
+              ? "Autos listing data needs live Supabase proof before operators rely on it."
+              : "Autos listings stuck in pending_payment or payment_failed — not live until payment clears. Restaurantes has no equivalent status; Comida Local's payment step isn't live yet, so neither is included here."
+          }
+          primary={{ href: ADMIN_DASHBOARD_ROUTES.autosOps, label: "Open Autos ops", variant: "warning" }}
+        />
         <OperatorCard
           eyebrow="Support"
           title="Unresolved support"

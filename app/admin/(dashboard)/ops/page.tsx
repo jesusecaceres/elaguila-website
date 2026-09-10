@@ -417,6 +417,38 @@ export default async function AdminCustomerOpsPage(props: PageProps) {
             )}
           </section>
 
+          <section id="ops-businesses" className={`${adminCardBase} scroll-mt-24 p-5`} data-testid="ops-results-businesses">
+            <h2 className="text-base font-bold text-[#1E1810]">Businesses</h2>
+            <p className="mt-1 text-xs text-[#7A7164]">
+              Canonical Leonix businesses (Business 360) matching the name searched above.
+            </p>
+            {bundle.businesses.items.length === 0 ? (
+              <p className="mt-3 text-sm text-[#5C5346]">No businesses matched.</p>
+            ) : (
+              <ul className="mt-4 space-y-2 text-sm">
+                {bundle.businesses.items.map(({ business, salesStatus }) => (
+                  <li
+                    key={business.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#E8DFD0]/70 bg-white/70 p-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-[#1E1810]">{business.displayName}</p>
+                      <p className="text-[10px] uppercase tracking-wide text-[#9A9084]">
+                        {business.broadBusinessType} · {salesStatus}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/admin/businesses/${business.id}`}
+                      className="shrink-0 text-xs font-bold text-[#6B5B2E] underline"
+                    >
+                      Open Business 360 →
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
           <section id="ops-orders" className={`${adminCardBase} scroll-mt-24 p-5`} data-testid="ops-results-orders">
             <h2 className="text-base font-bold text-[#1E1810]">Tienda orders</h2>
             <p className="mt-1 text-xs text-[#7A7164]">

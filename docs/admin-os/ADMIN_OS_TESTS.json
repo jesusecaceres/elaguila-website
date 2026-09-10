@@ -534,10 +534,20 @@
     "note": "Pre-QA implementation certification only. Final §32 verdict (READY_FOR_LEO_INTEGRATION / NOT_READY_FOR_LEO_INTEGRATION) is explicitly deferred to the owner/browser QA gate and the release/integration (build/typecheck) gate — not declared here.",
     "final15RequirementSummary": { "CLOSED": 12, "NEEDS_RUNTIME_PROOF": 3, "NEEDS_MIGRATION": 0, "OWNER_DECISION_REQUIRED": 0 },
     "remainingGapsByAllowedClass": {
-      "NEEDS_MIGRATION": ["business_external_links_foundation migration application (owner approval required)"],
-      "NEEDS_RUNTIME_PROOF": ["Live Stripe/Resend/Twilio reachability beyond config-presence", "Global Search live-data coverage", "Full canonical-ID navigation under live Supabase + browser", "Production build/typecheck/lint (forbidden under this pass's resource control)"],
-      "OWNER_DECISION_REQUIRED": ["Cross-category payment-blocked aggregate (comida-local/restaurantes column names unverified)", "Full moderation case lifecycle schema", "Business quote/estimate object", "System-degradation-triggered cross-domain escalation"],
-      "NOT_APPLICABLE": ["Business-level contract schema (does not exist)", "Business-level renewal schema (does not exist)"]
+      "NEEDS_MIGRATION": ["business_external_links_foundation migration application (owner approval required)", "admin_audit_log actor/staff attribution (no actor column exists; needs schema change plus cross-cutting write-site updates)"],
+      "NEEDS_RUNTIME_PROOF": ["Live Stripe/Resend/Twilio reachability beyond config-presence", "Global Search live-data coverage", "Full canonical-ID navigation under live Supabase + browser", "Production build/typecheck/lint (forbidden under this pass's resource control)", "Autos privado free-tier cap enforcement at publish/boost time (code exists; live firing unconfirmed)"],
+      "OWNER_DECISION_REQUIRED": ["Full moderation case lifecycle schema", "Business quote/estimate object", "Remaining Global Search sources without a reusable keyword-search function (admin_team_members, leonix_leads, payments/entitlements, community_resources/Recursos, magazine/noticias)"],
+      "NOT_APPLICABLE": ["Business-level contract schema (does not exist)", "Business-level renewal schema (does not exist)", "Restaurantes payment-blocked status (schema has no such state)"],
+      "PRE_EXISTING_EXTERNAL": ["Comida Local payment-blocked status (payment_status is a pre-Stripe stub — 'not_required_for_l5b' — until the category's own future Stripe integration ships)"]
+    },
+    "resolvedThisReturnToImplementationPass": {
+      "fromOwnerDecisionRequiredToClosedViaExistingDoctrine": [
+        "Autos payment-blocked-listings signal (real, live pending_payment/payment_failed status) — new autosPaymentBlockedCount wired into Command Center",
+        "System-degradation-triggered escalation — new 'System issue detected' Command Center card renders only on real DEGRADED/UNAVAILABLE system health, never on NOT_CONFIGURED"
+      ],
+      "realBugFixed": "app/admin/(dashboard)/reportes/page.tsx Pending/Reviewed/Dismissed stat cards silently undercounted past 200 total reports (derived from a .limit(200) page); now backed by true count(*) queries when unfiltered",
+      "additionalGlobalSearchExtension": "businesses (Business 360) added to runAdminUnifiedSearch via existing listBusinessesForWorkspace({keyword}) — previously zero presence in Global Search despite being the cable map's former 'single most important finding'",
+      "cableMapDocumentationCorrections": ["Global Search dedicated-category coverage (was stale 'not fixed yet')", "Command Center review triage (Review workbench preview already exists)", "Media Kit routing (already fixed)", "Users tier-vocabulary mismatch (already fixed)"]
     }
   },
   "DEFERRED_TO_INTEGRATION_GATE": [
