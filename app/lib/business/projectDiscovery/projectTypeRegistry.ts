@@ -21,6 +21,7 @@ export type ProjectTypeExecutionDestination =
   | "growth_campaign"
   | "custom_platform_engagement"
   | "multi_project_bundle"
+  | "website_project_handoff"
   | "not_yet_determined";
 
 export interface ProjectTypeDefinition {
@@ -34,9 +35,17 @@ export interface ProjectTypeDefinition {
 }
 
 export const PROJECT_TYPE_REGISTRY: readonly ProjectTypeDefinition[] = [
-  { key: "website", labelEs: "Sitio web", labelEn: "Website", category: "digital", discoverySchemaKey: "website", executionDestination: "creative_studio", active: true },
-  { key: "website_improvement", labelEs: "Mejora de sitio web", labelEn: "Website Improvement", category: "digital", discoverySchemaKey: "website", executionDestination: "creative_studio", active: true },
-  { key: "landing_page", labelEs: "Página de destino", labelEn: "Landing Page", category: "digital", discoverySchemaKey: "landing_page", executionDestination: "creative_studio", active: true },
+  // Gate 6 correction: Website/Website Improvement/Landing Page never route to Creative Studio —
+  // Gate 5 already built a dedicated Website Project Handoff seam (business_project_blueprints'
+  // own handoff_status/handoff_assignee_roster_id/handoff_due_date/handoff_notes fields). This
+  // field previously said "creative_studio" but had no code consumer anywhere (confirmed by direct
+  // inspection); left uncorrected it would have been a live foot-gun for Gate 6's own execution-
+  // bridge dispatcher (MD <website_handoff_preservation>: "Do not force Website into Creative
+  // Studio"). Pure in-code registry data — no migration, no runtime behavior changed until Gate 6's
+  // dispatcher reads this field for the first time.
+  { key: "website", labelEs: "Sitio web", labelEn: "Website", category: "digital", discoverySchemaKey: "website", executionDestination: "website_project_handoff", active: true },
+  { key: "website_improvement", labelEs: "Mejora de sitio web", labelEn: "Website Improvement", category: "digital", discoverySchemaKey: "website", executionDestination: "website_project_handoff", active: true },
+  { key: "landing_page", labelEs: "Página de destino", labelEn: "Landing Page", category: "digital", discoverySchemaKey: "landing_page", executionDestination: "website_project_handoff", active: true },
   { key: "logo_brand_identity", labelEs: "Logo / Identidad de marca", labelEn: "Logo / Brand Identity", category: "brand", discoverySchemaKey: "brand_identity", executionDestination: "creative_studio", active: true },
   { key: "business_cards", labelEs: "Tarjetas de presentación", labelEn: "Business Cards", category: "print", discoverySchemaKey: "print_collateral", executionDestination: "creative_studio", active: true },
   { key: "flyer", labelEs: "Volante", labelEn: "Flyer", category: "print", discoverySchemaKey: "print_collateral", executionDestination: "creative_studio", active: true },

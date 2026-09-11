@@ -216,8 +216,8 @@ function useStableId(prefix: string): string {
   return id;
 }
 
-function defaultTruthClassForSection(section: WebsiteDiscoverySection): DiscoveryTruthClass {
-  return section === "brand_identity" || section === "visual_references" ? "client_preference" : "client_confirmed";
+function defaultTruthClassForSection(section: string): DiscoveryTruthClass {
+  return section === "brand_identity" || section === "visual_references" || section === "visual_direction" || section === "brand_personality" ? "client_preference" : "client_confirmed";
 }
 
 /** "true"/"false" sentinel choice values coerce to a real JS boolean so existing dependency/scope-signal checks elsewhere keep working (MD <part_2_choice_renderer>). */
@@ -243,11 +243,12 @@ export interface CaptureAnswerFormProps {
   discoveryId: string;
   projectIntentId: string | null;
   fieldKey: string;
-  section: WebsiteDiscoverySection;
+  /** A section key from ANY catalog (Website, Logo/Brand, Print Collateral, Campaign) — only ever passed straight through to the capture POST body and to defaultTruthClassForSection(), never branched on for rendering here. */
+  section: string;
   questionEs: string;
   questionEn: string;
   valueType: DiscoveryItemValueType;
-  options?: readonly WebsiteRequirementChoiceOption[];
+  options?: readonly { value: string; labelEn: string; labelEs: string }[];
   existingSourceFiles?: readonly ExistingSourceFileOption[];
   initialValue?: unknown;
   initialDisplayValue?: string | null;
@@ -1335,6 +1336,189 @@ export function BlueprintMarkdownViewer({ markdown, versionLabel }: { markdown: 
           {markdown}
         </pre>
       ) : null}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Gate 6 — Specialized (Logo/Brand, Print Collateral, Media Campaign) blueprint lifecycle + project
+// dependencies + execution bridges. MarkBlueprintInternalReviewCompleteButton and
+// MarkBlueprintClientConfirmationNeededButton above are REUSED as-is (the underlying route only
+// ever touches status columns — it has no Website-specific behavior).
+// ---------------------------------------------------------------------------
+export function GenerateSpecializedBlueprintButton({ businessId, discoveryId, intentId }: { businessId: string; discoveryId: string; intentId: string }) {
+  const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function generate() {
+    setSubmitting(true);
+    setError(null);
+    const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/discovery/${discoveryId}/specialized-blueprint`, "POST", { intentId });
+    setSubmitting(false);
+    if (!ok) {
+      setError(blueprintActionError(body, "No se pudo generar el plan del proyecto. / Could not generate the project blueprint."));
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <button type="button" onClick={() => void generate()} disabled={submitting} className={PRIMARY_BTN}>
+        {submitting ? "Generando… / Generating…" : "Generar plan del proyecto / Generate Blueprint"}
+      </button>
+      {error ? <p role="alert" className="mt-1 text-xs text-red-700">{error}</p> : null}
+    </div>
+  );
+}
+
+export function ApproveSpecializedBlueprintForBuildButton({ businessId, discoveryId, blueprintId }: { businessId: string; discoveryId: string; blueprintId: string }) {
+  const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function run() {
+    setSubmitting(true);
+    setError(null);
+    const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/discovery/${discoveryId}/specialized-blueprint/approve`, "POST", { blueprintId });
+    setSubmitting(false);
+    if (!ok) {
+      setError(blueprintActionError(body, "No se pudo aprobar el plan del proyecto. / Could not approve the project blueprint."));
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <button type="button" onClick={() => void run()} disabled={submitting} className={PRIMARY_BTN}>
+        {submitting ? "Aprobando… / Approving…" : "Aprobar para construcción / Approve for Build"}
+      </button>
+      {error ? <p role="alert" className="mt-1 text-xs text-red-700">{error}</p> : null}
+    </div>
+  );
+}
+
+export function CreateCreativeStudioProjectButton({ businessId, discoveryId, blueprintId }: { businessId: string; discoveryId: string; blueprintId: string }) {
+  const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<string | null>(null);
+
+  async function create() {
+    setSubmitting(true);
+    setError(null);
+    const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/discovery/${discoveryId}/specialized-blueprint/creative-studio`, "POST", { blueprintId });
+    setSubmitting(false);
+    if (!ok) {
+      setError(blueprintActionError(body, "No se pudo crear el proyecto en Creative Studio. / Could not create the Creative Studio project."));
+      return;
+    }
+    setResult(body?.alreadyExisted ? "Ya existía un proyecto de Creative Studio para esta versión. / A Creative Studio project already existed for this version." : "Proyecto de Creative Studio creado. / Creative Studio project created.");
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <button type="button" onClick={() => void create()} disabled={submitting} className={PRIMARY_BTN}>
+        {submitting ? "Creando… / Creating…" : "Crear proyecto en Creative Studio / Create Creative Studio Project"}
+      </button>
+      {result ? <p className="mt-1 text-xs text-emerald-800">{result}</p> : null}
+      {error ? <p role="alert" className="mt-1 text-xs text-red-700">{error}</p> : null}
+    </div>
+  );
+}
+
+export function CreateCampaignButton({ businessId, discoveryId, blueprintId }: { businessId: string; discoveryId: string; blueprintId: string }) {
+  const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<string | null>(null);
+
+  async function create() {
+    setSubmitting(true);
+    setError(null);
+    const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/discovery/${discoveryId}/specialized-blueprint/campaign`, "POST", { blueprintId });
+    setSubmitting(false);
+    if (!ok) {
+      setError(blueprintActionError(body, "No se pudo crear la campaña. / Could not create the campaign."));
+      return;
+    }
+    const unmatched = (body?.unmatchedChannelTokens as string[] | undefined) ?? [];
+    const base = body?.alreadyExisted ? "Ya existía una campaña para esta versión. / A campaign already existed for this version." : "Campaña creada. / Campaign created.";
+    setResult(unmatched.length > 0 ? `${base} Canales no reconocidos: ${unmatched.join(", ")} / Unrecognized channels: ${unmatched.join(", ")}` : base);
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <button type="button" onClick={() => void create()} disabled={submitting} className={PRIMARY_BTN}>
+        {submitting ? "Creando… / Creating…" : "Crear campaña / Create Campaign"}
+      </button>
+      {result ? <p className="mt-1 text-xs text-emerald-800">{result}</p> : null}
+      {error ? <p role="alert" className="mt-1 text-xs text-red-700">{error}</p> : null}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Project Dependencies (MD <dependency_engine>, <multi_project_engagement>)
+// ---------------------------------------------------------------------------
+export function AcceptSuggestedDependencyButton({
+  businessId, discoveryId, dependentIntentId, dependsOnIntentId, reasonEs, reasonEn,
+}: { businessId: string; discoveryId: string; dependentIntentId: string; dependsOnIntentId: string; reasonEs: string; reasonEn: string }) {
+  const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function accept() {
+    setSubmitting(true);
+    setError(null);
+    const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/discovery/${discoveryId}/dependencies`, "POST", {
+      dependentIntentId, dependsOnIntentId, dependencyType: "system_suggested", reasonEs, reasonEn,
+    });
+    setSubmitting(false);
+    if (!ok) {
+      setError(humanizeStaffWriteError(body?.error as string | undefined, "No se pudo registrar la dependencia. / Could not record the dependency."));
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <button type="button" onClick={() => void accept()} disabled={submitting} className={SECONDARY_BTN}>
+        {submitting ? "Guardando… / Saving…" : "Confirmar dependencia / Confirm Dependency"}
+      </button>
+      {error ? <p role="alert" className="mt-1 text-xs text-red-700">{error}</p> : null}
+    </div>
+  );
+}
+
+export function RemoveDependencyButton({ businessId, discoveryId, dependencyId }: { businessId: string; discoveryId: string; dependencyId: string }) {
+  const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function remove() {
+    setSubmitting(true);
+    setError(null);
+    const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/discovery/${discoveryId}/dependencies/${dependencyId}`, "DELETE", {});
+    setSubmitting(false);
+    if (!ok) {
+      setError(humanizeStaffWriteError(body?.error as string | undefined, "No se pudo eliminar la dependencia. / Could not remove the dependency."));
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <button type="button" onClick={() => void remove()} disabled={submitting} className="text-xs text-red-700 underline">
+        {submitting ? "Eliminando… / Removing…" : "Eliminar dependencia / Remove Dependency"}
+      </button>
+      {error ? <p role="alert" className="mt-1 text-xs text-red-700">{error}</p> : null}
     </div>
   );
 }

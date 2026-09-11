@@ -189,8 +189,12 @@ check("website intent gets adaptiveEngineAvailable=true", () => {
   assert.equal(nav[0].adaptiveEngineAvailable, true);
   assert.equal(nav[0].isWebsite, true);
 });
-check("non-website intent (e.g. logo_brand_identity) gets adaptiveEngineAvailable=false — stated truthfully, not pretended", () => {
+check("Gate 6 specialized intent (e.g. logo_brand_identity) now truthfully gets adaptiveEngineAvailable=true — its own generic engine, never the Website catalog", () => {
   const nav = buildMultiProjectNav([intent({ projectType: "logo_brand_identity" })]);
+  assert.equal(nav[0].adaptiveEngineAvailable, true);
+});
+check("a genuinely un-built project type (e.g. social_setup_cleanup) still gets adaptiveEngineAvailable=false — stated truthfully, not pretended", () => {
+  const nav = buildMultiProjectNav([intent({ projectType: "social_setup_cleanup" })]);
   assert.equal(nav[0].adaptiveEngineAvailable, false);
 });
 check("website_improvement / landing_page count as website-shaped but do NOT get the adaptive engine yet (only exact 'website' does)", () => {

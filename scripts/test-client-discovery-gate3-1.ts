@@ -211,7 +211,8 @@ check("colors/style/imagery/symbols groups are all populated from real catalog f
 });
 check("15-16. colors liked/disliked default to CLIENT_PREFERENCE in the answer capture form (never a Business Book fact)", () => {
   const actionsSource = readSource("app/admin/(dashboard)/businesses/[businessId]/ClientDiscoveryActions.tsx");
-  assert.ok(/section === "brand_identity" \|\| section === "visual_references" \? "client_preference"/.test(actionsSource));
+  assert.ok(/function defaultTruthClassForSection[\s\S]{0,300}"client_preference"/.test(actionsSource));
+  assert.ok(actionsSource.includes('section === "brand_identity"') && actionsSource.includes('section === "visual_references"'));
 });
 check("17. visual_personality (style / feel) stays free text, not a rigid enum", () => {
   assert.equal(getWebsiteRequirement("visual_personality")!.valueType, "text");

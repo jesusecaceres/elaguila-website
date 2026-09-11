@@ -259,6 +259,8 @@ export interface GrowthCampaign {
   businessId: string;
   sourceSolutionId: string | null;
   linkedOpportunityId: string | null;
+  /** Gate 6 (Client Discovery & Project Blueprint Engine) — set when this campaign was created via "Create Campaign" from an approved Media/Exposure Campaign project blueprint. */
+  sourceProjectBlueprintId: string | null;
 
   objectiveEs: string;
   objectiveEn: string;
@@ -297,6 +299,7 @@ export interface CreateGrowthCampaignInput {
   businessId: string;
   sourceSolutionId?: string | null;
   linkedOpportunityId?: string | null;
+  sourceProjectBlueprintId?: string | null;
   objectiveEs: string;
   objectiveEn: string;
   targetAudienceEs?: string | null;

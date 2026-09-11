@@ -83,6 +83,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ bus
       packet,
       markdown,
       inputFingerprint,
+      discoveryCatalogVersion: packet.discoveryCatalogVersion,
+      platformRegistryVersion: packet.platformRegistryVersion,
       supersedesBlueprintId: previous ? previous.id : null,
     },
     access.actor,

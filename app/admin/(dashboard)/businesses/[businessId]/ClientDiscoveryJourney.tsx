@@ -1,16 +1,21 @@
 import Link from "next/link";
 import {
+  AcceptSuggestedDependencyButton,
   AddProjectIntentForm,
   AnswerRowActions,
   ApproveArchitectureButton,
   ApproveBlueprintForBuildButton,
+  ApproveSpecializedBlueprintForBuildButton,
   BlueprintMarkdownViewer,
   CaptureAnswerForm,
   ConsentToggle,
+  CreateCampaignButton,
+  CreateCreativeStudioProjectButton,
   CreateWebsiteProjectButton,
   DiscoveryAssetUpload,
   DiscoveryStatusButtons,
   GenerateBlueprintButton,
+  GenerateSpecializedBlueprintButton,
   IntentStatusButtons,
   LinkMeetingButton,
   MarkBlueprintClientConfirmationNeededButton,
@@ -18,6 +23,7 @@ import {
   MarkNeedsMoreClientInfoButton,
   MeetingNoteCapture,
   ModifyArchitectureDecisionForm,
+  RemoveDependencyButton,
   SendQuestionsToMeetingButton,
   StartDiscoveryForm,
   VisualReferenceForm,
@@ -50,6 +56,10 @@ import type { QuestionCandidate } from "@/app/lib/business/projectDiscovery/webs
 import type { WebsiteArchitectureDecisionPacket } from "@/app/lib/business/projectDiscovery/architectureDecisionEngine";
 import type { ArchitectureDriftResult, WebsiteBlueprintReadinessResult } from "@/app/lib/business/projectDiscovery/blueprintEngine";
 import type { BusinessProjectBlueprint } from "@/app/lib/business/projectDiscovery/blueprintRepository";
+import type { SpecializedQuestionCandidate, SpecializedReadinessResult, SpecializedRequirementEvaluation } from "@/app/lib/business/projectDiscovery/specializedDiscoveryEngine";
+import type { BlockingDependencySummary, SpecializedBlueprintReadinessResult, SpecializedProjectBlueprintPacket } from "@/app/lib/business/projectDiscovery/specializedBlueprintEngine";
+import type { SpecializedFamily } from "@/app/lib/business/projectDiscovery/specializedBlueprintDispatch";
+import type { ProjectIntentDependency, SuggestedDependency } from "@/app/lib/business/projectDiscovery/projectDependencyEngine";
 import type {
   ProjectDiscovery,
   ProjectDiscoveryConsent,
@@ -82,6 +92,25 @@ export interface WebsiteEngineOutput {
   architectureDrift: ArchitectureDriftResult | null;
 }
 
+/**
+ * Gate 6 — Logo/Brand, Print Collateral, and Media Campaign share this ONE output shape, mirroring
+ * WebsiteEngineOutput's own concepts (readiness/questions/blueprint/staleness) but genuinely smaller
+ * — no architecture review, no scope signals, no industry branches; these families never had them.
+ */
+export interface SpecializedEngineOutput {
+  family: SpecializedFamily;
+  evaluations: readonly SpecializedRequirementEvaluation[];
+  readiness: SpecializedReadinessResult;
+  questionsToAskNow: readonly SpecializedQuestionCandidate[];
+  wrapUp: readonly SpecializedQuestionCandidate[];
+  blueprintReadiness: SpecializedBlueprintReadinessResult;
+  latestBlueprint: BusinessProjectBlueprint<SpecializedProjectBlueprintPacket> | null;
+  isStale: boolean;
+  dependencies: readonly ProjectIntentDependency[];
+  suggestedDependencies: readonly SuggestedDependency[];
+  blockingDependencies: readonly BlockingDependencySummary[];
+}
+
 export interface ClientDiscoveryJourneyProps {
   businessId: string;
   currentDiscovery: ProjectDiscovery | null;
@@ -93,6 +122,7 @@ export interface ClientDiscoveryJourneyProps {
   consents: readonly ProjectDiscoveryConsent[];
   events: readonly ProjectDiscoveryEvent[];
   website: WebsiteEngineOutput | null;
+  specialized: SpecializedEngineOutput | null;
   upcomingMeetings: readonly { id: string; label: string }[];
   canCreate: boolean;
   canManage: boolean;
@@ -104,7 +134,7 @@ export interface ClientDiscoveryJourneyProps {
 }
 
 export function ClientDiscoveryJourney(props: ClientDiscoveryJourneyProps) {
-  const { businessId, currentDiscovery, intents, selectedIntentId, sources, consents, events, website, upcomingMeetings, canCreate, canManage, canReview, canManageConsent, canManageBlueprint, existingSourceFiles } = props;
+  const { businessId, currentDiscovery, intents, selectedIntentId, sources, consents, events, website, specialized, upcomingMeetings, canCreate, canManage, canReview, canManageConsent, canManageBlueprint, existingSourceFiles } = props;
 
   if (!currentDiscovery) {
     return (
@@ -210,6 +240,14 @@ export function ClientDiscoveryJourney(props: ClientDiscoveryJourneyProps) {
             canReview={canReview}
           />
         </>
+      ) : selectedIntent && specialized ? (
+        <SpecializedQuestionsSection
+          businessId={businessId}
+          discoveryId={currentDiscovery.id}
+          intentId={selectedIntent.id}
+          specialized={specialized}
+          canCreate={canCreate}
+        />
       ) : selectedIntent ? (
         <section className={CARD}>
           <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Preguntas para hacer ahora / Questions to Ask Now</h3>
@@ -244,6 +282,17 @@ export function ClientDiscoveryJourney(props: ClientDiscoveryJourneyProps) {
           />
           <LeonixDecisionsSection evaluations={website.evaluations} />
         </>
+      ) : null}
+
+      {specialized && selectedIntent ? (
+        <SpecializedBlueprintPanel
+          businessId={businessId}
+          discoveryId={currentDiscovery.id}
+          intentId={selectedIntent.id}
+          specialized={specialized}
+          canManageBlueprint={canManageBlueprint}
+          canManage={canManage}
+        />
       ) : null}
 
       <ReadinessSection
@@ -823,6 +872,231 @@ function BlueprintReviewSection({
         </div>
       ) : null}
     </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Gate 6 — Specialized (Logo/Brand, Print Collateral, Media Campaign) questions + capture. Deliberately
+// simpler than Website's own Sections Review: no architecture review, no scope signals, no industry
+// branches — these families never had them (MD <ui>: "Do not show Website architecture review for
+// Logo/Print/Campaign").
+// ---------------------------------------------------------------------------
+const SPECIALIZED_FAMILY_TITLE: Record<SpecializedFamily, { es: string; en: string }> = {
+  logo_brand: { es: "Descubrimiento de logo / marca", en: "Logo / Brand Discovery" },
+  print_collateral: { es: "Descubrimiento de materiales impresos y promocionales", en: "Print & Promotional Discovery" },
+  media_campaign: { es: "Descubrimiento de campaña", en: "Campaign Discovery" },
+};
+
+function SpecializedQuestionsSection({
+  businessId, discoveryId, intentId, specialized, canCreate,
+}: { businessId: string; discoveryId: string; intentId: string; specialized: SpecializedEngineOutput; canCreate: boolean }) {
+  const known = specialized.evaluations.filter((e) => e.status === "confirmed" || e.status === "captured_unconfirmed");
+  const familyTitle = SPECIALIZED_FAMILY_TITLE[specialized.family];
+
+  return (
+    <>
+      <section className={CARD}>
+        <h2 className="font-serif text-base font-bold text-[#1E1810]">{familyTitle.es} / {familyTitle.en}</h2>
+      </section>
+      <section className={CARD}>
+        <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">{formatBilingual({ es: "Información compartida del cliente", en: "Shared Client Information" })}</h3>
+        <p className="mt-1 text-[11px] text-[#9A9184]">{formatBilingual({ es: "Las respuestas compartidas con otros proyectos de este descubrimiento se capturan una sola vez.", en: "Answers shared with other projects in this discovery are captured only once." })}</p>
+        {known.length === 0 ? (
+          <p className="mt-2 text-sm text-[#6B5E47]">{formatBilingual({ es: "Aún no se sabe nada específico de este proyecto.", en: "Nothing project-specific is known yet." })}</p>
+        ) : (
+          <ul className="mt-2 space-y-1">
+            {known.slice(0, 12).map((e) => (
+              <li key={e.requirement.fieldKey} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span className="text-[#1E1810]">{e.requirement.labelEs} / {e.requirement.labelEn}</span>
+                <span className="text-[#6B5E47]">{e.item?.displayValue ?? e.knownFact?.displayValue ?? "—"}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className={CARD}>
+        <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">{formatBilingual({ es: "Preguntas para hacer ahora", en: "Questions to Ask Now" })}</h3>
+        {specialized.questionsToAskNow.length === 0 ? (
+          <p className="mt-2 text-sm text-[#6B5E47]">{formatBilingual({ es: "No hay preguntas pendientes en este momento.", en: "No pending questions right now." })}</p>
+        ) : (
+          <div className="mt-2 space-y-3">
+            {specialized.questionsToAskNow.map((q) => (
+              <div key={q.fieldKey} className={SUBCARD}>
+                <p className="text-sm font-semibold text-[#1E1810]">{q.questionEs} / {q.questionEn}</p>
+                {canCreate ? (
+                  <div className="mt-2">
+                    <CaptureAnswerForm
+                      businessId={businessId}
+                      discoveryId={discoveryId}
+                      projectIntentId={intentId}
+                      fieldKey={q.fieldKey}
+                      section={q.section}
+                      questionEs={q.questionEs}
+                      questionEn={q.questionEn}
+                      valueType={q.expectedAnswerType}
+                      options={q.options}
+                    />
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {specialized.wrapUp.length > 0 ? (
+        <section className={CARD}>
+          <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">{formatBilingual({ es: "Antes de terminar", en: "Before You Wrap Up" })}</h3>
+          <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-[#3D3428]">
+            {specialized.wrapUp.map((q) => <li key={q.fieldKey}>{q.questionEs} / {q.questionEn}</li>)}
+          </ul>
+        </section>
+      ) : null}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Gate 6 — Specialized Project Blueprint / Execution / Dependencies (MD <review_ui>,
+// <execution_state>, <dependency_engine>). Mirrors BlueprintReviewSection's own structure.
+// ---------------------------------------------------------------------------
+function readinessStateLabelEs(state: SpecializedEngineOutput["blueprintReadiness"]["state"]): string {
+  const labels: Record<string, string> = { READY: "Listo", NOT_READY: "No listo", NEEDS_LEONIX_DECISION: "Requiere decisión de Leonix", DEPENDENCY_BLOCKED: "Esperando otro proyecto" };
+  return labels[state] ?? state;
+}
+function readinessStateLabelEn(state: SpecializedEngineOutput["blueprintReadiness"]["state"]): string {
+  const labels: Record<string, string> = { READY: "Ready", NOT_READY: "Not Ready", NEEDS_LEONIX_DECISION: "Needs Leonix Decision", DEPENDENCY_BLOCKED: "Waiting on Another Project" };
+  return labels[state] ?? state;
+}
+
+const EXECUTION_DESTINATION_LABEL: Record<SpecializedFamily, { es: string; en: string }> = {
+  logo_brand: { es: "Creative Studio", en: "Creative Studio" },
+  print_collateral: { es: "Creative Studio", en: "Creative Studio" },
+  media_campaign: { es: "Campaña de Growth Engine", en: "Growth Engine Campaign" },
+};
+
+function SpecializedBlueprintPanel({
+  businessId, discoveryId, intentId, specialized, canManageBlueprint, canManage,
+}: { businessId: string; discoveryId: string; intentId: string; specialized: SpecializedEngineOutput; canManageBlueprint: boolean; canManage: boolean }) {
+  const { latestBlueprint, blueprintReadiness, isStale, family, dependencies, suggestedDependencies, blockingDependencies } = specialized;
+  const unresolvedCount = latestBlueprint
+    ? latestBlueprint.packet.unresolvedBeforeLaunch.length + latestBlueprint.packet.unresolvedLeonixActions.length + latestBlueprint.packet.unresolvedNonBlocking.length
+    : 0;
+  const destinationLabel = EXECUTION_DESTINATION_LABEL[family];
+  const acceptableSuggestions = suggestedDependencies.filter((s) => s.dependentIntentId === intentId || s.dependsOnIntentId === intentId);
+  const relevantDependencies = dependencies.filter((d) => d.dependentIntentId === intentId || d.dependsOnIntentId === intentId);
+
+  return (
+    <>
+      <section id="project-blueprint" className={`${CARD} scroll-mt-24`}>
+        <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">{formatBilingual({ es: "Plan del proyecto", en: "Project Blueprint" })}</h3>
+
+        {latestBlueprint ? (
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#3D3428]">
+            <span className="font-semibold">v{latestBlueprint.version}</span>
+            <span className="rounded-full bg-[#EDE6D6] px-2 py-0.5 text-[10px] font-bold text-[#3D3428]">{latestBlueprint.status.replace(/_/g, " ")}</span>
+            <span>{new Date(latestBlueprint.createdAt).toLocaleDateString()}</span>
+            {unresolvedCount > 0 ? <span className="text-amber-800">{unresolvedCount} sin resolver / unresolved</span> : null}
+          </div>
+        ) : (
+          <p className="mt-2 text-sm text-[#6B5E47]">{formatBilingual({ es: "Todavía no se ha generado un plan del proyecto para esta intención.", en: "No project blueprint has been generated for this intent yet." })}</p>
+        )}
+
+        {isStale && latestBlueprint ? (
+          <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-3">
+            <p className="text-xs font-bold uppercase tracking-wide text-amber-900">{formatBilingual({ es: "El plan del proyecto puede estar desactualizado", en: "Blueprint May Be Stale" })}</p>
+          </div>
+        ) : null}
+
+        {blueprintReadiness.state !== "READY" ? (
+          <div className="mt-2 rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] p-3">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#7A1E2C]">{readinessStateLabelEs(blueprintReadiness.state)} / {readinessStateLabelEn(blueprintReadiness.state)}</p>
+            <p className="mt-1 text-xs text-[#6B5E47]">{blueprintReadiness.reasonEs} / {blueprintReadiness.reasonEn}</p>
+            {blueprintReadiness.requiredBeforeBuildBlockers.length > 0 ? (
+              <ul className="mt-2 list-disc space-y-0.5 pl-4 text-xs text-red-700">
+                {blueprintReadiness.requiredBeforeBuildBlockers.map((e) => <li key={e.requirement.fieldKey}>{e.requirement.labelEs} / {e.requirement.labelEn}</li>)}
+              </ul>
+            ) : null}
+            {blockingDependencies.length > 0 ? (
+              <ul className="mt-2 list-disc space-y-0.5 pl-4 text-xs text-[#8A6B1F]">
+                {blockingDependencies.map((d) => <li key={d.dependsOnIntentId}>{d.dependsOnTitle}: {d.reasonEs} / {d.reasonEn}</li>)}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
+
+        {canManageBlueprint ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {blueprintReadiness.state === "READY" && (!latestBlueprint || isStale) ? (
+              <GenerateSpecializedBlueprintButton businessId={businessId} discoveryId={discoveryId} intentId={intentId} />
+            ) : null}
+            {latestBlueprint?.status === "draft" ? (
+              <MarkBlueprintInternalReviewCompleteButton businessId={businessId} discoveryId={discoveryId} blueprintId={latestBlueprint.id} />
+            ) : null}
+            {latestBlueprint?.status === "internal_review" ? (
+              <>
+                <MarkBlueprintClientConfirmationNeededButton businessId={businessId} discoveryId={discoveryId} blueprintId={latestBlueprint.id} />
+                <ApproveSpecializedBlueprintForBuildButton businessId={businessId} discoveryId={discoveryId} blueprintId={latestBlueprint.id} />
+              </>
+            ) : null}
+            {latestBlueprint?.status === "client_confirmation_needed" ? (
+              <ApproveSpecializedBlueprintForBuildButton businessId={businessId} discoveryId={discoveryId} blueprintId={latestBlueprint.id} />
+            ) : null}
+          </div>
+        ) : null}
+
+        {latestBlueprint ? (
+          <div className="mt-3">
+            <BlueprintMarkdownViewer markdown={latestBlueprint.markdownSnapshot} versionLabel={`${family}-blueprint-v${latestBlueprint.version}`} />
+          </div>
+        ) : null}
+      </section>
+
+      <section className={CARD}>
+        <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">{formatBilingual({ es: "Destino de ejecución", en: "Execution Destination" })}</h3>
+        <p className="mt-2 text-sm text-[#3D3428]">{destinationLabel.es} / {destinationLabel.en}</p>
+        {latestBlueprint?.status === "approved_for_build" ? (
+          <div className="mt-2">
+            {latestBlueprint.handoffStatus === "not_started" || latestBlueprint.handoffStatus === "pending_assignment" ? (
+              canManageBlueprint ? (
+                family === "media_campaign" ? (
+                  <CreateCampaignButton businessId={businessId} discoveryId={discoveryId} blueprintId={latestBlueprint.id} />
+                ) : (
+                  <CreateCreativeStudioProjectButton businessId={businessId} discoveryId={discoveryId} blueprintId={latestBlueprint.id} />
+                )
+              ) : null
+            ) : (
+              <p className="text-xs text-[#6B5E47]">{formatBilingual({ es: "Estado", en: "Status" })}: {latestBlueprint.handoffStatus.replace(/_/g, " ")}{latestBlueprint.handoffNotes ? ` — ${latestBlueprint.handoffNotes}` : ""}</p>
+            )}
+          </div>
+        ) : (
+          <p className="mt-2 text-xs text-[#9A9184]">{formatBilingual({ es: "Disponible una vez aprobado para construcción.", en: "Available once approved for build." })}</p>
+        )}
+      </section>
+
+      {relevantDependencies.length > 0 || acceptableSuggestions.length > 0 ? (
+        <section className={CARD}>
+          <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">{formatBilingual({ es: "Dependencias del proyecto", en: "Project Dependencies" })}</h3>
+          {relevantDependencies.map((d) => (
+            <div key={d.id} className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm">
+              <span className="text-[#1E1810]">{d.reasonEs} / {d.reasonEn}</span>
+              {canManage ? <RemoveDependencyButton businessId={businessId} discoveryId={discoveryId} dependencyId={d.id} /> : null}
+            </div>
+          ))}
+          {acceptableSuggestions.map((s) => (
+            <div key={`${s.dependentIntentId}-${s.dependsOnIntentId}`} className="mt-2 rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] p-2">
+              <p className="text-xs text-[#6B5E47]">{formatBilingual({ es: "Sugerido", en: "Suggested" })}: {s.dependentTitle} {formatBilingual({ es: "espera a", en: "waits on" })} {s.dependsOnTitle}</p>
+              {canManage ? (
+                <div className="mt-1">
+                  <AcceptSuggestedDependencyButton businessId={businessId} discoveryId={discoveryId} dependentIntentId={s.dependentIntentId} dependsOnIntentId={s.dependsOnIntentId} reasonEs={s.reasonEs} reasonEn={s.reasonEn} />
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </section>
+      ) : null}
+    </>
   );
 }
 

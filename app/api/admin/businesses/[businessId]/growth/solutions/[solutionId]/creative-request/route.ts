@@ -65,6 +65,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ bus
       sourceRecommendationId: null,
       sourceProposalId: null,
       sourceOpportunityId: null,
+      sourceProjectBlueprintId: null,
       assetType: LANE_TO_ASSET_TYPE[body.lane],
       language,
       format: "FULL_PAGE",

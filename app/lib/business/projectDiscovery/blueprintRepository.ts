@@ -18,7 +18,14 @@ import type { ProjectDiscoveryActor } from "./types";
 
 export type BlueprintHandoffStatus = "not_started" | "pending_assignment" | "assigned" | "in_progress" | "complete";
 
-export interface BusinessProjectBlueprint {
+/**
+ * Generic over the packet's own shape (Gate 6 <blueprint_persistence>, <project_blueprint_framework>)
+ * — defaults to WebsiteProjectBlueprintPacket so every Gate 5 call site keeps compiling unchanged.
+ * A specialized (Logo/Print/Campaign) caller passes its own packet type as the type argument; the
+ * underlying table/columns/lifecycle are identical for every blueprint_type, discriminated only by
+ * that column, never a second table.
+ */
+export interface BusinessProjectBlueprint<TPacket = WebsiteProjectBlueprintPacket> {
   id: string;
   businessId: string;
   discoveryId: string;
@@ -26,7 +33,7 @@ export interface BusinessProjectBlueprint {
   blueprintType: string;
   version: number;
   status: BlueprintStatus;
-  packet: WebsiteProjectBlueprintPacket;
+  packet: TPacket;
   markdownSnapshot: string;
   inputFingerprint: string;
   discoveryCatalogVersion: string;
@@ -81,7 +88,7 @@ function actorRole(actor: ProjectDiscoveryActor): string {
   return actor.type === "owner" ? (actor.role ?? "owner") : actor.role;
 }
 
-function mapBlueprintRow(row: Record<string, unknown>): BusinessProjectBlueprint {
+function mapBlueprintRow<TPacket = WebsiteProjectBlueprintPacket>(row: Record<string, unknown>): BusinessProjectBlueprint<TPacket> {
   return {
     id: String(row.id),
     businessId: String(row.business_id),
@@ -90,7 +97,7 @@ function mapBlueprintRow(row: Record<string, unknown>): BusinessProjectBlueprint
     blueprintType: String(row.blueprint_type),
     version: Number(row.version),
     status: row.status as BlueprintStatus,
-    packet: row.packet_json as WebsiteProjectBlueprintPacket,
+    packet: row.packet_json as TPacket,
     markdownSnapshot: String(row.markdown_snapshot),
     inputFingerprint: String(row.input_fingerprint),
     discoveryCatalogVersion: String(row.discovery_catalog_version),
@@ -129,7 +136,7 @@ function mapBlueprintRow(row: Record<string, unknown>): BusinessProjectBlueprint
 // =================================================================================================
 // Reads
 // =================================================================================================
-export async function listBlueprintVersionsForIntent(businessId: string, projectIntentId: string): Promise<BusinessProjectBlueprint[]> {
+export async function listBlueprintVersionsForIntent<TPacket = WebsiteProjectBlueprintPacket>(businessId: string, projectIntentId: string): Promise<BusinessProjectBlueprint<TPacket>[]> {
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
     .from("business_project_blueprints")
@@ -138,15 +145,15 @@ export async function listBlueprintVersionsForIntent(businessId: string, project
     .eq("project_intent_id", projectIntentId)
     .order("version", { ascending: false });
   if (error || !data) return [];
-  return data.map(mapBlueprintRow);
+  return data.map((row) => mapBlueprintRow<TPacket>(row));
 }
 
-export async function getLatestBlueprintForIntent(businessId: string, projectIntentId: string): Promise<BusinessProjectBlueprint | null> {
-  const versions = await listBlueprintVersionsForIntent(businessId, projectIntentId);
+export async function getLatestBlueprintForIntent<TPacket = WebsiteProjectBlueprintPacket>(businessId: string, projectIntentId: string): Promise<BusinessProjectBlueprint<TPacket> | null> {
+  const versions = await listBlueprintVersionsForIntent<TPacket>(businessId, projectIntentId);
   return versions[0] ?? null;
 }
 
-export async function getBlueprintById(businessId: string, blueprintId: string): Promise<BusinessProjectBlueprint | null> {
+export async function getBlueprintById<TPacket = WebsiteProjectBlueprintPacket>(businessId: string, blueprintId: string): Promise<BusinessProjectBlueprint<TPacket> | null> {
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
     .from("business_project_blueprints")
@@ -155,7 +162,7 @@ export async function getBlueprintById(businessId: string, blueprintId: string):
     .eq("business_id", businessId)
     .maybeSingle();
   if (error || !data) return null;
-  return mapBlueprintRow(data);
+  return mapBlueprintRow<TPacket>(data);
 }
 
 // =================================================================================================
@@ -164,21 +171,29 @@ export async function getBlueprintById(businessId: string, blueprintId: string):
 // 'superseded' in the SAME operation, so an approved version is never left ambiguous about whether
 // a newer one now supersedes it.
 // =================================================================================================
-export type CreateDraftBlueprintResult = { ok: true; blueprint: BusinessProjectBlueprint } | { ok: false; reason: "insert_failed" | "supersede_failed" | "supersedes_wrong_intent" };
+export type CreateDraftBlueprintResult<TPacket = WebsiteProjectBlueprintPacket> = { ok: true; blueprint: BusinessProjectBlueprint<TPacket> } | { ok: false; reason: "insert_failed" | "supersede_failed" | "supersedes_wrong_intent" };
 
-export async function createDraftBlueprintVersion(
+/**
+ * Deliberately takes discoveryCatalogVersion/platformRegistryVersion as EXPLICIT parameters rather
+ * than reading them off `input.packet` — this keeps the repository packet-shape-agnostic (a
+ * specialized packet has one `catalogVersion` field, not Website's separate discovery-catalog/
+ * platform-registry pair; the caller decides what to pass for each, e.g. the same value twice).
+ */
+export async function createDraftBlueprintVersion<TPacket = WebsiteProjectBlueprintPacket>(
   input: {
     businessId: string;
     discoveryId: string;
     projectIntentId: string;
     blueprintType?: string;
-    packet: WebsiteProjectBlueprintPacket;
+    packet: TPacket;
     markdown: string;
     inputFingerprint: string;
+    discoveryCatalogVersion: string;
+    platformRegistryVersion: string;
     supersedesBlueprintId?: string | null;
   },
   actor: Extract<ProjectDiscoveryActor, { type: "staff" | "owner" }>,
-): Promise<CreateDraftBlueprintResult> {
+): Promise<CreateDraftBlueprintResult<TPacket>> {
   const supabase = getAdminSupabase();
 
   if (input.supersedesBlueprintId) {
@@ -201,8 +216,8 @@ export async function createDraftBlueprintVersion(
       packet_json: input.packet,
       markdown_snapshot: input.markdown,
       input_fingerprint: input.inputFingerprint,
-      discovery_catalog_version: input.packet.discoveryCatalogVersion,
-      platform_registry_version: input.packet.platformRegistryVersion,
+      discovery_catalog_version: input.discoveryCatalogVersion,
+      platform_registry_version: input.platformRegistryVersion,
       created_actor_type: actor.type,
       created_by_roster_id: actorRosterId(actor),
       created_by_auth_user_id: actor.authUserId,
@@ -223,7 +238,7 @@ export async function createDraftBlueprintVersion(
     if (supersedeError) return { ok: false, reason: "supersede_failed" };
   }
 
-  return { ok: true, blueprint: mapBlueprintRow(data) };
+  return { ok: true, blueprint: mapBlueprintRow<TPacket>(data) };
 }
 
 // =================================================================================================

@@ -711,7 +711,7 @@ export async function listGrowthMediaChannels(): Promise<GrowthMediaChannel[]> {
 // Campaigns (Section E)
 // =================================================================================================
 const CAMPAIGN_COLUMNS =
-  "id, business_id, source_solution_id, linked_opportunity_id, objective_es, objective_en, target_audience_es, target_audience_en, offer_es, offer_en, primary_cta_es, primary_cta_en, capacity_assumption, campaign_start, campaign_end, budget_amount, budget_currency, creative_requirements, tracking_plan, status, client_approved_at, client_approval_note, staff_approved_at, staff_approved_by_roster_id, staff_approved_by_role, created_actor_type, created_by_roster_id, created_by_role, created_at, updated_at";
+  "id, business_id, source_solution_id, linked_opportunity_id, source_project_blueprint_id, objective_es, objective_en, target_audience_es, target_audience_en, offer_es, offer_en, primary_cta_es, primary_cta_en, capacity_assumption, campaign_start, campaign_end, budget_amount, budget_currency, creative_requirements, tracking_plan, status, client_approved_at, client_approval_note, staff_approved_at, staff_approved_by_roster_id, staff_approved_by_role, created_actor_type, created_by_roster_id, created_by_role, created_at, updated_at";
 
 function mapCampaignRow(row: Record<string, unknown>): GrowthCampaign {
   return {
@@ -719,6 +719,7 @@ function mapCampaignRow(row: Record<string, unknown>): GrowthCampaign {
     businessId: String(row.business_id),
     sourceSolutionId: (row.source_solution_id as string | null) ?? null,
     linkedOpportunityId: (row.linked_opportunity_id as string | null) ?? null,
+    sourceProjectBlueprintId: (row.source_project_blueprint_id as string | null) ?? null,
     objectiveEs: String(row.objective_es),
     objectiveEn: String(row.objective_en),
     targetAudienceEs: (row.target_audience_es as string | null) ?? null,
@@ -771,6 +772,19 @@ export async function getGrowthCampaignById(businessId: string, campaignId: stri
   return mapCampaignRow(data);
 }
 
+/** Gate 6 <no_duplicate_creation> — the defense-in-depth application-layer check paired with the DB's own partial unique index on source_project_blueprint_id, so the campaign-execution bridge can report "already linked" instead of attempting a doomed duplicate insert. */
+export async function getGrowthCampaignByBlueprintId(businessId: string, blueprintId: string): Promise<GrowthCampaign | null> {
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("business_growth_campaigns")
+    .select(CAMPAIGN_COLUMNS)
+    .eq("business_id", businessId)
+    .eq("source_project_blueprint_id", blueprintId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return mapCampaignRow(data);
+}
+
 export async function createGrowthCampaign(input: CreateGrowthCampaignInput, actor: GrowthEngineActor): Promise<GrowthCampaign | null> {
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
@@ -779,6 +793,7 @@ export async function createGrowthCampaign(input: CreateGrowthCampaignInput, act
       business_id: input.businessId,
       source_solution_id: input.sourceSolutionId ?? null,
       linked_opportunity_id: input.linkedOpportunityId ?? null,
+      source_project_blueprint_id: input.sourceProjectBlueprintId ?? null,
       objective_es: input.objectiveEs,
       objective_en: input.objectiveEn,
       target_audience_es: input.targetAudienceEs ?? null,

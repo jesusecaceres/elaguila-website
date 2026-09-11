@@ -11,6 +11,7 @@
 import type { QuestionCandidate } from "./websiteQuestionEngine";
 import type { RequirementEvaluation, WebsiteReadinessResult, WebsiteScopeSignalResult } from "./websiteDiscoveryLogic";
 import type { WebsiteDiscoverySection, WebsiteRequirementChoiceOption } from "./websiteDiscoveryCatalog";
+import { specializedFamilyForProjectType } from "./specializedBlueprintDispatch";
 import type {
   ProjectDiscovery,
   ProjectDiscoveryEvent,
@@ -66,7 +67,9 @@ export function buildMultiProjectNav(intents: readonly ProjectDiscoveryIntent[])
     projectTypeLabel: projectTypeLabel(intent.projectType),
     statusLabel: intentStatusLabel(intent.status),
     isWebsite: intent.projectType === "website" || intent.projectType === "website_improvement" || intent.projectType === "landing_page",
-    adaptiveEngineAvailable: intent.projectType === "website",
+    // Gate 6 — Logo/Brand, Print Collateral, and Media Campaign now have their own generic adaptive
+    // engine too (specializedDiscoveryEngine.ts), never the Website catalog.
+    adaptiveEngineAvailable: Boolean(specializedFamilyForProjectType(intent.projectType)) || intent.projectType === "website",
   }));
 }
 

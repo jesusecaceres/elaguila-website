@@ -26,7 +26,7 @@ function actorRosterId(actor: CreativeActor): string | null {
 }
 
 const JOB_COLUMNS =
-  "id, business_id, source_recommendation_id, source_proposal_id, source_opportunity_id, asset_type, language, format, archetype, layout_variant, status, input_snapshot_id, doctrine_version, template_version, provider_key, model_key, creative_lane, risk_class, created_actor_type, created_by_roster_id, created_by_auth_user_id, created_by_email, created_by_role, approved_actor_type, approved_by_roster_id, approved_by_auth_user_id, approved_by_email, approved_by_role, approved_at, created_at, updated_at";
+  "id, business_id, source_recommendation_id, source_proposal_id, source_opportunity_id, source_project_blueprint_id, asset_type, language, format, archetype, layout_variant, status, input_snapshot_id, doctrine_version, template_version, provider_key, model_key, creative_lane, risk_class, created_actor_type, created_by_roster_id, created_by_auth_user_id, created_by_email, created_by_role, approved_actor_type, approved_by_roster_id, approved_by_auth_user_id, approved_by_email, approved_by_role, approved_at, created_at, updated_at";
 
 function mapJobRow(row: Record<string, unknown>): CreativeJob {
   return {
@@ -35,6 +35,7 @@ function mapJobRow(row: Record<string, unknown>): CreativeJob {
     sourceRecommendationId: (row.source_recommendation_id as string | null) ?? null,
     sourceProposalId: (row.source_proposal_id as string | null) ?? null,
     sourceOpportunityId: (row.source_opportunity_id as string | null) ?? null,
+    sourceProjectBlueprintId: (row.source_project_blueprint_id as string | null) ?? null,
     assetType: row.asset_type as CreativeJob["assetType"],
     language: row.language as CreativeJob["language"],
     format: row.format as CreativeJob["format"],
@@ -87,6 +88,19 @@ export async function getJobById(businessId: string, jobId: string): Promise<Cre
   return mapJobRow(data);
 }
 
+/** Gate 6 <no_duplicate_creation> — defense-in-depth check paired with the DB's own partial unique index on source_project_blueprint_id. */
+export async function getJobByBlueprintId(businessId: string, blueprintId: string): Promise<CreativeJob | null> {
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("business_creative_jobs")
+    .select(JOB_COLUMNS)
+    .eq("business_id", businessId)
+    .eq("source_project_blueprint_id", blueprintId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return mapJobRow(data);
+}
+
 export async function createJob(
   businessId: string,
   input: Omit<CreativeJob, "id" | "businessId" | "status" | "approvedActorType" | "approvedByRosterId" | "approvedByAuthUserId" | "approvedByEmail" | "approvedByRole" | "approvedAt" | "createdAt" | "updatedAt">,
@@ -100,6 +114,7 @@ export async function createJob(
       source_recommendation_id: input.sourceRecommendationId,
       source_proposal_id: input.sourceProposalId,
       source_opportunity_id: input.sourceOpportunityId,
+      source_project_blueprint_id: input.sourceProjectBlueprintId,
       asset_type: input.assetType,
       language: input.language,
       format: input.format,

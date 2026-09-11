@@ -83,6 +83,12 @@ import { resolveStartFromGrowthSolutionPrefill } from "@/app/lib/business/projec
 import { buildArchitectureDecisionPacket, type WebsiteArchitectureDecisionPacket } from "@/app/lib/business/projectDiscovery/architectureDecisionEngine";
 import { computeBlueprintInputFingerprint, detectArchitectureDrift, evaluateWebsiteBlueprintReadiness } from "@/app/lib/business/projectDiscovery/blueprintEngine";
 import { getLatestBlueprintForIntent } from "@/app/lib/business/projectDiscovery/blueprintRepository";
+import { buildSpecializedDiscoveryContext } from "@/app/lib/business/projectDiscovery/specializedDiscoveryContext";
+import { buildSpecializedBeforeYouWrapUp, buildSpecializedQuestionsToAskNow, evaluateSpecializedReadiness, evaluateSpecializedRequirements } from "@/app/lib/business/projectDiscovery/specializedDiscoveryEngine";
+import { catalogForProjectType, specializedFamilyForProjectType } from "@/app/lib/business/projectDiscovery/specializedBlueprintDispatch";
+import { computeSpecializedBlueprintInputFingerprint, evaluateProjectBlueprintReadiness, type SpecializedProjectBlueprintPacket } from "@/app/lib/business/projectDiscovery/specializedBlueprintEngine";
+import { computeBlockingDependencies, suggestSystemDependencies } from "@/app/lib/business/projectDiscovery/projectDependencyEngine";
+import { listIntentDependenciesForDiscovery } from "@/app/lib/business/projectDiscovery/projectDependencyRepository";
 
 export const dynamic = "force-dynamic";
 
@@ -393,7 +399,7 @@ export default async function AdminBusinessDetailPage({
     ? await (async () => {
         const discoveries = await listProjectDiscoveriesForBusiness(business.id);
         const currentDiscovery = discoveries.find((d) => d.status !== "blueprint_created") ?? discoveries[0] ?? null;
-        if (!currentDiscovery) return { currentDiscovery: null, otherDiscoveries: [], intents: [], selectedIntentId: null, items: [], sources: [], consents: [], events: [], website: null, existingSourceFiles: [] };
+        if (!currentDiscovery) return { currentDiscovery: null, otherDiscoveries: [], intents: [], selectedIntentId: null, items: [], sources: [], consents: [], events: [], website: null, specialized: null, existingSourceFiles: [] };
 
         const otherDiscoveries = discoveries.filter((d) => d.id !== currentDiscovery.id);
         const [intents, items, sources, consents, events, businessSourceFiles] = await Promise.all([
@@ -440,7 +446,39 @@ export default async function AdminBusinessDetailPage({
             })()
           : null;
 
-        return { currentDiscovery, otherDiscoveries, intents, selectedIntentId: selectedIntent?.id ?? null, items, sources, consents, events, website, existingSourceFiles };
+        // Gate 6 — Logo/Brand, Print Collateral, Media Campaign share ONE generic engine (never the
+        // Website catalog/architecture review). Dependencies are discovery-wide, computed once here.
+        const specialized = selectedIntent && specializedFamilyForProjectType(selectedIntent.projectType)
+          ? await (async () => {
+              const ctx = await buildSpecializedDiscoveryContext(business.id, currentDiscovery.id, selectedIntent.id);
+              if (!ctx) return null;
+              const catalogEntry = catalogForProjectType(ctx.projectType);
+              const family = specializedFamilyForProjectType(ctx.projectType);
+              if (!catalogEntry || !family) return null;
+
+              const evaluations = evaluateSpecializedRequirements(catalogEntry.catalog, ctx);
+              const readiness = evaluateSpecializedReadiness(catalogEntry.catalog, ctx);
+              const questionsToAskNow = buildSpecializedQuestionsToAskNow(catalogEntry.catalog, ctx);
+              const wrapUp = buildSpecializedBeforeYouWrapUp(catalogEntry.catalog, ctx);
+
+              const dependencies = await listIntentDependenciesForDiscovery(business.id, currentDiscovery.id);
+              const latestBlueprintByIntentId = new Map<string, string | null>();
+              for (const intent of intents) {
+                const latest = await getLatestBlueprintForIntent(business.id, intent.id);
+                latestBlueprintByIntentId.set(intent.id, latest?.status ?? null);
+              }
+              const blockingDependencies = computeBlockingDependencies(selectedIntent.id, dependencies, intents, latestBlueprintByIntentId);
+              const suggestedDependencies = suggestSystemDependencies(intents, dependencies);
+
+              const blueprintReadiness = evaluateProjectBlueprintReadiness(readiness, blockingDependencies);
+              const latestBlueprint = await getLatestBlueprintForIntent<SpecializedProjectBlueprintPacket>(business.id, selectedIntent.id);
+              const isStale = latestBlueprint ? computeSpecializedBlueprintInputFingerprint(ctx) !== latestBlueprint.inputFingerprint : false;
+
+              return { family, evaluations, readiness, questionsToAskNow, wrapUp, blueprintReadiness, latestBlueprint, isStale, dependencies, suggestedDependencies, blockingDependencies };
+            })()
+          : null;
+
+        return { currentDiscovery, otherDiscoveries, intents, selectedIntentId: selectedIntent?.id ?? null, items, sources, consents, events, website, specialized, existingSourceFiles };
       })()
     : null;
 
@@ -996,6 +1034,7 @@ export default async function AdminBusinessDetailPage({
             consents={clientDiscoveryData.consents}
             events={clientDiscoveryData.events}
             website={clientDiscoveryData.website}
+            specialized={clientDiscoveryData.specialized}
             upcomingMeetings={upcomingMeetingsForBridge}
             canCreate={canCreateProjectDiscovery}
             canManage={canManageProjectDiscovery}
