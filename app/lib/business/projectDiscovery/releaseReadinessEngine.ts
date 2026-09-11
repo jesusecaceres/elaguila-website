@@ -40,9 +40,19 @@ export interface ReleaseReadinessInput {
   launchSummary: ChecklistSummary;
   requiresCommercialReview: boolean;
   commercialReviewResolved: boolean;
+  /**
+   * Gate 10.1 <ownership_handoff_invariant> — MD §13: "no project may reach handoff without
+   * ownership/billing being explicit." required_before_launch discovery items (ownership/billing
+   * chief among them) were previously never independently checked at release time — only the
+   * staff-attested launch/QA checklist rows were, which a reviewer could mark complete without the
+   * underlying discovery truth actually being resolved. This is the live, re-derived list of
+   * required_before_launch items still missing/needing confirmation RIGHT NOW (never the frozen
+   * packet snapshot), so a fix made after generation is recognized without regenerating the Blueprint.
+   */
+  unresolvedOwnershipBilling: readonly ReleaseReadinessReason[];
 }
 
-function result(state: ReleaseReadinessState, es: string, en: string, blockingReasons: ReleaseReadinessReason[] = []): ReleaseReadinessResult {
+function result(state: ReleaseReadinessState, es: string, en: string, blockingReasons: readonly ReleaseReadinessReason[] = []): ReleaseReadinessResult {
   return { state, reasonEs: es, reasonEn: en, blockingReasons };
 }
 
@@ -87,6 +97,15 @@ export function evaluateProjectReleaseReadiness(input: ReleaseReadinessInput): R
       `Hay ${input.launchSummary.blockingItems.length} elemento(s) de la lista de lanzamiento sin completar.`,
       `${input.launchSummary.blockingItems.length} launch checklist item(s) are not yet complete.`,
       input.launchSummary.blockingItems.map((i) => ({ es: i.itemKey, en: i.itemKey })),
+    );
+  }
+
+  if (input.unresolvedOwnershipBilling.length > 0) {
+    return result(
+      "NEEDS_LEONIX_ACTION",
+      `Hay ${input.unresolvedOwnershipBilling.length} elemento(s) de propiedad/facturación sin resolver — ningún proyecto puede pasar a construcción/entrega sin esto.`,
+      `${input.unresolvedOwnershipBilling.length} ownership/billing item(s) are unresolved — no project may proceed to release/handoff without this.`,
+      input.unresolvedOwnershipBilling,
     );
   }
 

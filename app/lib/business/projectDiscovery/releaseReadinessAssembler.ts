@@ -32,7 +32,11 @@ import { buildWebsiteDiscoveryContext } from "./websiteDiscoveryContext";
 import { buildSpecializedDiscoveryContext } from "./specializedDiscoveryContext";
 import { computeBlueprintInputFingerprint } from "./blueprintEngine";
 import { computeSpecializedBlueprintInputFingerprint } from "./specializedBlueprintEngine";
+import { evaluateWebsiteRequirements } from "./websiteDiscoveryLogic";
+import { evaluateSpecializedRequirements } from "./specializedDiscoveryEngine";
+import { catalogForProjectType } from "./specializedBlueprintDispatch";
 import type { WebsiteArchitectureDecisionPacket } from "./architectureDecisionEngine";
+import type { ReleaseReadinessReason } from "./releaseReadinessEngine";
 
 interface ReleaseSourcePacket {
   projectType: string;
@@ -66,6 +70,47 @@ export async function computeCurrentBlueprintFingerprint(
   return computeSpecializedBlueprintInputFingerprint(ctx);
 }
 
+/**
+ * Gate 10.1 <ownership_handoff_invariant> — MD §13: "no project may reach handoff without
+ * ownership/billing being explicit." Recomputes the LIVE (not frozen-at-generation-time) list of
+ * still-unresolved OWNERSHIP/BILLING requirements specifically — deliberately narrower than "every
+ * required_before_launch item" (that broader class already includes unrelated launch concerns like
+ * public phone/SEO metadata, which are correctly staff-attested via the launch checklist, not this
+ * invariant). Scoped to the catalog's own dedicated `ownership_billing` section (Website's single
+ * `platform_ownership_register` row) plus any other required_before_launch row whose own label
+ * literally says "owner"/"ownership" — e.g. hosting_billing_owner, payment_provider_ownership,
+ * booking_provider_ownership, radio_stream_access_ownership, church_giving_provider ("...account
+ * ownership") — since every one of MD §8.24's "for every permanent platform" ownership questions is
+ * hand-authored with that word in its own label, this is a reliable, MD-faithful filter rather than
+ * a fragile fieldKey pattern match. Mirrors computeCurrentBlueprintFingerprint's own ctx-building
+ * pattern. Returns [] when the context can't be built, matching every other live-recompute fallback.
+ */
+async function computeLiveUnresolvedOwnershipBilling(
+  businessId: string,
+  blueprint: BusinessProjectBlueprint<ReleaseSourcePacket>,
+): Promise<readonly ReleaseReadinessReason[]> {
+  const isOwnershipRequirement = (req: { section: string; labelEn: string }) =>
+    req.section === "ownership_billing" || /\bowner(ship)?\b/i.test(req.labelEn);
+
+  const family = specializedFamilyForProjectType(blueprint.packet.projectType as never);
+  if (!family) {
+    const ctx = await buildWebsiteDiscoveryContext(businessId, blueprint.discoveryId, blueprint.projectIntentId);
+    if (!ctx) return [];
+    const evaluations = evaluateWebsiteRequirements(ctx);
+    return evaluations
+      .filter((e) => e.requirement.defaultCompletenessClass === "required_before_launch" && (e.status === "missing" || e.status === "needs_confirmation") && isOwnershipRequirement(e.requirement))
+      .map((e) => ({ es: e.requirement.labelEs, en: e.requirement.labelEn }));
+  }
+  const ctx = await buildSpecializedDiscoveryContext(businessId, blueprint.discoveryId, blueprint.projectIntentId);
+  if (!ctx) return [];
+  const catalogEntry = catalogForProjectType(ctx.projectType);
+  if (!catalogEntry) return [];
+  const evaluations = evaluateSpecializedRequirements(catalogEntry.catalog, ctx);
+  return evaluations
+    .filter((e) => e.requirement.defaultCompletenessClass === "required_before_launch" && (e.status === "missing" || e.status === "needs_confirmation") && isOwnershipRequirement(e.requirement as never))
+    .map((e) => ({ es: e.requirement.labelEs, en: e.requirement.labelEn }));
+}
+
 export async function assembleReleaseReadiness(businessId: string, blueprint: BusinessProjectBlueprint<ReleaseSourcePacket>): Promise<ReleaseReadinessResult> {
   const [intents, dependencies, qaItemsRaw, launchItemsRaw, feedback, allItems] = await Promise.all([
     listProjectDiscoveryIntents(blueprint.discoveryId, businessId),
@@ -77,6 +122,7 @@ export async function assembleReleaseReadiness(businessId: string, blueprint: Bu
   ]);
 
   const currentFingerprint = await computeCurrentBlueprintFingerprint(businessId, blueprint, allItems);
+  const unresolvedOwnershipBilling = await computeLiveUnresolvedOwnershipBilling(businessId, blueprint);
 
   const latestBlueprintByIntentId = new Map<string, string | null>();
   for (const intent of intents) {
@@ -136,5 +182,6 @@ export async function assembleReleaseReadiness(businessId: string, blueprint: Bu
     launchSummary,
     requiresCommercialReview,
     commercialReviewResolved,
+    unresolvedOwnershipBilling,
   });
 }

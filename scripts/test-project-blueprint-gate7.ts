@@ -205,7 +205,7 @@ check("32. a required launch blocker (pending) prevents release readiness end-to
     requiresClientConfirmation: true, clientConfirmationComplete: true, blockingDependencies: [], executionExists: true,
     qaSummary: summarizeCheckItems([{ itemKey: "a", kind: "qa", status: "pass", releaseBlocking: true }]),
     launchSummary: summarizeCheckItems([{ itemKey: "b", kind: "launch", status: "pending", releaseBlocking: true }]),
-    requiresCommercialReview: false, commercialReviewResolved: true,
+    requiresCommercialReview: false, commercialReviewResolved: true, unresolvedOwnershipBilling: [],
   });
   assert.equal(result.state, "NEEDS_LEONIX_ACTION");
 });
@@ -215,7 +215,7 @@ check("33. domain/access blocker surfaces through the same blocking-dependency/Q
     requiresClientConfirmation: true, clientConfirmationComplete: true,
     blockingDependencies: [{ dependsOnIntentId: "x", dependsOnTitle: "Logo", reasonEs: "Necesita aprobación", reasonEn: "Needs approval" }],
     executionExists: true, qaSummary: summarizeCheckItems([]), launchSummary: summarizeCheckItems([]),
-    requiresCommercialReview: false, commercialReviewResolved: true,
+    requiresCommercialReview: false, commercialReviewResolved: true, unresolvedOwnershipBilling: [],
   });
   assert.equal(result.state, "BLOCKED_BY_DEPENDENCY");
   assert.ok(result.blockingReasons.length > 0);
@@ -225,7 +225,7 @@ check("34. client action is surfaced as NEEDS_CLIENT_ACTION, never silently merg
     blueprintStatus: "approved_for_build", isStale: false, staleExplicitlyAcknowledged: true,
     requiresClientConfirmation: true, clientConfirmationComplete: false, blockingDependencies: [], executionExists: true,
     qaSummary: summarizeCheckItems([]), launchSummary: summarizeCheckItems([]),
-    requiresCommercialReview: false, commercialReviewResolved: true,
+    requiresCommercialReview: false, commercialReviewResolved: true, unresolvedOwnershipBilling: [],
   });
   assert.equal(result.state, "NEEDS_CLIENT_ACTION");
 });
@@ -234,7 +234,7 @@ check("35. Leonix action is surfaced distinctly when execution has not even been
     blueprintStatus: "approved_for_build", isStale: false, staleExplicitlyAcknowledged: true,
     requiresClientConfirmation: true, clientConfirmationComplete: true, blockingDependencies: [], executionExists: false,
     qaSummary: summarizeCheckItems([]), launchSummary: summarizeCheckItems([]),
-    requiresCommercialReview: false, commercialReviewResolved: true,
+    requiresCommercialReview: false, commercialReviewResolved: true, unresolvedOwnershipBilling: [],
   });
   assert.equal(result.state, "NEEDS_LEONIX_ACTION");
 });
@@ -243,7 +243,7 @@ check("36. no fake contract/payment state is ever produced by evaluateProjectRel
     blueprintStatus: "draft", isStale: false, staleExplicitlyAcknowledged: true,
     requiresClientConfirmation: false, clientConfirmationComplete: true, blockingDependencies: [], executionExists: false,
     qaSummary: summarizeCheckItems([]), launchSummary: summarizeCheckItems([]),
-    requiresCommercialReview: false, commercialReviewResolved: true,
+    requiresCommercialReview: false, commercialReviewResolved: true, unresolvedOwnershipBilling: [],
   });
   assert.ok(!["SIGNED", "CONTRACTED", "PAID", "LEGALLY_ACCEPTED"].includes(result.state));
 });
@@ -297,7 +297,7 @@ check("48. 'executionExists' is a boolean presence check only — it never claim
     requiresClientConfirmation: true, clientConfirmationComplete: true, blockingDependencies: [], executionExists: true,
     qaSummary: summarizeCheckItems([{ itemKey: "a", kind: "qa", status: "pass", releaseBlocking: true }]),
     launchSummary: summarizeCheckItems([{ itemKey: "b", kind: "launch", status: "complete", releaseBlocking: true }]),
-    requiresCommercialReview: false, commercialReviewResolved: true,
+    requiresCommercialReview: false, commercialReviewResolved: true, unresolvedOwnershipBilling: [],
   });
   assert.equal(result.state, "READY_FOR_RELEASE");
 });
@@ -323,7 +323,7 @@ check("52. a dependency blocker is visible in the release readiness result's own
     requiresClientConfirmation: true, clientConfirmationComplete: true,
     blockingDependencies: [{ dependsOnIntentId: "x", dependsOnTitle: "Logo", reasonEs: "a", reasonEn: "b" }],
     executionExists: true, qaSummary: summarizeCheckItems([]), launchSummary: summarizeCheckItems([]),
-    requiresCommercialReview: false, commercialReviewResolved: true,
+    requiresCommercialReview: false, commercialReviewResolved: true, unresolvedOwnershipBilling: [],
   });
   assert.ok(result.blockingReasons.some((r) => r.es.includes("Logo")));
 });
@@ -333,13 +333,13 @@ check("53. one project's release readiness never completes another's — evaluat
     requiresClientConfirmation: true, clientConfirmationComplete: true, blockingDependencies: [], executionExists: true,
     qaSummary: summarizeCheckItems([{ itemKey: "a", kind: "qa", status: "pass", releaseBlocking: true }]),
     launchSummary: summarizeCheckItems([{ itemKey: "b", kind: "launch", status: "complete", releaseBlocking: true }]),
-    requiresCommercialReview: false, commercialReviewResolved: true,
+    requiresCommercialReview: false, commercialReviewResolved: true, unresolvedOwnershipBilling: [],
   });
   const notReadyB = evaluateProjectReleaseReadiness({
     blueprintStatus: "draft", isStale: false, staleExplicitlyAcknowledged: true,
     requiresClientConfirmation: true, clientConfirmationComplete: true, blockingDependencies: [], executionExists: false,
     qaSummary: summarizeCheckItems([]), launchSummary: summarizeCheckItems([]),
-    requiresCommercialReview: false, commercialReviewResolved: true,
+    requiresCommercialReview: false, commercialReviewResolved: true, unresolvedOwnershipBilling: [],
   });
   assert.equal(readyA.state, "READY_FOR_RELEASE");
   assert.equal(notReadyB.state, "NOT_READY");

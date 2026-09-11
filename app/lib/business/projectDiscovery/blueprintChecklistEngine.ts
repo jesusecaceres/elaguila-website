@@ -130,7 +130,11 @@ export function summarizeCheckItems(items: readonly CheckItemRecord[]): Checklis
   return {
     total: items.length,
     pass, fail, blocked, notChecked, notApplicable,
-    readyForRelease: blockingItems.length === 0,
+    // Gate 10.1 — an empty snapshot (checklist never generated at all) must never read as vacuously
+    // "ready for release." This matches the handoff-complete route's own established guard
+    // (`handoffItems.length === 0` is explicitly treated as pending, never as complete) — QA/launch
+    // readiness now follows the identical rule rather than the two diverging.
+    readyForRelease: items.length > 0 && blockingItems.length === 0,
     blockingItems,
   };
 }

@@ -187,6 +187,7 @@ export function ClientDiscoveryJourney(props: ClientDiscoveryJourneyProps) {
         releaseReadinessState: clientReview?.releaseReadiness.state ?? null,
         releasedAt: clientReview?.releasedAt ?? null,
         handoffCompletedAt: clientReview?.handoffCompletedAt ?? null,
+        hasQaSnapshot: (clientReview?.qaSummary.total ?? 0) > 0,
       })
     : null;
 

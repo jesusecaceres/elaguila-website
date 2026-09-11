@@ -179,6 +179,15 @@ export function deriveProjectLifecycleState(input: {
   releaseReadinessState: ReleaseReadinessState | null;
   releasedAt: string | null;
   handoffCompletedAt: string | null;
+  /**
+   * Gate 10.1 — whether a QA checklist snapshot has ever been generated for this blueprint
+   * (qaSummary.total > 0). handoff_status alone ("assigned" vs "in_progress") does not distinguish
+   * "actively being built" from "actively being QA'd" — both look identical from that one column.
+   * Defaults to false (treated as "QA hasn't started yet") when the caller doesn't have this signal,
+   * so existing call sites keep compiling and behave conservatively (never claims QA is underway
+   * without real evidence a checklist exists).
+   */
+  hasQaSnapshot?: boolean;
 }): ProjectLifecycleState {
   const key = ((): ProjectLifecycleStateKey => {
     if (input.handoffCompletedAt) return "handoff_complete";
@@ -188,7 +197,7 @@ export function deriveProjectLifecycleState(input: {
       if (!input.handoffStatus || input.handoffStatus === "not_started") return "approved_for_build";
       if (input.releaseReadinessState === "READY_FOR_RELEASE") return "ready_to_launch";
       if (input.releaseReadinessState === "NEEDS_CLIENT_ACTION") return "client_review";
-      if (input.handoffStatus === "assigned") return "in_build";
+      if (!input.hasQaSnapshot) return "in_build";
       return "qa";
     }
 
