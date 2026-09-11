@@ -64,6 +64,19 @@ export interface BusinessProjectBlueprint<TPacket = WebsiteProjectBlueprintPacke
   handoffDueDate: string | null;
   handoffNotes: string | null;
 
+  // Gate 7 — minimal release/handoff-completion metadata (MD <release_event>).
+  releasedAt: string | null;
+  releasedByRosterId: string | null;
+  releasedByAuthUserId: string | null;
+  releasedByEmail: string | null;
+  releasedByRole: string | null;
+  finalDestinationUrl: string | null;
+  handoffCompletedAt: string | null;
+  handoffCompletedByRosterId: string | null;
+  handoffCompletedByAuthUserId: string | null;
+  handoffCompletedByEmail: string | null;
+  handoffCompletedByRole: string | null;
+
   createdAt: string;
   updatedAt: string;
 }
@@ -73,7 +86,10 @@ const BLUEPRINT_COLUMNS =
   "created_actor_type, created_by_roster_id, created_by_auth_user_id, created_by_email, created_by_role, " +
   "reviewed_by_roster_id, reviewed_by_auth_user_id, reviewed_by_email, reviewed_by_role, reviewed_at, " +
   "approved_by_roster_id, approved_by_auth_user_id, approved_by_email, approved_by_role, approved_at, " +
-  "supersedes_blueprint_id, handoff_status, handoff_assignee_roster_id, handoff_due_date, handoff_notes, created_at, updated_at";
+  "supersedes_blueprint_id, handoff_status, handoff_assignee_roster_id, handoff_due_date, handoff_notes, " +
+  "released_at, released_by_roster_id, released_by_auth_user_id, released_by_email, released_by_role, final_destination_url, " +
+  "handoff_completed_at, handoff_completed_by_roster_id, handoff_completed_by_auth_user_id, handoff_completed_by_email, handoff_completed_by_role, " +
+  "created_at, updated_at";
 
 function actorRosterId(actor: ProjectDiscoveryActor): string | null {
   return actor.type === "staff" ? actor.rosterId : null;
@@ -127,6 +143,18 @@ function mapBlueprintRow<TPacket = WebsiteProjectBlueprintPacket>(row: Record<st
     handoffAssigneeRosterId: (row.handoff_assignee_roster_id as string | null) ?? null,
     handoffDueDate: (row.handoff_due_date as string | null) ?? null,
     handoffNotes: (row.handoff_notes as string | null) ?? null,
+
+    releasedAt: (row.released_at as string | null) ?? null,
+    releasedByRosterId: (row.released_by_roster_id as string | null) ?? null,
+    releasedByAuthUserId: (row.released_by_auth_user_id as string | null) ?? null,
+    releasedByEmail: (row.released_by_email as string | null) ?? null,
+    releasedByRole: (row.released_by_role as string | null) ?? null,
+    finalDestinationUrl: (row.final_destination_url as string | null) ?? null,
+    handoffCompletedAt: (row.handoff_completed_at as string | null) ?? null,
+    handoffCompletedByRosterId: (row.handoff_completed_by_roster_id as string | null) ?? null,
+    handoffCompletedByAuthUserId: (row.handoff_completed_by_auth_user_id as string | null) ?? null,
+    handoffCompletedByEmail: (row.handoff_completed_by_email as string | null) ?? null,
+    handoffCompletedByRole: (row.handoff_completed_by_role as string | null) ?? null,
 
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
@@ -336,6 +364,76 @@ export async function setBlueprintHandoff(
       handoff_assignee_roster_id: input.handoffAssigneeRosterId ?? null,
       handoff_due_date: input.handoffDueDate ?? null,
       handoff_notes: input.handoffNotes ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", blueprintId)
+    .eq("business_id", businessId)
+    .select(BLUEPRINT_COLUMNS)
+    .single();
+  if (error || !data) return { ok: false, reason: "update_failed" };
+  return { ok: true, blueprint: mapBlueprintRow(data) };
+}
+
+// =================================================================================================
+// Release / handoff completion (Gate 7, MD <release_event>, <launch_guard>) — server-authoritative;
+// callers MUST have already confirmed evaluateProjectReleaseReadiness()==="READY_FOR_RELEASE" (for
+// release) or that required handoff items are complete/N/A (for handoff completion) before calling
+// these — mirrors approveBlueprintForBuild's own division of labor: this function only enforces the
+// STATUS precondition, never re-derives readiness itself.
+// =================================================================================================
+export type MarkReleasedResult = { ok: true; blueprint: BusinessProjectBlueprint } | { ok: false; reason: "not_found" | "not_approved" | "update_failed" };
+
+export async function markBlueprintReleased(
+  businessId: string,
+  blueprintId: string,
+  input: { finalDestinationUrl?: string | null },
+  actor: Extract<ProjectDiscoveryActor, { type: "staff" | "owner" }>,
+): Promise<MarkReleasedResult> {
+  const existing = await getBlueprintById(businessId, blueprintId);
+  if (!existing) return { ok: false, reason: "not_found" };
+  if (existing.status !== "approved_for_build") return { ok: false, reason: "not_approved" };
+
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("business_project_blueprints")
+    .update({
+      released_at: new Date().toISOString(),
+      released_by_roster_id: actorRosterId(actor),
+      released_by_auth_user_id: actor.authUserId,
+      released_by_email: actor.email,
+      released_by_role: actorRole(actor),
+      final_destination_url: input.finalDestinationUrl ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", blueprintId)
+    .eq("business_id", businessId)
+    .select(BLUEPRINT_COLUMNS)
+    .single();
+  if (error || !data) return { ok: false, reason: "update_failed" };
+  return { ok: true, blueprint: mapBlueprintRow(data) };
+}
+
+export type CompleteHandoffResult = { ok: true; blueprint: BusinessProjectBlueprint } | { ok: false; reason: "not_found" | "not_approved" | "update_failed" };
+
+export async function completeBlueprintHandoff(
+  businessId: string,
+  blueprintId: string,
+  actor: Extract<ProjectDiscoveryActor, { type: "staff" | "owner" }>,
+): Promise<CompleteHandoffResult> {
+  const existing = await getBlueprintById(businessId, blueprintId);
+  if (!existing) return { ok: false, reason: "not_found" };
+  if (existing.status !== "approved_for_build") return { ok: false, reason: "not_approved" };
+
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("business_project_blueprints")
+    .update({
+      handoff_status: "complete",
+      handoff_completed_at: new Date().toISOString(),
+      handoff_completed_by_roster_id: actorRosterId(actor),
+      handoff_completed_by_auth_user_id: actor.authUserId,
+      handoff_completed_by_email: actor.email,
+      handoff_completed_by_role: actorRole(actor),
       updated_at: new Date().toISOString(),
     })
     .eq("id", blueprintId)

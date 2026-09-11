@@ -8,24 +8,31 @@ import {
   ApproveSpecializedBlueprintForBuildButton,
   BlueprintMarkdownViewer,
   CaptureAnswerForm,
+  CaptureFeedbackForm,
+  CompleteHandoffButton,
   ConsentToggle,
   CreateCampaignButton,
+  CreateCommitmentFromCheckItemButton,
+  CreateCommitmentFromFeedbackButton,
   CreateCreativeStudioProjectButton,
   CreateWebsiteProjectButton,
   DiscoveryAssetUpload,
   DiscoveryStatusButtons,
   GenerateBlueprintButton,
+  GenerateChecklistButton,
   GenerateSpecializedBlueprintButton,
   IntentStatusButtons,
   LinkMeetingButton,
   MarkBlueprintClientConfirmationNeededButton,
   MarkBlueprintInternalReviewCompleteButton,
+  MarkBlueprintReleasedButton,
   MarkNeedsMoreClientInfoButton,
   MeetingNoteCapture,
   ModifyArchitectureDecisionForm,
   RemoveDependencyButton,
   SendQuestionsToMeetingButton,
   StartDiscoveryForm,
+  UpdateCheckItemStatusControl,
   VisualReferenceForm,
   type ExistingSourceFileOption,
 } from "./ClientDiscoveryActions";
@@ -60,6 +67,7 @@ import type { SpecializedQuestionCandidate, SpecializedReadinessResult, Speciali
 import type { BlockingDependencySummary, SpecializedBlueprintReadinessResult, SpecializedProjectBlueprintPacket } from "@/app/lib/business/projectDiscovery/specializedBlueprintEngine";
 import type { SpecializedFamily } from "@/app/lib/business/projectDiscovery/specializedBlueprintDispatch";
 import type { ProjectIntentDependency, SuggestedDependency } from "@/app/lib/business/projectDiscovery/projectDependencyEngine";
+import type { ClientReviewData } from "@/app/lib/business/projectDiscovery/clientReviewDataAssembler";
 import type {
   ProjectDiscovery,
   ProjectDiscoveryConsent,
@@ -123,6 +131,7 @@ export interface ClientDiscoveryJourneyProps {
   events: readonly ProjectDiscoveryEvent[];
   website: WebsiteEngineOutput | null;
   specialized: SpecializedEngineOutput | null;
+  clientReview: ClientReviewData | null;
   upcomingMeetings: readonly { id: string; label: string }[];
   canCreate: boolean;
   canManage: boolean;
@@ -134,7 +143,7 @@ export interface ClientDiscoveryJourneyProps {
 }
 
 export function ClientDiscoveryJourney(props: ClientDiscoveryJourneyProps) {
-  const { businessId, currentDiscovery, intents, selectedIntentId, sources, consents, events, website, specialized, upcomingMeetings, canCreate, canManage, canReview, canManageConsent, canManageBlueprint, existingSourceFiles } = props;
+  const { businessId, currentDiscovery, intents, selectedIntentId, sources, consents, events, website, specialized, clientReview, upcomingMeetings, canCreate, canManage, canReview, canManageConsent, canManageBlueprint, existingSourceFiles } = props;
 
   if (!currentDiscovery) {
     return (
@@ -292,6 +301,16 @@ export function ClientDiscoveryJourney(props: ClientDiscoveryJourneyProps) {
           specialized={specialized}
           canManageBlueprint={canManageBlueprint}
           canManage={canManage}
+        />
+      ) : null}
+
+      {clientReview && selectedIntent ? (
+        <ClientReviewQaHandoffPanel
+          businessId={businessId}
+          discoveryId={currentDiscovery.id}
+          clientReview={clientReview}
+          canReview={canReview}
+          canManageBlueprint={canManageBlueprint}
         />
       ) : null}
 
@@ -1094,6 +1113,191 @@ function SpecializedBlueprintPanel({
               ) : null}
             </div>
           ))}
+        </section>
+      ) : null}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Gate 7 — Client Review + QA + Launch/Handoff (MD <client_review_session>, <qa_execution>,
+// <launch_checklist_execution>, <handoff_execution>, <release_readiness>). ONE panel works for
+// every project family — Website and every specialized family alike — since clientReview is
+// already fully assembled server-side, family-agnostic, by the time it reaches this component.
+// ---------------------------------------------------------------------------
+const RELEASE_STATE_LABEL: Record<string, { es: string; en: string }> = {
+  READY_FOR_RELEASE: { es: "Listo para lanzamiento", en: "Ready for Release" },
+  NOT_READY: { es: "No listo", en: "Not Ready" },
+  NEEDS_CLIENT_ACTION: { es: "Requiere acción del cliente", en: "Needs Client Action" },
+  NEEDS_LEONIX_ACTION: { es: "Requiere acción de Leonix", en: "Needs Leonix Action" },
+  BLOCKED_BY_DEPENDENCY: { es: "Esperando otro proyecto", en: "Waiting on Another Project" },
+  NEEDS_COMMERCIAL_RESOLUTION: { es: "Requiere resolución comercial", en: "Needs Commercial Resolution" },
+};
+
+const CHECK_ITEM_STATUS_LABEL: Record<string, { es: string; en: string }> = {
+  not_checked: { es: "No revisado", en: "Not Checked" },
+  pending: { es: "Pendiente", en: "Pending" },
+  pass: { es: "Aprobado", en: "Pass" },
+  complete: { es: "Completo", en: "Complete" },
+  fail: { es: "Falló", en: "Fail" },
+  blocked: { es: "Bloqueado", en: "Blocked" },
+  not_applicable: { es: "No aplica", en: "N/A" },
+};
+
+function ChecklistSection({
+  businessId, discoveryId, blueprintId, kind, titleEs, titleEn, items, canReview,
+}: {
+  businessId: string; discoveryId: string; blueprintId: string; kind: "qa" | "launch" | "handoff";
+  titleEs: string; titleEn: string; items: readonly { id: string; itemKey: string; labelEs: string; labelEn: string; status: string; releaseBlocking: boolean; linkedCommitmentId: string | null }[];
+  canReview: boolean;
+}) {
+  return (
+    <section className={CARD}>
+      <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">{titleEs} / {titleEn}</h3>
+      {items.length === 0 ? (
+        <div className="mt-2">
+          <p className="text-sm text-[#6B5E47]">{formatBilingual({ es: "Todavía no se ha generado esta lista.", en: "This checklist hasn't been generated yet." })}</p>
+          {canReview ? <div className="mt-2"><GenerateChecklistButton businessId={businessId} discoveryId={discoveryId} blueprintId={blueprintId} kind={kind} labelEs={`Generar ${titleEs.toLowerCase()}`} labelEn={`Generate ${titleEn}`} /></div> : null}
+        </div>
+      ) : (
+        <ul className="mt-2 space-y-2">
+          {items.map((item) => (
+            <li key={item.id} className={SUBCARD}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm text-[#1E1810]">{item.labelEs} / {item.labelEn}</p>
+                <span className="rounded-full bg-[#EDE6D6] px-2 py-0.5 text-[10px] font-bold text-[#3D3428]">
+                  {(CHECK_ITEM_STATUS_LABEL[item.status] ?? { es: item.status, en: item.status }).es} / {(CHECK_ITEM_STATUS_LABEL[item.status] ?? { es: item.status, en: item.status }).en}
+                </span>
+              </div>
+              {canReview ? (
+                <div className="mt-2">
+                  <UpdateCheckItemStatusControl businessId={businessId} discoveryId={discoveryId} itemId={item.id} kind={kind} currentStatus={item.status} />
+                </div>
+              ) : null}
+              {canReview && !item.linkedCommitmentId && (item.status === "fail" || item.status === "blocked" || item.status === "pending") ? (
+                <div className="mt-2">
+                  <CreateCommitmentFromCheckItemButton businessId={businessId} discoveryId={discoveryId} itemId={item.id} />
+                </div>
+              ) : null}
+              {item.linkedCommitmentId ? <p className="mt-1 text-[11px] text-emerald-800">{formatBilingual({ es: "Compromiso creado", en: "Commitment created" })}</p> : null}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function ClientReviewQaHandoffPanel({
+  businessId, discoveryId, clientReview, canReview, canManageBlueprint,
+}: { businessId: string; discoveryId: string; clientReview: ClientReviewData; canReview: boolean; canManageBlueprint: boolean }) {
+  const { blueprintId, version, handoffStatus, reviewState, clientSafeProjection, feedback, qaItems, launchItems, handoffItems, qaSummary, launchSummary, releaseReadiness, timeline } = clientReview;
+  const releaseLabel = RELEASE_STATE_LABEL[releaseReadiness.state] ?? { es: releaseReadiness.state, en: releaseReadiness.state };
+  const handoffPending = handoffItems.filter((i) => i.status !== "complete" && i.status !== "not_applicable");
+
+  return (
+    <>
+      <section id="client-review" className={`${CARD} scroll-mt-24`}>
+        <h2 className="font-serif text-base font-bold text-[#1E1810]">{formatBilingual({ es: "Revisión con el cliente", en: "Client Review" })}</h2>
+        <p className="mt-1 text-xs text-[#6B5E47]">v{version} — {reviewState.whatThisMeansEs} / {reviewState.whatThisMeansEn}</p>
+        <p className="mt-1 text-xs font-semibold text-[#7A1E2C]">{formatBilingual({ es: "Siguiente paso", en: "Next step" })}: {reviewState.nextActionEs} / {reviewState.nextActionEn}</p>
+
+        <details className="mt-3">
+          <summary className="cursor-pointer text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">{formatBilingual({ es: "Resumen seguro para el cliente", en: "Client-Safe Summary" })}</summary>
+          <div className="mt-2 space-y-2 text-xs text-[#3D3428]">
+            <p><strong>{clientSafeProjection.projectName}</strong> — {clientSafeProjection.businessDisplayName}</p>
+            {clientSafeProjection.inScopeSummary ? <p>{formatBilingual({ es: "Dentro del alcance", en: "In scope" })}: {clientSafeProjection.inScopeSummary}</p> : null}
+            {clientSafeProjection.outOfScopeSummary ? <p>{formatBilingual({ es: "Fuera del alcance", en: "Out of scope" })}: {clientSafeProjection.outOfScopeSummary}</p> : null}
+            {clientSafeProjection.primaryCta ? <p>{formatBilingual({ es: "Llamado a la acción", en: "Call to action" })}: {clientSafeProjection.primaryCta.valueEs}</p> : null}
+            {clientSafeProjection.deliverables.length > 0 ? (
+              <div>
+                <p className="font-semibold">{formatBilingual({ es: "Entregables", en: "Deliverables" })}</p>
+                <ul className="list-disc pl-4">{clientSafeProjection.deliverables.map((d, i) => <li key={i}>{d.labelEs}: {d.valueEs}</li>)}</ul>
+              </div>
+            ) : null}
+            {clientSafeProjection.unresolvedClientQuestions.length > 0 ? (
+              <div>
+                <p className="font-semibold text-amber-800">{formatBilingual({ es: "Preguntas sin resolver", en: "Unresolved questions" })}</p>
+                <ul className="list-disc pl-4 text-amber-800">{clientSafeProjection.unresolvedClientQuestions.map((d, i) => <li key={i}>{d.labelEs}</li>)}</ul>
+              </div>
+            ) : null}
+          </div>
+        </details>
+
+        <div className="mt-3">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A1E2C]">{formatBilingual({ es: "Comentarios del cliente", en: "Client Feedback" })}</p>
+          {feedback.length === 0 ? (
+            <p className="mt-1 text-xs text-[#9A9184]">{formatBilingual({ es: "Todavía no hay comentarios registrados.", en: "No feedback recorded yet." })}</p>
+          ) : (
+            <ul className="mt-1 space-y-2">
+              {feedback.map((f) => (
+                <li key={f.id} className={SUBCARD}>
+                  <p className="text-xs text-[#1E1810]">{f.feedbackText}</p>
+                  <p className="mt-1 text-[10px] text-[#9A9184]">{f.feedbackType.replace(/_/g, " ")} · {new Date(f.createdAt).toLocaleDateString()}</p>
+                  {canReview && !f.linkedCommitmentId && f.feedbackType !== "approved" ? (
+                    <div className="mt-1"><CreateCommitmentFromFeedbackButton businessId={businessId} discoveryId={discoveryId} feedbackId={f.id} /></div>
+                  ) : null}
+                  {f.linkedCommitmentId ? <p className="mt-1 text-[11px] text-emerald-800">{formatBilingual({ es: "Compromiso creado", en: "Commitment created" })}</p> : null}
+                </li>
+              ))}
+            </ul>
+          )}
+          {canReview ? <div className="mt-2"><CaptureFeedbackForm businessId={businessId} discoveryId={discoveryId} blueprintId={blueprintId} /></div> : null}
+        </div>
+      </section>
+
+      <section id="project-qa" className={`${CARD} scroll-mt-24`}>
+        <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">{formatBilingual({ es: "Control de calidad del proyecto", en: "Project QA" })}</h3>
+        <p className="mt-1 text-xs text-[#6B5E47]">{qaSummary.pass}/{qaSummary.total} {formatBilingual({ es: "aprobado", en: "passing" })} — {formatBilingual({ es: qaSummary.readyForRelease ? "Listo" : "No listo", en: qaSummary.readyForRelease ? "Ready" : "Not ready" })}</p>
+      </section>
+      <ChecklistSection businessId={businessId} discoveryId={discoveryId} blueprintId={blueprintId} kind="qa" titleEs="Elementos de control de calidad" titleEn="QA Items" items={qaItems} canReview={canReview} />
+
+      <section className={CARD}>
+        <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">{formatBilingual({ es: "Lista de lanzamiento", en: "Launch Checklist" })}</h3>
+        <p className="mt-1 text-xs text-[#6B5E47]">{launchSummary.pass}/{launchSummary.total} {formatBilingual({ es: "completo", en: "complete" })} — {formatBilingual({ es: launchSummary.readyForRelease ? "Listo" : "No listo", en: launchSummary.readyForRelease ? "Ready" : "Not ready" })}</p>
+      </section>
+      <ChecklistSection businessId={businessId} discoveryId={discoveryId} blueprintId={blueprintId} kind="launch" titleEs="Elementos de lanzamiento" titleEn="Launch Items" items={launchItems} canReview={canReview} />
+
+      <ChecklistSection businessId={businessId} discoveryId={discoveryId} blueprintId={blueprintId} kind="handoff" titleEs="Entrega" titleEn="Handoff" items={handoffItems} canReview={canReview} />
+      {handoffItems.length > 0 && handoffStatus !== "complete" ? (
+        <section className={CARD}>
+          {handoffPending.length === 0 ? (
+            canManageBlueprint ? <CompleteHandoffButton businessId={businessId} discoveryId={discoveryId} blueprintId={blueprintId} /> : null
+          ) : (
+            <p className="text-xs text-[#9A9184]">{formatBilingual({ es: `${handoffPending.length} elemento(s) de entrega pendiente(s)`, en: `${handoffPending.length} handoff item(s) pending` })}</p>
+          )}
+        </section>
+      ) : handoffStatus === "complete" ? (
+        <section className={CARD}>
+          <p className="text-sm font-semibold text-emerald-800">{formatBilingual({ es: "Entrega completada", en: "Handoff Complete" })}</p>
+        </section>
+      ) : null}
+
+      <section className={CARD}>
+        <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">{formatBilingual({ es: "Preparación para el lanzamiento", en: "Release Readiness" })}</h3>
+        <p className="mt-2 text-sm font-semibold text-[#1E1810]">{releaseLabel.es} / {releaseLabel.en}</p>
+        <p className="mt-1 text-xs text-[#6B5E47]">{releaseReadiness.reasonEs} / {releaseReadiness.reasonEn}</p>
+        {releaseReadiness.blockingReasons.length > 0 ? (
+          <ul className="mt-2 list-disc space-y-0.5 pl-4 text-xs text-red-700">
+            {releaseReadiness.blockingReasons.map((r, i) => <li key={i}>{r.es} / {r.en}</li>)}
+          </ul>
+        ) : null}
+        {releaseReadiness.state === "READY_FOR_RELEASE" && canManageBlueprint ? (
+          <div className="mt-3"><MarkBlueprintReleasedButton businessId={businessId} discoveryId={discoveryId} blueprintId={blueprintId} /></div>
+        ) : null}
+      </section>
+
+      {timeline.length > 0 ? (
+        <section className={CARD}>
+          <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">{formatBilingual({ es: "Historial del proyecto", en: "Project Timeline" })}</h3>
+          <ol className="mt-2 space-y-1">
+            {timeline.map((e) => (
+              <li key={e.key} className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#3D3428]">
+                <span>{e.labelEs} / {e.labelEn}</span>
+                <span className="text-[#9A9184]">{new Date(e.at).toLocaleDateString()}</span>
+              </li>
+            ))}
+          </ol>
         </section>
       ) : null}
     </>

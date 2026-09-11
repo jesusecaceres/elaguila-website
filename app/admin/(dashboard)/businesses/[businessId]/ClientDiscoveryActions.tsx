@@ -1523,3 +1523,289 @@ export function RemoveDependencyButton({ businessId, discoveryId, dependencyId }
   );
 }
 
+// ---------------------------------------------------------------------------
+// Gate 7 — Client Review / QA / Launch / Handoff.
+// ---------------------------------------------------------------------------
+const FEEDBACK_TYPE_OPTIONS: { value: string; labelEs: string; labelEn: string }[] = [
+  { value: "approved", labelEs: "Aprobado", labelEn: "Approved" },
+  { value: "change_requested", labelEs: "Cambio solicitado", labelEn: "Change Requested" },
+  { value: "needs_clarification", labelEs: "Necesita aclaración", labelEn: "Needs Clarification" },
+  { value: "general", labelEs: "General", labelEn: "General" },
+];
+
+export function CaptureFeedbackForm({ businessId, discoveryId, blueprintId }: { businessId: string; discoveryId: string; blueprintId: string }) {
+  const router = useRouter();
+  const [feedbackType, setFeedbackType] = useState("approved");
+  const [feedbackText, setFeedbackText] = useState("");
+  const [clientApproved, setClientApproved] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    if (!feedbackText.trim()) {
+      setError("Escriba la retroalimentación del cliente. / Write the client's feedback.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/discovery/${discoveryId}/blueprint-review/feedback`, "POST", {
+      blueprintId, feedbackType, feedbackText: feedbackText.trim(), clientApproved: feedbackType === "approved" ? true : clientApproved,
+    });
+    setSubmitting(false);
+    if (!ok) {
+      setError(humanizeStaffWriteError(body?.error as string | undefined, "No se pudo registrar la retroalimentación. / Could not record the feedback."));
+      return;
+    }
+    setFeedbackText("");
+    router.refresh();
+  }
+
+  return (
+    <div className="space-y-2 rounded-lg border border-[#E8DFD0] p-3">
+      <label className="block">
+        <span className="mb-1 block text-xs font-semibold text-[#1E1810]">Tipo de comentario / Feedback type</span>
+        <select className={INPUT} value={feedbackType} onChange={(e) => setFeedbackType(e.target.value)}>
+          {FEEDBACK_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.labelEs} / {o.labelEn}</option>)}
+        </select>
+      </label>
+      <label className="block">
+        <span className="mb-1 block text-xs font-semibold text-[#1E1810]">Comentarios del cliente / Client Feedback</span>
+        <textarea className={`${INPUT} min-h-[70px]`} value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} />
+      </label>
+      {feedbackType !== "approved" ? (
+        <label className="flex min-h-[44px] items-center gap-2 text-xs text-[#3D3428]">
+          <input type="checkbox" className="h-5 w-5" checked={clientApproved} onChange={(e) => setClientApproved(e.target.checked)} />
+          El cliente ya aprobó esto de todas formas / Client approved this anyway
+        </label>
+      ) : null}
+      <button type="button" onClick={() => void submit()} disabled={submitting} className={PRIMARY_BTN}>
+        {submitting ? "Guardando… / Saving…" : "Guardar comentario / Save Feedback"}
+      </button>
+      {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
+    </div>
+  );
+}
+
+export function GenerateChecklistButton({ businessId, discoveryId, blueprintId, kind, labelEs, labelEn }: { businessId: string; discoveryId: string; blueprintId: string; kind: "qa" | "launch" | "handoff"; labelEs: string; labelEn: string }) {
+  const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function generate() {
+    setSubmitting(true);
+    setError(null);
+    const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/discovery/${discoveryId}/blueprint-review/checklist`, "POST", { blueprintId, kind });
+    setSubmitting(false);
+    if (!ok) {
+      setError(humanizeStaffWriteError(body?.error as string | undefined, "No se pudo generar la lista de verificación. / Could not generate the checklist."));
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <button type="button" onClick={() => void generate()} disabled={submitting} className={PRIMARY_BTN}>
+        {submitting ? "Generando… / Generating…" : `${labelEs} / ${labelEn}`}
+      </button>
+      {error ? <p role="alert" className="mt-1 text-xs text-red-700">{error}</p> : null}
+    </div>
+  );
+}
+
+const QA_STATUS_OPTIONS: { value: string; labelEs: string; labelEn: string }[] = [
+  { value: "pass", labelEs: "Aprobado", labelEn: "Pass" },
+  { value: "fail", labelEs: "Falló", labelEn: "Fail" },
+  { value: "blocked", labelEs: "Bloqueado", labelEn: "Blocked" },
+  { value: "not_applicable", labelEs: "No aplica", labelEn: "N/A" },
+];
+const LIFECYCLE_STATUS_OPTIONS: { value: string; labelEs: string; labelEn: string }[] = [
+  { value: "complete", labelEs: "Completo", labelEn: "Complete" },
+  { value: "blocked", labelEs: "Bloqueado", labelEn: "Blocked" },
+  { value: "not_applicable", labelEs: "No aplica", labelEn: "N/A" },
+];
+
+export function UpdateCheckItemStatusControl({ businessId, discoveryId, itemId, kind, currentStatus }: { businessId: string; discoveryId: string; itemId: string; kind: "qa" | "launch" | "handoff"; currentStatus: string }) {
+  const router = useRouter();
+  const [submitting, setSubmitting] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const options = kind === "qa" ? QA_STATUS_OPTIONS : LIFECYCLE_STATUS_OPTIONS;
+
+  async function setStatus(status: string) {
+    setSubmitting(status);
+    setError(null);
+    const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/discovery/${discoveryId}/blueprint-review/checklist/${itemId}`, "PATCH", { status });
+    setSubmitting(null);
+    if (!ok) {
+      setError(humanizeStaffWriteError(body?.error as string | undefined, "No se pudo actualizar el elemento. / Could not update the item."));
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <div className="flex flex-wrap gap-1">
+        {options.map((o) => (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() => void setStatus(o.value)}
+            disabled={submitting !== null}
+            aria-pressed={currentStatus === o.value}
+            className={`min-h-[36px] rounded-full border px-3 py-1 text-[11px] font-semibold ${currentStatus === o.value ? "border-[#7A1E2C] bg-[#7A1E2C] text-white" : "border-[#D6C7AD] bg-white text-[#3D3428]"}`}
+          >
+            {o.labelEs} / {o.labelEn}
+          </button>
+        ))}
+      </div>
+      {error ? <p role="alert" className="mt-1 text-xs text-red-700">{error}</p> : null}
+    </div>
+  );
+}
+
+export function CreateCommitmentFromFeedbackButton({ businessId, discoveryId, feedbackId }: { businessId: string; discoveryId: string; feedbackId: string }) {
+  return (
+    <CreateCommitmentInlineForm
+      postUrl={`/api/admin/businesses/${businessId}/discovery/${discoveryId}/blueprint-review/feedback/${feedbackId}/commitment`}
+    />
+  );
+}
+
+export function CreateCommitmentFromCheckItemButton({ businessId, discoveryId, itemId }: { businessId: string; discoveryId: string; itemId: string }) {
+  return (
+    <CreateCommitmentInlineForm
+      postUrl={`/api/admin/businesses/${businessId}/discovery/${discoveryId}/blueprint-review/checklist/${itemId}/commitment`}
+    />
+  );
+}
+
+const RESPONSIBLE_PARTY_OPTIONS: { value: string; labelEs: string; labelEn: string }[] = [
+  { value: "owner", labelEs: "Cliente", labelEn: "Client" },
+  { value: "staff", labelEs: "Personal de Leonix", labelEn: "Leonix Staff" },
+  { value: "shared", labelEs: "Compartido", labelEn: "Shared" },
+  { value: "external", labelEs: "Externo", labelEn: "External" },
+];
+
+function CreateCommitmentInlineForm({ postUrl }: { postUrl: string }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [titleEs, setTitleEs] = useState("");
+  const [titleEn, setTitleEn] = useState("");
+  const [responsibleParty, setResponsibleParty] = useState("owner");
+  const [dueAt, setDueAt] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    if (!titleEs.trim() || !titleEn.trim()) {
+      setError("Escriba el compromiso en español e inglés. / Write the commitment in Spanish and English.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    const { ok, body } = await postJson(postUrl, "POST", {
+      titleEs: titleEs.trim(), titleEn: titleEn.trim(), responsibleParty, dueAt: dueAt || undefined,
+    });
+    setSubmitting(false);
+    if (!ok) {
+      setError(humanizeStaffWriteError(body?.error as string | undefined, "No se pudo crear el compromiso. / Could not create the commitment."));
+      return;
+    }
+    setOpen(false);
+    router.refresh();
+  }
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className={SECONDARY_BTN}>
+        Crear compromiso / Create Commitment
+      </button>
+    );
+  }
+
+  return (
+    <div className="space-y-2 rounded-lg border border-[#E8DFD0] p-3">
+      <label className="block">
+        <span className="mb-1 block text-xs font-semibold text-[#1E1810]">Compromiso (Español) / Commitment (Spanish)</span>
+        <input className={INPUT} value={titleEs} onChange={(e) => setTitleEs(e.target.value)} />
+      </label>
+      <label className="block">
+        <span className="mb-1 block text-xs font-semibold text-[#1E1810]">Commitment (English) / Compromiso (Inglés)</span>
+        <input className={INPUT} value={titleEn} onChange={(e) => setTitleEn(e.target.value)} />
+      </label>
+      <label className="block">
+        <span className="mb-1 block text-xs font-semibold text-[#1E1810]">Responsable / Responsible party</span>
+        <select className={INPUT} value={responsibleParty} onChange={(e) => setResponsibleParty(e.target.value)}>
+          {RESPONSIBLE_PARTY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.labelEs} / {o.labelEn}</option>)}
+        </select>
+      </label>
+      <label className="block">
+        <span className="mb-1 block text-xs font-semibold text-[#1E1810]">Fecha límite (opcional) / Due date (optional)</span>
+        <input type="date" className={INPUT} value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => void submit()} disabled={submitting} className={PRIMARY_BTN}>
+          {submitting ? "Creando… / Creating…" : "Crear compromiso / Create Commitment"}
+        </button>
+        <button type="button" onClick={() => setOpen(false)} className={SECONDARY_BTN}>Cancelar / Cancel</button>
+      </div>
+      {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
+    </div>
+  );
+}
+
+export function MarkBlueprintReleasedButton({ businessId, discoveryId, blueprintId }: { businessId: string; discoveryId: string; blueprintId: string }) {
+  const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    setSubmitting(true);
+    setError(null);
+    const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/discovery/${discoveryId}/blueprint-review/release`, "POST", { blueprintId });
+    setSubmitting(false);
+    if (!ok) {
+      setError(blueprintActionError(body, "No se pudo marcar como lanzado. / Could not mark as released."));
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <button type="button" onClick={() => void submit()} disabled={submitting} className={PRIMARY_BTN}>
+        {submitting ? "Marcando… / Marking…" : "Marcar como lanzado / Mark Released"}
+      </button>
+      {error ? <p role="alert" className="mt-1 text-xs text-red-700">{error}</p> : null}
+    </div>
+  );
+}
+
+export function CompleteHandoffButton({ businessId, discoveryId, blueprintId }: { businessId: string; discoveryId: string; blueprintId: string }) {
+  const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    setSubmitting(true);
+    setError(null);
+    const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/discovery/${discoveryId}/blueprint-review/handoff-complete`, "POST", { blueprintId });
+    setSubmitting(false);
+    if (!ok) {
+      setError(humanizeStaffWriteError(body?.error as string | undefined, "No se pudo completar la entrega. / Could not complete handoff."));
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <button type="button" onClick={() => void submit()} disabled={submitting} className={PRIMARY_BTN}>
+        {submitting ? "Completando… / Completing…" : "Entrega completada / Handoff Complete"}
+      </button>
+      {error ? <p role="alert" className="mt-1 text-xs text-red-700">{error}</p> : null}
+    </div>
+  );
+}
+

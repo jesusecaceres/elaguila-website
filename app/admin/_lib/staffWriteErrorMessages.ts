@@ -39,6 +39,10 @@ const STAFF_WRITE_ERROR_MESSAGES: Readonly<Record<string, string>> = {
     "El plan del proyecto debe estar Aprobado para Construcción antes de crear el proyecto. / The blueprint must be Approved for Build before creating the project.",
   supersedes_wrong_intent:
     "No se pudo vincular la nueva versión con la anterior. Actualiza la página e intenta de nuevo. / Could not link the new version to the previous one. Refresh the page and try again.",
+  handoff_items_pending:
+    "Todavía hay elementos de la lista de entrega sin completar. Márquelos como completos o no aplicables antes de finalizar la entrega. / Handoff checklist items are still pending. Mark them complete or not applicable before completing handoff.",
+  snapshot_failed:
+    "No se pudo generar la lista de verificación. Intenta de nuevo. / Could not generate the checklist. Try again.",
 };
 
 /**

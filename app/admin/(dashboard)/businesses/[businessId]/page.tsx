@@ -89,6 +89,7 @@ import { catalogForProjectType, specializedFamilyForProjectType } from "@/app/li
 import { computeSpecializedBlueprintInputFingerprint, evaluateProjectBlueprintReadiness, type SpecializedProjectBlueprintPacket } from "@/app/lib/business/projectDiscovery/specializedBlueprintEngine";
 import { computeBlockingDependencies, suggestSystemDependencies } from "@/app/lib/business/projectDiscovery/projectDependencyEngine";
 import { listIntentDependenciesForDiscovery } from "@/app/lib/business/projectDiscovery/projectDependencyRepository";
+import { buildClientReviewData } from "@/app/lib/business/projectDiscovery/clientReviewDataAssembler";
 
 export const dynamic = "force-dynamic";
 
@@ -399,7 +400,7 @@ export default async function AdminBusinessDetailPage({
     ? await (async () => {
         const discoveries = await listProjectDiscoveriesForBusiness(business.id);
         const currentDiscovery = discoveries.find((d) => d.status !== "blueprint_created") ?? discoveries[0] ?? null;
-        if (!currentDiscovery) return { currentDiscovery: null, otherDiscoveries: [], intents: [], selectedIntentId: null, items: [], sources: [], consents: [], events: [], website: null, specialized: null, existingSourceFiles: [] };
+        if (!currentDiscovery) return { currentDiscovery: null, otherDiscoveries: [], intents: [], selectedIntentId: null, items: [], sources: [], consents: [], events: [], website: null, specialized: null, clientReview: null, existingSourceFiles: [] };
 
         const otherDiscoveries = discoveries.filter((d) => d.id !== currentDiscovery.id);
         const [intents, items, sources, consents, events, businessSourceFiles] = await Promise.all([
@@ -478,7 +479,16 @@ export default async function AdminBusinessDetailPage({
             })()
           : null;
 
-        return { currentDiscovery, otherDiscoveries, intents, selectedIntentId: selectedIntent?.id ?? null, items, sources, consents, events, website, specialized, existingSourceFiles };
+        // Gate 7 — Client Review + QA + Launch/Handoff. Always reviews the LATEST blueprint version
+        // for the selected intent (whichever engine — Website or specialized — produced it); a
+        // dedicated "view an older version" picker is not yet built (isLatestVersion is therefore
+        // always true today), so the SUPERSEDED VERSION warning never fires in this initial cut.
+        const latestBlueprintForReview = website?.latestBlueprint ?? specialized?.latestBlueprint ?? null;
+        const clientReview = latestBlueprintForReview
+          ? await buildClientReviewData(business.id, latestBlueprintForReview, latestBlueprintForReview.version)
+          : null;
+
+        return { currentDiscovery, otherDiscoveries, intents, selectedIntentId: selectedIntent?.id ?? null, items, sources, consents, events, website, specialized, clientReview, existingSourceFiles };
       })()
     : null;
 
@@ -1035,6 +1045,7 @@ export default async function AdminBusinessDetailPage({
             events={clientDiscoveryData.events}
             website={clientDiscoveryData.website}
             specialized={clientDiscoveryData.specialized}
+            clientReview={clientDiscoveryData.clientReview}
             upcomingMeetings={upcomingMeetingsForBridge}
             canCreate={canCreateProjectDiscovery}
             canManage={canManageProjectDiscovery}
