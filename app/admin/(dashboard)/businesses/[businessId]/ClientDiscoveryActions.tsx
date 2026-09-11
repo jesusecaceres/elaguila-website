@@ -1132,3 +1132,210 @@ export function MarkNeedsMoreClientInfoButton({ businessId, discoveryId }: { bus
   );
 }
 
+// ---------------------------------------------------------------------------
+// Project Blueprint / Plan del proyecto (Gate 5, MD <review_ui>) — one small action button per
+// lifecycle transition, exactly mirroring the Architecture Review section's own pattern above.
+// Each POST target is a dedicated route that re-validates its own transition server-side
+// (blueprintRepository.ts) — no button here can bypass readiness or the status machine.
+// ---------------------------------------------------------------------------
+function blueprintActionError(body: Record<string, unknown> | null, fallback: string): string {
+  const reasonEs = typeof body?.reasonEs === "string" ? body.reasonEs : null;
+  const reasonEn = typeof body?.reasonEn === "string" ? body.reasonEn : null;
+  if (reasonEs && reasonEn) return `${reasonEs} / ${reasonEn}`;
+  return humanizeStaffWriteError(body?.error as string | undefined, fallback);
+}
+
+export function GenerateBlueprintButton({ businessId, discoveryId, intentId }: { businessId: string; discoveryId: string; intentId: string }) {
+  const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function generate() {
+    setSubmitting(true);
+    setError(null);
+    const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/discovery/${discoveryId}/blueprint`, "POST", { intentId });
+    setSubmitting(false);
+    if (!ok) {
+      setError(blueprintActionError(body, "No se pudo generar el plan del proyecto. / Could not generate the project blueprint."));
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <button type="button" onClick={() => void generate()} disabled={submitting} className={PRIMARY_BTN}>
+        {submitting ? "Generando… / Generating…" : "Generar plan del proyecto / Generate Blueprint"}
+      </button>
+      {error ? <p role="alert" className="mt-1 text-xs text-red-700">{error}</p> : null}
+    </div>
+  );
+}
+
+function blueprintLifecycleButtonFactory(path: string, defaultLabel: string, submittingLabel: string, defaultFallback: string, buttonClass: string) {
+  return function BlueprintLifecycleButton({ businessId, discoveryId, blueprintId }: { businessId: string; discoveryId: string; blueprintId: string }) {
+    const router = useRouter();
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    async function run() {
+      setSubmitting(true);
+      setError(null);
+      const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/discovery/${discoveryId}/blueprint/${path}`, "POST", { blueprintId });
+      setSubmitting(false);
+      if (!ok) {
+        setError(blueprintActionError(body, defaultFallback));
+        return;
+      }
+      router.refresh();
+    }
+
+    return (
+      <div>
+        <button type="button" onClick={() => void run()} disabled={submitting} className={buttonClass}>
+          {submitting ? submittingLabel : defaultLabel}
+        </button>
+        {error ? <p role="alert" className="mt-1 text-xs text-red-700">{error}</p> : null}
+      </div>
+    );
+  };
+}
+
+export const MarkBlueprintInternalReviewCompleteButton = blueprintLifecycleButtonFactory(
+  "internal-review",
+  "Marcar revisión interna completa / Mark Internal Review Complete",
+  "Guardando… / Saving…",
+  "No se pudo marcar la revisión interna. / Could not mark internal review.",
+  SECONDARY_BTN,
+);
+
+export const MarkBlueprintClientConfirmationNeededButton = blueprintLifecycleButtonFactory(
+  "client-confirmation",
+  "Se requiere confirmación del cliente / Client Confirmation Needed",
+  "Guardando… / Saving…",
+  "No se pudo actualizar el estado. / Could not update the status.",
+  SECONDARY_BTN,
+);
+
+export const ApproveBlueprintForBuildButton = blueprintLifecycleButtonFactory(
+  "approve",
+  "Aprobar para construcción / Approve for Build",
+  "Aprobando… / Approving…",
+  "No se pudo aprobar el plan del proyecto. / Could not approve the project blueprint.",
+  PRIMARY_BTN,
+);
+
+export function CreateWebsiteProjectButton({ businessId, discoveryId, blueprintId }: { businessId: string; discoveryId: string; blueprintId: string }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [assigneeRosterId, setAssigneeRosterId] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [notes, setNotes] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    setSubmitting(true);
+    setError(null);
+    const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/discovery/${discoveryId}/blueprint/handoff`, "POST", {
+      blueprintId,
+      handoffAssigneeRosterId: assigneeRosterId.trim() || undefined,
+      handoffDueDate: dueDate.trim() || undefined,
+      handoffNotes: notes.trim() || undefined,
+    });
+    setSubmitting(false);
+    if (!ok) {
+      setError(blueprintActionError(body, "No se pudo crear el proyecto de sitio web. / Could not create the website project."));
+      return;
+    }
+    setOpen(false);
+    router.refresh();
+  }
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className={PRIMARY_BTN}>
+        Crear proyecto de sitio web / Create Website Project
+      </button>
+    );
+  }
+
+  return (
+    <div className="space-y-2 rounded-lg border border-[#E8DFD0] p-3">
+      <label className="block">
+        <span className="mb-1 block text-xs font-semibold text-[#1E1810]">ID de personal asignado (opcional) / Assigned staff roster ID (optional)</span>
+        <input className={INPUT} value={assigneeRosterId} onChange={(e) => setAssigneeRosterId(e.target.value)} />
+      </label>
+      <label className="block">
+        <span className="mb-1 block text-xs font-semibold text-[#1E1810]">Fecha límite (opcional) / Due date (optional)</span>
+        <input type="date" className={INPUT} value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+      </label>
+      <label className="block">
+        <span className="mb-1 block text-xs font-semibold text-[#1E1810]">Notas (opcional) / Notes (optional)</span>
+        <textarea className={`${INPUT} min-h-[70px]`} value={notes} onChange={(e) => setNotes(e.target.value)} />
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => void submit()} disabled={submitting} className={PRIMARY_BTN}>
+          {submitting ? "Creando… / Creating…" : "Crear proyecto de sitio web / Create Website Project"}
+        </button>
+        <button type="button" onClick={() => setOpen(false)} className={SECONDARY_BTN}>Cancelar / Cancel</button>
+      </div>
+      {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
+    </div>
+  );
+}
+
+/**
+ * Blueprint Markdown viewer (MD <markdown_export>): SUMMARY is shown by the caller — this component
+ * is only the "expand to view full Markdown" + Copy + Download(.md) affordance, never rendered by
+ * default at full length. Copy/Download run entirely client-side (Clipboard API / Blob URL) — no
+ * server round trip, no TXT-as-operating-architecture (the app record stays canonical).
+ */
+export function BlueprintMarkdownViewer({ markdown, versionLabel }: { markdown: string; versionLabel: string }) {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(markdown);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  function download() {
+    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${versionLabel.replace(/\s+/g, "-").toLowerCase()}.md`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <div>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => setOpen((v) => !v)} className={SECONDARY_BTN}>
+          {open ? "Ocultar plan completo / Hide Full Blueprint" : "Ver plan completo / View Full Blueprint"}
+        </button>
+        <button type="button" onClick={() => void copy()} className={SECONDARY_BTN}>
+          {copied ? "¡Copiado! / Copied!" : "Copiar / Copy"}
+        </button>
+        <button type="button" onClick={download} className={SECONDARY_BTN}>
+          Descargar .md / Download .md
+        </button>
+      </div>
+      {open ? (
+        <pre className="mt-2 max-h-[70vh] overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words rounded-lg border border-[#E8DFD0] bg-[#FFFDF7] p-3 text-xs text-[#1E1810]">
+          {markdown}
+        </pre>
+      ) : null}
+    </div>
+  );
+}
+

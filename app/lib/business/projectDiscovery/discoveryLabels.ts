@@ -29,6 +29,7 @@ import type {
   StorageDecision,
   WebsiteArchitectureClass,
 } from "./architectureDecisionEngine";
+import type { BlueprintStatus, WebsiteBlueprintReadinessState } from "./blueprintEngine";
 
 export interface BilingualLabel {
   es: string;
@@ -376,3 +377,43 @@ const OWNERSHIP_OWNER_LABELS: Record<OwnershipOwner, BilingualLabel> = {
 export function ownershipOwnerLabel(value: OwnershipOwner): BilingualLabel {
   return OWNERSHIP_OWNER_LABELS[value];
 }
+
+// ---------------------------------------------------------------------------------------------
+// Gate 5 — blueprint versioning/readiness labels + the exact bilingual phrase pairs the mission
+// requires verbatim, defined once here so the review UI and any future surface never re-phrase them.
+// ---------------------------------------------------------------------------------------------
+const BLUEPRINT_STATUS_LABELS: Record<BlueprintStatus, BilingualLabel> = {
+  draft: label("Borrador", "Draft"),
+  internal_review: label("Revisión interna", "Internal Review"),
+  client_confirmation_needed: label("Se requiere confirmación del cliente", "Client Confirmation Needed"),
+  approved_for_build: label("Aprobado para construcción", "Approved for Build"),
+  superseded: label("Reemplazado por una versión nueva", "Superseded"),
+};
+
+export function blueprintStatusLabel(value: BlueprintStatus): BilingualLabel {
+  return BLUEPRINT_STATUS_LABELS[value];
+}
+
+const BLUEPRINT_READINESS_STATE_LABELS: Record<WebsiteBlueprintReadinessState, BilingualLabel> = {
+  READY: label("Listo para generar", "Ready to Generate"),
+  NOT_READY: label("No listo", "Not Ready"),
+  NEEDS_LEONIX_DECISION: label("Requiere decisión de Leonix", "Needs Leonix Decision"),
+  COMMERCIAL_REVIEW_REQUIRED: label("Requiere revisión comercial", "Commercial Review Required"),
+};
+
+export function blueprintReadinessStateLabel(value: WebsiteBlueprintReadinessState): BilingualLabel {
+  return BLUEPRINT_READINESS_STATE_LABELS[value];
+}
+
+/** The exact EN/ES phrase pairs the Gate 5 mission requires verbatim, in one place. */
+export const BLUEPRINT_UI_PHRASES = {
+  projectBlueprint: label("Plan del proyecto", "Project Blueprint"),
+  readyToGenerate: label("Listo para generar", "Ready to Generate"),
+  generateBlueprint: label("Generar plan del proyecto", "Generate Blueprint"),
+  draft: label("Borrador", "Draft"),
+  approvedForBuild: label("Aprobado para construcción", "Approved for Build"),
+  blueprintMayBeStale: label("El plan del proyecto puede estar desactualizado", "Blueprint May Be Stale"),
+  createWebsiteProject: label("Crear proyecto de sitio web", "Create Website Project"),
+  clientConfirmationNeeded: label("Se requiere confirmación del cliente", "Client Confirmation Needed"),
+  buildDependencies: label("Dependencias de construcción", "Build Dependencies"),
+} as const satisfies Record<string, BilingualLabel>;

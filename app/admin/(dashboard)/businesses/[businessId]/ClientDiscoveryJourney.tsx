@@ -3,12 +3,18 @@ import {
   AddProjectIntentForm,
   AnswerRowActions,
   ApproveArchitectureButton,
+  ApproveBlueprintForBuildButton,
+  BlueprintMarkdownViewer,
   CaptureAnswerForm,
   ConsentToggle,
+  CreateWebsiteProjectButton,
   DiscoveryAssetUpload,
   DiscoveryStatusButtons,
+  GenerateBlueprintButton,
   IntentStatusButtons,
   LinkMeetingButton,
+  MarkBlueprintClientConfirmationNeededButton,
+  MarkBlueprintInternalReviewCompleteButton,
   MarkNeedsMoreClientInfoButton,
   MeetingNoteCapture,
   ModifyArchitectureDecisionForm,
@@ -24,7 +30,7 @@ import {
   EMPTY_STATE_NO_PROJECT_INTENT,
   questionsEmptyStateFor,
 } from "@/app/lib/business/projectDiscovery/discoveryEmptyStates";
-import { formatBilingual } from "@/app/lib/business/projectDiscovery/discoveryLabels";
+import { BLUEPRINT_UI_PHRASES, blueprintReadinessStateLabel, blueprintStatusLabel, formatBilingual } from "@/app/lib/business/projectDiscovery/discoveryLabels";
 import {
   buildArchitectureReviewView,
   buildBeforeYouWrapUpView,
@@ -42,6 +48,8 @@ import {
 import type { RequirementEvaluation, WebsiteReadinessResult, WebsiteScopeSignalResult } from "@/app/lib/business/projectDiscovery/websiteDiscoveryLogic";
 import type { QuestionCandidate } from "@/app/lib/business/projectDiscovery/websiteQuestionEngine";
 import type { WebsiteArchitectureDecisionPacket } from "@/app/lib/business/projectDiscovery/architectureDecisionEngine";
+import type { ArchitectureDriftResult, WebsiteBlueprintReadinessResult } from "@/app/lib/business/projectDiscovery/blueprintEngine";
+import type { BusinessProjectBlueprint } from "@/app/lib/business/projectDiscovery/blueprintRepository";
 import type {
   ProjectDiscovery,
   ProjectDiscoveryConsent,
@@ -64,6 +72,14 @@ export interface WebsiteEngineOutput {
   architectureRecommendation: WebsiteArchitectureDecisionPacket;
   /** The frozen, staff-approved decision, when one has been persisted — never silently replaced by a later live recommendation drift. */
   approvedArchitecture: WebsiteArchitectureDecisionPacket | null;
+  /** Gate 5 — whether a blueprint may be generated right now, and why not if it can't. */
+  blueprintReadiness: WebsiteBlueprintReadinessResult;
+  /** The most recent blueprint version for this intent, or null if none has ever been generated. */
+  latestBlueprint: BusinessProjectBlueprint | null;
+  /** True when the discovery truth has changed since latestBlueprint was generated (MD <staleness>) — never auto-invalidates approval, only surfaces a prompt to review/regenerate. */
+  isStale: boolean;
+  /** Non-null only when the CURRENT live architecture recommendation differs materially from the one embedded in latestBlueprint (MD <architecture_drift>). */
+  architectureDrift: ArchitectureDriftResult | null;
 }
 
 export interface ClientDiscoveryJourneyProps {
@@ -82,12 +98,13 @@ export interface ClientDiscoveryJourneyProps {
   canManage: boolean;
   canReview: boolean;
   canManageConsent: boolean;
+  canManageBlueprint: boolean;
   startFromGrowthSolution?: { titleEs: string; titleEn: string; sourceGrowthSolutionId: string; sourceGrowthAssessmentId?: string } | null;
   existingSourceFiles?: readonly ExistingSourceFileOption[];
 }
 
 export function ClientDiscoveryJourney(props: ClientDiscoveryJourneyProps) {
-  const { businessId, currentDiscovery, intents, selectedIntentId, sources, consents, events, website, upcomingMeetings, canCreate, canManage, canReview, canManageConsent, existingSourceFiles } = props;
+  const { businessId, currentDiscovery, intents, selectedIntentId, sources, consents, events, website, upcomingMeetings, canCreate, canManage, canReview, canManageConsent, canManageBlueprint, existingSourceFiles } = props;
 
   if (!currentDiscovery) {
     return (
@@ -214,6 +231,16 @@ export function ClientDiscoveryJourney(props: ClientDiscoveryJourneyProps) {
             recommendation={website.architectureRecommendation}
             approved={website.approvedArchitecture}
             canReview={canReview}
+          />
+          <BlueprintReviewSection
+            businessId={businessId}
+            discoveryId={currentDiscovery.id}
+            intentId={selectedIntent.id}
+            readiness={website.blueprintReadiness}
+            latestBlueprint={website.latestBlueprint}
+            isStale={website.isStale}
+            architectureDrift={website.architectureDrift}
+            canManageBlueprint={canManageBlueprint}
           />
           <LeonixDecisionsSection evaluations={website.evaluations} />
         </>
@@ -691,6 +718,108 @@ function WebsiteArchitectureReviewSection({
           <ApproveArchitectureButton businessId={businessId} discoveryId={discoveryId} intentId={intentId} />
           <ModifyArchitectureDecisionForm businessId={businessId} discoveryId={discoveryId} intentId={intentId} />
           <MarkNeedsMoreClientInfoButton businessId={businessId} discoveryId={discoveryId} />
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Project Blueprint / Plan del proyecto (Gate 5, MD <review_ui>) — SUMMARY first, expandable full
+// Markdown never rendered by default. The primary next action is always the single most relevant
+// button for the CURRENT state, never every possible action shown at once.
+// ---------------------------------------------------------------------------
+function BlueprintReviewSection({
+  businessId, discoveryId, intentId, readiness, latestBlueprint, isStale, architectureDrift, canManageBlueprint,
+}: {
+  businessId: string; discoveryId: string; intentId: string;
+  readiness: WebsiteBlueprintReadinessResult;
+  latestBlueprint: BusinessProjectBlueprint | null;
+  isStale: boolean;
+  architectureDrift: ArchitectureDriftResult | null;
+  canManageBlueprint: boolean;
+}) {
+  const unresolvedCount = latestBlueprint
+    ? latestBlueprint.packet.unresolvedBeforeLaunch.length + latestBlueprint.packet.unresolvedLeonixActions.length + latestBlueprint.packet.unresolvedNonBlocking.length
+    : 0;
+
+  return (
+    <section id="project-blueprint" className={`${CARD} scroll-mt-24`}>
+      <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">{formatBilingual(BLUEPRINT_UI_PHRASES.projectBlueprint)}</h3>
+
+      {latestBlueprint ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#3D3428]">
+          <span className="font-semibold">v{latestBlueprint.version}</span>
+          <span className="rounded-full bg-[#EDE6D6] px-2 py-0.5 text-[10px] font-bold text-[#3D3428]">{formatBilingual(blueprintStatusLabel(latestBlueprint.status))}</span>
+          <span>{new Date(latestBlueprint.createdAt).toLocaleDateString()}</span>
+          {unresolvedCount > 0 ? <span className="text-amber-800">{unresolvedCount} sin resolver / unresolved</span> : null}
+          {latestBlueprint.packet.architecture.architectureClass ? <span className="text-[#6B5E47]">{latestBlueprint.packet.architecture.architectureClass.replace(/_/g, " ")}</span> : null}
+        </div>
+      ) : (
+        <p className="mt-2 text-sm text-[#6B5E47]">{formatBilingual({ es: "Todavía no se ha generado un plan del proyecto para esta intención.", en: "No project blueprint has been generated for this intent yet." })}</p>
+      )}
+
+      {isStale && latestBlueprint ? (
+        <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-3">
+          <p className="text-xs font-bold uppercase tracking-wide text-amber-900">{formatBilingual(BLUEPRINT_UI_PHRASES.blueprintMayBeStale)}</p>
+          <p className="mt-1 text-xs text-amber-900">{formatBilingual({ es: "El descubrimiento ha cambiado desde que se generó esta versión. Esto nunca invalida la aprobación automáticamente — revise y decida si generar una nueva versión.", en: "Discovery has changed since this version was generated. This never auto-invalidates approval — review and decide whether to generate a new version." })}</p>
+          {architectureDrift && architectureDrift.hasDrifted ? (
+            <ul className="mt-2 list-disc space-y-0.5 pl-4 text-xs text-amber-900">
+              {architectureDrift.changedFields.map((f, i) => (
+                <li key={i}>{f.fieldEs} / {f.fieldEn}: {f.approvedValue} → {f.currentValue}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+
+      {readiness.state !== "READY" ? (
+        <div className="mt-2 rounded-lg border border-[#E8DFD0] bg-[#FAF7F2] p-3">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#7A1E2C]">{formatBilingual(blueprintReadinessStateLabel(readiness.state))}</p>
+          <p className="mt-1 text-xs text-[#6B5E47]">{readiness.reasonEs} / {readiness.reasonEn}</p>
+          {readiness.requiredBeforeBuildBlockers.length > 0 ? (
+            <ul className="mt-2 list-disc space-y-0.5 pl-4 text-xs text-red-700">
+              {readiness.requiredBeforeBuildBlockers.map((e) => <li key={e.requirement.fieldKey}>{e.requirement.labelEs} / {e.requirement.labelEn}</li>)}
+            </ul>
+          ) : null}
+          {readiness.leonixDecisionsOutstanding.length > 0 ? (
+            <ul className="mt-2 list-disc space-y-0.5 pl-4 text-xs text-[#8A6B1F]">
+              {readiness.leonixDecisionsOutstanding.map((e) => <li key={e.requirement.fieldKey}>{e.requirement.labelEs} / {e.requirement.labelEn}</li>)}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+
+      {canManageBlueprint ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {readiness.state === "READY" && (!latestBlueprint || isStale) ? (
+            <GenerateBlueprintButton businessId={businessId} discoveryId={discoveryId} intentId={intentId} />
+          ) : null}
+          {latestBlueprint?.status === "draft" ? (
+            <MarkBlueprintInternalReviewCompleteButton businessId={businessId} discoveryId={discoveryId} blueprintId={latestBlueprint.id} />
+          ) : null}
+          {latestBlueprint?.status === "internal_review" ? (
+            <>
+              <MarkBlueprintClientConfirmationNeededButton businessId={businessId} discoveryId={discoveryId} blueprintId={latestBlueprint.id} />
+              <ApproveBlueprintForBuildButton businessId={businessId} discoveryId={discoveryId} blueprintId={latestBlueprint.id} />
+            </>
+          ) : null}
+          {latestBlueprint?.status === "client_confirmation_needed" ? (
+            <ApproveBlueprintForBuildButton businessId={businessId} discoveryId={discoveryId} blueprintId={latestBlueprint.id} />
+          ) : null}
+          {latestBlueprint?.status === "approved_for_build" && latestBlueprint.handoffStatus === "not_started" ? (
+            <CreateWebsiteProjectButton businessId={businessId} discoveryId={discoveryId} blueprintId={latestBlueprint.id} />
+          ) : null}
+        </div>
+      ) : null}
+
+      {latestBlueprint?.status === "approved_for_build" && latestBlueprint.handoffStatus !== "not_started" ? (
+        <p className="mt-2 text-xs text-[#6B5E47]">{formatBilingual({ es: "Estado de entrega", en: "Handoff status" })}: {latestBlueprint.handoffStatus.replace(/_/g, " ")}</p>
+      ) : null}
+
+      {latestBlueprint ? (
+        <div className="mt-3">
+          <BlueprintMarkdownViewer markdown={latestBlueprint.markdownSnapshot} versionLabel={`blueprint-v${latestBlueprint.version}`} />
         </div>
       ) : null}
     </section>

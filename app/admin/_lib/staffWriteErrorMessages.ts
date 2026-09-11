@@ -33,6 +33,12 @@ const STAFF_WRITE_ERROR_MESSAGES: Readonly<Record<string, string>> = {
     "Quedan decisiones de arquitectura de Leonix pendientes. Resuélvalas en Decisiones de Leonix antes de marcar Listo para el Plan del Proyecto. / Leonix architecture decisions are still outstanding. Resolve them in Leonix Decisions before marking Ready for Blueprint.",
   context_unavailable:
     "No se pudo verificar la preparación en este momento. Intenta de nuevo. / Readiness could not be verified right now. Try again.",
+  invalid_transition:
+    "Esta acción no es válida en el estado actual del plan del proyecto. Actualiza la página e intenta de nuevo. / This action isn't valid in the blueprint's current state. Refresh the page and try again.",
+  not_approved:
+    "El plan del proyecto debe estar Aprobado para Construcción antes de crear el proyecto. / The blueprint must be Approved for Build before creating the project.",
+  supersedes_wrong_intent:
+    "No se pudo vincular la nueva versión con la anterior. Actualiza la página e intenta de nuevo. / Could not link the new version to the previous one. Refresh the page and try again.",
 };
 
 /**

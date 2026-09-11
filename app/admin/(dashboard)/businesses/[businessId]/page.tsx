@@ -81,6 +81,8 @@ import { detectWebsiteScopeSignals, evaluateWebsiteReadiness, evaluateWebsiteReq
 import { buildBeforeYouWrapUp, buildQuestionsToAskNow } from "@/app/lib/business/projectDiscovery/websiteQuestionEngine";
 import { resolveStartFromGrowthSolutionPrefill } from "@/app/lib/business/projectDiscovery/discoveryWorkspaceViewModel";
 import { buildArchitectureDecisionPacket, type WebsiteArchitectureDecisionPacket } from "@/app/lib/business/projectDiscovery/architectureDecisionEngine";
+import { computeBlueprintInputFingerprint, detectArchitectureDrift, evaluateWebsiteBlueprintReadiness } from "@/app/lib/business/projectDiscovery/blueprintEngine";
+import { getLatestBlueprintForIntent } from "@/app/lib/business/projectDiscovery/blueprintRepository";
 
 export const dynamic = "force-dynamic";
 
@@ -380,6 +382,7 @@ export default async function AdminBusinessDetailPage({
   const canManageProjectDiscovery = actorHasCapability(access.actor, "manage_project_discovery");
   const canReviewProjectDiscovery = actorHasCapability(access.actor, "review_project_discovery");
   const canManageDiscoveryConsent = actorHasCapability(access.actor, "manage_discovery_consent");
+  const canManageProjectBlueprint = actorHasCapability(access.actor, "manage_project_blueprint");
   const upcomingMeetingsForBridge = program5Data
     ? program5Data.meetings
         .filter((m) => m.status === "planned" || m.status === "prepared" || m.status === "in_progress")
@@ -424,7 +427,16 @@ export default async function AdminBusinessDetailPage({
               const architectureRecommendation = buildArchitectureDecisionPacket(ctx, scopeSignals);
               const approvedItem = items.find((i) => i.fieldKey === "website_architecture_decision" && i.truthClass === "technical_decision");
               const approvedArchitecture = approvedItem ? (approvedItem.value as unknown as WebsiteArchitectureDecisionPacket) : null;
-              return { evaluations, readiness, questionsToAskNow, wrapUp, scopeSignals, architectureRecommendation, approvedArchitecture };
+              // Gate 5 — blueprint readiness/version/staleness/drift, all derived from the SAME
+              // ctx/readiness/approvedArchitecture the rest of this block already computed; never a
+              // second evaluation engine.
+              const blueprintReadiness = evaluateWebsiteBlueprintReadiness(readiness, approvedArchitecture);
+              const latestBlueprint = await getLatestBlueprintForIntent(business.id, selectedIntent.id);
+              const isStale = latestBlueprint && approvedArchitecture
+                ? computeBlueprintInputFingerprint(ctx, approvedArchitecture) !== latestBlueprint.inputFingerprint
+                : false;
+              const architectureDrift = latestBlueprint ? detectArchitectureDrift(latestBlueprint.packet.architecture, architectureRecommendation) : null;
+              return { evaluations, readiness, questionsToAskNow, wrapUp, scopeSignals, architectureRecommendation, approvedArchitecture, blueprintReadiness, latestBlueprint, isStale, architectureDrift };
             })()
           : null;
 
@@ -989,6 +1001,7 @@ export default async function AdminBusinessDetailPage({
             canManage={canManageProjectDiscovery}
             canReview={canReviewProjectDiscovery}
             canManageConsent={canManageDiscoveryConsent}
+            canManageBlueprint={canManageProjectBlueprint}
             startFromGrowthSolution={startFromGrowthSolution}
             existingSourceFiles={clientDiscoveryData.existingSourceFiles}
           />

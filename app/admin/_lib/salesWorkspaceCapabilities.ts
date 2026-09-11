@@ -143,7 +143,12 @@ export type SalesWorkspaceCapability =
   | "create_project_discovery"
   | "manage_project_discovery"
   | "review_project_discovery"
-  | "manage_discovery_consent";
+  | "manage_discovery_consent"
+  // Gate 5 — generating, reviewing, and approving a Website Project Blueprint (the versioned
+  // build execution contract) is a bigger-consequence action than routine discovery capture —
+  // manager+ only, matching review_project_discovery/approve_recommendation exactly. Viewing a
+  // blueprint reuses view_project_discovery (it is part of the same discovery workspace).
+  | "manage_project_blueprint";
 
 export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] = [
   "view_business_list",
@@ -221,6 +226,7 @@ export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] =
   "manage_project_discovery",
   "review_project_discovery",
   "manage_discovery_consent",
+  "manage_project_blueprint",
 ];
 
 /**
@@ -319,6 +325,7 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "manage_project_discovery",
     "review_project_discovery",
     "manage_discovery_consent",
+    "manage_project_blueprint",
   ],
   sales_manager: [
     "view_business_list",
@@ -394,6 +401,7 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "manage_project_discovery",
     "review_project_discovery",
     "manage_discovery_consent",
+    "manage_project_blueprint",
   ],
   sales_rep: [
     "view_business_list",
