@@ -27,6 +27,7 @@ const files = {
   autosDealerSection: "app/(site)/clasificados/autos/dashboard/AutosDealerInventoryDashboardSection.tsx",
   misAnuncios: "app/(site)/dashboard/mis-anuncios/page.tsx",
   migration: "supabase/migrations/20260910120000_autos_privado_lifecycle_expires_at.sql",
+  graceFixMigration: "supabase/migrations/20260911020000_autos_privado_legacy_active_expiration_grace_fix.sql",
 };
 
 for (const rel of Object.values(files)) {
@@ -119,6 +120,19 @@ ok("expired fixed-term rows excluded from public discovery pools without deletin
 if (!src.migration.includes("add column if not exists expires_at timestamptz null")) fail("migration must additively add a nullable expires_at column");
 if (/drop column|drop table|rename column/i.test(src.migration)) fail("migration must never drop or rename anything");
 ok("migration is additive-only (nullable column + index), no destructive changes");
+
+// 7b. Migration-safety grace fix: legacy active rows whose literal published_at+30d backfill
+// landed in the past must be corrected forward, never left evergreen, never touching other rows.
+if (!src.graceFixMigration.includes("lane = 'privado'") || !src.graceFixMigration.includes("status = 'active'")) {
+  fail("grace-fix migration must be scoped to active Privado rows only");
+}
+if (!src.graceFixMigration.includes("expires_at <= now()")) fail("grace-fix migration must only touch already-past expirations");
+if (!src.graceFixMigration.includes("now() + interval '30 days'")) fail("grace-fix migration must grant exactly a 30-day grace from execution time");
+if (/drop column|drop table|rename column|delete from/i.test(src.graceFixMigration)) fail("grace-fix migration must never drop, rename, or delete anything");
+if (src.graceFixMigration.includes("set status") || src.graceFixMigration.includes("set owner")) {
+  fail("grace-fix migration must only touch expires_at, never status or owner");
+}
+ok("legacy-active-row migration-safety grace fix present and correctly scoped");
 
 // 8. Owner dashboard: real renew CTA wired for both categories, not just a status label.
 if (!src.autosDealerSection.includes("ListingRenewalAction") || !src.autosDealerSection.includes("startAutosPrivadoRenewal")) {
