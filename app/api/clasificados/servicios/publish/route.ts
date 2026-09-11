@@ -42,6 +42,10 @@ import {
   trustedServiciosOfferContentFromExisting,
 } from "@/app/clasificados/servicios/lib/serviciosOffersEntitlementEnforcement";
 import {
+  serviciosExactAddressIsHidden,
+  splitServiciosAddressForPersistence,
+} from "@/app/clasificados/servicios/lib/serviciosAddressPrivacy";
+import {
   buildProposedFinalMediaSet,
   validateProposedFinalMediaSet,
   warnDroppedUnpersistableMedia,
@@ -490,6 +494,17 @@ export async function POST(req: NextRequest) {
   // client from even attempting it).
   let actualListingStatus: string = listingStatus;
 
+  // Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B5) — exact-address privacy at the data boundary. When the
+  // owner hid their exact address, the street / suite / Google place id never enter the PUBLIC
+  // `profile_json`; they go to the service-role-only `private_contact` column so the owner's edit
+  // hydration still round-trips them (see serviciosAddressPrivacy.ts). `private_contact` is written
+  // ONLY for a hidden-address save (the value, or an explicit null when the owner cleared it), so a
+  // shown-address save never references the column, and a hidden-address save fails closed (never
+  // leaking the street) if the column is not migrated yet.
+  const { publicProfile: publicWireForPersistence, privateContact: privateContactForPersistence } =
+    splitServiciosAddressForPersistence(wire);
+  const privateContactPatch = serviciosExactAddressIsHidden(wire) ? { private_contact: privateContactForPersistence } : {};
+
   let persistedToDatabase = false;
   let persistedListingId: string | null = null;
   let persistedLeonixAdId: string | null = null;
@@ -549,7 +564,8 @@ export async function POST(req: NextRequest) {
           .update({
             business_name: businessName,
             city,
-            profile_json: wire,
+            profile_json: publicWireForPersistence,
+            ...privateContactPatch,
             internal_group: internalGroup,
             listing_status: nextStatus,
             updated_at: now,
@@ -589,7 +605,8 @@ export async function POST(req: NextRequest) {
           slug,
           business_name: businessName,
           city,
-          profile_json: wire,
+          profile_json: publicWireForPersistence,
+          ...privateContactPatch,
           internal_group: internalGroup,
           listing_status: listingStatus,
           leonix_verified: false,
