@@ -1571,3 +1571,79 @@ surface them.
 **PRE-QA PRODUCT CONSTRUCTION: still COMPLETE — unaffected by this reconciliation.**
 **FINAL PRODUCT CONSTRUCTION CERTIFICATION: still 100% PASS — reconfirmed on the merged tree.**
 **MAIN TOUCHED: NO. PRODUCTION TOUCHED: NO.**
+
+---
+
+## Gate 18 — Absolute Final Green-Light Audit (2026-09-10)
+
+Independent source-level re-audit of the reconciled tree (HEAD `79a96f7e`, same commit as Gate 17
+— no new commits between gates) against the full Master Bible, using 7 parallel research passes
+covering all 18 audit phases (architecture/duplicates/regression, `/dashboard` + Mis Anuncios +
+Entity Workspace grammar, category matrix parts 1 and 2, CTA semantics + copy/states + mechanical
+scan, Business Tools + attention truth + analytics/trust, lifecycle/commercial + responsive +
+cognitive load), plus fresh runs of every canonical verifier, a full `tsc --noEmit`, targeted
+lint, `git diff --check`, and one foreground production build.
+
+**Findings — 5 small, unambiguous, source-fixable CTA-color/copy defects, all repaired in this
+gate (6 files):**
+
+1. `LeonixRealEstateListingManageCard.tsx` — the FSBO/Bienes Raíces Privado "Archivar" button used
+   gray/tan instead of the canonical red already used one branch over (BR Negocio) in the same
+   file/component. Fixed to match.
+2. `EnVentaListingManageCard.tsx` — "Marcar vendido" trigger button and its confirm-dialog OK
+   button used neutral/dark styling instead of canonical red (the same job is red everywhere else:
+   `mis-anuncios/[id]/page.tsx`, the real-estate card). Fixed both.
+3. `busquedas-guardadas/page.tsx` — Pause/Reactivate/Delete all shared one neutral cream color with
+   no amber/green/red distinction. Fixed to amber (pause) / green (reactivate) / red (delete).
+4. `perfil/page.tsx` and `seguridad/page.tsx` — a save-error catch block rendered the raw caught
+   exception's `.message` (potentially a raw Supabase/Auth SDK string) directly to the owner, with
+   an "Unknown error" developer-facing fallback. Fixed to reuse the existing
+   `dashboardSafeMutationErrorCopy(lang)` helper already used by Viajes for the same purpose.
+5. `notificaciones/page.tsx` — a preferences panel literally named "Supabase" in owner-facing copy
+   ("migrable a Supabase después"). Fixed to vendor-neutral language.
+
+All 5 fixes are color/copy-only — zero behavior change, zero new dependencies, zero files outside
+the existing architecture touched. Re-validated after the fixes: 0 new TypeScript errors (still
+byte-identical to the 7-error e2e-only baseline), 0 new lint findings (the 4 pre-existing unused-
+prop findings in 2 of the touched files are unchanged from before this gate — not introduced by
+it), whole-product reconciliation verifier still 182/182, full production build PASS.
+
+**One item classified `⚠️ CHUY DECISION REQUIRED` (not fixed, not fixable as a small patch):**
+Autos Privado and Bienes Raíces Privado/FSBO are fixed-term paid listings ($24.99/30 days and
+$49.99/45 days) with an "expiration/renewal" capability the Master Bible's own category matrix
+(§12) expects, but the capability registry honestly marks `renew` as `"unsupported"` for both —
+there is no wired renewal checkout/action anywhere in source for either category (confirmed by
+two independent research passes). This is a real, pre-existing commercial/product gap, not
+something introduced by this session's reconciliation work. Building a renewal flow touches
+payment/entitlement/checkout — explicitly out of bounds for this gate to improvise — so it is
+reported for a deliberate product decision rather than patched.
+
+**One item reconfirmed as already-known, non-blocking, deliberately deferred (unchanged from
+before this gate):** the public marketing homepage's `HomeBusinessToolsSection.tsx` still links
+into the pre-integration equal-weight-card business-tools sub-routes (`/idea-builder`,
+`/concierge`, `/proximo-paso`, `/business-health`, `/what-we-understand`) documented as orphaned-
+but-not-blocking in Gate 17 above. This gate additionally confirms those links are actually live
+and reachable from the homepage (not just dead bookmarks), which raises this from a documentation
+footnote to a real, low-urgency product-decision candidate — still not a release blocker for the
+Owner Command Center itself, since the certified `/dashboard/business-tools` page is unaffected.
+
+**One item reconfirmed honest-by-design, not a defect:** `OwnerRecentActivity` on `/dashboard`
+always renders the honest "Leonix does not yet persist an account activity log" copy rather than
+fetching real events — this is a pre-existing, deliberate, honest-empty-state design (Master
+Bible §26 explicitly permits this), not a new gap.
+
+**Verifier re-run results (all fresh, not reused from Gate 17):**
+
+| Check | Result |
+|---|---|
+| Owner Attention Truth verifier | 22/22 PASS |
+| Shared Specialized Tools verifier | 33/33 PASS |
+| Rentas lifecycle/renewal verifier | PASS (all 9 checks) |
+| Paid listing lifecycle engine verifier | PASS |
+| Whole-product final reconciliation verifier | **182/182 PASS** (all 8 previously-explained protected-file diff artifacts from Gate 17 have cleared now that the reconciliation is fully committed and the tree is clean) |
+| `git diff --check` | clean (no new whitespace issues from this gate's 6 files) |
+| Targeted lint (6 fixed files) | 0 new findings (4 pre-existing unused-prop findings unchanged) |
+| Full `tsc --noEmit` | 0 new errors, byte-identical to the 7-error e2e-only baseline |
+| Full production build | PASS — exit 0, "Compiled successfully in 3.2min" (post-fix run), `/dashboard`, `/dashboard/business-tools`, `/dashboard/mis-anuncios` all present |
+
+**MAIN TOUCHED: NO. PRODUCTION TOUCHED: NO. No Supabase/Vercel/Stripe changes.**

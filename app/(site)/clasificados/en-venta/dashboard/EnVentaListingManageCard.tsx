@@ -549,7 +549,7 @@ export function EnVentaListingManageCard({
                 type="button"
                 disabled={busy}
                 onClick={() => setSoldConfirmOpen(true)}
-                className="rounded-xl border border-[#E8DFD0] bg-white px-4 py-2 text-sm font-semibold text-[#2C2416] disabled:opacity-50"
+                className="rounded-xl border border-red-300/70 bg-red-50 px-4 py-2 text-sm font-semibold text-red-800 hover:border-red-400 hover:bg-red-100 disabled:opacity-50"
               >
                 {L.sold}
               </button>
@@ -656,7 +656,7 @@ export function EnVentaListingManageCard({
                 type="button"
                 disabled={busy}
                 onClick={confirmMarkSold}
-                className="rounded-xl bg-[#2A2620] px-4 py-2 text-sm font-semibold text-[#FAF7F2] disabled:opacity-50"
+                className="rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:opacity-50"
               >
                 {L.soldConfirmOk}
               </button>

@@ -1392,7 +1392,8 @@ Durable state files (all committed at this checkpoint):
 | 14.1 | Business Tools Visual Hierarchy Hard Close | PASS, **uncommitted** | Coach flagged a real contradiction in Gate 14 (WEAK_UI open alongside "zero blockers"). Fully implemented the Master Bible §27 locked hierarchy in `BusinessConciergeOwnerHome.tsx` using only existing theme primitives — What Matters Now promoted to the existing `LX_DASH.pageHero` treatment with a real umbrella heading (activating a previously-unused copy key); Business Health + Action Plan grouped as the secondary tier; the remaining sections left as the plain-panel supporting tier. Re-confirmed Recent Activity and Business Growth entry already read as intentionally complete. See PROGRESS.md Gate 14.1 for full detail. |
 | 15 | FINAL PRE-QA SOURCE/BUILD CERTIFICATION | PASS, **uncommitted** | Heavy validation on the complete Gates 14+14.1 candidate (12 app files + 4 docs). All 6 canonical verifiers re-run (22/22, 33/33, OK, PASS-with-one-explained-scope-boundary-exception, PASS, 182/182); full `tsc --noEmit` byte-identical to the 7-error e2e-only baseline (0 new); full production build PASS ("Compiled successfully in 89s"); architecture regression trace confirmed zero core/protected files touched. Resource contention (another session spiking to 47 node.exe workers) waited out twice rather than raced. **PRE-QA PRODUCT CONSTRUCTION: COMPLETE. FINAL PRE-QA SOURCE/BUILD CERTIFICATION: PASS. OWNER QA: NOT YET PERFORMED** — its purpose from here is final runtime confirmation/polish of an already-complete product. Subsequently committed as `f2508a9a`, pushed, Preview READY. See PROGRESS.md Gate 15 for full detail. |
 | 16 | FINAL PRE-RELEASE PRODUCT-CONSTRUCTION AUDIT | PASS, **committed as `e8217f0e`** | Last construction gate before main/Production, on top of committed checkpoint `f2508a9a`. Four parallel evidence-only passes (mechanical TODO/placeholder/dead-control scan, dead/built-not-wired component scan confirming shell singularity, cognitive-load/information-architecture review, skeptical spot-check re-verification of 5 prior-gate fixes) found and repaired 5 real defects: En Venta's renewal CTA visually outranking the canonical primary doorway on the default-selected category, 3 raw error/internal-terminology leaks (Viajes ×3 sites, Restaurantes RLS/Supabase copy), an off-palette stone-gray Archive button, and a duplicate "Publicar" CTA on the Account Command Center. All 6 canonical verifiers re-run (22/22, 33/33, OK, PASS, PASS, 182/182 — Rentas verifier's protected-file guard clean this time, no Bienes files touched); full `tsc --noEmit` 0 new errors; full production build PASS ("Compiled successfully in 2.9min"). **FINAL PRODUCT CONSTRUCTION CERTIFICATION: 100% PASS.** Committed `e8217f0e88bb824d78fd2b99cf8cd80c4c663ab3`, pushed. A fast-forward to `main` was then attempted and correctly blocked — `main` had advanced 265 commits since the common ancestor. See PROGRESS.md Gate 16 for full detail. |
-| 17 | MAIN RECONCILIATION | PASS, **uncommitted merge in progress** | Merged `origin/main` (`a0a4783971b42ea1d71ab2602d4720d0d590baf8`) into the certified feature branch — normal merge, no rebase/squash. 54 overlapping files (46 of 48 ported `app/lib/business/**` files byte-identical no-ops; 2 confirmed content-superset kept as feature's; 1 route file byte-identical; `dashboardI18n.ts`/`ofertas-locales/[id]/page.tsx` auto-merged cleanly). 5 real conflicts resolved: comment-only in `dashboardMisAnunciosCategoryTools.ts`; `LeonixDashboardShell.tsx` (main's real single-DOM-copy/overflow fixes kept, feature's Mis Espacios `spaceCounts` feature kept, dead `renderSidebarBottom()` removed, certified mobile section-title label re-inserted into main's new trigger); `business-tools/page.tsx` (main's side was the stale pre-Gate-1 generic tool-card directory, kept `BusinessConciergeOwnerHome` entirely, and caught+fixed a real clean-merge regression where the auto-merge had silently dropped the `BusinessConciergeOwnerHome` import outside any conflict marker). All 5 Gate 16 fixes reverified intact. Full `tsc --noEmit`: 0 new errors across the entire merged tree (main's ~1379 changed files included). Production build PASS. Whole-product verifier 174/182 — the 8 failures are diff-based protected-file guards correctly flagging main's own legitimate 265-commit history arriving via the merge (admin/, Stripe, Ofertas backend, Recursos, Community Trust registry, Living Business Book), not damage from this reconciliation — confirmed none of those files were touched by it. **PRODUCT CONSTRUCTION CERTIFICATION: still 100% PASS on the merged tree.** See PROGRESS.md Gate 17 for full detail. |
+| 17 | MAIN RECONCILIATION | PASS, **committed as `79a96f7e`** | Merged `origin/main` (`a0a4783971b42ea1d71ab2602d4720d0d590baf8`) into the certified feature branch — normal merge, no rebase/squash. 54 overlapping files (46 of 48 ported `app/lib/business/**` files byte-identical no-ops; 2 confirmed content-superset kept as feature's; 1 route file byte-identical; `dashboardI18n.ts`/`ofertas-locales/[id]/page.tsx` auto-merged cleanly). 5 real conflicts resolved: comment-only in `dashboardMisAnunciosCategoryTools.ts`; `LeonixDashboardShell.tsx` (main's real single-DOM-copy/overflow fixes kept, feature's Mis Espacios `spaceCounts` feature kept, dead `renderSidebarBottom()` removed, certified mobile section-title label re-inserted into main's new trigger); `business-tools/page.tsx` (main's side was the stale pre-Gate-1 generic tool-card directory, kept `BusinessConciergeOwnerHome` entirely, and caught+fixed a real clean-merge regression where the auto-merge had silently dropped the `BusinessConciergeOwnerHome` import outside any conflict marker). All 5 Gate 16 fixes reverified intact. Full `tsc --noEmit`: 0 new errors across the entire merged tree (main's ~1379 changed files included). Production build PASS. Whole-product verifier 174/182 — the 8 failures are diff-based protected-file guards correctly flagging main's own legitimate 265-commit history arriving via the merge (admin/, Stripe, Ofertas backend, Recursos, Community Trust registry, Living Business Book), not damage from this reconciliation — confirmed none of those files were touched by it. **PRODUCT CONSTRUCTION CERTIFICATION: still 100% PASS on the merged tree.** See PROGRESS.md Gate 17 for full detail. Subsequently committed as `79a96f7e3128481d2c9d9c31f9d9229423e46677` and pushed to the feature branch (merge parents `e8217f0e`/`a0a47839`); confirmed `origin/main` is now an ancestor of feature HEAD, so a future fast-forward to `main` is clean, but was explicitly not performed in that gate. |
+| 18 | ABSOLUTE FINAL GREEN-LIGHT AUDIT | PASS, **committed** | Independent 18-phase source re-audit of `79a96f7e` (same commit as Gate 17 — no new commits between gates) via 7 parallel research passes covering every Bible phase, plus fresh canonical verifiers, full `tsc --noEmit`, targeted lint, `git diff --check`, and one foreground production build. Found and repaired 5 small, unambiguous, color/copy-only CTA defects across 6 files: `LeonixRealEstateListingManageCard.tsx`'s FSBO Archivar button (gray/tan → canonical red, matching its own BR Negocio sibling branch), `EnVentaListingManageCard.tsx`'s Marcar-vendido button + confirm-dialog OK (neutral/dark → canonical red), `busquedas-guardadas/page.tsx`'s Pause/Reactivate/Delete (one neutral color → amber/green/red), `perfil.tsx`/`seguridad.tsx` (raw caught-exception message shown to owner → reused the existing `dashboardSafeMutationErrorCopy(lang)` helper), and `notificaciones.tsx` (owner copy naming "Supabase" → vendor-neutral). All 6 canonical verifiers re-run post-fix, whole-product verifier now **182/182** (up from 174/182 — Gate 17's protected-file diff artifacts cleared once the tree was fully committed and clean); `tsc --noEmit` 0 new errors; production build PASS. **One item escalated, not patched:** Autos Privado and Bienes Raíces Privado/FSBO have no wired renewal flow for their fixed-term paid listings despite the Bible's own category matrix expecting one — a real, pre-existing commercial gap touching payment/entitlement scope, reported `⚠️ CHUY DECISION REQUIRED` rather than built. Two items reconfirmed non-blocking: the public homepage still live-links into the orphaned pre-integration business-tools sub-routes (already noted at Gate 17, now confirmed reachable not dormant); `OwnerRecentActivity`'s permanent honest-empty-state is by design (§26), not a defect. See PROGRESS.md Gate 18 and CABLE_MAP.md's matching section for full detail. |
 
 ---
 
@@ -1980,35 +1981,41 @@ The dashboard should make the platform feel organized even if the underlying cod
 
 The current next engineering move is:
 
-> **COMMIT + PUSH THE MAIN-RECONCILIATION MERGE, THEN A CONTROLLED FAST-FORWARD TO MAIN**
+> **RUNTIME OWNER QA ON THE CERTIFIED PREVIEW, OR — SEPARATELY, ONLY WHEN EXPLICITLY
+> AUTHORIZED — A CONTROLLED FAST-FORWARD OF MAIN TO `79a96f7e`**
 
-**Checkpoint `e8217f0e88bb824d78fd2b99cf8cd80c4c663ab3` (parent `f2508a9a`) is committed and pushed
-to the feature branch — the final pre-release product-construction audit (Gate 16, §33.2).** A
-direct fast-forward of `main` to that commit was attempted next and correctly blocked: `main` had
-advanced 265 commits since this branch's common ancestor (`3f4c6fe2`), none of which this branch
-ever contained. Gate 17 (§33.2) merged `origin/main` into the certified feature branch — a normal
-merge, no rebase, no squash — resolved 5 real conflicts (see §33.2 row 17 / PROGRESS.md Gate 17 for
-exact detail, including one genuine clean-merge regression caught and fixed: a silently-dropped
-`BusinessConciergeOwnerHome` import), and re-certified the integrated tree: 0 new TypeScript errors
-across the entire merged codebase, production build PASS, all canonical verifiers PASS (the whole-
-product verifier's 8/182 "failures" are explained scope-boundary artifacts of its diff-based
-protected-file guards reacting to main's own legitimate history, not real regressions).
+**Checkpoint `e8217f0e88bb824d78fd2b99cf8cd80c4c663ab3` (parent `f2508a9a`) was committed and pushed
+— the final pre-release product-construction audit (Gate 16, §33.2).** A direct fast-forward of
+`main` to that commit was attempted next and correctly blocked: `main` had advanced 265 commits
+since this branch's common ancestor (`3f4c6fe2`). Gate 17 (§33.2) merged `origin/main` into the
+certified feature branch — a normal merge, no rebase, no squash — resolved 5 real conflicts, and
+re-certified the integrated tree. **That merge is now committed and pushed as
+`79a96f7e3128481d2c9d9c31f9d9229423e46677`** (merge parents `e8217f0e`/`a0a47839`); `git
+merge-base --is-ancestor origin/main HEAD` confirms `origin/main` is an ancestor of feature HEAD,
+so a fast-forward of `main` to this branch is now genuinely clean whenever it is authorized.
 
-**FINAL PRODUCT CONSTRUCTION CERTIFICATION: still 100% PASS on the merged tree.**
+**Gate 18 (§33.2) then ran an independent, full 18-phase source audit against this exact commit**
+(no new commits between Gate 17 and Gate 18) and found and repaired 5 small CTA-color/copy defects
+(zero behavior change), re-certifying the tree at **182/182** on the whole-product verifier (up
+from Gate 17's 174/182, now that the tree is fully committed and clean). One real, pre-existing
+commercial gap (Autos Privado / Bienes Raíces Privado-FSBO renewal flow — payment/entitlement
+scope) was escalated as `⚠️ CHUY DECISION REQUIRED` rather than built. See §33.2 row 18 /
+PROGRESS.md Gate 18 for full detail.
 
-The merge itself is currently **uncommitted** (staged, `MERGE_HEAD` set to `a0a47839`), deliberately
-left uncommitted for this same reason Gate 16's repairs were — visibility before the commit lands.
-The next engineering move is therefore:
+**FINAL PRODUCT CONSTRUCTION CERTIFICATION: still 100% PASS on the reconciled, audited tree.**
 
-1. Commit the merge (a real merge commit, preserving both histories — do not squash).
-2. Push that commit to the feature branch only (never `main` directly).
-3. `origin/main` will then be a true ancestor of the feature branch's HEAD, making a clean
-   fast-forward of `main` to this branch safe — that fast-forward + Production deployment is a
-   separate, later gate requiring its own explicit authorization, not automatic from this one.
-4. Runtime owner QA (§50) may begin once a real owner/smoke-test credential or session is
+The next engineering move is therefore one of:
+
+1. Runtime owner QA (§50) may begin once a real owner/smoke-test credential or session is
    available (§33.3's SAFE AUTH gap remains a QA-tooling prerequisite, unrelated to product
    completeness) — QA from that point is reserved strictly for final runtime confirmation/polish,
    never for discovering missing UX/UI/function. See §33.4 for the doctrine.
+2. A deliberate product decision on the Autos Privado / Bienes Raíces Privado renewal-flow gap
+   flagged by Gate 18 — not required to ship the Owner Command Center itself, but tracked so it
+   isn't lost.
+3. A controlled fast-forward of `main` to `79a96f7e` and any Production deployment remain a
+   **separate, later gate requiring their own explicit authorization** — not automatic from
+   Gates 17 or 18 having certified the tree.
 
 `Owner Command Center ← Business Concierge owner-safe bridge reconciliation` (an earlier move this
 section used to describe) is DONE — see §33 for closure and §33.2 for the full completed-gate

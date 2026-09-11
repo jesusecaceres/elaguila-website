@@ -297,7 +297,11 @@ function BusquedasGuardadasPageContent() {
                         type="button"
                         onClick={() => void handleToggleActive(row)}
                         disabled={busy}
-                        className="ml-auto rounded-lg border border-[#D6C7AD]/70 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#5C5346] transition hover:border-[#7A1E2C]/40 hover:text-[#7A1E2C] disabled:opacity-60"
+                        className={
+                          row.isActive
+                            ? "ml-auto rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[11px] font-semibold text-amber-950 transition disabled:opacity-60"
+                            : "ml-auto rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-950 transition disabled:opacity-60"
+                        }
                       >
                         {busy ? t.working : row.isActive ? t.pause : t.reactivate}
                       </button>
@@ -305,7 +309,7 @@ function BusquedasGuardadasPageContent() {
                         type="button"
                         onClick={() => void handleDelete(row)}
                         disabled={busy}
-                        className="rounded-lg border border-[#D6C7AD]/70 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#5C5346] transition hover:border-[#7A1E2C]/40 hover:text-[#7A1E2C] disabled:opacity-60"
+                        className="rounded-lg border border-red-300/70 bg-red-50 px-2.5 py-1.5 text-[11px] font-semibold text-red-800 transition hover:border-red-400 hover:bg-red-100 disabled:opacity-60"
                       >
                         {t.delete}
                       </button>

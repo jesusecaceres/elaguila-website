@@ -724,7 +724,7 @@ export function LeonixRealEstateListingManageCard({
                     ? "Archivar: quita el anuncio del flujo activo (no borra datos ni ID Leonix)."
                     : "Archive: removes the listing from active flow (does not delete data or Leonix Ad ID)."
                 }
-                className="rounded-xl border border-stone-300 bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-900 disabled:opacity-50"
+                className="rounded-xl border border-red-300/70 bg-red-50 px-4 py-2 text-sm font-semibold text-red-800 hover:border-red-400 hover:bg-red-100 disabled:opacity-50"
               >
                 {archiveListingLabel(lang)}
               </button>

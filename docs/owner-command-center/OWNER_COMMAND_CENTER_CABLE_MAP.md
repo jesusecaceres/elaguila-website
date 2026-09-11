@@ -434,3 +434,31 @@ touched by this reconciliation itself.
 
 **PRODUCT CONSTRUCTION CERTIFICATION: still 100% PASS on the merged tree. MAIN: not touched.
 PRODUCTION: not touched.**
+
+## ABSOLUTE FINAL GREEN-LIGHT AUDIT (2026-09-10) — Gate 18
+
+Independent 18-phase source audit of `79a96f7e` (same commit as Gate 17) via 7 parallel research
+passes plus fresh verifiers/typecheck/lint/diff-check/build. Found and repaired 5 small CTA-color/
+copy defects (color/copy-only, zero behavior change):
+
+| File | Defect | Fix |
+|---|---|---|
+| `LeonixRealEstateListingManageCard.tsx` | FSBO "Archivar" gray/tan instead of canonical red | Matched sibling BR Negocio branch's red classes |
+| `EnVentaListingManageCard.tsx` | "Marcar vendido" button + confirm-dialog OK button neutral/dark instead of red | Canonical red on both |
+| `busquedas-guardadas/page.tsx` | Pause/Reactivate/Delete all one neutral color | Amber/green/red per canonical tone |
+| `perfil/page.tsx`, `seguridad/page.tsx` | Raw caught-exception message shown to owner, "Unknown error" fallback | Reused existing `dashboardSafeMutationErrorCopy(lang)` helper |
+| `notificaciones/page.tsx` | Owner-facing copy said "migrable a Supabase después" | Vendor-neutral copy |
+
+**Escalated, not patched:** Autos Privado and Bienes Raíces Privado/FSBO have no wired renewal
+flow despite being fixed-term paid listings — registry honestly marks `renew` unsupported for
+both. Pre-existing gap (not introduced by any recent gate); touches payment/entitlement scope,
+so reported `⚠️ CHUY DECISION REQUIRED` rather than built.
+
+**Reconfirmed non-blocking:** homepage `HomeBusinessToolsSection.tsx` still live-links to the
+orphaned pre-integration business-tools sub-routes (already noted in Gate 17); `OwnerRecentActivity`
+permanent honest-empty-state is by design (Bible §26), not a defect.
+
+Post-fix validation: 0 new TypeScript errors (byte-identical 7-error e2e baseline), 0 new lint
+findings, whole-product verifier 182/182 (up from 174/182 — Gate 17's protected-file diff
+artifacts cleared now that the tree is fully committed and clean), full production build PASS.
+**MAIN: not touched. PRODUCTION: not touched.**
