@@ -27,6 +27,7 @@ import {
 } from "../lib/serviciosTemplateRouting";
 import { ServiciosJustPublishedSuccessBanner } from "@/app/(site)/clasificados/publicar/servicios/components/ServiciosJustPublishedSuccessBanner";
 import { resolveBusinessToolsAccess } from "@/app/lib/listingPlans/categoryCommercialPlan";
+import { applyServiciosPublicOffersVisibility } from "../lib/serviciosPublicOffersVisibility";
 import { serviciosJsonLd } from "@/app/servicios/seo/serviciosJsonLd";
 import { listRelatedServiciosListings } from "../lib/serviciosRelatedListings";
 import { ServiciosRelatedListingsSection } from "../components/ServiciosRelatedListingsSection";
@@ -165,10 +166,11 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
   // INCLUDED offers never rendered publicly even once saved. The truth is now the included
   // `coupons_offers` capability — the same authority the publish route enforces when saving them —
   // with historical add-on holders still qualifying through the plan policy's legacy branch.
+  //
+  // Gate SERVICIOS-EDIT-ROUNDTRIP-OFFERS-DISCOVERY-1 (F2) — the visibility rule itself now lives in
+  // serviciosPublicOffersVisibility.ts, shared with the "Tiene ofertas" filter so the two agree.
   const serviciosOffersVisible = serviciosOffersAccess?.allowed === true;
-  const publicProfile = serviciosOffersVisible
-    ? profile
-    : { ...profile, coupons: [], couponFlyer: undefined, couponMoreOffers: undefined };
+  const publicProfile = applyServiciosPublicOffersVisibility(profile, serviciosOffersVisible);
   const engagementKey = serviciosEngagementListingKey(row);
   const persistListingEngagement =
     isPublishedLive && Boolean(engagementKey.trim()) && Boolean((listingShareUrl ?? "").trim());

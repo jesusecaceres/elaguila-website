@@ -139,7 +139,7 @@ Every customer-reachable feature, with its launch state.
 | --- | --- | --- |
 | Landing → checkpoint | LIVE | `/clasificados/publicar/servicios` (`/servicios/publicar` redirects here) |
 | Application form | LIVE | Guided; identity, hero, services, media, contact, hours, payments, credentials |
-| Category escape hatch | LIVE | "Otro servicio" reveals a free-text field; the "¿No ves tu categoría?" helper selects it and focuses the field |
+| Category escape hatch | LIVE | Instructional copy ("¿No encuentras tu categoría? Elige “Otro servicio”…") points to the "Otro servicio" option, which reveals "Describe tu servicio"; that text is the public category line and round-trips through edit (§Q). The helper that selects/focuses the field lives in the zero-consumer `ServiciosApplicationForm` |
 | Address verification | LIVE | Google Geocoding, server-side only |
 | Manual address fallback | LIVE | Honest `manual` provenance stamped; never claims Google verified it |
 | Media upload | LIVE | Vercel Blob; durability re-checked at publish |
@@ -731,3 +731,572 @@ Every item is pass/fail. There is no "skip during QA."
 
 Servicios is source-complete for golden-reference certification. What remains is one controlled
 environment/database pass (§I + §G), then the §J runtime certification.
+
+---
+
+## L. FOUNDATION COMPLETION — EXECUTED
+
+**Gate:** `SERVICIOS-FOUNDATION-COMPLETION-1` · **Date:** 2026-09-10
+**Target:** Leonix Media `xuieateniufcrsfdomwl` (verified `ACTIVE_HEALTHY`, Postgres 17.6, us-west-1)
+**Method:** sequential — READ → DECIDE → APPLY ONE → VERIFY → APPLY NEXT. No batched mutations.
+
+### L.1 Migrations applied (3)
+
+| Order | Migration | Result |
+| --- | --- | --- |
+| 1 | `20260805100100_leonix_phone_verification_challenges.sql` | APPLIED, verified |
+| 2 | `20260805100200_leonix_verified_phone_identities.sql` | APPLIED, verified (FK resolved — ordering correct) |
+| 3 | `20260910120000_saved_search_match_events_servicios.sql` | APPLIED, verified |
+
+### L.2 Migrations deliberately NOT applied (2)
+
+| Migration | Reason |
+| --- | --- |
+| `20260805100000_..._redemptions.sql` | Table already present **and structurally complete** — 35/35 columns, all 4 anti-repeat partial-unique indexes with the exact `status IN ('reserved','redeemed')` predicate, all 5 supporting indexes, RLS on, 0 policies. Nothing to add; never to be dropped/recreated. |
+| `20260805100300_..._verified_intro_discount_link.sql` | **The pre-gate UNKNOWN is now resolved: the column already exists.** `leonix_payment_records.verified_intro_discount_redemption_id` is `uuid`, with FK `REFERENCES leonix_verified_intro_discount_redemptions(id) ON DELETE SET NULL` and index `leonix_payment_records_verified_intro_discount_redemption_idx` — matching the migration source exactly. |
+
+### L.3 Post-mutation schema truth (verified, not inferred)
+
+| Object | State |
+| --- | --- |
+| `leonix_verified_intro_discount_redemptions` | PRESENT · 35 cols · RLS on · 0 policies |
+| `leonix_phone_verification_challenges` | **PRESENT (new)** · 17 cols · 5 CHECKs · 6 indexes incl. `open_reservation_uidx` + `rate_slot_uidx` · RLS on · 0 policies |
+| `leonix_verified_phone_identities` | **PRESENT (new)** · 8 cols · UNIQUE `(owner_user_id, phone_e164)` · FK → challenges `ON DELETE SET NULL` · RLS on · 0 policies |
+| `leonix_payment_records.verified_intro_discount_redemption_id` | PRESENT (pre-existing) · uuid · FK + index verified |
+| `saved_search_match_events_category_check` | `('autos','bienes-raices','rentas','servicios')` · `convalidated = true` |
+| `saved_search_match_events_seller_lane_check` | `NULL OR ('negocios','negocio','privado','business','independent')` · `convalidated = true` |
+| `saved_search_processing_failures_category_check` | `('autos','bienes-raices','rentas','servicios')` · `convalidated = true` |
+
+`convalidated = true` means Postgres re-validated **every existing row** against each new
+constraint. Old categories remain valid and no existing row was invalidated — proven by the
+constraint's own validation, not by assumption. No durable QA rows were inserted.
+
+### L.4 Promo circuit proof (schema inspection only — no Stripe call, no OTP sent)
+
+A column-existence assertion across all 34 columns the live code reads or writes on the promo
+path returned **zero missing**:
+
+- eligibility read → `leonix_verified_phone_identities.phone_e164`, Supabase Auth email
+- atomic reservation → all 18 reservation-write columns, incl. `reservation_expires_at`
+  (NOT NULL), `checkout_attempt_key`, `verification_method`, `base_amount_cents`,
+  `discount_cents`, `business_identity_*`
+- payment record link → `verified_intro_discount_redemption_id`
+- **P0 amount-guard dependencies** → `amount_subtotal_cents`, `amount_discount_cents`,
+  `amount_total_cents`, `billing_mode` all present (without these the shipped fix would be inert)
+- webhook fulfillment → `leonix_stripe_webhook_events` (idempotency ledger),
+  `leonix_subscription_records` (37 cols), `admin_audit_log`
+- Save (P1) → `saved_listings` has `category`, `source_table`, `source_id`, `canonical_ad_id`;
+  `listing_id` is `uuid` and `servicios_public_listings.id` is `uuid`, so the canonical key type
+  matches. In preview `persistEngagement` defaults to false, so the non-uuid fallback is never
+  written.
+
+**Anti-repeat boundaries — all four confirmed present with the exact required predicate:**
+
+| Boundary | Index | Predicate |
+| --- | --- | --- |
+| owner (global) | `..._owner_uniq` | `status IN ('reserved','redeemed')` |
+| email hash | `..._email_hash_uniq` | `status IN (...)` AND hash NOT NULL |
+| phone hash | `..._phone_hash_uniq` | `status IN (...)` AND hash NOT NULL |
+| business identity | `..._business_uniq` | `status IN ('reserved','redeemed')` |
+
+All four cover **both** `reserved` and `redeemed`, so two concurrent checkouts cannot both hold
+an unresolved reservation. **PROMO UNIQUENESS: PASS.**
+
+### L.5 Environment readiness
+
+No `.env*` file exists in the worktree, and Vercel Preview environment variables cannot be read
+from this session. Every value below is therefore honestly **NEEDS OWNER MANUAL VERIFICATION**
+— not assumed configured, and not assumed missing.
+
+| Group | Variables | Status |
+| --- | --- | --- |
+| Supabase | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | NEEDS OWNER MANUAL VERIFICATION — all three must resolve to `xuieateniufcrsfdomwl` |
+| Servicios flags | `SERVICIOS_STRICT_PUBLISH=1`; `SERVICIOS_DEV_PUBLISH` unset; `SERVICIOS_MODERATION_MODE` unset | NEEDS OWNER MANUAL VERIFICATION |
+| Promo identity | `LEONIX_IDENTITY_HASH_KEY` | NEEDS OWNER MANUAL VERIFICATION — absence disables the **entire** 15% feature (503) |
+| SMS | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID` | NEEDS OWNER MANUAL VERIFICATION |
+| Stripe TEST | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, Preview webhook endpoint + 9 events | NEEDS OWNER MANUAL VERIFICATION |
+| Google | `GOOGLE_MAPS_API_KEY`, Geocoding enabled, server-compatible restriction | NEEDS OWNER MANUAL VERIFICATION |
+| Media | `BLOB_READ_WRITE_TOKEN` | NEEDS OWNER MANUAL VERIFICATION |
+
+### L.6 Standing statements
+
+- **No customer-visible Servicios feature is intentionally out of scope.** Every launch-visible
+  control either works end to end or does not render. The `save_only` branch that previously
+  rendered nothing now renders a working Save.
+- **Runtime certification must exercise BOTH commercial paths**: PATH A (base $399/month) and
+  PATH B (verified 15% intro — email path *and* SMS path, one-time enforcement, correct Stripe
+  amount `33915`, and full-price `39900` renewal).
+- **No source blocker remains.** Everything outstanding is configuration/runtime.
+
+### L.7 Remaining prerequisites before browser QA
+
+1. Verify Vercel Preview resolves to Leonix Media with a **matching** URL/anon/service-role trio.
+2. Set/confirm `SERVICIOS_STRICT_PUBLISH=1`, `LEONIX_IDENTITY_HASH_KEY`, `BLOB_READ_WRITE_TOKEN`,
+   Stripe TEST keys + Preview webhook (9 events), Google Geocoding.
+   (`TWILIO_*` is OPTIONAL and expected unset — see §O.5.)
+3. Redeploy Preview **only if** an env value changes (env edits do not take effect until a new
+   deployment). No redeploy is required by this gate's database work alone.
+
+---
+
+## M. RUNTIME CONFIG CERTIFICATION
+
+**Gate:** `SERVICIOS-RUNTIME-CONFIG-CERTIFICATION-1` · **Date:** 2026-09-10 · **Result: BLOCKED**
+**Method:** read-only only. No Vercel/Stripe/Google/SMS/Supabase mutation, no deploy, no push.
+
+### M.1 Deployment truth (proven)
+
+| Fact | Value |
+| --- | --- |
+| Vercel team | `Jesus Caceres' projects` · `team_wSqEzL32gCp3YGEB9T41fpxo` (Pro) |
+| Project | `leonix-media` · `prj_AOEx7UeAvVCKwuKFIa65wcot4rw9` |
+| Preview alias | `leonix-media-git-completion-launc-b1b333-jesus-caceres-projects.vercel.app` |
+| Alias resolves to | `dpl_Ewts6oLMD1VA3shgeUd1w76vuFnY` · state **READY** |
+| Deployed commit | **`e98c5d908ad6e717f9f71ec8dfeef0e5b7d391e1`** |
+| Local HEAD | `9dfe3c8d5dedf4552a0d956ca045d9877042a83b` |
+| `origin` branch ref | `e98c5d90…` — **2 commits unpushed** |
+
+### M.2 BLOCKER 1 — the deployed Preview predates the P0 fix (proven)
+
+`e98c5d90` is an ancestor of HEAD. The two commits not yet deployed touch **six runtime files**:
+
+```
+app/api/revenue-os/checkout/route.ts
+app/lib/listingPlans/revenueFulfillment.ts
+app/lib/listingPlans/revenuePaymentRecords.ts
+app/(site)/servicios/components/ServiciosBusinessHubEngagementRow.tsx
+app/(site)/servicios/publicar/components/ServiciosApplicationForm.tsx
+app/(site)/servicios/publicar/serviciosCategories.ts
+```
+
+The live Preview therefore still contains the **PATH B money-taken-nothing-published P0** and
+has **no working Save**. Running the §J checklist against it today would charge a real TEST card,
+fail fulfillment with `amount_mismatch`, and look like an application defect rather than a stale
+build. **REDEPLOY REQUIRED** — and because `origin` is still at `e98c5d90`, the branch must be
+pushed first.
+
+### M.3 BLOCKER 2 — Vercel SSO protection will block Stripe webhooks (proven)
+
+Project deployment protection:
+
+```
+passwordProtection : disabled
+ssoProtection      : ENABLED, deploymentType = "all_except_custom_domains"
+trustedIps         : disabled
+```
+
+The Preview alias is a `*.vercel.app` host, **not** a custom domain, so it is SSO-protected.
+Consequences:
+
+- A browser QA session works normally (the signed-in owner passes SSO), so this failure is
+  invisible from the browser.
+- **Stripe cannot reach `POST /api/revenue-os/webhook`** — it receives Vercel's authentication
+  challenge (401), not the app. `checkout.session.completed` is never delivered, so no
+  entitlement is granted and no listing is published, on **both** PATH A and PATH B.
+
+Stripe webhook endpoints cannot send custom headers, so a header-based bypass will not work.
+Owner options, in preference order:
+
+1. **Protection Bypass for Automation** — enable it on the project and append the secret to the
+   webhook URL as a query parameter (`…/api/revenue-os/webhook?x-vercel-protection-bypass=<secret>`).
+   Keeps SSO on for humans while letting Stripe through. Recommended.
+2. Point the Stripe TEST webhook at a **custom domain** route excluded from protection.
+3. Disable SSO protection for Preview deployments for the duration of QA (weakest — exposes the
+   Preview publicly).
+
+### M.4 Environment variable presence — NOT PROVABLE IN THIS SESSION
+
+Every required variable is **NEEDS OWNER MANUAL VERIFICATION**. This is a capability limit, not
+a finding of absence — nothing here should be read as "missing".
+
+Read-only avenues attempted and their outcome:
+
+| Avenue | Outcome |
+| --- | --- |
+| Vercel MCP tools | No environment-variable tool exists in this session's toolset |
+| `get_project` / `get_deployment` metadata | Returns no env names |
+| Vercel CLI (`vercel env pull`) | No CLI installed, no `.vercel` link, no `VERCEL_TOKEN`, no CLI auth file; installing it is barred by resource control and login is non-interactive |
+| Local `.env*` | None exist in the worktree |
+| Stripe CLI/API | No `STRIPE_SECRET_KEY` in env, no Stripe CLI config |
+| Google Cloud | No `gcloud` credentials, no `GOOGLE_MAPS_API_KEY` in env |
+
+| Group | Variables | Status |
+| --- | --- | --- |
+| Supabase | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | NEEDS OWNER MANUAL VERIFICATION — project-ref alignment unproven |
+| Servicios | `SERVICIOS_STRICT_PUBLISH`, `SERVICIOS_DEV_PUBLISH`, `SERVICIOS_MODERATION_MODE` | NEEDS OWNER MANUAL VERIFICATION |
+| Identity | `LEONIX_IDENTITY_HASH_KEY` | NEEDS OWNER MANUAL VERIFICATION |
+| Twilio | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID` | **OPTIONAL — NOT REQUIRED** for certification (§O.5). Expected unset. |
+| Stripe | `STRIPE_SECRET_KEY` (TEST vs LIVE), `STRIPE_WEBHOOK_SECRET` | NEEDS OWNER MANUAL VERIFICATION — **mode unknown** |
+| Google | `GOOGLE_MAPS_API_KEY` + Geocoding enabled + server-compatible restriction | NEEDS OWNER MANUAL VERIFICATION |
+| Media | `BLOB_READ_WRITE_TOKEN` | NEEDS OWNER MANUAL VERIFICATION |
+
+No secret value was printed, requested, or written anywhere.
+
+### M.5 SMS circuit — source facts proven (no OTP sent)
+
+| Requirement | Proven |
+| --- | --- |
+| Provider is Twilio Verify | YES — `app/lib/sms/twilioVerifyProvider.ts` |
+| Raw OTP never persisted | YES — no insert/upsert writes a code; every `code:` occurrence in the two routes is an HTTP error code |
+| Fails closed when unconfigured | YES — both routes return 503 `sms_not_configured` on `NOT_CONFIGURED` |
+| Challenge persistence table exists | YES — created and verified in §L |
+
+### M.6 Unrelated concurrent deployment (noted, not ours)
+
+At the time of this gate, `dpl_Af7uurxzkNR8eKugHzs34wiTybJD` was BUILDING on branch
+`feature/business-concierge-systemic-repair-2026-09` (commit `e39b9df5`). It belongs to a
+different workstream, has its own alias, and does **not** affect the Servicios Preview alias.
+
+### M.7 Owner actions required before the next Preview deploy
+
+1. Decide and apply the SSO-protection approach for the Stripe webhook (§M.3).
+2. Confirm/set the seven env groups in §M.4 on the **Preview** scope.
+3. Confirm `STRIPE_SECRET_KEY` is `sk_test_…`, never `sk_live_…`.
+4. Register the Stripe TEST webhook against the Preview URL with all nine events (§G.3).
+5. Then authorize **one** intentional push + Preview deploy at the then-current HEAD.
+
+---
+
+## N. TEMPORARY RUNTIME-READINESS PROBE — SCHEDULED FOR REMOVAL
+
+**Gate:** `SERVICIOS-RUNTIME-CONFIG-PROBE-DEPLOY-1` · **Date:** 2026-09-10
+
+### N.1 What it is
+
+| Field | Value |
+| --- | --- |
+| Path | `GET /api/internal/servicios-runtime-readiness` |
+| Files | `app/api/internal/servicios-runtime-readiness/route.ts`, `…/readinessReport.ts` |
+| Verifier | `scripts/verify-servicios-runtime-readiness-probe.ts` (22/22 PASS) |
+| Purpose | Report **sanitized** runtime-config readiness on the protected Preview so the exact missing environment items can be identified without the owner hand-copying secrets |
+| Lifetime | **TEMPORARY** — delete immediately after Servicios runtime certification |
+
+It exists because §M established that Vercel environment state is not readable through any
+tooling available to this session, and hand-auditing a dozen variables across seven vendors is
+both slow and error-prone. It rides along with the deployment that was **already required** for
+the P0/P1 source fixes — it did not cause an extra build.
+
+### N.2 Safety contract (each item machine-verified)
+
+- **Sanitized output only** — booleans, the Stripe mode classification (`test`/`live`/`unknown`),
+  the PUBLIC Supabase project ref parsed from the URL hostname, the Vercel env name and the
+  Vercel git SHA. Nothing else.
+- **No secret, and no fragment of one.** The verifier feeds fabricated secrets through the real
+  classifier and asserts that no full value *and no 8-character fragment* appears in the output.
+- **No length disclosure** — the report contains no numeric field at all.
+- **No token decoding** — the project ref comes from the URL hostname; base64/JWT decoding is
+  absent and asserted absent.
+- **Production hard-disabled** — `VERCEL_ENV === "production"` returns 404, and the guard runs
+  *before* any report is constructed.
+- **Zero external calls** — the route imports only `next/server` and the local pure classifier;
+  the classifier has **zero imports**. No fetch, DB, Stripe, Google or Twilio call exists.
+- **GET only**, `force-dynamic`, `revalidate = 0`, `no-store`, `x-robots-tag: noindex`.
+
+### N.3 Doctrine
+
+This is **diagnostic scaffolding, not product architecture.** It must not be treated as a
+pattern, must not be copied into other categories, and must not survive certification. Removing
+it means deleting the route directory and its verifier — it has no other consumers by design.
+
+### N.4 Removal checklist (run after §J certification)
+
+- [ ] Delete `app/api/internal/servicios-runtime-readiness/`
+- [ ] Delete `scripts/verify-servicios-runtime-readiness-probe.ts`
+- [ ] Delete this section N
+- [ ] Confirm no remaining reference: `grep -r "servicios-runtime-readiness"`
+
+---
+
+## O. DISCOUNT ARCHITECTURE — LOCKED DOCTRINE
+
+**Gate:** `SERVICIOS-VERIFIED-INTRO-NEWSLETTER-FOUNDATION-LOCK` · **Date:** 2026-09-10
+**Status:** OWNER-LOCKED. This section overrides any earlier implication elsewhere in this document.
+
+### O.1 GLOBAL DOCTRINE — carry this to every category
+
+> **A monthly-subscription introductory discount MUST NOT use the billing-mode-blind generic
+> promo-code path, unless that path is first explicitly upgraded to first-payment-only semantics.**
+
+**Why this is load-bearing, not stylistic.** `revenuePromoValidation.ts` computes
+`totalCents = subtotalCents − discountCents`, and checkout assigns that to `finalAmountCents`
+with **no billing-mode branch**. There is no Stripe coupon and no "duration" concept anywhere in
+`promoCodeRules` / `promoCodeLifecycle` / `revenuePromoValidation`. On a `monthly_subscription`
+package that reduced total becomes the **recurring** price. A "15% intro" promo code on Servicios
+would therefore discount **every month forever** — roughly **$718/year of permanent margin per
+customer** — while appearing to be an introductory offer.
+
+`verified_intro_15` exists precisely to express *first payment only*: for a subscription it
+attaches a `duration:"once"` Stripe coupon and leaves the line item at full price.
+
+**Applies to every current and future `monthly_subscription` package**, explicitly including:
+**Servicios**, **Restaurantes**, **Bienes Negocio**, **Autos Dealer**.
+
+### O.2 Servicios commercial truth (restated, canonical)
+
+| Fact | Value |
+| --- | --- |
+| Regular price | **$399.00 / month** |
+| Verified introductory benefit | **15% off the FIRST eligible payment only** |
+| First verified payment | **$339.15** |
+| Every renewal | **$399.00 / month** |
+| Promo code required | **NO** — the benefit is identity-bound |
+
+### O.3 The two discount systems are COMPLEMENTARY, not duplicates
+
+| | Generic promo codes | `verified_intro_15` |
+| --- | --- | --- |
+| Purpose | Admin/sales-led campaigns, negotiated offers | Identity-bound introductory benefit |
+| Entry | A typed code | Verified identity — no code exists |
+| Amount | Arbitrary % or $ | Exactly 15% |
+| Subscription semantics | **None** — discounts the recurring price | First payment only (`duration:"once"`) |
+| Anti-repeat | `max_redemptions` + `per_customer_limit` | 4 partial-unique identity boundaries |
+| Admin | `/admin/workspace/promo-codes` | Redemption ledger + audit log |
+
+They **cannot stack** — checkout rejects a request carrying both (`discount_conflict`).
+
+**The generic promo-code system is NOT deprecated.** It remains a valid Revenue OS capability for
+custom campaigns, negotiated discounts, sales-led codes, and category/package-scoped offers, with
+its own admin, generator, normalization/uniqueness, redemption ledger and webhook finalization.
+
+**Launch-25 remains RETIRED** (retired by commit `313338ce`, the same commit that introduced
+`verified_intro_15`; existing rows flipped to `revoked`, history preserved, zero deletions).
+Newsletter-issued promo codes must **not** be resurrected for subscription intro pricing.
+
+### O.4 Newsletter = MARKETING SURFACE, never an eligibility authority
+
+**Supabase Auth (`email_confirmed_at`) is the single identity authority.** Subscribing to the
+newsletter verifies nobody and confers nothing.
+
+Canonical customer flow:
+
+```
+Newsletter signup
+  → success page states the benefit exists and that VERIFICATION unlocks it
+  → CTA "Verify my account" → existing /login?redirect=… magic-link flow
+  → Supabase Auth confirms the email
+  → verified identity becomes eligible automatically
+  → Servicios checkout recognizes it — NO promo code
+  → first payment $339.15
+  → every renewal $399.00
+```
+
+Implemented as marketing copy plus a link into the **existing** auth entry. No promo code is
+minted or emailed, no newsletter eligibility logic exists, no second identity table was created,
+and a subscriber is never marked verified merely for subscribing. The bridge is hidden when the
+subscriber arrived from a publish checkpoint, since they are already inside the funnel and are
+being told to return to it.
+
+### O.5 SMS / Twilio — OPTIONAL, explicitly NOT launch-blocking
+
+| Path | Status |
+| --- | --- |
+| **Email** | **REQUIRED / canonical.** Supabase Auth `email_confirmed_at`. Complete and live. |
+| **SMS** | **OPTIONAL alternate** verification, for customers with no confirmed email. |
+| **Twilio** | **Optional implementation adapter** behind `SmsVerificationProvider`, referenced at 2 call sites. Not required for Servicios certification. |
+
+`TWILIO_*` is **removed from the launch-blocking configuration list.** With it absent:
+
+- the phone-verification path fails closed (503 `sms_not_configured`) and the panel honestly says
+  to use a confirmed email instead;
+- **email-confirmed customers remain fully eligible**;
+- **Servicios launch certification can still PASS.**
+
+The phone-verification architecture and its DB tables stay intact and its fail-closed behaviour is
+unchanged — nothing was removed or weakened. Supabase phone auth is not implemented anywhere and
+would not avoid a vendor anyway, since it also requires an SMS provider configured inside Supabase.
+
+### O.6 Customer-facing copy corrections made in this gate
+
+| Surface | Was | Now |
+| --- | --- | --- |
+| Verified-intro panel, unverified state | "Verify your **phone** to unlock 15%…" — implied phone was required, contradicting email-alone eligibility | Names both routes: sign in with a confirmed email, **or** verify a phone |
+| Verified-intro panel, eligible state | The renewal note appeared only **after** applying, so "Apply 15% discount" could read as recurring | The first-payment-only note is disclosed **before** the customer applies |
+| Newsletter success | "You're subscribed." — no mention of the benefit | Adds the acquisition bridge + verify CTA, worded so verification (not signup) unlocks eligibility |
+
+### O.7 Newsletter double opt-in — BUILT-NOT-WIRED (recorded, not a blocker)
+
+`newsletterVerificationState.ts` is a pure state machine and the DB columns exist
+(`pending_verification`, `verification_token`, `verification_token_expires_at`, `verified_at` —
+migration `20260826130000`), but there is **no `/api/newsletter/verify` route and no confirmation
+email**; subscribe writes `status: "subscribed"` directly. This does not block anything, because
+newsletter verification is deliberately **not** an eligibility authority (§O.4).
+
+`buildNewsletterPromoCodeEmail()` is a **zero-consumer** Launch-25 artifact, classified **MIXED**
+(parameterized amounts, hardcoded "Launch 25" wording) and therefore **retained and labelled** in
+-file as the layout for a future admin-issued campaign email. It must never be used for the
+verified-intro benefit, which mints no code.
+
+---
+
+## P. P7 BLOCKER REPAIR — SOURCE CLOSED, RUNTIME PENDING
+
+**Gates:** `SERVICIOS-P7-BLOCKER-REPAIR-01` (implementation) · `SERVICIOS-P7-REPAIR-INTEGRATION-1A`
+(integration validation) · **Date:** 2026-09-10
+
+### P.1 How these were found
+
+The absolute pre-QA audit (`SERVICIOS-FOUNDATIONAL-QA-GREEN-LIGHT-ABSOLUTE-01`) returned
+**FOUNDATIONAL QA GREEN LIGHT: NO** with five launch-critical defects, each proven against source at
+`a587263d` and the live Leonix Media database. The existing verifier suite was green on all five.
+
+### P.2 Defects and closure
+
+| # | Defect | Commit | Source status |
+| --- | --- | --- | --- |
+| B1 | Publish route treated a NULL `owner_user_id` as permission → any signed-in user could overwrite an unowned published listing and take ownership (57 of 103 live rows were exposed) | `dea5d0b3` | **CLOSED** |
+| B2 | pause → subscription cancelled/failed → Resume or edit-save republished for free, indefinitely | `dea5d0b3` | **CLOSED** |
+| B3 | Owner saves could move `suspended` / `rejected` rows to `pending_payment`, defeating the webhook's own refusal | `dea5d0b3` | **CLOSED** |
+| B4 | Coupons/offers INCLUDED in $399 were gated on the retired `servicios_offers_addon` key at the publish strip, the public detail page and the my-listings API; the dashboard "enable" action returned a false success | `961fa93c` | **CLOSED** |
+| B5 | "Hide my exact address" honoured only at render; the street stayed in public `profile_json` behind a `USING (true)` read policy | `404a5ea2` | **CLOSED in source; DB half prepared, NOT applied** |
+
+### P.3 Locked doctrine (golden reference — carry to later categories)
+
+- **Ownership (B1).** One rule, `isServiciosListingOwner()`: the row has an owner AND it is the
+  authenticated actor. A NULL owner is never permission; unowned historical rows are reachable only
+  through admin/ownership assignment. Saves never write `owner_user_id`.
+- **Paid reactivation (B2).** Visibility returns only through Resume, which requires the canonical base
+  right: `resolveCategoryListingPlan` (live base entitlement + grace/suspended overlay) plus the newest
+  subscription record not `canceled`/`suspended`. Grace is honoured. Editing a paused listing keeps it
+  paused. The shared lifecycle is unchanged.
+- **Leonix authority (B3) — FAIL CLOSED, OWNER-APPROVED.** A customer can never self-reactivate a
+  `suspended` or `rejected` row, on any save or Resume path. The listing-level `suspended_reason` cannot
+  safely separate a chargeback from an ordinary payment lapse (the chargeback path stamps the same
+  `'payment'` value), so there is **no customer self-service exception**. Recovery authority is the
+  Revenue OS lifecycle where explicitly authorized (`liftPaymentSuspension` on `invoice.paid` / dispute
+  won) and admin/operator restoration where required. A self-service re-subscribe path waits for a
+  future dedicated suspension-reason architecture.
+- **Included offers (B4).** The single authority everywhere is
+  `resolveBusinessToolsAccess({ capability: "coupons_offers" })` — publish strip, public render,
+  owner dashboard API, dashboard UI and the enable route. Historical add-on holders still qualify via
+  the plan policy's legacy branch. A first (pending-payment) save keeps its offers because that row
+  can only go public through a paid `servicios_base_monthly`, which includes the capability. The
+  retired add-on is never sold.
+- **Address privacy (B5).** A public/private split at the single save boundary: when the owner hides
+  the address, street, suite and Google place id leave `profile_json` for the service-role-only
+  `private_contact` column; city / region / country / postal code stay public. The owner API
+  (`my-listing`) restores them for edit hydration and listing-bound Preview. The public detail renders
+  identically.
+
+### P.4 Migration — prepared, NOT applied
+
+`supabase/migrations/20260910210000_servicios_public_listings_read_privacy.sql`
+
+- adds `private_contact` (never granted to anon/authenticated);
+- replaces the `USING (true)` all-roles policy with published rows for anon + authenticated, plus own
+  rows for an authenticated owner (`owner_user_id = auth.uid()`);
+- revokes table-level SELECT and grants column-level SELECT: anon gets the public contract only (no
+  `owner_user_id`); authenticated additionally gets `owner_user_id`; neither gets moderation,
+  suspension, republish-audit or private columns;
+- idempotent backfill copying any hidden-address data into `private_contact` in the same statement
+  that removes it from `profile_json` (zero rows qualify today).
+
+**Deploy order.** The code is safe before the migration (a shown-address save never touches the new
+column; a hidden-address save fails closed). Apply the migration → deploy → re-run the idempotent
+backfill once to catch any hidden-address row the previous build saved in between.
+
+**Remote application requires explicit owner authorization.**
+
+### P.5 Validation (integration gate)
+
+| Check | Result |
+| --- | --- |
+| Canonical full typecheck `NODE_OPTIONS=--max-old-space-size=7168 npm run typecheck` | **PASS** — exit 0, 0 errors |
+| `verify-servicios-publish-authority` (B1/B2/B3) | 37/37 |
+| `verify-servicios-included-offers` (B4) | 29/29 |
+| `verify-servicios-address-privacy` (B5) | 30/30 |
+| `verify-servicios-golden-reference-promo-path` (15% verified intro) | 24/24 |
+| `verify-servicios-gate1-lifecycle` / `gate2-discovery` / `gate3-source-readiness` | 20/20 · 19/19 · 97/97 |
+| `verify-servicios-p0b-coupons-offers-persistence-preview-public-output` | PASS (now covers the server gate) |
+| Protected systems (pricing matrix, checkout/webhook routes, fulfillment, Stripe, verified-intro, subscription lifecycle, Saved Search, analytics, media, render library) | **byte-identical** to `a587263d` |
+
+Still-red broader verifiers — none is a Servicios regression:
+
+| Verifier | Classification |
+| --- | --- |
+| `verify-servicios-preview-published-parity` ("hub row: Save removed") | stale test doctrine — Save reinstated before this repair set |
+| `verify-servicios-p0c-dashboard-addon-only-stripe-edit-route-parity` (remaining checks) | stale test doctrine — retired dashboard Stripe add-on flow |
+| `verify-owner-dashboard-global-cta-standard-01` | stale test doctrine — Restaurante add-on CTA retired by `14a2c2ca` |
+| `verify-servicios-edit-route-restaurantes-parity-hard-fix-01`, `verify-owner-dashboard-global-edit-hydration-standard-01` | stale via chain into the verifier above; own Servicios checks pass |
+| `smoke-active-categories-revenue-os-checkpoint-activation-matrix-01` | unrelated — Bienes assertion |
+| `gate-i13a-launch-readiness-selftest` | unrelated — Comida Local assertion; its Servicios checks pass |
+| `verify-package-e-e2-user-dashboard-command-center` (Gate 7) | unrelated — `dashboard/page.tsx` |
+| `verify-dashboard-category-edit-hydration-01` | unrelated — dashboard label copy; its my-listing check passes |
+
+### P.6 Corrections to earlier records
+
+- **Save (§H.2):** it had been deliberately removed from the hero and hub on 2026-07-15 (`a69e7600`),
+  not "built-not-wired". Its reinstatement follows the newer owner direction.
+- **B4 scope:** the audit named only the publish strip; the public detail page and my-listings API were
+  gated on the same retired key. The execution verifier found them.
+- **Counts:** the promo-path verifier defines 24 checks (earlier records said 25/25).
+
+### P.7 Status
+
+- **Source:** B1–B5 closed.
+- **Database:** B5 migration pending owner authorization.
+- **Runtime:** full Servicios runtime certification (§J, plus regressions R1–R5 for B1–B5) still pending.
+- **Temporary probe (§N):** remains deployed until runtime certification completes, then is removed.
+
+---
+
+## Q. ABSOLUTE-02 CORRECTIVE — EDIT ROUND-TRIP + OFFERS DISCOVERY
+
+**Gate:** `SERVICIOS-EDIT-ROUNDTRIP-OFFERS-DISCOVERY-1` · **Date:** 2026-09-10 · **Found by:** the
+`SERVICIOS-FOUNDATIONAL-QA-GREEN-LIGHT-ABSOLUTE-02` execution probe (publish → owner hydration →
+republish on a fully populated listing). ABSOLUTE-02 confirmed B1–B5 closed and the P.4 migration
+applied to Leonix Media (ledger `20260911024723`, integration gate 1B); these two defects were new.
+
+### Q.1 F1 — "Otro servicio" description lost on edit
+
+For "Otro servicio" the owner's "Describe tu servicio" text is persisted **only** as the public
+`hero.categoryLine`. Edit hydration (`serviciosPublishedToApplicationDraft`, used by the dashboard edit
+and the listing-bound Preview) never read it back: the form reopened empty, the Preview lost the category
+line, and republish was refused by readiness ("Describe tu tipo de servicio") until the owner retyped it.
+(ABSOLUTE-02 called this a silent loss; readiness actually blocks the republish — the data loss is in the
+editor, not in the saved row.)
+
+**Closure.** Hydration restores `customServiceDescription` from `hero.categoryLine` — the existing and
+only persisted authority, no new storage — for exactly the business types that publish a custom label.
+That rule is now one function, `serviciosBusinessTypeUsesCustomCategoryLabel()`, used by both the label
+resolver and hydration. Predefined categories are unchanged.
+
+### Q.2 F2 — "Tiene ofertas" missed included offers
+
+The "Tiene ofertas / Has offers" filter counted only old-style promotions, so a listing whose included
+coupons, flyer or "more offers" link render on its detail page never matched (and Saved Search, which
+runs the same filter, never matched it either).
+
+**Doctrine — read-time capability truth.** Discovery and the detail page share one rule
+(`serviciosPublicOffersVisibility.ts`): included offers count only while `coupons_offers` is **current**,
+decided at request time by the same plan policy. Old-style promotions are not part of that capability
+and still count, as before. There is no publish-time flag: when commercial authority lapses, the listing
+stops matching exactly when its detail page stops showing the offers. Historical add-on holders stay
+compatible through the plan policy's legacy branch, never as a second authority.
+
+**Cost.** `resolveBusinessToolsAccessForListings` batches the existing resolver: one entitlement query
+(plus one subscription query when a live Stripe row exists) per 100 ids, and only for rows that carry
+offer content, only when the filter is on. The single-listing `resolveCategoryListingPlan` now delegates
+to the batched path, so there is one fetch implementation and one pure decision
+(`decideCategoryListingPlansForListings` → `decideCategoryListingPlan`). The Saved Search orchestrator
+makes one lookup per activation.
+
+### Q.3 Verification
+
+| Check | Result |
+| --- | --- |
+| `verify-servicios-edit-roundtrip` (new) | 31/31 — against the pre-fix tree: 8 OK / 23 FAIL, including the real readiness refusal and the excluded coupon/flyer/more-offers listings |
+| included offers · publish authority · address privacy | 29/29 · 37/37 · 30/30 |
+| gate1 lifecycle · gate2 discovery · gate3 readiness · verified-intro promo path | 20/20 · 19/19 · 97/97 · 24/24 |
+| `gate-pkgC-c5-c6`, Restaurantes gate1/gate2, package-d-d3, i13b, bilingual hydration, p0b | PASS |
+| Scoped typecheck (touched files + direct consumers) | 0 errors |
+
+Two source-string assertions were updated to the new shape without changing their intent:
+`verify-servicios-included-offers` (the strip moved into the shared rule) and
+`verify-restaurantes-gate1-lifecycle` (the resolver keys on category + listing_id via `.in`).
+
+### Q.4 Scope and status
+
+- No database, schema, migration, payment, Stripe, webhook or Vercel-env change.
+- `promo=1` / `offer=1` remain URL-only legacy parameters with no rendered control (unchanged).
+- **Owner runtime QA is still pending** (§J, plus R1–R5 for B1–B5, R6: edit and republish an
+  "Otro servicio" listing, R7: "Tiene ofertas" returns the QA listing's coupon).

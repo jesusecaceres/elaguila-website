@@ -272,7 +272,11 @@ check("PUBLIC: offers render on the included capability (Gate E.3.2 truth), fail
   const page = src("app/(site)/clasificados/servicios/[slug]/page.tsx");
   assert.match(page, /resolveBusinessToolsAccess\(\{[\s\S]*?capability: "coupons_offers",[\s\S]*?\}\)\.catch\(\(\) => null\)/);
   assert.match(page, /const serviciosOffersVisible = serviciosOffersAccess\?\.allowed === true;/);
-  assert.match(page, /coupons: \[\], couponFlyer: undefined, couponMoreOffers: undefined/, "unentitled render must hide offers");
+  // Gate SERVICIOS-EDIT-ROUNDTRIP-OFFERS-DISCOVERY-1 — the strip moved into the rule shared with the
+  // "Tiene ofertas" filter; the page must render through it on the same capability decision.
+  assert.match(page, /applyServiciosPublicOffersVisibility\(profile, serviciosOffersVisible\)/);
+  const rule = src("app/(site)/clasificados/servicios/lib/serviciosPublicOffersVisibility.ts");
+  assert.match(rule, /coupons: \[\], couponFlyer: undefined, couponMoreOffers: undefined/, "unentitled render must hide offers");
 });
 check("PUBLIC: rendering is gated by persisted content, never by the retired package key", () => {
   for (const rel of [

@@ -211,6 +211,60 @@ export function decideCategoryListingPlan(input: {
   return { packageKey: null, grantSource: null, status: "none", startsAt: null, endsAt: null, capabilities: [], capabilitySource: "none" };
 }
 
+/** An entitlement row tagged with the listing it belongs to — the batched resolver's read shape. */
+export type ListingEntitlementRowFacts = { listingId: string; facts: EntitlementRowFacts };
+
+/** Only a real Stripe subscription can be in grace/suspended, so only listings holding a live
+ * `stripe_webhook` row need the subscription-record lookup (never admin/comp/partner/print rows). */
+export function listingIdsNeedingSubscriptionOverride(rows: ListingEntitlementRowFacts[], nowMs: number): string[] {
+  const ids = new Set<string>();
+  for (const { listingId, facts } of rows) {
+    if (facts.grantSource === "stripe_webhook" && isRowCurrentlyLive(facts, nowMs)) ids.add(listingId);
+  }
+  return [...ids];
+}
+
+/** The newest `leonix_subscription_records.status` → the plan overlay. Anything else is "no override". */
+export function subscriptionOverrideFromRecordStatus(status: string | null | undefined): "grace" | "suspended" | null {
+  const s = String(status ?? "");
+  if (s === "suspended") return "suspended";
+  if (s === "grace") return "grace";
+  return null;
+}
+
+/**
+ * Gate SERVICIOS-EDIT-ROUNDTRIP-OFFERS-DISCOVERY-1 — the batched form of `decideCategoryListingPlan`.
+ * Groups rows by listing and runs the SAME per-listing policy for each id, so a batched lookup (a
+ * discovery surface) and a single lookup (a detail page) can never decide differently.
+ */
+export function decideCategoryListingPlansForListings(input: {
+  category: string;
+  listingIds: readonly string[];
+  rows: ListingEntitlementRowFacts[];
+  subscriptionOverrideByListingId?: ReadonlyMap<string, "grace" | "suspended" | null>;
+  nowMs: number;
+}): Map<string, CategoryListingPlan> {
+  const rowsByListing = new Map<string, EntitlementRowFacts[]>();
+  for (const { listingId, facts } of input.rows) {
+    const list = rowsByListing.get(listingId) ?? [];
+    list.push(facts);
+    rowsByListing.set(listingId, list);
+  }
+  const plans = new Map<string, CategoryListingPlan>();
+  for (const listingId of input.listingIds) {
+    plans.set(
+      listingId,
+      decideCategoryListingPlan({
+        category: input.category,
+        rows: rowsByListing.get(listingId) ?? [],
+        nowMs: input.nowMs,
+        subscriptionOverride: input.subscriptionOverrideByListingId?.get(listingId) ?? null,
+      }),
+    );
+  }
+  return plans;
+}
+
 export type BusinessToolsDecision = {
   allowed: boolean;
   reasonCode: ReasonCode;

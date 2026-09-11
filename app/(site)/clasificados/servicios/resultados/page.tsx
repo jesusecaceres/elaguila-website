@@ -13,6 +13,7 @@ import {
 } from "../lib/serviciosResultsFilter";
 import { listServiciosPublicListingsRaw } from "../lib/serviciosPublicListingsServer";
 import { overlayActiveEntitlementsForServiciosResults } from "../lib/serviciosEntitlementOverlay";
+import { resolveServiciosOffersCapabilityByListingId } from "../lib/serviciosOffersCapabilityServer";
 import { resolveCanonicalVisibilityBucketWeights } from "@/app/lib/listingPlans/placementResultsOverlay";
 import { ServiciosResultsViewAnalytics } from "../ServiciosResultsViewAnalytics";
 import { CategoryStandardPagination } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardPagination";
@@ -145,7 +146,13 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
   // Pipeline: raw fetch → filter → entitlement overlay → visibility ranking
   const allRows = await listServiciosPublicListingsRaw(500);
 
-  let rows = filterServiciosPublicListingRows(allRows, lang, filterQuery);
+  // Gate SERVICIOS-EDIT-ROUNDTRIP-OFFERS-DISCOVERY-1 (F2) — "Tiene ofertas" needs the CURRENT
+  // coupons_offers capability, the same truth the detail page reads. Looked up only when that filter
+  // is on, only for rows carrying offer content, in one batched query (never per row).
+  const offersCapabilityByListingId =
+    filterQuery.hasOffers === "1" ? await resolveServiciosOffersCapabilityByListingId(allRows) : undefined;
+
+  let rows = filterServiciosPublicListingRows(allRows, lang, filterQuery, { offersCapabilityByListingId });
   rows = filterServiciosRowsByKeyword(rows, lang, filterQuery.q);
   rows = filterServiciosRowsBySeller(rows, lang, filterQuery.seller);
 
