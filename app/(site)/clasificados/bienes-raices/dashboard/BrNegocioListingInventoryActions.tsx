@@ -301,29 +301,33 @@ export function BrNegocioListingInventoryActions({
           </button>
         )}
         {upgradeActive ? (
-          <>
-            <BrPropertyInventoryValueDrawerTrigger
-              lang={lang}
-              addCtx={addCtx}
-              counts={counts}
-              label={brPropertyInventoryAddPropertyCtaLabel(lang)}
-            />
-            <BrPropertyInventoryValueDrawerTrigger
-              lang={lang}
-              addCtx={addCtx}
-              counts={counts}
-              label={brPropertyInventoryAddMorePropertiesLabel(lang)}
-              variant="secondary"
-            />
-          </>
+          // Pre-QA completeness fix: this previously rendered both "Agregar propiedad" and
+          // "Añadir más propiedades" side by side — two differently-labeled triggers opening the
+          // identical drawer with identical addCtx/counts, a real duplicate action. One canonical
+          // CTA per state, matching every other category's single-primary-doorway pattern.
+          <BrPropertyInventoryValueDrawerTrigger
+            lang={lang}
+            addCtx={addCtx}
+            counts={counts}
+            label={
+              counts.activeCount > 0
+                ? brPropertyInventoryAddMorePropertiesLabel(lang)
+                : brPropertyInventoryAddPropertyCtaLabel(lang)
+            }
+          />
         ) : null}
-        <BrPropertyInventoryValueDrawerTrigger
-          lang={lang}
-          addCtx={addCtx}
-          counts={counts}
-          label={brPropertyInventoryUpgradeCtaLabel(lang)}
-          variant="secondary"
-        />
+        {!upgradeActive ? (
+          // Pre-QA completeness fix: this "Activar inventario de propiedades" (Unlock) trigger
+          // previously rendered unconditionally, so an owner who already unlocked the pack still
+          // saw an "unlock" CTA. Gate it the same way the real checkout button above already is.
+          <BrPropertyInventoryValueDrawerTrigger
+            lang={lang}
+            addCtx={addCtx}
+            counts={counts}
+            label={brPropertyInventoryUpgradeCtaLabel(lang)}
+            variant="secondary"
+          />
+        ) : null}
       </div>
     </div>
   );

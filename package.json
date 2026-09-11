@@ -619,7 +619,8 @@
     "verify:owner-command-center:package3:3d": "tsx scripts/verify-owner-command-center-package3-gate3d.ts",
     "verify:owner-command-center:package3:3e": "tsx scripts/verify-owner-command-center-package3-gate3e.ts",
     "verify:owner-command-center:final": "tsx scripts/verify-owner-command-center-final-reconciliation.ts",
-    "verify:owner-command-center:true-final-qa": "tsx scripts/verify-owner-command-center-true-final-qa.ts"
+    "verify:owner-command-center:true-final-qa": "tsx scripts/verify-owner-command-center-true-final-qa.ts",
+    "verify:owner-command-center:gate20-fixed-term-renewal": "node scripts/verify-owner-command-center-gate20-fixed-term-renewal-01.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

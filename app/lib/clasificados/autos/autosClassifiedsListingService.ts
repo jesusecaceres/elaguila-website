@@ -32,6 +32,8 @@ import { filterAutosRowsByActiveParent, isAutosChildParentGateSatisfied } from "
 import { activateAutosDealerListingAtomic } from "@/app/lib/listingPlans/capacityActivationRpc";
 import { mapInheritedDealerPreviewListing } from "./autosInventoryInheritedPreview";
 import { triggerAutosSavedSearchMatchBestEffort } from "@/app/lib/saved-search/autos/autosSavedSearchMatchOrchestrator";
+import { computeFixedDayRenewalExpiresAt } from "@/app/lib/listingLifecycle/resolveListingLifecycle";
+import { AUTOS_PRIVADO_LIFECYCLE_DURATION_DAYS } from "@/app/lib/listingLifecycle/listingLifecycleConfig";
 
 function rowFromDb(r: Record<string, unknown>): AutosClassifiedsListingRow {
   return {
@@ -59,6 +61,7 @@ function rowFromDb(r: Record<string, unknown>): AutosClassifiedsListingRow {
     stripe_checkout_session_id: r.stripe_checkout_session_id ? String(r.stripe_checkout_session_id) : null,
     stripe_payment_intent_id: r.stripe_payment_intent_id ? String(r.stripe_payment_intent_id) : null,
     published_at: r.published_at ? String(r.published_at) : null,
+    expires_at: r.expires_at ? String(r.expires_at) : null,
     created_at: String(r.created_at),
     updated_at: String(r.updated_at),
   };
@@ -403,6 +406,8 @@ export type AutosClassifiedsDashboardRow = {
   lang: AutosClassifiedsLang;
   updated_at: string;
   published_at: string | null;
+  /** Fixed-term (Privado only) expiration — Gate 20. Always null for dealer/negocios rows. */
+  expires_at: string | null;
   title: string;
   sellerName: string;
   mileage: number | null;
@@ -429,6 +434,7 @@ export function autosClassifiedsRowToDashboardRow(row: AutosClassifiedsListingRo
     lang: row.lang,
     updated_at: row.updated_at,
     published_at: row.published_at,
+    expires_at: row.expires_at ?? null,
     title,
     sellerName: (L.dealerName ?? "").trim(),
     mileage,
@@ -484,14 +490,23 @@ export async function listActiveAutosClassifiedsRows(): Promise<AutosClassifieds
   }
   if (error || !data?.length) return [];
   const rows = data.map((r) => rowFromDb(r as Record<string, unknown>));
+  // Gate 20 — a lifecycle-expired Autos Privado row (status stays "active" in the DB, exactly
+  // like Rentas; expiration is purely expires_at vs now) never appears in the public pool.
+  // Dealer/negocios rows never carry expires_at, so this never affects them.
+  const nowMs = Date.now();
+  const unexpired = rows.filter((r) => {
+    if (r.lane !== "privado" || !r.expires_at) return true;
+    const expiresMs = new Date(r.expires_at).getTime();
+    return !Number.isFinite(expiresMs) || expiresMs > nowMs;
+  });
   // Gate I.13B — a suspended/removed dealer's parent row no longer appears in this
   // active-only fetch; exclude any inventory_vehicle child whose parent isn't in this same
   // active set, mirroring Bienes Raíces Negocio's proven parent-liveness gate. Every real
   // caller of this function treats its result as "the public active pool," so this is the
   // single place that fixes both the public results feed and (via getActiveLiveAutosBundle's
   // internal reuse below) related-inventory cards on a vehicle's own detail page.
-  const parentsById = new Map(rows.map((r) => [r.id, r]));
-  return filterAutosRowsByActiveParent(rows, parentsById);
+  const parentsById = new Map(unexpired.map((r) => [r.id, r]));
+  return filterAutosRowsByActiveParent(unexpired, parentsById);
 }
 
 /** Admin workspace: paid Autos rows (any status), newest first. */
@@ -688,6 +703,13 @@ export async function tryActivateAutosListingAfterPayment(
     published_at: now,
     updated_at: now,
     stripe_checkout_session_id: null,
+    // Gate 20 — Autos Privado fixed-term lifecycle. First activation always establishes a fresh
+    // 30-day term from the real payment-completion timestamp (never fabricated).
+    expires_at: computeFixedDayRenewalExpiresAt({
+      currentExpiresAtIso: null,
+      paymentCompletedAtIso: now,
+      durationDays: AUTOS_PRIVADO_LIFECYCLE_DURATION_DAYS,
+    }),
   };
   const pi = opts?.stripePaymentIntentId;
   if (pi) patch.stripe_payment_intent_id = pi;
@@ -710,6 +732,60 @@ export async function tryActivateAutosListingAfterPayment(
   const again = await getAutosClassifiedsListingById(listingId);
   if (again?.status === "active") return { ok: true, transitioned: false };
   return { ok: false, transitioned: false };
+}
+
+export type TryRenewAutosPrivadoResult =
+  | { ok: true; renewed: true; newExpiresAt: string }
+  | { ok: true; renewed: false }
+  | { ok: false; renewed: false };
+
+/**
+ * Gate 20 — same-row renewal for an already-active (or lifecycle-expired, still status="active")
+ * Autos Privado listing. Never transitions status (Autos Privado has no "expired" DB status —
+ * expiration is purely `expires_at` vs now, exactly like Rentas), never creates a new row, never
+ * touches media/analytics/owner/ID. Only extends `expires_at` from whichever is later: the
+ * current expiration or the payment-completion moment (so an early renewal never shortens the
+ * remaining term).
+ */
+export async function tryRenewAutosPrivadoListingAfterPayment(
+  listingId: string,
+  opts?: ActivateAutosAfterPaymentOpts,
+): Promise<TryRenewAutosPrivadoResult> {
+  if (!isSupabaseAdminConfigured()) return { ok: false, renewed: false };
+  const existing = await getAutosClassifiedsListingById(listingId);
+  if (!existing || existing.lane !== "privado") return { ok: false, renewed: false };
+  if (existing.status !== "active") return { ok: false, renewed: false };
+
+  const supabase = getAdminSupabase();
+  const now = new Date().toISOString();
+  const newExpiresAt = computeFixedDayRenewalExpiresAt({
+    currentExpiresAtIso: existing.expires_at ?? null,
+    paymentCompletedAtIso: now,
+    durationDays: AUTOS_PRIVADO_LIFECYCLE_DURATION_DAYS,
+  });
+  const patch: Record<string, unknown> = {
+    expires_at: newExpiresAt,
+    updated_at: now,
+  };
+  const pi = opts?.stripePaymentIntentId;
+  if (pi) patch.stripe_payment_intent_id = pi;
+
+  const { data, error } = await supabase
+    .from("autos_classifieds_listings")
+    .update(patch)
+    .eq("id", listingId)
+    .eq("lane", "privado")
+    .eq("status", "active")
+    .select("id")
+    .maybeSingle();
+  if (error) {
+    console.error("tryRenewAutosPrivadoListingAfterPayment", error);
+    return { ok: false, renewed: false };
+  }
+  if (!data) return { ok: false, renewed: false };
+
+  await triggerAutosSavedSearchMatchBestEffort(listingId, "autos_renewal_activation");
+  return { ok: true, renewed: true, newExpiresAt };
 }
 
 export async function markAutosListingPaymentFailed(listingId: string): Promise<boolean> {
@@ -780,6 +856,13 @@ export async function getActiveLiveAutosBundle(
 } | null> {
   const row = await getAutosClassifiedsListingById(id);
   if (!row || row.status !== "active") return null;
+  // Gate 20 — same reasoning as listActiveAutosClassifiedsRows: a lifecycle-expired Privado row
+  // is fetched directly by id here, bypassing that pool's own expiration filter, so it needs its
+  // own explicit check. Dealer/negocios rows never carry expires_at.
+  if (row.lane === "privado" && row.expires_at) {
+    const expiresMs = new Date(row.expires_at).getTime();
+    if (Number.isFinite(expiresMs) && expiresMs <= Date.now()) return null;
+  }
   // Gate I.13B — a child (inventory_vehicle) row must not be publicly reachable at its own
   // direct detail URL unless its main parent is itself active; mirrors the Bienes Raíces
   // Negocio parent-liveness gate (this row bypasses listActiveAutosClassifiedsRows' own gate

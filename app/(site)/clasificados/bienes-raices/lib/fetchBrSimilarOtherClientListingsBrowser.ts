@@ -15,7 +15,7 @@ import { extractBrFacetsFromDetailPairs } from "../resultados/lib/brFacetFromDet
 import type { BrNegocioListing } from "../resultados/cards/listingTypes";
 
 const SIMILAR_SELECT =
-  "id, title, description, city, price, is_free, images, detail_pairs, listing_json, contact_json, seller_type, business_name, owner_id, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, status, is_published, created_at";
+  "id, title, description, city, price, is_free, images, detail_pairs, listing_json, contact_json, seller_type, business_name, owner_id, br_inventory_group_id, br_inventory_parent_listing_id, inventory_role, status, is_published, created_at, expires_at";
 
 export type BrSimilarOtherClientFetchArgs = {
   currentListingId: string;
