@@ -277,15 +277,36 @@ function SolutionExecutionActions({
   solution,
   canManageSolutions,
   canManageCommitments,
+  canStartProjectDiscovery,
 }: {
   businessId: string;
   solution: GrowthSolution;
   canManageSolutions: boolean;
   canManageCommitments: boolean;
+  canStartProjectDiscovery: boolean;
 }) {
-  if (!canManageSolutions || solution.state === "dismissed") return null;
+  // Gate 3 — Client Discovery bridge (MD <growth_bridge>). A plain navigation link, never a second
+  // "create discovery" write path: Start Discovery itself lives only in the Client Discovery tab,
+  // so clicking this twice is harmless — if a discovery already exists it is simply shown, never
+  // duplicated.
+  const startDiscoveryLink =
+    canStartProjectDiscovery && (solution.state === "reviewed" || solution.state === "approved" || solution.state === "in_progress") ? (
+      <Link
+        href={`/admin/businesses/${businessId}?startGrowthSolutionId=${solution.id}#client-discovery`}
+        className="inline-flex min-h-[36px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-3 py-1.5 text-[11px] font-semibold text-[#1E1810]"
+      >
+        Iniciar Descubrimiento del Cliente / Start Client Discovery
+      </Link>
+    ) : null;
+
+  if (!canManageSolutions || solution.state === "dismissed") return startDiscoveryLink;
   if (solution.linkedCreativeJobId || solution.linkedCampaignId || solution.linkedOfficialRequirementId || solution.linkedCommitmentId) {
-    return <p className="mt-1 text-[10px] text-emerald-800">Vinculado a trabajo existente / Linked to existing work</p>;
+    return (
+      <div className="mt-1 flex flex-wrap items-center gap-2">
+        <p className="text-[10px] text-emerald-800">Vinculado a trabajo existente / Linked to existing work</p>
+        {startDiscoveryLink}
+      </div>
+    );
   }
 
   const { route } = classifyGrowthSolutionExecutionRoute(solution);
@@ -325,6 +346,7 @@ function SolutionExecutionActions({
           buttonLabelEn="Create commitment"
         />
       ) : null}
+      {startDiscoveryLink}
     </div>
   );
 }
@@ -334,11 +356,13 @@ function SolutionCard({
   solution,
   canManageSolutions,
   canManageCommitments,
+  canStartProjectDiscovery,
 }: {
   businessId: string;
   solution: GrowthSolution;
   canManageSolutions: boolean;
   canManageCommitments: boolean;
+  canStartProjectDiscovery: boolean;
 }) {
   return (
     <li className="rounded-lg border border-[#E8DFD0] p-3">
@@ -354,7 +378,7 @@ function SolutionCard({
         </p>
       ) : null}
       {canManageSolutions ? <SolutionStateButtons businessId={businessId} solutionId={solution.id} state={solution.state} /> : null}
-      <SolutionExecutionActions businessId={businessId} solution={solution} canManageSolutions={canManageSolutions} canManageCommitments={canManageCommitments} />
+      <SolutionExecutionActions businessId={businessId} solution={solution} canManageSolutions={canManageSolutions} canManageCommitments={canManageCommitments} canStartProjectDiscovery={canStartProjectDiscovery} />
     </li>
   );
 }
@@ -365,12 +389,14 @@ function RecommendedSolutionsSection({
   solutions,
   canManageSolutions,
   canManageCommitments,
+  canStartProjectDiscovery,
 }: {
   businessId: string;
   assessment: GrowthAssessment | null;
   solutions: readonly GrowthSolution[];
   canManageSolutions: boolean;
   canManageCommitments: boolean;
+  canStartProjectDiscovery: boolean;
 }) {
   const byClass = (pc: GrowthProviderClass) => solutions.filter((s) => s.providerClass === pc);
   const groups: { pc: GrowthProviderClass; items: GrowthSolution[] }[] = [
@@ -395,7 +421,7 @@ function RecommendedSolutionsSection({
             <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A1E2C]">{providerClassLabel(g.pc)}</p>
             <ul className="mt-1 space-y-2">
               {g.items.map((s) => (
-                <SolutionCard key={s.id} businessId={businessId} solution={s} canManageSolutions={canManageSolutions} canManageCommitments={canManageCommitments} />
+                <SolutionCard key={s.id} businessId={businessId} solution={s} canManageSolutions={canManageSolutions} canManageCommitments={canManageCommitments} canStartProjectDiscovery={canStartProjectDiscovery} />
               ))}
             </ul>
           </div>
@@ -659,6 +685,7 @@ export function GrowthPlanPanel({
   canManageRoadmap,
   canManageOfficialRequirements,
   canManageCommitments,
+  canStartProjectDiscovery,
 }: {
   businessId: string;
   businessStage: BusinessStage;
@@ -677,6 +704,7 @@ export function GrowthPlanPanel({
   canManageRoadmap: boolean;
   canManageOfficialRequirements: boolean;
   canManageCommitments: boolean;
+  canStartProjectDiscovery: boolean;
 }) {
   const reviewedAssessment = currentAssessment?.status === "reviewed" ? currentAssessment : null;
   const pendingRequirements = officialRequirements.filter((r) => r.state !== "human_verified" && r.state !== "not_applicable");
@@ -707,6 +735,7 @@ export function GrowthPlanPanel({
         solutions={solutions}
         canManageSolutions={canManageSolutions}
         canManageCommitments={canManageCommitments}
+        canStartProjectDiscovery={canStartProjectDiscovery}
       />
 
       {pendingRequirements.length > 0 ? (

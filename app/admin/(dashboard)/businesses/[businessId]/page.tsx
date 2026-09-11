@@ -67,6 +67,19 @@ import {
 } from "@/app/lib/business/growthEngine/repository";
 import { growthRoadmapTypeForBusinessStage } from "@/app/lib/business/growthEngine/lifeStage";
 import { GrowthPlanPanel } from "./GrowthPlanJourney";
+import { ClientDiscoveryJourney } from "./ClientDiscoveryJourney";
+import {
+  listDiscoveryEventsForDiscovery,
+  listProjectDiscoveriesForBusiness,
+  listProjectDiscoveryConsents,
+  listProjectDiscoveryIntents,
+  listProjectDiscoveryItems,
+  listProjectDiscoverySources,
+} from "@/app/lib/business/projectDiscovery/repository";
+import { buildWebsiteDiscoveryContext } from "@/app/lib/business/projectDiscovery/websiteDiscoveryContext";
+import { detectWebsiteScopeSignals, evaluateWebsiteReadiness, evaluateWebsiteRequirements } from "@/app/lib/business/projectDiscovery/websiteDiscoveryLogic";
+import { buildBeforeYouWrapUp, buildQuestionsToAskNow } from "@/app/lib/business/projectDiscovery/websiteQuestionEngine";
+import { resolveStartFromGrowthSolutionPrefill } from "@/app/lib/business/projectDiscovery/discoveryWorkspaceViewModel";
 
 export const dynamic = "force-dynamic";
 
@@ -86,7 +99,13 @@ function factSourceClassBadgeClass(sourceClass: string): string {
 
 const IDENTITY_DENIAL_REASONS: readonly SalesWorkspaceDenialReason[] = ["no_admin_cookie", "bootstrap_session_not_allowed", "no_operator_identity", "auth_user_not_found"];
 
-export default async function AdminBusinessDetailPage({ params }: { params: Promise<{ businessId: string }> }) {
+export default async function AdminBusinessDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ businessId: string }>;
+  searchParams?: Promise<{ discoveryIntent?: string; startGrowthSolutionId?: string }>;
+}) {
   const access = await requireSalesWorkspaceAccess();
   if (!access.ok) {
     redirect(IDENTITY_DENIAL_REASONS.includes(access.reason) ? "/admin/login" : "/admin/team?access_denied=1");
@@ -96,6 +115,7 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
   }
 
   const { businessId } = await params;
+  const resolvedSearchParams = (await searchParams) ?? {};
   const detail = await getBusinessWorkspaceDetail(businessId, access.actor);
   if (!detail) {
     return (
@@ -349,6 +369,64 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
       })()
     : null;
 
+  // Client Discovery & Project Blueprint Engine, Gate 3 — Client Discovery workspace. A business
+  // normally carries ONE active discovery record with many project intents (multi-project via
+  // shared discovery, MD <multi_project_foundation>) rather than many discovery records; the
+  // "current" one is the most recently updated discovery not yet blueprint_created, falling back
+  // to the most recent overall so a completed discovery is still visible/reviewable.
+  const canViewProjectDiscovery = actorHasCapability(access.actor, "view_project_discovery");
+  const canCreateProjectDiscovery = actorHasCapability(access.actor, "create_project_discovery");
+  const canManageProjectDiscovery = actorHasCapability(access.actor, "manage_project_discovery");
+  const canReviewProjectDiscovery = actorHasCapability(access.actor, "review_project_discovery");
+  const canManageDiscoveryConsent = actorHasCapability(access.actor, "manage_discovery_consent");
+  const upcomingMeetingsForBridge = program5Data
+    ? program5Data.meetings
+        .filter((m) => m.status === "planned" || m.status === "prepared" || m.status === "in_progress")
+        .map((m) => ({ id: m.id, label: m.scheduledAt ? new Date(m.scheduledAt).toLocaleString("en-US") : "Reunión sin fecha / Unscheduled meeting" }))
+    : [];
+
+  const clientDiscoveryData = canViewProjectDiscovery
+    ? await (async () => {
+        const discoveries = await listProjectDiscoveriesForBusiness(business.id);
+        const currentDiscovery = discoveries.find((d) => d.status !== "blueprint_created") ?? discoveries[0] ?? null;
+        if (!currentDiscovery) return { currentDiscovery: null, otherDiscoveries: [], intents: [], selectedIntentId: null, items: [], sources: [], consents: [], events: [], website: null };
+
+        const otherDiscoveries = discoveries.filter((d) => d.id !== currentDiscovery.id);
+        const [intents, items, sources, consents, events] = await Promise.all([
+          listProjectDiscoveryIntents(currentDiscovery.id, business.id),
+          listProjectDiscoveryItems(currentDiscovery.id, business.id),
+          listProjectDiscoverySources(currentDiscovery.id, business.id),
+          listProjectDiscoveryConsents(currentDiscovery.id, business.id),
+          listDiscoveryEventsForDiscovery(currentDiscovery.id, business.id),
+        ]);
+
+        const requestedIntentId = typeof resolvedSearchParams.discoveryIntent === "string" ? resolvedSearchParams.discoveryIntent : null;
+        const selectedIntent = (requestedIntentId ? intents.find((i) => i.id === requestedIntentId) : null) ?? intents[0] ?? null;
+
+        const website = selectedIntent && selectedIntent.projectType === "website"
+          ? await (async () => {
+              const ctx = await buildWebsiteDiscoveryContext(business.id, currentDiscovery.id, selectedIntent.id);
+              if (!ctx) return null;
+              const evaluations = evaluateWebsiteRequirements(ctx);
+              const readiness = evaluateWebsiteReadiness(ctx);
+              const questionsToAskNow = buildQuestionsToAskNow(ctx);
+              const wrapUp = buildBeforeYouWrapUp(ctx);
+              const scopeSignals = detectWebsiteScopeSignals(ctx);
+              return { evaluations, readiness, questionsToAskNow, wrapUp, scopeSignals };
+            })()
+          : null;
+
+        return { currentDiscovery, otherDiscoveries, intents, selectedIntentId: selectedIntent?.id ?? null, items, sources, consents, events, website };
+      })()
+    : null;
+
+  const startFromGrowthSolution = resolveStartFromGrowthSolutionPrefill({
+    requestedSolutionId: resolvedSearchParams.startGrowthSolutionId,
+    solutions: growthPlanData?.solutions ?? null,
+    currentAssessmentId: growthPlanData?.currentAssessment?.id,
+    discoveryAlreadyExists: Boolean(clientDiscoveryData?.currentDiscovery),
+  });
+
   // Gate 2 — Business Dashboard cockpit. Local nav order matches the canonical staff journey
   // (Understand -> Diagnose -> Outreach -> Meet -> Recommend -> Opportunity -> Create -> Agree ->
   // Follow Through). Ownership Claim intentionally stays off this list — it is a separate,
@@ -356,6 +434,7 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
   const dashboardTabs = [
     { id: "overview", label: "Resumen / Overview" },
     ...(canViewGrowthEngine && growthPlanData ? [{ id: "growth-plan", label: "Plan de Crecimiento / Growth Plan" }] : []),
+    ...(canViewProjectDiscovery && clientDiscoveryData ? [{ id: "client-discovery", label: "Descubrimiento del Cliente / Client Discovery" }] : []),
     ...(canViewBook && bookData ? [{ id: "business-book", label: "Libro del Negocio / Business Book" }] : []),
     ...(fieldDiscoveryData ? [{ id: "discover", label: "Descubrir / Discover" }] : []),
     ...(canViewHealthMap && healthData ? [{ id: "health", label: "Salud / Health" }] : []),
@@ -867,6 +946,38 @@ export default async function AdminBusinessDetailPage({ params }: { params: Prom
             canManageRoadmap={canManageGrowthRoadmap}
             canManageOfficialRequirements={canManageOfficialRequirements}
             canManageCommitments={canManageCommitments}
+            canStartProjectDiscovery={canViewProjectDiscovery && canCreateProjectDiscovery}
+          />
+        </section>
+      ) : null}
+
+      {/* Client Discovery & Project Blueprint Engine, Gate 3 — capability-gated; entirely absent
+          from the page when the actor lacks view_project_discovery, not just visually hidden. */}
+      {canViewProjectDiscovery && clientDiscoveryData ? (
+        <section id="client-discovery" className="scroll-mt-24 space-y-3">
+          <div className="rounded-2xl border border-[#D6C7AD]/70 bg-[#FFFDF7] p-4">
+            <h2 className="font-serif text-lg font-bold text-[#1E1810]">Descubrimiento del Cliente / Client Discovery</h2>
+            <p className="mt-1 text-xs text-[#7A7164]">
+              Lo siguiente correcto que preguntar — no un formulario de 90 preguntas. Capture lo que el cliente dice, vea qué falta, y sepa cuándo está listo para el plan del proyecto. / The next right thing to ask — not a 90-question wall. Capture what the client says, see what&apos;s still missing, and know when it&apos;s ready for the project blueprint.
+            </p>
+          </div>
+          <ClientDiscoveryJourney
+            businessId={business.id}
+            currentDiscovery={clientDiscoveryData.currentDiscovery}
+            otherDiscoveries={clientDiscoveryData.otherDiscoveries}
+            intents={clientDiscoveryData.intents}
+            selectedIntentId={clientDiscoveryData.selectedIntentId}
+            items={clientDiscoveryData.items}
+            sources={clientDiscoveryData.sources}
+            consents={clientDiscoveryData.consents}
+            events={clientDiscoveryData.events}
+            website={clientDiscoveryData.website}
+            upcomingMeetings={upcomingMeetingsForBridge}
+            canCreate={canCreateProjectDiscovery}
+            canManage={canManageProjectDiscovery}
+            canReview={canReviewProjectDiscovery}
+            canManageConsent={canManageDiscoveryConsent}
+            startFromGrowthSolution={startFromGrowthSolution}
           />
         </section>
       ) : null}

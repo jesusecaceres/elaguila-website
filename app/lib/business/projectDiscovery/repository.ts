@@ -247,6 +247,44 @@ export async function updateProjectDiscoveryStatus(
   return { ok: true, discovery: updated };
 }
 
+export type LinkDiscoveryMeetingResult = { ok: true; discovery: ProjectDiscovery } | { ok: false; reason: "not_found" | "update_failed" };
+
+/**
+ * MD Gate 3 <meeting_bridge>: "if discovery started from an existing meeting, show/link it; allow
+ * linking later." Gate 1 only accepted source_meeting_id at creation time — this is the small,
+ * real gap Gate 3 closes, matching the same one-repository-function-per-gap pattern used for the
+ * Gate 1 -> Gate 2 intent-actor-attribution asymmetry. Idempotent re-link to the same meeting is
+ * allowed (no-op write); it never clears an existing link back to null.
+ */
+export async function linkProjectDiscoveryToMeeting(businessId: string, discoveryId: string, meetingId: string, actor: ProjectDiscoveryActor): Promise<LinkDiscoveryMeetingResult> {
+  const existing = await getProjectDiscoveryById(businessId, discoveryId);
+  if (!existing) return { ok: false, reason: "not_found" };
+
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("business_project_discoveries")
+    .update({ source_meeting_id: meetingId, updated_at: new Date().toISOString() })
+    .eq("id", discoveryId)
+    .eq("business_id", businessId)
+    .select(DISCOVERY_COLUMNS)
+    .single();
+  if (error || !data) return { ok: false, reason: "update_failed" };
+
+  const updated = mapDiscoveryRow(data);
+  await appendDiscoveryEvent({
+    businessId,
+    discoveryId,
+    entityType: "discovery",
+    entityId: discoveryId,
+    eventType: "meeting_linked",
+    previousState: existing.sourceMeetingId,
+    newState: meetingId,
+    source: "staff_update",
+    actor,
+  });
+  return { ok: true, discovery: updated };
+}
+
 // =================================================================================================
 // Project intents (multi-project foundation)
 // =================================================================================================

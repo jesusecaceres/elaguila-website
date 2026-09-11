@@ -283,6 +283,24 @@ const brandIdentity: WebsiteRequirementDefinition[] = [
     valueType: "text", defaultCompletenessClass: "optional", whoShouldAnswer: "CLIENT",
     priority: 4, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
   },
+  {
+    fieldKey: "symbols_wanted", section: "brand_identity",
+    labelEn: "Symbols/imagery wanted", labelEs: "Símbolos/imágenes deseados",
+    operatorGuidanceEn: "A symbol or motif the client wants represented (e.g. a local landmark, a craft, a faith symbol) — a preference, never a confirmed brand fact.",
+    operatorGuidanceEs: "Un símbolo o motivo que el cliente quiere representar (p. ej. un lugar local, un oficio, un símbolo de fe) — una preferencia, nunca un hecho de marca confirmado.",
+    clientQuestionEn: "Is there a symbol, image, or idea you'd like represented on the site?", clientQuestionEs: "¿Hay un símbolo, imagen o idea que le gustaría representar en el sitio?",
+    valueType: "text", defaultCompletenessClass: "optional", whoShouldAnswer: "CLIENT",
+    priority: 4, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  {
+    fieldKey: "imagery_preference", section: "brand_identity",
+    labelEn: "Imagery / photography preference", labelEs: "Preferencia de imágenes / fotografía",
+    operatorGuidanceEn: "Real photos of the business vs. stock imagery vs. illustration — a client preference, never a confirmed brand fact.",
+    operatorGuidanceEs: "Fotos reales del negocio vs. imágenes de stock vs. ilustración — una preferencia del cliente, nunca un hecho de marca confirmado.",
+    clientQuestionEn: "Do you prefer real photos of your business, stock photography, or illustration?", clientQuestionEs: "¿Prefiere fotos reales de su negocio, fotografía de stock, o ilustración?",
+    valueType: "text", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
+    priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
 ];
 
 // =================================================================================================
