@@ -44,7 +44,16 @@ ok(
     /case "published":\s*return \{ kind: "write", status: "published", checkoutRequired: false \}/.test(ownerMutationPolicy),
 );
 ok("normal edit does not invoke Revenue OS checkout", myListing.includes(".eq(\"owner_user_id\", data.user.id)") && !myListing.includes("revenue-os/checkout"));
-ok("paid offers entitlement remains server-backed", read("app/api/clasificados/servicios/my-listings/route.ts").includes("listing_package_entitlements"));
+// Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B4) — this used to be satisfied only by a code COMMENT
+// mentioning `listing_package_entitlements`. Assert the real server authority instead: the
+// included `coupons_offers` capability via resolveBusinessToolsAccess.
+{
+  const myListings = read("app/api/clasificados/servicios/my-listings/route.ts");
+  ok(
+    "paid offers entitlement remains server-backed",
+    myListings.includes("resolveBusinessToolsAccess({") && myListings.includes('capability: "coupons_offers"'),
+  );
+}
 
 let changedFiles = [];
 try {

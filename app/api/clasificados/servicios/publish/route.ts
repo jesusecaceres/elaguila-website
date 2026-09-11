@@ -32,10 +32,15 @@ import {
   decideServiciosOwnerSaveStatus,
   isServiciosListingOwner,
   SERVICIOS_LEONIX_LOCKED_STATUSES,
+  serviciosSaveAwaitsBasePurchase,
 } from "@/app/clasificados/servicios/lib/serviciosOwnerMutationPolicy";
 import { resolveServiciosReactivationAuthority } from "@/app/clasificados/servicios/lib/serviciosReactivationAuthorityServer";
-import { SERVICIOS_OFFERS_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
-import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
+import { resolveBusinessToolsAccess } from "@/app/lib/listingPlans/categoryCommercialPlan";
+import {
+  decideServiciosOffersPersistence,
+  enforceServiciosOffersEntitlementServerTruth,
+  trustedServiciosOfferContentFromExisting,
+} from "@/app/clasificados/servicios/lib/serviciosOffersEntitlementEnforcement";
 import {
   buildProposedFinalMediaSet,
   validateProposedFinalMediaSet,
@@ -150,53 +155,8 @@ function stripAdvertiserVerificationFlags(wire: ServiciosBusinessProfile): Servi
   return next;
 }
 
-/** Gate E.3.1 — offer content already durably stored on the existing row, trusted as-is. */
-type TrustedServiciosOfferContent = Pick<ServiciosBusinessProfile, "coupons" | "couponFlyer" | "couponMoreOffers">;
-
-function trustedServiciosOfferContentFromExisting(
-  previousWire: ServiciosBusinessProfile | null,
-): TrustedServiciosOfferContent {
-  return {
-    coupons: Array.isArray(previousWire?.coupons) ? previousWire.coupons : [],
-    couponFlyer:
-      previousWire?.couponFlyer && typeof previousWire.couponFlyer === "object"
-        ? previousWire.couponFlyer
-        : undefined,
-    couponMoreOffers:
-      previousWire?.couponMoreOffers && typeof previousWire.couponMoreOffers === "object"
-        ? previousWire.couponMoreOffers
-        : undefined,
-  };
-}
-
-/**
- * Gate E.3.1 — Servicios offer/coupon content (`coupons`/`couponFlyer`/`couponMoreOffers`) is
- * server/payment truth only. Unlike Restaurantes there is no stored `couponUpgradeEnabled`
- * flag on the Servicios wire profile — visibility has only ever been content-presence — so this
- * function's job is narrower: it never lets an unentitled request create or modify offer
- * content, while never erasing content a customer's active purchase already produced. A client
- * can never submit new/edited coupons, a flyer, or a more-offers link into a persisted state
- * without a currently active `servicios_offers_addon` entitlement; only an already-entitled row
- * (real, live `listing_package_entitlements` truth) may accept incoming offer edits. While
- * unentitled, the content already durably stored on this row (never the incoming client draft)
- * is what persists instead, so a customer's coupon content survives an unrelated base-listing
- * save (business hours, description, etc.) made after their entitlement lapsed or was revoked.
- */
-function enforceServiciosOffersEntitlementServerTruth(
-  wire: ServiciosBusinessProfile,
-  entitled: boolean,
-  trustedExisting: TrustedServiciosOfferContent,
-): ServiciosBusinessProfile {
-  if (entitled) {
-    return wire;
-  }
-  return {
-    ...wire,
-    coupons: trustedExisting.coupons,
-    couponFlyer: trustedExisting.couponFlyer,
-    couponMoreOffers: trustedExisting.couponMoreOffers,
-  };
-}
+// Gate E.3.1 offer-content enforcement lives in serviciosOffersEntitlementEnforcement.ts (pure,
+// so the regression verifier can execute the exact strip path this route runs).
 
 function initialListingStatus(): typeof SERVICIOS_LISTING_STATUS_PUBLISHED | typeof SERVICIOS_LISTING_STATUS_PENDING_REVIEW {
   return process.env.SERVICIOS_MODERATION_MODE === "1" ? SERVICIOS_LISTING_STATUS_PENDING_REVIEW : SERVICIOS_LISTING_STATUS_PUBLISHED;
@@ -412,6 +372,7 @@ export async function POST(req: NextRequest) {
 
   let previousWire: ServiciosBusinessProfile | null = null;
   let previousListingId: string | null = null;
+  let previousListingStatus: string | null = null;
   if (isSupabaseAdminConfigured()) {
     // Gate SERVICIOS-1 — read the prior row by canonical id when we have one, so ops-controlled
     // fields and the paid offers entitlement are carried forward from the ACTUAL published row
@@ -421,30 +382,57 @@ export async function POST(req: NextRequest) {
       : await getServiciosPublicListingBySlugFromDb(slug, { visibility: "all" });
     previousWire = prevRow?.profile_json ?? null;
     previousListingId = prevRow?.id?.trim() || null;
+    previousListingStatus = prevRow?.listing_status ?? null;
   }
   if (!previousWire?.contact?.isFeatured && isServiciosDevPublishPersistenceEnabled()) {
     previousWire = getServiciosDevPublishRowBySlug(slug)?.profile_json ?? previousWire;
   }
   wire = mergeOpsControlledServiciosProfileFields(wire, previousWire);
 
-  // Gate E.3.1 — paid offers/coupons entitlement is server/payment truth only (live
-  // `listing_package_entitlements` state), never client-submitted content, the client's
-  // `couponsAddOn` boolean, or any content-presence inference. A brand-new listing (no canonical
-  // row UUID yet) can never have an entitlement — never invent one; only an already-existing row
-  // can be looked up.
-  let serviciosOffersAddonEntitled = false;
-  if (previousListingId) {
-    const entitlements = await fetchAddonEntitlementsForListings({
-      category: "servicios",
-      packageKey: SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
-      listingIds: [previousListingId],
-    });
-    serviciosOffersAddonEntitled = entitlements.get(previousListingId)?.status === "active";
-  }
+  /**
+   * When the client requests a pending-payment save (Revenue OS global checkout standard),
+   * the listing is stored hidden as `pending_payment` and stays non-public until the Stripe
+   * webhook activates it. Otherwise use the standard immediate publish status.
+   * Gate SERVICIOS-GLOBAL-CHECKOUT-STANDARD-PARITY-01
+   * (Declared here — ahead of the offers authority below, which needs it.)
+   */
+  const pendingPayment =
+    (body as Record<string, unknown>).activationMode === "pending_payment" ||
+    (body as Record<string, unknown>).activation_mode === "pending_payment";
+
+  // Gate E.3.1 — offers/coupons authority is server/payment truth only, never client-submitted
+  // content, the client's `couponsAddOn` boolean, or any content-presence inference.
+  //
+  // Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B4) — this used to require an active entitlement row for
+  // the RETIRED `servicios_offers_addon` key. Nothing grants that key any more (it is off the
+  // checkout add-on allowlist, and the dashboard "enable" route verifies capability without writing
+  // one), so every new $399 customer had their INCLUDED coupons stripped here on every save — while
+  // the dashboard reported the module as enabled. The authority is now the included
+  // `coupons_offers` capability, resolved exactly as the dashboard enable route resolves it
+  // (`resolveBusinessToolsAccess`); historical add-on holders still qualify through the plan
+  // policy's legacy-add-on branch. A save that leaves the row awaiting its base purchase also
+  // qualifies: that row can only go public through a paid `servicios_base_monthly`, which includes
+  // the capability (see `serviciosSaveAwaitsBasePurchase`). Fails closed on any lookup problem.
+  const serviciosOffersCapability = previousListingId
+    ? await resolveBusinessToolsAccess({
+        category: "servicios",
+        listingSource: "servicios_public_listings",
+        listingId: previousListingId,
+        capability: "coupons_offers",
+      }).catch(() => null)
+    : null;
+  const serviciosOffersEntitled = decideServiciosOffersPersistence({
+    capabilityAllowed: serviciosOffersCapability?.allowed === true,
+    awaitsBasePurchase: serviciosSaveAwaitsBasePurchase({
+      hasExistingRow: Boolean(previousListingId),
+      previousStatus: previousListingStatus,
+      pendingPaymentRequested: pendingPayment,
+    }),
+  });
   const trustedExistingServiciosOfferContent = trustedServiciosOfferContentFromExisting(previousWire);
   wire = enforceServiciosOffersEntitlementServerTruth(
     wire,
-    serviciosOffersAddonEntitled,
+    serviciosOffersEntitled,
     trustedExistingServiciosOfferContent,
   );
 
@@ -454,15 +442,6 @@ export async function POST(req: NextRequest) {
   const businessName = wire.identity.businessName.trim() || slug;
   const city = state.city.trim();
   const now = new Date().toISOString();
-  /**
-   * When the client requests a pending-payment save (Revenue OS global checkout standard),
-   * the listing is stored hidden as `pending_payment` and stays non-public until the Stripe
-   * webhook activates it. Otherwise use the standard immediate publish status.
-   * Gate SERVICIOS-GLOBAL-CHECKOUT-STANDARD-PARITY-01
-   */
-  const pendingPayment =
-    (body as Record<string, unknown>).activationMode === "pending_payment" ||
-    (body as Record<string, unknown>).activation_mode === "pending_payment";
 
   /** Production: first publication requires Revenue OS checkout (pending_payment save or paid webhook). */
   if (strict && isSupabaseAdminConfigured() && !pendingPayment) {

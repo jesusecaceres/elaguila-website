@@ -1,20 +1,21 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { listServiciosPublicListingsForOwner } from "@/app/clasificados/servicios/lib/serviciosPublicListingsServer";
-import { SERVICIOS_OFFERS_ADDON_PACKAGE_KEY } from "@/app/(site)/dashboard/lib/serviciosDashboardOffersAddonCheckout";
 import { isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
-import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
+import { resolveBusinessToolsAccess } from "@/app/lib/listingPlans/categoryCommercialPlan";
 
 export const runtime = "nodejs";
 
 /**
- * Gate E.3.3 — replaces the previous bespoke `listing_package_entitlements` query (which filtered
- * on a legacy dual `listing_source` value and matched by canonical id OR slug OR leonix_ad_id)
- * with the shared Gate E.2.1 lifecycle reader. The shared reader never filters by
- * `listing_source` and matches only the real `servicios_public_listings.id` — see
- * addonEntitlementReader.ts for why (that column has been written inconsistently across
- * categories, and identity must be the canonical row UUID, never a mutable slug or ad id).
- * Response shape (`offers_addon_active`) is unchanged; only the truth source is.
+ * Gate E.3.3 — identity is the canonical `servicios_public_listings.id` only, never a mutable slug
+ * or ad id. Response shape (`offers_addon_active`) is unchanged; only the truth source is.
+ *
+ * Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B4) — the truth source is now the included `coupons_offers`
+ * capability (`resolveBusinessToolsAccess`), the same authority the publish route and the dashboard
+ * "enable" route use. It previously read only the RETIRED `servicios_offers_addon` entitlement,
+ * which nothing grants any more, so every $399 customer's dashboard hid their included offers. The
+ * field name is kept for its consumers; it now means "offers module available", and historical
+ * add-on holders still qualify through the plan policy's legacy-add-on branch. Fails closed.
  */
 async function fetchActiveServiciosOffersEntitlementKeys(
   rows: Awaited<ReturnType<typeof listServiciosPublicListingsForOwner>>,
@@ -24,17 +25,18 @@ async function fetchActiveServiciosOffersEntitlementKeys(
     .filter((id): id is string => Boolean(id));
   if (canonicalIds.length === 0) return new Set();
 
-  const entitlements = await fetchAddonEntitlementsForListings({
-    category: "servicios",
-    packageKey: SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
-    listingIds: canonicalIds,
-  });
-
-  const active = new Set<string>();
-  for (const id of canonicalIds) {
-    if (entitlements.get(id)?.status === "active") active.add(id);
-  }
-  return active;
+  const decisions = await Promise.all(
+    canonicalIds.map(async (id) => {
+      const access = await resolveBusinessToolsAccess({
+        category: "servicios",
+        listingSource: "servicios_public_listings",
+        listingId: id,
+        capability: "coupons_offers",
+      }).catch(() => null);
+      return [id, access?.allowed === true] as const;
+    }),
+  );
+  return new Set(decisions.filter(([, allowed]) => allowed).map(([id]) => id));
 }
 
 export async function GET(req: NextRequest) {
