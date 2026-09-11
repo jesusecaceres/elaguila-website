@@ -43,6 +43,39 @@ export function isServiciosListingOwner(
 /** B3 — statuses only Leonix (admin / moderation / the Revenue OS lifecycle) may move a row out of. */
 export const SERVICIOS_LEONIX_LOCKED_STATUSES: ReadonlySet<string> = new Set(["suspended", "rejected"]);
 
+/**
+ * Pre-publication statuses: a pending-payment save of a row in one of these leaves it in
+ * `pending_payment`, from which ONLY a paid `servicios_base_monthly` checkout can make it public.
+ * Shared by the transition table and `serviciosSaveAwaitsBasePurchase` so the two cannot drift.
+ */
+export const SERVICIOS_AWAITING_BASE_PURCHASE_STATUSES: ReadonlySet<string> = new Set([
+  "pending_payment",
+  "draft",
+  "preview_ready",
+  "publish_ready",
+]);
+
+/**
+ * Repair B (B4) — does this save leave the listing awaiting its base purchase?
+ *
+ * When it does, the listing cannot become public except through a paid `servicios_base_monthly`
+ * (the only Stripe-eligible Servicios package, and the only one `activatePaidServiciosListingFromRevenueOs`
+ * accepts), and that package INCLUDES the `coupons_offers` capability. So offer content entered in
+ * the application may persist on the pending row — otherwise a first-time customer's included
+ * coupons would be stripped before they ever paid. This is status/package truth, never content
+ * presence. A paused row is deliberately excluded (its re-purchase path needs an authority lookup);
+ * its already-stored offers are preserved rather than accepting new edits while lapsed.
+ */
+export function serviciosSaveAwaitsBasePurchase(input: {
+  hasExistingRow: boolean;
+  previousStatus: string | null | undefined;
+  pendingPaymentRequested: boolean;
+}): boolean {
+  if (!input.pendingPaymentRequested) return false;
+  if (!input.hasExistingRow) return true; // a new row is inserted as pending_payment
+  return SERVICIOS_AWAITING_BASE_PURCHASE_STATUSES.has(String(input.previousStatus ?? "").trim().toLowerCase());
+}
+
 export type ServiciosOwnerSaveDecision =
   | {
       kind: "write";
@@ -80,6 +113,12 @@ export function decideServiciosOwnerSaveStatus(input: {
     return { kind: "refuse", reason: "listing_locked_by_leonix" };
   }
 
+  if (SERVICIOS_AWAITING_BASE_PURCHASE_STATUSES.has(existing)) {
+    return input.pendingPaymentRequested
+      ? { kind: "write", status: "pending_payment", checkoutRequired: true }
+      : { kind: "write", status: input.initialStatus, checkoutRequired: false };
+  }
+
   switch (existing) {
     case "published":
       return { kind: "write", status: "published", checkoutRequired: false };
@@ -95,14 +134,6 @@ export function decideServiciosOwnerSaveStatus(input: {
 
     case "pending_review":
       return { kind: "write", status: "pending_review", checkoutRequired: false };
-
-    case "pending_payment":
-    case "draft":
-    case "preview_ready":
-    case "publish_ready":
-      return input.pendingPaymentRequested
-        ? { kind: "write", status: "pending_payment", checkoutRequired: true }
-        : { kind: "write", status: input.initialStatus, checkoutRequired: false };
 
     default:
       return { kind: "refuse", reason: "unknown_listing_status" };

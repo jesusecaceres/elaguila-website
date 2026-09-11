@@ -67,8 +67,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  // Servicios has no couponUpgradeEnabled-equivalent stored flag (content presence is the only
-  // signal — see serviciosDashboardOffersAddonCheckout.ts) — capability is already verified above,
-  // nothing else to write.
-  return NextResponse.json({ ok: true });
+  // Servicios has no couponUpgradeEnabled-equivalent stored flag, so there is nothing to write:
+  // `ok: true` here means "the included `coupons_offers` capability is verified server-side right
+  // now" (`access.allowed` above). Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B4) made that promise TRUE:
+  // the Servicios publish route now resolves this SAME capability when saving offer content, so
+  // offers edited after this response persist. (Before that repair the publish route checked the
+  // retired `servicios_offers_addon` key instead, and this success was false.) `capabilityVerified`
+  // states that contract explicitly for callers.
+  return NextResponse.json({ ok: true, capabilityVerified: true });
 }

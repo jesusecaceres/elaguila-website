@@ -26,8 +26,7 @@ import {
   resolveServiciosListingTemplate,
 } from "../lib/serviciosTemplateRouting";
 import { ServiciosJustPublishedSuccessBanner } from "@/app/(site)/clasificados/publicar/servicios/components/ServiciosJustPublishedSuccessBanner";
-import { SERVICIOS_OFFERS_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
-import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
+import { resolveBusinessToolsAccess } from "@/app/lib/listingPlans/categoryCommercialPlan";
 import { serviciosJsonLd } from "@/app/servicios/seo/serviciosJsonLd";
 import { listRelatedServiciosListings } from "../lib/serviciosRelatedListings";
 import { ServiciosRelatedListingsSection } from "../components/ServiciosRelatedListingsSection";
@@ -146,22 +145,28 @@ export default async function ClasificadosServiciosDynamicPage(props: PageProps)
       />
     ) : null;
   const canonicalServiciosListingId = row.id?.trim() || "";
-  const [listingShareUrl, serviciosOffersAddonEntitlements] = await Promise.all([
+  const [listingShareUrl, serviciosOffersAccess] = await Promise.all([
     buildServiciosClasificadosListingShareUrl(slug, lang),
-    fetchAddonEntitlementsForListings({
-      category: "servicios",
-      packageKey: SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
-      listingIds: [canonicalServiciosListingId],
-    }),
+    canonicalServiciosListingId
+      ? resolveBusinessToolsAccess({
+          category: "servicios",
+          listingSource: "servicios_public_listings",
+          listingId: canonicalServiciosListingId,
+          capability: "coupons_offers",
+        }).catch(() => null)
+      : Promise.resolve(null),
   ]);
-  // Gate E.3.2 — public paid-offer visibility is live entitlement truth only, never content
-  // presence baked into `profile` by the (unmodified, pure) resolver. On any lookup failure,
-  // `fetchAddonEntitlementsForListings` already fails closed to `not_purchased` (see
-  // addonEntitlementReader.ts), so offers stay hidden rather than throwing or exposing the base
-  // profile to risk. Stored offer content itself is never touched here — only what renders.
-  const serviciosOffersAddonActive =
-    serviciosOffersAddonEntitlements.get(canonicalServiciosListingId)?.status === "active";
-  const publicProfile = serviciosOffersAddonActive
+  // Gate E.3.2 — public offer visibility is live entitlement truth only, never content presence
+  // baked into `profile` by the (unmodified, pure) resolver. Stored offer content itself is never
+  // touched here — only what renders. Fails closed: on any lookup failure offers stay hidden.
+  //
+  // Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B4) — the truth used to be an active entitlement for the
+  // RETIRED `servicios_offers_addon` key, which nothing grants any more, so a $399 customer's
+  // INCLUDED offers never rendered publicly even once saved. The truth is now the included
+  // `coupons_offers` capability — the same authority the publish route enforces when saving them —
+  // with historical add-on holders still qualifying through the plan policy's legacy branch.
+  const serviciosOffersVisible = serviciosOffersAccess?.allowed === true;
+  const publicProfile = serviciosOffersVisible
     ? profile
     : { ...profile, coupons: [], couponFlyer: undefined, couponMoreOffers: undefined };
   const engagementKey = serviciosEngagementListingKey(row);

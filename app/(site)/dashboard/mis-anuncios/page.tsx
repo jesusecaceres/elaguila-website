@@ -2020,7 +2020,16 @@ function MyListingsPageContent() {
                         listingSlug: item.slug,
                         leonixAdId: item.leonixAdId,
                       }),
+                      // Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B4) — offers are INCLUDED in the $399 base
+                      // plan: the server-verified `coupons_offers` capability (same authority the
+                      // publish route enforces, and the same check Restaurantes uses above) is the
+                      // truth. The retired add-on badge stays as a historical fallback.
                       serviciosOffersActive:
+                        dashboardHasCapabilityForKey(
+                          entitlementBadges,
+                          [item.id, item.slug ?? "", item.leonixAdId ?? ""],
+                          "coupons_offers",
+                        ) ||
                         dashboardEntitlementBadgeForKey(entitlementBadges, [
                           item.id,
                           item.slug ?? "",
