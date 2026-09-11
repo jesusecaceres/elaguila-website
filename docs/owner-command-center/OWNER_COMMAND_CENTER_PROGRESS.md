@@ -1828,3 +1828,68 @@ migration, and real dashboard CTA wiring for both categories.
 same-row, no-wrong-recharge, and webhook-idempotent — not evergreen, not fabricated.**
 **MAIN TOUCHED: NO. PRODUCTION TOUCHED: NO. Production Supabase untouched — migration applied only
 to Leonix Media Staging, with the file also committed to the repo for the normal release process.**
+
+---
+
+## Gate D/E — Servicios Golden receiver reconciliation checkpoint (2026-09-11)
+
+**Worktree:** `C:\projects\elaguila-website-owner-command-center`
+**Branch:** `integration/owner-command-center-globalization-2026-08`
+**Previous receiver HEAD:** `d1b2994d36b1e78f1fb91a6d3f801638156b9119`
+**Current receiver HEAD / origin/main:** `9fcadb4daf599e15fca62adcb647abbf96ce6bd8`
+
+### A. Receiver git reconciliation
+
+Receiver was 0 ahead / 21 behind current `origin/main`. Incoming commits were Admin OS release only. Fast-forward merge `d1b2994d` → `9fcadb4d`. Zero semantic conflicts. No required Dashboard / Servicios product source in the incoming diff. Receiver is synchronized with `origin/main` at this checkpoint. Product source was not edited by the receiver gates.
+
+### B. Current ownership freeze
+
+**OWNER COMMAND CENTER REQUIRED PRODUCT SOURCE WORK: NONE PROVEN**
+
+Servicios Golden / shared upstream blockers (do not convert into receiver tasks):
+
+- SRV-GOLDEN-01
+- SRV-GOLDEN-02
+- SRV-GOLDEN-03
+- SRV-GOLDEN-04
+- DASH-53 public Save adoption (detail + result-card)
+- DASH-58
+- DASH-59
+- DASH-60
+
+Golden feature-branch reports are not current receiver source. Current `origin/main` remains authority until those contracts land.
+
+### C. Targeted DASH recheck (current main)
+
+| Item | Classification | Note |
+|---|---|---|
+| DASH-16 | LIVE-SHARED | receiver `coupons_offers` display ready; upstream publish persist still `servicios_offers_addon` on current main |
+| DASH-18 | LIVE-SHARED | receiver edit routing ready; upstream `customQuickFacts` hydration missing on current main |
+| DASH-21 | LIVE | receiver emits `listingId` / slug / `leonix_ad_id`; upstream write-key remains Golden |
+| DASH-23 | BLOCKED — SERVICIOS GOLDEN | UUID fail-closed active edit not on current main |
+| DASH-26 | LIVE | Resume CTA mounted for `paused_unpublished` |
+| DASH-27 | BLOCKED — SERVICIOS GOLDEN | commercial fail-closed Resume/paused republish not on current main |
+| DASH-53 detail Save | BUILD REQUIRED UPSTREAM / SERVICIOS GOLDEN | Like + Share only on current main |
+| DASH-53 result-card Save | BUILD REQUIRED UPSTREAM / SERVICIOS GOLDEN | Like + Share only on current main |
+| DASH-53 Guardados/persistence | LIVE-SHARED | shared engine + resolver ready; public writer missing |
+| DASH-58 | BUILD REQUIRED UPSTREAM | no Servicios Saved Search registry/adapter on current main |
+| DASH-59 | BUILD REQUIRED UPSTREAM | location adapter not landed |
+| DASH-60 | BUILD REQUIRED UPSTREAM | filter/matcher not landed |
+| DASH-68 | LIVE-SHARED | same `listing_status` column; DASH-27 upstream dependency |
+
+### D. Deferred optional items
+
+DASH-32 / DASH-33 / DASH-40 remain **OPTIONAL / NON-BLOCKING — DEFERRED**. Not launch blockers. Not promoted to required receiver work.
+
+### E. Next receiver action
+
+After Servicios Golden lands finished contracts onto current main, or provides a coordinated integration SHA this receiver is authorized to consume:
+
+1. fetch current `origin/main`
+2. reconcile receiver if needed
+3. rerun only the affected targeted source checks
+4. clear upstream-dependent DASH classifications
+5. identify any true receiver-owned residual
+6. only then proceed to final receiver integration certification
+
+No owner/browser QA before that final source report. Receiver product coding is **not** authorized at this checkpoint.

@@ -510,3 +510,18 @@ intentional changes). 0 new TypeScript errors, 0 new lint findings, production b
 **MAIN: not touched. PRODUCTION: not touched.** Migration applied only to Leonix Media Staging
 (matching QA data); Production Supabase was never touched, and the migration file is committed for
 the normal release process.
+
+## Servicios Golden receiver checkpoint (2026-09-11)
+
+Receiver fast-forwarded `d1b2994d` → current `origin/main` `9fcadb4daf599e15fca62adcb647abbf96ce6bd8`. Incoming main was Admin OS only; Owner Command Center shell, workspaces, Saved Listings/Guardados, Saved Search dashboard registry, and Servicios owner adapters were not in that diff.
+
+| CONTRACT | RECEIVER CONSUMER | CURRENT-MAIN STATUS | OWNER OF REMAINING WORK |
+|---|---|---|---|
+| Servicios coupons/offers display | `/dashboard/servicios`, `/dashboard/business-tools`, `coupons_offers` via listing-package-entitlements | LIVE-SHARED | SERVICIOS GOLDEN persist (SRV-GOLDEN-02) |
+| Servicios edit identity | `serviciosListingEditHref` → `/publicar/servicios?mode=listing-edit&listingId=` | LIVE | SERVICIOS GOLDEN write-key (SRV-GOLDEN-01 / DASH-23) |
+| Pause/Resume presentation | `/dashboard/servicios`, Mis Anuncios → `POST /api/clasificados/servicios/manage` | LIVE | SERVICIOS GOLDEN commercial fail-closed (DASH-27) |
+| Guardados persistence | `/dashboard/guardados` + `savedListingsDashboardResolve` | LIVE-SHARED | SERVICIOS GOLDEN public Save mounts (DASH-53) |
+| Saved Search dashboard | `/dashboard/busquedas-guardadas` `CATEGORY_REGISTRY` | autos / bienes-raices / rentas only | SERVICIOS GOLDEN / shared adoption (DASH-58/59/60) |
+
+**OWNER COMMAND CENTER REQUIRED PRODUCT SOURCE WORK: NONE PROVEN.**
+Next receiver action: targeted recheck after Golden contracts land on current main, then final source certification. No owner QA before that.
