@@ -196,6 +196,14 @@ const businessIdentity: WebsiteRequirementDefinition[] = [
     valueType: "text", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
     priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: true, recommendReconfirmation: false,
   },
+  {
+    fieldKey: "business_name_pronunciation", section: "business_identity",
+    labelEn: "Name pronunciation (if helpful)", labelEs: "Pronunciación del nombre (si es útil)",
+    operatorGuidanceEn: "MD §8.1 names pronunciation as its own optional item — relevant for unfamiliar or easily-mispronounced names, e.g. for staff scripts or voice/audio content.", operatorGuidanceEs: "Relevante para nombres poco comunes o fáciles de pronunciar mal — útil para guiones del personal o contenido de audio.",
+    clientQuestionEn: "Is your business name pronounced in a way that isn't obvious from the spelling?", clientQuestionEs: "¿Su nombre de negocio se pronuncia de una forma que no es obvia por su escritura?",
+    valueType: "text", defaultCompletenessClass: "optional", whoShouldAnswer: "CLIENT",
+    priority: 5, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
 ];
 
 // =================================================================================================
@@ -251,6 +259,30 @@ const audience: WebsiteRequirementDefinition[] = [
     valueType: "text", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
     priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
   },
+  {
+    fieldKey: "secondary_customer", section: "audience",
+    labelEn: "Secondary customer / audience", labelEs: "Cliente / audiencia secundaria",
+    operatorGuidanceEn: "MD §8.3 names a secondary audience as its own item, distinct from the primary customer.", operatorGuidanceEs: "El MD nombra una audiencia secundaria como su propio elemento, distinto del cliente principal.",
+    clientQuestionEn: "Is there a secondary type of customer you also serve, beyond your primary customer?", clientQuestionEs: "¿Hay un tipo de cliente secundario al que también sirve, además de su cliente principal?",
+    valueType: "text", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
+    priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  {
+    fieldKey: "customer_needs_prior_knowledge", section: "audience",
+    labelEn: "Customer needs/problems and what they already know before arriving", labelEs: "Necesidades/problemas del cliente y qué ya sabe antes de llegar",
+    operatorGuidanceEn: "Consolidated: what problem the customer is trying to solve, and what context/knowledge they typically already have before reaching the site.", operatorGuidanceEs: "Consolidado: qué problema intenta resolver el cliente, y qué contexto/conocimiento suele tener antes de llegar al sitio.",
+    clientQuestionEn: "What problem is this customer usually trying to solve, and what do they typically already know before they find you?", clientQuestionEs: "¿Qué problema suele intentar resolver este cliente, y qué suele saber ya antes de encontrarlo?",
+    valueType: "text", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
+    priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  {
+    fieldKey: "customer_objections_barriers", section: "audience",
+    labelEn: "Objections / barriers to overcome", labelEs: "Objeciones / barreras a superar",
+    operatorGuidanceEn: "The flip side of trust_builders — what makes a prospective customer hesitate.", operatorGuidanceEs: "El lado opuesto de trust_builders — qué hace dudar a un cliente potencial.",
+    clientQuestionEn: "What hesitations or objections do prospective customers usually have?", clientQuestionEs: "¿Qué dudas u objeciones suelen tener los clientes potenciales?",
+    valueType: "text", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
+    priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
 ];
 
 // =================================================================================================
@@ -278,6 +310,14 @@ const offers: WebsiteRequirementDefinition[] = [
     labelEn: "Pricing approved for publication", labelEs: "Precios aprobados para publicación",
     operatorGuidanceEn: "Only publish pricing the client has explicitly approved.", operatorGuidanceEs: "Solo publique precios que el cliente haya aprobado explícitamente.",
     clientQuestionEn: "Is there any pricing you'd like published on the site?", clientQuestionEs: "¿Hay algún precio que le gustaría publicar en el sitio?",
+    valueType: "text", defaultCompletenessClass: "optional", whoShouldAnswer: "CLIENT",
+    priority: 4, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  {
+    fieldKey: "offerings_to_deprioritize", section: "offers_services_products",
+    labelEn: "Offerings the client does NOT want more of", labelEs: "Ofertas que el cliente NO quiere impulsar más",
+    operatorGuidanceEn: "MD §8.4 names this as its own distinct item from priority_offering — avoids the site accidentally over-promoting something the client is trying to phase out.", operatorGuidanceEs: "El MD lo nombra como un elemento distinto de priority_offering — evita que el sitio promueva accidentalmente algo que el cliente quiere reducir.",
+    clientQuestionEn: "Is there anything we should avoid pushing or growing right now?", clientQuestionEs: "¿Hay algo que debamos evitar impulsar o hacer crecer en este momento?",
     valueType: "text", defaultCompletenessClass: "optional", whoShouldAnswer: "CLIENT",
     priority: 4, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
   },
@@ -345,6 +385,22 @@ const brandIdentity: WebsiteRequirementDefinition[] = [
     valueType: "text", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
     priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
   },
+  {
+    fieldKey: "typography_preference", section: "brand_identity",
+    labelEn: "Typography preference", labelEs: "Preferencia de tipografía",
+    operatorGuidanceEn: "MD §8.5 names typography as its own preference item, distinct from color/imagery.", operatorGuidanceEs: "El MD nombra la tipografía como su propio elemento de preferencia, distinto del color/imágenes.",
+    clientQuestionEn: "Do you have a font/typography preference, or fonts you dislike?", clientQuestionEs: "¿Tiene una preferencia de fuente/tipografía, o fuentes que no le gusten?",
+    valueType: "text", defaultCompletenessClass: "optional", whoShouldAnswer: "CLIENT",
+    priority: 4, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  {
+    fieldKey: "existing_brand_standards", section: "brand_identity",
+    labelEn: "Existing brand standards to follow", labelEs: "Estándares de marca existentes a seguir",
+    operatorGuidanceEn: "A formal brand guide/style guide, if one exists — must be followed rather than reinvented.", operatorGuidanceEs: "Una guía de marca formal, si existe — debe seguirse en lugar de reinventarse.",
+    clientQuestionEn: "Do you have an existing brand guide or style standards we should follow?", clientQuestionEs: "¿Tiene una guía de marca o estándares de estilo existentes que debamos seguir?",
+    valueType: "asset_ref", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
+    priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
 ];
 
 // =================================================================================================
@@ -405,6 +461,22 @@ const content: WebsiteRequirementDefinition[] = [
     priority: 4, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
     sensitiveDataWarning: "Never publish a testimonial, credential, or certification the client has not explicitly confirmed as real.",
   },
+  {
+    fieldKey: "faqs_to_feature", section: "content",
+    labelEn: "FAQs to feature", labelEs: "Preguntas frecuentes a destacar",
+    operatorGuidanceEn: "MD §8.7 names FAQs as their own content-inventory item, distinct from general copy ownership.", operatorGuidanceEs: "El MD nombra las preguntas frecuentes como su propio elemento de inventario de contenido.",
+    clientQuestionEn: "What questions do customers ask you most often that we should answer on the site?", clientQuestionEs: "¿Qué preguntas le hacen los clientes con más frecuencia que debamos responder en el sitio?",
+    valueType: "list", defaultCompletenessClass: "optional", whoShouldAnswer: "CLIENT",
+    priority: 4, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  {
+    fieldKey: "team_bios_to_feature", section: "content",
+    labelEn: "Team bios to feature", labelEs: "Biografías del equipo a destacar",
+    operatorGuidanceEn: "MD §8.7 names team bios as their own content-inventory item.", operatorGuidanceEs: "El MD nombra las biografías del equipo como su propio elemento de inventario de contenido.",
+    clientQuestionEn: "Should we feature team members on the site? If so, who and what should we say about them?", clientQuestionEs: "¿Debemos destacar miembros del equipo en el sitio? De ser así, ¿quiénes y qué debemos decir sobre ellos?",
+    valueType: "list", defaultCompletenessClass: "optional", whoShouldAnswer: "CLIENT",
+    priority: 4, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
 ];
 
 // =================================================================================================
@@ -426,6 +498,30 @@ const mediaAssets: WebsiteRequirementDefinition[] = [
     clientQuestionEn: "Do you own the rights to the photos/videos you're providing?", clientQuestionEs: "¿Posee los derechos de las fotos/videos que está proporcionando?",
     valueType: "boolean", defaultCompletenessClass: "required_before_launch", whoShouldAnswer: "CLIENT",
     priority: 2, mayBlockBuild: false, mayBlockLaunch: true, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  {
+    fieldKey: "video_assets_available", section: "media_assets",
+    labelEn: "Video assets available", labelEs: "Videos disponibles",
+    operatorGuidanceEn: "MD §8.8 names video as its own media type, distinct from still photography.", operatorGuidanceEs: "El MD nombra el video como su propio tipo de medio, distinto de la fotografía fija.",
+    clientQuestionEn: "Do you have any video you'd like used on the site?", clientQuestionEs: "¿Tiene algún video que le gustaría usar en el sitio?",
+    valueType: "asset_ref", defaultCompletenessClass: "optional", whoShouldAnswer: "CLIENT",
+    priority: 4, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  {
+    fieldKey: "photography_need", section: "media_assets",
+    labelEn: "New photography needed", labelEs: "Se necesita nueva fotografía",
+    operatorGuidanceEn: "Distinct from photo_assets_available (what already exists) — whether Leonix or the client needs to arrange new photography.", operatorGuidanceEs: "Distinto de photo_assets_available (lo que ya existe) — si Leonix o el cliente necesita organizar nueva fotografía.",
+    clientQuestionEn: "Do you need new photos taken, or do your existing photos cover what the site needs?", clientQuestionEs: "¿Necesita que se tomen nuevas fotos, o sus fotos existentes cubren lo que el sitio necesita?",
+    valueType: "boolean", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
+    priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  {
+    fieldKey: "ai_generated_imagery_authorization", section: "media_assets",
+    labelEn: "AI-generated imagery authorized", labelEs: "Imágenes generadas por IA autorizadas",
+    operatorGuidanceEn: "MD §8.8 names this as its own explicit authorization item — AI-generated imagery must never be used without explicit client authorization, never assumed.", operatorGuidanceEs: "El MD lo nombra como su propio elemento de autorización explícita — las imágenes generadas por IA nunca deben usarse sin autorización explícita del cliente.",
+    clientQuestionEn: "If we're short on real photos, are you comfortable with AI-generated imagery being used as a placeholder or supplement?", clientQuestionEs: "Si nos faltan fotos reales, ¿está de acuerdo con que se usen imágenes generadas por IA como marcador de posición o complemento?",
+    valueType: "boolean", defaultCompletenessClass: "optional", whoShouldAnswer: "CLIENT",
+    priority: 4, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
   },
 ];
 
@@ -540,6 +636,24 @@ const forms: WebsiteRequirementDefinition[] = [
     dependencyCondition: (ctx) => ctx.hasCapturedValue("wants_contact_form", true),
     priority: 2, mayBlockBuild: false, mayBlockLaunch: true, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
     sensitiveDataWarning: "Do not encourage collection of sensitive personal, medical, or financial data in a normal contact form.",
+  },
+  {
+    fieldKey: "form_reply_to_behavior", section: "forms",
+    labelEn: "Form reply-to behavior", labelEs: "Comportamiento de respuesta del formulario",
+    operatorGuidanceEn: "MD §8.11 names reply-to behavior as its own item — whether replying to the notification email should go back to the visitor or to the business.", operatorGuidanceEs: "El MD nombra el comportamiento de respuesta como su propio elemento — si responder al correo de notificación debe ir al visitante o al negocio.",
+    clientQuestionEn: "When you reply to a form-submission email, should it go directly back to the visitor?", clientQuestionEs: "Cuando responda un correo de envío de formulario, ¿debe ir directamente de vuelta al visitante?",
+    valueType: "boolean", defaultCompletenessClass: "required_before_launch", whoShouldAnswer: "CLIENT",
+    dependencyCondition: (ctx) => ctx.hasCapturedValue("wants_contact_form", true),
+    priority: 3, mayBlockBuild: false, mayBlockLaunch: true, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  {
+    fieldKey: "form_data_retention_expectation", section: "forms",
+    labelEn: "Form data retention expectation", labelEs: "Expectativa de retención de datos del formulario",
+    operatorGuidanceEn: "MD §8.11 names data retention as its own item, distinct from whether DB persistence is technically needed.", operatorGuidanceEs: "El MD nombra la retención de datos como su propio elemento, distinto de si la persistencia en base de datos es técnicamente necesaria.",
+    clientQuestionEn: "How long should form submissions be kept?", clientQuestionEs: "¿Por cuánto tiempo deben conservarse los envíos del formulario?",
+    valueType: "text", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
+    dependencyCondition: (ctx) => ctx.hasCapturedValue("wants_contact_form", true),
+    priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
   },
 ];
 
@@ -709,6 +823,15 @@ const backendDatabaseAuth: WebsiteRequirementDefinition[] = [
     scopeEscalationSignal: "customer_dashboard",
   },
   {
+    fieldKey: "user_roles_needed", section: "backend_database_auth",
+    labelEn: "Distinct user roles/permission levels needed", labelEs: "Se necesitan roles de usuario/niveles de permiso distintos",
+    operatorGuidanceEn: "MD §8.15 names 'roles' as its own item, distinct from simply having accounts/login — e.g. admin vs. staff vs. customer.", operatorGuidanceEs: "El MD nombra 'roles' como su propio elemento, distinto de simplemente tener cuentas/inicio de sesión.",
+    clientQuestionEn: "If the site has accounts, do different types of users need different permission levels (e.g. staff vs. customer)?", clientQuestionEs: "Si el sitio tiene cuentas, ¿diferentes tipos de usuarios necesitan diferentes niveles de permiso (p. ej. personal vs. cliente)?",
+    valueType: "boolean", defaultCompletenessClass: "required_before_build", whoShouldAnswer: "CLIENT",
+    dependencyCondition: (ctx) => ctx.hasCapturedValue("wants_user_accounts", true),
+    priority: 2, mayBlockBuild: true, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  {
     fieldKey: "backend_database_needed", section: "backend_database_auth",
     labelEn: "Persistent database needed", labelEs: "Base de datos persistente necesaria",
     operatorGuidanceEn: "Preferred: Supabase, only when persistent state is actually required. Internal architecture decision.",
@@ -838,6 +961,15 @@ const paymentsCommerce: WebsiteRequirementDefinition[] = [
     dependencyCondition: (ctx) => ctx.hasCapturedValue("wants_native_checkout", true),
     priority: 1, mayBlockBuild: true, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
     scopeEscalationSignal: "custom_checkout",
+  },
+  {
+    fieldKey: "commerce_deposits_subscriptions", section: "payments_commerce",
+    labelEn: "Deposits / subscriptions required", labelEs: "Depósitos / suscripciones requeridos",
+    operatorGuidanceEn: "MD §8.17 names deposits and subscriptions as their own item, distinct from one-time checkout — recurring billing is a materially different scope signal.", operatorGuidanceEs: "El MD nombra depósitos y suscripciones como su propio elemento, distinto del pago único — la facturación recurrente es una señal de alcance materialmente distinta.",
+    clientQuestionEn: "Does this involve deposits or recurring/subscription billing, rather than a single one-time payment?", clientQuestionEs: "¿Esto involucra depósitos o facturación recurrente/por suscripción, en lugar de un solo pago único?",
+    valueType: "boolean", defaultCompletenessClass: "required_before_build", whoShouldAnswer: "CLIENT",
+    dependencyCondition: (ctx) => ctx.hasCapturedValue("wants_native_checkout", true),
+    priority: 1, mayBlockBuild: true, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
   },
   {
     fieldKey: "payment_provider_ownership", section: "payments_commerce",
@@ -987,6 +1119,15 @@ const privacyLegal: WebsiteRequirementDefinition[] = [
     scopeEscalationSignal: "regulated_sensitive_data",
     sensitiveDataWarning: "Regulated/sensitive data handling requires Leonix architecture review before any commitment.",
   },
+  {
+    fieldKey: "privacy_notice_cookies_needed", section: "privacy_legal",
+    labelEn: "Privacy notice / cookie disclosure needed", labelEs: "Aviso de privacidad / divulgación de cookies necesario",
+    operatorGuidanceEn: "MD §8.23 names both cookies and a privacy notice as their own items — a real question once the site collects any personal information or uses analytics/cookies.", operatorGuidanceEs: "El MD nombra tanto las cookies como un aviso de privacidad como sus propios elementos.",
+    clientQuestionEn: "Does the site need a privacy notice / cookie disclosure (e.g. because it uses forms, analytics, or cookies)?", clientQuestionEs: "¿El sitio necesita un aviso de privacidad / divulgación de cookies (p. ej. porque usa formularios, analítica o cookies)?",
+    valueType: "boolean", defaultCompletenessClass: "required_before_launch", whoShouldAnswer: "LEONIX",
+    dependencyCondition: (ctx) => ctx.hasCapturedValue("collects_personal_information", true),
+    priority: 2, mayBlockBuild: false, mayBlockLaunch: true, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
 ];
 
 // =================================================================================================
@@ -1021,6 +1162,14 @@ const maintenance: WebsiteRequirementDefinition[] = [
     ],
     defaultCompletenessClass: "required_before_launch", whoShouldAnswer: "CLIENT",
     priority: 2, mayBlockBuild: false, mayBlockLaunch: true, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  {
+    fieldKey: "maintenance_ongoing_expectations", section: "maintenance",
+    labelEn: "Update frequency, support, content turnaround, and emergency contact", labelEs: "Frecuencia de actualización, soporte, tiempo de entrega de contenido, y contacto de emergencia",
+    operatorGuidanceEn: "MD §8.25 names update frequency/support expectation/content turnaround/emergency contact/future enhancement path as their own items — consolidated into one operational-expectations question rather than five near-duplicate fields.", operatorGuidanceEs: "Consolidado en una sola pregunta de expectativas operativas en lugar de cinco campos casi duplicados.",
+    clientQuestionEn: "How often do you expect updates, what's your support expectation, how fast do you need content turned around, and who should be contacted in an emergency?", clientQuestionEs: "¿Con qué frecuencia espera actualizaciones, cuál es su expectativa de soporte, qué tan rápido necesita que se entregue el contenido, y a quién se debe contactar en una emergencia?",
+    valueType: "text", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
+    priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
   },
 ];
 
@@ -1089,6 +1238,14 @@ const scheduleApprovals: WebsiteRequirementDefinition[] = [
     operatorGuidanceEn: "When will the client actually deliver copy/photos/approvals — a common source of delay.", operatorGuidanceEs: "Cuándo entregará realmente el cliente el texto/fotos/aprobaciones — una fuente común de retraso.",
     clientQuestionEn: "By when can you provide your content and approvals?", clientQuestionEs: "¿Para cuándo puede proporcionar su contenido y aprobaciones?",
     valueType: "date", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
+    priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  {
+    fieldKey: "schedule_milestones_and_approval_process", section: "schedule_approvals",
+    labelEn: "Desired start/preview/launch milestones, decision-maker availability, and approval process", labelEs: "Hitos deseados de inicio/vista previa/lanzamiento, disponibilidad del decisor, y proceso de aprobación",
+    operatorGuidanceEn: "MD §8.27 names desired start/target preview/target launch/decision-maker availability/revision expectations/approval checkpoints as their own items — consolidated into one scheduling-process question, distinct from the separate hard_launch_deadline and content_delivery_date fields.", operatorGuidanceEs: "Consolidado en una sola pregunta del proceso de programación, distinto de hard_launch_deadline y content_delivery_date.",
+    clientQuestionEn: "When would you like to start, see a preview, and launch — and how should revisions and approvals work (who signs off, and how available are they)?", clientQuestionEs: "¿Cuándo le gustaría comenzar, ver una vista previa, y lanzar — y cómo deben funcionar las revisiones y aprobaciones (quién aprueba, y qué tan disponible está)?",
+    valueType: "text", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
     priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
   },
 ];

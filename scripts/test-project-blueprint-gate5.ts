@@ -95,6 +95,12 @@ function fullyAnsweredItems(over: Partial<Record<string, FieldDef>> = {}): Proje
     bilingual_site_needed: { value: false, section: "languages" },
     handles_minors_or_medical_financial_data: { value: false, section: "privacy_legal" },
     hard_launch_deadline: { value: "No hard deadline", section: "schedule_approvals" },
+    // Gate 10.3 — MD §29 CFO/Scope Protection fields, universally required_before_build (no
+    // dependencyCondition) like the pre-existing wants_customer_dashboard/wants_user_accounts.
+    wants_multi_vendor_marketplace: { value: false, section: "backend_database_auth" },
+    wants_inapp_messaging: { value: false, section: "backend_database_auth" },
+    wants_native_mobile_app: { value: false, section: "backend_database_auth" },
+    wants_complex_workflow_automation: { value: false, section: "backend_database_auth" },
     ...over,
   };
   return Object.entries(base).map(([fieldKey, def]) =>
@@ -156,6 +162,7 @@ check("4. COMMERCIAL_REVIEW_REQUIRED for Custom Platform architecture (after the
   const { ctx: c, architecture } = fullFixture({
     wants_user_accounts: { value: true, section: "backend_database_auth" },
     wants_customer_dashboard: { value: true, section: "backend_database_auth" },
+    user_roles_needed: { value: false, section: "backend_database_auth" },
   });
   assert.equal(architecture.architectureClass, "CUSTOM_PLATFORM");
   assert.equal(architecture.requiresCommercialReview, true);

@@ -76,13 +76,13 @@ export const PRINT_COLLATERAL_REQUIREMENTS: readonly PrintReq[] = [
   },
   {
     fieldKey: "card_quantity", section: "contact_content",
-    labelEn: "Quantity per person/card (production planning only)", labelEs: "Cantidad por persona/tarjeta (solo para planificación de producción)",
-    operatorGuidanceEn: "Only relevant when quantity actually affects production planning — never a pricing question.",
-    operatorGuidanceEs: "Solo relevante cuando la cantidad realmente afecta la planificación de producción — nunca una pregunta de precio.",
-    clientQuestionEn: "Roughly how many cards do you need printed?", clientQuestionEs: "¿Aproximadamente cuántas tarjetas necesita impresas?",
+    labelEn: "Print quantity (production planning only)", labelEs: "Cantidad de impresión (solo para planificación de producción)",
+    operatorGuidanceEn: "MD §20 names quantity as a universal print-collateral item, not business-cards-only — widened rather than duplicated per type. Only relevant when quantity actually affects production planning — never a pricing question.",
+    operatorGuidanceEs: "El MD nombra la cantidad como un elemento universal de material impreso, no exclusivo de tarjetas — ampliado en lugar de duplicado por tipo.",
+    clientQuestionEn: "Roughly how many do you need printed?", clientQuestionEs: "¿Aproximadamente cuántos necesita impresos?",
     valueType: "number", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
     priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
-    applicabilityCondition: isProjectType(BUSINESS_CARDS),
+    applicabilityCondition: isProjectType(BUSINESS_CARDS, FLYER, BANNER_SIGNAGE, REFERRAL_MATERIALS),
   },
 
   // ---------------------------------------------------------------------------------------------

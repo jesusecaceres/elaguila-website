@@ -261,11 +261,11 @@ check("24. Flyer branch surfaces print_physical_or_digital, never card-only fiel
   assert.notEqual(flyerField?.status, "not_applicable");
   assert.equal(cardField?.status, "not_applicable");
 });
-check("25. Banner/Signage branch surfaces viewing distance + dimensions, never card-only fields", () => {
+check("25. Banner/Signage branch surfaces viewing distance + dimensions; card_quantity now genuinely applies (Gate 10.3 widened it to every physical print type, MD §20 names quantity as universal, not business-cards-only)", () => {
   const evals = evaluateSpecializedRequirements(PRINT_COLLATERAL_REQUIREMENTS, ctx("banner_signage", []));
   assert.notEqual(evals.find((e) => e.requirement.fieldKey === "print_viewing_distance_location")?.status, "not_applicable");
   assert.notEqual(evals.find((e) => e.requirement.fieldKey === "print_dimensions_known")?.status, "not_applicable");
-  assert.equal(evals.find((e) => e.requirement.fieldKey === "card_quantity")?.status, "not_applicable");
+  assert.notEqual(evals.find((e) => e.requirement.fieldKey === "card_quantity")?.status, "not_applicable");
 });
 check("26. ONE shared print-collateral engine handles all 4 project types — not four separate catalogs", () => {
   const families = ["business_cards", "flyer", "banner_signage", "referral_materials"].map((pt) => catalogForProjectType(pt as ProjectType)?.catalog);
