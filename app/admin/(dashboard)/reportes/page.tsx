@@ -70,9 +70,36 @@ export default async function AdminReportesPage(props: PageProps) {
   const { data: reports, error } = await query;
 
   const list = (reports ?? []) as ReportRow[];
-  const pending = list.filter((r) => r.status === "pending").length;
-  const reviewed = list.filter((r) => r.status === "reviewed").length;
-  const dismissed = list.filter((r) => r.status === "dismissed").length;
+  // These stat cards must reflect the whole table, not the 200-row page fetched above for the
+  // table view — otherwise they silently undercount past the first 200 reports. When a search
+  // filter is active, the underlying `list` IS the intended scope (matches the "filtered" note
+  // already shown), so keep deriving from it there.
+  let pending: number;
+  let reviewed: number;
+  let dismissed: number;
+  if (qRaw) {
+    pending = list.filter((r) => r.status === "pending").length;
+    reviewed = list.filter((r) => r.status === "reviewed").length;
+    dismissed = list.filter((r) => r.status === "dismissed").length;
+  } else {
+    try {
+      const [p, rv, d] = await Promise.all([
+        supabase.from("listing_reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("listing_reports").select("id", { count: "exact", head: true }).eq("status", "reviewed"),
+        supabase.from("listing_reports").select("id", { count: "exact", head: true }).eq("status", "dismissed"),
+      ]);
+      if (p.error || rv.error || d.error) throw p.error ?? rv.error ?? d.error;
+      pending = typeof p.count === "number" ? p.count : 0;
+      reviewed = typeof rv.count === "number" ? rv.count : 0;
+      dismissed = typeof d.count === "number" ? d.count : 0;
+    } catch {
+      // Fall back to the capped page's counts rather than showing nothing — still better than
+      // an error, and no worse than this page's behavior before this fix.
+      pending = list.filter((r) => r.status === "pending").length;
+      reviewed = list.filter((r) => r.status === "reviewed").length;
+      dismissed = list.filter((r) => r.status === "dismissed").length;
+    }
+  }
   const highlightId = resolveHighlightReportId(qRaw, list);
 
   return (
@@ -89,7 +116,7 @@ export default async function AdminReportesPage(props: PageProps) {
         dataSource="public.listing_reports joined operationally with listing and owner context from admin tools."
         status="partial"
         safeActions={["Search reports", "Open related listing/user", "Review report rows"]}
-        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        nextGate="Confirm every button and count on this page against live Supabase data before relying on it for daily decisions."
         warningNote="Mark reviewed, clear flag, and resolution workflow need action QA before they are treated as complete."
       />
 
@@ -146,7 +173,10 @@ export default async function AdminReportesPage(props: PageProps) {
       </div>
 
       {error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error.message}</div>
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          Could not load reports right now. This is a database connection issue, not a data problem — try refreshing
+          the page. If it keeps happening, check System Health.
+        </div>
       ) : (
         <AdminReportsTable reports={list} highlightReportId={highlightId} />
       )}

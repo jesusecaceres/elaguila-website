@@ -158,58 +158,53 @@ async function SupportTicketsSection(props: {
       ) : null}
       {!unavailable && !entityLinksAvailable ? (
         <div className={`${adminCardBase} mb-4 border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-950`}>
-          <strong>Context links inactive:</strong> table exists, but columns{" "}
-          <code className="rounded bg-white/80 px-1">user_id</code> / <code className="rounded bg-white/80 px-1">order_id</code> /{" "}
-          <code className="rounded bg-white/80 px-1">listing_id</code>. Apply{" "}
-          <code className="rounded bg-white/80 px-1">20260408200000_support_tickets_entity_links.sql</code> for links and optional form fields.
+          <strong>Setup required:</strong> account, order, and listing cross-links for support tickets are not available until a
+          pending system setup step is completed.
         </div>
       ) : null}
       {!unavailable && entityLinksAvailable && !staffFollowupAvailable ? (
         <div className={`${adminCardBase} mb-4 border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-950`}>
-          <strong>Partial follow-up:</strong> you can change ticket <strong>status</strong>. Internal notes and escalation tag require{" "}
-          <code className="rounded bg-white/80 px-1">20260408210000_support_tickets_staff_followup.sql</code>.
+          <strong>Setup required:</strong> you can change ticket <strong>status</strong>. Internal notes and the escalation tag
+          need a pending system setup step to be completed first.
         </div>
       ) : null}
       {sp.ticket_created === "1" ? (
         <div className={`${adminCardBase} mb-4 border-emerald-200 bg-emerald-50/90 p-3 text-sm text-emerald-950`}>
-          Internal ticket created in <code className="rounded bg-white/80 px-1">support_tickets</code>.
+          Internal ticket created.
         </div>
       ) : null}
       {sp.ticket_saved === "1" ? (
         <div className={`${adminCardBase} mb-4 border-emerald-200 bg-emerald-50/90 p-3 text-sm text-emerald-950`}>
           {sp.followup_columns === "0" ? (
             <>
-              Ticket status updated in database.{" "}
-              <strong>Internal notes and escalation tag were not saved</strong> — apply migration{" "}
-              <code className="rounded bg-white/80 px-1">20260408210000_support_tickets_staff_followup.sql</code>.
+              Ticket status updated.{" "}
+              <strong>Internal notes and the escalation tag were not saved</strong> — setup required before those fields work.
             </>
           ) : (
-            <>Ticket follow-up saved (status / notes / escalation per migration).</>
+            <>Ticket follow-up saved (status / notes / escalation).</>
           )}
         </div>
       ) : null}
       {sp.ticket_error === "1" ? (
         <div className={`${adminCardBase} mb-4 border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-950`}>
-          Could not save — apply control center migrations (e.g.{" "}
-          <code className="rounded bg-white/80 px-1">20260408183000_control_center_extensions.sql</code>,{" "}
-          <code className="rounded bg-white/80 px-1">20260408200000_support_tickets_entity_links.sql</code>) or check Supabase.
+          Could not save — setup required, or check System Health for a Supabase issue.
         </div>
       ) : null}
 
       <div className="mb-3 flex flex-wrap gap-2">
         <span className={adminReadOnlyBadgeClass}>Operator</span>
         {unavailable ? (
-          <span className={adminStubBadgeClass}>Tickets: table unavailable</span>
+          <span className={adminStubBadgeClass}>Tickets: temporarily unavailable</span>
         ) : (
           <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-900">
-            Tickets: support_tickets
+            Tickets: connected
           </span>
         )}
       </div>
       <AdminPageHeader
         title="Support"
         subtitle="Account search and real queues: Users, Ops, and Reports. Tickets here are a minimal internal log — not a public helpdesk."
-        helperText="Full follow-up (status + notes + escalation) requires migration 20260408210000_support_tickets_staff_followup.sql applied in Supabase; each save goes to admin_audit_log. Accounts: Users → profile; password only via Auth."
+        helperText="Full follow-up (status + notes + escalation) needs setup to be completed before it's fully live; each save is recorded in the activity log. Accounts: Users → profile; password only via Auth."
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -274,7 +269,7 @@ async function SupportTicketsSection(props: {
           </p>
           {unavailable ? (
             <p className="mt-3 text-sm text-amber-900">
-              Table <code className="rounded bg-white/80 px-1">support_tickets</code> unavailable.
+              Support tickets are temporarily unavailable.
             </p>
           ) : (
             <form action={createSupportTicketRecordAction} className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -491,13 +486,10 @@ async function SupportTicketsSection(props: {
         <div className={`${adminCardBase} p-6 lg:col-span-2`}>
           <h2 className="text-sm font-bold text-[#1E1810]">Escalation and internal notes</h2>
           <p className="mt-1 text-xs text-[#7A7164]">
-            Allowed escalation values in database: <strong className="text-[#1E1810]">Billing</strong>,{" "}
+            Allowed escalation values: <strong className="text-[#1E1810]">Billing</strong>,{" "}
             <strong className="text-[#1E1810]">Technical</strong>, <strong className="text-[#1E1810]">Fraud</strong>,{" "}
-            <strong className="text-[#1E1810]">Content</strong>. Saved per ticket in{" "}
-            <code className="rounded bg-white/80 px-1">support_tickets</code> when migration{" "}
-            <code className="rounded bg-white/80 px-1">20260408210000_support_tickets_staff_followup.sql</code> is applied;
-            each save is recorded in <code className="rounded bg-white/80 px-1">admin_audit_log</code> via{" "}
-            <code className="rounded bg-white/80 px-1">auditAdminWrite</code>.
+            <strong className="text-[#1E1810]">Content</strong>. Saved per ticket once setup is completed; every save is
+            recorded in the activity log.
           </p>
         </div>
       </div>

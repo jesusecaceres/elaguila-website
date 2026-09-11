@@ -7,9 +7,10 @@ import { getPackageEntitlementDashboardSnapshot } from "../_lib/packageEntitleme
 import { getPromoCodeDashboardSnapshot } from "../_lib/promoCodeData";
 import { getPaymentTrackerDashboardSnapshot } from "../_lib/paymentTrackerData";
 import { getAdminCatalogStats } from "../_lib/tiendaCatalogAdminData";
+import { buildAdminSystemHealthSnapshot } from "../_lib/adminSystemHealth";
 import {
-  canViewPaymentTracker,
   getCurrentAdminAccessContext,
+  hasPaymentTrackerAccess,
   isSalesRepRole,
 } from "../_lib/adminAccessControl";
 import { getAdminLang, adminMessages } from "../_lib/adminI18n";
@@ -26,24 +27,27 @@ export default async function AdminHomePage() {
   const m = adminMessages(lang);
   const locale = "en-US";
 
-  const [snap, leads, entSnap, promoSnap, paySnap, registry, catalogStats, execReports] = await Promise.all([
-    getAdminDashboardSnapshot(),
-    getAdminDashboardLeadsCounts(),
-    getPackageEntitlementDashboardSnapshot(),
-    getPromoCodeDashboardSnapshot(),
-    canViewPaymentTracker(access.normalizedRole)
-      ? getPaymentTrackerDashboardSnapshot()
-      : Promise.resolve({
-          unavailable: true,
-          note: null,
-          pendingCount: 0,
-          paidCount: 0,
-          commissionEligibleCount: 0,
-        }),
-    getClasificadosCategoryRegistryMerged(),
-    getAdminCatalogStats(),
-    collectLeoExecutiveReportingSnapshot({ limit: 8 }).catch(() => null),
-  ]);
+  const [snap, leads, entSnap, promoSnap, paySnap, registry, catalogStats, execReports, systemHealthSnapshot] =
+    await Promise.all([
+      getAdminDashboardSnapshot(),
+      getAdminDashboardLeadsCounts(),
+      getPackageEntitlementDashboardSnapshot(),
+      getPromoCodeDashboardSnapshot(),
+      hasPaymentTrackerAccess(access)
+        ? getPaymentTrackerDashboardSnapshot()
+        : Promise.resolve({
+            unavailable: true,
+            note: null,
+            pendingCount: 0,
+            paidCount: 0,
+            commissionEligibleCount: 0,
+            failedCanceledRefundedCount: 0,
+          }),
+      getClasificadosCategoryRegistryMerged(),
+      getAdminCatalogStats(),
+      collectLeoExecutiveReportingSnapshot({ limit: 8 }).catch(() => null),
+      buildAdminSystemHealthSnapshot().catch(() => null),
+    ]);
   const regSum = summarizeRegistryForDashboard(registry);
 
   return (
@@ -57,8 +61,9 @@ export default async function AdminHomePage() {
       promoSnap={promoSnap}
       paySnap={paySnap}
       catalogStats={catalogStats}
-      showPaymentTracker={canViewPaymentTracker(access.normalizedRole)}
+      showPaymentTracker={hasPaymentTrackerAccess(access)}
       executiveReports={execReports}
+      systemHealthSnapshot={systemHealthSnapshot}
     />
   );
 }

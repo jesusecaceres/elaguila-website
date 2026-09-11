@@ -49,7 +49,7 @@ export default async function StaffTeamHomePage({
         dataSource="admin_team_members, admin_team_invites, Supabase Auth provisioning actions, promo codes, and payment/package read models."
         status="partial"
         safeActions={["Open preview hub", "Create sales promo codes", "View clients", "Manage roster if owner/admin"]}
-        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        nextGate="Confirm every button and count on this page against live Supabase data before relying on it for daily decisions."
         warningNote="Final owner/admin/moderator/sales/content/support/viewer role taxonomy still needs permission proof."
       />
 

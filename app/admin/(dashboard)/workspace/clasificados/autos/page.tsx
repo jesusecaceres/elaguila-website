@@ -176,7 +176,7 @@ export default async function AdminAutosClassifiedsPage(props: AutosAdminPagePro
         dataSource="public.autos_classifieds_listings plus owner profiles and package/analytics overlays where available."
         status="partial"
         safeActions={["View public", "Suspend", "Archive", "Republish", "Feature", "Verify Leonix"]}
-        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        nextGate="Confirm every button and count on this page against live Supabase data before relying on it for daily decisions."
         warningNote="Public browse and dealer inventory are real; action confirmations/audit consistency still need QA proof."
       />
 

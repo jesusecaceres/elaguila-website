@@ -66,7 +66,10 @@ export default async function AdminActivityLogPage(props: PageProps) {
     ? audit.rows.map((r: AdminAuditLogRow) => ({
         id: r.id,
         createdAt: r.created_at,
-        actor: "server",
+        // Master Operating Book §8/§22 — real when the acting staff member was resolvable at
+        // write time (20260909140000_admin_audit_log_actor_attribution.sql, not yet applied
+        // remotely); "server" is an honest fallback for rows with no attribution, not a fake name.
+        actor: r.actor_email ?? "server",
         action: r.action,
         targetType: r.target_type ?? "—",
         targetId: r.target_id ?? "—",
@@ -103,7 +106,7 @@ export default async function AdminActivityLogPage(props: PageProps) {
                 : m("activityLog.subtitleUnknown")
         }
         helperText={
-          audit.detail ? `${m("activityLog.detailPrefix")} ${audit.detail}` : m("activityLog.helperNoSecrets")
+          audit.detail ? "The activity log is temporarily unavailable — check System Health." : m("activityLog.helperNoSecrets")
         }
       />
 
@@ -163,8 +166,7 @@ export default async function AdminActivityLogPage(props: PageProps) {
             </p>
           ) : displayRows.length === 0 && showUnavailable ? (
             <p className="p-6 text-sm text-[#5C5346]">
-              {m("activityLog.unavailableP1")}{" "}
-              <code className="rounded bg-white/80 px-1">listing_audit_event</code> {m("activityLog.unavailableP2")}
+              {m("activityLog.unavailableP1")} {m("activityLog.unavailableP2")}
             </p>
           ) : (
             <table className="min-w-full border-collapse text-sm">

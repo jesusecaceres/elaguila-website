@@ -6,7 +6,7 @@ import { StaffTeamNav } from "@/app/admin/_components/StaffTeamNav";
 import { adminActionProofErr, adminActionProofOk, adminCtaChip, adminCtaChipSecondary } from "@/app/admin/_components/adminTheme";
 import { ExecutiveHubForm } from "@/app/admin/_components/executiveHub/ExecutiveHubForm";
 import { ExecutiveHubLivePreviewPanel } from "@/app/admin/_components/executiveHub/ExecutiveHubLivePreviewPanel";
-import { getExecutiveHubRecord } from "@/app/admin/_lib/executiveHubStore";
+import { getExecutiveHubRecord, listActiveRosterMembersForExecutiveLink } from "@/app/admin/_lib/executiveHubStore";
 import { updateExecutiveHubAction } from "@/app/admin/executiveHubActions";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +20,7 @@ export default async function EditExecutiveHubPage(props: {
 
   const { slug } = await props.params;
   const sp = props.searchParams ? await props.searchParams : {};
-  const record = await getExecutiveHubRecord(slug);
+  const [record, rosterList] = await Promise.all([getExecutiveHubRecord(slug), listActiveRosterMembersForExecutiveLink()]);
   if (!record) notFound();
 
   return (
@@ -45,7 +45,7 @@ export default async function EditExecutiveHubPage(props: {
         {sp.saved ? <p className={`${adminActionProofOk} mb-6`}>Saved.</p> : null}
         {sp.error ? <p className={`${adminActionProofErr} mb-6`}>{sp.error}</p> : null}
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
-          <ExecutiveHubForm mode="edit" initial={record} action={updateExecutiveHubAction} />
+          <ExecutiveHubForm mode="edit" initial={record} action={updateExecutiveHubAction} rosterOptions={rosterList.options} />
           <ExecutiveHubLivePreviewPanel slug={record.slug} />
         </div>
       </div>

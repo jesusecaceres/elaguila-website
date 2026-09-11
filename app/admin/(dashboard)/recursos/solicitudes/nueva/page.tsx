@@ -33,7 +33,7 @@ export default async function NuevaSolicitudPage(props: { searchParams?: Promise
       <AdminPagePurposeCard
         title="Registro admin-only — V1"
         purpose="El equipo de Leonix registra correcciones reportadas por socios. No existe ni existirá en este build un formulario público de envío ni un portal de socios."
-        dataSource="Escribe en public.partner_update_requests. La conversión a cambios revisables usa el mismo motor de comparación de campos de Gate 5 (resourceChangeDetection.ts) — sin un segundo sistema de diff."
+        dataSource="Escribe en public.partner_update_requests. La conversión a cambios revisables usa el mismo motor de comparación de campos que el resto del sistema — sin un segundo sistema de diff."
         status="real"
         safeActions={["Registrar una solicitud vinculada a un recurso existente u organización nueva"]}
         nextGate="Ninguno planeado — V1 permanece admin-only."

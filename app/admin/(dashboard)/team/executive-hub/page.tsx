@@ -168,10 +168,10 @@ export default async function ExecutiveHubListPage(props: {
         <AdminPagePurposeCard
           title="Executive Hub — Management Console"
           purpose="Manage Leonix executive contact profiles (and, in the future, client executives) without code changes: identity, photo, theme, working hours, Business Hub association, and publish status."
-          dataSource="Supabase `public.executives` table (supabase/migrations/20260810120000_executive_hub_executives.sql). The public /contact/[slug] route reads this table first, falling back to the legacy app/lib/digitalContact/digitalContactRegistry.ts entries (Chuy, Isaías) only when no matching record exists here."
+          dataSource="Supabase executives table. The public /contact/[slug] page reads this table first, falling back to the old hardcoded contact entries (Chuy, Isaías) only when no matching record exists here."
           status="real"
           safeActions={["Search / filter by status or theme", "Create/edit executive records", "Upload or remove headshot/logo/cover", "Search/select/clear a Business Hub reference", "Publish / Suspend / Delete (soft) / Move to draft", "Open live Preview"]}
-          nextGate="Wire `businessHubAdapter.ts` to a real Business Hub service once one exists — every Executive Hub caller already expects its exact return shape."
+          nextGate="Connect this to a real Business Hub directory once one exists — the groundwork to plug it in is already in place."
           warningNote="Publishing, suspending, or deleting a record here immediately controls what /contact/{slug} shows to real visitors. Preview always reflects the same persisted record using the exact production rendering component. Views/QR downloads and Business Hub search are honest placeholders — Analytics and Business Hub are separately locked/not-yet-built systems, not wired into this console."
         />
 

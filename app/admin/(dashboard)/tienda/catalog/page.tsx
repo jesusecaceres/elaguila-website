@@ -109,7 +109,7 @@ export default async function AdminTiendaCatalogListPage({
         dataSource="tienda_catalog_items, tienda_catalog_images, and tienda_catalog_pricing_rules."
         status={stats.error || list.error ? "needs live proof" : "real"}
         safeActions={["Create item", "Edit catalog item", "View public product", "Filter catalog"]}
-        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        nextGate="Confirm every button and count on this page against live Supabase data before relying on it for daily decisions."
         warningNote="Catalog CRUD is real; fulfillment/customer notification action proof belongs to the next action QA gate."
       />
 

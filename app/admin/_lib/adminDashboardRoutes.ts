@@ -5,7 +5,10 @@ export const ADMIN_DASHBOARD_ROUTES = {
   launchLeads: "/admin/leads/inbox",
   promocionales: "/admin/leads/inbox?view=promo",
   newsletter: "/admin/leads/newsletter",
-  mediaKit: "/admin/leads/media-kit",
+  /** ADMIN-OS-01 — was "/admin/leads/media-kit" (a dedicated page/table with zero
+   * live callers; real media-kit interest lands in leonix_leads instead). See
+   * docs/admin-os/ADMIN_OS_CABLE_MAP.md, REVENUE domain, "Media Kit requests". */
+  mediaKit: "/admin/leads/inbox?view=media_kit",
   classifiedsQueue: "/admin/workspace/clasificados",
   /** Filtered review queue — lands on queue table, not category hub (ADMIN-REVIEW-QUEUE-TRUTH-02). */
   classifiedsReviewQueue: "/admin/workspace/clasificados?status=flagged#queue",
@@ -34,6 +37,7 @@ export const ADMIN_DASHBOARD_ROUTES = {
   iglesias: "/admin/workspace/iglesias",
   support: "/admin/support",
   promoCodes: "/admin/workspace/promo-codes",
+  systemHealth: "/admin/system-health",
 } as const;
 
 export type AdminDashboardRouteKey = keyof typeof ADMIN_DASHBOARD_ROUTES;

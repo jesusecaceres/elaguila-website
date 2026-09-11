@@ -50,7 +50,10 @@ const tiendaIdx = globalNavSrc.indexOf('href: "/admin/tienda"');
 assert("launch leads index found", leadsIdx >= 0, globalNavSrc);
 assert("tienda index found", tiendaIdx >= 0, globalNavSrc);
 assert("launch leads above tienda", leadsIdx < tiendaIdx, { leadsIdx, tiendaIdx });
-assert("tienda near bottom (after settings)", globalNavSrc.indexOf('href: "/admin/settings"') < tiendaIdx, globalNavSrc);
+// Launch Truth Doctrine (2026-09) — /admin/settings was removed from primary nav: it was a
+// "Not persisted" stub with every control disabled, superseded entirely by the real
+// /admin/site-settings entry already in nav. No live CTA routes to it anymore.
+assert("dead /admin/settings stub is not in primary nav", !globalNavSrc.includes('href: "/admin/settings"'), globalNavSrc);
 
 // 3. Sidebar hrefs preserved
 for (const href of [
@@ -64,7 +67,6 @@ for (const href of [
   "/admin/support",
   "/admin/team/roster",
   "/admin/activity-log",
-  "/admin/settings",
   "/admin/workspace/language-audit",
   // Package E Build E3, Gate 1 — the primary Payments/Revenue nav entry now points to the real
   // payment ledger instead of the /admin/payments stub (that stub is left in place, unlinked,

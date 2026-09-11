@@ -242,7 +242,7 @@ export default async function AdminServiciosWorkspacePage(props: {
         dataSource="public.servicios_public_listings, servicios_public_leads, servicios_listing_reviews, saved/liked engagement, and owner profile JSON."
         status={unavailable || !fullSchema ? "needs live proof" : "partial"}
         safeActions={["View public", "Manage listing", "Suspend", "Archive", "Republish", "Feature", "Verify Leonix"]}
-        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        nextGate="Confirm every button and count on this page against live Supabase data before relying on it for daily decisions."
         warningNote="Promote/Verify actions require the live schema drift migration. Analytics remain partial when engagement tables are unavailable."
       />
 

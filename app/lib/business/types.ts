@@ -269,6 +269,31 @@ export type BusinessListingLink = {
   status: ListingLinkStatus;
 };
 
+/**
+ * ADMIN-OS-01 GATE F — additive business-to-non-listing-record link (payments,
+ * leads, support tickets, analytics sessions, contracts). Deliberately a
+ * separate shape/table from BusinessListingLink/business_listing_links per the
+ * owner's explicit decision: overloading the listing-link table with
+ * non-listing record types would blur what "listing_source" means there.
+ * `recordType` is an open string validated at the application layer (mirrors
+ * `listingSource` on BusinessListingLink) — see
+ * app/lib/business/repositories/businessExternalLinksRepo.ts.
+ */
+export type BusinessExternalRecordType = "payment" | "lead" | "support_ticket" | "analytics_session" | "contract";
+
+export type BusinessExternalLink = {
+  id: string;
+  businessId: string;
+  recordType: BusinessExternalRecordType;
+  recordId: string;
+  relationshipRole: ListingRelationshipRole;
+  linkedBy: string;
+  linkedAt: string;
+  verifiedAt: string | null;
+  status: ListingLinkStatus;
+  notes: string | null;
+};
+
 /** Versioned draft payload — schemaVersion allows the wizard (Package 3) to evolve the shape safely. */
 export type BusinessOnboardingDraftPayloadV1 = {
   schemaVersion: 1;

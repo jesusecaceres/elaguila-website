@@ -101,8 +101,8 @@ const WORKSPACE_CARDS = [
   {
     href: "/admin/workspace/cupones",
     title: "Cupones",
-    body: "Routes `/cupones` and `/coupons` share `cupones_page` (title, intro, bilingual cards).",
-    teach: "Editor at /workspace/cupones/content.",
+    body: "Content saved here does not appear on the live public page yet — for reference/legacy use only.",
+    teach: "Editor at /workspace/cupones/content (not connected to live output).",
   },
   {
     href: "/admin/workspace/anunciate",
@@ -190,7 +190,7 @@ export default async function AdminWorkspaceHubPage(props: {
         dataSource="site_section_content, site_page_blocks, site_category_config, and code-controlled section payload contracts."
         status="partial"
         safeActions={["Open section editors", "Review editability matrix", "Use existing workspace routes only"]}
-        nextGate="ADMIN-WEBSITE-CONTROL-SCHEMA-01"
+        nextGate="Finish consolidating Website Control page ownership so each site section has exactly one editing home."
         warningNote="/admin/site-sections is an alias to this real workspace. Rollback, preview, banners, announcements, and themes still need schema/workflow gates."
       />
 

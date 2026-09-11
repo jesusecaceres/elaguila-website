@@ -38,7 +38,7 @@ export default async function AdminGlobalSiteSettingsPage(props: { searchParams?
         dataSource="site_section_content row: global_site, merged with code defaults through the global site payload contract."
         status={error ? "needs live proof" : "partial"}
         safeActions={["Save global copy/toggles", "Open Home editor", "Open Classifieds workspace"]}
-        nextGate="ADMIN-WEBSITE-CONTROL-SCHEMA-01"
+        nextGate="Finish consolidating Website Control page ownership so each site section has exactly one editing home."
         warningNote="This is persisted site configuration, but rollback/revision history and broader Website Control workflow remain future gates."
       />
 

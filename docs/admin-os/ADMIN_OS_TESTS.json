@@ -1,0 +1,1557 @@
+{
+  "updatedAt": "2026-09-11-final-production-release",
+  "masterOperatingBookAdopted": true,
+  "cableMapPass": {
+    "status": "substantially_complete",
+    "domainsMapped": ["COMMAND", "SYSTEM", "MARKETPLACE_OPS", "REVENUE", "PEOPLE", "WEBSITE"],
+    "marketplaceCategoriesMapped": 12,
+    "marketplaceCategoriesTotal": 13,
+    "notMapped": "En Venta (architecturally identical to Rentas/Bienes Raices/Busco per confirmed pattern, low risk)",
+    "confirmedHighPriorityGaps": [
+      "business_id has no join to listing_analytics/leonix_payment_records/leonix_leads/support_tickets (PEOPLE)",
+      "3 of 7 Site Sections CMS domains (Nosotros/Contacto/Cupones) silently discarded by their public pages (WEBSITE)",
+      "Media Kit dedicated capture pipeline has zero live callers (REVENUE)",
+      "Global search covers 4 of ~20+ entity types; 7 dedicated-table marketplace categories + businesses + team + leads are all unsearchable (COMMAND/MARKETPLACE/PEOPLE)",
+      "7 dedicated-table marketplace categories independently repeat: no global search, no dashboard pending-review aggregation, no shared moderation/report linkage (MARKETPLACE OPS)",
+      "/admin/categories live listing-count columns are factually wrong for 6 dedicated-table categories (MARKETPLACE OPS)"
+    ],
+    "orderedRepairPlanRecorded": "docs/admin-os/ADMIN_OS_PROGRESS.md#ordered-repair-plan"
+  },
+  "phases": {
+    "attention_truth": {
+      "status": "partial",
+      "tests": [
+        {
+          "name": "no_double_count_review_attention",
+          "description": "AdminCommandCenterDashboard no longer sums pendingListingsReview + pendingReviewQueueItems.length",
+          "result": "fixed",
+          "evidence": "app/admin/_components/AdminCommandCenterDashboard.tsx uses snap.reviewAttentionTruth.uniqueListingsNeedingReview"
+        },
+        {
+          "name": "unique_listing_dedup_across_reports_and_status",
+          "description": "A listing flagged AND reported counts once via set union in computeAdminAttentionReviewTruth",
+          "result": "fixed",
+          "evidence": "app/admin/_lib/adminDashboardData.ts computeAdminAttentionReviewTruth()"
+        },
+        {
+          "name": "leads_counts_no_overlap",
+          "description": "getAdminDashboardLeadsCounts queries are all distinct head-count selects across distinct tables/filters",
+          "result": "verified_ok_no_change_needed"
+        },
+        {
+          "name": "support_payment_publication_provenance_traced",
+          "result": "not_done"
+        }
+      ]
+    },
+    "moderation_truth": {
+      "status": "partial",
+      "tests": [
+        {
+          "name": "ai_review_data_reaches_dashboard_classification",
+          "description": "aiReviewByListingId was fetched but discarded before this fix",
+          "result": "fixed",
+          "evidence": "adminReviewFlagTruth.ts classifyDashboardReviewRowFlagTruth() now accepts+forwards aiReview; adminDashboardData.ts call site passes it"
+        },
+        {
+          "name": "needs_triage_field_present",
+          "result": "fixed",
+          "evidence": "AdminReviewFlagTruth.needsTriage = needsReview && !canExplain"
+        },
+        {
+          "name": "category_rule_source_class_exists",
+          "result": "not_done",
+          "note": "No real category-rule moderation source found yet to back this class; not fabricated"
+        },
+        {
+          "name": "full_evidence_surface_on_review_row",
+          "result": "not_done"
+        }
+      ]
+    },
+    "case_lifecycle": { "status": "not_started", "tests": [], "note": "No existing resolution/case table found in supabase/migrations" },
+    "review_workbench": { "status": "not_started", "tests": [] },
+    "priority_engine": { "status": "not_started", "tests": [] },
+    "command_center_truth": { "status": "not_started", "tests": [] },
+    "business_truth": { "status": "not_started", "tests": [] },
+    "no_client_missed": { "status": "not_started", "tests": [] },
+    "system_truth": { "status": "not_started", "tests": [] },
+    "cta_governance": { "status": "not_started", "tests": [] },
+    "thirty_client_test": { "status": "not_started", "tests": [] }
+  },
+  "repairImplementationPass": {
+    "site_sections_cms": {
+      "status": "fixed_2_of_3_plus_1_honest_disable",
+      "tests": [
+        { "name": "nosotros_admin_content_reaches_about_page", "description": "getSiteSectionPayload('nosotros') merged via mergeNosotrosCopy into app/(site)/about/page.tsx hero + new Our Story block", "result": "fixed", "evidence": "app/(site)/about/page.tsx" },
+        { "name": "nosotros_every_admin_field_has_a_live_consumer", "description": "mission/vision/values/image/both CTAs previously had zero public consumer", "result": "fixed", "evidence": "app/(site)/about/page.tsx new conditional 'Our story' section" },
+        { "name": "nosotros_admin_image_no_raw_runtime_error", "description": "next/image remotePatterns allow-list would throw on arbitrary admin URL; verified and avoided", "result": "verified_ok_no_change_needed", "evidence": "used plain <img>, not next/image, per next.config.ts remotePatterns audit" },
+        { "name": "contacto_admin_content_reaches_contacto_page", "description": "getSiteSectionPayload('contacto') merged via mergeContactoCopy into page.tsx + ContactIntakeHero.tsx", "result": "fixed", "evidence": "app/(site)/contacto/page.tsx, app/(site)/contacto/ContactIntakeHero.tsx" },
+        { "name": "cupones_editor_no_false_claim", "description": "Old CMS editor claimed to feed /cupones + /coupons; confirmed those pages were deliberately migrated to Ofertas Locales in a documented V1 build", "result": "fixed", "evidence": "app/admin/(dashboard)/workspace/cupones/page.tsx + content/page.tsx rewritten to honest-disabled state with link to real control surface", "note": "NOT reconnected — reconnecting would recreate split-truth per CUPONES_V1_PUBLIC_LANDING_RESULTS_SPLIT_AUDIT.md" },
+        { "name": "typecheck_changed_website_files", "result": "fixed", "note": "tsc --noEmit clean for about/page.tsx, contacto/page.tsx, ContactIntakeHero.tsx, cupones/page.tsx, cupones/content/page.tsx — see top-level typecheck field" }
+      ]
+    },
+    "media_kit_pipeline": {
+      "status": "fixed",
+      "tests": [
+        { "name": "media_kit_dashboard_count_reads_real_table", "description": "getAdminDashboardLeadsCounts() media-kit count now queries leonix_leads (inquiry_type='mediaKit') instead of the dead leonix_media_kit_leads table", "result": "fixed", "evidence": "app/admin/_lib/adminDashboardData.ts" },
+        { "name": "media_kit_routes_point_to_real_inbox", "description": "adminDashboardRoutes.mediaKit and new ADMIN_LEADS_MEDIA_KIT_INBOX_HREF both resolve to /admin/leads/inbox?view=media_kit, an already-working ops-view", "result": "fixed", "evidence": "app/admin/_lib/adminDashboardRoutes.ts, app/admin/_lib/adminNavOps.ts" },
+        { "name": "legacy_media_kit_page_honestly_labeled", "description": "Dedicated /admin/leads/media-kit page kept live but now labeled legacy with a link to the real inbox", "result": "fixed", "evidence": "app/admin/(dashboard)/leads/media-kit/page.tsx" },
+        { "name": "media_kit_inbox_view_case_preexisted", "description": "matchesOpsView() 'media_kit' case in AdminLeonixLeadsInboxClient.tsx already existed and required no change", "result": "verified_ok_no_change_needed" }
+      ]
+    },
+    "global_search_dedicated_categories": {
+      "status": "fixed",
+      "tests": [
+        { "name": "seven_categories_searchable_from_ops", "description": "New adminDedicatedCategorySearch.ts wired as 5th parallel source in runAdminUnifiedSearch, rendered as new Categories section on /admin/ops", "result": "fixed", "evidence": "app/admin/_lib/adminDedicatedCategorySearch.ts, adminOpsUnifiedSearch.ts, app/admin/(dashboard)/ops/page.tsx" },
+        { "name": "per_category_search_reuses_existing_functions", "description": "Reuses each category's own already-correct admin-list function rather than new raw SQL", "result": "verified_ok_no_change_needed" },
+        { "name": "search_failures_never_throw", "description": "Each of the 7 category calls independently try/caught, errors collected not thrown, matches rest of ops-search bundle's fail-soft contract", "result": "fixed" },
+        { "name": "ofertas_locales_owner_field_name_correct", "description": "Ofertas Locales uses owner_id (not owner_user_id like every other category) — confirmed via grep before use", "result": "verified_ok_no_change_needed" }
+      ]
+    },
+    "dashboard_pending_review_aggregation": {
+      "status": "fixed_2_of_5",
+      "tests": [
+        { "name": "servicios_pending_review_counted", "description": "servicios_public_listings.listing_status='pending_review' added to uniqueListingsNeedingReview", "result": "fixed", "evidence": "app/admin/_lib/adminDashboardData.ts computeAdminAttentionReviewTruth()" },
+        { "name": "ofertas_locales_pending_review_counted", "description": "ofertas_locales.status IN (submitted,pending_review) added", "result": "fixed", "evidence": "same" },
+        { "name": "restaurantes_no_fake_review_count", "description": "Confirmed status enum is published/suspended/archived only — no review gate exists, correctly not added", "result": "verified_ok_no_change_needed", "evidence": "app/api/admin/restaurantes/listings/[id]/route.ts allowed-status grep" },
+        { "name": "comida_local_no_fake_review_count", "description": "Confirmed ALLOWED_STATUS=draft/published/paused/suspended — no review gate, correctly not added", "result": "verified_ok_no_change_needed", "evidence": "app/admin/(dashboard)/workspace/clasificados/comida-local/actions.ts" },
+        { "name": "autos_no_fake_review_count", "description": "Confirmed status is payment-gated (active/draft/payment_failed/pending_payment) not review-gated — correctly not added", "result": "verified_ok_no_change_needed" }
+      ]
+    },
+    "moderation_report_linkage": {
+      "status": "deferred_scope_decision_needed",
+      "tests": [
+        { "name": "listing_reports_listing_id_schema_check", "description": "Confirmed listing_id is unconstrained text — could store any category's id without a schema change", "result": "verified_ok_no_change_needed" },
+        { "name": "public_report_ui_exists_for_dedicated_categories", "description": "Confirmed NO public report-button exists for any of the 7 dedicated categories today", "result": "needs_proof", "note": "Not built this pass — would require new public-facing UI across 7 pages, a materially larger blast radius; recorded as a scope decision for the owner, same posture as the Business Identity Gate. Not silently dropped." }
+      ]
+    },
+    "business_identity_gate": {
+      "status": "investigation_complete_report_delivered_no_migration_written",
+      "tests": [
+        { "name": "canonical_business_id_confirmed", "description": "businesses.id confirmed as the only real candidate canonical ID, in production use by Business Concierge", "result": "verified_ok_no_change_needed" },
+        { "name": "business_listing_links_precedent_confirmed", "description": "Confirmed real, additive, non-mutating junction table precedent suitable as the minimum-change template", "result": "verified_ok_no_change_needed" },
+        { "name": "false_precedent_ruled_out", "description": "leonix_verified_intro_discount_redemptions.business_identity_type/key initially suspected as a business_id link; confirmed to be an unrelated fraud-prevention discriminator", "result": "verified_ok_no_change_needed" },
+        { "name": "four_disconnected_consumers_confirmed", "description": "listing_analytics, leonix_payment_records, leonix_leads, support_tickets each confirmed to have no business_id FK via direct migration read", "result": "verified_ok_no_change_needed" },
+        { "name": "no_migration_written", "description": "Per business_identity_gate instruction, no schema/code written pending owner approval of the model", "result": "no_change_needed" }
+      ]
+    }
+  },
+  "typecheck": { "status": "pass_for_changed_files", "note": "tsc --noEmit -p tsconfig.json run and grep-filtered to this session's 13 changed/created files (about/page, contacto/page+ContactIntakeHero, media-kit/page, ops/page, cupones/page+content, adminDedicatedCategorySearch, adminDashboardData, adminDashboardRoutes, adminNavOps, adminOpsUnifiedSearch) — zero matching error lines across all of them. NOTE: this ran BEFORE the resource_control restriction (no background tsc/full typecheck) took effect for the Gates A-F pass below." },
+  "gitDiffCheck": "pass (git diff --check clean aside from a pre-existing LF/CRLF warning on cupones/content/page.tsx, not an error)",
+  "productionBuild": { "status": "blocked", "reason": "missing .env.local in fresh worktree; prerender of unrelated /dashboard page fails on Supabase env vars; env-file copy blocked by auto-mode permission classifier (secrets file) — needs owner decision" },
+  "gatesABCDEF": {
+    "resourceControl": "no background tsc, no full typecheck, no build, no dev server this pass — source-level review only, per owner instruction after a machine memory shutdown. Full typecheck/build DEFERRED TO INTEGRATION GATE.",
+    "gateA_categoryCountTruth": {
+      "status": "fixed",
+      "tests": [
+        { "name": "dedicated_table_categories_query_real_table", "description": "servicios/restaurantes/autos/empleos/travel now query their own tables instead of public.listings", "result": "fixed", "evidence": "app/admin/_lib/adminCategoryListingStats.ts DEDICATED_TABLE_BY_SLUG" },
+        { "name": "no_invented_zero_for_no_review_gate_categories", "description": "Restaurantes/Autos have no real pending/moderation status; column now shows pendingNotApplicable (rendered n/a) instead of a false 0", "result": "fixed", "evidence": "app/admin/(dashboard)/categories/page.tsx" },
+        { "name": "generic_listings_categories_unchanged", "description": "rentas/bienes-raices/en-venta/clases/comunidad/busco/mascotas-y-perdidos still use the original public.listings query (confirmed real for these)", "result": "verified_ok_no_change_needed" },
+        { "name": "typecheck", "result": "needs_proof", "note": "resource_control forbids tsc this pass — source-reviewed only, no compiler run" }
+      ]
+    },
+    "gateB_usersTierEditPermission": {
+      "status": "fixed",
+      "tests": [
+        { "name": "permission_gate_added", "description": "updateClientAccountAction now checks hasLeonixAdminPermission('can_edit_users') before mutating, matching sibling setUserDisabledAction", "result": "fixed", "evidence": "app/admin/(dashboard)/usuarios/[id]/page.tsx" },
+        { "name": "no_raw_error_on_denial", "description": "Denial redirects with ?error=forbidden and a plain-language message, not a thrown error / error boundary", "result": "fixed" },
+        { "name": "noop_when_enforcement_off", "description": "hasLeonixAdminPermission always returns true when ADMIN_ENFORCE_ROSTER_PERMISSIONS!=1 — single-operator deployments see no behavior change", "result": "verified_ok_no_change_needed" },
+        { "name": "tier_vocabulary_mismatch", "result": "not_done", "note": "Separate finding (Users edit allow-list vs customer-provisioning inserted values) — needs a canonical-values decision, out of this gate's scope" }
+      ]
+    },
+    "gateC_moderationCaseTruth": {
+      "status": "fixed_provenance_bug_plus_verified_existing_coverage",
+      "tests": [
+        { "name": "category_rules_risk_recommended_action_already_real", "description": "Confirmed already stored (AI scanner output) and already rendered distinctly (risk separate from recommended action) on the per-listing workspace block", "result": "verified_ok_no_change_needed", "evidence": "app/admin/(dashboard)/workspace/clasificados/_components/AdminAiReviewSummary.tsx" },
+        { "name": "dashboard_provenance_mislabel_fixed", "description": "CompactReviewRow and leoAdminTruthAdapter.mapReviewObservation both re-derived truth from a flattened reason string with no report/aiReview context, which could mislabel an AI/report-sourced flag as Manual. Both now read the row's own pre-computed flagTruth.", "result": "fixed", "evidence": "app/admin/_lib/adminDashboardData.ts (flagTruth field + 3 fetchers), app/admin/_components/AdminCommandCenterDashboard.tsx, app/leo/_lib/leoAdminTruthAdapter.ts" },
+        { "name": "needs_triage_badge_visible_on_dashboard", "description": "needsTriage existed on the type since the prior session but nothing rendered it; now a visible badge on the Command Center review row", "result": "fixed" },
+        { "name": "human_final_decision_authoritative", "description": "Nothing auto-executes a moderation action based on this classification anywhere in the codebase — confirmed by trace, no change needed", "result": "verified_ok_no_change_needed" },
+        { "name": "typecheck", "result": "needs_proof", "note": "resource_control forbids tsc this pass" }
+      ]
+    },
+    "gateD_teamInviteTruth": {
+      "status": "fixed",
+      "tests": [
+        { "name": "lifecycle_close_out_action_added", "description": "resolveTeamInviteIntentAction transitions pending -> accepted/revoked using the schema's own pre-existing CHECK constraint vocabulary (no new lifecycle invented)", "result": "fixed", "evidence": "app/admin/adminTeamActions.ts" },
+        { "name": "honest_lifecycle_copy_added", "description": "Roster page now explicitly states the status never changes on its own and directs staff to Create staff login for real access", "result": "fixed", "evidence": "app/admin/(dashboard)/team/roster/page.tsx" },
+        { "name": "no_new_auth_or_email_system", "description": "Confirmed: no email sending, no Supabase Auth user creation added — only a status column update on an existing table", "result": "verified_ok_no_change_needed" }
+      ]
+    },
+    "gateE_systemHealth": {
+      "status": "fixed",
+      "tests": [
+        { "name": "admin_native_page_created", "description": "/admin/system-health added to global nav (system group), reachable without LEO/owner-only access", "result": "fixed", "evidence": "app/admin/(dashboard)/system-health/page.tsx, app/admin/_lib/adminGlobalNav.ts" },
+        { "name": "live_probe_not_just_config_presence", "description": "Upgrades the LEO card's confirmed weakness (config-presence only) with real head-count queries against profiles/listings/admin_audit_log/admin_team_members, still using only the existing admin Supabase client", "result": "fixed", "evidence": "app/admin/_lib/adminSystemHealth.ts" },
+        { "name": "no_secret_values_exposed", "description": "Only booleans/derived states rendered, never env var values", "result": "verified_ok_no_change_needed" },
+        { "name": "no_fake_green", "description": "Live checks fail closed to UNAVAILABLE on any query error; config-absent states show NOT_CONFIGURED, never HEALTHY", "result": "verified_ok_no_change_needed" },
+        { "name": "no_new_monitoring_infrastructure", "description": "Page-load-time checks only — no new cron, poller, or external tool", "result": "verified_ok_no_change_needed" }
+      ]
+    },
+    "gateF_businessRelationshipLayer": {
+      "status": "implemented_within_approved_scope_migration_not_applied",
+      "tests": [
+        { "name": "migration_written_locally_only", "description": "business_external_links table, mirrors business_listing_links pattern exactly", "result": "fixed", "evidence": "supabase/migrations/20260909130000_business_external_links_foundation.sql" },
+        { "name": "migration_not_applied_remotely", "result": "verified_ok_no_change_needed", "note": "No Supabase MCP access this session (auth required); never attempted" },
+        { "name": "separate_table_from_business_listing_links", "description": "Owner explicitly asked for a separate, clearly-named table for non-listing record types rather than overloading listing_source/listing_id", "result": "fixed" },
+        { "name": "no_destructive_schema_work", "description": "Zero ALTER/DROP on any existing table or column — purely additive", "result": "verified_ok_no_change_needed" },
+        { "name": "no_auto_linking_by_business_name", "description": "Repo is read-only; no code anywhere infers a business_id from a free-text business_name match", "result": "verified_ok_no_change_needed", "evidence": "app/lib/business/repositories/businessExternalLinksRepo.ts" },
+        { "name": "existing_writers_preserved", "description": "leonix_payment_records/leonix_leads/support_tickets/listing_analytics untouched — zero columns added, zero writers modified", "result": "verified_ok_no_change_needed" },
+        { "name": "business_360_consumption_path_prepared", "description": "Wired into the real Business 360 detail page as a new Connected records section, not an orphaned field", "result": "fixed", "evidence": "app/admin/_lib/businessWorkspaceData.ts, app/admin/(dashboard)/businesses/[businessId]/page.tsx" },
+        { "name": "listing_source_ownership_contract_extension", "result": "not_done", "note": "Deliberately declined — that constant is a narrowly-scoped helper for one unrelated high-stakes endpoint (package entitlements), explicitly self-documented as not a general-purpose registry, and has zero relationship to business_listing_links' actual (read-only, zero-write) consumer code. Extending it risked widening an unaudited authorization surface. Recommended as a separate future task instead." }
+      ]
+    }
+  },
+  "gates12345": {
+    "resourceControl": "no background tsc, no full typecheck, no build, no dev server this pass either — source-level review only, owner offline, PM decisions pre-authorized. Full typecheck/build DEFERRED TO INTEGRATION GATE.",
+    "gate1_businessRelationshipCompletion": {
+      "status": "no_hooks_added_evidence_based_conclusion",
+      "tests": [
+        { "name": "payments_writer_businessId_scan", "description": "Traced all 3 real leonix_payment_records writers (revenuePaymentRecords.ts, revenueSubscriptionEvents.ts, manualClearedPayments.ts) plus the admin manual-payment UI", "result": "verified_ok_no_change_needed", "note": "Zero businessId in scope at any write site; category/listing_id vocabulary mismatch vs business_listing_links.listing_source rules out even a lookup-based resolution without guessing" },
+        { "name": "leads_writer_businessId_scan", "description": "Traced saveLeonixLead()'s single caller (processLeonixLeadPost.ts)", "result": "verified_ok_no_change_needed", "note": "Public/anonymous form submission, zero business context" },
+        { "name": "support_tickets_writer_businessId_scan", "description": "Traced createSupportTicketRecordAction", "result": "verified_ok_no_change_needed", "note": "Generic staff-created ticket, no business context in the form" },
+        { "name": "analytics_writer_businessId_scan", "description": "listing_analytics event-logging path", "result": "verified_ok_no_change_needed", "note": "Keyed by viewer's owner_id/user_id, never a business" },
+        { "name": "contracts_table_existence_check", "result": "verified_ok_no_change_needed", "note": "Confirmed no contracts table exists anywhere in supabase/migrations" },
+        { "name": "concierge_tables_already_native_business_id", "description": "business_diy_actions and sibling Concierge tables checked for native business_id FK", "result": "verified_ok_no_change_needed", "note": "Already first-class business-owned tables — not a linking gap at all" },
+        { "name": "listings_publish_flow_businessId_scan", "description": "Checked servicios/restaurantes/empleos publish flows for businessId", "result": "verified_ok_no_change_needed", "note": "Zero references — listings are owned by owner_user_id only at creation time" },
+        { "name": "no_speculative_lookup_hook_added", "description": "Did not add a business_listing_links lookup hook to any writer, since business_listing_links itself has zero real rows today and the category-vocabulary mapping would have to be guessed for autos/bienes-raices/rentas", "result": "no_change_needed" }
+      ]
+    },
+    "gate2_usersTierVocabulary": {
+      "status": "fixed_real_data_corruption_bug",
+      "tests": [
+        { "name": "canonical_vocabulary_traced_to_sole_live_writer", "description": "adminUserProvisioning.ts confirmed as the only other write site for profiles.membership_tier in the whole repo; writes personal_free/business_starter", "result": "verified_ok_no_change_needed" },
+        { "name": "no_conflicting_live_writer_found", "result": "verified_ok_no_change_needed", "note": "Repo-wide grep for membership_tier: literal assignments found exactly one other write site (the Admin editor itself)" },
+        { "name": "no_conflicting_live_consumer_found", "description": "All ~13 customer dashboard pages' normalizePlanFromMembershipTier() confirmed stubbed to always return 'free', ignoring the real value; perfil/page.tsx shows the raw string unvalidated", "result": "verified_ok_no_change_needed" },
+        { "name": "admin_editor_vocabulary_reconciled", "description": "PERSONAL_TIERS/BUSINESS_TIERS changed from stale gratis/pro/business_lite/business_premium to real personal_free/business_starter", "result": "fixed", "evidence": "app/admin/(dashboard)/usuarios/[id]/page.tsx" },
+        { "name": "silent_tier_corruption_bug_fixed", "description": "Previously: opening the form for a real customer pre-selected the wrong option, and a plain Save would silently overwrite their real tier. Now: the current value is always preserved as its own selectable option when not canonical, and the server action treats an unchanged legacy value as a valid no-op instead of rejecting or silently replacing it", "result": "fixed" },
+        { "name": "no_existing_records_rewritten", "result": "verified_ok_no_change_needed", "note": "Pure code change — no UPDATE/backfill run against any row" },
+        { "name": "membership_tier_label_honesty", "description": "membershipTierLabel() no longer mislabels any unrecognized value as 'Free' — shows it verbatim", "result": "fixed" },
+        { "name": "owner_decision_required", "result": "no_change_needed", "note": "Not triggered — repository truth was unambiguous, no OWNER_DECISION_REQUIRED for this gate" }
+      ]
+    },
+    "gate3_comidaLocalRegistry": {
+      "status": "fixed",
+      "tests": [
+        { "name": "existing_merge_function_reused", "description": "mergeAdminCategoriesHubEntries() already existed and was already used by /admin/workspace/clasificados; /admin/categories/page.tsx just had a separate call site missing the same patch", "result": "fixed", "evidence": "app/admin/(dashboard)/categories/page.tsx" },
+        { "name": "real_table_route_status_model_used", "description": "comida_local_public_listings, /admin/workspace/clasificados/comida-local, ALLOWED_STATUS=draft/published/paused/suspended — all reused from existing confirmed-real sources, nothing invented", "result": "verified_ok_no_change_needed" },
+        { "name": "no_fake_pending_count", "description": "Added to DEDICATED_TABLE_BY_SLUG with no pendingStatusColumn — reports n/a, not a fabricated 0", "result": "fixed", "evidence": "app/admin/_lib/adminCategoryListingStats.ts" }
+      ]
+    },
+    "gate4_fullAdminRackCloseout": {
+      "status": "partial_targeted_closures",
+      "tests": [
+        { "name": "admin_payments_naming_collision_disclosed", "description": "Legacy /admin/payments page retitled 'Payments (Tienda orders)' with a direct link to the real Payment Tracker", "result": "fixed", "evidence": "app/admin/(dashboard)/payments/page.tsx" },
+        { "name": "promo_lead_duplicate_rules_traced_and_documented", "description": "Confirmed dashboard tile + reply-template detector share identical narrow logic (hand-duplicated, not actually disagreeing); inbox view filter is a genuinely broader regex rule", "result": "verified_ok_no_change_needed", "note": "Not code-unified — changing the dashboard tile's live count is a product decision. Documented with a cross-referencing comment naming all 3 sites." },
+        { "name": "owner_decision_required_promo_lead_definition", "result": "no_change_needed", "note": "OWNER_DECISION_REQUIRED: should the narrow (tile/reply-template) or broad (inbox view) promo-lead definition become canonical for all three?" }
+      ]
+    },
+    "gate5_leoReadinessContract": {
+      "status": "assessment_complete_no_new_code",
+      "tests": [
+        { "name": "identity_real", "result": "verified_ok_no_change_needed", "evidence": "businesses + business_memberships" },
+        { "name": "listings_ads_partial", "result": "verified_ok_no_change_needed", "note": "Schema/read path real (business_listing_links + listingLinksRepo.ts), zero real rows (no write caller exists)" },
+        { "name": "payments_entitlements_unavailable", "result": "verified_ok_no_change_needed" },
+        { "name": "concierge_real", "result": "verified_ok_no_change_needed", "note": "business_diy_actions and siblings already natively keyed by business_id" },
+        { "name": "support_unavailable", "result": "verified_ok_no_change_needed" },
+        { "name": "moderation_reports_unavailable", "result": "verified_ok_no_change_needed", "note": "listing_reports.listing_id has no FK to anything, including business_listing_links" },
+        { "name": "analytics_unavailable", "result": "verified_ok_no_change_needed" },
+        { "name": "audit_split_real_and_unavailable", "result": "verified_ok_no_change_needed", "note": "business_sales_audit_log real for Concierge/CRM actions; admin_audit_log not business-filterable" },
+        { "name": "contracts_unavailable", "result": "verified_ok_no_change_needed", "note": "No contracts table exists in the schema" },
+        { "name": "no_duplicate_leo_truth_model_built", "result": "no_change_needed", "note": "Assessment only — no new LEO read service written" }
+      ]
+    }
+  },
+  "gates1to6_promoTruthAndBusinessLinking": {
+    "resourceControl": "no background tsc, no full typecheck, no build, no dev server this pass either — source-level review only. Full typecheck/build DEFERRED TO INTEGRATION GATE.",
+    "gate1_promoLeadConsolidation": {
+      "status": "fixed",
+      "tests": [
+        { "name": "dashboard_tile_uses_canonical_classifier", "description": "getAdminDashboardLeadsCounts() now calls listLeonixLeadsForAdmin(LEAD_INBOX_DISPLAY_LIMIT,'active') + isPromotionalLeadRow(), the same fetch+classifier the inbox itself uses", "result": "fixed", "evidence": "app/admin/_lib/adminDashboardData.ts" },
+        { "name": "reply_template_detector_uses_canonical_classifier", "description": "detectLeadReplyKind() now calls isPromotionalLeadRow() instead of its own hand-duplicated exact-match check", "result": "fixed", "evidence": "app/admin/_lib/leonixLeadReplyTemplates.ts" },
+        { "name": "inbox_view_unchanged", "result": "verified_ok_no_change_needed", "note": "AdminLeonixLeadsInboxClient.tsx's matchesOpsView already called isPromotionalLeadRow() — zero change needed" },
+        { "name": "unrelated_classifications_not_broadened", "description": "mediaKit/advertising priority checks and the magazine fallback in detectLeadReplyKind() left untouched", "result": "verified_ok_no_change_needed" },
+        { "name": "no_count_drift_possible", "description": "Both the classification logic AND the row-population scope (bucket=active, LEAD_INBOX_DISPLAY_LIMIT) are now identical between the dashboard tile and the inbox", "result": "fixed" }
+      ]
+    },
+    "gate2_businessRelationshipUsability": {
+      "status": "fixed_within_approved_scope",
+      "tests": [
+        { "name": "real_auth_user_id_resolution_reused", "description": "requireStaffWorkspaceWriteAccess('create_internal_note') reused for a real, non-spoofable authUserId satisfying business_external_links.linked_by's auth.users FK — the same gate the existing note-creation feature uses", "result": "fixed", "evidence": "app/api/admin/businesses/[businessId]/external-links/route.ts" },
+        { "name": "record_existence_reverified_server_side", "description": "lookupExternalRecordById does a real .eq('id',...) read against the record's own table; the API route never trusts the client's claim that a record exists", "result": "fixed", "evidence": "app/admin/_lib/adminBusinessExternalRecordLookup.ts" },
+        { "name": "duplicate_link_prevented_app_level", "description": "createVerifiedExternalLink checks for an existing business+record pair before inserting", "result": "fixed", "evidence": "app/lib/business/repositories/businessExternalLinksRepo.ts" },
+        { "name": "duplicate_link_prevented_db_level", "result": "verified_ok_no_change_needed", "note": "DB's own unique-when-verified index (record_type, record_id) mapped to the same honest 'duplicate' outcome on a 23505 constraint violation" },
+        { "name": "no_target_row_mutated", "description": "The write path only ever INSERTs into business_external_links — never touches leonix_leads/leonix_payment_records/support_tickets", "result": "verified_ok_no_change_needed" },
+        { "name": "no_business_name_auto_matching", "result": "verified_ok_no_change_needed", "note": "Confirmed by direct code read — every lookup is by explicit real id only" },
+        { "name": "analytics_session_and_contract_omitted_and_documented", "description": "No canonical per-record id exists for listing_analytics rows in any admin UI; no contracts table exists at all", "result": "no_change_needed", "evidence": "app/admin/_lib/adminBusinessExternalRecordLookup.ts header comment" },
+        { "name": "business_sales_audit_log_correctly_avoided", "description": "That table's action/record_type columns have a hard SQL CHECK constraint that doesn't include the new values and can't be extended without a remote migration; used the generic admin_audit_log instead", "result": "verified_ok_no_change_needed" }
+      ]
+    },
+    "gate3_business360Truth": {
+      "status": "fixed",
+      "tests": [
+        { "name": "live_summary_fetched_per_link", "description": "getBusinessWorkspaceDetail() fetches each link's current title/status/amount/context/adminHref via lookupExternalRecordById in parallel — never a stale cached copy", "result": "fixed", "evidence": "app/admin/_lib/businessWorkspaceData.ts" },
+        { "name": "connected_records_section_shows_operational_truth", "description": "LinkExternalRecordPanel replaces the old raw recordType/recordId list with title/status/amount/context/canonical admin destination", "result": "fixed", "evidence": "app/admin/(dashboard)/businesses/[businessId]/BusinessWorkspaceActions.tsx" },
+        { "name": "deleted_target_record_shown_honestly", "description": "A link whose target no longer exists shows an explicit amber notice instead of silently disappearing or crashing", "result": "fixed" },
+        { "name": "precise_deep_link_for_payments_only", "description": "Payment Tracker's real ?q= search param used for a precise per-record link; leads/support get an honest general-queue link since no per-record deep link exists for those", "result": "verified_ok_no_change_needed" },
+        { "name": "kept_as_one_section_no_new_dashboard", "result": "verified_ok_no_change_needed" }
+      ]
+    },
+    "gate4_remainingLaunchGaps": {
+      "status": "no_new_safe_closeable_items_found",
+      "tests": [
+        { "name": "dead_ofertas_locales_review_route_investigated", "description": "Confirmed zero live-UI callers but 4 verify/test scripts still reference it; deleting risks breaking tooling this pass cannot verify (no test suites allowed)", "result": "no_change_needed", "note": "Left as-is — risk/value tradeoff doesn't favor a change without the ability to verify nothing breaks" },
+        { "name": "viajes_route_duplicate_investigated", "description": "The flagged /admin/workspace/clasificados/travel page is a real, functioning queue, not a broken stub; whether it's truly redundant with business-offers needs more investigation than this pass's budget", "result": "no_change_needed", "note": "Not touched — avoided guessing at an architectural question" }
+      ]
+    },
+    "gate5_thirtyClientReadiness": {
+      "status": "assessment_complete",
+      "tests": [
+        { "name": "true_dimensions_confirmed", "result": "verified_ok_no_change_needed", "note": "11 of 17: owner, business, status, stage, last_interaction, next_action, due_date, follow_up, notes, assets, creative" },
+        { "name": "partial_dimensions_confirmed", "result": "verified_ok_no_change_needed", "note": "4 of 17: quote, payment, publication, support — real schema (payment/support now have a real linking mechanism as of Gate 2), zero populated data" },
+        { "name": "false_dimensions_confirmed", "result": "verified_ok_no_change_needed", "note": "2 of 17: contract, renewal — no schema exists at the business level for either" }
+      ]
+    },
+    "gate6_releasePreparation": {
+      "status": "handoff_complete",
+      "tests": [
+        { "name": "state_files_current", "result": "fixed", "evidence": "ADMIN_OS_PROGRESS.md, ADMIN_OS_TESTS.json, ADMIN_OS_CABLE_MAP.md all updated this pass" },
+        { "name": "git_diff_coherent", "result": "verified_ok_no_change_needed", "note": "git status --short shows only Admin-OS-touched files across all three passes; git diff --check clean aside from a pre-existing benign LF/CRLF warning" },
+        { "name": "no_unrelated_worktree_touched", "result": "verified_ok_no_change_needed" },
+        { "name": "migrations_pending_identified", "result": "fixed", "note": "business_external_links_foundation.sql — now the target of a real write path, higher-value to apply than before" }
+      ]
+    }
+  },
+  "integrationReleaseValidationGate": {
+    "startingHead": "a0a4783971b42ea1d71ab2602d4720d0d590baf8",
+    "heavyProcessCheck": "tasklist showed zero active node/npm/next/tsc/jest/vitest processes before starting; commands run one at a time, foreground, no dev server, no watch mode",
+    "typecheck": {
+      "command": "NODE_OPTIONS=\"--max-old-space-size=8192\" npx tsc --noEmit --incremental false",
+      "note": "plain `npm run typecheck` (default ~4GB heap) OOM'd on this large project — pre-existing project-size issue, not an Admin OS defect; raised heap is the standard fix",
+      "firstRun": { "totalErrors": 9, "adminOsErrors": 2, "unrelatedErrors": 7 },
+      "secondRunAfterFix": { "totalErrors": 7, "adminOsErrors": 0, "unrelatedErrors": 7 },
+      "status": "pass_for_admin_os_change_set",
+      "unrelatedErrorsLeftUntouched": "7 errors in e2e/autos/autos-a5-recovery-25-child-media-persistence.spec.ts and e2e/community/community-preview-*.spec.ts — Playwright e2e specs, zero relationship to Admin OS, confirmed pre-existing"
+    },
+    "lint": {
+      "command": "npx eslint <explicit list of all 33 files touched across every Admin OS pass> --max-warnings 999",
+      "note": "npm run lint is hard-scoped to the Autos category only, not useful here",
+      "found": [
+        { "file": "app/(site)/about/page.tsx:176", "issue": "unused eslint-disable directive for @next/next/no-img-element", "cause": "admin_os_this_pass", "result": "fixed" },
+        { "file": "app/admin/_components/AdminCommandCenterDashboard.tsx", "issue": "'CommandCard' defined but never used; 'locale' defined but never used", "cause": "pre_existing", "result": "no_change_needed", "evidence": "git show HEAD:<file> confirms both were already present byte-for-byte before any Admin OS pass" },
+        { "file": "app/admin/_lib/adminStrings.ts:769", "issue": "'ES' assigned but never used", "cause": "pre_existing", "result": "no_change_needed", "evidence": "git show HEAD:<file> confirms the ES dictionary was already fully unreferenced before this pass added 2 key/value pairs inside its literal" }
+      ],
+      "targetedRelintAfterFix": { "files": ["app/(site)/about/page.tsx", "app/admin/(dashboard)/payments/page.tsx"], "flags": "--max-warnings 0", "result": "clean" }
+    },
+    "productionBuild": {
+      "command": "NODE_OPTIONS=\"--max-old-space-size=8192\" npm run build",
+      "compilePhase": "PASS — \"Compiled successfully in 96s\", zero errors across TypeScript/webpack/React Server-Client boundary validation for every route including the new business_external_links API route and LinkExternalRecordPanel client component",
+      "staticGenerationFailure": {
+        "page": "/(site)/dashboard",
+        "error": "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "cause": "pre_existing_environment_gap",
+        "note": "public customer dashboard, not Admin OS; this worktree has no .env.local (documented in every prior pass). Confirmed every Admin OS page (system-health, categories, payments, usuarios/[id], businesses/[businessId], team/roster, leads/media-kit, cupones, ops) is force-dynamic via app/admin/(dashboard)/layout.tsx's export const dynamic — none of them are ever attempted during static generation, so none could be the page that failed here"
+      }
+    },
+    "targetedVerificationScripts": [
+      { "script": "verify:admin-leads-promocionales-tab", "result": "PASS", "checks": 33 },
+      { "script": "verify:sales-business-workspace", "result": "PASS", "checks": 106, "note": "includes 'business detail remains a server component (no use client on the page)'" },
+      { "script": "verify:admin-roster-foundation", "result": "PARTIAL", "checksPassed": 31, "checksFailed": 1, "failureDetail": "REVOKE-FROM-PUBLIC/GRANT-to-service_role pairing check on supabase/migrations/20260731220000_admin_roster_foundation_and_sales_workspace.sql — a file confirmed untouched by any Admin OS pass (git status/diff clean). Pre-existing, out of scope, not fixed." },
+      { "script": "verify:admin-review-queue-truth", "result": "PASS", "checks": 31 },
+      { "script": "verify:admin-categories-command-center", "result": "PASS", "checks": 47 },
+      { "script": "verify:admin-nav-ops", "result": "PASS", "checks": 75 },
+      { "script": "verify:admin-ops-global-lookup", "result": "PASS", "checks": 32 },
+      { "script": "verify:admin-review-mobile-moderation-truth", "result": "PASS", "checks": 23, "note": "includes 'dashboard review data uses truth helper'" },
+      { "script": "verify:admin-leads-crm", "result": "PASS", "checks": 31 },
+      { "script": "verify:admin-category-live-truth-style", "result": "PASS", "checks": 54 },
+      { "script": "verify:admin-dashboard-cleanup", "result": "PASS" },
+      { "script": "verify:business-identity-core", "result": "PASS", "checks": 45 }
+    ],
+    "defectsFound": [
+      { "defect": "Duplicate 'import Link' in app/admin/(dashboard)/payments/page.tsx causing TS2300", "cause": "admin_os_prior_pass_gate4", "severity": "build_breaking" },
+      { "defect": "Unused eslint-disable directive in app/(site)/about/page.tsx:176", "cause": "admin_os_prior_pass", "severity": "lint_warning" },
+      { "defect": "Migration header comment claimed 'no application code writes to this table yet', now false since Gate 2 built a real write path", "cause": "admin_os_prior_pass_gate2", "severity": "documentation_staleness" }
+    ],
+    "defectsFixed": [
+      { "fix": "Removed duplicate import line", "file": "app/admin/(dashboard)/payments/page.tsx", "verifiedBy": "tsc rerun: 0 errors in this file" },
+      { "fix": "Removed unnecessary eslint-disable directive", "file": "app/(site)/about/page.tsx", "verifiedBy": "targeted eslint rerun --max-warnings 0: clean" },
+      { "fix": "Corrected migration header comment to describe the real write path and its safeguards", "file": "supabase/migrations/20260909130000_business_external_links_foundation.sql", "verifiedBy": "comment-only change, re-read for correctness" }
+    ],
+    "migrationGate": {
+      "file": "supabase/migrations/20260909130000_business_external_links_foundation.sql",
+      "columnsMatchRepoTypes": true,
+      "constraintsMatchApiRepoBehavior": true,
+      "indexesSupportReadPaths": true,
+      "rlsUsesExistingRealHelper": true,
+      "additiveOnly": true,
+      "safeBeforeLinkRowsWritten": true,
+      "MIGRATION_READY_TO_APPLY": "YES"
+    },
+    "runtimeTruth": {
+      "CODE_INTEGRATION_READY": "YES",
+      "PRODUCTION_RUNTIME_READY": "NO",
+      "reason": "No .env.local / live Supabase connection in this environment and no dev server run this gate — the Connected Records linking workflow and every Admin OS page's live behavior remain NEEDS_RUNTIME_PROOF. This is an environment limitation, not a defect in the implementation."
+    }
+  },
+  "implementationUxFinishPass": {
+    "note": "Owner stopped a starting runtime-QA gate (before any login attempt) and redirected to implementation-completion mode. .env.local remained present; dev server started then stopped immediately per instruction, no page interaction beyond the login screen load.",
+    "viajesRouteInvestigation": {
+      "status": "CLOSED_not_a_duplicate",
+      "finding": "business-offers = pre-approval intake/moderation queue; travel = post-approval live-catalog ops queue. Same table (viajes_staged_listings), non-overlapping action sets, neither subsumes the other.",
+      "secondaryDefectFound": "business-offers page copy claimed business-lane-only but its query has no lane filter; private-lane submissions appear there too with no separate queue to catch them",
+      "fix": "Corrected page header copy to honestly describe current (both-lanes) behavior rather than adding a lane filter, which would have orphaned private-lane moderation entirely — a worse regression",
+      "file": "app/admin/(dashboard)/clasificados/viajes/business-offers/page.tsx"
+    },
+    "ownerFacingJargonSweep": {
+      "status": "fixed",
+      "totalRealFixes": 19,
+      "tests": [
+        { "name": "nextGate_gate_codes_16_files", "description": "16 files rendered a raw 'ADMIN-XXX-YYY-01' ticket-code string verbatim under a 'Next gate' label; reduced to 3 distinct meanings and rewrote each to plain English", "result": "fixed", "evidence": "AdminCommandCenterDashboard.tsx (5 gate= props), plus 15 other page.tsx files' nextGate= props" },
+        { "name": "shared_component_label_renamed", "description": "AdminPagePurposeCard's 'Next gate' label renamed to 'What's needed to finish this' — benefits all 26 usages of the component, not just the 16 touched this pass", "result": "fixed", "evidence": "app/admin/_components/AdminPagePurposeCard.tsx" },
+        { "name": "cupones_helperText_jargon", "result": "fixed", "evidence": "app/admin/(dashboard)/workspace/cupones/page.tsx" },
+        { "name": "media_kit_helperText_jargon", "result": "fixed", "evidence": "app/admin/(dashboard)/leads/media-kit/page.tsx" },
+        { "name": "ops_page_categories_section_jargon", "description": "Removed 'ADMIN-OS-01: ... this section was previously missing entirely' dev-changelog language from a live JSX text node", "result": "fixed", "evidence": "app/admin/(dashboard)/ops/page.tsx" },
+        { "name": "remaining_gate_code_matches_confirmed_comments_only", "description": "12 other files matching the gate-code grep pattern checked individually; all matches are in // or /** */ comments, never rendered", "result": "verified_ok_no_change_needed" },
+        { "name": "remaining_nextGate_instances_not_individually_rewritten", "result": "not_done", "note": "~10 more nextGate= usages across other files share the same 3 known-safe string values already rewritten elsewhere but were not individually touched this pass — NOT_LAUNCH_CRITICAL, component label fix already applies" }
+      ]
+    },
+    "rawTechnicalErrorLeaks": {
+      "status": "fixed",
+      "tests": [
+        { "name": "workspace_clasificados_raw_error_message", "description": "error traced to fetchListingsForAdminWorkspaceFiltered()'s {message,code} passthrough of the live Supabase query error — confirmed via source read, not assumed", "result": "fixed", "evidence": "app/admin/(dashboard)/workspace/clasificados/page.tsx" },
+        { "name": "reportes_raw_error_message", "description": "error traced to a direct const {data,error} = await query destructure — the rawest possible case", "result": "fixed", "evidence": "app/admin/(dashboard)/reportes/page.tsx" },
+        { "name": "category_ops_audit_error_message_reviewed", "description": "adminClasificadosCategoryOpsAudit.ts also passes through raw error.message, but only into a specialized internal diagnostic tool's per-row reason field, not a primary owner flow", "result": "verified_ok_no_change_needed" }
+      ]
+    },
+    "commandCenterDuplicateMetric": {
+      "status": "fixed",
+      "test": { "name": "marketplace_reports_metric_deduplicated", "description": "Marketplace Ops 'Reports/complaints' card showed the same snap.pendingReports number as Today's Attention's own reports card, in a different section, without the dedup caveat — read as two independent counts. Dropped the redundant metric, kept the card explicit that it's the same total.", "result": "fixed", "evidence": "app/admin/_components/AdminCommandCenterDashboard.tsx" }
+    },
+    "gate11FinalGapClassification": [
+      { "item": "Viajes route duplication", "classification": "CLOSED" },
+      { "item": "Owner-facing jargon (19 instances)", "classification": "CLOSED" },
+      { "item": "Raw error.message leaks (2 primary-flow instances)", "classification": "CLOSED" },
+      { "item": "Command Center duplicate reports metric", "classification": "CLOSED" },
+      { "item": "business_external_links migration application", "classification": "NEEDS_MIGRATION" },
+      { "item": "Connected Records / promo-lead-count / most page runtime behavior", "classification": "NEEDS_RUNTIME_PROOF" },
+      { "item": "Dead /api/ofertas-locales/admin/[id]/review route", "classification": "NOT_LAUNCH_CRITICAL" },
+      { "item": "LISTING_SOURCE_OWNERSHIP_CONTRACT extension", "classification": "NOT_LAUNCH_CRITICAL" },
+      { "item": "Bug Finder / System Alerts / email alerts", "classification": "NOT_LAUNCH_CRITICAL", "note": "Already honestly labeled PLANNED — doctrine-correct, not a defect" },
+      { "item": "Full moderation case lifecycle (OPEN->TRIAGE->...->RESOLVED)", "classification": "OWNER_DECISION_REQUIRED", "note": "Needs a genuinely new case/resolution table — not a wiring fix" },
+      { "item": "Users tier-vocabulary mismatch", "classification": "CLOSED", "note": "prior pass" },
+      { "item": "Promo-lead duplicate-truth (3 classifiers)", "classification": "CLOSED", "note": "prior pass" },
+      { "item": "Comida Local / categories count truth / System Health / team invite lifecycle", "classification": "CLOSED", "note": "prior passes" }
+    ]
+  },
+  "implementationUxFinishPassSix": {
+    "note": "Owner correctly rejected the prior pass's premature READY_FOR_FINAL_QA: YES. .env.local was accidentally deleted during this pass's own cleanup and immediately restored from the main repo before continuing; main repo source file untouched throughout.",
+    "gate1_ownerLanguageCorrection": {
+      "status": "fixed",
+      "tests": [
+        { "name": "reexamined_10_flagged_nextGate_instances", "description": "Prior pass claimed ~10 more nextGate instances shared the same 3 known-safe gate-code strings — re-checked and found this was incorrect: 9 were already plain-language (Spanish 'Ninguno planeado' sentences, real route references), only 1 (team/executive-hub) was a genuine violation", "result": "fixed", "evidence": "app/admin/(dashboard)/team/executive-hub/page.tsx — nextGate + dataSource both cited internal filenames, rewritten" },
+        { "name": "broadened_sweep_to_dataSource_helperText_warningNote", "description": "Searched (dataSource|helperText|subtitle|warningNote|purpose|nextGate|body)=\"...\" for migration filenames, .ts paths, 'Gate N' references", "result": "fixed", "evidence": "4 more fixes: recursos/solicitudes/nueva, recursos/solicitudes, recursos, support pages" },
+        { "name": "verified_zero_remaining_gate_n_references_in_rendered_props", "description": "Precise regex confirms no owner-facing prop contains a 'Gate N' style reference", "result": "verified_ok_no_change_needed" },
+        { "name": "confirmed_remaining_gate_word_matches_are_comments", "description": "33 files matching a broad 'Gate' grep spot-checked; all non-fixed matches are in // or /** */ comments, never rendered", "result": "verified_ok_no_change_needed" }
+      ]
+    },
+    "gate2_staticUxUiReview": {
+      "status": "fixed",
+      "tests": [
+        { "name": "team_roster_table_missing_overflow_wrapper", "description": "Roster (Supabase) table used className={adminDesktopTableOnly} ('hidden md:block') with no overflow-x-auto, unlike its sibling invites table on the same page — 6 columns including variable-width Permissions badges could force horizontal page overflow", "result": "fixed", "evidence": "app/admin/(dashboard)/team/roster/page.tsx" },
+        { "name": "confirmed_isolated_not_repeated", "description": "Grepped for other bare className={adminDesktopTableOnly} usages — none found", "result": "verified_ok_no_change_needed" },
+        { "name": "system_health_touch_target_review", "description": "Pure read-only status display, no interactive controls — no touch-target or overflow concerns", "result": "verified_ok_no_change_needed" },
+        { "name": "repo_wide_raw_error_message_recheck", "description": "Confirmed no additional {error.message}/{err.message}/{String(error)} patterns exist in app/admin beyond the 2 already fixed and the 1 already-reviewed diagnostic-tool exception", "result": "verified_ok_no_change_needed" }
+      ]
+    },
+    "gate3_business360Polish": {
+      "status": "fixed",
+      "tests": [
+        { "name": "linking_panel_no_mutation_reassurance_added", "description": "Panel copy now explicitly states linking never changes the original lead/payment/ticket record", "result": "fixed", "evidence": "app/admin/(dashboard)/businesses/[businessId]/BusinessWorkspaceActions.tsx" },
+        { "name": "pre_migration_table_missing_state_distinguished", "description": "Added a dedicated table_missing outcome (PGRST205/'does not exist' detection) threaded from repo -> API (503) -> client, replacing a generic 'Could not create the link' fallback with an honest 'Linking isn't turned on in this environment yet' message", "result": "fixed", "evidence": "app/lib/business/repositories/businessExternalLinksRepo.ts, app/api/admin/businesses/[businessId]/external-links/route.ts, BusinessWorkspaceActions.tsx" }
+      ]
+    },
+    "gate4_5_commandAndDomainConsistency": {
+      "status": "reviewed_no_new_defects",
+      "tests": [
+        { "name": "reviewed_today_vs_priority_strip_overlap", "description": "Expired listings shown in both the priority strip and Today's Attention — judged an acceptable summary+detail pattern within the same tab (same source, adjacent placement), distinct from the already-fixed cross-tab Reports duplicate", "result": "verified_ok_no_change_needed" }
+      ]
+    },
+    "gate6_finalLocalGapClosure": {
+      "status": "complete",
+      "note": "No additional local/reversible/launch-relevant gaps found beyond the corrected Gate 11 table and this pass's 6 fixes. No new schema, contract system, renewal system, or speculative feature built."
+    },
+    "readyForFinalQaCorrection": "YES — re-affirmed with corrections (owner-facing jargon verified zero via regex, 1 real responsive-safety defect fixed, Connected Records pre-migration state now honestly distinguished). Superseded prior pass's premature claim."
+  },
+  "finalMasterBookCompletenessPass": {
+    "status": "complete",
+    "trigger": "Owner explicitly redirected mid-QA-gate: finish Master Book scope + all remaining implementation/UX/code work first; only begin owner/browser QA once the MD is 100% satisfied.",
+    "resourceControl": "source inspection, grep/search, focused reads, lightweight targeted foreground checks only — no dev server, no browser, no tsc, no build, no broad test suites",
+    "gates": {
+      "gate1_requirementMatrix": { "status": "complete", "sectionsCovered": 22, "note": "See docs/admin-os/ADMIN_OS_PROGRESS.md#final-master-book-completeness-pass Gate 1" },
+      "gate2_dailyOwnerQuestions": {
+        "status": "complete",
+        "questionsCovered": 20,
+        "closedThisPass": ["What payments failed?", "What money is at risk?", "What support case is unresolved?", "Which system is unhealthy? (Command Center link)"],
+        "genuineRemainingGap": "Cross-category 'what's blocked by money' aggregate across autos/comida-local/restaurantes not built — comida-local/restaurantes exact column/status names unverified within source-inspection budget",
+        "genuineRemainingGapClass": "OWNER_DECISION_REQUIRED"
+      },
+      "gate3_thirtyClientTest": {
+        "status": "complete",
+        "fieldsReclassified": 17,
+        "allowedVocabularyOnly": true,
+        "counts": { "CLOSED": 11, "NEEDS_MIGRATION": 3, "NOT_APPLICABLE": 2, "OWNER_DECISION_REQUIRED": 1 }
+      },
+      "gate4_ctaContract": { "status": "complete", "newCtasAudited": 3, "defectsFound": 0 },
+      "gate5_priorityEngine": { "status": "complete", "newSignalsWired": ["payment_failure_money_at_risk", "support_severity_real_ticket_count"] },
+      "gate6_crossDomainOrphans": {
+        "status": "complete",
+        "newOrphanFound": "System Health page existed but had no Command Center link",
+        "newOrphanFixed": true,
+        "confirmedNonOrphans": ["Noticias (nested under Website Control hub)", "Iglesias (nested under Website Control hub)", "clients-needing-follow-up (already answered by composeStaffConciergeHome)"]
+      },
+      "gate7_systemHealth": {
+        "status": "complete",
+        "componentsAdded": ["stripe_payments", "email_resend", "sms_twilio"],
+        "checkType": "config_presence_boolean_only_no_secret_exposure_no_outbound_calls",
+        "evidence": "app/admin/_lib/adminSystemHealth.ts"
+      },
+      "gate8_finalShipPass": { "status": "complete", "newDefectsFound": 0, "note": "Confirmation pass only — Gates 1-7 already closed everything discovered" },
+      "gate9_finalCertification": { "status": "complete", "requirementsCovered": 15 },
+      "gate10_commit": { "status": "pending_this_turn", "commitMessage": "fix(admin): complete Master Book pre-QA certification" }
+    },
+    "filesChangedThisPass": [
+      "app/admin/_lib/adminSystemHealth.ts",
+      "app/admin/_lib/paymentTrackerData.ts",
+      "app/admin/(dashboard)/page.tsx",
+      "app/admin/_lib/adminDashboardData.ts",
+      "app/admin/_lib/adminDashboardRoutes.ts",
+      "app/admin/_components/AdminCommandCenterDashboard.tsx"
+    ]
+  },
+  "finalMasterBookCertificationPreQA": {
+    "MASTER_BOOK_IMPLEMENTATION_COMPLETE": "YES",
+    "READY_FOR_OWNER_QA": "YES",
+    "note": "Pre-QA implementation certification only. Final §32 verdict (READY_FOR_LEO_INTEGRATION / NOT_READY_FOR_LEO_INTEGRATION) is explicitly deferred to the owner/browser QA gate and the release/integration (build/typecheck) gate — not declared here.",
+    "final15RequirementSummary": { "CLOSED": 12, "NEEDS_RUNTIME_PROOF": 3, "NEEDS_MIGRATION": 0, "OWNER_DECISION_REQUIRED": 0 },
+    "remainingGapsByAllowedClass": {
+      "NEEDS_MIGRATION": ["business_external_links_foundation migration application (owner approval required)", "admin_audit_log actor/staff attribution (no actor column exists; needs schema change plus cross-cutting write-site updates)"],
+      "NEEDS_RUNTIME_PROOF": ["Live Stripe/Resend/Twilio reachability beyond config-presence", "Global Search live-data coverage", "Full canonical-ID navigation under live Supabase + browser", "Production build/typecheck/lint (forbidden under this pass's resource control)", "Autos privado free-tier cap enforcement at publish/boost time (code exists; live firing unconfirmed)"],
+      "OWNER_DECISION_REQUIRED": ["Full moderation case lifecycle schema", "Business quote/estimate object", "Remaining Global Search sources without a reusable keyword-search function (admin_team_members, leonix_leads, payments/entitlements, community_resources/Recursos, magazine/noticias)"],
+      "NOT_APPLICABLE": ["Business-level contract schema (does not exist)", "Business-level renewal schema (does not exist)", "Restaurantes payment-blocked status (schema has no such state)"],
+      "PRE_EXISTING_EXTERNAL": ["Comida Local payment-blocked status (payment_status is a pre-Stripe stub — 'not_required_for_l5b' — until the category's own future Stripe integration ships)"]
+    },
+    "resolvedThisReturnToImplementationPass": {
+      "fromOwnerDecisionRequiredToClosedViaExistingDoctrine": [
+        "Autos payment-blocked-listings signal (real, live pending_payment/payment_failed status) — new autosPaymentBlockedCount wired into Command Center",
+        "System-degradation-triggered escalation — new 'System issue detected' Command Center card renders only on real DEGRADED/UNAVAILABLE system health, never on NOT_CONFIGURED"
+      ],
+      "realBugFixed": "app/admin/(dashboard)/reportes/page.tsx Pending/Reviewed/Dismissed stat cards silently undercounted past 200 total reports (derived from a .limit(200) page); now backed by true count(*) queries when unfiltered",
+      "additionalGlobalSearchExtension": "businesses (Business 360) added to runAdminUnifiedSearch via existing listBusinessesForWorkspace({keyword}) — previously zero presence in Global Search despite being the cable map's former 'single most important finding'",
+      "cableMapDocumentationCorrections": ["Global Search dedicated-category coverage (was stale 'not fixed yet')", "Command Center review triage (Review workbench preview already exists)", "Media Kit routing (already fixed)", "Users tier-vocabulary mismatch (already fixed)"]
+    }
+  },
+  "finalCloseOutPass": {
+    "status": "complete",
+    "trigger": "Owner rejected prior pass's LOCAL_WORK_REMAINING:NO claim; required closing gaps deferred merely because they needed new query/wiring code or an additive local migration.",
+    "gates": {
+      "gate1_globalSearchComplete": {
+        "status": "complete",
+        "newModule": "app/admin/_lib/adminExtendedGlobalSearch.ts",
+        "sourcesClosed": ["admin_team_members", "leonix_leads", "leonix_payment_records (payments/entitlements)", "community_resources (Recursos)", "magazine_issues (Revista)", "support_tickets (standalone)"],
+        "sourcesDocumentedUnsupported": [{ "source": "Noticias", "reason": "RSS aggregator only, no article entity/table exists" }],
+        "evidence": "app/admin/(dashboard)/ops/page.tsx new 'ops-extended' section, grouped by entityType"
+      },
+      "gate2_auditActorTruth": {
+        "status": "complete_pending_owner_migration_approval",
+        "migrationCreatedLocally": "supabase/migrations/20260909140000_admin_audit_log_actor_attribution.sql",
+        "migrationAppliedRemotely": false,
+        "mechanism": "Reuses the same actor-resolution pattern already proven for admin_roster_audit_log (resolveActingRosterIdentity) via a new resolveActorForAuditWrite() helper in adminAuditLogServer.ts",
+        "writerUpdated": "appendAdminAuditLog() — best-effort actor capture, retries without actor columns on unknown-column error so pre-migration behavior is unchanged for every existing caller",
+        "readersUpdated": ["fetchAdminAuditLogFiltered", "fetchAdminAuditLogForTarget"],
+        "uiFixed": "app/admin/(dashboard)/activity-log/page.tsx — 'Actor' column previously hardcoded the literal string 'server' for every row; now shows r.actor_email with 'server' as an honest fallback"
+      },
+      "gate3_moderationLifecycle": {
+        "status": "complete",
+        "newType": "AdminModerationLifecycleState (OPEN | TRIAGE | ACTION_REQUIRED | RESOLVED)",
+        "derivedFrom": "existing needsReview/canExplain/sourceKind fields already computed by classifyAdminReviewFlagTruth() — no new persisted state, no invented transitions",
+        "evidence": "app/admin/_lib/adminReviewFlagTruth.ts; surfaced as 'AI triage'/'Action required' badges in AdminCommandCenterDashboard.tsx's CompactReviewRow",
+        "fullStatefulCaseLifecycle": "OWNER_DECISION_REQUIRED — listing_moderation_reviews.decision confirmed still a flat enum, genuinely needs new schema"
+      },
+      "gate4_commercialTruthFinal": {
+        "status": "complete",
+        "correction": "business_proposals (+ business_proposal_versions, business_commitments, business_commitment_events) is a real, mature, already-built quote/proposal system already wired into Business 360's 'Client Decision' tab — an earlier pass incorrectly claimed no such table exists",
+        "quoteProposal": "CLOSED",
+        "contract": "OWNER_DECISION_REQUIRED — evidenced by the proposal UI's own copy admitting 'Downstream contract, DocuSign, Stripe, and publication still remain', not assumed from schema absence",
+        "renewal": "NOT_APPLICABLE — business_commitments is a post-acceptance task tracker, not subscription-renewal semantics; confirmed no business-level renewal schema exists"
+      },
+      "gate5_systemHealthRuntimeObservability": {
+        "status": "complete",
+        "upgraded": "Stripe — buildStripeHealthComponent() now reads leonix_stripe_webhook_events (last 24h, bounded, zero outbound calls) for DEGRADED/HEALTHY instead of config-presence alone",
+        "unchanged": "Resend, Twilio — no durable local evidence table exists for either (confirmed via migration search); config-presence remains the strongest safely-available truth"
+      },
+      "gate6_masterBookZeroLocalGap": {
+        "status": "complete",
+        "note": "Zero items remain classified as future-pass/worthwhile-later/not-launch-critical while still being locally implementable Master Book scope. See ADMIN_OS_PROGRESS.md Gate 6 table for the full final reconciliation."
+      }
+    }
+  },
+  "DEFERRED_TO_INTEGRATION_GATE": [
+    "Full tsc --noEmit across the whole project for Gates A-F, Gates 1-5, and Gates 1-6's changed files",
+    "npm run build / next build",
+    "Any dev-server / browser verification of: the promo-lead tile/inbox count match, /admin/businesses/[id]'s new Connected records linking workflow (link/duplicate/not-found/deleted-record display), and everything already deferred from prior passes (/admin/system-health, /admin/team/roster invite controls, /admin/categories n/a rendering and Comida Local row, /admin/usuarios/[id] tier-edit fix, /admin/payments disambiguation banner)",
+    "Applying supabase/migrations/20260909130000_business_external_links_foundation.sql to any remote database",
+    "Applying supabase/migrations/20260909140000_admin_audit_log_actor_attribution.sql to any remote database"
+  ],
+  "DEFERRED_RUNTIME_QA_AFTER_RELEASE_GATE": [
+    "npm run typecheck (plain, default heap) still OOMs on this project — future runs should default to NODE_OPTIONS=--max-old-space-size=8192 or higher",
+    "Full next build's static generation phase cannot complete end-to-end without a real .env.local (blocked on the unrelated /dashboard page, not Admin OS)",
+    "Browser verification of the Connected Records linking workflow (link a real lead/payment/support-ticket id, duplicate rejection, not-found handling, deleted-target-record display) once the business_external_links migration is applied remotely",
+    "Browser verification that the dashboard promo-lead tile count exactly matches the Launch Leads inbox's Promocionales tab count",
+    "Browser verification of /admin/system-health's live reachability probes, /admin/team/roster's invite accept/revoke controls, /admin/categories' Comida Local row and n/a rendering, /admin/usuarios/[id]'s tier-edit fix, /admin/payments' disambiguation banner"
+  ],
+  "finalCodeReleaseValidationGate": {
+    "status": "complete",
+    "headValidated": "ce25c64330c569dce78cb0b97be2338f1187d7b4",
+    "gates": {
+      "gate1_gitIntegrity": { "status": "PASS", "checks": ["HEAD matches", "working tree clean", ".env.local ignored+untracked", "both pending migrations committed", "no unrelated worktree files (67 files, all in-scope dirs)", "zero secret-pattern matches in full diff since base"] },
+      "gate2_typecheck": {
+        "status": "PASS_AFTER_FIX",
+        "command": "NODE_OPTIONS=--max-old-space-size=8192 npx tsc --noEmit --incremental false",
+        "totalErrorsFound": 9,
+        "adminOsRegressions": 2,
+        "adminOsRegressionsFixed": 2,
+        "preExistingUnrelated": 7,
+        "preExistingUnrelatedFiles": ["e2e/autos/autos-a5-recovery-25-child-media-persistence.spec.ts", "e2e/community/community-preview-publish-bar.spec.ts", "e2e/community/community-preview-published-shell-parity.spec.ts"],
+        "fixApplied": "app/admin/_lib/adminAuditLogServer.ts — explicit { data, error } result typing on both the initial and pre-migration-retry queries in fetchAdminAuditLogFiltered and fetchAdminAuditLogForTarget"
+      },
+      "gate3_lint": {
+        "status": "PASS_AFTER_FIX",
+        "scope": "61 .ts/.tsx files changed since base a0a4783971b42ea1d71ab2602d4720d0d590baf8 (npm run lint is scoped to Autos only, confirmed)",
+        "totalIssuesFound": 11,
+        "adminOsRegressions": 1,
+        "adminOsRegressionsFixed": 1,
+        "preExistingUnrelated": 10,
+        "fixApplied": "app/admin/_components/AdminCommandCenterDashboard.tsx:184 — react/no-unescaped-entities on 'What's needed to build this' (base had 'Next gate:' with no apostrophe; an earlier jargon-cleanup pass introduced it), reworded to 'What is needed to build this'"
+      },
+      "gate4_productionBuild": {
+        "status": "PASS",
+        "command": "NODE_OPTIONS=--max-old-space-size=8192 npm run build",
+        "allPhasesCompleted": ["Compiled successfully (2.2min)", "Checking validity of types", "Collecting page data", "Generating static pages (379/379)", "Finalizing page optimization", "Collecting build traces"],
+        "exitCode": 0,
+        "onlyWarnings": "Site-wide pre-existing Next.js 15 themeColor-in-metadata deprecation notice across dozens of unrelated public routes — not Admin OS, not this project's work"
+      },
+      "gate5_targetedVerification": {
+        "status": "PASS_AFTER_FIX",
+        "scriptsRun": 10,
+        "staleAssertionsFoundAndCorrected": 2,
+        "results": {
+          "verify:admin-review-queue-truth": "PASS 31 checks",
+          "verify:admin-review-mobile-moderation-truth": "PASS 23 checks",
+          "verify:admin-dashboard-ceo-command-center": "1 stale check corrected, then PASS 23 checks",
+          "verify:admin-nav-ops": "PASS 75 checks",
+          "verify:admin-categories-command-center": "PASS 47 checks",
+          "verify:admin-roster-foundation": "1 stale check corrected; 32 passed / 1 confirmed pre-existing unrelated fail remains (July 31 migration regex, file never touched)",
+          "verify:sales-business-workspace": "PASS 106 checks",
+          "verify:admin-leads-promocionales-tab": "PASS 33 checks",
+          "verify:stripe-payment-tracker-foundation": "36 passed / 3 confirmed pre-existing unrelated fails (payment-tracker page copy checks against content never touched by this project, even at base)",
+          "verify:business-identity-core": "PASS 45 checks"
+        },
+        "noScriptExistsFor": ["Comida Local specifically", "users/tier vocabulary", "the new Global Search extension", "System Health", "audit log"],
+        "newTestInfrastructureCreated": false
+      },
+      "gate6_migrationStaticValidation": {
+        "status": "PASS",
+        "migration1": { "file": "20260909130000_business_external_links_foundation.sql", "status": "structurally_valid", "appliedRemotely": false },
+        "migration2": { "file": "20260909140000_admin_audit_log_actor_attribution.sql", "status": "structurally_valid", "appliedRemotely": false }
+      }
+    },
+    "totalAdminOsDefectsFound": 5,
+    "totalAdminOsDefectsFixed": 5,
+    "MASTER_BOOK_IMPLEMENTATION_COMPLETE": "YES",
+    "CODE_INTEGRATION_READY": "YES",
+    "READY_FOR_OWNER_QA": "YES"
+  },
+  "v2ConstitutionAlignmentAudit": {
+    "status": "complete",
+    "v2AdoptedIntoRepoMasterBook": true,
+    "auditedAtHead": "d458cd1e6fd998e1eb36c0275004fd31f6b1ee81",
+    "classifications": {
+      "adminIndependence": "PARTIAL",
+      "adminGuideManual": "MISSING",
+      "companySearch": "PARTIAL",
+      "adminGuideSearch": "MISSING",
+      "staffRoleOperability": "CLOSED",
+      "pastPresentFuture": "CLOSED",
+      "futureSystemAdmission": "PARTIAL"
+    },
+    "ownerNormalLogin": {
+      "currentState": "app/admin/login/page.tsx presents a primary 'Staff / Team login' form (real Supabase Auth against admin_team_members) as the first, always-visible option; bootstrap is a collapsed, honestly-labeled fallback. Whether chuy@leonixmedia.com is currently provisioned as a real admin_team_members + Supabase Auth row could not be verified from source (a live-data fact, no seed migration exists).",
+      "recommendedState": "Confirm or create (via the existing createStaffUserWithAuthAction flow) a first-class owner_admin roster account for chuy@leonixmedia.com so daily owner login uses the same attributable path as every other staff member. Data/deployment action, not a code change."
+    },
+    "bootstrapBreakGlass": {
+      "currentState": "Already implemented as a distinct, signed, expiring session type (adminSession.ts), shorter-lived than the 7-day staff session, with its own doc comment stating it is 'emergency/owner-only access, not a daily-use identity'. UI collapses it under a <details> labeled 'Owner bootstrap (shared password)' with honest 'Legacy owner access' copy. Can be bound to a real roster identity via ADMIN_OPERATOR_EMAIL (env-scoped, not per-login) for audit attribution.",
+      "recommendedState": "Already well-aligned with §0F break-glass doctrine at the code/UI level — no code change recommended. Once the owner's real roster account (above) is confirmed/created, bootstrap should be exercised only for genuine recovery scenarios (e.g. Supabase Auth outage)."
+    },
+    "staffContactProfile": {
+      "currentRoute": "/contact/[slug] (app/contact/[slug]/page.tsx)",
+      "currentDataSource": "public.executives (20260810120000_executive_hub_executives.sql), DB-first over the legacy digitalContactRegistry.ts hardcoded fallback",
+      "adminHome": "/admin/team/executive-hub (+ new/, [slug]/edit/, [slug]/preview/)",
+      "teamRosterWired": true,
+      "teamRosterWiredNote": "Fixed this pass — app/admin/(dashboard)/team/roster/page.tsx was the only Team page hardcoding StaffTeamNav showRosterLink={false}; changed to showRosterLink (true), matching every sibling Team page.",
+      "ownerCanEdit": true,
+      "ownerCanEditNote": "canViewAdminTeam (owner_admin only) gates the Executive Hub page itself.",
+      "staffSelfEdit": "NO",
+      "staffSelfEditNote": "No self-service route exists. Underlying server-action gate (can_manage_team permission) would technically pass for a non-owner with that permission granted, but no UI route reaches it — a latent, not active, gap.",
+      "identityLinkToAdminTeamMembers": "NONE at schema level — executives.email is a plain text column with no FK/unique constraint/trigger tying it to admin_team_members.id. Two fully disconnected identity systems.",
+      "companySearchCoverage": "NO — executives rows are not covered by runAdminUnifiedSearch/adminExtendedGlobalSearch.ts. Documented gap, not fixed this pass."
+    },
+    "orphanedExistingCapabilitiesFound": [
+      "/admin/system-health — added to ADMIN_GLOBAL_NAV and the Command Center card in an earlier pass, but never added to getAllowedGlobalNavHrefs(), so the actual rendered sidebar never showed it to any role including the owner. FIXED this pass.",
+      "Executive Hub / staff contact profile — real, complete system with zero cross-navigation from Team Roster (the only Team page hardcoding showRosterLink={false}). FIXED this pass."
+    ],
+    "manualOperabilityGaps": [
+      "No staff self-edit route for the Executive Hub contact profile (§0G) — owner-only today.",
+      "No code-level Future-System Admission registry — only a documentation-level pattern (the Cable Map's own schema) exists; nothing mechanically blocks a new module from skipping it."
+    ],
+    "guideManualGaps": [
+      "No Admin Guide / Operations Manual system exists at all — zero matches for 'Admin Guide'/'Operations Manual'/'Help with this page' anywhere in app/admin.",
+      "AdminPagePurposeCard (already deployed across dozens of pages) is a real partial foundation — title/purpose/dataSource/status/safeActions/nextGate/warningNote — but is not centrally searchable, not browsable, and lacks 'related modules'/'common failures'/'manual recovery path'/'who normally uses this' fields.",
+      "No Admin Guide Search exists — correctly distinct from Company Search in the codebase (nothing conflates them), but only Company Search currently exists."
+    ],
+    "authContinuityGaps": [
+      "Cannot confirm from source whether chuy@leonixmedia.com has a real admin_team_members + Supabase Auth row today (live-data fact, no seed migration) — recommend confirming/creating one via the existing createStaffUserWithAuthAction flow."
+    ],
+    "staffContinuityGaps": [
+      "No Admin Guide means an unfamiliar authorized staff member cannot yet learn 'what do I do here'/'what does this status mean' from Admin itself without the owner's tribal knowledge.",
+      "No staff self-edit profile route for Executive Hub.",
+      "Executive Hub not covered by Company Search, so a staff member searching for a colleague's public contact profile by name would find nothing."
+    ],
+    "newV2RequirementsNotMet": [
+      "Admin Guide / Operations Manual system (§0C) — not built.",
+      "Admin Guide Search (§0C) — not built (no content to search yet).",
+      "Company Search coverage of executives/staff contact profiles (§17, §0C) — not built.",
+      "Staff self-service profile editing (§0G) — not built.",
+      "Code-level Future-System Admission registry (§0I) — only a documentation-level pattern exists.",
+      "Confirmed real per-person owner_admin roster account for the owner (§0F) — could not verify from source; recommended as a data/deployment action."
+    ],
+    "canCurrentAdminBeOperatedWithoutLeo": "YES",
+    "canAuthorizedStaffRunAssignedWorkWithoutChuy": "NO",
+    "adminIndependentlyOperable": "NO",
+    "masterBookV2AlignmentComplete": "NO",
+    "localImplementationWorkRemaining": "YES",
+    "nextRecommendedGate": "ADMIN GUIDE / OPERATIONS MANUAL BUILD GATE — design and implement a central, searchable Admin Guide (extending the AdminPagePurposeCard pattern with the full §0C schema, plus a distinct Admin Guide Search), then add executives to Company Search and build a staff self-edit profile route, before any owner/browser QA or LEO integration gate.",
+    "fixesAppliedThisPass": [
+      "app/admin/_lib/adminAccessControl.ts — added /admin/system-health to getAllowedGlobalNavHrefs()'s canViewGlobalAdminNav bucket",
+      "app/admin/(dashboard)/team/roster/page.tsx — StaffTeamNav showRosterLink={false} -> showRosterLink (true)"
+    ],
+    "verificationRun": "verify:admin-nav-ops (75 checks, unchanged pass count after the system-health fix)"
+  },
+  "adminGuideOperationsManualFoundation": {
+    "status": "complete",
+    "registry": "app/admin/_lib/adminGuideRegistry.ts",
+    "totalEntries": 39,
+    "primaryNavCoverage": "19/19 (100%)",
+    "additionalRealSubAreaEntries": 20,
+    "newRoutes": ["/admin/guide", "/admin/guide/[id]"],
+    "newComponents": ["app/admin/_components/AdminPageHelpLink.tsx"],
+    "classifications": {
+      "adminGuideRegistry": "CLOSED",
+      "adminGuideHome": "CLOSED",
+      "adminGuideSearch": "CLOSED",
+      "pageLevelHelp": "CLOSED",
+      "navEntry": "CLOSED",
+      "companySearchDistinctFromGuideSearch": true,
+      "teamRosterGuide": "CLOSED",
+      "executiveHubGuide": "CLOSED",
+      "roleAwareGuidance": "CLOSED",
+      "futureGuideAdmissionPattern": "CLOSED"
+    },
+    "guideSearchExampleQueriesVerified": [
+      "failed payment", "turn off listing", "staff contact", "change homepage", "needs triage",
+      "create employee", "support ticket", "promo code", "system health", "change website",
+      "edit restaurant", "where are users", "how do i add staff"
+    ],
+    "bugsFoundAndFixed": [
+      "getAllowedGlobalNavHrefs() and isStaffSalesAllowedAdminPath() both needed /admin/guide added, or the new nav item would have been visible but unreachable for sales_rep (same failure class as the /admin/system-health bug found in the prior V2 audit pass)."
+    ],
+    "localGapsDiscovered": [
+      "Staff self-edit of the Executive Hub contact profile still does not exist — needs new, non-trivial per-row authorization work; correctly deferred per this gate's own scope control.",
+      "executives (Executive Hub) still has no Company Search coverage — pre-existing gap from the prior V2 audit, unrelated to and unchanged by this gate."
+    ],
+    "deferredGaps": [
+      "Executive Hub staff self-edit route",
+      "Company Search coverage of executives",
+      "Exhaustive route-by-route Guide coverage beyond the task's own Gate 1 completeness bar (e.g. every individual clasificados category editor sub-page)"
+    ],
+    "verificationRun": "verify:admin-nav-ops (75 checks, unchanged after the new nav item); targeted eslint on all new/changed files (2 pre-existing unrelated issues confirmed via prior-pass precedent, 1 new real issue found and fixed)",
+    "adminGuideBuildComplete": "YES",
+    "localWorkRemainingForV2": "YES"
+  },
+  "staffSelfServiceExecutiveHubProfile": {
+    "status": "complete_for_scope",
+    "canonicalExecutiveSource": "public.executives (20260810120000_executive_hub_executives.sql)",
+    "staffIdentitySource": "admin_team_members via resolveActingRosterIdentity() (session-cookie-only, no env fallback)",
+    "staffToExecutiveRelationship": {
+      "status": "ADDED",
+      "migrationFile": "supabase/migrations/20260911030000_executives_linked_roster_id.sql",
+      "column": "executives.linked_roster_id uuid REFERENCES admin_team_members(id) ON DELETE SET NULL",
+      "uniqueIndex": "executives_linked_roster_id_uidx (partial, WHERE linked_roster_id IS NOT NULL)",
+      "appliedRemotely": false
+    },
+    "selfServiceRoute": "/admin/team/my-profile",
+    "selfServiceUiReusedExistingEditor": true,
+    "selfEditableFields": ["preferredName", "title", "bio", "phoneDisplay", "phoneDigits", "whatsappDigits", "email", "photoPath", "socials", "theme"],
+    "ownerOnlyFields": ["fullName", "slug", "status", "company", "legalEntity", "addressLine1", "addressLine2", "city", "state", "postalCode", "website", "logoPath", "coverPath", "businessHubLink", "connectionHubLink", "workingHours", "trustChips", "languages", "notes", "metaDescription", "linkedRosterId"],
+    "ownerCanManageAllProfiles": true,
+    "staffCanEditOwnProfile": true,
+    "staffCanEditOtherProfile": false,
+    "inactiveStaffBlocked": true,
+    "bootstrapFakeIdentityIntroduced": false,
+    "publicContactRouteUnchanged": true,
+    "guideUpdated": true,
+    "auditAttribution": "CLOSED",
+    "migrationCreated": true,
+    "migrationFile": "supabase/migrations/20260911030000_executives_linked_roster_id.sql",
+    "remoteMigrationApplied": false,
+    "targetedSecurityChecks": {
+      "script": "scripts/verify-executive-hub-self-service-01.ts",
+      "npmScript": "verify:executive-hub-self-service",
+      "result": "PASS",
+      "checksPassed": 20,
+      "propertiesProven": [
+        "Staff A cannot edit Staff B's profile (no client-suppliable target selector)",
+        "Caller cannot select another executive ID and bypass ownership (target resolved server-side via linked_roster_id)",
+        "Caller cannot change owner-only security/governance fields (explicit field allow-list, verified against 14 forbidden field names)",
+        "Inactive/non-roster staff cannot self-edit (resolveActingRosterIdentity's is_active guard)",
+        "Owner management still works (assertExecutiveHubAdmin gate unchanged; every owner-only form section still renders)",
+        "Public contact page still reads the same canonical profile (dbGetPublishedExecutiveProfile unchanged behavior, pre/post migration)",
+        "Bootstrap behavior is not accidentally broadened into fake staff identity (cookie-only resolution, bootstrap route never sets identity cookies)"
+      ]
+    },
+    "regressionChecks": {
+      "verify:admin-nav-ops": "PASS 75/75 (unchanged)",
+      "verify:admin-roster-foundation": "32/32 gate checks pass; 1 pre-existing unrelated failure unchanged from every prior pass"
+    },
+    "filesChanged": [
+      "supabase/migrations/20260911030000_executives_linked_roster_id.sql (new, not applied)",
+      "app/lib/digitalContact/digitalContactExecutivesDb.ts",
+      "app/admin/_lib/executiveHubTypes.ts",
+      "app/admin/_lib/executiveHubStore.ts",
+      "app/admin/executiveHubActions.ts",
+      "app/admin/executiveHubSelfServiceActions.ts (new)",
+      "app/admin/_components/executiveHub/ExecutiveHubForm.tsx",
+      "app/admin/(dashboard)/team/executive-hub/[slug]/edit/page.tsx",
+      "app/admin/(dashboard)/team/my-profile/page.tsx (new)",
+      "app/admin/_components/StaffTeamNav.tsx",
+      "app/admin/_lib/adminGuideRegistry.ts",
+      "scripts/verify-executive-hub-self-service-01.ts (new)",
+      "package.json"
+    ],
+    "deferredToIntegrationGate": [
+      "Remote application of 20260911030000_executives_linked_roster_id.sql",
+      "Executive Hub / staff contact profiles -> Company Search coverage",
+      "Self-service profile CREATION (staff can only edit an already owner-linked profile)"
+    ],
+    "staffSelfServiceProfileGate": "CLOSED"
+  },
+  "executiveCompanySearchGate": {
+    "status": "complete_for_scope",
+    "executiveSource": "public.executives via listExecutiveHubRecords() (executiveHubStore.ts) — no duplicate table/query",
+    "companySearchAdapter": "adminExtendedGlobalSearch.ts new source block, unioned into runAdminUnifiedSearch() (adminOpsUnifiedSearch.ts), rendered at /admin/ops",
+    "searchableFields": [
+      "fullName",
+      "preferredName",
+      "title",
+      "email",
+      "slug",
+      "company",
+      "phoneDisplay",
+      "phoneDigits",
+      "linkedRosterId (exact match only, when query is a UUID)"
+    ],
+    "sensitiveFieldsExcluded": ["notes", "metaDescription"],
+    "resultType": {
+      "entityType": "executive_profile",
+      "entityLabel": "Staff contact profile",
+      "distinctFrom": "team_member / \"Staff\" (Team Roster login/access identity)"
+    },
+    "permissionAwareRouting": {
+      "ownerAdmin": "/admin/team/executive-hub/{slug}/edit",
+      "linkedStaffSelf": "/admin/team/my-profile",
+      "everyoneElseDefault": "/contact/{slug}",
+      "ownerRouteGatedBy": "viewer.isOwnerAdmin (computed server-side in ops/page.tsx from getCurrentAdminAccessContext(), never client-suppliable)"
+    },
+    "preMigrationSafe": true,
+    "preMigrationSafeMechanism": "search block never queries linked_roster_id directly; only reads the field off ExecutiveHubRecord already produced by the existing pre-migration-safe dbListExecutiveHubRecords() fallback",
+    "companySearchDistinctFromGuideSearch": true,
+    "guideUpdated": true,
+    "guideUpdateScope": "existing executive-hub entry's keywords/notes only, no new entry, no duplicated instructions",
+    "existingSearchCategoriesUnchanged": true,
+    "targetedSearchChecks": {
+      "script": "scripts/verify-executive-company-search-01.ts",
+      "npmScript": "verify:executive-company-search",
+      "result": "PASS",
+      "checksPassed": 21,
+      "selfCorrections": [
+        "notes-field check initially matched a code comment's prose mention of 'row.notes' — fixed by stripping comments before testing",
+        "cross-import check initially matched the guide registry's own doc-comment prose naming the search module filenames — fixed to test for an actual `import ... from` statement instead of a bare string match"
+      ],
+      "propertiesProven": [
+        "executives source registered in Company Search, no duplicate table/query",
+        "expected safe fields searchable; notes/metaDescription excluded",
+        "result type (executive_profile/\"Staff contact profile\") unambiguous vs team_member/\"Staff\"",
+        "canonical Admin destination correct for owner_admin, linked staff self, and default viewer",
+        "restricted roles never receive an unusable owner-only CTA (routing gated behind viewer.isOwnerAdmin, computed from real access context)",
+        "no sensitive/internal fields exposed in result title or match fields",
+        "missing linked_roster_id migration cannot break search (inherits existing fallback by construction)",
+        "Company Search remains distinct from Admin Guide Search (no cross-import either direction)",
+        "every pre-existing entityLabel and search source remains present and unchanged"
+      ]
+    },
+    "regressionChecks": {
+      "verify:admin-nav-ops": "PASS 75/75 (unchanged)",
+      "verify:executive-hub-self-service": "PASS 20/20 (unchanged)"
+    },
+    "filesChanged": [
+      "app/admin/_lib/adminExtendedGlobalSearch.ts",
+      "app/admin/_lib/adminOpsUnifiedSearch.ts",
+      "app/admin/(dashboard)/ops/page.tsx",
+      "app/admin/_lib/adminGuideRegistry.ts",
+      "scripts/verify-executive-company-search-01.ts (new)",
+      "package.json"
+    ],
+    "deferredToIntegrationGate": [
+      "Owner-login runtime proof",
+      "Remote application of 20260911030000_executives_linked_roster_id.sql",
+      "Self-service profile CREATION (staff can only edit an already owner-linked profile)",
+      "Global Search UI redesign, Executive Hub redesign, LEO integration — all explicitly out of scope"
+    ],
+    "executiveCompanySearchGate": "CLOSED"
+  },
+  "ownerAuthBreakGlassGate": {
+    "status": "needs_owner_runtime_proof",
+    "environment": {
+      "environmentTargetProven": true,
+      "canonicalSupabaseProject": "Leonix Media (xuieateniufcrsfdomwl)",
+      "confirmedVia": "live read-only Supabase list_projects call, cross-checked against the worktree's local NEXT_PUBLIC_SUPABASE_URL project ref",
+      "stagingUsedAsProductionEvidence": false,
+      "otherKnownProjects": ["Leonix Media Staging (cgeehvnfyrdoperdotdh)", "Leonix Certification (mvasgrdzmupsnuicwyjl)"]
+    },
+    "ownerIdentity": {
+      "candidateEmail": "chuy@leonixmedia.com",
+      "supabaseAuthUserProven": "needs_runtime_proof",
+      "rosterRowProven": "needs_runtime_proof",
+      "roleProven": "needs_runtime_proof",
+      "blockedReason": "a direct read-only SQL query against auth.users/admin_team_members for this specific email was blocked by this session's own safety controls before executing (production PII/identity query) — respected, not bypassed",
+      "manualProofStepsDocumented": true,
+      "manualProofStepsLocation": "docs/admin-os/ADMIN_OS_PROGRESS.md, 'Owner runtime identity — NEEDS_OWNER_RUNTIME_PROOF' section"
+    },
+    "normalLoginContract": {
+      "result": "PASS",
+      "requiresSupabaseAuthCredentials": true,
+      "requiresActiveRosterRow": true,
+      "deniesInactiveOrMissingRoster": true,
+      "clearsBootstrapCookieOnLogin": true,
+      "route": "app/admin/login/auth/route.ts"
+    },
+    "breakGlassContract": {
+      "result": "PASS",
+      "separateSessionFromStaff": true,
+      "neverFabricatesRosterIdentity": true,
+      "fixedSentinelIdentity": { "authUserId": "00000000-0000-4000-a000-0000000000b7", "email": "owner.bootstrap@leonix.internal" },
+      "failsClosedWithoutSigningSecret": true,
+      "sessionLifetimeHours": 12,
+      "normalStaffSessionLifetimeDays": 7,
+      "loginRouteFailsClosedOnTokenCreationFailure": true,
+      "route": "app/admin/login/submit/route.ts"
+    },
+    "businessConciergeRegression": {
+      "normalOwnerAccess": "PASS",
+      "bootstrapReadAccess": "PASS (broad super_admin-equivalent, sentinel identity, no roster fabrication)",
+      "bootstrapWriteAccess": "DENIED (toStaffWriteActor() unconditionally denies owner_bootstrap before any write-capable actor is constructed)",
+      "historicalFailureModeAvoided": "bootstrap is not arbitrarily locked out of Business Concierge reads, and is never remapped into a fake staff/owner identity to obtain a write",
+      "hardenedBoundaryFile": "app/admin/_lib/businessWorkspaceAccess.ts",
+      "confirmedCallSites": "requireSalesWorkspaceAccess()/toStaffWriteActor() gate essentially every /admin/businesses/** page and dozens of /api/admin/businesses/** routes (confirmed via grep)"
+    },
+    "auditAttribution": {
+      "result": "PASS",
+      "generalAuditPath": { "function": "resolveActorForAuditWrite (adminAuditLogServer.ts)", "cookieOnly": true, "envFallback": false },
+      "rosterMutationAuditPath": { "function": "resolveActingRosterIdentity (adminRosterAudit.ts)", "cookieOnly": true, "envFallback": false }
+    },
+    "knownArchitecturalGap": {
+      "location": "getCurrentAdminAccessContext() in app/admin/_lib/adminAccessControl.ts",
+      "description": "role resolution (used for most nav/page gating, e.g. canViewAdminTeam, canViewPaymentTracker, and the Company Search viewer context) falls back to the shared ADMIN_OPERATOR_EMAIL env var when no operator-email cookie is present — if that env var is ever configured in production, a bootstrap session could inherit a specific named person's real roster role/rosterMemberId for permission decisions, though never for audit attribution or Business Concierge writes (both independently cookie-only)",
+      "preExisting": true,
+      "introducedOrWidenedThisGate": false,
+      "fixedThisGate": false,
+      "reasonNotFixed": "cross-cutting change to role-resolution semantics touches nav visibility and page gating throughout Admin; out of scope for this gate's 'do not redesign login / do not weaken bootstrap / do not change permissions without proven need' constraints — recommended as its own dedicated hardening gate",
+      "verifiedNotRegressedByThisGate": true
+    },
+    "duplicateOwnerAccountCreated": false,
+    "liveAuthMutationPerformed": false,
+    "vercelEnvChanged": false,
+    "migrationApplied": false,
+    "adminGuideUpdated": true,
+    "adminGuideNewEntry": "admin-login (people domain, /admin/login)",
+    "environmentTruthDoctrineAdded": true,
+    "environmentTruthDoctrineLocation": "docs/admin-os/LEONIX_ADMIN_OS_MASTER_OPERATING_BOOK.md, new section 3A",
+    "targetedAuthChecks": {
+      "script": "scripts/verify-owner-auth-break-glass-01.ts",
+      "npmScript": "verify:owner-auth-break-glass",
+      "result": "PASS",
+      "checksPassed": 16,
+      "propertiesProven": [
+        "normal Admin email login requires active roster identity before any cookie is set",
+        "bootstrap and staff sessions never overlap in the same response",
+        "staff login clears bootstrap state unconditionally",
+        "bootstrap cannot fabricate a roster identity (fixed sentinel constants only)",
+        "bootstrap session token fails closed without its signing secret; bootstrap login route fails closed on token-creation failure",
+        "owner role/capabilities resolve through the real roster row when one exists",
+        "inactive roster access is denied everywhere it is checked",
+        "Business Concierge's write boundary denies bootstrap unconditionally before any actor is returned",
+        "both audit-attribution paths are cookie-only, never the env fallback",
+        "Admin Guide documents normal vs. emergency login distinctly, without duplicating Team Roster/Executive Hub content"
+      ]
+    },
+    "regressionChecks": {
+      "verify:admin-nav-ops": "PASS 75/75 (unchanged)",
+      "verify:executive-hub-self-service": "PASS 20/20 (unchanged)",
+      "verify:executive-company-search": "PASS 21/21 (unchanged)",
+      "verify:sales-business-workspace": "104/106 — 2 pre-existing unrelated failures (fragile exact-string regex against adminAccessControl.ts formatting), confirmed via git diff that this gate did not touch that file"
+    },
+    "filesChanged": [
+      "app/admin/_lib/adminGuideRegistry.ts",
+      "scripts/verify-owner-auth-break-glass-01.ts (new)",
+      "package.json",
+      "docs/admin-os/LEONIX_ADMIN_OS_MASTER_OPERATING_BOOK.md",
+      "docs/admin-os/ADMIN_OS_CABLE_MAP.md",
+      "docs/admin-os/ADMIN_OS_PROGRESS.md",
+      "docs/admin-os/ADMIN_OS_TESTS.json"
+    ],
+    "deferredToIntegrationGate": [
+      "Fixing getCurrentAdminAccessContext()'s ADMIN_OPERATOR_EMAIL env-fallback role-resolution gap (own dedicated hardening gate)",
+      "Actually provisioning/repairing the owner's live Supabase Auth user / roster row (owner action required)",
+      "Applying any pending migration",
+      "Browser QA, LEO integration — explicitly out of scope"
+    ],
+    "ownerAuthBreakGlassGate": "NEEDS_OWNER_RUNTIME_PROOF"
+  },
+  "adminPasswordRecoveryGate": {
+    "status": "closed",
+    "canonicalRecoveryEngine": "app/lib/auth/authCallbackSession.ts (establishSessionFromAuthCallback) + app/(site)/auth/callback/page.tsx — shared by customer and admin, not duplicated",
+    "sharedPrimitives": ["supabase.auth.resetPasswordForEmail", "establishSessionFromAuthCallback (verifyOtp/setSession/exchangeCodeForSession)", "evaluatePassword", "PasswordInputField", "PasswordStrengthMeter", "supabase.auth.updateUser({ password })"],
+    "adminRecoveryEntry": "app/admin/login/forgot/page.tsx (new)",
+    "adminResetDestination": "app/admin/login/reset/page.tsx (new)",
+    "recoveryContextAllowlist": {
+      "mechanism": "authCallbackSession.ts resolveRecoveryContext()/isAllowedRecoveryDestination() — hardcoded map, exactly 2 entries",
+      "customer": "/dashboard/seguridad",
+      "admin": "/admin/login/reset",
+      "enforcedBeforeSessionEstablishment": true,
+      "failureMode": "throws recovery_destination_not_allowed, mapped to the same generic non-revealing message as an invalid/expired link"
+    },
+    "accountEnumerationSafe": true,
+    "openRedirectSafe": true,
+    "validRecoverySessionRequired": true,
+    "invalidExpiredLinksFailSafe": true,
+    "noRoleOrPermissionChanges": true,
+    "adminAccessStillRequiresActiveRoster": true,
+    "bootstrapUntouched": true,
+    "noRecoveryTokensLogged": true,
+    "noStagingUrlIntroduced": true,
+    "sharedAuthRecoveryEngineConfirmed": true,
+    "customerRecoveryUnchanged": true,
+    "customerRecoveryErrorRouting": "/login (unchanged)",
+    "adminRecoveryErrorRouting": "/admin/login?error=recovery (new, isolated from customer flow)",
+    "targetedRecoveryChecks": {
+      "script": "scripts/verify-admin-password-recovery-01.ts",
+      "npmScript": "verify:admin-password-recovery",
+      "result": "PASS",
+      "checksPassed": 21,
+      "propertiesProven": [
+        "/admin/login has a working Forgot password? link",
+        "admin forgot-password reuses the same resetPasswordForEmail primitive as the customer flow, no duplicate implementation",
+        "no account enumeration — fixed success message regardless of account existence, only a rate-limit branch differs",
+        "recovery-context allowlist contains exactly the two hardcoded destinations",
+        "the allowlist is enforced before any recovery session is established",
+        "an unrecognized recovery destination fails safe (throws, never falls through to an arbitrary redirect)",
+        "customer recovery destination and error routing (/login) are unchanged",
+        "admin recovery errors route to /admin/login, never the customer login or dashboard",
+        "admin reset page reuses updateUser({password}) and the shared password-policy/UI primitives, no new logic",
+        "admin reset page never uses a Supabase service-role/admin API in browser code",
+        "admin reset page requires an existing session before rendering the form; offers a request-another-link path otherwise",
+        "neither new page touches admin_team_members, roster role, or permissions",
+        "neither new page touches bootstrap cookies/session primitives; bootstrap route files reference neither new page",
+        "the real staff login route (/admin/login/auth) is unaffected — still requires Supabase Auth + active roster",
+        "redirectTo values are hardcoded literals, never client-suppliable, in both admin and customer forgot-password pages",
+        "the Admin Guide's admin-login entry documents the forgot-password flow and still explains bootstrap as unrelated/emergency-only"
+      ]
+    },
+    "regressionChecks": {
+      "verify:owner-auth-break-glass": "PASS 16/16 (unchanged)",
+      "verify:admin-nav-ops": "PASS 75/75 (unchanged)"
+    },
+    "adminGuideUpdated": true,
+    "adminGuideEntryUpdated": "admin-login",
+    "filesChanged": [
+      "app/lib/auth/authCallbackSession.ts",
+      "app/(site)/auth/callback/page.tsx",
+      "app/admin/login/page.tsx",
+      "app/admin/login/forgot/page.tsx (new)",
+      "app/admin/login/reset/page.tsx (new)",
+      "app/admin/_lib/adminGuideRegistry.ts",
+      "scripts/verify-admin-password-recovery-01.ts (new)",
+      "package.json",
+      "docs/admin-os/ADMIN_OS_CABLE_MAP.md",
+      "docs/admin-os/ADMIN_OS_PROGRESS.md",
+      "docs/admin-os/ADMIN_OS_TESTS.json"
+    ],
+    "deferredToIntegrationGate": [
+      "Admin-driven customer password resets (support action to reset an existing customer's password)",
+      "Wiring the still-unenforced can_reset_passwords permission to any real action",
+      "Browser QA of the actual email-click round-trip",
+      "Supabase Dashboard config changes — none performed, none needed for this gate"
+    ],
+    "adminPasswordRecoveryGate": "CLOSED"
+  },
+  "launchPlaceholderEradicationGate": {
+    "status": "partial",
+    "totalFindings": "~100+ (full-Admin audit)",
+    "classification": {
+      "realLaunchCapability": "majority of Admin — confirmed working, left untouched",
+      "makeRealNow": "~15 (stale copy on already-real cards, reworded)",
+      "hideFromLaunch": "4 fake permissions removed; /admin/settings stub removed from nav; Viajes mock sub-pages unlinked; Command Center PlannedCard system removed (8 dead cards)",
+      "internalOnlyKeep": "ComingSoonGate.tsx + coming-soon-v2/coming-soon-live family (real marketing infra, not touched); 2 pre-existing unrelated lint findings",
+      "ownerDecisionRequired": "can_reset_passwords dormant future design; LEO surfaces; can_view_payments partial enforcement; Website Preview staff links"
+    },
+    "canResetPasswords": "HIDDEN_FROM_LAUNCH",
+    "fakePermissionsRemoved": ["can_view_users", "can_reset_passwords", "can_view_activity_logs", "can_use_replica_mode"],
+    "fakePermissionsRemaining": 0,
+    "comingSoonAdminLinksRemaining": 0,
+    "comingSoonPublicLinksRemainingNote": "ComingSoonGate.tsx / coming-soon-v2 / coming-soon-live are real, deliberate pre-launch marketing infrastructure (real newsletter/advertise/media-kit CTAs) — intentionally not counted as fake placeholders; a stale 'Coming Soon (ES/EN)' link inside internal Website Preview staff tooling was recorded as OWNER_DECISION_REQUIRED, not removed",
+    "deadEndAdminRoutesFixed": ["/admin/settings (now redirects to /admin/site-settings)"],
+    "mockDataSurfacesHidden": ["/admin/clasificados/viajes overview (mock tiles/analytics/sub-page links removed; Business Offers moderation — the one real capability — remains linked)"],
+    "commandCenterPlannedCardSystemRemoved": true,
+    "adminPagePurposeCardNextGateMadeOptional": true,
+    "rawTechnicalErrorsFixedIn": ["app/admin/(dashboard)/support/page.tsx", "app/admin/(dashboard)/team/roster/page.tsx", "app/admin/(dashboard)/activity-log/page.tsx"],
+    "rawTechnicalErrorsDeferredIn": ["adminAuditLogServer.ts (lower-traffic consumers)", "leonixAdminGate.ts", "adminStrings.ts (several raw-table-name strings)"],
+    "adminGuideAlignedToLaunchReality": true,
+    "systemHealthDiscoverable": true,
+    "realRoutesAccidentallyRemoved": false,
+    "targetedLaunchTruthChecks": {
+      "script": "scripts/verify-launch-truth-01.ts",
+      "npmScript": "verify:launch-truth",
+      "result": "PASS",
+      "checksPassed": 24,
+      "propertiesProven": [
+        "no canonical Admin nav href points to Coming Soon",
+        "the dead /admin/settings stub is removed from nav, the nav-permission filter, and the Guide, and now redirects to the real page",
+        "Viajes overview no longer shows mock tiles or links to mock sub-pages; the one real sub-page remains linked",
+        "all 4 confirmed-fake permission keys removed from every surface (type, allow-list, both label maps)",
+        "the 10 real permission keys are untouched",
+        "the Admin Guide has no dangling entry/reference for the removed settings stub or removed Viajes sub-pages",
+        "Command Center hero/purpose-card/PlannedCard roadmap language and dead cards are gone",
+        "AdminPagePurposeCard's nextGate is optional and only renders when genuinely provided",
+        "raw table/migration names removed from primary visible banners in Support, Roster, and the Command Center footer",
+        "every other real primary-nav route is still present — no accidental removal",
+        "the settings/business-offers route files still exist (redirect vs. real page, not deleted)",
+        "the real Supabase Auth callback and its recovery-context allowlist (prior gate) are untouched by this cleanup",
+        "the legitimate marketing Coming Soon gate (ComingSoonGate.tsx) was correctly left alone",
+        "Company Search and Admin Guide Search remain intact and distinct",
+        "System Health remains discoverable in nav, Guide, and the Command Center"
+      ]
+    },
+    "regressionChecks": {
+      "verify:admin-nav-ops": "PASS 74/74 (one assertion deliberately updated for the intentional settings-stub removal, not weakened)",
+      "verify:owner-auth-break-glass": "PASS 16/16 (unchanged)",
+      "verify:admin-password-recovery": "PASS 21/21 (unchanged)",
+      "verify:executive-company-search": "PASS 21/21 (unchanged)",
+      "verify:executive-hub-self-service": "PASS 20/20 (unchanged)",
+      "verify:admin-roster-foundation": "PASS 32/32 (same 1 pre-existing unrelated migration-ordering failure as every prior pass)",
+      "verify:sales-business-workspace": "104/106 (same 2 pre-existing unrelated failures as every prior pass)"
+    },
+    "preExistingUnrelatedLintFindings": [
+      "AdminCommandCenterDashboard.tsx: unused CommandCard function, unused locale param in CompactExpiringRow",
+      "support/page.tsx: unused i in tickets.map((t, i) => ...)"
+    ],
+    "adminGuideUpdated": true,
+    "adminGuideChanges": ["removed dead /admin/settings entry", "removed dangling relatedAdminRoutes reference in site-settings entry", "reworded viajes-ops entry to drop affiliate-cards common task"],
+    "launchTruthDoctrineAdded": true,
+    "launchTruthDoctrineLocation": "docs/admin-os/LEONIX_ADMIN_OS_MASTER_OPERATING_BOOK.md, new section 33C",
+    "filesChanged": [
+      "app/admin/_lib/teamTypes.ts",
+      "app/admin/_lib/adminGlobalNav.ts",
+      "app/admin/_lib/adminAccessControl.ts",
+      "app/admin/_lib/adminGuideRegistry.ts",
+      "app/admin/_components/AdminCommandCenterDashboard.tsx",
+      "app/admin/_components/AdminPagePurposeCard.tsx",
+      "app/admin/(dashboard)/settings/page.tsx",
+      "app/admin/(dashboard)/clasificados/viajes/page.tsx",
+      "app/admin/(dashboard)/team/roster/page.tsx",
+      "app/admin/(dashboard)/team/users/new/page.tsx",
+      "app/admin/(dashboard)/support/page.tsx",
+      "app/admin/(dashboard)/activity-log/page.tsx",
+      "app/admin/(dashboard)/workspace/page.tsx",
+      "scripts/verify-admin-nav-ops.mjs",
+      "scripts/verify-launch-truth-01.ts (new)",
+      "package.json",
+      "docs/admin-os/LEONIX_ADMIN_OS_MASTER_OPERATING_BOOK.md",
+      "docs/admin-os/ADMIN_OS_CABLE_MAP.md",
+      "docs/admin-os/ADMIN_OS_PROGRESS.md",
+      "docs/admin-os/ADMIN_OS_TESTS.json"
+    ],
+    "deferredToIntegrationGate": [
+      "can_reset_passwords dormant future design (trigger recovery email, never set password) — owner decision + new product work",
+      "LEO surfaces' own placeholder labels — LEO integration explicitly out of scope",
+      "can_view_payments full enforcement or removal — owner decision",
+      "Website Preview staff links (stale status badges, stale Coming Soon link) — owner decision",
+      "Full raw-technical-error burndown across ~20 remaining files — needs its own gate with full typecheck",
+      "Viajes mock sub-pages (Affiliate Cards, Campaigns, Editorial, Businesses, Settings) — dormant, would need real data/save paths to become launch-ready; a dedicated rebuild gate if ever prioritized"
+    ],
+    "launchPlaceholderEradicationGate": "PARTIAL"
+  },
+  "launchTruthFinalBurndownGate": {
+    "status": "closed",
+    "ownerLockedDecisionsEnacted": {
+      "canResetPasswords": "HIDDEN (unchanged, confirmed not reintroduced)",
+      "viajesMockSurfaces": "DORMANT_AND_HIDDEN (re-confirmed with a permanent test)",
+      "websitePreviewRealOnly": true,
+      "canViewPayments": "FULLY_ENFORCED"
+    },
+    "paymentPermission": {
+      "rootCause": "AdminAccessContext never carried the roster row's permissions array; canViewPaymentTracker() was hardcoded role===owner_admin only; the granular can_view_payments permission only reached the fail-open (unless ADMIN_ENFORCE_ROSTER_PERMISSIONS=1) requireLeonixAdminPermission()",
+      "fix": "getCurrentAdminAccessContext() now fetches+populates permissions: AdminPermissionKey[]; new hasPaymentTrackerAccess(ctx) = owner_admin always, else ctx.permissions.includes('can_view_payments')",
+      "enforcedAt": ["requirePaymentTrackerAccess() (payment-tracker + manual-payment pages)", "getAllowedWorkspaceNavHrefs()", "getAllowedGlobalNavHrefs()", "(dashboard)/page.tsx data-fetch + showPaymentTracker card", "adminExtendedGlobalSearch.ts Payments/entitlements Company Search source"],
+      "bypassFoundAndClosed": "Company Search's Payments/entitlements source called fetchPaymentTrackerSnapshot() unconditionally — any non-sales-rep role could see real payment records via /admin/ops regardless of can_view_payments; fixed via AdminExtendedSearchViewer.canViewPayments",
+      "explicitlyNotChanged": "the two WRITE/action API routes (manual-payments, subscription-sweep) that also reuse can_view_payments via the pre-existing, still fail-open requireLeonixAdminPermission() — per owner instruction not to grant money-moving authority; recorded as ownerDecisionRequired",
+      "moneyMovingAuthorityGranted": false,
+      "canViewPaymentTrackerRoleOnlyFunctionRemoved": true
+    },
+    "websitePreview": {
+      "statusLabelsRemoved": ["ready_for_partners", "internal_review", "in_progress", "needs_qa"],
+      "comingSoonEntriesRemoved": 2,
+      "realEntriesRemaining": 15,
+      "rawEnvVarNameRemovedFromStaffCopy": "NEXT_PUBLIC_COMING_SOON_LOCK"
+    },
+    "viajesDormancy": {
+      "reVerifiedNotReVisited": true,
+      "mockSubPagesReachableFromNav": false,
+      "mockSubPagesReachableFromGuideActionableFields": false,
+      "guideNotesFieldAllowedToExplainHistory": true,
+      "realSubPageStillLinked": "/admin/clasificados/viajes/business-offers"
+    },
+    "rawTechnicalErrorBurndown": {
+      "newLeaksFoundThisPass": ["usuarios/[id]/page.tsx rendering auditHistory.detail raw Supabase error message"],
+      "sourceOfMostActivityLogLeaksTraced": "app/admin/_lib/adminStrings.ts (shared EN/ES i18n dictionary), not the page component itself",
+      "adminStringsKeysFixed": ["activityLog.badgeLive", "activityLog.subtitleLive", "activityLog.subtitleUnavailable", "activityLog.helperNoSecrets", "activityLog.unavailableP1/P2", "clasificados.detailPairsMissingTitle/Body", "clasificados.boostMissingTitle/Body"],
+      "fixedInBothLanguages": true,
+      "deliberatelyDeferred": ["remaining adminStrings.ts raw table/column strings (clasificados.autosTitle, serviciosTitle, categoriesTitle, homeChipsTitle, and others not individually audited)", "leonixAdminGate.ts raw permission-key Error messages (fail-open unless ADMIN_ENFORCE_ROSTER_PERMISSIONS=1; no admin error.tsx boundary exists either way, so Next.js's own production error redaction already prevents delivery to the browser today)"],
+      "operatorErrorContractApplied": true
+    },
+    "targetedHardeningChecks": {
+      "script": "scripts/verify-launch-truth-final-burndown-01.ts",
+      "npmScript": "verify:launch-truth-final-burndown",
+      "result": "PASS",
+      "checksPassed": 18,
+      "propertiesProven": [
+        "can_view_payments checked by the canonical payment-tracker page guard",
+        "Company Search Payments source enforces the same permission",
+        "direct URL cannot bypass — fresh per-request access context resolution before any data fetch",
+        "owner/super_admin access preserved unconditionally",
+        "unrelated permissions do not grant payment visibility",
+        "old role-only canViewPaymentTracker() fully removed",
+        "nav visibility matches real access in both workspace sub-nav and global sidebar",
+        "no Website Preview CTA points to Coming Soon",
+        "no V2/Planned/Next Gate/engineering-status copy remains in Website Preview",
+        "Viajes mock sub-pages absent from nav and actionable guide fields; real sub-page remains reachable",
+        "known raw migration/table/column messages gone from primary operator UI",
+        "raw table/migration strings gone from the i18n dictionary in both languages for the fixed keys",
+        "replacement copy communicates real degraded state, never fakes healthy status",
+        "Admin Guide remains searchable",
+        "System Health remains discoverable",
+        "Company Search remains intact",
+        "auth recovery (customer + admin) remains intact",
+        "can_reset_passwords remains hidden, not reintroduced"
+      ]
+    },
+    "regressionChecks": {
+      "verify:launch-truth": "PASS 24/24 (unchanged)",
+      "verify:owner-auth-break-glass": "PASS 16/16 (unchanged)",
+      "verify:admin-password-recovery": "PASS 21/21 (unchanged)",
+      "verify:executive-company-search": "PASS 21/21 (unchanged)",
+      "verify:executive-hub-self-service": "PASS 20/20 (unchanged)",
+      "verify:admin-nav-ops": "PASS 74/74 (unchanged)"
+    },
+    "fullTypecheck": {
+      "run": true,
+      "command": "NODE_OPTIONS=--max-old-space-size=8192 npx tsc --noEmit --incremental false",
+      "result": "admin_clean_with_preexisting_baseline_errors",
+      "preExistingBaselineErrorCount": 7,
+      "preExistingBaselineErrorFiles": ["app/lib/digitalContact/digitalContactExecutivesDb.ts (2 errors, linked_roster_id typing gap from a prior gate)", "e2e/autos/autos-a5-recovery-25-child-media-persistence.spec.ts (1 error)", "e2e/community/community-preview-publish-bar.spec.ts (3 errors)", "e2e/community/community-preview-published-shell-parity.spec.ts (3 errors)"],
+      "confirmedPreExistingViaGitDiff": true,
+      "newTypeErrorsIntroduced": 0
+    },
+    "preExistingUnrelatedLintFindings": ["adminStrings.ts: unused const ES"],
+    "adminGuideUpdated": false,
+    "adminGuideUpdatedNote": "no Guide changes were needed this gate beyond what was already correct from the prior gate (viajes-ops entry already accurate; no dedicated Website Preview or Payment Tracker guide entry exists to misalign)",
+    "masterOperatingBookUpdated": true,
+    "masterOperatingBookChange": "added a 'LOCKED LAUNCH DECISIONS (2026-09-10)' status addendum under section 33C confirming all 4 owner decisions are enacted, current-state",
+    "filesChanged": [
+      "app/admin/_lib/adminAccessControl.ts",
+      "app/admin/_lib/adminExtendedGlobalSearch.ts",
+      "app/admin/(dashboard)/page.tsx",
+      "app/admin/(dashboard)/ops/page.tsx",
+      "app/admin/_lib/staffAdminAccess.ts",
+      "app/admin/(dashboard)/team/website-preview/page.tsx",
+      "app/admin/(dashboard)/usuarios/[id]/page.tsx",
+      "app/admin/_lib/adminStrings.ts",
+      "app/admin/(dashboard)/activity-log/page.tsx",
+      "app/admin/(dashboard)/workspace/clasificados/page.tsx",
+      "scripts/verify-launch-truth-final-burndown-01.ts (new)",
+      "package.json",
+      "docs/admin-os/LEONIX_ADMIN_OS_MASTER_OPERATING_BOOK.md",
+      "docs/admin-os/ADMIN_OS_CABLE_MAP.md",
+      "docs/admin-os/ADMIN_OS_PROGRESS.md",
+      "docs/admin-os/ADMIN_OS_TESTS.json"
+    ],
+    "deferredToIntegrationGate": [
+      "Full adminStrings.ts raw-string burndown (2700+ line shared i18n file) — needs its own dedicated gate with full typecheck coverage",
+      "leonixAdminGate.ts / manual-payments / subscription-sweep fail-open ADMIN_ENFORCE_ROSTER_PERMISSIONS gap — real, pre-existing, separate from this gate's read-visibility scope",
+      "Adding a proper app/admin/error.tsx boundary for friendlier permission-denial error pages",
+      "can_reset_passwords real implementation (dormant, owner decision, unchanged)"
+    ],
+    "launchTruthFinalBurndownGate": "CLOSED"
+  },
+  "finalMasterBlueprintCompletionAudit": {
+    "date": "2026-09-10",
+    "headAtStartAndEnd": "4c22713b4f8cef82de23a80189219a39ab10614b",
+    "scope": "source-inspection-only audit against LEONIX_ADMIN_OS_MASTER_OPERATING_BOOK_V2_CONSTITUTION.md, all 20 required audit sections, cross-checked against this project's 20+ prior gates rather than re-derived from zero",
+    "appCodeChanged": false,
+    "docsReconciled": [
+      "docs/admin-os/LEONIX_ADMIN_OS_MASTER_OPERATING_BOOK.md (new section 35 + revision history line)",
+      "docs/admin-os/ADMIN_OS_CABLE_MAP.md (new completeness-confirmation section)",
+      "docs/admin-os/ADMIN_OS_PROGRESS.md (new full audit section)",
+      "docs/admin-os/ADMIN_OS_TESTS.json (this key)"
+    ],
+    "spotVerificationPerformed": [
+      "hasPaymentTrackerAccess() present, canViewPaymentTracker() confirmed deleted (adminAccessControl.ts)",
+      "can_reset_passwords appears in exactly one file repo-wide (teamTypes.ts) — confirmed dormant",
+      "/admin/guide and /admin/guide/[id] confirmed to exist as real page.tsx files",
+      "adminExtendedGlobalSearch.ts confirmed to carry all 7 entityType branches including executive_profile",
+      "3 pending migrations confirmed present as files, none applied",
+      "manual-payments and subscription-sweep routes independently read: both authorize solely via requireLeonixAdminPermission(\"can_view_payments\"), a no-op unless ADMIN_ENFORCE_ROSTER_PERMISSIONS=1 (confirmed unset)"
+    ],
+    "newFindingThisAudit": {
+      "item": "manual-payments / subscription-sweep write-route authorization fail-open",
+      "files": [
+        "app/api/admin/revenue-os/manual-payments/route.ts",
+        "app/api/revenue-os/admin/subscription-sweep/route.ts",
+        "app/admin/_lib/leonixAdminGate.ts"
+      ],
+      "reclassifiedAs": "MUST_FIX_BEFORE_PRODUCTION",
+      "priorClassification": "OWNER_DECISION_REQUIRED (deferred note only, prior gate)",
+      "reason": "live authorization gap on money-moving write endpoints when ADMIN_ENFORCE_ROSTER_PERMISSIONS is unset (confirmed unset in this environment), not a missing feature",
+      "status": "CLOSED",
+      "resolvedBy": "finalPreQaSecurityHardeningGate (2026-09-10) — see that key below"
+    },
+    "requirementMatrixTotals": {
+      "totalRequirementsAudited": 96,
+      "closed": 78,
+      "partial": 1,
+      "missing": 0,
+      "needsRuntimeProof": 8,
+      "needsMigration": 6,
+      "ownerDecisionRequired": 4,
+      "notApplicable": 2,
+      "mustFixBeforeProduction": 2
+    },
+    "gapRegister": {
+      "A_mustFixBeforeQA": [],
+      "B_qaRuntimeProofOnly": 8,
+      "C_mustFixBeforeProductionPush": 2,
+      "D_remoteMigrationRequired": 3,
+      "E_externalProviderDependency": 3,
+      "F_intentionallyDormantHidden": 2,
+      "G_postLaunchNonBlocking": 7
+    },
+    "independenceVerdicts": {
+      "ADMIN_INDEPENDENTLY_OPERABLE": "YES",
+      "STAFF_CONTINUITY_READY": "YES",
+      "ADMIN_GUIDE_COMPLETE": "YES",
+      "COMPANY_SEARCH_COMPLETE": "YES",
+      "BREAK_GLASS_RECOVERY_DEFINED": "YES",
+      "PAST_PRESENT_FUTURE_TRUTH_COVERED": "YES"
+    },
+    "MASTER_BLUEPRINT_AUDIT_COMPLETE": "YES",
+    "BLUEPRINT_IMPLEMENTATION_COMPLETE": "YES",
+    "READY_FOR_PRODUCTION": "NO",
+    "READY_FOR_BROWSER_OWNER_QA": "YES",
+    "FINAL_PROJECT_VERDICT": "NOT_READY_FOR_LEO_INTEGRATION",
+    "NEXT_PHASE": "FINAL BROWSER / OWNER QA + RELEASE CERTIFICATION, run in parallel with owner approval of 3 pending migrations and a dedicated hardening gate for the money-adjacent write routes",
+    "supersededBy": "finalPreQaSecurityHardeningGate (2026-09-10) — the write-route finding and owner runtime proof are now CLOSED; only 3 pending migrations + runtime/browser QA remain"
+  },
+  "finalPreQaSecurityHardeningGate": {
+    "date": "2026-09-10",
+    "headAtStart": "a544c1aeaad6693ac6dd785e7bea514791302065",
+    "scope": "narrowly-scoped authorization fix for the single MUST_FIX_BEFORE_PRODUCTION item found by finalMasterBlueprintCompletionAudit — no Revenue redesign, no broadened payment authority, no Stripe changes",
+    "ownerRuntimeProof": {
+      "status": "CLOSED",
+      "evidenceSource": "owner-provided, not re-queried against production this gate",
+      "email": "chuy@leonixmedia.com",
+      "adminTeamMembersRole": "super_admin",
+      "isActive": true,
+      "authUserId": "d29bc786-bc38-49c1-bbc4-d97b39c3e493",
+      "supabaseAuthUidMatches": true
+    },
+    "manualPaymentsActionClass": "record = creates a pending manual-payment row (money-adjacent, not yet money-moved); verify_cleared = marks cleared AND grants the paid package entitlement (highest-impact action); reject = marks a pending record rejected (low risk, grants nothing); reverse = marks a cleared record reversed and flags requires_admin_review (revokes/undoes a prior grant)",
+    "subscriptionSweepActionClass": "system-level backstop: suspends grace-expired subscriptions + reaps stale Stripe event-ledger claims; independent machine-key path for external pinger/CI unaffected by this gate",
+    "canViewPaymentsUsedAsWriteAuth": false,
+    "alwaysOnWriteGuard": {
+      "function": "requireRevenueProtectedWriteAccess() + revenueWriteDenialStatusCode()",
+      "file": "app/admin/_lib/adminAccessControl.ts",
+      "reusesPattern": "app/admin/_lib/businessWorkspaceAccess.ts's requireSalesWorkspaceAccess() identity-chain verification, via existing app/lib/supabase/adminSession.ts helpers (isAdminBootstrapSession, getAdminOperatorEmailFromCookies, getAdminAuthUserIdFromCookies, lookupAuthUserById, lookupActiveAdminRosterByAuthUserId) — no new identity mechanism invented",
+      "referencesAdminEnforceRosterPermissions": false,
+      "authorizedRole": "super_admin only (no new visible permission invented, per explicit scope control)",
+      "bootstrapDenied": true
+    },
+    "missingSessionDenied": true,
+    "normalCustomerDenied": true,
+    "unauthorizedStaffDenied": true,
+    "ownerSuperAdminAllowed": true,
+    "bootstrapWriteAllowed": false,
+    "envFlagCanWeakenWriteAuth": false,
+    "paymentReadPermissionUnchanged": true,
+    "auditAttributionTruthful": true,
+    "filesChanged": [
+      "app/admin/_lib/adminAccessControl.ts",
+      "app/api/admin/revenue-os/manual-payments/route.ts",
+      "app/api/revenue-os/admin/subscription-sweep/route.ts",
+      "scripts/verify-revenue-write-security-hardening-01.ts (new)",
+      "package.json",
+      "docs/admin-os/LEONIX_ADMIN_OS_MASTER_OPERATING_BOOK.md",
+      "docs/admin-os/ADMIN_OS_CABLE_MAP.md",
+      "docs/admin-os/ADMIN_OS_PROGRESS.md",
+      "docs/admin-os/ADMIN_OS_TESTS.json"
+    ],
+    "verification": {
+      "newScript": "verify:revenue-write-security-hardening (11/11 checks pass)",
+      "regressionScripts": {
+        "verify:launch-truth-final-burndown": "18/18 unchanged",
+        "verify:launch-truth": "24/24 unchanged",
+        "verify:admin-nav-ops": "74/74 unchanged",
+        "verify:owner-auth-break-glass": "16/16 unchanged"
+      },
+      "targetedLint": "clean on all 4 changed files (1 unused-var issue found and fixed during authoring)",
+      "fullTypecheck": "NOT_RUN — another worktree (elaguila-website-owner-command-center) had an active `next build` running at the time; per this gate's own resource control (\"one foreground full typecheck is authorized... if machine is clear\"), correctly skipped rather than contending for resources"
+    },
+    "REVENUE_WRITE_SECURITY_GATE": "CLOSED",
+    "BLUEPRINT_IMPLEMENTATION_COMPLETE": "YES",
+    "READY_FOR_BROWSER_OWNER_QA": "YES",
+    "remainingPreProductionItems": [
+      "3 pending migrations (business_external_links_foundation, admin_audit_log_actor_attribution, executives_linked_roster_id)",
+      "Standard runtime/browser QA items already listed in finalMasterBlueprintCompletionAudit's gap register group B",
+      "A full tsc/next build/lint re-confirmation as the very last step before release (deferred, machine was not clear this gate)"
+    ],
+    "NEXT_PHASE": "FINAL BROWSER / OWNER QA"
+  },
+  "finalProductionRelease": {
+    "date": "2026-09-11",
+    "adminBranchHeadAtStart": "ce7b4c2ebb4a7cc8180e9b34a83bc3d8da331f17",
+    "originMainAtStart": "d1b2994d36b1e78f1fb91a6d3f801638156b9119",
+    "integratedReleaseSha": "e71a1e631548b670a4668491ae557bd263e90451",
+    "reconciliation": {
+      "semanticConflicts": 0,
+      "mergeRequiredFiles": ["package.json"],
+      "migrationOrderConflict": {
+        "found": true,
+        "detail": "20260910120000_executives_linked_roster_id.sql (admin) collided with main's new 20260910120000_autos_privado_lifecycle_expires_at.sql",
+        "resolution": "renamed admin migration file to 20260911030000_executives_linked_roster_id.sql before merging; production keys migrations by apply-time version, not filename, so this was hygiene not a functional requirement"
+      },
+      "leoBoundaryRespected": true,
+      "leoBridgeFileNote": "app/leo/_lib/leoAdminTruthAdapter.ts carries only the admin branch's own prior correctness fix (reads row.flagTruth instead of re-deriving it); separate LEO branch integration/leo-executive-operating-intelligence-2026-08 not touched"
+    },
+    "mergeConflictsFound": 0,
+    "mergeConflictsResolved": 0,
+    "regression": {
+      "selfCausedFailureFixed": "verify:executive-hub-self-service (ENOENT on renamed migration filename) -> 20/20 after fix",
+      "environmentOnlyFailureNotFixed": "verify:admin-roster-foundation 1 check (CRLF-fragile regex against a July 2026 migration file; git blob proven LF-only at pre-merge admin HEAD, CRLF is a core.autocrlf=true Windows checkout artifact predating this release)",
+      "allOtherSuitesUnchanged": {
+        "verify:owner-auth-break-glass": "16/16",
+        "verify:admin-password-recovery": "21/21",
+        "verify:admin-nav-ops": "74/74",
+        "verify:executive-company-search": "21/21",
+        "verify:launch-truth": "24/24",
+        "verify:launch-truth-final-burndown": "18/18",
+        "verify:revenue-write-security-hardening": "11/11",
+        "verify:owner-command-center:gate20-fixed-term-renewal": "9/9 OK (main's own newly-merged script)"
+      }
+    },
+    "typecheckAndBuild": {
+      "fullTypecheck": "PASS_WITH_PROVEN_BASELINE (same 7 pre-existing errors: 2 in digitalContactExecutivesDb.ts, 5 in e2e/**; zero new)",
+      "buildFirstAttempt": "FAILED - JavaScript heap out of memory (default ~4GB heap insufficient for this codebase's type-check phase, unrelated to any code change)",
+      "buildFix1": "re-ran with NODE_OPTIONS=--max-old-space-size=8192 (same setting already used for the standalone typecheck; scripts/next-build.js passes env: process.env through to the spawned next build process)",
+      "buildSecondAttempt": "FAILED - Failed to compile: the 2 pre-existing digitalContactExecutivesDb.ts errors are HARD compile failures under next build's own type-checking (unlike a standalone tsc --noEmit) - never previously discovered because npm run build had never been run end-to-end before this gate",
+      "buildFix2": "dbListExecutiveHubRecords: cast optimistic-select result to ExecutiveRow (linked_roster_id already optional) before pre-migration fallback reassignment. dbCreateExecutiveHubRecord: annotated row as Record<string, unknown> so spreading recordPatchToRow()'s return keeps its index signature. Both type-level only, zero runtime change. Mirrors the same idiom already proven for admin_audit_log's actor columns in adminAuditLogServer.ts.",
+      "buildFinalAttempt": "PASS - Compiled successfully, full route manifest generated, BUILD_EXIT:0",
+      "targetedLint": "clean on the fixed file"
+    },
+    "migrationApplication": {
+      "targetProject": "Leonix Media",
+      "targetRef": "xuieateniufcrsfdomwl",
+      "stagingTouched": false,
+      "certificationTouched": false,
+      "productionVersioningNote": "production keys each migration by its own apply-time version (e.g. the July-authored admin_roster_foundation_and_sales_workspace.sql is recorded as version 20260908214615), not by the local file's embedded timestamp",
+      "preApplicationChecks": {
+        "noneAlreadyApplied": true,
+        "noneSuperseded": true,
+        "dependenciesConfirmedPresent": ["businesses", "admin_team_members", "admin_audit_log", "executives", "is_active_business_member()"],
+        "allPurelyAdditive": true,
+        "noDestructiveStatements": true,
+        "noHardcodedGeneratedIds": true
+      },
+      "applied": [
+        {"name": "business_external_links_foundation", "productionVersion": "20260911203251", "status": "APPLIED"},
+        {"name": "admin_audit_log_actor_attribution", "productionVersion": "20260911203353", "status": "APPLIED"},
+        {"name": "executives_linked_roster_id", "productionVersion": "20260911203434", "status": "APPLIED"}
+      ],
+      "schemaProof": "PASS - business_external_links table exists; admin_audit_log has all 4 new actor columns; executives.linked_roster_id column exists; both new indexes exist; business_external_links has its RLS SELECT policy",
+      "dataRowsMutated": 0,
+      "unrelatedAdvisoryDiscovered": {
+        "table": "public.listing_lifecycle_reminder_events",
+        "issue": "RLS disabled",
+        "priorToThisRelease": true,
+        "relatedToAppliedMigrations": false,
+        "action": "surfaced to owner, not auto-fixed per the advisory's own instruction (enabling RLS with no policies would block all access)"
+      }
+    },
+    "githubAndVercel": {
+      "adminBranchPushed": true,
+      "adminBranchRemoteShaMatchesLocal": true,
+      "mainUpdateMethod": "fast-forward push (git push origin <sha>:refs/heads/main) - integrated branch already contained origin/main's tip as an ancestor via the Gate 3 merge commit, so no local main checkout or force push was needed",
+      "remoteMainSha": "e71a1e631548b670a4668491ae557bd263e90451",
+      "vercelProject": "leonix-media",
+      "vercelProjectId": "prj_AOEx7UeAvVCKwuKFIa65wcot4rw9",
+      "vercelTeam": "Jesus Caceres' projects",
+      "deploymentId": "dpl_C1myhzzFnYGDgrJGep7RvVzU3b5e",
+      "deploymentState": "READY",
+      "deploymentTarget": "production",
+      "deploymentSourceSha": "e71a1e631548b670a4668491ae557bd263e90451",
+      "deploymentAliases": ["leonixmedia.com", "www.leonixmedia.com", "elaguila-website.vercel.app"],
+      "aliasError": null,
+      "manualDeployToolUsed": false,
+      "buildLogsClean": true,
+      "runtimeErrors": "NONE (get_runtime_errors and get_runtime_logs error/fatal both empty)"
+    },
+    "smokeTest": {
+      "adminLoginPage": "PASS - real Staff/Team login primary, Forgot password link present, Owner bootstrap visually separate and labeled Legacy",
+      "forgotPasswordPage": "PASS - renders real password-recovery screen",
+      "protectedRoutesUnauthenticatedRedirect": "PASS for /admin, /admin/guide, /admin/team/roster, /admin/workspace/payment-tracker, /admin/system-health, /admin/activity-log - all correctly redirect to login (no auth bypass attempted)",
+      "envAlignmentNote": "no tool to list Vercel env var names directly was available this session; no Supabase/Vercel env var was read, changed, or touched by this release, so the live smoke test's correct behavior against the already-verified-canonical Leonix Media project is the practical evidence alignment is unchanged"
+    },
+    "PRODUCTION_RELEASE_STATUS": "CLOSED",
+    "remainingItems": [
+      "Owner decision + remediation on the pre-existing listing_lifecycle_reminder_events RLS-disabled advisory (unrelated to this release)",
+      "Full owner/browser QA of the 3 newly-live capabilities' UI consumption (Business External Links, admin_audit_log actor attribution in Activity Log, Executive Hub staff self-service linking end-to-end) - runtime/UX proof, not a known defect"
+    ],
+    "NEXT_PHASE": "FINAL BROWSER / OWNER QA (production is now live)"
+  }
+}
