@@ -1809,6 +1809,39 @@ export function CompleteHandoffButton({ businessId, discoveryId, blueprintId }: 
   );
 }
 
+/**
+ * Final MD implementation push — lets staff progress a Website (or specialized) project's build
+ * assignment from ASSIGNED to IN BUILD (MD §32 CTA state "In Build"), reusing the exact same
+ * /blueprint/handoff route CreateWebsiteProjectButton already uses for the initial assignment.
+ * Never touches Gate 7's separate, later "Complete Handoff" (client delivery) action.
+ */
+export function MarkHandoffInProgressButton({ businessId, discoveryId, blueprintId }: { businessId: string; discoveryId: string; blueprintId: string }) {
+  const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    setSubmitting(true);
+    setError(null);
+    const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/discovery/${discoveryId}/blueprint/handoff`, "POST", { blueprintId, handoffStatus: "in_progress" });
+    setSubmitting(false);
+    if (!ok) {
+      setError(humanizeStaffWriteError(body?.error as string | undefined, "No se pudo actualizar el estado. / Could not update the status."));
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <button type="button" onClick={() => void submit()} disabled={submitting} className={PRIMARY_BTN}>
+        {submitting ? "Actualizando… / Updating…" : "Marcar en construcción / Mark In Build"}
+      </button>
+      {error ? <p role="alert" className="mt-1 text-xs text-red-700">{error}</p> : null}
+    </div>
+  );
+}
+
 /** Gate 8 <staleness_decision> — records that a reviewer explicitly chose to release against the
  * approved blueprint despite live truth having moved; never mutates blueprint status/content. */
 export function AcknowledgeStalenessButton({ businessId, discoveryId, blueprintId }: { businessId: string; discoveryId: string; blueprintId: string }) {

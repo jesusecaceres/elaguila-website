@@ -82,7 +82,7 @@ import { buildBeforeYouWrapUp, buildQuestionsToAskNow } from "@/app/lib/business
 import { resolveStartFromGrowthSolutionPrefill } from "@/app/lib/business/projectDiscovery/discoveryWorkspaceViewModel";
 import { buildArchitectureDecisionPacket, type WebsiteArchitectureDecisionPacket } from "@/app/lib/business/projectDiscovery/architectureDecisionEngine";
 import { computeBlueprintInputFingerprint, detectArchitectureDrift, evaluateWebsiteBlueprintReadiness } from "@/app/lib/business/projectDiscovery/blueprintEngine";
-import { getLatestBlueprintForIntent } from "@/app/lib/business/projectDiscovery/blueprintRepository";
+import { getLatestBlueprintForIntent, listBlueprintVersionsForIntent } from "@/app/lib/business/projectDiscovery/blueprintRepository";
 import { buildSpecializedDiscoveryContext } from "@/app/lib/business/projectDiscovery/specializedDiscoveryContext";
 import { buildSpecializedBeforeYouWrapUp, buildSpecializedQuestionsToAskNow, evaluateSpecializedReadiness, evaluateSpecializedRequirements } from "@/app/lib/business/projectDiscovery/specializedDiscoveryEngine";
 import { catalogForProjectType, specializedFamilyForProjectType } from "@/app/lib/business/projectDiscovery/specializedBlueprintDispatch";
@@ -442,7 +442,11 @@ export default async function AdminBusinessDetailPage({
               const currentFingerprint = approvedArchitecture ? computeBlueprintInputFingerprint(ctx, approvedArchitecture) : null;
               const isStale = latestBlueprint && currentFingerprint ? currentFingerprint !== latestBlueprint.inputFingerprint : false;
               const architectureDrift = latestBlueprint ? detectArchitectureDrift(latestBlueprint.packet.architecture, architectureRecommendation) : null;
-              return { evaluations, readiness, questionsToAskNow, wrapUp, scopeSignals, architectureRecommendation, approvedArchitecture, blueprintReadiness, latestBlueprint, isStale, currentFingerprint, architectureDrift };
+              // MD §25 <blueprint_versioning> — the full version history (v1 SUPERSEDED, v2
+              // APPROVED_FOR_BUILD, ...), read-only, reusing the same listBlueprintVersionsForIntent
+              // Gate 5's own staleness/versioning logic already relies on — never a second history store.
+              const versionHistory = latestBlueprint ? await listBlueprintVersionsForIntent(business.id, selectedIntent.id) : [];
+              return { evaluations, readiness, questionsToAskNow, wrapUp, scopeSignals, architectureRecommendation, approvedArchitecture, blueprintReadiness, latestBlueprint, isStale, currentFingerprint, architectureDrift, versionHistory };
             })()
           : null;
 
@@ -474,8 +478,9 @@ export default async function AdminBusinessDetailPage({
               const latestBlueprint = await getLatestBlueprintForIntent<SpecializedProjectBlueprintPacket>(business.id, selectedIntent.id);
               const currentFingerprint = computeSpecializedBlueprintInputFingerprint(ctx);
               const isStale = latestBlueprint ? currentFingerprint !== latestBlueprint.inputFingerprint : false;
+              const versionHistory = latestBlueprint ? await listBlueprintVersionsForIntent<SpecializedProjectBlueprintPacket>(business.id, selectedIntent.id) : [];
 
-              return { family, evaluations, readiness, questionsToAskNow, wrapUp, blueprintReadiness, latestBlueprint, isStale, currentFingerprint, dependencies, suggestedDependencies, blockingDependencies };
+              return { family, evaluations, readiness, questionsToAskNow, wrapUp, blueprintReadiness, latestBlueprint, isStale, currentFingerprint, dependencies, suggestedDependencies, blockingDependencies, versionHistory };
             })()
           : null;
 

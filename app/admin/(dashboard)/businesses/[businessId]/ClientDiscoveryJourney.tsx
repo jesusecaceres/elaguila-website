@@ -27,6 +27,7 @@ import {
   MarkBlueprintClientConfirmationNeededButton,
   MarkBlueprintInternalReviewCompleteButton,
   MarkBlueprintReleasedButton,
+  MarkHandoffInProgressButton,
   MarkNeedsMoreClientInfoButton,
   MeetingNoteCapture,
   ModifyArchitectureDecisionForm,
@@ -56,6 +57,7 @@ import {
   buildScopeWarningView,
   buildSectionsReviewView,
   buildTopScreenSummary,
+  deriveProjectLifecycleState,
   buildWhatWeAlreadyKnow,
   type SectionReviewRequirementView,
 } from "@/app/lib/business/projectDiscovery/discoveryWorkspaceViewModel";
@@ -99,6 +101,8 @@ export interface WebsiteEngineOutput {
   isStale: boolean;
   /** Non-null only when the CURRENT live architecture recommendation differs materially from the one embedded in latestBlueprint (MD <architecture_drift>). */
   architectureDrift: ArchitectureDriftResult | null;
+  /** MD §25 <blueprint_versioning> — every version for this intent, newest first; empty when latestBlueprint is null. */
+  versionHistory: readonly BusinessProjectBlueprint[];
 }
 
 /**
@@ -118,6 +122,7 @@ export interface SpecializedEngineOutput {
   dependencies: readonly ProjectIntentDependency[];
   suggestedDependencies: readonly SuggestedDependency[];
   blockingDependencies: readonly BlockingDependencySummary[];
+  versionHistory: readonly BusinessProjectBlueprint<SpecializedProjectBlueprintPacket>[];
 }
 
 export interface ClientDiscoveryJourneyProps {
@@ -167,12 +172,34 @@ export function ClientDiscoveryJourney(props: ClientDiscoveryJourneyProps) {
   const unresolvedQuestionCount = website ? website.questionsToAskNow.length : 0;
   const topScreen = buildTopScreenSummary({ discovery: currentDiscovery, readiness: website?.readiness ?? null, unresolvedQuestionCount });
 
+  // MD §32 <project_blueprint_cta_states> — one unified "where is this project" label, derived from
+  // whichever engine (Website or specialized) is active for the selected intent, plus Gate 7's
+  // release/handoff truth. Never shown until an intent is actually selected (matches every other
+  // per-intent panel on this page).
+  const activeReadinessState = website?.readiness.state ?? specialized?.readiness.state ?? null;
+  const activeBlueprintStatus = (website?.latestBlueprint?.status ?? specialized?.latestBlueprint?.status ?? null) as
+    | "draft" | "internal_review" | "client_confirmation_needed" | "approved_for_build" | "superseded" | null;
+  const lifecycleState = selectedIntent
+    ? deriveProjectLifecycleState({
+        readinessState: activeReadinessState,
+        blueprintStatus: activeBlueprintStatus,
+        handoffStatus: (clientReview?.handoffStatus as never) ?? null,
+        releaseReadinessState: clientReview?.releaseReadiness.state ?? null,
+        releasedAt: clientReview?.releasedAt ?? null,
+        handoffCompletedAt: clientReview?.handoffCompletedAt ?? null,
+      })
+    : null;
+
   return (
     <div className="space-y-4">
       {/* Top screen (MD <top_screen>) */}
       <section className={`${CARD} bg-[#FFFDF7]`}>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-[#EDE6D6] px-2 py-0.5 text-[10px] font-bold uppercase text-[#3D3428]">{formatBilingual(topScreen.discoveryStatusLabel)}</span>
+          {lifecycleState ? (
+            <span className="rounded-full bg-[#7A1E2C] px-2 py-0.5 text-[10px] font-bold uppercase text-white">{formatBilingual(lifecycleState.label)}</span>
+          ) : (
+            <span className="rounded-full bg-[#EDE6D6] px-2 py-0.5 text-[10px] font-bold uppercase text-[#3D3428]">{formatBilingual(topScreen.discoveryStatusLabel)}</span>
+          )}
           {topScreen.readinessLabel ? <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5 text-[10px] font-bold uppercase text-[#8A6B1F]">{formatBilingual(topScreen.readinessLabel)}</span> : null}
         </div>
         <p className="mt-2 text-sm font-semibold text-[#1E1810]">{currentDiscovery.title}</p>
@@ -289,6 +316,7 @@ export function ClientDiscoveryJourney(props: ClientDiscoveryJourneyProps) {
             isStale={website.isStale}
             architectureDrift={website.architectureDrift}
             canManageBlueprint={canManageBlueprint}
+            versionHistory={website.versionHistory}
           />
           <LeonixDecisionsSection evaluations={website.evaluations} />
         </>
@@ -799,7 +827,7 @@ function WebsiteArchitectureReviewSection({
 // button for the CURRENT state, never every possible action shown at once.
 // ---------------------------------------------------------------------------
 function BlueprintReviewSection({
-  businessId, discoveryId, intentId, readiness, latestBlueprint, isStale, architectureDrift, canManageBlueprint,
+  businessId, discoveryId, intentId, readiness, latestBlueprint, isStale, architectureDrift, canManageBlueprint, versionHistory,
 }: {
   businessId: string; discoveryId: string; intentId: string;
   readiness: WebsiteBlueprintReadinessResult;
@@ -807,6 +835,7 @@ function BlueprintReviewSection({
   isStale: boolean;
   architectureDrift: ArchitectureDriftResult | null;
   canManageBlueprint: boolean;
+  versionHistory: readonly BusinessProjectBlueprint[];
 }) {
   const unresolvedCount = latestBlueprint
     ? latestBlueprint.packet.unresolvedBeforeLaunch.length + latestBlueprint.packet.unresolvedLeonixActions.length + latestBlueprint.packet.unresolvedNonBlocking.length
@@ -883,7 +912,12 @@ function BlueprintReviewSection({
       ) : null}
 
       {latestBlueprint?.status === "approved_for_build" && latestBlueprint.handoffStatus !== "not_started" ? (
-        <p className="mt-2 text-xs text-[#6B5E47]">{formatBilingual({ es: "Estado de entrega", en: "Handoff status" })}: {latestBlueprint.handoffStatus.replace(/_/g, " ")}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <p className="text-xs text-[#6B5E47]">{formatBilingual({ es: "Estado de entrega", en: "Handoff status" })}: {latestBlueprint.handoffStatus.replace(/_/g, " ")}</p>
+          {canManageBlueprint && latestBlueprint.handoffStatus === "assigned" ? (
+            <MarkHandoffInProgressButton businessId={businessId} discoveryId={discoveryId} blueprintId={latestBlueprint.id} />
+          ) : null}
+        </div>
       ) : null}
 
       {latestBlueprint ? (
@@ -891,7 +925,40 @@ function BlueprintReviewSection({
           <BlueprintMarkdownViewer markdown={latestBlueprint.markdownSnapshot} versionLabel={`blueprint-v${latestBlueprint.version}`} />
         </div>
       ) : null}
+
+      {versionHistory.length > 1 ? <BlueprintVersionHistoryList versions={versionHistory} /> : null}
     </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// MD §25 <blueprint_versioning> — compact, read-only version history (v1 SUPERSEDED, v2
+// APPROVED_FOR_BUILD, ...). Never editable, never shown when there is only one version (nothing to
+// browse). Shared by Website and every specialized family — BusinessProjectBlueprint's shape is
+// generic across blueprint_type, so one component covers both.
+// ---------------------------------------------------------------------------
+interface VersionHistoryRow {
+  id: string;
+  version: number;
+  status: BusinessProjectBlueprint["status"];
+  createdAt: string;
+  approvedAt: string | null;
+}
+function BlueprintVersionHistoryList({ versions }: { versions: readonly VersionHistoryRow[] }) {
+  return (
+    <details className="mt-3">
+      <summary className="cursor-pointer text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">{formatBilingual({ es: "Historial de versiones", en: "Version History" })} ({versions.length})</summary>
+      <ul className="mt-2 space-y-1">
+        {versions.map((v) => (
+          <li key={v.id} className="flex flex-wrap items-center gap-2 text-xs text-[#3D3428]">
+            <span className="font-semibold">v{v.version}</span>
+            <span className="rounded-full bg-[#EDE6D6] px-2 py-0.5 text-[10px] font-bold">{formatBilingual(blueprintStatusLabel(v.status))}</span>
+            <span className="text-[#9A9184]">{new Date(v.createdAt).toLocaleDateString()}</span>
+            {v.approvedAt ? <span className="text-emerald-800">{formatBilingual({ es: "aprobado", en: "approved" })} {new Date(v.approvedAt).toLocaleDateString()}</span> : null}
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 
@@ -999,7 +1066,7 @@ const EXECUTION_DESTINATION_LABEL: Record<SpecializedFamily, { es: string; en: s
 function SpecializedBlueprintPanel({
   businessId, discoveryId, intentId, specialized, canManageBlueprint, canManage,
 }: { businessId: string; discoveryId: string; intentId: string; specialized: SpecializedEngineOutput; canManageBlueprint: boolean; canManage: boolean }) {
-  const { latestBlueprint, blueprintReadiness, isStale, family, dependencies, suggestedDependencies, blockingDependencies } = specialized;
+  const { latestBlueprint, blueprintReadiness, isStale, family, dependencies, suggestedDependencies, blockingDependencies, versionHistory } = specialized;
   const unresolvedCount = latestBlueprint
     ? latestBlueprint.packet.unresolvedBeforeLaunch.length + latestBlueprint.packet.unresolvedLeonixActions.length + latestBlueprint.packet.unresolvedNonBlocking.length
     : 0;
@@ -1071,6 +1138,8 @@ function SpecializedBlueprintPanel({
             <BlueprintMarkdownViewer markdown={latestBlueprint.markdownSnapshot} versionLabel={`${family}-blueprint-v${latestBlueprint.version}`} />
           </div>
         ) : null}
+
+        {versionHistory.length > 1 ? <BlueprintVersionHistoryList versions={versionHistory} /> : null}
       </section>
 
       <section className={CARD}>

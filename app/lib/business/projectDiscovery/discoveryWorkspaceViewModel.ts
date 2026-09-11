@@ -42,6 +42,9 @@ import {
 } from "./discoveryLabels";
 import { getPlatform } from "./platformRegistry";
 import type { WebsiteArchitectureDecisionPacket } from "./architectureDecisionEngine";
+import type { BlueprintStatus } from "./blueprintEngine";
+import type { BlueprintHandoffStatus } from "./blueprintRepository";
+import type { ReleaseReadinessState } from "./releaseReadinessEngine";
 
 function bilabel(es: string, en: string): BilingualLabel {
   return { es, en };
@@ -116,6 +119,89 @@ export function buildTopScreenSummary(input: {
     progressSummary,
     dominantAction,
   };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Project lifecycle state (MD §32 <project_blueprint_cta_states>) — a DERIVED display label only,
+// never a new persisted field. Unifies discovery readiness, blueprint status, handoff status, and
+// release readiness (all of which already exist and are independently authoritative) into the ONE
+// staff-facing "where is this project" answer the MD's 14-state CTA vocabulary calls for. Covers
+// the 13 states that apply once a discovery+intent already exist ("Start Discovery" is the
+// zero-state before any intent exists, already handled by StartDiscoveryForm elsewhere). Works
+// identically for Website and every specialized family: handoffStatus is a shared column on
+// business_project_blueprints, and every execution bridge (Website's own handoff route, Creative
+// Studio bridge, Growth Campaign bridge) already sets it to "assigned" the same way.
+// ---------------------------------------------------------------------------------------------
+export type ProjectLifecycleStateKey =
+  | "continue_discovery"
+  | "needs_client_information"
+  | "needs_leonix_decision"
+  | "ready_to_generate_blueprint"
+  | "blueprint_needs_review"
+  | "client_confirmation_needed"
+  | "approved_for_build"
+  | "in_build"
+  | "qa"
+  | "client_review"
+  | "ready_to_launch"
+  | "live"
+  | "handoff_complete";
+
+export interface ProjectLifecycleState {
+  key: ProjectLifecycleStateKey;
+  label: BilingualLabel;
+}
+
+const PROJECT_LIFECYCLE_STATE_LABEL: Record<ProjectLifecycleStateKey, BilingualLabel> = {
+  continue_discovery: bilabel("Continuar descubrimiento", "Continue Discovery"),
+  needs_client_information: bilabel("Falta información del cliente", "Needs Client Information"),
+  needs_leonix_decision: bilabel("Necesita decisión de Leonix", "Needs Leonix Decision"),
+  ready_to_generate_blueprint: bilabel("Listo para generar el plan", "Ready to Generate Blueprint"),
+  blueprint_needs_review: bilabel("El plan necesita revisión", "Blueprint Needs Review"),
+  client_confirmation_needed: bilabel("Se necesita confirmación del cliente", "Client Confirmation Needed"),
+  approved_for_build: bilabel("Aprobado para construir", "Approved for Build"),
+  in_build: bilabel("En construcción", "In Build"),
+  qa: bilabel("Control de calidad", "QA"),
+  client_review: bilabel("Revisión con el cliente", "Client Review"),
+  ready_to_launch: bilabel("Listo para lanzar", "Ready to Launch"),
+  live: bilabel("En vivo", "Live"),
+  handoff_complete: bilabel("Entrega completada", "Handoff Complete"),
+};
+
+export function projectLifecycleStateLabel(key: ProjectLifecycleStateKey): BilingualLabel {
+  return PROJECT_LIFECYCLE_STATE_LABEL[key];
+}
+
+export function deriveProjectLifecycleState(input: {
+  readinessState: "READY" | "READY_WITH_NON_BLOCKING_GAPS" | "NOT_READY" | "NEEDS_LEONIX_ARCHITECTURE_DECISION" | null;
+  blueprintStatus: BlueprintStatus | null;
+  handoffStatus: BlueprintHandoffStatus | null;
+  releaseReadinessState: ReleaseReadinessState | null;
+  releasedAt: string | null;
+  handoffCompletedAt: string | null;
+}): ProjectLifecycleState {
+  const key = ((): ProjectLifecycleStateKey => {
+    if (input.handoffCompletedAt) return "handoff_complete";
+    if (input.releasedAt) return "live";
+
+    if (input.blueprintStatus === "approved_for_build") {
+      if (!input.handoffStatus || input.handoffStatus === "not_started") return "approved_for_build";
+      if (input.releaseReadinessState === "READY_FOR_RELEASE") return "ready_to_launch";
+      if (input.releaseReadinessState === "NEEDS_CLIENT_ACTION") return "client_review";
+      if (input.handoffStatus === "assigned") return "in_build";
+      return "qa";
+    }
+
+    if (input.blueprintStatus === "client_confirmation_needed") return "client_confirmation_needed";
+    if (input.blueprintStatus === "draft" || input.blueprintStatus === "internal_review" || input.blueprintStatus === "superseded") return "blueprint_needs_review";
+
+    if (input.readinessState === "READY" || input.readinessState === "READY_WITH_NON_BLOCKING_GAPS") return "ready_to_generate_blueprint";
+    if (input.readinessState === "NEEDS_LEONIX_ARCHITECTURE_DECISION") return "needs_leonix_decision";
+    if (input.readinessState === "NOT_READY") return "needs_client_information";
+    return "continue_discovery";
+  })();
+
+  return { key, label: PROJECT_LIFECYCLE_STATE_LABEL[key] };
 }
 
 // ---------------------------------------------------------------------------------------------

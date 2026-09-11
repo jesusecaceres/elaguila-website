@@ -22,6 +22,8 @@ export interface ClientReviewData {
   version: number;
   blueprintStatus: string;
   handoffStatus: string;
+  releasedAt: string | null;
+  handoffCompletedAt: string | null;
   reviewState: BlueprintReviewStateInfo;
   clientSafeProjection: ClientSafeBlueprintProjection;
   feedback: readonly BlueprintFeedback[];
@@ -73,6 +75,8 @@ export async function buildClientReviewData(
     version: blueprint.version,
     blueprintStatus: blueprint.status,
     handoffStatus: blueprint.handoffStatus,
+    releasedAt: blueprint.releasedAt,
+    handoffCompletedAt: blueprint.handoffCompletedAt,
     reviewState,
     clientSafeProjection,
     feedback,
