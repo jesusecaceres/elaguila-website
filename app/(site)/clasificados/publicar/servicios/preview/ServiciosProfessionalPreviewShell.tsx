@@ -27,6 +27,8 @@ import { ServiciosVisualProofRow } from "@/app/servicios/components/ServiciosVis
 import { ServiciosPublicDetailsCanvas } from "@/app/servicios/components/ServiciosPublicDetailsCanvas";
 import { ServiciosGroupedHowSection } from "@/app/servicios/components/ServiciosGroupedHowSection";
 import { ServiciosPagosBeneficiosSection } from "@/app/servicios/components/ServiciosPagosBeneficiosSection";
+import { ServiciosEndOfContentShare } from "@/app/servicios/components/ServiciosEndOfContentShare";
+import { useServiciosPublicTranslation } from "@/app/servicios/components/ServiciosPublicTranslationLayer";
 import type { ClasificadosServiciosApplicationState } from "../lib/clasificadosServiciosApplicationTypes";
 import { loadClasificadosServiciosApplicationResolved } from "../lib/clasificadosServiciosStorage";
 import { normalizeClasificadosServiciosApplicationState } from "../lib/clasificadosServiciosApplicationNormalize";
@@ -76,7 +78,16 @@ export function ServiciosProfessionalPreviewShell({
     [profile, lang, applicationState],
   );
 
-  const [displayProfile, setDisplayProfile] = useState(syncedProfile);
+  const [syncedDisplayProfile, setDisplayProfile] = useState(syncedProfile);
+  // Servicios Owner QA (⚠️19 / SVC-QA-16) — this Preview shell (used whenever the application has
+  // coupons) never adopted the shared Translate Ad layer the published shells use, so the owner saw
+  // no translator in Preview. Same hook, same /api/translate-ad engine, same placement above
+  // "Sobre nosotros"; it translates user-authored ad prose only, never static UI.
+  const { displayProfile, translateControl } = useServiciosPublicTranslation({
+    profile: syncedDisplayProfile,
+    lang,
+    listingKey: (draftSlug ?? syncedDisplayProfile.identity.slug).trim(),
+  });
 
   useEffect(() => {
     setDisplayProfile(syncedProfile);
@@ -150,11 +161,15 @@ export function ServiciosProfessionalPreviewShell({
 
       <div className={LX_PRO_INNER_PAD}>
         <div className={`flex min-w-0 flex-col ${LX_PRO_SECTION_GAP}`}>
+          {translateControl ? <div>{translateControl}</div> : null}
+
           {hasAboutSectionResolved(displayProfile) ? (
             <ServiciosAbout profile={displayProfile} lang={lang} premiumLeonixTone />
           ) : null}
 
           <div id="servicios-preview-contact" className={SECTION_SCROLL}>
+            {/* SVC-QA-18 — the hero above already owns Like + Share (exactly as on the published
+                profile), so the hub keeps Save only instead of repeating Like/Share a second time. */}
             <ServiciosBusinessHubContactCard
               profile={displayProfile}
               lang={lang}
@@ -163,6 +178,7 @@ export function ServiciosProfessionalPreviewShell({
               engagementListingId={previewEngagementListingId}
               showEngagementControls
               persistListingEngagement={false}
+              hubEngagementVariant="save_only"
               directContactFasterResponseHint
               showOfferSidebarTeaser={false}
             />
@@ -206,6 +222,13 @@ export function ServiciosProfessionalPreviewShell({
             profile={displayProfile}
             displayProfile={displayProfile}
             lang={lang}
+          />
+
+          <ServiciosEndOfContentShare
+            lang={lang}
+            listingId={previewEngagementListingId}
+            listingTitle={displayProfile.identity.businessName}
+            persistEngagement={false}
           />
 
           {hasReviewsSectionResolved(displayProfile) ? (

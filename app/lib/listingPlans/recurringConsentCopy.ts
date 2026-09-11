@@ -69,3 +69,35 @@ export function parseRecurringConsentAcknowledgment(raw: unknown): RecurringCons
   const lang = o.lang === "en" ? "en" : "es";
   return { accepted: true, consentTextVersion: version, lang };
 }
+
+/**
+ * Servicios Owner QA (SVC-QA-28) — the ONE statement of what a generic promo code does to a monthly
+ * subscription, so checkout copy can never imply a different duration than Stripe will bill.
+ *
+ * Server truth (revenue-os checkout → revenuePromoValidation → revenueStripe): a promo code on a
+ * `monthly_subscription` sets the discounted amount as the subscription line item's recurring
+ * `unit_amount`. There is no once / N-cycle promo-code duration in the data model, so the reduced
+ * price renews EVERY billing cycle for as long as the subscription stays active. (The verified 15%
+ * welcome discount is different: a Stripe `duration:"once"` coupon — first payment only.)
+ */
+export const PROMO_CODE_SUBSCRIPTION_DURATION = "every_billing_cycle" as const;
+
+export function buildPromoCodeRecurrenceText(input: { amountCents: number; lang: "es" | "en" }): string {
+  const price = formatUsd(input.amountCents);
+  return input.lang === "es"
+    ? `Este código reduce tu precio mensual: pagarás ${price} cada mes mientras tu suscripción siga activa.`
+    : `This code lowers your monthly price: you'll pay ${price} every month while your subscription stays active.`;
+}
+
+/** Verified welcome discount — first eligible payment only, then the full monthly price. */
+export function buildVerifiedIntroChargeScheduleText(input: {
+  firstChargeCents: number;
+  renewalCents: number;
+  lang: "es" | "en";
+}): string {
+  const first = formatUsd(input.firstChargeCents);
+  const renewal = formatUsd(input.renewalCents);
+  return input.lang === "es"
+    ? `Primer pago: ${first}. Después: ${renewal} al mes.`
+    : `First payment: ${first}. Then: ${renewal} per month.`;
+}

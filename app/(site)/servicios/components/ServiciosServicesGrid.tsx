@@ -10,6 +10,7 @@ import { LX_SECTION_CARD, LX_SECTION_HEADING } from "./serviciosLeonixBrand";
 import { buildServiciosGetQuoteIntent, trackServiciosListingCta } from "../lib/serviciosCtaIntents";
 import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
 import type { CtaSheetIntent } from "@/app/components/cta/types";
+import { LeonixHorizontalRail } from "@/app/components/leonix/LeonixHorizontalRail";
 
 /** When count ≥ this, show expand/collapse (initially show {@link SERVICES_SECTION_INITIAL_VISIBLE}). */
 const SERVICES_SECTION_COLLAPSE_THRESHOLD = 19;
@@ -161,7 +162,8 @@ export function ServiciosOfferedSection({
         ) : null}
       </div>
 
-      <div className={`mt-4 ${listClass}`}>
+      {/* SVC-QA-13 — mobile rail shows arrows/fade only when it really overflows; from md it is a grid. */}
+      <LeonixHorizontalRail lang={lang} className="mt-4" fadeColor={SV.card} trackClassName={listClass}>
         {visible.map((s) => {
           const serviceType = getServiceType(s.title);
           const { emoji } = resolveServiciosServiceVisual({ id: s.id, label: s.title });
@@ -194,7 +196,7 @@ export function ServiciosOfferedSection({
             </button>
           );
         })}
-      </div>
+      </LeonixHorizontalRail>
 
       {needsCollapse && !expanded ? (
         <button

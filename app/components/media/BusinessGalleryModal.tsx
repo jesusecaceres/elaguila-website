@@ -47,6 +47,7 @@ export function BusinessGalleryLightbox({
   onActiveIndexChange,
   ariaLabel,
   copy,
+  headerSlot,
 }: {
   open: boolean;
   onClose: () => void;
@@ -55,6 +56,8 @@ export function BusinessGalleryLightbox({
   onActiveIndexChange: (index: number) => void;
   ariaLabel: string;
   copy: BusinessGalleryModalCopy;
+  /** Optional caller control rendered in the viewer header (e.g. a Fotos / Videos / Todo switch). */
+  headerSlot?: ReactNode;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -86,6 +89,7 @@ export function BusinessGalleryLightbox({
           <p className="text-xs font-semibold text-white/80">
             {copy.counterLabel} · {activeIndex + 1} / {slides.length}
           </p>
+          {headerSlot ? <div className="min-w-0 flex-1 overflow-x-auto">{headerSlot}</div> : null}
           <button
             type="button"
             onClick={onClose}

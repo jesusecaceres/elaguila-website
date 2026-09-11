@@ -12,8 +12,13 @@ import {
   serviciosGlobalShareRecorder,
 } from "@/app/(site)/clasificados/servicios/lib/recordServiciosGlobalAnalytics";
 
-const utilityCellClass =
-  "flex min-h-[44px] min-w-0 items-stretch justify-center [&_button]:!w-full [&_button]:!max-w-none";
+/**
+ * Servicios Owner QA (⚠️64 / SVC-QA-18) — shared action grammar: standard-size controls (never a
+ * stretched full-width cell), one row, order Like → Save → Share with Compartir last, matching the
+ * hero engagement slot and the results card strip.
+ */
+const actionRowClass = "mt-2.5 flex max-w-full flex-wrap items-center gap-2";
+const actionCellClass = "flex min-h-[44px] items-center [&_button]:!min-h-[40px]";
 
 /**
  * Like / Share — secondary utility actions for the Business Hub contact card.
@@ -94,7 +99,7 @@ export function ServiciosBusinessHubEngagementRow({
       persistEngagement={persistEngagement}
       saveExtras={saveExtras}
       recordSaveEvent={globalListing ? serviciosGlobalSaveRecorder(globalListing) : undefined}
-      className="!w-full !border-[color:var(--lx-border,#E8D7B8)]"
+      className="!border-[color:var(--lx-border,#E8D7B8)]"
     />
   );
 
@@ -107,7 +112,9 @@ export function ServiciosBusinessHubEngagementRow({
         >
           {title}
         </h3>
-        <div className={`mt-2.5 max-w-full ${utilityCellClass}`}>{saveButton}</div>
+        <div className={actionRowClass}>
+          <div className={actionCellClass}>{saveButton}</div>
+        </div>
       </section>
     );
   }
@@ -120,23 +127,8 @@ export function ServiciosBusinessHubEngagementRow({
       >
         {title}
       </h3>
-      <div className="mt-2.5 grid max-w-full grid-cols-2 gap-2 sm:gap-2.5">
-        <div className={utilityCellClass}>
-          <LeonixShareButton
-            listingId={lxListingId}
-            listingUrl={listingShareUrl}
-            ownerUserId={lxOwner}
-            listingTitle={profile.identity.businessName}
-            variant="default"
-            lang={lang}
-            category="servicios"
-            className="!w-full !border-[color:var(--lx-border,#E8D7B8)]"
-            persistEngagement={persistEngagement}
-            recordShareEvent={globalListing ? serviciosGlobalShareRecorder(globalListing, "detail_share") : undefined}
-            directNativeShare
-          />
-        </div>
-        <div className={utilityCellClass}>
+      <div className={actionRowClass} data-servicios-action-order="like,save,share">
+        <div className={actionCellClass}>
           <ServiciosLikeEngagementCluster
             listingId={lxListingId}
             ownerUserId={lxOwner}
@@ -146,11 +138,25 @@ export function ServiciosBusinessHubEngagementRow({
             variant="default"
             tone="hub"
             recordLikeEvent={globalListing ? serviciosGlobalLikeRecorder(globalListing) : undefined}
-            className="w-full [&_button]:!w-full"
+          />
+        </div>
+        <div className={actionCellClass}>{saveButton}</div>
+        <div className={actionCellClass}>
+          <LeonixShareButton
+            listingId={lxListingId}
+            listingUrl={listingShareUrl}
+            ownerUserId={lxOwner}
+            listingTitle={profile.identity.businessName}
+            variant="default"
+            lang={lang}
+            category="servicios"
+            className="!border-[color:var(--lx-border,#E8D7B8)]"
+            persistEngagement={persistEngagement}
+            recordShareEvent={globalListing ? serviciosGlobalShareRecorder(globalListing, "detail_share") : undefined}
+            directNativeShare
           />
         </div>
       </div>
-      <div className={`mt-2 max-w-full sm:mt-2.5 ${utilityCellClass}`}>{saveButton}</div>
     </section>
   );
 }

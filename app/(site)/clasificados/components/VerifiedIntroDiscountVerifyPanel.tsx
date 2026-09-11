@@ -38,7 +38,7 @@ type PanelState =
   | { kind: "not_available" }
   | { kind: "excluded"; reasonCode: string }
   | { kind: "needs_verification"; emailVerified: boolean; phoneVerified: boolean; smsConfigured: boolean }
-  | { kind: "eligible" }
+  | { kind: "eligible"; basis: "email" | "phone" | null }
   | { kind: "applied" };
 
 const COPY = {
@@ -65,6 +65,10 @@ const COPY = {
     remove: "Quitar",
     applied: "Descuento de bienvenida (15%) aplicado.",
     renewalNote: "Las renovaciones se cobran al precio completo.",
+    basisEmail: "Tu cuenta califica: tu correo está verificado.",
+    basisPhone: "Tu cuenta califica: tu teléfono está verificado.",
+    basisGeneric: "Tu cuenta califica según la verificación de Leonix.",
+    serverCheck: "Leonix vuelve a confirmar tu elegibilidad al momento de pagar.",
     invalidPhone: "Ingresa un número de teléfono válido.",
     invalidCode: "Código incorrecto. Intenta de nuevo.",
     genericError: "Algo salió mal. Intenta de nuevo.",
@@ -90,6 +94,10 @@ const COPY = {
     remove: "Remove",
     applied: "Welcome discount (15%) applied.",
     renewalNote: "Renewals are billed at the full price.",
+    basisEmail: "Your account qualifies: your email is verified.",
+    basisPhone: "Your account qualifies: your phone is verified.",
+    basisGeneric: "Your account qualifies based on Leonix verification.",
+    serverCheck: "Leonix re-confirms your eligibility when you pay.",
     invalidPhone: "Enter a valid phone number.",
     invalidCode: "Incorrect code. Try again.",
     genericError: "Something went wrong. Try again.",
@@ -126,7 +134,8 @@ export function VerifiedIntroDiscountVerifyPanel({
         return;
       }
       if (result.eligible) {
-        setState({ kind: "eligible" });
+        // SVC-QA-24 — show WHY (the server-proven identity), never a bare client-side "Apply".
+        setState({ kind: "eligible", basis: result.emailVerified ? "email" : result.phoneVerified ? "phone" : null });
         return;
       }
       if (result.reasonCode === "not_verified") {
@@ -183,7 +192,7 @@ export function VerifiedIntroDiscountVerifyPanel({
       setError(t.invalidCode);
       return;
     }
-    setState({ kind: "eligible" });
+    setState({ kind: "eligible", basis: "phone" });
   };
 
   const handleApplyToggle = () => {
@@ -260,6 +269,10 @@ export function VerifiedIntroDiscountVerifyPanel({
 
       {state.kind === "eligible" ? (
         <div className="flex flex-col gap-1.5">
+          <p className="text-xs" style={{ color: "#1A4D2E" }} data-verified-intro-basis={state.basis ?? "leonix"}>
+            {state.basis === "email" ? t.basisEmail : state.basis === "phone" ? t.basisPhone : t.basisGeneric}{" "}
+            <span style={{ color: "#6B6560" }}>{t.serverCheck}</span>
+          </p>
           <div className="flex items-center gap-2">
             <button
               type="button"
