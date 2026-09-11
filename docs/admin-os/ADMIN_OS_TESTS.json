@@ -793,7 +793,7 @@
     "staffIdentitySource": "admin_team_members via resolveActingRosterIdentity() (session-cookie-only, no env fallback)",
     "staffToExecutiveRelationship": {
       "status": "ADDED",
-      "migrationFile": "supabase/migrations/20260910120000_executives_linked_roster_id.sql",
+      "migrationFile": "supabase/migrations/20260911030000_executives_linked_roster_id.sql",
       "column": "executives.linked_roster_id uuid REFERENCES admin_team_members(id) ON DELETE SET NULL",
       "uniqueIndex": "executives_linked_roster_id_uidx (partial, WHERE linked_roster_id IS NOT NULL)",
       "appliedRemotely": false
@@ -811,7 +811,7 @@
     "guideUpdated": true,
     "auditAttribution": "CLOSED",
     "migrationCreated": true,
-    "migrationFile": "supabase/migrations/20260910120000_executives_linked_roster_id.sql",
+    "migrationFile": "supabase/migrations/20260911030000_executives_linked_roster_id.sql",
     "remoteMigrationApplied": false,
     "targetedSecurityChecks": {
       "script": "scripts/verify-executive-hub-self-service-01.ts",
@@ -833,7 +833,7 @@
       "verify:admin-roster-foundation": "32/32 gate checks pass; 1 pre-existing unrelated failure unchanged from every prior pass"
     },
     "filesChanged": [
-      "supabase/migrations/20260910120000_executives_linked_roster_id.sql (new, not applied)",
+      "supabase/migrations/20260911030000_executives_linked_roster_id.sql (new, not applied)",
       "app/lib/digitalContact/digitalContactExecutivesDb.ts",
       "app/admin/_lib/executiveHubTypes.ts",
       "app/admin/_lib/executiveHubStore.ts",
@@ -848,7 +848,7 @@
       "package.json"
     ],
     "deferredToIntegrationGate": [
-      "Remote application of 20260910120000_executives_linked_roster_id.sql",
+      "Remote application of 20260911030000_executives_linked_roster_id.sql",
       "Executive Hub / staff contact profiles -> Company Search coverage",
       "Self-service profile CREATION (staff can only edit an already owner-linked profile)"
     ],
@@ -922,7 +922,7 @@
     ],
     "deferredToIntegrationGate": [
       "Owner-login runtime proof",
-      "Remote application of 20260910120000_executives_linked_roster_id.sql",
+      "Remote application of 20260911030000_executives_linked_roster_id.sql",
       "Self-service profile CREATION (staff can only edit an already owner-linked profile)",
       "Global Search UI redesign, Executive Hub redesign, LEO integration — all explicitly out of scope"
     ],

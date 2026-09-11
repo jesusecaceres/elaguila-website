@@ -1809,7 +1809,7 @@ linkage was identified: `executives.linked_roster_id uuid references admin_team_
 nullable, set only by an owner_admin. This required a genuinely additive migration — created
 locally, NOT applied remotely, per the gate's own scope control.
 
-### Migration: `20260910120000_executives_linked_roster_id.sql`
+### Migration: `20260911030000_executives_linked_roster_id.sql`
 
 Purely additive: one nullable `ADD COLUMN IF NOT EXISTS linked_roster_id uuid REFERENCES
 admin_team_members(id) ON DELETE SET NULL` (never CASCADE — deleting a staff account must not
@@ -1952,7 +1952,7 @@ pass, unchanged by this gate's work).
 - **Self-service profile CREATION** — a staff member can only edit a profile an owner already
   linked; self-creation was deliberately out of scope (would need new slug-uniqueness/creation
   authorization logic, not the smallest safe path).
-- Remote application of `20260910120000_executives_linked_roster_id.sql` — owner approval
+- Remote application of `20260911030000_executives_linked_roster_id.sql` — owner approval
   required, not performed.
 
 ### Final status
@@ -2041,7 +2041,7 @@ authorization logic.
 - Owner-login runtime proof, applying the `linked_roster_id` migration, new staff account
   creation behavior, Global Search UI redesign, Executive Hub redesign, LEO integration, browser
   QA — all explicitly out of scope per this gate's brief.
-- Remote application of `20260910120000_executives_linked_roster_id.sql` — owner approval
+- Remote application of `20260911030000_executives_linked_roster_id.sql` — owner approval
   required, not performed; search remains correct and unaffected either way.
 
 ### Final status

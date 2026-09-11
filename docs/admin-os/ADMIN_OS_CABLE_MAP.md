@@ -861,7 +861,7 @@ Updates the Executive Hub cable-map entry from the prior V2 audit pass now that 
 exists (Master Operating Book V2 §0G).
 
 - **NEW CANONICAL LINKAGE**: `executives.linked_roster_id uuid REFERENCES admin_team_members(id)
-  ON DELETE SET NULL` (`supabase/migrations/20260910120000_executives_linked_roster_id.sql`,
+  ON DELETE SET NULL` (`supabase/migrations/20260911030000_executives_linked_roster_id.sql`,
   additive, nullable, NOT applied remotely). A partial unique index
   (`executives_linked_roster_id_uidx WHERE linked_roster_id IS NOT NULL`) prevents the same
   roster member being linked to two different executive profiles. This is the first real,
@@ -1388,7 +1388,7 @@ Findings, not previously consolidated in one place:
 - **Pending remote migrations, confirmed complete list (3, none applied)**:
   `20260909130000_business_external_links_foundation.sql`,
   `20260909140000_admin_audit_log_actor_attribution.sql`,
-  `20260910120000_executives_linked_roster_id.sql`. All three are additive-only (verified
+  `20260911030000_executives_linked_roster_id.sql`. All three are additive-only (verified
   structurally in the Final Code/Release Validation Gate above and re-confirmed present as files
   this pass); none touched by this audit.
 
