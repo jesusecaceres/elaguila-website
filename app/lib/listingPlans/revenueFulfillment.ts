@@ -1088,7 +1088,7 @@ async function tryActivateBienesFsboListingAfterEntitlement(input: {
 
   if (activation.outcome === "renewed") {
     await writeRevenueAuditLog({
-      action: "bienes_fsbo_listing_activated_after_payment",
+      action: "bienes_fsbo_listing_renewed_after_payment",
       targetType: "listings",
       targetId: activation.listingId ?? null,
       meta: {
