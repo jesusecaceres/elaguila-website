@@ -22,8 +22,14 @@ import {
   SVC_SECTION_TITLE,
 } from "../lib/serviciosShellSectionTokens";
 
-const COLLAPSE_THRESHOLD = 14;
-const INITIAL_VISIBLE = 12;
+/**
+ * Servicios Owner QA (⚠️66 / ⚠️67 / SVC-QA-22 / SVC-QA-23) — the section used to collapse at 14
+ * highlight chips behind "Ver todos los destacados", hiding normal owner content. Everything the
+ * preset catalog can produce (24) now shows directly; only genuinely high volume (custom lines on
+ * top of a full preset selection, up to 48) keeps a collapse.
+ */
+const COLLAPSE_THRESHOLD = 25;
+const INITIAL_VISIBLE = 24;
 
 export function ServiciosPagosBeneficiosSection({
   profile,
@@ -38,11 +44,12 @@ export function ServiciosPagosBeneficiosSection({
   const headingId = useId();
   const [expanded, setExpanded] = useState(false);
 
-  if (!hasServiciosPagosBeneficiosSection(profile, displayProfile)) return null;
-
-  const groups = buildServiciosPagosGroups(profile, displayProfile, lang);
-  if (groups.length === 0) return null;
-
+  // Hooks run unconditionally (the memo used to sit after the early returns below).
+  const hasSection = hasServiciosPagosBeneficiosSection(profile, displayProfile);
+  const groups = useMemo(
+    () => (hasSection ? buildServiciosPagosGroups(profile, displayProfile, lang) : []),
+    [hasSection, profile, displayProfile, lang],
+  );
   const highlightsGroup = groups.find((g) => g.id === "highlights");
   const needsCollapse = (highlightsGroup?.items.length ?? 0) >= COLLAPSE_THRESHOLD;
   const visibleHighlights = useMemo(() => {
@@ -50,6 +57,8 @@ export function ServiciosPagosBeneficiosSection({
     if (!needsCollapse || expanded) return highlightsGroup.items;
     return highlightsGroup.items.slice(0, INITIAL_VISIBLE);
   }, [highlightsGroup, needsCollapse, expanded]);
+
+  if (!hasSection || groups.length === 0) return null;
 
   const title = lang === "en" ? "Payments & benefits" : "Pagos y beneficios";
 

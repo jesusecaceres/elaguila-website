@@ -28,6 +28,7 @@ import { ServiciosVisualProofRow } from "./ServiciosVisualProofRow";
 import { ServiciosPublicDetailsCanvas } from "./ServiciosPublicDetailsCanvas";
 import { ServiciosGroupedHowSection } from "./ServiciosGroupedHowSection";
 import { ServiciosPagosBeneficiosSection } from "./ServiciosPagosBeneficiosSection";
+import { ServiciosEndOfContentShare } from "./ServiciosEndOfContentShare";
 import { SV } from "./serviciosDesignTokens";
 import { LX_LINK_ACCENT, LX_PRO_INNER_PAD, LX_PRO_MAIN_MAX } from "./serviciosLeonixBrand";
 import { ServiciosTrackedLink } from "./ServiciosTrackedLink";
@@ -264,6 +265,19 @@ export function ServiciosProfileView({
                 <ServiciosGroupedHowSection profile={profile} lang={lang} />
 
                 <ServiciosPagosBeneficiosSection profile={profile} displayProfile={displayProfile} lang={lang} />
+
+                {heroEngagementActive ? (
+                  <ServiciosEndOfContentShare
+                    lang={lang}
+                    listingId={lxListingId}
+                    listingTitle={profile.identity.businessName}
+                    listingShareUrl={listingShareUrl}
+                    ownerUserId={lxOwner}
+                    listingSourceId={sourceId}
+                    listingSlug={analyticsListingSlug}
+                    persistEngagement={persistListingEngagement}
+                  />
+                ) : null}
 
                 <div className="lg:hidden">
                   <ServiciosPromocionesCard

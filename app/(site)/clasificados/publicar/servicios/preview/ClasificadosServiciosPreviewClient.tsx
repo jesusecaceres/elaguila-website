@@ -576,7 +576,8 @@ export function ClasificadosServiciosPreviewClient() {
           lang,
           preferredLanguage: lang,
           source: CHECKOUT_NEWSLETTER_SOURCES.servicios,
-          interests: ["package:servicios_base_monthly", "launch_25"],
+          // SVC-QA-29 — the retired Launch-25 interest tag is no longer attached to Servicios captures.
+          interests: ["package:servicios_base_monthly"],
           checked: ctx.newsletterOptIn,
         });
 

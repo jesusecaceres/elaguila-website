@@ -36,10 +36,9 @@ export function ServiciosSmartTrustSummary({
           </p>
           <p className="mt-3 text-sm leading-relaxed text-[#3D2C12]/95">{model.paragraph}</p>
           {model.chips.length > 0 ? (
-            <ul
-              className="mt-3 flex flex-nowrap gap-2 overflow-x-auto pb-1 [scrollbar-width:thin] md:flex-wrap md:overflow-visible"
-              aria-label={copy.subtitle}
-            >
+            // SVC-QA-14 — "Resumen rápido" is a short chip list: it wraps at every width, so it never
+            // looks draggable when there is nothing more to scroll to.
+            <ul className="mt-3 flex flex-wrap gap-2" aria-label={copy.subtitle}>
               {model.chips.map((c) => (
                 <li
                   key={c}

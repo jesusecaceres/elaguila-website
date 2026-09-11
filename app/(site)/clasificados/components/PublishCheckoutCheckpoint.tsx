@@ -30,8 +30,10 @@ import {
   publishCheckpointTotalMonthlyLabel,
 } from "@/app/lib/listingPlans/publishCheckoutCopy";
 import {
+  buildPromoCodeRecurrenceText,
   buildRecurringConsentAcknowledgment,
   buildRecurringConsentText,
+  buildVerifiedIntroChargeScheduleText,
 } from "@/app/lib/listingPlans/recurringConsentCopy";
 import { VerifiedIntroDiscountVerifyPanel } from "./VerifiedIntroDiscountVerifyPanel";
 
@@ -421,11 +423,30 @@ export function PublishCheckoutCheckpoint({
           {appliedPromoCode ? ` (${appliedPromoCode})` : ""}
         </p>
       ) : null}
-      {verifiedIntroDiscountApplied && verifiedIntroDiscountEstimateCents != null ? (
-        <p className="mt-1 text-xs" style={{ color: LEONIX_SUCCESS }}>
-          {lang === "es" ? "Descuento de bienvenida (15%, estimado)" : "Welcome discount (15%, estimated)"}:{" "}
-          {formatPublishCheckpointMoney(verifiedIntroDiscountEstimateCents, lang, { monthly: false })}
+      {/* SVC-QA-28 — a promo code on a monthly plan lowers the RECURRING price (server/Stripe
+          truth), so say exactly that; never imply "first month only". */}
+      {resolved.discountCents > 0 && appliedPromoCode && basePackageIsMonthly ? (
+        <p className="mt-1 text-xs" style={{ color: LEONIX_MUTED }} data-promo-recurrence="every_billing_cycle">
+          {buildPromoCodeRecurrenceText({ amountCents: resolved.totalCents, lang: lang === "en" ? "en" : "es" })}
         </p>
+      ) : null}
+      {verifiedIntroDiscountApplied && verifiedIntroDiscountEstimateCents != null ? (
+        <>
+          <p className="mt-1 text-xs" style={{ color: LEONIX_SUCCESS }}>
+            {lang === "es" ? "Descuento de bienvenida (15%, estimado)" : "Welcome discount (15%, estimated)"}:{" "}
+            {formatPublishCheckpointMoney(verifiedIntroDiscountEstimateCents, lang, { monthly: false })}
+          </p>
+          {/* SVC-QA-25 — first eligible charge vs renewal, stated before payment. */}
+          {basePackageIsMonthly ? (
+            <p className="mt-0.5 text-xs font-semibold" style={{ color: LEONIX_CHARCOAL }} data-verified-intro-schedule="1">
+              {buildVerifiedIntroChargeScheduleText({
+                firstChargeCents: Math.max(0, resolved.totalCents - verifiedIntroDiscountEstimateCents),
+                renewalCents: resolved.totalCents,
+                lang: lang === "en" ? "en" : "es",
+              })}
+            </p>
+          ) : null}
+        </>
       ) : null}
 
       {/* Newsletter opt-in — optional, never blocks */}

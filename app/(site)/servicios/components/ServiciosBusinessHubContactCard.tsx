@@ -606,17 +606,19 @@ export function ServiciosBusinessHubContactCard({
               ) : null}
             </div>
 
-            {(listingSourceId ?? "").trim() ? (
-              <div className="mt-4 border-t pt-4" style={{ borderColor: SCH_LX.divider }}>
-                <LeonixCommunityTrust
-                  category="servicios"
-                  targetId={listingSourceId as string}
-                  ownerUserId={engagementOwnerUserId}
-                  lang={lang}
-                  surface="servicios_hub"
-                />
-              </div>
-            ) : null}
+            {/* Community Trust (🦁, first-party, real persisted counts) — separate from the Google/Yelp
+                links below. A draft Preview has no durable target yet, so it shows the same chips in
+                preview mode (zero, disabled, "turns on when published") instead of nothing (⚠️59). */}
+            <div className="mt-4 border-t pt-4" style={{ borderColor: SCH_LX.divider }} data-servicios-community-trust="1">
+              <LeonixCommunityTrust
+                category="servicios"
+                targetId={(listingSourceId ?? "").trim()}
+                ownerUserId={engagementOwnerUserId}
+                lang={lang}
+                surface="servicios_hub"
+                preview={!(listingSourceId ?? "").trim()}
+              />
+            </div>
 
             {showSecondary ? (
               <div className={SCH_SECONDARY_GRID}>
