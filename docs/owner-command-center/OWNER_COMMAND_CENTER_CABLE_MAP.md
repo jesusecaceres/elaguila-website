@@ -480,3 +480,33 @@ Engine PASS, whole-product reconciliation 182/182, one production build PASS.
 
 **Construction is NOT reported as 100% — 2 real items remain open pending a Chuy product decision.
 MAIN: not touched. PRODUCTION: not touched. No Supabase/Vercel/Stripe changes.**
+
+## FINAL FIXED-TERM RENEWAL CONSTRUCTION (2026-09-10) — Gate 20
+
+Chuy's decision: build real expiration + same-row renewal for both remaining categories — not
+evergreen. Reused the proven Rentas architecture; no new payment system, no duplicate engine.
+
+| System | Autos Privado | Bienes Raíces Privado/FSBO |
+|---|---|---|
+| Term / price | 30 days, $24.99 | 45 days, $49.99 |
+| Schema | New: `autos_classifieds_listings.expires_at` (migration `20260910120000_autos_privado_lifecycle_expires_at.sql`, applied to Leonix Media Staging) | Already existed: `listings.expires_at` (shared with Rentas) |
+| Lifecycle config | `AUTOS_PRIVADO_LISTING_LIFECYCLE_CONFIG` | `BR_FSBO_LISTING_LIFECYCLE_CONFIG` |
+| Checkout ownership gate | `validateAutosPrivadoRenewalCheckoutOwnership` | `validateBienesFsboRenewalCheckoutOwnership` |
+| Fulfillment renewal branch | `revenueAutosPrivadoFulfillment.ts` + `tryRenewAutosPrivadoListingAfterPayment` | `revenueBienesFsboFulfillment.ts` |
+| Owner dashboard CTA | `AutosDealerInventoryDashboardSection.tsx` (`privadoRows` — the real live card; `mis-anuncios`'s `AutosClassifiedListingManageCard` path is legacy/dead for this category) | `mis-anuncios/page.tsx` → `LeonixRealEstateListingManageCard.tsx` (existing `lifecycle`/`onRenew` props, previously Rentas-only) |
+| Public visibility | `listActiveAutosClassifiedsRows` + `getActiveLiveAutosBundle` | Shared `isListingRowActiveAndPublishedForBrowse` predicate |
+
+Both share: same-row only (never inserts, never changes ID/owner/media/analytics), status is never
+mutated by renewal (expiration is purely `expires_at` vs now, exactly like Rentas), and a shared
+webhook-retry idempotency guard (`isRenewalAlreadyApplied`/`markRenewalPaymentApplied`) so a
+redelivered "renewal succeeded" event can never double-extend a term.
+
+New verifier `verify-owner-command-center-gate20-fixed-term-renewal-01.mjs`: 8/8 PASS. All other
+canonical verifiers re-run clean (2 verifiers show fully-explained scope-boundary exceptions — their
+"no migration"/"Bienes files unchanged" guards correctly flagging this gate's own authorized,
+intentional changes). 0 new TypeScript errors, 0 new lint findings, production build PASS.
+
+**CONSTRUCTION: 100% — all 4 items from Gate 18 are now genuinely closed.**
+**MAIN: not touched. PRODUCTION: not touched.** Migration applied only to Leonix Media Staging
+(matching QA data); Production Supabase was never touched, and the migration file is committed for
+the normal release process.

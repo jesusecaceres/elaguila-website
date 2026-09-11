@@ -1323,6 +1323,116 @@
           "status": "PASS"
         }
       ]
+    },
+    {
+      "gate": "owner-command-center-gate20-final-fixed-term-renewal-2026-09-10",
+      "note": "Chuy's decision: build real expiration + same-row renewal for Autos Privado and Bienes Raices Privado/FSBO, not evergreen. Reused the proven Rentas shared lifecycle engine (resolveListingLifecycle + listingLifecycleConfig registry) plus category-specific fulfillment adapters - no new payment system, no duplicate engine. Added one additive migration (autos_classifieds_listings.expires_at; listings.expires_at already existed and was reused directly for FSBO). Applied the migration to Leonix Media Staging only (the project with real matching QA data for these tables) - Production Supabase was never touched, and the migration file is committed to the repo for the normal release process.",
+      "checks": [
+        {
+          "name": "schema_migration_autos_privado_expires_at",
+          "result": "Additive migration 20260910120000_autos_privado_lifecycle_expires_at.sql: nullable expires_at column + partial index on autos_classifieds_listings, scoped to lane=privado/status=active. Deterministic backfill from real published_at+30d for existing active rows only. Applied to Leonix Media Staging (cgeehvnfyrdoperdotdh); verified post-apply (21 dealer rows unaffected, 2 existing active Privado rows correctly backfilled); get_advisors security scan showed zero new findings.",
+          "status": "PASS"
+        },
+        {
+          "name": "bienes_fsbo_expires_at_already_existed",
+          "result": "listings.expires_at (used by Rentas) was confirmed already present via direct schema query - no migration needed for Bienes Raices FSBO, corrected an earlier gate's incomplete finding that assumed both tables were missing the column",
+          "status": "PASS"
+        },
+        {
+          "name": "lifecycle_config_registered",
+          "result": "AUTOS_PRIVADO_LISTING_LIFECYCLE_CONFIG (30d, $24.99) and BR_FSBO_LISTING_LIFECYCLE_CONFIG (45d, $49.99) added to the one shared LISTING_LIFECYCLE_CONFIGS registry - resolveListingLifecycle already generically supported this, exactly as the prior gate's architecture trace predicted",
+          "status": "PASS"
+        },
+        {
+          "name": "checkout_ownership_gates",
+          "result": "validateAutosPrivadoRenewalCheckoutOwnership and validateBienesFsboRenewalCheckoutOwnership added, mirroring validateRentasRenewalCheckoutOwnership exactly; checkout route branches (isAutosPrivadoRenewalEarly/isBienesFsboRenewalEarly) added; no client-trusted price, reuses existing locked package keys (autos_privado_30d $24.99, br_fsbo_45d $49.99) - no new Stripe price created",
+          "status": "PASS"
+        },
+        {
+          "name": "same_row_fulfillment_and_idempotency",
+          "result": "Both categories' renewal extends only expires_at/updated_at on the existing row (never inserts, never changes id/owner/media/analytics); status is never touched for either category (Autos Privado never had an expired DB status; FSBO stays active/published throughout, exactly like Rentas). Added a shared webhook-retry idempotency guard (isRenewalAlreadyApplied/markRenewalPaymentApplied, generalized from Rentas' own private copy) so a redelivered webhook event cannot double-extend a term.",
+          "status": "PASS"
+        },
+        {
+          "name": "public_visibility_expiration_gating",
+          "result": "Shared isListingRowActiveAndPublishedForBrowse predicate (Bienes Raices browse/related/similar) extended to exclude expired rows - a no-op for categories that never set expires_at. listActiveAutosClassifiedsRows and the direct-by-id getActiveLiveAutosBundle both gate expired Privado rows out of public discovery. Rows are filtered, never deleted; owner/dashboard/admin access unaffected. Matches Rentas' own established behavior exactly (discovery-only exclusion, not a direct-URL hard block).",
+          "status": "PASS"
+        },
+        {
+          "name": "owner_dashboard_renewal_cta",
+          "result": "Discovered and corrected a real risk mid-gate: Autos Privado's actual live dashboard card is AutosDealerInventoryDashboardSection.tsx's privadoRows (OwnerEntityWorkspace-based), not mis-anuncios/page.tsx's AutosClassifiedListingManageCard, which is legacy code for pre-migration listings-table rows no longer populated. Wired the real card with ListingLifecycleStatusCard + ListingRenewalAction (same shared components Rentas uses), shown only when actually expiring/expired. For FSBO, wired mis-anuncios/page.tsx's real lifecycle computation (LeonixRealEstateListingManageCard's existing lifecycle/onRenew props, previously Rentas-only) plus extended the existing Needs your attention aggregation.",
+          "status": "PASS"
+        },
+        {
+          "name": "new_verifier_gate20_fixed_term_renewal",
+          "result": "8/8 PASS - commercial truth unchanged, both configs registered, checkout ownership gates present, same-row fulfillment with idempotency guard, dispatcher threading, public visibility gating, additive-only migration, real dashboard CTA wiring",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_attention_truth",
+          "result": "22/22 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_shared_specialized_tools",
+          "result": "33/33 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_paid_listing_lifecycle_engine",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_rentas_lifecycle_renewal",
+          "result": "8/9 PASS - 1 explained exception: 'Bienes active files changed' guard flags this gate's own authorized FSBO edits, identical in kind to this same verifier's already-established Rentas-scope-boundary pattern from earlier gates this session",
+          "status": "PASS_WITH_EXPLAINED_SCOPE_BOUNDARY_EXCEPTION"
+        },
+        {
+          "name": "verifier_whole_product_final_reconciliation",
+          "result": "180/182 PASS - 2 explained exceptions: 'no migration' guards flag this gate's own authorized additive migration",
+          "status": "PASS_WITH_EXPLAINED_SCOPE_BOUNDARY_EXCEPTION"
+        },
+        {
+          "name": "eslint_16_files_changed",
+          "filesChecked": 16,
+          "newFindings": 0,
+          "preExistingUnrelatedInMisAnuncios": 6,
+          "status": "PASS"
+        },
+        {
+          "name": "typescript_full_typecheck",
+          "result": "0 new errors, byte-identical to the 7-error e2e-only baseline (3 real new-code errors caught and fixed mid-gate: missing BrListingPaymentMeta.renewed_at field, 2 invalid audit-log action names - resolved by reusing Rentas' own existing activated_after_payment audit action for renewal too)",
+          "newErrorsFound": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "clean",
+          "status": "PASS"
+        },
+        {
+          "name": "full_production_build",
+          "command": "npm run build (NODE_OPTIONS=--max-old-space-size=12288)",
+          "result": "PASS - exit 0, Compiled successfully in 2.2min",
+          "status": "PASS"
+        },
+        {
+          "name": "gate19_closures_reconfirmed_unaffected",
+          "result": "HomeBusinessToolsSection.tsx and LeonixRealEstateListingManageCard.tsx (the FSBO Editar CTA fix) confirmed untouched by this gate's diff - Gate 19 navigation and UI closures remain intact",
+          "status": "PASS"
+        },
+        {
+          "name": "final_construction_status",
+          "result": "100 percent - all 4 items from Gate 18 (2 CTA/copy, 2 renewal) now genuinely closed with real, same-row, no-wrong-recharge, webhook-idempotent renewal flows for both fixed-term categories. Not evergreen, not fabricated.",
+          "status": "PASS_100_PERCENT"
+        },
+        {
+          "name": "main_and_production_touched",
+          "result": "main not touched, Production not touched. Production Supabase database untouched - migration applied only to Leonix Media Staging; migration file committed to repo for the normal release process.",
+          "status": "PASS"
+        }
+      ]
     }
   ]
 }

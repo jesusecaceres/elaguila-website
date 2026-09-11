@@ -52,6 +52,11 @@ import {
   manageInventoryLabel,
 } from "@/app/(site)/dashboard/lib/dashboardMisAnunciosCategoryTools";
 import { ownerToolsTitle, ownerInventoryModuleTitle } from "@/app/(site)/dashboard/lib/dashboardI18n";
+import { resolveListingLifecycle } from "@/app/lib/listingLifecycle/resolveListingLifecycle";
+import { AUTOS_PRIVADO_LISTING_LIFECYCLE_CONFIG } from "@/app/lib/listingLifecycle/listingLifecycleConfig";
+import { startListingRenewalCheckout } from "@/app/lib/listingLifecycle/listingRenewalCheckout";
+import { ListingLifecycleStatusCard } from "@/app/(site)/dashboard/components/ListingLifecycleStatusCard";
+import { ListingRenewalAction } from "@/app/(site)/dashboard/components/ListingRenewalAction";
 
 type Lang = "es" | "en";
 
@@ -152,6 +157,7 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
   const [dealerInventory, setDealerInventory] = useState<AutosDealerInventoryCount | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [renewalBusyId, setRenewalBusyId] = useState<string | null>(null);
   /** Gate D.3 — page-level authenticated owner id, sourced from the same session fetch already
    * used for the API bearer token (no duplicate auth call, no new Supabase client). */
   const [ownerUserId, setOwnerUserId] = useState<string | null>(null);
@@ -333,6 +339,26 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
     void load();
   }
 
+  /** Gate 20 — same-row, no-recharge renewal checkout for an eligible (expiring-soon or already
+   * lifecycle-expired, still status="active") Autos Privado listing. Mirrors startRentasRenewal. */
+  async function startAutosPrivadoRenewal(id: string, leonixAdId: string | null) {
+    setRenewalBusyId(id);
+    const result = await startListingRenewalCheckout({
+      category: "autos",
+      packageKey: "autos_privado_30d",
+      listingId: id,
+      leonixAdId,
+      lang,
+      returnPath: `/dashboard/mis-anuncios?lang=${lang}&cat=autos`,
+    });
+    if (!result.ok) {
+      setRenewalBusyId(null);
+      window.alert(result.userMessage);
+      return;
+    }
+    window.location.href = result.checkoutUrl;
+  }
+
   if (loading) {
     return (
       <div className="mt-6 rounded-3xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-6 text-sm text-[#5C5346]">{t.loading}</div>
@@ -382,6 +408,20 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
         const uiStatus = resolveListingUiStatus({ status: row.status });
         const busy = busyId === row.id;
         const liveHref = `${autosLiveVehiclePath(row.id)}?lang=${row.lang}`;
+        // Gate 20 — fixed-term ($24.99/30 days) lifecycle: expiration is purely expires_at vs
+        // now (status never leaves "active" on expiry, exactly like Rentas).
+        const lifecycle = resolveListingLifecycle(
+          {
+            category: "autos",
+            packageKey: "autos_privado_30d",
+            status: row.status,
+            isPublished: true,
+            publishedAt: row.published_at,
+            expiresAt: row.expires_at,
+          },
+          AUTOS_PRIVADO_LISTING_LIFECYCLE_CONFIG,
+        );
+        const renewalBusy = renewalBusyId === row.id;
         const quickActions: ActionItem[] = [];
         if (row.status === "active" && isLiveCapability(privadoCaps.identity.publicView)) {
           quickActions.push({ href: liveHref, label: publicViewLabel(lang), tone: "secondary" });
@@ -408,6 +448,9 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
             tone: "positive",
           });
         }
+        // Gate 20 — only surface renewal once the term is actually expiring/expired; an active
+        // listing with plenty of time left gets no renewal noise (phase_5 doctrine).
+        const showRenewal = row.status === "active" && (lifecycle.lifecycleState === "expiring_soon" || lifecycle.lifecycleState === "expired");
         return (
           <OwnerEntityWorkspace
             key={row.id}
@@ -423,6 +466,27 @@ export function AutosDealerInventoryDashboardSection({ lang }: { lang: Lang }) {
             primaryAction={{ href: autosPrivadoEditHref(row.id), label: editListingLabel(lang) }}
             quickActions={quickActions}
             lifecycleActions={lifecycleActions}
+            specialized={
+              showRenewal
+                ? [
+                    {
+                      title: lang === "es" ? "Renovación" : "Renewal",
+                      actions: [],
+                      children: (
+                        <div className="flex flex-col gap-2">
+                          <ListingLifecycleStatusCard lifecycle={lifecycle} lang={lang} compact />
+                          <ListingRenewalAction
+                            lifecycle={lifecycle}
+                            lang={lang}
+                            busy={renewalBusy}
+                            onRenew={() => void startAutosPrivadoRenewal(row.id, row.leonix_ad_id)}
+                          />
+                        </div>
+                      ),
+                    },
+                  ]
+                : undefined
+            }
             mobileSheetLabels={{ trigger: t.moreOptions, title: t.moreOptions, close: t.moreOptionsClose }}
           />
         );

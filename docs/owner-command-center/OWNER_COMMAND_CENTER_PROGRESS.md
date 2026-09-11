@@ -1722,3 +1722,109 @@ Lifecycle Engine PASS, whole-product reconciliation 182/182; one production buil
 and Bienes Raíces Privado/FSBO renewal) remain a real, honestly-reported gap pending a Chuy product
 decision — NOT rounded up to 100%.** MAIN TOUCHED: NO. PRODUCTION TOUCHED: NO. No Supabase/Vercel/
 Stripe changes made.
+
+---
+
+## Gate 20 — Final Fixed-Term Renewal Construction (2026-09-10)
+
+Chuy's decision: build real expiration + same-row renewal for both categories. Not evergreen.
+Reused the proven Rentas architecture end to end (shared `resolveListingLifecycle`/
+`listingLifecycleConfig` engine + category-specific fulfillment adapters) — no new payment system,
+no duplicate lifecycle engine.
+
+**Schema.** Traced the exact schema gap first: `listings.expires_at` (used by Rentas and, it turns
+out, immediately reusable by Bienes Raíces FSBO — both share the `listings` table) already existed.
+Only `autos_classifieds_listings` was missing it. Wrote one additive migration —
+`supabase/migrations/20260910120000_autos_privado_lifecycle_expires_at.sql` — adding a nullable
+`expires_at timestamptz` column plus a partial index scoped to `lane='privado' and status='active'`
+(dealer/negocios rows are untouched: nullable column, never read for them). Included a deterministic
+backfill for existing active Privado rows from their own real `published_at + 30 days` (the same
+math the app itself uses), leaving anything without a reliable `published_at` null rather than
+fabricating a date.
+
+Given no authenticated Production access in this session (and schema changes to the live Production
+database are out of bounds for a source-engineering gate regardless), the migration was inspected
+against the real current schema and applied to **Leonix Media Staging** (`cgeehvnfyrdoperdotdh`) —
+the project that already held real Autos/Bienes Raíces QA rows matching this exact schema shape (the
+"Leonix Certification" project does not contain these tables at all; Production remains untouched).
+Verified post-apply: 21 existing dealer rows unaffected (`expires_at` still null), both existing
+active Privado rows correctly backfilled with a real `expires_at`. `get_advisors` (security) showed
+zero new findings attributable to this migration. The migration file itself now also lives in the
+repo, ready for the same Production release process every other migration in this codebase already
+goes through.
+
+**Lifecycle config.** Added `AUTOS_PRIVADO_LISTING_LIFECYCLE_CONFIG` (30 days, $24.99 renewal) and
+`BR_FSBO_LISTING_LIFECYCLE_CONFIG` (45 days, $49.99 renewal) to the one shared
+`LISTING_LIFECYCLE_CONFIGS` registry `resolveListingLifecycle` already reads generically — exactly
+the "smallest adapter on an already-generic engine" the prior gate's investigation predicted.
+Reminder emails deliberately not scheduled (`reminderScheduleDays: []`) — the shared
+`listing_lifecycle_reminder_events` table's category check constraint is locked to Rentas only, and
+widening it was out of scope for this gate (no reminder-email requirement in the release bar).
+
+**Checkout + fulfillment.** Added `isAutosPrivadoRenewalEarly`/`isBienesFsboRenewalEarly` branches
+to `app/api/revenue-os/checkout/route.ts` mirroring Rentas' exactly, plus two new server-side
+ownership/eligibility validators (`validateAutosPrivadoRenewalCheckoutOwnership`,
+`validateBienesFsboRenewalCheckoutOwnership`) in `listingRenewalFulfillment.ts`. Both reuse the
+*existing* locked package keys/prices (`autos_privado_30d` $24.99, `br_fsbo_45d` $49.99) — no new
+Stripe price was created or hardcoded. Extended both categories' existing webhook fulfillment
+adapters (`revenueAutosPrivadoFulfillment.ts`, `revenueBienesFsboFulfillment.ts`) with a real
+renewal branch: same row, same ID, only `expires_at` (and `updated_at`) change — status is never
+touched (Autos Privado never had an "expired" DB status to begin with; FSBO stays
+`active`/`is_published=true` throughout, exactly like a lifecycle-expired-but-still-active Rentas
+row). Added a shared webhook-retry idempotency guard (`isRenewalAlreadyApplied`/
+`markRenewalPaymentApplied` in `listingRenewalFulfillment.ts`, generalized from Rentas' own private
+copy of the same check) so a redelivered "renewal succeeded" webhook event can never extend a term
+twice.
+
+**Public visibility.** Extended the shared `isListingRowActiveAndPublishedForBrowse` predicate
+(used by Bienes Raíces' public browse/related/similar queries) to also exclude a row whose
+`expires_at` has passed — a no-op for every other category that never sets the field. Added the
+equivalent expiration filter directly to `listActiveAutosClassifiedsRows` and the direct-by-id
+`getActiveLiveAutosBundle` (Autos has its own established pattern of extra direct-by-id checks,
+already used for the parent-liveness gate). Rows are filtered out of discovery, never deleted —
+owner/dashboard/admin access is unaffected either way, matching exactly how Rentas' own "hide from
+normal public discovery" behavior already works (Rentas does not hard-block direct-URL access to an
+expired listing's detail page either — this gate matches that established, already-shipped
+standard rather than inventing a stricter one).
+
+**Owner dashboard.** Discovered mid-gate that Autos Privado's *real* live dashboard card is
+`AutosDealerInventoryDashboardSection.tsx`'s `privadoRows` branch (using
+`OwnerEntityWorkspace`/`ActionItem`) — not `mis-anuncios/page.tsx`'s `AutosClassifiedListingManageCard`,
+which turned out to be legacy code for pre-migration rows still in the generic `listings` table
+(gated on `x.category === "autos"` inside a loop that no longer receives real Autos Privado rows,
+which live in `autos_classifieds_listings` and are fetched into a separate, count-only state).
+Verified this before wiring anything — wiring the dead path would have shipped a renewal button no
+real owner would ever see. Added the real renewal CTA to `AutosDealerInventoryDashboardSection.tsx`:
+`ListingLifecycleStatusCard` + `ListingRenewalAction` (the exact same shared components Rentas uses,
+not an approximation) inside a specialized group, shown only once the term is actually
+expiring/expired — an active listing with time remaining shows no renewal noise. For Bienes Raíces
+FSBO, `LeonixRealEstateListingManageCard.tsx` already accepted `lifecycle`/`onRenew` props generically
+(previously only ever fed by Rentas) — computed a real `brFsboLifecycle` in `mis-anuncios/page.tsx`
+gated on `lx.branch === "bienes_raices_privado"` (excluding Negocio rows, whose own certified
+`brLifecycleContract` descriptors are unaffected) and wired `startBienesFsboRenewal`. Also extended
+the existing "Needs your attention" aggregation (previously Rentas-only) to surface an
+expiring/expired FSBO listing the same truthful way.
+
+**Verification.** New focused verifier `scripts/verify-owner-command-center-gate20-fixed-term-renewal-01.mjs`
+(8/8 PASS) checks: locked commercial truth unchanged, both configs registered in the one shared
+registry, checkout route ownership gates present with no client-trusted price, same-row fulfillment
+with the shared idempotency guard, dispatcher threading, public-visibility gating, additive-only
+migration, and real dashboard CTA wiring for both categories.
+
+| Check | Result |
+|---|---|
+| New Gate 20 verifier | 8/8 PASS |
+| Owner Attention Truth verifier | 22/22 PASS |
+| Shared Specialized Tools verifier | 33/33 PASS |
+| Paid listing lifecycle engine verifier | PASS |
+| Rentas lifecycle/renewal verifier | 8/9 PASS — 1 explained exception: its "Bienes active files unchanged" guard flags this gate's own authorized Bienes Raíces FSBO edits (identical in kind to the file's own already-established Rentas-scope-boundary pattern) |
+| Whole-product final reconciliation verifier | 180/182 PASS — 2 explained exceptions: its "no migration" guards flag this gate's own authorized, additive migration |
+| Targeted lint (16 changed files) | 0 new findings (6 pre-existing unused-var findings in `mis-anuncios/page.tsx`, confirmed unrelated to this gate's diff) |
+| Full `tsc --noEmit` | 0 new errors, byte-identical to the 7-error e2e-only baseline (after fixing 3 real new-code type errors caught mid-gate: a missing `BrListingPaymentMeta.renewed_at` field and 2 audit-log action names — both resolved by reusing Rentas' own existing "activated_after_payment" audit action name for renewal too, rather than inventing new ones) |
+| `git diff --check` | clean |
+| Full production build | PASS — exit 0, "Compiled successfully in 2.2min" |
+
+**CONSTRUCTION STATUS: all 4 Gate-18/19 items now closed. Both fixed-term renewal flows are real,
+same-row, no-wrong-recharge, and webhook-idempotent — not evergreen, not fabricated.**
+**MAIN TOUCHED: NO. PRODUCTION TOUCHED: NO. Production Supabase untouched — migration applied only
+to Leonix Media Staging, with the file also committed to the repo for the normal release process.**

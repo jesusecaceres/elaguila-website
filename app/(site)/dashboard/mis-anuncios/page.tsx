@@ -22,7 +22,7 @@ import {
   type BrPropertyInventoryRowLike,
 } from "@/app/clasificados/lib/leonixBrPropertyInventoryPolicy";
 import { callBrLifecycleMutation } from "../lib/brDashboardLifecycleClient";
-import { parseLeonixListingContract } from "@/app/clasificados/lib/leonixRealEstateListingContract";
+import { parseLeonixListingContract, leonixLiveAnuncioPath } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import { withRentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import { rentasListingPublicPath } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { LeonixRealEstateListingManageCard } from "../components/LeonixRealEstateListingManageCard";
@@ -118,7 +118,7 @@ import {
   dashboardRepublishPrimaryLabel,
 } from "../lib/dashboardRepublishUi";
 import { resolveListingLifecycle } from "@/app/lib/listingLifecycle/resolveListingLifecycle";
-import { RENTAS_LISTING_LIFECYCLE_CONFIG } from "@/app/lib/listingLifecycle/listingLifecycleConfig";
+import { RENTAS_LISTING_LIFECYCLE_CONFIG, BR_FSBO_LISTING_LIFECYCLE_CONFIG } from "@/app/lib/listingLifecycle/listingLifecycleConfig";
 import { startListingRenewalCheckout } from "@/app/lib/listingLifecycle/listingRenewalCheckout";
 import { ComidaLocalDashboardListings } from "@/app/lib/clasificados/comida-local/ComidaLocalDashboardListings";
 import { fetchOwnerComidaLocalListings } from "@/app/lib/clasificados/comida-local/comidaLocalDashboardQueries";
@@ -481,17 +481,30 @@ function MyListingsPageContent() {
 
     for (const row of listings) {
       const cat = String(row.category ?? "").toLowerCase();
-      if (cat !== "rentas") continue;
+      // Gate 20 — Bienes Raíces Privado/FSBO shares this same attention pass (same
+      // resolveListingLifecycle truth the card render path already uses); Negocio rows are
+      // excluded (their own certified brLifecycleContract descriptors are unaffected).
+      const isBrFsbo = cat === "bienes-raices" && parseLeonixListingContract(row.detail_pairs).branch === "bienes_raices_privado";
+      if (cat !== "rentas" && !isBrFsbo) continue;
       const lifecycle = resolveListingLifecycle(
-        {
-          category: "rentas",
-          packageKey: "rentas_30d",
-          status: row.status,
-          isPublished: row.is_published,
-          publishedAt: row.published_at,
-          expiresAt: row.expires_at,
-        },
-        RENTAS_LISTING_LIFECYCLE_CONFIG,
+        isBrFsbo
+          ? {
+              category: "bienes-raices",
+              packageKey: "br_fsbo_45d",
+              status: row.status,
+              isPublished: row.is_published,
+              publishedAt: row.published_at,
+              expiresAt: row.expires_at,
+            }
+          : {
+              category: "rentas",
+              packageKey: "rentas_30d",
+              status: row.status,
+              isPublished: row.is_published,
+              publishedAt: row.published_at,
+              expiresAt: row.expires_at,
+            },
+        isBrFsbo ? BR_FSBO_LISTING_LIFECYCLE_CONFIG : RENTAS_LISTING_LIFECYCLE_CONFIG,
       );
       const statusDisplayKey =
         lifecycle.lifecycleState === "pending_payment"
@@ -504,13 +517,13 @@ function MyListingsPageContent() {
       out.push(
         ...resolveOwnerDashboardAttentionItems({
           id: row.id,
-          category: "rentas",
+          category: isBrFsbo ? "bienes-raices" : "rentas",
           statusDisplayKey,
           isPublished: row.is_published,
           // Edit route not evaluated in this narrow loop (left undefined, not "confirmed
           // missing") — the real edit href is computed per-row inside LeonixRealEstateListingManageCard's
           // own render path; this attention pass only claims what it has actually verified.
-          publicHref: rentasListingPublicPath(row.id),
+          publicHref: isBrFsbo ? leonixLiveAnuncioPath(row.id) : rentasListingPublicPath(row.id),
           renewal: { isRenewalEligible: lifecycle.isRenewalEligible, hasRealAction: true },
         }),
       );
@@ -1179,6 +1192,26 @@ function MyListingsPageContent() {
       leonixAdId: row.leonix_ad_id,
       lang,
       returnPath: `${pathname}?lang=${lang}&cat=rentas`,
+    });
+    if (!result.ok) {
+      setError(result.userMessage);
+      setRenewalCheckoutBusyId(null);
+      return;
+    }
+    window.location.href = result.checkoutUrl;
+  }
+
+  /** Gate 20 — same-row, no-recharge renewal for Bienes Raíces Privado/FSBO ($49.99/45 days). */
+  async function startBienesFsboRenewal(row: ListingRow) {
+    setRenewalCheckoutBusyId(row.id);
+    setError(null);
+    const result = await startListingRenewalCheckout({
+      category: "bienes-raices",
+      packageKey: "br_fsbo_45d",
+      listingId: row.id,
+      leonixAdId: row.leonix_ad_id,
+      lang,
+      returnPath: `${pathname}?lang=${lang}&cat=bienes-raices`,
     });
     if (!result.ok) {
       setError(result.userMessage);
@@ -2124,6 +2157,24 @@ function MyListingsPageContent() {
                           RENTAS_LISTING_LIFECYCLE_CONFIG,
                         )
                       : null;
+                  // Gate 20 — Bienes Raíces Privado/FSBO fixed-term ($49.99/45 days). Negocio rows
+                  // (lx.branch === "bienes_raices_negocio") never get a lifecycle here — their own
+                  // certified global lifecycle descriptors (brLifecycleContract) are unaffected.
+                  const brFsboLifecycle =
+                    catKey === "bienes-raices" && lx.branch === "bienes_raices_privado"
+                      ? resolveListingLifecycle(
+                          {
+                            category: "bienes-raices",
+                            packageKey: "br_fsbo_45d",
+                            status: x.status,
+                            isPublished: x.is_published,
+                            publishedAt: x.published_at,
+                            expiresAt: x.expires_at,
+                          },
+                          BR_FSBO_LISTING_LIFECYCLE_CONFIG,
+                        )
+                      : null;
+                  const realEstateCardLifecycle = rentasLifecycle ?? brFsboLifecycle;
                   // Gate G.2.3.1 — BR-specific client eligibility, paired with the server-side
                   // fix in `applyBrRepublish`: Republish for a Bienes Raíces Negocio row must
                   // never appear enabled for pending/paused/flagged/sold/removed/unknown states,
@@ -2182,9 +2233,15 @@ function MyListingsPageContent() {
                       republishPrimaryLabel={repLabel}
                       onRepublish={repLabel ? () => void renewListingsTableRepublish(x) : undefined}
                       republishBusy={busy}
-                      lifecycle={rentasLifecycle}
+                      lifecycle={realEstateCardLifecycle}
                       renewalBusy={renewalCheckoutBusyId === x.id}
-                      onRenew={rentasLifecycle?.isRenewalEligible ? () => void startRentasRenewal(x) : undefined}
+                      onRenew={
+                        rentasLifecycle?.isRenewalEligible
+                          ? () => void startRentasRenewal(x)
+                          : brFsboLifecycle?.isRenewalEligible
+                          ? () => void startBienesFsboRenewal(x)
+                          : undefined
+                      }
                       parentLeonixAdIdByListingId={parentLeonixAdIdByListingId}
                       brNegocioInventoryRows={brNegocioInventoryRows as BrPropertyInventoryRowLike[]}
                       packageEntitlementBadge={dashboardEntitlementBadgeForKey(entitlementBadges, [

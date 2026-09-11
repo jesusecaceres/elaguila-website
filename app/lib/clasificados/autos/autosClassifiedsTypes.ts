@@ -32,6 +32,8 @@ export type AutosClassifiedsListingRow = {
   stripe_checkout_session_id: string | null;
   stripe_payment_intent_id: string | null;
   published_at: string | null;
+  /** Fixed-term (Privado only) expiration — `20260910120000_autos_privado_lifecycle_expires_at.sql`. Always null for dealer/negocios rows. */
+  expires_at?: string | null;
   created_at: string;
   updated_at: string;
 };
