@@ -1653,3 +1653,67 @@ All 610 MD-atomic rows are TECHNICALLY_PROVEN (0 NOT_PROVEN, 0 FAILED, 0 TRUE_SA
 MASTER_MD_ATOMIC_ROWS (610) and section-by-section reconciliation both check out with zero remaining mismatches, zero duplicates, zero orphans, zero improper collapses. TOTAL_CERTIFICATION_ROWS = 616 (610 MD-atomic + 6 owner-meta, honestly decomposed rather than blended). NOT_PROVEN=0, FAILED=0, TRUE_SAFE_DEFER=0. Every owner-meta row is confirmed, on cold re-reading, to be purely a human-perception judgment with no technical residue.
 
 **Owner QA readiness is a separate, non-technical decision** — this document certifies the technical proof; whether and when Owner QA begins is the PM's call.
+
+---
+---
+
+# Gate 10.6 — Cold Evidence Integrity + Executable Trace Certification
+
+- **Start HEAD:** `2580d2d37e0b36207254e4350ed35921a8ede5ab`
+- **Mission:** Gate 10.5 proved coverage (every MD requirement has exactly one ledger row). This gate proves the EVIDENCE behind those rows is real, sufficient, and matches the requirement's actual behavior class — not merely a citation to a label, an enum, or a test that exercises a different concern than the one claimed.
+
+## Real gap found and fixed: discovery-to-Blueprint information loss (3 sections)
+
+Cold-tracing the `domain` section's fields (§8.12) from catalog → capture → architecture engine → rendered Markdown surfaced a genuine defect: **`domainDnsBlock()` (Blueprint category #23) rendered only the architecture engine's own SYNTHESIZED decision** (`kind`/`registrarPlatformKey`/`reasonEs`/`isLaunchBlocker`) — none of the actual **client-provided text** (a real domain name, a real registrar name, a real renewal date, real alternate domains) ever reached the document a builder actually reads. `architectureDecisionEngine.ts` reads `domain_owner` into its own inputs but never consults it in `decideDomainDns()` (confirmed by direct re-read: it is a dead input to that function), and `desired_new_domain`/`domain_registrar_renewal_details`/`alternate_domains` are not read by the architecture engine at all. This directly undermines MD §14's own requirement that the Blueprint "contain enough context that a qualified builder can execute without relying on oral history" for exactly this content.
+
+Systematically checking every render function that takes only `p.architecture` (the synthesized decision) rather than also the raw discovery rows found **two more instances of the identical bug class**:
+
+- **`ownershipBlock()` (#31, ownership_billing)** — the structured `PlatformOwnershipEntry.owner`/`.billingOwner` fields are categorical (`client`/`leonix`/`shared`) only, by design (Gate 10.3). The client's actual free-text answer to `platform_ownership_register` ("who should be the permanent owner?" — often a real name/email) never rendered anywhere.
+- **`hostingDeploymentBlock()` (#24, hosting_deployment)** — only `architecture.frontend`/`architecture.hosting`'s platform choice rendered; `hosting_billing_owner` (a real name/email) and `existing_website_transition_plan` (replace-fully vs. preserve-during-transition — a real, meaningful build decision) never rendered anywhere.
+
+**Confirmed NOT a gap, by the same method:** `cmsDecisionBlock()` (#21) and `backendDecisionBlock()` (#22) are also synthesized-only, but this is correct — `cms` and `backend_database_auth` are both members of `FUNCTIONAL_SECTIONS`, so their raw discovery rows already reach the document via category #18 (Functional Requirements); rendering them a second time in #21/#22 would be actual duplication, not a fix.
+
+### Fix
+
+All three packet fields (`domainDetails`, `ownershipDetails`, `hostingDetails`) added to `WebsiteProjectBlueprintPacket`, each populated via the same `rowsForSections(evaluations, [...])` mechanism already used for every other raw-row category (`content`, `seo`, `accessibility`, etc.) — no new mechanism invented. Each of the three render functions (`domainDnsBlock`, `ownershipBlock`, `hostingDeploymentBlock`) now renders the raw rows alongside (never replacing) the architecture's own synthesized decision.
+
+**Live-evaluated proof** (scratch script, deleted after use): a real packet built from a fixture carrying `domain_registrar_renewal_details: "Cloudflare, renews March 2027, auto-renew ON, client pays"` and `alternate_domains: "acmeshopp.com (misspelling, redirects in)"` — confirmed both strings present in `packet.domainDetails` AND in the final rendered Markdown output, where before this fix neither would have appeared anywhere in the document.
+
+**Ledger impact:** REQ-8.12.2, REQ-8.12.6, REQ-8.12.7, REQ-8.12.9 (registrar/renewal/auto-renew/alternate-domains), REQ-8.13.3/REQ-8.13.8 (hosting billing owner/who-pays), and the ownership-register requirement now carry BLUEPRINT_GENERATION-class evidence (a real live rendering proof) in addition to the CAPTURE/PERSISTENCE-class evidence they already had — upgraded, not newly created; the underlying rows and their TECHNICALLY_PROVEN status in Gate 10.3's historical table are correct in outcome, but were resting on weaker evidence than the requirement actually needed until this fix (per this gate's own standard: "a Blueprint requirement cannot be proven because a Markdown label exists" — before this fix, these specific requirements' Blueprint-facing behavior was NOT actually proven, only the capture/persistence half was).
+
+## Proof-class verification matrix
+
+| PROOF_AREA | REQUIREMENTS_SAMPLED | EVIDENCE_CLASS_REQUIRED | PASS | FAIL | FIXES | FINAL_STATUS |
+|---|---|---|---|---|---|---|
+| Canonical truth / provenance (§2, §4) | Truth-class persistence, AI_EXTRACTED vs. CLIENT_CONFIRMED separation, confirmation authority | PERSISTENCE, AUTHORIZATION, CROSS_BUSINESS_ISOLATION | YES | 0 | none | TECHNICALLY_PROVEN — confirmed via direct re-read of `captureProjectDiscoveryItem`/`setProjectDiscoveryItemConfirmation`: confirming an item writes ONLY `confirmation_state`/`client_confirmed_at`, never `truth_class` — an AI-extracted row structurally cannot become "client_confirmed" truth by the confirm action; the confirm route filters by both `id` AND `business_id` (cross-business isolation) and requires `review_project_discovery` (authorization) |
+| Auth / actor safety (all discovery routes) | 29 discovery API routes | AUTHORIZATION, NEGATIVE_GUARD | YES | 0 | none | TECHNICALLY_PROVEN — 29/29 routes use `requireStaffWorkspaceWriteAccess`; zero routes read `businessId`/actor identity from client-supplied request body (grepped directly, zero matches) |
+| Domain/DNS Blueprint rendering (§8.12, §14 #23) | domain_owner, desired_new_domain, registrar/renewal details, alternate domains | BLUEPRINT_GENERATION | **NO (found, fixed)** | 1 | `domainDetails` packet field + render update | TECHNICALLY_PROVEN (post-fix, live-proven) |
+| Ownership Blueprint rendering (§8.24, §14 #31) | platform_ownership_register raw answer | BLUEPRINT_GENERATION | **NO (found, fixed)** | 1 | `ownershipDetails` packet field + render update | TECHNICALLY_PROVEN (post-fix) |
+| Hosting Blueprint rendering (§8.13, §14 #24) | hosting_billing_owner, existing_website_transition_plan | BLUEPRINT_GENERATION | **NO (found, fixed)** | 1 | `hostingDetails` packet field + render update | TECHNICALLY_PROVEN (post-fix) |
+| CMS/Backend Blueprint rendering (§14 #21/#22) | cms/backend_database_auth raw rows | BLUEPRINT_GENERATION | YES | 0 | none needed | Confirmed already reaching the document via #18 Functional Requirements — not a duplicate gap |
+| Ownership/billing release invariant (§13) | `computeLiveUnresolvedOwnershipBilling` → release block | PERSISTENCE, LIFECYCLE, POLICY_ENFORCEMENT | YES | 0 | none | TECHNICALLY_PROVEN (re-confirmed Gate 10.5; async live query, real blocking branch) |
+| Custom Platform escalation (§10, §29) | `requiresCommercialReview` assignment + release gate | DETERMINISTIC_LOGIC, LIFECYCLE, POLICY_ENFORCEMENT | YES | 0 | none | TECHNICALLY_PROVEN (re-confirmed Gate 10.5) |
+| 47-category Blueprint registry (§14) | Category count and sequence | DETERMINISTIC_LOGIC | YES | 0 | none | TECHNICALLY_PROVEN (re-confirmed Gate 10.5; 47/47, sequential, no gaps) |
+
+## Validation
+
+| Check | Result |
+|---|---|
+| Live-evaluated proof of the domain/ownership/hosting fix | PASS — scratch script, deleted after use |
+| Full targeted regression (12 files) | 0 FAIL lines |
+| Repo-wide `tsc --noEmit -p tsconfig.json` | 0 new errors |
+| ESLint on all 3 touched files | 0 errors, 0 warnings |
+| Production build (`npx next build`) | Compiled successfully, all routes generated, 0 errors, 0 warnings — run once, after all repairs, per this gate's own validation policy |
+| Git | Scratch proof script deleted before finishing |
+
+## Technical Master-MD Gaps Remaining
+
+**NONE**, post-fix. This gate found 3 real technical gaps (all the same underlying bug class: raw client-provided text captured and persisted, but never reaching the rendered Blueprint document) across the domain, ownership, and hosting sections — each was repaired with the smallest canonical change (reusing the exact `rowsForSections` mechanism already used by every other raw-row category), live-proven, and regression-tested. No other section was found to have this defect (cms/backend_database_auth were checked and confirmed to already surface correctly through a different, non-duplicative category).
+
+## Final Verdict
+
+**EVIDENCE INTEGRITY VERIFIED — MASTER MD TECHNICAL PROOF HOLDS** (post-repair).
+
+Three real technical gaps were found by demanding the CORRECT evidence class (BLUEPRINT_GENERATION, not merely CAPTURE/PERSISTENCE) for Blueprint-facing requirements — exactly the failure mode this gate's mission named ("a Blueprint requirement cannot be proven because a Markdown label exists"). All three are now fixed, live-proven, and regression-clean. NOT_PROVEN=0, FAILED=0, TRUE_SAFE_DEFER=0.
+
+**Owner QA remains intentionally blocked** — this is a PM process decision, not a technical finding.

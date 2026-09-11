@@ -87,18 +87,28 @@ export function qaMatrixBlock(list: readonly BlueprintQaRow[]): string {
   return `${header}\n${body}`;
 }
 
-export function ownershipBlock(architecture: WebsiteProjectBlueprintPacket["architecture"]): string {
-  if (architecture.ownership.length === 0) return "";
-  return architecture.ownership
-    .map((o) => {
-      const owner = formatBilingual(ownershipOwnerLabel(o.owner));
-      const access = formatBilingual(accessStatusLabel(o.accessStatus));
-      const hasAccount = formatBilingual(hasAccountLabel(o.hasAccount));
-      const billingOwner = formatBilingual(ownershipOwnerLabel(o.billingOwner));
-      const recoveryOwner = formatBilingual(ownershipOwnerLabel(o.recoveryOwner));
-      return `- **${o.platformKey}** — Propietario/Owner: ${owner}; Cuenta existente/Has account: ${hasAccount}; Acceso/Access: ${access}; Responsable de facturación/Billing owner: ${billingOwner}; Responsable de recuperación/Recovery owner: ${recoveryOwner}${o.handoffRequired ? "; Requiere entrega/Handoff required" : ""}`;
-    })
-    .join("\n");
+/**
+ * Gate 10.6 — accepts the raw ownership_billing discovery rows (e.g. a client-given name/email)
+ * alongside the structured per-platform entries, since the structured `owner`/`billingOwner` fields
+ * are only ever categorical (client/leonix/shared) and previously dropped any real name/email the
+ * client actually gave.
+ */
+export function ownershipBlock(architecture: WebsiteProjectBlueprintPacket["architecture"], ownershipDetails: readonly BlueprintRequirementRow[]): string {
+  const lines: string[] = [];
+  if (architecture.ownership.length > 0) {
+    lines.push(
+      ...architecture.ownership.map((o) => {
+        const owner = formatBilingual(ownershipOwnerLabel(o.owner));
+        const access = formatBilingual(accessStatusLabel(o.accessStatus));
+        const hasAccount = formatBilingual(hasAccountLabel(o.hasAccount));
+        const billingOwner = formatBilingual(ownershipOwnerLabel(o.billingOwner));
+        const recoveryOwner = formatBilingual(ownershipOwnerLabel(o.recoveryOwner));
+        return `- **${o.platformKey}** — Propietario/Owner: ${owner}; Cuenta existente/Has account: ${hasAccount}; Acceso/Access: ${access}; Responsable de facturación/Billing owner: ${billingOwner}; Responsable de recuperación/Recovery owner: ${recoveryOwner}${o.handoffRequired ? "; Requiere entrega/Handoff required" : ""}`;
+      }),
+    );
+  }
+  if (ownershipDetails.length > 0) lines.push(rows(ownershipDetails));
+  return lines.join("\n");
 }
 
 export function recurringServicesBlock(architecture: WebsiteProjectBlueprintPacket["architecture"]): string {
@@ -128,19 +138,30 @@ export function backendDecisionBlock(architecture: WebsiteProjectBlueprintPacket
   return lines.join("\n");
 }
 
-/** MD §14 #23 — Domain/DNS decision, its own category (previously computed but never rendered). */
-export function domainDnsBlock(architecture: WebsiteProjectBlueprintPacket["architecture"]): string {
+/**
+ * MD §14 #23 — Domain/DNS decision, its own category (previously computed but never rendered).
+ * Gate 10.6 — also renders the raw client-provided domain answers (owner, desired new domain,
+ * registrar/renewal details, alternate domains) alongside the architecture's own synthesized
+ * decision. Previously ONLY the synthesized kind/registrar-platform/reason rendered here — the
+ * actual captured text (a real domain name, a real registrar, a real renewal date, real alternate
+ * domains) never reached the document at all, a real discovery-to-Blueprint information-loss gap.
+ */
+export function domainDnsBlock(architecture: WebsiteProjectBlueprintPacket["architecture"], domainDetails: readonly BlueprintRequirementRow[]): string {
   const d = architecture.domainDns;
   const lines: string[] = [`- **Dominio/DNS / Domain/DNS:** ${s(d.reasonEs)} / ${s(d.reasonEn)}`];
   if (d.registrarPlatformKey) lines.push(`- **Registrador / Registrar:** ${d.registrarPlatformKey}`);
   if (d.dnsPlatformKey) lines.push(`- **DNS:** ${d.dnsPlatformKey}`);
   if (d.isLaunchBlocker) lines.push("- **⚠ BLOQUEADOR DE LANZAMIENTO / LAUNCH BLOCKER** — el acceso al dominio no está confirmado. / Domain access is not confirmed.");
+  if (domainDetails.length > 0) lines.push(rows(domainDetails));
   return lines.join("\n");
 }
 
 /** MD §14 #24 — Hosting/deployment, its own category. */
-export function hostingDeploymentBlock(architecture: WebsiteProjectBlueprintPacket["architecture"]): string {
-  return `- **Frontend/Alojamiento / Frontend/Hosting:** ${architecture.frontend.platformKey ?? "—"} / ${architecture.hosting.platformKey ?? "—"} — ${formatBilingual(platformDecisionStatusLabel(architecture.hosting.status))}`;
+/** Gate 10.6 — also renders the raw hosting_deployment answers (billing owner, transition plan). */
+export function hostingDeploymentBlock(architecture: WebsiteProjectBlueprintPacket["architecture"], hostingDetails: readonly BlueprintRequirementRow[]): string {
+  const lines = [`- **Frontend/Alojamiento / Frontend/Hosting:** ${architecture.frontend.platformKey ?? "—"} / ${architecture.hosting.platformKey ?? "—"} — ${formatBilingual(platformDecisionStatusLabel(architecture.hosting.status))}`];
+  if (hostingDetails.length > 0) lines.push(rows(hostingDetails));
+  return lines.join("\n");
 }
 
 /** MD §14 #25 — Platform decisions and rationale, its own category. Renders architecture classification plus the WHY behind every platform decision (architecture.reasonsEs/reasonsEn) and recurring-cost implications (MD §12) — both computed since Gate 4 but never rendered before Gate 10.2. */

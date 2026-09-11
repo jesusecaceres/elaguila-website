@@ -241,6 +241,29 @@ export interface WebsiteProjectBlueprintPacket {
 
   // TECHNICAL DECISIONS (approved architecture — MD <architecture_drift>: always the APPROVED one)
   architecture: WebsiteArchitectureDecisionPacket;
+  /**
+   * Gate 10.6 — the raw client-provided domain answers (owner, desired new domain, registrar/
+   * renewal/auto-renew/who-pays, alternate domains). Previously only the architecture engine's own
+   * SYNTHESIZED domainDns recommendation (kind/registrarPlatformKey/reason) was rendered in the
+   * Blueprint (#23) — none of the actual captured text (an actual domain name, a real registrar
+   * name, a real renewal date, real alternate domains) ever reached the document a builder reads,
+   * a real information-loss gap between discovery and the execution contract. Rendered alongside
+   * the architecture decision in #23, never replacing it.
+   */
+  domainDetails: readonly BlueprintRequirementRow[];
+  /**
+   * Gate 10.6 — the raw client-provided ownership answer (e.g. "for each account we set up, who
+   * should be the permanent owner?" — often an actual name/email). The structured
+   * `architecture.ownership` array (rendered in #31) only ever carries a CATEGORICAL owner
+   * (client/leonix/shared) since Gate 10.3's `buildOwnership()` — a real person's name/email the
+   * client gave during discovery, if any, never reached the document. Rendered alongside the
+   * structured per-platform entries in #31, never replacing them.
+   */
+  ownershipDetails: readonly BlueprintRequirementRow[];
+  /** Gate 10.6 — same class of gap as domainDetails/ownershipDetails: the raw hosting_deployment
+   * answers (billing owner name/email, existing-site transition plan replace-vs-preserve) never
+   * reached the document — only the architecture's own frontend/hosting platform choice did. */
+  hostingDetails: readonly BlueprintRequirementRow[];
 
   // SEO / ANALYTICS
   seo: readonly BlueprintRequirementRow[];
@@ -578,6 +601,9 @@ export function buildWebsiteProjectBlueprintPacket(input: {
     functionalRequirements,
 
     architecture: approvedArchitecture,
+    domainDetails: rowsForSections(evaluations, ["domain"]),
+    ownershipDetails: rowsForSections(evaluations, ["ownership_billing"]),
+    hostingDetails: rowsForSections(evaluations, ["hosting_deployment"]),
 
     seo: rowsForSections(evaluations, ["seo"]),
     analyticsRequirements: rowsForSections(evaluations, ["analytics"]),
