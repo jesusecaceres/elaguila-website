@@ -1419,3 +1419,189 @@ Current main has only category-specific report submission (`submitEnVentaListing
   - short owner browser regression (§11) on the certified Preview
   - Stripe Golden Runtime circuit (GR-01…44): paid Golden listing, verified-intro $339.15 → $399 renewal, webhook fulfillment, same-row renewal
   - GR-43 cleanup
+
+---
+
+# SOURCE PROOF LOCK — PRE-OWNER-QA
+
+**Audited at:** branch `completion/launch-lifecycle-2026-09-09`, HEAD `5b5aae46`, clean tree, pushed = local, 0 main-only commits (origin/main `9fcadb4d`).
+**Method:** source inspection + git history + targeted grep + the 11 existing lightweight Servicios/Trust verifiers. No build, no repo typecheck, no dev server (the integration gate's typecheck `exit 0 / 0 errors`, production build `exit 0` and Preview `READY` remain applicable because this audit introduced no source change).
+**Verifiers re-run green this pass:** `verify-servicios-owner-qa-delta` 34/34 · `verify-servicios-gate3-source-readiness` 97/97 · `verify-servicios-edit-roundtrip` · `verify-servicios-included-offers` · `verify-servicios-publish-authority` · `verify-servicios-address-privacy` · `verify-servicios-gate1-lifecycle` · `verify-servicios-gate2-discovery` · `verify-servicios-golden-reference-promo-path` · `verify-servicios-preset-id-collisions` (77 types, 0 collisions) · `final-item21-community-trust-selftest`.
+
+Status vocabulary: **SP-IMPL** = SOURCE PROVEN — IMPLEMENTED · **SP-PROT** = SOURCE PROVEN — PROTECTED/PASS · **SP-DEF** = SOURCE PROVEN — DEFERRED BY PRODUCT DOCTRINE · **SP-NS** = SOURCE PROVEN — NOT SUPPORTED CURRENT PRODUCT · **GAP** = SOURCE GAP — REPAIR REQUIRED · **ORR** = OWNER RUNTIME REQUIRED.
+Short paths: `APP` = `app/(site)/clasificados/publicar/servicios/components/ClasificadosServiciosApplication.tsx` · `PREV` = `app/(site)/clasificados/publicar/servicios/preview/ServiciosProfessionalPreviewShell.tsx` · `HUB` = `app/(site)/servicios/components/ServiciosBusinessHubEngagementRow.tsx` · `CARD` = `app/(site)/servicios/components/ServiciosBusinessHubContactCard.tsx` · `CKPT` = `app/(site)/clasificados/components/PublishCheckoutCheckpoint.tsx` · `DELTA` = `scripts/verify-servicios-owner-qa-delta.ts`.
+
+## 19.1 Original owner ledger ⚠️1–⚠️28 (shared)
+
+| ID | STATUS | LIVE CONSUMER | SOURCE PROOF | REMAINING PROOF |
+|---|---|---|---|---|
+| ⚠️1 | SP-PROT | Servicios application draft | Draft store/schema untouched this pass (git diff ba7fa786→HEAD adds UI state only); `verify-servicios-edit-roundtrip` PASS | Owner §11 step 1 |
+| ⚠️2 | SP-PROT | Same | Same verifier; no persistence field removed | Owner §11 step 1 |
+| ⚠️3 | SP-PROT | Preview → Edit | `serviciosPublishedToApplicationDraft` untouched; edit-roundtrip PASS | Published same-row = GR-29/30 |
+| ⚠️4 | SP-IMPL | `APP` | `useBusinessApplicationLeaveGuard` imported L17, invoked L638 | Destructive close-tab test on a disposable draft |
+| ⚠️5 | SP-IMPL | `APP` Add handlers | `addRejectionMessage` L305 + `.reject()` / `.flash()` per handler; `AddedConfirmation.reject/rejectedMessage` | Owner §11 step 3/4 |
+| ⚠️6 | SP-IMPL | `APP` | Duplicate/cap/blank paths call `reject(...)`, never `flash()`; `DELTA` "explicit Adds decide first" | — |
+| ⚠️7 | SP-PROT | `APP` inputs | Inputs untouched (only handlers changed) | — |
+| ⚠️8 | SP-IMPL | `APP` languages | `DELTA` ⚠️8/⚠️9 check: 3 fixed + 4 custom round-trip, no max-3 | — |
+| ⚠️9 | SP-IMPL | `APP` + `opsMeta.discovery.languageChipIds` | Removable chips; hydration asserted in `DELTA` | — |
+| ⚠️10 | SP-PROT | `HoursEditor` weekly rows | Untouched | — |
+| ⚠️11 | SP-IMPL | `HoursEditor` + `APP` L3234 | `entryStatusLabels` (HoursEditor L56/159-167) mirrors the publish rule `filter(e => e.label && e.note)` | Owner §11 step 4 |
+| ⚠️12 | SP-PROT | Phone input | Untouched | — |
+| ⚠️13 | SP-PROT | WhatsApp CTA | International-safe shared helper untouched | GR-16 |
+| ⚠️14 | SP-IMPL | `CARD` contact actions | Correo pushed only under `if (vm.contact.emailMailto)` — no dead CTA | Owner populates an email (SVC-QA-06) |
+| ⚠️15 | SP-IMPL | Profile extra links | `serviciosBusinessProfile.ts` L213 "Optional labeled extra links (max two on publish)" — title + URL rows | — |
+| ⚠️16 | SP-IMPL | `CARD` + `LeonixCommunityTrust` | Trust (🦁) is first-party and separate from Google/Yelp external links; preview mode added | GR-20 |
+| ⚠️17 | SP-DEF | — | Direct truthful links are launch scope; quick-view drawer deferred by doctrine | — |
+| ⚠️18 | SP-PROT | `/api/translate-ad` | Route + translation records untouched (no category translator) | GR-23 |
+| ⚠️19 | SP-IMPL | `PREV` | `useServiciosPublicTranslation` L86 → `translateControl` rendered L164 above "Sobre nosotros"; published shells already had it | Owner §11 step 7 |
+| ⚠️20 | SP-PROT | Address fields | Structured street/unit/city/state/postal/country untouched | — |
+| ⚠️21 | SP-IMPL | `APP` L1508 `BusinessAddressVerifiedInput` | Lookup states idle/searching/results/no_results/unavailable; `locationHint` L1511; never sets `verified` | Owner §11 step 5 |
+| ⚠️22 | SP-IMPL | `ServiciosCouponsCard` L150 | Shared `BusinessFlyerViewerModal` (`kind="image"`, `closeLabel "Cerrar ✕"`), Escape at modal L47 | Owner §11 step 9 |
+| ⚠️23 | SP-PROT | Gallery order | Photos precede videos; "Todo" keeps photos first | — |
+| ⚠️24 | SP-IMPL | `APP` media tiles + credential field | Tiles say accepted/stored, not "uploaded"; credential says "Documento subido y guardado" only after the server URL returns | — |
+| ⚠️25 | SP-PROT | Revenue pricing matrix | `$399/month` untouched | GR-01 |
+| ⚠️26 | SP-PROT | Included offers | `verify-servicios-included-offers` PASS | — |
+| ⚠️27 | SP-PROT | Preview CTA | Single Preview path; no publish bypass | — |
+| ⚠️28 | SP-IMPL | `app/api/revenue-os/checkout/route.ts` | `isRevenueBaseEntitlementGuardedPackage` / `requiresBaseCheckout` guard (L529) untouched | GR-31 runtime |
+
+## 19.2 Original owner ledger ⚠️29–⚠️68 (Servicios)
+
+| ID | STATUS | LIVE CONSUMER | SOURCE PROOF | REMAINING PROOF |
+|---|---|---|---|---|
+| ⚠️29 | SP-PROT | Application header | Untouched | — |
+| ⚠️30 | SP-IMPL | `APP` step rail L1248 | `LeonixHorizontalRail revealKey={step}` + `data-rail-active` + `aria-current="step"` | Owner §11 step 21 |
+| ⚠️31 | SP-IMPL | Business-type select | `DELTA` ⚠️31: locale sort, canonical `value={p.id}` | — |
+| ⚠️32 | SP-IMPL | `businessTypePresets` | `DELTA` ⚠️32 (77 types ≥4 services/≥3 reasons/≥1 quick fact, no duplicate sets) | — |
+| ⚠️33 | SP-IMPL | Same | `DELTA` ⚠️33 attorney vs plumbing differ | — |
+| ⚠️34 | SP-IMPL | Same | `DELTA` ⚠️34 tire/legal specificity | — |
+| ⚠️35 | SP-PROT | Preset reactivity | Owner-proven (Plomería) + preset matrix | — |
+| ⚠️36 | SP-IMPL | Otro servicio fallback | `DELTA` ⚠️36; F1 round-trip verifier PASS | GR-29 |
+| ⚠️37 | SP-IMPL | `splitFeaturedGallery` | `DELTA` ⚠️37/38 executed: cap 4, owner order | — |
+| ⚠️38 | SP-IMPL | Same | Remainder lands in `galleryMore` | — |
+| ⚠️39 | SP-PROT | Media persistence | Owner-proven; no reupload path added | GR-33 |
+| ⚠️40 | SP-IMPL | `SERVICIOS_MAX_VIDEO_URLS` = `MAX_SERVICIOS_PUBLIC_GALLERY_VIDEOS` = 8 | `DELTA` ⚠️40 single canonical limit | — |
+| ⚠️41 | SP-IMPL | Servicios UI copy | `DELTA` ⚠️41: no AI-helper claim in live copy | — |
+| ⚠️42 | SP-IMPL | Custom services | `DELTA` ⚠️42/44/45/53: 40 sequential accepted, duplicate refused | — |
+| ⚠️43 | SP-IMPL | `ServiciosTrustSection` | Wrapped in `LeonixHorizontalRail` | Owner §11 step 12 |
+| ⚠️44 | SP-IMPL | Quick facts | Custom cap 20 (not 2); preset cap 5 | — |
+| ⚠️45 | SP-IMPL | Quick facts | Multiple accepted/removable/persisted | — |
+| ⚠️46 | SP-IMPL | `APP` L2417 | "Otro motivo" now a committed chip `data-servicios-custom-reason="committed"`; service Add clears on success only | Owner §11 step 3 |
+| ⚠️47 | SP-IMPL | Amenity-group Add | Decide-first + `reject(...)` reason | — |
+| ⚠️48 | SP-IMPL | Same handler | Same | — |
+| ⚠️49 | SP-IMPL | Same handler | Same | — |
+| ⚠️50 | SP-IMPL | Same handler | Same | — |
+| ⚠️51 | SP-PROT | Semantic group render | Untouched | — |
+| ⚠️52 | SP-PROT | No dumping ground | Untouched | — |
+| ⚠️53 | SP-IMPL | Amenity groups | `DELTA`: 12 per group accepted, duplicate refused | — |
+| ⚠️54 | SP-IMPL | Service areas | `DELTA` ⚠️54/55: independent removable entries round-trip | — |
+| ⚠️55 | SP-IMPL | Service areas hydrate | Legacy comma value migrates (executed) | — |
+| ⚠️56 | SP-PROT | Seven-day hours | Untouched | — |
+| ⚠️57 | SP-IMPL | Shared payment recognizer | `DELTA` ⚠️57: Affirm + known brands; unknown → generic (not faked) | — |
+| ⚠️58 | SP-IMPL | `app/api/clasificados/servicios/review/route.ts` L32 | Field-specific bilingual `message` returned; form renders it | GR runtime (post-publish review) |
+| ⚠️59 | SP-IMPL | `LeonixCommunityTrust` + `CARD` L619 | `preview={!(listingSourceId ?? "").trim()}`; preview note L163; `disabled={busy \|\| preview}` L176 | Owner §11 step 14 |
+| ⚠️60 | SP-PROT | Included coupons | No +$99 path | — |
+| ⚠️61 | SP-PROT | Flyer vs external offers | Distinct actions | — |
+| ⚠️62 | SP-IMPL | B4 capability authority | `resolveBusinessToolsAccess("coupons_offers")` in my-listings route + dashboard | GR-32 runtime |
+| ⚠️63 | SP-PROT | Step 8 checkout | Untouched | — |
+| ⚠️64 | SP-IMPL | `HUB` L130 | `data-servicios-action-order="like,save,share"`, standard-size controls, no full-width stretch | Owner §11 step 15 |
+| ⚠️65 | SP-PROT | Volver a editar | Untouched | — |
+| ⚠️66 | SP-IMPL | `ServiciosPagosBeneficiosSection` | `COLLAPSE_THRESHOLD = 25` / `INITIAL_VISIBLE = 24` | Owner §11 step 16 |
+| ⚠️67 | SP-IMPL | Same | No "Ver más" for normal content | Owner §11 step 17 |
+| ⚠️68 | SP-IMPL | All `APP` Add controls | Services, highlights, quick facts, payments, amenities ×5, certifications, languages, service areas, "Otro motivo", special hours, credential upload | Owner §11 steps 3/4 |
+
+## 19.3 New owner QA deltas SVC-QA-01–34
+
+| ID | STATUS | LIVE CONSUMER | SOURCE PROOF | REMAINING PROOF |
+|---|---|---|---|---|
+| SVC-QA-01 | SP-IMPL | `APP` custom service / "Otro motivo" | Success clears + ✓; rejection keeps text + reason (⚠️46) | Owner step 3 |
+| SVC-QA-02 | SP-IMPL | `HoursEditor` | Per-entry accepted/incomplete (⚠️11) | Owner step 4 |
+| SVC-QA-03 | SP-IMPL | `ServiciosCredentialDocumentField` (`APP` L3175/L3190) | URL **or** upload → slots `licenseDoc`/`insuranceDoc` → same `licenseDocumentUrl`/`insuranceDocumentUrl` → same public "Ver documento" | Owner step 6 |
+| SVC-QA-04 | SP-IMPL | Same component | "Subiendo…" → "Documento subido y guardado" only after the durable HTTPS URL returns; URL untouched on failure | Owner step 6 |
+| SVC-QA-05 | SP-IMPL | `BusinessAddressVerifiedInput` | See ⚠️21 | Owner step 5 |
+| SVC-QA-06 | SP-IMPL (source) / ORR | `CARD` | Correo renders only with a real email | Owner populates email |
+| SVC-QA-07 | SP-IMPL | `LeonixShareButton` L171-195 | No silent return; `shareData` omits `url` when there is none, so the private draft/preview URL is never shared; analytics stay off (`allowTrack` L58) | Owner step 8 |
+| SVC-QA-08 | SP-IMPL | `HUB` + hero + results + end-of-content | All import the one `LeonixShareButton` | Owner step 8 |
+| SVC-QA-09 | SP-IMPL | `ServiciosCouponsCard` | See ⚠️22 | Owner step 9 |
+| SVC-QA-10 | SP-IMPL | `ServiciosGalleryWithTabs` L63/L138/L230 | `ServiciosMediaFilterSwitch` (all/photos/videos + counts) in grid and viewer header | Owner step 10 |
+| SVC-QA-11 | SP-IMPL | `ServiciosGalleryVideoTile` L113/L165/L208 | `isServiciosVideoPlayableInLeonix` → Leonix viewer first; provider link secondary; honest fallback panel | Owner step 11 |
+| SVC-QA-12 | SP-IMPL | `BusinessGalleryLightbox` | Existing ‹ › controls, keyboard, "· 1 / N" counter, visible close (shared engine, `headerSlot` additive) | Owner step 10 |
+| SVC-QA-13 | SP-IMPL | `LeonixHorizontalRail` | `data-leonix-rail="overflow\|static"` (L98) from real measurement (ResizeObserver L64) | Owner step 12 |
+| SVC-QA-14 | SP-IMPL | `ServiciosSmartTrustSummary` L41, `ServiciosQuickFacts` L45 | `flex flex-wrap` — no scroll cue when nothing overflows | Owner step 13 |
+| SVC-QA-15 | SP-IMPL | `CARD` outbound helpers | External web/social/maps → `window.open(_blank, noopener)`; tel/sms/wa/mailto via OS; Leonix media stays in-app | — |
+| SVC-QA-16 | SP-IMPL | `PREV` | See ⚠️19 | Owner step 7 |
+| SVC-QA-17 | SP-IMPL | `LeonixCommunityTrust` | See ⚠️59 | Owner step 14 |
+| SVC-QA-18 | SP-IMPL | `HUB` | See ⚠️64 | Owner step 15 |
+| SVC-QA-19 | SP-IMPL | `ServiciosResultCardEngagementStrip` | Same shared buttons, `variant="small"`, Share last | — |
+| SVC-QA-20 | SP-IMPL | `HUB` L92 `LeonixSaveButton` | `savedListingKey={sourceId}` (canonical `servicios_public_listings.id`) + `serviciosSavedListingExtras`; engine writes `saved_listings` via `upsert/read/deleteSavedListingForUser`; distinct from Like and from Saved Search | GR-21 runtime |
+| SVC-QA-21 | SP-IMPL | `ServiciosEndOfContentShare` | Present in all three shells: `PREV` L227, professional shell L337, trade view L270 | Owner step 15 |
+| SVC-QA-22 | SP-IMPL | Pagos section | See ⚠️66 (services collapse ≥13 kept: real volume) | Owner step 16 |
+| SVC-QA-23 | SP-IMPL | Pagos section | See ⚠️67 | Owner step 17 |
+| SVC-QA-24 | SP-IMPL | `VerifiedIntroDiscountVerifyPanel` L138/L272 | Basis from server result (`emailVerified`/`phoneVerified`) rendered via `data-verified-intro-basis` + "Leonix vuelve a confirmar al pagar"; authority server-side (`getVerifiedBearerUser` L392, `decideVerifiedIntroDiscountEligibility` L431) | Owner step 18 |
+| SVC-QA-25 | SP-IMPL | `CKPT` L441 | `data-verified-intro-schedule` prints "Primer pago: $339.15. Después: $399.00 al mes." (39900 − 5985) | GR-01 Stripe runtime |
+| SVC-QA-26 | SP-IMPL | `verifiedIntroDiscount.ts` / policy | Zero newsletter references in the eligibility resolver | — |
+| SVC-QA-27 | SP-IMPL | checkout route L306 | `discount_conflict` 409; panel hides while a promo is applied | Owner step 19 |
+| SVC-QA-28 | SP-IMPL | `CKPT` L429 + `recurringConsentCopy.ts` L83 | `PROMO_CODE_SUBSCRIPTION_DURATION="every_billing_cycle"`, `data-promo-recurrence` line matches the Stripe recurring `unit_amount` truth | Owner step 20 |
+| SVC-QA-29 | SP-IMPL | Servicios capture + checkout | Zero `launch_25` / `25%` matches under Servicios app + public trees | — |
+| SVC-QA-30 | SP-PROT | Revenue OS | Server resolves package/promo/discount; client is not authority | — |
+| SVC-QA-31 | SP-PROT | Layout architecture | Unchanged | Owner step 21 |
+| SVC-QA-32 | SP-IMPL | Shells | `overflow-x-hidden` kept; rails scroll inside their own track | Owner step 21 |
+| SVC-QA-33 | SP-IMPL | `APP` step rail | See ⚠️30 | Owner step 21 |
+| SVC-QA-34 | SP-IMPL | `LeonixHorizontalRail` | 36px labelled chevrons; fades `pointer-events-none` (L106/L118); native swipe preserved | Owner step 12 |
+
+## 19.4 Golden runtime GR-01–44
+
+All rows are **SOURCE READY — OWNER RUNTIME PENDING** unless the status says otherwise. No runtime behavior is claimed proven.
+
+| ID | STATUS | LIVE CONSUMER | SOURCE PROOF | REMAINING PROOF |
+|---|---|---|---|---|
+| GR-01 | SOURCE READY | Revenue OS checkout | Server-priced `servicios_base_monthly`; promo-path verifier PASS | Stripe TEST charge |
+| GR-02 | SOURCE READY | `revenueServiciosFulfillment` L16 | `SERVICIOS_PENDING_CHECKOUT_STATUS="pending_payment"`; public readers select `listing_status` | Paid run |
+| GR-03 | SOURCE READY | Same | `already_published` idempotent outcomes (L202/L251) + webhook ledger | Replay test |
+| GR-04 | SOURCE READY | Entitlement writer | `package_key=servicios_base_monthly` entitlement | Paid run |
+| GR-05 | SOURCE READY | Same | Update targets the exact row id (L237/L244) | Paid run |
+| GR-06 | SOURCE READY | `servicios_public_listings.id` | Canonical UUID used by save/analytics/dashboard | Record at publish |
+| GR-07 | SOURCE READY | `slug` | Public route `/clasificados/servicios/[slug]` | Record at publish |
+| GR-08 | SOURCE READY | `leonix_ad_id` | Carried in analytics listing identity | Record at publish |
+| GR-09 | SOURCE READY | Results/search | `verify-servicios-gate2-discovery` PASS | Published query |
+| GR-10 | SOURCE READY | `serviciosResultsFilter` L103/L550 | `hasOffers` filter + F2 capability fix | Published query |
+| GR-11 | SOURCE READY | Public detail shells | Same resolver as Preview | Visual compare |
+| GR-12 | SOURCE READY | `resolveServiciosProfile` L108/L112 | `showExactAddress` gate; `verify-servicios-address-privacy` PASS | Published check |
+| GR-13 | SOURCE READY | `CARD` directions action | Directions derive from `addressDisplay`/`mapsHref`, themselves gated by the privacy view | Published check |
+| GR-14 | SOURCE READY | `CARD` call action | `cta_call` recorder | Published tap |
+| GR-15 | SOURCE READY | `CARD` sms action | `cta_sms` recorder | Published tap |
+| GR-16 | SOURCE READY | `CARD` whatsapp | `cta_whatsapp` recorder | Published tap |
+| GR-17 | SOURCE READY | `CARD` email | Correo action (⚠️14) | Published tap |
+| GR-18 | SOURCE READY | `CARD` website | `cta_website_click` recorder | Published tap |
+| GR-19 | SOURCE READY | `LeonixShareButton` | `listing_share` via `serviciosGlobalShareRecorder` | Published share |
+| GR-20 | SOURCE READY | `LeonixCommunityTrust` | Real counts once `listingSourceId` exists (preview mode off) | Published like |
+| GR-21 | SOURCE READY | `LeonixSaveButton` | `saved_listings` upsert/delete with canonical key (SVC-QA-20) | Published save |
+| GR-22 | **NOT SUPPORTED — CURRENT PRODUCT** | — | No Servicios Report control/API on current main; only En Venta/Autos submit to `listing_reports`; capability registry marks Servicios `report: "unproven"`. Nothing built | Owner product decision |
+| GR-23 | SOURCE READY | Published shells | `useServiciosPublicTranslation` in both published shells; `/api/translate-ad` untouched | Published translate |
+| GR-24 | SOURCE READY | `ServiciosRelatedListingsSection` + `serviciosRelatedListings.ts` | Wired on `[slug]` page | Published check |
+| GR-25 | SOURCE READY | `app/lib/saved-search/servicios/*` (adapter, matcher, resolver, orchestrator) | `triggerServiciosSavedSearchMatchBestEffort` fires post-activation | Published delivery |
+| GR-26 | SOURCE READY | `/api/clasificados/servicios/my-listings` | Canonical id + B4 capability | Dashboard load |
+| GR-27 | SOURCE READY | `/api/clasificados/servicios/my-listing` (`APP` L509) | Dashboard edit hydrates from the canonical row | Dashboard edit |
+| GR-28 | SOURCE READY | `app/admin/_lib/serviciosCommercialOps.ts` | Keyed by `servicios_public_listings.id` | Admin view |
+| GR-29 | SOURCE READY | `serviciosPublishedToApplicationDraft` | `verify-servicios-edit-roundtrip` PASS | Published edit |
+| GR-30 | SOURCE READY | Publish route | Same-row update; no insert on edit | Republish |
+| GR-31 | SOURCE READY | Checkout guard | Active-entitlement guard (⚠️28) | Edit after pay |
+| GR-32 | SOURCE READY | Coupons capability | B4 included-offers authority (⚠️62) | Coupon edit |
+| GR-33 | SOURCE READY | Media mapper | Round-trip covered by edit-roundtrip verifier | Published edit |
+| GR-34 | SOURCE READY | Translation records | Keyed to listing identity; untouched by this build | Republish |
+| GR-35 | SOURCE READY | `recordServiciosGlobalAnalytics` | `serviciosGlobalListingFromRow{id,slug,leonix_ad_id}` used by every recorder | Published events |
+| GR-36 | SOURCE READY | `/api/clasificados/servicios/inquiry` | `insertServiciosPublicLead` + `insertServiciosAnalyticsEvent` | Lead send |
+| GR-37 | SOURCE READY | Publish authority | B1 ownership; `verify-servicios-publish-authority` PASS | Takeover attempt |
+| GR-38 | SOURCE READY | Manage route | B2 pause/resume while entitled | Runtime |
+| GR-39 | SOURCE READY | Manage route | B2 refuses free reactivation (402 with reason) | Runtime |
+| GR-40 | SOURCE READY | Manage route | B3 fail-closed Leonix suspension lock | Runtime |
+| GR-41 | SOURCE READY | `supabase/migrations/20260910210000_servicios_public_listings_read_privacy.sql` | B5 RLS applied and verified at ABSOLUTE-02 | Published check |
+| GR-42 | SOURCE READY | Responsive shells | Rails/step reveal added; shells keep `overflow-x-hidden` | Mobile circuit |
+| GR-43 | SOURCE READY | Cleanup runbook (ABSOLUTE-02 §32) | Procedure documented | Owner cleanup |
+| GR-44 | SOURCE READY | — | Issued only after GR-01…43 | Final certification |
+
+## 19.5 Coverage and result
+
+- ⚠️1–68: **68/68** dispositioned, no missing IDs.
+- SVC-QA-01–34: **34/34** dispositioned, no missing IDs.
+- GR-01–44: **44/44** dispositioned (43 SOURCE READY — OWNER RUNTIME PENDING, 1 NOT SUPPORTED — CURRENT PRODUCT).
+- **SOURCE GAP — REPAIR REQUIRED: 0.** No repair was required, so no code was changed and no cosmetic commit was manufactured; the integration gate's typecheck/build/Preview results remain applicable.
