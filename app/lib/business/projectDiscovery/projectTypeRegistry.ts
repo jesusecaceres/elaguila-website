@@ -22,6 +22,8 @@ export type ProjectTypeExecutionDestination =
   | "custom_platform_engagement"
   | "multi_project_bundle"
   | "website_project_handoff"
+  /** Gate 10.2 — an honest manual staff handoff (the blueprint's own handoffStatus seam, the exact same mechanism website_project_handoff uses) for families with no automated downstream integration. */
+  | "manual_operational_handoff"
   | "not_yet_determined";
 
 export interface ProjectTypeDefinition {
@@ -50,12 +52,21 @@ export const PROJECT_TYPE_REGISTRY: readonly ProjectTypeDefinition[] = [
   { key: "business_cards", labelEs: "Tarjetas de presentación", labelEn: "Business Cards", category: "print", discoverySchemaKey: "print_collateral", executionDestination: "creative_studio", active: true },
   { key: "flyer", labelEs: "Volante", labelEn: "Flyer", category: "print", discoverySchemaKey: "print_collateral", executionDestination: "creative_studio", active: true },
   { key: "banner_signage", labelEs: "Banner / Señalización", labelEn: "Banner / Signage", category: "print", discoverySchemaKey: "print_collateral", executionDestination: "creative_studio", active: true },
-  { key: "promotional_products", labelEs: "Productos promocionales", labelEn: "Promotional Products", category: "print", discoverySchemaKey: "print_collateral", executionDestination: "not_yet_determined", active: true },
+  // Gate 10.2: now wired to the same print-collateral discovery/execution engine as business_cards/
+  // flyer/banner_signage/referral_materials (see specializedBlueprintDispatch.ts, printCollateralDiscoveryCatalog.ts).
+  { key: "promotional_products", labelEs: "Productos promocionales", labelEn: "Promotional Products", category: "print", discoverySchemaKey: "print_collateral", executionDestination: "creative_studio", active: true },
   { key: "campaign_creative", labelEs: "Creativo de campaña", labelEn: "Campaign Creative", category: "media", discoverySchemaKey: "campaign", executionDestination: "growth_campaign", active: true },
-  { key: "sponsored_editorial", labelEs: "Editorial patrocinado", labelEn: "Sponsored Editorial", category: "media", discoverySchemaKey: "campaign", executionDestination: "creative_studio", active: true },
+  // Gate 10.2 correction: sponsored_editorial dispatches through specializedBlueprintDispatch.ts's
+  // media_campaign family exactly like campaign_creative/media_exposure_campaign (confirmed by
+  // direct inspection — FAMILY_BY_PROJECT_TYPE has always mapped it there), which bridges to
+  // Growth Campaign (growthCampaignBridge.ts), never Creative Studio. This field previously said
+  // "creative_studio", contradicting the real dispatched code path (Gate 10.1 GAP17 finding) — a
+  // stale registry value, not a functional break in the campaign path itself.
+  { key: "sponsored_editorial", labelEs: "Editorial patrocinado", labelEn: "Sponsored Editorial", category: "media", discoverySchemaKey: "campaign", executionDestination: "growth_campaign", active: true },
   { key: "media_exposure_campaign", labelEs: "Campaña de medios / exposición", labelEn: "Media / Exposure Campaign", category: "media", discoverySchemaKey: "campaign", executionDestination: "growth_campaign", active: true },
-  { key: "social_setup_cleanup", labelEs: "Configuración / limpieza de redes sociales", labelEn: "Social Setup / Cleanup", category: "digital", discoverySchemaKey: "social_presence", executionDestination: "not_yet_determined", active: true },
-  { key: "google_business_profile_support", labelEs: "Soporte de Perfil de Negocio de Google", labelEn: "Google Business Profile Support", category: "digital", discoverySchemaKey: "social_presence", executionDestination: "not_yet_determined", active: true },
+  // Gate 10.2: now wired to a real Digital Presence discovery/blueprint family (digitalPresenceDiscoveryCatalog.ts) — manual staff handoff since no automated Google/social-platform API integration exists.
+  { key: "social_setup_cleanup", labelEs: "Configuración / limpieza de redes sociales", labelEn: "Social Setup / Cleanup", category: "digital", discoverySchemaKey: "digital_presence", executionDestination: "manual_operational_handoff", active: true },
+  { key: "google_business_profile_support", labelEs: "Soporte de Perfil de Negocio de Google", labelEn: "Google Business Profile Support", category: "digital", discoverySchemaKey: "digital_presence", executionDestination: "manual_operational_handoff", active: true },
   { key: "referral_materials", labelEs: "Materiales de referencia", labelEn: "Referral Materials", category: "print", discoverySchemaKey: "print_collateral", executionDestination: "creative_studio", active: true },
   { key: "launch_package_multi_project", labelEs: "Paquete de lanzamiento / Multi-proyecto", labelEn: "Launch Package / Multi-project Engagement", category: "multi", discoverySchemaKey: "multi_project", executionDestination: "multi_project_bundle", active: true },
   { key: "custom_platform_software", labelEs: "Plataforma personalizada / Software", labelEn: "Custom Platform / Software Project", category: "platform", discoverySchemaKey: "custom_platform", executionDestination: "custom_platform_engagement", active: true },

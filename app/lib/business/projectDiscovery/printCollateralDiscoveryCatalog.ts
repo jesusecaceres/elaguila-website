@@ -33,6 +33,7 @@ const BUSINESS_CARDS: ProjectType = "business_cards";
 const FLYER: ProjectType = "flyer";
 const BANNER_SIGNAGE: ProjectType = "banner_signage";
 const REFERRAL_MATERIALS: ProjectType = "referral_materials";
+const PROMOTIONAL_PRODUCTS: ProjectType = "promotional_products";
 
 function isProjectType(...types: readonly ProjectType[]) {
   return (ctx: SpecializedRequirementPredicateContext) => types.includes(ctx.projectType);
@@ -240,7 +241,58 @@ export const PRINT_COLLATERAL_REQUIREMENTS: readonly PrintReq[] = [
     clientQuestionEn: "Do we already have the vendor's imprint-area template/specification for this item?", clientQuestionEs: "¿Ya tenemos la plantilla/especificación del área de impresión del proveedor para este artículo?",
     valueType: "text", defaultCompletenessClass: "needs_official_research", whoShouldAnswer: "OFFICIAL_RESEARCH",
     priority: 4, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
-    applicabilityCondition: isProjectType(REFERRAL_MATERIALS),
+    applicabilityCondition: isProjectType(REFERRAL_MATERIALS, PROMOTIONAL_PRODUCTS),
+  },
+  // Gate 10.2 — promotional_products previously had ZERO dedicated fields despite being listed in
+  // the project-type registry (it silently fell through to the generic Website catalog). These
+  // mirror the MD's own explicit list: product/item, quantity, logo/imprint size+location, delivery,
+  // artwork availability. Colors (colors_liked), vendor spec (promotional_product_imprint_vendor_spec
+  // above), deadline/event (print_deadline_event_trigger), and proof approval (decision_maker_approver)
+  // are already shared, unconditional fields in this same catalog — reused, never duplicated.
+  {
+    fieldKey: "promo_product_item", section: "specification",
+    labelEn: "Product/item", labelEs: "Producto/artículo",
+    operatorGuidanceEn: "The actual physical item (pens, tote bags, mugs, etc.) — never assumed from the project type alone.", operatorGuidanceEs: "El artículo físico real (bolígrafos, bolsas, tazas, etc.) — nunca se asume solo por el tipo de proyecto.",
+    clientQuestionEn: "What promotional item(s) do you want (pens, tote bags, mugs, etc.)?", clientQuestionEs: "¿Qué artículo(s) promocional(es) quiere (bolígrafos, bolsas, tazas, etc.)?",
+    valueType: "text", defaultCompletenessClass: "required_before_build", whoShouldAnswer: "CLIENT",
+    priority: 1, mayBlockBuild: true, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+    applicabilityCondition: isProjectType(PROMOTIONAL_PRODUCTS),
+  },
+  {
+    fieldKey: "promo_product_quantity", section: "specification",
+    labelEn: "Quantity (production planning only)", labelEs: "Cantidad (solo para planificación de producción)",
+    operatorGuidanceEn: "Never a pricing question — production planning only.", operatorGuidanceEs: "Nunca una pregunta de precio — solo para planificación de producción.",
+    clientQuestionEn: "Roughly how many units do you need?", clientQuestionEs: "¿Aproximadamente cuántas unidades necesita?",
+    valueType: "number", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
+    priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+    applicabilityCondition: isProjectType(PROMOTIONAL_PRODUCTS),
+  },
+  {
+    fieldKey: "promo_product_imprint_size_location", section: "specification",
+    labelEn: "Logo/imprint size and placement", labelEs: "Tamaño y ubicación del logo/impresión",
+    operatorGuidanceEn: "Where on the item and how large — distinct from the vendor's own template spec above, which is the vendor-side constraint this answer must fit within.", operatorGuidanceEs: "Dónde en el artículo y qué tan grande — distinto de la especificación de plantilla del proveedor, que es la restricción del lado del proveedor dentro de la cual debe encajar esta respuesta.",
+    clientQuestionEn: "Where should the logo/imprint go on the item, and how large?", clientQuestionEs: "¿Dónde debe ir el logo/impresión en el artículo, y qué tan grande?",
+    valueType: "text", defaultCompletenessClass: "required_before_build", whoShouldAnswer: "CLIENT",
+    priority: 2, mayBlockBuild: true, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+    applicabilityCondition: isProjectType(PROMOTIONAL_PRODUCTS),
+  },
+  {
+    fieldKey: "promo_product_delivery", section: "production",
+    labelEn: "Delivery method / timing", labelEs: "Método / tiempo de entrega",
+    operatorGuidanceEn: "Where and how the finished units actually arrive — shipped to the client, delivered to an event, picked up, etc.", operatorGuidanceEs: "Dónde y cómo llegan realmente las unidades terminadas — enviadas al cliente, entregadas a un evento, recogidas, etc.",
+    clientQuestionEn: "How and where should the finished items be delivered?", clientQuestionEs: "¿Cómo y dónde deben entregarse los artículos terminados?",
+    valueType: "text", defaultCompletenessClass: "required_before_launch", whoShouldAnswer: "CLIENT",
+    priority: 2, mayBlockBuild: false, mayBlockLaunch: true, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+    applicabilityCondition: isProjectType(PROMOTIONAL_PRODUCTS),
+  },
+  {
+    fieldKey: "promo_product_artwork_availability", section: "assets",
+    labelEn: "Print-ready artwork availability", labelEs: "Disponibilidad de arte listo para imprimir",
+    operatorGuidanceEn: "Distinct from the general client-supplied-assets upload above — specifically whether VECTOR/print-ready artwork already exists, since raster-only logos often need vector recreation before a vendor can imprint them.", operatorGuidanceEs: "Distinto de la carga general de activos del cliente — específicamente si ya existe arte vectorial/listo para imprimir, ya que los logos solo en formato raster a menudo necesitan recreación vectorial antes de que un proveedor pueda imprimirlos.",
+    clientQuestionEn: "Do you have print-ready (vector) artwork for the logo/design, or does it need to be recreated?", clientQuestionEs: "¿Tiene arte listo para imprimir (vectorial) del logo/diseño, o necesita recrearse?",
+    valueType: "boolean", defaultCompletenessClass: "required_before_build", whoShouldAnswer: "CLIENT",
+    priority: 2, mayBlockBuild: true, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+    applicabilityCondition: isProjectType(PROMOTIONAL_PRODUCTS),
   },
 
   // ---------------------------------------------------------------------------------------------

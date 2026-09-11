@@ -456,6 +456,18 @@ const primaryCta: WebsiteRequirementDefinition[] = [
     valueType: "text", defaultCompletenessClass: "required_before_launch", whoShouldAnswer: "CLIENT",
     priority: 2, mayBlockBuild: false, mayBlockLaunch: true, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
   },
+  // Gate 10.2 — MD §14's Blueprint contract lists "Secondary CTAs" (#8) as its own category,
+  // distinct from the Primary CTA (#7) above — a visitor action worth offering when the primary one
+  // isn't taken (e.g. "Call" primary, "Text" or "Directions" secondary). Never required — a project
+  // may genuinely have only one CTA.
+  {
+    fieldKey: "secondary_ctas", section: "primary_cta",
+    labelEn: "Secondary calls to action", labelEs: "Llamadas a la acción secundarias",
+    operatorGuidanceEn: "Optional additional actions offered alongside the primary CTA — never invented when the client only wants one action.", operatorGuidanceEs: "Acciones adicionales opcionales ofrecidas junto a la CTA principal — nunca inventadas cuando el cliente solo quiere una acción.",
+    clientQuestionEn: "Besides the main action, are there other actions you'd like visitors to be able to take (e.g. text, directions, follow on social)?", clientQuestionEs: "Además de la acción principal, ¿hay otras acciones que le gustaría que los visitantes puedan tomar (p. ej. mensaje de texto, direcciones, seguir en redes sociales)?",
+    valueType: "list", defaultCompletenessClass: "optional", whoShouldAnswer: "CLIENT",
+    priority: 4, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
 ];
 
 // =================================================================================================
@@ -1070,6 +1082,38 @@ const restaurantBranch: WebsiteRequirementDefinition[] = [
     applicabilityCondition: (ctx) => ctx.industryBranch === "restaurant",
     priority: 4, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
   },
+  // Gate 10.2 — MD §9 Restaurant list also names delivery platforms, reservation-provider ownership
+  // (mirroring ordering's own ownership pattern), and specials/promotions as distinct concepts;
+  // "menu"/"ordering"/"reservations"/"catering"/"dietary"/"multiple locations" were already covered
+  // above, "hours" is already covered by the universal business_identity hours field.
+  {
+    fieldKey: "restaurant_delivery_platforms", section: "offers_services_products", industryBranch: "restaurant",
+    labelEn: "Third-party delivery platforms used", labelEs: "Plataformas de entrega de terceros utilizadas",
+    operatorGuidanceEn: "Distinct from on-site ordering — these are external delivery apps (DoorDash/UberEats/Grubhub-style) the client already uses and may want linked.", operatorGuidanceEs: "Distinto de los pedidos en el sitio — son apps de entrega externas que el cliente ya usa y puede querer enlazar.",
+    clientQuestionEn: "Do you use any third-party delivery platforms (DoorDash, Uber Eats, Grubhub, etc.)? Which ones?", clientQuestionEs: "¿Usa alguna plataforma de entrega de terceros (DoorDash, Uber Eats, Grubhub, etc.)? ¿Cuáles?",
+    valueType: "list", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
+    applicabilityCondition: (ctx) => ctx.industryBranch === "restaurant",
+    priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  {
+    fieldKey: "restaurant_reservation_provider_ownership", section: "booking_scheduling", industryBranch: "restaurant",
+    labelEn: "Reservation provider ownership", labelEs: "Propiedad del proveedor de reservaciones",
+    operatorGuidanceEn: "Only relevant once the client confirms they want online reservations — mirrors the ordering-provider-ownership dependency pattern.", operatorGuidanceEs: "Solo relevante una vez que el cliente confirme que quiere reservaciones en línea.",
+    clientQuestionEn: "Do you already use a reservations platform? Who owns that account?", clientQuestionEs: "¿Ya usa una plataforma de reservaciones? ¿Quién es dueño de esa cuenta?",
+    valueType: "text", defaultCompletenessClass: "required_before_launch", whoShouldAnswer: "CLIENT",
+    applicabilityCondition: (ctx) => ctx.industryBranch === "restaurant",
+    dependencyCondition: (ctx) => ctx.hasCapturedValue("restaurant_wants_reservations", true),
+    priority: 2, mayBlockBuild: false, mayBlockLaunch: true, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  {
+    fieldKey: "restaurant_specials_promotions", section: "offers_services_products", industryBranch: "restaurant",
+    labelEn: "Specials / promotions to feature", labelEs: "Especiales / promociones a destacar",
+    operatorGuidanceEn: "Recurring or current specials (happy hour, daily specials, seasonal menu) — content inventory, never invented.", operatorGuidanceEs: "Especiales recurrentes o actuales (happy hour, especiales diarios, menú de temporada) — inventario de contenido, nunca inventado.",
+    clientQuestionEn: "Do you have specials or promotions you want featured on the site (happy hour, daily specials, etc.)?", clientQuestionEs: "¿Tiene especiales o promociones que quiera destacar en el sitio (happy hour, especiales diarios, etc.)?",
+    valueType: "list", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
+    applicabilityCondition: (ctx) => ctx.industryBranch === "restaurant",
+    priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
 ];
 
 const fitnessBranch: WebsiteRequirementDefinition[] = [
@@ -1161,9 +1205,9 @@ const radioMediaBranch: WebsiteRequirementDefinition[] = [
   },
   {
     fieldKey: "radio_programming_hosts", section: "content", industryBranch: "radio_media",
-    labelEn: "Programming / hosts to feature", labelEs: "Programación / locutores a destacar",
-    operatorGuidanceEn: "Content inventory for a programming/hosts page.", operatorGuidanceEs: "Inventario de contenido para una página de programación/locutores.",
-    clientQuestionEn: "What programming and hosts should we feature?", clientQuestionEs: "¿Qué programación y locutores debemos destacar?",
+    labelEn: "Programming schedule to feature", labelEs: "Programación / horario a destacar",
+    operatorGuidanceEn: "Content inventory for a programming/schedule page — what airs when. Hosts/personalities are captured independently (radio_hosts_personalities) so each concept stays distinguishable in the Blueprint.", operatorGuidanceEs: "Inventario de contenido para una página de programación/horario — qué se transmite y cuándo.",
+    clientQuestionEn: "What programming/schedule should we feature (what airs when)?", clientQuestionEs: "¿Qué programación/horario debemos destacar (qué se transmite y cuándo)?",
     valueType: "list", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
     applicabilityCondition: (ctx) => ctx.industryBranch === "radio_media",
     priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
@@ -1171,9 +1215,48 @@ const radioMediaBranch: WebsiteRequirementDefinition[] = [
   {
     fieldKey: "radio_advertisers_sponsors_page", section: "offers_services_products", industryBranch: "radio_media",
     labelEn: "Advertiser/sponsor page needed", labelEs: "Página de anunciantes/patrocinadores necesaria",
-    operatorGuidanceEn: "A revenue-facing page distinct from the public listener experience.", operatorGuidanceEs: "Una página orientada a ingresos distinta de la experiencia pública del oyente.",
+    operatorGuidanceEn: "A revenue-facing inquiry page for NEW/prospective advertisers — distinct from radio_sponsor_relationships, which lists EXISTING named sponsors to acknowledge on-air/on-site.", operatorGuidanceEs: "Una página de consulta orientada a ingresos para anunciantes nuevos/prospectivos — distinta de las relaciones de patrocinio existentes.",
     clientQuestionEn: "Do you want a page for potential advertisers/sponsors?", clientQuestionEs: "¿Quiere una página para posibles anunciantes/patrocinadores?",
     valueType: "boolean", defaultCompletenessClass: "optional", whoShouldAnswer: "CLIENT",
+    applicabilityCondition: (ctx) => ctx.industryBranch === "radio_media",
+    priority: 4, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  // Gate 10.2 — MD §9 Radio/Media list also names hosts, events, station messages, and sponsor
+  // relationships as their own concepts, independently of programming and the advertiser-inquiry
+  // page above; each gets its own field so none are silently merged/lost.
+  {
+    fieldKey: "radio_hosts_personalities", section: "content", industryBranch: "radio_media",
+    labelEn: "Hosts / on-air personalities to feature", labelEs: "Locutores / personalidades al aire a destacar",
+    operatorGuidanceEn: "Independent of the programming schedule — names, bios, and photos of the on-air talent.", operatorGuidanceEs: "Independiente del horario de programación — nombres, biografías y fotos del talento al aire.",
+    clientQuestionEn: "Which hosts/on-air personalities should we feature, and do you have bios/photos for them?", clientQuestionEs: "¿Qué locutores/personalidades al aire debemos destacar, y tiene biografías/fotos de ellos?",
+    valueType: "list", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
+    applicabilityCondition: (ctx) => ctx.industryBranch === "radio_media",
+    priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  {
+    fieldKey: "radio_station_events", section: "content", industryBranch: "radio_media",
+    labelEn: "Station events to feature", labelEs: "Eventos de la estación a destacar",
+    operatorGuidanceEn: "Remote broadcasts, listener events, fundraisers — distinct from the ordinary programming schedule.", operatorGuidanceEs: "Transmisiones remotas, eventos para oyentes, recaudaciones de fondos — distinto del horario de programación ordinario.",
+    clientQuestionEn: "Do you have station events (remote broadcasts, listener events, fundraisers) to feature?", clientQuestionEs: "¿Tiene eventos de la estación (transmisiones remotas, eventos para oyentes, recaudaciones) que destacar?",
+    valueType: "list", defaultCompletenessClass: "optional", whoShouldAnswer: "CLIENT",
+    applicabilityCondition: (ctx) => ctx.industryBranch === "radio_media",
+    priority: 4, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  {
+    fieldKey: "radio_station_positioning_messaging", section: "brand_identity", industryBranch: "radio_media",
+    labelEn: "Station positioning / on-air messaging", labelEs: "Posicionamiento de la estación / mensaje al aire",
+    operatorGuidanceEn: "The station's own on-air identity line (e.g. \"Your home for country hits\") — more specific than the generic brand-personality field.", operatorGuidanceEs: "La línea de identidad al aire propia de la estación — más específica que el campo genérico de personalidad de marca.",
+    clientQuestionEn: "How does the station describe itself on-air (tagline/positioning)?", clientQuestionEs: "¿Cómo se describe la estación al aire (eslogan/posicionamiento)?",
+    valueType: "text", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
+    applicabilityCondition: (ctx) => ctx.industryBranch === "radio_media",
+    priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  {
+    fieldKey: "radio_sponsor_relationships", section: "offers_services_products", industryBranch: "radio_media",
+    labelEn: "Existing sponsor relationships to acknowledge", labelEs: "Relaciones de patrocinio existentes a reconocer",
+    operatorGuidanceEn: "Named, ALREADY-SIGNED sponsors to acknowledge (e.g. \"Weather sponsored by X\") — distinct from the advertiser-inquiry page above, which is for prospecting NEW advertisers.", operatorGuidanceEs: "Patrocinadores ya confirmados que reconocer — distinto de la página de consulta de anunciantes nuevos.",
+    clientQuestionEn: "Do you have existing sponsors we should acknowledge on the site (e.g. \"Weather sponsored by X\")?", clientQuestionEs: "¿Tiene patrocinadores existentes que debamos reconocer en el sitio?",
+    valueType: "list", defaultCompletenessClass: "optional", whoShouldAnswer: "CLIENT",
     applicabilityCondition: (ctx) => ctx.industryBranch === "radio_media",
     priority: 4, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
   },

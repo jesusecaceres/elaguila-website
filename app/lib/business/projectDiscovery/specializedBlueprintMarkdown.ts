@@ -10,8 +10,12 @@ import { redactCredentialLikeText } from "./blueprintRedaction";
 import { blueprintStatusLabel, formatBilingual } from "./discoveryLabels";
 import type { DiscoveryTruthClass } from "./types";
 import type {
+  CustomPlatformBlueprintPacket,
+  DigitalPresenceBlueprintPacket,
+  LaunchPackageBlueprintPacket,
   LogoBrandBlueprintPacket,
   MediaCampaignBlueprintPacket,
+  OtherProjectBlueprintPacket,
   PrintCollateralBlueprintPacket,
   SpecializedBlueprintRow,
   SpecializedBuildGate,
@@ -201,13 +205,80 @@ export function buildMediaCampaignBlueprintMarkdown(packet: MediaCampaignBluepri
   return `${header}\n${sections.filter((sec) => sec.length > 0).join("\n")}`.trim() + "\n";
 }
 
+export function buildDigitalPresenceBlueprintMarkdown(packet: DigitalPresenceBlueprintPacket, meta: { version: number; status: BlueprintStatus }): string {
+  const header = headerFor(packet, "Plan de Proyecto de Presencia Digital", "Digital Presence Project Blueprint", meta);
+  const sections = [
+    section(1, "Identidad del Proyecto", "Project Identity", [`- **ID de negocio / Business ID:** ${packet.businessId}`, `- **ID de intención / Intent ID:** ${packet.projectIntentId}`, `- **Tipo / Type:** ${packet.projectType}`].join("\n")),
+    section(2, "Presencia Actual", "Current Presence", rows(packet.currentPresence)),
+    section(3, "Detalles del Listado de Google", "Google Listing Details", rows(packet.gbpListingDetails)),
+    section(4, "Consistencia de Identidad", "Identity Consistency", rows(packet.identityConsistency)),
+    section(5, "Cambios Solicitados", "Requested Changes", rows(packet.requestedChanges)),
+    section(6, "Propiedad y Acceso", "Ownership & Access", rows(packet.ownershipAccess)),
+    section(7, "Activos", "Assets", assetsBlock(packet)),
+    section(8, "Notas de Entrega Manual", "Manual Handoff Notes", "- **⚠ Sin integración automatizada / No automated integration:** Este trabajo se entrega manualmente al personal de Leonix — no existe ninguna integración de API con Google/redes sociales en este sistema. / This work is handed off manually to Leonix staff — no Google/social-platform API integration exists in this system."),
+    ...commonTailSections(packet, 9),
+  ];
+  return `${header}\n${sections.filter((sec) => sec.length > 0).join("\n")}`.trim() + "\n";
+}
+
+export function buildOtherProjectBlueprintMarkdown(packet: OtherProjectBlueprintPacket, meta: { version: number; status: BlueprintStatus }): string {
+  const header = headerFor(packet, "Plan de Otro Tipo de Proyecto", "Other Project Type Blueprint", meta);
+  const sections = [
+    section(1, "Identidad del Proyecto", "Project Identity", [`- **ID de negocio / Business ID:** ${packet.businessId}`, `- **ID de intención / Intent ID:** ${packet.projectIntentId}`].join("\n")),
+    section(2, "Definición", "Definition", rows(packet.definition)),
+    section(3, "Objetivo / Contexto", "Objective / Context", [rows(packet.objective), rows(packet.audience)].filter(Boolean).join("\n")),
+    section(4, "Restricciones", "Constraints", rows(packet.constraints)),
+    section(5, "Ejecución (interno)", "Execution (internal)", rows(packet.execution)),
+    section(6, "Activos", "Assets", assetsBlock(packet)),
+    ...commonTailSections(packet, 7),
+  ];
+  return `${header}\n${sections.filter((sec) => sec.length > 0).join("\n")}`.trim() + "\n";
+}
+
+export function buildCustomPlatformBlueprintMarkdown(packet: CustomPlatformBlueprintPacket, meta: { version: number; status: BlueprintStatus }): string {
+  const header = headerFor(packet, "Plan de Arquitectura de Plataforma Personalizada", "Custom Platform Architecture Blueprint", meta);
+  const sections = [
+    section(1, "Identidad del Proyecto", "Project Identity", [`- **ID de negocio / Business ID:** ${packet.businessId}`, `- **ID de intención / Intent ID:** ${packet.projectIntentId}`].join("\n")),
+    section(2, "⚠ Revisión Comercial", "⚠ Commercial Review", "- **REVISIÓN COMERCIAL REQUERIDA / COMMERCIAL REVIEW REQUIRED** — este es un plan de arquitectura/planificación, nunca un contrato listo para construir. No puede pasar a construcción/entrega sin una revisión comercial real resuelta. / This is an architecture/planning blueprint, never a build-ready contract. It cannot proceed to build/handoff without a real, resolved commercial review."),
+    section(3, "Problema / Alcance", "Problem / Scope", rows(packet.objective)),
+    section(4, "Usuarios y Acceso", "Users & Access", rows(packet.usersAccess)),
+    section(5, "Datos y Flujo de Trabajo", "Data & Workflow", rows(packet.dataWorkflow)),
+    section(6, "Integraciones y Pagos", "Integrations & Payments", rows(packet.integrationsPayments)),
+    section(7, "Seguridad y Privacidad", "Security & Privacy", rows(packet.securityPrivacy)),
+    section(8, "Operaciones (Admin/Analítica)", "Operations (Admin/Analytics)", rows(packet.operations)),
+    section(9, "Entrega y Propiedad", "Delivery & Ownership", rows(packet.delivery)),
+    ...commonTailSections(packet, 10),
+  ];
+  return `${header}\n${sections.filter((sec) => sec.length > 0).join("\n")}`.trim() + "\n";
+}
+
+export function buildLaunchPackageBlueprintMarkdown(packet: LaunchPackageBlueprintPacket, meta: { version: number; status: BlueprintStatus }): string {
+  const header = headerFor(packet, "Registro de Orquestación de Paquete de Lanzamiento", "Launch Package Orchestration Record", meta);
+  const sections = [
+    section(1, "Identidad del Proyecto", "Project Identity", [`- **ID de negocio / Business ID:** ${packet.businessId}`, `- **ID de intención / Intent ID:** ${packet.projectIntentId}`].join("\n")),
+    section(2, "⚠ Nota de Orquestación", "⚠ Orchestration Note", "- Este registro NUNCA duplica el contenido de un proyecto componente — cada componente tiene su propio plan real bajo este mismo descubrimiento. El estado en vivo se calcula por separado. / This record NEVER duplicates a component project's content — each component has its own real blueprint under this same discovery. Live status is computed separately."),
+    section(3, "Componentes", "Components", rows(packet.components)),
+    section(4, "Coordinación", "Coordination", rows(packet.coordination)),
+    ...commonTailSections(packet, 5),
+  ];
+  return `${header}\n${sections.filter((sec) => sec.length > 0).join("\n")}`.trim() + "\n";
+}
+
 function isPrintCollateralPacket(packet: SpecializedProjectBlueprintPacket): packet is PrintCollateralBlueprintPacket {
-  return packet.projectType === "business_cards" || packet.projectType === "flyer" || packet.projectType === "banner_signage" || packet.projectType === "referral_materials";
+  return packet.projectType === "business_cards" || packet.projectType === "flyer" || packet.projectType === "banner_signage" || packet.projectType === "referral_materials" || packet.projectType === "promotional_products";
+}
+
+function isDigitalPresencePacket(packet: SpecializedProjectBlueprintPacket): packet is DigitalPresenceBlueprintPacket {
+  return packet.projectType === "social_setup_cleanup" || packet.projectType === "google_business_profile_support";
 }
 
 /** Single dispatcher — routes to the correct family's Markdown generator based on packet.projectType. */
 export function buildSpecializedBlueprintMarkdown(packet: SpecializedProjectBlueprintPacket, meta: { version: number; status: BlueprintStatus }): string {
   if (packet.projectType === "logo_brand_identity") return buildLogoBrandBlueprintMarkdown(packet, meta);
+  if (packet.projectType === "other") return buildOtherProjectBlueprintMarkdown(packet, meta);
+  if (packet.projectType === "custom_platform_software") return buildCustomPlatformBlueprintMarkdown(packet, meta);
+  if (packet.projectType === "launch_package_multi_project") return buildLaunchPackageBlueprintMarkdown(packet, meta);
   if (isPrintCollateralPacket(packet)) return buildPrintCollateralBlueprintMarkdown(packet, meta);
+  if (isDigitalPresencePacket(packet)) return buildDigitalPresenceBlueprintMarkdown(packet, meta);
   return buildMediaCampaignBlueprintMarkdown(packet, meta);
 }

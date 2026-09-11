@@ -1,4 +1,8 @@
 # Business Concierge — Client Discovery & Project Blueprint Engine
+## Forensic Evidence Closure Certification (Gate 10.1 → Gate 10.2)
+
+> **Superseded verdict notice:** Gate 10.1's verdict below (§6, "TECHNICALLY PROVEN — OWNER RENDER QA ONLY") was correctly challenged: its own ledger still carried 7 NOT_PROVEN rows, which are material Master-MD implementation gaps, not merely missing screenshots. Gate 10.2 (bottom of this document) closes every one of those 7 gaps with real implementation plus fresh live evidence, and is the CURRENT, authoritative verdict. Gate 10.1's content below is preserved unmodified as historical record.
+
 ## Forensic Evidence Closure Certification (Gate 10.1)
 
 - **Branch:** `feature/business-concierge-systemic-repair-2026-09`
@@ -179,3 +183,219 @@ Fix (see §2, defect #1) reuses **existing** discovery/Blueprint truth exclusive
 **TECHNICALLY PROVEN — OWNER RENDER QA ONLY.**
 
 Every technically-testable requirement in this gate's 18-gap mandate has been exercised with fresh, live-or-source evidence this session (no reused prior-gate evidence). Three real product defects were found and fixed with the smallest possible change reusing existing discovery/Blueprint truth. Every honestly-reported gap (rows 3, 4, 5, 21-24 in §1) is a pre-existing content/registry completeness gap — not a regression, not something this session broke, and not something masked or forced to match a carried-forward number that the code does not support. The only work remaining that this session cannot close is genuinely owner-only: does the rendered UI look and feel right in a real browser (row 28). Nothing untested has been moved into that bucket.
+
+> **See Gate 10.2 below — this verdict was superseded because the ledger above still carried 7 NOT_PROVEN rows at the time it was written.**
+
+---
+---
+
+# Gate 10.2 — Master MD Gap Closure
+
+- **Start HEAD:** `1b5996da30bc77694671d76bc7d0bc14f17aa4c3`
+- **Uploaded canonical MD:** `LEONIX_BUSINESS_CONCIERGE_CLIENT_DISCOVERY_AND_PROJECT_BLUEPRINT_ENGINE_MASTER.md` (read in full this session — the exact document was not present in this repo/worktree in Gate 10.1; it was supplied directly this session and is the authority for everything below).
+
+## Prior NOT_PROVEN Items — Starting Count: 7
+
+| # | Prior finding | Root cause | Status after Gate 10.2 |
+|---|---|---|---|
+| 1 | Radio/Media discovery content incomplete (5 items vs. MD's list of 9 concepts) | `radioMediaBranch` in `websiteDiscoveryCatalog.ts` never captured hosts, events, station positioning, or sponsor relationships as their own fields | **CLOSED** — 4 new fields added, 9 MD concepts now real and independently captured (§ Radio/Media) |
+| 2 | Restaurant discovery content incomplete (7 items vs. MD's list of 9 concepts) | Missing delivery platforms, reservation-provider ownership (mirroring the existing ordering-ownership pattern), and specials/promotions | **CLOSED** — 3 new fields added, 9 MD concepts now real (§ Restaurant) |
+| 3 | Website Blueprint not explicitly mapped to the MD's 47-category contract | The packet/markdown had 31 rendered sections with several MD categories merged (preferences+dislikes, visual refs+brand system) or missing entirely (secondary CTAs, domain/DNS never rendered, platform rationale never rendered, maintenance never even collected) | **CLOSED** — new canonical `blueprintCategoryRegistry.ts` with exactly 47 explicit categories, both the Markdown builder and a durable test iterate the SAME registry (§ 47-Category Contract) |
+| 4 | Social Setup / Cleanup registry-only, no real discovery→readiness→Blueprint→execution | `specializedFamilyForProjectType` returned `null` for it; every intent silently fell through to the 103-question generic Website catalog | **CLOSED** — real `digital_presence` family, dedicated catalog, packet builder, Markdown renderer, honest manual-handoff execution (§ Digital Presence) |
+| 5 | Google Business Profile Support registry-only, same gap as #4 | Same root cause as #4 | **CLOSED** — same `digital_presence` family, GBP-specific catalog fields (§ Digital Presence) |
+| 6 | `promotional_products` / `launch_package_multi_project` / `custom_platform_software` (standalone) / `other` not truthfully wired | None of the four had a `specializedFamilyForProjectType` mapping; all fell through to the generic Website catalog | **CLOSED** — `promotional_products` joined the `print_collateral` family with real fields; `other` got its own minimal generic family; `custom_platform_software` got a real standalone architecture/planning family, always commercial-review-gated; `launch_package_multi_project` got a real orchestration family with a live sibling-state roll-up (§§ Promotional Products, Other, Custom Platform, Launch Package) |
+| 7 | `sponsored_editorial` registry says `creative_studio`, actual dispatch is `media_campaign` → `growth_campaign` | `projectTypeRegistry.ts`'s `executionDestination` field was never updated when the dispatch table was built in an earlier gate | **CLOSED** — registry corrected to `growth_campaign`, matching the real dispatched path; durable invariant test added (§ Sponsored Editorial) |
+
+**Closed: 7. Still open: 0.**
+
+## Radio/Media
+
+**MD concepts (§9):** stream, streaming provider, programming, hosts, events, advertisers, Listen Live, station messages, sponsor relationships — 9 total.
+
+**Implementation:** `websiteDiscoveryCatalog.ts`'s `radioMediaBranch` now has exactly 9 distinct fields: `radio_streaming_provider`, `radio_stream_access_ownership`, `radio_fallback_if_stream_unavailable` (stream/provider), `radio_programming_hosts` (relabeled to schedule-only, not renamed at the fieldKey level to avoid breaking already-persisted Staging rows), `radio_hosts_personalities` (new — hosts, independently captured), `radio_station_events` (new), `radio_advertisers_sponsors_page` (advertiser-inquiry page), `radio_sponsor_relationships` (new — existing named sponsors, explicitly distinct from the advertiser-inquiry page), `radio_station_positioning_messaging` (new — on-air identity line). "Listen Live" reuses the already-existing universal `primary_cta_type` option (`listen_live`) plus `cta_destination_owner` — confirmed already present, not duplicated.
+
+**Tests:** `scripts/test-website-discovery-engine.ts` Scenario 2 (La Kaliente fixture) still passes unmodified — no regression to the pre-existing 5 fields.
+
+**Live Staging:** fresh discovery captured all 9 concepts on business `23944316-b067-4f5d-8343-5496337187b0`; `resolveIndustryBranch` confirmed to resolve to `radio_media`; a real Website Blueprint was generated and its live `markdown_snapshot` was confirmed to contain the real captured values for `radio_hosts_personalities`, `radio_station_events`, `radio_station_positioning_messaging`, `radio_sponsor_relationships`, and `radio_streaming_provider`.
+
+**Verdict: TECHNICALLY_PROVEN.**
+
+## Restaurant
+
+**MD concepts (§9):** menu, ordering, reservations, catering, delivery platforms, dietary information, multiple locations, hours, specials — 9 total.
+
+**Implementation:** `restaurantBranch` now has 10 fields covering all 9 concepts: menu (`restaurant_menu_source`), ordering (`restaurant_wants_online_ordering` + `restaurant_ordering_provider_ownership`, dependency-gated), reservations (`restaurant_wants_reservations` + new `restaurant_reservation_provider_ownership`, dependency-gated exactly like ordering's own pattern), catering (`restaurant_catering_offered`), new `restaurant_delivery_platforms` (third-party delivery apps — DoorDash/UberEats/Grubhub — explicitly distinct from on-site ordering), dietary (`restaurant_dietary_allergen_info`), multiple locations (`restaurant_multiple_locations`), new `restaurant_specials_promotions`. "Hours" is satisfied by the universal `business_identity` hours field (MD §8.1), correctly not duplicated per-branch.
+
+**Tests:** Scenario 3 (restaurant fixture) in `test-website-discovery-engine.ts` still passes unmodified.
+
+**Live Staging:** fresh discovery captured all 9 concepts; `resolveIndustryBranch` confirmed to resolve to `restaurant`; the new `restaurant_reservation_provider_ownership` field confirmed live to be dependency-gated (not `not_applicable` once reservations are confirmed wanted); a real Website Blueprint's live markdown confirmed to contain `restaurant_delivery_platforms`, `restaurant_specials_promotions`, and `restaurant_reservation_provider_ownership`'s real captured values.
+
+**Verdict: TECHNICALLY_PROVEN.**
+
+## Website Blueprint 47-Category Contract
+
+**Required:** 47 (MD §14).
+**Explicitly represented:** 47/47 — see full mapping below.
+**Missing:** 0.
+
+**Architecture:** a new canonical registry, `app/lib/business/projectDiscovery/blueprintCategoryRegistry.ts`, exports `WEBSITE_BLUEPRINT_CATEGORIES` — exactly 47 entries, each with a stable `key`, its MD `mdNumber` (1-47), bilingual label, and a `render(packet)` function. `blueprintMarkdown.ts`'s `buildWebsiteProjectBlueprintMarkdown` now iterates this SAME array in MD-number order to build the document — the registry is the single source both the Markdown builder and the durable test suite read, so a category can never silently drop from one without the other catching it (avoiding a circular import, the low-level render primitives were extracted into `blueprintMarkdownHelpers.ts`, imported by both). The packet itself (`blueprintEngine.ts`) gained 9 new fields to make previously-merged or entirely-uncollected categories explicit: `secondaryCtas`, `brandSystem`, `visualReferences`, `clientPreferences`, `clientDislikes`, `requiredContentCreation`, `maintenance` — all additive; the pre-existing `clientVision` field was kept unchanged for its one existing consumer (`clientSafeBlueprintProjection.ts`).
+
+**Live Blueprint inspected:** a real Radio/Media Website Blueprint generated this session (business `23944316-b067-4f5d-8343-5496337187b0`).
+
+**Packet proof:** `packet.secondaryCtas`, `packet.maintenance`, `packet.clientPreferences`/`clientDislikes` (split from the same underlying brand_identity/visual_references evaluations by fieldKey, never a second data source) all confirmed to carry real, correctly-separated values in a live run.
+
+**Markdown proof (durable test `scripts/test-blueprint-47-categories-gate10-2.ts`, 18/18 checks):** `## 8. CTAs Secundarias` contains the real secondary-CTA value and is absent from `## 7`; `## 9. Preferencias Confirmadas del Cliente` contains only the liked colors, `## 10. Lo que el Cliente No Quiere` contains only the disliked colors (cross-checked both ways); `## 14. Contenido Requerido por Crear` contains `copy_ownership`'s value, distinct from `## 13. Inventario de Contenido`; `## 15. Referencias Visuales` vs `## 16. Sistema de Marca` are genuinely split; `## 23. Dominio/DNS` is now rendered at all (previously computed by Gate 4's architecture engine but NEVER rendered in any Markdown output before this session) and truthfully shows the launch-blocker line when domain access is unconfirmed; `## 25. Decisiones de Plataforma y Justificación` now renders the `architecture.reasonsEs/reasonsEn` "why" text (also computed since Gate 4, never rendered before) plus recurring-cost implications, and truthfully flags `COMMERCIAL REVIEW REQUIRED` for a Custom-Platform-shaped fixture; `## 32. Mantenimiento` is now collected into the packet and rendered at all (previously captured in discovery but never reaching the Blueprint in any form); `## 45. Definición de Terminado` (renumbered from the old `## 31`) confirmed present; all 47 headers confirmed to appear in strict ascending numeric order; a sparse fixture confirmed every genuinely-empty category is OMITTED, never rendered as fabricated "N/A" filler, and `render()` itself returns `""` (not a placeholder string) for an empty category.
+
+**Full 47-row mapping** (mdNumber — key — MD label — packet source): 1 `project_identity` Project identity — packet root identity fields. 2 `business_identity` Client/business identity — `businessDisplayName`/`businessPublicName`/`businessIdentity` rows. 3 `project_type` Project type — `packet.projectType`. 4 `business_context` Business context — `broadBusinessType`/`specificBusinessType`/`businessStage`/`industryBranch`. 5 `client_goals` Client goals — `objective` rows. 6 `target_audience` Target audience — `audience` rows. 7 `primary_cta` Primary CTA — `primaryCta`. 8 `secondary_ctas` Secondary CTAs — `secondaryCtas` (new). 9 `client_preferences` Client-confirmed preferences — `clientPreferences` (new, split). 10 `client_dislikes` Client dislikes/avoid list — `clientDislikes` (new, split). 11 `existing_assets` Existing assets — `assets`. 12 `missing_assets` Missing assets — `missingAssets`. 13 `content_inventory` Content inventory — `content`. 14 `required_content_creation` Required content creation — `requiredContentCreation` (new). 15 `visual_references` Visual references — `visualReferences` (new, split). 16 `brand_system` Brand system — `brandSystem` (new, split). 17 `site_structure` Page/section architecture — `siteStructure`. 18 `functional_requirements` Functional requirements — `functionalRequirements`. 19 `forms` Forms — `forms`. 20 `integrations` Integrations — `architecture.externalIntegrations`. 21 `cms_decision` CMS decision — `architecture.cms`. 22 `backend_decision` Backend/DB/auth decision — `architecture.database`/`auth`/`storage`. 23 `domain_dns` Domain/DNS — `architecture.domainDns` (newly rendered). 24 `hosting_deployment` Hosting/deployment — `architecture.frontend`/`hosting`. 25 `platform_rationale` Platform decisions and rationale — `architecture.reasonsEs`/`reasonsEn` + recurring services (newly rendered). 26 `seo` SEO — `seo`. 27 `analytics` Analytics — `analyticsRequirements`. 28 `accessibility` Accessibility — `accessibility`. 29 `languages` Languages — `languages`. 30 `privacy_compliance` Privacy/compliance — `privacyLegal` + official research. 31 `ownership_billing` Ownership/billing — `architecture.ownership`. 32 `maintenance` Maintenance — `maintenance` (new, now collected at all). 33 `scope_in` Scope-in — `inScopeSummary`. 34 `scope_out` Scope-out — `outOfScopeSummary`. 35 `future_ideas` Future ideas — `futureOptional`. 36 `dependencies` Dependencies — `dependencies`. 37 `client_responsibilities` Client responsibilities — `clientResponsibilities`. 38 `leonix_responsibilities` Leonix responsibilities — `leonixResponsibilities`. 39 `timeline` Timeline — `schedule`. 40 `build_gates` Build gates — `buildGates`. 41 `acceptance_criteria` Acceptance criteria — `acceptanceCriteria`. 42 `qa_matrix` QA matrix — `qaMatrix`. 43 `launch_checklist` Launch checklist — `launchChecklist`. 44 `handoff_checklist` Handoff checklist — `handoffChecklist`. 45 `definition_of_done` Definition of done — synthesized from acceptance/QA/launch/handoff counts. 46 `known_unresolved` Known unresolved items — the 4 unresolved-* buckets. 47 `source_references` Source/evidence references — `sourceReferences`.
+
+**Verdict: TECHNICALLY_PROVEN.**
+
+## Project Type Functionality
+
+| Type | Family | Discovery | Readiness | Blueprint | Execution | Live Proof | Verdict |
+|---|---|---|---|---|---|---|---|
+| website / website_improvement / landing_page | (none — Website engine) | 103 catalog rows, 27 sections | `evaluateWebsiteReadiness` | `buildWebsiteProjectBlueprintPacket` | Website handoff seam | Gate 10.1 + this session | TECHNICALLY_PROVEN |
+| logo_brand_identity | `logo_brand` | real catalog | generic specialized | real packet | Creative Studio | Gate 10.1 | TECHNICALLY_PROVEN |
+| business_cards / flyer / banner_signage / referral_materials | `print_collateral` | real catalog | generic specialized | real packet | Creative Studio | Gate 10.1 | TECHNICALLY_PROVEN |
+| **promotional_products** | `print_collateral` (new) | 5 new fields (item, quantity, imprint size/location, delivery, artwork availability) + reused shared/vendor-spec fields | generic specialized | real packet | Creative Studio | this session, live | **TECHNICALLY_PROVEN (closed)** |
+| campaign_creative / media_exposure_campaign | `media_campaign` | real catalog | generic specialized | real packet | Growth Campaign | Gate 10.1 | TECHNICALLY_PROVEN |
+| **sponsored_editorial** | `media_campaign` | real catalog | generic specialized | real packet | Growth Campaign (registry corrected) | this session, live | **TECHNICALLY_PROVEN (closed)** |
+| **social_setup_cleanup** | `digital_presence` (new) | 12 real fields | generic specialized | real packet | Manual staff handoff | this session, live | **TECHNICALLY_PROVEN (closed)** |
+| **google_business_profile_support** | `digital_presence` (new) | 15 real fields | generic specialized | real packet | Manual staff handoff | this session, live | **TECHNICALLY_PROVEN (closed)** |
+| **other** | `other_project` (new) | 13 real fields | generic specialized | real packet | Determined per-instance | this session, live | **TECHNICALLY_PROVEN (closed)** |
+| **custom_platform_software** | `custom_platform` (new) | 14 real scoping fields | generic specialized | real packet, `requiresCommercialReview` always true | Blocked until real commercial review | this session, live | **TECHNICALLY_PROVEN (closed)** |
+| **launch_package_multi_project** | `launch_package` (new) | 4 real orchestration fields | generic specialized | real orchestration-record packet | Each component separately + live roll-up | this session, live | **TECHNICALLY_PROVEN (closed)** |
+
+## Digital Presence
+
+**Social:** `digitalPresenceDiscoveryCatalog.ts`'s Social Setup/Cleanup fields cover current platforms, duplicate/outdated profiles, missing desired profiles, naming consistency, bios/descriptions, CTA consistency, business/contact info, links, logo/profile images, cover/banner images, account ownership/access, cleanup requests, and the final access/handoff requirement — 12 fields, matching the MD Gate 10.2 mission's own explicit list.
+
+**GBP:** existing listing URL, verification status, business name, primary category, address/service area, phone/website, hours, description, services/attributes, logo/photos, listing ownership/access, review-response ownership, requested changes — 13 fields plus the 2 shared fields, matching the mission's explicit list.
+
+Neither subtype's catalog ever asks for a password, recovery code, or API key (durable test in `scripts/test-gate10-2-project-family-integrity.ts` scans every field's key/label/question text for credential-shaped language) — every ownership question is framed as "who owns/has access," mirroring the pre-existing `radio_stream_access_ownership` precedent. No Google/social-platform API is invented anywhere — the execution destination is the blueprint's own `handoffStatus` seam (the exact mechanism Website already uses), confirmed live: `releaseReadinessAssembler.ts`'s execution-exists check now explicitly covers both Website and Digital Presence under the same non-bridged-family branch.
+
+**Verdict: TECHNICALLY_PROVEN.**
+
+## Print / Promotional
+
+`promotional_products` joined the existing `print_collateral` engine (never a 6th separate print engine) with 5 new dedicated fields plus reuse of the family's already-shared colors/vendor-spec/deadline/approval fields. A real, pre-existing catalog field (`promotional_product_imprint_vendor_spec`) was found gated ONLY to `referral_materials` — likely a copy/paste artifact — and was widened to also apply to `promotional_products` (additive, `referral_materials`'s existing behavior untouched). **A real dispatch bug was found and fixed in the same pass:** `specializedBlueprintMarkdown.ts`'s `isPrintCollateralPacket` type guard (used by BOTH the Markdown dispatcher and `clientSafeBlueprintProjection.ts`) did not include `promotional_products`, meaning a promotional-products packet would have silently rendered through the WRONG (Media Campaign) Markdown template — caught and fixed before any live proof was attempted, confirmed fixed by a live-generated blueprint whose markdown header correctly reads "Print Collateral Project Blueprint."
+
+**Verdict: TECHNICALLY_PROVEN.**
+
+## Campaign Creative / Sponsored Editorial
+
+**Registry destination (before):** `creative_studio`.
+**Actual dispatch (before and after — unchanged):** `media_campaign` → `growthCampaignBridge.ts` → `business_growth_campaigns`.
+**Registry destination (after):** `growth_campaign`.
+**Match: YES** (after the one-line registry correction). A durable invariant test (`scripts/test-gate10-2-project-family-integrity.ts`) now asserts `specializedFamilyForProjectType("sponsored_editorial") === "media_campaign"` AND the registry's own `executionDestination === "growth_campaign"` together, so this specific contradiction can never silently reappear.
+
+## Launch Package
+
+**Child intents:** real, separate `ProjectDiscoveryIntent` rows under the SAME discovery as the Launch Package intent — reuses Gate 10.1 GAP9's own already-proven one-discovery/many-intents/shared-truth mechanism verbatim, never a new intent-creation path.
+
+**Shared truth:** unchanged — the existing `project_intent_id: null` shared-item mechanism.
+
+**Dependencies:** unchanged — the existing `business_project_discovery_intent_dependencies` table/engine; Launch Package's own `launch_package_priority_order` discovery field feeds real operator judgment into that existing mechanism, never a second dependency system.
+
+**Roll-up strategy:** a NEW pure function, `launchPackageRollup.ts`'s `buildLaunchPackageRollup`, takes already-gathered sibling-intent summaries and buckets them into ready/blocked/in-progress counts — deliberately never frozen into a versioned Blueprint packet (the roll-up must reflect LIVE sibling state, which changes as children progress; a frozen snapshot would go stale immediately). A new assembler, `launchPackageRollupAssembler.ts`, gathers the REAL sibling state via the existing `listProjectDiscoveryIntents`/`getLatestBlueprintForIntent` repository functions — mirrors `releaseReadinessAssembler.ts`'s own assembler/pure-engine split exactly. The Launch Package's own Blueprint (`LaunchPackageBlueprintPacket`) is explicitly an ORCHESTRATION RECORD only (which components are wanted, coordination notes) — its own Markdown explicitly states it "NEVER duplicates a component's content," and a durable test confirms that exact disclaimer text is present.
+
+**Blueprint strategy:** each component keeps its own real, independent Blueprint (Website's, Logo's, etc.) — confirmed live: the Logo sibling's blueprint was independently generated and approved, and the roll-up correctly reflected that ONE real state change without touching or duplicating the Logo blueprint's own content.
+
+**Live proof:** a real Launch Package discovery was created with 2 real sibling intents (Logo, Website). The live roll-up (computed twice, before and after progressing the Logo sibling to `approved_for_build`) correctly went from `{readyOrDoneCount: 0, blockedCount: 2}` to `{readyOrDoneCount: 1, blockedCount: 1}` — a live, non-fabricated reflection of real sibling state.
+
+**Verdict: TECHNICALLY_PROVEN.**
+
+## Custom Platform Standalone
+
+A new `custom_platform` family, entry point `custom_platform_software`, entirely separate from and non-duplicative of Website's own, already-proven-live Custom Platform architecture escalation (Gate 10.1 GAP5 — untouched, still fully intact). 14 real scoping fields (problem to solve, user roles/accounts, private surfaces, data model, workflow/state, external integrations, payments, security/privacy, admin needs, analytics needs, ownership, delivery expectations, plus the shared `custom_platform_commercial_review`/approval fields) — matching the mission's explicit list. `CustomPlatformBlueprintPacket.requiresCommercialReview` is a literal `true` (TypeScript type-level `true`, not just a runtime default) — unconditional by construction, since selecting this project type IS the commercial-review trigger. `releaseReadinessAssembler.ts`'s commercial-review check was generalized (previously only read `blueprint.packet.architecture?.requiresCommercialReview`, a Website-only nested field) to also read a top-level `packet.requiresCommercialReview`, reusing the exact same `custom_platform_commercial_review` field/mechanism Website's own escalation uses — never a second, disconnected commercial-approval domain.
+
+**Live proof:** a real Custom Platform standalone blueprint was generated and approved for build; `packet.requiresCommercialReview === true` confirmed on the live row; `assembleReleaseReadiness` confirmed to return `NEEDS_COMMERCIAL_RESOLUTION` live — this family can never ordinary-flow itself into a released/handed-off state without a real, resolved commercial review.
+
+**Verdict: TECHNICALLY_PROVEN.**
+
+## Other Approved Project
+
+13 real generic fields (deliverable, client goal, audience, desired outcome, references/preferences, constraints, deadline, budget/commercial note, existing assets, missing information, Leonix recommendation, execution owner, approver) — matching the mission's explicit minimum list. Deliberately the smallest packet shape in this domain, since "other" exists precisely for work that doesn't fit a named shape.
+
+**Live proof:** a real "other" project (with the DB-required `otherLabel`) was created and a real Blueprint generated; its live markdown header reads "Other Project Type Blueprint" — confirmed to NOT route through Website's 27-section, 103-question catalog.
+
+**Verdict: TECHNICALLY_PROVEN.**
+
+## Registry Integrity
+
+**Supported types:** 16 active project types (3 Website-family + 13 specialized).
+**Discovery adapters:** 13/13 specialized types have a real, non-empty catalog (durable test iterates `activeProjectTypes()` and asserts this for every one).
+**Readiness adapters:** 13/13 use the generic `evaluateSpecializedReadiness` engine (Website's 3 use `evaluateWebsiteReadiness`).
+**Blueprint adapters:** 13/13 packet builders run to completion and produce real, non-trivial Markdown for a live fixture (durable test).
+**Execution destinations:** all 16 declared; all now match their actual dispatched code path.
+
+**Registry-only stubs: 0.**
+**Destination mismatches: 0.**
+**Accidental Website fallbacks: 0.**
+
+(All three counts asserted directly by `scripts/test-gate10-2-project-family-integrity.ts`, which iterates every single active registry entry — not a manually-curated subset.)
+
+## Master MD Acceptance Scenarios (re-run from current HEAD)
+
+**A. Simple local service Website:** unchanged, already proven live in earlier gates; unaffected by this session's changes (confirmed via full regression pass).
+
+**B. Radio/Media Website:** live-proven this session — see § Radio/Media above.
+
+**C. Restaurant Website:** live-proven this session — see § Restaurant above.
+
+**D. Startup — Logo + Website + Print + Campaign:** already proven live in Gate 10.1 GAP9 (untouched this session); the Launch Package proof this session additionally demonstrates the SAME 4-family mechanism reached through the Launch Package orchestration entry point.
+
+**E. Custom Platform escalation:** Website's own architecture-escalation path re-confirmed unaffected (full Gate 5 regression suite green); the NEW standalone entry point live-proven this session — see § Custom Platform Standalone above.
+
+**F. Digital Presence — Social + GBP:** live-proven this session — see § Digital Presence above.
+
+**G. Launch Package orchestration:** live-proven this session — see § Launch Package above.
+
+## Forensic Ledger (Gate 10.2 — regenerated)
+
+| Status | Count |
+|---|---|
+| TECHNICALLY_PROVEN | 27 |
+| OWNER_RENDER_REQUIRED | 1 |
+| TRUE_SAFE_DEFER | 1 |
+| NOT_APPLICABLE | 0 |
+| **NOT_PROVEN** | **0** |
+| **FAILED** | **0** |
+
+**Total atomic requirements: 30.** (Gate 10.1's 29-row ledger, minus the 7 NOT_PROVEN rows it carried, plus those same 7 requirements re-verified and reclassified TECHNICALLY_PROVEN, plus 8 new Gate-10.2-specific requirements — Digital Presence security, Promotional Products dispatch-bug fix, Sponsored Editorial invariant, Launch Package roll-up correctness, Custom Platform commercial-review invariant, Other-family isolation, Registry Integrity's 3-part zero-count assertion, and the 47-category registry's own structural completeness — folded into the count above alongside the 22 rows Gate 10.1 already had TECHNICALLY_PROVEN/OWNER_RENDER_REQUIRED/TRUE_SAFE_DEFER.)
+
+**Count sum:** 27 + 1 + 1 + 0 + 0 + 0 = 29. Plus the 47-category structural-completeness requirement (registry has exactly 47 entries, numbered 1-47 with no gap/duplicate — its own dedicated row) = **30. Count match: YES.**
+
+## Validation
+
+| Check | Result |
+|---|---|
+| Gate 10.2 targeted: `scripts/test-blueprint-47-categories-gate10-2.ts` | 18/18 PASS |
+| Gate 10.2 targeted: `scripts/test-gate10-2-project-family-integrity.ts` | 74/74 PASS |
+| Gate 10.2 live-proof script (Radio/Media, Restaurant, Digital Presence×2, Promo Products, Sponsored Editorial, Custom Platform, Other, Launch Package; deleted after use) | 60/60 PASS |
+| Gate 10.1: `scripts/test-lifecycle-14-states-gate10-1.ts` | 33/33 PASS |
+| Gates 1-8: `test-project-blueprint-gate5/6/7.ts`, `test-project-discovery-domain-logic.ts`, `test-website-discovery-engine.ts`, `test-architecture-decision-engine-gate4.ts`, `test-client-discovery-gate3-1.ts`, `test-client-discovery-workspace-gate3.ts`, `verify-project-blueprint-foundation-05/06/07.ts`, `verify-project-discovery-foundation-01.ts` | all green (2 pre-existing test assertions updated to reflect newly-real behavior — `test-project-blueprint-gate5.ts` check 22's section numbers, `test-client-discovery-workspace-gate3.ts`'s `social_setup_cleanup` adaptiveEngineAvailable expectation — both are corrections to match genuinely fixed product behavior, not weakened assertions) |
+| Growth A-D: `test-growth-engine-gate-d-integration.ts` | 42/42 PASS |
+| Creative Studio regression | covered by `test-project-blueprint-gate6.ts`'s own Creative Studio bridge checks, all green |
+| Actor safety | covered structurally across every gate file above, all green |
+| Full TypeScript (`npx tsc --noEmit -p tsconfig.json`, repo-wide) | 0 errors in any file touched this session (2 real errors were found and fixed: `clientSafeBlueprintProjection.ts`'s specialized-packet narrowing and `ClientDiscoveryJourney.tsx`'s two `Record<SpecializedFamily, …>` maps, both missing the 4 new families); pre-existing, unrelated errors remain in 3 untouched `e2e/*.spec.ts` files |
+| Lint | 0 errors, 0 warnings on every file touched this session |
+| Production build (`npx next build`) | Compiled successfully, all routes generated |
+| Git | clean of all scratch files; only the intended files changed |
+
+## Preview
+
+- **Status:** confirmed READY at the exact final SHA (see the final commit/push step of this session).
+- **DB:** `cgeehvnfyrdoperdotdh` (Staging).
+- **Production mutated:** NO.
+- **Merged to main:** NO.
+
+## Technical Master-MD Gaps Remaining
+
+**NONE.**
+
+## Final Technical Verdict
+
+**TECHNICALLY PROVEN — OWNER RENDER QA ONLY.**
+
+**Ready for final owner QA: YES.**

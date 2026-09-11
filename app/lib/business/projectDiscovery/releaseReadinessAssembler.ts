@@ -41,6 +41,8 @@ import type { ReleaseReadinessReason } from "./releaseReadinessEngine";
 interface ReleaseSourcePacket {
   projectType: string;
   architecture?: WebsiteArchitectureDecisionPacket;
+  /** Gate 10.2 — set unconditionally true on the standalone Custom Platform family's own packet (specializedBlueprintEngine.ts), the generic (non-Website-architecture) equivalent of architecture.requiresCommercialReview below. */
+  requiresCommercialReview?: boolean;
 }
 
 /**
@@ -158,13 +160,20 @@ export async function assembleReleaseReadiness(businessId: string, blueprint: Bu
   } else if (family === "media_campaign") {
     executionExists = Boolean(await getGrowthCampaignByBlueprintId(businessId, blueprint.id));
   } else {
-    // Website — the execution destination IS the blueprint's own handoff seam (MD <website_handoff_preservation>).
+    // Website AND Digital Presence (Gate 10.2) — neither has an automated downstream execution
+    // system (Digital Presence deliberately never gets one: MD Gate 10.2 <phase_7> requires an
+    // honest manual handoff, never a fabricated Google/social-platform API integration), so both
+    // reuse the blueprint's own handoff seam directly (MD <website_handoff_preservation>).
     executionExists = blueprint.handoffStatus !== "not_started";
   }
 
   let requiresCommercialReview = false;
   let commercialReviewResolved = true;
-  if (blueprint.packet.architecture?.requiresCommercialReview) {
+  // Website's own Custom Platform architecture escalation (blueprint.packet.architecture.requiresCommercialReview)
+  // and the Gate 10.2 standalone Custom Platform family (blueprint.packet.requiresCommercialReview,
+  // unconditionally true) both gate release through the exact same mechanism and the exact same
+  // custom_platform_commercial_review field — never two disconnected commercial-approval domains.
+  if (blueprint.packet.architecture?.requiresCommercialReview || blueprint.packet.requiresCommercialReview) {
     requiresCommercialReview = true;
     const reviewItem = allItems.find((i) => i.fieldKey === "custom_platform_commercial_review" && i.projectIntentId === blueprint.projectIntentId);
     commercialReviewResolved = Boolean(reviewItem && reviewItem.value !== "pending_review");

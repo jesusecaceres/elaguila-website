@@ -22,6 +22,9 @@ const PROJECT_TYPE_TO_ASSET_TYPE: Record<string, CreativeAssetType> = {
   flyer: "print_collateral_direction",
   banner_signage: "print_collateral_direction",
   referral_materials: "print_collateral_direction",
+  // Gate 10.2 — promotional_products is a physical printed/imprinted piece exactly like the others
+  // above; it reuses the same print_collateral_direction asset type, never a new Creative Studio concept.
+  promotional_products: "print_collateral_direction",
 };
 
 async function getBusinessPrimaryLanguage(businessId: string): Promise<CreativeLanguage> {

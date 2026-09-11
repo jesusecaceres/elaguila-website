@@ -204,15 +204,29 @@ export interface WebsiteProjectBlueprintPacket {
   // PROJECT PURPOSE
   objective: readonly BlueprintRequirementRow[];
   primaryCta: BlueprintRequirementRow | null;
+  /** Gate 10.2 — MD §14 Blueprint category #8, distinct from the Primary CTA (#7) above. */
+  secondaryCtas: readonly BlueprintRequirementRow[];
 
   // AUDIENCE
   audience: readonly BlueprintRequirementRow[];
 
-  // CLIENT VISION
+  // CLIENT VISION — combined brand_identity + visual_references (kept for the existing client-safe
+  // projection, which reads this exact field). Gate 10.2 adds the finer MD-faithful split below
+  // (#9/#10/#15/#16) as additive views over the SAME evaluations, never a second data source.
   clientVision: readonly BlueprintRequirementRow[];
+  /** MD §14 #16 — brand system only (brand_identity section), separate from visual references. */
+  brandSystem: readonly BlueprintRequirementRow[];
+  /** MD §14 #15 — visual references only (visual_references section), separate from brand system. */
+  visualReferences: readonly BlueprintRequirementRow[];
+  /** MD §14 #9 — the liked/wanted subset of clientVision (fieldKey does not end in disliked/avoided). */
+  clientPreferences: readonly BlueprintRequirementRow[];
+  /** MD §14 #10 — the disliked/avoid subset of clientVision. */
+  clientDislikes: readonly BlueprintRequirementRow[];
 
   // CONTENT
   content: readonly BlueprintRequirementRow[];
+  /** MD §14 #14 — the subset of `content` that specifically answers who must WRITE the copy (copy_ownership), surfaced as its own category alongside the broader content inventory (#13). */
+  requiredContentCreation: readonly BlueprintRequirementRow[];
 
   // ASSETS
   assets: readonly { label: string; sourceType: string; externalUrl: string | null; notes: string | null }[];
@@ -239,6 +253,9 @@ export interface WebsiteProjectBlueprintPacket {
   // PRIVACY / OFFICIAL RESEARCH
   privacyLegal: readonly BlueprintRequirementRow[];
   officialResearchOutstanding: readonly BlueprintRequirementRow[];
+
+  // MAINTENANCE (MD §14 #32) — previously captured in discovery but never surfaced in the packet.
+  maintenance: readonly BlueprintRequirementRow[];
 
   // SCOPE
   inScopeSummary: string;
@@ -504,6 +521,16 @@ export function buildWebsiteProjectBlueprintPacket(input: {
   const languages = rowsForSections(evaluations, ["languages"]);
   const siteStructure = rowsForSections(evaluations, SITE_STRUCTURE_SECTIONS);
   const primaryCta = findRow(evaluations, "primary_cta_type");
+  const secondaryCtaRow = findRow(evaluations, "secondary_ctas");
+  const secondaryCtas = secondaryCtaRow ? [secondaryCtaRow] : [];
+  const maintenance = rowsForSections(evaluations, ["maintenance"]);
+  const brandSystem = rowsForSections(evaluations, ["brand_identity"]);
+  const visualReferences = rowsForSections(evaluations, ["visual_references"]);
+  const isDislikeFieldKey = (fieldKey: string) => /disliked|avoided/i.test(fieldKey);
+  const clientPreferences = [...brandSystem, ...visualReferences].filter((r) => !isDislikeFieldKey(r.fieldKey));
+  const clientDislikes = [...brandSystem, ...visualReferences].filter((r) => isDislikeFieldKey(r.fieldKey));
+  const copyOwnershipRow = findRow(evaluations, "copy_ownership");
+  const requiredContentCreation = copyOwnershipRow ? [copyOwnershipRow] : [];
   const acceptanceCriteria = buildAcceptanceCriteria({ primaryCta, forms, languages, architecture: approvedArchitecture });
   const qaMatrix = buildQaMatrix({ forms, languages, architecture: approvedArchitecture, functionalRequirements });
   const launchChecklist = buildLaunchChecklist({ architecture: approvedArchitecture, forms, unresolvedBeforeLaunch: unresolvedBeforeLaunch.map(toRow) });
@@ -529,10 +556,16 @@ export function buildWebsiteProjectBlueprintPacket(input: {
 
     objective: rowsForSections(evaluations, ["website_objective"]),
     primaryCta,
+    secondaryCtas,
 
     audience: rowsForSections(evaluations, ["audience"]),
     clientVision: rowsForSections(evaluations, CLIENT_VISION_SECTIONS),
+    brandSystem,
+    visualReferences,
+    clientPreferences,
+    clientDislikes,
     content: rowsForSections(evaluations, CONTENT_SECTIONS),
+    requiredContentCreation,
 
     assets,
     missingAssets: missingAssets.map(toRow),
@@ -552,6 +585,8 @@ export function buildWebsiteProjectBlueprintPacket(input: {
 
     privacyLegal: rowsForSections(evaluations, ["privacy_legal"]),
     officialResearchOutstanding: officialResearchOutstanding.map(toRow),
+
+    maintenance,
 
     inScopeSummary: inScopeItem?.displayValue ?? "",
     outOfScopeSummary: outOfScopeItem?.displayValue ?? "",

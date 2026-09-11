@@ -32,7 +32,11 @@ const migration = read("supabase/migrations/20260912120000_business_project_blue
 const capabilities = read("app/admin/_lib/salesWorkspaceCapabilities.ts");
 const repository = read("app/lib/business/projectDiscovery/blueprintRepository.ts");
 const engine = read("app/lib/business/projectDiscovery/blueprintEngine.ts");
-const markdown = read("app/lib/business/projectDiscovery/blueprintMarkdown.ts");
+// Gate 10.2 — the low-level render primitives (redaction pass-through, truth tags) moved into
+// blueprintMarkdownHelpers.ts so the canonical 47-category registry can share them without a
+// circular import; blueprintMarkdown.ts now re-exports that module (`export * from`) and only owns
+// the top-level document builder. Structural checks below read both files.
+const markdown = read("app/lib/business/projectDiscovery/blueprintMarkdown.ts") + read("app/lib/business/projectDiscovery/blueprintMarkdownHelpers.ts");
 const redaction = read("app/lib/business/projectDiscovery/blueprintRedaction.ts");
 const labels = read("app/lib/business/projectDiscovery/discoveryLabels.ts");
 const actions = read("app/admin/(dashboard)/businesses/[businessId]/ClientDiscoveryActions.tsx");

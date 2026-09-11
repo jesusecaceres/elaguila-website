@@ -27,6 +27,10 @@ import type { BlueprintSourceReference } from "./blueprintEngine";
 import type { LogoBrandSection } from "./logoBrandDiscoveryCatalog";
 import type { PrintCollateralSection } from "./printCollateralDiscoveryCatalog";
 import type { CampaignSection } from "./campaignDiscoveryCatalog";
+import type { DigitalPresenceSection } from "./digitalPresenceDiscoveryCatalog";
+import type { OtherProjectSection } from "./otherProjectDiscoveryCatalog";
+import type { CustomPlatformSection } from "./customPlatformDiscoveryCatalog";
+import type { LaunchPackageSection } from "./launchPackageDiscoveryCatalog";
 
 // ---------------------------------------------------------------------------------------------
 // Blueprint readiness (MD <project_readiness>) — a generic wrapper over SpecializedReadinessResult
@@ -233,7 +237,7 @@ export interface LogoBrandBlueprintPacket extends SpecializedBlueprintBase {
 }
 
 export interface PrintCollateralBlueprintPacket extends SpecializedBlueprintBase {
-  projectType: "business_cards" | "flyer" | "banner_signage" | "referral_materials";
+  projectType: "business_cards" | "flyer" | "banner_signage" | "referral_materials" | "promotional_products";
   brandDependency: readonly SpecializedBlueprintRow[];
   layoutContent: readonly SpecializedBlueprintRow[];
   specification: readonly SpecializedBlueprintRow[];
@@ -250,7 +254,70 @@ export interface MediaCampaignBlueprintPacket extends SpecializedBlueprintBase {
   measurement: readonly SpecializedBlueprintRow[];
 }
 
-export type SpecializedProjectBlueprintPacket = LogoBrandBlueprintPacket | PrintCollateralBlueprintPacket | MediaCampaignBlueprintPacket;
+/**
+ * MD §7 "Social Setup / Cleanup" + "Google Business Profile support" — a genuine specialized
+ * family (Gate 10.2), not a Website fallback. `currentPresence`/`identityConsistency` are Social-
+ * Setup-shaped; `gbpListingDetails` is GBP-Support-shaped; `ownershipAccess`/`requestedChanges` are
+ * shared by both subtypes (never asks for a password/recovery code — see the catalog's own doc
+ * comment). No execution bridge to a Creative Studio job or Growth Campaign exists for this family
+ * — MD Gate 10.2 <phase_7> requires an HONEST manual staff handoff, so this family reuses the exact
+ * same blueprint.handoffStatus seam Website already uses (see releaseReadinessAssembler.ts), never
+ * a fabricated Google/social-platform API integration.
+ */
+export interface DigitalPresenceBlueprintPacket extends SpecializedBlueprintBase {
+  projectType: "social_setup_cleanup" | "google_business_profile_support";
+  currentPresence: readonly SpecializedBlueprintRow[];
+  identityConsistency: readonly SpecializedBlueprintRow[];
+  ownershipAccess: readonly SpecializedBlueprintRow[];
+  requestedChanges: readonly SpecializedBlueprintRow[];
+  gbpListingDetails: readonly SpecializedBlueprintRow[];
+}
+
+/**
+ * MD §7 "Other approved project type" — the generic catch-all family (Gate 10.2). Previously had
+ * zero dedicated discovery and silently fell through to the generic Website catalog (Gate 10.1
+ * GAP17 finding). Deliberately the smallest packet shape in this domain: "other" exists precisely
+ * for work that doesn't fit a named shape, so it stays generic rather than guessing at structure.
+ */
+export interface OtherProjectBlueprintPacket extends SpecializedBlueprintBase {
+  projectType: "other";
+  definition: readonly SpecializedBlueprintRow[];
+  constraints: readonly SpecializedBlueprintRow[];
+  execution: readonly SpecializedBlueprintRow[];
+}
+
+/**
+ * MD §7 "Custom Platform / Software Project" standalone entry point (Gate 10.2 <phase_11>) — an
+ * architecture/PLANNING blueprint, never a build-ready contract. requiresCommercialReview is
+ * unconditionally true (selecting this type IS the trigger); releaseReadinessAssembler.ts enforces
+ * NEEDS_COMMERCIAL_RESOLUTION for this family exactly like Website's own Custom Platform escalation
+ * (Gate 10.1 GAP5), so this can never ordinary-flow itself into a released/handed-off state.
+ */
+export interface CustomPlatformBlueprintPacket extends SpecializedBlueprintBase {
+  projectType: "custom_platform_software";
+  usersAccess: readonly SpecializedBlueprintRow[];
+  dataWorkflow: readonly SpecializedBlueprintRow[];
+  integrationsPayments: readonly SpecializedBlueprintRow[];
+  securityPrivacy: readonly SpecializedBlueprintRow[];
+  operations: readonly SpecializedBlueprintRow[];
+  delivery: readonly SpecializedBlueprintRow[];
+  /** Always true for this standalone family — see doc comment above. */
+  requiresCommercialReview: true;
+}
+
+/**
+ * MD §7 "Launch Package / Multi-project engagement" (Gate 10.2 <phase_10>) — an ORCHESTRATION
+ * record only: which real component project types are wanted and how they relate. It never
+ * duplicates a component's own content/status — the live roll-up (launchPackageRollup.ts) is
+ * computed separately from the sibling intents' own real state, never frozen into this packet.
+ */
+export interface LaunchPackageBlueprintPacket extends SpecializedBlueprintBase {
+  projectType: "launch_package_multi_project";
+  components: readonly SpecializedBlueprintRow[];
+  coordination: readonly SpecializedBlueprintRow[];
+}
+
+export type SpecializedProjectBlueprintPacket = LogoBrandBlueprintPacket | PrintCollateralBlueprintPacket | MediaCampaignBlueprintPacket | DigitalPresenceBlueprintPacket | OtherProjectBlueprintPacket | CustomPlatformBlueprintPacket | LaunchPackageBlueprintPacket;
 
 // ---------------------------------------------------------------------------------------------
 // Shared base-field computation.
@@ -434,7 +501,7 @@ export function buildLogoBrandBlueprintPacket(input: SpecializedBlueprintCommonI
 // PRINT COLLATERAL
 // ---------------------------------------------------------------------------------------------
 export function buildPrintCollateralBlueprintPacket(
-  input: SpecializedBlueprintCommonInput<PrintCollateralSection> & { projectType: "business_cards" | "flyer" | "banner_signage" | "referral_materials" },
+  input: SpecializedBlueprintCommonInput<PrintCollateralSection> & { projectType: "business_cards" | "flyer" | "banner_signage" | "referral_materials" | "promotional_products" },
 ): PrintCollateralBlueprintPacket {
   // Evaluated once here (pure, cheap) so the conditional preflight QA rows below can see the real
   // layoutContent rows — buildBase() would otherwise only compute evaluations AFTER qaMatrix is
@@ -539,6 +606,187 @@ export function buildMediaCampaignBlueprintPacket(
     timing: rowsForSections(evaluations, ["timing"]),
     creative: rowsForSections(evaluations, ["creative"]),
     measurement: rowsForSections(evaluations, ["measurement"]),
+  };
+}
+
+// ---------------------------------------------------------------------------------------------
+// DIGITAL PRESENCE (Social Setup/Cleanup, Google Business Profile Support) — Gate 10.2.
+// ---------------------------------------------------------------------------------------------
+export function buildDigitalPresenceBlueprintPacket(
+  input: SpecializedBlueprintCommonInput<DigitalPresenceSection> & { projectType: "social_setup_cleanup" | "google_business_profile_support" },
+): DigitalPresenceBlueprintPacket {
+  const { base, evaluations } = buildBase({
+    ...input,
+    objectiveSections: ["requested_changes"],
+    audienceSections: [],
+    assetSections: ["content_assets"],
+    clientResponsibilities: [
+      { es: "Confirmar el acceso/propiedad de cada cuenta o listado afectado.", en: "Confirm access/ownership for every affected account or listing." },
+      ...genericClientResponsibilities(0),
+    ],
+    leonixResponsibilities: [
+      ...GENERIC_LEONIX_RESPONSIBILITIES,
+      { es: "Nunca solicitar ni almacenar contraseñas o códigos de recuperación — solo confirmar quién es dueño/tiene acceso.", en: "Never request or store passwords or recovery codes — only confirm who owns/has access." },
+    ],
+    buildGates: genericBuildGates(
+      "PUERTA 2 — TRABAJO DE PERFIL/CUENTA", "GATE 2 — PROFILE/LISTING WORK",
+      ["Cambios de perfil/listado aplicados según lo confirmado por el cliente (entrega manual — no existe integración automatizada)."],
+      ["Profile/listing changes applied per client-confirmed direction (manual handoff — no automated integration exists)."],
+    ),
+    acceptanceCriteria: [
+      { key: "info_matches_confirmed", textEs: "Toda la información publicada coincide exactamente con lo confirmado por el cliente.", textEn: "All published information exactly matches what the client confirmed." },
+      { key: "no_credential_collected", textEs: "Nunca se solicitó ni almacenó una contraseña o código de recuperación durante este trabajo.", textEn: "No password or recovery code was ever requested or stored during this work." },
+    ],
+    qaMatrix: [...GENERIC_QA_UNIVERSAL, { key: "ownership_access_confirmed", labelEs: "Propiedad/acceso confirmado", labelEn: "Ownership/access confirmed", conditional: false }],
+    launchChecklist: [
+      { key: "profiles_reviewed", textEs: "Cada perfil/listado afectado fue revisado en vivo.", textEn: "Every affected profile/listing was reviewed live." },
+      { key: "client_launch_approval", textEs: "Aprobación final del cliente obtenida.", textEn: "Client final approval obtained." },
+    ],
+    handoffChecklist: [
+      { key: "ongoing_ownership_confirmed", textEs: "Responsable continuo de acceso/propiedad confirmado.", textEn: "Ongoing access/ownership responsibility confirmed." },
+      { key: "final_blueprint_version", textEs: "Versión final del plan registrada.", textEn: "Final blueprint version recorded." },
+    ],
+  });
+
+  return {
+    ...base,
+    projectType: input.projectType,
+    currentPresence: rowsForSections(evaluations, ["current_presence"]),
+    identityConsistency: rowsForSections(evaluations, ["identity_consistency"]),
+    ownershipAccess: rowsForSections(evaluations, ["ownership_access"]),
+    requestedChanges: rowsForSections(evaluations, ["requested_changes"]),
+    gbpListingDetails: rowsForSections(evaluations, ["gbp_listing_details"]),
+  };
+}
+
+// ---------------------------------------------------------------------------------------------
+// OTHER (generic catch-all) — Gate 10.2.
+// ---------------------------------------------------------------------------------------------
+export function buildOtherProjectBlueprintPacket(
+  input: SpecializedBlueprintCommonInput<OtherProjectSection> & { projectType: "other" },
+): OtherProjectBlueprintPacket {
+  const { base, evaluations } = buildBase({
+    ...input,
+    objectiveSections: ["definition"],
+    audienceSections: ["context"],
+    assetSections: ["assets"],
+    clientResponsibilities: genericClientResponsibilities(0),
+    leonixResponsibilities: [
+      ...GENERIC_LEONIX_RESPONSIBILITIES,
+      { es: "Documentar explícitamente el enfoque y el responsable de ejecución dado que este es un tipo de proyecto no estándar.", en: "Explicitly document the approach and execution owner since this is a non-standard project type." },
+    ],
+    buildGates: genericBuildGates(
+      "PUERTA 2 — EJECUCIÓN", "GATE 2 — EXECUTION",
+      ["Trabajo ejecutado según el alcance y el enfoque confirmados."], ["Work executed per the confirmed scope and approach."],
+    ),
+    acceptanceCriteria: [
+      { key: "deliverable_matches_confirmed", textEs: "El entregable coincide con lo confirmado en el descubrimiento.", textEn: "The deliverable matches what was confirmed in discovery." },
+    ],
+    qaMatrix: GENERIC_QA_UNIVERSAL,
+    launchChecklist: [
+      { key: "client_launch_approval", textEs: "Aprobación final del cliente obtenida.", textEn: "Client final approval obtained." },
+    ],
+    handoffChecklist: [
+      { key: "execution_owner_confirmed", textEs: "Responsable de ejecución confirmado y registrado.", textEn: "Execution owner confirmed and recorded." },
+      { key: "final_blueprint_version", textEs: "Versión final del plan registrada.", textEn: "Final blueprint version recorded." },
+    ],
+  });
+
+  return {
+    ...base,
+    projectType: "other",
+    definition: rowsForSections(evaluations, ["definition"]),
+    constraints: rowsForSections(evaluations, ["constraints"]),
+    execution: rowsForSections(evaluations, ["execution"]),
+  };
+}
+
+// ---------------------------------------------------------------------------------------------
+// CUSTOM PLATFORM standalone (Gate 10.2) — architecture/planning blueprint, always commercial-review-gated.
+// ---------------------------------------------------------------------------------------------
+export function buildCustomPlatformBlueprintPacket(
+  input: SpecializedBlueprintCommonInput<CustomPlatformSection> & { projectType: "custom_platform_software" },
+): CustomPlatformBlueprintPacket {
+  const { base, evaluations } = buildBase({
+    ...input,
+    objectiveSections: ["scope"],
+    audienceSections: [],
+    assetSections: [],
+    clientResponsibilities: genericClientResponsibilities(0),
+    leonixResponsibilities: [
+      { es: "Realizar una revisión técnica/comercial real antes de prometer cronograma o precio (MD §29 <cfo_scope_protection>).", en: "Conduct a real technical/commercial review before promising timeline or price (MD §29 <cfo_scope_protection>)." },
+      { es: "Nunca tratar este plan de arquitectura como una aprobación ordinaria de construcción.", en: "Never treat this architecture plan as an ordinary build approval." },
+    ],
+    buildGates: genericBuildGates(
+      "PUERTA 2 — ARQUITECTURA Y ALCANCE", "GATE 2 — ARCHITECTURE & SCOPE",
+      ["Arquitectura técnica y alcance definidos — pendiente de revisión comercial real antes de cualquier construcción."],
+      ["Technical architecture and scope defined — pending a real commercial review before any build."],
+    ),
+    acceptanceCriteria: [
+      { key: "commercial_review_gate_present", textEs: "El plan nunca se presenta como listo para construir sin una revisión comercial real resuelta.", textEn: "The blueprint is never presented as build-ready without a real, resolved commercial review." },
+    ],
+    qaMatrix: GENERIC_QA_UNIVERSAL,
+    launchChecklist: [
+      { key: "commercial_review_resolved", textEs: "Revisión comercial/arquitectura real resuelta.", textEn: "Real commercial/architecture review resolved." },
+      { key: "client_launch_approval", textEs: "Aprobación final del cliente obtenida.", textEn: "Client final approval obtained." },
+    ],
+    handoffChecklist: [
+      { key: "ownership_confirmed", textEs: "Propiedad de la plataforma confirmada.", textEn: "Platform ownership confirmed." },
+      { key: "final_blueprint_version", textEs: "Versión final del plan registrada.", textEn: "Final blueprint version recorded." },
+    ],
+  });
+
+  return {
+    ...base,
+    projectType: "custom_platform_software",
+    usersAccess: rowsForSections(evaluations, ["users_access"]),
+    dataWorkflow: rowsForSections(evaluations, ["data_workflow"]),
+    integrationsPayments: rowsForSections(evaluations, ["integrations_payments"]),
+    securityPrivacy: rowsForSections(evaluations, ["security_privacy"]),
+    operations: rowsForSections(evaluations, ["operations"]),
+    delivery: rowsForSections(evaluations, ["delivery"]),
+    requiresCommercialReview: true,
+  };
+}
+
+// ---------------------------------------------------------------------------------------------
+// LAUNCH PACKAGE (multi-project orchestration record) — Gate 10.2.
+// ---------------------------------------------------------------------------------------------
+export function buildLaunchPackageBlueprintPacket(
+  input: SpecializedBlueprintCommonInput<LaunchPackageSection> & { projectType: "launch_package_multi_project" },
+): LaunchPackageBlueprintPacket {
+  const { base, evaluations } = buildBase({
+    ...input,
+    objectiveSections: ["components"],
+    audienceSections: [],
+    assetSections: [],
+    clientResponsibilities: genericClientResponsibilities(0),
+    leonixResponsibilities: [
+      { es: "Crear una intención de proyecto real y separada para cada componente listado — nunca un plan combinado que reemplace los planes individuales.", en: "Create a real, separate project intent for each listed component — never a combined blueprint replacing the individual ones." },
+    ],
+    buildGates: genericBuildGates(
+      "PUERTA 2 — COMPONENTES CREADOS", "GATE 2 — COMPONENTS CREATED",
+      ["Una intención de proyecto real creada para cada componente listado, bajo este mismo descubrimiento."],
+      ["A real project intent created for each listed component, under this same discovery."],
+    ),
+    acceptanceCriteria: [
+      { key: "no_duplicate_blueprint", textEs: "Este plan nunca duplica el contenido de un plan de componente — cada componente conserva su propio plan real.", textEn: "This blueprint never duplicates a component's content — each component keeps its own real blueprint." },
+    ],
+    qaMatrix: GENERIC_QA_UNIVERSAL,
+    launchChecklist: [
+      { key: "all_components_reviewed", textEs: "El estado de cada componente fue revisado en el resumen general.", textEn: "Every component's status was reviewed in the roll-up summary." },
+    ],
+    handoffChecklist: [
+      { key: "all_components_handed_off", textEs: "Cada proyecto componente alcanzó su propia entrega completa.", textEn: "Every component project reached its own complete handoff." },
+      { key: "final_blueprint_version", textEs: "Versión final del plan registrada.", textEn: "Final blueprint version recorded." },
+    ],
+  });
+
+  return {
+    ...base,
+    projectType: "launch_package_multi_project",
+    components: rowsForSections(evaluations, ["components"]),
+    coordination: rowsForSections(evaluations, ["coordination"]),
   };
 }
 

@@ -11,7 +11,7 @@
  * "ai_extracted").
  */
 import type { WebsiteProjectBlueprintPacket } from "./blueprintEngine";
-import type { PrintCollateralBlueprintPacket, SpecializedProjectBlueprintPacket } from "./specializedBlueprintEngine";
+import type { CustomPlatformBlueprintPacket, DigitalPresenceBlueprintPacket, LaunchPackageBlueprintPacket, OtherProjectBlueprintPacket, PrintCollateralBlueprintPacket, SpecializedProjectBlueprintPacket } from "./specializedBlueprintEngine";
 import type { DiscoveryTruthClass } from "./types";
 
 export interface ClientSafeBlueprintRow {
@@ -83,7 +83,23 @@ function isWebsitePacket(packet: AnyPacket): packet is WebsiteProjectBlueprintPa
 }
 
 function isPrintCollateralPacket(packet: SpecializedProjectBlueprintPacket): packet is PrintCollateralBlueprintPacket {
-  return packet.projectType === "business_cards" || packet.projectType === "flyer" || packet.projectType === "banner_signage" || packet.projectType === "referral_materials";
+  return packet.projectType === "business_cards" || packet.projectType === "flyer" || packet.projectType === "banner_signage" || packet.projectType === "referral_materials" || packet.projectType === "promotional_products";
+}
+
+function isDigitalPresencePacket(packet: SpecializedProjectBlueprintPacket): packet is DigitalPresenceBlueprintPacket {
+  return packet.projectType === "social_setup_cleanup" || packet.projectType === "google_business_profile_support";
+}
+
+function isOtherProjectPacket(packet: SpecializedProjectBlueprintPacket): packet is OtherProjectBlueprintPacket {
+  return packet.projectType === "other";
+}
+
+function isCustomPlatformPacket(packet: SpecializedProjectBlueprintPacket): packet is CustomPlatformBlueprintPacket {
+  return packet.projectType === "custom_platform_software";
+}
+
+function isLaunchPackagePacket(packet: SpecializedProjectBlueprintPacket): packet is LaunchPackageBlueprintPacket {
+  return packet.projectType === "launch_package_multi_project";
 }
 
 export function buildClientSafeBlueprintProjection(packet: AnyPacket): ClientSafeBlueprintProjection {
@@ -129,6 +145,50 @@ export function buildClientSafeBlueprintProjection(packet: AnyPacket): ClientSaf
       approvedDirection: visibleRows(packet.brandDependency),
       primaryCta: rows(packet.layoutContent).find((r) => r.labelEn.toLowerCase().includes("call to action")) ?? null,
       pagesOrOutputs: visibleRows(packet.layoutContent),
+      externalServices: [],
+    };
+  }
+
+  if (isDigitalPresencePacket(packet)) {
+    return {
+      ...common,
+      deliverables: visibleRows(packet.requestedChanges),
+      approvedDirection: visibleRows(packet.identityConsistency),
+      primaryCta: null,
+      pagesOrOutputs: visibleRows(packet.currentPresence),
+      externalServices: [],
+    };
+  }
+
+  if (isCustomPlatformPacket(packet)) {
+    return {
+      ...common,
+      deliverables: visibleRows(packet.usersAccess),
+      approvedDirection: visibleRows(packet.dataWorkflow),
+      primaryCta: null,
+      pagesOrOutputs: visibleRows(packet.operations),
+      externalServices: [],
+    };
+  }
+
+  if (isOtherProjectPacket(packet)) {
+    return {
+      ...common,
+      deliverables: visibleRows(packet.definition),
+      approvedDirection: visibleRows(packet.constraints),
+      primaryCta: null,
+      pagesOrOutputs: [],
+      externalServices: [],
+    };
+  }
+
+  if (isLaunchPackagePacket(packet)) {
+    return {
+      ...common,
+      deliverables: visibleRows(packet.components),
+      approvedDirection: visibleRows(packet.coordination),
+      primaryCta: null,
+      pagesOrOutputs: [],
       externalServices: [],
     };
   }

@@ -193,9 +193,9 @@ check("Gate 6 specialized intent (e.g. logo_brand_identity) now truthfully gets 
   const nav = buildMultiProjectNav([intent({ projectType: "logo_brand_identity" })]);
   assert.equal(nav[0].adaptiveEngineAvailable, true);
 });
-check("a genuinely un-built project type (e.g. social_setup_cleanup) still gets adaptiveEngineAvailable=false — stated truthfully, not pretended", () => {
+check("Gate 10.2: social_setup_cleanup now has a real Digital Presence engine — adaptiveEngineAvailable=true, no longer a pretended/false 'not built yet' state", () => {
   const nav = buildMultiProjectNav([intent({ projectType: "social_setup_cleanup" })]);
-  assert.equal(nav[0].adaptiveEngineAvailable, false);
+  assert.equal(nav[0].adaptiveEngineAvailable, true);
 });
 check("website_improvement / landing_page count as website-shaped but do NOT get the adaptive engine yet (only exact 'website' does)", () => {
   const nav = buildMultiProjectNav([intent({ projectType: "website_improvement" }), intent({ projectType: "landing_page" })]);

@@ -973,6 +973,10 @@ const SPECIALIZED_FAMILY_TITLE: Record<SpecializedFamily, { es: string; en: stri
   logo_brand: { es: "Descubrimiento de logo / marca", en: "Logo / Brand Discovery" },
   print_collateral: { es: "Descubrimiento de materiales impresos y promocionales", en: "Print & Promotional Discovery" },
   media_campaign: { es: "Descubrimiento de campaña", en: "Campaign Discovery" },
+  digital_presence: { es: "Descubrimiento de presencia digital", en: "Digital Presence Discovery" },
+  custom_platform: { es: "Descubrimiento de plataforma personalizada", en: "Custom Platform Discovery" },
+  other_project: { es: "Descubrimiento de otro tipo de proyecto", en: "Other Project Discovery" },
+  launch_package: { es: "Descubrimiento de paquete de lanzamiento", en: "Launch Package Discovery" },
 };
 
 function SpecializedQuestionsSection({
@@ -1062,6 +1066,10 @@ const EXECUTION_DESTINATION_LABEL: Record<SpecializedFamily, { es: string; en: s
   logo_brand: { es: "Creative Studio", en: "Creative Studio" },
   print_collateral: { es: "Creative Studio", en: "Creative Studio" },
   media_campaign: { es: "Campaña de Growth Engine", en: "Growth Engine Campaign" },
+  digital_presence: { es: "Entrega manual al personal de Leonix", en: "Manual handoff to Leonix staff" },
+  custom_platform: { es: "Revisión comercial de Leonix (sin construcción ordinaria)", en: "Leonix commercial review (no ordinary build)" },
+  other_project: { es: "Determinado por Leonix caso por caso", en: "Determined by Leonix case by case" },
+  launch_package: { es: "Cada proyecto componente por separado", en: "Each component project separately" },
 };
 
 function SpecializedBlueprintPanel({

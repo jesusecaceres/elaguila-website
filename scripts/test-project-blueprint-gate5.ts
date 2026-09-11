@@ -276,12 +276,12 @@ check("21. same packet -> byte-identical Markdown across calls", () => {
   const md2 = buildWebsiteProjectBlueprintMarkdown(packet, { version: 1, status: "draft" });
   assert.equal(md1, md2);
 });
-check("22. Markdown contains the numbered section headers", () => {
+check("22. Markdown contains the numbered section headers (Gate 10.2 — now the full MD §14 47-category numbering)", () => {
   const { packet } = fullFixture();
   const md = buildWebsiteProjectBlueprintMarkdown(packet, { version: 1, status: "draft" });
   assert.ok(md.includes("## 1. Identidad del Proyecto"));
-  assert.ok(md.includes("## 11. Arquitectura Técnica Aprobada"));
-  assert.ok(md.includes("## 31. Definición de Terminado"));
+  assert.ok(md.includes("## 25. Decisiones de Plataforma y Justificación"));
+  assert.ok(md.includes("## 45. Definición de Terminado"));
 });
 check("23. Markdown never emits an 'N/A' spam line for an empty section — it omits the section", () => {
   const { packet } = fullFixture();
