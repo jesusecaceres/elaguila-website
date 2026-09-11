@@ -462,3 +462,21 @@ Post-fix validation: 0 new TypeScript errors (byte-identical 7-error e2e baselin
 findings, whole-product verifier 182/182 (up from 174/182 — Gate 17's protected-file diff
 artifacts cleared now that the tree is fully committed and clean), full production build PASS.
 **MAIN: not touched. PRODUCTION: not touched.**
+
+## ZERO-GAP CLOSEOUT (2026-09-10) — Gate 19
+
+Attempted to close all 4 Gate 18 findings. 2 closed, 2 escalated:
+
+| Item | Outcome |
+|---|---|
+| Homepage links to orphaned business-tools sub-routes | **CLOSED** — `HomeBusinessToolsSection.tsx`'s Business Health/DIY Concierge cards now point to the certified `/dashboard/business-tools` page instead of the pre-integration sub-routes. Idea-builder links investigated and confirmed to be a genuinely distinct, still-real tool — not a gap. `proximo-paso`/`what-we-understand` confirmed to have zero inbound links anywhere — orphaned but not a live navigation defect. |
+| `LeonixRealEstateListingManageCard.tsx` FSBO "Editar" color inconsistency | **CLOSED** — traced to a real, distinct edit-form destination; the prior gold tint was a hex-drifted near-copy of the theme's specialized-capability token (wrong semantic family regardless). Given an outlined/tinted burgundy treatment: same family as the row's primary manage doorway, visually subordinate so it doesn't compete with it. |
+| Autos Privado renewal flow | **⚠️ ESCALATED — CHUY DECISION REQUIRED.** Pricing/duration are already locked truth; the real blocker is that `autos_classifieds_listings` has no `expires_at` column and no expiration is ever computed for this category today — a genuine schema gap requiring a Supabase migration, not a UI wiring fix. |
+| Bienes Raíces Privado/FSBO renewal flow | **⚠️ ESCALATED — CHUY DECISION REQUIRED.** Identical finding — the generic `listings` table has no `expires_at` column either, and no expiration is computed for FSBO today. |
+
+Validation: 0 new lint findings, `tsc --noEmit` byte-identical to the 7-error e2e baseline, `git
+diff --check` clean, Owner Attention 22/22, Shared Specialized Tools 33/33, Paid Listing Lifecycle
+Engine PASS, whole-product reconciliation 182/182, one production build PASS.
+
+**Construction is NOT reported as 100% — 2 real items remain open pending a Chuy product decision.
+MAIN: not touched. PRODUCTION: not touched. No Supabase/Vercel/Stripe changes.**

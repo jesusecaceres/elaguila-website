@@ -589,7 +589,7 @@ export function LeonixRealEstateListingManageCard({
             <Link
               href={brDashboardEditHref}
               prefetch={false}
-              className="rounded-xl border border-[#C9B46A]/50 bg-[#FDFBF7] px-4 py-2 text-sm font-semibold text-[#1E1810]"
+              className="rounded-xl border border-[#7A1E2C]/30 bg-[#FDF4F1] px-4 py-2 text-sm font-semibold text-[#7A1E2C] hover:border-[#7A1E2C]/50 hover:bg-[#F8E8E5]"
             >
               {editListingLabel(lang)}
             </Link>

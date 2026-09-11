@@ -1394,6 +1394,7 @@ Durable state files (all committed at this checkpoint):
 | 16 | FINAL PRE-RELEASE PRODUCT-CONSTRUCTION AUDIT | PASS, **committed as `e8217f0e`** | Last construction gate before main/Production, on top of committed checkpoint `f2508a9a`. Four parallel evidence-only passes (mechanical TODO/placeholder/dead-control scan, dead/built-not-wired component scan confirming shell singularity, cognitive-load/information-architecture review, skeptical spot-check re-verification of 5 prior-gate fixes) found and repaired 5 real defects: En Venta's renewal CTA visually outranking the canonical primary doorway on the default-selected category, 3 raw error/internal-terminology leaks (Viajes ×3 sites, Restaurantes RLS/Supabase copy), an off-palette stone-gray Archive button, and a duplicate "Publicar" CTA on the Account Command Center. All 6 canonical verifiers re-run (22/22, 33/33, OK, PASS, PASS, 182/182 — Rentas verifier's protected-file guard clean this time, no Bienes files touched); full `tsc --noEmit` 0 new errors; full production build PASS ("Compiled successfully in 2.9min"). **FINAL PRODUCT CONSTRUCTION CERTIFICATION: 100% PASS.** Committed `e8217f0e88bb824d78fd2b99cf8cd80c4c663ab3`, pushed. A fast-forward to `main` was then attempted and correctly blocked — `main` had advanced 265 commits since the common ancestor. See PROGRESS.md Gate 16 for full detail. |
 | 17 | MAIN RECONCILIATION | PASS, **committed as `79a96f7e`** | Merged `origin/main` (`a0a4783971b42ea1d71ab2602d4720d0d590baf8`) into the certified feature branch — normal merge, no rebase/squash. 54 overlapping files (46 of 48 ported `app/lib/business/**` files byte-identical no-ops; 2 confirmed content-superset kept as feature's; 1 route file byte-identical; `dashboardI18n.ts`/`ofertas-locales/[id]/page.tsx` auto-merged cleanly). 5 real conflicts resolved: comment-only in `dashboardMisAnunciosCategoryTools.ts`; `LeonixDashboardShell.tsx` (main's real single-DOM-copy/overflow fixes kept, feature's Mis Espacios `spaceCounts` feature kept, dead `renderSidebarBottom()` removed, certified mobile section-title label re-inserted into main's new trigger); `business-tools/page.tsx` (main's side was the stale pre-Gate-1 generic tool-card directory, kept `BusinessConciergeOwnerHome` entirely, and caught+fixed a real clean-merge regression where the auto-merge had silently dropped the `BusinessConciergeOwnerHome` import outside any conflict marker). All 5 Gate 16 fixes reverified intact. Full `tsc --noEmit`: 0 new errors across the entire merged tree (main's ~1379 changed files included). Production build PASS. Whole-product verifier 174/182 — the 8 failures are diff-based protected-file guards correctly flagging main's own legitimate 265-commit history arriving via the merge (admin/, Stripe, Ofertas backend, Recursos, Community Trust registry, Living Business Book), not damage from this reconciliation — confirmed none of those files were touched by it. **PRODUCT CONSTRUCTION CERTIFICATION: still 100% PASS on the merged tree.** See PROGRESS.md Gate 17 for full detail. Subsequently committed as `79a96f7e3128481d2c9d9c31f9d9229423e46677` and pushed to the feature branch (merge parents `e8217f0e`/`a0a47839`); confirmed `origin/main` is now an ancestor of feature HEAD, so a future fast-forward to `main` is clean, but was explicitly not performed in that gate. |
 | 18 | ABSOLUTE FINAL GREEN-LIGHT AUDIT | PASS, **committed** | Independent 18-phase source re-audit of `79a96f7e` (same commit as Gate 17 — no new commits between gates) via 7 parallel research passes covering every Bible phase, plus fresh canonical verifiers, full `tsc --noEmit`, targeted lint, `git diff --check`, and one foreground production build. Found and repaired 5 small, unambiguous, color/copy-only CTA defects across 6 files: `LeonixRealEstateListingManageCard.tsx`'s FSBO Archivar button (gray/tan → canonical red, matching its own BR Negocio sibling branch), `EnVentaListingManageCard.tsx`'s Marcar-vendido button + confirm-dialog OK (neutral/dark → canonical red), `busquedas-guardadas/page.tsx`'s Pause/Reactivate/Delete (one neutral color → amber/green/red), `perfil.tsx`/`seguridad.tsx` (raw caught-exception message shown to owner → reused the existing `dashboardSafeMutationErrorCopy(lang)` helper), and `notificaciones.tsx` (owner copy naming "Supabase" → vendor-neutral). All 6 canonical verifiers re-run post-fix, whole-product verifier now **182/182** (up from 174/182 — Gate 17's protected-file diff artifacts cleared once the tree was fully committed and clean); `tsc --noEmit` 0 new errors; production build PASS. **One item escalated, not patched:** Autos Privado and Bienes Raíces Privado/FSBO have no wired renewal flow for their fixed-term paid listings despite the Bible's own category matrix expecting one — a real, pre-existing commercial gap touching payment/entitlement scope, reported `⚠️ CHUY DECISION REQUIRED` rather than built. Two items reconfirmed non-blocking: the public homepage still live-links into the orphaned pre-integration business-tools sub-routes (already noted at Gate 17, now confirmed reachable not dormant); `OwnerRecentActivity`'s permanent honest-empty-state is by design (§26), not a defect. See PROGRESS.md Gate 18 and CABLE_MAP.md's matching section for full detail. |
+| 19 | ZERO-GAP CLOSEOUT | PARTIAL — 2 of 4 closed, 2 escalated, **committed** | Attempted to close all 4 Gate 18 findings. CLOSED: (a) navigation — `HomeBusinessToolsSection.tsx`'s Business Health/DIY Concierge cards repointed from the orphaned sub-routes to the certified `/dashboard/business-tools` page; idea-builder links investigated and confirmed to be a genuinely distinct tool, not a gap; `proximo-paso`/`what-we-understand` confirmed to have zero inbound links anywhere, so no live navigation defect exists to repair for them. (b) UI — `LeonixRealEstateListingManageCard.tsx`'s FSBO "Editar" shortcut traced to a real distinct edit-form destination, given an outlined/tinted burgundy treatment (same manage-family color as the row's primary doorway, visually subordinate to it — the prior gold tint was a hex-drifted near-copy of the theme's specialized-capability token, wrong semantic family regardless of the drift). ESCALATED, NOT BUILT: Autos Privado and Bienes Raíces Privado/FSBO renewal flows. A dedicated architecture trace (not guesswork) found pricing/duration already locked, but neither `autos_classifieds_listings` nor the generic `listings` table (BR) has an `expires_at` column, and no expiration is computed anywhere for either category today — a genuine pre-existing schema/product gap requiring a Supabase migration this session has no authenticated access to apply and should not apply unilaterally regardless. Reported verbatim as `⚠️ CHUY DECISION REQUIRED` with the exact one-question decision needed. All validation re-run clean (0 new TypeScript errors, 0 new lint findings, `git diff --check` clean, all 4 directly-relevant verifiers PASS, whole-product reconciliation 182/182, one production build PASS). **Construction is honestly NOT reported as 100%** — see PROGRESS.md Gate 19 and CABLE_MAP.md's matching section for full detail. |
 
 ---
 
@@ -2002,20 +2003,39 @@ commercial gap (Autos Privado / Bienes Raíces Privado-FSBO renewal flow — pay
 scope) was escalated as `⚠️ CHUY DECISION REQUIRED` rather than built. See §33.2 row 18 /
 PROGRESS.md Gate 18 for full detail.
 
-**FINAL PRODUCT CONSTRUCTION CERTIFICATION: still 100% PASS on the reconciled, audited tree.**
+**Gate 19 (§33.2) then attempted a zero-gap closeout of all 4 Gate 18 findings, under a stricter
+doctrine that construction must be truly 100% (not rounded up) before QA.** 2 of 4 were closed with
+unambiguous source-level fixes (the homepage's orphaned business-tools links, and the FSBO "Editar"
+CTA color). The other 2 — Autos Privado and Bienes Raíces Privado/FSBO renewal — were traced all
+the way to their real root cause (neither `autos_classifieds_listings` nor the generic `listings`
+table has an `expires_at` column, and no expiration is computed anywhere for either category
+today) and escalated verbatim as `⚠️ CHUY DECISION REQUIRED`, since closing them for real requires
+a Supabase schema migration this session cannot and should not apply unilaterally. See §33.2 row 19
+/ PROGRESS.md Gate 19 for full detail.
+
+**FINAL PRODUCT CONSTRUCTION CERTIFICATION: honestly NOT 100% — 2 real, well-understood items
+remain open pending a Chuy decision (see below). This is a deliberate, truthful downgrade from
+Gate 18's "still 100%" framing, which predates the stricter zero-gap doctrine Gate 19 applied.**
 
 The next engineering move is therefore one of:
 
-1. Runtime owner QA (§50) may begin once a real owner/smoke-test credential or session is
+1. **The open decision, stated once for whoever picks this up:** should Leonix add an `expires_at`
+   column (via a new Supabase migration) to `autos_classifieds_listings` and to the generic
+   `listings` table (for Bienes Raíces Privado/FSBO), then wire category-aware renewal
+   checkout/webhook adapters cloning the proven Rentas pattern (`app/lib/listingLifecycle/
+   listingLifecycleConfig.ts`, `resolveListingLifecycle`) — or is evergreen/non-expiring behavior
+   for these two categories intentional/acceptable for now? Pricing and duration are already locked
+   truth; this is purely a schema/scope decision. Once answered, the adapter work itself is
+   well-understood and small (see PROGRESS.md Gate 19 for the exact file-level plan).
+2. Runtime owner QA (§50) may begin once a real owner/smoke-test credential or session is
    available (§33.3's SAFE AUTH gap remains a QA-tooling prerequisite, unrelated to product
    completeness) — QA from that point is reserved strictly for final runtime confirmation/polish,
-   never for discovering missing UX/UI/function. See §33.4 for the doctrine.
-2. A deliberate product decision on the Autos Privado / Bienes Raíces Privado renewal-flow gap
-   flagged by Gate 18 — not required to ship the Owner Command Center itself, but tracked so it
-   isn't lost.
-3. A controlled fast-forward of `main` to `79a96f7e` and any Production deployment remain a
-   **separate, later gate requiring their own explicit authorization** — not automatic from
-   Gates 17 or 18 having certified the tree.
+   never for discovering missing UX/UI/function. See §33.4 for the doctrine. The 2 open renewal
+   items are a known, tracked exception to "100% before QA" — QA on every other surface may proceed
+   in parallel with the Chuy decision above.
+3. A controlled fast-forward of `main` to `79a96f7e...` (current feature HEAD; see git log for the
+   exact latest SHA) and any Production deployment remain a **separate, later gate requiring their
+   own explicit authorization** — not automatic from any construction/audit gate having run.
 
 `Owner Command Center ← Business Concierge owner-safe bridge reconciliation` (an earlier move this
 section used to describe) is DONE — see §33 for closure and §33.2 for the full completed-gate

@@ -1244,6 +1244,85 @@
           "status": "PASS"
         }
       ]
+    },
+    {
+      "gate": "owner-command-center-zero-gap-closeout-2026-09-10",
+      "note": "Attempted to close all 4 Gate 18 findings to reach true 100% construction. Closed 2 (navigation debt, UI CTA inconsistency) via unambiguous source-level fixes. Escalated 2 (Autos Privado and Bienes Raices Privado/FSBO renewal flows) as CHUY DECISION REQUIRED after tracing the proven Rentas renewal architecture and discovering the real blocker is deeper than UI wiring: neither autos_classifieds_listings nor the generic listings table has an expires_at column, and no expiration computation exists anywhere for either category today - a real schema/product gap requiring a Supabase migration this session cannot and should not apply unilaterally.",
+      "checks": [
+        {
+          "name": "navigation_debt_closure",
+          "result": "HomeBusinessToolsSection.tsx (ES+EN) Business Health Map and DIY Concierge cards repointed from orphaned /dashboard/business-tools/business-health and /concierge sub-routes to the certified /dashboard/business-tools page. Idea-builder live links (aprender/page.tsx, qr/business-tools/page.tsx) investigated and confirmed NOT a gap - distinct pre-business-identity tool, no equivalent inside owner Business Home. proximo-paso and what-we-understand confirmed zero inbound links anywhere in the app - orphaned but not a live navigation defect, left unchanged.",
+          "status": "CLOSED"
+        },
+        {
+          "name": "ui_cta_consistency_closure",
+          "result": "LeonixRealEstateListingManageCard.tsx FSBO Editar shortcut traced to a real distinct edit-form destination (mis-anuncios/[id]/editar), separate from the primary Administrar anuncio doorway. Prior gold-tinted styling was a hex-drifted near-duplicate of the shared btnSecondary gold token, which is locked for specialized capabilities per Bible section 10 - not appropriate for a plain edit action either way. Given outlined/tinted burgundy treatment: same color family as the row primary manage action, visually subordinate to it (no competing full-strength primaries).",
+          "status": "CLOSED"
+        },
+        {
+          "name": "autos_privado_renewal_flow",
+          "result": "Genuinely unwired - confirmed via architecture trace that pricing/duration are already locked truth, but neither autos_classifieds_listings nor listings (BR) has an expires_at column, and no expiration computation exists anywhere for either category today. Requires a new Supabase migration this session has no authenticated access to apply and should not apply unilaterally regardless. Escalated as CHUY DECISION REQUIRED, not built.",
+          "status": "ESCALATED_CHUY_DECISION_REQUIRED"
+        },
+        {
+          "name": "bienes_privado_fsbo_renewal_flow",
+          "result": "Same finding and same escalation as Autos Privado - shares the identical missing expires_at column and missing expiration-computation gap.",
+          "status": "ESCALATED_CHUY_DECISION_REQUIRED"
+        },
+        {
+          "name": "eslint_2_files_changed",
+          "filesChecked": 2,
+          "newFindings": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "typescript_full_typecheck",
+          "result": "0 new errors, byte-identical to the established 7-error e2e-only baseline",
+          "newErrorsFound": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "clean, no new whitespace issues",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_attention_truth",
+          "result": "22/22 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_shared_specialized_tools",
+          "result": "33/33 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_paid_listing_lifecycle_engine",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_whole_product_final_reconciliation",
+          "result": "182/182 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "full_production_build",
+          "command": "npm run build (NODE_OPTIONS=--max-old-space-size=12288)",
+          "result": "PASS - exit 0, Compiled successfully in 3.2min",
+          "status": "PASS"
+        },
+        {
+          "name": "final_construction_status",
+          "result": "NOT 100 percent - 2 of 4 items closed, 2 items are a real honestly-reported gap pending a Chuy product/schema decision. This is reported truthfully, not rounded up.",
+          "status": "STILL_NOT_100_PERCENT"
+        },
+        {
+          "name": "main_and_production_touched",
+          "result": "main not touched, Production not touched, no Supabase/Vercel/Stripe changes made",
+          "status": "PASS"
+        }
+      ]
     }
   ]
 }

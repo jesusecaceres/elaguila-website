@@ -1647,3 +1647,78 @@ Bible §26 explicitly permits this), not a new gap.
 | Full production build | PASS — exit 0, "Compiled successfully in 3.2min" (post-fix run), `/dashboard`, `/dashboard/business-tools`, `/dashboard/mis-anuncios` all present |
 
 **MAIN TOUCHED: NO. PRODUCTION TOUCHED: NO. No Supabase/Vercel/Stripe changes.**
+
+---
+
+## Gate 19 — Zero-Gap Closeout (2026-09-10)
+
+Attempted to close all 4 remaining items from Gate 18 to reach a true 100% construction score.
+
+**1. Navigation debt — CLOSED.** `app/(site)/home/HomeBusinessToolsSection.tsx`'s "Business Health
+Map" and "Personalized DIY Concierge" cards (ES+EN) linked into the orphaned pre-integration
+`/dashboard/business-tools/business-health` and `/dashboard/business-tools/concierge` sub-routes.
+Both now point to the certified `/dashboard/business-tools` page, which already renders the real
+Business Health and Action Plan sections within the single certified hierarchy (`BusinessConcierge
+OwnerHome.tsx`) — no owner-facing link now leads into the superseded directory pattern.
+Investigated 2 additional live links to `/dashboard/business-tools/idea-builder` (`app/(site)/
+aprender/page.tsx:58`, `app/(site)/qr/business-tools/page.tsx:53`) — determined these are NOT a
+navigation gap: Idea Builder is a genuinely distinct, still-functioning, pre-business-identity tool
+(no existing business membership required, real API at `app/api/dashboard/business/idea-builder`)
+serving a different audience than the owner Business Home, with no equivalent inside it — left
+unchanged. Also confirmed `/dashboard/business-tools/proximo-paso` and `.../what-we-understand`
+have **zero inbound links anywhere in the app** (verified by repo-wide grep) — they are real,
+functioning, feature-flagged pages (not stale/fake data, same architecture as Health/Concierge)
+that are simply unreachable through any current navigation, so there is no live navigation defect
+to repair for them; left unchanged as pre-existing orphaned-but-harmless routes.
+
+**2. UI inconsistency — CLOSED.** `LeonixRealEstateListingManageCard.tsx`'s secondary "Editar"
+shortcut (FSBO branch, `brDashboardEditHref`) was traced to a real, distinct destination —
+`/dashboard/mis-anuncios/{id}/editar`, the actual edit form, genuinely separate from the card's
+primary "Administrar anuncio" burgundy doorway to the generic entity workspace. Its previous
+gold-tinted styling (`border-[#C9B46A]/50 bg-[#FDFBF7]`) was a near-duplicate, hex-drifted copy of
+the shared theme's `LX_DASH.btnSecondary` gold token — and gold is locked (Master Bible §10) for
+*specialized* Leonix capabilities (inventory, coupons, applications), not a plain edit shortcut, so
+reusing it here would still have been a semantic violation even at the exact matching hex. Since
+this is a real edit/manage-family action but secondary to the row's one true primary doorway
+(two full-strength burgundy buttons on one row would create competing primaries), it was given an
+outlined/tinted burgundy treatment (`border-[#7A1E2C]/30 bg-[#FDF4F1] text-[#7A1E2C]`) — same
+family as the primary manage color, visually subordinate to it, no longer neutral or gold.
+
+**3 &amp; 4. Autos Privado and Bienes Raíces Privado/FSBO renewal flows — ⚠️ CHUY DECISION REQUIRED,
+NOT built this gate.** A dedicated architecture-tracing pass (not guesswork) found:
+- Rentas' proven renewal pattern is a "shared dispatcher + per-category adapter": the webhook
+  fulfillment dispatcher (`app/lib/listingPlans/revenueFulfillment.ts`) already calls one
+  `tryActivateXListingAfterEntitlement` per category including Autos Privado and Bienes FSBO for
+  their *original* purchase — but the *renewal* path (checkout-route branch, ownership validator,
+  and the `LISTING_LIFECYCLE_CONFIGS` registry in `app/lib/listingLifecycle/listingLifecycleConfig.ts`)
+  is Rentas-only; the platform's own retrofit matrix (`docs/leonix-paid-listing-lifecycle-retrofit-
+  matrix-01.md`) already marks Autos Privado and Bienes Privado/FSBO's renewal columns `MISSING`.
+- Price ($24.99/30d, $49.99/45d) and package keys are already locked, non-ambiguous truth in
+  `revenuePricingMatrix.ts` — pricing is NOT the open question.
+- The real blocker: **neither `autos_classifieds_listings` nor the generic `listings` table (used
+  by Bienes Raíces) has an `expires_at` (or equivalent) column today** — confirmed by grepping
+  every migration under `supabase/migrations/`; the only expiry-shaped column on `listings` is the
+  unrelated `boost_expires` (engagement-boost feature). Confirmed further that **no expiration
+  computation exists anywhere in the app for either category** (no `published_at + interval`
+  check, no `isExpired` helper) — these listings currently never expire in practice, despite their
+  advertised fixed terms. This is a real, pre-existing product/schema gap that predates this
+  session, not something introduced by any recent gate.
+- Building a true renewal flow requires a new Supabase migration (add the expiry column to both
+  tables) plus category-aware checkout/webhook/config adapters modeled on Rentas'. This session has
+  no authenticated Supabase access and — independent of that — a schema migration is exactly the
+  class of change this entire release process has treated as requiring explicit authorization, not
+  something to improvise inside a source-audit gate. Faking an "expired"/"renewed" state without a
+  real column would mean fabricating entitlement/lifecycle truth, which is explicitly forbidden.
+- **Escalated verbatim to Chuy**, not silently deferred: see the Gate 19 report for the exact
+  one-question decision needed before this can be built.
+
+**Post-fix validation (2 files changed this gate):** 0 new lint findings (same pre-existing
+`messagesTotal` finding, unchanged); `tsc --noEmit` byte-identical to the 7-error e2e-only baseline;
+`git diff --check` clean; Owner Attention 22/22, Shared Specialized Tools 33/33, Paid Listing
+Lifecycle Engine PASS, whole-product reconciliation 182/182; one production build PASS
+("Compiled successfully in 3.2min").
+
+**CONSTRUCTION STATUS: 2 of 4 Gate-18 items fully closed (navigation, UI). 2 items (Autos Privado
+and Bienes Raíces Privado/FSBO renewal) remain a real, honestly-reported gap pending a Chuy product
+decision — NOT rounded up to 100%.** MAIN TOUCHED: NO. PRODUCTION TOUCHED: NO. No Supabase/Vercel/
+Stripe changes made.
