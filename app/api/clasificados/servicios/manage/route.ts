@@ -6,6 +6,8 @@ import { SERVICIOS_LISTING_STATUS_PUBLISHED } from "@/app/clasificados/servicios
 const SERVICIOS_LISTING_STATUS_PAUSED_UNPUBLISHED = "paused_unpublished" as const;
 import { insertServiciosAnalyticsEvent } from "@/app/clasificados/servicios/lib/serviciosOpsTablesServer";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import { isServiciosListingOwner } from "@/app/clasificados/servicios/lib/serviciosOwnerMutationPolicy";
+import { resolveServiciosReactivationAuthority } from "@/app/clasificados/servicios/lib/serviciosReactivationAuthorityServer";
 
 export const runtime = "nodejs";
 
@@ -50,7 +52,7 @@ export async function POST(req: NextRequest) {
   if (!row) {
     return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
   }
-  if (!row.owner_user_id || row.owner_user_id !== ownerUserId) {
+  if (!isServiciosListingOwner(row.owner_user_id, ownerUserId)) {
     return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
 
@@ -60,6 +62,32 @@ export async function POST(req: NextRequest) {
   }
   if (action === "resume" && row.listing_status !== SERVICIOS_LISTING_STATUS_PAUSED_UNPUBLISHED) {
     return NextResponse.json({ ok: false, error: "invalid_state" }, { status: 409 });
+  }
+  // Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B2) — Resume is the ONLY path back to public visibility for a
+  // paused listing, and it requires the canonical base commercial right. Payment suspension never
+  // overwrites a paused row, so without this a listing whose subscription ended while paused could be
+  // resumed for free, indefinitely. Grace is honoured; cancelled / suspended / lapsed is refused.
+  if (action === "resume") {
+    const authority = await resolveServiciosReactivationAuthority(row.id);
+    if (!authority.allowed) {
+      await insertServiciosAnalyticsEvent({
+        listingSlug: slug,
+        eventType: "provider_manage",
+        meta: { action, refused: authority.reason },
+      });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "payment_required",
+          reason: authority.reason,
+          message:
+            b.lang === "en"
+              ? "Your Servicios plan isn't active, so this listing can't be resumed. Renew your plan to publish it again."
+              : "Tu plan de Servicios no está activo, así que este anuncio no se puede reactivar. Renueva tu plan para publicarlo de nuevo.",
+        },
+        { status: 402 },
+      );
+    }
   }
 
   const supabase = getAdminSupabase();

@@ -28,6 +28,12 @@ import { mergeOpsControlledServiciosProfileFields } from "@/app/(site)/clasifica
 import { buildServiciosDiscoveryFacet } from "@/app/clasificados/servicios/lib/serviciosPublishDiscovery";
 import { insertServiciosAnalyticsEvent } from "@/app/clasificados/servicios/lib/serviciosOpsTablesServer";
 import { isServiciosStrictPublishEnvironment, serviciosOwnerIdFromBearer } from "../lib/serviciosPublishServerAuth";
+import {
+  decideServiciosOwnerSaveStatus,
+  isServiciosListingOwner,
+  SERVICIOS_LEONIX_LOCKED_STATUSES,
+} from "@/app/clasificados/servicios/lib/serviciosOwnerMutationPolicy";
+import { resolveServiciosReactivationAuthority } from "@/app/clasificados/servicios/lib/serviciosReactivationAuthorityServer";
 import { SERVICIOS_OFFERS_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
 import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
 import {
@@ -196,6 +202,29 @@ function initialListingStatus(): typeof SERVICIOS_LISTING_STATUS_PUBLISHED | typ
   return process.env.SERVICIOS_MODERATION_MODE === "1" ? SERVICIOS_LISTING_STATUS_PENDING_REVIEW : SERVICIOS_LISTING_STATUS_PUBLISHED;
 }
 
+/**
+ * Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B3) — an owner save never moves a row out of a Leonix-owned
+ * state (`suspended` / `rejected`). Recovery belongs to the Revenue OS lifecycle or an admin.
+ */
+async function serviciosListingLockedResponse(slug: string, lang: ServiciosLang): Promise<NextResponse> {
+  await insertServiciosAnalyticsEvent({
+    listingSlug: slug,
+    eventType: "publish_failure",
+    meta: { reason: "listing_locked_by_leonix" },
+  });
+  return NextResponse.json(
+    {
+      ok: false,
+      error: "listing_locked_by_leonix",
+      message:
+        lang === "es"
+          ? "Leonix suspendió o rechazó este anuncio, así que no se puede modificar ni reactivar desde aquí. Contacta a Leonix."
+          : "Leonix suspended or rejected this listing, so it can't be changed or reactivated here. Please contact Leonix.",
+    },
+    { status: 409 },
+  );
+}
+
 export type ServiciosPublishPersistence = "database" | "dev_workspace" | "none";
 
 export async function POST(req: NextRequest) {
@@ -328,8 +357,10 @@ export async function POST(req: NextRequest) {
   if (existingListingIdRaw && isSupabaseAdminConfigured()) {
     const row = await getServiciosPublicListingByIdFromDb(existingListingIdRaw, { visibility: "all" });
     if (row?.slug) {
-      const owner = row.owner_user_id;
-      if (!owner || !ownerUserId || owner === ownerUserId) {
+      // Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B1) — a NULL owner is NOT permission. The row must
+      // have an owner and it must be the authenticated actor; an unowned historical row is
+      // reachable only through admin/ownership assignment, never by claiming it here.
+      if (isServiciosListingOwner(row.owner_user_id, ownerUserId)) {
         canonicalListingId = row.id?.trim() || existingListingIdRaw;
         slug = row.slug;
       } else {
@@ -344,11 +375,10 @@ export async function POST(req: NextRequest) {
   }
   if (!canonicalListingId && existingSlugRaw && /^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(existingSlugRaw) && isSupabaseAdminConfigured()) {
     const row = await getServiciosPublicListingBySlugFromDb(existingSlugRaw, { visibility: "all" });
-    if (row && ownerUserId) {
-      const owner = row.owner_user_id;
-      if (!owner || owner === ownerUserId) {
-        slug = existingSlugRaw;
-      }
+    // B1 — same rule on the slug fallback. When it does not hold, `slug` stays the freshly
+    // allocated (unused) one, so the request can only ever create its own new row.
+    if (row && isServiciosListingOwner(row.owner_user_id, ownerUserId)) {
+      slug = existingSlugRaw;
     }
   }
 
@@ -439,10 +469,12 @@ export async function POST(req: NextRequest) {
     const existingForGuard = canonicalListingId
       ? await getServiciosPublicListingByIdFromDb(canonicalListingId, { visibility: "all" })
       : await getServiciosPublicListingBySlugFromDb(slug, { visibility: "all" });
-    const ownerOk =
-      existingForGuard &&
-      ownerUserId &&
-      (!existingForGuard.owner_user_id || existingForGuard.owner_user_id === ownerUserId);
+    // B1 — the shared strict-ownership rule (a NULL owner never qualifies).
+    const ownerOk = Boolean(existingForGuard) && isServiciosListingOwner(existingForGuard?.owner_user_id, ownerUserId);
+    // B3 — a Leonix-owned state is refused with an honest reason, not "payment required".
+    if (ownerOk && SERVICIOS_LEONIX_LOCKED_STATUSES.has(String(existingForGuard?.listing_status ?? "").toLowerCase())) {
+      return await serviciosListingLockedResponse(slug, lang);
+    }
     const allowedOwnerRepublish =
       ownerOk &&
       existingForGuard &&
@@ -493,7 +525,10 @@ export async function POST(req: NextRequest) {
         : await getServiciosPublicListingBySlugFromDb(slug, { visibility: "all" });
 
       if (existing) {
-        if (ownerUserId && existing.owner_user_id && existing.owner_user_id !== ownerUserId) {
+        // B1 — enforced again at the write itself. Resolution above only ever targets an owned
+        // row; this also covers a slug race. A NULL owner never qualifies, so a save can no longer
+        // claim an unowned row.
+        if (!isServiciosListingOwner(existing.owner_user_id, ownerUserId)) {
           await insertServiciosAnalyticsEvent({
             listingSlug: slug,
             eventType: "publish_failure",
@@ -501,12 +536,35 @@ export async function POST(req: NextRequest) {
           });
           return NextResponse.json({ ok: false, error: "slug_conflict" }, { status: 409 });
         }
-        // Never downgrade an already-published listing back to pending on re-save.
-        const nextStatus =
-          pendingPayment && existing.listing_status === SERVICIOS_LISTING_STATUS_PUBLISHED
-            ? SERVICIOS_LISTING_STATUS_PUBLISHED
-            : listingStatus;
+        // B2 + B3 — the complete owner-save transition (see serviciosOwnerMutationPolicy.ts).
+        // Published is never downgraded (no recharge); a paused row stays paused unless its base
+        // right has lapsed and the owner is paying again; Leonix-owned states are refused.
+        const existingStatus = String(existing.listing_status ?? "");
+        const baseAuthorityValid =
+          pendingPayment && existingStatus.trim().toLowerCase() === "paused_unpublished"
+            ? (await resolveServiciosReactivationAuthority(existing.id)).allowed
+            : null;
+        const saveDecision = decideServiciosOwnerSaveStatus({
+          existingStatus,
+          pendingPaymentRequested: pendingPayment,
+          baseAuthorityValid,
+          initialStatus: initialListingStatus(),
+        });
+        if (saveDecision.kind === "refuse") {
+          if (saveDecision.reason === "listing_locked_by_leonix") {
+            return await serviciosListingLockedResponse(slug, lang);
+          }
+          await insertServiciosAnalyticsEvent({
+            listingSlug: slug,
+            eventType: "publish_failure",
+            meta: { reason: saveDecision.reason, existing_status: existingStatus },
+          });
+          return NextResponse.json({ ok: false, error: saveDecision.reason }, { status: 409 });
+        }
+        const nextStatus = saveDecision.status;
         actualListingStatus = nextStatus;
+        // owner_user_id is deliberately not written: ownership was proven above and a content save
+        // must never be able to re-assign it.
         const updateQuery = supabase
           .from("servicios_public_listings")
           .update({
@@ -516,7 +574,6 @@ export async function POST(req: NextRequest) {
             internal_group: internalGroup,
             listing_status: nextStatus,
             updated_at: now,
-            ...(ownerUserId ? { owner_user_id: ownerUserId } : {}),
           });
         // Gate SERVICIOS-1 — target the canonical row id when we have one (it survives a business
         // rename); the slug predicate stays only for the legacy no-id path.
@@ -752,9 +809,30 @@ export async function POST(req: NextRequest) {
   const detailPath = `/clasificados/servicios/${encodeURIComponent(slug)}`;
   const resultsPath = `/clasificados/servicios/resultados?lang=${lang}`;
 
+  // A checkout was requested but the row did not need one (already published, or paused with a
+  // valid base plan). The pre-checkout client treats a response without `pendingPayment` as a
+  // failure and shows `message` when present — so say what actually happened instead of letting it
+  // fall back to "could not save".
+  const checkoutNotNeededMessage = !(pendingPayment && persistedToDatabase)
+    ? undefined
+    : actualListingStatus === SERVICIOS_LISTING_STATUS_PUBLISHED
+      ? lang === "es"
+        ? "Guardamos tus cambios. Tu plan sigue activo, así que no se necesita otro pago."
+        : "Your changes are saved. Your plan is still active, so no further payment is needed."
+      : actualListingStatus === "paused_unpublished"
+        ? lang === "es"
+          ? "Guardamos tus cambios. Tu plan sigue activo, así que no hay que pagar: tu anuncio está pausado — reactívalo desde tu panel."
+          : "Your changes are saved. Your plan is still active, so no payment is needed — your listing is paused; resume it from your dashboard."
+        : actualListingStatus === SERVICIOS_LISTING_STATUS_PENDING_REVIEW
+          ? lang === "es"
+            ? "Guardamos tus cambios. Tu anuncio está en revisión por Leonix."
+            : "Your changes are saved. Your listing is being reviewed by Leonix."
+          : undefined;
+
   return NextResponse.json({
     ok: true,
     slug,
+    ...(checkoutNotNeededMessage ? { noCheckoutRequired: true, message: checkoutNotNeededMessage } : {}),
     /** Gate SERVICIOS-1 — canonical persistence identity, so the client can prime it and the next
      * save in this session targets this exact row rather than re-deriving a slug from the name. */
     listingId: persistedListingId,

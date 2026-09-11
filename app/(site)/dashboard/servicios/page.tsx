@@ -148,6 +148,7 @@ function DashboardServiciosPageContent() {
     { id: string; listing_slug: string; sender_name: string; sender_email: string; message: string; request_kind: string; created_at: string }[]
   >([]);
   const [manageBusy, setManageBusy] = useState<string | null>(null);
+  const [manageNotice, setManageNotice] = useState<string | null>(null);
   const [communityTrustById, setCommunityTrustById] = useState<
     Record<string, { key: string; es: string; en: string; count: number }[]>
   >({});
@@ -375,13 +376,25 @@ function DashboardServiciosPageContent() {
     const token = sess.session?.access_token;
     if (!token) return;
     setManageBusy(`${action}:${slug}`);
+    setManageNotice(null);
     try {
       const res = await fetch("/api/clasificados/servicios/manage", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, action }),
+        body: JSON.stringify({ slug, action, lang }),
       });
-      if (res.ok) window.location.reload();
+      if (res.ok) {
+        window.location.reload();
+        return;
+      }
+      // A refused Resume (plan not active) carries an honest reason — never fail silently.
+      const data = (await res.json().catch(() => null)) as { message?: string } | null;
+      setManageNotice(
+        data?.message?.trim() ||
+          (lang === "es" ? "No pudimos completar esta acción. Intenta de nuevo." : "We couldn't complete that action. Please try again."),
+      );
+    } catch {
+      setManageNotice(lang === "es" ? "No pudimos completar esta acción. Intenta de nuevo." : "We couldn't complete that action. Please try again.");
     } finally {
       setManageBusy(null);
     }
@@ -418,6 +431,11 @@ function DashboardServiciosPageContent() {
         empty={!loading && rows.length === 0}
         emptyLabel={t.empty}
       >
+        {manageNotice ? (
+          <p role="alert" className="mb-4 rounded-xl border border-[#C9A84A]/50 bg-[#FFFCF7] px-4 py-3 text-sm text-[#3D3428]">
+            {manageNotice}
+          </p>
+        ) : null}
         {rows.map((r) => {
                 const capabilities = getOwnerEntityCapabilities("servicios");
                 const uiStatus = resolveListingUiStatus({ status: r.listingStatus });

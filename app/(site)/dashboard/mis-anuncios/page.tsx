@@ -1024,10 +1024,12 @@ function MyListingsPageContent() {
       const res = await fetch("/api/clasificados/servicios/manage", {
         method: "POST",
         headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, action }),
+        body: JSON.stringify({ slug, action, lang }),
       });
       if (!res.ok) {
-        setError(dashboardSafeMutationErrorCopy(lang));
+        // A refused Resume (402 — Servicios plan not active) carries an honest reason; show it.
+        const data = (await res.json().catch(() => null)) as { message?: string } | null;
+        setError(res.status === 402 && data?.message?.trim() ? data.message.trim() : dashboardSafeMutationErrorCopy(lang));
         return;
       }
       const fresh = await fetchOwnerServiciosListings(accessToken);
