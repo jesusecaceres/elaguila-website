@@ -232,10 +232,14 @@ export async function dbListExecutiveHubRecords(): Promise<{ rows: ExecutiveHubR
   if (!isSupabaseAdminConfigured()) return { rows: [], unavailable: true };
   try {
     const supabase = getAdminSupabase();
-    let { data, error } = await supabase
+    // Explicitly widened to ExecutiveRow (whose linked_roster_id is optional) so the
+    // pre-migration retry below — which selects fewer columns — can assign into the same
+    // variables without a structural type mismatch. Same pattern already proven for
+    // admin_audit_log's actor columns (adminAuditLogServer.ts).
+    let { data, error } = (await supabase
       .from(TABLE)
       .select(SELECT_COLUMNS)
-      .order("full_name", { ascending: true });
+      .order("full_name", { ascending: true })) as { data: ExecutiveRow[] | null; error: { message: string } | null };
     if (error && isMissingLinkedRosterIdColumn(error.message)) {
       ({ data, error } = await supabase.from(TABLE).select(SELECT_COLUMNS_BASE).order("full_name", { ascending: true }));
     }
@@ -296,7 +300,11 @@ export async function dbCreateExecutiveHubRecord(
   try {
     const supabase = getAdminSupabase();
     const now = new Date().toISOString();
-    const row = {
+    // Explicit Record<string, unknown> annotation — spreading recordPatchToRow()'s return type
+    // into a fresh object literal otherwise loses its index signature, so the pre-migration
+    // fallback's `linked_roster_id` destructure below would not type-check even though the key
+    // may or may not be present at runtime (recordPatchToRow only sets it when a link was given).
+    const row: Record<string, unknown> = {
       slug,
       ...recordPatchToRow(input),
       created_at: now,
