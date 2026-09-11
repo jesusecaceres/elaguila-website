@@ -16,6 +16,7 @@ import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/
 import { getServiciosPublicListingByIdFromDb } from "@/app/(site)/clasificados/servicios/lib/serviciosPublicListingsServer";
 import { inferServiciosSellerPresentation } from "@/app/(site)/clasificados/servicios/lib/serviciosSellerKind";
 import { certifyServiciosPublicEligibleListing } from "./serviciosPublicEligibleListing";
+import { resolveServiciosOffersCapabilityByListingId } from "@/app/(site)/clasificados/servicios/lib/serviciosOffersCapabilityServer";
 import { matchesServiciosSavedSearch } from "./savedSearchServiciosMatcher";
 import { SAVED_SEARCH_SERVICIOS_CATEGORY } from "./savedSearchServiciosAdapter";
 import {
@@ -125,6 +126,11 @@ export async function runServiciosSavedSearchMatchOrchestration(
     return empty({ eligible: true, errors: ["load_active_searches_failed"] });
   }
 
+  // Gate SERVICIOS-EDIT-ROUNDTRIP-OFFERS-DISCOVERY-1 (F2) — the matcher runs the results filter, so it
+  // needs the same current coupons_offers truth the results page supplies. One lookup, only when the
+  // listing carries offer content; fails closed to an empty map.
+  const offersCapabilityByListingId = await resolveServiciosOffersCapabilityByListingId([certified]);
+
   const matches: ActiveSavedSearchForMatching[] = [];
   for (const search of activeSearches) {
     try {
@@ -135,7 +141,7 @@ export async function runServiciosSavedSearchMatchOrchestration(
         maxPrice: search.maxPrice,
         filterPayload: search.filterPayload,
       };
-      if (matchesServiciosSavedSearch(certified, normalized)) matches.push(search);
+      if (matchesServiciosSavedSearch(certified, normalized, "es", { offersCapabilityByListingId })) matches.push(search);
     } catch (e) {
       errors.push(`match_error:${search.id}:${normalizeErrorMessage(e)}`);
     }

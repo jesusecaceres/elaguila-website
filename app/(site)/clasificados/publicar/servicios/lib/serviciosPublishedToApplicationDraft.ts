@@ -22,6 +22,7 @@ import { createEmptyClasificadosPromoRow } from "./clasificadosServiciosPromo";
 import { createDefaultClasificadosServiciosState } from "./defaultClasificadosServiciosState";
 import { getBusinessTypePreset } from "./businessTypePresets";
 import { getBusinessHighlightPreset } from "./businessHighlightPresets";
+import { serviciosBusinessTypeUsesCustomCategoryLabel } from "./resolveServiciosPublicCategoryLabel";
 
 export type ServiciosPublishedListingHydrationSource = {
   id?: string | null;
@@ -432,6 +433,12 @@ export function serviciosPublishedToApplicationDraft(
         ? { url: couponMoreOffersUrl, buttonLabel: couponMoreOffersLabel }
         : base.couponMoreOffers,
     businessTypeId,
+    // Gate SERVICIOS-EDIT-ROUNDTRIP-OFFERS-DISCOVERY-1 (F1) — for "Otro servicio" the owner's
+    // description is persisted ONLY as the public category line, so it is read back from there.
+    // Without this the edit form reopened empty and republish was refused until it was retyped.
+    customServiceDescription: serviciosBusinessTypeUsesCustomCategoryLabel(businessTypeId)
+      ? clean(hero.categoryLine)
+      : base.customServiceDescription,
     businessName,
     city,
     state: clean(profile?.opsMeta?.discovery?.state) || clean(hero.state) || base.state,

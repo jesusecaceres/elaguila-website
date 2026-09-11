@@ -119,10 +119,12 @@ ok("1d. suspended blocks and unpaid denies — fails closed");
 // The plan resolver must no longer filter on the inconsistently-written listing_source column.
 const planResolverCode = code(read(PLAN_RESOLVER));
 assert.ok(
-  !/\.eq\("listing_source"/.test(planResolverCode),
+  !/\.(eq|in)\("listing_source"/.test(planResolverCode),
   "categoryCommercialPlan must not filter on listing_source — the Stripe path writes the bare category there, so filtering matched zero rows for a genuinely paid listing",
 );
-assert.ok(planResolverCode.includes('.eq("category"') && planResolverCode.includes('.eq("listing_id"'));
+// Gate SERVICIOS-EDIT-ROUNDTRIP-OFFERS-DISCOVERY-1 — the resolver is now batched (`.in("listing_id", ids)`,
+// the single-listing form delegates with one id); the identity is still category + listing_id.
+assert.ok(planResolverCode.includes('.eq("category"') && /\.(eq|in)\("listing_id"/.test(planResolverCode));
 ok("1e. plan resolver keys on category + listing_id (the durable identity)");
 
 // Both owner-facing surfaces now use the capability, not the retired add-on key.

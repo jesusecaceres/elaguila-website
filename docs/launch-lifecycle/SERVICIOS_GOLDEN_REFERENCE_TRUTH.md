@@ -139,7 +139,7 @@ Every customer-reachable feature, with its launch state.
 | --- | --- | --- |
 | Landing → checkpoint | LIVE | `/clasificados/publicar/servicios` (`/servicios/publicar` redirects here) |
 | Application form | LIVE | Guided; identity, hero, services, media, contact, hours, payments, credentials |
-| Category escape hatch | LIVE | "Otro servicio" reveals a free-text field; the "¿No ves tu categoría?" helper selects it and focuses the field |
+| Category escape hatch | LIVE | Instructional copy ("¿No encuentras tu categoría? Elige “Otro servicio”…") points to the "Otro servicio" option, which reveals "Describe tu servicio"; that text is the public category line and round-trips through edit (§Q). The helper that selects/focuses the field lives in the zero-consumer `ServiciosApplicationForm` |
 | Address verification | LIVE | Google Geocoding, server-side only |
 | Manual address fallback | LIVE | Honest `manual` provenance stamped; never claims Google verified it |
 | Media upload | LIVE | Vercel Blob; durability re-checked at publish |
@@ -1265,3 +1265,67 @@ Still-red broader verifiers — none is a Servicios regression:
 - **Database:** B5 migration pending owner authorization.
 - **Runtime:** full Servicios runtime certification (§J, plus regressions R1–R5 for B1–B5) still pending.
 - **Temporary probe (§N):** remains deployed until runtime certification completes, then is removed.
+
+---
+
+## Q. ABSOLUTE-02 CORRECTIVE — EDIT ROUND-TRIP + OFFERS DISCOVERY
+
+**Gate:** `SERVICIOS-EDIT-ROUNDTRIP-OFFERS-DISCOVERY-1` · **Date:** 2026-09-10 · **Found by:** the
+`SERVICIOS-FOUNDATIONAL-QA-GREEN-LIGHT-ABSOLUTE-02` execution probe (publish → owner hydration →
+republish on a fully populated listing). ABSOLUTE-02 confirmed B1–B5 closed and the P.4 migration
+applied to Leonix Media (ledger `20260911024723`, integration gate 1B); these two defects were new.
+
+### Q.1 F1 — "Otro servicio" description lost on edit
+
+For "Otro servicio" the owner's "Describe tu servicio" text is persisted **only** as the public
+`hero.categoryLine`. Edit hydration (`serviciosPublishedToApplicationDraft`, used by the dashboard edit
+and the listing-bound Preview) never read it back: the form reopened empty, the Preview lost the category
+line, and republish was refused by readiness ("Describe tu tipo de servicio") until the owner retyped it.
+(ABSOLUTE-02 called this a silent loss; readiness actually blocks the republish — the data loss is in the
+editor, not in the saved row.)
+
+**Closure.** Hydration restores `customServiceDescription` from `hero.categoryLine` — the existing and
+only persisted authority, no new storage — for exactly the business types that publish a custom label.
+That rule is now one function, `serviciosBusinessTypeUsesCustomCategoryLabel()`, used by both the label
+resolver and hydration. Predefined categories are unchanged.
+
+### Q.2 F2 — "Tiene ofertas" missed included offers
+
+The "Tiene ofertas / Has offers" filter counted only old-style promotions, so a listing whose included
+coupons, flyer or "more offers" link render on its detail page never matched (and Saved Search, which
+runs the same filter, never matched it either).
+
+**Doctrine — read-time capability truth.** Discovery and the detail page share one rule
+(`serviciosPublicOffersVisibility.ts`): included offers count only while `coupons_offers` is **current**,
+decided at request time by the same plan policy. Old-style promotions are not part of that capability
+and still count, as before. There is no publish-time flag: when commercial authority lapses, the listing
+stops matching exactly when its detail page stops showing the offers. Historical add-on holders stay
+compatible through the plan policy's legacy branch, never as a second authority.
+
+**Cost.** `resolveBusinessToolsAccessForListings` batches the existing resolver: one entitlement query
+(plus one subscription query when a live Stripe row exists) per 100 ids, and only for rows that carry
+offer content, only when the filter is on. The single-listing `resolveCategoryListingPlan` now delegates
+to the batched path, so there is one fetch implementation and one pure decision
+(`decideCategoryListingPlansForListings` → `decideCategoryListingPlan`). The Saved Search orchestrator
+makes one lookup per activation.
+
+### Q.3 Verification
+
+| Check | Result |
+| --- | --- |
+| `verify-servicios-edit-roundtrip` (new) | 31/31 — against the pre-fix tree: 8 OK / 23 FAIL, including the real readiness refusal and the excluded coupon/flyer/more-offers listings |
+| included offers · publish authority · address privacy | 29/29 · 37/37 · 30/30 |
+| gate1 lifecycle · gate2 discovery · gate3 readiness · verified-intro promo path | 20/20 · 19/19 · 97/97 · 24/24 |
+| `gate-pkgC-c5-c6`, Restaurantes gate1/gate2, package-d-d3, i13b, bilingual hydration, p0b | PASS |
+| Scoped typecheck (touched files + direct consumers) | 0 errors |
+
+Two source-string assertions were updated to the new shape without changing their intent:
+`verify-servicios-included-offers` (the strip moved into the shared rule) and
+`verify-restaurantes-gate1-lifecycle` (the resolver keys on category + listing_id via `.in`).
+
+### Q.4 Scope and status
+
+- No database, schema, migration, payment, Stripe, webhook or Vercel-env change.
+- `promo=1` / `offer=1` remain URL-only legacy parameters with no rendered control (unchanged).
+- **Owner runtime QA is still pending** (§J, plus R1–R5 for B1–B5, R6: edit and republish an
+  "Otro servicio" listing, R7: "Tiene ofertas" returns the QA listing's coupon).

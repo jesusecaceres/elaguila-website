@@ -24,6 +24,19 @@ import {
   normalizeLeonixLbStateCode,
   normalizeLeonixLbZip,
 } from "@/app/(site)/clasificados/shared/constants/leonixLocalBusinessLocationContract";
+import {
+  applyServiciosPublicOffersVisibility,
+  serviciosResolvedProfileHasVisibleOffers,
+} from "./serviciosPublicOffersVisibility";
+
+/**
+ * Read-time commercial truth the pure filter cannot fetch itself. `offersCapabilityByListingId` is the
+ * CURRENT `coupons_offers` decision per row id (`resolveServiciosOffersCapabilityByListingId`); a row
+ * missing from it counts as not allowed, so included offers never qualify without that truth.
+ */
+export type ServiciosResultsFilterOptions = {
+  offersCapabilityByListingId?: ReadonlyMap<string, boolean>;
+};
 
 export type ServiciosResultsFilterQuery = {
   city?: string;
@@ -85,7 +98,8 @@ export type ServiciosResultsFilterQuery = {
   hasPhotos?: "1";
   /** URL: has_videos=1 — resolved gallery videos with public playback URL (Mux HLS / https, post-sanitize) */
   hasVideos?: "1";
-  /** URL: has_offers=1 — resolved promotions/offers (same gate as public shell, not blank-only) */
+  /** URL: has_offers=1 — offers the public detail page would show: promotions, plus included
+   * coupons / flyer / more-offers while `coupons_offers` is current (serviciosPublicOffersVisibility) */
   hasOffers?: "1";
   /** URL: same_day=1 — quick fact kind `same_day` or amenity `service_same_day` */
   sameDay?: "1";
@@ -443,14 +457,6 @@ function resolvedHasPlayableGalleryVideos(profile: ServiciosProfileResolved): bo
   }
 }
 
-function resolvedHasOffers(profile: ServiciosProfileResolved): boolean {
-  try {
-    return Array.isArray(profile.promotions) && profile.promotions.length > 0;
-  } catch {
-    return false;
-  }
-}
-
 /** Collects free-text promo/offer fields from wire JSON (supports legacy keys like title/details). */
 function wirePromotionalTextFields(pj: ServiciosBusinessProfile): string[] {
   const out: string[] = [];
@@ -504,7 +510,9 @@ export function filterServiciosPublicListingRows(
   rows: ServiciosPublicListingRow[],
   lang: ServiciosLang,
   q: ServiciosResultsFilterQuery,
+  options: ServiciosResultsFilterOptions = {},
 ): ServiciosPublicListingRow[] {
+  const { offersCapabilityByListingId } = options;
   const cityQ = normalize(q.city);
   const groupQ = normalize(q.group);
   const hasLocationFilters = Boolean(
@@ -627,7 +635,17 @@ export function filterServiciosPublicListingRows(
       if (wantCall && !(profile.contact.phoneDisplay && profile.contact.phoneTelHref)) return false;
       if (wantHasPhotos && !resolvedHasPublicPhotos(profile)) return false;
       if (wantHasVideos && !resolvedHasPlayableGalleryVideos(profile)) return false;
-      if (wantHasOffers && !resolvedHasOffers(profile)) return false;
+      // Gate SERVICIOS-EDIT-ROUNDTRIP-OFFERS-DISCOVERY-1 (F2) — "Tiene ofertas" used to count only
+      // old-style promotions, so a listing whose INCLUDED coupons/offers render on its detail page
+      // never matched. It now asks exactly what the detail page shows, under the current capability.
+      if (
+        wantHasOffers &&
+        !serviciosResolvedProfileHasVisibleOffers(
+          applyServiciosPublicOffersVisibility(profile, offersCapabilityByListingId?.get(row.id ?? "") === true),
+        )
+      ) {
+        return false;
+      }
     }
 
     return true;

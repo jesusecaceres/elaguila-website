@@ -18,6 +18,7 @@ import {
   filterServiciosPublicListingRows,
   filterServiciosRowsByKeyword,
   filterServiciosRowsBySeller,
+  type ServiciosResultsFilterOptions,
 } from "@/app/(site)/clasificados/servicios/lib/serviciosResultsFilter";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import type { SavedSearchNormalizedInput } from "../savedSearchTypes";
@@ -28,9 +29,11 @@ export function matchesServiciosSavedSearch(
   listing: ServiciosPublicEligibleListing,
   savedSearch: SavedSearchNormalizedInput,
   lang: ServiciosLang = "es",
+  /** The same read-time truth the results page passes (e.g. the current `coupons_offers` capability). */
+  options: ServiciosResultsFilterOptions = {},
 ): boolean {
   const query = savedSearchToServiciosFilterQuery(savedSearch);
-  let rows = filterServiciosPublicListingRows([listing], lang, query);
+  let rows = filterServiciosPublicListingRows([listing], lang, query, options);
   rows = filterServiciosRowsByKeyword(rows, lang, query.q);
   rows = filterServiciosRowsBySeller(rows, lang, query.seller);
   return rows.length > 0;
