@@ -18,17 +18,29 @@ import type {
   ProjectDiscoverySource,
 } from "./types";
 import {
+  accessStatusLabel,
+  architectureClassLabel,
+  binaryDecisionLabel,
+  cmsDecisionLabel,
   discoveryStatusLabel,
+  hasAccountLabel,
+  infrastructureComplexityLabel,
   intentStatusLabel,
+  ownershipOwnerLabel,
+  platformDecisionStatusLabel,
   projectTypeLabel,
   readinessStateLabel,
+  recurringCostClassLabel,
   scopeCandidateLabel,
   scopeSignalReasonLabel,
+  storageDecisionLabel,
   truthClassIsProvisional,
   truthClassLabel,
   SECTION_REVIEW_GROUPS,
   type BilingualLabel,
 } from "./discoveryLabels";
+import { getPlatform } from "./platformRegistry";
+import type { WebsiteArchitectureDecisionPacket } from "./architectureDecisionEngine";
 
 function bilabel(es: string, en: string): BilingualLabel {
   return { es, en };
@@ -468,5 +480,119 @@ export function resolveStartFromGrowthSolutionPrefill(input: {
     titleEn: solution.titleEn,
     sourceGrowthSolutionId: solution.id,
     sourceGrowthAssessmentId: input.currentAssessmentId ?? undefined,
+  };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Gate 4 — Website Architecture Review (MD <architecture_review_ui>). Converts the deterministic
+// WebsiteArchitectureDecisionPacket into a fully human, bilingual display shape — never a raw
+// enum, never rule-engine internals, never vendor propaganda (MD: "Staff should understand why").
+// ---------------------------------------------------------------------------------------------
+function platformName(key: string | null): BilingualLabel {
+  if (!key) return bilabel("N/A", "N/A");
+  if (key.startsWith("other_external_platform")) {
+    const explanation = key.split(":").slice(1).join(":").trim();
+    return bilabel(`Otra plataforma: ${explanation || "sin especificar"}`, `Other platform: ${explanation || "unspecified"}`);
+  }
+  const platform = getPlatform(key);
+  return platform ? bilabel(platform.nameEs, platform.nameEn) : bilabel(key, key);
+}
+
+export interface ArchitectureStackRowView {
+  labelEs: string;
+  labelEn: string;
+  platformName: BilingualLabel;
+  statusLabel: BilingualLabel;
+  costLabel: BilingualLabel | null;
+}
+
+export interface ArchitectureOwnershipRowView {
+  platformName: BilingualLabel;
+  hasAccountLabel: BilingualLabel;
+  ownerLabel: BilingualLabel;
+  billingOwnerLabel: BilingualLabel;
+  accessStatusLabel: BilingualLabel;
+  handoffRequired: boolean;
+}
+
+export interface ArchitectureReviewView {
+  architectureClassLabel: BilingualLabel;
+  preserveExistingPlatformName: BilingualLabel | null;
+  stackRows: readonly ArchitectureStackRowView[];
+  domainDnsMessageEs: string;
+  domainDnsMessageEn: string;
+  domainDnsIsBlocker: boolean;
+  reasonsEs: readonly string[];
+  reasonsEn: readonly string[];
+  recurringServices: readonly { platformName: BilingualLabel; costLabel: BilingualLabel }[];
+  complexityLabel: BilingualLabel;
+  complexityReasonEs: string;
+  complexityReasonEn: string;
+  ownership: readonly ArchitectureOwnershipRowView[];
+  unresolvedBlockers: readonly string[];
+  assumptions: readonly string[];
+  requiresLeonixArchitectureReview: boolean;
+  requiresCommercialReview: boolean;
+  commercialReviewSeamMissing: boolean;
+  migrationRequired: boolean;
+  migrationNotesEs: string;
+  migrationNotesEn: string;
+  isOverride: boolean;
+  overrideReasonEs: string | null;
+  overrideReasonEn: string | null;
+}
+
+export function buildArchitectureReviewView(packet: WebsiteArchitectureDecisionPacket): ArchitectureReviewView {
+  const stackRows: ArchitectureStackRowView[] = [
+    { labelEs: "Frontend", labelEn: "Frontend", platformName: platformName(packet.frontend.platformKey), statusLabel: platformDecisionStatusLabel(packet.frontend.status), costLabel: packet.frontend.recurringCostClass ? recurringCostClassLabel(packet.frontend.recurringCostClass) : null },
+    { labelEs: "Alojamiento", labelEn: "Hosting", platformName: platformName(packet.hosting.platformKey), statusLabel: platformDecisionStatusLabel(packet.hosting.status), costLabel: packet.hosting.recurringCostClass ? recurringCostClassLabel(packet.hosting.recurringCostClass) : null },
+    { labelEs: "CMS", labelEn: "CMS", platformName: platformName(packet.cms.platformKey), statusLabel: cmsDecisionLabel(packet.cms.decision), costLabel: null },
+    { labelEs: "Formularios / Correo", labelEn: "Forms / Email", platformName: platformName(packet.formsEmail.platformKey), statusLabel: platformDecisionStatusLabel(packet.formsEmail.status), costLabel: packet.formsEmail.recurringCostClass ? recurringCostClassLabel(packet.formsEmail.recurringCostClass) : null },
+    { labelEs: "Base de datos", labelEn: "Database", platformName: platformName(packet.database.decision === "REQUIRED" ? "supabase" : null), statusLabel: binaryDecisionLabel(packet.database.decision), costLabel: packet.database.decision === "REQUIRED" ? recurringCostClassLabel("may_have_recurring_cost") : null },
+    { labelEs: "Autenticación", labelEn: "Auth", platformName: platformName(packet.auth.decision === "REQUIRED" ? "supabase" : null), statusLabel: binaryDecisionLabel(packet.auth.decision), costLabel: null },
+    { labelEs: "Almacenamiento", labelEn: "Storage", platformName: platformName(packet.storage.decision === "REQUIRED" ? "supabase" : null), statusLabel: storageDecisionLabel(packet.storage.decision), costLabel: null },
+    ...packet.analytics.map((a) => ({ labelEs: "Analítica", labelEn: "Analytics", platformName: platformName(a.platformKey), statusLabel: platformDecisionStatusLabel(a.status), costLabel: a.recurringCostClass ? recurringCostClassLabel(a.recurringCostClass) : null })),
+    ...packet.externalIntegrations.map((i) => ({ labelEs: "Integración externa", labelEn: "External Integration", platformName: platformName(i.platformKey), statusLabel: platformDecisionStatusLabel(i.status), costLabel: i.recurringCostClass ? recurringCostClassLabel(i.recurringCostClass) : null })),
+  ];
+
+  const domainMessages: Record<WebsiteArchitectureDecisionPacket["domainDns"]["kind"], BilingualLabel> = {
+    client_owned_new_registration: bilabel("Registro nuevo propiedad del cliente (Cloudflare preferido)", "New client-owned registration (Cloudflare preferred)"),
+    preserve_existing_domain: bilabel("Se conserva el dominio existente — sin transferencia forzada", "Existing domain preserved — no forced transfer"),
+    domain_access_blocker: bilabel("Bloqueador de lanzamiento — acceso al dominio no confirmado", "Launch blocker — domain access not confirmed"),
+    unknown: bilabel("Aún no se sabe si existe un dominio", "Not yet known whether a domain exists"),
+  };
+
+  return {
+    architectureClassLabel: architectureClassLabel(packet.architectureClass),
+    preserveExistingPlatformName: packet.preserveExistingPlatformKey ? platformName(packet.preserveExistingPlatformKey) : null,
+    stackRows,
+    domainDnsMessageEs: domainMessages[packet.domainDns.kind].es,
+    domainDnsMessageEn: domainMessages[packet.domainDns.kind].en,
+    domainDnsIsBlocker: packet.domainDns.isLaunchBlocker,
+    reasonsEs: packet.reasonsEs,
+    reasonsEn: packet.reasonsEn,
+    recurringServices: packet.recurringServices.map((s) => ({ platformName: platformName(s.platformKey), costLabel: recurringCostClassLabel(s.costClass) })),
+    complexityLabel: infrastructureComplexityLabel(packet.infrastructureComplexity),
+    complexityReasonEs: packet.infrastructureComplexityReasonEs,
+    complexityReasonEn: packet.infrastructureComplexityReasonEn,
+    ownership: packet.ownership.map((o) => ({
+      platformName: platformName(o.platformKey),
+      hasAccountLabel: hasAccountLabel(o.hasAccount),
+      ownerLabel: ownershipOwnerLabel(o.owner),
+      billingOwnerLabel: ownershipOwnerLabel(o.billingOwner),
+      accessStatusLabel: accessStatusLabel(o.accessStatus),
+      handoffRequired: o.handoffRequired,
+    })),
+    unresolvedBlockers: packet.unresolvedBlockers,
+    assumptions: packet.assumptions,
+    requiresLeonixArchitectureReview: packet.requiresLeonixArchitectureReview,
+    requiresCommercialReview: packet.requiresCommercialReview,
+    commercialReviewSeamMissing: packet.commercialReviewSeamMissing,
+    migrationRequired: packet.migrationRequired,
+    migrationNotesEs: packet.migrationNotesEs,
+    migrationNotesEn: packet.migrationNotesEn,
+    isOverride: packet.isOverride,
+    overrideReasonEs: packet.overrideReasonEs,
+    overrideReasonEn: packet.overrideReasonEn,
   };
 }

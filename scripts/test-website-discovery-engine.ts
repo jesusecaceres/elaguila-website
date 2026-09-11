@@ -85,6 +85,12 @@ function allBuildBlockersAnswered(overrides: Partial<WebsiteDiscoveryContext> = 
   // NEEDS_LEONIX_ARCHITECTURE_DECISION forever, matching the real doctrine that Leonix must always
   // make this call explicitly, even for the simplest site.
   capturedItems.push(item("backend_database_needed", false, { completenessClass: "needs_leonix_decision", truthClass: "technical_decision" }));
+  // Gate 4 — website_architecture_decision is the other unconditional (no dependencyCondition, no
+  // industryBranch, no applicabilityCondition) general-catalog needs_leonix_decision item; every
+  // "otherwise ready" baseline must resolve it too, matching the real doctrine that an authorized
+  // Leonix reviewer must approve SOME architecture decision before Ready for Blueprint, even for
+  // the simplest rapid business site.
+  capturedItems.push(item("website_architecture_decision", "approved", { completenessClass: "needs_leonix_decision", truthClass: "technical_decision" }));
   return baseContext({ capturedItems, ...overrides });
 }
 
@@ -258,6 +264,7 @@ check("Scenario 39: READY — every required item resolved", () => {
   capturedItems.push(item("domain_owner", "Client LLC", { completenessClass: "required_before_launch" }));
   capturedItems.push(item("domain_access_available", true, { completenessClass: "required_before_launch" }));
   capturedItems.push(item("backend_database_needed", false, { completenessClass: "needs_leonix_decision", truthClass: "technical_decision" }));
+  capturedItems.push(item("website_architecture_decision", "approved", { completenessClass: "needs_leonix_decision", truthClass: "technical_decision" }));
   capturedItems.push(item("industry_regulatory_requirements", "None applicable — verified", { completenessClass: "needs_official_research", truthClass: "public_verified" }));
   const ctx = baseContext({ capturedItems });
   const readiness = evaluateWebsiteReadiness(ctx);

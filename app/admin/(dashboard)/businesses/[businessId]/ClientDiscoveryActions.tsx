@@ -5,6 +5,9 @@ import { useState } from "react";
 import { humanizeStaffWriteError } from "@/app/admin/_lib/staffWriteErrorMessages";
 import { DictationButton } from "@/app/admin/field/FieldAgentComponents";
 import { PROJECT_TYPE_REGISTRY } from "@/app/lib/business/projectDiscovery/projectTypeRegistry";
+import { PLATFORM_REGISTRY, OTHER_EXTERNAL_PLATFORM_KEY } from "@/app/lib/business/projectDiscovery/platformRegistry";
+import { architectureClassLabel } from "@/app/lib/business/projectDiscovery/discoveryLabels";
+import type { WebsiteArchitectureClass } from "@/app/lib/business/projectDiscovery/architectureDecisionEngine";
 import {
   consentMethodLabel,
   consentStateLabel,
@@ -975,6 +978,156 @@ export function LinkMeetingButton({ businessId, discoveryId, meetings }: { busin
         Vincular reunión / Link meeting
       </button>
       {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Gate 4 — Website Architecture Review (MD <architecture_review_ui>, <modify_decision>). Approving
+// or modifying always goes through the SAME server route/engine — never an arbitrary free-text
+// stack value where a known registry option exists (Other/External platform requires an explanation).
+// ---------------------------------------------------------------------------
+export function ApproveArchitectureButton({ businessId, discoveryId, intentId }: { businessId: string; discoveryId: string; intentId: string }) {
+  const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function approve() {
+    setSubmitting(true);
+    setError(null);
+    const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/discovery/${discoveryId}/architecture`, "POST", { intentId });
+    setSubmitting(false);
+    if (!ok) {
+      setError(humanizeStaffWriteError(body?.error as string | undefined, "No se pudo aprobar la arquitectura. / Could not approve the architecture."));
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <button type="button" onClick={() => void approve()} disabled={submitting} className={PRIMARY_BTN}>
+        {submitting ? "Aprobando… / Approving…" : "Aprobar arquitectura / Approve Architecture"}
+      </button>
+      {error ? <p role="alert" className="mt-1 text-xs text-red-700">{error}</p> : null}
+    </div>
+  );
+}
+
+const PRESERVABLE_REGISTRY_PLATFORMS = PLATFORM_REGISTRY.filter((p) => p.tier === "external_existing");
+const ARCHITECTURE_CLASS_OPTIONS: readonly WebsiteArchitectureClass[] = ["RAPID_BUSINESS_SITE", "BUSINESS_SITE", "CUSTOM_PLATFORM", "PRESERVE_EXISTING_PLATFORM"];
+
+export function ModifyArchitectureDecisionForm({ businessId, discoveryId, intentId }: { businessId: string; discoveryId: string; intentId: string }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [architectureClass, setArchitectureClass] = useState<WebsiteArchitectureClass>("BUSINESS_SITE");
+  const [preserveKey, setPreserveKey] = useState<string>(PRESERVABLE_REGISTRY_PLATFORMS[0]?.key ?? OTHER_EXTERNAL_PLATFORM_KEY);
+  const [otherExplanation, setOtherExplanation] = useState("");
+  const [reason, setReason] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    if (!reason.trim()) {
+      setError("Escriba una razón concisa. / Write a concise reason.");
+      return;
+    }
+    if (architectureClass === "PRESERVE_EXISTING_PLATFORM" && preserveKey === OTHER_EXTERNAL_PLATFORM_KEY && !otherExplanation.trim()) {
+      setError("Explique qué plataforma externa se está conservando. / Explain what external platform is being preserved.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/discovery/${discoveryId}/architecture`, "POST", {
+      intentId,
+      override: {
+        architectureClass,
+        preserveExistingPlatformKey: architectureClass === "PRESERVE_EXISTING_PLATFORM" ? preserveKey : undefined,
+        otherExplanation: otherExplanation.trim() || undefined,
+        reasonEs: reason.trim(),
+        reasonEn: reason.trim(),
+      },
+    });
+    setSubmitting(false);
+    if (!ok) {
+      setError(humanizeStaffWriteError(body?.error as string | undefined, "No se pudo modificar la decisión. / Could not modify the decision."));
+      return;
+    }
+    setOpen(false);
+    router.refresh();
+  }
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className={SECONDARY_BTN}>
+        Modificar decisión / Modify Decision
+      </button>
+    );
+  }
+
+  return (
+    <div className="space-y-2 rounded-lg border border-[#E8DFD0] p-3">
+      <label className="block">
+        <span className="mb-1 block text-xs font-semibold text-[#1E1810]">Clasificación de arquitectura / Architecture classification</span>
+        <select className={INPUT} value={architectureClass} onChange={(e) => setArchitectureClass(e.target.value as WebsiteArchitectureClass)}>
+          {ARCHITECTURE_CLASS_OPTIONS.map((c) => <option key={c} value={c}>{formatBilingual(architectureClassLabel(c))}</option>)}
+        </select>
+      </label>
+      {architectureClass === "PRESERVE_EXISTING_PLATFORM" ? (
+        <>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-[#1E1810]">Plataforma a conservar / Platform to preserve</span>
+            <select className={INPUT} value={preserveKey} onChange={(e) => setPreserveKey(e.target.value)}>
+              {PRESERVABLE_REGISTRY_PLATFORMS.map((p) => <option key={p.key} value={p.key}>{p.nameEs} / {p.nameEn}</option>)}
+              <option value={OTHER_EXTERNAL_PLATFORM_KEY}>Otra plataforma externa / Other external platform</option>
+            </select>
+          </label>
+          {preserveKey === OTHER_EXTERNAL_PLATFORM_KEY ? (
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold text-[#1E1810]">Explicación requerida / Required explanation</span>
+              <input className={INPUT} value={otherExplanation} onChange={(e) => setOtherExplanation(e.target.value)} />
+            </label>
+          ) : null}
+        </>
+      ) : null}
+      <label className="block">
+        <span className="mb-1 block text-xs font-semibold text-[#1E1810]">Razón concisa / Concise reason</span>
+        <textarea className={`${INPUT} min-h-[70px]`} value={reason} onChange={(e) => setReason(e.target.value)} />
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => void submit()} disabled={submitting} className={PRIMARY_BTN}>
+          {submitting ? "Guardando… / Saving…" : "Guardar decisión / Save Decision"}
+        </button>
+        <button type="button" onClick={() => setOpen(false)} className={SECONDARY_BTN}>Cancelar / Cancel</button>
+      </div>
+      {error ? <p role="alert" className="text-xs text-red-700">{error}</p> : null}
+    </div>
+  );
+}
+
+export function MarkNeedsMoreClientInfoButton({ businessId, discoveryId }: { businessId: string; discoveryId: string }) {
+  const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function mark() {
+    setSubmitting(true);
+    setError(null);
+    const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/discovery/${discoveryId}`, "PATCH", { status: "needs_client_information" });
+    setSubmitting(false);
+    if (!ok) {
+      setError(humanizeStaffWriteError(body?.error as string | undefined, "No se pudo actualizar. / Could not update."));
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <button type="button" onClick={() => void mark()} disabled={submitting} className={SECONDARY_BTN}>
+        Falta información del cliente / Needs More Client Information
+      </button>
+      {error ? <p role="alert" className="mt-1 text-xs text-red-700">{error}</p> : null}
     </div>
   );
 }

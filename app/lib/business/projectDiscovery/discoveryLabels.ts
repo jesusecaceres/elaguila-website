@@ -17,6 +17,18 @@ import type {
 } from "./types";
 import type { WebsiteReadinessState, WebsiteScopeClassCandidate } from "./websiteDiscoveryLogic";
 import type { ScopeSignalReason } from "./websiteDiscoveryCatalog";
+import type { RecurringCostClass } from "./platformRegistry";
+import type {
+  AccessStatus,
+  BinaryDecision,
+  CmsDecision,
+  HasAccountAnswer,
+  InfrastructureComplexity,
+  OwnershipOwner,
+  PlatformDecisionStatus,
+  StorageDecision,
+  WebsiteArchitectureClass,
+} from "./architectureDecisionEngine";
 
 export interface BilingualLabel {
   es: string;
@@ -251,4 +263,116 @@ export const SECTION_REVIEW_GROUPS: readonly { key: SectionReviewGroupKey; label
 export function sectionReviewGroupForSection(section: WebsiteDiscoverySection): SectionReviewGroupKey {
   const found = SECTION_REVIEW_GROUPS.find((g) => g.sections.includes(section));
   return found ? found.key : "website_features";
+}
+
+// ---------------------------------------------------------------------------------------------
+// Gate 4 — Website Architecture Review labels (MD <bilingual>). "human labels only, never raw
+// enums" applies here exactly as it did to Gate 3's own truth/status enums.
+// ---------------------------------------------------------------------------------------------
+const ARCHITECTURE_CLASS_LABELS: Record<WebsiteArchitectureClass, BilingualLabel> = {
+  RAPID_BUSINESS_SITE: label("Sitio rápido de negocio", "Rapid Business Site"),
+  BUSINESS_SITE: label("Sitio de negocio", "Business Site"),
+  CUSTOM_PLATFORM: label("Plataforma personalizada", "Custom Platform"),
+  PRESERVE_EXISTING_PLATFORM: label("Conservar la plataforma actual", "Preserve Existing Platform"),
+};
+
+export function architectureClassLabel(value: WebsiteArchitectureClass): BilingualLabel {
+  return ARCHITECTURE_CLASS_LABELS[value];
+}
+
+const PLATFORM_DECISION_STATUS_LABELS: Record<PlatformDecisionStatus, BilingualLabel> = {
+  required: label("Requerido", "Required"),
+  optional: label("Opcional", "Optional"),
+  not_needed: label("No se necesita", "Not Needed"),
+  preserve_existing: label("Conservar existente", "Preserve Existing"),
+};
+
+export function platformDecisionStatusLabel(value: PlatformDecisionStatus): BilingualLabel {
+  return PLATFORM_DECISION_STATUS_LABELS[value];
+}
+
+const RECURRING_COST_CLASS_LABELS: Record<RecurringCostClass, BilingualLabel> = {
+  no_expected_cost: label("Sin costo de proveedor separado esperado", "No expected separate vendor fee"),
+  may_have_recurring_cost: label("Puede tener costo recurrente", "May have recurring vendor cost"),
+  paid_external_provider: label("Proveedor externo de pago", "Paid external provider"),
+  verify_current_pricing: label("Verificar precio actual", "Verify current pricing"),
+};
+
+export function recurringCostClassLabel(value: RecurringCostClass): BilingualLabel {
+  return RECURRING_COST_CLASS_LABELS[value];
+}
+
+const INFRASTRUCTURE_COMPLEXITY_LABELS: Record<InfrastructureComplexity, BilingualLabel> = {
+  LOW: label("Baja", "Low"),
+  MODERATE: label("Moderada", "Moderate"),
+  HIGH: label("Alta", "High"),
+  CUSTOM: label("Personalizada", "Custom"),
+};
+
+export function infrastructureComplexityLabel(value: InfrastructureComplexity): BilingualLabel {
+  return INFRASTRUCTURE_COMPLEXITY_LABELS[value];
+}
+
+const BINARY_DECISION_LABELS: Record<BinaryDecision, BilingualLabel> = {
+  REQUIRED: label("Requerido", "Required"),
+  NOT_NEEDED: label("No se necesita", "Not Needed"),
+  NEEDS_REVIEW: label("Requiere revisión", "Needs Review"),
+};
+
+export function binaryDecisionLabel(value: BinaryDecision): BilingualLabel {
+  return BINARY_DECISION_LABELS[value];
+}
+
+const STORAGE_DECISION_LABELS: Record<StorageDecision, BilingualLabel> = {
+  REQUIRED: label("Requerido", "Required"),
+  NOT_NEEDED: label("No se necesita", "Not Needed"),
+  EXTERNAL_EXISTING: label("Proveedor externo existente", "External Existing Provider"),
+};
+
+export function storageDecisionLabel(value: StorageDecision): BilingualLabel {
+  return STORAGE_DECISION_LABELS[value];
+}
+
+const CMS_DECISION_LABELS: Record<CmsDecision, BilingualLabel> = {
+  REQUIRED: label("Requerido", "Required"),
+  OPTIONAL: label("Opcional", "Optional"),
+  NOT_NEEDED: label("No se necesita", "Not Needed"),
+  PRESERVE_EXISTING: label("Conservar existente", "Preserve Existing"),
+};
+
+export function cmsDecisionLabel(value: CmsDecision): BilingualLabel {
+  return CMS_DECISION_LABELS[value];
+}
+
+const ACCESS_STATUS_LABELS: Record<AccessStatus, BilingualLabel> = {
+  not_requested: label("No solicitado", "Not Requested"),
+  needs_access: label("Necesita acceso", "Needs Access"),
+  invited: label("Invitado", "Invited"),
+  access_confirmed: label("Acceso confirmado", "Access Confirmed"),
+  client_action_required: label("Se requiere acción del cliente", "Client Action Required"),
+};
+
+export function accessStatusLabel(value: AccessStatus): BilingualLabel {
+  return ACCESS_STATUS_LABELS[value];
+}
+
+const HAS_ACCOUNT_LABELS: Record<HasAccountAnswer, BilingualLabel> = {
+  yes: label("Sí", "Yes"),
+  no: label("No", "No"),
+  unknown: label("Desconocido", "Unknown"),
+};
+
+export function hasAccountLabel(value: HasAccountAnswer): BilingualLabel {
+  return HAS_ACCOUNT_LABELS[value];
+}
+
+const OWNERSHIP_OWNER_LABELS: Record<OwnershipOwner, BilingualLabel> = {
+  client: label("Cliente", "Client"),
+  leonix_managed: label("Administrado por Leonix", "Leonix-Managed"),
+  shared: label("Compartido", "Shared"),
+  unknown: label("Desconocido", "Unknown"),
+};
+
+export function ownershipOwnerLabel(value: OwnershipOwner): BilingualLabel {
+  return OWNERSHIP_OWNER_LABELS[value];
 }

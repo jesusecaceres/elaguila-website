@@ -80,6 +80,7 @@ import { buildWebsiteDiscoveryContext } from "@/app/lib/business/projectDiscover
 import { detectWebsiteScopeSignals, evaluateWebsiteReadiness, evaluateWebsiteRequirements } from "@/app/lib/business/projectDiscovery/websiteDiscoveryLogic";
 import { buildBeforeYouWrapUp, buildQuestionsToAskNow } from "@/app/lib/business/projectDiscovery/websiteQuestionEngine";
 import { resolveStartFromGrowthSolutionPrefill } from "@/app/lib/business/projectDiscovery/discoveryWorkspaceViewModel";
+import { buildArchitectureDecisionPacket, type WebsiteArchitectureDecisionPacket } from "@/app/lib/business/projectDiscovery/architectureDecisionEngine";
 
 export const dynamic = "force-dynamic";
 
@@ -417,7 +418,13 @@ export default async function AdminBusinessDetailPage({
               const questionsToAskNow = buildQuestionsToAskNow(ctx);
               const wrapUp = buildBeforeYouWrapUp(ctx);
               const scopeSignals = detectWebsiteScopeSignals(ctx);
-              return { evaluations, readiness, questionsToAskNow, wrapUp, scopeSignals };
+              // Gate 4 — the live recommendation is always recomputed from current discovery
+              // truth; the APPROVED decision (when one exists) is read back from its own frozen
+              // discovery item so a later answer change never silently rewrites a staff decision.
+              const architectureRecommendation = buildArchitectureDecisionPacket(ctx, scopeSignals);
+              const approvedItem = items.find((i) => i.fieldKey === "website_architecture_decision" && i.truthClass === "technical_decision");
+              const approvedArchitecture = approvedItem ? (approvedItem.value as unknown as WebsiteArchitectureDecisionPacket) : null;
+              return { evaluations, readiness, questionsToAskNow, wrapUp, scopeSignals, architectureRecommendation, approvedArchitecture };
             })()
           : null;
 

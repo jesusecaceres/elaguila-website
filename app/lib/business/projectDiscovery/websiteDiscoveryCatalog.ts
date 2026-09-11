@@ -549,6 +549,26 @@ const domain: WebsiteRequirementDefinition[] = [
 // =================================================================================================
 const hostingDeployment: WebsiteRequirementDefinition[] = [
   {
+    fieldKey: "existing_website_platform", section: "hosting_deployment",
+    labelEn: "Existing website platform", labelEs: "Plataforma del sitio web existente",
+    operatorGuidanceEn: "Gate 4 <preserve_existing_platform> input — never automatically condemn an existing platform; the actual project goals decide whether to preserve or rebuild.",
+    operatorGuidanceEs: "Entrada de Gate 4 — nunca condene automáticamente una plataforma existente; las metas reales del proyecto deciden si se preserva o se reconstruye.",
+    clientQuestionEn: "What platform is your current website built on?", clientQuestionEs: "¿En qué plataforma está construido su sitio web actual?",
+    valueType: "choice",
+    options: [
+      { value: "shopify", labelEn: "Shopify", labelEs: "Shopify" },
+      { value: "wordpress", labelEn: "WordPress", labelEs: "WordPress" },
+      { value: "webflow", labelEn: "Webflow", labelEs: "Webflow" },
+      { value: "wix", labelEn: "Wix", labelEs: "Wix" },
+      { value: "squarespace", labelEn: "Squarespace", labelEs: "Squarespace" },
+      { value: "custom_code", labelEn: "Custom-built / other code", labelEs: "Código personalizado / otro" },
+      { value: "unknown", labelEn: "Not sure", labelEs: "No estoy seguro" },
+    ],
+    defaultCompletenessClass: "required_before_build", whoShouldAnswer: "CLIENT",
+    applicabilityCondition: (ctx) => ctx.hasExistingWebsite,
+    priority: 1, mayBlockBuild: true, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  {
     fieldKey: "existing_host_migration_needed", section: "hosting_deployment",
     labelEn: "Existing host / migration needed", labelEs: "Alojamiento existente / migración necesaria",
     operatorGuidanceEn: "Only relevant when there is an existing site to migrate.", operatorGuidanceEs: "Solo relevante cuando hay un sitio existente que migrar.",
@@ -924,6 +944,31 @@ const scope: WebsiteRequirementDefinition[] = [
     clientQuestionEn: "(Internal — compiled from confirmed answers, not asked directly)", clientQuestionEs: "(Interno — se compila de las respuestas confirmadas)",
     valueType: "text", defaultCompletenessClass: "required_before_build", whoShouldAnswer: "LEONIX",
     priority: 2, mayBlockBuild: true, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  {
+    fieldKey: "website_architecture_decision", section: "scope",
+    labelEn: "Website architecture decision", labelEs: "Decisión de arquitectura del sitio web",
+    operatorGuidanceEn: "Gate 4 — the approved WebsiteArchitectureDecisionPacket (stack, hosting, CMS, database, ownership). A recommendation only becomes this once an authorized Leonix reviewer approves it — never automatically CLIENT_CONFIRMED.",
+    operatorGuidanceEs: "Gate 4 — el paquete de decisión de arquitectura aprobado. Una recomendación solo se convierte en esto una vez que un revisor autorizado de Leonix la aprueba — nunca automáticamente confirmado por el cliente.",
+    clientQuestionEn: "(Internal — not asked to the client)", clientQuestionEs: "(Interno — no se pregunta al cliente)",
+    valueType: "other", defaultCompletenessClass: "needs_leonix_decision", whoShouldAnswer: "LEONIX",
+    priority: 1, mayBlockBuild: true, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  {
+    fieldKey: "custom_platform_commercial_review", section: "scope",
+    labelEn: "Custom Platform commercial review", labelEs: "Revisión comercial de Plataforma Personalizada",
+    operatorGuidanceEn: "Only relevant when the architecture is classified CUSTOM_PLATFORM. No canonical commercial-approval domain exists yet in this codebase (confirmed by direct inspection) — this field is the truthfully-reported placeholder blocker until that seam is built in a later gate. Never invent a price here.",
+    operatorGuidanceEs: "Solo relevante cuando la arquitectura se clasifica como Plataforma Personalizada. Aún no existe un dominio canónico de aprobación comercial — este campo es el bloqueador de marcador de posición reportado con honestidad hasta que se construya en una puerta posterior. Nunca invente un precio aquí.",
+    clientQuestionEn: "(Internal — not asked to the client)", clientQuestionEs: "(Interno — no se pregunta al cliente)",
+    valueType: "text", defaultCompletenessClass: "needs_leonix_decision", whoShouldAnswer: "LEONIX",
+    // Only becomes applicable once a real Custom-Platform-shaped signal has actually been captured
+    // (the same client-triggerable signals the scope engine itself keys off of) — never a permanent
+    // blocker on an ordinary rapid/business site that will never be Custom Platform. Requires
+    // wants_native_checkout itself to be true (not just any commerce_tax_shipping_inventory value)
+    // — mirrors the same "abstract want alone is not enough evidence" rule already established for
+    // commerce_tax_shipping_inventory's own scopeEscalationSignal above.
+    applicabilityCondition: (ctx) => ctx.hasCapturedValue("wants_user_accounts", true) || ctx.hasCapturedValue("wants_customer_dashboard", true) || (ctx.hasCapturedValue("wants_native_checkout", true) && ctx.hasCapturedValue("commerce_tax_shipping_inventory")),
+    priority: 1, mayBlockBuild: true, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
   },
 ];
 

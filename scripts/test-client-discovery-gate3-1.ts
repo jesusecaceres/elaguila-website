@@ -136,7 +136,7 @@ check("not_applicable rows get 'none' — no action rendered at all", () => {
 // 6-8. Choice renderer / catalog options
 // ===============================================================================================
 console.log("\nChoice renderer:");
-const CHOICE_FIELD_KEYS = ["copy_ownership", "primary_cta_type", "existing_website_transition_plan", "wants_native_checkout", "translation_ownership", "maintenance_responsibility", "restaurant_menu_source"];
+const CHOICE_FIELD_KEYS = ["copy_ownership", "primary_cta_type", "existing_website_transition_plan", "wants_native_checkout", "translation_ownership", "maintenance_responsibility", "restaurant_menu_source", "existing_website_platform"];
 check("6. every catalog 'choice' requirement carries real option metadata (never falls back to free text)", () => {
   const choiceReqs = WEBSITE_REQUIREMENTS.filter((r) => r.valueType === "choice");
   assert.equal(choiceReqs.length, CHOICE_FIELD_KEYS.length);

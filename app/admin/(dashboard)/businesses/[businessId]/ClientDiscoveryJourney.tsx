@@ -2,13 +2,16 @@ import Link from "next/link";
 import {
   AddProjectIntentForm,
   AnswerRowActions,
+  ApproveArchitectureButton,
   CaptureAnswerForm,
   ConsentToggle,
   DiscoveryAssetUpload,
   DiscoveryStatusButtons,
   IntentStatusButtons,
   LinkMeetingButton,
+  MarkNeedsMoreClientInfoButton,
   MeetingNoteCapture,
+  ModifyArchitectureDecisionForm,
   SendQuestionsToMeetingButton,
   StartDiscoveryForm,
   VisualReferenceForm,
@@ -23,6 +26,7 @@ import {
 } from "@/app/lib/business/projectDiscovery/discoveryEmptyStates";
 import { formatBilingual } from "@/app/lib/business/projectDiscovery/discoveryLabels";
 import {
+  buildArchitectureReviewView,
   buildBeforeYouWrapUpView,
   buildBrandPreferencesView,
   buildLeonixDecisionsView,
@@ -37,6 +41,7 @@ import {
 } from "@/app/lib/business/projectDiscovery/discoveryWorkspaceViewModel";
 import type { RequirementEvaluation, WebsiteReadinessResult, WebsiteScopeSignalResult } from "@/app/lib/business/projectDiscovery/websiteDiscoveryLogic";
 import type { QuestionCandidate } from "@/app/lib/business/projectDiscovery/websiteQuestionEngine";
+import type { WebsiteArchitectureDecisionPacket } from "@/app/lib/business/projectDiscovery/architectureDecisionEngine";
 import type {
   ProjectDiscovery,
   ProjectDiscoveryConsent,
@@ -55,6 +60,10 @@ export interface WebsiteEngineOutput {
   questionsToAskNow: readonly QuestionCandidate[];
   wrapUp: readonly QuestionCandidate[];
   scopeSignals: WebsiteScopeSignalResult;
+  /** The live, always-recomputed recommendation (MD <architecture_output>: deterministic, no hidden AI reasoning). */
+  architectureRecommendation: WebsiteArchitectureDecisionPacket;
+  /** The frozen, staff-approved decision, when one has been persisted — never silently replaced by a later live recommendation drift. */
+  approvedArchitecture: WebsiteArchitectureDecisionPacket | null;
 }
 
 export interface ClientDiscoveryJourneyProps {
@@ -195,9 +204,17 @@ export function ClientDiscoveryJourney(props: ClientDiscoveryJourneyProps) {
       <AssetsReferencesSection businessId={businessId} discoveryId={currentDiscovery.id} sources={sources} canCreate={canCreate} />
       <ConsentSection businessId={businessId} discoveryId={currentDiscovery.id} consents={consents} canManageConsent={canManageConsent} />
 
-      {website ? (
+      {website && selectedIntent ? (
         <>
           <ScopeWarningSection scopeSignals={website.scopeSignals} />
+          <WebsiteArchitectureReviewSection
+            businessId={businessId}
+            discoveryId={currentDiscovery.id}
+            intentId={selectedIntent.id}
+            recommendation={website.architectureRecommendation}
+            approved={website.approvedArchitecture}
+            canReview={canReview}
+          />
           <LeonixDecisionsSection evaluations={website.evaluations} />
         </>
       ) : null}
@@ -557,6 +574,125 @@ function ScopeWarningSection({ scopeSignals }: { scopeSignals: WebsiteScopeSigna
         {view.reasons.map((r, i) => <li key={i} className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-amber-900">{formatBilingual(r)}</li>)}
       </ul>
       <p className="mt-2 text-xs text-amber-900">{formatBilingual(view.message)}</p>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Gate 4 — Revisión de arquitectura del sitio web / Website Architecture Review (MD
+// <architecture_review_ui>). Extends the Leonix Decisions area with the full deterministic stack
+// recommendation. Shows the APPROVED decision (frozen) when one exists; otherwise the live
+// recommendation with Approve/Modify/Needs-More-Info actions. Never shows rule-engine internals or
+// vendor propaganda — every row is a human bilingual label built by buildArchitectureReviewView().
+// ---------------------------------------------------------------------------
+function ArchitectureStackTable({ view }: { view: ReturnType<typeof buildArchitectureReviewView> }) {
+  return (
+    <ul className="mt-2 space-y-1">
+      {view.stackRows.map((row, i) => (
+        <li key={i} className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F0E9DA] py-1 text-sm">
+          <span className="text-[#1E1810]">{row.labelEs} / {row.labelEn}: <span className="font-semibold">{row.platformName.es} / {row.platformName.en}</span></span>
+          <span className="flex items-center gap-1">
+            <span className="rounded-full bg-[#EDE6D6] px-2 py-0.5 text-[10px] font-bold text-[#3D3428]">{formatBilingual(row.statusLabel)}</span>
+            {row.costLabel ? <span className="rounded-full bg-[#FAF7F2] px-2 py-0.5 text-[10px] text-[#8A6B1F]">{formatBilingual(row.costLabel)}</span> : null}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function WebsiteArchitectureReviewSection({
+  businessId, discoveryId, intentId, recommendation, approved, canReview,
+}: {
+  businessId: string; discoveryId: string; intentId: string;
+  recommendation: WebsiteArchitectureDecisionPacket; approved: WebsiteArchitectureDecisionPacket | null; canReview: boolean;
+}) {
+  const activePacket = approved ?? recommendation;
+  const view = buildArchitectureReviewView(activePacket);
+  const isCustomPlatform = activePacket.architectureClass === "CUSTOM_PLATFORM";
+
+  return (
+    <section className={CARD}>
+      <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Revisión de arquitectura del sitio web / Website Architecture Review</h3>
+
+      {isCustomPlatform ? (
+        <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-3">
+          <p className="text-xs font-bold uppercase tracking-wide text-amber-900">Se requiere revisión de plataforma personalizada / Custom Platform Review Required</p>
+          <p className="mt-1 text-xs text-amber-900">
+            Requerido antes de estar listo para el blueprint: revisión de arquitectura, revisión de alcance, revisión de cronograma, y estado de aprobación comercial.
+            No existe todavía un dominio canónico de aprobación comercial en este sistema — esto se reporta con honestidad como un bloqueador pendiente, nunca se inventa un precio.
+            / Required before blueprint-ready: architecture review, scope review, timeline review, and commercial approval status. No canonical commercial-approval domain exists in this system yet —
+            this is truthfully reported as a pending blocker, never a fabricated price.
+          </p>
+        </div>
+      ) : null}
+
+      <p className="mt-2 text-sm font-semibold text-[#1E1810]">
+        {approved ? "Decisión aprobada / Approved decision" : "Recomendación / Recommendation"}: {formatBilingual(view.architectureClassLabel)}
+        {view.preserveExistingPlatformName ? ` — ${view.preserveExistingPlatformName.es} / ${view.preserveExistingPlatformName.en}` : ""}
+      </p>
+      {view.isOverride ? (
+        <p className="mt-1 text-[11px] text-[#9A9184]">Anulación del revisor / Reviewer override: {view.overrideReasonEs} / {view.overrideReasonEn}</p>
+      ) : null}
+
+      <p className="mt-3 text-[10px] font-bold uppercase tracking-wide text-[#7A1E2C]">Tecnología recomendada / Recommended Stack</p>
+      <ArchitectureStackTable view={view} />
+
+      <p className="mt-3 text-[10px] font-bold uppercase tracking-wide text-[#7A1E2C]">Dominio / DNS</p>
+      <p className="mt-1 text-sm text-[#3D3428]">{view.domainDnsMessageEs} / {view.domainDnsMessageEn}</p>
+      {view.domainDnsIsBlocker ? <p className="mt-1 text-xs font-semibold text-red-700">Se requiere acción del cliente / Client Action Required</p> : null}
+
+      <details className="mt-3">
+        <summary className="cursor-pointer text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Por qué encaja esto / Why This Fits</summary>
+        <ul className="mt-1 list-disc space-y-1 pl-4 text-xs text-[#6B5E47]">
+          {view.reasonsEs.map((r, i) => <li key={i}>{r} / {view.reasonsEn[i]}</li>)}
+        </ul>
+      </details>
+
+      <p className="mt-3 text-[10px] font-bold uppercase tracking-wide text-[#7A1E2C]">Servicios recurrentes / Recurring Services</p>
+      {view.recurringServices.length === 0 ? (
+        <p className="mt-1 text-xs text-[#6B5E47]">Ninguno. / None.</p>
+      ) : (
+        <ul className="mt-1 flex flex-wrap gap-1">
+          {view.recurringServices.map((s, i) => (
+            <li key={i} className="rounded-full bg-[#FAF7F2] px-2 py-0.5 text-[10px] text-[#8A6B1F]">{s.platformName.es} / {s.platformName.en} — {formatBilingual(s.costLabel)}</li>
+          ))}
+        </ul>
+      )}
+
+      <p className="mt-3 text-[10px] font-bold uppercase tracking-wide text-[#7A1E2C]">Complejidad de infraestructura / Infrastructure Complexity</p>
+      <p className="mt-1 text-sm font-semibold text-[#1E1810]">{formatBilingual(view.complexityLabel)}</p>
+      <p className="text-xs text-[#6B5E47]">{view.complexityReasonEs} / {view.complexityReasonEn}</p>
+
+      <p className="mt-3 text-[10px] font-bold uppercase tracking-wide text-[#7A1E2C]">Propiedad del cliente / facturación / Client Ownership / Billing</p>
+      {view.ownership.length === 0 ? (
+        <p className="mt-1 text-xs text-[#6B5E47]">No hay cuentas permanentes nuevas en esta recomendación. / No new permanent accounts in this recommendation.</p>
+      ) : (
+        <ul className="mt-1 space-y-1">
+          {view.ownership.map((o, i) => (
+            <li key={i} className="text-xs text-[#3D3428]">
+              {o.platformName.es} / {o.platformName.en} — {formatBilingual(o.ownerLabel)} · {formatBilingual(o.accessStatusLabel)}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {view.unresolvedBlockers.length > 0 ? (
+        <>
+          <p className="mt-3 text-[10px] font-bold uppercase tracking-wide text-red-700">Riesgos / elementos abiertos / Risks / Open Items</p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-red-700">
+            {view.unresolvedBlockers.map((b, i) => <li key={i}>{b.replace(/_/g, " ")}</li>)}
+          </ul>
+        </>
+      ) : null}
+
+      {canReview ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <ApproveArchitectureButton businessId={businessId} discoveryId={discoveryId} intentId={intentId} />
+          <ModifyArchitectureDecisionForm businessId={businessId} discoveryId={discoveryId} intentId={intentId} />
+          <MarkNeedsMoreClientInfoButton businessId={businessId} discoveryId={discoveryId} />
+        </div>
+      ) : null}
     </section>
   );
 }
