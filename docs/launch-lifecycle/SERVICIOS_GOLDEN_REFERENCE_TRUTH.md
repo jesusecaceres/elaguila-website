@@ -497,12 +497,15 @@ Consequence, on a real paid Servicios checkout:
    record carries a verified-intro redemption **and** `billing_mode = 'monthly_subscription'`.
    Not a tolerance window, not a percentage recomputed at webhook time.
 
-Proven by `scripts/verify-servicios-golden-reference-promo-path.ts` (25/25), including negative
+Proven by `scripts/verify-servicios-golden-reference-promo-path.ts` (24/24), including negative
 controls: a discounted amount with no redemption attached is still rejected; a `one_time` record
 never receives the allowance; a zero/absent recorded discount grants no allowance; and
 `33914` / `33916` are still rejected.
 
 ### H.2 P1 — CLOSED THIS GATE
+
+> **Correction (see §P.6):** Save was not "built-not-wired" — it had been deliberately removed from
+> the hero and hub on 2026-07-15 (`a69e7600`). Reinstatement follows the newer owner direction.
 
 **`Servicios had no working Save`.** The Guardados dashboard already resolved
 `servicios_public_listings` in three places, `serviciosSavedListingIdentity.ts` existed, and
@@ -749,7 +752,7 @@ remain fully eligible.
 | P0 blockers | **1 found, 1 closed** |
 | P1 blockers | **1 found, 1 closed** |
 | Typecheck | **PASS** (`tsc --noEmit`, full project) |
-| Verifiers | `verify-servicios-golden-reference-promo-path` 25/25 · `verify-servicios-gate3-source-readiness` 97/97 |
+| Verifiers | `verify-servicios-golden-reference-promo-path` 24/24 · `verify-servicios-gate3-source-readiness` 97/97 |
 | Database mutated | **NO** |
 | Vercel / Stripe / Google mutated | **NO** |
 | SMS sent | **NO** |
@@ -1151,3 +1154,114 @@ newsletter verification is deliberately **not** an eligibility authority (§O.4)
 (parameterized amounts, hardcoded "Launch 25" wording) and therefore **retained and labelled** in
 -file as the layout for a future admin-issued campaign email. It must never be used for the
 verified-intro benefit, which mints no code.
+
+---
+
+## P. P7 BLOCKER REPAIR — SOURCE CLOSED, RUNTIME PENDING
+
+**Gates:** `SERVICIOS-P7-BLOCKER-REPAIR-01` (implementation) · `SERVICIOS-P7-REPAIR-INTEGRATION-1A`
+(integration validation) · **Date:** 2026-09-10
+
+### P.1 How these were found
+
+The absolute pre-QA audit (`SERVICIOS-FOUNDATIONAL-QA-GREEN-LIGHT-ABSOLUTE-01`) returned
+**FOUNDATIONAL QA GREEN LIGHT: NO** with five launch-critical defects, each proven against source at
+`a587263d` and the live Leonix Media database. The existing verifier suite was green on all five.
+
+### P.2 Defects and closure
+
+| # | Defect | Commit | Source status |
+| --- | --- | --- | --- |
+| B1 | Publish route treated a NULL `owner_user_id` as permission → any signed-in user could overwrite an unowned published listing and take ownership (57 of 103 live rows were exposed) | `dea5d0b3` | **CLOSED** |
+| B2 | pause → subscription cancelled/failed → Resume or edit-save republished for free, indefinitely | `dea5d0b3` | **CLOSED** |
+| B3 | Owner saves could move `suspended` / `rejected` rows to `pending_payment`, defeating the webhook's own refusal | `dea5d0b3` | **CLOSED** |
+| B4 | Coupons/offers INCLUDED in $399 were gated on the retired `servicios_offers_addon` key at the publish strip, the public detail page and the my-listings API; the dashboard "enable" action returned a false success | `961fa93c` | **CLOSED** |
+| B5 | "Hide my exact address" honoured only at render; the street stayed in public `profile_json` behind a `USING (true)` read policy | `404a5ea2` | **CLOSED in source; DB half prepared, NOT applied** |
+
+### P.3 Locked doctrine (golden reference — carry to later categories)
+
+- **Ownership (B1).** One rule, `isServiciosListingOwner()`: the row has an owner AND it is the
+  authenticated actor. A NULL owner is never permission; unowned historical rows are reachable only
+  through admin/ownership assignment. Saves never write `owner_user_id`.
+- **Paid reactivation (B2).** Visibility returns only through Resume, which requires the canonical base
+  right: `resolveCategoryListingPlan` (live base entitlement + grace/suspended overlay) plus the newest
+  subscription record not `canceled`/`suspended`. Grace is honoured. Editing a paused listing keeps it
+  paused. The shared lifecycle is unchanged.
+- **Leonix authority (B3) — FAIL CLOSED, OWNER-APPROVED.** A customer can never self-reactivate a
+  `suspended` or `rejected` row, on any save or Resume path. The listing-level `suspended_reason` cannot
+  safely separate a chargeback from an ordinary payment lapse (the chargeback path stamps the same
+  `'payment'` value), so there is **no customer self-service exception**. Recovery authority is the
+  Revenue OS lifecycle where explicitly authorized (`liftPaymentSuspension` on `invoice.paid` / dispute
+  won) and admin/operator restoration where required. A self-service re-subscribe path waits for a
+  future dedicated suspension-reason architecture.
+- **Included offers (B4).** The single authority everywhere is
+  `resolveBusinessToolsAccess({ capability: "coupons_offers" })` — publish strip, public render,
+  owner dashboard API, dashboard UI and the enable route. Historical add-on holders still qualify via
+  the plan policy's legacy branch. A first (pending-payment) save keeps its offers because that row
+  can only go public through a paid `servicios_base_monthly`, which includes the capability. The
+  retired add-on is never sold.
+- **Address privacy (B5).** A public/private split at the single save boundary: when the owner hides
+  the address, street, suite and Google place id leave `profile_json` for the service-role-only
+  `private_contact` column; city / region / country / postal code stay public. The owner API
+  (`my-listing`) restores them for edit hydration and listing-bound Preview. The public detail renders
+  identically.
+
+### P.4 Migration — prepared, NOT applied
+
+`supabase/migrations/20260910210000_servicios_public_listings_read_privacy.sql`
+
+- adds `private_contact` (never granted to anon/authenticated);
+- replaces the `USING (true)` all-roles policy with published rows for anon + authenticated, plus own
+  rows for an authenticated owner (`owner_user_id = auth.uid()`);
+- revokes table-level SELECT and grants column-level SELECT: anon gets the public contract only (no
+  `owner_user_id`); authenticated additionally gets `owner_user_id`; neither gets moderation,
+  suspension, republish-audit or private columns;
+- idempotent backfill copying any hidden-address data into `private_contact` in the same statement
+  that removes it from `profile_json` (zero rows qualify today).
+
+**Deploy order.** The code is safe before the migration (a shown-address save never touches the new
+column; a hidden-address save fails closed). Apply the migration → deploy → re-run the idempotent
+backfill once to catch any hidden-address row the previous build saved in between.
+
+**Remote application requires explicit owner authorization.**
+
+### P.5 Validation (integration gate)
+
+| Check | Result |
+| --- | --- |
+| Canonical full typecheck `NODE_OPTIONS=--max-old-space-size=7168 npm run typecheck` | **PASS** — exit 0, 0 errors |
+| `verify-servicios-publish-authority` (B1/B2/B3) | 37/37 |
+| `verify-servicios-included-offers` (B4) | 29/29 |
+| `verify-servicios-address-privacy` (B5) | 30/30 |
+| `verify-servicios-golden-reference-promo-path` (15% verified intro) | 24/24 |
+| `verify-servicios-gate1-lifecycle` / `gate2-discovery` / `gate3-source-readiness` | 20/20 · 19/19 · 97/97 |
+| `verify-servicios-p0b-coupons-offers-persistence-preview-public-output` | PASS (now covers the server gate) |
+| Protected systems (pricing matrix, checkout/webhook routes, fulfillment, Stripe, verified-intro, subscription lifecycle, Saved Search, analytics, media, render library) | **byte-identical** to `a587263d` |
+
+Still-red broader verifiers — none is a Servicios regression:
+
+| Verifier | Classification |
+| --- | --- |
+| `verify-servicios-preview-published-parity` ("hub row: Save removed") | stale test doctrine — Save reinstated before this repair set |
+| `verify-servicios-p0c-dashboard-addon-only-stripe-edit-route-parity` (remaining checks) | stale test doctrine — retired dashboard Stripe add-on flow |
+| `verify-owner-dashboard-global-cta-standard-01` | stale test doctrine — Restaurante add-on CTA retired by `14a2c2ca` |
+| `verify-servicios-edit-route-restaurantes-parity-hard-fix-01`, `verify-owner-dashboard-global-edit-hydration-standard-01` | stale via chain into the verifier above; own Servicios checks pass |
+| `smoke-active-categories-revenue-os-checkpoint-activation-matrix-01` | unrelated — Bienes assertion |
+| `gate-i13a-launch-readiness-selftest` | unrelated — Comida Local assertion; its Servicios checks pass |
+| `verify-package-e-e2-user-dashboard-command-center` (Gate 7) | unrelated — `dashboard/page.tsx` |
+| `verify-dashboard-category-edit-hydration-01` | unrelated — dashboard label copy; its my-listing check passes |
+
+### P.6 Corrections to earlier records
+
+- **Save (§H.2):** it had been deliberately removed from the hero and hub on 2026-07-15 (`a69e7600`),
+  not "built-not-wired". Its reinstatement follows the newer owner direction.
+- **B4 scope:** the audit named only the publish strip; the public detail page and my-listings API were
+  gated on the same retired key. The execution verifier found them.
+- **Counts:** the promo-path verifier defines 24 checks (earlier records said 25/25).
+
+### P.7 Status
+
+- **Source:** B1–B5 closed.
+- **Database:** B5 migration pending owner authorization.
+- **Runtime:** full Servicios runtime certification (§J, plus regressions R1–R5 for B1–B5) still pending.
+- **Temporary probe (§N):** remains deployed until runtime certification completes, then is removed.
