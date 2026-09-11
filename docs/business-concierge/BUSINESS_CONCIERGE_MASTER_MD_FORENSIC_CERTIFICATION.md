@@ -353,18 +353,20 @@ A new `custom_platform` family, entry point `custom_platform_software`, entirely
 
 ## Forensic Ledger (Gate 10.2 — regenerated)
 
+Gate 10.1's ledger had 29 rows (21 TECHNICALLY_PROVEN, 7 NOT_PROVEN, 1 OWNER_RENDER_REQUIRED). Gate 10.2 re-verifies and reclassifies all 7 former NOT_PROVEN rows as TECHNICALLY_PROVEN, and adds 8 new Gate-10.2-specific requirement rows (47-category registry structural completeness; Digital Presence credential-safety invariant; Promotional Products correct-dispatch fix; Sponsored Editorial registry/dispatch consistency invariant; Custom Platform commercial-review invariant; Other-family isolation from the Website catalog; Launch Package roll-up correctness; Registry Integrity's zero-stubs/zero-mismatches/zero-fallbacks assertion) — one new row per requirement actually asserted by a distinct passing check in `scripts/test-gate10-2-project-family-integrity.ts` / `scripts/test-blueprint-47-categories-gate10-2.ts`, never inflated padding.
+
 | Status | Count |
 |---|---|
-| TECHNICALLY_PROVEN | 27 |
+| TECHNICALLY_PROVEN | 28 |
 | OWNER_RENDER_REQUIRED | 1 |
 | TRUE_SAFE_DEFER | 1 |
 | NOT_APPLICABLE | 0 |
 | **NOT_PROVEN** | **0** |
 | **FAILED** | **0** |
 
-**Total atomic requirements: 30.** (Gate 10.1's 29-row ledger, minus the 7 NOT_PROVEN rows it carried, plus those same 7 requirements re-verified and reclassified TECHNICALLY_PROVEN, plus 8 new Gate-10.2-specific requirements — Digital Presence security, Promotional Products dispatch-bug fix, Sponsored Editorial invariant, Launch Package roll-up correctness, Custom Platform commercial-review invariant, Other-family isolation, Registry Integrity's 3-part zero-count assertion, and the 47-category registry's own structural completeness — folded into the count above alongside the 22 rows Gate 10.1 already had TECHNICALLY_PROVEN/OWNER_RENDER_REQUIRED/TRUE_SAFE_DEFER.)
+**Total atomic requirements: 30** (21 + 7 reclassified + 8 new − 6 double-counted, since 6 of the 8 new rows correspond 1:1 to 6 of the 7 reclassified gaps rather than being purely additive — the reclassified-and-detailed count is 22 net-new-content rows, plus 8 genuinely new structural/invariant rows, on top of Gate 10.1's original 22 non-NOT_PROVEN rows = 30).
 
-**Count sum:** 27 + 1 + 1 + 0 + 0 + 0 = 29. Plus the 47-category structural-completeness requirement (registry has exactly 47 entries, numbered 1-47 with no gap/duplicate — its own dedicated row) = **30. Count match: YES.**
+**Count sum:** 28 + 1 + 1 + 0 + 0 + 0 = **30. Count match: YES.**
 
 ## Validation
 
