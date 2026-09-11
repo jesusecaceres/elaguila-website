@@ -113,6 +113,17 @@ CREATE TABLE IF NOT EXISTS public.business_project_discovery_intents (
   title text NOT NULL CHECK (char_length(btrim(title)) > 0),
   status text NOT NULL DEFAULT 'candidate' CHECK (status IN ('candidate', 'confirmed', 'declined', 'converted_to_project')),
 
+  -- Gate 2 cleanup: every other table in this domain (discoveries, items, sources, consents)
+  -- carries real creator attribution on the row itself, not only in the append-only event log.
+  -- Intents were the one exception at Gate 1 — closed here for consistency, same shape as
+  -- business_project_discoveries' own actor columns (never 'system': an intent, like a discovery,
+  -- is always something a real person identified, not an automated process).
+  created_actor_type text NOT NULL CHECK (created_actor_type IN ('staff', 'owner')),
+  created_by_roster_id uuid NULL REFERENCES public.admin_team_members(id),
+  created_by_auth_user_id uuid NOT NULL,
+  created_by_email text NOT NULL,
+  created_by_role text NOT NULL,
+
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
 
@@ -122,6 +133,10 @@ CREATE TABLE IF NOT EXISTS public.business_project_discovery_intents (
     REFERENCES public.business_project_discoveries(id, business_id) ON DELETE CASCADE,
   CONSTRAINT business_project_discovery_intents_other_label_chk CHECK (
     project_type <> 'other' OR other_label IS NOT NULL
+  ),
+  CONSTRAINT business_project_discovery_intents_actor_chk CHECK (
+    (created_actor_type = 'staff' AND created_by_roster_id IS NOT NULL) OR
+    (created_actor_type = 'owner' AND created_by_roster_id IS NULL)
   )
 );
 

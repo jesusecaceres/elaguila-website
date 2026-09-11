@@ -219,6 +219,21 @@ check("11b. Migration file exists and is the only new migration this gate added"
   assert.ok(existsSync(path.join(ROOT, "supabase/migrations/20260911120000_client_project_discovery_foundation.sql")));
 });
 
+// --- 12. Gate 2 cleanup — intent creator attribution (was the one asymmetric table at Gate 1) ---
+check("12a. business_project_discovery_intents now carries real creator attribution, matching every other table in this domain", () => {
+  const intentsTableSql = migration.slice(migration.indexOf("CREATE TABLE IF NOT EXISTS public.business_project_discovery_intents"), migration.indexOf("CREATE INDEX IF NOT EXISTS business_project_discovery_intents_discovery_idx"));
+  assert.ok(intentsTableSql.includes("created_actor_type text NOT NULL CHECK (created_actor_type IN ('staff', 'owner'))"), "intents must carry created_actor_type, matching discoveries");
+  assert.ok(intentsTableSql.includes("created_by_roster_id uuid NULL REFERENCES public.admin_team_members(id)"));
+  assert.ok(intentsTableSql.includes("business_project_discovery_intents_actor_chk"), "intents must enforce the same staff/owner actor-atomicity CHECK as discoveries");
+});
+check("12b. createProjectDiscoveryIntent requires a real staff/owner actor and persists it on the row itself, not only in the event log", () => {
+  const idx = repository.indexOf("export async function createProjectDiscoveryIntent(");
+  const fnSlice = repository.slice(idx, idx + 1200);
+  assert.ok(/actor:\s*Extract<ProjectDiscoveryActor/.test(fnSlice), "createProjectDiscoveryIntent must require a staff/owner actor, not a bare ProjectDiscoveryActor (never 'system')");
+  assert.ok(fnSlice.includes("created_actor_type: actor.type"));
+  assert.ok(fnSlice.includes("created_by_roster_id: actorRosterId(actor)"));
+});
+
 console.log(`\n${passed} check(s) passed.`);
 if (process.exitCode) {
   console.error("\nSOME CHECKS FAILED.");

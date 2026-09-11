@@ -103,6 +103,11 @@ export interface ProjectDiscoveryIntent {
   otherLabel: string | null;
   title: string;
   status: ProjectDiscoveryIntentStatus;
+  createdActorType: "staff" | "owner";
+  createdByRosterId: string | null;
+  createdByAuthUserId: string;
+  createdByEmail: string;
+  createdByRole: string;
   createdAt: string;
   updatedAt: string;
 }

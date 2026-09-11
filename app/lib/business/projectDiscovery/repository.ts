@@ -250,7 +250,8 @@ export async function updateProjectDiscoveryStatus(
 // =================================================================================================
 // Project intents (multi-project foundation)
 // =================================================================================================
-const INTENT_COLUMNS = "id, business_id, discovery_id, project_type, project_subtype, other_label, title, status, created_at, updated_at";
+const INTENT_COLUMNS =
+  "id, business_id, discovery_id, project_type, project_subtype, other_label, title, status, created_actor_type, created_by_roster_id, created_by_auth_user_id, created_by_email, created_by_role, created_at, updated_at";
 
 function mapIntentRow(row: Record<string, unknown>): ProjectDiscoveryIntent {
   return {
@@ -262,6 +263,11 @@ function mapIntentRow(row: Record<string, unknown>): ProjectDiscoveryIntent {
     otherLabel: (row.other_label as string | null) ?? null,
     title: String(row.title),
     status: row.status as ProjectDiscoveryIntentStatus,
+    createdActorType: row.created_actor_type as "staff" | "owner",
+    createdByRosterId: (row.created_by_roster_id as string | null) ?? null,
+    createdByAuthUserId: String(row.created_by_auth_user_id),
+    createdByEmail: String(row.created_by_email),
+    createdByRole: String(row.created_by_role),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -269,7 +275,10 @@ function mapIntentRow(row: Record<string, unknown>): ProjectDiscoveryIntent {
 
 export type CreateIntentResult = { ok: true; intent: ProjectDiscoveryIntent } | { ok: false; reason: "invalid_project_type" | "other_label_required" | "insert_failed" };
 
-export async function createProjectDiscoveryIntent(input: CreateProjectDiscoveryIntentInput, actor: ProjectDiscoveryActor): Promise<CreateIntentResult> {
+export async function createProjectDiscoveryIntent(
+  input: CreateProjectDiscoveryIntentInput,
+  actor: Extract<ProjectDiscoveryActor, { type: "staff" | "owner" }>,
+): Promise<CreateIntentResult> {
   if (!isKnownProjectType(input.projectType)) return { ok: false, reason: "invalid_project_type" };
   if (input.projectType === "other" && !input.otherLabel?.trim()) return { ok: false, reason: "other_label_required" };
 
@@ -283,6 +292,11 @@ export async function createProjectDiscoveryIntent(input: CreateProjectDiscovery
       project_subtype: input.projectSubtype ?? null,
       other_label: input.otherLabel ?? null,
       title: input.title,
+      created_actor_type: actor.type,
+      created_by_roster_id: actorRosterId(actor),
+      created_by_auth_user_id: actor.authUserId,
+      created_by_email: actor.email,
+      created_by_role: actorRole(actor),
     })
     .select(INTENT_COLUMNS)
     .single();
