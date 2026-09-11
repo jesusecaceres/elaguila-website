@@ -1833,29 +1833,31 @@ requirement in this book has a real, source-verified implementation. No undiscov
 remains — every open item is one of: a remote migration awaiting owner approval, a runtime/browser
 proof step, an external provider dependency, or an explicit unresolved business decision.
 
-**READY_FOR_PRODUCTION: NO.** Three additive migrations are unapplied
-(`business_external_links_foundation`, `admin_audit_log_actor_attribution`,
-`executives_linked_roster_id`); the owner's real per-person roster/auth identity is unconfirmed
-from source (`OWNER_RUNTIME_PROOF_REQUIRED`); and one real pre-production hardening item remains
-open — `POST /api/admin/revenue-os/manual-payments` and `POST /api/revenue-os/admin/subscription-sweep`
-authorize only via `requireLeonixAdminPermission("can_view_payments")`, which is a no-op unless
-`ADMIN_ENFORCE_ROSTER_PERMISSIONS=1` (confirmed unset) — meaning today any authenticated Admin
-session, regardless of role, can call these two money-adjacent write routes. This predates and was
-deliberately not expanded by the Final Launch-Truth Burndown gate (per explicit owner instruction
-not to broaden money-moving authority in that gate), but it must be resolved — by turning on roster
-permission enforcement, or by adding an explicit always-on owner/permission check to these two
-routes specifically — before production launch.
+**UPDATE (2026-09-10, Final Pre-QA Security Hardening Gate)**: the money-adjacent write-route
+fail-open finding is now CLOSED — `POST /api/admin/revenue-os/manual-payments` and
+`POST /api/revenue-os/admin/subscription-sweep` now authorize via a new, always-on
+`requireRevenueProtectedWriteAccess()` guard (`app/admin/_lib/adminAccessControl.ts`) that never
+references `ADMIN_ENFORCE_ROSTER_PERMISSIONS`, re-verifies the full staff identity chain on every
+request, requires role exactly `super_admin`, and explicitly denies the shared bootstrap session.
+`can_view_payments` (a READ permission) is no longer consulted by either write route. The owner's
+real per-person roster/Auth identity is also now CLOSED — the owner has provided direct runtime
+evidence (`admin_team_members.role = super_admin`, `is_active = true`,
+`auth_user_id = d29bc786-bc38-49c1-bbc4-d97b39c3e493`, matching the Supabase Auth UID exactly) —
+`OWNER_RUNTIME_PROOF_REQUIRED` no longer applies. See `ADMIN_OS_PROGRESS.md`'s "FINAL PRE-QA
+SECURITY HARDENING GATE" section for full detail.
+
+**READY_FOR_PRODUCTION: NO** (unchanged verdict, narrower remaining scope). Three additive
+migrations are still unapplied (`business_external_links_foundation`,
+`admin_audit_log_actor_attribution`, `executives_linked_roster_id`) and several items remain
+`NEEDS_RUNTIME_PROOF` (browser/live-data QA). No `MUST_FIX_BEFORE_PRODUCTION` item remains open.
 
 **FINAL_PROJECT_VERDICT: NOT_READY_FOR_LEO_INTEGRATION** — gated on `READY_FOR_PRODUCTION: NO`
-above, per this book's own sequencing (Blueprint → QA → Production → LEO). All six §32 Required
-Independence Verdicts are individually YES (Admin is independently operable, staff-continuity
-ready, Guide-complete, Company-Search-complete, break-glass-defined, and past/present/future truth
-covered where schema supports it) — the blocker is production-readiness, not blueprint
-completeness or independence.
+above (pending migrations + runtime/browser proof only, no known local defect), per this book's own
+sequencing (Blueprint → QA → Production → LEO). All six §32 Required Independence Verdicts are
+individually YES.
 
-**NEXT_PHASE: FINAL BROWSER / OWNER QA + RELEASE CERTIFICATION**, in parallel with owner approval
-of the three pending migrations and a dedicated hardening pass on the two money-adjacent write
-routes named above.
+**NEXT_PHASE: FINAL BROWSER / OWNER QA**, in parallel with owner approval of the three pending
+migrations.
 
 ---
 
@@ -1864,3 +1866,4 @@ routes named above.
 - **V1** — original Admin OS Master Operating Book (base commit `a0a4783971b42ea1d71ab2602d4720d0d590baf8`): six-domain ownership model, Operator Truth/Truth-State/CTA/Governance contracts, canonical entity relationships, per-domain contracts (Moderation/Priority/Business 360/Global Search/Website/Marketplace/Revenue/People/System Health), Daily Owner Questions, 30-Client Scale Test, Cable Map schema, 15-point Final Launch Certification.
 - **V2 (adopted `d458cd1e6fd998e1eb36c0275004fd31f6b1ee81`)** — adds the Constitutional North Star and Admin Independence Doctrine (§0A), Human Operability and Business Continuity (§0B), Admin Guide / Operations Manual Doctrine with the Company-Search-vs-Admin-Guide-Search distinction (§0C), Past/Present/Future Company Memory (§0D), Role-Based Operability (§0E), Owner Identity and Break-Glass Access (§0F), Staff Lifecycle and Staff Contact Identity (§0G), Operational Continuity and Manual Recovery (§0H), Future-System Admission Contract (§0I), the LEO Failure Test (§0J), the Permanent Book-Maintenance Rule (§33A), the Human-First Operating Principle (§33B), and expands Final Launch Certification to 26 points plus six Required Independence Verdicts (§32). V1's per-domain contracts (§1–§31, §33–§34) are retained as still-governing detail; V2's new sections take precedence wherever they add or tighten a requirement.
 - **§35 added (2026-09-10)** — records the Final Master Blueprint Completion Audit verdict: `BLUEPRINT_IMPLEMENTATION_COMPLETE: YES`, `READY_FOR_PRODUCTION: NO` (3 pending migrations, owner runtime-identity proof, and a money-adjacent write-route hardening item), `FINAL_PROJECT_VERDICT: NOT_READY_FOR_LEO_INTEGRATION`.
+- **§35 updated (2026-09-10, Final Pre-QA Security Hardening Gate)** — closes 2 of the 3 items §35 originally listed: the manual-payments/subscription-sweep write-route fail-open (new always-on `requireRevenueProtectedWriteAccess()` guard) and the owner runtime-identity proof (owner-provided evidence: `admin_team_members.role = super_admin`, `auth_user_id` matches Supabase Auth UID exactly). Only the 3 pending migrations and standard runtime/browser QA remain before `READY_FOR_PRODUCTION`.

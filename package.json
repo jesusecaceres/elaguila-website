@@ -29,6 +29,7 @@
     "verify:admin-password-recovery": "npx tsx scripts/verify-admin-password-recovery-01.ts",
     "verify:launch-truth": "npx tsx scripts/verify-launch-truth-01.ts",
     "verify:launch-truth-final-burndown": "npx tsx scripts/verify-launch-truth-final-burndown-01.ts",
+    "verify:revenue-write-security-hardening": "npx tsx scripts/verify-revenue-write-security-hardening-01.ts",
     "verify:living-business-book": "npx tsx scripts/verify-living-business-book-01.ts",
     "verify:business-health-map": "npx tsx scripts/verify-business-health-map-01.ts",
     "verify:business-learning-center": "npx tsx scripts/verify-business-learning-center-01.ts",

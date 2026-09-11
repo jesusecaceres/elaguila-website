@@ -28,6 +28,9 @@ import { getAdminSupabase, requireAdminCookie } from "@/app/lib/supabase/server"
 import {
   getAdminAuthUserIdFromCookies,
   getAdminOperatorEmailFromCookies,
+  isAdminBootstrapSession,
+  lookupActiveAdminRosterByAuthUserId,
+  lookupAuthUserById,
 } from "@/app/lib/supabase/adminSession";
 import type { AdminPermissionKey, AdminTeamRole } from "@/app/admin/_lib/teamTypes";
 import { ADMIN_LEADS_PROMO_INBOX_HREF } from "@/app/admin/_lib/adminNavOps";
@@ -144,6 +147,100 @@ export function canManageOwnPackageEntitlements(role: NormalizedAdminRole): bool
 export function hasPaymentTrackerAccess(ctx: AdminAccessContext): boolean {
   if (isOwnerAdminRole(ctx.normalizedRole)) return true;
   return ctx.permissions.includes("can_view_payments");
+}
+
+export type RevenueWriteDenialReason =
+  | "no_admin_cookie"
+  | "bootstrap_not_allowed"
+  | "no_operator_identity"
+  | "auth_user_not_found"
+  | "identity_mismatch"
+  | "roster_not_found"
+  | "roster_inactive"
+  | "role_not_permitted";
+
+export type RevenueWriteAccessResult =
+  | { ok: true; actorAuthUserId: string; actorEmail: string; actorRosterId: string }
+  | { ok: false; reason: RevenueWriteDenialReason };
+
+/**
+ * Final Pre-QA Security Hardening Gate (2026-09-10) — the canonical, always-on authorization
+ * boundary for protected, money-adjacent WRITE operations (manual cleared-payment record/
+ * verify/reject/reverse; the admin-session path of the subscription sweep). Never depends on
+ * `ADMIN_ENFORCE_ROSTER_PERMISSIONS` — that env flag does not exist in this function at all.
+ *
+ * `can_view_payments` (see `hasPaymentTrackerAccess` above) is a READ-visibility permission only
+ * and must never be treated as write authority — this function does not consult it.
+ *
+ * Deliberately stricter than `getCurrentAdminAccessContext()`'s `normalizedRole`: that resolver
+ * defaults an unresolved roster lookup to `"owner_admin"` for READ/nav-visibility convenience,
+ * which is the correct product decision for browsing but must never authorize a protected write.
+ * This function requires the full identity chain — mirroring the pattern already proven in
+ * `businessWorkspaceAccess.ts`'s `requireSalesWorkspaceAccess()` — to be genuinely, freshly
+ * re-verified on every call:
+ *   1. the shared bootstrap session is explicitly and permanently REJECTED for these writes (the
+ *      owner must use the real Staff/Team login; break-glass READ access to Revenue is
+ *      unaffected by this — only the write boundary is stricter);
+ *   2. the operator-email/auth-user-id cookie pair must both be present;
+ *   3. the auth-user-id must correspond to a REAL, currently-existing Supabase Auth user (never
+ *      trusted as a bare cookie string);
+ *   4. the cookie's claimed operator email must match that real Auth user's email;
+ *   5. an active `admin_team_members` row must be found BY that exact `auth_user_id` (never by
+ *      email), and its own email column must also agree;
+ *   6. the roster row's `role` must be exactly `"super_admin"`.
+ *
+ * No other role is authorized here. Per this gate's own scope control, no new visible permission
+ * was invented to broaden this to other staff — `super_admin`-only is the deliberate, safest
+ * launch architecture for protected revenue writes until a real write-capability model exists.
+ */
+export async function requireRevenueProtectedWriteAccess(): Promise<RevenueWriteAccessResult> {
+  const jar = await cookies();
+  if (!requireAdminCookie(jar)) {
+    return { ok: false, reason: "no_admin_cookie" };
+  }
+  if (isAdminBootstrapSession(jar)) {
+    return { ok: false, reason: "bootstrap_not_allowed" };
+  }
+
+  const operatorEmail = getAdminOperatorEmailFromCookies(jar);
+  const authUserId = getAdminAuthUserIdFromCookies(jar);
+  if (!operatorEmail || !authUserId) {
+    return { ok: false, reason: "no_operator_identity" };
+  }
+
+  const authUser = await lookupAuthUserById(authUserId);
+  if (!authUser.ok) {
+    return { ok: false, reason: "auth_user_not_found" };
+  }
+  if (authUser.email !== operatorEmail.trim().toLowerCase()) {
+    return { ok: false, reason: "identity_mismatch" };
+  }
+
+  const roster = await lookupActiveAdminRosterByAuthUserId(authUserId);
+  if (!roster.ok) {
+    return { ok: false, reason: roster.code === "inactive" ? "roster_inactive" : "roster_not_found" };
+  }
+  if (roster.email.trim().toLowerCase() !== authUser.email) {
+    return { ok: false, reason: "identity_mismatch" };
+  }
+
+  if (roster.role.trim().toLowerCase() !== "super_admin") {
+    return { ok: false, reason: "role_not_permitted" };
+  }
+
+  return {
+    ok: true,
+    actorAuthUserId: authUserId,
+    actorEmail: authUser.email,
+    actorRosterId: roster.rosterMemberId,
+  };
+}
+
+export function revenueWriteDenialStatusCode(reason: RevenueWriteDenialReason): number {
+  if (reason === "role_not_permitted" || reason === "roster_inactive" || reason === "bootstrap_not_allowed") {
+    return 403;
+  }
+  return 401;
 }
 
 export function canViewAdminUsers(role: NormalizedAdminRole): boolean {

@@ -2771,3 +2771,142 @@ routes.
 No application code was changed by this audit. Two documentation reconciliation edits were made
 (this section; the corresponding Cable Map completeness confirmation and Master Book §35) — no
 `app/`, `supabase/`, or `scripts/` file was touched.
+
+---
+
+## FINAL PRE-QA SECURITY HARDENING GATE — 2026-09-10
+
+Closes the single `MUST_FIX_BEFORE_PRODUCTION` item the Final Master Blueprint Completion Audit
+found: `manual-payments`/`subscription-sweep` write-route authorization fail-open. HEAD at start:
+`a544c1aeaad6693ac6dd785e7bea514791302065` (clean). Revenue was not redesigned, payment authority
+was not broadened, Stripe behavior was not touched — this gate is a narrowly-scoped authorization
+fix.
+
+### Owner runtime identity proof — CLOSED
+
+The owner provided direct runtime evidence (not re-queried this gate, per its own instruction not
+to query or mutate production to reconfirm it): `admin_team_members.chuy@leonixmedia.com` has
+`role = super_admin`, `is_active = true`, `auth_user_id = d29bc786-bc38-49c1-bbc4-d97b39c3e493`,
+exactly matching the Supabase Auth UID. `OWNER_RUNTIME_PROOF_REQUIRED` is retired from every state
+file — see the Master Book §35 update and the Cable Map's new "OWNER IDENTITY RUNTIME PROOF"
+entry.
+
+### Investigation
+
+Read `app/admin/_lib/leonixAdminGate.ts` (confirmed the exact fail-open mechanism: Layer 1 is the
+shared `leonix_admin` cookie only; Layer 2's role/permission check is a no-op unless
+`ADMIN_ENFORCE_ROSTER_PERMISSIONS=1`), `app/admin/_lib/adminAccessControl.ts` (confirmed
+`getCurrentAdminAccessContext()`'s `normalizedRole` intentionally defaults an unresolved roster
+lookup to `"owner_admin"` for READ/nav convenience — correct there, but unsafe to reuse for a write
+guard, since it cannot distinguish a real resolved super_admin from "no roster row found at all"),
+and `app/admin/_lib/businessWorkspaceAccess.ts` (found the exact, already-proven precedent for this
+problem: `requireSalesWorkspaceAccess()` re-verifies a full identity chain — auth-user-id cookie →
+real Supabase Auth user via `auth.admin.getUserById` → active roster row resolved by `auth_user_id`
+→ email cross-check both ways — and its own locked doctrine already states "owner_bootstrap may
+NEVER perform a...write. Not by fabricating a staff roster row, and not by remapping to a fake
+'owner' actor either").
+
+Audited both routes' current action classes before designing the guard:
+- **`manual-payments`**: `record` creates a pending manual-payment row (money-adjacent, not yet
+  money-moved); `verify_cleared` marks it cleared AND grants the paid package entitlement (the
+  highest-impact action — this is where money is treated as received); `reject` marks a pending
+  record rejected (low risk, grants nothing); `reverse` marks a cleared record reversed and flags
+  `requires_admin_review` (revokes/undoes a prior grant — high impact).
+- **`subscription-sweep`**: a system-level backstop that suspends grace-expired subscriptions and
+  reaps stale Stripe event-ledger claims. Has an independent, unaffected machine-key
+  (`x-leonix-sweep-key`, constant-time compare) authorization path for external pinger/CI use,
+  separate from the admin-session path this gate hardens.
+
+Confirmed `can_view_payments` is a READ-visibility permission only (`hasPaymentTrackerAccess()`'s
+own doc comment already says so) and has no existing write-capability meaning anywhere in the
+codebase — there is no appropriate write permission to reuse. Per the task's own instruction, chose
+the safest launch architecture (**owner/`super_admin` only**) rather than inventing a new visible
+permission this gate.
+
+### Implementation
+
+New `requireRevenueProtectedWriteAccess()` + `revenueWriteDenialStatusCode()` in
+`app/admin/_lib/adminAccessControl.ts`, placed alongside (never replacing)
+`hasPaymentTrackerAccess()`/`requirePaymentTrackerAccess()`. Reuses the exact identity-verification
+primitives `businessWorkspaceAccess.ts` already proved (`isAdminBootstrapSession`,
+`getAdminOperatorEmailFromCookies`, `getAdminAuthUserIdFromCookies`, `lookupAuthUserById`,
+`lookupActiveAdminRosterByAuthUserId` — all from `app/lib/supabase/adminSession.ts`), rather than
+inventing a new identity mechanism:
+1. No admin cookie → denied (`no_admin_cookie`).
+2. Bootstrap session → denied explicitly and unconditionally (`bootstrap_not_allowed`) — checked
+   before any identity resolution, so bootstrap can never fall through to a weaker check.
+3. Missing operator-email/auth-user-id cookie pair → denied (`no_operator_identity`).
+4. `auth_user_id` must resolve to a REAL, currently-existing Supabase Auth user → denied
+   (`auth_user_not_found`) otherwise.
+5. The cookie's claimed email must match that real Auth user's email → denied
+   (`identity_mismatch`) otherwise.
+6. An active `admin_team_members` row must be found BY `auth_user_id` (never by email), and its
+   own email must also agree → denied (`roster_not_found`/`roster_inactive`/`identity_mismatch`).
+7. The roster row's `role` must be exactly `"super_admin"` → denied (`role_not_permitted`)
+   otherwise.
+Only then: `{ ok: true, actorAuthUserId, actorEmail, actorRosterId }`. `ADMIN_ENFORCE_ROSTER_PERMISSIONS`
+is never referenced anywhere in this function — its value (unset, `"1"`, `"false"`, anything) has
+zero effect on this authorization path.
+
+Both routes updated:
+- `app/api/admin/revenue-os/manual-payments/route.ts`: replaced
+  `requireLeonixAdminPermission("can_view_payments")` + `getCurrentAdminAccessContext()`'s
+  fallback-chain identity resolution with the new guard. `adminUserId` is now always
+  `access.actorAuthUserId` — the old `?? "admin"` last-resort literal fallback is gone entirely
+  (unreachable now, since an unresolved identity is denied by the guard before that line). No
+  action-branch logic, field parsing, or writer-function call was touched.
+- `app/api/revenue-os/admin/subscription-sweep/route.ts`: the admin-session authorization path
+  (`else` branch of the existing `machineKeyAuthorized(request) || <admin gate>` check) now calls
+  the new guard instead of `requireLeonixAdminPermission("can_view_payments")`. The machine-key
+  path, `sweepDueSubscriptionTransitions()` call, and `reapStaleProcessingEvents()` call are
+  byte-for-byte unchanged.
+
+No new visible permission was added to `AdminPermissionKey`/`ALL_ADMIN_PERMISSION_KEYS`. No
+migration was written or applied. No Stripe configuration was touched.
+
+### Verification
+
+New `scripts/verify-revenue-write-security-hardening-01.ts`
+(`npm run verify:revenue-write-security-hardening`), 11 hand-rolled `node:assert` checks (item 7-9
+of the task's 12-point list collapsed into one check, since all three are proven by the same
+single piece of evidence — the guard function never mentions the env var at all, so no value of it
+can matter): missing-session denial (and denied first), a normal customer's inability to reach
+roster/role resolution, unauthorized-staff denial, `can_view_payments` never consulted,
+owner/super_admin allowed only after full chain verification, bootstrap denial (both by code order
+and by independently re-confirming bootstrap sessions never carry the operator-identity cookie
+pair), the env flag's total non-involvement, the read-only Payment Tracker permission's total
+non-regression, both routes' business logic (action branches, machine-key path, writer calls)
+unchanged, and truthful audit attribution. All 11 pass.
+
+One false-fail found and fixed during authoring: check 11b's ordering assertion (machine-key check
+before the new guard call) initially failed because the subscription-sweep file's own top-of-file
+doc comment mentions `requireRevenueProtectedWriteAccess()` by name before `machineKeyAuthorized`'s
+definition appears in the file — fixed by scoping the check to the `POST` handler's own body
+(via `extractFunction` + `stripComments`) instead of the whole file, the same convention already
+used elsewhere in this repo's verify scripts to avoid prose false-positives.
+
+Regression-verified, all unchanged: `verify:launch-truth-final-burndown` (18/18), `verify:launch-truth`
+(24/24), `verify:admin-nav-ops` (74/74), `verify:owner-auth-break-glass` (16/16). Targeted
+`npx eslint --max-warnings 0` on all 4 changed files: 1 issue found (an unused `leonixAdminGate`
+read in the new verify script, left over from an earlier draft of check 7-9) and fixed; clean on
+re-run.
+
+**Full typecheck: NOT_RUN.** Before running the one authorized foreground `tsc`, checked for other
+worktrees' active Node processes per this project's standing resource-control rule
+(`Get-CimInstance Win32_Process -Filter "Name='node.exe'"`) and found an active `next build`
+already running in a sibling worktree (`elaguila-website-owner-command-center`) plus its
+`npm run build`/`scripts/next-build.js` parent process — the machine was not clear. Per the gate's
+own instruction ("one foreground full typecheck is authorized... if machine is clear"), correctly
+skipped rather than contending for memory/CPU with that other worktree's build. Targeted lint
+(clean) and the 11/11 targeted verification, plus 3 unchanged regression suites, are the
+verification evidence for this gate; a full `tsc` remains appropriate at the next integration/
+release gate when the machine is confirmed clear.
+
+### Final status
+
+**REVENUE_WRITE_SECURITY_GATE: CLOSED.** Both protected write routes now fail closed independent
+of `ADMIN_ENFORCE_ROSTER_PERMISSIONS`, `can_view_payments` is never treated as write authority,
+bootstrap cannot reach either write path, and the owner's real per-person `super_admin` identity is
+confirmed and will authorize once they use the real Staff/Team login. No business logic, Stripe
+configuration, or migration was touched. The only remaining pre-production items are the 3 pending
+migrations and standard runtime/browser QA — no known local defect remains.

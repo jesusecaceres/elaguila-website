@@ -1273,17 +1273,18 @@ plus a further raw-technical-error burndown pass.
   gained a `canViewPayments` field, computed in `ops/page.tsx` from the same
   `hasPaymentTrackerAccess()`, and the Payments search block is now skipped entirely (not merely
   hidden) when absent.
-- **Explicitly NOT changed** (per owner instruction, "Do NOT grant refund/money-moving
+- **Explicitly NOT changed in this gate** (per owner instruction, "Do NOT grant refund/money-moving
   authority... unless existing explicit money-action permissions already exist"): the two
-  WRITE/action API routes that also reuse `can_view_payments` as their gate —
+  WRITE/action API routes that also reused `can_view_payments` as their gate —
   `POST /api/admin/revenue-os/manual-payments` (record/verify/reject/reverse manual payments) and
   `POST /api/revenue-os/admin/subscription-sweep` (suspends grace-expired subscriptions, primarily
-  machine-key authenticated) — both still go through the pre-existing, unmodified
-  `requireLeonixAdminPermission("can_view_payments")` gate. This is a **known, pre-existing,
-  separate architectural gap** (that gate is a no-op unless `ADMIN_ENFORCE_ROSTER_PERMISSIONS=1`,
-  which is not set in this environment) — real, but out of this gate's explicit read-visibility
-  scope; recorded as OWNER_DECISION_REQUIRED for a future dedicated hardening gate, not silently
-  fixed or silently ignored.
+  machine-key authenticated) — both went through the pre-existing, unmodified
+  `requireLeonixAdminPermission("can_view_payments")` gate, a no-op unless
+  `ADMIN_ENFORCE_ROSTER_PERMISSIONS=1` (not set in this environment). Recorded then as a known,
+  pre-existing, separate architectural gap, out of this gate's read-visibility scope.
+  **CLOSED in the dedicated Final Pre-QA Security Hardening Gate (2026-09-10)** — see that
+  section's entry below. Authority was not broadened: both routes are now `super_admin`-only,
+  narrower than before, not wider.
 
 ### Gate B — Website Preview cleanup (CLEAN NOW)
 
@@ -1370,18 +1371,87 @@ Findings, not previously consolidated in one place:
   case-lifecycle schema, a formal quote/estimate object, and business-level renewal all remain
   correctly `NOT_APPLICABLE`/`OWNER_DECISION_REQUIRED` (no schema exists; inventing one was
   correctly declined every prior pass).
-- **New finding this audit, not previously flagged at this severity**: `POST
-  /api/admin/revenue-os/manual-payments` and `POST /api/revenue-os/admin/subscription-sweep` (both
-  documented above under Gate A's "explicitly NOT changed" note) authorize solely via
-  `requireLeonixAdminPermission("can_view_payments")`
-  (`app/admin/_lib/leonixAdminGate.ts:38-70`), whose Layer 2 role/permission check is a no-op
-  unless `ADMIN_ENFORCE_ROSTER_PERMISSIONS=1` (confirmed absent from this worktree's `.env.local`).
-  Layer 1 alone (`leonix_admin=1` cookie) is the only real gate today — reclassified in the Gap
-  Register as `MUST_FIX_BEFORE_PRODUCTION`, not merely `OWNER_DECISION_REQUIRED`, because it is a
-  live authorization gap on money-moving write endpoints, not a missing feature.
+- **Finding from the prior audit — CLOSED this pass (Final Pre-QA Security Hardening Gate,
+  2026-09-10)**: `POST /api/admin/revenue-os/manual-payments` and
+  `POST /api/revenue-os/admin/subscription-sweep` previously authorized solely via
+  `requireLeonixAdminPermission("can_view_payments")` (`app/admin/_lib/leonixAdminGate.ts`), whose
+  Layer 2 role/permission check is a no-op unless `ADMIN_ENFORCE_ROSTER_PERMISSIONS=1`. Both routes
+  now call a new, always-on `requireRevenueProtectedWriteAccess()`
+  (`app/admin/_lib/adminAccessControl.ts`) that never references that env flag: it requires the
+  `leonix_admin` cookie, explicitly rejects the shared bootstrap session, re-verifies the
+  operator-email + auth-user-id cookie pair against a real Supabase Auth user and an active
+  `admin_team_members` row resolved by `auth_user_id` (never by email), and requires the roster
+  role to be exactly `super_admin`. `can_view_payments` (a READ-only permission) is no longer
+  consulted by either write route. Neither route's business logic (action branches, field parsing,
+  the sweep's independent machine-key path) was changed. Proven by
+  `scripts/verify-revenue-write-security-hardening-01.ts` (11 checks, all pass).
 - **Pending remote migrations, confirmed complete list (3, none applied)**:
   `20260909130000_business_external_links_foundation.sql`,
   `20260909140000_admin_audit_log_actor_attribution.sql`,
   `20260910120000_executives_linked_roster_id.sql`. All three are additive-only (verified
   structurally in the Final Code/Release Validation Gate above and re-confirmed present as files
   this pass); none touched by this audit.
+
+---
+
+## SYSTEM: Revenue Protected-Write Security Guard (Final Pre-QA Security Hardening Gate, 2026-09-10)
+
+Closes this audit's own `MUST_FIX_BEFORE_PRODUCTION` finding (immediately above) with a canonical,
+always-on guard rather than turning on the optional roster-permission env flag.
+
+- **CANONICAL_ENTITY**: the acting `admin_team_members` row (staff identity), not a listing or
+  payment record.
+- **CANONICAL_DATA_SOURCE**: `admin_team_members` (resolved by `auth_user_id`) + Supabase Auth
+  (`auth.admin.getUserById`), the same two sources `businessWorkspaceAccess.ts`'s
+  `requireSalesWorkspaceAccess()` already re-verifies on every Sales Workspace request — this gate
+  reuses that identical identity-chain pattern (not a new mechanism) via the existing exported
+  helpers in `app/lib/supabase/adminSession.ts`.
+- **PRIMARY_HOME**: `app/admin/_lib/adminAccessControl.ts` — `requireRevenueProtectedWriteAccess()`
+  (guard) + `revenueWriteDenialStatusCode()` (HTTP status mapping). Exported alongside, and
+  explicitly documented as distinct from, `hasPaymentTrackerAccess()`/`requirePaymentTrackerAccess()`
+  (the unchanged READ-visibility gate for `can_view_payments`).
+- **PROTECTED_ROUTES**: `POST /api/admin/revenue-os/manual-payments` (action classes:
+  `record`/`verify_cleared` — money-adjacent, `verify_cleared` grants a paid package entitlement;
+  `reject`/`reverse` — mutates a payment's disposition, `reverse` flags `requires_admin_review`);
+  `POST /api/revenue-os/admin/subscription-sweep` (system action: suspends grace-expired
+  subscriptions + reaps stale Stripe event-ledger claims — its separate, unaffected machine-key
+  path remains for external pinger/CI cron-like calls).
+- **AUTHORIZATION MODEL**: fail-closed, independent of `ADMIN_ENFORCE_ROSTER_PERMISSIONS` (the
+  function never references that env var). Owner/`super_admin` only — deliberately not extended to
+  any other staff role or capability this gate, per its own scope control ("choose the safest
+  launch architecture... rather than inventing a new visible permission"). The shared bootstrap
+  session is explicitly and permanently denied for these writes (break-glass READ access to
+  Revenue is unaffected — only the write boundary is stricter). No new visible permission was
+  added to `AdminPermissionKey`/`ALL_ADMIN_PERMISSION_KEYS`.
+- **AUDIT_RELATIONSHIP**: `manual-payments`' `adminUserId` audit attribution is now always the
+  real, server-verified Supabase Auth user id from the guard's own identity-chain resolution —
+  never client-suppliable (the old `body.adminUserId` read path was already removed in a prior
+  pass) and never the literal `"admin"` last-resort fallback (that branch is now unreachable —
+  an unresolved identity is denied by the guard before the fallback line is ever reached).
+  `subscription-sweep` carries no per-actor attribution before or after this gate (a system-level
+  sweep, not attributed to an individual admin) — unchanged.
+- **CURRENT_TRUTH_STATUS**: REAL, verified via `scripts/verify-revenue-write-security-hardening-01.ts`
+  (11 checks: missing-session/bootstrap/unauthorized-staff denial, `can_view_payments` never
+  consulted, owner/super_admin allowed only after full chain verification, the env flag never
+  referenced in any state, the read-only Payment Tracker permission and both routes' business
+  logic unchanged, truthful audit attribution). Targeted eslint clean on all 4 changed files.
+  Regression-verified: `verify:launch-truth-final-burndown` (18/18), `verify:launch-truth` (24/24),
+  `verify:admin-nav-ops` (74/74), `verify:owner-auth-break-glass` (16/16) — all unchanged.
+- **KNOWN_DUPLICATION**: none — this is the only guard of its kind; it does not replace or alias
+  `hasPaymentTrackerAccess()`.
+- **MISSING_CONTROL**: none identified for this gate's scope. A real, visible write-capability
+  permission model (beyond "owner/super_admin only") remains a genuine future product decision,
+  not built here per explicit scope control.
+
+## OWNER IDENTITY RUNTIME PROOF — CLOSED (2026-09-10)
+
+The `OWNER_RUNTIME_PROOF_REQUIRED` item from the dedicated owner-auth gate and every subsequent
+audit is now closed. The owner has provided direct runtime evidence (not re-queried by this
+session, per this gate's own instruction not to query or mutate production to reconfirm it):
+`admin_team_members` row for `chuy@leonixmedia.com` has `role = super_admin`, `is_active = true`,
+`auth_user_id = d29bc786-bc38-49c1-bbc4-d97b39c3e493`, matching the Supabase Auth UID exactly. This
+means the owner's normal daily identity can use the real Staff/Team login path (satisfying §0F's
+"normal owner activity uses an attributable identity") rather than the bootstrap fallback, and
+that `requireRevenueProtectedWriteAccess()` above will authorize the owner's real per-person
+session once they are logged in that way (bootstrap sessions remain denied for these two routes
+regardless).
