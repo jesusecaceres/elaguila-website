@@ -34,7 +34,15 @@ ok("professional and trades shells tolerate optional absence", proShell.includes
 ok("gallery/video renderer uses filtered resolved media", detailPage.includes("resolveServiciosProfile") && gallery.includes("profile.galleryVideos") && videoTile.includes("parseYouTubeVideoId"));
 ok("dashboard hydration covers URL/media fields", publishedToDraft.includes("website: clean(contact.websiteUrl)") && publishedToDraft.includes("videos: media.videos") && publishedToDraft.includes("couponMoreOffers"));
 ok("edit save preserves existing profile sections", publishRoute.includes("mergeOpsControlledServiciosProfileFields") && publishMerge.includes("previous.quickFacts") && publishMerge.includes("previous.trust"));
-ok("existing published listing not downgraded", publishRoute.includes("Never downgrade an already-published listing back to pending") && publishRoute.includes("SERVICIOS_LISTING_STATUS_PUBLISHED"));
+// Gate SERVICIOS-P7-BLOCKER-REPAIR-01 — this used to assert a code COMMENT. The no-downgrade rule
+// now lives in the owner-save transition policy the route calls (executed directly by
+// scripts/verify-servicios-publish-authority.ts), so assert the real mechanism instead.
+const ownerMutationPolicy = read("app/(site)/clasificados/servicios/lib/serviciosOwnerMutationPolicy.ts");
+ok(
+  "existing published listing not downgraded",
+  publishRoute.includes("decideServiciosOwnerSaveStatus(") &&
+    /case "published":\s*return \{ kind: "write", status: "published", checkoutRequired: false \}/.test(ownerMutationPolicy),
+);
 ok("normal edit does not invoke Revenue OS checkout", myListing.includes(".eq(\"owner_user_id\", data.user.id)") && !myListing.includes("revenue-os/checkout"));
 ok("paid offers entitlement remains server-backed", read("app/api/clasificados/servicios/my-listings/route.ts").includes("listing_package_entitlements"));
 
