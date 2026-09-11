@@ -88,12 +88,18 @@ const CALL = /buildProposedFinalMediaSet\(|validateProposedFinalMediaSet\(/;
   const src = read("app/(site)/clasificados/lib/leonixPublishRealEstateFromDraftState.ts");
   const callCount = (src.match(CALL) ? src.match(new RegExp(CALL.source, "g")) ?? [] : []).length;
   assert.ok(callCount >= 3, "must call the shared engine at least 3 times: rentas privado, rentas negocio, bienes raices negocio");
+  // Scoped to the function body (not a fixed character window): Gate RENTAS-NEGOCIO-1 added
+  // documented dropped-media handling ahead of the validation, which is unchanged.
+  const rentasPrivadoBody = src.split("function buildRentasPrivadoListingParams")[1]?.split(/\nexport (async )?function /)[0] ?? "";
   assert.ok(
-    /function buildRentasPrivadoListingParams[\s\S]{0,900}rentasPrivadoMedia/.test(src),
+    /const rentasPrivadoMedia = validateProposedFinalMediaSet\(/.test(rentasPrivadoBody) &&
+      /buildProposedFinalMediaSet\(\{ existing: orderedGallery \}\)/.test(rentasPrivadoBody),
     "Rentas Privado's builder must validate the real ordered gallery it just built",
   );
+  const rentasNegocioBody = src.split("function buildRentasNegocioListingParams")[1]?.split(/\nexport (async )?function /)[0] ?? "";
   assert.ok(
-    /function buildRentasNegocioListingParams[\s\S]{0,900}rentasNegocioMedia/.test(src),
+    /const rentasNegocioMedia = validateProposedFinalMediaSet\(/.test(rentasNegocioBody) &&
+      /buildProposedFinalMediaSet\(\{ existing: orderedGallery \}\)/.test(rentasNegocioBody),
     "Rentas Negocio's builder must validate the real ordered gallery it just built",
   );
   assert.ok(
