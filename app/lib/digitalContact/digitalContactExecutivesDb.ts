@@ -24,7 +24,7 @@ const TABLE = "executives";
 const SELECT_COLUMNS_BASE =
   "slug, full_name, preferred_name, title, company, legal_entity, phone_display, phone_digits, whatsapp_digits, email, website, address_line1, address_line2, city, state, postal_code, photo_path, logo_path, cover_path, bio, languages, business_hub_link, connection_hub_link, trust_chips, socials, theme, working_hours, notes, meta_description, status, created_at, updated_at, published_at";
 /**
- * Includes `linked_roster_id` (20260910120000_executives_linked_roster_id.sql, not yet applied
+ * Includes `linked_roster_id` (20260911030000_executives_linked_roster_id.sql, not yet applied
  * remotely). Every read below requests this first and falls back to `SELECT_COLUMNS_BASE` on an
  * unknown-column error, so nothing here breaks — including the live public /contact/[slug] page —
  * before the owner approves applying the migration. Same pattern already proven for

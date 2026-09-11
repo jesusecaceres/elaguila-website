@@ -35,7 +35,7 @@ const adminSession = read("app/lib/supabase/adminSession.ts");
 const loginAuthRoute = read("app/admin/login/auth/route.ts");
 const loginSubmitRoute = read("app/admin/login/submit/route.ts");
 const executivesDb = read("app/lib/digitalContact/digitalContactExecutivesDb.ts");
-const migrationPath = "supabase/migrations/20260910120000_executives_linked_roster_id.sql";
+const migrationPath = "supabase/migrations/20260911030000_executives_linked_roster_id.sql";
 const migrationText = read(migrationPath);
 const formComponent = read("app/admin/_components/executiveHub/ExecutiveHubForm.tsx");
 
