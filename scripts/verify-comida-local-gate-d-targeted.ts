@@ -89,6 +89,9 @@ check("today-location (Encuéntrame hoy) stays independent of permanent address"
     ...createEmptyComidaLocalDraft(),
     businessName: "X",
     locationNote: "Hoy en el mercado central",
+    // Gate COMIDA-LOCAL-1 — a public read only shows a today-location with a fresh (<24h) owner
+    // stamp; stamp it so this check keeps testing independence from the permanent address.
+    locationUpdatedAt: new Date().toISOString(),
     businessAddressLine: "123 Main St",
     showAddressPublicly: false,
   };

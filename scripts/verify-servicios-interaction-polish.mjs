@@ -28,8 +28,11 @@ const shellTokens = read("app/(site)/servicios/lib/serviciosShellSectionTokens.t
 const resultStrip = read("app/(site)/servicios/components/ServiciosResultCardEngagementStrip.tsx");
 const pkg = read("package.json");
 
-assert(!hubRow.includes("LeonixSaveButton"), "hub row: Guardar removed");
-assert(!hubRow.includes("recordSaveEvent"), "hub row: save analytics removed");
+// Superseded by the owner-locked Servicios Golden grammar (75a66ce8; Owner QA SVC-QA-18/19/20):
+// Guardar is the canonical saved_listings control in the hub row, recorded through the global
+// Servicios save recorder — never a second engine.
+assert(hubRow.includes("<LeonixSaveButton"), "hub row: Guardar is the canonical saved_listings control");
+assert(hubRow.includes("serviciosGlobalSaveRecorder("), "hub row: save analytics use the global Servicios recorder");
 assert(hubRow.includes('hubEngagementVariant === "save_only"') && hubRow.includes("return null"), "hub row: save_only hides section");
 assert(hubRow.includes("LeonixShareButton"), "hub row: Share preserved");
 assert(hubRow.includes("ServiciosLikeEngagementCluster"), "hub row: Like preserved");

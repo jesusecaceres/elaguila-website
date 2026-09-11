@@ -236,7 +236,12 @@ assert(formatHoursLineDisplay12h("8:30 - 20:00") === "8:30 AM - 8:00 PM", "and s
   const src = stripComments(read(SWEEP));
   assert(src.includes("machineKeyAuthorized(request)"), "the sweep authorizes a machine key");
   assert(src.includes("timingSafeEqual("), "compared in constant time");
-  assert(src.includes('requireLeonixAdminPermission("can_view_payments")'), "or an authenticated admin with the payments permission");
+  // Servicios integration gate — Admin OS (current main, ce7b4c2e) hardened the human path from the
+  // READ-only `can_view_payments` permission to a fully-verified, fail-closed super_admin write gate.
+  assert(
+    src.includes("await requireRevenueProtectedWriteAccess()") && !src.includes('requireLeonixAdminPermission("can_view_payments")'),
+    "or a fully-verified super_admin session (revenue protected-write gate, never the read-only payments permission)",
+  );
   assert(src.includes('code: "unauthorized" }, { status: 401 }'), "and rejects everything else 401");
   assert(src.includes("dryRun"), "dryRun is supported");
   const lifecycle = stripComments(read("app/lib/listingPlans/subscriptionLifecycle.ts"));
