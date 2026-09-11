@@ -1285,3 +1285,137 @@ All runs were foreground and sequential, from the Servicios worktree at base f00
 - Vercel Preview certification
 - short owner browser regression (§11)
 - Stripe Golden runtime circuit (GR-01…44)
+
+---
+
+# 18. INTEGRATION GATE — CURRENT-MAIN RECONCILIATION + RELEASE VALIDATION (2026-09-11)
+
+Authority order applied: current runtime-consumed source → current origin/main → reconciled branch → newest owner-locked decisions → this ledger → historical code as provenance only. Newer shared-platform behavior on main was never regressed to preserve an older branch implementation.
+
+## 18.0 Git truth
+
+| Item | Value |
+|---|---|
+| Worktree / branch | `C:\projects\elaguila-website-launch-lifecycle` / `completion/launch-lifecycle-2026-09-09` |
+| Pre-reconciliation HEAD | `ba7fa786` (source-correction pass; reachable from final HEAD) |
+| Merge-base at gate start | `a0a47839` |
+| origin/main integrated (1) | `d1b2994d`: Owner Command Center control plane through Gate 20 fixed-term renewal + Autos Privado grace fix (11 commits) |
+| origin/main integrated (2) | `9fcadb4d`: Admin OS production release (21 commits). origin/main advanced mid-gate because another worktree fetched, so it was integrated as a second merge. |
+| Reconciliation commit 1 | `6b8a511c` merge(main) ← `d1b2994d`: all 10 semantic conflicts resolved |
+| Reconciliation commit 2 | `55a73c04` merge(main) ← `9fcadb4d`: clean auto-merge |
+| Other commits on the branch | `8ea8e304` (see 18.2), `82074d33` (gate self-tests), `25401306` (release verifiers), and the commit adding this §18 |
+| main-only commits after the gate | 0 |
+
+## 18.1 Conflict files and semantic resolution (reconciliation 1)
+
+Root cause: two parallel implementations of Bienes Raíces FSBO fixed-term renewal. Ours was Gate BIENES-PRIVADO-1 (`7cdbc56a`); main's was Owner Command Center Gate 20 (`80ffc282`). Main is the renewal-architecture authority.
+
+**Branch-level result of the FSBO overlap**
+- One FSBO lifecycle config: `bienesFsboLifecycle.ts` now aliases the registry's `BR_FSBO_LISTING_LIFECYCLE_CONFIG`, keeping the branch's lane predicate, row-scoped resolver and public term rule.
+- One renewal gate, one renewal client, one idempotency guard — all main's.
+- The branch's P0 is carried forward: the first activation writes the paid 45-day term.
+
+**Latent hazard (guarded).** Main registered the FSBO config under `bienes-raices`, so a keyless registry lookup could hand a Negocio row an expiring contract. New verifier section 9b asserts that every Bienes Raíces lifecycle call site passes the FSBO package key and an explicit config.
+
+| File | Branch behavior | Main behavior | Semantic resolution | Why |
+|---|---|---|---|---|
+| `app/lib/listingLifecycle/listingRenewalFulfillment.ts` | FSBO renewal validator via `isBrFsboRow` + a private FSBO config | Same validator (stricter `br_publish.lane` check) + Autos Privado validator + shared `isRenewalAlreadyApplied` / `markRenewalPaymentApplied` guard | **Main** | Main subsumes the branch completely and adds the shared idempotency guard |
+| `app/lib/listingLifecycle/listingRenewalCheckout.ts` | Typed lane union: Rentas + FSBO | Inline union: Rentas + Autos + FSBO | **Main** | Main's Autos dashboard needs the Autos lane |
+| `app/api/revenue-os/checkout/route.ts` (8 hunks) | FSBO renewal branch, `isFixedTermRenewal` | FSBO + Autos Privado renewal branches | **Main** in every hunk | Superset. The branch's verified-intro first-charge computation (Servicios $339.15) merged cleanly and is kept |
+| `app/lib/listingPlans/revenueBienesFsboFulfillment.ts` | Activation + renewal both write `expires_at` (private stamp helper) | Renewal writes `expires_at`; first activation writes **no** term | **Main + the branch's P0**: first activation now writes `expires_at` via the same shared engine and registry duration | Under main alone, a newly paid 45-day listing never expired (the Gate BIENES-PRIVADO-1 P0) |
+| `app/lib/listingPlans/revenueFulfillment.ts` | Renewal-aware audit ternary | Early `renewed` branch | **Main** call site; the branch's dead ternary dropped | Saved Search triggers and the verified-intro amount guard (branch) kept |
+| `app/(site)/dashboard/mis-anuncios/page.tsx` (7 hunks) | `fixedTermLifecycle` / `startFixedTermRenewal` for both lanes | `rentasLifecycle` + `brFsboLifecycle`, `startRentasRenewal` + `startBienesFsboRenewal`, lane from the detail-pairs contract | **Main** renewal wiring. Kept from the branch: server-validated FSBO status actions, Servicios B1/B2/B4 dashboard truth | The auto-merge had left references to undefined names; main's wiring is the certified command-center shape |
+| `app/(site)/dashboard/mis-anuncios/[id]/page.tsx` | Eligibility-gated FSBO Renew action | Mark-sold confirmation | **Both** | Additive and independent |
+| `app/api/clasificados/servicios/my-listings/route.ts` | B4: included `coupons_offers` authority (`resolveBusinessToolsAccess`) | Google/Yelp review links | **Both**; the retired add-on reader was dropped | B4 is Servicios Golden truth; the review links are additive |
+| `app/(site)/clasificados/bienes-raices/lib/fetchBrPublishedListingsBrowser.ts` | Select list + `category`, `expires_at` | Select list + `expires_at` | **Branch** (superset) | The FSBO term rule needs `category` |
+| `app/(site)/clasificados/bienes-raices/lib/fetchBrSimilarOtherClientListingsBrowser.ts` | Same, plus the lane-switch doc | Select list + `expires_at` | **Branch** (superset) | Same reason |
+
+**Reconciliation 2 (`9fcadb4d`)** had no textual conflicts. Two files overlapped branch-only changes, and both merged additively: `app/admin/(dashboard)/workspace/clasificados/servicios/page.tsx` (main's operator copy + the branch's Servicios admin truth) and `package.json` (new `verify:*` scripts from both sides).
+
+## 18.2 Commit on the branch not authored by this gate
+
+`8ea8e304` ("fix(revenue): emit FSBO same-row renewal on the dedicated audit action") appeared at 13:47 in this worktree, one minute after reconciliation 2. It carries the owner's git identity and no Co-Authored-By trailer. It is a one-line change: FSBO renewals now log `bienes_fsbo_listing_renewed_after_payment`, which is registered in `RevenueAuditAction` (`2031835f`), instead of the activation action. It was kept, not reverted. Gate 20, bienes-privado gate1/gate2, OCC true-final-QA / final-reconciliation and revenue-write-security all pass with it. **The owner should confirm the commit is theirs.**
+
+## 18.3 ba7fa786 preservation
+
+All 32 files changed by `ba7fa786` are byte-identical in the reconciled tree. The one exception is its own verifier, `scripts/verify-servicios-owner-qa-delta.ts`, where the mirrored discovery facet gained a full `ServiciosDiscoveryFacet` type; this was the only full-typecheck error, and it was branch-introduced. `verify-servicios-owner-qa-delta`: **34/34 PASS** on the final tree.
+
+## 18.4 Targeted regression (conflict areas + Servicios Golden)
+
+All PASS on the final tree:
+
+- **Servicios Golden:** owner-qa-delta 34/34; edit-roundtrip (F1/F2); publish-authority (B1/B2/B3); included-offers (B4); address-privacy (B5); gate1-lifecycle; gate2-discovery; gate3-source-readiness 97/97; golden-reference-promo-path.
+- **Renewal / shared platform:** owner-command-center-gate20-fixed-term-renewal; leonix-paid-listing-lifecycle-engine; rentas-lifecycle-renewal-dashboard-global-engine; bienes-privado gate1 196/196 and gate2 237/237.
+- **Owner Command Center:** true-final-qa 99/99; final-reconciliation 182/182.
+- **Admin OS (current main):** revenue-write-security-hardening 11/11; launch-truth; launch-truth-final-burndown; owner-auth-break-glass; admin-password-recovery; executive-company-search; executive-hub-self-service; admin-nav-ops 74/74.
+- **Post-commit scope guards:** servicios production-readiness-02, rsc-boundary-01, post-payment-01; gate-i5-4b.
+
+B1–B5, F1, F2, the same-row / no-recharge contract, Revenue OS current-main compatibility and the Owner Command Center consumers are all intact.
+
+## 18.5 Full typecheck
+
+Command: `NODE_OPTIONS=--max-old-space-size=8192 npm run typecheck` (`tsc --noEmit --incremental false`), foreground.
+
+| Tree | Result |
+|---|---|
+| After reconciliation-1 resolution | exit 2: 1 error (the delta-verifier typing, branch-introduced) → fixed → exit 0, 0 errors |
+| `8ea8e304` | exit 0, 0 errors |
+| Final code commit `25401306` | exit 0, **0 errors** (106 s) |
+
+## 18.6 Release regression
+
+Existing runners only; no new framework.
+
+- **`npm run test:gates`** (86 gate self-tests): **71 PASS / 15 FAIL.**
+  - All 15 fail with an identical first-failure message on a clean detached checkout of origin/main `9fcadb4d`, so they are current-main baseline.
+  - Three more failed on this branch but passed on main. Each also failed at `ba7fa786` (pre-reconciliation) and was a stale shape assertion with the behavior intact; they were re-pointed, not weakened, in `82074d33`:
+    - `gate-i13a`: Comida Local ownership guard before the rebuild
+    - `gate-i5-4`: BR Privado gallery reorder
+    - `gate-pkgB-media-runtime-adoption`: Rentas gallery validation
+- **Release verifier set** (96 Servicios / Owner Command Center / Package C / Revenue OS / category-gate verifiers): **75 PASS / 21 FAIL.**
+  - All 21 fail with an identical first-failure message on clean origin/main (current-main baseline).
+  - Four branch-specific failures were aligned to the newer authority in `25401306`:
+    - `servicios-gate3-source-readiness`: Admin OS hardened the sweep to super_admin, fail-closed
+    - `comida-local-gate-d-targeted`: fixture given a fresh Find Me Today stamp
+    - `servicios-preview-published-parity`: owner-locked Like → Save → Share
+    - `servicios-interaction-polish`: same Save grammar; it still fails later at main's own baseline point
+- **Branch-introduced failures remaining: 0.**
+
+## 18.7 Production build
+
+Command: `NODE_OPTIONS=--max-old-space-size=8192 npm run build` (`scripts/next-build.js`), foreground, final code commit `25401306`.
+
+| Attempt | Result |
+|---|---|
+| 1 (default heap) | Compiled successfully in 116 s, then the type-validation worker ran out of heap (exit 134). Environment limit, the same one the Admin OS release recorded. |
+| 2 (8 GB heap) | Compiled and passed type validation, then failed prerendering `/dashboard` with "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY": this worktree had no `.env.local`. Environment gap, identical to the documented Admin OS precedent. |
+| 3 (8 GB heap + owner's gitignored local `.env.local`, copied temporarily; values never printed; deleted immediately after) | **exit 0**: compiled in 115 s, types valid, 384/384 static pages, full route manifest |
+
+- **Servicios routes compiled:** `/clasificados/servicios`, `/clasificados/servicios/[slug]`, `/clasificados/publicar/servicios` + `/checkpoint` + `/preview`, `/publicar/servicios`, `/servicios/perfil/[slug]`, `/servicios/perfil/preview`, `/dashboard/servicios`, and every `/api/clasificados/servicios/*` route.
+- **Shared routes compiled:** `/dashboard/mis-anuncios` + `[id]` + `[id]/editar`, `/api/revenue-os/checkout`, `/api/translate-ad`, `/api/business-address/suggest`.
+- **Warnings:** 230× Next "themeColor → viewport". The source is `app/layout.tsx` and `app/admin/layout.tsx`, both identical to main, so this is current-main baseline.
+
+## 18.8 Release-process note — duplicate migration version
+
+The branch's `20260910120000_saved_search_match_events_servicios.sql` shares its version prefix with main's `20260910120000_autos_privado_lifecycle_expires_at.sql`.
+
+- **Both are already applied** in their environments: Servicios per SERVICIOS_GOLDEN_REFERENCE_TRUTH; Autos per the OCC cable map (Leonix Media Staging).
+- **Neither was renamed.** Renaming an applied migration desynchronizes applied history. The Admin OS precedent (`40a9bbb5`) renamed only a never-applied file.
+- **Precedent:** current main already carries 10 duplicate version prefixes.
+- **Required action:** the release process must apply these by filename. This is not a Preview blocker, because Preview runs no migrations.
+
+## 18.9 GR-22 re-check
+
+Current main has only category-specific report submission (`submitEnVentaListingReport` → `listing_reports`, plus Autos) and the Admin reports queue. There is no shared Report engine, and the capability registry marks Servicios `report: "unproven"`. GR-22 stays **NOT SUPPORTED — CURRENT PRODUCT**; nothing was built.
+
+## 18.10 Post-reconciliation ledger status
+
+- ⚠️1–68, SVC-QA-01–34: dispositions in §17 unchanged (source verified 34/34 on the reconciled tree).
+- GR-01…GR-44: **none marked PASS.** They remain SOURCE READY / OWNER RUNTIME PENDING, except:
+  - GR-22: NOT SUPPORTED — CURRENT PRODUCT
+  - GR-43: pending the cleanup runbook
+  - GR-44: NOT YET, by definition last
+- Remaining owner-runtime-only items:
+  - short owner browser regression (§11) on the certified Preview
+  - Stripe Golden Runtime circuit (GR-01…44): paid Golden listing, verified-intro $339.15 → $399 renewal, webhook fulfillment, same-row renewal
+  - GR-43 cleanup
