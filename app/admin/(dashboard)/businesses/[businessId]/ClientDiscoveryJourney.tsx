@@ -1160,8 +1160,19 @@ function SpecializedBlueprintPanel({
               canManageBlueprint ? (
                 family === "media_campaign" ? (
                   <CreateCampaignButton businessId={businessId} discoveryId={discoveryId} blueprintId={latestBlueprint.id} />
-                ) : (
+                ) : family === "logo_brand" || family === "print_collateral" ? (
                   <CreateCreativeStudioProjectButton businessId={businessId} discoveryId={discoveryId} blueprintId={latestBlueprint.id} />
+                ) : (
+                  // Gate 10.3 — Digital Presence / Custom Platform / Other / Launch Package have no
+                  // automated downstream system (by design, MD Gate 10.2 <phase_7>); this reuses the
+                  // exact same generic handoff mechanism Website's own button already uses instead of
+                  // routing them into the Creative Studio button, which always failed with
+                  // "unsupported_project_type" for these four families.
+                  <CreateWebsiteProjectButton
+                    businessId={businessId} discoveryId={discoveryId} blueprintId={latestBlueprint.id}
+                    labelEs="Marcar como entregado manualmente / Mark as manually handed off"
+                    errorEs="No se pudo registrar la entrega manual. / Could not record the manual handoff."
+                  />
                 )
               ) : null
             ) : (
@@ -1298,6 +1309,36 @@ function ClientReviewQaHandoffPanel({
               <div>
                 <p className="font-semibold text-amber-800">{formatBilingual({ es: "Preguntas sin resolver", en: "Unresolved questions" })}</p>
                 <ul className="list-disc pl-4 text-amber-800">{clientSafeProjection.unresolvedClientQuestions.map((d, i) => <li key={i}>{d.labelEs}</li>)}</ul>
+              </div>
+            ) : null}
+            {clientSafeProjection.businessIdentity && clientSafeProjection.businessIdentity.length > 0 ? (
+              <div>
+                <p className="font-semibold">{formatBilingual({ es: "Identidad del negocio", en: "Business identity" })}</p>
+                <ul className="list-disc pl-4">{clientSafeProjection.businessIdentity.map((d, i) => <li key={i}>{d.labelEs}: {d.valueEs}</li>)}</ul>
+              </div>
+            ) : null}
+            {clientSafeProjection.content && clientSafeProjection.content.length > 0 ? (
+              <div>
+                <p className="font-semibold">{formatBilingual({ es: "Contenido", en: "Content" })}</p>
+                <ul className="list-disc pl-4">{clientSafeProjection.content.map((d, i) => <li key={i}>{d.labelEs}: {d.valueEs}</li>)}</ul>
+              </div>
+            ) : null}
+            {clientSafeProjection.majorFunctionality && clientSafeProjection.majorFunctionality.length > 0 ? (
+              <div>
+                <p className="font-semibold">{formatBilingual({ es: "Funcionalidad principal", en: "Major functionality" })}</p>
+                <ul className="list-disc pl-4">{clientSafeProjection.majorFunctionality.map((d, i) => <li key={i}>{d.labelEs}: {d.valueEs}</li>)}</ul>
+              </div>
+            ) : null}
+            {clientSafeProjection.secondaryCtas && clientSafeProjection.secondaryCtas.length > 0 ? (
+              <div>
+                <p className="font-semibold">{formatBilingual({ es: "Llamados a la acción secundarios", en: "Secondary calls to action" })}</p>
+                <ul className="list-disc pl-4">{clientSafeProjection.secondaryCtas.map((d, i) => <li key={i}>{d.labelEs}: {d.valueEs}</li>)}</ul>
+              </div>
+            ) : null}
+            {clientSafeProjection.publicClaimsAndLegal && clientSafeProjection.publicClaimsAndLegal.length > 0 ? (
+              <div>
+                <p className="font-semibold">{formatBilingual({ es: "Declaraciones públicas y legal", en: "Public claims & legal" })}</p>
+                <ul className="list-disc pl-4">{clientSafeProjection.publicClaimsAndLegal.map((d, i) => <li key={i}>{d.labelEs}: {d.valueEs}</li>)}</ul>
               </div>
             ) : null}
           </div>

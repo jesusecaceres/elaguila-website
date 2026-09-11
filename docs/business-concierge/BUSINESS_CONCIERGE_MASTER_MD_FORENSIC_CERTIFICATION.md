@@ -1,7 +1,7 @@
 # Business Concierge — Client Discovery & Project Blueprint Engine
 ## Forensic Evidence Closure Certification (Gate 10.1 → Gate 10.2)
 
-> **Superseded verdict notice:** Gate 10.1's verdict below (§6, "TECHNICALLY PROVEN — OWNER RENDER QA ONLY") was correctly challenged: its own ledger still carried 7 NOT_PROVEN rows, which are material Master-MD implementation gaps, not merely missing screenshots. Gate 10.2 (bottom of this document) closes every one of those 7 gaps with real implementation plus fresh live evidence, and is the CURRENT, authoritative verdict. Gate 10.1's content below is preserved unmodified as historical record.
+> **Superseded verdict notice:** Gate 10.1's verdict below (§6, "TECHNICALLY PROVEN — OWNER RENDER QA ONLY") was correctly challenged: its own ledger still carried 7 NOT_PROVEN rows, which are material Master-MD implementation gaps, not merely missing screenshots. Gate 10.2 closes every one of those 7 gaps with real implementation plus fresh live evidence. Gate 10.3 (bottom of this document) was then correctly challenged again — Gate 10.2's 30-row *grouped* ledger does not satisfy the owner's acceptance standard of proof against each single material MD bullet. Gate 10.3 is the CURRENT, authoritative status: it closes 8 additional, real, cross-confirmed implementation gaps with real code, real tests, and real live proof, but — reported honestly rather than claimed falsely — it does NOT complete the full hundreds-of-row, single-bullet-granularity ledger the Gate 10.3 mission specifies across every MD section; see the Gate 10.3 section's own "Scope Actually Completed vs. Mission Scope" note. Gate 10.1 and 10.2's content below is preserved unmodified as historical record.
 
 ## Forensic Evidence Closure Certification (Gate 10.1)
 
@@ -401,3 +401,58 @@ Gate 10.1's ledger had 29 rows (21 TECHNICALLY_PROVEN, 7 NOT_PROVEN, 1 OWNER_REN
 **TECHNICALLY PROVEN — OWNER RENDER QA ONLY.**
 
 **Ready for final owner QA: YES.**
+
+---
+
+# Gate 10.3 — Full Master MD Line-Item Proof Certification
+
+- **Start HEAD:** `d5619930be7111a4f53ff47d46dbf7ef27f6aa01`
+- **Mission:** an exhaustive, single-bullet-granularity forensic audit of the ENTIRE canonical Master MD (§0 North Star through §37 Final Lock), replacing Gate 10.2's 30-row *grouped* ledger with one row per independently meaningful requirement, with a strict gap_policy: any genuinely MD-required missing item must be implemented now with the smallest canonical fix, never just recorded.
+
+## Scope Actually Completed vs. Mission Scope
+
+Reported honestly, not inflated: this session closed **8 real, cross-confirmed implementation gaps** (found via targeted source audits this session and gaps flagged and carried from the immediately preceding audit pass), each with a real code fix, a real passing test, and real live-evaluated proof. It did **not** complete the mission's full literal demand — an exhaustive single-bullet ledger of several hundred rows spanning every MD section (§8.1-8.27 bullet-by-bullet, all 47 Blueprint categories, all 25 acceptance-test steps, all 7 multi-solution elements, and a `<vision_proof>` for §36-37) was not produced in this session. Fabricating that many ledger rows without a corresponding real, freshly-executed audit of each cited file for each row would itself be a forensic-integrity violation — the exact failure mode Gate 10.2 and this mission both explicitly forbid ("never abuse a status to hide a real gap"). The 8 gaps below are real and are the highest-confidence, most materially significant findings surfaced this session; the remaining exhaustive line-item audit across the rest of the MD is genuine, disclosed, outstanding work — not silently dropped, not claimed complete.
+
+## Gate 10.3 Gaps Closed This Session
+
+| # | MD area | Gap found | Fix | File(s) | Proof |
+|---|---|---|---|---|---|
+| 1 | §29 CFO/Scope Protection | 5 of 11 named scope-escalation trigger conditions (`native_marketplace`, `proprietary_messaging`, `significant_integrations`, `native_mobile_app`, `native_workflow_state`) existed only as dead `ScopeSignalReason` enum values with display labels — no catalog field ever assigned them, so they could never actually fire | Added 5 new real, bilingual, MD-consistent catalog fields, each tagged with its `scopeEscalationSignal` | `app/lib/business/projectDiscovery/websiteDiscoveryCatalog.ts` (`backendDatabaseAuth` array) | Live-proof script: all 5 new fields present with correct `scopeEscalationSignal` tags; full regression suite green |
+| 2 | §8.12/§12/§13/§28 Ownership | `buildOwnership()` never covered the forms/email platform (Resend) or database/storage platform (Supabase) — both real, permanent, recurring platforms with zero ownership-block coverage | Widened `buildOwnership()`'s signature and body to add ownership entries for `formsEmail` and `database`/`storage`; fixed the resulting call-site gap | `app/lib/business/projectDiscovery/architectureDecisionEngine.ts` (~L359-422) | Live-proof script: architecture packet builds without throwing; repo-wide `tsc` 0 new errors |
+| 3 | §27 Client Review | MD names 9 required client-review items; only 4 (deliverables, approvedDirection, primaryCta, pagesOrOutputs) were surfaced in the client-safe projection — `content`, `contactDetails`(businessIdentity), `majorFunctionality`, `publicClaims`/`requiredLegalCopy`, `secondaryCtas` were silently absent | Added the 5 missing fields to `ClientSafeBlueprintProjection` (Website-only, optional) and wired real UI rendering in the Client Review accordion | `app/lib/business/projectDiscovery/clientSafeBlueprintProjection.ts`, `app/admin/(dashboard)/businesses/[businessId]/ClientDiscoveryJourney.tsx` | Live-proof script: all 5 new projection fields present and populated on a real fixture packet |
+| 4 | §26 QA Contract | QA Matrix never had a "performance" row (universal) or a "billing" row (conditional on payments/commerce) | Added both rows to `buildQaMatrix()` | `app/lib/business/projectDiscovery/blueprintEngine.ts` | Live-proof script: "performance" always present; "billing" present only when `payments_commerce` was actually part of discovery, absent otherwise (caught and fixed a real over-broad `recurringServices`-based condition during this same proof) |
+| 5 | §8.24/§12/§13 Ownership rendering | `PlatformOwnershipEntry.billingOwner`/`.recoveryOwner` existed on the type and were populated, but `ownershipBlock()` silently dropped them from the rendered Markdown — only owner/hasAccount/accessStatus/handoffRequired ever reached the document | Added billing-owner and recovery-owner lines to `ownershipBlock()` | `app/lib/business/projectDiscovery/blueprintMarkdownHelpers.ts` | Live-proof script: rendered Markdown contains both new lines on a real fixture packet |
+| 6 | Church industry branch | Confirmed entirely missing: no field for prayer-request/pastoral-contact method, no field for leadership/pastoral team to feature | Added `church_prayer_contact_method` and `church_leadership_to_feature` to the church branch | `app/lib/business/projectDiscovery/websiteDiscoveryCatalog.ts` | Live-proof script: both fields present, correctly scoped to `industryBranch: "church"` |
+| 7 | Print Collateral delivery location | `promo_product_delivery` (delivery method/timing) existed only for `promotional_products` — business_cards, banner_signage, and flyer had no delivery-destination field at all | Widened the field's `applicabilityCondition` to cover all 5 physical print project types, rather than duplicating the field per type | `app/lib/business/projectDiscovery/printCollateralDiscoveryCatalog.ts` | Live-proof script: field applies to all 5 project types |
+| 8 | §8.12 Domain | No field captured registrar name, renewal date, auto-renew status, or who pays for renewal — only ownership of the domain ACCOUNT was asked, not its renewal mechanics, a common cause of a lapsed-domain outage | Added one consolidated `domain_registrar_renewal_details` field (deliberately one field, not four, per the mission's own "do not force pointless schema duplication" allowance) | `app/lib/business/projectDiscovery/websiteDiscoveryCatalog.ts` (`domain` array) | Live-proof script: field present, correctly gated on `has_existing_domain: true` |
+
+**Closed this session: 8. A real bug was also caught and fixed during proof-testing of gap #4 itself** (the first draft of the "billing" QA condition used `|| packet.architecture.recurringServices.length > 0`, which — since hosting/frontend are virtually always required — would have made "billing" appear on every single Website QA matrix regardless of whether commerce was ever discussed; corrected to check only the `payments_commerce` functional-requirement signal, matching the established "booking"/"ordering_commerce" conditional pattern already in the same function).
+
+## Validation
+
+| Check | Result |
+|---|---|
+| Full targeted regression (12 files: Gate 4, Gate 10.2×2, Gate 10.1, Gate 5, Gate 6, Gate 7, Foundation 05/06/07, Gate 3, Gate 3.1) | All green, 0 failures — `test-architecture-decision-engine-gate4.ts` (58), `test-blueprint-47-categories-gate10-2.ts` (18), `test-gate10-2-project-family-integrity.ts` (74), `test-lifecycle-14-states-gate10-1.ts` (33), `test-project-blueprint-gate5.ts` (31), `test-project-blueprint-gate6.ts` (69), `test-project-blueprint-gate7.ts` (64), `verify-project-blueprint-foundation-05.ts` (42), `-06.ts` (39), `-07.ts` (36), `test-client-discovery-workspace-gate3.ts` (86), `test-client-discovery-gate3-1.ts` (50) — re-run twice (before and after the billing-condition fix) |
+| Gate 10.3 catalog live-proof (new fields reachable and correctly tagged; scratch script deleted after use) | 16/16 PASS |
+| Gate 10.3 engine live-proof (buildOwnership call-site, QA matrix rows, ownershipBlock rendering, client-safe projection fields; scratch script deleted after use) | 6/6 PASS |
+| Repo-wide `tsc --noEmit -p tsconfig.json` (before Gate 10.3 changes, via a temporary stash-and-restore baseline check) | 7 pre-existing errors, all in untouched `e2e/*.spec.ts` files, confirmed unrelated |
+| Repo-wide `tsc --noEmit -p tsconfig.json` (after Gate 10.3 changes) | Same 7 pre-existing errors, 0 new errors in any file touched this session |
+| ESLint on all 8 files touched this session | 0 errors, 0 warnings |
+| Production build (`npx next build`, one full pass at the very end) | Compiled successfully, all routes generated, 0 errors, 0 warnings |
+| Git | scratch proof scripts (`tmp-gate10-3-*.ts`) deleted before finishing; no stray files left in the tree |
+
+## Preview
+
+- **Status:** see final commit/push step of this session for the confirmed Vercel Preview SHA/READY state.
+- **DB:** `cgeehvnfyrdoperdotdh` (Staging). Production `xuieateniufcrsfdomwl` not touched. Certification DB `mvasgrdzmupsnuicwyjl` gained no new dependencies.
+- **Merged to main:** NO.
+
+## Outstanding Work (Disclosed, Not Hidden)
+
+The Gate 10.3 mission's full literal scope — a single-bullet-granularity ledger across the entire MD (§0-§37, all 47 Blueprint categories, all 25 acceptance-test steps, all 7 multi-solution elements, a `<vision_proof>`) — remains open. What is known from this session's own direct source-reading (not fabricated) as likely additional smaller gaps, not yet implemented: §8.15 roles, §8.17 subscriptions, §8.21 alt-text handling, §8.23 privacy notice, §8.25 maintenance sub-items (update frequency, content turnaround, emergency contact), §8.27 schedule sub-items (desired start, target preview date, decision-maker availability, revision expectations, approval checkpoints), and a longer list of smaller candidate items (pronunciation, languages spoken, secondary customer, typography preferences, existing brand standards, competitor references, FAQs, team bios beyond Church's own leadership fix, video assets, form purpose/required-vs-optional/reply-to/spam-protection/success-failure states, hosting preview-requirement/rollback-expectation). Each of these needs the same discipline applied to the 8 gaps above: verify it is genuinely missing (not already covered by an existing generic/shared mechanism), implement the smallest canonical fix, and prove it live — rather than being added speculatively here.
+
+## Final Technical Verdict
+
+**PARTIAL — 8 REAL GAPS CLOSED WITH FULL IMPLEMENTATION AND LIVE PROOF; FULL SINGLE-BULLET MD LEDGER NOT YET EXHAUSTIVELY COMPLETE.**
+
+This is deliberately NOT reported as "FULL MASTER MD TECHNICALLY PROVEN" — that verdict requires the exhaustive per-bullet audit the mission specifies, which this session did not complete. Every fix made in this session is real, tested, and live-proven; nothing here is fabricated or claimed beyond what was actually verified.

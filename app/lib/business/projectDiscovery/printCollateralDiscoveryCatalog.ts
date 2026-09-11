@@ -283,7 +283,11 @@ export const PRINT_COLLATERAL_REQUIREMENTS: readonly PrintReq[] = [
     clientQuestionEn: "How and where should the finished items be delivered?", clientQuestionEs: "¿Cómo y dónde deben entregarse los artículos terminados?",
     valueType: "text", defaultCompletenessClass: "required_before_launch", whoShouldAnswer: "CLIENT",
     priority: 2, mayBlockBuild: false, mayBlockLaunch: true, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
-    applicabilityCondition: isProjectType(PROMOTIONAL_PRODUCTS),
+    // Gate 10.3 — originally PROMOTIONAL_PRODUCTS-only; "delivery location" was confirmed missing for
+    // business_cards/banner_signage, and referral_materials/flyer's own distribution field only asks
+    // where items get USED, never where the finished physical units get sent. Every physical print
+    // product needs a real delivery destination, so this is widened rather than duplicated per type.
+    applicabilityCondition: isProjectType(BUSINESS_CARDS, FLYER, BANNER_SIGNAGE, REFERRAL_MATERIALS, PROMOTIONAL_PRODUCTS),
   },
   {
     fieldKey: "promo_product_artwork_availability", section: "assets",

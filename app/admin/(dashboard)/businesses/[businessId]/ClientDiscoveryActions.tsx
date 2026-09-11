@@ -1226,7 +1226,15 @@ export const ApproveBlueprintForBuildButton = blueprintLifecycleButtonFactory(
   PRIMARY_BTN,
 );
 
-export function CreateWebsiteProjectButton({ businessId, discoveryId, blueprintId }: { businessId: string; discoveryId: string; blueprintId: string }) {
+/**
+ * Gate 10.3 — generalized from a Website-only "Create Website Project" button. The underlying route
+ * (.../blueprint/handoff) is fully generic (verified: only checks blueprintId + approved_for_build
+ * status, never branches on projectType), so this same manual-handoff mechanism is reused verbatim
+ * for the families with no automated downstream system (Digital Presence, Custom Platform, Other,
+ * Launch Package — MD Gate 10.2 <phase_7> already committed to an honest manual handoff for exactly
+ * these; Gate 10.3 closes the UI gap where no button ever reached this real, working mechanism).
+ */
+export function CreateWebsiteProjectButton({ businessId, discoveryId, blueprintId, labelEs = "Crear proyecto de sitio web / Create Website Project", errorEs = "No se pudo crear el proyecto de sitio web. / Could not create the website project." }: { businessId: string; discoveryId: string; blueprintId: string; labelEs?: string; errorEs?: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [assigneeRosterId, setAssigneeRosterId] = useState("");
@@ -1246,7 +1254,7 @@ export function CreateWebsiteProjectButton({ businessId, discoveryId, blueprintI
     });
     setSubmitting(false);
     if (!ok) {
-      setError(blueprintActionError(body, "No se pudo crear el proyecto de sitio web. / Could not create the website project."));
+      setError(blueprintActionError(body, errorEs));
       return;
     }
     setOpen(false);
@@ -1256,7 +1264,7 @@ export function CreateWebsiteProjectButton({ businessId, discoveryId, blueprintI
   if (!open) {
     return (
       <button type="button" onClick={() => setOpen(true)} className={PRIMARY_BTN}>
-        Crear proyecto de sitio web / Create Website Project
+        {labelEs}
       </button>
     );
   }
@@ -1277,7 +1285,7 @@ export function CreateWebsiteProjectButton({ businessId, discoveryId, blueprintI
       </label>
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={() => void submit()} disabled={submitting} className={PRIMARY_BTN}>
-          {submitting ? "Creando… / Creating…" : "Crear proyecto de sitio web / Create Website Project"}
+          {submitting ? "Creando… / Creating…" : labelEs}
         </button>
         <button type="button" onClick={() => setOpen(false)} className={SECONDARY_BTN}>Cancelar / Cancel</button>
       </div>

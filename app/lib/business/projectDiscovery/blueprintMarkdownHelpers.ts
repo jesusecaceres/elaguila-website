@@ -94,7 +94,9 @@ export function ownershipBlock(architecture: WebsiteProjectBlueprintPacket["arch
       const owner = formatBilingual(ownershipOwnerLabel(o.owner));
       const access = formatBilingual(accessStatusLabel(o.accessStatus));
       const hasAccount = formatBilingual(hasAccountLabel(o.hasAccount));
-      return `- **${o.platformKey}** — Propietario/Owner: ${owner}; Cuenta existente/Has account: ${hasAccount}; Acceso/Access: ${access}${o.handoffRequired ? "; Requiere entrega/Handoff required" : ""}`;
+      const billingOwner = formatBilingual(ownershipOwnerLabel(o.billingOwner));
+      const recoveryOwner = formatBilingual(ownershipOwnerLabel(o.recoveryOwner));
+      return `- **${o.platformKey}** — Propietario/Owner: ${owner}; Cuenta existente/Has account: ${hasAccount}; Acceso/Access: ${access}; Responsable de facturación/Billing owner: ${billingOwner}; Responsable de recuperación/Recovery owner: ${recoveryOwner}${o.handoffRequired ? "; Requiere entrega/Handoff required" : ""}`;
     })
     .join("\n");
 }

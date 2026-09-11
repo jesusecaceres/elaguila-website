@@ -41,6 +41,14 @@ export interface ClientSafeBlueprintProjection {
   dependencies: readonly { title: string; status: string }[];
   launchRequirements: readonly ClientSafeBlueprintTextItem[];
   unresolvedClientQuestions: readonly ClientSafeBlueprintRow[];
+  // Gate 10.3 — MD §27 Client Review names 9 required review items; only 4 (deliverables,
+  // approvedDirection, primaryCta, pagesOrOutputs) were surfaced. Website-only (other families
+  // don't have these sections), so left optional rather than forcing empty stubs on every branch.
+  content?: readonly ClientSafeBlueprintRow[];
+  businessIdentity?: readonly ClientSafeBlueprintRow[];
+  majorFunctionality?: readonly ClientSafeBlueprintRow[];
+  publicClaimsAndLegal?: readonly ClientSafeBlueprintRow[];
+  secondaryCtas?: readonly ClientSafeBlueprintRow[];
 }
 
 interface CommonRow {
@@ -124,6 +132,11 @@ export function buildClientSafeBlueprintProjection(packet: AnyPacket): ClientSaf
       primaryCta: packet.primaryCta && clientVisible(packet.primaryCta) ? toClientSafeRow(packet.primaryCta) : null,
       pagesOrOutputs: visibleRows(packet.siteStructure),
       externalServices: packet.architecture.ownership.map((o) => o.platformKey),
+      content: visibleRows(packet.content),
+      businessIdentity: visibleRows(packet.businessIdentity),
+      majorFunctionality: visibleRows(packet.functionalRequirements),
+      publicClaimsAndLegal: visibleRows(packet.privacyLegal),
+      secondaryCtas: visibleRows(packet.secondaryCtas),
     };
   }
 

@@ -167,6 +167,35 @@ const businessIdentity: WebsiteRequirementDefinition[] = [
     valueType: "text", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
     priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: true, recommendReconfirmation: false,
   },
+  // Gate 10.3 — MD §8.1 explicitly names "hours" as its own Business Identity bullet, and it is
+  // directly relied on by the Restaurant/Church/Fitness industry branches (which previously had no
+  // real coverage at all despite an inline comment incorrectly claiming this field already existed).
+  {
+    fieldKey: "public_business_hours", section: "business_identity",
+    labelEn: "Public business hours", labelEs: "Horario público del negocio",
+    operatorGuidanceEn: "Real, current hours — a wrong listed hour is a common source of client complaints and directly feeds the website, GBP, and every industry branch.", operatorGuidanceEs: "Horario real y actual — un horario incorrecto es una fuente común de quejas de clientes.",
+    clientQuestionEn: "What are your public hours of operation?", clientQuestionEs: "¿Cuál es su horario público de operación?",
+    valueType: "text", defaultCompletenessClass: "required_before_launch", whoShouldAnswer: "CLIENT",
+    priority: 2, mayBlockBuild: false, mayBlockLaunch: true, canonicalTruthMaySatisfy: true,
+    canonicalTruthHint: "business_facts (hours category)", recommendReconfirmation: true,
+  },
+  {
+    fieldKey: "public_contact_email", section: "business_identity",
+    labelEn: "Public email address", labelEs: "Correo electrónico público",
+    operatorGuidanceEn: "MD §8.1 names public email as its own item, distinct from the public phone.", operatorGuidanceEs: "El MD nombra el correo público como su propio elemento, distinto del teléfono público.",
+    clientQuestionEn: "What email address should visitors use to contact you?", clientQuestionEs: "¿Qué correo electrónico deben usar los visitantes para contactarlo?",
+    valueType: "text", defaultCompletenessClass: "required_before_launch", whoShouldAnswer: "CLIENT",
+    priority: 2, mayBlockBuild: false, mayBlockLaunch: true, canonicalTruthMaySatisfy: true,
+    canonicalTruthHint: "business_facts (contact category)", recommendReconfirmation: true,
+  },
+  {
+    fieldKey: "public_business_address", section: "business_identity",
+    labelEn: "Public business address", labelEs: "Dirección pública del negocio",
+    operatorGuidanceEn: "Only when a physical address should actually be published — never fabricated for a service-area-only business.", operatorGuidanceEs: "Solo cuando una dirección física realmente deba publicarse.",
+    clientQuestionEn: "Should a physical address be published, and if so, which one?", clientQuestionEs: "¿Debe publicarse una dirección física, y de ser así, cuál?",
+    valueType: "text", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
+    priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: true, recommendReconfirmation: false,
+  },
 ];
 
 // =================================================================================================
@@ -554,6 +583,15 @@ const domain: WebsiteRequirementDefinition[] = [
     dependencyCondition: (ctx) => ctx.hasCapturedValue("has_existing_domain", false),
     priority: 1, mayBlockBuild: false, mayBlockLaunch: true, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
   },
+  {
+    fieldKey: "domain_registrar_renewal_details", section: "domain",
+    labelEn: "Registrar, renewal date, auto-renew, and who pays", labelEs: "Registrador, fecha de renovación, renovación automática, y quién paga",
+    operatorGuidanceEn: "Consolidated so a lapsed renewal never silently takes the site down (MD §8.12) — registrar name, renewal date, whether auto-renew is on, and who is billed, captured as one item rather than four near-duplicate fields.", operatorGuidanceEs: "Consolidado para que una renovación vencida nunca tumbe el sitio silenciosamente — registrador, fecha de renovación, si la renovación automática está activada, y quién paga.",
+    clientQuestionEn: "Who is the domain registered with, when does it renew, is auto-renew on, and who is billed for it?", clientQuestionEs: "¿Con quién está registrado el dominio, cuándo se renueva, está activada la renovación automática, y a quién se le cobra?",
+    valueType: "text", defaultCompletenessClass: "required_before_launch", whoShouldAnswer: "CLIENT",
+    dependencyCondition: (ctx) => ctx.hasCapturedValue("has_existing_domain", true),
+    priority: 2, mayBlockBuild: false, mayBlockLaunch: true, canonicalTruthMaySatisfy: false, recommendReconfirmation: true,
+  },
 ];
 
 // =================================================================================================
@@ -679,6 +717,55 @@ const backendDatabaseAuth: WebsiteRequirementDefinition[] = [
     valueType: "boolean", defaultCompletenessClass: "needs_leonix_decision", whoShouldAnswer: "LEONIX",
     priority: 2, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
     scopeEscalationSignal: "complex_database",
+  },
+  // Gate 10.3 — MD §29 names 11 CFO/Scope-Protection trigger conditions; 5 of them
+  // (marketplace/proprietary-messaging/complex-integrations/native-mobile-app/workflow-automation)
+  // had a real ScopeSignalReason enum value and a display label but were NEVER assigned to any
+  // catalog row — dead code paths that could never actually fire. These 5 new fields close that gap.
+  {
+    fieldKey: "wants_multi_vendor_marketplace", section: "backend_database_auth",
+    labelEn: "Wants a multi-vendor marketplace", labelEs: "Quiere un mercado multi-vendedor",
+    operatorGuidanceEn: "Multiple independent sellers/vendors each with their own listings — a major Custom Platform signal, distinct from a single-business native checkout.", operatorGuidanceEs: "Varios vendedores independientes con sus propios listados — una señal importante de Plataforma Personalizada.",
+    clientQuestionEn: "Will multiple different sellers/vendors list their own products or services on this site?", clientQuestionEs: "¿Varios vendedores diferentes listarán sus propios productos o servicios en este sitio?",
+    valueType: "boolean", defaultCompletenessClass: "required_before_build", whoShouldAnswer: "CLIENT",
+    priority: 1, mayBlockBuild: true, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+    scopeEscalationSignal: "native_marketplace",
+  },
+  {
+    fieldKey: "wants_inapp_messaging", section: "backend_database_auth",
+    labelEn: "Wants in-app/proprietary messaging", labelEs: "Quiere mensajería propia dentro de la aplicación",
+    operatorGuidanceEn: "Real-time or stored messaging BETWEEN users (or user-to-staff) inside the site itself — distinct from a simple contact form, which only ever sends one email.", operatorGuidanceEs: "Mensajería real entre usuarios (o usuario-personal) dentro del sitio — distinto de un formulario de contacto simple.",
+    clientQuestionEn: "Do users need to message each other or your team directly within the site (not just a contact form)?", clientQuestionEs: "¿Los usuarios necesitan enviarse mensajes entre sí o a su equipo directamente dentro del sitio (no solo un formulario de contacto)?",
+    valueType: "boolean", defaultCompletenessClass: "required_before_build", whoShouldAnswer: "CLIENT",
+    priority: 2, mayBlockBuild: true, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+    scopeEscalationSignal: "proprietary_messaging",
+  },
+  {
+    fieldKey: "wants_significant_third_party_integrations", section: "backend_database_auth",
+    labelEn: "Needs significant third-party integrations", labelEs: "Necesita integraciones significativas con terceros",
+    operatorGuidanceEn: "Beyond the already-covered booking/checkout providers — a real CRM/inventory/custom-API integration, never guessed.", operatorGuidanceEs: "Más allá de los proveedores de reservas/pago ya cubiertos — una integración real con CRM/inventario/API personalizada.",
+    clientQuestionEn: "Beyond booking/checkout, does this site need to connect to another business system you use (CRM, inventory, a custom API)?", clientQuestionEs: "Más allá de reservas/pagos, ¿este sitio necesita conectarse a otro sistema de negocio que use (CRM, inventario, una API personalizada)?",
+    valueType: "text", defaultCompletenessClass: "required_before_launch", whoShouldAnswer: "CLIENT",
+    priority: 2, mayBlockBuild: false, mayBlockLaunch: true, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+    scopeEscalationSignal: "significant_integrations",
+  },
+  {
+    fieldKey: "wants_native_mobile_app", section: "backend_database_auth",
+    labelEn: "Wants a native mobile app", labelEs: "Quiere una aplicación móvil nativa",
+    operatorGuidanceEn: "A real iOS/Android app is a materially different, much larger engagement than a mobile-responsive website — never conflated.", operatorGuidanceEs: "Una aplicación real de iOS/Android es un compromiso mucho más grande que un sitio web adaptable a móviles.",
+    clientQuestionEn: "Does this project include a native iOS/Android app (not just a mobile-friendly website)?", clientQuestionEs: "¿Este proyecto incluye una aplicación nativa de iOS/Android (no solo un sitio web adaptable a móviles)?",
+    valueType: "boolean", defaultCompletenessClass: "required_before_build", whoShouldAnswer: "CLIENT",
+    priority: 1, mayBlockBuild: true, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+    scopeEscalationSignal: "native_mobile_app",
+  },
+  {
+    fieldKey: "wants_complex_workflow_automation", section: "backend_database_auth",
+    labelEn: "Needs complex workflow automation", labelEs: "Necesita automatización de flujo de trabajo compleja",
+    operatorGuidanceEn: "Multi-step automated approvals/state transitions beyond a simple form submission — a real Custom Platform signal.", operatorGuidanceEs: "Aprobaciones/transiciones de estado automatizadas de varios pasos más allá de un simple envío de formulario.",
+    clientQuestionEn: "Does this need multi-step automated workflows or approvals (e.g. a request that moves through several stages automatically)?", clientQuestionEs: "¿Esto necesita flujos de trabajo o aprobaciones automatizadas de varios pasos (p. ej. una solicitud que pasa por varias etapas automáticamente)?",
+    valueType: "boolean", defaultCompletenessClass: "required_before_build", whoShouldAnswer: "CLIENT",
+    priority: 2, mayBlockBuild: true, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+    scopeEscalationSignal: "native_workflow_state",
   },
 ];
 
@@ -1305,6 +1392,24 @@ const churchBranch: WebsiteRequirementDefinition[] = [
     labelEn: "Ministries and events to feature", labelEs: "Ministerios y eventos a destacar",
     operatorGuidanceEn: "Content inventory.", operatorGuidanceEs: "Inventario de contenido.",
     clientQuestionEn: "What ministries and upcoming events should we feature?", clientQuestionEs: "¿Qué ministerios y eventos próximos debemos destacar?",
+    valueType: "list", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
+    applicabilityCondition: (ctx) => ctx.industryBranch === "church",
+    priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  {
+    fieldKey: "church_prayer_contact_method", section: "content", industryBranch: "church",
+    labelEn: "Prayer request / pastoral contact method", labelEs: "Método de solicitud de oración / contacto pastoral",
+    operatorGuidanceEn: "Church sites commonly need a distinct prayer-request path, separate from the generic contact form.", operatorGuidanceEs: "Los sitios de iglesia comúnmente necesitan una vía distinta para solicitudes de oración, separada del formulario de contacto genérico.",
+    clientQuestionEn: "How should visitors submit prayer requests or reach pastoral staff — a dedicated form, email, or phone?", clientQuestionEs: "¿Cómo deben los visitantes enviar solicitudes de oración o contactar al personal pastoral — un formulario dedicado, correo o teléfono?",
+    valueType: "text", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
+    applicabilityCondition: (ctx) => ctx.industryBranch === "church",
+    priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
+  {
+    fieldKey: "church_leadership_to_feature", section: "content", industryBranch: "church",
+    labelEn: "Pastoral/leadership team to feature", labelEs: "Equipo pastoral/de liderazgo a destacar",
+    operatorGuidanceEn: "Content inventory — names, titles, and (if provided) bios/photos for the leadership page.", operatorGuidanceEs: "Inventario de contenido — nombres, títulos y (si se proporcionan) biografías/fotos para la página de liderazgo.",
+    clientQuestionEn: "Which pastors/leaders should we feature, and what bio or photo info do you have for each?", clientQuestionEs: "¿Qué pastores/líderes debemos destacar, y qué biografía o foto tiene de cada uno?",
     valueType: "list", defaultCompletenessClass: "helpful", whoShouldAnswer: "CLIENT",
     applicabilityCondition: (ctx) => ctx.industryBranch === "church",
     priority: 3, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,

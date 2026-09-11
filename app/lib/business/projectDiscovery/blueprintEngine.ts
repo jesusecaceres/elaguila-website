@@ -388,6 +388,7 @@ function buildQaMatrix(packet: Pick<WebsiteProjectBlueprintPacket, "forms" | "la
     { key: "production_domain", labelEs: "Dominio de producción", labelEn: "Production domain", conditional: false },
     { key: "no_placeholder_content", labelEs: "Sin contenido de relleno", labelEn: "No placeholder content", conditional: false },
     { key: "ownership_access", labelEs: "Propiedad/acceso", labelEn: "Ownership/access", conditional: false },
+    { key: "performance", labelEs: "Rendimiento", labelEn: "Performance", conditional: false },
   ];
   const conditional: BlueprintQaRow[] = [];
   if (packet.forms.length > 0) conditional.push({ key: "forms", labelEs: "Formularios", labelEn: "Forms", conditional: true }, { key: "external_links", labelEs: "Enlaces externos", labelEn: "External links", conditional: true });
@@ -398,6 +399,7 @@ function buildQaMatrix(packet: Pick<WebsiteProjectBlueprintPacket, "forms" | "la
   if (packet.architecture.auth.decision === "REQUIRED") conditional.push({ key: "auth", labelEs: "Autenticación", labelEn: "Auth", conditional: true }, { key: "dashboard", labelEs: "Panel", labelEn: "Dashboard", conditional: true });
   if (packet.architecture.externalIntegrations.length > 0) conditional.push({ key: "integrations", labelEs: "Integraciones", labelEn: "Integrations", conditional: true });
   if (packet.architecture.analytics.some((a) => a.status === "required")) conditional.push({ key: "analytics", labelEs: "Analítica", labelEn: "Analytics", conditional: true });
+  if (packet.functionalRequirements.some((r) => r.section === "payments_commerce")) conditional.push({ key: "billing", labelEs: "Facturación", labelEn: "Billing", conditional: true });
   return [...universal, ...conditional];
 }
 

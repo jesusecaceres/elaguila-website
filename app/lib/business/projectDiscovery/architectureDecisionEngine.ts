@@ -356,11 +356,22 @@ function buildOwnershipEntry(platformKey: string): PlatformOwnershipEntry {
   };
 }
 
-function buildOwnership(packetSoFar: { frontend: PlatformRecommendation; hosting: PlatformRecommendation; domainDns: DomainDnsRecommendation; cms: WebsiteArchitectureDecisionPacket["cms"]; formsEmail: PlatformRecommendation; preserveExistingPlatformKey: string | null }): readonly PlatformOwnershipEntry[] {
+function buildOwnership(packetSoFar: {
+  frontend: PlatformRecommendation; hosting: PlatformRecommendation; domainDns: DomainDnsRecommendation;
+  cms: WebsiteArchitectureDecisionPacket["cms"]; formsEmail: PlatformRecommendation;
+  database: WebsiteArchitectureDecisionPacket["database"]; storage: WebsiteArchitectureDecisionPacket["storage"];
+  preserveExistingPlatformKey: string | null;
+}): readonly PlatformOwnershipEntry[] {
   const entries: PlatformOwnershipEntry[] = [];
   if (packetSoFar.domainDns.registrarPlatformKey) entries.push(buildOwnershipEntry(packetSoFar.domainDns.registrarPlatformKey));
   if (packetSoFar.hosting.platformKey && packetSoFar.hosting.status !== "not_needed") entries.push(buildOwnershipEntry(packetSoFar.hosting.platformKey));
   if (packetSoFar.cms.platformKey && packetSoFar.cms.decision !== "NOT_NEEDED") entries.push(buildOwnershipEntry(packetSoFar.cms.platformKey));
+  // Gate 10.3 — MD §8.24/§12/§13/§28 all say "for every permanent platform"; formsEmail (Resend) and
+  // database/storage (Supabase) previously had ZERO ownership coverage — no structured entry, no
+  // handoff checklist item, no catalog field — despite both being real recurring/permanent platforms
+  // once required. Reusing the exact same buildOwnershipEntry() shape, never a second ownership model.
+  if (packetSoFar.formsEmail.platformKey && packetSoFar.formsEmail.status !== "not_needed") entries.push(buildOwnershipEntry(packetSoFar.formsEmail.platformKey));
+  if (packetSoFar.database.decision === "REQUIRED" || packetSoFar.storage.decision === "REQUIRED") entries.push(buildOwnershipEntry("supabase"));
   if (packetSoFar.preserveExistingPlatformKey) entries.push(buildOwnershipEntry(packetSoFar.preserveExistingPlatformKey));
   return entries;
 }
@@ -408,7 +419,7 @@ export function buildArchitectureDecisionPacket(
   const analytics = decideAnalytics(architectureClass);
   const externalIntegrations = decideExternalIntegrations(inputs);
 
-  const ownership = buildOwnership({ frontend, hosting, domainDns, cms, formsEmail, preserveExistingPlatformKey });
+  const ownership = buildOwnership({ frontend, hosting, domainDns, cms, formsEmail, database, storage, preserveExistingPlatformKey });
 
   const recurringServices = [frontend, hosting, formsEmail, ...analytics, ...externalIntegrations]
     .filter((r): r is PlatformRecommendation & { platformKey: string; recurringCostClass: RecurringCostClass } => Boolean(r.platformKey && r.recurringCostClass && (r.status === "required" || r.status === "preserve_existing")))
