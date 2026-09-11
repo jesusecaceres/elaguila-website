@@ -235,6 +235,23 @@ export function evaluateWebsiteReadiness(ctx: WebsiteDiscoveryContext): WebsiteR
   };
 }
 
+/**
+ * Gate 3.1 <part_8_status_integrity> — the pure state -> denial-reason mapping for the
+ * READY_FOR_BLUEPRINT server guard (discoveryReadinessGuard.ts). Kept here, in the pure/no-DB
+ * module, so the guard's actual decision rule is unit-testable without a database: only
+ * NOT_READY (a real client blocker remains) and NEEDS_LEONIX_ARCHITECTURE_DECISION (an internal
+ * decision remains) ever block the transition — READY and READY_WITH_NON_BLOCKING_GAPS both allow
+ * it, matching "no unresolved REQUIRED_BEFORE_BUILD client blockers; no unresolved mandatory
+ * Leonix architecture decisions; no other Gate 2 condition that defines NOT_READY" exactly.
+ */
+export type ReadyForBlueprintGuardVerdict = "ok" | "client_blockers_remain" | "leonix_decision_remains";
+
+export function classifyReadinessForBlueprintGuard(state: WebsiteReadinessState): ReadyForBlueprintGuardVerdict {
+  if (state === "NOT_READY") return "client_blockers_remain";
+  if (state === "NEEDS_LEONIX_ARCHITECTURE_DECISION") return "leonix_decision_remains";
+  return "ok";
+}
+
 // ---------------------------------------------------------------------------------------------
 // Scope signal engine (MD <scope_escalation>) — evidence only, never a final architecture/platform
 // decision (Gate 4 owns that).

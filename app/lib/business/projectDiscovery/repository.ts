@@ -10,7 +10,7 @@ import "server-only";
 
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 import { isValidProjectDiscoveryIntentTransition, isValidProjectDiscoveryStatusTransition } from "./constants";
-import { assetReferenceCrossesBusinessBoundary, isBlockingDiscoveryItem } from "./logic";
+import { assetReferenceCrossesBusinessBoundary, isBlockingDiscoveryItem, itemValueChanged } from "./logic";
 import { isKnownProjectType } from "./projectTypeRegistry";
 import type {
   AttachProjectDiscoverySourceInput,
@@ -454,8 +454,33 @@ export type CaptureItemResult = { ok: true; item: ProjectDiscoveryItem } | { ok:
  * classification is ALWAYS supplied explicitly by the caller (never defaulted to "client_confirmed"
  * or "not_applicable"), matching the truth_contract's "never silently collapsed" rule.
  */
+/**
+ * Gate 3.1 <part_6_existing_answer_editing> — a confirmed item's confirmation only ever attests to
+ * the value that was actually confirmed. Editing a confirmed item's value must not silently leave
+ * it marked "confirmed" for a value nobody has reviewed. This is the ONLY place a capture write
+ * ever touches confirmation_state/client_confirmed_at, and it only ever moves a stale "confirmed"
+ * item back to "unconfirmed" — it never promotes anything (that stays setProjectDiscoveryItemConfirmation's
+ * sole responsibility).
+ */
+async function existingConfirmedValueDiffers(
+  supabase: ReturnType<typeof getAdminSupabase>,
+  input: CaptureProjectDiscoveryItemInput,
+): Promise<boolean> {
+  let query = supabase
+    .from("business_project_discovery_items")
+    .select("value, display_value, confirmation_state")
+    .eq("discovery_id", input.discoveryId)
+    .eq("field_key", input.fieldKey);
+  query = input.projectIntentId ? query.eq("project_intent_id", input.projectIntentId) : query.is("project_intent_id", null);
+  const { data } = await query.maybeSingle();
+  if (!data || data.confirmation_state !== "confirmed") return false;
+  return itemValueChanged(data.value, input.value ?? null) || itemValueChanged(data.display_value, input.displayValue ?? null);
+}
+
 export async function captureProjectDiscoveryItem(input: CaptureProjectDiscoveryItemInput, actor: ProjectDiscoveryActor): Promise<CaptureItemResult> {
   const supabase = getAdminSupabase();
+  const mustResetConfirmation = await existingConfirmedValueDiffers(supabase, input);
+
   const { data, error } = await supabase
     .from("business_project_discovery_items")
     .upsert(
@@ -477,6 +502,7 @@ export async function captureProjectDiscoveryItem(input: CaptureProjectDiscovery
         captured_by_role: actorRole(actor),
         notes: input.notes ?? null,
         updated_at: new Date().toISOString(),
+        ...(mustResetConfirmation ? { confirmation_state: "unconfirmed" as const, client_confirmed_at: null } : {}),
       },
       { onConflict: "discovery_id,project_intent_id,field_key" },
     )
@@ -490,7 +516,7 @@ export async function captureProjectDiscoveryItem(input: CaptureProjectDiscovery
     discoveryId: input.discoveryId,
     entityType: "item",
     entityId: item.id,
-    eventType: "captured",
+    eventType: mustResetConfirmation ? "captured_confirmation_reset" : "captured",
     newState: item.truthClass,
     source: actor.type,
     note: input.fieldKey,

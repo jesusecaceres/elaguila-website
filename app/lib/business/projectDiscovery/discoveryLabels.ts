@@ -56,6 +56,28 @@ export function truthClassIsProvisional(value: DiscoveryTruthClass): boolean {
   return value === "ai_extracted" || value === "staff_observation" || value === "needs_confirmation" || value === "unknown";
 }
 
+/**
+ * Gate 3.1 <part_9_truth_capture_safety> — the exact four plain-language choices an operator is
+ * ever asked to pick from while CAPTURING an answer (distinct from truthClassLabel(), which is the
+ * DISPLAY label for already-saved data). Phrased as "who said this" rather than a state name, so
+ * staff cannot casually misclassify a staff assumption, an old note, or public research as
+ * CLIENT_CONFIRMED. Deliberately excludes public_verified/ai_extracted/leonix_recommendation/
+ * technical_decision/unknown — those are never operator-chosen at capture time (system/AI/staff
+ * catalog provenance, not a live capture choice).
+ */
+export const TRUTH_CAPTURE_CHOICES: readonly DiscoveryTruthClass[] = ["client_confirmed", "client_preference", "staff_observation", "needs_confirmation"];
+
+const TRUTH_CAPTURE_CHOICE_LABELS: Record<(typeof TRUTH_CAPTURE_CHOICES)[number], BilingualLabel> = {
+  client_confirmed: label("El cliente me lo dijo", "Client told me"),
+  client_preference: label("Preferencia del cliente", "Client preference"),
+  staff_observation: label("Nota / observación del personal", "Staff note / observation"),
+  needs_confirmation: label("Necesita confirmación", "Needs confirmation"),
+};
+
+export function truthCaptureChoiceLabel(value: DiscoveryTruthClass): BilingualLabel {
+  return TRUTH_CAPTURE_CHOICE_LABELS[value] ?? truthClassLabel(value);
+}
+
 const COMPLETENESS_CLASS_LABELS: Record<DiscoveryCompletenessClass, BilingualLabel> = {
   required_before_build: label("Requerido antes de construir", "Required before build"),
   required_before_launch: label("Requerido antes de lanzar", "Required before launch"),

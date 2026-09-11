@@ -27,6 +27,12 @@ const STAFF_WRITE_ERROR_MESSAGES: Readonly<Record<string, string>> = {
     "Se requiere una asignación de personal para registrar esta decisión. / A staff roster assignment is required to record this decision.",
   rate_limited:
     "El análisis está muy solicitado en este momento. Intenta de nuevo en un minuto. / Analysis is in high demand right now. Try again in a minute.",
+  client_blockers_remain:
+    "Aún faltan respuestas requeridas del cliente antes de construir. Resuelva las preguntas pendientes antes de marcar Listo para el Plan del Proyecto. / Required client answers are still missing before build. Resolve the outstanding questions before marking Ready for Blueprint.",
+  leonix_decision_remains:
+    "Quedan decisiones de arquitectura de Leonix pendientes. Resuélvalas en Decisiones de Leonix antes de marcar Listo para el Plan del Proyecto. / Leonix architecture decisions are still outstanding. Resolve them in Leonix Decisions before marking Ready for Blueprint.",
+  context_unavailable:
+    "No se pudo verificar la preparación en este momento. Intenta de nuevo. / Readiness could not be verified right now. Try again.",
 };
 
 /**

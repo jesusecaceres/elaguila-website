@@ -7,7 +7,7 @@
  * NEEDS_OFFICIAL_RESEARCH item as a client-facing question (those are internal-action items, not
  * client questions — MD <completeness_logic>).
  */
-import type { WebsiteDiscoverySection, WebsiteValueType } from "./websiteDiscoveryCatalog";
+import type { WebsiteDiscoverySection, WebsiteRequirementChoiceOption, WebsiteValueType } from "./websiteDiscoveryCatalog";
 import { evaluateWebsiteRequirements, type RequirementEvaluation, type WebsiteDiscoveryContext } from "./websiteDiscoveryLogic";
 
 export type QuestionSourceReason = "missing" | "confirm" | "contradiction" | "dependent_question" | "industry_specific" | "scope_clarification";
@@ -23,6 +23,8 @@ export interface QuestionCandidate {
   blockingLevel: QuestionBlockingLevel;
   section: WebsiteDiscoverySection;
   expectedAnswerType: WebsiteValueType;
+  /** Populated only when expectedAnswerType is "choice" — the catalog's own bilingual option metadata, passed through unchanged. */
+  options?: readonly WebsiteRequirementChoiceOption[];
   sourceReason: QuestionSourceReason;
   mayChangeScope: boolean;
 }
@@ -58,6 +60,7 @@ function toQuestionCandidate(evalItem: RequirementEvaluation): QuestionCandidate
     blockingLevel: blockingLevelFor(evalItem),
     section: req.section,
     expectedAnswerType: req.valueType,
+    options: req.options,
     sourceReason: sourceReasonFor(evalItem),
     mayChangeScope: Boolean(req.scopeEscalationSignal),
   };

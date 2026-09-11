@@ -48,3 +48,17 @@ export function assetReferenceCrossesBusinessBoundary(assetBusinessId: string, d
 export function isValidTruthCompletenessCombination(_truthClass: DiscoveryTruthClass, _completenessClass: DiscoveryCompletenessClass): boolean {
   return true;
 }
+
+/**
+ * Gate 3.1 <part_6_existing_answer_editing> — the value/displayValue equality check the repository
+ * uses to decide whether editing a previously CONFIRMED item must reset its confirmation back to
+ * unconfirmed (a confirmed item's confirmation only ever attests to the value that was actually
+ * confirmed; re-saving an unchanged value must stay idempotent and never touch confirmation state).
+ */
+export function itemValueChanged(a: unknown, b: unknown): boolean {
+  try {
+    return JSON.stringify(a ?? null) !== JSON.stringify(b ?? null);
+  } catch {
+    return true;
+  }
+}

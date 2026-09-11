@@ -10,7 +10,7 @@
  */
 import type { QuestionCandidate } from "./websiteQuestionEngine";
 import type { RequirementEvaluation, WebsiteReadinessResult, WebsiteScopeSignalResult } from "./websiteDiscoveryLogic";
-import type { WebsiteDiscoverySection } from "./websiteDiscoveryCatalog";
+import type { WebsiteDiscoverySection, WebsiteRequirementChoiceOption } from "./websiteDiscoveryCatalog";
 import type {
   ProjectDiscovery,
   ProjectDiscoveryEvent,
@@ -114,6 +114,17 @@ export interface KnownItemView {
   displayValue: string;
   truthLabel: BilingualLabel;
   isProvisional: boolean;
+  /** Present only when a real captured item backs this row (not a canonical-truth-only fact) — an edit action only makes sense against a real item. */
+  editable: boolean;
+  clientQuestionEs: string;
+  clientQuestionEn: string;
+  expectedAnswerType: RequirementEvaluation["requirement"]["valueType"];
+  options?: readonly WebsiteRequirementChoiceOption[];
+  existingValue: unknown;
+  existingDisplayValue: string | null;
+  existingTruthClass: string | null;
+  existingItemId: string | null;
+  existingConfirmationState: "unconfirmed" | "confirmed" | "rejected" | null;
 }
 
 export function buildWhatWeAlreadyKnow(evaluations: readonly RequirementEvaluation[]): KnownItemView[] {
@@ -130,6 +141,16 @@ export function buildWhatWeAlreadyKnow(evaluations: readonly RequirementEvaluati
         displayValue,
         truthLabel: truthClassLabel(truthClass),
         isProvisional: truthClassIsProvisional(truthClass) || e.status === "needs_confirmation",
+        editable: Boolean(e.item),
+        clientQuestionEs: e.requirement.clientQuestionEs,
+        clientQuestionEn: e.requirement.clientQuestionEn,
+        expectedAnswerType: e.requirement.valueType,
+        options: e.requirement.options,
+        existingValue: e.item?.value ?? null,
+        existingDisplayValue: e.item?.displayValue ?? null,
+        existingTruthClass: e.item?.truthClass ?? null,
+        existingItemId: e.item?.id ?? null,
+        existingConfirmationState: e.item?.confirmationState ?? null,
       };
     });
 }
@@ -147,6 +168,7 @@ export interface QuestionView {
   section: WebsiteDiscoverySection;
   mayChangeScope: boolean;
   expectedAnswerType: QuestionCandidate["expectedAnswerType"];
+  options?: readonly WebsiteRequirementChoiceOption[];
 }
 
 const BLOCKING_LABELS: Record<QuestionCandidate["blockingLevel"], BilingualLabel> = {
@@ -166,6 +188,7 @@ export function buildQuestionsToAskNowView(candidates: readonly QuestionCandidat
     section: c.section,
     mayChangeScope: c.mayChangeScope,
     expectedAnswerType: c.expectedAnswerType,
+    options: c.options,
   }));
 }
 
@@ -208,12 +231,43 @@ export function buildBeforeYouWrapUpView(wrapUpCandidates: readonly QuestionCand
 // ---------------------------------------------------------------------------------------------
 // Sections Review (MD <sections_review>) — secondary, grouped, human status only.
 // ---------------------------------------------------------------------------------------------
+/**
+ * Gate 3.1 <part_1_sections_review_actionability> — the smallest useful action for this row,
+ * deterministically derived from the SAME RequirementEvaluation the status label already comes
+ * from. "ask" covers both a genuinely missing client question AND an existing-but-provisional
+ * answer that needs (re)confirmation — the UI renders the identical capture form either way,
+ * pre-filled when an item already exists. Never a fake action: "leonix"/"research" only ever
+ * point at the real Leonix Decisions section, which lists this exact fieldKey.
+ */
+export type SectionReviewActionKind = "ask" | "edit" | "leonix" | "research" | "none";
+
 export interface SectionReviewRequirementView {
   fieldKey: string;
   labelEs: string;
   labelEn: string;
   section: WebsiteDiscoverySection;
   statusLabel: BilingualLabel;
+  actionKind: SectionReviewActionKind;
+  clientQuestionEs: string;
+  clientQuestionEn: string;
+  whyItMattersEs: string;
+  whyItMattersEn: string;
+  expectedAnswerType: RequirementEvaluation["requirement"]["valueType"];
+  options?: readonly WebsiteRequirementChoiceOption[];
+  existingItemId: string | null;
+  existingValue: unknown;
+  existingDisplayValue: string | null;
+  existingTruthClass: string | null;
+  existingConfirmationState: "unconfirmed" | "confirmed" | "rejected" | null;
+}
+
+function sectionReviewActionKindFor(e: RequirementEvaluation): SectionReviewActionKind {
+  const completeness = e.requirement.defaultCompletenessClass;
+  if (e.status === "not_applicable") return "none";
+  if (completeness === "needs_leonix_decision") return "leonix";
+  if (completeness === "needs_official_research") return "research";
+  if (e.status === "confirmed" || e.status === "captured_unconfirmed") return "edit";
+  return "ask";
 }
 
 export interface SectionReviewGroupView {
@@ -244,20 +298,63 @@ function sectionsReviewStatusLabel(e: RequirementEvaluation): BilingualLabel {
   }
 }
 
+function toSectionReviewRequirementView(e: RequirementEvaluation): SectionReviewRequirementView {
+  return {
+    fieldKey: e.requirement.fieldKey,
+    labelEs: e.requirement.labelEs,
+    labelEn: e.requirement.labelEn,
+    section: e.requirement.section,
+    statusLabel: sectionsReviewStatusLabel(e),
+    actionKind: sectionReviewActionKindFor(e),
+    clientQuestionEs: e.requirement.clientQuestionEs,
+    clientQuestionEn: e.requirement.clientQuestionEn,
+    whyItMattersEs: e.requirement.operatorGuidanceEs,
+    whyItMattersEn: e.requirement.operatorGuidanceEn,
+    expectedAnswerType: e.requirement.valueType,
+    options: e.requirement.options,
+    existingItemId: e.item?.id ?? null,
+    existingValue: e.item?.value ?? null,
+    existingDisplayValue: e.item?.displayValue ?? null,
+    existingTruthClass: e.item?.truthClass ?? null,
+    existingConfirmationState: e.item?.confirmationState ?? null,
+  };
+}
+
 export function buildSectionsReviewView(evaluations: readonly RequirementEvaluation[]): SectionReviewGroupView[] {
   return SECTION_REVIEW_GROUPS.map((group) => ({
     key: group.key,
     label: group.label,
-    requirements: evaluations
-      .filter((e) => group.sections.includes(e.requirement.section))
-      .map((e) => ({
-        fieldKey: e.requirement.fieldKey,
-        labelEs: e.requirement.labelEs,
-        labelEn: e.requirement.labelEn,
-        section: e.requirement.section,
-        statusLabel: sectionsReviewStatusLabel(e),
-      })),
+    requirements: evaluations.filter((e) => group.sections.includes(e.requirement.section)).map(toSectionReviewRequirementView),
   })).filter((g) => g.requirements.length > 0);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Brand & Visual Preferences (MD Gate 3.1 <part_4_client_preferences>) — a focused, conversational
+// capture surface over the SAME Gate 1 items / Gate 2 catalog fields Sections Review already
+// exposes; no second data model, no rigid wizard. Grouped naturally; every field is optional.
+// ---------------------------------------------------------------------------------------------
+export type BrandPreferenceGroupKey = "colors" | "style" | "imagery" | "symbols";
+
+export const BRAND_PREFERENCE_GROUPS: readonly { key: BrandPreferenceGroupKey; label: BilingualLabel; fieldKeys: readonly string[] }[] = [
+  { key: "colors", label: bilabel("Colores", "Colors"), fieldKeys: ["colors_liked", "colors_disliked"] },
+  { key: "style", label: bilabel("Estilo / sensación", "Style / Feel"), fieldKeys: ["visual_personality"] },
+  { key: "imagery", label: bilabel("Imágenes", "Imagery"), fieldKeys: ["imagery_preference"] },
+  { key: "symbols", label: bilabel("Símbolos", "Symbols"), fieldKeys: ["symbols_wanted", "symbols_avoided"] },
+];
+
+export interface BrandPreferenceGroupView {
+  key: BrandPreferenceGroupKey;
+  label: BilingualLabel;
+  fields: SectionReviewRequirementView[];
+}
+
+export function buildBrandPreferencesView(evaluations: readonly RequirementEvaluation[]): BrandPreferenceGroupView[] {
+  const byFieldKey = new Map(evaluations.filter((e) => e.status !== "not_applicable").map((e) => [e.requirement.fieldKey, e]));
+  return BRAND_PREFERENCE_GROUPS.map((group) => ({
+    key: group.key,
+    label: group.label,
+    fields: group.fieldKeys.map((fk) => byFieldKey.get(fk)).filter((e): e is RequirementEvaluation => Boolean(e)).map(toSectionReviewRequirementView),
+  })).filter((g) => g.fields.length > 0);
 }
 
 // ---------------------------------------------------------------------------------------------

@@ -389,16 +389,21 @@ export default async function AdminBusinessDetailPage({
     ? await (async () => {
         const discoveries = await listProjectDiscoveriesForBusiness(business.id);
         const currentDiscovery = discoveries.find((d) => d.status !== "blueprint_created") ?? discoveries[0] ?? null;
-        if (!currentDiscovery) return { currentDiscovery: null, otherDiscoveries: [], intents: [], selectedIntentId: null, items: [], sources: [], consents: [], events: [], website: null };
+        if (!currentDiscovery) return { currentDiscovery: null, otherDiscoveries: [], intents: [], selectedIntentId: null, items: [], sources: [], consents: [], events: [], website: null, existingSourceFiles: [] };
 
         const otherDiscoveries = discoveries.filter((d) => d.id !== currentDiscovery.id);
-        const [intents, items, sources, consents, events] = await Promise.all([
+        const [intents, items, sources, consents, events, businessSourceFiles] = await Promise.all([
           listProjectDiscoveryIntents(currentDiscovery.id, business.id),
           listProjectDiscoveryItems(currentDiscovery.id, business.id),
           listProjectDiscoverySources(currentDiscovery.id, business.id),
           listProjectDiscoveryConsents(currentDiscovery.id, business.id),
           listDiscoveryEventsForDiscovery(currentDiscovery.id, business.id),
+          listSourceFilesForBusiness(business.id),
         ]);
+        // Gate 3.1 <part_3_asset_ref_renderer> — the canonical-asset picker's option list; reuses
+        // the exact same business_source_files rows Field Discovery already shows, never a second
+        // blob store or a fake file id.
+        const existingSourceFiles = businessSourceFiles.map((f) => ({ id: f.id, label: `${f.originalFilename} (${f.fileKind})` }));
 
         const requestedIntentId = typeof resolvedSearchParams.discoveryIntent === "string" ? resolvedSearchParams.discoveryIntent : null;
         const selectedIntent = (requestedIntentId ? intents.find((i) => i.id === requestedIntentId) : null) ?? intents[0] ?? null;
@@ -416,7 +421,7 @@ export default async function AdminBusinessDetailPage({
             })()
           : null;
 
-        return { currentDiscovery, otherDiscoveries, intents, selectedIntentId: selectedIntent?.id ?? null, items, sources, consents, events, website };
+        return { currentDiscovery, otherDiscoveries, intents, selectedIntentId: selectedIntent?.id ?? null, items, sources, consents, events, website, existingSourceFiles };
       })()
     : null;
 
@@ -978,6 +983,7 @@ export default async function AdminBusinessDetailPage({
             canReview={canReviewProjectDiscovery}
             canManageConsent={canManageDiscoveryConsent}
             startFromGrowthSolution={startFromGrowthSolution}
+            existingSourceFiles={clientDiscoveryData.existingSourceFiles}
           />
         </section>
       ) : null}

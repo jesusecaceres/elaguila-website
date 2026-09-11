@@ -1,17 +1,18 @@
 import Link from "next/link";
 import {
   AddProjectIntentForm,
+  AnswerRowActions,
   CaptureAnswerForm,
   ConsentToggle,
   DiscoveryAssetUpload,
   DiscoveryStatusButtons,
   IntentStatusButtons,
-  ItemReviewButtons,
   LinkMeetingButton,
   MeetingNoteCapture,
   SendQuestionsToMeetingButton,
   StartDiscoveryForm,
   VisualReferenceForm,
+  type ExistingSourceFileOption,
 } from "./ClientDiscoveryActions";
 import {
   EMPTY_STATE_NO_ASSETS,
@@ -23,6 +24,7 @@ import {
 import { formatBilingual } from "@/app/lib/business/projectDiscovery/discoveryLabels";
 import {
   buildBeforeYouWrapUpView,
+  buildBrandPreferencesView,
   buildLeonixDecisionsView,
   buildMultiProjectNav,
   buildOfficialResearchView,
@@ -31,6 +33,7 @@ import {
   buildSectionsReviewView,
   buildTopScreenSummary,
   buildWhatWeAlreadyKnow,
+  type SectionReviewRequirementView,
 } from "@/app/lib/business/projectDiscovery/discoveryWorkspaceViewModel";
 import type { RequirementEvaluation, WebsiteReadinessResult, WebsiteScopeSignalResult } from "@/app/lib/business/projectDiscovery/websiteDiscoveryLogic";
 import type { QuestionCandidate } from "@/app/lib/business/projectDiscovery/websiteQuestionEngine";
@@ -71,14 +74,11 @@ export interface ClientDiscoveryJourneyProps {
   canReview: boolean;
   canManageConsent: boolean;
   startFromGrowthSolution?: { titleEs: string; titleEn: string; sourceGrowthSolutionId: string; sourceGrowthAssessmentId?: string } | null;
-}
-
-function itemForField(items: readonly ProjectDiscoveryItem[], fieldKey: string, intentId: string | null): ProjectDiscoveryItem | null {
-  return items.find((i) => i.fieldKey === fieldKey && i.projectIntentId === intentId) ?? items.find((i) => i.fieldKey === fieldKey && i.projectIntentId === null) ?? null;
+  existingSourceFiles?: readonly ExistingSourceFileOption[];
 }
 
 export function ClientDiscoveryJourney(props: ClientDiscoveryJourneyProps) {
-  const { businessId, currentDiscovery, intents, selectedIntentId, items, sources, consents, events, website, upcomingMeetings, canCreate, canManage, canReview, canManageConsent } = props;
+  const { businessId, currentDiscovery, intents, selectedIntentId, sources, consents, events, website, upcomingMeetings, canCreate, canManage, canReview, canManageConsent, existingSourceFiles } = props;
 
   if (!currentDiscovery) {
     return (
@@ -148,7 +148,15 @@ export function ClientDiscoveryJourney(props: ClientDiscoveryJourneyProps) {
 
       {selectedIntent && website ? (
         <>
-          <WhatWeAlreadyKnowSection evaluations={website.evaluations} />
+          <WhatWeAlreadyKnowSection
+            evaluations={website.evaluations}
+            businessId={businessId}
+            discoveryId={currentDiscovery.id}
+            intentId={selectedIntent.id}
+            canCreate={canCreate}
+            canReview={canReview}
+            existingSourceFiles={existingSourceFiles}
+          />
           <QuestionsToAskNowSection
             businessId={businessId}
             discoveryId={currentDiscovery.id}
@@ -157,6 +165,7 @@ export function ClientDiscoveryJourney(props: ClientDiscoveryJourneyProps) {
             wrapUp={buildBeforeYouWrapUpView(website.wrapUp, website.readiness)}
             upcomingMeetings={upcomingMeetings}
             canCreate={canCreate}
+            existingSourceFiles={existingSourceFiles}
           />
           <BeforeYouWrapUpSection
             businessId={businessId}
@@ -164,6 +173,15 @@ export function ClientDiscoveryJourney(props: ClientDiscoveryJourneyProps) {
             intentId={selectedIntent.id}
             wrapUp={buildBeforeYouWrapUpView(website.wrapUp, website.readiness)}
             canCreate={canCreate}
+            existingSourceFiles={existingSourceFiles}
+          />
+          <BrandVisualPreferencesSection
+            evaluations={website.evaluations}
+            businessId={businessId}
+            discoveryId={currentDiscovery.id}
+            intentId={selectedIntent.id}
+            canCreate={canCreate}
+            canReview={canReview}
           />
         </>
       ) : selectedIntent ? (
@@ -184,15 +202,38 @@ export function ClientDiscoveryJourney(props: ClientDiscoveryJourneyProps) {
         </>
       ) : null}
 
-      <ReadinessSection discoveryId={currentDiscovery.id} businessId={businessId} status={currentDiscovery.status} upcomingMeetings={upcomingMeetings} canManage={canManage} />
+      <ReadinessSection
+        discoveryId={currentDiscovery.id}
+        businessId={businessId}
+        status={currentDiscovery.status}
+        upcomingMeetings={upcomingMeetings}
+        canManage={canManage}
+        websiteReadinessState={website?.readiness.state ?? null}
+      />
 
-      {website ? <SectionsReviewSection evaluations={website.evaluations} items={items} intentId={selectedIntent?.id ?? null} businessId={businessId} discoveryId={currentDiscovery.id} canReview={canReview} /> : null}
+      {website ? (
+        <SectionsReviewSection
+          evaluations={website.evaluations}
+          intentId={selectedIntent?.id ?? null}
+          businessId={businessId}
+          discoveryId={currentDiscovery.id}
+          canCreate={canCreate}
+          canReview={canReview}
+          existingSourceFiles={existingSourceFiles}
+        />
+      ) : null}
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-function WhatWeAlreadyKnowSection({ evaluations }: { evaluations: readonly RequirementEvaluation[] }) {
+function WhatWeAlreadyKnowSection({
+  evaluations, businessId, discoveryId, intentId, canCreate, canReview, existingSourceFiles,
+}: {
+  evaluations: readonly RequirementEvaluation[];
+  businessId: string; discoveryId: string; intentId: string; canCreate: boolean; canReview: boolean;
+  existingSourceFiles?: readonly ExistingSourceFileOption[];
+}) {
   const known = buildWhatWeAlreadyKnow(evaluations);
   return (
     <section className={CARD}>
@@ -208,6 +249,30 @@ function WhatWeAlreadyKnowSection({ evaluations }: { evaluations: readonly Requi
                 <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${k.isProvisional ? "bg-[#FFF4E0] text-[#5C4E2E]" : "bg-emerald-100 text-emerald-900"}`}>{formatBilingual(k.truthLabel)}</span>
               </div>
               <p className="mt-1 text-sm text-[#3D3428]">{k.displayValue}</p>
+              {k.editable ? (
+                <div className="mt-2">
+                  <AnswerRowActions
+                    businessId={businessId}
+                    discoveryId={discoveryId}
+                    intentId={intentId}
+                    fieldKey={k.fieldKey}
+                    section={k.section}
+                    clientQuestionEs={k.clientQuestionEs}
+                    clientQuestionEn={k.clientQuestionEn}
+                    expectedAnswerType={k.expectedAnswerType}
+                    options={k.options}
+                    existingItemId={k.existingItemId}
+                    existingValue={k.existingValue}
+                    existingDisplayValue={k.existingDisplayValue}
+                    existingTruthClass={k.existingTruthClass}
+                    existingConfirmationState={k.existingConfirmationState}
+                    actionKind="edit"
+                    canCreate={canCreate}
+                    canReview={canReview}
+                    existingSourceFiles={existingSourceFiles}
+                  />
+                </div>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -218,13 +283,14 @@ function WhatWeAlreadyKnowSection({ evaluations }: { evaluations: readonly Requi
 
 // ---------------------------------------------------------------------------
 function QuestionsToAskNowSection({
-  businessId, discoveryId, intentId, candidates, wrapUp, upcomingMeetings, canCreate,
+  businessId, discoveryId, intentId, candidates, wrapUp, upcomingMeetings, canCreate, existingSourceFiles,
 }: {
   businessId: string; discoveryId: string; intentId: string;
   candidates: readonly QuestionCandidate[];
   wrapUp: ReturnType<typeof buildBeforeYouWrapUpView>;
   upcomingMeetings: readonly { id: string; label: string }[];
   canCreate: boolean;
+  existingSourceFiles?: readonly ExistingSourceFileOption[];
 }) {
   const views = buildQuestionsToAskNowViewSafe(candidates);
   const emptyCopy = questionsEmptyStateFor(wrapUp.clientDiscoveryComplete, wrapUp.leonixDecisionsRemain, wrapUp.officialResearchRemains);
@@ -252,6 +318,8 @@ function QuestionsToAskNowSection({
                   questionEs={q.questionEs}
                   questionEn={q.questionEn}
                   valueType={q.expectedAnswerType}
+                  options={q.options}
+                  existingSourceFiles={existingSourceFiles}
                 />
               ) : null}
               <details className="mt-1">
@@ -277,11 +345,12 @@ function QuestionsToAskNowSection({
 // distinct from the running Questions to Ask Now list: a concise, high-risk-only safety check.
 // ---------------------------------------------------------------------------
 function BeforeYouWrapUpSection({
-  businessId, discoveryId, intentId, wrapUp, canCreate,
+  businessId, discoveryId, intentId, wrapUp, canCreate, existingSourceFiles,
 }: {
   businessId: string; discoveryId: string; intentId: string;
   wrapUp: ReturnType<typeof buildBeforeYouWrapUpView>;
   canCreate: boolean;
+  existingSourceFiles?: readonly ExistingSourceFileOption[];
 }) {
   const isAllClear = wrapUp.items.length === 0;
   return (
@@ -305,6 +374,8 @@ function BeforeYouWrapUpSection({
                   questionEs={q.questionEs}
                   questionEn={q.questionEn}
                   valueType={q.expectedAnswerType}
+                  options={q.options}
+                  existingSourceFiles={existingSourceFiles}
                 />
               ) : null}
             </li>
@@ -317,6 +388,81 @@ function BeforeYouWrapUpSection({
 
 function buildQuestionsToAskNowViewSafe(candidates: readonly QuestionCandidate[]) {
   return buildQuestionsToAskNowView(candidates);
+}
+
+// ---------------------------------------------------------------------------
+// Preferencias de Marca y Estilo / Brand & Visual Preferences (MD Gate 3.1 <part_4_client_preferences>)
+// — a focused, conversational surface over the SAME Gate 1 items already captured elsewhere; never
+// a separate data model, never a rigid wizard, every field optional.
+// ---------------------------------------------------------------------------
+function renderRowAction(
+  row: SectionReviewRequirementView,
+  ctx: { businessId: string; discoveryId: string; intentId: string | null; canCreate: boolean; canReview: boolean; existingSourceFiles?: readonly ExistingSourceFileOption[] },
+) {
+  return (
+    <AnswerRowActions
+      businessId={ctx.businessId}
+      discoveryId={ctx.discoveryId}
+      intentId={ctx.intentId}
+      fieldKey={row.fieldKey}
+      section={row.section}
+      clientQuestionEs={row.clientQuestionEs}
+      clientQuestionEn={row.clientQuestionEn}
+      expectedAnswerType={row.expectedAnswerType}
+      options={row.options}
+      existingItemId={row.existingItemId}
+      existingValue={row.existingValue}
+      existingDisplayValue={row.existingDisplayValue}
+      existingTruthClass={row.existingTruthClass}
+      existingConfirmationState={row.existingConfirmationState}
+      actionKind={row.actionKind}
+      canCreate={ctx.canCreate}
+      canReview={ctx.canReview}
+      existingSourceFiles={ctx.existingSourceFiles}
+    />
+  );
+}
+
+function BrandVisualPreferencesSection({
+  evaluations, businessId, discoveryId, intentId, canCreate, canReview,
+}: {
+  evaluations: readonly RequirementEvaluation[]; businessId: string; discoveryId: string; intentId: string; canCreate: boolean; canReview: boolean;
+}) {
+  const groups = buildBrandPreferencesView(evaluations);
+  return (
+    <section className={CARD}>
+      <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Preferencias de Marca y Estilo / Brand &amp; Visual Preferences</h3>
+      <p className="mt-1 text-[11px] text-[#9A9184]">
+        Preferencia del cliente — nunca un hecho confirmado del negocio. Ningún campo es obligatorio. / Client preference — never a confirmed business fact. No field is required.
+      </p>
+      {groups.length === 0 ? (
+        <p className="mt-2 text-sm text-[#6B5E47]">No hay preferencias de marca aplicables todavía. / No brand preferences applicable yet.</p>
+      ) : (
+        <div className="mt-3 space-y-3">
+          {groups.map((g) => (
+            <div key={g.key}>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A1E2C]">{formatBilingual(g.label)}</p>
+              <ul className="mt-1 space-y-2">
+                {g.fields.map((row) => (
+                  <li key={row.fieldKey} className={SUBCARD}>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-sm font-semibold text-[#1E1810]">{row.labelEs} / {row.labelEn}</span>
+                      <span className="rounded-full bg-[#EDE6D6] px-2 py-0.5 text-[10px] font-bold text-[#3D3428]">{formatBilingual(row.statusLabel)}</span>
+                    </div>
+                    {row.existingDisplayValue ? <p className="mt-1 text-sm text-[#3D3428]">{row.existingDisplayValue}</p> : null}
+                    <div className="mt-2">{renderRowAction(row, { businessId, discoveryId, intentId, canCreate, canReview })}</div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+          <p className="text-[11px] text-[#9A9184]">
+            Referencias visuales (sitios que le gustan/no le gustan) / Visual references (websites liked/disliked): <a href="#project-assets" className="font-semibold text-[#7A1E2C] underline">ver Activos del Proyecto y Referencias Visuales / see Project Assets &amp; Visual References</a>.
+          </p>
+        </div>
+      )}
+    </section>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -346,8 +492,11 @@ function MeetingNotesSection({ businessId, discoveryId, sources, canCreate }: { 
 function AssetsReferencesSection({ businessId, discoveryId, sources, canCreate }: { businessId: string; discoveryId: string; sources: readonly ProjectDiscoverySource[]; canCreate: boolean }) {
   const assets = sources.filter((s) => s.sourceType === "asset" || s.sourceType === "website_url");
   return (
-    <section className={CARD}>
-      <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Archivos y referencias / Assets & References</h3>
+    <section id="project-assets" className={`${CARD} scroll-mt-24`}>
+      <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Activos del Proyecto y Referencias Visuales / Project Assets &amp; Visual References</h3>
+      <p className="mt-1 text-[11px] text-[#9A9184]">
+        Dos caminos: suba un activo real del cliente, o agregue una referencia de inspiración. / Two paths: upload a real client asset, or add an inspiration reference.
+      </p>
       {canCreate ? (
         <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <DiscoveryAssetUpload businessId={businessId} discoveryId={discoveryId} />
@@ -387,8 +536,8 @@ function ConsentSection({ businessId, discoveryId, consents, canManageConsent }:
       </p>
       {canManageConsent ? (
         <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <ConsentToggle businessId={businessId} discoveryId={discoveryId} consentType="audio_recording" currentState={latest("audio_recording")} />
-          <ConsentToggle businessId={businessId} discoveryId={discoveryId} consentType="transcription" currentState={latest("transcription")} />
+          <ConsentToggle businessId={businessId} discoveryId={discoveryId} consentType="audio_recording" currentState={latest("audio_recording")} headingEs="Consentimiento de grabación" headingEn="Recording consent" />
+          <ConsentToggle businessId={businessId} discoveryId={discoveryId} consentType="transcription" currentState={latest("transcription")} headingEs="Consentimiento de transcripción" headingEn="Transcription consent" />
         </div>
       ) : null}
       <p className="mt-2 text-[10px] text-[#9A9184]">La grabación y la transcripción reales no están activas todavía en este producto. / Real recording and transcription are not active in this product yet.</p>
@@ -418,7 +567,7 @@ function LeonixDecisionsSection({ evaluations }: { evaluations: readonly Require
   const research = buildOfficialResearchView(evaluations);
   if (decisions.length === 0 && research.length === 0) return null;
   return (
-    <section className={CARD}>
+    <section id="leonix-decisions" className={`${CARD} scroll-mt-24`}>
       <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Decisiones de Leonix / Leonix Decisions</h3>
       <p className="mt-1 text-[11px] text-[#9A9184]">Nunca se muestran al cliente como preguntas. / Never shown to the client as questions.</p>
       <ul className="mt-2 space-y-1">
@@ -434,18 +583,31 @@ function LeonixDecisionsSection({ evaluations }: { evaluations: readonly Require
 }
 
 // ---------------------------------------------------------------------------
-function ReadinessSection({ discoveryId, businessId, status, upcomingMeetings, canManage }: { discoveryId: string; businessId: string; status: ProjectDiscovery["status"]; upcomingMeetings: readonly { id: string; label: string }[]; canManage: boolean }) {
+// Gate 3.1 <part_8_status_integrity> — READY FOR BLUEPRINT is hidden here whenever the currently
+// selected website intent's own computed readiness disallows it, so the UI never dangles an
+// impossible transition in front of staff. This is a UX courtesy only: the real guard lives
+// server-side (discoveryReadinessGuard.ts) and is authoritative regardless of what this list shows.
+function ReadinessSection({
+  discoveryId, businessId, status, upcomingMeetings, canManage, websiteReadinessState,
+}: {
+  discoveryId: string; businessId: string; status: ProjectDiscovery["status"];
+  upcomingMeetings: readonly { id: string; label: string }[]; canManage: boolean;
+  websiteReadinessState: WebsiteReadinessResult["state"] | null;
+}) {
+  const blueprintAllowed = websiteReadinessState === null || websiteReadinessState === "READY" || websiteReadinessState === "READY_WITH_NON_BLOCKING_GAPS";
+  const allOptions: readonly ProjectDiscovery["status"][] = ["in_progress", "needs_client_information", "needs_leonix_decision", "ready_for_blueprint", "blueprint_created"];
+  const options = blueprintAllowed ? allOptions : allOptions.filter((o) => o !== "ready_for_blueprint");
   return (
     <section className={CARD}>
       <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Preparación / Readiness</h3>
       {canManage ? (
         <div className="mt-2">
-          <DiscoveryStatusButtons
-            businessId={businessId}
-            discoveryId={discoveryId}
-            status={status}
-            options={["in_progress", "needs_client_information", "needs_leonix_decision", "ready_for_blueprint", "blueprint_created"]}
-          />
+          <DiscoveryStatusButtons businessId={businessId} discoveryId={discoveryId} status={status} options={options} />
+          {!blueprintAllowed ? (
+            <p className="mt-1 text-[11px] text-[#9A9184]">
+              Listo para el Plan del Proyecto aparecerá aquí una vez resueltas las preguntas requeridas y las decisiones de Leonix. / Ready for Blueprint will appear here once the required questions and Leonix decisions are resolved.
+            </p>
+          ) : null}
         </div>
       ) : null}
       {upcomingMeetings.length === 0 ? <p className="mt-2 text-[11px] text-[#9A9184]">No hay una reunión próxima vinculada. / No upcoming meeting linked.</p> : null}
@@ -455,9 +617,10 @@ function ReadinessSection({ discoveryId, businessId, status, upcomingMeetings, c
 
 // ---------------------------------------------------------------------------
 function SectionsReviewSection({
-  evaluations, items, intentId, businessId, discoveryId, canReview,
+  evaluations, intentId, businessId, discoveryId, canCreate, canReview, existingSourceFiles,
 }: {
-  evaluations: readonly RequirementEvaluation[]; items: readonly ProjectDiscoveryItem[]; intentId: string | null; businessId: string; discoveryId: string; canReview: boolean;
+  evaluations: readonly RequirementEvaluation[]; intentId: string | null; businessId: string; discoveryId: string; canCreate: boolean; canReview: boolean;
+  existingSourceFiles?: readonly ExistingSourceFileOption[];
 }) {
   const groups = buildSectionsReviewView(evaluations);
   return (
@@ -467,21 +630,19 @@ function SectionsReviewSection({
         {groups.map((g) => (
           <div key={g.key}>
             <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A1E2C]">{formatBilingual(g.label)}</p>
-            <ul className="mt-1 space-y-1">
-              {g.requirements.map((r) => {
-                const item = itemForField(items, r.fieldKey, intentId);
-                return (
-                  <li key={r.fieldKey} className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F0E9DA] py-1 text-sm">
+            <ul className="mt-1 space-y-2">
+              {g.requirements.map((r) => (
+                <li key={r.fieldKey} className="border-b border-[#F0E9DA] py-2 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-[#1E1810]">{r.labelEs} / {r.labelEn}</span>
-                    <span className="flex items-center gap-2">
-                      <span className="rounded-full bg-[#EDE6D6] px-2 py-0.5 text-[10px] font-bold text-[#3D3428]">{formatBilingual(r.statusLabel)}</span>
-                      {canReview && item && item.confirmationState !== "confirmed" ? (
-                        <ItemReviewButtons businessId={businessId} discoveryId={discoveryId} itemId={item.id} confirmationState={item.confirmationState} />
-                      ) : null}
-                    </span>
-                  </li>
-                );
-              })}
+                    <span className="rounded-full bg-[#EDE6D6] px-2 py-0.5 text-[10px] font-bold text-[#3D3428]">{formatBilingual(r.statusLabel)}</span>
+                  </div>
+                  {r.existingDisplayValue ? <p className="mt-1 text-xs text-[#6B5E47]">{r.existingDisplayValue}</p> : null}
+                  {r.actionKind !== "none" ? (
+                    <div className="mt-1">{renderRowAction(r, { businessId, discoveryId, intentId, canCreate, canReview, existingSourceFiles })}</div>
+                  ) : null}
+                </li>
+              ))}
             </ul>
           </div>
         ))}

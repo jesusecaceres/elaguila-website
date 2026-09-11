@@ -83,6 +83,19 @@ export interface WebsiteRequirementPredicateContext {
   hasExistingWebsite: boolean;
 }
 
+/**
+ * Gate 3.1 <part_2_choice_renderer> — bilingual option metadata for `valueType: "choice"`
+ * requirements. `value` is the canonical saved value: a plain string key for ordinary choices, or
+ * the literal strings "true"/"false" for a choice that is semantically a yes/no toggle whose
+ * dependency/scope-signal predicates elsewhere in this catalog check a real boolean (the answer
+ * renderer coerces "true"/"false" to a JS boolean at save time — see CaptureAnswerForm).
+ */
+export interface WebsiteRequirementChoiceOption {
+  value: string;
+  labelEn: string;
+  labelEs: string;
+}
+
 export interface WebsiteRequirementDefinition {
   fieldKey: string;
   section: WebsiteDiscoverySection;
@@ -93,6 +106,8 @@ export interface WebsiteRequirementDefinition {
   clientQuestionEn: string;
   clientQuestionEs: string;
   valueType: WebsiteValueType;
+  /** Required when valueType is "choice"; ignored otherwise. */
+  options?: readonly WebsiteRequirementChoiceOption[];
   defaultCompletenessClass: DiscoveryCompletenessClass;
   whoShouldAnswer: WebsiteAnswerSource;
   /** Only relevant/askable when this returns true (or when omitted — always applicable). */
@@ -335,7 +350,13 @@ const content: WebsiteRequirementDefinition[] = [
     labelEn: "Who writes the copy", labelEs: "Quién escribe el contenido",
     operatorGuidanceEn: "Client-provided vs. Leonix-authored — affects timeline and scope.", operatorGuidanceEs: "Proporcionado por el cliente vs. redactado por Leonix — afecta el cronograma y alcance.",
     clientQuestionEn: "Will you provide the text, or should Leonix write it for you?", clientQuestionEs: "¿Proporcionará el texto, o debería Leonix escribirlo por usted?",
-    valueType: "choice", defaultCompletenessClass: "required_before_build", whoShouldAnswer: "CLIENT",
+    valueType: "choice",
+    options: [
+      { value: "client_provides", labelEn: "I will provide the text", labelEs: "Yo proporciono el texto" },
+      { value: "leonix_writes", labelEn: "Leonix should write it", labelEs: "Leonix debe escribirlo" },
+      { value: "mixed", labelEn: "A mix of both", labelEs: "Una mezcla de ambos" },
+    ],
+    defaultCompletenessClass: "required_before_build", whoShouldAnswer: "CLIENT",
     priority: 1, mayBlockBuild: true, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
   },
   {
@@ -403,7 +424,28 @@ const primaryCta: WebsiteRequirementDefinition[] = [
     operatorGuidanceEn: "Call, Text, WhatsApp, Email, Contact form, Quote, Book, Reserve, Order, Buy, Donate, Listen Live, Watch Live, Register, Apply, Visit, Directions, Other — never leave this unknown before build.",
     operatorGuidanceEs: "Llamar, mensaje de texto, WhatsApp, correo, formulario de contacto, cotización, reservar, ordenar, comprar, donar, escuchar en vivo, ver en vivo, registrarse, aplicar, visitar, direcciones, otro.",
     clientQuestionEn: "What is the single most important action you want a visitor to take?", clientQuestionEs: "¿Cuál es la acción más importante que quiere que tome un visitante?",
-    valueType: "choice", defaultCompletenessClass: "required_before_build", whoShouldAnswer: "CLIENT",
+    valueType: "choice",
+    options: [
+      { value: "call", labelEn: "Call", labelEs: "Llamar" },
+      { value: "text", labelEn: "Text", labelEs: "Mensaje de texto" },
+      { value: "whatsapp", labelEn: "WhatsApp", labelEs: "WhatsApp" },
+      { value: "email", labelEn: "Email", labelEs: "Correo" },
+      { value: "contact_form", labelEn: "Contact form", labelEs: "Formulario de contacto" },
+      { value: "quote", labelEn: "Request a quote", labelEs: "Solicitar cotización" },
+      { value: "book", labelEn: "Book", labelEs: "Reservar cita" },
+      { value: "reserve", labelEn: "Reserve", labelEs: "Reservar" },
+      { value: "order", labelEn: "Order", labelEs: "Ordenar" },
+      { value: "buy", labelEn: "Buy", labelEs: "Comprar" },
+      { value: "donate", labelEn: "Donate", labelEs: "Donar" },
+      { value: "listen_live", labelEn: "Listen live", labelEs: "Escuchar en vivo" },
+      { value: "watch_live", labelEn: "Watch live", labelEs: "Ver en vivo" },
+      { value: "register", labelEn: "Register", labelEs: "Registrarse" },
+      { value: "apply", labelEn: "Apply", labelEs: "Aplicar" },
+      { value: "visit", labelEn: "Visit", labelEs: "Visitar" },
+      { value: "directions", labelEn: "Get directions", labelEs: "Obtener direcciones" },
+      { value: "other", labelEn: "Other", labelEs: "Otro" },
+    ],
+    defaultCompletenessClass: "required_before_build", whoShouldAnswer: "CLIENT",
     priority: 1, mayBlockBuild: true, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
   },
   {
@@ -530,7 +572,12 @@ const hostingDeployment: WebsiteRequirementDefinition[] = [
     operatorGuidanceEs: "Costoso de descubrir solo después de que termine la reunión — un elemento clásico de 'Antes de Terminar'.",
     clientQuestionEn: "Should your current website be fully replaced, or does anything need to stay live during the transition?",
     clientQuestionEs: "¿Su sitio web actual debe reemplazarse por completo, o algo debe permanecer activo durante la transición?",
-    valueType: "choice", defaultCompletenessClass: "required_before_launch", whoShouldAnswer: "CLIENT",
+    valueType: "choice",
+    options: [
+      { value: "replace_fully", labelEn: "Replace it fully", labelEs: "Reemplazarlo por completo" },
+      { value: "preserve_during_transition", labelEn: "Keep parts live during the transition", labelEs: "Mantener partes activas durante la transición" },
+    ],
+    defaultCompletenessClass: "required_before_launch", whoShouldAnswer: "CLIENT",
     applicabilityCondition: (ctx) => ctx.hasExistingWebsite,
     priority: 1, mayBlockBuild: false, mayBlockLaunch: true, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
   },
@@ -646,7 +693,16 @@ const paymentsCommerce: WebsiteRequirementDefinition[] = [
     operatorGuidanceEn: "Native commerce can materially change project scope (MD §17) — treat as a major scope signal.",
     operatorGuidanceEs: "El comercio nativo puede cambiar materialmente el alcance del proyecto — trátelo como una señal de alcance importante.",
     clientQuestionEn: "Should customers be able to pay directly on your site, or is a link to an existing checkout enough?", clientQuestionEs: "¿Los clientes deben poder pagar directamente en su sitio, o basta un enlace a un pago existente?",
-    valueType: "choice", defaultCompletenessClass: "required_before_build", whoShouldAnswer: "CLIENT",
+    valueType: "choice",
+    // "true"/"false" sentinel values (not free-form strings) — commerce_tax_shipping_inventory's
+    // own dependencyCondition below checks hasCapturedValue("wants_native_checkout", true) against
+    // a real JS boolean; the answer renderer coerces these two sentinel strings to a boolean at
+    // save time so that existing scope-escalation chain keeps working unchanged.
+    options: [
+      { value: "true", labelEn: "Yes, native checkout on the site", labelEs: "Sí, pago nativo en el sitio" },
+      { value: "false", labelEn: "No, a link to an existing checkout is enough", labelEs: "No, basta un enlace a un pago existente" },
+    ],
+    defaultCompletenessClass: "required_before_build", whoShouldAnswer: "CLIENT",
     // Deliberately NOT scopeEscalationSignal-tagged: wanting native checkout in the abstract is not
     // yet enough evidence (MD <website_archetype_awareness>: "Questions must derive from actual
     // goals and features"). The escalation signal lives on commerce_tax_shipping_inventory below,
@@ -767,7 +823,13 @@ const languages: WebsiteRequirementDefinition[] = [
     labelEn: "Translation ownership", labelEs: "Propiedad de la traducción",
     operatorGuidanceEn: "Only relevant when bilingual is confirmed.", operatorGuidanceEs: "Solo relevante cuando se confirma bilingüe.",
     clientQuestionEn: "Who provides the translated content — you or Leonix?", clientQuestionEs: "¿Quién proporciona el contenido traducido — usted o Leonix?",
-    valueType: "choice", defaultCompletenessClass: "required_before_build", whoShouldAnswer: "CLIENT",
+    valueType: "choice",
+    options: [
+      { value: "client_provides", labelEn: "I will provide the translation", labelEs: "Yo proporciono la traducción" },
+      { value: "leonix_provides", labelEn: "Leonix should provide it", labelEs: "Leonix debe proporcionarla" },
+      { value: "mixed", labelEn: "A mix of both", labelEs: "Una mezcla de ambos" },
+    ],
+    defaultCompletenessClass: "required_before_build", whoShouldAnswer: "CLIENT",
     dependencyCondition: (ctx) => ctx.hasCapturedValue("bilingual_site_needed", true),
     priority: 2, mayBlockBuild: true, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
   },
@@ -832,7 +894,13 @@ const maintenance: WebsiteRequirementDefinition[] = [
     labelEn: "Ongoing maintenance responsibility", labelEs: "Responsabilidad de mantenimiento continuo",
     operatorGuidanceEn: "Client-managed, Leonix-managed, or mixed — sets support expectations.", operatorGuidanceEs: "Administrado por el cliente, por Leonix, o mixto — establece expectativas de soporte.",
     clientQuestionEn: "After launch, who will keep the site updated?", clientQuestionEs: "Después del lanzamiento, ¿quién mantendrá el sitio actualizado?",
-    valueType: "choice", defaultCompletenessClass: "required_before_launch", whoShouldAnswer: "CLIENT",
+    valueType: "choice",
+    options: [
+      { value: "client_managed", labelEn: "The client will manage it", labelEs: "El cliente lo administrará" },
+      { value: "leonix_managed", labelEn: "Leonix will manage it", labelEs: "Leonix lo administrará" },
+      { value: "mixed", labelEn: "A mix of both", labelEs: "Una mezcla de ambos" },
+    ],
+    defaultCompletenessClass: "required_before_launch", whoShouldAnswer: "CLIENT",
     priority: 2, mayBlockBuild: false, mayBlockLaunch: true, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
   },
 ];
@@ -892,7 +960,13 @@ const restaurantBranch: WebsiteRequirementDefinition[] = [
     labelEn: "Menu source / format", labelEs: "Fuente / formato del menú",
     operatorGuidanceEn: "PDF, photos, or text — determines build effort.", operatorGuidanceEs: "PDF, fotos, o texto — determina el esfuerzo de construcción.",
     clientQuestionEn: "How would you like to share your menu with us — PDF, photos, or a written list?", clientQuestionEs: "¿Cómo le gustaría compartir su menú con nosotros — PDF, fotos, o una lista escrita?",
-    valueType: "choice", defaultCompletenessClass: "required_before_build", whoShouldAnswer: "CLIENT",
+    valueType: "choice",
+    options: [
+      { value: "pdf", labelEn: "PDF", labelEs: "PDF" },
+      { value: "photos", labelEn: "Photos", labelEs: "Fotos" },
+      { value: "written_list", labelEn: "Written list", labelEs: "Lista escrita" },
+    ],
+    defaultCompletenessClass: "required_before_build", whoShouldAnswer: "CLIENT",
     applicabilityCondition: (ctx) => ctx.industryBranch === "restaurant",
     priority: 1, mayBlockBuild: true, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
   },
