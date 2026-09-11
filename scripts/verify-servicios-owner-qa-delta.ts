@@ -23,6 +23,7 @@ import { resolveServiciosProfile } from "../app/(site)/servicios/lib/resolveServ
 import { getFeaturedVisualProofImages } from "../app/(site)/servicios/lib/serviciosFeaturedMedia";
 import { SERVICIOS_MAX_VIDEO_URLS } from "../app/(site)/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 import type { ClasificadosServiciosApplicationState } from "../app/(site)/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
+import type { ServiciosDiscoveryFacet } from "../app/(site)/servicios/types/serviciosBusinessProfile";
 import { MAX_SERVICIOS_PUBLIC_GALLERY_VIDEOS } from "../app/(site)/servicios/lib/serviciosGalleryVideoCaps";
 import {
   MAX_CUSTOM_QUICK_FACTS,
@@ -147,7 +148,15 @@ check("⚠️8/⚠️9 languages: multiple fixed + multiple custom values persis
   const { state, wire } = profileFrom({ languageIds: ["lang_es", "lang_en", "lang_otro"], languageOtherLines: "Mixteco\nNáhuatl\nZapoteco\nFrancés" });
   // The publish route stamps opsMeta.discovery.languageChipIds via the (server-only) discovery facet
   // = the state's languageIds; mirrored here so the hydration read is exercised faithfully.
-  const published = { ...wire, opsMeta: { ...wire.opsMeta, discovery: { languageChipIds: [...state.languageIds] } } };
+  // Only `languageChipIds` is under test; the facet's other (required) flags are irrelevant to hydration.
+  const discovery: ServiciosDiscoveryFacet = {
+    languageChipIds: [...state.languageIds],
+    hasPhysicalAddress: false,
+    hasServiceAreaMultiLine: false,
+    hasPromoHeadline: false,
+    listerAttestationsComplete: false,
+  };
+  const published = { ...wire, opsMeta: { ...wire.opsMeta, discovery } };
   const h = serviciosPublishedToApplicationDraft({ slug: "qa", business_name: "QA", city: "Oakland", profile_json: published });
   assert.match(src("app/(site)/clasificados/servicios/lib/serviciosPublishDiscovery.ts"), /languageChipIds: \[\.\.\.state\.languageIds\]/);
   assert.deepEqual(h.state.languageIds.slice().sort(), ["lang_en", "lang_es", "lang_otro"]);

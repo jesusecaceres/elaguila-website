@@ -345,6 +345,53 @@ export async function listAcceptedCurrentProposalsForHandoff(): Promise<OwnerHan
   }));
 }
 
+export type ProposalAwaitingDecisionRow = {
+  businessId: string;
+  displayName: string;
+  proposalId: string;
+  version: number;
+  verifiedNeedEn: string;
+  recommendedIntervention: string;
+  reviewDate: string | null;
+};
+
+const AWAITING_DECISION_LIMIT = 20;
+
+/**
+ * Gate 1 — bounded Command Center read model: current proposals awaiting the owner/client's
+ * decision. Distinct from Owner Handoff above (accepted proposals awaiting Leonix action) — this
+ * is the mirror state: sent, not yet decided. Two queries max. Not N+1. Not a new table.
+ */
+export async function listProposalsAwaitingDecisionForStaffAttention(): Promise<ProposalAwaitingDecisionRow[]> {
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("business_proposals")
+    .select("id, business_id, version, verified_need_en, recommended_intervention, review_date")
+    .eq("status", "owner_review")
+    .eq("is_current", true)
+    .order("updated_at", { ascending: false })
+    .limit(AWAITING_DECISION_LIMIT);
+  if (error || !data || data.length === 0) return [];
+
+  const businessIds = [...new Set((data as Record<string, unknown>[]).map((row) => String(row.business_id)))];
+  const { data: businesses, error: businessError } = await supabase
+    .from("businesses")
+    .select("id, display_name")
+    .in("id", businessIds);
+  if (businessError || !businesses) return [];
+
+  const names = new Map((businesses as Record<string, unknown>[]).map((row) => [String(row.id), String(row.display_name ?? "")]));
+  return (data as Record<string, unknown>[]).map((row) => ({
+    businessId: String(row.business_id),
+    displayName: names.get(String(row.business_id)) || "Business",
+    proposalId: String(row.id),
+    version: Number(row.version),
+    verifiedNeedEn: String(row.verified_need_en ?? ""),
+    recommendedIntervention: String(row.recommended_intervention ?? ""),
+    reviewDate: (row.review_date as string | null) ?? null,
+  }));
+}
+
 export async function getProposalById(proposalId: string, businessId: string): Promise<BusinessProposal | null> {
   const supabase = getAdminSupabase();
   const { data, error } = await supabase

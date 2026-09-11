@@ -58,9 +58,9 @@ import {
 } from "@/app/lib/listingPlans/revenueOsReturnPath";
 import {
   validateRentasRenewalCheckoutOwnership,
+  validateAutosPrivadoRenewalCheckoutOwnership,
   validateBienesFsboRenewalCheckoutOwnership,
 } from "@/app/lib/listingLifecycle/listingRenewalFulfillment";
-import { BIENES_FSBO_LIFECYCLE_PACKAGE_KEY } from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
 import { assertCommercialCapacityForWrite } from "@/app/lib/listingPlans/commercialWriteGuard";
 import {
   isRevenueBaseEntitlementGuardedPackage,
@@ -115,12 +115,10 @@ export async function POST(request: NextRequest) {
   const operationEarly = body.operation === "renew_listing" ? "renew_listing" : null;
   const isRentasRenewalEarly =
     operationEarly === "renew_listing" && categoryEarly === "rentas" && packageKeyEarly === "rentas_30d";
-  // Gate BIENES-PRIVADO-1 — the Bienes Raíces FSBO fixed-term renewal. Scoped to the FSBO package
-  // key so a Negocio subscription request can never enter the renewal path.
+  const isAutosPrivadoRenewalEarly =
+    operationEarly === "renew_listing" && categoryEarly === "autos" && packageKeyEarly === AUTOS_PRIVADO_30D_PACKAGE_KEY;
   const isBienesFsboRenewalEarly =
-    operationEarly === "renew_listing" &&
-    categoryEarly === "bienes-raices" &&
-    packageKeyEarly === BIENES_FSBO_LIFECYCLE_PACKAGE_KEY;
+    operationEarly === "renew_listing" && categoryEarly === "bienes-raices" && packageKeyEarly === "br_fsbo_45d";
   const isRestauranteAddonOnlyEarly =
     categoryEarly === "restaurantes" && packageKeyEarly === RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY;
   const isAutosDealerInventoryAddonEarly =
@@ -243,9 +241,22 @@ export async function POST(request: NextRequest) {
     serverVerifiedLeonixAdId = ownerGate.leonixAdId;
     serverVerifiedOwnerUserId = ownerGate.ownerUserId;
   }
+  if (isAutosPrivadoRenewalEarly) {
+    const ownerGate = await validateAutosPrivadoRenewalCheckoutOwnership({
+      listingId: String(body.listingId ?? "").trim(),
+      bearerUserId,
+    });
+    if (!ownerGate.ok) {
+      return NextResponse.json(
+        { ok: false, code: ownerGate.code, message: ownerGate.message },
+        { status: ownerGate.status },
+      );
+    }
+    serverVerifiedCurrentExpiresAt = ownerGate.currentExpiresAt;
+    serverVerifiedLeonixAdId = ownerGate.leonixAdId;
+    serverVerifiedOwnerUserId = ownerGate.ownerUserId;
+  }
   if (isBienesFsboRenewalEarly) {
-    // Same server-side ownership + eligibility gate as Rentas, lane-scoped. The client supplies
-    // only listingId; ownership, lane and the current expiry all come from the row.
     const ownerGate = await validateBienesFsboRenewalCheckoutOwnership({
       listingId: String(body.listingId ?? "").trim(),
       bearerUserId,
@@ -261,7 +272,7 @@ export async function POST(request: NextRequest) {
     serverVerifiedOwnerUserId = ownerGate.ownerUserId;
   }
 
-  const ownerUserId = isRestauranteAddonOnlyEarly || isAutosDealerInventoryAddonEarly || isBienesInventoryAddonOnlyEarly || isServiciosOffersAddonOnlyEarly || isRentasRenewalEarly || isBienesFsboRenewalEarly || isOfertasLocalesCheckoutEarly
+  const ownerUserId = isRestauranteAddonOnlyEarly || isAutosDealerInventoryAddonEarly || isBienesInventoryAddonOnlyEarly || isServiciosOffersAddonOnlyEarly || isRentasRenewalEarly || isAutosPrivadoRenewalEarly || isBienesFsboRenewalEarly || isOfertasLocalesCheckoutEarly
     ? serverVerifiedOwnerUserId ?? bearerUserId
     : body.ownerUserId?.trim() || bearerUserId || null;
 
@@ -550,19 +561,22 @@ export async function POST(request: NextRequest) {
     body.operation === "renew_listing" &&
     packageDef.packageKey === "rentas_30d" &&
     packageDef.category === "rentas";
+  const isAutosPrivadoRenewal =
+    body.operation === "renew_listing" &&
+    packageDef.packageKey === AUTOS_PRIVADO_30D_PACKAGE_KEY &&
+    packageDef.category === "autos";
   const isBienesFsboRenewal =
     body.operation === "renew_listing" &&
-    packageDef.packageKey === BIENES_FSBO_LIFECYCLE_PACKAGE_KEY &&
+    packageDef.packageKey === "br_fsbo_45d" &&
     packageDef.category === "bienes-raices";
-  // One renewal concept for the two fixed-term lanes — both keep the buyer on the same
-  // same-row renewal flow, and neither ever creates a second listing.
-  const isFixedTermRenewal = isRentasRenewal || isBienesFsboRenewal;
   const returnFallback = isRestauranteAddonOnly
     ? buildDashboardMisAnunciosReturnPath(locale, "restaurantes")
     : isBienesInventoryAddonOnly
     ? buildDashboardMisAnunciosReturnPath(locale, "bienes-raices")
     : isRentasRenewal
     ? buildDashboardMisAnunciosReturnPath(locale, "rentas")
+    : isAutosPrivadoRenewal
+    ? buildDashboardMisAnunciosReturnPath(locale, "autos")
     : isBienesFsboRenewal
     ? buildDashboardMisAnunciosReturnPath(locale, "bienes-raices")
     : packageDef.category === "ofertas-locales"
@@ -613,7 +627,7 @@ export async function POST(request: NextRequest) {
     packageKey: packageDef.packageKey,
     addOns: addOns.map((a) => ({ key: a.key, quantity: a.quantity })),
     billingMode: packageDef.billingMode,
-    operation: isFixedTermRenewal ? "renew_listing" : null,
+    operation: isRentasRenewal || isAutosPrivadoRenewal || isBienesFsboRenewal ? "renew_listing" : null,
   });
   let attemptGeneration = 1;
   const existingAttempt = await findOpenCheckoutAttempt(checkoutAttemptKey);
@@ -696,10 +710,13 @@ export async function POST(request: NextRequest) {
     promoBaseAmountCents: promoBaseAmountForRecord,
     addonOnly: isRestauranteAddonOnly || isBienesInventoryAddonOnly || isServiciosOffersAddonOnly,
     operation: body.operation === "renew_listing" ? "renew_listing" : null,
-    sourceTable: isFixedTermRenewal ? "listings" : body.sourceTable,
-    currentExpiresAt: isFixedTermRenewal || categoryEarly === "ofertas-locales" ? serverVerifiedCurrentExpiresAt ?? body.currentExpiresAt : body.currentExpiresAt,
+    sourceTable: isRentasRenewal || isBienesFsboRenewal ? "listings" : isAutosPrivadoRenewal ? "autos_classifieds_listings" : body.sourceTable,
+    currentExpiresAt:
+      isRentasRenewal || isAutosPrivadoRenewal || isBienesFsboRenewal || categoryEarly === "ofertas-locales"
+        ? serverVerifiedCurrentExpiresAt ?? body.currentExpiresAt
+        : body.currentExpiresAt,
     renewalAttemptId: categoryEarly === "ofertas-locales" ? body.renewalAttemptId : null,
-    returnContext: isFixedTermRenewal ? body.returnContext ?? "owner_dashboard" : body.returnContext,
+    returnContext: isRentasRenewal || isAutosPrivadoRenewal || isBienesFsboRenewal ? body.returnContext ?? "owner_dashboard" : body.returnContext,
     checkoutAttemptKey,
     attemptGeneration,
   });

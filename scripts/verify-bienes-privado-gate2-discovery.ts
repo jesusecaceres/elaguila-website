@@ -193,7 +193,7 @@ const ADMIN_TABLE = "app/admin/(dashboard)/workspace/clasificados/AdminListingsT
 
   // The paid-activation start of the circuit still writes the real term on the same row.
   const fulfil = stripComments(read("app/lib/listingPlans/revenueBienesFsboFulfillment.ts"));
-  assert(fulfil.includes("expires_at: expiresAt"), "paid activation still writes a real expires_at");
+  assert(fulfil.includes("expires_at: firstTermExpiresAt"), "paid activation still writes a real expires_at");
   assert(!/\.insert\(/.test(fulfil), "activation/renewal still creates no duplicate listing");
 
   // Owner and Admin ends of the circuit read the same expiry.
@@ -254,8 +254,18 @@ const ADMIN_TABLE = "app/admin/(dashboard)/workspace/clasificados/AdminListingsT
   assert(workspace.includes('capabilities?.lifecycle.renew === "supported"'), "gated on the capability registry too");
   assert(workspace.includes("listingExpireIso"), "expiration is displayed from the row's own expires_at");
   assert(!/priceCents|amount_cents/.test(workspace), "the owner workspace holds no price authority");
-  // No Business Tools / inventory leakage onto the FSBO workspace.
-  assert(!workspace.includes("ownerBusinessToolsSpecializedGroup"), "no Business Tools group is wired for this lane");
+  // No Business Tools / inventory leakage onto the FSBO workspace. Servicios integration gate —
+  // Owner Command Center (current main) wires the Business Tools group on the shared workspace,
+  // gated by the capability registry; the private-seller BR entry declares it unsupported, so the
+  // group resolves to null for this lane.
+  assert(
+    workspace.includes("capabilities ? ownerBusinessToolsSpecializedGroup(capabilities.specialized.businessTools, lang) : null"),
+    "the Business Tools group is capability-gated on the shared workspace",
+  );
+  assert(
+    getOwnerEntityCapabilities("bienes-raices-privado").specialized.businessTools === "unsupported",
+    "no Business Tools group is wired for this lane",
+  );
 }
 
 // Behavioral: the workspace's renewal gate follows the real term, not a guess.
@@ -491,8 +501,13 @@ const ADMIN_TABLE = "app/admin/(dashboard)/workspace/clasificados/AdminListingsT
 /* ════════════ 13. SHARED RENEWAL CLIENT — Gate 1 type defect repaired ════════════════════ */
 {
   const src = stripComments(read("app/lib/listingLifecycle/listingRenewalCheckout.ts"));
-  assert(src.includes("ListingRenewalCheckoutLane"), "the renewal client declares its real lane union");
-  assert(src.includes("BIENES_FSBO_LIFECYCLE_CATEGORY"), "and includes the FSBO lane");
+  // Servicios integration gate — the renewal client is Owner Command Center Gate 20's (current
+  // main): an explicit category/packageKey union that already includes Autos Privado and FSBO.
+  assert(
+    /category:\s*"rentas" \| "autos" \| "bienes-raices"/.test(src),
+    "the renewal client declares its real lane union",
+  );
+  assert(/packageKey:[^;\n]*"br_fsbo_45d"/.test(src), "and includes the FSBO lane");
   assert(src.includes('category: "rentas"'), "and still includes Rentas");
   assert(!/category: "rentas";\s*\n\s*packageKey: "rentas_30d";\s*\n\s*listingId/.test(src), "the Rentas-only parameter literals are gone");
   assert(src.includes('operation: "renew_listing"'), "the renewal operation marker is unchanged");

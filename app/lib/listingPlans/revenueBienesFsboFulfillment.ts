@@ -4,32 +4,27 @@
  * Flips hidden `listings` rows (category bienes-raices, seller_type personal,
  * br_publish lane privado) to active/published only after paid truth.
  *
- * Gate BIENES-PRIVADO-1 — this file previously wrote status/is_published/published_at and NEVER
- * `expires_at`, so the 45-day term the buyer paid for existed only inside
- * `listing_package_entitlements.ends_at` and nothing public ever honored it. The term is now written
- * onto the SAME listing row at the same webhook-authoritative moment, using the shared fixed-term
- * engine (`computeFixedDayRenewalExpiresAt`) that Rentas already uses, with the duration read from
- * the canonical Revenue OS matrix via `bienesFsboDurationDays()` — never a duplicated 45-day literal.
- *
- * Renewal is handled here too, on the SAME row (Master §10 same-row / no-recharge): a renewal is a
- * genuine new $49.99 purchase that extends `expires_at` from whichever is later — the current expiry
- * or the payment moment — and preserves listings.id, leonix_ad_id, owner, media, analytics and
- * content. No second listing is ever created. Only this webhook path can extend a term; a failed or
- * cancelled checkout never reaches this function, so it cannot republish or extend anything.
+ * Gate BIENES-PRIVADO-1 (reconciled onto Owner Command Center Gate 20 at the Servicios integration
+ * gate) — the FIRST activation also writes the paid 45-day term onto the same row. Without it a new
+ * FSBO listing carried `expires_at = null`, which every public rule treats as "no term", so the
+ * 45 days the buyer paid for were never honored. Same shared engine
+ * (`computeFixedDayRenewalExpiresAt`) and the same registry duration Gate 20's renewal uses, so the
+ * first term and every renewal are computed identically.
  */
 
 import "server-only";
 import { mergeBrListingPaymentMeta } from "@/app/lib/clasificados/bienes-raices/brListingPaymentMetadata";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import {
+  paymentRecordIsRenewal,
+  isRenewalAlreadyApplied,
+  markRenewalPaymentApplied,
+} from "@/app/lib/listingLifecycle/listingRenewalFulfillment";
 import { computeFixedDayRenewalExpiresAt } from "@/app/lib/listingLifecycle/resolveListingLifecycle";
-import { paymentRecordIsRenewal } from "@/app/lib/listingLifecycle/listingRenewalFulfillment";
-import { bienesFsboDurationDays } from "@/app/lib/listingLifecycle/bienesFsboLifecycle";
+import { BR_FSBO_LIFECYCLE_DURATION_DAYS } from "@/app/lib/listingLifecycle/listingLifecycleConfig";
 
 export const BIENES_RAICES_FSBO_PACKAGE_KEY = "br_fsbo_45d" as const;
 export const BIENES_RAICES_FSBO_PENDING_CHECKOUT_STATUS = "pending" as const;
-
-/** Statuses a renewal payment may legitimately extend. A renewal never resurrects moderation. */
-export const BIENES_RAICES_FSBO_RENEWABLE_FROM_STATUSES = ["active", "expired"] as const;
 
 export type BienesFsboRevenueActivationOutcome =
   | "activated"
@@ -54,7 +49,7 @@ export async function activatePaidBienesFsboListingFromRevenueOs(input: {
   listingId: string | null | undefined;
   packageKey: string | null | undefined;
   stripePaymentIntentId?: string | null;
-  /** Present for renewals; its metadata carries `operation: "renew_listing"` and the applied stamp. */
+  paymentMetadata?: Record<string, unknown> | null;
   paymentRecordId?: string | null;
 }): Promise<BienesFsboRevenueActivationResult> {
   const packageKey = String(input.packageKey ?? "").trim().toLowerCase();
@@ -106,17 +101,64 @@ export async function activatePaidBienesFsboListingFromRevenueOs(input: {
 
   const status = String(row.status ?? "").trim().toLowerCase();
   const isPublished = row.is_published === true;
+  const renewal = paymentRecordIsRenewal(input.paymentMetadata);
 
-  // Renewal truth is server-side only: it comes from the payment record this webhook is fulfilling,
-  // never from anything the client sent. `renewal_applied_at` makes a replayed webhook idempotent,
-  // so a redelivered Stripe event cannot stack a second 45 days onto the same purchase.
-  const paymentMetadata = input.paymentRecordId ? await readPaymentRecordMetadata(input.paymentRecordId) : null;
-  const renewal = paymentRecordIsRenewal(paymentMetadata);
-  if (renewal && paymentMetadata?.renewal_applied_at) {
-    return { ok: true, outcome: "already_published", listingId };
+  if (renewal) {
+    // Webhook-retry idempotency — see isRenewalAlreadyApplied doc. Must be checked before any
+    // write: a redelivered "renewal succeeded" event must never extend the term a second time.
+    if (isRenewalAlreadyApplied(input.paymentMetadata)) {
+      return { ok: true, outcome: "already_published", listingId };
+    }
+    // Gate 20 — same-row renewal only: never touches status/is_published (already active and
+    // published, exactly like a lifecycle-expired-but-still-active Rentas row), only extends
+    // expires_at from whichever is later: the real current expiration or the payment moment.
+    if (status !== "active" || !isPublished) {
+      return {
+        ok: false,
+        outcome: "unsafe_status",
+        message: `Cannot renew Bienes Raices FSBO listing from status "${status}" (published=${String(isPublished)}).`,
+        listingId,
+      };
+    }
+    const now = new Date().toISOString();
+    const newExpiresAt = computeFixedDayRenewalExpiresAt({
+      currentExpiresAtIso: typeof row.expires_at === "string" ? row.expires_at : null,
+      paymentCompletedAtIso: now,
+      durationDays: BR_FSBO_LIFECYCLE_DURATION_DAYS,
+    });
+    const listingJson = mergeBrListingPaymentMeta(row.listing_json, {
+      payment_status: "paid",
+      lane: "privado",
+      stripe_payment_intent_id: input.stripePaymentIntentId ?? null,
+      renewed_at: now,
+    });
+    const { data: renewed, error: renewError } = await supabase
+      .from("listings")
+      .update({ expires_at: newExpiresAt, updated_at: now, listing_json: listingJson })
+      .eq("id", listingId)
+      .eq("category", "bienes-raices")
+      .eq("seller_type", "personal")
+      .eq("status", "active")
+      .eq("is_published", true)
+      .select("id")
+      .maybeSingle();
+    if (renewError) {
+      return { ok: false, outcome: "error", message: renewError.message, listingId };
+    }
+    if (!renewed?.id) {
+      return { ok: false, outcome: "error", message: "Bienes Raices FSBO renewal update did not apply.", listingId };
+    }
+    if (input.paymentRecordId) {
+      await markRenewalPaymentApplied({
+        paymentRecordId: input.paymentRecordId,
+        renewedAt: now,
+        newExpiresAt,
+      });
+    }
+    return { ok: true, outcome: "renewed", listingId };
   }
 
-  if (status === "active" && isPublished && !renewal) {
+  if (status === "active" && isPublished) {
     return { ok: true, outcome: "already_published", listingId };
   }
 
@@ -129,16 +171,7 @@ export async function activatePaidBienesFsboListingFromRevenueOs(input: {
     };
   }
 
-  if (renewal && !RENEWABLE_FROM_STATUSES.has(status)) {
-    return {
-      ok: true,
-      outcome: "unsafe_status",
-      message: `Cannot renew Bienes Raices FSBO listing from status "${status}".`,
-      listingId,
-    };
-  }
-
-  if (!renewal && (status !== BIENES_RAICES_FSBO_PENDING_CHECKOUT_STATUS || isPublished)) {
+  if (status !== BIENES_RAICES_FSBO_PENDING_CHECKOUT_STATUS || isPublished) {
     return {
       ok: false,
       outcome: "unsafe_status",
@@ -148,49 +181,36 @@ export async function activatePaidBienesFsboListingFromRevenueOs(input: {
   }
 
   const now = new Date().toISOString();
-  // The ONE fixed-term computation, shared with Rentas. A first activation starts the term at the
-  // payment moment (currentExpiresAtIso: null). A renewal passes the current expiry, and the shared
-  // engine starts from whichever is later — so renewing early never burns the days already paid for,
-  // and renewing after expiry starts a clean 45 days from payment.
-  const durationDays = bienesFsboDurationDays();
-  const expiresAt = computeFixedDayRenewalExpiresAt({
-    currentExpiresAtIso: renewal && typeof row.expires_at === "string" ? row.expires_at : null,
-    paymentCompletedAtIso: now,
-    durationDays,
-  });
   const listingJson = mergeBrListingPaymentMeta(row.listing_json, {
     payment_status: "paid",
     lane: "privado",
     stripe_payment_intent_id: input.stripePaymentIntentId ?? null,
     paid_at: now,
-    ...(renewal ? { renewed_at: now, renewal_payment_record_id: input.paymentRecordId ?? null } : {}),
+  });
+  // First term: a full 45 days from the webhook-authoritative payment moment (no prior expiry).
+  const firstTermExpiresAt = computeFixedDayRenewalExpiresAt({
+    currentExpiresAtIso: null,
+    paymentCompletedAtIso: now,
+    durationDays: BR_FSBO_LIFECYCLE_DURATION_DAYS,
   });
 
-  // Same-row write. `published_at` is preserved on renewal (`row.published_at ?? now`) so the
-  // listing keeps its original publication date and its age/ordering history — only the term moves.
-  const patch = {
-    status: "active",
-    is_published: true,
-    published_at: row.published_at ?? now,
-    expires_at: expiresAt,
-    updated_at: now,
-    listing_json: listingJson,
-  };
-
-  // Compare-and-set on the same predicates as before, plus a status gate that differs by operation:
-  // a first activation may only move pending/unpublished -> active, while a renewal may only extend
-  // a row that is already active or expired. Either way the row must still be this lane's row.
-  let updateQuery = supabase
+  const { data: updated, error: updateError } = await supabase
     .from("listings")
-    .update(patch)
+    .update({
+      status: "active",
+      is_published: true,
+      published_at: row.published_at ?? now,
+      expires_at: firstTermExpiresAt,
+      updated_at: now,
+      listing_json: listingJson,
+    })
     .eq("id", listingId)
     .eq("category", "bienes-raices")
-    .eq("seller_type", "personal");
-  updateQuery = renewal
-    ? updateQuery.in("status", [...BIENES_RAICES_FSBO_RENEWABLE_FROM_STATUSES])
-    : updateQuery.eq("status", BIENES_RAICES_FSBO_PENDING_CHECKOUT_STATUS).eq("is_published", false);
-
-  const { data: updated, error: updateError } = await updateQuery.select("id").maybeSingle();
+    .eq("seller_type", "personal")
+    .eq("status", BIENES_RAICES_FSBO_PENDING_CHECKOUT_STATUS)
+    .eq("is_published", false)
+    .select("id")
+    .maybeSingle();
 
   if (updateError) {
     return { ok: false, outcome: "error", message: updateError.message, listingId };
@@ -202,60 +222,16 @@ export async function activatePaidBienesFsboListingFromRevenueOs(input: {
       .select("status, is_published")
       .eq("id", listingId)
       .maybeSingle();
-    if (!renewal && recheck?.status === "active" && recheck.is_published === true) {
+    if (recheck?.status === "active" && recheck.is_published === true) {
       return { ok: true, outcome: "already_published", listingId };
     }
     return {
       ok: false,
       outcome: "error",
-      message: renewal
-        ? "Bienes Raices FSBO listing renewal update did not apply."
-        : "Bienes Raices FSBO listing activation update did not apply.",
+      message: "Bienes Raices FSBO listing activation update did not apply.",
       listingId,
     };
   }
 
-  if (renewal && input.paymentRecordId) {
-    await markBienesFsboRenewalPaymentApplied({
-      paymentRecordId: input.paymentRecordId,
-      renewedAt: now,
-      newExpiresAt: expiresAt,
-    });
-  }
-
-  return { ok: true, outcome: renewal ? "renewed" : "activated", listingId };
-}
-
-const RENEWABLE_FROM_STATUSES = new Set<string>(BIENES_RAICES_FSBO_RENEWABLE_FROM_STATUSES);
-
-async function readPaymentRecordMetadata(paymentRecordId: string): Promise<Record<string, unknown> | null> {
-  const { data } = await getAdminSupabase()
-    .from("leonix_payment_records")
-    .select("metadata")
-    .eq("id", paymentRecordId)
-    .maybeSingle();
-  return data?.metadata && typeof data.metadata === "object" ? (data.metadata as Record<string, unknown>) : null;
-}
-
-/**
- * Stamps the payment record so a replayed webhook for the SAME purchase is a no-op. Written only
- * after the listing row update has already committed, so a failed renewal leaves no applied stamp.
- */
-async function markBienesFsboRenewalPaymentApplied(input: {
-  paymentRecordId: string;
-  renewedAt: string;
-  newExpiresAt: string;
-}): Promise<void> {
-  const metadata = (await readPaymentRecordMetadata(input.paymentRecordId)) ?? {};
-  await getAdminSupabase()
-    .from("leonix_payment_records")
-    .update({
-      metadata: {
-        ...metadata,
-        renewal_applied_at: input.renewedAt,
-        renewal_new_expires_at: input.newExpiresAt,
-      },
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", input.paymentRecordId);
+  return { ok: true, outcome: "activated", listingId };
 }

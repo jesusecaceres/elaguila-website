@@ -22,8 +22,8 @@ const COPY = {
     items: [
       { title: "Learning Center & Idea Builder", body: "Free, bilingual lessons, glossary, checklists, and a step-by-step idea planner. Open to everyone.", href: "/aprender", cta: "Start learning" },
       { title: "Business Identity", body: "Set up your business's canonical profile once, and reuse it across Leonix.", href: "/dashboard/business-tools", cta: "Set up your business" },
-      { title: "Business Health Map", body: "A plain-language look at seven areas of your business — strengths, gaps, and what's still unknown.", href: "/dashboard/business-tools/business-health", cta: "See the Health Map" },
-      { title: "Personalized DIY Concierge", body: "For Half Page and above: your own action plan, tied to your Health Map, that you work through yourself.", href: "/dashboard/business-tools/concierge", cta: "Open DIY Concierge" },
+      { title: "Business Health Map", body: "A plain-language look at seven areas of your business — strengths, gaps, and what's still unknown.", href: "/dashboard/business-tools", cta: "See the Health Map" },
+      { title: "Personalized DIY Concierge", body: "For Half Page and above: your own action plan, tied to your Health Map, that you work through yourself.", href: "/dashboard/business-tools", cta: "Open DIY Concierge" },
     ],
     paidNote: "Guide Me (paid guidance) and Let Leonix Handle It (paid managed service) are always separate, explicit requests — never bundled automatically into any package.",
     ctaSignedOut: "Sign in to your account",
@@ -35,8 +35,8 @@ const COPY = {
     items: [
       { title: "Centro de aprendizaje y Constructor de ideas", body: "Lecciones bilingües gratuitas, glosario, listas de verificación y un planificador de ideas paso a paso. Abierto para todos.", href: "/aprender", cta: "Empezar a aprender" },
       { title: "Identidad de negocio", body: "Configura el perfil canónico de tu negocio una vez y reutilízalo en todo Leonix.", href: "/dashboard/business-tools", cta: "Configurar tu negocio" },
-      { title: "Mapa de salud del negocio", body: "Una mirada en lenguaje claro a siete áreas de tu negocio — fortalezas, brechas y lo que aún no se sabe.", href: "/dashboard/business-tools/business-health", cta: "Ver el mapa de salud" },
-      { title: "Concierge DIY personalizado", body: "Para Half Page en adelante: tu propio plan de acción, ligado a tu mapa de salud, que trabajas tú mismo.", href: "/dashboard/business-tools/concierge", cta: "Abrir Concierge DIY" },
+      { title: "Mapa de salud del negocio", body: "Una mirada en lenguaje claro a siete áreas de tu negocio — fortalezas, brechas y lo que aún no se sabe.", href: "/dashboard/business-tools", cta: "Ver el mapa de salud" },
+      { title: "Concierge DIY personalizado", body: "Para Half Page en adelante: tu propio plan de acción, ligado a tu mapa de salud, que trabajas tú mismo.", href: "/dashboard/business-tools", cta: "Abrir Concierge DIY" },
     ],
     paidNote: "Guíame (orientación pagada) y Que Leonix lo haga (servicio administrado pagado) siempre son solicitudes separadas y explícitas — nunca incluidas automáticamente en ningún paquete.",
     ctaSignedOut: "Inicia sesión en tu cuenta",

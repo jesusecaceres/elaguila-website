@@ -244,7 +244,7 @@ function NotificacionesPageContent() {
             <div className="rounded-3xl border border-[#C9B46A]/35 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_12px_36px_-12px_rgba(201,164,74,0.2)]">
               <h2 className="text-xs font-bold uppercase tracking-wide text-[#6B5B2E]">{t.prefs}</h2>
               <p className="mt-1 text-[11px] text-[#7A7164]/95">
-                {lang === "es" ? "Solo en este navegador — migrable a Supabase después." : "This browser only — migrates to Supabase later."}
+                {lang === "es" ? "Guardado solo en este dispositivo por ahora." : "Saved on this device only for now."}
               </p>
               <div className="mt-4 flex flex-col gap-2">
                 <Toggle checked={prefs.email} onChange={(v) => applyPrefs({ ...prefs, email: v })} label={t.email} />

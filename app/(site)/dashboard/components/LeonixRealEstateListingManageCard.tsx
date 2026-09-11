@@ -589,7 +589,7 @@ export function LeonixRealEstateListingManageCard({
             <Link
               href={brDashboardEditHref}
               prefetch={false}
-              className="rounded-xl border border-[#C9B46A]/50 bg-[#FDFBF7] px-4 py-2 text-sm font-semibold text-[#1E1810]"
+              className="rounded-xl border border-[#7A1E2C]/30 bg-[#FDF4F1] px-4 py-2 text-sm font-semibold text-[#7A1E2C] hover:border-[#7A1E2C]/50 hover:bg-[#F8E8E5]"
             >
               {editListingLabel(lang)}
             </Link>
@@ -651,7 +651,7 @@ export function LeonixRealEstateListingManageCard({
                       ? "Marcar vendido: quita el anuncio del público. Requiere confirmación."
                       : "Mark sold: removes the listing from public results. Requires confirmation."
                   }
-                  className="rounded-xl border border-[#C9B46A]/50 bg-[#FFF8E8] px-4 py-2 text-sm font-semibold text-[#5C4A28] disabled:opacity-50"
+                  className="rounded-xl border border-red-300/70 bg-red-50 px-4 py-2 text-sm font-semibold text-red-800 hover:border-red-400 hover:bg-red-100 disabled:opacity-50"
                 >
                   {lang === "es" ? brDiscontinueAction.labelEs : brDiscontinueAction.labelEn}
                 </button>
@@ -666,7 +666,7 @@ export function LeonixRealEstateListingManageCard({
                       ? "Archivar: quita el anuncio del flujo activo (no borra datos ni ID Leonix). Puede rechazarse si hay propiedades activas."
                       : "Archive: removes the listing from active flow (does not delete data or Leonix Ad ID). May be rejected if active properties exist."
                   }
-                  className="rounded-xl border border-stone-300 bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-900 disabled:opacity-50"
+                  className="rounded-xl border border-red-300/70 bg-red-50 px-4 py-2 text-sm font-semibold text-red-800 hover:border-red-400 hover:bg-red-100 disabled:opacity-50"
                 >
                   {lang === "es" ? brArchiveAction.labelEs : brArchiveAction.labelEn}
                 </button>
@@ -710,7 +710,7 @@ export function LeonixRealEstateListingManageCard({
                       ? "Marcar vendido: quita el anuncio del público. Requiere confirmación."
                       : "Mark sold: removes the listing from public results. Requires confirmation."
                   }
-                  className="rounded-xl border border-[#C9B46A]/50 bg-[#FFF8E8] px-4 py-2 text-sm font-semibold text-[#5C4A28] disabled:opacity-50"
+                  className="rounded-xl border border-red-300/70 bg-red-50 px-4 py-2 text-sm font-semibold text-red-800 hover:border-red-400 hover:bg-red-100 disabled:opacity-50"
                 >
                   {lang === "es" ? "Marcar vendido" : "Mark sold"}
                 </button>
@@ -724,7 +724,7 @@ export function LeonixRealEstateListingManageCard({
                     ? "Archivar: quita el anuncio del flujo activo (no borra datos ni ID Leonix)."
                     : "Archive: removes the listing from active flow (does not delete data or Leonix Ad ID)."
                 }
-                className="rounded-xl border border-stone-300 bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-900 disabled:opacity-50"
+                className="rounded-xl border border-red-300/70 bg-red-50 px-4 py-2 text-sm font-semibold text-red-800 hover:border-red-400 hover:bg-red-100 disabled:opacity-50"
               >
                 {archiveListingLabel(lang)}
               </button>

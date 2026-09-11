@@ -22,6 +22,7 @@ import {
 import { LISTING_LIFECYCLE_CONFIGS, getListingLifecycleConfig } from "../app/lib/listingLifecycle/listingLifecycleConfig";
 import { resolveListingLifecycle, computeFixedDayRenewalExpiresAt } from "../app/lib/listingLifecycle/resolveListingLifecycle";
 import { getRevenuePackageDefinition } from "../app/lib/listingPlans/revenuePricingMatrix";
+import { isListingRowActiveAndPublishedForBrowse } from "../app/(site)/clasificados/lib/listingPublicBrowseEligibility";
 import {
   BR_FSBO_OWNER_STATUS_ACTIONS,
   isBrFsboOwnerStatusAction,
@@ -114,11 +115,20 @@ assert(resolveBrFsboLifecycleConfigForRow(fsboRow()) === BIENES_FSBO_LISTING_LIF
 assert(resolveBrFsboLifecycleConfigForRow(negocioRow()) === null, "Negocio row resolves NO fixed-term config");
 
 // The registry trap: a category-only lookup must not hand a Negocio row an expiring contract.
+// Servicios integration gate — Owner Command Center Gate 20 (current main, the renewal-architecture
+// authority) REGISTERED the FSBO config. The reconciled truth is therefore: ONE config object
+// (this module aliases the registry's), reachable by an explicit FSBO package-key lookup, and every
+// Bienes Raíces lifecycle call site in app/ passes the FSBO package key + config explicitly, so the
+// keyless hazard stays latent (asserted in section 9b below).
 assert(
-  !LISTING_LIFECYCLE_CONFIGS.some((c) => c.category === BIENES_FSBO_LIFECYCLE_CATEGORY),
-  "the FSBO config is deliberately NOT in the category-matchable registry",
+  LISTING_LIFECYCLE_CONFIGS.filter((c) => c.category === BIENES_FSBO_LIFECYCLE_CATEGORY).length === 1 &&
+    LISTING_LIFECYCLE_CONFIGS.includes(BIENES_FSBO_LISTING_LIFECYCLE_CONFIG),
+  "exactly ONE FSBO config exists, and it is the registry's (no second copy)",
 );
-assert(getListingLifecycleConfig("bienes-raices") === null, "getListingLifecycleConfig('bienes-raices') stays null");
+assert(
+  getListingLifecycleConfig("bienes-raices", BIENES_FSBO_LIFECYCLE_PACKAGE_KEY) === BIENES_FSBO_LISTING_LIFECYCLE_CONFIG,
+  "an explicit FSBO package-key lookup resolves that one config",
+);
 assert(getListingLifecycleConfig("rentas") != null, "Rentas registry lookup is unaffected");
 
 /* ───────────────────────── 3. The ONE public expiry rule ────────────────────────────────── */
@@ -196,28 +206,55 @@ assert(Date.parse(lateRenew) === NOW + 45 * DAY_MS, "renewal after expiry starts
 
 /* ─────────────────── 6. The WRITE half — webhook activation + renewal ──────────────────── */
 {
+  // Servicios integration gate — the write module is now Owner Command Center Gate 20's (current
+  // main) with this gate's first-activation term write added on top. Same guarantees, main's shape.
   const raw = read("app/lib/listingPlans/revenueBienesFsboFulfillment.ts");
   const src = stripComments(raw);
-  assert(src.includes("expires_at: expiresAt"), "activation writes expires_at onto the listing row");
+  assert(src.includes("expires_at: firstTermExpiresAt"), "first activation writes expires_at onto the listing row");
+  assert(src.includes("expires_at: newExpiresAt"), "renewal extends expires_at on the listing row");
   assert(src.includes("computeFixedDayRenewalExpiresAt("), "it reuses the shared fixed-term engine");
-  assert(src.includes("bienesFsboDurationDays()"), "duration comes from the shared matrix-backed helper");
+  assert(
+    (src.match(/durationDays: BR_FSBO_LIFECYCLE_DURATION_DAYS/g) ?? []).length === 2,
+    "first term and renewal use the SAME registry duration",
+  );
+  assert(
+    bienesFsboDurationDays() === BIENES_FSBO_LISTING_LIFECYCLE_CONFIG.durationDays,
+    "the registry duration equals the Revenue OS matrix duration (no drift)",
+  );
   assert(!/durationDays:\s*45\b/.test(src), "no duplicated 45-day literal at the write site");
   assert(src.includes("paymentRecordIsRenewal("), "renewal truth comes from the payment record");
-  assert(src.includes("renewal_applied_at"), "a replayed webhook is idempotent");
+  assert(
+    src.includes("isRenewalAlreadyApplied(input.paymentMetadata)") && src.includes("markRenewalPaymentApplied("),
+    "a replayed webhook is idempotent (shared renewal_applied_at guard)",
+  );
+  assert(
+    src.indexOf("isRenewalAlreadyApplied(") < src.indexOf("expires_at: newExpiresAt"),
+    "the idempotency check runs before any renewal write",
+  );
   assert(src.includes('.eq("id", listingId)'), "the write targets the SAME row by id");
   assert(!/\.insert\(/.test(src), "no duplicate listing is ever inserted");
-  assert(src.includes('published_at: row.published_at ?? now'), "published_at is preserved on renewal");
-  assert(src.includes('outcome: renewal ? "renewed" : "activated"'), "renewal and activation are reported distinctly");
+  assert(src.includes('published_at: row.published_at ?? now'), "published_at is preserved on activation");
+  assert(
+    src.includes(".update({ expires_at: newExpiresAt, updated_at: now, listing_json: listingJson })"),
+    "a renewal touches only the term (never status, publish state or published_at)",
+  );
+  assert(
+    src.includes('outcome: "renewed"') && src.includes('outcome: "activated"'),
+    "renewal and activation are reported distinctly",
+  );
   // Compare-and-set is preserved in BOTH operations.
   assert(src.includes('.eq("category", "bienes-raices")'), "category is re-asserted in the WHERE clause");
   assert(src.includes('.eq("seller_type", "personal")'), "lane is re-asserted in the WHERE clause");
   assert(
-    src.includes('.eq("status", BIENES_RAICES_FSBO_PENDING_CHECKOUT_STATUS).eq("is_published", false)'),
+    /\.eq\("status", BIENES_RAICES_FSBO_PENDING_CHECKOUT_STATUS\)\s*\.eq\("is_published", false\)/.test(src),
     "first activation still requires pending + unpublished",
   );
-  assert(src.includes("BIENES_RAICES_FSBO_RENEWABLE_FROM_STATUSES"), "renewal has its own explicit from-status allow-list");
   assert(
-    /RENEWABLE_FROM_STATUSES\.has\(status\)/.test(src),
+    src.includes('if (status !== "active" || !isPublished)'),
+    "renewal is allowed only from the live active+published state (Gate 20 rule)",
+  );
+  assert(
+    src.indexOf('if (status !== "active" || !isPublished)') < src.indexOf("expires_at: newExpiresAt"),
     "a renewal out of an unexpected status is refused before any write",
   );
 }
@@ -227,7 +264,10 @@ assert(Date.parse(lateRenew) === NOW + 45 * DAY_MS, "renewal after expiry starts
     /activatePaidBienesFsboListingFromRevenueOs\(\{[\s\S]{0,400}?paymentRecordId: input\.paymentRecord\.id/.test(src),
     "the webhook passes the payment record so renewal can be detected",
   );
-  assert(src.includes("bienes_fsbo_listing_renewed_after_payment"), "a renewal is audit-logged as a renewal");
+  assert(
+    /activation\.outcome === "renewed"[\s\S]{0,700}?outcome: "renewed"/.test(src),
+    "a renewal is audit-logged with outcome renewed",
+  );
 }
 
 /* ─────────────────── 7. The READ half — ONE rule on every public surface ────────────────── */
@@ -273,19 +313,33 @@ for (const [rel, label] of SURFACES) {
   assert(/SIMILAR_SELECT[\s\S]{0,600}expires_at/.test(similar), "similar listings selects expires_at");
 }
 
-// The shared row rule is untouched — this gate is additive, not a rewrite of browse eligibility.
+// Servicios integration gate — Owner Command Center Gate 20 (current main) taught the shared row
+// rule a category-neutral term check. It must stay a no-op for rows without a term (Negocio) and
+// agree with the FSBO rule for rows with one.
 {
   const src = stripComments(read("app/(site)/clasificados/lib/listingPublicBrowseEligibility.ts"));
-  assert(!src.includes("expires"), "the shared browse rule still knows nothing about terms");
   assert(!src.includes("bienes"), "the shared browse rule stays category-neutral");
+  const live = { status: "active", is_published: true };
+  assert(isListingRowActiveAndPublishedForBrowse({ ...live, expires_at: null }) === true, "no term → the shared rule is a no-op");
+  assert(
+    isListingRowActiveAndPublishedForBrowse({ ...live, expires_at: new Date(Date.now() - DAY_MS).toISOString() }) === false,
+    "an elapsed term leaves browse under the shared rule too (agrees with the FSBO rule)",
+  );
 }
 
 /* ─────────────────── 8. Renewal checkout — server-owned, lane-scoped ────────────────────── */
 {
+  // Servicios integration gate — the renewal gate is Owner Command Center Gate 20's (current main).
   const src = stripComments(read("app/lib/listingLifecycle/listingRenewalFulfillment.ts"));
   assert(src.includes("export async function validateBienesFsboRenewalCheckoutOwnership"), "an FSBO renewal gate exists");
-  assert(src.includes("isBrFsboRow(data)"), "the gate rejects a non-FSBO row");
-  assert(src.includes("BIENES_FSBO_LISTING_LIFECYCLE_CONFIG"), "eligibility uses the FSBO config EXPLICITLY");
+  assert(
+    /category !== "bienes-raices" \|\| sellerType !== "personal" \|\| brPublish\?\.lane !== "privado"/.test(src),
+    "the gate rejects a non-FSBO row (category + seller_type + br_publish lane)",
+  );
+  assert(
+    /validateBienesFsboRenewalCheckoutOwnership[\s\S]*?BR_FSBO_LISTING_LIFECYCLE_CONFIG,/.test(src),
+    "eligibility uses the FSBO config EXPLICITLY",
+  );
   assert(src.includes("listing_owner_mismatch"), "ownership is verified server-side");
   assert(src.includes("renewal_not_eligible"), "eligibility is verified server-side");
   assert(src.includes("validateRentasRenewalCheckoutOwnership"), "the Rentas gate is left intact");
@@ -295,27 +349,34 @@ for (const [rel, label] of SURFACES) {
   assert(src.includes("isBienesFsboRenewalEarly"), "the checkout route has an FSBO renewal branch");
   assert(src.includes("validateBienesFsboRenewalCheckoutOwnership("), "and calls the server gate before pricing");
   assert(
-    /isBienesFsboRenewalEarly[\s\S]{0,200}BIENES_FSBO_LIFECYCLE_PACKAGE_KEY/.test(src),
+    /isBienesFsboRenewalEarly\s*=[\s\S]{0,200}packageKeyEarly === "br_fsbo_45d"/.test(src),
     "the branch is scoped to the FSBO package key, so Negocio cannot enter it",
   );
   assert(src.includes("serverVerifiedCurrentExpiresAt = ownerGate.currentExpiresAt"), "the expiry used is the server's, not the client's");
-  assert(src.includes("isFixedTermRenewal"), "both fixed-term lanes share one renewal concept");
+  assert(
+    src.includes("isRentasRenewal || isAutosPrivadoRenewal || isBienesFsboRenewal"),
+    "every fixed-term lane shares the same renewal handling (attempt key, source table, return context)",
+  );
 }
 {
   // The client may request a renewal; it may never price or authorize one.
   const src = stripComments(read("app/(site)/dashboard/mis-anuncios/page.tsx"));
-  assert(src.includes("startFixedTermRenewal"), "one renewal starter serves both fixed-term lanes");
-  assert(src.includes("isBrFsboRow(row)"), "the lane is decided from the ROW, not from UI state");
-  assert(!/priceCents\s*[:=]/.test(src.split("startFixedTermRenewal")[1]?.slice(0, 1200) ?? ""), "the client sends no price");
+  const starter = src.split("async function startBienesFsboRenewal")[1]?.slice(0, 1200) ?? "";
+  assert(starter.includes('packageKey: "br_fsbo_45d"'), "the FSBO renewal starter requests only the FSBO package");
+  assert(starter.includes("startListingRenewalCheckout("), "and goes through the SHARED renewal checkout");
+  assert(!/priceCents\s*[:=]/.test(starter), "the client sends no price");
 }
 
 /* ──────────────── 9. Owner + Admin term truth via the existing shared readers ───────────── */
 {
   const src = stripComments(read("app/(site)/dashboard/mis-anuncios/page.tsx"));
-  assert(src.includes("BIENES_FSBO_LISTING_LIFECYCLE_CONFIG"), "the owner card resolves FSBO through the shared reader");
-  assert(src.includes("fixedTermLifecycle"), "the card's lifecycle prop now covers both fixed-term lanes");
+  assert(src.includes("BR_FSBO_LISTING_LIFECYCLE_CONFIG"), "the owner card resolves FSBO through the shared reader");
   assert(
-    /isBrFsboRow\(x\)[\s\S]{0,400}resolveListingLifecycle\(/.test(src),
+    src.includes("const realEstateCardLifecycle = rentasLifecycle ?? brFsboLifecycle"),
+    "the card's lifecycle prop covers both fixed-term lanes",
+  );
+  assert(
+    /lx\.branch === "bienes_raices_privado"\s*\?\s*resolveListingLifecycle\(/.test(src),
     "the FSBO config is only ever applied to a proven FSBO row",
   );
   assert(src.includes("RENTAS_LISTING_LIFECYCLE_CONFIG"), "Rentas still uses its own config");
@@ -331,6 +392,35 @@ for (const [rel, label] of SURFACES) {
   const monet = stripComments(read("app/lib/listingPlans/categoryListingMonetization.ts"));
   assert(monet.includes('hasOwn(row, "expires_at")'), "the shared Admin reader reports term truth from the row");
   assert(monet.includes("expires_at_missing"), "and names the gap honestly when the column is absent");
+}
+{
+  // 9b — Servicios integration gate: with the FSBO config now registered under `bienes-raices`
+  // (Gate 20), the keyless-lookup hazard is latent. Every Bienes Raíces lifecycle call site must
+  // pass the FSBO package key AND an explicit config, so no Negocio row can ever resolve through
+  // a category-only registry match.
+  const callSites = [
+    "app/(site)/dashboard/mis-anuncios/page.tsx",
+    "app/(site)/dashboard/mis-anuncios/[id]/page.tsx",
+    "app/admin/(dashboard)/workspace/clasificados/AdminListingsTable.tsx",
+    "app/lib/listingLifecycle/listingRenewalFulfillment.ts",
+  ];
+  for (const rel of callSites) {
+    const src = stripComments(read(rel));
+    const blocks = src.split("resolveListingLifecycle(").slice(1).map((b) => b.slice(0, 700));
+    const brBlocks = blocks.filter((b) => /category:\s*("bienes-raices"|BIENES_FSBO_LIFECYCLE_CATEGORY)/.test(b.slice(0, 200)));
+    assert(brBlocks.length > 0, `${rel} has a Bienes Raíces lifecycle call site`);
+    assert(
+      brBlocks.every(
+        (b) =>
+          /packageKey:\s*("br_fsbo_45d"|BIENES_FSBO_LIFECYCLE_PACKAGE_KEY|BR_FSBO_LIFECYCLE_PACKAGE_KEY)/.test(b) &&
+          // explicit 2nd argument: the FSBO config itself, or a lane ternary that yields it
+          /\},\s*(\w+\s*\?\s*)?(BIENES_FSBO_LISTING_LIFECYCLE_CONFIG|BR_FSBO_LISTING_LIFECYCLE_CONFIG)\b/.test(b),
+      ),
+      `${rel}: every Bienes Raíces lifecycle call passes the FSBO package key + explicit config`,
+    );
+  }
+  const keyless = /getListingLifecycleConfig\(\s*["']bienes-raices["']\s*\)/;
+  assert(!keyless.test(stripComments(read("app/lib/listingLifecycle/resolveListingLifecycle.ts"))), "no keyless bienes-raices registry lookup");
 }
 
 /* ────────────────── 10. Privado status safety — server-owned transitions ───────────────── */

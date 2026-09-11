@@ -36,6 +36,17 @@ export type DerivedFeedItem = {
   href: string;
   /** Higher sorts first */
   priority: number;
+  /** Owner Attention Truth Gate — the real listing this item is about, when it is about exactly
+   * one listing (null for account-level items: profile_city, inbox, drafts-summary). Explicit
+   * field rather than parsed back out of `id` (whose prefix scheme is not one consistent
+   * delimiter — e.g. `exp-vis-`, `exp-list-`, `mod-`, `low-`, `payment-`). */
+  listingId?: string | null;
+  /** Real category slug when known (payment_attention items only today). */
+  category?: string | null;
+  /** Machine-readable source key for canonical attention mapping (e.g. the exact
+   * resolveCommercialStateBadges() badge key for payment_attention) — never rendered directly;
+   * `detail` remains the human-readable copy shown on /dashboard/notificaciones today. */
+  sourceKey?: string | null;
 };
 
 function addDays(d: Date, n: number): Date {
@@ -149,6 +160,7 @@ export async function fetchDerivedDashboardFeed(
         detail: isEs ? "Revisa el estado en Mis anuncios." : "Check status in My ads.",
         href: `/dashboard/mis-anuncios/${L.id}?lang=${lang}`,
         priority: 75,
+        listingId: L.id,
       });
     }
     const visEnd = listingRepublishVisibilityWindowEndIso(L.republished_at);
@@ -161,6 +173,8 @@ export async function fetchDerivedDashboardFeed(
           : `Visibility ending soon: ${(L.title ?? "").trim() || "Listing"}`,
         href: `/dashboard/mis-anuncios/${L.id}?lang=${lang}`,
         priority: 70,
+        listingId: L.id,
+        sourceKey: visEnd ?? null,
       });
     }
     if (inSoonWindow(L.expires_at ?? null, now, soon) && st === "active") {
@@ -172,6 +186,8 @@ export async function fetchDerivedDashboardFeed(
           : `Expiring soon: ${(L.title ?? "").trim() || "Listing"}`,
         href: `/dashboard/mis-anuncios/${L.id}?lang=${lang}`,
         priority: 72,
+        listingId: L.id,
+        sourceKey: L.expires_at ?? null,
       });
     }
   }
@@ -195,6 +211,7 @@ export async function fetchDerivedDashboardFeed(
             detail: isEs ? "Comparte el enlace o mejora fotos y título." : "Share the link or improve photos and title.",
             href: `/dashboard/mis-anuncios/${id}?lang=${lang}`,
             priority: 50,
+            listingId: id,
           });
         }
       }
@@ -257,6 +274,9 @@ export async function fetchDerivedDashboardFeed(
             detail: isEs ? "Revisa el estado de tu paquete comercial." : "Check your commercial package status.",
             href: `/dashboard/mis-anuncios?lang=${lang}&cat=${item.category}`,
             priority: attention.key === "suspended_nonpayment" || attention.key === "disputed" ? 90 : 78,
+            listingId: item.listingId ?? item.key,
+            category: item.category,
+            sourceKey: attention.key,
           });
         }
       }

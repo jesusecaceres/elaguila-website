@@ -14,6 +14,7 @@ import {
   serviciosListingPreviewHref,
   serviciosOffersEditHref,
   serviciosOffersEditLabel,
+  serviciosOffersInactiveDashboardHint,
 } from "../lib/serviciosDashboardOffersAddonCheckout";
 import {
   editListingLabel,
@@ -26,11 +27,18 @@ import {
   analyticsLabel,
 } from "../lib/dashboardMisAnunciosCategoryTools";
 import { resolveListingUiStatus, listingUiStatusLabel, listingUiStatusChipClass } from "../lib/listingDisplayStatus";
+import {
+  dashboardHasCapabilityForKey,
+  fetchDashboardListingPackageEntitlementBadges,
+  type DashboardEntitlementBadgePayload,
+} from "../lib/dashboardPackageEntitlementBadges";
 import { getOwnerEntityCapabilities } from "../lib/ownerEntityCapabilityRegistry";
-import { OwnerEntityWorkspace } from "../components/OwnerEntityWorkspace";
+import { ownerBusinessToolsSpecializedGroup } from "../lib/ownerBusinessToolsSpecializedGroup";
+import { OwnerEntityWorkspace, type OwnerEntitySpecializedGroup } from "../components/OwnerEntityWorkspace";
 import { OwnerProductPageFrame } from "../components/OwnerProductPageFrame";
 import type { ActionItem } from "../components/DashboardListingActionBar";
 import type { OwnerCommunityTrustEntry } from "../components/OwnerEntityCommunityTrust";
+import type { OwnerExternalReviewLink } from "../components/OwnerEntityExternalReputation";
 import type { OwnerEntityActivityItem } from "../components/OwnerEntityActivity";
 
 export const dynamic = "force-dynamic";
@@ -49,6 +57,8 @@ type MergedRow = {
   leonixAdId?: string | null;
   offersAddonActive?: boolean;
   metrics?: ServiciosListingEngagementMetricsClient;
+  googleReviewUrl?: string | null;
+  yelpReviewUrl?: string | null;
 };
 
 function accountRefFromId(id: string): string {
@@ -99,6 +109,7 @@ function DashboardServiciosPageContent() {
             performanceTitle: "Rendimiento",
             communityTrustTitle: "Confianza de la comunidad",
             communityTrustHelp: "Lo que la comunidad reconoce en este negocio.",
+            externalReputationTitle: "Reputación externa",
             activityTitle: "Solicitudes recientes",
             moreOptions: "Más opciones",
             moreOptionsClose: "Cerrar",
@@ -130,6 +141,7 @@ function DashboardServiciosPageContent() {
             performanceTitle: "Performance",
             communityTrustTitle: "Community trust",
             communityTrustHelp: "What the community recognizes about this business.",
+            externalReputationTitle: "External reputation",
             activityTitle: "Recent inquiries",
             moreOptions: "More options",
             moreOptionsClose: "Close",
@@ -151,6 +163,9 @@ function DashboardServiciosPageContent() {
   const [manageNotice, setManageNotice] = useState<string | null>(null);
   const [communityTrustById, setCommunityTrustById] = useState<
     Record<string, { key: string; es: string; en: string; count: number }[]>
+  >({});
+  const [entitlementBadges, setEntitlementBadges] = useState<
+    Record<string, DashboardEntitlementBadgePayload>
   >({});
 
   function serviciosEditHref(row: MergedRow): string {
@@ -246,6 +261,8 @@ function DashboardServiciosPageContent() {
               listing_status?: string | null;
               leonix_ad_id?: string | null;
               offers_addon_active?: boolean;
+              google_review_url?: string | null;
+              yelp_review_url?: string | null;
             }[];
           };
           if (j.ok && Array.isArray(j.listings)) {
@@ -261,6 +278,8 @@ function DashboardServiciosPageContent() {
                 leonixAdId: r.leonix_ad_id ?? null,
                 offersAddonActive: r.offers_addon_active === true,
                 metrics: serviciosMetricsBySlug[r.slug],
+                googleReviewUrl: r.google_review_url ?? null,
+                yelpReviewUrl: r.yelp_review_url ?? null,
               });
             }
           }
@@ -324,6 +343,33 @@ function DashboardServiciosPageContent() {
 
       if (!mounted) return;
       setRows(merged);
+
+      // Fixes the Servicios/Restaurantes entitlement asymmetry found in the Owner Command
+      // Center final organization pass: `/api/clasificados/servicios/my-listings`'s
+      // `offers_addon_active` only reflects the retired standalone `servicios_offers_addon`
+      // entitlement, never the canonical `coupons_offers` capability that the $399/mo base
+      // package includes (see revenuePricingMatrix.ts). Restaurantes already resolves this via
+      // the same canonical lookup (restaurantes/page.tsx); this mirrors that exact pattern for
+      // Servicios rather than inventing a new resolver. Real listing ids only — never fabricated.
+      const cloudRows = merged.filter((r) => r.source === "cloud" && r.id);
+      if (token && cloudRows.length > 0) {
+        try {
+          const { badges } = await fetchDashboardListingPackageEntitlementBadges(
+            cloudRows.map((r) => ({
+              key: r.id as string,
+              category: "servicios",
+              listingSource: "servicios_public_listings",
+              listingId: r.id as string,
+              slug: r.slug,
+              leonixAdId: r.leonixAdId ?? null,
+            })),
+            token,
+          );
+          if (mounted) setEntitlementBadges(badges);
+        } catch (badgeErr) {
+          console.error("[dashboard/servicios] entitlement badge fetch failed", badgeErr);
+        }
+      }
 
       // Gate 3A — Community Trust is READ ONLY here (no vote/write path touched). One bounded,
       // concurrent read per real cloud listing, fired once during this same load pass rather
@@ -438,6 +484,18 @@ function DashboardServiciosPageContent() {
         ) : null}
         {rows.map((r) => {
                 const capabilities = getOwnerEntityCapabilities("servicios");
+                // Real provider links only — already-validated by the API route
+                // (safeExternalWebsiteHref) from the same profile_json.contact.externalReviewLinks
+                // the public Servicios Business Hub renders. Never invented here.
+                const externalReviewLinks: OwnerExternalReviewLink[] = [];
+                if (capabilities.externalReviews === "supported") {
+                  if (r.googleReviewUrl) {
+                    externalReviewLinks.push({ provider: "google", label: lang === "es" ? "Opiniones en Google" : "Reviews on Google", href: r.googleReviewUrl });
+                  }
+                  if (r.yelpReviewUrl) {
+                    externalReviewLinks.push({ provider: "yelp", label: lang === "es" ? "Opiniones en Yelp" : "Reviews on Yelp", href: r.yelpReviewUrl });
+                  }
+                }
                 const uiStatus = resolveListingUiStatus({ status: r.listingStatus });
                 const isCloudPublished = r.source === "cloud" && r.listingStatus === "published";
                 const detailItems = [
@@ -490,10 +548,28 @@ function DashboardServiciosPageContent() {
                     tone: "positive",
                   });
                 }
+                // Never downgrade a real "active" addon flag; only upgrade a false/stale one when
+                // canonical package truth (resolveBusinessToolsAccess -> coupons_offers) says the
+                // capability is genuinely included in this listing's current package.
+                const hasCouponsCapability = dashboardHasCapabilityForKey(
+                  entitlementBadges,
+                  [r.id ?? "", r.slug, r.leonixAdId ?? ""],
+                  "coupons_offers",
+                );
+                const offersEntitlementActive = r.offersAddonActive || hasCouponsCapability;
                 const specializedActions: ActionItem[] =
-                  isCloudPublished && r.offersAddonActive
+                  isCloudPublished && offersEntitlementActive
                     ? [{ href: serviciosOffersShortcutHref(r), label: serviciosOffersEditLabel(lang), tone: "premium" }]
                     : [];
+                // Mirror Restaurantes' equivalent (restaurantesDashboardCouponAddonCheckout.ts):
+                // when the offers group would otherwise render with zero actions, OwnerEntityWorkspace
+                // silently drops the whole group (title included) — the owner saw the "Cupones y
+                // ofertas" section vanish with no explanation instead of Restaurantes' explained
+                // empty state (Master Bible §15's provisioning-gap case). Reuse the same hint copy.
+                const offersFooterHint =
+                  capabilities.specialized.offers !== "unsupported" && specializedActions.length === 0
+                    ? serviciosOffersInactiveDashboardHint(lang)
+                    : null;
                 const rowLeads = leads.filter((l) => l.listing_slug === r.slug);
                 const activityItems: OwnerEntityActivityItem[] = rowLeads.map((l) => ({
                   id: l.id,
@@ -521,19 +597,26 @@ function DashboardServiciosPageContent() {
                         ? { title: t.communityTrustTitle, helperText: t.communityTrustHelp, entries: trustEntries }
                         : undefined
                     }
+                    externalReputation={
+                      externalReviewLinks.length > 0
+                        ? { title: t.externalReputationTitle, links: externalReviewLinks }
+                        : undefined
+                    }
                     primaryAction={{ href: serviciosEditHref(r), label: editListingLabel(lang) }}
                     quickActions={quickActions}
                     lifecycleActions={lifecycleActions}
-                    specialized={
+                    specialized={[
                       capabilities.specialized.offers !== "unsupported"
                         ? { title: serviciosOffersEditLabel(lang), actions: specializedActions }
-                        : undefined
-                    }
+                        : null,
+                      ownerBusinessToolsSpecializedGroup(capabilities.specialized.businessTools, lang),
+                    ].filter((group): group is OwnerEntitySpecializedGroup => group !== null)}
                     activity={
                       capabilities.specialized.leads === "supported" && r.source === "cloud"
                         ? { title: t.activityTitle, items: activityItems, emptyLabel: t.leadsEmpty }
                         : undefined
                     }
+                    footerHint={offersFooterHint}
                     mobileSheetLabels={{ trigger: t.moreOptions, title: t.moreOptions, close: t.moreOptionsClose }}
                   />
                 );

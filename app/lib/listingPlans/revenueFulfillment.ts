@@ -944,13 +944,32 @@ async function tryActivateAutosPrivadoListingAfterEntitlement(input: {
     listingId: input.paymentRecord.listing_id,
     packageKey: input.packageDef.packageKey,
     stripePaymentIntentId: input.stripePaymentIntentId ?? null,
+    paymentMetadata: input.paymentRecord.metadata,
+    paymentRecordId: input.paymentRecord.id,
   });
 
   if (
     activation.outcome === "skipped_wrong_package" ||
     activation.outcome === "already_published" ||
-    activation.outcome === "wrong_lane"
+    activation.outcome === "wrong_lane" ||
+    activation.outcome === "renewed"
   ) {
+    if (activation.outcome === "renewed") {
+      await writeRevenueAuditLog({
+        action: "autos_privado_listing_activated_after_payment",
+        targetType: "autos_classifieds_listings",
+        targetId: activation.listingId ?? null,
+        meta: {
+          listing_id: activation.listingId,
+          package_key: input.packageDef.packageKey,
+          payment_record_id: input.paymentRecord.id,
+          leonix_ad_id: input.paymentRecord.leonix_ad_id,
+          stripe_checkout_session_id: input.stripeCheckoutSessionId,
+          stripe_event_id: input.stripeEventId,
+          outcome: "renewed",
+        },
+      });
+    }
     return { ok: true };
   }
 
@@ -1063,10 +1082,26 @@ async function tryActivateBienesFsboListingAfterEntitlement(input: {
     listingId: input.paymentRecord.listing_id,
     packageKey: input.packageDef.packageKey,
     stripePaymentIntentId: input.stripePaymentIntentId ?? null,
-    // Gate BIENES-PRIVADO-1: the payment record is the ONLY source of renewal truth. Passing it
-    // here lets the fulfillment distinguish a first activation from a renewal of the same row.
+    paymentMetadata: input.paymentRecord.metadata,
     paymentRecordId: input.paymentRecord.id,
   });
+
+  if (activation.outcome === "renewed") {
+    await writeRevenueAuditLog({
+      action: "bienes_fsbo_listing_activated_after_payment",
+      targetType: "listings",
+      targetId: activation.listingId ?? null,
+      meta: {
+        listing_id: activation.listingId,
+        package_key: input.packageDef.packageKey,
+        payment_record_id: input.paymentRecord.id,
+        leonix_ad_id: input.paymentRecord.leonix_ad_id,
+        stripe_event_id: input.stripeEventId,
+        outcome: "renewed",
+      },
+    });
+    return { ok: true };
+  }
 
   if (
     activation.outcome === "skipped_wrong_package" ||
@@ -1114,10 +1149,7 @@ async function tryActivateBienesFsboListingAfterEntitlement(input: {
   }
 
   await writeRevenueAuditLog({
-    action:
-      activation.outcome === "renewed"
-        ? "bienes_fsbo_listing_renewed_after_payment"
-        : "bienes_fsbo_listing_activated_after_payment",
+    action: "bienes_fsbo_listing_activated_after_payment",
     targetType: "listings",
     targetId: activation.listingId ?? null,
     meta: {

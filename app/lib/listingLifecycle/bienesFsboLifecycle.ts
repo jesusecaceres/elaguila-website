@@ -19,13 +19,13 @@
  *   - Negocio         — a monthly SUBSCRIPTION with no `expires_at` at all.
  *
  * `getListingLifecycleConfig(category, packageKey)` matches on CATEGORY ALONE when no packageKey is
- * supplied. So this config is deliberately NOT added to `LISTING_LIFECYCLE_CONFIGS`: registering it
- * under `bienes-raices` would let any keyless lookup hand a Negocio subscription row a config with
+ * supplied, so a keyless `bienes-raices` lookup would hand a Negocio subscription row a config with
  * `expirationRequired: true`, reporting a live, fully-paid listing as expired / not publicly
- * visible. The registry cannot express "this category has two lanes", so the config is exposed only
- * through `resolveBrFsboLifecycleConfigForRow`, which requires a row and returns `null` for
- * anything that is not genuine FSBO. Callers pass the config to `resolveListingLifecycle`
- * explicitly — exactly as the five existing lifecycle call sites already do for Rentas.
+ * visible. Owner Command Center Gate 20 (current main) registered the FSBO config in
+ * `LISTING_LIFECYCLE_CONFIGS`; the registry still cannot express "this category has two lanes", so
+ * callers must either pass `packageKey` + the config explicitly or use
+ * `resolveBrFsboLifecycleConfigForRow`, which requires a row and returns `null` for anything that
+ * is not genuine FSBO — exactly as the existing lifecycle call sites already do for Rentas.
  *
  * `isBrFsboRowWithinTerm` is likewise lane-scoped: a Negocio row (or any non-FSBO row) always
  * passes, and a null/invalid `expires_at` always means "no term to enforce" — this rule can only
@@ -40,8 +40,9 @@
  */
 import { getRevenuePackageDefinition } from "@/app/lib/listingPlans/revenuePricingMatrix";
 import type { ListingLifecycleConfig } from "./listingLifecycleTypes";
+import { BR_FSBO_LIFECYCLE_PACKAGE_KEY, BR_FSBO_LISTING_LIFECYCLE_CONFIG } from "./listingLifecycleConfig";
 
-export const BIENES_FSBO_LIFECYCLE_PACKAGE_KEY = "br_fsbo_45d" as const;
+export const BIENES_FSBO_LIFECYCLE_PACKAGE_KEY = BR_FSBO_LIFECYCLE_PACKAGE_KEY;
 export const BIENES_FSBO_LIFECYCLE_CATEGORY = "bienes-raices" as const;
 
 /** Renewal opens the same 7 days before expiry that Rentas uses — one platform convention. */
@@ -65,28 +66,16 @@ export function bienesFsboRenewalPriceCents(): number | null {
 }
 
 /**
- * The FSBO lifecycle contract. Status vocabulary mirrors what this lane's own publish/activation
- * path actually writes (`pending` before payment, `active` after) plus the shared `listings`
- * moderation states — nothing invented.
+ * The FSBO lifecycle contract — Servicios integration gate reconciliation: this is now the SAME
+ * object as Owner Command Center Gate 20's registered `BR_FSBO_LISTING_LIFECYCLE_CONFIG` (current
+ * main is the renewal-architecture authority), never a second copy that could drift. This module
+ * keeps what Gate 20 does not supply: the lane predicate, the row-scoped resolver and the public
+ * term rule. Gate 20 registers the config under `bienes-raices`, so the keyless-lookup hazard
+ * described above is now latent in the registry: every Bienes Raíces caller must keep passing
+ * `packageKey` + this config explicitly (they all do), or go through
+ * `resolveBrFsboLifecycleConfigForRow`.
  */
-export const BIENES_FSBO_LISTING_LIFECYCLE_CONFIG: ListingLifecycleConfig = {
-  category: BIENES_FSBO_LIFECYCLE_CATEGORY,
-  packageKey: BIENES_FSBO_LIFECYCLE_PACKAGE_KEY,
-  durationType: "fixed_days",
-  durationDays: bienesFsboDurationDays(),
-  renewalPackageKey: BIENES_FSBO_LIFECYCLE_PACKAGE_KEY,
-  renewalPriceCents: bienesFsboRenewalPriceCents(),
-  renewalEligibleBeforeExpiryDays: BIENES_FSBO_RENEWAL_ELIGIBLE_BEFORE_EXPIRY_DAYS,
-  expirationRequired: true,
-  hasAddons: false,
-  publicVisibilityRequiresActiveLifecycle: true,
-  reminderScheduleDays: [7, 3, 1, 0, -3],
-  sourceTable: "listings",
-  activeStatuses: ["active"],
-  pendingPaymentStatuses: ["pending", "pending_payment"],
-  pausedStatuses: ["paused"],
-  suspendedStatuses: ["suspended", "flagged", "removed"],
-};
+export const BIENES_FSBO_LISTING_LIFECYCLE_CONFIG: ListingLifecycleConfig = BR_FSBO_LISTING_LIFECYCLE_CONFIG;
 
 /** The minimum row shape both halves need. Every field optional — callers project narrowly. */
 export type BrFsboRowLike = {
