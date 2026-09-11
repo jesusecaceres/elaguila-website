@@ -43,6 +43,12 @@ const STAFF_WRITE_ERROR_MESSAGES: Readonly<Record<string, string>> = {
     "Todavía hay elementos de la lista de entrega sin completar. Márquelos como completos o no aplicables antes de finalizar la entrega. / Handoff checklist items are still pending. Mark them complete or not applicable before completing handoff.",
   snapshot_failed:
     "No se pudo generar la lista de verificación. Intenta de nuevo. / Could not generate the checklist. Try again.",
+  invalid_campaign_dates:
+    "La fecha de inicio o fin de la campaña no es válida. Corrígela en el descubrimiento (formato AAAA-MM-DD) antes de crear la campaña. / The campaign start or end date is not valid. Fix it in discovery (YYYY-MM-DD format) before creating the campaign.",
+  stale_acknowledgement_required:
+    "El plan puede estar desactualizado. Un revisor debe confirmar que se liberará contra la versión aprobada, o generar una nueva versión. / The blueprint may be stale. A reviewer must acknowledge releasing against the approved version, or generate a new version.",
+  client_confirmation_missing:
+    "Se requiere confirmación del cliente antes de continuar. / Client confirmation is required before continuing.",
 };
 
 /**

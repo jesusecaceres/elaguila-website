@@ -37,9 +37,27 @@ function matchChannelKey(token: string, channels: readonly { channelKey: string;
   return byLabel?.channelKey ?? null;
 }
 
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Gate 8 <campaign_dates> — campaign_start/campaign_end are real Postgres `date` columns, but
+ * discovery captures them as free-text display strings (a client might say "next month"). Rather
+ * than let a malformed value hit the database as a raw constraint/type error, or silently become
+ * null, reject strictly here so the bridge can fail humanly before any write occurs.
+ */
+function parseStrictIsoDate(raw: string | null): { ok: true; value: string | null } | { ok: false } {
+  if (!raw) return { ok: true, value: null };
+  if (!ISO_DATE_RE.test(raw)) return { ok: false };
+  const [y, m, day] = raw.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 1, day));
+  if (d.getUTCFullYear() !== y || d.getUTCMonth() + 1 !== m || d.getUTCDate() !== day) return { ok: false };
+  return { ok: true, value: raw };
+}
+
 export type GrowthCampaignBridgeResult =
   | { ok: true; campaign: GrowthCampaign; alreadyExisted: boolean; unmatchedChannelTokens: readonly string[] }
-  | { ok: false; reason: "not_approved" | "campaign_create_failed" };
+  | { ok: false; reason: "not_approved" | "campaign_create_failed" }
+  | { ok: false; reason: "invalid_campaign_dates"; invalidFields: readonly string[] };
 
 export async function createGrowthCampaignFromBlueprint(
   businessId: string,
@@ -56,8 +74,17 @@ export async function createGrowthCampaignFromBlueprint(
   const audienceEs = findRow(packet.audience, "primary_customer");
   const offerEs = findRow(packet.offerMessage, "campaign_primary_message");
   const ctaEs = findRow(packet.cta, "campaign_cta");
-  const startDate = findRow(packet.timing, "campaign_start_date");
-  const endDate = findRow(packet.timing, "campaign_end_date");
+  const startDateRaw = findRow(packet.timing, "campaign_start_date");
+  const endDateRaw = findRow(packet.timing, "campaign_end_date");
+  const startParsed = parseStrictIsoDate(startDateRaw);
+  const endParsed = parseStrictIsoDate(endDateRaw);
+  if (!startParsed.ok || !endParsed.ok) {
+    return {
+      ok: false,
+      reason: "invalid_campaign_dates",
+      invalidFields: [...(!startParsed.ok ? ["campaign_start_date"] : []), ...(!endParsed.ok ? ["campaign_end_date"] : [])],
+    };
+  }
 
   const campaign = await createGrowthCampaign(
     {
@@ -71,8 +98,8 @@ export async function createGrowthCampaignFromBlueprint(
       offerEn: offerEs,
       primaryCtaEs: ctaEs,
       primaryCtaEn: ctaEs,
-      campaignStart: startDate,
-      campaignEnd: endDate,
+      campaignStart: startParsed.value,
+      campaignEnd: endParsed.value,
     },
     actor,
   );

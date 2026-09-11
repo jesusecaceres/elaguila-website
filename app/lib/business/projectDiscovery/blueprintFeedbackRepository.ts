@@ -30,9 +30,7 @@ export interface BlueprintFeedback {
   createdAt: string;
 }
 
-const FEEDBACK_COLUMNS =
-  "id, business_id, blueprint_id, project_intent_id, section_key, field_key, feedback_type, feedback_text, client_approved, source_meeting_id, linked_commitment_id, " +
-  "captured_actor_type, captured_by_roster_id, captured_by_auth_user_id, captured_by_email, captured_by_role, created_at";
+const FEEDBACK_COLUMNS = `id, business_id, blueprint_id, project_intent_id, section_key, field_key, feedback_type, feedback_text, client_approved, source_meeting_id, linked_commitment_id, captured_actor_type, captured_by_roster_id, captured_by_auth_user_id, captured_by_email, captured_by_role, created_at`;
 
 function actorRosterId(actor: ProjectDiscoveryActor): string | null {
   return actor.type === "staff" ? actor.rosterId : null;

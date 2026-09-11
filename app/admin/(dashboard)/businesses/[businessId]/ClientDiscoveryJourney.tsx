@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   AcceptSuggestedDependencyButton,
+  AcknowledgeStalenessButton,
   AddProjectIntentForm,
   AnswerRowActions,
   ApproveArchitectureButton,
@@ -1281,6 +1282,13 @@ function ClientReviewQaHandoffPanel({
           <ul className="mt-2 list-disc space-y-0.5 pl-4 text-xs text-red-700">
             {releaseReadiness.blockingReasons.map((r, i) => <li key={i}>{r.es} / {r.en}</li>)}
           </ul>
+        ) : null}
+        {releaseReadiness.state === "NOT_READY" && clientReview.blueprintStatus === "approved_for_build" && canManageBlueprint ? (
+          <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-2">
+            <p className="text-xs font-semibold text-amber-900">{formatBilingual({ es: "El plan puede estar desactualizado", en: "The blueprint may be stale" })}</p>
+            <p className="mt-1 text-[11px] text-amber-800">{formatBilingual({ es: "Un revisor debe confirmar que se liberará contra la versión aprobada, o generar una nueva versión.", en: "A reviewer must acknowledge releasing against the approved version, or generate a new version." })}</p>
+            <div className="mt-2"><AcknowledgeStalenessButton businessId={businessId} discoveryId={discoveryId} blueprintId={blueprintId} /></div>
+          </div>
         ) : null}
         {releaseReadiness.state === "READY_FOR_RELEASE" && canManageBlueprint ? (
           <div className="mt-3"><MarkBlueprintReleasedButton businessId={businessId} discoveryId={discoveryId} blueprintId={blueprintId} /></div>

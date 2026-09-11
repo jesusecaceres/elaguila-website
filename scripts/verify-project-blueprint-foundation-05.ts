@@ -72,7 +72,7 @@ check("1e. version+status+fingerprint+markdown_snapshot are NOT NULL with sane C
   assert.ok(migration.includes("input_fingerprint text NOT NULL CHECK (char_length(input_fingerprint) = 64)"));
 });
 check("1f. status enum matches exactly the 5-state lifecycle, no extra/missing state", () => {
-  const match = migration.match(/status text NOT NULL DEFAULT 'draft' CHECK \(status IN \(([^)]+)\)\)/s);
+  const match = migration.match(/status text NOT NULL DEFAULT 'draft' CHECK \(status IN \(([^)]+)\)\)/);
   assert.ok(match);
   const states = match![1].split(",").map((s) => s.trim().replace(/'/g, ""));
   assert.deepEqual(states.sort(), ["approved_for_build", "client_confirmation_needed", "draft", "internal_review", "superseded"].sort());
@@ -81,7 +81,7 @@ check("1g. approved_for_build requires approved_at to be set (CHECK constraint)"
   assert.ok(migration.includes("business_project_blueprints_approved_requires_status_chk"));
 });
 check("1h. supersedes_blueprint_id is a self-referencing FK with ON DELETE SET NULL (never CASCADE — deleting a newer version must not delete what it superseded)", () => {
-  assert.ok(/supersedes_blueprint_id\).*ON DELETE SET NULL/s.test(migration));
+  assert.ok(/supersedes_blueprint_id\)[\s\S]*ON DELETE SET NULL/.test(migration));
 });
 check("1i. handoff fields exist and default to not_started", () => {
   assert.ok(migration.includes("handoff_status text NOT NULL DEFAULT 'not_started'"));

@@ -321,7 +321,7 @@ check("operator-facing capture labels are phrased as 'who said this', distinct f
 });
 check("30. AI-extracted/public-verified/leonix-recommendation/technical-decision/unknown are never operator-chosen at capture time", () => {
   for (const excluded of ["ai_extracted", "public_verified", "leonix_recommendation", "technical_decision", "unknown"] as DiscoveryTruthClass[]) {
-    assert.ok(!TRUTH_CAPTURE_CHOICES.includes(excluded), excluded);
+    assert.ok(!(TRUTH_CAPTURE_CHOICES as readonly DiscoveryTruthClass[]).includes(excluded), excluded);
   }
 });
 check("31. needs_confirmation stays available as an explicit capture choice — provisional answers are never silently upgraded", () => {

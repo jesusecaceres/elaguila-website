@@ -77,19 +77,22 @@ export interface BusinessProjectBlueprint<TPacket = WebsiteProjectBlueprintPacke
   handoffCompletedByEmail: string | null;
   handoffCompletedByRole: string | null;
 
+  // Gate 8 — real staleness acknowledgement + explicit client-confirmation-required truth
+  // (MD <staleness_decision>, <client_confirmation_precision>).
+  clientConfirmationRequired: boolean;
+  staleAcknowledgedAt: string | null;
+  staleAcknowledgedFingerprint: string | null;
+  staleAcknowledgedByRosterId: string | null;
+  staleAcknowledgedByAuthUserId: string | null;
+  staleAcknowledgedByEmail: string | null;
+  staleAcknowledgedByRole: string | null;
+  staleAcknowledgementNote: string | null;
+
   createdAt: string;
   updatedAt: string;
 }
 
-const BLUEPRINT_COLUMNS =
-  "id, business_id, discovery_id, project_intent_id, blueprint_type, version, status, packet_json, markdown_snapshot, input_fingerprint, discovery_catalog_version, platform_registry_version, " +
-  "created_actor_type, created_by_roster_id, created_by_auth_user_id, created_by_email, created_by_role, " +
-  "reviewed_by_roster_id, reviewed_by_auth_user_id, reviewed_by_email, reviewed_by_role, reviewed_at, " +
-  "approved_by_roster_id, approved_by_auth_user_id, approved_by_email, approved_by_role, approved_at, " +
-  "supersedes_blueprint_id, handoff_status, handoff_assignee_roster_id, handoff_due_date, handoff_notes, " +
-  "released_at, released_by_roster_id, released_by_auth_user_id, released_by_email, released_by_role, final_destination_url, " +
-  "handoff_completed_at, handoff_completed_by_roster_id, handoff_completed_by_auth_user_id, handoff_completed_by_email, handoff_completed_by_role, " +
-  "created_at, updated_at";
+const BLUEPRINT_COLUMNS = `id, business_id, discovery_id, project_intent_id, blueprint_type, version, status, packet_json, markdown_snapshot, input_fingerprint, discovery_catalog_version, platform_registry_version, created_actor_type, created_by_roster_id, created_by_auth_user_id, created_by_email, created_by_role, reviewed_by_roster_id, reviewed_by_auth_user_id, reviewed_by_email, reviewed_by_role, reviewed_at, approved_by_roster_id, approved_by_auth_user_id, approved_by_email, approved_by_role, approved_at, supersedes_blueprint_id, handoff_status, handoff_assignee_roster_id, handoff_due_date, handoff_notes, released_at, released_by_roster_id, released_by_auth_user_id, released_by_email, released_by_role, final_destination_url, handoff_completed_at, handoff_completed_by_roster_id, handoff_completed_by_auth_user_id, handoff_completed_by_email, handoff_completed_by_role, client_confirmation_required, stale_acknowledged_at, stale_acknowledged_fingerprint, stale_acknowledged_by_roster_id, stale_acknowledged_by_auth_user_id, stale_acknowledged_by_email, stale_acknowledged_by_role, stale_acknowledgement_note, created_at, updated_at`;
 
 function actorRosterId(actor: ProjectDiscoveryActor): string | null {
   return actor.type === "staff" ? actor.rosterId : null;
@@ -155,6 +158,15 @@ function mapBlueprintRow<TPacket = WebsiteProjectBlueprintPacket>(row: Record<st
     handoffCompletedByAuthUserId: (row.handoff_completed_by_auth_user_id as string | null) ?? null,
     handoffCompletedByEmail: (row.handoff_completed_by_email as string | null) ?? null,
     handoffCompletedByRole: (row.handoff_completed_by_role as string | null) ?? null,
+
+    clientConfirmationRequired: Boolean(row.client_confirmation_required ?? true),
+    staleAcknowledgedAt: (row.stale_acknowledged_at as string | null) ?? null,
+    staleAcknowledgedFingerprint: (row.stale_acknowledged_fingerprint as string | null) ?? null,
+    staleAcknowledgedByRosterId: (row.stale_acknowledged_by_roster_id as string | null) ?? null,
+    staleAcknowledgedByAuthUserId: (row.stale_acknowledged_by_auth_user_id as string | null) ?? null,
+    staleAcknowledgedByEmail: (row.stale_acknowledged_by_email as string | null) ?? null,
+    staleAcknowledgedByRole: (row.stale_acknowledged_by_role as string | null) ?? null,
+    staleAcknowledgementNote: (row.stale_acknowledgement_note as string | null) ?? null,
 
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
@@ -403,6 +415,47 @@ export async function markBlueprintReleased(
       released_by_email: actor.email,
       released_by_role: actorRole(actor),
       final_destination_url: input.finalDestinationUrl ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", blueprintId)
+    .eq("business_id", businessId)
+    .select(BLUEPRINT_COLUMNS)
+    .single();
+  if (error || !data) return { ok: false, reason: "update_failed" };
+  return { ok: true, blueprint: mapBlueprintRow(data) };
+}
+
+// =================================================================================================
+// Staleness acknowledgement (Gate 8, MD <staleness_decision>) — records that an authorized reviewer
+// explicitly chose to release against the currently-approved blueprint despite it being stale,
+// rather than generating a new version. Scoped to the EXACT fingerprint acknowledged: if discovery
+// truth changes again afterward, the newly-recomputed fingerprint no longer matches
+// stale_acknowledged_fingerprint and releaseReadinessAssembler.ts treats the blueprint as
+// stale-and-unacknowledged again. Never changes blueprint status.
+// =================================================================================================
+export type AcknowledgeStalenessResult = { ok: true; blueprint: BusinessProjectBlueprint } | { ok: false; reason: "not_found" | "not_approved" | "update_failed" };
+
+export async function acknowledgeBlueprintStaleness(
+  businessId: string,
+  blueprintId: string,
+  input: { currentFingerprint: string; note?: string | null },
+  actor: Extract<ProjectDiscoveryActor, { type: "staff" | "owner" }>,
+): Promise<AcknowledgeStalenessResult> {
+  const existing = await getBlueprintById(businessId, blueprintId);
+  if (!existing) return { ok: false, reason: "not_found" };
+  if (existing.status !== "approved_for_build") return { ok: false, reason: "not_approved" };
+
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("business_project_blueprints")
+    .update({
+      stale_acknowledged_at: new Date().toISOString(),
+      stale_acknowledged_fingerprint: input.currentFingerprint,
+      stale_acknowledged_by_roster_id: actorRosterId(actor),
+      stale_acknowledged_by_auth_user_id: actor.authUserId,
+      stale_acknowledged_by_email: actor.email,
+      stale_acknowledged_by_role: actorRole(actor),
+      stale_acknowledgement_note: input.note ?? null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", blueprintId)

@@ -36,9 +36,7 @@ export interface BlueprintCheckItem {
   updatedAt: string;
 }
 
-const CHECK_ITEM_COLUMNS =
-  "id, business_id, blueprint_id, project_intent_id, kind, item_key, category, label_es, label_en, release_blocking, status, note, evidence_source_file_id, evidence_url, linked_commitment_id, " +
-  "checked_actor_type, checked_by_roster_id, checked_by_auth_user_id, checked_by_email, checked_by_role, checked_at, created_at, updated_at";
+const CHECK_ITEM_COLUMNS = `id, business_id, blueprint_id, project_intent_id, kind, item_key, category, label_es, label_en, release_blocking, status, note, evidence_source_file_id, evidence_url, linked_commitment_id, checked_actor_type, checked_by_roster_id, checked_by_auth_user_id, checked_by_email, checked_by_role, checked_at, created_at, updated_at`;
 
 function actorRosterId(actor: ProjectDiscoveryActor): string | null {
   return actor.type === "staff" ? actor.rosterId : null;

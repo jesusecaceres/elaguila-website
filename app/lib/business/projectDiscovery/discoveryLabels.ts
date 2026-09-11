@@ -78,7 +78,7 @@ export function truthClassIsProvisional(value: DiscoveryTruthClass): boolean {
  * technical_decision/unknown — those are never operator-chosen at capture time (system/AI/staff
  * catalog provenance, not a live capture choice).
  */
-export const TRUTH_CAPTURE_CHOICES: readonly DiscoveryTruthClass[] = ["client_confirmed", "client_preference", "staff_observation", "needs_confirmation"];
+export const TRUTH_CAPTURE_CHOICES = ["client_confirmed", "client_preference", "staff_observation", "needs_confirmation"] as const satisfies readonly DiscoveryTruthClass[];
 
 const TRUTH_CAPTURE_CHOICE_LABELS: Record<(typeof TRUTH_CAPTURE_CHOICES)[number], BilingualLabel> = {
   client_confirmed: label("El cliente me lo dijo", "Client told me"),
@@ -88,7 +88,7 @@ const TRUTH_CAPTURE_CHOICE_LABELS: Record<(typeof TRUTH_CAPTURE_CHOICES)[number]
 };
 
 export function truthCaptureChoiceLabel(value: DiscoveryTruthClass): BilingualLabel {
-  return TRUTH_CAPTURE_CHOICE_LABELS[value] ?? truthClassLabel(value);
+  return TRUTH_CAPTURE_CHOICE_LABELS[value as keyof typeof TRUTH_CAPTURE_CHOICE_LABELS] ?? truthClassLabel(value);
 }
 
 const COMPLETENESS_CLASS_LABELS: Record<DiscoveryCompletenessClass, BilingualLabel> = {

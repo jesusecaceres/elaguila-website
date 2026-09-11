@@ -9,9 +9,7 @@ import { getAdminSupabase } from "@/app/lib/supabase/server";
 import type { ProjectDiscoveryActor } from "./types";
 import type { DependencyType, ProjectIntentDependency } from "./projectDependencyEngine";
 
-const DEPENDENCY_COLUMNS =
-  "id, business_id, discovery_id, dependent_intent_id, depends_on_intent_id, dependency_type, reason_es, reason_en, " +
-  "created_actor_type, created_by_roster_id, created_by_auth_user_id, created_by_email, created_by_role, created_at";
+const DEPENDENCY_COLUMNS = `id, business_id, discovery_id, dependent_intent_id, depends_on_intent_id, dependency_type, reason_es, reason_en, created_actor_type, created_by_roster_id, created_by_auth_user_id, created_by_email, created_by_role, created_at`;
 
 function actorRosterId(actor: ProjectDiscoveryActor): string | null {
   return actor.type === "staff" ? actor.rosterId : null;

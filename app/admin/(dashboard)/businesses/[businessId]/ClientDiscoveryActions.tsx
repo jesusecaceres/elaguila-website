@@ -1809,3 +1809,33 @@ export function CompleteHandoffButton({ businessId, discoveryId, blueprintId }: 
   );
 }
 
+/** Gate 8 <staleness_decision> — records that a reviewer explicitly chose to release against the
+ * approved blueprint despite live truth having moved; never mutates blueprint status/content. */
+export function AcknowledgeStalenessButton({ businessId, discoveryId, blueprintId }: { businessId: string; discoveryId: string; blueprintId: string }) {
+  const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    setSubmitting(true);
+    setError(null);
+    const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/discovery/${discoveryId}/blueprint-review/acknowledge-staleness`, "POST", { blueprintId });
+    setSubmitting(false);
+    if (!ok) {
+      setError(humanizeStaffWriteError(body?.error as string | undefined, "No se pudo confirmar. / Could not acknowledge."));
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <button type="button" onClick={() => void submit()} disabled={submitting} className={PRIMARY_BTN}>
+        {submitting ? "Confirmando… / Acknowledging…" : "Confirmar y liberar contra la versión aprobada / Acknowledge and Release Against Approved Version"}
+      </button>
+      {error ? <p role="alert" className="mt-1 text-xs text-red-700">{error}</p> : null}
+      <p className="mt-1 text-[10px] text-[#9A9184]">{formatBilingual({ es: "O genera una nueva versión del plan si la verdad cambió significativamente.", en: "Or generate a new blueprint version if the truth changed materially." })}</p>
+    </div>
+  );
+}
+

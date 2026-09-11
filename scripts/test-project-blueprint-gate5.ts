@@ -110,8 +110,8 @@ function fullFixture(overrideItems: Partial<Record<string, FieldDef>> = {}) {
   const c = ctx({ capturedItems: fullyAnsweredItems(overrideItems) });
   const architecture = approvedArchitectureFor(c);
   const intents: ProjectDiscoveryIntent[] = [
-    { id: "intent-1", businessId: "biz-1", discoveryId: "disc-1", projectType: "website", projectSubtype: null, otherLabel: null, title: "New Website", status: "in_progress", createdActorType: "staff", createdByRosterId: "s1", createdByAuthUserId: "a1", createdByEmail: "e@x.test", createdByRole: "sales_rep", createdAt: NOW, updatedAt: NOW },
-    { id: "intent-2", businessId: "biz-1", discoveryId: "disc-1", projectType: "logo_design", projectSubtype: null, otherLabel: null, title: "New Logo", status: "not_started", createdActorType: "staff", createdByRosterId: "s1", createdByAuthUserId: "a1", createdByEmail: "e@x.test", createdByRole: "sales_rep", createdAt: NOW, updatedAt: NOW },
+    { id: "intent-1", businessId: "biz-1", discoveryId: "disc-1", projectType: "website", projectSubtype: null, otherLabel: null, title: "New Website", status: "confirmed", createdActorType: "staff", createdByRosterId: "s1", createdByAuthUserId: "a1", createdByEmail: "e@x.test", createdByRole: "sales_rep", createdAt: NOW, updatedAt: NOW },
+    { id: "intent-2", businessId: "biz-1", discoveryId: "disc-1", projectType: "logo_brand_identity", projectSubtype: null, otherLabel: null, title: "New Logo", status: "candidate", createdActorType: "staff", createdByRosterId: "s1", createdByAuthUserId: "a1", createdByEmail: "e@x.test", createdByRole: "sales_rep", createdAt: NOW, updatedAt: NOW },
   ];
   const sources: ProjectDiscoverySource[] = [
     { id: "src-1", businessId: "biz-1", discoveryId: "disc-1", itemId: null, sourceType: "asset", sourceRecordId: null, businessSourceFileId: "file-1", externalUrl: null, label: "Logo file", notes: null, createdActorType: "staff", createdByRosterId: "s1", createdByAuthUserId: "a1", createdByEmail: "e@x.test", createdByRole: "sales_rep", createdAt: NOW },

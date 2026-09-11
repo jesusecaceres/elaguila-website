@@ -77,7 +77,7 @@ function ctx(projectType: ProjectType, capturedItems: ProjectDiscoveryItem[] = [
 function intent(over: Partial<ProjectDiscoveryIntent>): ProjectDiscoveryIntent {
   return {
     id: over.id ?? nextId(), businessId: "biz-1", discoveryId: "disc-1", projectType: over.projectType ?? "website",
-    projectSubtype: null, otherLabel: null, title: over.title ?? "Intent", status: over.status ?? "in_progress",
+    projectSubtype: null, otherLabel: null, title: over.title ?? "Intent", status: over.status ?? "confirmed",
     createdActorType: "staff", createdByRosterId: "s1", createdByAuthUserId: "a1", createdByEmail: "e@x.test", createdByRole: "sales_rep",
     createdAt: NOW, updatedAt: NOW,
     ...over,

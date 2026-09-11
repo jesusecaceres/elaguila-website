@@ -201,11 +201,13 @@ export function buildMediaCampaignBlueprintMarkdown(packet: MediaCampaignBluepri
   return `${header}\n${sections.filter((sec) => sec.length > 0).join("\n")}`.trim() + "\n";
 }
 
+function isPrintCollateralPacket(packet: SpecializedProjectBlueprintPacket): packet is PrintCollateralBlueprintPacket {
+  return packet.projectType === "business_cards" || packet.projectType === "flyer" || packet.projectType === "banner_signage" || packet.projectType === "referral_materials";
+}
+
 /** Single dispatcher — routes to the correct family's Markdown generator based on packet.projectType. */
 export function buildSpecializedBlueprintMarkdown(packet: SpecializedProjectBlueprintPacket, meta: { version: number; status: BlueprintStatus }): string {
   if (packet.projectType === "logo_brand_identity") return buildLogoBrandBlueprintMarkdown(packet, meta);
-  if (packet.projectType === "business_cards" || packet.projectType === "flyer" || packet.projectType === "banner_signage" || packet.projectType === "referral_materials") {
-    return buildPrintCollateralBlueprintMarkdown(packet, meta);
-  }
+  if (isPrintCollateralPacket(packet)) return buildPrintCollateralBlueprintMarkdown(packet, meta);
   return buildMediaCampaignBlueprintMarkdown(packet, meta);
 }

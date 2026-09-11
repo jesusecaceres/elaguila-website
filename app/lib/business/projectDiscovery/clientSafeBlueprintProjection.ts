@@ -11,7 +11,7 @@
  * "ai_extracted").
  */
 import type { WebsiteProjectBlueprintPacket } from "./blueprintEngine";
-import type { SpecializedProjectBlueprintPacket } from "./specializedBlueprintEngine";
+import type { PrintCollateralBlueprintPacket, SpecializedProjectBlueprintPacket } from "./specializedBlueprintEngine";
 import type { DiscoveryTruthClass } from "./types";
 
 export interface ClientSafeBlueprintRow {
@@ -76,7 +76,14 @@ function visibleRows(list: readonly CommonRow[]): ClientSafeBlueprintRow[] {
 type AnyPacket = WebsiteProjectBlueprintPacket | SpecializedProjectBlueprintPacket;
 
 function isWebsitePacket(packet: AnyPacket): packet is WebsiteProjectBlueprintPacket {
-  return packet.projectType === "website" || packet.projectType === "website_improvement" || packet.projectType === "landing_page";
+  // WebsiteProjectBlueprintPacket.projectType is frozen to the literal "website" (blueprintEngine.ts)
+  // regardless of whether the source intent was website / website_improvement / landing_page — all
+  // three route through the same Website engine (MD <website_handoff_preservation>).
+  return packet.projectType === "website";
+}
+
+function isPrintCollateralPacket(packet: SpecializedProjectBlueprintPacket): packet is PrintCollateralBlueprintPacket {
+  return packet.projectType === "business_cards" || packet.projectType === "flyer" || packet.projectType === "banner_signage" || packet.projectType === "referral_materials";
 }
 
 export function buildClientSafeBlueprintProjection(packet: AnyPacket): ClientSafeBlueprintProjection {
@@ -115,7 +122,7 @@ export function buildClientSafeBlueprintProjection(packet: AnyPacket): ClientSaf
     };
   }
 
-  if (packet.projectType === "business_cards" || packet.projectType === "flyer" || packet.projectType === "banner_signage" || packet.projectType === "referral_materials") {
+  if (isPrintCollateralPacket(packet)) {
     return {
       ...common,
       deliverables: visibleRows(packet.specification),

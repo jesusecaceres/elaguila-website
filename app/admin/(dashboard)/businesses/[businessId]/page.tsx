@@ -439,11 +439,10 @@ export default async function AdminBusinessDetailPage({
               // second evaluation engine.
               const blueprintReadiness = evaluateWebsiteBlueprintReadiness(readiness, approvedArchitecture);
               const latestBlueprint = await getLatestBlueprintForIntent(business.id, selectedIntent.id);
-              const isStale = latestBlueprint && approvedArchitecture
-                ? computeBlueprintInputFingerprint(ctx, approvedArchitecture) !== latestBlueprint.inputFingerprint
-                : false;
+              const currentFingerprint = approvedArchitecture ? computeBlueprintInputFingerprint(ctx, approvedArchitecture) : null;
+              const isStale = latestBlueprint && currentFingerprint ? currentFingerprint !== latestBlueprint.inputFingerprint : false;
               const architectureDrift = latestBlueprint ? detectArchitectureDrift(latestBlueprint.packet.architecture, architectureRecommendation) : null;
-              return { evaluations, readiness, questionsToAskNow, wrapUp, scopeSignals, architectureRecommendation, approvedArchitecture, blueprintReadiness, latestBlueprint, isStale, architectureDrift };
+              return { evaluations, readiness, questionsToAskNow, wrapUp, scopeSignals, architectureRecommendation, approvedArchitecture, blueprintReadiness, latestBlueprint, isStale, currentFingerprint, architectureDrift };
             })()
           : null;
 
@@ -473,9 +472,10 @@ export default async function AdminBusinessDetailPage({
 
               const blueprintReadiness = evaluateProjectBlueprintReadiness(readiness, blockingDependencies);
               const latestBlueprint = await getLatestBlueprintForIntent<SpecializedProjectBlueprintPacket>(business.id, selectedIntent.id);
-              const isStale = latestBlueprint ? computeSpecializedBlueprintInputFingerprint(ctx) !== latestBlueprint.inputFingerprint : false;
+              const currentFingerprint = computeSpecializedBlueprintInputFingerprint(ctx);
+              const isStale = latestBlueprint ? currentFingerprint !== latestBlueprint.inputFingerprint : false;
 
-              return { family, evaluations, readiness, questionsToAskNow, wrapUp, blueprintReadiness, latestBlueprint, isStale, dependencies, suggestedDependencies, blockingDependencies };
+              return { family, evaluations, readiness, questionsToAskNow, wrapUp, blueprintReadiness, latestBlueprint, isStale, currentFingerprint, dependencies, suggestedDependencies, blockingDependencies };
             })()
           : null;
 

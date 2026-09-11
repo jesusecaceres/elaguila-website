@@ -66,7 +66,7 @@ check("1c. business_project_blueprints gains ONLY nullable release/handoff-compl
   assert.ok(migration.includes("ADD COLUMN IF NOT EXISTS handoff_completed_at timestamptz NULL"));
 });
 check("1d. no 6th handoff_status value was added — Website completion stays represented by released_at, never a 'Website Project v2' status enum", () => {
-  assert.ok(!/handoff_status.*CHECK.*delivered/is.test(migration));
+  assert.ok(!/handoff_status[\s\S]*CHECK[\s\S]*delivered/i.test(migration));
 });
 check("1e. RLS enabled + deny-all + explicit service_role grant on both new tables, no CREATE POLICY anywhere", () => {
   for (const table of ["business_project_blueprint_feedback", "business_project_blueprint_check_items"]) {

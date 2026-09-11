@@ -131,6 +131,7 @@ function makeCampaign(overrides: Partial<GrowthCampaign>): GrowthCampaign {
     businessId: "fixture-biz",
     sourceSolutionId: null,
     linkedOpportunityId: null,
+    sourceProjectBlueprintId: null,
     objectiveEs: "Llenar clases de las 6pm",
     objectiveEn: "Fill the 6pm classes",
     targetAudienceEs: null,
@@ -174,6 +175,7 @@ const ALL_PERMS = {
   canManageRoadmap: true,
   canManageOfficialRequirements: true,
   canManageCommitments: true,
+  canStartProjectDiscovery: true,
 };
 
 function FixtureFrame({ title, children }: { title: string; children: React.ReactNode }) {

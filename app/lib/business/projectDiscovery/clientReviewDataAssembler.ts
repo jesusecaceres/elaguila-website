@@ -20,6 +20,7 @@ import type { ReleaseReadinessResult } from "./releaseReadinessEngine";
 export interface ClientReviewData {
   blueprintId: string;
   version: number;
+  blueprintStatus: string;
   handoffStatus: string;
   reviewState: BlueprintReviewStateInfo;
   clientSafeProjection: ClientSafeBlueprintProjection;
@@ -70,6 +71,7 @@ export async function buildClientReviewData(
   return {
     blueprintId: blueprint.id,
     version: blueprint.version,
+    blueprintStatus: blueprint.status,
     handoffStatus: blueprint.handoffStatus,
     reviewState,
     clientSafeProjection,
