@@ -2,6 +2,10 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import type { ServiciosBusinessProfile } from "@/app/servicios/types/serviciosBusinessProfile";
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
+import {
+  mergeServiciosPrivateAddressForOwner,
+  serviciosExactAddressIsHidden,
+} from "@/app/clasificados/servicios/lib/serviciosAddressPrivacy";
 
 export const runtime = "nodejs";
 
@@ -62,6 +66,26 @@ export async function GET(req: NextRequest) {
   }
 
   const rec = row as Record<string, unknown>;
+
+  // Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B5) — this route is owner-verified (`owner_user_id` =
+  // bearer user) and runs with the service role, so it is the right place to re-attach the PRIVATE
+  // exact address the public profile no longer carries. Both the dashboard edit hydration and the
+  // listing-bound Preview load through here, so the owner's address round-trips unchanged.
+  // Read only for hidden-address listings and best-effort: other listings never touch the column.
+  let ownerProfile = (rec.profile_json ?? null) as ServiciosBusinessProfile | null;
+  if (serviciosExactAddressIsHidden(ownerProfile) && typeof rec.id === "string") {
+    const { data: privateRow } = await supabase
+      .from("servicios_public_listings")
+      .select("private_contact")
+      .eq("id", rec.id)
+      .eq("owner_user_id", data.user.id)
+      .maybeSingle();
+    ownerProfile = mergeServiciosPrivateAddressForOwner(
+      ownerProfile,
+      (privateRow as { private_contact?: unknown } | null)?.private_contact,
+    );
+  }
+
   return NextResponse.json({
     ok: true,
     listing: {
@@ -74,7 +98,7 @@ export async function GET(req: NextRequest) {
       updated_at: typeof rec.updated_at === "string" ? rec.updated_at : null,
       listing_status: typeof rec.listing_status === "string" ? rec.listing_status : "published",
       leonix_verified: rec.leonix_verified === true,
-      profile_json: (rec.profile_json ?? null) as ServiciosBusinessProfile | null,
+      profile_json: ownerProfile,
     },
   });
 }
