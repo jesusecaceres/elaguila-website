@@ -132,7 +132,18 @@ export type SalesWorkspaceCapability =
   | "manage_growth_roadmap"
   | "manage_growth_solutions"
   | "manage_growth_campaigns"
-  | "manage_official_requirements_research";
+  | "manage_official_requirements_research"
+  // Client Discovery & Project Blueprint Engine, Gate 1. Kept in this same matrix, matching every
+  // prior program's precedent. sales_rep may view, create, and actively run a discovery (capture
+  // items, manage intents, move it through routine lifecycle states, record consent) — the same
+  // trust tier as conduct_discovery/create_business_fact — but may never formally CONFIRM a
+  // discovery item (promote it toward blueprint-ready truth); that stays a manager+ review action,
+  // matching confirm_business_fact/review_growth_assessment exactly.
+  | "view_project_discovery"
+  | "create_project_discovery"
+  | "manage_project_discovery"
+  | "review_project_discovery"
+  | "manage_discovery_consent";
 
 export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] = [
   "view_business_list",
@@ -205,6 +216,11 @@ export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] =
   "manage_growth_solutions",
   "manage_growth_campaigns",
   "manage_official_requirements_research",
+  "view_project_discovery",
+  "create_project_discovery",
+  "manage_project_discovery",
+  "review_project_discovery",
+  "manage_discovery_consent",
 ];
 
 /**
@@ -298,6 +314,11 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "manage_growth_solutions",
     "manage_growth_campaigns",
     "manage_official_requirements_research",
+    "view_project_discovery",
+    "create_project_discovery",
+    "manage_project_discovery",
+    "review_project_discovery",
+    "manage_discovery_consent",
   ],
   sales_manager: [
     "view_business_list",
@@ -368,6 +389,11 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "manage_growth_solutions",
     "manage_growth_campaigns",
     "manage_official_requirements_research",
+    "view_project_discovery",
+    "create_project_discovery",
+    "manage_project_discovery",
+    "review_project_discovery",
+    "manage_discovery_consent",
   ],
   sales_rep: [
     "view_business_list",
@@ -402,6 +428,10 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "view_opportunities",
     "generate_ownership_claim",
     "view_growth_engine",
+    "view_project_discovery",
+    "create_project_discovery",
+    "manage_project_discovery",
+    "manage_discovery_consent",
   ],
 };
 
