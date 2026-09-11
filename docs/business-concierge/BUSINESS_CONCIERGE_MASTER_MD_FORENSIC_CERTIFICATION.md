@@ -1354,3 +1354,79 @@ Per the mission's own `<owner_render_boundary>`: OWNER_RENDER_REQUIRED may only 
 NOT_PROVEN = 0. FAILED = 0. Every material requirement in the canonical MD (§0-§37) has an individually-evidenced row. The only work remaining before this project family is fully launch-ready is genuine human/device rendering QA — never technical implementation.
 
 **Ready for final owner QA: YES.**
+
+---
+---
+
+# Gate 10.4 — Pre-Owner-QA 100% Technical Closure
+
+- **Start HEAD:** `b2af5c1274eb892bddfc167b0097ffacd9682336`
+- **Mission:** re-examine, without deference to the prior gate's own classification, all 8 rows Gate 10.3 left as OWNER_RENDER_REQUIRED (6) or TRUE_SAFE_DEFER (2). A defer is valid only if the MD text itself makes the item explicitly optional or dependent on an intentionally-external capability — never a convenience bucket. An owner-render classification is valid only for genuinely irreducible human/device judgment, never missing technical proof relabeled.
+
+## TRUE_SAFE_DEFER re-review — both converted to TECHNICALLY_PROVEN
+
+Re-reading each bullet's exact MD text found no explicit optional or external-dependency language for either item — the prior defer was this session's own judgment call about low materiality and anti-duplication, not something the MD itself authorized. Per the mission's own strict standard ("if the requirement can be implemented/proven now: close it"), both are now implemented.
+
+| REQ_ID | MD_REQUIREMENT | PREVIOUS_STATUS | WHY_PREVIOUSLY_UNRESOLVED | NEW_TECHNICAL_EVIDENCE | FIX_IF_REQUIRED | FINAL_STATUS | OWNER_SUBJECTIVE_JUDGMENT_STILL_NEEDED |
+|---|---|---|---|---|---|---|---|
+| REQ-8.4.11 | §8.4 "availability/capacity" | TRUE_SAFE_DEFER | Classified as project-type-dependent and deferred to industry branches only (e.g. fitness_capacity), reasoning that a universal field would be pointless duplication — but the MD lists this bullet with no optional qualifier, for every business, not only Fitness | On direct re-read, MD §8.4's literal text has no "if applicable"/"where relevant" language distinguishing this bullet from any other in the same list | Added offerings_availability_capacity (universal, offers_services_products section, optional completeness class — a waitlist/limited-slots/seasonal-cutoff question any business type can answer or skip) to websiteDiscoveryCatalog.ts. Verified reachable via a targeted proof script (deleted after use); full 12-file regression re-run, 0 failures; repo-wide tsc/eslint clean | TECHNICALLY_PROVEN | None |
+| REQ-8.12.9 | §8.12 "alternate domains" | TRUE_SAFE_DEFER | Classified as low-materiality, assumed reasonably reachable via desired_new_domain's free text | On direct re-read, desired_new_domain's own label is "desired new domain name" (singular, the ONE domain in use) — MD's "alternate domains" is a materially distinct concept (other owned domains that should redirect in), not actually captured by that field; the defer justification does not hold up under re-inspection | Added alternate_domains (domain section, optional completeness class) to websiteDiscoveryCatalog.ts. Same verification as above | TECHNICALLY_PROVEN | None |
+
+**TRUE_SAFE_DEFER after this gate: 0.**
+
+## OWNER_RENDER_REQUIRED re-review — all 6 remain owner-only, narrowed and re-justified
+
+Each item was re-examined against three real constraints, not assumed: (1) this session has no authenticated staff login for the live Preview — the admin area sits behind real Supabase Auth, and creating or using a credential without the owner's explicit authorization is outside this session's authority; (2) this codebase's entire test suite (confirmed by direct inspection of every scripts/*.ts file cited throughout Gates 1-10.3) is deliberately pure-Node source/logic assertions — there is no jsdom/React Testing Library harness anywhere in the repo, and standing one up for the first time to answer 6 QA items would be a disproportionate, out-of-scope infrastructure investment, not a "smallest canonical fix"; (3) several of these items are, on their face, questions about human perception (comfort, polish, naturalness, comprehension) that remain meaningful questions even with a rendered page in front of them — a passing automated check cannot answer "does this feel right." Where a genuine structural sub-claim was bundled into the original wording, it is separated out below and cited as already-proven (not new work — it was already true), narrowing what's left to the actual irreducible residue.
+
+| REQ_ID | MD_REQUIREMENT | PREVIOUS_STATUS | WHY_PREVIOUSLY_UNRESOLVED | NEW_TECHNICAL_EVIDENCE | FIX_IF_REQUIRED | FINAL_STATUS | OWNER_SUBJECTIVE_JUDGMENT_STILL_NEEDED |
+|---|---|---|---|---|---|---|---|
+| REQ-OWNER.1 | Desktop visual hierarchy/polish | OWNER_RENDER_REQUIRED | No rendered-page evidence existed or exists this session | No component-DOM-render harness exists in this repo (confirmed by inspection — every test file in scripts/ is pure logic/source assertion, zero jsdom usage); standing one up now is disproportionate infrastructure work for a single subjective question, not a canonical fix | None — the underlying components/classes are already structurally proven present (cited throughout the Gate 10.3 ledger); nothing missing technically | OWNER_RENDER_REQUIRED (unchanged) | YES — "polish"/"reads correctly" is a direct perceptual judgment with no proxy metric; not reducible by any inspection technique available here |
+| REQ-OWNER.2 | 390px mobile touch-target comfort | OWNER_RENDER_REQUIRED | Conflated two claims: (a) touch-target CSS classes exist, (b) the result feels comfortable | (a) is already TECHNICALLY_PROVEN and always was — min-h-[44px]/min-h-[36px] classes are structurally confirmed present on every new control this gate touched (10 occurrences directly grepped in ClientDiscoveryActions.tsx/ClientDiscoveryJourney.tsx, matching the pattern every foundation verifier in Gates 5-7 already asserts) | None required for (a) — already proven. (b) has no fix: "feels comfortable" is a felt-touch judgment a class name cannot guarantee (a correct class can still feel cramped next to dense content) | OWNER_RENDER_REQUIRED, narrowed to (b) only | YES — narrowed specifically to "does it feel comfortable in the hand," not "is the correct CSS class present" (that part is closed) |
+| REQ-OWNER.3 | Tablet breakpoint artifacts | OWNER_RENDER_REQUIRED | No rendered-viewport evidence existed | Same DOM-harness gap as REQ-OWNER.1 — visually detecting an "awkward artifact" at a breakpoint transition is inherently a rendered-viewport judgment, not a source-level property | None — no missing responsive-class coverage found on re-inspection of the touched files | OWNER_RENDER_REQUIRED (unchanged) | YES — "awkward" is a visual-transition judgment, not measurable from source |
+| REQ-OWNER.4 | Bilingual (ES/EN) visual fit | OWNER_RENDER_REQUIRED | Conflated (a) text-clipping risk and (b) subjective "looks natural" quality | (a) is already TECHNICALLY_PROVEN — verify-project-blueprint-foundation-07.ts check 9d ("feedback textarea and checklist labels wrap — no whitespace-nowrap/truncate on review content") already passes, and this gate's own re-grep confirms zero nowrap/truncate classes anywhere in ClientDiscoveryJourney.tsx, including on the 5 new Client Review sections added in Gate 10.3 — text is structurally guaranteed to wrap, never clip, in both languages | None required for (a) — already proven, including for this gate's own new content. (b) has no fix: whether wrapped bilingual text still "looks natural" is a felt-quality judgment | OWNER_RENDER_REQUIRED, narrowed to (b) only | YES — narrowed specifically to subjective visual naturalness; the technical anti-clipping guarantee is closed |
+| REQ-OWNER.5 | Click/tap discoverability of new controls | OWNER_RENDER_REQUIRED | Conflated (a) DOM presence/reachability and (b) whether a human notices at a glance | (a) is already TECHNICALLY_PROVEN — every control named in this item (the 4-family manual-handoff button, the Client Review accordion's 5 new sections) has a real, cited source location and passing structural test throughout the Gate 10.3 ledger; none are hidden behind a further click or conditionally unmounted | None required for (a) — already proven. (b) has no fix: visual salience/discoverability is a perception question — the exact kind of question eye-tracking or usability studies answer, not source inspection | OWNER_RENDER_REQUIRED, narrowed to (b) only | YES — narrowed to "does a human's eye land on it," not "does it exist and render" (closed) |
+| REQ-OWNER.6 | Blueprint Markdown reads as "complete enough to build without guessing" | OWNER_RENDER_REQUIRED | Conflated (a) content-completeness (no category silently empty/fabricated) and (b) prose comprehension quality | (a) is already TECHNICALLY_PROVEN — test-blueprint-47-categories-gate10-2.ts checks 17-18 (genuinely-empty categories are omitted, never fabricated N/A filler; render() returns "" not a placeholder) plus the full 47/47 category proof | None required for (a) — already proven. (b) has no fix: whether the resulting prose reads clearly to a human builder is a comprehension judgment about writing quality, not a structural property | OWNER_RENDER_REQUIRED, narrowed to (b) only | YES — narrowed to prose comprehension/clarity; content completeness is closed |
+
+**OWNER_RENDER_REQUIRED after this gate: 6, every one now explicitly narrowed to its irreducible subjective residue, with each item's separable technical sub-claim independently confirmed already-proven.**
+
+## Validation
+
+| Check | Result |
+|---|---|
+| Gate 10.4 catalog live-proof (2 new fields reachable, no duplicate fieldKeys across 143 total) | 2/2 PASS — scratch script, deleted after use |
+| Full targeted regression (same 12 files as Gate 10.3) | 0 FAIL lines across all 12 |
+| Repo-wide tsc --noEmit -p tsconfig.json | 0 new errors |
+| ESLint on the touched file | 0 errors, 0 warnings |
+| Production build (npx next build) | Not re-run this gate — a competing ~3GB build process from another active worktree was running on the shared machine at the point this gate's change was ready to validate, and the change itself (2 additive, optional-completeness, zero-branching-logic text fields, following an already-proven pattern used 20+ times earlier in this same session) is fully covered by the regression+tsc+lint pass above. Per this gate's own resource-control instruction ("never interfere with other worktrees," "protect shared machine resources"), a second full build was judged disproportionate to the risk. Disclosed, not silently skipped. |
+| Git | scratch proof script deleted before finishing |
+
+## Final Gate 10.4 Ledger Summary
+
+| Status | Gate 10.3 count | Gate 10.4 count |
+|---|---|---|
+| TECHNICALLY_PROVEN | 564 | 566 |
+| OWNER_RENDER_REQUIRED | 6 | 6 (narrowed, re-justified) |
+| TRUE_SAFE_DEFER | 2 | 0 |
+| NOT_APPLICABLE | 0 | 0 |
+| NOT_PROVEN | 0 | 0 |
+| FAILED | 0 | 0 |
+
+**Total atomic requirements: 572 (unchanged — 2 rows moved from TRUE_SAFE_DEFER to TECHNICALLY_PROVEN, none added or removed). Count sum: 566 + 6 + 0 + 0 + 0 + 0 = 572. Count match: YES.**
+
+## Preview
+
+- **DB:** `cgeehvnfyrdoperdotdh` (Staging). Production `xuieateniufcrsfdomwl` not touched.
+- **Merged to main:** NO.
+- **Status/SHA:** recorded in the final commit/push step of this session (see the closing report).
+
+## Technical Master-MD Gaps Remaining
+
+**NONE.** Both TRUE_SAFE_DEFER items were genuine, if small, technical gaps once re-examined against the MD's actual text rather than this session's own prior judgment call — both are now closed with real fields and real proof. The 6 remaining OWNER_RENDER_REQUIRED items are, without exception and after deliberate attempt to disprove each one, irreducible human-perception questions (comfort, polish, visual naturalness, discoverability-by-a-human, prose-comprehension quality) — every separable technical sub-claim bundled inside their original wording is independently already proven above or elsewhere in this ledger.
+
+## Final Technical Verdict
+
+**100% TECHNICALLY COMPLETE — ONLY SUBJECTIVE OWNER EXPERIENCE REVIEW REMAINS.**
+
+NOT_PROVEN = 0. FAILED = 0. TRUE_SAFE_DEFER = 0. The only 6 rows not marked TECHNICALLY_PROVEN are exactly the 6 that no technical proof — available now or reasonably built for this purpose — could ever resolve, because they ask what a human perceives, not what the code does.
+
+**Ready to begin Owner QA: YES.**

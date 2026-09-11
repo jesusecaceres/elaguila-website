@@ -321,6 +321,14 @@ const offers: WebsiteRequirementDefinition[] = [
     valueType: "text", defaultCompletenessClass: "optional", whoShouldAnswer: "CLIENT",
     priority: 4, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
   },
+  {
+    fieldKey: "offerings_availability_capacity", section: "offers_services_products",
+    labelEn: "Availability / capacity limits", labelEs: "Límites de disponibilidad / capacidad",
+    operatorGuidanceEn: "Gate 10.4 — MD §8.4 names this as its own item with no optional qualifier; not gated behind any industry branch since any business may have a real capacity limit worth surfacing (a waitlist, a seasonal cutoff, a limited number of client slots).", operatorGuidanceEs: "El MD lo nombra como su propio elemento sin calificador opcional; no depende de ninguna rama de industria, ya que cualquier negocio puede tener un límite de capacidad real que vale la pena mostrar.",
+    clientQuestionEn: "Is there a capacity or availability limit visitors should know about (e.g. a waitlist, limited slots, a seasonal cutoff)?", clientQuestionEs: "¿Hay un límite de capacidad o disponibilidad que los visitantes deban conocer (p. ej. lista de espera, cupos limitados, un corte estacional)?",
+    valueType: "text", defaultCompletenessClass: "optional", whoShouldAnswer: "CLIENT",
+    priority: 4, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
+  },
 ];
 
 // =================================================================================================
@@ -705,6 +713,14 @@ const domain: WebsiteRequirementDefinition[] = [
     valueType: "text", defaultCompletenessClass: "required_before_launch", whoShouldAnswer: "CLIENT",
     dependencyCondition: (ctx) => ctx.hasCapturedValue("has_existing_domain", true),
     priority: 2, mayBlockBuild: false, mayBlockLaunch: true, canonicalTruthMaySatisfy: false, recommendReconfirmation: true,
+  },
+  {
+    fieldKey: "alternate_domains", section: "domain",
+    labelEn: "Alternate domains owned or wanted", labelEs: "Dominios alternativos que posee o desea",
+    operatorGuidanceEn: "Gate 10.4 — MD §8.12 names this as its own item with no optional qualifier. Other domain names the client already owns (common misspellings, old TLDs, a .com vs .net pair) that should redirect to, or be considered alongside, the main site — distinct from desired_new_domain, which is the ONE domain actually being used.", operatorGuidanceEs: "Otros nombres de dominio que el cliente ya posee (errores ortográficos comunes, TLDs antiguos, un par .com vs .net) que deben redirigir al sitio principal, o considerarse junto a él — distinto de desired_new_domain, que es el ÚNICO dominio realmente en uso.",
+    clientQuestionEn: "Do you own any other domain names (misspellings, old TLDs, alternates) that should redirect to this site?", clientQuestionEs: "¿Posee otros nombres de dominio (errores ortográficos, TLDs antiguos, alternativas) que deban redirigir a este sitio?",
+    valueType: "text", defaultCompletenessClass: "optional", whoShouldAnswer: "CLIENT",
+    priority: 4, mayBlockBuild: false, mayBlockLaunch: false, canonicalTruthMaySatisfy: false, recommendReconfirmation: false,
   },
 ];
 
