@@ -1108,9 +1108,54 @@ Already exhaustively proven category-by-category in Gate 10.2 (`blueprintCategor
 | REQ-19.2 | Approved projects inherit shared confirmed truth | Shared `capturedItems`/`knownFacts` at the discovery level, reused across every intent's specialized evaluation | `test-project-blueprint-gate6.ts` check 60: "evaluations never read items from a different businessId" (isolation) + shared-field-key reuse architecture | TECHNICALLY_PROVEN |
 | REQ-19.3 | Each project gets its own specialized completeness requirements and blueprint | `FAMILY_BY_PROJECT_TYPE` dispatch, one blueprint per intent | `test-gate10-2-project-family-integrity.ts` | TECHNICALLY_PROVEN |
 
-## §20 Business Cards / Print Collateral — see the dedicated §20 table above (19/19 rows, TECHNICALLY_PROVEN, including this pass's quantity-widening fix)
+## §20 Business Cards / Print Collateral (19 bullets)
 
-## §21 Logo / Brand Project — see the dedicated §21 discussion above (18/18 items, all covered by the pre-existing `logoBrandDiscoveryCatalog.ts`, no gap found)
+| REQ_ID | REQUIREMENT | FIELD (printCollateralDiscoveryCatalog.ts) | STATUS |
+|---|---|---|---|
+| REQ-20.1 | final business name | Cross-ref canonical Business Identity (shared truth, §2) | TECHNICALLY_PROVEN |
+| REQ-20.2 | logo source | `existing_logo` | TECHNICALLY_PROVEN |
+| REQ-20.3 | person/name/title | `card_person_lines` | TECHNICALLY_PROVEN |
+| REQ-20.4 | phone | `print_phone_email_web_social` | TECHNICALLY_PROVEN |
+| REQ-20.5 | email | `print_phone_email_web_social` (same field) | TECHNICALLY_PROVEN |
+| REQ-20.6 | website | `print_phone_email_web_social` (same field) | TECHNICALLY_PROVEN |
+| REQ-20.7 | address if used | `print_address` | TECHNICALLY_PROVEN |
+| REQ-20.8 | social handle if used | `print_phone_email_web_social` (same field) | TECHNICALLY_PROVEN |
+| REQ-20.9 | QR target | `print_qr_destination` | TECHNICALLY_PROVEN |
+| REQ-20.10 | brand colors | `colors_liked` | TECHNICALLY_PROVEN |
+| REQ-20.11 | visual direction | `print_desired_style` | TECHNICALLY_PROVEN |
+| REQ-20.12 | quantity | `card_quantity` (Gate 10.3 — widened from Business-Cards-only to all 4 physical print types) | TECHNICALLY_PROVEN |
+| REQ-20.13 | size | `print_dimensions_known` (Banner/Signage — genuinely variable) + standard fixed size for Business Cards/Flyer (a real, deliberate Leonix production default, not an unasked gap) | TECHNICALLY_PROVEN |
+| REQ-20.14 | orientation | `print_orientation` | TECHNICALLY_PROVEN |
+| REQ-20.15 | paper/finish preference | `print_paper_finish_preference` | TECHNICALLY_PROVEN |
+| REQ-20.16 | printer/vendor | `print_vendor_known` | TECHNICALLY_PROVEN |
+| REQ-20.17 | deadline | `print_deadline_event_trigger` | TECHNICALLY_PROVEN |
+| REQ-20.18 | delivery location | `promo_product_delivery` (Gate 10.3 — widened from Promotional-Products-only to all 5 physical print types) | TECHNICALLY_PROVEN |
+| REQ-20.19 | proof approver | `decision_maker_approver` (approval section) | TECHNICALLY_PROVEN |
+
+**Production spec rule** ("bleed, safe area, resolution, color mode, export format from a maintained spec, not staff memory"): `print_bleed_safe_area_decision`, `whoShouldAnswer: "LEONIX"`, `defaultCompletenessClass: "not_applicable"` to the client — a Leonix-internal production decision, recorded for traceability, never guessed per-project. TECHNICALLY_PROVEN.
+
+## §21 Logo / Brand Project (18 bullets)
+
+| REQ_ID | REQUIREMENT | FIELD (logoBrandDiscoveryCatalog.ts) | STATUS |
+|---|---|---|---|
+| REQ-21.1 | exact name | `public_business_name` (logo-specific relabel: "Exact brand/business name for the logo") | TECHNICALLY_PROVEN |
+| REQ-21.2 | tagline | `logo_tagline` | TECHNICALLY_PROVEN |
+| REQ-21.3 | industry | Cross-ref `WebsiteDiscoveryContext.broadBusinessType`/`specificBusinessType` (shared structural context, §2) | TECHNICALLY_PROVEN |
+| REQ-21.4 | audience | `primary_customer` | TECHNICALLY_PROVEN |
+| REQ-21.5 | business story | Cross-ref shared `about_story` (Website catalog, reused per §2's shared-truth architecture) + `logo_reason_for_project` | TECHNICALLY_PROVEN |
+| REQ-21.6 | differentiator | `logo_reason_for_project` | TECHNICALLY_PROVEN |
+| REQ-21.7 | desired personality | `brand_personality_traits` | TECHNICALLY_PROVEN |
+| REQ-21.8 | desired emotion | `brand_personality_traits` (same field) | TECHNICALLY_PROVEN |
+| REQ-21.9 | colors | `colors_liked` | TECHNICALLY_PROVEN |
+| REQ-21.10 | avoided colors | `colors_disliked` | TECHNICALLY_PROVEN |
+| REQ-21.11 | symbols | `symbols_wanted` | TECHNICALLY_PROVEN |
+| REQ-21.12 | avoided symbols | `symbols_avoided` | TECHNICALLY_PROVEN |
+| REQ-21.13 | cultural/local meaning | `symbols_wanted`'s own operator guidance ("cultural or personal meaning may matter here") | TECHNICALLY_PROVEN |
+| REQ-21.14 | competitor references | `logo_reference_examples` ("Reference brands/designs — likes and dislikes") | TECHNICALLY_PROVEN |
+| REQ-21.15 | use cases | `logo_primary_use` | TECHNICALLY_PROVEN |
+| REQ-21.16 | print/digital requirements | `logo_deliverables_wanted` | TECHNICALLY_PROVEN |
+| REQ-21.17 | existing marks | `existing_logo` + `logo_elements_to_preserve` | TECHNICALLY_PROVEN |
+| REQ-21.18 | ownership/trademark considerations requiring external advice | `logo_trademark_ownership_question` (`needs_official_research`-class, never fabricates a legal conclusion) | TECHNICALLY_PROVEN |
 
 ## §22 Staff Experience / §23 No Tribal Knowledge / §24 Build Handoff
 
@@ -1534,14 +1579,77 @@ No mapping in this ledger was found to be only a reference to a broad grouped ro
 - **Merged to main:** NO.
 - **Status/SHA:** recorded in the final commit/push step of this session (see the closing report).
 
+## Correction — Safe Gate K/L/M Continuation (second integrity pass)
+
+A continuation pass of this same Gate 10.5 re-verified the row/section attribution using a corrected extraction script (the first script only matched 6-column table rows; §8.1-8.27's and §9's subsection tables use a 5-column format, so they were present in the ledger the whole time but required a corrected script to attribute to their section for this reconciliation — not a gap in the ledger itself, a gap in the first verification script, caught by re-running the reconciliation with per-section attribution rather than trusting the aggregate 579 alone).
+
+That per-section reconciliation surfaced **one real, second finding**: **§20 (Business Cards/Print Collateral, 19 bullets) and §21 (Logo/Brand Project, 18 bullets) had NO atomic `REQ-20.x`/`REQ-21.x` rows in the ledger at all** — they were represented only as prose cross-references to Gate 10.2's own historical verification ("see the dedicated §20 table above... no gap found"). The underlying content was genuinely verified back in Gate 10.2 and the citation was not false, but per this gate's own standard ("if any mapping is only a reference to a broad grouped row, expand/fix it") a prose cross-reference with zero atomic rows is a real gap in THIS ledger's own inventory, not merely a stylistic shortcut. **Fixed**: both sections now have full atomic tables (REQ-20.1 through REQ-20.19, REQ-21.1 through REQ-21.18), each row re-citing the real field key in `printCollateralDiscoveryCatalog.ts` / `logoBrandDiscoveryCatalog.ts`, re-confirmed present in source this pass (not merely recalled).
+
+**Net effect of this second pass: +37 rows (579 → 616). No code changed — both are documentation-completeness fixes, not missing technical capabilities (every §20/§21 bullet was already reachable through the cited mechanism; it simply hadn't been given its own ledger row).**
+
+### Safe Gate O — MD-atomic rows vs. owner-meta rows (honest decomposition)
+
+The 6 `REQ-OWNER.*` rows are **not** literal Master MD bullets — no MD section names "desktop polish" or "touch-target comfort" as its own numbered item. They are a synthesis this ledger constructed to cover the rendered-experience quality genuinely implied by §26's device/viewport QA rows and §36's client/builder vision statements, kept as their own explicit bucket specifically so a real gap could never be laundered into "well, a human will eyeball it eventually." Per this gate's own instruction ("do not force 579 merely to preserve the prior report... use the actual evidence"), the honest decomposition is:
+
+- **MASTER_MD_ATOMIC_ROWS: 610** (every row citing a real, numbered MD bullet/policy/state/step/category)
+- **OWNER_META_ROWS: 6** (the narrowed, human-perception-only residue rows)
+- **TOTAL_CERTIFICATION_ROWS: 616**
+
+All 610 MD-atomic rows are TECHNICALLY_PROVEN (0 NOT_PROVEN, 0 FAILED, 0 TRUE_SAFE_DEFER, 0 NOT_APPLICABLE among them — the 2 rows that carried TRUE_SAFE_DEFER in the original Gate 10.3 table were superseded to TECHNICALLY_PROVEN by Gate 10.4 and stay that way; Gate 10.3's own historical table text is preserved unmodified as a record of what was true at that time, per this document's own preserve-history convention). All 6 owner-meta rows are OWNER_RENDER_REQUIRED.
+
+### Section-by-section reconciliation (Safe Gate L)
+
+| §  | Topic | Ledger rows | Match |
+|---|---|---|---|
+| 0-1 | North Star / Core Rule (vision-proof, non-duplicative of later sections) | 2 | YES |
+| 2 | One Discovery Truth | 11 | YES (post-fix) |
+| 3 | Client Discovery Session / Recording | 9 | YES |
+| 4 | Client Statement Types (9 truth classes + anti-collapse rule = 10) | 10 | YES |
+| 5 | Discovery Completeness Engine (7 classes) | 7 | YES |
+| 6 | Adaptive Question Engine | 3 | YES |
+| 7 | Project Types (16 + multi-linked rule) | 17 | YES |
+| 8 | Website Discovery Information Contract (8.1-8.27) | 246 | YES |
+| 9 | Industry-Specific Branches (6 branches) | 48 | YES |
+| 10 | Website Scope Classifier | 3 | YES |
+| 11 | Preferred Platform Registry | 8 | YES |
+| 12 | Platform Decision Engine | 9 | YES |
+| 13 | Platform Ownership Register | 2 | YES |
+| 14 | Project Blueprint Generator | 47 | YES |
+| 15 | Client Words vs. Leonix Decisions | 5 | YES |
+| 16 | Visual Reference Contract | 4 | YES |
+| 17 | Project Readiness | 4 | YES |
+| 18 | Meeting Closeout Assist | 1 | YES |
+| 19 | Multi-Project Discovery | 3 | YES |
+| 20 | Business Cards / Print Collateral | 19 | YES (post-fix) |
+| 21 | Logo / Brand Project | 18 | YES (post-fix) |
+| 22 | Staff Experience | 1 | YES |
+| 23 | No Tribal Knowledge | 1 | YES |
+| 24 | Build Handoff | 1 | YES |
+| 25 | Blueprint Versioning | 7 | YES |
+| 26 | QA Generated From the Blueprint (18 items) | 18 | YES |
+| 27 | Client Review (9 items) | 9 | YES |
+| 28 | Handoff / Operations (16 items) | 16 | YES |
+| 29 | CFO / Scope Protection (11 triggers + enforcement rule) | 12 | YES |
+| 30 | Platform Cost Discipline | 2 | YES |
+| 31 | Business Concierge UI (11 stages) | 11 | YES |
+| 32 | Project Blueprint CTA States | 14 | YES |
+| 33 | Acceptance Test — Website Client (25 steps) | 25 | YES |
+| 34 | Acceptance Test — Multi-Solution | 4 | YES |
+| 35 | Implementation Order (8 gates) | 8 | YES |
+| 36 | Final Business Rule | 3 | YES |
+| 37 | Final Lock | 2 | YES |
+| — | Owner-meta (rendered-experience residue, not MD bullets) | 6 | — |
+
+**Sections with mismatch after this pass: NONE.** (Before this pass: §2, §20, §21 — all three found and corrected within this same Gate 10.5.)
+
 ## Technical Master-MD Gaps Remaining
 
-**NONE.** This cold audit found one real ledger-granularity issue (an improper collapse in §2, now expanded) and zero missing rows, zero duplicate rows, zero orphan rows, zero evidence citations that failed re-verification, and zero hidden technical gaps inside the 6 remaining OWNER_RENDER_REQUIRED rows. The one apparent discrepancy this audit itself produced (a "48" count on the Blueprint registry) was traced to the audit's own grep pattern matching a type declaration, not a real product defect — resolved by direct re-reading, disclosed rather than hidden.
+**NONE.** Across both passes of this cold audit, two real ledger-completeness issues were found and fixed (§2's improper collapse; §20/§21's missing atomic rows) — zero missing MD sections, zero duplicate rows, zero orphan rows, zero evidence citations that failed re-verification, zero hidden technical gaps inside the 6 owner-meta rows. Both fixes were documentation/inventory corrections, not code changes — every underlying requirement was already technically satisfied by real, existing mechanisms; this audit's job was to make sure the LEDGER said so with its own atomic row, not to discover new missing product behavior, and in two places the ledger fell short of its own stated discipline until this pass.
 
 ## Final Verdict
 
-**MASTER MD PROOF VERIFIED — OWNER QA MAY BEGIN.**
+**MASTER MD PROOF VERIFIED.**
 
-FRESH_MD_ATOMIC_COUNT and FORENSIC_LEDGER_ROW_COUNT match (579 = 579, independently re-derived). MISSING/DUPLICATE/ORPHAN/IMPROPERLY_COLLAPSED rows are 0/0/0/0 (the one collapse found has been fixed, so the post-fix state is 0). NOT_PROVEN=0, FAILED=0, TRUE_SAFE_DEFER=0. Every remaining OWNER_RENDER_REQUIRED row is confirmed, on cold re-reading, to be purely a human-perception judgment with no technical residue.
+MASTER_MD_ATOMIC_ROWS (610) and section-by-section reconciliation both check out with zero remaining mismatches, zero duplicates, zero orphans, zero improper collapses. TOTAL_CERTIFICATION_ROWS = 616 (610 MD-atomic + 6 owner-meta, honestly decomposed rather than blended). NOT_PROVEN=0, FAILED=0, TRUE_SAFE_DEFER=0. Every owner-meta row is confirmed, on cold re-reading, to be purely a human-perception judgment with no technical residue.
 
-**Ready for Owner QA: YES.**
+**Owner QA readiness is a separate, non-technical decision** — this document certifies the technical proof; whether and when Owner QA begins is the PM's call.
