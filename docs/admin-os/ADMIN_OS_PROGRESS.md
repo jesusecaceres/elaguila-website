@@ -2910,3 +2910,133 @@ bootstrap cannot reach either write path, and the owner's real per-person `super
 confirmed and will authorize once they use the real Staff/Team login. No business logic, Stripe
 configuration, or migration was touched. The only remaining pre-production items are the 3 pending
 migrations and standard runtime/browser QA — no known local defect remains.
+
+---
+
+## FINAL PRODUCTION RELEASE / MAIN INTEGRATION — 2026-09-11
+
+Owner-authorized full production release: integrate the completed Admin OS branch into `main`,
+apply the 3 pending migrations to production Supabase, and deploy to Vercel production.
+Admin OS branch HEAD at start: `ce7b4c2ebb4a7cc8180e9b34a83bc3d8da331f17`. Remote `main` at start:
+`d1b2994d36b1e78f1fb91a6d3f801638156b9119`.
+
+**Reconciliation (Gate 2):** compared every file changed on the admin branch vs. current `main`
+since their common ancestor (`a0a4783971b42ea1d71ab2602d4720d0d590baf8`). Zero
+`SEMANTIC_CONFLICT` files — the two branches touched entirely disjoint areas (Admin OS vs. the
+Owner Command Center's Autos/Bienes Raíces fixed-term renewal work) except `package.json`, which
+both sides appended to in non-adjacent script-list regions (a clean auto-merge). One real
+`MIGRATION_ORDER_CONFLICT` was found: the admin branch's pending
+`20260910120000_executives_linked_roster_id.sql` shared its exact timestamp prefix with main's new
+`20260910120000_autos_privado_lifecycle_expires_at.sql`. Resolved by renaming the not-yet-applied
+admin migration to `20260911030000_executives_linked_roster_id.sql` (after main's latest migration)
+in a preparatory commit, updating every doc/script reference to match, before merging.
+
+**Merge (Gate 3):** `git merge --no-ff origin/main` completed with zero textual conflicts, exactly
+as the reconciliation predicted. Confirmed `app/leo/_lib/leoAdminTruthAdapter.ts` (a bridge file
+already on `main`, untouched by main since the fork point) carries only the admin branch's own
+earlier correctness fix (reads a dashboard row's pre-computed `flagTruth` instead of re-deriving
+it) — not a rewrite of LEO's own logic. The separate
+`integration/leo-executive-operating-intelligence-2026-08` branch was not touched.
+
+**Regression (Gate 4):** full targeted Admin suite re-run post-merge. One self-caused failure
+(`verify:executive-hub-self-service`, ENOENT on the just-renamed migration filename) — fixed by
+updating its filename reference and one stale comment in `digitalContactExecutivesDb.ts`; re-run
+20/20. One pre-existing, environment-only failure in `verify:admin-roster-foundation` (a
+CRLF-fragile regex against a July 2026 migration file that predates this entire project by months —
+proven via `git show` that the blob itself has zero `\r` characters at the pre-merge admin HEAD;
+the CRLF exists only in this Windows checkout because of `core.autocrlf=true`, identical before and
+after this merge) — classified `ENVIRONMENT_ONLY`, not fixed, out of this release's scope. Every
+other regression script passed unchanged: `owner-auth-break-glass` 16/16, `admin-password-recovery`
+21/21, `admin-nav-ops` 74/74, `executive-company-search` 21/21, `launch-truth` 24/24,
+`launch-truth-final-burndown` 18/18, `revenue-write-security-hardening` 11/11, plus main's own
+newly-merged `owner-command-center:gate20-fixed-term-renewal` script (all 9 checks OK).
+
+**Typecheck/build (Gate 5):** the authorized foreground `NODE_OPTIONS=--max-old-space-size=8192
+npx tsc --noEmit --incremental false` reproduced the same 7 pre-existing baseline errors documented
+in every prior gate (2 in `digitalContactExecutivesDb.ts`, 5 in `e2e/**` Playwright specs) — zero
+new errors from the merge. `npm run build` was then run for the first time end-to-end in this
+project's history and surfaced two real problems the standalone `tsc` had never caught:
+1. The default build heap (~4GB) was insufficient for this codebase's type-checking phase —
+   `FATAL ERROR: ... JavaScript heap out of memory`, unrelated to any code change. Fixed by running
+   the build with the same `NODE_OPTIONS=--max-old-space-size=8192` already used for the standalone
+   typecheck (confirmed safe: `scripts/next-build.js` passes `env: process.env` straight through to
+   the spawned `next build` process).
+2. With the heap fixed, `next build`'s own type-checking treated the 2 pre-existing
+   `digitalContactExecutivesDb.ts` errors as **hard compile failures** (`Failed to compile.`) —
+   unlike a standalone `tsc --noEmit`, which just reports and exits. This had been silently
+   tolerated as "pre-existing baseline, unrelated to the current gate" in every prior gate's report
+   because no one had run `npm run build` to completion before. Fixed with the same
+   type-widening idiom already proven for `admin_audit_log`'s actor columns in
+   `adminAuditLogServer.ts`: `dbListExecutiveHubRecords`'s optimistic-select result is now
+   explicitly cast to `ExecutiveRow` (whose `linked_roster_id` is already optional) before the
+   pre-migration fallback reassigns into the same variables; `dbCreateExecutiveHubRecord`'s `row`
+   is now explicitly typed `Record<string, unknown>` so spreading `recordPatchToRow()`'s return
+   doesn't lose its index signature. Both fixes are type-level only — zero runtime behavior change.
+   Re-run: `npm run build` → `✓ Compiled successfully`, full route manifest generated, `BUILD_EXIT:0`.
+
+**Migration reconciliation (Gate 6) and application (Gate 9):** confirmed via the Supabase MCP
+against the live "Leonix Media" project (`xuieateniufcrsfdomwl`) that production's migration
+history keys each migration by its own apply-time version, not by the local file's embedded
+timestamp (e.g. the July-authored `admin_roster_foundation_and_sales_workspace.sql` is recorded in
+production as version `20260908214615`) — so the local filename rename above changed nothing about
+how these would apply. Confirmed none of the 3 target migrations (by name) were already present,
+none were superseded, and every dependency they reference already exists in production:
+`businesses`, `admin_team_members`, `admin_audit_log`, `executives` tables and the
+`is_active_business_member()` function. All three are purely additive (`CREATE TABLE IF NOT
+EXISTS` / `ADD COLUMN IF NOT EXISTS` / `CREATE INDEX IF NOT EXISTS`), contain no destructive
+statement and no hardcoded generated IDs. Applied via `apply_migration` in order:
+`business_external_links_foundation` (production version `20260911203251`),
+`admin_audit_log_actor_attribution` (`20260911203353`), `executives_linked_roster_id`
+(`20260911203434`). Read-only schema proof afterward confirmed all expected objects exist: the new
+table, all 4 new `admin_audit_log` columns, the new `executives.linked_roster_id` column, both new
+indexes, and the new table's RLS policy. Zero customer/business rows were mutated — schema-only
+changes. Neither Staging (`cgeehvnfyrdoperdotdh`) nor Certification (`mvasgrdzmupsnuicwyjl`) was
+touched at any point.
+
+**Note (pre-existing, unrelated, discovered incidentally during the schema listing, NOT part of
+this release's scope and NOT auto-fixed):** the Supabase advisor flags `public.
+listing_lifecycle_reminder_events` as having Row Level Security disabled — 1 of ~190 tables, present
+before this release, unrelated to any of the 3 applied migrations. Surfaced to the owner in this
+release's final report per the advisor's own instruction not to auto-apply RLS remediation without
+the owner choosing the access policy; not remediated here.
+
+**Push / main update (Gates 7–8):** pushed the integrated branch to
+`origin/worktree-admin-os+canonical-truth-2026-09` (confirmed remote SHA == local HEAD). Re-fetched
+and re-confirmed `origin/main` had not advanced past `d1b2994d`. Since the integrated branch already
+contains `origin/main`'s tip as an ancestor (via the Gate 3 merge commit), updated `main` with a
+plain fast-forward push (`git push origin <sha>:refs/heads/main`) rather than requiring a separate
+local `main` checkout — no force push, no rewritten history. Confirmed
+`git ls-remote origin refs/heads/main` == the integrated release SHA.
+
+**Vercel production deployment (Gates 10–13):** the GitHub-integrated `leonix-media` project
+(`prj_AOEx7UeAvVCKwuKFIa65wcot4rw9`, team `Jesus Caceres' projects`) auto-triggered a production
+deployment from the `main` push — no manual `deploy_to_vercel` call was needed or used. Deployment
+`dpl_C1myhzzFnYGDgrJGep7RvVzU3b5e` reached `READY` in under 6 minutes, aliased to `leonixmedia.com`,
+`www.leonixmedia.com`, and `elaguila-website.vercel.app` with `aliasError: null`, confirmed via
+`get_deployment`'s `meta.githubCommitSha` to be built from the exact integrated release commit.
+Build logs show the same clean compile as the local build (only the same pre-existing, sitewide
+`themeColor`-in-metadata warnings, unrelated to this release). `get_runtime_errors` and
+`get_runtime_logs` (error/fatal levels) for the new deployment both returned empty. Live smoke test
+via the in-app browser confirmed: `/admin/login` renders the real Staff/Team login with a visible
+Forgot-password link and a visually separate, honestly-labeled "Owner bootstrap (shared password) —
+Legacy owner access" section (no fake/Coming Soon behavior); `/admin`, `/admin/guide`,
+`/admin/team/roster`, `/admin/workspace/payment-tracker`, `/admin/system-health`, and
+`/admin/activity-log` all correctly redirect an unauthenticated visitor to the login screen (the
+expected, legitimate behavior — no auth bypass was attempted); `/admin/login/forgot` renders the
+real password-recovery screen. Production environment alignment (Gate 11) could not be verified by
+listing env-var names directly (no such tool was available in this session), but no Supabase/Vercel
+environment variable was read, changed, or touched anywhere in this release — the live smoke
+test's correct behavior against the already-established-canonical "Leonix Media" project is the
+practical evidence that alignment is unchanged from its already-verified state in prior gates.
+
+### Final status
+
+**PRODUCTION RELEASE: CLOSED.** Integrated release SHA `e71a1e631548b670a4668491ae557bd263e90451`
+is live on `main`, pushed, and deployed to Vercel production exactly as `leonixmedia.com`. All 3
+pending migrations are applied to and schema-verified on production Supabase ("Leonix Media",
+`xuieateniufcrsfdomwl`) — no staging/certification project was touched. Build, typecheck, targeted
+regression suite, and live smoke test all pass. The only open items are: (1) the pre-existing,
+unrelated RLS-disabled advisory on `listing_lifecycle_reminder_events`, surfaced to the owner for a
+policy decision, and (2) full owner/browser QA of the newly-live capabilities (Business External
+Links UI consumption, admin_audit_log actor attribution appearing in the Activity Log, and
+Executive Hub staff self-service linking), which is runtime/UX proof rather than a known defect.

@@ -1455,3 +1455,40 @@ means the owner's normal daily identity can use the real Staff/Team login path (
 that `requireRevenueProtectedWriteAccess()` above will authorize the owner's real per-person
 session once they are logged in that way (bootstrap sessions remain denied for these two routes
 regardless).
+
+---
+
+## PRODUCTION STATE — LIVE (2026-09-11, Final Production Release)
+
+This is now the deployed, live state of Leonix Admin OS. Everything documented above in this file
+is running in production, not merely staged in a worktree.
+
+- **GITHUB `main`**: `e71a1e631548b670a4668491ae557bd263e90451` (fast-forwarded from
+  `d1b2994d36b1e78f1fb91a6d3f801638156b9119`, the pre-release main tip — full history preserved via
+  the Gate 3 `--no-ff` merge commit already on the integrated branch; no rewritten history).
+- **VERCEL PRODUCTION**: project `leonix-media` (`prj_AOEx7UeAvVCKwuKFIa65wcot4rw9`), deployment
+  `dpl_C1myhzzFnYGDgrJGep7RvVzU3b5e`, `READY`, aliased to `leonixmedia.com` /
+  `www.leonixmedia.com` / `elaguila-website.vercel.app`, built from the exact SHA above via the
+  existing GitHub integration (no manual deploy).
+- **PRODUCTION SUPABASE**: "Leonix Media" (`xuieateniufcrsfdomwl`) — the only project touched.
+  Staging (`cgeehvnfyrdoperdotdh`) and Certification (`mvasgrdzmupsnuicwyjl`) were not touched.
+- **MIGRATIONS APPLIED** (production version, not the local filename's own timestamp — production
+  keys migrations by apply-time version): `business_external_links_foundation` → `20260911203251`;
+  `admin_audit_log_actor_attribution` → `20260911203353`; `executives_linked_roster_id` →
+  `20260911203434`. Schema-verified read-only afterward: the new table, all 4 new
+  `admin_audit_log` actor columns, `executives.linked_roster_id`, both new indexes, and the new
+  table's RLS policy all exist. Zero data rows mutated.
+- **KNOWN PRE-EXISTING, UNRELATED ADVISORY** (surfaced to the owner, not fixed here): Supabase
+  flags `public.listing_lifecycle_reminder_events` (RLS disabled) as a critical exposure. This
+  predates this release and touches none of the 3 applied migrations. Remediation SQL
+  (`ALTER TABLE "public"."listing_lifecycle_reminder_events" ENABLE ROW LEVEL SECURITY;`) requires
+  the owner to decide the access policy first — enabling RLS with no policies would silently block
+  all access to that table.
+- **SMOKE-TESTED LIVE**: `/admin/login` (real Staff/Team login + Forgot password + visually
+  separate bootstrap), `/admin/login/forgot`, and 6 protected routes correctly redirecting an
+  unauthenticated visitor. `get_runtime_errors`/`get_runtime_logs` (error/fatal) empty for the new
+  deployment.
+- **NOT YET DONE**: full owner/browser QA of the 3 newly-live capabilities' UI consumption
+  (Business External Links in a Business 360 "Connected records" section, `admin_audit_log` actor
+  attribution appearing correctly in the Activity Log, and Executive Hub staff self-service linking
+  end-to-end) — this is runtime/UX proof, not a known defect.

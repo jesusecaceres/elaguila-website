@@ -1859,6 +1859,23 @@ individually YES.
 **NEXT_PHASE: FINAL BROWSER / OWNER QA**, in parallel with owner approval of the three pending
 migrations.
 
+**UPDATE (2026-09-11, Final Production Release)**: all three migrations are now applied to and
+schema-verified on production Supabase ("Leonix Media", `xuieateniufcrsfdomwl`) and the integrated
+release (`e71a1e631548b670a4668491ae557bd263e90451`) is live on `main` and deployed to Vercel
+production at `leonixmedia.com` (deployment `dpl_C1myhzzFnYGDgrJGep7RvVzU3b5e`, `READY`). Build,
+typecheck, the full targeted regression suite, and a live smoke test all pass; no runtime errors
+were observed on the new deployment. See `ADMIN_OS_PROGRESS.md`'s "FINAL PRODUCTION RELEASE / MAIN
+INTEGRATION" section and `ADMIN_OS_CABLE_MAP.md`'s "PRODUCTION STATE — LIVE" section for full
+detail, including two build-blocking type errors found and fixed only when `npm run build` was run
+end-to-end for the first time in this project's history, and a pre-existing, unrelated
+RLS-disabled advisory (`listing_lifecycle_reminder_events`) surfaced for the owner's decision.
+
+`READY_FOR_PRODUCTION` is now effectively **YES** for everything this book governs: the remaining
+open items are full owner/browser QA of the newly-live capabilities (runtime/UX proof, not a known
+defect) and the RLS advisory above (an owner policy decision, not an Admin OS defect). LEO
+integration readiness is unchanged by this release — it was never blocked by these items, only by
+the general "browser QA is proof, not discovery" sequencing this book has documented throughout.
+
 ---
 
 # REVISION HISTORY
@@ -1867,3 +1884,4 @@ migrations.
 - **V2 (adopted `d458cd1e6fd998e1eb36c0275004fd31f6b1ee81`)** — adds the Constitutional North Star and Admin Independence Doctrine (§0A), Human Operability and Business Continuity (§0B), Admin Guide / Operations Manual Doctrine with the Company-Search-vs-Admin-Guide-Search distinction (§0C), Past/Present/Future Company Memory (§0D), Role-Based Operability (§0E), Owner Identity and Break-Glass Access (§0F), Staff Lifecycle and Staff Contact Identity (§0G), Operational Continuity and Manual Recovery (§0H), Future-System Admission Contract (§0I), the LEO Failure Test (§0J), the Permanent Book-Maintenance Rule (§33A), the Human-First Operating Principle (§33B), and expands Final Launch Certification to 26 points plus six Required Independence Verdicts (§32). V1's per-domain contracts (§1–§31, §33–§34) are retained as still-governing detail; V2's new sections take precedence wherever they add or tighten a requirement.
 - **§35 added (2026-09-10)** — records the Final Master Blueprint Completion Audit verdict: `BLUEPRINT_IMPLEMENTATION_COMPLETE: YES`, `READY_FOR_PRODUCTION: NO` (3 pending migrations, owner runtime-identity proof, and a money-adjacent write-route hardening item), `FINAL_PROJECT_VERDICT: NOT_READY_FOR_LEO_INTEGRATION`.
 - **§35 updated (2026-09-10, Final Pre-QA Security Hardening Gate)** — closes 2 of the 3 items §35 originally listed: the manual-payments/subscription-sweep write-route fail-open (new always-on `requireRevenueProtectedWriteAccess()` guard) and the owner runtime-identity proof (owner-provided evidence: `admin_team_members.role = super_admin`, `auth_user_id` matches Supabase Auth UID exactly). Only the 3 pending migrations and standard runtime/browser QA remain before `READY_FOR_PRODUCTION`.
+- **§35 updated (2026-09-11, Final Production Release)** — closes the last item: all 3 migrations applied to and schema-verified on production Supabase, integrated release `e71a1e63` pushed to `main` and deployed live to Vercel production at `leonixmedia.com` (deployment `dpl_C1myhzzFnYGDgrJGep7RvVzU3b5e`, `READY`), build/typecheck/regression/smoke all pass. Remaining items are owner/browser QA (runtime proof, not a defect) and one pre-existing, unrelated RLS advisory surfaced for owner decision.

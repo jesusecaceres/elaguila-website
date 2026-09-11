@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-10-final-pre-qa-security-hardening-gate",
+  "updatedAt": "2026-09-11-final-production-release",
   "masterOperatingBookAdopted": true,
   "cableMapPass": {
     "status": "substantially_complete",
@@ -1452,5 +1452,106 @@
       "A full tsc/next build/lint re-confirmation as the very last step before release (deferred, machine was not clear this gate)"
     ],
     "NEXT_PHASE": "FINAL BROWSER / OWNER QA"
+  },
+  "finalProductionRelease": {
+    "date": "2026-09-11",
+    "adminBranchHeadAtStart": "ce7b4c2ebb4a7cc8180e9b34a83bc3d8da331f17",
+    "originMainAtStart": "d1b2994d36b1e78f1fb91a6d3f801638156b9119",
+    "integratedReleaseSha": "e71a1e631548b670a4668491ae557bd263e90451",
+    "reconciliation": {
+      "semanticConflicts": 0,
+      "mergeRequiredFiles": ["package.json"],
+      "migrationOrderConflict": {
+        "found": true,
+        "detail": "20260910120000_executives_linked_roster_id.sql (admin) collided with main's new 20260910120000_autos_privado_lifecycle_expires_at.sql",
+        "resolution": "renamed admin migration file to 20260911030000_executives_linked_roster_id.sql before merging; production keys migrations by apply-time version, not filename, so this was hygiene not a functional requirement"
+      },
+      "leoBoundaryRespected": true,
+      "leoBridgeFileNote": "app/leo/_lib/leoAdminTruthAdapter.ts carries only the admin branch's own prior correctness fix (reads row.flagTruth instead of re-deriving it); separate LEO branch integration/leo-executive-operating-intelligence-2026-08 not touched"
+    },
+    "mergeConflictsFound": 0,
+    "mergeConflictsResolved": 0,
+    "regression": {
+      "selfCausedFailureFixed": "verify:executive-hub-self-service (ENOENT on renamed migration filename) -> 20/20 after fix",
+      "environmentOnlyFailureNotFixed": "verify:admin-roster-foundation 1 check (CRLF-fragile regex against a July 2026 migration file; git blob proven LF-only at pre-merge admin HEAD, CRLF is a core.autocrlf=true Windows checkout artifact predating this release)",
+      "allOtherSuitesUnchanged": {
+        "verify:owner-auth-break-glass": "16/16",
+        "verify:admin-password-recovery": "21/21",
+        "verify:admin-nav-ops": "74/74",
+        "verify:executive-company-search": "21/21",
+        "verify:launch-truth": "24/24",
+        "verify:launch-truth-final-burndown": "18/18",
+        "verify:revenue-write-security-hardening": "11/11",
+        "verify:owner-command-center:gate20-fixed-term-renewal": "9/9 OK (main's own newly-merged script)"
+      }
+    },
+    "typecheckAndBuild": {
+      "fullTypecheck": "PASS_WITH_PROVEN_BASELINE (same 7 pre-existing errors: 2 in digitalContactExecutivesDb.ts, 5 in e2e/**; zero new)",
+      "buildFirstAttempt": "FAILED - JavaScript heap out of memory (default ~4GB heap insufficient for this codebase's type-check phase, unrelated to any code change)",
+      "buildFix1": "re-ran with NODE_OPTIONS=--max-old-space-size=8192 (same setting already used for the standalone typecheck; scripts/next-build.js passes env: process.env through to the spawned next build process)",
+      "buildSecondAttempt": "FAILED - Failed to compile: the 2 pre-existing digitalContactExecutivesDb.ts errors are HARD compile failures under next build's own type-checking (unlike a standalone tsc --noEmit) - never previously discovered because npm run build had never been run end-to-end before this gate",
+      "buildFix2": "dbListExecutiveHubRecords: cast optimistic-select result to ExecutiveRow (linked_roster_id already optional) before pre-migration fallback reassignment. dbCreateExecutiveHubRecord: annotated row as Record<string, unknown> so spreading recordPatchToRow()'s return keeps its index signature. Both type-level only, zero runtime change. Mirrors the same idiom already proven for admin_audit_log's actor columns in adminAuditLogServer.ts.",
+      "buildFinalAttempt": "PASS - Compiled successfully, full route manifest generated, BUILD_EXIT:0",
+      "targetedLint": "clean on the fixed file"
+    },
+    "migrationApplication": {
+      "targetProject": "Leonix Media",
+      "targetRef": "xuieateniufcrsfdomwl",
+      "stagingTouched": false,
+      "certificationTouched": false,
+      "productionVersioningNote": "production keys each migration by its own apply-time version (e.g. the July-authored admin_roster_foundation_and_sales_workspace.sql is recorded as version 20260908214615), not by the local file's embedded timestamp",
+      "preApplicationChecks": {
+        "noneAlreadyApplied": true,
+        "noneSuperseded": true,
+        "dependenciesConfirmedPresent": ["businesses", "admin_team_members", "admin_audit_log", "executives", "is_active_business_member()"],
+        "allPurelyAdditive": true,
+        "noDestructiveStatements": true,
+        "noHardcodedGeneratedIds": true
+      },
+      "applied": [
+        {"name": "business_external_links_foundation", "productionVersion": "20260911203251", "status": "APPLIED"},
+        {"name": "admin_audit_log_actor_attribution", "productionVersion": "20260911203353", "status": "APPLIED"},
+        {"name": "executives_linked_roster_id", "productionVersion": "20260911203434", "status": "APPLIED"}
+      ],
+      "schemaProof": "PASS - business_external_links table exists; admin_audit_log has all 4 new actor columns; executives.linked_roster_id column exists; both new indexes exist; business_external_links has its RLS SELECT policy",
+      "dataRowsMutated": 0,
+      "unrelatedAdvisoryDiscovered": {
+        "table": "public.listing_lifecycle_reminder_events",
+        "issue": "RLS disabled",
+        "priorToThisRelease": true,
+        "relatedToAppliedMigrations": false,
+        "action": "surfaced to owner, not auto-fixed per the advisory's own instruction (enabling RLS with no policies would block all access)"
+      }
+    },
+    "githubAndVercel": {
+      "adminBranchPushed": true,
+      "adminBranchRemoteShaMatchesLocal": true,
+      "mainUpdateMethod": "fast-forward push (git push origin <sha>:refs/heads/main) - integrated branch already contained origin/main's tip as an ancestor via the Gate 3 merge commit, so no local main checkout or force push was needed",
+      "remoteMainSha": "e71a1e631548b670a4668491ae557bd263e90451",
+      "vercelProject": "leonix-media",
+      "vercelProjectId": "prj_AOEx7UeAvVCKwuKFIa65wcot4rw9",
+      "vercelTeam": "Jesus Caceres' projects",
+      "deploymentId": "dpl_C1myhzzFnYGDgrJGep7RvVzU3b5e",
+      "deploymentState": "READY",
+      "deploymentTarget": "production",
+      "deploymentSourceSha": "e71a1e631548b670a4668491ae557bd263e90451",
+      "deploymentAliases": ["leonixmedia.com", "www.leonixmedia.com", "elaguila-website.vercel.app"],
+      "aliasError": null,
+      "manualDeployToolUsed": false,
+      "buildLogsClean": true,
+      "runtimeErrors": "NONE (get_runtime_errors and get_runtime_logs error/fatal both empty)"
+    },
+    "smokeTest": {
+      "adminLoginPage": "PASS - real Staff/Team login primary, Forgot password link present, Owner bootstrap visually separate and labeled Legacy",
+      "forgotPasswordPage": "PASS - renders real password-recovery screen",
+      "protectedRoutesUnauthenticatedRedirect": "PASS for /admin, /admin/guide, /admin/team/roster, /admin/workspace/payment-tracker, /admin/system-health, /admin/activity-log - all correctly redirect to login (no auth bypass attempted)",
+      "envAlignmentNote": "no tool to list Vercel env var names directly was available this session; no Supabase/Vercel env var was read, changed, or touched by this release, so the live smoke test's correct behavior against the already-verified-canonical Leonix Media project is the practical evidence alignment is unchanged"
+    },
+    "PRODUCTION_RELEASE_STATUS": "CLOSED",
+    "remainingItems": [
+      "Owner decision + remediation on the pre-existing listing_lifecycle_reminder_events RLS-disabled advisory (unrelated to this release)",
+      "Full owner/browser QA of the 3 newly-live capabilities' UI consumption (Business External Links, admin_audit_log actor attribution in Activity Log, Executive Hub staff self-service linking end-to-end) - runtime/UX proof, not a known defect"
+    ],
+    "NEXT_PHASE": "FINAL BROWSER / OWNER QA (production is now live)"
   }
 }
