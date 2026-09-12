@@ -2041,4 +2041,37 @@ DASH-16 persist TRUE · DASH-18 TRUE · DASH-21 write TRUE · DASH-23 TRUE · DA
 
 Targeted verifiers on the OCC tree: `verify:servicios-golden-receiver-contracts` 10/10 PASS; gate1 PASS; publish-authority PASS; owner-qa-delta PASS; engagement-2 PASS; gate2-discovery PASS; edit-roundtrip PASS; owner attention 22/22; specialized-tools 33/33; OCC final 182/182; Gate20 PASS. `verify-servicios-interaction-polish.mjs` FAIL identical to Golden pre-existing `CtaActionSheet` on `ServiciosBusinessHubContactCard.tsx` (not a receiver-contract defect; not repaired).
 
-**Gate L:** `tsc` / `npm run build` DEFERRED — 1.47 GB free RAM at certification time; historical production build requires `NODE_OPTIONS=--max-old-space-size=12288`. Intake + targeted verifiers + durable proof preserved. No QA.
+**Gate L (historical at intake):** `tsc` / `npm run build` were DEFERRED at intake certification (1.47 GB free RAM). Closed in the pre-QA certification restamp below.
+
+---
+
+## Pre-QA source certification closure (2026-09-11)
+
+**PRODUCT SOURCE SHA:** `3b00a4e6ed3b916ef60231adcf464429ff22faa6` (includes compile residual `1c5a27e8` + owner-qa-delta discovery-facet completion). Historical product-intake SHA remains `4b402962`.
+**GOLDEN COORDINATED SHA:** `9e874060e5b9c960cdfcd3c60dcdceab81441e55`
+**origin/main:** `9fcadb4daf599e15fca62adcb647abbf96ce6bd8`
+**FULL REQUIRED SOURCE CONTRACT:** TRUE
+**P0 SOURCE BLOCKERS:** NONE
+**P1 SOURCE BLOCKERS:** NONE
+**UNKNOWN:** NONE
+**PREVIEW ID:** `dpl_GS6RgWpcPTQgGYZDSnXS3J1NF5yX`
+**PREVIEW URL:** https://leonix-media-nf2dja2uq-jesus-caceres-projects.vercel.app
+**PREVIEW SHA:** `3b00a4e6ed3b916ef60231adcf464429ff22faa6`
+**NEW PREVIEW REQUIRED:** NO (docs-only restamp; certified product Preview stays the existing exact-SHA deployment)
+
+**LOCAL FULL TSC:** PASS WITH PROVEN BASELINE
+- Command: `npx tsc --noEmit --incremental false -p tsconfig.json` (`NODE_OPTIONS=--max-old-space-size=8192`)
+- Total errors: 7
+- Historical e2e errors: 7 (`e2e/` unchanged vs `9fcadb4d`)
+  - `e2e/autos/autos-a5-recovery-25-child-media-persistence.spec.ts:337` TS18046
+  - `e2e/community/community-preview-publish-bar.spec.ts` TS2345 (3)
+  - `e2e/community/community-preview-published-shell-parity.spec.ts` TS2345 (3)
+- NEW APP/SOURCE ERRORS: 0
+- NEW REQUIRED TEST/VERIFIER ERRORS: 0
+
+**MIGRATION APPLICATION:** BOTH APPLIED on Leonix Media `xuieateniufcrsfdomwl` (Preview `NEXT_PUBLIC_SUPABASE_URL` host). History names `saved_search_match_events_servicios` + `servicios_public_listings_read_privacy`. Live CHECK/RLS/`private_contact` confirmed. This closure did not write schema. Staging `cgeehvnfyrdoperdotdh` is not the Preview DB.
+
+**OWNER QA:** NOT RUN
+**VISUAL QA:** NOT RUN
+**GOLDEN RUNTIME:** NOT RUN
+**QA AUTHORIZED:** NO

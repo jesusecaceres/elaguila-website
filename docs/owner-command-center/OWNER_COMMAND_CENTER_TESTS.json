@@ -4,14 +4,22 @@
   "branch": "integration/owner-command-center-globalization-2026-08",
   "startHead": "4cdbfb3abde7a6a57a5d610287bb04c654d6677b",
   "certifiedCheckpoint": "ea99e57c1695138ec433766f33835830361b6ba7",
-  "currentReceiverHead": "4b402962a12c0daab9058911e7f806a6f86b74d5",
-  "sourceHeadCertified": "4b402962a12c0daab9058911e7f806a6f86b74d5",
+  "currentReceiverHead": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+  "sourceHeadCertified": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+  "productSourceSha": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
   "currentOriginMain": "9fcadb4daf599e15fca62adcb647abbf96ce6bd8",
   "receiverSourceCertifiedAgainstCurrentMain": false,
-  "previewAtDocumentationTime": "PENDING_PUSH — deployment ID recorded in Prompt 1 absolute report after Git creates the certification commit",
+  "previewAtDocumentationTime": "dpl_GS6RgWpcPTQgGYZDSnXS3J1NF5yX READY https://leonix-media-nf2dja2uq-jesus-caceres-projects.vercel.app SHA=3b00a4e6ed3b916ef60231adcf464429ff22faa6",
   "receiverRequiredProductWork": "NONE PROVEN",
+  "goldenCoordinatedSha": "9e874060e5b9c960cdfcd3c60dcdceab81441e55",
+  "fullRequiredSourceContract": true,
+  "p0SourceBlockers": "NONE",
+  "p1SourceBlockers": "NONE",
   "qaAuthorized": false,
   "qaStatus": "NOT RUN",
+  "ownerQa": "NOT RUN",
+  "visualQa": "NOT RUN",
+  "goldenRuntime": "NOT RUN",
   "optionalDeferred": ["DASH-32", "DASH-33", "DASH-40"],
   "unknownItems": "NONE",
   "notSupportedCurrentProduct": ["DASH-06", "DASH-11", "DASH-29", "DASH-30", "DASH-52"],
@@ -20,11 +28,23 @@
     "strategy": "B",
     "authorizedSha": "9e874060e5b9c960cdfcd3c60dcdceab81441e55",
     "productIntakeHead": "4b402962a12c0daab9058911e7f806a6f86b74d5",
-    "compileResidual": "ff96fa3d cherry-picked — scripts/servicios-manual-qa-catalog-seed.ts only",
+    "finalProductSourceSha": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+    "compileResidual": "ff96fa3d cherry-picked — scripts/servicios-manual-qa-catalog-seed.ts only; plus owner-qa-delta discovery-facet type completion at 3b00a4e6",
     "fullRequiredSourceContract": true,
     "occResidual": "NONE",
     "temporaryProbeImported": false,
+    "p0SourceBlockers": "NONE",
+    "p1SourceBlockers": "NONE",
+    "previewId": "dpl_GS6RgWpcPTQgGYZDSnXS3J1NF5yX",
+    "previewUrl": "https://leonix-media-nf2dja2uq-jesus-caceres-projects.vercel.app",
+    "previewSha": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+    "localTsc": "PASS WITH PROVEN BASELINE — 7 e2e-only errors, 0 new app/source, 0 new test/verifier, e2e/ unchanged vs 9fcadb4d",
+    "migrationApplication": "BOTH APPLIED on Leonix Media xuieateniufcrsfdomwl (Preview NEXT_PUBLIC_SUPABASE_URL host). History names saved_search_match_events_servicios + servicios_public_listings_read_privacy. Live CHECK/RLS/column confirmed. Staging cgeehvnfyrdoperdotdh is NOT the Preview DB.",
     "qa": "NOT RUN",
+    "ownerQa": "NOT RUN",
+    "visualQa": "NOT RUN",
+    "goldenRuntime": "NOT RUN",
+    "qaAuthorized": false,
     "runtimeProof": "NOT RUN"
   },
   "gates": [
@@ -1729,7 +1749,8 @@
       "authorizedGoldenSha": "9e874060e5b9c960cdfcd3c60dcdceab81441e55",
       "strategy": "B",
       "productIntakeHead": "4b402962a12c0daab9058911e7f806a6f86b74d5",
-      "compileResidual": "ff96fa3d cherry-picked — scripts/servicios-manual-qa-catalog-seed.ts only",
+      "finalProductSourceSha": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+      "compileResidual": "ff96fa3d cherry-picked — scripts/servicios-manual-qa-catalog-seed.ts only; owner-qa-delta discovery-facet type completion at 3b00a4e6",
       "occResidual": "NONE",
       "fullRequiredSourceContract": true,
       "unknown": "NONE",
@@ -1822,15 +1843,56 @@
         },
         {
           "name": "typescript",
-          "command": "npx tsc --noEmit --incremental false -p tsconfig.json",
-          "result": "DEFERRED — Gate L resource collision: 1.47 GB free RAM, competing Node present; historical cert requires --max-old-space-size=12288",
-          "status": "DEFERRED_RESOURCE"
+          "command": "npx tsc --noEmit --incremental false -p tsconfig.json (NODE_OPTIONS=--max-old-space-size=8192)",
+          "result": "PASS WITH PROVEN BASELINE — 7 errors, all e2e/: autos-a5-recovery-25 TS18046 (1) + community-preview-publish-bar TS2345 (3) + community-preview-published-shell-parity TS2345 (3). e2e/ unchanged vs origin/main 9fcadb4d. NEW APP/SOURCE ERRORS 0. NEW REQUIRED TEST/VERIFIER ERRORS 0.",
+          "status": "PASS"
         },
         {
           "name": "production_build",
-          "command": "npm run build (NODE_OPTIONS=--max-old-space-size=12288)",
-          "result": "LOCAL DEFERRED (1.47 GB RAM). First Vercel Preview dpl_CdgtKYceskm4v5fW1PxCbT91Aipv ERROR type_error on scripts/servicios-manual-qa-catalog-seed.ts missing G23 address fields. Closed by cherry-pick ff96fa3d (fixture only). Replacement Preview recorded after push.",
-          "status": "REMOTE_RETRY_AFTER_SEED_FIX"
+          "command": "Vercel Preview npm run build (not --prod)",
+          "result": "PASS on SHA 3b00a4e6 — dpl_GS6RgWpcPTQgGYZDSnXS3J1NF5yX READY. Local npm run build not re-run this closure. Earlier Preview type_errors at c8c57533/141c1a61 were closed before this SHA.",
+          "status": "PASS"
+        },
+        {
+          "name": "migration_application_leonix_media",
+          "result": "Preview env host xuieateniufcrsfdomwl.supabase.co. History: 20260910201735 saved_search_match_events_servicios; 20260911024723 servicios_public_listings_read_privacy. Live CHECK includes servicios + seller_lane business/independent. private_contact jsonb present. RLS SELECT published (anon+auth) + own (auth). anon/auth have no SELECT grant on private_contact. Not applied to Production as a new write this closure — already present. Staging project does not host these two names.",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "servicios-preqa-certification-closure-2026-09-11",
+      "productSourceSha": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+      "goldenCoordinatedSha": "9e874060e5b9c960cdfcd3c60dcdceab81441e55",
+      "currentOriginMain": "9fcadb4daf599e15fca62adcb647abbf96ce6bd8",
+      "previewId": "dpl_GS6RgWpcPTQgGYZDSnXS3J1NF5yX",
+      "previewUrl": "https://leonix-media-nf2dja2uq-jesus-caceres-projects.vercel.app",
+      "previewSha": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+      "newPreviewRequired": false,
+      "qaAuthorized": false,
+      "ownerQa": "NOT RUN",
+      "visualQa": "NOT RUN",
+      "goldenRuntime": "NOT RUN",
+      "p0SourceBlockers": "NONE",
+      "p1SourceBlockers": "NONE",
+      "unknown": "NONE",
+      "fullRequiredSourceContract": true,
+      "checks": [
+        {
+          "name": "typescript",
+          "command": "npx tsc --noEmit --incremental false -p tsconfig.json (NODE_OPTIONS=--max-old-space-size=8192)",
+          "result": "PASS WITH PROVEN BASELINE — 7 errors, all e2e/: autos-a5-recovery-25 TS18046 (1) + community-preview-publish-bar TS2345 (3) + community-preview-published-shell-parity TS2345 (3). e2e/ unchanged vs origin/main 9fcadb4d. NEW APP/SOURCE ERRORS 0. NEW REQUIRED TEST/VERIFIER ERRORS 0.",
+          "status": "PASS"
+        },
+        {
+          "name": "migration_application_leonix_media",
+          "result": "Preview env host xuieateniufcrsfdomwl.supabase.co (Leonix Media). History: 20260910201735 saved_search_match_events_servicios; 20260911024723 servicios_public_listings_read_privacy. Live CHECK includes servicios + seller_lane business/independent. private_contact jsonb present. RLS SELECT published (anon+auth) + own (auth). anon/auth have no SELECT grant on private_contact. Already applied — this closure did not write schema. Staging cgeehvnfyrdoperdotdh is not the Preview DB.",
+          "status": "PASS"
+        },
+        {
+          "name": "preview_decision",
+          "result": "Docs-only certification. Certified product Preview remains dpl_GS6RgWpcPTQgGYZDSnXS3J1NF5yX at SHA 3b00a4e6. NEW PREVIEW REQUIRED: NO.",
+          "status": "PASS"
         }
       ]
     }

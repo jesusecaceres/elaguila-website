@@ -550,6 +550,30 @@ Canonical table: `docs/launch-lifecycle/SERVICIOS_OWNER_DASHBOARD_RUNTIME_LEDGER
 | D OCC work still required | NONE |
 | UNKNOWN | NONE |
 
-**Golden intake (2026-09-11):** Strategy B cherry-pick of coordinated SHA `9e874060`. Product intake HEAD `4b402962`. OCC residual NONE. Temporary probe not imported. QA NOT RUN. Runtime proof NOT RUN. Local `tsc`/`build` DEFERRED (Gate L: 1.47 GB free RAM).
+**Golden intake (2026-09-11, historical product-intake SHA):** Strategy B cherry-pick of coordinated SHA `9e874060`. Product intake HEAD `4b402962`. Compile residual later closed at product SHA `3b00a4e6`. OCC residual NONE. Temporary probe not imported. QA NOT RUN. Runtime proof NOT RUN.
+
+## CURRENT STATE — PRE-QA SOURCE CERTIFICATION (2026-09-11)
+
+Master Bible §33.1 remains the historical control-plane checkpoint `ea99e57c` (not rewritten). Current reconstructable product/receiver truth is this block + `OWNER_COMMAND_CENTER_TESTS.json`.
+
+| Field | Value |
+|---|---|
+| FINAL PRODUCT/RECEIVER SHA | `3b00a4e6ed3b916ef60231adcf464429ff22faa6` |
+| GOLDEN COORDINATED SHA | `9e874060e5b9c960cdfcd3c60dcdceab81441e55` |
+| origin/main | `9fcadb4daf599e15fca62adcb647abbf96ce6bd8` |
+| FULL REQUIRED SOURCE CONTRACT | TRUE |
+| P0 SOURCE BLOCKERS | NONE |
+| P1 SOURCE BLOCKERS | NONE |
+| UNKNOWN | NONE |
+| PREVIEW ID | `dpl_GS6RgWpcPTQgGYZDSnXS3J1NF5yX` |
+| PREVIEW URL | https://leonix-media-nf2dja2uq-jesus-caceres-projects.vercel.app |
+| PREVIEW SHA | `3b00a4e6ed3b916ef60231adcf464429ff22faa6` |
+| LOCAL FULL TSC | PASS WITH PROVEN BASELINE — 7 e2e-only errors, 0 new app/source, 0 new test/verifier |
+| MIGRATION APPLICATION | BOTH APPLIED on Leonix Media `xuieateniufcrsfdomwl` (Preview host). Staging is not the Preview DB. |
+| OWNER QA | NOT RUN |
+| VISUAL QA | NOT RUN |
+| GOLDEN RUNTIME | NOT RUN |
+| QA AUTHORIZED | NO |
+| NEW PREVIEW REQUIRED | NO (docs-only restamp) |
 
 No second dashboard shell, Saved Listing engine, Saved Search engine, Servicios lifecycle engine, or commercial-state engine.
