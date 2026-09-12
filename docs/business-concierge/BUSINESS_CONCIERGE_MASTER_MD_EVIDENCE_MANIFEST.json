@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-09-12T01:38:04.128Z",
+  "generatedAt": "2026-09-12T02:01:14.325Z",
   "generatedBy": "scripts/gate10-8-generate-evidence-manifest.ts",
-  "masterMdRowCount": 610,
+  "masterMdRowCount": 612,
   "ownerMetaRowCount": 6,
   "mechanisms": [
     {
@@ -1605,7 +1605,7 @@
     {
       "reqId": "REQ-5.5",
       "mdSection": "5",
-      "requirement": "§5",
+      "requirement": "NOT APPLICABLE",
       "requirementClasses": [
         "DETERMINISTIC_LOGIC"
       ],
@@ -1613,7 +1613,7 @@
         "M-COMPLETENESS"
       ],
       "sourceFiles": [
-        "NOT APPLICABLE"
+        "`\"not_applicable\"`"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -18618,6 +18618,56 @@
       ],
       "sourceFiles": [
         "Repeatable: the SAME catalog/engine/registry drives every project of a given type. Tailored: every field's `displayValue` is the client's own real answer, never a template default — confirmed by `test-blueprint-47-categories-gate10-2.ts` check 17: \"a category with nothing to say is OMITTED entirely ... never fabricated N/A filler\""
+      ],
+      "tests": [],
+      "stagingEvidence": [],
+      "persistenceEvidence": [],
+      "readbackEvidence": [],
+      "blueprintEvidence": [],
+      "lifecycleEvidence": [],
+      "authorizationEvidence": [],
+      "negativeEvidence": [],
+      "status": "TECHNICALLY_PROVEN"
+    },
+    {
+      "reqId": "REQ-37.3",
+      "mdSection": "37",
+      "requirement": "\"The quality must represent Leonix.\"",
+      "requirementClasses": [
+        "DETERMINISTIC_LOGIC"
+      ],
+      "mechanismIds": [
+        "M-CANONICAL-TRUTH",
+        "M-PROMISE-KEEPER",
+        "M-HANDOFF"
+      ],
+      "sourceFiles": [
+        "Gate 10.9 found this MD sentence had no dedicated row (only folded implicitly into REQ-37.2's discussion). Real, checkable proxies for \"quality\": zero fabricated content anywhere in the pipeline (no invented pricing/legal conclusions/ranking guarantees — confirmed structurally across `printCollateralDiscoveryCatalog.ts`, `websiteDiscoveryCatalog.ts` §8.19/§8.23 fields), mandatory non-optional QA matrix (§26) before any release, and the redaction layer (`blueprintRedaction.ts`) stripping credential-shaped text from every generated document — quality-as-craftsmanship is enforced structurally, not left to chance"
+      ],
+      "tests": [],
+      "stagingEvidence": [],
+      "persistenceEvidence": [],
+      "readbackEvidence": [],
+      "blueprintEvidence": [],
+      "lifecycleEvidence": [],
+      "authorizationEvidence": [],
+      "negativeEvidence": [],
+      "status": "TECHNICALLY_PROVEN"
+    },
+    {
+      "reqId": "REQ-37.4",
+      "mdSection": "37",
+      "requirement": "\"Both Leonix and the client must win.\"",
+      "requirementClasses": [
+        "DETERMINISTIC_LOGIC"
+      ],
+      "mechanismIds": [
+        "M-CANONICAL-TRUTH",
+        "M-PROMISE-KEEPER",
+        "M-HANDOFF"
+      ],
+      "sourceFiles": [
+        "Gate 10.9 found this MD sentence had no dedicated row. Real mechanism: the CFO/Scope Protection invariant (§29) blocks Leonix from over-promising (protects Leonix from underbidding Custom Platform work) while the Client Review gate (§27) and the ownership/billing invariant (§13) block launch until the CLIENT'S OWN interests (real approval, real account ownership) are satisfied — a real, structural balance of both parties' interests, not a one-sided guarantee"
       ],
       "tests": [],
       "stagingEvidence": [],

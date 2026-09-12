@@ -1,0 +1,5777 @@
+{
+  "extractedAt": "2026-09-12T01:57:39.730Z",
+  "sourceFile": "C:\\Users\\chuy\\Videos\\MDS\\LEONIX_BUSINESS_CONCIERGE_CLIENT_DISCOVERY_AND_PROJECT_BLUEPRINT_ENGINE_MASTER.md",
+  "totalRawBullets": 824,
+  "mechanicallyExtracted": 807,
+  "manuallySupplementedProseSections": 17,
+  "bullets": [
+    {
+      "lineNo": 28,
+      "section": 0,
+      "subsection": null,
+      "sectionTitle": "NORTH STAR",
+      "text": "who the client is;"
+    },
+    {
+      "lineNo": 29,
+      "section": 0,
+      "subsection": null,
+      "sectionTitle": "NORTH STAR",
+      "text": "what they are trying to accomplish;"
+    },
+    {
+      "lineNo": 30,
+      "section": 0,
+      "subsection": null,
+      "sectionTitle": "NORTH STAR",
+      "text": "who they serve;"
+    },
+    {
+      "lineNo": 31,
+      "section": 0,
+      "subsection": null,
+      "sectionTitle": "NORTH STAR",
+      "text": "what they want;"
+    },
+    {
+      "lineNo": 32,
+      "section": 0,
+      "subsection": null,
+      "sectionTitle": "NORTH STAR",
+      "text": "what they do not want;"
+    },
+    {
+      "lineNo": 33,
+      "section": 0,
+      "subsection": null,
+      "sectionTitle": "NORTH STAR",
+      "text": "what already exists;"
+    },
+    {
+      "lineNo": 34,
+      "section": 0,
+      "subsection": null,
+      "sectionTitle": "NORTH STAR",
+      "text": "what is missing;"
+    },
+    {
+      "lineNo": 35,
+      "section": 0,
+      "subsection": null,
+      "sectionTitle": "NORTH STAR",
+      "text": "what must be verified;"
+    },
+    {
+      "lineNo": 36,
+      "section": 0,
+      "subsection": null,
+      "sectionTitle": "NORTH STAR",
+      "text": "what assets are available;"
+    },
+    {
+      "lineNo": 37,
+      "section": 0,
+      "subsection": null,
+      "sectionTitle": "NORTH STAR",
+      "text": "what platforms/infrastructure are appropriate;"
+    },
+    {
+      "lineNo": 38,
+      "section": 0,
+      "subsection": null,
+      "sectionTitle": "NORTH STAR",
+      "text": "who owns accounts and billing;"
+    },
+    {
+      "lineNo": 39,
+      "section": 0,
+      "subsection": null,
+      "sectionTitle": "NORTH STAR",
+      "text": "what Leonix is responsible for;"
+    },
+    {
+      "lineNo": 40,
+      "section": 0,
+      "subsection": null,
+      "sectionTitle": "NORTH STAR",
+      "text": "what the client is responsible for;"
+    },
+    {
+      "lineNo": 41,
+      "section": 0,
+      "subsection": null,
+      "sectionTitle": "NORTH STAR",
+      "text": "what is in scope;"
+    },
+    {
+      "lineNo": 42,
+      "section": 0,
+      "subsection": null,
+      "sectionTitle": "NORTH STAR",
+      "text": "what is out of scope;"
+    },
+    {
+      "lineNo": 43,
+      "section": 0,
+      "subsection": null,
+      "sectionTitle": "NORTH STAR",
+      "text": "what success looks like;"
+    },
+    {
+      "lineNo": 44,
+      "section": 0,
+      "subsection": null,
+      "sectionTitle": "NORTH STAR",
+      "text": "what must be tested;"
+    },
+    {
+      "lineNo": 45,
+      "section": 0,
+      "subsection": null,
+      "sectionTitle": "NORTH STAR",
+      "text": "what must happen after launch."
+    },
+    {
+      "lineNo": 68,
+      "section": 1,
+      "subsection": null,
+      "sectionTitle": "CORE BUSINESS RULE",
+      "text": "better discovery;"
+    },
+    {
+      "lineNo": 69,
+      "section": 1,
+      "subsection": null,
+      "sectionTitle": "CORE BUSINESS RULE",
+      "text": "complete information;"
+    },
+    {
+      "lineNo": 70,
+      "section": 1,
+      "subsection": null,
+      "sectionTitle": "CORE BUSINESS RULE",
+      "text": "strong architecture;"
+    },
+    {
+      "lineNo": 71,
+      "section": 1,
+      "subsection": null,
+      "sectionTitle": "CORE BUSINESS RULE",
+      "text": "proven tools;"
+    },
+    {
+      "lineNo": 72,
+      "section": 1,
+      "subsection": null,
+      "sectionTitle": "CORE BUSINESS RULE",
+      "text": "reusable engineering knowledge;"
+    },
+    {
+      "lineNo": 73,
+      "section": 1,
+      "subsection": null,
+      "sectionTitle": "CORE BUSINESS RULE",
+      "text": "gated execution;"
+    },
+    {
+      "lineNo": 74,
+      "section": 1,
+      "subsection": null,
+      "sectionTitle": "CORE BUSINESS RULE",
+      "text": "clear QA;"
+    },
+    {
+      "lineNo": 75,
+      "section": 1,
+      "subsection": null,
+      "sectionTitle": "CORE BUSINESS RULE",
+      "text": "fewer avoidable callbacks."
+    },
+    {
+      "lineNo": 78,
+      "section": 1,
+      "subsection": null,
+      "sectionTitle": "CORE BUSINESS RULE",
+      "text": "skipping discovery;"
+    },
+    {
+      "lineNo": 79,
+      "section": 1,
+      "subsection": null,
+      "sectionTitle": "CORE BUSINESS RULE",
+      "text": "using the same visual design for every client;"
+    },
+    {
+      "lineNo": 80,
+      "section": 1,
+      "subsection": null,
+      "sectionTitle": "CORE BUSINESS RULE",
+      "text": "forcing every client into the same platform;"
+    },
+    {
+      "lineNo": 81,
+      "section": 1,
+      "subsection": null,
+      "sectionTitle": "CORE BUSINESS RULE",
+      "text": "ignoring mobile;"
+    },
+    {
+      "lineNo": 82,
+      "section": 1,
+      "subsection": null,
+      "sectionTitle": "CORE BUSINESS RULE",
+      "text": "ignoring accessibility;"
+    },
+    {
+      "lineNo": 83,
+      "section": 1,
+      "subsection": null,
+      "sectionTitle": "CORE BUSINESS RULE",
+      "text": "ignoring ownership/billing;"
+    },
+    {
+      "lineNo": 84,
+      "section": 1,
+      "subsection": null,
+      "sectionTitle": "CORE BUSINESS RULE",
+      "text": "shipping incomplete work;"
+    },
+    {
+      "lineNo": 85,
+      "section": 1,
+      "subsection": null,
+      "sectionTitle": "CORE BUSINESS RULE",
+      "text": "cutting QA."
+    },
+    {
+      "lineNo": 96,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "Business Identity;"
+    },
+    {
+      "lineNo": 97,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "Living Business Book;"
+    },
+    {
+      "lineNo": 98,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "public research;"
+    },
+    {
+      "lineNo": 99,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "client-confirmed facts;"
+    },
+    {
+      "lineNo": 100,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "previous meetings;"
+    },
+    {
+      "lineNo": 101,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "current goals;"
+    },
+    {
+      "lineNo": 102,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "current promotions;"
+    },
+    {
+      "lineNo": 103,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "business stage;"
+    },
+    {
+      "lineNo": 104,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "brand assets;"
+    },
+    {
+      "lineNo": 105,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "uploaded screenshots;"
+    },
+    {
+      "lineNo": 106,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "uploaded logos;"
+    },
+    {
+      "lineNo": 107,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "uploaded photos/video;"
+    },
+    {
+      "lineNo": 108,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "existing website;"
+    },
+    {
+      "lineNo": 109,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "social profiles;"
+    },
+    {
+      "lineNo": 110,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "Google presence;"
+    },
+    {
+      "lineNo": 111,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "contact information;"
+    },
+    {
+      "lineNo": 112,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "current systems/providers;"
+    },
+    {
+      "lineNo": 113,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "client notes;"
+    },
+    {
+      "lineNo": 114,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "voice dictation;"
+    },
+    {
+      "lineNo": 115,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "meeting transcript where consented;"
+    },
+    {
+      "lineNo": 116,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "staff observations;"
+    },
+    {
+      "lineNo": 117,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "growth assessment;"
+    },
+    {
+      "lineNo": 118,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "approved opportunity;"
+    },
+    {
+      "lineNo": 119,
+      "section": 2,
+      "subsection": null,
+      "sectionTitle": "ONE DISCOVERY TRUTH",
+      "text": "approved solution."
+    },
+    {
+      "lineNo": 130,
+      "section": 3,
+      "subsection": null,
+      "sectionTitle": "CLIENT DISCOVERY SESSION",
+      "text": "type notes;"
+    },
+    {
+      "lineNo": 131,
+      "section": 3,
+      "subsection": null,
+      "sectionTitle": "CLIENT DISCOVERY SESSION",
+      "text": "dictate notes;"
+    },
+    {
+      "lineNo": 132,
+      "section": 3,
+      "subsection": null,
+      "sectionTitle": "CLIENT DISCOVERY SESSION",
+      "text": "capture structured answers;"
+    },
+    {
+      "lineNo": 133,
+      "section": 3,
+      "subsection": null,
+      "sectionTitle": "CLIENT DISCOVERY SESSION",
+      "text": "upload logos;"
+    },
+    {
+      "lineNo": 134,
+      "section": 3,
+      "subsection": null,
+      "sectionTitle": "CLIENT DISCOVERY SESSION",
+      "text": "upload brand assets;"
+    },
+    {
+      "lineNo": 135,
+      "section": 3,
+      "subsection": null,
+      "sectionTitle": "CLIENT DISCOVERY SESSION",
+      "text": "upload screenshots;"
+    },
+    {
+      "lineNo": 136,
+      "section": 3,
+      "subsection": null,
+      "sectionTitle": "CLIENT DISCOVERY SESSION",
+      "text": "upload inspiration references;"
+    },
+    {
+      "lineNo": 137,
+      "section": 3,
+      "subsection": null,
+      "sectionTitle": "CLIENT DISCOVERY SESSION",
+      "text": "upload documents;"
+    },
+    {
+      "lineNo": 138,
+      "section": 3,
+      "subsection": null,
+      "sectionTitle": "CLIENT DISCOVERY SESSION",
+      "text": "attach links;"
+    },
+    {
+      "lineNo": 139,
+      "section": 3,
+      "subsection": null,
+      "sectionTitle": "CLIENT DISCOVERY SESSION",
+      "text": "mark client-confirmed decisions;"
+    },
+    {
+      "lineNo": 140,
+      "section": 3,
+      "subsection": null,
+      "sectionTitle": "CLIENT DISCOVERY SESSION",
+      "text": "mark questions needing follow-up;"
+    },
+    {
+      "lineNo": 141,
+      "section": 3,
+      "subsection": null,
+      "sectionTitle": "CLIENT DISCOVERY SESSION",
+      "text": "optionally record/transcribe the conversation where the client has consented."
+    },
+    {
+      "lineNo": 150,
+      "section": 3,
+      "subsection": "3.1 Recording and transcription",
+      "sectionTitle": "CLIENT DISCOVERY SESSION",
+      "text": "consent status;"
+    },
+    {
+      "lineNo": 151,
+      "section": 3,
+      "subsection": "3.1 Recording and transcription",
+      "sectionTitle": "CLIENT DISCOVERY SESSION",
+      "text": "consent timestamp;"
+    },
+    {
+      "lineNo": 152,
+      "section": 3,
+      "subsection": "3.1 Recording and transcription",
+      "sectionTitle": "CLIENT DISCOVERY SESSION",
+      "text": "operator;"
+    },
+    {
+      "lineNo": 153,
+      "section": 3,
+      "subsection": "3.1 Recording and transcription",
+      "sectionTitle": "CLIENT DISCOVERY SESSION",
+      "text": "client/participant context;"
+    },
+    {
+      "lineNo": 154,
+      "section": 3,
+      "subsection": "3.1 Recording and transcription",
+      "sectionTitle": "CLIENT DISCOVERY SESSION",
+      "text": "recording reference if retained;"
+    },
+    {
+      "lineNo": 155,
+      "section": 3,
+      "subsection": "3.1 Recording and transcription",
+      "sectionTitle": "CLIENT DISCOVERY SESSION",
+      "text": "transcript reference if retained;"
+    },
+    {
+      "lineNo": 156,
+      "section": 3,
+      "subsection": "3.1 Recording and transcription",
+      "sectionTitle": "CLIENT DISCOVERY SESSION",
+      "text": "retention/deletion behavior according to Leonix policy."
+    },
+    {
+      "lineNo": 161,
+      "section": 3,
+      "subsection": "3.1 Recording and transcription",
+      "sectionTitle": "CLIENT DISCOVERY SESSION",
+      "text": "notes;"
+    },
+    {
+      "lineNo": 162,
+      "section": 3,
+      "subsection": "3.1 Recording and transcription",
+      "sectionTitle": "CLIENT DISCOVERY SESSION",
+      "text": "dictation;"
+    },
+    {
+      "lineNo": 163,
+      "section": 3,
+      "subsection": "3.1 Recording and transcription",
+      "sectionTitle": "CLIENT DISCOVERY SESSION",
+      "text": "structured intake;"
+    },
+    {
+      "lineNo": 164,
+      "section": 3,
+      "subsection": "3.1 Recording and transcription",
+      "sectionTitle": "CLIENT DISCOVERY SESSION",
+      "text": "uploads"
+    },
+    {
+      "lineNo": 174,
+      "section": 4,
+      "subsection": "CLIENT CONFIRMED",
+      "sectionTitle": "CLIENT STATEMENT TYPES",
+      "text": "[STATE] CLIENT CONFIRMED"
+    },
+    {
+      "lineNo": 177,
+      "section": 4,
+      "subsection": "PUBLIC / VERIFIED",
+      "sectionTitle": "CLIENT STATEMENT TYPES",
+      "text": "[STATE] PUBLIC / VERIFIED"
+    },
+    {
+      "lineNo": 180,
+      "section": 4,
+      "subsection": "STAFF OBSERVATION",
+      "sectionTitle": "CLIENT STATEMENT TYPES",
+      "text": "[STATE] STAFF OBSERVATION"
+    },
+    {
+      "lineNo": 183,
+      "section": 4,
+      "subsection": "AI EXTRACTED",
+      "sectionTitle": "CLIENT STATEMENT TYPES",
+      "text": "[STATE] AI EXTRACTED"
+    },
+    {
+      "lineNo": 186,
+      "section": 4,
+      "subsection": "NEEDS CONFIRMATION",
+      "sectionTitle": "CLIENT STATEMENT TYPES",
+      "text": "[STATE] NEEDS CONFIRMATION"
+    },
+    {
+      "lineNo": 189,
+      "section": 4,
+      "subsection": "UNKNOWN",
+      "sectionTitle": "CLIENT STATEMENT TYPES",
+      "text": "[STATE] UNKNOWN"
+    },
+    {
+      "lineNo": 192,
+      "section": 4,
+      "subsection": "CLIENT PREFERENCE",
+      "sectionTitle": "CLIENT STATEMENT TYPES",
+      "text": "[STATE] CLIENT PREFERENCE"
+    },
+    {
+      "lineNo": 195,
+      "section": 4,
+      "subsection": "LEONIX RECOMMENDATION",
+      "sectionTitle": "CLIENT STATEMENT TYPES",
+      "text": "[STATE] LEONIX RECOMMENDATION"
+    },
+    {
+      "lineNo": 198,
+      "section": 4,
+      "subsection": "TECHNICAL DECISION",
+      "sectionTitle": "CLIENT STATEMENT TYPES",
+      "text": "[STATE] TECHNICAL DECISION"
+    },
+    {
+      "lineNo": 213,
+      "section": 5,
+      "subsection": "REQUIRED BEFORE BUILD",
+      "sectionTitle": "DISCOVERY COMPLETENESS ENGINE",
+      "text": "[STATE] REQUIRED BEFORE BUILD"
+    },
+    {
+      "lineNo": 216,
+      "section": 5,
+      "subsection": "REQUIRED BEFORE LAUNCH",
+      "sectionTitle": "DISCOVERY COMPLETENESS ENGINE",
+      "text": "[STATE] REQUIRED BEFORE LAUNCH"
+    },
+    {
+      "lineNo": 219,
+      "section": 5,
+      "subsection": "HELPFUL",
+      "sectionTitle": "DISCOVERY COMPLETENESS ENGINE",
+      "text": "[STATE] HELPFUL"
+    },
+    {
+      "lineNo": 222,
+      "section": 5,
+      "subsection": "OPTIONAL",
+      "sectionTitle": "DISCOVERY COMPLETENESS ENGINE",
+      "text": "[STATE] OPTIONAL"
+    },
+    {
+      "lineNo": 225,
+      "section": 5,
+      "subsection": "NOT APPLICABLE",
+      "sectionTitle": "DISCOVERY COMPLETENESS ENGINE",
+      "text": "[STATE] NOT APPLICABLE"
+    },
+    {
+      "lineNo": 228,
+      "section": 5,
+      "subsection": "NEEDS LEONIX DECISION",
+      "sectionTitle": "DISCOVERY COMPLETENESS ENGINE",
+      "text": "[STATE] NEEDS LEONIX DECISION"
+    },
+    {
+      "lineNo": 231,
+      "section": 5,
+      "subsection": "NEEDS OFFICIAL RESEARCH",
+      "sectionTitle": "DISCOVERY COMPLETENESS ENGINE",
+      "text": "[STATE] NEEDS OFFICIAL RESEARCH"
+    },
+    {
+      "lineNo": 241,
+      "section": 6,
+      "subsection": null,
+      "sectionTitle": "ADAPTIVE QUESTION ENGINE",
+      "text": "project type;"
+    },
+    {
+      "lineNo": 242,
+      "section": 6,
+      "subsection": null,
+      "sectionTitle": "ADAPTIVE QUESTION ENGINE",
+      "text": "industry;"
+    },
+    {
+      "lineNo": 243,
+      "section": 6,
+      "subsection": null,
+      "sectionTitle": "ADAPTIVE QUESTION ENGINE",
+      "text": "business stage;"
+    },
+    {
+      "lineNo": 244,
+      "section": 6,
+      "subsection": null,
+      "sectionTitle": "ADAPTIVE QUESTION ENGINE",
+      "text": "existing business truth;"
+    },
+    {
+      "lineNo": 245,
+      "section": 6,
+      "subsection": null,
+      "sectionTitle": "ADAPTIVE QUESTION ENGINE",
+      "text": "missing information;"
+    },
+    {
+      "lineNo": 246,
+      "section": 6,
+      "subsection": null,
+      "sectionTitle": "ADAPTIVE QUESTION ENGINE",
+      "text": "client goals;"
+    },
+    {
+      "lineNo": 247,
+      "section": 6,
+      "subsection": null,
+      "sectionTitle": "ADAPTIVE QUESTION ENGINE",
+      "text": "existing systems;"
+    },
+    {
+      "lineNo": 248,
+      "section": 6,
+      "subsection": null,
+      "sectionTitle": "ADAPTIVE QUESTION ENGINE",
+      "text": "uploaded assets;"
+    },
+    {
+      "lineNo": 249,
+      "section": 6,
+      "subsection": null,
+      "sectionTitle": "ADAPTIVE QUESTION ENGINE",
+      "text": "current website;"
+    },
+    {
+      "lineNo": 250,
+      "section": 6,
+      "subsection": null,
+      "sectionTitle": "ADAPTIVE QUESTION ENGINE",
+      "text": "client preferences;"
+    },
+    {
+      "lineNo": 251,
+      "section": 6,
+      "subsection": null,
+      "sectionTitle": "ADAPTIVE QUESTION ENGINE",
+      "text": "deadlines;"
+    },
+    {
+      "lineNo": 252,
+      "section": 6,
+      "subsection": null,
+      "sectionTitle": "ADAPTIVE QUESTION ENGINE",
+      "text": "budget;"
+    },
+    {
+      "lineNo": 253,
+      "section": 6,
+      "subsection": null,
+      "sectionTitle": "ADAPTIVE QUESTION ENGINE",
+      "text": "ownership;"
+    },
+    {
+      "lineNo": 254,
+      "section": 6,
+      "subsection": null,
+      "sectionTitle": "ADAPTIVE QUESTION ENGINE",
+      "text": "compliance context."
+    },
+    {
+      "lineNo": 269,
+      "section": 7,
+      "subsection": null,
+      "sectionTitle": "PROJECT TYPES",
+      "text": "Website / Website Improvement"
+    },
+    {
+      "lineNo": 270,
+      "section": 7,
+      "subsection": null,
+      "sectionTitle": "PROJECT TYPES",
+      "text": "Landing Page"
+    },
+    {
+      "lineNo": 271,
+      "section": 7,
+      "subsection": null,
+      "sectionTitle": "PROJECT TYPES",
+      "text": "Logo / Brand Identity"
+    },
+    {
+      "lineNo": 272,
+      "section": 7,
+      "subsection": null,
+      "sectionTitle": "PROJECT TYPES",
+      "text": "Business Cards"
+    },
+    {
+      "lineNo": 273,
+      "section": 7,
+      "subsection": null,
+      "sectionTitle": "PROJECT TYPES",
+      "text": "Flyer"
+    },
+    {
+      "lineNo": 274,
+      "section": 7,
+      "subsection": null,
+      "sectionTitle": "PROJECT TYPES",
+      "text": "Banner / Signage"
+    },
+    {
+      "lineNo": 275,
+      "section": 7,
+      "subsection": null,
+      "sectionTitle": "PROJECT TYPES",
+      "text": "Promotional Products"
+    },
+    {
+      "lineNo": 276,
+      "section": 7,
+      "subsection": null,
+      "sectionTitle": "PROJECT TYPES",
+      "text": "Campaign Creative"
+    },
+    {
+      "lineNo": 277,
+      "section": 7,
+      "subsection": null,
+      "sectionTitle": "PROJECT TYPES",
+      "text": "Sponsored Editorial"
+    },
+    {
+      "lineNo": 278,
+      "section": 7,
+      "subsection": null,
+      "sectionTitle": "PROJECT TYPES",
+      "text": "Media / Exposure Campaign"
+    },
+    {
+      "lineNo": 279,
+      "section": 7,
+      "subsection": null,
+      "sectionTitle": "PROJECT TYPES",
+      "text": "Social Setup / Cleanup"
+    },
+    {
+      "lineNo": 280,
+      "section": 7,
+      "subsection": null,
+      "sectionTitle": "PROJECT TYPES",
+      "text": "Google Business Profile support"
+    },
+    {
+      "lineNo": 281,
+      "section": 7,
+      "subsection": null,
+      "sectionTitle": "PROJECT TYPES",
+      "text": "Referral Materials"
+    },
+    {
+      "lineNo": 282,
+      "section": 7,
+      "subsection": null,
+      "sectionTitle": "PROJECT TYPES",
+      "text": "Launch Package / Multi-project engagement"
+    },
+    {
+      "lineNo": 283,
+      "section": 7,
+      "subsection": null,
+      "sectionTitle": "PROJECT TYPES",
+      "text": "Custom Platform / Software Project"
+    },
+    {
+      "lineNo": 284,
+      "section": 7,
+      "subsection": null,
+      "sectionTitle": "PROJECT TYPES",
+      "text": "Other approved project type"
+    },
+    {
+      "lineNo": 297,
+      "section": 8,
+      "subsection": "8.1 Business identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "legal/business name where relevant;"
+    },
+    {
+      "lineNo": 298,
+      "section": 8,
+      "subsection": "8.1 Business identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "public brand name;"
+    },
+    {
+      "lineNo": 299,
+      "section": 8,
+      "subsection": "8.1 Business identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "pronunciation if helpful;"
+    },
+    {
+      "lineNo": 300,
+      "section": 8,
+      "subsection": "8.1 Business identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "business stage;"
+    },
+    {
+      "lineNo": 301,
+      "section": 8,
+      "subsection": "8.1 Business identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "category/industry;"
+    },
+    {
+      "lineNo": 302,
+      "section": 8,
+      "subsection": "8.1 Business identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "location;"
+    },
+    {
+      "lineNo": 303,
+      "section": 8,
+      "subsection": "8.1 Business identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "service area;"
+    },
+    {
+      "lineNo": 304,
+      "section": 8,
+      "subsection": "8.1 Business identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "public phone;"
+    },
+    {
+      "lineNo": 305,
+      "section": 8,
+      "subsection": "8.1 Business identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "public email;"
+    },
+    {
+      "lineNo": 306,
+      "section": 8,
+      "subsection": "8.1 Business identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "public address;"
+    },
+    {
+      "lineNo": 307,
+      "section": 8,
+      "subsection": "8.1 Business identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "languages;"
+    },
+    {
+      "lineNo": 308,
+      "section": 8,
+      "subsection": "8.1 Business identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "hours;"
+    },
+    {
+      "lineNo": 309,
+      "section": 8,
+      "subsection": "8.1 Business identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "ownership/decision maker;"
+    },
+    {
+      "lineNo": 310,
+      "section": 8,
+      "subsection": "8.1 Business identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "project approver."
+    },
+    {
+      "lineNo": 313,
+      "section": 8,
+      "subsection": "8.2 Website objective",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "why the website is being created/changed;"
+    },
+    {
+      "lineNo": 314,
+      "section": 8,
+      "subsection": "8.2 Website objective",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "primary business goal;"
+    },
+    {
+      "lineNo": 315,
+      "section": 8,
+      "subsection": "8.2 Website objective",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "primary visitor action;"
+    },
+    {
+      "lineNo": 316,
+      "section": 8,
+      "subsection": "8.2 Website objective",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "secondary visitor actions;"
+    },
+    {
+      "lineNo": 317,
+      "section": 8,
+      "subsection": "8.2 Website objective",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "desired visitor outcome;"
+    },
+    {
+      "lineNo": 318,
+      "section": 8,
+      "subsection": "8.2 Website objective",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "current pain point;"
+    },
+    {
+      "lineNo": 319,
+      "section": 8,
+      "subsection": "8.2 Website objective",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "launch trigger/deadline;"
+    },
+    {
+      "lineNo": 320,
+      "section": 8,
+      "subsection": "8.2 Website objective",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "campaign/event/promotion driving the project."
+    },
+    {
+      "lineNo": 323,
+      "section": 8,
+      "subsection": "8.3 Audience",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "primary customer;"
+    },
+    {
+      "lineNo": 324,
+      "section": 8,
+      "subsection": "8.3 Audience",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "secondary customer;"
+    },
+    {
+      "lineNo": 325,
+      "section": 8,
+      "subsection": "8.3 Audience",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "geography;"
+    },
+    {
+      "lineNo": 326,
+      "section": 8,
+      "subsection": "8.3 Audience",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "language;"
+    },
+    {
+      "lineNo": 327,
+      "section": 8,
+      "subsection": "8.3 Audience",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "customer needs/problems;"
+    },
+    {
+      "lineNo": 328,
+      "section": 8,
+      "subsection": "8.3 Audience",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "what visitors already know before arriving;"
+    },
+    {
+      "lineNo": 329,
+      "section": 8,
+      "subsection": "8.3 Audience",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "what creates trust;"
+    },
+    {
+      "lineNo": 330,
+      "section": 8,
+      "subsection": "8.3 Audience",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "objections/barriers;"
+    },
+    {
+      "lineNo": 331,
+      "section": 8,
+      "subsection": "8.3 Audience",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "accessibility considerations."
+    },
+    {
+      "lineNo": 334,
+      "section": 8,
+      "subsection": "8.4 Offers / services / products",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "services;"
+    },
+    {
+      "lineNo": 335,
+      "section": 8,
+      "subsection": "8.4 Offers / services / products",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "products;"
+    },
+    {
+      "lineNo": 336,
+      "section": 8,
+      "subsection": "8.4 Offers / services / products",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "memberships;"
+    },
+    {
+      "lineNo": 337,
+      "section": 8,
+      "subsection": "8.4 Offers / services / products",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "programs;"
+    },
+    {
+      "lineNo": 338,
+      "section": 8,
+      "subsection": "8.4 Offers / services / products",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "pricing only when client-approved for publication;"
+    },
+    {
+      "lineNo": 339,
+      "section": 8,
+      "subsection": "8.4 Offers / services / products",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "packages;"
+    },
+    {
+      "lineNo": 340,
+      "section": 8,
+      "subsection": "8.4 Offers / services / products",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "specials/promotions;"
+    },
+    {
+      "lineNo": 341,
+      "section": 8,
+      "subsection": "8.4 Offers / services / products",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "booking requirements;"
+    },
+    {
+      "lineNo": 342,
+      "section": 8,
+      "subsection": "8.4 Offers / services / products",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "ordering requirements;"
+    },
+    {
+      "lineNo": 343,
+      "section": 8,
+      "subsection": "8.4 Offers / services / products",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "service areas;"
+    },
+    {
+      "lineNo": 344,
+      "section": 8,
+      "subsection": "8.4 Offers / services / products",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "availability/capacity;"
+    },
+    {
+      "lineNo": 345,
+      "section": 8,
+      "subsection": "8.4 Offers / services / products",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "priority offering;"
+    },
+    {
+      "lineNo": 346,
+      "section": 8,
+      "subsection": "8.4 Offers / services / products",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "what the client wants more of;"
+    },
+    {
+      "lineNo": 347,
+      "section": 8,
+      "subsection": "8.4 Offers / services / products",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "what the client does not want more of."
+    },
+    {
+      "lineNo": 350,
+      "section": 8,
+      "subsection": "8.5 Brand identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "existing logo;"
+    },
+    {
+      "lineNo": 351,
+      "section": 8,
+      "subsection": "8.5 Brand identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "logo source files;"
+    },
+    {
+      "lineNo": 352,
+      "section": 8,
+      "subsection": "8.5 Brand identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "colors;"
+    },
+    {
+      "lineNo": 353,
+      "section": 8,
+      "subsection": "8.5 Brand identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "exact color values if known;"
+    },
+    {
+      "lineNo": 354,
+      "section": 8,
+      "subsection": "8.5 Brand identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "colors disliked;"
+    },
+    {
+      "lineNo": 355,
+      "section": 8,
+      "subsection": "8.5 Brand identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "typography preferences;"
+    },
+    {
+      "lineNo": 356,
+      "section": 8,
+      "subsection": "8.5 Brand identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "brand personality;"
+    },
+    {
+      "lineNo": 357,
+      "section": 8,
+      "subsection": "8.5 Brand identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "tone;"
+    },
+    {
+      "lineNo": 358,
+      "section": 8,
+      "subsection": "8.5 Brand identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "emotional target;"
+    },
+    {
+      "lineNo": 359,
+      "section": 8,
+      "subsection": "8.5 Brand identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "visual style;"
+    },
+    {
+      "lineNo": 360,
+      "section": 8,
+      "subsection": "8.5 Brand identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "cultural/local meaning where relevant;"
+    },
+    {
+      "lineNo": 361,
+      "section": 8,
+      "subsection": "8.5 Brand identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "symbols/icons desired;"
+    },
+    {
+      "lineNo": 362,
+      "section": 8,
+      "subsection": "8.5 Brand identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "symbols/icons to avoid;"
+    },
+    {
+      "lineNo": 363,
+      "section": 8,
+      "subsection": "8.5 Brand identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "existing brand standards;"
+    },
+    {
+      "lineNo": 364,
+      "section": 8,
+      "subsection": "8.5 Brand identity",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "consistency requirements."
+    },
+    {
+      "lineNo": 367,
+      "section": 8,
+      "subsection": "8.6 Visual references",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "websites liked;"
+    },
+    {
+      "lineNo": 368,
+      "section": 8,
+      "subsection": "8.6 Visual references",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "websites disliked;"
+    },
+    {
+      "lineNo": 369,
+      "section": 8,
+      "subsection": "8.6 Visual references",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "screenshots;"
+    },
+    {
+      "lineNo": 370,
+      "section": 8,
+      "subsection": "8.6 Visual references",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "competitor references;"
+    },
+    {
+      "lineNo": 371,
+      "section": 8,
+      "subsection": "8.6 Visual references",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "non-competitor inspiration;"
+    },
+    {
+      "lineNo": 372,
+      "section": 8,
+      "subsection": "8.6 Visual references",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "preferred hero style;"
+    },
+    {
+      "lineNo": 373,
+      "section": 8,
+      "subsection": "8.6 Visual references",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "preferred imagery;"
+    },
+    {
+      "lineNo": 374,
+      "section": 8,
+      "subsection": "8.6 Visual references",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "preferred density;"
+    },
+    {
+      "lineNo": 375,
+      "section": 8,
+      "subsection": "8.6 Visual references",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "animation preference;"
+    },
+    {
+      "lineNo": 376,
+      "section": 8,
+      "subsection": "8.6 Visual references",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "examples of “too much”;"
+    },
+    {
+      "lineNo": 377,
+      "section": 8,
+      "subsection": "8.6 Visual references",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "examples of “too plain”;"
+    },
+    {
+      "lineNo": 378,
+      "section": 8,
+      "subsection": "8.6 Visual references",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "explanation of what specifically the client likes/dislikes."
+    },
+    {
+      "lineNo": 383,
+      "section": 8,
+      "subsection": "8.7 Content",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "existing copy;"
+    },
+    {
+      "lineNo": 384,
+      "section": 8,
+      "subsection": "8.7 Content",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "copy Leonix must write;"
+    },
+    {
+      "lineNo": 385,
+      "section": 8,
+      "subsection": "8.7 Content",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "About story;"
+    },
+    {
+      "lineNo": 386,
+      "section": 8,
+      "subsection": "8.7 Content",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "founder story;"
+    },
+    {
+      "lineNo": 387,
+      "section": 8,
+      "subsection": "8.7 Content",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "service descriptions;"
+    },
+    {
+      "lineNo": 388,
+      "section": 8,
+      "subsection": "8.7 Content",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "FAQs;"
+    },
+    {
+      "lineNo": 389,
+      "section": 8,
+      "subsection": "8.7 Content",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "testimonials;"
+    },
+    {
+      "lineNo": 390,
+      "section": 8,
+      "subsection": "8.7 Content",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "reviews;"
+    },
+    {
+      "lineNo": 391,
+      "section": 8,
+      "subsection": "8.7 Content",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "credentials;"
+    },
+    {
+      "lineNo": 392,
+      "section": 8,
+      "subsection": "8.7 Content",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "certifications;"
+    },
+    {
+      "lineNo": 393,
+      "section": 8,
+      "subsection": "8.7 Content",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "awards;"
+    },
+    {
+      "lineNo": 394,
+      "section": 8,
+      "subsection": "8.7 Content",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "team bios;"
+    },
+    {
+      "lineNo": 395,
+      "section": 8,
+      "subsection": "8.7 Content",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "policies;"
+    },
+    {
+      "lineNo": 396,
+      "section": 8,
+      "subsection": "8.7 Content",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "disclaimers;"
+    },
+    {
+      "lineNo": 397,
+      "section": 8,
+      "subsection": "8.7 Content",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "menu/programming/schedule;"
+    },
+    {
+      "lineNo": 398,
+      "section": 8,
+      "subsection": "8.7 Content",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "events;"
+    },
+    {
+      "lineNo": 399,
+      "section": 8,
+      "subsection": "8.7 Content",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "promotions;"
+    },
+    {
+      "lineNo": 400,
+      "section": 8,
+      "subsection": "8.7 Content",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "blog/news requirement;"
+    },
+    {
+      "lineNo": 401,
+      "section": 8,
+      "subsection": "8.7 Content",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "downloadable files;"
+    },
+    {
+      "lineNo": 402,
+      "section": 8,
+      "subsection": "8.7 Content",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "forms;"
+    },
+    {
+      "lineNo": 403,
+      "section": 8,
+      "subsection": "8.7 Content",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "calls to action."
+    },
+    {
+      "lineNo": 408,
+      "section": 8,
+      "subsection": "8.8 Media / assets",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "logo files;"
+    },
+    {
+      "lineNo": 409,
+      "section": 8,
+      "subsection": "8.8 Media / assets",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "photos;"
+    },
+    {
+      "lineNo": 410,
+      "section": 8,
+      "subsection": "8.8 Media / assets",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "team photos;"
+    },
+    {
+      "lineNo": 411,
+      "section": 8,
+      "subsection": "8.8 Media / assets",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "location photos;"
+    },
+    {
+      "lineNo": 412,
+      "section": 8,
+      "subsection": "8.8 Media / assets",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "product/service images;"
+    },
+    {
+      "lineNo": 413,
+      "section": 8,
+      "subsection": "8.8 Media / assets",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "video;"
+    },
+    {
+      "lineNo": 414,
+      "section": 8,
+      "subsection": "8.8 Media / assets",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "flyers;"
+    },
+    {
+      "lineNo": 415,
+      "section": 8,
+      "subsection": "8.8 Media / assets",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "PDFs;"
+    },
+    {
+      "lineNo": 416,
+      "section": 8,
+      "subsection": "8.8 Media / assets",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "icons;"
+    },
+    {
+      "lineNo": 417,
+      "section": 8,
+      "subsection": "8.8 Media / assets",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "existing brand graphics;"
+    },
+    {
+      "lineNo": 418,
+      "section": 8,
+      "subsection": "8.8 Media / assets",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "social images;"
+    },
+    {
+      "lineNo": 419,
+      "section": 8,
+      "subsection": "8.8 Media / assets",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "photography need;"
+    },
+    {
+      "lineNo": 420,
+      "section": 8,
+      "subsection": "8.8 Media / assets",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "image-generation authorization if ever applicable;"
+    },
+    {
+      "lineNo": 421,
+      "section": 8,
+      "subsection": "8.8 Media / assets",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "asset ownership/license status."
+    },
+    {
+      "lineNo": 425,
+      "section": 8,
+      "subsection": "8.9 Page / section architecture",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "home;"
+    },
+    {
+      "lineNo": 426,
+      "section": 8,
+      "subsection": "8.9 Page / section architecture",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "about;"
+    },
+    {
+      "lineNo": 427,
+      "section": 8,
+      "subsection": "8.9 Page / section architecture",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "services;"
+    },
+    {
+      "lineNo": 428,
+      "section": 8,
+      "subsection": "8.9 Page / section architecture",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "individual service pages;"
+    },
+    {
+      "lineNo": 429,
+      "section": 8,
+      "subsection": "8.9 Page / section architecture",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "menu;"
+    },
+    {
+      "lineNo": 430,
+      "section": 8,
+      "subsection": "8.9 Page / section architecture",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "programs;"
+    },
+    {
+      "lineNo": 431,
+      "section": 8,
+      "subsection": "8.9 Page / section architecture",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "team;"
+    },
+    {
+      "lineNo": 432,
+      "section": 8,
+      "subsection": "8.9 Page / section architecture",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "events;"
+    },
+    {
+      "lineNo": 433,
+      "section": 8,
+      "subsection": "8.9 Page / section architecture",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "gallery;"
+    },
+    {
+      "lineNo": 434,
+      "section": 8,
+      "subsection": "8.9 Page / section architecture",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "testimonials;"
+    },
+    {
+      "lineNo": 435,
+      "section": 8,
+      "subsection": "8.9 Page / section architecture",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "FAQ;"
+    },
+    {
+      "lineNo": 436,
+      "section": 8,
+      "subsection": "8.9 Page / section architecture",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "contact;"
+    },
+    {
+      "lineNo": 437,
+      "section": 8,
+      "subsection": "8.9 Page / section architecture",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "locations;"
+    },
+    {
+      "lineNo": 438,
+      "section": 8,
+      "subsection": "8.9 Page / section architecture",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "careers;"
+    },
+    {
+      "lineNo": 439,
+      "section": 8,
+      "subsection": "8.9 Page / section architecture",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "booking;"
+    },
+    {
+      "lineNo": 440,
+      "section": 8,
+      "subsection": "8.9 Page / section architecture",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "order;"
+    },
+    {
+      "lineNo": 441,
+      "section": 8,
+      "subsection": "8.9 Page / section architecture",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "listen/watch live;"
+    },
+    {
+      "lineNo": 442,
+      "section": 8,
+      "subsection": "8.9 Page / section architecture",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "donation;"
+    },
+    {
+      "lineNo": 443,
+      "section": 8,
+      "subsection": "8.9 Page / section architecture",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "resources;"
+    },
+    {
+      "lineNo": 444,
+      "section": 8,
+      "subsection": "8.9 Page / section architecture",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "legal/privacy;"
+    },
+    {
+      "lineNo": 445,
+      "section": 8,
+      "subsection": "8.9 Page / section architecture",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "campaign landing pages."
+    },
+    {
+      "lineNo": 450,
+      "section": 8,
+      "subsection": "8.10 Primary CTA and conversion path",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "Call"
+    },
+    {
+      "lineNo": 451,
+      "section": 8,
+      "subsection": "8.10 Primary CTA and conversion path",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "Text"
+    },
+    {
+      "lineNo": 452,
+      "section": 8,
+      "subsection": "8.10 Primary CTA and conversion path",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "WhatsApp"
+    },
+    {
+      "lineNo": 453,
+      "section": 8,
+      "subsection": "8.10 Primary CTA and conversion path",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "Email"
+    },
+    {
+      "lineNo": 454,
+      "section": 8,
+      "subsection": "8.10 Primary CTA and conversion path",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "Contact form"
+    },
+    {
+      "lineNo": 455,
+      "section": 8,
+      "subsection": "8.10 Primary CTA and conversion path",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "Quote"
+    },
+    {
+      "lineNo": 456,
+      "section": 8,
+      "subsection": "8.10 Primary CTA and conversion path",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "Book"
+    },
+    {
+      "lineNo": 457,
+      "section": 8,
+      "subsection": "8.10 Primary CTA and conversion path",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "Reserve"
+    },
+    {
+      "lineNo": 458,
+      "section": 8,
+      "subsection": "8.10 Primary CTA and conversion path",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "Order"
+    },
+    {
+      "lineNo": 459,
+      "section": 8,
+      "subsection": "8.10 Primary CTA and conversion path",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "Buy"
+    },
+    {
+      "lineNo": 460,
+      "section": 8,
+      "subsection": "8.10 Primary CTA and conversion path",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "Donate"
+    },
+    {
+      "lineNo": 461,
+      "section": 8,
+      "subsection": "8.10 Primary CTA and conversion path",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "Listen Live"
+    },
+    {
+      "lineNo": 462,
+      "section": 8,
+      "subsection": "8.10 Primary CTA and conversion path",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "Watch Live"
+    },
+    {
+      "lineNo": 463,
+      "section": 8,
+      "subsection": "8.10 Primary CTA and conversion path",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "Register"
+    },
+    {
+      "lineNo": 464,
+      "section": 8,
+      "subsection": "8.10 Primary CTA and conversion path",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "Apply"
+    },
+    {
+      "lineNo": 465,
+      "section": 8,
+      "subsection": "8.10 Primary CTA and conversion path",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "Visit"
+    },
+    {
+      "lineNo": 466,
+      "section": 8,
+      "subsection": "8.10 Primary CTA and conversion path",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "Directions"
+    },
+    {
+      "lineNo": 467,
+      "section": 8,
+      "subsection": "8.10 Primary CTA and conversion path",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "Other"
+    },
+    {
+      "lineNo": 470,
+      "section": 8,
+      "subsection": "8.10 Primary CTA and conversion path",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "destination;"
+    },
+    {
+      "lineNo": 471,
+      "section": 8,
+      "subsection": "8.10 Primary CTA and conversion path",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "owner/provider;"
+    },
+    {
+      "lineNo": 472,
+      "section": 8,
+      "subsection": "8.10 Primary CTA and conversion path",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "success expectation;"
+    },
+    {
+      "lineNo": 473,
+      "section": 8,
+      "subsection": "8.10 Primary CTA and conversion path",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "fallback;"
+    },
+    {
+      "lineNo": 474,
+      "section": 8,
+      "subsection": "8.10 Primary CTA and conversion path",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "tracking if appropriate."
+    },
+    {
+      "lineNo": 478,
+      "section": 8,
+      "subsection": "8.11 Forms",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "purpose;"
+    },
+    {
+      "lineNo": 479,
+      "section": 8,
+      "subsection": "8.11 Forms",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "fields;"
+    },
+    {
+      "lineNo": 480,
+      "section": 8,
+      "subsection": "8.11 Forms",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "required/optional;"
+    },
+    {
+      "lineNo": 481,
+      "section": 8,
+      "subsection": "8.11 Forms",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "recipient;"
+    },
+    {
+      "lineNo": 482,
+      "section": 8,
+      "subsection": "8.11 Forms",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "reply-to behavior;"
+    },
+    {
+      "lineNo": 483,
+      "section": 8,
+      "subsection": "8.11 Forms",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "spam protection;"
+    },
+    {
+      "lineNo": 484,
+      "section": 8,
+      "subsection": "8.11 Forms",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "success state;"
+    },
+    {
+      "lineNo": 485,
+      "section": 8,
+      "subsection": "8.11 Forms",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "failure state;"
+    },
+    {
+      "lineNo": 486,
+      "section": 8,
+      "subsection": "8.11 Forms",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "sensitive-data restrictions;"
+    },
+    {
+      "lineNo": 487,
+      "section": 8,
+      "subsection": "8.11 Forms",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "data retention expectation;"
+    },
+    {
+      "lineNo": 488,
+      "section": 8,
+      "subsection": "8.11 Forms",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "whether database persistence is actually needed."
+    },
+    {
+      "lineNo": 491,
+      "section": 8,
+      "subsection": "8.12 Domain",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "existing domain?"
+    },
+    {
+      "lineNo": 492,
+      "section": 8,
+      "subsection": "8.12 Domain",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "registrar?"
+    },
+    {
+      "lineNo": 493,
+      "section": 8,
+      "subsection": "8.12 Domain",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "owner?"
+    },
+    {
+      "lineNo": 494,
+      "section": 8,
+      "subsection": "8.12 Domain",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "login/access available?"
+    },
+    {
+      "lineNo": 495,
+      "section": 8,
+      "subsection": "8.12 Domain",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "DNS access?"
+    },
+    {
+      "lineNo": 496,
+      "section": 8,
+      "subsection": "8.12 Domain",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "renewal date if known;"
+    },
+    {
+      "lineNo": 497,
+      "section": 8,
+      "subsection": "8.12 Domain",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "auto-renew state if known;"
+    },
+    {
+      "lineNo": 498,
+      "section": 8,
+      "subsection": "8.12 Domain",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "desired new domain;"
+    },
+    {
+      "lineNo": 499,
+      "section": 8,
+      "subsection": "8.12 Domain",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "alternate domains;"
+    },
+    {
+      "lineNo": 500,
+      "section": 8,
+      "subsection": "8.12 Domain",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "who pays;"
+    },
+    {
+      "lineNo": 501,
+      "section": 8,
+      "subsection": "8.12 Domain",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "who owns long term."
+    },
+    {
+      "lineNo": 506,
+      "section": 8,
+      "subsection": "8.13 Hosting / deployment",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "existing host;"
+    },
+    {
+      "lineNo": 507,
+      "section": 8,
+      "subsection": "8.13 Hosting / deployment",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "migration required?"
+    },
+    {
+      "lineNo": 508,
+      "section": 8,
+      "subsection": "8.13 Hosting / deployment",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "current billing owner;"
+    },
+    {
+      "lineNo": 509,
+      "section": 8,
+      "subsection": "8.13 Hosting / deployment",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "deployment platform;"
+    },
+    {
+      "lineNo": 510,
+      "section": 8,
+      "subsection": "8.13 Hosting / deployment",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "preview requirement;"
+    },
+    {
+      "lineNo": 511,
+      "section": 8,
+      "subsection": "8.13 Hosting / deployment",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "production domain;"
+    },
+    {
+      "lineNo": 512,
+      "section": 8,
+      "subsection": "8.13 Hosting / deployment",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "rollback/recovery expectation;"
+    },
+    {
+      "lineNo": 513,
+      "section": 8,
+      "subsection": "8.13 Hosting / deployment",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "who pays."
+    },
+    {
+      "lineNo": 516,
+      "section": 8,
+      "subsection": "8.14 CMS / content editing",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "who updates the site;"
+    },
+    {
+      "lineNo": 517,
+      "section": 8,
+      "subsection": "8.14 CMS / content editing",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "what they update;"
+    },
+    {
+      "lineNo": 518,
+      "section": 8,
+      "subsection": "8.14 CMS / content editing",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "how often;"
+    },
+    {
+      "lineNo": 519,
+      "section": 8,
+      "subsection": "8.14 CMS / content editing",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "events?"
+    },
+    {
+      "lineNo": 520,
+      "section": 8,
+      "subsection": "8.14 CMS / content editing",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "promotions?"
+    },
+    {
+      "lineNo": 521,
+      "section": 8,
+      "subsection": "8.14 CMS / content editing",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "team?"
+    },
+    {
+      "lineNo": 522,
+      "section": 8,
+      "subsection": "8.14 CMS / content editing",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "schedule?"
+    },
+    {
+      "lineNo": 523,
+      "section": 8,
+      "subsection": "8.14 CMS / content editing",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "menu?"
+    },
+    {
+      "lineNo": 524,
+      "section": 8,
+      "subsection": "8.14 CMS / content editing",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "photos?"
+    },
+    {
+      "lineNo": 525,
+      "section": 8,
+      "subsection": "8.14 CMS / content editing",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "articles?"
+    },
+    {
+      "lineNo": 526,
+      "section": 8,
+      "subsection": "8.14 CMS / content editing",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "whether Leonix manages content;"
+    },
+    {
+      "lineNo": 527,
+      "section": 8,
+      "subsection": "8.14 CMS / content editing",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "whether client staff needs CMS seats."
+    },
+    {
+      "lineNo": 534,
+      "section": 8,
+      "subsection": "8.15 Backend / database / auth",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "persistent records?"
+    },
+    {
+      "lineNo": 535,
+      "section": 8,
+      "subsection": "8.15 Backend / database / auth",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "accounts?"
+    },
+    {
+      "lineNo": 536,
+      "section": 8,
+      "subsection": "8.15 Backend / database / auth",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "login?"
+    },
+    {
+      "lineNo": 537,
+      "section": 8,
+      "subsection": "8.15 Backend / database / auth",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "roles?"
+    },
+    {
+      "lineNo": 538,
+      "section": 8,
+      "subsection": "8.15 Backend / database / auth",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "private dashboard?"
+    },
+    {
+      "lineNo": 539,
+      "section": 8,
+      "subsection": "8.15 Backend / database / auth",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "submissions stored?"
+    },
+    {
+      "lineNo": 540,
+      "section": 8,
+      "subsection": "8.15 Backend / database / auth",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "uploads?"
+    },
+    {
+      "lineNo": 541,
+      "section": 8,
+      "subsection": "8.15 Backend / database / auth",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "customer history?"
+    },
+    {
+      "lineNo": 542,
+      "section": 8,
+      "subsection": "8.15 Backend / database / auth",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "member portal?"
+    },
+    {
+      "lineNo": 543,
+      "section": 8,
+      "subsection": "8.15 Backend / database / auth",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "complex workflow?"
+    },
+    {
+      "lineNo": 544,
+      "section": 8,
+      "subsection": "8.15 Backend / database / auth",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "database?"
+    },
+    {
+      "lineNo": 545,
+      "section": 8,
+      "subsection": "8.15 Backend / database / auth",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "authentication?"
+    },
+    {
+      "lineNo": 546,
+      "section": 8,
+      "subsection": "8.15 Backend / database / auth",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "storage?"
+    },
+    {
+      "lineNo": 547,
+      "section": 8,
+      "subsection": "8.15 Backend / database / auth",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "API integrations?"
+    },
+    {
+      "lineNo": 552,
+      "section": 8,
+      "subsection": "8.16 Booking / scheduling",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "provider;"
+    },
+    {
+      "lineNo": 553,
+      "section": 8,
+      "subsection": "8.16 Booking / scheduling",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "current account;"
+    },
+    {
+      "lineNo": 554,
+      "section": 8,
+      "subsection": "8.16 Booking / scheduling",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "link/embed/API;"
+    },
+    {
+      "lineNo": 555,
+      "section": 8,
+      "subsection": "8.16 Booking / scheduling",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "ownership;"
+    },
+    {
+      "lineNo": 556,
+      "section": 8,
+      "subsection": "8.16 Booking / scheduling",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "staff calendars;"
+    },
+    {
+      "lineNo": 557,
+      "section": 8,
+      "subsection": "8.16 Booking / scheduling",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "appointment types;"
+    },
+    {
+      "lineNo": 558,
+      "section": 8,
+      "subsection": "8.16 Booking / scheduling",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "payments;"
+    },
+    {
+      "lineNo": 559,
+      "section": 8,
+      "subsection": "8.16 Booking / scheduling",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "reminders;"
+    },
+    {
+      "lineNo": 560,
+      "section": 8,
+      "subsection": "8.16 Booking / scheduling",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "required integration level."
+    },
+    {
+      "lineNo": 565,
+      "section": 8,
+      "subsection": "8.17 Payments / commerce",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "payment required?"
+    },
+    {
+      "lineNo": 566,
+      "section": 8,
+      "subsection": "8.17 Payments / commerce",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "informational link or native checkout?"
+    },
+    {
+      "lineNo": 567,
+      "section": 8,
+      "subsection": "8.17 Payments / commerce",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "products/services?"
+    },
+    {
+      "lineNo": 568,
+      "section": 8,
+      "subsection": "8.17 Payments / commerce",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "deposits?"
+    },
+    {
+      "lineNo": 569,
+      "section": 8,
+      "subsection": "8.17 Payments / commerce",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "subscriptions?"
+    },
+    {
+      "lineNo": 570,
+      "section": 8,
+      "subsection": "8.17 Payments / commerce",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "tax/shipping?"
+    },
+    {
+      "lineNo": 571,
+      "section": 8,
+      "subsection": "8.17 Payments / commerce",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "inventory?"
+    },
+    {
+      "lineNo": 572,
+      "section": 8,
+      "subsection": "8.17 Payments / commerce",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "refunds?"
+    },
+    {
+      "lineNo": 573,
+      "section": 8,
+      "subsection": "8.17 Payments / commerce",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "owner/provider?"
+    },
+    {
+      "lineNo": 574,
+      "section": 8,
+      "subsection": "8.17 Payments / commerce",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "compliance?"
+    },
+    {
+      "lineNo": 579,
+      "section": 8,
+      "subsection": "8.18 Social / external presence",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "Instagram;"
+    },
+    {
+      "lineNo": 580,
+      "section": 8,
+      "subsection": "8.18 Social / external presence",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "Facebook;"
+    },
+    {
+      "lineNo": 581,
+      "section": 8,
+      "subsection": "8.18 Social / external presence",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "TikTok;"
+    },
+    {
+      "lineNo": 582,
+      "section": 8,
+      "subsection": "8.18 Social / external presence",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "YouTube;"
+    },
+    {
+      "lineNo": 583,
+      "section": 8,
+      "subsection": "8.18 Social / external presence",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "LinkedIn;"
+    },
+    {
+      "lineNo": 584,
+      "section": 8,
+      "subsection": "8.18 Social / external presence",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "Yelp;"
+    },
+    {
+      "lineNo": 585,
+      "section": 8,
+      "subsection": "8.18 Social / external presence",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "Google Business Profile;"
+    },
+    {
+      "lineNo": 586,
+      "section": 8,
+      "subsection": "8.18 Social / external presence",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "booking platform;"
+    },
+    {
+      "lineNo": 587,
+      "section": 8,
+      "subsection": "8.18 Social / external presence",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "ordering platform;"
+    },
+    {
+      "lineNo": 588,
+      "section": 8,
+      "subsection": "8.18 Social / external presence",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "marketplace profiles;"
+    },
+    {
+      "lineNo": 589,
+      "section": 8,
+      "subsection": "8.18 Social / external presence",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "other relevant accounts."
+    },
+    {
+      "lineNo": 592,
+      "section": 8,
+      "subsection": "8.19 SEO / discovery",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "primary geography;"
+    },
+    {
+      "lineNo": 593,
+      "section": 8,
+      "subsection": "8.19 SEO / discovery",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "services/products to be found for;"
+    },
+    {
+      "lineNo": 594,
+      "section": 8,
+      "subsection": "8.19 SEO / discovery",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "business name searches;"
+    },
+    {
+      "lineNo": 595,
+      "section": 8,
+      "subsection": "8.19 SEO / discovery",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "local keywords;"
+    },
+    {
+      "lineNo": 596,
+      "section": 8,
+      "subsection": "8.19 SEO / discovery",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "multiple locations;"
+    },
+    {
+      "lineNo": 597,
+      "section": 8,
+      "subsection": "8.19 SEO / discovery",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "multilingual SEO;"
+    },
+    {
+      "lineNo": 598,
+      "section": 8,
+      "subsection": "8.19 SEO / discovery",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "existing ranking/traffic information if available;"
+    },
+    {
+      "lineNo": 599,
+      "section": 8,
+      "subsection": "8.19 SEO / discovery",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "redirects from old site;"
+    },
+    {
+      "lineNo": 600,
+      "section": 8,
+      "subsection": "8.19 SEO / discovery",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "metadata;"
+    },
+    {
+      "lineNo": 601,
+      "section": 8,
+      "subsection": "8.19 SEO / discovery",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "structured data;"
+    },
+    {
+      "lineNo": 602,
+      "section": 8,
+      "subsection": "8.19 SEO / discovery",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "indexability;"
+    },
+    {
+      "lineNo": 603,
+      "section": 8,
+      "subsection": "8.19 SEO / discovery",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "canonical URL."
+    },
+    {
+      "lineNo": 608,
+      "section": 8,
+      "subsection": "8.20 Analytics / measurement",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "page views;"
+    },
+    {
+      "lineNo": 609,
+      "section": 8,
+      "subsection": "8.20 Analytics / measurement",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "CTA clicks;"
+    },
+    {
+      "lineNo": 610,
+      "section": 8,
+      "subsection": "8.20 Analytics / measurement",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "form submissions;"
+    },
+    {
+      "lineNo": 611,
+      "section": 8,
+      "subsection": "8.20 Analytics / measurement",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "phone clicks;"
+    },
+    {
+      "lineNo": 612,
+      "section": 8,
+      "subsection": "8.20 Analytics / measurement",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "email clicks;"
+    },
+    {
+      "lineNo": 613,
+      "section": 8,
+      "subsection": "8.20 Analytics / measurement",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "booking clicks;"
+    },
+    {
+      "lineNo": 614,
+      "section": 8,
+      "subsection": "8.20 Analytics / measurement",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "order clicks;"
+    },
+    {
+      "lineNo": 615,
+      "section": 8,
+      "subsection": "8.20 Analytics / measurement",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "directions;"
+    },
+    {
+      "lineNo": 616,
+      "section": 8,
+      "subsection": "8.20 Analytics / measurement",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "downloads;"
+    },
+    {
+      "lineNo": 617,
+      "section": 8,
+      "subsection": "8.20 Analytics / measurement",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "campaign-specific events;"
+    },
+    {
+      "lineNo": 618,
+      "section": 8,
+      "subsection": "8.20 Analytics / measurement",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "QR traffic;"
+    },
+    {
+      "lineNo": 619,
+      "section": 8,
+      "subsection": "8.20 Analytics / measurement",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "other business-specific measurements."
+    },
+    {
+      "lineNo": 622,
+      "section": 8,
+      "subsection": "8.21 Accessibility",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "keyboard support;"
+    },
+    {
+      "lineNo": 623,
+      "section": 8,
+      "subsection": "8.21 Accessibility",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "contrast;"
+    },
+    {
+      "lineNo": 624,
+      "section": 8,
+      "subsection": "8.21 Accessibility",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "semantic headings;"
+    },
+    {
+      "lineNo": 625,
+      "section": 8,
+      "subsection": "8.21 Accessibility",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "labels;"
+    },
+    {
+      "lineNo": 626,
+      "section": 8,
+      "subsection": "8.21 Accessibility",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "alt text;"
+    },
+    {
+      "lineNo": 627,
+      "section": 8,
+      "subsection": "8.21 Accessibility",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "focus states;"
+    },
+    {
+      "lineNo": 628,
+      "section": 8,
+      "subsection": "8.21 Accessibility",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "reduced motion;"
+    },
+    {
+      "lineNo": 629,
+      "section": 8,
+      "subsection": "8.21 Accessibility",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "captions/transcripts where relevant;"
+    },
+    {
+      "lineNo": 630,
+      "section": 8,
+      "subsection": "8.21 Accessibility",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "audio/video controls;"
+    },
+    {
+      "lineNo": 631,
+      "section": 8,
+      "subsection": "8.21 Accessibility",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "screen-reader usability;"
+    },
+    {
+      "lineNo": 632,
+      "section": 8,
+      "subsection": "8.21 Accessibility",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "client-specific accessibility needs."
+    },
+    {
+      "lineNo": 635,
+      "section": 8,
+      "subsection": "8.22 Languages",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "primary language;"
+    },
+    {
+      "lineNo": 636,
+      "section": 8,
+      "subsection": "8.22 Languages",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "secondary language;"
+    },
+    {
+      "lineNo": 637,
+      "section": 8,
+      "subsection": "8.22 Languages",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "bilingual page model;"
+    },
+    {
+      "lineNo": 638,
+      "section": 8,
+      "subsection": "8.22 Languages",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "translation ownership;"
+    },
+    {
+      "lineNo": 639,
+      "section": 8,
+      "subsection": "8.22 Languages",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "whether copy differs by language;"
+    },
+    {
+      "lineNo": 640,
+      "section": 8,
+      "subsection": "8.22 Languages",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "legal/content translation requirements."
+    },
+    {
+      "lineNo": 643,
+      "section": 8,
+      "subsection": "8.23 Privacy / legal / compliance",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "personal information collected;"
+    },
+    {
+      "lineNo": 644,
+      "section": 8,
+      "subsection": "8.23 Privacy / legal / compliance",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "forms;"
+    },
+    {
+      "lineNo": 645,
+      "section": 8,
+      "subsection": "8.23 Privacy / legal / compliance",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "analytics;"
+    },
+    {
+      "lineNo": 646,
+      "section": 8,
+      "subsection": "8.23 Privacy / legal / compliance",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "cookies;"
+    },
+    {
+      "lineNo": 647,
+      "section": 8,
+      "subsection": "8.23 Privacy / legal / compliance",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "uploads;"
+    },
+    {
+      "lineNo": 648,
+      "section": 8,
+      "subsection": "8.23 Privacy / legal / compliance",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "minors;"
+    },
+    {
+      "lineNo": 649,
+      "section": 8,
+      "subsection": "8.23 Privacy / legal / compliance",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "medical/financial/sensitive information;"
+    },
+    {
+      "lineNo": 650,
+      "section": 8,
+      "subsection": "8.23 Privacy / legal / compliance",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "privacy notice;"
+    },
+    {
+      "lineNo": 651,
+      "section": 8,
+      "subsection": "8.23 Privacy / legal / compliance",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "accessibility/legal obligations requiring external advice;"
+    },
+    {
+      "lineNo": 652,
+      "section": 8,
+      "subsection": "8.23 Privacy / legal / compliance",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "industry-specific requirements requiring official research."
+    },
+    {
+      "lineNo": 658,
+      "section": 8,
+      "subsection": "8.24 Ownership / billing",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "account owner;"
+    },
+    {
+      "lineNo": 659,
+      "section": 8,
+      "subsection": "8.24 Ownership / billing",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "billing owner;"
+    },
+    {
+      "lineNo": 660,
+      "section": 8,
+      "subsection": "8.24 Ownership / billing",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "recovery email;"
+    },
+    {
+      "lineNo": 661,
+      "section": 8,
+      "subsection": "8.24 Ownership / billing",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "renewal responsibility;"
+    },
+    {
+      "lineNo": 662,
+      "section": 8,
+      "subsection": "8.24 Ownership / billing",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "Leonix access level;"
+    },
+    {
+      "lineNo": 663,
+      "section": 8,
+      "subsection": "8.24 Ownership / billing",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "handoff expectation."
+    },
+    {
+      "lineNo": 666,
+      "section": 8,
+      "subsection": "8.25 Maintenance",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "client-managed;"
+    },
+    {
+      "lineNo": 667,
+      "section": 8,
+      "subsection": "8.25 Maintenance",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "Leonix-managed;"
+    },
+    {
+      "lineNo": 668,
+      "section": 8,
+      "subsection": "8.25 Maintenance",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "mixed;"
+    },
+    {
+      "lineNo": 669,
+      "section": 8,
+      "subsection": "8.25 Maintenance",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "expected update frequency;"
+    },
+    {
+      "lineNo": 670,
+      "section": 8,
+      "subsection": "8.25 Maintenance",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "support expectation;"
+    },
+    {
+      "lineNo": 671,
+      "section": 8,
+      "subsection": "8.25 Maintenance",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "content turnaround;"
+    },
+    {
+      "lineNo": 672,
+      "section": 8,
+      "subsection": "8.25 Maintenance",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "technical maintenance;"
+    },
+    {
+      "lineNo": 673,
+      "section": 8,
+      "subsection": "8.25 Maintenance",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "emergency contact;"
+    },
+    {
+      "lineNo": 674,
+      "section": 8,
+      "subsection": "8.25 Maintenance",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "future enhancement path."
+    },
+    {
+      "lineNo": 679,
+      "section": 8,
+      "subsection": "8.26 Scope > IN SCOPE",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "[STATE] IN SCOPE"
+    },
+    {
+      "lineNo": 682,
+      "section": 8,
+      "subsection": "8.26 Scope > IN SCOPE > OUT OF SCOPE",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "[STATE] OUT OF SCOPE"
+    },
+    {
+      "lineNo": 685,
+      "section": 8,
+      "subsection": "8.26 Scope > IN SCOPE > OUT OF SCOPE > FUTURE / OPTIONAL",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "[STATE] FUTURE / OPTIONAL"
+    },
+    {
+      "lineNo": 688,
+      "section": 8,
+      "subsection": "8.26 Scope > IN SCOPE > OUT OF SCOPE > FUTURE / OPTIONAL > CLIENT RESPONSIBILITIES",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "[STATE] CLIENT RESPONSIBILITIES"
+    },
+    {
+      "lineNo": 691,
+      "section": 8,
+      "subsection": "8.26 Scope > IN SCOPE > OUT OF SCOPE > FUTURE / OPTIONAL > CLIENT RESPONSIBILITIES > LEONIX RESPONSIBILITIES",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "[STATE] LEONIX RESPONSIBILITIES"
+    },
+    {
+      "lineNo": 695,
+      "section": 8,
+      "subsection": "8.27 Schedule / approvals",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "desired start;"
+    },
+    {
+      "lineNo": 696,
+      "section": 8,
+      "subsection": "8.27 Schedule / approvals",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "target preview;"
+    },
+    {
+      "lineNo": 697,
+      "section": 8,
+      "subsection": "8.27 Schedule / approvals",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "target launch;"
+    },
+    {
+      "lineNo": 698,
+      "section": 8,
+      "subsection": "8.27 Schedule / approvals",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "hard deadline;"
+    },
+    {
+      "lineNo": 699,
+      "section": 8,
+      "subsection": "8.27 Schedule / approvals",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "reason for deadline;"
+    },
+    {
+      "lineNo": 700,
+      "section": 8,
+      "subsection": "8.27 Schedule / approvals",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "approver;"
+    },
+    {
+      "lineNo": 701,
+      "section": 8,
+      "subsection": "8.27 Schedule / approvals",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "decision-maker availability;"
+    },
+    {
+      "lineNo": 702,
+      "section": 8,
+      "subsection": "8.27 Schedule / approvals",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "content delivery date;"
+    },
+    {
+      "lineNo": 703,
+      "section": 8,
+      "subsection": "8.27 Schedule / approvals",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "revision expectations;"
+    },
+    {
+      "lineNo": 704,
+      "section": 8,
+      "subsection": "8.27 Schedule / approvals",
+      "sectionTitle": "WEBSITE DISCOVERY INFORMATION CONTRACT",
+      "text": "approval checkpoints."
+    },
+    {
+      "lineNo": 717,
+      "section": 9,
+      "subsection": "Restaurant",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "menu;"
+    },
+    {
+      "lineNo": 718,
+      "section": 9,
+      "subsection": "Restaurant",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "ordering;"
+    },
+    {
+      "lineNo": 719,
+      "section": 9,
+      "subsection": "Restaurant",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "reservations;"
+    },
+    {
+      "lineNo": 720,
+      "section": 9,
+      "subsection": "Restaurant",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "catering;"
+    },
+    {
+      "lineNo": 721,
+      "section": 9,
+      "subsection": "Restaurant",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "delivery platforms;"
+    },
+    {
+      "lineNo": 722,
+      "section": 9,
+      "subsection": "Restaurant",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "dietary information;"
+    },
+    {
+      "lineNo": 723,
+      "section": 9,
+      "subsection": "Restaurant",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "multiple locations;"
+    },
+    {
+      "lineNo": 724,
+      "section": 9,
+      "subsection": "Restaurant",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "hours;"
+    },
+    {
+      "lineNo": 725,
+      "section": 9,
+      "subsection": "Restaurant",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "specials."
+    },
+    {
+      "lineNo": 728,
+      "section": 9,
+      "subsection": "Fitness",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "memberships;"
+    },
+    {
+      "lineNo": 729,
+      "section": 9,
+      "subsection": "Fitness",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "classes;"
+    },
+    {
+      "lineNo": 730,
+      "section": 9,
+      "subsection": "Fitness",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "personal training;"
+    },
+    {
+      "lineNo": 731,
+      "section": 9,
+      "subsection": "Fitness",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "schedule;"
+    },
+    {
+      "lineNo": 732,
+      "section": 9,
+      "subsection": "Fitness",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "trial offer;"
+    },
+    {
+      "lineNo": 733,
+      "section": 9,
+      "subsection": "Fitness",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "booking;"
+    },
+    {
+      "lineNo": 734,
+      "section": 9,
+      "subsection": "Fitness",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "capacity;"
+    },
+    {
+      "lineNo": 735,
+      "section": 9,
+      "subsection": "Fitness",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "target member."
+    },
+    {
+      "lineNo": 738,
+      "section": 9,
+      "subsection": "Radio / Media",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "stream;"
+    },
+    {
+      "lineNo": 739,
+      "section": 9,
+      "subsection": "Radio / Media",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "streaming provider;"
+    },
+    {
+      "lineNo": 740,
+      "section": 9,
+      "subsection": "Radio / Media",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "programming;"
+    },
+    {
+      "lineNo": 741,
+      "section": 9,
+      "subsection": "Radio / Media",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "hosts;"
+    },
+    {
+      "lineNo": 742,
+      "section": 9,
+      "subsection": "Radio / Media",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "events;"
+    },
+    {
+      "lineNo": 743,
+      "section": 9,
+      "subsection": "Radio / Media",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "advertisers;"
+    },
+    {
+      "lineNo": 744,
+      "section": 9,
+      "subsection": "Radio / Media",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "Listen Live;"
+    },
+    {
+      "lineNo": 745,
+      "section": 9,
+      "subsection": "Radio / Media",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "station messages;"
+    },
+    {
+      "lineNo": 746,
+      "section": 9,
+      "subsection": "Radio / Media",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "sponsor relationships."
+    },
+    {
+      "lineNo": 749,
+      "section": 9,
+      "subsection": "Church",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "service times;"
+    },
+    {
+      "lineNo": 750,
+      "section": 9,
+      "subsection": "Church",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "livestream;"
+    },
+    {
+      "lineNo": 751,
+      "section": 9,
+      "subsection": "Church",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "ministries;"
+    },
+    {
+      "lineNo": 752,
+      "section": 9,
+      "subsection": "Church",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "events;"
+    },
+    {
+      "lineNo": 753,
+      "section": 9,
+      "subsection": "Church",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "giving;"
+    },
+    {
+      "lineNo": 754,
+      "section": 9,
+      "subsection": "Church",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "prayer/contact;"
+    },
+    {
+      "lineNo": 755,
+      "section": 9,
+      "subsection": "Church",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "leadership;"
+    },
+    {
+      "lineNo": 756,
+      "section": 9,
+      "subsection": "Church",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "accessibility/language."
+    },
+    {
+      "lineNo": 759,
+      "section": 9,
+      "subsection": "Professional Service",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "credentials;"
+    },
+    {
+      "lineNo": 760,
+      "section": 9,
+      "subsection": "Professional Service",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "consultation;"
+    },
+    {
+      "lineNo": 761,
+      "section": 9,
+      "subsection": "Professional Service",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "service areas;"
+    },
+    {
+      "lineNo": 762,
+      "section": 9,
+      "subsection": "Professional Service",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "lead qualification;"
+    },
+    {
+      "lineNo": 763,
+      "section": 9,
+      "subsection": "Professional Service",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "compliance;"
+    },
+    {
+      "lineNo": 764,
+      "section": 9,
+      "subsection": "Professional Service",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "trust proof;"
+    },
+    {
+      "lineNo": 765,
+      "section": 9,
+      "subsection": "Professional Service",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "conversion path."
+    },
+    {
+      "lineNo": 768,
+      "section": 9,
+      "subsection": "Home / Local Service",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "service area;"
+    },
+    {
+      "lineNo": 769,
+      "section": 9,
+      "subsection": "Home / Local Service",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "quote process;"
+    },
+    {
+      "lineNo": 770,
+      "section": 9,
+      "subsection": "Home / Local Service",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "emergency service;"
+    },
+    {
+      "lineNo": 771,
+      "section": 9,
+      "subsection": "Home / Local Service",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "scheduling;"
+    },
+    {
+      "lineNo": 772,
+      "section": 9,
+      "subsection": "Home / Local Service",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "licensing/insurance truth;"
+    },
+    {
+      "lineNo": 773,
+      "section": 9,
+      "subsection": "Home / Local Service",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "before/after media;"
+    },
+    {
+      "lineNo": 774,
+      "section": 9,
+      "subsection": "Home / Local Service",
+      "sectionTitle": "INDUSTRY-SPECIFIC QUESTION BRANCHES",
+      "text": "service categories."
+    },
+    {
+      "lineNo": 780,
+      "section": 10,
+      "subsection": "RAPID BUSINESS SITE",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "[STATE] RAPID BUSINESS SITE"
+    },
+    {
+      "lineNo": 782,
+      "section": 10,
+      "subsection": "RAPID BUSINESS SITE",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "marketing/landing site;"
+    },
+    {
+      "lineNo": 783,
+      "section": 10,
+      "subsection": "RAPID BUSINESS SITE",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "simple pages/sections;"
+    },
+    {
+      "lineNo": 784,
+      "section": 10,
+      "subsection": "RAPID BUSINESS SITE",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "forms;"
+    },
+    {
+      "lineNo": 785,
+      "section": 10,
+      "subsection": "RAPID BUSINESS SITE",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "social/external links;"
+    },
+    {
+      "lineNo": 786,
+      "section": 10,
+      "subsection": "RAPID BUSINESS SITE",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "no complex auth;"
+    },
+    {
+      "lineNo": 787,
+      "section": 10,
+      "subsection": "RAPID BUSINESS SITE",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "no native transactional application."
+    },
+    {
+      "lineNo": 789,
+      "section": 10,
+      "subsection": "BUSINESS SITE",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "[STATE] BUSINESS SITE"
+    },
+    {
+      "lineNo": 791,
+      "section": 10,
+      "subsection": "BUSINESS SITE",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "richer multi-page site;"
+    },
+    {
+      "lineNo": 792,
+      "section": 10,
+      "subsection": "BUSINESS SITE",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "CMS;"
+    },
+    {
+      "lineNo": 793,
+      "section": 10,
+      "subsection": "BUSINESS SITE",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "events/programming/menu/team;"
+    },
+    {
+      "lineNo": 794,
+      "section": 10,
+      "subsection": "BUSINESS SITE",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "booking integrations;"
+    },
+    {
+      "lineNo": 795,
+      "section": 10,
+      "subsection": "BUSINESS SITE",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "moderate content operations;"
+    },
+    {
+      "lineNo": 796,
+      "section": 10,
+      "subsection": "BUSINESS SITE",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "stronger SEO requirements."
+    },
+    {
+      "lineNo": 798,
+      "section": 10,
+      "subsection": "CUSTOM PLATFORM",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "[STATE] CUSTOM PLATFORM"
+    },
+    {
+      "lineNo": 800,
+      "section": 10,
+      "subsection": "CUSTOM PLATFORM",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "user accounts;"
+    },
+    {
+      "lineNo": 801,
+      "section": 10,
+      "subsection": "CUSTOM PLATFORM",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "private dashboards;"
+    },
+    {
+      "lineNo": 802,
+      "section": 10,
+      "subsection": "CUSTOM PLATFORM",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "complex database;"
+    },
+    {
+      "lineNo": 803,
+      "section": 10,
+      "subsection": "CUSTOM PLATFORM",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "workflow state;"
+    },
+    {
+      "lineNo": 804,
+      "section": 10,
+      "subsection": "CUSTOM PLATFORM",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "native marketplace;"
+    },
+    {
+      "lineNo": 805,
+      "section": 10,
+      "subsection": "CUSTOM PLATFORM",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "complex checkout;"
+    },
+    {
+      "lineNo": 806,
+      "section": 10,
+      "subsection": "CUSTOM PLATFORM",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "significant integrations;"
+    },
+    {
+      "lineNo": 807,
+      "section": 10,
+      "subsection": "CUSTOM PLATFORM",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "member/customer records;"
+    },
+    {
+      "lineNo": 808,
+      "section": 10,
+      "subsection": "CUSTOM PLATFORM",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "application state;"
+    },
+    {
+      "lineNo": 809,
+      "section": 10,
+      "subsection": "CUSTOM PLATFORM",
+      "sectionTitle": "WEBSITE SCOPE CLASSIFIER",
+      "text": "custom operational software."
+    },
+    {
+      "lineNo": 823,
+      "section": 11,
+      "subsection": "DOMAIN / DNS",
+      "sectionTitle": "PREFERRED PLATFORM REGISTRY",
+      "text": "[STATE] DOMAIN / DNS"
+    },
+    {
+      "lineNo": 830,
+      "section": 11,
+      "subsection": "FRONTEND",
+      "sectionTitle": "PREFERRED PLATFORM REGISTRY",
+      "text": "[STATE] FRONTEND"
+    },
+    {
+      "lineNo": 834,
+      "section": 11,
+      "subsection": "HOSTING / DEPLOYMENT",
+      "sectionTitle": "PREFERRED PLATFORM REGISTRY",
+      "text": "[STATE] HOSTING / DEPLOYMENT"
+    },
+    {
+      "lineNo": 838,
+      "section": 11,
+      "subsection": "CMS",
+      "sectionTitle": "PREFERRED PLATFORM REGISTRY",
+      "text": "[STATE] CMS"
+    },
+    {
+      "lineNo": 844,
+      "section": 11,
+      "subsection": "FORMS / TRANSACTIONAL EMAIL",
+      "sectionTitle": "PREFERRED PLATFORM REGISTRY",
+      "text": "[STATE] FORMS / TRANSACTIONAL EMAIL"
+    },
+    {
+      "lineNo": 848,
+      "section": 11,
+      "subsection": "DATABASE / AUTH / STORAGE",
+      "sectionTitle": "PREFERRED PLATFORM REGISTRY",
+      "text": "[STATE] DATABASE / AUTH / STORAGE"
+    },
+    {
+      "lineNo": 854,
+      "section": 11,
+      "subsection": "ANALYTICS",
+      "sectionTitle": "PREFERRED PLATFORM REGISTRY",
+      "text": "[STATE] ANALYTICS"
+    },
+    {
+      "lineNo": 856,
+      "section": 11,
+      "subsection": "ANALYTICS",
+      "sectionTitle": "PREFERRED PLATFORM REGISTRY",
+      "text": "lightweight Vercel Analytics and/or"
+    },
+    {
+      "lineNo": 857,
+      "section": 11,
+      "subsection": "ANALYTICS",
+      "sectionTitle": "PREFERRED PLATFORM REGISTRY",
+      "text": "Google Analytics"
+    },
+    {
+      "lineNo": 859,
+      "section": 11,
+      "subsection": "BUILD / ENGINEERING",
+      "sectionTitle": "PREFERRED PLATFORM REGISTRY",
+      "text": "[STATE] BUILD / ENGINEERING"
+    },
+    {
+      "lineNo": 861,
+      "section": 11,
+      "subsection": "BUILD / ENGINEERING",
+      "sectionTitle": "PREFERRED PLATFORM REGISTRY",
+      "text": "GitHub;"
+    },
+    {
+      "lineNo": 862,
+      "section": 11,
+      "subsection": "BUILD / ENGINEERING",
+      "sectionTitle": "PREFERRED PLATFORM REGISTRY",
+      "text": "Claude/Cursor;"
+    },
+    {
+      "lineNo": 863,
+      "section": 11,
+      "subsection": "BUILD / ENGINEERING",
+      "sectionTitle": "PREFERRED PLATFORM REGISTRY",
+      "text": "gated Leonix project MD;"
+    },
+    {
+      "lineNo": 864,
+      "section": 11,
+      "subsection": "BUILD / ENGINEERING",
+      "sectionTitle": "PREFERRED PLATFORM REGISTRY",
+      "text": "Vercel Preview;"
+    },
+    {
+      "lineNo": 865,
+      "section": 11,
+      "subsection": "BUILD / ENGINEERING",
+      "sectionTitle": "PREFERRED PLATFORM REGISTRY",
+      "text": "owner QA."
+    },
+    {
+      "lineNo": 867,
+      "section": 11,
+      "subsection": "ALTERNATE VISUAL PLATFORM",
+      "sectionTitle": "PREFERRED PLATFORM REGISTRY",
+      "text": "[STATE] ALTERNATE VISUAL PLATFORM"
+    },
+    {
+      "lineNo": 873,
+      "section": 11,
+      "subsection": "OTHER PLATFORMS",
+      "sectionTitle": "PREFERRED PLATFORM REGISTRY",
+      "text": "[STATE] OTHER PLATFORMS"
+    },
+    {
+      "lineNo": 883,
+      "section": 12,
+      "subsection": null,
+      "sectionTitle": "PLATFORM DECISION ENGINE",
+      "text": "recommended architecture;"
+    },
+    {
+      "lineNo": 884,
+      "section": 12,
+      "subsection": null,
+      "sectionTitle": "PLATFORM DECISION ENGINE",
+      "text": "why;"
+    },
+    {
+      "lineNo": 885,
+      "section": 12,
+      "subsection": null,
+      "sectionTitle": "PLATFORM DECISION ENGINE",
+      "text": "CMS yes/no;"
+    },
+    {
+      "lineNo": 886,
+      "section": 12,
+      "subsection": null,
+      "sectionTitle": "PLATFORM DECISION ENGINE",
+      "text": "database yes/no;"
+    },
+    {
+      "lineNo": 887,
+      "section": 12,
+      "subsection": null,
+      "sectionTitle": "PLATFORM DECISION ENGINE",
+      "text": "auth yes/no;"
+    },
+    {
+      "lineNo": 888,
+      "section": 12,
+      "subsection": null,
+      "sectionTitle": "PLATFORM DECISION ENGINE",
+      "text": "form/email choice;"
+    },
+    {
+      "lineNo": 889,
+      "section": 12,
+      "subsection": null,
+      "sectionTitle": "PLATFORM DECISION ENGINE",
+      "text": "domain/DNS choice;"
+    },
+    {
+      "lineNo": 890,
+      "section": 12,
+      "subsection": null,
+      "sectionTitle": "PLATFORM DECISION ENGINE",
+      "text": "ownership;"
+    },
+    {
+      "lineNo": 891,
+      "section": 12,
+      "subsection": null,
+      "sectionTitle": "PLATFORM DECISION ENGINE",
+      "text": "recurring-cost implications;"
+    },
+    {
+      "lineNo": 892,
+      "section": 12,
+      "subsection": null,
+      "sectionTitle": "PLATFORM DECISION ENGINE",
+      "text": "scope escalation if needed."
+    },
+    {
+      "lineNo": 914,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#1 Project identity"
+    },
+    {
+      "lineNo": 915,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#2 Client/business identity"
+    },
+    {
+      "lineNo": 916,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#3 Project type"
+    },
+    {
+      "lineNo": 917,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#4 Business context"
+    },
+    {
+      "lineNo": 918,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#5 Client goals"
+    },
+    {
+      "lineNo": 919,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#6 Target audience"
+    },
+    {
+      "lineNo": 920,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#7 Primary CTA"
+    },
+    {
+      "lineNo": 921,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#8 Secondary CTAs"
+    },
+    {
+      "lineNo": 922,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#9 Client-confirmed preferences"
+    },
+    {
+      "lineNo": 923,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#10 Client dislikes / avoid list"
+    },
+    {
+      "lineNo": 924,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#11 Existing assets"
+    },
+    {
+      "lineNo": 925,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#12 Missing assets"
+    },
+    {
+      "lineNo": 926,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#13 Content inventory"
+    },
+    {
+      "lineNo": 927,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#14 Required content creation"
+    },
+    {
+      "lineNo": 928,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#15 Visual references"
+    },
+    {
+      "lineNo": 929,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#16 Brand system"
+    },
+    {
+      "lineNo": 930,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#17 Page/section architecture"
+    },
+    {
+      "lineNo": 931,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#18 Functional requirements"
+    },
+    {
+      "lineNo": 932,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#19 Forms"
+    },
+    {
+      "lineNo": 933,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#20 Integrations"
+    },
+    {
+      "lineNo": 934,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#21 CMS decision"
+    },
+    {
+      "lineNo": 935,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#22 Backend/database/auth decision"
+    },
+    {
+      "lineNo": 936,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#23 Domain/DNS"
+    },
+    {
+      "lineNo": 937,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#24 Hosting/deployment"
+    },
+    {
+      "lineNo": 938,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#25 Platform decisions and rationale"
+    },
+    {
+      "lineNo": 939,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#26 SEO"
+    },
+    {
+      "lineNo": 940,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#27 Analytics"
+    },
+    {
+      "lineNo": 941,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#28 Accessibility"
+    },
+    {
+      "lineNo": 942,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#29 Languages"
+    },
+    {
+      "lineNo": 943,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#30 Privacy/compliance considerations"
+    },
+    {
+      "lineNo": 944,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#31 Ownership/billing"
+    },
+    {
+      "lineNo": 945,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#32 Maintenance"
+    },
+    {
+      "lineNo": 946,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#33 Scope"
+    },
+    {
+      "lineNo": 947,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#34 Out of scope"
+    },
+    {
+      "lineNo": 948,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#35 Future ideas"
+    },
+    {
+      "lineNo": 949,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#36 Dependencies"
+    },
+    {
+      "lineNo": 950,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#37 Client responsibilities"
+    },
+    {
+      "lineNo": 951,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#38 Leonix responsibilities"
+    },
+    {
+      "lineNo": 952,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#39 Timeline"
+    },
+    {
+      "lineNo": 953,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#40 Build gates"
+    },
+    {
+      "lineNo": 954,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#41 Acceptance criteria"
+    },
+    {
+      "lineNo": 955,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#42 QA matrix"
+    },
+    {
+      "lineNo": 956,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#43 Launch checklist"
+    },
+    {
+      "lineNo": 957,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#44 Handoff checklist"
+    },
+    {
+      "lineNo": 958,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#45 Definition of done"
+    },
+    {
+      "lineNo": 959,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#46 Known unresolved items"
+    },
+    {
+      "lineNo": 960,
+      "section": 14,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT GENERATOR",
+      "text": "#47 Source/evidence references where appropriate"
+    },
+    {
+      "lineNo": 969,
+      "section": 15,
+      "subsection": null,
+      "sectionTitle": "CLIENT WORDS VS LEONIX DECISIONS",
+      "text": "CLIENT SAID"
+    },
+    {
+      "lineNo": 970,
+      "section": 15,
+      "subsection": null,
+      "sectionTitle": "CLIENT WORDS VS LEONIX DECISIONS",
+      "text": "LEONIX INTERPRETATION"
+    },
+    {
+      "lineNo": 971,
+      "section": 15,
+      "subsection": null,
+      "sectionTitle": "CLIENT WORDS VS LEONIX DECISIONS",
+      "text": "CLIENT APPROVED"
+    },
+    {
+      "lineNo": 972,
+      "section": 15,
+      "subsection": null,
+      "sectionTitle": "CLIENT WORDS VS LEONIX DECISIONS",
+      "text": "LEONIX TECHNICAL DECISION"
+    },
+    {
+      "lineNo": 973,
+      "section": 15,
+      "subsection": null,
+      "sectionTitle": "CLIENT WORDS VS LEONIX DECISIONS",
+      "text": "NEEDS CONFIRMATION"
+    },
+    {
+      "lineNo": 980,
+      "section": 16,
+      "subsection": null,
+      "sectionTitle": "VISUAL REFERENCE CONTRACT",
+      "text": "what the client likes;"
+    },
+    {
+      "lineNo": 981,
+      "section": 16,
+      "subsection": null,
+      "sectionTitle": "VISUAL REFERENCE CONTRACT",
+      "text": "what they dislike;"
+    },
+    {
+      "lineNo": 982,
+      "section": 16,
+      "subsection": null,
+      "sectionTitle": "VISUAL REFERENCE CONTRACT",
+      "text": "what Leonix recommends borrowing conceptually;"
+    },
+    {
+      "lineNo": 983,
+      "section": 16,
+      "subsection": null,
+      "sectionTitle": "VISUAL REFERENCE CONTRACT",
+      "text": "what must not be copied;"
+    },
+    {
+      "lineNo": 984,
+      "section": 16,
+      "subsection": null,
+      "sectionTitle": "VISUAL REFERENCE CONTRACT",
+      "text": "layout/typography/color/interaction/content hierarchy/animation relevance."
+    },
+    {
+      "lineNo": 992,
+      "section": 17,
+      "subsection": "READY",
+      "sectionTitle": "PROJECT READINESS",
+      "text": "[STATE] READY"
+    },
+    {
+      "lineNo": 995,
+      "section": 17,
+      "subsection": "READY WITH NON-BLOCKING GAPS",
+      "sectionTitle": "PROJECT READINESS",
+      "text": "[STATE] READY WITH NON-BLOCKING GAPS"
+    },
+    {
+      "lineNo": 998,
+      "section": 17,
+      "subsection": "NOT READY",
+      "sectionTitle": "PROJECT READINESS",
+      "text": "[STATE] NOT READY"
+    },
+    {
+      "lineNo": 1001,
+      "section": 17,
+      "subsection": "NEEDS LEONIX ARCHITECTURE DECISION",
+      "sectionTitle": "PROJECT READINESS",
+      "text": "[STATE] NEEDS LEONIX ARCHITECTURE DECISION"
+    },
+    {
+      "lineNo": 1031,
+      "section": 20,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CARDS / PRINT COLLATERAL",
+      "text": "final business name;"
+    },
+    {
+      "lineNo": 1032,
+      "section": 20,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CARDS / PRINT COLLATERAL",
+      "text": "logo source;"
+    },
+    {
+      "lineNo": 1033,
+      "section": 20,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CARDS / PRINT COLLATERAL",
+      "text": "person/name/title;"
+    },
+    {
+      "lineNo": 1034,
+      "section": 20,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CARDS / PRINT COLLATERAL",
+      "text": "phone;"
+    },
+    {
+      "lineNo": 1035,
+      "section": 20,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CARDS / PRINT COLLATERAL",
+      "text": "email;"
+    },
+    {
+      "lineNo": 1036,
+      "section": 20,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CARDS / PRINT COLLATERAL",
+      "text": "website;"
+    },
+    {
+      "lineNo": 1037,
+      "section": 20,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CARDS / PRINT COLLATERAL",
+      "text": "address if used;"
+    },
+    {
+      "lineNo": 1038,
+      "section": 20,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CARDS / PRINT COLLATERAL",
+      "text": "social handle if used;"
+    },
+    {
+      "lineNo": 1039,
+      "section": 20,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CARDS / PRINT COLLATERAL",
+      "text": "QR target;"
+    },
+    {
+      "lineNo": 1040,
+      "section": 20,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CARDS / PRINT COLLATERAL",
+      "text": "brand colors;"
+    },
+    {
+      "lineNo": 1041,
+      "section": 20,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CARDS / PRINT COLLATERAL",
+      "text": "visual direction;"
+    },
+    {
+      "lineNo": 1042,
+      "section": 20,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CARDS / PRINT COLLATERAL",
+      "text": "quantity;"
+    },
+    {
+      "lineNo": 1043,
+      "section": 20,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CARDS / PRINT COLLATERAL",
+      "text": "size;"
+    },
+    {
+      "lineNo": 1044,
+      "section": 20,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CARDS / PRINT COLLATERAL",
+      "text": "orientation;"
+    },
+    {
+      "lineNo": 1045,
+      "section": 20,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CARDS / PRINT COLLATERAL",
+      "text": "paper/finish preference;"
+    },
+    {
+      "lineNo": 1046,
+      "section": 20,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CARDS / PRINT COLLATERAL",
+      "text": "printer/vendor;"
+    },
+    {
+      "lineNo": 1047,
+      "section": 20,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CARDS / PRINT COLLATERAL",
+      "text": "deadline;"
+    },
+    {
+      "lineNo": 1048,
+      "section": 20,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CARDS / PRINT COLLATERAL",
+      "text": "delivery location;"
+    },
+    {
+      "lineNo": 1049,
+      "section": 20,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CARDS / PRINT COLLATERAL",
+      "text": "proof approver."
+    },
+    {
+      "lineNo": 1058,
+      "section": 21,
+      "subsection": null,
+      "sectionTitle": "LOGO / BRAND PROJECT",
+      "text": "exact name;"
+    },
+    {
+      "lineNo": 1059,
+      "section": 21,
+      "subsection": null,
+      "sectionTitle": "LOGO / BRAND PROJECT",
+      "text": "tagline;"
+    },
+    {
+      "lineNo": 1060,
+      "section": 21,
+      "subsection": null,
+      "sectionTitle": "LOGO / BRAND PROJECT",
+      "text": "industry;"
+    },
+    {
+      "lineNo": 1061,
+      "section": 21,
+      "subsection": null,
+      "sectionTitle": "LOGO / BRAND PROJECT",
+      "text": "audience;"
+    },
+    {
+      "lineNo": 1062,
+      "section": 21,
+      "subsection": null,
+      "sectionTitle": "LOGO / BRAND PROJECT",
+      "text": "business story;"
+    },
+    {
+      "lineNo": 1063,
+      "section": 21,
+      "subsection": null,
+      "sectionTitle": "LOGO / BRAND PROJECT",
+      "text": "differentiator;"
+    },
+    {
+      "lineNo": 1064,
+      "section": 21,
+      "subsection": null,
+      "sectionTitle": "LOGO / BRAND PROJECT",
+      "text": "desired personality;"
+    },
+    {
+      "lineNo": 1065,
+      "section": 21,
+      "subsection": null,
+      "sectionTitle": "LOGO / BRAND PROJECT",
+      "text": "desired emotion;"
+    },
+    {
+      "lineNo": 1066,
+      "section": 21,
+      "subsection": null,
+      "sectionTitle": "LOGO / BRAND PROJECT",
+      "text": "colors;"
+    },
+    {
+      "lineNo": 1067,
+      "section": 21,
+      "subsection": null,
+      "sectionTitle": "LOGO / BRAND PROJECT",
+      "text": "avoided colors;"
+    },
+    {
+      "lineNo": 1068,
+      "section": 21,
+      "subsection": null,
+      "sectionTitle": "LOGO / BRAND PROJECT",
+      "text": "symbols;"
+    },
+    {
+      "lineNo": 1069,
+      "section": 21,
+      "subsection": null,
+      "sectionTitle": "LOGO / BRAND PROJECT",
+      "text": "avoided symbols;"
+    },
+    {
+      "lineNo": 1070,
+      "section": 21,
+      "subsection": null,
+      "sectionTitle": "LOGO / BRAND PROJECT",
+      "text": "cultural/local meaning;"
+    },
+    {
+      "lineNo": 1071,
+      "section": 21,
+      "subsection": null,
+      "sectionTitle": "LOGO / BRAND PROJECT",
+      "text": "competitor references;"
+    },
+    {
+      "lineNo": 1072,
+      "section": 21,
+      "subsection": null,
+      "sectionTitle": "LOGO / BRAND PROJECT",
+      "text": "use cases;"
+    },
+    {
+      "lineNo": 1073,
+      "section": 21,
+      "subsection": null,
+      "sectionTitle": "LOGO / BRAND PROJECT",
+      "text": "print/digital requirements;"
+    },
+    {
+      "lineNo": 1074,
+      "section": 21,
+      "subsection": null,
+      "sectionTitle": "LOGO / BRAND PROJECT",
+      "text": "existing marks;"
+    },
+    {
+      "lineNo": 1075,
+      "section": 21,
+      "subsection": null,
+      "sectionTitle": "LOGO / BRAND PROJECT",
+      "text": "ownership/trademark considerations requiring external advice."
+    },
+    {
+      "lineNo": 1104,
+      "section": 25,
+      "subsection": null,
+      "sectionTitle": "BLUEPRINT VERSIONING",
+      "text": "version;"
+    },
+    {
+      "lineNo": 1105,
+      "section": 25,
+      "subsection": null,
+      "sectionTitle": "BLUEPRINT VERSIONING",
+      "text": "generated timestamp;"
+    },
+    {
+      "lineNo": 1106,
+      "section": 25,
+      "subsection": null,
+      "sectionTitle": "BLUEPRINT VERSIONING",
+      "text": "business truth revision;"
+    },
+    {
+      "lineNo": 1107,
+      "section": 25,
+      "subsection": null,
+      "sectionTitle": "BLUEPRINT VERSIONING",
+      "text": "discovery source references;"
+    },
+    {
+      "lineNo": 1108,
+      "section": 25,
+      "subsection": null,
+      "sectionTitle": "BLUEPRINT VERSIONING",
+      "text": "client approvals;"
+    },
+    {
+      "lineNo": 1109,
+      "section": 25,
+      "subsection": null,
+      "sectionTitle": "BLUEPRINT VERSIONING",
+      "text": "Leonix architecture decisions;"
+    },
+    {
+      "lineNo": 1110,
+      "section": 25,
+      "subsection": null,
+      "sectionTitle": "BLUEPRINT VERSIONING",
+      "text": "unresolved items;"
+    },
+    {
+      "lineNo": 1111,
+      "section": 25,
+      "subsection": null,
+      "sectionTitle": "BLUEPRINT VERSIONING",
+      "text": "superseded status."
+    },
+    {
+      "lineNo": 1120,
+      "section": 26,
+      "subsection": null,
+      "sectionTitle": "QA GENERATED FROM THE BLUEPRINT",
+      "text": "desktop;"
+    },
+    {
+      "lineNo": 1121,
+      "section": 26,
+      "subsection": null,
+      "sectionTitle": "QA GENERATED FROM THE BLUEPRINT",
+      "text": "390px mobile;"
+    },
+    {
+      "lineNo": 1122,
+      "section": 26,
+      "subsection": null,
+      "sectionTitle": "QA GENERATED FROM THE BLUEPRINT",
+      "text": "tablet;"
+    },
+    {
+      "lineNo": 1123,
+      "section": 26,
+      "subsection": null,
+      "sectionTitle": "QA GENERATED FROM THE BLUEPRINT",
+      "text": "navigation;"
+    },
+    {
+      "lineNo": 1124,
+      "section": 26,
+      "subsection": null,
+      "sectionTitle": "QA GENERATED FROM THE BLUEPRINT",
+      "text": "CTAs;"
+    },
+    {
+      "lineNo": 1125,
+      "section": 26,
+      "subsection": null,
+      "sectionTitle": "QA GENERATED FROM THE BLUEPRINT",
+      "text": "forms;"
+    },
+    {
+      "lineNo": 1126,
+      "section": 26,
+      "subsection": null,
+      "sectionTitle": "QA GENERATED FROM THE BLUEPRINT",
+      "text": "external links;"
+    },
+    {
+      "lineNo": 1127,
+      "section": 26,
+      "subsection": null,
+      "sectionTitle": "QA GENERATED FROM THE BLUEPRINT",
+      "text": "images;"
+    },
+    {
+      "lineNo": 1128,
+      "section": 26,
+      "subsection": null,
+      "sectionTitle": "QA GENERATED FROM THE BLUEPRINT",
+      "text": "accessibility;"
+    },
+    {
+      "lineNo": 1129,
+      "section": 26,
+      "subsection": null,
+      "sectionTitle": "QA GENERATED FROM THE BLUEPRINT",
+      "text": "SEO;"
+    },
+    {
+      "lineNo": 1130,
+      "section": 26,
+      "subsection": null,
+      "sectionTitle": "QA GENERATED FROM THE BLUEPRINT",
+      "text": "performance;"
+    },
+    {
+      "lineNo": 1131,
+      "section": 26,
+      "subsection": null,
+      "sectionTitle": "QA GENERATED FROM THE BLUEPRINT",
+      "text": "metadata;"
+    },
+    {
+      "lineNo": 1132,
+      "section": 26,
+      "subsection": null,
+      "sectionTitle": "QA GENERATED FROM THE BLUEPRINT",
+      "text": "analytics;"
+    },
+    {
+      "lineNo": 1133,
+      "section": 26,
+      "subsection": null,
+      "sectionTitle": "QA GENERATED FROM THE BLUEPRINT",
+      "text": "error states;"
+    },
+    {
+      "lineNo": 1134,
+      "section": 26,
+      "subsection": null,
+      "sectionTitle": "QA GENERATED FROM THE BLUEPRINT",
+      "text": "ownership;"
+    },
+    {
+      "lineNo": 1135,
+      "section": 26,
+      "subsection": null,
+      "sectionTitle": "QA GENERATED FROM THE BLUEPRINT",
+      "text": "billing;"
+    },
+    {
+      "lineNo": 1136,
+      "section": 26,
+      "subsection": null,
+      "sectionTitle": "QA GENERATED FROM THE BLUEPRINT",
+      "text": "production domain;"
+    },
+    {
+      "lineNo": 1137,
+      "section": 26,
+      "subsection": null,
+      "sectionTitle": "QA GENERATED FROM THE BLUEPRINT",
+      "text": "no placeholder content."
+    },
+    {
+      "lineNo": 1144,
+      "section": 27,
+      "subsection": null,
+      "sectionTitle": "CLIENT REVIEW",
+      "text": "visual direction;"
+    },
+    {
+      "lineNo": 1145,
+      "section": 27,
+      "subsection": null,
+      "sectionTitle": "CLIENT REVIEW",
+      "text": "content;"
+    },
+    {
+      "lineNo": 1146,
+      "section": 27,
+      "subsection": null,
+      "sectionTitle": "CLIENT REVIEW",
+      "text": "contact details;"
+    },
+    {
+      "lineNo": 1147,
+      "section": 27,
+      "subsection": null,
+      "sectionTitle": "CLIENT REVIEW",
+      "text": "calls to action;"
+    },
+    {
+      "lineNo": 1148,
+      "section": 27,
+      "subsection": null,
+      "sectionTitle": "CLIENT REVIEW",
+      "text": "major functionality;"
+    },
+    {
+      "lineNo": 1149,
+      "section": 27,
+      "subsection": null,
+      "sectionTitle": "CLIENT REVIEW",
+      "text": "brand;"
+    },
+    {
+      "lineNo": 1150,
+      "section": 27,
+      "subsection": null,
+      "sectionTitle": "CLIENT REVIEW",
+      "text": "public claims;"
+    },
+    {
+      "lineNo": 1151,
+      "section": 27,
+      "subsection": null,
+      "sectionTitle": "CLIENT REVIEW",
+      "text": "required client/legal copy;"
+    },
+    {
+      "lineNo": 1152,
+      "section": 27,
+      "subsection": null,
+      "sectionTitle": "CLIENT REVIEW",
+      "text": "final launch approval."
+    },
+    {
+      "lineNo": 1159,
+      "section": 28,
+      "subsection": null,
+      "sectionTitle": "HANDOFF / OPERATIONS",
+      "text": "production URL;"
+    },
+    {
+      "lineNo": 1160,
+      "section": 28,
+      "subsection": null,
+      "sectionTitle": "HANDOFF / OPERATIONS",
+      "text": "domain owner;"
+    },
+    {
+      "lineNo": 1161,
+      "section": 28,
+      "subsection": null,
+      "sectionTitle": "HANDOFF / OPERATIONS",
+      "text": "DNS owner;"
+    },
+    {
+      "lineNo": 1162,
+      "section": 28,
+      "subsection": null,
+      "sectionTitle": "HANDOFF / OPERATIONS",
+      "text": "hosting owner;"
+    },
+    {
+      "lineNo": 1163,
+      "section": 28,
+      "subsection": null,
+      "sectionTitle": "HANDOFF / OPERATIONS",
+      "text": "CMS owner;"
+    },
+    {
+      "lineNo": 1164,
+      "section": 28,
+      "subsection": null,
+      "sectionTitle": "HANDOFF / OPERATIONS",
+      "text": "email/form provider;"
+    },
+    {
+      "lineNo": 1165,
+      "section": 28,
+      "subsection": null,
+      "sectionTitle": "HANDOFF / OPERATIONS",
+      "text": "database provider if any;"
+    },
+    {
+      "lineNo": 1166,
+      "section": 28,
+      "subsection": null,
+      "sectionTitle": "HANDOFF / OPERATIONS",
+      "text": "analytics owner;"
+    },
+    {
+      "lineNo": 1167,
+      "section": 28,
+      "subsection": null,
+      "sectionTitle": "HANDOFF / OPERATIONS",
+      "text": "renewal responsibilities;"
+    },
+    {
+      "lineNo": 1168,
+      "section": 28,
+      "subsection": null,
+      "sectionTitle": "HANDOFF / OPERATIONS",
+      "text": "billing responsibilities;"
+    },
+    {
+      "lineNo": 1169,
+      "section": 28,
+      "subsection": null,
+      "sectionTitle": "HANDOFF / OPERATIONS",
+      "text": "Leonix access;"
+    },
+    {
+      "lineNo": 1170,
+      "section": 28,
+      "subsection": null,
+      "sectionTitle": "HANDOFF / OPERATIONS",
+      "text": "client access;"
+    },
+    {
+      "lineNo": 1171,
+      "section": 28,
+      "subsection": null,
+      "sectionTitle": "HANDOFF / OPERATIONS",
+      "text": "editing instructions;"
+    },
+    {
+      "lineNo": 1172,
+      "section": 28,
+      "subsection": null,
+      "sectionTitle": "HANDOFF / OPERATIONS",
+      "text": "support arrangement;"
+    },
+    {
+      "lineNo": 1173,
+      "section": 28,
+      "subsection": null,
+      "sectionTitle": "HANDOFF / OPERATIONS",
+      "text": "launch date;"
+    },
+    {
+      "lineNo": 1174,
+      "section": 28,
+      "subsection": null,
+      "sectionTitle": "HANDOFF / OPERATIONS",
+      "text": "approved final blueprint version."
+    },
+    {
+      "lineNo": 1181,
+      "section": 29,
+      "subsection": null,
+      "sectionTitle": "CFO / SCOPE PROTECTION",
+      "text": "authentication;"
+    },
+    {
+      "lineNo": 1182,
+      "section": 29,
+      "subsection": null,
+      "sectionTitle": "CFO / SCOPE PROTECTION",
+      "text": "marketplace;"
+    },
+    {
+      "lineNo": 1183,
+      "section": 29,
+      "subsection": null,
+      "sectionTitle": "CFO / SCOPE PROTECTION",
+      "text": "custom checkout;"
+    },
+    {
+      "lineNo": 1184,
+      "section": 29,
+      "subsection": null,
+      "sectionTitle": "CFO / SCOPE PROTECTION",
+      "text": "customer dashboard;"
+    },
+    {
+      "lineNo": 1185,
+      "section": 29,
+      "subsection": null,
+      "sectionTitle": "CFO / SCOPE PROTECTION",
+      "text": "complex database;"
+    },
+    {
+      "lineNo": 1186,
+      "section": 29,
+      "subsection": null,
+      "sectionTitle": "CFO / SCOPE PROTECTION",
+      "text": "scheduling engine;"
+    },
+    {
+      "lineNo": 1187,
+      "section": 29,
+      "subsection": null,
+      "sectionTitle": "CFO / SCOPE PROTECTION",
+      "text": "proprietary messaging;"
+    },
+    {
+      "lineNo": 1188,
+      "section": 29,
+      "subsection": null,
+      "sectionTitle": "CFO / SCOPE PROTECTION",
+      "text": "complex integrations;"
+    },
+    {
+      "lineNo": 1189,
+      "section": 29,
+      "subsection": null,
+      "sectionTitle": "CFO / SCOPE PROTECTION",
+      "text": "regulated sensitive data;"
+    },
+    {
+      "lineNo": 1190,
+      "section": 29,
+      "subsection": null,
+      "sectionTitle": "CFO / SCOPE PROTECTION",
+      "text": "native mobile app;"
+    },
+    {
+      "lineNo": 1191,
+      "section": 29,
+      "subsection": null,
+      "sectionTitle": "CFO / SCOPE PROTECTION",
+      "text": "significant workflow automation."
+    },
+    {
+      "lineNo": 1209,
+      "section": 31,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CONCIERGE UI",
+      "text": "#1 Client Goal"
+    },
+    {
+      "lineNo": 1210,
+      "section": 31,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CONCIERGE UI",
+      "text": "#2 Business / Audience"
+    },
+    {
+      "lineNo": 1211,
+      "section": 31,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CONCIERGE UI",
+      "text": "#3 Brand"
+    },
+    {
+      "lineNo": 1212,
+      "section": 31,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CONCIERGE UI",
+      "text": "#4 Content / Assets"
+    },
+    {
+      "lineNo": 1213,
+      "section": 31,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CONCIERGE UI",
+      "text": "#5 Required Features"
+    },
+    {
+      "lineNo": 1214,
+      "section": 31,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CONCIERGE UI",
+      "text": "#6 Existing Platforms / Accounts"
+    },
+    {
+      "lineNo": 1215,
+      "section": 31,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CONCIERGE UI",
+      "text": "#7 Ownership / Billing"
+    },
+    {
+      "lineNo": 1216,
+      "section": 31,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CONCIERGE UI",
+      "text": "#8 Timeline / Approval"
+    },
+    {
+      "lineNo": 1217,
+      "section": 31,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CONCIERGE UI",
+      "text": "#9 Missing Information"
+    },
+    {
+      "lineNo": 1218,
+      "section": 31,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CONCIERGE UI",
+      "text": "#10 Leonix Architecture Review"
+    },
+    {
+      "lineNo": 1219,
+      "section": 31,
+      "subsection": null,
+      "sectionTitle": "BUSINESS CONCIERGE UI",
+      "text": "#11 Project Blueprint"
+    },
+    {
+      "lineNo": 1225,
+      "section": 32,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT CTA STATES",
+      "text": "Start Discovery"
+    },
+    {
+      "lineNo": 1226,
+      "section": 32,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT CTA STATES",
+      "text": "Continue Discovery"
+    },
+    {
+      "lineNo": 1227,
+      "section": 32,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT CTA STATES",
+      "text": "Needs Client Information"
+    },
+    {
+      "lineNo": 1228,
+      "section": 32,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT CTA STATES",
+      "text": "Needs Leonix Decision"
+    },
+    {
+      "lineNo": 1229,
+      "section": 32,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT CTA STATES",
+      "text": "Ready to Generate Blueprint"
+    },
+    {
+      "lineNo": 1230,
+      "section": 32,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT CTA STATES",
+      "text": "Blueprint Needs Review"
+    },
+    {
+      "lineNo": 1231,
+      "section": 32,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT CTA STATES",
+      "text": "Client Confirmation Needed"
+    },
+    {
+      "lineNo": 1232,
+      "section": 32,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT CTA STATES",
+      "text": "Approved for Build"
+    },
+    {
+      "lineNo": 1233,
+      "section": 32,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT CTA STATES",
+      "text": "In Build"
+    },
+    {
+      "lineNo": 1234,
+      "section": 32,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT CTA STATES",
+      "text": "QA"
+    },
+    {
+      "lineNo": 1235,
+      "section": 32,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT CTA STATES",
+      "text": "Client Review"
+    },
+    {
+      "lineNo": 1236,
+      "section": 32,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT CTA STATES",
+      "text": "Ready to Launch"
+    },
+    {
+      "lineNo": 1237,
+      "section": 32,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT CTA STATES",
+      "text": "Live"
+    },
+    {
+      "lineNo": 1238,
+      "section": 32,
+      "subsection": null,
+      "sectionTitle": "PROJECT BLUEPRINT CTA STATES",
+      "text": "Handoff Complete"
+    },
+    {
+      "lineNo": 1246,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#1 open a client;"
+    },
+    {
+      "lineNo": 1247,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#2 start Website Discovery;"
+    },
+    {
+      "lineNo": 1248,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#3 capture notes;"
+    },
+    {
+      "lineNo": 1249,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#4 optionally record with consent;"
+    },
+    {
+      "lineNo": 1250,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#5 upload logo/screenshots/assets;"
+    },
+    {
+      "lineNo": 1251,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#6 answer structured questions;"
+    },
+    {
+      "lineNo": 1252,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#7 see extracted client preferences;"
+    },
+    {
+      "lineNo": 1253,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#8 review AI-extracted information;"
+    },
+    {
+      "lineNo": 1254,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#9 see missing information;"
+    },
+    {
+      "lineNo": 1255,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#10 receive context-specific questions;"
+    },
+    {
+      "lineNo": 1256,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#11 resolve required-before-build gaps;"
+    },
+    {
+      "lineNo": 1257,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#12 receive a platform recommendation;"
+    },
+    {
+      "lineNo": 1258,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#13 understand why each platform is recommended;"
+    },
+    {
+      "lineNo": 1259,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#14 confirm ownership/billing;"
+    },
+    {
+      "lineNo": 1260,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#15 classify project scope;"
+    },
+    {
+      "lineNo": 1261,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#16 generate the complete Website Project MD;"
+    },
+    {
+      "lineNo": 1262,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#17 review it;"
+    },
+    {
+      "lineNo": 1263,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#18 create the Website Project;"
+    },
+    {
+      "lineNo": 1264,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#19 hand it to the builder;"
+    },
+    {
+      "lineNo": 1265,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#20 execute gated build;"
+    },
+    {
+      "lineNo": 1266,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#21 QA against the blueprint;"
+    },
+    {
+      "lineNo": 1267,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#22 get client approval;"
+    },
+    {
+      "lineNo": 1268,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#23 launch;"
+    },
+    {
+      "lineNo": 1269,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#24 record ownership/handoff;"
+    },
+    {
+      "lineNo": 1270,
+      "section": 33,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — WEBSITE CLIENT",
+      "text": "#25 return later and understand exactly what was built and why."
+    },
+    {
+      "lineNo": 1280,
+      "section": 34,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — MULTI-SOLUTION CLIENT",
+      "text": "logo;"
+    },
+    {
+      "lineNo": 1281,
+      "section": 34,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — MULTI-SOLUTION CLIENT",
+      "text": "website;"
+    },
+    {
+      "lineNo": 1282,
+      "section": 34,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — MULTI-SOLUTION CLIENT",
+      "text": "business cards;"
+    },
+    {
+      "lineNo": 1283,
+      "section": 34,
+      "subsection": null,
+      "sectionTitle": "ACCEPTANCE TEST — MULTI-SOLUTION CLIENT",
+      "text": "launch campaign."
+    },
+    {
+      "lineNo": 1300,
+      "section": 35,
+      "subsection": "GATE 1 — DISCOVERY DATA MODEL",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "project discovery;"
+    },
+    {
+      "lineNo": 1301,
+      "section": 35,
+      "subsection": "GATE 1 — DISCOVERY DATA MODEL",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "project types;"
+    },
+    {
+      "lineNo": 1302,
+      "section": 35,
+      "subsection": "GATE 1 — DISCOVERY DATA MODEL",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "structured answers;"
+    },
+    {
+      "lineNo": 1303,
+      "section": 35,
+      "subsection": "GATE 1 — DISCOVERY DATA MODEL",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "preferences;"
+    },
+    {
+      "lineNo": 1304,
+      "section": 35,
+      "subsection": "GATE 1 — DISCOVERY DATA MODEL",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "uploaded evidence/assets;"
+    },
+    {
+      "lineNo": 1305,
+      "section": 35,
+      "subsection": "GATE 1 — DISCOVERY DATA MODEL",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "consent/reference model;"
+    },
+    {
+      "lineNo": 1306,
+      "section": 35,
+      "subsection": "GATE 1 — DISCOVERY DATA MODEL",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "missing-information classification."
+    },
+    {
+      "lineNo": 1309,
+      "section": 35,
+      "subsection": "GATE 2 — WEBSITE COMPLETENESS SCHEMA",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "universal website information contract;"
+    },
+    {
+      "lineNo": 1310,
+      "section": 35,
+      "subsection": "GATE 2 — WEBSITE COMPLETENESS SCHEMA",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "adaptive industry branches;"
+    },
+    {
+      "lineNo": 1311,
+      "section": 35,
+      "subsection": "GATE 2 — WEBSITE COMPLETENESS SCHEMA",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "required-before-build / before-launch / helpful / optional / N/A states."
+    },
+    {
+      "lineNo": 1314,
+      "section": 35,
+      "subsection": "GATE 3 — DISCOVERY SESSION UI",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "progressive questions;"
+    },
+    {
+      "lineNo": 1315,
+      "section": 35,
+      "subsection": "GATE 3 — DISCOVERY SESSION UI",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "notes;"
+    },
+    {
+      "lineNo": 1316,
+      "section": 35,
+      "subsection": "GATE 3 — DISCOVERY SESSION UI",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "dictation;"
+    },
+    {
+      "lineNo": 1317,
+      "section": 35,
+      "subsection": "GATE 3 — DISCOVERY SESSION UI",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "optional recording consent;"
+    },
+    {
+      "lineNo": 1318,
+      "section": 35,
+      "subsection": "GATE 3 — DISCOVERY SESSION UI",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "uploads;"
+    },
+    {
+      "lineNo": 1319,
+      "section": 35,
+      "subsection": "GATE 3 — DISCOVERY SESSION UI",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "real-time missing information;"
+    },
+    {
+      "lineNo": 1320,
+      "section": 35,
+      "subsection": "GATE 3 — DISCOVERY SESSION UI",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "“Before you wrap up.”"
+    },
+    {
+      "lineNo": 1323,
+      "section": 35,
+      "subsection": "GATE 4 — PLATFORM REGISTRY + ARCHITECTURE DECISION",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "preferred platform registry;"
+    },
+    {
+      "lineNo": 1324,
+      "section": 35,
+      "subsection": "GATE 4 — PLATFORM REGISTRY + ARCHITECTURE DECISION",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "platform conditions;"
+    },
+    {
+      "lineNo": 1325,
+      "section": 35,
+      "subsection": "GATE 4 — PLATFORM REGISTRY + ARCHITECTURE DECISION",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "ownership/billing;"
+    },
+    {
+      "lineNo": 1326,
+      "section": 35,
+      "subsection": "GATE 4 — PLATFORM REGISTRY + ARCHITECTURE DECISION",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "scope classifier;"
+    },
+    {
+      "lineNo": 1327,
+      "section": 35,
+      "subsection": "GATE 4 — PLATFORM REGISTRY + ARCHITECTURE DECISION",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "architecture recommendation."
+    },
+    {
+      "lineNo": 1330,
+      "section": 35,
+      "subsection": "GATE 5 — PROJECT BLUEPRINT GENERATOR",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "structured project packet;"
+    },
+    {
+      "lineNo": 1331,
+      "section": 35,
+      "subsection": "GATE 5 — PROJECT BLUEPRINT GENERATOR",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "generated MD;"
+    },
+    {
+      "lineNo": 1332,
+      "section": 35,
+      "subsection": "GATE 5 — PROJECT BLUEPRINT GENERATOR",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "versioning;"
+    },
+    {
+      "lineNo": 1333,
+      "section": 35,
+      "subsection": "GATE 5 — PROJECT BLUEPRINT GENERATOR",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "review;"
+    },
+    {
+      "lineNo": 1334,
+      "section": 35,
+      "subsection": "GATE 5 — PROJECT BLUEPRINT GENERATOR",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "source references;"
+    },
+    {
+      "lineNo": 1335,
+      "section": 35,
+      "subsection": "GATE 5 — PROJECT BLUEPRINT GENERATOR",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "unresolved items."
+    },
+    {
+      "lineNo": 1338,
+      "section": 35,
+      "subsection": "GATE 6 — PROJECT CREATION BRIDGE",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "Website Project;"
+    },
+    {
+      "lineNo": 1339,
+      "section": 35,
+      "subsection": "GATE 6 — PROJECT CREATION BRIDGE",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "Logo Project;"
+    },
+    {
+      "lineNo": 1340,
+      "section": 35,
+      "subsection": "GATE 6 — PROJECT CREATION BRIDGE",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "Print/Promo Project;"
+    },
+    {
+      "lineNo": 1341,
+      "section": 35,
+      "subsection": "GATE 6 — PROJECT CREATION BRIDGE",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "Campaign;"
+    },
+    {
+      "lineNo": 1342,
+      "section": 35,
+      "subsection": "GATE 6 — PROJECT CREATION BRIDGE",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "dependencies;"
+    },
+    {
+      "lineNo": 1343,
+      "section": 35,
+      "subsection": "GATE 6 — PROJECT CREATION BRIDGE",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "assignments;"
+    },
+    {
+      "lineNo": 1344,
+      "section": 35,
+      "subsection": "GATE 6 — PROJECT CREATION BRIDGE",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "Promise Keeper."
+    },
+    {
+      "lineNo": 1347,
+      "section": 35,
+      "subsection": "GATE 7 — QA / CLIENT REVIEW / HANDOFF",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "project-specific QA;"
+    },
+    {
+      "lineNo": 1348,
+      "section": 35,
+      "subsection": "GATE 7 — QA / CLIENT REVIEW / HANDOFF",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "client-safe approval;"
+    },
+    {
+      "lineNo": 1349,
+      "section": 35,
+      "subsection": "GATE 7 — QA / CLIENT REVIEW / HANDOFF",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "launch;"
+    },
+    {
+      "lineNo": 1350,
+      "section": 35,
+      "subsection": "GATE 7 — QA / CLIENT REVIEW / HANDOFF",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "account ownership;"
+    },
+    {
+      "lineNo": 1351,
+      "section": 35,
+      "subsection": "GATE 7 — QA / CLIENT REVIEW / HANDOFF",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "renewal/support record."
+    },
+    {
+      "lineNo": 1355,
+      "section": 35,
+      "subsection": "GATE 8 — END-TO-END ACCEPTANCE",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "simple local service website;"
+    },
+    {
+      "lineNo": 1356,
+      "section": 35,
+      "subsection": "GATE 8 — END-TO-END ACCEPTANCE",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "La Kaliente-style media website;"
+    },
+    {
+      "lineNo": 1357,
+      "section": 35,
+      "subsection": "GATE 8 — END-TO-END ACCEPTANCE",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "restaurant;"
+    },
+    {
+      "lineNo": 1358,
+      "section": 35,
+      "subsection": "GATE 8 — END-TO-END ACCEPTANCE",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "startup needing logo + website + print;"
+    },
+    {
+      "lineNo": 1359,
+      "section": 35,
+      "subsection": "GATE 8 — END-TO-END ACCEPTANCE",
+      "sectionTitle": "IMPLEMENTATION ORDER",
+      "text": "Custom Platform scope escalation."
+    },
+    {
+      "lineNo": 1367,
+      "section": 36,
+      "subsection": null,
+      "sectionTitle": "FINAL BUSINESS RULE",
+      "text": "[VISION] Leonix understood what I wanted, asked the questions I did not know mattered, came prepared, kept track of the details, and delivered what we agreed to."
+    },
+    {
+      "lineNo": 1371,
+      "section": 36,
+      "subsection": null,
+      "sectionTitle": "FINAL BUSINESS RULE",
+      "text": "[VISION] Business Concierge helped me know what to ask, what was still missing, what we needed to decide, and what happened next."
+    },
+    {
+      "lineNo": 1375,
+      "section": 36,
+      "subsection": null,
+      "sectionTitle": "FINAL BUSINESS RULE",
+      "text": "[VISION] The blueprint is complete enough that I can build without guessing."
+    },
+    {
+      "lineNo": 284,
+      "section": 7,
+      "subsection": null,
+      "sectionTitle": "PROJECT TYPES",
+      "text": "[PROSE] A client engagement may create multiple linked projects from one discovery session. (Gate 10.9 finding: mechanical bullet extractor missed this trailing prose sentence; manifest's REQ-7.17 already covers it correctly.)"
+    },
+    {
+      "lineNo": 898,
+      "section": 13,
+      "subsection": null,
+      "sectionTitle": "PLATFORM OWNERSHIP REGISTER",
+      "text": "[PROSE] Every project should produce an ownership record."
+    },
+    {
+      "lineNo": 900,
+      "section": 13,
+      "subsection": null,
+      "sectionTitle": "PLATFORM OWNERSHIP REGISTER",
+      "text": "[PROSE] No project may reach handoff without ownership/billing being explicit."
+    },
+    {
+      "lineNo": 1010,
+      "section": 18,
+      "subsection": null,
+      "sectionTitle": "MEETING CLOSEOUT ASSIST",
+      "text": "[PROSE] Surface 'Before You Wrap Up' — only high-value missing questions, to prevent avoidable client callbacks."
+    },
+    {
+      "lineNo": 1020,
+      "section": 19,
+      "subsection": null,
+      "sectionTitle": "MULTI-PROJECT DISCOVERY",
+      "text": "[PROSE] One client conversation may produce several projects."
+    },
+    {
+      "lineNo": 1022,
+      "section": 19,
+      "subsection": null,
+      "sectionTitle": "MULTI-PROJECT DISCOVERY",
+      "text": "[PROSE] Approved projects inherit shared confirmed truth."
+    },
+    {
+      "lineNo": 1024,
+      "section": 19,
+      "subsection": null,
+      "sectionTitle": "MULTI-PROJECT DISCOVERY",
+      "text": "[PROSE] Each project receives its own specialized completeness requirements and blueprint."
+    },
+    {
+      "lineNo": 1081,
+      "section": 22,
+      "subsection": null,
+      "sectionTitle": "STAFF EXPERIENCE",
+      "text": "[PROSE] Staff/technical-leadership responsibility split: architecture is technical leadership's responsibility; discovery/relationship/capture is the employee's."
+    },
+    {
+      "lineNo": 1091,
+      "section": 23,
+      "subsection": null,
+      "sectionTitle": "NO TRIBAL KNOWLEDGE",
+      "text": "[PROSE] Persist important project facts, approvals, ownership, platform, scope, billing, missing information, and commitments."
+    },
+    {
+      "lineNo": 1097,
+      "section": 24,
+      "subsection": null,
+      "sectionTitle": "BUILD HANDOFF",
+      "text": "[PROSE] The builder receives the approved/versioned blueprint, not raw conversation history, as the primary specification."
+    },
+    {
+      "lineNo": 1199,
+      "section": 30,
+      "subsection": null,
+      "sectionTitle": "PLATFORM COST DISCIPLINE",
+      "text": "[PROSE] Use the least complex stack that satisfies the client."
+    },
+    {
+      "lineNo": 1201,
+      "section": 30,
+      "subsection": null,
+      "sectionTitle": "PLATFORM COST DISCIPLINE",
+      "text": "[PROSE] Do not add recurring subscriptions simply because the tool is available."
+    },
+    {
+      "lineNo": 1383,
+      "section": 37,
+      "subsection": null,
+      "sectionTitle": "FINAL LOCK",
+      "text": "[PROSE] The 11-step DISCOVER->KEEP THE RELATIONSHIP progression itself is a distinct requirement from the North Star's own 13-stage flow (§0) — this is the CLIENT-EXPERIENCE-FACING restatement, not a duplicate."
+    },
+    {
+      "lineNo": 1399,
+      "section": 37,
+      "subsection": null,
+      "sectionTitle": "FINAL LOCK",
+      "text": "[PROSE] The process is repeatable."
+    },
+    {
+      "lineNo": 1401,
+      "section": 37,
+      "subsection": null,
+      "sectionTitle": "FINAL LOCK",
+      "text": "[PROSE] The solution is tailored."
+    },
+    {
+      "lineNo": 1403,
+      "section": 37,
+      "subsection": null,
+      "sectionTitle": "FINAL LOCK",
+      "text": "[PROSE] The quality must represent Leonix."
+    },
+    {
+      "lineNo": 1405,
+      "section": 37,
+      "subsection": null,
+      "sectionTitle": "FINAL LOCK",
+      "text": "[PROSE] Both Leonix and the client must win. (Gate 10.9 finding: this sentence had no dedicated ledger row before this pass -- fixed, see REQ-37.4.)"
+    }
+  ]
+}

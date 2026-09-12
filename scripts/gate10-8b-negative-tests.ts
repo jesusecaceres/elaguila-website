@@ -38,7 +38,7 @@ let allPass = true;
 {
   const m = JSON.parse(JSON.stringify(originalManifest));
   m.requirements.splice(0, 1);
-  allPass = runVerifierExpectingFailure(m, "MISSING_REQ (removed one row, count != 610)") && allPass;
+  allPass = runVerifierExpectingFailure(m, "MISSING_REQ (removed one row, count != 612)") && allPass;
 }
 
 // 2. Reference an unknown mechanism.

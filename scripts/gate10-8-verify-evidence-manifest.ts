@@ -26,7 +26,9 @@ const ownerReqs: any[] = manifest.ownerMetaRequirements;
 const mechanisms: any[] = manifest.mechanisms;
 const mechanismIds = new Set(mechanisms.map((m) => m.mechanismId));
 
-check("TOTAL CANONICAL MD REQS = 610", reqs.length === 610, `got ${reqs.length}`);
+// Gate 10.9 found 2 real MD sentences (§37 "quality must represent Leonix" / "both must win") with
+// no dedicated row -- fixed, raising the count from 610 to 612 (never force a stale count to hold).
+check("TOTAL CANONICAL MD REQS = 612", reqs.length === 612, `got ${reqs.length}`);
 
 const idCounts = new Map<string, number>();
 for (const r of reqs) idCounts.set(r.reqId, (idCounts.get(r.reqId) ?? 0) + 1);
@@ -108,7 +110,7 @@ const industryRows = reqs.filter((r) => r.reqId.startsWith("REQ-9."));
 check("Industry branch bullets present (48)", industryRows.length === 48, `got ${industryRows.length}`);
 
 // Owner-meta: 6, separate, all OWNER_SUBJECTIVE_ONLY class, zero mechanismIds (by construction).
-check("Owner-meta rows = 6, kept separate from the 610 MD count", ownerReqs.length === 6, `got ${ownerReqs.length}`);
+check("Owner-meta rows = 6, kept separate from the MD count", ownerReqs.length === 6, `got ${ownerReqs.length}`);
 const ownerNotSubjective = ownerReqs.filter((r) => !r.requirementClasses.includes("OWNER_SUBJECTIVE_ONLY"));
 check("Every owner-meta row is classed OWNER_SUBJECTIVE_ONLY", ownerNotSubjective.length === 0, ownerNotSubjective.map((r) => r.reqId).join(", "));
 
