@@ -915,10 +915,10 @@ export function RecordOutcomeForm({ businessId, growthCampaignId }: { businessId
   return (
     <div className="mt-2 rounded-xl border border-[#E8DFD0] bg-[#FAF7F2]/50 p-3">
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <input value={metricLabelEs} onChange={(e) => setMetricLabelEs(e.target.value)} placeholder="Métrica (es) — ej. Llamadas por semana" className="min-h-[36px] rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs" />
-        <input value={metricLabelEn} onChange={(e) => setMetricLabelEn(e.target.value)} placeholder="Metric (en) — e.g. Calls per week" className="min-h-[36px] rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs" />
-        <input value={baselineValue} onChange={(e) => setBaselineValue(e.target.value)} placeholder="Línea base / Baseline (optional)" className="min-h-[36px] rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs" />
-        <input value={measuredValue} onChange={(e) => setMeasuredValue(e.target.value)} placeholder="Medido ahora / Measured now (optional)" className="min-h-[36px] rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs" />
+        <input aria-label="Métrica (es) / Metric (es)" value={metricLabelEs} onChange={(e) => setMetricLabelEs(e.target.value)} placeholder="Métrica (es) — ej. Llamadas por semana" className="min-h-[36px] rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs" />
+        <input aria-label="Metric (en)" value={metricLabelEn} onChange={(e) => setMetricLabelEn(e.target.value)} placeholder="Metric (en) — e.g. Calls per week" className="min-h-[36px] rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs" />
+        <input aria-label="Línea base / Baseline" value={baselineValue} onChange={(e) => setBaselineValue(e.target.value)} placeholder="Línea base / Baseline (optional)" className="min-h-[36px] rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs" />
+        <input aria-label="Medido ahora / Measured now" value={measuredValue} onChange={(e) => setMeasuredValue(e.target.value)} placeholder="Medido ahora / Measured now (optional)" className="min-h-[36px] rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs" />
       </div>
       {error ? <p role="alert" className="mt-1 text-[10px] text-red-700">{error}</p> : null}
       <div className="mt-2 flex gap-2">
