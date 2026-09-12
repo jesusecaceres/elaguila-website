@@ -2504,3 +2504,100 @@ applied); the remaining two merely mention Servicios in comments.
 Pre-QA engineering items remaining: **0**. Owner QA has not started, no test listing exists, no
 payment was taken, nothing was published, and no GR row changed — 43 remain PENDING OWNER RUNTIME,
 GR-22 NOT SUPPORTED — CURRENT PRODUCT, GR-44 incomplete.
+
+## 25. PRODUCTION RELEASE — SERVICIOS GOLDEN IS LIVE (2026-09-12)
+
+The certified Servicios Golden work is integrated with main and serving on production.
+**No owner QA, no test listing, no checkout, no payment, no publication, no GR status change.**
+
+### 25.1 Release identity
+
+| Fact | Value |
+|---|---|
+| Certified Servicios head (pre-integration) | `243e51d4b041200fcad96de54e98727001eea64f` |
+| Main before integration | `994f7a25b4d1b9a5f2b8ef8afb7f9cf944922707` |
+| Merge base | `9fcadb4daf599e15fca62adcb647abbf96ce6bd8` |
+| **Integration commit** | `afeee2655c13eb3d71d096e937b4f0c5ba6b00bd` (parents 243e51d4 + 994f7a25) |
+| **Final production main** | `afeee2655c13eb3d71d096e937b4f0c5ba6b00bd` |
+| Promotion method | **fast-forward** `994f7a25..afeee265` — no force, no reset, no rebase, no rewrite |
+| Runtime app tree | `2932f1059fa51fe2cd3a83c55df8f55228f7641a` (unchanged from certification) |
+| Supabase tree | `6d5014bc40553dc60109985bef875095739745f6` (unchanged) |
+
+### 25.2 Eight conflicts, each resolved individually
+
+No global `--ours` / `--theirs` was taken. Three files had an **empty main side** (ours purely
+additive); one was a strict superset; one was a genuine semantic conflict resolved against live
+source; one took MAIN's newer work; two were documentation supersets.
+
+| # | File | Resolution | Why safe |
+|---|---|---|---|
+| 1 | `app/sitemap.ts` | OURS | main's side of all 3 hunks EMPTY; ours adds Restaurantes/Comida/BR sections, Servicios auto-merged |
+| 2 | `app/lib/listingPlans/revenueFulfillment.ts` | OURS | main side empty; ours adds Restaurantes+Comida saved-search triggers |
+| 3 | `app/lib/saved-search/delivery/savedSearchEmailDelivery.ts` | OURS | main side empty |
+| 4 | `app/(site)/dashboard/busquedas-guardadas/page.tsx` | OURS | strict superset — registers Servicios **and** Restaurantes **and** Comida Local; main named Servicios only |
+| 5 | `scripts/verify-servicios-gate3-source-readiness.ts` | OURS | **semantic**: main asserts the retired `requireLeonixAdminPermission("can_view_payments")`; ours asserts `requireRevenueProtectedWriteAccess()`, which is what `app/api/revenue-os/admin/subscription-sweep` actually uses. Main's assertion would fail against code main itself shipped |
+| 6 | `scripts/verify-servicios-owner-qa-delta.ts` | **MAIN** | `3b00a4e6` is newer and richer — preserves wire `opsMeta.discovery` values and adds `state`/`country`, superseding our narrower typed-facet fix |
+| 7 | `SERVICIOS_GOLDEN_REFERENCE_TRUTH.md` | OURS | content superset; main's side still carried "Saved Search BLOCKED — DB" (repaired to LIVE) and phone migrations marked NOT applied (both proven applied). The one real doctrine difference, G.6 SMS, stays ours: a confirmed email alone qualifies for the 15%, so SMS is an optional alternate path, per §O.5 |
+| 8 | `SERVICIOS_OWNER_QA_GOLDEN_DELTA_LEDGER_2026-09-11.md` | OURS | 166KB vs 75KB superset; main's only unique section is its "§21 OCC receiver contracts" = our §22 |
+
+### 25.3 Loss audit — nothing dropped either way
+
+**LOST SERVICIOS FIXES: 0.** Re-proven on the integrated tree: fail-closed `existingListingId`
+(6 hits) · `insert_forbidden` (1) · exact-row UPDATE by canonical UUID (1) · owner-mismatch 403 (2)
+· dev-workspace fallback blocked (1) · Save receiver in the result strip (3) · `like,save,share`
+order (1) · $399 in the pricing matrix (6) and application (1) · **+$99 upsell ABSENT (0)** ·
+verified-intro coupon (1) · 409 `discount_conflict` (1) · hidden-street gate (3) ·
+`coupons_offers` (2) · webhook signature-first (2) · the 9 event constants (19) · CTA direct
+helpers (4). `app/api/revenue-os`, `app/lib/listingPlans` and `supabase/` are **byte-identical**
+to the certified tree (0 files changed).
+
+**LOST MAIN FIXES: 0.** `3b00a4e6` discovery `state`/`country` present · 4 OCC docs integrated ·
+`1c5a27e8` QA-seed already present · **0 of main's 20 commits remain unintegrated**. Main gained
+113 app files / +7345 lines from this branch and contributed no net `app/` change of its own (its
+Servicios work was byte-identical to ours — it arrived via the OCC cherry-pick `4b402962`).
+
+**SILENT OVERWRITES: 0 · UNRESOLVED CONFLICTS: 0** (no conflict markers anywhere in `app/`,
+`scripts/`, `docs/`, `supabase/`, `package.json`).
+
+### 25.4 Validation on the integrated tree
+
+| Gate | Result |
+|---|---|
+| Active Servicios verifiers | **46/46 PASS** |
+| TypeScript `tsc --noEmit` | **PASS — exit 0, 0 errors** |
+| Production build of the exact merge | **PASS** — Vercel built `afeee265` as `dpl_AF7q6KaDzWfuczzjxd3kfL13UXwc`, READY |
+
+The build gate used Vercel's own build of the exact merge commit rather than a local build, so the
+owner's gitignored `.env.local` was never copied or read.
+
+### 25.5 Production deployment
+
+| Fact | Value |
+|---|---|
+| Deployment | `dpl_2UK1GadJMAptvVBCetqygLvvRe9M` |
+| Target | **production** |
+| State | **READY** · `aliasError: null` |
+| GitHub ref | `main` |
+| GitHub SHA | `afeee2655c13eb3d71d096e937b4f0c5ba6b00bd` |
+| Attached aliases | `leonixmedia.com`, `www.leonixmedia.com`, `elaguila-website.vercel.app`, `leonix-media-jesus-caceres-projects.vercel.app`, `leonix-media-git-main-…` |
+
+### 25.6 Live release identity (identity only — NOT product QA)
+
+| Surface | Result |
+|---|---|
+| `https://leonixmedia.com/clasificados/servicios` | **200 OK**, `x-matched-path /clasificados/servicios`, `ServiciosLandingPage` rendered, canonical `https://leonixmedia.com/clasificados/servicios` |
+| `https://www.leonixmedia.com/…` | **308 → apex** (canonical domain configuration, unchanged) |
+| `https://leonixmedia.com/clasificados/publicar/servicios` | **200 + AUTH-GATED per contract** — `PublishAuthGate` renders "Comprobando sesión…" then `NEXT_REDIRECT;replace;/clasificados/publicar/servicios/checkpoint;307` |
+| Deployment-level 5xx on Servicios entry surfaces | **none** |
+| Build id continuity | both surfaces served build `Town3twIv3cxtDDab-nMP` — same production deployment |
+
+No form was filled, no listing created, no checkout started, no payment made, no engagement action
+performed.
+
+### 25.7 Status
+
+Owner QA: **NOT STARTED**. GR runtime rows: **unchanged** — 43 PENDING OWNER RUNTIME, GR-22 NOT
+SUPPORTED — CURRENT PRODUCT, GR-44 incomplete, **0 marked PASS**. The zero-debt promo-retirement
+migration (`20260912045813`) applied during §24 is preserved and untouched by this release.
+
+**SERVICIOS PRODUCTION RELEASE: LIVE.** Owner-driven QA on leonixmedia.com is now authorized.
