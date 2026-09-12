@@ -503,9 +503,11 @@ never receives the allowance; a zero/absent recorded discount grants no allowanc
 was **no Save control at all**.
 
 Fixed by rendering the shared `LeonixSaveButton` in
-`ServiciosBusinessHubEngagementRow` (both variants), with the canonical identity extras, the
-global save recorder, and the self-engagement guard. Save now writes real `saved_listings` rows
-that appear in the customer's Guardados dashboard.
+`ServiciosBusinessHubEngagementRow` (both variants) **and** in the live
+`ServiciosResultCardEngagementStrip` (professional + horizontal result cards), with the canonical
+identity extras, the global save recorder, and the self-engagement guard. Save writes real
+`saved_listings` rows that appear in the customer's Guardados dashboard. There is no second Save
+backend. The dead `ServiciosListingResultCard` is not a live consumer and does not mount Save.
 
 ### H.3 P2 — RECORDED, NOT CLOSED
 

@@ -72,10 +72,13 @@ are intentional and keep one canonical URL each.
 
 ### B-2. Republish identity — **id-keyed (map §2 diagram is stale)**
 
-`publish/route.ts` current source: `existingListingId` → `getServiciosPublicListingByIdFromDb` →
-owner check (**403 `listing_owner_mismatch`** on a foreign row) → adopts that row's own slug →
-`.update().eq("id", canonicalListingId)`; `.eq("slug", …)` survives only as the fallback for a
-session that never obtained a canonical id. `.insert()` is reached only when neither resolves.
+`publish/route.ts` current source: **IF `existingListingId` is supplied, the canonical row MUST
+resolve, ELSE FAIL CLOSED (404 `listing_not_found`)**. That request never allocates a create slug
+and never reaches `.insert()`. Owner mismatch remains **403 `listing_owner_mismatch`**. A resolved
+owned row adopts that row's own slug → `.update().eq("id", canonicalListingId)`. `.eq("slug", …)`
+survives only as the fallback for a session that never obtained a canonical id. `.insert()` is
+reached only when **no** `existingListingId` was declared (new listing, or legacy slug-only
+session). Dev-workspace upsert is also skipped when `existingListingId` was declared.
 **§5.1's "CLOSED" is true; §2's diagram line saying "SLUG-KEYED" is stale (§D-6).**
 
 ### B-3. Commercial truth — PROVEN

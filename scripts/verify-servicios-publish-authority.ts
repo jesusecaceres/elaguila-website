@@ -69,10 +69,14 @@ check("B1: an unauthenticated actor owns nothing — not even an unowned row", (
 });
 
 check("B1: the listingId (canonical) path uses the strict rule — no `!owner ||` claim", () => {
-  const block = PUBLISH.slice(PUBLISH.indexOf("if (existingListingIdRaw &&"), PUBLISH.indexOf("if (!canonicalListingId && existingSlugRaw"));
+  const start = PUBLISH.indexOf("if (existingListingIdRaw) {");
+  const block = PUBLISH.slice(start, PUBLISH.indexOf("} else {", start));
+  assert.ok(start >= 0, "canonical existingListingId branch must exist");
   assert.match(block, /isServiciosListingOwner\(row\.owner_user_id, ownerUserId\)/);
   assert.ok(!/!owner\s*\|\|/.test(block), "canonical path must not treat a missing owner as permission");
   assert.match(block, /listing_owner_mismatch/, "a non-owned listingId must be refused, not silently re-targeted");
+  assert.match(block, /listing_not_found/, "an unresolved listingId must fail closed, never create");
+  assert.ok(!/allocateSlug\(/.test(block), "declared edit must not allocate a create slug");
 });
 check("B1: the slug fallback path uses the strict rule — cannot claim a NULL-owner row", () => {
   const start = PUBLISH.indexOf("if (!canonicalListingId && existingSlugRaw");
@@ -89,6 +93,9 @@ check("B1: the write itself re-checks ownership and can never re-assign owner_us
   const block = PUBLISH.slice(start, PUBLISH.indexOf("} else {", start));
   assert.match(block, /if \(!isServiciosListingOwner\(existing\.owner_user_id, ownerUserId\)\)/);
   assert.ok(!/owner_user_id:\s*ownerUserId/.test(block), "an update of an existing row must not write owner_user_id");
+  const persist = PUBLISH.slice(start, PUBLISH.indexOf(".insert(insertRow)"));
+  assert.match(persist, /else if \(existingListingIdRaw\)/, "declared edit with a missing row must not reach INSERT");
+  assert.match(persist, /insert_forbidden/, "the persist site must refuse INSERT when existingListingId was supplied");
 });
 check("B1: allocateSlug returns an UNUSED slug, so a refused claim can only create its own new row", () => {
   const fn = PUBLISH.slice(PUBLISH.indexOf("async function allocateSlug"), PUBLISH.indexOf("function stripAdvertiserVerificationFlags"));

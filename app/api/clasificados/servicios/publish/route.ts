@@ -306,43 +306,64 @@ export async function POST(req: NextRequest) {
   const existingListingIdRaw = typeof b.existingListingId === "string" ? b.existingListingId.trim() : "";
 
   /**
-   * Gate SERVICIOS-1 — CANONICAL REPUBLISH IDENTITY.
+   * Gate SERVICIOS-1 / SRV-GOLDEN-01 — CANONICAL REPUBLISH IDENTITY.
    *
    * The `servicios_public_listings` row UUID is the persistence authority. The slug is public
    * routing/display identity only: it is derived from the business name, so resolving the target
    * row by slug meant that renaming a business allocated a fresh slug and INSERTed a duplicate
-   * listing (leaving the paid row orphaned). When the client supplies `existingListingId` we
-   * resolve the row by id, verify ownership, and adopt THAT ROW'S OWN SLUG as the update target —
-   * so the public URL also stays stable across a rename. `existingPublicSlug` remains only as the
-   * fallback for a session that never obtained a canonical id.
+   * listing (leaving the paid row orphaned).
+   *
+   * IF `existingListingId` is supplied, the canonical row MUST resolve, ELSE FAIL CLOSED.
+   * That request must NEVER degrade into create/INSERT (no allocateSlug, no slug fallback, no
+   * insert). New listing (no existing id): may INSERT. Existing listing edit: UPDATE the exact
+   * canonical UUID and adopt THAT ROW'S OWN SLUG so the public URL stays stable across a rename.
+   * `existingPublicSlug` remains only as the fallback for a session that never obtained a
+   * canonical id.
    */
-  let slug = await allocateSlug(baseSlug);
+  let slug = "";
   let canonicalListingId: string | null = null;
-  if (existingListingIdRaw && isSupabaseAdminConfigured()) {
-    const row = await getServiciosPublicListingByIdFromDb(existingListingIdRaw, { visibility: "all" });
-    if (row?.slug) {
-      // Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B1) — a NULL owner is NOT permission. The row must
-      // have an owner and it must be the authenticated actor; an unowned historical row is
-      // reachable only through admin/ownership assignment, never by claiming it here.
-      if (isServiciosListingOwner(row.owner_user_id, ownerUserId)) {
-        canonicalListingId = row.id?.trim() || existingListingIdRaw;
-        slug = row.slug;
-      } else {
-        await insertServiciosAnalyticsEvent({
-          listingSlug: row.slug,
-          eventType: "publish_failure",
-          meta: { reason: "listing_owner_mismatch" },
-        });
-        return NextResponse.json({ ok: false, error: "listing_owner_mismatch" }, { status: 403 });
-      }
+  if (existingListingIdRaw) {
+    // SRV-GOLDEN-01 — declared edit: resolve the exact UUID or fail closed. Never mint a create slug.
+    if (!isSupabaseAdminConfigured()) {
+      await insertServiciosAnalyticsEvent({
+        listingSlug: null,
+        eventType: "publish_failure",
+        meta: { reason: "listing_not_found", existingListingIdDeclared: true },
+      });
+      return NextResponse.json({ ok: false, error: "listing_not_found" }, { status: 404 });
     }
-  }
-  if (!canonicalListingId && existingSlugRaw && /^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(existingSlugRaw) && isSupabaseAdminConfigured()) {
-    const row = await getServiciosPublicListingBySlugFromDb(existingSlugRaw, { visibility: "all" });
-    // B1 — same rule on the slug fallback. When it does not hold, `slug` stays the freshly
-    // allocated (unused) one, so the request can only ever create its own new row.
-    if (row && isServiciosListingOwner(row.owner_user_id, ownerUserId)) {
-      slug = existingSlugRaw;
+    const row = await getServiciosPublicListingByIdFromDb(existingListingIdRaw, { visibility: "all" });
+    const resolvedId = typeof row?.id === "string" ? row.id.trim() : "";
+    if (!row || !resolvedId || !row.slug) {
+      await insertServiciosAnalyticsEvent({
+        listingSlug: null,
+        eventType: "publish_failure",
+        meta: { reason: "listing_not_found", existingListingIdDeclared: true },
+      });
+      return NextResponse.json({ ok: false, error: "listing_not_found" }, { status: 404 });
+    }
+    // Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B1) — a NULL owner is NOT permission. The row must
+    // have an owner and it must be the authenticated actor; an unowned historical row is
+    // reachable only through admin/ownership assignment, never by claiming it here.
+    if (!isServiciosListingOwner(row.owner_user_id, ownerUserId)) {
+      await insertServiciosAnalyticsEvent({
+        listingSlug: row.slug,
+        eventType: "publish_failure",
+        meta: { reason: "listing_owner_mismatch" },
+      });
+      return NextResponse.json({ ok: false, error: "listing_owner_mismatch" }, { status: 403 });
+    }
+    canonicalListingId = resolvedId;
+    slug = row.slug;
+  } else {
+    slug = await allocateSlug(baseSlug);
+    if (!canonicalListingId && existingSlugRaw && /^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(existingSlugRaw) && isSupabaseAdminConfigured()) {
+      const row = await getServiciosPublicListingBySlugFromDb(existingSlugRaw, { visibility: "all" });
+      // B1 — same rule on the slug fallback. When it does not hold, `slug` stays the freshly
+      // allocated (unused) one, so the request can only ever create its own new row.
+      if (row && isServiciosListingOwner(row.owner_user_id, ownerUserId)) {
+        slug = existingSlugRaw;
+      }
     }
   }
 
@@ -600,6 +621,15 @@ export async function POST(req: NextRequest) {
             supabase: sanitizeSupabaseError(error),
           });
         }
+      } else if (existingListingIdRaw) {
+        // SRV-GOLDEN-01 — declared edit that lost the row between resolve and write must fail
+        // closed. Never INSERT a replacement listing.
+        await insertServiciosAnalyticsEvent({
+          listingSlug: slug || null,
+          eventType: "publish_failure",
+          meta: { reason: "listing_not_found", existingListingIdDeclared: true, persistStage: "insert_forbidden" },
+        });
+        return NextResponse.json({ ok: false, error: "listing_not_found" }, { status: 404 });
       } else {
         const insertRow: Record<string, unknown> = {
           slug,
@@ -662,7 +692,7 @@ export async function POST(req: NextRequest) {
   }
 
   let persistedToDevWorkspace = false;
-  if (!persistedToDatabase && isServiciosDevPublishPersistenceEnabled()) {
+  if (!persistedToDatabase && !existingListingIdRaw && isServiciosDevPublishPersistenceEnabled()) {
     const row = buildServiciosPublicRowForPersistence({
       slug,
       businessName,
