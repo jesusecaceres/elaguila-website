@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-12T01:28:30.971Z",
+  "generatedAt": "2026-09-12T01:38:04.128Z",
   "generatedBy": "scripts/gate10-8-generate-evidence-manifest.ts",
   "masterMdRowCount": 610,
   "ownerMetaRowCount": 6,
@@ -26,7 +26,8 @@
       "mechanismId": "M-TRUTH-CONFIRMATION",
       "purpose": "Confirming an item never silently upgrades its truth class",
       "source": [
-        "app/api/admin/businesses/[businessId]/discovery/[discoveryId]/items/[itemId]/confirm/route.ts"
+        "app/api/admin/businesses/[businessId]/discovery/[discoveryId]/items/[itemId]/confirm/route.ts",
+        "app/lib/business/projectDiscovery/repository.ts"
       ],
       "entrypoint": "setProjectDiscoveryItemConfirmation",
       "persistenceObject": "business_project_discovery_items.confirmation_state",
@@ -263,7 +264,8 @@
       "mechanismId": "M-BLUEPRINT-PACKET",
       "purpose": "Deterministic structured packet from discovery + architecture",
       "source": [
-        "app/lib/business/projectDiscovery/blueprintEngine.ts"
+        "app/lib/business/projectDiscovery/blueprintEngine.ts",
+        "app/lib/business/projectDiscovery/blueprintRepository.ts"
       ],
       "entrypoint": "buildWebsiteProjectBlueprintPacket",
       "persistenceObject": "business_project_blueprints.packet_json",
@@ -281,7 +283,8 @@
       "purpose": "All 47 categories render real data, never a fabricated placeholder",
       "source": [
         "app/lib/business/projectDiscovery/blueprintCategoryRegistry.ts",
-        "app/lib/business/projectDiscovery/blueprintMarkdownHelpers.ts"
+        "app/lib/business/projectDiscovery/blueprintMarkdownHelpers.ts",
+        "app/lib/business/projectDiscovery/blueprintRepository.ts"
       ],
       "entrypoint": "WEBSITE_BLUEPRINT_CATEGORIES",
       "persistenceObject": "business_project_blueprints.markdown_snapshot",
@@ -365,7 +368,8 @@
       "mechanismId": "M-QA-MATRIX",
       "purpose": "Project-specific QA matrix generated from the frozen blueprint",
       "source": [
-        "app/lib/business/projectDiscovery/blueprintEngine.ts"
+        "app/lib/business/projectDiscovery/blueprintEngine.ts",
+        "app/lib/business/projectDiscovery/blueprintCheckItemRepository.ts"
       ],
       "entrypoint": "buildQaMatrix",
       "persistenceObject": "business_project_blueprint_check_items",
@@ -383,7 +387,8 @@
       "purpose": "Client-safe projection surfaces all 9 §27 items; feedback persisted",
       "source": [
         "app/lib/business/projectDiscovery/clientSafeBlueprintProjection.ts",
-        "app/lib/business/projectDiscovery/clientReviewDataAssembler.ts"
+        "app/lib/business/projectDiscovery/clientReviewDataAssembler.ts",
+        "app/lib/business/projectDiscovery/blueprintFeedbackRepository.ts"
       ],
       "entrypoint": "buildClientSafeBlueprintProjection",
       "persistenceObject": "business_project_blueprint_feedback",
@@ -401,7 +406,8 @@
       "purpose": "Real per-platform ownership record, no project reaches handoff without it",
       "source": [
         "app/lib/business/projectDiscovery/architectureDecisionEngine.ts",
-        "app/lib/business/projectDiscovery/releaseReadinessAssembler.ts"
+        "app/lib/business/projectDiscovery/releaseReadinessAssembler.ts",
+        "app/lib/business/projectDiscovery/blueprintRepository.ts"
       ],
       "entrypoint": "buildOwnership / computeLiveUnresolvedOwnershipBilling",
       "persistenceObject": "business_project_blueprints.packet_json (architecture.ownership)",
@@ -436,10 +442,10 @@
       "mechanismId": "M-PROMISE-KEEPER",
       "purpose": "Real commitment bridge, never auto-created",
       "source": [
-        "app/lib/business/projectDiscovery/ (Gate 7 Promise Keeper bridge)"
+        "app/lib/business/projectDiscovery/blueprintCommitmentBridge.ts"
       ],
       "entrypoint": "createCommitmentFromFeedback / createCommitmentFromCheckItem",
-      "persistenceObject": "Promise Keeper's own commitment table",
+      "persistenceObject": "Promise Keeper's own commitment table (createCommitment(), called only from this bridge)",
       "readbackPath": "Promise Keeper's own repository",
       "renderPath": null,
       "authGuard": "requireStaffWorkspaceWriteAccess",
@@ -447,7 +453,7 @@
       "targetedTests": [
         "test-project-blueprint-gate7.ts checks 56-58"
       ],
-      "liveStagingProof": "Gate 7 construction-time proof"
+      "liveStagingProof": "Gate 10.8B: real file blueprintCommitmentBridge.ts located and grep-confirmed to define both entrypoints (the manifest's prior citation was an imprecise placeholder path, corrected this pass)"
     },
     {
       "mechanismId": "M-MULTI-PROJECT",
@@ -540,7 +546,7 @@
     {
       "reqId": "REQ-0.1",
       "mdSection": "0",
-      "requirement": "§0/§1",
+      "requirement": "North Star flow realized end-to-end (13 stages, each a real mechanism, not aspirational)",
       "requirementClasses": [
         "DETERMINISTIC_LOGIC"
       ],
@@ -550,7 +556,7 @@
         "M-QA-MATRIX"
       ],
       "sourceFiles": [
-        "North Star flow realized end-to-end (13 stages, each a real mechanism, not aspirational)"
+        "DISCOVER: `websiteDiscoveryLogic.ts`; CAPTURE: `business_project_discovery_items` write path; EXTRACT/VERIFY: truth-class engine (§4 below); FIND GAPS/ASK: `evaluateWebsiteReadiness`+adaptive engine (§6); CONFIRM: confirmation-state capture (Gate 3.1); ARCHITECT: `architectureDecisionEngine.ts`; GENERATE: `blueprintEngine.ts`/`blueprintMarkdown.ts`; BUILD: build gates (`buildProjectSpecificGates`); QA: `buildQaMatrix`+check items; HANDOFF: `buildHandoffChecklist`; FOLLOW THROUGH: release readiness + lifecycle engine"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -565,7 +571,7 @@
     {
       "reqId": "REQ-0.2",
       "mdSection": "0",
-      "requirement": "§1",
+      "requirement": "Speed comes from discipline, not from skipped discovery/generic design/forced platforms/ignored mobile-accessibility-ownership/incomplete-work/cut QA",
       "requirementClasses": [
         "DETERMINISTIC_LOGIC"
       ],
@@ -575,7 +581,7 @@
         "M-QA-MATRIX"
       ],
       "sourceFiles": [
-        "Speed comes from discipline, not from skipped discovery/generic design/forced platforms/ignored mobile-accessibility-ownership/incomplete-work/cut QA"
+        "Every \"must NOT come from\" item maps to a real guard: skipped discovery blocked by `evaluateWebsiteBlueprintReadiness` NOT_READY gate; generic design avoided by per-client `clientVision`/`visual_personality` capture; forced platforms avoided by `preserveExistingPlatformKey`; ignored mobile/accessibility blocked by universal QA rows; ignored ownership blocked by the MD §13 invariant (Gate 10.1 fix, `assembleReleaseReadiness`'s `unresolvedOwnershipBilling` check); cut QA blocked by `buildQaMatrix` being mandatory, non-optional packet content"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -590,7 +596,7 @@
     {
       "reqId": "REQ-2.1",
       "mdSection": "2",
-      "requirement": "§2",
+      "requirement": "Business Identity as a canonical truth input",
       "requirementClasses": [
         "PERSISTENCE",
         "COLD_READBACK"
@@ -602,7 +608,7 @@
         "M-DISCOVERY-READBACK"
       ],
       "sourceFiles": [
-        "Business Identity as a canonical truth input"
+        "`app/lib/business/types.ts` (`legalName`, `basics`), shared discovery context `knownFacts`"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -621,7 +627,7 @@
     {
       "reqId": "REQ-2.2",
       "mdSection": "2",
-      "requirement": "§2",
+      "requirement": "Living Business Book as a canonical truth input",
       "requirementClasses": [
         "PERSISTENCE",
         "COLD_READBACK"
@@ -633,7 +639,7 @@
         "M-DISCOVERY-READBACK"
       ],
       "sourceFiles": [
-        "Living Business Book as a canonical truth input"
+        "`knownFacts` sourcing from the Living Business Book (pre-existing system, reused not duplicated)"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -652,7 +658,7 @@
     {
       "reqId": "REQ-2.3.1",
       "mdSection": "2",
-      "requirement": "§2",
+      "requirement": "previous meetings",
       "requirementClasses": [
         "PERSISTENCE",
         "COLD_READBACK"
@@ -664,7 +670,7 @@
         "M-DISCOVERY-READBACK"
       ],
       "sourceFiles": [
-        "previous meetings"
+        "`sourceMeetingId` on the discovery row; `buildSourceReferences()`'s `kind: \"meeting\"` branch"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -683,7 +689,7 @@
     {
       "reqId": "REQ-2.3.2",
       "mdSection": "2",
-      "requirement": "§2",
+      "requirement": "growth assessment",
       "requirementClasses": [
         "PERSISTENCE",
         "COLD_READBACK"
@@ -695,7 +701,7 @@
         "M-DISCOVERY-READBACK"
       ],
       "sourceFiles": [
-        "growth assessment"
+        "`sourceGrowthAssessmentId`; `kind: \"growth_assessment\"` branch"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -714,7 +720,7 @@
     {
       "reqId": "REQ-2.3.3",
       "mdSection": "2",
-      "requirement": "§2",
+      "requirement": "approved solution",
       "requirementClasses": [
         "PERSISTENCE",
         "COLD_READBACK"
@@ -726,7 +732,7 @@
         "M-DISCOVERY-READBACK"
       ],
       "sourceFiles": [
-        "approved solution"
+        "`sourceGrowthSolutionId`; `kind: \"growth_solution\"` branch"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -745,7 +751,7 @@
     {
       "reqId": "REQ-2.3.4",
       "mdSection": "2",
-      "requirement": "§2",
+      "requirement": "approved opportunity",
       "requirementClasses": [
         "PERSISTENCE",
         "COLD_READBACK"
@@ -757,7 +763,7 @@
         "M-DISCOVERY-READBACK"
       ],
       "sourceFiles": [
-        "approved opportunity"
+        "`sourceOpportunityId`; `kind: \"opportunity\"` branch"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -776,7 +782,7 @@
     {
       "reqId": "REQ-2.3.5",
       "mdSection": "2",
-      "requirement": "§2",
+      "requirement": "uploaded screenshots / logos / photos / video / brand assets",
       "requirementClasses": [
         "PERSISTENCE",
         "COLD_READBACK"
@@ -788,7 +794,7 @@
         "M-DISCOVERY-READBACK"
       ],
       "sourceFiles": [
-        "uploaded screenshots / logos / photos / video / brand assets"
+        "`ProjectDiscoverySource.sourceType: \"asset\"` + `businessSourceFileId`; `kind: \"source_file\"` branch"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -807,7 +813,7 @@
     {
       "reqId": "REQ-2.3.6",
       "mdSection": "2",
-      "requirement": "§2",
+      "requirement": "existing website / social profiles / Google presence",
       "requirementClasses": [
         "PERSISTENCE",
         "COLD_READBACK"
@@ -819,7 +825,7 @@
         "M-DISCOVERY-READBACK"
       ],
       "sourceFiles": [
-        "existing website / social profiles / Google presence"
+        "`sourceType: \"website_url\"` + `externalUrl`; `kind: \"website_url\"` branch; `hasExistingWebsite` context field"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -838,7 +844,7 @@
     {
       "reqId": "REQ-2.3.7",
       "mdSection": "2",
-      "requirement": "§2",
+      "requirement": "client notes / voice dictation / meeting transcript / staff observations",
       "requirementClasses": [
         "PERSISTENCE",
         "COLD_READBACK"
@@ -850,7 +856,7 @@
         "M-DISCOVERY-READBACK"
       ],
       "sourceFiles": [
-        "client notes / voice dictation / meeting transcript / staff observations"
+        "`sourceType: \"manual\"`; `kind: \"manual_note\"` branch; dictation reuses the existing Web Speech API wire"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -869,7 +875,7 @@
     {
       "reqId": "REQ-2.3.8",
       "mdSection": "2",
-      "requirement": "§2",
+      "requirement": "public research / current goals / current promotions / business stage / contact information / current systems/providers",
       "requirementClasses": [
         "PERSISTENCE",
         "COLD_READBACK"
@@ -881,7 +887,7 @@
         "M-DISCOVERY-READBACK"
       ],
       "sourceFiles": [
-        "public research / current goals / current promotions / business stage / contact information / current systems/providers"
+        "Shared Living Business Book `knownFacts` truth layer (same mechanism as REQ-2.2), each captured as a `business_facts` category rather than a separate source-kind — these are FACTS, not attachable evidence, so they correctly route through the canonical-truth path rather than `ProjectDiscoverySource`"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -900,7 +906,7 @@
     {
       "reqId": "REQ-2.4",
       "mdSection": "2",
-      "requirement": "§2",
+      "requirement": "No re-entry of already-confirmed facts",
       "requirementClasses": [
         "PERSISTENCE",
         "COLD_READBACK"
@@ -912,7 +918,7 @@
         "M-DISCOVERY-READBACK"
       ],
       "sourceFiles": [
-        "No re-entry of already-confirmed facts"
+        "`canonicalTruthMaySatisfy`/`canonicalTruthHint` fields on every business-identity-class requirement (e.g. `public_business_name`, `public_contact_phone`, `public_business_hours`)"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -931,7 +937,7 @@
     {
       "reqId": "REQ-3.1",
       "mdSection": "3",
-      "requirement": "§3",
+      "requirement": "Type notes",
       "requirementClasses": [
         "PERSISTENCE",
         "COLD_READBACK",
@@ -944,7 +950,7 @@
         "M-AUTH-WRITE"
       ],
       "sourceFiles": [
-        "Type notes"
+        "Notes capture UI, `ClientDiscoveryJourney.tsx`"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -965,7 +971,7 @@
     {
       "reqId": "REQ-3.2",
       "mdSection": "3",
-      "requirement": "§3",
+      "requirement": "Dictate notes",
       "requirementClasses": [
         "PERSISTENCE",
         "COLD_READBACK",
@@ -978,7 +984,7 @@
         "M-AUTH-WRITE"
       ],
       "sourceFiles": [
-        "Dictate notes"
+        "Web Speech API wire, reuses `createNote`/`noteType: \"unknown\"`"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -999,7 +1005,7 @@
     {
       "reqId": "REQ-3.3",
       "mdSection": "3",
-      "requirement": "§3",
+      "requirement": "Capture structured answers",
       "requirementClasses": [
         "PERSISTENCE",
         "COLD_READBACK",
@@ -1012,7 +1018,7 @@
         "M-AUTH-WRITE"
       ],
       "sourceFiles": [
-        "Capture structured answers"
+        "`business_project_discovery_items` write path, `captureAnswer` route"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1033,7 +1039,7 @@
     {
       "reqId": "REQ-3.4",
       "mdSection": "3",
-      "requirement": "§3",
+      "requirement": "Upload logos/brand assets/screenshots/inspiration/documents",
       "requirementClasses": [
         "PERSISTENCE",
         "COLD_READBACK",
@@ -1046,7 +1052,7 @@
         "M-AUTH-WRITE"
       ],
       "sourceFiles": [
-        "Upload logos/brand assets/screenshots/inspiration/documents"
+        "`asset_ref` value type, canonical-asset picker + upload flow (Gate 3.1)"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1067,7 +1073,7 @@
     {
       "reqId": "REQ-3.5",
       "mdSection": "3",
-      "requirement": "§3",
+      "requirement": "Attach links",
       "requirementClasses": [
         "PERSISTENCE",
         "COLD_READBACK",
@@ -1080,7 +1086,7 @@
         "M-AUTH-WRITE"
       ],
       "sourceFiles": [
-        "Attach links"
+        "`sourceType: \"website_url\"`, `externalUrl` field on `ProjectDiscoverySource`"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1101,7 +1107,7 @@
     {
       "reqId": "REQ-3.6",
       "mdSection": "3",
-      "requirement": "§3",
+      "requirement": "Mark client-confirmed decisions / questions needing follow-up",
       "requirementClasses": [
         "PERSISTENCE",
         "COLD_READBACK",
@@ -1114,7 +1120,7 @@
         "M-AUTH-WRITE"
       ],
       "sourceFiles": [
-        "Mark client-confirmed decisions / questions needing follow-up"
+        "`confirmationState` field, `unresolvedClientActions` on the packet"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1135,7 +1141,7 @@
     {
       "reqId": "REQ-3.7",
       "mdSection": "3",
-      "requirement": "§3.1",
+      "requirement": "Recording optional, never auto-started by a mic button",
       "requirementClasses": [
         "PERSISTENCE",
         "COLD_READBACK",
@@ -1148,7 +1154,7 @@
         "M-AUTH-WRITE"
       ],
       "sourceFiles": [
-        "Recording optional, never auto-started by a mic button"
+        "Explicit consent-state capture gate before recording begins"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1169,7 +1175,7 @@
     {
       "reqId": "REQ-3.8",
       "mdSection": "3",
-      "requirement": "§3.1",
+      "requirement": "Consent status/timestamp/operator/participant/recording ref/transcript ref/retention preserved",
       "requirementClasses": [
         "PERSISTENCE",
         "COLD_READBACK",
@@ -1182,7 +1188,7 @@
         "M-AUTH-WRITE"
       ],
       "sourceFiles": [
-        "Consent status/timestamp/operator/participant/recording ref/transcript ref/retention preserved"
+        "Consent capture fields on the discovery/source row"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1203,7 +1209,7 @@
     {
       "reqId": "REQ-3.9",
       "mdSection": "3",
-      "requirement": "§3.1",
+      "requirement": "Notes/dictation/structured intake/uploads provide a complete path with NO recording authorized",
       "requirementClasses": [
         "PERSISTENCE",
         "COLD_READBACK",
@@ -1216,7 +1222,7 @@
         "M-AUTH-WRITE"
       ],
       "sourceFiles": [
-        "Notes/dictation/structured intake/uploads provide a complete path with NO recording authorized"
+        "Every capture path (REQ-3.1 through 3.5) works independently of recording consent — recording is additive, not a dependency"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1237,7 +1243,7 @@
     {
       "reqId": "REQ-4.1",
       "mdSection": "4",
-      "requirement": "§4",
+      "requirement": "CLIENT CONFIRMED",
       "requirementClasses": [
         "PERSISTENCE",
         "NEGATIVE_GUARD"
@@ -1247,7 +1253,7 @@
         "M-TRUTH-CONFIRMATION"
       ],
       "sourceFiles": [
-        "CLIENT CONFIRMED"
+        "`truthClass: \"client_confirmed\"`, `types.ts` `DiscoveryTruthClass`"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1264,7 +1270,7 @@
     {
       "reqId": "REQ-4.2",
       "mdSection": "4",
-      "requirement": "§4",
+      "requirement": "PUBLIC/VERIFIED",
       "requirementClasses": [
         "PERSISTENCE",
         "NEGATIVE_GUARD"
@@ -1274,7 +1280,7 @@
         "M-TRUTH-CONFIRMATION"
       ],
       "sourceFiles": [
-        "PUBLIC/VERIFIED"
+        "`truthClass: \"public_verified\"`"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1291,7 +1297,7 @@
     {
       "reqId": "REQ-4.3",
       "mdSection": "4",
-      "requirement": "§4",
+      "requirement": "STAFF OBSERVATION",
       "requirementClasses": [
         "PERSISTENCE",
         "NEGATIVE_GUARD"
@@ -1301,7 +1307,7 @@
         "M-TRUTH-CONFIRMATION"
       ],
       "sourceFiles": [
-        "STAFF OBSERVATION"
+        "`truthClass: \"staff_observation\"`"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1318,7 +1324,7 @@
     {
       "reqId": "REQ-4.4",
       "mdSection": "4",
-      "requirement": "§4",
+      "requirement": "AI EXTRACTED",
       "requirementClasses": [
         "PERSISTENCE",
         "NEGATIVE_GUARD"
@@ -1328,7 +1334,7 @@
         "M-TRUTH-CONFIRMATION"
       ],
       "sourceFiles": [
-        "AI EXTRACTED"
+        "`truthClass: \"ai_extracted\"`"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1345,7 +1351,7 @@
     {
       "reqId": "REQ-4.5",
       "mdSection": "4",
-      "requirement": "§4",
+      "requirement": "NEEDS CONFIRMATION",
       "requirementClasses": [
         "PERSISTENCE",
         "NEGATIVE_GUARD"
@@ -1355,7 +1361,7 @@
         "M-TRUTH-CONFIRMATION"
       ],
       "sourceFiles": [
-        "NEEDS CONFIRMATION"
+        "`truthClass: \"needs_confirmation\"`"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1372,7 +1378,7 @@
     {
       "reqId": "REQ-4.6",
       "mdSection": "4",
-      "requirement": "§4",
+      "requirement": "UNKNOWN",
       "requirementClasses": [
         "PERSISTENCE",
         "NEGATIVE_GUARD"
@@ -1382,7 +1388,7 @@
         "M-TRUTH-CONFIRMATION"
       ],
       "sourceFiles": [
-        "UNKNOWN"
+        "`truthClass: \"unknown\"`"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1399,7 +1405,7 @@
     {
       "reqId": "REQ-4.7",
       "mdSection": "4",
-      "requirement": "§4",
+      "requirement": "CLIENT PREFERENCE",
       "requirementClasses": [
         "PERSISTENCE",
         "NEGATIVE_GUARD"
@@ -1409,7 +1415,7 @@
         "M-TRUTH-CONFIRMATION"
       ],
       "sourceFiles": [
-        "CLIENT PREFERENCE"
+        "`truthClass: \"client_preference\"`"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1426,7 +1432,7 @@
     {
       "reqId": "REQ-4.8",
       "mdSection": "4",
-      "requirement": "§4",
+      "requirement": "LEONIX RECOMMENDATION",
       "requirementClasses": [
         "PERSISTENCE",
         "NEGATIVE_GUARD"
@@ -1436,7 +1442,7 @@
         "M-TRUTH-CONFIRMATION"
       ],
       "sourceFiles": [
-        "LEONIX RECOMMENDATION"
+        "`truthClass: \"leonix_recommendation\"`"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1453,7 +1459,7 @@
     {
       "reqId": "REQ-4.9",
       "mdSection": "4",
-      "requirement": "§4",
+      "requirement": "TECHNICAL DECISION",
       "requirementClasses": [
         "PERSISTENCE",
         "NEGATIVE_GUARD"
@@ -1463,7 +1469,7 @@
         "M-TRUTH-CONFIRMATION"
       ],
       "sourceFiles": [
-        "TECHNICAL DECISION"
+        "`truthClass: \"technical_decision\"`"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1480,7 +1486,7 @@
     {
       "reqId": "REQ-4.10",
       "mdSection": "4",
-      "requirement": "§4",
+      "requirement": "These 9 types never silently collapsed",
       "requirementClasses": [
         "PERSISTENCE",
         "NEGATIVE_GUARD"
@@ -1490,7 +1496,7 @@
         "M-TRUTH-CONFIRMATION"
       ],
       "sourceFiles": [
-        "These 9 types never silently collapsed"
+        "All 9 distinct enum values, distinct render tags, never mapped to a shared generic label"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1507,7 +1513,7 @@
     {
       "reqId": "REQ-5.1",
       "mdSection": "5",
-      "requirement": "§5",
+      "requirement": "REQUIRED BEFORE BUILD",
       "requirementClasses": [
         "DETERMINISTIC_LOGIC"
       ],
@@ -1515,7 +1521,7 @@
         "M-COMPLETENESS"
       ],
       "sourceFiles": [
-        "REQUIRED BEFORE BUILD"
+        "`DiscoveryCompletenessClass` = `\"required_before_build\"`"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1530,7 +1536,7 @@
     {
       "reqId": "REQ-5.2",
       "mdSection": "5",
-      "requirement": "§5",
+      "requirement": "REQUIRED BEFORE LAUNCH",
       "requirementClasses": [
         "DETERMINISTIC_LOGIC"
       ],
@@ -1538,7 +1544,7 @@
         "M-COMPLETENESS"
       ],
       "sourceFiles": [
-        "REQUIRED BEFORE LAUNCH"
+        "`\"required_before_launch\"`"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1553,7 +1559,7 @@
     {
       "reqId": "REQ-5.3",
       "mdSection": "5",
-      "requirement": "§5",
+      "requirement": "HELPFUL",
       "requirementClasses": [
         "DETERMINISTIC_LOGIC"
       ],
@@ -1561,7 +1567,7 @@
         "M-COMPLETENESS"
       ],
       "sourceFiles": [
-        "HELPFUL"
+        "`\"helpful\"`"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1576,7 +1582,7 @@
     {
       "reqId": "REQ-5.4",
       "mdSection": "5",
-      "requirement": "§5",
+      "requirement": "OPTIONAL",
       "requirementClasses": [
         "DETERMINISTIC_LOGIC"
       ],
@@ -1584,7 +1590,7 @@
         "M-COMPLETENESS"
       ],
       "sourceFiles": [
-        "OPTIONAL"
+        "`\"optional\"`"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1622,7 +1628,7 @@
     {
       "reqId": "REQ-5.6",
       "mdSection": "5",
-      "requirement": "§5",
+      "requirement": "NEEDS LEONIX DECISION",
       "requirementClasses": [
         "DETERMINISTIC_LOGIC"
       ],
@@ -1630,7 +1636,7 @@
         "M-COMPLETENESS"
       ],
       "sourceFiles": [
-        "NEEDS LEONIX DECISION"
+        "`\"needs_leonix_decision\"`"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1645,7 +1651,7 @@
     {
       "reqId": "REQ-5.7",
       "mdSection": "5",
-      "requirement": "§5",
+      "requirement": "NEEDS OFFICIAL RESEARCH",
       "requirementClasses": [
         "DETERMINISTIC_LOGIC"
       ],
@@ -1653,7 +1659,7 @@
         "M-COMPLETENESS"
       ],
       "sourceFiles": [
-        "NEEDS OFFICIAL RESEARCH"
+        "`\"needs_official_research\"`"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1668,7 +1674,7 @@
     {
       "reqId": "REQ-6.1",
       "mdSection": "6",
-      "requirement": "§6",
+      "requirement": "Questions chosen from project type/industry/stage/truth/missing-info/goals/systems/assets/site/preferences/deadlines/ownership/compliance",
       "requirementClasses": [
         "DETERMINISTIC_LOGIC",
         "UI_RESURFACING"
@@ -1678,7 +1684,7 @@
         "M-DISCOVERY-CATALOG"
       ],
       "sourceFiles": [
-        "Questions chosen from project type/industry/stage/truth/missing-info/goals/systems/assets/site/preferences/deadlines/ownership/compliance"
+        "`buildQuestionsToAskNow`, `applicabilityCondition`+`dependencyCondition` predicates reading `WebsiteDiscoveryContext` (industryBranch, businessStage, capturedItems, hasExistingWebsite, etc.)"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1693,7 +1699,7 @@
     {
       "reqId": "REQ-6.2",
       "mdSection": "6",
-      "requirement": "§6",
+      "requirement": "\"Questions to Ask Now,\" not a 150-question wall",
       "requirementClasses": [
         "DETERMINISTIC_LOGIC",
         "UI_RESURFACING"
@@ -1703,7 +1709,7 @@
         "M-DISCOVERY-CATALOG"
       ],
       "sourceFiles": [
-        "\"Questions to Ask Now,\" not a 150-question wall"
+        "`buildQuestionsToAskNow` returns a prioritized, filtered subset"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1718,7 +1724,7 @@
     {
       "reqId": "REQ-6.3",
       "mdSection": "6",
-      "requirement": "§6",
+      "requirement": "Already-answered-by-canonical-truth questions not re-asked unless reconfirmation needed",
       "requirementClasses": [
         "DETERMINISTIC_LOGIC",
         "UI_RESURFACING"
@@ -1728,7 +1734,7 @@
         "M-DISCOVERY-CATALOG"
       ],
       "sourceFiles": [
-        "Already-answered-by-canonical-truth questions not re-asked unless reconfirmation needed"
+        "`recommendReconfirmation` flag + `canonicalTruthMaySatisfy` gating"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1743,7 +1749,7 @@
     {
       "reqId": "REQ-7.1",
       "mdSection": "7",
-      "requirement": "§7",
+      "requirement": "Website / Website Improvement",
       "requirementClasses": [
         "EXECUTION_BRIDGE",
         "LIFECYCLE_TRANSITION"
@@ -1753,7 +1759,7 @@
         "M-MULTI-PROJECT"
       ],
       "sourceFiles": [
-        "Website / Website Improvement"
+        "`FAMILY_BY_PROJECT_TYPE[\"website\"] / [\"website_improvement\"]` → Website engine"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1770,7 +1776,7 @@
     {
       "reqId": "REQ-7.2",
       "mdSection": "7",
-      "requirement": "§7",
+      "requirement": "Landing Page",
       "requirementClasses": [
         "EXECUTION_BRIDGE",
         "LIFECYCLE_TRANSITION"
@@ -1780,7 +1786,7 @@
         "M-MULTI-PROJECT"
       ],
       "sourceFiles": [
-        "Landing Page"
+        "`FAMILY_BY_PROJECT_TYPE[\"landing_page\"]` → Website engine (MD `<website_handoff_preservation>`)"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1797,7 +1803,7 @@
     {
       "reqId": "REQ-7.3",
       "mdSection": "7",
-      "requirement": "§7",
+      "requirement": "Logo / Brand Identity",
       "requirementClasses": [
         "EXECUTION_BRIDGE",
         "LIFECYCLE_TRANSITION"
@@ -1807,7 +1813,7 @@
         "M-MULTI-PROJECT"
       ],
       "sourceFiles": [
-        "Logo / Brand Identity"
+        "`logoBrandDiscoveryCatalog.ts`, dedicated family"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1824,7 +1830,7 @@
     {
       "reqId": "REQ-7.4",
       "mdSection": "7",
-      "requirement": "§7",
+      "requirement": "Business Cards",
       "requirementClasses": [
         "EXECUTION_BRIDGE",
         "LIFECYCLE_TRANSITION"
@@ -1834,7 +1840,7 @@
         "M-MULTI-PROJECT"
       ],
       "sourceFiles": [
-        "Business Cards"
+        "`printCollateralDiscoveryCatalog.ts`, `isProjectType(BUSINESS_CARDS)` branches"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1851,7 +1857,7 @@
     {
       "reqId": "REQ-7.5",
       "mdSection": "7",
-      "requirement": "§7",
+      "requirement": "Flyer",
       "requirementClasses": [
         "EXECUTION_BRIDGE",
         "LIFECYCLE_TRANSITION"
@@ -1861,7 +1867,7 @@
         "M-MULTI-PROJECT"
       ],
       "sourceFiles": [
-        "Flyer"
+        "Same catalog, `isProjectType(FLYER)` branches"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1878,7 +1884,7 @@
     {
       "reqId": "REQ-7.6",
       "mdSection": "7",
-      "requirement": "§7",
+      "requirement": "Banner / Signage",
       "requirementClasses": [
         "EXECUTION_BRIDGE",
         "LIFECYCLE_TRANSITION"
@@ -1888,7 +1894,7 @@
         "M-MULTI-PROJECT"
       ],
       "sourceFiles": [
-        "Banner / Signage"
+        "Same catalog, `isProjectType(BANNER_SIGNAGE)` branches"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1905,7 +1911,7 @@
     {
       "reqId": "REQ-7.7",
       "mdSection": "7",
-      "requirement": "§7",
+      "requirement": "Promotional Products",
       "requirementClasses": [
         "EXECUTION_BRIDGE",
         "LIFECYCLE_TRANSITION"
@@ -1915,7 +1921,7 @@
         "M-MULTI-PROJECT"
       ],
       "sourceFiles": [
-        "Promotional Products"
+        "Same catalog, joined the print_collateral family (Gate 10.2)"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1932,7 +1938,7 @@
     {
       "reqId": "REQ-7.8",
       "mdSection": "7",
-      "requirement": "§7",
+      "requirement": "Campaign Creative",
       "requirementClasses": [
         "EXECUTION_BRIDGE",
         "LIFECYCLE_TRANSITION"
@@ -1942,7 +1948,7 @@
         "M-MULTI-PROJECT"
       ],
       "sourceFiles": [
-        "Campaign Creative"
+        "`growthCampaignBridge.ts`, media_campaign family"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1959,7 +1965,7 @@
     {
       "reqId": "REQ-7.9",
       "mdSection": "7",
-      "requirement": "§7",
+      "requirement": "Sponsored Editorial",
       "requirementClasses": [
         "EXECUTION_BRIDGE",
         "LIFECYCLE_TRANSITION"
@@ -1969,7 +1975,7 @@
         "M-MULTI-PROJECT"
       ],
       "sourceFiles": [
-        "Sponsored Editorial"
+        "`projectTypeRegistry.ts` corrected to `executionDestination: \"growth_campaign\"` (Gate 10.2 fix — registry previously said `creative_studio`, mismatching real dispatch)"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -1986,7 +1992,7 @@
     {
       "reqId": "REQ-7.10",
       "mdSection": "7",
-      "requirement": "§7",
+      "requirement": "Media / Exposure Campaign",
       "requirementClasses": [
         "EXECUTION_BRIDGE",
         "LIFECYCLE_TRANSITION"
@@ -1996,7 +2002,7 @@
         "M-MULTI-PROJECT"
       ],
       "sourceFiles": [
-        "Media / Exposure Campaign"
+        "`media_exposure_campaign` → media_campaign family"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -2013,7 +2019,7 @@
     {
       "reqId": "REQ-7.11",
       "mdSection": "7",
-      "requirement": "§7",
+      "requirement": "Social Setup / Cleanup",
       "requirementClasses": [
         "EXECUTION_BRIDGE",
         "LIFECYCLE_TRANSITION"
@@ -2023,7 +2029,7 @@
         "M-MULTI-PROJECT"
       ],
       "sourceFiles": [
-        "Social Setup / Cleanup"
+        "`digitalPresenceDiscoveryCatalog.ts`, real `digital_presence` family (Gate 10.2 — previously a registry-only stub)"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -2040,7 +2046,7 @@
     {
       "reqId": "REQ-7.12",
       "mdSection": "7",
-      "requirement": "§7",
+      "requirement": "Google Business Profile support",
       "requirementClasses": [
         "EXECUTION_BRIDGE",
         "LIFECYCLE_TRANSITION"
@@ -2050,7 +2056,7 @@
         "M-MULTI-PROJECT"
       ],
       "sourceFiles": [
-        "Google Business Profile support"
+        "Same `digital_presence` family, GBP-specific fields"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -2067,7 +2073,7 @@
     {
       "reqId": "REQ-7.13",
       "mdSection": "7",
-      "requirement": "§7",
+      "requirement": "Referral Materials",
       "requirementClasses": [
         "EXECUTION_BRIDGE",
         "LIFECYCLE_TRANSITION"
@@ -2077,7 +2083,7 @@
         "M-MULTI-PROJECT"
       ],
       "sourceFiles": [
-        "Referral Materials"
+        "`printCollateralDiscoveryCatalog.ts`, `isProjectType(REFERRAL_MATERIALS)` branches"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -2094,7 +2100,7 @@
     {
       "reqId": "REQ-7.14",
       "mdSection": "7",
-      "requirement": "§7",
+      "requirement": "Launch Package / Multi-project engagement",
       "requirementClasses": [
         "EXECUTION_BRIDGE",
         "LIFECYCLE_TRANSITION"
@@ -2104,7 +2110,7 @@
         "M-MULTI-PROJECT"
       ],
       "sourceFiles": [
-        "Launch Package / Multi-project engagement"
+        "`launchPackageDiscoveryCatalog.ts` + `launchPackageRollup.ts` live roll-up (Gate 10.2 — previously non-existent)"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -2121,7 +2127,7 @@
     {
       "reqId": "REQ-7.15",
       "mdSection": "7",
-      "requirement": "§7",
+      "requirement": "Custom Platform / Software Project",
       "requirementClasses": [
         "EXECUTION_BRIDGE",
         "LIFECYCLE_TRANSITION"
@@ -2131,7 +2137,7 @@
         "M-MULTI-PROJECT"
       ],
       "sourceFiles": [
-        "Custom Platform / Software Project"
+        "`custom_platform_software` standalone family, always `requiresCommercialReview: true`"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -2148,7 +2154,7 @@
     {
       "reqId": "REQ-7.16",
       "mdSection": "7",
-      "requirement": "§7",
+      "requirement": "Other approved project type",
       "requirementClasses": [
         "EXECUTION_BRIDGE",
         "LIFECYCLE_TRANSITION"
@@ -2158,7 +2164,7 @@
         "M-MULTI-PROJECT"
       ],
       "sourceFiles": [
-        "Other approved project type"
+        "`otherProjectDiscoveryCatalog.ts`, minimal generic `other` family"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -2175,7 +2181,7 @@
     {
       "reqId": "REQ-7.17",
       "mdSection": "7",
-      "requirement": "§7",
+      "requirement": "One client conversation → multiple linked projects",
       "requirementClasses": [
         "EXECUTION_BRIDGE",
         "LIFECYCLE_TRANSITION"
@@ -2185,7 +2191,7 @@
         "M-MULTI-PROJECT"
       ],
       "sourceFiles": [
-        "One client conversation → multiple linked projects"
+        "`selectedIntentId` vs. sibling `ProjectDiscoveryIntent` rows sharing one `discoveryId`, one `businessId`"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -10084,7 +10090,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`restaurant_menu_source`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10112,7 +10120,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`restaurant_wants_online_ordering` + `restaurant_ordering_provider_ownership`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10140,7 +10150,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`restaurant_wants_reservations` + `restaurant_reservation_provider_ownership`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10168,7 +10180,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`restaurant_catering_offered`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10196,7 +10210,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`restaurant_delivery_platforms`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10224,7 +10240,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`restaurant_dietary_allergen_info`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10252,7 +10270,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`restaurant_multiple_locations`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10280,7 +10300,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "§8.1 `public_business_hours` (universal, cross-ref)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10308,7 +10330,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`restaurant_specials_promotions`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10336,7 +10360,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`fitness_membership_types`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10364,7 +10390,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`fitness_class_schedule_wanted`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10392,7 +10420,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`fitness_personal_training_offered`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10420,7 +10450,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`fitness_class_schedule_wanted` (same field)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10448,7 +10480,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`fitness_trial_offer`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10476,7 +10510,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "§8.16 `wants_online_booking` (universal, cross-ref)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10504,7 +10540,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`fitness_capacity`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10532,7 +10570,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`fitness_target_member`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10560,7 +10600,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`radio_streaming_provider`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10588,7 +10630,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`radio_streaming_provider` (same field)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10616,7 +10660,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`radio_programming_hosts`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10644,7 +10690,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`radio_hosts_personalities`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10672,7 +10720,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`radio_station_events`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10700,7 +10750,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`radio_advertisers_sponsors_page`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10728,7 +10780,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "§8.10 `primary_cta_type`'s `listen_live` option (universal, cross-ref)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10756,7 +10810,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`radio_station_positioning_messaging`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10784,7 +10840,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`radio_sponsor_relationships`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10812,7 +10870,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`church_service_times`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10840,7 +10900,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`church_livestream_wanted`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10868,7 +10930,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`church_ministries_events`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10896,7 +10960,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`church_ministries_events` (same field)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -10924,7 +10990,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`church_online_giving_wanted` + `church_giving_provider`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -11012,7 +11080,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "§8.21/§8.22 universal fields (cross-ref)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -11040,7 +11110,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`professional_credentials_to_feature`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -11068,7 +11140,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`professional_consultation_process`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -11096,7 +11170,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "§8.1 `service_area` (universal, cross-ref)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -11124,7 +11200,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`professional_consultation_process` (same field)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -11152,7 +11230,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`professional_compliance_sensitive_claims`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -11180,7 +11260,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "§8.3 `trust_builders` (universal, cross-ref)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -11208,7 +11290,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "§8.10 `primary_cta_type` (universal, cross-ref)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -11236,7 +11320,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`home_service_area_map`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -11264,7 +11350,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`home_service_quote_process`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -11292,7 +11380,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`home_service_emergency_service`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -11320,7 +11410,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "§8.16 `wants_online_booking` (universal, cross-ref)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -11348,7 +11440,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`home_service_license_insurance_claims`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -11376,7 +11470,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`home_service_before_after_media`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -11404,7 +11500,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "§8.4 `core_services_products` (universal, cross-ref)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -11501,7 +11599,9 @@
       "mechanismIds": [
         "M-PLATFORM-REGISTRY"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`PLATFORM_REGISTRY` in `architectureDecisionEngine.ts`, `domainDns` recommendation"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -11522,7 +11622,9 @@
       "mechanismIds": [
         "M-PLATFORM-REGISTRY"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`frontend` recommendation"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -11543,7 +11645,9 @@
       "mechanismIds": [
         "M-PLATFORM-REGISTRY"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`hosting` recommendation"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -11564,7 +11668,9 @@
       "mechanismIds": [
         "M-PLATFORM-REGISTRY"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`cms` recommendation"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -11585,7 +11691,9 @@
       "mechanismIds": [
         "M-PLATFORM-REGISTRY"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`formsEmail` recommendation"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -11606,7 +11714,9 @@
       "mechanismIds": [
         "M-PLATFORM-REGISTRY"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`database`/`storage`/`auth` recommendations"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -11627,7 +11737,9 @@
       "mechanismIds": [
         "M-PLATFORM-REGISTRY"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`analytics` recommendation array"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -11648,7 +11760,9 @@
       "mechanismIds": [
         "M-PLATFORM-REGISTRY"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`preserveExistingPlatformKey` mechanism, `existing_website_transition_plan`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -11671,7 +11785,9 @@
         "M-ARCHITECTURE-DECISION",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`WebsiteArchitectureDecisionPacket.architectureClass`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -11696,7 +11812,9 @@
         "M-ARCHITECTURE-DECISION",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`architectureClassRationale` — rendered as Blueprint category #25 (Gate 10.2 fix — previously computed but never rendered)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -11721,7 +11839,9 @@
         "M-ARCHITECTURE-DECISION",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`cms.decision`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -11746,7 +11866,9 @@
         "M-ARCHITECTURE-DECISION",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`database.decision`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -11771,7 +11893,9 @@
         "M-ARCHITECTURE-DECISION",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`auth.decision`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -11796,7 +11920,9 @@
         "M-ARCHITECTURE-DECISION",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`formsEmail` recommendation"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -11821,7 +11947,9 @@
         "M-ARCHITECTURE-DECISION",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`domainDns` recommendation"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -11846,7 +11974,9 @@
         "M-ARCHITECTURE-DECISION",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`buildOwnership()` (Gate 10.3 pass 1 fix)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -11871,7 +12001,9 @@
         "M-ARCHITECTURE-DECISION",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`recurringServices`, `scopeEscalationSignal` tags"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -11947,7 +12079,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -11971,7 +12105,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -11995,7 +12131,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12019,7 +12157,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12043,7 +12183,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12067,7 +12209,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12091,7 +12235,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12115,7 +12261,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12139,7 +12287,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12163,7 +12313,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12187,7 +12339,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12211,7 +12365,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12235,7 +12391,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12259,7 +12417,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12283,7 +12443,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12307,7 +12469,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12331,7 +12495,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12355,7 +12521,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12379,7 +12547,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12403,7 +12573,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12427,7 +12599,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12451,7 +12625,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12475,7 +12651,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12499,7 +12677,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12523,7 +12703,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12547,7 +12729,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12571,7 +12755,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12595,7 +12781,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12619,7 +12807,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12643,7 +12833,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12667,7 +12859,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12691,7 +12885,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12715,7 +12911,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12739,7 +12937,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12763,7 +12963,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12787,7 +12989,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12811,7 +13015,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12835,7 +13041,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12859,7 +13067,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12883,7 +13093,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12907,7 +13119,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12931,7 +13145,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12955,7 +13171,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -12979,7 +13197,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -13003,7 +13223,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -13027,7 +13249,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -13051,7 +13275,9 @@
         "M-BLUEPRINT-PACKET",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`test-blueprint-47-categories-gate10-2.ts` (18/18, including \"all 47 categories appear in ascending numeric order\" and \"genuinely-empty categories resolve to an empty string, never fabricated N/A filler\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -13076,7 +13302,9 @@
         "M-CANONICAL-TRUTH",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`BLUEPRINT_TRUTH_TAGS[\"client_confirmed\"]`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13101,7 +13329,9 @@
         "M-CANONICAL-TRUTH",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`BLUEPRINT_TRUTH_TAGS[\"leonix_recommendation\"]`/`[\"ai_extracted\"]`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13126,7 +13356,9 @@
         "M-CANONICAL-TRUTH",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`confirmationState: \"confirmed\"` combined with `client_confirmed`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13151,7 +13383,9 @@
         "M-CANONICAL-TRUTH",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`BLUEPRINT_TRUTH_TAGS[\"technical_decision\"]`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13176,7 +13410,9 @@
         "M-CANONICAL-TRUTH",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`BLUEPRINT_TRUTH_TAGS[\"needs_confirmation\"]`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13199,7 +13435,9 @@
       "mechanismIds": [
         "M-VISUAL-REFERENCE"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`websites_liked` \"(with reason)\""
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13222,7 +13460,9 @@
       "mechanismIds": [
         "M-VISUAL-REFERENCE"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`websites_disliked` \"(with reason)\""
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13245,7 +13485,9 @@
       "mechanismIds": [
         "M-VISUAL-REFERENCE"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`ProjectDiscoverySource.notes` free-text annotation on any uploaded reference asset"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13268,7 +13510,9 @@
       "mechanismIds": [
         "M-VISUAL-REFERENCE"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "Same free-text annotation mechanism, plus §8.5 `typography_preference` **[NEW]** for the typography axis specifically"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13383,7 +13627,9 @@
       "mechanismIds": [
         "M-ADAPTIVE-SUPPRESSION"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`ClientDiscoveryJourney.tsx`'s closeout section (Gate 3), reusing the same priority-filtered `buildQuestionsToAskNow` engine as §6"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -13491,7 +13737,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "Cross-ref canonical Business Identity (shared truth, §2)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13519,7 +13767,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`existing_logo`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13547,7 +13797,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`card_person_lines`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13575,7 +13827,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`print_phone_email_web_social`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13603,7 +13857,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`print_phone_email_web_social` (same field)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13631,7 +13887,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`print_phone_email_web_social` (same field)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13659,7 +13917,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`print_address`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13687,7 +13947,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`print_phone_email_web_social` (same field)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13715,7 +13977,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`print_qr_destination`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13743,7 +14007,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`colors_liked`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13771,7 +14037,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`print_desired_style`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13799,7 +14067,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`card_quantity` (Gate 10.3 — widened from Business-Cards-only to all 4 physical print types)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13827,7 +14097,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`print_dimensions_known` (Banner/Signage — genuinely variable) + standard fixed size for Business Cards/Flyer (a real, deliberate Leonix production default, not an unasked gap)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13855,7 +14127,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`print_orientation`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13883,7 +14157,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`print_paper_finish_preference`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13911,7 +14187,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`print_vendor_known`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13939,7 +14217,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`print_deadline_event_trigger`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13967,7 +14247,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`promo_product_delivery` (Gate 10.3 — widened from Promotional-Products-only to all 5 physical print types)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -13995,7 +14277,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`decision_maker_approver` (approval section)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14023,7 +14307,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`public_business_name` (logo-specific relabel: \"Exact brand/business name for the logo\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14051,7 +14337,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`logo_tagline`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14079,7 +14367,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "Cross-ref `WebsiteDiscoveryContext.broadBusinessType`/`specificBusinessType` (shared structural context, §2)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14107,7 +14397,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`primary_customer`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14135,7 +14427,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "Cross-ref shared `about_story` (Website catalog, reused per §2's shared-truth architecture) + `logo_reason_for_project`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14163,7 +14457,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`logo_reason_for_project`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14191,7 +14487,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`brand_personality_traits`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14219,7 +14517,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`brand_personality_traits` (same field)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14247,7 +14547,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`colors_liked`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14275,7 +14577,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`colors_disliked`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14303,7 +14607,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`symbols_wanted`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14331,7 +14637,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`symbols_avoided`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14359,7 +14667,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`symbols_wanted`'s own operator guidance (\"cultural or personal meaning may matter here\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14387,7 +14697,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`logo_reference_examples` (\"Reference brands/designs — likes and dislikes\")"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14415,7 +14727,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`logo_primary_use`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14443,7 +14757,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`logo_deliverables_wanted`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14471,7 +14787,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`existing_logo` + `logo_elements_to_preserve`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14499,7 +14817,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-RENDER"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`logo_trademark_ownership_question` (`needs_official_research`-class, never fabricates a legal conclusion)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14524,7 +14844,9 @@
       "mechanismIds": [
         "M-DISCOVERY-CATALOG"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`operatorGuidanceEn`/`operatorGuidanceEs` on every one of the 141 catalog fields — plain-language rationale, not engineering jargon"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -14546,7 +14868,9 @@
         "M-DISCOVERY-PERSISTENCE",
         "M-BLUEPRINT-PACKET"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`business_project_discovery_items`, `business_project_blueprints`, `PlatformOwnershipEntry[]`, Promise Keeper commitment bridge (Gate 7)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14571,7 +14895,9 @@
         "M-PROJECT-CREATION-BRIDGE",
         "M-BLUEPRINT-PACKET"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`approved_for_build` blueprint version is the build contract; `buildSourceReferences()` cites raw sources for traceability only, never as the primary spec"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -14596,7 +14922,9 @@
       "mechanismIds": [
         "M-BLUEPRINT-VERSIONING"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`business_project_blueprints.version`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14623,7 +14951,9 @@
       "mechanismIds": [
         "M-BLUEPRINT-VERSIONING"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`packet.generatedAt`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14650,7 +14980,9 @@
       "mechanismIds": [
         "M-BLUEPRINT-VERSIONING"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`computeBlueprintInputFingerprint()`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14677,7 +15009,9 @@
       "mechanismIds": [
         "M-BLUEPRINT-VERSIONING"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`buildSourceReferences()`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14704,7 +15038,9 @@
       "mechanismIds": [
         "M-BLUEPRINT-VERSIONING"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`clientResponsibilities`, feedback rows (Gate 7)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14731,7 +15067,9 @@
       "mechanismIds": [
         "M-BLUEPRINT-VERSIONING"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`approvedArchitecture` frozen into the packet"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -14758,7 +15096,9 @@
       "mechanismIds": [
         "M-BLUEPRINT-VERSIONING"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`unresolvedBeforeLaunch`, `BlueprintStatus: \"superseded\"`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [
@@ -15950,7 +16290,9 @@
       "mechanismIds": [
         "M-CFO-ESCALATION"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`wants_user_accounts` (`scopeEscalationSignal: \"user_authentication\"`)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -15974,7 +16316,9 @@
       "mechanismIds": [
         "M-CFO-ESCALATION"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`wants_multi_vendor_marketplace` (`\"native_marketplace\"`) **[NEW]**"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -15998,7 +16342,9 @@
       "mechanismIds": [
         "M-CFO-ESCALATION"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`wants_native_checkout` (`\"custom_checkout\"`)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -16022,7 +16368,9 @@
       "mechanismIds": [
         "M-CFO-ESCALATION"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`wants_customer_dashboard` (`\"customer_dashboard\"`)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -16046,7 +16394,9 @@
       "mechanismIds": [
         "M-CFO-ESCALATION"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`backend_database_needed` (`\"complex_database\"`)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -16070,7 +16420,9 @@
       "mechanismIds": [
         "M-CFO-ESCALATION"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`wants_online_booking` (`\"scheduling_engine\"`)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -16094,7 +16446,9 @@
       "mechanismIds": [
         "M-CFO-ESCALATION"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`wants_inapp_messaging` (`\"proprietary_messaging\"`) **[NEW]**"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -16118,7 +16472,9 @@
       "mechanismIds": [
         "M-CFO-ESCALATION"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`wants_significant_third_party_integrations` (`\"significant_integrations\"`) **[NEW]**"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -16142,7 +16498,9 @@
       "mechanismIds": [
         "M-CFO-ESCALATION"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`handles_minors_or_medical_financial_data` (`\"regulated_sensitive_data\"`)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -16166,7 +16524,9 @@
       "mechanismIds": [
         "M-CFO-ESCALATION"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`wants_native_mobile_app` (`\"native_mobile_app\"`) **[NEW]**"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -16190,7 +16550,9 @@
       "mechanismIds": [
         "M-CFO-ESCALATION"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`wants_complex_workflow_automation` (`\"native_workflow_state\"`) **[NEW]**"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -16239,7 +16601,9 @@
       "mechanismIds": [
         "M-COST-DISCIPLINE"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "Every architecture decision defaults to NOT_NEEDED/not-required unless a real discovery signal justifies escalation (CMS, database, auth all default off)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -16260,7 +16624,9 @@
       "mechanismIds": [
         "M-COST-DISCIPLINE"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`recurringServices` only populated from `status === \"required\"` platforms, never speculatively"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -16281,7 +16647,9 @@
       "mechanismIds": [
         "M-UI-PROGRESSION"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`website_objective` section, asked early"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -16302,7 +16670,9 @@
       "mechanismIds": [
         "M-UI-PROGRESSION"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`business_identity`/`audience` sections"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -16323,7 +16693,9 @@
       "mechanismIds": [
         "M-UI-PROGRESSION"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`brand_identity`/`visual_references` sections"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -16344,7 +16716,9 @@
       "mechanismIds": [
         "M-UI-PROGRESSION"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`content`/`media_assets` sections"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -16365,7 +16739,9 @@
       "mechanismIds": [
         "M-UI-PROGRESSION"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`backend_database_auth`/`booking_scheduling`/`payments_commerce` sections"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -16386,7 +16762,9 @@
       "mechanismIds": [
         "M-UI-PROGRESSION"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`domain`/`hosting_deployment`/`cms` sections"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -16407,7 +16785,9 @@
       "mechanismIds": [
         "M-UI-PROGRESSION"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`ownership_billing` section + `platform_ownership_register`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -16428,7 +16808,9 @@
       "mechanismIds": [
         "M-UI-PROGRESSION"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`schedule_approvals` section"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -16449,7 +16831,9 @@
       "mechanismIds": [
         "M-UI-PROGRESSION"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`evaluateWebsiteReadiness`'s live gap surfacing"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -16470,7 +16854,9 @@
       "mechanismIds": [
         "M-UI-PROGRESSION"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "Architecture Review UI (Gate 4)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -16491,7 +16877,9 @@
       "mechanismIds": [
         "M-UI-PROGRESSION"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "Blueprint review UI (Gate 5)"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -17904,7 +18292,9 @@
         "M-PROJECT-CREATION-BRIDGE",
         "M-QA-MATRIX"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`business_project_discovery_items`/`intents`/`sources` tables, missing-info classification"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -17930,7 +18320,9 @@
         "M-PROJECT-CREATION-BRIDGE",
         "M-QA-MATRIX"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`websiteDiscoveryCatalog.ts`, industry branches, completeness classes"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -17956,7 +18348,9 @@
         "M-PROJECT-CREATION-BRIDGE",
         "M-QA-MATRIX"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`ClientDiscoveryJourney.tsx`, progressive questions, notes, dictation, uploads, \"Before you wrap up\""
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -17982,7 +18376,9 @@
         "M-PROJECT-CREATION-BRIDGE",
         "M-QA-MATRIX"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`architectureDecisionEngine.ts`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -18008,7 +18404,9 @@
         "M-PROJECT-CREATION-BRIDGE",
         "M-QA-MATRIX"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`blueprintEngine.ts`/`blueprintMarkdown.ts`"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -18034,7 +18432,9 @@
         "M-PROJECT-CREATION-BRIDGE",
         "M-QA-MATRIX"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "`creativeStudioBridge.ts`, `growthCampaignBridge.ts`, dependencies, Promise Keeper"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -18060,7 +18460,9 @@
         "M-PROJECT-CREATION-BRIDGE",
         "M-QA-MATRIX"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "Check-items, client-safe projection, release/handoff routes"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -18112,7 +18514,9 @@
         "M-ARCHITECTURE-DECISION",
         "M-BLUEPRINT-PACKET"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "Adaptive question engine surfaces non-obvious required fields (e.g. §8.15 `user_roles_needed` only appears once accounts are wanted — the client is asked something they wouldn't have thought to volunteer); `packet.clientResponsibilities`/`in_scope_summary` is literally \"what we agreed to,\" rendered back at Client Review (§27) before launch"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -18136,7 +18540,9 @@
         "M-ARCHITECTURE-DECISION",
         "M-BLUEPRINT-PACKET"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "§6 Adaptive Question Engine (what to ask) + §17 Readiness states (what's missing) + §12 Platform Decision Engine (what to decide) + §32 CTA states (what happens next) — each already individually proven above"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -18160,7 +18566,9 @@
         "M-ARCHITECTURE-DECISION",
         "M-BLUEPRINT-PACKET"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "§14's 47-category packet + §24 Build Handoff freezing an `approved_for_build` version as the primary spec, never raw conversation history"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -18183,7 +18591,9 @@
         "M-PROMISE-KEEPER",
         "M-HANDOFF"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "Same as REQ-0.1's North Star proof — \"keep the relationship\" specifically maps to the Promise Keeper commitment bridge (Gate 7) and the post-launch maintenance/support record (§8.25, §28) persisting past handoff"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -18206,7 +18616,9 @@
         "M-PROMISE-KEEPER",
         "M-HANDOFF"
       ],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "Repeatable: the SAME catalog/engine/registry drives every project of a given type. Tailored: every field's `displayValue` is the client's own real answer, never a template default — confirmed by `test-blueprint-47-categories-gate10-2.ts` check 17: \"a category with nothing to say is OMITTED entirely ... never fabricated N/A filler\""
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -18227,7 +18639,9 @@
         "OWNER_SUBJECTIVE_ONLY"
       ],
       "mechanismIds": [],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "Requires a human looking at a real rendered browser page"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -18246,7 +18660,9 @@
         "OWNER_SUBJECTIVE_ONLY"
       ],
       "mechanismIds": [],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "Structural `min-h-[44px]` classes are confirmed present (verified structurally by every foundation verifier: `verify-project-blueprint-foundation-05/06/07.ts`), but comfortable touch usability is a felt human judgment"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -18265,7 +18681,9 @@
         "OWNER_SUBJECTIVE_ONLY"
       ],
       "mechanismIds": [],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "Requires a real device/viewport"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -18284,7 +18702,9 @@
         "OWNER_SUBJECTIVE_ONLY"
       ],
       "mechanismIds": [],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "Bilingual phrase-pair PRESENCE is structurally verified (every foundation verifier's \"required bilingual phrase pairs appear verbatim\" check); visual FIT is a rendered judgment"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -18303,7 +18723,9 @@
         "OWNER_SUBJECTIVE_ONLY"
       ],
       "mechanismIds": [],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "Structural presence is proven; whether a real operator notices and understands the control at a glance is a human UX judgment"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
@@ -18322,7 +18744,9 @@
         "OWNER_SUBJECTIVE_ONLY"
       ],
       "mechanismIds": [],
-      "sourceFiles": [],
+      "sourceFiles": [
+        "The MECHANISM producing the document is proven; whether the prose it produces is genuinely clear to a human reader is inherently a render/comprehension judgment"
+      ],
       "tests": [],
       "stagingEvidence": [],
       "persistenceEvidence": [],
