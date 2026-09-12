@@ -18,7 +18,8 @@ function assert(condition, message) {
 const hubRow = read("app/(site)/servicios/components/ServiciosBusinessHubEngagementRow.tsx");
 const contactCard = read("app/(site)/servicios/components/ServiciosBusinessHubContactCard.tsx");
 const videoTile = read("app/(site)/servicios/components/ServiciosGalleryVideoTile.tsx");
-const lightbox = read("app/(site)/servicios/components/ServiciosMediaLightbox.tsx");
+const gallery = read("app/(site)/servicios/components/ServiciosGalleryWithTabs.tsx");
+const visualProof = read("app/(site)/servicios/components/ServiciosVisualProofRow.tsx");
 const directCta = read("app/(site)/servicios/lib/serviciosDirectCta.ts");
 const horizontalCard = read("app/(site)/clasificados/servicios/components/ServiciosHorizontalResultCard.tsx");
 const proCard = read("app/(site)/clasificados/servicios/ServiciosProfessionalResultCard.tsx");
@@ -93,7 +94,11 @@ assert(videoTile.includes('variant?: "thumbnail" | "embed"'), "video tile: thumb
 assert(videoTile.includes('rel="noopener noreferrer"'), "video tile: safe external link");
 assert(videoTile.includes("data-servicios-gallery-video-thumbnail"), "video tile: thumbnail marker");
 assert(!videoTile.includes("<iframe") || videoTile.includes("ServiciosGalleryVideoEmbed"), "video tile: iframe only in embed mode");
-assert(lightbox.includes('variant="embed"'), "lightbox: embed mode for modal playback");
+// Re-pointed by the zero-debt closeout (2026-09-12): this asserted embed playback on
+// `ServiciosMediaLightbox`, which now has ZERO runtime consumers — false-green. The live
+// in-Leonix playback surfaces are the gallery and the visual-proof row.
+assert(gallery.includes('variant="embed"'), "gallery: embed playback inside Leonix");
+assert(visualProof.includes('variant="embed"'), "visual proof row: embed playback inside Leonix");
 
 assert(directCta.includes("buildServiciosGoogleMapsDirectionsUrl"), "direct CTA: maps dir helper");
 assert(directCta.includes("/maps/dir/?api=1&destination="), "direct CTA: directions URL pattern");

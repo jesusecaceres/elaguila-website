@@ -55,7 +55,18 @@ assert(hubRow.includes("showEngagementControls && Boolean(lxListingId)"), "hub r
 assert(!hubRow.includes("showShare ?"), "hub row: no preview-only share branch");
 
 assert(proShell.includes("directNativeShare"), "professional shell: hero native share");
-assert(proShell.includes("showEngagementControls ?"), "professional shell: hero engagement visibility gate");
+// Zero-debt closeout 2026-09-12: this demanded the literal inline-ternary spelling
+// `showEngagementControls ?`. The gate still exists but is now a named boolean, which is clearer.
+// Assert the CONTRACT: hero engagement visibility is driven by showEngagementControls AND a real
+// listing id — never by persistence.
+assert(
+  /heroEngagementActive\s*=\s*showEngagementControls\s*&&\s*Boolean\(lxListingId/.test(proShell),
+  "professional shell: hero engagement visibility gate (controls + real listing id)",
+);
+assert(
+  !/heroEngagement\w*\s*=\s*[^;]*persist/i.test(proShell),
+  "professional shell: hero visibility must not be tied to persistence",
+);
 assert(proShell.includes("persistEngagement={persistListingEngagement}"), "professional shell: route persistence on hero");
 
 assert(shareBtn.includes("navigator.share"), "share button: native share path");

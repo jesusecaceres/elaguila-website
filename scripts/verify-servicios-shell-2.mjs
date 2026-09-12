@@ -29,14 +29,30 @@ const profileCopy = read("app/(site)/servicios/copy/serviciosProfileCopy.ts");
 const resolveProfile = read("app/(site)/servicios/lib/resolveServiciosProfile.ts");
 const pkg = read("package.json");
 
-assert(lightbox.includes("Fotos") && lightbox.includes("Photos"), "Lightbox uses Fotos/Photos labels");
-assert(lightbox.includes("Videos"), "Lightbox uses Videos tab");
-assert(!lightbox.includes("Comida"), "Lightbox must not use Comida label");
-assert(!lightbox.includes("Interior"), "Lightbox must not use Interior label");
-assert(!lightbox.includes("Exterior"), "Lightbox must not use Exterior label");
-
-assert(gallery.includes("ServiciosMediaLightbox"), "Gallery uses ServiciosMediaLightbox drawer");
-assert(!gallery.includes("GalleryModal"), "Legacy photos-only GalleryModal removed");
+// SUPERSEDED ASSERTIONS (zero-debt closeout 2026-09-12): this block used to assert media-tab
+// labels on `ServiciosMediaLightbox` and require the gallery to mount that Servicios-specific
+// component. `ServiciosMediaLightbox` now has ZERO runtime consumers — the live gallery adopted
+// the SHARED `BusinessGalleryLightbox` engine (master doctrine §8/§25: reuse the shared media
+// engine, never a category-local one). Asserting on the dead component was false-green: it
+// protected code no user can reach. The contract is re-asserted below against the LIVE gallery.
+assert(
+  gallery.includes("BusinessGalleryLightbox") &&
+    gallery.includes('from "@/app/components/media/BusinessGalleryModal"'),
+  "gallery: media opens in the SHARED in-Leonix lightbox engine",
+);
+// Media-type navigation must still exist on the live gallery (Fotos / Videos / Todo).
+assert(gallery.includes("Fotos") || gallery.includes("Photos"), "gallery: photos tab label");
+assert(gallery.includes("Videos"), "gallery: videos tab label");
+for (const foreign of ["Comida", "Interior", "Exterior"]) {
+  assert(!gallery.includes(foreign), `gallery: must not use the ${foreign} (restaurant) label`);
+}
+// The legacy photos-only modal must stay retired. `BusinessGalleryModal` is the shared MODULE
+// path that exports the current lightbox, so match the legacy SYMBOL, not the substring.
+assert(!/\bGalleryModal\s*[,}]/.test(gallery), "gallery: legacy photos-only GalleryModal removed");
+assert(
+  gallery.includes('variant="embed"'),
+  "gallery: videos play inside Leonix (embed variant), not only via an external jump",
+);
 
 assert(featuredMedia.includes("getFeaturedVisualProofImages"), "Featured media helper exists");
 assert(visualProof.includes("getFeaturedVisualProofImages"), "Visual proof row uses featured helper");

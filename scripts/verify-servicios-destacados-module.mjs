@@ -1,7 +1,49 @@
 /**
  * Gate G2B-SERVICIOS-STACK — Servicios Destacados module verification.
+ *
+ * ============================ DEPRECATED 2026-09-12 ============================
+ * REMOVED FROM THE ACTIVE SERVICIOS CERTIFICATION SET by the zero-debt engineering
+ * closeout. This verifier is NOT run as part of Servicios certification and its npm
+ * alias has been withdrawn.
+ *
+ * WHAT IT HISTORICALLY PROTECTED
+ *   The legacy "Destacados" module: a promoted-rows helper (`serviciosDestacados.ts`),
+ *   a card + section component (`ServiciosDestacadoCard` / `ServiciosDestacadosSection`),
+ *   a landing selector (`serviciosLandingBuild.ts`) and a ranking shim
+ *   (`serviciosResultsRanking.ts`). It asserted that the results and landing pages render
+ *   that section and that it runs after the entitlement overlay.
+ *
+ * WHY IT NO LONGER BELONGS
+ *   Paid visibility for Servicios is now owned by the CANONICAL placement mechanism, and
+ *   the legacy module has ZERO runtime consumers (proven by import trace: every reference
+ *   is either the legacy files citing each other or historical audit MDs — no page or
+ *   component mounts them). The live results route instead applies:
+ *     - `overlayActiveEntitlementsForServiciosResults(rows)`            (Gate G2A)
+ *     - `resolveCanonicalVisibilityBucketWeights(..., "category_results")` from
+ *       `leonix_placement_entitlements`                                 (Package D Build D3)
+ *   whose own source comment states it "Wins over legacy signals inside
+ *   resolveServiciosListingRank" — the legacy Destacados ranking being exactly that signal.
+ *   The public landing copy states the same product truth: "Nada aparece como Destacado sin
+ *   un paquete activo" — destacado status derives from an active placement package.
+ *   Asserting the legacy design would demand re-wiring a superseded mechanism.
+ *
+ * WHAT REPLACES ITS PROTECTION
+ *   - `verify-servicios-discovery-placement-truth.mjs`  (placement/visibility truth)
+ *   - `verify-servicios-entitlement-overlay.mjs`        (entitlement overlay on results)
+ *   - `verify-servicios-print-digital-ranking.mjs`      (ranking/visibility buckets)
+ *   Runtime proof of paid placement remains an owner-runtime GR item; it is not claimed here.
+ *
+ * The legacy files are intentionally NOT deleted (master doctrine §15: never delete
+ * duplicate/legacy code until disposition is separately approved). This file is retained,
+ * unmodified below this banner, as historical evidence only.
+ * ==============================================================================
  */
 
+console.log("verify-servicios-destacados-module: DEPRECATED — not part of the active Servicios");
+console.log("certification set. See the file header for supersession evidence and replacements.");
+process.exit(0);
+
+// eslint-disable-next-line no-unreachable
 import { readFileSync, existsSync } from "node:fs";
 
 let pass = 0;

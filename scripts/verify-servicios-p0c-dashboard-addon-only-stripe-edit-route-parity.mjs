@@ -139,7 +139,19 @@ if (/isDashboardOffersAddonMode[\s\S]{0,120}couponsAddOn:\s*true/.test(applicati
   fail("offers-addon mode must not set couponsAddOn true without payment");
 }
 if (!application.includes("startDashboardOffersAddonCheckout")) fail("Application must have add-on checkout starter");
-if (!application.includes("redirectServiciosDashboardOffersAddonCheckout")) fail("Application must call servicios add-on checkout helper");
+// Zero-debt closeout 2026-09-12: this demanded the symbol `redirectServiciosDashboardOffersAddonCheckout`.
+// That function still exists in the shared dashboard helper module, but the application now calls the
+// module's `startServiciosDashboardOffersAddonCheckout` entry point. Assert the CONTRACT: add-on
+// checkout is started through the SHARED dashboard helper module, never a local Stripe call.
+if (!application.includes('from "@/app/(site)/dashboard/lib/serviciosDashboardOffersAddonCheckout"')) {
+  fail("Application must use the shared servicios add-on checkout module");
+}
+if (!/start\w*ServiciosDashboardOffersAddonCheckout|redirectServiciosDashboardOffersAddonCheckout/.test(application)) {
+  fail("Application must call the servicios add-on checkout helper");
+}
+if (/fetch\(\s*["'`]https:\/\/api\.stripe\.com/.test(application)) {
+  fail("Application must not call Stripe directly");
+}
 if (!application.includes("serviciosOffersAddonUpgradeLabel")) fail("Application must render add-on upgrade label");
 if (!application.includes("!isExistingDashboardListingMode && state.baseMonthlyPrice > 0")) {
   fail("Application must block $399 base pricing summary in dashboard edit mode");
