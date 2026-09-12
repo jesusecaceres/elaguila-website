@@ -540,14 +540,16 @@ Next receiver action: targeted recheck after Golden contracts land on current ma
 **Runtime Golden listing:** NOT TESTED
 **Prompt 1 cert (2026-09-11):** 7/7 targeted verifiers PASS; `tsc` 7 e2e-only baseline 0 new; production build PASS (Compiled successfully in 2.9min). Isolated Preview recorded after push. Product source unchanged.
 
-Canonical table: `docs/launch-lifecycle/SERVICIOS_OWNER_DASHBOARD_RUNTIME_LEDGER_2026-09-11.md` §25B.
+Canonical table: `docs/launch-lifecycle/SERVICIOS_OWNER_DASHBOARD_RUNTIME_LEDGER_2026-09-11.md` §25B + §25D (Golden intake).
 
 | Bucket | Items |
 |---|---|
 | A TRUE source-complete | DASH-06, 11, 20, 29, 30, 52, 56, 57, 62 |
-| B TRUE + runtime deferred | DASH-01–05, 07–10, 12–17, 19, 21, 22, 24–26, 28, 31–51, 54, 55, 61, 63–76 |
-| C BLOCKED external Golden | DASH-18, 23, 27, 53, 58, 59, 60 |
+| B TRUE + runtime deferred | DASH-01–05, 07–10, 12–19, 21–28, 31–51, 53–55, 58–61, 63–76 (DASH-18/23/27/53/58/59/60 landed via Strategy B Golden intake) |
+| C BLOCKED external Golden | NONE |
 | D OCC work still required | NONE |
 | UNKNOWN | NONE |
+
+**Golden intake (2026-09-11):** Strategy B cherry-pick of coordinated SHA `9e874060`. Product intake HEAD `4b402962`. OCC residual NONE. Temporary probe not imported. QA NOT RUN. Runtime proof NOT RUN. Local `tsc`/`build` DEFERRED (Gate L: 1.47 GB free RAM).
 
 No second dashboard shell, Saved Listing engine, Saved Search engine, Servicios lifecycle engine, or commercial-state engine.

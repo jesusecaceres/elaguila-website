@@ -2486,18 +2486,18 @@ FALSE = required contract is not met in this source (always with an owner).
 | 13 | LIVE | TRUE | runtime deferred |
 | 14 | LIVE-SHARED | TRUE | runtime deferred |
 | 15 | LIVE | TRUE | runtime deferred |
-| 16 | LIVE-SHARED | TRUE | OCC display `coupons_offers`; persist FALSE on Golden SRV-GOLDEN-02 |
+| 16 | LIVE-SHARED | TRUE | display + persist via `resolveBusinessToolsAccess` `coupons_offers`; runtime deferred |
 | 17 | LIVE-SHARED | TRUE | runtime deferred |
-| 18 | LIVE + BLOCKED hydration | FALSE | SERVICIOS GOLDEN SRV-GOLDEN-03 `customQuickFacts` |
+| 18 | LIVE | TRUE | `customQuickFacts` maps from published profile; runtime deferred |
 | 19 | LIVE-SHARED | TRUE | runtime deferred |
 | 20 | LIVE | TRUE | no independent dashboard translation table |
-| 21 | LIVE-SHARED | TRUE | OCC emits `listingId`; UPDATE-by-UUID is DASH-23 / SRV-GOLDEN-01 |
+| 21 | LIVE-SHARED | TRUE | OCC emits `listingId`; UPDATE `.eq("id", canonicalListingId)`; runtime deferred |
 | 22 | LIVE-SHARED | TRUE | runtime deferred |
-| 23 | BLOCKED — SERVICIOS GOLDEN | FALSE | SRV-GOLDEN-01 allocateSlug+INSERT fallback |
+| 23 | LIVE | TRUE | fail-closed `listing_not_found`; INSERT forbidden when `existingListingId` declared; runtime deferred |
 | 24 | LIVE | TRUE | runtime deferred |
 | 25 | LIVE | TRUE | runtime deferred |
 | 26 | LIVE-SHARED | TRUE | CTA live; commercial fail-closed is DASH-27 |
-| 27 | BLOCKED — SERVICIOS GOLDEN | FALSE | SRV-GOLDEN-04 Resume authority |
+| 27 | LIVE | TRUE | `resolveServiciosReactivationAuthority` on manage + publish; runtime deferred |
 | 28 | LIVE-SHARED | TRUE | runtime deferred |
 | 29 | NOT SUPPORTED — CURRENT PRODUCT | TRUE | no Archive product |
 | 30 | NOT SUPPORTED — CURRENT PRODUCT | TRUE | no Delete product |
@@ -2523,14 +2523,14 @@ FALSE = required contract is not met in this source (always with an owner).
 | 50 | LIVE-SHARED | TRUE | runtime deferred |
 | 51 | LIVE | TRUE | runtime deferred |
 | 52 | NOT SUPPORTED — CURRENT PRODUCT | TRUE | quotes are `servicios_public_leads`, not Messages |
-| 53 | BLOCKED — SERVICIOS GOLDEN | FALSE | public Save mounts; Guardados engine LIVE-SHARED |
+| 53 | LIVE-SHARED | TRUE | hub + result `LeonixSaveButton` + `serviciosSavedListingExtras`; runtime deferred |
 | 54 | LIVE-SHARED | TRUE | runtime deferred after DASH-53 writer exists |
 | 55 | LIVE | TRUE | runtime deferred after DASH-53 |
 | 56 | LIVE | TRUE | source-closed distinctness |
 | 57 | LIVE | TRUE | source-closed distinctness |
-| 58 | BLOCKED — SERVICIOS GOLDEN | FALSE | no Servicios Saved Search registry/adapter on current main |
-| 59 | BLOCKED — SERVICIOS GOLDEN | FALSE | blocked on DASH-58 |
-| 60 | BLOCKED — SERVICIOS GOLDEN | FALSE | blocked on DASH-58 |
+| 58 | LIVE-SHARED | TRUE | `app/lib/saved-search/servicios/*` + results `SavedSearchButton` + `CATEGORY_REGISTRY.servicios`; runtime deferred |
+| 59 | LIVE-SHARED | TRUE | adapter city/state/zip/country; runtime deferred |
+| 60 | LIVE-SHARED | TRUE | matcher = live results filter pipeline; runtime deferred |
 | 61 | LIVE-SHARED | TRUE | runtime deferred |
 | 62 | LIVE | TRUE | no Servicios dashboard island |
 | 63 | LIVE | TRUE | runtime deferred |
@@ -2538,7 +2538,7 @@ FALSE = required contract is not met in this source (always with an owner).
 | 65 | LIVE | TRUE | runtime deferred |
 | 66 | LIVE | TRUE | runtime deferred |
 | 67 | LIVE | TRUE | runtime deferred |
-| 68 | LIVE-SHARED | TRUE | same `listing_status`; DASH-27 mutation still Golden |
+| 68 | LIVE-SHARED | TRUE | same `listing_status`; reactivation uses DASH-27 authority; runtime deferred |
 | 69 | LIVE-SHARED | TRUE | runtime deferred |
 | 70 | LIVE-SHARED | TRUE | construction only; visual QA deferred |
 | 71 | LIVE-SHARED | TRUE | construction only; visual QA deferred |
@@ -2552,9 +2552,9 @@ FALSE = required contract is not met in this source (always with an owner).
 
 **A. TRUE — SOURCE COMPLETE:** DASH-06, DASH-11, DASH-20, DASH-29, DASH-30, DASH-52, DASH-56, DASH-57, DASH-62
 
-**B. TRUE — SOURCE COMPLETE, RUNTIME PROOF STILL REQUIRED:** DASH-01, 02, 03, 04, 05, 07, 08, 09, 10, 12, 13, 14, 15, 16, 17, 19, 21, 22, 24, 25, 26, 28, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 54, 55, 61, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76
+**B. TRUE — SOURCE COMPLETE, RUNTIME PROOF STILL REQUIRED:** DASH-01, 02, 03, 04, 05, 07, 08, 09, 10, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 53, 54, 55, 58, 59, 60, 61, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76
 
-**C. BLOCKED — EXTERNAL PARALLEL CONTRACT:** DASH-18 (SRV-GOLDEN-03), DASH-23 (SRV-GOLDEN-01), DASH-27 (SRV-GOLDEN-04), DASH-53 (public Save), DASH-58, DASH-59, DASH-60. Related persist/write notes: SRV-GOLDEN-02 (DASH-16 persist), SRV-GOLDEN-01 (DASH-21 UPDATE-by-id)
+**C. BLOCKED — EXTERNAL PARALLEL CONTRACT:** NONE
 
 **D. FALSE — OWNER COMMAND CENTER WORK STILL REQUIRED:** NONE
 
@@ -2562,7 +2562,9 @@ FALSE = required contract is not met in this source (always with an owner).
 
 **OWNER COMMAND CENTER REQUIRED PRODUCT SOURCE WORK:** NONE PROVEN
 
-**READY FOR FINAL SOURCE CERTIFICATION GATE:** YES (external Bucket C remaining; QA still forbidden)
+**FULL REQUIRED SOURCE CONTRACT:** TRUE
+
+**READY FOR FINAL SOURCE CERTIFICATION GATE:** YES (Bucket C closed via Strategy B Golden intake; local tsc/build may still be pending if RAM unsafe; QA still forbidden)
 
 # 25C. EXTERNAL GOLDEN INTAKE CHECKPOINT — OCC PARKED AT 83635691
 
@@ -2674,6 +2676,46 @@ Do not authorize QA in this resume contract.
 - Current parked proof: no `saved-search/servicios` directory; no `servicios` registry key
 - Potential OCC residual: only a small dashboard `CATEGORY_REGISTRY` entry if upstream lands engine/adapter but not owner dashboard registry
 - Receiver expected product change: NONE unless that registry residual is proven after landing
+
+# 25D. SERVICIOS GOLDEN INTAKE — STRATEGY B (2026-09-11)
+
+- Authorized Golden SHA: `9e874060e5b9c960cdfcd3c60dcdceab81441e55`
+- Remote ref: `origin/completion/launch-lifecycle-2026-09-09`
+- origin/main: `9fcadb4daf599e15fca62adcb647abbf96ce6bd8` (unchanged — Strategy A out)
+- OCC starting HEAD: `69989c5e4101c692d6207365df657ad03254688e`
+- Product intake HEAD: `4b402962a12c0daab9058911e7f806a6f86b74d5`
+- Integration: Strategy B chronological cherry-pick (`-x`). Whole-branch merge rejected (unrelated categories + temp probe `e310b249`).
+- Consumed Golden originals: `849b45ea`, `2d28624c`, `95f17dc0`, `75a66ce8`, `dea5d0b3`, `961fa93c`, `404a5ea2`, `f00fcedd`, `ba7fa786`, `9e874060`.
+- Excluded (relevant): restaurantes/comida/bienes/rentas gates; `e310b249` temp probe; `e98c5d90` mixed e2e type-blocker; FSBO audit `2031835f`/`8ea8e304`; later Golden docs-only webhook/audit commits; merge commits of main into Golden (OCC already contains `9fcadb4d`).
+- OCC residual: NONE
+- TEMPORARY PROBE: NO
+- UNRELATED CATEGORY SOURCE IMPORTED: NONE
+- QA / runtime: NOT RUN
+
+### Affected DASH recheck (OCC tree after intake)
+
+| DASH | SOURCE | Classification | Proof | Remaining source blocker | Runtime later |
+|---|---|---|---|---|---|
+| 16 persist | TRUE | LIVE-SHARED | publish `capability: "coupons_offers"` | NONE | YES |
+| 18 | TRUE | LIVE | `customQuickFacts: mapCustomQuickFacts(profile)` | NONE | YES |
+| 21 write | TRUE | LIVE-SHARED | UPDATE `.eq("id", canonicalListingId)` | NONE | YES |
+| 23 | TRUE | LIVE | fail-closed `listing_not_found`; INSERT forbidden when `existingListingId` declared | NONE | YES |
+| 26 | TRUE | LIVE-SHARED | Resume CTA still live; authority now DASH-27 | NONE | YES |
+| 27 | TRUE | LIVE | `resolveServiciosReactivationAuthority` on manage + publish | NONE | YES |
+| 53 | TRUE | LIVE-SHARED | hub + result strip `LeonixSaveButton` + `serviciosSavedListingExtras` | NONE | YES |
+| 54 | TRUE | LIVE-SHARED | Guardados resolver unchanged | NONE | YES |
+| 55 | TRUE | LIVE | delete path unchanged | NONE | YES |
+| 58 | TRUE | LIVE-SHARED | `app/lib/saved-search/servicios/*` + results `SavedSearchButton` + `CATEGORY_REGISTRY.servicios` | NONE | YES |
+| 59 | TRUE | LIVE-SHARED | adapter city/state/zip/country | NONE | YES |
+| 60 | TRUE | LIVE-SHARED | matcher = live results filter pipeline | NONE | YES |
+| 68 | TRUE | LIVE | owner dashboard read parity unchanged | NONE | YES |
+
+- FULL REQUIRED SOURCE CONTRACT: TRUE
+- UNKNOWN: NONE
+- Bucket C external blockers: NONE
+- Bucket D OCC work: NONE
+
+Targeted OCC-tree verifiers: `verify:servicios-golden-receiver-contracts` 10/10 PASS; gate1 PASS; publish-authority PASS; owner-qa-delta PASS; engagement-2 PASS; gate2-discovery PASS; edit-roundtrip PASS; owner attention 22/22; specialized-tools 33/33; OCC final 182/182; Gate20 PASS. `verify-servicios-interaction-polish.mjs` FAIL identical to Golden pre-existing `CtaActionSheet` on `ServiciosBusinessHubContactCard.tsx` (not a receiver-contract defect; not repaired). Local `tsc`/`build` DEFERRED (Gate L: 1.47 GB free RAM vs required 12 GB heap).
 
 # 26. Final motto
 

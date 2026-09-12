@@ -4,10 +4,10 @@
   "branch": "integration/owner-command-center-globalization-2026-08",
   "startHead": "4cdbfb3abde7a6a57a5d610287bb04c654d6677b",
   "certifiedCheckpoint": "ea99e57c1695138ec433766f33835830361b6ba7",
-  "currentReceiverHead": "394d6fdbb98891278ab2436135136e55c9fba1c7",
-  "sourceHeadCertified": "394d6fdbb98891278ab2436135136e55c9fba1c7",
+  "currentReceiverHead": "4b402962a12c0daab9058911e7f806a6f86b74d5",
+  "sourceHeadCertified": "4b402962a12c0daab9058911e7f806a6f86b74d5",
   "currentOriginMain": "9fcadb4daf599e15fca62adcb647abbf96ce6bd8",
-  "receiverSourceCertifiedAgainstCurrentMain": true,
+  "receiverSourceCertifiedAgainstCurrentMain": false,
   "previewAtDocumentationTime": "PENDING_PUSH — deployment ID recorded in Prompt 1 absolute report after Git creates the certification commit",
   "receiverRequiredProductWork": "NONE PROVEN",
   "qaAuthorized": false,
@@ -15,15 +15,17 @@
   "optionalDeferred": ["DASH-32", "DASH-33", "DASH-40"],
   "unknownItems": "NONE",
   "notSupportedCurrentProduct": ["DASH-06", "DASH-11", "DASH-29", "DASH-30", "DASH-52"],
-  "externalBlockers": [
-    "DASH-18 SERVICIOS GOLDEN SRV-GOLDEN-03",
-    "DASH-23 SERVICIOS GOLDEN SRV-GOLDEN-01",
-    "DASH-27 SERVICIOS GOLDEN SRV-GOLDEN-04",
-    "DASH-53 SERVICIOS GOLDEN public Save adoption",
-    "DASH-58 SERVICIOS GOLDEN/shared Saved Search adoption",
-    "DASH-59 SERVICIOS GOLDEN/shared Saved Search canonical location",
-    "DASH-60 SERVICIOS GOLDEN/shared Saved Search filter/matcher"
-  ],
+  "externalBlockers": [],
+  "goldenIntake": {
+    "strategy": "B",
+    "authorizedSha": "9e874060e5b9c960cdfcd3c60dcdceab81441e55",
+    "productIntakeHead": "4b402962a12c0daab9058911e7f806a6f86b74d5",
+    "fullRequiredSourceContract": true,
+    "occResidual": "NONE",
+    "temporaryProbeImported": false,
+    "qa": "NOT RUN",
+    "runtimeProof": "NOT RUN"
+  },
   "gates": [
     {
       "gate": "owner-command-center-concierge-bridge-reconciliation-2026-09-09",
@@ -1718,6 +1720,115 @@
           "name": "external_bucket_c_unchanged",
           "result": "DASH-18 SRV-GOLDEN-03; DASH-23 SRV-GOLDEN-01; DASH-27 SRV-GOLDEN-04; DASH-53 public Save; DASH-58/59/60 Saved Search. Related: DASH-16 persist SRV-GOLDEN-02 (OCC display TRUE); DASH-21 write SRV-GOLDEN-01 (OCC listingId emission TRUE)",
           "status": "RECORDED"
+        }
+      ]
+    },
+    {
+      "gate": "servicios-golden-intake-strategy-b-2026-09-11",
+      "authorizedGoldenSha": "9e874060e5b9c960cdfcd3c60dcdceab81441e55",
+      "strategy": "B",
+      "productIntakeHead": "4b402962a12c0daab9058911e7f806a6f86b74d5",
+      "occResidual": "NONE",
+      "fullRequiredSourceContract": true,
+      "unknown": "NONE",
+      "externalBlockers": [],
+      "qa": "NOT RUN",
+      "runtimeProof": "NOT RUN",
+      "checks": [
+        {
+          "name": "verify_servicios_golden_receiver_contracts",
+          "command": "npm run verify:servicios-golden-receiver-contracts",
+          "result": "PASS 10/10",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_servicios_gate1_lifecycle",
+          "command": "npx tsx scripts/verify-servicios-gate1-lifecycle.ts",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_servicios_publish_authority",
+          "command": "npx tsx scripts/verify-servicios-publish-authority.ts",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_servicios_owner_qa_delta",
+          "command": "npx tsx scripts/verify-servicios-owner-qa-delta.ts",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_servicios_engagement_2",
+          "command": "node scripts/verify-servicios-engagement-2.mjs",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_servicios_gate2_discovery",
+          "command": "npx tsx scripts/verify-servicios-gate2-discovery.ts",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_servicios_edit_roundtrip",
+          "command": "npx tsx scripts/verify-servicios-edit-roundtrip.ts",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_owner_attention_truth",
+          "command": "npx tsx scripts/verify-owner-attention-truth-01.ts",
+          "result": "22/22 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_owner_shared_specialized_tools",
+          "command": "npx tsx scripts/verify-owner-shared-specialized-tools-01.ts",
+          "result": "33/33 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_owner_lifecycle_contract",
+          "command": "npx tsx scripts/gate-g1-owner-lifecycle-contract-selftest.ts",
+          "result": "OK",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_owner_command_center_final",
+          "command": "npx tsx scripts/verify-owner-command-center-final-reconciliation.ts",
+          "result": "182/182 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_owner_command_center_gate20",
+          "command": "node scripts/verify-owner-command-center-gate20-fixed-term-renewal-01.mjs",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_servicios_interaction_polish",
+          "command": "node scripts/verify-servicios-interaction-polish.mjs",
+          "result": "FAIL — identical pre-existing Golden CtaActionSheet on ServiciosBusinessHubContactCard; not a receiver-contract defect; not repaired",
+          "status": "PREEXISTING_UNRELATED"
+        },
+        {
+          "name": "affected_dash_source",
+          "result": "DASH-16 persist / 18 / 21 write / 23 / 26 / 27 / 53 / 54 / 55 / 58 / 59 / 60 / 68 all TRUE",
+          "status": "PASS"
+        },
+        {
+          "name": "typescript",
+          "command": "npx tsc --noEmit --incremental false -p tsconfig.json",
+          "result": "DEFERRED — Gate L resource collision: 1.47 GB free RAM, competing Node present; historical cert requires --max-old-space-size=12288",
+          "status": "DEFERRED_RESOURCE"
+        },
+        {
+          "name": "production_build",
+          "command": "npm run build (NODE_OPTIONS=--max-old-space-size=12288)",
+          "result": "DEFERRED — Gate L resource collision: 1.47 GB free RAM; do not compete with a 12GB heap build",
+          "status": "DEFERRED_RESOURCE"
         }
       ]
     }

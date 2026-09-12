@@ -1999,3 +1999,45 @@ B. PM provides an explicitly authorized coordinated SHA containing completed con
 When resumed: stay in this worktree → fetch → inspect only affected contract paths → classify LANDED / PARTIAL / NOT LANDED → reconcile main if safe → recheck only DASH-16/18/21/23/26/27/53/54/58/59/60/68 → implement only a proven OCC residual → source-certify → commit/push → isolated Preview → STOP for PM proof audit. Do not authorize QA.
 
 NEXT OCC ACTION BEFORE TRIGGER: NONE
+
+---
+
+## SERVICIOS GOLDEN INTAKE — STRATEGY B CLOSURE (2026-09-11)
+
+**Trigger B:** PM-authorized Golden coordinated SHA `9e874060e5b9c960cdfcd3c60dcdceab81441e55` on `origin/completion/launch-lifecycle-2026-09-09`.
+
+**OCC starting HEAD:** `69989c5e4101c692d6207365df657ad03254688e` (docs lock after parked `83635691`)
+**origin/main:** still `9fcadb4daf599e15fca62adcb647abbf96ce6bd8` (Strategy A rejected — contracts not on main).
+**Strategy C (whole Golden branch) rejected:** 39 commits include Restaurantes, Comida Local, Bienes, Rentas, FSBO audit, temporary runtime probe `e310b249`, and unrelated test/docs. Those are not required for the eight receiver contracts.
+
+**Strategy B:** cherry-pick the coherent Servicios closure in chronological order onto `integration/owner-command-center-globalization-2026-08`. Provenance preserved (`-x`).
+
+**Commits consumed (new SHAs on OCC, `-x` to Golden originals):**
+1. `849b45ea` → `4c291674` SERVICIOS-1 lifecycle / identity foundation
+2. `2d28624c` → `aa943fee` SERVICIOS-2 Saved Search + dashboard registry + migration
+3. `95f17dc0` → `32207702` SERVICIOS-3 discovery filter readiness
+4. `75a66ce8` → `c40caa7f` hub Save (DASH-53 detail) + PATH B amount guard
+5. `dea5d0b3` → `f0f8d6c0` SRV-GOLDEN-04 + ownership (B1–B3)
+6. `961fa93c` → `1d00c307` SRV-GOLDEN-02 included offers (`coupons_offers`)
+7. `404a5ea2` → `4ec3ab7e` address privacy (publish-route dependency of fail-closed identity)
+8. `f00fcedd` → `a5381917` SRV-GOLDEN-03 + Saved Search matcher/offers discovery
+9. `ba7fa786` → `d52aec66` owner-QA delta (hub Save grammar)
+10. `9e874060` → `4b402962` SRV-GOLDEN-01 fail-closed + DASH-53 result Save
+
+**OCC residual:** NONE (`CATEGORY_REGISTRY.servicios` landed with SERVICIOS-2).
+**TEMPORARY PROBE IMPORTED:** NO
+**UNRELATED CATEGORY SOURCE IMPORTED:** NONE
+**QA:** NOT RUN
+**Runtime proof:** NOT RUN
+
+**Affected DASH after intake (source):**
+DASH-16 persist TRUE · DASH-18 TRUE · DASH-21 write TRUE · DASH-23 TRUE · DASH-26 TRUE · DASH-27 TRUE · DASH-53 TRUE · DASH-54 TRUE · DASH-55 TRUE · DASH-58 TRUE · DASH-59 TRUE · DASH-60 TRUE · DASH-68 TRUE
+
+**FULL REQUIRED SOURCE CONTRACT:** TRUE
+**UNKNOWN:** NONE
+**REQUIRED EXTERNAL SOURCE BLOCKERS:** NONE
+**REQUIRED OCC SOURCE BLOCKERS:** NONE
+
+Targeted verifiers on the OCC tree: `verify:servicios-golden-receiver-contracts` 10/10 PASS; gate1 PASS; publish-authority PASS; owner-qa-delta PASS; engagement-2 PASS; gate2-discovery PASS; edit-roundtrip PASS; owner attention 22/22; specialized-tools 33/33; OCC final 182/182; Gate20 PASS. `verify-servicios-interaction-polish.mjs` FAIL identical to Golden pre-existing `CtaActionSheet` on `ServiciosBusinessHubContactCard.tsx` (not a receiver-contract defect; not repaired).
+
+**Gate L:** `tsc` / `npm run build` DEFERRED — 1.47 GB free RAM at certification time; historical production build requires `NODE_OPTIONS=--max-old-space-size=12288`. Intake + targeted verifiers + durable proof preserved. No QA.
