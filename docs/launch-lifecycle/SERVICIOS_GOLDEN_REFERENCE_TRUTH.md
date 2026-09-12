@@ -1329,3 +1329,79 @@ Two source-string assertions were updated to the new shape without changing thei
 - `promo=1` / `offer=1` remain URL-only legacy parameters with no rendered control (unchanged).
 - **Owner runtime QA is still pending** (§J, plus R1–R5 for B1–B5, R6: edit and republish an
   "Otro servicio" listing, R7: "Tiene ofertas" returns the QA listing's coupon).
+
+
+---
+
+## R. CURRENT GOLDEN RUNTIME CANDIDATE — `5b5aae46` (2026-09-11)
+
+Supersedes §Q as the runtime under certification. §Q (`f00fcedd`, ABSOLUTE-02 corrective F1/F2) and
+its Preview `dpl_7Bt23F5934mumn2MpixqmQUNUJf9` remain historical ancestry — **not** the Golden
+candidate. History is not rewritten; this section records what is current.
+
+### R.1 Runtime identity
+
+| Item | Value |
+|---|---|
+| Branch | `completion/launch-lifecycle-2026-09-09` |
+| Documentation-only HEAD | `f00d1923` |
+| **Golden candidate runtime SHA** | **`5b5aae4686e05ccf7c6e9efc09dacee06d0e6655`** |
+| Runtime tree identity | `app/` = `f4ed31d9`, `supabase/` = `6d5014bc` — identical at `8ea8e304`, `25401306`, `5b5aae46` and `f00d1923`, so HEAD's runtime code **is** the Preview's runtime code |
+| Last commit touching `app/` | `8ea8e304`; `82074d33` + `25401306` are scripts-only; `5b5aae46` + `f00d1923` are docs-only |
+| Preview deployment | `dpl_GtxJzwUWsEJaViSBAnk4nYXfzhp7` · state **READY** · target preview |
+| Preview URL | `https://leonix-media-4zuojd8fl-jesus-caceres-projects.vercel.app` |
+| origin/main reconciled | `9fcadb4d` (Owner Command Center through Gate 20 + Admin OS release); 0 main-only commits remain |
+
+### R.2 What landed between `f00fcedd` and this candidate
+
+33 runtime-affecting commits, 179 runtime files (22 Servicios-owned):
+
+- `ba7fa786` — Servicios owner-QA correction build (⚠️/SVC-QA repairs: Translate in Preview, address
+  verifier truth, credential upload-or-URL, Add/Accept truth, special hours, Share, action grammar,
+  Community Trust preview, coupon viewer, gallery tabs, in-Leonix video, rails, collapses, step rail,
+  verified-intro and promo-recurrence copy).
+- `6b8a511c` / `55a73c04` — reconciliation merges of current `origin/main`.
+- `8ea8e304` — FSBO renewal audit action (one line; outside the Servicios gate, verified green).
+
+### R.3 Delta-final certification on this runtime (lightweight, current-state)
+
+| Item | Result | Evidence |
+|---|---|---|
+| F1 Otro servicio round-trip | **CLOSED** | `verify-servicios-edit-roundtrip` PASS |
+| F2 Tiene ofertas | **CLOSED** | `verify-servicios-included-offers` PASS; read-time batched `coupons_offers` authority intact |
+| B1 ownership takeover | **PRESERVED** | `verify-servicios-publish-authority` PASS |
+| B2 paid reactivation | **PRESERVED** | same |
+| B3 Leonix suspension lock | **PRESERVED** | same |
+| B4 included coupons/offers | **PRESERVED** | `verify-servicios-included-offers` PASS |
+| B5 address privacy / RLS | **PRESERVED** | `verify-servicios-address-privacy` PASS |
+| Open launch-critical blockers | **0** | §H P0 1/1 and P1 1/1 closed; §P B1–B5 closed and re-verified above; no other P-class blocker set is open in this record |
+| Source/foundational gaps | **0** | Ledger "SOURCE PROOF LOCK — PRE-OWNER-QA": ⚠️ 68/68, SVC-QA 34/34, GR 44/44 dispositioned |
+
+### R.4 Integration evidence already valid on this tree (not re-run)
+
+- Canonical full typecheck `NODE_OPTIONS=--max-old-space-size=8192 npm run typecheck` → **exit 0, 0 errors**.
+- Production build `npm run build` → **exit 0**, 384/384 static pages, full route manifest.
+- Release regression: `test:gates` 71/86 and the 96-verifier set 75/96 — **0 branch-introduced failures**
+  (every remaining failure reproduces identically on clean `origin/main`).
+- Vercel Preview built this exact SHA: compiled successfully, no build errors, no runtime errors reported.
+
+### R.5 Commercial pre-payment truth on this runtime
+
+`$399.00/month` base · verified intro 15% = `$59.85` · eligible first charge `$339.15` · renewal
+`$399.00/month` · eligibility = server-proven verified email OR verified phone identity ·
+newsletter is **not** eligibility authority · generic promo is a separate authority and cannot stack
+(409 `discount_conflict`) · promo recurrence copy states the Stripe truth (a promo code on a monthly
+plan sets the recurring `unit_amount`, so the reduced price renews every cycle) · no retired 25%
+path in the Servicios runtime · coupons/offers included in the base capability · active paid normal
+edits do not repurchase the base package.
+Verifiers green on this tree: `golden-reference-promo-path`, `owner-qa-delta` 34/34,
+`publish-checkout-checkpoint-standard-01`, `publish-checkout-promo-validation-ui-01`,
+`servicios-global-checkout-standard-parity-01`.
+
+### R.6 Status
+
+**FOUNDATIONAL QA GREEN LIGHT: YES** — against runtime `5b5aae46`.
+**SERVICIOS OWNER CORRECTION BUILD READY FOR GOLDEN RUNTIME QA: YES.**
+
+**FULL GOLDEN REFERENCE RUNTIME CERTIFIED: NO.** GR-01…GR-44 remain owner-runtime pending; the
+paid Golden listing does not exist yet. Execution plan and control matrix: Golden Delta Ledger §20.

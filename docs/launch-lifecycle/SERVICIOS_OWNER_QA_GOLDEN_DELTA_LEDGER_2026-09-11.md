@@ -1605,3 +1605,153 @@ All rows are **SOURCE READY — OWNER RUNTIME PENDING** unless the status says o
 - SVC-QA-01–34: **34/34** dispositioned, no missing IDs.
 - GR-01–44: **44/44** dispositioned (43 SOURCE READY — OWNER RUNTIME PENDING, 1 NOT SUPPORTED — CURRENT PRODUCT).
 - **SOURCE GAP — REPAIR REQUIRED: 0.** No repair was required, so no code was changed and no cosmetic commit was manufactured; the integration gate's typecheck/build/Preview results remain applicable.
+
+---
+
+# 20. GOLDEN RUNTIME EXECUTION — OWNER SCRIPT + GR-01–44 CONTROL MATRIX
+
+**Runtime under certification:** `5b5aae4686e05ccf7c6e9efc09dacee06d0e6655`
+**Preview:** `dpl_GtxJzwUWsEJaViSBAnk4nYXfzhp7` — https://leonix-media-4zuojd8fl-jesus-caceres-projects.vercel.app — **READY**
+**Foundational status:** GREEN (Truth MD §R). **Full Golden certification: NO** until GR-44.
+
+Rules for this phase: Stripe **TEST** only · no Production · no manual DB mutation · Claude inspects
+backend/DB evidence, the owner never does · screenshots only where visual truth matters, otherwise
+PASS/FIX text · owner may work from a phone.
+
+## 20.1 Owner runtime gates
+
+### RUNTIME GATE A — final pre-payment + commercial check (no payment)
+**Where:** Preview → your Servicios application → Step 8 / checkout checkpoint.
+**Owner does:** confirm `$399.00/month` and that coupons/offers read as included; open the verified-15%
+panel and confirm it states *why* you qualify (correo or teléfono verificado) and shows
+`Primer pago: $339.15. Después: $399.00 al mes.`; apply a generic promo code and confirm the verified
+15% cannot also apply; confirm the recurrence line matches what the promo really does; read the
+consent text. **Do not pay.**
+**Claude inspects after:** nothing yet (no transaction).
+**Covers:** pre-payment half of GR-01. **Evidence:** PASS/FIX + one screenshot of the checkout panel.
+
+### RUNTIME GATE B — Stripe TEST checkout + pending truth
+**Where:** same checkpoint → `Continuar al pago` → Stripe TEST.
+**Owner does:** complete the TEST payment; return to Leonix; before anything else, open the public
+Servicios results in a second tab and confirm the listing is **not** publicly visible yet.
+**Claude inspects after:** `leonix_payment_records` (amount, discount, operation), Stripe session/
+event ids, `servicios_public_listings.listing_status`, webhook ledger row.
+**Covers:** GR-01, GR-02. **Evidence:** PASS/FIX + Stripe receipt screenshot (TEST).
+
+### RUNTIME GATE C — webhook, entitlement, exact-row publish
+**Where:** nothing for the owner to click; just report when the listing goes live.
+**Claude inspects after:** webhook idempotency (replay-safe), entitlement row
+(`package_key=servicios_base_monthly`), the published row's canonical UUID / slug / Leonix Ad ID, and
+that the same row id was updated (no insert).
+**Covers:** GR-03, GR-04, GR-05, GR-06, GR-07, GR-08. **Evidence:** owner reports "published" + the
+public URL.
+
+### RUNTIME GATE D — results, Tiene ofertas, public detail, address privacy
+**Where:** `/clasificados/servicios/resultados` then your public listing.
+**Owner does:** find your listing in results; apply the **Tiene ofertas** filter and confirm it still
+appears; open the public detail and confirm it matches Preview; confirm the exact street is not shown
+and no Directions link exposes it.
+**Claude inspects after:** discovery query truth, `coupons_offers` read-time capability, the public
+projection actually served (RLS/privacy).
+**Covers:** GR-09, GR-10, GR-11, GR-12, GR-13. **Evidence:** PASS/FIX + one results screenshot.
+
+### RUNTIME GATE E — CTAs, analytics, Like/Trust, Save
+**Where:** your published public detail.
+**Owner does:** tap Llamar, SMS, WhatsApp, Correo, Sitio web, Compartir; then Like (🦁 Community
+Trust) and Guardar; then open `/dashboard/guardados` and confirm the listing is there.
+**Claude inspects after:** `servicios_analytics_events` rows per CTA with the same listing identity,
+`user_liked_listings`, `saved_listings` row under the canonical id.
+**Covers:** GR-14…GR-21. **Evidence:** PASS/FIX per control; one screenshot of Guardados.
+
+### RUNTIME GATE F — Translate, Related, Saved Search
+**Where:** public detail, then Saved Search.
+**Owner does:** use Translate Ad near *Sobre nosotros* and confirm only your ad content translates;
+scroll to Related Listings; create/confirm a Saved Search matching your city+category and confirm
+your listing qualifies.
+**Claude inspects after:** translation records, related-listings query, Saved Search match event and
+delivery eligibility for this listing.
+**Covers:** GR-23, GR-24, GR-25. **Evidence:** PASS/FIX + one Translate screenshot.
+
+### RUNTIME GATE G — Dashboard + Admin canonical handoff
+**Where:** `/dashboard/mis-anuncios?cat=servicios` (owner) — Admin is inspected by Claude.
+**Owner does:** confirm the published listing appears with the right state and that Editar opens it.
+**Claude inspects after:** the my-listings/my-listing payloads carry the same canonical id; the Admin
+Servicios workspace reads the same row/state.
+**Covers:** GR-26, GR-27, GR-28. **Evidence:** PASS/FIX.
+
+### RUNTIME GATE H — published edit → same-row republish → no recharge
+**Where:** Dashboard → Editar on the published listing.
+**Owner does:** confirm everything hydrates (custom values, media, coupons, credentials, hours);
+change one small text field and one coupon; republish. Confirm **no checkout appears** and no second
+charge happens.
+**Claude inspects after:** same UUID/Leonix Ad ID, no new `leonix_payment_records` base row, media and
+translation records intact, analytics still on the same identity.
+**Covers:** GR-29…GR-35. **Evidence:** PASS/FIX + screenshot only if a checkout unexpectedly appears.
+
+### RUNTIME GATE I — lead + lifecycle protections
+**Where:** public detail (lead), then Dashboard.
+**Owner does:** send one test quote/lead from the public page; then pause and resume the listing.
+**Claude inspects after:** the lead reached the owner-facing destination; B1 (no takeover), B2 (no free
+reactivation after lapse), B3 (Leonix suspension cannot be undone by the customer), B5 (address still
+private) evaluated against the live row and policies.
+**Covers:** GR-36, GR-37, GR-38, GR-39, GR-40, GR-41. **Evidence:** PASS/FIX.
+
+### RUNTIME GATE J — mobile circuit, cleanup, certification
+**Where:** phone.
+**Owner does:** view published detail, results and dashboard on mobile; confirm clean layout and no
+sideways page scroll.
+**Claude inspects after:** nothing new; then the cleanup procedure runs (disposable QA artifacts only;
+payment/entitlement evidence preserved).
+**Covers:** GR-42, GR-43, then GR-44. **Evidence:** one mobile screenshot.
+
+## 20.2 GR-01–GR-44 control matrix
+
+STATUS values: **PENDING OWNER RUNTIME** · **NOT SUPPORTED — CURRENT PRODUCT**. Nothing here may be
+marked PASS from source proof.
+
+| GR | OWNER ACTION | CLAUDE/BACKEND EVIDENCE | EXPECTED TRUTH | STATUS |
+|---|---|---|---|---|
+| GR-01 | Gate A/B: pay in Stripe TEST | Stripe session + payment record | TEST env charged, correct amount | PENDING OWNER RUNTIME |
+| GR-02 | Gate B: check results before fulfillment | `listing_status` | `pending_payment`, not public | PENDING OWNER RUNTIME |
+| GR-03 | none | webhook ledger | authoritative + idempotent on replay | PENDING OWNER RUNTIME |
+| GR-04 | none | entitlement row | `servicios_base_monthly` active | PENDING OWNER RUNTIME |
+| GR-05 | Gate C: report published | row update by id | exact row published, no insert | PENDING OWNER RUNTIME |
+| GR-06 | none | listing row | canonical UUID recorded | PENDING OWNER RUNTIME |
+| GR-07 | none | listing row | slug recorded | PENDING OWNER RUNTIME |
+| GR-08 | none | listing row | Leonix Ad ID recorded | PENDING OWNER RUNTIME |
+| GR-09 | Gate D: find in results | discovery query | correct listing returned | PENDING OWNER RUNTIME |
+| GR-10 | Gate D: Tiene ofertas filter | read-time `coupons_offers` | listing qualifies | PENDING OWNER RUNTIME |
+| GR-11 | Gate D: open detail | public projection | matches Preview truth | PENDING OWNER RUNTIME |
+| GR-12 | Gate D: check address | RLS + public view | exact street private | PENDING OWNER RUNTIME |
+| GR-13 | Gate D: check Directions | same | absent/appropriate when hidden | PENDING OWNER RUNTIME |
+| GR-14 | Gate E: Llamar | analytics events | `cta_call` on same identity | PENDING OWNER RUNTIME |
+| GR-15 | Gate E: SMS | analytics events | `cta_sms` | PENDING OWNER RUNTIME |
+| GR-16 | Gate E: WhatsApp | analytics events | `cta_whatsapp` | PENDING OWNER RUNTIME |
+| GR-17 | Gate E: Correo | analytics events | Correo opens + event | PENDING OWNER RUNTIME |
+| GR-18 | Gate E: Sitio web | analytics events | `cta_website_click` | PENDING OWNER RUNTIME |
+| GR-19 | Gate E: Compartir | analytics events | `listing_share` recorded | PENDING OWNER RUNTIME |
+| GR-20 | Gate E: Like 🦁 | `user_liked_listings` | real count, no fake | PENDING OWNER RUNTIME |
+| GR-21 | Gate E: Guardar + Guardados | `saved_listings` | saved under canonical id | PENDING OWNER RUNTIME |
+| GR-22 | none | no Servicios Report control/API exists on current main; registry marks Servicios `report: "unproven"` | nothing built or faked | **NOT SUPPORTED — CURRENT PRODUCT** |
+| GR-23 | Gate F: Translate | translation records | ad content translates, UI does not | PENDING OWNER RUNTIME |
+| GR-24 | Gate F: Related | related query | real related listings | PENDING OWNER RUNTIME |
+| GR-25 | Gate F: Saved Search | match event + eligibility | Servicios filters/location correct | PENDING OWNER RUNTIME |
+| GR-26 | Gate G: open Dashboard | my-listings payload | exact canonical listing | PENDING OWNER RUNTIME |
+| GR-27 | Gate G: open Editar | my-listing payload | exact canonical row | PENDING OWNER RUNTIME |
+| GR-28 | none | Admin workspace read | same row/state | PENDING OWNER RUNTIME |
+| GR-29 | Gate H: check hydration | draft mapper on published row | all data incl. custom/media/coupons | PENDING OWNER RUNTIME |
+| GR-30 | Gate H: republish | row identity | same UUID + Leonix Ad ID | PENDING OWNER RUNTIME |
+| GR-31 | Gate H: confirm no checkout | payment records | no second base charge | PENDING OWNER RUNTIME |
+| GR-32 | Gate H: edit a coupon | payment records | coupon edit, no base charge | PENDING OWNER RUNTIME |
+| GR-33 | Gate H: check media | media refs | media survives round-trip | PENDING OWNER RUNTIME |
+| GR-34 | Gate H: re-check Translate | translation records | survive republish | PENDING OWNER RUNTIME |
+| GR-35 | Gate H: any CTA after edit | analytics events | same listing identity | PENDING OWNER RUNTIME |
+| GR-36 | Gate I: send test lead | leads table + event | reaches owner destination | PENDING OWNER RUNTIME |
+| GR-37 | none | ownership guard | takeover blocked | PENDING OWNER RUNTIME |
+| GR-38 | Gate I: pause/resume | manage route | works while entitled | PENDING OWNER RUNTIME |
+| GR-39 | none | manage route | free reactivation refused after lapse | PENDING OWNER RUNTIME |
+| GR-40 | none | manage route | Leonix suspension not undoable by customer | PENDING OWNER RUNTIME |
+| GR-41 | none | RLS policy | private address protected at DB level | PENDING OWNER RUNTIME |
+| GR-42 | Gate J: mobile circuit | — | detail/results/dashboard clean | PENDING OWNER RUNTIME |
+| GR-43 | Gate J: cleanup | audit evidence | disposable artifacts only; payment evidence kept | PENDING OWNER RUNTIME |
+| GR-44 | after GR-01…43 | full record | Golden certification issued | PENDING OWNER RUNTIME |
