@@ -510,3 +510,70 @@ intentional changes). 0 new TypeScript errors, 0 new lint findings, production b
 **MAIN: not touched. PRODUCTION: not touched.** Migration applied only to Leonix Media Staging
 (matching QA data); Production Supabase was never touched, and the migration file is committed for
 the normal release process.
+
+## Servicios Golden receiver checkpoint (2026-09-11)
+
+Receiver fast-forwarded `d1b2994d` → current `origin/main` `9fcadb4daf599e15fca62adcb647abbf96ce6bd8`. Incoming main was Admin OS only; Owner Command Center shell, workspaces, Saved Listings/Guardados, Saved Search dashboard registry, and Servicios owner adapters were not in that diff.
+
+| CONTRACT | RECEIVER CONSUMER | CURRENT-MAIN STATUS | OWNER OF REMAINING WORK |
+|---|---|---|---|
+| Servicios coupons/offers display | `/dashboard/servicios`, `/dashboard/business-tools`, `coupons_offers` via listing-package-entitlements | LIVE-SHARED | SERVICIOS GOLDEN persist (SRV-GOLDEN-02) |
+| Servicios edit identity | `serviciosListingEditHref` → `/publicar/servicios?mode=listing-edit&listingId=` | LIVE | SERVICIOS GOLDEN write-key (SRV-GOLDEN-01 / DASH-23) |
+| Pause/Resume presentation | `/dashboard/servicios`, Mis Anuncios → `POST /api/clasificados/servicios/manage` | LIVE | SERVICIOS GOLDEN commercial fail-closed (DASH-27) |
+| Guardados persistence | `/dashboard/guardados` + `savedListingsDashboardResolve` | LIVE-SHARED | SERVICIOS GOLDEN public Save mounts (DASH-53) |
+| Saved Search dashboard | `/dashboard/busquedas-guardadas` `CATEGORY_REGISTRY` | autos / bienes-raices / rentas only | SERVICIOS GOLDEN / shared adoption (DASH-58/59/60) |
+
+**OWNER COMMAND CENTER REQUIRED PRODUCT SOURCE WORK: NONE PROVEN.**
+Next receiver action: targeted recheck after Golden contracts land on current main, then final source certification. No owner QA before that.
+
+## Full DASH-01–76 TRUE/FALSE (2026-09-11, product SHA `9fcadb4d`)
+
+**Worktree:** `C:\projects\elaguila-website-owner-command-center`
+**Branch:** `integration/owner-command-center-globalization-2026-08`
+**Source HEAD certified (Prompt 1):** `394d6fdbb98891278ab2436135136e55c9fba1c7`
+**origin/main:** `9fcadb4daf599e15fca62adcb647abbf96ce6bd8`
+**OCC required product work:** NONE
+**UNKNOWN:** NONE
+**Optional / non-blocking:** DASH-32, DASH-33, DASH-40
+**QA:** NOT RUN
+**QA AUTHORIZED:** NO
+**Runtime Golden listing:** NOT TESTED
+**Prompt 1 cert (2026-09-11):** 7/7 targeted verifiers PASS; `tsc` 7 e2e-only baseline 0 new; production build PASS (Compiled successfully in 2.9min). Isolated Preview recorded after push. Product source unchanged.
+
+Canonical table: `docs/launch-lifecycle/SERVICIOS_OWNER_DASHBOARD_RUNTIME_LEDGER_2026-09-11.md` §25B + §25D (Golden intake).
+
+| Bucket | Items |
+|---|---|
+| A TRUE source-complete | DASH-06, 11, 20, 29, 30, 52, 56, 57, 62 |
+| B TRUE + runtime deferred | DASH-01–05, 07–10, 12–19, 21–28, 31–51, 53–55, 58–61, 63–76 (DASH-18/23/27/53/58/59/60 landed via Strategy B Golden intake) |
+| C BLOCKED external Golden | NONE |
+| D OCC work still required | NONE |
+| UNKNOWN | NONE |
+
+**Golden intake (2026-09-11, historical product-intake SHA):** Strategy B cherry-pick of coordinated SHA `9e874060`. Product intake HEAD `4b402962`. Compile residual later closed at product SHA `3b00a4e6`. OCC residual NONE. Temporary probe not imported. QA NOT RUN. Runtime proof NOT RUN.
+
+## CURRENT STATE — PRE-QA SOURCE CERTIFICATION (2026-09-11)
+
+Master Bible §33.1 remains the historical control-plane checkpoint `ea99e57c` (not rewritten). Current reconstructable product/receiver truth is this block + `OWNER_COMMAND_CENTER_TESTS.json`.
+
+| Field | Value |
+|---|---|
+| FINAL PRODUCT/RECEIVER SHA | `3b00a4e6ed3b916ef60231adcf464429ff22faa6` |
+| GOLDEN COORDINATED SHA | `9e874060e5b9c960cdfcd3c60dcdceab81441e55` |
+| origin/main | `9fcadb4daf599e15fca62adcb647abbf96ce6bd8` |
+| FULL REQUIRED SOURCE CONTRACT | TRUE |
+| P0 SOURCE BLOCKERS | NONE |
+| P1 SOURCE BLOCKERS | NONE |
+| UNKNOWN | NONE |
+| PREVIEW ID | `dpl_GS6RgWpcPTQgGYZDSnXS3J1NF5yX` |
+| PREVIEW URL | https://leonix-media-nf2dja2uq-jesus-caceres-projects.vercel.app |
+| PREVIEW SHA | `3b00a4e6ed3b916ef60231adcf464429ff22faa6` |
+| LOCAL FULL TSC | PASS WITH PROVEN BASELINE — 7 e2e-only errors, 0 new app/source, 0 new test/verifier |
+| MIGRATION APPLICATION | BOTH APPLIED on Leonix Media `xuieateniufcrsfdomwl` (Preview host). Staging is not the Preview DB. |
+| OWNER QA | NOT RUN |
+| VISUAL QA | NOT RUN |
+| GOLDEN RUNTIME | NOT RUN |
+| QA AUTHORIZED | NO |
+| NEW PREVIEW REQUIRED | NO (docs-only restamp) |
+
+No second dashboard shell, Saved Listing engine, Saved Search engine, Servicios lifecycle engine, or commercial-state engine.

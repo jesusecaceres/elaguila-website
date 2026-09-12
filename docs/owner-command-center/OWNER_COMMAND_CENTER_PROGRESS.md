@@ -1828,3 +1828,250 @@ migration, and real dashboard CTA wiring for both categories.
 same-row, no-wrong-recharge, and webhook-idempotent — not evergreen, not fabricated.**
 **MAIN TOUCHED: NO. PRODUCTION TOUCHED: NO. Production Supabase untouched — migration applied only
 to Leonix Media Staging, with the file also committed to the repo for the normal release process.**
+
+---
+
+## Gate D/E — Servicios Golden receiver reconciliation checkpoint (2026-09-11)
+
+**Worktree:** `C:\projects\elaguila-website-owner-command-center`
+**Branch:** `integration/owner-command-center-globalization-2026-08`
+**Previous receiver HEAD:** `d1b2994d36b1e78f1fb91a6d3f801638156b9119`
+**Current receiver HEAD / origin/main:** `9fcadb4daf599e15fca62adcb647abbf96ce6bd8`
+
+### A. Receiver git reconciliation
+
+Receiver was 0 ahead / 21 behind current `origin/main`. Incoming commits were Admin OS release only. Fast-forward merge `d1b2994d` → `9fcadb4d`. Zero semantic conflicts. No required Dashboard / Servicios product source in the incoming diff. Receiver is synchronized with `origin/main` at this checkpoint. Product source was not edited by the receiver gates.
+
+### B. Current ownership freeze
+
+**OWNER COMMAND CENTER REQUIRED PRODUCT SOURCE WORK: NONE PROVEN**
+
+Servicios Golden / shared upstream blockers (do not convert into receiver tasks):
+
+- SRV-GOLDEN-01
+- SRV-GOLDEN-02
+- SRV-GOLDEN-03
+- SRV-GOLDEN-04
+- DASH-53 public Save adoption (detail + result-card)
+- DASH-58
+- DASH-59
+- DASH-60
+
+Golden feature-branch reports are not current receiver source. Current `origin/main` remains authority until those contracts land.
+
+### C. Targeted DASH recheck (current main)
+
+| Item | Classification | Note |
+|---|---|---|
+| DASH-16 | LIVE-SHARED | receiver `coupons_offers` display ready; upstream publish persist still `servicios_offers_addon` on current main |
+| DASH-18 | LIVE-SHARED | receiver edit routing ready; upstream `customQuickFacts` hydration missing on current main |
+| DASH-21 | LIVE | receiver emits `listingId` / slug / `leonix_ad_id`; upstream write-key remains Golden |
+| DASH-23 | BLOCKED — SERVICIOS GOLDEN | UUID fail-closed active edit not on current main |
+| DASH-26 | LIVE | Resume CTA mounted for `paused_unpublished` |
+| DASH-27 | BLOCKED — SERVICIOS GOLDEN | commercial fail-closed Resume/paused republish not on current main |
+| DASH-53 detail Save | BUILD REQUIRED UPSTREAM / SERVICIOS GOLDEN | Like + Share only on current main |
+| DASH-53 result-card Save | BUILD REQUIRED UPSTREAM / SERVICIOS GOLDEN | Like + Share only on current main |
+| DASH-53 Guardados/persistence | LIVE-SHARED | shared engine + resolver ready; public writer missing |
+| DASH-58 | BUILD REQUIRED UPSTREAM | no Servicios Saved Search registry/adapter on current main |
+| DASH-59 | BUILD REQUIRED UPSTREAM | location adapter not landed |
+| DASH-60 | BUILD REQUIRED UPSTREAM | filter/matcher not landed |
+| DASH-68 | LIVE-SHARED | same `listing_status` column; DASH-27 upstream dependency |
+
+### D. Deferred optional items
+
+DASH-32 / DASH-33 / DASH-40 remain **OPTIONAL / NON-BLOCKING — DEFERRED**. Not launch blockers. Not promoted to required receiver work.
+
+### E. Next receiver action
+
+After Servicios Golden lands finished contracts onto current main, or provides a coordinated integration SHA this receiver is authorized to consume:
+
+1. fetch current `origin/main`
+2. reconcile receiver if needed
+3. rerun only the affected targeted source checks
+4. clear upstream-dependent DASH classifications
+5. identify any true receiver-owned residual
+6. only then proceed to final receiver integration certification
+
+No owner/browser QA before that final source report. Receiver product coding is **not** authorized at this checkpoint.
+
+---
+
+## Gates 1–6 — Full receiver DASH-01–76 TRUE/FALSE source completion (2026-09-11)
+
+**Worktree:** `C:\projects\elaguila-website-owner-command-center`
+**Branch:** `integration/owner-command-center-globalization-2026-08`
+**HEAD:** `b49cebf669c5b517eb7d78df649f59e9dfdc3312`
+**origin/main / product SHA:** `9fcadb4daf599e15fca62adcb647abbf96ce6bd8`
+**Reconciliation:** not required (receiver 2 docs commits ahead of current main; main unchanged)
+**QA:** NOT RUN — owner/browser/runtime QA forbidden until PM authorization
+**QA AUTHORIZED:** NO
+
+### What was done
+
+1. Fetched origin. Did not merge any feature branch.
+2. Re-audited DASH-01 through DASH-76 against current runtime-consumed source (product SHA `9fcadb4d`). Did not copy historical classifications blindly; current-main still lacks Golden fail-closed UUID, coupons persist alignment, customQuickFacts hydration, Resume commercial authority, public Save mounts, and Servicios Saved Search adapters.
+3. Reclassified former receiver REPAIR/BUILD items as **BLOCKED — SERVICIOS GOLDEN / SHARED UPSTREAM** so they cannot be mistaken for Owner Command Center implementation queue.
+4. Implementation queue: **empty**. Optional DASH-32 / 33 / 40 remain deferred.
+5. TRUE/FALSE buckets recorded in `docs/launch-lifecycle/SERVICIOS_OWNER_DASHBOARD_RUNTIME_LEDGER_2026-09-11.md` §25B.
+6. Duplicate architecture check: none.
+7. QA not run.
+
+**OWNER COMMAND CENTER REQUIRED PRODUCT SOURCE WORK: NONE PROVEN**
+**Bucket D (OCC work still required): NONE**
+**UNKNOWN: NONE**
+**READY FOR FINAL SOURCE CERTIFICATION GATE: YES**
+**QA: NOT AUTHORIZED**
+
+---
+
+## Gates 7–9 — MD completeness + consistency checkpoint (2026-09-11)
+
+Added dedicated `Owner` field on all 76 DASH ledger items. Cross-document HEAD/main/QA/blocker truth aligned. No product source. QA remains NOT RUN / NOT AUTHORIZED.
+
+---
+
+## Prompt 1 — Source certification + isolated Preview delivery (2026-09-11)
+
+**Worktree:** `C:\projects\elaguila-website-owner-command-center`
+**Branch:** `integration/owner-command-center-globalization-2026-08`
+**Source HEAD certified:** `394d6fdbb98891278ab2436135136e55c9fba1c7`
+**origin/main / product SHA:** `9fcadb4daf599e15fca62adcb647abbf96ce6bd8`
+**Reconciliation:** not required (`origin/main` unchanged; receiver 3 docs commits ahead / 0 behind)
+**Product source changed:** NO
+**QA:** NOT RUN — NOT AUTHORIZED
+**Runtime proof:** NOT RUN
+**OWNER COMMAND CENTER REQUIRED PRODUCT SOURCE WORK:** NONE
+**UNKNOWN:** NONE
+**Bucket D:** NONE
+
+### Verification
+
+| Check | Result |
+|---|---|
+| Owner Attention Truth | 22/22 PASS |
+| Shared Specialized Tools | 33/33 PASS |
+| Owner lifecycle contract | OK |
+| Rentas lifecycle/renewal | PASS 9/9 |
+| Paid listing lifecycle engine | PASS |
+| Whole-product final reconciliation | 182/182 PASS |
+| Gate 20 fixed-term renewal | PASS |
+| `tsc --noEmit --incremental false` | PASS WITH PROVEN BASELINE — 7 e2e-only errors, 0 new, `e2e/` unchanged vs `9fcadb4d` |
+| `npm run build` (`NODE_OPTIONS=--max-old-space-size=12288`) | PASS — Compiled successfully in 2.9min |
+| `git diff --check` | PASS (clean tracked tree) |
+| TESTS.json parse | VALID |
+| Duplicate architecture | NONE |
+
+### External Bucket C (unchanged — not implemented)
+
+- DASH-18 — SRV-GOLDEN-03 `customQuickFacts`
+- DASH-23 — SRV-GOLDEN-01 UUID fail-closed / no INSERT fallback
+- DASH-27 — SRV-GOLDEN-04 commercial-safe Resume
+- DASH-53 — public Save mounts
+- DASH-58 / DASH-59 / DASH-60 — Saved Search adoption
+- Related: DASH-16 persist SRV-GOLDEN-02 (OCC display remains TRUE); DASH-21 write SRV-GOLDEN-01 (OCC `listingId` emission remains TRUE)
+
+Isolated Vercel Preview is created after this documentation commit is pushed. Deployment ID / URL / SHA match are recorded in the Prompt 1 absolute report, not fabricated here.
+
+**QA AUTHORIZED:** NO
+
+---
+
+## EXTERNAL GOLDEN INTAKE CHECKPOINT — OCC PARKED AT 83635691 (2026-09-11)
+
+**Parked HEAD:** `8363569110adc5755dac0ce8b23b848150fc994f`
+**origin/main:** `9fcadb4daf599e15fca62adcb647abbf96ce6bd8`
+**Prompt 2:** EXTERNAL CONTRACTS NOT LANDED. Product source unchanged. No merge.
+
+Canonical intake map (files, proofs, residuals, resume steps):
+`docs/launch-lifecycle/SERVICIOS_OWNER_DASHBOARD_RUNTIME_LEDGER_2026-09-11.md` §25C.
+
+STATUS NOW — all NOT LANDED: SRV-GOLDEN-01, SRV-GOLDEN-02, SRV-GOLDEN-03, SRV-GOLDEN-04, DASH-53, DASH-58, DASH-59, DASH-60.
+OCC MAY IMPLEMENT EXTERNAL SOURCE: NO
+QA REQUIRED NOW: NO
+OCC REQUIRED PRODUCT WORK: NONE
+UNKNOWN: NONE
+
+OCC RESUME ONLY WHEN ONE OF THESE IS TRUE:
+A. `origin/main` advances with one or more named Golden/shared contracts
+OR
+B. PM provides an explicitly authorized coordinated SHA containing completed contracts
+
+When resumed: stay in this worktree → fetch → inspect only affected contract paths → classify LANDED / PARTIAL / NOT LANDED → reconcile main if safe → recheck only DASH-16/18/21/23/26/27/53/54/58/59/60/68 → implement only a proven OCC residual → source-certify → commit/push → isolated Preview → STOP for PM proof audit. Do not authorize QA.
+
+NEXT OCC ACTION BEFORE TRIGGER: NONE
+
+---
+
+## SERVICIOS GOLDEN INTAKE — STRATEGY B CLOSURE (2026-09-11)
+
+**Trigger B:** PM-authorized Golden coordinated SHA `9e874060e5b9c960cdfcd3c60dcdceab81441e55` on `origin/completion/launch-lifecycle-2026-09-09`.
+
+**OCC starting HEAD:** `69989c5e4101c692d6207365df657ad03254688e` (docs lock after parked `83635691`)
+**origin/main:** still `9fcadb4daf599e15fca62adcb647abbf96ce6bd8` (Strategy A rejected — contracts not on main).
+**Strategy C (whole Golden branch) rejected:** 39 commits include Restaurantes, Comida Local, Bienes, Rentas, FSBO audit, temporary runtime probe `e310b249`, and unrelated test/docs. Those are not required for the eight receiver contracts.
+
+**Strategy B:** cherry-pick the coherent Servicios closure in chronological order onto `integration/owner-command-center-globalization-2026-08`. Provenance preserved (`-x`).
+
+**Commits consumed (new SHAs on OCC, `-x` to Golden originals):**
+1. `849b45ea` → `4c291674` SERVICIOS-1 lifecycle / identity foundation
+2. `2d28624c` → `aa943fee` SERVICIOS-2 Saved Search + dashboard registry + migration
+3. `95f17dc0` → `32207702` SERVICIOS-3 discovery filter readiness
+4. `75a66ce8` → `c40caa7f` hub Save (DASH-53 detail) + PATH B amount guard
+5. `dea5d0b3` → `f0f8d6c0` SRV-GOLDEN-04 + ownership (B1–B3)
+6. `961fa93c` → `1d00c307` SRV-GOLDEN-02 included offers (`coupons_offers`)
+7. `404a5ea2` → `4ec3ab7e` address privacy (publish-route dependency of fail-closed identity)
+8. `f00fcedd` → `a5381917` SRV-GOLDEN-03 + Saved Search matcher/offers discovery
+9. `ba7fa786` → `d52aec66` owner-QA delta (hub Save grammar)
+10. `9e874060` → `4b402962` SRV-GOLDEN-01 fail-closed + DASH-53 result Save
+11. `ff96fa3d` → `1c5a27e8` QA catalog seed type-closure (required after B5 address fields; Preview compile residual; test-fixture only)
+
+**OCC residual:** NONE (`CATEGORY_REGISTRY.servicios` landed with SERVICIOS-2). Compile residual: cherry-picked `ff96fa3d` (QA seed) plus a one-site discovery-facet completion in ingested `scripts/verify-servicios-owner-qa-delta.ts` so Next typecheck accepts the languageChipIds stub.
+**TEMPORARY PROBE IMPORTED:** NO
+**UNRELATED CATEGORY SOURCE IMPORTED:** NONE
+**QA:** NOT RUN
+**Runtime proof:** NOT RUN
+
+**Affected DASH after intake (source):**
+DASH-16 persist TRUE · DASH-18 TRUE · DASH-21 write TRUE · DASH-23 TRUE · DASH-26 TRUE · DASH-27 TRUE · DASH-53 TRUE · DASH-54 TRUE · DASH-55 TRUE · DASH-58 TRUE · DASH-59 TRUE · DASH-60 TRUE · DASH-68 TRUE
+
+**FULL REQUIRED SOURCE CONTRACT:** TRUE
+**UNKNOWN:** NONE
+**REQUIRED EXTERNAL SOURCE BLOCKERS:** NONE
+**REQUIRED OCC SOURCE BLOCKERS:** NONE
+
+Targeted verifiers on the OCC tree: `verify:servicios-golden-receiver-contracts` 10/10 PASS; gate1 PASS; publish-authority PASS; owner-qa-delta PASS; engagement-2 PASS; gate2-discovery PASS; edit-roundtrip PASS; owner attention 22/22; specialized-tools 33/33; OCC final 182/182; Gate20 PASS. `verify-servicios-interaction-polish.mjs` FAIL identical to Golden pre-existing `CtaActionSheet` on `ServiciosBusinessHubContactCard.tsx` (not a receiver-contract defect; not repaired).
+
+**Gate L (historical at intake):** `tsc` / `npm run build` were DEFERRED at intake certification (1.47 GB free RAM). Closed in the pre-QA certification restamp below.
+
+---
+
+## Pre-QA source certification closure (2026-09-11)
+
+**PRODUCT SOURCE SHA:** `3b00a4e6ed3b916ef60231adcf464429ff22faa6` (includes compile residual `1c5a27e8` + owner-qa-delta discovery-facet completion). Historical product-intake SHA remains `4b402962`.
+**GOLDEN COORDINATED SHA:** `9e874060e5b9c960cdfcd3c60dcdceab81441e55`
+**origin/main:** `9fcadb4daf599e15fca62adcb647abbf96ce6bd8`
+**FULL REQUIRED SOURCE CONTRACT:** TRUE
+**P0 SOURCE BLOCKERS:** NONE
+**P1 SOURCE BLOCKERS:** NONE
+**UNKNOWN:** NONE
+**PREVIEW ID:** `dpl_GS6RgWpcPTQgGYZDSnXS3J1NF5yX`
+**PREVIEW URL:** https://leonix-media-nf2dja2uq-jesus-caceres-projects.vercel.app
+**PREVIEW SHA:** `3b00a4e6ed3b916ef60231adcf464429ff22faa6`
+**NEW PREVIEW REQUIRED:** NO (docs-only restamp; certified product Preview stays the existing exact-SHA deployment)
+
+**LOCAL FULL TSC:** PASS WITH PROVEN BASELINE
+- Command: `npx tsc --noEmit --incremental false -p tsconfig.json` (`NODE_OPTIONS=--max-old-space-size=8192`)
+- Total errors: 7
+- Historical e2e errors: 7 (`e2e/` unchanged vs `9fcadb4d`)
+  - `e2e/autos/autos-a5-recovery-25-child-media-persistence.spec.ts:337` TS18046
+  - `e2e/community/community-preview-publish-bar.spec.ts` TS2345 (3)
+  - `e2e/community/community-preview-published-shell-parity.spec.ts` TS2345 (3)
+- NEW APP/SOURCE ERRORS: 0
+- NEW REQUIRED TEST/VERIFIER ERRORS: 0
+
+**MIGRATION APPLICATION:** BOTH APPLIED on Leonix Media `xuieateniufcrsfdomwl` (Preview `NEXT_PUBLIC_SUPABASE_URL` host). History names `saved_search_match_events_servicios` + `servicios_public_listings_read_privacy`. Live CHECK/RLS/`private_contact` confirmed. This closure did not write schema. Staging `cgeehvnfyrdoperdotdh` is not the Preview DB.
+
+**OWNER QA:** NOT RUN
+**VISUAL QA:** NOT RUN
+**GOLDEN RUNTIME:** NOT RUN
+**QA AUTHORIZED:** NO

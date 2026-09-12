@@ -4,6 +4,49 @@
   "branch": "integration/owner-command-center-globalization-2026-08",
   "startHead": "4cdbfb3abde7a6a57a5d610287bb04c654d6677b",
   "certifiedCheckpoint": "ea99e57c1695138ec433766f33835830361b6ba7",
+  "currentReceiverHead": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+  "sourceHeadCertified": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+  "productSourceSha": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+  "currentOriginMain": "9fcadb4daf599e15fca62adcb647abbf96ce6bd8",
+  "receiverSourceCertifiedAgainstCurrentMain": false,
+  "previewAtDocumentationTime": "dpl_GS6RgWpcPTQgGYZDSnXS3J1NF5yX READY https://leonix-media-nf2dja2uq-jesus-caceres-projects.vercel.app SHA=3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+  "receiverRequiredProductWork": "NONE PROVEN",
+  "goldenCoordinatedSha": "9e874060e5b9c960cdfcd3c60dcdceab81441e55",
+  "fullRequiredSourceContract": true,
+  "p0SourceBlockers": "NONE",
+  "p1SourceBlockers": "NONE",
+  "qaAuthorized": false,
+  "qaStatus": "NOT RUN",
+  "ownerQa": "NOT RUN",
+  "visualQa": "NOT RUN",
+  "goldenRuntime": "NOT RUN",
+  "optionalDeferred": ["DASH-32", "DASH-33", "DASH-40"],
+  "unknownItems": "NONE",
+  "notSupportedCurrentProduct": ["DASH-06", "DASH-11", "DASH-29", "DASH-30", "DASH-52"],
+  "externalBlockers": [],
+  "goldenIntake": {
+    "strategy": "B",
+    "authorizedSha": "9e874060e5b9c960cdfcd3c60dcdceab81441e55",
+    "productIntakeHead": "4b402962a12c0daab9058911e7f806a6f86b74d5",
+    "finalProductSourceSha": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+    "compileResidual": "ff96fa3d cherry-picked — scripts/servicios-manual-qa-catalog-seed.ts only; plus owner-qa-delta discovery-facet type completion at 3b00a4e6",
+    "fullRequiredSourceContract": true,
+    "occResidual": "NONE",
+    "temporaryProbeImported": false,
+    "p0SourceBlockers": "NONE",
+    "p1SourceBlockers": "NONE",
+    "previewId": "dpl_GS6RgWpcPTQgGYZDSnXS3J1NF5yX",
+    "previewUrl": "https://leonix-media-nf2dja2uq-jesus-caceres-projects.vercel.app",
+    "previewSha": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+    "localTsc": "PASS WITH PROVEN BASELINE — 7 e2e-only errors, 0 new app/source, 0 new test/verifier, e2e/ unchanged vs 9fcadb4d",
+    "migrationApplication": "BOTH APPLIED on Leonix Media xuieateniufcrsfdomwl (Preview NEXT_PUBLIC_SUPABASE_URL host). History names saved_search_match_events_servicios + servicios_public_listings_read_privacy. Live CHECK/RLS/column confirmed. Staging cgeehvnfyrdoperdotdh is NOT the Preview DB.",
+    "qa": "NOT RUN",
+    "ownerQa": "NOT RUN",
+    "visualQa": "NOT RUN",
+    "goldenRuntime": "NOT RUN",
+    "qaAuthorized": false,
+    "runtimeProof": "NOT RUN"
+  },
   "gates": [
     {
       "gate": "owner-command-center-concierge-bridge-reconciliation-2026-09-09",
@@ -1430,6 +1473,425 @@
         {
           "name": "main_and_production_touched",
           "result": "main not touched, Production not touched. Production Supabase database untouched - migration applied only to Leonix Media Staging; migration file committed to repo for the normal release process.",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "owner-servicios-golden-receiver-reconciliation-checkpoint-2026-09-11",
+      "previousReceiverHead": "d1b2994d36b1e78f1fb91a6d3f801638156b9119",
+      "endingHead": "9fcadb4daf599e15fca62adcb647abbf96ce6bd8",
+      "originMain": "9fcadb4daf599e15fca62adcb647abbf96ce6bd8",
+      "reconciliation": "fast-forward 21 Admin OS commits; 0 semantic conflicts; no Dashboard/Servicios product source in incoming main",
+      "receiverRequiredProductWork": "NONE PROVEN",
+      "optionalDeferred": ["DASH-32", "DASH-33", "DASH-40"],
+      "upstreamBlockers": [
+        "SRV-GOLDEN-01",
+        "SRV-GOLDEN-02",
+        "SRV-GOLDEN-03",
+        "SRV-GOLDEN-04",
+        "DASH-53 public Save adoption",
+        "DASH-58",
+        "DASH-59",
+        "DASH-60"
+      ],
+      "checks": [
+        {
+          "name": "git_fast_forward_to_origin_main",
+          "result": "d1b2994d -> 9fcadb4d; receiver 0 ahead / was 21 behind; now synchronized with origin/main",
+          "status": "PASS"
+        },
+        {
+          "name": "incoming_main_collision_scope",
+          "result": "Admin OS only. No app/(site)/dashboard, app/api/dashboard, Servicios public/publish/manage, saved-search, or Guardados files in incoming diff.",
+          "status": "PASS"
+        },
+        {
+          "name": "dash16_coupons_offers_display",
+          "classification": "LIVE-SHARED",
+          "result": "receiver display ready via coupons_offers; publish persist still SERVICIOS_OFFERS_ADDON_PACKAGE_KEY on current main",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash18_custom_quick_facts_hydration",
+          "classification": "LIVE-SHARED",
+          "result": "receiver edit routing ready; customQuickFacts published hydration missing on current main",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash21_receiver_edit_identity",
+          "classification": "LIVE",
+          "result": "serviciosListingEditHref emits listingId/slug/leonixAdId; upstream write-key remains Golden",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash23_uuid_fail_closed",
+          "classification": "BLOCKED",
+          "owner": "SERVICIOS GOLDEN",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash26_resume_presentation",
+          "classification": "LIVE",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash27_commercial_resume",
+          "classification": "BLOCKED",
+          "owner": "SERVICIOS GOLDEN",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash53_detail_save",
+          "classification": "BUILD REQUIRED UPSTREAM / SERVICIOS GOLDEN",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash53_result_card_save",
+          "classification": "BUILD REQUIRED UPSTREAM / SERVICIOS GOLDEN",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash53_guardados_persistence",
+          "classification": "LIVE-SHARED",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash58_saved_search_category",
+          "classification": "BUILD REQUIRED UPSTREAM",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash59_saved_search_location",
+          "classification": "BUILD REQUIRED UPSTREAM",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash60_saved_search_filters",
+          "classification": "BUILD REQUIRED UPSTREAM",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash68_lifecycle_truth",
+          "classification": "LIVE-SHARED",
+          "result": "dashboard and admin share listing_status; DASH-27 upstream dependency remains",
+          "status": "RECORDED"
+        },
+        {
+          "name": "product_source_edited_by_receiver",
+          "result": "NO",
+          "status": "PASS"
+        },
+        {
+          "name": "next_receiver_action",
+          "result": "After Golden lands finished contracts on current main or a coordinated SHA: fetch origin/main, reconcile if needed, rerun targeted checks, clear upstream-dependent DASH items, identify any true receiver residual, then final receiver source certification. No owner QA before that.",
+          "status": "RECORDED"
+        }
+      ]
+    },
+    {
+      "gate": "owner-receiver-dash-01-76-true-false-source-completion-2026-09-11",
+      "receiverHead": "b49cebf669c5b517eb7d78df649f59e9dfdc3312",
+      "productSha": "9fcadb4daf599e15fca62adcb647abbf96ce6bd8",
+      "originMain": "9fcadb4daf599e15fca62adcb647abbf96ce6bd8",
+      "reconciliation": "not required; 2 docs commits ahead of origin/main",
+      "receiverRequiredProductWork": "NONE PROVEN",
+      "bucketD": "NONE",
+      "unknown": "NONE",
+      "qa": "NOT RUN",
+      "readyForFinalSourceCertificationGate": true,
+      "checks": [
+        {
+          "name": "origin_main_unchanged",
+          "result": "origin/main still 9fcadb4d; no feature-branch merge",
+          "status": "PASS"
+        },
+        {
+          "name": "dash_01_76_true_false",
+          "result": "All 76 items classified. Bucket A=9, B=60, C=7, D=0, UNKNOWN=0. Canonical table in SERVICIOS_OWNER_DASHBOARD_RUNTIME_LEDGER_2026-09-11.md section 25B.",
+          "status": "PASS"
+        },
+        {
+          "name": "blocked_external",
+          "result": "DASH-18 SRV-GOLDEN-03; DASH-23 SRV-GOLDEN-01; DASH-27 SRV-GOLDEN-04; DASH-53 public Save; DASH-58/59/60 Saved Search adoption",
+          "status": "RECORDED"
+        },
+        {
+          "name": "optional_deferred_unchanged",
+          "result": "DASH-32 DASH-33 DASH-40 remain optional/non-blocking",
+          "status": "PASS"
+        },
+        {
+          "name": "duplicate_architecture",
+          "result": "NONE",
+          "status": "PASS"
+        },
+        {
+          "name": "receiver_product_source_edited",
+          "result": "NO",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "owner-prompt-1-source-certification-preview-delivery-2026-09-11",
+      "sourceHeadCertified": "394d6fdbb98891278ab2436135136e55c9fba1c7",
+      "productSha": "9fcadb4daf599e15fca62adcb647abbf96ce6bd8",
+      "originMain": "9fcadb4daf599e15fca62adcb647abbf96ce6bd8",
+      "reconciliation": "not required; origin/main unchanged; receiver 3 docs commits ahead / 0 behind",
+      "receiverRequiredProductWork": "NONE PROVEN",
+      "bucketD": "NONE",
+      "unknown": "NONE",
+      "qa": "NOT RUN",
+      "qaAuthorized": false,
+      "runtimeProof": "NOT RUN",
+      "checks": [
+        {
+          "name": "gate_a_worktree_lock",
+          "result": "C:\\projects\\elaguila-website-owner-command-center; branch integration/owner-command-center-globalization-2026-08; HEAD 394d6fdb; tracked clean; untracked .claude/ only",
+          "status": "PASS"
+        },
+        {
+          "name": "gate_b_fetch_main",
+          "result": "origin/main still 9fcadb4d; no Golden contracts landed; no merge",
+          "status": "PASS"
+        },
+        {
+          "name": "gate_c_bucket_d",
+          "result": "NONE — single LeonixDashboardShell / OwnerEntityWorkspace; CATEGORY_REGISTRY autos|bienes-raices|rentas; no LeonixSaveButton under servicios; allocateSlug INSERT fallback still on publish; no resolveServiciosReactivationAuthority on manage",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_attention_truth",
+          "command": "npx tsx scripts/verify-owner-attention-truth-01.ts",
+          "result": "22/22 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_shared_specialized_tools",
+          "command": "npx tsx scripts/verify-owner-shared-specialized-tools-01.ts",
+          "result": "33/33 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_lifecycle_contract",
+          "command": "npx tsx scripts/gate-g1-owner-lifecycle-contract-selftest.ts",
+          "result": "OK",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_rentas_lifecycle_renewal",
+          "command": "node scripts/verify-rentas-lifecycle-renewal-dashboard-global-engine-01.mjs",
+          "result": "PASS — 9/9",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_paid_listing_lifecycle_engine",
+          "command": "node scripts/verify-leonix-paid-listing-lifecycle-engine-01.mjs",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_whole_product_final_reconciliation",
+          "command": "npx tsx scripts/verify-owner-command-center-final-reconciliation.ts",
+          "result": "182/182 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_gate20_fixed_term_renewal",
+          "command": "node scripts/verify-owner-command-center-gate20-fixed-term-renewal-01.mjs",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "typescript_full_typecheck",
+          "command": "npx tsc --noEmit --incremental false -p tsconfig.json",
+          "errorCount": 7,
+          "newErrorsFound": 0,
+          "result": "PASS WITH PROVEN BASELINE — 7 errors, all e2e/**, identical class to recorded 7-error e2e-only baseline; git diff 9fcadb4d HEAD -- e2e empty",
+          "status": "PASS"
+        },
+        {
+          "name": "production_build",
+          "command": "npm run build (NODE_OPTIONS=--max-old-space-size=12288)",
+          "result": "PASS — exit 0, Compiled successfully in 2.9min, wall ~396s; key routes /dashboard /dashboard/servicios /dashboard/mis-anuncios /dashboard/business-tools /dashboard/guardados /dashboard/busquedas-guardadas /api/dashboard/business/home present; only pre-existing themeColor viewport warnings",
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "PASS on clean tracked tree before restamp",
+          "status": "PASS"
+        },
+        {
+          "name": "tests_json_parse",
+          "result": "VALID",
+          "status": "PASS"
+        },
+        {
+          "name": "duplicate_architecture",
+          "result": "NONE",
+          "status": "PASS"
+        },
+        {
+          "name": "product_source_edited",
+          "result": "NO",
+          "status": "PASS"
+        },
+        {
+          "name": "external_bucket_c_unchanged",
+          "result": "DASH-18 SRV-GOLDEN-03; DASH-23 SRV-GOLDEN-01; DASH-27 SRV-GOLDEN-04; DASH-53 public Save; DASH-58/59/60 Saved Search. Related: DASH-16 persist SRV-GOLDEN-02 (OCC display TRUE); DASH-21 write SRV-GOLDEN-01 (OCC listingId emission TRUE)",
+          "status": "RECORDED"
+        }
+      ]
+    },
+    {
+      "gate": "servicios-golden-intake-strategy-b-2026-09-11",
+      "authorizedGoldenSha": "9e874060e5b9c960cdfcd3c60dcdceab81441e55",
+      "strategy": "B",
+      "productIntakeHead": "4b402962a12c0daab9058911e7f806a6f86b74d5",
+      "finalProductSourceSha": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+      "compileResidual": "ff96fa3d cherry-picked — scripts/servicios-manual-qa-catalog-seed.ts only; owner-qa-delta discovery-facet type completion at 3b00a4e6",
+      "occResidual": "NONE",
+      "fullRequiredSourceContract": true,
+      "unknown": "NONE",
+      "externalBlockers": [],
+      "qa": "NOT RUN",
+      "runtimeProof": "NOT RUN",
+      "checks": [
+        {
+          "name": "verify_servicios_golden_receiver_contracts",
+          "command": "npm run verify:servicios-golden-receiver-contracts",
+          "result": "PASS 10/10",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_servicios_gate1_lifecycle",
+          "command": "npx tsx scripts/verify-servicios-gate1-lifecycle.ts",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_servicios_publish_authority",
+          "command": "npx tsx scripts/verify-servicios-publish-authority.ts",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_servicios_owner_qa_delta",
+          "command": "npx tsx scripts/verify-servicios-owner-qa-delta.ts",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_servicios_engagement_2",
+          "command": "node scripts/verify-servicios-engagement-2.mjs",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_servicios_gate2_discovery",
+          "command": "npx tsx scripts/verify-servicios-gate2-discovery.ts",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_servicios_edit_roundtrip",
+          "command": "npx tsx scripts/verify-servicios-edit-roundtrip.ts",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_owner_attention_truth",
+          "command": "npx tsx scripts/verify-owner-attention-truth-01.ts",
+          "result": "22/22 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_owner_shared_specialized_tools",
+          "command": "npx tsx scripts/verify-owner-shared-specialized-tools-01.ts",
+          "result": "33/33 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_owner_lifecycle_contract",
+          "command": "npx tsx scripts/gate-g1-owner-lifecycle-contract-selftest.ts",
+          "result": "OK",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_owner_command_center_final",
+          "command": "npx tsx scripts/verify-owner-command-center-final-reconciliation.ts",
+          "result": "182/182 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_owner_command_center_gate20",
+          "command": "node scripts/verify-owner-command-center-gate20-fixed-term-renewal-01.mjs",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_servicios_interaction_polish",
+          "command": "node scripts/verify-servicios-interaction-polish.mjs",
+          "result": "FAIL — identical pre-existing Golden CtaActionSheet on ServiciosBusinessHubContactCard; not a receiver-contract defect; not repaired",
+          "status": "PREEXISTING_UNRELATED"
+        },
+        {
+          "name": "affected_dash_source",
+          "result": "DASH-16 persist / 18 / 21 write / 23 / 26 / 27 / 53 / 54 / 55 / 58 / 59 / 60 / 68 all TRUE",
+          "status": "PASS"
+        },
+        {
+          "name": "typescript",
+          "command": "npx tsc --noEmit --incremental false -p tsconfig.json (NODE_OPTIONS=--max-old-space-size=8192)",
+          "result": "PASS WITH PROVEN BASELINE — 7 errors, all e2e/: autos-a5-recovery-25 TS18046 (1) + community-preview-publish-bar TS2345 (3) + community-preview-published-shell-parity TS2345 (3). e2e/ unchanged vs origin/main 9fcadb4d. NEW APP/SOURCE ERRORS 0. NEW REQUIRED TEST/VERIFIER ERRORS 0.",
+          "status": "PASS"
+        },
+        {
+          "name": "production_build",
+          "command": "Vercel Preview npm run build (not --prod)",
+          "result": "PASS on SHA 3b00a4e6 — dpl_GS6RgWpcPTQgGYZDSnXS3J1NF5yX READY. Local npm run build not re-run this closure. Earlier Preview type_errors at c8c57533/141c1a61 were closed before this SHA.",
+          "status": "PASS"
+        },
+        {
+          "name": "migration_application_leonix_media",
+          "result": "Preview env host xuieateniufcrsfdomwl.supabase.co. History: 20260910201735 saved_search_match_events_servicios; 20260911024723 servicios_public_listings_read_privacy. Live CHECK includes servicios + seller_lane business/independent. private_contact jsonb present. RLS SELECT published (anon+auth) + own (auth). anon/auth have no SELECT grant on private_contact. Not applied to Production as a new write this closure — already present. Staging project does not host these two names.",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "servicios-preqa-certification-closure-2026-09-11",
+      "productSourceSha": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+      "goldenCoordinatedSha": "9e874060e5b9c960cdfcd3c60dcdceab81441e55",
+      "currentOriginMain": "9fcadb4daf599e15fca62adcb647abbf96ce6bd8",
+      "previewId": "dpl_GS6RgWpcPTQgGYZDSnXS3J1NF5yX",
+      "previewUrl": "https://leonix-media-nf2dja2uq-jesus-caceres-projects.vercel.app",
+      "previewSha": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+      "newPreviewRequired": false,
+      "qaAuthorized": false,
+      "ownerQa": "NOT RUN",
+      "visualQa": "NOT RUN",
+      "goldenRuntime": "NOT RUN",
+      "p0SourceBlockers": "NONE",
+      "p1SourceBlockers": "NONE",
+      "unknown": "NONE",
+      "fullRequiredSourceContract": true,
+      "checks": [
+        {
+          "name": "typescript",
+          "command": "npx tsc --noEmit --incremental false -p tsconfig.json (NODE_OPTIONS=--max-old-space-size=8192)",
+          "result": "PASS WITH PROVEN BASELINE — 7 errors, all e2e/: autos-a5-recovery-25 TS18046 (1) + community-preview-publish-bar TS2345 (3) + community-preview-published-shell-parity TS2345 (3). e2e/ unchanged vs origin/main 9fcadb4d. NEW APP/SOURCE ERRORS 0. NEW REQUIRED TEST/VERIFIER ERRORS 0.",
+          "status": "PASS"
+        },
+        {
+          "name": "migration_application_leonix_media",
+          "result": "Preview env host xuieateniufcrsfdomwl.supabase.co (Leonix Media). History: 20260910201735 saved_search_match_events_servicios; 20260911024723 servicios_public_listings_read_privacy. Live CHECK includes servicios + seller_lane business/independent. private_contact jsonb present. RLS SELECT published (anon+auth) + own (auth). anon/auth have no SELECT grant on private_contact. Already applied — this closure did not write schema. Staging cgeehvnfyrdoperdotdh is not the Preview DB.",
+          "status": "PASS"
+        },
+        {
+          "name": "preview_decision",
+          "result": "Docs-only certification. Certified product Preview remains dpl_GS6RgWpcPTQgGYZDSnXS3J1NF5yX at SHA 3b00a4e6. NEW PREVIEW REQUIRED: NO.",
           "status": "PASS"
         }
       ]
