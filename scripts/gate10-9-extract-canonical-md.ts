@@ -97,7 +97,21 @@ for (let i = 0; i < lines.length; i++) {
 // pretending the automated pass covered them. Each entry below cites its exact source line(s) so a
 // future engineer can re-verify it against the same raw text this script itself parses above.
 const manualProseSupplement: RawBullet[] = [
+  { lineNo: 25, section: 0, subsection: null, sectionTitle: "NORTH STAR", text: "[PROSE] Leonix should not build from vague instructions. (Gate 10.10 finding: this intro sentence, and the flow banner/closing sentences below, were never extracted at all -- only the 18-item bullet list was captured.)" },
+  { lineNo: 51, section: 0, subsection: null, sectionTitle: "NORTH STAR", text: "[PROSE] DISCOVER -> CAPTURE -> EXTRACT -> VERIFY -> FIND GAPS -> ASK -> CONFIRM -> ARCHITECT -> GENERATE PROJECT MD -> BUILD -> QA -> HANDOFF -> FOLLOW THROUGH (the canonical 13-stage flow banner)." },
+  { lineNo: 47, section: 0, subsection: null, sectionTitle: "NORTH STAR", text: "[PROSE] Then Business Concierge should generate the project blueprint." },
+  { lineNo: 53, section: 0, subsection: null, sectionTitle: "NORTH STAR", text: "[PROSE] The MD is the output of disciplined discovery. It is not a generic template filled with superficial answers." },
+  { lineNo: 262, section: 6, subsection: null, sectionTitle: "ADAPTIVE QUESTION ENGINE", text: "[PROSE] Questions already answered by canonical truth should not be asked again unless re-confirmation is necessary. (Gate 10.10 finding: this trailing prose sentence -- REQ-6.3's own source text -- was never extracted at all before this pass.)" },
+  { lineNo: 529, section: 8, subsection: "8.14 CMS / content editing", sectionTitle: "WEBSITE DISCOVERY INFORMATION CONTRACT", text: "[PROSE] Do not add a CMS if the client does not need one. (Gate 10.10 finding: this trailing prose sentence -- REQ-8.14.7's own source text -- was never extracted at all before this pass.)" },
+  { lineNo: 605, section: 8, subsection: "8.19 SEO / discovery", sectionTitle: "WEBSITE DISCOVERY INFORMATION CONTRACT", text: "[PROSE] No guaranteed ranking claims. (Gate 10.10 finding: this trailing prose sentence -- REQ-8.19.13's own source text -- was never extracted at all before this pass.)" },
   { lineNo: 284, section: 7, subsection: null, sectionTitle: "PROJECT TYPES", text: "[PROSE] A client engagement may create multiple linked projects from one discovery session. (Gate 10.9 finding: mechanical bullet extractor missed this trailing prose sentence; manifest's REQ-7.17 already covers it correctly.)" },
+  { lineNo: 1287, section: 34, subsection: "Expected chain", sectionTitle: "ACCEPTANCE TEST — MULTI-SOLUTION CLIENT", text: "[PROSE] One discovery session. (Gate 10.10 finding: this arrow-chain, §34's real EXPECTED-outcome content, was never extracted at all before this pass -- only the unrelated 'Client needs' input list was captured, which a prior equal-count heuristic then wrongly paired against REQ-34.1-4.)" },
+  { lineNo: 1288, section: 34, subsection: "Expected chain", sectionTitle: "ACCEPTANCE TEST — MULTI-SOLUTION CLIENT", text: "[PROSE] shared business truth" },
+  { lineNo: 1289, section: 34, subsection: "Expected chain", sectionTitle: "ACCEPTANCE TEST — MULTI-SOLUTION CLIENT", text: "[PROSE] four linked project requirements" },
+  { lineNo: 1290, section: 34, subsection: "Expected chain", sectionTitle: "ACCEPTANCE TEST — MULTI-SOLUTION CLIENT", text: "[PROSE] specialized missing-information checks" },
+  { lineNo: 1291, section: 34, subsection: "Expected chain", sectionTitle: "ACCEPTANCE TEST — MULTI-SOLUTION CLIENT", text: "[PROSE] separate project blueprints" },
+  { lineNo: 1292, section: 34, subsection: "Expected chain", sectionTitle: "ACCEPTANCE TEST — MULTI-SOLUTION CLIENT", text: "[PROSE] shared confirmed assets/facts" },
+  { lineNo: 1293, section: 34, subsection: "Expected chain", sectionTitle: "ACCEPTANCE TEST — MULTI-SOLUTION CLIENT", text: "[PROSE] clear dependencies." },
   { lineNo: 898, section: 13, subsection: null, sectionTitle: "PLATFORM OWNERSHIP REGISTER", text: "[PROSE] Every project should produce an ownership record." },
   { lineNo: 900, section: 13, subsection: null, sectionTitle: "PLATFORM OWNERSHIP REGISTER", text: "[PROSE] No project may reach handoff without ownership/billing being explicit." },
   { lineNo: 1010, section: 18, subsection: null, sectionTitle: "MEETING CLOSEOUT ASSIST", text: "[PROSE] Surface 'Before You Wrap Up' — only high-value missing questions, to prevent avoidable client callbacks." },
@@ -114,6 +128,7 @@ const manualProseSupplement: RawBullet[] = [
   { lineNo: 1401, section: 37, subsection: null, sectionTitle: "FINAL LOCK", text: "[PROSE] The solution is tailored." },
   { lineNo: 1403, section: 37, subsection: null, sectionTitle: "FINAL LOCK", text: "[PROSE] The quality must represent Leonix." },
   { lineNo: 1405, section: 37, subsection: null, sectionTitle: "FINAL LOCK", text: "[PROSE] Both Leonix and the client must win. (Gate 10.9 finding: this sentence had no dedicated ledger row before this pass -- fixed, see REQ-37.4.)" },
+  { lineNo: 1407, section: 37, subsection: null, sectionTitle: "FINAL LOCK", text: "[SLOGAN] Que ruja el leon. (Gate 10.10 finding: this closing rallying-cry line was never extracted at all before this pass -- added for complete raw-item accounting; disposition NON_BEHAVIORAL_DECORATIVE, no atomic row required.)" },
 ];
 bullets.push(...manualProseSupplement);
 

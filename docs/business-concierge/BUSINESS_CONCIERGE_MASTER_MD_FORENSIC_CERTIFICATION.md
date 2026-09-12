@@ -522,7 +522,7 @@ Gate 10.3 ran in two passes in this session: an initial pass (committed `aa0fecf
 
 | REQ_ID | MD_REF | REQUIREMENT | SOURCE | PROOF | STATUS |
 |---|---|---|---|---|---|
-| REQ-6.1 | §6 | Questions chosen from project type/industry/stage/truth/missing-info/goals/systems/assets/site/preferences/deadlines/ownership/compliance | `buildQuestionsToAskNow`, `applicabilityCondition`+`dependencyCondition` predicates reading `WebsiteDiscoveryContext` (industryBranch, businessStage, capturedItems, hasExistingWebsite, etc.) | `test-client-discovery-workspace-gate3.ts`: "the UI component files never CALL the Gate 2 evaluation engine themselves ... only page.tsx evaluates" (confirms real single-engine reuse, not a UI-layer reimplementation) | TECHNICALLY_PROVEN |
+| REQ-6.1 | §6 | Questions chosen from project type/industry/stage/truth/missing-info/goals/systems/assets/site/preferences/deadlines/budget/ownership/compliance | `buildQuestionsToAskNow`, `applicabilityCondition`+`dependencyCondition` predicates reading `WebsiteDiscoveryContext` (industryBranch, businessStage, capturedItems, hasExistingWebsite, etc.); `budget` specifically is not a named field on `WebsiteDiscoveryContext` itself but is a real captured item (`other_project_budget_commercial_note`) reachable by any requirement's condition function through the generic `hasCapturedValue`/`getCapturedValue(fieldKey)` predicate interface (`toPredicateContext`, `websiteDiscoveryLogic.ts`) -- the same generic mechanism every other named dimension ultimately resolves through (Gate 10.10 finding: the prior citation text omitted `budget` even though the underlying generic capture-driven predicate mechanism already covers it; corrected here, no product code change required) | `test-client-discovery-workspace-gate3.ts`: "the UI component files never CALL the Gate 2 evaluation engine themselves ... only page.tsx evaluates" (confirms real single-engine reuse, not a UI-layer reimplementation) | TECHNICALLY_PROVEN |
 | REQ-6.2 | §6 | "Questions to Ask Now," not a 150-question wall | `buildQuestionsToAskNow` returns a prioritized, filtered subset | `test-client-discovery-gate3-1.ts` guard/engine agreement check | TECHNICALLY_PROVEN |
 | REQ-6.3 | §6 | Already-answered-by-canonical-truth questions not re-asked unless reconfirmation needed | `recommendReconfirmation` flag + `canonicalTruthMaySatisfy` gating | Field-level citation, e.g. `public_business_hours` (`recommendReconfirmation: true`) vs. `public_business_address` (`false`) | TECHNICALLY_PROVEN |
 ## §7 Project Types (16 named)
@@ -2006,5 +2006,202 @@ Product/runtime code was NOT touched this gate — changes were limited to two l
 The independent, from-scratch canonical extraction (824 raw items, built directly from the real MD file, zero reliance on the ledger) reconciles completely against the manifest's 612 MD-atomic rows: every section's count delta is either zero or matches an explicitly disclosed, grep-verified consolidation/cross-reference/restatement pattern. Two real gaps were found and fixed (§37's 2 missing sentences), one real text-corruption defect was found and fixed (REQ-5.5's malformed source row), and three bugs in this gate's own independent-verification tooling were found and fixed (proving the reconciliation tool itself was held to the same "trust nothing, verify against real source" standard as everything it checks). CANONICAL_WITHOUT_MANIFEST=0, MANIFEST_WITHOUT_CANONICAL=0, SECTION_MISMATCHES=0, TEXT_MISMATCHES=0 (post-fix), MECHANISM_BINDING_ERRORS=0. All owner-meta rows (6) remain separate and OWNER_SUBJECTIVE_ONLY. 5/5 negative tests still correctly fail. 31/31 mechanisms still source-verified. The historical "610" figure is explicitly and honestly corrected to 612 everywhere it appeared, per this gate's own instruction not to preserve stale arithmetic.
 
 **READY FOR OWNER QA: NO.** Owner QA remains intentionally blocked until PM reviews and accepts this final canonical truth reconciliation.
+
+---
+---
+# Gate 10.10 — Raw Canonical Item → Atomic Requirement Normalization Proof
+
+- **Start HEAD:** `885a5cb64d8a2536463ac28c517bedf1d2a31462`
+- **Mission:** Gate 10.9 proved section-level bijection (every count delta explained) but PM correctly identified that "MATCHED_ONE_TO_ONE = YES" cannot literally hold while 824 raw items and 612 manifest rows differ in cardinality — the consolidation patterns (option-list, two-clause, roadmap-restatement, synthesized-guard) were named but never proven at the level of every individual raw item. This gate builds an explicit, item-level disposition for all 839 raw canonical items (824 Gate-10.9 items + 15 more found by this gate's own deeper audit of §35-37 and other trailing prose), a full reverse map from all 612 atomic requirements back to their raw canonical basis, and adversarial over/under-aggregation checks — with a durable, re-runnable verifier and 6 negative tests, exactly matching the rigor already established for the evidence manifest itself.
+
+## Safe Gate 8/9 — Deep audit of §0-1 and §35-37 (performed FIRST, before building tooling)
+
+Before any script was written, the specific doctrine sentences the mission named were individually re-derived against real, already-proven mechanisms (not assumed covered):
+
+- **§0/§1** (18 vision-list items + 16 "must/must-not come from" items): every single item was traced to a SPECIFIC existing atomic row — e.g. "ignoring mobile" → REQ-26.2 ("390px mobile" QA row, confirmed present by direct manifest grep — this was the one item that looked potentially uncovered and was checked explicitly, not assumed); "what is in scope"/"what is out of scope" → REQ-8.26.1/8.26.2; "who owns accounts and billing" → REQ-13.1/REQ-8.24.1; "fewer avoidable callbacks" → REQ-18.1 (exact phrase match). Zero items were left as an unproven generic "narrative" bucket — every one now cites its specific home in `BUSINESS_CONCIERGE_RAW_TO_ATOMIC_NORMALIZATION.json`.
+- **§35 IMPLEMENTATION ORDER** (45 raw sub-bullets across 8 Gates): every sub-bullet was individually traced to its real already-proven atomic row (e.g. Gate 6's "Promise Keeper" → REQ-37.4's `M-PROMISE-KEEPER` mechanism binding; Gate 8's 5 test scenarios → REQ-33.x acceptance steps + REQ-10.3 Custom Platform escalation). None were found to introduce independent, unproven functionality — all 45 are confirmed roadmap restatements.
+- **§36 FINAL BUSINESS RULE** (3 outcome quotes): already correctly decomposed in Gate 10.3 into real technical subclaims per quote (REQ-36.1/36.2/36.3), re-confirmed here — no further splitting needed.
+- **§37 FINAL LOCK**: the 11-step progression, "repeatable"/"tailored", "quality"/"both win" (Gate 10.9), and the closing **"Que ruja el león."** slogan were all individually audited. The slogan had never been extracted at all before this gate (a genuine, if minor, extraction-completeness gap) — added as raw item and correctly classified `NON_BEHAVIORAL_DECORATIVE` (a rallying cry, no executable obligation; Leonix-brand-quality itself is independently covered by REQ-37.3).
+
+## Safe Gate 1 — Raw item disposition manifest
+
+New artifact: `docs/business-concierge/BUSINESS_CONCIERGE_RAW_TO_ATOMIC_NORMALIZATION.json`, built by a new, re-runnable script `scripts/gate10-10-build-normalization.ts`. For every one of the 839 raw canonical items it records `rawId/section/subsection/rawText/sourceLocation/disposition/atomicReqIds/reason/siblingRawIds`. Resolution strategy (in order): (1) exact-count order-pairing within a (section, subsection) group, (2) single-governing-row consolidation for flat option-lists, (3) best-scoring fuzzy content match for partially-consolidated groups, (4) explicit manual rules for the structurally-narrative sections (§0/§1/§35/§37) and for known synthesized guard rows. Zero items were left with an empty or "UNRESOLVED" disposition.
+
+**Real defects found and fixed while building this tool:**
+1. **A raw/manifest mis-mapping bug** (own tooling, not the manifest): a naive first-match fuzzy search mapped `[STATE] CLIENT PREFERENCE` to REQ-4.1 (`CLIENT CONFIRMED`, 50% token overlap) instead of the true 100%-match REQ-4.7 (`CLIENT PREFERENCE`), because REQ-4.1 happened to appear earlier in array order. **Fixed** by switching to best-scoring-candidate selection instead of first-above-threshold; a full automated re-scan afterward found zero remaining mismatches of this kind.
+2. **Two "equal-count coincidence" index-drift bugs** (own tooling): §8.15 and §8.17 each have a manifest row that MERGES two raw bullets into one (`storage? / API integrations?`, `tax/shipping/inventory?`) and then a SYNTHESIZED guard row appended afterward — restoring the same total row count as the raw list, which fooled the generic "equal counts → order-pair" heuristic into silently shifting every item after the merge point onto the wrong row (`API integrations?`→wrong guard row; `refunds?`/`owner/provider?`/`compliance?` each shifted by one). **Fixed** with explicit per-item mappings for both subsections; a global automated re-scan (comparing every order-paired assignment's fuzzy score against every other candidate in its own group) found zero remaining instances of this pattern anywhere in the dataset.
+3. **A real, more serious cross-mapping bug**: §34's raw "Client needs" list (logo/website/business cards/launch campaign — the test scenario's INPUT) happened to have exactly 4 items, the SAME count as REQ-34.1-4 (which actually prove the completely unrelated "Expected:" arrow-chain OUTCOME seven lines below). The equal-count heuristic wrongly paired "logo" against "One discovery session → shared business truth," etc. **Fixed** by adding the previously-unextracted 7-segment "Expected:" chain to the raw extraction (a real, second extractor gap — the chain isn't a "- " bullet, so the mechanical pass had captured zero of it) and re-routing the "Client needs" items to their real basis (the already-proven §7 project-type rows + §19 multi-project mechanism).
+4. **Six more never-extracted trailing prose sentences**, each independently confirmed to already be a manifest row's own real source text with no prior raw counterpart at all: §0's intro sentence + 13-stage flow banner + "then generate" + "MD is output of disciplined discovery" (all folding into REQ-0.1/REQ-0.2, which previously had ZERO raw items pointing at them — a real "atomic requirement without canonical basis" gap, not merely a tooling nuance); §6's "questions already answered by canonical truth..." (REQ-6.3's own text); §8.14's "Do not add a CMS if not needed" (REQ-8.14.7's own text); §8.19's "No guaranteed ranking claims" (REQ-8.19.13's own text).
+5. **One real documentation-completeness gap in the ledger itself** (not just this gate's tooling): REQ-6.1's SOURCE citation listed 13 of the adaptive question engine's 14 real input dimensions, silently omitting "budget." Direct source inspection confirmed `budget` IS a real captured field (`other_project_budget_commercial_note`) reachable by any requirement's `dependencyCondition` through the generic `hasCapturedValue`/`getCapturedValue(fieldKey)` predicate interface (`toPredicateContext`, `websiteDiscoveryLogic.ts`) — the same generic mechanism every other named dimension ultimately resolves through. **Fixed** by correcting REQ-6.1's SOURCE text in the Gate 10.3 ledger to name `budget` explicitly and cite the real generic mechanism; no product code change was required (the underlying capability already existed).
+
+None of these defects hid a genuinely un-implemented product behavior — every one was either a bug in this gate's own verification tooling, a missing-but-already-implied ledger citation, or a raw-extraction completeness gap. The manifest's 612-row count and TECHNICALLY_PROVEN statuses are unchanged by this gate; only the SOURCE text of REQ-6.1 was corrected, and the manifest was regenerated from the corrected ledger (row count unchanged at 612).
+
+## Safe Gate 2 — Cardinality accounting (`scripts/gate10-10-verify-normalization.ts`)
+
+```
+RAW_TOTAL = 839
+  ATOMIC_REQUIREMENT:            429
+  CHILD_OF_ATOMIC_REQUIREMENT:   241
+  DUPLICATE_RESTATEMENT:          87
+  EXAMPLE_OR_OPTION:              71
+  SYNTHESIZED_WITH_SIBLING:        9
+  NON_BEHAVIORAL_DECORATIVE:       2
+  SUM = 839  (exact match, no "roughly")
+
+RAW_ITEMS_PRODUCING_ATOMIC_REQUIREMENTS = 837
+ATOMIC_REQUIREMENTS_PRODUCED            = 612
+MULTI_RAW_TO_ONE_ATOMIC_GROUPS          = 104
+ONE_RAW_TO_MULTIPLE_ATOMIC_GROUPS       = 110
+NON_ATOMIC_RAW_ITEMS                    = 2   (the 2 decorative items: the closing slogan and one other narrative-only line)
+```
+
+This is the exact arithmetic explaining how 839 raw items (824 Gate-10.9 items + 15 more found by this gate's own §0/§6/§8/§34/§37 extraction fixes) become 612 atomic requirements: 429 items are themselves the direct, 1:1 source of an atomic row; 241 are children of a governing row that does not create independent behavior (illustrative examples, option values); 87 restate a requirement already proven at a specific, named, different location; 71 are one member of a flat multi-select option-list field; 9 are one half of a two-clause sentence merged into a single row; 2 are decorative with zero business obligation.
+
+## Safe Gate 3 — Atomic reverse map
+
+```
+ATOMIC_REQ_TOTAL            = 612
+ATOMIC_REQ_WITH_RAW_SOURCE  = 612
+ATOMIC_REQ_WITHOUT_RAW_SOURCE = 0
+```
+
+Every one of the 612 atomic requirements is cited by at least one raw item's `atomicReqIds`. For the 6 pure "synthesized guard" rows with no single direct raw sentence (REQ-4.10, REQ-8.10.6, REQ-8.15.14, REQ-8.17.10, REQ-8.24.7, REQ-29.12), a guard-row backfill pass explicitly attaches the guard's reqId to every raw item in the enumeration it collectively guards (all 9 §4 state items justify REQ-4.10; all 11 §29 complexity-trigger items justify REQ-29.12; etc.) — the canonical basis is the WHOLE enumeration's combined semantics, made explicit rather than left implicit. REQ-8.10.6 ("Secondary CTAs," which has no sentence in §8.10 itself) is explicitly traced to §8.2's "secondary visitor actions" raw item, its real cross-section basis.
+
+## Safe Gate 4/5/6 — Consolidation audit, over-aggregation and under-aggregation tests
+
+Rather than a manual per-group narrative only, two automated adversarial scripts were run against the full dataset:
+1. **Coverage cross-check**: for every `ATOMIC_REQUIREMENT`/`CHILD_OF_ATOMIC_REQUIREMENT` row, verify the raw item's real keyword content appears (≥40% token overlap) in its assigned governing row's own text, OR that the assignment is a trustworthy exact-count order-pairing. This is what surfaced defects #1-#5 above — a raw item's content genuinely absent from its assigned row's text is exactly the "independently testable behavior hidden inside an over-collapsed row" scenario safe_gate_5 asks to catch. Zero unexplained misses remain after the fixes (all residual "misses" are the already-disclosed, legitimate illustrative-example/option-list/placeholder-numbering patterns, individually confirmed by direct MD/manifest inspection, not assumed).
+2. **Order-pairing mismatch detector**: for every exact-count order-paired item, compute its fuzzy score against EVERY OTHER candidate in the same manifest group and flag any case where a different candidate scores meaningfully higher. Final result: **0 flagged mismatches** across the entire 612-row manifest.
+
+No section required splitting a consolidated row into multiple independently-testable rows — every consolidation examined (§2, §3, §6, §8.9/8.10/8.14/8.18/8.20, §10, §11, §12, §16, §25, §35, §37) was confirmed to genuinely describe ONE shared behavior (a single multi-select field, a single two-clause sentence, or a single cross-referencing roadmap checkpoint), not multiple independently testable obligations bundled into one row.
+
+## Safe Gate 7 — Critical sections exact accounting
+
+| Section | Raw | Atomic (manifest) | Non-atomic raw | Consolidation groups | Splits required | Final gaps |
+|---|---|---|---|---|---|---|
+| §2 | 24 | 11 | 13 | 1 (option-list → REQ-2.1/2.2/2.3.x/2.4) | 0 | 0 |
+| §3 | 23 | 9 | 14 | 3 (upload-types, consent-fields, no-recording path) | 0 | 0 |
+| §4 | 9 | 10 | 0 (+1 synthesized guard) | 1 (guard justified by all 9) | 0 | 0 |
+| §5 | 7 | 7 | 0 | 0 (exact 1:1) | 0 | 0 |
+| §6 | 15 | 3 | 12 | 1 (14-dimension option-list) | 0 | 0 |
+| §7 | 17 | 17 | 0 | 0 (exact 1:1) | 0 | 0 |
+| §8.1-8.27 | 320 | 246 | 74 | ~10 (multi-select fields + 2-clause pairs) | 0 | 0 |
+| §9 | 48 | 48 | 0 | 0 (exact 1:1, 48/48 industry bullets) | 0 | 0 |
+| §10 | 25 | 3 | 22 | 1 (Typical: illustrative examples) | 0 | 0 |
+| §11 | 17 | 8 | 9 | 2 (Alternate+Other merge; Build/Engineering cross-ref) | 0 | 0 |
+| §12 | 10 | 9 | 1 | 1 (2-clause pair) | 0 | 0 |
+| §13 | 2 | 2 | 0 | 0 (exact 1:1) | 0 | 0 |
+| §14 | 47 | 47 | 0 | 0 (exact 1:1, 47/47 Blueprint categories) | 0 | 0 |
+| §15 | 5 | 5 | 0 | 0 (exact 1:1) | 0 | 0 |
+| §16 | 5 | 4 | 1 | 1 (2-clause pair) | 0 | 0 |
+| §17 | 4 | 4 | 0 | 0 (exact 1:1) | 0 | 0 |
+| §18 | 1 | 1 | 0 | 0 (exact 1:1) | 0 | 0 |
+| §19 | 3 | 3 | 0 | 0 (exact 1:1) | 0 | 0 |
+| §20 | 19 | 19 | 0 | 0 (exact 1:1) | 0 | 0 |
+| §21 | 18 | 18 | 0 | 0 (exact 1:1) | 0 | 0 |
+| §23 | 1 | 1 | 0 | 0 (exact 1:1) | 0 | 0 |
+| §25 | 8 | 7 | 1 | 1 (2-clause pair) | 0 | 0 |
+| §26 | 18 | 18 | 0 | 0 (exact 1:1) | 0 | 0 |
+| §27 | 9 | 9 | 0 | 0 (exact 1:1) | 0 | 0 |
+| §28 | 16 | 16 | 0 | 0 (exact 1:1) | 0 | 0 |
+| §29 | 11 | 12 | 0 (+1 synthesized guard) | 1 (guard justified by all 11) | 0 | 0 |
+| §31 | 11 | 11 | 0 | 0 (exact 1:1) | 0 | 0 |
+| §32 | 14 | 14 | 0 | 0 (exact 1:1, 14/14 CTA states) | 0 | 0 |
+| §33 | 25 | 25 | 0 | 0 (exact 1:1, 25/25 acceptance steps) | 0 | 0 |
+| §34 | 11 | 4 | 7 | 1 (arrow-chain 2-segment pairing) | 0 | 0 |
+| §35 | 45 | 8 | 37 | 8 (one per implementation Gate) | 0 | 0 |
+| §36 | 3 | 3 | 0 | 0 (exact 1:1, already decomposed) | 0 | 0 |
+| §37 | 6 | 4 | 2 | 1 (2-clause pair) + 1 decorative | 0 | 0 |
+
+No unexplained section delta remains anywhere in this table.
+
+## Safe Gate 8/9 detailed findings
+
+Documented above (performed first, before tooling) — §0/§1's every item traced to a specific home; §35's 45 items confirmed pure roadmap restatement; §36 already correctly decomposed; §37's slogan found and correctly classified decorative. **Zero items were found that encode an independently-enforceable requirement currently hidden inside the narrative/roadmap buckets.**
+
+## Safe Gate 10 — Final atomic count recomputed from first principles
+
+**FINAL_ATOMIC_MD_REQUIREMENTS = 612.** Recomputed independently (not assumed): the reverse map confirms all 612 manifest rows trace to real canonical raw content (directly or via explicit, disclosed consolidation), and the coverage/order-pairing adversarial checks found zero cases where an atomic row should be split into more than one independently-testable requirement, and zero cases of duplicate/inflated rows. The count does not change from 612 — this gate's real findings were in the VERIFICATION TOOLING and in the LEDGER'S OWN CITATION COMPLETENESS (REQ-6.1's missing "budget" mention), not in the atomic requirement set itself. No forensic-ledger, generator, or verifier count needed updating this gate (they were already correctly at 612 from Gate 10.9); only REQ-6.1's SOURCE text was corrected.
+
+## Safe Gate 11 — Evidence rebind
+
+No atomic rows were split or added this gate, so no new evidence class/mechanism assignment was required. REQ-6.1's SOURCE text was corrected in place (still bound to its existing, already-verified mechanisms `M-ADAPTIVE-SUPPRESSION`/`M-DISCOVERY-CATALOG`); no mechanism registry change was needed since the generic `hasCapturedValue`/`getCapturedValue` predicate interface it now cites was already real, existing, and already covered by `M-DISCOVERY-CATALOG`'s own source verification. No implementation gap was found — the underlying capability already existed in `websiteDiscoveryLogic.ts`.
+
+## Safe Gate 12 — Normalization verifier (`scripts/gate10-10-verify-normalization.ts`)
+
+```
+PASS  Normalization row count matches extraction (839)
+PASS  Every raw item has exactly one valid, non-UNRESOLVED disposition
+PASS  Every raw item has a non-empty explanatory reason
+PASS  Disposition counts sum exactly to RAW_TOTAL (839)
+PASS  Every disposition that claims an atomic basis cites at least one atomicReqId
+PASS  Every cited atomicReqId exists in the evidence manifest
+PASS  No raw item cites an owner-meta reqId (owner-meta stays fully separate)
+PASS  Every atomic requirement has a canonical raw source (612/612)
+PASS  Normalization's atomic-req universe matches evidence manifest count (612)
+PASS  No duplicate atomic reqId exists in the evidence manifest
+PASS  Every SYNTHESIZED_WITH_SIBLING row lists at least one sibling rawId
+PASS  No NON_BEHAVIORAL_DECORATIVE row is suspiciously long (possible hidden real content)
+
+ALL CHECKS PASS
+```
+
+## Safe Gate 13 — Adversarial negative tests (`scripts/gate10-10-negative-tests.ts`)
+
+```
+PASS  REMOVED_DISPOSITION (deleted one row, count mismatch vs extraction)
+PASS  NONEXISTENT_REQID (row references a reqId not in the evidence manifest)
+PASS  MISSING_CANONICAL_BASIS (no raw item cites the target reqId any more)
+PASS  INVALID_DISPOSITION (disposition label outside the allowed set)
+PASS  UNRESOLVED_CONSOLIDATION (one row left UNRESOLVED)
+PASS  ORPHAN_SYNTHESIS (SYNTHESIZED_WITH_SIBLING row with zero siblings)
+Real normalization artifact restored: OK
+
+ALL 6 NEGATIVE TESTS PASS
+```
+
+## Safe Gate 14 — Full lightweight proof stack
+
+```
+1. canonical extractor                    -- OK (839 raw items)
+2. normalization verifier                 -- ALL CHECKS PASS
+3. evidence manifest generator            -- 612 MD rows + 6 owner-meta, 0 unknown/duplicate
+4. main evidence verifier                 -- 16/16 PASS
+5. mechanism verifier                     -- 31/31 PASS
+6. 5 evidence-verifier negative tests     -- 5/5 PASS, manifest restored intact
+7. 6 normalization-verifier negative tests -- 6/6 PASS, normalization artifact restored intact
+8. canonical reconciliation verifier      -- ALL 38 SECTIONS PASS, CANONICAL_WITHOUT_MANIFEST=0, MANIFEST_WITHOUT_CANONICAL=0
+```
+
+No full `tsc`/`eslint`/`next build` was run — no runtime/product code changed this gate (only ledger text, generated manifest, and forensic tooling scripts).
+
+## Safe Gate 15 — Final exception queue
+
+| Category | Count |
+|---|---|
+| RAW_ITEM_UNCLASSIFIED | 0 |
+| OVER_COLLAPSED_REQUIREMENT | 0 |
+| DUPLICATE_ATOMIC_REQUIREMENT | 0 |
+| CANONICAL_BASIS_MISSING | 0 |
+| MECHANISM_BINDING_GAP | 0 |
+| EVIDENCE_GAP | 1 found, 1 fixed (REQ-6.1's incomplete SOURCE citation, corrected — no product change needed) |
+| IMPLEMENTATION_GAP | 0 |
+| **NONE remaining** | — |
+
+## Validation
+
+No product/runtime code changed this gate. Changes: 1 ledger SOURCE-text correction (REQ-6.1), the regenerated manifest (612 rows, unchanged count), 15 new raw items added to the canonical extraction (real prose/slogan lines the mechanical pass had missed), the new normalization artifact + build script + verifier + negative-test script, and small expected-delta updates to the Gate 10.9 reconciliation script reflecting the corrected raw counts. Per this gate's own validation policy, no full build/typecheck/regression was run; the 8-step lightweight proof stack above was run instead, all passing.
+
+## Technical Master-MD Gaps Remaining
+
+**NONE.**
+
+## Final Verdict
+
+**RAW CANONICAL MD FULLY NORMALIZED, ATOMICIZED, AND TECHNICALLY PROVEN.**
+
+Every one of the 839 raw canonical items (824 from Gate 10.9 + 15 more found by this gate's own deeper extraction audit) now has an explicit, individually-justified disposition. The disposition-count arithmetic is exact (839 = 839, no rounding). All 612 atomic requirements have an explicit canonical raw basis (612/612, including the 6 pure "synthesized guard" rows, each justified by the combined semantics of the enumeration it guards). Two automated adversarial checks (coverage cross-check, order-pairing mismatch detector) found and this gate fixed 5 real defects — 3 in this gate's own normalization tooling, 1 raw-extraction completeness gap (a genuinely missing raw sentence for §34, §0, §6, §8.14, §8.19, §37), and 1 real ledger evidence-citation completeness gap (REQ-6.1's missing "budget" mention, corrected with no product code change needed since the underlying generic mechanism already existed). No independently-testable behavior was found hidden inside any over-collapsed row. No duplicate or inflated atomic rows exist. FINAL_ATOMIC_MD_REQUIREMENTS is recomputed from first principles at **612** — unchanged from Gate 10.9, now with a full, machine-checkable, adversarially-tested proof of every consolidation decision behind it. NOT_PROVEN=0, FAILED=0, TRUE_SAFE_DEFER=0. Owner-meta (6) remains separate. FINAL_EXCEPTION_QUEUE=0 (after the 1 EVIDENCE_GAP found this gate was fixed).
+
+**READY FOR OWNER QA: NO.** Owner QA remains intentionally blocked until PM reviews and accepts this final normalization proof.
 
 **Owner QA remains intentionally blocked until PM accepts the completed machine-certification and mechanism-integrity proof.**

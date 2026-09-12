@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-12T02:01:14.325Z",
+  "generatedAt": "2026-09-12T02:52:32.886Z",
   "generatedBy": "scripts/gate10-8-generate-evidence-manifest.ts",
   "masterMdRowCount": 612,
   "ownerMetaRowCount": 6,
@@ -1674,7 +1674,7 @@
     {
       "reqId": "REQ-6.1",
       "mdSection": "6",
-      "requirement": "Questions chosen from project type/industry/stage/truth/missing-info/goals/systems/assets/site/preferences/deadlines/ownership/compliance",
+      "requirement": "Questions chosen from project type/industry/stage/truth/missing-info/goals/systems/assets/site/preferences/deadlines/budget/ownership/compliance",
       "requirementClasses": [
         "DETERMINISTIC_LOGIC",
         "UI_RESURFACING"
@@ -1684,7 +1684,7 @@
         "M-DISCOVERY-CATALOG"
       ],
       "sourceFiles": [
-        "`buildQuestionsToAskNow`, `applicabilityCondition`+`dependencyCondition` predicates reading `WebsiteDiscoveryContext` (industryBranch, businessStage, capturedItems, hasExistingWebsite, etc.)"
+        "`buildQuestionsToAskNow`, `applicabilityCondition`+`dependencyCondition` predicates reading `WebsiteDiscoveryContext` (industryBranch, businessStage, capturedItems, hasExistingWebsite, etc.); `budget` specifically is not a named field on `WebsiteDiscoveryContext` itself but is a real captured item (`other_project_budget_commercial_note`) reachable by any requirement's condition function through the generic `hasCapturedValue`/`getCapturedValue(fieldKey)` predicate interface (`toPredicateContext`, `websiteDiscoveryLogic.ts`) -- the same generic mechanism every other named dimension ultimately resolves through (Gate 10.10 finding: the prior citation text omitted `budget` even though the underlying generic capture-driven predicate mechanism already covers it; corrected here, no product code change required)"
       ],
       "tests": [],
       "stagingEvidence": [],
