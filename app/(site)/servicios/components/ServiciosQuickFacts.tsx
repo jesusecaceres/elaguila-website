@@ -42,7 +42,7 @@ export function ServiciosQuickFacts({
     // Compact chip strip mode for Sobre Nosotros section
     return (
       <div
-        className="flex flex-nowrap gap-2 overflow-x-auto pb-1 [scrollbar-width:thin] sm:flex-wrap sm:overflow-visible"
+        className="flex flex-wrap gap-2"
         aria-label={lang === "en" ? "Trust signals" : "Señales de confianza"}
       >
         {facts.map((f) => {

@@ -168,7 +168,7 @@ export default async function AdminUsuariosPage(props: PageProps) {
         dataSource="public.profiles plus listing, report, order, analytics, and package rollups when row limits allow."
         status="partial"
         safeActions={["Search by name/email/phone/reference", "Open user detail", "Open Customer Ops search"]}
-        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        nextGate="Confirm every button and count on this page against live Supabase data before relying on it for daily decisions."
         warningNote="Password reset and safe support sessions need an audited support-view gate; no passwords or raw cards are shown here."
       />
 

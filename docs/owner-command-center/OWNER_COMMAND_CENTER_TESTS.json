@@ -1,0 +1,1900 @@
+{
+  "masterBible": "docs/owner-command-center/LEONIX_OWNER_COMMAND_CENTER_MASTER_WIRING_AND_CONSTRUCTION_BIBLE_2026-09-09.md",
+  "worktree": "C:\\projects\\elaguila-website-owner-command-center",
+  "branch": "integration/owner-command-center-globalization-2026-08",
+  "startHead": "4cdbfb3abde7a6a57a5d610287bb04c654d6677b",
+  "certifiedCheckpoint": "ea99e57c1695138ec433766f33835830361b6ba7",
+  "currentReceiverHead": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+  "sourceHeadCertified": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+  "productSourceSha": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+  "currentOriginMain": "9fcadb4daf599e15fca62adcb647abbf96ce6bd8",
+  "receiverSourceCertifiedAgainstCurrentMain": false,
+  "previewAtDocumentationTime": "dpl_GS6RgWpcPTQgGYZDSnXS3J1NF5yX READY https://leonix-media-nf2dja2uq-jesus-caceres-projects.vercel.app SHA=3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+  "receiverRequiredProductWork": "NONE PROVEN",
+  "goldenCoordinatedSha": "9e874060e5b9c960cdfcd3c60dcdceab81441e55",
+  "fullRequiredSourceContract": true,
+  "p0SourceBlockers": "NONE",
+  "p1SourceBlockers": "NONE",
+  "qaAuthorized": false,
+  "qaStatus": "NOT RUN",
+  "ownerQa": "NOT RUN",
+  "visualQa": "NOT RUN",
+  "goldenRuntime": "NOT RUN",
+  "optionalDeferred": ["DASH-32", "DASH-33", "DASH-40"],
+  "unknownItems": "NONE",
+  "notSupportedCurrentProduct": ["DASH-06", "DASH-11", "DASH-29", "DASH-30", "DASH-52"],
+  "externalBlockers": [],
+  "goldenIntake": {
+    "strategy": "B",
+    "authorizedSha": "9e874060e5b9c960cdfcd3c60dcdceab81441e55",
+    "productIntakeHead": "4b402962a12c0daab9058911e7f806a6f86b74d5",
+    "finalProductSourceSha": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+    "compileResidual": "ff96fa3d cherry-picked — scripts/servicios-manual-qa-catalog-seed.ts only; plus owner-qa-delta discovery-facet type completion at 3b00a4e6",
+    "fullRequiredSourceContract": true,
+    "occResidual": "NONE",
+    "temporaryProbeImported": false,
+    "p0SourceBlockers": "NONE",
+    "p1SourceBlockers": "NONE",
+    "previewId": "dpl_GS6RgWpcPTQgGYZDSnXS3J1NF5yX",
+    "previewUrl": "https://leonix-media-nf2dja2uq-jesus-caceres-projects.vercel.app",
+    "previewSha": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+    "localTsc": "PASS WITH PROVEN BASELINE — 7 e2e-only errors, 0 new app/source, 0 new test/verifier, e2e/ unchanged vs 9fcadb4d",
+    "migrationApplication": "BOTH APPLIED on Leonix Media xuieateniufcrsfdomwl (Preview NEXT_PUBLIC_SUPABASE_URL host). History names saved_search_match_events_servicios + servicios_public_listings_read_privacy. Live CHECK/RLS/column confirmed. Staging cgeehvnfyrdoperdotdh is NOT the Preview DB.",
+    "qa": "NOT RUN",
+    "ownerQa": "NOT RUN",
+    "visualQa": "NOT RUN",
+    "goldenRuntime": "NOT RUN",
+    "qaAuthorized": false,
+    "runtimeProof": "NOT RUN"
+  },
+  "gates": [
+    {
+      "gate": "owner-command-center-concierge-bridge-reconciliation-2026-09-09",
+      "conciergeSourceBranch": "feature/business-concierge-systemic-repair-2026-09",
+      "conciergeSourceSha": "dbfa1fc3ba886e60dfe58087fd9e8653b9484920",
+      "checks": [
+        {
+          "name": "dependency_closure_trace",
+          "method": "Node BFS over git show/git cat-file at concierge SHA, from route.ts + access.ts, following @/ and relative imports",
+          "result": "52 files, 0 unresolved",
+          "status": "PASS"
+        },
+        {
+          "name": "staff_admin_ui_exclusion",
+          "method": "manual review of closure file list",
+          "result": "0 .tsx files in closure; all 50 ported files are .ts domain logic or API routes",
+          "status": "PASS"
+        },
+        {
+          "name": "typescript_baseline_comparison",
+          "method": "tsc --noEmit -p tsconfig.json, diffed before/after port+wiring",
+          "baselineErrorCount": 31,
+          "afterErrorCount": 31,
+          "newErrors": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "eslint_touched_files",
+          "filesChecked": 53,
+          "problems": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "no whitespace errors (CRLF/LF notices only)",
+          "status": "PASS"
+        },
+        {
+          "name": "final_build",
+          "command": "npm run build (NODE_OPTIONS=--max-old-space-size=12288)",
+          "note": "default heap OOMs on this repo's full build independent of this change; reproduced before raising heap limit",
+          "newRoutesBuilt": [
+            "/api/dashboard/business/home",
+            "/api/dashboard/business/diy-concierge/my-businesses",
+            "/dashboard/business-tools"
+          ],
+          "status": "PASS"
+        },
+        {
+          "name": "owner_authorization",
+          "method": "code review of resolveBusinessHomeAccess() — requires bearer token, resolves authenticated userId, requires an active business_memberships row for the EXACT businessId supplied, via RLS-scoped user client (never service-role)",
+          "status": "PASS"
+        },
+        {
+          "name": "cross_business_isolation",
+          "method": "code review — findActiveMembershipForBusinessAndUser() checks (business_id, user_id, membership_status=active) as a single exact match; no fallback to 'any membership'",
+          "status": "PASS"
+        },
+        {
+          "name": "staff_data_leakage",
+          "method": "code review of shape*ForOwner functions (advisor/logic.ts, proposals/logic.ts, outcomes/logic.ts, healthMap/logic.ts, livingBook/logic.ts) — all strip staff-only fields (internal notes, staff comparison, raw research, evidence internals) by construction",
+          "status": "NONE_FOUND"
+        }
+      ]
+    },
+    {
+      "gate": "owner-attention-truth-2026-09-09",
+      "canonicalContract": "app/(site)/dashboard/lib/ownerAttentionModel.ts — OwnerAttentionItem",
+      "checks": [
+        {
+          "name": "attention_source_trace",
+          "method": "manual trace of every consumer of derivedDashboardFeed.ts and the Advisor signal bridge",
+          "result": "8 DerivedFeedKind sources (profile_city, inbox, draft, moderation, expire_visibility, expire_listing, low_views, payment_attention) + 9 AdvisorSignalType sources, all backed by real persisted tables/resolvers",
+          "status": "PASS"
+        },
+        {
+          "name": "moderation_evidence_gap_found_and_fixed",
+          "method": "found public.listing_moderation_reviews (real AI/human review table, RLS-enabled with no policies — admin-only); added POST /api/dashboard/listing-moderation-reasons as an owner-safe re-verified-ownership projection (decision, reason_category, reason_text, reviewed_at only)",
+          "result": "moderation attention item upgraded from a generic unexplained alert to PROVEN (real reason) when a review row exists, honest PARTIAL (not NEEDS_TRIAGE) otherwise",
+          "status": "PASS"
+        },
+        {
+          "name": "focused_runtime_verifier",
+          "command": "npx tsx scripts/verify-owner-attention-truth-01.ts",
+          "result": "22/22 PASS — every DerivedFeedKind, every AdvisorSignalType, every AdvisorSignalSeverity, moderation PROVEN/PARTIAL split, severity sort, dedupe",
+          "status": "PASS"
+        },
+        {
+          "name": "single_shared_model_reuse",
+          "method": "code review — /dashboard (OwnerNeedsAttention) and /dashboard/business-tools (BusinessConciergeOwnerHome) both render OwnerAttentionItem via the same OwnerAttentionItemCard component; removed the page-local duplicate SeverityBadge",
+          "status": "PASS"
+        },
+        {
+          "name": "typescript_baseline_comparison",
+          "method": "tsc --noEmit -p tsconfig.json, diffed before/after — two completed clean runs during this gate before a third redundant run was stopped due to shared-machine memory contention",
+          "baselineErrorCount": 31,
+          "afterErrorCount": 31,
+          "newErrors": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "eslint_touched_files",
+          "filesChecked": 10,
+          "problems": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "no whitespace errors (CRLF/LF notices only)",
+          "status": "PASS"
+        },
+        {
+          "name": "cta_destination_trace",
+          "method": "verified every actionHref (perfil, mensajes, drafts, mis-anuncios/[id], mis-anuncios, business-tools) resolves to an existing route file",
+          "result": "0 dead/wrong destinations found",
+          "status": "PASS"
+        },
+        {
+          "name": "staff_data_leakage",
+          "method": "code review of the new listing-moderation-reasons route's SELECT — projects only decision/reason_category/reason_text/reviewed_at, never raw_input/raw_result/model/confidence/reviewed_by/error_message",
+          "status": "NONE_FOUND"
+        },
+        {
+          "name": "final_build",
+          "command": "npm run build",
+          "note": "Did not complete within available session time. System-wide free memory was observed at near-zero (600 KB-200 MB of 16 GB) throughout multiple attempts (heap limits 12288 and 6144 both tried); root cause identified as scripts/next-build.js using spawnSync with fully-buffered stdio (no output is written to the log until the child process exits), combined with sustained heavy load on this shared machine (many other worktree sessions listed in `git worktree list`). The identical build command completed successfully minutes earlier in the prior (Concierge bridge) gate on this same codebase. Not attributable to a source defect in this gate's changes given the clean tsc/eslint/runtime-verifier/diff-check results above.",
+          "status": "INCOMPLETE_ENVIRONMENT"
+        }
+      ]
+    },
+    {
+      "gate": "owner-category-capability-entitlement-reconciliation-2026-09-09",
+      "note": "Verification-only gate — zero source files changed. Machine had shut down from memory pressure; resource-control directive for this gate forbade full build/typecheck/dev-server/background validation. Recovery check confirmed all 67 files from Gates 2+3 preserved exactly.",
+      "checks": [
+        {
+          "name": "recovery_check",
+          "method": "pwd, branch, HEAD, git status --short, active-op markers, tasklist node.exe count, free memory",
+          "result": "branch/HEAD match expected base (4cdbfb3a), 67 staged entries match Gates 2+3 exactly, no active rebase/merge/cherry-pick, 0 node.exe processes, ~1.6GB free RAM",
+          "status": "PASS"
+        },
+        {
+          "name": "autos_dealer_capacity_truth",
+          "method": "traced STANDARD_DEALER_ACTIVE_VEHICLE_LIMIT / BOOSTED_DEALER_ACTIVE_VEHICLE_LIMIT (autosDealerInventoryPolicy.ts) to single source publishCheckoutCheckpoint.ts (AUTOS_DEALER_BASE_INCLUDED_VEHICLES=10, +10 pack=20); confirmed rendered live in AutosDealerInventoryDashboardSection.tsx",
+          "result": "matches Master Bible (10 base, +10 pack)",
+          "status": "PASS"
+        },
+        {
+          "name": "br_negocio_capacity_truth",
+          "method": "traced leonixBrPropertyInventoryPolicy.ts computeBrPropertyInventoryCounts() aliases to publishCheckoutCheckpoint.ts (BR_BASE_INCLUDED_PROPERTIES=1, BR_INVENTORY_PACK_MAX_CHILDREN=3, total=4); confirmed rendered live in BrPropertyInventoryDashboardSection.tsx, wired into dashboard/mis-anuncios/page.tsx",
+          "result": "matches Master Bible (1 base, +3 pack)",
+          "status": "PASS"
+        },
+        {
+          "name": "coupons_offers_shared_pattern",
+          "method": "confirmed dashboard/servicios/page.tsx:516 and dashboard/restaurantes/page.tsx:404 both call dashboardHasCapabilityForKey(..., \"coupons_offers\") reading the same resolveBusinessToolsAccess() -> categoryCommercialPlanPolicy.ts resolver",
+          "result": "identical pattern confirmed in current source for both categories",
+          "status": "PASS"
+        },
+        {
+          "name": "empleos_feria_applications_exclusion",
+          "method": "confirmed empleos/[listingId]/page.tsx:239 supportsApplications = row.lane !== \"feria\" && isLiveCapability(...)",
+          "result": "Feria correctly excluded, honest feriaNote shown",
+          "status": "PASS"
+        },
+        {
+          "name": "duplicated_allowlist_drift_check",
+          "method": "compared CAPABILITY_CATEGORIES vs SUPPORTED_CATEGORIES, and NOT_CLIENT_READY/SEPARATE_MODEL across packageEntitlements.ts vs printDigitalVisibilityRank.ts",
+          "result": "both pairs currently identical, no drift; real gate in both cases is the single canonical categoryCommercialPlanPolicy.ts source regardless of these local allowlists",
+          "status": "NONE_FOUND"
+        },
+        {
+          "name": "business_tools_capability_wiring",
+          "method": "grepped every consumer of OwnerEntityCapabilities.specialized.businessTools repo-wide",
+          "result": "BUILT_NOT_WIRED — declared for 4 categories, zero real consumers (one false-positive text match was an unrelated i18n label). Sidebar nav link already provides an unconditional equivalent doorway. Safe repair blocked by OwnerEntityWorkspace's specialized-tools prop being a single {title,actions} pair already titled for coupons/offers — widening it is a shared-component shape change broader than this gate's smallest-adapter scope. Deferred, not force-fixed.",
+          "status": "DEFERRED_BUILT_NOT_WIRED"
+        },
+        {
+          "name": "comida_local_commercial_registry_scope",
+          "method": "confirmed row.package_tier/payment_status render real plan/price/payment truth via mapComidaLocalDashboardListing.ts, independent of the registry's commercial.* fields (which describe only the shared listing_package_entitlements bundle system)",
+          "result": "no owner-facing gap; registry wording is narrower in scope than its field names suggest, not edited (documentation-only, zero behavioral effect)",
+          "status": "NONE_FOUND"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "PASS trivially — zero source files changed this gate",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "owner-shared-specialized-tools-multigroup-2026-09-09",
+      "note": "Fixes the BUILT_NOT_WIRED finding from the prior gate: OwnerEntityCapabilities.specialized.businessTools had zero real consumers because OwnerEntityWorkspace's specialized prop only accepted one titled group.",
+      "checks": [
+        {
+          "name": "recovery_check",
+          "result": "branch/HEAD unchanged, 67 staged entries preserved from Gates 2-4, no active git op, 0 node.exe processes",
+          "status": "PASS"
+        },
+        {
+          "name": "focused_structural_verifier",
+          "command": "npx tsx scripts/verify-owner-shared-specialized-tools-01.ts",
+          "result": "33/33 PASS - shared contract shape, helper capability gate/destination/tone, 4 affected callers wired, 6 unaffected callers byte-unchanged",
+          "status": "PASS"
+        },
+        {
+          "name": "eslint_touched_files",
+          "filesChecked": 7,
+          "problems": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "PASS (CRLF/LF notices only)",
+          "status": "PASS"
+        },
+        {
+          "name": "backward_compatibility",
+          "method": "OwnerEntityWorkspace normalizes specialized via Array.isArray(specialized) ? specialized : [specialized]; single-group callers (empleos, empleos/[listingId], viajes, ofertas-locales, ofertas-locales/[id], ComidaLocalDashboardListings) untouched and still pass the old single-object (or no) shape, which the new code treats identically to before (Fragment wrapper preserves exact flex-column spacing/order)",
+          "status": "PASS"
+        },
+        {
+          "name": "business_tools_wired",
+          "result": "servicios/page.tsx, restaurantes/page.tsx, AutosDealerInventoryDashboardSection.tsx (autos-negocios), mis-anuncios/[id]/page.tsx (bienes-raices-negocio path only, via existing capabilities lookup)",
+          "status": "PASS"
+        },
+        {
+          "name": "existing_specialized_groups_preserved",
+          "result": "Servicios coupons/offers group, Restaurantes coupons group, Autos Dealer inventory group (actions + children: add-vehicle drawer, vehicle list) all remain array element 0, untouched",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "owner-lifecycle-same-row-no-recharge-2026-09-09",
+      "note": "Verification-only gate — zero source files changed. Every lifecycle/same-row/parent-child/no-recharge path traced was already correct and canonical.",
+      "checks": [
+        {
+          "name": "recovery_check",
+          "result": "branch/HEAD unchanged, 74 staged entries preserved from Gates 2-5, no active git op, 0 node.exe processes",
+          "status": "PASS"
+        },
+        {
+          "name": "generic_categories_same_row_mutation",
+          "method": "traced applyOwnerListingPatch(sb, row.id, userId, patch) as the single pause/resume/archive/markStatus mutation path in mis-anuncios/[id]/page.tsx, used by En Venta, Rentas Privado, BR Privado, Clases, Comunidad, Busco, Mascotas, Autos Privado",
+          "result": "always same row.id, never an insert; edit href /dashboard/mis-anuncios/${row.id}/editar carries real identity",
+          "status": "PASS"
+        },
+        {
+          "name": "servicios_same_row",
+          "method": "POST /api/clasificados/servicios/manage -> .update(...).eq(slug).eq(owner_user_id)",
+          "status": "PASS"
+        },
+        {
+          "name": "restaurantes_lifecycle_scope",
+          "method": "confirmed registry lifecycle.pause/reactivate=unsupported and no pause/resume UI exists in source",
+          "result": "honest absence, not a defect",
+          "status": "PASS"
+        },
+        {
+          "name": "comida_local_same_row",
+          "method": "POST /api/clasificados/comida-local/lifecycle -> .update({status}).eq(id).eq(owner_user_id).eq(status, expectedFrom)",
+          "result": "same-row compare-and-swap",
+          "status": "PASS"
+        },
+        {
+          "name": "empleos_same_row",
+          "method": "PATCH /api/clasificados/empleos/listings/{listingId}",
+          "status": "PASS"
+        },
+        {
+          "name": "autos_dealer_parent_child_lifecycle",
+          "method": "traced unpublish/restore -> /api/clasificados/autos/listings/{id}/restore -> assertCommercialCapacityForWrite preflight -> activateAutosDealerListingAtomic (compare-and-swap fromStatus:removed)",
+          "result": "same-row, capacity-guarded, parent/child identity never collapsed, 10 base + 10 pack enforced server-side",
+          "status": "PASS"
+        },
+        {
+          "name": "br_negocio_parent_child_lifecycle",
+          "method": "traced callBrLifecycleMutation -> POST listing-lifecycle -> applyBrLifecycleMutation -> activateBrNegocioListingAtomic; child edit routes to parent workspace with openChildDraftId=br-db-child-{id}",
+          "result": "source comment confirms 'an inventory child must never resume while its own parent is paused/archived/sold'; child identity always carried through by real id",
+          "status": "PASS"
+        },
+        {
+          "name": "ofertas_viajes_outer_surface",
+          "method": "confirmed renewal/resubmit CTAs delegate to existing protected components (OfertasLocalesOwnerRenewalActionCenter); internals not opened",
+          "status": "PASS"
+        },
+        {
+          "name": "existing_verifier_gate_g1_owner_lifecycle_contract",
+          "command": "npx tsx scripts/gate-g1-owner-lifecycle-contract-selftest.ts",
+          "result": "OK - pure-logic resolveOwnerFacingStatus/resolveEligibleGlobalActions/resolveLifecycleMutationDescriptors contract, same resolver restaurantes/page.tsx calls",
+          "status": "PASS"
+        },
+        {
+          "name": "existing_verifier_rentas_renewal_engine",
+          "command": "node scripts/verify-rentas-lifecycle-renewal-dashboard-global-engine-01.mjs",
+          "result": "PASS - explicitly confirms same-row renewal fulfillment/idempotency and dashboard edit hydration present",
+          "status": "PASS"
+        },
+        {
+          "name": "existing_verifier_paid_listing_lifecycle_engine",
+          "command": "node scripts/verify-leonix-paid-listing-lifecycle-engine-01.mjs",
+          "result": "PASS - shared fixed-term lifecycle engine retrofit matrix complete for prior paid categories",
+          "status": "PASS"
+        },
+        {
+          "name": "existing_verifier_gate_i7a_specialized_lifecycle",
+          "command": "npx tsx scripts/gate-i7a-specialized-lifecycle-reconciliation-selftest.ts",
+          "result": "NOT_APPLICABLE - hard-asserts its own git diff contains no concierge-matching file, a stale scope assumption from its original narrower gate; fails given Gates 2-5's legitimate Concierge integration already in the working tree. Not a lifecycle-correctness finding.",
+          "status": "NOT_APPLICABLE"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "PASS trivially - zero source files changed this gate",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "owner-actionability-cta-truth-2026-09-09",
+      "note": "Traced every named CTA class across all categories. 2 source-fixable defects found and repaired; everything else already correct.",
+      "checks": [
+        {
+          "name": "recovery_check",
+          "result": "branch/HEAD unchanged, 74 staged entries preserved from Gates 2-6, no active git op",
+          "status": "PASS"
+        },
+        {
+          "name": "google_yelp_links_found_dead",
+          "method": "grepped externalReputation prop app-wide",
+          "result": "BUILT_NOT_WIRED - OwnerEntityWorkspace's externalReputation prop and OwnerEntityExternalReputation component existed with zero real callers despite registry declaring externalReviews:supported for Servicios and Restaurantes",
+          "status": "REPAIRED"
+        },
+        {
+          "name": "google_yelp_repair_restaurantes",
+          "method": "reused listing_json.googleReviewUrl/.yelpReviewUrl (already selected) and the public page's own isValidExternalHttpUrl/normalizeRestaurantUrl/nonEmpty validators from restauranteContactHref.ts",
+          "status": "PASS"
+        },
+        {
+          "name": "google_yelp_repair_servicios",
+          "method": "added google_review_url/yelp_review_url to GET /api/clasificados/servicios/my-listings response, extracted from profile_json.contact.externalReviewLinks.{googleReviewsUrl,yelpReviewsUrl} (already selected server-side), validated with the same safeExternalWebsiteHref() the public resolver uses",
+          "status": "PASS"
+        },
+        {
+          "name": "empleos_applications_anchor_wrong_destination",
+          "method": "traced #empleos-applications anchor target position relative to the real applications list",
+          "result": "WRONG_DESTINATION - empty marker div was placed after the entire workspace card, past the real applications content rendered earlier inside it",
+          "status": "REPAIRED"
+        },
+        {
+          "name": "empleos_applications_anchor_repair",
+          "method": "added optional id prop to OwnerEntityActivity/OwnerEntityWorkspace's activity prop (backward-compatible), set id=empleos-applications on the real activity section, removed the stray marker div",
+          "status": "PASS"
+        },
+        {
+          "name": "ofertas_anchor_same_bug_check",
+          "method": "checked #ofertas-campaign-tools / #ofertas-ai-review marker placement for the same class of defect",
+          "result": "NOT_AFFECTED - marker divs directly wrap their real content, anchor lands correctly; no repair, Ofertas internals untouched",
+          "status": "PASS"
+        },
+        {
+          "name": "autos_privado_routing_correction",
+          "method": "traced fetchOwnerListingForWorkspace (mis-anuncios/[id]/page.tsx) - queries only public.listings, cannot return autos_classifieds_listings rows",
+          "result": "corrected a Gate 6 attribution note: Autos Privado is fully handled inside AutosDealerInventoryDashboardSection.tsx's privadoRows.map with its own real hrefs (autosLiveVehiclePath, autosPrivadoPreviewHref, autosPaidListingAnalyticsHref, autosPrivadoEditHref) - not the generic page. Underlying same-row conclusion from Gate 6 still holds, just via the correct file.",
+          "status": "PASS"
+        },
+        {
+          "name": "approvals_service_requests_proposals_classification",
+          "method": "confirmed rendered as plain read-only <p>/<li> text, never a button/link; searched repo for any dedicated review/decision route - none exists",
+          "result": "HONESTLY_DISABLED - real data, no fake or dead CTA, no interactive action exists yet (building one would be a new CTA engine, out of scope)",
+          "status": "PASS"
+        },
+        {
+          "name": "mobile_overflow_reconfirmation",
+          "command": "npx tsx scripts/verify-owner-shared-specialized-tools-01.ts",
+          "result": "33/33 PASS - multi-group specialized contract and overflow flatMap unaffected by this gate's activity-prop change",
+          "status": "PASS"
+        },
+        {
+          "name": "eslint_touched_files",
+          "filesChecked": 6,
+          "problems": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "PASS (CRLF/LF notices only)",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "owner-cross-category-consistency-2026-09-09",
+      "note": "Traced tone/grammar consistency across all categories. 1 source-fixable defect found and repaired (4-line diff); everything else already correct.",
+      "checks": [
+        {
+          "name": "recovery_check",
+          "result": "branch/HEAD unchanged, 77 staged entries preserved from Gates 2-7, no active git op, 0 node.exe processes",
+          "status": "PASS"
+        },
+        {
+          "name": "tone_consistency_sweep_pause_resume",
+          "method": "grepped pause/resume tone assignments across Empleos, Servicios, Comida Local, Autos Dealer, generic mis-anuncios/[id]",
+          "result": "all consistent: pause=warning, resume=positive everywhere",
+          "status": "PASS"
+        },
+        {
+          "name": "br_library_card_tone_inconsistency_found",
+          "method": "traced LeonixRealEstateListingManageCard.tsx bespoke button classNames against the canonical danger palette in DashboardListingActionBar.tsx actionClass()",
+          "result": "Archive used stone-gray, Mark Sold used gold/tan, both should be red per Master Bible SS10 and every other category's equivalent action (generic archive/markSold, Autos Dealer unpublish all use tone:danger)",
+          "status": "REPAIRED"
+        },
+        {
+          "name": "br_library_card_tone_repair",
+          "method": "swapped 4 className strings (2 archive, 2 mark-sold occurrences across negocio/privado branches) to the exact canonical red palette already defined in DashboardListingActionBar.tsx - no logic/onClick/label/route changed",
+          "status": "PASS"
+        },
+        {
+          "name": "br_library_card_other_tones_confirmed_correct",
+          "method": "checked pause (amber), resume (emerald/green), primary Administrar doorway (#7A1E2C, exact hex behind --lx-cta-primary-bg)",
+          "result": "all already correct, not touched",
+          "status": "PASS"
+        },
+        {
+          "name": "br_library_card_editar_shortcut_color_noted_not_fixed",
+          "method": "observed gold/tan Editar shortcut link differs from its neutral/cream row-siblings (Ver publico, Vista previa)",
+          "result": "softer case, no explicit rule violated (card already has a distinct correctly-burgundy primary doorway elsewhere), flagged for future product decision, not force-fixed",
+          "status": "NOTED_NOT_FIXED"
+        },
+        {
+          "name": "duplicate_owner_shell_search",
+          "method": "confirmed no second LeonixDashboardShell/OwnerProductPageFrame/OwnerEntityWorkspace implementation exists anywhere",
+          "status": "NONE_FOUND"
+        },
+        {
+          "name": "specialized_zone_placement_check",
+          "method": "reviewed specialized/primaryAction/quickActions construction across categories for zone-mixing or duplication",
+          "result": "none found",
+          "status": "PASS"
+        },
+        {
+          "name": "business_tools_library_absence_confirmed_by_design",
+          "method": "confirmed Master Bible SS8 never lists Business Tools among Mis Anuncios library card actions for any category - only inside the full OwnerEntityWorkspace, which Gate 5 already wired",
+          "status": "PASS"
+        },
+        {
+          "name": "eslint_touched_file",
+          "result": "1 pre-existing unrelated finding (messagesTotal unused param, confirmed present in committed HEAD 8cfbfdfd, untouched by this gate's 4-line diff) - not repaired, out of scope",
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "PASS (CRLF/LF notices only)",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "owner-command-center-final-source-certification-2026-09-09",
+      "note": "Final integration certification across all 8 prior gates. 1 genuine TypeScript regression found (Gate 7's servicios.tsx) and fixed. Full production build PASS.",
+      "checks": [
+        {
+          "name": "recovery_check",
+          "result": "branch/HEAD unchanged, 78 staged entries preserved from Gates 2-8, no active git op",
+          "status": "PASS"
+        },
+        {
+          "name": "environment_contention_handled",
+          "result": "another worktree's next build (elaguila-website-concierge) and a node-process spike to 48/~1.3GB free observed early in the gate; deferred heavy steps until process count returned to 1 and free memory recovered to 5-7GB before running tsc/build. No competing heavy process launched by this session.",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_attention_truth",
+          "command": "npx tsx scripts/verify-owner-attention-truth-01.ts",
+          "result": "22/22 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_shared_specialized_tools",
+          "command": "npx tsx scripts/verify-owner-shared-specialized-tools-01.ts",
+          "result": "33/33 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_lifecycle_contract",
+          "command": "npx tsx scripts/gate-g1-owner-lifecycle-contract-selftest.ts",
+          "result": "OK",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_rentas_renewal_engine",
+          "command": "node scripts/verify-rentas-lifecycle-renewal-dashboard-global-engine-01.mjs",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_paid_listing_lifecycle_engine",
+          "command": "node scripts/verify-leonix-paid-listing-lifecycle-engine-01.mjs",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_whole_product_final_reconciliation",
+          "command": "npx tsx scripts/verify-owner-command-center-final-reconciliation.ts",
+          "result": "182/182 PASS - Layers A/B/C, capability registry, canonical routes, specialized families, Account Command Center, Concierge boundary, Community Trust/external-reputation separation, CTA/status semantics, zero protected-file touches across all 8 gates, no fake truth",
+          "status": "PASS"
+        },
+        {
+          "name": "typescript_baseline_comparison",
+          "method": "tsc --noEmit -p tsconfig.json, diffed against established baseline (tsc_baseline.log, confirmed identical across 4 earlier gate snapshots)",
+          "baselineErrorCount": 7,
+          "firstRunErrorCount": 9,
+          "newErrorsFound": 2,
+          "newErrorsLocation": "app/(site)/dashboard/servicios/page.tsx (Gate 7's Google/Yelp wiring) - TS2322/TS2677 from array-literal-plus-filter type inference",
+          "afterFixErrorCount": 7,
+          "result": "byte-identical diff to baseline after fix - 0 new errors remaining",
+          "status": "REPAIRED"
+        },
+        {
+          "name": "eslint_full_accumulated_change_set",
+          "filesChecked": 74,
+          "problems": 1,
+          "problemDetail": "pre-existing messagesTotal unused param in LeonixRealEstateListingManageCard.tsx line 203, confirmed present in committed HEAD 8cfbfdfd/4cdbfb3a, unrelated to any gate's diff",
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "PASS both before and after the servicios fix (CRLF/LF notices only)",
+          "status": "PASS"
+        },
+        {
+          "name": "final_production_build",
+          "command": "npm run build (NODE_OPTIONS=--max-old-space-size=12288)",
+          "result": "PASS - exit 0, Compiled successfully in 86s, full route manifest includes every route touched across all 8 gates (/api/dashboard/business/home, /api/dashboard/business/diy-concierge/my-businesses, /api/dashboard/listing-moderation-reasons, /api/clasificados/servicios/my-listings, /dashboard/business-tools). Only pre-existing unrelated Next.js themeColor viewport-export warnings across /publicar/** pages.",
+          "status": "PASS"
+        },
+        {
+          "name": "final_static_contract_trace_15_point",
+          "result": "all 15 points PASS - singular shell, truthful account command center, owner library/manage doorway, category workspace adoption, category capability truth, commercial/entitlement truth, lifecycle/same-row/no-recharge, analytics identity continuity, Business Tools/Concierge bridge, owner attention provenance, CTA destination truth, cross-business isolation, staff-data isolation, duplicate-engine prevention, mobile/shared action grammar",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "owner-ux-completion-2026-09-09",
+      "note": "Product/UX quality pass, not committed. 1 genuine cross-category confirm-dialog inconsistency found and repaired; 1 copy question investigated and deliberately left unchanged (honest); 4 deferred items re-evaluated, none promoted to blockers.",
+      "checks": [
+        {
+          "name": "recovery_check",
+          "result": "branch/HEAD unchanged (d715d0f3), worktree clean except pre-existing untracked .claude/, no active git op, 1 node.exe process",
+          "status": "PASS"
+        },
+        {
+          "name": "where_am_i_navigation_check",
+          "method": "confirmed all 16 LeonixDashboardActiveNav values are mapped in activeNavLabel; fallback-to-generic-label path is unreachable in practice",
+          "status": "PASS"
+        },
+        {
+          "name": "status_comprehension_check",
+          "method": "confirmed resolveListingUiStatus/listingUiStatusLabel is the single canonical status resolver every category funnels through; no raw internal status string reaches owner copy",
+          "status": "PASS"
+        },
+        {
+          "name": "empty_state_copy_spot_check",
+          "method": "read attentionEmpty, whatMattersEmpty, proposalsEmpty copy",
+          "result": "all explain WHY and set real expectations, no jargon, no fake data",
+          "status": "PASS"
+        },
+        {
+          "name": "confirm_dialog_consistency_found",
+          "method": "traced every Archive/Mark Sold call site across BR, generic entity workspace, En Venta, Empleos (list+detail)",
+          "result": "INCONSISTENT - BR confirms both; generic workspace confirmed Archive but not Mark Sold; En Venta confirmed neither; Empleos confirmed neither",
+          "status": "REPAIRED"
+        },
+        {
+          "name": "confirm_dialog_repair",
+          "method": "added the same existing confirm()/window.confirm() pattern (not a new UI pattern) to: generic entity workspace Mark Sold, En Venta card Mark Sold, Empleos archive (list + detail pages)",
+          "status": "PASS"
+        },
+        {
+          "name": "empleos_close_vacante_copy_investigated",
+          "method": "traced Master Bible SS10's 'Cerrar vacante' example against OWNER_COMMAND_CENTER_PACKAGE3_GATE3C_AUDIT.md",
+          "result": "deliberately NOT renamed - audit doc confirms no distinct close-vacancy mutation exists; current generic 'Archivar anuncio' copy is the honest choice for an identical underlying action",
+          "status": "NO_CHANGE_NEEDED"
+        },
+        {
+          "name": "deferred_items_reevaluated",
+          "result": "Business Tools read-only Work With Leonix, real-estate Editar shortcut color, legacy Servicios star rating, large mis-anuncios/page.tsx debt - all re-confirmed non-blocking, none promoted",
+          "status": "PASS"
+        },
+        {
+          "name": "eslint_touched_files",
+          "filesChecked": 4,
+          "problems": 6,
+          "problemDetail": "all 6 in mis-anuncios/page.tsx, confirmed pre-existing in committed checkpoint ea99e57c, unrelated to this gate's isolated 11-line addition",
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "PASS",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "owner-ui-responsive-completion-2026-09-09",
+      "note": "UI/responsive quality pass at 390/768/1440px, not committed. 1 genuine clipped-text defect found and repaired via a backward-compatible shared-component addition; all other shared components confirmed already correctly responsive.",
+      "checks": [
+        {
+          "name": "recovery_check",
+          "result": "branch/HEAD unchanged (d715d0f3), Gate 10 changes preserved exactly, no active git op, 1 node.exe process",
+          "status": "PASS"
+        },
+        {
+          "name": "shell_navigation_mechanism_check",
+          "method": "traced LeonixDashboardShell's mobile drawer (lg:hidden) vs desktop sidebar (hidden ... lg:block)",
+          "result": "exactly one navigation mechanism visible per breakpoint, never both",
+          "status": "PASS"
+        },
+        {
+          "name": "metrics_wrap_check",
+          "method": "read OwnerEntityPerformance.tsx",
+          "result": "flex flex-wrap pill row, single shared component every category funnels through",
+          "status": "PASS"
+        },
+        {
+          "name": "detail_grid_clipped_text_found",
+          "method": "traced Autos Dealer's autosDealerInventoryActiveCountLine/autosDealerInventoryRemainingSlotsLine values through OwnerEntityDetailGrid's truncate class at 390px grid-cols-2",
+          "result": "OVERFLOW/clipped text - 26-34 character sentences risk truncation in a 2-column mobile cell, hiding real capacity numbers",
+          "status": "REPAIRED"
+        },
+        {
+          "name": "detail_grid_repair",
+          "method": "added optional wide?: boolean to OwnerEntityDetailItem (col-span-full + skip truncate when true), defaults false, zero effect on any other caller; set wide:true on Autos Dealer's 2 capacity items only",
+          "status": "PASS"
+        },
+        {
+          "name": "br_negocio_capacity_display_already_safe",
+          "method": "checked BrPropertyInventoryDashboardSection.tsx's equivalent capacity text",
+          "result": "already renders as a standalone full-width paragraph, not through the narrow detail grid - no fix needed",
+          "status": "PASS"
+        },
+        {
+          "name": "mobile_action_sheet_check",
+          "method": "read DashboardMobileActionSheet.tsx",
+          "result": "max-h-[75vh] overflow-y-auto, forced full-width stacked buttons, body scroll-lock, Escape-to-close, focus management, md:hidden - correctly the only secondary-action surface below 768px",
+          "status": "PASS"
+        },
+        {
+          "name": "header_badge_wrap_and_cta_stretch_check",
+          "method": "read OwnerEntityHeader.tsx",
+          "result": "title/status/badges in one flex-wrap row; createAction stretches full-width at mobile (flex-col default stretch), natural width at sm:+ (flex-row items-start)",
+          "status": "PASS"
+        },
+        {
+          "name": "cta_visual_semantics_construction_proof",
+          "method": "confirmed DashboardListingActionBar.actionClass() is the single tone-to-color mapping every category's every action goes through",
+          "result": "burgundy/cream/green/amber/red/gold consistency guaranteed by construction, no per-category color logic exists to drift",
+          "status": "PASS"
+        },
+        {
+          "name": "editar_shortcut_color_revisited",
+          "method": "re-evaluated from a visual-system perspective per instruction 9",
+          "result": "does not objectively violate the CTA semantic system - subjective preference, the card's real primary doorway is already correctly burgundy elsewhere; left deferred",
+          "status": "DEFERRED_COSMETIC"
+        },
+        {
+          "name": "eslint_touched_files",
+          "filesChecked": 2,
+          "problems": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "PASS",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "owner-final-ship-readiness-certification-2026-09-09",
+      "note": "Final source/build certification after Gates 10-11 UX/UI completion. Heavy validation authorized and performed. Not committed.",
+      "checks": [
+        {
+          "name": "recovery_and_scope_check",
+          "result": "branch/HEAD unchanged (d715d0f3), 10 files changed from HEAD (6 application + 4 docs), all application changes traceable to Gate 10 (UX) or Gate 11 (UI), 86 insertions/10 deletions, zero unrelated files",
+          "status": "PASS"
+        },
+        {
+          "name": "environment_contention_handled",
+          "result": "48 node.exe workers and free memory as low as ~600KB-1.6GB observed at gate start; waited and used the time for lightweight regression trace; proceeded with heavy steps only once process count returned to single digits and free memory recovered to 3-4GB",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_attention_truth",
+          "command": "npx tsx scripts/verify-owner-attention-truth-01.ts",
+          "result": "22/22 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_shared_specialized_tools",
+          "command": "npx tsx scripts/verify-owner-shared-specialized-tools-01.ts",
+          "result": "33/33 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_lifecycle_contract",
+          "command": "npx tsx scripts/gate-g1-owner-lifecycle-contract-selftest.ts",
+          "result": "OK",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_rentas_renewal_engine",
+          "command": "node scripts/verify-rentas-lifecycle-renewal-dashboard-global-engine-01.mjs",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_paid_listing_lifecycle_engine",
+          "command": "node scripts/verify-leonix-paid-listing-lifecycle-engine-01.mjs",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_whole_product_final_reconciliation",
+          "command": "npx tsx scripts/verify-owner-command-center-final-reconciliation.ts",
+          "result": "182/182 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "typescript_baseline_comparison",
+          "method": "tsc --noEmit -p tsconfig.json, diffed against tsc_baseline.log",
+          "baselineErrorCount": 7,
+          "currentErrorCount": 7,
+          "newErrorsFound": 0,
+          "result": "byte-identical diff to baseline",
+          "status": "PASS"
+        },
+        {
+          "name": "eslint_gate_10_11_change_set",
+          "filesChecked": 6,
+          "newFindings": 0,
+          "preExistingFindings": 6,
+          "preExistingLocation": "mis-anuncios/page.tsx lines 16, 79, 105, 548, 549, 2013 - confirmed present in committed checkpoint ea99e57c",
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "final_production_build",
+          "command": "npm run build (NODE_OPTIONS=--max-old-space-size=12288)",
+          "result": "PASS - exit 0, Compiled successfully in 2.2min, all key routes present, only pre-existing unrelated themeColor warnings",
+          "status": "PASS"
+        },
+        {
+          "name": "regression_trace",
+          "result": "lifecycle destinations, specialized mobile actions, Business Tools, external reputation, Empleos applications anchor, category adapters, Ofertas/Viajes boundary - all confirmed intact via source inspection and re-run verifiers",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "owner-pre-qa-100-percent-product-completion-2026-09-09",
+      "note": "Coach-clarified doctrine correction: runtime owner QA is not a development phase and must not be used to discover missing product. This gate performed a deliberate, evidence-based product-completeness audit (source inspection, not verifier existence or prior SHIP_READY labels) across every owner surface, using six parallel research passes, then repaired every real, cited defect found using existing shared components/patterns. Runtime QA remains locked (Master Bible §33.4/§51) until this record is reviewed by Coach. Checkpoint context: ce82252e (ship-ready) was committed/pushed and its Vercel Preview (dpl_CA5Xvdt91kQLKZwsyJiuJHBoHjfd) reached READY; a runtime-QA discovery attempt against it was BLOCKED on a missing owner/smoke-test credential (SAFE AUTH, not a product defect) - see PROGRESS.md Gates 13-13.2.",
+      "checks": [
+        {
+          "name": "worktree_branch_head_verification",
+          "result": "C:\\projects\\elaguila-website-owner-command-center, integration/owner-command-center-globalization-2026-08, HEAD ce82252e22c9d75c815875627cfcdae6f0dd53b0 (matches the pushed ship-ready checkpoint), only .claude/ untracked per policy",
+          "status": "PASS"
+        },
+        {
+          "name": "master_bible_qa_doctrine_correction",
+          "result": "Section 45 closing line, Section 51 (CURRENT NEXT ENGINEERING MOVE), and Section 53 (Claude Startup Checklist) rewritten to lock runtime QA behind this phase; new Section 33.4 added recording the doctrine and pointing to this file for dated evidence",
+          "status": "PASS"
+        },
+        {
+          "name": "research_pass_global_shell_and_account_command_center",
+          "result": "genuinely complete - real data wiring, full ES/EN copy, explicit loading/error/empty states; 1 real WEAK_UI finding (account panel truncation) repaired, 2 self-disclosed non-features left as-is",
+          "status": "PASS"
+        },
+        {
+          "name": "research_pass_business_tools",
+          "result": "8 of 9 canonical sections COMPLETE; Work With Leonix WEAK_UX (real data, no read-only disclosure) repaired; visual-hierarchy WEAK_UI fully closed in Gate 14.1 (see that gate below) using only existing theme primitives; cross-business leakage confirmed impossible via source trace",
+          "status": "PASS"
+        },
+        {
+          "name": "research_pass_category_batch_1",
+          "result": "Comida Local/Autos Privado/Bienes Privado/Rentas/Clases - 2 real defects found (Autos Privado missing reactivate + miscolored archive; Rentas showing an unsupported Mark Sold action) and repaired; 1 hypothesis (Comida Local contactHub/translateAd) investigated and found NOT a defect; 1 latent unreachable gap (Autos Privado generic-page fallback) investigated and left unfixed as genuinely unreachable",
+          "status": "PASS"
+        },
+        {
+          "name": "research_pass_category_batch_2",
+          "result": "Comunidad/Eventos, Busco, Mascotas, Ofertas outer, Viajes outer, Iglesias - all confirmed genuinely complete or correctly deferred, zero findings",
+          "status": "PASS"
+        },
+        {
+          "name": "research_pass_responsive_shared_component_sweep",
+          "result": "shell/frame/workspace/action-bar/listing-cards confirmed complete for nav-per-breakpoint and no-button-wall rules; 1 real INCONSISTENT finding (wide prop not propagated to 6 long-text call sites across Viajes/Ofertas-Locales/Empleos) repaired",
+          "status": "PASS"
+        },
+        {
+          "name": "research_pass_high_risk_category_recheck",
+          "result": "Servicios/Restaurantes/Autos Dealer/Bienes Negocio/Empleos/En Venta-Varios - 2 real defects found (Servicios silent-vanishing offers section; Bienes Negocio duplicate CTA + unconditional unlock button) and repaired; Community Trust, external reputation, parent/child UI, lane distinction, Mark Sold confirmation, and known Section 48 cosmetic debt all confirmed accurate/unchanged",
+          "status": "PASS"
+        },
+        {
+          "name": "repairs_implemented_count",
+          "result": "9 real defects repaired across 12 application files, using only existing shared components/patterns (no new engines, no redesign)",
+          "status": "PASS"
+        },
+        {
+          "name": "eslint_touched_files",
+          "filesChecked": 12,
+          "newFindings": 0,
+          "preExistingFindings": 6,
+          "preExistingLocation": "mis-anuncios/page.tsx lines 16, 79, 105, 548, 549, 2013 - confirmed present at HEAD ce82252e before this gate's edits, same lines as the Gate 12/13 baseline",
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "PASS (only LF/CRLF line-ending notices, no real whitespace errors)",
+          "status": "PASS"
+        },
+        {
+          "name": "full_build_or_typecheck",
+          "result": "NOT RUN - explicitly out of scope for this gate per its own verification instruction (normal gate only: source inspection, targeted lint, git diff --check)",
+          "status": "DEFERRED_TO_NEXT_CERTIFICATION_GATE"
+        }
+      ]
+    },
+    {
+      "gate": "owner-business-tools-visual-hierarchy-hard-close-2026-09-09",
+      "note": "Coach flagged a real contradiction in Gate 14: WEAK_UI (Business Tools flat hierarchy) coexisting with 'zero blockers / READY: YES' violates the doctrine that QA is final polish only. This gate closed the hierarchy issue completely using only existing theme primitives, no redesign, no subagents.",
+      "checks": [
+        {
+          "name": "worktree_branch_head_verification",
+          "result": "C:\\projects\\elaguila-website-owner-command-center, integration/owner-command-center-globalization-2026-08, HEAD ce82252e22c9d75c815875627cfcdae6f0dd53b0 unchanged, all Gate 14 uncommitted changes preserved",
+          "status": "PASS"
+        },
+        {
+          "name": "business_tools_hierarchy_repair",
+          "result": "BusinessConciergeOwnerHome.tsx: What Matters Now promoted to LX_DASH.pageHero (gradient + stronger ring) with the previously-unused t.whatMattersTitle copy key rendered as a real umbrella heading; Business Health + Action Plan grouped into a shared md:grid-cols-2 row as the secondary tier; Understands/Work With Leonix/Progress/Assistant left as the plain-panel supporting/outcome tier",
+          "status": "PASS"
+        },
+        {
+          "name": "no_new_design_system",
+          "result": "every treatment reused (pageHero, panel, the existing 2-col grid pattern, an existing unused copy key) already existed in dashboardLeonixTheme.ts / dashboardI18n.ts before this gate",
+          "status": "PASS"
+        },
+        {
+          "name": "recent_activity_and_business_growth_recheck",
+          "result": "both re-inspected per instruction 7; both use standard LX_DASH.emptyState/panel styling with real explanatory copy and (Growth Entry) two working CTAs - confirmed already intentionally complete, left unchanged",
+          "status": "PASS"
+        },
+        {
+          "name": "eslint_touched_file",
+          "filesChecked": 1,
+          "newFindings": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "PASS (only LF/CRLF line-ending notices)",
+          "status": "PASS"
+        },
+        {
+          "name": "known_uxui_incompleteness_remaining",
+          "result": "NONE",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "owner-final-pre-qa-source-build-certification-2026-09-09",
+      "note": "Final heavy-validation certification of the complete Gate 14 + 14.1 PRE-QA construction candidate (12 app files + 4 docs, uncommitted, on top of checkpoint ce82252e). Resource contention (another session spiking to 47 node.exe workers) was waited out twice rather than raced. PRE-QA PRODUCT CONSTRUCTION: COMPLETE. FINAL PRE-QA SOURCE/BUILD CERTIFICATION: PASS. OWNER QA: NOT YET PERFORMED - QA's purpose from here is final runtime confirmation/polish of an already-complete product, not continuation of construction.",
+      "checks": [
+        {
+          "name": "worktree_branch_head_verification",
+          "result": "C:\\projects\\elaguila-website-owner-command-center, integration/owner-command-center-globalization-2026-08, HEAD ce82252e22c9d75c815875627cfcdae6f0dd53b0 unchanged",
+          "status": "PASS"
+        },
+        {
+          "name": "candidate_scope_review",
+          "result": "16 files (12 app + 4 docs), 0 unrelated files, .claude/ correctly excluded",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_attention_truth",
+          "result": "22/22 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_shared_specialized_tools",
+          "result": "33/33 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_lifecycle_contract",
+          "result": "OK",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_rentas_lifecycle_renewal",
+          "result": "7/8 substantive checks PASS; 1 scope-boundary check (blanket bienes-raices diff guard from an earlier, narrower Gate 5) flagged the already-reviewed BrNegocioListingInventoryActions.tsx presentation fix - investigated, confirmed a false positive via direct diff inspection (pure label/gating logic, zero Rentas/lifecycle/pricing/checkout logic touched) and corroborated by the newer, broader 182/182 whole-product verifier which does not protect this file at all",
+          "status": "PASS_WITH_EXPLAINED_EXCEPTION"
+        },
+        {
+          "name": "verifier_paid_listing_lifecycle_engine",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_whole_product_final_reconciliation",
+          "result": "182/182 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "typescript_full_typecheck",
+          "command": "tsc --noEmit -p tsconfig.json",
+          "result": "exactly 7 errors, all e2e/** Playwright specs, byte-diffed identical to saved tsc_baseline.log",
+          "newErrorsFound": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "eslint_all_12_candidate_files",
+          "filesChecked": 12,
+          "newFindings": 0,
+          "preExistingFindings": 6,
+          "preExistingLocation": "mis-anuncios/page.tsx lines 16, 79, 105, 548, 549, 2013",
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "PASS (LF/CRLF notices only)",
+          "status": "PASS"
+        },
+        {
+          "name": "full_production_build",
+          "command": "npm run build (NODE_OPTIONS=--max-old-space-size=12288)",
+          "result": "PASS - exit 0, Compiled successfully in 89s, all key routes present, only pre-existing unrelated themeColor warnings",
+          "status": "PASS"
+        },
+        {
+          "name": "architecture_regression_trace",
+          "result": "zero core architecture files in diff (OwnerProductPageFrame.tsx, OwnerEntityWorkspace.tsx, OwnerEntityDetailGrid.tsx, ownerEntityCapabilityRegistry.ts, businessHome/access.ts, membershipsRepo.ts, businessesRepo.ts, OwnerEntityCommunityTrust.tsx, OwnerEntityExternalReputation.tsx, AutosDealerInventoryDashboardSection.tsx); LeonixDashboardShell.tsx touched only for a 2-line truncation fix; BusinessConciergeOwnerHome.tsx touched only for disclosure copy/layout grouping, not data-fetching/authorization; one dashboard shell, same-row/no-recharge, both parent-child identities, shared analytics/entitlement/media, exact business membership auth, Community Trust truth, real-only Google/Yelp, protected Ofertas/Viajes internals, and no duplicate engines all confirmed intact",
+          "status": "PASS"
+        },
+        {
+          "name": "final_preqa_completion_state",
+          "result": "FUNCTION PASS, UX PASS, UI PASS, RESPONSIVE 390/768/1440 PASS, COPY/STATES PASS, CATEGORY COVERAGE PASS, KNOWN UX/UI INCOMPLETENESS NONE, SOURCE-FIXABLE PRE-QA BLOCKERS NONE",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "owner-final-pre-release-product-construction-audit-2026-09-10",
+      "note": "Last construction gate before main/Production, on top of committed checkpoint f2508a9a566216ce0bc2eba78449510ff1fc9ab3 (Preview READY). Four parallel evidence-only research passes (mechanical defect scan, dead/built-not-wired component scan, cognitive-load/information-architecture review, skeptical spot-check of 5 prior-gate fixes) found and repaired 5 real defects. FINAL PRODUCT CONSTRUCTION CERTIFICATION: 100% PASS.",
+      "checks": [
+        {
+          "name": "worktree_branch_head_verification",
+          "result": "C:\\projects\\elaguila-website-owner-command-center, integration/owner-command-center-globalization-2026-08, starting HEAD f2508a9a566216ce0bc2eba78449510ff1fc9ab3 == origin, only .claude/ untracked",
+          "status": "PASS"
+        },
+        {
+          "name": "mechanical_defect_scan",
+          "result": "3 real defects found across 102 dashboard files: raw JS/HTTP error strings in viajes/page.tsx (3 sites), off-palette stone-gray Archive button in mis-anuncios/page.tsx, internal Supabase/RLS terminology leaked into restaurantes/page.tsx error copy - all 3 repaired. Checked clean: TODO/placeholder strings, empty hrefs, disabled-control gating, duplicate primary buttons, mobile/desktop-hidden required actions, hardcoded fake data",
+          "status": "PASS"
+        },
+        {
+          "name": "dead_built_not_wired_scan",
+          "result": "LeonixDashboardShell/OwnerProductPageFrame/OwnerEntityWorkspace confirmed singular (no duplicate shells repo-wide); no orphaned routes found (every route resolves to a real nav link or documented alias redirect); capability-registry unconsumed fields confirmed self-documented forward-declared truth, not a hidden gap; 2 dead zero-consumer legacy components found (DashboardCategoryLauncherCard, DashboardQuickActionCard) - never rendered, not owner-facing, left as pre-existing debt",
+          "status": "PASS"
+        },
+        {
+          "name": "cognitive_load_review",
+          "result": "2 real CTA-hierarchy defects found and repaired: En Venta's renew button visually outranking the canonical primary doorway (default-selected category, highest traffic), and a duplicated Publicar CTA on the Account Command Center. Business Tools hero-tier promotion re-confirmed holding; uniform secondary-tier panels judged acceptable editorial pattern, not a directory-of-equal-cards violation",
+          "status": "PASS"
+        },
+        {
+          "name": "spot_check_reverification",
+          "result": "5/5 prior-gate fixes CONFIRMED_CORRECT against actual current source (Rentas Mark Sold gating, Autos Privado reactivate + Archive color, Servicios offers footer hint, Bienes Negocio duplicate-CTA + unlock-button gating, Business Tools disclosure + hierarchy) - not superficial patches, real traced logic with real callers",
+          "status": "PASS"
+        },
+        {
+          "name": "repairs_implemented_count",
+          "result": "5 real defects repaired across 5 application files (27 insertions, 12 deletions), using only existing shared components/patterns",
+          "status": "PASS"
+        },
+        {
+          "name": "eslint_touched_files",
+          "filesChecked": 5,
+          "newFindings": 0,
+          "preExistingFindings": 9,
+          "preExistingLocation": "mis-anuncios/page.tsx (6 findings, unchanged lines) + EnVentaListingManageCard.tsx (3 findings, confirmed present at HEAD f2508a9a, untouched by this gate's isolated diff)",
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_attention_truth",
+          "result": "22/22 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_shared_specialized_tools",
+          "result": "33/33 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_lifecycle_contract",
+          "result": "OK",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_rentas_lifecycle_renewal",
+          "result": "PASS - all 9 checks including the protected-file guard (clean this time, no Bienes Raices files touched)",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_paid_listing_lifecycle_engine",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_whole_product_final_reconciliation",
+          "result": "182/182 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "typescript_full_typecheck",
+          "result": "exactly 7 errors, all e2e/** Playwright specs, byte-identical to the established session-wide baseline",
+          "newErrorsFound": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "full_production_build",
+          "command": "npm run build (NODE_OPTIONS=--max-old-space-size=12288)",
+          "result": "PASS - exit 0, Compiled successfully in 2.9min, all key routes present, only pre-existing unrelated themeColor warnings",
+          "status": "PASS"
+        },
+        {
+          "name": "final_product_construction_certification",
+          "result": "100% PASS - FUNCTION/UX/UI/RESPONSIVE/COPY-STATE/NAVIGATION/CATEGORY-COVERAGE/CTA-CONSISTENCY/COMMERCIAL-LIFECYCLE/BUSINESS-TOOLS/OWNER-ATTENTION all PASS, zero required BUILT_NOT_WIRED, zero source-fixable product blockers remaining",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "owner-main-reconciliation-2026-09-10",
+      "note": "Certified checkpoint e8217f0e was found to have no fast-forward path to origin/main (main advanced 265 commits since the common ancestor 3f4c6fe2, all unrelated already-shipped work: Business Concierge, LEO, Recursos, admin/auth, landing imagery). This gate merged origin/main into the certified feature branch (normal merge, no rebase, no squash), resolved 5 real conflicts, and re-certified the integrated tree.",
+      "checks": [
+        {
+          "name": "collision_audit",
+          "result": "54 overlapping files out of 91 (feature) vs 1379 (main) changed since merge-base. 48 app/lib/business files: 46 byte-identical (true no-ops), 2 confirmed content-superset resolved by keeping feature's version. 1 diy-concierge route.ts byte-identical. dashboardI18n.ts and ofertas-locales/[id]/page.tsx auto-merged cleanly (non-overlapping regions). dashboardMisAnunciosCategoryTools.ts: 1 comment-only conflict resolved. LeonixDashboardShell.tsx: 2 HIGH_RISK conflicts (main independently restructured the shell's single-DOM-copy mobile nav) - reconciled preserving both main's real fixes and this branch's spaceCounts feature + mobile section-title label. business-tools/page.tsx: 1 HIGH_RISK conflict - main's side was the stale pre-Gate-1 generic tool-card directory, kept BusinessConciergeOwnerHome entirely; caught and fixed a real clean-merge regression (silently dropped BusinessConciergeOwnerHome import)",
+          "status": "PASS"
+        },
+        {
+          "name": "certified_5_fixes_preserved",
+          "result": "all 5 Gate 16 fixes re-verified present post-merge (En Venta renew button, Viajes sanitized errors x4, Restaurantes zero RLS mentions, Mis Anuncios canonical red archive, no duplicate Publicar CTA)",
+          "status": "PASS"
+        },
+        {
+          "name": "core_architecture_reconfirmed",
+          "result": "LeonixDashboardShell/OwnerProductPageFrame/OwnerEntityWorkspace remain sole implementations; Mis Espacios spaceCounts nav feature intact and called once; business-tools renders certified BusinessConciergeOwnerHome hierarchy not main's stale directory",
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "pre-existing whitespace issues found only in files from main's own history, none in files this reconciliation edited",
+          "status": "PASS"
+        },
+        {
+          "name": "eslint_reconciliation_touched_files",
+          "filesChecked": 5,
+          "newFindings": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_attention_truth",
+          "result": "22/22 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_shared_specialized_tools",
+          "result": "33/33 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_lifecycle_contract",
+          "result": "OK",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_rentas_lifecycle_renewal",
+          "result": "PASS - all 9 checks",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_paid_listing_lifecycle_engine",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_whole_product_final_reconciliation",
+          "result": "174/182 - the 8 failures are exclusively diff-based protected-file guards flagging main's own legitimate 265-commit history (admin/, Stripe writers, Community Trust registry, Ofertas backend, Recursos, Living Business Book engine) arriving via the merge, not damage caused by this reconciliation - confirmed every flagged file's most recent commit predates this session",
+          "status": "PASS_WITH_EXPLAINED_SCOPE_BOUNDARY_EXCEPTION"
+        },
+        {
+          "name": "typescript_full_typecheck_merged_tree",
+          "result": "0 new errors, byte-identical to the established 7-error e2e-only baseline, verified across the entire merged codebase (~1379 files from main included)",
+          "newErrorsFound": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "full_production_build_merged_tree",
+          "command": "npm run build (NODE_OPTIONS=--max-old-space-size=12288)",
+          "result": "PASS - exit 0, Compiled successfully in 3.5min, both branch's own routes and main's routes (/admin, /admin/leo, Recursos) all present",
+          "status": "PASS"
+        },
+        {
+          "name": "product_construction_status_after_merge",
+          "result": "PRE-QA PRODUCT CONSTRUCTION still COMPLETE, FINAL PRODUCT CONSTRUCTION CERTIFICATION still 100% PASS, unaffected by this reconciliation",
+          "status": "PASS"
+        },
+        {
+          "name": "main_and_production_touched",
+          "result": "main not touched, Production not touched, this gate operates only on the feature branch",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "owner-command-center-absolute-final-greenlight-audit-2026-09-10",
+      "note": "Independent final source-level green-light audit of the reconciled tree (HEAD 79a96f7e, same commit as the main-reconciliation gate) across all 18 audit phases via 7 parallel research passes, plus fresh canonical verifiers, full typecheck, lint, diff-check, and one production build. Found and repaired 5 small unambiguous CTA-color/copy defects. Found and escalated 1 real commercial-feature gap (Autos Privado / Bienes Raices Privado renewal flow) as CHUY DECISION REQUIRED rather than improvised. Reconfirmed 1 already-known non-blocking item (homepage links to orphaned business-tools sub-routes) and 1 honest-by-design non-defect (OwnerRecentActivity permanent honest-empty state).",
+      "checks": [
+        {
+          "name": "phase_architecture_duplicates_regression",
+          "result": "1 real regression found and fixed: LeonixRealEstateListingManageCard.tsx FSBO Archivar button was gray/tan instead of canonical red (sibling BR Negocio branch in same file was already correct). All other architecture/duplicate/main-merge-regression checks PASS.",
+          "status": "PASS_WITH_FIX"
+        },
+        {
+          "name": "phase_dashboard_misanuncios_entityworkspace",
+          "result": "PASS (OwnerRecentActivity static honest-empty-state noted, not a defect per Bible section 26)",
+          "status": "PASS"
+        },
+        {
+          "name": "phase_category_matrix_part1_servicios_through_empleos",
+          "result": "PASS; Autos Privado and Bienes Raices Privado/FSBO renewal flow confirmed genuinely unwired (registry honestly marks renew unsupported) - escalated, not patched",
+          "status": "PASS_WITH_ESCALATION"
+        },
+        {
+          "name": "phase_category_matrix_part2_envnta_through_iglesias",
+          "result": "8/8 categories PASS; zero conflict markers in all main-merge-touched files re-checked (ofertas-locales, viajes, empleos, servicios, dashboardI18n)",
+          "status": "PASS"
+        },
+        {
+          "name": "phase_cta_semantics_copy_states_mechanical_scan",
+          "result": "4 real CTA-color/copy defects found and fixed: EnVentaListingManageCard Marcar-vendido button+confirm, busquedas-guardadas pause/reactivate/delete colors, perfil.tsx + seguridad.tsx raw error leakage, notificaciones.tsx Supabase mention",
+          "status": "PASS_WITH_FIX"
+        },
+        {
+          "name": "phase_business_tools_attention_analytics_trust",
+          "result": "PASS; homepage HomeBusinessToolsSection.tsx confirmed still linking live to orphaned business-tools sub-routes (already documented non-blocking in Gate 17, now confirmed reachable not just dormant)",
+          "status": "PASS"
+        },
+        {
+          "name": "phase_lifecycle_commercial_responsive_cognitive_load",
+          "result": "PASS on all 3 sub-phases (same-row/no-recharge, 390/768/1440 responsive grammar, 10-second cognitive load test on /dashboard, /dashboard/mis-anuncios, /dashboard/business-tools)",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_attention_truth",
+          "result": "22/22 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_shared_specialized_tools",
+          "result": "33/33 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_rentas_lifecycle_renewal",
+          "result": "PASS - all 9 checks",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_paid_listing_lifecycle_engine",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_whole_product_final_reconciliation",
+          "result": "182/182 PASS (up from 174/182 at Gate 17 - the prior protected-file diff artifacts cleared now that Gate 17s merge is fully committed and the tree is clean)",
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "clean, no new whitespace issues in the 6 files fixed this gate",
+          "status": "PASS"
+        },
+        {
+          "name": "eslint_fixed_files",
+          "filesChecked": 6,
+          "newFindings": 0,
+          "preExistingUnchanged": 4,
+          "status": "PASS"
+        },
+        {
+          "name": "typescript_full_typecheck_post_fix",
+          "result": "0 new errors, byte-identical to the established 7-error e2e-only baseline",
+          "newErrorsFound": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "full_production_build_post_fix",
+          "command": "npm run build (NODE_OPTIONS=--max-old-space-size=12288)",
+          "result": "PASS - exit 0, Compiled successfully in 3.2min, /dashboard + /dashboard/business-tools + /dashboard/mis-anuncios all present",
+          "status": "PASS"
+        },
+        {
+          "name": "real_source_fixable_blockers",
+          "result": "NONE remaining after this gates 5 repairs",
+          "status": "PASS"
+        },
+        {
+          "name": "chuy_decision_required_items",
+          "result": "1: Autos Privado / Bienes Raices Privado-FSBO renewal flow is genuinely unwired (pre-existing, not introduced by any recent gate) - requires a deliberate product/commercial decision before it can be built, not a source-fixable patch",
+          "status": "ESCALATED_NOT_BLOCKING_FOR_THIS_RELEASE"
+        },
+        {
+          "name": "main_and_production_touched",
+          "result": "main not touched, Production not touched, this gate operates only on the feature branch",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "owner-command-center-zero-gap-closeout-2026-09-10",
+      "note": "Attempted to close all 4 Gate 18 findings to reach true 100% construction. Closed 2 (navigation debt, UI CTA inconsistency) via unambiguous source-level fixes. Escalated 2 (Autos Privado and Bienes Raices Privado/FSBO renewal flows) as CHUY DECISION REQUIRED after tracing the proven Rentas renewal architecture and discovering the real blocker is deeper than UI wiring: neither autos_classifieds_listings nor the generic listings table has an expires_at column, and no expiration computation exists anywhere for either category today - a real schema/product gap requiring a Supabase migration this session cannot and should not apply unilaterally.",
+      "checks": [
+        {
+          "name": "navigation_debt_closure",
+          "result": "HomeBusinessToolsSection.tsx (ES+EN) Business Health Map and DIY Concierge cards repointed from orphaned /dashboard/business-tools/business-health and /concierge sub-routes to the certified /dashboard/business-tools page. Idea-builder live links (aprender/page.tsx, qr/business-tools/page.tsx) investigated and confirmed NOT a gap - distinct pre-business-identity tool, no equivalent inside owner Business Home. proximo-paso and what-we-understand confirmed zero inbound links anywhere in the app - orphaned but not a live navigation defect, left unchanged.",
+          "status": "CLOSED"
+        },
+        {
+          "name": "ui_cta_consistency_closure",
+          "result": "LeonixRealEstateListingManageCard.tsx FSBO Editar shortcut traced to a real distinct edit-form destination (mis-anuncios/[id]/editar), separate from the primary Administrar anuncio doorway. Prior gold-tinted styling was a hex-drifted near-duplicate of the shared btnSecondary gold token, which is locked for specialized capabilities per Bible section 10 - not appropriate for a plain edit action either way. Given outlined/tinted burgundy treatment: same color family as the row primary manage action, visually subordinate to it (no competing full-strength primaries).",
+          "status": "CLOSED"
+        },
+        {
+          "name": "autos_privado_renewal_flow",
+          "result": "Genuinely unwired - confirmed via architecture trace that pricing/duration are already locked truth, but neither autos_classifieds_listings nor listings (BR) has an expires_at column, and no expiration computation exists anywhere for either category today. Requires a new Supabase migration this session has no authenticated access to apply and should not apply unilaterally regardless. Escalated as CHUY DECISION REQUIRED, not built.",
+          "status": "ESCALATED_CHUY_DECISION_REQUIRED"
+        },
+        {
+          "name": "bienes_privado_fsbo_renewal_flow",
+          "result": "Same finding and same escalation as Autos Privado - shares the identical missing expires_at column and missing expiration-computation gap.",
+          "status": "ESCALATED_CHUY_DECISION_REQUIRED"
+        },
+        {
+          "name": "eslint_2_files_changed",
+          "filesChecked": 2,
+          "newFindings": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "typescript_full_typecheck",
+          "result": "0 new errors, byte-identical to the established 7-error e2e-only baseline",
+          "newErrorsFound": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "clean, no new whitespace issues",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_attention_truth",
+          "result": "22/22 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_shared_specialized_tools",
+          "result": "33/33 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_paid_listing_lifecycle_engine",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_whole_product_final_reconciliation",
+          "result": "182/182 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "full_production_build",
+          "command": "npm run build (NODE_OPTIONS=--max-old-space-size=12288)",
+          "result": "PASS - exit 0, Compiled successfully in 3.2min",
+          "status": "PASS"
+        },
+        {
+          "name": "final_construction_status",
+          "result": "NOT 100 percent - 2 of 4 items closed, 2 items are a real honestly-reported gap pending a Chuy product/schema decision. This is reported truthfully, not rounded up.",
+          "status": "STILL_NOT_100_PERCENT"
+        },
+        {
+          "name": "main_and_production_touched",
+          "result": "main not touched, Production not touched, no Supabase/Vercel/Stripe changes made",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "owner-command-center-gate20-final-fixed-term-renewal-2026-09-10",
+      "note": "Chuy's decision: build real expiration + same-row renewal for Autos Privado and Bienes Raices Privado/FSBO, not evergreen. Reused the proven Rentas shared lifecycle engine (resolveListingLifecycle + listingLifecycleConfig registry) plus category-specific fulfillment adapters - no new payment system, no duplicate engine. Added one additive migration (autos_classifieds_listings.expires_at; listings.expires_at already existed and was reused directly for FSBO). Applied the migration to Leonix Media Staging only (the project with real matching QA data for these tables) - Production Supabase was never touched, and the migration file is committed to the repo for the normal release process.",
+      "checks": [
+        {
+          "name": "schema_migration_autos_privado_expires_at",
+          "result": "Additive migration 20260910120000_autos_privado_lifecycle_expires_at.sql: nullable expires_at column + partial index on autos_classifieds_listings, scoped to lane=privado/status=active. Deterministic backfill from real published_at+30d for existing active rows only. Applied to Leonix Media Staging (cgeehvnfyrdoperdotdh); verified post-apply (21 dealer rows unaffected, 2 existing active Privado rows correctly backfilled); get_advisors security scan showed zero new findings.",
+          "status": "PASS"
+        },
+        {
+          "name": "bienes_fsbo_expires_at_already_existed",
+          "result": "listings.expires_at (used by Rentas) was confirmed already present via direct schema query - no migration needed for Bienes Raices FSBO, corrected an earlier gate's incomplete finding that assumed both tables were missing the column",
+          "status": "PASS"
+        },
+        {
+          "name": "lifecycle_config_registered",
+          "result": "AUTOS_PRIVADO_LISTING_LIFECYCLE_CONFIG (30d, $24.99) and BR_FSBO_LISTING_LIFECYCLE_CONFIG (45d, $49.99) added to the one shared LISTING_LIFECYCLE_CONFIGS registry - resolveListingLifecycle already generically supported this, exactly as the prior gate's architecture trace predicted",
+          "status": "PASS"
+        },
+        {
+          "name": "checkout_ownership_gates",
+          "result": "validateAutosPrivadoRenewalCheckoutOwnership and validateBienesFsboRenewalCheckoutOwnership added, mirroring validateRentasRenewalCheckoutOwnership exactly; checkout route branches (isAutosPrivadoRenewalEarly/isBienesFsboRenewalEarly) added; no client-trusted price, reuses existing locked package keys (autos_privado_30d $24.99, br_fsbo_45d $49.99) - no new Stripe price created",
+          "status": "PASS"
+        },
+        {
+          "name": "same_row_fulfillment_and_idempotency",
+          "result": "Both categories' renewal extends only expires_at/updated_at on the existing row (never inserts, never changes id/owner/media/analytics); status is never touched for either category (Autos Privado never had an expired DB status; FSBO stays active/published throughout, exactly like Rentas). Added a shared webhook-retry idempotency guard (isRenewalAlreadyApplied/markRenewalPaymentApplied, generalized from Rentas' own private copy) so a redelivered webhook event cannot double-extend a term.",
+          "status": "PASS"
+        },
+        {
+          "name": "public_visibility_expiration_gating",
+          "result": "Shared isListingRowActiveAndPublishedForBrowse predicate (Bienes Raices browse/related/similar) extended to exclude expired rows - a no-op for categories that never set expires_at. listActiveAutosClassifiedsRows and the direct-by-id getActiveLiveAutosBundle both gate expired Privado rows out of public discovery. Rows are filtered, never deleted; owner/dashboard/admin access unaffected. Matches Rentas' own established behavior exactly (discovery-only exclusion, not a direct-URL hard block).",
+          "status": "PASS"
+        },
+        {
+          "name": "owner_dashboard_renewal_cta",
+          "result": "Discovered and corrected a real risk mid-gate: Autos Privado's actual live dashboard card is AutosDealerInventoryDashboardSection.tsx's privadoRows (OwnerEntityWorkspace-based), not mis-anuncios/page.tsx's AutosClassifiedListingManageCard, which is legacy code for pre-migration listings-table rows no longer populated. Wired the real card with ListingLifecycleStatusCard + ListingRenewalAction (same shared components Rentas uses), shown only when actually expiring/expired. For FSBO, wired mis-anuncios/page.tsx's real lifecycle computation (LeonixRealEstateListingManageCard's existing lifecycle/onRenew props, previously Rentas-only) plus extended the existing Needs your attention aggregation.",
+          "status": "PASS"
+        },
+        {
+          "name": "new_verifier_gate20_fixed_term_renewal",
+          "result": "8/8 PASS - commercial truth unchanged, both configs registered, checkout ownership gates present, same-row fulfillment with idempotency guard, dispatcher threading, public visibility gating, additive-only migration, real dashboard CTA wiring",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_attention_truth",
+          "result": "22/22 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_shared_specialized_tools",
+          "result": "33/33 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_paid_listing_lifecycle_engine",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_rentas_lifecycle_renewal",
+          "result": "8/9 PASS - 1 explained exception: 'Bienes active files changed' guard flags this gate's own authorized FSBO edits, identical in kind to this same verifier's already-established Rentas-scope-boundary pattern from earlier gates this session",
+          "status": "PASS_WITH_EXPLAINED_SCOPE_BOUNDARY_EXCEPTION"
+        },
+        {
+          "name": "verifier_whole_product_final_reconciliation",
+          "result": "180/182 PASS - 2 explained exceptions: 'no migration' guards flag this gate's own authorized additive migration",
+          "status": "PASS_WITH_EXPLAINED_SCOPE_BOUNDARY_EXCEPTION"
+        },
+        {
+          "name": "eslint_16_files_changed",
+          "filesChecked": 16,
+          "newFindings": 0,
+          "preExistingUnrelatedInMisAnuncios": 6,
+          "status": "PASS"
+        },
+        {
+          "name": "typescript_full_typecheck",
+          "result": "0 new errors, byte-identical to the 7-error e2e-only baseline (3 real new-code errors caught and fixed mid-gate: missing BrListingPaymentMeta.renewed_at field, 2 invalid audit-log action names - resolved by reusing Rentas' own existing activated_after_payment audit action for renewal too)",
+          "newErrorsFound": 0,
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "clean",
+          "status": "PASS"
+        },
+        {
+          "name": "full_production_build",
+          "command": "npm run build (NODE_OPTIONS=--max-old-space-size=12288)",
+          "result": "PASS - exit 0, Compiled successfully in 2.2min",
+          "status": "PASS"
+        },
+        {
+          "name": "gate19_closures_reconfirmed_unaffected",
+          "result": "HomeBusinessToolsSection.tsx and LeonixRealEstateListingManageCard.tsx (the FSBO Editar CTA fix) confirmed untouched by this gate's diff - Gate 19 navigation and UI closures remain intact",
+          "status": "PASS"
+        },
+        {
+          "name": "final_construction_status",
+          "result": "100 percent - all 4 items from Gate 18 (2 CTA/copy, 2 renewal) now genuinely closed with real, same-row, no-wrong-recharge, webhook-idempotent renewal flows for both fixed-term categories. Not evergreen, not fabricated.",
+          "status": "PASS_100_PERCENT"
+        },
+        {
+          "name": "main_and_production_touched",
+          "result": "main not touched, Production not touched. Production Supabase database untouched - migration applied only to Leonix Media Staging; migration file committed to repo for the normal release process.",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "owner-servicios-golden-receiver-reconciliation-checkpoint-2026-09-11",
+      "previousReceiverHead": "d1b2994d36b1e78f1fb91a6d3f801638156b9119",
+      "endingHead": "9fcadb4daf599e15fca62adcb647abbf96ce6bd8",
+      "originMain": "9fcadb4daf599e15fca62adcb647abbf96ce6bd8",
+      "reconciliation": "fast-forward 21 Admin OS commits; 0 semantic conflicts; no Dashboard/Servicios product source in incoming main",
+      "receiverRequiredProductWork": "NONE PROVEN",
+      "optionalDeferred": ["DASH-32", "DASH-33", "DASH-40"],
+      "upstreamBlockers": [
+        "SRV-GOLDEN-01",
+        "SRV-GOLDEN-02",
+        "SRV-GOLDEN-03",
+        "SRV-GOLDEN-04",
+        "DASH-53 public Save adoption",
+        "DASH-58",
+        "DASH-59",
+        "DASH-60"
+      ],
+      "checks": [
+        {
+          "name": "git_fast_forward_to_origin_main",
+          "result": "d1b2994d -> 9fcadb4d; receiver 0 ahead / was 21 behind; now synchronized with origin/main",
+          "status": "PASS"
+        },
+        {
+          "name": "incoming_main_collision_scope",
+          "result": "Admin OS only. No app/(site)/dashboard, app/api/dashboard, Servicios public/publish/manage, saved-search, or Guardados files in incoming diff.",
+          "status": "PASS"
+        },
+        {
+          "name": "dash16_coupons_offers_display",
+          "classification": "LIVE-SHARED",
+          "result": "receiver display ready via coupons_offers; publish persist still SERVICIOS_OFFERS_ADDON_PACKAGE_KEY on current main",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash18_custom_quick_facts_hydration",
+          "classification": "LIVE-SHARED",
+          "result": "receiver edit routing ready; customQuickFacts published hydration missing on current main",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash21_receiver_edit_identity",
+          "classification": "LIVE",
+          "result": "serviciosListingEditHref emits listingId/slug/leonixAdId; upstream write-key remains Golden",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash23_uuid_fail_closed",
+          "classification": "BLOCKED",
+          "owner": "SERVICIOS GOLDEN",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash26_resume_presentation",
+          "classification": "LIVE",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash27_commercial_resume",
+          "classification": "BLOCKED",
+          "owner": "SERVICIOS GOLDEN",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash53_detail_save",
+          "classification": "BUILD REQUIRED UPSTREAM / SERVICIOS GOLDEN",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash53_result_card_save",
+          "classification": "BUILD REQUIRED UPSTREAM / SERVICIOS GOLDEN",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash53_guardados_persistence",
+          "classification": "LIVE-SHARED",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash58_saved_search_category",
+          "classification": "BUILD REQUIRED UPSTREAM",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash59_saved_search_location",
+          "classification": "BUILD REQUIRED UPSTREAM",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash60_saved_search_filters",
+          "classification": "BUILD REQUIRED UPSTREAM",
+          "status": "RECORDED"
+        },
+        {
+          "name": "dash68_lifecycle_truth",
+          "classification": "LIVE-SHARED",
+          "result": "dashboard and admin share listing_status; DASH-27 upstream dependency remains",
+          "status": "RECORDED"
+        },
+        {
+          "name": "product_source_edited_by_receiver",
+          "result": "NO",
+          "status": "PASS"
+        },
+        {
+          "name": "next_receiver_action",
+          "result": "After Golden lands finished contracts on current main or a coordinated SHA: fetch origin/main, reconcile if needed, rerun targeted checks, clear upstream-dependent DASH items, identify any true receiver residual, then final receiver source certification. No owner QA before that.",
+          "status": "RECORDED"
+        }
+      ]
+    },
+    {
+      "gate": "owner-receiver-dash-01-76-true-false-source-completion-2026-09-11",
+      "receiverHead": "b49cebf669c5b517eb7d78df649f59e9dfdc3312",
+      "productSha": "9fcadb4daf599e15fca62adcb647abbf96ce6bd8",
+      "originMain": "9fcadb4daf599e15fca62adcb647abbf96ce6bd8",
+      "reconciliation": "not required; 2 docs commits ahead of origin/main",
+      "receiverRequiredProductWork": "NONE PROVEN",
+      "bucketD": "NONE",
+      "unknown": "NONE",
+      "qa": "NOT RUN",
+      "readyForFinalSourceCertificationGate": true,
+      "checks": [
+        {
+          "name": "origin_main_unchanged",
+          "result": "origin/main still 9fcadb4d; no feature-branch merge",
+          "status": "PASS"
+        },
+        {
+          "name": "dash_01_76_true_false",
+          "result": "All 76 items classified. Bucket A=9, B=60, C=7, D=0, UNKNOWN=0. Canonical table in SERVICIOS_OWNER_DASHBOARD_RUNTIME_LEDGER_2026-09-11.md section 25B.",
+          "status": "PASS"
+        },
+        {
+          "name": "blocked_external",
+          "result": "DASH-18 SRV-GOLDEN-03; DASH-23 SRV-GOLDEN-01; DASH-27 SRV-GOLDEN-04; DASH-53 public Save; DASH-58/59/60 Saved Search adoption",
+          "status": "RECORDED"
+        },
+        {
+          "name": "optional_deferred_unchanged",
+          "result": "DASH-32 DASH-33 DASH-40 remain optional/non-blocking",
+          "status": "PASS"
+        },
+        {
+          "name": "duplicate_architecture",
+          "result": "NONE",
+          "status": "PASS"
+        },
+        {
+          "name": "receiver_product_source_edited",
+          "result": "NO",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "owner-prompt-1-source-certification-preview-delivery-2026-09-11",
+      "sourceHeadCertified": "394d6fdbb98891278ab2436135136e55c9fba1c7",
+      "productSha": "9fcadb4daf599e15fca62adcb647abbf96ce6bd8",
+      "originMain": "9fcadb4daf599e15fca62adcb647abbf96ce6bd8",
+      "reconciliation": "not required; origin/main unchanged; receiver 3 docs commits ahead / 0 behind",
+      "receiverRequiredProductWork": "NONE PROVEN",
+      "bucketD": "NONE",
+      "unknown": "NONE",
+      "qa": "NOT RUN",
+      "qaAuthorized": false,
+      "runtimeProof": "NOT RUN",
+      "checks": [
+        {
+          "name": "gate_a_worktree_lock",
+          "result": "C:\\projects\\elaguila-website-owner-command-center; branch integration/owner-command-center-globalization-2026-08; HEAD 394d6fdb; tracked clean; untracked .claude/ only",
+          "status": "PASS"
+        },
+        {
+          "name": "gate_b_fetch_main",
+          "result": "origin/main still 9fcadb4d; no Golden contracts landed; no merge",
+          "status": "PASS"
+        },
+        {
+          "name": "gate_c_bucket_d",
+          "result": "NONE — single LeonixDashboardShell / OwnerEntityWorkspace; CATEGORY_REGISTRY autos|bienes-raices|rentas; no LeonixSaveButton under servicios; allocateSlug INSERT fallback still on publish; no resolveServiciosReactivationAuthority on manage",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_attention_truth",
+          "command": "npx tsx scripts/verify-owner-attention-truth-01.ts",
+          "result": "22/22 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_shared_specialized_tools",
+          "command": "npx tsx scripts/verify-owner-shared-specialized-tools-01.ts",
+          "result": "33/33 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_owner_lifecycle_contract",
+          "command": "npx tsx scripts/gate-g1-owner-lifecycle-contract-selftest.ts",
+          "result": "OK",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_rentas_lifecycle_renewal",
+          "command": "node scripts/verify-rentas-lifecycle-renewal-dashboard-global-engine-01.mjs",
+          "result": "PASS — 9/9",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_paid_listing_lifecycle_engine",
+          "command": "node scripts/verify-leonix-paid-listing-lifecycle-engine-01.mjs",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_whole_product_final_reconciliation",
+          "command": "npx tsx scripts/verify-owner-command-center-final-reconciliation.ts",
+          "result": "182/182 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verifier_gate20_fixed_term_renewal",
+          "command": "node scripts/verify-owner-command-center-gate20-fixed-term-renewal-01.mjs",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "typescript_full_typecheck",
+          "command": "npx tsc --noEmit --incremental false -p tsconfig.json",
+          "errorCount": 7,
+          "newErrorsFound": 0,
+          "result": "PASS WITH PROVEN BASELINE — 7 errors, all e2e/**, identical class to recorded 7-error e2e-only baseline; git diff 9fcadb4d HEAD -- e2e empty",
+          "status": "PASS"
+        },
+        {
+          "name": "production_build",
+          "command": "npm run build (NODE_OPTIONS=--max-old-space-size=12288)",
+          "result": "PASS — exit 0, Compiled successfully in 2.9min, wall ~396s; key routes /dashboard /dashboard/servicios /dashboard/mis-anuncios /dashboard/business-tools /dashboard/guardados /dashboard/busquedas-guardadas /api/dashboard/business/home present; only pre-existing themeColor viewport warnings",
+          "status": "PASS"
+        },
+        {
+          "name": "git_diff_check",
+          "result": "PASS on clean tracked tree before restamp",
+          "status": "PASS"
+        },
+        {
+          "name": "tests_json_parse",
+          "result": "VALID",
+          "status": "PASS"
+        },
+        {
+          "name": "duplicate_architecture",
+          "result": "NONE",
+          "status": "PASS"
+        },
+        {
+          "name": "product_source_edited",
+          "result": "NO",
+          "status": "PASS"
+        },
+        {
+          "name": "external_bucket_c_unchanged",
+          "result": "DASH-18 SRV-GOLDEN-03; DASH-23 SRV-GOLDEN-01; DASH-27 SRV-GOLDEN-04; DASH-53 public Save; DASH-58/59/60 Saved Search. Related: DASH-16 persist SRV-GOLDEN-02 (OCC display TRUE); DASH-21 write SRV-GOLDEN-01 (OCC listingId emission TRUE)",
+          "status": "RECORDED"
+        }
+      ]
+    },
+    {
+      "gate": "servicios-golden-intake-strategy-b-2026-09-11",
+      "authorizedGoldenSha": "9e874060e5b9c960cdfcd3c60dcdceab81441e55",
+      "strategy": "B",
+      "productIntakeHead": "4b402962a12c0daab9058911e7f806a6f86b74d5",
+      "finalProductSourceSha": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+      "compileResidual": "ff96fa3d cherry-picked — scripts/servicios-manual-qa-catalog-seed.ts only; owner-qa-delta discovery-facet type completion at 3b00a4e6",
+      "occResidual": "NONE",
+      "fullRequiredSourceContract": true,
+      "unknown": "NONE",
+      "externalBlockers": [],
+      "qa": "NOT RUN",
+      "runtimeProof": "NOT RUN",
+      "checks": [
+        {
+          "name": "verify_servicios_golden_receiver_contracts",
+          "command": "npm run verify:servicios-golden-receiver-contracts",
+          "result": "PASS 10/10",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_servicios_gate1_lifecycle",
+          "command": "npx tsx scripts/verify-servicios-gate1-lifecycle.ts",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_servicios_publish_authority",
+          "command": "npx tsx scripts/verify-servicios-publish-authority.ts",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_servicios_owner_qa_delta",
+          "command": "npx tsx scripts/verify-servicios-owner-qa-delta.ts",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_servicios_engagement_2",
+          "command": "node scripts/verify-servicios-engagement-2.mjs",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_servicios_gate2_discovery",
+          "command": "npx tsx scripts/verify-servicios-gate2-discovery.ts",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_servicios_edit_roundtrip",
+          "command": "npx tsx scripts/verify-servicios-edit-roundtrip.ts",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_owner_attention_truth",
+          "command": "npx tsx scripts/verify-owner-attention-truth-01.ts",
+          "result": "22/22 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_owner_shared_specialized_tools",
+          "command": "npx tsx scripts/verify-owner-shared-specialized-tools-01.ts",
+          "result": "33/33 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_owner_lifecycle_contract",
+          "command": "npx tsx scripts/gate-g1-owner-lifecycle-contract-selftest.ts",
+          "result": "OK",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_owner_command_center_final",
+          "command": "npx tsx scripts/verify-owner-command-center-final-reconciliation.ts",
+          "result": "182/182 PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_owner_command_center_gate20",
+          "command": "node scripts/verify-owner-command-center-gate20-fixed-term-renewal-01.mjs",
+          "result": "PASS",
+          "status": "PASS"
+        },
+        {
+          "name": "verify_servicios_interaction_polish",
+          "command": "node scripts/verify-servicios-interaction-polish.mjs",
+          "result": "FAIL — identical pre-existing Golden CtaActionSheet on ServiciosBusinessHubContactCard; not a receiver-contract defect; not repaired",
+          "status": "PREEXISTING_UNRELATED"
+        },
+        {
+          "name": "affected_dash_source",
+          "result": "DASH-16 persist / 18 / 21 write / 23 / 26 / 27 / 53 / 54 / 55 / 58 / 59 / 60 / 68 all TRUE",
+          "status": "PASS"
+        },
+        {
+          "name": "typescript",
+          "command": "npx tsc --noEmit --incremental false -p tsconfig.json (NODE_OPTIONS=--max-old-space-size=8192)",
+          "result": "PASS WITH PROVEN BASELINE — 7 errors, all e2e/: autos-a5-recovery-25 TS18046 (1) + community-preview-publish-bar TS2345 (3) + community-preview-published-shell-parity TS2345 (3). e2e/ unchanged vs origin/main 9fcadb4d. NEW APP/SOURCE ERRORS 0. NEW REQUIRED TEST/VERIFIER ERRORS 0.",
+          "status": "PASS"
+        },
+        {
+          "name": "production_build",
+          "command": "Vercel Preview npm run build (not --prod)",
+          "result": "PASS on SHA 3b00a4e6 — dpl_GS6RgWpcPTQgGYZDSnXS3J1NF5yX READY. Local npm run build not re-run this closure. Earlier Preview type_errors at c8c57533/141c1a61 were closed before this SHA.",
+          "status": "PASS"
+        },
+        {
+          "name": "migration_application_leonix_media",
+          "result": "Preview env host xuieateniufcrsfdomwl.supabase.co. History: 20260910201735 saved_search_match_events_servicios; 20260911024723 servicios_public_listings_read_privacy. Live CHECK includes servicios + seller_lane business/independent. private_contact jsonb present. RLS SELECT published (anon+auth) + own (auth). anon/auth have no SELECT grant on private_contact. Not applied to Production as a new write this closure — already present. Staging project does not host these two names.",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "gate": "servicios-preqa-certification-closure-2026-09-11",
+      "productSourceSha": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+      "goldenCoordinatedSha": "9e874060e5b9c960cdfcd3c60dcdceab81441e55",
+      "currentOriginMain": "9fcadb4daf599e15fca62adcb647abbf96ce6bd8",
+      "previewId": "dpl_GS6RgWpcPTQgGYZDSnXS3J1NF5yX",
+      "previewUrl": "https://leonix-media-nf2dja2uq-jesus-caceres-projects.vercel.app",
+      "previewSha": "3b00a4e6ed3b916ef60231adcf464429ff22faa6",
+      "newPreviewRequired": false,
+      "qaAuthorized": false,
+      "ownerQa": "NOT RUN",
+      "visualQa": "NOT RUN",
+      "goldenRuntime": "NOT RUN",
+      "p0SourceBlockers": "NONE",
+      "p1SourceBlockers": "NONE",
+      "unknown": "NONE",
+      "fullRequiredSourceContract": true,
+      "checks": [
+        {
+          "name": "typescript",
+          "command": "npx tsc --noEmit --incremental false -p tsconfig.json (NODE_OPTIONS=--max-old-space-size=8192)",
+          "result": "PASS WITH PROVEN BASELINE — 7 errors, all e2e/: autos-a5-recovery-25 TS18046 (1) + community-preview-publish-bar TS2345 (3) + community-preview-published-shell-parity TS2345 (3). e2e/ unchanged vs origin/main 9fcadb4d. NEW APP/SOURCE ERRORS 0. NEW REQUIRED TEST/VERIFIER ERRORS 0.",
+          "status": "PASS"
+        },
+        {
+          "name": "migration_application_leonix_media",
+          "result": "Preview env host xuieateniufcrsfdomwl.supabase.co (Leonix Media). History: 20260910201735 saved_search_match_events_servicios; 20260911024723 servicios_public_listings_read_privacy. Live CHECK includes servicios + seller_lane business/independent. private_contact jsonb present. RLS SELECT published (anon+auth) + own (auth). anon/auth have no SELECT grant on private_contact. Already applied — this closure did not write schema. Staging cgeehvnfyrdoperdotdh is not the Preview DB.",
+          "status": "PASS"
+        },
+        {
+          "name": "preview_decision",
+          "result": "Docs-only certification. Certified product Preview remains dpl_GS6RgWpcPTQgGYZDSnXS3J1NF5yX at SHA 3b00a4e6. NEW PREVIEW REQUIRED: NO.",
+          "status": "PASS"
+        }
+      ]
+    }
+  ]
+}

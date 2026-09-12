@@ -23,6 +23,13 @@
     "verify:business-identity-mobile-width-containment": "npx tsx scripts/verify-business-identity-mobile-width-containment-01.ts",
     "verify:sales-business-workspace": "npx tsx scripts/verify-sales-business-workspace-01.ts",
     "verify:admin-roster-foundation": "npx tsx scripts/verify-admin-roster-foundation-01.ts",
+    "verify:executive-hub-self-service": "npx tsx scripts/verify-executive-hub-self-service-01.ts",
+    "verify:executive-company-search": "npx tsx scripts/verify-executive-company-search-01.ts",
+    "verify:owner-auth-break-glass": "npx tsx scripts/verify-owner-auth-break-glass-01.ts",
+    "verify:admin-password-recovery": "npx tsx scripts/verify-admin-password-recovery-01.ts",
+    "verify:launch-truth": "npx tsx scripts/verify-launch-truth-01.ts",
+    "verify:launch-truth-final-burndown": "npx tsx scripts/verify-launch-truth-final-burndown-01.ts",
+    "verify:revenue-write-security-hardening": "npx tsx scripts/verify-revenue-write-security-hardening-01.ts",
     "verify:living-business-book": "npx tsx scripts/verify-living-business-book-01.ts",
     "verify:business-health-map": "npx tsx scripts/verify-business-health-map-01.ts",
     "verify:business-learning-center": "npx tsx scripts/verify-business-learning-center-01.ts",
@@ -134,6 +141,7 @@
     "verify:servicios-trade-render-parity": "node scripts/verify-servicios-trade-render-parity.mjs",
     "verify:servicios-like-display-compact": "node scripts/verify-servicios-like-display-compact.mjs",
     "verify:servicios-interaction-polish": "node scripts/verify-servicios-interaction-polish.mjs",
+    "verify:servicios-golden-receiver-contracts": "node node_modules/tsx/dist/cli.mjs scripts/verify-servicios-golden-receiver-contracts.ts",
     "verify:servicios-engagement-smoke": "npx tsx scripts/servicios-engagement-smoke.ts",
     "verify:servicios-discovery-placement-truth": "node scripts/verify-servicios-discovery-placement-truth.mjs",
     "verify:servicios-analytics-truth": "node scripts/verify-servicios-analytics-truth.mjs",
@@ -612,7 +620,8 @@
     "verify:owner-command-center:package3:3d": "tsx scripts/verify-owner-command-center-package3-gate3d.ts",
     "verify:owner-command-center:package3:3e": "tsx scripts/verify-owner-command-center-package3-gate3e.ts",
     "verify:owner-command-center:final": "tsx scripts/verify-owner-command-center-final-reconciliation.ts",
-    "verify:owner-command-center:true-final-qa": "tsx scripts/verify-owner-command-center-true-final-qa.ts"
+    "verify:owner-command-center:true-final-qa": "tsx scripts/verify-owner-command-center-true-final-qa.ts",
+    "verify:owner-command-center:gate20-fixed-term-renewal": "node scripts/verify-owner-command-center-gate20-fixed-term-renewal-01.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

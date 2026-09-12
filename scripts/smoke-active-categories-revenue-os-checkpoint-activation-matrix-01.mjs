@@ -35,9 +35,11 @@ const rentasPreview = read(
 const entryCheckpoints = read("app/(site)/clasificados/publicar/_lib/categoryPublishCheckpoints.ts");
 const fulfillment = read("app/lib/listingPlans/revenueFulfillment.ts");
 
+// Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B4) — servicios_offers_addon removed from this SELLABLE-price
+// list: it is retired (coupons/offers are included in servicios_base_monthly) and its expected value
+// here (9900) was never its matrix price. Its retirement is asserted explicitly below instead.
 const priceChecks = [
   ["servicios_base_monthly", "39900"],
-  ["servicios_offers_addon", "9900"],
   ["br_agent_monthly", "39900"],
   ["br_inventory_pack_monthly", "9900"],
   ["autos_dealer_monthly", "39900"],
@@ -46,6 +48,14 @@ const priceChecks = [
   ["empleos_job_post_paid", "2499"],
   ["rentas_30d", "2499"],
 ];
+
+{
+  const anchor = matrix.indexOf('packageKey: "servicios_offers_addon"');
+  const slice = anchor >= 0 ? matrix.slice(anchor, anchor + 900) : "";
+  if (!slice) fail("Matrix must keep the historical servicios_offers_addon definition (legacy reads)");
+  if (!/newSalesRetired:\s*true/.test(slice)) fail("servicios_offers_addon must be newSalesRetired (included in base)");
+  if (!/stripeEligible:\s*false/.test(slice)) fail("servicios_offers_addon must not be Stripe-eligible");
+}
 
 for (const [key, cents] of priceChecks) {
   if (!matrix.includes(key)) fail(`Matrix missing package: ${key}`);
@@ -80,8 +90,10 @@ if (!serviciosPreview.includes("saveServiciosPendingBeforeCheckout")) {
 if (!serviciosPreview.includes("startRevenueCategoryCheckout")) {
   fail("Servicios preview must start Revenue OS checkout");
 }
-if (!serviciosPreview.includes("SERVICIOS_OFFERS_ADDON_PACKAGE_KEY") && !serviciosPreview.includes("servicios_offers_addon")) {
-  fail("Servicios preview must reference offers add-on");
+// Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B4) — current doctrine: offers are INCLUDED, so the preview
+// must price checkout from the base package only and never add an offers line item.
+if (!serviciosPreview.includes("getRevenuePackageDefinition(SERVICIOS_BASE_CHECKOUT.packageKey)?.priceCents")) {
+  fail("Servicios preview must price checkout from the base package only (offers included)");
 }
 ok("Servicios preview checkpoint + pending + checkout wiring");
 

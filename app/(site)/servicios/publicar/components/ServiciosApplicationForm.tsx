@@ -1,13 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { FiX } from "react-icons/fi";
 import { collectServiciosDraftFieldIssues } from "../lib/serviciosApplicationFieldValidation";
 import { getServiciosPublishReadiness } from "../lib/serviciosApplicationPublishReadiness";
 import { useServiciosApplicationDraftState } from "../hooks/useServiciosApplicationDraftState";
 import { getPublicarCopy } from "../serviciosPublicarCopy";
-import { serviciosCategories, isOtroServicio, type ServiciosCategoryOption } from "../serviciosCategories";
+import {
+  serviciosCategories,
+  isOtroServicio,
+  OTRO_SERVICIO_CATEGORY,
+  type ServiciosCategoryOption,
+} from "../serviciosCategories";
 import type {
   ServiciosHeroBadgeKind,
   ServiciosLang,
@@ -74,6 +79,7 @@ export function ServiciosApplicationForm({ lang }: { lang: ServiciosLang }) {
   const copy = getPublicarCopy(lang);
   const { draft, setDraft, hydrated, persistNow } = useServiciosApplicationDraftState();
   const [customServiceValue, setCustomServiceValue] = useState("");
+  const customServiceInputRef = useRef<HTMLInputElement | null>(null);
 
   const issues = useMemo(() => collectServiciosDraftFieldIssues(draft, lang === "en" ? "en" : "es"), [draft, lang]);
   const readiness = useMemo(() => getServiciosPublishReadiness(draft), [draft]);
@@ -103,9 +109,18 @@ export function ServiciosApplicationForm({ lang }: { lang: ServiciosLang }) {
     setDraft((d) => ({ ...d, hero: { ...d.hero, primaryCategory: value } }));
   };
 
+  /**
+   * "¿No ves tu categoría?" — the catalog already answers this: "Otro servicio" reveals a
+   * free-text field where the owner describes the service in their own words. This selects that
+   * option and moves focus into the field, so the control performs the help it offers rather
+   * than being a dead button. No modal and no help page is introduced.
+   */
   const handleNoCategoryClick = () => {
-    console.log("No veo mi categoría clicked - placeholder for help modal");
-    // TODO: Open help modal or navigate to help page
+    handleCategoryChange(OTRO_SERVICIO_CATEGORY);
+    // The input mounts in the same commit as the state change, so focus after paint.
+    requestAnimationFrame(() => {
+      customServiceInputRef.current?.focus();
+    });
   };
 
   const missingLabel = (key: string) => {
@@ -218,6 +233,7 @@ export function ServiciosApplicationForm({ lang }: { lang: ServiciosLang }) {
                 <div>
                   <label className="block text-sm font-medium text-neutral-800">{copy.labels.describeService}</label>
                   <input
+                    ref={customServiceInputRef}
                     className={inputClass()}
                     value={customServiceValue}
                     onChange={(e) => handleCustomServiceChange(e.target.value)}

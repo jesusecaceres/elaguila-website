@@ -56,7 +56,11 @@ import {
   resolveRevenueCategoryDefaultReturnPath,
   sanitizeRevenueOsReturnPath,
 } from "@/app/lib/listingPlans/revenueOsReturnPath";
-import { validateRentasRenewalCheckoutOwnership } from "@/app/lib/listingLifecycle/listingRenewalFulfillment";
+import {
+  validateRentasRenewalCheckoutOwnership,
+  validateAutosPrivadoRenewalCheckoutOwnership,
+  validateBienesFsboRenewalCheckoutOwnership,
+} from "@/app/lib/listingLifecycle/listingRenewalFulfillment";
 import { assertCommercialCapacityForWrite } from "@/app/lib/listingPlans/commercialWriteGuard";
 import {
   isRevenueBaseEntitlementGuardedPackage,
@@ -111,6 +115,10 @@ export async function POST(request: NextRequest) {
   const operationEarly = body.operation === "renew_listing" ? "renew_listing" : null;
   const isRentasRenewalEarly =
     operationEarly === "renew_listing" && categoryEarly === "rentas" && packageKeyEarly === "rentas_30d";
+  const isAutosPrivadoRenewalEarly =
+    operationEarly === "renew_listing" && categoryEarly === "autos" && packageKeyEarly === AUTOS_PRIVADO_30D_PACKAGE_KEY;
+  const isBienesFsboRenewalEarly =
+    operationEarly === "renew_listing" && categoryEarly === "bienes-raices" && packageKeyEarly === "br_fsbo_45d";
   const isRestauranteAddonOnlyEarly =
     categoryEarly === "restaurantes" && packageKeyEarly === RESTAURANTES_OFFERS_ADDON_PACKAGE_KEY;
   const isAutosDealerInventoryAddonEarly =
@@ -233,8 +241,38 @@ export async function POST(request: NextRequest) {
     serverVerifiedLeonixAdId = ownerGate.leonixAdId;
     serverVerifiedOwnerUserId = ownerGate.ownerUserId;
   }
+  if (isAutosPrivadoRenewalEarly) {
+    const ownerGate = await validateAutosPrivadoRenewalCheckoutOwnership({
+      listingId: String(body.listingId ?? "").trim(),
+      bearerUserId,
+    });
+    if (!ownerGate.ok) {
+      return NextResponse.json(
+        { ok: false, code: ownerGate.code, message: ownerGate.message },
+        { status: ownerGate.status },
+      );
+    }
+    serverVerifiedCurrentExpiresAt = ownerGate.currentExpiresAt;
+    serverVerifiedLeonixAdId = ownerGate.leonixAdId;
+    serverVerifiedOwnerUserId = ownerGate.ownerUserId;
+  }
+  if (isBienesFsboRenewalEarly) {
+    const ownerGate = await validateBienesFsboRenewalCheckoutOwnership({
+      listingId: String(body.listingId ?? "").trim(),
+      bearerUserId,
+    });
+    if (!ownerGate.ok) {
+      return NextResponse.json(
+        { ok: false, code: ownerGate.code, message: ownerGate.message },
+        { status: ownerGate.status },
+      );
+    }
+    serverVerifiedCurrentExpiresAt = ownerGate.currentExpiresAt;
+    serverVerifiedLeonixAdId = ownerGate.leonixAdId;
+    serverVerifiedOwnerUserId = ownerGate.ownerUserId;
+  }
 
-  const ownerUserId = isRestauranteAddonOnlyEarly || isAutosDealerInventoryAddonEarly || isBienesInventoryAddonOnlyEarly || isServiciosOffersAddonOnlyEarly || isRentasRenewalEarly || isOfertasLocalesCheckoutEarly
+  const ownerUserId = isRestauranteAddonOnlyEarly || isAutosDealerInventoryAddonEarly || isBienesInventoryAddonOnlyEarly || isServiciosOffersAddonOnlyEarly || isRentasRenewalEarly || isAutosPrivadoRenewalEarly || isBienesFsboRenewalEarly || isOfertasLocalesCheckoutEarly
     ? serverVerifiedOwnerUserId ?? bearerUserId
     : body.ownerUserId?.trim() || bearerUserId || null;
 
@@ -415,6 +453,16 @@ export async function POST(request: NextRequest) {
     // ── Decision 8 — coupon-first sequencing. Resolved BEFORE any reservation or payment-
     // record write. A requested-but-unavailable discount stops checkout creation entirely: no
     // Stripe session, no reservation, no payment record — never a silent full-price fallback.
+    // BOTH mechanisms discount the customer's FIRST payment by the same 15%, so the amount is
+    // computed for both. Only `unit_amount_reduction` additionally reduces the Stripe line item;
+    // `stripe_once_coupon` must leave `finalAmountCents` untouched so the subscription's own
+    // price stays full and renewals bill full price (the duration:"once" coupon discounts only
+    // the first invoice). Computing this for the coupon mechanism too is what lets the
+    // redemption ledger and the payment record store the REAL first-charge discount instead of
+    // zero — and the webhook's amount guard needs that value to recognise the discounted Stripe
+    // total as legitimate rather than rejecting fulfillment after a successful charge.
+    verifiedIntroDiscountCents = Math.floor((prelim.subtotalCents * 15) / 100);
+
     if (verifiedIntroDiscountMechanism === "stripe_once_coupon") {
       const couponResult = await ensureVerifiedIntroDiscountStripeCoupon();
       if (!couponResult.ok) {
@@ -429,7 +477,6 @@ export async function POST(request: NextRequest) {
       }
       verifiedIntroDiscountStripeCouponId = couponResult.couponId;
     } else {
-      verifiedIntroDiscountCents = Math.floor((prelim.subtotalCents * 15) / 100);
       finalAmountCents = Math.max(0, prelim.subtotalCents - verifiedIntroDiscountCents);
     }
 
@@ -514,12 +561,24 @@ export async function POST(request: NextRequest) {
     body.operation === "renew_listing" &&
     packageDef.packageKey === "rentas_30d" &&
     packageDef.category === "rentas";
+  const isAutosPrivadoRenewal =
+    body.operation === "renew_listing" &&
+    packageDef.packageKey === AUTOS_PRIVADO_30D_PACKAGE_KEY &&
+    packageDef.category === "autos";
+  const isBienesFsboRenewal =
+    body.operation === "renew_listing" &&
+    packageDef.packageKey === "br_fsbo_45d" &&
+    packageDef.category === "bienes-raices";
   const returnFallback = isRestauranteAddonOnly
     ? buildDashboardMisAnunciosReturnPath(locale, "restaurantes")
     : isBienesInventoryAddonOnly
     ? buildDashboardMisAnunciosReturnPath(locale, "bienes-raices")
     : isRentasRenewal
     ? buildDashboardMisAnunciosReturnPath(locale, "rentas")
+    : isAutosPrivadoRenewal
+    ? buildDashboardMisAnunciosReturnPath(locale, "autos")
+    : isBienesFsboRenewal
+    ? buildDashboardMisAnunciosReturnPath(locale, "bienes-raices")
     : packageDef.category === "ofertas-locales"
     ? `/dashboard/ofertas-locales/${encodeURIComponent(listingRef)}?lang=${locale}`
     : resolveRevenueCategoryDefaultReturnPath(packageDef.category, locale);
@@ -568,7 +627,7 @@ export async function POST(request: NextRequest) {
     packageKey: packageDef.packageKey,
     addOns: addOns.map((a) => ({ key: a.key, quantity: a.quantity })),
     billingMode: packageDef.billingMode,
-    operation: isRentasRenewal ? "renew_listing" : null,
+    operation: isRentasRenewal || isAutosPrivadoRenewal || isBienesFsboRenewal ? "renew_listing" : null,
   });
   let attemptGeneration = 1;
   const existingAttempt = await findOpenCheckoutAttempt(checkoutAttemptKey);
@@ -651,10 +710,13 @@ export async function POST(request: NextRequest) {
     promoBaseAmountCents: promoBaseAmountForRecord,
     addonOnly: isRestauranteAddonOnly || isBienesInventoryAddonOnly || isServiciosOffersAddonOnly,
     operation: body.operation === "renew_listing" ? "renew_listing" : null,
-    sourceTable: isRentasRenewal ? "listings" : body.sourceTable,
-    currentExpiresAt: isRentasRenewal || categoryEarly === "ofertas-locales" ? serverVerifiedCurrentExpiresAt ?? body.currentExpiresAt : body.currentExpiresAt,
+    sourceTable: isRentasRenewal || isBienesFsboRenewal ? "listings" : isAutosPrivadoRenewal ? "autos_classifieds_listings" : body.sourceTable,
+    currentExpiresAt:
+      isRentasRenewal || isAutosPrivadoRenewal || isBienesFsboRenewal || categoryEarly === "ofertas-locales"
+        ? serverVerifiedCurrentExpiresAt ?? body.currentExpiresAt
+        : body.currentExpiresAt,
     renewalAttemptId: categoryEarly === "ofertas-locales" ? body.renewalAttemptId : null,
-    returnContext: isRentasRenewal ? body.returnContext ?? "owner_dashboard" : body.returnContext,
+    returnContext: isRentasRenewal || isAutosPrivadoRenewal || isBienesFsboRenewal ? body.returnContext ?? "owner_dashboard" : body.returnContext,
     checkoutAttemptKey,
     attemptGeneration,
   });

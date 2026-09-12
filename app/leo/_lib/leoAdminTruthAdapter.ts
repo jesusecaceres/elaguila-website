@@ -12,10 +12,7 @@ import {
   splitAdminDashboardExpiringQueue,
   type AdminDashboardPendingReviewQueueRow,
 } from "@/app/admin/_lib/adminDashboardData";
-import {
-  ADMIN_REVIEW_REASON_SECONDARY_FALLBACK,
-  classifyDashboardReviewRowFlagTruth,
-} from "@/app/admin/_lib/adminReviewFlagTruth";
+import { ADMIN_REVIEW_REASON_SECONDARY_FALLBACK } from "@/app/admin/_lib/adminReviewFlagTruth";
 import { requireLeoOwnerAccess } from "@/app/leo/_lib/leoAccess";
 import type {
   LeoExecutiveTruthSnapshot,
@@ -53,11 +50,10 @@ function provenance(
 }
 
 function mapReviewObservation(row: AdminDashboardPendingReviewQueueRow): LeoObservation {
-  const truth = classifyDashboardReviewRowFlagTruth({
-    source: row.source,
-    status: row.status,
-    reason: row.reason,
-  });
+  // ADMIN-OS-01 GATE C: read the row's own pre-computed truth (full report/AI
+  // context from fetch time) rather than re-deriving from the flattened reason
+  // string, which silently mislabeled provenance for LEO's reasoning chain too.
+  const truth = row.flagTruth;
 
   const availability: LeoTruthAvailability = truth.canExplain
     ? "LIVE"

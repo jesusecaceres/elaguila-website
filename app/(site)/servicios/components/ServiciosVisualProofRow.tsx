@@ -10,6 +10,7 @@ import {
 } from "../lib/serviciosFeaturedMedia";
 import { ServiciosGalleryVideoTile } from "./ServiciosGalleryVideoTile";
 import { BusinessGalleryLightbox, type BusinessGallerySlide } from "@/app/components/media/BusinessGalleryModal";
+import { LeonixHorizontalRail } from "@/app/components/leonix/LeonixHorizontalRail";
 
 export function ServiciosVisualProofRow({
   profile,
@@ -67,7 +68,12 @@ export function ServiciosVisualProofRow({
           </p>
         </div>
 
-        <div className="-mx-1 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] md:hidden">
+        <LeonixHorizontalRail
+          lang={lang}
+          className="mt-4 md:hidden"
+          fadeColor="#FFFAF3"
+          trackClassName="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]"
+        >
           {images.map((image) => (
             <button
               key={image.id}
@@ -86,7 +92,7 @@ export function ServiciosVisualProofRow({
               />
             </button>
           ))}
-        </div>
+        </LeonixHorizontalRail>
 
         <div className="mt-4 hidden gap-3 md:grid md:grid-cols-2 lg:grid-cols-4">
           {images.map((image) => (

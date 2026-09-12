@@ -26,6 +26,7 @@ import { resolveActingRosterIdentity } from "@/app/admin/_lib/adminRosterAudit";
 import {
   createTeamInviteIntentAction,
   createTeamMemberRecordAction,
+  resolveTeamInviteIntentAction,
   toggleTeamMemberActiveAction,
   updateTeamMemberPermissionsAction,
 } from "../../../adminTeamActions";
@@ -34,9 +35,7 @@ import { StaffTeamNav } from "../../../_components/StaffTeamNav";
 export const dynamic = "force-dynamic";
 
 const PERM_SHORT: Record<AdminPermissionKey, string> = {
-  can_view_users: "Users (view)",
   can_edit_users: "Users (edit)",
-  can_reset_passwords: "Reset passwords",
   can_manage_ads: "Ads",
   can_manage_reports: "Reports",
   can_manage_categories: "Categories",
@@ -45,8 +44,6 @@ const PERM_SHORT: Record<AdminPermissionKey, string> = {
   can_manage_prayer_wall: "Prayer wall",
   can_view_payments: "Payments (view)",
   can_manage_team: "Team",
-  can_view_activity_logs: "Activity",
-  can_use_replica_mode: "Replica mode",
   can_manage_recursos: "Recursos",
 };
 
@@ -144,6 +141,45 @@ function DeactivateControl({ member, isSelf }: { member: MemberRow; isSelf: bool
   );
 }
 
+/**
+ * ADMIN-OS-01 GATE D: the schema already supports pending/accepted/revoked, but
+ * nothing ever wrote accepted/revoked before — every intent row sat as "pending"
+ * forever, even once the admin manually finished onboarding elsewhere via
+ * "Create staff login". This gives the lifecycle an honest, manual close-out step
+ * without inventing any new auth/email automation.
+ */
+function InviteResolveControls({ invite }: { invite: InviteRow }) {
+  if (invite.status !== "pending") {
+    return <span className="text-[#9A9084]">—</span>;
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      <form action={resolveTeamInviteIntentAction}>
+        <input type="hidden" name="id" value={invite.id} />
+        <input type="hidden" name="next_status" value="accepted" />
+        <button
+          type="submit"
+          className="min-h-[32px] rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase text-emerald-900"
+          title="Mark accepted — only after you've actually created their staff login"
+        >
+          Mark accepted
+        </button>
+      </form>
+      <form action={resolveTeamInviteIntentAction}>
+        <input type="hidden" name="id" value={invite.id} />
+        <input type="hidden" name="next_status" value="revoked" />
+        <button
+          type="submit"
+          className="min-h-[32px] rounded-lg border border-[#E8DFD0] bg-white px-2 py-1 text-[10px] font-bold uppercase text-[#5C5346]"
+          title="Revoke this invite intent"
+        >
+          Revoke
+        </button>
+      </form>
+    </div>
+  );
+}
+
 function parsePermissions(raw: unknown): AdminPermissionKey[] {
   if (!Array.isArray(raw)) return [];
   const out: AdminPermissionKey[] = [];
@@ -168,20 +204,24 @@ export default async function AdminTeamPage(props: {
 
   return (
     <div>
-      <StaffTeamNav showRosterLink={false} />
+      {/* This page is itself owner_admin-only (requireAdminTeamAccess/canViewAdminTeam), the
+          same gate every other showRosterLink={true}-equivalent Team page uses — showing the
+          Executive Hub tab here too closes a real discoverability gap: an operator managing
+          staff login/roster had no visible path to the staff contact-profile system. */}
+      <StaffTeamNav showRosterLink />
       <div className="mb-3 flex flex-wrap gap-2">
         {membersUnavailable ? (
-          <span className={adminStubBadgeClass}>Roster: table unavailable</span>
+          <span className={adminStubBadgeClass}>Roster: temporarily unavailable</span>
         ) : (
           <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-900">
-            Roster: admin_team_members
+            Roster: connected
           </span>
         )}
         {invitesUnavailable ? (
-          <span className={adminStubBadgeClass}>Invites: table unavailable</span>
+          <span className={adminStubBadgeClass}>Invites: temporarily unavailable</span>
         ) : (
           <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase text-amber-900">
-            Invites: admin_team_invites
+            Invites: connected
           </span>
         )}
       </div>
@@ -192,7 +232,7 @@ export default async function AdminTeamPage(props: {
       ) : null}
       {sp.member_error === "1" ? (
         <div className={`${adminCardBase} mb-4 border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-950`}>
-          Could not save member (check data or migration <code className="rounded bg-white/80 px-1">20260408183000_control_center_extensions.sql</code>).
+          Could not save member — check the values you entered, or check System Health for a Supabase issue.
         </div>
       ) : null}
       {sp.member_error === "duplicate" ? (
@@ -248,7 +288,9 @@ export default async function AdminTeamPage(props: {
       {!invitesUnavailable && invites.length > 0 ? (
         <div className={`${adminCardBase} mb-8 overflow-hidden`}>
           <div className="border-b border-[#E8DFD0]/80 bg-[#FFF8F0]/90 px-4 py-3 text-xs text-[#5C5346]">
-            Registered invites (intent). Complete signup in Supabase Auth or your IdP.
+            Registered invites (intent only — no email is sent). This status never changes on its own: create the
+            person&apos;s real access with &ldquo;Create staff login&rdquo; below, then come back and mark this row
+            Accepted or Revoked so it doesn&apos;t sit here indefinitely.
           </div>
           <div className={`overflow-x-auto ${adminDesktopTableOnly}`}>
             <table className="min-w-full border-collapse text-sm">
@@ -258,6 +300,7 @@ export default async function AdminTeamPage(props: {
                   <th className="p-3">Role</th>
                   <th className="p-3">Status</th>
                   <th className="p-3">Date</th>
+                  <th className="p-3">Close out</th>
                 </tr>
               </thead>
               <tbody>
@@ -268,6 +311,9 @@ export default async function AdminTeamPage(props: {
                     <td className="p-3 text-xs font-semibold">{inv.status}</td>
                     <td className="p-3 text-xs text-[#7A7164]">
                       {inv.created_at ? new Date(inv.created_at).toLocaleString("en-US") : "—"}
+                    </td>
+                    <td className="p-3 text-xs">
+                      <InviteResolveControls invite={inv} />
                     </td>
                   </tr>
                 ))}
@@ -287,6 +333,9 @@ export default async function AdminTeamPage(props: {
                     {inv.created_at ? new Date(inv.created_at).toLocaleString("en-US") : "—"}
                   </span>
                 </div>
+                <div className="mt-2">
+                  <InviteResolveControls invite={inv} />
+                </div>
               </article>
             ))}
           </div>
@@ -295,8 +344,8 @@ export default async function AdminTeamPage(props: {
 
       {membersUnavailable ? (
         <div className={adminWarningCallout}>
-          <strong>admin_team_members</strong> unavailable — apply migration{" "}
-          <code className="rounded bg-white/80 px-1 text-[11px]">20260408183000_control_center_extensions.sql</code>.
+          <strong>Team roster is temporarily unavailable.</strong> Check System Health, or contact an owner_admin if this
+          continues.
         </div>
       ) : members.length === 0 ? (
         <AdminEmptyState
@@ -308,7 +357,7 @@ export default async function AdminTeamPage(props: {
           <div className="border-b border-[#E8DFD0]/80 bg-[#FAF7F2]/90 px-4 py-2 text-xs font-semibold text-[#5C5346]">
             Roster (Supabase)
           </div>
-          <div className={adminDesktopTableOnly}>
+          <div className={`overflow-x-auto ${adminDesktopTableOnly}`}>
           <table className="min-w-full border-collapse text-sm">
             <thead className="bg-[#FBF7EF]/90 text-left text-xs font-bold uppercase tracking-wide text-[#7A7164]">
               <tr>
@@ -554,7 +603,7 @@ export default async function AdminTeamPage(props: {
         </p>
         {invitesUnavailable ? (
           <p className="mt-3 text-sm font-semibold text-amber-900">
-            Table unavailable: apply migration <code className="rounded bg-white/80 px-1">20260410120000_admin_audit_log_and_team_invites.sql</code>.
+            Temporarily unavailable — check System Health, or contact an owner_admin if this continues.
           </p>
         ) : (
           <form action={createTeamInviteIntentAction} className="mt-4 grid gap-3 sm:grid-cols-2">

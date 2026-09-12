@@ -73,12 +73,19 @@ ok("shared checkpoint Servicios branch + 4 confirmations");
 if (!payload.includes("SERVICIOS_BASE_CHECKOUT")) fail("SERVICIOS_BASE_CHECKOUT payload constant required");
 if (!payload.includes('packageKey: "servicios_base_monthly"')) fail("base checkout must use servicios_base_monthly");
 
-// Add-on allowlist (server)
-if (!checkoutLib.includes("SERVICIOS_OFFERS_ADDON_PACKAGE_KEY")) fail("checkout allowlist must import servicios add-on key");
-if (!/servicios:\s*\{[\s\S]*servicios_base_monthly[\s\S]*allowedKeys/.test(checkoutLib)) {
-  fail("server add-on allowlist must include servicios base → offers add-on");
+// Add-on allowlist (server) — Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B4): updated to current doctrine.
+// This used to REQUIRE a servicios → offers add-on entry, i.e. the retired $79 model. Coupons/offers
+// are now INCLUDED in servicios_base_monthly (Package C Build 3, owner-locked), so the add-on must
+// NOT be purchasable: assert there is no Servicios entry in the server add-on allowlist.
+{
+  const start = checkoutLib.indexOf("const CHECKOUT_ADDON_ALLOWLIST");
+  const allowlistBlock = start >= 0 ? checkoutLib.slice(start, checkoutLib.indexOf("\n};", start)) : "";
+  if (!allowlistBlock) fail("CHECKOUT_ADDON_ALLOWLIST must exist");
+  if (/\bservicios:\s*\{/.test(allowlistBlock)) {
+    fail("the retired servicios offers add-on must NOT be purchasable via the server add-on allowlist");
+  }
 }
-ok("checkout payload + server add-on allowlist");
+ok("checkout payload + server add-on allowlist (offers add-on not purchasable)");
 
 // Preview UI wiring
 if (!preview.includes("PublishCheckoutCheckpoint")) fail("preview must render shared checkpoint");
@@ -112,7 +119,14 @@ if (!sharedUi.includes("rulesModal")) fail("shared checkpoint must support optio
 
 // No regression to Restaurante checkout behavior
 if (!fulfillment.includes("tryActivateRestauranteListingAfterEntitlement")) fail("must not remove Restaurante activation");
-if (!checkoutLib.includes("restaurantes:")) fail("must not remove Restaurante add-on allowlist");
+// Gate SERVICIOS-P7-BLOCKER-REPAIR-01 — updated to current doctrine. The Restaurante offers add-on was
+// retired by Package C Build 3 (coupons included in its base too), so its allowlist entry is
+// legitimately gone and this check could never pass again. What Servicios work must not regress is
+// the SHARED add-on allowlist that still serves the categories with real add-ons.
+if (!checkoutLib.includes("const CHECKOUT_ADDON_ALLOWLIST")) fail("must not remove the shared add-on allowlist");
+if (!checkoutLib.includes('basePackageKey: "br_agent_monthly"') || !checkoutLib.includes('basePackageKey: "autos_dealer_monthly"')) {
+  fail("must not remove the Bienes / Autos add-on allowlist entries");
+}
 ok("Restaurante checkout/activation preserved");
 
 // Package scripts + doc headings

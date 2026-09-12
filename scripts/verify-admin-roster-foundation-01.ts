@@ -182,14 +182,19 @@ check("Roster page: last-updated timestamp is now shown per roster row (desktop 
   assert.ok((rosterPageText.match(/m\.updated_at/g) ?? []).length >= 2, "expected updated_at rendered in both the desktop table and the mobile card list");
 });
 
-// --- Attributable audit logging, not the legacy no-actor admin_audit_log --------------------------
+// --- Attributable audit logging: admin_roster_audit_log remains the strict, roster-specific
+// source of truth; admin_audit_log's own actor attribution (20260909140000, additive, not yet
+// applied remotely) is a separate, best-effort layer added later — this check was revisited as
+// its own comment anticipated ("if this ever gains an actor column, the roster audit design note
+// in the migration should be revisited") rather than left asserting a fact that is no longer true.
 const legacyAuditText = read("app/admin/_lib/adminAuditLogServer.ts");
-// Strip comments before scanning for real code — main's own Package E Build E3, Gate 3 doc
-// comment on this file explains (correctly) that the table has no actor column, which itself
-// contains the word "actor" and would otherwise false-positive this check.
-const legacyAuditCodeOnly = legacyAuditText.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
-check("Confirms the documented root cause: the legacy admin_audit_log insert genuinely has no actor column, which is why a dedicated roster audit table with real FK-based actor attribution was required", () => {
-  assert.ok(!/actor|operator_email|auth_user_id/i.test(legacyAuditCodeOnly), "if this ever gains an actor column, the roster audit design note in the migration should be revisited");
+check("admin_audit_log's own actor attribution (added 20260909140000) is best-effort and never fabricated: it degrades to null on any resolution failure and is not a NOT NULL/enforced column the way admin_roster_audit_log's actor fields are", () => {
+  assert.ok(legacyAuditText.includes("resolveActorForAuditWrite"), "expected the best-effort actor resolver introduced alongside the additive migration");
+  assert.ok(/actor_roster_id: null|actor_roster_id\?: string \| null/.test(legacyAuditText), "actor fields must be nullable/omittable, never a required or fabricated identity");
+  assert.ok(!/unattributed@|system@leonix-admin|"anonymous"/i.test(legacyAuditText), "must never fabricate a placeholder actor identity");
+});
+check("admin_roster_audit_log remains the authoritative, strictly-enforced (NOT NULL actor columns, real FK) audit trail for roster-specific actions — the newer admin_audit_log attribution does not replace or weaken it", () => {
+  assert.ok(migrationText.includes("actor_roster_id uuid NOT NULL REFERENCES public.admin_team_members(id)"));
 });
 check("writeRosterAuditLog: writes actor_roster_id/actor_auth_user_id/actor_email/actor_role to admin_roster_audit_log only when a real roster identity is resolvable — never a placeholder or fabricated actor", () => {
   assert.ok(rosterAuditText.includes("actor_roster_id: actor.rosterId"));

@@ -1,8 +1,9 @@
 /**
  * Visual-only image map for the Autos + Dealers de Autos landing discovery
  * cards. Both markets share this one page component (AutosLandingPage.tsx,
- * `market` prop) and several ids overlap (suv, truck, low-mileage), so one
- * unified map keeps a single photo per concept instead of duplicating it.
+ * `market` prop). The private market's suv/truck/low-mileage ids use one
+ * photo set; the dealer market has its own distinct photos for the same
+ * concepts under dealer-suv/dealer-truck/dealer-low-mileage.
  * Kept out of the copy/i18n layer on purpose — paths are language-independent.
  */
 export const AUTOS_CHILD_CATEGORY_IMAGE: Record<
@@ -18,7 +19,10 @@ export const AUTOS_CHILD_CATEGORY_IMAGE: Record<
   | "used"
   | "new"
   | "financing"
-  | "bay-area",
+  | "bay-area"
+  | "dealer-suv"
+  | "dealer-truck"
+  | "dealer-low-mileage",
   string
 > = {
   sedan: "/child-categories/autos/sedan.jpg",
@@ -34,4 +38,7 @@ export const AUTOS_CHILD_CATEGORY_IMAGE: Record<
   new: "/child-categories/autos/new.jpg",
   financing: "/child-categories/autos/financing.jpg",
   "bay-area": "/child-categories/autos/bay-area.jpg",
+  "dealer-suv": "/child-categories/autos/dealer-suv.jpg",
+  "dealer-truck": "/child-categories/autos/dealer-truck.jpg",
+  "dealer-low-mileage": "/child-categories/autos/dealer-low-mileage.jpg",
 } as const;

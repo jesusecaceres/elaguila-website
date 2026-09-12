@@ -17,7 +17,7 @@
  * specialized tools → activity. A section is omitted, not rendered empty, when its data is
  * absent — never decoration to preserve visual symmetry.
  */
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { DashboardListingActionBar, type ActionItem } from "./DashboardListingActionBar";
 import { DashboardMobileActionSheet } from "./DashboardMobileActionSheet";
 import { OwnerEntityHeader } from "./OwnerEntityHeader";
@@ -29,6 +29,13 @@ import { OwnerEntitySpecializedTools } from "./OwnerEntitySpecializedTools";
 import { OwnerEntityActivity, type OwnerEntityActivityItem } from "./OwnerEntityActivity";
 
 type Lang = "es" | "en";
+
+/** One titled specialized-tools group (gold role) — e.g. "Cupones y ofertas", "Inventario",
+ * "Herramientas de negocio". `specialized` accepts either one of these (existing single-group
+ * callers keep working unchanged) or an array of these (new multi-group callers), so a category
+ * page's own tools (coupons, inventory, applications) and a Business Tools doorway can coexist
+ * without forking into a second workspace shell or replacing each other. */
+export type OwnerEntitySpecializedGroup = { title: string; actions: ActionItem[]; children?: ReactNode };
 
 export function OwnerEntityWorkspace({
   lang,
@@ -65,8 +72,11 @@ export function OwnerEntityWorkspace({
   primaryAction: ActionItem;
   quickActions?: ActionItem[];
   lifecycleActions?: ActionItem[];
-  specialized?: { title: string; actions: ActionItem[]; children?: ReactNode };
-  activity?: { title: string; items: OwnerEntityActivityItem[]; emptyLabel?: string };
+  /** Backward-compatible: pass a single group exactly as before, or an array of groups when a
+   * category needs more than one (e.g. its own tools plus a Business Tools doorway). Empty
+   * groups (no actions, no children) are omitted automatically — never rendered as decoration. */
+  specialized?: OwnerEntitySpecializedGroup | OwnerEntitySpecializedGroup[];
+  activity?: { title: string; items: OwnerEntityActivityItem[]; emptyLabel?: string; id?: string };
   mobileSheetLabels: { trigger: string; title: string; close: string };
   /** Real, server-resolved attention/lifecycle note (e.g. "Requires urgent attention") — never
    * a fabricated status. Omit when there is nothing truthful to say. */
@@ -75,7 +85,18 @@ export function OwnerEntityWorkspace({
   footerHint?: string | null;
 }) {
   const primary: ActionItem = { ...primaryAction, tone: "primary" };
-  const overflowActions: ActionItem[] = [...quickActions, ...lifecycleActions, ...(specialized?.actions ?? [])];
+  // Deterministic order: whatever order the caller listed groups in (single-group callers are
+  // unaffected — Array.isArray(specialized) is false, so this is just [specialized]). A group
+  // with no actions and no children is dropped here, once, so every consumer below (the mobile
+  // sheet's overflow list included) already only sees real, renderable groups.
+  const specializedGroups: OwnerEntitySpecializedGroup[] = (
+    specialized ? (Array.isArray(specialized) ? specialized : [specialized]) : []
+  ).filter((group) => group.actions.length > 0 || Boolean(group.children));
+  const overflowActions: ActionItem[] = [
+    ...quickActions,
+    ...lifecycleActions,
+    ...specializedGroups.flatMap((group) => group.actions),
+  ];
 
   return (
     <div className="rounded-3xl border border-[#D6C7AD]/85 bg-[#FFFDF7] p-5 shadow-[0_10px_32px_-16px_rgba(31,36,28,0.1)] ring-1 ring-[#C9A84A]/10 sm:p-6">
@@ -125,21 +146,28 @@ export function OwnerEntityWorkspace({
             <DashboardListingActionBar actions={lifecycleActions} />
           </div>
         ) : null}
-        {specialized && specialized.actions.length > 0 ? (
-          <div className="hidden md:block">
-            <OwnerEntitySpecializedTools title={specialized.title} actions={specialized.actions} />
-          </div>
-        ) : null}
-        {specialized?.children ? (
-          <section aria-label={specialized.title}>
-            {specialized.actions.length === 0 ? (
-              <h3 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8A6B1F]">{specialized.title}</h3>
-            ) : (
-              <h3 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8A6B1F] md:hidden">{specialized.title}</h3>
-            )}
-            <div className="mt-2">{specialized.children}</div>
-          </section>
-        ) : null}
+        {specializedGroups.map((group, index) => (
+          // Fragment (no wrapping element) — each group's action-bar and children stay direct
+          // children of the flex column above, exactly as the single-group shape always was, so
+          // existing single-group callers get byte-identical spacing/layout.
+          <Fragment key={`${group.title}-${index}`}>
+            {group.actions.length > 0 ? (
+              <div className="hidden md:block">
+                <OwnerEntitySpecializedTools title={group.title} actions={group.actions} />
+              </div>
+            ) : null}
+            {group.children ? (
+              <section aria-label={group.title}>
+                {group.actions.length === 0 ? (
+                  <h3 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8A6B1F]">{group.title}</h3>
+                ) : (
+                  <h3 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8A6B1F] md:hidden">{group.title}</h3>
+                )}
+                <div className="mt-2">{group.children}</div>
+              </section>
+            ) : null}
+          </Fragment>
+        ))}
         {overflowActions.length > 0 ? (
           <DashboardMobileActionSheet
             triggerLabel={mobileSheetLabels.trigger}
@@ -150,7 +178,7 @@ export function OwnerEntityWorkspace({
         ) : null}
 
         {activity ? (
-          <OwnerEntityActivity title={activity.title} items={activity.items} emptyLabel={activity.emptyLabel} lang={lang} />
+          <OwnerEntityActivity title={activity.title} items={activity.items} emptyLabel={activity.emptyLabel} lang={lang} id={activity.id} />
         ) : null}
 
         {footerHint ? <p className="text-[11px] leading-relaxed text-[#9A9084]">{footerHint}</p> : null}

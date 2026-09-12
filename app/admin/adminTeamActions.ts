@@ -74,6 +74,40 @@ export async function createTeamInviteIntentAction(formData: FormData) {
   redirect("/admin/team/roster?invite_saved=1");
 }
 
+/**
+ * ADMIN-OS-01 GATE D: closes out an invite-intent row (pending -> accepted/revoked).
+ * The schema already defines this lifecycle (status CHECK: pending/accepted/revoked,
+ * migration 20260410120000) but nothing in the repo ever wrote "accepted" or "revoked"
+ * before this — every invite intent stayed "pending" forever even after the admin
+ * manually finished onboarding through the real "Create staff login" flow, which
+ * never touches this table. This does NOT create/modify a Supabase Auth user or
+ * send email — it only records that the admin has (or hasn't) completed onboarding
+ * elsewhere, closing the truthful lifecycle rather than leaving a permanently-stale
+ * status. See docs/admin-os/ADMIN_OS_CABLE_MAP.md, PEOPLE domain, "Team / Staff Roster".
+ */
+export async function resolveTeamInviteIntentAction(formData: FormData) {
+  await assertTeamAdmin();
+  const id = str(formData, "id");
+  const nextStatus = str(formData, "next_status");
+  if (!id || (nextStatus !== "accepted" && nextStatus !== "revoked")) {
+    redirect("/admin/team/roster?invite_error=1");
+  }
+
+  const supabase = getAdminSupabase();
+  const { error } = await supabase.from("admin_team_invites").update({ status: nextStatus }).eq("id", id);
+  if (error) redirect("/admin/team/roster?invite_error=1");
+
+  await appendAdminAuditLog({
+    action: nextStatus === "accepted" ? "team_invite_marked_accepted" : "team_invite_revoked",
+    targetType: "admin_team_invites",
+    targetId: id,
+    meta: {},
+  });
+
+  revalidatePath("/admin/team/roster");
+  redirect("/admin/team/roster?invite_saved=1");
+}
+
 /** Inserts a roster row — does not create a Supabase Auth user. */
 export async function createTeamMemberRecordAction(formData: FormData) {
   await assertTeamAdmin();

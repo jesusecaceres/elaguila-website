@@ -26,7 +26,7 @@ export default async function AdminDrawPlaceholderPage() {
         dataSource="No dedicated Supabase table or action surface; this page is a static admin placeholder."
         status="planned"
         safeActions={["Open Dashboard", "Open Website Control"]}
-        nextGate="ADMIN-OS-NAV-ARCHITECTURE-01"
+        nextGate="Finish reconciling Admin navigation so every page has one clear home."
         warningNote="This route is not linked from the primary admin nav and should not be treated as a working tool."
       />
       <div className={`${adminCardBase} p-6`}>

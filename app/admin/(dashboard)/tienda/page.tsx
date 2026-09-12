@@ -168,7 +168,7 @@ export default function AdminTiendaHubPage() {
         dataSource="tienda_catalog_items/images/pricing_rules, tienda_orders/assets, site_section_content storefront payload, and Launch Leads for quote intake."
         status="partial"
         safeActions={["Open promo leads", "Open catalog", "Open storefront editor", "Open orders when needed"]}
-        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        nextGate="Confirm every button and count on this page against live Supabase data before relying on it for daily decisions."
         warningNote="Dedicated inventory and Tienda-only settings routes are not in the repo and remain planned/missing."
       />
 

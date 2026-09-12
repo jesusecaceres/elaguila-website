@@ -17,18 +17,29 @@ export function isServiciosInternalFallbackBusinessTypeId(id: string): boolean {
   return false;
 }
 
+/**
+ * The single rule for "this business type publishes the owner's own description as its public
+ * category line" (today only "Otro servicio"). For these types `customServiceDescription` is
+ * persisted ONLY as `hero.categoryLine`, so edit hydration reads it back from there using this same
+ * rule (serviciosPublishedToApplicationDraft.ts).
+ */
+export function serviciosBusinessTypeUsesCustomCategoryLabel(businessTypeId: string): boolean {
+  return (
+    isServiciosInternalFallbackBusinessTypeId(businessTypeId) ||
+    getBusinessTypePreset(businessTypeId)?.internalGroup === "other"
+  );
+}
+
 export function resolveServiciosPublicCategoryLabel(
   state: Pick<ClasificadosServiciosApplicationState, "businessTypeId" | "customServiceDescription">,
   lang: ServiciosLang,
 ): string | undefined {
-  const preset = getBusinessTypePreset(state.businessTypeId);
-  const custom = String(state.customServiceDescription ?? "").trim();
-
-  const internalFallback = isServiciosInternalFallbackBusinessTypeId(state.businessTypeId) || preset?.internalGroup === "other";
-  if (internalFallback) {
+  if (serviciosBusinessTypeUsesCustomCategoryLabel(state.businessTypeId)) {
+    const custom = String(state.customServiceDescription ?? "").trim();
     return custom.length > 0 ? custom : undefined;
   }
 
+  const preset = getBusinessTypePreset(state.businessTypeId);
   const presetLabel = preset ? (lang === "en" ? preset.labelEn : preset.labelEs) : undefined;
   return presetLabel?.trim() || undefined;
 }

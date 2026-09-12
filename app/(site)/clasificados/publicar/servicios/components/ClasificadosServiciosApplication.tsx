@@ -17,8 +17,12 @@ import {
 import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
 import { PhoneInput } from "@/app/components/forms/PhoneInput";
 import CityAutocomplete from "@/app/components/CityAutocomplete";
+import { BusinessAddressVerifiedInput } from "@/app/components/forms/BusinessAddressVerifiedInput";
+import type { BusinessAddress } from "@/app/lib/businessAddress/businessAddressContract";
 import { LanguagesInput } from "@/app/components/forms/LanguagesInput";
 import { useAddedConfirmation, AddedConfirmationBadge } from "@/app/components/forms/AddedConfirmation";
+import { LeonixHorizontalRail } from "@/app/components/leonix/LeonixHorizontalRail";
+import { ServiciosCredentialDocumentField } from "./ServiciosCredentialDocumentField";
 import {
   HoursEditor,
   type HoursEditorDayRow,
@@ -144,7 +148,7 @@ import {
   SERVICIOS_CERTIFICATION_LABEL_MAX,
   SERVICIOS_CREDENTIAL_STRING_MAX,
 } from "@/app/servicios/lib/serviciosCredentialsCatalog";
-import { primeServiciosExistingPublicSlug } from "../lib/serviciosPublishClient";
+import { primeServiciosExistingListingId, primeServiciosExistingPublicSlug } from "../lib/serviciosPublishClient";
 import {
   serviciosPublishedToApplicationDraft,
   type ServiciosEditIdentity,
@@ -296,6 +300,21 @@ export function ClasificadosServiciosApplication() {
   const addedCustomLanguage = useAddedConfirmation();
   const addedServiceArea = useAddedConfirmation();
   const addedVideoUrl = useAddedConfirmation();
+  const addedCustomReason = useAddedConfirmation();
+  /** Owner QA ⚠️6 / ⚠️68 — why an explicit Add did not take the value (never shown as success). */
+  const addRejectionMessage = useCallback(
+    (reason: string) => {
+      if (reason === "duplicate") return lang === "en" ? "Already in your list." : "Ya está en tu lista.";
+      if (reason === "cap") return lang === "en" ? "You reached the maximum for this list." : "Llegaste al máximo de esta lista.";
+      if (reason === "fixed_language")
+        return lang === "en"
+          ? "Spanish and English are fixed options — select them above."
+          : "Español e Inglés ya son opciones fijas — selecciónalas arriba.";
+      if (reason === "blank") return lang === "en" ? "Type a value first." : "Escribe un valor primero.";
+      return lang === "en" ? "That value couldn't be added." : "No se pudo añadir ese valor.";
+    },
+    [lang],
+  );
   const addedGalleryImage = useAddedConfirmation();
   const addedCustomBusinessHighlight = useAddedConfirmation();
   const addedCustomPaymentMethod = useAddedConfirmation();
@@ -433,6 +452,7 @@ export function ClasificadosServiciosApplication() {
       return;
     }
     primeServiciosExistingPublicSlug(null);
+    primeServiciosExistingListingId(null);
     setEditIdentity(null);
     setNewFieldsMissing([]);
     setEditHydration({ status: "idle" });
@@ -505,6 +525,9 @@ export function ClasificadosServiciosApplication() {
         setEditIdentity(hydratedListing.editIdentity);
         setNewFieldsMissing(hydratedListing.newFieldsMissing);
         primeServiciosExistingPublicSlug(hydratedListing.editIdentity.slug);
+        // Gate SERVICIOS-1 — the canonical row id is the persistence authority for the next save;
+        // the slug above stays only as public routing identity / legacy fallback.
+        primeServiciosExistingListingId(hydratedListing.editIdentity.id);
         await saveClasificadosServiciosApplicationResolved(hydratedListing.state);
         setEditHydration({ status: "ready" });
         setHydrated(true);
@@ -662,6 +685,7 @@ export function ClasificadosServiciosApplication() {
     clearServiciosPreviewReturnHandoff();
     await clearServiciosDraftStorageAndIdb();
     primeServiciosExistingPublicSlug(null);
+    primeServiciosExistingListingId(null);
     setEditIdentity(null);
     setNewFieldsMissing([]);
     setEditHydration({ status: "idle" });
@@ -747,20 +771,24 @@ export function ClasificadosServiciosApplication() {
     const trimmed = languageOtherPending.trim();
     if (!trimmed) return;
     const candidateKey = normalizeServiceOfferedDedupeKey(trimmed);
+    // Owner QA ⚠️6 — a rejected value keeps the typed text and says why (it used to be wiped silently).
     if (FIXED_LANGUAGE_LABELS.includes(candidateKey)) {
-      setLanguageOtherPending("");
+      addedCustomLanguage.reject(addRejectionMessage("fixed_language"));
       return;
     }
-    let added = false;
+    const existing = state.languageOtherLines.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (existing.some((v) => normalizeServiceOfferedDedupeKey(v) === candidateKey)) {
+      addedCustomLanguage.reject(addRejectionMessage("duplicate"));
+      return;
+    }
     setState((s) => {
-      const existing = s.languageOtherLines.split("\n").map((l) => l.trim()).filter(Boolean);
-      if (existing.some((v) => normalizeServiceOfferedDedupeKey(v) === candidateKey)) return s;
-      added = true;
-      return { ...s, languageOtherLines: [...existing, trimmed].join("\n") };
+      const current = s.languageOtherLines.split("\n").map((l) => l.trim()).filter(Boolean);
+      if (current.some((v) => normalizeServiceOfferedDedupeKey(v) === candidateKey)) return s;
+      return { ...s, languageOtherLines: [...current, trimmed].join("\n") };
     });
     setLanguageOtherPending("");
-    if (added) addedCustomLanguage.flash();
-  }, [languageOtherPending, FIXED_LANGUAGE_LABELS, addedCustomLanguage.flash]);
+    addedCustomLanguage.flash();
+  }, [languageOtherPending, FIXED_LANGUAGE_LABELS, state.languageOtherLines, addedCustomLanguage, addRejectionMessage]);
 
   const removeCustomLanguageAt = useCallback((index: number) => {
     setState((s) => {
@@ -782,16 +810,19 @@ export function ClasificadosServiciosApplication() {
   const addServiceArea = useCallback(() => {
     const trimmed = serviceAreaPending.trim();
     if (!trimmed) return;
-    let added = false;
+    const existing = state.serviceAreaNotes.split("\n").map((v) => v.trim()).filter(Boolean);
+    if (existing.some((v) => v.toLowerCase() === trimmed.toLowerCase())) {
+      addedServiceArea.reject(addRejectionMessage("duplicate"));
+      return;
+    }
     setState((s) => {
-      const existing = s.serviceAreaNotes.split("\n").map((v) => v.trim()).filter(Boolean);
-      if (existing.some((v) => v.toLowerCase() === trimmed.toLowerCase())) return s;
-      added = true;
-      return { ...s, serviceAreaNotes: [...existing, trimmed].join("\n") };
+      const current = s.serviceAreaNotes.split("\n").map((v) => v.trim()).filter(Boolean);
+      if (current.some((v) => v.toLowerCase() === trimmed.toLowerCase())) return s;
+      return { ...s, serviceAreaNotes: [...current, trimmed].join("\n") };
     });
     setServiceAreaPending("");
-    if (added) addedServiceArea.flash();
-  }, [serviceAreaPending, addedServiceArea.flash]);
+    addedServiceArea.flash();
+  }, [serviceAreaPending, state.serviceAreaNotes, addedServiceArea, addRejectionMessage]);
 
   const removeServiceAreaAt = useCallback((index: number) => {
     setState((s) => {
@@ -1208,11 +1239,22 @@ export function ClasificadosServiciosApplication() {
 
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
           <aside className="lg:sticky lg:top-24 lg:w-60 lg:shrink-0">
-            <div className="flex gap-1.5 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch] lg:hidden">
+            {/* SVC-QA-33 / ⚠️30 — on small screens the active step scrolls into view inside the rail
+                (never the page), and arrows/fade show only when steps are actually hidden. */}
+            <LeonixHorizontalRail
+              lang={lang}
+              className="lg:hidden"
+              fadeColor="#F6F0E2"
+              revealKey={step}
+              ariaLabel={lang === "es" ? "Pasos del formulario" : "Form steps"}
+              trackClassName="flex gap-1.5 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]"
+            >
               {stepShortLabels.map((short, i) => (
                 <button
                   key={`servicios-step-tab-${i}`}
                   type="button"
+                  data-rail-active={step === i ? "true" : undefined}
+                  aria-current={step === i ? "step" : undefined}
                   onClick={() => goToStep(i)}
                   className={[
                     "shrink-0 touch-manipulation rounded-full border px-3 py-2 text-left text-xs font-semibold transition",
@@ -1224,7 +1266,7 @@ export function ClasificadosServiciosApplication() {
                   <span className="tabular-nums text-[#8a7a62]">{i + 1}.</span> {short}
                 </button>
               ))}
-            </div>
+            </LeonixHorizontalRail>
             <nav
               className="hidden rounded-2xl border border-[#D8C79A]/50 bg-[#FFFDF7]/90 p-3 shadow-sm lg:block"
               aria-label={lang === "es" ? "Pasos del formulario" : "Form steps"}
@@ -1452,6 +1494,7 @@ export function ClasificadosServiciosApplication() {
                 <AddedConfirmationBadge
                   visible={addedServiceArea.visible}
                   label={lang === "en" ? "Added" : "Añadido"}
+                  rejectedMessage={addedServiceArea.rejectedMessage}
                 />
               </div>
             </div>
@@ -1462,11 +1505,45 @@ export function ClasificadosServiciosApplication() {
               <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <label className={labelClass}>{copy.labels.physicalStreet}</label>
-                  <input
-                    className={inputClass}
-                    value={state.physicalStreet}
-                    onChange={(e) => setState((s) => ({ ...s, physicalStreet: e.target.value }))}
-                    autoComplete="street-address"
+                  <BusinessAddressVerifiedInput
+                    lang={lang}
+                    inputClassName={inputClass}
+                    locationHint={[state.physicalAddressCity || state.city, state.physicalRegion || state.state]
+                      .map((v) => (v ?? "").trim())
+                      .filter(Boolean)
+                      .join(", ")}
+                    value={{
+                      street: state.physicalStreet,
+                      unit: state.physicalSuite || undefined,
+                      city: state.physicalAddressCity,
+                      region: state.physicalRegion,
+                      postalCode: state.physicalPostalCode,
+                      country: state.physicalCountry,
+                      verificationStatus: state.physicalVerificationStatus,
+                      provider: state.physicalProvider,
+                      providerPlaceId: state.physicalProviderPlaceId,
+                      manualEntry: state.physicalVerificationStatus !== "user_confirmed",
+                    }}
+                    onChange={(next: BusinessAddress) =>
+                      setState((s) => ({
+                        ...s,
+                        physicalStreet: next.street,
+                        // A picked suggestion carries its own city/region/postal/country — auto-fill
+                        // those fields too so the owner doesn't have to retype them. Manual typing
+                        // (verificationStatus stays "manual") only ever touches the street field.
+                        ...(next.verificationStatus === "user_confirmed"
+                          ? {
+                              physicalAddressCity: next.city || s.physicalAddressCity,
+                              physicalRegion: next.region || s.physicalRegion,
+                              physicalPostalCode: next.postalCode || s.physicalPostalCode,
+                              physicalCountry: next.country || s.physicalCountry,
+                            }
+                          : {}),
+                        physicalVerificationStatus: next.verificationStatus,
+                        physicalProvider: next.provider ?? null,
+                        physicalProviderPlaceId: next.providerPlaceId ?? null,
+                      }))
+                    }
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -1533,6 +1610,26 @@ export function ClasificadosServiciosApplication() {
                     onChange={(e) => setState((s) => ({ ...s, physicalPostalCode: e.target.value }))}
                     autoComplete="postal-code"
                   />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="flex items-start gap-2 text-sm font-medium text-[#3D2C12]">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#D8C79A]"
+                      checked={state.showExactAddress}
+                      onChange={(e) => setState((s) => ({ ...s, showExactAddress: e.target.checked }))}
+                    />
+                    <span>
+                      {lang === "en"
+                        ? "Show my exact street address publicly and allow “Get directions”"
+                        : "Mostrar mi dirección exacta públicamente y permitir “Cómo llegar”"}
+                    </span>
+                  </label>
+                  <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">
+                    {lang === "en"
+                      ? "When off, your street address stays private — your city still shows to help customers find you."
+                      : "Si está desactivado, tu dirección exacta se mantiene privada — tu ciudad sigue mostrándose para que los clientes te encuentren."}
+                  </p>
                 </div>
               </div>
             </div>
@@ -1795,6 +1892,7 @@ export function ClasificadosServiciosApplication() {
                 visible={addedCustomLanguage.visible}
                 label={lang === "en" ? "Added" : "Añadido"}
                 className="mt-2"
+                rejectedMessage={addedCustomLanguage.rejectedMessage}
               />
             </div>
           </div>
@@ -2190,6 +2288,7 @@ export function ClasificadosServiciosApplication() {
                   value={state.customServiceLabel}
                   onChange={(e) => {
                     const v = e.target.value.slice(0, CUSTOM_CHIP_MAX_LENGTH);
+                    addedCustomService.clearRejection();
                     setState((s) => ({ ...s, customServiceLabel: v }));
                   }}
                 />
@@ -2201,18 +2300,21 @@ export function ClasificadosServiciosApplication() {
                   }
                   className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                   onClick={() => {
-                    let added = false;
-                    setState((prev) => {
-                      const r = evaluateAddCustomServiceOffered(prev, lang, prev.customServiceLabel);
-                      if (!r.ok) return prev;
-                      added = true;
-                      return enforceServiciosSelectionCaps({
+                    // Owner QA SVC-QA-01 / ⚠️6 — decide against the rendered state first: success clears
+                    // the input and confirms; a duplicate / limit keeps the text and says why.
+                    const r = evaluateAddCustomServiceOffered(state, lang, state.customServiceLabel);
+                    if (!r.ok) {
+                      addedCustomService.reject(addRejectionMessage(r.reason));
+                      return;
+                    }
+                    setState((prev) =>
+                      enforceServiciosSelectionCaps({
                         ...prev,
                         customServicesOffered: [...prev.customServicesOffered, r.label],
                         customServiceLabel: "",
-                      });
-                    });
-                    if (added) addedCustomService.flash();
+                      }),
+                    );
+                    addedCustomService.flash();
                   }}
                 >
                   {copy.labels.addCustomChip}
@@ -2220,6 +2322,7 @@ export function ClasificadosServiciosApplication() {
                 <AddedConfirmationBadge
                   visible={addedCustomService.visible}
                   label={lang === "en" ? "Added" : "Añadido"}
+                  rejectedMessage={addedCustomService.rejectedMessage}
                 />
               </div>
               <p className="mt-2 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.customServicesHelperHint}</p>
@@ -2307,25 +2410,17 @@ export function ClasificadosServiciosApplication() {
               ) : null}
               <label className={`mt-6 block ${labelClass}`}>{copy.labels.customReason}</label>
               <p className="mt-1 text-xs text-[#6b5c42]">{copy.labels.customChipShortHint}</p>
-              <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
-                <input
-                  className={inputClass}
-                  placeholder={copy.labels.customChipPlaceholder}
-                  maxLength={CUSTOM_CHIP_MAX_LENGTH}
-                  disabled={
-                    !state.customReasonIncluded && state.selectedReasonIds.length >= MAX_REASONS_SELECTION
-                  }
-                  value={state.customReasonLabel}
-                  onChange={(e) => {
-                    const v = e.target.value.slice(0, CUSTOM_CHIP_MAX_LENGTH);
-                    setState((s) => ({
-                      ...s,
-                      customReasonLabel: v,
-                      customReasonIncluded: v.trim().length > 0 ? s.customReasonIncluded : false,
-                    }));
-                  }}
-                />
-                {state.customReasonIncluded ? (
+              {/* Owner QA SVC-QA-01 — "Otro motivo" holds ONE custom reason. It used to stay typed in the
+                  input next to "Quitar" after Añadir, so it looked un-added. A successful add now
+                  becomes a committed chip (the input is gone until it is removed). */}
+              {state.customReasonIncluded && state.customReasonLabel.trim() ? (
+                <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2" data-servicios-custom-reason="committed">
+                  <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-[#3B66AD]/40 bg-[#3B66AD]/10 px-3 py-2 text-sm font-semibold text-[#1e3a5f]">
+                    <span aria-hidden="true">✓</span>
+                    <span className="min-w-0 truncate" title={state.customReasonLabel.trim()}>
+                      {state.customReasonLabel.trim()}
+                    </span>
+                  </span>
                   <button
                     type="button"
                     className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-red-700 hover:bg-neutral-50 sm:w-auto"
@@ -2339,24 +2434,34 @@ export function ClasificadosServiciosApplication() {
                   >
                     {copy.labels.remove}
                   </button>
-                ) : (
+                  <AddedConfirmationBadge visible={addedCustomReason.visible} label={lang === "en" ? "Added" : "Añadido"} />
+                </div>
+              ) : (
+                <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
+                  <input
+                    className={inputClass}
+                    placeholder={copy.labels.customChipPlaceholder}
+                    maxLength={CUSTOM_CHIP_MAX_LENGTH}
+                    disabled={state.selectedReasonIds.length >= MAX_REASONS_SELECTION}
+                    value={state.customReasonLabel}
+                    onChange={(e) => {
+                      const v = e.target.value.slice(0, CUSTOM_CHIP_MAX_LENGTH);
+                      addedCustomReason.clearRejection();
+                      setState((s) => ({ ...s, customReasonLabel: v, customReasonIncluded: false }));
+                    }}
+                  />
                   <button
                     type="button"
-                    disabled={
-                      !state.customReasonLabel.trim() ||
-                      state.selectedReasonIds.length +
-                        (state.customReasonIncluded ? 1 : 0) >=
-                        MAX_REASONS_SELECTION
-                    }
+                    disabled={!state.customReasonLabel.trim() || state.selectedReasonIds.length >= MAX_REASONS_SELECTION}
                     className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                     onClick={() => {
                       const t = state.customReasonLabel.trim();
-                      if (!t) return;
-                      if (
-                        state.selectedReasonIds.length +
-                          (state.customReasonIncluded ? 1 : 0) >=
-                        MAX_REASONS_SELECTION
-                      ) {
+                      if (!t) {
+                        addedCustomReason.reject(addRejectionMessage("blank"));
+                        return;
+                      }
+                      if (state.selectedReasonIds.length >= MAX_REASONS_SELECTION) {
+                        addedCustomReason.reject(addRejectionMessage("cap"));
                         return;
                       }
                       setState((s) => ({
@@ -2364,12 +2469,18 @@ export function ClasificadosServiciosApplication() {
                         customReasonIncluded: true,
                         customReasonLabel: t.slice(0, CUSTOM_CHIP_MAX_LENGTH),
                       }));
+                      addedCustomReason.flash();
                     }}
                   >
                     {copy.labels.addCustomChip}
                   </button>
-                )}
-              </div>
+                  <AddedConfirmationBadge
+                    visible={false}
+                    label={lang === "en" ? "Added" : "Añadido"}
+                    rejectedMessage={addedCustomReason.rejectedMessage}
+                  />
+                </div>
+              )}
             </section>
 
             <section className={sectionCard}>
@@ -2433,18 +2544,19 @@ export function ClasificadosServiciosApplication() {
                   }
                   className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                   onClick={() => {
-                    let added = false;
-                    setState((prev) => {
-                      const r = evaluateAddCustomBusinessHighlight(prev, lang, prev.customBusinessHighlightLabel);
-                      if (!r.ok) return prev;
-                      added = true;
-                      return enforceServiciosSelectionCaps({
+                    const r = evaluateAddCustomBusinessHighlight(state, lang, state.customBusinessHighlightLabel);
+                    if (!r.ok) {
+                      addedCustomBusinessHighlight.reject(addRejectionMessage(r.reason));
+                      return;
+                    }
+                    setState((prev) =>
+                      enforceServiciosSelectionCaps({
                         ...prev,
                         customBusinessHighlights: [...prev.customBusinessHighlights, r.label],
                         customBusinessHighlightLabel: "",
-                      });
-                    });
-                    if (added) addedCustomBusinessHighlight.flash();
+                      }),
+                    );
+                    addedCustomBusinessHighlight.flash();
                   }}
                 >
                   {copy.labels.addCustomChip}
@@ -2452,6 +2564,7 @@ export function ClasificadosServiciosApplication() {
                 <AddedConfirmationBadge
                   visible={addedCustomBusinessHighlight.visible}
                   label={lang === "en" ? "Added" : "Añadido"}
+                  rejectedMessage={addedCustomBusinessHighlight.rejectedMessage}
                 />
               </div>
               {state.customBusinessHighlights.length >= MAX_CUSTOM_BUSINESS_HIGHLIGHTS ? (
@@ -2542,18 +2655,19 @@ export function ClasificadosServiciosApplication() {
                   }
                   className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                   onClick={() => {
-                    let added = false;
-                    setState((prev) => {
-                      const r = evaluateAddCustomQuickFact(prev, lang, prev.customQuickFactLabel);
-                      if (!r.ok) return prev;
-                      added = true;
-                      return enforceServiciosSelectionCaps({
+                    const r = evaluateAddCustomQuickFact(state, lang, state.customQuickFactLabel);
+                    if (!r.ok) {
+                      addedCustomQuickFact.reject(addRejectionMessage(r.reason));
+                      return;
+                    }
+                    setState((prev) =>
+                      enforceServiciosSelectionCaps({
                         ...prev,
                         customQuickFacts: [...prev.customQuickFacts, r.label],
                         customQuickFactLabel: "",
-                      });
-                    });
-                    if (added) addedCustomQuickFact.flash();
+                      }),
+                    );
+                    addedCustomQuickFact.flash();
                   }}
                 >
                   {copy.labels.addCustomChip}
@@ -2561,6 +2675,7 @@ export function ClasificadosServiciosApplication() {
                 <AddedConfirmationBadge
                   visible={addedCustomQuickFact.visible}
                   label={lang === "en" ? "Added" : "Añadido"}
+                  rejectedMessage={addedCustomQuickFact.rejectedMessage}
                 />
               </div>
               {state.customQuickFacts.length >= MAX_CUSTOM_QUICK_FACTS ? (
@@ -2662,18 +2777,19 @@ export function ClasificadosServiciosApplication() {
               }
               className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               onClick={() => {
-                let added = false;
-                setState((prev) => {
-                  const r = evaluateAddCustomPaymentMethod(prev, prev.customPaymentMethodLabel);
-                  if (!r.ok) return prev;
-                  added = true;
-                  return enforceServiciosSelectionCaps({
+                const r = evaluateAddCustomPaymentMethod(state, state.customPaymentMethodLabel);
+                if (!r.ok) {
+                  addedCustomPaymentMethod.reject(addRejectionMessage(r.reason));
+                  return;
+                }
+                setState((prev) =>
+                  enforceServiciosSelectionCaps({
                     ...prev,
                     customPaymentMethods: [...prev.customPaymentMethods, r.label],
                     customPaymentMethodLabel: "",
-                  });
-                });
-                if (added) addedCustomPaymentMethod.flash();
+                  }),
+                );
+                addedCustomPaymentMethod.flash();
               }}
             >
               {copy.labels.paymentsAdd}
@@ -2681,6 +2797,7 @@ export function ClasificadosServiciosApplication() {
             <AddedConfirmationBadge
               visible={addedCustomPaymentMethod.visible}
               label={lang === "en" ? "Added" : "Añadido"}
+              rejectedMessage={addedCustomPaymentMethod.rejectedMessage}
             />
           </div>
           {state.customPaymentMethods.length >= MAX_CUSTOM_PAYMENT_METHODS ? (
@@ -2781,13 +2898,19 @@ export function ClasificadosServiciosApplication() {
                       }
                       className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                       onClick={() => {
-                        let added = false;
+                        const firstCheck = evaluateAddCustomAmenityOptionForGroup(
+                          state.customAmenityOptionsByGroup?.[group.id] ?? [],
+                          state.pendingCustomAmenityOptionByGroup?.[group.id] ?? "",
+                        );
+                        if (!firstCheck.ok) {
+                          groupConfirmation?.reject(addRejectionMessage(firstCheck.reason));
+                          return;
+                        }
                         setState((prev) => {
                           const bucket = prev.customAmenityOptionsByGroup?.[group.id] ?? [];
                           const pending = prev.pendingCustomAmenityOptionByGroup?.[group.id] ?? "";
                           const r = evaluateAddCustomAmenityOptionForGroup(bucket, pending);
                           if (!r.ok) return prev;
-                          added = true;
                           return enforceServiciosSelectionCaps({
                             ...prev,
                             customAmenityOptionsByGroup: {
@@ -2800,7 +2923,7 @@ export function ClasificadosServiciosApplication() {
                             },
                           });
                         });
-                        if (added) groupConfirmation?.flash();
+                        groupConfirmation?.flash();
                       }}
                     >
                       {copy.labels.amenitiesAdd}
@@ -2808,6 +2931,7 @@ export function ClasificadosServiciosApplication() {
                     <AddedConfirmationBadge
                       visible={groupConfirmation?.visible ?? false}
                       label={lang === "en" ? "Added" : "Añadido"}
+                      rejectedMessage={groupConfirmation?.rejectedMessage ?? null}
                     />
                   </div>
 
@@ -2988,21 +3112,22 @@ export function ClasificadosServiciosApplication() {
               }
               className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-[#3B66AD] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               onClick={() => {
-                let added = false;
-                setState((prev) => {
-                  const r = evaluateAddCertificationLabel({
-                    certifications: prev.certifications,
-                    raw: prev.pendingCertification,
-                  });
-                  if (!r.ok) return prev;
-                  added = true;
-                  return enforceServiciosSelectionCaps({
+                const r = evaluateAddCertificationLabel({
+                  certifications: state.certifications,
+                  raw: state.pendingCertification,
+                });
+                if (!r.ok) {
+                  addedCertification.reject(addRejectionMessage(r.reason));
+                  return;
+                }
+                setState((prev) =>
+                  enforceServiciosSelectionCaps({
                     ...prev,
                     certifications: [...prev.certifications, r.label],
                     pendingCertification: "",
-                  });
-                });
-                if (added) addedCertification.flash();
+                  }),
+                );
+                addedCertification.flash();
               }}
             >
               {copy.labels.certificationsAdd}
@@ -3010,6 +3135,7 @@ export function ClasificadosServiciosApplication() {
             <AddedConfirmationBadge
               visible={addedCertification.visible}
               label={lang === "en" ? "Added" : "Añadido"}
+              rejectedMessage={addedCertification.rejectedMessage}
             />
           </div>
           {state.certifications.length >= MAX_SERVICIOS_CERTIFICATIONS ? (
@@ -3043,40 +3169,38 @@ export function ClasificadosServiciosApplication() {
             </div>
           ) : null}
 
-          <label className={`mt-6 block ${labelClass}`}>{copy.labels.licenseDocumentLink}</label>
-          <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.licenseDocumentLinkHelp}</p>
-          <input
-            className={inputClass}
-            type="url"
-            placeholder="https://"
-            maxLength={SERVICIOS_CREDENTIAL_STRING_MAX.documentUrl}
-            value={state.licenseDocumentUrl}
-            onChange={(e) =>
-              setState((s) =>
-                enforceServiciosSelectionCaps({
-                  ...s,
-                  licenseDocumentUrl: e.target.value.slice(0, SERVICIOS_CREDENTIAL_STRING_MAX.documentUrl),
-                }),
-              )
-            }
-          />
-          <label className={`mt-4 block ${labelClass}`}>{copy.labels.insuranceDocumentLink}</label>
-          <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.insuranceDocumentLinkHelp}</p>
-          <input
-            className={inputClass}
-            type="url"
-            placeholder="https://"
-            maxLength={SERVICIOS_CREDENTIAL_STRING_MAX.documentUrl}
-            value={state.insuranceDocumentUrl}
-            onChange={(e) =>
-              setState((s) =>
-                enforceServiciosSelectionCaps({
-                  ...s,
-                  insuranceDocumentUrl: e.target.value.slice(0, SERVICIOS_CREDENTIAL_STRING_MAX.documentUrl),
-                }),
-              )
-            }
-          />
+          {/* SVC-QA-03 / SVC-QA-04 — external URL OR durable upload; both feed the same public
+              "Ver documento" credential CTA. */}
+          <div className="mt-6">
+            <ServiciosCredentialDocumentField
+              label={copy.labels.licenseDocumentLink}
+              help={copy.labels.licenseDocumentLinkHelp}
+              value={state.licenseDocumentUrl}
+              slot="licenseDoc"
+              lang={lang}
+              inputClass={inputClass}
+              labelClass={`block ${labelClass}`}
+              maxLength={SERVICIOS_CREDENTIAL_STRING_MAX.documentUrl}
+              onChange={(next) =>
+                setState((s) => enforceServiciosSelectionCaps({ ...s, licenseDocumentUrl: next }))
+              }
+            />
+          </div>
+          <div className="mt-4">
+            <ServiciosCredentialDocumentField
+              label={copy.labels.insuranceDocumentLink}
+              help={copy.labels.insuranceDocumentLinkHelp}
+              value={state.insuranceDocumentUrl}
+              slot="insuranceDoc"
+              lang={lang}
+              inputClass={inputClass}
+              labelClass={`block ${labelClass}`}
+              maxLength={SERVICIOS_CREDENTIAL_STRING_MAX.documentUrl}
+              onChange={(next) =>
+                setState((s) => enforceServiciosSelectionCaps({ ...s, insuranceDocumentUrl: next }))
+              }
+            />
+          </div>
         </section>
           </>
         ) : null}
@@ -3106,6 +3230,11 @@ export function ClasificadosServiciosApplication() {
                 entry.label.trim()
                   ? `${copy.labels.specialHoursRemoveAria}: ${entry.label.trim()}`
                   : copy.labels.specialHoursRemoveAria,
+              // SVC-QA-02 — mirrors the mapper rule: only entries with BOTH fields are published.
+              entryStatusLabels:
+                lang === "en"
+                  ? { accepted: "Special hours added to your listing", incomplete: "Fill in both the day and the hours so it appears in your listing." }
+                  : { accepted: "Horario especial agregado a tu anuncio", incomplete: "Completa el día y el horario para que aparezca en tu anuncio." },
             }}
           />
         </section>

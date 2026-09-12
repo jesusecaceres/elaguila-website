@@ -104,7 +104,16 @@ export const LEO_DISCOVERY_SEO_SEARCH_PERFORMANCE_NOT_MEASURED = [
   "No AI/GEO citation visibility measurement.",
 ] as const;
 
-/** Architectural fact: canonical sitemap omits per-listing detail URLs. */
+/**
+ * Architectural fact about THIS PURE CONTRACT (`buildLeonixSitemap` above): it emits hub and
+ * marketing URLs only and never enumerates per-listing detail URLs.
+ *
+ * Scope note (Gate SERVICIOS-2): the composed `app/sitemap.ts` route may still append DB-backed
+ * sections on top of this contract, each sourced from its own category's safety-gated public
+ * reader — Recursos resource URLs already do this, and published Servicios vitrinas now do too.
+ * That composition is deliberately kept OUT of this module so this function stays true of the
+ * pure contract it describes.
+ */
 export function leonixSitemapOmitsPerListingDetailUrls(): true {
   return true;
 }

@@ -20,7 +20,13 @@ import { listServiceAreasForBusiness } from "@/app/lib/business/repositories/ser
 import { listDigitalProfilesForBusiness } from "@/app/lib/business/repositories/digitalProfilesRepo";
 import { listCustomLinksForBusiness } from "@/app/lib/business/repositories/customLinksRepo";
 import { listListingLinksForBusiness } from "@/app/lib/business/repositories/listingLinksRepo";
-import type { Business, BusinessContact, BusinessCustomLink, BusinessDigitalProfile, BusinessListingLink, BusinessServiceArea } from "@/app/lib/business/types";
+import { listExternalLinksForBusiness } from "@/app/lib/business/repositories/businessExternalLinksRepo";
+import {
+  isSupportedExternalRecordType,
+  lookupExternalRecordById,
+  type ExternalRecordSummary,
+} from "@/app/admin/_lib/adminBusinessExternalRecordLookup";
+import type { Business, BusinessContact, BusinessCustomLink, BusinessDigitalProfile, BusinessExternalLink, BusinessListingLink, BusinessServiceArea } from "@/app/lib/business/types";
 import { deriveFollowUpDisplayStatus, type BusinessSalesStatus, type FollowUpStoredStatus, type SalesContactMethod, type SalesNoteOutcome, type SalesNoteType } from "./salesWorkspaceLogic";
 import type { StaffWriteActor, StrictSalesActor } from "./businessWorkspaceAccess";
 import { hasCapability } from "./salesWorkspaceCapabilities";
@@ -297,6 +303,14 @@ export type BusinessWorkspaceDetail = {
   digitalProfiles: BusinessDigitalProfile[];
   customLinks: BusinessCustomLink[];
   listingLinks: BusinessListingLink[];
+  /** ADMIN-OS-01 GATE F — verified/pending links to payments, leads, support tickets, etc. (business_external_links). */
+  externalLinks: BusinessExternalLink[];
+  /**
+   * ADMIN-OS-01 GATE 3 — each link's live operational truth (title/status/amount/context/admin
+   * destination), fetched fresh from the record's own real table. `summary: null` means the
+   * linked record no longer exists (deleted after linking) — surfaced honestly, not hidden.
+   */
+  externalLinkSummaries: Array<{ link: BusinessExternalLink; summary: ExternalRecordSummary | null }>;
   salesProfile: BusinessSalesProfileRecord;
   notes: SalesNoteRecord[];
   currentFollowUp: FollowUpRecord | null;
@@ -313,7 +327,7 @@ export async function getBusinessWorkspaceDetail(businessId: string, actor: Stri
   if (error || !businessRow) return null;
   const business = mapBusinessRow(businessRow as never);
 
-  const [membershipRow, contactsRaw, serviceAreas, digitalProfiles, customLinks, listingLinks, salesProfile, notes, currentFollowUp] = await Promise.all([
+  const [membershipRow, contactsRaw, serviceAreas, digitalProfiles, customLinks, listingLinks, externalLinks, salesProfile, notes, currentFollowUp] = await Promise.all([
     supabase
       .from("business_memberships")
       .select("manual_review_flag, authorization_role")
@@ -325,10 +339,23 @@ export async function getBusinessWorkspaceDetail(businessId: string, actor: Stri
     listDigitalProfilesForBusiness(supabase, businessId),
     listCustomLinksForBusiness(supabase, businessId),
     listListingLinksForBusiness(supabase, businessId),
+    listExternalLinksForBusiness(supabase, businessId),
     getOrCreateSalesProfile(businessId, actor),
     listSalesNotes(businessId),
     getCurrentFollowUp(businessId),
   ]);
+
+  // GATE 3: fetch each linked record's live operational truth from its own real table — never
+  // cached/duplicated data, so it can never drift from the source of truth. A link whose target
+  // was deleted after linking resolves to `summary: null`, shown honestly, not hidden.
+  const externalLinkSummaries = await Promise.all(
+    externalLinks.map(async (link) => ({
+      link,
+      summary: isSupportedExternalRecordType(link.recordType)
+        ? await lookupExternalRecordById(supabase, link.recordType, link.recordId)
+        : null,
+    })),
+  );
 
   const membership = membershipRow.data
     ? {
@@ -342,7 +369,7 @@ export async function getBusinessWorkspaceDetail(businessId: string, actor: Stri
     ? contactsRaw
     : contactsRaw.map((c) => ({ ...c, value: REDACTED, normalizedValue: REDACTED }));
 
-  return { business, membership, contacts, serviceAreas, digitalProfiles, customLinks, listingLinks, salesProfile, notes, currentFollowUp };
+  return { business, membership, contacts, serviceAreas, digitalProfiles, customLinks, listingLinks, externalLinks, externalLinkSummaries, salesProfile, notes, currentFollowUp };
 }
 
 export async function getOrCreateSalesProfile(businessId: string, actor: StrictSalesActor): Promise<BusinessSalesProfileRecord> {

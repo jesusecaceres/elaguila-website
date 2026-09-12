@@ -1,19 +1,19 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import { LeonixDashboardShell } from "../components/LeonixDashboardShell";
+import { BusinessConciergeOwnerHome } from "../components/BusinessConciergeOwnerHome";
 import { computeBusinessCompleteness } from "../lib/businessProfileCompleteness";
 import { fetchDashboardProfile } from "../lib/dashboardProfile";
-import { BusinessIdentityAccessPanel } from "./_components/BusinessIdentityAccessPanel";
 import { fetchOwnerRestaurantListings, fetchOwnerServiciosListings } from "../lib/dashboardInventory";
 import {
   fetchDashboardListingPackageEntitlementBadges,
   dashboardHasCapabilityForKey,
   type DashboardEntitlementLookupItem,
 } from "../lib/dashboardPackageEntitlementBadges";
+import { fetchMyBusinesses, fetchBusinessHome, type OwnerBusinessSummary, type BusinessHomeResponse } from "../lib/businessHomeClient";
 
 export const dynamic = "force-dynamic";
 
@@ -140,6 +140,10 @@ function BusinessToolsPageContent() {
   const [capabilityRows, setCapabilityRows] = useState<CapabilityRow[]>([]);
   const [capabilitiesChecked, setCapabilitiesChecked] = useState(false);
   const [hasBusinessListings, setHasBusinessListings] = useState(false);
+  const [activeBusiness, setActiveBusiness] = useState<OwnerBusinessSummary | null>(null);
+  const [otherBusinessCount, setOtherBusinessCount] = useState(0);
+  const [businessHome, setBusinessHome] = useState<BusinessHomeResponse | null>(null);
+  const [businessHomeChecked, setBusinessHomeChecked] = useState(false);
 
   useEffect(() => {
     const sb = createSupabaseBrowserClient();
@@ -232,6 +236,28 @@ function BusinessToolsPageContent() {
         /* fail closed to empty — never fabricate a capability */
       }
       if (mounted) setCapabilitiesChecked(true);
+
+      // Gate 2 (Owner-Safe Bridge Reconciliation) — resolve the exact public.businesses.id this
+      // owner has an active membership in, then compose the real Business Home payload for it.
+      // No canonical business => activeBusiness stays null and the UI shows only honest
+      // setup/idea opportunities (never a fabricated business context).
+      try {
+        const { data: sess } = await sb.auth.getSession();
+        const token = sess.session?.access_token ?? null;
+        const businesses = await fetchMyBusinesses(token);
+        if (businesses.length > 0) {
+          const chosen = businesses[0];
+          if (mounted) {
+            setActiveBusiness(chosen);
+            setOtherBusinessCount(businesses.length - 1);
+          }
+          const home = await fetchBusinessHome(chosen.businessId, token);
+          if (mounted) setBusinessHome(home);
+        }
+      } catch {
+        /* fail closed to no business context — never fabricate one */
+      }
+      if (mounted) setBusinessHomeChecked(true);
       setLoading(false);
     }
     void run();
@@ -247,148 +273,30 @@ function BusinessToolsPageContent() {
       {loading ? (
         <div className="rounded-3xl border border-[#E8DFD0] bg-[#FFFCF7]/90 p-10 text-center text-sm text-[#5C5346]">{t.loading}</div>
       ) : (
-        <>
-          <header className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.12)] sm:p-8">
-            <h1 className="text-2xl font-bold tracking-tight text-[#1E1810] sm:text-3xl">{t.title}</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#5C5346]/95">{t.subtitle}</p>
-            <p className="mt-4 text-sm text-[#3D3428]/90">{t.lead}</p>
-          </header>
-
-          <div className="mt-8">
-            <BusinessIdentityAccessPanel lang={lang} userId={userId} />
-          </div>
-
-          <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]">
-              <h2 className="text-base font-bold text-[#1E1810]">{t.learningCenterTitle}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">{t.learningCenterDesc}</p>
-              <Link
-                href={`/aprender?${q}`}
-                className="mt-4 inline-flex min-h-11 items-center rounded-2xl border border-[#E8DFD0] bg-white px-4 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
-              >
-                {t.learningCenterCta}
-              </Link>
-            </div>
-            <div className="rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]">
-              <h2 className="text-base font-bold text-[#1E1810]">{t.ideaBuilderTitle}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">{t.ideaBuilderDesc}</p>
-              <Link
-                href={`/dashboard/business-tools/idea-builder?${q}`}
-                className="mt-4 inline-flex min-h-11 items-center rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-4 text-sm font-semibold text-[#1E1810] shadow-md hover:brightness-[1.03]"
-              >
-                {t.ideaBuilderCta}
-              </Link>
-            </div>
-            <div className="rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]">
-              <h2 className="text-base font-bold text-[#1E1810]">{t.conciergeTitle}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">{t.conciergeDesc}</p>
-              <Link
-                href={`/dashboard/business-tools/concierge?${q}`}
-                className="mt-4 inline-flex min-h-11 items-center rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-4 text-sm font-semibold text-[#1E1810] shadow-md hover:brightness-[1.03]"
-              >
-                {t.conciergeCta}
-              </Link>
-            </div>
-            <div className="rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]">
-              <h2 className="text-base font-bold text-[#1E1810]">{t.nextMoveTitle}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">{t.nextMoveDesc}</p>
-              <Link
-                href={`/dashboard/business-tools/proximo-paso?${q}`}
-                className="mt-4 inline-flex min-h-11 items-center rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-4 text-sm font-semibold text-[#1E1810] shadow-md hover:brightness-[1.03]"
-              >
-                {t.nextMoveCta}
-              </Link>
-            </div>
-            <div className="rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]">
-              <h2 className="text-base font-bold text-[#1E1810]">{t.healthMapTitle}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">{t.healthMapDesc}</p>
-              <Link
-                href={`/dashboard/business-tools/business-health?${q}`}
-                className="mt-4 inline-flex min-h-11 items-center rounded-2xl border border-[#E8DFD0] bg-white px-4 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
-              >
-                {t.healthMapCta}
-              </Link>
-            </div>
-            <div className="rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]">
-              <h2 className="text-base font-bold text-[#1E1810]">{t.bookTitle}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">{t.bookDesc}</p>
-              <Link
-                href={`/dashboard/business-tools/what-we-understand?${q}`}
-                className="mt-4 inline-flex min-h-11 items-center rounded-2xl border border-[#E8DFD0] bg-white px-4 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
-              >
-                {t.bookCta}
-              </Link>
-            </div>
-          </div>
-
-          {completeness ? (
-            <div className="mt-8 rounded-3xl border border-[#C9B46A]/35 bg-gradient-to-br from-[#FFFCF7] to-[#F3EBDD]/90 p-6 shadow-[0_12px_40px_-14px_rgba(42,36,22,0.12)]">
-              <h2 className="text-sm font-bold text-[#1E1810]">{t.completeness}</h2>
-              <p className="mt-2 text-3xl font-bold tabular-nums text-[#1E1810]">
-                {completeness.score}/{completeness.max}
-              </p>
-              <p className="mt-3 text-sm font-semibold text-[#5C5346]">{t.nextSteps}</p>
-              <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-[#3D3428]/95">
-                {completeness.recommendations.slice(0, 4).map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {t.cards.map((c) => (
-              <div
-                key={c.h}
-                className="rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]"
-              >
-                <h2 className="text-base font-bold text-[#1E1810]">{c.h}</h2>
-                <p className="mt-2 text-sm leading-relaxed text-[#5C5346]/95">{c.p}</p>
-              </div>
-            ))}
-          </div>
-
-          {capabilitiesChecked ? (
-            <div className="mt-8 rounded-3xl border border-[#E8DFD0]/90 bg-gradient-to-br from-[#FFFCF7] to-[#FAF4EA] p-6 shadow-[0_10px_32px_-12px_rgba(42,36,22,0.1)]">
-              <h2 className="text-base font-bold text-[#1E1810]">{t.capabilitiesTitle}</h2>
-              <p className="mt-1 text-sm text-[#5C5346]/95">{t.capabilitiesHint}</p>
-              {capabilityRows.length === 0 ? (
-                <p className="mt-3 text-sm text-[#5C5346]/95">{t.capabilitiesEmpty}</p>
-              ) : (
-                <ul className="mt-3 space-y-2">
-                  {capabilityRows.map((row) => (
-                    <li
-                      key={row.key}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#E8DFD0] bg-white px-4 py-3"
-                    >
-                      <Link href={row.href} className="text-sm font-medium text-[#1E1810] hover:underline">
-                        {row.label}
-                      </Link>
-                      <span className="text-sm font-semibold text-[#5C5346]">
-                        {row.active ? t.active : t.locked}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ) : null}
-
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link
-              href={`/dashboard/perfil?${q}`}
-              className="inline-flex rounded-2xl bg-gradient-to-br from-[#E8D48A] via-[#D4BC6A] to-[#C9A84A] px-5 py-2.5 text-sm font-semibold text-[#1E1810] shadow-md hover:brightness-[1.03]"
-            >
-              {t.ctaProfile}
-            </Link>
-            <a
-              href={`mailto:hola@leonix.com?subject=${encodeURIComponent(lang === "es" ? "Leonix Concierge" : "Leonix Concierge")}`}
-              className="inline-flex rounded-2xl border border-[#E8DFD0] bg-white px-5 py-2.5 text-sm font-semibold text-[#2C2416] shadow-sm hover:bg-[#FAF7F2]"
-            >
-              {t.ctaConcierge}
-            </a>
-          </div>
-        </>
+        // Main reconciliation: main's side of this conflict was the pre-integration generic
+        // tool-card directory (Learning Center / Idea Builder / Concierge / etc. cards) that
+        // Gates 1-16 on this branch replaced with the real, certified BusinessConciergeOwnerHome
+        // composition — main simply never received that integration work on this exact page, so
+        // there is no main improvement to preserve here. Kept HEAD's certified version entirely.
+        <BusinessConciergeOwnerHome
+          lang={lang}
+          q={q}
+          hasBusinessListings={hasBusinessListings}
+          completenessScore={completeness?.score ?? null}
+          completenessMax={completeness?.max ?? null}
+          completenessRecommendations={completeness?.recommendations ?? []}
+          capabilityRows={capabilityRows.map((row) => ({
+            key: row.key,
+            label: row.label,
+            href: row.href,
+            active: row.active,
+          }))}
+          capabilitiesChecked={capabilitiesChecked}
+          activeBusiness={activeBusiness}
+          otherBusinessCount={otherBusinessCount}
+          businessHome={businessHome}
+          businessHomeChecked={businessHomeChecked}
+        />
       )}
     </LeonixDashboardShell>
   );

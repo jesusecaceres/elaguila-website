@@ -10,6 +10,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   inactive: "Your team account is inactive. Contact an owner admin.",
   not_roster: "This account is not authorized for admin access. Customer logins cannot access /admin.",
   bootstrap_unavailable: "Owner bootstrap login is not configured on this server. Contact an owner admin.",
+  recovery: "We couldn't open your recovery link. Please request a new one.",
 };
 
 function AdminLoginPageContent() {
@@ -67,6 +68,11 @@ function AdminLoginPageContent() {
               Log in with team account
             </button>
           </form>
+          <p className="mt-3 text-sm">
+            <Link href="/admin/login/forgot" className="text-[#A98C2A] hover:underline">
+              Forgot password?
+            </Link>
+          </p>
         </div>
 
         <details className="rounded-2xl border border-black/20 bg-[#1a1a1a] p-6 shadow-xl">

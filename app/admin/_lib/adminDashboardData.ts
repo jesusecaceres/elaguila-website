@@ -21,8 +21,11 @@ import {
   ADMIN_REVIEW_REASON_SECONDARY_FALLBACK,
   adminDashboardReviewReasonLabel,
   classifyDashboardReviewRowFlagTruth,
+  type AdminReviewFlagTruth,
 } from "@/app/admin/_lib/adminReviewFlagTruth";
 import { fetchListingFlagContextMaps } from "@/app/admin/_lib/adminReviewFlagContext";
+import { isPromotionalLeadRow } from "@/app/admin/_lib/adminNavOps";
+import { LEAD_INBOX_DISPLAY_LIMIT, listLeonixLeadsForAdmin } from "@/app/admin/_lib/leonixLeadsData";
 
 /** Ads expiring within this window surface under “Expiring soon” (dashboard MOBILE-01). */
 export const ADMIN_DASHBOARD_EXPIRING_SOON_MS = 3 * 24 * 60 * 60 * 1000;
@@ -69,6 +72,15 @@ export type AdminDashboardPendingReviewQueueRow = {
   editHref: string | null;
   /** Classifieds queue where archive/delete/moderation row actions exist. */
   queueActionsHref: string;
+  /**
+   * ADMIN-OS-01 GATE C: computed once, server-side, with full report/AI-review
+   * context. Consumers must read this directly rather than re-deriving from
+   * `reason`/`status` alone — re-deriving without the original report/aiReview
+   * context silently mislabels provenance (e.g. an AI- or report-sourced flag
+   * re-classifies as "Manual" once its reason text is flattened to a plain
+   * string). See docs/admin-os/ADMIN_OS_CABLE_MAP.md, COMMAND domain.
+   */
+  flagTruth: AdminReviewFlagTruth;
 };
 
 export type AdminDashboardLeadsCounts = {
@@ -82,6 +94,29 @@ export type AdminDashboardLeadsCounts = {
   newsletterActive: number;
 };
 
+/**
+ * ADMIN-OS-01 canonical attention-review truth — one unique-entity count, never
+ * a sum of overlapping populations. A listing that is both flagged AND has 3
+ * pending reports counts ONCE here; the report count is exposed only as
+ * evidence, never as a second independent top-line "attention" total.
+ * Bounded to the same 500-row scan window used elsewhere in this file — see
+ * `fallback` for when that bound may have truncated the true count.
+ */
+export type AdminAttentionReviewTruth = {
+  /** The one number to show as "listings needing review" — deduplicated across generic listings, reports, empleos, viajes, servicios, and ofertas locales. */
+  uniqueListingsNeedingReview: number;
+  /** Evidence only — raw listing_reports rows with status=pending. Never sum this into a second attention total. */
+  reportRowCount: number;
+  genericListingsFlaggedOrPendingCount: number;
+  empleosPendingReviewCount: number;
+  viajesPendingReviewCount: number;
+  /** Servicios (listing_status="pending_review") and Ofertas Locales (status IN submitted/pending_review) — the only other 2 of the 7 dedicated-table categories with a genuine moderation review gate. */
+  serviciosPendingReviewCount: number;
+  ofertasLocalesPendingReviewCount: number;
+  /** True when any underlying query failed or the 500-row scan bound may have truncated the true count. */
+  fallback: boolean;
+};
+
 export type AdminDashboardSnapshot = {
   pendingListingsReview: number;
   pendingReports: number;
@@ -89,6 +124,20 @@ export type AdminDashboardSnapshot = {
   /** Explained in UI: best-effort proxy, not a ticket count. */
   usersNeedingHelpNote: string;
   disabledUsersCount: number;
+  /** Master Operating Book §24 — "What support case is unresolved?" real answer: support_tickets.status IN (open, in_progress). */
+  openSupportTicketsCount: number;
+  openSupportTicketsFallback: boolean;
+  /**
+   * Master Operating Book §24 — "What ads/listings are blocked [by money]?" / §20 "Is anything
+   * blocked by money?". Scoped to Autos only: autos_public_listings.status has real, currently-live
+   * pending_payment/payment_failed values (confirmed in classifiedsRepublishCapability.ts). Restaurantes
+   * has no such status in its schema (NOT_APPLICABLE). Comida Local's payment_status is a pre-Stripe
+   * stub ('not_required_for_l5b' — see 20260604120000_comida_local_public_listings.sql) with payment
+   * not yet enforced, so including it would misrepresent an inactive feature as a live money-blocked
+   * signal — deliberately excluded until Comida Local's own Stripe integration ships.
+   */
+  autosPaymentBlockedCount: number;
+  autosPaymentBlockedFallback: boolean;
   magazineFeaturedLabel: string | null;
   magazineUpdated: string | null;
   categoryCounts: Array<{ category: string; count: number }>;
@@ -96,6 +145,8 @@ export type AdminDashboardSnapshot = {
   pendingReviewQueueItems: AdminDashboardPendingReviewQueueRow[];
   /** When true, pending listing count may be incomplete (DB doesn't filter as expected). */
   listingsQueryFallback: boolean;
+  /** ADMIN-OS-01 — canonical, deduplicated "needs review" truth. Use this for any top-line count; pendingListingsReview/pendingReports remain raw per-table/per-row counts for evidence only. */
+  reviewAttentionTruth: AdminAttentionReviewTruth;
 };
 
 async function readMagazineFeatured(): Promise<{ label: string | null; updated: string | null }> {
@@ -319,7 +370,7 @@ async function fetchListingsPendingReview(
   if (error || !data) return [];
 
   const listingIds = (data as unknown as ListingsPendingReviewDbRow[]).map((r) => r.id).filter(Boolean);
-  const { reportsByListingId } = await fetchListingFlagContextMaps(supabase, listingIds, []);
+  const { reportsByListingId, aiReviewByListingId } = await fetchListingFlagContextMaps(supabase, listingIds, []);
 
   const out: AdminDashboardPendingReviewQueueRow[] = [];
   for (const row of (data as unknown) as ListingsPendingReviewDbRow[]) {
@@ -331,7 +382,7 @@ async function fetchListingsPendingReview(
     const reportCtx = reportsByListingId[internalId];
     const truth = classifyDashboardReviewRowFlagTruth(
       { source: "generic_listings", status, reason: null },
-      reportCtx,
+      { ...reportCtx, aiReview: aiReviewByListingId[internalId] ?? null },
     );
     out.push(
       enrichReviewRowActionFields({
@@ -350,6 +401,7 @@ async function fetchListingsPendingReview(
         publicHref: `/clasificados/anuncio/${encodeURIComponent(internalId)}`,
         editHref: null,
         queueActionsHref: norm?.adminUrl ?? `/admin/workspace/clasificados?q=${encodeURIComponent(internalId)}`,
+        flagTruth: truth,
       }),
     );
   }
@@ -396,6 +448,11 @@ async function fetchEmpleosPendingReview(
     const adminHref = leonix
       ? `/admin/workspace/clasificados/empleos?q=${encodeURIComponent(leonix)}`
       : `/admin/workspace/clasificados/empleos?q=${encodeURIComponent(internalId)}`;
+    const truth = classifyDashboardReviewRowFlagTruth({
+      source: "empleos_public_listings",
+      status,
+      reason,
+    });
 
     out.push(
       enrichReviewRowActionFields({
@@ -414,6 +471,7 @@ async function fetchEmpleosPendingReview(
         publicHref: null,
         editHref: null,
         queueActionsHref: adminHref,
+        flagTruth: truth,
       }),
     );
   }
@@ -450,6 +508,11 @@ async function fetchViajesPendingReview(
     const status = nonEmptyString(row.lifecycle_status);
     if (!internalId || !status) continue;
     const reason = nonEmptyString(row.moderation_reason) ?? nonEmptyString(row.review_notes);
+    const truth = classifyDashboardReviewRowFlagTruth({
+      source: "viajes_staged_listings",
+      status,
+      reason,
+    });
     out.push(
       enrichReviewRowActionFields({
         source: "viajes_staged_listings",
@@ -467,6 +530,7 @@ async function fetchViajesPendingReview(
         publicHref: null,
         editHref: null,
         queueActionsHref: "/admin/clasificados/viajes/business-offers",
+        flagTruth: truth,
       }),
     );
   }
@@ -526,11 +590,9 @@ export function splitAdminDashboardExpiringQueue(items: AdminDashboardExpiringQu
 
 export { adminDashboardReviewReasonLabel, ADMIN_REVIEW_REASON_SECONDARY_FALLBACK };
 
-/** Honest review/flag source — never implies AI unless data proves it. */
+/** Honest review/flag source — never implies AI unless data proves it. Reads the row's own pre-computed flagTruth (full report/AI context) rather than re-deriving from the flattened reason string, which would silently mislabel provenance. */
 export function adminDashboardReviewSourceLabel(row: AdminDashboardPendingReviewQueueRow): string {
-  const truth = classifyDashboardReviewRowFlagTruth(
-    { source: row.source, status: row.status, reason: row.reason },
-  );
+  const truth = row.flagTruth;
   if (truth.sourceKind === "ai_moderation") return "Review source: AI moderation (stored result)";
   if (truth.sourceKind === "user_report") return "Review source: listing_reports (user report)";
   if (truth.sourceKind === "manual_admin") return "Review source: stored admin moderation note";
@@ -551,28 +613,36 @@ export async function getAdminDashboardLeadsCounts(): Promise<AdminDashboardLead
     const supabase = getAdminSupabase();
     const base = () => supabase.from("leonix_leads").select("id", { count: "exact", head: true }).is("deleted_at", null).is("archived_at", null);
 
-    const [activeRes, needsReplyRes, promoRes, adRes, mediaRes, newsRes] = await Promise.all([
+    const [activeRes, needsReplyRes, adRes, mediaRes, newsRes, promoLeadsResult] = await Promise.all([
       base(),
       base().in("status", ["new", "needs_reply"]),
-      base().or("source_cta.eq.promo_quote,inquiry_type.eq.promotionalProducts"),
       base().eq("inquiry_type", "advertising"),
-      supabase
-        .from("leonix_media_kit_leads")
-        .select("id", { count: "exact", head: true })
-        .is("deleted_at", null)
-        .is("archived_at", null),
+      // ADMIN-OS-01: real media-kit interest lands in leonix_leads (inquiry_type
+      // "mediaKit", set by mediaKitInterestContactHref()) — the public page's
+      // CTAs never call the dedicated leonix_media_kit_leads pipeline, so that
+      // table structurally undercounts (usually to zero). See
+      // docs/admin-os/ADMIN_OS_CABLE_MAP.md, REVENUE domain, "Media Kit requests".
+      base().eq("inquiry_type", "mediaKit"),
       supabase
         .from("leonix_newsletter_subscribers")
         .select("id", { count: "exact", head: true })
         .is("deleted_at", null)
         .is("archived_at", null)
         .eq("status", "subscribed"),
+      // GATE 1 (promo-lead duplicate-truth consolidation): reuses the exact same
+      // fetch (listLeonixLeadsForAdmin, bucket="active", LEAD_INBOX_DISPLAY_LIMIT —
+      // the same limit the inbox page itself passes) and the exact same classifier
+      // (isPromotionalLeadRow) the Launch Leads inbox's own "Promocionales" view
+      // uses — not an independent SQL approximation. This guarantees the dashboard
+      // tile can never drift from what the inbox actually shows, in scope or in
+      // classification logic. See docs/admin-os/ADMIN_OS_CABLE_MAP.md, REVENUE domain.
+      listLeonixLeadsForAdmin(LEAD_INBOX_DISPLAY_LIMIT, "active"),
     ]);
 
-    const firstErr = activeRes.error ?? needsReplyRes.error ?? promoRes.error ?? adRes.error ?? mediaRes.error ?? newsRes.error;
-    if (firstErr) {
-      const msg = String(firstErr.message ?? "");
-      if (/does not exist|schema cache|PGRST205/i.test(msg)) {
+    const firstErr = activeRes.error ?? needsReplyRes.error ?? adRes.error ?? mediaRes.error ?? newsRes.error;
+    if (firstErr || promoLeadsResult.dataUnavailable) {
+      const msg = String(firstErr?.message ?? "");
+      if (promoLeadsResult.dataUnavailable || /does not exist|schema cache|PGRST205/i.test(msg)) {
         return {
           unavailable: true,
           unavailableNote: "Lead capture tables are not available. Apply the Supabase migration first.",
@@ -591,7 +661,7 @@ export async function getAdminDashboardLeadsCounts(): Promise<AdminDashboardLead
       unavailableNote: null,
       launchLeadsActive: typeof activeRes.count === "number" ? activeRes.count : 0,
       leadsNeedingReply: typeof needsReplyRes.count === "number" ? needsReplyRes.count : 0,
-      promoLeadsActive: typeof promoRes.count === "number" ? promoRes.count : 0,
+      promoLeadsActive: promoLeadsResult.rows.filter(isPromotionalLeadRow).length,
       advertisingLeadsActive: typeof adRes.count === "number" ? adRes.count : 0,
       mediaKitActive: typeof mediaRes.count === "number" ? mediaRes.count : 0,
       newsletterActive: typeof newsRes.count === "number" ? newsRes.count : 0,
@@ -608,6 +678,126 @@ export async function getAdminDashboardLeadsCounts(): Promise<AdminDashboardLead
       newsletterActive: 0,
     };
   }
+}
+
+/**
+ * ADMIN-OS-01 — compute the canonical deduplicated review-attention count.
+ * Generic listings, empleos, and viajes are distinct tables/entities so their
+ * counts are safely additive; a listing referenced by BOTH a flagged/pending
+ * status AND one or more pending reports is counted once via set union.
+ */
+async function computeAdminAttentionReviewTruth(
+  supabase: ReturnType<typeof getAdminSupabase>,
+): Promise<AdminAttentionReviewTruth> {
+  let fallback = false;
+
+  let genericIds: string[] = [];
+  try {
+    const { data, error } = await supabase
+      .from("listings")
+      .select("id")
+      .in("status", ["pending", "flagged"])
+      .limit(500);
+    if (error) fallback = true;
+    genericIds = ((data ?? []) as { id: string }[]).map((r) => String(r.id));
+    if (genericIds.length >= 500) fallback = true;
+  } catch {
+    fallback = true;
+  }
+
+  let reportedIds: string[] = [];
+  let reportRowCount = 0;
+  try {
+    const { data, count, error } = await supabase
+      .from("listing_reports")
+      .select("listing_id", { count: "exact" })
+      .eq("status", "pending")
+      .limit(500);
+    if (error) fallback = true;
+    reportRowCount = typeof count === "number" ? count : (data?.length ?? 0);
+    if (reportRowCount >= 500) fallback = true;
+    reportedIds = [
+      ...new Set(((data ?? []) as { listing_id: string | null }[]).map((r) => nonEmptyString(r.listing_id)).filter((id): id is string => Boolean(id))),
+    ];
+  } catch {
+    fallback = true;
+  }
+
+  const uniqueGenericAndReported = new Set([...genericIds, ...reportedIds]);
+
+  let empleosPendingReviewCount = 0;
+  try {
+    const { count, error } = await supabase
+      .from("empleos_public_listings")
+      .select("id", { count: "exact", head: true })
+      .eq("lifecycle_status", "pending_review");
+    if (error) fallback = true;
+    empleosPendingReviewCount = typeof count === "number" ? count : 0;
+  } catch {
+    fallback = true;
+  }
+
+  let viajesPendingReviewCount = 0;
+  try {
+    const { count, error } = await supabase
+      .from("viajes_staged_listings")
+      .select("id", { count: "exact", head: true })
+      .in("lifecycle_status", ["submitted", "in_review", "changes_requested"]);
+    if (error) fallback = true;
+    viajesPendingReviewCount = typeof count === "number" ? count : 0;
+  } catch {
+    fallback = true;
+  }
+
+  // ADMIN-OS-01 — Servicios and Ofertas Locales are the only two of the 7
+  // dedicated-table marketplace categories with a genuine staff-moderation
+  // "pending review" status (confirmed by direct code trace of each
+  // category's own status enum). Restaurantes, Autos, and Comida Local were
+  // deliberately NOT added here: none of the three has any review-gate status
+  // at all — their listings publish directly once payment completes, so
+  // there is no "pending review" population to count without fabricating
+  // one. Their real attention condition (pending_payment) is a REVENUE
+  // signal, not a MODERATION signal, and is intentionally left for a
+  // separate payment-attention aggregator rather than mixed in here.
+  let serviciosPendingReviewCount = 0;
+  try {
+    const { count, error } = await supabase
+      .from("servicios_public_listings")
+      .select("id", { count: "exact", head: true })
+      .eq("listing_status", "pending_review");
+    if (error) fallback = true;
+    serviciosPendingReviewCount = typeof count === "number" ? count : 0;
+  } catch {
+    fallback = true;
+  }
+
+  let ofertasLocalesPendingReviewCount = 0;
+  try {
+    const { count, error } = await supabase
+      .from("ofertas_locales")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["submitted", "pending_review"]);
+    if (error) fallback = true;
+    ofertasLocalesPendingReviewCount = typeof count === "number" ? count : 0;
+  } catch {
+    fallback = true;
+  }
+
+  return {
+    uniqueListingsNeedingReview:
+      uniqueGenericAndReported.size +
+      empleosPendingReviewCount +
+      viajesPendingReviewCount +
+      serviciosPendingReviewCount +
+      ofertasLocalesPendingReviewCount,
+    reportRowCount,
+    genericListingsFlaggedOrPendingCount: genericIds.length,
+    empleosPendingReviewCount,
+    viajesPendingReviewCount,
+    serviciosPendingReviewCount,
+    ofertasLocalesPendingReviewCount,
+    fallback,
+  };
 }
 
 export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapshot> {
@@ -635,6 +825,23 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     listingsQueryFallback = true;
   }
 
+  // Master Operating Book §24 — "What support case is unresolved?" had no canonical Command
+  // Center answer at all (the usersNeedingHelpProxy field below is a different, weaker proxy —
+  // disabled accounts, not actual support tickets — and its own TODO comment predates
+  // support_tickets existing as a real table). Real, minimal query against the real table.
+  let openSupportTicketsCount = 0;
+  let openSupportTicketsFallback = false;
+  try {
+    const { count, error } = await supabase
+      .from("support_tickets")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["open", "in_progress"]);
+    if (error) openSupportTicketsFallback = true;
+    else if (typeof count === "number") openSupportTicketsCount = count;
+  } catch {
+    openSupportTicketsFallback = true;
+  }
+
   let disabledUsersCount = 0;
   try {
     const { count } = await supabase
@@ -644,6 +851,19 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     if (typeof count === "number") disabledUsersCount = count;
   } catch {
     /* ignore */
+  }
+
+  let autosPaymentBlockedCount = 0;
+  let autosPaymentBlockedFallback = false;
+  try {
+    const { count, error } = await supabase
+      .from("autos_public_listings")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["pending_payment", "payment_failed"]);
+    if (error) autosPaymentBlockedFallback = true;
+    else if (typeof count === "number") autosPaymentBlockedCount = count;
+  } catch {
+    autosPaymentBlockedFallback = true;
   }
 
   const mag = await readMagazineFeatured();
@@ -667,19 +887,25 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
 
   const expiringQueueItems = await buildExpiringQueueMerged(supabase);
   const pendingReviewQueueItems = await buildPendingReviewQueueMerged(supabase);
+  const reviewAttentionTruth = await computeAdminAttentionReviewTruth(supabase);
 
   return {
     pendingListingsReview,
     pendingReports: typeof pendingReports === "number" ? pendingReports : 0,
     usersNeedingHelpProxy: disabledUsersCount,
     usersNeedingHelpNote:
-      "Proxy: disabled accounts count. TODO: wire support_tickets or help_queue when available.",
+      "Proxy: disabled accounts count. See Support below for actual unresolved support tickets.",
     disabledUsersCount,
+    openSupportTicketsCount,
+    openSupportTicketsFallback,
+    autosPaymentBlockedCount,
+    autosPaymentBlockedFallback,
     magazineFeaturedLabel: mag.label,
     magazineUpdated: mag.updated,
     categoryCounts,
     expiringQueueItems,
     pendingReviewQueueItems,
     listingsQueryFallback,
+    reviewAttentionTruth,
   };
 }

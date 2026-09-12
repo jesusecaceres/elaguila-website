@@ -381,6 +381,10 @@ export function mapClasificadosServiciosApplicationToServiciosDraft(
   if (physRegion) contact.physicalRegion = physRegion;
   if (physCountry) contact.physicalCountry = physCountry;
   if (physZip) contact.physicalPostalCode = physZip;
+  contact.showExactAddress = state.showExactAddress;
+  contact.physicalVerificationStatus = state.physicalVerificationStatus;
+  if (state.physicalProvider) contact.physicalProvider = state.physicalProvider;
+  if (state.physicalProviderPlaceId) contact.physicalProviderPlaceId = state.physicalProviderPlaceId;
 
   const gallery: NonNullable<ServiciosApplicationDraft["gallery"]> = state.gallery.map((g) => ({
     id: g.id,

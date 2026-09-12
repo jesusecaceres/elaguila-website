@@ -38,6 +38,7 @@ import {
 import type { ServiciosPublicAdminRow } from "./_lib/serviciosAdminOpsTypes";
 import { ServiciosAdminFilterPanel, ServiciosAdminQuickActions } from "./_components/ServiciosAdminOpsChrome";
 import { ServiciosAdminOpsListingCard } from "./_components/ServiciosAdminOpsListingCard";
+import { loadServiciosCommercialOps } from "@/app/admin/_lib/serviciosCommercialOps";
 import { fetchServiciosAdminCanonicalAnalyticsByRows } from "./_lib/serviciosAdminCanonicalAnalytics";
 
 export const dynamic = "force-dynamic";
@@ -199,6 +200,12 @@ export default async function AdminServiciosWorkspacePage(props: {
     : await fetchServiciosAdminCanonicalAnalyticsByRows(
         rows.map((r) => ({ id: r.id, slug: r.slug, leonix_ad_id: r.leonix_ad_id ?? null })),
       );
+  // Gate SERVICIOS-3 (D-4) — read-only commercial truth, bounded to the rows this page is already
+  // showing. Never sweeps the table, never writes, and degrades to explicit truth states rather
+  // than to zeros when a source is unreadable.
+  const commercialOps = unavailable
+    ? new Map()
+    : await loadServiciosCommercialOps(rows.map((r) => r.id));
   const devAdminRows = filterDevServiciosRows(devFileRowsAsAdmin(), queueFilters.q);
   const pendingReviews = await listPendingServiciosReviews(80);
   const recentLeads = await fetchServiciosLeadsForAdmin();
@@ -235,7 +242,7 @@ export default async function AdminServiciosWorkspacePage(props: {
         dataSource="public.servicios_public_listings, servicios_public_leads, servicios_listing_reviews, saved/liked engagement, and owner profile JSON."
         status={unavailable || !fullSchema ? "needs live proof" : "partial"}
         safeActions={["View public", "Manage listing", "Suspend", "Archive", "Republish", "Feature", "Verify Leonix"]}
-        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        nextGate="Confirm every button and count on this page against live Supabase data before relying on it for daily decisions."
         warningNote="Promote/Verify actions require the live schema drift migration. Analytics remain partial when engagement tables are unavailable."
       />
 
@@ -328,6 +335,7 @@ export default async function AdminServiciosWorkspacePage(props: {
                     (canonical?.message_clicks ?? 0)
                   }
                   canonicalLeads={canonical?.leads ?? 0}
+                  commercial={commercialOps.get(r.id)}
                   highlighted={highlighted}
                 />
               );

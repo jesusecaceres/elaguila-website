@@ -217,7 +217,7 @@ export default async function AdminWorkspaceRevistaPage(props: {
         dataSource="magazine_issues for issue metadata/assets, revista_spotlight in site_section_content for internal notes, and editions.json as fallback."
         status={issuesErr ? "needs live proof" : "partial"}
         safeActions={["Save issue data", "Publish issue", "Mark current issue", "Archive issue", "Delete draft only", "Preview public template"]}
-        nextGate="ADMIN-ACTION-QA-AND-LIVE-SCHEMA-PROOF-01"
+        nextGate="Confirm every button and count on this page against live Supabase data before relying on it for daily decisions."
         warningNote="Public static issue routes are not automatically generated from database rows yet; use the preview link and manifest truth before treating an issue as fully live."
       />
 

@@ -24,6 +24,19 @@ import {
   normalizeLeonixLbStateCode,
   normalizeLeonixLbZip,
 } from "@/app/(site)/clasificados/shared/constants/leonixLocalBusinessLocationContract";
+import {
+  applyServiciosPublicOffersVisibility,
+  serviciosResolvedProfileHasVisibleOffers,
+} from "./serviciosPublicOffersVisibility";
+
+/**
+ * Read-time commercial truth the pure filter cannot fetch itself. `offersCapabilityByListingId` is the
+ * CURRENT `coupons_offers` decision per row id (`resolveServiciosOffersCapabilityByListingId`); a row
+ * missing from it counts as not allowed, so included offers never qualify without that truth.
+ */
+export type ServiciosResultsFilterOptions = {
+  offersCapabilityByListingId?: ReadonlyMap<string, boolean>;
+};
 
 export type ServiciosResultsFilterQuery = {
   city?: string;
@@ -85,7 +98,8 @@ export type ServiciosResultsFilterQuery = {
   hasPhotos?: "1";
   /** URL: has_videos=1 — resolved gallery videos with public playback URL (Mux HLS / https, post-sanitize) */
   hasVideos?: "1";
-  /** URL: has_offers=1 — resolved promotions/offers (same gate as public shell, not blank-only) */
+  /** URL: has_offers=1 — offers the public detail page would show: promotions, plus included
+   * coupons / flyer / more-offers while `coupons_offers` is current (serviciosPublicOffersVisibility) */
   hasOffers?: "1";
   /** URL: same_day=1 — quick fact kind `same_day` or amenity `service_same_day` */
   sameDay?: "1";
@@ -443,14 +457,6 @@ function resolvedHasPlayableGalleryVideos(profile: ServiciosProfileResolved): bo
   }
 }
 
-function resolvedHasOffers(profile: ServiciosProfileResolved): boolean {
-  try {
-    return Array.isArray(profile.promotions) && profile.promotions.length > 0;
-  } catch {
-    return false;
-  }
-}
-
 /** Collects free-text promo/offer fields from wire JSON (supports legacy keys like title/details). */
 function wirePromotionalTextFields(pj: ServiciosBusinessProfile): string[] {
   const out: string[] = [];
@@ -504,7 +510,9 @@ export function filterServiciosPublicListingRows(
   rows: ServiciosPublicListingRow[],
   lang: ServiciosLang,
   q: ServiciosResultsFilterQuery,
+  options: ServiciosResultsFilterOptions = {},
 ): ServiciosPublicListingRow[] {
+  const { offersCapabilityByListingId } = options;
   const cityQ = normalize(q.city);
   const groupQ = normalize(q.group);
   const hasLocationFilters = Boolean(
@@ -609,13 +617,35 @@ export function filterServiciosPublicListingRows(
 
     if (wantWa || wantPromo || wantCall || wantOpenNow || wantHasPhotos || wantHasVideos || wantHasOffers) {
       const profile = resolvedProfile(row, lang);
-      if (wantOpenNow && !serviciosHoursSummaryIsOpenNow(profile.contact.hours, lang)) return false;
+      // Gate SERVICIOS-3 (D-1) — this filter runs inside a SERVER component, so before this
+      // gate it evaluated “open now” against the server clock (UTC on Vercel) and misjudged every
+      // Pacific business by roughly seven hours. The zone now comes from the listing's own
+      // persisted location, and a listing whose zone cannot be resolved is excluded rather than
+      // advertised on a guess.
+      if (
+        wantOpenNow &&
+        !serviciosHoursSummaryIsOpenNow(profile.contact.hours, lang, {
+          timeZone: profile.contact.businessTimeZone ?? null,
+        })
+      ) {
+        return false;
+      }
       if (wantWa && !profile.contact.socialLinks?.whatsapp) return false;
       if (wantPromo && !profile.promotions.some((p) => p.headline?.trim())) return false;
       if (wantCall && !(profile.contact.phoneDisplay && profile.contact.phoneTelHref)) return false;
       if (wantHasPhotos && !resolvedHasPublicPhotos(profile)) return false;
       if (wantHasVideos && !resolvedHasPlayableGalleryVideos(profile)) return false;
-      if (wantHasOffers && !resolvedHasOffers(profile)) return false;
+      // Gate SERVICIOS-EDIT-ROUNDTRIP-OFFERS-DISCOVERY-1 (F2) — "Tiene ofertas" used to count only
+      // old-style promotions, so a listing whose INCLUDED coupons/offers render on its detail page
+      // never matched. It now asks exactly what the detail page shows, under the current capability.
+      if (
+        wantHasOffers &&
+        !serviciosResolvedProfileHasVisibleOffers(
+          applyServiciosPublicOffersVisibility(profile, offersCapabilityByListingId?.get(row.id ?? "") === true),
+        )
+      ) {
+        return false;
+      }
     }
 
     return true;
@@ -815,7 +845,12 @@ export function sortServiciosListingRows(
     for (const row of copy) {
       try {
         const p = resolvedProfile(row, lang);
-        openMap.set(row.slug, serviciosHoursSummaryIsOpenNow(p.contact.hours, lang));
+        openMap.set(
+          row.slug,
+          serviciosHoursSummaryIsOpenNow(p.contact.hours, lang, {
+            timeZone: p.contact.businessTimeZone ?? null,
+          }),
+        );
       } catch {
         openMap.set(row.slug, false);
       }

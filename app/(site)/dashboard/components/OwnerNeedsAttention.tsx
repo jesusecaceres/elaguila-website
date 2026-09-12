@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { LX_DASH, lxDashStatusChipClass } from "../lib/dashboardLeonixTheme";
+import { LX_DASH } from "../lib/dashboardLeonixTheme";
 import { accountCommandCenterCopy, type Lang } from "../lib/dashboardI18n";
-import { accountAttentionItems, derivedFeedTone } from "../lib/ownerAccountCommandCenter";
-import type { DerivedFeedItem } from "../lib/derivedDashboardFeed";
+import { accountAttentionItems } from "../lib/ownerAccountCommandCenter";
+import { OwnerAttentionItemCard } from "./OwnerAttentionItemCard";
+import type { OwnerAttentionItem } from "../lib/ownerAttentionModel";
 
 export function OwnerNeedsAttention({
   lang,
@@ -15,7 +15,7 @@ export function OwnerNeedsAttention({
   lang: Lang;
   loading?: boolean;
   error?: boolean;
-  items: DerivedFeedItem[];
+  items: OwnerAttentionItem[];
 }) {
   const t = accountCommandCenterCopy(lang);
   const rows = accountAttentionItems(items);
@@ -35,13 +35,7 @@ export function OwnerNeedsAttention({
         <ul className="mt-4 grid gap-3 md:grid-cols-2">
           {rows.map((item) => (
             <li key={item.id}>
-              <Link
-                href={item.href}
-                className="flex min-h-[44px] flex-col gap-1 rounded-xl border border-[#D6C7AD]/80 bg-[#FFFCF7] px-4 py-3 transition hover:border-[#C9A84A]/45"
-              >
-                <span className={lxDashStatusChipClass(derivedFeedTone(item.kind))}>{item.title}</span>
-                {item.detail ? <span className="text-sm leading-relaxed text-[#3D3428]">{item.detail}</span> : null}
-              </Link>
+              <OwnerAttentionItemCard item={item} lang={lang} />
             </li>
           ))}
         </ul>

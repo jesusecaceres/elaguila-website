@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties, type Reac
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import newLogo from "../../../../public/logo.png";
 import { fetchDashboardNavCounts } from "../lib/dashboardNavCounts";
+import { fetchDedicatedCategoryCounts } from "../lib/dashboardMisAnunciosCategoryLoadPlan";
 import {
   DASHBOARD_INTERNAL_INBOX_READY,
   DASHBOARD_SAVED_LISTINGS_READY,
@@ -27,6 +28,7 @@ export type LeonixDashboardActiveNav =
   | "restaurantes"
   | "servicios"
   | "viajes"
+  | "empleos"
   | "messages"
   | "drafts"
   | "saved"
@@ -112,6 +114,18 @@ export function LeonixDashboardShell({
     drafts: null,
     expiring: null,
   });
+  // Mis Espacios — real owned-category gate for the sidebar. Reuses the existing
+  // fetchDedicatedCategoryCounts (already used by /dashboard/mis-anuncios) rather than a new
+  // query; only categories with a real dedicated collection page AND a browser-safe direct
+  // count (Servicios/Ofertas Locales are excluded — their owner-scoped rows are only reachable
+  // through an authenticated API route, not a direct RLS-readable count query; see
+  // dashboardMisAnunciosCategoryLoadPlan.ts) are gated here.
+  const [spaceCounts, setSpaceCounts] = useState<{ restaurantes: number; empleos: number; viajes: number }>({
+    restaurantes: 0,
+    empleos: 0,
+    viajes: 0,
+  });
+  // Package 1 — mobile dashboard navigation (drawer). Desktop sidebar is unaffected.
   // Gate BCO-3R-B.5/B.6 — below `sm`, the account/nav panel is a real fixed drawer (backdrop,
   // scroll lock, focus trap) instead of sitting in normal document flow (the "sidebar leak"
   // defect) or expanding in-flow (the "feels like another page" defect). At `sm`+ the same panel
@@ -173,13 +187,17 @@ export function LeonixDashboardShell({
           resolvedOwnerId = user?.id ?? null;
         }
         if (!resolvedOwnerId || cancelled) return;
-        const c = await fetchDashboardNavCounts(sb, resolvedOwnerId);
+        const [c, spaces] = await Promise.all([
+          fetchDashboardNavCounts(sb, resolvedOwnerId),
+          fetchDedicatedCategoryCounts(sb, resolvedOwnerId),
+        ]);
         if (cancelled) return;
         setNavCounts({
           messages: c.messageInbox,
           drafts: c.drafts,
           expiring: c.expiringSoon,
         });
+        setSpaceCounts({ restaurantes: spaces.restaurantes, empleos: spaces.empleos, viajes: spaces.viajes });
       } catch {
         /* ignore */
       }
@@ -292,6 +310,20 @@ export function LeonixDashboardShell({
         ],
       },
       { title: L.navGroupNegocio, items: [navItem("business", `/dashboard/business-tools?${q}`, L.businessTools, undefined, undefined, onNavigate)] },
+      {
+        title: L.navGroupMisEspacios,
+        items: [
+          spaceCounts.restaurantes > 0
+            ? navItem("restaurantes", `/dashboard/restaurantes?${q}`, L.navSpaceRestaurantes, undefined, undefined, onNavigate)
+            : null,
+          spaceCounts.empleos > 0
+            ? navItem("empleos", `/dashboard/empleos?${q}`, L.navSpaceEmpleos, undefined, undefined, onNavigate)
+            : null,
+          spaceCounts.viajes > 0
+            ? navItem("viajes", `/dashboard/viajes?${q}`, L.navSpaceViajes, undefined, undefined, onNavigate)
+            : null,
+        ].filter(Boolean),
+      },
     ].filter((group) => group.items.length > 0);
 
   function renderNavGroups(onNavigate?: () => void) {
@@ -317,8 +349,8 @@ export function LeonixDashboardShell({
       </div>
 
       <div className="mt-4 rounded-2xl border border-[color:var(--lx-border)]/60 bg-[color:var(--lx-section)]/80 p-4">
-        <p className="text-[15px] font-bold text-[color:var(--lx-text)]">{userName?.trim() || "—"}</p>
-        <p className="mt-1 text-xs text-[color:var(--lx-muted)]/95">{email || "—"}</p>
+        <p className="break-words text-[15px] font-bold text-[color:var(--lx-text)]">{userName?.trim() || "—"}</p>
+        <p className="mt-1 break-all text-xs text-[color:var(--lx-muted)]/95">{email || "—"}</p>
         {accountRef ? (
           <p className="mt-2 font-mono text-[10px] font-semibold text-[color:var(--lx-muted)]/90">
             Leonix ID · #{accountRef}
@@ -337,6 +369,28 @@ export function LeonixDashboardShell({
       </div>
     </>
   );
+
+  // Package 1 — mobile header section title. Falls back to the dashboard label for the two
+  // ActiveNav values (restaurantes/servicios/viajes) that have no dedicated shell copy key.
+  const activeNavLabel: Partial<Record<ActiveNav, string>> = {
+    home: L.home,
+    listings: L.listings,
+    restaurantes: L.navSpaceRestaurantes,
+    servicios: L.servicios,
+    viajes: L.navSpaceViajes,
+    empleos: L.navSpaceEmpleos,
+    messages: L.messages,
+    drafts: L.drafts,
+    saved: L.saved,
+    savedSearches: L.savedSearches,
+    analytics: L.analytics,
+    profile: L.profile,
+    security: L.security,
+    notifications: L.notifications,
+    business: L.businessTools,
+    recent: L.recent,
+  };
+  const currentSectionTitle = activeNavLabel[activeNav] ?? L.dashboardLabel;
 
   const workbench = contentLayout === "workbench";
 
@@ -425,7 +479,12 @@ export function LeonixDashboardShell({
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-bold text-[color:var(--lx-text)]">{userName?.trim() || email || "—"}</span>
-                  <span className="block text-[11px] text-[color:var(--lx-muted)]">{L.accountStatus}</span>
+                  {/* Main reconciliation: restores the per-page "where am I" label the certified
+                      Owner Command Center branch had here (previously its own standalone mobile
+                      header, since folded into main's single-drawer-copy trigger button) — kept
+                      in the same visual slot instead of the generic account-status text, without
+                      touching main's real single-DOM-copy / overflow fixes around it. */}
+                  <span className="block truncate text-[11px] text-[color:var(--lx-muted)]">{currentSectionTitle}</span>
                 </span>
               </span>
               <span aria-hidden className="flex shrink-0 items-center gap-1.5 text-xs font-bold text-[color:var(--lx-muted)]">

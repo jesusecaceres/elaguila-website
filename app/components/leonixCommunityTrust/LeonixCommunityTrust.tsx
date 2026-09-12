@@ -23,7 +23,10 @@ import {
 } from "@/app/lib/leonixCommunityTrust/leonixEndorsementClient";
 import { trackLeonixEndorsementToggle } from "@/app/lib/leonixCommunityTrust/leonixEndorsementAnalytics";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
-import type { LeonixEndorsementCategory } from "@/app/lib/leonixCommunityTrust/leonixEndorsementRegistry";
+import {
+  getLeonixEndorsementDefinitions,
+  type LeonixEndorsementCategory,
+} from "@/app/lib/leonixCommunityTrust/leonixEndorsementRegistry";
 
 type ChipState = "idle" | "toggling";
 
@@ -33,12 +36,14 @@ const COPY = {
     firstToEndorse: "Sé de los primeros en reconocer lo que hace bien este negocio.",
     signInRequired: "Inicia sesión para endosar.",
     error: "No se pudo completar la acción. Intenta de nuevo.",
+    previewNote: "Vista previa: los reconocimientos de la comunidad (🦁) se activan cuando tu anuncio esté publicado.",
   },
   en: {
     title: "Community on Leonix",
     firstToEndorse: "Be among the first to endorse what this business does well.",
     signInRequired: "Sign in to endorse.",
     error: "That action didn't go through. Please try again.",
+    previewNote: "Preview: community endorsements (🦁) turn on once your listing is published.",
   },
 } as const;
 
@@ -48,6 +53,7 @@ export function LeonixCommunityTrust({
   ownerUserId = null,
   lang,
   surface,
+  preview = false,
 }: {
   category: LeonixEndorsementCategory;
   /** The durable business identity being endorsed (Gate 13) — never a disposable ad UUID when a
@@ -57,6 +63,13 @@ export function LeonixCommunityTrust({
   lang: "es" | "en";
   /** Free-text surface tag for analytics metadata (e.g. "restaurantes_hub", "servicios_hub"). */
   surface: string;
+  /**
+   * Servicios Owner QA (⚠️59 / SVC-QA-17) — a draft Preview has no durable target yet, so the
+   * section used to render nothing and the owner could not see where Community Trust lives. In
+   * preview mode it shows the category's REAL endorsement chips at zero, disabled, with an honest
+   * "turns on when published" note. Never fetches, never writes, never shows a fabricated count.
+   */
+  preview?: boolean;
 }) {
   const t = COPY[lang];
   const [entries, setEntries] = useState<LeonixEndorsementSummaryEntry[] | null>(null);
@@ -66,6 +79,12 @@ export function LeonixCommunityTrust({
   const [signInHintKey, setSignInHintKey] = useState<string | null>(null);
 
   useEffect(() => {
+    if (preview) {
+      setEntries(
+        getLeonixEndorsementDefinitions(category).map((d) => ({ key: d.key, es: d.es, en: d.en, count: 0, userVoted: false })),
+      );
+      return;
+    }
     let cancelled = false;
     (async () => {
       const res = await fetchLeonixEndorsementSummary(category, targetId);
@@ -75,11 +94,11 @@ export function LeonixCommunityTrust({
     return () => {
       cancelled = true;
     };
-  }, [category, targetId]);
+  }, [category, targetId, preview]);
 
   const handleTap = useCallback(
     async (endorsementKey: string) => {
-      if (chipState === "toggling") return;
+      if (preview || chipState === "toggling") return;
       setErrorKey(null);
       setSignInHintKey(null);
 
@@ -123,7 +142,7 @@ export function LeonixCommunityTrust({
         /* analytics is never count truth */
       }
     },
-    [category, targetId, ownerUserId, lang, surface, chipState],
+    [category, targetId, ownerUserId, lang, surface, chipState, preview],
   );
 
   if (entries === null) return null;
@@ -140,7 +159,11 @@ export function LeonixCommunityTrust({
       >
         {t.title}
       </h3>
-      {isZero ? <p className="mt-2 text-[11px] leading-snug text-[#6F6254]">{t.firstToEndorse}</p> : null}
+      {preview ? (
+        <p className="mt-2 text-[11px] leading-snug text-[#6F6254]" data-leonix-community-trust-preview="1">{t.previewNote}</p>
+      ) : isZero ? (
+        <p className="mt-2 text-[11px] leading-snug text-[#6F6254]">{t.firstToEndorse}</p>
+      ) : null}
       <ul className="mt-2 flex flex-wrap gap-2" role="list">
         {entries.map((entry) => {
           const label = lang === "en" ? entry.en : entry.es;
@@ -150,7 +173,7 @@ export function LeonixCommunityTrust({
               <button
                 type="button"
                 onClick={() => void handleTap(entry.key)}
-                disabled={busy}
+                disabled={busy || preview}
                 aria-pressed={entry.userVoted}
                 aria-label={`${label} · ${entry.count}`}
                 className={

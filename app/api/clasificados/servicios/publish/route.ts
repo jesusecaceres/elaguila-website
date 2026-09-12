@@ -13,7 +13,10 @@ import {
   isServiciosDevPublishPersistenceEnabled,
   upsertServiciosDevPublishRow,
 } from "@/app/clasificados/servicios/lib/serviciosDevPublishPersistence";
-import { getServiciosPublicListingBySlugFromDb } from "@/app/clasificados/servicios/lib/serviciosPublicListingsServer";
+import {
+  getServiciosPublicListingByIdFromDb,
+  getServiciosPublicListingBySlugFromDb,
+} from "@/app/clasificados/servicios/lib/serviciosPublicListingsServer";
 import {
   SERVICIOS_LISTING_STATUS_PENDING_PAYMENT,
   SERVICIOS_LISTING_STATUS_PENDING_REVIEW,
@@ -25,9 +28,28 @@ import { mergeOpsControlledServiciosProfileFields } from "@/app/(site)/clasifica
 import { buildServiciosDiscoveryFacet } from "@/app/clasificados/servicios/lib/serviciosPublishDiscovery";
 import { insertServiciosAnalyticsEvent } from "@/app/clasificados/servicios/lib/serviciosOpsTablesServer";
 import { isServiciosStrictPublishEnvironment, serviciosOwnerIdFromBearer } from "../lib/serviciosPublishServerAuth";
-import { SERVICIOS_OFFERS_ADDON_PACKAGE_KEY } from "@/app/lib/listingPlans/publishCheckoutCheckpoint";
-import { fetchAddonEntitlementsForListings } from "@/app/lib/listingPlans/addonEntitlementReader";
-import { buildProposedFinalMediaSet, validateProposedFinalMediaSet } from "@/app/lib/media/listingMediaContract";
+import {
+  decideServiciosOwnerSaveStatus,
+  isServiciosListingOwner,
+  SERVICIOS_LEONIX_LOCKED_STATUSES,
+  serviciosSaveAwaitsBasePurchase,
+} from "@/app/clasificados/servicios/lib/serviciosOwnerMutationPolicy";
+import { resolveServiciosReactivationAuthority } from "@/app/clasificados/servicios/lib/serviciosReactivationAuthorityServer";
+import { resolveBusinessToolsAccess } from "@/app/lib/listingPlans/categoryCommercialPlan";
+import {
+  decideServiciosOffersPersistence,
+  enforceServiciosOffersEntitlementServerTruth,
+  trustedServiciosOfferContentFromExisting,
+} from "@/app/clasificados/servicios/lib/serviciosOffersEntitlementEnforcement";
+import {
+  serviciosExactAddressIsHidden,
+  splitServiciosAddressForPersistence,
+} from "@/app/clasificados/servicios/lib/serviciosAddressPrivacy";
+import {
+  buildProposedFinalMediaSet,
+  validateProposedFinalMediaSet,
+  warnDroppedUnpersistableMedia,
+} from "@/app/lib/media/listingMediaContract";
 import { normalizeStrictExternalVideoUrl } from "@/app/lib/media/externalVideoUrlValidation";
 import { SERVICIOS_MAX_VIDEO_URLS } from "@/app/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
 
@@ -137,56 +159,34 @@ function stripAdvertiserVerificationFlags(wire: ServiciosBusinessProfile): Servi
   return next;
 }
 
-/** Gate E.3.1 — offer content already durably stored on the existing row, trusted as-is. */
-type TrustedServiciosOfferContent = Pick<ServiciosBusinessProfile, "coupons" | "couponFlyer" | "couponMoreOffers">;
-
-function trustedServiciosOfferContentFromExisting(
-  previousWire: ServiciosBusinessProfile | null,
-): TrustedServiciosOfferContent {
-  return {
-    coupons: Array.isArray(previousWire?.coupons) ? previousWire.coupons : [],
-    couponFlyer:
-      previousWire?.couponFlyer && typeof previousWire.couponFlyer === "object"
-        ? previousWire.couponFlyer
-        : undefined,
-    couponMoreOffers:
-      previousWire?.couponMoreOffers && typeof previousWire.couponMoreOffers === "object"
-        ? previousWire.couponMoreOffers
-        : undefined,
-  };
-}
-
-/**
- * Gate E.3.1 — Servicios offer/coupon content (`coupons`/`couponFlyer`/`couponMoreOffers`) is
- * server/payment truth only. Unlike Restaurantes there is no stored `couponUpgradeEnabled`
- * flag on the Servicios wire profile — visibility has only ever been content-presence — so this
- * function's job is narrower: it never lets an unentitled request create or modify offer
- * content, while never erasing content a customer's active purchase already produced. A client
- * can never submit new/edited coupons, a flyer, or a more-offers link into a persisted state
- * without a currently active `servicios_offers_addon` entitlement; only an already-entitled row
- * (real, live `listing_package_entitlements` truth) may accept incoming offer edits. While
- * unentitled, the content already durably stored on this row (never the incoming client draft)
- * is what persists instead, so a customer's coupon content survives an unrelated base-listing
- * save (business hours, description, etc.) made after their entitlement lapsed or was revoked.
- */
-function enforceServiciosOffersEntitlementServerTruth(
-  wire: ServiciosBusinessProfile,
-  entitled: boolean,
-  trustedExisting: TrustedServiciosOfferContent,
-): ServiciosBusinessProfile {
-  if (entitled) {
-    return wire;
-  }
-  return {
-    ...wire,
-    coupons: trustedExisting.coupons,
-    couponFlyer: trustedExisting.couponFlyer,
-    couponMoreOffers: trustedExisting.couponMoreOffers,
-  };
-}
+// Gate E.3.1 offer-content enforcement lives in serviciosOffersEntitlementEnforcement.ts (pure,
+// so the regression verifier can execute the exact strip path this route runs).
 
 function initialListingStatus(): typeof SERVICIOS_LISTING_STATUS_PUBLISHED | typeof SERVICIOS_LISTING_STATUS_PENDING_REVIEW {
   return process.env.SERVICIOS_MODERATION_MODE === "1" ? SERVICIOS_LISTING_STATUS_PENDING_REVIEW : SERVICIOS_LISTING_STATUS_PUBLISHED;
+}
+
+/**
+ * Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B3) — an owner save never moves a row out of a Leonix-owned
+ * state (`suspended` / `rejected`). Recovery belongs to the Revenue OS lifecycle or an admin.
+ */
+async function serviciosListingLockedResponse(slug: string, lang: ServiciosLang): Promise<NextResponse> {
+  await insertServiciosAnalyticsEvent({
+    listingSlug: slug,
+    eventType: "publish_failure",
+    meta: { reason: "listing_locked_by_leonix" },
+  });
+  return NextResponse.json(
+    {
+      ok: false,
+      error: "listing_locked_by_leonix",
+      message:
+        lang === "es"
+          ? "Leonix suspendió o rechazó este anuncio, así que no se puede modificar ni reactivar desde aquí. Contacta a Leonix."
+          : "Leonix suspended or rejected this listing, so it can't be changed or reactivated here. Please contact Leonix.",
+    },
+    { status: 409 },
+  );
 }
 
 export type ServiciosPublishPersistence = "database" | "dev_workspace" | "none";
@@ -276,6 +276,12 @@ export async function POST(req: NextRequest) {
     existing: state.gallery.map((g) => g.url),
     externalVideoUrls: state.videos.map((v) => v.url),
   });
+  // Gate SERVICIOS-1 — this engine has always returned `droppedUnpersistable` so callers can warn,
+  // and no caller ever read it: a `blob:`/`data:` gallery entry that survived into the draft was
+  // dropped from the saved listing and the owner was still told "published". Now logged server-side
+  // AND returned to the client (`droppedUnpersistableMedia`) so the success screen can say so.
+  warnDroppedUnpersistableMedia("servicios-publish", serviciosFinalMedia);
+  const serviciosDroppedMedia = [...serviciosFinalMedia.droppedUnpersistable];
   const serviciosMediaValidation = validateProposedFinalMediaSet(serviciosFinalMedia, {
     minImages: 0,
     maxImages: SERVICIOS_GALLERY_MAX,
@@ -297,13 +303,65 @@ export async function POST(req: NextRequest) {
 
   const baseSlug = slugifyServiciosBusinessName(state.businessName || "borrador");
   const existingSlugRaw = typeof b.existingPublicSlug === "string" ? b.existingPublicSlug.trim() : "";
+  const existingListingIdRaw = typeof b.existingListingId === "string" ? b.existingListingId.trim() : "";
 
-  let slug = await allocateSlug(baseSlug);
-  if (existingSlugRaw && /^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(existingSlugRaw) && isSupabaseAdminConfigured()) {
-    const row = await getServiciosPublicListingBySlugFromDb(existingSlugRaw, { visibility: "all" });
-    if (row && ownerUserId) {
-      const owner = row.owner_user_id;
-      if (!owner || owner === ownerUserId) {
+  /**
+   * Gate SERVICIOS-1 / SRV-GOLDEN-01 — CANONICAL REPUBLISH IDENTITY.
+   *
+   * The `servicios_public_listings` row UUID is the persistence authority. The slug is public
+   * routing/display identity only: it is derived from the business name, so resolving the target
+   * row by slug meant that renaming a business allocated a fresh slug and INSERTed a duplicate
+   * listing (leaving the paid row orphaned).
+   *
+   * IF `existingListingId` is supplied, the canonical row MUST resolve, ELSE FAIL CLOSED.
+   * That request must NEVER degrade into create/INSERT (no allocateSlug, no slug fallback, no
+   * insert). New listing (no existing id): may INSERT. Existing listing edit: UPDATE the exact
+   * canonical UUID and adopt THAT ROW'S OWN SLUG so the public URL stays stable across a rename.
+   * `existingPublicSlug` remains only as the fallback for a session that never obtained a
+   * canonical id.
+   */
+  let slug = "";
+  let canonicalListingId: string | null = null;
+  if (existingListingIdRaw) {
+    // SRV-GOLDEN-01 — declared edit: resolve the exact UUID or fail closed. Never mint a create slug.
+    if (!isSupabaseAdminConfigured()) {
+      await insertServiciosAnalyticsEvent({
+        listingSlug: null,
+        eventType: "publish_failure",
+        meta: { reason: "listing_not_found", existingListingIdDeclared: true },
+      });
+      return NextResponse.json({ ok: false, error: "listing_not_found" }, { status: 404 });
+    }
+    const row = await getServiciosPublicListingByIdFromDb(existingListingIdRaw, { visibility: "all" });
+    const resolvedId = typeof row?.id === "string" ? row.id.trim() : "";
+    if (!row || !resolvedId || !row.slug) {
+      await insertServiciosAnalyticsEvent({
+        listingSlug: null,
+        eventType: "publish_failure",
+        meta: { reason: "listing_not_found", existingListingIdDeclared: true },
+      });
+      return NextResponse.json({ ok: false, error: "listing_not_found" }, { status: 404 });
+    }
+    // Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B1) — a NULL owner is NOT permission. The row must
+    // have an owner and it must be the authenticated actor; an unowned historical row is
+    // reachable only through admin/ownership assignment, never by claiming it here.
+    if (!isServiciosListingOwner(row.owner_user_id, ownerUserId)) {
+      await insertServiciosAnalyticsEvent({
+        listingSlug: row.slug,
+        eventType: "publish_failure",
+        meta: { reason: "listing_owner_mismatch" },
+      });
+      return NextResponse.json({ ok: false, error: "listing_owner_mismatch" }, { status: 403 });
+    }
+    canonicalListingId = resolvedId;
+    slug = row.slug;
+  } else {
+    slug = await allocateSlug(baseSlug);
+    if (!canonicalListingId && existingSlugRaw && /^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(existingSlugRaw) && isSupabaseAdminConfigured()) {
+      const row = await getServiciosPublicListingBySlugFromDb(existingSlugRaw, { visibility: "all" });
+      // B1 — same rule on the slug fallback. When it does not hold, `slug` stays the freshly
+      // allocated (unused) one, so the request can only ever create its own new row.
+      if (row && isServiciosListingOwner(row.owner_user_id, ownerUserId)) {
         slug = existingSlugRaw;
       }
     }
@@ -339,34 +397,67 @@ export async function POST(req: NextRequest) {
 
   let previousWire: ServiciosBusinessProfile | null = null;
   let previousListingId: string | null = null;
+  let previousListingStatus: string | null = null;
   if (isSupabaseAdminConfigured()) {
-    const prevRow = await getServiciosPublicListingBySlugFromDb(slug, { visibility: "all" });
+    // Gate SERVICIOS-1 — read the prior row by canonical id when we have one, so ops-controlled
+    // fields and the paid offers entitlement are carried forward from the ACTUAL published row
+    // even when the owner renamed the business.
+    const prevRow = canonicalListingId
+      ? await getServiciosPublicListingByIdFromDb(canonicalListingId, { visibility: "all" })
+      : await getServiciosPublicListingBySlugFromDb(slug, { visibility: "all" });
     previousWire = prevRow?.profile_json ?? null;
     previousListingId = prevRow?.id?.trim() || null;
+    previousListingStatus = prevRow?.listing_status ?? null;
   }
   if (!previousWire?.contact?.isFeatured && isServiciosDevPublishPersistenceEnabled()) {
     previousWire = getServiciosDevPublishRowBySlug(slug)?.profile_json ?? previousWire;
   }
   wire = mergeOpsControlledServiciosProfileFields(wire, previousWire);
 
-  // Gate E.3.1 — paid offers/coupons entitlement is server/payment truth only (live
-  // `listing_package_entitlements` state), never client-submitted content, the client's
-  // `couponsAddOn` boolean, or any content-presence inference. A brand-new listing (no canonical
-  // row UUID yet) can never have an entitlement — never invent one; only an already-existing row
-  // can be looked up.
-  let serviciosOffersAddonEntitled = false;
-  if (previousListingId) {
-    const entitlements = await fetchAddonEntitlementsForListings({
-      category: "servicios",
-      packageKey: SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
-      listingIds: [previousListingId],
-    });
-    serviciosOffersAddonEntitled = entitlements.get(previousListingId)?.status === "active";
-  }
+  /**
+   * When the client requests a pending-payment save (Revenue OS global checkout standard),
+   * the listing is stored hidden as `pending_payment` and stays non-public until the Stripe
+   * webhook activates it. Otherwise use the standard immediate publish status.
+   * Gate SERVICIOS-GLOBAL-CHECKOUT-STANDARD-PARITY-01
+   * (Declared here — ahead of the offers authority below, which needs it.)
+   */
+  const pendingPayment =
+    (body as Record<string, unknown>).activationMode === "pending_payment" ||
+    (body as Record<string, unknown>).activation_mode === "pending_payment";
+
+  // Gate E.3.1 — offers/coupons authority is server/payment truth only, never client-submitted
+  // content, the client's `couponsAddOn` boolean, or any content-presence inference.
+  //
+  // Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B4) — this used to require an active entitlement row for
+  // the RETIRED `servicios_offers_addon` key. Nothing grants that key any more (it is off the
+  // checkout add-on allowlist, and the dashboard "enable" route verifies capability without writing
+  // one), so every new $399 customer had their INCLUDED coupons stripped here on every save — while
+  // the dashboard reported the module as enabled. The authority is now the included
+  // `coupons_offers` capability, resolved exactly as the dashboard enable route resolves it
+  // (`resolveBusinessToolsAccess`); historical add-on holders still qualify through the plan
+  // policy's legacy-add-on branch. A save that leaves the row awaiting its base purchase also
+  // qualifies: that row can only go public through a paid `servicios_base_monthly`, which includes
+  // the capability (see `serviciosSaveAwaitsBasePurchase`). Fails closed on any lookup problem.
+  const serviciosOffersCapability = previousListingId
+    ? await resolveBusinessToolsAccess({
+        category: "servicios",
+        listingSource: "servicios_public_listings",
+        listingId: previousListingId,
+        capability: "coupons_offers",
+      }).catch(() => null)
+    : null;
+  const serviciosOffersEntitled = decideServiciosOffersPersistence({
+    capabilityAllowed: serviciosOffersCapability?.allowed === true,
+    awaitsBasePurchase: serviciosSaveAwaitsBasePurchase({
+      hasExistingRow: Boolean(previousListingId),
+      previousStatus: previousListingStatus,
+      pendingPaymentRequested: pendingPayment,
+    }),
+  });
   const trustedExistingServiciosOfferContent = trustedServiciosOfferContentFromExisting(previousWire);
   wire = enforceServiciosOffersEntitlementServerTruth(
     wire,
-    serviciosOffersAddonEntitled,
+    serviciosOffersEntitled,
     trustedExistingServiciosOfferContent,
   );
 
@@ -376,23 +467,18 @@ export async function POST(req: NextRequest) {
   const businessName = wire.identity.businessName.trim() || slug;
   const city = state.city.trim();
   const now = new Date().toISOString();
-  /**
-   * When the client requests a pending-payment save (Revenue OS global checkout standard),
-   * the listing is stored hidden as `pending_payment` and stays non-public until the Stripe
-   * webhook activates it. Otherwise use the standard immediate publish status.
-   * Gate SERVICIOS-GLOBAL-CHECKOUT-STANDARD-PARITY-01
-   */
-  const pendingPayment =
-    (body as Record<string, unknown>).activationMode === "pending_payment" ||
-    (body as Record<string, unknown>).activation_mode === "pending_payment";
 
   /** Production: first publication requires Revenue OS checkout (pending_payment save or paid webhook). */
   if (strict && isSupabaseAdminConfigured() && !pendingPayment) {
-    const existingForGuard = await getServiciosPublicListingBySlugFromDb(slug, { visibility: "all" });
-    const ownerOk =
-      existingForGuard &&
-      ownerUserId &&
-      (!existingForGuard.owner_user_id || existingForGuard.owner_user_id === ownerUserId);
+    const existingForGuard = canonicalListingId
+      ? await getServiciosPublicListingByIdFromDb(canonicalListingId, { visibility: "all" })
+      : await getServiciosPublicListingBySlugFromDb(slug, { visibility: "all" });
+    // B1 — the shared strict-ownership rule (a NULL owner never qualifies).
+    const ownerOk = Boolean(existingForGuard) && isServiciosListingOwner(existingForGuard?.owner_user_id, ownerUserId);
+    // B3 — a Leonix-owned state is refused with an honest reason, not "payment required".
+    if (ownerOk && SERVICIOS_LEONIX_LOCKED_STATUSES.has(String(existingForGuard?.listing_status ?? "").toLowerCase())) {
+      return await serviciosListingLockedResponse(slug, lang);
+    }
     const allowedOwnerRepublish =
       ownerOk &&
       existingForGuard &&
@@ -429,6 +515,17 @@ export async function POST(req: NextRequest) {
   // client from even attempting it).
   let actualListingStatus: string = listingStatus;
 
+  // Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B5) — exact-address privacy at the data boundary. When the
+  // owner hid their exact address, the street / suite / Google place id never enter the PUBLIC
+  // `profile_json`; they go to the service-role-only `private_contact` column so the owner's edit
+  // hydration still round-trips them (see serviciosAddressPrivacy.ts). `private_contact` is written
+  // ONLY for a hidden-address save (the value, or an explicit null when the owner cleared it), so a
+  // shown-address save never references the column, and a hidden-address save fails closed (never
+  // leaking the street) if the column is not migrated yet.
+  const { publicProfile: publicWireForPersistence, privateContact: privateContactForPersistence } =
+    splitServiciosAddressForPersistence(wire);
+  const privateContactPatch = serviciosExactAddressIsHidden(wire) ? { private_contact: privateContactForPersistence } : {};
+
   let persistedToDatabase = false;
   let persistedListingId: string | null = null;
   let persistedLeonixAdId: string | null = null;
@@ -436,10 +533,17 @@ export async function POST(req: NextRequest) {
   if (isSupabaseAdminConfigured()) {
     try {
       const supabase = getAdminSupabase();
-      const existing = await getServiciosPublicListingBySlugFromDb(slug, { visibility: "all" });
+      // Gate SERVICIOS-1 — when a canonical row id was resolved above, read (and below, update)
+      // BY THAT ID. The slug lookup stays as the legacy/no-id path only.
+      const existing = canonicalListingId
+        ? await getServiciosPublicListingByIdFromDb(canonicalListingId, { visibility: "all" })
+        : await getServiciosPublicListingBySlugFromDb(slug, { visibility: "all" });
 
       if (existing) {
-        if (ownerUserId && existing.owner_user_id && existing.owner_user_id !== ownerUserId) {
+        // B1 — enforced again at the write itself. Resolution above only ever targets an owned
+        // row; this also covers a slug race. A NULL owner never qualifies, so a save can no longer
+        // claim an unowned row.
+        if (!isServiciosListingOwner(existing.owner_user_id, ownerUserId)) {
           await insertServiciosAnalyticsEvent({
             listingSlug: slug,
             eventType: "publish_failure",
@@ -447,24 +551,52 @@ export async function POST(req: NextRequest) {
           });
           return NextResponse.json({ ok: false, error: "slug_conflict" }, { status: 409 });
         }
-        // Never downgrade an already-published listing back to pending on re-save.
-        const nextStatus =
-          pendingPayment && existing.listing_status === SERVICIOS_LISTING_STATUS_PUBLISHED
-            ? SERVICIOS_LISTING_STATUS_PUBLISHED
-            : listingStatus;
+        // B2 + B3 — the complete owner-save transition (see serviciosOwnerMutationPolicy.ts).
+        // Published is never downgraded (no recharge); a paused row stays paused unless its base
+        // right has lapsed and the owner is paying again; Leonix-owned states are refused.
+        const existingStatus = String(existing.listing_status ?? "");
+        const baseAuthorityValid =
+          pendingPayment && existingStatus.trim().toLowerCase() === "paused_unpublished"
+            ? (await resolveServiciosReactivationAuthority(existing.id)).allowed
+            : null;
+        const saveDecision = decideServiciosOwnerSaveStatus({
+          existingStatus,
+          pendingPaymentRequested: pendingPayment,
+          baseAuthorityValid,
+          initialStatus: initialListingStatus(),
+        });
+        if (saveDecision.kind === "refuse") {
+          if (saveDecision.reason === "listing_locked_by_leonix") {
+            return await serviciosListingLockedResponse(slug, lang);
+          }
+          await insertServiciosAnalyticsEvent({
+            listingSlug: slug,
+            eventType: "publish_failure",
+            meta: { reason: saveDecision.reason, existing_status: existingStatus },
+          });
+          return NextResponse.json({ ok: false, error: saveDecision.reason }, { status: 409 });
+        }
+        const nextStatus = saveDecision.status;
         actualListingStatus = nextStatus;
-        const { data: updated, error } = await supabase
+        // owner_user_id is deliberately not written: ownership was proven above and a content save
+        // must never be able to re-assign it.
+        const updateQuery = supabase
           .from("servicios_public_listings")
           .update({
             business_name: businessName,
             city,
-            profile_json: wire,
+            profile_json: publicWireForPersistence,
+            ...privateContactPatch,
             internal_group: internalGroup,
             listing_status: nextStatus,
             updated_at: now,
-            ...(ownerUserId ? { owner_user_id: ownerUserId } : {}),
-          })
-          .eq("slug", slug)
+          });
+        // Gate SERVICIOS-1 — target the canonical row id when we have one (it survives a business
+        // rename); the slug predicate stays only for the legacy no-id path.
+        const { data: updated, error } = await (canonicalListingId
+          ? updateQuery.eq("id", canonicalListingId)
+          : updateQuery.eq("slug", slug)
+        )
           .select("id, leonix_ad_id")
           .maybeSingle();
         if (!error) {
@@ -489,12 +621,22 @@ export async function POST(req: NextRequest) {
             supabase: sanitizeSupabaseError(error),
           });
         }
+      } else if (existingListingIdRaw) {
+        // SRV-GOLDEN-01 — declared edit that lost the row between resolve and write must fail
+        // closed. Never INSERT a replacement listing.
+        await insertServiciosAnalyticsEvent({
+          listingSlug: slug || null,
+          eventType: "publish_failure",
+          meta: { reason: "listing_not_found", existingListingIdDeclared: true, persistStage: "insert_forbidden" },
+        });
+        return NextResponse.json({ ok: false, error: "listing_not_found" }, { status: 404 });
       } else {
         const insertRow: Record<string, unknown> = {
           slug,
           business_name: businessName,
           city,
-          profile_json: wire,
+          profile_json: publicWireForPersistence,
+          ...privateContactPatch,
           internal_group: internalGroup,
           listing_status: listingStatus,
           leonix_verified: false,
@@ -550,7 +692,7 @@ export async function POST(req: NextRequest) {
   }
 
   let persistedToDevWorkspace = false;
-  if (!persistedToDatabase && isServiciosDevPublishPersistenceEnabled()) {
+  if (!persistedToDatabase && !existingListingIdRaw && isServiciosDevPublishPersistenceEnabled()) {
     const row = buildServiciosPublicRowForPersistence({
       slug,
       businessName,
@@ -678,6 +820,7 @@ export async function POST(req: NextRequest) {
       leonixAdId: persistedLeonixAdId,
       slug,
       listingStatus: actualListingStatus,
+      ...(serviciosDroppedMedia.length ? { droppedUnpersistableMedia: serviciosDroppedMedia } : {}),
     });
   }
 
@@ -692,10 +835,36 @@ export async function POST(req: NextRequest) {
   const detailPath = `/clasificados/servicios/${encodeURIComponent(slug)}`;
   const resultsPath = `/clasificados/servicios/resultados?lang=${lang}`;
 
+  // A checkout was requested but the row did not need one (already published, or paused with a
+  // valid base plan). The pre-checkout client treats a response without `pendingPayment` as a
+  // failure and shows `message` when present — so say what actually happened instead of letting it
+  // fall back to "could not save".
+  const checkoutNotNeededMessage = !(pendingPayment && persistedToDatabase)
+    ? undefined
+    : actualListingStatus === SERVICIOS_LISTING_STATUS_PUBLISHED
+      ? lang === "es"
+        ? "Guardamos tus cambios. Tu plan sigue activo, así que no se necesita otro pago."
+        : "Your changes are saved. Your plan is still active, so no further payment is needed."
+      : actualListingStatus === "paused_unpublished"
+        ? lang === "es"
+          ? "Guardamos tus cambios. Tu plan sigue activo, así que no hay que pagar: tu anuncio está pausado — reactívalo desde tu panel."
+          : "Your changes are saved. Your plan is still active, so no payment is needed — your listing is paused; resume it from your dashboard."
+        : actualListingStatus === SERVICIOS_LISTING_STATUS_PENDING_REVIEW
+          ? lang === "es"
+            ? "Guardamos tus cambios. Tu anuncio está en revisión por Leonix."
+            : "Your changes are saved. Your listing is being reviewed by Leonix."
+          : undefined;
+
   return NextResponse.json({
     ok: true,
     slug,
+    ...(checkoutNotNeededMessage ? { noCheckoutRequired: true, message: checkoutNotNeededMessage } : {}),
+    /** Gate SERVICIOS-1 — canonical persistence identity, so the client can prime it and the next
+     * save in this session targets this exact row rather than re-deriving a slug from the name. */
+    listingId: persistedListingId,
+    leonixAdId: persistedLeonixAdId,
     listingStatus: persistedToDatabase ? actualListingStatus : SERVICIOS_LISTING_STATUS_PUBLISHED,
+    ...(serviciosDroppedMedia.length ? { droppedUnpersistableMedia: serviciosDroppedMedia } : {}),
     persistence,
     persistedToDatabase,
     persistedToDevWorkspace,

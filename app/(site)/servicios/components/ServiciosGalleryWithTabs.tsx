@@ -54,6 +54,56 @@ function GalleryImage({
   );
 }
 
+type ServiciosMediaFilter = "all" | "photos" | "videos";
+
+/**
+ * Servicios Owner QA (SVC-QA-10) — explicit Todo / Fotos / Videos switch, used above the grid and
+ * inside the shared viewer's header. Only rendered when the listing has BOTH photos and videos.
+ */
+function ServiciosMediaFilterSwitch({
+  value,
+  onChange,
+  photoCount,
+  videoCount,
+  lang,
+  tone,
+}: {
+  value: ServiciosMediaFilter;
+  onChange: (next: ServiciosMediaFilter) => void;
+  photoCount: number;
+  videoCount: number;
+  lang: ServiciosLang;
+  tone: "light" | "dark";
+}) {
+  const options: { id: ServiciosMediaFilter; label: string }[] = [
+    { id: "all", label: `${lang === "en" ? "All" : "Todo"} (${photoCount + videoCount})` },
+    { id: "photos", label: `${lang === "en" ? "Photos" : "Fotos"} (${photoCount})` },
+    { id: "videos", label: `${lang === "en" ? "Videos" : "Videos"} (${videoCount})` },
+  ];
+  const base = "min-h-[36px] shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition sm:text-sm";
+  const on = tone === "dark" ? "bg-white text-[#1F1A17]" : "bg-white text-[#6F7A3A] shadow-sm ring-1 ring-[#E8D7B8]";
+  const off = tone === "dark" ? "text-white/80 hover:text-white" : "text-[#6F6254] hover:text-[#2F2A23]";
+  return (
+    <div
+      role="group"
+      aria-label={lang === "en" ? "Media type" : "Tipo de contenido"}
+      className={`inline-flex max-w-full gap-1 rounded-xl p-1 ${tone === "dark" ? "bg-white/10" : "border border-[#E8D7B8] bg-[#FCF9F2]"}`}
+    >
+      {options.map((o) => (
+        <button
+          key={o.id}
+          type="button"
+          aria-pressed={value === o.id}
+          onClick={() => onChange(o.id)}
+          className={`${base} ${value === o.id ? on : off}`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function ServiciosGalleryWithTabs({
   profile,
   lang,
@@ -85,14 +135,22 @@ export function ServiciosGalleryWithTabs({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [narrowViewport, setNarrowViewport] = useState(false);
+  const [mediaFilter, setMediaFilter] = useState<ServiciosMediaFilter>("all");
 
-  /** Combined photos-then-videos sequence for the shared enlarged viewer (Gate B4) — the
-   * existing Fotos/Videos tab UI above still controls which grid is shown; only the modal's
-   * own cross-tab nav is now "keep arrowing" instead of a tab switcher inside the dialog. */
-  const gallerySlides: BusinessGallerySlide[] = [
-    ...allPhotos.map((g) => ({ kind: "image" as const, url: g.url, alt: g.alt })),
-    ...videos.map((v) => ({ kind: "video" as const, renderVideo: () => <ServiciosGalleryVideoTile v={v} lang={lang} variant="embed" /> })),
-  ];
+  /** Combined photos-then-videos sequence for the shared enlarged viewer (Gate B4). */
+  const photoSlides: BusinessGallerySlide[] = allPhotos.map((g) => ({ kind: "image" as const, url: g.url, alt: g.alt }));
+  const videoSlides: BusinessGallerySlide[] = videos.map((v) => ({
+    kind: "video" as const,
+    renderVideo: () => <ServiciosGalleryVideoTile v={v} lang={lang} variant="embed" />,
+  }));
+  /** SVC-QA-10 — the viewer shows exactly what the Todo / Fotos / Videos switch selects. */
+  const gallerySlides: BusinessGallerySlide[] =
+    mediaFilter === "photos" ? photoSlides : mediaFilter === "videos" ? videoSlides : [...photoSlides, ...videoSlides];
+  const hasBothMediaKinds = hasPhotos && hasVideos;
+  const changeMediaFilter = useCallback((next: ServiciosMediaFilter) => {
+    setMediaFilter(next);
+    setActiveSlideIndex(0);
+  }, []);
   const lightboxCopy = {
     close: lang === "en" ? "Close" : "Cerrar",
     prev: lang === "en" ? "Previous" : "Anterior",
@@ -142,7 +200,9 @@ export function ServiciosGalleryWithTabs({
   };
 
   const openModal = (index: number, tab: "photos" | "videos" = "photos") => {
-    setActiveSlideIndex(tab === "videos" ? allPhotos.length + index : index);
+    // Index inside the CURRENT filtered slide list (photos precede videos only under "Todo").
+    const offset = tab === "videos" && mediaFilter === "all" ? allPhotos.length : 0;
+    setActiveSlideIndex(offset + index);
     setIsModalOpen(true);
   };
 
@@ -165,7 +225,20 @@ export function ServiciosGalleryWithTabs({
               {lang === "en" ? "Gallery & videos" : "Galería y videos"}
             </h2>
 
-            {hasPhotos ? (
+            {hasBothMediaKinds ? (
+              <div className="mt-3" data-servicios-media-filter="1">
+                <ServiciosMediaFilterSwitch
+                  value={mediaFilter}
+                  onChange={changeMediaFilter}
+                  photoCount={allPhotos.length}
+                  videoCount={videos.length}
+                  lang={lang}
+                  tone="light"
+                />
+              </div>
+            ) : null}
+
+            {hasPhotos && mediaFilter !== "videos" ? (
               <div className="mt-3 grid grid-cols-4 gap-1.5 sm:grid-cols-5 md:grid-cols-7 md:gap-2">
                 {visibleImages.map((g, index) => (
                   <GalleryImage key={g.id} g={g} onOpen={() => openModal(index)} compact />
@@ -173,15 +246,16 @@ export function ServiciosGalleryWithTabs({
               </div>
             ) : null}
 
-            {hasVideos ? (
-              <div id="servicios-gallery-videos" className={hasPhotos ? "mt-4 space-y-2" : "mt-3 space-y-2"}>
+            {hasVideos && mediaFilter !== "photos" ? (
+              <div id="servicios-gallery-videos" className={hasPhotos && mediaFilter === "all" ? "mt-4 space-y-2" : "mt-3 space-y-2"}>
                 <h3 className="text-sm font-semibold text-[#1F1A17]">
                   {videos.length > 1 ? (lang === "en" ? "Videos" : "Videos") : lang === "en" ? "Video" : "Video"}
                 </h3>
                 <div className={serviciosCombinedVideoGridClass(videos.length)}>
-                  {videos.map((v) => (
+                  {videos.map((v, index) => (
                     <div key={v.id} className="min-w-0">
-                      <ServiciosGalleryVideoTile v={v} lang={lang} />
+                      {/* SVC-QA-11 — opens inside the Leonix viewer first; provider link stays secondary. */}
+                      <ServiciosGalleryVideoTile v={v} lang={lang} onOpenInViewer={() => openModal(index, "videos")} />
                     </div>
                   ))}
                 </div>
@@ -193,7 +267,7 @@ export function ServiciosGalleryWithTabs({
                 <button
                   type="button"
                   onClick={() => {
-                    if (hasPhotos) openModal(0, "photos");
+                    if (hasPhotos && mediaFilter !== "videos") openModal(0, "photos");
                     else if (hasVideos) openModal(0, "videos");
                   }}
                   className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#BEA98E] px-4 py-2 text-sm font-semibold text-[#1F1A17] transition-colors hover:bg-[#D8C2A0]"
@@ -214,6 +288,18 @@ export function ServiciosGalleryWithTabs({
           onActiveIndexChange={setActiveSlideIndex}
           ariaLabel={L.gallery}
           copy={lightboxCopy}
+          headerSlot={
+            hasBothMediaKinds ? (
+              <ServiciosMediaFilterSwitch
+                value={mediaFilter}
+                onChange={changeMediaFilter}
+                photoCount={allPhotos.length}
+                videoCount={videos.length}
+                lang={lang}
+                tone="dark"
+              />
+            ) : undefined
+          }
         />
         <CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} />
       </>

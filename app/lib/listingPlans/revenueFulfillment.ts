@@ -21,6 +21,7 @@ import {
   SERVICIOS_BASE_MONTHLY_PACKAGE_KEY,
   SERVICIOS_OFFERS_ADDON_PACKAGE_KEY,
 } from "./revenueServiciosFulfillment";
+import { triggerServiciosSavedSearchMatchBestEffort } from "@/app/lib/saved-search/servicios/serviciosSavedSearchMatchOrchestrator";
 import {
   activatePaidComidaLocalListingFromRevenueOs,
   COMIDA_LOCAL_BASE_MONTHLY_PACKAGE_KEY,
@@ -600,6 +601,17 @@ async function tryActivateServiciosListingAfterEntitlement(input: {
     },
   });
 
+  // Gate SERVICIOS-2 — Saved Search match is a durable, best-effort side effect of the listing
+  // genuinely becoming publicly active, fired strictly AFTER the real activation has committed and
+  // only on the actual pending -> published transition (a re-delivered webhook resolves to
+  // `already_published` and returns earlier, never reaching here).
+  // `triggerServiciosSavedSearchMatchBestEffort` never throws, so it can never fail this
+  // function's own success — the same failure-boundary contract as the Autos/Bienes Raíces/Rentas
+  // activation call sites.
+  if (activation.outcome === "activated" && activation.listingId) {
+    await triggerServiciosSavedSearchMatchBestEffort(activation.listingId, "servicios_publish_activation");
+  }
+
   return { ok: true };
 }
 
@@ -909,13 +921,32 @@ async function tryActivateAutosPrivadoListingAfterEntitlement(input: {
     listingId: input.paymentRecord.listing_id,
     packageKey: input.packageDef.packageKey,
     stripePaymentIntentId: input.stripePaymentIntentId ?? null,
+    paymentMetadata: input.paymentRecord.metadata,
+    paymentRecordId: input.paymentRecord.id,
   });
 
   if (
     activation.outcome === "skipped_wrong_package" ||
     activation.outcome === "already_published" ||
-    activation.outcome === "wrong_lane"
+    activation.outcome === "wrong_lane" ||
+    activation.outcome === "renewed"
   ) {
+    if (activation.outcome === "renewed") {
+      await writeRevenueAuditLog({
+        action: "autos_privado_listing_activated_after_payment",
+        targetType: "autos_classifieds_listings",
+        targetId: activation.listingId ?? null,
+        meta: {
+          listing_id: activation.listingId,
+          package_key: input.packageDef.packageKey,
+          payment_record_id: input.paymentRecord.id,
+          leonix_ad_id: input.paymentRecord.leonix_ad_id,
+          stripe_checkout_session_id: input.stripeCheckoutSessionId,
+          stripe_event_id: input.stripeEventId,
+          outcome: "renewed",
+        },
+      });
+    }
     return { ok: true };
   }
 
@@ -1028,7 +1059,26 @@ async function tryActivateBienesFsboListingAfterEntitlement(input: {
     listingId: input.paymentRecord.listing_id,
     packageKey: input.packageDef.packageKey,
     stripePaymentIntentId: input.stripePaymentIntentId ?? null,
+    paymentMetadata: input.paymentRecord.metadata,
+    paymentRecordId: input.paymentRecord.id,
   });
+
+  if (activation.outcome === "renewed") {
+    await writeRevenueAuditLog({
+      action: "bienes_fsbo_listing_activated_after_payment",
+      targetType: "listings",
+      targetId: activation.listingId ?? null,
+      meta: {
+        listing_id: activation.listingId,
+        package_key: input.packageDef.packageKey,
+        payment_record_id: input.paymentRecord.id,
+        leonix_ad_id: input.paymentRecord.leonix_ad_id,
+        stripe_event_id: input.stripeEventId,
+        outcome: "renewed",
+      },
+    });
+    return { ok: true };
+  }
 
   if (
     activation.outcome === "skipped_wrong_package" ||
@@ -1259,7 +1309,31 @@ export async function fulfillCheckoutSessionCompleted(input: {
   }
 
   const expectedAmount = paymentRecord.amount_total_cents ?? paymentRecord.amount_cents ?? packageDef.priceCents;
-  if (session.amount_total != null && expectedAmount > 0 && session.amount_total !== expectedAmount) {
+
+  // Package C Build 2 (C4) — verified-intro-15% on a monthly subscription is applied as a
+  // server-attached Stripe coupon with duration:"once" (revenueStripe.ts), deliberately NOT as a
+  // reduced line item, so the subscription's own price stays full and every renewal bills full
+  // price. That means the Checkout Session's amount_total is the DISCOUNTED FIRST INVOICE while
+  // the payment record correctly stores the full recurring plan price — the two legitimately
+  // differ, and comparing them blindly rejected fulfillment AFTER the customer had already been
+  // charged (money taken, nothing published).
+  //
+  // Exactly ONE additional value is accepted, derived from the discount this server itself
+  // computed and persisted on the record — never a tolerance window, never a percentage
+  // recomputed here, and only for a subscription record that actually carries a verified-intro
+  // redemption. Any other amount is still a hard mismatch.
+  const verifiedIntroFirstChargeCents =
+    paymentRecord.verified_intro_discount_redemption_id != null &&
+    paymentRecord.billing_mode === "monthly_subscription" &&
+    (paymentRecord.amount_discount_cents ?? 0) > 0
+      ? Math.max(0, expectedAmount - (paymentRecord.amount_discount_cents ?? 0))
+      : null;
+
+  const amountAccepted =
+    session.amount_total === expectedAmount ||
+    (verifiedIntroFirstChargeCents != null && session.amount_total === verifiedIntroFirstChargeCents);
+
+  if (session.amount_total != null && expectedAmount > 0 && !amountAccepted) {
     await writeRevenueAuditLog({
       action: "revenue_webhook_validation_failed",
       targetType: "leonix_payment_records",
@@ -1267,6 +1341,7 @@ export async function fulfillCheckoutSessionCompleted(input: {
       meta: {
         code: "amount_mismatch",
         expected_amount_cents: expectedAmount,
+        verified_intro_first_charge_cents: verifiedIntroFirstChargeCents,
         stripe_amount_total: session.amount_total,
         stripe_event_id: eventId,
       },

@@ -12,7 +12,7 @@ import { countryLabel } from "@/app/lib/business/countries";
 import { formatUsPhoneForDisplay } from "@/app/lib/business/phoneDisplay";
 import { physicalAddressSummary, summarizeServiceCoverage } from "@/app/(site)/dashboard/business-tools/onboarding/wizardTypes";
 import { businessIdentityCopy } from "@/app/(site)/dashboard/business-tools/_components/businessIdentityCopy";
-import { FollowUpPanel, NotesPanel, StatusQuickActions } from "./BusinessWorkspaceActions";
+import { FollowUpPanel, LinkExternalRecordPanel, NotesPanel, StatusQuickActions } from "./BusinessWorkspaceActions";
 import { CreateFactForm, CreateUnknownForm, DecideCorrectionButtons, DiscoveryPanel, FactDecisionButtons, ResolveUnknownForm } from "./LivingBusinessBookActions";
 import { shapeFactsForStaffActor } from "../../../_lib/livingBookVisibility";
 import {
@@ -987,6 +987,28 @@ export default async function AdminBusinessDetailPage({
             ))}
           </ul>
         )}
+      </section>
+
+      {/* ADMIN-OS-01 GATE 2/3 — Connected records (payments, leads, support tickets) via
+          business_external_links. Explicit staff-created links only, verified against each
+          record's own real table at link time and again on every page load — never inferred
+          from a free-text business_name match. */}
+      <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
+        <h2 className="text-sm font-bold text-[#1E1810]">Connected records</h2>
+        <p className="mt-1 text-xs text-[#7A7164]">
+          Payments, leads, and support tickets a staff member has explicitly linked to this
+          business (<code className="text-[11px]">business_external_links</code>).
+        </p>
+        <div className="mt-3">
+          <LinkExternalRecordPanel
+            businessId={business.id}
+            links={detail.externalLinkSummaries.map(({ link, summary }) => ({
+              link: { id: link.id, recordType: link.recordType, recordId: link.recordId, status: link.status, linkedAt: link.linkedAt },
+              summary,
+            }))}
+            canWrite={actorHasCapability(access.actor, "create_internal_note") && !isOwnerBootstrapActor(access.actor)}
+          />
+        </div>
       </section>
 
       {/* Sales preparation panel */}

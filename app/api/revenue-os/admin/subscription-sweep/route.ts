@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { timingSafeEqual } from "node:crypto";
-import { requireLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
+import { requireRevenueProtectedWriteAccess } from "@/app/admin/_lib/adminAccessControl";
 import {
   sweepDueSubscriptionTransitions,
 } from "@/app/lib/listingPlans/subscriptionLifecycle";
@@ -19,9 +19,13 @@ export const runtime = "nodejs";
  * the signed machine secret to get cron-like behavior.
  *
  * Authorization (either):
- *   1. An authenticated Leonix admin session (existing admin gate), OR
+ *   1. A fully-verified super_admin staff session (requireRevenueProtectedWriteAccess() — Final
+ *      Pre-QA Security Hardening Gate, 2026-09-10: fails closed independent of
+ *      ADMIN_ENFORCE_ROSTER_PERMISSIONS, explicitly denies the shared bootstrap session, and
+ *      never treats can_view_payments — a READ-only permission — as write authority), OR
  *   2. `x-leonix-sweep-key` header matching the LEONIX_SUBSCRIPTION_SWEEP_KEY env value
- *      (constant-time compare; env NAME only — the value is never logged or echoed).
+ *      (constant-time compare; env NAME only — the value is never logged or echoed) — the
+ *      machine-key path is unaffected by this gate.
  * Unauthenticated requests are rejected 401. Idempotent; dryRun supported.
  */
 function machineKeyAuthorized(request: NextRequest): boolean {
@@ -39,12 +43,8 @@ function machineKeyAuthorized(request: NextRequest): boolean {
 export async function POST(request: NextRequest) {
   let authorized = machineKeyAuthorized(request);
   if (!authorized) {
-    try {
-      await requireLeonixAdminPermission("can_view_payments");
-      authorized = true;
-    } catch {
-      authorized = false;
-    }
+    const access = await requireRevenueProtectedWriteAccess();
+    authorized = access.ok;
   }
   if (!authorized) {
     return NextResponse.json({ ok: false, code: "unauthorized" }, { status: 401 });

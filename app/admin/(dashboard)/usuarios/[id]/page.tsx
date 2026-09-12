@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { requireAdminCookie, getAdminSupabase } from "@/app/lib/supabase/server";
+import { hasLeonixAdminPermission } from "@/app/admin/_lib/leonixAdminGate";
 import { auditAdminWrite } from "@/app/admin/_lib/auditAdminWrite";
 import { getSupabaseAuthUsersDashboardUrl } from "@/app/admin/_lib/supabaseDashboardLinks";
 import AdminUserActions from "../AdminUserActions";
@@ -48,8 +49,21 @@ type TiendaOrderMini = {
 };
 
 const ALLOWED_ACCOUNT_TYPES = ["personal", "business"] as const;
-const PERSONAL_TIERS = ["gratis", "pro"] as const;
-const BUSINESS_TIERS = ["business_lite", "business_premium"] as const;
+/**
+ * ADMIN-OS-01 GATE 2 — reconciled to the ONLY values the real, live customer-provisioning
+ * writer (`adminUserProvisioning.ts`, the sole other write site for this column in the whole
+ * repo) ever inserts: "personal_free" / "business_starter". The previous vocabulary here
+ * ("gratis"/"pro"/"business_lite"/"business_premium") never matched anything real customer
+ * ever had — confirmed no code anywhere else in the repo writes those values, and every
+ * customer-facing dashboard page's own `normalizePlanFromMembershipTier()` is stubbed to
+ * always return "free" regardless of the stored value, so nothing downstream depended on
+ * that stale vocabulary either. The mismatch meant opening this form for a real customer
+ * silently pre-selected the wrong option, and a plain Save (with no intended tier change)
+ * would silently overwrite their real tier with a fabricated one — a genuine data-corruption
+ * bug, not just a cosmetic mismatch. See docs/admin-os/ADMIN_OS_CABLE_MAP.md, PEOPLE domain.
+ */
+const PERSONAL_TIERS = ["personal_free"] as const;
+const BUSINESS_TIERS = ["business_starter"] as const;
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -81,11 +95,11 @@ function displayName(row: ProfileRow): string {
 
 function membershipTierLabel(tier: string | null): string {
   const t = (tier ?? "").trim().toLowerCase();
-  if (t === "gratis") return "Free";
-  if (t === "pro") return "Pro";
-  if (t === "business_lite") return "Standard";
-  if (t === "business_premium") return "Plus";
-  return t || "Free";
+  if (t === "personal_free") return "Free";
+  if (t === "business_starter") return "Starter";
+  // Legacy/unrecognized values (e.g. a pre-canonicalization row, or a manual DB edit) are
+  // shown verbatim rather than mislabeled as "Free" — honest, not invented.
+  return t || "—";
 }
 
 function accountTypeLabel(accountType: string | null): string {
@@ -120,6 +134,15 @@ async function updateClientAccountAction(formData: FormData) {
     redirect("/admin/usuarios");
   }
 
+  // ADMIN-OS-01 GATE B: this mutation had no permission gate at all, unlike its
+  // sibling setUserDisabledAction (gated by can_edit_users). See
+  // docs/admin-os/ADMIN_OS_CABLE_MAP.md, PEOPLE domain, "Users". No-ops (as
+  // hasLeonixAdminPermission always does) when ADMIN_ENFORCE_ROSTER_PERMISSIONS
+  // is off, so this does not change behavior for single-operator deployments.
+  if (!(await hasLeonixAdminPermission("can_edit_users"))) {
+    redirect(`/admin/usuarios/${clientId}?error=forbidden`);
+  }
+
   const rawAccountType = (formData.get("account_type") ?? "").toString().trim().toLowerCase();
   const rawMembershipTier = (formData.get("membership_tier") ?? "").toString().trim().toLowerCase();
 
@@ -127,19 +150,28 @@ async function updateClientAccountAction(formData: FormData) {
     redirect(`/admin/usuarios/${clientId}?error=invalid-account-type`);
   }
 
+  const supabase = getAdminSupabase();
+
+  // GATE 2: a legacy/unrecognized stored tier is a valid "no-op, keep as-is" submission — the
+  // <select> above always includes the row's own current value as an option precisely so this
+  // is possible. Re-reading the row (rather than trusting a hidden form field) so this can't be
+  // spoofed into accepting an arbitrary string for an account that doesn't actually have one.
+  const { data: currentRow } = await supabase.from("profiles").select("membership_tier").eq("id", clientId).maybeSingle();
+  const existingTier = ((currentRow as { membership_tier?: string | null } | null)?.membership_tier ?? "").trim().toLowerCase();
+  const tierUnchanged = Boolean(existingTier) && rawMembershipTier === existingTier;
+
   if (rawAccountType === "personal") {
-    if (!isPersonalTier(rawMembershipTier)) {
+    if (!isPersonalTier(rawMembershipTier) && !tierUnchanged) {
       redirect(`/admin/usuarios/${clientId}?error=membership-mismatch`);
     }
   } else if (rawAccountType === "business") {
-    if (!isBusinessTier(rawMembershipTier)) {
+    if (!isBusinessTier(rawMembershipTier) && !tierUnchanged) {
       redirect(`/admin/usuarios/${clientId}?error=membership-mismatch`);
     }
   } else {
     redirect(`/admin/usuarios/${clientId}?error=invalid-account-type`);
   }
 
-  const supabase = getAdminSupabase();
   const { error } = await supabase
     .from("profiles")
     .update({
@@ -520,9 +552,15 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
 
   const isPersonal = selectedAccountType === "personal";
   const allowedTiers: readonly string[] = isPersonal ? PERSONAL_TIERS : BUSINESS_TIERS;
-  const selectedMembershipTier = allowedTiers.includes(currentMembershipTier)
-    ? currentMembershipTier
-    : (allowedTiers[0] as string);
+  /**
+   * GATE 2 fix: never silently substitute a canonical value for a legacy/unrecognized one —
+   * doing so let a plain Save (no intended tier change) overwrite a real stored value with a
+   * fabricated default. When the current value isn't in the canonical set for this account
+   * type, it stays selected as its own option (added to the <select> below) so staff can see
+   * and deliberately choose to change it, instead of it being invisibly coerced away.
+   */
+  const selectedMembershipTier = currentMembershipTier || (allowedTiers[0] as string);
+  const membershipTierIsLegacy = Boolean(currentMembershipTier) && !allowedTiers.includes(currentMembershipTier);
 
   const errorMessage =
     errorValue === "invalid-account-type"
@@ -533,7 +571,9 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
           ? "Membership does not match account type. Choose a valid option for the selected type."
           : errorValue === "update-failed"
             ? "Could not save. Try again."
-            : errorValue
+            : errorValue === "forbidden"
+              ? "You don't have permission to edit account type or membership tier."
+              : errorValue
               ? "Update error."
               : null;
 
@@ -662,17 +702,21 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
             </label>
             <select id="membership_tier" name="membership_tier" defaultValue={selectedMembershipTier} className={inputClass}>
               {isPersonal ? (
-                <>
-                  <option value="gratis">Free</option>
-                  <option value="pro">Pro</option>
-                </>
+                <option value="personal_free">Free</option>
               ) : (
-                <>
-                  <option value="business_lite">Standard</option>
-                  <option value="business_premium">Plus</option>
-                </>
+                <option value="business_starter">Starter</option>
               )}
+              {membershipTierIsLegacy ? (
+                <option value={currentMembershipTier}>Current (legacy): {currentMembershipTier}</option>
+              ) : null}
             </select>
+            {membershipTierIsLegacy ? (
+              <p className="mt-1 text-[10px] text-amber-800">
+                This account&apos;s stored tier (&ldquo;{currentMembershipTier}&rdquo;) isn&apos;t one of the current
+                values Leonix assigns automatically. It&apos;s kept selected so saving other fields on this form
+                won&apos;t change it — switch it deliberately only if you mean to.
+              </p>
+            ) : null}
           </div>
           <button
             type="submit"
@@ -944,7 +988,7 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
           Only events truthfully linked by exact id (this profile or one of their real listing ids) — nothing fuzzy-matched.
         </p>
         {auditHistory.mode === "unavailable" ? (
-          <p className="mt-3 text-sm text-amber-900">{auditHistory.detail ?? "Activity log unavailable."}</p>
+          <p className="mt-3 text-sm text-amber-900">Activity log is temporarily unavailable — check System Health.</p>
         ) : auditHistory.rows.length === 0 ? (
           <p className="mt-3 text-sm text-[#5C5346]">No linked admin activity found.</p>
         ) : (

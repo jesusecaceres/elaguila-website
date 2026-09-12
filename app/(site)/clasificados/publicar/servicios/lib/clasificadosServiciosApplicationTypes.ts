@@ -182,6 +182,17 @@ export type ClasificadosServiciosApplicationState = {
   physicalRegion: string;
   physicalCountry: string;
   physicalPostalCode: string;
+  /** Gate G23 — set only by the shared BusinessAddressVerifiedInput picker (never invented/guessed).
+   * "manual" for hand-typed text (including when no provider is configured); "user_confirmed" only
+   * when the owner explicitly selected a real provider suggestion. Never "verified" from this UI —
+   * that status is reserved for a provider adapter's own confirmed result. */
+  physicalVerificationStatus: "unverified" | "manual" | "user_confirmed" | "provider_suggested" | "verified";
+  physicalProvider: string | null;
+  physicalProviderPlaceId: string | null;
+  /** Owner's explicit choice to reveal the exact physical address publicly. Defaults to `true`
+   * (existing/new applications alike) so this addition never silently hides an address that was
+   * always shown before this field existed — see `serviciosBusinessProfile.ts`'s `showExactAddress`. */
+  showExactAddress: boolean;
   serviceAreaNotes: string;
   phone: string;
   /** Optional second line — same digit rules as `phone` */

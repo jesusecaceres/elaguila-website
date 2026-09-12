@@ -91,7 +91,17 @@ ok("revenue payload constant added; restaurante constant untouched");
 // --- Dashboard actions ---
 if (!dashboard.includes("serviciosListingEditHref")) fail("Dashboard must use listing edit href helper");
 if (!dashboard.includes("serviciosOffersEditHref")) fail("Dashboard must use offers edit href helper");
-if (!dashboard.includes("serviciosOffersInactiveDashboardHint")) fail("Dashboard must show inactive hint");
+// Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B4) — current doctrine. The "inactive hint" (telling an owner
+// to enable a paid offers module) was removed from this page by 8cfbfdfd and is obsolete: offers are
+// INCLUDED in servicios_base_monthly. What must hold instead is that the offers shortcut is gated on
+// SERVER-derived availability, and that the server derives it from the included capability.
+if (!dashboard.includes("r.offersAddonActive")) fail("Dashboard must gate the offers shortcut on server-derived availability");
+{
+  const myListingsSrc = read("app/api/clasificados/servicios/my-listings/route.ts");
+  if (!myListingsSrc.includes('capability: "coupons_offers"')) {
+    fail("my-listings must derive offers availability from the included coupons_offers capability");
+  }
+}
 if (!dashboard.includes("offersAddonActive")) fail("Dashboard row must carry offers active state");
 if (!dashboard.includes("offers_addon_active")) fail("Dashboard must read offers_addon_active from API");
 if (dashboard.includes("Destacar ofertas") || dashboard.includes("Feature offers +$99")) {
@@ -103,8 +113,14 @@ ok("dashboard actions: listing-edit + active offers-edit shortcut + inactive hin
 if (myListings.includes("serviciosListingJsonOffersEnabled")) {
   fail("my-listings must not use profile_json offer content as paid entitlement truth");
 }
-if (!myListings.includes("listing_package_entitlements")) fail("my-listings must read server-backed entitlements");
-if (!myListings.includes("SERVICIOS_OFFERS_ADDON_PACKAGE_KEY")) fail("my-listings must target servicios_offers_addon");
+// Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B4) — this matched a code COMMENT. The server-backed truth is
+// the included coupons_offers capability, resolved from live entitlements by resolveBusinessToolsAccess.
+if (!myListings.includes("resolveBusinessToolsAccess({") || !myListings.includes('capability: "coupons_offers"')) {
+  fail("my-listings must read server-backed entitlements (included coupons_offers capability)");
+}
+// Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B4) — this required the defect itself: targeting the retired
+// servicios_offers_addon key is exactly why $399 customers' included offers were hidden. Invert it.
+if (myListings.includes("SERVICIOS_OFFERS_ADDON_PACKAGE_KEY")) fail("my-listings must not target the retired servicios_offers_addon key");
 if (!myListings.includes("offers_addon_active")) fail("my-listings must return offers_addon_active");
 if (!myListings.includes("auth_required") && !myListings.includes("invalid_token")) fail("my-listings must keep auth guard");
 if (!myListings.includes("listServiciosPublicListingsForOwner")) fail("my-listings must keep owner filtering");

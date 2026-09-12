@@ -13,6 +13,7 @@ import {
 } from "../lib/serviciosResultsFilter";
 import { listServiciosPublicListingsRaw } from "../lib/serviciosPublicListingsServer";
 import { overlayActiveEntitlementsForServiciosResults } from "../lib/serviciosEntitlementOverlay";
+import { resolveServiciosOffersCapabilityByListingId } from "../lib/serviciosOffersCapabilityServer";
 import { resolveCanonicalVisibilityBucketWeights } from "@/app/lib/listingPlans/placementResultsOverlay";
 import { ServiciosResultsViewAnalytics } from "../ServiciosResultsViewAnalytics";
 import { CategoryStandardPagination } from "@/app/(site)/clasificados/components/categoryStandard/CategoryStandardPagination";
@@ -21,6 +22,8 @@ import {
   parseCatStdPerPage,
 } from "@/app/(site)/clasificados/components/categoryPipeline/catStdPerPage";
 import { resolveClasificadosPublishLangFromSearchParams } from "@/app/lib/clasificados/clasificadosPublishLang";
+import { SavedSearchButton } from "@/app/(site)/clasificados/components/savedSearch/SavedSearchButton";
+import { serviciosFilterQueryToSavedSearch } from "@/app/lib/saved-search/servicios/savedSearchServiciosAdapter";
 
 export const dynamic = "force-dynamic";
 
@@ -143,7 +146,13 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
   // Pipeline: raw fetch → filter → entitlement overlay → visibility ranking
   const allRows = await listServiciosPublicListingsRaw(500);
 
-  let rows = filterServiciosPublicListingRows(allRows, lang, filterQuery);
+  // Gate SERVICIOS-EDIT-ROUNDTRIP-OFFERS-DISCOVERY-1 (F2) — "Tiene ofertas" needs the CURRENT
+  // coupons_offers capability, the same truth the detail page reads. Looked up only when that filter
+  // is on, only for rows carrying offer content, in one batched query (never per row).
+  const offersCapabilityByListingId =
+    filterQuery.hasOffers === "1" ? await resolveServiciosOffersCapabilityByListingId(allRows) : undefined;
+
+  let rows = filterServiciosPublicListingRows(allRows, lang, filterQuery, { offersCapabilityByListingId });
   rows = filterServiciosRowsByKeyword(rows, lang, filterQuery.q);
   rows = filterServiciosRowsBySeller(rows, lang, filterQuery.seller);
 
@@ -187,6 +196,10 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
                 {lang === "en" ? "Listings" : "Anuncios"}
                 <span className="ml-2 tabular-nums text-[#64748b]">({displayRows.length})</span>
               </p>
+              {/* Gate SERVICIOS-2 — shared Saved Search CTA. `normalized` is built by the Servicios
+                  adapter from THIS page's own `filterQuery`, so a saved search always carries the
+                  exact filter/location truth that produced the results on screen. */}
+              <SavedSearchButton normalized={serviciosFilterQueryToSavedSearch(filterQuery)} lang={lang} />
               {filterQuery.sort === "name" ? (
                 <span className="text-xs font-medium text-[#64748b]">
                   {lang === "en" ? "A–Z within each block (featured first)." : "A–Z en cada bloque (destacados primero)."}

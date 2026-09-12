@@ -19,6 +19,12 @@ export type ServiciosPublishApiResponse = {
   slug?: string;
   /** Directory row status after publish (e.g. `pending_review` when moderation mode is on). */
   listingStatus?: string;
+  /**
+   * Gate SERVICIOS-1 — media refs the shared listing-media contract could not persist (local
+   * `blob:` / `data:` / unuploaded picks) and therefore dropped from the saved listing. Present
+   * (non-empty) means the publish SUCCEEDED but with fewer media items than the owner selected.
+   */
+  droppedUnpersistableMedia?: string[];
   persistence?: ServiciosPublishPersistence;
   persistedToDatabase?: boolean;
   persistedToDevWorkspace?: boolean;
@@ -33,12 +39,32 @@ export type ServiciosPublishApiResponse = {
 
 export const SERVICIOS_EXISTING_PUBLIC_SLUG_SESSION_KEY = "servicios_last_published_slug";
 
+/**
+ * Gate SERVICIOS-1 — canonical persistence identity carried alongside the public slug.
+ *
+ * The slug is public ROUTING/display identity and can change whenever the owner renames the
+ * business; this row UUID never does. The publish API prefers it over the slug so an edit-save
+ * always UPDATEs the real published row instead of allocating a new slug and INSERTing a duplicate.
+ */
+export const SERVICIOS_EXISTING_LISTING_ID_SESSION_KEY = "servicios_last_published_listing_id";
+
 export function primeServiciosExistingPublicSlug(slug: string | null | undefined): void {
   if (typeof window === "undefined") return;
   const trimmed = slug?.trim();
   try {
     if (trimmed) window.sessionStorage.setItem(SERVICIOS_EXISTING_PUBLIC_SLUG_SESSION_KEY, trimmed);
     else window.sessionStorage.removeItem(SERVICIOS_EXISTING_PUBLIC_SLUG_SESSION_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function primeServiciosExistingListingId(listingId: string | null | undefined): void {
+  if (typeof window === "undefined") return;
+  const trimmed = listingId?.trim();
+  try {
+    if (trimmed) window.sessionStorage.setItem(SERVICIOS_EXISTING_LISTING_ID_SESSION_KEY, trimmed);
+    else window.sessionStorage.removeItem(SERVICIOS_EXISTING_LISTING_ID_SESSION_KEY);
   } catch {
     /* ignore */
   }
@@ -68,6 +94,8 @@ export async function postServiciosPublishApi(args: {
   accessToken?: string | null;
   /** "pending_payment" saves hidden before Revenue OS checkout. */
   activationMode?: "pending_payment";
+  /** Canonical row id to update. Overrides the primed session value when supplied directly. */
+  existingListingId?: string | null;
 }): Promise<{ res: Response; data: ServiciosPublishApiResponse }> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (args.accessToken) {
@@ -78,6 +106,12 @@ export async function postServiciosPublishApi(args: {
     typeof window !== "undefined"
       ? sessionStorage.getItem(SERVICIOS_EXISTING_PUBLIC_SLUG_SESSION_KEY) ?? undefined
       : undefined;
+
+  const existingListingId =
+    args.existingListingId?.trim() ||
+    (typeof window !== "undefined"
+      ? sessionStorage.getItem(SERVICIOS_EXISTING_LISTING_ID_SESSION_KEY) ?? undefined
+      : undefined);
 
   let resolved: ClasificadosServiciosApplicationState;
   let skippedOversizedVideos = false;
@@ -104,7 +138,14 @@ export async function postServiciosPublishApi(args: {
     return { res, data: { ok: false, error, message } };
   }
 
-  const body = buildServiciosPublishTransportBody(resolved, args.lang, existingPublicSlug, videoPublishDiagnostics, args.activationMode);
+  const body = buildServiciosPublishTransportBody(
+    resolved,
+    args.lang,
+    existingPublicSlug,
+    videoPublishDiagnostics,
+    args.activationMode,
+    existingListingId,
+  );
   const raw = JSON.stringify(body);
   const byteSize = new Blob([raw]).size;
   devLogTransport(body as unknown as Record<string, unknown>, byteSize);
@@ -136,6 +177,11 @@ export async function postServiciosPublishApi(args: {
 
   if (typeof window !== "undefined" && data.ok && data.slug) {
     sessionStorage.setItem(SERVICIOS_EXISTING_PUBLIC_SLUG_SESSION_KEY, data.slug);
+  }
+  // Gate SERVICIOS-1 — carry the canonical row id forward so the next save in this session targets
+  // the same row even if the owner renames the business (which changes the slug).
+  if (data.ok && data.listingId) {
+    primeServiciosExistingListingId(data.listingId);
   }
 
   return { res, data };

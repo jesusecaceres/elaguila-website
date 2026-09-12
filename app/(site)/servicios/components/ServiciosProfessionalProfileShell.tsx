@@ -34,6 +34,7 @@ import { ServiciosVisualProofRow } from "./ServiciosVisualProofRow";
 import { ServiciosPublicDetailsCanvas } from "./ServiciosPublicDetailsCanvas";
 import { ServiciosGroupedHowSection } from "./ServiciosGroupedHowSection";
 import { ServiciosPagosBeneficiosSection } from "./ServiciosPagosBeneficiosSection";
+import { ServiciosEndOfContentShare } from "./ServiciosEndOfContentShare";
 import {
   serviciosGlobalListingFromRow,
   serviciosGlobalLikeRecorder,
@@ -135,7 +136,10 @@ export function ServiciosProfessionalProfileShell({
   serviciosDiscoveryResultsHref,
   showTopBar,
   showMobileSectionNav,
-  hubEngagementVariant = "full",
+  // Servicios Owner QA (SVC-QA-18) — no default here: a "full" default made the fallback below
+  // dead code, so a published professional profile rendered Like + Share in the hero AND again in
+  // the hub. Same rule as ServiciosProfileView: hero owns Like/Share, the hub keeps Save.
+  hubEngagementVariant,
 }: ServiciosProfessionalProfileShellProps) {
   const listingKey = analyticsListingSlug?.trim() || profile.identity.slug;
   const { displayProfile, translateControl } = useServiciosPublicTranslation({ profile, lang, listingKey });
@@ -328,6 +332,19 @@ export function ServiciosProfessionalProfileShell({
                 displayProfile={displayProfile}
                 lang={lang}
               />
+
+              {heroEngagementActive ? (
+                <ServiciosEndOfContentShare
+                  lang={lang}
+                  listingId={lxListingId}
+                  listingTitle={profile.identity.businessName}
+                  listingShareUrl={listingShareUrl}
+                  ownerUserId={lxOwner}
+                  listingSourceId={sourceId}
+                  listingSlug={analyticsListingSlug}
+                  persistEngagement={persistListingEngagement}
+                />
+              ) : null}
             </section>
 
             <div className={`flex min-w-0 flex-col ${LX_PRO_SECTION_GAP}`}>

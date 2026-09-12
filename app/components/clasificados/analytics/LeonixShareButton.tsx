@@ -171,13 +171,14 @@ export function LeonixShareButton({
     const urlToShare =
       publicUrl ||
       (allowTrack && typeof window !== "undefined" ? window.location.href.trim() : "");
-    if (!urlToShare) return;
 
-    const shareData: ShareData = {
-      title: safeTitle,
-      text: body || safeTitle,
-      url: urlToShare,
-    };
+    // Servicios Owner QA (SVC-QA-07/08) — a non-persisting surface (Preview) has no public URL, and
+    // the current page URL is a private draft/preview route that must never be shared. It used to
+    // return here silently, so Compartir did nothing. It now opens the same native share sheet
+    // with the listing title/text only (no URL); analytics stay off because `allowTrack` is false.
+    const shareData: ShareData = urlToShare
+      ? { title: safeTitle, text: body || safeTitle, url: urlToShare }
+      : { title: safeTitle, text: body || safeTitle };
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share(shareData);
@@ -187,7 +188,7 @@ export function LeonixShareButton({
       }
     } else {
       try {
-        await navigator.clipboard.writeText(urlToShare);
+        await navigator.clipboard.writeText(urlToShare || body || safeTitle);
         void trackShare("copy_link", { direct: true, nativeFallback: true });
       } catch { /* silent */ }
     }

@@ -37,7 +37,11 @@ import { serviciosBackToEditHrefFromPreview } from "@/app/(site)/dashboard/lib/s
 import { getBusinessTypePreset } from "../lib/businessTypePresets";
 import { mapClasificadosServiciosApplicationToServiciosDraft, applyClasificadosCouponsToServiciosWireProfile, mergeClasificadosCouponsOntoServiciosProfile } from "../lib/mapClasificadosServiciosApplicationToServiciosDraft";
 import { createSupabaseBrowserClient, withAuthTimeout, AUTH_CHECK_TIMEOUT_MS } from "@/app/lib/supabase/browser";
-import { postServiciosPublishApi, primeServiciosExistingPublicSlug } from "../lib/serviciosPublishClient";
+import {
+  postServiciosPublishApi,
+  primeServiciosExistingListingId,
+  primeServiciosExistingPublicSlug,
+} from "../lib/serviciosPublishClient";
 import { previewModeIsListingBound, resolvePreviewMode } from "@/app/lib/listingIdentity";
 import { evaluateServiciosPublishReadiness } from "../lib/serviciosPublishReadiness";
 import { evaluateServiciosPreviewReadiness } from "../lib/serviciosPreviewReadiness";
@@ -247,9 +251,11 @@ export function ClasificadosServiciosPreviewClient() {
           }
           const hydrated = serviciosPublishedToApplicationDraft(data.listing);
           if (cancelled) return;
-          // Golden-loop: prime existing slug so any publish-from-preview UPDATES this listing
-          // (no duplicate, no base recharge) via the publish API's existingPublicSlug update path.
+          // Golden-loop: prime the canonical row id (persistence authority) plus the slug (public
+          // routing identity) so any publish-from-preview UPDATES this exact listing — no duplicate
+          // even if the business was renamed, and no base recharge.
           primeServiciosExistingPublicSlug(hydrated.editIdentity.slug);
+          primeServiciosExistingListingId(hydrated.editIdentity.id);
           const normalized = normalizeClasificadosServiciosApplicationState(hydrated.state);
           setAppState(normalized);
           const mapped = mapClasificadosServiciosApplicationToServiciosDraft(normalized, lang);
@@ -424,6 +430,12 @@ export function ClasificadosServiciosPreviewClient() {
       if (data.persistence) q.set("persistence", data.persistence);
       if (data.listingStatus) q.set("listingStatus", data.listingStatus);
       if (data.skippedOversizedVideos) q.set("videoSkipped", "1");
+      // Gate SERVICIOS-1 — the publish succeeded but the shared media contract could not persist
+      // some selected media. Carried on the same existing notice channel as `videoSkipped` so the
+      // owner is never told "published" while silently losing photos.
+      if (data.droppedUnpersistableMedia?.length) {
+        q.set("mediaDropped", String(data.droppedUnpersistableMedia.length));
+      }
       router.push(`/clasificados/servicios/${encodeURIComponent(data.slug)}?${q.toString()}`);
     } catch {
       setPublishErr(lang === "en" ? "Network error." : "Error de red.");
@@ -564,7 +576,8 @@ export function ClasificadosServiciosPreviewClient() {
           lang,
           preferredLanguage: lang,
           source: CHECKOUT_NEWSLETTER_SOURCES.servicios,
-          interests: ["package:servicios_base_monthly", "launch_25"],
+          // SVC-QA-29 — the retired Launch-25 interest tag is no longer attached to Servicios captures.
+          interests: ["package:servicios_base_monthly"],
           checked: ctx.newsletterOptIn,
         });
 
