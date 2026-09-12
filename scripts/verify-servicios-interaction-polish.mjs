@@ -43,7 +43,46 @@ assert(hubRow.includes('hubEngagementVariant === "save_only"') && hubRow.include
 assert(hubRow.includes("LeonixShareButton"), "hub row: Share preserved");
 assert(hubRow.includes("ServiciosLikeEngagementCluster"), "hub row: Like preserved");
 
-assert(!contactCard.includes("CtaActionSheet"), "contact card: modal sheet removed");
+// Golden CTA grammar, asserted BY ACTION PATH rather than by banning a component name.
+// Call and Directions must fire their direct Golden helper and must never route through the
+// generic CtaActionSheet. E-mail compose legitimately opens that sheet (buildSendEmailIntent),
+// so the mere presence of the symbol is not a defect — silently replacing Call or Directions
+// with it is. Superseded assertion: `!contactCard.includes("CtaActionSheet")`, which forbade
+// the component globally and went red on the legitimate e-mail compose intent.
+function contactHandlerBody(name) {
+  const start = contactCard.indexOf(`const ${name} = (`);
+  assert(start >= 0, `contact card: handler ${name} must exist`);
+  const end = contactCard.indexOf("\n  };", start);
+  assert(end > start, `contact card: handler ${name} must be a closed block`);
+  return contactCard.slice(start, end);
+}
+
+const openCallBody = contactHandlerBody("openCall");
+assert(openCallBody.includes("serviciosOpenTelHref("), "contact card: Call fires the direct tel helper");
+assert(!openCallBody.includes("setEmailSheetIntent"), "contact card: Call must not open the CTA sheet");
+assert(!openCallBody.includes("CtaActionSheet"), "contact card: Call must not mount a CTA sheet");
+
+const openDirectionsBody = contactHandlerBody("openDirections");
+assert(
+  openDirectionsBody.includes("serviciosOpenGoogleMapsDirections("),
+  "contact card: Directions fires the direct maps helper",
+);
+assert(!openDirectionsBody.includes("setEmailSheetIntent"), "contact card: Directions must not open the CTA sheet");
+assert(!openDirectionsBody.includes("CtaActionSheet"), "contact card: Directions must not mount a CTA sheet");
+
+const openEmailBody = contactHandlerBody("openEmail");
+assert(openEmailBody.includes("buildSendEmailIntent("), "contact card: e-mail compose intent preserved");
+assert(openEmailBody.includes("setEmailSheetIntent("), "contact card: e-mail opens the compose sheet");
+
+// The sheet may only ever be driven by the e-mail compose intent: one opener (openEmail) plus the
+// close handler. A second opener would mean some other action had been routed through the sheet.
+assert(
+  contactCard.includes("open={emailSheetIntent != null}") && contactCard.includes("intent={emailSheetIntent}"),
+  "contact card: the CTA sheet is bound to the e-mail compose intent only",
+);
+const sheetOpenerCount = contactCard.split("setEmailSheetIntent(").length - 1 - (contactCard.split("setEmailSheetIntent(null)").length - 1);
+assert(sheetOpenerCount === 1, "contact card: exactly one action (e-mail) may open the CTA sheet");
+
 assert(contactCard.includes("serviciosOpenTelHref"), "contact card: direct tel");
 assert(contactCard.includes("serviciosOpenMailtoHref"), "contact card: direct mailto");
 assert(contactCard.includes("serviciosOpenGoogleMapsDirections"), "contact card: direct directions");

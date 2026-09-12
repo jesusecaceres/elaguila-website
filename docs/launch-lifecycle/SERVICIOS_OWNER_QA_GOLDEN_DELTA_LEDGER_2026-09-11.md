@@ -2077,9 +2077,13 @@ sections and the Truth §R.10.x repairs survived intact.
 | `verify-servicios-gate1-lifecycle` | **PASS** |
 | `verify-servicios-owner-qa-delta` | **PASS** |
 | `verify-servicios-engagement-2` | **PASS** |
-| `verify-servicios-interaction-polish` | **FAIL — pre-existing, see §20.8.5** |
+| `verify-servicios-interaction-polish` | **FAIL — pre-existing, see §20.8.5** · *superseded 2026-09-12: now PASS, §20.9* |
 
 ### 20.8.5 Pre-existing verifier defect (NOT a regression, NOT a product defect)
+
+> **SUPERSEDED 2026-09-12 by §20.9 — REPAIRED.** The stale assertion was replaced with a
+> by-action-path contract test; the targeted set is now 6/6 PASS and no runtime code changed.
+> The flag below against §22's proof line no longer applies. Retained as the diagnosis record.
 
 `verify-servicios-interaction-polish` fails on `assert(!contactCard.includes("CtaActionSheet"))`.
 Proven pre-existing: `ServiciosBusinessHubContactCard.tsx` contains `CtaActionSheet` **twice at
@@ -2102,3 +2106,95 @@ narrowed.
 
 §20.7 is **RESOLVED**. One reproducible Golden candidate exists, the worktree is clean, and
 HEAD = origin. New runtime identity recorded in Truth §R.11.
+
+## 20.9 STALE INTERACTION VERIFIER — REPAIRED (2026-09-12)
+
+Closes the last proof-hygiene gap from §20.8.5. **No product runtime code was changed.** The Golden
+runtime source repair remains `9e874060`, the app tree remains `2932f105`.
+
+### 20.9.1 The interaction contract, recovered from current source
+
+Read from `app/(site)/servicios/components/ServiciosBusinessHubContactCard.tsx` at `f9abdb8b`:
+
+| Action | Handler | Behaviour | Analytics |
+|---|---|---|---|
+| **Call** | `openCall` | **DIRECT** — `serviciosOpenTelHref(href)` | `cta_call_click` |
+| **Directions** | `openDirections` | **DIRECT** — `serviciosOpenGoogleMapsDirections(...)` | `cta_maps_click` |
+| **E-mail** | `openEmail` | **COMPOSE SHEET** — `buildSendEmailIntent` → `setEmailSheetIntent` | `cta_email_click` |
+| Primary quote mailto | `openPrimaryMailto` | DIRECT — `serviciosOpenMailtoHref` | `analyticsForQuoteKind("mailto")` |
+| WhatsApp | `openWhatsApp` / `openPrimaryQuote` | DIRECT — `serviciosOpenWhatsAppHref` | `cta_whatsapp_click` |
+| SMS | `openMessage` | DIRECT — `window.location.href` | `cta_quote_sms_click` |
+| Website / social | `openLink` / `openSocialOutbound` | DIRECT — `window.open(..., "noopener,noreferrer")` | `cta_website_click` |
+
+`CtaActionSheet` is imported once and mounted once, bound exclusively to the e-mail compose intent
+(`open={emailSheetIntent != null}`, `intent={emailSheetIntent}`). `setEmailSheetIntent` has exactly
+one opener call site — inside `openEmail` — plus the sheet's own `onClose` reset.
+
+**Conclusion: the product is correct.** Call and Directions are direct; the surviving sheet is the
+legitimate e-mail compose surface. This predates `9e874060`, which never touched this file.
+
+### 20.9.2 Why the old assertion was wrong
+
+`assert(!contactCard.includes("CtaActionSheet"))` banned the **component name anywhere in the file**.
+It was written when the whole sheet had been removed from this card, and went red as soon as the
+e-mail compose intent legitimately reintroduced it. It tested a symbol's absence, not an action's
+behaviour — so it simultaneously produced a false failure **and** would have missed the real defect
+it was meant to catch (Call or Directions being quietly rerouted through a sheet under a different
+symbol name).
+
+### 20.9.3 The repair — by action path, not by symbol ban
+
+`scripts/verify-servicios-interaction-polish.mjs`, verifier-only:
+
+- `openCall` body **must** call `serviciosOpenTelHref(` and **must not** contain
+  `setEmailSheetIntent` or `CtaActionSheet`.
+- `openDirections` body **must** call `serviciosOpenGoogleMapsDirections(` and **must not**
+  contain `setEmailSheetIntent` or `CtaActionSheet`.
+- `openEmail` body **must** retain `buildSendEmailIntent(` and `setEmailSheetIntent(`.
+- the sheet **must** stay bound to the e-mail intent (`open={emailSheetIntent != null}` and
+  `intent={emailSheetIntent}`).
+- **exactly one** non-close `setEmailSheetIntent(` opener may exist — a second opener would mean
+  another action had been routed through the sheet.
+
+Handler bodies are extracted structurally, so the assertions read the specific action's code rather
+than the whole file. No unrelated assertion was weakened: the global `CtaActionSheet` bans on
+`ServiciosHorizontalResultCard`, `ServiciosProfessionalResultCard` and `ServiciosListingResultCard`
+are untouched and still valid — those three files contain zero occurrences.
+
+### 20.9.4 Proof that the new assertions actually bite
+
+The repaired contract was executed against seven in-memory mutations of the real source (no repo
+file touched). **All 7 behaved correctly:**
+
+| Mutation | Expected | Result |
+|---|---|---|
+| unmodified source | PASS | PASS |
+| Call rerouted through the CTA sheet | FAIL | FAIL — "Call fires the direct tel helper" |
+| Directions rerouted through the CTA sheet | FAIL | FAIL — "Directions fires the direct maps helper" |
+| Call's direct tel helper removed | FAIL | FAIL |
+| Directions' direct maps helper removed | FAIL | FAIL |
+| e-mail compose intent deleted | FAIL | FAIL — "e-mail compose intent preserved" |
+| sheet rebound away from the e-mail intent | FAIL | FAIL |
+
+This is recorded because a repaired verifier that cannot fail is worth less than the red one it
+replaced.
+
+### 20.9.5 Targeted verifier set — 6/6 PASS
+
+| Verifier | Result |
+|---|---|
+| `verify-servicios-golden-receiver-contracts` | **PASS** (10/10) |
+| `verify-servicios-publish-authority` | **PASS** (37 checks) |
+| `verify-servicios-gate1-lifecycle` | **PASS** (22 checks) |
+| `verify-servicios-owner-qa-delta` | **PASS** (34 checks) |
+| `verify-servicios-engagement-2` | **PASS** |
+| `verify-servicios-interaction-polish` | **PASS** |
+
+No full typecheck, no production build, no regression suite, no dev server — none was warranted,
+since no runtime source changed.
+
+### 20.9.6 Result
+
+Proof-hygiene gap **CLOSED**. Runtime source unchanged (app tree `2932f105`, supabase tree
+`6d5014bc`). No GR row moved to PASS: 43 remain PENDING OWNER RUNTIME, GR-22 remains
+NOT SUPPORTED — CURRENT PRODUCT, GR-44 remains incomplete. Owner QA has **not** started.

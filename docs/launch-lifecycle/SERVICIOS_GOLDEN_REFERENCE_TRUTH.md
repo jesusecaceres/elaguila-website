@@ -1686,6 +1686,8 @@ not change. Fabricating another Stripe delivery here would have proven nothing n
 closed; it can never degrade into create/INSERT. `DASH-53` — live discovery result cards mount the
 same shared Save engine as the hub. Behaviour proven line-by-line in ledger §20.8.3; six targeted
 verifiers re-run in §20.8.4 (five PASS, one pre-existing unrelated failure documented in §20.8.5).
+That last failure was a stale overbroad assertion, not a product defect; it was repaired in the
+verifier — with no runtime change — and the targeted set is now **6/6 PASS** (ledger §20.9).
 
 #### R.11.4 Status
 
