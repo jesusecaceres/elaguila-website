@@ -1907,7 +1907,10 @@ changes status here.
 `https://leonix-media-git-completion-launc-b1b333-jesus-caceres-projects.vercel.app`; GR evidence
 cites the runtime app tree `f4ed31d9`, not a pinned deployment id (Truth §R.10.4).
 
-## 21. OCC receiver contracts — SRV-GOLDEN-01 + DASH-53 result Save (2026-09-11)
+## 22. OCC receiver contracts — SRV-GOLDEN-01 + DASH-53 result Save (2026-09-11)
+
+> Renumbered from "§21" to **§22** by the §20.8 concurrency resolution: §21.1–§21.4 were already
+> taken by the MD proof audit. Content unchanged.
 
 Closes the two remaining Golden source contracts required for Owner Command Center intake.
 No owner-browser QA in this gate.
@@ -2020,3 +2023,82 @@ committed.
 `SERVICIOS PRE-OWNER-QA PROOF CERTIFICATION: YES` still stands for commit `260074fc` and the
 deployment currently behind the branch alias. It does **not** extend to the modified working copy.
 Prompt 2 opens the moment §20.7 is resolved by option 1 or option 2.
+
+## 20.8 §20.7 CONCURRENCY BLOCKER — RESOLVED (2026-09-12)
+
+The concurrent writer identified in §20.7 finished its own work and committed it. This session
+never touched, reverted, stashed or committed those files; the blocker closed by the owning session
+completing, which was resolution option 1 of §20.7.
+
+### 20.8.1 What happened
+
+| Time (UTC) | Event |
+|---|---|
+| 03:58:51 | C1 snapshot 1 — 10 modified + 1 untracked, last write 42 s earlier |
+| 03:59:23 | C1 snapshot 2 — byte-identical to snapshot 1 (delta appeared stable) |
+| 04:00:10 | C1 snapshot 3 — **writer active again**: 2 more docs + `scripts/_tmp_patch_golden_docs.mjs`, written 3 s earlier |
+| 04:00:26 | Worktree **clean**; the writer had committed `9e874060` and pushed |
+
+Commit `9e874060` "fix(servicios): close golden receiver contracts" — authored by Jesus Caceres,
+co-authored by a Cursor agent, i.e. the owner's own parallel session, not a foreign actor. 13 files.
+The temporary patch script was **not** committed and was cleaned off disk. The §20.6/§20.7 audit
+sections and the Truth §R.10.x repairs survived intact.
+
+### 20.8.2 Forensics of the delta (C2), performed before it was committed
+
+| File | Type | Verdict |
+|---|---|---|
+| `app/api/clasificados/servicios/publish/route.ts` | runtime source | SRV-GOLDEN-01 fail-closed identity — correct (see §20.8.3) |
+| `app/(site)/servicios/components/ServiciosResultCardEngagementStrip.tsx` | runtime source | DASH-53 result-card Save via the shared `LeonixSaveButton`; all imports resolve; every prop exists on the shared component |
+| `scripts/verify-servicios-golden-receiver-contracts.ts` | new verifier | complete, 10 checks, registered in `package.json` |
+| 5 existing verifiers | verifier | each new assertion maps to a real source change |
+| `package.json` | config | one script registration, nothing else |
+| 4 docs | doc | no premature GR PASS, no certification-language overreach |
+
+### 20.8.3 SRV-GOLDEN-01 — behaviour proven from source
+
+- **New listing** (no `existingListingId`): `allocateSlug` → `.insert(insertRow)` — create path intact.
+- **Declared edit, row resolves and is owned**: UPDATE `.eq("id", canonicalListingId)`, slug adopted
+  from that row, UUID preserved.
+- **Declared edit, row missing / admin unconfigured**: 404 `listing_not_found` before any slug work.
+- **Declared edit, owner mismatch**: 403 `listing_owner_mismatch` (B1 rule preserved — a NULL owner
+  is still not permission).
+- **INSERT fallthrough for a declared edit**: impossible — guarded at the persist site
+  (`else if (existingListingIdRaw)` → `insert_forbidden`) and at the dev-workspace fallback.
+- `allocateSlug` is never called on the declared-edit path, so no create slug can be minted.
+- Slug fallback remains reachable only on the create path. No unrelated category path changed.
+
+### 20.8.4 Targeted validation (C3) — run against the committed state
+
+| Verifier | Result |
+|---|---|
+| `verify-servicios-golden-receiver-contracts` | **PASS 10/10** |
+| `verify-servicios-publish-authority` | **PASS** (18 checks) |
+| `verify-servicios-gate1-lifecycle` | **PASS** |
+| `verify-servicios-owner-qa-delta` | **PASS** |
+| `verify-servicios-engagement-2` | **PASS** |
+| `verify-servicios-interaction-polish` | **FAIL — pre-existing, see §20.8.5** |
+
+### 20.8.5 Pre-existing verifier defect (NOT a regression, NOT a product defect)
+
+`verify-servicios-interaction-polish` fails on `assert(!contactCard.includes("CtaActionSheet"))`.
+Proven pre-existing: `ServiciosBusinessHubContactCard.tsx` contains `CtaActionSheet` **twice at
+`5b5aae46`, at `260074fc` and at `9e874060` alike**, the file was not touched by `9e874060`, and
+the verifier as it stood at `260074fc` fails identically against the source at `260074fc`.
+
+It is not a product defect: call, e-mail and directions use the direct helpers
+(`serviciosOpenTelHref` / `serviciosOpenMailtoHref` / `serviciosOpenGoogleMapsDirections`, 6
+occurrences) exactly as the Golden grammar requires. The surviving `CtaActionSheet` is mounted
+solely for the e-mail compose intent (`emailSheetIntent`). The **assertion** is stale and
+overbroad — it forbids the whole component instead of forbidding a call/directions modal.
+
+Left unrepaired deliberately: this session's mandate was concurrency resolution, the file belongs to
+another session's just-landed commit, and a verifier must never be edited merely to turn a gate
+green. **Recorded as a known non-blocking defect for PM disposition.** Any claim that
+"interaction-polish passes" — including the proof line in §22 — is inaccurate until the assertion is
+narrowed.
+
+### 20.8.6 Result
+
+§20.7 is **RESOLVED**. One reproducible Golden candidate exists, the worktree is clean, and
+HEAD = origin. New runtime identity recorded in Truth §R.11.

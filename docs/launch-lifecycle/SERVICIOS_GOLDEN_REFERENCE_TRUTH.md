@@ -1644,3 +1644,55 @@ Owner runtime (GR-01…GR-44) remains pending; nothing here is a GR PASS.
    update the Vercel env var and the Stripe destination URL in the same change.
 3. **Probe customer `cus_VFC3dMuMnCPjOw`** remains in Stripe TEST (no card, no paid invoice);
    the connector exposes no delete operation. Owner may delete it from the dashboard at any time.
+
+### R.11 GOLDEN RUNTIME CANDIDATE UPDATED — `9e874060` (2026-09-12)
+
+Supersedes `5b5aae46` / app tree `f4ed31d9` as the runtime under certification. §R.1–§R.10 remain
+valid history; §R.10's Stripe infrastructure proof carries forward unchanged (justified below).
+Recorded by the §20.7 concurrency resolution — full forensics in Golden Delta Ledger §20.8.
+
+#### R.11.1 New runtime identity
+
+| Fact | Value |
+|---|---|
+| HEAD = origin | `9e874060e5b9c960cdfcd3c60dcdceab81441e55` |
+| Worktree | clean |
+| **app tree** | `2932f1059fa51fe2cd3a83c55df8f55228f7641a` (was `f4ed31d9`) |
+| **supabase tree** | `6d5014bc40553dc60109985bef875095739745f6` — **unchanged** |
+| Runtime source changed | **YES** — exactly 2 files |
+| Branch-alias deployment | `dpl_G9qyDWkV9DyGD1EchEreSAws6uGs` |
+| Deployment state at record time | **READY** |
+| Alias | `leonix-media-git-completion-launc-b1b333-jesus-caceres-projects.vercel.app` |
+
+Runtime delta `260074fc..9e874060` (app/ only):
+`app/api/clasificados/servicios/publish/route.ts` (+58/−32) and
+`app/(site)/servicios/components/ServiciosResultCardEngagementStrip.tsx` (+27/−1).
+
+#### R.11.2 Why §R.10's Stripe certification still holds
+
+`git diff 260074fc..9e874060 -- app/api/revenue-os/ app/lib/listingPlans/ supabase/` is **empty**.
+No webhook route, no signature verification, no event ledger, no fulfillment and no migration
+changed. The destination was re-read live after the commit and is byte-for-byte the same endpoint —
+`we_1UEIgzRzu3T31dlavCYsHHRg`, enabled, `livemode=false`, same branch-alias host, same
+`/api/revenue-os/webhook` path, same exact 9 events. The alias is the delivery target by doctrine
+(§R.10.4), so deliveries follow the branch to its newest deployment automatically.
+
+**No new signed-delivery exercise was manufactured**, because the code that validates signatures did
+not change. Fabricating another Stripe delivery here would have proven nothing new.
+
+#### R.11.3 What the new source does
+
+`SRV-GOLDEN-01` — a declared edit (`existingListingId`) must resolve its canonical row or fail
+closed; it can never degrade into create/INSERT. `DASH-53` — live discovery result cards mount the
+same shared Save engine as the hub. Behaviour proven line-by-line in ledger §20.8.3; six targeted
+verifiers re-run in §20.8.4 (five PASS, one pre-existing unrelated failure documented in §20.8.5).
+
+#### R.11.4 Status
+
+**FULL GOLDEN REFERENCE RUNTIME CERTIFIED: NO** — unchanged. GR-01…GR-44 remain owner-runtime
+pending, GR-22 stays NOT SUPPORTED — CURRENT PRODUCT, GR-44 stays last and incomplete, and no GR row
+was moved to PASS by this resolution. Owner QA has still not started. The pre-payment baseline of
+§R.10.3 (104 Servicios rows / 103 published) is unaffected — no listing was created or published.
+
+`SERVICIOS PRE-OWNER-QA PROOF CERTIFICATION: YES` now applies to `9e874060` / app tree
+`2932f105` / deployment `dpl_G9qyDWkV9DyGD1EchEreSAws6uGs`.
