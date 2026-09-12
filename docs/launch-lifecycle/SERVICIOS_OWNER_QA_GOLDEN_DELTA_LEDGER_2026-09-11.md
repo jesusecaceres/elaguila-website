@@ -1879,3 +1879,28 @@ secret, CLI or connector, so it cannot read or set that endpoint. Live-mode Stri
 **GR row effect:** GR-01 and GR-03 remain **PENDING OWNER RUNTIME**. Their prerequisite is now
 narrowed from "webhook delivery unproven" to "Stripe TEST endpoint destination + event set
 unconfirmed"; the Vercel transport half is proven.
+
+## 20.5 Gate B prerequisite CLEARED — Stripe TEST webhook certified (2026-09-12)
+
+Supersedes the open item in §20.3/§20.4. Full evidence: Truth MD §R.10.
+
+- TEST destination `we_1UEIgzRzu3T31dlavCYsHHRg` — enabled, `livemode=false`, Golden branch alias,
+  path `/api/revenue-os/webhook`, automation-bypass parameter present, single destination, exact
+  **9/9** event match with the live handler's consumed set.
+- Two real Stripe-signed TEST deliveries reached the app and returned **200**
+  (`customer.subscription.updated` 03:35:04, `customer.subscription.deleted` 03:35:59) on the
+  branch-alias deployment — proving the signing secret matches and Vercel did not intercept.
+  No payment, no checkout, no card.
+- Read-only Supabase after both deliveries: 0 subscription records for the probe, 0 payment
+  records, 0 entitlements, 0 Servicios rows touched. Pre-payment baseline recorded:
+  **104 Servicios rows, 103 published**.
+- Stripe TEST probe objects cleaned up (subscription canceled, product archived); the labelled
+  probe customer remains because the connector exposes no delete operation.
+
+**GR effect:** GR-01 and GR-03 keep their transport prerequisite satisfied and remain PENDING OWNER
+RUNTIME — they are proven only by the real paid checkout, not by this infrastructure test. No GR row
+changes status here.
+
+**Locked for all later prompts:** owner QA and Stripe deliveries both use the branch alias
+`https://leonix-media-git-completion-launc-b1b333-jesus-caceres-projects.vercel.app`; GR evidence
+cites the runtime app tree `f4ed31d9`, not a pinned deployment id (Truth §R.10.4).

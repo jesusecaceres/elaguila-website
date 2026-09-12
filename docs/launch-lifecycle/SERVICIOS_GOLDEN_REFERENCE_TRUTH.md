@@ -1516,3 +1516,79 @@ Required for Golden QA: the Stripe **TEST-mode** endpoint must point at the curr
 `/api/revenue-os/webhook` carrying the automation-bypass query parameter, and subscribe to those
 nine events. Live-mode Stripe must not be altered. GR-01 and GR-03 stay PENDING OWNER RUNTIME until
 that endpoint is confirmed.
+
+### R.10 Stripe TEST webhook infrastructure — CERTIFIED (2026-09-12)
+
+Gate 1C of the Absolute Completion Runbook. No payment, no checkout, no Live mode, no Sandbox,
+no listing/entitlement mutation. Proven with the owner-authorized Stripe **TEST** connector
+(account `acct_1ToEl8Rzu3T31dla`, Leonix Global LLC, `livemode=false`) plus independent Vercel and
+Supabase evidence.
+
+#### R.10.1 TEST destination (read directly from Stripe)
+
+| Fact | Value |
+|---|---|
+| Destination id | `we_1UEIgzRzu3T31dlavCYsHHRg` |
+| Mode | TEST (`livemode=false`) · status `enabled` |
+| Host | `leonix-media-git-completion-launc-b1b333-…vercel.app` — the Golden **branch alias** |
+| Path | `/api/revenue-os/webhook` |
+| Bypass | automation-bypass query parameter present (value never recorded) |
+| Description | "Stripe TEST webhook for Leonix Revenue OS on protected Servicios Preview." |
+| Duplicates | none — exactly one TEST destination exists |
+
+**Event coverage: exact 9/9 match**, no missing, no extras:
+`checkout.session.completed`, `checkout.session.expired`, `invoice.paid`,
+`invoice.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted`,
+`charge.refunded`, `charge.dispute.created`, `charge.dispute.closed`.
+
+#### R.10.2 Real Stripe-signed delivery (two events)
+
+The connector could not create a Checkout Session (that scope was not granted), so the smallest
+safe subscribed event was produced instead from disposable TEST objects:
+
+1. probe customer `cus_VFC3dMuMnCPjOw` → probe product `prod_VFC3LDtcXTeODR` → subscription
+   `sub_1UEhgIRzu3T31dlaYsC9ybCH` (`collection_method: send_invoice`, **no card, no charge**)
+2. metadata update → **`customer.subscription.updated`** → Vercel **03:35:04 POST
+   /api/revenue-os/webhook → 200**
+3. cancel → **`customer.subscription.deleted`** → Vercel **03:35:59 POST → 200**
+
+Both landed on `dpl_44tLyt5DGNYrcn2ZK6jQRhMrV6K9` (branch-alias target), distinct from the
+01:45:38 synthetic bypass probe that returned 400. **A 200 rather than 400 proves the Stripe
+signature validated end to end** — the deployed `STRIPE_WEBHOOK_SECRET` matches this destination.
+Vercel protection did not intercept; the application handler answered.
+
+Safety was verified in source *before* triggering: `handleSubscriptionUpdated` /
+`handleSubscriptionDeleted` both return `{ok:true, outcome:"ignored", code:"not_leonix_subscription"}`
+when `loadSubscriptionRecord` finds no record, returning before any write.
+
+#### R.10.3 Zero business mutation (read-only Supabase, after both deliveries)
+
+| Check | Result |
+|---|---|
+| `leonix_subscription_records` rows for the probe subscription | **0** |
+| `leonix_payment_records` created in the window | **0** |
+| `listing_package_entitlements` created in the window | **0** |
+| `servicios_public_listings` rows touched in the window | **0** |
+| Servicios rows / published (pre-payment baseline) | **104 / 103** |
+
+Cleanup: probe subscription canceled, probe product archived. The probe customer
+(`cus_VFC3dMuMnCPjOw`, labelled "LEONIX INFRA PROBE - DELETE ME") remains in Stripe TEST — the
+connector exposes no customer-delete operation. It holds no card and no paid invoice.
+
+#### R.10.4 Deployment-identity truth (recorded deliberately)
+
+The Stripe destination targets the **persistent branch alias**, which now resolves to
+`dpl_44tLyt5DGNYrcn2ZK6jQRhMrV6K9` (docs commit `bb4e5c56`) rather than the originally pinned
+`dpl_GtxJzwUWsEJaViSBAnk4nYXfzhp7` (`5b5aae46`). This is **not a runtime source change**: the
+runtime-consumed application tree is byte-identical (`app/` = `f4ed31d9`, `supabase/` = `6d5014bc`)
+at both commits, and every intervening commit is documentation-only.
+
+**Golden runtime proof therefore follows the runtime code/app tree and the branch alias, not a
+permanently pinned deployment id.** Owner QA and webhook delivery must both use the branch alias
+`https://leonix-media-git-completion-launc-b1b333-jesus-caceres-projects.vercel.app` so that
+browser actions and Stripe deliveries reach the same running build.
+
+#### R.10.5 Result
+
+Infrastructure blockers: **0**. `SERVICIOS PRE-OWNER-QA PROOF CERTIFICATION: YES`.
+Owner runtime (GR-01…GR-44) remains pending; nothing here is a GR PASS.
