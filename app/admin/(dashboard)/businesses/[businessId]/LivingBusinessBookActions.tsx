@@ -104,6 +104,35 @@ export function FactDecisionButtons({ businessId, factId }: { businessId: string
   );
 }
 
+/** Staff review of an owner-submitted correction (business_corrections). Distinct from
+ * FactDecisionButtons: a correction is the OWNER'S proposed change/clarification request, so
+ * accepting it here only marks the correction decided — it does not itself mutate business_facts.
+ * The deciding staff member still supersedes the fact through the normal fact-write path afterward,
+ * exactly matching the repository's own "one auditable place where canonical values change" doctrine. */
+export function DecideCorrectionButtons({ businessId, correctionId }: { businessId: string; correctionId: string }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [decisionNote, setDecisionNote] = useState("");
+  async function decide(action: "accept" | "decline") {
+    setBusy(true);
+    await postJson(`/api/admin/businesses/${businessId}/book/corrections`, "PATCH", { correctionId, action, decisionNote: decisionNote.trim() || null });
+    setBusy(false);
+    router.refresh();
+  }
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      <input
+        value={decisionNote}
+        onChange={(e) => setDecisionNote(e.target.value)}
+        placeholder="Nota de decisión (opcional) / Decision note (optional)"
+        className="min-h-[32px] min-w-[180px] flex-1 rounded-lg border border-[#E8DFD0] bg-white px-2 py-1 text-[11px]"
+      />
+      <button type="button" disabled={busy} onClick={() => void decide("accept")} className="min-h-[32px] rounded-lg border border-emerald-600 px-2 py-1 text-[11px] font-semibold text-emerald-800 disabled:opacity-50">Aceptar / Accept</button>
+      <button type="button" disabled={busy} onClick={() => void decide("decline")} className="min-h-[32px] rounded-lg border border-[#E8DFD0] px-2 py-1 text-[11px] font-semibold text-[#3D3428] disabled:opacity-50">Rechazar / Decline</button>
+    </div>
+  );
+}
+
 export function CreateUnknownForm({ businessId }: { businessId: string }) {
   const router = useRouter();
   const [questionLabel, setQuestionLabel] = useState("");

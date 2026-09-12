@@ -13,10 +13,10 @@ import { formatUsPhoneForDisplay } from "@/app/lib/business/phoneDisplay";
 import { physicalAddressSummary, summarizeServiceCoverage } from "@/app/(site)/dashboard/business-tools/onboarding/wizardTypes";
 import { businessIdentityCopy } from "@/app/(site)/dashboard/business-tools/_components/businessIdentityCopy";
 import { FollowUpPanel, NotesPanel, StatusQuickActions } from "./BusinessWorkspaceActions";
-import { CreateFactForm, CreateUnknownForm, DiscoveryPanel, FactDecisionButtons, ResolveUnknownForm } from "./LivingBusinessBookActions";
+import { CreateFactForm, CreateUnknownForm, DecideCorrectionButtons, DiscoveryPanel, FactDecisionButtons, ResolveUnknownForm } from "./LivingBusinessBookActions";
 import { shapeFactsForStaffActor } from "../../../_lib/livingBookVisibility";
 import {
-  listContradictionsForBusiness, listDiscoverySessionsForBusiness, listEvidenceForBusiness, listFactsForBusiness, listUnknownsForBusiness,
+  listContradictionsForBusiness, listCorrectionsForBusiness, listDiscoverySessionsForBusiness, listEvidenceForBusiness, listFactsForBusiness, listUnknownsForBusiness,
 } from "@/app/lib/business/livingBook/repository";
 import { computeBookCompleteness } from "@/app/lib/business/livingBook/logic";
 import { MarkHumanReviewForm, RunAssessmentButton } from "./HealthMapActions";
@@ -174,14 +174,16 @@ export default async function AdminBusinessDetailPage({
   const canConfirmFact = actorHasCapability(access.actor, "confirm_business_fact");
   const canManageUnknowns = actorHasCapability(access.actor, "manage_unknowns");
   const canConductDiscovery = actorHasCapability(access.actor, "conduct_discovery");
+  const canReviewOwnerCorrections = actorHasCapability(access.actor, "review_owner_corrections");
   const bookData = canViewBook
     ? await (async () => {
-        const [factsRaw, unknowns, contradictions, discoverySessions, evidence] = await Promise.all([
+        const [factsRaw, unknowns, contradictions, discoverySessions, evidence, corrections] = await Promise.all([
           listFactsForBusiness(business.id),
           listUnknownsForBusiness(business.id),
           listContradictionsForBusiness(business.id),
           listDiscoverySessionsForBusiness(business.id),
           listEvidenceForBusiness(business.id),
+          listCorrectionsForBusiness(business.id),
         ]);
         const facts = shapeFactsForStaffActor(factsRaw, access.actor.capabilities);
         const completeness = computeBookCompleteness({
@@ -192,7 +194,7 @@ export default async function AdminBusinessDetailPage({
           discoveryTotal: null,
           nowIso: new Date().toISOString(),
         });
-        return { facts, unknowns, contradictions, discoverySessions, evidence, completeness };
+        return { facts, unknowns, contradictions, discoverySessions, evidence, corrections, completeness };
       })()
     : null;
 
@@ -1166,6 +1168,32 @@ export default async function AdminBusinessDetailPage({
             ))}
             {bookData.contradictions.length === 0 ? <li className="text-sm text-[#7A7164]">No contradictions on record.</li> : null}
           </ul>
+
+          {canReviewOwnerCorrections ? (
+            <>
+              <h3 className="mt-5 text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Correcciones del dueño / Owner corrections</h3>
+              <p className="text-[11px] text-[#9A9184]">
+                Una corrección del dueño entra aquí para revisión — nunca reescribe un hecho canónico directamente. / An owner correction enters here for review — it never directly rewrites a canonical fact.
+              </p>
+              <ul className="mt-2 space-y-2">
+                {bookData.corrections.filter((c) => c.status === "pending").map((c) => (
+                  <li key={c.id} className="rounded-lg border border-[#E8DFD0] p-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-sm text-[#1E1810]">{c.correctionType.replace(/_/g, " ")}</span>
+                      <span className="rounded-full bg-[#FFF4E0] px-2 py-0.5 text-[10px] font-bold text-[#5C4E2E]">{c.submittedActorType}</span>
+                    </div>
+                    {c.submittedDisplayValue ? <p className="mt-1 text-sm text-[#3D3428]">{c.submittedDisplayValue}</p> : null}
+                    {c.explanation ? <p className="mt-1 text-xs text-[#7A7164]">{c.explanation}</p> : null}
+                    <p className="mt-1 text-[10px] text-[#9A9184]">{c.submittedByEmail} · {new Date(c.createdAt).toLocaleString()}</p>
+                    <DecideCorrectionButtons businessId={business.id} correctionId={c.id} />
+                  </li>
+                ))}
+                {bookData.corrections.filter((c) => c.status === "pending").length === 0 ? (
+                  <li className="text-sm text-[#7A7164]">No hay correcciones pendientes. / No pending corrections.</li>
+                ) : null}
+              </ul>
+            </>
+          ) : null}
 
           {canConductDiscovery ? (
             <>
