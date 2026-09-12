@@ -176,7 +176,15 @@ const ALL_PERMS = {
   canManageOfficialRequirements: true,
   canManageCommitments: true,
   canStartProjectDiscovery: true,
+  canRecordOutcome: true,
 };
+
+// WHOLE-PRODUCT PARTIAL-CLOSURE (AL_OUTCOMES / BV_MEASUREMENT / BU2_SIX_TEST_REUSE) — this dev-only
+// fixture harness has no database/auth, so it cannot call listBusinessOutcomes()/
+// evaluateOpportunityReadiness(); an empty outcomes list + null readiness renders the same
+// disclosed empty state a real business with neither would show, which is exactly what this
+// harness is for (deterministic fixtures, not live data).
+const NO_OUTCOMES_DATA = { outcomes: [], outcomesEnabled: true, sixTestReadiness: null };
 
 function FixtureFrame({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -197,7 +205,7 @@ export default function GrowthPlanFixturesDevPage() {
     <GrowthPlanPanel
       businessId="fixture-1" businessStage="operating" roadmapType="established"
       currentAssessment={null} assessmentHistory={[]} solutions={[]} campaigns={[]}
-      officialRequirements={[]} roadmapSteps={[]} mediaChannels={[]} {...ALL_PERMS}
+      officialRequirements={[]} roadmapSteps={[]} mediaChannels={[]} {...ALL_PERMS} {...NO_OUTCOMES_DATA}
     />
   );
 
@@ -212,7 +220,7 @@ export default function GrowthPlanFixturesDevPage() {
     <GrowthPlanPanel
       businessId="fixture-2" businessStage="operating" roadmapType="established"
       currentAssessment={assessment2} assessmentHistory={[]} solutions={[]} campaigns={[]}
-      officialRequirements={[]} roadmapSteps={[]} mediaChannels={[]} {...ALL_PERMS}
+      officialRequirements={[]} roadmapSteps={[]} mediaChannels={[]} {...ALL_PERMS} {...NO_OUTCOMES_DATA}
     />
   );
 
@@ -238,7 +246,7 @@ export default function GrowthPlanFixturesDevPage() {
       businessId="fixture-3" businessStage="operating" roadmapType="established"
       currentAssessment={assessment3} assessmentHistory={[{ id: assessment3.id, status: "reviewed", createdAt: NOW, reviewedAt: NOW }]}
       solutions={solutions3} campaigns={[makeCampaign({ status: "ready_for_review" })]}
-      officialRequirements={[makeRequirement({ state: "needs_research" })]} roadmapSteps={[]} mediaChannels={MEDIA_CHANNELS} {...ALL_PERMS}
+      officialRequirements={[makeRequirement({ state: "needs_research" })]} roadmapSteps={[]} mediaChannels={MEDIA_CHANNELS} {...ALL_PERMS} {...NO_OUTCOMES_DATA}
     />
   );
 
@@ -249,7 +257,7 @@ export default function GrowthPlanFixturesDevPage() {
       businessId="fixture-4" businessStage="planning_prelaunch" roadmapType="startup"
       currentAssessment={assessment4} assessmentHistory={[]} solutions={[]} campaigns={[]}
       officialRequirements={[makeRequirement({ requirementTopicEs: "Licencia de alimentos", requirementTopicEn: "Food handling license" })]}
-      roadmapSteps={[]} mediaChannels={[]} {...ALL_PERMS}
+      roadmapSteps={[]} mediaChannels={[]} {...ALL_PERMS} {...NO_OUTCOMES_DATA}
     />
   );
 
