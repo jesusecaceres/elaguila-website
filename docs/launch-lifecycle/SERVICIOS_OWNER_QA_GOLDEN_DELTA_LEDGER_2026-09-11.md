@@ -1758,6 +1758,8 @@ marked PASS from source proof.
 
 ## 20.3 Runtime Gate B prerequisite — Stripe webhook delivery (owner configuration)
 
+> **SUPERSEDED 2026-09-12 by §20.5 — this prerequisite is CLEARED.** Retained as history only.
+
 Added by the MD proof audit (2026-09-11). **Runtime Gate B must not start until this is resolved.**
 
 Vercel project protection, re-read today: `ssoProtection ENABLED (all_except_custom_domains)`. The
@@ -1904,3 +1906,93 @@ changes status here.
 **Locked for all later prompts:** owner QA and Stripe deliveries both use the branch alias
 `https://leonix-media-git-completion-launc-b1b333-jesus-caceres-projects.vercel.app`; GR evidence
 cites the runtime app tree `f4ed31d9`, not a pinned deployment id (Truth §R.10.4).
+
+## 20.6 DEEP PROOF AUDIT of Prompt 1 (2026-09-12) — result
+
+Independent re-verification of every Prompt 1 claim against live repo, Stripe and Supabase evidence.
+No runtime source was touched; this section and the Truth MD repairs are documentation-only.
+
+**Verdict: Prompt 1 is COMPLETE as certified. Entry to Prompt 2 is CONDITIONAL — see §20.7.**
+Every Prompt 1 claim held under audit (3 repairs applied, 3 residual risks recorded in Truth
+§R.10.6, 1 finding about the owner's uploaded MD copies), but during the audit this worktree was
+found to contain **uncommitted third-party modifications to Servicios runtime source**, which
+must be resolved before owner QA begins.
+
+| # | Audit | Result |
+|---|---|---|
+| 1 | Uploaded canonical MDs vs repo | **FINDING** — the uploaded folder holds a 45 KB A–R snapshot and **no Truth MD**; the repo ledger is 129 KB and canonical. Repo is authoritative. |
+| 2 | Commit `260074fc` | CONFIRMED — docs-only (2 files); `app/` and `supabase/` trees byte-identical to parent; pushed; tree clean. |
+| 3 | Stripe destination reconciliation | CONFIRMED — re-read live: one TEST destination, `enabled`, branch alias, `/api/revenue-os/webhook`, exact 9/9 event match. |
+| 4 | "HTTP 200 proves signature validation" | CONFIRMED **and upgraded** — control flow returns before any DB write on failure, and both events have ledger rows while the forged probe has none (Truth §R.10.2). |
+| 5 | Zero business mutation | CONFIRMED **with disclosure** — business tables untouched; 2 infrastructure ledger rows written by design (Truth §R.10.3). |
+| 6 | Handler mutation surface | CONFIRMED — `reconcileSubscriptionByStripeId` uses `maybeSingle()` and returns without writing when no record matches the probe subscription. |
+| 7 | Middleware interception | CONFIRMED — `isBypassPath` matches all `/api` paths, so the launch lock cannot redirect the webhook route. |
+| 8 | Branch-alias doctrine | CONFIRMED — recorded in Truth §R.10.4 and binding on Prompts 2–5. |
+| 9 | Live / TEST / Sandbox separation | **NOT PROVEN — CONNECTOR SCOPE.** All `livemode=true` reads failed at the tool boundary; this session had no Live access. Owner dashboard check required before any Live cutover. |
+| 10 | Secret hygiene | CONFIRMED for artifacts — no `sk_`, `rk_` or `whsec_` value in any doc or commit. Bypass-secret transcript exposure recorded with a post-Prompt-5 rotation plan. |
+| 11 | GR-01–44 status integrity | CONFIRMED — 44 unique rows in both §19.4 and §20.2; 43 PENDING OWNER RUNTIME, 1 NOT SUPPORTED, **0 PASS**. |
+| 12 | Certification claim | CONFIRMED — `PRE-OWNER-QA PROOF CERTIFICATION: YES` is scoped to infrastructure only and explicitly denies any GR PASS. |
+| 13 | Stale-blocker sweep | **REPAIRED** — §20.3 and Truth §R.7 still read as open blockers; both now carry SUPERSEDED banners. |
+| 14 | Pre-payment baseline | CONFIRMED — `servicios_public_listings`: **104 rows / 103 published**, newest `updated_at` 2026-08-20, 0 touched in the probe window. |
+| 15 | Prompt 2 entry conditions | MET — transport proven, destination certified, baseline captured, alias locked, handler fail-closed verified in source and in data. |
+
+**Correction to earlier phrasing:** Servicios listings live in `servicios_public_listings`, not in
+`listings` (where `category = 'servicios'` returns 0 rows). The 104/103 baseline was always read
+from the correct table; the shorthand "Servicios rows" is now qualified wherever it appears.
+
+**Owner action before Prompt 2:** none required. Optional: delete probe customer
+`cus_VFC3dMuMnCPjOw` from the Stripe TEST dashboard; re-export the canonical MDs if the uploaded
+copies are meant to mirror the repo.
+
+## 20.7 BLOCKER — concurrent uncommitted Servicios runtime edits in this worktree (2026-09-12)
+
+Discovered by the §20.6 deep proof audit, not by a planned check. **This is the only thing standing
+between Servicios and Prompt 2.**
+
+### What was observed
+
+At the start of this session the worktree was clean at `260074fc` (= `origin`). While the audit ran,
+`git status` reported nine modified files, seven of which this session never touched:
+
+| File | Nature |
+|---|---|
+| `app/api/clasificados/servicios/publish/route.ts` | **Runtime source** — rewrites Gate SERVICIOS-1 as "SRV-GOLDEN-01": a declared edit (`existingListingId`) must resolve the canonical UUID or fail closed with 404 `listing_not_found`, never degrading into create/INSERT. |
+| `app/(site)/servicios/components/ServiciosResultCardEngagementStrip.tsx` | **Runtime source** — engagement strip changes. |
+| `scripts/verify-servicios-gate1-lifecycle.ts` | +42 lines of new assertions. |
+| `scripts/verify-servicios-publish-authority.ts`, `verify-servicios-owner-qa-delta.ts`, `verify-servicios-engagement-2.mjs`, `verify-servicios-interaction-polish.mjs` | verifier updates matching the source change. |
+
+File mtimes cluster at **2026-09-11 20:54 local (2026-09-12 02:54Z)**, and
+`verify-servicios-publish-authority.ts` grew from 6 to 8 changed lines *between two consecutive
+`git diff --stat` reads during this audit* — the edits were still being written while the audit
+ran. Authorship is another session or worktree operating on this checkout; it is the same pattern as
+foreign commit `8ea8e304` earlier in this branch's history.
+
+The unified diff is preserved outside the repo at
+`…/scratchpad/foreign-working-copy-2026-09-11.diff` (328 lines).
+
+### Why it blocks Prompt 2
+
+| Fact | Consequence |
+|---|---|
+| `HEAD:app` = `f4ed31d9` · **working copy `app` tree = `81b026fa`** | The certified Golden runtime tree and the on-disk tree no longer agree. |
+| The Stripe destination targets the **branch alias** (§20.5, Truth §R.10.4) | If these edits are committed and pushed, the alias redeploys a **different app tree**, and every §R.10 delivery proof describes a build that is no longer serving. |
+| The changed file is the **publish authority route** | It is the exact code path Prompt 2 exercises (paid publish → entitlement → public listing). Owner QA against a half-landed rewrite would produce unreproducible results. |
+
+### Required resolution before Prompt 2 (owner/PM decision — this session must not choose)
+
+1. **Identify the owning session** and let it finish, commit and push; then this branch re-runs the
+   Golden runtime identity check (new `app` tree hash, new alias deployment id) and re-certifies
+   §R.10.4 against the redeployed build. Cheapest path if the work is intentional and nearly done.
+2. **Or** have that session park the work (WIP commit on its own branch) so this worktree returns to
+   a clean `260074fc`, preserving the existing certification exactly as written.
+
+**Not permitted here:** this session will not commit, revert, stash or otherwise disturb those seven
+files — they are another agent's in-progress work, and the standing rule is that unrelated
+in-progress work is never overwritten. Only the two documentation files authored by this audit were
+committed.
+
+### Status
+
+`SERVICIOS PRE-OWNER-QA PROOF CERTIFICATION: YES` still stands for commit `260074fc` and the
+deployment currently behind the branch alias. It does **not** extend to the modified working copy.
+Prompt 2 opens the moment §20.7 is resolved by option 1 or option 2.

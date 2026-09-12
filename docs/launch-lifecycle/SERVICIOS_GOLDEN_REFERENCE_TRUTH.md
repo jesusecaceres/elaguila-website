@@ -177,7 +177,7 @@ bearer token, never client-asserted). SMS verification truth = a row in
 | Request quote / lead form | LIVE | Real submission |
 | Share | LIVE | `LeonixShareButton` — native share + analytics |
 | **Like** | LIVE | `LeonixLikeButton` — DB-backed count, **self-engagement guarded** |
-| **Save** | **LIVE (closed this gate)** | `LeonixSaveButton` → canonical `saved_listings`, appears in the Guardados dashboard, self-engagement guarded, `listing_save` / `listing_unsave` analytics |
+| **Save** | **LIVE (closed this gate)** | Shared `LeonixSaveButton` + `serviciosSavedListingExtras` on the Business Hub **and** live discovery result cards (`ServiciosResultCardEngagementStrip`). Writes canonical `saved_listings`, appears in Guardados, self-engagement guarded |
 | Translate Ad | LIVE | Translates owner prose only — never phones, URLs, prices, or identity |
 | Hours / open-now | LIVE | See C.1 |
 | Coupons / offers | LIVE | Included in base package |
@@ -1423,6 +1423,11 @@ paid Golden listing does not exist yet. Execution plan and control matrix: Golde
 
 ### R.7 Open runtime-configuration dependency (owner decision — blocks Runtime Gate B only)
 
+> **SUPERSEDED 2026-09-12 — RESOLVED, NOT AN OPEN BLOCKER.** Transport was proven in §R.9 and the
+> Stripe TEST destination was certified in §R.10. Nothing in this section blocks Runtime Gate B any
+> longer; it is retained only as the historical record of how the dependency was found and closed.
+> Read §R.10 for current truth.
+
 Re-verified on 2026-09-11 during the MD proof audit, directly against the Vercel project:
 
 ```
@@ -1557,6 +1562,23 @@ Both landed on `dpl_44tLyt5DGNYrcn2ZK6jQRhMrV6K9` (branch-alias target), distinc
 signature validated end to end** — the deployed `STRIPE_WEBHOOK_SECRET` matches this destination.
 Vercel protection did not intercept; the application handler answered.
 
+**Independent database-side confirmation (added by the 2026-09-12 deep proof audit).** HTTP status
+alone is circumstantial, so the claim was re-proven from persisted state rather than from the
+response code. `app/api/revenue-os/webhook/route.ts` calls `verifyStripeWebhookEvent` first and
+returns `verified.status` before touching the database, so **a ledger row can only exist for an
+event whose signature verified**. Read-only Supabase shows exactly the matching pair:
+
+| `stripe_event_id` | type | `livemode` | status | `result_code` | `received_at` |
+|---|---|---|---|---|---|
+| `evt_1UEhiWRzu3T31dlaVeLgCVNG` | `customer.subscription.updated` | `false` | `ignored` | `not_leonix_subscription` | 03:35:07Z |
+| `evt_1UEhjPRzu3T31dladaWFFOa2` | `customer.subscription.deleted` | `false` | `ignored` | `not_leonix_subscription` | 03:35:59Z |
+
+The 01:45:38 forged-signature probe left **no** ledger row. That control pair — verified events
+persisted, forged event rejected with nothing written — proves signature validation ran and
+discriminated correctly, independently of the HTTP status. The `ignored` /
+`not_leonix_subscription` outcomes are the source-predicted fail-closed path, observed in
+production data.
+
 Safety was verified in source *before* triggering: `handleSubscriptionUpdated` /
 `handleSubscriptionDeleted` both return `{ok:true, outcome:"ignored", code:"not_leonix_subscription"}`
 when `loadSubscriptionRecord` finds no record, returning before any write.
@@ -1570,6 +1592,18 @@ when `loadSubscriptionRecord` finds no record, returning before any write.
 | `listing_package_entitlements` created in the window | **0** |
 | `servicios_public_listings` rows touched in the window | **0** |
 | Servicios rows / published (pre-payment baseline) | **104 / 103** |
+| `leonix_stripe_webhook_events` rows written | **2 — BY DESIGN, see below** |
+
+**Full disclosure of write residue (added by the 2026-09-12 deep proof audit).** "Zero mutation" is
+precise only for *business* state. The two deliveries did write two rows to the infrastructure
+event ledger `leonix_stripe_webhook_events` — that is the handler working as designed (layer-1
+idempotency), and those rows are the proof in §R.10.2. Both carry `livemode=false`,
+`payment_record_id = null`, and terminal status `ignored`. Ledger totals re-read at audit time:
+**7 rows total, 0 with `livemode=true`**. No business row of any kind was created, updated or
+deleted: `leonix_subscription_records` holds exactly **1** row (an `autos` record from 2026-08-25,
+untouched), `leonix_payment_records` **28** (latest 2026-09-09), `listing_package_entitlements`
+**13** (latest 2026-08-25), and the newest `servicios_public_listings.updated_at` in the whole
+table is **2026-08-20**, three weeks before the probe.
 
 Cleanup: probe subscription canceled, probe product archived. The probe customer
 (`cus_VFC3dMuMnCPjOw`, labelled "LEONIX INFRA PROBE - DELETE ME") remains in Stripe TEST — the
@@ -1592,3 +1626,19 @@ browser actions and Stripe deliveries reach the same running build.
 
 Infrastructure blockers: **0**. `SERVICIOS PRE-OWNER-QA PROOF CERTIFICATION: YES`.
 Owner runtime (GR-01…GR-44) remains pending; nothing here is a GR PASS.
+
+#### R.10.6 Residual risks carried into Prompt 2 (not blockers)
+
+1. **Live-mode separation is NOT independently proven.** The authorized connector is TEST-scope;
+   every `livemode=true` read attempt failed at the tool boundary. This session therefore could not
+   and did not touch Live. Before any Live cutover the owner must confirm in the Stripe dashboard
+   that no **Live** destination points at a `*.vercel.app` preview host. Current TEST evidence is
+   unaffected: the certified destination and both deliveries are `livemode=false`.
+2. **Automation-bypass secret exposure.** The destination URL carries
+   `VERCEL_AUTOMATION_BYPASS_SECRET` as a query parameter, so any read of the Stripe endpoint
+   object returns the secret in cleartext; this occurred inside agent tooling output during the
+   2026-09-12 audit. It appears in **no** doc, commit, report or log artifact. Rotating it now
+   would break webhook delivery mid-QA, so rotation is scheduled **after Prompt 5**, and must
+   update the Vercel env var and the Stripe destination URL in the same change.
+3. **Probe customer `cus_VFC3dMuMnCPjOw`** remains in Stripe TEST (no card, no paid invoice);
+   the connector exposes no delete operation. Owner may delete it from the dashboard at any time.
