@@ -156,10 +156,10 @@ if (sectionFlagIdx !== -1) {
       const val = Number(m[1]);
       check(`Section's ${label} (${val}) matches live count (${expected})`, val === expected, `doc says ${val}, live is ${expected}`);
     }
-    assertNumberMatches("RAW_CANONICAL_ITEMS", /RAW[ _]CANONICAL[ _]ITEMS[:\s]+(\d+)/i, LIVE.rawItems);
-    assertNumberMatches("FINAL_ATOMIC_MD_REQUIREMENTS", /(?:FINAL[ _])?ATOMIC[ _](?:MD[ _])?REQUIREMENTS[:\s]+(\d+)/i, LIVE.atomicReqs);
-    assertNumberMatches("OWNER_META", /OWNER[ _]META(?:[ _]ROWS)?[:\s]+(\d+)/i, LIVE.ownerMeta);
-    assertNumberMatches("MECHANISMS", /MECHANISMS[:\s]+(\d+)/i, LIVE.mechanisms);
+    assertNumberMatches("RAW_CANONICAL_ITEMS", /RAW[ _]CANONICAL[ _]ITEMS[:\s=]+(\d+)/i, LIVE.rawItems);
+    assertNumberMatches("FINAL_ATOMIC_MD_REQUIREMENTS", /(?:FINAL[ _])?ATOMIC[ _](?:MD[ _])?REQUIREMENTS[:\s=]+(\d+)/i, LIVE.atomicReqs);
+    assertNumberMatches("OWNER_META", /OWNER[ _]META(?:[ _]ROWS)?[:\s=]+(\d+)/i, LIVE.ownerMeta);
+    assertNumberMatches("MECHANISMS", /MECHANISMS[:\s=]+(\d+)/i, LIVE.mechanisms);
   }
 }
 

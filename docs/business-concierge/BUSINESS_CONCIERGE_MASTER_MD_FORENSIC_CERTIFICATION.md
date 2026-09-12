@@ -2204,4 +2204,57 @@ Every one of the 839 raw canonical items (824 from Gate 10.9 + 15 more found by 
 
 **READY FOR OWNER QA: NO.** Owner QA remains intentionally blocked until PM reviews and accepts this final normalization proof.
 
+---
+---
+# FINAL MASTER MD TECHNICAL CERTIFICATION
+
+This section states CURRENT truth only, pulled directly from the just-run verifiers and live artifacts (not retyped from memory, not historical narrative). All prior gate sections above remain unmodified history.
+
+**Canonical source:** `LEONIX_BUSINESS_CONCIERGE_CLIENT_DISCOVERY_AND_PROJECT_BLUEPRINT_ENGINE_MASTER.md`
+
+**Live counts:**
+- RAW_CANONICAL_ITEMS = 839
+- FINAL_ATOMIC_MD_REQUIREMENTS = 612
+- OWNER_META_ROWS = 6 (kept separate, all `OWNER_SUBJECTIVE_ONLY`)
+- MECHANISMS = 31 (31/31 independently source-verified)
+- NOT_PROVEN = 0, FAILED = 0, TRUE_SAFE_DEFER = 0
+- NORMALIZATION_EXCEPTIONS = 0, EVIDENCE_EXCEPTIONS = 0, CONTRADICTIONS = 0
+- FINAL_EXCEPTION_QUEUE = 0
+
+**Normalization status:** `gate10-10-verify-normalization.ts` — ALL CHECKS PASS (839/839 raw items dispositioned, 612/612 atomic requirements have canonical raw basis, 0 without source, 0 unresolved).
+
+**Evidence status:** `gate10-8-verify-evidence-manifest.ts` — 16/16 checks PASS (612 unique reqIds, every row has ≥1 mechanism, every mechanism exists, 0 NOT_PROVEN/FAILED/TRUE_SAFE_DEFER, Blueprint 1-47 present with no gaps, acceptance steps 1-25 present, CTA states 14/14, industry bullets 48/48, owner-meta separate).
+
+**Mechanism status:** `gate10-8b-verify-mechanisms.ts` — 31/31 mechanisms fully source-verified against real current code (not the manifest's own text).
+
+**Canonical reconciliation status:** `gate10-9-reconcile-bijection.ts` — all 38 MD sections (§0-§37) reconciled, CANONICAL_WITHOUT_MANIFEST=0, MANIFEST_WITHOUT_CANONICAL=0, SECTION_MISMATCHES=0, TEXT_MISMATCHES=0.
+
+**Project-type status:** `test-gate10-2-project-family-integrity.ts` — 74/74 checks PASS. All 16 named §7 project types (plus "Other") confirmed as real specialized families (0 registry-only stubs) each with a real discovery catalog and a real Blueprint-packet builder, 0 accidental Website fallbacks, 0 execution-destination mismatches.
+
+**Blueprint status:** `test-blueprint-47-categories-gate10-2.ts` — 18/18 checks PASS. 47/47 categories present in order 1-47, real packet-to-render mapping confirmed (including previously-fixed #23 Domain/DNS, #25 Platform Rationale, #32 Maintenance), 0 fabricated N/A filler.
+
+**Website acceptance status (new this closeout):** `gate-final-verify-acceptance-25.ts` — ALL CHECKS PASS. 25/25 §33 steps present, all TECHNICALLY_PROVEN, 0 placeholder citations, every state-changing step's cited identifier grep-confirmed in real current source. Building this verifier surfaced and this closeout fixed 8 real citation-completeness gaps (REQ-33.3/33.4/33.5/33.6/33.15/33.17/33.22/33.25 cited only prose with no concrete identifier) — no product code changed, only the ledger's SOURCE citations were corrected to name the same real, already-verified identifiers their sibling rows already cite.
+
+**Contradiction status (new this closeout):** `gate-final-contradiction-scan.ts` — ALL CHECKS PASS. Confirmed every mention of the old pre-Gate-10.9 requirement total in this document is confined to historical sections or the correction narrative that superseded it; confirmed live counts match what the artifacts actually contain; scanned all 612 rows (not a sample) for dead file references and placeholder evidence — 0 found; re-confirmed the evidence-class/mechanism-binding rule holds for every row requiring strong evidence.
+
+**Negative-test status:** evidence verifier 5/5 PASS (manifest restored intact after each mutation); normalization verifier 6/6 PASS (normalization artifact restored intact after each mutation).
+
+**Industry branches:** 6/6 (Restaurant, Fitness, Radio/Media, Church, Professional Service, Home/Local Service) each with real manifest rows.
+
+**Multi-solution (§34):** PASS — the 4-item "Client needs" scenario input traces to real §7 project types + the §19 multi-project mechanism; the separate 7-segment "Expected:" outcome chain traces to REQ-34.1-4, each combining adjacent chain segments with a real, disclosed basis (Gate 10.10).
+
+**Truth/auth/cross-business/resume/no-tribal-knowledge:** PASS via already source-verified mechanisms (`M-AUTH-WRITE`, `M-CROSS-BUSINESS`) and already-proven rows (REQ-4.1-4.10 truth-class separation, REQ-23.1 persistence, REQ-25.1-25.7 versioning, REQ-13.1 ownership) — re-confirmed clean by this closeout's mechanism verifier and contradiction scanner, no new gaps found.
+
+**Policy invariants and specialized branches:** PASS — already individually proven as their own atomic rows (REQ-2.4 no re-entry, REQ-6.3 no re-asking, REQ-3.7 explicit consent, REQ-8.14.7/8.15.14/8.19.13/8.17.10 justified-only usage guards, REQ-11.4/11.6/11.8 external-platform/no-forced-migration, REQ-29.12 Custom Platform review gate, REQ-13.1 ownership/billing handoff block), all `TECHNICALLY_PROVEN`, re-confirmed with 0 contradictions by this closeout's scan.
+
+**Runtime/product code changed this closeout:** NO. Every change was to forensic documentation, the generated manifest, and new verification tooling (`scripts/gate-final-verify-acceptance-25.ts`, `scripts/gate-final-contradiction-scan.ts`). No full build/typecheck was run per this closeout's own validation policy (ceremony avoided where no runtime code changed); the lightweight proof pipeline above was run in full instead.
+
+**Staging DB:** `cgeehvnfyrdoperdotdh` only. **Production DB (`xuieateniufcrsfdomwl`):** untouched. **`main`:** unmerged.
+
+**Technical Master-MD gaps remaining:** NONE.
+
+**FINAL RELEASE SHA:** assigned after this certification commit — see the closing report delivered alongside this commit for the exact final HEAD and Preview URL/state.
+
+**READY FOR OWNER QA: NO.** Owner QA remains intentionally locked pending PM acceptance of this final certification.
+
 **Owner QA remains intentionally blocked until PM accepts the completed machine-certification and mechanism-integrity proof.**
