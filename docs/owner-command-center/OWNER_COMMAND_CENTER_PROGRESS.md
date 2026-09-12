@@ -1973,3 +1973,29 @@ Added dedicated `Owner` field on all 76 DASH ledger items. Cross-document HEAD/m
 Isolated Vercel Preview is created after this documentation commit is pushed. Deployment ID / URL / SHA match are recorded in the Prompt 1 absolute report, not fabricated here.
 
 **QA AUTHORIZED:** NO
+
+---
+
+## EXTERNAL GOLDEN INTAKE CHECKPOINT — OCC PARKED AT 83635691 (2026-09-11)
+
+**Parked HEAD:** `8363569110adc5755dac0ce8b23b848150fc994f`
+**origin/main:** `9fcadb4daf599e15fca62adcb647abbf96ce6bd8`
+**Prompt 2:** EXTERNAL CONTRACTS NOT LANDED. Product source unchanged. No merge.
+
+Canonical intake map (files, proofs, residuals, resume steps):
+`docs/launch-lifecycle/SERVICIOS_OWNER_DASHBOARD_RUNTIME_LEDGER_2026-09-11.md` §25C.
+
+STATUS NOW — all NOT LANDED: SRV-GOLDEN-01, SRV-GOLDEN-02, SRV-GOLDEN-03, SRV-GOLDEN-04, DASH-53, DASH-58, DASH-59, DASH-60.
+OCC MAY IMPLEMENT EXTERNAL SOURCE: NO
+QA REQUIRED NOW: NO
+OCC REQUIRED PRODUCT WORK: NONE
+UNKNOWN: NONE
+
+OCC RESUME ONLY WHEN ONE OF THESE IS TRUE:
+A. `origin/main` advances with one or more named Golden/shared contracts
+OR
+B. PM provides an explicitly authorized coordinated SHA containing completed contracts
+
+When resumed: stay in this worktree → fetch → inspect only affected contract paths → classify LANDED / PARTIAL / NOT LANDED → reconcile main if safe → recheck only DASH-16/18/21/23/26/27/53/54/58/59/60/68 → implement only a proven OCC residual → source-certify → commit/push → isolated Preview → STOP for PM proof audit. Do not authorize QA.
+
+NEXT OCC ACTION BEFORE TRIGGER: NONE

@@ -18,7 +18,9 @@
 **Gates 1–6 receiver source completion (2026-09-11):** COMPLETE — fresh DASH-01–76 TRUE/FALSE source proof against current worktree product SHA `9fcadb4d` (docs HEAD `b49cebf6`). No receiver product implementation. Bucket D empty.
 **Runtime Golden listing:** NOT YET CREATED / NOT YET TESTED
 **Prompt 1 (2026-09-11):** SOURCE CERTIFIED against current main `9fcadb4d` at source HEAD `394d6fdb`. Verifiers 22/22, 33/33, OK, Rentas 9/9, paid-lifecycle PASS, 182/182, Gate20 PASS. `tsc` 7 e2e-only baseline 0 new. Production build PASS (Compiled successfully in 2.9min). Product source unchanged. Isolated Preview after this docs commit is pushed. QA NOT RUN / NOT AUTHORIZED.
-**Gate status:** OCC RECEIVER SOURCE CERTIFIED AGAINST CURRENT MAIN — EXTERNAL GOLDEN BLOCKERS REMAIN — PREVIEW AFTER PUSH — QA FORBIDDEN UNTIL PM AUTHORIZES
+**Parked receiver HEAD:** `8363569110adc5755dac0ce8b23b848150fc994f`
+**Prompt 2 (2026-09-11):** EXTERNAL CONTRACTS NOT LANDED — origin/main still `9fcadb4d`; no PM-authorized coordinated SHA.
+**Gate status:** OCC PARKED AT `83635691` — WAITING ONLY FOR EXTERNAL GOLDEN CONTRACT LANDING — QA FORBIDDEN UNTIL PM AUTHORIZES
 
 ## 0. Executive lock
 
@@ -2561,6 +2563,117 @@ FALSE = required contract is not met in this source (always with an owner).
 **OWNER COMMAND CENTER REQUIRED PRODUCT SOURCE WORK:** NONE PROVEN
 
 **READY FOR FINAL SOURCE CERTIFICATION GATE:** YES (external Bucket C remaining; QA still forbidden)
+
+# 25C. EXTERNAL GOLDEN INTAKE CHECKPOINT — OCC PARKED AT 83635691
+
+**Date:** 2026-09-11
+**Worktree:** `C:\projects\elaguila-website-owner-command-center`
+**Branch:** `integration/owner-command-center-globalization-2026-08`
+**Parked HEAD:** `8363569110adc5755dac0ce8b23b848150fc994f`
+**Product / origin/main SHA:** `9fcadb4daf599e15fca62adcb647abbf96ce6bd8`
+**OCC required product work:** NONE
+**UNKNOWN:** NONE
+**QA:** NOT RUN / NOT AUTHORIZED
+**Prompt 1 Preview (parked SHA):** `dpl_8Yt2jgiwxFHaLaArmn47HRYRQrMm` — `https://leonix-media-s3hnb7zbd-jesus-caceres-projects.vercel.app` — READY — Preview SHA == `83635691`
+**Do not implement Golden source in this worktree.**
+**Do not poll. Resume only on the trigger below.**
+
+This section is the resume memory for a fresh Cursor context. Do not reconstruct from chat history.
+
+## OCC RESUME ONLY WHEN ONE OF THESE IS TRUE
+
+A. `origin/main` advances with one or more named Golden/shared contracts below
+OR
+B. PM provides an explicitly authorized coordinated SHA containing completed contracts
+
+When resumed:
+
+1. stay in OCC worktree `C:\projects\elaguila-website-owner-command-center`
+2. fetch current truth (`origin/main` + origin receiver)
+3. inspect only affected external-contract paths listed below
+4. classify each LANDED / PARTIAL / NOT LANDED (PARTIAL is not certifiable)
+5. reconcile current main into this OCC branch if mechanically safe (normal merge; no rebase; no squash; no force). STOP on semantic conflict in identity / auth / Stripe / entitlement / lifecycle / Saved Listings / Saved Search / Business Tools
+6. recheck only affected DASH items (16, 18, 21, 23, 26, 27, 53, 54, 58, 59, 60, 68)
+7. implement only a proven OCC-side residual (smallest adapter/registry). Never publish/hydration/lifecycle/Save-engine/Saved-Search-engine
+8. run final source certification (targeted verifiers → tsc vs 7-error e2e baseline → production build `NODE_OPTIONS=--max-old-space-size=12288` → `git diff --check` → TESTS.json parse)
+9. commit/push to `origin/integration/owner-command-center-globalization-2026-08` only
+10. create exact-SHA isolated Vercel Preview (never `--prod`)
+11. STOP for PM proof audit
+
+Do not authorize QA in this resume contract.
+
+## Contract map (all NOT LANDED on parked SHA / current main)
+
+### 1. SRV-GOLDEN-01
+
+- Affected: DASH-21 write authority; DASH-23
+- STATUS NOW: NOT LANDED
+- OCC MAY IMPLEMENT EXTERNAL SOURCE: NO
+- QA REQUIRED NOW: NO
+- Expected landing proof: active edit/update by canonical UUID; fail-closed if canonical edit identity missing; no `allocateSlug` + INSERT fallback for an existing listing
+- Exact files/functions to recheck: `app/api/clasificados/servicios/publish/route.ts` (`allocateSlug` ~119, `allocateSlug(baseSlug)` ~301, `.insert(insertRow)` ~507)
+- Current parked proof: `allocateSlug` + INSERT fallback still present
+- Receiver expected product change: NONE unless new source proves residual
+- Related: DASH-21 OCC `serviciosListingEditHref` listingId emission remains TRUE — do not flip FALSE if only write authority is still Golden
+
+### 2. SRV-GOLDEN-02
+
+- Affected: DASH-16 persistence
+- STATUS NOW: NOT LANDED
+- OCC MAY IMPLEMENT EXTERNAL SOURCE: NO
+- QA REQUIRED NOW: NO
+- Expected landing proof: coupons/offers persist consumes canonical $399 entitlement/package truth; retired standalone offers add-on key is no longer persistence authority
+- Exact source to recheck: `app/api/clasificados/servicios/publish/route.ts` (`SERVICIOS_OFFERS_ADDON_PACKAGE_KEY` import ~28, packageKey ~361); `app/lib/listingPlans/publishCheckoutCheckpoint.ts`
+- Current parked proof: publish still uses `SERVICIOS_OFFERS_ADDON_PACKAGE_KEY`
+- Receiver expected product change: NONE
+- Related: DASH-16 OCC display via `coupons_offers` / `resolveBusinessToolsAccess` remains TRUE — do not flip FALSE
+
+### 3. SRV-GOLDEN-03
+
+- Affected: DASH-18
+- STATUS NOW: NOT LANDED
+- OCC MAY IMPLEMENT EXTERNAL SOURCE: NO
+- QA REQUIRED NOW: NO
+- Expected landing proof: `customQuickFacts` restored from published Servicios row into application draft
+- Exact source to recheck: `app/(site)/clasificados/publicar/servicios/lib/serviciosPublishedToApplicationDraft.ts`
+- Current parked proof: that adapter has no `customQuickFacts` mapping
+- Receiver expected product change: NONE
+
+### 4. SRV-GOLDEN-04
+
+- Affected: DASH-27; recheck DASH-26 / DASH-68 parity
+- STATUS NOW: NOT LANDED
+- OCC MAY IMPLEMENT EXTERNAL SOURCE: NO
+- QA REQUIRED NOW: NO
+- Expected landing proof: commercial-safe reactivation authority; unpaid/unauthorized resume fails closed
+- Exact authority/helper to look for: `resolveServiciosReactivationAuthority` or the current canonical successor on Resume / `POST /api/clasificados/servicios/manage`
+- Current parked proof: `resolveServiciosReactivationAuthority` has zero matches in this worktree
+- Receiver expected product change: NONE unless dashboard bypasses landed authority
+- Related: DASH-26 Resume CTA remains TRUE; DASH-68 same `listing_status` column remains TRUE
+
+### 5. DASH-53 PUBLIC SAVE
+
+- Affected: DASH-53; runtime dependency for DASH-54 / DASH-55
+- STATUS NOW: NOT LANDED
+- OCC MAY IMPLEMENT EXTERNAL SOURCE: NO
+- QA REQUIRED NOW: NO
+- Expected landing proof: `LeonixSaveButton` on canonical Servicios public/detail/result surfaces; shared Saved Listing engine reused; canonical Servicios identity/extras preserved (`serviciosSavedListingExtras` in `app/lib/serviciosSavedListingIdentity.ts`)
+- Exact source to recheck: `app/(site)/servicios/**`, `app/(site)/clasificados/servicios/**` for `LeonixSaveButton`; Guardados resolver `app/lib/savedListingsDashboardResolve.ts` (`servicios_public_listings`)
+- Current parked proof: no `LeonixSaveButton` under those Servicios trees
+- Receiver expected product change: NONE unless Guardados resolver fails after public writer lands
+- Related: DASH-54 / DASH-55 OCC resolver/delete remain TRUE
+
+### 6. DASH-58 / DASH-59 / DASH-60 SAVED SEARCH
+
+- Affected: DASH-58, DASH-59, DASH-60
+- STATUS NOW: NOT LANDED
+- OCC MAY IMPLEMENT EXTERNAL SOURCE: NO
+- QA REQUIRED NOW: NO
+- Expected landing proof: Servicios Saved Search category adapter exists; canonical location support; relevant Servicios filter payload; live matcher/discovery path; dashboard category registry can manage Servicios saved searches
+- Exact source to recheck: `app/lib/saved-search/servicios/**` (expected new); Rentas reference `app/lib/saved-search/rentas/savedSearchRentasAdapter.ts`; public `SavedSearchButton` on `/clasificados/servicios/resultados`; dashboard `CATEGORY_REGISTRY` in `app/(site)/dashboard/busquedas-guardadas/page.tsx` (currently `autos` | `bienes-raices` | `rentas` only)
+- Current parked proof: no `saved-search/servicios` directory; no `servicios` registry key
+- Potential OCC residual: only a small dashboard `CATEGORY_REGISTRY` entry if upstream lands engine/adapter but not owner dashboard registry
+- Receiver expected product change: NONE unless that registry residual is proven after landing
 
 # 26. Final motto
 
