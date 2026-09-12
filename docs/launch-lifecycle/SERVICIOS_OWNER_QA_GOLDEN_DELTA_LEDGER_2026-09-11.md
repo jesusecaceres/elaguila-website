@@ -2198,3 +2198,159 @@ since no runtime source changed.
 Proof-hygiene gap **CLOSED**. Runtime source unchanged (app tree `2932f105`, supabase tree
 `6d5014bc`). No GR row moved to PASS: 43 remain PENDING OWNER RUNTIME, GR-22 remains
 NOT SUPPORTED — CURRENT PRODUCT, GR-44 remains incomplete. Owner QA has **not** started.
+
+## 23. FINAL ENGINEERING COMPLETION AUDIT (2026-09-12)
+
+Deep pre-owner-QA audit of repo, branches, migrations, schema, verifiers, runtime identity, Stripe
+and docs. **No owner QA, no test listing, no checkout, no payment, no publication, no GR status
+change.** Read-only except the documentation repairs recorded here.
+
+### 23.1 Repo / branch truth
+
+HEAD = origin = `7c047271`; worktree clean (0 modified, 0 untracked); no merge, rebase or
+cherry-pick in progress; 0 unpushed commits; no conflict markers in `app/`, `scripts/` or
+`supabase/`.
+
+**Unlanded intended Servicios work: 0.** Twenty-five refs carry Servicios-path commits not reachable
+from HEAD. All were resolved:
+
+| Branch | Finding |
+|---|---|
+| `occ/servicios-golden-intake-closure`, `integration/owner-command-center-globalization-2026-08` | Carry `4b402962`, dated **09 minutes after** our `9e874060` — but its message reads *"(cherry picked from commit 9e874060…)"*, and all three Servicios files plus the new verifier are **byte-identical** to HEAD. `git diff HEAD 4b402962` over all four Servicios path roots is **empty**. Same work, propagated outward. |
+| `fix/globalization-final-closeout-2026-09` | Sealed historical reference (master doc §21). Newest Servicios commit 2026-09-09, older than HEAD's. Superseded. |
+| `fix/servicios-application-final-qa-2026-08`, `fix/business-applications-final-polish-2026-08`, `origin/servicios-ux-1`, and 9 others | Newest Servicios commits 2026-06 → 2026-08, all predating HEAD's Servicios lineage and the `55a73c04` main reconciliation. Backward divergence, not unlanded work. |
+
+**Stash stack (shared across worktrees): 2 entries, neither Servicios-owned.** `stash@{0}` belongs to
+`integration/lifecycle-foundation-2026-07` (0 Servicios files). `stash@{1}` ("gate10-unrelated-wip",
+based on `86b976cd`, an ancestor of HEAD) touches two Servicios files with an advanced-filter drawer
+helper for `ServiciosResultsFilters`. It is unrelated WIP from another lane, **left untouched**, and
+is not required for owner QA.
+
+### 23.2 Migrations and schema
+
+The database ledger records migrations by **apply-time** version keyed to the file's *name*, so the
+12 duplicate 14-digit filename prefixes in `supabase/migrations` (e.g. both
+`20260910120000_autos_privado_lifecycle_expires_at` and
+`20260910120000_saved_search_match_events_servicios`) do **not** collide — both members of every
+Servicios-relevant pair are applied. **Migration head conflicts: 0.**
+
+| Metric | Value |
+|---|---|
+| Repo migration files | 173 (82 pre-ledger baseline era, 91 ledger era) |
+| DB applied rows | 76 (earliest `20260612182335`, latest `20260911203434`) |
+| Ledger-era repo migrations absent from the DB ledger | 26 |
+| DB-only names (no repo file) | 3 — `promo_reservation_rpc_role_lockdown`, two `ofertas_locales` hardening/finalize migrations |
+| Servicios/Revenue-OS schema drift blockers | **0** |
+
+Every table and column the current Servicios runtime consumes is present and applied:
+`servicios_public_listings` (incl. `private_contact`, `leonix_ad_id`, `listing_status`,
+`republish_*`, `suspended_reason`), `listing_package_entitlements`, `leonix_payment_records`,
+`leonix_subscription_records`, `leonix_stripe_webhook_events`,
+`leonix_verified_intro_discount_redemptions`, `leonix_verified_phone_identities`,
+`leonix_phone_verification_challenges`, `saved_search_match_events_servicios`,
+`servicios_public_listings_read_privacy`, plus the Servicios analytics/leads/reviews tables.
+
+Of the 26 unlisted ledger-era migrations, 25 belong to other products (Comida Local, Restaurantes,
+Recursos, digital-contact, magazine, moderation, community) or to `public.listings` quick-listing
+lanes, none of which the Servicios runtime path consumes. **One is Servicios-commercial** and is
+recorded in §23.3.
+
+### 23.3 FINDING — `retire_website_launch_25_promo_family` never applied (non-blocking)
+
+`supabase/migrations/20260805100400_retire_website_launch_25_promo_family.sql` is **not** reflected
+in the database. Read-only proof:
+
+```
+leonix_promo_codes: 11 active, 1 draft
+active rows in the website_launch_25 family: 1
+  code LX-NEWS-SQESAR · percent_off 25 · code_type newsletter
+  metadata.promo_family = website_launch_25 · website_checkout_only = true
+  status = 'active' · retired_at = NULL   <-- migration's UPDATE never ran
+```
+
+The intended defence-in-depth (`status = 'revoked'`) is therefore missing.
+
+**Why this is NOT an engineering blocker for owner QA:** the row is already unreachable by a second,
+independent gate. Its `ends_at` is **2026-09-06**, now in the past, and
+`resolveEffectivePromoCodeStatus()` (`promoCodeLifecycle.ts` L95-98) returns `"expired"` whenever
+`endsAt < now`; `resolvePromoForCheckout()` (`revenuePromoRedemptions.ts` L347) rejects any
+`effectiveStatus !== "active"`. A 25% Launch code cannot be applied at Servicios checkout today, so
+SVC-QA-29 holds at runtime.
+
+**Residual risk, for PM disposition:** only the time window is holding it closed. If anyone ever
+extended `ends_at` on that row, 25% would become live again because the status flip never happened.
+Recommended (not performed here — this audit performs no database mutation): apply that one
+migration so the row carries `status = 'revoked'`. It is non-destructive by construction — an
+UPDATE of lifecycle status only, preserving all historical rows and the single existing redemption.
+
+### 23.4 Verifiers
+
+68 Servicios scripts exist; 43 `verify:servicios-*` aliases are registered in `package.json`.
+
+**The six Golden-contract verifiers are green (6/6):** `golden-receiver-contracts` 10/10,
+`publish-authority` 37, `gate1-lifecycle` 22, `owner-qa-delta` 34, `engagement-2`,
+`interaction-polish`.
+
+A full sweep of all 35 `verify-servicios-*.mjs` verifiers returns **26 PASS / 9 FAIL**. Every one of
+the 9 was proven **pre-existing and repo-wide**, not a Golden-branch regression: each fails
+identically when replayed against an extracted `260074fc` tree (pre-`9e874060`) **and** against an
+extracted `origin/main` (`9fcadb4d`) tree.
+
+| Failing verifier | First failing assertion |
+|---|---|
+| `verify-servicios-dashboard-truth` | "dashboard: per-listing metrics" |
+| `verify-servicios-destacados-module` | (silent assert) |
+| `verify-servicios-edit-route-restaurantes-parity-hard-fix-01` | chained prior gate `owner-dashboard-global-edit-hydration-standard-01` |
+| `verify-servicios-engagement-1` | "professional shell: hero engagement visibility gate" |
+| `verify-servicios-p0a-checkpoint-ver-mas-rules-modal-parity` | `setProductMoreOpen(true)` must exist |
+| `verify-servicios-p0c-dashboard-addon-only-stripe-edit-route-parity` | "Application must call servicios add-on checkout helper" |
+| `verify-servicios-restaurantes-golden-loop-parity-01` | `checkpointEditHref` fallback shape |
+| `verify-servicios-shell-2` | "Gallery uses ServiciosMediaLightbox drawer" |
+| `verify-servicios-shell-2d` | `shellTokens.includes("lg:grid-cols-4")` |
+
+Spot-checks show the dominant cause is the **same defect class already repaired in §20.9**: brittle
+assertions pinned to a superseded implementation shape rather than to behaviour. `shell-2d` demands
+`lg:grid-cols-4` while the current token — asserted green by `interaction-polish` — is
+`xl:grid-cols-4`. `p0a` demands a specific state-setter symbol `setProductMoreOpen(true)` for a
+checkout-rules modal the owner already proved working (§3: "Checkout rules modal worked").
+
+**They were deliberately NOT repaired in this audit.** Editing nine legacy verifiers to green
+without per-assertion product proof is precisely the "force green" anti-pattern §0 forbids, and
+several of them assert Restaurantes/dashboard parity outside the Servicios Golden scope. They are
+**verifier-hygiene debt inherited from `main`**, not evidence of missing Servicios engineering, and
+they are listed here as the one open pre-QA item for PM disposition.
+
+### 23.5 Runtime, Stripe and data
+
+Runtime: HEAD `7c047271` · app tree `2932f105` · supabase tree `6d5014bc` · branch-alias deployment
+`dpl_DtEMtY1xJHxnxPg2RCLakcWpJPRS` **READY**, alias assigned, `aliasError: null`. All three commits
+`9e874060`, `f9abdb8b`, `7c047271` carry an identical app tree, so the two documentation/verifier
+redeploys did not change the running runtime.
+
+Stripe TEST re-read live at audit time: `we_1UEIgzRzu3T31dlavCYsHHRg`, `status: enabled`,
+`livemode: false`, Golden branch-alias host, `/api/revenue-os/webhook`, **exact 9/9** event set.
+Webhook/fulfillment/migration source is unchanged since §R.10, so that certification carries forward
+and no signed-delivery exercise was repeated.
+
+Database, unchanged from the pre-Prompt-2 baseline: 104 Servicios rows (103 published, 1
+paused_unpublished), **0 pending_payment**, 28 payment records, 13 entitlements, 1 subscription
+(autos, 2026-08-25), 0 verified-intro redemptions, 7 webhook-ledger rows (0 livemode).
+
+### 23.6 Docs repaired by this audit
+
+Truth §M carried a **stale current-tense blocker**: "M.3 BLOCKER 2 — STILL OPEN … Stripe still
+cannot reach POST /api/revenue-os/webhook", plus an M.1 candidate identity of `5b5aae46` /
+`dpl_Gtx…` / `dpl_Ewts…`. Both were superseded by §R.9, §R.10 and §R.11. §M now carries a
+supersession banner naming current truth; the historical wording is preserved, not rewritten.
+
+All other blocker-vocabulary hits across both canonical documents were classified as historical
+repair records, status-vocabulary definitions, or explicit zero-counts ("SOURCE GAP — REPAIR
+REQUIRED: 0"). Section numbering is unique. GR matrix: 44 rows, 43 PENDING OWNER RUNTIME, GR-22
+NOT SUPPORTED — CURRENT PRODUCT, **0 rows marked PASS**. GR-44 incomplete.
+
+### 23.7 Result
+
+Owner QA has **not** started. No test listing, no payment, no publication. Engineering,
+migrations, schema, runtime identity, Stripe TEST infrastructure and canonical documentation
+reconcile. The single open pre-QA item is the 9 inherited red legacy verifiers in §23.4; the
+25% promo row in §23.3 is recorded as non-blocking hygiene.

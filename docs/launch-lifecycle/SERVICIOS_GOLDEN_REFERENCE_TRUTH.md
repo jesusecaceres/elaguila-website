@@ -880,11 +880,21 @@ from this session. Every value below is therefore honestly **NEEDS OWNER MANUAL 
 > **Status today (verified 2026-09-11, MD proof audit):**
 > **M.2 BLOCKER 1 — RESOLVED.** The deployed Preview no longer predates the P0 fix; the Golden
 > candidate is `5b5aae46` on `dpl_GtxJzwUWsEJaViSBAnk4nYXfzhp7` (§R), and `origin` is not behind.
-> **M.3 BLOCKER 2 — STILL OPEN.** Project deployment protection re-read today:
-> `passwordProtection disabled · ssoProtection ENABLED (all_except_custom_domains) · trustedIps
-> disabled`. The Preview is a `*.vercel.app` host, so Stripe still cannot reach
-> `POST /api/revenue-os/webhook`. This is an owner configuration decision and is a hard
-> prerequisite for Runtime Gate B (GR-01/GR-03) — see §R.7 and Golden Delta Ledger §20.3.
+> **M.3 BLOCKER 2 — ~~STILL OPEN~~ → RESOLVED 2026-09-12.** *(Superseded by the final engineering
+> completion audit; the 2026-09-11 wording below was accurate when written and is kept for
+> provenance.)* SSO protection is still enabled on the project, but it is no longer a blocker:
+> Protection Bypass for Automation already existed and was reused, transport was proven in §R.9
+> (bypassed POST reaches the handler → 400 `signature_invalid`; un-bypassed → 401 Vercel auth),
+> and §R.10 certified the Stripe TEST destination with two real signed deliveries that returned
+> **200**. Nothing about Runtime Gate B (GR-01/GR-03) is blocked by transport any more.
+> The original 2026-09-11 text read: "The Preview is a `*.vercel.app` host, so Stripe still cannot
+> reach `POST /api/revenue-os/webhook`." That is no longer true.
+>
+> **M.1 candidate identity is also superseded.** The Golden candidate named below (`5b5aae46` on
+> `dpl_Gtx…`, and the `dpl_Ewts…` alias snapshot in the M.1 table) is historical. Current truth is
+> §R.11: runtime `9e874060`, app tree `2932f105`, alias deployment
+> `dpl_DtEMtY1xJHxnxPg2RCLakcWpJPRS`.
+>
 > The gate result below is the historical 2026-09-10 snapshot and is not rewritten.
 
 **Gate:** `SERVICIOS-RUNTIME-CONFIG-CERTIFICATION-1` · **Date:** 2026-09-10 · **Result: BLOCKED**
