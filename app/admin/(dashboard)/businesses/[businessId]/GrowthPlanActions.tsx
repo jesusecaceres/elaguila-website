@@ -857,3 +857,78 @@ export function CampaignStatusControl({ businessId, campaignId, status }: { busi
     </div>
   );
 }
+
+/**
+ * WHOLE-PRODUCT PARTIAL-CLOSURE (AL_OUTCOMES / BV_MEASUREMENT) — records a real
+ * business_outcomes row against this campaign through the canonical Program 7 Outcomes API
+ * (POST /api/admin/businesses/[businessId]/outcomes), never a Growth-only measurement store.
+ */
+export function RecordOutcomeForm({ businessId, growthCampaignId }: { businessId: string; growthCampaignId: string }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [metricLabelEs, setMetricLabelEs] = useState("");
+  const [metricLabelEn, setMetricLabelEn] = useState("");
+  const [baselineValue, setBaselineValue] = useState("");
+  const [measuredValue, setMeasuredValue] = useState("");
+
+  async function submit() {
+    if (!metricLabelEs.trim() || !metricLabelEn.trim()) {
+      setError("Se requiere el nombre de la métrica en español e inglés. / Metric name is required in Spanish and English.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    const metricKey = metricLabelEn.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").slice(0, 60);
+    const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/outcomes`, "POST", {
+      growthCampaignId,
+      metricKey,
+      metricLabelEs: metricLabelEs.trim(),
+      metricLabelEn: metricLabelEn.trim(),
+      baselineValue: baselineValue.trim() || null,
+      measuredValue: measuredValue.trim() || null,
+      measurementSource: "staff_observation",
+      measuredAt: measuredValue.trim() ? new Date().toISOString() : null,
+    });
+    setSubmitting(false);
+    if (!ok) {
+      setError(humanizeStaffWriteError(body?.error as string | undefined, "No se pudo guardar el resultado. / Could not save the outcome."));
+      return;
+    }
+    setMetricLabelEs("");
+    setMetricLabelEn("");
+    setBaselineValue("");
+    setMeasuredValue("");
+    setOpen(false);
+    router.refresh();
+  }
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="mt-2 inline-flex min-h-[36px] items-center rounded-lg border border-[#C9A84A]/70 bg-white px-3 py-1.5 text-[11px] font-bold text-[#7A1E2C]">
+        Registrar resultado / Record outcome
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-2 rounded-xl border border-[#E8DFD0] bg-[#FAF7F2]/50 p-3">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <input value={metricLabelEs} onChange={(e) => setMetricLabelEs(e.target.value)} placeholder="Métrica (es) — ej. Llamadas por semana" className="min-h-[36px] rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs" />
+        <input value={metricLabelEn} onChange={(e) => setMetricLabelEn(e.target.value)} placeholder="Metric (en) — e.g. Calls per week" className="min-h-[36px] rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs" />
+        <input value={baselineValue} onChange={(e) => setBaselineValue(e.target.value)} placeholder="Línea base / Baseline (optional)" className="min-h-[36px] rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs" />
+        <input value={measuredValue} onChange={(e) => setMeasuredValue(e.target.value)} placeholder="Medido ahora / Measured now (optional)" className="min-h-[36px] rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs" />
+      </div>
+      {error ? <p role="alert" className="mt-1 text-[10px] text-red-700">{error}</p> : null}
+      <div className="mt-2 flex gap-2">
+        <button type="button" disabled={submitting} onClick={() => void submit()} className="min-h-[36px] rounded-lg bg-[#7A1E2C] px-3 py-1.5 text-[11px] font-bold text-white disabled:opacity-50">
+          {submitting ? "Guardando… / Saving…" : "Guardar / Save"}
+        </button>
+        <button type="button" onClick={() => setOpen(false)} className="min-h-[36px] rounded-lg border border-[#E8DFD0] px-3 py-1.5 text-[11px] font-semibold text-[#3D3428]">
+          Cancelar / Cancel
+        </button>
+      </div>
+    </div>
+  );
+}

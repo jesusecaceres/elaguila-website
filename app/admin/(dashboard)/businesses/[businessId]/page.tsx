@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { actorHasCapability, isOwnerBootstrapActor, requireSalesWorkspaceAccess, type SalesWorkspaceDenialReason } from "../../../_lib/businessWorkspaceAccess";
 import { getBusinessWorkspaceDetail } from "../../../_lib/businessWorkspaceData";
-import { BUSINESS_SALES_STATUSES, FOLLOW_UP_STATUSES, computeNextHelpfulAction, computeProfileCompleteness, deriveFollowUpDisplayStatus, type ProfileCompletenessInput } from "../../../_lib/salesWorkspaceLogic";
+import { ALL_SALES_NOTE_OUTCOME_LABELS, BUSINESS_SALES_STATUSES, FOLLOW_UP_STATUSES, SALES_CONTACT_METHODS, computeNextHelpfulAction, computeProfileCompleteness, deriveFollowUpDisplayStatus, type ProfileCompletenessInput } from "../../../_lib/salesWorkspaceLogic";
 import { BusinessDashboardNav } from "./BusinessDashboardNav";
 import { computeBusinessDashboardNextAction } from "./businessDashboardNextAction";
 import { BROAD_BUSINESS_TYPES, BUSINESS_STAGES, CONTACT_LABELS, DIGITAL_PROFILE_PLATFORMS, OPERATING_MODELS, SALES_CHANNELS, SALES_RELATIONSHIPS } from "@/app/lib/business/constants";
@@ -45,6 +45,7 @@ import { isImageGenerationLive } from "@/app/lib/business/creativeStudio/provide
 import { CreativeJourney, loadCreativeJobWorkspaces } from "./CreativeJourney";
 import { listBusinessOutcomes } from "@/app/lib/business/outcomes/repository";
 import { isOutcomesEnabled } from "@/app/lib/business/outcomes/featureFlag";
+import { evaluateOpportunityReadiness } from "@/app/lib/business/opportunity/readinessAdapter";
 import { OutcomesPanel } from "./OutcomesPanel";
 import { listOpportunitiesForBusiness } from "@/app/lib/business/opportunity/repository";
 import { isOpportunityEnabled } from "@/app/lib/business/opportunity/featureFlag";
@@ -368,7 +369,7 @@ export default async function AdminBusinessDetailPage({
   const growthRoadmapType = growthRoadmapTypeForBusinessStage(business.businessStage);
   const growthPlanData = canViewGrowthEngine
     ? await (async () => {
-        const [currentAssessment, assessmentHistory, solutions, campaigns, officialRequirements, roadmapSteps, mediaChannels] = await Promise.all([
+        const [currentAssessment, assessmentHistory, solutions, campaigns, officialRequirements, roadmapSteps, mediaChannels, sixTestReadiness] = await Promise.all([
           getCurrentGrowthAssessment(business.id),
           listGrowthAssessmentsForBusiness(business.id),
           listGrowthSolutionsForBusiness(business.id),
@@ -376,8 +377,15 @@ export default async function AdminBusinessDetailPage({
           listOfficialRequirementsForBusiness(business.id),
           ensureGrowthRoadmapForBusiness(business.id, growthRoadmapType, { type: "system", role: "growth_roadmap_seed" }),
           listGrowthMediaChannels(),
+          // WHOLE-PRODUCT PARTIAL-CLOSURE (BU2_SIX_TEST_REUSE) — the exact same Health Map
+          // readiness gate + owner-goal-confirmed check + Lion Code capacity rule the Stewardship
+          // six-test evaluator itself is built from (see readinessAdapter.ts's own doctrine
+          // comment: Opportunities already reuse this rather than force-fitting a
+          // template/cost-band-shaped six-test call). Growth solutions have no template/cost band
+          // either, so the same adapter — not a second, Growth-only readiness rule — applies here.
+          evaluateOpportunityReadiness(business.id, true),
         ]);
-        return { currentAssessment, assessmentHistory, solutions, campaigns, officialRequirements, roadmapSteps, mediaChannels };
+        return { currentAssessment, assessmentHistory, solutions, campaigns, officialRequirements, roadmapSteps, mediaChannels, sixTestReadiness };
       })()
     : null;
 
@@ -1018,6 +1026,10 @@ export default async function AdminBusinessDetailPage({
             officialRequirements={growthPlanData.officialRequirements}
             roadmapSteps={growthPlanData.roadmapSteps}
             mediaChannels={growthPlanData.mediaChannels}
+            sixTestReadiness={growthPlanData.sixTestReadiness}
+            outcomes={program7Outcomes}
+            outcomesEnabled={outcomesEnabled}
+            canRecordOutcome={canManageGrowthCampaigns}
             canCreateAssessment={canCreateGrowthAssessment}
             canReviewAssessment={canReviewGrowthAssessment}
             canManageSolutions={canManageGrowthSolutions}
@@ -1342,9 +1354,35 @@ export default async function AdminBusinessDetailPage({
           <p className="mt-1 text-[11px] text-[#7A7164]">Cambie el estado con el control de Estado en el encabezado del panel. Solo valores canónicos existentes. / Change status with the Status control in the dashboard header. Existing canonical values only.</p>
         </section>
 
-        {/* Gate 3 — Recent activity. This repo has no separate structured contact-attempt
-            timeline (confirmed by direct inspection); internal notes ARE the real recent-activity
-            record, so this section honestly serves that role rather than fabricating a feed. */}
+        {/* Whole-product PARTIAL-closure repair (N_OUTREACH / O_CONTACT_ATTEMPTS): a contact
+            attempt is any business_sales_notes row with a channel recorded — reusing the same
+            canonical CRM rows the general notes feed below already persists, not a second
+            timeline/table. This sub-view exists so channel/result/history reads as its own
+            structured outreach log rather than being buried inside free-form staff notes. */}
+        <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
+          <h3 className="text-sm font-bold text-[#1E1810]">Historial de intentos de contacto / Contact attempt history</h3>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            Cada fila con un método de contacto registrado (<code className="text-[11px]">business_sales_notes.contact_method</code>), del más reciente al más antiguo. / Every row with a recorded contact method, newest first.
+          </p>
+          <ul className="mt-3 space-y-2">
+            {notes.filter((n) => n.contactMethod).length === 0 ? (
+              <li className="text-sm text-[#7A7164]">Aún no hay intentos de contacto registrados. / No contact attempts recorded yet.</li>
+            ) : (
+              notes
+                .filter((n) => n.contactMethod)
+                .map((n) => (
+                  <li key={n.id} className="rounded-xl border border-[#E8DFD0] bg-[#FAF7F2]/50 p-3 text-sm">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#7A7164]">
+                      <span className="font-bold text-[#3D3428]">{labelFromList(SALES_CONTACT_METHODS, n.contactMethod!)}</span>
+                      <span>{n.authorEmail} · {new Date(n.createdAt).toLocaleString("en-US")}</span>
+                    </div>
+                    <p className="mt-1 text-[#1E1810]">{n.outcome ? labelFromList(ALL_SALES_NOTE_OUTCOME_LABELS, n.outcome) : "—"}</p>
+                  </li>
+                ))
+            )}
+          </ul>
+        </section>
+
         <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
           <h3 className="text-sm font-bold text-[#1E1810]">Actividad reciente — notas internas / Recent activity — internal notes</h3>
           <p className="mt-1 text-xs text-[#7A7164]">

@@ -57,6 +57,8 @@ export type BusinessOutcome = {
   recommendationId: string | null;
   commitmentId: string | null;
   creativeJobId: string | null;
+  growthCampaignId: string | null;
+  growthSolutionId: string | null;
   metricKey: string;
   metricLabelEs: string;
   metricLabelEn: string;

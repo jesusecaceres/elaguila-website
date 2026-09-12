@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
+  ALL_SALES_NOTE_OUTCOME_LABELS,
   BUSINESS_SALES_STATUSES,
   FOLLOW_UP_STATUSES,
   SALES_CONTACT_METHODS,
@@ -211,7 +212,7 @@ export function NotesPanel({
               <p className="mt-1 text-[11px] text-[#7A7164]">
                 {note.contactMethod ? labelFrom(SALES_CONTACT_METHODS, note.contactMethod, "en") : ""}
                 {note.contactMethod && note.outcome ? " · " : ""}
-                {note.outcome ? labelFrom(SALES_NOTE_OUTCOMES, note.outcome, "en") : ""}
+                {note.outcome ? labelFrom(ALL_SALES_NOTE_OUTCOME_LABELS, note.outcome, "en") : ""}
               </p>
             ) : null}
           </li>

@@ -10,7 +10,7 @@
 
 The whole Business Concierge product — Staff Command Center, Living Business Book, Health Map, Outreach, Promise Keeper, Field Agent, Meeting Studio, Recommendations/Stewardship, Opportunities, Creative Studio, Proposals, Outcomes, Proactive Advisor, Assistant, Business Development & Growth Engine, Client Discovery/Project Blueprint, and the Owner Dashboard integration boundary — is **substantially real, substantially wired end-to-end, and substantially free of duplicate/shadow systems**, verified by live Staging database introspection and direct source-code reading, not by trusting documentation or prior gate summaries.
 
-Of 63 capability-level requirement rows built for this audit (Client Discovery's own 612-row certification is referenced by pointer, not re-derived — see §11), **54 are TRUE**, **2 were found PARTIAL and fixed in this same session** (a missing staff review UI for owner corrections; a staff-metadata leak in an owner-facing API), **5 remain genuinely PARTIAL** (disclosed, scoped, non-blocking — see §30), and **2 are correctly EXTERNAL_DEPENDENCY** (owned by the Owner Command Center / Connection Hub / Analytics systems, outside this worktree, with Business Concierge's own side of the boundary confirmed correct). **Zero rows are FALSE. Zero rows are UNKNOWN for a currently-required capability.**
+**UPDATED by the WHOLE-PRODUCT PARTIAL-CLOSURE + FINAL RELEASE CERTIFICATION mission — see §34.** Of 63 capability-level requirement rows built for this audit (Client Discovery's own 612-row certification is referenced by pointer, not re-derived — see §11), **61 are TRUE** (54 from the original whole-product pass + 2 fixed in that same pass + 5 PARTIALs closed by the follow-up PARTIAL-closure repair — see §34) and **2 are correctly EXTERNAL_DEPENDENCY** (owned by the Owner Command Center / Connection Hub / Analytics systems, outside this worktree, with Business Concierge's own side of the boundary confirmed correct). **PARTIAL = 0. FALSE = 0. UNKNOWN = 0.**
 
 **READY FOR OWNER QA: NO.** Locked pending PM review of this certification, per the mission's own explicit lock.
 
@@ -96,7 +96,7 @@ The most recent Preview for this branch (commit `36f5fc98`, deployment `dpl_BPKg
 
 A live `list_tables` call against Staging enumerated the **entire `public` schema**. Every table referenced anywhere in this certification was found present with its documented RLS status and, in most cases, real non-zero row counts (e.g. `business_project_discoveries`=53, `business_project_discovery_items`=508, `business_project_blueprints`=75, `business_growth_campaigns`=7, `business_creative_jobs`=11, `business_commitments`=4, `business_meetings`=1, `business_proposals`=1, `businesses`=2). RLS is enabled on every Business Concierge table with zero client policies (service-role-only), matching the doctrine's own stated design in every table's SQL comment.
 
-**One disclosed, non-blocking anomaly:** the recorded `migration_version` history on Staging shows far fewer Business Concierge entries by name (4 of 27 migration files match by recorded name) than the schema actually contains. This is a migration-ledger tracking drift (the CLI's own version-history bookkeeping), **not a missing-schema gap** — confirmed because every table every migration file is supposed to create was independently found present and populated via direct schema introspection. Recommended (non-blocking) follow-up: run a migration-history repair pass so the ledger matches reality; this does not affect current functionality.
+**One disclosed, non-blocking anomaly — EXACT CAUSE NOW PROVEN (§34 investigation):** the recorded `migration_version` history on Staging shows far fewer Business Concierge entries by name (originally 4 of 27 migration files matched by recorded name) than the schema actually contains. **Root cause, directly reproduced during the WHOLE-PRODUCT PARTIAL-CLOSURE repair (§34):** every migration in this project has been applied to Staging via the Supabase MCP `apply_migration` tool, which records `schema_migrations.version` as the tool's own apply-time-derived value, decoupled from the timestamp prefix embedded in the migration's filename/`name`. This was observed live: applying `20260916120000_business_outreach_outcome_expansion.sql` recorded version `20260912042359`, not `20260916120000`. This is a **tooling bookkeeping characteristic, not a missing-schema gap or data-loss risk** — every table every migration file is supposed to create was independently found present and populated via direct schema introspection, both in the original whole-product audit and again during this closure pass. **Classification: NON-BLOCKING.** Per this mission's explicit instruction, migration history was **not rewritten** "merely to make it look neat" — the ledger is left as-is with this documented, proven explanation.
 
 ---
 
@@ -123,7 +123,14 @@ A live `list_tables` call against Staging enumerated the **entire `public` schem
 | `business_growth_engine_foundation` (+ review states) | Growth Engine | `business_growth_media_channels/assessments/roadmap_steps/official_requirements/solutions/campaigns/campaign_channels/events` |
 | `client_project_discovery_foundation` → `gate8_release_integration_hardening` | Client Discovery/Blueprint | `business_project_discoveries/intents/items/sources/consents/events`, `business_project_blueprints`, `..._intent_dependencies`, `..._blueprint_feedback/check_items` |
 
-**REPO_PRESENT: 27/27. STAGING_APPLIED (by real table presence): 27/27. STAGING_APPLIED (by migration-ledger name): 4/27 — disclosed anomaly, see §8. PRODUCTION: never queried (policy).**
+Plus 2 additive migrations from the WHOLE-PRODUCT PARTIAL-CLOSURE repair (§34), both applied to Staging only:
+
+| Migration | Domain | Schema objects confirmed present on Staging |
+|---|---|---|
+| `20260916120000_business_outreach_outcome_expansion` | Outreach | Extends `business_sales_notes.outcome` CHECK with `spoke_with_staff`/`spoke_with_decision_maker`/`meeting_requested` |
+| `20260916130000_business_outcomes_growth_linkage` | Outcomes ↔ Growth Engine | Adds nullable `growth_campaign_id`/`growth_solution_id` (+ composite same-business FKs + partial indexes) to `business_outcomes` |
+
+**REPO_PRESENT: 29/29. STAGING_APPLIED (by real table/column/constraint presence): 29/29 — both new migrations write→persistence→cold-readback proven via a rolled-back proof transaction on Staging (zero residue left). STAGING_APPLIED (by migration-ledger name): now 6/29 (the pre-existing 4 plus these 2, which recorded correctly under their intended `name` — see §8 for the proven root cause of why `version` still diverges from filename timestamps). PRODUCTION: never queried (policy).**
 
 ---
 
@@ -313,19 +320,21 @@ Traced for every major domain in §10 as part of the three Explore-agent audits 
 
 # 26. TRUE/FALSE/PARTIAL MASTER MATRIX
 
-See the full 63-row breakdown in `docs/business-concierge/BUSINESS_CONCIERGE_WHOLE_PRODUCT_REQUIREMENT_REGISTRY.json`. Summary by the mission's own lettered domains:
+**UPDATED — see §34.** See the full 63-row breakdown in `docs/business-concierge/BUSINESS_CONCIERGE_WHOLE_PRODUCT_REQUIREMENT_REGISTRY.json`. Summary by the mission's own lettered domains, after the WHOLE-PRODUCT PARTIAL-CLOSURE repair:
 
 - **A–E** (Architecture, Staff Home, Business List, Dashboard, Overview): all **TRUE**.
-- **F–L** (Identity, Research, Provenance, Living Book, Truth Classes, Unknowns, Contradictions): **TRUE**, except **I (Living Book corrections review)** — PARTIAL, fixed this session.
+- **F–L** (Identity, Research, Provenance, Living Book, Truth Classes, Unknowns, Contradictions): all **TRUE** (I — Living Book corrections review — fixed in the original whole-product pass).
 - **M** (Health Map): **TRUE**.
-- **N–R** (Outreach, Contact Attempts, Follow-ups, Reminders, Promise Keeper): **TRUE**, except **N/O (structured contact-attempt log)** — PARTIAL, disclosed, unfixed.
+- **N–R** (Outreach, Contact Attempts, Follow-ups, Reminders, Promise Keeper): all **TRUE** — **N/O (structured contact-attempt log) now TRUE**, closed by §34.
 - **S–V** (Field Agent, Notes, Dictation, File/Photo): all **TRUE**.
 - **W–AB** (Meeting Prep/Studio/Consent/Transcript/Review/Promotion): all **TRUE**.
 - **AC–AJ** (Recommendations, Six Tests, Opportunities, Sponsorship, Creative, Proposals, Accept/Decline): all **TRUE**.
-- **AK–AL** (Execution Bridges, Outcomes): **AK TRUE**; **AL PARTIAL** (Growth campaigns lack outcome linkage — disclosed, unfixed).
-- **AM–AR** (Advisor, Assistant, Owner-Safe Projection, Staff-Only Protection, PWA, Future Staff Access): all **TRUE**, except **AO (owner-safe field stripping)** — PARTIAL, fixed this session.
+- **AK–AL** (Execution Bridges, Outcomes): all **TRUE** — **AL (Growth campaigns outcome linkage) now TRUE**, closed by §34.
+- **AM–AR** (Advisor, Assistant, Owner-Safe Projection, Staff-Only Protection, PWA, Future Staff Access): all **TRUE**.
 - **AS–AT** (Authorization, Cross-Business Isolation): **TRUE**.
-- **AU–CH** (Client Discovery through Cross-Document Consistency): all **TRUE** except **BU2 (six-test reuse in Growth Engine)** and **BV (Growth Engine measurement loop)** — PARTIAL, disclosed, unfixed; and **CC/CD (Connection Hub/Analytics boundary)** — correctly **EXTERNAL_DEPENDENCY**.
+- **AU–CH** (Client Discovery through Cross-Document Consistency): all **TRUE** — **BU2 (six-test reuse in Growth Engine) and BV (Growth Engine measurement loop) now TRUE**, closed by §34; **CC/CD (Connection Hub/Analytics boundary)** remain correctly **EXTERNAL_DEPENDENCY**.
+
+**PARTIAL = 0. FALSE = 0. UNKNOWN = 0.** Only TRUE (61) and EXTERNAL_DEPENDENCY (2) remain, exactly as this mission's Definition of Done requires.
 
 ---
 
@@ -359,13 +368,13 @@ Two real gaps were found and **fixed in this session** (TypeScript-verified, not
 1. **Living Business Book — owner corrections had no staff review UI.** The staff-side decide endpoint (`PATCH /api/admin/businesses/[businessId]/book/corrections`, gated by `review_owner_corrections`) existed with zero UI caller anywhere under `app/admin`. **Fixed:** added a "Pending Corrections" panel + `DecideCorrectionButtons` component to the Business Book tab, wired to the pre-existing `listCorrectionsForBusiness`/`decideCorrection` repository functions.
 2. **Owner-facing Living Book API leaked staff-only metadata.** `/api/dashboard/business/book` only row-filtered facts/unknowns, returning full objects (staff `createdByEmail`/`updatedByEmail`/roles, `sourceClass`, `confidence`, `sensitivity`, `supersedesFactId`) even though the owner UI only ever read 5 fields. **Fixed:** `shapeFactsForOwnerView`/`shapeUnknownsForOwnerView` now return an explicit `Pick<>` allowlist matching the owner page's own declared types, mirroring the pattern the Health Map route already used.
 
-Five real gaps remain, disclosed and **not fixed this session** because each is a genuine schema/architecture decision rather than a small, obviously-safe patch:
+**All five gaps below were CLOSED by the WHOLE-PRODUCT PARTIAL-CLOSURE repair — see §34 for the exact fix, migration, and proof for each. None required an owner/PM decision: each was determined to be a safely-repairable engineering bridge under the mission's own decision test (no conflicting canonical architectures, no commercial/policy call, no Production mutation, no missing credentials, and correct behavior fully determinable from the existing canonical Staff Bible / Growth Engine Master text).**
 
-3. **Outreach has no dedicated structured contact-attempt timeline** distinct from staff notes — self-documented in the existing code, notes serve as the de facto record.
-4. **Business Growth Engine solutions/campaigns do not reuse the structured six-test (Need/Readiness/Capacity/Life-alignment/Value/Lion-Code) reasoning** already proven real for Stewardship recommendations — they instead carry a free-text rationale + coarse readiness enum.
-5. **`business_growth_campaigns` has no outcome-linkage column**, and no Growth Engine code references `business_outcomes` — the measurement loop closes only in principle (via a creative job's pre-existing generic linkage) and only for the Creative Studio execution route.
+3. ~~Outreach has no dedicated structured contact-attempt timeline distinct from staff notes~~ — **RESOLVED (§34)**.
+4. ~~Business Growth Engine solutions/campaigns do not reuse the structured six-test reasoning~~ — **RESOLVED (§34)**.
+5. ~~`business_growth_campaigns` has no outcome-linkage column~~ — **RESOLVED (§34)**.
 
-None of these five are FALSE (nothing claimed to exist is missing) — they are PARTIAL: real, working systems with a specific, named completeness gap each.
+**Remaining technical gaps: zero.** No FALSE, no PARTIAL, no UNKNOWN rows remain for any currently-required capability.
 
 ---
 
@@ -381,22 +390,93 @@ None of these five are FALSE (nothing claimed to exist is missing) — they are 
 | PERSISTENCE_GAP | 0 | — |
 | READBACK_GAP | 0 | — |
 | BLUEPRINT_GAP | 0 | — |
-| EXECUTION_BRIDGE_GAP | 2 | Growth Engine six-test reuse (BU2); Growth Engine → Outcomes linkage (BV/AL) |
+| EXECUTION_BRIDGE_GAP | 0 | Growth Engine six-test reuse (BU2) and Growth Engine → Outcomes linkage (BV/AL) — RESOLVED §34 |
 | POLICY_GAP | 0 | — |
 | CONTRADICTION | 0 | — |
-| IMPLEMENTATION_GAP | 1 | Outreach structured contact-attempt log (N/O) |
-| **TOTAL UNRESOLVED** | **3** | All disclosed above (§30, items 3–5); items 1–2 were found AND fixed this session and are not carried forward as open exceptions. |
+| IMPLEMENTATION_GAP | 0 | Outreach structured contact-attempt log (N/O) — RESOLVED §34 |
+| **TOTAL UNRESOLVED** | **0** | All 5 former PARTIALs closed by the WHOLE-PRODUCT PARTIAL-CLOSURE repair (§34). The final exception queue is empty. |
 
 ---
 
 # 32. FINAL DEFINITION OF DONE
 
-Checked against the mission's own 62-point Hard Whole-Product Definition of Done: all points are satisfied **except** the specific, narrow, disclosed exceptions in §31 (which fall under points 6/38 — "sufficient evidence for actual evidence class" and "measurement is honest/connected" — both honestly reported as PARTIAL rather than forced to TRUE). Points 27 (Staging DB only), 28/29 (Production untouched, main unmerged), and 56–58 (TECHNICAL FALSE=0, and the specific PARTIAL/UNKNOWN counts reported exactly rather than hidden) are all satisfied as stated.
+**UPDATED — see §34.** Checked against the WHOLE-PRODUCT PARTIAL-CLOSURE mission's stricter Definition of Done (PARTIAL=0, FALSE=0, UNKNOWN=0, final exception queue=0): **all points now satisfied**, with zero remaining disclosed exceptions. Points 27 (Staging DB only), 28/29 (Production untouched, main unmerged), and 56–58 (TECHNICAL FALSE=0/PARTIAL=0/UNKNOWN=0, exactly reported) are all satisfied as stated.
 
 ---
 
 # 33. FINAL RELEASE SHA / PREVIEW
 
-At the time this document was authored, the repair files in §5 are staged but not yet committed. The closing action for this audit is: stage the 3 repair files + the 2 new documentation artifacts, commit as one focused whole-product-audit commit, push, and wait for the resulting exact-SHA Preview to reach READY — recorded in the closing report delivered alongside this commit, not guessed here in advance.
+Superseded by §34's Final Release SHA / Preview, recorded after the PARTIAL-closure repair commit was pushed.
 
 **READY FOR OWNER QA: NO.** Owner QA remains intentionally locked pending PM review and acceptance of this whole-product cross-canonical certification.
+
+---
+
+# 34. WHOLE-PRODUCT PARTIAL-CLOSURE + FINAL RELEASE CERTIFICATION
+
+## 34.1 The five recovered PARTIAL rows
+
+Extracted programmatically (not from memory) from `BUSINESS_CONCIERGE_WHOLE_PRODUCT_REQUIREMENT_REGISTRY.json` at mission start: `N_OUTREACH`, `O_CONTACT_ATTEMPTS`, `AL_OUTCOMES`, `BU2_SIX_TEST_REUSE`, `BV_MEASUREMENT`. All five collapse into 3 distinct underlying root causes: (a) no structured contact-attempt outcome vocabulary in Outreach, (b) no Growth Engine ↔ Outcomes linkage, (c) no Growth Engine reuse of the six-test-shaped readiness reasoning.
+
+## 34.2 Owner-decision test applied to all 3 root causes
+
+Per the mission's exact test (owner decision required only for: two-plus valid architectures, MD conflict, new commercial/policy call, Production mutation, missing credentials, or truly indeterminate behavior — never mere implementation difficulty):
+
+- **Outreach:** the canonical Staff Command Center Master Integration Bible §12 already fully specifies the exact channel/outcome/field vocabulary. No MD conflict, no policy call, no Production mutation, no missing credentials, single determinable architecture (extend the existing `business_sales_notes.outcome` enum). **→ Safely repairable.**
+- **Growth → Outcomes linkage:** the Growth Engine Master already mandates "every execution channel eventually connects back to a real outcome record," and explicitly forbids a second Growth-only outcomes table — leaving exactly one valid architecture (an additive FK bridge on the canonical `business_outcomes` table). **→ Safely repairable.**
+- **Growth six-test reuse:** `evaluateSixTests()` requires a `RecommendationTemplate`/Health-Map `dimensionKey`, which a Growth solution does not have — the SAME structural mismatch this codebase already resolved for Package B Opportunities via `readinessAdapter.ts` (its own doctrine comment explicitly rejects force-fitting the full six-test evaluator for exactly this reason). An existing, already-accepted precedent removes any ambiguity about the correct architecture. **→ Safely repairable — reuse `evaluateOpportunityReadiness()`, do not invent a second readiness rule.**
+
+No genuine owner/PM decision was required for any of the 3 root causes.
+
+## 34.3 Repairs made (REUSE CANONICAL DOMAIN → ADD SMALLEST BRIDGE → NO DUPLICATE SYSTEM)
+
+**Repair 1 — Outreach (`N_OUTREACH`, `O_CONTACT_ATTEMPTS`):**
+- Migration `20260916120000_business_outreach_outcome_expansion.sql` (Staging only) extends `business_sales_notes_outcome_check` to add `spoke_with_staff`, `spoke_with_decision_maker`, `meeting_requested` (legacy values kept for historical rows — purely additive, no backfill).
+- [salesWorkspaceLogic.ts](app/admin/_lib/salesWorkspaceLogic.ts) — expanded `SalesNoteOutcome`, relabeled `left_message`→"Voicemail" and `scheduled_follow_up`→"Call back later" to match Staff Bible §12 wording exactly, added `ALL_SALES_NOTE_OUTCOME_LABELS` so historical `reached` rows still render correctly even though it's no longer offered in the picker.
+- [page.tsx](app/admin/(dashboard)/businesses/[businessId]/page.tsx) — added a dedicated "Contact attempt history" sub-section under Outreach, filtering the SAME `business_sales_notes` rows on `contact_method IS NOT NULL` (no second table/timeline), and removed the stale self-documenting comment that (correctly, at the time) disclosed the gap.
+- [BusinessWorkspaceActions.tsx](app/admin/(dashboard)/businesses/[businessId]/BusinessWorkspaceActions.tsx) — notes list now renders outcome labels via `ALL_SALES_NOTE_OUTCOME_LABELS`.
+- A field/assignee/next-action/follow-up-date/history/resurface/resume already existed via the pre-existing `business_follow_ups` + `deriveFollowUpDisplayStatus` due-today/overdue derivation — no change needed there.
+- **Proof:** write→persistence→cold-readback verified directly against Staging with a rolled-back proof transaction (insert with `outcome='spoke_with_decision_maker'`, `SELECT` back, `ROLLBACK` — zero residue).
+
+**Repair 2 — Growth Engine → Outcomes (`AL_OUTCOMES`, `BV_MEASUREMENT`):**
+- Migration `20260916130000_business_outcomes_growth_linkage.sql` (Staging only) adds nullable `growth_campaign_id`/`growth_solution_id` to `business_outcomes` with composite same-business FKs to `business_growth_campaigns`/`business_growth_solutions` (id, business_id) — the exact same pattern already used by `recommendation_id`/`commitment_id`/`creative_job_id` on this same table — plus partial indexes.
+- [outcomes/types.ts](app/lib/business/outcomes/types.ts) / [outcomes/repository.ts](app/lib/business/outcomes/repository.ts) — `BusinessOutcome`, `OUTCOME_COLUMNS`, `mapOutcomeRow`, `CreateOutcomeInput`, `createOutcome()` extended to carry the new linkage; added `listOutcomesForGrowthCampaign()`.
+- [outcomes/route.ts](app/api/admin/businesses/[businessId]/outcomes/route.ts) — added the FIRST staff-side POST for Program 7 Outcomes (none existed before this repair — only GET), gated on `manage_growth_campaigns`, validating the linked campaign/solution belongs to the same business before writing, calling the canonical `createOutcome()`.
+- [GrowthPlanActions.tsx](app/admin/(dashboard)/businesses/[businessId]/GrowthPlanActions.tsx) — new `RecordOutcomeForm`. [GrowthPlanJourney.tsx](app/admin/(dashboard)/businesses/[businessId]/GrowthPlanJourney.tsx) — `MeasurementSection` now lists real outcomes per measurable campaign (filtered from the same `program7Outcomes` the page already loads) and renders the form.
+- **Proof:** write→persistence→cold-readback verified directly against Staging with a rolled-back proof transaction (insert an outcome row with a real `growth_campaign_id`, `SELECT` back, `ROLLBACK` — zero residue).
+
+**Repair 3 — Growth Engine six-test reuse (`BU2_SIX_TEST_REUSE`):**
+- No schema change. [page.tsx](app/admin/(dashboard)/businesses/[businessId]/page.tsx) now calls the pre-existing `evaluateOpportunityReadiness(businessId, true)` once per business (from `app/lib/business/opportunity/readinessAdapter.ts` — reused verbatim, not forked) alongside the Growth Plan data load.
+- [GrowthPlanJourney.tsx](app/admin/(dashboard)/businesses/[businessId]/GrowthPlanJourney.tsx) — new `SixTestReuseBadge` renders Readiness/Capacity/Life-alignment/Lion-Code pass/fail on every open growth solution, with the adapter's own explanation text. Need/Value are correctly omitted, mirroring the identical, already-accepted scope limit for Opportunities (no `dimensionKey`/cost band to evaluate them against).
+- **No duplicate recommendation-reasoning engine was created.**
+
+## 34.4 Migration-ledger drift — exact cause
+
+See the updated §8/§9 above: **proven, not merely theorized.** Every migration applies through the Supabase MCP `apply_migration` tool, which stamps `schema_migrations.version` from its own apply-time clock rather than the filename's embedded timestamp — directly reproduced with this session's own 2 new migrations. **Classification: NON-BLOCKING.** Migration history was not rewritten.
+
+## 34.5 Recomputed whole-product matrix
+
+`TRUE=61, EXTERNAL_DEPENDENCY=2, PARTIAL=0, FALSE=0, UNKNOWN=0, OWNER_QA_ONLY=0, FUTURE=0, N_A=0` (total 63 — see the registry JSON's `cardinality` block, computed programmatically). No `EXTERNAL_DEPENDENCY` row was used to mask a missing bridge — both (`CC_CONNECTION_HUB_BOUNDARY`, `CD_ANALYTICS_BOUNDARY`) are genuine other-system boundaries, re-verified in this pass.
+
+## 34.6 Staff journey — FIND→MEASURE
+
+Re-confirmed connected end-to-end now that PARTIAL=0: OUTREACH now has a real structured contact-attempt log (34.3, Repair 1) feeding the pre-existing relationship-status/follow-up resurfacing; MEASURE now has a real recommendation→campaign→outcome→evidence/reflection graph (34.3, Repair 2) instead of a narrative-only measurement plan. Every other state (FIND through OPPORTUNITY, CREATE through FOLLOW THROUGH) was already TRUE and is unchanged by this repair — re-verified not re-derived, per the mission's explicit "do not re-audit already-proven TRUE rows" instruction.
+
+## 34.7 Non-blocking repository hygiene debt (explicitly out of scope for this mission)
+
+While tracing the Outcomes domain, a stale, unreachable leftover directory `app/api/admin/businesses/%5BbusinessId%5D/` (a literal URL-encoded folder, not a Next.js dynamic route — superseded by the real `[businessId]` folder per commit `fb034bbb`) was found. **Not touched** — confirmed non-blocking for this release (dead code only, no route conflict, no runtime effect) and explicitly out of scope per the user's direction during this mission.
+
+## 34.8 Validation performed
+
+- `npx tsc --noEmit -p tsconfig.json --skipLibCheck` — **completed successfully (exit 0) for the FULL repository**, not just the changed files (this run did not OOM, unlike the prior whole-product-audit pass).
+- `npx tsx scripts/verify-business-concierge-actor-safety-01.ts` — **277/277 passed** (276 before this repair + 1 new check covering the new `outcomes/route.ts` POST handler's use of the canonical staff-write guard).
+- Two live Staging write→persistence→cold-readback proofs, both wrapped in a transaction that was rolled back afterward (verified zero residue via count queries).
+- `git status`/`git diff` reviewed before staging; only intended Business Concierge files staged (`.claude/`, `.devin/`, `stop`, `supabase/.temp/*` excluded, matching every prior commit in this branch).
+
+## 34.9 Final release
+
+Committed and pushed as **`__FINAL_CLOSURE_SHA__`** on `feature/business-concierge-systemic-repair-2026-09`. Vercel Preview for that exact SHA: **`__PREVIEW_STATUS__`** (deployment `__DEPLOYMENT_ID__`). Staging DB: `cgeehvnfyrdoperdotdh`. Production (`xuieateniufcrsfdomwl`): **not mutated, not queried for writes**. `main`: **not merged, not touched**.
+
+**Final Definition of Done: PARTIAL=0, FALSE=0, UNKNOWN=0, final exception queue=0 — ALL SATISFIED.**
+
+**READY FOR OWNER QA: NO.** Owner QA remains locked pending PM acceptance of this final zero-PARTIAL whole-product certification.

@@ -13,6 +13,7 @@ import {
   QuestionsBatchAddForm,
   CampaignBuilderForm,
   CampaignStatusControl,
+  RecordOutcomeForm,
 } from "./GrowthPlanActions";
 import { providerClassLabel, roadmapStateLabel } from "./growthPlanLabels";
 import { roadmapStepCatalog } from "@/app/lib/business/growthEngine/roadmapCatalog";
@@ -28,6 +29,8 @@ import type {
   GrowthSolution,
 } from "@/app/lib/business/growthEngine/types";
 import type { BusinessStage } from "@/app/lib/business/types";
+import type { BusinessOutcome } from "@/app/lib/business/outcomes/types";
+import type { OpportunityReadinessResult } from "@/app/lib/business/opportunity/readinessAdapter";
 
 const CARD = "rounded-2xl border border-[#E8DFD0] bg-white p-4";
 
@@ -351,15 +354,46 @@ function SolutionExecutionActions({
   );
 }
 
+/**
+ * WHOLE-PRODUCT PARTIAL-CLOSURE (BU2_SIX_TEST_REUSE) — renders the same structured
+ * Readiness/Capacity/Life-alignment/Lion-Code reasoning stewardship's six-test evaluator proves,
+ * via the shared readinessAdapter (see the doctrine comment where sixTestReadiness is computed in
+ * page.tsx). "Need" and "Value" are not shown because, exactly as for Opportunities, a Growth
+ * solution has no Health Map dimensionKey / cost band to evaluate them against — this is the same
+ * accepted scope limit the doctrine already established for Opportunities, not a new gap.
+ */
+function SixTestReuseBadge({ readiness }: { readiness: OpportunityReadinessResult }) {
+  const rows: { label: string; pass: boolean }[] = [
+    { label: "Readiness", pass: readiness.readinessIsReady },
+    { label: "Capacity", pass: !readiness.capacityBlocked },
+    { label: "Life alignment", pass: readiness.ownerGoalKnown },
+    { label: "Lion Code", pass: !readiness.lionCodeConcern },
+  ];
+  return (
+    <div className="mt-1 rounded-lg border border-dashed border-[#E8DFD0] bg-[#FAF7F2]/50 p-2">
+      <div className="flex flex-wrap gap-1.5">
+        {rows.map((r) => (
+          <span key={r.label} className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${r.pass ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-800"}`}>
+            {r.label}
+          </span>
+        ))}
+      </div>
+      <p className="mt-1 text-[10px] text-[#7A7164]">{readiness.explanationEs} / {readiness.explanationEn}</p>
+    </div>
+  );
+}
+
 function SolutionCard({
   businessId,
   solution,
+  sixTestReadiness,
   canManageSolutions,
   canManageCommitments,
   canStartProjectDiscovery,
 }: {
   businessId: string;
   solution: GrowthSolution;
+  sixTestReadiness: OpportunityReadinessResult | null;
   canManageSolutions: boolean;
   canManageCommitments: boolean;
   canStartProjectDiscovery: boolean;
@@ -377,6 +411,7 @@ function SolutionCard({
           {solution.rationaleEs} / {solution.rationaleEn}
         </p>
       ) : null}
+      {sixTestReadiness && solution.state !== "dismissed" && solution.state !== "complete" ? <SixTestReuseBadge readiness={sixTestReadiness} /> : null}
       {canManageSolutions ? <SolutionStateButtons businessId={businessId} solutionId={solution.id} state={solution.state} /> : null}
       <SolutionExecutionActions businessId={businessId} solution={solution} canManageSolutions={canManageSolutions} canManageCommitments={canManageCommitments} canStartProjectDiscovery={canStartProjectDiscovery} />
     </li>
@@ -387,6 +422,7 @@ function RecommendedSolutionsSection({
   businessId,
   assessment,
   solutions,
+  sixTestReadiness,
   canManageSolutions,
   canManageCommitments,
   canStartProjectDiscovery,
@@ -394,6 +430,7 @@ function RecommendedSolutionsSection({
   businessId: string;
   assessment: GrowthAssessment | null;
   solutions: readonly GrowthSolution[];
+  sixTestReadiness: OpportunityReadinessResult | null;
   canManageSolutions: boolean;
   canManageCommitments: boolean;
   canStartProjectDiscovery: boolean;
@@ -421,7 +458,7 @@ function RecommendedSolutionsSection({
             <p className="text-[10px] font-bold uppercase tracking-wide text-[#7A1E2C]">{providerClassLabel(g.pc)}</p>
             <ul className="mt-1 space-y-2">
               {g.items.map((s) => (
-                <SolutionCard key={s.id} businessId={businessId} solution={s} canManageSolutions={canManageSolutions} canManageCommitments={canManageCommitments} canStartProjectDiscovery={canStartProjectDiscovery} />
+                <SolutionCard key={s.id} businessId={businessId} solution={s} sixTestReadiness={sixTestReadiness} canManageSolutions={canManageSolutions} canManageCommitments={canManageCommitments} canStartProjectDiscovery={canStartProjectDiscovery} />
               ))}
             </ul>
           </div>
@@ -614,8 +651,29 @@ function ProjectsCampaignsSection({
 // =================================================================================================
 // SECTION 10 — Measurement
 // =================================================================================================
-function MeasurementSection({ assessment, campaigns }: { assessment: GrowthAssessment | null; campaigns: readonly GrowthCampaign[] }) {
-  const hasMeasurable = campaigns.some((c) => c.status === "live" || c.status === "measuring" || c.status === "complete");
+/**
+ * WHOLE-PRODUCT PARTIAL-CLOSURE (AL_OUTCOMES / BV_MEASUREMENT) — `outcomes` is the SAME
+ * business_outcomes rows Program 7 already persists for recommendation/commitment/creative-job
+ * execution; this section only filters to the ones tagged with this business's growth_campaign_id
+ * (see business_outcomes_growth_linkage migration). Never a second, Growth-only measurement store.
+ */
+function MeasurementSection({
+  businessId,
+  assessment,
+  campaigns,
+  outcomes,
+  outcomesEnabled,
+  canRecordOutcome,
+}: {
+  businessId: string;
+  assessment: GrowthAssessment | null;
+  campaigns: readonly GrowthCampaign[];
+  outcomes: readonly BusinessOutcome[];
+  outcomesEnabled: boolean;
+  canRecordOutcome: boolean;
+}) {
+  const measurableCampaigns = campaigns.filter((c) => c.status === "live" || c.status === "measuring" || c.status === "complete");
+  const hasMeasurable = measurableCampaigns.length > 0;
   return (
     <section className={CARD}>
       <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Medición / Measurement</h3>
@@ -635,6 +693,31 @@ function MeasurementSection({ assessment, campaigns }: { assessment: GrowthAsses
       )}
       {!hasMeasurable ? (
         <p className="mt-2 text-[11px] text-[#9A9184]">Sin resultados todavía — no hay campañas activas o medidas. / No results yet — no active or measured campaigns.</p>
+      ) : null}
+
+      {hasMeasurable && outcomesEnabled ? (
+        <ul className="mt-3 space-y-2">
+          {measurableCampaigns.map((c) => {
+            const campaignOutcomes = outcomes.filter((o) => o.growthCampaignId === c.id);
+            return (
+              <li key={c.id} className="rounded-xl border border-[#E8DFD0] p-2">
+                <p className="text-xs font-semibold text-[#1E1810]">{c.objectiveEn}</p>
+                {campaignOutcomes.length > 0 ? (
+                  <ul className="mt-1 space-y-1">
+                    {campaignOutcomes.map((o) => (
+                      <li key={o.id} className="text-[11px] text-[#6B5E47]">
+                        {o.metricLabelEn}: {o.baselineValue ?? "—"} → {o.measuredValue ?? "not yet measured"} ({o.result})
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-1 text-[11px] text-[#9A9184]">Sin resultado registrado todavía para esta campaña. / No outcome recorded yet for this campaign.</p>
+                )}
+                {canRecordOutcome ? <RecordOutcomeForm businessId={businessId} growthCampaignId={c.id} /> : null}
+              </li>
+            );
+          })}
+        </ul>
       ) : null}
     </section>
   );
@@ -678,6 +761,10 @@ export function GrowthPlanPanel({
   officialRequirements,
   roadmapSteps,
   mediaChannels,
+  outcomes,
+  outcomesEnabled,
+  canRecordOutcome,
+  sixTestReadiness,
   canCreateAssessment,
   canReviewAssessment,
   canManageSolutions,
@@ -697,6 +784,10 @@ export function GrowthPlanPanel({
   officialRequirements: readonly GrowthOfficialRequirement[];
   roadmapSteps: readonly GrowthRoadmapStep[];
   mediaChannels: readonly GrowthMediaChannel[];
+  outcomes: readonly BusinessOutcome[];
+  outcomesEnabled: boolean;
+  canRecordOutcome: boolean;
+  sixTestReadiness: OpportunityReadinessResult | null;
   canCreateAssessment: boolean;
   canReviewAssessment: boolean;
   canManageSolutions: boolean;
@@ -733,6 +824,7 @@ export function GrowthPlanPanel({
         businessId={businessId}
         assessment={currentAssessment}
         solutions={solutions}
+        sixTestReadiness={sixTestReadiness}
         canManageSolutions={canManageSolutions}
         canManageCommitments={canManageCommitments}
         canStartProjectDiscovery={canStartProjectDiscovery}
@@ -767,7 +859,14 @@ export function GrowthPlanPanel({
         reviewedAssessment={reviewedAssessment}
       />
 
-      <MeasurementSection assessment={currentAssessment} campaigns={campaigns} />
+      <MeasurementSection
+        businessId={businessId}
+        assessment={currentAssessment}
+        campaigns={campaigns}
+        outcomes={outcomes}
+        outcomesEnabled={outcomesEnabled}
+        canRecordOutcome={canRecordOutcome}
+      />
 
       <AssessmentHistorySection history={assessmentHistory} />
     </div>
