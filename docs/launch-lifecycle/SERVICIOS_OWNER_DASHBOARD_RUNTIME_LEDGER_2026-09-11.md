@@ -5,14 +5,18 @@
 **Owner lane:** User Dashboard / Owner Command Center  
 **Quarterback lane:** Servicios Golden Reference lifecycle  
 **Prior Gate 5 freeze HEAD:** `d1b2994d36b1e78f1fb91a6d3f801638156b9119`  
-**Current production main baseline / receiver HEAD:** `9fcadb4daf599e15fca62adcb647abbf96ce6bd8`  
+**Committed receiver HEAD:** `b49cebf669c5b517eb7d78df649f59e9dfdc3312`
+**Current production main / product SHA:** `9fcadb4daf599e15fca62adcb647abbf96ce6bd8`
 **Gate 0 (2026-09-11):** COMPLETE — at that checkpoint receiver HEAD equaled then-current `origin/main` `d1b2994d`.  
 **Gates 1–4 (2026-09-11):** COMPLETE — DASH-01 through DASH-76 have source-audit dispositions. Product source unchanged at that freeze. Runtime Golden listing still required.  
 **Gate 5 (2026-09-11):** COMPLETE — implementation plan + ownership freeze. Product source unchanged. DASH-53 / DASH-58–60 remain Golden/shared upstream.  
 **Gates A–C (2026-09-11):** COMPLETE — fetch + fast-forward reconciliation to current `origin/main` `9fcadb4d` (21 Admin OS commits; 0 semantic conflicts). Targeted Servicios-dependent DASH recheck against current main. Receiver product source not edited.  
-**Gates D–E (2026-09-11):** COMPLETE — durable state checkpoint only. No product implementation.  
-**Runtime Golden listing:** NOT YET CREATED / NOT YET TESTED  
-**Gate status:** RECEIVER SYNCHRONIZED WITH CURRENT MAIN — NO PROVEN RECEIVER PRODUCT WORK — WAITING ON SERVICIOS GOLDEN
+**Gates D–E (2026-09-11):** COMPLETE — durable state checkpoint only. No product implementation.
+**Gate F (2026-09-11):** COMPLETE — ledger tracked (`b49cebf6`).
+**Gates J–K (2026-09-11):** COMPLETE — receiver docs pushed; remote Golden inspected read-only (not consumed).
+**Gates 1–6 receiver source completion (2026-09-11):** COMPLETE — fresh DASH-01–76 TRUE/FALSE source proof against current worktree product SHA `9fcadb4d` (docs HEAD `b49cebf6`). No receiver product implementation. Bucket D empty.
+**Runtime Golden listing:** NOT YET CREATED / NOT YET TESTED
+**Gate status:** RECEIVER SOURCE TRUE/FALSE AUDIT COMPLETE — NO PROVEN RECEIVER PRODUCT WORK — EXTERNAL GOLDEN BLOCKERS REMAIN — QA FORBIDDEN UNTIL PM AUTHORIZES
 
 ## 0. Executive lock
 
@@ -302,6 +306,7 @@ Every DASH item must contain:
 - Requirement: Owner dashboard must resolve Servicios from the canonical public table, not a parallel dashboard store.
 - Current source truth: Owner cloud inventory is `listServiciosPublicListingsForOwner(userId)` → `.from("servicios_public_listings").eq("owner_user_id", ownerUserId)`. Dashboard `/dashboard` home preview does **not** use this table (`fetchOwnerListingsForDashboard` reads `public.listings` only).
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard/servicios`, `/dashboard/mis-anuncios`
 - Exact component/file: `app/(site)/dashboard/servicios/page.tsx`; `fetchOwnerServiciosListings` in `dashboardInventory.ts`
 - Exact API/server action: `GET /api/clasificados/servicios/my-listings`
@@ -317,6 +322,7 @@ Every DASH item must contain:
 - Requirement: Dashboard must carry `servicios_public_listings.id` and not invent a substitute identity.
 - Current source truth: `GET my-listings` returns `id`. Inventory `buildServiciosInventoryItems` uses `id` (fallback `servicios:${slug}` only if id missing). Edit href sets `listingId`. Hydration `GET my-listing` prefers `id` over slug over `leonixAdId`. **Publish body does not include UUID.**
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard/servicios`, `/dashboard/mis-anuncios`, `/publicar/servicios`
 - Exact component/file: `servicios/page.tsx`; `dashboardInventory.ts`; `serviciosListingEditHref`
 - Exact API/server action: `GET /api/clasificados/servicios/my-listings`; `GET /api/clasificados/servicios/my-listing?id=`
@@ -332,6 +338,7 @@ Every DASH item must contain:
 - Requirement: Dashboard must preserve the public slug used as the canonical public URL key.
 - Current source truth: Cloud rows keyed/displayed by `slug`. Public href `/clasificados/servicios/${slug}`. Pause/Resume body `{ slug }`. Edit href `listingSlug`. Publish same-row lookup uses `existingPublicSlug`.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard/servicios`, `/dashboard/mis-anuncios`
 - Exact component/file: `servicios/page.tsx`; `categoryDashboardActionContract.ts`; `dashboardMisAnunciosCategoryTools.ts`
 - Exact API/server action: `GET my-listings`; `POST /api/clasificados/servicios/manage`; `POST /api/clasificados/servicios/publish`
@@ -347,6 +354,7 @@ Every DASH item must contain:
 - Requirement: Dashboard must preserve `leonix_ad_id` (SERV-YYYY-NNNNNN) as a first-class identity.
 - Current source truth: `GET my-listings` returns `leonix_ad_id`. Workspace header `leonixId`. Edit href `leonixAdId`. `GET my-listing` can resolve `.eq("leonix_ad_id", leonixAdId)`. Publish UPDATE does not touch `leonix_ad_id` (preserved by omission on same-row UPDATE).
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard/servicios`, `/dashboard/mis-anuncios`
 - Exact component/file: `servicios/page.tsx` `OwnerEntityWorkspace` header; `serviciosListingEditHref`
 - Exact API/server action: `GET my-listings`; `GET my-listing?leonixAdId=`
@@ -362,6 +370,7 @@ Every DASH item must contain:
 - Requirement: Mis Anuncios library must list owner Servicios rows from canonical source.
 - Current source truth: `mis-anuncios/page.tsx` loads `fetchOwnerServiciosListings` in parallel, builds `serviciosInventory`, renders category section + `cat=servicios` filter. Pause/Resume wired via `manageServiciosListing`.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard/mis-anuncios` (`?cat=servicios`)
 - Exact component/file: `app/(site)/dashboard/mis-anuncios/page.tsx`; `buildServiciosInventoryItems`
 - Exact API/server action: `GET /api/clasificados/servicios/my-listings`; `POST /api/clasificados/servicios/manage`
@@ -377,6 +386,7 @@ Every DASH item must contain:
 - Requirement: Entity workspace for a Servicios listing (do not assume this route is that workspace).
 - Current source truth: `/dashboard/mis-anuncios/[id]/page.tsx` loads `fetchOwnerListingForWorkspace` against **`public.listings` only**. Zero Servicios consumers. Canonical owner workspace is **`/dashboard/servicios`**. Architecture lock forbids a second category island.
 - Classification: **NOT SUPPORTED — CURRENT PRODUCT**
+- Owner: NONE — NOT SUPPORTED — CURRENT PRODUCT (dedicated workspace is /dashboard/servicios)
 - Exact route: `/dashboard/mis-anuncios/[id]` (generic listings); live Servicios workspace `/dashboard/servicios`
 - Exact component/file: `mis-anuncios/[id]/page.tsx` (`fetchOwnerListingForWorkspace`); `servicios/page.tsx`
 - Exact API/server action: none for Servicios on `[id]`
@@ -392,6 +402,7 @@ Every DASH item must contain:
 - Requirement: View Public must open the canonical Servicios public row.
 - Current source truth: Dashboard public CTA is `/clasificados/servicios/${encodeURIComponent(slug)}`. Public page loads `getServiciosPublicListingBySlugForDiscovery(slug)` → `servicios_public_listings` by slug. Not UUID-addressed.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/clasificados/servicios/[slug]`
 - Exact component/file: `servicios/page.tsx` publicView; `mis-anuncios` `item.publicHref`; `app/(site)/clasificados/servicios/[slug]/page.tsx`
 - Exact API/server action: server load `getServiciosPublicListingBySlugForDiscovery`
@@ -409,6 +420,7 @@ Every DASH item must contain:
 - Requirement: Manage/Edit must open the live published Servicios editor, not a dashboard-local form.
 - Current source truth: `serviciosListingEditHref` → `/publicar/servicios?edit=1&source=dashboard&mode=listing-edit&listingId&listingSlug&leonixAdId&returnPanel=servicios`. Used as primary action on `/dashboard/servicios` and Mis Anuncios. Legacy `/clasificados/publicar/servicios` is explicitly not the dashboard edit mount.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/publicar/servicios` (dashboard listing-edit)
 - Exact component/file: `serviciosDashboardOffersAddonCheckout.ts`; `ClasificadosServiciosApplication.tsx` (`isDashboardListingEditMode`)
 - Exact API/server action: none until hydration GET
@@ -424,6 +436,7 @@ Every DASH item must contain:
 - Requirement: Edit must hydrate from the owner-owned canonical row.
 - Current source truth: On `editRequested`, application fetches `GET /api/clasificados/servicios/my-listing?id|slug|leonixAdId` with Bearer token. Route queries `servicios_public_listings` scoped `.eq("owner_user_id", data.user.id)`, prefers id then slug then leonix_ad_id. Maps via `serviciosPublishedToApplicationDraft`. Dashboard source clears local draft first. Primes `existingPublicSlug`.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/publicar/servicios` (edit=1)
 - Exact component/file: `ClasificadosServiciosApplication.tsx` hydration effect; `serviciosPublishedToApplicationDraft.ts`
 - Exact API/server action: `GET /api/clasificados/servicios/my-listing`
@@ -439,6 +452,7 @@ Every DASH item must contain:
 - Requirement: Supported business/profile fields must restore from the published row.
 - Current source truth: Adapter restores identity, city, physical address parts, contact/social/review URLs, hours, about, services (catalog ids + custom titles), highlights, amenities, payment methods, credentials/docs, gallery/cover/logo/videos, coupons/flyer/more-offers, promotions, testimonials, businessTypeId. Confirm checkboxes reset false (intentional). `customQuickFacts` is **not** mapped (stays default empty).
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/publicar/servicios` edit hydration
 - Exact component/file: `serviciosPublishedToApplicationDraft.ts`
 - Exact API/server action: `GET my-listing` → `profile_json`
@@ -454,6 +468,7 @@ Every DASH item must contain:
 - Requirement: Hidden/private street address restores only to the authorized owner.
 - Current source truth: Owner GET my-listing returns full `profile_json.contact.physicalStreet*`. There is **no** Servicios hide-address / city-only product flag in the application. Public resolver `resolveServiciosProfile` also formats `physicalStreet` for display. Business Tools `addressVisibility` is `businesses` onboarding, not this listing editor.
 - Classification: **NOT SUPPORTED — CURRENT PRODUCT**
+- Owner: NONE — NOT SUPPORTED — CURRENT PRODUCT (no separate hidden-address store)
 - Exact route: `/publicar/servicios` (owner hydrate); public `/clasificados/servicios/[slug]`
 - Exact component/file: `my-listing/route.ts`; `serviciosPublishedToApplicationDraft.ts`; `resolveServiciosProfile.ts`
 - Exact API/server action: owner-scoped GET my-listing
@@ -469,6 +484,7 @@ Every DASH item must contain:
 - Requirement: Existing photos restore as remote URLs, not forcing reupload.
 - Current source truth: `mapGallery` copies `profile.gallery[].url` when HTTPS. Cover/logo via `hero.coverImageUrl` / `hero.logoUrl`. `rehydrateServiciosApplicationMedia` after hydrate. Publish transport strips data:/blob: and requires prior Blob upload only for new local files.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/publicar/servicios` edit
 - Exact component/file: `serviciosPublishedToApplicationDraft.ts` `mapGallery`; `rehydrateServiciosApplicationMedia`
 - Exact API/server action: GET my-listing; uploads only `POST /api/clasificados/servicios/draft-media-upload` for new files
@@ -484,6 +500,7 @@ Every DASH item must contain:
 - Requirement: Existing videos restore without re-pasting URLs.
 - Current source truth: `mapGallery` restores `profile.galleryVideos` url + mux ids + poster + primary flag. Application rehydrate path runs after hydrate.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/publicar/servicios` edit
 - Exact component/file: `serviciosPublishedToApplicationDraft.ts` videos mapping
 - Exact API/server action: GET my-listing
@@ -499,6 +516,7 @@ Every DASH item must contain:
 - Requirement: Cover and gallery order/featured set survive hydration.
 - Current source truth: `coverUrl` from `hero.coverImageUrl`. Gallery array order preserved. `featuredGalleryIds` restored when ids still in gallery, else first 4 gallery ids. Shared media contract: max 24 images, 8 videos.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/publicar/servicios` edit
 - Exact component/file: `serviciosPublishedToApplicationDraft.ts`; `listingMediaConfigs.ts` pipeline `servicios`
 - Exact API/server action: GET my-listing
@@ -514,6 +532,7 @@ Every DASH item must contain:
 - Requirement: Existing coupons/offers restore in the editor.
 - Current source truth: `mapCoupons` (up to 4), `couponFlyer.imageUrl`, `couponMoreOffers`, `inferCouponsAddOnFromProfile` from content presence. Dashboard offers shortcut `serviciosOffersEditHref` (`mode=offers-edit`).
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/publicar/servicios` (`mode=listing-edit` or `offers-edit`)
 - Exact component/file: `serviciosPublishedToApplicationDraft.ts` coupon maps; `servicios/page.tsx` offers CTA
 - Exact API/server action: GET my-listing
@@ -529,6 +548,7 @@ Every DASH item must contain:
 - Requirement: Coupons/offers stay inside the $399 base entitlement, not a second charge.
 - Current source truth: `servicios_base_monthly` `capabilities: ["coupons_offers"]`. Dashboard uses `dashboardHasCapabilityForKey(..., "coupons_offers")`. `startServiciosDashboardOffersAddonCheckout` is a capability check (`POST /api/dashboard/enable-included-capability`) with **no Stripe**. Retired `servicios_offers_addon` is `stripeEligible: false` / `newSalesRetired: true`. **However** publish `enforceServiciosOffersEntitlementServerTruth` still entitles offer *writes* only when `fetchAddonEntitlementsForListings({ packageKey: SERVICIOS_OFFERS_ADDON_PACKAGE_KEY })` is `active`.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard/servicios`; `/publicar/servicios`; `POST /api/clasificados/servicios/publish`
 - Exact component/file: `revenuePricingMatrix.ts`; `serviciosDashboardOffersAddonCheckout.ts`; `publish/route.ts` Gate E.3.1
 - Exact API/server action: `POST /api/dashboard/listing-package-entitlements`; `POST /api/dashboard/enable-included-capability`; publish offer-write gate
@@ -544,6 +564,7 @@ Every DASH item must contain:
 - Requirement: Editing coupons while entitled must not start another $399 checkout.
 - Current source truth: Dashboard listing-bound preview sets `showFinalCheckout = !listingBoundPreview` (false). Publish from that path calls `postServiciosPublishApi` **without** `activationMode`. Pricing summary hidden in `isExistingDashboardListingMode`. Offers “activation” is capability-only. `/api/revenue-os/checkout` returns 409 `active_entitlement_no_recharge` for `servicios_base_monthly` when `requiresBaseCheckout` is false.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: listing-bound `/clasificados/publicar/servicios/preview`; `/api/revenue-os/checkout`
 - Exact component/file: `ClasificadosServiciosPreviewClient.tsx`; `revenueActiveEntitlementGuard.ts`
 - Exact API/server action: `POST /api/clasificados/servicios/publish` (no pending_payment); checkout guard
@@ -558,7 +579,8 @@ Every DASH item must contain:
 ### DASH-18 — Existing custom Servicios values hydrate
 - Requirement: Custom Servicios values (non-catalog) restore.
 - Current source truth: Restored: `customServicesOffered` (from `profile.services` titles), `customBusinessHighlights`, `customPaymentMethods`, `customAmenityOptions` / by-group, certifications, `languageOtherLines`. **Not restored:** `customQuickFacts` (absent from adapter; default `[]`).
-- Classification: **LIVE**
+- Classification: **BLOCKED — SERVICIOS GOLDEN (SRV-GOLDEN-03)**
+- Owner: SERVICIOS GOLDEN — SRV-GOLDEN-03 customQuickFacts hydration; other custom fields OCC-consumable
 - Exact route: `/publicar/servicios` edit
 - Exact component/file: `serviciosPublishedToApplicationDraft.ts`
 - Exact API/server action: GET my-listing
@@ -568,12 +590,13 @@ Every DASH item must contain:
 - Automated/source proof: adapter vs application custom fields
 - Preview proof: not run
 - Runtime-owner proof still required: YES
-- Final disposition: GATE 1 SOURCE AUDIT — LIVE (customQuickFacts gap recorded)
+- Final disposition: GATE 7 SOURCE COMPLETENESS — BLOCKED — SERVICIOS GOLDEN (SRV-GOLDEN-03); other custom fields remain OCC-consumable
 
 ### DASH-19 — Translation records remain attached to canonical listing
 - Requirement: Translations stay attached to canonical listing identity; dashboard must not fork them.
 - Current source truth: Public overlay `ServiciosPublicTranslationLayer` / `TranslateAdControl` uses `listingKey = analyticsListingSlug || profile.identity.slug`. `POST /api/translate-ad` → `translateAdWithConfiguredProvider` in `app/lib/translation/provider.ts` looks up/writes `translation_records` (`category` + `listing_key`). Overlay does not mutate `profile_json`. Dashboard editor has no Translate Ad write path.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: public `/clasificados/servicios/[slug]`; `POST /api/translate-ad`
 - Exact component/file: `ServiciosPublicTranslationLayer.tsx`; `app/lib/translation/serverCache.ts`
 - Exact API/server action: `POST /api/translate-ad`
@@ -589,6 +612,7 @@ Every DASH item must contain:
 - Requirement: Owner Command Center must not invent a second translation store.
 - Current source truth: No dashboard translation table, API, or editor persist. Edit hydrates authoring `profile_json` only. Translate Ad is the shared public overlay + optional `translation_records`.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: none on dashboard
 - Exact component/file: dashboard Servicios pages have no TranslateAdControl
 - Exact API/server action: none from dashboard
@@ -606,6 +630,7 @@ Every DASH item must contain:
 - Requirement: Active Save & Republish must update the same published Servicios row.
 - Current source truth: Dashboard edit → listing-bound preview → `handlePublishFromPreview` → `postServiciosPublishApi` with `existingPublicSlug` from sessionStorage (`servicios_last_published_slug`), primed on hydrate. Publish: `allocateSlug(businessName)` then **overwrite slug with `existingPublicSlug` only if** that slug exists and (`owner_user_id` is null or matches bearer). Then `getServiciosPublicListingBySlugFromDb(slug)` → UPDATE `.eq("slug", slug)` including business_name, city, profile_json, listing_status, updated_at, optional owner restamp. **UUID is not in the publish body.** UPDATE does not set `id` or `leonix_ad_id` (preserved by omission). Entitlement rows are not rewritten. If `existingPublicSlug` is missing/unmatched, path falls through to INSERT (DASH-23).
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/clasificados/publicar/servicios/preview` (listing-bound) → publish
 - Exact component/file: `serviciosPublishClient.ts`; `publish/route.ts` lines 298–310, 436–469
 - Exact API/server action: `POST /api/clasificados/servicios/publish`
@@ -621,6 +646,7 @@ Every DASH item must contain:
 - Requirement: Ordinary active edit must not start another $399 checkout.
 - Current source truth: (1) UI: listing-bound preview `showFinalCheckout=false`; dashboard edit hides pricing/checkout; publish called without `activationMode`. (2) Publish: if existing owner row is `published` | `paused_unpublished` | `pending_review`, strict `payment_required` 402 is skipped (`allowedOwnerRepublish`). If client sent `pending_payment` against an already-published row, status stays PUBLISHED and response does not echo checkout. (3) Stripe choke: `/api/revenue-os/checkout` `requiresBaseCheckout` for `servicios_base_monthly` → 409 `active_entitlement_no_recharge`. New-application preview still has checkout (`showFinalCheckout` true) — that is first publish, not dashboard active edit.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: dashboard listing-edit + listing-bound preview; `/api/revenue-os/checkout`
 - Exact component/file: `ClasificadosServiciosPreviewClient.tsx`; `publish/route.ts` payment_required + actualListingStatus; `revenueActiveEntitlementGuard.ts`
 - Exact API/server action: `POST /api/clasificados/servicios/publish`; `POST /api/revenue-os/checkout`
@@ -635,7 +661,8 @@ Every DASH item must contain:
 ### DASH-23 — Republish cannot create duplicate Servicios public row
 - Requirement: Republish must not insert a second public Servicios row.
 - Current source truth: INSERT occurs when `getServiciosPublicListingBySlugFromDb(slug)` finds no row (`publish/route.ts` else-insert). `slug` is `existingPublicSlug` only when primed **and** row exists **and** `ownerUserId` is present **and** owner is null or matches. Otherwise `allocateSlug(slugifyServiciosBusinessName(businessName))` — a new unused slug **INSERT**s. Dashboard edit URLs already carry `listingId`; publish ignores it. SessionStorage miss, hydration miss, `primeServiciosExistingPublicSlug(null)` (new-app / delete-draft), or ownerUserId-null (non-strict) are source-proven duplicate paths. Unique-slug collision with another owner returns 409 `slug_conflict` (does not UPDATE that row).
-- Classification: **REPAIR REQUIRED**
+- Classification: **BLOCKED — SERVICIOS GOLDEN (SRV-GOLDEN-01)**
+- Owner: SERVICIOS GOLDEN — SRV-GOLDEN-01 UUID fail-closed active edit
 - Exact route: `POST /api/clasificados/servicios/publish` consumed by dashboard golden-loop
 - Exact component/file: `publish/route.ts` allocateSlug + insert branch; `serviciosPublishClient.ts` sessionStorage slug
 - Exact API/server action: `POST /api/clasificados/servicios/publish`
@@ -653,6 +680,7 @@ Every DASH item must contain:
 - Requirement: Owner Pause must use canonical Servicios management authority, not generic `listings` pause.
 - Current source truth: Two UI consumers call the same API: `/dashboard/servicios` `manageListing(slug,"pause")` and `/dashboard/mis-anuncios` `manageServiciosListing(slug,"pause")` via `buildInventoryListingActions` when `item.status==="published"`. Body `{ slug, action:"pause" }`. `POST /api/clasificados/servicios/manage` authenticates Bearer user, loads row by slug (`visibility:"all"`), requires `owner_user_id === bearer`, requires current `listing_status==="published"`, then UPDATE `listing_status="paused_unpublished"` `.eq("slug").eq("owner_user_id")`. Zero-row write → 409. No entitlement consult. Capability registry `lifecycle.pause="supported"`.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard/servicios`; `/dashboard/mis-anuncios?cat=servicios`
 - Exact component/file: `app/(site)/dashboard/servicios/page.tsx`; `app/(site)/dashboard/mis-anuncios/page.tsx`; `dashboardMisAnunciosCategoryTools.ts`
 - Exact API/server action: `POST /api/clasificados/servicios/manage`
@@ -668,6 +696,7 @@ Every DASH item must contain:
 - Requirement: Paused Servicios must display as paused, not as live/published.
 - Current source truth: Inventory `status` is raw `listing_status`. Mis Anuncios uses `resolveOwnerDashboardStatusDisplay("servicios","paused_unpublished")` → canonical `paused_unpublished`, warn tone, labels "Pausado (no público)" / "Paused (unpublished)". Entity workspace uses `resolveListingUiStatus({status})` → visibility bucket `suspended` → UI `paused`. Pause CTA hidden; Resume shown. Public discovery lists only `listing_status=published`; direct `/clasificados/servicios/[slug]` still loads paused (`slug_page`) with a paused banner (not search-listed). Admin queue shows raw `listing_status`.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard/mis-anuncios`; `/dashboard/servicios`; public slug page
 - Exact component/file: `dashboardOwnerStatusDisplay.ts`; `listingDisplayStatus.ts`; `listingLifecycleDomain.ts`; `servicios/[slug]/page.tsx`
 - Exact API/server action: `GET /api/clasificados/servicios/my-listings` (status passthrough)
@@ -683,6 +712,7 @@ Every DASH item must contain:
 - Requirement: Owner Resume must be available when commercial authority permits reactivation.
 - Current source truth: Resume CTA on `/dashboard/servicios` and Mis Anuncios when `listing_status==="paused_unpublished"`. Same manage API `action:"resume"`. State machine only: current must be `paused_unpublished` → write `published`. **No read of `leonix_subscription_records`, entitlements, or `commercialWriteGuard`.** Entitled paused listings can resume (happy path). Commercially invalid paused listings can also resume — DASH-27.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard/servicios`; `/dashboard/mis-anuncios`
 - Exact component/file: `servicios/page.tsx` `manageListing`; `mis-anuncios/page.tsx` `manageServiciosListing`
 - Exact API/server action: `POST /api/clasificados/servicios/manage` `{action:"resume"}`
@@ -697,7 +727,8 @@ Every DASH item must contain:
 ### DASH-27 — Resume fails closed when commercial authority does not permit free reactivation
 - Requirement: Resume must not restore public visibility when payment failed, grace expired, subscription canceled, or listing commercially suspended.
 - Current source truth: Manage resume never consults Revenue OS. Payment engine `applyPaymentSuspension("servicios", listingId)` only fires from **visible** `listing_status==="published"` → writes `suspended` (+ `suspended_reason='payment'`). A **paused** row is `not_visible`, so grace-expiry/cancel suspension **does not** overwrite `paused_unpublished`. Owner Resume then publishes anyway. Sibling hole: `POST /api/clasificados/servicios/publish` `allowedOwnerRepublish` includes `paused_unpublished` and UPDATE can set `listing_status` to `published` without subscription check. Shared `commercialWriteGuard` is used by Autos/BR/checkout, **not** by servicios/manage. If listing is already `suspended`/`rejected`, manage resume 409s (`invalid_state`) — that path is fail-closed; the proven hole is **paused + invalid commercial**.
-- Classification: **REPAIR REQUIRED**
+- Classification: **BLOCKED — SERVICIOS GOLDEN (SRV-GOLDEN-04)**
+- Owner: SERVICIOS GOLDEN — SRV-GOLDEN-04 Resume commercial authority
 - Exact route: `POST /api/clasificados/servicios/manage` (Resume); also paused republish via `POST /api/clasificados/servicios/publish`
 - Exact component/file: `app/api/clasificados/servicios/manage/route.ts`; `publish/route.ts` `allowedOwnerRepublish`; `subscriptionLifecycle.ts` `applyPaymentSuspension`; `subscriptionLifecyclePolicy.ts` servicios spec
 - Exact API/server action: manage resume; publish UPDATE
@@ -713,6 +744,7 @@ Every DASH item must contain:
 - Requirement: Owner must not self-restore a Leonix-moderated rejected/suspended listing to public.
 - Current source truth: Manage pause requires `published`; resume requires `paused_unpublished`. `rejected`/`suspended` → 409 `invalid_state`. Strict publish `allowedOwnerRepublish` is only `published` | `paused_unpublished` | `pending_review` — `rejected`/`suspended` → 402 `payment_required` (wrong code, still no UPDATE). Admin `updateServiciosPublicListingStatusAction` can set those statuses by `id`. Payment-suspended listings (`listing_status=suspended`, `suspended_reason=payment`) also cannot resume via manage. Gap remaining is commercial-paused resume (DASH-27), not moderation override.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: manage + publish + admin workspace
 - Exact component/file: `manage/route.ts`; `publish/route.ts`; `admin/.../servicios/actions.ts`
 - Exact API/server action: `POST /api/clasificados/servicios/manage`; `POST /api/clasificados/servicios/publish`; admin `updateServiciosPublicListingStatusAction`
@@ -728,6 +760,7 @@ Every DASH item must contain:
 - Requirement: Trace whether owner Archive exists for canonical Servicios (do not inherit `listings` archive).
 - Current source truth: `OWNER_ENTITY_CAPABILITIES.servicios.lifecycle.archive = "unsupported"`. Mis Anuncios `CATEGORY_LISTING_TOOL_TRUTH.servicios` has pause/reactivate only — no archive key. Manage API actions are pause|resume only. No Servicios archive mutation. Domain helper `getAvailableOwnerActions` lists archive for paused_unpublished as generic theory; Dashboard does not wire it for Servicios.
 - Classification: **NOT SUPPORTED — CURRENT PRODUCT**
+- Owner: NONE — NOT SUPPORTED — CURRENT PRODUCT (no Archive)
 - Exact route: none
 - Exact component/file: `ownerEntityCapabilityRegistry.ts`; `dashboardMisAnunciosCategoryTools.ts`; `manage/route.ts`
 - Exact API/server action: none
@@ -743,6 +776,7 @@ Every DASH item must contain:
 - Requirement: Trace whether owner Delete exists for canonical Servicios (do not inherit generic listing DELETE).
 - Current source truth: No owner DELETE/close on `servicios_public_listings`. Manage has no delete action. Capability `lifecycle.close="unsupported"`. Dashboard data contract: no owner DELETE on ads for generic listings either (soft archive). Admin may change status; that is not owner delete.
 - Classification: **NOT SUPPORTED — CURRENT PRODUCT**
+- Owner: NONE — NOT SUPPORTED — CURRENT PRODUCT (no Delete)
 - Exact route: none
 - Exact component/file: `manage/route.ts`; `ownerEntityCapabilityRegistry.ts`
 - Exact API/server action: none
@@ -760,6 +794,7 @@ Every DASH item must contain:
 - Requirement: Trace customer-facing subscription cancellation for Servicios.
 - Current source truth: No listing-level "Cancel Subscription" CTA on `/dashboard/servicios` or Mis Anuncios Servicios cards. No dashboard API that cancels a Stripe subscription. Customer destination is `/dashboard/perfil` Billing → static `NEXT_PUBLIC_STRIPE_CUSTOMER_PORTAL_URL` (if set). Stripe webhooks write `leonix_subscription_records` (`canceled`, `cancel_at_period_end`) via `revenueSubscriptionEvents.ts`. Dashboard then displays those states (DASH-37/38). Cancellation is portal/Stripe-owned, not a Servicios manage action.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard/perfil` (portal CTA); Stripe webhook → subscription records
 - Exact component/file: `app/(site)/dashboard/perfil/page.tsx`; `revenueSubscriptionEvents.ts`
 - Exact API/server action: none for cancel-from-dashboard; webhook path updates `leonix_subscription_records`
@@ -775,6 +810,7 @@ Every DASH item must contain:
 - Requirement: Trace Stripe Customer Portal for the owner.
 - Current source truth: `/dashboard/perfil` Billing CTA. If `NEXT_PUBLIC_STRIPE_CUSTOMER_PORTAL_URL` is set, opens that URL in a new tab. If unset, disabled button + "portal not configured". **No** `stripe.billingPortal.sessions.create` (or any portal-session API) exists in this repo. `dashboardDataContract.ts` still documents the session route as not present. Not Servicios-specific.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER — OPTIONAL / NON-BLOCKING deferred (static portal URL traced)
 - Exact route: `/dashboard/perfil`
 - Exact component/file: `app/(site)/dashboard/perfil/page.tsx`; `dashboardDataContract.ts`
 - Exact API/server action: none (static env URL only)
@@ -790,6 +826,7 @@ Every DASH item must contain:
 - Requirement: Surface current subscription / next renewal where the shared architecture supports it.
 - Current source truth: Owner-safe `POST /api/dashboard/listing-package-entitlements` returns `subscriptionStates` (`status`, `cancelAtPeriodEnd`, `graceEndsAt`, `suspensionReason`, `recoveredAt`) keyed by `leonix_subscription_records.listing_id`. It does **not** select `current_period_end`. Entitlement badges include `startsAt`/`endsAt` from `listing_package_entitlements`. Mis Anuncios Servicios cards render `commercialStateBadgesToLifecycleNote` (status), not `endsAt`. BR cards (`LeonixRealEstateListingManageCard`) do render `endsAt`. `/dashboard/servicios` does not fetch `subscriptionStates`.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER — OPTIONAL / NON-BLOCKING deferred (endsAt presentation)
 - Exact route: `/dashboard/mis-anuncios?cat=servicios`; `/api/dashboard/listing-package-entitlements`
 - Exact component/file: `listing-package-entitlements/route.ts`; `mis-anuncios/page.tsx` lifecycleNote; `dashboardPackageEntitlementBadges.ts`
 - Exact API/server action: `POST /api/dashboard/listing-package-entitlements`
@@ -805,6 +842,7 @@ Every DASH item must contain:
 - Requirement: Owner Attention / payment-attention must include Servicios when commercial badges require it.
 - Current source truth: `fetchDerivedDashboardFeed` loads `fetchOwnerServiciosListings`, builds entitlement lookup `listingSource: servicios_public_listings`, `listingId: id ?? slug`. Same `fetchDashboardListingPackageEntitlementBadges` + `resolveCommercialStateBadges`. Attention keys: `grace`, `suspended_nonpayment`, `disputed`, `cancels_at_period_end`, `canceled`. Home `/dashboard` maps via `buildAccountAttentionItems`. Mis Anuncios Servicios `lifecycleNote` shows the same badges. Entity workspace does not.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard` Owner Attention; `/dashboard/mis-anuncios?cat=servicios`
 - Exact component/file: `derivedDashboardFeed.ts`; `ownerAttentionModel.ts`; `dashboard/page.tsx`; `mis-anuncios/page.tsx`
 - Exact API/server action: `POST /api/dashboard/listing-package-entitlements`; `GET /api/clasificados/servicios/my-listings`
@@ -820,6 +858,7 @@ Every DASH item must contain:
 - Requirement: Grace must display from canonical subscription truth, not a fabricated listing status.
 - Current source truth: Webhooks/reconciliation set `leonix_subscription_records.status="grace"` + `grace_ends_at` (7 calendar days). Owner API returns those fields. `resolveCommercialStateBadges` emits `grace` with date. Consumed by Mis Anuncios lifecycleNote and home payment_attention. Listing row typically stays `published` during grace (`applyPaymentSuspension` waits until grace expires). Dashboard does not invent a grace listing_status.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard`; `/dashboard/mis-anuncios`
 - Exact component/file: `commercialStateBadges.ts`; `subscriptionLifecycle.ts`; `listing-package-entitlements/route.ts`
 - Exact API/server action: `POST /api/dashboard/listing-package-entitlements`
@@ -835,6 +874,7 @@ Every DASH item must contain:
 - Requirement: Failed payment / nonpayment suspension must surface truthfully.
 - Current source truth: After grace expiry, subscription `status="suspended"`, `suspension_reason="payment_failure"`, and if listing was `published`, `listing_status="suspended"`. Badges: `suspended_nonpayment` (or `disputed` if reason `chargeback`). Dashboard Servicios cards show that via lifecycleNote + home attention. There is no separate owner "payment_failed" listing_status string for Servicios; UI maps listing `suspended` via owner status display (danger). Failed payment while paused does not change listing_status (DASH-27).
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard`; `/dashboard/mis-anuncios`
 - Exact component/file: `commercialStateBadges.ts`; `subscriptionLifecycle.ts` `reconcileSubscriptionRow`
 - Exact API/server action: `POST /api/dashboard/listing-package-entitlements`
@@ -850,6 +890,7 @@ Every DASH item must contain:
 - Requirement: If Stripe cancel-at-period-end exists, dashboard must show it.
 - Current source truth: Webhook persists `cancel_at_period_end` on `leonix_subscription_records`. Owner API returns `cancelAtPeriodEnd`. Resolver emits `cancels_at_period_end` when `status==="active"` and flag true. Mis Anuncios + home attention consume it. Supported.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard`; `/dashboard/mis-anuncios`
 - Exact component/file: `commercialStateBadges.ts`; `revenueSubscriptionEvents.ts`; `listing-package-entitlements/route.ts`
 - Exact API/server action: `POST /api/dashboard/listing-package-entitlements`
@@ -865,6 +906,7 @@ Every DASH item must contain:
 - Requirement: Canceled/ended subscription must display from canonical records.
 - Current source truth: `subscriptionStatus==="canceled"` → badge `canceled` ("Suscripción cancelada"). Home payment_attention + Mis Anuncios lifecycleNote. Does not by itself unpublish a **paused** listing (DASH-27). A previously published listing should already be `suspended` if payment-suspension ran from `published`.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard`; `/dashboard/mis-anuncios`
 - Exact component/file: `commercialStateBadges.ts`; `derivedDashboardFeed.ts`; `mis-anuncios/page.tsx`
 - Exact API/server action: `POST /api/dashboard/listing-package-entitlements`
@@ -880,6 +922,7 @@ Every DASH item must contain:
 - Requirement: Dashboard must not invent a second Servicios commercial status engine.
 - Current source truth: Single owner-safe route `POST /api/dashboard/listing-package-entitlements` (ownership-checked) reads `listing_package_entitlements` + `leonix_subscription_records` + `resolveBusinessToolsAccess` for servicios capabilities. Display uses shared `resolveCommercialStateBadges` / `commercialStateBadgesToLifecycleNote`. No Servicios-only commercial table or parallel badge math. `/dashboard/servicios` uses the same entitlements route for `coupons_offers` only — it does not re-derive subscription status.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/api/dashboard/listing-package-entitlements`; consumers `/dashboard`, `/dashboard/mis-anuncios`, `/dashboard/servicios` (capabilities)
 - Exact component/file: `listing-package-entitlements/route.ts`; `commercialStateBadges.ts`; `listingPackageEntitlementsServer.ts`; `categoryCommercialPlan.ts`
 - Exact API/server action: `POST /api/dashboard/listing-package-entitlements`
@@ -956,6 +999,7 @@ DASH-24, DASH-25, DASH-26, DASH-28, DASH-31, DASH-32, DASH-33, DASH-34, DASH-35,
 - Requirement: Owner analytics must roll up Servicios via canonical identity, not `public.listings` only.
 - Current source truth: `collectOwnerListingKeysForAnalytics` adds `servicios_public_listings.id`, `.slug`, `.leonix_ad_id`. `GET /api/dashboard/owner-engagement` + `fetchOwnerDashboardAnalyticsServer` load `listing_analytics` by those keys and `owner_user_id`. `/dashboard/analytics` renders **totals** from that snapshot. Per-listing **leaders/laggards** use `loadHubListingsForLeaders` on `public.listings` only — Servicios rows do not appear there. Per-listing Servicios metrics live on `/dashboard/servicios` via `serviciosBySlug`.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER — OPTIONAL / NON-BLOCKING deferred (analytics leaders expansion)
 - Exact route: `/dashboard/analytics`; `/dashboard/servicios`
 - Exact component/file: `dashboard/analytics/page.tsx`; `ownerEngagementListingKeys.ts`; `fetchOwnerDashboardAnalyticsServer.ts`; `ownerEngagementRollupsServer.ts`
 - Exact API/server action: `GET /api/dashboard/owner-engagement`; dashboard analytics summary fetch
@@ -971,6 +1015,7 @@ DASH-24, DASH-25, DASH-26, DASH-28, DASH-31, DASH-32, DASH-33, DASH-34, DASH-35,
 - Requirement: Writes and rollups must resolve UUID, slug, and `leonix_ad_id`.
 - Current source truth: Client `recordServiciosGlobalAnalyticsEvent` sends `source_table=servicios_public_listings`, `source_id=UUID`, optional `canonical_ad_id`. `POST /api/analytics/events` → `resolveListingAnalyticsIdentity` `fetchRowByIdOrSlug` (id/slug/leonix). Persist `listing_id`/`canonical_ad_id` = `buildCanonicalAdId` (leonix_ad_id → slug → `table:uuid`). Owner rollup queries all three aliases. Ops CTA without `sourceId` skips the global write.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `POST /api/analytics/events`
 - Exact component/file: `resolveListingAnalyticsIdentity.ts`; `listingAnalyticsIdentity.ts`; `recordServiciosGlobalAnalytics.ts`
 - Exact API/server action: `POST /api/analytics/events`
@@ -986,6 +1031,7 @@ DASH-24, DASH-25, DASH-26, DASH-28, DASH-31, DASH-32, DASH-33, DASH-34, DASH-35,
 - Requirement: Public profile view must persist and roll up.
 - Current source truth: Live public vitrina mounts `ServiciosProfileViewAnalytics` → `trackServiciosPublicProfileView` → ops `profile_view` with `clientListingAnalytics:true` (no server mirror) + `listing_view` via `/api/analytics/events` (`event_source: detail`). Deduped ~30m. Dashboard metrics count `listing_view`. **Not** `listing_open` (Servicios does not emit it). Card navigation emits `result_card_click` separately.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/clasificados/servicios/[slug]`
 - Exact component/file: `ServiciosProfileViewAnalytics.tsx`; `serviciosProfileEngagementAnalytics.ts`
 - Exact API/server action: `POST /api/analytics/events`; `POST /api/clasificados/servicios/analytics`
@@ -1001,6 +1047,7 @@ DASH-24, DASH-25, DASH-26, DASH-28, DASH-31, DASH-32, DASH-33, DASH-34, DASH-35,
 - Requirement: Call CTA must emit and roll up.
 - Current source truth: `trackServiciosListingCta(..., "cta_call_click")` from `ServiciosBusinessHubContactCard`, `ServiciosActionPanel`, `ServiciosProfessionalHero`, result cards (`ServiciosListingResultCard`, `ServiciosHorizontalResultCard`, `ServiciosProfessionalResultCard`). Maps to `phone_click`. Requires `sourceId` (UUID) for global write.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: public vitrina + results cards
 - Exact component/file: `serviciosCtaIntents.ts`; contact/hero/result card files above
 - Exact API/server action: `POST /api/analytics/events` (`phone_click`)
@@ -1016,6 +1063,7 @@ DASH-24, DASH-25, DASH-26, DASH-28, DASH-31, DASH-32, DASH-33, DASH-34, DASH-35,
 - Requirement: SMS/quote-message CTA must emit and roll up.
 - Current source truth: No `sms_click` type. Product SMS is `cta_quote_sms_click` → `message_click` from Get Quote / gallery / services grid / business hub. Dashboard counts `message_clicks`.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: public vitrina quote/SMS intents
 - Exact component/file: `ServiciosBusinessHubContactCard.tsx`; `ServiciosGallery.tsx`; `ServiciosServicesGrid.tsx`; `serviciosCtaIntents.ts`
 - Exact API/server action: `POST /api/analytics/events` (`message_click`)
@@ -1031,6 +1079,7 @@ DASH-24, DASH-25, DASH-26, DASH-28, DASH-31, DASH-32, DASH-33, DASH-34, DASH-35,
 - Requirement: WhatsApp CTA must emit and roll up.
 - Current source truth: `cta_whatsapp_click` → `whatsapp_click` from hub, hero, action panel, result cards.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: public vitrina + results
 - Exact component/file: same CTA family as DASH-43
 - Exact API/server action: `POST /api/analytics/events` (`whatsapp_click`)
@@ -1046,6 +1095,7 @@ DASH-24, DASH-25, DASH-26, DASH-28, DASH-31, DASH-32, DASH-33, DASH-34, DASH-35,
 - Requirement: Email CTA must emit and roll up.
 - Current source truth: `cta_email_click` → `email_click` from hub, action panel, horizontal result card. Distinct from quote **form** `lead_created`.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: public vitrina + results
 - Exact component/file: `ServiciosBusinessHubContactCard.tsx`; `ServiciosActionPanel.tsx`; `ServiciosHorizontalResultCard.tsx`
 - Exact API/server action: `POST /api/analytics/events` (`email_click`)
@@ -1061,6 +1111,7 @@ DASH-24, DASH-25, DASH-26, DASH-28, DASH-31, DASH-32, DASH-33, DASH-34, DASH-35,
 - Requirement: Website/review outbound CTA must emit and roll up.
 - Current source truth: `cta_website_click` and `cta_review_click` both map to `website_click` (hub website/social + review links; horizontal card website).
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: public vitrina + results
 - Exact component/file: `ServiciosBusinessHubContactCard.tsx`; `ServiciosHorizontalResultCard.tsx`
 - Exact API/server action: `POST /api/analytics/events` (`website_click`)
@@ -1076,6 +1127,7 @@ DASH-24, DASH-25, DASH-26, DASH-28, DASH-31, DASH-32, DASH-33, DASH-34, DASH-35,
 - Requirement: Directions/maps CTA must emit and roll up.
 - Current source truth: `cta_maps_click` → `directions_click` from hub, action panel, hero, professional/horizontal result cards.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: public vitrina + results
 - Exact component/file: `ServiciosBusinessHubContactCard.tsx`; `ServiciosActionPanel.tsx`; `ServiciosProfessionalHero.tsx`; result cards
 - Exact API/server action: `POST /api/analytics/events` (`directions_click`)
@@ -1091,6 +1143,7 @@ DASH-24, DASH-25, DASH-26, DASH-28, DASH-31, DASH-32, DASH-33, DASH-34, DASH-35,
 - Requirement: Share must emit `listing_share` and roll up.
 - Current source truth: `serviciosGlobalShareRecorder` on public detail (`detail_share`) and result cards (`results_card_share`) via `LeonixShareButton`. Unused local `ServiciosHeroActions` clipboard share is **not mounted**.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: public vitrina + results
 - Exact component/file: `ServiciosProfileView.tsx`; `ServiciosProfessionalProfileShell.tsx`; `ServiciosListingResultCard.tsx`; `recordServiciosGlobalAnalytics.ts`
 - Exact API/server action: `POST /api/analytics/events` (`listing_share`)
@@ -1106,6 +1159,7 @@ DASH-24, DASH-25, DASH-26, DASH-28, DASH-31, DASH-32, DASH-33, DASH-34, DASH-35,
 - Requirement: Like and Community Trust must use canonical Servicios identity, not a generic listings key.
 - Current source truth: **Like** = `LeonixLikeButton` / `ServiciosLikeEngagementCluster` → `listing_like`/`listing_unlike` with UUID `source_id`. **Community Trust** = `LeonixCommunityTrust` `category=servicios` `targetId=listing UUID` → `leonix_endorsement_votes` + sidecar `leonix_endorsement_add`/`remove` (`source_table=servicios_public_listings`). Owner workspace reads `GET /api/leonix-endorsements?category=servicios&targetId={id}`. Distinct from Save.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: public hub/hero; `/dashboard/servicios`
 - Exact component/file: `ServiciosLikeEngagementCluster.tsx`; `ServiciosBusinessHubContactCard.tsx`; `leonixEndorsementAnalytics.ts`; `dashboard/servicios/page.tsx`
 - Exact API/server action: `POST /api/analytics/events`; endorsement RPC; `GET /api/leonix-endorsements`
@@ -1121,6 +1175,7 @@ DASH-24, DASH-25, DASH-26, DASH-28, DASH-31, DASH-32, DASH-33, DASH-34, DASH-35,
 - Requirement: Quote requests must land in owner-visible Servicios leads, not Messages.
 - Current source truth: Public `ServiciosLeadInquiryForm` ("Solicitar cotización") on professional + standard shells → `POST /api/clasificados/servicios/inquiry` → `insertServiciosPublicLead` (`listing_slug`, `provider_user_id`, sender name/email/phone-in-message, `request_kind`, `created_at`, `read_at`). Owner: `/dashboard/servicios` `GET /api/clasificados/servicios/my-leads` → `OwnerEntityActivity` (`mailto:` sender). Admin queue also lists `servicios_public_leads`. `lead_created` mirrored to `listing_analytics` (no `clientListingAnalytics` on inquiry). `read_at` is stored but dashboard does not mark-read or show a follow-up workflow. Pedir cotización CTAs that open SMS/WA/email sheets are **not** this form (they are DASH-44/45/46).
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/clasificados/servicios/[slug]` form; `/dashboard/servicios` activity
 - Exact component/file: `ServiciosLeadInquiryForm.tsx`; `inquiry/route.ts`; `dashboard/servicios/page.tsx`
 - Exact API/server action: `POST /api/clasificados/servicios/inquiry`; `GET /api/clasificados/servicios/my-leads`
@@ -1136,6 +1191,7 @@ DASH-24, DASH-25, DASH-26, DASH-28, DASH-31, DASH-32, DASH-33, DASH-34, DASH-35,
 - Requirement: Trace Messages vs Servicios quotes; do not merge them.
 - Current source truth: Quotes are **category-specific leads** (`servicios_public_leads`), not `messages`. `/dashboard/mensajes` reads `messages` where `receiver_id=owner` and resolves UUID `listing_id` against **`public.listings` only** (`/clasificados/anuncio/{id}`). No Servicios sender writes into `messages` from the quote form. If a Servicios UUID appeared in `messages.listing_id`, context would not resolve.
 - Classification: **NOT SUPPORTED — CURRENT PRODUCT** (Servicios quotes are not Messages; listing-context resolver is listings-only)
+- Owner: NONE — NOT SUPPORTED — CURRENT PRODUCT (quotes are servicios_public_leads, not Messages)
 - Exact route: `/dashboard/mensajes`
 - Exact component/file: `app/(site)/dashboard/mensajes/page.tsx`
 - Exact API/server action: direct Supabase `messages` select (RLS)
@@ -1152,7 +1208,8 @@ DASH-24, DASH-25, DASH-26, DASH-28, DASH-31, DASH-32, DASH-33, DASH-34, DASH-35,
 ### DASH-53 — Saved Listing engine accepts Servicios listing identity
 - Requirement: Public Save must persist canonical Servicios identity into the shared saved-listings engine.
 - Current source truth: Shared engine `saved_listings` + `LeonixSaveButton` + `serviciosSavedListingExtras` (`category=servicios`, `source_table=servicios_public_listings`, `source_id=UUID|slug`, `canonical_ad_id` = engagement key leonix_ad_id→id→slug) **exist**. Live public Servicios surfaces mount **Like + Share only**. `serviciosSavedListingExtras` has **zero runtime callers**. `serviciosGlobalSaveRecorder` is unused. `ServiciosHeroActions` localStorage "Guardar" is **not mounted**. `hubEngagementVariant=save_only` only hides hub Like/Share because they already render in the hero — it is not a Save control.
-- Classification: **BUILD REQUIRED**
+- Classification: **BLOCKED — SERVICIOS GOLDEN (DASH-53 public Save mounts)**
+- Owner: SERVICIOS GOLDEN — public Save mounts; Guardados engine already OWNER COMMAND CENTER consume
 - Exact route: public `/clasificados/servicios/[slug]` (missing Save); engine `/dashboard/guardados`
 - Exact component/file: `serviciosSavedListingIdentity.ts` (unused); `LeonixSaveButton.tsx` (not imported by Servicios); live shells use `ServiciosLikeEngagementCluster` + `LeonixShareButton`
 - Exact API/server action: `upsertSavedListingForUser` (not called from Servicios public)
@@ -1168,6 +1225,7 @@ DASH-24, DASH-25, DASH-26, DASH-28, DASH-31, DASH-32, DASH-33, DASH-34, DASH-35,
 - Requirement: Guardados must resolve a saved Servicios key to the current public row.
 - Current source truth: `resolveSavedListingsForDashboard` looks up `servicios_public_listings` by UUID, then `leonix_ad_id`, else `slug`; href `/clasificados/servicios/{slug}`. Same-row republish that preserves UUID/`leonix_ad_id` would still resolve; a Gate-1 duplicate INSERT would orphan the old key. Path is live **if** a row exists; public Save currently cannot create one.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard/guardados`
 - Exact component/file: `savedListingsDashboardResolve.ts`; `guardados/page.tsx`
 - Exact API/server action: `listSavedListingIdsForUser` + resolver (browser Supabase)
@@ -1183,6 +1241,7 @@ DASH-24, DASH-25, DASH-26, DASH-28, DASH-31, DASH-32, DASH-33, DASH-34, DASH-35,
 - Requirement: Remove must delete only the current user's saved row.
 - Current source truth: `deleteSavedListingForUser(sb, ownerId, listingId)` `.eq("user_id").eq("listing_id")` on `saved_listings`. Guardados UI calls that with the resolved card's `listing_id`. Identity-key specific; not a listing-row delete.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard/guardados`
 - Exact component/file: `guardados/page.tsx`; `savedListingsRuntime.ts`
 - Exact API/server action: `deleteSavedListingForUser`
@@ -1198,6 +1257,7 @@ DASH-24, DASH-25, DASH-26, DASH-28, DASH-31, DASH-32, DASH-33, DASH-34, DASH-35,
 - Requirement: Save and Like must not collapse.
 - Current source truth: Like = `LeonixLikeButton` / `listing_like` (+ public like counts). Save (engine) = `saved_listings` / `listing_save`. Community Trust = `leonix_endorsement_votes`. Three domains. Live Servicios public currently exposes Like (and Trust), not Save.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: public Like; Guardados Save
 - Exact component/file: `ServiciosLikeEngagementCluster.tsx`; `savedListingsRuntime.ts`; `leonixEndorsementServer.ts`
 - Exact API/server action: analytics like vs saved_listings vs endorsement RPC
@@ -1213,6 +1273,7 @@ DASH-24, DASH-25, DASH-26, DASH-28, DASH-31, DASH-32, DASH-33, DASH-34, DASH-35,
 - Requirement: Saved Search ≠ Saved Listing.
 - Current source truth: Saved Search = `saved_searches` (category/city/price/`filter_payload`/fingerprint) via `/api/saved-search/**` + `/dashboard/busquedas-guardadas`. Saved Listing = `saved_listings` + `/dashboard/guardados`. No shared table.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard/busquedas-guardadas` vs `/dashboard/guardados`
 - Exact component/file: `savedSearchServerCrud.ts`; `savedListingsRuntime.ts`
 - Exact API/server action: `/api/saved-search/**` vs saved_listings client helpers
@@ -1227,7 +1288,8 @@ DASH-24, DASH-25, DASH-26, DASH-28, DASH-31, DASH-32, DASH-33, DASH-34, DASH-35,
 ### DASH-58 — /dashboard/busquedas-guardadas supports Servicios category
 - Requirement: Owner Saved Search management must support Servicios if the shared engine can adopt it.
 - Current source truth: Generic engine is live (`saved_searches`, Bearer CRUD, fingerprint, email delivery). Dashboard `CATEGORY_REGISTRY` = `autos` | `bienes-raices` | `rentas` only. Public `SavedSearchButton` is on Autos/BR/Rentas results only — **not** Servicios resultados. No `app/lib/saved-search/servicios/*` adapter, matcher, results URL, or delivery resolver. API accepts any `category` string (no allowlist), but unmatched rows render without facet/URL builders. Generic engine does **not** match Servicios indirectly.
-- Classification: **BUILD REQUIRED**
+- Classification: **BLOCKED — SERVICIOS GOLDEN / SHARED UPSTREAM (DASH-58 adapter+registry)**
+- Owner: SERVICIOS GOLDEN / SHARED UPSTREAM — Saved Search adapter + registry
 - Exact route: `/dashboard/busquedas-guardadas`; missing `/clasificados/servicios/resultados` SavedSearchButton
 - Exact component/file: `busquedas-guardadas/page.tsx` CATEGORY_REGISTRY; Rentas reference: `savedSearchRentasAdapter.ts` + matcher + `SavedSearchButton`
 - Exact API/server action: `POST /api/saved-search` (generic)
@@ -1242,7 +1304,8 @@ DASH-24, DASH-25, DASH-26, DASH-28, DASH-31, DASH-32, DASH-33, DASH-34, DASH-35,
 ### DASH-59 — Servicios Saved Search supports canonical location
 - Requirement: Location must use the shared Saved Search location model.
 - Current source truth: Engine location is `saved_searches.city` via `normalizeLocationKey`. Rentas also stores zip/state/country in `filter_payload`. Servicios discovery already has city/state/zip/country (`serviciosDiscoveryContract` / `serviciosBrowseParams`). No adapter maps those fields yet. Blocked on DASH-58.
-- Classification: **BUILD REQUIRED**
+- Classification: **BLOCKED — SERVICIOS GOLDEN / SHARED UPSTREAM (DASH-59)**
+- Owner: SERVICIOS GOLDEN / SHARED UPSTREAM — Saved Search location
 - Exact route: n/a until adapter
 - Exact component/file: `savedSearchCanonicalize.ts`; `serviciosBrowseParams.ts` (source filters)
 - Exact API/server action: generic saved-search CRUD
@@ -1257,7 +1320,8 @@ DASH-24, DASH-25, DASH-26, DASH-28, DASH-31, DASH-32, DASH-33, DASH-34, DASH-35,
 ### DASH-60 — Servicios Saved Search supports relevant category/filter payload
 - Requirement: Persist only filters the live Servicios results matcher uses.
 - Current source truth: Live URL/drawer filters include q, group, seller, verified, licensed, offers, photos/videos, language, etc. (`SERVICIOS_DISCOVERY_CONTRACT_VERSION=2`). No `filter_payload` adapter or matcher orchestrator. Reference: Rentas adapter copies only fields `filterRentasPublicListings` uses.
-- Classification: **BUILD REQUIRED**
+- Classification: **BLOCKED — SERVICIOS GOLDEN / SHARED UPSTREAM (DASH-60)**
+- Owner: SERVICIOS GOLDEN / SHARED UPSTREAM — Saved Search filter/matcher
 - Exact route: `/clasificados/servicios/resultados` (filters live; save CTA missing)
 - Exact component/file: `serviciosDiscoveryContract.ts`; `serviciosResultsFilter.ts`; Rentas reference adapter
 - Exact API/server action: none for Servicios
@@ -1336,6 +1400,7 @@ DASH-40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 54, 55 (source-live or reso
 - Requirement: Business Tools must use canonical `public.businesses.id` + membership, not listing-title inference.
 - Current source truth: Servicios workspace specialized group `ownerBusinessToolsSpecializedGroup` → `/dashboard/business-tools` (no listingId). That page `fetchMyBusinesses` → `GET /api/dashboard/business/diy-concierge/my-businesses` (active `business_memberships` ∩ `businesses`). Then `fetchBusinessHome(chosen.businessId)` → `GET /api/dashboard/business/home?businessId=` → `resolveBusinessHomeAccess` requires exact membership (`cross_business_denied` 403). Canonical id is `businesses.id`. Servicios listing rows are not the business id; coupon rows on the same page are listing capability links back to `/dashboard/servicios`.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard/servicios` doorway; `/dashboard/business-tools`
 - Exact component/file: `ownerBusinessToolsSpecializedGroup.ts`; `business-tools/page.tsx`; `businessHomeClient.ts`; `businessHome/access.ts`
 - Exact API/server action: `GET /api/dashboard/business/diy-concierge/my-businesses`; `GET /api/dashboard/business/home`
@@ -1351,6 +1416,7 @@ DASH-40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 54, 55 (source-live or reso
 - Requirement: Do not fork a Servicios-only Concierge/business OS.
 - Current source truth: `/dashboard/servicios` is the listing `OwnerEntityWorkspace`. Business intelligence is shared `BusinessConciergeOwnerHome` on `/dashboard/business-tools`. No Servicios Concierge copy, no `/dashboard/servicios/business` route.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard/servicios` vs `/dashboard/business-tools`
 - Exact component/file: `dashboard/servicios/page.tsx`; `BusinessConciergeOwnerHome.tsx`
 - Exact API/server action: none extra
@@ -1366,6 +1432,7 @@ DASH-40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 54, 55 (source-live or reso
 - Requirement: Google link only from stored URL; never fabricate ratings/counts.
 - Current source truth: `GET /api/clasificados/servicios/my-listings` reads `profile_json.contact.externalReviewLinks.googleReviewsUrl` through `safeExternalWebsiteHref` (http/s only; dangerous schemes stripped). Dashboard `/dashboard/servicios` pushes `{provider:"google", href}` only if that value is truthy. `OwnerEntityExternalReputation` renders `<a href>` labels only — no stars, no review counts. Missing/invalid → field null → section omitted.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard/servicios`
 - Exact component/file: `my-listings/route.ts`; `serviciosProfileSanitize.ts`; `OwnerEntityExternalReputation.tsx`; `dashboard/servicios/page.tsx`
 - Exact API/server action: `GET /api/clasificados/servicios/my-listings`
@@ -1381,6 +1448,7 @@ DASH-40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 54, 55 (source-live or reso
 - Requirement: Same fail-closed rule for Yelp.
 - Current source truth: Parallel to DASH-63 using `yelpReviewsUrl` → `yelp_review_url`. Same validator and presentation component.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard/servicios`
 - Exact component/file: same as DASH-63
 - Exact API/server action: `GET /api/clasificados/servicios/my-listings`
@@ -1396,6 +1464,7 @@ DASH-40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 54, 55 (source-live or reso
 - Requirement: Do not merge external links with Community Trust.
 - Current source truth: External reputation section = stored Google/Yelp hrefs. Community Trust = `OwnerEntityCommunityTrust` from `GET /api/leonix-endorsements`. Separate props, components, and domains. Comments forbid merging.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard/servicios`
 - Exact component/file: `OwnerEntityExternalReputation.tsx`; `OwnerEntityCommunityTrust.tsx`; `OwnerEntityWorkspace.tsx` section order
 - Exact API/server action: my-listings vs leonix-endorsements
@@ -1411,6 +1480,7 @@ DASH-40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 54, 55 (source-live or reso
 - Requirement: Owner-facing counts must be persisted Leonix votes; zero is truthful; not stars/saves/Google.
 - Current source truth: Public votes persist in `leonix_endorsement_votes` keyed `category=servicios` + `targetId=servicios_public_listings.id`. Dashboard fetches the same GET summary (read-only; owner cannot self-vote here). Zero-count keys still render. Registry is discrete endorsements, not 1–5 stars. Distinct from `servicios_listing_reviews` and `saved_listings`.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard/servicios`
 - Exact component/file: `dashboard/servicios/page.tsx`; `OwnerEntityCommunityTrust.tsx`; `leonixEndorsementRegistry.ts`
 - Exact API/server action: `GET /api/leonix-endorsements?category=servicios&targetId=`
@@ -1428,6 +1498,7 @@ DASH-40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 54, 55 (source-live or reso
 - Requirement: Same canonical listing table/identity.
 - Current source truth: Dashboard inventory/workspace/edit/public all terminate in `servicios_public_listings` (`id`/`slug`/`leonix_ad_id`). Admin queue `/admin/workspace/clasificados/servicios` lists the same table; status mutations `.eq("id")`.
 - Classification: **LIVE**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard/servicios`; `/dashboard/mis-anuncios`; `/admin/workspace/clasificados/servicios`
 - Exact component/file: `listServiciosPublicListingsForOwner`; `listServiciosPublicListingsAdminQueueFromDb`; `servicios/actions.ts`
 - Exact API/server action: my-listings vs admin queue
@@ -1443,6 +1514,7 @@ DASH-40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 54, 55 (source-live or reso
 - Requirement: Same lifecycle source; different controls OK; mutation must not contradict commercial/moderation truth.
 - Current source truth: **Read:** both sides display `servicios_public_listings.listing_status` (dashboard via my-listings; admin via queue + `updateServiciosPublicListingStatusAction`). **Write:** Admin may set published/paused/rejected/suspended. Owner Pause/Resume uses the same column via manage. Owner Resume does **not** consult commercial records (DASH-27 / SRV-GOLDEN-04) — dashboard can write `published` while subscription truth would reject free reactivation. Same column, unsafe owner mutation vs commercial.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: manage API; admin actions
 - Exact component/file: `manage/route.ts`; `admin/.../servicios/actions.ts`
 - Exact API/server action: `POST /api/clasificados/servicios/manage`; `updateServiciosPublicListingStatusAction`
@@ -1458,6 +1530,7 @@ DASH-40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 54, 55 (source-live or reso
 - Requirement: Same Revenue OS / entitlement / subscription tables.
 - Current source truth: Dashboard: `POST /api/dashboard/listing-package-entitlements` → `listing_package_entitlements` + `leonix_subscription_records` + `resolveCommercialStateBadges`. Admin Servicios **listing queue** monetization uses `resolveCategoryListingMonetization` from the listing row (plan catalog; `package_entitlement_not_supplied` warning) — it does **not** load subscription rows on that card. Admin **customer** commercial context (`fetchAdminCustomerCommercialContext`) reads the same entitlement/subscription tables as dashboard. Underlying commercial truth is shared; Admin queue UI is a different projection.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: dashboard entitlements API; admin usuarios commercial; admin Servicios monetization panel
 - Exact component/file: `listing-package-entitlements/route.ts`; `adminCustomerCommercialContext.ts`; `ServiciosAdminMonetizationPanel.tsx`
 - Exact API/server action: dashboard POST entitlements; admin customer aggregator
@@ -1475,6 +1548,7 @@ DASH-40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 54, 55 (source-live or reso
 - Requirement: Source construction for ~390px: drawer nav, primary dominance, overflow sheet, wrapping — not visual QA.
 - Current source truth: `LeonixDashboardShell` below `sm` (640px): hamburger trigger `sm:hidden`, nav is a fixed drawer (`w-[min(88vw,360px)]`), not a persistent sidebar. Page `overflow-x-hidden` + grid `min-w-0`. `OwnerEntityWorkspace` / `DashboardCategoryListingCard`: primary action always visible; quick/lifecycle/specialized collapse into `DashboardMobileActionSheet` (`md:hidden`). Action bars `flex-wrap` + `break-words`. Specialized tools stack in the sheet. **Source construction only — no browser QA this gate.**
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard`, `/dashboard/mis-anuncios`, `/dashboard/servicios`, `/dashboard/business-tools`
 - Exact component/file: `LeonixDashboardShell.tsx`; `OwnerEntityWorkspace.tsx`; `DashboardMobileActionSheet.tsx`; `DashboardListingActionBar.tsx`
 - Exact API/server action: n/a (CSS/layout)
@@ -1490,6 +1564,7 @@ DASH-40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 54, 55 (source-live or reso
 - Requirement: Navigation/layout adaptation; wrap cards/actions/metrics; columns only where safe.
 - Current source truth: At 768px (`md`/`sm+`): shell sidebar becomes in-flow (`sm:static sm:block`) in a **single-column** grid until `lg` (1024). Action bars show inline (`md:block` / `md:flex`). Metrics `flex-wrap`. Compact Mis Anuncios two-column only at `lg:flex`. No 768-specific fixed-width action wall in these consumers.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: same dashboard surfaces
 - Exact component/file: `LeonixDashboardShell.tsx` (`sm:` / `lg:grid-cols`); `DashboardCategoryListingCard.tsx` (`lg:flex`)
 - Exact API/server action: n/a
@@ -1505,6 +1580,7 @@ DASH-40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 54, 55 (source-live or reso
 - Requirement: Persistent workbench/sidebar, sane max-width, not mobile-forced.
 - Current source truth: Workbench `lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)]`, main `max-w-[90rem]`. Sidebar persistent at `lg+`. Actions inline, not in the mobile sheet (`md:hidden` sheet). No source-imposed mobile-only treatment at 1440.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: workbench dashboard pages
 - Exact component/file: `LeonixDashboardShell.tsx` (`contentLayout="workbench"`)
 - Exact API/server action: n/a
@@ -1520,6 +1596,7 @@ DASH-40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 54, 55 (source-live or reso
 - Requirement: Long names/labels must wrap, not force overflow.
 - Current source truth: `OwnerEntityHeader` title sits in `min-w-0`; h1 has no `whitespace-nowrap` (normal wrap). Action labels `break-words leading-snug`. Status chips are color classes without nowrap. Mis Anuncios card title has no nowrap (wraps); subtitle `truncate` (slug only). No source `nowrap` on Servicios business names. Unbreakable strings still need runtime check.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard/servicios`; `/dashboard/mis-anuncios`
 - Exact component/file: `OwnerEntityHeader.tsx`; `DashboardCategoryListingCard.tsx`; `DashboardListingActionBar.tsx`
 - Exact API/server action: n/a
@@ -1535,6 +1612,7 @@ DASH-40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 54, 55 (source-live or reso
 - Requirement: Actions must wrap/overflow into sheet, not a fixed-width wall.
 - Current source truth: `DashboardListingActionBar` `flex min-w-0 max-w-full flex-wrap`. Mobile sheet for secondary groups. Shell `overflow-x-hidden` as last-resort net after `min-w-0` grid fix (BCO-3R-B.7). Specialized groups stack.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: workspace + mis-anuncios cards
 - Exact component/file: `DashboardListingActionBar.tsx`; `OwnerEntityWorkspace.tsx`; `LeonixDashboardShell.tsx`
 - Exact API/server action: n/a
@@ -1550,6 +1628,7 @@ DASH-40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 54, 55 (source-live or reso
 - Requirement: Primary Manage/Edit remains visible/dominant on mobile.
 - Current source truth: Workspace `primaryAction` always rendered (tone primary) outside the sheet. Mis Anuncios Servicios first action is `tone:"primary"` edit/openPanel (`serviciosListingEditHref`). Sheet holds the rest (`md:hidden`).
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard/servicios`; `/dashboard/mis-anuncios`
 - Exact component/file: `OwnerEntityWorkspace.tsx`; `dashboardMisAnunciosCategoryTools.ts`; `DashboardCategoryListingCard.tsx`
 - Exact API/server action: n/a
@@ -1565,6 +1644,7 @@ DASH-40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 54, 55 (source-live or reso
 - Requirement: Pause/Resume and other secondary actions organized, not a mobile wall.
 - Current source truth: Pause/Resume are `lifecycleActions` (`warning`/`positive`). On `md+` they render in their own action bar. Below `md` they go in `DashboardMobileActionSheet` after quick actions, before specialized. Mis Anuncios card groups lifecycle by tone into the same sheet.
 - Classification: **LIVE-SHARED**
+- Owner: OWNER COMMAND CENTER (consume); remaining work none in this receiver
 - Exact route: `/dashboard/servicios`; `/dashboard/mis-anuncios`
 - Exact component/file: `OwnerEntityWorkspace.tsx` overflowActions order; `DashboardCategoryListingCard.tsx` restActions
 - Exact API/server action: n/a
@@ -1622,7 +1702,7 @@ DASH-01, DASH-02, DASH-03, DASH-04, DASH-05, DASH-07, DASH-08, DASH-09, DASH-10,
 
 ### B. REPAIR / BUILD REQUIRED
 
-DASH-23, DASH-27, DASH-53, DASH-58, DASH-59, DASH-60
+NONE in this receiver. Former DASH-23 / DASH-27 / DASH-53 / DASH-58 / DASH-59 / DASH-60 are **BLOCKED — SERVICIOS GOLDEN / SHARED UPSTREAM**, not Owner Command Center product work.
 
 ### C. NOT SUPPORTED — CURRENT PRODUCT
 
@@ -1634,9 +1714,11 @@ DASH-32 (signed Billing Portal session vs static env URL), DASH-33 (`current_per
 
 ### E. BLOCKED / UNKNOWN
 
-NONE
+**BLOCKED — SERVICIOS GOLDEN / SHARED UPSTREAM (current-main source):** DASH-18 (`customQuickFacts` hydration / SRV-GOLDEN-03), DASH-23 (SRV-GOLDEN-01), DASH-27 (SRV-GOLDEN-04), DASH-53 public Save, DASH-58, DASH-59, DASH-60. DASH-16 persist and DASH-21 write-key remain Golden-owned without reclassifying dashboard display/identity emission off LIVE-SHARED/LIVE.
 
-**ALL DASH-01 THROUGH DASH-76 ACCOUNTED FOR:** YES (62 + 6 + 5 + 3 + 0 = 76)
+**UNKNOWN:** NONE
+
+**ALL DASH-01 THROUGH DASH-76 ACCOUNTED FOR:** YES
 
 ## Remaining Gap Ownership Matrix
 
@@ -2370,6 +2452,113 @@ After Servicios Golden lands its finished contracts onto current main, or provid
 6. only then proceed to final receiver integration certification
 
 No owner/browser QA before that final source report/certification.
+
+# 25B. Gates 1–6 — Full DASH-01–76 TRUE/FALSE source proof (2026-09-11)
+
+**Audit HEAD (docs):** `b49cebf669c5b517eb7d78df649f59e9dfdc3312`
+**Product SHA in this worktree:** `9fcadb4daf599e15fca62adcb647abbf96ce6bd8` (`origin/main`; receiver 2 docs commits ahead)
+**origin/main advanced since last reconciliation:** NO
+**Receiver-owned product implementation this gate:** NONE
+**Duplicate architecture:** NONE (single `LeonixDashboardShell` / `OwnerEntityWorkspace`; one Saved Listing engine; one Saved Search engine; no Servicios dashboard island; commercial badges from `resolveCommercialStateBadges`)
+**QA:** NOT RUN (forbidden until PM reviews this MD)
+
+TRUE = Owner Command Center's required source contract in this worktree is complete.
+FALSE = required contract is not met in this source (always with an owner).
+
+| DASH | Classification | SOURCE CONTRACT TRUE | Owner / blocker |
+|---|---|---|---|
+| 01 | LIVE-SHARED | TRUE | runtime deferred |
+| 02 | LIVE | TRUE | runtime deferred; write-key is DASH-23 |
+| 03 | LIVE | TRUE | runtime deferred |
+| 04 | LIVE | TRUE | runtime deferred |
+| 05 | LIVE | TRUE | runtime deferred |
+| 06 | NOT SUPPORTED — CURRENT PRODUCT | TRUE | dedicated workspace is `/dashboard/servicios`; `[id]` is `public.listings` |
+| 07 | LIVE | TRUE | runtime deferred |
+| 08 | LIVE | TRUE | runtime deferred |
+| 09 | LIVE | TRUE | runtime deferred |
+| 10 | LIVE | TRUE | runtime deferred; custom facts via DASH-18 |
+| 11 | NOT SUPPORTED — CURRENT PRODUCT | TRUE | no separate hidden-address owner-only store |
+| 12 | LIVE | TRUE | runtime deferred |
+| 13 | LIVE | TRUE | runtime deferred |
+| 14 | LIVE-SHARED | TRUE | runtime deferred |
+| 15 | LIVE | TRUE | runtime deferred |
+| 16 | LIVE-SHARED | TRUE | OCC display `coupons_offers`; persist FALSE on Golden SRV-GOLDEN-02 |
+| 17 | LIVE-SHARED | TRUE | runtime deferred |
+| 18 | LIVE + BLOCKED hydration | FALSE | SERVICIOS GOLDEN SRV-GOLDEN-03 `customQuickFacts` |
+| 19 | LIVE-SHARED | TRUE | runtime deferred |
+| 20 | LIVE | TRUE | no independent dashboard translation table |
+| 21 | LIVE-SHARED | TRUE | OCC emits `listingId`; UPDATE-by-UUID is DASH-23 / SRV-GOLDEN-01 |
+| 22 | LIVE-SHARED | TRUE | runtime deferred |
+| 23 | BLOCKED — SERVICIOS GOLDEN | FALSE | SRV-GOLDEN-01 allocateSlug+INSERT fallback |
+| 24 | LIVE | TRUE | runtime deferred |
+| 25 | LIVE | TRUE | runtime deferred |
+| 26 | LIVE-SHARED | TRUE | CTA live; commercial fail-closed is DASH-27 |
+| 27 | BLOCKED — SERVICIOS GOLDEN | FALSE | SRV-GOLDEN-04 Resume authority |
+| 28 | LIVE-SHARED | TRUE | runtime deferred |
+| 29 | NOT SUPPORTED — CURRENT PRODUCT | TRUE | no Archive product |
+| 30 | NOT SUPPORTED — CURRENT PRODUCT | TRUE | no Delete product |
+| 31 | LIVE-SHARED | TRUE | portal/Stripe-owned cancel; runtime deferred |
+| 32 | LIVE-SHARED | TRUE | optional session API deferred; static env URL traced |
+| 33 | LIVE-SHARED | TRUE | optional `endsAt` on Servicios cards deferred |
+| 34 | LIVE | TRUE | runtime deferred |
+| 35 | LIVE-SHARED | TRUE | runtime deferred |
+| 36 | LIVE-SHARED | TRUE | runtime deferred |
+| 37 | LIVE-SHARED | TRUE | runtime deferred |
+| 38 | LIVE-SHARED | TRUE | runtime deferred |
+| 39 | LIVE | TRUE | runtime deferred |
+| 40 | LIVE-SHARED | TRUE | optional analytics leaders expansion deferred |
+| 41 | LIVE | TRUE | runtime deferred |
+| 42 | LIVE | TRUE | runtime deferred |
+| 43 | LIVE | TRUE | runtime deferred |
+| 44 | LIVE | TRUE | runtime deferred |
+| 45 | LIVE | TRUE | runtime deferred |
+| 46 | LIVE | TRUE | runtime deferred |
+| 47 | LIVE | TRUE | runtime deferred |
+| 48 | LIVE | TRUE | runtime deferred |
+| 49 | LIVE | TRUE | runtime deferred |
+| 50 | LIVE-SHARED | TRUE | runtime deferred |
+| 51 | LIVE | TRUE | runtime deferred |
+| 52 | NOT SUPPORTED — CURRENT PRODUCT | TRUE | quotes are `servicios_public_leads`, not Messages |
+| 53 | BLOCKED — SERVICIOS GOLDEN | FALSE | public Save mounts; Guardados engine LIVE-SHARED |
+| 54 | LIVE-SHARED | TRUE | runtime deferred after DASH-53 writer exists |
+| 55 | LIVE | TRUE | runtime deferred after DASH-53 |
+| 56 | LIVE | TRUE | source-closed distinctness |
+| 57 | LIVE | TRUE | source-closed distinctness |
+| 58 | BLOCKED — SERVICIOS GOLDEN | FALSE | no Servicios Saved Search registry/adapter on current main |
+| 59 | BLOCKED — SERVICIOS GOLDEN | FALSE | blocked on DASH-58 |
+| 60 | BLOCKED — SERVICIOS GOLDEN | FALSE | blocked on DASH-58 |
+| 61 | LIVE-SHARED | TRUE | runtime deferred |
+| 62 | LIVE | TRUE | no Servicios dashboard island |
+| 63 | LIVE | TRUE | runtime deferred |
+| 64 | LIVE | TRUE | runtime deferred |
+| 65 | LIVE | TRUE | runtime deferred |
+| 66 | LIVE | TRUE | runtime deferred |
+| 67 | LIVE | TRUE | runtime deferred |
+| 68 | LIVE-SHARED | TRUE | same `listing_status`; DASH-27 mutation still Golden |
+| 69 | LIVE-SHARED | TRUE | runtime deferred |
+| 70 | LIVE-SHARED | TRUE | construction only; visual QA deferred |
+| 71 | LIVE-SHARED | TRUE | construction only; visual QA deferred |
+| 72 | LIVE-SHARED | TRUE | construction only; visual QA deferred |
+| 73 | LIVE-SHARED | TRUE | construction only; visual QA deferred |
+| 74 | LIVE-SHARED | TRUE | construction only; visual QA deferred |
+| 75 | LIVE-SHARED | TRUE | construction only; visual QA deferred |
+| 76 | LIVE-SHARED | TRUE | construction only; visual QA deferred |
+
+### Buckets
+
+**A. TRUE — SOURCE COMPLETE:** DASH-06, DASH-11, DASH-20, DASH-29, DASH-30, DASH-52, DASH-56, DASH-57, DASH-62
+
+**B. TRUE — SOURCE COMPLETE, RUNTIME PROOF STILL REQUIRED:** DASH-01, 02, 03, 04, 05, 07, 08, 09, 10, 12, 13, 14, 15, 16, 17, 19, 21, 22, 24, 25, 26, 28, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 54, 55, 61, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76
+
+**C. BLOCKED — EXTERNAL PARALLEL CONTRACT:** DASH-18 (SRV-GOLDEN-03), DASH-23 (SRV-GOLDEN-01), DASH-27 (SRV-GOLDEN-04), DASH-53 (public Save), DASH-58, DASH-59, DASH-60. Related persist/write notes: SRV-GOLDEN-02 (DASH-16 persist), SRV-GOLDEN-01 (DASH-21 UPDATE-by-id)
+
+**D. FALSE — OWNER COMMAND CENTER WORK STILL REQUIRED:** NONE
+
+**UNKNOWN:** NONE
+
+**OWNER COMMAND CENTER REQUIRED PRODUCT SOURCE WORK:** NONE PROVEN
+
+**READY FOR FINAL SOURCE CERTIFICATION GATE:** YES (external Bucket C remaining; QA still forbidden)
 
 # 26. Final motto
 
