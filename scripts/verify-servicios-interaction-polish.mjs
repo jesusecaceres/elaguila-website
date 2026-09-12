@@ -31,6 +31,12 @@ const pkg = read("package.json");
 // Superseded by the owner-locked Servicios Golden grammar (75a66ce8; Owner QA SVC-QA-18/19/20):
 // Guardar is the canonical saved_listings control in the hub row, recorded through the global
 // Servicios save recorder — never a second engine.
+assert(resultStrip.includes("directNativeShare"), "results strip: native share preserved");
+assert(resultStrip.includes("LeonixShareButton"), "results strip: share preserved");
+assert(resultStrip.includes("<LeonixSaveButton"), "results strip: shared Save control");
+assert(resultStrip.includes("serviciosSavedListingExtras"), "results strip: canonical Servicios save extras");
+assert(resultStrip.includes("serviciosGlobalSaveRecorder"), "results strip: shared save recorder");
+
 assert(hubRow.includes("<LeonixSaveButton"), "hub row: Guardar is the canonical saved_listings control");
 assert(hubRow.includes("serviciosGlobalSaveRecorder("), "hub row: save analytics use the global Servicios recorder");
 assert(hubRow.includes('hubEngagementVariant === "save_only"') && hubRow.includes("return null"), "hub row: save_only hides section");
@@ -70,6 +76,9 @@ assert(!listingCard.includes("CtaActionSheet"), "listing card: modal removed");
 
 assert(resultStrip.includes("directNativeShare"), "results strip: native share preserved");
 assert(resultStrip.includes("LeonixShareButton"), "results strip: share preserved");
+assert(resultStrip.includes("<LeonixSaveButton"), "results strip: shared Save control");
+assert(resultStrip.includes("serviciosSavedListingExtras"), "results strip: canonical Servicios save extras");
+assert(resultStrip.includes("serviciosGlobalSaveRecorder"), "results strip: shared save recorder");
 
 assert(howSection.includes("SVC_FEATURES_COMPACT_GRID"), "how section: responsive grid token");
 assert(shellTokens.includes("min-w-0"), "shell tokens: min-width containment");
@@ -79,7 +88,7 @@ assert(shellTokens.includes("xl:grid-cols-4"), "shell tokens: desktop column fil
 
 assert(pkg.includes('"verify:servicios-interaction-polish"'), "package.json: verifier registered");
 
-console.log("OK: Servicios Guardar removed from hub and legacy listing card");
+console.log("OK: Servicios Guardar on hub + live result strip; omitted from legacy listing card");
 console.log("OK: Direct CTAs replace Call/Directions modals on detail + results");
 console.log("OK: Gallery video thumbnails open external source");
 console.log("verify-servicios-interaction-polish: PASS");

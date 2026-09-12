@@ -351,7 +351,12 @@ check("⚠️64/SVC-QA-18/19 action grammar: Like → Save → Share, standard s
   assert.match(src(C("ServiciosProfessionalProfileShell")), /\s+hubEngagementVariant,\s*\}: ServiciosProfessionalProfileShellProps/);
   assert.match(src("app/(site)/clasificados/publicar/servicios/preview/ServiciosProfessionalPreviewShell.tsx"), /hubEngagementVariant="save_only"/);
   const strip = src(C("ServiciosResultCardEngagementStrip"));
-  assert.ok(strip.indexOf("<ServiciosLikeEngagementCluster") < strip.indexOf("<LeonixShareButton"), "results: Like then Share");
+  assert.ok(strip.indexOf("<ServiciosLikeEngagementCluster") < strip.indexOf("<LeonixSaveButton"), "results: Like then Save");
+  assert.ok(strip.indexOf("<LeonixSaveButton") < strip.indexOf("<LeonixShareButton"), "results: Save then Share");
+  assert.match(strip, /<LeonixSaveButton/);
+  assert.match(strip, /serviciosSavedListingExtras/);
+  assert.match(strip, /serviciosGlobalSaveRecorder/);
+  assert.match(strip, /data-servicios-action-order="like,save,share"/);
 });
 check("⚠️16/⚠️59/SVC-QA-17 Community Trust (🦁, real counts) shows in Preview as an honest zero-count preview", () => {
   const trust = src("app/components/leonixCommunityTrust/LeonixCommunityTrust.tsx");

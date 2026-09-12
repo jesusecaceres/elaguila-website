@@ -1907,6 +1907,30 @@ changes status here.
 `https://leonix-media-git-completion-launc-b1b333-jesus-caceres-projects.vercel.app`; GR evidence
 cites the runtime app tree `f4ed31d9`, not a pinned deployment id (Truth §R.10.4).
 
+## 21. OCC receiver contracts — SRV-GOLDEN-01 + DASH-53 result Save (2026-09-11)
+
+Closes the two remaining Golden source contracts required for Owner Command Center intake.
+No owner-browser QA in this gate.
+
+### 21.1 SRV-GOLDEN-01 — fail closed on unresolved `existingListingId`
+
+`app/api/clasificados/servicios/publish/route.ts`:
+
+- **New listing** (no `existingListingId`): `allocateSlug` → `.insert()`.
+- **Existing edit** (`existingListingId` supplied and row owned): UPDATE `.eq("id", canonicalListingId)`; slug adopted from that row; UUID preserved.
+- **Unresolved / unconfigured existing ID**: 404 `listing_not_found`. Persist site also refuses INSERT (`else if (existingListingIdRaw)` / `insert_forbidden`). Dev-workspace upsert skipped.
+- INSERT fallthrough when `existingListingId` is declared: **NO**.
+
+### 21.2 DASH-53 result-card Save
+
+Live discovery cards (`ServiciosHorizontalResultCard`, `ServiciosProfessionalResultCard` via
+`ServiciosResultCardEngagementStrip`) mount the same shared `LeonixSaveButton` +
+`serviciosSavedListingExtras` + `serviciosGlobalSaveRecorder` as the hub detail Save.
+Dead `ServiciosListingResultCard` is unchanged (no second Save).
+
+Proof: `npm run verify:servicios-golden-receiver-contracts` plus gate1 / publish-authority /
+owner-qa-delta / interaction-polish / engagement-2.
+
 ## 20.6 DEEP PROOF AUDIT of Prompt 1 (2026-09-12) — result
 
 Independent re-verification of every Prompt 1 claim against live repo, Stripe and Supabase evidence.

@@ -211,12 +211,14 @@ SAME-ROW REPUBLISH POST /api/clasificados/servicios/publish
                    identity resolution — CORRECTED BY SERVICIOS-3 (this block was stale; §5.1
                    already recorded the repair, §2 had not been updated to match):
                      b.existingListingId  -> getServiciosPublicListingByIdFromDb
+                                          -> MUST resolve ELSE 404 listing_not_found (fail closed)
                                           -> owner check (403 listing_owner_mismatch)
                                           -> adopts that row's OWN slug
                                           -> .update().eq("id", canonicalListingId)
+                                          -> NEVER allocateSlug / NEVER .insert()
                      fallback slug        -> only when no canonical id was ever obtained
                      neither              -> allocateSlug() -> .insert()
-                   <-- ID-KEYED. The slug is public routing/display identity only.
+                   <-- ID-KEYED. Declared existingListingId never degrades to create.
                    no-downgrade rule: an already-`published` row is never regressed to
                    pending on re-save (route.ts:452-456)                                        LIVE
   |

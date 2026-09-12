@@ -141,6 +141,7 @@
     "verify:servicios-trade-render-parity": "node scripts/verify-servicios-trade-render-parity.mjs",
     "verify:servicios-like-display-compact": "node scripts/verify-servicios-like-display-compact.mjs",
     "verify:servicios-interaction-polish": "node scripts/verify-servicios-interaction-polish.mjs",
+    "verify:servicios-golden-receiver-contracts": "node node_modules/tsx/dist/cli.mjs scripts/verify-servicios-golden-receiver-contracts.ts",
     "verify:servicios-engagement-smoke": "npx tsx scripts/servicios-engagement-smoke.ts",
     "verify:servicios-discovery-placement-truth": "node scripts/verify-servicios-discovery-placement-truth.mjs",
     "verify:servicios-analytics-truth": "node scripts/verify-servicios-analytics-truth.mjs",

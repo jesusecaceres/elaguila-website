@@ -54,6 +54,8 @@ assert(legacyPreview.includes("showEngagementControls"), "legacy preview: visibi
 assert(legacyPreview.includes("persistListingEngagement={false}"), "legacy preview: persistence disabled");
 
 assert(resultStrip.includes("ServiciosLikeEngagementCluster"), "result strip: like cluster");
+assert(resultStrip.includes("<LeonixSaveButton"), "result strip: shared Save");
+assert(resultStrip.includes("serviciosSavedListingExtras"), "result strip: canonical save extras");
 assert(resultStrip.includes("LeonixShareButton"), "result strip: share button");
 assert(resultStrip.includes("showEngagementControls"), "result strip: visibility prop");
 assert(resultStrip.includes("persistListingEngagement"), "result strip: persistence prop");
@@ -72,5 +74,5 @@ assert(slugPage.includes("persistListingEngagement"), "slug page: published pers
 assert(pkg.includes('"verify:servicios-engagement-2"'), "package.json: verifier registered");
 
 console.log("OK: preview Like/Share visible without persistence");
-console.log("OK: published results cards expose Like/Share with persistence when live");
+console.log("OK: published results cards expose Like/Save/Share with persistence when live");
 console.log("verify-servicios-engagement-2: PASS");

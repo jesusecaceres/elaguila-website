@@ -190,7 +190,8 @@ const canonicalBlock = publishRoute.slice(
   publishRoute.indexOf("const draft = mapClasificadosServiciosApplicationToServiciosDraft"),
 );
 assert.ok(
-  /canonicalListingId = row\.id[\s\S]*?slug = row\.slug/.test(canonicalBlock),
+  /canonicalListingId = resolvedId[\s\S]*?slug = row\.slug/.test(canonicalBlock) ||
+    /canonicalListingId = row\.id[\s\S]*?slug = row\.slug/.test(canonicalBlock),
   "resolving by id must adopt that row's own slug (stable public URL across a rename)",
 );
 ok("2b. resolving by id adopts the row's own slug — a rename cannot create a duplicate");
@@ -214,6 +215,48 @@ for (const [label, file] of [
   );
 }
 ok("2d. canonical id primed at both listing-bound hydration sites");
+
+/** SRV-GOLDEN-01 — create vs existing edit vs unresolved existing ID are mutually exclusive. */
+const identityBlock = publishRoute.slice(
+  publishRoute.indexOf("if (existingListingIdRaw) {"),
+  publishRoute.indexOf("const draft = mapClasificadosServiciosApplicationToServiciosDraft"),
+);
+assert.ok(
+  /error:\s*"listing_not_found"/.test(identityBlock),
+  "unresolved existingListingId must fail closed with listing_not_found",
+);
+assert.ok(
+  !/allocateSlug\(/.test(identityBlock.slice(0, identityBlock.indexOf("} else {"))),
+  "declared existingListingId must not call allocateSlug before fail-closed/update",
+);
+assert.ok(
+  identityBlock.includes("slug = await allocateSlug(baseSlug)"),
+  "new listing (no existingListingId) must still allocate a slug for INSERT",
+);
+ok("2e. existingListingId unresolved fails closed; create still allocates a slug");
+
+const persistWrite = publishRoute.slice(publishRoute.indexOf("if (existing) {"));
+assert.ok(
+  persistWrite.includes("} else if (existingListingIdRaw)"),
+  "persist site must refuse INSERT when existingListingId was declared",
+);
+assert.ok(
+  persistWrite.includes('error: "listing_not_found"'),
+  "persist-site fail-closed uses listing_not_found",
+);
+assert.ok(
+  persistWrite.includes(".insert(insertRow)"),
+  "new listing path must retain INSERT",
+);
+assert.ok(
+  publishRoute.includes('updateQuery.eq("id", canonicalListingId)'),
+  "existing edit must UPDATE by canonical UUID",
+);
+assert.ok(
+  publishRoute.includes("!existingListingIdRaw && isServiciosDevPublishPersistenceEnabled()"),
+  "declared edit must not fall through to dev-workspace INSERT",
+);
+ok("2f. create INSERT, existing UPDATE by UUID, unresolved existing ID never INSERT");
 
 /* ------------------------------------------------------------------ *
  * 3. Address privacy reaches public rendering
