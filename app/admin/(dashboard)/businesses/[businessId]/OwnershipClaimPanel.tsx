@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { humanizeStaffWriteError } from "@/app/admin/_lib/staffWriteErrorMessages";
 
 /**
  * Systemic Repair Build — Owner Claim / Handoff panel for the existing Business Concierge
@@ -39,7 +40,7 @@ function statusLabel(claim: OwnershipClaimRow): { text: string; className: strin
 
 async function readApiError(res: Response, fallback: string): Promise<string> {
   const data = await res.json().catch(() => ({} as { error?: string }));
-  return typeof data.error === "string" && data.error.trim() ? data.error : fallback;
+  return humanizeStaffWriteError(data.error, fallback);
 }
 
 export function OwnershipClaimPanel({ businessId, canGenerate }: { businessId: string; canGenerate: boolean }) {

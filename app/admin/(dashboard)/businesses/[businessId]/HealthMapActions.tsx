@@ -19,7 +19,7 @@ export function RunAssessmentButton({ businessId }: { businessId: string }) {
     const ok = await postJson(`/api/admin/businesses/${businessId}/health`, "POST", { triggerType: "staff_requested" });
     setSubmitting(false);
     if (!ok) {
-      setError("Could not run the assessment.");
+      setError("No se pudo ejecutar la evaluación. / Could not run the assessment.");
       return;
     }
     router.refresh();
@@ -33,7 +33,7 @@ export function RunAssessmentButton({ businessId }: { businessId: string }) {
         onClick={() => void run()}
         className="min-h-[40px] rounded-lg bg-[#7A1E2C] px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
       >
-        {submitting ? "Running…" : "Run new assessment"}
+        {submitting ? "Ejecutando… / Running…" : "Ejecutar nueva evaluación / Run new assessment"}
       </button>
       {error ? <p className="text-xs text-red-700">{error}</p> : null}
     </div>
@@ -52,7 +52,7 @@ export function MarkHumanReviewForm({ businessId, runId, currentlyRequired }: { 
     const ok = await postJson(`/api/admin/businesses/${businessId}/health/${runId}`, "PATCH", { required: nextRequired, note: note.trim() || null });
     setSubmitting(false);
     if (!ok) {
-      setError("Could not update human review status.");
+      setError("No se pudo actualizar el estado de revisión humana. / Could not update human review status.");
       return;
     }
     setNote("");
@@ -65,17 +65,17 @@ export function MarkHumanReviewForm({ businessId, runId, currentlyRequired }: { 
         value={note}
         onChange={(e) => setNote(e.target.value)}
         rows={2}
-        placeholder="Reviewer note (optional)"
+        placeholder="Nota del revisor (opcional) / Reviewer note (optional)"
         className="w-full rounded-lg border border-[#E8DFD0] px-3 py-2 text-xs"
       />
       <div className="flex flex-wrap gap-2">
         {!currentlyRequired ? (
           <button type="button" disabled={submitting} onClick={() => void toggle(true)} className="min-h-[36px] rounded-lg border border-amber-600 px-3 py-1.5 text-xs font-semibold text-amber-800 disabled:opacity-50">
-            Mark human review required
+            Marcar revisión humana requerida / Mark human review required
           </button>
         ) : (
           <button type="button" disabled={submitting} onClick={() => void toggle(false)} className="min-h-[36px] rounded-lg border border-[#E8DFD0] px-3 py-1.5 text-xs font-semibold text-[#3D3428] disabled:opacity-50">
-            Clear human review flag
+            Quitar marca de revisión humana / Clear human review flag
           </button>
         )}
       </div>

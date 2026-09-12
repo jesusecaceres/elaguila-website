@@ -37,8 +37,14 @@ export const DISCOVERY_SOURCE_REGISTRY: readonly DiscoverySourceDefinition[] = [
     sourceKey: "google_business",
     labelEs: "Perfil de Google Business",
     labelEn: "Google Business Profile",
-    connectionMode: "manual_link",
-    researchSupport: "manual_only",
+    // Live V1 support via the real Google Places API text-search lookup (googlePlacesAdapter.ts),
+    // gated on GOOGLE_PLACES_API_KEY exactly like Gemini is gated on GEMINI_API_KEY — this
+    // declares the V1 architecture supports researching this source type; whether it is actually
+    // configured in a given environment is a separate runtime check (isGooglePlacesConfigured()),
+    // mirroring the provider-registry pattern. Does not require a staff-pasted URL first — it
+    // searches directly by business name + location, since finding the listing IS the point.
+    connectionMode: "public_fetch",
+    researchSupport: "live_v1",
     consentRequired: true,
     evidenceCategories: ["social_profile"],
     freshnessExpectationDays: 90,

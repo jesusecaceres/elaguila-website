@@ -29,7 +29,17 @@ export type SalesNoteType =
   | "other";
 
 export type SalesContactMethod = "phone" | "sms" | "whatsapp" | "email" | "in_person" | "other";
-export type SalesNoteOutcome = "reached" | "no_answer" | "left_message" | "scheduled_follow_up" | "not_interested" | "interested" | "other";
+export type SalesNoteOutcome =
+  | "reached"
+  | "no_answer"
+  | "left_message"
+  | "scheduled_follow_up"
+  | "not_interested"
+  | "interested"
+  | "other"
+  | "spoke_with_staff"
+  | "spoke_with_decision_maker"
+  | "meeting_requested";
 export type FollowUpStoredStatus = "scheduled" | "due_today" | "overdue" | "completed" | "cancelled" | "waiting_on_owner";
 
 type LabeledOption<T extends string> = { value: T; es: string; en: string };
@@ -68,15 +78,28 @@ export const SALES_CONTACT_METHODS: readonly LabeledOption<SalesContactMethod>[]
   { value: "other", es: "Otro", en: "Other" },
 ];
 
+/**
+ * Staff Bible §12 canonical contact-attempt outcome set. `reached` is kept out of this list (still
+ * a valid stored value for historical rows via the DB CHECK constraint, and still rendered by
+ * labelFrom) but is no longer offered in the picker now that spoke_with_staff/
+ * spoke_with_decision_maker give a more specific, decision-maker-aware result — the exact
+ * distinction the Bible's event form requires and a bare "reached" could not express.
+ */
 export const SALES_NOTE_OUTCOMES: readonly LabeledOption<SalesNoteOutcome>[] = [
-  { value: "reached", es: "Se logró contactar", en: "Reached" },
   { value: "no_answer", es: "No contestó", en: "No answer" },
-  { value: "left_message", es: "Se dejó mensaje", en: "Left message" },
-  { value: "scheduled_follow_up", es: "Se agendó seguimiento", en: "Scheduled follow-up" },
-  { value: "not_interested", es: "No interesado", en: "Not interested" },
+  { value: "left_message", es: "Buzón de voz", en: "Voicemail" },
+  { value: "spoke_with_staff", es: "Habló con personal", en: "Spoke with staff" },
+  { value: "spoke_with_decision_maker", es: "Habló con quien decide", en: "Spoke with decision maker" },
   { value: "interested", es: "Interesado", en: "Interested" },
+  { value: "not_interested", es: "No interesado", en: "Not interested" },
+  { value: "scheduled_follow_up", es: "Volver a llamar después", en: "Call back later" },
+  { value: "meeting_requested", es: "Reunión solicitada", en: "Meeting requested" },
   { value: "other", es: "Otro", en: "Other" },
 ];
+
+/** Legacy stored value, kept only so labelFrom() can still render historical rows correctly. */
+const LEGACY_SALES_NOTE_OUTCOME_LABEL: LabeledOption<"reached"> = { value: "reached", es: "Se logró contactar", en: "Reached" };
+export const ALL_SALES_NOTE_OUTCOME_LABELS: readonly LabeledOption<SalesNoteOutcome>[] = [...SALES_NOTE_OUTCOMES, LEGACY_SALES_NOTE_OUTCOME_LABEL];
 
 export const FOLLOW_UP_STATUSES: readonly LabeledOption<FollowUpStoredStatus>[] = [
   { value: "scheduled", es: "Programado", en: "Scheduled" },

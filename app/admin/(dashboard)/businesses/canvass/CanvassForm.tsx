@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { CanvassDuplicateWarning, CanvassIntakeInput, CanvassMode } from "@/app/lib/business/fieldDiscovery/types";
+import { humanizeStaffWriteError } from "@/app/admin/_lib/staffWriteErrorMessages";
 
 type FormState = Partial<CanvassIntakeInput> & { mode: CanvassMode };
 
@@ -68,7 +69,7 @@ export function CanvassForm() {
         return;
       }
       setState("error");
-      setErrorMessage(`No se pudo guardar: ${body.error}. / Could not save: ${body.error}.`);
+      setErrorMessage(humanizeStaffWriteError(body.error, "No se pudo guardar el prospecto. / Could not save the prospect."));
       return;
     }
 

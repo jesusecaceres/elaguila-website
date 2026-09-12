@@ -3,14 +3,14 @@ import type { SnapshotCategory, SnapshotEvidenceRef, SnapshotTruthStatus } from 
 function truthLabel(status: string): { label: string; className: string } {
   switch (status as SnapshotTruthStatus) {
     case "KNOWN":
-      return { label: "Verified", className: "bg-emerald-100 text-emerald-800" };
+      return { label: "Verificado / Verified", className: "bg-emerald-100 text-emerald-800" };
     case "UNAPPROVED_INFERENCE":
-      return { label: "Inferred / draft", className: "bg-amber-100 text-amber-800" };
+      return { label: "Inferido / borrador / Inferred / draft", className: "bg-amber-100 text-amber-800" };
     case "UNKNOWN":
-      return { label: "Missing", className: "bg-[#EDE6D6] text-[#7A7164]" };
+      return { label: "Falta / Missing", className: "bg-[#EDE6D6] text-[#7A7164]" };
     case "STALE":
     case "CONTRADICTED":
-      return { label: "Caution", className: "bg-amber-100 text-amber-900" };
+      return { label: "Precaución / Caution", className: "bg-amber-100 text-amber-900" };
     default:
       return { label: status, className: "bg-[#EDE6D6] text-[#3D3428]" };
   }
@@ -32,7 +32,7 @@ function stringEntries(data: Record<string, unknown>): { key: string; value: str
 
 function FactList({ facts }: { facts: unknown }) {
   if (!Array.isArray(facts) || facts.length === 0) {
-    return <p className="text-xs text-[#7A7164]">No verified facts are stored in this snapshot category.</p>;
+    return <p className="text-xs text-[#7A7164]">No hay hechos verificados guardados en esta categoría de la instantánea. / No verified facts are stored in this snapshot category.</p>;
   }
   return (
     <ul className="mt-1 space-y-1">
@@ -89,7 +89,7 @@ function ItemList({ items, empty }: { items: unknown; empty: string }) {
 
 function ContactList({ contacts }: { contacts: unknown }) {
   if (!Array.isArray(contacts) || contacts.length === 0) {
-    return <p className="text-xs text-[#7A7164]">No stored phone, email, WhatsApp, or website contact.</p>;
+    return <p className="text-xs text-[#7A7164]">No hay teléfono, correo electrónico, WhatsApp o sitio web de contacto guardado. / No stored phone, email, WhatsApp, or website contact.</p>;
   }
   return (
     <ul className="mt-1 space-y-1">
@@ -110,7 +110,7 @@ function ContactList({ contacts }: { contacts: unknown }) {
 
 function ServiceAreaList({ areas }: { areas: unknown }) {
   if (!Array.isArray(areas) || areas.length === 0) {
-    return <p className="mt-2 text-xs text-[#7A7164]">No stored address / service area.</p>;
+    return <p className="mt-2 text-xs text-[#7A7164]">No hay dirección / área de servicio guardada. / No stored address / service area.</p>;
   }
   return (
     <ul className="mt-2 space-y-1">
@@ -129,7 +129,7 @@ function ServiceAreaList({ areas }: { areas: unknown }) {
 
 function AssetList({ assets }: { assets: unknown }) {
   if (!Array.isArray(assets) || assets.length === 0) {
-    return <p className="text-xs text-[#7A7164]">No stored Creative Studio client assets.</p>;
+    return <p className="text-xs text-[#7A7164]">No hay recursos de cliente de Creative Studio guardados. / No stored Creative Studio client assets.</p>;
   }
   return (
     <ul className="mt-1 space-y-2">
@@ -170,7 +170,7 @@ function CategoryBody({ category }: { category: SnapshotCategory }) {
             <div key={key}>
               <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">{key}</dt>
               <dd className="break-words text-xs text-[#3D3428]">
-                {value ? value : <span className="text-[#7A7164]">Missing</span>}
+                {value ? value : <span className="text-[#7A7164]">Falta / Missing</span>}
               </dd>
             </div>
           );
@@ -195,10 +195,10 @@ function CategoryBody({ category }: { category: SnapshotCategory }) {
     return (
       <div className="space-y-2">
         <p className="break-all text-xs text-[#3D3428]">
-          Official website: {website ? website : <span className="text-[#7A7164]">Missing</span>}
+          Sitio web oficial / Official website: {website ? website : <span className="text-[#7A7164]">Falta / Missing</span>}
         </p>
         {profiles.length === 0 ? (
-          <p className="text-xs text-[#7A7164]">No stored official social profiles.</p>
+          <p className="text-xs text-[#7A7164]">No hay perfiles sociales oficiales guardados. / No stored official social profiles.</p>
         ) : (
           <ul className="space-y-1">
             {profiles.map((item, index) => {
@@ -212,7 +212,7 @@ function CategoryBody({ category }: { category: SnapshotCategory }) {
           </ul>
         )}
         {links.length === 0 ? (
-          <p className="text-xs text-[#7A7164]">No stored booking / order links.</p>
+          <p className="text-xs text-[#7A7164]">No hay enlaces de reserva / pedido guardados. / No stored booking / order links.</p>
         ) : (
           <ul className="space-y-1">
             {links.map((item, index) => {
@@ -241,11 +241,11 @@ function CategoryBody({ category }: { category: SnapshotCategory }) {
     return (
       <dl className="mt-1 space-y-1">
         <div>
-          <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Title</dt>
+          <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Título / Title</dt>
           <dd className="break-words text-xs text-[#3D3428]">{String(category.data.titleEn ?? category.data.titleEs ?? "—")}</dd>
         </div>
         <div>
-          <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Type / state</dt>
+          <dt className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Tipo / estado / Type / state</dt>
           <dd className="text-xs text-[#3D3428]">{String(category.data.opportunityType ?? "—")} · {String(category.data.lifecycleState ?? "—")}</dd>
         </div>
         <p className="text-[10px] text-[#7A7164]">Linked opportunity context only. Not confirmed sponsorship.</p>
@@ -254,12 +254,12 @@ function CategoryBody({ category }: { category: SnapshotCategory }) {
   }
 
   if (category.category === "missing_important_information") {
-    return <ItemList items={category.data.items} empty="No missing-information notes were stored in this snapshot." />;
+    return <ItemList items={category.data.items} empty="No se guardaron notas de información faltante en esta instantánea. / No missing-information notes were stored in this snapshot." />;
   }
 
   if (category.category === "source_recommendation") {
     const rows = Array.isArray(category.data.recommendations) ? category.data.recommendations : [];
-    if (rows.length === 0) return <p className="text-xs text-[#7A7164]">No recommendation context is stored in this snapshot.</p>;
+    if (rows.length === 0) return <p className="text-xs text-[#7A7164]">No hay contexto de recomendación guardado en esta instantánea. / No recommendation context is stored in this snapshot.</p>;
     return (
       <ul className="mt-1 space-y-2">
         {rows.map((row, index) => {
@@ -278,14 +278,14 @@ function CategoryBody({ category }: { category: SnapshotCategory }) {
   if (category.category === "ai_research_context") {
     return (
       <p className="mt-1 text-xs text-[#3D3428]">
-        Stored AI research briefing count: {String(category.data.briefingCount ?? 0)}. Context only — not printable confirmed fact.
+        Recuento de resúmenes de investigación de IA guardados / Stored AI research briefing count: {String(category.data.briefingCount ?? 0)}. Solo contexto — no es un hecho confirmado imprimible. / Context only — not printable confirmed fact.
       </p>
     );
   }
 
   const entries = stringEntries(category.data);
   if (entries.length === 0) {
-    return <p className="mt-1 text-xs text-[#7A7164]">This category has no simple stored fields to display.</p>;
+    return <p className="mt-1 text-xs text-[#7A7164]">Esta categoría no tiene campos simples guardados para mostrar. / This category has no simple stored fields to display.</p>;
   }
   return (
     <dl className="mt-1 space-y-1">
@@ -300,16 +300,16 @@ function CategoryBody({ category }: { category: SnapshotCategory }) {
 }
 
 const CATEGORY_TITLES: Record<string, string> = {
-  identity: "Business",
-  approved_contacts_location: "Contacts / location",
-  digital_destinations: "Digital destinations",
-  confirmed_facts: "Confirmed facts",
-  goals_customer_services: "Goals / customer / services",
-  creative_assets: "Creative assets",
-  source_recommendation: "Recommendation context",
-  source_opportunity: "Opportunity context",
-  ai_research_context: "Inferred research context",
-  missing_important_information: "Missing important information",
+  identity: "Negocio / Business",
+  approved_contacts_location: "Contactos / ubicación / Contacts / location",
+  digital_destinations: "Destinos digitales / Digital destinations",
+  confirmed_facts: "Hechos confirmados / Confirmed facts",
+  goals_customer_services: "Metas / cliente / servicios / Goals / customer / services",
+  creative_assets: "Recursos creativos / Creative assets",
+  source_recommendation: "Contexto de recomendación / Recommendation context",
+  source_opportunity: "Contexto de oportunidad / Opportunity context",
+  ai_research_context: "Contexto de investigación inferido / Inferred research context",
+  missing_important_information: "Información importante faltante / Missing important information",
 };
 
 export function CreativeTruthPacket({
@@ -327,21 +327,21 @@ export function CreativeTruthPacket({
   if (loadError) {
     return (
       <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-        <p className="text-xs text-amber-900">The Creative Truth Packet could not be loaded. The rest of the dashboard is still available.</p>
+        <p className="text-xs text-amber-900">No se pudo cargar el Paquete de Verdad Creativa. El resto del panel sigue disponible. / The Creative Truth Packet could not be loaded. The rest of the dashboard is still available.</p>
       </div>
     );
   }
 
   if (!snapshot) {
-    return <p className="text-sm text-[#7A7164]">No verified creative input snapshot is available.</p>;
+    return <p className="text-sm text-[#7A7164]">No hay ninguna instantánea de entrada creativa verificada disponible. / No verified creative input snapshot is available.</p>;
   }
 
   return (
     <div className="space-y-3">
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Creative Truth Packet</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Paquete de Verdad Creativa / Creative Truth Packet</p>
         <p className="mt-1 text-xs text-[#7A7164]">
-          Snapshot of verified/approved inputs used for this creative job. It is not live-mutating canonical business truth.
+          Instantánea de entradas verificadas/aprobadas usadas para este trabajo creativo. No es la verdad canónica del negocio que se modifica en vivo. / Snapshot of verified/approved inputs used for this creative job. It is not live-mutating canonical business truth.
         </p>
         <p className="mt-1 text-[10px] text-[#7A7164]">
           Snapshot v{snapshot.version} · {new Date(snapshot.snapshotTimestamp).toLocaleString()}
@@ -349,7 +349,7 @@ export function CreativeTruthPacket({
       </div>
 
       {snapshot.categories.length === 0 ? (
-        <p className="text-sm text-[#7A7164]">No verified creative input snapshot is available.</p>
+        <p className="text-sm text-[#7A7164]">No hay ninguna instantánea de entrada creativa verificada disponible. / No verified creative input snapshot is available.</p>
       ) : (
         snapshot.categories.map((category) => {
           const badge = truthLabel(category.truthStatus);

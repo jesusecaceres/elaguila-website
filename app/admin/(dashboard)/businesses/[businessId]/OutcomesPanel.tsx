@@ -31,17 +31,17 @@ export function OutcomesPanel({ outcomes }: { outcomes: OutcomeRow[] }) {
         className="flex min-h-[44px] w-full items-center justify-between text-left"
       >
         <h3 className="text-sm font-bold text-[color:var(--lx-text)]">
-          Business Outcomes ({outcomes.length})
+          Resultados del Negocio / Business Outcomes ({outcomes.length})
         </h3>
         <span className="text-xs text-[color:var(--lx-text-muted)]">{expanded ? "▲" : "▼"}</span>
       </button>
       {expanded && (
         <div className="mt-3 space-y-2">
           <p className="text-xs text-[#7A7164]">
-            Recorded observation or result — not guaranteed business impact, not ROI, and not automatic attribution.
+            Observación o resultado registrado — no es impacto de negocio garantizado, no es ROI, y no es atribución automática. / Recorded observation or result — not guaranteed business impact, not ROI, and not automatic attribution.
           </p>
           {outcomes.length === 0 ? (
-            <p className="text-xs text-[color:var(--lx-text-muted)]">No outcomes have been recorded yet.</p>
+            <p className="text-xs text-[color:var(--lx-text-muted)]">Aún no se han registrado resultados. Registre los resultados después de la ejecución o entrega. / No outcomes have been recorded yet. Record outcomes after execution or delivery.</p>
           ) : (
             outcomes.map((o) => (
               <div key={o.id} className="rounded border border-[color:var(--lx-border)] p-3 text-xs">

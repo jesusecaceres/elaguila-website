@@ -57,6 +57,7 @@ export async function POST(
       sourceRecommendationId: null,
       sourceProposalId: null,
       sourceOpportunityId: opportunity.id,
+      sourceProjectBlueprintId: null,
       assetType: OPPORTUNITY_TYPE_TO_ASSET_TYPE[opportunity.opportunityType],
       language,
       format: "FULL_PAGE",

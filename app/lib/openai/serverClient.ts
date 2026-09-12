@@ -15,6 +15,27 @@ const OPENAI_CHAT_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions"
 const OPENAI_IMAGES_URL = "https://api.openai.com/v1/images/generations";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
+// Bounded retry policy (Gate D — MD Part 5): ONLY for failures that are genuinely transient —
+// network/timeout errors and HTTP 429/500/502/503/504. A 4xx client error (bad request, auth
+// failure, content policy) is never retried — retrying a request that is wrong by construction
+// wastes a second billable call for a result that cannot change. At most ONE retry (two total
+// attempts) — never unbounded — with a short fixed backoff, honoring the provider's own
+// Retry-After header when present on a 429.
+const MAX_ATTEMPTS = 2;
+const DEFAULT_RETRY_DELAY_MS = 500;
+const RETRYABLE_HTTP_STATUS = new Set([429, 500, 502, 503, 504]);
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function retryDelayMsFromResponse(res: Response): number {
+  const retryAfter = res.headers.get("retry-after");
+  const parsed = retryAfter ? Number(retryAfter) : NaN;
+  if (Number.isFinite(parsed) && parsed >= 0) return Math.min(parsed * 1000, 5_000);
+  return DEFAULT_RETRY_DELAY_MS;
+}
+
 export function getOpenAiApiKey(): string | null {
   const key = process.env.OPENAI_API_KEY?.trim();
   return key || null;
@@ -44,6 +65,9 @@ export type OpenAiChatResult =
  * Minimal chat-completions call. JSON-mode only (Creative Studio always requests structured
  * output). Never throws — every failure path (missing key, timeout, HTTP error, malformed body)
  * returns a normalized `{ ok: false }` result so callers can persist a bounded failure reason.
+ *
+ * Gate D hardening: bounded retry (see MAX_ATTEMPTS) for transient failures only, a distinct
+ * "rate_limited" failure code, and a max_tokens output ceiling (never unbounded generation).
  */
 export async function requestOpenAiChatCompletion(params: {
   model: string;
@@ -51,50 +75,82 @@ export async function requestOpenAiChatCompletion(params: {
   prompt: string;
   temperature?: number;
   timeoutMs?: number;
+  maxOutputTokens?: number;
 }): Promise<OpenAiChatResult> {
   const apiKey = getOpenAiApiKey();
   if (!apiKey) {
     return { ok: false, failureCode: "provider_unavailable", failureReason: "OPENAI_API_KEY is not configured on the server." };
   }
 
-  try {
-    const res = await withTimeout(
-      fetch(OPENAI_CHAT_COMPLETIONS_URL, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: params.model,
-          temperature: params.temperature ?? 0,
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: params.systemInstruction },
-            { role: "user", content: params.prompt },
-          ],
+  let lastFailure: { failureCode: string; failureReason: string } = { failureCode: "provider_failed", failureReason: "OpenAI request failed." };
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const res = await withTimeout(
+        fetch(OPENAI_CHAT_COMPLETIONS_URL, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: params.model,
+            temperature: params.temperature ?? 0,
+            // Omitted entirely (not defaulted) when the caller doesn't pass one, so this shared
+            // client's behavior for existing callers (Creative Studio, which relies on no cap) is
+            // byte-for-byte unchanged — only a caller that explicitly opts in (the Growth Analyst
+            // provider) gets a max-output ceiling.
+            ...(params.maxOutputTokens ? { max_tokens: params.maxOutputTokens } : {}),
+            response_format: { type: "json_object" },
+            messages: [
+              { role: "system", content: params.systemInstruction },
+              { role: "user", content: params.prompt },
+            ],
+          }),
         }),
-      }),
-      params.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-      "OpenAI request timed out.",
-    );
+        params.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+        "OpenAI request timed out.",
+      );
 
-    const body = (await res.json().catch(() => null)) as
-      | { error?: { message?: string }; choices?: Array<{ message?: { content?: string } }>; usage?: Record<string, unknown> }
-      | null;
+      if (res.status === 429) {
+        lastFailure = { failureCode: "rate_limited", failureReason: "OpenAI rate limit reached." };
+        if (attempt < MAX_ATTEMPTS) {
+          await sleep(retryDelayMsFromResponse(res));
+          continue;
+        }
+        return { ok: false, ...lastFailure };
+      }
 
-    if (!res.ok || !body) {
-      const msg = body?.error?.message?.trim() || `OpenAI HTTP ${res.status}`;
-      return { ok: false, failureCode: "provider_failed", failureReason: msg.slice(0, 500) };
+      const body = (await res.json().catch(() => null)) as
+        | { error?: { message?: string }; choices?: Array<{ message?: { content?: string } }>; usage?: Record<string, unknown> }
+        | null;
+
+      if (!res.ok || !body) {
+        const msg = body?.error?.message?.trim() || `OpenAI HTTP ${res.status}`;
+        lastFailure = { failureCode: "provider_failed", failureReason: msg.slice(0, 500) };
+        if (RETRYABLE_HTTP_STATUS.has(res.status) && attempt < MAX_ATTEMPTS) {
+          await sleep(DEFAULT_RETRY_DELAY_MS);
+          continue;
+        }
+        return { ok: false, ...lastFailure };
+      }
+
+      const text = body.choices?.[0]?.message?.content?.trim();
+      if (!text) {
+        return { ok: false, failureCode: "invalid_provider_output", failureReason: "OpenAI response had no content." };
+      }
+
+      return { ok: true, text, usage: body.usage ?? null };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "OpenAI request failed.";
+      lastFailure = { failureCode: "provider_failed", failureReason: message.slice(0, 500) };
+      // A timeout/network error is the definition of "transient" — safe to retry once, bounded.
+      if (attempt < MAX_ATTEMPTS) {
+        await sleep(DEFAULT_RETRY_DELAY_MS);
+        continue;
+      }
+      return { ok: false, ...lastFailure };
     }
-
-    const text = body.choices?.[0]?.message?.content?.trim();
-    if (!text) {
-      return { ok: false, failureCode: "invalid_provider_output", failureReason: "OpenAI response had no content." };
-    }
-
-    return { ok: true, text, usage: body.usage ?? null };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "OpenAI request failed.";
-    return { ok: false, failureCode: "provider_failed", failureReason: message.slice(0, 500) };
   }
+
+  return { ok: false, ...lastFailure };
 }
 
 export type OpenAiImageResult =

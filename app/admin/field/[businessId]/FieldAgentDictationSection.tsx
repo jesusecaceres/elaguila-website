@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { DictationButton } from "../FieldAgentComponents";
+import { humanizeStaffWriteError } from "@/app/admin/_lib/staffWriteErrorMessages";
 
 /**
  * Program 7, Gate 7G — Voice note capture using client-side dictation only.
@@ -18,7 +19,12 @@ export function FieldAgentDictationSection({ businessId }: { businessId: string 
   const inflightRef = useRef(false);
 
   const canSubmit = Boolean(businessId.trim()) && Boolean(transcript.trim()) && !saving;
+  // Gate 3 — the note lives in Living Book evidence (business_evidence), which the Business
+  // Dashboard renders under #business-book. #outreach is the real, existing follow-up creation
+  // surface (FollowUpPanel) — this is a deep link into it, not a second follow-up path.
   const dashboardBookHref = `/admin/businesses/${businessId}#business-book`;
+  const dashboardOutreachHref = `/admin/businesses/${businessId}#outreach`;
+  const dashboardRootHref = `/admin/businesses/${businessId}`;
 
   async function saveNote() {
     if (!canSubmit || inflightRef.current) return;
@@ -48,13 +54,13 @@ export function FieldAgentDictationSection({ businessId }: { businessId: string 
       });
       const body = await res.json().catch(() => null);
       if (!res.ok || !body?.ok) {
-        setError(String(body?.error ?? "save_failed"));
+        setError(humanizeStaffWriteError(body?.error as string | undefined, "No se pudo guardar la nota. / Could not save the note."));
         return;
       }
       setTranscript("");
       setSaved(true);
     } catch {
-      setError("save_failed");
+      setError("No se pudo guardar la nota. / Could not save the note.");
     } finally {
       inflightRef.current = false;
       setSaving(false);
@@ -98,12 +104,26 @@ export function FieldAgentDictationSection({ businessId }: { businessId: string 
             Esta nota es evidencia del personal y no se convierte automáticamente en un hecho verificado. / This note is
             staff evidence and does not automatically become a verified business fact.
           </p>
-          <Link
-            href={dashboardBookHref}
-            className="mt-2 inline-flex min-h-[44px] items-center text-xs font-semibold text-[#7A1E2C] underline"
-          >
-            View Business Dashboard / Ver Business Book
-          </Link>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <Link
+              href={dashboardBookHref}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-white px-3 py-2 text-xs font-semibold text-[#1E1810]"
+            >
+              Ver nota / View Note
+            </Link>
+            <Link
+              href={dashboardOutreachHref}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-white px-3 py-2 text-xs font-semibold text-[#1E1810]"
+            >
+              Crear seguimiento / Create Follow-up
+            </Link>
+            <Link
+              href={dashboardRootHref}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#7A1E2C] px-3 py-2 text-xs font-semibold text-white"
+            >
+              Abrir Business Dashboard / Open Business Dashboard
+            </Link>
+          </div>
         </div>
       ) : null}
       {error ? (

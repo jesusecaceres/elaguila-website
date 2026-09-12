@@ -75,10 +75,19 @@ export function requiresManagerReviewToOverwrite(existing: { sensitivity: string
  * `visibility` column — sensitivity is the stronger, non-overridable gate. Applied server-side,
  * before the payload is ever serialized to the client — never left for the page to hide.
  */
-export function shapeFactsForOwnerView(facts: readonly BusinessFact[]): BusinessFact[] {
-  return facts.filter((f) => f.status === "active" && f.visibility === "owner_and_staff" && f.sensitivity === "standard");
+// Owner view never exposes staff email/role attribution, sourceClass/confidence/sensitivity
+// classification machinery, the raw structured `value`, or fact-supersession history -- only the
+// plain-language conclusion, matching the field-level stripping shapeDimensionResultsForOwnerView
+// already does for the Health Map (Gate 13 finding: row-level filtering alone left staff metadata
+// in the JSON payload even though no owner-facing page rendered it).
+export function shapeFactsForOwnerView(facts: readonly BusinessFact[]): Pick<BusinessFact, "id" | "factKey" | "displayValue" | "confirmationState" | "lastVerifiedAt">[] {
+  return facts
+    .filter((f) => f.status === "active" && f.visibility === "owner_and_staff" && f.sensitivity === "standard")
+    .map((f) => ({ id: f.id, factKey: f.factKey, displayValue: f.displayValue, confirmationState: f.confirmationState, lastVerifiedAt: f.lastVerifiedAt }));
 }
 
-export function shapeUnknownsForOwnerView(unknowns: readonly BusinessUnknown[]): BusinessUnknown[] {
-  return unknowns.filter((u) => u.visibility === "owner_and_staff" && u.status === "open");
+export function shapeUnknownsForOwnerView(unknowns: readonly BusinessUnknown[]): Pick<BusinessUnknown, "id" | "questionLabel">[] {
+  return unknowns
+    .filter((u) => u.visibility === "owner_and_staff" && u.status === "open")
+    .map((u) => ({ id: u.id, questionLabel: u.questionLabel }));
 }
