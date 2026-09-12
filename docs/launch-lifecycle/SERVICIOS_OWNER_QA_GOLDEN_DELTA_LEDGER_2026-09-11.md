@@ -1854,3 +1854,28 @@ stale current-proof references **0** · source/foundational gaps **0** · owner-
 One **owner configuration decision** is open and is tracked, not hidden: Stripe webhook delivery vs
 Vercel SSO (§20.3 / Truth §R.7). It blocks Runtime Gate B only; it is not a source or documentation
 defect.
+
+## 20.4 Gate B prerequisite — transport RESOLVED, Stripe endpoint outstanding (2026-09-11)
+
+Updates §20.3. Protection Bypass for Automation **already existed** on the project
+(`VERCEL_AUTOMATION_BYPASS_SECRET`, system env var); it was reused, never recreated or rotated, and
+its value appears in no doc, commit, log or report.
+
+Proven with no payment and no Stripe involvement (detail: Truth MD §R.9):
+
+- `POST /api/revenue-os/webhook` **with** the automation bypass → HTTP 400 `application/json`
+  `{"ok":false,"code":"signature_invalid"}` — the application handler ran and rejected the forged
+  signature.
+- The same POST **without** the bypass → HTTP 401 Vercel protection JSON (`vercel_auth_enabled: true`),
+  so human Preview SSO is still enforced.
+- No DB, payment, entitlement, redemption or listing mutation: signature verification precedes the
+  event-ledger claim and every write.
+
+**Still outstanding (owner):** the Stripe **TEST-mode** webhook endpoint must point at the current
+Golden Preview `/api/revenue-os/webhook` with the automation-bypass query parameter, subscribing to
+the nine events the live handler consumes (Truth MD §R.9.2). This session has no Stripe key, webhook
+secret, CLI or connector, so it cannot read or set that endpoint. Live-mode Stripe is untouched.
+
+**GR row effect:** GR-01 and GR-03 remain **PENDING OWNER RUNTIME**. Their prerequisite is now
+narrowed from "webhook delivery unproven" to "Stripe TEST endpoint destination + event set
+unconfirmed"; the Vercel transport half is proven.

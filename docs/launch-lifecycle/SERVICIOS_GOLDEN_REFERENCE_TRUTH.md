@@ -1447,7 +1447,11 @@ the owner must make before any Stripe TEST charge:
 3. Temporarily disable SSO protection for Preview deployments during QA (weakest — exposes Preview).
 
 Stripe webhook endpoints cannot send custom headers, so a header-based bypass cannot work.
-Until one option is chosen and applied, GR-01 and GR-03 cannot be truthfully attempted.
+
+> **TRANSPORT RESOLVED — see §R.9.** Option 1 was already configured on this project before this
+> gate (Protection Bypass for Automation, exposed as the `VERCEL_AUTOMATION_BYPASS_SECRET` system
+> environment variable). It was reused, never recreated or rotated, and its value is not recorded
+> here. What remains is the Stripe TEST endpoint itself (§R.9.2).
 
 ### R.8 MD proof audit result (2026-09-11)
 
@@ -1466,3 +1470,49 @@ Full TRUE/FALSE audit of both canonical documents at doc HEAD `1946a7fa`:
 - False document claims remaining: **0** · unproven source claims: **0** · contradictions: **0** ·
   stale current-proof references: **0** · source/foundational gaps: **0**.
 - Owner-runtime items still pending: **43** (GR-22 NOT SUPPORTED — CURRENT PRODUCT; GR-44 issued last).
+
+### R.9 Preview webhook delivery — transport proven (2026-09-11)
+
+#### R.9.1 Result
+
+Protection Bypass for Automation **already existed** on project `leonix-media` and is designated a
+system environment variable (`VERCEL_AUTOMATION_BYPASS_SECRET`). It was **reused** — not created,
+not rotated — and its value is not written to any document, commit, log or report.
+
+External reachability probe against the Golden candidate Preview
+(`dpl_GtxJzwUWsEJaViSBAnk4nYXfzhp7`, runtime `5b5aae46`), with **no payment and no Stripe
+involvement**:
+
+| Check | Result |
+|---|---|
+| `POST /api/revenue-os/webhook` **with** the automation bypass header | HTTP **400**, `content-type: application/json`, body `{"ok":false,"code":"signature_invalid"}` |
+| Vercel auth HTML in that response | **none** — the application handler answered, not the edge |
+| Same POST **without** the bypass (control) | HTTP **401**, Vercel protection JSON, `vercel_auth_enabled: true` |
+| DB / payment / entitlement / listing mutation | **NONE** — `verifyStripeWebhookEvent` runs before `claimStripeEvent` and before any write, so an invalid signature returns at the top of the route |
+
+Interpretation: the edge bypass works for automation, the application webhook is externally
+reachable, Stripe signature verification is still enforced, and **human Preview SSO remains on**
+(proven by the 401 control, not assumed). Production and `main` were not touched; no protection
+setting was changed by this gate.
+
+#### R.9.2 Remaining infrastructure item — Stripe TEST endpoint (owner)
+
+This session has **no Stripe access**: no `STRIPE_SECRET_KEY`, no `STRIPE_WEBHOOK_SECRET`, no Stripe
+CLI, no Stripe connector. The current TEST webhook destination and its subscribed events therefore
+cannot be read or corrected from here.
+
+The live Revenue OS handler (`app/api/revenue-os/webhook/route.ts` +
+`app/lib/listingPlans/revenueWebhook.ts`) consumes exactly nine events:
+
+```
+checkout.session.completed      checkout.session.expired
+invoice.paid                    invoice.payment_failed
+customer.subscription.updated   customer.subscription.deleted
+charge.refunded                 charge.dispute.created
+charge.dispute.closed
+```
+
+Required for Golden QA: the Stripe **TEST-mode** endpoint must point at the current Golden Preview's
+`/api/revenue-os/webhook` carrying the automation-bypass query parameter, and subscribe to those
+nine events. Live-mode Stripe must not be altered. GR-01 and GR-03 stay PENDING OWNER RUNTIME until
+that endpoint is confirmed.
