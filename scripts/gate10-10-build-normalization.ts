@@ -153,9 +153,6 @@ const SEC0_MAP: Record<string, string[]> = {
   "what success looks like": ["REQ-8.2.5"],
   "what must be tested": ["REQ-26.1"],
   "what must happen after launch": ["REQ-28.1", "REQ-8.25.1"],
-  "then business concierge should generate the project blueprint": ["REQ-0.1"],
-  "discover capture extract verify find gaps ask confirm architect generate project md build qa handoff follow through": ["REQ-0.1"],
-  "the md is the output of disciplined discovery": ["REQ-5.1", "REQ-0.2"],
 };
 MANUAL["0"] = (b) => {
   const key = norm(b.text.replace(/^\[STATE\]\s*/, ""));

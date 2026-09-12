@@ -13712,10 +13712,10 @@
     "sourceLocation": "line 53",
     "disposition": "DUPLICATE_RESTATEMENT",
     "atomicReqIds": [
-      "REQ-5.1",
-      "REQ-0.2"
+      "REQ-0.2",
+      "REQ-5.1"
     ],
-    "reason": "§0 vision-list item restates the specific obligation already independently proven at REQ-5.1/REQ-0.2",
+    "reason": "§0 vision-list item restates the specific obligation already independently proven at REQ-0.2/REQ-5.1",
     "siblingRawIds": [
       "RAW-0007",
       "RAW-0020",
