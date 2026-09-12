@@ -4,6 +4,7 @@ import { actorHasCapability, requireSalesWorkspaceAccess, denialStatusCode, requ
 import { isAiResearchEnabled } from "@/app/lib/business/aiResearch/featureFlag";
 import { getDefaultBusinessIntelligenceProvider } from "@/app/lib/business/aiResearch/providerRegistry";
 import { listResearchRunsForBusiness, runBusinessAiResearch } from "@/app/lib/business/aiResearch/repository";
+import { isGooglePlacesConfigured } from "@/app/lib/business/aiResearch/googlePlacesAdapter";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -14,6 +15,21 @@ async function loadBusinessIdentity(businessId: string): Promise<{ displayName: 
   if (error || !data) return null;
   const row = data as { display_name: string; broad_business_type: string; business_stage: string };
   return { displayName: row.display_name, broadBusinessType: row.broad_business_type, businessStage: row.business_stage };
+}
+
+/** Smallest possible location hint for the Google Places text search — a single bounded read of
+ * the business's own already-stored primary service area, never a new domain/table. */
+async function loadLocationHint(businessId: string): Promise<string | null> {
+  const admin = getAdminSupabase();
+  const { data } = await admin
+    .from("business_service_areas")
+    .select("raw_text, city_hint, is_primary")
+    .eq("business_id", businessId)
+    .order("is_primary", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const row = data as { raw_text?: string; city_hint?: string | null } | null;
+  return row?.city_hint?.trim() || row?.raw_text?.trim() || null;
 }
 
 /** GET — staff-safe research run history + current provider availability for this exact business. */
@@ -32,6 +48,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ bus
     businessId,
     providerAvailable,
     providerKey: provider.providerKey,
+    googlePlacesAvailable: isGooglePlacesConfigured(),
     runs: runs.map((r) => ({
       id: r.id,
       providerKey: r.providerKey,
@@ -56,7 +73,8 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ bu
   const identity = await loadBusinessIdentity(businessId);
   if (!identity) return NextResponse.json({ ok: false, error: "business_not_found" }, { status: 404 });
 
-  const result = await runBusinessAiResearch(businessId, identity, access.actor);
+  const locationHint = await loadLocationHint(businessId);
+  const result = await runBusinessAiResearch(businessId, identity, access.actor, locationHint);
   if (!result.ok) {
     const status = result.error === "provider_unavailable" || result.error === "consent_not_provided" || result.error === "source_not_found" ? 409 : 500;
     return NextResponse.json({ ok: false, error: result.error }, { status });

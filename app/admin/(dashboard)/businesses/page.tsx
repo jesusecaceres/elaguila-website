@@ -1,15 +1,32 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { actorHasCapability, requireSalesWorkspaceAccess, type SalesWorkspaceDenialReason } from "../../_lib/businessWorkspaceAccess";
+import { actorHasCapability, requireSalesWorkspaceAccess, toStaffWriteActor, type SalesWorkspaceDenialReason } from "../../_lib/businessWorkspaceAccess";
 import { listBusinessesForWorkspace } from "../../_lib/businessWorkspaceData";
 import { BUSINESS_SALES_STATUSES, labelFrom, type BusinessSalesStatus } from "../../_lib/salesWorkspaceLogic";
-import { composeStaffConciergeHome, emptyStaffConciergeHome } from "../../_lib/staffConciergeHome";
+import {
+  composeNeedsAttentionList,
+  composeStaffConciergeHome,
+  emptyStaffConciergeHome,
+  STAFF_ATTENTION_REASON_LABELS,
+  type StaffConciergeAttentionEntry,
+} from "../../_lib/staffConciergeHome";
 import { BROAD_BUSINESS_TYPES, BUSINESS_STAGES } from "@/app/lib/business/constants";
 import { countriesSortedByLabel, countryLabel } from "@/app/lib/business/countries";
 import { StaffCommandCenter } from "./StaffCommandCenter";
-import { listAcceptedCurrentProposalsForHandoff } from "@/app/lib/business/proposals/repository";
+import { listAcceptedCurrentProposalsForHandoff, listProposalsAwaitingDecisionForStaffAttention } from "@/app/lib/business/proposals/repository";
 import { listActiveSignalsForStaffAttention } from "@/app/lib/business/advisor/repository";
 import { isAdvisorEnabled } from "@/app/lib/business/advisor/featureFlag";
+import { refreshAdvisorSignalsForWorkspaceScope } from "@/app/lib/business/advisor/refresh";
+import { advisorSignalDashboardAnchor } from "@/app/lib/business/advisor/logic";
+import type { AdvisorSignalType } from "@/app/lib/business/advisor/types";
+import { listUpcomingMeetingsForStaffAttention } from "@/app/lib/business/meetingStudio/repository";
+import { listCommitmentsAttentionForStaffAttention } from "@/app/lib/business/promiseKeeper/repository";
+import { listCreativeAwaitingReviewForStaffAttention } from "@/app/lib/business/creativeStudio/repository";
+import {
+  listBusinessesWithGrowthAssessmentByStatus,
+  listBusinessesWithGrowthCampaignsNeedingAttention,
+  listBusinessesWithPendingOfficialRequirements,
+} from "@/app/lib/business/growthEngine/repository";
 
 export const dynamic = "force-dynamic";
 
@@ -85,42 +102,203 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
 
   let home = emptyStaffConciergeHome();
   let summaryUnavailable = false;
-  let ownerHandoff: Awaited<ReturnType<typeof listAcceptedCurrentProposalsForHandoff>> = [];
-  let ownerHandoffUnavailable = false;
+  let homeScopeBusinessIds: string[] = [];
   try {
     const homeSource = hasListFilters ? (await listBusinessesForWorkspace({ limit: 100 })).items : items;
     home = composeStaffConciergeHome(homeSource);
+    homeScopeBusinessIds = homeSource.map((source) => source.business.id);
   } catch {
     home = emptyStaffConciergeHome();
     summaryUnavailable = true;
   }
-  try {
-    ownerHandoff = await listAcceptedCurrentProposalsForHandoff();
-  } catch {
-    ownerHandoff = [];
-    ownerHandoffUnavailable = true;
-  }
+
+  let ownerHandoff: Awaited<ReturnType<typeof listAcceptedCurrentProposalsForHandoff>> = [];
+  let ownerHandoffUnavailable = false;
+  let proposalsAwaitingDecision: Awaited<ReturnType<typeof listProposalsAwaitingDecisionForStaffAttention>> = [];
+  let upcomingMeetings: Awaited<ReturnType<typeof listUpcomingMeetingsForStaffAttention>> = [];
+  let commitmentsAttention: Awaited<ReturnType<typeof listCommitmentsAttentionForStaffAttention>> = [];
+  let creativeAwaitingReview: Awaited<ReturnType<typeof listCreativeAwaitingReviewForStaffAttention>> = [];
+  let growthAssessmentsNeedingReview: Awaited<ReturnType<typeof listBusinessesWithGrowthAssessmentByStatus>> = [];
+  let growthAssessmentsNeedingCorrection: Awaited<ReturnType<typeof listBusinessesWithGrowthAssessmentByStatus>> = [];
+  let growthCampaignsNeedingAttention: Awaited<ReturnType<typeof listBusinessesWithGrowthCampaignsNeedingAttention>> = [];
+  let growthOfficialRequirementsPending: Awaited<ReturnType<typeof listBusinessesWithPendingOfficialRequirements>> = [];
+  const [
+    ownerHandoffResult,
+    proposalsResult,
+    meetingsResult,
+    commitmentsResult,
+    creativeResult,
+    growthReviewResult,
+    growthCorrectionResult,
+    growthCampaignResult,
+    growthOfficialRequirementResult,
+  ] = await Promise.allSettled([
+    listAcceptedCurrentProposalsForHandoff(),
+    listProposalsAwaitingDecisionForStaffAttention(),
+    listUpcomingMeetingsForStaffAttention(),
+    listCommitmentsAttentionForStaffAttention(),
+    listCreativeAwaitingReviewForStaffAttention(),
+    actorHasCapability(access.actor, "view_growth_engine") ? listBusinessesWithGrowthAssessmentByStatus("needs_review") : Promise.resolve([]),
+    actorHasCapability(access.actor, "view_growth_engine") ? listBusinessesWithGrowthAssessmentByStatus("needs_correction") : Promise.resolve([]),
+    actorHasCapability(access.actor, "view_growth_engine") ? listBusinessesWithGrowthCampaignsNeedingAttention() : Promise.resolve([]),
+    actorHasCapability(access.actor, "view_growth_engine") ? listBusinessesWithPendingOfficialRequirements() : Promise.resolve([]),
+  ]);
+  if (ownerHandoffResult.status === "fulfilled") ownerHandoff = ownerHandoffResult.value;
+  else ownerHandoffUnavailable = true;
+  if (proposalsResult.status === "fulfilled") proposalsAwaitingDecision = proposalsResult.value;
+  if (meetingsResult.status === "fulfilled") upcomingMeetings = meetingsResult.value;
+  if (commitmentsResult.status === "fulfilled") commitmentsAttention = commitmentsResult.value;
+  if (creativeResult.status === "fulfilled") creativeAwaitingReview = creativeResult.value;
+  if (growthReviewResult.status === "fulfilled") growthAssessmentsNeedingReview = growthReviewResult.value;
+  if (growthCorrectionResult.status === "fulfilled") growthAssessmentsNeedingCorrection = growthCorrectionResult.value;
+  if (growthCampaignResult.status === "fulfilled") growthCampaignsNeedingAttention = growthCampaignResult.value;
+  if (growthOfficialRequirementResult.status === "fulfilled") growthOfficialRequirementsPending = growthOfficialRequirementResult.value;
+
+  // Advisor: bounded, idempotent refresh (write) then a read. The refresh only ever runs for a
+  // real staff actor — owner_bootstrap has no roster identity to attribute the write to, so a
+  // bootstrap session falls back to the read-only path (existing signals only, none newly
+  // detected this load). See app/lib/business/advisor/refresh.ts.
   let advisorEnabled = false;
   let advisorSignals: Awaited<ReturnType<typeof listActiveSignalsForStaffAttention>> = [];
   let advisorUnavailable = false;
   try {
     advisorEnabled = await isAdvisorEnabled();
-    advisorSignals = advisorEnabled ? await listActiveSignalsForStaffAttention() : [];
+    if (advisorEnabled) {
+      const writeAccess = toStaffWriteActor(access.actor);
+      if (writeAccess.ok && homeScopeBusinessIds.length > 0) {
+        try {
+          await refreshAdvisorSignalsForWorkspaceScope(homeScopeBusinessIds, writeAccess.actor);
+        } catch {
+          // Refresh is best-effort — a scan failure must never block the page from loading
+          // existing signals below.
+        }
+      }
+      advisorSignals = await listActiveSignalsForStaffAttention();
+    }
   } catch {
     advisorSignals = [];
     advisorUnavailable = true;
   }
+
+  const followUpEntries: StaffConciergeAttentionEntry[] = home.attentionBusinesses.map((item) => ({
+    businessId: item.businessId,
+    displayName: item.displayName,
+    reasonLabel: STAFF_ATTENTION_REASON_LABELS[item.reason],
+    detailText: item.followUpDate,
+    href: `/admin/businesses/${item.businessId}#outreach`,
+  }));
+  const commitmentEntries: StaffConciergeAttentionEntry[] = commitmentsAttention.map((row) => ({
+    businessId: row.businessId,
+    displayName: row.displayName,
+    reasonLabel: row.reason === "blocked" ? "Blocked commitment" : "Overdue commitment",
+    detailText: row.titleEn || null,
+    href: `/admin/businesses/${row.businessId}#promises`,
+  }));
+  const proposalEntries: StaffConciergeAttentionEntry[] = proposalsAwaitingDecision.map((row) => ({
+    businessId: row.businessId,
+    displayName: row.displayName,
+    reasonLabel: "Proposal awaiting client decision",
+    detailText: `v${row.version}${row.reviewDate ? ` · review ${row.reviewDate}` : ""}`,
+    href: `/admin/businesses/${row.businessId}#proposals`,
+  }));
+  const creativeEntries: StaffConciergeAttentionEntry[] = creativeAwaitingReview.map((row) => ({
+    businessId: row.businessId,
+    displayName: row.displayName,
+    reasonLabel: "Creative awaiting review",
+    detailText: row.status === "owner_review" ? "Waiting on client" : "Waiting on staff review",
+    href: `/admin/businesses/${row.businessId}#creative`,
+  }));
+  const meetingSoonCutoff = Date.now() + 48 * 60 * 60 * 1000;
+  const meetingEntries: StaffConciergeAttentionEntry[] = upcomingMeetings
+    .filter((row) => new Date(row.scheduledAt).getTime() <= meetingSoonCutoff)
+    .map((row) => ({
+      businessId: row.businessId,
+      displayName: row.displayName,
+      reasonLabel: "Upcoming meeting",
+      detailText: new Date(row.scheduledAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }),
+      href: `/admin/businesses/${row.businessId}#meetings`,
+    }));
+  const ADVISOR_ONLY_ATTENTION_TYPES = new Set<AdvisorSignalType>(["UNRESOLVED_CONTRADICTION", "STALE_CRITICAL_TRUTH", "OUTCOME_REVIEW_DUE"]);
+  const advisorOnlyEntries: StaffConciergeAttentionEntry[] = advisorSignals
+    .filter((row) => ADVISOR_ONLY_ATTENTION_TYPES.has(row.signalType))
+    .map((row) => ({
+      businessId: row.businessId,
+      displayName: row.displayName,
+      reasonLabel: row.titleEn,
+      detailText: null,
+      href: `/admin/businesses/${row.businessId}${advisorSignalDashboardAnchor(row.signalType)}`,
+    }));
+  const missingInfoEntries: StaffConciergeAttentionEntry[] = home.missingInformation.map((item) => ({
+    businessId: item.businessId,
+    displayName: item.displayName,
+    reasonLabel: item.missingLabel,
+    detailText: `${item.completenessMet}/${item.completenessTotal} complete`,
+    href: `/admin/businesses/${item.businessId}#overview`,
+  }));
+  const growthAssessmentEntries: StaffConciergeAttentionEntry[] = growthAssessmentsNeedingReview.map((row) => ({
+    businessId: row.businessId,
+    displayName: row.displayName,
+    reasonLabel: "Growth assessment needs review",
+    detailText: new Date(row.createdAt).toLocaleDateString("en-US"),
+    href: `/admin/businesses/${row.businessId}#growth-plan`,
+  }));
+  // Gate D (MD Part 12) — three more Growth Engine attention sources, same bounded/capped/
+  // read-only pattern as growthAssessmentEntries above. Overdue Growth-sourced Promise Keeper
+  // commitments deliberately have NO entry here — a real commitment created through the Gate D
+  // commitment-request bridge already resurfaces via the EXISTING commitmentEntries above (Promise
+  // Keeper's own canonical overdue/blocked query); a second, Growth-scoped overdue-commitment query
+  // would itself be the prohibited "second attention engine".
+  const growthCorrectionEntries: StaffConciergeAttentionEntry[] = growthAssessmentsNeedingCorrection.map((row) => ({
+    businessId: row.businessId,
+    displayName: row.displayName,
+    reasonLabel: "Growth assessment needs correction",
+    detailText: new Date(row.createdAt).toLocaleDateString("en-US"),
+    href: `/admin/businesses/${row.businessId}#growth-plan`,
+  }));
+  const growthCampaignAttentionEntries: StaffConciergeAttentionEntry[] = growthCampaignsNeedingAttention.map((row) => ({
+    businessId: row.businessId,
+    displayName: row.displayName,
+    reasonLabel: row.status === "needs_client_input" ? "Growth campaign needs client input" : "Growth campaign ready for review",
+    detailText: new Date(row.updatedAt).toLocaleDateString("en-US"),
+    href: `/admin/businesses/${row.businessId}#growth-plan`,
+  }));
+  const growthOfficialRequirementEntries: StaffConciergeAttentionEntry[] = growthOfficialRequirementsPending.map((row) => ({
+    businessId: row.businessId,
+    displayName: row.displayName,
+    reasonLabel: "Official requirement needs verification",
+    detailText: row.requirementTopicEn,
+    href: `/admin/businesses/${row.businessId}#growth-plan`,
+  }));
+
+  const needsAttention = composeNeedsAttentionList([
+    followUpEntries,
+    commitmentEntries,
+    proposalEntries,
+    creativeEntries,
+    meetingEntries,
+    advisorOnlyEntries,
+    missingInfoEntries,
+    growthAssessmentEntries,
+    growthCorrectionEntries,
+    growthCampaignAttentionEntries,
+    growthOfficialRequirementEntries,
+  ]);
 
   return (
     <div className="max-w-6xl space-y-6">
       <StaffCommandCenter
         home={home}
         summaryUnavailable={summaryUnavailable}
+        needsAttention={needsAttention}
         ownerHandoff={ownerHandoff}
         ownerHandoffUnavailable={ownerHandoffUnavailable}
         advisorSignals={advisorSignals}
         advisorUnavailable={advisorUnavailable}
         advisorEnabled={advisorEnabled}
+        proposalsAwaitingDecision={proposalsAwaitingDecision}
+        upcomingMeetings={upcomingMeetings}
+        commitmentsAttention={commitmentsAttention}
+        creativeAwaitingReview={creativeAwaitingReview}
       />
 
       <section id="businesses-inventory" className="space-y-4 scroll-mt-4">

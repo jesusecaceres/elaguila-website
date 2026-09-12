@@ -23,7 +23,7 @@ function actorRole(actor: OutcomeActor): string {
 }
 
 const OUTCOME_COLUMNS =
-  "id, business_id, recommendation_id, commitment_id, creative_job_id, metric_key, metric_label_es, metric_label_en, baseline_value, baseline_unit, baseline_observed_at, measured_value, measured_unit, measurement_source, measured_at, result, confidence, causation_claim, review_status, next_review_at, created_actor_type, created_by_roster_id, created_by_auth_user_id, created_by_email, created_by_role, reviewed_actor_type, reviewed_by_roster_id, reviewed_by_auth_user_id, reviewed_by_email, reviewed_by_role, reviewed_at, created_at, updated_at";
+  "id, business_id, recommendation_id, commitment_id, creative_job_id, growth_campaign_id, growth_solution_id, metric_key, metric_label_es, metric_label_en, baseline_value, baseline_unit, baseline_observed_at, measured_value, measured_unit, measurement_source, measured_at, result, confidence, causation_claim, review_status, next_review_at, created_actor_type, created_by_roster_id, created_by_auth_user_id, created_by_email, created_by_role, reviewed_actor_type, reviewed_by_roster_id, reviewed_by_auth_user_id, reviewed_by_email, reviewed_by_role, reviewed_at, created_at, updated_at";
 
 function mapOutcomeRow(row: Record<string, unknown>): BusinessOutcome {
   return {
@@ -32,6 +32,8 @@ function mapOutcomeRow(row: Record<string, unknown>): BusinessOutcome {
     recommendationId: (row.recommendation_id as string | null) ?? null,
     commitmentId: (row.commitment_id as string | null) ?? null,
     creativeJobId: (row.creative_job_id as string | null) ?? null,
+    growthCampaignId: (row.growth_campaign_id as string | null) ?? null,
+    growthSolutionId: (row.growth_solution_id as string | null) ?? null,
     metricKey: String(row.metric_key),
     metricLabelEs: String(row.metric_label_es),
     metricLabelEn: String(row.metric_label_en),
@@ -74,6 +76,19 @@ export async function listBusinessOutcomes(businessId: string): Promise<Business
   return data.map(mapOutcomeRow);
 }
 
+/** Gate — Growth Engine linkage. Same query shape as listBusinessOutcomes, scoped to one campaign. */
+export async function listOutcomesForGrowthCampaign(businessId: string, growthCampaignId: string): Promise<BusinessOutcome[]> {
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("business_outcomes")
+    .select(OUTCOME_COLUMNS)
+    .eq("business_id", businessId)
+    .eq("growth_campaign_id", growthCampaignId)
+    .order("created_at", { ascending: false });
+  if (error || !data) return [];
+  return data.map(mapOutcomeRow);
+}
+
 export async function getOutcomeDetail(businessId: string, outcomeId: string): Promise<BusinessOutcome | null> {
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
@@ -101,6 +116,8 @@ export type CreateOutcomeInput = {
   recommendationId?: string | null;
   commitmentId?: string | null;
   creativeJobId?: string | null;
+  growthCampaignId?: string | null;
+  growthSolutionId?: string | null;
   metricKey: string;
   metricLabelEs: string;
   metricLabelEn: string;
@@ -136,6 +153,8 @@ export async function createOutcome(
       recommendation_id: input.recommendationId ?? null,
       commitment_id: input.commitmentId ?? null,
       creative_job_id: input.creativeJobId ?? null,
+      growth_campaign_id: input.growthCampaignId ?? null,
+      growth_solution_id: input.growthSolutionId ?? null,
       metric_key: input.metricKey,
       metric_label_es: input.metricLabelEs,
       metric_label_en: input.metricLabelEn,

@@ -31,7 +31,7 @@ export function isValidCreativeJobStatusTransition(from: string, to: string): bo
 export const CREATIVE_ASSET_TYPES: readonly string[] = [
   "magazine_ad", "sponsored_insert", "business_description", "social_copy",
   "whatsapp_promo_copy", "flyer_copy", "coupon_copy", "logo_direction",
-  "website_strategy", "campaign_plan_30_day",
+  "website_strategy", "campaign_plan_30_day", "print_collateral_direction",
 ];
 
 export const CREATIVE_LANGUAGES: readonly string[] = [

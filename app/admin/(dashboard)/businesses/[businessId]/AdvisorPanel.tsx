@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { advisorSignalDashboardAnchor } from "@/app/lib/business/advisor/logic";
 import type { AdvisorSignalType } from "@/app/lib/business/advisor/types";
+import { humanizeStaffWriteError } from "@/app/admin/_lib/staffWriteErrorMessages";
 
 /**
  * Program 7 — Admin UI panel for Proactive Advisor signals.
@@ -39,12 +40,12 @@ export function AdvisorPanel({ businessId, signals }: { businessId: string; sign
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        setError(typeof body?.error === "string" ? body.error : "Advisor action failed. The signal was not changed.");
+        setError(humanizeStaffWriteError(typeof body?.error === "string" ? body.error : undefined, "La acción del asesor falló. La señal no cambió. / Advisor action failed. The signal was not changed."));
         return;
       }
       window.location.reload();
     } catch {
-      setError("Advisor action failed. The signal was not changed.");
+      setError("La acción del asesor falló. La señal no cambió. / Advisor action failed. The signal was not changed.");
     } finally {
       setActioning(null);
     }
@@ -57,18 +58,18 @@ export function AdvisorPanel({ businessId, signals }: { businessId: string; sign
         className="flex min-h-[44px] w-full items-center justify-between text-left"
       >
         <h3 className="text-sm font-bold text-[color:var(--lx-text)]">
-          Advisor Signals ({activeSignals.length} active)
+          Señales del Asesor / Advisor Signals ({activeSignals.length} active)
         </h3>
         <span className="text-xs text-[color:var(--lx-text-muted)]">{expanded ? "▲" : "▼"}</span>
       </button>
       {expanded && (
         <div className="mt-3 space-y-2">
           <p className="text-xs text-[#7A7164]">
-            Advisor can surface and point staff to an existing workflow. It cannot create recommendations, rewrite facts, send messages, charge, or publish.
+            El asesor puede mostrar y dirigir al personal hacia un flujo de trabajo existente. No puede crear recomendaciones, reescribir hechos, enviar mensajes, cobrar ni publicar. / Advisor can surface and point staff to an existing workflow. It cannot create recommendations, rewrite facts, send messages, charge, or publish.
           </p>
           {error ? <p className="text-xs text-[#7A1E2C]">{error}</p> : null}
           {activeSignals.length === 0 ? (
-            <p className="text-xs text-[color:var(--lx-text-muted)]">No active advisor signals.</p>
+            <p className="text-xs text-[color:var(--lx-text-muted)]">No hay señales activas del asesor. / No active advisor signals.</p>
           ) : (
             activeSignals.map((s) => {
               const anchor = advisorSignalDashboardAnchor(s.signalType as AdvisorSignalType);
@@ -89,21 +90,21 @@ export function AdvisorPanel({ businessId, signals }: { businessId: string; sign
                       disabled={actioning === s.id}
                       className="inline-flex min-h-[44px] items-center rounded bg-[#7A1E2C] px-3 py-2 text-xs font-semibold text-white hover:bg-[#6A1825] disabled:opacity-50"
                     >
-                      Acknowledge
+                      Reconocer / Acknowledge
                     </button>
                     <button
                       onClick={() => handleAction(s.id, "resolve")}
                       disabled={actioning === s.id}
                       className="inline-flex min-h-[44px] items-center rounded bg-[#1F4D3A] px-3 py-2 text-xs font-semibold text-white hover:bg-[#17392C] disabled:opacity-50"
                     >
-                      Resolve
+                      Resolver / Resolve
                     </button>
                     <button
                       onClick={() => handleAction(s.id, "dismiss")}
                       disabled={actioning === s.id}
                       className="inline-flex min-h-[44px] items-center rounded bg-[#5C564C] px-3 py-2 text-xs font-semibold text-white hover:bg-[#3D3428] disabled:opacity-50"
                     >
-                      Dismiss
+                      Descartar / Dismiss
                     </button>
                   </div>
                 </div>

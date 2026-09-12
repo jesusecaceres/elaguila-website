@@ -30,6 +30,7 @@ type MeetingJourneyProps = {
   };
   followThrough: {
     canViewCommitments: boolean;
+    canCreateCommitment: boolean;
     hasCurrentProposal: boolean;
     hasRecommend: boolean;
     hasOpportunity: boolean;
@@ -116,20 +117,20 @@ export function MeetingJourney({
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="font-serif text-lg font-bold text-[#1E1810]">Meetings</h2>
+        <h2 className="font-serif text-lg font-bold text-[#1E1810]">Reuniones / Meetings</h2>
         <p className="mt-1 text-xs text-[#7A7164]">
-          Prepare → conduct → review → follow through. Meeting notes stay meeting notes until a human promotes them.
+          Preparar → realizar → revisar → dar seguimiento. Las notas de reunión siguen siendo notas de reunión hasta que una persona las promueve. / Prepare → conduct → review → follow through. Meeting notes stay meeting notes until a human promotes them.
         </p>
       </div>
 
       <section className="rounded-2xl border border-[#C9A84A]/50 bg-[#FBF7EF] p-4">
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">1. Meeting Prep</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">1. Preparación de la Reunión / 1. Meeting Prep</p>
         <h3 className="mt-1 font-serif text-lg font-bold text-[#1E1810]">Lion&apos;s Cockpit</h3>
         <p className="mt-1 text-xs text-[#7A7164]">
-          Executive briefing before speaking with this business. Deterministic existing truth only — no invented facts, no AI advisor, no live recorder.
+          Resumen ejecutivo antes de hablar con este negocio. Solo verdad existente y determinista — sin hechos inventados, sin asesor de IA, sin grabación en vivo. / Executive briefing before speaking with this business. Deterministic existing truth only — no invented facts, no AI advisor, no live recorder.
         </p>
         {preparedCount === 0 ? (
-          <p className="mt-2 text-xs text-[#7A7164]">No meeting is currently being prepared.</p>
+          <p className="mt-2 text-xs text-[#7A7164]">Actualmente no hay ninguna reunión en preparación. / No meeting is currently being prepared.</p>
         ) : (
           <p className="mt-2 text-xs text-[#1F3A2D]">
             {preparedCount} meeting{preparedCount === 1 ? "" : "s"} currently in prepared status.
@@ -138,41 +139,41 @@ export function MeetingJourney({
 
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
           <BriefingList
-            title="What we know"
+            title="Lo que sabemos / What we know"
             items={briefing.truthClasses.confirmed}
             tone="text-emerald-800"
-            empty="No confirmed Living Book facts yet."
+            empty="Aún no hay hechos confirmados en el Living Book. / No confirmed Living Book facts yet."
           />
           {briefing.truthClasses.ownerStated.length > 0 ? (
-            <BriefingList title="Owner-stated (not yet confirmed)" items={briefing.truthClasses.ownerStated} tone="text-[#3D3428]" />
+            <BriefingList title="Declarado por el dueño (aún no confirmado) / Owner-stated (not yet confirmed)" items={briefing.truthClasses.ownerStated} tone="text-[#3D3428]" />
           ) : null}
           {briefing.truthClasses.staffObservation.length > 0 ? (
-            <BriefingList title="Evidence / staff observation" items={briefing.truthClasses.staffObservation} tone="text-[#3D3428]" />
+            <BriefingList title="Evidencia y observación del personal / Evidence / staff observation" items={briefing.truthClasses.staffObservation} tone="text-[#3D3428]" />
           ) : null}
           <BriefingList
-            title="What we don't know"
+            title="Lo que no sabemos / What we don't know"
             items={openUnknowns.length > 0 ? openUnknowns : briefing.truthClasses.unknown}
             tone="text-amber-800"
-            empty="No open unknowns on file."
+            empty="No hay incógnitas abiertas registradas. / No open unknowns on file."
           />
           {briefing.truthClasses.contradiction.length > 0 ? (
             <BriefingList
-              title="Contradictions / cautions"
+              title="Contradicciones y precauciones / Contradictions / cautions"
               items={openContradictions.length > 0 ? openContradictions : briefing.truthClasses.contradiction}
               tone="text-red-700"
             />
           ) : null}
           {briefing.truthClasses.aiInference.length > 0 ? (
-            <BriefingList title="AI inference (not a confirmed fact)" items={briefing.truthClasses.aiInference} tone="text-purple-700" />
+            <BriefingList title="Inferencia de IA (no es un hecho confirmado) / AI inference (not a confirmed fact)" items={briefing.truthClasses.aiInference} tone="text-purple-700" />
           ) : null}
           {briefing.truthClasses.systemDerived.length > 0 ? (
-            <BriefingList title="System-derived" items={briefing.truthClasses.systemDerived} tone="text-[#3D3428]" />
+            <BriefingList title="Derivado del sistema / System-derived" items={briefing.truthClasses.systemDerived} tone="text-[#3D3428]" />
           ) : null}
         </div>
 
         {briefing.healthMap ? (
           <div className="mt-3 rounded-lg border border-[#E8DFD0] bg-white p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Business health context</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Contexto de salud del negocio / Business health context</p>
             <p className="mt-1 text-xs text-[#3D3428]">
               Strong: {briefing.healthMap.strongCount} · Needs attention: {briefing.healthMap.needsAttentionCount} · Insufficient info: {briefing.healthMap.insufficientInfoCount} · Blocked: {briefing.healthMap.contradictionBlockedCount}
             </p>
@@ -180,7 +181,7 @@ export function MeetingJourney({
         ) : null}
 
         <div className="mt-3 rounded-lg border border-[#E8DFD0] bg-white p-3">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Current relationship / follow-up</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Relación actual y seguimiento / Current relationship / follow-up</p>
           <p className="mt-1 text-xs font-semibold text-[#1E1810]">{relationship.statusLabel}</p>
           <p className="mt-1 text-xs text-[#7A7164]">
             Last contacted: {relationship.lastContactedAt ? new Date(relationship.lastContactedAt).toLocaleString("en-US") : "not recorded"}
@@ -190,7 +191,7 @@ export function MeetingJourney({
               Sales follow-up {relationship.followUp.scheduledDate} · {relationship.followUp.displayStatus}
             </p>
           ) : (
-            <p className="mt-1 text-xs text-[#7A7164]">No sales follow-up scheduled. Relationship follow-up lives in Outreach, not Promise Keeper.</p>
+            <p className="mt-1 text-xs text-[#7A7164]">No hay seguimiento de ventas programado. El seguimiento de la relación vive en Outreach, no en Promise Keeper. / No sales follow-up scheduled. Relationship follow-up lives in Outreach, not Promise Keeper.</p>
           )}
           <a href="#outreach" className="mt-2 inline-flex min-h-[44px] items-center text-xs font-semibold text-[#7A1E2C] underline">
             Open Outreach
@@ -199,7 +200,7 @@ export function MeetingJourney({
 
         {briefing.recommendation ? (
           <div className="mt-3 rounded-lg border border-[#E8DFD0] bg-white p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Open recommendations</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Recomendaciones abiertas / Open recommendations</p>
             <p className="mt-1 text-xs font-semibold text-[#1E1810]">{briefing.recommendation.candidateKey}</p>
             <p className="mt-1 text-xs text-[#3D3428]">{briefing.recommendation.verifiedNeedEn}</p>
             <p className="mt-1 text-[10px] text-[#7A7164]">
@@ -213,7 +214,7 @@ export function MeetingJourney({
 
         {briefing.whatNotToSell.length > 0 ? (
           <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-red-700">Cautions — what not to sell</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-red-700">Precauciones — qué no vender / Cautions — what not to sell</p>
             <ul className="mt-1 space-y-0.5">
               {briefing.whatNotToSell.map((warning, index) => (
                 <li key={`${index}-${warning.slice(0, 24)}`} className="text-[11px] text-red-800">{warning}</li>
@@ -224,20 +225,20 @@ export function MeetingJourney({
 
         {briefing.commitments ? (
           <div className="mt-3 rounded-lg border border-[#E8DFD0] bg-white p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Open promises / commitments</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Promesas y compromisos abiertos / Open promises / commitments</p>
             <p className="mt-1 text-xs text-[#3D3428]">
               Active: {briefing.commitments.activeCount} · Blocked: {briefing.commitments.blockedCount}
               {briefing.commitments.nextDueDate ? ` · Next due: ${new Date(briefing.commitments.nextDueDate).toLocaleDateString("en-US")}` : ""}
             </p>
             {briefing.commitments.activeCount === 0 ? (
-              <p className="mt-1 text-xs text-[#7A7164]">No open Promise Keeper commitments.</p>
+              <p className="mt-1 text-xs text-[#7A7164]">No hay compromisos abiertos en Promise Keeper. / No open Promise Keeper commitments.</p>
             ) : null}
           </div>
         ) : null}
 
         {followThrough.hasOpportunity && followThrough.opportunityCount !== null ? (
           <div className="mt-3 rounded-lg border border-[#E8DFD0] bg-white p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Open opportunities</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Oportunidades abiertas / Open opportunities</p>
             <p className="mt-1 text-xs text-[#3D3428]">{followThrough.opportunityCount} on file. Navigation only — meetings do not auto-create opportunities.</p>
             <a href="#opportunity" className="mt-2 inline-flex min-h-[44px] items-center text-xs font-semibold text-[#7A1E2C] underline">
               Review Opportunities
@@ -246,7 +247,7 @@ export function MeetingJourney({
         ) : null}
 
         <div className="mt-3 rounded-lg border border-[#E8DFD0] bg-white p-3">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Questions to ask</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Preguntas para hacer / Questions to ask</p>
           <p className="mt-1 text-[10px] text-[#7A7164]">Staff prompts only. They are not AI-generated facts and are not stored as a prompt database.</p>
           <ul className="mt-2 list-disc space-y-1 pl-4">
             {prompts.map((prompt) => (
@@ -255,7 +256,7 @@ export function MeetingJourney({
           </ul>
           {briefing.suggestedTopics.length > 0 ? (
             <>
-              <p className="mt-3 text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Lion&apos;s Cockpit suggested topics</p>
+              <p className="mt-3 text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Lion&apos;s Cockpit — temas sugeridos / Lion&apos;s Cockpit suggested topics</p>
               <ul className="mt-1 space-y-0.5">
                 {briefing.suggestedTopics.map((topic) => (
                   <li key={topic.en} className="text-[11px] text-[#3D3428]">{topic.en}</li>
@@ -267,16 +268,16 @@ export function MeetingJourney({
       </section>
 
       <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">2. Meeting</p>
-        <h3 className="mt-1 text-sm font-bold text-[#1E1810]">Meeting Studio</h3>
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">2. Reunión / 2. Meeting</p>
+        <h3 className="mt-1 text-sm font-bold text-[#1E1810]">Estudio de Reuniones / Meeting Studio</h3>
         <p className="mt-1 text-xs text-[#7A7164]">
-          Canonical conduct surface: create or open a meeting record, track attendees, capture notes, record existing consent types, and import a transcript if needed. Live meeting recording is not currently available.
+          Superficie canónica para realizar la reunión: crear o abrir un registro de reunión, hacer seguimiento de asistentes, capturar notas, registrar los tipos de consentimiento existentes e importar una transcripción si es necesario. La grabación de reuniones en vivo no está disponible actualmente. / Canonical conduct surface: create or open a meeting record, track attendees, capture notes, record existing consent types, and import a transcript if needed. Live meeting recording is not currently available.
         </p>
         {canPrepareMeeting ? <CreateMeetingForm businessId={businessId} /> : null}
 
         {meetings.length > 0 ? (
           <div className="mt-4 overflow-x-auto">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Meeting history</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Historial de reuniones / Meeting history</p>
             <ul className="mt-2 space-y-1">
               {meetings.slice(0, 12).map((meeting) => (
                 <li key={meeting.id} className="flex flex-wrap items-baseline justify-between gap-2 rounded-lg border border-[#E8DFD0] bg-[#FFFDF7] px-3 py-2 text-xs">
@@ -285,6 +286,11 @@ export function MeetingJourney({
                   <span className="text-[#9A9184]">
                     {meeting.scheduledAt ? new Date(meeting.scheduledAt).toLocaleString("en-US") : new Date(meeting.createdAt).toLocaleString("en-US")}
                   </span>
+                  {meeting.status === "completed" ? (
+                    <a href="#meeting-review" className="inline-flex min-h-[36px] items-center text-[11px] font-semibold text-[#7A1E2C] underline">
+                      Review Meeting →
+                    </a>
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -305,25 +311,25 @@ export function MeetingJourney({
               surface="conduct"
             />
           ))}
-          {meetings.length === 0 ? <p className="text-sm text-[#7A7164]">No meetings recorded yet.</p> : null}
+          {meetings.length === 0 ? <p className="text-sm text-[#7A7164]">Aún no hay reuniones registradas. / No meetings recorded yet.</p> : null}
           {meetings.length > 0 && activeMeetings.length === 0 ? (
-            <p className="text-sm text-[#7A7164]">No active meeting. Create one above or review completed meetings below.</p>
+            <p className="text-sm text-[#7A7164]">No hay ninguna reunión activa. Crea una arriba o revisa las reuniones completadas abajo. / No active meeting. Create one above or review completed meetings below.</p>
           ) : null}
         </div>
       </section>
 
-      <section className="rounded-2xl border border-[#E8DFD0] bg-[#FFFDF7] p-4">
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">3. Meeting Review</p>
-        <h3 className="mt-1 text-sm font-bold text-[#1E1810]">Human review</h3>
+      <section id="meeting-review" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-[#FFFDF7] p-4">
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">3. Revisión de la Reunión / 3. Meeting Review</p>
+        <h3 className="mt-1 text-sm font-bold text-[#1E1810]">Revisión humana / Human review</h3>
         <p className="mt-1 text-xs text-[#7A7164]">
-          Decide intentionally: what becomes a Living Book fact, what stays evidence, what remains unknown, what contradiction needs resolution, what promise was made, and whether a sales follow-up is needed. Nothing here auto-promotes.
+          Decide con intención: qué se convierte en un hecho del Living Book, qué permanece como evidencia, qué sigue siendo desconocido, qué contradicción necesita resolución, qué promesa se hizo, y si se necesita un seguimiento de ventas. Nada aquí se promueve automáticamente. / Decide intentionally: what becomes a Living Book fact, what stays evidence, what remains unknown, what contradiction needs resolution, what promise was made, and whether a sales follow-up is needed. Nothing here auto-promotes.
         </p>
         <ul className="mt-3 grid grid-cols-1 gap-2 text-[11px] text-[#3D3428] sm:grid-cols-2">
-          <li className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2"><span className="font-bold text-emerald-800">Fact</span> — confirmed canonical business truth after human promotion.</li>
-          <li className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2"><span className="font-bold">Evidence</span> — supporting observation/source/note. Not a fact.</li>
-          <li className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2"><span className="font-bold text-amber-800">Unknown</span> — missing information requiring resolution.</li>
-          <li className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2"><span className="font-bold text-red-700">Contradiction</span> — conflicting truth needing human resolution.</li>
-          <li className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 sm:col-span-2"><span className="font-bold">Meeting note</span> — meeting record context until explicitly promoted.</li>
+          <li className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2"><span className="font-bold text-emerald-800">Hecho / Fact</span> — confirmed canonical business truth after human promotion.</li>
+          <li className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2"><span className="font-bold">Evidencia / Evidence</span> — supporting observation/source/note. Not a fact.</li>
+          <li className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2"><span className="font-bold text-amber-800">Incógnita / Unknown</span> — missing information requiring resolution.</li>
+          <li className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2"><span className="font-bold text-red-700">Contradicción / Contradiction</span> — conflicting truth needing human resolution.</li>
+          <li className="rounded-lg border border-[#E8DFD0] bg-white px-3 py-2 sm:col-span-2"><span className="font-bold">Nota de reunión / Meeting note</span> — meeting record context until explicitly promoted.</li>
         </ul>
         <div className="mt-4 space-y-3">
           {reviewMeetings.map((row) => (
@@ -336,18 +342,19 @@ export function MeetingJourney({
               notes={row.notes}
               transcripts={row.transcripts}
               canReviewNotes={canReviewNotes}
+              canCreateCommitment={followThrough.canCreateCommitment}
               surface="review"
             />
           ))}
-          {reviewMeetings.length === 0 ? <p className="text-sm text-[#7A7164]">No meeting is awaiting review.</p> : null}
+          {reviewMeetings.length === 0 ? <p className="text-sm text-[#7A7164]">No hay ninguna reunión pendiente de revisión. / No meeting is awaiting review.</p> : null}
         </div>
       </section>
 
       <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">4. Follow through</p>
-        <h3 className="mt-1 text-sm font-bold text-[#1E1810]">Intentional next steps</h3>
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">4. Seguimiento / 4. Follow through</p>
+        <h3 className="mt-1 text-sm font-bold text-[#1E1810]">Próximos pasos intencionales / Intentional next steps</h3>
         <p className="mt-1 text-xs text-[#7A7164]">
-          Human-triggered navigation only. Meetings do not auto-create commitments, sales follow-ups, proposals, recommendations, opportunities, or creative jobs.
+          Solo navegación iniciada por una persona. Las reuniones no crean automáticamente compromisos, seguimientos de ventas, propuestas, recomendaciones, oportunidades ni trabajos creativos. / Human-triggered navigation only. Meetings do not auto-create commitments, sales follow-ups, proposals, recommendations, opportunities, or creative jobs.
         </p>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           {followThrough.canViewCommitments ? (

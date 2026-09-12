@@ -283,6 +283,7 @@ function makeJob(overrides: Partial<PreflightInput["job"]> = {}): PreflightInput
     sourceRecommendationId: null,
     sourceProposalId: null,
     sourceOpportunityId: null,
+    sourceProjectBlueprintId: null,
     assetType: "magazine_ad",
     language: "es",
     format: "FULL_PAGE",

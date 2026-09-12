@@ -692,3 +692,49 @@ export async function promoteMeetingNote(
 
   return { ok: true, destinationId, destinationType: input.destination };
 }
+
+export type UpcomingMeetingAttentionRow = {
+  businessId: string;
+  displayName: string;
+  meetingId: string;
+  meetingType: MeetingType;
+  status: MeetingStatus;
+  scheduledAt: string;
+};
+
+const UPCOMING_MEETINGS_LIMIT = 20;
+
+/**
+ * Gate 1 — bounded Command Center read model: meetings scheduled in the future that are not yet
+ * completed/cancelled. Two queries max (meetings + matching businesses). Not N+1. Not a new table.
+ */
+export async function listUpcomingMeetingsForStaffAttention(): Promise<UpcomingMeetingAttentionRow[]> {
+  const supabase = getAdminSupabase();
+  const nowIso = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("business_meetings")
+    .select("id, business_id, meeting_type, status, scheduled_at")
+    .in("status", ["planned", "prepared"])
+    .not("scheduled_at", "is", null)
+    .gte("scheduled_at", nowIso)
+    .order("scheduled_at", { ascending: true })
+    .limit(UPCOMING_MEETINGS_LIMIT);
+  if (error || !data || data.length === 0) return [];
+
+  const businessIds = [...new Set((data as Record<string, unknown>[]).map((row) => String(row.business_id)))];
+  const { data: businesses, error: businessError } = await supabase
+    .from("businesses")
+    .select("id, display_name")
+    .in("id", businessIds);
+  if (businessError || !businesses) return [];
+
+  const names = new Map((businesses as Record<string, unknown>[]).map((row) => [String(row.id), String(row.display_name ?? "")]));
+  return (data as Record<string, unknown>[]).map((row) => ({
+    businessId: String(row.business_id),
+    displayName: names.get(String(row.business_id)) || "Business",
+    meetingId: String(row.id),
+    meetingType: row.meeting_type as MeetingType,
+    status: row.status as MeetingStatus,
+    scheduledAt: String(row.scheduled_at),
+  }));
+}

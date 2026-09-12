@@ -1,0 +1,498 @@
+/**
+ * Client Discovery & Project Blueprint Engine, Gate 5 — blueprint persistence. Server-only, always
+ * via getAdminSupabase(). Mirrors Gate 1's repository.ts business-scoping convention exactly: every
+ * read/write filters on BOTH id and business_id, never id alone.
+ *
+ * This file is pure CRUD + lifecycle-transition guards over business_project_blueprints — it never
+ * builds a packet or Markdown itself (blueprintEngine.ts / blueprintMarkdown.ts own that, and the
+ * API route layer orchestrates calling them before handing a ready packet+markdown+fingerprint to
+ * createDraftBlueprintVersion), mirroring how architectureApproval.ts stays a thin persistence layer
+ * over a packet architectureDecisionEngine.ts already built.
+ */
+import "server-only";
+
+import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { updateProjectDiscoveryStatus } from "./repository";
+import type { BlueprintStatus, WebsiteProjectBlueprintPacket } from "./blueprintEngine";
+import type { ProjectDiscoveryActor } from "./types";
+
+export type BlueprintHandoffStatus = "not_started" | "pending_assignment" | "assigned" | "in_progress" | "complete";
+
+/**
+ * Generic over the packet's own shape (Gate 6 <blueprint_persistence>, <project_blueprint_framework>)
+ * — defaults to WebsiteProjectBlueprintPacket so every Gate 5 call site keeps compiling unchanged.
+ * A specialized (Logo/Print/Campaign) caller passes its own packet type as the type argument; the
+ * underlying table/columns/lifecycle are identical for every blueprint_type, discriminated only by
+ * that column, never a second table.
+ */
+export interface BusinessProjectBlueprint<TPacket = WebsiteProjectBlueprintPacket> {
+  id: string;
+  businessId: string;
+  discoveryId: string;
+  projectIntentId: string;
+  blueprintType: string;
+  version: number;
+  status: BlueprintStatus;
+  packet: TPacket;
+  markdownSnapshot: string;
+  inputFingerprint: string;
+  discoveryCatalogVersion: string;
+  platformRegistryVersion: string;
+
+  createdActorType: "staff" | "owner";
+  createdByRosterId: string | null;
+  createdByAuthUserId: string;
+  createdByEmail: string;
+  createdByRole: string;
+
+  reviewedByRosterId: string | null;
+  reviewedByAuthUserId: string | null;
+  reviewedByEmail: string | null;
+  reviewedByRole: string | null;
+  reviewedAt: string | null;
+
+  approvedByRosterId: string | null;
+  approvedByAuthUserId: string | null;
+  approvedByEmail: string | null;
+  approvedByRole: string | null;
+  approvedAt: string | null;
+
+  supersedesBlueprintId: string | null;
+
+  handoffStatus: BlueprintHandoffStatus;
+  handoffAssigneeRosterId: string | null;
+  handoffDueDate: string | null;
+  handoffNotes: string | null;
+
+  // Gate 7 — minimal release/handoff-completion metadata (MD <release_event>).
+  releasedAt: string | null;
+  releasedByRosterId: string | null;
+  releasedByAuthUserId: string | null;
+  releasedByEmail: string | null;
+  releasedByRole: string | null;
+  finalDestinationUrl: string | null;
+  handoffCompletedAt: string | null;
+  handoffCompletedByRosterId: string | null;
+  handoffCompletedByAuthUserId: string | null;
+  handoffCompletedByEmail: string | null;
+  handoffCompletedByRole: string | null;
+
+  // Gate 8 — real staleness acknowledgement + explicit client-confirmation-required truth
+  // (MD <staleness_decision>, <client_confirmation_precision>).
+  clientConfirmationRequired: boolean;
+  staleAcknowledgedAt: string | null;
+  staleAcknowledgedFingerprint: string | null;
+  staleAcknowledgedByRosterId: string | null;
+  staleAcknowledgedByAuthUserId: string | null;
+  staleAcknowledgedByEmail: string | null;
+  staleAcknowledgedByRole: string | null;
+  staleAcknowledgementNote: string | null;
+
+  createdAt: string;
+  updatedAt: string;
+}
+
+const BLUEPRINT_COLUMNS = `id, business_id, discovery_id, project_intent_id, blueprint_type, version, status, packet_json, markdown_snapshot, input_fingerprint, discovery_catalog_version, platform_registry_version, created_actor_type, created_by_roster_id, created_by_auth_user_id, created_by_email, created_by_role, reviewed_by_roster_id, reviewed_by_auth_user_id, reviewed_by_email, reviewed_by_role, reviewed_at, approved_by_roster_id, approved_by_auth_user_id, approved_by_email, approved_by_role, approved_at, supersedes_blueprint_id, handoff_status, handoff_assignee_roster_id, handoff_due_date, handoff_notes, released_at, released_by_roster_id, released_by_auth_user_id, released_by_email, released_by_role, final_destination_url, handoff_completed_at, handoff_completed_by_roster_id, handoff_completed_by_auth_user_id, handoff_completed_by_email, handoff_completed_by_role, client_confirmation_required, stale_acknowledged_at, stale_acknowledged_fingerprint, stale_acknowledged_by_roster_id, stale_acknowledged_by_auth_user_id, stale_acknowledged_by_email, stale_acknowledged_by_role, stale_acknowledgement_note, created_at, updated_at`;
+
+function actorRosterId(actor: ProjectDiscoveryActor): string | null {
+  return actor.type === "staff" ? actor.rosterId : null;
+}
+function actorAuthUserId(actor: ProjectDiscoveryActor): string | null {
+  return actor.type === "system" ? null : actor.authUserId;
+}
+function actorEmail(actor: ProjectDiscoveryActor): string | null {
+  return actor.type === "system" ? null : actor.email;
+}
+function actorRole(actor: ProjectDiscoveryActor): string {
+  return actor.type === "owner" ? (actor.role ?? "owner") : actor.role;
+}
+
+function mapBlueprintRow<TPacket = WebsiteProjectBlueprintPacket>(row: Record<string, unknown>): BusinessProjectBlueprint<TPacket> {
+  return {
+    id: String(row.id),
+    businessId: String(row.business_id),
+    discoveryId: String(row.discovery_id),
+    projectIntentId: String(row.project_intent_id),
+    blueprintType: String(row.blueprint_type),
+    version: Number(row.version),
+    status: row.status as BlueprintStatus,
+    packet: row.packet_json as TPacket,
+    markdownSnapshot: String(row.markdown_snapshot),
+    inputFingerprint: String(row.input_fingerprint),
+    discoveryCatalogVersion: String(row.discovery_catalog_version),
+    platformRegistryVersion: String(row.platform_registry_version),
+
+    createdActorType: row.created_actor_type as "staff" | "owner",
+    createdByRosterId: (row.created_by_roster_id as string | null) ?? null,
+    createdByAuthUserId: String(row.created_by_auth_user_id),
+    createdByEmail: String(row.created_by_email),
+    createdByRole: String(row.created_by_role),
+
+    reviewedByRosterId: (row.reviewed_by_roster_id as string | null) ?? null,
+    reviewedByAuthUserId: (row.reviewed_by_auth_user_id as string | null) ?? null,
+    reviewedByEmail: (row.reviewed_by_email as string | null) ?? null,
+    reviewedByRole: (row.reviewed_by_role as string | null) ?? null,
+    reviewedAt: (row.reviewed_at as string | null) ?? null,
+
+    approvedByRosterId: (row.approved_by_roster_id as string | null) ?? null,
+    approvedByAuthUserId: (row.approved_by_auth_user_id as string | null) ?? null,
+    approvedByEmail: (row.approved_by_email as string | null) ?? null,
+    approvedByRole: (row.approved_by_role as string | null) ?? null,
+    approvedAt: (row.approved_at as string | null) ?? null,
+
+    supersedesBlueprintId: (row.supersedes_blueprint_id as string | null) ?? null,
+
+    handoffStatus: row.handoff_status as BlueprintHandoffStatus,
+    handoffAssigneeRosterId: (row.handoff_assignee_roster_id as string | null) ?? null,
+    handoffDueDate: (row.handoff_due_date as string | null) ?? null,
+    handoffNotes: (row.handoff_notes as string | null) ?? null,
+
+    releasedAt: (row.released_at as string | null) ?? null,
+    releasedByRosterId: (row.released_by_roster_id as string | null) ?? null,
+    releasedByAuthUserId: (row.released_by_auth_user_id as string | null) ?? null,
+    releasedByEmail: (row.released_by_email as string | null) ?? null,
+    releasedByRole: (row.released_by_role as string | null) ?? null,
+    finalDestinationUrl: (row.final_destination_url as string | null) ?? null,
+    handoffCompletedAt: (row.handoff_completed_at as string | null) ?? null,
+    handoffCompletedByRosterId: (row.handoff_completed_by_roster_id as string | null) ?? null,
+    handoffCompletedByAuthUserId: (row.handoff_completed_by_auth_user_id as string | null) ?? null,
+    handoffCompletedByEmail: (row.handoff_completed_by_email as string | null) ?? null,
+    handoffCompletedByRole: (row.handoff_completed_by_role as string | null) ?? null,
+
+    clientConfirmationRequired: Boolean(row.client_confirmation_required ?? true),
+    staleAcknowledgedAt: (row.stale_acknowledged_at as string | null) ?? null,
+    staleAcknowledgedFingerprint: (row.stale_acknowledged_fingerprint as string | null) ?? null,
+    staleAcknowledgedByRosterId: (row.stale_acknowledged_by_roster_id as string | null) ?? null,
+    staleAcknowledgedByAuthUserId: (row.stale_acknowledged_by_auth_user_id as string | null) ?? null,
+    staleAcknowledgedByEmail: (row.stale_acknowledged_by_email as string | null) ?? null,
+    staleAcknowledgedByRole: (row.stale_acknowledged_by_role as string | null) ?? null,
+    staleAcknowledgementNote: (row.stale_acknowledgement_note as string | null) ?? null,
+
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
+// =================================================================================================
+// Reads
+// =================================================================================================
+export async function listBlueprintVersionsForIntent<TPacket = WebsiteProjectBlueprintPacket>(businessId: string, projectIntentId: string): Promise<BusinessProjectBlueprint<TPacket>[]> {
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("business_project_blueprints")
+    .select(BLUEPRINT_COLUMNS)
+    .eq("business_id", businessId)
+    .eq("project_intent_id", projectIntentId)
+    .order("version", { ascending: false });
+  if (error || !data) return [];
+  return data.map((row) => mapBlueprintRow<TPacket>(row));
+}
+
+export async function getLatestBlueprintForIntent<TPacket = WebsiteProjectBlueprintPacket>(businessId: string, projectIntentId: string): Promise<BusinessProjectBlueprint<TPacket> | null> {
+  const versions = await listBlueprintVersionsForIntent<TPacket>(businessId, projectIntentId);
+  return versions[0] ?? null;
+}
+
+export async function getBlueprintById<TPacket = WebsiteProjectBlueprintPacket>(businessId: string, blueprintId: string): Promise<BusinessProjectBlueprint<TPacket> | null> {
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("business_project_blueprints")
+    .select(BLUEPRINT_COLUMNS)
+    .eq("id", blueprintId)
+    .eq("business_id", businessId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return mapBlueprintRow<TPacket>(data);
+}
+
+// =================================================================================================
+// Create a new DRAFT version (MD <versioning>) — the ONLY way a new row is ever inserted. If
+// `supersedesBlueprintId` names a prior version for the same intent, that prior version is marked
+// 'superseded' in the SAME operation, so an approved version is never left ambiguous about whether
+// a newer one now supersedes it.
+// =================================================================================================
+export type CreateDraftBlueprintResult<TPacket = WebsiteProjectBlueprintPacket> = { ok: true; blueprint: BusinessProjectBlueprint<TPacket> } | { ok: false; reason: "insert_failed" | "supersede_failed" | "supersedes_wrong_intent" };
+
+/**
+ * Deliberately takes discoveryCatalogVersion/platformRegistryVersion as EXPLICIT parameters rather
+ * than reading them off `input.packet` — this keeps the repository packet-shape-agnostic (a
+ * specialized packet has one `catalogVersion` field, not Website's separate discovery-catalog/
+ * platform-registry pair; the caller decides what to pass for each, e.g. the same value twice).
+ */
+export async function createDraftBlueprintVersion<TPacket = WebsiteProjectBlueprintPacket>(
+  input: {
+    businessId: string;
+    discoveryId: string;
+    projectIntentId: string;
+    blueprintType?: string;
+    packet: TPacket;
+    markdown: string;
+    inputFingerprint: string;
+    discoveryCatalogVersion: string;
+    platformRegistryVersion: string;
+    supersedesBlueprintId?: string | null;
+  },
+  actor: Extract<ProjectDiscoveryActor, { type: "staff" | "owner" }>,
+): Promise<CreateDraftBlueprintResult<TPacket>> {
+  const supabase = getAdminSupabase();
+
+  if (input.supersedesBlueprintId) {
+    const prior = await getBlueprintById(input.businessId, input.supersedesBlueprintId);
+    if (!prior || prior.projectIntentId !== input.projectIntentId) return { ok: false, reason: "supersedes_wrong_intent" };
+  }
+
+  const existing = await listBlueprintVersionsForIntent(input.businessId, input.projectIntentId);
+  const nextVersion = existing.length > 0 ? Math.max(...existing.map((v) => v.version)) + 1 : 1;
+
+  const { data, error } = await supabase
+    .from("business_project_blueprints")
+    .insert({
+      business_id: input.businessId,
+      discovery_id: input.discoveryId,
+      project_intent_id: input.projectIntentId,
+      blueprint_type: input.blueprintType ?? "website",
+      version: nextVersion,
+      status: "draft",
+      packet_json: input.packet,
+      markdown_snapshot: input.markdown,
+      input_fingerprint: input.inputFingerprint,
+      discovery_catalog_version: input.discoveryCatalogVersion,
+      platform_registry_version: input.platformRegistryVersion,
+      created_actor_type: actor.type,
+      created_by_roster_id: actorRosterId(actor),
+      created_by_auth_user_id: actor.authUserId,
+      created_by_email: actor.email,
+      created_by_role: actorRole(actor),
+      supersedes_blueprint_id: input.supersedesBlueprintId ?? null,
+    })
+    .select(BLUEPRINT_COLUMNS)
+    .single();
+  if (error || !data) return { ok: false, reason: "insert_failed" };
+
+  if (input.supersedesBlueprintId) {
+    const { error: supersedeError } = await supabase
+      .from("business_project_blueprints")
+      .update({ status: "superseded", updated_at: new Date().toISOString() })
+      .eq("id", input.supersedesBlueprintId)
+      .eq("business_id", input.businessId);
+    if (supersedeError) return { ok: false, reason: "supersede_failed" };
+  }
+
+  return { ok: true, blueprint: mapBlueprintRow<TPacket>(data) };
+}
+
+// =================================================================================================
+// Lifecycle transitions (MD <versioning>, <internal_review>, <client_confirmation>) — each one
+// checks the CURRENT status before writing, so a status button can never skip a required step.
+// =================================================================================================
+type TransitionFailureReason = "not_found" | "invalid_transition" | "update_failed";
+export type TransitionResult = { ok: true; blueprint: BusinessProjectBlueprint } | { ok: false; reason: TransitionFailureReason };
+
+async function transitionStatus(
+  businessId: string,
+  blueprintId: string,
+  allowedFrom: readonly BlueprintStatus[],
+  patch: Record<string, unknown>,
+): Promise<TransitionResult> {
+  const existing = await getBlueprintById(businessId, blueprintId);
+  if (!existing) return { ok: false, reason: "not_found" };
+  if (!allowedFrom.includes(existing.status)) return { ok: false, reason: "invalid_transition" };
+
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("business_project_blueprints")
+    .update({ ...patch, updated_at: new Date().toISOString() })
+    .eq("id", blueprintId)
+    .eq("business_id", businessId)
+    .select(BLUEPRINT_COLUMNS)
+    .single();
+  if (error || !data) return { ok: false, reason: "update_failed" };
+  return { ok: true, blueprint: mapBlueprintRow(data) };
+}
+
+/** DRAFT -> INTERNAL_REVIEW (MD <internal_review>: a lighter staff confirmation step). */
+export async function markBlueprintInternalReviewComplete(businessId: string, blueprintId: string, actor: Extract<ProjectDiscoveryActor, { type: "staff" | "owner" }>): Promise<TransitionResult> {
+  return transitionStatus(businessId, blueprintId, ["draft"], {
+    status: "internal_review",
+    reviewed_by_roster_id: actorRosterId(actor),
+    reviewed_by_auth_user_id: actorAuthUserId(actor),
+    reviewed_by_email: actorEmail(actor),
+    reviewed_by_role: actorRole(actor),
+    reviewed_at: new Date().toISOString(),
+  });
+}
+
+/** INTERNAL_REVIEW -> CLIENT_CONFIRMATION_NEEDED (MD <client_confirmation>: no fake e-signature, uses existing canonical status only). */
+export async function markBlueprintClientConfirmationNeeded(businessId: string, blueprintId: string): Promise<TransitionResult> {
+  return transitionStatus(businessId, blueprintId, ["internal_review"], { status: "client_confirmation_needed" });
+}
+
+/**
+ * INTERNAL_REVIEW or CLIENT_CONFIRMATION_NEEDED -> APPROVED_FOR_BUILD. This is the ONE transition
+ * MD <internal_review> requires a server-side guard for — callers MUST have already run
+ * evaluateWebsiteBlueprintReadiness()===READY before calling this (the route layer enforces that;
+ * this function only enforces the STATUS machine, never re-derives readiness itself, mirroring how
+ * updateProjectDiscoveryStatus never re-derives discovery completeness either).
+ * Also closes the discovery's own lifecycle to its terminal "blueprint_created" state (MD
+ * <build_handoff>), reusing Gate 1's own status machine rather than inventing a second one.
+ */
+export async function approveBlueprintForBuild(businessId: string, blueprintId: string, actor: Extract<ProjectDiscoveryActor, { type: "staff" | "owner" }>): Promise<TransitionResult> {
+  const result = await transitionStatus(businessId, blueprintId, ["internal_review", "client_confirmation_needed"], {
+    status: "approved_for_build",
+    approved_by_roster_id: actorRosterId(actor),
+    approved_by_auth_user_id: actorAuthUserId(actor),
+    approved_by_email: actorEmail(actor),
+    approved_by_role: actorRole(actor),
+    approved_at: new Date().toISOString(),
+    handoff_status: "pending_assignment",
+  });
+  if (result.ok) {
+    await updateProjectDiscoveryStatus(businessId, result.blueprint.discoveryId, "blueprint_created", actor).catch(() => undefined);
+  }
+  return result;
+}
+
+// =================================================================================================
+// Build handoff (MD <build_handoff>, <handoff_contract>) — only ever meaningful once
+// APPROVED_FOR_BUILD; never a whole project-management system, just the smallest state a builder
+// needs to know execution has started.
+// =================================================================================================
+export type SetHandoffResult = { ok: true; blueprint: BusinessProjectBlueprint } | { ok: false; reason: "not_found" | "not_approved" | "update_failed" };
+
+export async function setBlueprintHandoff(
+  businessId: string,
+  blueprintId: string,
+  input: { handoffStatus: BlueprintHandoffStatus; handoffAssigneeRosterId?: string | null; handoffDueDate?: string | null; handoffNotes?: string | null },
+): Promise<SetHandoffResult> {
+  const existing = await getBlueprintById(businessId, blueprintId);
+  if (!existing) return { ok: false, reason: "not_found" };
+  if (existing.status !== "approved_for_build") return { ok: false, reason: "not_approved" };
+
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("business_project_blueprints")
+    .update({
+      handoff_status: input.handoffStatus,
+      handoff_assignee_roster_id: input.handoffAssigneeRosterId ?? null,
+      handoff_due_date: input.handoffDueDate ?? null,
+      handoff_notes: input.handoffNotes ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", blueprintId)
+    .eq("business_id", businessId)
+    .select(BLUEPRINT_COLUMNS)
+    .single();
+  if (error || !data) return { ok: false, reason: "update_failed" };
+  return { ok: true, blueprint: mapBlueprintRow(data) };
+}
+
+// =================================================================================================
+// Release / handoff completion (Gate 7, MD <release_event>, <launch_guard>) — server-authoritative;
+// callers MUST have already confirmed evaluateProjectReleaseReadiness()==="READY_FOR_RELEASE" (for
+// release) or that required handoff items are complete/N/A (for handoff completion) before calling
+// these — mirrors approveBlueprintForBuild's own division of labor: this function only enforces the
+// STATUS precondition, never re-derives readiness itself.
+// =================================================================================================
+export type MarkReleasedResult = { ok: true; blueprint: BusinessProjectBlueprint } | { ok: false; reason: "not_found" | "not_approved" | "update_failed" };
+
+export async function markBlueprintReleased(
+  businessId: string,
+  blueprintId: string,
+  input: { finalDestinationUrl?: string | null },
+  actor: Extract<ProjectDiscoveryActor, { type: "staff" | "owner" }>,
+): Promise<MarkReleasedResult> {
+  const existing = await getBlueprintById(businessId, blueprintId);
+  if (!existing) return { ok: false, reason: "not_found" };
+  if (existing.status !== "approved_for_build") return { ok: false, reason: "not_approved" };
+
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("business_project_blueprints")
+    .update({
+      released_at: new Date().toISOString(),
+      released_by_roster_id: actorRosterId(actor),
+      released_by_auth_user_id: actor.authUserId,
+      released_by_email: actor.email,
+      released_by_role: actorRole(actor),
+      final_destination_url: input.finalDestinationUrl ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", blueprintId)
+    .eq("business_id", businessId)
+    .select(BLUEPRINT_COLUMNS)
+    .single();
+  if (error || !data) return { ok: false, reason: "update_failed" };
+  return { ok: true, blueprint: mapBlueprintRow(data) };
+}
+
+// =================================================================================================
+// Staleness acknowledgement (Gate 8, MD <staleness_decision>) — records that an authorized reviewer
+// explicitly chose to release against the currently-approved blueprint despite it being stale,
+// rather than generating a new version. Scoped to the EXACT fingerprint acknowledged: if discovery
+// truth changes again afterward, the newly-recomputed fingerprint no longer matches
+// stale_acknowledged_fingerprint and releaseReadinessAssembler.ts treats the blueprint as
+// stale-and-unacknowledged again. Never changes blueprint status.
+// =================================================================================================
+export type AcknowledgeStalenessResult = { ok: true; blueprint: BusinessProjectBlueprint } | { ok: false; reason: "not_found" | "not_approved" | "update_failed" };
+
+export async function acknowledgeBlueprintStaleness(
+  businessId: string,
+  blueprintId: string,
+  input: { currentFingerprint: string; note?: string | null },
+  actor: Extract<ProjectDiscoveryActor, { type: "staff" | "owner" }>,
+): Promise<AcknowledgeStalenessResult> {
+  const existing = await getBlueprintById(businessId, blueprintId);
+  if (!existing) return { ok: false, reason: "not_found" };
+  if (existing.status !== "approved_for_build") return { ok: false, reason: "not_approved" };
+
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("business_project_blueprints")
+    .update({
+      stale_acknowledged_at: new Date().toISOString(),
+      stale_acknowledged_fingerprint: input.currentFingerprint,
+      stale_acknowledged_by_roster_id: actorRosterId(actor),
+      stale_acknowledged_by_auth_user_id: actor.authUserId,
+      stale_acknowledged_by_email: actor.email,
+      stale_acknowledged_by_role: actorRole(actor),
+      stale_acknowledgement_note: input.note ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", blueprintId)
+    .eq("business_id", businessId)
+    .select(BLUEPRINT_COLUMNS)
+    .single();
+  if (error || !data) return { ok: false, reason: "update_failed" };
+  return { ok: true, blueprint: mapBlueprintRow(data) };
+}
+
+export type CompleteHandoffResult = { ok: true; blueprint: BusinessProjectBlueprint } | { ok: false; reason: "not_found" | "not_approved" | "update_failed" };
+
+export async function completeBlueprintHandoff(
+  businessId: string,
+  blueprintId: string,
+  actor: Extract<ProjectDiscoveryActor, { type: "staff" | "owner" }>,
+): Promise<CompleteHandoffResult> {
+  const existing = await getBlueprintById(businessId, blueprintId);
+  if (!existing) return { ok: false, reason: "not_found" };
+  if (existing.status !== "approved_for_build") return { ok: false, reason: "not_approved" };
+
+  const supabase = getAdminSupabase();
+  const { data, error } = await supabase
+    .from("business_project_blueprints")
+    .update({
+      handoff_status: "complete",
+      handoff_completed_at: new Date().toISOString(),
+      handoff_completed_by_roster_id: actorRosterId(actor),
+      handoff_completed_by_auth_user_id: actor.authUserId,
+      handoff_completed_by_email: actor.email,
+      handoff_completed_by_role: actorRole(actor),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", blueprintId)
+    .eq("business_id", businessId)
+    .select(BLUEPRINT_COLUMNS)
+    .single();
+  if (error || !data) return { ok: false, reason: "update_failed" };
+  return { ok: true, blueprint: mapBlueprintRow(data) };
+}

@@ -19,7 +19,11 @@ export type CreativeAssetType =
   | "coupon_copy"
   | "logo_direction"
   | "website_strategy"
-  | "campaign_plan_30_day";
+  | "campaign_plan_30_day"
+  /** Gate 6 (Client Discovery & Project Blueprint Engine) — one generic print-collateral direction
+   * value covering Business Cards/Flyer/Banner/Signage/Referral Materials, mirroring how
+   * "logo_direction" already covers every logo sub-case rather than a type per print sub-family. */
+  | "print_collateral_direction";
 
 export type CreativeJobStatus =
   | "draft"
@@ -40,6 +44,8 @@ export interface CreativeJob {
   sourceProposalId: string | null;
   /** Package B — set when this job was created via "Create Creative Request" from an approved opportunity. */
   sourceOpportunityId: string | null;
+  /** Gate 6 — set when this job was created via "Create Creative Studio Project" from an approved Client Discovery project blueprint (Logo/Brand or Print Collateral). */
+  sourceProjectBlueprintId: string | null;
   assetType: CreativeAssetType;
   language: CreativeLanguage;
   format: PrintFormatKey;

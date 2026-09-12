@@ -708,7 +708,11 @@ check("Gate 04: contact actions require real values; Field Agent still targets #
   assert.ok(!outreachActionsGate04.includes("chrono"));
   assert.ok(!outreachActionsGate04.includes("parseFollowUp"));
   assert.ok(!notesRouteGate04.includes("upsertCurrentFollowUp"));
-  assert.ok(commandCenterUi.includes("#outreach"));
+  // Gate 1 (systemic repair) moved reason->href composition for the Needs Attention list from
+  // StaffCommandCenter.tsx into page.tsx (staffConciergeHome.ts entries now carry a full href
+  // built alongside every other cross-domain attention source) — the deep link itself is
+  // unchanged, so check the pair of files that together render the Command Center.
+  assert.ok(commandCenterUi.includes("#outreach") || commandCenterPage.includes("#outreach"));
 });
 
 const meetingPageGate05 = read("app/admin/(dashboard)/businesses/[businessId]/page.tsx");

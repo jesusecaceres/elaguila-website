@@ -11,12 +11,12 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { getAdminSupabase } from "@/app/lib/supabase/server";
-import { getLatestConsentState, listSourceLinksForBusiness } from "../fieldDiscovery/repository";
-import { isLiveV1Source } from "../fieldDiscovery/sourceRegistry";
+import { getLatestConsentState, listSourceLinksForBusiness, listSourceFilesForBusiness } from "../fieldDiscovery/repository";
 import { getDefaultBusinessIntelligenceProvider } from "./providerRegistry";
 import { buildAiResearchInputPacket } from "./briefingSynthesis";
 import { runWebsiteResearchV1 } from "./websiteAdapter";
-import type { AiResearchActor } from "./types";
+import { isGooglePlacesConfigured, runGooglePlacesResearchV1 } from "./googlePlacesAdapter";
+import type { AiResearchActor, GooglePlacesResearchResult } from "./types";
 import type {
   BriefingReviewStatus,
   BusinessAiBriefingDraft,
@@ -122,15 +122,20 @@ export type RunResearchResult =
 /**
  * The sole orchestration entry point for Gate 4C. Sequence, in order:
  * 1. exact-business source-link existence + consent checks (fail closed before any provider call);
- * 2. bounded website V1 scan for any `website`-typed live_v1 source link;
- * 3. deterministic input-packet build (no secrets, no unrelated business data);
- * 4. provider call (Gemini only — provider_unavailable is a truthful terminal state, not silently retried);
- * 5. persist the run row (queued -> running -> completed/failed) and, on success, the briefing draft.
+ * 2. bounded website V1 scan for any `website`-typed source link;
+ * 3. bounded Google Business Profile V1 lookup by name/location (independent of any staff-pasted
+ *    link — finding the listing is the point), skipped truthfully when GOOGLE_PLACES_API_KEY is
+ *    not configured;
+ * 4. real uploaded staff evidence (source files already on record) included in the packet;
+ * 5. deterministic input-packet build (no secrets, no unrelated business data);
+ * 6. provider call (Gemini only — provider_unavailable is a truthful terminal state, not silently retried);
+ * 7. persist the run row (queued -> running -> completed/failed) and, on success, the briefing draft.
  */
 export async function runBusinessAiResearch(
   businessId: string,
   businessIdentity: { displayName: string; broadBusinessType: string; businessStage: string },
   actor: AiResearchActor,
+  locationHint: string | null = null,
 ): Promise<RunResearchResult> {
   const admin = getAdminSupabase();
 
@@ -144,7 +149,11 @@ export async function runBusinessAiResearch(
   }
 
   const sourceLinks = await listSourceLinksForBusiness(businessId);
-  if (sourceLinks.length === 0) {
+  const sourceFiles = await listSourceFilesForBusiness(businessId);
+  // Google Places searches by business name/location alone, so a configured Places lookup is a
+  // valid reason to proceed even with zero manually-added source links/files — otherwise, require
+  // at least one real source (unchanged from the prior website-only contract).
+  if (sourceLinks.length === 0 && sourceFiles.length === 0 && !isGooglePlacesConfigured()) {
     return { ok: false, error: "source_not_found" };
   }
 
@@ -153,16 +162,21 @@ export async function runBusinessAiResearch(
     return { ok: false, error: "provider_unavailable" };
   }
 
-  const websiteSource = sourceLinks.find((s) => isLiveV1Source(s.sourceType));
+  const websiteSource = sourceLinks.find((s) => s.sourceType === "website");
   const websiteResearch = websiteSource ? await runWebsiteResearchV1(websiteSource.normalizedUrl) : null;
+
+  const googlePlacesResearch: GooglePlacesResearchResult | null = isGooglePlacesConfigured()
+    ? await runGooglePlacesResearchV1(businessIdentity.displayName, locationHint)
+    : null;
 
   const packet = buildAiResearchInputPacket({
     businessIdentity,
     ownerStatedGoals: [],
     confirmedFacts: [],
     sourceLinks: sourceLinks.map((s) => ({ sourceType: s.sourceType, url: s.normalizedUrl })),
-    fileEvidence: [],
+    fileEvidence: sourceFiles.map((f) => ({ fileKind: f.fileKind, excerptOrCaption: f.originalFilename || null })),
     websiteResearch,
+    googlePlacesResearch,
     unknowns: [],
     contradictions: [],
     latestHealthFindings: [],
@@ -183,7 +197,7 @@ export async function runBusinessAiResearch(
       input_snapshot: packet,
       input_hash: inputHash,
       source_link_ids: sourceLinks.map((s) => s.id),
-      source_file_ids: [],
+      source_file_ids: sourceFiles.map((f) => f.id),
       status: "running",
       triggered_actor_type: actorType(actor),
       triggered_by_roster_id: actorRosterId(actor),

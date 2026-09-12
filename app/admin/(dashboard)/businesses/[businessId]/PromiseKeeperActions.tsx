@@ -4,7 +4,17 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { BusinessCommitment, CommitmentEvent } from "@/app/lib/business/promiseKeeper/types";
 
-export function CreateCommitmentForm({ businessId }: { businessId: string }) {
+export function CreateCommitmentForm({
+  businessId,
+  meetingId = null,
+  sourceLabel,
+}: {
+  businessId: string;
+  /** Gate 4 — when set, ties this commitment to its originating meeting via the existing
+   * BusinessCommitment.meetingId canonical field. No new table, no new reminders system. */
+  meetingId?: string | null;
+  sourceLabel?: string;
+}) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [titleEn, setTitleEn] = useState("");
@@ -24,6 +34,7 @@ export function CreateCommitmentForm({ businessId }: { businessId: string }) {
         titleEs: titleEs.trim(),
         responsibleParty,
         dueAt: dueAt || null,
+        meetingId,
       }),
     });
     setSaving(false);
@@ -34,6 +45,7 @@ export function CreateCommitmentForm({ businessId }: { businessId: string }) {
 
   return (
     <form onSubmit={submit} className="space-y-2">
+      {sourceLabel ? <p className="text-[10px] text-[#7A7164]">Source: {sourceLabel}</p> : null}
       <input value={titleEn} onChange={(e) => setTitleEn(e.target.value)} placeholder="Commitment (EN)" className="w-full rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs" />
       <input value={titleEs} onChange={(e) => setTitleEs(e.target.value)} placeholder="Compromiso (ES)" className="w-full rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs" />
       <div className="flex flex-wrap gap-2">
@@ -46,7 +58,7 @@ export function CreateCommitmentForm({ businessId }: { businessId: string }) {
         <input type="datetime-local" value={dueAt} onChange={(e) => setDueAt(e.target.value)} className="rounded-lg border border-[#E8DFD0] px-2 py-1 text-xs" />
       </div>
       <button type="submit" disabled={saving || !titleEn.trim() || !titleEs.trim()} className="rounded-lg bg-[#7A1E2C] px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50">
-        {saving ? "Creating…" : "Create commitment"}
+        {saving ? "Creating…" : "Crear compromiso / Create commitment"}
       </button>
     </form>
   );
@@ -68,9 +80,9 @@ export function CommitmentActions({ businessId, commitment }: { businessId: stri
   }
 
   const transitions: Record<string, { label: string; to: string }[]> = {
-    planned: [{ label: "Start", to: "active" }, { label: "Release", to: "released" }],
-    active: [{ label: "Block", to: "blocked" }, { label: "Complete", to: "completed" }, { label: "Release", to: "released" }],
-    blocked: [{ label: "Resume", to: "active" }, { label: "Release", to: "released" }],
+    planned: [{ label: "Iniciar / Start", to: "active" }, { label: "Liberar / Release", to: "released" }],
+    active: [{ label: "Bloquear / Block", to: "blocked" }, { label: "Completar / Complete", to: "completed" }, { label: "Liberar / Release", to: "released" }],
+    blocked: [{ label: "Reanudar / Resume", to: "active" }, { label: "Liberar / Release", to: "released" }],
     completed: [],
     released: [],
   };
@@ -96,7 +108,7 @@ export function CommitmentActions({ businessId, commitment }: { businessId: stri
       ))}
       {commitment.status === "active" || commitment.status === "blocked" ? (
         <button onClick={() => patch({ helpRequested: !commitment.helpRequested })} disabled={saving} className="rounded-lg border border-blue-300 px-2 py-1 text-[10px] font-bold text-blue-700 disabled:opacity-50">
-          {commitment.helpRequested ? "Help requested" : "Request help"}
+          {commitment.helpRequested ? "Ayuda solicitada / Help requested" : "Solicitar ayuda / Request help"}
         </button>
       ) : null}
     </div>
@@ -126,6 +138,11 @@ export function CommitmentDetailPanel({
         {commitment.responsibleParty} · capacity: {commitment.capacityState}
         {commitment.dueAt ? ` · due ${new Date(commitment.dueAt).toLocaleDateString("en-US")}` : ""}
         {commitment.helpRequested ? " · help requested" : ""}
+        {commitment.meetingId ? (
+          <>
+            {" "}· source: <a href="#meeting-review" className="underline">meeting</a>
+          </>
+        ) : null}
       </p>
       {commitment.blocker ? (
         <p className="mt-1 text-xs font-semibold text-amber-800">Blocker: {commitment.blocker}</p>
@@ -140,7 +157,7 @@ export function CommitmentDetailPanel({
 
       {events.length > 0 ? (
         <>
-          <h4 className="mt-3 text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Event history</h4>
+          <h4 className="mt-3 text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">Historial de eventos / Event history</h4>
           <ul className="mt-1 space-y-1">
             {events.map((ev) => (
               <li key={ev.id} className="text-[10px] text-[#7A7164]">
