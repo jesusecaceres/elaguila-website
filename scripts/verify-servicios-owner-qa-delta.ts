@@ -147,7 +147,21 @@ check("⚠️8/⚠️9 languages: multiple fixed + multiple custom values persis
   const { state, wire } = profileFrom({ languageIds: ["lang_es", "lang_en", "lang_otro"], languageOtherLines: "Mixteco\nNáhuatl\nZapoteco\nFrancés" });
   // The publish route stamps opsMeta.discovery.languageChipIds via the (server-only) discovery facet
   // = the state's languageIds; mirrored here so the hydration read is exercised faithfully.
-  const published = { ...wire, opsMeta: { ...wire.opsMeta, discovery: { languageChipIds: [...state.languageIds] } } };
+  const published = {
+    ...wire,
+    opsMeta: {
+      ...wire.opsMeta,
+      discovery: {
+        languageChipIds: [...state.languageIds],
+        hasPhysicalAddress: wire.opsMeta?.discovery?.hasPhysicalAddress ?? false,
+        hasServiceAreaMultiLine: wire.opsMeta?.discovery?.hasServiceAreaMultiLine ?? false,
+        hasPromoHeadline: wire.opsMeta?.discovery?.hasPromoHeadline ?? false,
+        listerAttestationsComplete: wire.opsMeta?.discovery?.listerAttestationsComplete ?? false,
+        state: wire.opsMeta?.discovery?.state,
+        country: wire.opsMeta?.discovery?.country,
+      },
+    },
+  };
   const h = serviciosPublishedToApplicationDraft({ slug: "qa", business_name: "QA", city: "Oakland", profile_json: published });
   assert.match(src("app/(site)/clasificados/servicios/lib/serviciosPublishDiscovery.ts"), /languageChipIds: \[\.\.\.state\.languageIds\]/);
   assert.deepEqual(h.state.languageIds.slice().sort(), ["lang_en", "lang_es", "lang_otro"]);

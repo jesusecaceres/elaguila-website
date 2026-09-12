@@ -2025,7 +2025,7 @@ NEXT OCC ACTION BEFORE TRIGGER: NONE
 10. `9e874060` → `4b402962` SRV-GOLDEN-01 fail-closed + DASH-53 result Save
 11. `ff96fa3d` → `1c5a27e8` QA catalog seed type-closure (required after B5 address fields; Preview compile residual; test-fixture only)
 
-**OCC residual:** NONE (`CATEGORY_REGISTRY.servicios` landed with SERVICIOS-2). Compile residual: cherry-picked `ff96fa3d` (one seed script) after Vercel Preview `type_error` on `scripts/servicios-manual-qa-catalog-seed.ts`.
+**OCC residual:** NONE (`CATEGORY_REGISTRY.servicios` landed with SERVICIOS-2). Compile residual: cherry-picked `ff96fa3d` (QA seed) plus a one-site discovery-facet completion in ingested `scripts/verify-servicios-owner-qa-delta.ts` so Next typecheck accepts the languageChipIds stub.
 **TEMPORARY PROBE IMPORTED:** NO
 **UNRELATED CATEGORY SOURCE IMPORTED:** NONE
 **QA:** NOT RUN
