@@ -5,7 +5,8 @@
 **Owner lane:** User Dashboard / Owner Command Center  
 **Quarterback lane:** Servicios Golden Reference lifecycle  
 **Prior Gate 5 freeze HEAD:** `d1b2994d36b1e78f1fb91a6d3f801638156b9119`  
-**Committed receiver HEAD:** `b49cebf669c5b517eb7d78df649f59e9dfdc3312`
+**Committed receiver HEAD:** `394d6fdbb98891278ab2436135136e55c9fba1c7`
+**Source HEAD certified (Prompt 1):** `394d6fdbb98891278ab2436135136e55c9fba1c7`
 **Current production main / product SHA:** `9fcadb4daf599e15fca62adcb647abbf96ce6bd8`
 **Gate 0 (2026-09-11):** COMPLETE — at that checkpoint receiver HEAD equaled then-current `origin/main` `d1b2994d`.  
 **Gates 1–4 (2026-09-11):** COMPLETE — DASH-01 through DASH-76 have source-audit dispositions. Product source unchanged at that freeze. Runtime Golden listing still required.  
@@ -16,7 +17,8 @@
 **Gates J–K (2026-09-11):** COMPLETE — receiver docs pushed; remote Golden inspected read-only (not consumed).
 **Gates 1–6 receiver source completion (2026-09-11):** COMPLETE — fresh DASH-01–76 TRUE/FALSE source proof against current worktree product SHA `9fcadb4d` (docs HEAD `b49cebf6`). No receiver product implementation. Bucket D empty.
 **Runtime Golden listing:** NOT YET CREATED / NOT YET TESTED
-**Gate status:** RECEIVER SOURCE TRUE/FALSE AUDIT COMPLETE — NO PROVEN RECEIVER PRODUCT WORK — EXTERNAL GOLDEN BLOCKERS REMAIN — QA FORBIDDEN UNTIL PM AUTHORIZES
+**Prompt 1 (2026-09-11):** SOURCE CERTIFIED against current main `9fcadb4d` at source HEAD `394d6fdb`. Verifiers 22/22, 33/33, OK, Rentas 9/9, paid-lifecycle PASS, 182/182, Gate20 PASS. `tsc` 7 e2e-only baseline 0 new. Production build PASS (Compiled successfully in 2.9min). Product source unchanged. Isolated Preview after this docs commit is pushed. QA NOT RUN / NOT AUTHORIZED.
+**Gate status:** OCC RECEIVER SOURCE CERTIFIED AGAINST CURRENT MAIN — EXTERNAL GOLDEN BLOCKERS REMAIN — PREVIEW AFTER PUSH — QA FORBIDDEN UNTIL PM AUTHORIZES
 
 ## 0. Executive lock
 

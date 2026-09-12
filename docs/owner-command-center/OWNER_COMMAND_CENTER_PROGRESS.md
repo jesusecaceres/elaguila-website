@@ -1927,3 +1927,49 @@ No owner/browser QA before that final source report. Receiver product coding is 
 ## Gates 7–9 — MD completeness + consistency checkpoint (2026-09-11)
 
 Added dedicated `Owner` field on all 76 DASH ledger items. Cross-document HEAD/main/QA/blocker truth aligned. No product source. QA remains NOT RUN / NOT AUTHORIZED.
+
+---
+
+## Prompt 1 — Source certification + isolated Preview delivery (2026-09-11)
+
+**Worktree:** `C:\projects\elaguila-website-owner-command-center`
+**Branch:** `integration/owner-command-center-globalization-2026-08`
+**Source HEAD certified:** `394d6fdbb98891278ab2436135136e55c9fba1c7`
+**origin/main / product SHA:** `9fcadb4daf599e15fca62adcb647abbf96ce6bd8`
+**Reconciliation:** not required (`origin/main` unchanged; receiver 3 docs commits ahead / 0 behind)
+**Product source changed:** NO
+**QA:** NOT RUN — NOT AUTHORIZED
+**Runtime proof:** NOT RUN
+**OWNER COMMAND CENTER REQUIRED PRODUCT SOURCE WORK:** NONE
+**UNKNOWN:** NONE
+**Bucket D:** NONE
+
+### Verification
+
+| Check | Result |
+|---|---|
+| Owner Attention Truth | 22/22 PASS |
+| Shared Specialized Tools | 33/33 PASS |
+| Owner lifecycle contract | OK |
+| Rentas lifecycle/renewal | PASS 9/9 |
+| Paid listing lifecycle engine | PASS |
+| Whole-product final reconciliation | 182/182 PASS |
+| Gate 20 fixed-term renewal | PASS |
+| `tsc --noEmit --incremental false` | PASS WITH PROVEN BASELINE — 7 e2e-only errors, 0 new, `e2e/` unchanged vs `9fcadb4d` |
+| `npm run build` (`NODE_OPTIONS=--max-old-space-size=12288`) | PASS — Compiled successfully in 2.9min |
+| `git diff --check` | PASS (clean tracked tree) |
+| TESTS.json parse | VALID |
+| Duplicate architecture | NONE |
+
+### External Bucket C (unchanged — not implemented)
+
+- DASH-18 — SRV-GOLDEN-03 `customQuickFacts`
+- DASH-23 — SRV-GOLDEN-01 UUID fail-closed / no INSERT fallback
+- DASH-27 — SRV-GOLDEN-04 commercial-safe Resume
+- DASH-53 — public Save mounts
+- DASH-58 / DASH-59 / DASH-60 — Saved Search adoption
+- Related: DASH-16 persist SRV-GOLDEN-02 (OCC display remains TRUE); DASH-21 write SRV-GOLDEN-01 (OCC `listingId` emission remains TRUE)
+
+Isolated Vercel Preview is created after this documentation commit is pushed. Deployment ID / URL / SHA match are recorded in the Prompt 1 absolute report, not fabricated here.
+
+**QA AUTHORIZED:** NO

@@ -530,7 +530,7 @@ Next receiver action: targeted recheck after Golden contracts land on current ma
 
 **Worktree:** `C:\projects\elaguila-website-owner-command-center`
 **Branch:** `integration/owner-command-center-globalization-2026-08`
-**Committed HEAD:** `b49cebf669c5b517eb7d78df649f59e9dfdc3312`
+**Source HEAD certified (Prompt 1):** `394d6fdbb98891278ab2436135136e55c9fba1c7`
 **origin/main:** `9fcadb4daf599e15fca62adcb647abbf96ce6bd8`
 **OCC required product work:** NONE
 **UNKNOWN:** NONE
@@ -538,6 +538,7 @@ Next receiver action: targeted recheck after Golden contracts land on current ma
 **QA:** NOT RUN
 **QA AUTHORIZED:** NO
 **Runtime Golden listing:** NOT TESTED
+**Prompt 1 cert (2026-09-11):** 7/7 targeted verifiers PASS; `tsc` 7 e2e-only baseline 0 new; production build PASS (Compiled successfully in 2.9min). Isolated Preview recorded after push. Product source unchanged.
 
 Canonical table: `docs/launch-lifecycle/SERVICIOS_OWNER_DASHBOARD_RUNTIME_LEDGER_2026-09-11.md` §25B.
 
