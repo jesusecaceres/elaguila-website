@@ -130,7 +130,7 @@ Every customer-reachable feature, with its launch state.
 | Public profile (vitrina) | LIVE | `/clasificados/servicios/[slug]` — **the canonical URL** |
 | `/servicios/perfil/[slug]` | REDIRECT | Legacy → canonical, or 404. Not a second listing surface |
 | Related Listings | LIVE | Real neighbours, no paid ranking weight, no filler |
-| Saved Search | **BLOCKED — DB** | Source complete; DB constraints reject `servicios`. See §F |
+| Saved Search | LIVE | Source complete; the ledger CHECK migration `20260910120000_saved_search_match_events_servicios.sql` is **APPLIED/verified** (§F row 5, §L row 3). Runtime delivery proof = GR-25 |
 | JSON-LD / sitemap | LIVE | Emitted for published listings only |
 
 ### C.2 Publish funnel
@@ -747,6 +747,11 @@ remain fully eligible.
 
 ## K. GATE STATUS
 
+> **Historical gate snapshot (2026-09-09/10). Superseded by §R for current status.** Its
+> "Remaining blockers: Database + configuration only" line was true then; the database pass was
+> executed in §L (all three migrations APPLIED/verified). The configuration dependency that is
+> still open today is tracked in §M.3 / §R.7 (Stripe webhook delivery vs Vercel SSO).
+
 | Item | Status |
 | --- | --- |
 | P0 blockers | **1 found, 1 closed** |
@@ -869,6 +874,16 @@ from this session. Every value below is therefore honestly **NEEDS OWNER MANUAL 
 ---
 
 ## M. RUNTIME CONFIG CERTIFICATION
+
+> **Status today (verified 2026-09-11, MD proof audit):**
+> **M.2 BLOCKER 1 — RESOLVED.** The deployed Preview no longer predates the P0 fix; the Golden
+> candidate is `5b5aae46` on `dpl_GtxJzwUWsEJaViSBAnk4nYXfzhp7` (§R), and `origin` is not behind.
+> **M.3 BLOCKER 2 — STILL OPEN.** Project deployment protection re-read today:
+> `passwordProtection disabled · ssoProtection ENABLED (all_except_custom_domains) · trustedIps
+> disabled`. The Preview is a `*.vercel.app` host, so Stripe still cannot reach
+> `POST /api/revenue-os/webhook`. This is an owner configuration decision and is a hard
+> prerequisite for Runtime Gate B (GR-01/GR-03) — see §R.7 and Golden Delta Ledger §20.3.
+> The gate result below is the historical 2026-09-10 snapshot and is not rewritten.
 
 **Gate:** `SERVICIOS-RUNTIME-CONFIG-CERTIFICATION-1` · **Date:** 2026-09-10 · **Result: BLOCKED**
 **Method:** read-only only. No Vercel/Stripe/Google/SMS/Supabase mutation, no deploy, no push.
@@ -1405,3 +1420,49 @@ Verifiers green on this tree: `golden-reference-promo-path`, `owner-qa-delta` 34
 
 **FULL GOLDEN REFERENCE RUNTIME CERTIFIED: NO.** GR-01…GR-44 remain owner-runtime pending; the
 paid Golden listing does not exist yet. Execution plan and control matrix: Golden Delta Ledger §20.
+
+### R.7 Open runtime-configuration dependency (owner decision — blocks Runtime Gate B only)
+
+Re-verified on 2026-09-11 during the MD proof audit, directly against the Vercel project:
+
+```
+passwordProtection : disabled
+ssoProtection      : ENABLED, deploymentType = "all_except_custom_domains"
+trustedIps         : disabled
+```
+
+The Golden candidate Preview is a `*.vercel.app` host, so it is SSO-protected. A signed-in owner
+browses it normally, but **Stripe cannot deliver `checkout.session.completed` to
+`POST /api/revenue-os/webhook`** — it receives Vercel's authentication challenge instead. Without
+delivery there is no fulfillment, no entitlement and no publish, on both PATH A and PATH B, and the
+failure looks like an application defect rather than a transport block.
+
+This is **not** a source defect and not a foundational blocker: §R.3/§R.5 stand, and the source path
+(`revenueFulfillment` → entitlement → exact-row publish) is proven. It is a configuration decision
+the owner must make before any Stripe TEST charge:
+
+1. **Protection Bypass for Automation** (recommended) — enable on the project and append the secret
+   to the webhook URL as a query parameter. Humans keep SSO; Stripe gets through.
+2. Point the Stripe TEST webhook at a **custom domain** route excluded from protection.
+3. Temporarily disable SSO protection for Preview deployments during QA (weakest — exposes Preview).
+
+Stripe webhook endpoints cannot send custom headers, so a header-based bypass cannot work.
+Until one option is chosen and applied, GR-01 and GR-03 cannot be truthfully attempted.
+
+### R.8 MD proof audit result (2026-09-11)
+
+Full TRUE/FALSE audit of both canonical documents at doc HEAD `1946a7fa`:
+
+- ⚠️1–68 **68/68**, SVC-QA-01–34 **34/34**, GR-01–44 **44/44** audited; per-ID evidence remains in
+  Golden Delta Ledger §19 (SOURCE PROOF LOCK) and is unchanged by this audit.
+- Document errors found and repaired in this pass:
+  1. §C.1 listed Saved Search as `BLOCKED — DB` while §F/§L record the ledger CHECK migration as
+     APPLIED/verified — **contradiction, repaired** (now LIVE with the runtime proof pointer).
+  2. §K's "Remaining blockers: Database + configuration only" read as current status —
+     **stale, repaired** with a superseded banner.
+  3. §M carried a 2026-09-10 `BLOCKED` verdict with no current marker — **repaired**: BLOCKER 1
+     recorded RESOLVED, BLOCKER 2 recorded STILL OPEN with today's re-verification.
+  4. Ledger §20 (runtime plan) omitted the webhook-delivery prerequisite — **repaired** in §20.3.
+- False document claims remaining: **0** · unproven source claims: **0** · contradictions: **0** ·
+  stale current-proof references: **0** · source/foundational gaps: **0**.
+- Owner-runtime items still pending: **43** (GR-22 NOT SUPPORTED — CURRENT PRODUCT; GR-44 issued last).

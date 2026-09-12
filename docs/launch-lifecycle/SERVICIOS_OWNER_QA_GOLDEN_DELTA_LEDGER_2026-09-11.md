@@ -1755,3 +1755,102 @@ marked PASS from source proof.
 | GR-42 | Gate J: mobile circuit | — | detail/results/dashboard clean | PENDING OWNER RUNTIME |
 | GR-43 | Gate J: cleanup | audit evidence | disposable artifacts only; payment evidence kept | PENDING OWNER RUNTIME |
 | GR-44 | after GR-01…43 | full record | Golden certification issued | PENDING OWNER RUNTIME |
+
+## 20.3 Runtime Gate B prerequisite — Stripe webhook delivery (owner configuration)
+
+Added by the MD proof audit (2026-09-11). **Runtime Gate B must not start until this is resolved.**
+
+Vercel project protection, re-read today: `ssoProtection ENABLED (all_except_custom_domains)`. The
+Golden candidate Preview is a `*.vercel.app` host, so Stripe's `checkout.session.completed` POST to
+`/api/revenue-os/webhook` receives Vercel's auth challenge instead of the app. Browser QA is
+unaffected (the signed-in owner passes SSO), which is exactly why this must be settled before a TEST
+charge: money would move and nothing would publish, and it would look like an application defect.
+
+Owner picks one (Stripe endpoints cannot send custom headers, so header bypass is impossible):
+
+1. **Protection Bypass for Automation** (recommended) — enable on the project, append the secret to
+   the Stripe TEST webhook URL as a query parameter. SSO stays on for humans.
+2. Point the Stripe TEST webhook at a custom domain route excluded from protection.
+3. Temporarily disable Preview SSO protection for the QA window (weakest).
+
+Affected matrix rows: **GR-01** (TEST checkout completes against the intended environment) and
+**GR-03** (webhook authoritative + idempotent). Their EXPECTED TRUTH now additionally requires that
+Stripe delivery actually reaches the app; until then both stay PENDING OWNER RUNTIME and must not be
+attempted. This is a configuration dependency, not a source gap — the fulfillment path itself is
+source-proven (Truth MD §R.3/§R.5, ledger §19.4).
+
+---
+
+# 21. MD PROOF TRUE/FALSE AUDIT — PRE-RUNTIME (2026-09-11)
+
+Audited at doc HEAD `1946a7fa` (this section makes it `+1`), runtime `5b5aae46`, Preview
+`dpl_GtxJzwUWsEJaViSBAnk4nYXfzhp7` READY. Per-ID evidence is **not duplicated here** — it lives in
+§19 (SOURCE PROOF LOCK) and §20.2 (GR matrix). This section records the TRUE/FALSE classification of
+what the documents *claim*, plus every contradiction found and repaired.
+
+## 21.1 Group classification (computed from §19, no omissions)
+
+| Group | Audited | Classification | Contradiction |
+|---|---|---|---|
+| ⚠️1–68 | 68/68 | TRUE — SOURCE-PROVEN (implemented) 44 · TRUE — OWNER-PROVEN/PROTECTED 23 · TRUE — DEFERRED BY LOCKED DOCTRINE 1 (⚠️17) | NO |
+| SVC-QA-01–34 | 34/34 | TRUE — SOURCE-PROVEN 31 · TRUE — PROTECTED 2 (30, 31) · TRUE — SOURCE-PROVEN + OWNER RUNTIME PENDING 1 (06 Correo needs a populated email) | NO |
+| GR-01–44 | 44/44 | SOURCE READY — OWNER RUNTIME PENDING 43 · NOT SUPPORTED — CURRENT PRODUCT 1 (GR-22) | NO |
+
+FALSE — DOCUMENT CLAIM WRONG: **0 remaining**. UNPROVEN — EVIDENCE INSUFFICIENT: **0 remaining**.
+Owner-browser proof was never upgraded from source proof: the only items carrying owner PASS are the
+pre-correction behaviors §3 already recorded, and every corrected item still requires the owner
+regression listed in §11 / §20.
+
+## 21.2 Claim-by-claim source truth (Proof Gate 5)
+
+| Claim | Verdict | Authority |
+|---|---|---|
+| Canonical listing id / same-row doctrine | TRUE | publish route updates by row id, no insert; `verify-servicios-publish-authority` |
+| Preview → Edit identity | TRUE | `serviciosPublishedToApplicationDraft`; `verify-servicios-edit-roundtrip` |
+| Published edit hydration · republish same row · no second base charge | TRUE (source) / RUNTIME-PENDING (GR-29/30/31) | same mapper + checkout active-entitlement guard |
+| $399/month base | TRUE | Revenue pricing matrix |
+| Coupons/offers included | TRUE | `verify-servicios-included-offers` (B4 capability authority) |
+| 15% server-proven eligibility | TRUE | `getVerifiedBearerUser` + `decideVerifiedIntroDiscountEligibility` |
+| $339.15 first charge · $399.00 renewal | TRUE (copy + arithmetic) / RUNTIME-PENDING (Stripe) | `buildVerifiedIntroChargeScheduleText`; 39900 − 5985 |
+| Newsletter not authority | TRUE | zero newsletter references in the eligibility resolver |
+| Generic promo separate · stacking fail-closed | TRUE | 409 `discount_conflict` |
+| Recurrence copy = server/Stripe duration truth | TRUE | `PROMO_CODE_SUBSCRIPTION_DURATION="every_billing_cycle"` + checkpoint line |
+| Retired 25% inactive | TRUE | zero `launch_25` / `25%` matches in Servicios runtime trees |
+| F1 Otro servicio round-trip | TRUE | `verify-servicios-edit-roundtrip` PASS |
+| F2 Tiene ofertas = read-time `coupons_offers` | TRUE | `verify-servicios-included-offers` PASS; batched resolver |
+| B1 takeover blocked · B2 no free reactivation · B3 suspension authority | TRUE | `verify-servicios-publish-authority` PASS |
+| B5 exact-address privacy | TRUE | `verify-servicios-address-privacy` PASS + applied RLS migration |
+| Translate · Share · Community Trust · Save · gallery · video viewer · coupon modal · rails · action grammar | TRUE (source) / RUNTIME-PENDING (owner regression) | §19.2/§19.3 rows |
+| Revenue OS → Stripe → webhook → entitlement → exact-row publish | TRUE (source path) / RUNTIME-PENDING (GR-01…GR-08) | `revenueServiciosFulfillment`; **transport prerequisite §20.3** |
+| Results/detail · Dashboard/Admin handoff · analytics continuity | TRUE (source) / RUNTIME-PENDING (GR-09…GR-11, GR-26…GR-28, GR-35) | §19.4 rows |
+
+## 21.3 Contradictions, stale claims and repairs (Proof Gate 6)
+
+| # | Finding | Class | Repair |
+|---|---|---|---|
+| 1 | Truth §C.1 listed Saved Search `BLOCKED — DB` while §F row 5 and §L row 3 record the CHECK migration APPLIED/verified | FALSE — DOCUMENT CLAIM WRONG (contradiction) | §C.1 row corrected to LIVE with the §F/§L pointer and GR-25 as the runtime proof |
+| 2 | Truth §K "Remaining blockers: Database + configuration only" read as current | STALE CURRENT-PROOF | superseded banner added pointing to §R / §L / §M.3 |
+| 3 | Truth §M carried a 2026-09-10 `BLOCKED` verdict with no current marker | STALE CURRENT-PROOF | banner added: BLOCKER 1 RESOLVED, BLOCKER 2 STILL OPEN (re-verified today) |
+| 4 | Ledger §20 runtime plan omitted the Stripe webhook delivery prerequisite | MISSING EVIDENCE (omission in this session's own plan) | §20.3 added; GR-01/GR-03 gated on it |
+
+Verified clean (no finding): GREEN-and-NO mixing · stale Preview presented as current (§Q/§M/§1
+references are explicitly historical) · old HEAD presented as current · migration applied vs not
+applied · F1/F2 open vs closed · coupons add-on vs included · 15% vs retired 25% · promo
+first-payment-only vs recurring · Save removed vs Save active (the "Save removed" assertions were
+retired in commit `25401306` as superseded by the owner-locked Like → Save → Share grammar) · Report
+required vs unsupported (GR-22 consistent in §17.4, §19.4, §20.2) · owner PASS vs source-only ·
+source-ready vs runtime PASS (0 GR rows marked PASS) · Production/main state vs Preview branch state.
+
+**Stale verifiers used as current proof: 0.** The 36 known-stale/baseline verifier failures recorded
+in §18.6 are never cited as evidence for a Servicios claim; every claim above cites a verifier that
+is green on runtime `5b5aae46`.
+
+## 21.4 Result
+
+FALSE document claims remaining **0** · unproven source claims **0** · contradictions **0** ·
+stale current-proof references **0** · source/foundational gaps **0** · owner-runtime items pending
+**43** (+ GR-22 not supported).
+
+One **owner configuration decision** is open and is tracked, not hidden: Stripe webhook delivery vs
+Vercel SSO (§20.3 / Truth §R.7). It blocks Runtime Gate B only; it is not a source or documentation
+defect.
