@@ -1288,10 +1288,10 @@ Already exhaustively proven category-by-category in Gate 10.2 (`blueprintCategor
 |---|---|---|---|---|
 | REQ-33.1 | open a client | Business dashboard (pre-existing) | Structural | TECHNICALLY_PROVEN |
 | REQ-33.2 | start Website Discovery | `StartDiscoveryForm` | Gate 10.1 §29 (TRUE_SAFE_DEFER'd as UI-only, confirmed present) | TECHNICALLY_PROVEN |
-| REQ-33.3 | capture notes | Notes capture UI | `test-client-discovery-workspace-gate3.ts` | TECHNICALLY_PROVEN |
-| REQ-33.4 | optionally record with consent | §3.1 consent gate | Gate 10.1 §3.12 | TECHNICALLY_PROVEN |
-| REQ-33.5 | upload logo/screenshots/assets | Asset upload flow | `verify-project-blueprint-foundation-05.ts` | TECHNICALLY_PROVEN |
-| REQ-33.6 | answer structured questions | Structured capture route | `test-client-discovery-gate3-1.ts` | TECHNICALLY_PROVEN |
+| REQ-33.3 | capture notes | Notes capture UI, `ClientDiscoveryJourney.tsx` (same component REQ-3.1 already cites) | `test-client-discovery-workspace-gate3.ts` | TECHNICALLY_PROVEN |
+| REQ-33.4 | optionally record with consent | `consentStateLabel` gate (`ClientDiscoveryActions.tsx`, real grep-verified identifier -- corrected during the final closeout's acceptance-25 verifier build, which rejected this row's prior prose-only "§3.1 consent gate" citation) | Gate 10.1 §3.12 | TECHNICALLY_PROVEN |
+| REQ-33.5 | upload logo/screenshots/assets | `asset_ref` value type, canonical-asset picker + upload flow (same identifier REQ-3.4 already cites) | `verify-project-blueprint-foundation-05.ts` | TECHNICALLY_PROVEN |
+| REQ-33.6 | answer structured questions | `captureAnswer` route, `business_project_discovery_items` write path (same identifiers REQ-3.3 already cites) | `test-client-discovery-gate3-1.ts` | TECHNICALLY_PROVEN |
 | REQ-33.7 | see extracted client preferences | `client_preference` truth class | §4 rows above | TECHNICALLY_PROVEN |
 | REQ-33.8 | review AI-extracted information | `ai_extracted` truth class UI, Gate 3.1 | §4 rows above | TECHNICALLY_PROVEN |
 | REQ-33.9 | see missing information | `evaluateWebsiteReadiness` live gaps | §6/§17 rows above | TECHNICALLY_PROVEN |
@@ -1300,17 +1300,17 @@ Already exhaustively proven category-by-category in Gate 10.2 (`blueprintCategor
 | REQ-33.12 | receive a platform recommendation | `architectureDecisionEngine.ts` | `test-architecture-decision-engine-gate4.ts` (58/58) | TECHNICALLY_PROVEN |
 | REQ-33.13 | understand why each platform is recommended | Blueprint category #25 rationale rendering (Gate 10.2) | `test-blueprint-47-categories-gate10-2.ts` check 12 | TECHNICALLY_PROVEN |
 | REQ-33.14 | confirm ownership/billing | `buildOwnership()` (Gate 10.3 pass 1) | Live-proof (pass 1) | TECHNICALLY_PROVEN |
-| REQ-33.15 | classify project scope | Website Scope Classifier (§10) | `test-architecture-decision-engine-gate4.ts` | TECHNICALLY_PROVEN |
+| REQ-33.15 | classify project scope | `architectureDecisionEngine.ts` `architectureClass` classification (same identifier REQ-10.1/10.3 already cite) | `test-architecture-decision-engine-gate4.ts` | TECHNICALLY_PROVEN |
 | REQ-33.16 | generate the complete Website Project MD | `buildWebsiteProjectBlueprintPacket`+`buildWebsiteProjectBlueprintMarkdown` | `test-project-blueprint-gate5.ts` (34/34) | TECHNICALLY_PROVEN |
-| REQ-33.17 | review it | Blueprint review UI (Gate 5) | `verify-project-blueprint-foundation-05.ts` | TECHNICALLY_PROVEN |
+| REQ-33.17 | review it | `BlueprintReviewSection` (`ClientDiscoveryJourney.tsx`), `describeBlueprintReviewState` (`blueprintReviewEngine.ts`) | `verify-project-blueprint-foundation-05.ts` | TECHNICALLY_PROVEN |
 | REQ-33.18 | create the Website Project | `CreateWebsiteProjectButton` → `handoffStatus` mutation on the SAME blueprint record. Disclosed precisely: this is a real, deliberate architecture choice ("Option C," an earlier gate's own inspection) — a handoff-status field transition, not creation of a second distinct project entity — the route's own code comment honestly discloses this design | `ClientDiscoveryActions.tsx` | TECHNICALLY_PROVEN |
 | REQ-33.19 | hand it to the builder | Build handoff, `approved_for_build` version frozen | §24 row above | TECHNICALLY_PROVEN |
 | REQ-33.20 | execute gated build | `buildProjectSpecificGates()` | `blueprintEngine.ts` | TECHNICALLY_PROVEN |
 | REQ-33.21 | QA against the blueprint | `buildQaMatrix()` + check-items (Gate 7) | §26 rows above | TECHNICALLY_PROVEN |
-| REQ-33.22 | get client approval | Client Review feedback (§27, Gate 7/8) | §27 rows above | TECHNICALLY_PROVEN |
+| REQ-33.22 | get client approval | `clientSafeProjection.approvedDirection` (§27, same identifier REQ-27.1 already cites) | §27 rows above | TECHNICALLY_PROVEN |
 | REQ-33.23 | launch | `markBlueprintReleased`, `evaluateProjectReleaseReadiness` | Gate 10.1 §3.5 live proof | TECHNICALLY_PROVEN |
 | REQ-33.24 | record ownership/handoff | `completeBlueprintHandoff`, handoff checklist | §28 rows above | TECHNICALLY_PROVEN |
-| REQ-33.25 | return later and understand exactly what was built and why | Blueprint versioning + timeline (§25) | §25 rows above | TECHNICALLY_PROVEN |
+| REQ-33.25 | return later and understand exactly what was built and why | `business_project_blueprints.version` (§25, same identifier REQ-25.1 already cites) | §25 rows above | TECHNICALLY_PROVEN |
 
 **25/25 steps individually evidenced.** Step 18's honest disclosure (handoff-status mutation, not a second entity) is a documented, deliberate design choice, not a failure — it satisfies the MD's actual functional intent (the builder receives a clear, actionable "this project is now approved for build" signal) without inventing a duplicate project-tracking system.
 

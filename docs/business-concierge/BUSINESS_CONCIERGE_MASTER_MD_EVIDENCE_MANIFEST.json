@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-12T02:52:32.886Z",
+  "generatedAt": "2026-09-12T03:20:45.581Z",
   "generatedBy": "scripts/gate10-8-generate-evidence-manifest.ts",
   "masterMdRowCount": 612,
   "ownerMetaRowCount": 6,
@@ -17335,7 +17335,7 @@
         "M-HANDOFF"
       ],
       "sourceFiles": [
-        "Notes capture UI"
+        "Notes capture UI, `ClientDiscoveryJourney.tsx` (same component REQ-3.1 already cites)"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -17372,7 +17372,7 @@
         "M-HANDOFF"
       ],
       "sourceFiles": [
-        "§3.1 consent gate"
+        "`consentStateLabel` gate (`ClientDiscoveryActions.tsx`, real grep-verified identifier -- corrected during the final closeout's acceptance-25 verifier build, which rejected this row's prior prose-only \"§3.1 consent gate\" citation)"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -17409,7 +17409,7 @@
         "M-HANDOFF"
       ],
       "sourceFiles": [
-        "Asset upload flow"
+        "`asset_ref` value type, canonical-asset picker + upload flow (same identifier REQ-3.4 already cites)"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -17446,7 +17446,7 @@
         "M-HANDOFF"
       ],
       "sourceFiles": [
-        "Structured capture route"
+        "`captureAnswer` route, `business_project_discovery_items` write path (same identifiers REQ-3.3 already cites)"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -17779,7 +17779,7 @@
         "M-HANDOFF"
       ],
       "sourceFiles": [
-        "Website Scope Classifier (§10)"
+        "`architectureDecisionEngine.ts` `architectureClass` classification (same identifier REQ-10.1/10.3 already cite)"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -17853,7 +17853,7 @@
         "M-HANDOFF"
       ],
       "sourceFiles": [
-        "Blueprint review UI (Gate 5)"
+        "`BlueprintReviewSection` (`ClientDiscoveryJourney.tsx`), `describeBlueprintReviewState` (`blueprintReviewEngine.ts`)"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -18038,7 +18038,7 @@
         "M-HANDOFF"
       ],
       "sourceFiles": [
-        "Client Review feedback (§27, Gate 7/8)"
+        "`clientSafeProjection.approvedDirection` (§27, same identifier REQ-27.1 already cites)"
       ],
       "tests": [],
       "stagingEvidence": [],
@@ -18149,7 +18149,7 @@
         "M-HANDOFF"
       ],
       "sourceFiles": [
-        "Blueprint versioning + timeline (§25)"
+        "`business_project_blueprints.version` (§25, same identifier REQ-25.1 already cites)"
       ],
       "tests": [],
       "stagingEvidence": [],
