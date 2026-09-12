@@ -2023,8 +2023,9 @@ NEXT OCC ACTION BEFORE TRIGGER: NONE
 8. `f00fcedd` → `a5381917` SRV-GOLDEN-03 + Saved Search matcher/offers discovery
 9. `ba7fa786` → `d52aec66` owner-QA delta (hub Save grammar)
 10. `9e874060` → `4b402962` SRV-GOLDEN-01 fail-closed + DASH-53 result Save
+11. `ff96fa3d` → `1c5a27e8` QA catalog seed type-closure (required after B5 address fields; Preview compile residual; test-fixture only)
 
-**OCC residual:** NONE (`CATEGORY_REGISTRY.servicios` landed with SERVICIOS-2).
+**OCC residual:** NONE (`CATEGORY_REGISTRY.servicios` landed with SERVICIOS-2). Compile residual: cherry-picked `ff96fa3d` (one seed script) after Vercel Preview `type_error` on `scripts/servicios-manual-qa-catalog-seed.ts`.
 **TEMPORARY PROBE IMPORTED:** NO
 **UNRELATED CATEGORY SOURCE IMPORTED:** NONE
 **QA:** NOT RUN

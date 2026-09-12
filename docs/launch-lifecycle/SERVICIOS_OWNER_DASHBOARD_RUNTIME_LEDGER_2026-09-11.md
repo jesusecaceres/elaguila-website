@@ -2685,7 +2685,7 @@ Do not authorize QA in this resume contract.
 - OCC starting HEAD: `69989c5e4101c692d6207365df657ad03254688e`
 - Product intake HEAD: `4b402962a12c0daab9058911e7f806a6f86b74d5`
 - Integration: Strategy B chronological cherry-pick (`-x`). Whole-branch merge rejected (unrelated categories + temp probe `e310b249`).
-- Consumed Golden originals: `849b45ea`, `2d28624c`, `95f17dc0`, `75a66ce8`, `dea5d0b3`, `961fa93c`, `404a5ea2`, `f00fcedd`, `ba7fa786`, `9e874060`.
+- Consumed Golden originals: `849b45ea`, `2d28624c`, `95f17dc0`, `75a66ce8`, `dea5d0b3`, `961fa93c`, `404a5ea2`, `f00fcedd`, `ba7fa786`, `9e874060`, plus compile residual `ff96fa3d` (QA catalog seed only).
 - Excluded (relevant): restaurantes/comida/bienes/rentas gates; `e310b249` temp probe; `e98c5d90` mixed e2e type-blocker; FSBO audit `2031835f`/`8ea8e304`; later Golden docs-only webhook/audit commits; merge commits of main into Golden (OCC already contains `9fcadb4d`).
 - OCC residual: NONE
 - TEMPORARY PROBE: NO

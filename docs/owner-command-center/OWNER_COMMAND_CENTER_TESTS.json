@@ -20,6 +20,7 @@
     "strategy": "B",
     "authorizedSha": "9e874060e5b9c960cdfcd3c60dcdceab81441e55",
     "productIntakeHead": "4b402962a12c0daab9058911e7f806a6f86b74d5",
+    "compileResidual": "ff96fa3d cherry-picked — scripts/servicios-manual-qa-catalog-seed.ts only",
     "fullRequiredSourceContract": true,
     "occResidual": "NONE",
     "temporaryProbeImported": false,
@@ -1728,6 +1729,7 @@
       "authorizedGoldenSha": "9e874060e5b9c960cdfcd3c60dcdceab81441e55",
       "strategy": "B",
       "productIntakeHead": "4b402962a12c0daab9058911e7f806a6f86b74d5",
+      "compileResidual": "ff96fa3d cherry-picked — scripts/servicios-manual-qa-catalog-seed.ts only",
       "occResidual": "NONE",
       "fullRequiredSourceContract": true,
       "unknown": "NONE",
@@ -1827,8 +1829,8 @@
         {
           "name": "production_build",
           "command": "npm run build (NODE_OPTIONS=--max-old-space-size=12288)",
-          "result": "DEFERRED — Gate L resource collision: 1.47 GB free RAM; do not compete with a 12GB heap build",
-          "status": "DEFERRED_RESOURCE"
+          "result": "LOCAL DEFERRED (1.47 GB RAM). First Vercel Preview dpl_CdgtKYceskm4v5fW1PxCbT91Aipv ERROR type_error on scripts/servicios-manual-qa-catalog-seed.ts missing G23 address fields. Closed by cherry-pick ff96fa3d (fixture only). Replacement Preview recorded after push.",
+          "status": "REMOTE_RETRY_AFTER_SEED_FIX"
         }
       ]
     }
