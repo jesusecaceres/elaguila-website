@@ -2354,3 +2354,153 @@ Owner QA has **not** started. No test listing, no payment, no publication. Engin
 migrations, schema, runtime identity, Stripe TEST infrastructure and canonical documentation
 reconcile. The single open pre-QA item is the 9 inherited red legacy verifiers in §23.4; the
 25% promo row in §23.3 is recorded as non-blocking hygiene.
+
+## 24. ZERO-DEBT ENGINEERING CLOSEOUT (2026-09-12)
+
+Closes the three proof-hygiene items §23 left open. **No owner QA, no test listing, no checkout,
+no payment, no publication, no GR status change, no product runtime edit.** Supersedes §23.4's
+"one open pre-QA item" and §23.3's "non-blocking, recommended".
+
+### 24.1 Nine-verifier per-assertion triage — 0 real product defects
+
+Each verifier was run at HEAD, its failing assertion read, the targeted source traced, and the
+canonical contract identified. **No assertion exposed a Servicios product defect, so no runtime
+code was changed.**
+
+| # | Verifier | Failing assertion demanded | Current source truth | Class |
+|---|---|---|---|---|
+| 1 | `dashboard-truth` | component `ServiciosListingMetricsPills` | symbol exists nowhere; per-listing metrics live via `ServiciosListingEngagementMetricsClient` + `serviciosMetricsBySlug` + a per-row `metrics` prop | STALE SHAPE |
+| 2 | `destacados-module` | results/landing render the legacy Destacados section | legacy module has **zero runtime consumers**; paid visibility owned by `overlayActiveEntitlementsForServiciosResults` (G2A) + `resolveCanonicalVisibilityBucketWeights` (Package D Build D3) | **SUPERSEDED VERIFIER** |
+| 3 | `edit-route-restaurantes-parity-hard-fix-01` | — (own assertions all passed) | failed only by chaining the p0a gate | CASCADE / HARNESS |
+| 4 | `engagement-1` | literal ternary `showEngagementControls ?` | gate is now `heroEngagementActive = showEngagementControls && Boolean(lxListingId…)` | STALE SHAPE |
+| 5 | `p0a-checkpoint-ver-mas-rules-modal-parity` | `setProductMoreOpen(true)` + checkpoint-local style tokens **and "+$99" coupon copy** | checkpoint adopted the SHARED `PaidPublishCheckpointCard`/`Modal`; tokens moved to `PublishEntryCheckpoint.tsx`; **+$99 is retired doctrine** | STALE SHAPE + **ANTI-DOCTRINE** |
+| 6 | `p0c-dashboard-addon-only-stripe-edit-route-parity` | symbol `redirectServiciosDashboardOffersAddonCheckout` | application calls `startServiciosDashboardOffersAddonCheckout` from the same shared module | STALE SHAPE |
+| 7 | `restaurantes-golden-loop-parity-01` | fallback named `checkpointEditHref` | fallback is `newApplicationEditHref` (`/publicar/servicios`) — checkpoint-FREE, satisfying this gate's own "never checkpoint" rule more strictly | STALE SHAPE |
+| 8 | `shell-2` | gallery mounts `ServiciosMediaLightbox` | gallery adopted the SHARED `BusinessGalleryLightbox`; `ServiciosMediaLightbox` has **zero runtime consumers** | STALE SHAPE + **FALSE-GREEN** |
+| 9 | `shell-2d` | literal `lg:grid-cols-4` | current token is `xl:grid-cols-4` | STALE SHAPE |
+
+**Totals — REAL PRODUCT DEFECTS: 0 · STALE SHAPE: 7 · SUPERSEDED: 1 · CASCADE/HARNESS: 1 ·
+RUNTIME CODE CHANGED: NO.**
+
+### 24.2 The one anti-doctrine assertion (worth naming separately)
+
+`p0a` required the Servicios application to contain **"+$99"** as the coupon price. That is not
+merely stale — honouring it would have forced a **retired price back into the product**, directly
+against owner-locked truth (⚠️26, ⚠️60, §14: coupons/offers are INCLUDED in the $399 base and no
+stale +$99 path may appear). The assertion was **inverted**: the verifier now FAILS if a `+$99`
+coupon upsell ever appears, and additionally pins `baseMonthlyPrice: 399` and the featured
+coupons/offers step. This is the clearest evidence that force-greening these verifiers would have
+damaged the product rather than protected it.
+
+### 24.3 False-green removed
+
+`ServiciosMediaLightbox` has **zero runtime consumers** (import trace across `app/`). Both
+`shell-2` and `interaction-polish` were asserting against it — protecting code no user can reach.
+Both were re-pointed at the LIVE surfaces (`ServiciosGalleryWithTabs`, `ServiciosVisualProofRow`),
+where in-Leonix embed playback, the Fotos/Videos labels and the shared lightbox engine are actually
+asserted. The dead component is **not deleted** (master §15).
+
+### 24.4 Repairs are provably capable of failing
+
+Every repaired assertion tests a CONTRACT, not a symbol spelling. All 14 repaired contracts were
+executed against mutated in-memory copies of the real source (no repo file touched):
+**14/14 behaved correctly** — baseline passes, and each mutation (metrics path severed, hero gate
+forced true, shared lightbox swapped for a local one, legacy `GalleryModal` reintroduced, embed
+downgraded to thumbnail, 4-column grid reduced to 3, checkpoint `onMoreClick` unbound, overlay
+token removed, a `+$99` upsell inserted, base price changed to 299, the shared add-on module
+swapped for a local one, a direct `api.stripe.com` call added, the preview fallback repointed at a
+checkpoint route) makes the corresponding assertion FAIL.
+
+*(One case initially reported a false "does not bite" — traced to the harness using
+`String.replace`, which substitutes only the first of two occurrences. Harness corrected, then
+14/14. Recorded because the harness bug, not the assertion, was at fault.)*
+
+### 24.5 Deprecation — `verify-servicios-destacados-module`
+
+Removed from the active certification set; npm alias withdrawn; file retained with a full
+supersession header. Protection is covered by `verify-servicios-discovery-placement-truth`,
+`verify-servicios-entitlement-overlay` and `verify-servicios-print-digital-ranking`. The legacy
+Destacados files are intentionally NOT deleted (master §15). Runtime proof of paid placement
+remains an owner-runtime GR item and is not claimed.
+
+### 24.6 Alias repair
+
+| | Before | After |
+|---|---|---|
+| `verify-servicios-*` files | 47 | 47 |
+| `verify:servicios-*` aliases | 44 | 53 |
+| Broken aliases (alias → missing file) | 0 | **0** |
+| Unregistered verifier files | 10 | **1** (the deprecated one, intentional) |
+
+Added the two named missing aliases (`verify:servicios-publish-authority`,
+`verify:servicios-gate1-lifecycle` — whose absence produced the misleading "exit 1" in the §20.7
+closeout) plus 9 further direct-only verifiers: address-privacy, edit-roundtrip, gate2-discovery,
+gate3-source-readiness, golden-reference-promo-path, included-offers, owner-qa-delta,
+preset-id-collisions, runtime-readiness-probe.
+
+### 24.7 Active verifier inventory
+
+**ACTIVE CURRENT SERVICIOS VERIFIERS: 46 · ACTIVE PASS: 46 · ACTIVE FAIL: 0 · STALE ACTIVE: 0 ·
+FALSE-GREEN: 0 · BROKEN ALIASES: 0 · DEPRECATED: 1.**
+
+Three verifiers (`post-payment-persistence-public-render-repair-01`,
+`production-readiness-closure-02`, `rsc-client-boundary-crash-repair-01`) transiently failed
+mid-closeout on their "no unrelated categories changed" guard. That guard reads
+`git diff --name-only` — uncommitted working-tree state — so it tripped on the in-progress
+verifier edits and cleared once committed. Not a defect; recorded so the behaviour is not
+mistaken for one later.
+
+### 24.8 Migration `20260805100400_retire_website_launch_25_promo_family` — APPLIED
+
+Applied through the canonical Supabase migration mechanism (**not** a manual UPDATE), recorded as
+**`20260912045813 retire_website_launch_25_promo_family`** on project `xuieateniufcrsfdomwl`.
+
+Safety proven BEFORE applying: the SQL is a single `UPDATE` plus a `COMMENT` — no DELETE, no
+destructive DDL — and is self-idempotent (its `WHERE status = 'active'` cannot re-match after the
+flip). A NULL-safe dry-run of the exact WHERE clause matched **exactly 1 row**.
+
+| Check | Before | After |
+|---|---|---|
+| Active promo codes | 11 | **10** |
+| Active in `website_launch_25` family | 1 | **0** |
+| Revoked rows | 0 | **1** |
+| Total rows (no deletions) | 12 | **12** |
+| `LX-NEWS-SQESAR` status | `active`, `retired_at` NULL | **`revoked`**, `revoked_at` set, `retired_at` set, `retirement_gate = PACKAGE-C-BUILD-2-LAUNCH-25-RETIREMENT-01` |
+| `LX-NEWS-SQESAR` `ends_at` / `percent_off` | 2026-09-06 / 25 | **unchanged** (history preserved) |
+| Other 10 active promos | untouched | **untouched** (incl. unrelated 25% `RESTO-LAUNCH-25`, `RESTO-QA-25-01`, `LX-PROMO-44E4P7`) |
+| `leonix_verified_intro_discount_redemptions` | 0 | **0** |
+
+`verified_intro_15` is structurally unaffected: it does not live in `leonix_promo_codes` at all —
+it is the Stripe coupon `leonix_verified_intro_15_once` plus the
+`leonix_verified_intro_discount_redemptions` reservation table. Servicios $399 base, the 15%
+verified intro and the 409 `discount_conflict` no-stacking rule are all unchanged.
+
+The 25% code is now closed by **two independent gates**: lifecycle status (`revoked`) and the
+expired time window. §23.3's residual risk — "if anyone ever extended `ends_at`, 25% would go live
+again" — is eliminated.
+
+### 24.9 Final migration state
+
+| Metric | Value |
+|---|---|
+| Repo migration head | `20260911120000_saved_search_match_events_comida_local.sql` |
+| Database applied head | `20260912045813 retire_website_launch_25_promo_family` |
+| Multiple heads | NO |
+| **Unapplied Servicios-consumed migrations** | **0** |
+| Migration conflicts | 0 |
+| Schema drift blockers | 0 |
+
+25 ledger-era migrations remain unapplied; each was re-checked for Servicios impact. Six mention
+"servicios", none consumed by the Servicios runtime: `admin_live_schema_drift_fix_01` adds
+`servicios_public_listings.promoted`, **which already exists in the database** (verified against
+`information_schema`, together with `listing_status`, `leonix_ad_id`, `private_contact`,
+`moderation_notes`, `suspended_reason`); `leonix_endorsement_votes_comida_local` and the two
+`saved_search_match_events_*` migrations only WIDEN CHECK constraints to add other categories
+while preserving the existing `servicios` values (Servicios' own saved-search migration is
+applied); the remaining two merely mention Servicios in comments.
+
+### 24.10 Result
+
+Pre-QA engineering items remaining: **0**. Owner QA has not started, no test listing exists, no
+payment was taken, nothing was published, and no GR row changed — 43 remain PENDING OWNER RUNTIME,
+GR-22 NOT SUPPORTED — CURRENT PRODUCT, GR-44 incomplete.
