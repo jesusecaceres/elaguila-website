@@ -83,7 +83,11 @@ export function ServiciosProfessionalPreviewShell({
   // coupons) never adopted the shared Translate Ad layer the published shells use, so the owner saw
   // no translator in Preview. Same hook, same /api/translate-ad engine, same placement above
   // "Sobre nosotros"; it translates user-authored ad prose only, never static UI.
-  const { displayProfile, translateControl } = useServiciosPublicTranslation({
+  // Owner QA 914 — this preview shell never threaded the effective content language into its
+  // sections, so canonical catalog labels (payments, amenities, generated summary) and every
+  // ad-local heading stayed in the page locale even while Translate Ad was active. `displayLang`
+  // is the SAME seam the two published shells already use.
+  const { displayProfile, translateControl, displayLang } = useServiciosPublicTranslation({
     profile: syncedDisplayProfile,
     lang,
     listingKey: (draftSlug ?? syncedDisplayProfile.identity.slug).trim(),
@@ -127,7 +131,7 @@ export function ServiciosProfessionalPreviewShell({
     >
       <ServiciosProfessionalHero
         profile={displayProfile}
-        lang={lang}
+        lang={displayLang}
         template={template}
         cityFallback={cityFallback}
         contactScrollTargetId="servicios-preview-contact"
@@ -135,7 +139,7 @@ export function ServiciosProfessionalPreviewShell({
           <div className="flex flex-wrap items-center gap-2">
             <ServiciosLikeEngagementCluster
               listingId={previewEngagementListingId}
-              lang={lang}
+              lang={displayLang}
               persistEngagement={false}
               variant="small"
               tone="hero"
@@ -144,7 +148,7 @@ export function ServiciosProfessionalPreviewShell({
               listingId={previewEngagementListingId}
               listingTitle={displayProfile.identity.businessName}
               variant="small"
-              lang={lang}
+              lang={displayLang}
               category="servicios"
               persistEngagement={false}
               directNativeShare
@@ -164,7 +168,7 @@ export function ServiciosProfessionalPreviewShell({
           {translateControl ? <div>{translateControl}</div> : null}
 
           {hasAboutSectionResolved(displayProfile) ? (
-            <ServiciosAbout profile={displayProfile} lang={lang} premiumLeonixTone />
+            <ServiciosAbout profile={displayProfile} lang={displayLang} premiumLeonixTone />
           ) : null}
 
           <div id="servicios-preview-contact" className={SECTION_SCROLL}>
@@ -172,7 +176,7 @@ export function ServiciosProfessionalPreviewShell({
                 profile), so the hub keeps Save only instead of repeating Like/Share a second time. */}
             <ServiciosBusinessHubContactCard
               profile={displayProfile}
-              lang={lang}
+              lang={displayLang}
               listingTemplate={template}
               listingSlug={previewEngagementListingId}
               engagementListingId={previewEngagementListingId}
@@ -184,12 +188,12 @@ export function ServiciosProfessionalPreviewShell({
             />
           </div>
 
-          <ServiciosVisualProofRow profile={displayProfile} lang={lang} />
+          <ServiciosVisualProofRow profile={displayProfile} lang={displayLang} />
 
           {hasCouponBlock(displayProfile) ? (
             <ServiciosCouponsCard
               coupons={displayProfile.coupons}
-              lang={lang}
+              lang={displayLang}
               couponFlyer={displayProfile.couponFlyer}
               couponMoreOffers={displayProfile.couponMoreOffers}
               featuredRow
@@ -197,49 +201,54 @@ export function ServiciosProfessionalPreviewShell({
           ) : null}
 
           {hasGallerySectionResolved(displayProfile) ? (
-            <ServiciosGalleryWithTabs profile={displayProfile} lang={lang} combinedMediaLayout />
+            <ServiciosGalleryWithTabs profile={displayProfile} lang={displayLang} combinedMediaLayout />
           ) : null}
 
           {hasServicesSectionResolved(displayProfile) ? (
             <ServiciosOfferedSection
               services={displayProfile.services}
-              lang={lang}
+              lang={displayLang}
               profileForQuote={displayProfile}
               premiumLeonixTone
             />
           ) : null}
 
+          {/* Owner QA 914 — same contentLang seam as the published shells: canonical payment /
+              amenity labels and the generated summary now follow the effective content language
+              instead of always defaulting to the page locale. */}
           <ServiciosPublicDetailsCanvas
             profile={displayProfile}
             displayProfile={displayProfile}
-            lang={lang}
+            lang={displayLang}
+            contentLang={displayLang}
             template={template}
           />
 
-          <ServiciosGroupedHowSection profile={displayProfile} lang={lang} />
+          <ServiciosGroupedHowSection profile={displayProfile} displayProfile={displayProfile} lang={displayLang} contentLang={displayLang} />
 
           <ServiciosPagosBeneficiosSection
             profile={displayProfile}
             displayProfile={displayProfile}
-            lang={lang}
+            lang={displayLang}
+            contentLang={displayLang}
           />
 
           <ServiciosEndOfContentShare
-            lang={lang}
+            lang={displayLang}
             listingId={previewEngagementListingId}
             listingTitle={displayProfile.identity.businessName}
             persistEngagement={false}
           />
 
           {hasReviewsSectionResolved(displayProfile) ? (
-            <ServiciosReviews profile={displayProfile} lang={lang} />
+            <ServiciosReviews profile={displayProfile} lang={displayLang} />
           ) : null}
 
           {/* Gate I.5.4B — same component + same condition as ServiciosProfessionalProfileShell (Published):
               when a structured weekly schedule exists, ServiciosBusinessHubContactCard above already renders
               it inline, so this section is skipped to avoid showing the same weekly list twice. */}
           {!profile.contact.hours?.weeklyRows ? (
-            <ServiciosHours profile={profile} lang={lang} />
+            <ServiciosHours profile={profile} lang={displayLang} />
           ) : null}
         </div>
 

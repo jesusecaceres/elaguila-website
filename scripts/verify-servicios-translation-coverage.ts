@@ -12,9 +12,15 @@
  * Coverage contract pinned here:
  *   STATIC_UI            locale copy only — never in the payload, never overlaid.
  *   CANONICAL_PRESET     deterministic ES ↔ EN catalog re-label for the destination locale (no API).
- *   CUSTOM_TRANSLATABLE  masked → /api/translate-ad (same engine, v3 cache, no-op guards).
+ *   CUSTOM_TRANSLATABLE  masked → /api/translate-ad (same engine, version-scoped cache, no-op guards).
  *   LITERAL_PRESERVE     never sent, never mutated.
- *   Render-time catalog ids resolve with the CONTENT locale (`contentLang`) while headings keep `lang`.
+ *
+ * Owner QA 914 (2026-09-14) superseded the narrower boundary this file originally pinned ("headings
+ * keep `lang`"): the COMPLETE ad-local experience — every section heading, contact/media/quote-modal
+ * chrome, catalog labels, the generated summary — now follows the effective content language
+ * (`displayLang`, exposed by ServiciosPublicTranslationLayer); only GLOBAL site chrome stays on the
+ * page `lang`. See the "914-*" checks below for that doctrine; the checks above them keep proving
+ * the underlying field-level coverage (canonical relabel, custom-text overlay, literals) unchanged.
  *
  * Run: node node_modules/tsx/dist/cli.mjs scripts/verify-servicios-translation-coverage.ts
  */
@@ -34,7 +40,11 @@ import { buildServiciosSmartTrustSummary } from "../app/(site)/servicios/lib/ser
 import { getServiciosAmenityOption } from "../app/(site)/servicios/lib/serviciosAmenitiesCatalog";
 import { getServiciosPaymentMethodLabel } from "../app/(site)/servicios/lib/serviciosPaymentMethodCatalog";
 import { isNoOpTranslation } from "../app/components/translation/TranslateAdControl";
-import type { ServiciosProfileResolved } from "../app/(site)/servicios/types/serviciosBusinessProfile";
+import {
+  resolveServiciosEffectiveActionLang,
+  serviciosEffectiveQuoteMessage,
+} from "../app/(site)/servicios/lib/serviciosContactActions";
+import type { ServiciosProfileResolved, ServiciosLang } from "../app/(site)/servicios/types/serviciosBusinessProfile";
 
 const failures: string[] = [];
 function check(name: string, fn: () => void) {
@@ -435,7 +445,10 @@ check("wiring: both public shells thread displayLang/contentLang and the overlay
   ]) {
     const src = raw(rel);
     assert.ok(src.includes("const { displayProfile, translateControl, displayLang } = useServiciosPublicTranslation("), `${rel}: displayLang consumed`);
-    assert.ok(src.includes("<ServiciosGroupedHowSection profile={profile} displayProfile={displayProfile} lang={lang} contentLang={displayLang} />"), `${rel}: how section`);
+    // Owner QA 914 — every ad-local section now receives `lang={displayLang}` (the full section,
+    // not just its catalog items, follows the effective content language); `contentLang` stays for
+    // the item-level lookups these components already had.
+    assert.ok(src.includes("<ServiciosGroupedHowSection profile={profile} displayProfile={displayProfile} lang={displayLang} contentLang={displayLang} />"), `${rel}: how section`);
     assert.ok(src.includes("contentLang={displayLang}"), `${rel}: canvas/pagos content locale`);
     assert.ok(/<ServiciosBusinessHubContactCard\s+profile=\{displayProfile\}/.test(src), `${rel}: contact card renders overlay labels`);
     assert.ok(!src.includes("<ServiciosGroupedHowSection profile={profile} lang={lang} />"), `${rel}: no stale mount`);
@@ -443,7 +456,9 @@ check("wiring: both public shells thread displayLang/contentLang and the overlay
 });
 check("cache / no-op protections and known-source callers are untouched", () => {
   const layer = raw("app/(site)/servicios/components/ServiciosPublicTranslationLayer.tsx");
-  assert.ok(layer.includes('version="servicios-t4-v3"'), "v3 cache key kept");
+  // Owner QA 914 bumped v3 → v4 to invalidate a proven stale/garbled cached response (see the
+  // dedicated coverage check below); the KEY MECHANISM (version-scoped cache) is what must survive.
+  assert.ok(/version="servicios-t4-v\d+"/.test(layer), "cache key still version-scoped");
   const control = raw("app/components/translation/TranslateAdControl.tsx");
   assert.ok(control.includes("export function isNoOpTranslation"), "no-op guard exported");
   assert.ok(isNoOpTranslation({ description: "Hola" }, { description: "Hola" }), "identical output is a no-op");
@@ -461,6 +476,177 @@ check("cache / no-op protections and known-source callers are untouched", () => 
     }
   }
   assert.ok(!raw("app/(site)/servicios/lib/serviciosTranslateAd.ts").includes("fetch("), "no second engine: the overlay is pure");
+});
+
+/* ==============================================================================================
+ * OWNER QA 914 (2026-09-14) — the complete AD-LOCAL EXPERIENCE follows the effective content
+ * language while Translate Ad is active; GLOBAL site chrome (nav, the Translate Ad control itself)
+ * stays on the page locale. This supersedes the narrower ⚠️37 boundary (which excluded section
+ * chrome, contact/media/quote-modal chrome, and payment/amenity catalog labels from that rule).
+ * ============================================================================================ */
+const SHELL_FILES = [
+  "app/(site)/servicios/components/ServiciosProfileView.tsx",
+  "app/(site)/servicios/components/ServiciosProfessionalProfileShell.tsx",
+  "app/(site)/clasificados/publicar/servicios/preview/ServiciosProfessionalPreviewShell.tsx",
+];
+
+check("914-1/2/3/4/5/8/11/13/15/19/20 every listing section (hero, About, contact, media, services, credentials, why-choose-us, quick facts, how-business-works, payments, coupons) receives lang={displayLang} in all three shells", () => {
+  const mountSnippets = [
+    "ServiciosProfessionalHero",
+    "ServiciosAbout profile={displayProfile} lang={displayLang}",
+    "ServiciosBusinessHubContactCard",
+    "ServiciosVisualProofRow profile={displayProfile} lang={displayLang}",
+    "ServiciosCouponsCard",
+    "ServiciosGalleryWithTabs",
+    "ServiciosOfferedSection",
+    "ServiciosPublicDetailsCanvas",
+    "ServiciosGroupedHowSection",
+    "ServiciosPagosBeneficiosSection",
+  ];
+  for (const rel of SHELL_FILES) {
+    const src = raw(rel);
+    assert.ok(src.includes("displayLang"), `${rel}: destructures displayLang from the translation layer`);
+    for (const needle of mountSnippets) {
+      assert.ok(src.includes(needle), `${rel}: mounts ${needle}`);
+    }
+    // The contact hub and the Canvas mount are the two places a stray `lang={lang}` would most
+    // easily slip back in (both used to read the page locale) — pin them explicitly.
+    assert.ok(/lang=\{displayLang\}[\s\S]{0,60}listingTemplate/.test(src), `${rel}: contact hub gets displayLang, not lang`);
+    assert.ok(/ServiciosPublicDetailsCanvas[\s\S]{0,160}lang=\{displayLang\}/.test(src), `${rel}: Canvas gets displayLang, not lang`);
+  }
+});
+
+check("914-6/7 canonical + custom services stay correct under the new wiring (no regression from the shell prop swap)", () => {
+  const grid = raw("app/(site)/servicios/components/ServiciosServicesGrid.tsx");
+  assert.ok(grid.includes("{L.services}") && grid.includes("{L.servicesSectionSubtitle}"), "heading/subtitle still driven by the (now effective-language) lang prop");
+  assert.ok(grid.includes('`${services.length} services`') && grid.includes("`${services.length} servicios`"), "service count chrome still lang-driven");
+});
+
+check("914-9/10/11/12/13 credentials, why-choose-us, business highlights, quick facts headings inherit the effective language via ServiciosPublicDetailsCanvas (unchanged internals, new caller value)", () => {
+  const canvas = raw("app/(site)/servicios/components/ServiciosPublicDetailsCanvas.tsx");
+  assert.ok(canvas.includes("<ServiciosCredencialesCard profile={displayProfile} lang={lang}"), "credentials card inherits Canvas's lang (now displayLang)");
+  assert.ok(canvas.includes("<ServiciosTrustSection profile={displayProfile}") && canvas.includes("lang={lang}"), "why-choose-us inherits Canvas's lang");
+  assert.ok(canvas.includes("<ServiciosQuickFacts facts={displayProfile.quickFacts} lang={lang}"), "quick facts inherit Canvas's lang");
+  assert.ok(canvas.includes("<ServiciosSmartTrustSummary profile={displayProfile} lang={lang} contentLang={contentLang} />"), "quick summary chrome+body both content-language-driven");
+});
+
+check("914-14 Quick Summary chrome (title/subtitle) also follows the effective language, not just the generated body", () => {
+  const summary = raw("app/(site)/servicios/components/ServiciosSmartTrustSummary.tsx");
+  assert.ok(summary.includes("getServiciosSmartTrustSummaryCopy(lang)"), "chrome copy keyed by the lang prop it receives");
+  assert.ok(summary.includes("buildServiciosSmartTrustSummary(profile, contentLang ?? lang)"), "generated body keyed by content language");
+});
+
+check("914-15/16/17/18 How-this-business-works heading, every group heading, and every pill stay wired exactly as ⚠️37 built them — only the caller's language value changed", () => {
+  const how = raw("app/(site)/servicios/components/ServiciosGroupedHowSection.tsx");
+  assert.ok(how.includes('lang === "en" ? "How this business works" : "Cómo trabaja este negocio"'));
+  assert.ok(how.includes("buildServiciosHowGroups(displayProfile ?? profile, lang, contentLang ?? lang)"));
+  const howData = raw("app/(site)/servicios/lib/serviciosGroupedHowData.ts");
+  assert.ok(howData.includes("def?.label[itemLang] ?? id"), "preset pill labels follow itemLang");
+});
+
+check("914-19 Payments & benefits heading + catalog payment/financing labels both follow the effective language", () => {
+  const pagos = raw("app/(site)/servicios/components/ServiciosPagosBeneficiosSection.tsx");
+  assert.ok(pagos.includes('lang === "en" ? "Payments & benefits" : "Pagos y beneficios"'));
+  assert.ok(pagos.includes("buildServiciosPagosGroups(profile, displayProfile, lang, itemLang)"));
+  const pagosData = raw("app/(site)/servicios/lib/serviciosPagosBeneficiosData.ts");
+  assert.ok(pagosData.includes("getServiciosPaymentMethodLabel(id, itemLang)"), "standard AND financing payment ids resolve in the content locale (same catalog, same lookup)");
+});
+
+check("914-20 coupons: section chrome, code/price/date literal, title/description/redemption via the translated overlay", () => {
+  const coupons = raw("app/(site)/servicios/components/ServiciosCouponsCard.tsx");
+  assert.ok(coupons.includes('lang === "en" ? "Code:" : "Código:"'));
+  assert.ok(coupons.includes('lang === "en" ? "Valid until" : "Válido hasta"'));
+  assert.ok(coupons.includes('lang === "en" ? "View offer" : "Ver oferta"'));
+  assert.ok(coupons.includes("coupon.couponCode"), "code stays literal");
+  assert.ok(coupons.includes("coupon.title") && coupons.includes("coupon.description"), "title/description render from the (translated) coupon object, never re-derived from lang");
+  for (const rel of SHELL_FILES) {
+    assert.ok(raw(rel).includes("ServiciosCouponsCard"), `${rel}: coupons card mounted with the effective language`);
+  }
+});
+
+check("914-21/22/23 quote modal: CtaActionSheet chrome follows the effective action language; message is bilingual-fallback-aware", () => {
+  const grid = raw("app/(site)/servicios/components/ServiciosServicesGrid.tsx");
+  assert.ok(grid.includes("<CtaActionSheet open={ctaOpen} onClose={closeCta} intent={ctaIntent} lang={lang} />"), "services grid quote sheet uses its own (now effective) lang prop");
+  const gallery = raw("app/(site)/servicios/components/ServiciosGalleryWithTabs.tsx");
+  assert.ok(gallery.includes("serviciosEffectiveQuoteMessage(profile, lang)"), "gallery quote message uses the effective-language builder");
+  const contact = raw("app/(site)/servicios/components/ServiciosBusinessHubContactCard.tsx");
+  assert.ok(contact.includes("serviciosEffectiveQuoteMessage(profile, lang)"), "primary quote message uses the effective-language builder");
+
+  // Unit coverage of the builder itself.
+  const esOnly = { hero: { badges: [{ kind: "spanish", label: "Español" }] } } as unknown as ServiciosProfileResolved;
+  const bilingualProfile = { hero: { badges: [{ kind: "spanish", label: "Español" }, { kind: "custom", label: "Inglés" }] } } as unknown as ServiciosProfileResolved;
+  const noSignal = { hero: { badges: [] } } as unknown as ServiciosProfileResolved;
+  const shape = (p: ServiciosProfileResolved, l: ServiciosLang) =>
+    resolveServiciosEffectiveActionLang(p, l).bilingual ? "bilingual" : "single";
+
+  assert.equal(shape(esOnly, "es"), "single");
+  assert.equal(shape(esOnly, "en"), "bilingual", "Spanish-only business viewed translated to English → bilingual");
+  assert.equal(shape(bilingualProfile, "en"), "single", "business serves English → single English message");
+  assert.equal(shape(noSignal, "en"), "single", "no language signal at all → no fallback invented");
+});
+
+check("914-23 bilingual quote fallback: exact shape — effective language first, business's declared language second, service name translated when canonical", () => {
+  const esOnlyPlomeria = {
+    hero: { badges: [{ kind: "spanish", label: "Español" }] },
+  } as unknown as ServiciosProfileResolved;
+  const msg = serviciosEffectiveQuoteMessage(esOnlyPlomeria, "en", "Leak repair", "reparación de fugas");
+  assert.equal(
+    msg,
+    "Hi, I found your business on Leonix and would like a quote for Leak repair.\nHola, encontré su negocio en Leonix y quisiera solicitar una cotización para reparación de fugas.",
+  );
+  assert.ok(!/viewed this ad in|client viewed/i.test(msg), "no awkward viewed-in-language metadata");
+  const served = serviciosEffectiveQuoteMessage(
+    { hero: { badges: [{ kind: "custom", label: "Inglés" }] } } as unknown as ServiciosProfileResolved,
+    "en",
+  );
+  assert.ok(!served.includes("\n"), "served language → single-line message, no fallback needed");
+});
+
+check("914-24 View original restores the original-language ad-local experience (displayLang reverts with displayProfile)", () => {
+  const layer = raw("app/(site)/servicios/components/ServiciosPublicTranslationLayer.tsx");
+  assert.ok(
+    layer.includes('const displayLang: ServiciosLang = showTranslated && translation?.translated ? translatedLang : lang;'),
+    "displayLang reverts to the page/original language the instant showTranslated is false — the exact `onShowOriginal` path",
+  );
+  assert.ok(layer.includes("const onShowOriginal = useCallback(() => {\n    setShowTranslated(false);"));
+});
+
+check("914-25 EN→ES reverse direction: canonical relabel + custom overlay both prove the reverse path (existing fixture, restated for the ad-local doctrine)", () => {
+  const enAuthored = {
+    ...fixture,
+    hero: { ...fixture.hero, categoryLine: "Carpentry", badges: [{ kind: "spanish", label: "Spanish" }, { kind: "custom", label: "English" }] },
+    services: [{ id: "svc_carpinteria::carp_muebles", title: "Furniture making", secondaryLine: "", imageAlt: "Furniture making" }],
+  } as unknown as ServiciosProfileResolved;
+  const es = applyServiciosTranslation(enAuthored, { description: "Somos una empresa familiar." }, "es");
+  assert.equal(es.hero.categoryLine, "Carpintería");
+  assert.equal(es.services[0]!.title, "Fabricación de muebles");
+  assert.deepEqual(es.hero.badges.map((b) => b.label), ["Español", "Inglés"]);
+});
+
+check("914-27 uploaded media / document values are never touched by the ad-local chrome rewiring", () => {
+  const gallery = raw("app/(site)/servicios/components/ServiciosGalleryWithTabs.tsx");
+  assert.ok(gallery.includes("src={g.url}") || gallery.includes("g.url"), "gallery image URLs render as stored");
+  const creds = raw("app/(site)/servicios/components/ServiciosCredencialesCard.tsx");
+  assert.ok(creds.includes("c.licenseDocumentHrefSafe") && creds.includes("c.insuranceDocumentHrefSafe"), "license/insurance document links render as stored");
+});
+
+check("914-28 General Share mechanism untouched: LeonixShareButton itself is not part of this change; only the Servicios-owned lang prop value changed at the listing's own mounts", () => {
+  const share = raw("app/components/clasificados/analytics/LeonixShareButton.tsx");
+  assert.ok(share.includes('? { title: safeTitle, text: body, url: urlToShare }\n        : { title: safeTitle, url: urlToShare }'), "⚠️32A payload shape untouched");
+  for (const rel of SHELL_FILES) {
+    assert.ok(raw(rel).includes("directNativeShare"), `${rel}: native-first share still wired`);
+  }
+});
+
+check("914-29 ⚠️38A discovery/matcher/type=/saved-search surface is untouched by this change", () => {
+  for (const rel of [
+    "app/(site)/clasificados/servicios/lib/serviciosDiscoveryAdapter.ts",
+    "app/(site)/clasificados/servicios/lib/serviciosResultsFilter.ts",
+    "app/lib/clasificados/discovery/discoveryMatcher.ts",
+    "app/lib/clasificados/discovery/bilingualSearchDocument.ts",
+  ]) {
+    assert.ok(!raw(rel).includes("displayLang"), `${rel}: no ad-local chrome coupling — discovery stays a separate concern`);
+  }
 });
 
 if (failures.length) {

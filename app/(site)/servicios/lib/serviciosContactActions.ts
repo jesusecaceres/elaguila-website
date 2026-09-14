@@ -15,6 +15,81 @@ export function serviciosUniversalQuoteMessage(lang: ServiciosLang): string {
   return lang === "en" ? SERVICIOS_UNIVERSAL_QUOTE_MESSAGE_EN : SERVICIOS_UNIVERSAL_QUOTE_MESSAGE_ES;
 }
 
+/* ==============================================================================================
+ * Owner QA 914 — EFFECTIVE ACTION LANGUAGE for generated quote/inquiry messages.
+ *
+ * EFFECTIVE ACTION LANGUAGE = the translated content target while Translate Ad is active,
+ * otherwise the normal listing/page content language (i.e. exactly `displayLang`, passed in by
+ * every call site as `effectiveLang`).
+ *
+ * If the business declares it serves that language (`hero.badges` — the same "languages the
+ * business can serve customers in" signal ⚠️38A uses, never the language the ad was authored in):
+ * the message is generated in that language only. If the viewer's effective language is NOT one
+ * the business declares, and the OPPOSITE language IS declared, the message is a compact bilingual
+ * line: effective language first, the business's declared language second — never a machine
+ * translation of owner prose, and never metadata like "Client viewed this ad in English."
+ * ============================================================================================ */
+function servesDeclaredLanguage(badges: { kind: string; label?: string }[] | undefined, want: ServiciosLang): boolean {
+  const list = badges ?? [];
+  if (want === "es") {
+    return list.some(
+      (b) => b.kind === "spanish" || (b.kind === "custom" && /español|espanol|spanish/i.test(b.label ?? "")),
+    );
+  }
+  return list.some((b) => b.kind === "custom" && /inglés|ingles|english/i.test(b.label ?? ""));
+}
+
+export type ServiciosEffectiveActionLang = {
+  lang: ServiciosLang;
+  bilingual: boolean;
+  secondaryLang?: ServiciosLang;
+};
+
+/** Resolves the effective action language, deciding whether a bilingual fallback applies. */
+export function resolveServiciosEffectiveActionLang(
+  profile: ServiciosProfileResolved,
+  effectiveLang: ServiciosLang,
+): ServiciosEffectiveActionLang {
+  const badges = profile.hero?.badges;
+  const hasAnyLanguageSignal = (badges ?? []).some((b) => b.kind === "spanish" || b.kind === "custom");
+  // No language signal at all on the listing: nothing to gate on, use the effective language alone.
+  if (!hasAnyLanguageSignal || servesDeclaredLanguage(badges, effectiveLang)) {
+    return { lang: effectiveLang, bilingual: false };
+  }
+  const secondaryLang: ServiciosLang = effectiveLang === "en" ? "es" : "en";
+  if (!servesDeclaredLanguage(badges, secondaryLang)) {
+    // Neither language is confirmed served (unusual data) — do not invent a fallback language.
+    return { lang: effectiveLang, bilingual: false };
+  }
+  return { lang: effectiveLang, bilingual: true, secondaryLang };
+}
+
+/**
+ * Builds a quote/inquiry message in the effective action language, with the bilingual fallback
+ * above. `serviceName` (destination-locale) and `serviceNameSecondary` (secondary-locale, when a
+ * canonical service label is known) drive the optional "for <service>" clause identically in
+ * shape to the universal message.
+ */
+export function serviciosEffectiveQuoteMessage(
+  profile: ServiciosProfileResolved,
+  effectiveLang: ServiciosLang,
+  serviceName?: string,
+  serviceNameSecondary?: string,
+): string {
+  const resolved = resolveServiciosEffectiveActionLang(profile, effectiveLang);
+  const line = (l: ServiciosLang, name: string | undefined) => {
+    if (!name) return serviciosUniversalQuoteMessage(l);
+    return l === "en"
+      ? `Hi, I found your business on Leonix and would like a quote for ${name}.`
+      : `Hola, encontré su negocio en Leonix y quisiera solicitar una cotización para ${name}.`;
+  };
+  if (!resolved.bilingual || !resolved.secondaryLang) {
+    return line(resolved.lang, serviceName);
+  }
+  const secondaryName = serviceNameSecondary ?? serviceName;
+  return `${line(resolved.lang, serviceName)}\n${line(resolved.secondaryLang, secondaryName)}`;
+}
+
 export function appendWhatsAppPrefill(href: string, text: string): string {
   const t = href.trim();
   if (!t) return t;

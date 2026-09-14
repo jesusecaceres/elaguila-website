@@ -104,7 +104,9 @@ check("⚠️31 services grid dispatches get_quote with the service name — nev
   const grid = raw("app/(site)/servicios/components/ServiciosServicesGrid.tsx");
   assert.ok(grid.includes("buildServiciosGetQuoteIntent(profileForQuote, lang, {"));
   assert.ok(grid.includes("quoteMessage: message,"));
-  assert.ok(grid.includes("` para ${serviceName}`") && grid.includes("` for ${serviceName}`"), "service name interpolated in both locales");
+  // Owner QA 914 — the message now goes through the shared effective-action-language builder
+  // (bilingual fallback when the business does not declare the effective language served).
+  assert.ok(grid.includes("serviciosEffectiveQuoteMessage(profileForQuote, lang, service.title, secondaryName)"), "service name carried through the effective-language builder");
   assert.ok(grid.includes('"cta_quote_sms_click"'), "quote analytics event preserved");
   assert.ok(!grid.includes("share_ad"), "grid never opens the share hub");
   assert.ok(!grid.includes("LeonixShareButton"), "grid has no share button");

@@ -54,7 +54,10 @@ check("⚠️33 control: cached echo is cleared and re-requested; fresh echo is 
 });
 check("⚠️33 Servicios layer: cache-key version bumped past the pre-policy echo", () => {
   const layer = raw("app/(site)/servicios/components/ServiciosPublicTranslationLayer.tsx");
-  assert.ok(layer.includes('version="servicios-t4-v3"'), "v3 key");
+  // Owner QA 914 bumped v3 → v4 for a proven stale/garbled cached response; the mechanism this
+  // ⚠️33 check protects (a version-scoped cache key that can be bumped to invalidate a bad reply)
+  // is what must survive, not the literal v3 string.
+  assert.ok(/version="servicios-t4-v\d+"/.test(layer), "cache key still version-scoped (now v4)");
   assert.ok(!layer.includes('version="servicios-t4-v2"'), "v2 key gone");
   assert.ok(layer.includes("requestTranslation={requestServiciosAdTranslation}"), "live request callback wired");
 });
