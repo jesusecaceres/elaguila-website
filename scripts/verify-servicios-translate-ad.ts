@@ -157,16 +157,18 @@ check("⚠️16 overlay build: custom quick fact / custom reason / coupons / lat
   assert.equal(content.title, "Plomería residencial");
   assert.equal(content.shareText, "Primera visita gratis");
   const body = content.body ?? "";
-  assert.ok(body.includes("qf\t1\tAtendemos sábados"), body);
+  // ⚠️37 (2026-09-14): records are HTML-mode safe `<div data-lx>` elements — the provider folds
+  // tabs/newlines into spaces, so the earlier tab protocol did not survive a live round trip.
+  assert.ok(body.includes('<div data-lx="qf:1">Atendemos sábados</div>'), body);
   assert.ok(!body.includes("Más de 10 años de experiencia"), "preset quick fact (catalog label) never sent");
-  assert.ok(body.includes("tr\t1\t20 años en San José"), body);
+  assert.ok(body.includes('<div data-lx="tr:1">20 años en San José</div>'), body);
   assert.ok(!body.includes("Con licencia"), "preset reason (pre-localized) never sent");
-  assert.ok(body.includes("cp\t0\t10% en tu primer servicio\tMenciona Leonix"), body);
-  assert.ok(body.includes("cp\t1\tInspección gratis\t"), body);
-  assert.ok(body.includes("pr\t1\tDescuento para adultos mayores"), body);
+  assert.ok(body.includes('<div data-lx="cp:0"><span>10% en tu primer servicio</span><span>Menciona Leonix</span></div>'), body);
+  assert.ok(body.includes('<div data-lx="cp:1"><span>Inspección gratis</span><span></span></div>'), body);
+  assert.ok(body.includes('<div data-lx="pr:1">Descuento para adultos mayores</div>'), body);
   assert.ok(!body.includes("Primera visita gratis"), "first promo stays in shareText only");
   assert.ok(!body.includes("LEONIX10"), "coupon codes never sent");
-  assert.equal(content.highlights, "1\tGarantía por escrito", "only the custom highlight is sent, indexed");
+  assert.equal(content.highlights, '<div data-lx="1">Garantía por escrito</div>', "only the custom highlight is sent, indexed");
   assert.ok(!(content.highlights ?? "").includes("Presupuesto sin costo"), "preset highlight never sent");
   assert.ok(isOwnerAuthoredQuickFact({ kind: "custom", label: "x" }));
   assert.ok(!isOwnerAuthoredQuickFact({ kind: "years_experience", label: "Más de 10 años de experiencia" }));

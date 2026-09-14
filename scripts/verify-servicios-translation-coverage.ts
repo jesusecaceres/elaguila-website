@@ -191,27 +191,34 @@ check("C payload carries every owner-authored public field", () => {
   assert.equal(content.title, undefined, "preset category line is canonical, not machine-translated");
   assert.equal(content.description, "Somos una empresa familiar.");
   assert.equal(content.customServiceText, "Cocinas y closets a medida");
-  assert.equal(content.details, "1\tRestauración de antigüedades\tPresupuesto en 24 h", "only the custom service, indexed");
-  assert.equal(content.highlights, "1\tGarantía por escrito");
+  // Records are HTML-mode safe (`<div data-lx>` + `<span>` columns): the shared provider translates
+  // as text/html and folds tabs/newlines into spaces, which a line protocol cannot survive.
+  assert.equal(
+    content.details,
+    '<div data-lx="1"><span>Restauración de antigüedades</span><span>Presupuesto en 24 h</span></div>',
+    "only the custom service, indexed",
+  );
+  assert.equal(content.highlights, '<div data-lx="1">Garantía por escrito</div>');
   assert.equal(content.shareText, "Primera visita gratis");
   const body = content.body ?? "";
   for (const line of [
-    "qf\t1\tAtendemos sábados",
-    "tr\t1\t20 años en San José",
-    "cp\t0\t10% en tu primer servicio\tMenciona Leonix",
-    "cn\t0\tPresenta este cupón al pagar\tVer oferta",
-    "pr\t1\tDescuento para adultos mayores",
-    "pf\t0\tSolo clientes nuevos",
-    "cr\tlicenseType\tContratista de carpintería",
-    "cr\tinsuranceType\tSeguro de responsabilidad civil",
-    "cf\t0\tCertificación en instalación de gabinetes",
-    "el\t0\tCatálogo de trabajos",
-    "pm\t0\tPago en abonos sin interés",
-    "am\tavailability:0\tAtención de emergencia nocturna",
-    "hb\t4\tPortugués básico",
+    '<div data-lx="qf:1">Atendemos sábados</div>',
+    '<div data-lx="tr:1">20 años en San José</div>',
+    '<div data-lx="cp:0"><span>10% en tu primer servicio</span><span>Menciona Leonix</span></div>',
+    '<div data-lx="cn:0"><span>Presenta este cupón al pagar</span><span>Ver oferta</span></div>',
+    '<div data-lx="pr:1">Descuento para adultos mayores</div>',
+    '<div data-lx="pf:0">Solo clientes nuevos</div>',
+    '<div data-lx="cr:licenseType">Contratista de carpintería</div>',
+    '<div data-lx="cr:insuranceType">Seguro de responsabilidad civil</div>',
+    '<div data-lx="cf:0">Certificación en instalación de gabinetes</div>',
+    '<div data-lx="el:0">Catálogo de trabajos</div>',
+    '<div data-lx="pm:0">Pago en abonos sin interés</div>',
+    '<div data-lx="am:availability:0">Atención de emergencia nocturna</div>',
+    '<div data-lx="hb:4">Portugués básico</div>',
   ]) {
-    assert.ok(body.includes(line), `body line missing: ${line}\n${body}`);
+    assert.ok(body.includes(line), `body record missing: ${line}\n${body}`);
   }
+  assert.ok(!/[\t]/.test(body) && !/[\t]/.test(content.details ?? ""), "no tab protocol left in the payload");
   assert.ok(isOwnerAuthoredHeroBadge({ kind: "custom", label: "Portugués básico" }));
   assert.ok(!isOwnerAuthoredHeroBadge({ kind: "custom", label: "Inglés" }), "catalog language badge is canonical");
   assert.ok(!isOwnerAuthoredHeroBadge({ kind: "verified", label: "Verificado" }));
@@ -294,6 +301,39 @@ check("C+D apply ES → EN: machine text lands on owner fields, presets canonica
   assert.equal(fixture.credentials?.licenseType, "Contratista de carpintería");
   assert.equal(fixture.coupons[0]!.redemptionNote, "Presenta este cupón al pagar");
   assert.equal(applyServiciosTranslation(fixture, {}), fixture, "empty translation keeps reference identity");
+});
+check("live provider shape: HTML records with inserted whitespace, entities and trailing punctuation decode onto the right fields", () => {
+  // Exact shape observed from production /api/translate-ad (HTML mode) on 2026-09-14.
+  const translated = applyServiciosTranslation(
+    fixture,
+    {
+      description: "We are Juan&#39;s company &amp; we don&#39;t stop.",
+      details: '<div data-lx="1"> <span>Antique restoration.</span> <span>Quote within 24 h</span></div>',
+      highlights: '<div data-lx="1"> Written warranty</div>',
+      body: [
+        '<div data-lx="qf:1">We are open on Saturdays</div>',
+        '<div data-lx="cp:0"> <span>10% off your first service.</span> <span>Mention Leonix.</span></div>',
+        '<div data-lx="cr:licenseType"> Carpentry contractor</div>',
+        '<div data-lx="am:availability:0"> Nighttime emergency care</div>',
+        '<div data-lx="hb:4">Basic Portuguese</div>',
+      ].join(" "),
+    },
+    "en",
+  );
+  assert.equal(translated.about?.text, "We are Juan's company & we don't stop.", "entities decoded in prose");
+  assert.equal(translated.services[1]!.title, "Antique restoration.");
+  assert.equal(translated.services[1]!.secondaryLine, "Quote within 24 h");
+  assert.equal(translated.highlights[1]!.label, "Written warranty");
+  assert.equal(translated.quickFacts[1]!.label, "We are open on Saturdays");
+  assert.equal(translated.coupons[0]!.title, "10% off your first service.");
+  assert.equal(translated.coupons[0]!.description, "Mention Leonix.");
+  assert.equal(translated.credentials?.licenseType, "Carpentry contractor");
+  assert.deepEqual(translated.customAmenityOptionsByGroup, { availability: ["Nighttime emergency care"] });
+  assert.equal(translated.hero.badges[4]!.label, "Basic Portuguese");
+  assert.equal(translated.trust[1]!.label, "20 años en San José", "records not returned stay as-is (never garbage)");
+  // Owner text containing markup characters is escaped on the way out.
+  const spicy = { ...fixture, about: { text: "x" }, quickFacts: [{ kind: "custom", label: "Tools & parts <24h>" }] } as unknown as ServiciosProfileResolved;
+  assert.ok((buildServiciosTranslatableContent(spicy).body ?? "").includes('<div data-lx="qf:0">Tools &amp; parts &lt;24h&gt;</div>'));
 });
 check("EN → ES: an English-authored profile re-labels presets to Spanish and applies Spanish machine text", () => {
   const enAuthored = {

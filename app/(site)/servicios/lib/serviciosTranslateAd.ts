@@ -28,10 +28,14 @@ import {
  *                        customer review quotes, payment brand names: never sent, never mutated.
  *   Amenity options and catalog payment methods are ids; their labels are resolved at render time
  *   with the destination locale (`contentLang` seam in the sections).
+ *
+ * Bundle transport: the shared provider translates in HTML mode, which folds tabs / newlines into
+ * spaces — a tab-and-newline line protocol does NOT survive a live round trip. Multi-item fields are
+ * therefore encoded as `<div data-lx="KEY">…</div>` records (columns as `<span>`), which the
+ * provider preserves verbatim (live-proven 2026-09-14). Decoding is tolerant of inserted whitespace,
+ * HTML entities in the translated text, and the legacy tab protocol (cached results, fixtures).
  * ============================================================================================ */
 
-/** Encodes service cards for the `details` translatable field (index + title + secondary line). */
-const SERVICE_LINE_RE = /^(\d+)\t([^\t]*)\t(.*)$/;
 const CUSTOM_SERVICE_ID_PREFIX = "custom_offer_";
 const PRESET_SERVICE_ID_PREFIX = "svc_";
 const PRESET_REASON_ID_PREFIX = "trust_";
@@ -40,85 +44,155 @@ const PRESET_HIGHLIGHT_ID_PREFIX = "bh_preset_";
 const CUSTOM_HIGHLIGHT_ID_PREFIX = "bh_custom_";
 const CUSTOM_QUICK_FACT_KIND = "custom";
 
+/* ----------------------------------------------------------------------------------------------
+ * HTML record codec (HTML-mode safe) + legacy tab/newline fallback.
+ * -------------------------------------------------------------------------------------------- */
+type LxRecord = { key: string; cols: string[] };
+
+const LX_DIV_RE = /<div\s+data-lx="([^"]+)"\s*>([\s\S]*?)<\/div>/gi;
+const LX_SPAN_RE = /<span\s*>([\s\S]*?)<\/span>/gi;
+const LEGACY_TAGGED_RE = /^(qf|tr|cp|cn|pr|pf|cr|cf|el|pm|am|hb)[\t ]+([^\t ]+)[\t ]+(.*)$/;
+const LEGACY_INDEXED_RE = /^(\d+)[\t ]+(.*)$/;
+const ENTITY_RE = /&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos|nbsp);/gi;
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/** The provider returns HTML-mode text: apostrophes / ampersands come back as entities. */
+export function decodeTranslatedEntities(s: string): string {
+  return s.replace(ENTITY_RE, (match, code: string) => {
+    const c = code.toLowerCase();
+    if (c === "amp") return "&";
+    if (c === "lt") return "<";
+    if (c === "gt") return ">";
+    if (c === "quot") return '"';
+    if (c === "apos") return "'";
+    if (c === "nbsp") return " ";
+    const n = c.startsWith("#x") ? parseInt(c.slice(2), 16) : parseInt(c.slice(1), 10);
+    return Number.isFinite(n) && n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : match;
+  });
+}
+
+function cleanCol(raw: string): string {
+  return decodeTranslatedEntities(raw.replace(/<[^>]*>/g, "")).replace(/\s+/g, " ").trim();
+}
+
+function cleanProse(raw: string | undefined): string {
+  return raw ? decodeTranslatedEntities(raw).trim() : "";
+}
+
+function encodeLxRecords(records: LxRecord[]): string | undefined {
+  if (!records.length) return undefined;
+  return records
+    .map(({ key, cols }) =>
+      cols.length === 1
+        ? `<div data-lx="${key}">${escapeHtml(cols[0]!)}</div>`
+        : `<div data-lx="${key}">${cols.map((c) => `<span>${escapeHtml(c)}</span>`).join("")}</div>`,
+    )
+    .join("\n");
+}
+
+function decodeLxRecords(encoded: string): Map<string, string[]> | null {
+  const out = new Map<string, string[]>();
+  let found = false;
+  LX_DIV_RE.lastIndex = 0;
+  for (let m = LX_DIV_RE.exec(encoded); m; m = LX_DIV_RE.exec(encoded)) {
+    found = true;
+    const key = m[1]!.trim();
+    const inner = m[2]!;
+    const cols: string[] = [];
+    LX_SPAN_RE.lastIndex = 0;
+    for (let s = LX_SPAN_RE.exec(inner); s; s = LX_SPAN_RE.exec(inner)) cols.push(cleanCol(s[1]!));
+    out.set(key, cols.length ? cols : [cleanCol(inner)]);
+  }
+  return found ? out : null;
+}
+
+/** Legacy `i<TAB>col…` lines (pre-HTML bundles / cached results / fixtures). */
+function decodeLegacyIndexed(encoded: string): Map<string, string[]> {
+  const out = new Map<string, string[]>();
+  for (const line of encoded.split("\n")) {
+    const m = LEGACY_INDEXED_RE.exec(line.trimEnd());
+    if (!m) continue;
+    out.set(m[1]!, m[2]!.split("\t").map(cleanCol));
+  }
+  return out;
+}
+
+/** Legacy `tag<TAB>key<TAB>col…` lines. */
+function decodeLegacyTagged(encoded: string): Map<string, string[]> {
+  const out = new Map<string, string[]>();
+  for (const line of encoded.split("\n")) {
+    const m = LEGACY_TAGGED_RE.exec(line.trimEnd());
+    if (!m) continue;
+    out.set(`${m[1]}:${m[2]}`, m[3]!.split("\t").map(cleanCol));
+  }
+  return out;
+}
+
+/* ----------------------------------------------------------------------------------------------
+ * Services (`details`) — only owner-typed services ride the API; presets re-label from the catalog.
+ * -------------------------------------------------------------------------------------------- */
 /** Custom services carry `custom_offer_*` ids; an id-less legacy card cannot be re-labelled, so it translates. */
 export function isOwnerAuthoredService(service: ServiciosProfileResolved["services"][number]): boolean {
   const id = service.id ?? "";
   return !id || id.startsWith(CUSTOM_SERVICE_ID_PREFIX);
 }
 
-/** Only owner-typed services ride the API; preset services are re-labelled from the catalog. */
-function encodeServicesForTranslation(
-  services: ServiciosProfileResolved["services"],
-): string | undefined {
-  if (!services.length) return undefined;
-  const lines = services
-    .map((s, i) => {
-      if (!isOwnerAuthoredService(s)) return null;
-      const title = s.title.trim();
-      const secondary = s.secondaryLine.trim();
-      if (!title && !secondary) return null;
-      return `${i}\t${title}\t${secondary}`;
-    })
-    .filter((line): line is string => Boolean(line));
-  return lines.length ? lines.join("\n") : undefined;
+function encodeServicesForTranslation(services: ServiciosProfileResolved["services"]): string | undefined {
+  const records: LxRecord[] = [];
+  services.forEach((s, i) => {
+    if (!isOwnerAuthoredService(s)) return;
+    const title = s.title.trim();
+    const secondary = s.secondaryLine.trim();
+    if (!title && !secondary) return;
+    records.push({ key: String(i), cols: [title, secondary] });
+  });
+  return encodeLxRecords(records);
 }
 
 function decodeServicesFromTranslation(
   encoded: string,
   original: ServiciosProfileResolved["services"],
 ): ServiciosProfileResolved["services"] {
-  const byIndex = new Map<number, { title: string; secondaryLine: string }>();
-  for (const line of encoded.split("\n")) {
-    const trimmed = line.trimEnd();
-    if (!trimmed) continue;
-    const match = SERVICE_LINE_RE.exec(trimmed);
-    if (!match) continue;
-    const index = Number(match[1]);
-    if (!Number.isFinite(index) || index < 0) continue;
-    byIndex.set(index, { title: match[2], secondaryLine: match[3] });
-  }
+  const byIndex = decodeLxRecords(encoded) ?? decodeLegacyIndexed(encoded);
   return original.map((service, index) => {
-    const translated = byIndex.get(index);
-    if (!translated || !isOwnerAuthoredService(service)) return service;
-    const title = translated.title.trim() || service.title;
+    const cols = byIndex.get(String(index));
+    if (!cols || !isOwnerAuthoredService(service)) return service;
+    const title = cols[0] || service.title;
+    const secondaryLine = cols[1] || service.secondaryLine;
     return {
       ...service,
       title,
-      secondaryLine: translated.secondaryLine.trim() || service.secondaryLine,
+      secondaryLine,
       imageAlt: service.imageAlt === service.title ? title : service.imageAlt,
     };
   });
 }
 
-const HIGHLIGHT_LINE_RE = /^(\d+)[\t ]+(.*)$/;
-
+/* ----------------------------------------------------------------------------------------------
+ * Highlights (`highlights`) — custom `bh_custom_*` only.
+ * -------------------------------------------------------------------------------------------- */
 export function isOwnerAuthoredHighlight(item: ServiciosProfileResolved["highlights"][number]): boolean {
   return item.id.startsWith(CUSTOM_HIGHLIGHT_ID_PREFIX);
 }
 
-function encodeHighlightsForTranslation(
-  highlights: ServiciosProfileResolved["highlights"],
-): string | undefined {
-  const lines = highlights
-    .map((h, i) => (isOwnerAuthoredHighlight(h) && h.label.trim() ? `${i}\t${h.label.trim()}` : null))
-    .filter((line): line is string => Boolean(line));
-  return lines.length ? lines.join("\n") : undefined;
+function encodeHighlightsForTranslation(highlights: ServiciosProfileResolved["highlights"]): string | undefined {
+  const records: LxRecord[] = [];
+  highlights.forEach((h, i) => {
+    if (isOwnerAuthoredHighlight(h) && h.label.trim()) records.push({ key: String(i), cols: [h.label.trim()] });
+  });
+  return encodeLxRecords(records);
 }
 
 function decodeHighlightsFromTranslation(
   encoded: string,
   original: ServiciosProfileResolved["highlights"],
 ): ServiciosProfileResolved["highlights"] {
-  const byIndex = new Map<number, string>();
-  for (const line of encoded.split("\n")) {
-    const match = HIGHLIGHT_LINE_RE.exec(line.trimEnd());
-    if (!match) continue;
-    const index = Number(match[1]);
-    const label = match[2].trim();
-    if (Number.isFinite(index) && index >= 0 && label) byIndex.set(index, label);
-  }
+  const byIndex = decodeLxRecords(encoded) ?? decodeLegacyIndexed(encoded);
   return original.map((item, index) => {
-    const label = byIndex.get(index);
+    const label = byIndex.get(String(index))?.[0];
     return label && isOwnerAuthoredHighlight(item) ? { ...item, label } : item;
   });
 }
@@ -249,22 +323,20 @@ export function relabelServiciosCanonicalPresets(
 }
 
 /* ==============================================================================================
- * Owner-authored extras — tagged lines in the `body` field (tab/newline protocol, tolerant decode):
- *   qf <i> <label>              custom quick fact
- *   tr <i> <label>              custom "Por qué elegirnos" reason
- *   cp <i> <title> <desc>       coupon title / description
- *   cn <i> <note> <cta>         coupon redemption note / CTA label
- *   pr <i> <headline>           promotion headline (index ≥ 1; index 0 rides `shareText`)
- *   pf <i> <footnote>           promotion footnote
- *   cr <key> <text>             credentials: licenseType | insuranceType
- *   cf <i> <label>              certification label
- *   el <i> <label>              extra-link label (URL stays literal)
- *   pm <i> <label>              custom payment label
- *   am <group> <i> <label>      custom amenity label per group
- *   hb <i> <label>              custom hero badge (not a catalog language)
+ * Owner-authored extras — records in the `body` field, key = `tag:ref`:
+ *   qf:<i>            custom quick fact
+ *   tr:<i>            custom "Por qué elegirnos" reason
+ *   cp:<i>            coupon [title, description]
+ *   cn:<i>            coupon [redemption note, CTA label]
+ *   pr:<i>            promotion headline (i ≥ 1; index 0 rides `shareText`)
+ *   pf:<i>            promotion footnote
+ *   cr:<field>        credentials licenseType | insuranceType
+ *   cf:<i>            certification label
+ *   el:<i>            extra-link label (URL stays literal)
+ *   pm:<i>            custom payment label
+ *   am:<group>:<i>    custom amenity label per group
+ *   hb:<i>            custom hero badge (not a catalog language)
  * ============================================================================================ */
-const OWNER_EXTRA_LINE_RE = /^(qf|tr|cp|cn|pr|pf|cr|cf|el|pm|am|hb)[\t ]+([^\t ]+)[\t ]+(.*)$/;
-
 /**
  * Owner-typed quick facts are usually kind `custom`, but the mapper infers `emergency` /
  * `mobile_service` / `bilingual` from the owner's own words — so anything whose label is not a
@@ -284,15 +356,10 @@ export function isOwnerAuthoredHeroBadge(badge: ServiciosProfileResolved["hero"]
   return canonicalPresetLabel("language", { label: badge.label }, "es") == null;
 }
 
-function splitTab(rest: string): [string, string] {
-  const at = rest.indexOf("\t");
-  return at < 0 ? [rest, ""] : [rest.slice(0, at), rest.slice(at + 1)];
-}
-
 function encodeOwnerExtrasForTranslation(profile: ServiciosProfileResolved): string | undefined {
-  const lines: string[] = [];
-  const push = (tag: string, key: string | number, ...cols: string[]) => {
-    lines.push([tag, String(key), ...cols].join("\t"));
+  const records: LxRecord[] = [];
+  const push = (tag: string, ref: string | number, ...cols: string[]) => {
+    records.push({ key: `${tag}:${ref}`, cols });
   };
   // Resolved profiles always carry these arrays; partial/legacy inputs are tolerated.
   (profile.quickFacts ?? []).forEach((fact, i) => {
@@ -338,13 +405,15 @@ function encodeOwnerExtrasForTranslation(profile: ServiciosProfileResolved): str
   (profile.hero?.badges ?? []).forEach((badge, i) => {
     if (isOwnerAuthoredHeroBadge(badge) && badge.label.trim()) push("hb", i, badge.label.trim());
   });
-  return lines.length ? lines.join("\n") : undefined;
+  return encodeLxRecords(records);
 }
 
 function decodeOwnerExtrasFromTranslation(
   encoded: string,
   profile: ServiciosProfileResolved,
 ): ServiciosProfileResolved {
+  const records = decodeLxRecords(encoded) ?? decodeLegacyTagged(encoded);
+
   const quickFacts = new Map<number, string>();
   const trust = new Map<number, string>();
   const coupons = new Map<number, { title: string; description: string }>();
@@ -358,16 +427,14 @@ function decodeOwnerExtrasFromTranslation(
   const amenities = new Map<string, Map<number, string>>();
   const badges = new Map<number, string>();
 
-  for (const line of encoded.split("\n")) {
-    const match = OWNER_EXTRA_LINE_RE.exec(line.trimEnd());
-    if (!match) continue;
-    const tag = match[1];
-    const key = match[2];
-    const rest = match[3];
-    const index = Number(key);
-    const [primary, secondary] = splitTab(rest);
-    const p = primary.trim();
-    const s = secondary.trim();
+  for (const [key, cols] of records) {
+    const at = key.indexOf(":");
+    if (at < 0) continue;
+    const tag = key.slice(0, at);
+    const ref = key.slice(at + 1);
+    const index = Number(ref);
+    const p = cols[0] ?? "";
+    const s = cols[1] ?? "";
     switch (tag) {
       case "qf": if (Number.isFinite(index)) quickFacts.set(index, p); break;
       case "tr": if (Number.isFinite(index)) trust.set(index, p); break;
@@ -375,14 +442,14 @@ function decodeOwnerExtrasFromTranslation(
       case "cn": if (Number.isFinite(index)) couponNotes.set(index, { note: p, cta: s }); break;
       case "pr": if (Number.isFinite(index)) promotions.set(index, p); break;
       case "pf": if (Number.isFinite(index)) footnotes.set(index, p); break;
-      case "cr": credentials.set(key, p); break;
+      case "cr": credentials.set(ref, p); break;
       case "cf": if (Number.isFinite(index)) certifications.set(index, p); break;
       case "el": if (Number.isFinite(index)) links.set(index, p); break;
       case "pm": if (Number.isFinite(index)) payments.set(index, p); break;
       case "am": {
-        const at = key.lastIndexOf(":");
-        const group = at > 0 ? key.slice(0, at) : "";
-        const gi = Number(at > 0 ? key.slice(at + 1) : NaN);
+        const sep = ref.lastIndexOf(":");
+        const group = sep > 0 ? ref.slice(0, sep) : "";
+        const gi = Number(sep > 0 ? ref.slice(sep + 1) : NaN);
         if (group && Number.isFinite(gi)) {
           const m = amenities.get(group) ?? new Map<number, string>();
           m.set(gi, p);
@@ -439,7 +506,7 @@ function decodeOwnerExtrasFromTranslation(
       ...c,
       licenseType: c.licenseType ? credentials.get("licenseType") || c.licenseType : c.licenseType,
       insuranceType: c.insuranceType ? credentials.get("insuranceType") || c.insuranceType : c.insuranceType,
-      certifications: c.certifications.map((cert, i) => certifications.get(i) || cert),
+      certifications: (c.certifications ?? []).map((cert, i) => certifications.get(i) || cert),
     } };
   }
   if (links.size && next.contact?.extraLinks?.length) {
@@ -473,8 +540,8 @@ export function buildServiciosTranslatableContent(
   profile: ServiciosProfileResolved,
 ): TranslatableAdFields {
   const about = profile.about;
-  const firstPromo = profile.promotions[0];
-  const categoryLine = profile.hero.categoryLine?.trim();
+  const firstPromo = profile.promotions?.[0];
+  const categoryLine = profile.hero?.categoryLine?.trim();
 
   return {
     // The category line is a catalog label for preset business types (re-labelled canonically);
@@ -482,8 +549,8 @@ export function buildServiciosTranslatableContent(
     title: categoryLine && canonicalBusinessTypeLabel(categoryLine, "es") == null ? categoryLine : undefined,
     description: about?.text?.trim() || undefined,
     customServiceText: about?.specialtiesLine?.trim() || undefined,
-    highlights: encodeHighlightsForTranslation(profile.highlights),
-    details: encodeServicesForTranslation(profile.services),
+    highlights: encodeHighlightsForTranslation(profile.highlights ?? []),
+    details: encodeServicesForTranslation(profile.services ?? []),
     shareText: firstPromo?.headline?.trim() || undefined,
     body: encodeOwnerExtrasForTranslation(profile),
   };
@@ -505,47 +572,34 @@ export function applyServiciosTranslation(
 ): ServiciosProfileResolved {
   let next: ServiciosProfileResolved = targetLocale ? relabelServiciosCanonicalPresets(profile, targetLocale) : profile;
 
-  if (translated.title?.trim()) {
-    next = {
-      ...next,
-      hero: { ...next.hero, categoryLine: translated.title.trim() },
-    };
+  const title = cleanProse(translated.title);
+  if (title) {
+    next = { ...next, hero: { ...next.hero, categoryLine: title } };
   }
 
-  if (translated.description?.trim()) {
-    next = {
-      ...next,
-      about: { ...next.about, text: translated.description.trim() },
-    };
+  const description = cleanProse(translated.description);
+  if (description) {
+    next = { ...next, about: { ...next.about, text: description } };
   }
 
-  if (translated.customServiceText?.trim()) {
-    next = {
-      ...next,
-      about: { ...next.about, specialtiesLine: translated.customServiceText.trim() },
-    };
+  const specialties = cleanProse(translated.customServiceText);
+  if (specialties) {
+    next = { ...next, about: { ...next.about, specialtiesLine: specialties } };
   }
 
   if (translated.details?.trim()) {
-    next = {
-      ...next,
-      services: decodeServicesFromTranslation(translated.details, next.services),
-    };
+    next = { ...next, services: decodeServicesFromTranslation(translated.details, next.services) };
   }
 
   if (translated.highlights?.trim()) {
-    next = {
-      ...next,
-      highlights: decodeHighlightsFromTranslation(translated.highlights, next.highlights),
-    };
+    next = { ...next, highlights: decodeHighlightsFromTranslation(translated.highlights, next.highlights) };
   }
 
-  if (translated.shareText?.trim() && next.promotions.length > 0) {
+  const shareText = cleanProse(translated.shareText);
+  if (shareText && next.promotions.length > 0) {
     next = {
       ...next,
-      promotions: next.promotions.map((promo, index) =>
-        index === 0 ? { ...promo, headline: translated.shareText!.trim() } : promo,
-      ),
+      promotions: next.promotions.map((promo, index) => (index === 0 ? { ...promo, headline: shareText } : promo)),
     };
   }
 
