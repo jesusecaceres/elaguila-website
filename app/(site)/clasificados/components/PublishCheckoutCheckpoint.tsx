@@ -64,7 +64,14 @@ export type PublishCheckoutCheckpointProps = {
   draftReady?: boolean;
   draftReadyMessage?: string | null;
   /** When omitted, promo field is hidden (deferred — no fake Apply). */
-  onPromoApply?: (code: string) => Promise<{ ok: boolean; discountCents?: number; message?: string }>;
+  onPromoApply?: (code: string) => Promise<{
+    ok: boolean;
+    discountCents?: number;
+    message?: string;
+    /** ⚠️35 — server-derived finite contract term (months) and percent; absent = every-cycle code. */
+    termMonths?: number | null;
+    percentOff?: number | null;
+  }>;
   onCheckout?: (ctx: {
     newsletterOptIn: boolean;
     promoCode: string | null;
@@ -144,6 +151,8 @@ export function PublishCheckoutCheckpoint({
   const [promoInput, setPromoInput] = useState("");
   const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
   const [promoDiscountCents, setPromoDiscountCents] = useState<number | null>(null);
+  const [promoTermMonths, setPromoTermMonths] = useState<number | null>(null);
+  const [promoPercentOff, setPromoPercentOff] = useState<number | null>(null);
   const [promoMessage, setPromoMessage] = useState<string | null>(null);
   const [promoBusy, setPromoBusy] = useState(false);
   // Package C Build 2 (C4) — verified 15% introductory discount, mutually exclusive with promo.
@@ -215,15 +224,21 @@ export function PublishCheckoutCheckpoint({
       if (result.ok) {
         setAppliedPromoCode(promoInput.trim());
         setPromoDiscountCents(result.discountCents ?? null);
+        setPromoTermMonths(result.termMonths ?? null);
+        setPromoPercentOff(result.percentOff ?? null);
         setPromoMessage(result.message ?? null);
       } else {
         setAppliedPromoCode(null);
         setPromoDiscountCents(null);
+        setPromoTermMonths(null);
+        setPromoPercentOff(null);
         setPromoMessage(result.message ?? publishCheckpointGenericError(lang));
       }
     } catch {
       setAppliedPromoCode(null);
       setPromoDiscountCents(null);
+      setPromoTermMonths(null);
+      setPromoPercentOff(null);
       setPromoMessage(publishCheckpointGenericError(lang));
     } finally {
       setPromoBusy(false);
@@ -423,11 +438,23 @@ export function PublishCheckoutCheckpoint({
           {appliedPromoCode ? ` (${appliedPromoCode})` : ""}
         </p>
       ) : null}
-      {/* SVC-QA-28 — a promo code on a monthly plan lowers the RECURRING price (server/Stripe
-          truth), so say exactly that; never imply "first month only". */}
+      {/* SVC-QA-28 / ⚠️35 — a promo code on a monthly plan: a finite-term contract code discounts
+          exactly its term (server-derived months/percent) and then returns to the full price; a
+          code without a term lowers the RECURRING price. Say exactly which; never imply "first
+          month only". */}
       {resolved.discountCents > 0 && appliedPromoCode && basePackageIsMonthly ? (
-        <p className="mt-1 text-xs" style={{ color: LEONIX_MUTED }} data-promo-recurrence="every_billing_cycle">
-          {buildPromoCodeRecurrenceText({ amountCents: resolved.totalCents, lang: lang === "en" ? "en" : "es" })}
+        <p
+          className="mt-1 text-xs"
+          style={{ color: LEONIX_MUTED }}
+          data-promo-recurrence={promoTermMonths && promoTermMonths > 1 ? "contract_term_months" : "every_billing_cycle"}
+        >
+          {buildPromoCodeRecurrenceText({
+            amountCents: resolved.totalCents,
+            lang: lang === "en" ? "en" : "es",
+            termMonths: promoTermMonths,
+            percentOff: promoPercentOff,
+            renewalCents: resolved.subtotalCents,
+          })}
         </p>
       ) : null}
       {verifiedIntroDiscountApplied && verifiedIntroDiscountEstimateCents != null ? (
@@ -572,7 +599,12 @@ export function PublishCheckoutCheckpoint({
               aria-describedby={`${id}-recurring-consent-text`}
             />
             <span id={`${id}-recurring-consent-text`} style={{ color: LEONIX_MUTED }}>
-              {buildRecurringConsentText({ amountCents: resolved.totalCents, lang: lang === "en" ? "en" : "es" })}
+              {/* ⚠️35 — a finite-term promo leaves the RECURRING charge at the full price (the server
+                  hashes exactly that amount); every-cycle codes keep the discounted recurring amount. */}
+              {buildRecurringConsentText({
+                amountCents: promoTermMonths && promoTermMonths > 1 ? resolved.subtotalCents : resolved.totalCents,
+                lang: lang === "en" ? "en" : "es",
+              })}
             </span>
           </label>
         ) : null}

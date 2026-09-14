@@ -66,6 +66,7 @@ import {
   type LeonixPaymentRecordRow,
 } from "./revenuePaymentRecords";
 import { getRevenuePackageDefinition, type RevenuePackageDefinition } from "./revenuePricingMatrix";
+import { isAcceptedCheckoutSessionAmount, resolveAcceptedCheckoutAmounts } from "./promoContractTermBilling";
 import {
   markPromoRedemptionExpiredOrCancelled,
   markPromoRedemptionRedeemedWithBusinessAttribution,
@@ -1331,8 +1332,6 @@ export async function fulfillCheckoutSessionCompleted(input: {
     };
   }
 
-  const expectedAmount = paymentRecord.amount_total_cents ?? paymentRecord.amount_cents ?? packageDef.priceCents;
-
   // Package C Build 2 (C4) — verified-intro-15% on a monthly subscription is applied as a
   // server-attached Stripe coupon with duration:"once" (revenueStripe.ts), deliberately NOT as a
   // reduced line item, so the subscription's own price stays full and every renewal bills full
@@ -1341,20 +1340,16 @@ export async function fulfillCheckoutSessionCompleted(input: {
   // differ, and comparing them blindly rejected fulfillment AFTER the customer had already been
   // charged (money taken, nothing published).
   //
+  // ⚠️35 (2026-09-14) — a finite-term contract promo (Stripe duration:"repeating" coupon, line item
+  // still at full price) produces the same legitimately discounted first invoice, recognised by the
+  // record's promo_code_id + finite contract_term this server persisted.
+  //
   // Exactly ONE additional value is accepted, derived from the discount this server itself
   // computed and persisted on the record — never a tolerance window, never a percentage
-  // recomputed here, and only for a subscription record that actually carries a verified-intro
-  // redemption. Any other amount is still a hard mismatch.
-  const verifiedIntroFirstChargeCents =
-    paymentRecord.verified_intro_discount_redemption_id != null &&
-    paymentRecord.billing_mode === "monthly_subscription" &&
-    (paymentRecord.amount_discount_cents ?? 0) > 0
-      ? Math.max(0, expectedAmount - (paymentRecord.amount_discount_cents ?? 0))
-      : null;
-
-  const amountAccepted =
-    session.amount_total === expectedAmount ||
-    (verifiedIntroFirstChargeCents != null && session.amount_total === verifiedIntroFirstChargeCents);
+  // recomputed here (promoContractTermBilling.ts). Any other amount is still a hard mismatch.
+  const acceptedAmounts = resolveAcceptedCheckoutAmounts(paymentRecord, packageDef.priceCents);
+  const expectedAmount = acceptedAmounts.expectedAmountCents;
+  const amountAccepted = isAcceptedCheckoutSessionAmount(acceptedAmounts, session.amount_total);
 
   if (session.amount_total != null && expectedAmount > 0 && !amountAccepted) {
     await writeRevenueAuditLog({
@@ -1364,7 +1359,8 @@ export async function fulfillCheckoutSessionCompleted(input: {
       meta: {
         code: "amount_mismatch",
         expected_amount_cents: expectedAmount,
-        verified_intro_first_charge_cents: verifiedIntroFirstChargeCents,
+        server_discounted_first_invoice_cents: acceptedAmounts.discountedFirstInvoiceCents,
+        discount_source: acceptedAmounts.discountSource,
         stripe_amount_total: session.amount_total,
         stripe_event_id: eventId,
       },

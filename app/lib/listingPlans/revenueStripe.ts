@@ -47,6 +47,13 @@ export type CreateRevenueCheckoutSessionInput = {
    * null).
    */
   verifiedIntroDiscountStripeCouponId?: string | null;
+  /**
+   * ⚠️35 (2026-09-14) — finite-term contract promo Stripe coupon id (`duration:"repeating"`,
+   * `duration_in_months` = contract term), subscription mode only. Same rule as the intro coupon:
+   * the line item stays FULL price; Stripe applies the discount for the term and then drops it by
+   * itself. Mutually exclusive with the intro coupon (checkout rejects stacking with 409).
+   */
+  contractTermStripeCouponId?: string | null;
 };
 
 export type CreateRevenueCheckoutSessionResult =
@@ -171,8 +178,10 @@ export async function createRevenueStripeCheckoutSession(
     // discounts array (never a customer-typed promotion_code — allow_promotion_codes stays
     // false) applying a duration:"once" coupon so the subscription's line-item price remains
     // full and renewal is automatically full price.
-    ...(input.verifiedIntroDiscountStripeCouponId
-      ? { discounts: [{ coupon: input.verifiedIntroDiscountStripeCouponId }] }
+    // ⚠️35 — a finite-term contract promo rides the same server-attached discounts array with a
+    // duration:"repeating" coupon (never both coupons: the route rejects stacking first).
+    ...(input.verifiedIntroDiscountStripeCouponId || input.contractTermStripeCouponId
+      ? { discounts: [{ coupon: (input.verifiedIntroDiscountStripeCouponId || input.contractTermStripeCouponId) as string }] }
       : {}),
     ...(input.customerEmail?.trim()
       ? { customer_email: input.customerEmail.trim() }

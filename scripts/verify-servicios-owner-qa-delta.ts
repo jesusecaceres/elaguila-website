@@ -287,7 +287,13 @@ check("SVC-QA-28 promo recurrence copy matches Stripe truth (reduced price renew
   assert.match(stripe, /recurring: \{ interval: "month" as const \}/);
   const cp = src("app/(site)/clasificados/components/PublishCheckoutCheckpoint.tsx");
   assert.match(cp, /resolved\.discountCents > 0 && appliedPromoCode && basePackageIsMonthly/);
-  assert.match(cp, /buildRecurringConsentText\(\{ amountCents: resolved\.totalCents/);
+  // ⚠️35 (2026-09-14): a finite-term promo leaves the RECURRING charge at the full price (Stripe
+  // repeating coupon), so the consent names resolved.subtotalCents in that case and the discounted
+  // resolved.totalCents for every-cycle codes — exactly the amount the server hashes.
+  assert.match(
+    cp,
+    /buildRecurringConsentText\(\{[\s\S]{0,120}amountCents: promoTermMonths && promoTermMonths > 1 \? resolved\.subtotalCents : resolved\.totalCents/,
+  );
 });
 check("SVC-QA-27 non-stacking stays server-enforced (promo + verified intro → 409)", () => {
   const route = src("app/api/revenue-os/checkout/route.ts");

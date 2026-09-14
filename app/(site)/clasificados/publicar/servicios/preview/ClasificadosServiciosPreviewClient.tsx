@@ -531,13 +531,24 @@ export function ClasificadosServiciosPreviewClient() {
       if (!result.ok) {
         return { ok: false as const, message: result.userMessage };
       }
+      // ⚠️35 — the summary line states the server-derived term; the checkpoint renders the exact
+      // "for N months, then $399" sentence from the same values.
+      const termMonths = result.termMonths ?? null;
+      const total = (result.totalCents / 100).toFixed(2);
+      const renewal = (result.subtotalCents / 100).toFixed(2);
       return {
         ok: true as const,
         discountCents: result.discountCents,
+        termMonths,
+        percentOff: result.percentOff ?? null,
         message:
-          lang === "es"
-            ? `${result.discountLabel} aplicado. Total: $${(result.totalCents / 100).toFixed(2)}/mes`
-            : `${result.discountLabel} applied. Total: $${(result.totalCents / 100).toFixed(2)}/mo`,
+          termMonths && termMonths > 1
+            ? lang === "es"
+              ? `${result.discountLabel} aplicado durante ${termMonths} meses. Total: $${total}/mes durante ${termMonths} meses; después $${renewal}/mes.`
+              : `${result.discountLabel} applied for ${termMonths} months. Total: $${total}/mo for ${termMonths} months; then $${renewal}/mo.`
+            : lang === "es"
+              ? `${result.discountLabel} aplicado. Total: $${total}/mes`
+              : `${result.discountLabel} applied. Total: $${total}/mo`,
       };
     },
     [lang, checkoutSubtotalCents],
