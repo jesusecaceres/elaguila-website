@@ -39,6 +39,7 @@ import { buildServiciosPagosGroups } from "../app/(site)/servicios/lib/servicios
 import { buildServiciosSmartTrustSummary } from "../app/(site)/servicios/lib/serviciosSmartTrustSummary";
 import { getServiciosAmenityOption } from "../app/(site)/servicios/lib/serviciosAmenitiesCatalog";
 import { getServiciosPaymentMethodLabel } from "../app/(site)/servicios/lib/serviciosPaymentMethodCatalog";
+import { getServiciosPromocionesSectionCopy } from "../app/(site)/servicios/copy/serviciosProfileCopy";
 import { isNoOpTranslation } from "../app/components/translation/TranslateAdControl";
 import {
   resolveServiciosEffectiveActionLang,
@@ -647,6 +648,20 @@ check("914-29 ⚠️38A discovery/matcher/type=/saved-search surface is untouche
   ]) {
     assert.ok(!raw(rel).includes("displayLang"), `${rel}: no ad-local chrome coupling — discovery stays a separate concern`);
   }
+});
+
+check("914-30 Special Offers subtitle: lang=en → English, lang=es → Spanish (closes the identical-ternary residual found in the 914 live smoke)", () => {
+  const en = getServiciosPromocionesSectionCopy("en");
+  const es = getServiciosPromocionesSectionCopy("es");
+  assert.equal(en.sectionSubtitle, "Offers and benefits available when contacting this business.");
+  assert.equal(es.sectionSubtitle, "Ofertas y beneficios disponibles al contactar este negocio.");
+  assert.notEqual(en.sectionSubtitle, es.sectionSubtitle, "the two locales must not collapse to the same string again");
+  const card = raw("app/(site)/servicios/components/ServiciosPromocionesCard.tsx");
+  assert.ok(card.includes("{copy.sectionSubtitle}"), "card renders the localized subtitle from copy, not an inline literal");
+  assert.ok(
+    !card.includes('lang === "en" ? "Ofertas y beneficios disponibles al contactar este negocio." : "Ofertas y beneficios disponibles al contactar este negocio."'),
+    "the identical-ternary bug is gone",
+  );
 });
 
 if (failures.length) {

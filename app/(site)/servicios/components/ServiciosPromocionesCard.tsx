@@ -430,7 +430,7 @@ export function ServiciosPromocionesCard({
                 {copy.sectionTitle}
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-[color:var(--lx-text-2)]">
-                {lang === "en" ? "Ofertas y beneficios disponibles al contactar este negocio." : "Ofertas y beneficios disponibles al contactar este negocio."}
+                {copy.sectionSubtitle}
               </p>
             </div>
             {/* Mobile snap-x layout */}

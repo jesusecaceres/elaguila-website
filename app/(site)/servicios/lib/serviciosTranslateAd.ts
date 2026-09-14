@@ -1,7 +1,7 @@
 import { pickTranslatableAdFields } from "@/app/lib/translation/helpers";
 import type { TranslatableAdFields } from "@/app/lib/translation/types";
 import type { ServiciosLang, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
-import { canonicalBusinessTypeLabel, canonicalPresetLabel } from "./serviciosCanonicalPresetLabels";
+import { canonicalBusinessTypeLabel, canonicalPresetChip, canonicalPresetLabel } from "./serviciosCanonicalPresetLabels";
 
 // ⚠️38A — the canonical ES ↔ EN preset map now lives in serviciosCanonicalPresetLabels.ts (pure) so
 // the discovery adapter and this overlay share ONE source; re-exported for existing callers.
@@ -139,10 +139,19 @@ function decodeLegacyTagged(encoded: string): Map<string, string[]> {
 /* ----------------------------------------------------------------------------------------------
  * Services (`details`) — only owner-typed services ride the API; presets re-label from the catalog.
  * -------------------------------------------------------------------------------------------- */
-/** Custom services carry `custom_offer_*` ids; an id-less legacy card cannot be re-labelled, so it translates. */
+/**
+ * Owner-authored iff the catalog does not actually vouch for it — never by id prefix alone. An
+ * empty id or a `custom_offer_*` id is always owner text. An id shaped like the preset prefix
+ * (`svc_*`) that does not resolve to a real `BUSINESS_TYPE_PRESETS` entry (stale/malformed id,
+ * e.g. from an older publish path) is owner text too, so it still rides the translation bundle
+ * instead of silently falling through both the canonical relabel and the translation paths.
+ */
 export function isOwnerAuthoredService(service: ServiciosProfileResolved["services"][number]): boolean {
   const id = service.id ?? "";
-  return !id || id.startsWith(CUSTOM_SERVICE_ID_PREFIX);
+  if (!id) return true;
+  if (id.startsWith(CUSTOM_SERVICE_ID_PREFIX)) return true;
+  const presetId = id.startsWith(PRESET_SERVICE_ID_PREFIX) ? id.slice(PRESET_SERVICE_ID_PREFIX.length) : id;
+  return !canonicalPresetChip("service", { id: presetId, label: service.title });
 }
 
 function encodeServicesForTranslation(services: ServiciosProfileResolved["services"]): string | undefined {

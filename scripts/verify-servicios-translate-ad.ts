@@ -30,7 +30,9 @@ import {
   applyServiciosTranslation,
   buildServiciosTranslatableContent,
   isOwnerAuthoredQuickFact,
+  isOwnerAuthoredService,
   isOwnerAuthoredTrustItem,
+  relabelServiciosCanonicalPresets,
 } from "../app/(site)/servicios/lib/serviciosTranslateAd";
 import { getServiciosProfileLabels } from "../app/(site)/servicios/copy/serviciosProfileCopy";
 import type { ServiciosProfileResolved } from "../app/(site)/servicios/types/serviciosBusinessProfile";
@@ -212,6 +214,69 @@ check("⚠️16 overlay apply: tolerant of tab-collapsed lines; empty translatio
   const collapsed = applyServiciosTranslation(fixture, { body: "qf 1 Open on Saturdays" });
   assert.equal(collapsed.quickFacts[1]!.label, "Open on Saturdays");
   assert.equal(applyServiciosTranslation(fixture, {}), fixture, "no-op keeps reference identity");
+});
+
+/* ==============================================================================================
+ * RESIDUAL-2 (2026-09-14 follow-up, live-smoke find) — service classification must be catalog-
+ * resolved, not prefix-only. A `svc_`-prefixed id that does not resolve to a real
+ * BUSINESS_TYPE_PRESETS chip is owner text, not canonical — it must ride the translation bundle
+ * instead of silently falling through both the relabel path (no catalog match → no-op) and the
+ * translation path (excluded because it "looked like" a preset id). This is the exact live-
+ * reproduced defect: a legacy/malformed svc_-shaped custom service stayed untranslated.
+ * ============================================================================================ */
+const serviceClassificationFixture = {
+  hero: { categoryLine: "Plomería residencial", badges: [] },
+  about: { text: "Somos una empresa familiar.", specialtiesLine: undefined },
+  highlights: [],
+  services: [
+    { id: "svc_plom_fugas", title: "Reparación de fugas", secondaryLine: "Mismo día", imageAlt: "Reparación de fugas" },
+    { id: "svc_no_such_chip_legacy", title: "Servicios complementarios a domicilio", secondaryLine: "", imageAlt: "Servicios complementarios a domicilio" },
+  ],
+  promotions: [],
+  quickFacts: [],
+  trust: [],
+  coupons: [],
+} as unknown as ServiciosProfileResolved;
+
+check("RESIDUAL-2 classification: catalog resolution is authority, not the svc_ prefix alone", () => {
+  const [real, unknown] = serviceClassificationFixture.services;
+  assert.equal(isOwnerAuthoredService(real!), false, "real catalog service (svc_plom_fugas) stays canonical, not owner text (UNCHANGED)");
+  assert.equal(isOwnerAuthoredService(unknown!), true, "svc_-prefixed id with no catalog match is owner text — the fixed defect");
+});
+
+check("RESIDUAL-2 build: only the unknown/non-catalog svc_ service rides the translation payload", () => {
+  const content = buildServiciosTranslatableContent(serviceClassificationFixture);
+  const details = content.details ?? "";
+  assert.ok(details.includes("Servicios complementarios a domicilio"), "unknown svc_ id service sent as owner text");
+  assert.ok(!details.includes("Reparación de fugas"), "real catalog service never sent to the API (UNCHANGED)");
+});
+
+check("RESIDUAL-2 relabel (targetLocale=en): real catalog svc_ service still relabels canonically; unknown svc_ service is left alone for the API, not silently mutated", () => {
+  const relabeled = relabelServiciosCanonicalPresets(serviceClassificationFixture, "en");
+  assert.equal(relabeled.services[0]!.title, "Leak repair", "real catalog id relabels canonically (UNCHANGED)");
+  assert.equal(relabeled.services[1]!.title, "Servicios complementarios a domicilio", "unknown id is not silently relabeled");
+});
+
+check("RESIDUAL-2 apply: unknown svc_ service translates via the API bundle; real catalog service keeps its canonical relabel; View Original restores the untouched source", () => {
+  const translated = applyServiciosTranslation(
+    serviceClassificationFixture,
+    { details: "1\tAdditional home services\t" },
+    "en",
+  );
+  assert.equal(translated.services[1]!.title, "Additional home services", "unknown svc_ service translated on apply — the fixed defect");
+  assert.equal(translated.services[0]!.title, "Leak repair", "real catalog service still relabels canonically alongside the translated custom one (UNCHANGED)");
+  // "Ver original" / View Original = the untouched source fixture.
+  assert.equal(serviceClassificationFixture.services[1]!.title, "Servicios complementarios a domicilio", "View Original: original owner string untouched");
+  assert.equal(serviceClassificationFixture.services[0]!.title, "Reparación de fugas", "View Original: original catalog-language title untouched");
+});
+
+check("RESIDUAL-2 literal fields unchanged: service ids are never rewritten by relabel or apply", () => {
+  const relabeled = relabelServiciosCanonicalPresets(serviceClassificationFixture, "en");
+  assert.equal(relabeled.services[0]!.id, "svc_plom_fugas");
+  assert.equal(relabeled.services[1]!.id, "svc_no_such_chip_legacy");
+  const translated = applyServiciosTranslation(serviceClassificationFixture, { details: "1\tAdditional home services\t" }, "en");
+  assert.equal(translated.services[0]!.id, "svc_plom_fugas");
+  assert.equal(translated.services[1]!.id, "svc_no_such_chip_legacy");
 });
 
 /* ==============================================================================================
