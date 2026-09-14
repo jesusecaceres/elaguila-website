@@ -47,14 +47,16 @@ assert(slugPage.includes("listingShareUrl"), "slug page: share URL required for 
 
 assert(hubRow.includes("ServiciosLikeEngagementCluster"), "hub row: like cluster");
 assert(hubRow.includes("LeonixShareButton"), "hub row: share button");
-assert(hubRow.includes("directNativeShare"), "hub row: direct native share");
+// Servicios Live Launch Perfection ⚠️14 (2026-09-13): Compartir opens the shared share_ad hub (copy
+// link + native share + channels); the direct native bypass is gone from every Servicios mount.
+assert(!hubRow.includes("directNativeShare"), "hub row: shared share hub (no direct native bypass)");
 assert(hubRow.includes("persistEngagement={persistEngagement}"), "hub row: like uses route persistence flag");
 assert(hubRow.includes("showEngagementControls"), "hub row: visibility prop separate from persistence");
 assert(hubRow.includes("showEngagementActions"), "hub row: visibility gate");
 assert(hubRow.includes("showEngagementControls && Boolean(lxListingId)"), "hub row: visibility not tied to persistence");
 assert(!hubRow.includes("showShare ?"), "hub row: no preview-only share branch");
 
-assert(proShell.includes("directNativeShare"), "professional shell: hero native share");
+assert(!proShell.includes("directNativeShare"), "professional shell: hero share opens the shared hub (⚠️14)");
 // Zero-debt closeout 2026-09-12: this demanded the literal inline-ternary spelling
 // `showEngagementControls ?`. The gate still exists but is now a named boolean, which is clearer.
 // Assert the CONTRACT: hero engagement visibility is driven by showEngagementControls AND a real

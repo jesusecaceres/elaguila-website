@@ -1,14 +1,14 @@
 /**
  * Provider-neutral address suggestion/verification interface.
  *
- * No real address-verification provider (Google Places, SmartyStreets, USPS, etc.) is wired into
- * this repo today. This was confirmed by searching package.json dependencies and tracked env
- * samples for provider SDKs/API-key variable names — none exist. The Google Cloud packages that
- * ARE present (`@google-cloud/documentai`, `@google/generative-ai`, `googleapis`) are unrelated
- * to address lookup.
+ * Provider truth (corrected 2026-09-13, Servicios Live Launch Perfection ⚠️30): one real adapter
+ * implements this interface today — `providers/googleAddressProvider.ts` (Google Geocoding via
+ * `GOOGLE_MAPS_API_KEY`, server-side only), served by `POST /api/business-address/suggest` and
+ * consumed by `BusinessAddressVerifiedInput`. It returns `provider_suggested` candidates; it never
+ * marks anything "verified".
  *
- * `manualOnlyAddressProvider` below is the honest default: it always reports "no provider
- * configured" rather than pretending to verify anything. Manual entry
+ * `manualOnlyAddressProvider` below is the honest fallback when no provider key is configured:
+ * it always reports "no provider configured" rather than pretending to verify anything. Manual entry
  * (`verificationStatus: "manual"`) must always remain a fully valid, first-class path — no code
  * in this repo may require a provider result before a business address can be saved.
  *

@@ -65,9 +65,13 @@ const COPY = {
     remove: "Quitar",
     applied: "Descuento de bienvenida (15%) aplicado.",
     renewalNote: "Las renovaciones se cobran al precio completo.",
-    basisEmail: "Tu cuenta califica: tu correo está verificado.",
-    basisPhone: "Tu cuenta califica: tu teléfono está verificado.",
-    basisGeneric: "Tu cuenta califica según la verificación de Leonix.",
+    // ⚠️27 (2026-09-13): name the identity that qualifies — the Leonix ACCOUNT (sign-in email or
+    // verified phone). The newsletter email field on this page is unrelated to the discount.
+    basisEmail:
+      "Tu cuenta califica: el correo con el que iniciaste sesión en Leonix está verificado. El correo del boletín no afecta este descuento.",
+    basisPhone:
+      "Tu cuenta califica: el teléfono de tu cuenta Leonix está verificado. El correo del boletín no afecta este descuento.",
+    basisGeneric: "Tu cuenta Leonix califica según su verificación (correo o teléfono).",
     serverCheck: "Leonix vuelve a confirmar tu elegibilidad al momento de pagar.",
     invalidPhone: "Ingresa un número de teléfono válido.",
     invalidCode: "Código incorrecto. Intenta de nuevo.",
@@ -94,9 +98,11 @@ const COPY = {
     remove: "Remove",
     applied: "Welcome discount (15%) applied.",
     renewalNote: "Renewals are billed at the full price.",
-    basisEmail: "Your account qualifies: your email is verified.",
-    basisPhone: "Your account qualifies: your phone is verified.",
-    basisGeneric: "Your account qualifies based on Leonix verification.",
+    basisEmail:
+      "Your account qualifies: the email you signed in to Leonix with is verified. The newsletter email does not affect this discount.",
+    basisPhone:
+      "Your account qualifies: the phone on your Leonix account is verified. The newsletter email does not affect this discount.",
+    basisGeneric: "Your Leonix account qualifies based on its verification (email or phone).",
     serverCheck: "Leonix re-confirms your eligibility when you pay.",
     invalidPhone: "Enter a valid phone number.",
     invalidCode: "Incorrect code. Try again.",

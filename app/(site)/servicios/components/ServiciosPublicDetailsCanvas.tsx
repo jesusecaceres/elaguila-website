@@ -44,7 +44,7 @@ export function hasServiciosPublicDetailsCanvas(profile: ServiciosProfileResolve
 /** Credentials / trust / persuasive stack only — how/payments moved to Restaurante-style sections (SVC-SHELL-2D). */
 export function ServiciosPublicDetailsCanvas({
   profile,
-  displayProfile: _displayProfile,
+  displayProfile,
   lang,
   template,
 }: {
@@ -79,16 +79,18 @@ export function ServiciosPublicDetailsCanvas({
 
       {showTrustGroup ? (
         <CanvasGroup title={trustTitle} id="servicios-canvas-trust">
+          {/* ⚠️16 (2026-09-13): sections render the Translate Ad overlay (`displayProfile`) — the
+              untouched `profile` still decides what exists; "Ver original" swaps the overlay back. */}
           {hasCredentialsResolved(profile) ? (
-            <ServiciosCredencialesCard profile={profile} lang={lang} embedded />
+            <ServiciosCredencialesCard profile={displayProfile} lang={lang} embedded />
           ) : null}
           {hasTrustSectionResolved(profile) ? (
-            <ServiciosTrustSection profile={profile} lang={lang} template={template} embedded />
+            <ServiciosTrustSection profile={displayProfile} lang={lang} template={template} embedded />
           ) : null}
           {hasQuickFactsResolved(profile) ? (
-            <ServiciosQuickFacts facts={profile.quickFacts} lang={lang} compact />
+            <ServiciosQuickFacts facts={displayProfile.quickFacts} lang={lang} compact />
           ) : null}
-          <ServiciosSmartTrustSummary profile={profile} lang={lang} />
+          <ServiciosSmartTrustSummary profile={displayProfile} lang={lang} />
         </CanvasGroup>
       ) : null}
     </section>

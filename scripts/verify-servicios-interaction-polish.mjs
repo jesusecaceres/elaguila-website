@@ -32,7 +32,9 @@ const pkg = read("package.json");
 // Superseded by the owner-locked Servicios Golden grammar (75a66ce8; Owner QA SVC-QA-18/19/20):
 // Guardar is the canonical saved_listings control in the hub row, recorded through the global
 // Servicios save recorder — never a second engine.
-assert(resultStrip.includes("directNativeShare"), "results strip: native share preserved");
+// Servicios Live Launch Perfection ⚠️14 (2026-09-13): the strip's Compartir opens the shared
+// share_ad hub (copy link + native share + channels) — no direct native bypass anywhere in Servicios.
+assert(!resultStrip.includes("directNativeShare"), "results strip: shared share hub (no native bypass)");
 assert(resultStrip.includes("LeonixShareButton"), "results strip: share preserved");
 assert(resultStrip.includes("<LeonixSaveButton"), "results strip: shared Save control");
 assert(resultStrip.includes("serviciosSavedListingExtras"), "results strip: canonical Servicios save extras");
@@ -118,7 +120,9 @@ assert(proCard.includes("serviciosOpenGoogleMapsDirections"), "pro results: dire
 assert(!listingCard.includes("LeonixSaveButton"), "listing card: Guardar removed");
 assert(!listingCard.includes("CtaActionSheet"), "listing card: modal removed");
 
-assert(resultStrip.includes("directNativeShare"), "results strip: native share preserved");
+// Servicios Live Launch Perfection ⚠️14 (2026-09-13): the strip's Compartir opens the shared
+// share_ad hub (copy link + native share + channels) — no direct native bypass anywhere in Servicios.
+assert(!resultStrip.includes("directNativeShare"), "results strip: shared share hub (no native bypass)");
 assert(resultStrip.includes("LeonixShareButton"), "results strip: share preserved");
 assert(resultStrip.includes("<LeonixSaveButton"), "results strip: shared Save control");
 assert(resultStrip.includes("serviciosSavedListingExtras"), "results strip: canonical Servicios save extras");

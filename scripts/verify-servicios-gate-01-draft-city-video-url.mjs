@@ -48,8 +48,12 @@ assert(types.includes("SERVICIOS_MAX_VIDEO_URLS = 8"), "Max video URLs must be 8
 assert(app.includes("SERVICIOS_MAX_VIDEO_URLS"), "Application must use SERVICIOS_MAX_VIDEO_URLS");
 assert(!app.includes("addVideoFile"), "Direct video file upload path removed");
 assert(!app.includes('accept="video/*"'), "No video file picker in application");
-assert(copy.includes("hasta 8 enlaces de video"), "Spanish copy: 8 video links");
-assert(copy.includes("up to 8 video links"), "English copy: 8 video links");
+// Servicios Live Launch Perfection ⚠️5 (2026-09-13): the hint no longer retypes the cap — it carries
+// `{max}` and every consumer substitutes SERVICIOS_MAX_VIDEO_URLS (verify-servicios-video-bulk-entry
+// proves the substitution). The cap itself is still pinned to 8 by the `types` assertion above.
+assert(copy.includes("hasta {max} enlaces de video"), "Spanish copy: video links cap derives from the constant");
+assert(copy.includes("up to {max} video links"), "English copy: video links cap derives from the constant");
+assert(!copy.includes("hasta 8 enlaces") && !copy.includes("up to 8 video"), "no retyped video-cap literal in copy");
 assert(!copy.includes("archivo o enlace"), "Old file-or-link copy removed (ES)");
 assert(!copy.includes("upload or URL"), "Old upload-or-URL copy removed (EN)");
 

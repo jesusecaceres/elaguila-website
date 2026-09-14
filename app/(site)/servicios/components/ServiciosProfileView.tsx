@@ -138,7 +138,6 @@ export function ServiciosProfileView({
           recordShareEvent={
             globalListing ? serviciosGlobalShareRecorder(globalListing, "detail_share") : undefined
           }
-          directNativeShare
         />
       </div>
     );

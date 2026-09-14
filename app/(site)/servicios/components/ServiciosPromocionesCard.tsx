@@ -209,7 +209,7 @@ function PromoInnerCard({
               />
             </button>
             <span className="absolute right-2 top-2 inline-block rounded-full bg-[#F6EBDD] px-2 py-0.5 text-[10px] font-semibold text-[#1F1A17]">
-              Promoción Leonix
+              {L.leonixPromoBadge}
             </span>
           </div>
         ) : null}

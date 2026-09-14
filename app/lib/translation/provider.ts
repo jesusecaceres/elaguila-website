@@ -1,5 +1,6 @@
 import {
   isValidTranslateAdTargetLocale,
+  mapGoogleLanguageCodeToTranslateAdSourceLocale,
   mapTranslateAdLocaleToGoogle,
 } from "@/app/lib/translation/localeCodes";
 import type { AdTranslationResult, ContentLocale, Locale, TranslatableAdFieldKey, TranslatableAdFields } from "@/app/lib/translation/types";
@@ -241,6 +242,61 @@ async function callGoogleCloudTranslationAdvanced(
     }
     return text;
   });
+}
+
+/** Detection reads at most this much prose — enough to decide a language, cheap on the provider. */
+export const AD_LANGUAGE_DETECTION_MAX_CHARS = 1500;
+
+/**
+ * Servicios Live Launch Perfection ⚠️16 (2026-09-13) — content-language DETECTION for ads whose
+ * source locale is `unknown` (no stored `original_language`). Google Cloud Translation v3
+ * `:detectLanguage` on a masked prose sample; the top candidate is mapped back onto the Translate
+ * Ad allowlist (`unknown` when undetermined or outside it). Same credentials/gates as translation;
+ * provider errors propagate so the route can degrade to the pre-policy behaviour.
+ */
+export async function detectAdLanguageWithConfiguredProvider(sampleText: string): Promise<ContentLocale> {
+  const content = sampleText.trim().slice(0, AD_LANGUAGE_DETECTION_MAX_CHARS);
+  if (!content) return "unknown";
+  if (isUnsupportedProviderEnv()) {
+    throw new TranslationProviderUnsupportedError();
+  }
+  if (!isTranslationProviderConfigured()) {
+    throw new TranslationProviderNotConfiguredError();
+  }
+  const projectId = readGoogleProjectId();
+  if (!projectId) {
+    throw new TranslationProviderNotConfiguredError();
+  }
+  const location = readGoogleLocation();
+  const url = `https://translation.googleapis.com/v3/projects/${encodeURIComponent(projectId)}/locations/${encodeURIComponent(location)}:detectLanguage`;
+  const token = await getGoogleAccessToken();
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ content, mimeType: "text/plain" }),
+    });
+  } catch {
+    throw new TranslationProviderRequestError();
+  }
+  if (!res.ok) {
+    throw new TranslationProviderRequestError();
+  }
+
+  let json: { languages?: Array<{ languageCode?: string | null; confidence?: number | null }> };
+  try {
+    json = (await res.json()) as typeof json;
+  } catch {
+    throw new TranslationProviderRequestError();
+  }
+  const top = Array.isArray(json.languages) ? json.languages[0] : undefined;
+  const code = typeof top?.languageCode === "string" ? top.languageCode : "";
+  return mapGoogleLanguageCodeToTranslateAdSourceLocale(code);
 }
 
 async function translateMaskedFieldsViaGoogle(

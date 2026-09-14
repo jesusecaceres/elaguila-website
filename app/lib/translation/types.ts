@@ -58,11 +58,20 @@ export type TranslationProviderId = typeof GOOGLE_CLOUD_TRANSLATION_PROVIDER_ID 
 
 export type AdTranslationResult = {
   translated: TranslatableAdFields;
+  /** The locales as REQUESTED — unchanged for backward compatibility with every existing consumer. */
   sourceLocale: ContentLocale;
   targetLocale: Locale;
   provider: TranslationProviderId;
   translatedAt: string;
   fromCache?: boolean;
+  /**
+   * Servicios Live Launch Perfection ⚠️16 (2026-09-13) — additive metadata, present only when the
+   * request carried `sourceLocale: "unknown"`: the provider-detected content language and the
+   * target the text was actually translated into (the opposite active language when the content
+   * already matched the requested target). Known-source requests never set these.
+   */
+  detectedSourceLocale?: ContentLocale;
+  effectiveTargetLocale?: Locale;
 };
 
 export type MaskToken = { placeholder: string; value: string };

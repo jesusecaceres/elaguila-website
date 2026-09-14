@@ -310,7 +310,7 @@ export function ServiciosGalleryWithTabs({
     <>
       <section className="scroll-mt-24">
         <div className="max-w-2xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--lx-muted)]">Galería</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--lx-muted)]">{L.galleryEyebrow}</p>
           <h2 className="mt-1 text-2xl font-bold tracking-tight text-[color:var(--lx-text)]">{L.gallery}</h2>
         </div>
 

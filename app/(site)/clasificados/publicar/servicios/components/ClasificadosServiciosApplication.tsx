@@ -47,6 +47,7 @@ import type {
 } from "../lib/clasificadosServiciosApplicationTypes";
 import {
   LANGUAGE_OPTION_CHIPS,
+  normalizeServiciosExternalVideoUrlForEntry,
   SERVICIOS_MAX_VIDEO_URLS,
   shortenServiciosVideoUrlDisplay,
 } from "../lib/clasificadosServiciosApplicationTypes";
@@ -121,7 +122,7 @@ import {
   newVideoId,
   normalizeHttpUrl,
 } from "../lib/socialAndUrlHelpers";
-import { normalizeStrictExternalVideoUrl } from "@/app/lib/media/externalVideoUrlValidation";
+import { parseBulkExternalVideoUrls } from "@/app/lib/media/externalVideoUrlValidation";
 import {
   CUSTOM_PAYMENT_LABEL_MAX,
   MAX_CUSTOM_PAYMENT_METHODS,
@@ -368,6 +369,10 @@ export function ClasificadosServiciosApplication() {
   const [logoUrlDraft, setLogoUrlDraft] = useState("");
   const [galleryUrlDraft, setGalleryUrlDraft] = useState("");
   const [videoUrlDraft, setVideoUrlDraft] = useState("");
+  // ⚠️4 rapid multi-URL entry — bulk paste mode next to the unchanged single-add input.
+  const [videoBulkMode, setVideoBulkMode] = useState(false);
+  const [videoBulkDraft, setVideoBulkDraft] = useState("");
+  const [videoBulkSummary, setVideoBulkSummary] = useState<string | null>(null);
   const [galleryZoneActive, setGalleryZoneActive] = useState(false);
   const [couponDetailOpen, setCouponDetailOpen] = useState(false);
   const [leonixRulesOpen, setLeonixRulesOpen] = useState(false);
@@ -477,7 +482,7 @@ export function ClasificadosServiciosApplication() {
           ...prev,
           listingProduct: "servicios_profesionales",
           baseMonthlyPrice: 399,
-          categoryPlan: lang === "en" ? "Professional services — $399/mes" : "Servicios profesionales — $399/mes",
+          categoryPlan: lang === "en" ? "Professional services — $399/month" : "Servicios profesionales — $399/mes",
         }));
       }
     }
@@ -972,12 +977,12 @@ export function ClasificadosServiciosApplication() {
     // Globalization Package B (Gate B3) — Servicios previously accepted any web URL for a
     // video slot (the only paid lane with no video validator). Now gated by the shared strict
     // validator (https-only, URL-parseable, never blob:/data:) — same semantics as Autos'.
-    const strictNormalized = normalizeStrictExternalVideoUrl(raw);
-    if (!strictNormalized || !isProbablyValidWebUrl(raw)) {
+    // ⚠️4: the same normaliser serves the bulk paste path below, so both accept identical URLs.
+    const normalizedUrl = normalizeServiciosExternalVideoUrlForEntry(raw);
+    if (!normalizedUrl) {
       setMediaFlash(copy.labels.invalidUrl);
       return;
     }
-    const normalizedUrl = normalizeHttpUrl(strictNormalized);
     let added = false;
     setState((prev) => {
       if (prev.videos.length >= SERVICIOS_MAX_VIDEO_URLS) {
@@ -1004,6 +1009,57 @@ export function ClasificadosServiciosApplication() {
     });
     if (added) addedVideoUrl.flash();
     setVideoUrlDraft("");
+  };
+
+  // ⚠️4 rapid multi-URL entry — the shared bulk parser (same engine Autos uses) with the Servicios
+  // entry normaliser and cap. Truthful per-item feedback: added / invalid / duplicate / over-limit.
+  const formatVideoBulkSummary = (result: ReturnType<typeof parseBulkExternalVideoUrls>): string => {
+    const parts = [
+      result.added.length === 1
+        ? copy.labels.videoBulkAddedOne
+        : copy.labels.videoBulkAddedMany.replace("{n}", String(result.added.length)),
+    ];
+    if (result.skippedInvalid > 0) parts.push(copy.labels.videoBulkInvalid.replace("{n}", String(result.skippedInvalid)));
+    if (result.skippedDuplicate > 0) parts.push(copy.labels.videoBulkDuplicate.replace("{n}", String(result.skippedDuplicate)));
+    if (result.skippedLimit > 0) {
+      parts.push(
+        copy.labels.videoBulkLimit
+          .replace("{n}", String(result.skippedLimit))
+          .replace("{max}", String(SERVICIOS_MAX_VIDEO_URLS)),
+      );
+    }
+    return parts.join(" ");
+  };
+
+  const addVideoUrlsBulk = () => {
+    const raw = videoBulkDraft.trim();
+    if (!raw) {
+      setVideoBulkSummary(copy.labels.videoBulkEmpty);
+      return;
+    }
+    // Legacy file rows (data:/file source) occupy a slot but never normalise as external links, so
+    // they are subtracted from the cap rather than counted as "existing" URLs by the parser.
+    const legacyRows = state.videos.filter((v) => !normalizeServiciosExternalVideoUrlForEntry(v.url)).length;
+    const result = parseBulkExternalVideoUrls(
+      raw,
+      state.videos.map((v) => v.url),
+      { normalize: normalizeServiciosExternalVideoUrlForEntry, max: Math.max(0, SERVICIOS_MAX_VIDEO_URLS - legacyRows) },
+    );
+    setVideoBulkSummary(formatVideoBulkSummary(result));
+    if (result.added.length > 0) {
+      setState((prev) => {
+        const seen = new Set(prev.videos.map((v) => v.url.trim().toLowerCase()));
+        const rows = result.added
+          .filter((url) => !seen.has(url.trim().toLowerCase()))
+          .map((url) => ({ id: newVideoId(), url, source: "url" as const }));
+        if (rows.length === 0) return prev;
+        const next = [...prev.videos, ...rows].slice(0, SERVICIOS_MAX_VIDEO_URLS);
+        const primaryId = prev.videos.find((v) => v.isPrimary === true)?.id ?? next[0]!.id;
+        return { ...prev, videos: next.map((v) => ({ ...v, isPrimary: v.id === primaryId })) };
+      });
+      addedVideoUrl.flash();
+    }
+    setVideoBulkDraft("");
   };
 
   const setPrimaryVideoId = (id: string) => {
@@ -1920,7 +1976,7 @@ export function ClasificadosServiciosApplication() {
             <li>{copy.labels.galleryFeaturedHint}</li>
             <li>{copy.labels.galleryMoreHint}</li>
             <li>{copy.labels.galleryMultiSelectHint}</li>
-            <li>{copy.labels.videosHint}</li>
+            <li>{copy.labels.videosHint.replace("{max}", String(SERVICIOS_MAX_VIDEO_URLS))}</li>
           </ul>
 
           <div className="mt-6 max-w-md">
@@ -2110,7 +2166,9 @@ export function ClasificadosServiciosApplication() {
 
           <div className="mt-10 border-t border-[#D8C79A]/40 pt-8">
             <p className={labelClass}>{copy.labels.videosTitle}</p>
-            <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.videosHint}</p>
+            <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">
+              {copy.labels.videosHint.replace("{max}", String(SERVICIOS_MAX_VIDEO_URLS))}
+            </p>
             <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.videosHelper}</p>
             <p className="mt-2 text-xs font-semibold tabular-nums text-[#5D4A25]">
               {copy.labels.videosCountLine
@@ -2165,33 +2223,91 @@ export function ClasificadosServiciosApplication() {
             ) : null}
             {state.videos.length < SERVICIOS_MAX_VIDEO_URLS ? (
               <div className="mt-4 max-w-lg">
-                <label className={labelClass}>{copy.labels.videoUrlLabel}</label>
-                <div className="mt-1 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
-                  <input
-                    className={`${inputClass} mt-0 min-w-0 sm:max-w-md sm:flex-1`}
-                    placeholder={copy.labels.videoUrlPlaceholder}
-                    value={videoUrlDraft}
-                    onChange={(e) => setVideoUrlDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        addVideoUrl();
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    disabled={!videoUrlDraft.trim()}
-                    className="inline-flex min-h-[44px] w-full shrink-0 touch-manipulation items-center justify-center rounded-xl border border-[#D8C79A]/80 bg-[#FFFCF7] px-4 text-sm font-semibold text-[#3D2C12] hover:border-[#3B66AD]/45 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-                    onClick={addVideoUrl}
-                  >
-                    {copy.labels.addVideoUrl}
-                  </button>
-                  <AddedConfirmationBadge
-                    visible={addedVideoUrl.visible}
-                    label={lang === "en" ? "Video added" : "Video añadido"}
-                  />
-                </div>
+                {!videoBulkMode ? (
+                  <>
+                    <label className={labelClass}>{copy.labels.videoUrlLabel}</label>
+                    <div className="mt-1 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-stretch">
+                      <input
+                        className={`${inputClass} mt-0 min-w-0 sm:max-w-md sm:flex-1`}
+                        placeholder={copy.labels.videoUrlPlaceholder}
+                        value={videoUrlDraft}
+                        onChange={(e) => setVideoUrlDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addVideoUrl();
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        disabled={!videoUrlDraft.trim()}
+                        className="inline-flex min-h-[44px] w-full shrink-0 touch-manipulation items-center justify-center rounded-xl border border-[#D8C79A]/80 bg-[#FFFCF7] px-4 text-sm font-semibold text-[#3D2C12] hover:border-[#3B66AD]/45 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                        onClick={addVideoUrl}
+                      >
+                        {copy.labels.addVideoUrl}
+                      </button>
+                      <AddedConfirmationBadge
+                        visible={addedVideoUrl.visible}
+                        label={lang === "en" ? "Video added" : "Video añadido"}
+                      />
+                    </div>
+                    {/* ⚠️4 rapid multi-URL entry — same engine as Autos' "paste multiple links". */}
+                    <button
+                      type="button"
+                      className="mt-2 min-h-[44px] text-xs font-semibold text-[#2d528d] underline"
+                      onClick={() => {
+                        setVideoBulkMode(true);
+                        setVideoBulkSummary(null);
+                      }}
+                    >
+                      {copy.labels.videoBulkToggle}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <label className={labelClass}>{copy.labels.videoBulkToggle}</label>
+                    <textarea
+                      className={`${inputClass} mt-1 min-h-[96px]`}
+                      placeholder={copy.labels.videoBulkPlaceholder}
+                      value={videoBulkDraft}
+                      onChange={(e) => {
+                        setVideoBulkDraft(e.target.value);
+                        if (videoBulkSummary) setVideoBulkSummary(null);
+                      }}
+                    />
+                    <p className="mt-1 text-xs leading-relaxed text-[#6b5c42]">{copy.labels.videoBulkHelper}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        disabled={!videoBulkDraft.trim()}
+                        className="inline-flex min-h-[44px] shrink-0 touch-manipulation items-center justify-center rounded-xl border border-[#D8C79A]/80 bg-[#FFFCF7] px-4 text-sm font-semibold text-[#3D2C12] hover:border-[#3B66AD]/45 disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={addVideoUrlsBulk}
+                      >
+                        {copy.labels.videoBulkAdd}
+                      </button>
+                      <button
+                        type="button"
+                        className="min-h-[44px] text-xs font-semibold text-[#2d528d] underline"
+                        onClick={() => {
+                          setVideoBulkMode(false);
+                          setVideoBulkDraft("");
+                        }}
+                      >
+                        {copy.labels.videoBulkCancel}
+                      </button>
+                      <AddedConfirmationBadge
+                        visible={addedVideoUrl.visible}
+                        label={lang === "en" ? "Videos added" : "Videos añadidos"}
+                      />
+                    </div>
+                  </>
+                )}
+                {videoBulkSummary ? (
+                  <p className="mt-2 text-xs font-medium text-[#5D4A25]" role="status">
+                    {videoBulkSummary}
+                  </p>
+                ) : null}
               </div>
             ) : (
               <p className="mt-4 text-xs font-medium text-[#8a7a62]">
@@ -3767,7 +3883,7 @@ export function ClasificadosServiciosApplication() {
                   <div className="mt-2 space-y-1 text-sm">
                     <div className="flex justify-between">
                       <span className="text-[#5D4A25]">{state.categoryPlan}</span>
-                      <span className="font-semibold text-[#3D2C12]">${state.baseMonthlyPrice}/mes</span>
+                      <span className="font-semibold text-[#3D2C12]">${state.baseMonthlyPrice}{lang === "en" ? "/month" : "/mes"}</span>
                     </div>
                     {state.couponsAddOn && state.couponsMonthlyPrice > 0 && (
                       <div className="flex justify-between">
@@ -3775,7 +3891,7 @@ export function ClasificadosServiciosApplication() {
                           {lang === "en" ? "Coupons add-on" : "Complemento de cupones"}
                         </span>
                         <span className="font-semibold text-[#3D2C12]">
-                          +${state.couponsMonthlyPrice}/mes
+                          +${state.couponsMonthlyPrice}{lang === "en" ? "/month" : "/mes"}
                         </span>
                       </div>
                     )}
@@ -3794,7 +3910,7 @@ export function ClasificadosServiciosApplication() {
                         {lang === "en" ? "Total monthly" : "Total mensual"}
                       </span>
                       <span className="font-bold text-[#C9782F]">
-                        ${state.baseMonthlyPrice + (state.couponsMonthlyPrice || 0)}/mes
+                        ${state.baseMonthlyPrice + (state.couponsMonthlyPrice || 0)}{lang === "en" ? "/month" : "/mes"}
                       </span>
                     </div>
                   </div>

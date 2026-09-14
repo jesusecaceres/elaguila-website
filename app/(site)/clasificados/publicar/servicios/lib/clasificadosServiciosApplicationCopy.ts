@@ -168,6 +168,18 @@ export type ClasificadosServiciosCopy = {
     videoPrimary: string;
     videoLinkBadge: string;
     videoDuplicateUrl: string;
+    /** ⚠️4 rapid multi-URL entry (shared bulk parser) — {n} / {max} placeholders where noted. */
+    videoBulkToggle: string;
+    videoBulkCancel: string;
+    videoBulkPlaceholder: string;
+    videoBulkHelper: string;
+    videoBulkAdd: string;
+    videoBulkEmpty: string;
+    videoBulkAddedOne: string;
+    videoBulkAddedMany: string;
+    videoBulkInvalid: string;
+    videoBulkDuplicate: string;
+    videoBulkLimit: string;
     customService: string;
     customServicePlaceholder: string;
     customReason: string;
@@ -468,15 +480,26 @@ const es: ClasificadosServiciosCopy = {
     moveFeaturedLeft: "Mover antes",
     moveFeaturedRight: "Mover después",
     videosHint:
-      "Puedes agregar hasta 8 enlaces de video. Los videos se mostrarán en la vista previa y en el anuncio publicado.",
+      "Puedes agregar hasta {max} enlaces de video. Los videos se mostrarán en la vista previa y en el anuncio publicado.",
     videosHelper:
-      "Recomendado: usa enlaces externos de YouTube, TikTok, Instagram, Vimeo u otra plataforma compatible para evitar cargas pesadas.",
+      "Los videos se agregan únicamente como enlaces externos (YouTube, TikTok, Instagram, Vimeo u otra plataforma compatible); no se suben archivos de video.",
     videoUrlLabel: "Enlace de video",
     videoUrlPlaceholder: "https://",
     addVideoUrl: "Añadir video",
     videoPrimary: "Video principal",
     videoLinkBadge: "ENLACE",
     videoDuplicateUrl: "Ese enlace ya está en la lista.",
+    videoBulkToggle: "Pegar varios enlaces",
+    videoBulkCancel: "Agregar uno a la vez",
+    videoBulkPlaceholder: "Pega varios enlaces, uno por línea (o separados por coma).",
+    videoBulkHelper: "Separa cada enlace con un salto de línea, coma o espacio. Cada enlace se revisa por separado.",
+    videoBulkAdd: "Agregar todos",
+    videoBulkEmpty: "Pega al menos un enlace de video.",
+    videoBulkAddedOne: "1 video agregado.",
+    videoBulkAddedMany: "{n} videos agregados.",
+    videoBulkInvalid: "{n} enlace(s) no válido(s).",
+    videoBulkDuplicate: "{n} duplicado(s).",
+    videoBulkLimit: "{n} omitido(s) por el límite de {max}.",
     customService: "Otro servicio",
     customServicePlaceholder: "Ej.: marcos a medida",
     customReason: "Otro motivo",
@@ -787,15 +810,26 @@ const en: ClasificadosServiciosCopy = {
     moveFeaturedLeft: "Move earlier",
     moveFeaturedRight: "Move later",
     videosHint:
-      "You can add up to 8 video links. Videos will appear in preview and on the published listing.",
+      "You can add up to {max} video links. Videos will appear in preview and on the published listing.",
     videosHelper:
-      "Recommended: use external links from YouTube, TikTok, Instagram, Vimeo, or another compatible platform to avoid heavy uploads.",
+      "Videos are added only as external links (YouTube, TikTok, Instagram, Vimeo, or another compatible platform); video files are not uploaded.",
     videoUrlLabel: "Video link",
     videoUrlPlaceholder: "https://",
     addVideoUrl: "Add video",
     videoPrimary: "Primary video",
     videoLinkBadge: "URL",
     videoDuplicateUrl: "That link is already in the list.",
+    videoBulkToggle: "Paste multiple links",
+    videoBulkCancel: "Add one at a time",
+    videoBulkPlaceholder: "Paste multiple links, one per line (or separated by commas).",
+    videoBulkHelper: "Separate each link with a new line, comma, or space. Each link is checked individually.",
+    videoBulkAdd: "Add all",
+    videoBulkEmpty: "Paste at least one video link.",
+    videoBulkAddedOne: "1 video added.",
+    videoBulkAddedMany: "{n} videos added.",
+    videoBulkInvalid: "{n} invalid link(s).",
+    videoBulkDuplicate: "{n} duplicate(s).",
+    videoBulkLimit: "{n} skipped — {max} video limit.",
     customService: "Other service",
     customServicePlaceholder: "e.g. custom trim",
     customReason: "Other reason",

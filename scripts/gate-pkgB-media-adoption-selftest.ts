@@ -108,10 +108,18 @@ const read = (p: string) => readFileSync(path.join(REPO_ROOT, p), "utf8");
   assert.equal(normalizeStrictExternalVideoUrl(""), null);
   assert.equal(isStrictExternalVideoUrl("https://vimeo.com/123"), true);
 
+  // Servicios Live Launch Perfection ⚠️4 (2026-09-13): the strict gate moved one level down into
+  // the ONE Servicios entry normaliser (shared by single-add and bulk paste); the component calls
+  // that normaliser instead of hand-rolling the validator chain.
+  const serviciosTypes = read("app/(site)/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes.ts");
+  assert.ok(
+    serviciosTypes.includes("normalizeStrictExternalVideoUrl(raw)"),
+    "Servicios entry normaliser must be gated by the shared strict validator (was: any web URL)",
+  );
   const servicios = read("app/(site)/clasificados/publicar/servicios/components/ClasificadosServiciosApplication.tsx");
   assert.ok(
-    servicios.includes("normalizeStrictExternalVideoUrl"),
-    "Servicios add-video path must be gated by the shared strict validator (was: any web URL)",
+    servicios.includes("normalizeServiciosExternalVideoUrlForEntry(raw)"),
+    "Servicios add-video path must run through the strict-gated entry normaliser",
   );
 
   // Viajes boundary: config carries the validator; no Viajes-owned UI file is modified by

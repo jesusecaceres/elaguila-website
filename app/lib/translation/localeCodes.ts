@@ -93,6 +93,23 @@ export function mapTranslateAdLocaleToGoogle(locale: TranslateAdTargetLocale): s
   }
 }
 
+/**
+ * Servicios Live Launch Perfection ⚠️16 (2026-09-13) — reverse mapping for provider language
+ * DETECTION output (Google `detectLanguage` codes). Exact allowlist codes pass through; region
+ * tags collapse to their base (`es-419` → `es`, `en-US` → `en`, `pt-BR` → `pt`); any Chinese
+ * variant maps to the Simplified route code; `und` and anything outside the allowlist → `unknown`.
+ */
+export function mapGoogleLanguageCodeToTranslateAdSourceLocale(code: string): TranslateAdSourceLocale {
+  const raw = (code ?? "").trim();
+  if (!raw) return "unknown";
+  if (isValidTranslateAdSourceLocale(raw)) return raw;
+  const lower = raw.toLowerCase();
+  if (lower === "und") return "unknown";
+  if (lower.startsWith("zh")) return "zh-CN";
+  const base = lower.split(/[-_]/)[0] ?? "";
+  return isValidTranslateAdSourceLocale(base) ? base : "unknown";
+}
+
 /** Preserve known source locales for cache keys; collapse unrecognized values to `unknown`. */
 export function normalizeTranslateAdSourceLocale(
   sourceLocale: TranslateAdSourceLocale,
