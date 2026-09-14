@@ -20,6 +20,9 @@
  * shopper can never set would be saving a filter that does not exist.
  */
 import type { ServiciosResultsFilterQuery } from "@/app/(site)/clasificados/servicios/lib/serviciosResultsFilter";
+import { normalizeServiciosBusinessTypeParam } from "@/app/(site)/clasificados/servicios/lib/serviciosDiscoveryAdapter";
+import { getBusinessTypePreset } from "@/app/(site)/clasificados/publicar/servicios/lib/businessTypePresets";
+import { normalizeBilingualSearchKey } from "@/app/lib/clasificados/discovery/bilingualSearchText";
 import type { SavedSearchNormalizedInput } from "../savedSearchTypes";
 
 export const SAVED_SEARCH_SERVICIOS_CATEGORY = "servicios";
@@ -35,6 +38,8 @@ export type ServiciosSavedSearchFilterPayload = {
   country?: string;
   /** Trade family (`internal_group`) — Servicios' primary category facet. */
   group?: string;
+  /** ⚠️38A — canonical business-type intent (`type=`), language-neutral. */
+  type?: string;
   /** Business vs independent presentation (`filterServiciosRowsBySeller`). */
   seller?: "business" | "independent";
   whatsapp?: boolean;
@@ -110,8 +115,13 @@ export function serviciosFilterQueryToSavedSearch(
 ): SavedSearchNormalizedInput {
   const payload: ServiciosSavedSearchFilterPayload = {};
 
-  const q = query.q?.trim();
+  // ⚠️38A — NEW saves store the shared normalized key ("Plomería" / "plomeria" / "PLOMERIA" → one
+  // fingerprint). Match semantics are unchanged: the live keyword filter normalizes identically.
+  // Existing rows and fingerprints are never rewritten.
+  const q = normalizeBilingualSearchKey(query.q);
   if (q) payload.q = q;
+  const type = normalizeServiciosBusinessTypeParam(query.type);
+  if (type) payload.type = type;
   const state = query.state?.trim();
   if (state) payload.state = state;
   const zip = query.zip?.trim();
@@ -150,6 +160,7 @@ export function savedSearchToServiciosFilterQuery(
     zip: p.zip,
     country: p.country,
     group: p.group,
+    type: typeof p.type === "string" && p.type.trim() ? p.type.trim() : undefined,
     q: p.q,
     seller: p.seller ?? "all",
   };
@@ -172,6 +183,10 @@ export function describeServiciosSavedSearchFacets(
   const parts: string[] = [];
 
   if (p.group) parts.push(p.group);
+  if (typeof p.type === "string" && p.type.trim()) {
+    const preset = getBusinessTypePreset(p.type.trim());
+    parts.push(preset ? (lang === "es" ? preset.labelEs : preset.labelEn) : p.type.trim());
+  }
   if (p.seller) {
     parts.push(
       p.seller === "business"

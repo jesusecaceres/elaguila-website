@@ -59,6 +59,7 @@ export function parseServiciosFilterFormData(fd: FormData): ServiciosResultsFilt
     zip: String(fd.get("zip") ?? "").trim() || undefined,
     country: String(fd.get("country") ?? "").trim() || undefined,
     group: String(fd.get("group") ?? "").trim() || undefined,
+    type: String(fd.get("type") ?? "").trim() || undefined,
     sort,
     seller,
     whatsapp: flagFromForm(fd, "whatsapp"),
@@ -114,6 +115,8 @@ export function serviciosFilterQueryToUrlParams(
   if (loc.zip) out.zip = loc.zip;
   if (loc.country) out.country = loc.country;
   if (query.group?.trim()) out.group = query.group.trim();
+  // ⚠️38A — canonical business-type intent; identical for every viewer locale.
+  if (query.type?.trim()) out.type = query.type.trim();
   if (query.seller && query.seller !== "all") out.seller = query.seller;
   if (query.sort && query.sort !== "newest") out.sort = query.sort;
 
@@ -209,6 +212,7 @@ export const SERVICIOS_CHIP_URL_KEY: Record<string, string> = {
   zip: "zip",
   country: "country",
   group: "group",
+  type: "type",
   seller: "seller",
   sort: "sort",
   wa: "whatsapp",

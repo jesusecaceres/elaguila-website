@@ -1,12 +1,17 @@
 import { pickTranslatableAdFields } from "@/app/lib/translation/helpers";
 import type { TranslatableAdFields } from "@/app/lib/translation/types";
 import type { ServiciosLang, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
-import { BUSINESS_TYPE_PRESETS } from "@/app/(site)/clasificados/publicar/servicios/lib/businessTypePresets";
-import { BUSINESS_HIGHLIGHT_PRESET_CHIPS } from "@/app/(site)/clasificados/publicar/servicios/lib/businessHighlightPresets";
-import {
-  LANGUAGE_OPTION_CHIPS,
-  type ChipDef,
-} from "@/app/(site)/clasificados/publicar/servicios/lib/clasificadosServiciosApplicationTypes";
+import { canonicalBusinessTypeLabel, canonicalPresetLabel } from "./serviciosCanonicalPresetLabels";
+
+// ⚠️38A — the canonical ES ↔ EN preset map now lives in serviciosCanonicalPresetLabels.ts (pure) so
+// the discovery adapter and this overlay share ONE source; re-exported for existing callers.
+export {
+  canonicalBusinessTypeLabel,
+  canonicalBusinessTypeLabels,
+  canonicalPresetChip,
+  canonicalPresetLabel,
+  type ServiciosCanonicalChipKind,
+} from "./serviciosCanonicalPresetLabels";
 
 /* ==============================================================================================
  * Servicios Final Pre-Payment Closeout ⚠️37 (2026-09-14) — FULL translated-profile coverage.
@@ -198,86 +203,8 @@ function decodeHighlightsFromTranslation(
 }
 
 /* ==============================================================================================
- * Canonical preset re-labelling (deterministic, no API).
+ * Canonical preset re-labelling (deterministic, no API) — catalog map in serviciosCanonicalPresetLabels.
  * ============================================================================================ */
-type ChipKind = "service" | "reason" | "quickFact" | "highlight" | "language";
-type ChipIndex = { byId: Map<string, ChipDef>; byLabel: Map<string, ChipDef> };
-
-function normLabel(s: string): string {
-  return s.trim().toLowerCase().replace(/\s+/g, " ");
-}
-
-let CHIP_INDEX: Record<ChipKind, ChipIndex> | null = null;
-let BUSINESS_TYPE_LABELS: Map<string, { es: string; en: string }> | null = null;
-
-function addChips(index: ChipIndex, chips: readonly ChipDef[]) {
-  for (const chip of chips) {
-    index.byId.set(chip.id, chip);
-    for (const label of [chip.es, chip.en]) {
-      const key = normLabel(label);
-      if (key && !index.byLabel.has(key)) index.byLabel.set(key, chip);
-    }
-  }
-}
-
-function chipIndex(): Record<ChipKind, ChipIndex> {
-  if (CHIP_INDEX) return CHIP_INDEX;
-  const make = (): ChipIndex => ({ byId: new Map(), byLabel: new Map() });
-  const idx: Record<ChipKind, ChipIndex> = {
-    service: make(),
-    reason: make(),
-    quickFact: make(),
-    highlight: make(),
-    language: make(),
-  };
-  for (const preset of BUSINESS_TYPE_PRESETS) {
-    addChips(idx.service, preset.suggestedServices);
-    addChips(idx.reason, preset.reasonsToChoose);
-    addChips(idx.quickFact, preset.quickFacts);
-  }
-  addChips(idx.highlight, BUSINESS_HIGHLIGHT_PRESET_CHIPS);
-  addChips(idx.language, LANGUAGE_OPTION_CHIPS);
-  // `buildServiciosLanguageLabels` renders `lang_otro` without a custom line as this pair.
-  addChips(idx.language, [{ id: "lang_otro_label", es: "Otro idioma", en: "Other language" }]);
-  CHIP_INDEX = idx;
-  return idx;
-}
-
-function businessTypeLabels(): Map<string, { es: string; en: string }> {
-  if (BUSINESS_TYPE_LABELS) return BUSINESS_TYPE_LABELS;
-  const map = new Map<string, { es: string; en: string }>();
-  for (const preset of BUSINESS_TYPE_PRESETS) {
-    const pair = { es: preset.labelEs, en: preset.labelEn };
-    for (const label of [preset.labelEs, preset.labelEn]) {
-      const key = normLabel(label);
-      if (key && !map.has(key)) map.set(key, pair);
-    }
-  }
-  BUSINESS_TYPE_LABELS = map;
-  return map;
-}
-
-/**
- * The catalog label of a preset chip in `target`, found by id first, then by either-locale label.
- * Null when the chip is not a Leonix preset (i.e. owner-authored).
- */
-export function canonicalPresetLabel(
-  kind: ChipKind,
-  ref: { id?: string | null; label: string },
-  target: ServiciosLang,
-): string | null {
-  const idx = chipIndex()[kind];
-  const chip = (ref.id ? idx.byId.get(ref.id) : undefined) ?? idx.byLabel.get(normLabel(ref.label));
-  if (!chip) return null;
-  return target === "en" ? chip.en : chip.es;
-}
-
-/** The catalog label of a business-type category line in `target`, or null when it is custom. */
-export function canonicalBusinessTypeLabel(label: string, target: ServiciosLang): string | null {
-  const pair = businessTypeLabels().get(normLabel(label));
-  return pair ? (target === "en" ? pair.en : pair.es) : null;
-}
-
 /** Re-labels every CANONICAL_PRESET field for the destination locale. Pure; never touches literals. */
 export function relabelServiciosCanonicalPresets(
   profile: ServiciosProfileResolved,

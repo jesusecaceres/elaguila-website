@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { FiMapPin, FiPhone } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
+import { relabelServiciosCanonicalPresets } from "@/app/(site)/servicios/lib/serviciosTranslateAd";
 import type { ServiciosPublicListingRow } from "./lib/serviciosPublicListingsServer";
 import { serviciosEngagementListingKey } from "./lib/serviciosPublicListingSort";
 import {
@@ -101,12 +102,14 @@ export function ServiciosProfessionalResultCard({
       reviewCount: row.review_rating_count ?? undefined,
     };
   }
-  const profile = resolveServiciosProfile(wire, lang);
+  // ⚠️38A — results presentation: canonical preset labels follow the viewer locale (pure catalog
+  // map); business name, custom text, literals and identity untouched. Routing keeps the ORIGINAL line.
+  const profile = relabelServiciosCanonicalPresets(resolveServiciosProfile(wire, lang), lang);
 
   const template = resolveServiciosListingTemplate({
     businessTypeId: readServiciosProfileBusinessTypeId(row.profile_json),
     internalGroup: row.internal_group,
-    categoryLabel: profile.hero.categoryLine,
+    categoryLabel: row.profile_json.hero?.categoryLine,
   });
   const primaryLabel = getPrimaryCtaLabel(template, lang);
   const secondaryLabel = getProfileCtaSecondary(template, lang);

@@ -56,6 +56,7 @@ function serviciosResultsHasAdvancedDrawerFilters(current: ServiciosResultsFilte
       current.zip?.trim() ||
       (current.country?.trim() && current.country.trim() !== LEONIX_LB_DEFAULT_COUNTRY) ||
     current.group?.trim() ||
+      current.type?.trim() ||
       (current.seller && current.seller !== "all") ||
       current.whatsapp === "1" ||
       current.promo === "1" ||
@@ -143,7 +144,7 @@ function ServiciosResultsFiltersCompact({
   useEffect(() => {
     setStateTouched(false);
     setCountryTouched(false);
-  }, [current.q, current.city, current.state, current.zip, current.country, current.group]);
+  }, [current.q, current.city, current.state, current.zip, current.country, current.group, current.type]);
 
   const onSubmitCapture = createServiciosResultsFormSubmitCapture();
 

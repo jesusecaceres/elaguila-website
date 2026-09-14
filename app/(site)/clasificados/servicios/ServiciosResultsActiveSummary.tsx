@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ServiciosLang } from "@/app/servicios/types/serviciosBusinessProfile";
 import { formatServiciosInternalGroupForDiscovery } from "./lib/serviciosInternalGroupDisplay";
+import { getBusinessTypePreset } from "@/app/(site)/clasificados/publicar/servicios/lib/businessTypePresets";
 import type { ServiciosResultsFilterQuery } from "./lib/serviciosResultsFilter";
 import {
   buildServiciosResultsChipRemoveHref,
@@ -71,6 +72,16 @@ export function ServiciosResultsActiveSummary({
       key: "group",
       label: lang === "en" ? `Trade: ${g}` : `Giro: ${g}`,
       href: rm("group"),
+    });
+  }
+  if (query.type?.trim()) {
+    // ⚠️38A — canonical business-type intent renders its catalog label in the viewer's locale.
+    const preset = getBusinessTypePreset(query.type.trim());
+    const t = preset ? (lang === "en" ? preset.labelEn : preset.labelEs) : query.type.trim();
+    items.push({
+      key: "type",
+      label: lang === "en" ? `Type: ${t}` : `Tipo: ${t}`,
+      href: rm("type"),
     });
   }
   if (query.seller === "business") {
