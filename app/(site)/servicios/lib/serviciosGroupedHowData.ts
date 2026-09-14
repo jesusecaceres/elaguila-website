@@ -38,7 +38,16 @@ function groupIcon(id: string): string {
   }
 }
 
-export function buildServiciosHowGroups(profile: ServiciosProfileResolved, lang: ServiciosLang): ServiciosHowGroup[] {
+/**
+ * `lang` drives the static group titles (Leonix chrome); `itemLang` (⚠️37, defaults to `lang`)
+ * drives the catalog labels of the business's own amenity choices, so a translated profile shows
+ * its options in the destination language under page-locale headings.
+ */
+export function buildServiciosHowGroups(
+  profile: ServiciosProfileResolved,
+  lang: ServiciosLang,
+  itemLang: ServiciosLang = lang,
+): ServiciosHowGroup[] {
   const groups: ServiciosHowGroup[] = [];
   const byGroup = new Map<ServiciosAmenityGroupId, string[]>();
 
@@ -47,7 +56,7 @@ export function buildServiciosHowGroups(profile: ServiciosProfileResolved, lang:
     const def = SERVICIOS_AMENITY_OPTIONS.find((o) => o.id === id);
     const gid = def?.groupId ?? "service";
     const cur = byGroup.get(gid) ?? [];
-    cur.push(def?.label[lang] ?? id);
+    cur.push(def?.label[itemLang] ?? id);
     byGroup.set(gid, cur);
   }
 

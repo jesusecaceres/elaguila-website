@@ -6,11 +6,18 @@ import { buildServiciosSmartTrustSummary } from "../lib/serviciosSmartTrustSumma
 export function ServiciosSmartTrustSummary({
   profile,
   lang,
+  contentLang,
 }: {
   profile: ServiciosProfileResolved;
   lang: ServiciosLang;
+  /**
+   * ⚠️37 — the generated "Resumen rápido" is business prose: it is REGENERATED in the locale of
+   * the displayed business content (translated custom text + destination-locale catalog labels +
+   * a sentence template in that language) so it never comes out mixed. The card chrome follows `lang`.
+   */
+  contentLang?: ServiciosLang;
 }) {
-  const model = buildServiciosSmartTrustSummary(profile, lang);
+  const model = buildServiciosSmartTrustSummary(profile, contentLang ?? lang);
   if (!model) return null;
 
   const copy = getServiciosSmartTrustSummaryCopy(lang);

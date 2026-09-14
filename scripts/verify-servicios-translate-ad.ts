@@ -136,7 +136,9 @@ const fixture = {
     { id: "p1", headline: "Descuento para adultos mayores" },
   ],
   quickFacts: [
-    { kind: "free_estimate", label: "Presupuesto gratis" },
+    // ⚠️37: preset quick facts carry a real catalog label (carpinteria::carp_q1) — that is what
+    // makes them canonical; the mapper also infers non-custom kinds from owner text.
+    { kind: "years_experience", label: "Más de 10 años de experiencia" },
     { kind: "custom", label: "Atendemos sábados" },
   ],
   trust: [
@@ -156,7 +158,7 @@ check("⚠️16 overlay build: custom quick fact / custom reason / coupons / lat
   assert.equal(content.shareText, "Primera visita gratis");
   const body = content.body ?? "";
   assert.ok(body.includes("qf\t1\tAtendemos sábados"), body);
-  assert.ok(!body.includes("Presupuesto gratis"), "preset quick fact (pre-localized) never sent");
+  assert.ok(!body.includes("Más de 10 años de experiencia"), "preset quick fact (catalog label) never sent");
   assert.ok(body.includes("tr\t1\t20 años en San José"), body);
   assert.ok(!body.includes("Con licencia"), "preset reason (pre-localized) never sent");
   assert.ok(body.includes("cp\t0\t10% en tu primer servicio\tMenciona Leonix"), body);
@@ -167,7 +169,8 @@ check("⚠️16 overlay build: custom quick fact / custom reason / coupons / lat
   assert.equal(content.highlights, "1\tGarantía por escrito", "only the custom highlight is sent, indexed");
   assert.ok(!(content.highlights ?? "").includes("Presupuesto sin costo"), "preset highlight never sent");
   assert.ok(isOwnerAuthoredQuickFact({ kind: "custom", label: "x" }));
-  assert.ok(!isOwnerAuthoredQuickFact({ kind: "free_estimate", label: "x" }));
+  assert.ok(!isOwnerAuthoredQuickFact({ kind: "years_experience", label: "Más de 10 años de experiencia" }));
+  assert.ok(isOwnerAuthoredQuickFact({ kind: "emergency", label: "Emergencias nocturnas en tu casa" }), "owner text with an inferred kind still translates");
   assert.ok(isOwnerAuthoredTrustItem({ id: "custom_reason", label: "x", icon: "star" }));
   assert.ok(!isOwnerAuthoredTrustItem({ id: "trust_licensed", label: "x", icon: "shield" }));
 });
@@ -189,7 +192,7 @@ check("⚠️16 overlay apply: translated body lands on exactly the owner-author
   assert.equal(translated.highlights[1]!.label, "Written warranty");
   assert.equal(translated.highlights[0]!.label, "Presupuesto sin costo", "preset highlight untouched");
   assert.equal(translated.quickFacts[1]!.label, "Open on Saturdays");
-  assert.equal(translated.quickFacts[0]!.label, "Presupuesto gratis", "preset quick fact untouched");
+  assert.equal(translated.quickFacts[0]!.label, "Más de 10 años de experiencia", "preset quick fact untouched by machine text (no target locale given)");
   assert.equal(translated.trust[1]!.label, "20 years in San José");
   assert.equal(translated.trust[0]!.label, "Con licencia", "preset reason untouched");
   assert.equal(translated.coupons[0]!.title, "10% off your first service");
@@ -245,7 +248,9 @@ check("⚠️16 canvas + profile view: the translated overlay actually renders",
   assert.ok(view.includes("services={displayProfile.services}"));
   assert.ok(view.includes("coupons={displayProfile.coupons}"));
   assert.ok(view.includes("<ServiciosPublicDetailsCanvas profile={profile} displayProfile={displayProfile}"));
-  assert.ok(view.includes("<ServiciosBusinessHubContactCard\n                    profile={profile}"), "contact card never translated");
+  // ⚠️37 (2026-09-14): the contact card receives the overlay so owner extra-link LABELS translate;
+  // contact literals are never sent nor rewritten — pinned in verify-servicios-translation-coverage.
+  assert.ok(view.includes("<ServiciosBusinessHubContactCard\n                    profile={displayProfile}"), "contact card renders the overlay");
 });
 
 /* ==============================================================================================

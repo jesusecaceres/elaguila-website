@@ -183,8 +183,15 @@ export function LeonixShareButton({
     // the current page URL is a private draft/preview route that must never be shared. It used to
     // return here silently, so Compartir did nothing. It now opens the same native share sheet
     // with the listing title/text only (no URL); analytics stay off because `allowTrack` is false.
+    // Servicios Live Launch Perfection ⚠️32A (2026-09-14) — the proven Leonix "Share link" sheet
+    // (En Venta, Autos dealer, Ofertas Locales) shares `{ title, url }` and nothing else: with a
+    // URL and no `text`, the OS sheet presents the canonical listing link itself (title + visible
+    // URL + native copy-link + apps). Padding `text` with the title again turned that into a
+    // generic text share on Windows. `text` is now sent only when a caller supplies real shareText.
     const shareData: ShareData = urlToShare
-      ? { title: safeTitle, text: body || safeTitle, url: urlToShare }
+      ? body
+        ? { title: safeTitle, text: body, url: urlToShare }
+        : { title: safeTitle, url: urlToShare }
       : { title: safeTitle, text: body || safeTitle };
     if (typeof navigator !== "undefined" && navigator.share) {
       try {

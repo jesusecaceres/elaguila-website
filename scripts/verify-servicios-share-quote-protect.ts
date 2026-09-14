@@ -65,6 +65,33 @@ check("⚠️32 shared button: navigator.share first, clipboard copy-link fallba
   const sheet = raw("app/components/cta/CtaActionSheet.tsx");
   assert.ok(sheet.includes('intent.kind === "share_ad"'), "shared hub untouched");
 });
+check("⚠️32A share-link parity: with a URL the payload is `{ title, url }` like the proven Leonix Share-link sheets", () => {
+  const button = raw("app/components/clasificados/analytics/LeonixShareButton.tsx").replace(/\r\n/g, "\n");
+  assert.ok(
+    button.includes("? { title: safeTitle, text: body, url: urlToShare }\n        : { title: safeTitle, url: urlToShare }"),
+    "URL share carries `text` only when a caller supplies explicit shareText",
+  );
+  assert.ok(!button.includes("text: body || safeTitle, url: urlToShare"), "title is never duplicated into `text` next to the URL");
+  assert.ok(button.includes(": { title: safeTitle, text: body || safeTitle };"), "no-URL fallback payload unchanged");
+  assert.ok(button.includes("const publicUrl = getSafePublicAdUrl({ publicUrl: resolvedListingUrl }).trim() || resolvedListingUrl;"), "canonical listing URL is the shared URL");
+  assert.ok(button.includes("publicUrl ||\n      (allowTrack && typeof window !== \"undefined\" ? window.location.href.trim() : \"\")"), "Preview without a canonical URL stays safe (no tracked URL)");
+  // Proven "Share link" callers share exactly `{ title, url }` — the shape this reuses.
+  for (const rel of [
+    "app/(site)/clasificados/en-venta/listing/EnVentaAnuncioLayout.tsx",
+    "app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewDealerBusinessStack.tsx",
+  ]) {
+    assert.ok(raw(rel).includes("await navigator.share({ title, url });"), `${rel}: proven Share-link payload intact`);
+  }
+  // Every Servicios mount still wires directNativeShare; published mounts pass the canonical URL.
+  for (const rel of SERVICIOS_SHARE_MOUNTS) {
+    const src = raw(rel);
+    if (rel.includes("/preview/")) {
+      assert.ok(!src.includes("listingUrl="), `${rel}: Preview shares no canonical URL`);
+      continue;
+    }
+    assert.ok(src.includes("listingUrl="), `${rel}: published mount passes the canonical listing URL`);
+  }
+});
 check("⚠️14 preview never persists engagement", () => {
   const preview = raw("app/(site)/clasificados/publicar/servicios/preview/ServiciosProfessionalPreviewShell.tsx");
   assert.ok(preview.includes("persistEngagement={false}"));

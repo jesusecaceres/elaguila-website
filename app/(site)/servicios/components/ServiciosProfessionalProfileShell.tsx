@@ -142,7 +142,7 @@ export function ServiciosProfessionalProfileShell({
   hubEngagementVariant,
 }: ServiciosProfessionalProfileShellProps) {
   const listingKey = analyticsListingSlug?.trim() || profile.identity.slug;
-  const { displayProfile, translateControl } = useServiciosPublicTranslation({ profile, lang, listingKey });
+  const { displayProfile, translateControl, displayLang } = useServiciosPublicTranslation({ profile, lang, listingKey });
   const navItems = useMemo(() => mobileNavItems(template, lang), [template, lang]);
 
   const scrollToSection = useCallback((id: string) => {
@@ -263,8 +263,9 @@ export function ServiciosProfessionalProfileShell({
               ) : null}
 
               <div id="servicios-pro-contact" className={SECTION_SCROLL}>
+                {/* ⚠️37: overlay re-labels only owner extra-link labels; contact literals never change. */}
                 <ServiciosBusinessHubContactCard
-                  profile={profile}
+                  profile={displayProfile}
                   lang={lang}
                   listingTemplate={template}
                   listingSlug={analyticsListingSlug}
@@ -322,15 +323,17 @@ export function ServiciosProfessionalProfileShell({
                 profile={profile}
                 displayProfile={displayProfile}
                 lang={lang}
+                contentLang={displayLang}
                 template={template}
               />
 
-              <ServiciosGroupedHowSection profile={profile} lang={lang} />
+              <ServiciosGroupedHowSection profile={profile} displayProfile={displayProfile} lang={lang} contentLang={displayLang} />
 
               <ServiciosPagosBeneficiosSection
                 profile={profile}
                 displayProfile={displayProfile}
                 lang={lang}
+                contentLang={displayLang}
               />
 
               {heroEngagementActive ? (

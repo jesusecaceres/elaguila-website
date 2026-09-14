@@ -34,6 +34,13 @@ export function useServiciosPublicTranslation({
 }: ServiciosPublicTranslationState): {
   displayProfile: ServiciosProfileResolved;
   translateControl: ReactNode;
+  /**
+   * ⚠️37 — the locale of the BUSINESS CONTENT currently displayed: the effective translation target
+   * while translated, the page locale otherwise. Sections that resolve catalog labels (amenities,
+   * payment methods) or generate business prose (smart summary) use it for business data only —
+   * static Leonix chrome always follows `lang`.
+   */
+  displayLang: ServiciosLang;
 } {
   const [showTranslated, setShowTranslated] = useState(false);
   const [translation, setTranslation] = useState<AdTranslationResult | null>(null);
@@ -47,10 +54,17 @@ export function useServiciosPublicTranslation({
     return originalLocale === "unknown";
   }, [lang, originalLocale, translatableContent]);
 
+  const translatedLang = useMemo<ServiciosLang>(() => {
+    const effective = translation?.effectiveTargetLocale ?? translation?.targetLocale;
+    return effective === "en" ? "en" : effective === "es" ? "es" : lang;
+  }, [translation, lang]);
+
   const displayProfile = useMemo(() => {
     if (!showTranslated || !translation?.translated) return profile;
-    return applyServiciosTranslation(profile, translation.translated);
-  }, [profile, showTranslated, translation]);
+    return applyServiciosTranslation(profile, translation.translated, translatedLang);
+  }, [profile, showTranslated, translation, translatedLang]);
+
+  const displayLang: ServiciosLang = showTranslated && translation?.translated ? translatedLang : lang;
 
   const onTranslated = useCallback((result: AdTranslationResult) => {
     setTranslation(result);
@@ -81,5 +95,5 @@ export function useServiciosPublicTranslation({
     </div>
   ) : null;
 
-  return { displayProfile, translateControl };
+  return { displayProfile, translateControl, displayLang };
 }

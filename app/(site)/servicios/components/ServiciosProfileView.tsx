@@ -92,7 +92,7 @@ export function ServiciosProfileView({
 }) {
   const stickyAsideTop = showTopBar ? "lg:top-[4.5rem]" : "lg:top-4";
   const listingKey = analyticsListingSlug?.trim() || profile.identity.slug;
-  const { displayProfile, translateControl } = useServiciosPublicTranslation({ profile, lang, listingKey });
+  const { displayProfile, translateControl, displayLang } = useServiciosPublicTranslation({ profile, lang, listingKey });
 
   const lxListingId = (engagementListingId ?? "").trim() || profile.identity.slug;
   const lxOwner = (engagementOwnerUserId ?? "").trim() || undefined;
@@ -207,8 +207,10 @@ export function ServiciosProfileView({
                 ) : null}
 
                 <div id="servicios-trade-contact">
+                  {/* ⚠️37: the overlay only re-labels owner extra-link labels here; every contact
+                      literal (phones, email, URLs, address, service areas) is never touched. */}
                   <ServiciosBusinessHubContactCard
-                    profile={profile}
+                    profile={displayProfile}
                     lang={lang}
                     listingTemplate="standard_service"
                     listingSlug={analyticsListingSlug}
@@ -260,11 +262,11 @@ export function ServiciosProfileView({
                   />
                 ) : null}
 
-                <ServiciosPublicDetailsCanvas profile={profile} displayProfile={displayProfile} lang={lang} />
+                <ServiciosPublicDetailsCanvas profile={profile} displayProfile={displayProfile} lang={lang} contentLang={displayLang} />
 
-                <ServiciosGroupedHowSection profile={profile} lang={lang} />
+                <ServiciosGroupedHowSection profile={profile} displayProfile={displayProfile} lang={lang} contentLang={displayLang} />
 
-                <ServiciosPagosBeneficiosSection profile={profile} displayProfile={displayProfile} lang={lang} />
+                <ServiciosPagosBeneficiosSection profile={profile} displayProfile={displayProfile} lang={lang} contentLang={displayLang} />
 
                 {heroEngagementActive ? (
                   <ServiciosEndOfContentShare
