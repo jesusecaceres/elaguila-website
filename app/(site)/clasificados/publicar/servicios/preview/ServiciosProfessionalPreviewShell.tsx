@@ -147,6 +147,7 @@ export function ServiciosProfessionalPreviewShell({
               lang={lang}
               category="servicios"
               persistEngagement={false}
+              directNativeShare
             />
           </div>
         }

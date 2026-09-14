@@ -68,7 +68,10 @@ export function useServiciosPublicTranslation({
         originalLocale={originalLocale}
         category="servicios"
         listingKey={listingKey}
-        version="servicios-t4-v2"
+        // ⚠️33 (2026-09-14): bumped so a tab that cached the pre-policy es→es ECHO under the v2
+        // key can never replay it as a "translation" — the one client path with zero network
+        // traffic and zero visible change. See TranslateAdControl's no-op guards as well.
+        version="servicios-t4-v3"
         translatableContent={translatableContent}
         onTranslated={onTranslated}
         onShowOriginal={onShowOriginal}

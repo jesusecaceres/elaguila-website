@@ -153,6 +153,7 @@ export function ServiciosBusinessHubEngagementRow({
             className="!border-[color:var(--lx-border,#E8D7B8)]"
             persistEngagement={persistEngagement}
             recordShareEvent={globalListing ? serviciosGlobalShareRecorder(globalListing, "detail_share") : undefined}
+            directNativeShare
           />
         </div>
       </div>

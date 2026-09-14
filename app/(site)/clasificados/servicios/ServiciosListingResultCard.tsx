@@ -260,6 +260,7 @@ export function ServiciosListingResultCard({ row, lang }: { row: ServiciosPublic
                   recordShareEvent={
                     globalListing ? serviciosGlobalShareRecorder(globalListing, "results_card_share") : undefined
                   }
+                  directNativeShare
                 />
               </div>
             </div>

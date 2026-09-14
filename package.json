@@ -281,6 +281,7 @@
     "verify:servicios-translate-ad": "node node_modules/tsx/dist/cli.mjs scripts/verify-servicios-translate-ad.ts",
     "verify:servicios-share-quote-protect": "node node_modules/tsx/dist/cli.mjs scripts/verify-servicios-share-quote-protect.ts",
     "verify:servicios-verified-intro-ux": "node node_modules/tsx/dist/cli.mjs scripts/verify-servicios-verified-intro-ux.ts",
+    "verify:servicios-launch-polish-final": "node node_modules/tsx/dist/cli.mjs scripts/verify-servicios-launch-polish-final.ts",
     "verify:servicios-preset-id-collisions": "node node_modules/tsx/dist/cli.mjs scripts/verify-servicios-preset-id-collisions.ts",
     "verify:servicios-runtime-readiness-probe": "node node_modules/tsx/dist/cli.mjs scripts/verify-servicios-runtime-readiness-probe.ts",
     "verify:servicios-print-digital-ranking": "node scripts/verify-servicios-print-digital-ranking.mjs",

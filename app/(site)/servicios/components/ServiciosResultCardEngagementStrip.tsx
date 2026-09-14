@@ -104,6 +104,7 @@ export function ServiciosResultCardEngagementStrip({
         recordShareEvent={
           globalListing ? serviciosGlobalShareRecorder(globalListing, "results_card_share") : undefined
         }
+        directNativeShare
       />
     </div>
   );

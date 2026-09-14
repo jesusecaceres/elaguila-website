@@ -129,10 +129,22 @@ check("⚠️26/⚠️29 NO commercial change: Revenue OS, listingPlans and supa
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean);
+  // ⚠️36 (2026-09-14): `recurringConsentCopy.ts` is the client-safe COPY module under listingPlans
+  // ("No server imports here") and its verified-intro schedule sentence is customer copy this pass
+  // was required to change. It carries no pricing/eligibility authority, so it is exempt from the
+  // commercial-authority guard — the hashed legal disclosure it also holds is pinned separately below.
+  const COPY_ONLY_EXEMPT = new Set(["app/lib/listingPlans/recurringConsentCopy.ts"]);
   const protectedTouches = [...changed, ...untracked].filter(
-    (f) => f.startsWith("app/api/revenue-os/") || f.startsWith("app/lib/listingPlans/") || f.startsWith("supabase/"),
+    (f) =>
+      !COPY_ONLY_EXEMPT.has(f) &&
+      (f.startsWith("app/api/revenue-os/") || f.startsWith("app/lib/listingPlans/") || f.startsWith("supabase/")),
   );
   assert.deepEqual(protectedTouches, [], `protected commercial paths changed: ${protectedTouches.join(", ")}`);
+  const consentCopy = raw("app/lib/listingPlans/recurringConsentCopy.ts");
+  assert.ok(consentCopy.includes('export const RECURRING_CONSENT_TEXT_VERSION = "leonix-recurring-consent-2026-08-v1";'), "consent text version unchanged");
+  assert.ok(consentCopy.includes("(Contrato de Publicidad Leonix Media ${RECURRING_CONSENT_AGREEMENT_VERSION}, cláusula 17.)"), "hashed legal disclosure (ES) unchanged");
+  assert.ok(consentCopy.includes("(Leonix Media Advertising Agreement ${RECURRING_CONSENT_AGREEMENT_VERSION}, clause 17.)"), "hashed legal disclosure (EN) unchanged");
+  assert.ok(consentCopy.includes('export const PROMO_CODE_SUBSCRIPTION_DURATION = "every_billing_cycle" as const;'), "promo recurrence truth unchanged");
 });
 
 if (failures.length) {

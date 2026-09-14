@@ -433,7 +433,7 @@ export function PublishCheckoutCheckpoint({
       {verifiedIntroDiscountApplied && verifiedIntroDiscountEstimateCents != null ? (
         <>
           <p className="mt-1 text-xs" style={{ color: LEONIX_SUCCESS }}>
-            {lang === "es" ? "Descuento de bienvenida (15%, estimado)" : "Welcome discount (15%, estimated)"}:{" "}
+            {lang === "es" ? "15% de bienvenida — solo primer pago (estimado)" : "15% welcome discount — first payment only (estimated)"}:{" "}
             {formatPublishCheckpointMoney(verifiedIntroDiscountEstimateCents, lang, { monthly: false })}
           </p>
           {/* SVC-QA-25 — first eligible charge vs renewal, stated before payment. */}

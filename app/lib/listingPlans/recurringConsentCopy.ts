@@ -89,7 +89,11 @@ export function buildPromoCodeRecurrenceText(input: { amountCents: number; lang:
     : `This code lowers your monthly price: you'll pay ${price} every month while your subscription stays active.`;
 }
 
-/** Verified welcome discount — first eligible payment only, then the full monthly price. */
+/**
+ * Verified welcome discount — first eligible payment only, then the full monthly price.
+ * ⚠️36 (2026-09-14): the discounted figure is named as a ONE-TIME first payment so it can never read
+ * as the ongoing monthly price.
+ */
 export function buildVerifiedIntroChargeScheduleText(input: {
   firstChargeCents: number;
   renewalCents: number;
@@ -98,6 +102,6 @@ export function buildVerifiedIntroChargeScheduleText(input: {
   const first = formatUsd(input.firstChargeCents);
   const renewal = formatUsd(input.renewalCents);
   return input.lang === "es"
-    ? `Primer pago: ${first}. Después: ${renewal} al mes.`
-    : `First payment: ${first}. Then: ${renewal} per month.`;
+    ? `Primer pago: ${first} — solo esta vez. Después: ${renewal} al mes.`
+    : `First payment: ${first} — this once. Then: ${renewal} per month.`;
 }
