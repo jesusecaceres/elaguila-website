@@ -22,16 +22,21 @@ export default async function AdminProtectedLayout({ children }: { children: Rea
     redirect("/admin/login");
   }
 
-  const accessDenial = await resolveAdminDashboardAccessDenial(cookieStore);
-  if (accessDenial) {
-    redirect(`/admin/login?error=${accessDenial}`);
-  }
-
-  const [tiendaInboxUnread, adminLang, access] = await Promise.all([
+  // Gate 1 (PERF-001) — resolveAdminDashboardAccessDenial() and getCurrentAdminAccessContext()
+  // each independently query admin_team_members by the same operator email; running the
+  // denial check first and awaiting it alone made every single Admin navigation pay for two
+  // fully sequential Supabase round-trips to the same table before any other layout work could
+  // even start. Neither call depends on the other's result, so resolving them together removes
+  // that serialization without changing which requests are ever made or what they return.
+  const [accessDenial, tiendaInboxUnread, adminLang, access] = await Promise.all([
+    resolveAdminDashboardAccessDenial(cookieStore),
     getTiendaInboxUnreadCount().catch(() => 0),
     getAdminLang(),
     getCurrentAdminAccessContext(),
   ]);
+  if (accessDenial) {
+    redirect(`/admin/login?error=${accessDenial}`);
+  }
   const allowedGlobalNavHrefs = getAllowedGlobalNavHrefs(access);
   const salesRepLimited = isSalesRepRole(access.normalizedRole);
 

@@ -12,6 +12,7 @@ import {
   fetchListingsForAdminWorkspaceFiltered,
   fetchListingCategoriesDistinct,
   isUuidString,
+  LISTINGS_NEEDS_REVIEW_STATUS_TOKEN,
 } from "@/app/admin/_lib/listingsAdminSelect";
 import {
   appendPreservedSearchParams,
@@ -176,6 +177,17 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
         warningNote="AI review proof and promote/verify columns depend on the live schema drift migration being applied in production."
       />
 
+      {statusFilter === LISTINGS_NEEDS_REVIEW_STATUS_TOKEN ? (
+        <div className={`${adminCardBase} mb-4 max-w-3xl space-y-1 border-[#C9782F]/40 bg-[#FFF9EF] p-4 text-sm text-[#5C5346]`}>
+          <p className="text-xs font-bold uppercase tracking-wide text-[#8B4A12]">Needs review — from Command Center</p>
+          <p>
+            Showing every listing that is <strong>pending</strong> or <strong>flagged</strong>, plus any listing with a{" "}
+            <strong>pending report</strong> regardless of its status — the same combined count shown as &quot;Classifieds&quot; on the
+            Command Center&apos;s Needs review breakdown.
+          </p>
+        </div>
+      ) : null}
+
       <div className={`${adminCardBase} mb-4 max-w-3xl space-y-2 p-4 text-sm text-[#5C5346]`}>
         <p className="text-xs font-bold uppercase text-[#7A7164]">{m("scopeNav.aria")}</p>
         <ClasificadosScopeNav
@@ -313,6 +325,7 @@ export default async function AdminClasificadosWorkspacePage(props: PageProps) {
                     className="w-full min-w-0 rounded-2xl border border-[#E8DFD0] bg-white px-3 py-3 text-base sm:w-auto sm:min-w-[9rem] sm:py-2 sm:text-sm"
                   >
                     <option value="">{m("common.allStatuses")}</option>
+                    <option value={LISTINGS_NEEDS_REVIEW_STATUS_TOKEN}>needs review (pending + flagged + reported)</option>
                     <option value="active">active</option>
                     <option value="pending">pending</option>
                     <option value="flagged">flagged</option>

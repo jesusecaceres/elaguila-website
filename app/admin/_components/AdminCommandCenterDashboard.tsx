@@ -23,6 +23,7 @@ import {
   type AdminDashboardSnapshot,
 } from "../_lib/adminDashboardData";
 import { ADMIN_DASHBOARD_ROUTES } from "../_lib/adminDashboardRoutes";
+import { adminCategoryWorkspaceQueueHref } from "../_lib/adminCategoryWorkspaceQueueHref";
 import type { adminMessages } from "../_lib/adminI18n";
 import type { LeoExecutiveReportingSnapshot } from "@/app/leo/_lib/leoExecutiveReportingTypes";
 import type { LeoSystemHealthSnapshot } from "@/app/leo/_lib/leoTypes";
@@ -130,19 +131,30 @@ function OperatorCard({
   body,
   status,
   metric,
+  breakdown,
   primary,
   secondary,
+  id,
 }: {
   eyebrow: string;
   title: string;
   body: string;
   status: DashboardTruthStatus;
   metric?: ReactNode;
+  /**
+   * Gate 2 (CMD-001/CMD-003) — an optional segmented breakdown of `metric` into its
+   * component sources, each linking straight to that source's own real queue. Every
+   * caller passing this must ensure the counts sum exactly to `metric` — this renders
+   * whatever it is given without re-deriving or re-summing anything itself.
+   */
+  breakdown?: { label: string; count: number; href: string }[];
   primary?: { href: string; label: string; variant: "primary" | "warning" | "view" | "active" | "neutral" | "premium" };
   secondary?: { href: string; label: string; variant?: "primary" | "warning" | "view" | "active" | "neutral" | "premium" };
+  /** Anchor target for cross-page CTAs (e.g. the priority strip) to scroll straight to this card. */
+  id?: string;
 }) {
   return (
-    <article className={`${adminCardBase} flex min-w-0 flex-col justify-between p-4`}>
+    <article id={id} className={`${adminCardBase} flex min-w-0 flex-col justify-between p-4 scroll-mt-24`}>
       <div className="min-w-0">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7A7164]">{eyebrow}</p>
@@ -151,6 +163,19 @@ function OperatorCard({
         <h3 className="mt-2 text-base font-bold leading-tight text-[#1E1810]">{title}</h3>
         {metric != null ? <p className="mt-2 text-2xl font-bold tabular-nums text-[#1E1810]">{metric}</p> : null}
         <p className="mt-2 text-sm leading-snug text-[#5C5346]">{body}</p>
+        {breakdown && breakdown.length > 0 ? (
+          <ul className="mt-2 divide-y divide-[#E8DFD0]/70 rounded-lg border border-[#E8DFD0]/80 bg-[#FFFCF7]/60">
+            {breakdown.map((row) => (
+              <li key={row.label} className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-xs">
+                <span className="text-[#5C5346]">{row.label}</span>
+                <span className="flex items-center gap-2">
+                  <span className="font-bold tabular-nums text-[#1E1810]">{row.count}</span>
+                  <AdminDashboardCta href={row.href} label="Open" variant="view" className="!min-h-0 !w-auto !px-2 !py-1 !text-[10px]" />
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
       {(primary || secondary) ? (
         <div className="mt-4 grid gap-2">
@@ -405,10 +430,15 @@ export function AdminCommandCenterDashboard({
         hint={
           snap.listingsQueryFallback || snap.reviewAttentionTruth.fallback
             ? m("dashboard.pendingAdsHintDb")
-            : "Unique listings needing review (deduplicated)"
+            : "Unique listings needing review across Classifieds, Empleos, Viajes, Servicios, and Ofertas Locales — see breakdown below"
         }
-        href={ADMIN_DASHBOARD_ROUTES.classifiedsReviewQueue}
-        ctaLabel={m("dashboard.reviewAds")}
+        // QA FAIL 2026-09-14 (OWNER-QA-003): this metric is a cross-category dedup
+        // total, but the CTA used to hardlink to the Classifieds-only flagged queue
+        // (4 rows), silently misrepresenting the other 21 items. Route to the
+        // reconciled "Needs review" breakdown (Today's Attention) instead of
+        // claiming a single-category queue is the whole 25.
+        href={ADMIN_DASHBOARD_ROUTES.reviewQueue}
+        ctaLabel="Review by category"
         variant="warning"
       />
       <PriorityTile
@@ -474,6 +504,7 @@ export function AdminCommandCenterDashboard({
           primary={{ href: ADMIN_DASHBOARD_ROUTES.launchLeads, label: "Open leads", variant: "primary" }}
         />
         <OperatorCard
+          id="review"
           eyebrow="Listings"
           title="Needs review"
           status={snap.listingsQueryFallback || snap.reviewAttentionTruth.fallback ? "needs proof" : "real"}
@@ -481,9 +512,48 @@ export function AdminCommandCenterDashboard({
           body={
             snap.listingsQueryFallback || snap.reviewAttentionTruth.fallback
               ? m("dashboard.pendingAdsHintDb")
-              : "Unique listings needing review — flagged/pending status or a pending report, deduplicated so one listing never counts twice."
+              : "Unique listings needing review — flagged/pending status or a pending report, deduplicated so one listing never counts twice. Segments below add up to this total."
           }
-          primary={{ href: ADMIN_DASHBOARD_ROUTES.classifiedsReviewQueue, label: "Review listings", variant: "warning" }}
+          // Gate 2 (CMD-001/CMD-003) — every segment here links to that source's own real
+          // queue and the counts are the exact same fields summed to produce
+          // `uniqueListingsNeedingReview` (see computeAdminAttentionReviewTruth), so this
+          // list always reconciles exactly to the metric above — never a separate count.
+          breakdown={
+            snap.listingsQueryFallback || snap.reviewAttentionTruth.fallback
+              ? undefined
+              : [
+                  {
+                    label: "Classifieds (flagged/pending or reported)",
+                    count: snap.reviewAttentionTruth.genericAndReportedUniqueCount,
+                    href: ADMIN_DASHBOARD_ROUTES.classifiedsReviewQueue,
+                  },
+                  {
+                    label: "Empleos pending review",
+                    count: snap.reviewAttentionTruth.empleosPendingReviewCount,
+                    href: adminCategoryWorkspaceQueueHref("empleos"),
+                  },
+                  {
+                    label: "Viajes pending review",
+                    count: snap.reviewAttentionTruth.viajesPendingReviewCount,
+                    href: adminCategoryWorkspaceQueueHref("viajes"),
+                  },
+                  {
+                    label: "Servicios pending review",
+                    count: snap.reviewAttentionTruth.serviciosPendingReviewCount,
+                    href: adminCategoryWorkspaceQueueHref("servicios"),
+                  },
+                  {
+                    label: "Ofertas Locales pending review",
+                    count: snap.reviewAttentionTruth.ofertasLocalesPendingReviewCount,
+                    href: adminCategoryWorkspaceQueueHref("ofertas-locales"),
+                  },
+                ]
+          }
+          // QA FAIL 2026-09-14 (OWNER-QA-003): label used to say "Review listings" as
+          // if this opened the full 25-item cross-category total; it only ever opened
+          // the Classifieds-only flagged queue. Relabeled to match its real scope —
+          // the per-category breakdown above already gives truthful links for the rest.
+          primary={{ href: ADMIN_DASHBOARD_ROUTES.classifiedsReviewQueue, label: "Review Classifieds queue", variant: "warning" }}
         />
         <OperatorCard
           eyebrow="Trust"
@@ -929,8 +999,6 @@ export function AdminCommandCenterDashboard({
   return (
     <div className="min-w-0 max-w-7xl overflow-x-hidden" data-testid="admin-ceo-command-center">
       {hero}
-      {leoExecutiveCta}
-      {promoCodeGeneratorTopCta}
       <AdminPagePurposeCard
         title="Leonix Command Center"
         purpose="Daily operator view for leads, listings, reports, revenue signals, people, website control, and system health without fake counts."
@@ -939,6 +1007,16 @@ export function AdminCommandCenterDashboard({
         safeActions={["Open real queues", "Inspect reports and leads", "Navigate to existing admin tools"]}
       />
       {priorityStrip}
+      {/*
+       * Gate 13 (UX-003) — the LEO discovery card and Promo Code Generator CTA previously
+       * rendered directly under the hero, ahead of the actual operational metrics
+       * (`priorityStrip`) — on a Command Center whose entire purpose is those metrics, that put
+       * two discovery/marketing-style CTAs ahead of the "what needs attention today" content they
+       * exist to complement. Moved below the real operational summary; still above the deeper
+       * quick-actions/section content, so they stay easy to find without outranking the numbers.
+       */}
+      {leoExecutiveCta}
+      {promoCodeGeneratorTopCta}
       {quickActions}
       <AdminCommandCenterClient sections={sections} />
       <div className="mt-6 rounded-2xl border border-dashed border-[#C9B46A]/50 bg-[#FFF8F0]/80 p-4 text-xs text-[#7A7164] break-words">

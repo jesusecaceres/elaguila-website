@@ -23,9 +23,12 @@
 import "server-only";
 
 import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
-import { isRevenueStripeConfigured } from "@/app/lib/listingPlans/revenueStripe";
+import { checkStripeApiKeyLive, isRevenueStripeConfigured } from "@/app/lib/listingPlans/revenueStripe";
 import { resolveLeonixResendConfig } from "@/app/lib/email/leonixResendConfig";
 import { isTwilioVerifyConfigured } from "@/app/lib/sms/twilioVerifyProvider";
+import { getOpenAiModerationApiKey } from "./listingAiModerationEngine";
+import { isWebPushConfigured } from "@/app/lib/digitalContact/humanConnection/webPushConfig";
+import { createDailyVideoProvider } from "@/app/lib/digitalContact/humanConnection/providers/dailyProvider";
 import type {
   LeoSystemHealthComponent,
   LeoSystemHealthSnapshot,
@@ -93,11 +96,29 @@ async function buildStripeHealthComponent(
           ownerMessage: null,
         };
       }
-      // No rows in the last 24h (or table unreachable) — not evidence of failure, just no
-      // stronger truth than config-presence to report. Fall through to config-presence-only.
+      // No rows in the last 24h (or table unreachable) — not evidence of failure by itself, but
+      // this is exactly the case that used to fall through to a blind "HEALTHY": a genuinely dead
+      // API key produces zero webhook deliveries too, indistinguishable from "no traffic yet"
+      // using webhook history alone. Fall through to a real, safe, read-only live check instead.
     } catch {
-      // Same: fall through to config-presence-only rather than reporting a fake failure.
+      // Table unreachable — same reasoning, fall through to the live check below.
     }
+  }
+
+  // Forensic audit (post-Gate-20) — `balance.retrieve()` is Stripe's own documented safe,
+  // read-only, side-effect-free call (no money movement, nothing created or modified). This is
+  // the one signal that can actually tell a dead/revoked key apart from a live one with no recent
+  // traffic. Timeout-guarded inside checkStripeApiKeyLive so a slow/unreachable Stripe can never
+  // meaningfully delay this page — a failure here still degrades to an honest DEGRADED state
+  // rather than blocking.
+  const live = await checkStripeApiKeyLive();
+  if (!live.ok) {
+    return {
+      key: "stripe_payments",
+      label: "Stripe (payments)",
+      state: "DEGRADED",
+      ownerMessage: `Stripe is configured but the live API check failed (${live.error ?? "unknown error"}) — the key may be invalid, revoked, or Stripe is unreachable. Real checkout/payment processing may not work.`,
+    };
   }
 
   return {
@@ -196,6 +217,55 @@ export async function buildAdminSystemHealthSnapshot(): Promise<LeoSystemHealthS
     label: "SMS verification (Twilio)",
     state: smsConfigured ? "HEALTHY" : "NOT_CONFIGURED",
     ownerMessage: smsConfigured ? null : "Twilio is not configured — phone/SMS verification cannot run.",
+  });
+
+  // Gate 18a (System Health AI Provider Slice) — before this, zero AI/LLM provider had any
+  // System Health coverage even though real, safety-load-bearing features depend on them:
+  // generic-listings AI Review (OPENAI_API_KEY, see listingAiModerationEngine.ts) and Prayer Wall
+  // safety classification (AI_GATEWAY_API_KEY, see app/lib/iglesias/prayerSafetyAdapter.ts) both
+  // fail closed/safe today when unconfigured — this does not change that behavior, it only makes
+  // the dependency visible before or during a degradation instead of only after someone notices a
+  // feature quietly not working. Config-presence only, same honesty bar as email/SMS above — no
+  // outbound provider call is made here.
+  const openAiConfigured = Boolean(getOpenAiModerationApiKey());
+  components.push({
+    key: "ai_moderation_openai",
+    label: "AI listing moderation (OpenAI)",
+    state: openAiConfigured ? "HEALTHY" : "NOT_CONFIGURED",
+    ownerMessage: openAiConfigured
+      ? null
+      : "OPENAI_API_KEY is not set — \"Run AI review\" on classifieds listings cannot run until it is configured.",
+  });
+
+  const aiGatewayConfigured = Boolean(process.env.AI_GATEWAY_API_KEY?.trim());
+  components.push({
+    key: "ai_gateway",
+    label: "AI Gateway (safety classification)",
+    state: aiGatewayConfigured ? "HEALTHY" : "NOT_CONFIGURED",
+    ownerMessage: aiGatewayConfigured
+      ? null
+      : "AI_GATEWAY_API_KEY is not set — Prayer Wall and similar AI-assisted safety checks fail safe to human review, but are not running automated classification.",
+  });
+
+  // Staff Contact + Virtual Front Desk continuity gate (2026-09-14) — config-presence only,
+  // same honesty bar as email/SMS/AI above; no outbound call to Daily or a push service is made
+  // here. Both pieces are required together for a visitor's doorbell request to actually reach
+  // and ring a staff device — reported as one component since a gap in either one means the same
+  // thing to an operator ("the doorbell can't ring"), with the message naming which is missing.
+  const webPushConfigured = isWebPushConfigured();
+  const dailyConfigured = createDailyVideoProvider().isConfigured();
+  const vfdConfigured = webPushConfigured && dailyConfigured;
+  const vfdMissing = [
+    !webPushConfigured ? "push notifications (WEB_PUSH_VAPID_PUBLIC_KEY/WEB_PUSH_VAPID_PRIVATE_KEY)" : null,
+    !dailyConfigured ? "video (DAILY_API_KEY)" : null,
+  ].filter((x): x is string => x != null);
+  components.push({
+    key: "virtual_front_desk",
+    label: "Virtual Front Desk (visitor doorbell)",
+    state: vfdConfigured ? "HEALTHY" : "NOT_CONFIGURED",
+    ownerMessage: vfdConfigured
+      ? null
+      : `Not fully configured — missing ${vfdMissing.join(" and ")}. A visitor at /visitanos still sees WhatsApp/phone/text/email fallback options either way; only the live video-ring path is affected.`,
   });
 
   const limitations: string[] = [];

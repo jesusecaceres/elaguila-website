@@ -17,6 +17,7 @@ import {
   adminInfoCallout,
 } from "@/app/admin/_components/adminTheme";
 import { AdminLaunchLeadRowActions } from "@/app/admin/_components/leads/AdminLaunchLeadRowActions";
+import { AdminLocalActionToast } from "@/app/admin/_components/AdminLocalActionToast";
 import { AdminLaunchLeadMobileCard } from "@/app/admin/_components/leads/AdminLaunchLeadMobileCard";
 import { AdminLeonixLeadDetailDrawer } from "@/app/admin/_components/leads/AdminLeonixLeadDetailDrawer";
 import { AdminResponsiveTabs } from "@/app/admin/_components/AdminResponsiveTabs";
@@ -472,17 +473,7 @@ export function AdminLeonixLeadsInboxClient({
         </div>
       </section>
 
-      {toast ? (
-        <div
-          className={`${adminCardBase} px-4 py-2 text-sm ${
-            toast.kind === "ok"
-              ? "border-emerald-200 bg-emerald-50/90 text-emerald-950"
-              : "border-rose-200 bg-rose-50/90 text-rose-950"
-          }`}
-        >
-          {toast.msg}
-        </div>
-      ) : null}
+      <AdminLocalActionToast toast={toast} />
 
       <div className={`${adminTableWrap} ${adminDesktopTableOnly} w-full max-w-none`} data-testid="launch-leads-desktop-table">
         <div className="overflow-x-auto">

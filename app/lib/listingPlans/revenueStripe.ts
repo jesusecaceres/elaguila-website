@@ -75,6 +75,30 @@ function getStripeClient(): Stripe | null {
 }
 
 /**
+ * Forensic audit (post-Gate-20, System Health / Gate 18b) — the prior System Health check for
+ * Stripe fell through to config-presence-only whenever no recent webhook rows existed, which
+ * cannot distinguish "no traffic yet" from "the API key is dead/revoked." `balance.retrieve()` is
+ * Stripe's own documented safe, read-only, side-effect-free call (no money movement, no object
+ * created or modified) — exactly the kind of "safe non-transactional Stripe health/config test"
+ * this audit asked for. Timeout-guarded and best-effort: a slow or unreachable Stripe must never
+ * meaningfully delay System Health, so any failure here falls back to the existing config-presence
+ * signal rather than blocking or reporting a false negative.
+ */
+export async function checkStripeApiKeyLive(timeoutMs = 2500): Promise<{ ok: boolean; error?: string }> {
+  const stripe = getStripeClient();
+  if (!stripe) return { ok: false, error: "not_configured" };
+  try {
+    // Stripe's own SDK-native per-request timeout (RequestOptions.timeout, milliseconds) — no
+    // manual AbortController needed; the SDK aborts and rejects on its own past this deadline.
+    await stripe.balance.retrieve({}, { timeout: timeoutMs });
+    return { ok: true };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "unknown_error";
+    return { ok: false, error: message.slice(0, 200) };
+  }
+}
+
+/**
  * Package C Build 1 — open-session reuse for the purchase-attempt identity. Returns the
  * session's status + url so a duplicate click / second tab is handed the SAME payable session
  * instead of a new one. Read-only.

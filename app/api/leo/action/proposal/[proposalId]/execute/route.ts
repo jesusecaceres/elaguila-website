@@ -10,6 +10,7 @@ import { NextResponse } from "next/server";
 
 import { resolveLeoAccess } from "@/app/leo/_lib/leoAccess";
 import { leoExecuteGovernedConnectedAction } from "@/app/leo/_lib/leoConnectedActionExecutionService";
+import { logLeoObservabilityEvent } from "@/app/leo/_lib/leoObservability";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,9 +39,15 @@ export async function POST(
   req: Request,
   { params }: { params: { proposalId: string } },
 ) {
+  const startedAt = Date.now();
   const access = await resolveLeoAccess();
   if (!access.allowed) {
     const status = access.reason === "unauthenticated" ? 401 : 403;
+    logLeoObservabilityEvent({
+      route: "leo/action/proposal/execute",
+      failureClass: "AUTH_DENIED",
+      durationMs: Date.now() - startedAt,
+    });
     return NextResponse.json({ ok: false, error: "forbidden", reason: access.reason }, { status });
   }
 
@@ -103,6 +110,19 @@ export async function POST(
       mode: "execute",
     });
 
+    logLeoObservabilityEvent({
+      route: "leo/action/proposal/execute",
+      failureClass:
+        result.safeFailureClass === "SCOPE_INSUFFICIENT"
+          ? "GMAIL_TWO_KEY_GATE_DENIED"
+          : result.safeFailureClass
+            ? "PROVIDER_ERROR"
+            : "NONE",
+      durationMs: Date.now() - startedAt,
+      connectionState: result.status,
+      providerAttempted: result.providerType ?? null,
+    });
+
     return NextResponse.json(
       {
         ok: true,
@@ -126,6 +146,11 @@ export async function POST(
       { status: 200 },
     );
   } catch {
+    logLeoObservabilityEvent({
+      route: "leo/action/proposal/execute",
+      failureClass: "INTERNAL_ERROR",
+      durationMs: Date.now() - startedAt,
+    });
     return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
 }

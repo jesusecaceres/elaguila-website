@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { actorHasCapability, isOwnerBootstrapActor, requireSalesWorkspaceAccess, type SalesWorkspaceDenialReason } from "../../../_lib/businessWorkspaceAccess";
 import { getBusinessWorkspaceDetail } from "../../../_lib/businessWorkspaceData";
+import { fetchBusinessCommercialBenefits } from "../../../_lib/businessCommercialBenefits";
+import { ADMIN_DASHBOARD_ROUTES } from "../../../_lib/adminDashboardRoutes";
 import { ALL_SALES_NOTE_OUTCOME_LABELS, BUSINESS_SALES_STATUSES, FOLLOW_UP_STATUSES, SALES_CONTACT_METHODS, computeNextHelpfulAction, computeProfileCompleteness, deriveFollowUpDisplayStatus, type ProfileCompletenessInput } from "../../../_lib/salesWorkspaceLogic";
 import { BusinessDashboardNav } from "./BusinessDashboardNav";
 import { computeBusinessDashboardNextAction } from "./businessDashboardNextAction";
@@ -140,6 +142,11 @@ export default async function AdminBusinessDetailPage({
   }
 
   const { business, membership, contacts, serviceAreas, digitalProfiles, customLinks, listingLinks, salesProfile, notes, currentFollowUp } = detail;
+  // Gate 8 (REV-001–004) — verified-only listing ids, same trust bar as the "Connected Leonix
+  // advertisements" section above (never roll up a merely-pending/unverified link as if it were
+  // confirmed commercial activity for this business).
+  const verifiedListingIdsForBenefits = listingLinks.filter((l) => l.status === "verified").map((l) => l.listingId);
+  const commercialBenefits = await fetchBusinessCommercialBenefits(verifiedListingIdsForBenefits);
   const todayIso = new Date().toISOString().slice(0, 10);
   const followUpDisplayStatus = currentFollowUp
     ? deriveFollowUpDisplayStatus(currentFollowUp.status, currentFollowUp.scheduledDate, todayIso)
@@ -986,6 +993,128 @@ export default async function AdminBusinessDetailPage({
               </li>
             ))}
           </ul>
+        )}
+      </section>
+
+      {/* Gate 8 (REV-001–004) — none of listing_package_entitlements, leonix_promo_code_redemptions,
+          or leonix_payment_records carry a business_id column, so this rolls them up via the one
+          real ID-based path that exists: business_listing_links (verified only), keyed by
+          listing_id. Never inferred from a business-name match. */}
+      <section className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
+        <h2 className="text-sm font-bold text-[#1E1810]">Commercial benefits</h2>
+        <p className="mt-1 text-xs text-[#7A7164]">
+          Package entitlements, promo code redemptions, and payment records on this business&apos;s{" "}
+          <strong>verified</strong> connected advertisements only (
+          {verifiedListingIdsForBenefits.length} of {listingLinks.length} connected).
+        </p>
+        {commercialBenefits.unavailable ? (
+          <p className="mt-2 text-xs text-red-700">Could not load commercial benefits right now.</p>
+        ) : (
+          <div className="mt-3 space-y-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">
+                Package entitlements ({commercialBenefits.entitlements.length}
+                {commercialBenefits.entitlementCountTruncated ? "+" : ""})
+              </p>
+              {commercialBenefits.entitlements.length === 0 ? (
+                <p className="mt-1 text-xs text-[#7A7164]">None on verified connected listings.</p>
+              ) : (
+                <ul className="mt-2 space-y-1.5">
+                  {commercialBenefits.entitlements.map((e) => (
+                    <li key={e.id} className="rounded-lg border border-[#E8DFD0] p-2 text-xs">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-semibold text-[#1E1810]">
+                          {e.category} · {e.packageTier}
+                        </span>
+                        <span
+                          className={`rounded-md border px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                            e.revokedAt
+                              ? "border-rose-200 bg-rose-50 text-rose-900"
+                              : e.status === "active"
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                                : "border-[#E8DFD0] bg-[#FAF7F2] text-[#5C5346]"
+                          }`}
+                        >
+                          {e.revokedAt ? "revoked" : e.status}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[#5C5346]">
+                        Grant source: <strong>{e.grantSource ?? "not recorded"}</strong> · {e.startsAt} → {e.endsAt}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">
+                Promo code redemptions ({commercialBenefits.promoRedemptions.length}
+                {commercialBenefits.promoRedemptionCountTruncated ? "+" : ""})
+                {commercialBenefits.promoRedemptions.length > 0 ? (
+                  <span className="ml-1 font-normal normal-case text-[#7A7164]">
+                    — ${(commercialBenefits.promoRedemptionDiscountCentsTotal / 100).toFixed(2)} total discount
+                  </span>
+                ) : null}
+              </p>
+              {commercialBenefits.promoRedemptions.length === 0 ? (
+                <p className="mt-1 text-xs text-[#7A7164]">None on verified connected listings.</p>
+              ) : (
+                <ul className="mt-2 space-y-1.5">
+                  {commercialBenefits.promoRedemptions.map((r) => (
+                    <li key={r.id} className="rounded-lg border border-[#E8DFD0] p-2 text-xs text-[#5C5346]">
+                      {r.packageKey ?? "(no package key)"} · {r.status} ·{" "}
+                      {r.discountCents != null ? `$${(r.discountCents / 100).toFixed(2)} off` : "no discount recorded"}
+                      {r.redeemedAt ? ` · ${r.redeemedAt}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-[#7A7164]">
+                Payment records ({commercialBenefits.payments.length}
+                {commercialBenefits.paymentCountTruncated ? "+" : ""})
+              </p>
+              {commercialBenefits.payments.length === 0 ? (
+                <p className="mt-1 text-xs text-[#7A7164]">None on verified connected listings.</p>
+              ) : (
+                <ul className="mt-2 space-y-1.5">
+                  {commercialBenefits.payments.map((p) => (
+                    <li key={p.id} className="rounded-lg border border-[#E8DFD0] p-2 text-xs text-[#5C5346]">
+                      {p.paymentStatus}
+                      {p.amountPaidCents != null ? ` · $${(p.amountPaidCents / 100).toFixed(2)} paid` : ""}
+                      {p.packageTier ? ` · ${p.packageTier}` : ""}
+                      {/* Promo vs entitlement distinction the gate asked for: a payment tied to a
+                          promo code is labeled as such, never conflated with an unrelated entitlement grant. */}
+                      {p.promoCode ? ` · promo code ${p.promoCode}` : " · no promo code"}
+                      {p.paidAt ? ` · ${p.paidAt}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Gate 9 (owner-workflow audit) — read-only rollup above answered "what benefits does
+                this business have," but not "where do I go to change one" — an owner without
+                tribal knowledge of /admin/workspace/* had no path from here to actually manage a
+                promo code or entitlement. Direct links, pre-filtered by this business's own name. */}
+            <div className="flex flex-wrap gap-2 border-t border-[#E8DFD0]/70 pt-3">
+              <Link
+                href={`${ADMIN_DASHBOARD_ROUTES.packageEntitlements}?q=${encodeURIComponent(business.displayName)}`}
+                className="text-xs font-bold text-[#7A1E2C] underline"
+              >
+                Manage entitlements for this business →
+              </Link>
+              <Link
+                href={`${ADMIN_DASHBOARD_ROUTES.promoCodes}?q=${encodeURIComponent(business.displayName)}`}
+                className="text-xs font-bold text-[#7A1E2C] underline"
+              >
+                Manage promo codes for this business →
+              </Link>
+            </div>
+          </div>
         )}
       </section>
 

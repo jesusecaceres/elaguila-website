@@ -8,7 +8,7 @@
  */
 import "server-only";
 
-import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type {
   LeoCreateMemoryInput,
   LeoMemoryConfidence,
@@ -202,6 +202,9 @@ export async function createLeoMemoryRecord(
 ): Promise<LeoCreateMemoryResult> {
   const invalid = validateCreateInput(input);
   if (invalid) return { ok: false, error: invalid };
+  if (!isSupabaseAdminConfigured()) {
+    return { ok: false, error: "service_unavailable: Supabase admin client is not configured." };
+  }
 
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
@@ -219,6 +222,7 @@ export async function createLeoMemoryRecord(
 export async function getLeoMemoryRecordById(id: string): Promise<LeoMemoryRecord | null> {
   const trimmed = id.trim();
   if (!trimmed) return null;
+  if (!isSupabaseAdminConfigured()) return null;
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
     .from("leo_memory_records")
@@ -238,6 +242,7 @@ export async function listActiveLeoMemoryForSubject(
   const type = subjectType.trim();
   const key = subjectKey.trim();
   if (!type || !key) return [];
+  if (!isSupabaseAdminConfigured()) return [];
   const capped = Math.min(Math.max(1, limit), LEO_MEMORY_LIST_MAX);
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
@@ -254,6 +259,7 @@ export async function listActiveLeoMemoryForSubject(
 
 /** Recent memories across subjects — bounded. */
 export async function listRecentLeoMemoryRecords(limit = 20): Promise<LeoMemoryRecord[]> {
+  if (!isSupabaseAdminConfigured()) return [];
   const capped = Math.min(Math.max(1, limit), LEO_MEMORY_LIST_MAX);
   const supabase = getAdminSupabase();
   const { data, error } = await supabase

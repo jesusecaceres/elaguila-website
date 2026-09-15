@@ -1,7 +1,9 @@
 import type { LeoGoogleWorkspaceCapabilityTruth } from "@/app/leo/_lib/leoGoogleWorkspaceCapabilityTruth";
+import type { LeoCapabilityRuntimeEntry } from "@/app/leo/_lib/leoCapabilityRuntimeTruth";
 import type { LeoProjectConfigDiagnostic } from "@/app/leo/_lib/leoTypes";
 
-const AVAILABLE = [
+/** Architecture-level capabilities with no external runtime dependency — always on by design. */
+const ALWAYS_AVAILABLE = [
   "Truth",
   "Reason Chains",
   "Attention",
@@ -16,18 +18,21 @@ const AVAILABLE = [
   "Project change intelligence",
 ] as const;
 
+function runtimeLine(entry: LeoCapabilityRuntimeEntry): string {
+  return `${entry.label}: ${entry.state.replace(/_/g, " ").toLowerCase()}`;
+}
+
 export function LeoCapabilityStrip({
   project,
   google,
+  runtime,
 }: {
   project: LeoProjectConfigDiagnostic;
   google: LeoGoogleWorkspaceCapabilityTruth;
+  runtime: LeoCapabilityRuntimeEntry[];
 }) {
-  const notConnected: string[] = [
-    "Background monitoring",
-    "Business Concierge connection",
-    "Autonomous execution",
-  ];
+  const connectedOrAvailable = runtime.filter((r) => r.state === "CONNECTED" || r.state === "AVAILABLE");
+  const notReady = runtime.filter((r) => r.state !== "CONNECTED" && r.state !== "AVAILABLE");
 
   const githubLine = project.github.connectorConnected
     ? project.github.projectIntelligenceConfigured
@@ -56,7 +61,10 @@ export function LeoCapabilityStrip({
       <div className="mt-2 grid min-w-0 gap-3 sm:grid-cols-2">
         <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-wide text-[#2A4536]">Available</p>
-          <p className="mt-1 break-words text-xs leading-relaxed text-[#5C5346]">{AVAILABLE.join(" · ")}</p>
+          <p className="mt-1 break-words text-xs leading-relaxed text-[#5C5346]">
+            {ALWAYS_AVAILABLE.join(" · ")}
+            {connectedOrAvailable.length > 0 ? ` · ${connectedOrAvailable.map((r) => r.label).join(" · ")}` : ""}
+          </p>
           <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-[#2A4536]">
             Project connections
           </p>
@@ -75,7 +83,9 @@ export function LeoCapabilityStrip({
         </div>
         <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-wide text-[#A67C52]">Not connected yet</p>
-          <p className="mt-1 break-words text-xs leading-relaxed text-[#5C5346]">{notConnected.join(" · ")}</p>
+          <p className="mt-1 break-words text-xs leading-relaxed text-[#5C5346]" data-leo-capability-runtime>
+            {notReady.map((r) => runtimeLine(r)).join(" · ")}
+          </p>
         </div>
       </div>
     </div>

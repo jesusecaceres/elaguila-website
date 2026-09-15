@@ -39,10 +39,13 @@ function InfoBlock({ label, children }: { label: string; children: ReactNode }) 
   );
 }
 
-export function AdminTruthStatusChip({ status }: { status: AdminTruthStatus }) {
+export function AdminTruthStatusChip({ status, title }: { status: AdminTruthStatus; title?: string }) {
   const meta = STATUS_META[status];
   return (
-    <span className={`inline-flex rounded-lg border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${meta.className}`}>
+    <span
+      className={`inline-flex rounded-lg border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${meta.className}`}
+      title={title}
+    >
       {meta.label}
     </span>
   );

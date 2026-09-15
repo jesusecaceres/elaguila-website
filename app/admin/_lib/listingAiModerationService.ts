@@ -63,6 +63,15 @@ export async function runListingAiReviewForId(listingId: string): Promise<RunLis
   const ai = await runListingAiModeration(content);
   const saved = await insertListingModerationReview(supabase, content, ai);
 
+  // Gate 3 (MOD-001) — the AI call can succeed while the DB write fails (e.g. the
+  // `listing_moderation_reviews` schema-drift dependency this workspace already
+  // discloses at the hub level). Previously that case still returned the
+  // "AI review completed: <decision>" success label even though nothing was
+  // persisted — an operator had no way to know the result was lost. Now it is
+  // reported as its own honest, distinct outcome instead of silently collapsing
+  // to "completed".
+  const insertFailedAfterAiSuccess = ai.ok && !saved;
+
   const proofLabel = saved
     ? formatAiReviewProofLabel(
         saved.decision,
@@ -71,12 +80,7 @@ export async function runListingAiReviewForId(listingId: string): Promise<RunLis
         saved.risk_level,
       )
     : ai.ok
-      ? formatAiReviewProofLabel(
-          ai.result.decision,
-          ai.result.reason_category,
-          ai.result.reason_text,
-          ai.result.risk_level,
-        )
+      ? `AI review ran (${ai.result.decision}) but could not be saved — the result was not recorded. Do not treat this as a completed review; re-run once the moderation-review storage issue is fixed.`
       : formatAiReviewProofLabel("unavailable", null, ai.error);
 
   void appendAdminAuditLog({
@@ -98,7 +102,11 @@ export async function runListingAiReviewForId(listingId: string): Promise<RunLis
     listingId: id,
     leonixAdId: content.leonix_ad_id,
     proofLabel,
-    error: saved?.decision === "unavailable" ? saved.error_message ?? aiError : aiError,
+    error: saved?.decision === "unavailable"
+      ? saved.error_message ?? aiError
+      : insertFailedAfterAiSuccess
+        ? "AI review completed but could not be saved (listing_moderation_reviews insert failed) — result not recorded."
+        : aiError,
     review: saved,
   };
 }

@@ -2,7 +2,12 @@
 
 /**
  * LEO-22B — Shared spoken session (single TTS stream).
- * Hands-Free starts only from an owner gesture. No always-on mic. No paid TTS.
+ * Hands-Free starts only from an owner gesture. No always-on mic.
+ *
+ * LEO-VOICE.1 — neural-first, browser-fallback. Every consumer (Hands-Free
+ * and per-turn "Read aloud") shares this one provider, so only one audio
+ * lane is ever active: starting new speech always stops the other lane
+ * first, guaranteeing no double-speak regardless of which lane is playing.
  */
 
 import {
@@ -22,17 +27,26 @@ import {
   createLeoSpeechSynthesisController,
   getLeoSpeechSynthesisCapability,
   resolveLeoSpeechSynthesisLang,
+  type LeoSpeechPlaybackState,
 } from "@/app/leo/_lib/leoSpeechSynthesis";
+import { createLeoNeuralSpeechController } from "@/app/leo/_lib/leoNeuralSpeech";
 import { useLeoWorkspaceController } from "./LeoWorkspaceController";
+
+type LeoSpeechLane = "NEURAL" | "BROWSER" | "NONE";
 
 type LeoSpokenSessionValue = {
   snapshot: LeoSpokenSessionSnapshot;
   speaking: boolean;
+  paused: boolean;
+  playbackState: LeoSpeechPlaybackState;
+  pauseSupported: boolean;
   lastSpokenText: string | null;
   setVisibleItems: (items: LeoAddressableSpokenItem[]) => void;
   setSelected: (cardId: string | null, entityRef: LeoConversationEntityRef | null) => void;
   setCurrentAnswer: (spoken: string | null, display: string | null) => void;
   speak: (text: string, options?: { onEnded?: () => void }) => boolean;
+  pause: () => void;
+  resume: () => void;
   stop: () => void;
   repeat: (options?: { onEnded?: () => void }) => boolean;
 };
@@ -47,11 +61,16 @@ export function LeoSpokenSessionProvider({ children }: { children: ReactNode }) 
   const [currentAnswerSpoken, setCurrentAnswerSpoken] = useState<string | null>(null);
   const [currentAnswerDisplay, setCurrentAnswerDisplay] = useState<string | null>(null);
   const [lastSpokenText, setLastSpokenText] = useState<string | null>(null);
-  const [speaking, setSpeaking] = useState(false);
+  const [playbackState, setPlaybackState] = useState<LeoSpeechPlaybackState>("IDLE");
   const [synthAvailable, setSynthAvailable] = useState(false);
+  const [browserPauseSupported, setBrowserPauseSupported] = useState(false);
   const [recognitionAvailable, setRecognitionAvailable] = useState(false);
+  const [activeLane, setActiveLane] = useState<LeoSpeechLane>("NONE");
 
-  const ttsRef = useRef<ReturnType<typeof createLeoSpeechSynthesisController> | null>(null);
+  const browserRef = useRef<ReturnType<typeof createLeoSpeechSynthesisController> | null>(null);
+  const neuralRef = useRef<ReturnType<typeof createLeoNeuralSpeechController> | null>(null);
+  const activeLaneRef = useRef<LeoSpeechLane>("NONE");
+  const lastSpokenTextRef = useRef<string>("");
   const utteranceEndedRef = useRef<(() => void) | null>(null);
 
   const fireUtteranceEnded = useCallback(() => {
@@ -60,52 +79,153 @@ export function LeoSpokenSessionProvider({ children }: { children: ReactNode }) 
     cb?.();
   }, []);
 
+  const setLane = useCallback((lane: LeoSpeechLane) => {
+    activeLaneRef.current = lane;
+    setActiveLane(lane);
+  }, []);
+
   useEffect(() => {
-    setSynthAvailable(getLeoSpeechSynthesisCapability(window).supported);
+    const cap = getLeoSpeechSynthesisCapability(window);
+    setSynthAvailable(cap.supported);
+    setBrowserPauseSupported(cap.pauseSupported);
     setRecognitionAvailable(
       "webkitSpeechRecognition" in window || "SpeechRecognition" in window,
     );
     const lang = resolveLeoSpeechSynthesisLang("auto", navigator.language);
-    ttsRef.current = createLeoSpeechSynthesisController(window, lang, {
-      onStateChange: (s) => setSpeaking(s === "SPEAKING"),
+
+    browserRef.current = createLeoSpeechSynthesisController(window, lang, {
+      onStateChange: (s) => {
+        if (activeLaneRef.current !== "BROWSER") return;
+        setPlaybackState(s);
+      },
       onEnd: () => {
-        setSpeaking(false);
+        if (activeLaneRef.current !== "BROWSER") return;
+        setLane("NONE");
+        setPlaybackState("IDLE");
         fireUtteranceEnded();
       },
       onError: () => {
-        setSpeaking(false);
+        if (activeLaneRef.current !== "BROWSER") return;
+        setLane("NONE");
+        setPlaybackState("IDLE");
         fireUtteranceEnded();
       },
     });
+
+    neuralRef.current = createLeoNeuralSpeechController(window, {
+      onStateChange: (s) => {
+        if (activeLaneRef.current !== "NEURAL") return;
+        setPlaybackState(s);
+      },
+      onEnd: () => {
+        if (activeLaneRef.current !== "NEURAL") return;
+        setLane("NONE");
+        setPlaybackState("IDLE");
+        fireUtteranceEnded();
+      },
+      onError: () => {
+        // Neural failed (unconfigured / provider error / timeout / playback
+        // failure) — fall back to browser speech for this same utterance.
+        if (activeLaneRef.current !== "NEURAL") return;
+        const text = lastSpokenTextRef.current;
+        if (browserRef.current && text) {
+          setLane("BROWSER");
+          browserRef.current.speak(text);
+        } else {
+          setLane("NONE");
+          setPlaybackState("IDLE");
+          fireUtteranceEnded();
+        }
+      },
+    });
+
     return () => {
       utteranceEndedRef.current = null;
-      ttsRef.current?.dispose();
-      ttsRef.current = null;
+      activeLaneRef.current = "NONE";
+      browserRef.current?.dispose();
+      browserRef.current = null;
+      neuralRef.current?.dispose();
+      neuralRef.current = null;
     };
-  }, [fireUtteranceEnded]);
+  }, [fireUtteranceEnded, setLane]);
 
-  const speak = useCallback((text: string, options?: { onEnded?: () => void }) => {
-    const trimmed = text.trim();
-    if (!trimmed || !ttsRef.current) return false;
-    utteranceEndedRef.current = options?.onEnded ?? null;
-    ttsRef.current.stop();
-    ttsRef.current.speak(trimmed);
-    setLastSpokenText(trimmed);
-    return true;
-  }, []);
+  const stopAllLanes = useCallback(() => {
+    setLane("NONE");
+    neuralRef.current?.stop();
+    browserRef.current?.stop();
+  }, [setLane]);
+
+  const speak = useCallback(
+    (text: string, options?: { onEnded?: () => void }) => {
+      const trimmed = text.trim();
+      if (!trimmed) return false;
+
+      stopAllLanes();
+      utteranceEndedRef.current = options?.onEnded ?? null;
+      lastSpokenTextRef.current = trimmed;
+      setLastSpokenText(trimmed);
+
+      if (neuralRef.current) {
+        setLane("NEURAL");
+        neuralRef.current.speak(trimmed);
+        return true;
+      }
+      if (browserRef.current) {
+        setLane("BROWSER");
+        browserRef.current.speak(trimmed);
+        return true;
+      }
+      setLane("NONE");
+      return false;
+    },
+    [setLane, stopAllLanes],
+  );
 
   const stop = useCallback(() => {
     utteranceEndedRef.current = null;
-    ttsRef.current?.stop();
-    setSpeaking(false);
+    stopAllLanes();
+    setPlaybackState("IDLE");
+  }, [stopAllLanes]);
+
+  const pause = useCallback(() => {
+    if (activeLaneRef.current === "NEURAL") neuralRef.current?.pause();
+    else if (activeLaneRef.current === "BROWSER") browserRef.current?.pause();
   }, []);
 
-  const repeat = useCallback((options?: { onEnded?: () => void }) => {
-    if (!lastSpokenText || !ttsRef.current) return false;
-    utteranceEndedRef.current = options?.onEnded ?? null;
-    ttsRef.current.repeat(lastSpokenText);
-    return true;
-  }, [lastSpokenText]);
+  const resume = useCallback(() => {
+    if (activeLaneRef.current === "NEURAL") neuralRef.current?.resume();
+    else if (activeLaneRef.current === "BROWSER") browserRef.current?.resume();
+  }, []);
+
+  const repeat = useCallback(
+    (options?: { onEnded?: () => void }) => {
+      const text = lastSpokenTextRef.current;
+      if (!text) return false;
+
+      stopAllLanes();
+      utteranceEndedRef.current = options?.onEnded ?? null;
+
+      if (neuralRef.current) {
+        setLane("NEURAL");
+        neuralRef.current.repeat(text);
+        return true;
+      }
+      if (browserRef.current) {
+        setLane("BROWSER");
+        browserRef.current.repeat(text);
+        return true;
+      }
+      setLane("NONE");
+      return false;
+    },
+    [setLane, stopAllLanes],
+  );
+
+  const speaking = playbackState === "SPEAKING";
+  const paused = playbackState === "PAUSED";
+  // Neural playback (HTMLAudioElement) always supports pause/resume; browser
+  // pause support is capability-dependent.
+  const pauseSupported = activeLane === "BROWSER" ? browserPauseSupported : true;
 
   const snapshot = useMemo<LeoSpokenSessionSnapshot>(
     () => ({
@@ -138,6 +258,9 @@ export function LeoSpokenSessionProvider({ children }: { children: ReactNode }) 
     () => ({
       snapshot,
       speaking,
+      paused,
+      playbackState,
+      pauseSupported,
       lastSpokenText,
       setVisibleItems,
       setSelected: (cardId, entityRef) => {
@@ -149,10 +272,12 @@ export function LeoSpokenSessionProvider({ children }: { children: ReactNode }) 
         setCurrentAnswerDisplay(display);
       },
       speak,
+      pause,
+      resume,
       stop,
       repeat,
     }),
-    [lastSpokenText, repeat, snapshot, speak, speaking, stop],
+    [lastSpokenText, pause, pauseSupported, playbackState, paused, repeat, resume, snapshot, speak, speaking, stop],
   );
 
   return <LeoSpokenReactContext.Provider value={value}>{children}</LeoSpokenReactContext.Provider>;
