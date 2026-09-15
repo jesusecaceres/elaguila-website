@@ -9,11 +9,13 @@ import {
   isLeoWorkspaceId,
   type LeoWorkspaceId,
 } from "@/app/leo/_lib/leoWorkspaceModel";
+import { resolveLeoAdminNavigationRoute } from "@/app/leo/_lib/leoAdminNavigationRegistry";
 
 export const LEO_PRESENTATION_INTENT_KINDS = [
   "NAVIGATE",
   "PRESENT",
   "OPEN_VISIBLE_ITEM",
+  "OPEN_ADMIN_ROUTE",
   "BACK",
   "FOCUS_CONVERSATION",
   "STOP_SPEECH",
@@ -28,6 +30,8 @@ export type LeoPresentationIntent =
   | { kind: "NAVIGATE"; workspace: LeoWorkspaceId }
   | { kind: "PRESENT"; workspace: LeoWorkspaceId }
   | { kind: "OPEN_VISIBLE_ITEM"; index?: number; verb: "open" | "read" }
+  /** Real Admin page navigation (GREEN, read-only) — see leoAdminNavigationRegistry.ts. */
+  | { kind: "OPEN_ADMIN_ROUTE"; href: string }
   | { kind: "BACK" }
   | { kind: "FOCUS_CONVERSATION" }
   | { kind: "STOP_SPEECH" }
@@ -217,6 +221,9 @@ export function resolveLeoPresentationIntent(raw: string): LeoPresentationIntent
   if (text === "open that" || text === "open this" || text === "open this item") {
     return { kind: "OPEN_VISIBLE_ITEM", verb: "open" };
   }
+
+  const adminRoute = resolveLeoAdminNavigationRoute(text);
+  if (adminRoute) return { kind: "OPEN_ADMIN_ROUTE", href: adminRoute };
 
   for (const rule of RULES) {
     if (rule.phrases.includes(text)) {

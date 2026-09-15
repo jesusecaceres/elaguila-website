@@ -46,7 +46,13 @@ export type LeoExecutiveDomain =
   | "SYSTEM"
   | "AUTOMATION"
   | "PROJECTS"
-  | "LEO";
+  | "LEO"
+  /** LEO-ADMIN-OS-FINAL.2 — businesses/business_facts/business_follow_ups pipeline (not leads/tickets). */
+  | "BUSINESS_PIPELINE"
+  | "TEAM"
+  | "CATEGORIES"
+  | "RECURSOS"
+  | "WEBSITE";
 
 export type LeoExecutiveSignalType =
   | "ATTENTION"

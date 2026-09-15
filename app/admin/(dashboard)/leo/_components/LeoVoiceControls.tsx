@@ -13,13 +13,8 @@ import {
   resolveLeoSpeechRecognitionLang,
   type LeoVoiceDictationState,
 } from "@/app/leo/_lib/leoSpeechRecognition";
-import {
-  createLeoSpeechSynthesisController,
-  getLeoSpeechSynthesisCapability,
-  resolveLeoSpeechSynthesisLang,
-  resolveLeoSpokenResponseText,
-  type LeoSpeechPlaybackState,
-} from "@/app/leo/_lib/leoSpeechSynthesis";
+import { resolveLeoSpokenResponseText } from "@/app/leo/_lib/leoSpeechSynthesis";
+import { useLeoSpokenSession } from "./LeoSpokenSession";
 
 import { adminBtnSecondary } from "@/app/admin/_components/adminTheme";
 
@@ -200,48 +195,25 @@ export function LeoVoiceDictationControl({
 
 export function LeoSpeechResponseControls({
   answer,
-  speechLanguage = "auto",
 }: {
   answer: LeoConversationAnswer;
-  speechLanguage?: LeoConversationLanguage;
 }) {
   const [mounted, setMounted] = useState(false);
-  const [playbackState, setPlaybackState] = useState<LeoSpeechPlaybackState>("IDLE");
-  const controllerRef = useRef<ReturnType<typeof createLeoSpeechSynthesisController> | null>(null);
-
-  const capability = useMemo(
-    () => (mounted ? getLeoSpeechSynthesisCapability(window) : { supported: false, pauseSupported: false }),
-    [mounted],
-  );
+  const spokenSession = useLeoSpokenSession();
 
   const spokenText = useMemo(() => resolveLeoSpokenResponseText(answer), [answer]);
-
-  const lang = useMemo(() => {
-    if (!mounted) return "en-US";
-    return resolveLeoSpeechSynthesisLang(speechLanguage, navigator.language);
-  }, [mounted, speechLanguage]);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (!mounted || !capability.supported) return;
-    controllerRef.current?.dispose();
-    controllerRef.current = createLeoSpeechSynthesisController(window, lang, {
-      onStateChange: setPlaybackState,
-    });
-    return () => {
-      controllerRef.current?.dispose();
-      controllerRef.current = null;
-    };
-  }, [mounted, capability.supported, lang]);
+  if (!mounted || !spokenText) return null;
 
-  if (!mounted || !capability.supported || !spokenText) return null;
-
-  const ctl = controllerRef.current;
-  const speaking = playbackState === "SPEAKING";
-  const paused = playbackState === "PAUSED";
+  // Pause/Resume/Stop apply to this turn's audio only when it's the one
+  // currently loaded in the shared session (LEO-VOICE.1 — one shared lane).
+  const isThisAnswerActive = spokenSession.lastSpokenText === spokenText;
+  const speaking = isThisAnswerActive && spokenSession.speaking;
+  const paused = isThisAnswerActive && spokenSession.paused;
 
   const speechBtn =
     "inline-flex min-h-[44px] items-center rounded-lg border border-[color:var(--lx-border)] bg-[color:var(--lx-section)] px-3 text-xs font-semibold text-[#1E1810] transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C] disabled:opacity-60";
@@ -253,23 +225,23 @@ export function LeoSpeechResponseControls({
           type="button"
           className={speechBtn}
           aria-label="Speak LEO response"
-          onClick={() => ctl?.speak(spokenText)}
+          onClick={() => spokenSession.speak(spokenText)}
         >
           Speak
         </button>
       ) : null}
-      {speaking && capability.pauseSupported ? (
-        <button type="button" className={speechBtn} aria-label="Pause LEO speech" onClick={() => ctl?.pause()}>
+      {speaking && spokenSession.pauseSupported ? (
+        <button type="button" className={speechBtn} aria-label="Pause LEO speech" onClick={() => spokenSession.pause()}>
           Pause
         </button>
       ) : null}
-      {paused && capability.pauseSupported ? (
-        <button type="button" className={speechBtn} aria-label="Resume LEO speech" onClick={() => ctl?.resume()}>
+      {paused && spokenSession.pauseSupported ? (
+        <button type="button" className={speechBtn} aria-label="Resume LEO speech" onClick={() => spokenSession.resume()}>
           Resume
         </button>
       ) : null}
       {speaking || paused ? (
-        <button type="button" className={speechBtn} aria-label="Stop LEO speech" onClick={() => ctl?.stop()}>
+        <button type="button" className={speechBtn} aria-label="Stop LEO speech" onClick={() => spokenSession.stop()}>
           Stop
         </button>
       ) : null}
@@ -277,7 +249,7 @@ export function LeoSpeechResponseControls({
         type="button"
         className={`${adminBtnSecondary} min-h-[44px] px-3 text-xs`}
         aria-label="Repeat LEO response"
-        onClick={() => ctl?.repeat(spokenText)}
+        onClick={() => spokenSession.speak(spokenText)}
       >
         Repeat
       </button>

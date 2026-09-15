@@ -5,7 +5,7 @@
  */
 import "server-only";
 
-import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type {
   LeoConversationEntityRef,
   LeoDurableToolReceipt,
@@ -163,6 +163,7 @@ export async function getLeoDurableToolReceiptForActor(
 ): Promise<LeoDurableToolReceipt | null> {
   const actor = nonEmpty(actorAuthUserId);
   if (!actor || !nonEmpty(id)) return null;
+  if (!isSupabaseAdminConfigured()) return null;
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
     .from("leo_tool_receipts")
@@ -181,6 +182,7 @@ export async function getLeoDurableToolReceiptByCorrelation(
   const actor = nonEmpty(actorAuthUserId);
   const corr = nonEmpty(correlationId);
   if (!actor || !corr) return null;
+  if (!isSupabaseAdminConfigured()) return null;
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
     .from("leo_tool_receipts")

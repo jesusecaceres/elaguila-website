@@ -5,7 +5,7 @@
  */
 import "server-only";
 
-import { getAdminSupabase } from "@/app/lib/supabase/server";
+import { getAdminSupabase, isSupabaseAdminConfigured } from "@/app/lib/supabase/server";
 import type { LeoAttentionAck, LeoAttentionAckDisposition } from "@/app/leo/_lib/leoTypes";
 
 export const LEO_ACK_LIST_MAX = 200;
@@ -70,6 +70,9 @@ export async function upsertLeoAttentionAck(
     return { ok: false, error: "snooze_until_required" };
   }
 
+  if (!isSupabaseAdminConfigured()) {
+    return { ok: false, error: "service_unavailable: Supabase admin client is not configured." };
+  }
   const now = new Date().toISOString();
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
@@ -105,6 +108,7 @@ export async function getLeoAttentionAckForSource(
   const kind = nonEmpty(sourceKind);
   const key = nonEmpty(sourceKey);
   if (!owner || !kind || !key) return null;
+  if (!isSupabaseAdminConfigured()) return null;
   const supabase = getAdminSupabase();
   const { data, error } = await supabase
     .from("leo_attention_acks")
@@ -183,6 +187,9 @@ export async function clearLeoAttentionAck(
   const kind = nonEmpty(sourceKind);
   const key = nonEmpty(sourceKey);
   if (!owner || !kind || !key) return { ok: false, error: "invalid_args" };
+  if (!isSupabaseAdminConfigured()) {
+    return { ok: false, error: "service_unavailable: Supabase admin client is not configured." };
+  }
   const supabase = getAdminSupabase();
   const { error } = await supabase
     .from("leo_attention_acks")

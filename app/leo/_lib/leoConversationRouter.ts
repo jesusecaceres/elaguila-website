@@ -138,7 +138,7 @@ export function inferLeoCommunicationSubtype(q: string): LeoCommunicationSubtype
     return "MEETING_PREP";
   }
   if (
-    /\bwhat meetings do i have today\b|\bwhat is my next meeting\b|\bwhat do i have tomorrow\b|\bwho is attending (my )?next meeting\b|\b(my )?calendar today\b|\bmeetings tomorrow\b/i.test(
+    /\bwhat meetings do i have today\b|\bwhat is my next meeting\b|\bwhat do i have tomorrow\b|\bwho is attending (my )?next meeting\b|\b(my )?calendar today\b|\bmeetings tomorrow\b|\bshow (me )?(today'?s|todays) schedule\b|\bshow (me )?(my )?schedule\b/i.test(
       q,
     )
   ) {
@@ -245,7 +245,18 @@ export function isLeoExecutiveReportingQuestion(q: string): boolean {
     /\bwhat is happening in iglesias\b/.test(n) ||
     /\bwhich admin areas have unresolved queues\b/.test(n) ||
     /\bexecutive reports?\b/.test(n) ||
-    /\bgive me all admin reports\b/.test(n)
+    /\bgive me all admin reports\b/.test(n) ||
+    /\bwhich businesses need follow[- ]?up\b/.test(n) ||
+    /\bshow (me )?(the )?business concierge follow[- ]?ups\b/.test(n) ||
+    /\bshow (me )?(client|business)\/business pipeline status\b/.test(n) ||
+    /\bshow (me )?(client|business) pipeline status\b/.test(n) ||
+    /\bwho is on the team\b/.test(n) ||
+    /\bshow (me )?team status\b/.test(n) ||
+    /\bwhich categories need attention\b/.test(n) ||
+    /\bwhat is happening in recursos\b/.test(n) ||
+    /\bshow (me )?website status\b/.test(n) ||
+    /\bshow (me )?payment issues\b/.test(n) ||
+    /\bpayment issues\b/.test(n)
   );
 }
 
