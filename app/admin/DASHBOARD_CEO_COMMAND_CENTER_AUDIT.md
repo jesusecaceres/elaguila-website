@@ -128,3 +128,20 @@ CEO priorities first (today + revenue), then operational lanes (marketplace), th
 | No fake counts | TRUE |
 | Mobile-first | TRUE |
 | No schema/public/stripe/category logic changes | TRUE |
+
+## 14. 2026-09-14 correction (Owner Browser QA, OWNER-QA-003)
+
+Row 58 of the CTA route matrix above ("Review ads" → the Classifieds-only flagged
+queue) was accurate to what the button did at the time this audit was written, but
+it was superseded once the priority strip's "Review / pending ads" metric became a
+cross-category deduplicated total (Classifieds + Empleos + Viajes + Servicios +
+Ofertas Locales). The CTA kept pointing at the Classifieds-only queue while the
+number it sat under represented all five categories — a real destination/count
+mismatch, caught in live owner QA (4 items shown vs. 25 claimed).
+
+This historical table is intentionally left as-is (it documents what was true when
+written). Current truth lives in `docs/admin-os/ADMIN_OS_OWNER_BROWSER_QA_LEDGER.md`
+(OWNER-QA-003) and `docs/admin-os/ADMIN_OS_PROGRESS.md`. The fix: the priority
+strip's CTA now routes to `/admin#review`, the reconciled "Needs review" breakdown
+in Today's Attention (which already had correct per-category links), instead of
+claiming a single-category queue represents the whole total.

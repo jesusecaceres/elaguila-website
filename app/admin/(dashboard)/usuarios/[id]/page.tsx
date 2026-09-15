@@ -48,6 +48,22 @@ type TiendaOrderMini = {
   created_at: string;
 };
 
+/** Gate 7 (PEO-001) — linked business via business_memberships (the canonical user↔business link). */
+type LinkedBusinessMini = {
+  businessId: string;
+  displayName: string;
+  status: string | null;
+  isPrimaryOwner: boolean;
+  membershipRole: string;
+};
+
+type SupportTicketMini = {
+  id: string;
+  subject: string | null;
+  status: string;
+  created_at: string;
+};
+
 const ALLOWED_ACCOUNT_TYPES = ["personal", "business"] as const;
 /**
  * ADMIN-OS-01 GATE 2 — reconciled to the ONLY values the real, live customer-provisioning
@@ -206,6 +222,8 @@ const labels = {
     eyebrow: "Account",
     backToUsers: "← Back to users",
     backToReview: "← Back to review queue",
+    backToReport: "← Back to report",
+    fromReportBanner: "Viewing this account because of report",
     dashboard: "Dashboard",
     idLabel: "ID",
     changesSaved: "Changes saved successfully.",
@@ -273,6 +291,12 @@ const labels = {
     nonePending: "None pending.",
     viewReport: "View report",
     clasificadosQueue: "Clasificados Queue",
+    linkedBusinesses: "Linked businesses",
+    noBusinesses: "No businesses linked to this account.",
+    viewBusiness: "Open Business 360",
+    primaryOwner: "Primary owner",
+    supportCases: "Support cases",
+    noSupportCases: "No support tickets for this account.",
     report: "Report",
     entitlementsTitle: "Package entitlements",
     entitlementsNote: "Counts from listing_package_entitlements for this user's listing IDs (active = time-valid, not revoked). payment_status stays null until Stripe.",
@@ -299,6 +323,8 @@ const labels = {
     eyebrow: "Cuenta",
     backToUsers: "← Volver a clientes",
     backToReview: "← Volver a cola de revisión",
+    backToReport: "← Volver al reporte",
+    fromReportBanner: "Viendo esta cuenta por el reporte",
     dashboard: "Dashboard",
     idLabel: "ID",
     changesSaved: "Cambios guardados correctamente.",
@@ -366,6 +392,12 @@ const labels = {
     nonePending: "Ninguno pendiente.",
     viewReport: "Ver reporte",
     clasificadosQueue: "Cola Clasificados",
+    linkedBusinesses: "Negocios vinculados",
+    noBusinesses: "No hay negocios vinculados a esta cuenta.",
+    viewBusiness: "Abrir Business 360",
+    primaryOwner: "Propietario principal",
+    supportCases: "Casos de soporte",
+    noSupportCases: "No hay tickets de soporte para esta cuenta.",
     report: "Reporte",
     entitlementsTitle: "Paquetes / entitlements",
     entitlementsNote:
@@ -418,6 +450,12 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
   const isUpdated = updated === "1" || (Array.isArray(updated) && updated.includes("1"));
   const errorValue =
     typeof errorParam === "string" ? errorParam : Array.isArray(errorParam) ? errorParam[0] : undefined;
+  // Gate 4 (RPT-003) — the Reports page's "Reporter" link previously carried no context at all;
+  // an operator arriving here from a report had no way to tell which report sent them. Mirrors
+  // the reverse direction's existing `?q=<reportId>` deep link into `/admin/reportes`.
+  const reportParam = searchParams.report;
+  const fromReportId =
+    (typeof reportParam === "string" ? reportParam : Array.isArray(reportParam) ? reportParam[0] : undefined)?.trim() || null;
 
   let row: ProfileRow | null = null;
   let queryError: string | null = null;
@@ -534,6 +572,74 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
     crossEntityError = "Could not load Tienda orders or reports.";
   }
 
+  // Gate 7 (PEO-001) — this page had zero reference to linked businesses (despite
+  // business_memberships.user_id being the canonical, real user↔business relationship) and no
+  // support-case section (despite support_tickets.user_id being a real, queryable column) — the
+  // Wiring Book confirmed both by full-file read. Both are bounded, single-purpose lookups added
+  // the same way every other cross-entity block on this page already works: best-effort, degrade
+  // to an honest empty state on error, never invent a relationship that isn't in the data.
+  let linkedBusinesses: LinkedBusinessMini[] = [];
+  let supportTickets: SupportTicketMini[] = [];
+  let peoContextError: string | null = null;
+  try {
+    const supabase = getAdminSupabase();
+    const { data: memberships } = await supabase
+      .from("business_memberships")
+      .select("business_id, membership_role, is_primary_owner")
+      .eq("user_id", clientId)
+      .eq("membership_status", "active");
+    const businessIds = [...new Set((memberships ?? []).map((m) => String(m.business_id)).filter(Boolean))];
+    if (businessIds.length > 0) {
+      const { data: bizRows } = await supabase
+        .from("businesses")
+        .select("id, display_name, status")
+        .in("id", businessIds);
+      const bizById = new Map((bizRows ?? []).map((b) => [String(b.id), b as { id: string; display_name: string | null; status: string | null }]));
+      linkedBusinesses = (memberships ?? [])
+        .map((m) => {
+          const biz = bizById.get(String(m.business_id));
+          if (!biz) return null;
+          return {
+            businessId: biz.id,
+            displayName: biz.display_name?.trim() || "(unnamed business)",
+            status: biz.status,
+            isPrimaryOwner: Boolean(m.is_primary_owner),
+            membershipRole: String(m.membership_role ?? "member"),
+          } satisfies LinkedBusinessMini;
+        })
+        .filter((x): x is LinkedBusinessMini => x !== null);
+    }
+
+    const { data: tickets, error: ticketsErr } = await supabase
+      .from("support_tickets")
+      .select("id, subject, status, created_at")
+      .eq("user_id", clientId)
+      .order("created_at", { ascending: false })
+      .limit(6);
+    if (!ticketsErr && tickets) {
+      supportTickets = tickets as SupportTicketMini[];
+    }
+  } catch {
+    peoContextError = "Could not load linked businesses or support tickets.";
+  }
+
+  const openSupportTicketCount = supportTickets.filter((t) => t.status === "open" || t.status === "in_progress").length;
+
+  /**
+   * Gate 7 (PEO-001) — a minimal, honest "next action" derived only from data already fetched on
+   * this page (no invented business logic, no new heuristics beyond a fixed priority order),
+   * scaled down from Business 360's own `businessDashboardNextAction.ts` concept for a single
+   * user account. Ties break in favor of the most operationally urgent condition.
+   */
+  const nextAction: string =
+    reportsOnOwnedPending.length > 0
+      ? `Review ${reportsOnOwnedPending.length} pending report(s) on this user's listings.`
+      : openSupportTicketCount > 0
+        ? `Respond to ${openSupportTicketCount} open support ticket(s).`
+        : row.is_disabled
+          ? "Account is disabled — confirm whether re-enabling is appropriate."
+          : "No urgent action — routine account.";
+
   const name = displayName(row);
   const emailRaw = (row.email ?? "").trim();
   const emailDisplay = emailRaw || "(no email)";
@@ -595,9 +701,29 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
         <Link href="/admin#review" className={adminBtnSecondary} title={t.backToReview}>
           {t.backToReview}
         </Link>
+        {fromReportId ? (
+          <Link
+            href={`/admin/reportes?q=${encodeURIComponent(fromReportId)}`}
+            className={adminBtnSecondary}
+            title={t.backToReport}
+          >
+            {t.backToReport}
+          </Link>
+        ) : null}
         <Link href="/admin" className={adminBtnDark} title={t.dashboard}>
           {t.dashboard}
         </Link>
+      </div>
+
+      {fromReportId ? (
+        <p className="mb-4 rounded-lg border border-amber-300/70 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-950">
+          {t.fromReportBanner} <span className="font-mono">#{fromReportId.slice(0, 8)}…</span>
+        </p>
+      ) : null}
+
+      <div className={`${adminCardBase} mb-4 border-[#C9B46A]/45 bg-[#FFFCF7] p-4`}>
+        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#7A7164]">Next action</p>
+        <p className="mt-1 text-sm font-semibold text-[#1E1810]">{nextAction}</p>
       </div>
 
       <p className="mb-6 font-mono text-xs text-[#7A7164] break-all">{t.idLabel}: {row.id}</p>
@@ -1173,6 +1299,52 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
       </div>
 
       <div className={`${adminCardBase} mb-6 p-5`}>
+        <h2 className="text-lg font-bold text-[#1E1810]">{t.linkedBusinesses}</h2>
+        {peoContextError ? <p className="mt-1 text-xs text-red-700">{peoContextError}</p> : null}
+        {linkedBusinesses.length === 0 ? (
+          <p className="mt-1 text-sm text-[#5C5346]">{t.noBusinesses}</p>
+        ) : (
+          <ul className="mt-2 space-y-2 text-sm">
+            {linkedBusinesses.map((b) => (
+              <li key={b.businessId} className="rounded-xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 px-3 py-2">
+                <p className="text-sm font-semibold text-[#1E1810]">
+                  {b.displayName}
+                  {b.isPrimaryOwner ? (
+                    <span className="ml-2 rounded-md border border-[#C9B46A]/50 bg-[#FFFCF7] px-1.5 py-0.5 text-[10px] font-bold uppercase text-[#5C4E2E]">
+                      {t.primaryOwner}
+                    </span>
+                  ) : null}
+                </p>
+                <p className="text-xs text-[#5C5346]">{b.membershipRole} · {b.status ?? "—"}</p>
+                <Link
+                  href={`/admin/businesses/${b.businessId}`}
+                  className="mt-1 inline-block text-xs font-bold text-[#6B5B2E] underline"
+                >
+                  {t.viewBusiness}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <h2 className="mt-6 text-lg font-bold text-[#1E1810]">{t.supportCases}</h2>
+        {supportTickets.length === 0 ? (
+          <p className="mt-1 text-sm text-[#5C5346]">{t.noSupportCases}</p>
+        ) : (
+          <ul className="mt-2 space-y-2 text-sm">
+            {supportTickets.map((tk) => (
+              <li key={tk.id} className="rounded-xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 px-3 py-2">
+                <p className="text-sm font-semibold text-[#1E1810]">{tk.subject?.trim() || "(no subject)"}</p>
+                <p className="text-xs text-[#5C5346]">
+                  {tk.status} · {formatDate(tk.created_at)}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className={`${adminCardBase} mb-6 p-5`}>
         <h2 className="text-lg font-bold text-[#1E1810]">{t.reports}</h2>
         <p className="mt-1 text-xs text-[#7A7164]">
           {t.globalQueue}{" "}
@@ -1186,7 +1358,14 @@ export default async function AdminUsuarioDetailPage(props: PageProps) {
         ) : (
           <ul className="mt-2 space-y-2 text-sm">
             {reportsByReporter.map((r) => (
-              <li key={r.id} className="rounded-xl border border-[#E8DFD0]/80 bg-[#FFFCF7]/90 px-3 py-2">
+              <li
+                key={r.id}
+                className={`rounded-xl border px-3 py-2 ${
+                  fromReportId && r.id === fromReportId
+                    ? "border-amber-300/90 bg-amber-50/90 ring-2 ring-inset ring-amber-300/90"
+                    : "border-[#E8DFD0]/80 bg-[#FFFCF7]/90"
+                }`}
+              >
                 <p className="text-xs font-mono text-[#6B5B2E]">
                   {t.report} <Link href={`/admin/reportes?q=${encodeURIComponent(r.id)}`} className="font-bold underline">{r.id.slice(0, 8)}…</Link> · {t.reportListing} {r.listing_id.slice(0, 8)}…
                 </p>

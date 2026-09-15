@@ -100,6 +100,12 @@ export const ADMIN_GLOBAL_NAV: AdminGlobalNavItem[] = [
   { href: "/admin/team/roster", labelKey: "nav.team", icon: "👥", activePathPrefixes: ["/admin/team"], group: "people" },
   { href: "/admin/usuarios", labelKey: "nav.users", icon: "◎", group: "people" },
   { href: "/admin/support", labelKey: "nav.support", icon: "💬", group: "people" },
+  // Staff Contact + Virtual Front Desk Continuity Gate (2026-09-14) — the doorbell enrollment
+  // page (and the sibling presence page it links to) existed and worked but had zero links
+  // anywhere in Admin outside their own exact URLs. Doorbell is the primary nav entry point
+  // because that's where a staff member actually turns on visitor-call notifications;
+  // Presence (AVAILABLE/BUSY/AWAY) is reached from there, not duplicated as its own nav item.
+  { href: "/admin/digital-contact/doorbell", labelKey: "nav.virtualFrontDesk", icon: "🔔", activePathPrefixes: ["/admin/digital-contact"], group: "people" },
   { href: "/admin/workspace", labelKey: "nav.siteSections", icon: "🧩", group: "website-control" },
   // Package E Build E3, Gate 1 — the real site-settings writer (previously reachable only via
   // the sidebar footer for non-sales-rep-limited roles, or the /admin/settings stub's blocker

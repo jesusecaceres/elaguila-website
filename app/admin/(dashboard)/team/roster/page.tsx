@@ -268,6 +268,26 @@ export default async function AdminTeamPage(props: {
         </Link>
       </div>
 
+      {/* Staff Contact + Virtual Front Desk Continuity Gate (2026-09-14) — a nav tab to
+          Executive Hub already existed, but nothing on this page explained the distinction
+          between staff LOGIN access (this page) and the PUBLIC staff contact page (Executive
+          Hub) before an operator went looking for it. */}
+      <div className={`${adminCardBase} mb-6 border-[#C9B46A]/40 bg-[#FFFCF7] p-5`}>
+        <h2 className="text-base font-bold text-[#1E1810]">Staff Contact Page</h2>
+        <p className="mt-2 text-sm text-[#5C5346]">
+          Create or manage the public contact page used for QR codes, vCards, contact actions, title, photo, theme,
+          and publish status.
+        </p>
+        <Link href="/admin/team/executive-hub" className={`${adminCtaChip} mt-4 inline-flex`}>
+          Open Executive Hub →
+        </Link>
+        <p className="mt-3 text-xs text-[#7A7164]">
+          Staff login (above) controls Admin access. Executive Hub controls the public contact page at{" "}
+          <code className="rounded bg-white/80 px-1">/contact/{"{slug}"}</code>. They are separate systems — creating
+          one does not create the other.
+        </p>
+      </div>
+
       <div className="mb-6 flex flex-wrap gap-2">
         <a
           href="https://supabase.com/docs/guides/auth/auth-email-password"

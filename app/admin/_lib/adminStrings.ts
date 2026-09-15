@@ -12,6 +12,8 @@ const EN: Record<string, string> = {
   "shell.searchListingsPlaceholder": "Search listings (title, city, ID)…",
   "shell.searchListingsTitle": "Open Clasificados workspace with this text as the filter",
   "shell.searchLabel": "Search",
+  "shell.searchScopeHint": "Listings only —",
+  "shell.searchScopeHintLink": "Company Search (users, businesses, orders…) →",
   "shell.plusBadge": "✦ Leonix +admin",
   "shell.createClasificadosTitle": "Open the Clasificados queue (moderation and links)",
   "shell.create": "+ Create",
@@ -82,6 +84,7 @@ const EN: Record<string, string> = {
   "nav.launchLeads": "Launch leads",
   "nav.payments": "Payments",
   "nav.support": "Support",
+  "nav.virtualFrontDesk": "Virtual Front Desk",
   "nav.businesses": "Business Concierge",
   "nav.team": "Team",
   "nav.activityLog": "Activity Log",
@@ -778,6 +781,8 @@ const ES: Record<string, string> = {
   "shell.searchListingsPlaceholder": "Buscar anuncios (título, ciudad, ID)…",
   "shell.searchListingsTitle": "Abrir workspace Clasificados con este texto como filtro",
   "shell.searchLabel": "Buscar",
+  "shell.searchScopeHint": "Solo anuncios —",
+  "shell.searchScopeHintLink": "Búsqueda de compañía (clientes, negocios, pedidos…) →",
   "shell.createClasificadosTitle": "Ir a la cola de Clasificados (moderación y enlaces)",
   "shell.tiendaTitleUnread": "Tienda (hub · inbox con avisos)",
   "shell.tiendaTitle": "Tienda — centro de comando",
@@ -844,6 +849,7 @@ const ES: Record<string, string> = {
   "nav.launchLeads": "Leads de lanzamiento",
   "nav.payments": "Pagos",
   "nav.support": "Soporte",
+  "nav.virtualFrontDesk": "Recepción Virtual",
   "nav.businesses": "Business Concierge",
   "nav.team": "Equipo",
   "nav.activityLog": "Registro de actividad",
@@ -1530,6 +1536,31 @@ const ES: Record<string, string> = {
   "languageAudit.notes.rowPass":
     "PASS — El chrome visible de esta área se resuelve con el diccionario admin compartido (EN por defecto; ES al elegirlo).",
 };
+
+/**
+ * Forensic audit (post-Gate-20, SYS-001/Language Audit) — real, live detection derived from the
+ * actual EN/ES dictionaries below, not a hardcoded checklist value. `getAdminLang()`
+ * (adminI18n.ts) deliberately pins Admin chrome to `"en"` only ("Phase 13B"), so this does not
+ * measure a live user-facing language switch — it measures whether the ES dictionary, which
+ * exists but is not currently rendered by anything, has drifted out of key-parity with EN. That
+ * is a real, checkable fact about current code, and it is the one piece of the Language Audit
+ * page that can honestly claim to be a live check rather than a static row.
+ */
+export function getAdminStringsKeyCoverageReport(): {
+  totalEnKeys: number;
+  totalEsKeys: number;
+  missingInEs: string[];
+  missingInEn: string[];
+} {
+  const enKeys = new Set(Object.keys(EN));
+  const esKeys = new Set(Object.keys(ES));
+  return {
+    totalEnKeys: enKeys.size,
+    totalEsKeys: esKeys.size,
+    missingInEs: [...enKeys].filter((k) => !esKeys.has(k)).sort(),
+    missingInEn: [...esKeys].filter((k) => !enKeys.has(k)).sort(),
+  };
+}
 
 export function adminTr(_lang: AdminLang, key: string, vars?: Record<string, string | number>): string {
   const raw = EN[key] ?? key;

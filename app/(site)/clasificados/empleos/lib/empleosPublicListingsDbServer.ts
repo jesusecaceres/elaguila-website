@@ -357,6 +357,9 @@ export async function fetchEmpleosListingsForOwner(ownerUserId: string): Promise
   return data as EmpleosPublicListingRow[];
 }
 
+const EMPLEOS_ADMIN_QUEUE_SELECT =
+  "id, slug, leonix_ad_id, title, company_name, lifecycle_status, lane, owner_user_id, moderation_reason, leonix_verified, admin_promoted, apply_count, view_count, republish_override, city, state, postal_code, listing_snapshot";
+
 export async function fetchAllEmpleosListingsForAdmin(opts?: {
   limit?: number;
   scope?: "live";
@@ -364,19 +367,36 @@ export async function fetchAllEmpleosListingsForAdmin(opts?: {
   if (!isSupabaseAdminConfigured()) return [];
   const supabase = getAdminSupabase();
   const cap = Math.min(Math.max(Math.floor(opts?.limit ?? 100), 1), 500);
-  let q = supabase
-    .from("empleos_public_listings")
-    .select(
-      "id, slug, leonix_ad_id, title, company_name, lifecycle_status, lane, owner_user_id, moderation_reason, leonix_verified, admin_promoted, apply_count, view_count, republish_override, city, state, postal_code, listing_snapshot",
-    )
-    .order("republish_sort_at", { ascending: false, nullsFirst: true })
-    .limit(cap);
+
+  let q = supabase.from("empleos_public_listings").select(EMPLEOS_ADMIN_QUEUE_SELECT).order("republish_sort_at", { ascending: false, nullsFirst: true }).limit(cap);
   if (opts?.scope === "live") {
     q = q.eq("lifecycle_status", "published");
   }
   const { data, error } = await q;
-  if (error || !data) return [];
-  return data as unknown as EmpleosPublicListingRow[];
+  if (!error && data) return data as unknown as EmpleosPublicListingRow[];
+
+  // CMD-004 / DATA-QUERY-001 schema-drift fallback (same pattern as
+  // viajesStagedListingsDbServer.ts): `republish_sort_at` is defined by
+  // migrations/20260509120000_classifieds_republish_capability.sql, but has not
+  // been applied to every environment's empleos_public_listings table yet. Only
+  // fall back for THIS specific, recognized condition — never for any other query
+  // failure (network, RLS/permission, invalid query, etc). Those must stay
+  // visible, not silently become "no rows" — log them so they are observable
+  // server-side.
+  if (!error?.message?.includes("republish_sort_at")) {
+    if (error) console.error("fetchAllEmpleosListingsForAdmin: unexpected query error (not the known schema-drift column)", error.message);
+    return [];
+  }
+  let fallbackQ = supabase.from("empleos_public_listings").select(EMPLEOS_ADMIN_QUEUE_SELECT).order("updated_at", { ascending: false }).limit(cap);
+  if (opts?.scope === "live") {
+    fallbackQ = fallbackQ.eq("lifecycle_status", "published");
+  }
+  const fallback = await fallbackQ;
+  if (fallback.error) {
+    console.error("fetchAllEmpleosListingsForAdmin: schema-drift fallback query itself failed", fallback.error.message);
+    return [];
+  }
+  return (fallback.data ?? []) as unknown as EmpleosPublicListingRow[];
 }
 
 export async function updateEmpleosListingLifecycleAdmin(input: {

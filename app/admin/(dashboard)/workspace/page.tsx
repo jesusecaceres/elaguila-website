@@ -32,6 +32,8 @@ function websiteEditingStatusClass(s: WebsiteEditingTruthStatus): string {
       return "bg-[#F4F0E8] text-[#5C5346] ring-[#E8DFD0]";
     case "HONESTLY_DISABLED":
       return "bg-[#EDE8E0] text-[#4A4744] ring-[#D8D0C4]";
+    case "BROKEN":
+      return "bg-rose-50 text-rose-950 ring-rose-200";
     default:
       return "bg-[#F4F0E8] text-[#5C5346] ring-[#E8DFD0]";
   }
@@ -140,6 +142,8 @@ export default async function AdminWorkspaceHubPage(props: {
         return row.status === "MISSING";
       case "locked":
         return row.status === "HONESTLY_DISABLED";
+      case "broken":
+        return row.status === "BROKEN";
       default:
         return true;
     }
@@ -156,6 +160,8 @@ export default async function AdminWorkspaceHubPage(props: {
         return t.notBuiltYet;
       case "HONESTLY_DISABLED":
         return t.lockedOnPurpose;
+      case "BROKEN":
+        return "Broken (saves, but not live)";
       default:
         return status;
     }
@@ -172,6 +178,8 @@ export default async function AdminWorkspaceHubPage(props: {
         return t.ownerAnswerMissing;
       case "HONESTLY_DISABLED":
         return t.ownerAnswerLocked;
+      case "BROKEN":
+        return "This editor exists and saves succeed, but the live public page does not read what you save here — treat it as non-functional until the wiring is fixed.";
       default:
         return "";
     }
@@ -244,6 +252,14 @@ export default async function AdminWorkspaceHubPage(props: {
           >
             {t.filterLocked}
           </Link>
+          <Link
+            href={`/admin/workspace${workspaceHubQuery(lang, "broken")}`}
+            className={`rounded px-4 py-2 text-sm font-medium transition-colors ${
+              filterParam === "broken" ? "bg-rose-600 text-white" : "text-[#5C5346] hover:bg-[#E8DFD0]"
+            }`}
+          >
+            Broken
+          </Link>
         </div>
       </div>
 
@@ -260,7 +276,7 @@ export default async function AdminWorkspaceHubPage(props: {
       {/* Summary Counts */}
       <div className={`${adminCardBase} mb-6 p-5`}>
         <h2 className="text-lg font-bold text-[#1E1810]">{t.summaryCounts}</h2>
-        <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-5">
+        <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           <div className="text-center">
             <div className="text-2xl font-bold text-emerald-600">{summary.TRUE}</div>
             <div className="text-xs text-[#7A7164]">{t.fullyEditable}</div>
@@ -276,6 +292,10 @@ export default async function AdminWorkspaceHubPage(props: {
           <div className="text-center">
             <div className="text-2xl font-bold text-[#4A4744]">{summary.HONESTLY_DISABLED}</div>
             <div className="text-xs text-[#7A7164]">{t.lockedOnPurpose}</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-rose-600">{summary.BROKEN}</div>
+            <div className="text-xs text-[#7A7164]">Broken</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-red-600">{summary.needsBuild}</div>

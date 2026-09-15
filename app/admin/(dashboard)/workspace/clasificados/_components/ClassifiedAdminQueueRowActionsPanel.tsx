@@ -77,18 +77,13 @@ function SellerSection({
   const compact = adminQueueActionCompact;
   const hasSeller = Boolean(sellerHref);
   const hasContact = Boolean(ownerEmail?.trim());
-  if (!hasSeller && !hasContact) return null;
 
-  const mailto = hasContact
-    ? (() => {
-        const email = ownerEmail!.trim();
-        const subject = "Leonix Media listing review";
-        const idPart = leonixAdId ? `\nLeonix Ad ID: ${leonixAdId}` : "";
-        const body = `Hello,\n\nWe are reviewing your listing "${listingTitle ?? "your listing"}".${idPart}\n\n— Leonix Media team`;
-        return `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      })()
-    : null;
-
+  // Forensic audit (post-Gate-20) — `useCallback` used to be declared after the `hasSeller`/
+  // `hasContact` early return below, which is a real React Hooks rules-of-hooks violation
+  // (react-hooks/rules-of-hooks): if this same component instance's props ever change such that
+  // `hasSeller`/`hasContact` flip from false to true across a re-render, React would see a
+  // different number of hooks called and throw. Every hook must run unconditionally, before any
+  // early return.
   const copyEmail = useCallback(async () => {
     const email = ownerEmail?.trim();
     if (!email) return;
@@ -101,6 +96,18 @@ function SellerSection({
       window.setTimeout(() => setCopyState("idle"), 2500);
     }
   }, [ownerEmail]);
+
+  if (!hasSeller && !hasContact) return null;
+
+  const mailto = hasContact
+    ? (() => {
+        const email = ownerEmail!.trim();
+        const subject = "Leonix Media listing review";
+        const idPart = leonixAdId ? `\nLeonix Ad ID: ${leonixAdId}` : "";
+        const body = `Hello,\n\nWe are reviewing your listing "${listingTitle ?? "your listing"}".${idPart}\n\n— Leonix Media team`;
+        return `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      })()
+    : null;
 
   const inner = (
     <div className="space-y-2">

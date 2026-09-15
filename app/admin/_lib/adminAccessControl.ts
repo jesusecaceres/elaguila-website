@@ -548,6 +548,7 @@ export function getAllowedGlobalNavHrefs(ctx: AdminAccessContext): string[] {
       "/admin/leads/newsletter",
       "/admin/leads/media-kit",
       "/admin/support",
+      "/admin/digital-contact/doorbell",
       "/admin/recursos",
       "/admin/system-health",
     );
