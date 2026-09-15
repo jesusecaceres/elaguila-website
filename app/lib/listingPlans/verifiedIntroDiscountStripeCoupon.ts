@@ -41,17 +41,20 @@ function isResourceAlreadyExists(e: unknown): boolean {
  * P0 recovery (2026-09-15) — the three catch blocks below used to swallow the Stripe SDK error
  * entirely, so a real production 503 left zero trace in the runtime logs (confirmed: the owner's
  * failed request produced no log line). This logs ONLY safe, non-sensitive Stripe error metadata —
- * error type/code/HTTP status/request id and which stage failed — never the error message (Stripe
- * can echo request context into it) and never any key, secret, or request body.
+ * error type/code/HTTP status/request id/rejected param name and which stage failed — never the
+ * error message (Stripe can echo request context into it) and never any key, secret, or request
+ * body. `param` (2026-09-15 follow-up) names which body field Stripe rejected on a 400
+ * invalid_request_error — itself just a field name (e.g. "percent_off"), not a value.
  */
 function logSanitizedStripeError(stage: "retrieve" | "create" | "retry_retrieve", e: unknown): void {
-  const err = e as { type?: string; code?: string; statusCode?: number; requestId?: string } | null;
+  const err = e as { type?: string; code?: string; statusCode?: number; requestId?: string; param?: string } | null;
   console.error("[verifiedIntroDiscountStripeCoupon] stripe_error", {
     stage,
     type: err?.type ?? null,
     code: err?.code ?? null,
     statusCode: err?.statusCode ?? null,
     requestId: err?.requestId ?? null,
+    param: err?.param ?? null,
   });
 }
 
