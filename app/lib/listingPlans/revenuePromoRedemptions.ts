@@ -12,6 +12,7 @@ import {
   type LeonixPaymentRecordAttributionRow,
 } from "./revenuePaymentRecords";
 import type { RevenuePackageDefinition } from "./revenuePricingMatrix";
+import { resolvePromoBillingMechanism, type PromoBillingPlan } from "./promoContractTermBilling";
 
 export type PromoRow = {
   id: string;
@@ -31,12 +32,20 @@ export type PromoRow = {
   max_redemptions: number | null;
   redemption_count: number | null;
   per_customer_limit: number | null;
+  /** ⚠️35 — admin-stored contract term (month_to_month / 3_month / 6_month / 12_month / founding_partner). */
+  contract_term: string | null;
   metadata: Record<string, unknown> | null;
 };
 
 export type PromoCheckoutResolution =
   | {
       ok: true;
+      /**
+       * ⚠️35 — how this promo is billed on the package: a finite-term percent code on a monthly
+       * subscription rides a Stripe repeating coupon (unit_amount stays FULL); anything else keeps
+       * the pre-existing unit_amount reduction.
+       */
+      billing: PromoBillingPlan;
       promoCodeId: string;
       promoCode: string;
       promoType: string;
@@ -50,6 +59,7 @@ export type PromoCheckoutResolution =
     }
   | {
       ok: true;
+      billing: PromoBillingPlan;
       promoCodeId: string;
       promoCode: string;
       promoType: string;
@@ -72,7 +82,7 @@ export async function loadPromoByCode(code: string): Promise<PromoRow | null> {
   const { data } = await supabase
     .from("leonix_promo_codes")
     .select(
-      "id, code, promo_type, code_type, is_active, status, percent_off, amount_off_cents, category, category_scope, package_scope, placement_scope, starts_at, ends_at, max_redemptions, redemption_count, per_customer_limit, metadata",
+      "id, code, promo_type, code_type, is_active, status, percent_off, amount_off_cents, category, category_scope, package_scope, placement_scope, starts_at, ends_at, max_redemptions, redemption_count, per_customer_limit, contract_term, metadata",
     )
     .eq("code", normalized)
     .maybeSingle();
@@ -449,11 +459,22 @@ export async function resolvePromoForCheckout(input: {
       promoFamily,
       websiteCheckoutOnly,
       perCustomerLimit: row.per_customer_limit,
+      billing: { mechanism: "unit_amount_reduction", finiteTerm: null },
     };
   }
 
+  // ⚠️35 — server-derived billing plan: the row's contract_term + its own percent decide whether
+  // this is a finite-term repeating coupon or the legacy unit_amount reduction. Nothing client-side.
+  const billing = resolvePromoBillingMechanism({
+    billingMode: input.packageDef.billingMode,
+    promoType,
+    percentOff,
+    contractTerm: row.contract_term,
+  });
+
   return {
     ok: true,
+    billing,
     promoCodeId: row.id,
     promoCode: row.code,
     promoType,

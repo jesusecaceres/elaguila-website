@@ -30,7 +30,9 @@ import {
   applyServiciosTranslation,
   buildServiciosTranslatableContent,
   isOwnerAuthoredQuickFact,
+  isOwnerAuthoredService,
   isOwnerAuthoredTrustItem,
+  relabelServiciosCanonicalPresets,
 } from "../app/(site)/servicios/lib/serviciosTranslateAd";
 import { getServiciosProfileLabels } from "../app/(site)/servicios/copy/serviciosProfileCopy";
 import type { ServiciosProfileResolved } from "../app/(site)/servicios/types/serviciosBusinessProfile";
@@ -136,7 +138,9 @@ const fixture = {
     { id: "p1", headline: "Descuento para adultos mayores" },
   ],
   quickFacts: [
-    { kind: "free_estimate", label: "Presupuesto gratis" },
+    // ⚠️37: preset quick facts carry a real catalog label (carpinteria::carp_q1) — that is what
+    // makes them canonical; the mapper also infers non-custom kinds from owner text.
+    { kind: "years_experience", label: "Más de 10 años de experiencia" },
     { kind: "custom", label: "Atendemos sábados" },
   ],
   trust: [
@@ -155,19 +159,22 @@ check("⚠️16 overlay build: custom quick fact / custom reason / coupons / lat
   assert.equal(content.title, "Plomería residencial");
   assert.equal(content.shareText, "Primera visita gratis");
   const body = content.body ?? "";
-  assert.ok(body.includes("qf\t1\tAtendemos sábados"), body);
-  assert.ok(!body.includes("Presupuesto gratis"), "preset quick fact (pre-localized) never sent");
-  assert.ok(body.includes("tr\t1\t20 años en San José"), body);
+  // ⚠️37 (2026-09-14): records are HTML-mode safe `<div data-lx>` elements — the provider folds
+  // tabs/newlines into spaces, so the earlier tab protocol did not survive a live round trip.
+  assert.ok(body.includes('<div data-lx="qf:1">Atendemos sábados</div>'), body);
+  assert.ok(!body.includes("Más de 10 años de experiencia"), "preset quick fact (catalog label) never sent");
+  assert.ok(body.includes('<div data-lx="tr:1">20 años en San José</div>'), body);
   assert.ok(!body.includes("Con licencia"), "preset reason (pre-localized) never sent");
-  assert.ok(body.includes("cp\t0\t10% en tu primer servicio\tMenciona Leonix"), body);
-  assert.ok(body.includes("cp\t1\tInspección gratis\t"), body);
-  assert.ok(body.includes("pr\t1\tDescuento para adultos mayores"), body);
+  assert.ok(body.includes('<div data-lx="cp:0"><span>10% en tu primer servicio</span><span>Menciona Leonix</span></div>'), body);
+  assert.ok(body.includes('<div data-lx="cp:1"><span>Inspección gratis</span><span></span></div>'), body);
+  assert.ok(body.includes('<div data-lx="pr:1">Descuento para adultos mayores</div>'), body);
   assert.ok(!body.includes("Primera visita gratis"), "first promo stays in shareText only");
   assert.ok(!body.includes("LEONIX10"), "coupon codes never sent");
-  assert.equal(content.highlights, "1\tGarantía por escrito", "only the custom highlight is sent, indexed");
+  assert.equal(content.highlights, '<div data-lx="1">Garantía por escrito</div>', "only the custom highlight is sent, indexed");
   assert.ok(!(content.highlights ?? "").includes("Presupuesto sin costo"), "preset highlight never sent");
   assert.ok(isOwnerAuthoredQuickFact({ kind: "custom", label: "x" }));
-  assert.ok(!isOwnerAuthoredQuickFact({ kind: "free_estimate", label: "x" }));
+  assert.ok(!isOwnerAuthoredQuickFact({ kind: "years_experience", label: "Más de 10 años de experiencia" }));
+  assert.ok(isOwnerAuthoredQuickFact({ kind: "emergency", label: "Emergencias nocturnas en tu casa" }), "owner text with an inferred kind still translates");
   assert.ok(isOwnerAuthoredTrustItem({ id: "custom_reason", label: "x", icon: "star" }));
   assert.ok(!isOwnerAuthoredTrustItem({ id: "trust_licensed", label: "x", icon: "shield" }));
 });
@@ -189,7 +196,7 @@ check("⚠️16 overlay apply: translated body lands on exactly the owner-author
   assert.equal(translated.highlights[1]!.label, "Written warranty");
   assert.equal(translated.highlights[0]!.label, "Presupuesto sin costo", "preset highlight untouched");
   assert.equal(translated.quickFacts[1]!.label, "Open on Saturdays");
-  assert.equal(translated.quickFacts[0]!.label, "Presupuesto gratis", "preset quick fact untouched");
+  assert.equal(translated.quickFacts[0]!.label, "Más de 10 años de experiencia", "preset quick fact untouched by machine text (no target locale given)");
   assert.equal(translated.trust[1]!.label, "20 years in San José");
   assert.equal(translated.trust[0]!.label, "Con licencia", "preset reason untouched");
   assert.equal(translated.coupons[0]!.title, "10% off your first service");
@@ -207,6 +214,69 @@ check("⚠️16 overlay apply: tolerant of tab-collapsed lines; empty translatio
   const collapsed = applyServiciosTranslation(fixture, { body: "qf 1 Open on Saturdays" });
   assert.equal(collapsed.quickFacts[1]!.label, "Open on Saturdays");
   assert.equal(applyServiciosTranslation(fixture, {}), fixture, "no-op keeps reference identity");
+});
+
+/* ==============================================================================================
+ * RESIDUAL-2 (2026-09-14 follow-up, live-smoke find) — service classification must be catalog-
+ * resolved, not prefix-only. A `svc_`-prefixed id that does not resolve to a real
+ * BUSINESS_TYPE_PRESETS chip is owner text, not canonical — it must ride the translation bundle
+ * instead of silently falling through both the relabel path (no catalog match → no-op) and the
+ * translation path (excluded because it "looked like" a preset id). This is the exact live-
+ * reproduced defect: a legacy/malformed svc_-shaped custom service stayed untranslated.
+ * ============================================================================================ */
+const serviceClassificationFixture = {
+  hero: { categoryLine: "Plomería residencial", badges: [] },
+  about: { text: "Somos una empresa familiar.", specialtiesLine: undefined },
+  highlights: [],
+  services: [
+    { id: "svc_plom_fugas", title: "Reparación de fugas", secondaryLine: "Mismo día", imageAlt: "Reparación de fugas" },
+    { id: "svc_no_such_chip_legacy", title: "Servicios complementarios a domicilio", secondaryLine: "", imageAlt: "Servicios complementarios a domicilio" },
+  ],
+  promotions: [],
+  quickFacts: [],
+  trust: [],
+  coupons: [],
+} as unknown as ServiciosProfileResolved;
+
+check("RESIDUAL-2 classification: catalog resolution is authority, not the svc_ prefix alone", () => {
+  const [real, unknown] = serviceClassificationFixture.services;
+  assert.equal(isOwnerAuthoredService(real!), false, "real catalog service (svc_plom_fugas) stays canonical, not owner text (UNCHANGED)");
+  assert.equal(isOwnerAuthoredService(unknown!), true, "svc_-prefixed id with no catalog match is owner text — the fixed defect");
+});
+
+check("RESIDUAL-2 build: only the unknown/non-catalog svc_ service rides the translation payload", () => {
+  const content = buildServiciosTranslatableContent(serviceClassificationFixture);
+  const details = content.details ?? "";
+  assert.ok(details.includes("Servicios complementarios a domicilio"), "unknown svc_ id service sent as owner text");
+  assert.ok(!details.includes("Reparación de fugas"), "real catalog service never sent to the API (UNCHANGED)");
+});
+
+check("RESIDUAL-2 relabel (targetLocale=en): real catalog svc_ service still relabels canonically; unknown svc_ service is left alone for the API, not silently mutated", () => {
+  const relabeled = relabelServiciosCanonicalPresets(serviceClassificationFixture, "en");
+  assert.equal(relabeled.services[0]!.title, "Leak repair", "real catalog id relabels canonically (UNCHANGED)");
+  assert.equal(relabeled.services[1]!.title, "Servicios complementarios a domicilio", "unknown id is not silently relabeled");
+});
+
+check("RESIDUAL-2 apply: unknown svc_ service translates via the API bundle; real catalog service keeps its canonical relabel; View Original restores the untouched source", () => {
+  const translated = applyServiciosTranslation(
+    serviceClassificationFixture,
+    { details: "1\tAdditional home services\t" },
+    "en",
+  );
+  assert.equal(translated.services[1]!.title, "Additional home services", "unknown svc_ service translated on apply — the fixed defect");
+  assert.equal(translated.services[0]!.title, "Leak repair", "real catalog service still relabels canonically alongside the translated custom one (UNCHANGED)");
+  // "Ver original" / View Original = the untouched source fixture.
+  assert.equal(serviceClassificationFixture.services[1]!.title, "Servicios complementarios a domicilio", "View Original: original owner string untouched");
+  assert.equal(serviceClassificationFixture.services[0]!.title, "Reparación de fugas", "View Original: original catalog-language title untouched");
+});
+
+check("RESIDUAL-2 literal fields unchanged: service ids are never rewritten by relabel or apply", () => {
+  const relabeled = relabelServiciosCanonicalPresets(serviceClassificationFixture, "en");
+  assert.equal(relabeled.services[0]!.id, "svc_plom_fugas");
+  assert.equal(relabeled.services[1]!.id, "svc_no_such_chip_legacy");
+  const translated = applyServiciosTranslation(serviceClassificationFixture, { details: "1\tAdditional home services\t" }, "en");
+  assert.equal(translated.services[0]!.id, "svc_plom_fugas");
+  assert.equal(translated.services[1]!.id, "svc_no_such_chip_legacy");
 });
 
 /* ==============================================================================================
@@ -245,7 +315,9 @@ check("⚠️16 canvas + profile view: the translated overlay actually renders",
   assert.ok(view.includes("services={displayProfile.services}"));
   assert.ok(view.includes("coupons={displayProfile.coupons}"));
   assert.ok(view.includes("<ServiciosPublicDetailsCanvas profile={profile} displayProfile={displayProfile}"));
-  assert.ok(view.includes("<ServiciosBusinessHubContactCard\n                    profile={profile}"), "contact card never translated");
+  // ⚠️37 (2026-09-14): the contact card receives the overlay so owner extra-link LABELS translate;
+  // contact literals are never sent nor rewritten — pinned in verify-servicios-translation-coverage.
+  assert.ok(view.includes("<ServiciosBusinessHubContactCard\n                    profile={displayProfile}"), "contact card renders the overlay");
 });
 
 /* ==============================================================================================

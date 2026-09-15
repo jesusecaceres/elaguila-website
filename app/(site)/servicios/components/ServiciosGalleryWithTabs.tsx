@@ -7,6 +7,7 @@ import type { ServiciosProfileResolved, ServiciosLang } from "../types/servicios
 import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { serviciosImageUnoptimized } from "../lib/serviciosMediaUrl";
 import { buildServiciosGetQuoteIntent, trackServiciosListingCta } from "../lib/serviciosCtaIntents";
+import { serviciosEffectiveQuoteMessage } from "../lib/serviciosContactActions";
 import { serviciosCombinedVideoGridClass } from "../lib/serviciosGalleryVideoLayout";
 import { ServiciosGalleryVideoTile } from "./ServiciosGalleryVideoTile";
 import { BusinessGalleryLightbox, type BusinessGallerySlide } from "@/app/components/media/BusinessGalleryModal";
@@ -178,16 +179,13 @@ export function ServiciosGalleryWithTabs({
     setCtaIntent(null);
   }, []);
 
-  const galleryQuoteMessage =
-    lang === "en"
-      ? "Hi, I saw your profile on Leonix and would like something like this."
-      : "Hola, vi tu perfil en Leonix y quiero algo como esto.";
-
   const handleGalleryQuoteClick = () => {
+    // Owner QA 914 — effective action language + bilingual fallback (see serviciosContactActions.ts).
+    const message = serviciosEffectiveQuoteMessage(profile, lang);
     const intent = buildServiciosGetQuoteIntent(profile, lang, {
       listingSlug,
       listingShareUrl,
-      quoteMessage: galleryQuoteMessage,
+      quoteMessage: message,
     });
     if (!intent) return;
     trackServiciosListingCta(listingSlug, "cta_quote_sms_click", {

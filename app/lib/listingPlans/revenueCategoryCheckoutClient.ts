@@ -86,6 +86,10 @@ export type ValidateRevenuePromoResult =
       subtotalCents: number;
       totalCents: number;
       redemptionPolicy: string;
+      /** ⚠️35 — server-derived; display only (checkout re-derives everything from the promo row). */
+      percentOff?: number | null;
+      termMonths?: number | null;
+      billingMechanism?: "unit_amount_reduction" | "stripe_repeating_coupon";
     }
   | { ok: false; userMessage: string };
 

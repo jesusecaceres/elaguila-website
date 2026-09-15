@@ -35,20 +35,24 @@ export function ServiciosPagosBeneficiosSection({
   profile,
   displayProfile,
   lang,
+  contentLang,
 }: {
   profile: ServiciosProfileResolved;
   displayProfile: ServiciosProfileResolved;
   lang: ServiciosLang;
+  /** ⚠️37 — locale of the business content; catalog payment labels follow it, headings follow `lang`. */
+  contentLang?: ServiciosLang;
 }) {
   const L = getServiciosProfileLabels(lang);
   const headingId = useId();
   const [expanded, setExpanded] = useState(false);
+  const itemLang = contentLang ?? lang;
 
   // Hooks run unconditionally (the memo used to sit after the early returns below).
   const hasSection = hasServiciosPagosBeneficiosSection(profile, displayProfile);
   const groups = useMemo(
-    () => (hasSection ? buildServiciosPagosGroups(profile, displayProfile, lang) : []),
-    [hasSection, profile, displayProfile, lang],
+    () => (hasSection ? buildServiciosPagosGroups(profile, displayProfile, lang, itemLang) : []),
+    [hasSection, profile, displayProfile, lang, itemLang],
   );
   const highlightsGroup = groups.find((g) => g.id === "highlights");
   const needsCollapse = (highlightsGroup?.items.length ?? 0) >= COLLAPSE_THRESHOLD;

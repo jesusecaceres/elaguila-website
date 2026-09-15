@@ -46,14 +46,20 @@ function CompactGroupBlock({
 
 export function ServiciosGroupedHowSection({
   profile,
+  displayProfile,
   lang,
+  contentLang,
 }: {
   profile: ServiciosProfileResolved;
+  /** ⚠️37 — translated overlay (custom amenity labels, language badges); existence gates read `profile`. */
+  displayProfile?: ServiciosProfileResolved;
   lang: ServiciosLang;
+  /** ⚠️37 — locale of the business content; catalog option labels follow it, headings follow `lang`. */
+  contentLang?: ServiciosLang;
 }) {
   if (!hasServiciosGroupedHowSection(profile)) return null;
 
-  const groups = buildServiciosHowGroups(profile, lang);
+  const groups = buildServiciosHowGroups(displayProfile ?? profile, lang, contentLang ?? lang);
   if (groups.length === 0) return null;
 
   const wideGroup = groups.find((g) => g.id === "service");

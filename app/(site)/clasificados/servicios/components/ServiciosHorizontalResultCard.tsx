@@ -192,10 +192,11 @@ export function ServiciosHorizontalResultCard({
   /** Trade canonical card — preview + results share one stacked layout (no legacy CTA rail). */
 
   if (row && !previewProfile) {
+    // ⚠️38A — routing reads the ORIGINAL stored category line, never the viewer-locale relabel.
     const template = resolveServiciosListingTemplate({
       businessTypeId: readServiciosProfileBusinessTypeId(row.profile_json),
       internalGroup: row.internal_group,
-      categoryLabel: profile.hero.categoryLine,
+      categoryLabel: row.profile_json.hero?.categoryLine,
     });
     if (isServiciosProfessionalTemplate(template)) {
       return <ServiciosProfessionalResultCard row={row} lang={lang} embedded density={density} />;

@@ -7,6 +7,7 @@ import "server-only";
 import { resolveEffectivePromoCodeStatus } from "./promoCodeLifecycle";
 import { getRevenuePackageDefinition } from "./revenuePricingMatrix";
 import { validatePromoEligibility } from "./promoCodeRules";
+import { resolvePromoBillingMechanism, type PromoBillingMechanism } from "./promoContractTermBilling";
 import {
   calculatePromoDiscountCents,
   loadPromoByCode,
@@ -39,6 +40,11 @@ export type PromoPublishValidationSuccess = {
   subtotalCents: number;
   totalCents: number;
   redemptionPolicy: string;
+  /** ⚠️35 — server-derived percentage (null for amount_off codes). Display only; checkout re-derives. */
+  percentOff: number | null;
+  /** ⚠️35 — finite contract term in billing months (null = discount applies every cycle while active). */
+  termMonths: number | null;
+  billingMechanism: PromoBillingMechanism;
 };
 
 export type PromoPublishValidationFailure = {
@@ -202,6 +208,15 @@ export async function validatePromoForPublishCheckout(
 
   const totalCents = Math.max(0, subtotalCents - discountCents);
 
+  // ⚠️35 — the same server-derived plan the checkout route will apply, so the summary the customer
+  // reads before paying can never state a different duration than Stripe will bill.
+  const billing = resolvePromoBillingMechanism({
+    billingMode: packageDef.billingMode,
+    promoType,
+    percentOff,
+    contractTerm: row.contract_term,
+  });
+
   return {
     ok: true,
     code: row.code,
@@ -212,5 +227,8 @@ export async function validatePromoForPublishCheckout(
     subtotalCents,
     totalCents,
     redemptionPolicy: PROMO_REDEMPTION_POLICY,
+    percentOff: promoType === "percent_off" ? percentOff : null,
+    termMonths: billing.finiteTerm?.termMonths ?? null,
+    billingMechanism: billing.mechanism,
   };
 }

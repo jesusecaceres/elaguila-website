@@ -6,12 +6,25 @@ import type { AdTranslationResult, ContentLocale, Locale } from "@/app/lib/trans
 import type { TranslateAdProviderFn } from "@/app/lib/translation/provider";
 import {
   buildTranslateCacheKey,
+  clearCachedAdTranslation,
   getCachedAdTranslation,
   maskTranslatableFields,
   pickTranslatableAdFields,
   setCachedAdTranslation,
   unmaskTranslatableFields,
 } from "@/app/lib/translation/helpers";
+import type { TranslatableAdFields } from "@/app/lib/translation/types";
+
+/**
+ * True when every translated field is byte-identical (after trim) to the source it was built
+ * from — i.e. the provider echoed the content back because it was already in the target language.
+ * Exported for verifiers.
+ */
+export function isNoOpTranslation(source: TranslatableAdFields, translated: TranslatableAdFields): boolean {
+  const keys = Object.keys(translated) as Array<keyof TranslatableAdFields>;
+  if (keys.length === 0) return true;
+  return keys.every((key) => (translated[key] ?? "").trim() === (source[key] ?? "").trim());
+}
 
 export type TranslateAdControlLabels = {
   translateAd: string;
@@ -102,14 +115,21 @@ export function TranslateAdControl({
       return;
     }
 
+    // Servicios Live Launch Perfection ⚠️33 (2026-09-14) — a cached result whose text is identical
+    // to the source is an ECHO (content already in the requested language), not a translation.
+    // Replaying it would flip the control to "Ver original" with nothing changed and no request.
     const cached = getCachedAdTranslation(cacheKey);
     if (cached?.translated && cached.targetLocale === siteLocale) {
-      onTranslated({
-        ...cached,
-        fromCache: true,
-      });
-      setViewMode("translated");
-      return;
+      if (isNoOpTranslation(picked, cached.translated)) {
+        clearCachedAdTranslation(cacheKey);
+      } else {
+        onTranslated({
+          ...cached,
+          fromCache: true,
+        });
+        setViewMode("translated");
+        return;
+      }
     }
 
     if (!requestTranslation) {
@@ -136,6 +156,12 @@ export function TranslateAdControl({
         translated: restoredTranslated,
         fromCache: false,
       };
+
+      // ⚠️33 — never present an echo as a translation, and never cache it.
+      if (isNoOpTranslation(picked, restoredTranslated)) {
+        setError(labels.unavailable);
+        return;
+      }
 
       setCachedAdTranslation(cacheKey, result);
       onTranslated(result);

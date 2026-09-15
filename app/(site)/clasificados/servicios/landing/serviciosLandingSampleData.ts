@@ -51,7 +51,12 @@ export type ServiciosLandingExploreCategory = {
   icon: string;
   /** Trade-family filter — must match `ServiciosInternalGroup` / `SERVICIOS_INTERNAL_GROUP_IDS`. */
   resultsGroup?: string;
-  /** Keyword for results `q=` when group filter is not the best fit. */
+  /**
+   * ⚠️38A — canonical business-type intent (`BUSINESS_TYPE_PRESETS` id) emitted as `type=` so the
+   * Spanish and English tiles open the SAME language-neutral inventory.
+   */
+  resultsType?: string;
+  /** Keyword for results `q=` — legacy fallback only when no canonical type / group applies. */
   resultsQueryEs?: string;
   resultsQueryEn?: string;
 };
@@ -89,15 +94,15 @@ export const SERVICIOS_LANDING_QUICK_CHIPS: ServiciosQuickChip[] = [
 ];
 
 export const SERVICIOS_LANDING_EXPLORE_CATEGORIES: ServiciosLandingExploreCategory[] = [
-  { id: "abogado", labelEs: "Abogados / Legal", labelEn: "Lawyers / Legal", icon: "scale", resultsQueryEs: "abogado", resultsQueryEn: "lawyer" },
-  { id: "contador", labelEs: "Contadores", labelEn: "Accountants", icon: "calculator", resultsQueryEs: "contador", resultsQueryEn: "accountant" },
-  { id: "dentista", labelEs: "Dentistas / Salud", labelEn: "Dentists / Health", icon: "health", resultsQueryEs: "dentista", resultsQueryEn: "dentist" },
-  { id: "limpieza", labelEs: "Limpieza", labelEn: "Cleaning", icon: "spray", resultsQueryEs: "limpieza", resultsQueryEn: "cleaning" },
-  { id: "plomeria", labelEs: "Plomería", labelEn: "Plumbing", icon: "tool", resultsQueryEs: "plomería", resultsQueryEn: "plumbing" },
-  { id: "electricista", labelEs: "Electricista", labelEn: "Electrician", icon: "bolt", resultsQueryEs: "electricista", resultsQueryEn: "electrician" },
-  { id: "jardineria", labelEs: "Jardinería", labelEn: "Landscaping", icon: "plant", resultsQueryEs: "jardinería", resultsQueryEn: "landscaping" },
-  { id: "reparacion-auto", labelEs: "Mecánica / Reparación Auto", labelEn: "Mechanic / Auto repair", icon: "car", resultsQueryEs: "mecánica", resultsQueryEn: "auto repair" },
-  { id: "belleza-barberia", labelEs: "Belleza / Barbería", labelEn: "Beauty / Barber", icon: "scissors", resultsQueryEs: "barbería", resultsQueryEn: "barber" },
-  { id: "tutoria", labelEs: "Tutoría / Clases", labelEn: "Tutoring / Classes", icon: "book", resultsQueryEs: "tutoría", resultsQueryEn: "tutoring" },
+  { id: "abogado", labelEs: "Abogados / Legal", labelEn: "Lawyers / Legal", icon: "scale", resultsType: "abogado_asesoria_legal", resultsQueryEs: "abogado", resultsQueryEn: "lawyer" },
+  { id: "contador", labelEs: "Contadores", labelEn: "Accountants", icon: "calculator", resultsType: "contador_impuestos", resultsQueryEs: "contador", resultsQueryEn: "accountant" },
+  { id: "dentista", labelEs: "Dentistas / Salud", labelEn: "Dentists / Health", icon: "health", resultsType: "dentista_odontologia", resultsQueryEs: "dentista", resultsQueryEn: "dentist" },
+  { id: "limpieza", labelEs: "Limpieza", labelEn: "Cleaning", icon: "spray", resultsType: "limpieza_hogares", resultsQueryEs: "limpieza", resultsQueryEn: "cleaning" },
+  { id: "plomeria", labelEs: "Plomería", labelEn: "Plumbing", icon: "tool", resultsType: "plomeria", resultsQueryEs: "plomería", resultsQueryEn: "plumbing" },
+  { id: "electricista", labelEs: "Electricista", labelEn: "Electrician", icon: "bolt", resultsType: "electricista", resultsQueryEs: "electricista", resultsQueryEn: "electrician" },
+  { id: "jardineria", labelEs: "Jardinería", labelEn: "Landscaping", icon: "plant", resultsType: "jardineria_paisajismo", resultsQueryEs: "jardinería", resultsQueryEn: "landscaping" },
+  { id: "reparacion-auto", labelEs: "Mecánica / Reparación Auto", labelEn: "Mechanic / Auto repair", icon: "car", resultsType: "mecanica_general", resultsQueryEs: "mecánica", resultsQueryEn: "auto repair" },
+  { id: "belleza-barberia", labelEs: "Belleza / Barbería", labelEn: "Beauty / Barber", icon: "scissors", resultsType: "peluqueria_barberia", resultsQueryEs: "barbería", resultsQueryEn: "barber" },
+  { id: "tutoria", labelEs: "Tutoría / Clases", labelEn: "Tutoring / Classes", icon: "book", resultsType: "tutoria_clases_particulares", resultsQueryEs: "tutoría", resultsQueryEn: "tutoring" },
 ];
 

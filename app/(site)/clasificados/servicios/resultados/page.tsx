@@ -40,6 +40,8 @@ type PageProps = {
     zip?: string;
     country?: string;
     group?: string;
+    /** ⚠️38A — canonical business-type intent (language-neutral) */
+    type?: string;
     whatsapp?: string;
     promo?: string;
     call?: string;
@@ -109,6 +111,7 @@ export default async function ClasificadosServiciosResultadosPage(props: PagePro
     zip: sp.zip,
     country: sp.country,
     group: sp.group,
+    type: sp.type,
     whatsapp: sp.whatsapp === "1" ? "1" : undefined,
     promo: sp.promo === "1" ? "1" : undefined,
     call: sp.call === "1" ? "1" : undefined,

@@ -37,6 +37,24 @@ function isResourceAlreadyExists(e: unknown): boolean {
   return code === "resource_already_exists";
 }
 
+/**
+ * P0 recovery (2026-09-15) — the three catch blocks below used to swallow the Stripe SDK error
+ * entirely, so a real production 503 left zero trace in the runtime logs (confirmed: the owner's
+ * failed request produced no log line). This logs ONLY safe, non-sensitive Stripe error metadata —
+ * error type/code/HTTP status/request id and which stage failed — never the error message (Stripe
+ * can echo request context into it) and never any key, secret, or request body.
+ */
+function logSanitizedStripeError(stage: "retrieve" | "create" | "retry_retrieve", e: unknown): void {
+  const err = e as { type?: string; code?: string; statusCode?: number; requestId?: string } | null;
+  console.error("[verifiedIntroDiscountStripeCoupon] stripe_error", {
+    stage,
+    type: err?.type ?? null,
+    code: err?.code ?? null,
+    statusCode: err?.statusCode ?? null,
+    requestId: err?.requestId ?? null,
+  });
+}
+
 export async function ensureVerifiedIntroDiscountStripeCoupon(): Promise<EnsureVerifiedIntroDiscountStripeCouponResult> {
   const stripe = getStripeClient();
   if (!stripe) {
@@ -53,8 +71,11 @@ export async function ensureVerifiedIntroDiscountStripeCoupon(): Promise<EnsureV
       };
     }
     return { ok: true, couponId: existing.id };
-  } catch {
-    // Not found (or a transient retrieve error) — attempt creation.
+  } catch (retrieveErr) {
+    // Not found (or a transient retrieve error) — attempt creation. Logged, not swallowed: a
+    // "not found" here is expected and normal on first use, but any other error (auth,
+    // permission, connection) is exactly the kind of thing this diagnostic exists to surface.
+    logSanitizedStripeError("retrieve", retrieveErr);
   }
 
   try {
@@ -76,10 +97,12 @@ export async function ensureVerifiedIntroDiscountStripeCoupon(): Promise<EnsureV
           code: "coupon_misconfigured",
           message: "The verified intro-discount coupon exists but has an unexpected configuration.",
         };
-      } catch {
+      } catch (retryErr) {
+        logSanitizedStripeError("retry_retrieve", retryErr);
         return { ok: false, code: "stripe_error", message: "Failed to resolve the intro-discount coupon after a creation race." };
       }
     }
+    logSanitizedStripeError("create", createErr);
     return { ok: false, code: "stripe_error", message: "Failed to create the verified intro-discount coupon." };
   }
 }

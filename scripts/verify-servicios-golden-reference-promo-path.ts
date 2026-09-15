@@ -300,19 +300,27 @@ check("NO WEAKENING: a zero/absent recorded discount grants no allowance", () =>
 });
 
 check("P0/f: the shipped guard in revenueFulfillment.ts matches the logic proven above", () => {
+  // ⚠️35 (2026-09-14): the first-charge allowance moved into the pure resolver
+  // promoContractTermBilling.resolveAcceptedCheckoutAmounts (so finite-term promo coupons share the
+  // exact same one-additional-value rule). The guard must call it and the resolver must keep the
+  // verified-intro conditions verbatim.
   assert.match(
     FULFILLMENT_SRC,
-    /const verifiedIntroFirstChargeCents\s*=/,
-    "the guard must derive an explicit first-charge value",
+    /const acceptedAmounts\s*=\s*resolveAcceptedCheckoutAmounts\(paymentRecord, packageDef\.priceCents\)/,
+    "the guard must derive the explicit accepted amounts from the pure resolver",
+  );
+  const RESOLVER_SRC = readFileSync(
+    new URL("../app/lib/listingPlans/promoContractTermBilling.ts", import.meta.url),
+    "utf8",
   );
   assert.match(
-    FULFILLMENT_SRC,
-    /paymentRecord\.verified_intro_discount_redemption_id\s*!=\s*null/,
+    RESOLVER_SRC,
+    /record\.verified_intro_discount_redemption_id\s*!=\s*null/,
     "the allowance must require an attached verified-intro redemption",
   );
   assert.match(
-    FULFILLMENT_SRC,
-    /paymentRecord\.billing_mode\s*===\s*"monthly_subscription"/,
+    RESOLVER_SRC,
+    /record\.billing_mode\s*===\s*"monthly_subscription"/,
     "the allowance must be restricted to the subscription (coupon) mechanism",
   );
   assert.match(

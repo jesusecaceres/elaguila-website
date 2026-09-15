@@ -112,11 +112,15 @@ export function ServiciosLandingPage() {
 
   const categoryCards = SERVICIOS_LANDING_EXPLORE_CATEGORIES.slice(0, 8).map((cat) => {
     const qRaw = (lang === "en" ? cat.resultsQueryEn : cat.resultsQueryEs)?.trim() ?? "";
-    const href = cat.resultsGroup
-      ? appendResultsParams(resultsHref, { group: cat.resultsGroup })
-      : qRaw
-        ? appendResultsParams(resultsHref, { q: qRaw })
-        : buildServiciosResultsBrowseHref(routeLang as Lang, {}, {});
+    // ⚠️38A — a trade tile is canonical intent (`type=<businessTypeId>`), identical for ES and EN
+    // viewers; only `lang=` differs. Localized `q` remains a legacy fallback for tiles without a type.
+    const href = cat.resultsType
+      ? appendResultsParams(resultsHref, { type: cat.resultsType })
+      : cat.resultsGroup
+        ? appendResultsParams(resultsHref, { group: cat.resultsGroup })
+        : qRaw
+          ? appendResultsParams(resultsHref, { q: qRaw })
+          : buildServiciosResultsBrowseHref(routeLang as Lang, {}, {});
     const label = lang === "en" ? cat.labelEn : cat.labelEs;
     return {
       id: cat.id,

@@ -74,22 +74,48 @@ export function parseRecurringConsentAcknowledgment(raw: unknown): RecurringCons
  * Servicios Owner QA (SVC-QA-28) — the ONE statement of what a generic promo code does to a monthly
  * subscription, so checkout copy can never imply a different duration than Stripe will bill.
  *
- * Server truth (revenue-os checkout → revenuePromoValidation → revenueStripe): a promo code on a
- * `monthly_subscription` sets the discounted amount as the subscription line item's recurring
- * `unit_amount`. There is no once / N-cycle promo-code duration in the data model, so the reduced
- * price renews EVERY billing cycle for as long as the subscription stays active. (The verified 15%
- * welcome discount is different: a Stripe `duration:"once"` coupon — first payment only.)
+ * Server truth (revenue-os checkout → revenuePromoValidation → revenueStripe):
+ * - ⚠️35 (2026-09-14): a STANDARD finite-term contract code (promo row `contract_term` 3/6/12
+ *   months or founding partner, percent off) is billed with a Stripe `duration:"repeating"` coupon
+ *   for exactly that many billing months while the subscription's own price stays $399 — after the
+ *   term Stripe bills full price by itself. Copy states the term and the post-term price.
+ * - a code WITHOUT a finite contract term (or an amount-off code) still sets the discounted amount
+ *   as the recurring `unit_amount`, so that reduced price renews EVERY billing cycle while the
+ *   subscription stays active — explicit owner/admin scope, stated as such.
+ * (The verified 15% welcome discount is different: a Stripe `duration:"once"` coupon — first payment only.)
  */
 export const PROMO_CODE_SUBSCRIPTION_DURATION = "every_billing_cycle" as const;
+export const PROMO_CODE_CONTRACT_TERM_DURATION = "contract_term_months" as const;
 
-export function buildPromoCodeRecurrenceText(input: { amountCents: number; lang: "es" | "en" }): string {
+export function buildPromoCodeRecurrenceText(input: {
+  /** Discounted monthly amount the customer pays while the discount applies. */
+  amountCents: number;
+  lang: "es" | "en";
+  /** ⚠️35 — finite contract term in billing months (server-derived); omit/null for every-cycle codes. */
+  termMonths?: number | null;
+  percentOff?: number | null;
+  /** Full recurring price after the term (server-derived subtotal). */
+  renewalCents?: number | null;
+}): string {
   const price = formatUsd(input.amountCents);
+  const months = Math.floor(Number(input.termMonths ?? 0));
+  if (months > 1 && input.renewalCents != null) {
+    const renewal = formatUsd(input.renewalCents);
+    const pct = input.percentOff != null && Number.isFinite(Number(input.percentOff)) ? `${Number(input.percentOff)}% ` : "";
+    return input.lang === "es"
+      ? `${pct}de descuento durante ${months} meses. Pagarás ${price} al mes durante ${months} meses. Después: ${renewal}/mes.`
+      : `${pct}off for ${months} months. You'll pay ${price}/month for ${months} months. Then: ${renewal}/month.`;
+  }
   return input.lang === "es"
     ? `Este código reduce tu precio mensual: pagarás ${price} cada mes mientras tu suscripción siga activa.`
     : `This code lowers your monthly price: you'll pay ${price} every month while your subscription stays active.`;
 }
 
-/** Verified welcome discount — first eligible payment only, then the full monthly price. */
+/**
+ * Verified welcome discount — first eligible payment only, then the full monthly price.
+ * ⚠️36 (2026-09-14): the discounted figure is named as a ONE-TIME first payment so it can never read
+ * as the ongoing monthly price.
+ */
 export function buildVerifiedIntroChargeScheduleText(input: {
   firstChargeCents: number;
   renewalCents: number;
@@ -98,6 +124,6 @@ export function buildVerifiedIntroChargeScheduleText(input: {
   const first = formatUsd(input.firstChargeCents);
   const renewal = formatUsd(input.renewalCents);
   return input.lang === "es"
-    ? `Primer pago: ${first}. Después: ${renewal} al mes.`
-    : `First payment: ${first}. Then: ${renewal} per month.`;
+    ? `Primer pago: ${first} — solo esta vez. Después: ${renewal} al mes.`
+    : `First payment: ${first} — this once. Then: ${renewal} per month.`;
 }

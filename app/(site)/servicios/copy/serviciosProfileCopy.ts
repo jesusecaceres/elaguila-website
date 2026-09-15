@@ -52,10 +52,12 @@ export function getServiciosPromocionesSectionCopy(lang: ServiciosLang) {
   if (lang === "en") {
     return {
       sectionTitle: "Special offers",
+      sectionSubtitle: "Offers and benefits available when contacting this business.",
     };
   }
   return {
     sectionTitle: "Ofertas especiales",
+    sectionSubtitle: "Ofertas y beneficios disponibles al contactar este negocio.",
   };
 }
 

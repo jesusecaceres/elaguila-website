@@ -46,11 +46,14 @@ export function ServiciosPublicDetailsCanvas({
   profile,
   displayProfile,
   lang,
+  contentLang,
   template,
 }: {
   profile: ServiciosProfileResolved;
   displayProfile: ServiciosProfileResolved;
   lang: ServiciosLang;
+  /** ⚠️37 — locale of the displayed business content (drives the regenerated smart summary). */
+  contentLang?: ServiciosLang;
   template?: ServiciosListingTemplate;
 }) {
   if (!hasServiciosPublicDetailsCanvas(profile)) return null;
@@ -90,7 +93,7 @@ export function ServiciosPublicDetailsCanvas({
           {hasQuickFactsResolved(profile) ? (
             <ServiciosQuickFacts facts={displayProfile.quickFacts} lang={lang} compact />
           ) : null}
-          <ServiciosSmartTrustSummary profile={displayProfile} lang={lang} />
+          <ServiciosSmartTrustSummary profile={displayProfile} lang={lang} contentLang={contentLang} />
         </CanvasGroup>
       ) : null}
     </section>

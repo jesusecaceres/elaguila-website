@@ -11,7 +11,11 @@ import {
   serviciosListingAnalyticsMetadata,
   type ServiciosAnalyticsTrackMeta,
 } from "./serviciosAnalyticsIdentity";
-import { serviciosUniversalQuoteMessage, buildQuoteSmsHref } from "./serviciosContactActions";
+import {
+  serviciosEffectiveQuoteMessage,
+  serviciosUniversalQuoteMessage,
+  buildQuoteSmsHref,
+} from "./serviciosContactActions";
 import { extractServiciosWhatsAppDigits, resolveServiciosProfileDirectWhatsAppHref } from "./serviciosWhatsAppHref";
 
 export type { ServiciosAnalyticsTrackMeta } from "./serviciosAnalyticsIdentity";
@@ -142,7 +146,7 @@ export function buildServiciosGetQuoteIntent(
     quoteMessage?: string;
   } = {},
 ): Extract<CtaSheetIntent, { kind: "get_quote" }> | null {
-  const qm = (opts.quoteMessage?.trim() || serviciosUniversalQuoteMessage(lang)).trim();
+  const qm = (opts.quoteMessage?.trim() || serviciosEffectiveQuoteMessage(profile, lang)).trim();
   const quotePhone = profile.contact.quoteMessagePhone?.trim();
   const smsOk = Boolean(buildQuoteSmsHref(quotePhone, lang));
   const waHref = resolveServiciosProfileDirectWhatsAppHref(profile.contact) ?? "";
@@ -187,7 +191,9 @@ export function buildServiciosSendEmailIntentFromMailto(
   return {
     kind: "send_email",
     email,
-    subject: subject || (lang === "en" ? "Leonix Media" : "Leonix Media"),
+    subject: subject || "Leonix Media",
+    // No profile in scope here (only a pre-built mailto href) — plain single-language message;
+    // every live call site already supplies its own `body` via the mailto query string.
     body: body || serviciosUniversalQuoteMessage(lang),
     contactShareExtras: {
       publicUrl: serviciosBuildListingPublicUrl(listingSlug, listingShareUrl) || undefined,

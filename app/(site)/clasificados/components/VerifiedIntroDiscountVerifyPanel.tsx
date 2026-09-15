@@ -43,7 +43,8 @@ type PanelState =
 
 const COPY = {
   es: {
-    title: "Descuento de bienvenida verificado (15%)",
+    // ⚠️36 (2026-09-14): the discount applies to the FIRST payment only — say so everywhere it is named.
+    title: "15% de bienvenida — solo en tu primer pago",
     excluded: {
       already_redeemed: "Ya usaste tu descuento de bienvenida.",
       package_excluded: "Este paquete no califica para el descuento de bienvenida.",
@@ -61,10 +62,10 @@ const COPY = {
     codeLabel: "Código de verificación",
     verify: "Verificar",
     smsUnavailable: "La verificación por SMS no está disponible en este momento. Verifica tu correo iniciando sesión con un correo confirmado.",
-    apply: "Aplicar 15% de descuento",
+    apply: "Aplicar 15% a mi primer pago",
     remove: "Quitar",
-    applied: "Descuento de bienvenida (15%) aplicado.",
-    renewalNote: "Las renovaciones se cobran al precio completo.",
+    applied: "15% de bienvenida aplicado — solo en tu primer pago.",
+    renewalNote: "Después de ese primer pago, cada renovación se cobra al precio completo.",
     // ⚠️27 (2026-09-13): name the identity that qualifies — the Leonix ACCOUNT (sign-in email or
     // verified phone). The newsletter email field on this page is unrelated to the discount.
     basisEmail:
@@ -78,7 +79,7 @@ const COPY = {
     genericError: "Algo salió mal. Intenta de nuevo.",
   },
   en: {
-    title: "Verified welcome discount (15%)",
+    title: "15% welcome discount — first payment only",
     excluded: {
       already_redeemed: "You've already used your welcome discount.",
       package_excluded: "This package is not eligible for the welcome discount.",
@@ -94,10 +95,10 @@ const COPY = {
     codeLabel: "Verification code",
     verify: "Verify",
     smsUnavailable: "SMS verification is temporarily unavailable. You can qualify with a confirmed email instead — sign in with a verified email address.",
-    apply: "Apply 15% discount",
+    apply: "Apply 15% to my first payment",
     remove: "Remove",
-    applied: "Welcome discount (15%) applied.",
-    renewalNote: "Renewals are billed at the full price.",
+    applied: "15% welcome discount applied — first payment only.",
+    renewalNote: "After that first payment, every renewal is billed at the full price.",
     basisEmail:
       "Your account qualifies: the email you signed in to Leonix with is verified. The newsletter email does not affect this discount.",
     basisPhone:

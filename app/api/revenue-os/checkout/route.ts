@@ -79,6 +79,7 @@ import {
   type ReserveVerifiedIntroDiscountInput,
 } from "@/app/lib/listingPlans/verifiedIntroDiscountRedemptions";
 import { ensureVerifiedIntroDiscountStripeCoupon } from "@/app/lib/listingPlans/verifiedIntroDiscountStripeCoupon";
+import { ensureContractTermStripeCoupon } from "@/app/lib/listingPlans/contractTermStripeCoupon";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -319,6 +320,9 @@ export async function POST(request: NextRequest) {
   let promoBaseAmountForRecord: number | undefined;
   // Package F Build F2, promo concurrency closure — threaded to the atomic reservation RPC below.
   let promoPerCustomerLimitForRecord: number | null | undefined;
+  // ⚠️35 — finite-term contract promo: Stripe repeating coupon + the term persisted on the record.
+  let contractTermStripeCouponId: string | null = null;
+  let contractTermForRecord: string | null = null;
   if (promoCodeRaw) {
     const prelim = validateRevenueCheckoutRequest(body, { validatedAddOns });
     if (!prelim.ok) {
@@ -356,7 +360,30 @@ export async function POST(request: NextRequest) {
 
     promoCodeId = promoResult.promoCodeId;
     discountCents = promoResult.discountCents;
-    finalAmountCents = promoResult.finalAmountCents;
+    if (promoResult.billing.mechanism === "stripe_repeating_coupon" && promoResult.billing.finiteTerm) {
+      // ⚠️35 — standard finite-term contract code (row contract_term × row percent, both server-
+      // owned): the subscription line item stays at the FULL recurring price and a Stripe
+      // duration:"repeating" coupon discounts exactly `termMonths` invoices, after which Stripe
+      // bills full price with no Leonix action. `finalAmountCents` is deliberately left unset so
+      // amountCents = the full subtotal; the per-cycle discount is still recorded on the ledger and
+      // the payment record (the webhook amount guard needs it). Coupon-first, fail-closed: an
+      // unavailable coupon stops checkout — never a silent permanent price reduction.
+      const couponResult = await ensureContractTermStripeCoupon(promoResult.billing.finiteTerm);
+      if (!couponResult.ok) {
+        return NextResponse.json(
+          {
+            ok: false,
+            code: "promo_discount_temporarily_unavailable",
+            message: "This promo code is temporarily unavailable. Retry, or continue without it.",
+          },
+          { status: 503 },
+        );
+      }
+      contractTermStripeCouponId = couponResult.couponId;
+      contractTermForRecord = promoResult.billing.finiteTerm.contractTerm;
+    } else {
+      finalAmountCents = promoResult.finalAmountCents;
+    }
     promoTypeForRecord = promoResult.promoType;
     promoFamilyForRecord = promoResult.promoFamily;
     promoWebsiteCheckoutOnly = promoResult.websiteCheckoutOnly;
@@ -703,6 +730,7 @@ export async function POST(request: NextRequest) {
     customerEmail: body.customerEmail,
     promoCodeId,
     discountCents: discountCents || verifiedIntroDiscountCents,
+    contractTerm: contractTermForRecord,
     promoCode: promoCodeRaw ?? null,
     discountType: promoTypeForRecord ?? (verifiedIntroDiscountEligible ? "verified_intro_15" : null),
     promoFamily: promoFamilyForRecord ?? null,
@@ -847,6 +875,7 @@ export async function POST(request: NextRequest) {
     attemptGeneration,
     consentRecordId,
     verifiedIntroDiscountStripeCouponId,
+    contractTermStripeCouponId,
   });
 
   if (!stripeResult.ok) {

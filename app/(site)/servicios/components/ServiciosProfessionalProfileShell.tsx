@@ -142,8 +142,10 @@ export function ServiciosProfessionalProfileShell({
   hubEngagementVariant,
 }: ServiciosProfessionalProfileShellProps) {
   const listingKey = analyticsListingSlug?.trim() || profile.identity.slug;
-  const { displayProfile, translateControl } = useServiciosPublicTranslation({ profile, lang, listingKey });
-  const navItems = useMemo(() => mobileNavItems(template, lang), [template, lang]);
+  const { displayProfile, translateControl, displayLang } = useServiciosPublicTranslation({ profile, lang, listingKey });
+  // Owner QA 914 — the mobile section-jump labels mirror the section headings they navigate to, so
+  // they follow the effective content language too.
+  const navItems = useMemo(() => mobileNavItems(template, displayLang), [template, displayLang]);
 
   const scrollToSection = useCallback((id: string) => {
     const el = document.getElementById(id);
@@ -213,7 +215,7 @@ export function ServiciosProfessionalProfileShell({
 
           <ServiciosProfessionalHero
             profile={profile}
-            lang={lang}
+            lang={displayLang}
             template={template}
             contactScrollTargetId="servicios-pro-contact"
             listingSlug={analyticsListingSlug}
@@ -226,7 +228,7 @@ export function ServiciosProfessionalProfileShell({
                   <ServiciosLikeEngagementCluster
                     listingId={lxListingId}
                     ownerUserId={lxOwner}
-                    lang={lang}
+                    lang={displayLang}
                     publicLikeCount={likeCueN}
                     persistEngagement={persistListingEngagement}
                     variant="small"
@@ -241,12 +243,13 @@ export function ServiciosProfessionalProfileShell({
                     ownerUserId={lxOwner}
                     listingTitle={profile.identity.businessName}
                     variant="small"
-                    lang={lang}
+                    lang={displayLang}
                     category="servicios"
                     persistEngagement={persistListingEngagement}
                     recordShareEvent={
                       globalListing ? serviciosGlobalShareRecorder(globalListing, "detail_share") : undefined
                     }
+                    directNativeShare
                   />
                 </div>
               ) : undefined
@@ -258,13 +261,14 @@ export function ServiciosProfessionalProfileShell({
               {translateControl ? <div>{translateControl}</div> : null}
 
               {hasAboutSectionResolved(profile) ? (
-                <ServiciosAbout profile={displayProfile} lang={lang} premiumLeonixTone />
+                <ServiciosAbout profile={displayProfile} lang={displayLang} premiumLeonixTone />
               ) : null}
 
               <div id="servicios-pro-contact" className={SECTION_SCROLL}>
+                {/* Owner QA 914 — full contact hub chrome is ad-local; contact literals never change. */}
                 <ServiciosBusinessHubContactCard
-                  profile={profile}
-                  lang={lang}
+                  profile={displayProfile}
+                  lang={displayLang}
                   listingTemplate={template}
                   listingSlug={analyticsListingSlug}
                   listingSourceId={sourceId || listingSourceId}
@@ -280,12 +284,12 @@ export function ServiciosProfessionalProfileShell({
                 />
               </div>
 
-              <ServiciosVisualProofRow profile={displayProfile} lang={lang} />
+              <ServiciosVisualProofRow profile={displayProfile} lang={displayLang} />
 
               {showCouponBlock ? (
                 <ServiciosCouponsCard
                   coupons={displayProfile.coupons}
-                  lang={lang}
+                  lang={displayLang}
                   couponFlyer={displayProfile.couponFlyer}
                   couponMoreOffers={displayProfile.couponMoreOffers}
                   featuredRow
@@ -295,7 +299,7 @@ export function ServiciosProfessionalProfileShell({
               {hasGallerySectionResolved(displayProfile) ? (
                 <ServiciosGalleryWithTabs
                   profile={displayProfile}
-                  lang={lang}
+                  lang={displayLang}
                   listingSlug={analyticsListingSlug}
                   listingSourceId={sourceId || listingSourceId}
                   listingShareUrl={listingShareUrl}
@@ -307,7 +311,7 @@ export function ServiciosProfessionalProfileShell({
                 <section id="servicios-pro-services" className={SECTION_SCROLL}>
                   <ServiciosOfferedSection
                     services={displayProfile.services}
-                    lang={lang}
+                    lang={displayLang}
                     profileForQuote={profile}
                     listingSlug={analyticsListingSlug}
                     listingSourceId={sourceId || listingSourceId}
@@ -320,21 +324,23 @@ export function ServiciosProfessionalProfileShell({
               <ServiciosPublicDetailsCanvas
                 profile={profile}
                 displayProfile={displayProfile}
-                lang={lang}
+                lang={displayLang}
+                contentLang={displayLang}
                 template={template}
               />
 
-              <ServiciosGroupedHowSection profile={profile} lang={lang} />
+              <ServiciosGroupedHowSection profile={profile} displayProfile={displayProfile} lang={displayLang} contentLang={displayLang} />
 
               <ServiciosPagosBeneficiosSection
                 profile={profile}
                 displayProfile={displayProfile}
-                lang={lang}
+                lang={displayLang}
+                contentLang={displayLang}
               />
 
               {heroEngagementActive ? (
                 <ServiciosEndOfContentShare
-                  lang={lang}
+                  lang={displayLang}
                   listingId={lxListingId}
                   listingTitle={profile.identity.businessName}
                   listingShareUrl={listingShareUrl}
@@ -349,7 +355,7 @@ export function ServiciosProfessionalProfileShell({
             <div className={`flex min-w-0 flex-col ${LX_PRO_SECTION_GAP}`}>
               {showReviewsSection ? (
                 <section id="servicios-pro-reviews" className={SECTION_SCROLL}>
-                  <ServiciosReviews profile={profile} lang={lang} />
+                  <ServiciosReviews profile={profile} lang={displayLang} />
                 </section>
               ) : (
                 <section id="servicios-pro-reviews" className={`${SECTION_SCROLL} sr-only`} aria-hidden>
@@ -358,11 +364,11 @@ export function ServiciosProfessionalProfileShell({
               )}
 
               {analyticsListingSlug && showPublicLeadInquiryForm ? (
-                <ServiciosLeadInquiryForm listingSlug={analyticsListingSlug} lang={lang} />
+                <ServiciosLeadInquiryForm listingSlug={analyticsListingSlug} lang={displayLang} />
               ) : null}
 
               {!profile.contact.hours?.weeklyRows ? (
-                <ServiciosHours profile={profile} lang={lang} />
+                <ServiciosHours profile={profile} lang={displayLang} />
               ) : null}
             </div>
 

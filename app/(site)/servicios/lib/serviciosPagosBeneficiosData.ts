@@ -38,10 +38,15 @@ export function resolveServiciosPagosGroupIcon(groupId: string, explicit?: strin
   return PAGOS_GROUP_ICON_FALLBACK[groupId] ?? "✨";
 }
 
+/**
+ * `lang` drives the static group titles; `itemLang` (⚠️37, defaults to `lang`) drives the catalog
+ * payment-method labels, and custom payment labels come from the translated overlay.
+ */
 export function buildServiciosPagosGroups(
   profile: ServiciosProfileResolved,
   displayProfile: ServiciosProfileResolved,
   lang: ServiciosLang,
+  itemLang: ServiciosLang = lang,
 ): ServiciosPagosGroup[] {
   const groups: ServiciosPagosGroup[] = [];
 
@@ -50,13 +55,13 @@ export function buildServiciosPagosGroups(
 
   for (const id of SERVICIOS_PAYMENT_METHOD_ORDER) {
     if (!profile.paymentMethodIds.includes(id) || !isServiciosPaymentMethodId(id)) continue;
-    const label = getServiciosPaymentMethodLabel(id, lang);
+    const label = getServiciosPaymentMethodLabel(id, itemLang);
     const row = { label, paymentMethodId: id };
     if (FINANCING_IDS.has(id)) financingItems.push(row);
     else paymentItems.push(row);
   }
 
-  for (const raw of profile.customPaymentMethods) {
+  for (const raw of displayProfile.customPaymentMethods) {
     const label = raw.trim();
     if (!label) continue;
     paymentItems.push({ label });

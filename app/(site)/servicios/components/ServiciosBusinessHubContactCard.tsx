@@ -18,7 +18,7 @@ import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { nonEmpty } from "../lib/serviciosProfilePrimitives";
 import {
   resolveServiciosQuoteDestination,
-  serviciosUniversalQuoteMessage,
+  serviciosEffectiveQuoteMessage,
   type ServiciosQuoteDestinationKind,
 } from "../lib/serviciosContactActions";
 import {
@@ -243,7 +243,8 @@ export function ServiciosBusinessHubContactCard({
   }
 
   const quote = resolveServiciosQuoteDestination(profile, lang);
-  const quoteMsgText = serviciosUniversalQuoteMessage(lang);
+  // Owner QA 914 — effective action language + bilingual fallback (see serviciosContactActions.ts).
+  const quoteMsgText = serviciosEffectiveQuoteMessage(profile, lang);
   const primaryCtaLabel = resolveProfessionalHubQuoteCtaLabel(
     profile.contact.primaryCtaLabel,
     listingTemplate,
