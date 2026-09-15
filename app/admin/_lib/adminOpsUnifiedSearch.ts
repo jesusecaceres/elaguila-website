@@ -39,13 +39,35 @@ export type AdminUnifiedSearchBundle = {
 };
 
 /**
+ * Gate 1 (SYS-004) — a single flaky/slow source (network blip, connection-pool exhaustion,
+ * transient Supabase timeout) previously took down the *entire* `/admin/ops` request: the
+ * fan-out below used `Promise.all`, and four of these seven source functions
+ * (`fetchProfilesForAdminList`, `searchListingsForAdminOps`, `searchListingReportsForOps`,
+ * `listBusinessesForWorkspace`) have no internal try/catch, so any thrown error propagated
+ * uncaught through `Promise.all` and crashed the whole page rather than degrading just that one
+ * source — the reproducible mechanism behind the live 503 captured on 2026-09-13. Each source is
+ * now isolated: a rejection degrades only that source to its own honest empty/error state (never
+ * fabricated data), matching the graceful-degradation pattern already used elsewhere in Company
+ * Search (`searchExtendedAdminSources`, `searchDedicatedCategoryListingsForAdminOps`).
+ */
+function settledOr<T>(result: PromiseSettledResult<T>, fallback: T): T {
+  return result.status === "fulfilled" ? result.value : fallback;
+}
+
+function sourceErrorMessage(result: PromiseSettledResult<unknown>): string | null {
+  if (result.status !== "rejected") return null;
+  const reason = result.reason as { message?: unknown } | undefined;
+  return typeof reason?.message === "string" ? reason.message : "Search source unavailable — try again in a moment.";
+}
+
+/**
  * Parallel cross-entity search for customer operations (no fake persistence). `viewer` is
  * optional and, today, only consumed by the Executive Hub / staff-contact-profile source inside
  * `searchExtendedAdminSources` — every other source's destination is already role-agnostic.
  */
 export async function runAdminUnifiedSearch(q: string, viewer?: AdminExtendedSearchViewer): Promise<AdminUnifiedSearchBundle> {
   const trimmed = q.trim();
-  const [profiles, listings, orders, reports, dedicatedCategories, businesses, extended] = await Promise.all([
+  const settled = await Promise.allSettled([
     fetchProfilesForAdminList({ q: trimmed, searchLimit: 40, recentLimit: 200 }),
     searchListingsForAdminOps(trimmed, 25),
     listTiendaOrdersForAdmin({ search: trimmed, limit: 25 }),
@@ -54,6 +76,22 @@ export async function runAdminUnifiedSearch(q: string, viewer?: AdminExtendedSea
     trimmed ? listBusinessesForWorkspace({ keyword: trimmed, limit: 8 }) : Promise.resolve({ items: [], total: 0 }),
     searchExtendedAdminSources(trimmed, viewer),
   ]);
+  const [profilesR, listingsR, ordersR, reportsR, dedicatedCategoriesR, businessesR, extendedR] = settled;
+
+  const profiles = settledOr(profilesR, { rows: [], error: sourceErrorMessage(profilesR), strategy: "recent" as const });
+  const listings = settledOr(listingsR, { rows: [], error: sourceErrorMessage(listingsR) });
+  const orders = settledOr(ordersR, { rows: [], total: 0, error: sourceErrorMessage(ordersR) });
+  const reports = settledOr(reportsR, { rows: [], error: sourceErrorMessage(reportsR) });
+  const dedicatedCategories = settledOr(dedicatedCategoriesR, {
+    rows: [],
+    errors: sourceErrorMessage(dedicatedCategoriesR) ? [sourceErrorMessage(dedicatedCategoriesR) as string] : [],
+  });
+  const businesses = settledOr(businessesR, { items: [], total: 0 });
+  const extended = settledOr(extendedR, {
+    rows: [],
+    errors: sourceErrorMessage(extendedR) ? [sourceErrorMessage(extendedR) as string] : [],
+    unsupportedSources: [],
+  });
 
   let supportContext: AdminSupportContext | null = null;
   if (profiles.rows.length === 1 && !profiles.error) {

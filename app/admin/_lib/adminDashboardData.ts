@@ -108,6 +108,8 @@ export type AdminAttentionReviewTruth = {
   /** Evidence only — raw listing_reports rows with status=pending. Never sum this into a second attention total. */
   reportRowCount: number;
   genericListingsFlaggedOrPendingCount: number;
+  /** Gate 2 (CMD-001/CMD-003) — the exact deduplicated size of the generic-classifieds bucket (flagged/pending status UNION pending-report listing ids). This is the number that actually feeds `uniqueListingsNeedingReview`; `genericListingsFlaggedOrPendingCount` and `reportRowCount` alone cannot be summed to reproduce it without double-counting a listing that is both flagged and reported. */
+  genericAndReportedUniqueCount: number;
   empleosPendingReviewCount: number;
   viajesPendingReviewCount: number;
   /** Servicios (listing_status="pending_review") and Ofertas Locales (status IN submitted/pending_review) — the only other 2 of the 7 dedicated-table categories with a genuine moderation review gate. */
@@ -792,6 +794,7 @@ async function computeAdminAttentionReviewTruth(
       ofertasLocalesPendingReviewCount,
     reportRowCount,
     genericListingsFlaggedOrPendingCount: genericIds.length,
+    genericAndReportedUniqueCount: uniqueGenericAndReported.size,
     empleosPendingReviewCount,
     viajesPendingReviewCount,
     serviciosPendingReviewCount,

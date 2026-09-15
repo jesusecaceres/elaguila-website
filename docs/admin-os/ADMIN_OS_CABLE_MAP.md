@@ -1492,3 +1492,115 @@ is running in production, not merely staged in a worktree.
   (Business External Links in a Business 360 "Connected records" section, `admin_audit_log` actor
   attribution appearing correctly in the Activity Log, and Executive Hub staff self-service linking
   end-to-end) — this is runtime/UX proof, not a known defect.
+
+---
+
+## LIVE OWNER QA REPAIR — GATE 0 WIRING BOOK (2026-09-13)
+
+**Full six-domain route-by-route technical inventory now lives in a dedicated document**:
+`docs/admin-os/ADMIN_OS_LIVE_QA_WIRING_BOOK.md`. This Cable Map's own narrative "## SYSTEM:"
+sections above remain historically accurate for the specific gates that produced them and are
+NOT superseded — the Wiring Book is an additive cross-reference layer (public↔admin parity,
+screenshot correlation, six-domain route table, deep-flow root-cause traces), not a replacement.
+Where the two documents describe the same system, they agree; no contradictory truth was
+introduced.
+
+**New confirmed findings from the Gate 0 pass, not previously recorded anywhere in this file:**
+- `AdminCommandCenterDashboard.tsx`'s "Needs review" count (`adminDashboardData.ts:
+  computeAdminAttentionReviewTruth`, a 5-source deduplicated union) and its own "Review listings"
+  CTA (`adminDashboardRoutes.ts:14`, `/admin/workspace/clasificados?status=flagged`, 1 table/1
+  status only) are both individually correct but represent different universes — no route
+  currently renders the union the count promises. Live-QA finding CMD-001, root cause proven.
+- Generic-listings AI Review (`listingAiModerationEngine.ts`) requires `OPENAI_API_KEY` and the
+  `listing_moderation_reviews` table; the Clasificados workspace hub's own purpose card already
+  self-discloses this (`status="needs live proof"`) — screenshot-confirmed live in production.
+  Live-QA finding MOD-001, root cause proven.
+- `/admin/usuarios/[id]` (1233 lines) has no linked-business section, no support-case section, and
+  no next-action/follow-up section — Live-QA finding PEO-001, confirmed by full-file read.
+- Business 360 (`/admin/businesses/[businessId]/page.tsx`) has zero imports of
+  `packageEntitlementData.ts`, `promoCodeData.ts`, or `paymentTrackerData.ts` — no unified
+  commercial-benefits view exists anywhere in the product. Live-QA findings REV-001–004.
+- Reports→Reporter link carries no back-reference query param (User→Reports does, one-way only).
+  Live-QA findings RPT-003/PEO-002.
+- **Newly discovered, not in the original Live QA ledger**: Nosotros and Contacto appear to share
+  Cupones' already-known broken-write-path pattern (admin editor saves, live public page never
+  reads the saved row) but do not self-disclose it the way Cupones does (NEEDS_PROOF — sourced
+  from this Cable Map's own prior narrative, not re-traced fresh this pass); the Language Audit
+  tool (`/admin/workspace/language-audit`) is 100% hardcoded and cannot structurally ever report a
+  translation failure; zero AI/LLM provider health monitoring exists in `adminSystemHealth.ts`
+  despite 5+ live features depending on one (including a safety-load-bearing Iglesias Prayer Wall
+  classifier); `/negocios-locales` and `/productos-promocion` are fully orphaned public pages with
+  no admin editor; `/admin/settings` (the long-known disabled stub) has zero guide/truth-matrix
+  explanatory presence anywhere.
+- LEO divergence inventory (read-only): canonical LEO branch has exactly 4 unmerged commits (31
+  files — neural-voice layer, LEO nav registry, executive-reporting adapters) not reachable from
+  `main`; working tree clean. Full detail in the Wiring Book §12.
+
+**Worktree note**: this gate's work was done in a new, owner-authorized worktree
+`C:\projects\elaguila-website-admin-live-qa` (branch `integration/admin-os-live-qa-repair-2026-09`,
+based on `origin/main` @ `4abbaa9330e012e887637126fd94d68ef211cb8a`) — a deliberate exception to
+the historical "never create another Admin OS worktree" rule, made necessary because the prior
+dedicated worktree no longer existed and the session's default directory resolved to the
+explicitly-forbidden LEO integration worktree. The LEO worktree was never altered.
+
+**No functional repair was performed this gate.** Documentation only.
+
+---
+
+## LIVE OWNER QA REPAIR — GATE 0B COMPLETION (2026-09-14)
+
+`GATE_0_WIRING_BOOK_COMPLETE` upgraded from `PARTIAL` to **`YES`**. Full detail in the Wiring
+Book's new §17 (Gate 0B addendum) — summary here for cross-reference:
+
+- Screenshot count discrepancy (357 vs. 352) reconciled exactly: 357 was `unzip -l`'s raw
+  per-archive "files" sum including 5 directory entries; 352 is the true count, confirmed by
+  SHA-256 hashing all 352 extracted images (zero duplicates).
+- All 43 distinct-screenshot time-clusters now directly reviewed (19 more beyond Gate 0's 24),
+  reaching 43/43 mapped, 0 unclassified.
+- 5 newly-discovered systems/gaps from Gate 0 (Nosotros/Contacto dead-write, Language Audit,
+  zero AI-provider monitoring, orphaned public pages, `/admin/settings` documentation gap, LEO
+  guide-claim discrepancy) received permanent IDs: WEB-003, WEB-004, WEB-006, WEB-007, SYS-001,
+  SYS-002, SYS-003, HELP-003, HELP-004, LEO-002.
+- Completing full screenshot coverage surfaced 4 more new findings: **SYS-004** (`/admin/ops`
+  returned a live 503 during the owner's session, captured in DevTools) and **SYS-005**
+  (`/tienda/catalog` returned a live 404, same capture) are genuine newly-observed runtime errors,
+  not code-trace inferences; **REV-006** precisely characterizes Package Entitlements as
+  explicitly not yet wired to Stripe billing/public-visibility activation (self-documented in the
+  page's own copy); **PEO-003** confirms a real "← Back to review queue" breadcrumb exists on the
+  User detail page, refining (not contradicting) RPT-003/PEO-002's context-loss finding.
+- Every one of the 47 total findings (33 original ledger rows + 14 new: WEB-003/004/006/007,
+  SYS-001–005, HELP-003/004, LEO-002, REV-006, PEO-003) now carries an explicit proof
+  classification (REPO_PROVEN / SCREENSHOT_PROVEN / REPO_AND_SCREENSHOT_PROVEN /
+  LIVE_BROWSER_REQUIRED / RESTRICTED_STAFF_SESSION_REQUIRED / PROVIDER_RUNTIME_REQUIRED /
+  OWNER_BUSINESS_DECISION_REQUIRED) and a routed future gate — no unknown is marked PASS.
+- Help/Guide coverage matrix (~28 modules) and a six-domain "if Chuy is sick" continuity matrix
+  were produced, citing only already-proven access-control checks.
+- LEO delta (still fully read-only, LEO worktree untouched) now carries a per-file impact
+  classification for future Gate 19: the executive-reporting adapters and the LEO branch's stale
+  `adminDashboardRoutes.ts` copy are the two highest-overlap-risk items once Admin repairs land.
+- Repair sequencing refined twice more: Gate 1 should attempt to reproduce SYS-004/005; a narrow
+  slice of Gate 18 (AI-provider config-presence in System Health) should move before Gate 9.
+
+No functional repair was performed. No file outside `docs/admin-os/` was modified. No commit,
+push, merge, or deploy occurred. The LEO worktree was not touched.
+
+**2026-09-14 update**: the Autonomous Repair Program (Gates 1–20) implemented the fixes this
+document catalogued as findings, and a subsequent Pre-QA Forensic Completion Audit
+(`ADMIN_OS_PRE_QA_FORENSIC_COMPLETION_AUDIT.md`) re-verified every gate against current code and
+closed 3 gaps that had been marked complete too early (Business 360's commercial rollup, the
+Gate-9 owner-workflow path, and Language Audit's live-check coverage), plus implemented a
+previously-accepted-as-permanent Stripe health-check limitation. Full detail lives in
+`ADMIN_OS_PROGRESS.md` and `ADMIN_OS_TESTS.json`; this file's own system-by-system wiring
+descriptions are not being retroactively rewritten here — treat the two documents above as the
+current-truth layer on top of this one.
+
+**2026-09-14 update (continuity gate)**: live owner browser QA surfaced two more findings —
+CMD-004/DATA-QUERY-001 (Command Center review-count/destination parity, plus a schema-drift
+query-failure family) and a Staff Contact + Virtual Front Desk continuity gate (Executive Hub and
+the Digital Doorbell/`/visitanos` system both existed and worked, but the doorbell/presence pages
+had zero links anywhere in Admin). A closeout pass on the same gate also added a real, safe,
+config-presence-only "Virtual Front Desk" row to System Health (`buildAdminSystemHealthSnapshot()`
+in `adminSystemHealth.ts`) — the first pass had incorrectly stopped at "no health check exists"
+without checking whether one could be safely surfaced from already-existing config-presence
+functions. All fixes are in `ADMIN_OS_OWNER_BROWSER_QA_LEDGER.md` and `ADMIN_OS_PROGRESS.md`;
+again, not retroactively edited into this file's own wiring descriptions.

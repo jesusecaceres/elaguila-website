@@ -10,8 +10,15 @@ export const ADMIN_DASHBOARD_ROUTES = {
    * docs/admin-os/ADMIN_OS_CABLE_MAP.md, REVENUE domain, "Media Kit requests". */
   mediaKit: "/admin/leads/inbox?view=media_kit",
   classifiedsQueue: "/admin/workspace/clasificados",
-  /** Filtered review queue — lands on queue table, not category hub (ADMIN-REVIEW-QUEUE-TRUTH-02). */
-  classifiedsReviewQueue: "/admin/workspace/clasificados?status=flagged#queue",
+  /**
+   * Filtered review queue — lands on queue table, not category hub (ADMIN-REVIEW-QUEUE-TRUTH-02).
+   * CMD-004 (2026-09-14): `status=needs_review` is a synthetic filter value
+   * (see LISTINGS_NEEDS_REVIEW_STATUS_TOKEN in listingsAdminSelect.ts) that
+   * reproduces the exact pending+flagged+reported union the Command Center
+   * counts — was `status=flagged`, which silently hid pending and reported
+   * listings from the same CTA that claimed to represent all of them.
+   */
+  classifiedsReviewQueue: "/admin/workspace/clasificados?status=needs_review#queue",
   categories: "/admin/workspace/clasificados",
   team: "/admin/team",
   teamRoster: "/admin/team/roster",
@@ -37,6 +44,7 @@ export const ADMIN_DASHBOARD_ROUTES = {
   iglesias: "/admin/workspace/iglesias",
   support: "/admin/support",
   promoCodes: "/admin/workspace/promo-codes",
+  packageEntitlements: "/admin/workspace/package-entitlements",
   systemHealth: "/admin/system-health",
 } as const;
 

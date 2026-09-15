@@ -11,7 +11,19 @@ function RiskBadge({ risk }: { risk: AdminActionContract["riskLevel"] }) {
         : risk === "MEDIUM"
           ? "border-amber-200 bg-amber-50 text-amber-950"
           : "border-emerald-200 bg-emerald-50 text-emerald-950";
-  return <span className={`rounded-lg border px-2 py-0.5 text-[10px] font-bold uppercase ${cls}`}>{risk} RISK</span>;
+  return (
+    <span
+      className={`rounded-lg border px-2 py-0.5 text-[10px] font-bold uppercase ${cls}`}
+      // Gate 6 (MOD-003) — this sits directly next to the truth-status chip (e.g. "NEEDS LIVE
+      // PROOF"), and on a Suspend/Archive-type action the pair reads ambiguously as either "this
+      // feature is unproven" or "this action is a high-stakes business decision" — both can be
+      // true at once but they are two different questions. The visible label is unchanged (kept
+      // exact for anything already matching on it); the tooltip disambiguates on hover/focus.
+      title="Consequence risk if this action is used — not whether the feature itself is proven to work."
+    >
+      {risk} RISK
+    </span>
+  );
 }
 
 export function AdminActionExplainer({
@@ -31,7 +43,10 @@ export function AdminActionExplainer({
     >
       <summary className="flex min-h-[44px] cursor-pointer list-none flex-wrap items-center gap-2 px-3 py-2.5 font-bold text-[#1E1810] [&::-webkit-details-marker]:hidden">
         <span>{meta.label}</span>
-        <AdminTruthStatusChip status={meta.status} />
+        <AdminTruthStatusChip
+          status={meta.status}
+          title="Feature maturity — whether this action is confirmed working end-to-end, not how risky using it is."
+        />
         <RiskBadge risk={meta.riskLevel} />
       </summary>
       <div className="space-y-3 border-t border-[#E8DFD0]/70 px-3 py-3">

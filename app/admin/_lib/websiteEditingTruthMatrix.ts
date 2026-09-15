@@ -3,7 +3,14 @@
  * Rows are reviewed against real routes under app/admin/(dashboard); no invented workflows.
  */
 
-export type WebsiteEditingTruthStatus = "TRUE" | "PARTIAL" | "MISSING" | "HONESTLY_DISABLED";
+/**
+ * Gate 11 (WEB-003/WEB-004 compounding meta-gap) — "BROKEN" added because this matrix's own
+ * stated purpose is "truthfully map which public website areas have admin editing today," and
+ * forcing a dead-write editor (saves succeed, live page never reads the row) into TRUE or MISSING
+ * would misrepresent it either way: TRUE would be false confidence, MISSING would deny that a
+ * real editor UI exists at all. Never silently collapse this distinct state into either.
+ */
+export type WebsiteEditingTruthStatus = "TRUE" | "PARTIAL" | "MISSING" | "HONESTLY_DISABLED" | "BROKEN";
 
 export type WebsiteEditingTruthRow = {
   area: string;
@@ -181,6 +188,69 @@ export const WEBSITE_EDITING_TRUTH_ROWS: readonly WebsiteEditingTruthRow[] = [
     addNewGuidance: "Edit metadata per section. Unified SEO needs development."
   },
   {
+    area: "Nosotros (`/about`)",
+    purpose: "Mission/vision/values editorial block and hero media on the public About page.",
+    routeLabel: "/admin/workspace/nosotros/content",
+    status: "TRUE",
+    notes: "Gate 11 update: confirmed the public `/about` route now imports `mergeNosotrosCopy` and reads the `nosotros` `site_section_content` row this editor writes — a prior pass fixed what was a dead-write editor (WEB-003). Was previously missing from this matrix entirely.",
+    ctaHref: "/admin/workspace/nosotros/content",
+    ctaLabel: "Open editor →",
+    editableToday: "Mission, vision, values, hero media, CTA links",
+    requiresCode: "New block types beyond the existing story fields",
+    publicRoute: "/about",
+    addNewGuidance: "Use existing fields. New block types require schema/component changes."
+  },
+  {
+    area: "Contacto (`/contacto`)",
+    purpose: "Public contact page copy.",
+    routeLabel: "/admin/workspace/contacto/content",
+    status: "TRUE",
+    notes: "Gate 11 update: confirmed the public `/contacto` route now imports `mergeContactoCopy` and reads the `contacto` `site_section_content` row this editor writes — a prior pass fixed what was a dead-write editor (WEB-004). Was previously missing from this matrix entirely.",
+    ctaHref: "/admin/workspace/contacto/content",
+    ctaLabel: "Open editor →",
+    editableToday: "Contact page copy fields",
+    requiresCode: "New sections beyond the existing copy fields",
+    publicRoute: "/contacto",
+    addNewGuidance: "Use existing fields. New sections require development."
+  },
+  {
+    area: "Iglesias",
+    purpose: "Churches directory content and prayer wall moderation.",
+    routeLabel: "/admin/workspace/iglesias",
+    status: "TRUE",
+    notes: "Real, mature editor confirmed reaching the live public page. Was previously missing from this matrix entirely.",
+    ctaHref: "/admin/workspace/iglesias",
+    ctaLabel: "Open workspace →",
+    editableToday: "Church listings, prayer wall moderation",
+    requiresCode: "New content types beyond existing fields",
+    publicRoute: "/iglesias",
+    addNewGuidance: "Use existing fields. New content types require development."
+  },
+  {
+    area: "Noticias",
+    purpose: "News page shell — no article CRUD exists by design.",
+    routeLabel: "/admin/workspace/noticias/content",
+    status: "PARTIAL",
+    notes: "Shell/lifecycle only; article content is not admin-editable (by design, not broken). Was previously missing from this matrix entirely.",
+    ctaHref: "/admin/workspace/noticias/content",
+    ctaLabel: "Open editor →",
+    editableToday: "Page shell copy",
+    requiresCode: "An article authoring/CRUD layer, if ever wanted",
+    publicRoute: "/noticias",
+    addNewGuidance: "Shell fields only today. Article authoring is a planned, not-yet-built layer."
+  },
+  {
+    area: "Cupones",
+    purpose: "Was intended to control the public `/cupones` page.",
+    routeLabel: "/admin/workspace/cupones/content",
+    status: "BROKEN",
+    notes: "Self-disclosed in the editor's own copy: `/cupones` and `/coupons` were rebuilt on the Ofertas Locales search system and never load this editor's page component — nothing saved here reaches a customer. Control the live pages from the Ofertas Locales queue instead. Was previously missing from this matrix entirely.",
+    editableToday: "Nothing that reaches the live site",
+    requiresCode: "N/A — use the Ofertas Locales queue for the real live pages",
+    publicRoute: "/cupones",
+    addNewGuidance: "Do not use this editor. Manage live coupon content via the Ofertas Locales queue."
+  },
+  {
     area: "Legal / legal pages",
     purpose: "Terms, privacy, static legal notices.",
     routeLabel: "(no dedicated admin route)",
@@ -191,6 +261,32 @@ export const WEBSITE_EDITING_TRUTH_ROWS: readonly WebsiteEditingTruthRow[] = [
     publicRoute: "Various (legal pages)",
     addNewGuidance: "Not editable from admin yet. Requires legal page editor development."
   },
+  {
+    // Forensic audit (post-Gate-20, WEB-006) — this public page was fully orphaned (zero admin
+    // wiring at all) and, before this row, that fact was only recorded in program docs, never
+    // visible anywhere inside Admin itself. An operator browsing this exact truth-matrix page had
+    // no way to discover it existed or that it has no editor.
+    area: "Negocios Locales (`/negocios-locales`)",
+    purpose: "Public local-business directory/discovery page.",
+    routeLabel: "(no admin route — fully orphaned)",
+    status: "MISSING",
+    notes: "WEB-006 — confirmed orphaned public capability with zero admin editor of any kind. Whether this should become admin-editable at all is an open owner decision, not yet made (see the Human Operations Manual's open owner-decision list).",
+    editableToday: "Nothing (no admin route exists)",
+    requiresCode: "An entire admin editor, if the owner decides this should be manageable",
+    publicRoute: "/negocios-locales",
+    addNewGuidance: "Not editable from admin. Requires an owner decision on whether to build an editor at all."
+  },
+  {
+    area: "Productos Promoción (`/productos-promocion`)",
+    purpose: "Public hardcoded promotional-products catalog.",
+    routeLabel: "(no admin route — fully orphaned)",
+    status: "MISSING",
+    notes: "WEB-007 — confirmed orphaned public capability with zero admin editor of any kind, fully hardcoded catalog. Whether this should become admin-editable at all is an open owner decision, not yet made (see the Human Operations Manual's open owner-decision list).",
+    editableToday: "Nothing (no admin route exists)",
+    requiresCode: "An entire admin editor, if the owner decides this should be manageable",
+    publicRoute: "/productos-promocion",
+    addNewGuidance: "Not editable from admin. Requires an owner decision on whether to build an editor at all."
+  },
 ] as const;
 
 // Smoke-test helper functions
@@ -200,6 +296,7 @@ export function getWebsiteEditingSummary() {
     PARTIAL: 0,
     MISSING: 0,
     HONESTLY_DISABLED: 0,
+    BROKEN: 0,
     needsBuild: 0
   };
 
@@ -247,6 +344,8 @@ export function getSmokeTestStatusMessage(status: WebsiteEditingTruthStatus): st
       return "No admin route exists yet";
     case "HONESTLY_DISABLED":
       return "Intentionally disabled, requires code changes";
+    case "BROKEN":
+      return "Editor exists but does not reach the live public page";
     default:
       return "Unknown status";
   }

@@ -65,17 +65,36 @@ export async function fetchViajesStagedAdminQueue(
   if (!isSupabaseAdminConfigured()) return [];
   const supabase = getAdminSupabase();
   const cap = Math.min(Math.max(Math.floor(opts.limit ?? 100), 1), 500);
-  let q = supabase
-    .from("viajes_staged_listings")
-    .select(VIAJES_ADMIN_QUEUE_SELECT)
-    .order("republish_sort_at", { ascending: false, nullsFirst: true })
-    .limit(cap);
+
+  let q = supabase.from("viajes_staged_listings").select(VIAJES_ADMIN_QUEUE_SELECT).order("republish_sort_at", { ascending: false, nullsFirst: true }).limit(cap);
   if (opts.scope === "live") {
     q = q.eq("lifecycle_status", "approved").eq("is_public", true);
   }
   const { data, error } = await q;
-  if (error || !data) return [];
-  return data as unknown as ViajesStagedListingRow[];
+  if (!error && data) return data as unknown as ViajesStagedListingRow[];
+
+  // CMD-004 / DATA-QUERY-001 schema-drift fallback: `republish_sort_at` is defined
+  // by migrations/20260509120000_classifieds_republish_capability.sql, but that
+  // migration has not been applied to every environment's viajes_staged_listings
+  // table yet. Only fall back for THIS specific, recognized condition — a missing-
+  // column error on this exact column — never for any other query failure (network,
+  // RLS/permission, invalid query, etc). Those must stay visible, not silently
+  // become "no rows to review": log them so they are observable server-side instead
+  // of disappearing the way this same bug once did in the UI.
+  if (!error?.message?.includes("republish_sort_at")) {
+    if (error) console.error("fetchViajesStagedAdminQueue: unexpected query error (not the known schema-drift column)", error.message);
+    return [];
+  }
+  let fallbackQ = supabase.from("viajes_staged_listings").select(VIAJES_ADMIN_QUEUE_SELECT).order("updated_at", { ascending: false }).limit(cap);
+  if (opts.scope === "live") {
+    fallbackQ = fallbackQ.eq("lifecycle_status", "approved").eq("is_public", true);
+  }
+  const fallback = await fallbackQ;
+  if (fallback.error) {
+    console.error("fetchViajesStagedAdminQueue: schema-drift fallback query itself failed", fallback.error.message);
+    return [];
+  }
+  return (fallback.data ?? []) as unknown as ViajesStagedListingRow[];
 }
 
 export async function updateViajesStagedListingModeration(input: {

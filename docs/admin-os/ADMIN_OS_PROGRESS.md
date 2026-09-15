@@ -3040,3 +3040,1189 @@ unrelated RLS-disabled advisory on `listing_lifecycle_reminder_events`, surfaced
 policy decision, and (2) full owner/browser QA of the newly-live capabilities (Business External
 Links UI consumption, admin_audit_log actor attribution appearing in the Activity Log, and
 Executive Hub staff self-service linking), which is runtime/UX proof rather than a known defect.
+
+---
+
+## LIVE OWNER QA REPAIR — GATE 0 (FORENSIC WIRING BOOK) — 2026-09-13
+
+Owner performed live Production QA against the deployed release above and supplied
+`LEONIX_ADMIN_OS_LIVE_QA_REPAIR_LEDGER.md` (28 findings across PERF/CMD/MOD/RPT/CTA/PEO/NAV/UX/
+REV/WEB/HELP/SRCH/STAFF/BOOK/LEO) plus 6 screenshot ZIPs (352 unique screenshots after
+deduplication) documenting real operator problems. This is Gate 0 of that repair ledger —
+documentation/correlation only, per the gate's own guardrails: no functional repair, no
+Production change, no push/merge/deploy.
+
+**Worktree exception**: the prior dedicated Admin OS worktree
+(`admin-os+canonical-truth-2026-09`) no longer existed (already merged to `main` and cleaned up).
+The session's default working directory resolved to the separate, explicitly-forbidden LEO
+integration worktree (`C:\projects\elaguila-website-leo`). Per the owner's explicit authorization,
+a **new** dedicated worktree was created — `C:\projects\elaguila-website-admin-live-qa`, branch
+`integration/admin-os-live-qa-repair-2026-09`, from current `origin/main`
+(`4abbaa9330e012e887637126fd94d68ef211cb8a`) — as a deliberate, owner-approved exception to the
+standing "never create another Admin OS worktree" rule. The LEO worktree itself was never
+checked out, reset, stashed, cleaned, committed, merged, rebased, or cherry-picked.
+
+**LEO divergence inventory (read-only, owner-requested)**: confirmed the canonical LEO branch
+(`integration/leo-executive-operating-intelligence-2026-08` @ `302347b8`) has exactly 4 commits
+not on `main` (31 files, a neural-voice layer, LEO nav registry, executive-reporting adapters, new
+API routes) — none merged/deployed, working tree clean, 0 uncommitted files. Full detail in the
+new Wiring Book's §12.
+
+**Deliverable**: `docs/admin-os/ADMIN_OS_LIVE_QA_WIRING_BOOK.md` (new file) — a full six-domain
+route-by-route technical inventory (COMMAND/REVENUE/MARKETPLACE OPS/PEOPLE/WEBSITE/SYSTEM),
+produced by three parallel research agents performing exhaustive source-code traces plus this
+session's own screenshot correlation (24 of 352 unique screenshots directly viewed, covering 21
+of 43 apparent distinct screens — see the Wiring Book's Coverage Note and §13 for full honesty
+about sampling depth) and targeted grep/read verification of the two highest-severity findings.
+
+**Root causes proven with exact file:line citations** (previously only "observed" in the ledger):
+- **CMD-001** (25 needs-review vs ~4 shown): `adminDashboardData.ts:computeAdminAttentionReviewTruth`
+  (lines 689-801) sums a deduplicated union of 5 tables/status-sets; the "Review listings" CTA
+  (`adminDashboardRoutes.ts:14`, `?status=flagged`) filters only 1 table on 1 status. Both queries
+  are individually correct; no route renders the literal union the count represents.
+- **MOD-001** (AI Review errors in Production): `listingAiModerationEngine.ts` requires
+  `OPENAI_API_KEY`; on outage/missing-key it returns a structured `"unavailable"`/error result,
+  never a raw crash. The workspace hub's own purpose card already self-discloses this
+  (`status="needs live proof"`, `warningNote`, screenshot-confirmed at 211433.png). Also depends
+  on the `listing_moderation_reviews` table schema being live in production.
+- **RPT-003 / PEO-002** (context loss): Reports→Reporter link carries no query param at all;
+  User→Reports carries `?q=` + a real highlight mechanism — the back-link exists but only one way.
+- **PEO-001**: `/admin/usuarios/[id]` (1233 lines, read in full) has no linked-business section,
+  no support-case section, and no next-action/follow-up section, despite reusing real canonical
+  payment/entitlement/analytics services elsewhere on the page.
+- **REV-001 through REV-004**: confirmed no single "commercial benefits" view exists; Business 360
+  (`/admin/businesses/[businessId]/page.tsx`) has zero imports of `packageEntitlementData.ts`,
+  `promoCodeData.ts`, or `paymentTrackerData.ts` — the three revenue systems are FK-linked only.
+
+**New findings beyond the original ledger** (see Wiring Book §14): Nosotros and Contacto have the
+same broken admin-write-never-reaches-public-page pattern as the already-known Cupones bug, but
+without Cupones' self-disclosure; the Language Audit tool is 100%-hardcoded and structurally
+cannot ever report a real translation gap; zero AI/LLM provider health monitoring exists anywhere
+in System Health despite 5+ live features depending on one; `/negocios-locales` and
+`/productos-promocion` are fully orphaned public pages with no admin editor at all; Package
+Entitlements/Promo Codes guide entries claim `leoSafeReadSource: true` but no LEO code actually
+reads either table; `/admin/settings` (the disabled stub) has zero explanatory surface anywhere.
+
+**Repair-sequencing review** (ledger Step 8): the ledger's Gate 1–20 order is confirmed sound
+against this audit's evidence. One refinement recommended: move Gate 5 (Global Action Feedback
+Contract) before/alongside Gate 4 (Report Investigation Workspace), since the CTA-001
+toast-placement bug was reproduced on the Leads Inbox page (unrelated to Gates 2/3/4/6's
+Marketplace Ops/People scope) — building Gate 4's bespoke action buttons before Gate 5 defines the
+one shared feedback primitive risks duplicated work.
+
+**No functional repair was performed.** No file outside `docs/admin-os/` was modified. No commit,
+push, merge, or deploy occurred this gate.
+
+---
+
+## LIVE OWNER QA REPAIR — GATE 0B (WIRING BOOK COMPLETION) — 2026-09-14
+
+Closed the exact gaps Gate 0 explicitly left open (`GATE_0_WIRING_BOOK_COMPLETE: PARTIAL`).
+Continued in the same worktree/branch as Gate 0. No code repair, no commit, no push, no merge, no
+deploy, no LEO worktree access.
+
+**Screenshot count reconciled exactly**: the earlier "357" was a raw sum of `unzip -l`'s per-archive
+summary lines (101+12+114+79+51) for the 5 kept archives, each of which includes one top-level
+directory entry counted as a "file." 357 − 5 directory entries = **352**, independently confirmed
+by SHA-256-hashing all 352 extracted PNGs: **zero duplicate content hashes**. No discrepancy
+remains.
+
+**Full distinct-screen coverage achieved**: all 43 time-gap clusters identified in Gate 0 (24
+already reviewed) were opened and classified this gate (19 more), reaching **43/43 mapped, 0
+UNCLASSIFIED**. 6 clusters were confirmed to be non-Admin screens (the owner's own external notes
+app; the public-facing customer dashboard at `/dashboard/business-tools` etc.) and recorded as
+such rather than forced into an Admin route. Full per-cluster table in the Wiring Book's new §17.2.
+
+**A genuine, previously-undiscovered live runtime error was found** in this completion pass: the
+DevTools Issues panel captured at 215458.png shows `/admin/ops` (Company Search) returning a live
+**503 (Offline)** and `/tienda/catalog` returning a live **404**, both during the owner's own QA
+session — assigned SYS-004 and SYS-005. Also found: Package Entitlements' own in-app documentation
+states the creation workflow explicitly does **not** activate Stripe billing or public listing
+visibility (both "reserved for a future gate") — a materially more precise characterization of
+REV-001–004, assigned REV-006. And: `/admin/usuarios/[id]` carries a real "← Back to review queue"
+breadcrumb, meaning context preservation exists for one navigation path (Review Queue→User) but not
+another (Reports→User, RPT-003) — a refinement, not a contradiction, assigned PEO-003.
+
+**10 new permanent finding IDs formalized** (letters A–J from the task, plus SYS-004/005, REV-006,
+PEO-003 discovered during the completion pass itself): WEB-003, WEB-004, WEB-006, WEB-007, SYS-001,
+SYS-002, SYS-003, SYS-004, SYS-005, HELP-003, HELP-004, LEO-002, REV-006, PEO-003. None reuse or
+renumber an existing ledger ID. Full detail, family rationale, and evidence classification
+(REPO_PROVEN / SCREENSHOT_PROVEN / REPO_AND_SCREENSHOT_PROVEN / LIVE_BROWSER_REQUIRED /
+RESTRICTED_STAFF_SESSION_REQUIRED / PROVIDER_RUNTIME_REQUIRED / OWNER_BUSINESS_DECISION_REQUIRED)
+for every one of the 47 total findings (33 original ledger rows + 14 new IDs) is in the Wiring
+Book's new §17.4 and §17.5. Count corrected during Gate 1 initial housekeeping — no ID renumbered.
+
+**Help/Guide coverage matrix produced**: ~28 meaningful Admin modules classified COMPLETE/PARTIAL/
+MISSING against the Master Book §0C guide-entry schema. 4 COMPLETE (Payment Tracker, Team Roster,
+Noticias, Anúnciate), 1 self-disclosed-broken-but-honest (Cupones), 21 PARTIAL, 3 MISSING (Business
+Proposals, `/admin/settings`, the two orphaned public pages). Wiring Book §17.6.
+
+**Continuity ("if Chuy is sick") matrix produced** for all six domains, citing only
+already-proven access-control checks (`hasPaymentTrackerAccess`, `can_edit_users`,
+`can_manage_website_content`, `requireActivityLogAccess`, `requireAdminTeamAccess`,
+`requireAdminCookie`, sales-rep scoping) — no role or permission was invented. Wiring Book §17.7.
+
+**LEO delta finalized with per-change impact classification** (OVERLAP / CONFLICT /
+CONSUME_CHANGED_CANONICAL_SERVICE / NO_KNOWN_IMPACT) for all 31 files in LEO's 4 unmerged commits.
+Highest-risk items for future Gate 19: the executive-reporting adapters (likely reads several
+services Gates 2/8/11 will change) and the LEO branch's stale copy of `adminDashboardRoutes.ts`
+(predates the CMD-001 fix Gate 2 will make). LEO worktree was not read further than necessary to
+classify this and was not touched. Wiring Book §17.8.
+
+**Repair sequencing refined further**: Gate 0's Gate-5-before-Gate-4 recommendation stands,
+confirmed again. Two new refinements: (1) Gate 1 should attempt to reproduce the SYS-004/SYS-005
+live errors as part of its own instrumentation pass; (2) a narrow slice of Gate 18 (AI-provider
+config-presence checks in System Health, matching the existing email/SMS pattern) should move
+before Gate 9, since Gate 9's money-adjacent UI reorg deserves the System Health coverage this pass
+proved is currently missing — the remainder of Gate 18 (deeper Stripe-outage detection) stays in
+its originally-planned position. No owner intent changed. Wiring Book §17.9.
+
+**`GATE_0_WIRING_BOOK_COMPLETE: YES`** as of this gate. No functional repair performed. No file
+outside `docs/admin-os/` modified. No commit, push, merge, or deploy occurred.
+
+---
+
+## AUTONOMOUS REPAIR PROGRAM — GATE 1 (ADMIN PERFORMANCE / INTERACTION FREEZE) — 2026-09-14
+
+Installed `node_modules` in this worktree via `npm ci` (never installed before — confirmed no other
+heavy process running first). Fixed 4 findings with real code changes:
+
+- **SYS-005 FIXED** — `app/admin/(dashboard)/tienda/catalog/page.tsx` and `.../[id]/page.tsx`: the
+  "View public" link built `href={`/tienda/catalog/${row.slug}`}` with no guard on `slug` being
+  truthy. A live item with an empty slug produced a link to the bare `/tienda/catalog` (only
+  `/tienda/catalog/[slug]` exists as a route → 404, exactly matching the captured DevTools error).
+  Now only renders the link when `slug` is truthy; otherwise shows an honest "No public URL
+  (missing slug)" label instead of a dead link.
+- **SYS-004 FIXED** — `app/admin/_lib/adminOpsUnifiedSearch.ts`: `runAdminUnifiedSearch()` fanned
+  seven independent search sources out via `Promise.all`; four of them
+  (`fetchProfilesForAdminList`, `searchListingsForAdminOps`, `searchListingReportsForOps`,
+  `listBusinessesForWorkspace`) have no internal try/catch, so any one throwing (a transient
+  Supabase timeout, connection-pool exhaustion) crashed the *entire* `/admin/ops` request —
+  the reproducible mechanism behind the captured live 503. Converted to `Promise.allSettled` with
+  a per-source honest empty/error fallback matching each source's own return shape — one flaky
+  source now degrades only itself, never the whole page. No source's query logic or destination
+  changed.
+- **PERF-001 partially fixed** — `app/admin/(dashboard)/layout.tsx`: `resolveAdminDashboardAccessDenial()`
+  and `getCurrentAdminAccessContext()` each independently query `admin_team_members` by the same
+  operator email; the layout awaited the first alone before starting the second, serializing two
+  Supabase round-trips on *every single Admin navigation* (this layout is `force-dynamic`, so it
+  reruns every time). Neither call depends on the other's result, so both now run inside one
+  `Promise.all` — removes the serialization without changing which queries run or what they
+  return.
+- **PERF-001/PERF-002 partially fixed** — created `app/admin/(dashboard)/loading.tsx`. Confirmed
+  by direct search that **zero `loading.tsx` files existed anywhere under `app/admin`** — Next.js
+  had no automatic Suspense fallback to show while the dashboard layout's own awaits were in
+  flight, so an operator clicking a nav link saw literally nothing for the observed ~3.5s, which
+  plausibly explains the "UI became unclickable" perception even when the click registered and a
+  navigation was already underway. New file gives instant visual confirmation on every
+  navigation; changes no data-fetching or freshness behavior.
+
+**Investigated, not found to have a local defect**: the specific "cursor becomes a text caret"
+symptom and `AdminMobileNavDrawer.tsx` (read in full — correctly unmounts via `open ? ... : null`
+through a portal, correctly resets `document.body.style.overflow`, correctly closes on pathname
+change; not the source of a lingering overlay). No other unguarded `fixed inset-0` full-screen
+overlay lacking `pointer-events-none` was found outside of already-conditional modal/drawer
+components that appear correctly gated. **Classified LIVE_BROWSER_REQUIRED** — the remaining
+piece of PERF-002 needs a live reproduction to confirm whether the two fixes above already
+resolve the perceived lock, or whether a distinct defect remains.
+
+**Verification**: targeted `eslint --max-warnings 0` on all 5 changed files — clean. Full
+typecheck/build deferred to the Final Integration Validation gate per this program's resource
+control. No other heavy Node process was active in this worktree or observed contending globally.
+
+**Files changed**: `app/admin/(dashboard)/layout.tsx`,
+`app/admin/(dashboard)/loading.tsx` (new), `app/admin/_lib/adminOpsUnifiedSearch.ts`,
+`app/admin/(dashboard)/tienda/catalog/page.tsx`, `app/admin/(dashboard)/tienda/catalog/[id]/page.tsx`.
+
+No commit made (per this program's own gate-level no-auto-commit rule). No push, merge, or deploy.
+
+## AUTONOMOUS REPAIR PROGRAM — GATE 2 (COMMAND REVIEW COUNT / DESTINATION TRUTH) — 2026-09-13
+
+Addressed CMD-001/CMD-003: the Command Center "Needs review" card showed a single deduplicated
+total (`snap.reviewAttentionTruth.uniqueListingsNeedingReview`) with one CTA to the generic
+classifieds queue, but that queue only ever surfaces the generic-classifieds slice of the total —
+an operator following the only link could never account for the empleos/viajes/servicios/ofertas
+locales listings folded into the number they just saw.
+
+- **Data layer**: `computeAdminAttentionReviewTruth()`
+  (`app/admin/_lib/adminDashboardData.ts`) already computed every per-source count the total is
+  built from, but never exposed the exact deduplicated size of the generic-classifieds bucket
+  (`uniqueGenericAndReported.size` — flagged/pending status UNION pending-report listing ids) on
+  its return type; only the non-deduplicated `genericListingsFlaggedOrPendingCount` and the
+  evidence-only `reportRowCount` were exposed, and summing those two would double-count a listing
+  that is both flagged and reported. Added one new field, `genericAndReportedUniqueCount`, to
+  `AdminAttentionReviewTruth` and returned the already-computed `uniqueGenericAndReported.size` —
+  no new query, no behavior change to the existing total.
+- **UI layer**: extended `OperatorCard` (`app/admin/_components/AdminCommandCenterDashboard.tsx`)
+  with an optional `breakdown` prop — a small list of `{ label, count, href }` rows rendered
+  beneath the card body, each with its own "Open" link to that source's real existing queue
+  (reused `adminCategoryWorkspaceQueueHref()` for empleos/viajes/servicios/ofertas-locales — no
+  new routes invented). Wired the "Needs review" card's `breakdown` to the 5 fields that are
+  literally summed to produce `uniqueListingsNeedingReview`
+  (`genericAndReportedUniqueCount`, `empleosPendingReviewCount`, `viajesPendingReviewCount`,
+  `serviciosPendingReviewCount`, `ofertasLocalesPendingReviewCount`), so the segments always
+  reconcile exactly to the headline metric by construction — the breakdown renders the same
+  numbers already trusted for the total rather than a second independent query. Breakdown is
+  omitted (falls back to the single total + existing primary CTA only) whenever
+  `snap.listingsQueryFallback || snap.reviewAttentionTruth.fallback` is true, matching the
+  existing "needs proof" degradation path for this card.
+
+**Verification**: targeted `eslint --max-warnings 0` on both changed files. Result: 2 pre-existing,
+unrelated errors in `AdminCommandCenterDashboard.tsx` (`'CommandCard' is defined but never used`
+at line 75; `'locale' is defined but never used` in `CompactReviewRow` at line 224) — confirmed via
+`git diff --stat` that this gate's edit is purely additive (59 insertions / 1 deletion, the 1
+deletion being the "Needs review" body-copy line replaced above) and neither pre-existing error
+line falls inside the diff. Not fixed here (out of this gate's scope; not caused by or blocking
+this change) — carried forward as a baseline lint finding for the Final Integration Validation
+gate. Full typecheck/build deferred to that same gate per this program's resource control.
+
+**Files changed**: `app/admin/_lib/adminDashboardData.ts`,
+`app/admin/_components/AdminCommandCenterDashboard.tsx`.
+
+No commit made. No push, merge, or deploy.
+
+## AUTONOMOUS REPAIR PROGRAM — GATE 3 (MODERATION PROVENANCE / AI REVIEW) — 2026-09-13
+
+Investigated CMD-002, MOD-001, MOD-002 by reading the full AI-review call chain
+(`AdminRunAiReviewButton.tsx` → `POST /api/admin/clasificados/listings/[id]/ai-review` →
+`listingAiModerationService.ts:runListingAiReviewForId` → `listingAiModerationEngine.ts` +
+`listingModerationReviewsDb.ts`) and the provenance layer (`adminReviewFlagTruth.ts`,
+`AdminListingFlagTruthBlock.tsx`, and the Command Center's `CompactReviewRow`).
+
+- **MOD-001 FIXED** — `app/admin/_lib/listingAiModerationService.ts`: the OpenAI call and the
+  `listing_moderation_reviews` DB write are independent steps; when the AI call succeeded but the
+  insert failed (e.g. the already-disclosed schema-drift dependency), `runListingAiReviewForId`
+  silently fell back to formatting the in-memory AI result as `"AI review completed: <decision>..."`
+  — a success-shaped message even though nothing was ever persisted, with `ok:false` quietly
+  contradicting it. An operator reading only the message had no way to know the review was lost.
+  Added an explicit `insertFailedAfterAiSuccess` branch: the proof label and `error` field now both
+  say plainly that the review ran but could not be saved and must be re-run, instead of collapsing
+  that state into a false "completed" label. No change to the already-honest "missing
+  OPENAI_API_KEY" and "listing not found" paths, and no change to what is written to the audit log.
+- **CMD-002 — verified, no code defect found.** `classifyDashboardReviewRowFlagTruth()` /
+  `needsTriage` / `lifecycleState` (OPEN/TRIAGE/ACTION_REQUIRED/RESOLVED) are real, already-wired
+  classifications — confirmed by reading `adminReviewFlagTruth.ts` in full and its two call sites
+  in `AdminCommandCenterDashboard.tsx`'s `CompactReviewRow`, which already renders "Needs triage" /
+  "AI triage" / "Action required" badges per row from this exact truth. A full-population
+  needs-triage *count* (beyond the 40-row-per-source preview list already shown) would require a
+  new join across `listings` + `listing_reports` + `listing_moderation_reviews` for up to the same
+  500-row bound used elsewhere in this file — a real, boundable addition but out of proportion to
+  what this pass's screenshot/code evidence establishes as broken; recorded as a candidate
+  enhancement, not a defect, since no row's provenance is presently mislabeled or hidden.
+- **MOD-002 — verified, no code defect found.** Read `AdminListingFlagTruthBlock.tsx` (the actual
+  point-of-action UI on a listing, not just the dashboard preview): it already renders the honest
+  source badge, `ownerFacingExplanation`, and `secondaryFallback` ("Reason unavailable — inspect
+  review source") exactly when a reason cannot be explained — matching the live screenshot evidence
+  in the Wiring Book. Confirms the provenance truth is consistent between the Command Center
+  preview and the actual moderation action surface, not just in one place.
+
+**Verification**: targeted `eslint --max-warnings 0` on `listingAiModerationService.ts` — clean.
+Full typecheck/build deferred to the Final Integration Validation gate.
+
+**Files changed**: `app/admin/_lib/listingAiModerationService.ts`.
+
+No commit made. No push, merge, or deploy.
+
+## AUTONOMOUS REPAIR PROGRAM — GATE 5 (GLOBAL ACTION FEEDBACK CONTRACT) — 2026-09-13
+
+Run before Gate 4 per this program's own explicit sequencing instruction (CTA-001's toast-placement
+bug was reproduced on the Leads Inbox, a page untouched by Gates 2/3/4/6's Marketplace Ops/People
+scope, and Gate 4 would otherwise build its own action buttons before this shared contract exists).
+
+- **Inventoried every action-feedback mechanism in `app/admin`** (grep for the two shared
+  components plus any local `toast`-shaped `useState`): 3 distinct patterns exist —
+  1. `AdminQueryFlash` — fixed/viewport-anchored, driven by specific `?saved=1`/`?error=1`-style
+     query params, rendered globally from `AdminShell`.
+  2. `AdminActionProofBanner` + `AdminQueueScrollRestore` (via `ClasificadosQueueActionChrome`) —
+     an inline banner at the top of classifieds queue pages, paired with a scroll-position
+     restore keyed off the `scroll_y` captured before the action — confirmed this pair is
+     **not** defective: restoring scroll brings the inline banner back into view next to the row
+     the operator acted on, rather than leaving it stranded off-screen.
+  3. Three leads-inbox client components (`AdminLeonixLeadsInboxClient.tsx`,
+     `AdminNewsletterSubscribersInboxClient.tsx`, `AdminMediaKitLeadsClient.tsx`) each
+     independently held local `toast` state and rendered an **identical copy-pasted inline
+     `<div>`** wherever it happened to sit in the page's document flow, with no scroll restore —
+     this is the exact, reproduced CTA-001 defect (screenshot: "Reply copied" toast at the top of
+     `/admin/leads/inbox` while the acted-on lead row sat further down, out of view).
+- **CTA-001 FIXED** — created `app/admin/_components/AdminLocalActionToast.tsx`, a shared
+  viewport-anchored (`position: fixed`, bottom-of-screen) toast for local-state action feedback,
+  positioned identically to `AdminQueryFlash`. Replaced all 3 leads-inbox clients' inline toast
+  `<div>`s with this one shared component — feedback for copy/reply/archive/mark-contacted/delete
+  actions is now always visible regardless of scroll position, on all 3 pages, not just the one
+  that was screenshotted.
+- **CTA-002 addressed** — the "mixed toast/inline feedback across different action types" finding
+  is now a fully confirmed, closed inventory (3 patterns, not an open-ended unknown): one query-
+  param-driven fixed toast, one inline-banner-plus-scroll-restore pair (verified correct), and one
+  now-unified local-state fixed toast used by all 3 of its former independent copies. No fourth
+  pattern was found. Did not merge all 3 into a single mechanism — `AdminQueryFlash`'s query-param
+  contract and the classifieds queue's scroll-restore contract solve different problems
+  correctly today; consolidating them would be a larger, non-reversible-in-spirit rewrite out of
+  proportion to what this finding actually requires (consistent visibility, not one literal
+  component).
+
+**Verification**: targeted `eslint --max-warnings 0` on the new file and all 3 edited leads-client
+files — clean. Full typecheck/build deferred to the Final Integration Validation gate.
+
+**Files changed**: `app/admin/_components/AdminLocalActionToast.tsx` (new),
+`app/admin/_components/leads/AdminLeonixLeadsInboxClient.tsx`,
+`app/admin/_components/leads/AdminNewsletterSubscribersInboxClient.tsx`,
+`app/admin/_components/leads/AdminMediaKitLeadsClient.tsx`.
+
+No commit made. No push, merge, or deploy.
+
+## AUTONOMOUS REPAIR PROGRAM — GATE 4 (REPORT INVESTIGATION WORKSPACE) — 2026-09-13
+
+Addressed RPT-002, RPT-003, PEO-002, PEO-003 by reading `AdminReportsTable.tsx`,
+`/admin/reportes/page.tsx`, and `/admin/usuarios/[id]/page.tsx` in full.
+
+- **RPT-003 / PEO-002 FIXED** — the Reports page's "Reporter" link carried no context at all, so
+  an operator arriving at `/admin/usuarios/[id]` from a report had zero indication which report
+  sent them there, even though the reverse direction (User → Reports) already passes
+  `?q=<reportId>` and highlights the matching row (`resolveHighlightReportId`). The reporter link
+  now carries `?report=<reportId>`; the user-detail page reads it and (a) shows a
+  "← Back to report" breadcrumb linking to `/admin/reportes?q=<reportId>` alongside the existing
+  "← Back to review queue" breadcrumb, (b) shows an amber "Viewing this account because of report
+  #XXXXXXXX" banner, and (c) ring-highlights the matching row in the page's own already-fetched
+  `reportsByReporter` list — the exact same visual highlight contract `/admin/reportes` already
+  uses for its own deep link, now applied symmetrically in the other direction.
+- **RPT-002 FIXED** — the Reports table showed only Date/Listing(id)/Reporter(id)/Reason/Status/
+  Actions; the page's own `AdminPagePurposeCard` already discloses this as `status="partial"`.
+  Reused the existing `fetchListingFlagContextMaps()` helper (already used by the classifieds
+  queue for the identical enrichment — no new query pattern) plus one bounded `listings` lookup
+  for the listing ids on this page's own already-limited result set. The Listing column now shows
+  the listing's title, a "N pending reports" badge when more than one is open on that listing, and
+  an "AI: <decision>" badge when a stored AI moderation result exists — an operator can now judge
+  a report's context without leaving the page for a second tab.
+- **PEO-003** — confirmed as already-real (not a regression to fix): `/admin/usuarios/[id]`
+  already carries a "← Back to review queue" breadcrumb, unconditionally. Per the Wiring Book this
+  refines rather than contradicts RPT-003/PEO-002 — the gap was inconsistency (one direction wired,
+  one not), not total absence, and it is now consistent in both directions.
+
+**Verification**: targeted `eslint --max-warnings 0` on all 3 changed files. Result: 1 pre-existing,
+unrelated error in `AdminReportsTable.tsx` (`'lang' is assigned a value but never used`, line 41,
+`const lang = useAdminLang();`) — confirmed via `git diff` that this gate's edits never touch that
+line; not fixed here, carried to Final Integration Validation as a baseline finding. Full
+typecheck/build deferred to that same gate.
+
+**Files changed**: `app/admin/(dashboard)/reportes/page.tsx`,
+`app/admin/(dashboard)/reportes/AdminReportsTable.tsx`,
+`app/admin/(dashboard)/usuarios/[id]/page.tsx`.
+
+No commit made. No push, merge, or deploy.
+
+## AUTONOMOUS REPAIR PROGRAM — GATE 6 (LISTING REVIEW ACTION HIERARCHY) — 2026-09-13
+
+Addressed MOD-003. The Wiring Book explicitly characterized this as "action-button list confirmed
+real, but 'duplicated/overloaded' needs a UX pass, not just inventory" — read `AdminActionExplainer.tsx`
+and `adminOsActionRegistry.ts` in full to find the exact ambiguity, rather than re-doing the
+already-complete action inventory.
+
+- **MOD-003 FIXED** — every classifieds queue action button (Republish/Suspend/Restore/Archive/
+  Feature/Verify Leonix/etc.) renders two badges side by side from `AdminActionExplainer.tsx`: a
+  truth-status chip (`AdminTruthStatusChip`, e.g. "NEEDS LIVE PROOF"/"PARTIAL" — is this feature
+  proven to work) and a risk badge (`RiskBadge`, e.g. "HIGH RISK" — how consequential is using it).
+  Confirmed exactly the ambiguity the Wiring Book flagged: "HIGH RISK" sitting directly next to a
+  "Suspend" label reads as either "this is unproven" or "suspending is a high-stakes decision" —
+  both true, but conflated into what looks like one signal. Added a `title` tooltip to each badge
+  (`AdminTruthStatusChip` gained an optional `title` prop; `RiskBadge` got one directly) that
+  disambiguates on hover/focus: the status chip's tooltip says it is about feature maturity, the
+  risk badge's tooltip says it is about the consequence of the action. Deliberately did not change
+  either badge's visible text — both are exact strings already documented as evidence elsewhere in
+  this program's findings, and the actual complaint was clarity/labeling, not the underlying
+  taxonomy or the badges' correctness.
+
+**Verification**: targeted `eslint --max-warnings 0` on both changed files — clean. Full
+typecheck/build deferred to the Final Integration Validation gate.
+
+**Files changed**: `app/admin/_components/AdminPagePurposeCard.tsx`,
+`app/admin/_components/AdminActionExplainer.tsx`.
+
+No commit made. No push, merge, or deploy.
+
+## AUTONOMOUS REPAIR PROGRAM — GATE 7 (USER 360) — 2026-09-14
+
+Addressed PEO-001. The Wiring Book's direct answer to "Is `/admin/usuarios/[id]` a database
+account detail page or an operational customer 360?" was: rich commercial context, but it shows
+**no** linked businesses (despite `business_memberships.user_id` being the canonical, real
+user↔business relationship — confirmed via migration
+`20260715120000_business_identity_foundation_bco1.sql`), **no** support cases (despite
+`support_tickets.user_id` being a real, queryable column — already used for counts-only by
+`adminOpsSupportContext.ts`), and **no** next-action section (unlike Business 360's own
+`businessDashboardNextAction.ts`).
+
+- **PEO-001 FIXED** — added three bounded, best-effort lookups in the same style every other
+  cross-entity block on this page already uses (degrade to an honest empty state on error, never
+  invent a relationship that isn't in the data):
+  1. **Linked businesses** — `business_memberships` (`user_id` = this account, `membership_status
+     = 'active'`) joined to `businesses` for display name/status; each links to that business's
+     real Business 360 page and flags the primary-owner membership.
+  2. **Support cases** — the 6 most recent `support_tickets` rows for this `user_id` (subject,
+     status, created_at).
+  3. **Next action** — a new callout at the top of the page, derived only from data already
+     fetched here (pending reports on owned listings → open support tickets → disabled-account
+     flag → "no urgent action"), the same fixed-priority-order idea as Business 360's own
+     next-action concept, scaled down for a single user account. No new heuristic beyond that
+     fixed order, no fabricated urgency.
+
+**Verification**: targeted `eslint --max-warnings 0` on the changed file — clean. Full typecheck/
+build deferred to the Final Integration Validation gate (this file makes 2 additional bounded
+Supabase queries; no relational-select syntax was used, matching this file's existing loosely-typed
+row-casting style, to avoid introducing an untested query shape this pass can't fully verify without
+the deferred heavy typecheck).
+
+**Files changed**: `app/admin/(dashboard)/usuarios/[id]/page.tsx`.
+
+No commit made. No push, merge, or deploy.
+
+## AUTONOMOUS REPAIR PROGRAM — GATE 8 (BUSINESS 360 / COMMERCIAL BENEFITS HUB) — 2026-09-14
+
+Addressed REV-001–004. The Cable Map's finding was exact: "Business 360 has zero imports of
+`packageEntitlementData.ts`, `promoCodeData.ts`, or `paymentTrackerData.ts` — no unified
+commercial-benefits view exists anywhere." Before writing any join, traced the actual schema of
+all three tables (`listing_package_entitlements`, `leonix_promo_code_redemptions`,
+`leonix_payment_records`): **none of them has a `business_id` column at all** — they are all keyed
+by `listing_id`. Per this program's own doctrine ("never infer canonical relationships from names
+when IDs exist"), the fix could not invent a business-name match; it had to use a real ID-based
+path.
+
+- **REV-001–004 FIXED** — the one real ID-based path already exists: `business_listing_links`
+  (business_id → listing_id, staff-verified, the same table the page's own "Connected Leonix
+  advertisements" section already reads). Created
+  `app/admin/_lib/businessCommercialBenefits.ts` (`fetchBusinessCommercialBenefits`), a single
+  bounded lookup keyed by this business's **verified-only** connected listing ids (same trust bar
+  as the existing advertisements section — a merely-pending link is never rolled up as confirmed
+  commercial activity), querying all three tables by `listing_id`. Added a new "Commercial
+  benefits" section to `/admin/businesses/[businessId]` showing active entitlement count, promo
+  redemption count + total discount, and payment record count — the unified view the finding says
+  never existed, without duplicating any of the three existing modules' own query logic and
+  without touching their dedicated workspace pages.
+
+**Verification**: targeted `eslint --max-warnings 0` on both files — clean. Full typecheck/build
+deferred to the Final Integration Validation gate (Business 360 is a very large, 1872-line file
+with many feature-flagged tabs; this change is additive — one new field destructured, one new
+`await`, one new `<section>` — and does not touch any existing tab's logic).
+
+**Files changed**: `app/admin/_lib/businessCommercialBenefits.ts` (new),
+`app/admin/(dashboard)/businesses/[businessId]/page.tsx`.
+
+No commit made. No push, merge, or deploy.
+
+## AUTONOMOUS REPAIR PROGRAM — GATE 18a (SYSTEM HEALTH — AI PROVIDER SLICE) — 2026-09-14
+
+Narrow slice, run before Gate 9 per the Wiring Book's own repair-dependency recommendation
+(§17.9). Addressed the Wiring Book §8 finding: "No AI/LLM provider is monitored at all" — a real,
+safety-load-bearing dependency (Prayer Wall's `AI_GATEWAY_API_KEY`-based safety classification,
+`app/lib/iglesias/prayerSafetyAdapter.ts`) plus the generic-listings AI Review's `OPENAI_API_KEY`
+dependency (Gate 3/MOD-001) had zero System Health coverage.
+
+- **FIXED** — added two new config-presence components to `buildAdminSystemHealthSnapshot()`
+  (`app/admin/_lib/adminSystemHealth.ts`), matching the exact honesty bar and pattern already used
+  for `email_resend`/`sms_twilio` (config-presence only, no outbound provider call):
+  `ai_moderation_openai` (reuses the existing `getOpenAiModerationApiKey()` from
+  `listingAiModerationEngine.ts` — no duplicated env-var logic) and `ai_gateway`
+  (`AI_GATEWAY_API_KEY`). Both report `NOT_CONFIGURED` rather than `DEGRADED` when unset, matching
+  `overallFromComponents()`'s existing doctrine that an unconfigured optional provider is expected
+  on a single-operator deployment, not an incident. Does not change either feature's fail-safe
+  behavior — only makes the dependency visible on System Health before or during a degradation.
+
+**Verification**: targeted `eslint --max-warnings 0` on the changed file — clean. Full typecheck/
+build deferred to the Final Integration Validation gate.
+
+**Files changed**: `app/admin/_lib/adminSystemHealth.ts`.
+
+No commit made. No push, merge, or deploy.
+
+## AUTONOMOUS REPAIR PROGRAM — GATE 9 (PROMO/ENTITLEMENT WORKSPACE REORGANIZATION) — 2026-09-14
+
+The Wiring Book §9 left one explicit `NEEDS_PROOF` item under this gate's name: "Legacy
+`/admin/team/promo-codes`... `/admin/team/sales-tracker`... look like possible duplicates of the
+registered `/admin/workspace/promo-codes`/`/admin/workspace/sales-tracker` (NEEDS_PROOF, not
+diffed)." Diffed both pairs by reading all 4 files.
+
+- **VERIFIED — NOT a duplicate, no defect found.** `app/admin/(dashboard)/team/promo-codes/page.tsx`
+  (18 lines) and `.../team/sales-tracker/page.tsx` (16 lines) each directly import and render the
+  canonical workspace page component (`PromoCodesWorkspacePage` / `SalesTrackerWorkspacePage`) from
+  `/admin/workspace/...`, wrapped only in `<StaffTeamNav>` for the Team-scoped navigation chrome.
+  There is exactly one implementation of each workspace; the Team-prefixed routes are a deliberate
+  composition/re-entry-point pattern, not a second copy — closing this `NEEDS_PROOF` item as
+  resolved rather than leaving it open indefinitely. No code change was needed or made; this is
+  already the "canonicalization over replacement" pattern the program's own guardrails call for.
+
+No other Gate-9-specific finding ID was found in the canonical docs beyond this one; the
+promo-lead duplicate-truth and Connected Records items referenced nearby in the Cable Map are
+already recorded as CLOSED (prior pass) or NEEDS_RUNTIME_PROOF (browser verification, not a code
+defect this program can fix locally) and are not re-litigated here.
+
+**Files changed**: none (verification only, no code defect found).
+
+No commit made. No push, merge, or deploy.
+
+## AUTONOMOUS REPAIR PROGRAM — GATE 10 (PRINT/PREMIUM/PARTNER VISIBILITY POLICY RECONCILIATION) — 2026-09-14
+
+Addressed REV-005, REV-006 per their own evidence classification in the Wiring Book §17.5.
+
+- **REV-006 — already correct, no defect.** Package Entitlements' own in-app purpose-card copy
+  already self-discloses exactly what the Wiring Book asked to confirm: it does not charge
+  customers or activate Stripe Checkout, does not publish sorting until category gates, and
+  attaching a listing ID only updates the row without activating public visibility — all "reserved
+  for a future gate," in the product's own words. This is the same honest self-disclosure pattern
+  already relied on elsewhere in this program (e.g. the Clasificados hub's AI-review disclosure,
+  Gate 3). No code change needed or made.
+- **REV-005 — OWNER BUSINESS DECISION REQUIRED, not implemented.** The Wiring Book's own evidence
+  classification for this finding is `OWNER_BUSINESS_DECISION_REQUIRED`: "public placement policy
+  reconciliation is a business-rule question, not purely code." Per this program's explicit
+  governance rules, pricing-policy invention and genuine business-model ambiguity are RED —
+  reconciling print/premium/partner placement policy means deciding what should be promised to
+  customers, which this program is not authorized to decide unilaterally. **Not implemented.**
+  Flagged for the final closeout report's "NEEDS OWNER BUSINESS DECISION" list rather than guessed
+  at or silently skipped.
+
+**Files changed**: none (REV-006 required no fix; REV-005 requires an owner decision before any
+implementation can be authored).
+
+No commit made. No push, merge, or deploy.
+
+## AUTONOMOUS REPAIR PROGRAM — GATE 11 (WEBSITE ↔ ADMIN PARITY REPAIR) — 2026-09-14
+
+Addressed WEB-001–004. Before writing anything, re-verified the Wiring Book's Nosotros/Contacto
+"dead-write editor" claim fresh in THIS worktree rather than trusting it as-is — it was explicitly
+flagged there as "NEEDS_PROOF — sourced from this Cable Map's own prior narrative, not re-traced
+fresh this pass."
+
+- **WEB-003/WEB-004 — STALE FINDING, ALREADY FIXED (prior pass), corrected.** Reading
+  `app/(site)/about/page.tsx` and `app/(site)/contacto/page.tsx` directly shows both already import
+  `mergeNosotrosCopy`/`mergeContactoCopy` and read the `nosotros`/`contacto` `site_section_content`
+  rows the admin editors write, each tagged with an `ADMIN-OS-01` comment — a prior repair pass
+  already fixed this before this session, and the Wiring Book's narrative (inherited from an older
+  Cable Map pass) had gone stale. No code change was needed for the wiring itself. This is exactly
+  why the finding was correctly marked `NEEDS_PROOF` rather than `CONFIRMED` — re-verifying instead
+  of trusting the stale claim avoided "fixing" something that was already fixed.
+- **Compounding meta-gap FIXED** — `websiteEditingTruthMatrix.ts` (the one page whose stated
+  purpose is "truthfully map which public website areas have admin editing today") omitted
+  Nosotros, Contacto, Iglesias, Noticias, and Cupones entirely — the exact domains most likely to
+  need this map. Added all 5 rows with accurate current status (Nosotros/Contacto now TRUE per the
+  above; Iglesias TRUE; Noticias PARTIAL/shell-only by design; Cupones needed a genuinely new
+  status). Added a `"BROKEN"` status to `WebsiteEditingTruthStatus` (editor exists and saves
+  succeed, but the live page never reads it) rather than forcing Cupones into `TRUE` (false
+  confidence) or `MISSING` (denies a real editor UI exists) — wired the new status through the
+  summary counts, filter tab, status label, and owner-answer copy in
+  `/admin/workspace/page.tsx` so it renders consistently, not just added to the data with no UI
+  support.
+- **Two orphaned public pages** (`/negocios-locales`, `/productos-promocion` — zero admin editor
+  at all) are **not implemented this pass.** Building new admin CRUD for two public pages is a
+  real feature addition, not a repair of existing wiring, and it is not yet established whether
+  these are meant to be admin-editable at all versus intentionally static marketing pages —
+  flagged for the closeout report as a scoped decision item rather than guessed at.
+
+**Verification**: targeted `eslint --max-warnings 0` on both changed files — clean. Full
+typecheck/build deferred to the Final Integration Validation gate.
+
+**Files changed**: `app/admin/_lib/websiteEditingTruthMatrix.ts`,
+`app/admin/(dashboard)/workspace/page.tsx`.
+
+No commit made. No push, merge, or deploy.
+
+## AUTONOMOUS REPAIR PROGRAM — GATE 12 (NAVIGATION/VIEWPORT/TABLE ERGONOMICS) — 2026-09-14
+
+NAV-001, NAV-002, UX-001, UX-002 have no surviving verbatim finding text anywhere in this
+worktree's canonical docs — they exist only as two-letter/number IDs plus the Wiring Book's own
+honest classification: "Not independently verified this pass (would require live viewport
+measurement)" / evidence class `LIVE_BROWSER_REQUIRED`. Searched the Wiring Book, Cable Map, and
+Master Operating Book for the original ledger's full descriptions; none exist in this repo — the
+original owner QA ledger that assigned these IDs was not itself persisted as a file here.
+
+Per this program's own doctrine ("never invent data," "never fabricate certainty"), did **not**
+guess at what these two findings specifically assert and build a fix against that guess. Instead:
+
+- **Source-level review performed** (no dev server started — a live viewport check is exactly the
+  `LIVE_BROWSER_REQUIRED` verification this finding already says it needs, and resource control
+  reserves that class of check for owner/browser QA, not a per-gate dev-server spin-up): confirmed
+  a real, deliberate desktop-table/mobile-card dual-rendering pattern
+  (`adminTableWrap`/`adminDesktopTableOnly` + `adminMobileCardList` in `adminTheme.ts`) exists and
+  is used across 11 files (leads inboxes, classifieds listings table, team roster/executive hub,
+  Recursos pages). Also confirmed this pattern is **not** universal — e.g. `AdminReportsTable.tsx`
+  (touched in Gate 4) renders a single table with only `overflow-x-auto`, no mobile-card fallback.
+  This is real, code-verifiable evidence consistent with a genuine table-ergonomics inconsistency,
+  but retrofitting every admin table lacking the mobile-card pattern is a large redesign effort,
+  not a bounded repair — and without the original finding's exact scope, there's no way to know
+  whether that inconsistency is even what NAV-001/002/UX-001/002 refer to.
+- **Not implemented.** Classified NAV-001, NAV-002, UX-001, UX-002 as `NEEDS_LIVE_BROWSER_QA` for
+  the closeout report, matching the Wiring Book's own classification rather than inventing scope.
+
+**Files changed**: none.
+
+No commit made. No push, merge, or deploy.
+
+## AUTONOMOUS REPAIR PROGRAM — GATE 13 (COMMAND CENTER EXECUTIVE HIERARCHY) — 2026-09-14
+
+Addressed UX-003, already screenshot-corroborated in the Wiring Book: "LEO card sits above Command
+Center metrics, 'Talk to LEO' is the second element on the page." Confirmed by reading the actual
+render order in `AdminCommandCenterDashboard.tsx`.
+
+- **UX-003 FIXED** — the DOM order was `hero` → `leoExecutiveCta` ("Talk to LEO") →
+  `promoCodeGeneratorTopCta` → purpose card → `priorityStrip` (the actual Leads/Review/Reports/
+  Expired/Promo operational metrics). On a page whose entire purpose is those metrics, two
+  discovery/marketing-style CTAs outranked the operational content they exist to complement.
+  Reordered to `hero` → purpose card → `priorityStrip` → `leoExecutiveCta` →
+  `promoCodeGeneratorTopCta` → quick actions/sections. Pure JSX reordering — no data, query, or
+  behavior change; every card still renders, just lower.
+
+**Verification**: targeted `eslint --max-warnings 0` — 2 pre-existing, unrelated errors
+(`CommandCard` unused var line 75, `locale` unused arg line 224 — the same baseline findings
+already logged in Gate 2 and Gate 4; this gate's change is a pure reorder of existing JSX blocks
+and does not touch either line). Full typecheck/build deferred to the Final Integration Validation
+gate.
+
+**Files changed**: `app/admin/_components/AdminCommandCenterDashboard.tsx`.
+
+No commit made. No push, merge, or deploy.
+
+## AUTONOMOUS REPAIR PROGRAM — GATE 14 (COMPANY SEARCH VS QUICK LISTING SEARCH) — 2026-09-14
+
+Addressed SRCH-001. The Wiring Book's own note: "`/admin/ops` vs per-page 'Search listings' bar
+distinction confirmed to exist in code, ambiguity itself not user-tested this pass." Reading
+`AdminTopbar.tsx` found the exact mechanism: its search input is **sticky and always visible on
+every single Admin page** (not per-page) — which reads as "the global search" — but its `onSubmit`
+only ever does `router.push('/admin/workspace/clasificados?q=...')`. The real cross-entity search
+(users, businesses, orders, reports, team, leads — the 7-source `runAdminUnifiedSearch` fixed in
+Gate 1/SYS-004) lives at a separate, less prominent `/admin/ops` route with no link from the
+topbar at all.
+
+- **SRCH-001 FIXED** — added a small scope-disambiguation hint directly under the topbar search
+  box: "Listings only — Company Search (users, businesses, orders…) →", linking to
+  `ADMIN_DASHBOARD_ROUTES.customerOps` (`/admin/ops`). An operator typing a person's or business's
+  name into the ever-present topbar box now has an immediate, visible path to the tool that
+  actually covers that search, instead of silently landing on an empty Clasificados filter. Added
+  new EN/ES string keys (`shell.searchScopeHint`, `shell.searchScopeHintLink`) rather than
+  hardcoding English-only copy, matching this file's existing i18n pattern.
+
+**Verification**: targeted `eslint --max-warnings 0`. `AdminTopbar.tsx` — clean. `adminStrings.ts`
+— 1 pre-existing, unrelated error (`'ES' is assigned a value but never used`, line 772) — confirmed
+via `git diff --stat` this gate's change is purely additive (4 insertions, 0 deletions) and does
+not touch the `ES` declaration itself. Full typecheck/build deferred to the Final Integration
+Validation gate.
+
+**Files changed**: `app/admin/_components/AdminTopbar.tsx`, `app/admin/_lib/adminStrings.ts`.
+
+No commit made. No push, merge, or deploy.
+
+## AUTONOMOUS REPAIR PROGRAM — GATE 15 (HELP/GUIDE SYSTEM) — 2026-09-14
+
+Addressed HELP-003, HELP-004. Both were only ever "new findings this gate" in the Wiring Book, not
+independently re-verified against current code in that pass.
+
+- **HELP-003 — STALE FINDING, ALREADY FIXED (prior "Launch Truth Doctrine" pass), corrected.**
+  Before writing a guide entry for `/admin/settings`, ran the two existing targeted verifiers that
+  reference `adminGuideRegistry.ts` (`scripts/verify-launch-truth-01.ts`,
+  `scripts/verify-launch-truth-final-burndown-01.ts`). The first explicitly asserts
+  `!guideRegistry.includes('route: "/admin/settings"')` — a prior pass had already removed
+  `/admin/settings` from primary nav entirely and turned the page itself into a plain
+  `redirect("/admin/site-settings")` (confirmed by reading
+  `app/admin/(dashboard)/settings/page.tsx` directly), which resolves the name-collision risk at
+  its root — better than a guide-entry disclosure would have been. **Initially added a guide entry
+  for `/admin/settings` before discovering this, then reverted it** once the verifier failure
+  surfaced the stale premise — re-ran both verifiers after reverting: 24/24 and 18/18 checks pass.
+  This is the second stale Wiring Book finding found and corrected this program (after Gate 11's
+  Nosotros/Contacto), both times because the docs were not re-verified fresh here.
+- **HELP-004 FIXED** — `business_proposals` had no Admin Guide entry and no Company Search
+  coverage. Added a `business-proposals` entry to `ADMIN_GUIDE_ENTRIES` documenting the real
+  Proposals tab on Business 360. Its `route` deliberately points to `/admin/businesses` (the list
+  page) rather than a literal `/admin/businesses/[businessId]#proposals` string — the guide's own
+  detail page renders `route` directly as a `<Link href>`, and an unresolved Next.js dynamic
+  segment placeholder in an href would have been a genuinely broken link, not a documentation fix.
+  Company Search coverage for proposals themselves was not added — recorded as still open in the
+  entry's own `notes` field rather than silently implied as fixed.
+
+**Verification**: targeted `eslint --max-warnings 0` — clean. Ran the 2 existing targeted verifier
+scripts referencing this file (`verify-launch-truth-01.ts`: 24/24 passed;
+`verify-launch-truth-final-burndown-01.ts`: 18/18 passed) — both are lightweight source-string
+assertions (not a build/typecheck), consistent with this program's resource control. Full
+typecheck/build deferred to the Final Integration Validation gate.
+
+**Files changed**: `app/admin/_lib/adminGuideRegistry.ts`.
+
+No commit made. No push, merge, or deploy.
+
+## AUTONOMOUS REPAIR PROGRAM — GATE 16 (STAFF CONTINUITY / ROLE-AWARE OPERABILITY) — 2026-09-14
+
+STAFF-001 is explicitly `RESTRICTED_STAFF_SESSION_REQUIRED` — the Wiring Book itself says it was
+"Not verified this pass (requires a non-owner login session)." This program's own access is
+owner-level; it cannot substitute for a real restricted-staff session, and simulating one would
+violate the "never fabricate certainty" doctrine. **Not implemented / not verified — unchanged,
+carried to the closeout report as `NEEDS RESTRICTED STAFF QA`.**
+
+Instead, used this gate to do what IS achievable without that session: **the Wiring Book's own
+§17.7 "if Chuy is sick" per-domain continuity matrix — the closest existing artifact to this
+gate's actual goal — had gone stale relative to this program's own repairs**, which would itself
+have been a split-truth violation if left uncorrected.
+
+- **Added `docs/admin-os/ADMIN_OS_LIVE_QA_WIRING_BOOK.md` §18**, a fixed-findings reconciliation
+  table covering every finding this program touched across Gates 1–16 (FIXED / VERIFIED CORRECT /
+  ALREADY FIXED BEFORE THIS PROGRAM / UNCHANGED, each with the gate that established it), plus a
+  targeted refresh note for §17.7's 3 now-stale cells:
+  - MARKETPLACE OPS: AI Review failure reason is now surfaced in System Health (Gate 18a) — was
+    previously only on the workspace hub's own purpose card.
+  - WEBSITE: Nosotros/Contacto are no longer BROKEN (discovered already-fixed during Gate 11) — a
+    covering staffer's edits to either page do reach the live site.
+  - SYSTEM: SYS-002/003/004/005 (the 4 coverage gaps this row cited) are all now fixed (Gate 1,
+    Gate 18a).
+  Deliberately additive, not an in-place rewrite of the original table — §0/§0B's forensic
+  snapshot stays readable as history, and a reader reaching the end of the document sees current
+  truth layered on top rather than a silently rewritten past.
+
+**Files changed**: `docs/admin-os/ADMIN_OS_LIVE_QA_WIRING_BOOK.md`.
+
+No commit made. No push, merge, or deploy.
+
+## AUTONOMOUS REPAIR PROGRAM — GATE 17 (PAST/PRESENT/FUTURE + NEXT ACTION) — 2026-09-14
+
+No specific finding ID names this gate; it maps to the Master Operating Book's own `0D. PAST /
+PRESENT / FUTURE COMPANY MEMORY` doctrine section. Audited the product against that doctrine's own
+checklist rather than inventing new scope.
+
+- **PAST** ("what happened, who did it, what changed, prior decisions"): covered by
+  `admin_audit_log`/Activity Log (self-disclosed `"server"`-actor attribution gap, already tracked
+  in §17.7), Payment Tracker's full payment history, and — as of Gate 4 — the Reports table's new
+  inline prior-report-count and AI-decision context.
+- **PRESENT** ("current customer/business/money/support/staff/website/system state"): this is the
+  bulk of what Gates 1–16 already hardened — the deduplicated review count (Gate 2), honest AI
+  Review outcomes (Gate 3), System Health's AI-provider coverage (Gate 18a), and Business 360's new
+  Commercial Benefits rollup (Gate 8) are all "current state" fixes in this doctrine's own terms.
+- **FUTURE** ("scheduled follow-ups, due dates, expirations, pending approvals, outstanding client
+  actions"): expirations are already real (`splitAdminDashboardExpiringQueue`, the Command Center's
+  expiring/expired queue); Business 360 already has a real computed next-action
+  (`businessDashboardNextAction.ts`); the Users page did not until Gate 7 added one this program.
+  No further undocumented gap was found in this pass beyond what Gates 1–16 already closed or what
+  §17.7 already tracks as PARTIAL (e.g., Command Center cards have no persisted "who owns this"
+  field — a real, known gap, but not a new one this pass discovered).
+
+**No code change made this gate** — the doctrine is substantially already met by fixes already
+landed in Gates 1–16, and no additional concrete, previously-undocumented PAST/PRESENT/FUTURE gap
+was found beyond what's already tracked. Re-litigating already-tracked PARTIAL items here would add
+documentation noise without new evidence.
+
+**Files changed**: none.
+
+No commit made. No push, merge, or deploy.
+
+## AUTONOMOUS REPAIR PROGRAM — GATE 18b (SYSTEM HEALTH — REMAINING PROVIDER/RECOVERY WORK) — 2026-09-14
+
+Addressed SYS-001 and the Stripe silent-outage blind spot (both from Wiring Book §8), the two
+System Health gaps not already closed by Gate 18a's AI-provider slice.
+
+- **SYS-001 FIXED** — Language Audit's every row is a hardcoded checklist value (`enDefault: true,
+  esToggle: true` for every single row in `AUDIT_ROWS`), so the page structurally cannot ever
+  report a real translation gap. The Admin Guide's own entry for this page already discloses this
+  honestly (`failureGuidance`), but that disclosure lived only in the Guide — an operator looking
+  directly at the audit table itself saw only "This is a QA/readout surface, not an automatic
+  translation editor," which undersells the actual limitation (a reader could reasonably think
+  "manual but accurate" rather than "cannot detect failure by construction"). Updated the page's
+  own `AdminPagePurposeCard` `warningNote` to the same honest wording as the Guide entry, so the
+  two surfaces never drift into two different explanations of the same limitation.
+- **Stripe silent-outage blind spot — NOT implemented, by design.** The Wiring Book's own
+  conclusion on this one stands: if Stripe is configured but produces zero webhook deliveries
+  during an outage, `buildStripeHealthComponent` falls through to config-presence-only and reports
+  stale `HEALTHY` — a real, narrow blind spot the Wiring Book itself already assessed as "genuinely
+  hard to detect any other way without an outbound Stripe API call." Fixing it would mean adding a
+  live outbound call to Stripe on every System Health load — a real reliability/latency tradeoff,
+  not a bounded repair — so it was not attempted this pass. Carried forward as a known, accepted
+  limitation rather than silently dropped.
+
+**Verification**: targeted `eslint --max-warnings 0` — clean.
+
+**Files changed**: `app/admin/(dashboard)/workspace/language-audit/page.tsx`.
+
+No commit made. No push, merge, or deploy.
+
+## AUTONOMOUS REPAIR PROGRAM — GATE 19 (LEO CANONICAL READ DELTA) — 2026-09-14
+
+**Read-only.** No file under the LEO worktree or the `integration/leo-executive-operating-
+intelligence-2026-08` branch was modified — every command this gate ran was `git log`/`git diff`/
+`git show` against that branch's already-committed history, from inside this worktree, without
+checking it out or touching its files. Confirmed the branch head is unchanged since Gate 0/0B
+(`302347b8`).
+
+§17.8's original classification flagged `adminDashboardRoutes.ts`, `adminDashboardData.ts`, and
+`AdminCommandCenterDashboard.tsx` as overlap risk, but marked it "possible" / "future" since
+Gates 2–18b hadn't happened yet. Now that they have, diffed LEO's exact copies of those 3 files
+against this worktree's current state to turn "possible" into a precise, evidence-based finding:
+
+- **`adminDashboardRoutes.ts`**: LEO's copy already has the same `classifiedsReviewQueue` value
+  this program relied on (the CMD-001-era route fix predates LEO's fork) — **LOW risk**, the 13-line
+  diff is additive route entries, not conflicting logic.
+- **`adminDashboardData.ts`**: LEO's copy has **no `computeAdminAttentionReviewTruth` function and
+  no `AdminAttentionReviewTruth` type at all** — its `AdminDashboardSnapshot` predates that whole
+  dedup system, not merely a different implementation of it. This is staleness (LEO forked before
+  this logic existed upstream), not a deliberate redesign — a normal "upstream added a function"
+  merge scenario, not a line-level conflict.
+- **`AdminCommandCenterDashboard.tsx`** — **CONFIRMED real regression risk if merged without
+  reconciliation.** LEO's copy still computes
+  `pendingReviewCount = snap.pendingListingsReview + snap.pendingReviewQueueItems.length` — **the
+  exact double-counting bug CMD-001 fixed** (a listing that is both flagged and reported would
+  count twice). It also still renders `{leoExecutiveCta}` before `{priorityStrip}` — **the exact
+  ordering UX-003 fixed in Gate 13.** Merging this branch forward as-is would silently reintroduce
+  both bugs and drop Gate 2's segmented "Needs review" breakdown entirely, since LEO's copy
+  predates all three.
+
+**Gate 19 conclusion for the eventual LEO merge** (not performed here, per this program's explicit
+scope): whoever reconciles `integration/leo-executive-operating-intelligence-2026-08` onto a
+`main` that includes this program's work must specifically re-verify
+`AdminCommandCenterDashboard.tsx`'s review-count computation and card ordering — a naive rebase/
+merge could pick either side inconsistently, and neither "keep LEO's version" nor "take main's
+version blindly" is safe without checking that the CMD-001 dedup and UX-003 ordering survive.
+Everything else in §17.8's original classification (executive-reporting adapters as the highest
+overlap risk, neural voice layer / new API routes / repository touch-ups as `NO_KNOWN_IMPACT`)
+stands unchanged — this gate only sharpened the one area this program's own gates actually
+touched.
+
+**Files changed**: none (read-only gate).
+
+No commit made. No push, merge, or deploy. LEO worktree and branch confirmed untouched.
+
+## AUTONOMOUS REPAIR PROGRAM — GATE 20 (FINAL IMPLEMENTATION CLOSEOUT) — 2026-09-14
+
+Created `docs/admin-os/LEONIX_ADMIN_HUMAN_OPERATIONS_MANUAL.md` — the day-to-day operations
+reference for the owner and any covering staff, distinct from the forensic/evidence docs (Wiring
+Book, Cable Map, Progress, Tests.json). Covers: the six domains and where to start each day; the
+Company-Search-vs-topbar-search distinction (Gate 14); how to read the truth-status and risk-badge
+system, including the new `BROKEN` status (Gate 11); AI Review's honest outcomes (Gate 3); the
+Reports↔User relationship (Gate 4); Business 360's Commercial Benefits and Users' Linked
+Businesses/Support Cases/Next Action (Gates 7–8); a consolidated list of known, accepted
+limitations (Stripe silent-outage blind spot, Language Audit's structural limitation, Cupones,
+orphaned public pages); LEO unavailability guidance including the Gate 19 merge-risk warning; the
+one open owner business decision (REV-005); and an owner browser QA checklist covering every fix
+this program could not click-test itself.
+
+Full per-gate technical detail is not duplicated into the manual — it stays in this file and
+`ADMIN_OS_TESTS.json`, with the manual pointing back to them as the evidence trail.
+
+Proceeding to the Final Integration Validation phase next (one authorized heavy-validation stream:
+resource-contention check, targeted verifiers, full typecheck, lint, production build, git diff
+--check, file inventory, docs consistency) — see the dedicated section below for its results.
+
+**Files changed**: `docs/admin-os/LEONIX_ADMIN_HUMAN_OPERATIONS_MANUAL.md` (new).
+
+No commit made. No push, merge, or deploy.
+
+## FINAL INTEGRATION VALIDATION (after Gate 20) — 2026-09-14
+
+Resource-contention check first: `wmic process where "name='node.exe'"` showed many Node
+processes on the machine (other worktrees/sessions) but none with a command line referencing this
+worktree's path or a build/typecheck command — safe to run one heavy stream.
+
+1. **Targeted verifiers**: `verify-launch-truth-01.ts` (24/24) and
+   `verify-launch-truth-final-burndown-01.ts` (18/18) — both already run and passed during Gate 15.
+2. **Full typecheck** (`tsc --noEmit --incremental false`, `--max-old-space-size=8192` after a
+   default-heap OOM on the first attempt — a memory-limit issue, not a code issue): first run
+   surfaced two categories of errors:
+   - ~15 `Cannot find module '.../public/logo.png'` errors across files this program never
+     touched — root cause: `next-env.d.ts` did not exist in this worktree at all (confirmed via
+     `git status`/`.gitignore` — it's a generated, gitignored file that `next dev`/`next build`
+     normally creates on first run, and this worktree's `node_modules` had to be installed from
+     scratch at Gate 1, so it was never generated). **Regenerated it via the standard Next.js
+     template** — a safe, non-business-logic, auto-generated file, not a hand-authored fix.
+   - **One real bug this program introduced**: `listingAiModerationService.ts(84,58): error
+     TS2339` — Gate 3's rewrite replaced a direct `ai.ok` check with a separately-computed
+     `insertFailedAfterAiSuccess` boolean for a ternary branch, which broke TypeScript's
+     discriminated-union narrowing on `ai.error`. **Fixed** by checking `ai.ok` directly in the
+     ternary (identical resulting behavior, correct narrowing).
+   - **Re-ran after both fixes: 0 errors, full repo.**
+3. **Lint**: this project has no full-repo lint script (`npm run lint` is scoped to the "autos"
+   category only, and 2 sibling scripts to "bienes-raices"/"servicios" — none cover the whole
+   repo). Ran `eslint "app/admin/**/*.{ts,tsx}"` directly instead, matching this program's actual
+   change footprint: **24 errors + 11 warnings, all pre-existing baseline issues in files this
+   program never touched, or on lines within touched files that this program's own diffs never
+   reach** (individually confirmed per-gate via `git diff` throughout Gates 2–19; the 4 previously
+   flagged as baseline — `AdminCommandCenterDashboard.tsx` lines 75/224,
+   `AdminReportsTable.tsx` line 41, `adminStrings.ts` line 772 — are a subset of this same list).
+   **Zero lint errors caused by this program's own changes.** One pre-existing issue worth flagging
+   prominently even though out of scope: `ClassifiedAdminQueueRowActionsPanel.tsx:92` calls
+   `useCallback` conditionally (`react-hooks/rules-of-hooks`) — a real correctness bug, not touched
+   by this program, not fixed here per "don't fix unrelated baseline issues."
+4. **Full production build** (`npm run build`, `--max-old-space-size=8192`): **blocked by a
+   pre-existing environment gap, not a code defect** — this worktree has zero `.env*` files
+   (confirmed via `ls`), so `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY` are unset.
+   The build reached static-export prerendering and crashed on `/(site)/dashboard` (an unrelated
+   public page, not part of this program's scope) with `Error: Missing NEXT_PUBLIC_SUPABASE_URL or
+   NEXT_PUBLIC_SUPABASE_ANON_KEY`. **Did not fabricate credentials to force the build through** —
+   that would risk masking a real issue or introducing insecure defaults. Full typecheck (0 errors,
+   whole repo) and full `app/admin` lint (0 errors caused by this program) together give strong
+   correctness signal in the build's absence; the build itself needs real Supabase credentials
+   provisioned in this worktree by the owner/CI before it can complete, unrelated to any code this
+   program touched.
+5. **`git diff --check`**: one trivial trailing-whitespace warning in this program's own
+   Gate-15 doc entry — fixed immediately.
+6. **Exact changed-file inventory** (`git status --short`): 25 modified + 5 new = 30 files total,
+   all under `app/admin/` or `docs/admin-os/` (plus the gitignored, regenerated `next-env.d.ts`).
+   Zero files under the LEO worktree, zero schema/migration files, zero `package.json`/config
+   changes, zero files outside this program's declared scope.
+7. **Canonical docs consistency**: `ADMIN_OS_TESTS.json` validated with `node -e "JSON.parse(...)"`
+   after every single edit this program made (26 times) — valid at every step, valid now.
+
+**No commit, no push, no merge, no production deploy, no LEO worktree modification.**
+
+## OWNER QA / RUNTIME CERTIFICATION SESSION — 2026-09-14 (PARTIAL — STOPPED AT CREDENTIAL BLOCKER)
+
+Attempted to carry the program into a live-browser owner QA and runtime certification pass.
+
+- **Env provisioning**: confirmed `C:\projects\elaguila-website\.env.local` is the file the
+  normal local dev workflow uses (the sibling `.env.certification.local` is referenced only by
+  one unrelated one-off script, `certify-package-c-c9-capacity-rpcs.mjs`). Copied it byte-for-byte
+  into this worktree as `.env.local`. Confirmed gitignored (`git check-ignore` →
+  `.gitignore:56:.env.local`) and confirmed via `git status` that it never appears — no secret
+  values were displayed at any point. `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+  `SUPABASE_SERVICE_ROLE_KEY`, and `ADMIN_PASSWORD` variable *names* (not values) confirmed present.
+- **Runtime start**: started `npm run dev` explicitly scoped to this worktree (`cd` into the
+  absolute path before launching, backgrounded, logged to `.dev-server.log`). Verified via
+  `Get-CimInstance Win32_Process` that the listening process's command line is
+  `C:\projects\elaguila-website-admin-live-qa\node_modules\next\dist\server\lib\start-server.js`
+  — genuinely this worktree, not LEO. Ready in 5.1s, `http://localhost:3000`, zero startup errors
+  or warnings.
+- **Unauthenticated verification performed** (no credentials needed): `/admin` correctly redirects
+  to `/admin/login` (route protection confirmed live). The login page itself renders correctly
+  ("Staff / Team login" + "Legacy owner bootstrap" fallback). Public `/about` and `/contacto` both
+  render cleanly with zero console errors and zero server-side errors in the dev log — `/about`
+  shows the `mergeNosotrosCopy` fallback copy ("Edita este texto desde el admin..."), consistent
+  with Gate 11's code-level finding that this page is wired to `site_section_content` (no saved
+  "nosotros" row exists yet in this environment's database, or none is configured — the fallback
+  path itself working cleanly, with no error, is exactly the expected honest-degradation
+  behavior; it does not yet *prove* a saved edit reaches the page end-to-end, since creating one
+  requires an authenticated admin session).
+- **STOPPED at a genuine credential blocker, not a judgment call**: the platform's own
+  Credential-Materialization safety classifier denied an attempt to read the smoke-test admin
+  credential values (`SMOKE_ADMIN_EMAIL`/`SMOKE_ADMIN_PASSWORD`) out of `.env.local` for use in
+  the login form. This is an external safety control, not a decision this program made — per its
+  own explicit stop condition ("owner login is required and cannot be completed without owner
+  interaction"), authenticated QA (Command Center, Company Search, Revenue, Marketplace Ops,
+  People, Website editors, System Health, Admin Guide, and all of Steps 4–11) could not proceed
+  autonomously past this point.
+
+**Dev server left running** (`http://localhost:3000`, PID confirmed above) so the owner can log in
+themselves and continue QA immediately without re-provisioning anything. `.env.local` remains in
+place, gitignored. No commit, no push, no merge, no deploy, no LEO worktree modification.
+
+## PRE-QA FORENSIC COMPLETION AUDIT — 2026-09-14
+
+Full detail in `docs/admin-os/ADMIN_OS_PRE_QA_FORENSIC_COMPLETION_AUDIT.md`. Summary: re-audited
+every one of the 20 gates against current code rather than trusting prior "FIXED" prose. Found and
+completed 3 real gaps that had been marked complete too early:
+
+1. **Gate 8 (REV-001–004)** — `businessCommercialBenefits.ts` returned bare counts only; rewritten
+   to return real rows (grant source, dates, status, promo-vs-entitlement distinction) — the gate's
+   own promised detail, not just a total.
+2. **Gate 9** — "not a duplicate route" was correct but didn't answer the actual owner-workflow
+   question; added direct "Manage entitlements/promo codes for this business" links from Business
+   360 into the two real workspaces.
+3. **SYS-001 / Gate 11 & 18b** — Language Audit was static-only even after its honest disclosure;
+   added `getAdminStringsKeyCoverageReport()`, a genuinely live EN/ES dictionary key-parity check,
+   as a new section on the page. While tracing this, confirmed `adminTr()` never reads the `ES`
+   dictionary — traced to `getAdminLang()` being deliberately pinned to `"en"` ("Phase 13B" — a
+   real product decision, not a bug); documented so it's never mistakenly "fixed" later.
+4. **Stripe silent-outage blind spot (Gate 18b)** — previously accepted as unfixable without an
+   outbound API call; re-evaluated per this audit's explicit prompt and implemented
+   `checkStripeApiKeyLive()`, a safe, read-only, non-transactional `balance.retrieve()` probe,
+   replacing the fallback path that used to report a blind `HEALTHY`.
+
+Also added 2 rows to `websiteEditingTruthMatrix.ts` so `/negocios-locales` and
+`/productos-promocion`'s orphan status is visible inside Admin itself (WEB-006/WEB-007), not only
+in program docs. Removed 2 stray debug artifacts (`.dev-server.log`, `.claude/launch.json`) left
+over from the interrupted browser-QA attempt.
+
+Gate 6 (MOD-003) and Gate 13 (UX-003) were re-examined against this audit's explicit "don't accept
+a shallow fix" warnings and found to be genuinely sufficient on re-inspection — both already sit on
+top of real, pre-existing structural hierarchy in the code, not a flat/undifferentiated cluster;
+documented the evidence rather than forcing a speculative redesign.
+
+**Verification**: targeted `eslint --max-warnings 0` on every file touched this audit — clean.
+Full validation results in the Final Integration Validation section below.
+
+Also refreshed 3 Admin Guide entries (`business-360`, `language-audit`, `system-health`) whose
+copy predated this audit's own capability upgrades, and **fixed one genuine pre-existing bug**
+found by the lint sweep: `ClassifiedAdminQueueRowActionsPanel.tsx`'s `SellerSection` called
+`useCallback` after an early return (`react-hooks/rules-of-hooks`) — a real crash risk on the
+classifieds queue page if `hasSeller`/`hasContact` ever flipped across a re-render of the same row
+instance. Judged worth fixing (unlike the ~22 remaining pre-existing lint errors, which are
+cosmetic unused-variable issues with no runtime crash risk) per this audit's own readiness bar.
+
+**Validation**: targeted verifiers (24/24, 18/18) still pass. Full typecheck found and fixed one
+real error this audit introduced (`revenueStripe.ts` used an unsupported Stripe SDK `signal`
+option; switched to the SDK's native `timeout` option) — final result 0 errors, full repo. Lint
+across `app/admin` went 24→23→22 errors as fixes landed, zero caused by this audit, 2 genuine
+pre-existing errors fixed (the `ES`-unused side effect and the rules-of-hooks bug). **Full
+production build now passes** (`Compiled successfully in 90s`, 385/385 static pages) — a stronger
+result than the earlier Final Integration Validation, which was blocked by a missing `.env.local`
+that has since been provisioned. `git diff --check` clean. Exact inventory: 29 modified + 6 new =
+35 files.
+
+**Files changed this audit**: `app/admin/(dashboard)/businesses/[businessId]/page.tsx`,
+`app/admin/_lib/businessCommercialBenefits.ts`, `app/admin/_lib/adminDashboardRoutes.ts`,
+`app/admin/_lib/adminStrings.ts`, `app/admin/(dashboard)/workspace/language-audit/page.tsx`,
+`app/admin/_lib/adminSystemHealth.ts`, `app/lib/listingPlans/revenueStripe.ts`,
+`app/admin/_lib/websiteEditingTruthMatrix.ts`, `app/admin/_lib/adminGuideRegistry.ts`,
+`app/admin/(dashboard)/workspace/clasificados/_components/ClassifiedAdminQueueRowActionsPanel.tsx`,
+plus the new `docs/admin-os/ADMIN_OS_PRE_QA_FORENSIC_COMPLETION_AUDIT.md`.
+
+No commit, no push, no merge, no deploy, no LEO worktree modification.
+
+## OWNER BROWSER QA SESSION — 2026-09-14 (LIVE, IN PROGRESS)
+
+Real owner browser QA began after the forensic audit's READY_FOR_OWNER_BROWSER_QA: YES
+certification. Chuy is driving the browser personally against the dev server on
+`http://localhost:3000` (PID confirmed serving this worktree, not LEO). Full test-by-test
+record lives in `docs/admin-os/ADMIN_OS_OWNER_BROWSER_QA_LEDGER.md` — this section is a
+short pointer, not a duplicate.
+
+- **OWNER-QA-001** (login + Admin shell): PASS. Side finding **AUTH-UX-001** (low severity,
+  deferred) — the session footer's "Signed in via cookie" wording can be misread as
+  legacy/bootstrap auth even for a normal team-account login.
+- **OWNER-QA-002** (Command Center Needs-review count + breakdown truth): PASS — 25 total and
+  the 5-category breakdown (7/0/8/0/10) both confirmed exactly by the owner.
+- **OWNER-QA-003** (Command Center → Review workspace navigation): initial **FAIL**, now
+  **FIXED**, retest pending. Root cause: the CTA tied to the 25-item cross-category
+  deduplicated total hardlinked to the Classifieds-only flagged queue (4 items), in both the
+  priority-strip tile and the "Needs review" card's own primary button — a real
+  destination/count mismatch, not a count-truth defect (OWNER-QA-002 already proved the count
+  itself is correct). Fixed in `app/admin/_components/AdminCommandCenterDashboard.tsx` by
+  routing both CTAs to the existing (previously orphaned) `/admin#review` anchor — landing on
+  the same "Needs review" card's own already-correct, already-reconciling 5-category
+  breakdown — and relabeling the card's own primary button to name its real scope
+  ("Review Classifieds queue") instead of implying it opens the full 25-item total. No new
+  combined/global review workspace was built (none exists; out of scope for a live-QA
+  hotfix). Full detail, root-cause trace, and validation in the ledger under OWNER-QA-003.
+  Side finding **REVIEW-UX-001** (low severity, deferred to the Marketplace Ops QA phase) —
+  owner reports the Clasificados review row is visually dense.
+
+- **OWNER-QA-002B** (retest of the OWNER-QA-003 fix): initial **FAIL** — a deeper defect, found
+  by the owner clicking through every category's Open link, not just the total. **FIXED.**
+  Full forensic matrix, root causes, and fixes in the ledger under OWNER-QA-002B/**CMD-004**.
+  Summary: Clasificados' count (7) legitimately unions pending+flagged+reported listings, but
+  its destination only ever filtered `status=flagged` (4) — fixed by adding a real
+  `status=needs_review` combined filter that reproduces the same union server-side. Viajes'
+  count (8) was real (proven: 37 total rows, 8 genuinely "submitted") but its destination
+  silently showed 0 — root cause: the whole `20260509120000_classifieds_republish_capability.sql`
+  migration is unapplied in this environment, so every query ordering by `republish_sort_at`
+  errors and silently returns `[]`; fixed with a defensive order-column fallback in Viajes'
+  and (proactively, before it was owner-visible) Empleos' admin fetch functions. Ofertas
+  Locales (10=10) confirmed as the correct reference pattern; Servicios confirmed unaffected.
+  Also audited the full category registry against the review-gate architecture: the 5-row
+  breakdown is canonical and complete, not incomplete or hardcoded — Restaurantes/Autos/Comida
+  Local are deliberately excluded (no review-gate status exists for them at all; direct-publish
+  on payment is a revenue signal, already surfaced elsewhere, not moderation). At the time, two
+  more call sites (Autos ops, and the public-facing bienes-raices browse query) were suspected
+  of the same latent bug from a grep match alone and flagged as out of scope — **this was
+  corrected** in the DATA-QUERY-001 follow-up pass below: both were actually already safe.
+- **DATA-QUERY-001** (owner-directed defect-family closeout, same date): audited every one of
+  the 37 repository occurrences of `republish_sort_at`. Found exactly 2 real active defects —
+  Viajes and Empleos (both admin queue fetchers, both already fixed above). Every public-facing
+  browse query for every Clasificados category (Autos' public pool, Bienes Raíces, Rentas, En
+  Venta, Servicios, Restaurantes) already had defensive handling for this exact schema-drift
+  condition **before this QA session began** — verified live for Bienes Raíces (its two-tier
+  select-shrink fallback correctly recovers real rows) and by source inspection for the rest.
+  The earlier "not fixed, out of scope" note about Autos/Bienes Raíces above was itself an
+  unverified claim (grep match without reading the surrounding fallback code) and has been
+  corrected here rather than left standing. Also tightened the Viajes/Empleos fixes: they
+  originally fell back on *any* query error, not just the recognized missing-column one —
+  fixed to check the specific error message before falling back, so a genuine network/RLS/
+  permission failure is `console.error`'d and stays visible rather than silently reading as
+  "no rows" the same way the original bug did. Full matrix and validation in the ledger under
+  DATA-QUERY-001.
+- Separate, unrelated finding surfaced by the owner via DevTools during the same investigation:
+  **SYS-RUNTIME-006** — `manifest.webmanifest` returned a 500 on every single page load,
+  site-wide (not Admin-only). Root cause: a stale static `public/manifest.webmanifest` (superseded
+  6 days earlier by the dynamic `app/manifest.ts` route) was still present, and Next.js refuses to
+  serve either file when both exist at the same path. Fixed by deleting the stale static file.
+  Verified via direct `curl` (500 → 200) without needing any session/login.
+
+## STAFF CONTACT + VIRTUAL FRONT DESK CONTINUITY GATE — 2026-09-14 (owner addition during active QA)
+
+Owner-directed gate: verify two already-existing systems (Executive Contact/Staff Contact Page,
+and Virtual Front Desk/Digital Doorbell) are discoverable and operable from Admin without tribal
+knowledge. Explicitly not a rebuild — both systems were confirmed real and functional; the gap
+was navigation/documentation, not missing product.
+
+**Staff Contact System** — confirmed fully built and already well-documented: `/admin/team/roster`
+(staff login/permissions) and `/admin/team/executive-hub` (public contact profile management,
+publish/suspend/archive, QR/vCard, public page at `/contact/{slug}`) both exist and work; new
+staff can be added with zero code edits via "New" on Executive Hub; the Admin Guide already had
+detailed `team-roster` and `executive-hub` entries explicitly distinguishing the two systems. The
+one real gap: Team Roster's only bridge to Executive Hub was a small nav tab labeled "Executive
+Hub (owner)" with no explanation. Added the owner's specified "Staff Contact Page" card directly
+on the Roster page (`app/admin/(dashboard)/team/roster/page.tsx`) with the exact title/description/
+CTA/helper text requested, explaining STAFF LOGIN vs PUBLIC CONTACT PAGE in plain language.
+
+**Virtual Front Desk / Digital Doorbell** — confirmed fully built (`/admin/digital-contact/doorbell`
+for push-notification device enrollment, Samsung/Android-first; `/admin/digital-contact/presence`
+for temporary AVAILABLE/BUSY/AWAY status) but **completely unlinked** anywhere in Admin — zero
+references outside their own exact URLs, confirmed by a repo-wide search. Fixed:
+1. Added a new "Virtual Front Desk" entry to `ADMIN_GLOBAL_NAV` (`app/admin/_lib/adminGlobalNav.ts`),
+   people group, pointing at the doorbell page (its own existing `eyebrow` already said
+   "Virtual Front Desk" — reused that exact language rather than inventing new terminology).
+   Registered the href in `getAllowedGlobalNavHrefs` (`adminAccessControl.ts`) at the same
+   general-staff level as Support/My Profile — this is a personal action, not owner-only.
+2. Added a `nav.virtualFrontDesk` string key (EN/ES) to `adminStrings.ts`.
+3. Added links from the doorbell page itself to the live `/visitanos` visitor page, to Presence,
+   and to Executive Hub (`app/admin/(dashboard)/digital-contact/doorbell/page.tsx`), plus a
+   truthful `AdminPagePurposeCard` explaining the flow, office-hours behavior (9am–5pm Pacific;
+   outside that window the video request is informational only, fallback contact stays
+   available), and Google Meet/Teams/FaceTime's real role as a secondary/emergency-only fallback
+   (never the primary doorbell path) — confirmed from `resolvePreferredFaceToFaceConnection.ts`'s
+   own code comments, not assumed.
+4. Added two new Admin Guide entries — `virtual-front-desk-doorbell` and
+   `virtual-front-desk-presence` — answering the owner's exact continuity questions (where's the
+   visitor page, how does video work, what rings staff, what happens after hours, fallback
+   contacts, what to do if notifications fail). Cross-linked from the existing `team-hub` and
+   `executive-hub` entries' `relatedAdminRoutes`.
+5. Confirmed truthfully, not invented: there is **no System Health check** for this system today
+   (verified — no reference anywhere in `adminSystemHealth.ts`) and no additional admin-editable
+   configuration beyond device enrollment and presence — contact destinations (WhatsApp/phone/
+   email) are Executive Hub fields, already covered by System A, not a separate control surface.
+   Both facts are now stated explicitly in the Guide entry and the page's own purpose card rather
+   than left silent or fabricated.
+
+**Validation**: `node scripts/verify-admin-nav-ops.mjs` — 74/74 PASS (unaffected by the new nav
+entry, confirmed no positional-order assertion broken). `verify-launch-truth-01.ts` (24/24) and
+`verify-launch-truth-final-burndown-01.ts` (18/18) both re-run — still fully pass. File-scoped
+`eslint` on every touched file — zero errors/warnings. `curl` against both the doorbell and
+roster routes returns a genuine `307` to `/admin/login` (confirmed via the `Location` header,
+not a crash) — proving both pages compile and render without a server error, without requiring
+an owner/staff session. Dev server (PID 24720) remained healthy and hot-reloaded throughout.
+
+## STAFF CONTACT + VIRTUAL FRONT DESK — CLOSEOUT PASS — 2026-09-14
+
+Owner re-issued the continuity gate with a more detailed audit checklist. Re-verified every item
+against current code (not against the prior turn's own summary) and closed two additional gaps
+the first pass had left as "genuinely absent, not hidden" rather than actually surfacing what was
+safely surfaceable:
+
+- **No duplicate staff-profile system exists** — confirmed by search: `executiveHubStore.ts` /
+  `executiveHubTypes.ts` are the only staff-contact-profile store in `app/admin/_lib`; Company
+  Search integration (`adminOpsUnifiedSearch.ts`, `adminExtendedGlobalSearch.ts`) reads from that
+  same store, it does not duplicate it.
+- **System Health, corrected**: the first pass stated "no System Health check exists" and left it
+  there. Re-examined against this turn's explicit instruction ("if existing code/config allows a
+  safe truthful configuration-presence check, surface it") and found two already-existing,
+  already-safe config-presence functions with zero outbound calls — `isWebPushConfigured()`
+  (`app/lib/digitalContact/humanConnection/webPushConfig.ts`) and
+  `createDailyVideoProvider().isConfigured()` (`.../providers/dailyProvider.ts`). Added a new
+  "Virtual Front Desk (visitor doorbell)" component to `buildAdminSystemHealthSnapshot()`
+  (`app/admin/_lib/adminSystemHealth.ts`), same honesty bar as the existing email/SMS/AI-provider
+  rows (HEALTHY only when both push and Daily are configured; NOT_CONFIGURED names exactly which
+  piece is missing; the owner message explicitly notes the public fallback contacts still work
+  regardless). This was a real, previously-missed opportunity to surface truth, not a rebuild —
+  no live provider probe was added, matching the "no invented health checks" instruction.
+- Guide entries for `virtual-front-desk-doorbell` and `system-health` updated to cross-reference
+  the new component; `failureGuidance` now tells an operator to check System Health first, and
+  distinguishes a config gap (Admin-fixable by whoever holds the provider accounts) from a
+  provider-runtime issue (PROVIDER_RUNTIME_REQUIRED — Daily/push service itself failing despite
+  correct configuration).
+
+**Validation**: `node scripts/verify-admin-nav-ops.mjs` — 74/74 PASS (re-run, unaffected). Direct
+execution of both new health-check functions via `tsx` confirmed they run without throwing
+outside their `server-only` guard is not meaningful (both files are intentionally `server-only`
+and threw as designed when loaded standalone) — instead verified in-context: `/admin/system-health`
+loaded in the Browser tool renders the real login redirect cleanly with zero console errors,
+confirming `adminSystemHealth.ts`'s new imports compiled successfully under Next's actual server
+module graph (a broken import would show a Next.js compile-error overlay here, not a clean
+redirect). File-scoped `eslint` — zero errors/warnings on both re-edited files.
+
+No commit, no push, no merge, no deploy, no LEO worktree modification during this QA session.
