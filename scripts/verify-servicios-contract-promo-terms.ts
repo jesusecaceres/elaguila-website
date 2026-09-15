@@ -121,8 +121,19 @@ check("F NO STACKING: promo + verified intro → 409 discount_conflict before ei
   assert.ok(conflict > 0 && conflict < promoBlock && conflict < introBlock, "409 guard runs first");
   assert.ok(route.includes("{ status: 409 }"));
   const stripe = raw("app/lib/listingPlans/revenueStripe.ts");
-  assert.ok(stripe.includes("discounts: [{ coupon: (input.verifiedIntroDiscountStripeCouponId || input.contractTermStripeCouponId) as string }]"), "one discounts entry, one coupon");
+  // P0 recovery (2026-09-15): the fallback OR chain is unchanged — it now runs into a named
+  // `serverAttachedCouponId` const (not a stale re-pin: the refactor is what fixed a proven
+  // production bug — Stripe rejects `allow_promotion_codes` alongside `discounts`).
+  assert.ok(
+    stripe.includes("const serverAttachedCouponId = input.verifiedIntroDiscountStripeCouponId || input.contractTermStripeCouponId;"),
+    "same fallback: verified-intro coupon first, else the contract-term coupon",
+  );
+  assert.ok(stripe.includes("discounts: [{ coupon: serverAttachedCouponId }]"), "one discounts entry, one coupon");
   assert.equal((stripe.match(/discounts:/g) ?? []).length, 1, "exactly one discounts attachment site");
+  assert.ok(
+    stripe.includes("serverAttachedCouponId ? { discounts: [{ coupon: serverAttachedCouponId }] } : { allow_promotion_codes: false }"),
+    "allow_promotion_codes and discounts are mutually exclusive on the same session params (the proven root cause of the raw 500)",
+  );
   assert.ok(stripe.includes("allow_promotion_codes: false"), "customer-typed Stripe promotion codes stay off");
   const policy = decideVerifiedIntroDiscountEligibility({
     emailVerified: true, phoneVerified: true, hasPriorRedemption: false, packageEligible: true,

@@ -86,7 +86,10 @@ export async function ensureVerifiedIntroDiscountStripeCoupon(): Promise<EnsureV
       id: VERIFIED_INTRO_DISCOUNT_STRIPE_COUPON_ID,
       percent_off: 15,
       duration: "once",
-      name: "Leonix verified intro 15% (first payment only)",
+      // Stripe coupon `name` has a hard 40-character limit; the prior string ("Leonix verified
+      // intro 15% (first payment only)", 46 chars) was rejected outright by coupons.create as an
+      // invalid_request_error, which is the proven root cause of the production 503 here.
+      name: "Leonix verified intro 15% (once)",
     });
     return { ok: true, couponId: created.id };
   } catch (createErr) {
