@@ -14,6 +14,8 @@ import {
 import { BROAD_BUSINESS_TYPES, BUSINESS_STAGES } from "@/app/lib/business/constants";
 import { countriesSortedByLabel, countryLabel } from "@/app/lib/business/countries";
 import { StaffCommandCenter } from "./StaffCommandCenter";
+import { composeStaffOperatingSystem } from "../../_lib/staffOperatingSystem";
+import { getCurrentAdminAccessContext, hasPaymentTrackerAccess } from "../../_lib/adminAccessControl";
 import { listAcceptedCurrentProposalsForHandoff, listProposalsAwaitingDecisionForStaffAttention } from "@/app/lib/business/proposals/repository";
 import { listActiveSignalsForStaffAttention } from "@/app/lib/business/advisor/repository";
 import { isAdvisorEnabled } from "@/app/lib/business/advisor/featureFlag";
@@ -86,6 +88,23 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
   // Assisted Publishing — the intent carried from a Quick Action survives filtering and row
   // selection (see conciergeIntent.ts). Unknown/absent values resolve to null = plain browsing.
   const action = normalizeConciergeAction(sp.action);
+
+  // Staff OS — role-aware wire map. Payment Tracker visibility is the ONE thing the strict
+  // actor cannot answer (it is owner_admin OR the can_view_payments roster permission, resolved
+  // by the legacy context the Command Center already uses) — read it for link visibility only;
+  // the destination page still enforces it. Failure here must never take the home down.
+  let paymentTrackerAccess = false;
+  try {
+    paymentTrackerAccess = hasPaymentTrackerAccess(await getCurrentAdminAccessContext());
+  } catch {
+    paymentTrackerAccess = false;
+  }
+  const staffOs = composeStaffOperatingSystem({
+    role: access.actor.role,
+    actorType: access.actor.actorType,
+    capabilities: access.actor.capabilities,
+    paymentTrackerAccess,
+  });
   const toBool = (v: string | undefined) => (v === "true" ? true : v === "false" ? false : undefined);
 
   const { items, total } = await listBusinessesForWorkspace({
@@ -293,6 +312,7 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
   return (
     <div className="max-w-6xl space-y-6">
       <StaffCommandCenter
+        os={staffOs}
         home={home}
         summaryUnavailable={summaryUnavailable}
         needsAttention={needsAttention}

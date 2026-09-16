@@ -701,8 +701,9 @@ export function AdminCommandCenterDashboard({
           eyebrow="Business Concierge"
           title="Business Concierge"
           status="real"
-          body="Understand businesses, follow up, meet prepared, review opportunities, and create from verified truth."
+          body="Understand businesses, follow up, meet prepared, review opportunities, and create from verified truth. Staff home: TODAY · CLIENT WORK · COMMERCIAL · CUSTOMER COMMUNICATION · MY LEONIX."
           primary={{ href: "/admin/businesses", label: "Open Business Concierge", variant: "primary" }}
+          secondary={{ href: "/admin/businesses/create-for-client", label: "Create for Client", variant: "active" }}
         />
       </div>
     </AdminSectionCard>

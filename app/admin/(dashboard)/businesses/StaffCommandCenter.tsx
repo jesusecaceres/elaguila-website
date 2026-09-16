@@ -1,10 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { adminBtnPrimary, adminBtnSecondary } from "../../_components/adminTheme";
-import { ADMIN_DASHBOARD_ROUTES } from "../../_lib/adminDashboardRoutes";
-import { buildConciergeInventoryHref } from "../../_lib/conciergeIntent";
 import { BusinessConciergeInstallBanner } from "./BusinessConciergeInstallBanner";
+import { LeonixServiceWorkerRegister } from "@/app/components/digitalContact/LeonixServiceWorkerRegister";
 import type { StaffConciergeAttentionEntry, StaffConciergeHome } from "../../_lib/staffConciergeHome";
+import type { StaffOperatingSystem, StaffOsLink } from "../../_lib/staffOperatingSystem";
 import { advisorSignalDashboardAnchor } from "@/app/lib/business/advisor/logic";
 import type { AdvisorSignalType } from "@/app/lib/business/advisor/types";
 import type { ProposalAwaitingDecisionRow } from "@/app/lib/business/proposals/repository";
@@ -66,7 +66,53 @@ function AttentionList({ items }: { items: readonly StaffConciergeAttentionEntry
   );
 }
 
+function OsLinkButton({ link }: { link: StaffOsLink }) {
+  const cls = link.primary
+    ? `${adminBtnPrimary} min-h-[56px] flex-col gap-0.5 py-2`
+    : `${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2`;
+  const hintCls = link.primary ? "text-[10px] font-normal text-white/80" : "text-[10px] font-normal text-[#7A7164]";
+  const body = (
+    <>
+      <span>{link.label}</span>
+      {link.hint ? <span className={hintCls}>{link.hint}</span> : null}
+    </>
+  );
+  // In-page anchors (Find business) stay plain <a> so the hash scroll works without a router hop.
+  return link.href.startsWith("#") ? (
+    <a href={link.href} className={cls}>{body}</a>
+  ) : (
+    <Link href={link.href} className={cls}>{body}</Link>
+  );
+}
+
+function OsGroup({
+  title,
+  links,
+  columns = "grid-cols-1 sm:grid-cols-2",
+  children,
+}: {
+  title: string;
+  links: readonly StaffOsLink[];
+  columns?: string;
+  /** Page-local controls (in-page anchors) that are not role-routed, rendered first. */
+  children?: React.ReactNode;
+}) {
+  if (links.length === 0 && !children) return null;
+  return (
+    <div className="mt-3 rounded-2xl border border-[#E8DFD0] bg-white p-4">
+      <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">{title}</h2>
+      <div className={`mt-2 grid gap-2 ${columns}`}>
+        {children}
+        {links.map((link) => (
+          <OsLinkButton key={link.key} link={link} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function StaffCommandCenter({
+  os,
   home,
   summaryUnavailable = false,
   needsAttention = [],
@@ -80,6 +126,8 @@ export function StaffCommandCenter({
   commitmentsAttention = [],
   creativeAwaitingReview = [],
 }: {
+  /** Role-aware wire map (app/admin/_lib/staffOperatingSystem.ts) — composed server-side from the strict actor. */
+  os: StaffOperatingSystem;
   home: StaffConciergeHome;
   summaryUnavailable?: boolean;
   needsAttention?: readonly StaffConciergeAttentionEntry[];
@@ -110,9 +158,15 @@ export function StaffCommandCenter({
               Leonix Business Concierge
             </p>
             <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-[#9A8B6A]">Centro de Comando del Personal / Staff Command Center</p>
+            <p className="mt-0.5 text-[11px] font-semibold text-[#5C5346]">{os.personaLabel}</p>
           </div>
         </div>
         <BusinessConciergeInstallBanner />
+        {/* Gate 14 — the PWA start_url is this page, but the one canonical service worker
+            (public/sw.js, scope "/") was only ever registered from Doorbell / the owner console. Registering it
+            here too means a device that installs from the staff home actually gets the /offline
+            fallback; same worker, same file, no second registration path. */}
+        <LeonixServiceWorkerRegister />
       </div>
 
       {summaryUnavailable ? (
@@ -221,77 +275,44 @@ export function StaffCommandCenter({
         )}
       </div>
 
-      {/* Assisted Publishing — the Quick Actions are grouped by job and every search-first
-          action carries its intent through ?action= (app/admin/_lib/conciergeIntent.ts), so
-          selecting a business lands staff on that action's real section instead of losing it at
-          the bare #businesses-inventory anchor. Same admin button styles, no new visual system. */}
-      <div className="mt-3 rounded-2xl border border-[#E8DFD0] bg-white p-4">
-        <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Crear para el cliente / Create for Client</h2>
-        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <Link href="/admin/businesses/create-for-client" className={`${adminBtnPrimary} min-h-[56px] flex-col gap-0.5 py-2`}>
-            <span>Crear anuncio / listado / Create Ad / Listing</span>
-            <span className="text-[10px] font-normal text-white/80">Abre la aplicación real de la categoría por el cliente. / Opens the real category application for the client.</span>
-          </Link>
-          <Link href="/admin/businesses/canvass?intent=business_profile" className={`${adminBtnPrimary} min-h-[56px] flex-col gap-0.5 py-2`}>
-            <span>Crear Perfil de Negocio / Create Business Profile</span>
-            <span className="text-[10px] font-normal text-white/80">Prospecto nuevo. Para uno existente, use Buscar negocio. / New prospect. For an existing one, use Find business.</span>
-          </Link>
-        </div>
-
-        <h2 className="mt-4 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Gestionado por Leonix / Leonix Managed</h2>
-        <div className="mt-2 flex flex-wrap gap-2">
-          <Link href="/admin/businesses/managed" className={`${adminBtnSecondary} min-h-[40px] text-xs`}>Todos / All</Link>
-          <Link href="/admin/businesses/managed?filter=draft" className={`${adminBtnSecondary} min-h-[40px] text-xs`}>Borradores / Drafts</Link>
-          <Link href="/admin/businesses/managed?filter=not_eligible" className={`${adminBtnSecondary} min-h-[40px] text-xs`}>Esperando pago / Awaiting payment</Link>
-          <Link href="/admin/businesses/managed?filter=eligible" className={`${adminBtnSecondary} min-h-[40px] text-xs`}>Listo para publicar / Ready to publish</Link>
-          <Link href="/admin/businesses/managed?filter=published" className={`${adminBtnSecondary} min-h-[40px] text-xs`}>Publicado / Published</Link>
-          <Link href="/admin/businesses/managed?filter=claim_pending" className={`${adminBtnSecondary} min-h-[40px] text-xs`}>Reclamo pendiente / Claim pending</Link>
-        </div>
-
-        <h2 className="mt-4 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Atajos comerciales / Commercial shortcuts</h2>
-        <div className="mt-2 flex flex-wrap gap-2">
-          <Link href={ADMIN_DASHBOARD_ROUTES.promoCodes} className={`${adminBtnSecondary} min-h-[40px] text-xs`}>Código promo / Promo code</Link>
-          <Link href={ADMIN_DASHBOARD_ROUTES.paymentTracker} className={`${adminBtnSecondary} min-h-[40px] text-xs`}>Rastreador de pagos / Payment tracker</Link>
-          <Link href={`${ADMIN_DASHBOARD_ROUTES.paymentTracker}/manual-payment`} className={`${adminBtnSecondary} min-h-[40px] text-xs`}>Pago manual / Manual payment</Link>
-          <Link href={ADMIN_DASHBOARD_ROUTES.packageEntitlements} className={`${adminBtnSecondary} min-h-[40px] text-xs`}>Paquetes / Package entitlements</Link>
-        </div>
-
-        <h2 className="mt-4 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Relación / Relationship</h2>
-        <div className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-          <Link href={ADMIN_DASHBOARD_ROUTES.customerOps} className={`${adminBtnSecondary} min-h-[44px] border-[#C9A84A]/70`}>
-            Buscar cliente / Find client
-          </Link>
-          <a href="#businesses-inventory" className={`${adminBtnSecondary} min-h-[44px] border-[#C9A84A]/70`}>
-            Buscar negocio / Find business
-          </a>
-          <Link href="/admin/businesses/canvass" className={`${adminBtnSecondary} min-h-[44px] border-[#C9A84A]/70`}>
-            Agregar prospecto / Add prospect
-          </Link>
-          <Link href="/admin/field" className={`${adminBtnSecondary} min-h-[44px] border-[#C9A84A]/70`}>
-            Agente de Campo / Field Agent
-          </Link>
-          <Link href={buildConciergeInventoryHref("note")} className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2 text-[#7A1E2C]`}>
-            <span>Agregar nota / Add note</span>
-            <span className="text-[10px] font-normal text-[#7A7164]">Busque y luego agregue una nota. / Search, then add a note.</span>
-          </Link>
-          <Link href={buildConciergeInventoryHref("follow_up")} className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2 text-[#7A1E2C]`}>
-            <span>Crear seguimiento / Create follow-up</span>
-            <span className="text-[10px] font-normal text-[#7A7164]">Busque y luego programe. / Search, then schedule.</span>
-          </Link>
-          <Link href={buildConciergeInventoryHref("meeting")} className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2 text-[#7A1E2C]`}>
-            <span>Iniciar reunión / Start meeting</span>
-            <span className="text-[10px] font-normal text-[#7A7164]">Busque y luego inicie. / Search, then start.</span>
-          </Link>
-          <Link href={buildConciergeInventoryHref("research")} className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2 text-[#7A1E2C]`}>
-            <span>Investigar / Research</span>
-            <span className="text-[10px] font-normal text-[#7A7164]">Busque y luego investigue. / Search, then research.</span>
-          </Link>
-          <Link href={buildConciergeInventoryHref("creative_studio")} className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2 text-[#7A1E2C]`}>
-            <span>Estudio Creativo / Creative Studio</span>
-            <span className="text-[10px] font-normal text-[#7A7164]">Busque y luego cree. / Search, then create.</span>
-          </Link>
-        </div>
-      </div>
+      {/* Staff Operating System — the day-in-the-life groups. Links come from ONE role-aware
+          composer (app/admin/_lib/staffOperatingSystem.ts) so a sales_rep is never handed a
+          /admin/workspace or /admin/ops link the dashboard layout would bounce. Every search-first
+          action still carries its intent through ?action= (conciergeIntent.ts). Same admin button
+          styles, no new visual system, no new permission. TODAY is the block above. */}
+      <OsGroup title="Trabajo con clientes / Client work" links={os.clientWork}>
+        {/* Page-local anchor — the inventory below IS the "find" step, so this one link stays a
+            plain in-page anchor (the only bare #businesses-inventory hand-off on the home). */}
+        <a href="#businesses-inventory" className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2`}>
+          <span>Buscar negocio / Find business</span>
+          <span className="text-[10px] font-normal text-[#7A7164]">Inventario de identidades confirmadas, abajo. / Confirmed-identity inventory, below.</span>
+        </a>
+        {/* Every Sales Workspace role holds conduct_canvassing + view_field_discovery, so these two
+            stay literal (existing Gate 01 pins them). */}
+        <Link href="/admin/businesses/canvass" className={`${adminBtnSecondary} min-h-[44px] border-[#C9A84A]/70`}>
+          Agregar prospecto / Add prospect
+        </Link>
+        <Link href="/admin/field" className={`${adminBtnSecondary} min-h-[44px] border-[#C9A84A]/70`}>
+          Agente de Campo / Field Agent
+        </Link>
+      </OsGroup>
+      <OsGroup title="Comercial / Commercial" links={os.commercial} />
+      <OsGroup title="Comunicación con clientes / Customer communication" links={os.customerCommunication} />
+      <OsGroup title="Mi Leonix / My Leonix" links={os.myLeonix} columns="grid-cols-2 sm:grid-cols-3" />
+      {os.restricted.length > 0 ? (
+        <details className="mt-3 rounded-2xl border border-[#E8DFD0] bg-[#FBF7EF] p-4">
+          <summary className="cursor-pointer text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">
+            No disponible para su rol / Not available for your role ({os.restricted.length})
+          </summary>
+          <ul className="mt-2 space-y-1">
+            {os.restricted.map((r) => (
+              <li key={r.key} className="text-xs text-[#5C5346]">
+                <span className="font-semibold text-[#1E1810]">{r.label}</span> — {r.reason}
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
 
       {!summaryUnavailable && (home.recentBusinesses.length > 0 || upcomingMeetings.length > 0) ? (
         <div className="mt-3 grid grid-cols-1 gap-4 rounded-2xl border border-[#E8DFD0] bg-white p-4 lg:grid-cols-2">
