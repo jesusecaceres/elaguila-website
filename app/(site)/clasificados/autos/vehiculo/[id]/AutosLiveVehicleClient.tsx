@@ -24,6 +24,8 @@ type PublicListingApiOk = {
   listing: AutoDealerListing;
   lane: AutosClassifiedsLane;
   lang: "es" | "en";
+  /** Seller's authored/publish-time language — the real Translate Ad source locale. */
+  authored_lang?: "es" | "en" | null;
   leonix_ad_id?: string | null;
   inventory_role?: "main" | "inventory_vehicle" | null;
   dealer_inventory_group_id?: string | null;
@@ -61,7 +63,7 @@ export function AutosLiveVehicleClient({
           setData(withNormalizedVehicleIdentityForDisplay(normalizeLoadedListing({ ...payload.listing, autosLane: payload.lane })));
           setLane(payload.lane);
           setLeonixAdId(payload.leonix_ad_id?.trim() || null);
-          setListingLang(payload.lang ?? null);
+          setListingLang(payload.authored_lang ?? null);
           setInventoryRole(payload.inventory_role ?? null);
           setDealerInventoryGroupId(payload.dealer_inventory_group_id?.trim() || null);
           setDealerInventoryParentListingId(payload.dealer_inventory_parent_listing_id?.trim() || null);

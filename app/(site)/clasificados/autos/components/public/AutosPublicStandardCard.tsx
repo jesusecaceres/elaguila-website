@@ -114,7 +114,7 @@ export function AutosPublicStandardCard({
           {listing.vehicleTitle}
         </p>
         <p className={PRICE_LINE}>
-          {formatAutosUsd(listing.price)}
+          {formatAutosUsd(listing.price, lang)}
         </p>
         {listing.monthlyEstimate ? (
           <p className="text-[11px] font-medium text-[#7A7A7A]">{listing.monthlyEstimate}</p>
@@ -123,7 +123,7 @@ export function AutosPublicStandardCard({
           <FiMapPin className="w-4 h-4 text-[#D4A574] flex-shrink-0" />
           <span className="truncate">{loc}</span>
           <span className="text-[#7A7A7A]">•</span>
-          <span>{formatAutosMiles(listing.mileage)}</span>
+          <span>{formatAutosMiles(listing.mileage, lang)}</span>
         </div>
         <div className={SELLER_ROW}>
           <span className="min-w-0 truncate text-[12px] font-semibold text-[#1A1A1A]">{sellerLabel}</span>

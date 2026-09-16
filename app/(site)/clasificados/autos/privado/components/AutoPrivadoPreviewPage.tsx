@@ -155,7 +155,7 @@ export function AutoPrivadoPreviewPage({
             {priceOk ? (
               <div>
                 <p className="text-pretty text-4xl font-extrabold leading-none tracking-tight text-[#7A1E2C] sm:text-5xl md:text-6xl">
-                  {formatUsd(display.price)}
+                  {formatUsd(display.price, lang)}
                 </p>
               </div>
             ) : null}
@@ -164,7 +164,7 @@ export function AutoPrivadoPreviewPage({
                 {showMileage ? (
                   <div>
                     <span className="text-[color:var(--lx-muted)]">{pt.mileage}:</span>{" "}
-                    <span className="font-semibold">{formatMiles(display.mileage)}</span>
+                    <span className="font-semibold">{formatMiles(display.mileage, lang)}</span>
                   </div>
                 ) : null}
                 {showVin ? (

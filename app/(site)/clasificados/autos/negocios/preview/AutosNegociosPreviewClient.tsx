@@ -319,6 +319,18 @@ function AutosNegociosPreviewInner({
   const { lang } = useAutosNegociosPreviewCopy();
   const searchParams = useSearchParams();
   const genericEditBackHref = buildAutosNegociosEditorResumeHref(EDIT_BASE, lang);
+  // Translation cache-key fallback for a local, un-persisted draft (no real listingId yet). A
+  // shared literal like "draft" would let one browser tab's cached translation of a DIFFERENT
+  // draft's content bleed into this session (the client cache has no content hash — see
+  // buildTranslateCacheKey). A per-mount random id keeps every draft-preview session isolated;
+  // it naturally expires with the tab/mount, same lifetime as the sessionStorage cache itself.
+  const draftTranslationSessionKey = useMemo(
+    () =>
+      typeof window !== "undefined" && window.crypto?.randomUUID
+        ? window.crypto.randomUUID()
+        : `draft-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    [],
+  );
   /** Preserves the same listingId/leonixAdId/mode/returnPanel identity context so "back to
    * edit" resumes editing the SAME listing rather than the generic new-application resume. */
   const canonicalEditBackHref = useMemo(() => {
@@ -534,7 +546,7 @@ function AutosNegociosPreviewInner({
           listing={listing}
           siteLocale={lang}
           listingLang={null}
-          listingKey={canonicalListingId ?? "draft"}
+          listingKey={canonicalListingId ?? draftTranslationSessionKey}
         >
           {(displayListing, translateControl) => (
             <>
@@ -580,7 +592,7 @@ function AutosNegociosPreviewInner({
             listing={listing}
             siteLocale={lang}
             listingLang={null}
-            listingKey={canonicalListingId ?? "draft"}
+            listingKey={canonicalListingId ?? draftTranslationSessionKey}
           >
             {(displayListing, translateControl) => (
               <>

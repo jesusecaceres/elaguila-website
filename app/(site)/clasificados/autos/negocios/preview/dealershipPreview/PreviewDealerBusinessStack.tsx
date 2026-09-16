@@ -232,7 +232,6 @@ export function PreviewDealerBusinessStack({
   // Owner-locked final mapping: "Solicitar disponibilidad" is the office/dealership number first,
   // falling back to another real availability channel (never email — Correo has its own button).
   const primaryAvailabilityHref = c.availabilityTelHref || c.whatsappHref || c.smsHref || c.bookingHref || null;
-  const chatHref = c.whatsappHref || c.smsHref || null;
   const phoneDisplay =
     data.dealerPhoneOffice?.trim() || data.dealerPhoneMobile?.trim() || data.dealerSmsPhone?.trim() || "";
   const addressDisplay = hub.location?.addressDisplay?.trim() || "";
@@ -247,14 +246,12 @@ export function PreviewDealerBusinessStack({
 
   const requestAvailabilityLabel =
     lang === "es" ? "Solicitar disponibilidad" : "Request availability";
-  const chatLabel = lang === "es" ? "Chatear" : "Chat";
   const dealerDescriptor = lang === "es" ? "Concesionario en Leonix" : "Dealership on Leonix";
   const questionsTitle = lang === "es" ? "¿Preguntas sobre este auto?" : "Questions about this vehicle?";
   const questionsBody =
     lang === "es"
       ? "Nuestro equipo está listo para ayudarte."
       : "Our team is ready to help you.";
-  const sendMessageLabel = lang === "es" ? "Enviar mensaje" : "Send message";
   const viewVideoLabel = lang === "es" ? "Ver video completo" : "Watch full video";
   const printLabel = lang === "es" ? "Imprimir" : "Print";
   const shareLabel = lang === "es" ? "Compartir" : "Share";
@@ -374,7 +371,7 @@ export function PreviewDealerBusinessStack({
       <div className={premiumHub ? "px-4 py-5 sm:px-5 sm:py-6" : ""}>
         {premiumHub && (priceOk || nonEmpty(monthly)) ? (
           <div className="mb-4 rounded-[12px] border border-[#D6C7AD]/65 bg-[#FFFCF7] px-3.5 py-3">
-            {priceOk ? <p className={`${autosPreviewHeroPriceClass} text-[1.75rem] sm:text-[2rem]`}>{formatUsd(data.price)}</p> : null}
+            {priceOk ? <p className={`${autosPreviewHeroPriceClass} text-[1.75rem] sm:text-[2rem]`}>{formatUsd(data.price, lang)}</p> : null}
             {nonEmpty(monthly) ? (
               <p className={`text-sm font-semibold text-[#5C5346] ${priceOk ? "mt-1" : ""}`}>
                 {lang === "es" ? `o ${monthly}` : `or ${monthly}`}
@@ -404,21 +401,30 @@ export function PreviewDealerBusinessStack({
                 </AutosDirectContactLink>
               ) : null}
 
-              <div className={`grid gap-3 ${showCall && chatHref ? "grid-cols-2" : "grid-cols-1"}`}>
+              <div
+                className={`grid gap-3 ${
+                  [showCall && c.callTelHref, showWhatsapp && c.whatsappHref, showSms && c.smsHref].filter(Boolean)
+                    .length >= 2
+                    ? "grid-cols-2"
+                    : "grid-cols-1"
+                }`}
+              >
                 {showCall && c.callTelHref ? (
                   <AutosDirectContactLink href={c.callTelHref} className={BTN_SECONDARY} {...sheetProps}>
                     <FiPhone className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
                     {sb.call}
                   </AutosDirectContactLink>
                 ) : null}
-                {chatHref ? (
-                  <AutosDirectContactLink href={chatHref} className={BTN_SECONDARY} {...sheetProps}>
-                    {chatHref === c.whatsappHref ? (
-                      <SiWhatsapp className="h-5 w-5 shrink-0 text-[#128C7E]" aria-hidden />
-                    ) : (
-                      <FiMessageSquare className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
-                    )}
-                    {chatLabel}
+                {showWhatsapp && c.whatsappHref ? (
+                  <AutosDirectContactLink href={c.whatsappHref} className={BTN_SECONDARY} {...sheetProps}>
+                    <SiWhatsapp className="h-5 w-5 shrink-0 text-[#128C7E]" aria-hidden />
+                    {sb.whatsappCta}
+                  </AutosDirectContactLink>
+                ) : null}
+                {showSms && c.smsHref ? (
+                  <AutosDirectContactLink href={c.smsHref} className={BTN_SECONDARY} {...sheetProps}>
+                    <FiMessageSquare className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
+                    {sb.textMessageCta}
                   </AutosDirectContactLink>
                 ) : null}
               </div>
@@ -682,19 +688,19 @@ export function PreviewDealerBusinessStack({
           </SectionBlock>
         ) : null}
 
-        {premiumHub && (showWhatsapp || showSms || showEmail) ? (
+        {/* WhatsApp/SMS already have their own correctly-labeled buttons in the contact grid
+            above — this box exists only as an email-specific fallback prompt when neither
+            real-time channel is available, using the same Correo action sheet as every other
+            email entry point in this component (never a bare mailto href). */}
+        {premiumHub && !showWhatsapp && !showSms && showEmail ? (
           <SectionBlock showTopBorder premium>
             <p className="text-base font-bold text-[#1F241C]">{questionsTitle}</p>
             <p className="mt-1 text-sm text-[#5C5346]">{questionsBody}</p>
             <div className="mt-3">
-              <AutosDirectContactLink
-                href={(c.whatsappHref || c.smsHref || c.emailMailto)!}
-                className={BTN_SECONDARY}
-                {...sheetProps}
-              >
-                <FiMessageSquare className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
-                {sendMessageLabel}
-              </AutosDirectContactLink>
+              <button type="button" onClick={openEmail} className={BTN_SECONDARY}>
+                <FiMail className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
+                {sb.emailSeller}
+              </button>
             </div>
           </SectionBlock>
         ) : null}

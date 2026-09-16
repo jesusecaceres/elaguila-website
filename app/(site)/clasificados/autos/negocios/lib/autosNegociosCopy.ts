@@ -1221,3 +1221,57 @@ const EN: AutosNegociosCopy = {
 export function getAutosNegociosCopy(lang: AutosNegociosLang): AutosNegociosCopy {
   return lang === "en" ? EN : ES;
 }
+
+/**
+ * Deterministic-select fields whose stored value is the localized preset label ITSELF (there is
+ * no separate code column — the `<select>` option's value is the display text, in whatever
+ * language the seller's form happened to be in at entry time). ES/EN option arrays are
+ * positionally aligned (same index = same real-world value) so a stored value can be relocalized
+ * by finding its index in either language's array and reading the equivalent slot in the target
+ * language. A value matching neither array (the seller's own free-typed "Otro"/"Other" text) is
+ * returned unchanged — never guessed, never sent to a translation provider.
+ */
+export type AutosDealerTaxonomySelectField =
+  | "transmission"
+  | "drivetrain"
+  | "fuel"
+  | "bodyStyle"
+  | "exterior"
+  | "interior"
+  | "titleStatus";
+
+export function localizeAutosDealerTaxonomySelectValue(
+  field: AutosDealerTaxonomySelectField,
+  value: string | undefined,
+  targetLang: AutosNegociosLang,
+): string | undefined {
+  const v = value?.trim();
+  if (!v) return v;
+  const esList = ES.taxonomy[field];
+  const enList = EN.taxonomy[field];
+  const idx = esList.indexOf(v);
+  const foundIdx = idx >= 0 ? idx : enList.indexOf(v);
+  if (foundIdx <= 0) return v;
+  const table = targetLang === "en" ? enList : esList;
+  return table[foundIdx] ?? v;
+}
+
+/**
+ * Same positional-remap technique for the fixed feature/equipment CATALOG (`taxonomy.features`).
+ * Must never be applied to seller-typed custom equipment text — callers are responsible for
+ * keeping those two arrays separate (see `customEquipment` on `AutoDealerListing`).
+ */
+export function localizeAutosDealerFeatureCatalogValue(
+  value: string,
+  targetLang: AutosNegociosLang,
+): string {
+  const v = value.trim();
+  if (!v) return v;
+  const esList = ES.taxonomy.features;
+  const enList = EN.taxonomy.features;
+  const idx = esList.indexOf(v);
+  const foundIdx = idx >= 0 ? idx : enList.indexOf(v);
+  if (foundIdx < 0) return value;
+  const table = targetLang === "en" ? enList : esList;
+  return table[foundIdx] ?? value;
+}
