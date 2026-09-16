@@ -53,6 +53,8 @@ import { listOpportunitiesForBusiness } from "@/app/lib/business/opportunity/rep
 import { isOpportunityEnabled } from "@/app/lib/business/opportunity/featureFlag";
 import { OpportunitiesPanel } from "./OpportunityActions";
 import { OwnershipClaimPanel } from "./OwnershipClaimPanel";
+import { BusinessProfilePanel } from "./BusinessProfilePanel";
+import { isBusinessProfileEnabled } from "@/app/lib/business/profile/featureFlag";
 import { listAllSignals } from "@/app/lib/business/advisor/repository";
 import { isAdvisorEnabled } from "@/app/lib/business/advisor/featureFlag";
 import { AdvisorPanel } from "./AdvisorPanel";
@@ -318,6 +320,12 @@ export default async function AdminBusinessDetailPage({
   // Package B — Contextual Opportunity / Sponsorship Bridge
   const canViewOpportunities = actorHasCapability(access.actor, "view_opportunities");
   const canGenerateOwnershipClaim = actorHasCapability(access.actor, "generate_ownership_claim");
+
+  // Staff-Created Business Profile pipeline
+  const canViewBusinessProfile = actorHasCapability(access.actor, "view_business_profile");
+  const canManageBusinessProfile = actorHasCapability(access.actor, "manage_business_profile");
+  const canGrantBusinessProfileEntitlement = actorHasCapability(access.actor, "grant_business_profile_entitlement");
+  const businessProfileEnabled = canViewBusinessProfile ? await isBusinessProfileEnabled() : false;
   const opportunityEnabled = canViewOpportunities ? await isOpportunityEnabled() : false;
   const opportunities = (canViewOpportunities && opportunityEnabled) ? await listOpportunitiesForBusiness(business.id) : [];
   const canReviewOpportunity = actorHasCapability(access.actor, "review_opportunity");
@@ -527,6 +535,7 @@ export default async function AdminBusinessDetailPage({
   // staff-prospect-to-real-owner handoff flow, not part of the normal working journey.
   const dashboardTabs = [
     { id: "overview", label: "Resumen / Overview" },
+    ...(canViewBusinessProfile && businessProfileEnabled ? [{ id: "business-profile", label: "Perfil de Negocio / Business Profile" }] : []),
     ...(canViewGrowthEngine && growthPlanData ? [{ id: "growth-plan", label: "Plan de Crecimiento / Growth Plan" }] : []),
     ...(canViewProjectDiscovery && clientDiscoveryData ? [{ id: "client-discovery", label: "Descubrimiento del Cliente / Client Discovery" }] : []),
     ...(canViewBook && bookData ? [{ id: "business-book", label: "Libro del Negocio / Business Book" }] : []),
@@ -1981,6 +1990,26 @@ export default async function AdminBusinessDetailPage({
           <p className="mt-2 text-xs text-[#7A7164]">Este módulo no está habilitado en este entorno. / This module is not enabled in this environment.</p>
         )}
       </section>
+
+      {/* Staff-Created Business Profile pipeline — the customer-facing Leonix Business Profile a
+          staff member builds/saves/previews BEFORE the prospect owns the account. Deliberately
+          sits right before Ownership Claim below: prepare the profile, show it, then hand off. */}
+      {canViewBusinessProfile && businessProfileEnabled ? (
+        <section id="business-profile" className="scroll-mt-24 rounded-2xl border border-[#E8DFD0] bg-[#FAF7F2] p-4">
+          <h2 className="font-serif text-base font-bold text-[#5C5346]">Perfil de Negocio Leonix / Leonix Business Profile</h2>
+          <p className="mt-1 text-xs text-[#7A7164]">
+            Prepara el perfil público del cliente ANTES de la visita, muéstraselo en tu teléfono, y si compra, entrégalo con la sección de abajo. / Prepare the client&apos;s public profile BEFORE the visit, show it on your phone, and if they buy, hand it off with the section below.
+          </p>
+          <div className="mt-3">
+            <BusinessProfilePanel
+              businessId={business.id}
+              canManage={canManageBusinessProfile}
+              canGrantEntitlement={canGrantBusinessProfileEntitlement}
+              canRelease={canGenerateOwnershipClaim}
+            />
+          </div>
+        </section>
+      ) : null}
 
       {/* Ownership Claim — technical/business account-authorship mechanism (staff-prospect -> real
           owner account claim). Distinct from the commercial "Owner Handoff" section above

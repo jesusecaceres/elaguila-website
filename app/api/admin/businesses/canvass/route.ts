@@ -14,7 +14,7 @@ import type { CanvassIntakeInput } from "@/app/lib/business/fieldDiscovery/types
 
 export const runtime = "nodejs";
 
-type CanvassRequestBody = Partial<CanvassIntakeInput>;
+type CanvassRequestBody = Partial<CanvassIntakeInput> & { intent?: unknown };
 
 function fail(status: number, error: string, extra: Record<string, unknown> = {}) {
   return NextResponse.json({ ok: false, error, ...extra }, { status });
@@ -123,11 +123,19 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Staff-Created Business Profile pipeline — the "Create Client Business Profile" quick action
+  // sends intent="business_profile" so the operator lands directly on that section instead of the
+  // plain business-page top. Every other canvass entry point omits intent, so nextRoute is
+  // byte-identical to before this change.
+  const nextRoute = body.intent === "business_profile"
+    ? `/admin/businesses/${businessId}#business-profile`
+    : `/admin/businesses/${businessId}`;
+
   return NextResponse.json({
     ok: true,
     businessId,
     discoverySessionId,
     duplicateWarning,
-    nextRoute: `/admin/businesses/${businessId}`,
+    nextRoute,
   });
 }

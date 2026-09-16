@@ -148,7 +148,23 @@ export type SalesWorkspaceCapability =
   // build execution contract) is a bigger-consequence action than routine discovery capture —
   // manager+ only, matching review_project_discovery/approve_recommendation exactly. Viewing a
   // blueprint reuses view_project_discovery (it is part of the same discovery workspace).
-  | "manage_project_blueprint";
+  | "manage_project_blueprint"
+  // Staff-Created Business Profile pipeline. sales_rep may view AND build/save/preview a
+  // prospect's Business Profile in the field before the client owns it (same trust tier as
+  // conduct_canvassing/create_business_fact -- building presentation content is not a
+  // consequential write the way publishing or an ownership transfer is; the profile can never
+  // go public through this capability at all, since publish is an owner-only RPC, not a staff
+  // capability, matching generate_ownership_claim's "staff can only ever hand the account to the
+  // real owner, never act as the owner" doctrine).
+  | "view_business_profile"
+  | "manage_business_profile"
+  // Gate 07/08 — recording a real commercial grant (a paid magazine/digital package, a
+  // complimentary/partner courtesy, or a manually-cleared payment) that authorizes releasing a
+  // Business Profile is a consequential, attributed commercial write — manager+ only, matching
+  // approve_recommendation/decide_managed_service_request's precedent exactly. A sales_rep may
+  // still view the resulting commercial state and trigger "Release to Client" once eligibility
+  // already exists, but may never grant/revoke that eligibility itself.
+  | "grant_business_profile_entitlement";
 
 export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] = [
   "view_business_list",
@@ -227,6 +243,9 @@ export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] =
   "review_project_discovery",
   "manage_discovery_consent",
   "manage_project_blueprint",
+  "view_business_profile",
+  "manage_business_profile",
+  "grant_business_profile_entitlement",
 ];
 
 /**
@@ -326,6 +345,9 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "review_project_discovery",
     "manage_discovery_consent",
     "manage_project_blueprint",
+    "view_business_profile",
+    "manage_business_profile",
+    "grant_business_profile_entitlement",
   ],
   sales_manager: [
     "view_business_list",
@@ -402,6 +424,9 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "review_project_discovery",
     "manage_discovery_consent",
     "manage_project_blueprint",
+    "view_business_profile",
+    "manage_business_profile",
+    "grant_business_profile_entitlement",
   ],
   sales_rep: [
     "view_business_list",
@@ -440,6 +465,8 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "create_project_discovery",
     "manage_project_discovery",
     "manage_discovery_consent",
+    "view_business_profile",
+    "manage_business_profile",
   ],
 };
 
