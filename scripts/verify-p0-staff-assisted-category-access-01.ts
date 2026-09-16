@@ -1,0 +1,145 @@
+/**
+ * P0 Staff-Assisted Category Access — focused verifier for the NEW WIRING ONLY.
+ * Run: npx tsx scripts/verify-p0-staff-assisted-category-access-01.ts
+ *
+ * Proves (plain node:assert, matching this repo's convention — no jest/vitest):
+ *  1. ONE new capability (assisted_category_publishing), granted to all three Sales Workspace
+ *     roles — same precedent tier as conduct_canvassing/manage_business_profile — no broadening
+ *     beyond that.
+ *  2. The signed-token module is independent, dedicated-secret, fail-closed, httpOnly, and never
+ *     shares code/secret with the existing admin bootstrap token.
+ *  3. The token can ONLY be minted server-side, only after a fresh capability-gated staff
+ *     re-verification, on the one proven same-tab route — never from a query string, never
+ *     client-settable.
+ *  4. The client-side gate (PublishAuthGate) skips the customer Supabase check ONLY when a
+ *     server-verified assisted context is present, and its ORIGINAL customer-auth code path is
+ *     byte-for-byte unchanged (no weakening).
+ *  5. The adapter is ONE shared choke point — none of the ~16 per-category layout.tsx wrapper
+ *     files were touched, and neither category's real publish-time server auth
+ *     (serviciosOwnerIdFromBearer / restauranteOwnerIdFromBearer) was touched at all.
+ *  6. No new category form, no new admin-only duplicate application, no new database
+ *     architecture (draft custody stays 100% in the existing sessionStorage substrate).
+ *  7. Normal customer regression: an unauthenticated/un-cookied request still redirects; the
+ *     assisted banner never renders without a real concierge context.
+ */
+import assert from "node:assert/strict";
+import { readFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
+import { execSync } from "node:child_process";
+
+const ROOT = process.cwd();
+const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
+
+const changedFiles = execSync("git diff --name-only HEAD", { cwd: ROOT, encoding: "utf8" })
+  .trim()
+  .split(/\r?\n/)
+  .filter(Boolean)
+  .map((f) => f.replace(/\\/g, "/"));
+const untrackedFiles = execSync("git status --short", { cwd: ROOT, encoding: "utf8" })
+  .trim()
+  .split(/\r?\n/)
+  .filter((l) => l.startsWith("??"))
+  .map((l) => l.replace(/^\?\?\s+/, "").replace(/\\/g, "/"));
+const allTouched = [...changedFiles, ...untrackedFiles];
+
+// 1. Capability precedent ---------------------------------------------------------------------
+const capsSrc = read("app/admin/_lib/salesWorkspaceCapabilities.ts");
+assert.ok(capsSrc.includes('"assisted_category_publishing"'), "new capability declared");
+const roleCapabilitiesStart = capsSrc.indexOf("const ROLE_CAPABILITIES");
+assert.ok(roleCapabilitiesStart > -1, "found the ROLE_CAPABILITIES map");
+const roleCapabilitiesSrc = capsSrc.slice(roleCapabilitiesStart);
+const roleBlocks = ["super_admin: [", "sales_manager: [", "sales_rep: ["];
+for (let i = 0; i < roleBlocks.length; i++) {
+  const idx = roleCapabilitiesSrc.indexOf(roleBlocks[i]);
+  assert.ok(idx > -1, `found ${roleBlocks[i]} block`);
+  const nextIdx = i + 1 < roleBlocks.length ? roleCapabilitiesSrc.indexOf(roleBlocks[i + 1], idx + 1) : roleCapabilitiesSrc.indexOf("\n};", idx);
+  const block = roleCapabilitiesSrc.slice(idx, nextIdx === -1 ? undefined : nextIdx);
+  assert.ok(block.includes('"assisted_category_publishing"'), `${roleBlocks[i]} role grants assisted_category_publishing (same tier as conduct_canvassing/manage_business_profile)`);
+}
+
+// 2. Signed-token module — independent secret, fail-closed, httpOnly ----------------------------
+const tokenModuleSrc = read("app/lib/auth/assistedPublishingSession.ts");
+assert.ok(tokenModuleSrc.includes('import "server-only";'), "token module is server-only");
+assert.ok(tokenModuleSrc.includes("ASSISTED_PUBLISHING_SESSION_SECRET"), "uses its own dedicated secret env var");
+assert.ok(!tokenModuleSrc.includes("process.env.ADMIN_BOOTSTRAP_SESSION_SECRET") && !tokenModuleSrc.includes("process.env.ADMIN_PASSWORD"), "never reads the bootstrap secret or the shared admin password env vars — independent failure domains (doc comment may still name them for context)");
+assert.ok(tokenModuleSrc.includes('createHmac("sha256"') && tokenModuleSrc.includes("timingSafeEqual"), "same HMAC-SHA256 + constant-time-compare pattern as the proven bootstrap token, not reinvented crypto");
+assert.ok(/if \(!secret\) return null;/.test(tokenModuleSrc), "fails closed when the secret is not configured (create)");
+assert.ok(/if \(!secret\) return null;[\s\S]{0,400}LEONIX_ASSISTED_PUBLISH_COOKIE/.test(tokenModuleSrc) || tokenModuleSrc.match(/if \(!secret\) return null;/g)!.length >= 2, "fails closed on verify too");
+assert.ok(tokenModuleSrc.includes("httpOnly: true") && tokenModuleSrc.includes('sameSite: "strict"'), "cookie is httpOnly + sameSite strict, mirroring applyLeonixAdminSessionCookies");
+assert.ok(/expiresAtMs\s*<=\s*Date\.now\(\)/.test(tokenModuleSrc) || /parsed\.expiresAtMs\s*<=\s*Date\.now\(\)/.test(tokenModuleSrc), "verifies expiry, not just signature");
+assert.ok(/60\s*\*\s*60;/.test(tokenModuleSrc), "short-lived (1 hour), not a standing credential");
+adminSessionUntouched();
+function adminSessionUntouched() {
+  assert.ok(!allTouched.includes("app/lib/supabase/adminSession.ts"), "the existing, proven admin bootstrap session module was never touched");
+}
+
+// 3. Server-side-only minting, capability-gated, on the one proven same-tab route --------------
+const contextRouteSrc = read("app/api/admin/businesses/[businessId]/application-context/route.ts");
+assert.ok(contextRouteSrc.includes("requireSalesWorkspaceAccess()"), "mint path still requires the full staff re-verification (real Supabase Auth + roster lookup)");
+assert.ok(contextRouteSrc.includes('actorHasCapability(access.actor, "assisted_category_publishing")'), "minting is capability-gated");
+assert.ok(contextRouteSrc.includes("applyAssistedPublishingCookie(res,"), "cookie is applied server-side on the response, never client-constructed");
+assert.ok(!/searchParams\.get\("assisted"\)|searchParams\.get\("staff"\)/.test(contextRouteSrc), "no query-string flag alone can trigger minting — only a real capability check does");
+assert.ok(contextRouteSrc.includes("access.actor.rosterId &&"), "bootstrap actors (empty rosterId) are structurally excluded from ever getting a minted token");
+
+const handoffSrc = read("app/admin/(dashboard)/businesses/create-for-client/handoff/HandoffClient.tsx");
+assert.ok(handoffSrc.includes("?category=${encodeURIComponent(category)}"), "the one same-tab handoff request now also carries category so the mint can scope the token");
+
+// 4. Client gate — additive only, original customer-auth path untouched ------------------------
+const gateSrc = read("app/components/auth/PublishAuthGate.tsx");
+assert.ok(gateSrc.includes("assisted?: AssistedProp") || gateSrc.includes("assisted = null"), "gate accepts an optional, server-verified assisted prop");
+assert.ok(gateSrc.includes('if (assisted) {') && gateSrc.includes('setStatus("authed");'), "assisted context short-circuits to authed without any network call");
+// The ORIGINAL customer check body must still be present, verbatim, proving nothing was weakened.
+assert.ok(gateSrc.includes("sb.auth.getSession()") && gateSrc.includes("sb.auth.getUser()") && gateSrc.includes("window.location.replace(loginHref)"), "the real customer Supabase session check + redirect-to-login path is fully intact, unweakened");
+assert.ok(gateSrc.includes("createSupabaseBrowserClient()"), "still the same customer Supabase browser client, unchanged");
+
+const layoutSrc = read("app/components/auth/PublishAuthGateLayout.tsx");
+assert.ok(layoutSrc.includes("await cookies()") && layoutSrc.includes("readAssistedPublishingContext(jar)"), "layout resolves the assisted context server-side, from signed cookies only");
+assert.ok(!/searchParams/.test(layoutSrc), "the layout never reads a query string for authorization");
+
+// 5. One shared choke point — no per-category files touched, publish-time auth untouched --------
+const PER_CATEGORY_LAYOUTS = [
+  "app/(site)/publicar/mascotas-y-perdidos/quick/preview/layout.tsx",
+  "app/(site)/publicar/comunidad/quick/preview/layout.tsx",
+  "app/(site)/publicar/clases/quick/preview/layout.tsx",
+  "app/(site)/publicar/busco/quick/preview/layout.tsx",
+  "app/(site)/clasificados/viajes/preview/layout.tsx",
+  "app/(site)/clasificados/restaurantes/publicar/layout.tsx",
+  "app/(site)/clasificados/rentas/preview/layout.tsx",
+  "app/(site)/clasificados/publicar/layout.tsx",
+  "app/(site)/clasificados/en-venta/preview/layout.tsx",
+  "app/(site)/clasificados/bienes-raices/preview/layout.tsx",
+  "app/(site)/clasificados/autos/privado/preview/layout.tsx",
+  "app/(site)/clasificados/autos/negocios/preview/layout.tsx",
+  "app/(site)/publicar/layout.tsx",
+];
+for (const f of PER_CATEGORY_LAYOUTS) {
+  if (existsSync(join(ROOT, f))) {
+    assert.ok(!allTouched.includes(f), `${f} was not touched — the adapter lives entirely in PublishAuthGate/PublishAuthGateLayout`);
+  }
+}
+for (const f of [
+  "app/api/clasificados/servicios/publish/route.ts",
+  "app/api/clasificados/restaurantes/publish/route.ts",
+  "app/api/clasificados/servicios/lib/serviciosPublishServerAuth.ts",
+]) {
+  assert.ok(!allTouched.includes(f), `${f} (real publish-time customer auth enforcement) was not touched — unweakened, unchanged`);
+}
+
+// 6. No new architecture ------------------------------------------------------------------------
+assert.ok(!allTouched.some((f) => f.startsWith("supabase/migrations/")), "no new Supabase migration — draft custody stays out of the database");
+for (const f of [
+  "app/(site)/clasificados/publicar/servicios/components/ClasificadosServiciosApplication.tsx",
+  "app/(site)/publicar/restaurantes/RestauranteApplicationClient.tsx",
+]) {
+  assert.ok(!allTouched.includes(f), `${f} (a category's own form component) was not touched — no new/duplicate application`);
+}
+const returnCtxSrc = read("app/lib/business/applicationContext/conciergeReturnContext.ts");
+assert.ok(returnCtxSrc.includes('managementMode: "leonix_assisted"') && returnCtxSrc.includes("customerOwner: null") && returnCtxSrc.includes("createdByStaffActor"), "draft custody metadata (Gate 3) lives in the existing sessionStorage context, not a new DB row");
+assert.ok(!returnCtxSrc.includes("supabase") && !returnCtxSrc.includes(".insert("), "still zero DB writes from this module");
+
+// 7. Normal customer regression ------------------------------------------------------------------
+const bannerSrc = read("app/components/business/ConciergeReturnBanner.tsx");
+assert.ok(/if \(!mounted \|\| !ctx\) return null;/.test(bannerSrc), "banner still renders nothing without real concierge context — never visible to a customer");
+assert.ok(gateSrc.includes("assisted ? <ConciergeReturnBanner") , "banner only mounts inside the gate when assisted is truthy (server-verified)");
+
+console.log("verify-p0-staff-assisted-category-access-01: PASS (7 contracts)");

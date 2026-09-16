@@ -24,6 +24,21 @@ export type ConciergeReturnContext = {
   category: string;
   /** ISO timestamp — informational only, never used to expire the record. */
   handedOffAt: string;
+  /**
+   * P0 Draft Custody (Gate 3) — display-only breadcrumb of who is preparing this draft and how.
+   * Never authorizes anything by itself (the real authorization is the separate, signed,
+   * httpOnly assisted-publishing cookie — see app/lib/auth/assistedPublishingSession.ts); this is
+   * purely informational, same unsigned sessionStorage substrate as the rest of this record.
+   */
+  managementMode: "leonix_assisted";
+  /** admin_team_members.id of the staff actor who ran the handoff — never a customer identity. */
+  createdByStaffActor: string;
+  /**
+   * Explicit "no customer owns this draft yet" marker. No DB row exists before Publish for any
+   * category (confirmed by source trace), so there is nothing to actually null out — this field
+   * exists only so the custody state is legible wherever this context is displayed/logged.
+   */
+  customerOwner: null;
 };
 
 function hasSessionStorage(): boolean {
@@ -34,10 +49,17 @@ function hasSessionStorage(): boolean {
   }
 }
 
-export function writeConciergeReturnContext(ctx: Omit<ConciergeReturnContext, "handedOffAt">): void {
+export function writeConciergeReturnContext(
+  ctx: Omit<ConciergeReturnContext, "handedOffAt" | "managementMode" | "customerOwner">,
+): void {
   if (!hasSessionStorage()) return;
   try {
-    const full: ConciergeReturnContext = { ...ctx, handedOffAt: new Date().toISOString() };
+    const full: ConciergeReturnContext = {
+      ...ctx,
+      managementMode: "leonix_assisted",
+      customerOwner: null,
+      handedOffAt: new Date().toISOString(),
+    };
     window.sessionStorage.setItem(CONCIERGE_RETURN_CONTEXT_KEY, JSON.stringify(full));
   } catch {
     // Private mode / quota — the category application itself still works without this.
@@ -56,6 +78,9 @@ export function readConciergeReturnContext(): ConciergeReturnContext | null {
       businessName: parsed.businessName,
       category: parsed.category,
       handedOffAt: parsed.handedOffAt ?? new Date().toISOString(),
+      managementMode: "leonix_assisted",
+      customerOwner: null,
+      createdByStaffActor: parsed.createdByStaffActor ?? "",
     };
   } catch {
     return null;

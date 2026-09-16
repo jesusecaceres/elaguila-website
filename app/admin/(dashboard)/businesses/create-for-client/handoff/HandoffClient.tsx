@@ -29,13 +29,23 @@ export function HandoffClient() {
         return;
       }
       const dest = resolvePublicarGatewayDestination(category, lang);
-      const res = await fetch(`/api/admin/businesses/${encodeURIComponent(businessId)}/application-context`);
+      // P0 Staff-Assisted Category Access (Gate 4) — passing ?category= lets this SAME request
+      // also mint the short-lived signed assisted-publishing cookie (server-side, capability-
+      // gated) on this same response, in this same tab, right before navigating into the real
+      // category application — the one proven place a staff actor is re-verified server-side in
+      // the same tab as the public route it then opens.
+      const res = await fetch(
+        `/api/admin/businesses/${encodeURIComponent(businessId)}/application-context?category=${encodeURIComponent(category)}`,
+      );
       if (cancelled) return;
       if (!res.ok) {
         setStatus({ kind: "error", message: "No se pudo leer la Identidad del Negocio. / Could not read Business Identity." });
         return;
       }
-      const data = (await res.json()) as { context: BusinessApplicationContext };
+      const data = (await res.json()) as {
+        context: BusinessApplicationContext;
+        staffActor?: { rosterId: string; email: string; role: string };
+      };
       // Only Servicios has a seeder in this build; any other category simply continues into the
       // real application with no prefill (never a fake or partial seed into an unknown store).
       const result: ServiciosSeedResult = category === "servicios" ? seedServiciosDraftFromBusinessContext(data.context) : "storage_unavailable";
@@ -46,6 +56,7 @@ export function HandoffClient() {
         businessId,
         businessName: data.context.publicName || data.context.businessName,
         category,
+        createdByStaffActor: data.staffActor?.rosterId ?? "",
       });
       setStatus({ kind: "seeded", result, dest });
       window.location.assign(dest);

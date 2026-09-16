@@ -12,7 +12,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { readConciergeReturnContext, type ConciergeReturnContext } from "@/app/lib/business/applicationContext/conciergeReturnContext";
+import { normalizePublicarGatewayDeepLink, resolvePublicarGatewayDestination } from "@/app/(site)/publicar/publicarGatewayResolver";
 
 const CATEGORY_LABEL_ES: Record<string, string> = {
   servicios: "Servicios",
@@ -33,9 +35,10 @@ const CATEGORY_LABEL_EN: Record<string, string> = {
   travel: "Travel",
 };
 
-export function ConciergeReturnBanner({ editHref }: { editHref?: string }) {
+export function ConciergeReturnBanner({ editHref: editHrefProp }: { editHref?: string }) {
   const [ctx, setCtx] = useState<ConciergeReturnContext | null>(null);
   const [mounted, setMounted] = useState(false);
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     setMounted(true);
@@ -50,6 +53,13 @@ export function ConciergeReturnBanner({ editHref }: { editHref?: string }) {
   const label = CATEGORY_LABEL_ES[ctx.category] ?? ctx.category;
   const labelEn = CATEGORY_LABEL_EN[ctx.category] ?? ctx.category;
   const businessHref = `/admin/businesses/${encodeURIComponent(ctx.businessId)}#prospect-journey`;
+  // No explicit editHref was passed (the common case now that PublishAuthGate mounts this
+  // banner universally, on both application and preview pages) — derive one from the SAME
+  // gateway resolver every category's launcher already uses, so "Editar / Edit" always points at
+  // the real category application, never a duplicated/guessed route.
+  const lang = searchParams?.get("lang") === "en" ? "en" : "es";
+  const normalizedCategory = normalizePublicarGatewayDeepLink(ctx.category);
+  const editHref = editHrefProp ?? (normalizedCategory ? resolvePublicarGatewayDestination(normalizedCategory, lang) : undefined);
 
   return (
     <div

@@ -99,10 +99,15 @@ assert.ok(bannerSrc.includes("readConciergeReturnContext"), "banner reads contex
 assert.ok(bannerSrc.includes("Volver al negocio / Back to Business") && bannerSrc.includes("#prospect-journey"), "banner provides Back to Business, linking to the business's prospect-journey section");
 assert.ok(/editHref/.test(bannerSrc), "banner supports an Edit affordance");
 
+// P0 continuation (Staff-Assisted Category Access) — the banner is now mounted at ONE universal
+// choke point (PublishAuthGate.tsx, inside every category's gate) rather than per-page, so it
+// covers application AND preview pages for every category without per-page edits. See
+// verify-p0-staff-assisted-category-access-01.ts for the full assertion of that mount point; this
+// script only re-confirms the two proof-lane preview pages were NOT left with a stale duplicate.
 const serviciosPreviewPage = read("app/(site)/clasificados/publicar/servicios/preview/page.tsx");
-assert.ok(serviciosPreviewPage.includes("<ConciergeReturnBanner") && serviciosPreviewPage.includes('editHref="/publicar/servicios"'), "Servicios preview mounts the return banner");
+assert.ok(!serviciosPreviewPage.includes("<ConciergeReturnBanner"), "Servicios preview no longer duplicates the banner mount (now universal via PublishAuthGate)");
 const restaurantesPreviewPage = read("app/(site)/clasificados/restaurantes/preview/page.tsx");
-assert.ok(restaurantesPreviewPage.includes("<ConciergeReturnBanner") && restaurantesPreviewPage.includes('editHref="/publicar/restaurantes"'), "Restaurantes preview mounts the return banner (second, no-prefill proof lane)");
+assert.ok(!restaurantesPreviewPage.includes("<ConciergeReturnBanner"), "Restaurantes preview no longer duplicates the banner mount (now universal via PublishAuthGate)");
 
 // 6. Custody note preserved, untouched (Gate 8) --------------------------------------------------
 assert.ok(

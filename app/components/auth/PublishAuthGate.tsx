@@ -12,13 +12,24 @@ import {
   createSupabaseBrowserClient,
   withAuthTimeout,
 } from "@/app/lib/supabase/browser";
+import { ConciergeReturnBanner } from "@/app/components/business/ConciergeReturnBanner";
 
 type GateStatus = "checking" | "authed" | "redirecting";
 
-export function PublishAuthGate({ children }: { children: React.ReactNode }) {
+/** Server-verified result of app/lib/auth/assistedPublishingSession.ts, passed down from the
+ * Server Component wrapper (PublishAuthGateLayout) — never computed or trusted client-side. */
+type AssistedProp = { businessId: string; category: string } | null;
+
+export function PublishAuthGate({
+  children,
+  assisted = null,
+}: {
+  children: React.ReactNode;
+  assisted?: AssistedProp;
+}) {
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
-  const [status, setStatus] = useState<GateStatus>("checking");
+  const [status, setStatus] = useState<GateStatus>(assisted ? "authed" : "checking");
 
   const returnPath = useMemo(() => {
     const q = searchParams?.toString();
@@ -35,6 +46,15 @@ export function PublishAuthGate({ children }: { children: React.ReactNode }) {
   const loginHref = useMemo(() => buildPublishLoginHref(returnPath, lang), [returnPath, lang]);
 
   useEffect(() => {
+    // P0 Staff-Assisted Category Access — a server-verified assisted context is already proof of
+    // authorization (real HMAC signature check happened server-side in PublishAuthGateLayout);
+    // never re-run or fall back to the customer Supabase check when it's present, and never make
+    // a network call to prove something the server already proved.
+    if (assisted) {
+      setStatus("authed");
+      return;
+    }
+
     let cancelled = false;
 
     (async () => {
@@ -62,10 +82,18 @@ export function PublishAuthGate({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [loginHref]);
+  }, [assisted, loginHref]);
 
   if (status === "authed") {
-    return <>{children}</>;
+    // Only rendered for a server-verified assisted session (never for a real customer — the
+    // banner itself independently self-guards via its own sessionStorage check too, so this is
+    // defense in depth, not the only thing preventing it from ever showing to a customer).
+    return (
+      <>
+        {assisted ? <ConciergeReturnBanner /> : null}
+        {children}
+      </>
+    );
   }
 
   const message =
