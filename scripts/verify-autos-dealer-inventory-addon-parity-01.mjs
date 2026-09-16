@@ -134,7 +134,13 @@ if (!helper.includes('source: "dashboard"') && !helper.includes('"source", "dash
 if (!helper.includes('params.set("returnPanel", "autos")')) fail("helper must set returnPanel=autos");
 ok("dashboard inventory routes");
 
-if (!revenueResult.includes("resolveAutosDealerInventoryPackSuccessPrimaryCta")) {
+// Canonical identifier evolved: `resolveAutosDealerInventoryPackPaymentSuccessPresentation`
+// (app/lib/clasificados/autos/autosDealerInventoryBoostReturnContract.ts) superseded the older
+// `resolveAutosDealerInventoryPackSuccessPrimaryCta` — same contract (autos inventory pack ->
+// real success CTA), now with return-source classification (draft vs dashboard) built in. The
+// older function still exists (used by the Dashboard's own inventory panel), but the Revenue OS
+// success VIEW itself has moved on; assert the identifier it actually imports.
+if (!revenueResult.includes("resolveAutosDealerInventoryPackPaymentSuccessPresentation")) {
   fail("Revenue OS success view must handle autos inventory pack");
 }
 if (!revenueResult.includes("resolveBienesInventoryPackSuccessPrimaryCta")) {

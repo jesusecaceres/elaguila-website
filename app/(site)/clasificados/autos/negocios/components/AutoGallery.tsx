@@ -20,7 +20,7 @@ import {
 
 const CARD = `${autosPreviewPremiumCardClass} min-w-0 overflow-x-hidden p-3 sm:p-4`;
 
-type AutosGalleryTab = "photos" | "video";
+type AutosGalleryTab = "all" | "photos" | "video";
 
 function mediaTabClass(active: boolean): string {
   return `${autosPreviewMediaTabClass}${active ? " border-[#C9A84A] bg-[#FBF7EF] ring-1 ring-[#C9A84A]/35" : ""}`;
@@ -43,7 +43,7 @@ export function AutoGallery({
   const g = t.preview.gallery;
 
   const images = deriveHeroImageUrls(data);
-  const { photoItems, videoItems } = useMemo(
+  const { photoItems, videoItems, allItems } = useMemo(
     () => buildAutosGalleryMediaSets(data, images, { publicPlaybackOnly }),
     [data, images, publicPlaybackOnly],
   );
@@ -63,8 +63,9 @@ export function AutoGallery({
 
   const activeItems = useMemo(() => {
     if (activeTab === "video") return videoItems;
+    if (activeTab === "all") return allItems;
     return photoItems;
-  }, [activeTab, photoItems, videoItems]);
+  }, [activeTab, photoItems, videoItems, allItems]);
 
   // Use refs to avoid stale closure issues and ensure stable handler
   const lightboxIndexRef = useRef<number | null>(null);
@@ -137,7 +138,8 @@ export function AutoGallery({
     [activeItems],
   );
 
-  const main = images[0];
+  const primaryImageUrl = data.mediaImages?.find((m) => m.isPrimary)?.url?.trim();
+  const main = (primaryImageUrl && images.includes(primaryImageUrl) ? primaryImageUrl : images[0]);
   const extra = Math.max(0, images.length - 1);
   const altBase = data.vehicleTitle?.trim() || g.vehicleFallback;
   const hasPhotos = photoItems.length > 0;
@@ -157,6 +159,11 @@ export function AutoGallery({
   return (
     <div id={AUTOS_PREVIEW_SECTION_IDS.gallery} className={wrapperClass}>
       <div className="mb-3 flex flex-wrap gap-2">
+        {hasPhotos && hasVideos ? (
+          <button type="button" className={mediaTabClass(activeTab === "all")} onClick={() => selectTab("all")}>
+            {lang === "es" ? "Todo" : "All"} ({photoItems.length + videoItems.length})
+          </button>
+        ) : null}
         {hasPhotos ? (
           <button type="button" className={mediaTabClass(activeTab === "photos")} onClick={() => selectTab("photos")}>
             {lang === "es" ? "Fotos" : "Photos"} ({photoItems.length})
@@ -169,7 +176,27 @@ export function AutoGallery({
         ) : null}
       </div>
 
-      {activeTab === "video" ? (
+      {activeTab === "all" ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {photoItems.map((item, photoIdx) => (
+            <Thumb
+              key={`all-photo-${photoIdx}`}
+              src={item.src}
+              alt={altBase}
+              onOpen={() => openAt(photoIdx)}
+            />
+          ))}
+          {videoItems.map((item, videoIdx) => (
+            <VideoWalkaroundThumb
+              key={`all-video-${videoIdx}`}
+              posterSrc={main}
+              label={item.videoLabel ?? `Video ${videoIdx + 1}`}
+              g={g}
+              onOpen={() => openAt(photoItems.length + videoIdx)}
+            />
+          ))}
+        </div>
+      ) : activeTab === "video" ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {videoItems.map((item, videoIdx) => (
             <VideoWalkaroundThumb

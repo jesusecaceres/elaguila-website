@@ -84,13 +84,13 @@ export async function publishNegociosBundleAdditionalVehicles(input: {
       id: mainLive.id,
       leonix_ad_id: mainLive.leonix_ad_id?.trim() ? mainLive.leonix_ad_id.trim() : null,
       title:
+        mainLive.listing_payload.vehicleTitle?.trim() ||
         buildVehicleTitle(
           mainLive.listing_payload.year,
           mainLive.listing_payload.make,
           mainLive.listing_payload.model,
           mainLive.listing_payload.trim,
         ) ||
-        mainLive.listing_payload.vehicleTitle?.trim() ||
         "—",
       liveUrl: `${origin}${autosLiveVehiclePath(mainLive.id)}?${langQ}`,
       inventory_role: "main",

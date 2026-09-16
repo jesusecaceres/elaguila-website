@@ -77,6 +77,7 @@ export function AutosNegociosMediaManager({
   const [logoUrlDraft, setLogoUrlDraft] = useState("");
 
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   const modalHandlers = insideModal
@@ -260,6 +261,26 @@ export function AutosNegociosMediaManager({
           e.target.value = "";
         }}
       />
+      {/**
+       * Mobile camera capture — same `addFiles` normalization/upload path as the regular
+       * picker above, just a second entry point. `capture="environment"` opens the device's
+       * back camera directly where supported (Android Chrome, iOS Safari); browsers that don't
+       * support it (desktop) silently fall back to the normal file picker — no separate pipeline,
+       * no separate validation, no change to ordering/cover logic.
+       */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        onChange={(e) => {
+          void addFiles(e.target.files);
+          e.target.value = "";
+        }}
+      />
 
       <h3 className={SUBHEAD}>{m.photosHeading}</h3>
 
@@ -272,10 +293,20 @@ export function AutosNegociosMediaManager({
       >
         <FiImage className="mx-auto h-8 w-8 text-[color:var(--lx-muted)] opacity-70" aria-hidden />
         <p className="mt-2 text-sm font-semibold text-[color:var(--lx-text)]">{m.dropzone}</p>
-        <button type="button" className={`${BTN_PRIMARY} mt-4 w-full max-w-sm sm:w-auto`} onClick={() => photoInputRef.current?.click()}>
-          <FiUpload className="h-4 w-4" aria-hidden />
-          {m.addPhotos}
-        </button>
+        <div className="mt-4 flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
+          <button type="button" className={`${BTN_PRIMARY} w-full max-w-sm sm:w-auto`} onClick={() => photoInputRef.current?.click()}>
+            <FiUpload className="h-4 w-4" aria-hidden />
+            {m.addPhotos}
+          </button>
+          <button
+            type="button"
+            className={`${BTN_PRIMARY} w-full max-w-sm sm:w-auto`}
+            onClick={() => cameraInputRef.current?.click()}
+          >
+            <FiImage className="h-4 w-4" aria-hidden />
+            {m.takePhoto}
+          </button>
+        </div>
         <p className="mt-2 text-xs text-[color:var(--lx-muted)]">{m.pickerHint}</p>
         <p className="mt-1.5 text-[11px] leading-relaxed text-[color:var(--lx-muted)]">{m.pickerMultiNote}</p>
       </div>
@@ -300,7 +331,12 @@ export function AutosNegociosMediaManager({
           images={fileImages}
           onReorder={(next) => {
             const urlOnly = images.filter(isUrlSource);
-            commitImages(normalizeMediaImagesOrder([...next, ...urlOnly]));
+            // Drag reorder changes array position, not the stored sortOrder field.
+            // Reassign sortOrder to match the new array order before normalizing,
+            // otherwise normalizeMediaImagesOrder re-sorts by the stale field and
+            // silently undoes the drag.
+            const reindexed = [...next, ...urlOnly].map((img, i) => ({ ...img, sortOrder: i }));
+            commitImages(normalizeMediaImagesOrder(reindexed));
           }}
           onSetPrimary={setPrimary}
           onRemove={remove}

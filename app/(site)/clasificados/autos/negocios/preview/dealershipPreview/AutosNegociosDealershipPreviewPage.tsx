@@ -22,6 +22,7 @@ import { PreviewAutoGallery } from "./PreviewAutoGallery";
 import { PreviewDealerBusinessStack } from "./PreviewDealerBusinessStack";
 import { PreviewRelatedDealerCars } from "./PreviewRelatedDealerCars";
 import { AutosNegociosPreviewEngagementStrip } from "../../components/AutosNegociosPreviewEngagementStrip";
+import { AutosNegociosEndOfContentShare } from "../../components/AutosNegociosEndOfContentShare";
 import { PreviewVehicleDescription } from "./PreviewVehicleDescription";
 import { PreviewVehicleHighlights } from "./PreviewVehicleHighlights";
 import { PreviewVehicleSpecsGrid } from "./PreviewVehicleSpecsGrid";
@@ -134,11 +135,13 @@ export function AutosNegociosDealershipPreviewPage({
   let r = 1;
   const unifiedCanvasRow = showUnifiedCanvas ? r++ : undefined;
   const analyticsRow = showAnalyticsStrip ? r++ : undefined;
+  // Owner-locked public narrative order: Description -> Specifications -> Equipment/Highlights.
+  const descRow = showDesc ? r++ : undefined;
   const specsRow = showSpecs ? r++ : undefined;
   const highlightsRow = showHighlights ? r++ : undefined;
-  const descRow = showDesc ? r++ : undefined;
   const relatedRow = (data.relatedDealerListings ?? []).length > 0 ? r++ : undefined;
   const trustRow = r++;
+  const shareRow = r++;
   const leftRowCount = r - 1;
 
   const badges = data.badges ?? [];
@@ -162,11 +165,12 @@ export function AutosNegociosDealershipPreviewPage({
   const orderUnifiedCanvas = showUnifiedCanvas ? ord++ : undefined;
   const orderAnalytics = showAnalyticsStrip ? ord++ : undefined;
   const orderAside = ord++;
+  const orderDesc = showDesc ? ord++ : undefined;
   const orderSpecs = showSpecs ? ord++ : undefined;
   const orderHi = showHighlights ? ord++ : undefined;
-  const orderDesc = showDesc ? ord++ : undefined;
   const orderRelated = (data.relatedDealerListings ?? []).length > 0 ? ord++ : undefined;
   const orderTrust = ord++;
+  const orderShare = ord++;
 
   const mainContent = (
     <main
@@ -370,6 +374,17 @@ export function AutosNegociosDealershipPreviewPage({
 
         <div className="lg:col-start-1" style={{ gridRowStart: trustRow, order: orderTrust }}>
           <PreviewBuyerTrustStrip lang={lang} />
+        </div>
+
+        <div className="lg:col-start-1" style={{ gridRowStart: shareRow, order: orderShare }}>
+          <AutosNegociosEndOfContentShare
+            lang={lang}
+            listingSourceId={publicPlaybackOnly ? publicAnalytics?.listingSourceId : undefined}
+            leonixAdId={publicAnalytics?.leonixAdId}
+            listingTitle={h1}
+            listingUrl={publicUrl}
+            publicAnalytics={publicPlaybackOnly ? publicAnalytics : undefined}
+          />
         </div>
       </div>
     </main>

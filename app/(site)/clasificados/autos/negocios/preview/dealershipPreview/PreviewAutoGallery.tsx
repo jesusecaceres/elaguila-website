@@ -13,6 +13,7 @@ import {
 import { MediaImage } from "../../components/MediaImage";
 import { normalizeAutosNegociosLang } from "../../lib/autosNegociosLang";
 import {
+  AUTOS_GALLERY_SELECT_TAB_EVENT,
   AUTOS_PREVIEW_SECTION_IDS,
   autosPreviewMediaTabClass,
   autosPreviewPremiumCardClass,
@@ -20,7 +21,7 @@ import {
 
 const CARD = `${autosPreviewPremiumCardClass} min-w-0 overflow-x-hidden p-3 sm:p-4`;
 
-type AutosGalleryTab = "photos" | "video";
+type AutosGalleryTab = "all" | "photos" | "video";
 
 function mediaTabClass(active: boolean): string {
   return `${autosPreviewMediaTabClass}${active ? " border-[#C9A84A] bg-[#FBF7EF] ring-1 ring-[#C9A84A]/35" : ""}`;
@@ -46,7 +47,9 @@ export function PreviewAutoGallery({
   const g = t.preview.gallery;
 
   const images = deriveHeroImageUrls(data);
-  const { photoItems, videoItems } = useMemo(
+  const primaryImageUrl = data.mediaImages?.find((m) => m.isPrimary)?.url?.trim();
+  const primaryImageIndex = primaryImageUrl ? images.indexOf(primaryImageUrl) : -1;
+  const { photoItems, videoItems, allItems } = useMemo(
     () => buildAutosGalleryMediaSets(data, images, { publicPlaybackOnly }),
     [data, images, publicPlaybackOnly],
   );
@@ -58,7 +61,7 @@ export function PreviewAutoGallery({
 
   const [activeTab, setActiveTab] = useState<AutosGalleryTab>(defaultTab);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [mainIndex, setMainIndex] = useState(0);
+  const [mainIndex, setMainIndex] = useState(primaryImageIndex >= 0 ? primaryImageIndex : 0);
 
   useEffect(() => {
     setActiveTab(defaultTab);
@@ -72,8 +75,9 @@ export function PreviewAutoGallery({
 
   const activeItems = useMemo(() => {
     if (activeTab === "video") return videoItems;
+    if (activeTab === "all") return allItems;
     return photoItems;
-  }, [activeTab, photoItems, videoItems]);
+  }, [activeTab, photoItems, videoItems, allItems]);
 
   // Use refs to avoid stale closure issues and ensure stable handler
   const lightboxIndexRef = useRef<number | null>(null);
@@ -138,6 +142,15 @@ export function PreviewAutoGallery({
     setLightboxIndex(null);
   }, []);
 
+  useEffect(() => {
+    const onSelectTab = (e: Event) => {
+      const detail = (e as CustomEvent<AutosGalleryTab>).detail;
+      if (detail === "photos" || detail === "video" || detail === "all") selectTab(detail);
+    };
+    window.addEventListener(AUTOS_GALLERY_SELECT_TAB_EVENT, onSelectTab);
+    return () => window.removeEventListener(AUTOS_GALLERY_SELECT_TAB_EVENT, onSelectTab);
+  }, [selectTab]);
+
   const openAt = useCallback(
     (idx: number) => {
       if (!activeItems[idx]) return;
@@ -146,7 +159,7 @@ export function PreviewAutoGallery({
     [activeItems],
   );
 
-  const main = images[mockupShelf ? mainIndex : 0] ?? images[0];
+  const main = images[mockupShelf ? mainIndex : (primaryImageIndex >= 0 ? primaryImageIndex : 0)] ?? images[0];
   const extra = Math.max(0, images.length - 1);
   const altBase = data.vehicleTitle?.trim() || g.vehicleFallback;
   const hasPhotos = photoItems.length > 0;
@@ -169,6 +182,11 @@ export function PreviewAutoGallery({
     <div id={AUTOS_PREVIEW_SECTION_IDS.gallery} className={wrapperClass}>
       {hasPhotos || hasVideos ? (
         <div className="mb-3 flex flex-wrap gap-2">
+          {hasPhotos && hasVideos ? (
+            <button type="button" className={mediaTabClass(activeTab === "all")} onClick={() => selectTab("all")}>
+              {lang === "es" ? "Todo" : "All"} ({photoItems.length + videoItems.length})
+            </button>
+          ) : null}
           {hasPhotos ? (
             <button type="button" className={mediaTabClass(activeTab === "photos")} onClick={() => selectTab("photos")}>
               {lang === "es" ? "Fotos" : "Photos"} ({photoItems.length})
@@ -182,7 +200,22 @@ export function PreviewAutoGallery({
         </div>
       ) : null}
 
-      {activeTab === "video" ? (
+      {activeTab === "all" ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {photoItems.map((item, photoIdx) => (
+            <Thumb key={`all-photo-${photoIdx}`} src={item.src} alt={altBase} onOpen={() => openAt(photoIdx)} />
+          ))}
+          {videoItems.map((item, videoIdx) => (
+            <VideoWalkaroundThumb
+              key={`all-video-${videoIdx}`}
+              posterSrc={images[0]}
+              label={item.videoLabel ?? `Video ${videoIdx + 1}`}
+              g={g}
+              onOpen={() => openAt(photoItems.length + videoIdx)}
+            />
+          ))}
+        </div>
+      ) : activeTab === "video" ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {videoItems.map((item, videoIdx) => (
             <VideoWalkaroundThumb

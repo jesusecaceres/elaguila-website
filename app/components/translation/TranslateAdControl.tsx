@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { FiGlobe } from "react-icons/fi";
 
 import type { AdTranslationResult, ContentLocale, Locale } from "@/app/lib/translation/types";
 import type { TranslateAdProviderFn } from "@/app/lib/translation/provider";
+import { translateAdLocaleDisplayName } from "@/app/lib/translation/localeCodes";
 import {
   buildTranslateCacheKey,
   clearCachedAdTranslation,
@@ -34,22 +36,35 @@ export type TranslateAdControlLabels = {
   unavailable: string;
 };
 
-const DEFAULT_LABELS: Partial<Record<Locale, TranslateAdControlLabels>> = {
-  es: {
-    translateAd: "Traducir anuncio",
-    showOriginal: "Ver original",
-    translating: "Traduciendo…",
-    error: "Traducción no disponible. Inténtalo de nuevo.",
-    unavailable: "Traducción no disponible.",
-  },
-  en: {
-    translateAd: "Translate ad",
-    showOriginal: "Show original",
+/**
+ * SOURCE CONTENT LANGUAGE and VIEWER UI LANGUAGE are separate concepts (owner product lock,
+ * 2026-09-15): the instruction text always speaks the viewer's `siteLocale`; the parenthetical
+ * names the actual `originalLocale` ONLY when it is truthfully known — never fabricated. `siteLocale`
+ * is always es/en across current site chrome (see `normalizeLocale`), so only those two instruction
+ * templates exist; `originalLocale` can be any detected source locale and falls back to no
+ * parenthetical when unknown or unnamed. Exported for verifiers.
+ */
+export function buildDefaultLabels(siteLocale: Locale, originalLocale: ContentLocale): TranslateAdControlLabels {
+  const targetName = translateAdLocaleDisplayName(siteLocale, siteLocale);
+  const originalName = translateAdLocaleDisplayName(originalLocale, siteLocale);
+
+  if (siteLocale === "es") {
+    return {
+      translateAd: targetName ? `Traducir al ${targetName}` : "Traducir anuncio",
+      showOriginal: originalName ? `Ver original (${originalName})` : "Ver original",
+      translating: "Traduciendo…",
+      error: "Traducción no disponible. Inténtalo de nuevo.",
+      unavailable: "Traducción no disponible.",
+    };
+  }
+  return {
+    translateAd: targetName ? `Translate to ${targetName}` : "Translate ad",
+    showOriginal: originalName ? `View original (${originalName})` : "View original",
     translating: "Translating…",
     error: "Translation unavailable. Try again.",
     unavailable: "Translation unavailable.",
-  },
-};
+  };
+}
 
 export type TranslateAdControlProps = {
   siteLocale: Locale;
@@ -87,9 +102,9 @@ export function TranslateAdControl({
   labels: labelsOverride,
 }: TranslateAdControlProps) {
   const labels = useMemo((): TranslateAdControlLabels => {
-    const base = DEFAULT_LABELS[siteLocale] ?? DEFAULT_LABELS.en ?? DEFAULT_LABELS.es!;
+    const base = buildDefaultLabels(siteLocale, originalLocale);
     return { ...base, ...labelsOverride };
-  }, [siteLocale, labelsOverride]);
+  }, [siteLocale, originalLocale, labelsOverride]);
 
   const [viewMode, setViewMode] = useState<ViewMode>("original");
   const [busy, setBusy] = useState(false);
@@ -212,12 +227,13 @@ export function TranslateAdControl({
         disabled={disabled || busy}
         aria-busy={ariaBusy}
         className={`
-          inline-flex w-fit max-w-full items-center justify-center rounded-full px-4 py-2 text-sm font-medium
+          inline-flex w-fit max-w-full items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium
           bg-white text-[#1A1A1A] border border-[#D4A574]
           hover:bg-[#FFFAF0] transition-all duration-200
           disabled:opacity-60 disabled:cursor-not-allowed
         `}
       >
+        <FiGlobe className="h-4 w-4 shrink-0" aria-hidden />
         {primaryLabel}
       </button>
       {error ? (

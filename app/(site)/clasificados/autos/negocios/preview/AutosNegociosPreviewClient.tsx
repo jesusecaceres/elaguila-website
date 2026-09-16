@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AutosNegociosDealershipPreviewPage } from "./dealershipPreview/AutosNegociosDealershipPreviewPage";
+import { AutosListingTranslationLayer } from "@/app/clasificados/autos/vehiculo/[id]/AutosListingTranslationLayer";
 import { AutoDealerPreviewChrome } from "../components/AutoDealerPreviewChrome";
 import { AutosNegociosPreviewEmptyState } from "../components/AutosNegociosPreviewEmptyState";
 import { loadAutosNegociosCanonicalActiveDraft } from "@/app/lib/clasificados/autos/autosNegociosCanonicalDraftLoad";
@@ -529,7 +530,19 @@ function AutosNegociosPreviewInner({
   if (mode === "canonical-active") {
     return (
       <AutosDraftPreviewErrorBoundary logLabel="negocios" fallback={<AutosNegociosPreviewEmptyState />}>
-        <AutosNegociosDealershipPreviewPage data={listing} editBackHref={editBackHref} />
+        <AutosListingTranslationLayer
+          listing={listing}
+          siteLocale={lang}
+          listingLang={null}
+          listingKey={canonicalListingId ?? "draft"}
+        >
+          {(displayListing, translateControl) => (
+            <>
+              {translateControl}
+              <AutosNegociosDealershipPreviewPage data={displayListing} editBackHref={editBackHref} />
+            </>
+          )}
+        </AutosListingTranslationLayer>
       </AutosDraftPreviewErrorBoundary>
     );
   }
@@ -563,13 +576,25 @@ function AutosNegociosPreviewInner({
           <div className={`mx-auto ${autosPreviewPageMaxWidthClass} px-4 md:px-6 lg:px-8`}>
             <AutosNegociosResultsCardPreview lang={lang} listing={listing} additionalCount={additionalCount} />
           </div>
-          <AutosNegociosDealershipPreviewPage
-            data={listing}
-            embeddedInShell
-            draftPreviewMode
-            relatedPreviewOnly
-            heroSpecItems={viewModel.heroSpecItems}
-          />
+          <AutosListingTranslationLayer
+            listing={listing}
+            siteLocale={lang}
+            listingLang={null}
+            listingKey={canonicalListingId ?? "draft"}
+          >
+            {(displayListing, translateControl) => (
+              <>
+                {translateControl}
+                <AutosNegociosDealershipPreviewPage
+                  data={displayListing}
+                  embeddedInShell
+                  draftPreviewMode
+                  relatedPreviewOnly
+                  heroSpecItems={viewModel.heroSpecItems}
+                />
+              </>
+            )}
+          </AutosListingTranslationLayer>
           <AutosNegociosPreviewInventorySection
             lang={lang}
             parentListing={listing}

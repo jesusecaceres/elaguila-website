@@ -51,8 +51,8 @@ export function AutosNegociosResultsCardPreview({
   inventoryVehicleLimit?: number;
 }) {
   const title =
+    listing.vehicleTitle?.trim() ||
     buildVehicleTitle(listing.year, listing.make, listing.model, listing.trim) ||
-    listing.vehicleTitle ||
     (lang === "es" ? "Tu vehículo" : "Your vehicle");
   const location = [listing.city, listing.state].filter(Boolean).join(", ");
   const used = countApplicationInventoryVehicles(additionalCount);

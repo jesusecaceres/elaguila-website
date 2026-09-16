@@ -4,6 +4,12 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AutosApplicationFinalActions } from "@/app/publicar/autos/shared/components/AutosApplicationFinalActions";
 import { AutosApplicationMissingItemsBanner } from "@/app/publicar/autos/shared/components/AutosApplicationMissingItemsBanner";
+import { ApplicationReadinessChecklist } from "@/app/components/forms/ApplicationReadinessChecklist";
+import {
+  autosDealerReadinessChecklistIntro,
+  autosDealerReadinessChecklistItems,
+  autosDealerReadinessChecklistTitle,
+} from "@/app/clasificados/autos/negocios/lib/autosDealerReadinessChecklist";
 import type {
   AutoDealerListing,
   DealerCustomLink,
@@ -27,6 +33,7 @@ import { AutosDealerLogoUpload } from "@/app/publicar/autos/shared/components/Au
 import { AutosDealerFinanceFields } from "@/app/publicar/autos/shared/components/AutosDealerFinanceFields";
 import { AutosDealerLanguagesField } from "@/app/publicar/autos/shared/components/AutosDealerLanguagesField";
 import { AutosDealerHoursEditor } from "@/app/publicar/autos/shared/components/AutosDealerHoursEditor";
+import { AutosDealerSpecialHoursEditor } from "@/app/publicar/autos/shared/components/AutosDealerSpecialHoursEditor";
 import { syncDealerAddressFromStructured } from "@/app/lib/clasificados/autos/autosDealerStructuredAddress";
 import {
   formatUsdIntegerInputDisplay,
@@ -341,6 +348,12 @@ export function AutosNegociosApplication() {
               ) : null}
               <AutosPricingPlanBanner lang={lang} lane="negocios" />
               <AutosDraftSessionRestoredBanner lang={lang} restoredFromSession={restoredFromSession} />
+              <ApplicationReadinessChecklist
+                title={autosDealerReadinessChecklistTitle(lang)}
+                intro={autosDealerReadinessChecklistIntro(lang)}
+                items={autosDealerReadinessChecklistItems(lang)}
+                className="mt-3"
+              />
               {inventoryBanner ? (
                 <p className="rounded-xl border border-[color:var(--lx-gold-border)] bg-[#FFFCF7] px-4 py-3 text-sm font-medium text-[color:var(--lx-text)]">
                   {inventoryBanner}
@@ -487,8 +500,7 @@ export function AutosNegociosApplication() {
               </div>
               <AutosDealerStructuredAddressFields
                 labels={{
-                  streetNumber: t.app.labels.dealerStreetNumber,
-                  streetName: t.app.labels.dealerStreetName,
+                  street: t.app.labels.address,
                   unitOrSuite: t.app.labels.dealerUnitOrSuite,
                   city: t.app.labels.dealerAddressCity,
                   state: t.app.labels.dealerAddressState,
@@ -682,15 +694,9 @@ export function AutosNegociosApplication() {
                 className="rounded-full border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-4 py-2 text-sm font-semibold text-[color:var(--lx-text)] hover:bg-[color:var(--lx-nav-hover)]"
                 onClick={() =>
                   setListingPatch({
-                    dealerHours: [
-                      ...(listing.dealerHours ?? []),
-                      {
-                        rowId: newHourRowId(),
-                        day: t.app.dealer.newDayPlaceholder,
-                        open: "09:00",
-                        close: "17:00",
-                        closed: false,
-                      },
+                    dealerSpecialHoursRows: [
+                      ...(listing.dealerSpecialHoursRows ?? []),
+                      { label: "", note: "" },
                     ],
                   })
                 }
@@ -713,6 +719,33 @@ export function AutosNegociosApplication() {
               onUpdateRow={(rowId, patch) => updateDealerHourRow(rowId, patch)}
               onRemoveRow={(rowId) => removeDealerHourRow(rowId)}
             />
+
+            {(listing.dealerSpecialHoursRows ?? []).length > 0 ? (
+              <div className="mt-4">
+                <AutosDealerSpecialHoursEditor
+                  rows={listing.dealerSpecialHoursRows ?? []}
+                  copy={{
+                    label: t.app.dealer.specialHoursLabel,
+                    labelPlaceholder: t.app.dealer.specialHoursLabelPlaceholder,
+                    note: t.app.dealer.specialHoursNote,
+                    notePlaceholder: t.app.dealer.specialHoursNotePlaceholder,
+                    remove: t.app.dealer.remove,
+                  }}
+                  onUpdateRow={(index, patch) =>
+                    setListingPatch({
+                      dealerSpecialHoursRows: (listing.dealerSpecialHoursRows ?? []).map((row, i) =>
+                        i === index ? { ...row, ...patch } : row,
+                      ),
+                    })
+                  }
+                  onRemoveRow={(index) =>
+                    setListingPatch({
+                      dealerSpecialHoursRows: (listing.dealerSpecialHoursRows ?? []).filter((_, i) => i !== index),
+                    })
+                  }
+                />
+              </div>
+            ) : null}
 
             <AutosDealerFinanceFields listing={listing} setListingPatch={setListingPatch} copy={t} lang={lang} />
           </section>

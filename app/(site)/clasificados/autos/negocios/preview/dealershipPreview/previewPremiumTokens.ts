@@ -2,6 +2,9 @@
 
 export const AUTOS_PREVIEW_MAX_RELATED_VISIBLE = 6;
 
+/** Window CustomEvent name: "Ver video completo" broadcasts to the sibling gallery to switch to its Video tab. */
+export const AUTOS_GALLERY_SELECT_TAB_EVENT = "autos-preview-gallery-select-tab";
+
 export const autosPreviewPageMaxWidthClass = "max-w-[1280px]";
 
 export const autosPreviewPageCanvasClass =
