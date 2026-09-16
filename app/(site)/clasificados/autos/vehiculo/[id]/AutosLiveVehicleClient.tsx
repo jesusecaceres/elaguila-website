@@ -18,6 +18,7 @@ import { AutosVehicleProfileViewAnalytics } from "../../components/AutosVehicleP
 import type { AutosPublicListingAnalyticsProps } from "../../lib/autosAnalyticsIdentity";
 import { AutosLiveVehicleOwnerInventoryBar } from "./AutosLiveVehicleOwnerInventoryBar";
 import { AutosListingTranslationLayer } from "./AutosListingTranslationLayer";
+import { normalizeAutosNegociosLang } from "../../negocios/lib/autosNegociosLang";
 
 type PublicListingApiOk = {
   ok: true;
@@ -159,8 +160,8 @@ export function AutosLiveVehicleClient({
           listingLang={listingLang}
           listingKey={listingKey}
         >
-          {(displayListing, translateControl) => (
-            <>
+          {(displayListing, translateControl, adDisplayLang) => (
+            <AutosPrivadoPreviewLocaleProvider lang={normalizeAutosNegociosLang(adDisplayLang)} manageDocumentTitle={false}>
               {translateControl}
               <AutoPrivadoPreviewPage
                 data={displayListing}
@@ -169,7 +170,7 @@ export function AutosLiveVehicleClient({
                 publicAnalytics={publicAnalytics}
                 publicUrl={publicUrl}
               />
-            </>
+            </AutosPrivadoPreviewLocaleProvider>
           )}
         </AutosListingTranslationLayer>
         {leonixAdId ? (
@@ -199,8 +200,8 @@ export function AutosLiveVehicleClient({
         listingLang={listingLang}
         listingKey={listingKey}
       >
-        {(displayListing, translateControl) => (
-          <>
+        {(displayListing, translateControl, adDisplayLang) => (
+          <AutosNegociosPreviewLocaleProvider lang={normalizeAutosNegociosLang(adDisplayLang)} manageDocumentTitle={false}>
             {translateControl}
             <AutosNegociosDealershipPreviewPage
               data={displayListing}
@@ -209,7 +210,7 @@ export function AutosLiveVehicleClient({
               publicAnalytics={publicAnalytics}
               publicUrl={publicUrl}
             />
-          </>
+          </AutosNegociosPreviewLocaleProvider>
         )}
       </AutosListingTranslationLayer>
       {leonixAdId ? (

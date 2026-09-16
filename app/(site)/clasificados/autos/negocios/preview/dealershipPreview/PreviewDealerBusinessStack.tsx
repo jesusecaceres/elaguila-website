@@ -22,6 +22,7 @@ import {
   filterDealerHoursForDisplay,
   formatDealerHoursTimeRange,
   formatTodaysDealerHoursLine,
+  localizeDealerHoursDayLabel,
 } from "../../lib/dealerHoursDisplay";
 import { buildAutosDealerHoursStatus } from "../../lib/autosDealerHoursStatus";
 import { formatCityStateLabel, formatUsd, polishMonthlyEstimateDisplay } from "../../components/autoDealerFormatters";
@@ -823,9 +824,9 @@ export function PreviewDealerBusinessStack({
                   key={row.rowId ?? `hour-${idx}`}
                   className="flex items-baseline justify-between gap-4 border-b border-[#D6C7AD]/40 pb-2 text-sm last:border-b-0 last:pb-0"
                 >
-                  <span className="min-w-0 font-semibold text-[#1F241C]">{row.day.trim()}</span>
+                  <span className="min-w-0 font-semibold text-[#1F241C]">{localizeDealerHoursDayLabel(row.day, lang)}</span>
                   <span className="shrink-0 text-right font-medium tabular-nums text-[#5C5346]">
-                    {formatDealerHoursTimeRange(row)}
+                    {formatDealerHoursTimeRange(row, lang)}
                   </span>
                 </li>
               ))}

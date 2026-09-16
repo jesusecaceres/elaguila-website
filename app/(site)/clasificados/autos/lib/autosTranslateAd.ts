@@ -4,7 +4,7 @@ import {
   shouldOfferTranslateAd,
 } from "@/app/lib/translation/helpers";
 import type { ContentLocale, Locale, TranslatableAdFields } from "@/app/lib/translation/types";
-import type { AutoDealerListing } from "../negocios/types/autoDealerListing";
+import type { AutoDealerListing, DealerCustomLink, DealerSpecialHoursRow } from "../negocios/types/autoDealerListing";
 
 export function normalizeAutosListingLang(raw: string | null | undefined): ContentLocale {
   return normalizeLocale(raw) ?? "unknown";
@@ -34,6 +34,47 @@ function decodeCustomEquipment(encoded: string, original: string[] | undefined):
   });
 }
 
+/** Custom-link DISPLAY LABELS only — id and url are identity/destination data, never sent. */
+function encodeCustomLinkLabels(links: DealerCustomLink[] | undefined): string | undefined {
+  const lines = (links ?? []).map((l) => (l.label ?? "").trim());
+  return lines.some(Boolean) ? lines.join("\n") : undefined;
+}
+
+/** Malformed/short translation gracefully retains the original label per row — never drops a link. */
+function decodeCustomLinkLabels(encoded: string, original: DealerCustomLink[] | undefined): DealerCustomLink[] {
+  const base = original ?? [];
+  const lines = encoded.split("\n");
+  return base.map((link, index) => {
+    const next = lines[index]?.trim();
+    return next ? { ...link, label: next } : link;
+  });
+}
+
+const SPECIAL_HOURS_FIELD_SEP = "\t";
+
+/** Special-hours occasion LABEL + resulting NOTE only — never the row order, never a date/time value the label/note text might itself contain a mention of (those stay exactly as the seller typed). */
+function encodeSpecialHours(rows: DealerSpecialHoursRow[] | undefined): string | undefined {
+  const lines = (rows ?? [])
+    .map((r) => `${(r.label ?? "").trim()}${SPECIAL_HOURS_FIELD_SEP}${(r.note ?? "").trim()}`)
+    .filter((line) => line !== SPECIAL_HOURS_FIELD_SEP);
+  return lines.length ? lines.join("\n") : undefined;
+}
+
+/** Malformed/short/reordered translation gracefully retains the original row — never invents or drops a row. */
+function decodeSpecialHours(encoded: string, original: DealerSpecialHoursRow[] | undefined): DealerSpecialHoursRow[] {
+  const base = original ?? [];
+  const lines = encoded.split("\n");
+  return base.map((row, index) => {
+    const line = lines[index];
+    if (!line) return row;
+    const sepIdx = line.indexOf(SPECIAL_HOURS_FIELD_SEP);
+    if (sepIdx < 0) return row;
+    const label = line.slice(0, sepIdx).trim();
+    const note = line.slice(sepIdx + 1).trim();
+    return { label: label || row.label, note: note || row.note };
+  });
+}
+
 /**
  * Seller prose only — specs, price, VIN, dealer/contact identity (name/phone/email/URL) stay out.
  * `serviceLabel`/`highlights` carry the two free-text finance fields (advisor role/title and
@@ -54,6 +95,8 @@ export function buildAutosTranslatableContent(listing: AutoDealerListing): Trans
     details: encodeCustomEquipment(listing.customEquipment),
     serviceLabel: financeTitle || undefined,
     highlights: financeNotes || undefined,
+    customServiceText: encodeCustomLinkLabels(listing.dealerCustomLinks),
+    shareText: encodeSpecialHours(listing.dealerSpecialHoursRows),
   };
 }
 
@@ -99,6 +142,18 @@ export function applyAutosTranslation(
   }
   if (translated.highlights?.trim()) {
     next = { ...next, financeNotes: translated.highlights.trim() };
+  }
+  if (translated.customServiceText?.trim()) {
+    next = {
+      ...next,
+      dealerCustomLinks: decodeCustomLinkLabels(translated.customServiceText, next.dealerCustomLinks),
+    };
+  }
+  if (translated.shareText?.trim()) {
+    next = {
+      ...next,
+      dealerSpecialHoursRows: decodeSpecialHours(translated.shareText, next.dealerSpecialHoursRows),
+    };
   }
 
   return next;

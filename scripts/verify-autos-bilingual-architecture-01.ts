@@ -24,6 +24,8 @@ import { formatAutosUsd, formatAutosMiles } from "../app/(site)/clasificados/aut
 import { formatUsd, formatMiles } from "../app/(site)/clasificados/autos/negocios/components/autoDealerFormatters";
 import { localizeAutosDealerLanguageLabel } from "../app/lib/clasificados/autos/autosDealerLanguages";
 import { buildAutosTranslatableContent, applyAutosTranslation } from "../app/(site)/clasificados/autos/lib/autosTranslateAd";
+import { computeAutosAdDisplayLang } from "../app/(site)/clasificados/autos/vehiculo/[id]/AutosListingTranslationLayer";
+import { localizeDealerHoursDayLabel, formatDealerHoursTimeRange } from "../app/(site)/clasificados/autos/negocios/lib/dealerHoursDisplay";
 import type { AutoDealerListing } from "../app/(site)/clasificados/autos/negocios/types/autoDealerListing";
 
 const failures: string[] = [];
@@ -314,10 +316,371 @@ check("contact CTA analytics classify strictly by href pattern (tel:/wa.me/mailt
 /* ================================================================================================
  * Gate N — cache/version correctness: payload shape changed (finance fields added), version bumped.
  * ============================================================================================ */
-check("the Autos Translate Ad cache version was bumped after buildAutosTranslatableContent's payload shape changed", () => {
+check("the Autos Translate Ad cache version was bumped after buildAutosTranslatableContent's payload shape changed (both the original finance-fields bump and this round's custom-link/special-hours bump are reflected — no stale v1/v2 string remains)", () => {
   const layer = raw("app/(site)/clasificados/autos/vehiculo/[id]/AutosListingTranslationLayer.tsx");
   assert.ok(!layer.includes('version="autos-t5-v1"'), "the stale pre-finance-fields version string must be gone");
-  assert.ok(/version="autos-t6-v2"/.test(layer), "version bumped to a new value");
+  assert.ok(!layer.includes('version="autos-t6-v2"'), "the stale pre-custom-link/special-hours version string must be gone");
+  assert.ok(/version="autos-t6-v3"/.test(layer), "version bumped to the current value");
+});
+
+/* ================================================================================================
+ * ROUND 3 (2026-09-16) — PM/OWNER CORRECTION: the complete ad-local experience (not just seller
+ * prose) must follow a distinct `adDisplayLang`, fully independent of global `siteLocale`. The
+ * checks below prove the corrected architecture end to end: the pure computation, the nested
+ * React-context wiring at every render-prop consumer, child isolation/parent-follows-parent,
+ * the results-card language-domain firewall, the new custom-link/special-hours/hours-day-label
+ * fixes, identity-field preservation, and Servicios/Privado non-regression.
+ * ============================================================================================ */
+
+/* --- Gate 1: computeAutosAdDisplayLang pure contract ------------------------------------------- */
+check("ORIGINAL state: a known authored source locale (es/en) wins over siteLocale", () => {
+  assert.equal(
+    computeAutosAdDisplayLang({ showTranslated: false, translation: null, sourceLocale: "en", siteLocale: "es" }),
+    "en",
+    "an English-authored ad must stay English-chrome on a Spanish-site visit until translated",
+  );
+});
+check("ORIGINAL state: an unknown source locale honestly falls back to siteLocale", () => {
+  assert.equal(
+    computeAutosAdDisplayLang({ showTranslated: false, translation: null, sourceLocale: "unknown", siteLocale: "es" }),
+    "es",
+  );
+});
+check("TRANSLATED state: effectiveTargetLocale wins over targetLocale when both are present", () => {
+  assert.equal(
+    computeAutosAdDisplayLang({
+      showTranslated: true,
+      translation: { targetLocale: "en", effectiveTargetLocale: "es" },
+      sourceLocale: "unknown",
+      siteLocale: "en",
+    }),
+    "es",
+  );
+});
+check("TRANSLATED state: falls back to targetLocale when effectiveTargetLocale is absent", () => {
+  assert.equal(
+    computeAutosAdDisplayLang({
+      showTranslated: true,
+      translation: { targetLocale: "en", effectiveTargetLocale: undefined },
+      sourceLocale: "es",
+      siteLocale: "es",
+    }),
+    "en",
+  );
+});
+check("showTranslated=true with a null translation object never crashes and behaves as ORIGINAL state", () => {
+  assert.equal(
+    computeAutosAdDisplayLang({ showTranslated: true, translation: null, sourceLocale: "en", siteLocale: "es" }),
+    "en",
+  );
+});
+
+/* --- Gate 1/2: render-prop contract + nested-provider wiring at every consumer ------------------ */
+check("AutosListingTranslationLayer's render-prop exposes adDisplayLang as its 3rd argument", () => {
+  const src = raw("app/(site)/clasificados/autos/vehiculo/[id]/AutosListingTranslationLayer.tsx");
+  assert.ok(/children:\s*\(\s*displayListing[^,]*,\s*translateControl[^,]*,\s*adDisplayLang:/.test(src));
+  assert.ok(src.includes("return <>{children(displayListing, translateControl, adDisplayLang)}</>;"));
+});
+check("live vehicle client (negocios): outer chrome stays on siteLocale, a fresh provider nested at the render-prop carries adDisplayLang around translateControl + the full detail page", () => {
+  const src = raw("app/(site)/clasificados/autos/vehiculo/[id]/AutosLiveVehicleClient.tsx");
+  assert.ok(
+    /<AutosNegociosPreviewLocaleProvider lang=\{lang\} manageDocumentTitle=\{false\}>[\s\S]*?<AutosListingTranslationLayer/.test(src),
+    "outer wrapper (site chrome: Leonix Ad ID label, back-to-results link) must stay keyed on siteLocale",
+  );
+  assert.ok(
+    /\(displayListing, translateControl, adDisplayLang\) => \(\s*<AutosNegociosPreviewLocaleProvider lang=\{normalizeAutosNegociosLang\(adDisplayLang\)\}[\s\S]*?\{translateControl\}[\s\S]*?<AutosNegociosDealershipPreviewPage/.test(
+      src,
+    ),
+    "nested provider must wrap both the translate control and the full dealership preview page",
+  );
+});
+check("live vehicle client (privado): the same nested-provider pattern applies with the Privado provider", () => {
+  const src = raw("app/(site)/clasificados/autos/vehiculo/[id]/AutosLiveVehicleClient.tsx");
+  assert.ok(
+    /\(displayListing, translateControl, adDisplayLang\) => \(\s*<AutosPrivadoPreviewLocaleProvider lang=\{normalizeAutosNegociosLang\(adDisplayLang\)\}[\s\S]*?\{translateControl\}[\s\S]*?<AutoPrivadoPreviewPage/.test(
+      src,
+    ),
+  );
+});
+check("parent Preview canonical-active branch nests a fresh provider on adDisplayLang around translateControl + the detail page", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  assert.ok(
+    /\(displayListing, translateControl, adDisplayLang\) => \(\s*<AutosNegociosPreviewLocaleProvider lang=\{normalizeAutosNegociosLang\(adDisplayLang\)\}[\s\S]*?\{translateControl\}[\s\S]*?<AutosNegociosDealershipPreviewPage data=\{displayListing\} editBackHref=\{editBackHref\} \/>/.test(
+      src,
+    ),
+  );
+});
+check("parent Preview draft-capture branch moves the results card, related-inventory section, and bottom-nav promise strip INSIDE the adDisplayLang provider (not left on raw site lang)", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  const start = src.indexOf("const adDisplayLang = normalizeAutosNegociosLang(adDisplayLangRaw);");
+  assert.ok(start >= 0, "draft-capture branch must derive a narrowed adDisplayLang");
+  const block = src.slice(start, src.indexOf("</AutosNegociosPreviewLocaleProvider>", start));
+  assert.ok(block.includes("<AutosNegociosResultsCardPreview lang={adDisplayLang}"));
+  assert.ok(block.includes("<AutosNegociosPreviewInventorySection"), "related inventory must be inside the same block");
+  assert.ok(/lang=\{adDisplayLang\}[\s\S]*parentListing=\{displayListing\}/.test(block) || block.includes("lang={adDisplayLang}\n            parentListing={displayListing}"));
+  assert.ok(block.includes("<AutosNegociosPreviewPromiseStrip lang={adDisplayLang}"), "bottom nav must be inside the same block");
+});
+check("child inventory overlay nests its own adDisplayLang provider inside the outer session-lang chrome provider", () => {
+  const src = raw("app/(site)/publicar/autos/negocios/components/AutosNegociosChildInventoryPreviewOverlay.tsx");
+  assert.ok(/<AutosNegociosPreviewLocaleProvider lang=\{lang\}>[\s\S]*<AutosListingTranslationLayer/.test(src), "outer chrome provider stays on the plain session lang");
+  assert.ok(
+    /\(displayListing, translateControl, adDisplayLangRaw\) => \{[\s\S]*?<AutosNegociosPreviewLocaleProvider lang=\{adDisplayLang\}[\s\S]*?\{translateControl\}[\s\S]*?<AutosNegociosDealershipPreviewPage/.test(
+      src,
+    ),
+  );
+});
+
+/* --- Gate 4/5: child architecture parity + parent-follows-parent isolation ---------------------- */
+check("the child overlay's own results card (inside the overlay) follows the CHILD's own adDisplayLang, not the parent's raw lang", () => {
+  const src = raw("app/(site)/publicar/autos/negocios/components/AutosNegociosChildInventoryPreviewOverlay.tsx");
+  assert.ok(src.includes("<AutosNegociosResultsCardPreview lang={adDisplayLang} listing={displayListing}"));
+});
+check("the related-inventory list rendered on the PARENT page follows the PARENT's adDisplayLang, never an independent per-child value", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  assert.ok(src.includes("<AutosNegociosPreviewInventorySection\n                    lang={adDisplayLang}"));
+  const section = raw("app/(site)/clasificados/autos/negocios/components/AutosNegociosPreviewInventorySection.tsx");
+  assert.ok(!/useSearchParams|useAutosNegociosPreviewCopy/.test(section), "the section must take lang purely as a prop from its parent, never derive it itself");
+});
+
+/* --- Gate 6: results/search cards keep the site-locale language domain, not the detail page's translation state --- */
+check("the public search-results card takes lang as a plain external prop and never touches the ad-local translation layer/context", () => {
+  const src = raw("app/(site)/clasificados/autos/components/public/AutosPublicStandardCard.tsx");
+  assert.ok(!/AutosListingTranslationLayer|useAutosNegociosPreviewCopy|useAutosPrivadoPreviewCopy/.test(src));
+  assert.ok(src.includes("lang: AutosPublicLang;"), "lang must be a declared external prop");
+});
+
+/* --- Gate 7: custom-link labels — deterministic encode/decode, id/url/order preserved exactly --- */
+check("custom-link labels translate while id and url stay byte-for-byte identical, order preserved", () => {
+  const listing = {
+    dealerCustomLinks: [
+      { id: "link-1", label: "Financiamiento", url: "https://example.com/financiamiento" },
+      { id: "link-2", label: "Servicio y mantenimiento", url: "https://example.com/servicio" },
+    ],
+  } as unknown as AutoDealerListing;
+  const content = buildAutosTranslatableContent(listing);
+  assert.equal(content.customServiceText, "Financiamiento\nServicio y mantenimiento");
+  const translated = applyAutosTranslation(listing, {
+    customServiceText: "Financing\nService and maintenance",
+  });
+  assert.deepEqual(translated.dealerCustomLinks, [
+    { id: "link-1", label: "Financing", url: "https://example.com/financiamiento" },
+    { id: "link-2", label: "Service and maintenance", url: "https://example.com/servicio" },
+  ]);
+  // View Original: the source array/objects must never be mutated.
+  assert.equal(listing.dealerCustomLinks![0]!.label, "Financiamiento");
+});
+check("a malformed/short custom-link translation gracefully retains the original label per row — never drops a link", () => {
+  const listing = {
+    dealerCustomLinks: [
+      { id: "link-1", label: "Financiamiento", url: "https://example.com/a" },
+      { id: "link-2", label: "Servicio", url: "https://example.com/b" },
+    ],
+  } as unknown as AutoDealerListing;
+  const translated = applyAutosTranslation(listing, { customServiceText: "Financing" });
+  assert.equal(translated.dealerCustomLinks![0]!.label, "Financing");
+  assert.equal(translated.dealerCustomLinks![1]!.label, "Servicio", "missing 2nd line must retain the original, never drop or blank the row");
+});
+
+/* --- Gate 7: special-hours labels + notes — deterministic encode/decode, dates/state preserved --- */
+check("special-hours label and note both translate; a row with no note is still round-tripped without corrupting the tab-separated protocol", () => {
+  const listing = {
+    dealerSpecialHoursRows: [
+      { label: "Nochebuena", note: "9:00 AM – 2:00 PM" },
+      { label: "Año Nuevo", note: "Cerrado" },
+    ],
+  } as unknown as AutoDealerListing;
+  const content = buildAutosTranslatableContent(listing);
+  assert.equal(content.shareText, "Nochebuena\t9:00 AM – 2:00 PM\nAño Nuevo\tCerrado");
+  const translated = applyAutosTranslation(listing, {
+    shareText: "Christmas Eve\t9:00 AM – 2:00 PM\nNew Year's Day\tClosed",
+  });
+  assert.deepEqual(translated.dealerSpecialHoursRows, [
+    { label: "Christmas Eve", note: "9:00 AM – 2:00 PM" },
+    { label: "New Year's Day", note: "Closed" },
+  ]);
+  assert.equal(listing.dealerSpecialHoursRows![0]!.label, "Nochebuena", "View Original: source rows must never be mutated");
+});
+check("a reordered/short special-hours translation never invents or drops a row — missing rows retain the original label+note", () => {
+  const listing = {
+    dealerSpecialHoursRows: [
+      { label: "Nochebuena", note: "9:00 AM – 2:00 PM" },
+      { label: "Año Nuevo", note: "Cerrado" },
+    ],
+  } as unknown as AutoDealerListing;
+  const translated = applyAutosTranslation(listing, { shareText: "Christmas Eve\t9:00 AM – 2:00 PM" });
+  assert.deepEqual(translated.dealerSpecialHoursRows![1], { label: "Año Nuevo", note: "Cerrado" });
+});
+
+/* --- Identity/spec-field preservation: VIN/stock/price/mileage/phone/email/URL/name/make/model/trim --- */
+check("buildAutosTranslatableContent never leaks VIN/stock/price/mileage/make/model/dealer-identity fields into the translation payload", () => {
+  const listing = {
+    vin: "1HGCM82633A004352",
+    stockNumber: "STK-4521",
+    price: 48950,
+    mileage: 12345,
+    make: "Toyota",
+    model: "Camry",
+    dealerName: "Leonix Motors",
+    dealerPhoneOffice: "555-0100",
+    dealerEmail: "sales@example.com",
+    dealerWebsite: "https://example.com",
+    description: "Excelente condición.",
+  } as unknown as AutoDealerListing;
+  const content = buildAutosTranslatableContent(listing);
+  const allowedKeys = new Set([
+    "title",
+    "description",
+    "serviceLabel",
+    "customServiceText",
+    "details",
+    "highlights",
+    "body",
+    "shareText",
+  ]);
+  for (const key of Object.keys(content)) {
+    assert.ok(allowedKeys.has(key), `unexpected key '${key}' leaked into the translatable payload`);
+  }
+});
+check("applyAutosTranslation's source never assigns a translated value to any identity/spec field", () => {
+  const src = raw("app/(site)/clasificados/autos/lib/autosTranslateAd.ts");
+  const fnStart = src.indexOf("export function applyAutosTranslation");
+  assert.ok(fnStart >= 0, "applyAutosTranslation must exist");
+  const fnBody = src.slice(fnStart);
+  const forbidden = ["vin:", "stockNumber:", "price:", "mileage:", "make:", "model:", "year:", "dealerName:", "dealerPhoneOffice:", "dealerPhoneMobile:", "dealerEmail:", "dealerWebsite:"];
+  for (const token of forbidden) {
+    assert.ok(!fnBody.includes(token), `applyAutosTranslation must never assign '${token}'`);
+  }
+});
+
+/* --- Gate 8: finance identity fields (phone/email/whatsapp) stay out of the translation payload --- */
+check("finance CONTACT IDENTITY (phone/email/whatsapp/pre-approval URL) never enters the translatable payload — only the two finance PROSE fields do", () => {
+  const listing = {
+    financeContactTitle: "Gerente de Financiamiento",
+    financeNotes: "Aprobación el mismo día.",
+    financeContactPhone: "555-0199",
+    financeContactEmail: "finance@example.com",
+    financeContactWhatsapp: "555-0199",
+    financeApplicationUrl: "https://example.com/apply",
+  } as unknown as AutoDealerListing;
+  const content = buildAutosTranslatableContent(listing);
+  assert.equal(content.serviceLabel, "Gerente de Financiamiento");
+  assert.equal(content.highlights, "Aprobación el mismo día.");
+  assert.ok(!JSON.stringify(content).includes("555-0199"));
+  assert.ok(!JSON.stringify(content).includes("finance@example.com"));
+  assert.ok(!JSON.stringify(content).includes("example.com/apply"));
+});
+
+/* --- Gate 9: hours-day-label localization (new this round) — canonical-array-backed, full 7-day round trip --- */
+check("all 7 canonical weekday labels round-trip ES<->EN through the same table the hours editor's own <select> renders", () => {
+  const ES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+  const EN = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  for (let i = 0; i < 7; i++) {
+    assert.equal(localizeDealerHoursDayLabel(ES[i], "en"), EN[i], `${ES[i]} -> en`);
+    assert.equal(localizeDealerHoursDayLabel(EN[i], "es"), ES[i], `${EN[i]} -> es`);
+    assert.equal(localizeDealerHoursDayLabel(ES[i], "es"), ES[i], `${ES[i]} idempotent`);
+    assert.equal(localizeDealerHoursDayLabel(EN[i], "en"), EN[i], `${EN[i]} idempotent`);
+  }
+});
+check("a dealer's own free-typed custom day label (no weekday match) is returned exactly as typed in both directions — never guessed", () => {
+  assert.equal(localizeDealerHoursDayLabel("Feriado especial", "en"), "Feriado especial");
+  assert.equal(localizeDealerHoursDayLabel("Holiday hours", "es"), "Holiday hours");
+  assert.equal(localizeDealerHoursDayLabel(undefined, "en"), "");
+  assert.equal(localizeDealerHoursDayLabel("", "es"), "");
+});
+check("formatDealerHoursTimeRange returns the correctly-localized closed word and defaults to Spanish for untouched callers", () => {
+  assert.equal(formatDealerHoursTimeRange({ day: "Lunes", closed: true } as any, "es"), "Cerrado");
+  assert.equal(formatDealerHoursTimeRange({ day: "Monday", closed: true } as any, "en"), "Closed");
+  assert.equal(formatDealerHoursTimeRange({ day: "Lunes", closed: true } as any), "Cerrado", "default lang keeps old exact output for callers not yet updated");
+});
+check("the hours editor's day <select> uses the localized display day (not the raw stored value) for both its value and its custom-option fallback branch", () => {
+  const src = raw("app/(site)/publicar/autos/shared/components/AutosDealerHoursEditor.tsx");
+  assert.ok(src.includes("const displayDay = localizeDealerHoursDayLabel(row.day, lang);"));
+  assert.ok(src.includes("value={displayDay}"));
+  assert.ok(src.includes("!weekdays.includes(displayDay as (typeof weekdays)[number]) && displayDay"), "the fallback custom-option branch must also match on the localized value, not raw row.day");
+});
+check("the child-inventory step's read-only inherited-hours summary localizes both the day label and the dealer-language chips", () => {
+  const src = raw("app/(site)/publicar/autos/negocios/components/AutosInventoryInheritedDealerStep.tsx");
+  assert.ok(src.includes("localizeDealerHoursDayLabel(row.day, lang)"));
+  assert.ok(src.includes("localizeAutosDealerLanguageLabel(label, lang)"));
+});
+check("the live public weekly-hours list and the hours-status helper both pass lang through to formatDealerHoursTimeRange", () => {
+  const stack = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewDealerBusinessStack.tsx");
+  assert.ok(stack.includes("localizeDealerHoursDayLabel(row.day, lang)"));
+  assert.ok(stack.includes("formatDealerHoursTimeRange(row, lang)"));
+  const status = raw("app/(site)/clasificados/autos/negocios/lib/autosDealerHoursStatus.ts");
+  assert.ok(status.includes("formatDealerHoursTimeRange(row, lang)"), "the hours-status helper must no longer call the un-localized zero-arg form");
+});
+
+/* --- Gate 9: newly-confirmed "Dealer de Autos" / plan-name mixed-language defects, now fixed ---- */
+check("the branch-selector page's English dealer plan title is a real English label, not the untranslated Spanish plan name", () => {
+  const src = raw("app/(site)/publicar/autos/autosBranchCopy.ts");
+  const enBlockStart = src.indexOf('if (lang === "en")');
+  const enBlock = src.slice(enBlockStart, src.indexOf("return {", enBlockStart + 1) === -1 ? src.length : src.indexOf("\n  return {", enBlockStart));
+  assert.ok(!/title: "Dealer de Autos"/.test(enBlock), "the EN branch must not keep the Spanish plan name");
+  assert.ok(src.includes('title: "Dealer de Autos"'), "the ES branch's own Spanish plan name must remain untouched");
+});
+check("the dealer plan's EN display label is a real English string, matching the sibling Privado plan's own EN localization pattern", () => {
+  const src = raw("app/lib/clasificados/autos/autosPricingCopy.ts");
+  assert.ok(src.includes('label: "Private Seller Autos"'), "sibling Privado EN label — unchanged reference point");
+  assert.ok(!/en: \{\s*label: "Dealer de Autos"/.test(src), "the NEGOCIOS EN label must no longer be the untranslated Spanish name");
+});
+check("the public blueprint's EN cross-nav dealer CTA is fully English", () => {
+  const src = raw("app/(site)/clasificados/autos/lib/autosPublicBlueprintCopy.ts");
+  assert.ok(!src.includes('dealerCta: "Go to Dealer de Autos"'));
+  assert.ok(src.includes('dealerCta: "Ir a Dealer de Autos"'), "the ES cross-nav CTA must remain untouched");
+});
+check("the lane cross-nav card's fallback lane label reuses the single canonical plan-label source instead of a hardcoded literal", () => {
+  const src = raw("app/(site)/clasificados/autos/components/public/AutosLaneCrossNav.tsx");
+  assert.ok(!/\?\? \(card\.tone === "dealer" \|\| card\.tone === "dealerPublish" \? "Dealer de Autos" : "Autos Privado"\)/.test(src), "the hardcoded fallback literal must be gone");
+  assert.ok(src.includes("getAutosPlanDisplayCopy(\n                  props.lang,"), "must reuse the canonical getAutosPlanDisplayCopy lookup");
+});
+
+/* --- Gate 10: accessibility — ad-local aria-labels ride the same shared-context lang as visible text --- */
+check("the gallery's open/close/media aria-labels are driven by the same lang variable as visible copy (not a hardcoded literal), so they follow adDisplayLang wherever the gallery is nested", () => {
+  for (const file of [
+    "app/(site)/clasificados/autos/negocios/components/AutoGallery.tsx",
+    "app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewAutoGallery.tsx",
+  ]) {
+    const src = raw(file);
+    const ariaLangTernaries = src.match(/aria-label=\{lang === "es" \? "[^"]+" : "[^"]+"\}/g) ?? [];
+    assert.ok(ariaLangTernaries.length >= 2, `${file}: expected multiple lang-driven aria-labels, found ${ariaLangTernaries.length}`);
+  }
+});
+
+/* --- Privado firewall: a distinct, non-shared context module ------------------------------------ */
+check("Privado's preview locale context is its own private module-scoped context, never re-exported from or shared with the Negocios context module", () => {
+  const privado = raw("app/(site)/clasificados/autos/privado/lib/AutosPrivadoPreviewLocaleContext.tsx");
+  const negocios = raw("app/(site)/clasificados/autos/negocios/lib/AutosNegociosPreviewLocaleContext.tsx");
+  assert.ok(/const \w+ = createContext</.test(privado) && /const \w+ = createContext</.test(negocios));
+  assert.ok(!privado.includes("AutosNegociosPreviewLocaleContext") && !negocios.includes("AutosPrivadoPreviewLocaleContext"), "neither context module may import the other");
+});
+
+/* --- Single shared TranslateAdControl: no Autos-specific fork ----------------------------------- */
+check("AutosListingTranslationLayer uses the one single shared TranslateAdControl — no forked Autos-only copy exists", () => {
+  const layer = raw("app/(site)/clasificados/autos/vehiculo/[id]/AutosListingTranslationLayer.tsx");
+  assert.ok(layer.includes('from "@/app/components/translation/TranslateAdControl"'));
+  let forkHits: string[] = [];
+  try {
+    forkHits = execSync(`grep -rl "TranslateAdControl" "app/(site)/clasificados/autos" "app/(site)/publicar/autos" --include=*.tsx --include=*.ts`, {
+      cwd: new URL("..", import.meta.url).pathname.replace(/^\/([a-zA-Z]:)/, "$1"),
+      encoding: "utf8",
+    })
+      .trim()
+      .split("\n")
+      .filter(Boolean);
+  } catch {
+    forkHits = [];
+  }
+  const definesOwnControl = forkHits.some((f) => raw(f.replace(/\\/g, "/")).includes("export function TranslateAdControl") || raw(f.replace(/\\/g, "/")).includes("export const TranslateAdControl"));
+  assert.ok(!definesOwnControl, "no Autos-scoped file may define its own TranslateAdControl");
+});
+
+/* --- Servicios non-regression: its own displayLang architecture is untouched -------------------- */
+check("Servicios' own displayLang computation is intact and unforked by this Autos-only change", () => {
+  const src = raw("app/(site)/servicios/components/ServiciosPublicTranslationLayer.tsx");
+  assert.ok(src.includes("displayLang: ServiciosLang;"));
+  assert.ok(src.includes("const displayLang: ServiciosLang = showTranslated && translation?.translated ? translatedLang : lang;"));
+  assert.ok(src.includes("return { displayProfile, translateControl, displayLang };"));
 });
 
 if (failures.length) {

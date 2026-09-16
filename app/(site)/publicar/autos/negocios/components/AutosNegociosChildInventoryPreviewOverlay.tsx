@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
+import { normalizeAutosNegociosLang, type AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { AutosNegociosDealershipPreviewPage } from "@/app/clasificados/autos/negocios/preview/dealershipPreview/AutosNegociosDealershipPreviewPage";
 import { AutosNegociosPreviewLocaleProvider } from "@/app/clasificados/autos/negocios/lib/AutosNegociosPreviewLocaleContext";
@@ -100,19 +100,22 @@ export function AutosNegociosChildInventoryPreviewOverlay({
             listingLang={lang}
             listingKey={child.id}
           >
-            {(displayListing, translateControl) => (
-              <>
-                <div
-                  className="mx-auto max-w-[1200px] px-4 sm:px-6"
-                  data-autos-preview-media-count={merged.mediaImages?.length ?? 0}
-                  data-autos-preview-video-count={merged.videoUrls?.length ?? 0}
-                >
-                  {translateControl}
-                  <AutosNegociosResultsCardPreview lang={lang} listing={displayListing} additionalCount={allAdditional.length} />
-                </div>
-                <AutosNegociosDealershipPreviewPage data={displayListing} relatedPreviewOnly />
-              </>
-            )}
+            {(displayListing, translateControl, adDisplayLangRaw) => {
+              const adDisplayLang = normalizeAutosNegociosLang(adDisplayLangRaw);
+              return (
+                <AutosNegociosPreviewLocaleProvider lang={adDisplayLang} manageDocumentTitle={false}>
+                  <div
+                    className="mx-auto max-w-[1200px] px-4 sm:px-6"
+                    data-autos-preview-media-count={merged.mediaImages?.length ?? 0}
+                    data-autos-preview-video-count={merged.videoUrls?.length ?? 0}
+                  >
+                    {translateControl}
+                    <AutosNegociosResultsCardPreview lang={adDisplayLang} listing={displayListing} additionalCount={allAdditional.length} />
+                  </div>
+                  <AutosNegociosDealershipPreviewPage data={displayListing} relatedPreviewOnly />
+                </AutosNegociosPreviewLocaleProvider>
+              );
+            }}
           </AutosListingTranslationLayer>
         </AutosNegociosPreviewLocaleProvider>
       </div>

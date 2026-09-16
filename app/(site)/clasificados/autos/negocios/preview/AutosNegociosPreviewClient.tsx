@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AutosNegociosDealershipPreviewPage } from "./dealershipPreview/AutosNegociosDealershipPreviewPage";
 import { AutosListingTranslationLayer } from "@/app/clasificados/autos/vehiculo/[id]/AutosListingTranslationLayer";
+import { normalizeAutosNegociosLang } from "../lib/autosNegociosLang";
 import { AutoDealerPreviewChrome } from "../components/AutoDealerPreviewChrome";
 import { AutosNegociosPreviewEmptyState } from "../components/AutosNegociosPreviewEmptyState";
 import { loadAutosNegociosCanonicalActiveDraft } from "@/app/lib/clasificados/autos/autosNegociosCanonicalDraftLoad";
@@ -565,11 +566,11 @@ function AutosNegociosPreviewInner({
           listingLang={resolvedListingLang}
           listingKey={canonicalListingId ?? draftTranslationSessionKey}
         >
-          {(displayListing, translateControl) => (
-            <>
+          {(displayListing, translateControl, adDisplayLang) => (
+            <AutosNegociosPreviewLocaleProvider lang={normalizeAutosNegociosLang(adDisplayLang)} manageDocumentTitle={false}>
               {translateControl}
               <AutosNegociosDealershipPreviewPage data={displayListing} editBackHref={editBackHref} />
-            </>
+            </AutosNegociosPreviewLocaleProvider>
           )}
         </AutosListingTranslationLayer>
       </AutosDraftPreviewErrorBoundary>
@@ -608,29 +609,32 @@ function AutosNegociosPreviewInner({
             listingLang={resolvedListingLang ?? lang}
             listingKey={canonicalListingId ?? draftTranslationSessionKey}
           >
-            {(displayListing, translateControl) => (
-              <>
-                <div className={`mx-auto ${autosPreviewPageMaxWidthClass} px-4 md:px-6 lg:px-8`}>
-                  <AutosNegociosResultsCardPreview lang={lang} listing={displayListing} additionalCount={additionalCount} />
-                </div>
-                {translateControl}
-                <AutosNegociosDealershipPreviewPage
-                  data={displayListing}
-                  embeddedInShell
-                  draftPreviewMode
-                  relatedPreviewOnly
-                  heroSpecItems={viewModel.heroSpecItems}
-                />
-                <AutosNegociosPreviewInventorySection
-                  lang={lang}
-                  parentListing={displayListing}
-                  additionalVehicles={additionalInventoryVehicles}
-                  viewModelCards={viewModel.additionalInventory}
-                />
-              </>
-            )}
+            {(displayListing, translateControl, adDisplayLangRaw) => {
+              const adDisplayLang = normalizeAutosNegociosLang(adDisplayLangRaw);
+              return (
+                <AutosNegociosPreviewLocaleProvider lang={adDisplayLang} manageDocumentTitle={false}>
+                  <div className={`mx-auto ${autosPreviewPageMaxWidthClass} px-4 md:px-6 lg:px-8`}>
+                    <AutosNegociosResultsCardPreview lang={adDisplayLang} listing={displayListing} additionalCount={additionalCount} />
+                  </div>
+                  {translateControl}
+                  <AutosNegociosDealershipPreviewPage
+                    data={displayListing}
+                    embeddedInShell
+                    draftPreviewMode
+                    relatedPreviewOnly
+                    heroSpecItems={viewModel.heroSpecItems}
+                  />
+                  <AutosNegociosPreviewInventorySection
+                    lang={adDisplayLang}
+                    parentListing={displayListing}
+                    additionalVehicles={additionalInventoryVehicles}
+                    viewModelCards={viewModel.additionalInventory}
+                  />
+                  <AutosNegociosPreviewPromiseStrip lang={adDisplayLang} />
+                </AutosNegociosPreviewLocaleProvider>
+              );
+            }}
           </AutosListingTranslationLayer>
-          <AutosNegociosPreviewPromiseStrip lang={lang} />
           <div className={`mx-auto ${autosPreviewPageMaxWidthClass} px-4 pb-10 pt-2 md:px-6 lg:px-8`}>
             <PublishCheckoutCheckpoint
               config={checkpointConfig}
