@@ -29,6 +29,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { composeStaffOperatingSystem, staffOperatingSystemHrefs, STAFF_OS_ROUTES } from "../app/admin/_lib/staffOperatingSystem";
+import { buildConciergeInventoryHref } from "../app/admin/_lib/conciergeIntent";
 import { isStaffSalesAllowedAdminPath } from "../app/admin/_lib/staffSalesAllowedAdminPath";
 import { capabilitiesForRole } from "../app/admin/_lib/salesWorkspaceCapabilities";
 import { ADMIN_GUIDE_ENTRIES, searchAdminGuide } from "../app/admin/_lib/adminGuideRegistry";
@@ -70,7 +71,10 @@ assert.ok(ownerHrefs.includes("/admin/team/roster") && ownerHrefs.includes("/adm
 assert.ok(!staffOperatingSystemHrefs(bootstrap).includes(STAFF_OS_ROUTES.manualPayment) && bootstrap.restricted.some((r) => r.key === "manual_payment"), "owner_bootstrap is never offered Manual payment (bootstrap writes are rejected by design)");
 for (const os of [rep, mgr, owner]) {
   const hrefs = staffOperatingSystemHrefs(os);
-  for (const must of [STAFF_OS_ROUTES.createForClient, STAFF_OS_ROUTES.myProfile, STAFF_OS_ROUTES.guide, STAFF_OS_ROUTES.teamHome, STAFF_OS_ROUTES.leonixManaged, STAFF_OS_ROUTES.visitanos]) {
+  // P0 Sales Ad Creation Flow (Gate 2) — Create Ad is now search-first (carries create_listing
+  // intent through the inventory, same pattern as research/creative_studio), so it is checked via
+  // buildConciergeInventoryHref below rather than the bare launcher route.
+  for (const must of [buildConciergeInventoryHref("create_listing"), STAFF_OS_ROUTES.myProfile, STAFF_OS_ROUTES.guide, STAFF_OS_ROUTES.teamHome, STAFF_OS_ROUTES.leonixManaged, STAFF_OS_ROUTES.visitanos]) {
     assert.ok(hrefs.includes(must), `${os.personaLabel} can reach ${must}`);
   }
 }

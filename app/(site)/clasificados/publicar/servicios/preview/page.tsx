@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ClasificadosServiciosPreviewClient } from "./ClasificadosServiciosPreviewClient";
 import { PREVIEW_NOINDEX_METADATA } from "@/app/lib/seo/previewRouteMetadata";
+import { ConciergeReturnBanner } from "@/app/components/business/ConciergeReturnBanner";
 
 export const metadata: Metadata = {
   ...PREVIEW_NOINDEX_METADATA,
@@ -21,8 +22,13 @@ export const metadata: Metadata = {
 
 export default function ClasificadosServiciosPreviewPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#F9F8F6]" aria-busy="true" />}>
-      <ClasificadosServiciosPreviewClient />
-    </Suspense>
+    <>
+      {/* P0 Sales Ad Creation Flow (Gates 5+6) — renders nothing unless a staff Create-for-Client
+          handoff wrote return context for THIS tab; a real customer's own preview is unaffected. */}
+      <ConciergeReturnBanner editHref="/publicar/servicios" />
+      <Suspense fallback={<div className="min-h-screen bg-[#F9F8F6]" aria-busy="true" />}>
+        <ClasificadosServiciosPreviewClient />
+      </Suspense>
+    </>
   );
 }

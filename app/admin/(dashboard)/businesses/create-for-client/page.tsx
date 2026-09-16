@@ -26,12 +26,25 @@ const CLASSIFIED_CATEGORY_KEYS: readonly PublicarGatewayCategoryKey[] = ["rentas
 /** Categories whose existing draft store this build can pre-seed from Business Identity (Gate 07). */
 const PREFILL_SUPPORTED: ReadonlySet<PublicarGatewayCategoryKey> = new Set(["servicios"]);
 
+/**
+ * P0 Sales Ad Creation Flow (Gates 3 + 6) — EVERY category now hands off same-tab when a business
+ * is selected, not just the prefill-supported ones. Two reasons this must be same-tab for all of
+ * them, not only Servicios:
+ *   1. Every category's draft store is sessionStorage/IndexedDB scoped to the CURRENT tab (same
+ *      reasoning HandoffClient's own doc comment already states for Servicios) — a new tab has no
+ *      way to see anything written by this page, so a returning-staff "back to business" link
+ *      could never work from a `target="_blank"` tab.
+ *   2. writeConciergeReturnContext() (called by HandoffClient for every category, prefill or not)
+ *      needs to land in the SAME tab the real application/preview will read it from.
+ * HandoffClient already no-ops prefill for any non-Servicios category ("storage_unavailable") —
+ * this only changes which tab it happens in, never what data is seeded.
+ */
 function categoryHref(key: PublicarGatewayCategoryKey, businessId: string | null, lang: "es" | "en"): { href: string; sameTab: boolean; prefill: boolean } {
-  if (businessId && PREFILL_SUPPORTED.has(key)) {
+  if (businessId) {
     return {
       href: `/admin/businesses/create-for-client/handoff?businessId=${encodeURIComponent(businessId)}&category=${encodeURIComponent(key)}&lang=${lang}`,
       sameTab: true,
-      prefill: true,
+      prefill: PREFILL_SUPPORTED.has(key),
     };
   }
   return { href: resolvePublicarGatewayDestination(key, lang), sameTab: false, prefill: false };

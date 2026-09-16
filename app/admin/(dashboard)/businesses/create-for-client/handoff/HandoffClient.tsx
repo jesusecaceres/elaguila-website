@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import type { BusinessApplicationContext } from "@/app/lib/business/applicationContext/businessApplicationContext";
 import { seedServiciosDraftFromBusinessContext, type ServiciosSeedResult } from "@/app/(site)/clasificados/publicar/servicios/lib/serviciosPrefillFromBusinessContext";
 import { normalizePublicarGatewayDeepLink, resolvePublicarGatewayDestination } from "@/app/(site)/publicar/publicarGatewayResolver";
+import { writeConciergeReturnContext } from "@/app/lib/business/applicationContext/conciergeReturnContext";
 
 type Status = { kind: "working" } | { kind: "seeded"; result: ServiciosSeedResult; dest: string } | { kind: "error"; message: string };
 
@@ -38,6 +39,14 @@ export function HandoffClient() {
       // Only Servicios has a seeder in this build; any other category simply continues into the
       // real application with no prefill (never a fake or partial seed into an unknown store).
       const result: ServiciosSeedResult = category === "servicios" ? seedServiciosDraftFromBusinessContext(data.context) : "storage_unavailable";
+      // P0 Sales Ad Creation Flow (Gate 6) — write the return-context for EVERY category, prefill
+      // or not, so the draft/edit/preview surfaces the real application already offers can show
+      // "who this is for" and get staff back to the business. Never blocks the handoff on failure.
+      writeConciergeReturnContext({
+        businessId,
+        businessName: data.context.publicName || data.context.businessName,
+        category,
+      });
       setStatus({ kind: "seeded", result, dest });
       window.location.assign(dest);
     }

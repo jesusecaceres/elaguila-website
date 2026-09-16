@@ -101,12 +101,17 @@ export function composeStaffOperatingSystem(view: StaffOsActorView): StaffOperat
   const restricted: StaffOsRestricted[] = [];
 
   // ---------------------------------------------------------------- CLIENT WORK
+  // P0 Sales Ad Creation Flow (Gate 2) — SELECT BUSINESS → CREATE AD → CHOOSE CATEGORY →
+  // APPLICATION. Carries the create_listing intent through the inventory (existing mechanism,
+  // conciergeIntent.ts) so tapping a business row lands directly on
+  // create-for-client?businessId=X — WHO is already resolved, no second search step inside the
+  // launcher itself. Reuses the exact same resolver every other Quick Action already uses.
   const clientWork: StaffOsLink[] = [
     {
       key: "create_for_client",
-      href: STAFF_OS_ROUTES.createForClient,
-      label: "Crear anuncio / listado / Create Ad / Listing",
-      hint: "Abre la aplicación real de la categoría por el cliente. / Opens the real category application for the client.",
+      href: buildConciergeInventoryHref("create_listing"),
+      label: "Crear anuncio / Create Ad",
+      hint: "Elige un negocio y abre la aplicación real de la categoría. / Pick a business and open the real category application.",
       primary: true,
     },
   ];

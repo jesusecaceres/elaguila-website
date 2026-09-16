@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { actorHasCapability, isOwnerBootstrapActor, requireSalesWorkspaceAccess, type SalesWorkspaceDenialReason } from "../../../_lib/businessWorkspaceAccess";
+import { resolveConciergeActionDestination } from "../../../_lib/conciergeIntent";
 import { getBusinessWorkspaceDetail } from "../../../_lib/businessWorkspaceData";
 import { fetchBusinessCommercialBenefits } from "../../../_lib/businessCommercialBenefits";
 import { ADMIN_DASHBOARD_ROUTES } from "../../../_lib/adminDashboardRoutes";
@@ -692,8 +693,18 @@ export default async function AdminBusinessDetailPage({
           ) : null}
         </dl>
 
+        {/* P0 Sales Ad Creation Flow (Gate 2) — Create Ad is the FIRST, most prominent hero action:
+            staff must not have to scroll past the journey strip and 15 dashboard sections to
+            start a real ad for a business already selected. Reuses the exact same intent resolver
+            every other Quick Action uses — no new destination, just moved to the top. */}
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-          <a href="#outreach" className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-semibold text-white">
+          <Link
+            href={resolveConciergeActionDestination("create_listing", business.id)}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white shadow-[0_6px_16px_-6px_rgba(122,30,44,0.5)]"
+          >
+            🏷️ Crear anuncio / Create Ad
+          </Link>
+          <a href="#outreach" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
             Agregar nota / Add note
           </a>
           <a href="#outreach" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
