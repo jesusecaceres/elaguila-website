@@ -5,6 +5,7 @@ import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/au
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { AutosNegociosDealershipPreviewPage } from "@/app/clasificados/autos/negocios/preview/dealershipPreview/AutosNegociosDealershipPreviewPage";
 import { AutosNegociosPreviewLocaleProvider } from "@/app/clasificados/autos/negocios/lib/AutosNegociosPreviewLocaleContext";
+import { AutosListingTranslationLayer } from "@/app/clasificados/autos/vehiculo/[id]/AutosListingTranslationLayer";
 import { AutosNegociosPreviewCaptureBanner } from "@/app/clasificados/autos/negocios/components/AutosNegociosPreviewCaptureBanner";
 import { AutosNegociosResultsCardPreview } from "@/app/(site)/publicar/autos/negocios/components/AutosNegociosResultsCardPreview";
 import type { AutosAdditionalInventoryVehicleDraft } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
@@ -87,14 +88,32 @@ export function AutosNegociosChildInventoryPreviewOverlay({
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <AutosNegociosPreviewLocaleProvider lang={lang}>
           <AutosNegociosPreviewCaptureBanner lang={lang} />
-          <div
-            className="mx-auto max-w-[1200px] px-4 sm:px-6"
-            data-autos-preview-media-count={merged.mediaImages?.length ?? 0}
-            data-autos-preview-video-count={merged.videoUrls?.length ?? 0}
+          {/* Child is a real independent ad — same translation layer as the parent's own
+              Preview/public detail, keyed on the child's own stable id (never a literal "draft"
+              shared across every child, and never the parent's key) so its translation state
+              can never leak to a sibling or the parent. `listingLang={lang}`: a child mid-draft
+              has no persisted authored-language row yet — the current session language IS its
+              honest authored language while the dealer is actively typing into it. */}
+          <AutosListingTranslationLayer
+            listing={merged}
+            siteLocale={lang}
+            listingLang={lang}
+            listingKey={child.id}
           >
-            <AutosNegociosResultsCardPreview lang={lang} listing={merged} additionalCount={allAdditional.length} />
-          </div>
-          <AutosNegociosDealershipPreviewPage data={merged} relatedPreviewOnly />
+            {(displayListing, translateControl) => (
+              <>
+                <div
+                  className="mx-auto max-w-[1200px] px-4 sm:px-6"
+                  data-autos-preview-media-count={merged.mediaImages?.length ?? 0}
+                  data-autos-preview-video-count={merged.videoUrls?.length ?? 0}
+                >
+                  {translateControl}
+                  <AutosNegociosResultsCardPreview lang={lang} listing={displayListing} additionalCount={allAdditional.length} />
+                </div>
+                <AutosNegociosDealershipPreviewPage data={displayListing} relatedPreviewOnly />
+              </>
+            )}
+          </AutosListingTranslationLayer>
         </AutosNegociosPreviewLocaleProvider>
       </div>
     </div>

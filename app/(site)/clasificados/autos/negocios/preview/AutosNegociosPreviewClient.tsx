@@ -68,6 +68,7 @@ type CanonicalDealerListingApiResponse = {
   id?: string;
   lane?: string;
   status?: string;
+  lang?: "es" | "en";
   listing?: AutoDealerListing;
   inventory_role?: string | null;
 };
@@ -83,7 +84,7 @@ type CanonicalDealerListingApiResponse = {
 async function fetchCanonicalDealerPreview(
   listingId: string,
 ): Promise<
-  | { ok: true; listing: AutoDealerListing; status: string }
+  | { ok: true; listing: AutoDealerListing; status: string; listingLang: "es" | "en" | null }
   | { ok: false; reason: CanonicalPreviewErrorReason }
 > {
   let token: string | null = null;
@@ -117,7 +118,8 @@ async function fetchCanonicalDealerPreview(
   }
 
   const listing = safeNormalizeAutosDraftListing({ ...json.listing, autosLane: "negocios" }, "negocios");
-  return { ok: true, listing, status: json.status ?? "" };
+  const listingLang = json.lang === "en" || json.lang === "es" ? json.lang : null;
+  return { ok: true, listing, status: json.status ?? "", listingLang };
 }
 
 function autosNegociosCanonicalErrorCopy(reason: CanonicalPreviewErrorReason, lang: "es" | "en"): { title: string; body: string } {
@@ -223,6 +225,11 @@ type PreviewResolveResult = {
    * to checkout so it PATCHes the same row instead of the local-draft cached-id-or-create path. */
   canonicalListingId: string | null;
   canonicalError: CanonicalPreviewErrorReason | null;
+  /** The real persisted `autos_classifieds_listings.lang` (seller's authored language) — set only
+   * when `listing` was hydrated from a real DB row. Null for a purely local, never-saved draft,
+   * which has no authored-language row to read yet (the current session's own site locale IS its
+   * honest authored language in that case — see the isDraftCapture render branch). */
+  listingLang: "es" | "en" | null;
 };
 
 /**
@@ -245,6 +252,7 @@ async function resolvePreviewStateForRoute(urlListingId: string | null): Promise
         additionalInventoryVehicles: [],
         canonicalListingId: null,
         canonicalError: null,
+        listingLang: null,
       };
     }
 
@@ -257,6 +265,7 @@ async function resolvePreviewStateForRoute(urlListingId: string | null): Promise
           additionalInventoryVehicles: [],
           canonicalListingId: urlListingId,
           canonicalError: fetched.reason,
+          listingLang: null,
         };
       }
       return {
@@ -268,6 +277,7 @@ async function resolvePreviewStateForRoute(urlListingId: string | null): Promise
         additionalInventoryVehicles: [],
         canonicalListingId: urlListingId,
         canonicalError: null,
+        listingLang: fetched.listingLang,
       };
     }
 
@@ -280,6 +290,7 @@ async function resolvePreviewStateForRoute(urlListingId: string | null): Promise
         additionalInventoryVehicles: [],
         canonicalListingId: null,
         canonicalError: null,
+        listingLang: null,
       };
     }
 
@@ -289,6 +300,7 @@ async function resolvePreviewStateForRoute(urlListingId: string | null): Promise
       additionalInventoryVehicles: d.additionalInventoryVehicles ?? [],
       canonicalListingId: null,
       canonicalError: null,
+      listingLang: null,
     };
   } catch {
     return {
@@ -297,6 +309,7 @@ async function resolvePreviewStateForRoute(urlListingId: string | null): Promise
       additionalInventoryVehicles: [],
       canonicalListingId: null,
       canonicalError: null,
+      listingLang: null,
     };
   }
 }
@@ -308,6 +321,7 @@ function AutosNegociosPreviewInner({
   additionalInventoryVehicles,
   canonicalListingId,
   canonicalError,
+  resolvedListingLang,
 }: {
   ready: boolean;
   mode: AutosNegociosPreviewMode;
@@ -315,6 +329,9 @@ function AutosNegociosPreviewInner({
   additionalInventoryVehicles: AutosAdditionalInventoryVehicleDraft[];
   canonicalListingId: string | null;
   canonicalError: CanonicalPreviewErrorReason | null;
+  /** Real persisted authored language for a canonical (DB-backed) listing; null for a purely
+   * local, never-saved draft — see PreviewResolveResult.listingLang. */
+  resolvedListingLang: "es" | "en" | null;
 }) {
   const { lang } = useAutosNegociosPreviewCopy();
   const searchParams = useSearchParams();
@@ -545,7 +562,7 @@ function AutosNegociosPreviewInner({
         <AutosListingTranslationLayer
           listing={listing}
           siteLocale={lang}
-          listingLang={null}
+          listingLang={resolvedListingLang}
           listingKey={canonicalListingId ?? draftTranslationSessionKey}
         >
           {(displayListing, translateControl) => (
@@ -585,17 +602,17 @@ function AutosNegociosPreviewInner({
                 : "Dealers, inventory, and contact in one clear experience."}
             </p>
           </div>
-          <div className={`mx-auto ${autosPreviewPageMaxWidthClass} px-4 md:px-6 lg:px-8`}>
-            <AutosNegociosResultsCardPreview lang={lang} listing={listing} additionalCount={additionalCount} />
-          </div>
           <AutosListingTranslationLayer
             listing={listing}
             siteLocale={lang}
-            listingLang={null}
+            listingLang={resolvedListingLang ?? lang}
             listingKey={canonicalListingId ?? draftTranslationSessionKey}
           >
             {(displayListing, translateControl) => (
               <>
+                <div className={`mx-auto ${autosPreviewPageMaxWidthClass} px-4 md:px-6 lg:px-8`}>
+                  <AutosNegociosResultsCardPreview lang={lang} listing={displayListing} additionalCount={additionalCount} />
+                </div>
                 {translateControl}
                 <AutosNegociosDealershipPreviewPage
                   data={displayListing}
@@ -604,15 +621,15 @@ function AutosNegociosPreviewInner({
                   relatedPreviewOnly
                   heroSpecItems={viewModel.heroSpecItems}
                 />
+                <AutosNegociosPreviewInventorySection
+                  lang={lang}
+                  parentListing={displayListing}
+                  additionalVehicles={additionalInventoryVehicles}
+                  viewModelCards={viewModel.additionalInventory}
+                />
               </>
             )}
           </AutosListingTranslationLayer>
-          <AutosNegociosPreviewInventorySection
-            lang={lang}
-            parentListing={listing}
-            additionalVehicles={additionalInventoryVehicles}
-            viewModelCards={viewModel.additionalInventory}
-          />
           <AutosNegociosPreviewPromiseStrip lang={lang} />
           <div className={`mx-auto ${autosPreviewPageMaxWidthClass} px-4 pb-10 pt-2 md:px-6 lg:px-8`}>
             <PublishCheckoutCheckpoint
@@ -649,6 +666,7 @@ export function AutosNegociosPreviewClient() {
   const [additionalInventoryVehicles, setAdditionalInventoryVehicles] = useState<AutosAdditionalInventoryVehicleDraft[]>([]);
   const [resolvedCanonicalListingId, setResolvedCanonicalListingId] = useState<string | null>(null);
   const [canonicalError, setCanonicalError] = useState<CanonicalPreviewErrorReason | null>(null);
+  const [resolvedListingLang, setResolvedListingLang] = useState<"es" | "en" | null>(null);
   const [recoverHint, setRecoverHint] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -660,12 +678,14 @@ export function AutosNegociosPreviewClient() {
       setAdditionalInventoryVehicles(next.additionalInventoryVehicles);
       setResolvedCanonicalListingId(next.canonicalListingId);
       setCanonicalError(next.canonicalError);
+      setResolvedListingLang(next.listingLang);
     } catch {
       setMode("empty");
       setListing(safeNormalizeAutosDraftListing(undefined, "negocios"));
       setAdditionalInventoryVehicles([]);
       setResolvedCanonicalListingId(null);
       setCanonicalError(null);
+      setResolvedListingLang(null);
       if (process.env.NODE_ENV === "development") {
         setRecoverHint("Preview fell back to empty state after an unexpected error");
       }
@@ -720,6 +740,7 @@ export function AutosNegociosPreviewClient() {
         additionalInventoryVehicles={additionalInventoryVehicles}
         canonicalListingId={resolvedCanonicalListingId}
         canonicalError={canonicalError}
+        resolvedListingLang={resolvedListingLang}
       />
     </AutosNegociosPreviewLocaleProvider>
   );

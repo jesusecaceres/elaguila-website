@@ -34,17 +34,26 @@ function decodeCustomEquipment(encoded: string, original: string[] | undefined):
   });
 }
 
-/** Seller prose only — specs, price, VIN, dealer/contact fields stay out. */
+/**
+ * Seller prose only — specs, price, VIN, dealer/contact identity (name/phone/email/URL) stay out.
+ * `serviceLabel`/`highlights` carry the two free-text finance fields (advisor role/title and
+ * finance notes) — both are buyer-visible natural language, inherited by every child from the
+ * parent per Gate 21 (dealer-owned data), so translating them here covers parent AND child.
+ */
 export function buildAutosTranslatableContent(listing: AutoDealerListing): TranslatableAdFields {
   const description = listing.description?.trim();
   const notes = listing.otherEquipmentDetails?.trim();
   const title = isStructuredVehicleTitle(listing) ? undefined : listing.vehicleTitle?.trim();
+  const financeTitle = listing.financeContactTitle?.trim();
+  const financeNotes = listing.financeNotes?.trim();
 
   return {
     title,
     description: description || undefined,
     body: notes && notes !== description ? notes : undefined,
     details: encodeCustomEquipment(listing.customEquipment),
+    serviceLabel: financeTitle || undefined,
+    highlights: financeNotes || undefined,
   };
 }
 
@@ -84,6 +93,12 @@ export function applyAutosTranslation(
       ...next,
       customEquipment: decodeCustomEquipment(translated.details, next.customEquipment),
     };
+  }
+  if (translated.serviceLabel?.trim()) {
+    next = { ...next, financeContactTitle: translated.serviceLabel.trim() };
+  }
+  if (translated.highlights?.trim()) {
+    next = { ...next, financeNotes: translated.highlights.trim() };
   }
 
   return next;

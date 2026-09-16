@@ -63,7 +63,12 @@ export function AutosListingTranslationLayer({
         originalLocale={sourceLocale}
         category="autos"
         listingKey={listingKey}
-        version="autos-t5-v1"
+        // v1 -> v2 (2026-09-16): buildAutosTranslatableContent gained two new fields
+        // (serviceLabel = finance advisor title, highlights = finance notes) — a cached v1
+        // response has no translation for those fields, which would make a freshly-expanded
+        // translation look silently incomplete. Bumping forces a fresh request under the new
+        // wire shape; does not affect any other category's cache.
+        version="autos-t6-v2"
         translatableContent={translatableContent}
         onTranslated={onTranslated}
         onShowOriginal={onShowOriginal}

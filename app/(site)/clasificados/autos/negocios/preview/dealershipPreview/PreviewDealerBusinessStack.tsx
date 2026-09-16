@@ -31,6 +31,7 @@ import { AutosDirectContactLink } from "@/app/clasificados/autos/shared/componen
 import { DealerFinanceContact } from "../../components/DealerFinanceContact";
 import { hasDealerFinanceContact } from "@/app/lib/clasificados/autos/autosDealerFinanceContact";
 import { mapAutosDealerToBusinessHubContact } from "../../lib/mapAutosDealerToBusinessHubContact";
+import { localizeAutosDealerLanguageLabel } from "@/app/lib/clasificados/autos/autosDealerLanguages";
 import {
   AutosBusinessHubSocialBrandIcon,
   autosBusinessHubSocialBrandStyle,
@@ -365,7 +366,7 @@ export function PreviewDealerBusinessStack({
     >
       {premiumHub ? (
         <div className={autosPreviewBusinessHubHeaderClass}>
-          {lang === "es" ? "Business Hub" : "Business Hub"}
+          {lang === "es" ? "Centro de contacto" : "Business Hub"}
         </div>
       ) : null}
       <div className={premiumHub ? "px-4 py-5 sm:px-5 sm:py-6" : ""}>
@@ -763,7 +764,7 @@ export function PreviewDealerBusinessStack({
             <ul className="mt-3 flex flex-wrap gap-2">
               {hub.languages!.map((label) => (
                 <li key={label} className={autosPreviewRectLanguageBadgeClass}>
-                  {label}
+                  {localizeAutosDealerLanguageLabel(label, lang)}
                 </li>
               ))}
             </ul>

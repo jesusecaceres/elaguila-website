@@ -22,6 +22,9 @@ import {
 } from "../app/(site)/clasificados/autos/negocios/lib/autosNegociosCopy";
 import { formatAutosUsd, formatAutosMiles } from "../app/(site)/clasificados/autos/components/public/autosPublicFormatters";
 import { formatUsd, formatMiles } from "../app/(site)/clasificados/autos/negocios/components/autoDealerFormatters";
+import { localizeAutosDealerLanguageLabel } from "../app/lib/clasificados/autos/autosDealerLanguages";
+import { buildAutosTranslatableContent, applyAutosTranslation } from "../app/(site)/clasificados/autos/lib/autosTranslateAd";
+import type { AutoDealerListing } from "../app/(site)/clasificados/autos/negocios/types/autoDealerListing";
 
 const failures: string[] = [];
 function check(name: string, fn: () => void) {
@@ -210,6 +213,111 @@ check("confirmed-dead Autos Dealer files still have zero real consumers repo-wid
     const otherConsumers = hits.filter((h) => !h.endsWith(file) && !(h in deadFiles));
     assert.equal(otherConsumers.length, 0, `${exportName}: expected zero non-dead consumers, found: ${otherConsumers.join(", ")}`);
   }
+});
+
+/* ================================================================================================
+ * ROUND 2 (2026-09-16) — Gate A: child Preview translation wiring.
+ * ============================================================================================ */
+check("child inventory overlay is wrapped in the shared translation layer, keyed on the child's own stable id (never a shared literal, never the parent's key)", () => {
+  const src = raw("app/(site)/publicar/autos/negocios/components/AutosNegociosChildInventoryPreviewOverlay.tsx");
+  assert.ok(src.includes('from "@/app/clasificados/autos/vehiculo/[id]/AutosListingTranslationLayer"'));
+  assert.ok(src.includes("<AutosListingTranslationLayer"));
+  assert.ok(src.includes("listingKey={child.id}"), "must be keyed on the child's own id, not a shared/generic key");
+  assert.ok(!src.includes('listingKey="draft"') && !src.includes("listingKey={\"draft\"}"));
+  assert.ok(src.includes("data={displayListing}"), "the dealership preview page must receive the translated display listing, not the raw merged object");
+});
+
+/* ================================================================================================
+ * Gate B — Preview source-language truth: parent draft/canonical branches no longer hardcode null.
+ * ============================================================================================ */
+check("parent Preview's canonical-active and draft branches use the real resolved/authored language, not a hardcoded null", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  assert.ok(!/listingLang=\{null\}/.test(src), "no remaining hardcoded-null listingLang in the Preview client");
+  assert.ok(src.includes("listingLang={resolvedListingLang}"), "canonical-active branch uses the real persisted lang");
+  assert.ok(src.includes("listingLang={resolvedListingLang ?? lang}"), "draft branch prefers the real persisted lang, honestly falls back to the current session's own authored language");
+  assert.ok(src.includes("lang?: \"es\" | \"en\";") && src.includes("json.lang === \"en\" || json.lang === \"es\""), "the owner-authenticated canonical fetch now reads the row's real lang field");
+});
+
+/* ================================================================================================
+ * Confirmed screenshot-evidence defects (owner's own pass1 walkthrough) — fixed, not assumed.
+ * ============================================================================================ */
+check("the hardcoded English 'Business Hub' section header is gone (was identical in both lang branches — confirmed by 3 independent owner screenshots)", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewDealerBusinessStack.tsx");
+  assert.ok(!/lang === "es" \? "Business Hub" : "Business Hub"/.test(src), "the always-English header bug must be gone");
+  assert.ok(src.includes('"Centro de contacto"'), "Spanish header must be a real Spanish string, not the English term");
+});
+check("the bottom-nav 'Business Hub del concesionario' tab no longer splices an untranslated English term into a Spanish label", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/components/AutosNegociosPreviewPromiseStrip.tsx");
+  assert.ok(!src.includes("Business Hub del concesionario"));
+  assert.ok(src.includes("Centro de contacto del concesionario"));
+});
+check("dealer language chips (Español/English preset) localize to the viewer's site language; custom free-typed entries are preserved exactly", () => {
+  assert.equal(localizeAutosDealerLanguageLabel("Español", "en"), "Spanish");
+  assert.equal(localizeAutosDealerLanguageLabel("English", "es"), "Inglés");
+  assert.equal(localizeAutosDealerLanguageLabel("English", "en"), "English");
+  assert.equal(localizeAutosDealerLanguageLabel("Español", "es"), "Español");
+  // The dealer's own free-typed language entry (even a misspelling like "Portugese") is the
+  // dealer's own authored content — never silently corrected or relabeled.
+  assert.equal(localizeAutosDealerLanguageLabel("Portugese", "es"), "Portugese");
+  assert.equal(localizeAutosDealerLanguageLabel("Portugese", "en"), "Portugese");
+  const src = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewDealerBusinessStack.tsx");
+  assert.ok(src.includes("localizeAutosDealerLanguageLabel(label, lang)"), "the language-chip render site must call the localizer");
+});
+
+/* ================================================================================================
+ * Gate D — finance free-text fields now flow through the same translation pipeline as
+ * title/description/equipment (previously missing entirely).
+ * ============================================================================================ */
+check("finance advisor title and finance notes are included in the translatable content and applied back correctly on translate", () => {
+  const listing = {
+    financeContactTitle: "Gerente de Financiamiento",
+    financeNotes: "Aprobación el mismo día para compradores calificados.",
+  } as unknown as AutoDealerListing;
+  const content = buildAutosTranslatableContent(listing);
+  assert.equal(content.serviceLabel, "Gerente de Financiamiento");
+  assert.equal(content.highlights, "Aprobación el mismo día para compradores calificados.");
+  const translated = applyAutosTranslation(listing, {
+    serviceLabel: "Finance Manager",
+    highlights: "Same-day approval for qualified buyers.",
+  });
+  assert.equal(translated.financeContactTitle, "Finance Manager");
+  assert.equal(translated.financeNotes, "Same-day approval for qualified buyers.");
+  // View Original: the source object itself must never be mutated by apply.
+  assert.equal(listing.financeContactTitle, "Gerente de Financiamiento");
+  assert.equal(listing.financeNotes, "Aprobación el mismo día para compradores calificados.");
+});
+
+/* ================================================================================================
+ * Gate H — coupon/promo/offer analog: traced, confirmed absent (not assumed).
+ * ============================================================================================ */
+check("Autos Dealer has no dedicated promo/offer/incentive field today — N/A classification proven by source, not assumed", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/types/autoDealerListing.ts");
+  assert.ok(!/promoText|offerText|incentiveText|dealerOffer|tradeInOffer/.test(src), "no promo-analog field exists on the listing type");
+});
+
+/* ================================================================================================
+ * Gate J — analytics identity is keyed off the href scheme, never the visible/translated label.
+ * ============================================================================================ */
+check("contact CTA analytics classify strictly by href pattern (tel:/wa.me/mailto:/sms:/maps/http) — never by button label text", () => {
+  const tracking = raw("app/(site)/clasificados/autos/lib/autosCtaTracking.ts");
+  const fnStart = tracking.indexOf("export function trackAutosContactFromHref");
+  const fnBody = tracking.slice(fnStart, tracking.indexOf("\n}", fnStart));
+  assert.ok(fnBody.includes('h.startsWith("tel:")') && fnBody.includes('"phone"'));
+  assert.ok(/wa\\?\.me/.test(fnBody) && fnBody.includes('"whatsapp"'));
+  assert.ok(fnBody.includes('h.startsWith("sms:")') && fnBody.includes('"message"'));
+  assert.ok(fnBody.includes('h.startsWith("mailto:")') && fnBody.includes('"email"'));
+  assert.ok(!/children|label|text/i.test(fnBody), "classification must never reference the button's visible text");
+  const link = raw("app/(site)/clasificados/autos/shared/components/AutosDirectContactLink.tsx");
+  assert.ok(link.includes("trackAutosContactFromHref(trimmed, analyticsMeta)"), "tracking call passes the href, not children/label");
+});
+
+/* ================================================================================================
+ * Gate N — cache/version correctness: payload shape changed (finance fields added), version bumped.
+ * ============================================================================================ */
+check("the Autos Translate Ad cache version was bumped after buildAutosTranslatableContent's payload shape changed", () => {
+  const layer = raw("app/(site)/clasificados/autos/vehiculo/[id]/AutosListingTranslationLayer.tsx");
+  assert.ok(!layer.includes('version="autos-t5-v1"'), "the stale pre-finance-fields version string must be gone");
+  assert.ok(/version="autos-t6-v2"/.test(layer), "version bumped to a new value");
 });
 
 if (failures.length) {
