@@ -174,6 +174,45 @@ check("Servicios base package stays guarded by the active-entitlement gate — e
   assert.ok(route.includes("requiresBaseCheckout("));
 });
 
+/* ── Reservation lifecycle (P0 residual closeout, 2026-09-16) — proven root cause: a promo/
+ * verified-intro reservation created just before the Stripe call survived a synchronous session-
+ * creation failure with nothing releasing it, stranding a real production customer's one-per-
+ * customer promo slot (leonix_promo_code_redemptions row fc98972d, created 3s after the logged
+ * 500 crash it belongs to). Locks that BOTH reservations are released on that failure path,
+ * reusing the existing release functions — no new mechanism, no weakened limit.
+ * ────────────────────────────────────────────────────────────────────────────────────────── */
+check("failed Stripe session creation releases the staff promo reservation (never permanently consumes the per-customer slot)", () => {
+  const route = raw("app/api/revenue-os/checkout/route.ts");
+  const failIdx = route.indexOf("if (!stripeResult.ok) {");
+  assert.ok(failIdx > 0, "the failure branch still exists");
+  const failBlock = route.slice(failIdx, failIdx + 1400);
+  assert.ok(failBlock.includes("if (promoRedemptionId) {"), "promo reservation is checked on the failure path");
+  assert.ok(
+    failBlock.includes("await markPromoRedemptionExpiredOrCancelled({"),
+    "reuses the existing release function — not a new mechanism",
+  );
+  assert.ok(failBlock.includes("{ status: 502 }"), "the caller still gets the same 502 failure response");
+});
+check("failed Stripe session creation releases the verified-intro reservation (never permanently consumes it)", () => {
+  const route = raw("app/api/revenue-os/checkout/route.ts");
+  const failIdx = route.indexOf("if (!stripeResult.ok) {");
+  const failBlock = route.slice(failIdx, failIdx + 1400);
+  assert.ok(failBlock.includes("if (verifiedIntroDiscountRedemptionId) {"), "verified-intro reservation is checked on the failure path");
+  assert.ok(
+    failBlock.includes("await releaseVerifiedIntroDiscountReservation(checkoutAttemptKey)"),
+    "reuses the existing release function — not a new mechanism",
+  );
+});
+check("the release-on-failure block runs before the response is returned, and only on the failure path (never touches a successful checkout)", () => {
+  const route = raw("app/api/revenue-os/checkout/route.ts");
+  const failIdx = route.indexOf("if (!stripeResult.ok) {");
+  const returnIdx = route.indexOf("{ ok: false, code: stripeResult.code, message: stripeResult.message },", failIdx);
+  const releaseIdx = route.indexOf("markPromoRedemptionExpiredOrCancelled", failIdx);
+  assert.ok(failIdx < releaseIdx && releaseIdx < returnIdx, "release happens inside the failure branch, before the 502 response");
+  const successAttachIdx = route.indexOf("await attachStripeSessionToPaymentRecord(");
+  assert.ok(successAttachIdx > returnIdx, "the success path (attaching the real session) is untouched and comes after the failure branch");
+});
+
 if (failures.length) {
   console.error(`\nverify-revenue-os-stripe-golden-contract: ${failures.length} failure(s):\n- ${failures.join("\n- ")}`);
   process.exit(1);

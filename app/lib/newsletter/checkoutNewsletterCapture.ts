@@ -49,6 +49,13 @@ export type CheckoutNewsletterCaptureInput = {
   interests?: string[];
   consentText?: string | null;
   checked: boolean;
+  /**
+   * P0 residual closeout (2026-09-16) — when supplied, the server resolves the canonical account
+   * email from this token itself and ignores `email` entirely (authenticated checkout identity,
+   * never a client-supplied alternate). Omit for callers that don't yet have an authenticated
+   * session at capture time — `email` keeps working exactly as before for those.
+   */
+  accessToken?: string | null;
 };
 
 /**
@@ -85,8 +92,11 @@ export async function captureCheckoutNewsletterSubscriber(
   try {
     if (!input.checked) return { status: "SKIPPED", reason: "unchecked" };
 
+    const accessToken = input.accessToken?.trim() || null;
     const email = normalizeEmail(String(input.email ?? ""));
-    if (!email || !EMAIL_RE.test(email)) {
+    // With an access token, the server resolves the canonical account email itself and never
+    // reads `email` from the body — a client-side email isn't required to attempt the request.
+    if (!accessToken && (!email || !EMAIL_RE.test(email))) {
       // Newsletter Engine v2: previously reported as a fake "ok:true, skipped" success. A missing
       // email here is a real gap (e.g. a session-fetch race) that the caller should know about.
       return { status: "FAILED", reason: "missing_email" };
@@ -98,11 +108,14 @@ export async function captureCheckoutNewsletterSubscriber(
 
     const res = await fetch("/api/newsletter/checkout-capture", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
       // keepalive lets the request survive the checkout redirect/navigation.
       keepalive: true,
       body: JSON.stringify({
-        email,
+        email: email || undefined,
         name: input.name ?? undefined,
         businessName: input.businessName ?? undefined,
         city: input.city ?? undefined,

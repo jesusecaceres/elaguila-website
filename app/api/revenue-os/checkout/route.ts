@@ -45,6 +45,7 @@ import {
 import {
   attachStripeSessionToPromoRedemption,
   createPendingPromoRedemption,
+  markPromoRedemptionExpiredOrCancelled,
   resolvePromoForCheckout,
 } from "@/app/lib/listingPlans/revenuePromoRedemptions";
 import {
@@ -879,6 +880,23 @@ export async function POST(request: NextRequest) {
   });
 
   if (!stripeResult.ok) {
+    // P0 residual closeout (2026-09-16) — proven live: a reservation made just above (promo
+    // and/or verified-intro) survived a synchronous Stripe session-creation failure with nothing
+    // to release it, permanently consuming a per-customer slot before any real payment ever
+    // happened (no stripe_checkout_session_id was ever attached, so the webhook's own expiry path
+    // — the only other release mechanism — has nothing to key off of). Reuses the exact existing
+    // release functions; no new mechanism, no schema change, no weakened limit. Best-effort: a
+    // release failure here must never mask the real Stripe error being returned to the caller.
+    if (promoRedemptionId) {
+      await markPromoRedemptionExpiredOrCancelled({
+        redemptionId: promoRedemptionId,
+        stripeCheckoutSessionId: "",
+        webhookMeta: { reason: "checkout_session_create_failed", stripe_error_code: stripeResult.code },
+      });
+    }
+    if (verifiedIntroDiscountRedemptionId) {
+      await releaseVerifiedIntroDiscountReservation(checkoutAttemptKey);
+    }
     return NextResponse.json(
       { ok: false, code: stripeResult.code, message: stripeResult.message },
       { status: 502 },

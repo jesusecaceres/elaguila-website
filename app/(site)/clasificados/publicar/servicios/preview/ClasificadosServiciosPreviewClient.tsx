@@ -578,12 +578,13 @@ export function ClasificadosServiciosPreviewClient() {
         }
 
         // Best-effort newsletter capture — awaited (never fire-and-forget `void`) so a FAILED
-        // result can be surfaced, but never blocks/gates checkout. Uses the visible/editable
-        // `newsletterEmail` field (not the hidden session email) so the subscriber address the
-        // user saw is the one actually captured.
-        const captureEmail = newsletterEmail.trim() || customerEmail;
+        // result can be surfaced, but never blocks/gates checkout. P0 residual closeout
+        // (2026-09-16) — the email row is now read-only (the authenticated session email); the
+        // access token is what actually authorizes the capture server-side, so the subscriber
+        // address is always the real account, never a client-typed alternate.
         const capturePromise = captureCheckoutNewsletterSubscriber({
-          email: captureEmail,
+          email: customerEmail,
+          accessToken,
           lang,
           preferredLanguage: lang,
           source: CHECKOUT_NEWSLETTER_SOURCES.servicios,
@@ -637,7 +638,7 @@ export function ClasificadosServiciosPreviewClient() {
         setCheckoutBusy(false);
       }
     },
-    [appState, lang, offersAddonSelected, newsletterEmail],
+    [appState, lang, offersAddonSelected],
   );
 
   const backLabel = lang === "en" ? "Back to edit" : "Volver a editar";
@@ -815,7 +816,6 @@ export function ClasificadosServiciosPreviewClient() {
               onPromoApply={handlePromoApply}
               onCheckout={(ctx) => void onCheckout(ctx)}
               newsletterEmail={newsletterEmail}
-              onNewsletterEmailChange={setNewsletterEmail}
               newsletterCaptureNote={newsletterCaptureNote}
               editHref={editHref}
               rulesModal={{

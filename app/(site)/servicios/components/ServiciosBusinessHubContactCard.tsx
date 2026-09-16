@@ -18,16 +18,15 @@ import { getServiciosProfileLabels } from "../copy/serviciosProfileCopy";
 import { nonEmpty } from "../lib/serviciosProfilePrimitives";
 import {
   resolveServiciosQuoteDestination,
-  serviciosEffectiveQuoteMessage,
   type ServiciosQuoteDestinationKind,
 } from "../lib/serviciosContactActions";
 import {
+  buildServiciosSendEmailIntentFromMailto,
   serviciosAnalyticsTrackMeta,
   trackServiciosListingCta,
 } from "../lib/serviciosCtaIntents";
 import {
   serviciosOpenGoogleMapsDirections,
-  serviciosOpenMailtoHref,
   serviciosOpenTelHref,
   serviciosOpenWhatsAppHref,
 } from "../lib/serviciosDirectCta";
@@ -46,7 +45,6 @@ import { ServiciosBusinessHubEngagementRow } from "./ServiciosBusinessHubEngagem
 import { ServiciosBusinessHubMapPanel } from "./ServiciosBusinessHubMapPanel";
 import { ServiciosActionPanelAreasMap } from "./ServiciosActionPanelAreasMap";
 import { ServiciosOfferCard } from "./ServiciosOfferCard";
-import { ContactEmailMenu } from "@/app/components/contact/ContactEmailMenu";
 import { SharedConnectionHubReviewButton } from "@/app/components/contact/connectionHub/renderers/SharedConnectionHubReviewButton";
 import { buildSendEmailIntent, CtaActionSheet } from "@/app/components/cta";
 import type { CtaSheetIntent } from "@/app/components/cta/types";
@@ -235,7 +233,9 @@ export function ServiciosBusinessHubContactCard({
   if (
     !serviciosBusinessHubHasVisibleContent(vm, {
       hasPrimaryQuote: Boolean(showPrimaryQuoteEarly),
-      hasHours: Boolean(hours?.weeklyRows?.length || (hours?.openNowLabel && hours?.todayHoursLine)),
+      hasHours: Boolean(
+        hours?.weeklyRows?.length || (hours?.openNowLabel && hours?.todayHoursLine) || hours?.specialHoursRows?.length,
+      ),
       isFeatured: Boolean(profile.contact.isFeatured),
     })
   ) {
@@ -244,7 +244,6 @@ export function ServiciosBusinessHubContactCard({
 
   const quote = resolveServiciosQuoteDestination(profile, lang);
   // Owner QA 914 — effective action language + bilingual fallback (see serviciosContactActions.ts).
-  const quoteMsgText = serviciosEffectiveQuoteMessage(profile, lang);
   const primaryCtaLabel = resolveProfessionalHubQuoteCtaLabel(
     profile.contact.primaryCtaLabel,
     listingTemplate,
@@ -252,10 +251,6 @@ export function ServiciosBusinessHubContactCard({
     L.requestQuote,
   );
   const primaryMailto = quote?.kind === "mailto" ? quote.href : null;
-  const primaryEmailAddr =
-    profile.contact.email?.trim() ||
-    (profile.contact.emailMailtoHref ? emailFromMailtoHref(profile.contact.emailMailtoHref) : "") ||
-    (primaryMailto ? emailFromMailtoHref(primaryMailto) : "");
   const featured = profile.contact.isFeatured;
   const featuredLabel = profile.contact.featuredLabel?.trim() || L.featured;
 
@@ -272,10 +267,16 @@ export function ServiciosBusinessHubContactCard({
     }
   };
 
-  const openPrimaryMailto = () => {
+  // Gate 5 residual closeout (2026-09-16) — the primary "Correo" quote CTA now opens the same
+  // shared CtaActionSheet the grid email chip (openEmail, above) and Restaurantes/Comida Local
+  // already use, instead of the bespoke ContactEmailMenu dropdown or a bare mailto navigation.
+  // buildServiciosSendEmailIntentFromMailto decodes email/subject/body straight from the quote's
+  // own mailto href, so it degrades gracefully even when primaryEmailAddr didn't resolve cleanly.
+  const openPrimaryMailtoSheet = () => {
     if (!primaryMailto) return;
     trackServiciosListingCta(listingSlug, analyticsForQuoteKind("mailto"), { ...analyticsBase, source: "business_hub" });
-    serviciosOpenMailtoHref(primaryMailto);
+    const intent = buildServiciosSendEmailIntentFromMailto(primaryMailto, lang, listingSlug, listingShareUrl);
+    if (intent) setEmailSheetIntent(intent);
   };
 
   const openCall = () => {
@@ -370,6 +371,7 @@ export function ServiciosBusinessHubContactCard({
     location: lang === "en" ? "Our location" : "Nuestra ubicación",
     hours: lang === "en" ? "Hours" : "Horarios",
     section: lang === "en" ? "Contact & location" : "Contacto y ubicación",
+    specialHours: lang === "en" ? "Special hours / Holidays" : "Horarios especiales / Días festivos",
   };
 
   const callAction = contactActions.find((a) => a.id === "call");
@@ -396,7 +398,7 @@ export function ServiciosBusinessHubContactCard({
   );
 
   const showHours = Boolean(
-    hours?.weeklyRows?.length || (hours?.openNowLabel && nonEmpty(hours.todayHoursLine)),
+    hours?.weeklyRows?.length || (hours?.openNowLabel && nonEmpty(hours.todayHoursLine)) || hours?.specialHoursRows?.length,
   );
 
   const showPrimaryQuote =
@@ -440,29 +442,12 @@ export function ServiciosBusinessHubContactCard({
               </div>
             ) : null}
 
-            {showPrimaryQuote && quote?.kind === "mailto" && primaryMailto && primaryEmailAddr ? (
-              <ContactEmailMenu
-                email={primaryEmailAddr}
-                mailtoHref={primaryMailto}
-                messagePlain={quoteMsgText}
-                lang={lang}
-                listingSlug={listingSlug}
-                listingSourceId={listingSourceId}
-                engagementListingId={engagementListingId}
-                ownerUserId={engagementOwnerUserId}
-                analyticsEventType={analyticsForQuoteKind("mailto")}
-                triggerClassName={`${SCH_CTA_PRIMARY} mb-3 justify-between`}
-                triggerStyle={{ backgroundColor: SCH_LX.burgundy, boxShadow: "0 8px 22px rgba(92, 22, 34, 0.28)" }}
-              >
-                <FiZap className="h-4 w-4 shrink-0" style={{ color: HUB_GOLD }} aria-hidden />
-                {primaryCtaLabel}
-              </ContactEmailMenu>
-            ) : showPrimaryQuote && quote?.kind === "mailto" && primaryMailto ? (
+            {showPrimaryQuote && quote?.kind === "mailto" && primaryMailto ? (
               <button
                 type="button"
                 className={`${SCH_CTA_PRIMARY} mb-3 w-full border-0`}
                 style={{ backgroundColor: SCH_LX.burgundy, boxShadow: "0 8px 22px rgba(92, 22, 34, 0.28)" }}
-                onClick={openPrimaryMailto}
+                onClick={openPrimaryMailtoSheet}
               >
                 <FiZap className="h-4 w-4 shrink-0" style={{ color: HUB_GOLD }} aria-hidden />
                 {primaryCtaLabel}
@@ -602,6 +587,27 @@ export function ServiciosBusinessHubContactCard({
                         </li>
                       ))}
                     </ul>
+                  ) : null}
+                  {/* Gate 6 residual closeout (2026-09-16) — this shell is what the two Preview/
+                      published shells route rendering to whenever a weekly schedule exists
+                      (ServiciosHours itself is only mounted when there's no weekly schedule), so it
+                      is the one place that actually needs to render specialHoursRows for an owner
+                      who has both. Same {label, note} shape and copy key ServiciosHours already
+                      uses. */}
+                  {hours.specialHoursRows && hours.specialHoursRows.length > 0 ? (
+                    <div className="mt-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-[#8A7B68]">
+                        {labels.specialHours}
+                      </p>
+                      <ul className="mt-1.5 space-y-0.5">
+                        {hours.specialHoursRows.map((row, i) => (
+                          <li key={`${row.label}-${i}`} className="flex justify-between gap-2 text-[11px] sm:text-xs">
+                            <span className="min-w-0 shrink font-medium text-[#1E1814]">{row.label}</span>
+                            <span className="shrink-0 text-right tabular-nums text-[#6F6254]">{row.note}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   ) : null}
                 </section>
               ) : null}
