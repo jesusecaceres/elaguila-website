@@ -33,6 +33,9 @@ import { ServiciosAdaptiveLogoPlate } from "@/app/servicios/components/Servicios
 import { ServiciosLikeCountBadge } from "@/app/servicios/components/ServiciosLikeCountBadge";
 import { ServiciosResultCardEngagementStrip } from "@/app/servicios/components/ServiciosResultCardEngagementStrip";
 import { ServiciosServiceChipsRow } from "@/app/servicios/components/ServiciosServiceChipsRow";
+import { useServiciosResultCardTranslation } from "@/app/servicios/components/useServiciosResultCardTranslation";
+import { canonicalBusinessTypeLabel } from "@/app/(site)/servicios/lib/serviciosCanonicalPresetLabels";
+import { isOwnerAuthoredService } from "@/app/(site)/servicios/lib/serviciosTranslateAd";
 import {
   LX,
   LX_COMPACT_CARD_TITLE,
@@ -186,6 +189,41 @@ export function ServiciosHorizontalResultCard({
     if (row) trackServiciosResultCardClick(row);
   }, [row]);
 
+  // Category/chip derivation moved above the early returns below (rules-of-hooks: the translation
+  // hook it feeds must run unconditionally on every render) — safe against a null `profile` via
+  // optional chaining; the professional-template early return renders a different component
+  // entirely, so a wasted computation here is harmless.
+  const rawCategoryLine = (profile?.hero.categoryLine || "").trim();
+  const categoryChip = cleanOtherLabel(rawCategoryLine);
+  // Card-visible-only translation scope (Gate 6): a custom "otro" category line is owner prose;
+  // a catalog preset category line is a re-labelled, already-localized chip, never translated.
+  const customCategoryLine =
+    rawCategoryLine && canonicalBusinessTypeLabel(rawCategoryLine, "es") == null ? categoryChip : undefined;
+
+  const { chips: serviceChipList, ownerAuthoredChips } = useMemo(() => {
+    const out: string[] = [];
+    const owner: string[] = [];
+    const seen = new Set<string>();
+    for (const s of profile?.services ?? []) {
+      const c = cleanProfessionalChipLabel(cleanOtherLabel(s.title));
+      if (!c || isWeakProfessionalChipLabel(c)) continue;
+      const key = c.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(c);
+      if (isOwnerAuthoredService(s)) owner.push(c);
+    }
+    return { chips: out, ownerAuthoredChips: owner };
+  }, [profile]);
+
+  const { translateControl, displayCategoryLine, chipOverrides } = useServiciosResultCardTranslation({
+    categoryLine: customCategoryLine,
+    ownerAuthoredChips,
+    lang,
+    listingKey: ctaAnalyticsListingKey,
+    enabled: true,
+  });
+
   if (!profile) return null;
 
   /** Trade canonical card — preview + results share one stacked layout (no legacy CTA rail). */
@@ -205,24 +243,11 @@ export function ServiciosHorizontalResultCard({
   const locationLine = serviciosTradePresentationLocationLine(profile, row);
   const logoUrl = (profile.hero.logoUrl || "").trim();
   const logoAlt = (profile.hero.logoAlt || "").trim() || profile.identity.businessName;
-  const categoryChip = cleanOtherLabel((profile.hero.categoryLine || "").trim());
   const addressQuery = (profile.contact?.physicalAddressDisplay || "").trim();
   const mapsHref = ((profile.contact?.mapsSearchHref || "").trim() || (addressQuery ? mapsDirectionsHref(addressQuery) : "")).trim();
 
-  const serviceChipList = (() => {
-    const out: string[] = [];
-    const seen = new Set<string>();
-    for (const s of profile.services) {
-      const c = cleanProfessionalChipLabel(cleanOtherLabel(s.title));
-      if (!c || isWeakProfessionalChipLabel(c)) continue;
-      const key = c.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push(c);
-    }
-    return out;
-  })();
-  const displayServiceChips = serviceChipList;
+  const displayCategoryChip = displayCategoryLine ?? categoryChip;
+  const displayServiceChips = serviceChipList.map((c) => chipOverrides.get(c) ?? c);
 
   const vitrinaHref =
     (publicDetailHref || "").trim() || `/clasificados/servicios/${encodeURIComponent(listingSlug)}?lang=${lang}`;
@@ -327,8 +352,8 @@ export function ServiciosHorizontalResultCard({
               {profile.identity.businessName}
             </h2>
 
-            {categoryChip ? (
-              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6F6254] sm:text-[11px]">{categoryChip}</p>
+            {displayCategoryChip ? (
+              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6F6254] sm:text-[11px]">{displayCategoryChip}</p>
             ) : null}
 
             {locationLine ? (
@@ -345,15 +370,6 @@ export function ServiciosHorizontalResultCard({
                   <span className="text-[11px] font-semibold text-[#6F6254]">{L.reviewsSuffix(reviewCount)}</span>
                 ) : null}
               </div>
-            ) : null}
-
-            {endorsementCount > 0 ? (
-              <p className="pt-0.5 text-[11px] font-semibold text-[#7A1E2C]">
-                <span aria-hidden>🦁</span>{" "}
-                {lang === "en"
-                  ? `${endorsementCount} community endorsement${endorsementCount === 1 ? "" : "s"}`
-                  : `${endorsementCount} reconocimiento${endorsementCount === 1 ? "" : "s"} de la comunidad`}
-              </p>
             ) : null}
           </div>
         </div>
@@ -431,6 +447,21 @@ export function ServiciosHorizontalResultCard({
                   ) : null}
                 </>
               ) : null}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2" data-servicios-card-trust-translate="1">
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#E8D7B8] bg-[#FFF9F2] px-2.5 py-1 text-[10px] font-bold text-[#7A1E2C] sm:text-[11px]">
+                🦁 {lang === "en" ? "Leonix Community" : "Comunidad Leonix"}
+                {" · "}
+                {endorsementCount > 0
+                  ? lang === "en"
+                    ? `${endorsementCount} recognition${endorsementCount === 1 ? "" : "s"}`
+                    : `${endorsementCount} reconocimiento${endorsementCount === 1 ? "" : "s"}`
+                  : lang === "en"
+                    ? "New"
+                    : "Nuevo"}
+              </span>
+              {translateControl}
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2">

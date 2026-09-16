@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FiGlobe } from "react-icons/fi";
 
 import type { AdTranslationResult, ContentLocale, Locale } from "@/app/lib/translation/types";
@@ -15,6 +15,8 @@ import {
   unmaskTranslatableFields,
 } from "@/app/lib/translation/helpers";
 import type { TranslatableAdFields } from "@/app/lib/translation/types";
+import { buildDetectionSample, planUnknownSourceTranslation } from "@/app/lib/translation/unknownSourcePolicy";
+import { guessContentLocaleHeuristically } from "@/app/lib/translation/localLanguageGuess";
 
 /**
  * True when every translated field is byte-identical (after trim) to the source it was built
@@ -66,23 +68,45 @@ const DEFAULT_LABELS: Partial<Record<Locale, TranslateAdControlLabels>> = {
 };
 
 /**
- * The source content's language, localized into the viewer's own site locale — e.g. "Spanish" for
- * an English-UI viewer, "inglés" for a Spanish-UI viewer. `Intl.DisplayNames` is the browser's own
- * CLDR language-name database (already correctly cased per locale convention — English capitalizes
- * language names, Spanish doesn't), so this never hand-maintains a translation table and never
- * needs updating as new source locales are added to the catalog. Returns null — never a fabricated
- * or best-guess name — whenever the source locale is genuinely unknown or the lookup fails for any
- * reason (unsupported runtime, unrecognized code).
+ * `Intl.DisplayNames` is the browser's own CLDR language-name database (already correctly cased
+ * per locale convention — English capitalizes language names, Spanish doesn't), so this never
+ * hand-maintains a translation table and never needs updating as new locales are added to the
+ * catalog. Returns null — never a fabricated or best-guess name — whenever the lookup fails for
+ * any reason (unsupported runtime, unrecognized code).
  */
-export function resolveOriginalLanguageName(originalLocale: ContentLocale, siteLocale: Locale): string | null {
-  if (originalLocale === "unknown" || originalLocale === siteLocale) return null;
+function languageDisplayName(locale: ContentLocale, inLocale: Locale): string | null {
+  if (locale === "unknown") return null;
   try {
-    const displayNames = new Intl.DisplayNames([siteLocale], { type: "language" });
-    const name = displayNames.of(originalLocale);
-    return name && name.trim() && name !== originalLocale ? name : null;
+    const displayNames = new Intl.DisplayNames([inLocale], { type: "language" });
+    const name = displayNames.of(locale);
+    return name && name.trim() && name !== locale ? name : null;
   } catch {
     return null;
   }
+}
+
+/**
+ * The source content's language, localized into the viewer's own site locale — e.g. "Spanish" for
+ * an English-UI viewer, "inglés" for a Spanish-UI viewer. Returns null — never a fabricated or
+ * best-guess name — whenever the source locale is genuinely unknown or equals `siteLocale` (would
+ * read as a redundant "(Spanish)" while already on the Spanish site).
+ */
+export function resolveOriginalLanguageName(originalLocale: ContentLocale, siteLocale: Locale): string | null {
+  if (originalLocale === "unknown" || originalLocale === siteLocale) return null;
+  return languageDisplayName(originalLocale, siteLocale);
+}
+
+const TRANSLATE_VERB: Partial<Record<Locale, string>> = {
+  es: "Traducir al",
+  en: "Translate to",
+};
+
+/** "Traducir al inglés" / "Translate to Spanish" — names the ACTUAL destination, not just siteLocale. */
+function buildTranslateToLabel(uiLocale: Locale, targetLocale: Locale): string | null {
+  const verb = TRANSLATE_VERB[uiLocale];
+  if (!verb) return null;
+  const name = languageDisplayName(targetLocale, uiLocale);
+  return name ? `${verb} ${name}` : null;
 }
 
 export type TranslateAdControlProps = {
@@ -120,18 +144,16 @@ export function TranslateAdControl({
   className = "",
   labels: labelsOverride,
 }: TranslateAdControlProps) {
-  const labels = useMemo((): TranslateAdControlLabels => {
-    const base = DEFAULT_LABELS[siteLocale] ?? DEFAULT_LABELS.en ?? DEFAULT_LABELS.es!;
-    const originalName = resolveOriginalLanguageName(originalLocale, siteLocale);
-    const contextual: TranslateAdControlLabels = originalName
-      ? { ...base, showOriginal: `${base.showOriginal} (${originalName})` }
-      : base;
-    return { ...contextual, ...labelsOverride };
-  }, [siteLocale, originalLocale, labelsOverride]);
+  const isUnknownSource = originalLocale === "unknown";
 
   const [viewMode, setViewMode] = useState<ViewMode>("original");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Real, server-proven metadata from the last completed translation (this session), either from
+  // a live click or a prior sessionStorage cache hit for the same cache key — never a network call
+  // by itself. Known-source categories (Autos, etc.) never populate `detectedSourceLocale` /
+  // `effectiveTargetLocale` server-side, so this only changes behavior for unknown-source (Servicios).
+  const [lastKnownResult, setLastKnownResult] = useState<AdTranslationResult | null>(null);
 
   const cacheKey = useMemo(
     () =>
@@ -144,6 +166,57 @@ export function TranslateAdControl({
       }),
     [category, listingKey, originalLocale, siteLocale, version],
   );
+
+  // Pure local sessionStorage read (no network) — deferred to an effect so server/client first
+  // paint match (sessionStorage is client-only); refreshes whenever the request shape changes.
+  useEffect(() => {
+    setLastKnownResult(getCachedAdTranslation(cacheKey));
+  }, [cacheKey]);
+
+  // Best-effort, zero-network PREDICTION of the effective target for unknown-source content,
+  // reusing the SAME locked retargeting policy the server applies (`planUnknownSourceTranslation`)
+  // — never a separately hand-written guess. Only the content-language GUESS feeding it is new;
+  // the server's own real detection remains authoritative at click time and may differ, in which
+  // case the real result (captured below) immediately corrects the label.
+  const predictedEffectiveTargetLocale = useMemo((): Locale => {
+    if (!isUnknownSource) return siteLocale;
+    const sample = buildDetectionSample(pickTranslatableAdFields(translatableContent));
+    const guess = guessContentLocaleHeuristically(sample);
+    return planUnknownSourceTranslation(siteLocale, guess).targetLocale;
+  }, [isUnknownSource, siteLocale, translatableContent]);
+
+  // Known-source categories (Autos, etc.) always translate into siteLocale — unchanged. Unknown-
+  // source (Servicios) prefers REAL data (a completed translation this session, live or cached)
+  // over the heuristic prediction.
+  const effectiveTargetLocale = useMemo((): Locale => {
+    if (!isUnknownSource) return siteLocale;
+    return lastKnownResult?.effectiveTargetLocale ?? lastKnownResult?.targetLocale ?? predictedEffectiveTargetLocale;
+  }, [isUnknownSource, siteLocale, lastKnownResult, predictedEffectiveTargetLocale]);
+
+  // The REAL detected source language once known (never a guess) — falls back to the static prop
+  // (unchanged for known-source categories, where the server never sets `detectedSourceLocale`).
+  const effectiveOriginalLocale = useMemo(
+    (): ContentLocale => lastKnownResult?.detectedSourceLocale ?? originalLocale,
+    [lastKnownResult, originalLocale],
+  );
+
+  const labels = useMemo((): TranslateAdControlLabels => {
+    const base = DEFAULT_LABELS[siteLocale] ?? DEFAULT_LABELS.en ?? DEFAULT_LABELS.es!;
+    const translateAdLabel = buildTranslateToLabel(siteLocale, effectiveTargetLocale) ?? base.translateAd;
+    // Suppressed only when the original equals what's CURRENTLY on screen (redundant otherwise) —
+    // for known-source, effectiveTargetLocale === siteLocale always, so this is byte-identical to
+    // the prior `resolveOriginalLanguageName(originalLocale, siteLocale)` behavior.
+    const originalName =
+      effectiveOriginalLocale === "unknown" || effectiveOriginalLocale === effectiveTargetLocale
+        ? null
+        : languageDisplayName(effectiveOriginalLocale, siteLocale);
+    const contextual: TranslateAdControlLabels = {
+      ...base,
+      translateAd: translateAdLabel,
+      showOriginal: originalName ? `${base.showOriginal} (${originalName})` : base.showOriginal,
+    };
+    return { ...contextual, ...labelsOverride };
+  }, [siteLocale, effectiveTargetLocale, effectiveOriginalLocale, labelsOverride]);
 
   const runTranslate = useCallback(async () => {
     setError(null);
@@ -160,11 +233,13 @@ export function TranslateAdControl({
     if (cached?.translated && cached.targetLocale === siteLocale) {
       if (isNoOpTranslation(picked, cached.translated)) {
         clearCachedAdTranslation(cacheKey);
+        setLastKnownResult(null);
       } else {
         onTranslated({
           ...cached,
           fromCache: true,
         });
+        setLastKnownResult(cached);
         setViewMode("translated");
         return;
       }
@@ -203,6 +278,7 @@ export function TranslateAdControl({
 
       setCachedAdTranslation(cacheKey, result);
       onTranslated(result);
+      setLastKnownResult(result);
       setViewMode("translated");
     } catch {
       setError(labels.error);

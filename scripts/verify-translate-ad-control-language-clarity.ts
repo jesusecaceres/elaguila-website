@@ -81,11 +81,18 @@ check("engine behavior untouched: isNoOpTranslation, view-mode reset, and onShow
 });
 check("no extra translation API call is made just to render the label — resolveOriginalLanguageName is pure/local, never calls requestTranslation", () => {
   const src = raw("app/components/translation/TranslateAdControl.tsx");
+  // Servicios Final UI Truth Closeout (2026-09-16): the CLDR lookup moved into a shared private
+  // `languageDisplayName` helper (both resolveOriginalLanguageName and the new effective-target
+  // label builder call it) — same zero-network guarantee, now written once instead of twice.
   const fnStart = src.indexOf("export function resolveOriginalLanguageName");
   const fnEnd = src.indexOf("\n}\n", fnStart);
   const fnBody = src.slice(fnStart, fnEnd);
   assert.ok(!fnBody.includes("requestTranslation") && !fnBody.includes("fetch("), "label resolution never touches the network/provider");
-  assert.ok(fnBody.includes("Intl.DisplayNames"), "uses the browser's own CLDR database, not a hand-maintained table");
+  const helperStart = src.indexOf("function languageDisplayName");
+  const helperEnd = src.indexOf("\n}\n", helperStart);
+  const helperBody = src.slice(helperStart, helperEnd);
+  assert.ok(!helperBody.includes("requestTranslation") && !helperBody.includes("fetch("), "the shared CLDR helper never touches the network/provider either");
+  assert.ok(helperBody.includes("Intl.DisplayNames"), "uses the browser's own CLDR database, not a hand-maintained table");
 });
 
 /* ── 5/6/9 — accessibility: visible text works without the icon, aria stays truthful ──────── */
