@@ -51,15 +51,22 @@ function StarRow({ rating, lang }: { rating: number; lang: ServiciosLang }) {
   );
 }
 
+/** DOM id of the lower, full Comunidad en Leonix section (ServiciosBusinessHubContactCard) — the
+ * SAME canonical Community Trust interaction surface; never a second voting engine. */
+const SERVICIOS_COMMUNITY_TRUST_SECTION_ID = "servicios-community-trust-section";
+
 /**
- * Servicios Final UI Truth Closeout (2026-09-16) — the Leonix Community Trust signal in the header
- * is now visibly BRANDED ("🦁 Comunidad Leonix" / "🦁 Leonix Community") instead of a bare stat
- * line, per owner design decision: the prior copy read as generic UI text, not a Leonix-owned
- * trust mark. Reuses the exact same `fetchLeonixEndorsementSummary` source the full Community
- * section (lower on the page, unchanged) already uses — real counts only, never a fabricated
- * rating. `null` while loading/unavailable renders nothing (never a misleading placeholder);
- * `listingSourceId` absent means the listing has no durable identity yet (preview/unpublished),
- * its own truthful state, distinct from "zero real endorsements."
+ * Servicios Golden Trust UX (2026-09-16) — the Leonix Community Trust signal in the header is now
+ * a genuine BRANDED MODULE (bordered, backed, "🦁 Comunidad Leonix" / "🦁 Leonix Community" on its
+ * own line above the state) instead of a bare stat line — per owner design decision, the prior
+ * copy read as generic UI text, not a Leonix-owned reputation product. Reuses the exact same
+ * `fetchLeonixEndorsementSummary` source the full Community section (lower on the page, unchanged)
+ * already uses — real counts only, never a fabricated rating. `null` while loading/unavailable
+ * renders nothing (never a misleading placeholder); `listingSourceId` absent means the listing has
+ * no durable identity yet (preview/unpublished), its own truthful state, distinct from "zero real
+ * endorsements." A "Reconocer este negocio" action gives a SECOND, high-in-the-page chance to
+ * engage, scrolling to the existing lower voting section — never a second endorsement engine, no
+ * duplicate RPC/toggle logic here.
  */
 function ServiciosHeroTrustSummary({
   listingSourceId,
@@ -71,6 +78,7 @@ function ServiciosHeroTrustSummary({
   const [summary, setSummary] = useState<LeonixEndorsementSummaryEntry[] | null>(null);
   const targetId = (listingSourceId ?? "").trim();
   const brandLabel = lang === "en" ? "Leonix Community" : "Comunidad Leonix";
+  const recognizeLabel = lang === "en" ? "Recognize this business" : "Reconocer este negocio";
 
   useEffect(() => {
     let cancelled = false;
@@ -85,18 +93,39 @@ function ServiciosHeroTrustSummary({
     };
   }, [targetId]);
 
+  const scrollToCommunitySection = () => {
+    document
+      .getElementById(SERVICIOS_COMMUNITY_TRUST_SECTION_ID)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const recognizeAction = (
+    <button
+      type="button"
+      onClick={scrollToCommunitySection}
+      className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-bold text-[#D9BE7A] underline underline-offset-2 transition hover:text-[#EBD9A6] sm:text-[11px]"
+    >
+      {recognizeLabel}
+      <span aria-hidden>→</span>
+    </button>
+  );
+
+  const moduleShell = (children: React.ReactNode) => (
+    <div className="mt-3 inline-flex w-full flex-col items-center rounded-lg border border-[#C9A84A]/35 bg-white/[0.06] px-3.5 py-2.5 text-center sm:w-auto sm:items-start sm:text-left">
+      {children}
+    </div>
+  );
+
   if (!targetId) {
-    return (
-      <div className="mt-2.5">
-        <p className="text-xs font-bold text-[#FFFCF7] sm:text-sm">
-          🦁 {brandLabel}
-        </p>
+    return moduleShell(
+      <>
+        <p className="text-xs font-bold text-[#FFFCF7] sm:text-sm">🦁 {brandLabel}</p>
         <p className="mt-0.5 text-[11px] text-[#FFFCF7]/70 sm:text-xs">
           {lang === "en"
-            ? "Community endorsements turn on once this listing is published."
-            : "Los reconocimientos se activan al publicarse este anuncio."}
+            ? "Recognitions turn on once this listing is published."
+            : "Los reconocimientos se activan cuando se publique este anuncio."}
         </p>
-      </div>
+      </>,
     );
   }
 
@@ -104,10 +133,14 @@ function ServiciosHeroTrustSummary({
 
   const total = summary.reduce((sum, e) => sum + e.count, 0);
   if (total === 0) {
-    return (
-      <p className="mt-2.5 text-xs font-bold text-[#FFFCF7] sm:text-sm">
-        🦁 {brandLabel} · {lang === "en" ? "New on Leonix" : "Nuevo en Leonix"}
-      </p>
+    return moduleShell(
+      <>
+        <p className="text-xs font-bold text-[#FFFCF7] sm:text-sm">🦁 {brandLabel}</p>
+        <p className="mt-0.5 text-[11px] font-semibold text-[#FFFCF7]/85 sm:text-xs">
+          {lang === "en" ? "New on Leonix" : "Nuevo en Leonix"}
+        </p>
+        {recognizeAction}
+      </>,
     );
   }
 
@@ -116,13 +149,16 @@ function ServiciosHeroTrustSummary({
     .sort((a, b) => b.count - a.count)
     .slice(0, 3);
 
-  return (
-    <div className="mt-2.5">
-      <p className="text-xs font-bold text-[#FFFCF7] sm:text-sm">
-        🦁 {brandLabel} · {lang === "en" ? `${total} recognitions` : `${total} reconocimientos`}
+  return moduleShell(
+    <>
+      <p className="text-xs font-bold text-[#FFFCF7] sm:text-sm">🦁 {brandLabel}</p>
+      <p className="mt-0.5 text-[11px] font-semibold text-[#FFFCF7]/90 sm:text-xs">
+        {lang === "en"
+          ? `${total} recognition${total === 1 ? "" : "s"}`
+          : `${total} reconocimiento${total === 1 ? "" : "s"}`}
       </p>
       {topTraits.length > 0 ? (
-        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-[#FFFCF7]/80 sm:text-[11px]">
+        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-[#FFFCF7]/80 sm:text-[11px]">
           {topTraits.map((t, i) => (
             <span key={t.key}>
               {i > 0 ? <span className="mr-2 text-[#FFFCF7]/40">·</span> : null}
@@ -131,7 +167,8 @@ function ServiciosHeroTrustSummary({
           ))}
         </p>
       ) : null}
-    </div>
+      {recognizeAction}
+    </>,
   );
 }
 
