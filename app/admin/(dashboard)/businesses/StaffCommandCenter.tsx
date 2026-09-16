@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { adminBtnPrimary, adminBtnSecondary } from "../../_components/adminTheme";
+import { ADMIN_DASHBOARD_ROUTES } from "../../_lib/adminDashboardRoutes";
+import { buildConciergeInventoryHref } from "../../_lib/conciergeIntent";
 import { BusinessConciergeInstallBanner } from "./BusinessConciergeInstallBanner";
 import type { StaffConciergeAttentionEntry, StaffConciergeHome } from "../../_lib/staffConciergeHome";
 import { advisorSignalDashboardAnchor } from "@/app/lib/business/advisor/logic";
@@ -219,60 +221,74 @@ export function StaffCommandCenter({
         )}
       </div>
 
+      {/* Assisted Publishing — the Quick Actions are grouped by job and every search-first
+          action carries its intent through ?action= (app/admin/_lib/conciergeIntent.ts), so
+          selecting a business lands staff on that action's real section instead of losing it at
+          the bare #businesses-inventory anchor. Same admin button styles, no new visual system. */}
       <div className="mt-3 rounded-2xl border border-[#E8DFD0] bg-white p-4">
-        <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Acciones rápidas / Quick actions</h2>
+        <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Crear para el cliente / Create for Client</h2>
+        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <Link href="/admin/businesses/create-for-client" className={`${adminBtnPrimary} min-h-[56px] flex-col gap-0.5 py-2`}>
+            <span>Crear anuncio / listado / Create Ad / Listing</span>
+            <span className="text-[10px] font-normal text-white/80">Abre la aplicación real de la categoría por el cliente. / Opens the real category application for the client.</span>
+          </Link>
+          <Link href="/admin/businesses/canvass?intent=business_profile" className={`${adminBtnPrimary} min-h-[56px] flex-col gap-0.5 py-2`}>
+            <span>Crear Perfil de Negocio / Create Business Profile</span>
+            <span className="text-[10px] font-normal text-white/80">Prospecto nuevo. Para uno existente, use Buscar negocio. / New prospect. For an existing one, use Find business.</span>
+          </Link>
+        </div>
+
+        <h2 className="mt-4 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Gestionado por Leonix / Leonix Managed</h2>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Link href="/admin/businesses/managed" className={`${adminBtnSecondary} min-h-[40px] text-xs`}>Todos / All</Link>
+          <Link href="/admin/businesses/managed?filter=draft" className={`${adminBtnSecondary} min-h-[40px] text-xs`}>Borradores / Drafts</Link>
+          <Link href="/admin/businesses/managed?filter=not_eligible" className={`${adminBtnSecondary} min-h-[40px] text-xs`}>Esperando pago / Awaiting payment</Link>
+          <Link href="/admin/businesses/managed?filter=eligible" className={`${adminBtnSecondary} min-h-[40px] text-xs`}>Listo para publicar / Ready to publish</Link>
+          <Link href="/admin/businesses/managed?filter=published" className={`${adminBtnSecondary} min-h-[40px] text-xs`}>Publicado / Published</Link>
+          <Link href="/admin/businesses/managed?filter=claim_pending" className={`${adminBtnSecondary} min-h-[40px] text-xs`}>Reclamo pendiente / Claim pending</Link>
+        </div>
+
+        <h2 className="mt-4 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Atajos comerciales / Commercial shortcuts</h2>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Link href={ADMIN_DASHBOARD_ROUTES.promoCodes} className={`${adminBtnSecondary} min-h-[40px] text-xs`}>Código promo / Promo code</Link>
+          <Link href={ADMIN_DASHBOARD_ROUTES.paymentTracker} className={`${adminBtnSecondary} min-h-[40px] text-xs`}>Rastreador de pagos / Payment tracker</Link>
+          <Link href={`${ADMIN_DASHBOARD_ROUTES.paymentTracker}/manual-payment`} className={`${adminBtnSecondary} min-h-[40px] text-xs`}>Pago manual / Manual payment</Link>
+          <Link href={ADMIN_DASHBOARD_ROUTES.packageEntitlements} className={`${adminBtnSecondary} min-h-[40px] text-xs`}>Paquetes / Package entitlements</Link>
+        </div>
+
+        <h2 className="mt-4 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6B1F]">Relación / Relationship</h2>
         <div className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-          <a href="#businesses-inventory" className={`${adminBtnPrimary} min-h-[44px]`}>
+          <Link href={ADMIN_DASHBOARD_ROUTES.customerOps} className={`${adminBtnSecondary} min-h-[44px] border-[#C9A84A]/70`}>
+            Buscar cliente / Find client
+          </Link>
+          <a href="#businesses-inventory" className={`${adminBtnSecondary} min-h-[44px] border-[#C9A84A]/70`}>
             Buscar negocio / Find business
           </a>
           <Link href="/admin/businesses/canvass" className={`${adminBtnSecondary} min-h-[44px] border-[#C9A84A]/70`}>
             Agregar prospecto / Add prospect
           </Link>
-          <Link href="/admin/businesses/canvass?intent=business_profile" className={`${adminBtnPrimary} min-h-[44px] flex-col gap-0.5 py-2`}>
-            <span>Crear Perfil de Negocio del Cliente / Create Client Business Profile</span>
-            <span className="text-[10px] font-normal text-white/80">Prospecto nuevo. Para uno existente, busque abajo. / New prospect. For an existing one, search below.</span>
+          <Link href="/admin/field" className={`${adminBtnSecondary} min-h-[44px] border-[#C9A84A]/70`}>
+            Agente de Campo / Field Agent
           </Link>
-          <a
-            href="#businesses-inventory"
-            className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2 text-[#7A1E2C]`}
-          >
+          <Link href={buildConciergeInventoryHref("note")} className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2 text-[#7A1E2C]`}>
             <span>Agregar nota / Add note</span>
             <span className="text-[10px] font-normal text-[#7A7164]">Busque y luego agregue una nota. / Search, then add a note.</span>
-          </a>
-          <a
-            href="#businesses-inventory"
-            className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2 text-[#7A1E2C]`}
-          >
+          </Link>
+          <Link href={buildConciergeInventoryHref("follow_up")} className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2 text-[#7A1E2C]`}>
             <span>Crear seguimiento / Create follow-up</span>
             <span className="text-[10px] font-normal text-[#7A7164]">Busque y luego programe. / Search, then schedule.</span>
-          </a>
-          <a
-            href="#businesses-inventory"
-            className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2 text-[#7A1E2C]`}
-          >
+          </Link>
+          <Link href={buildConciergeInventoryHref("meeting")} className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2 text-[#7A1E2C]`}>
             <span>Iniciar reunión / Start meeting</span>
             <span className="text-[10px] font-normal text-[#7A7164]">Busque y luego inicie. / Search, then start.</span>
-          </a>
-          <a
-            href="#businesses-inventory"
-            className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2 text-[#7A1E2C]`}
-          >
+          </Link>
+          <Link href={buildConciergeInventoryHref("research")} className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2 text-[#7A1E2C]`}>
             <span>Investigar / Research</span>
             <span className="text-[10px] font-normal text-[#7A7164]">Busque y luego investigue. / Search, then research.</span>
-          </a>
-          <a
-            href="#businesses-inventory"
-            className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2 text-[#7A1E2C]`}
-          >
+          </Link>
+          <Link href={buildConciergeInventoryHref("creative_studio")} className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2 text-[#7A1E2C]`}>
             <span>Estudio Creativo / Creative Studio</span>
             <span className="text-[10px] font-normal text-[#7A7164]">Busque y luego cree. / Search, then create.</span>
-          </a>
-          <Link
-            href="/admin/field"
-            className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2 text-[#7A1E2C]`}
-          >
-            <span>Agente de Campo / Field Agent</span>
-            <span className="text-[10px] font-normal text-[#7A7164]">Captura rápida en el campo. / Quick capture in the field.</span>
           </Link>
         </div>
       </div>
