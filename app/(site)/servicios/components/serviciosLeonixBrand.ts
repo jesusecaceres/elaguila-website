@@ -126,6 +126,9 @@ export const LX_LINK_ACCENT = "text-sm font-bold text-[#7A1E2C] underline-offset
 /** Discovery / horizontal card CTAs — compact (Gate S3). */
 export const LX_CTA_CARD_PRIMARY = `${LX_CTA_PRIMARY} min-h-[36px] w-full rounded-lg px-3 py-2 text-xs font-bold sm:min-h-[38px] sm:px-3.5 sm:text-sm`;
 
+/** Same primary call CTA, sized to share a row with WhatsApp/Directions (Servicios Golden CTA density, 2026-09-15). */
+export const LX_CTA_CARD_PRIMARY_FLEX = `${LX_CTA_PRIMARY} min-h-[36px] flex-1 min-w-[7rem] rounded-lg px-3 py-2 text-xs font-bold sm:min-h-[38px] sm:px-3.5 sm:text-sm`;
+
 export const LX_CTA_CARD_SECONDARY = `${LX_CTA_SECONDARY} min-h-[34px] flex-1 min-w-[5.5rem] rounded-lg px-2.5 py-1.5 text-xs font-semibold sm:min-h-[36px] sm:min-w-[6.5rem] sm:px-3 sm:text-sm`;
 
 export const LX_CTA_CARD_WHATSAPP = `${LX_CTA_WHATSAPP} min-h-[34px] flex-1 min-w-[5.5rem] rounded-lg px-2.5 py-1.5 text-xs font-semibold sm:min-h-[36px] sm:min-w-[6.5rem] sm:px-3 sm:text-sm`;

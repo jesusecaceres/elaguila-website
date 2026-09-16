@@ -228,6 +228,10 @@ export function StaffCommandCenter({
           <Link href="/admin/businesses/canvass" className={`${adminBtnSecondary} min-h-[44px] border-[#C9A84A]/70`}>
             Agregar prospecto / Add prospect
           </Link>
+          <Link href="/admin/businesses/canvass?intent=business_profile" className={`${adminBtnPrimary} min-h-[44px] flex-col gap-0.5 py-2`}>
+            <span>Crear Perfil de Negocio del Cliente / Create Client Business Profile</span>
+            <span className="text-[10px] font-normal text-white/80">Prospecto nuevo. Para uno existente, busque abajo. / New prospect. For an existing one, search below.</span>
+          </Link>
           <a
             href="#businesses-inventory"
             className={`${adminBtnSecondary} min-h-[44px] flex-col gap-0.5 border-[#C9A84A]/70 py-2 text-[#7A1E2C]`}
