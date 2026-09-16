@@ -37,8 +37,7 @@ import {
   LX,
   LX_COMPACT_CARD_TITLE,
   LX_CTA_CARD_MAP,
-  LX_CTA_CARD_OUTLINE,
-  LX_CTA_CARD_PRIMARY,
+  LX_CTA_CARD_PRIMARY_FLEX,
   LX_CTA_CARD_SECONDARY,
   LX_CTA_CARD_WHATSAPP,
   LX_IVORY_CARD,
@@ -246,6 +245,11 @@ export function ServiciosHorizontalResultCard({
       ? Math.floor(row.public_like_net_count)
       : 0;
 
+  const endorsementCount =
+    row && typeof row.public_endorsement_count === "number" && row.public_endorsement_count > 0
+      ? Math.floor(row.public_endorsement_count)
+      : 0;
+
   const [resolvedShareUrl, setResolvedShareUrl] = useState((listingShareUrl ?? "").trim());
   useEffect(() => {
     const fromProp = (listingShareUrl ?? "").trim();
@@ -342,6 +346,15 @@ export function ServiciosHorizontalResultCard({
                 ) : null}
               </div>
             ) : null}
+
+            {endorsementCount > 0 ? (
+              <p className="pt-0.5 text-[11px] font-semibold text-[#7A1E2C]">
+                <span aria-hidden>🦁</span>{" "}
+                {lang === "en"
+                  ? `${endorsementCount} community endorsement${endorsementCount === 1 ? "" : "s"}`
+                  : `${endorsementCount} reconocimiento${endorsementCount === 1 ? "" : "s"} de la comunidad`}
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -361,19 +374,18 @@ export function ServiciosHorizontalResultCard({
           data-servicios-card-cta-stack="1"
         >
           <div className="flex flex-col gap-2">
-            {primaryCall ? (
-              <button
-                type="button"
-                className={LX_CTA_CARD_PRIMARY}
-                style={{ backgroundColor: LX.burgundy, boxShadow: "0 4px 12px rgba(92, 22, 34, 0.2)" }}
-                onClick={() => openContactKey(primaryCall.key, primaryCall.href)}
-              >
-                <FiPhone className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                {primaryCall.label}
-              </button>
-            ) : null}
-
             <div className="flex flex-wrap gap-2">
+              {primaryCall ? (
+                <button
+                  type="button"
+                  className={LX_CTA_CARD_PRIMARY_FLEX}
+                  style={{ backgroundColor: LX.burgundy, boxShadow: "0 4px 12px rgba(92, 22, 34, 0.2)" }}
+                  onClick={() => openContactKey(primaryCall.key, primaryCall.href)}
+                >
+                  <FiPhone className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  {primaryCall.label}
+                </button>
+              ) : null}
               {wa ? (
                 <button
                   type="button"
@@ -421,28 +433,30 @@ export function ServiciosHorizontalResultCard({
               ) : null}
             </div>
 
-            <Link
-              href={vitrinaHref}
-              onClick={() => {
-                if (row) trackServiciosResultCardClick(row);
-              }}
-              className={LX_CTA_CARD_OUTLINE}
-            >
-              {vitrinaLabel}
-            </Link>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Link
+                href={vitrinaHref}
+                onClick={() => {
+                  if (row) trackServiciosResultCardClick(row);
+                }}
+                className={LX_CTA_CARD_SECONDARY}
+              >
+                {vitrinaLabel}
+              </Link>
 
-            <ServiciosResultCardEngagementStrip
-              listingId={ctaAnalyticsListingKey}
-              ownerUserId={row?.owner_user_id ?? null}
-              listingTitle={profile.identity.businessName}
-              listingShareUrl={resolvedShareUrl || undefined}
-              listingSlug={listingSlug}
-              listingSourceId={row?.id ?? null}
-              lang={lang}
-              publicLikeCount={likeBadgeCount}
-              showEngagementControls={showEngagementControls}
-              persistListingEngagement={persistListingEngagement}
-            />
+              <ServiciosResultCardEngagementStrip
+                listingId={ctaAnalyticsListingKey}
+                ownerUserId={row?.owner_user_id ?? null}
+                listingTitle={profile.identity.businessName}
+                listingShareUrl={resolvedShareUrl || undefined}
+                listingSlug={listingSlug}
+                listingSourceId={row?.id ?? null}
+                lang={lang}
+                publicLikeCount={likeBadgeCount}
+                showEngagementControls={showEngagementControls}
+                persistListingEngagement={persistListingEngagement}
+              />
+            </div>
 
             {discoveryRefineHref?.trim() && discoveryRefineLabel?.trim() ? (
               <Link

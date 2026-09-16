@@ -26,20 +26,47 @@ export type LeonixEndorsementSummaryEntry = {
   userVoted: boolean;
 };
 
+type LeonixEndorsementSummaryResult = { ok: true; summary: LeonixEndorsementSummaryEntry[] } | { ok: false };
+
+/**
+ * Servicios Golden UI Closeout (2026-09-16) — a published listing now shows a Community Trust
+ * summary in two places on the same page render (the profile header's compact row and the full
+ * section further down), both requesting the exact same `(category, targetId)` pair moments
+ * apart. Rather than lifting state or duplicating the fetch, in-flight requests for the same key
+ * are shared here — the safest, most contained way to satisfy "no duplicate fetch" without
+ * changing this function's signature or any existing caller's behavior for a single request.
+ * Cleared as soon as the shared request settles, so a later, genuinely new request (e.g. after a
+ * vote toggle) is never served a stale result.
+ */
+const inFlightSummaryRequests = new Map<string, Promise<LeonixEndorsementSummaryResult>>();
+
 export async function fetchLeonixEndorsementSummary(
   category: LeonixEndorsementCategory,
   targetId: string,
-): Promise<{ ok: true; summary: LeonixEndorsementSummaryEntry[] } | { ok: false }> {
+): Promise<LeonixEndorsementSummaryResult> {
+  const key = `${category}:${targetId}`;
+  const existing = inFlightSummaryRequests.get(key);
+  if (existing) return existing;
+
+  const request = (async (): Promise<LeonixEndorsementSummaryResult> => {
+    try {
+      const token = await bearerToken();
+      const res = await fetch(`/api/leonix-endorsements?category=${encodeURIComponent(category)}&targetId=${encodeURIComponent(targetId)}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const json = (await res.json().catch(() => ({}))) as { ok?: boolean; summary?: LeonixEndorsementSummaryEntry[] };
+      if (!res.ok || !json.ok || !json.summary) return { ok: false };
+      return { ok: true, summary: json.summary };
+    } catch {
+      return { ok: false };
+    }
+  })();
+
+  inFlightSummaryRequests.set(key, request);
   try {
-    const token = await bearerToken();
-    const res = await fetch(`/api/leonix-endorsements?category=${encodeURIComponent(category)}&targetId=${encodeURIComponent(targetId)}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    const json = (await res.json().catch(() => ({}))) as { ok?: boolean; summary?: LeonixEndorsementSummaryEntry[] };
-    if (!res.ok || !json.ok || !json.summary) return { ok: false };
-    return { ok: true, summary: json.summary };
-  } catch {
-    return { ok: false };
+    return await request;
+  } finally {
+    inFlightSummaryRequests.delete(key);
   }
 }
 

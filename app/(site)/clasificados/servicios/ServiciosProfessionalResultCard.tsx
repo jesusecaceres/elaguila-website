@@ -41,6 +41,8 @@ import {
   LX_CTA_CARD_MAP,
   LX_CTA_CARD_OUTLINE,
   LX_CTA_CARD_PRIMARY,
+  LX_CTA_CARD_PRIMARY_FLEX,
+  LX_CTA_CARD_SECONDARY,
   LX_CTA_CARD_WHATSAPP,
   LX_IVORY_CARD,
   collectHeroTrustChips,
@@ -147,6 +149,11 @@ export function ServiciosProfessionalResultCard({
   const likeBadgeCount =
     typeof row.public_like_net_count === "number" && row.public_like_net_count > 0
       ? Math.floor(row.public_like_net_count)
+      : 0;
+
+  const endorsementCount =
+    typeof row.public_endorsement_count === "number" && row.public_endorsement_count > 0
+      ? Math.floor(row.public_endorsement_count)
       : 0;
 
   const [listingShareUrl, setListingShareUrl] = useState("");
@@ -267,6 +274,15 @@ export function ServiciosProfessionalResultCard({
                 ) : null}
               </div>
             ) : null}
+
+            {!isCompact && endorsementCount > 0 ? (
+              <p className="pt-0.5 text-[11px] font-semibold text-[#7A1E2C]">
+                <span aria-hidden>🦁</span>{" "}
+                {lang === "en"
+                  ? `${endorsementCount} community endorsement${endorsementCount === 1 ? "" : "s"}`
+                  : `${endorsementCount} reconocimiento${endorsementCount === 1 ? "" : "s"} de la comunidad`}
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -284,57 +300,114 @@ export function ServiciosProfessionalResultCard({
         <div
           className={`${SERVICIOS_RESULT_CARD_INTERACTIVE} ${isCompact ? "border-t border-[#E8D9C4]/80 px-2.5 py-2 sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:flex sm:items-center sm:border-l sm:border-t-0 sm:px-3" : "border-t border-[#E8D9C4]/80 px-4 py-3 sm:px-5 sm:py-4"}`}
         >
-          <div className={isCompact ? "flex flex-wrap gap-2 sm:w-[9.25rem] sm:flex-col sm:items-stretch sm:justify-center sm:gap-1.5" : "flex flex-col gap-2"}>
-            {tel ? (
-              <button
-                type="button"
-                onClick={onCallClick}
-                className={`${LX_CTA_CARD_PRIMARY} ${isCompact ? "sm:!min-h-[30px] sm:!w-full sm:flex-none sm:!px-2 sm:!py-1.5 sm:!text-[11px]" : ""}`.trim()}
-                style={{ backgroundColor: LX.burgundy, boxShadow: "0 4px 12px rgba(92, 22, 34, 0.2)" }}
-              >
-                <FiPhone className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                {primaryLabel}
-              </button>
-            ) : null}
-            <div className={isCompact ? "flex flex-wrap gap-2 sm:flex-col sm:gap-1.5" : "flex flex-wrap gap-2"}>
-              {waHrefNormalized ? (
+          {isCompact ? (
+            <div className="flex flex-wrap gap-2 sm:w-[9.25rem] sm:flex-col sm:items-stretch sm:justify-center sm:gap-1.5">
+              {tel ? (
                 <button
                   type="button"
-                  onClick={onWhatsAppClick}
-                  className={`${LX_CTA_CARD_WHATSAPP} ${isCompact ? "sm:!min-h-[30px] sm:!w-full sm:flex-none sm:!px-2 sm:!py-1.5 sm:!text-[11px]" : ""}`.trim()}
-                  style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
+                  onClick={onCallClick}
+                  className={`${LX_CTA_CARD_PRIMARY} sm:!min-h-[30px] sm:!w-full sm:flex-none sm:!px-2 sm:!py-1.5 sm:!text-[11px]`}
+                  style={{ backgroundColor: LX.burgundy, boxShadow: "0 4px 12px rgba(92, 22, 34, 0.2)" }}
                 >
-                  <FaWhatsapp className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                  WhatsApp
+                  <FiPhone className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  {primaryLabel}
                 </button>
               ) : null}
-              {showDirections ? (
-                <button type="button" onClick={onDirectionsClick} className={`${LX_CTA_CARD_MAP} ${isCompact ? "sm:!min-h-[30px] sm:!w-full sm:flex-none sm:!px-2 sm:!py-1.5 sm:!text-[11px]" : ""}`.trim()}>
-                  <FiMapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                  {lang === "en" ? "Directions" : "Cómo llegar"}
-                </button>
-              ) : null}
+              <div className="flex flex-wrap gap-2 sm:flex-col sm:gap-1.5">
+                {waHrefNormalized ? (
+                  <button
+                    type="button"
+                    onClick={onWhatsAppClick}
+                    className={`${LX_CTA_CARD_WHATSAPP} sm:!min-h-[30px] sm:!w-full sm:flex-none sm:!px-2 sm:!py-1.5 sm:!text-[11px]`}
+                    style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
+                  >
+                    <FaWhatsapp className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    WhatsApp
+                  </button>
+                ) : null}
+                {showDirections ? (
+                  <button type="button" onClick={onDirectionsClick} className={`${LX_CTA_CARD_MAP} sm:!min-h-[30px] sm:!w-full sm:flex-none sm:!px-2 sm:!py-1.5 sm:!text-[11px]`}>
+                    <FiMapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {lang === "en" ? "Directions" : "Cómo llegar"}
+                  </button>
+                ) : null}
+              </div>
+              <Link
+                href={href}
+                onClick={() => trackServiciosResultCardClick(row)}
+                className={`${LX_CTA_CARD_OUTLINE} sm:!min-h-[30px] sm:!w-full sm:flex-none sm:!px-2 sm:!py-1.5 sm:!text-[11px]`}
+              >
+                {secondaryLabel}
+              </Link>
+              <ServiciosResultCardEngagementStrip
+                listingId={ctaAnalyticsKey}
+                ownerUserId={row.owner_user_id ?? null}
+                listingTitle={profile.identity.businessName}
+                listingShareUrl={persistListingEngagement ? listingShareUrl || undefined : undefined}
+                listingSlug={row.slug}
+                listingSourceId={row.id ?? null}
+                lang={lang}
+                publicLikeCount={likeBadgeCount}
+                showEngagementControls={showEngagementControls}
+                persistListingEngagement={persistListingEngagement}
+              />
             </div>
-            <Link
-              href={href}
-              onClick={() => trackServiciosResultCardClick(row)}
-              className={`${LX_CTA_CARD_OUTLINE} ${isCompact ? "sm:!min-h-[30px] sm:!w-full sm:flex-none sm:!px-2 sm:!py-1.5 sm:!text-[11px]" : ""}`.trim()}
-            >
-              {secondaryLabel}
-            </Link>
-            <ServiciosResultCardEngagementStrip
-              listingId={ctaAnalyticsKey}
-              ownerUserId={row.owner_user_id ?? null}
-              listingTitle={profile.identity.businessName}
-              listingShareUrl={persistListingEngagement ? listingShareUrl || undefined : undefined}
-              listingSlug={row.slug}
-              listingSourceId={row.id ?? null}
-              lang={lang}
-              publicLikeCount={likeBadgeCount}
-              showEngagementControls={showEngagementControls}
-              persistListingEngagement={persistListingEngagement}
-            />
-          </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap gap-2">
+                {tel ? (
+                  <button
+                    type="button"
+                    onClick={onCallClick}
+                    className={LX_CTA_CARD_PRIMARY_FLEX}
+                    style={{ backgroundColor: LX.burgundy, boxShadow: "0 4px 12px rgba(92, 22, 34, 0.2)" }}
+                  >
+                    <FiPhone className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {primaryLabel}
+                  </button>
+                ) : null}
+                {waHrefNormalized ? (
+                  <button
+                    type="button"
+                    onClick={onWhatsAppClick}
+                    className={LX_CTA_CARD_WHATSAPP}
+                    style={{ backgroundColor: LX.whatsApp, boxShadow: LX.whatsAppShadow }}
+                  >
+                    <FaWhatsapp className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    WhatsApp
+                  </button>
+                ) : null}
+                {showDirections ? (
+                  <button type="button" onClick={onDirectionsClick} className={LX_CTA_CARD_MAP}>
+                    <FiMapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {lang === "en" ? "Directions" : "Cómo llegar"}
+                  </button>
+                ) : null}
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Link
+                  href={href}
+                  onClick={() => trackServiciosResultCardClick(row)}
+                  className={LX_CTA_CARD_SECONDARY}
+                >
+                  {secondaryLabel}
+                </Link>
+                <ServiciosResultCardEngagementStrip
+                  listingId={ctaAnalyticsKey}
+                  ownerUserId={row.owner_user_id ?? null}
+                  listingTitle={profile.identity.businessName}
+                  listingShareUrl={persistListingEngagement ? listingShareUrl || undefined : undefined}
+                  listingSlug={row.slug}
+                  listingSourceId={row.id ?? null}
+                  lang={lang}
+                  publicLikeCount={likeBadgeCount}
+                  showEngagementControls={showEngagementControls}
+                  persistListingEngagement={persistListingEngagement}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </article>
     </>
