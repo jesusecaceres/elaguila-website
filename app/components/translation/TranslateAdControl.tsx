@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { FiGlobe } from "react-icons/fi";
 
 import type { AdTranslationResult, ContentLocale, Locale } from "@/app/lib/translation/types";
 import type { TranslateAdProviderFn } from "@/app/lib/translation/provider";
@@ -34,22 +35,55 @@ export type TranslateAdControlLabels = {
   unavailable: string;
 };
 
+/**
+ * Global translate-control label repair (2026-09-16) — owner-found defect: "Traducir anuncio" /
+ * "Ver original" name neither the destination nor the source language, so a viewer who cannot
+ * read the source language has no way to discover what the control actually does. The control's
+ * whole purpose is to help exactly that viewer.
+ *
+ * Doctrine: SOURCE CONTENT LANGUAGE and VIEWER UI LANGUAGE are separate. The action always
+ * translates INTO `siteLocale` (never the reverse), so the "Translate" label can always safely
+ * name the destination language — it's simply the site's own current locale, no lookup needed.
+ * "View original" additionally names the actual source language when it's known
+ * (`originalLocale !== "unknown"`), resolved via resolveOriginalLanguageName below — never
+ * fabricated when unknown.
+ */
 const DEFAULT_LABELS: Partial<Record<Locale, TranslateAdControlLabels>> = {
   es: {
-    translateAd: "Traducir anuncio",
+    translateAd: "Traducir al español",
     showOriginal: "Ver original",
     translating: "Traduciendo…",
     error: "Traducción no disponible. Inténtalo de nuevo.",
     unavailable: "Traducción no disponible.",
   },
   en: {
-    translateAd: "Translate ad",
-    showOriginal: "Show original",
+    translateAd: "Translate to English",
+    showOriginal: "View original",
     translating: "Translating…",
     error: "Translation unavailable. Try again.",
     unavailable: "Translation unavailable.",
   },
 };
+
+/**
+ * The source content's language, localized into the viewer's own site locale — e.g. "Spanish" for
+ * an English-UI viewer, "inglés" for a Spanish-UI viewer. `Intl.DisplayNames` is the browser's own
+ * CLDR language-name database (already correctly cased per locale convention — English capitalizes
+ * language names, Spanish doesn't), so this never hand-maintains a translation table and never
+ * needs updating as new source locales are added to the catalog. Returns null — never a fabricated
+ * or best-guess name — whenever the source locale is genuinely unknown or the lookup fails for any
+ * reason (unsupported runtime, unrecognized code).
+ */
+export function resolveOriginalLanguageName(originalLocale: ContentLocale, siteLocale: Locale): string | null {
+  if (originalLocale === "unknown" || originalLocale === siteLocale) return null;
+  try {
+    const displayNames = new Intl.DisplayNames([siteLocale], { type: "language" });
+    const name = displayNames.of(originalLocale);
+    return name && name.trim() && name !== originalLocale ? name : null;
+  } catch {
+    return null;
+  }
+}
 
 export type TranslateAdControlProps = {
   siteLocale: Locale;
@@ -88,8 +122,12 @@ export function TranslateAdControl({
 }: TranslateAdControlProps) {
   const labels = useMemo((): TranslateAdControlLabels => {
     const base = DEFAULT_LABELS[siteLocale] ?? DEFAULT_LABELS.en ?? DEFAULT_LABELS.es!;
-    return { ...base, ...labelsOverride };
-  }, [siteLocale, labelsOverride]);
+    const originalName = resolveOriginalLanguageName(originalLocale, siteLocale);
+    const contextual: TranslateAdControlLabels = originalName
+      ? { ...base, showOriginal: `${base.showOriginal} (${originalName})` }
+      : base;
+    return { ...contextual, ...labelsOverride };
+  }, [siteLocale, originalLocale, labelsOverride]);
 
   const [viewMode, setViewMode] = useState<ViewMode>("original");
   const [busy, setBusy] = useState(false);
@@ -212,12 +250,13 @@ export function TranslateAdControl({
         disabled={disabled || busy}
         aria-busy={ariaBusy}
         className={`
-          inline-flex w-fit max-w-full items-center justify-center rounded-full px-4 py-2 text-sm font-medium
+          inline-flex w-fit max-w-full items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium
           bg-white text-[#1A1A1A] border border-[#D4A574]
           hover:bg-[#FFFAF0] transition-all duration-200
           disabled:opacity-60 disabled:cursor-not-allowed
         `}
       >
+        <FiGlobe className="h-4 w-4 shrink-0" aria-hidden />
         {primaryLabel}
       </button>
       {error ? (
