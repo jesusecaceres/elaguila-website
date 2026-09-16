@@ -162,7 +162,10 @@ export function AutosLiveVehicleClient({
         >
           {(displayListing, translateControl, adDisplayLang) => (
             <AutosPrivadoPreviewLocaleProvider lang={normalizeAutosNegociosLang(adDisplayLang)} manageDocumentTitle={false}>
-              {translateControl}
+              {/* translateControl renders as the first content on this page (no chrome
+                  precedes it) — the global Navbar is `fixed`, so without this clearance the
+                  control sits underneath it, invisible and unclickable. */}
+              {translateControl ? <div className="pt-20">{translateControl}</div> : null}
               <AutoPrivadoPreviewPage
                 data={displayListing}
                 editBackHref={undefined}
@@ -202,7 +205,10 @@ export function AutosLiveVehicleClient({
       >
         {(displayListing, translateControl, adDisplayLang) => (
           <AutosNegociosPreviewLocaleProvider lang={normalizeAutosNegociosLang(adDisplayLang)} manageDocumentTitle={false}>
-            {translateControl}
+            {/* translateControl renders as the first content on this page (no chrome precedes
+                it) — the global Navbar is `fixed`, so without this clearance the control sits
+                underneath it, invisible and unclickable. */}
+            {translateControl ? <div className="pt-20">{translateControl}</div> : null}
             <AutosNegociosDealershipPreviewPage
               data={displayListing}
               editBackHref={undefined}

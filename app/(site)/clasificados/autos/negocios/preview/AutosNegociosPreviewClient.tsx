@@ -568,7 +568,10 @@ function AutosNegociosPreviewInner({
         >
           {(displayListing, translateControl, adDisplayLang) => (
             <AutosNegociosPreviewLocaleProvider lang={normalizeAutosNegociosLang(adDisplayLang)} manageDocumentTitle={false}>
-              {translateControl}
+              {/* translateControl renders as the first content in this branch (no chrome
+                  precedes it) — the global Navbar is `fixed`, so without this clearance the
+                  control sits underneath it, invisible and unclickable. */}
+              {translateControl ? <div className="pt-20">{translateControl}</div> : null}
               <AutosNegociosDealershipPreviewPage data={displayListing} editBackHref={editBackHref} />
             </AutosNegociosPreviewLocaleProvider>
           )}

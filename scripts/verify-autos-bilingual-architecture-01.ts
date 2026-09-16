@@ -635,6 +635,23 @@ check("the lane cross-nav card's fallback lane label reuses the single canonical
   assert.ok(src.includes("getAutosPlanDisplayCopy(\n                  props.lang,"), "must reuse the canonical getAutosPlanDisplayCopy lookup");
 });
 
+/* --- Live smoke finding (2026-09-16): the translate control rendered as the very first content
+ * on 3 render-prop branches with no chrome above it — since the global Navbar is `position:
+ * fixed`, the control sat entirely underneath it (confirmed via getBoundingClientRect in a real
+ * production smoke test: nav bottom=57px, control top=0/bottom=50px, fully hidden and
+ * unclickable). Fixed by wrapping just those 3 broken renders in a `pt-20` clearance div — the
+ * two branches that already have real chrome above translateControl (draft-capture Preview,
+ * child inventory overlay's own modal header) are untouched, since they were never broken. ---- */
+check("the 3 render-prop branches where translateControl is the first content each give it pt-20 clearance from the fixed global Navbar", () => {
+  const liveClient = raw("app/(site)/clasificados/autos/vehiculo/[id]/AutosLiveVehicleClient.tsx");
+  const previewClient = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  const navbar = raw("app/components/Navbar.tsx");
+  assert.ok(navbar.includes('className="fixed top-0 left-0 z-50 w-full overflow-visible"'), "sanity: the global Navbar really is fixed/out-of-flow, so first-content clearance is a real requirement");
+  const occurrences = (liveClient.match(/\{translateControl \? <div className="pt-20">\{translateControl\}<\/div> : null\}/g) ?? []).length;
+  assert.equal(occurrences, 2, "both live-vehicle branches (negocios + privado) must wrap translateControl with clearance");
+  assert.ok(previewClient.includes('{translateControl ? <div className="pt-20">{translateControl}</div> : null}'), "the Preview canonical-active branch must wrap translateControl with clearance");
+});
+
 /* --- Gate 10: accessibility — ad-local aria-labels ride the same shared-context lang as visible text --- */
 check("the gallery's open/close/media aria-labels are driven by the same lang variable as visible copy (not a hardcoded literal), so they follow adDisplayLang wherever the gallery is nested", () => {
   for (const file of [
