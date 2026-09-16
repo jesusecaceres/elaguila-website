@@ -76,6 +76,36 @@ function decodeSpecialHours(encoded: string, original: DealerSpecialHoursRow[] |
 }
 
 /**
+ * `dealerAddress` is one free-typed field mixing structured identity (street/city/state/zip)
+ * with an optional trailing human note the dealer appended themselves (e.g. "— showroom con 18
+ * plazas de estacionamiento para clientes."), separated by " — ". Only that note is buyer-facing
+ * prose; the address prefix is identity data and must never reach a translation provider. No
+ * separator present → nothing to translate (a plain address has no note).
+ */
+const DEALER_ADDRESS_NOTE_SEP = " — ";
+
+function encodeDealerAddressNote(dealerAddress: string | undefined): string | undefined {
+  const addr = dealerAddress?.trim();
+  if (!addr) return undefined;
+  const idx = addr.indexOf(DEALER_ADDRESS_NOTE_SEP);
+  if (idx < 0) return undefined;
+  const note = addr.slice(idx + DEALER_ADDRESS_NOTE_SEP.length).trim();
+  return note || undefined;
+}
+
+/** Keeps the identity prefix byte-for-byte and swaps in the translated note. A missing separator
+ * in the original (shouldn't happen — encode already required one) leaves the address untouched. */
+function decodeDealerAddressNote(dealerAddress: string | undefined, translatedNote: string): string | undefined {
+  const addr = dealerAddress?.trim();
+  if (!addr) return dealerAddress;
+  const idx = addr.indexOf(DEALER_ADDRESS_NOTE_SEP);
+  if (idx < 0) return dealerAddress;
+  const prefix = addr.slice(0, idx + DEALER_ADDRESS_NOTE_SEP.length);
+  const note = translatedNote.trim();
+  return note ? `${prefix}${note}` : dealerAddress;
+}
+
+/**
  * Seller prose only — specs, price, VIN, dealer/contact identity (name/phone/email/URL) stay out.
  * `serviceLabel`/`highlights` carry the two free-text finance fields (advisor role/title and
  * finance notes) — both are buyer-visible natural language, inherited by every child from the
@@ -97,6 +127,7 @@ export function buildAutosTranslatableContent(listing: AutoDealerListing): Trans
     highlights: financeNotes || undefined,
     customServiceText: encodeCustomLinkLabels(listing.dealerCustomLinks),
     shareText: encodeSpecialHours(listing.dealerSpecialHoursRows),
+    locationNote: encodeDealerAddressNote(listing.dealerAddress),
   };
 }
 
@@ -154,6 +185,10 @@ export function applyAutosTranslation(
       ...next,
       dealerSpecialHoursRows: decodeSpecialHours(translated.shareText, next.dealerSpecialHoursRows),
     };
+  }
+  if (translated.locationNote?.trim()) {
+    const nextAddress = decodeDealerAddressNote(next.dealerAddress, translated.locationNote);
+    if (nextAddress) next = { ...next, dealerAddress: nextAddress };
   }
 
   return next;

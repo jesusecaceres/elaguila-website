@@ -58,6 +58,7 @@ const DETECTION_FIELD_ORDER: readonly TranslatableAdFieldKey[] = [
   "title",
   "shareText",
   "serviceLabel",
+  "locationNote",
 ];
 
 const MASK_PLACEHOLDER_RE = /__LEONIX_MASK_\d+__/g;

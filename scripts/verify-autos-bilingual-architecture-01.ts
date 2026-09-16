@@ -316,11 +316,12 @@ check("contact CTA analytics classify strictly by href pattern (tel:/wa.me/mailt
 /* ================================================================================================
  * Gate N — cache/version correctness: payload shape changed (finance fields added), version bumped.
  * ============================================================================================ */
-check("the Autos Translate Ad cache version was bumped after buildAutosTranslatableContent's payload shape changed (both the original finance-fields bump and this round's custom-link/special-hours bump are reflected — no stale v1/v2 string remains)", () => {
+check("the Autos Translate Ad cache version was bumped after every buildAutosTranslatableContent payload shape change (finance fields, custom-link/special-hours, locationNote) — no stale v1/v2/v3 string remains", () => {
   const layer = raw("app/(site)/clasificados/autos/vehiculo/[id]/AutosListingTranslationLayer.tsx");
   assert.ok(!layer.includes('version="autos-t5-v1"'), "the stale pre-finance-fields version string must be gone");
   assert.ok(!layer.includes('version="autos-t6-v2"'), "the stale pre-custom-link/special-hours version string must be gone");
-  assert.ok(/version="autos-t6-v3"/.test(layer), "version bumped to the current value");
+  assert.ok(!layer.includes('version="autos-t6-v3"'), "the stale pre-locationNote version string must be gone");
+  assert.ok(/version="autos-t6-v4"/.test(layer), "version bumped to the current value");
 });
 
 /* ================================================================================================
@@ -536,6 +537,7 @@ check("buildAutosTranslatableContent never leaks VIN/stock/price/mileage/make/mo
     "highlights",
     "body",
     "shareText",
+    "locationNote",
   ]);
   for (const key of Object.keys(content)) {
     assert.ok(allowedKeys.has(key), `unexpected key '${key}' leaked into the translatable payload`);
@@ -698,6 +700,107 @@ check("Servicios' own displayLang computation is intact and unforked by this Aut
   assert.ok(src.includes("displayLang: ServiciosLang;"));
   assert.ok(src.includes("const displayLang: ServiciosLang = showTranslated && translation?.translated ? translatedLang : lang;"));
   assert.ok(src.includes("return { displayProfile, translateControl, displayLang };"));
+});
+
+/* ================================================================================================
+ * ROUND 4 (2026-09-16) — OWNER QA FOLLOW-UP: 3 live-QA defects (Privado equipment taxonomy,
+ * Dealer address free-text note, interior-color "Rojo" trace). Narrow cleanup, not a re-audit.
+ * ============================================================================================ */
+
+/* --- Gate 1: Privado structured equipment now uses the SAME shared feature-catalog localizer --- */
+check("Privado equipment catalog values localize bidirectionally through the same shared taxonomy the Dealer highlights card uses (the exact live-QA strings)", () => {
+  assert.equal(localizeAutosDealerFeatureCatalogValue("Monitor de punto ciego", "en"), "Blind spot monitor");
+  assert.equal(localizeAutosDealerFeatureCatalogValue("Cámara de reversa", "en"), "Backup camera");
+  assert.equal(localizeAutosDealerFeatureCatalogValue("Blind spot monitor", "es"), "Monitor de punto ciego");
+  assert.equal(localizeAutosDealerFeatureCatalogValue("Backup camera", "es"), "Cámara de reversa");
+});
+check("PrivadoVehicleHighlights (live public detail) now calls the shared feature-catalog localizer on the structured checklist, reusing the existing shared lib — not a copied Dealer module", () => {
+  const src = raw("app/(site)/clasificados/autos/privado/components/PrivadoVehicleHighlights.tsx");
+  assert.ok(
+    src.includes('from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy"'),
+    "must import the existing shared taxonomy lib (a pure-function module, not a Dealer UI component)",
+  );
+  assert.ok(
+    src.includes(".map((f) => localizeAutosDealerFeatureCatalogValue(f, lang))"),
+    "the structured features checklist must be run through the localizer",
+  );
+  assert.ok(!src.includes("DealerBusinessStack") && !src.includes("PreviewDealerBusinessStack"), "must not pull in any Dealer Business Hub module");
+});
+check("the Preview-only Privado surface (previewPrivadoFields.ts) gets the identical fix for consistency with the live page", () => {
+  const src = raw("app/(site)/clasificados/autos/privado/preview/privadoPreview/previewPrivadoFields.ts");
+  assert.ok(src.includes('from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy"'));
+  assert.ok(/\.map\(\(f\) => localizeAutosDealerFeatureCatalogValue\(f, lang\)\)/.test(src));
+});
+
+/* --- Gate 1 (Dealer regression): the Dealer highlights card's own localization call is untouched --- */
+check("Dealer/Negocios structured equipment localization is unchanged by this pass (regression guard)", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewVehicleHighlights.tsx");
+  assert.ok(src.includes(".map((f) => localizeAutosDealerFeatureCatalogValue(f, lang))"));
+});
+
+/* --- Gate 1: Privado's free-typed custom equipment is never sent through the deterministic catalog lookup --- */
+check("Privado's seller-typed customEquipment/legacy otherEquipmentDetails text is never run through the feature-catalog localizer, on both the live page and Preview", () => {
+  const live = raw("app/(site)/clasificados/autos/privado/components/PrivadoVehicleHighlights.tsx");
+  const liveCustomBlock = live.slice(live.indexOf("const custom ="), live.indexOf("legacyCustom: string[]"));
+  assert.ok(!liveCustomBlock.includes("localizeAutosDealerFeatureCatalogValue"), "live page: custom equipment must stay untouched free text");
+  const preview = raw("app/(site)/clasificados/autos/privado/preview/privadoPreview/previewPrivadoFields.ts");
+  const previewCustomBlock = preview.slice(preview.indexOf("let customEquipment ="), preview.indexOf("const office ="));
+  assert.ok(!previewCustomBlock.includes("localizeAutosDealerFeatureCatalogValue"), "Preview: custom equipment must stay untouched free text");
+});
+
+/* --- Gate 2: the dealer address's descriptive note is now a real translatable field, structured identity is not --- */
+check("buildAutosTranslatableContent captures ONLY the trailing human note from dealerAddress — the street/city/state/zip prefix never enters the payload", () => {
+  const withNote = {
+    dealerAddress: "1200 Broadway, Burlingame, CA 94010 — showroom con 18 plazas de estacionamiento para clientes.",
+  } as unknown as AutoDealerListing;
+  const content = buildAutosTranslatableContent(withNote);
+  assert.equal(content.locationNote, "showroom con 18 plazas de estacionamiento para clientes.");
+  assert.ok(!JSON.stringify(content).includes("1200 Broadway"), "the street address must never appear in the translation payload");
+  assert.ok(!JSON.stringify(content).includes("94010"), "the ZIP must never appear in the translation payload");
+});
+check("a plain dealerAddress with no ' — ' separator has nothing to translate — the whole identity string is preserved, not sent anywhere", () => {
+  const plain = { dealerAddress: "1855 W San Carlos St, San José, CA 95128" } as unknown as AutoDealerListing;
+  const content = buildAutosTranslatableContent(plain);
+  assert.equal(content.locationNote, undefined);
+});
+check("View Original: applying a translated location note rebuilds the address with the identity prefix byte-for-byte, and the source listing is never mutated", () => {
+  const listing = {
+    dealerAddress: "1200 Broadway, Burlingame, CA 94010 — showroom con 18 plazas de estacionamiento para clientes.",
+  } as unknown as AutoDealerListing;
+  const translated = applyAutosTranslation(listing, { locationNote: "showroom with 18 parking spaces for customers." });
+  assert.equal(translated.dealerAddress, "1200 Broadway, Burlingame, CA 94010 — showroom with 18 parking spaces for customers.");
+  assert.equal(listing.dealerAddress, "1200 Broadway, Burlingame, CA 94010 — showroom con 18 plazas de estacionamiento para clientes.", "View Original: source object must never be mutated");
+});
+check("the shared translation type/allowlist/detection-order all accept the new locationNote field (payload shape change fully wired, not just the Autos side)", () => {
+  const types = raw("app/lib/translation/types.ts");
+  assert.ok(/locationNote\?: string;/.test(types));
+  assert.ok(/\|\s*"locationNote"/.test(types), "TranslatableAdFieldKey union must include it");
+  const helpers = raw("app/lib/translation/helpers.ts");
+  assert.ok(/"locationNote",?\s*\]\);/.test(helpers) || helpers.includes('"locationNote"'));
+  const route = raw("app/api/translate-ad/route.ts");
+  assert.ok(route.includes('"locationNote"'), "the API route's server-side allowlist must accept the field or it is silently dropped before reaching the provider");
+});
+
+/* --- Gate 3: interior-color "Rojo" — proven, explicit root-cause classification -------------------- */
+check("interior-color taxonomy trace: 'Rojo'/'Red' is genuinely absent from the interior array (asymmetric with exterior, which does have it) — proves this is NOT a deterministic-taxonomy code bug", () => {
+  // Structural proof pulled directly from the source arrays, not asserted from memory.
+  const src = raw("app/(site)/clasificados/autos/negocios/lib/autosNegociosCopy.ts");
+  const esInteriorMatch = src.match(/interior: \["", "Negro", "Beige", "Gris", "Marrón", OTHER\]/);
+  const esExteriorMatch = src.match(/exterior: \["", "Negro", "Blanco", "Gris", "Plateado", "Azul", "Rojo", OTHER\]/);
+  assert.ok(esInteriorMatch, "ES interior taxonomy must be exactly the 4-color canonical list (no Rojo)");
+  assert.ok(esExteriorMatch, "ES exterior taxonomy must include Rojo — the asymmetry is real, not assumed");
+});
+check("the taxonomy localizer correctly refuses to fabricate a translation for 'Rojo' as an interior color (it only relocalizes values that exist in the canonical list) — this is correct behavior, not a bug", () => {
+  assert.equal(localizeAutosDealerTaxonomySelectValue("interior", "Rojo", "en"), "Rojo", "must be returned unchanged — never guessed");
+  assert.equal(localizeAutosDealerTaxonomySelectValue("exterior", "Rojo", "en"), "Red", "regression guard: exterior's real 'Rojo' entry must still relocalize");
+});
+
+/* --- Gate 4.8: Dealer/Privado firewall remains intact after this pass -------------------------- */
+check("Privado's equipment fix reuses a shared pure-function lib, never imports a Dealer UI component, and Dealer's own file is untouched — the firewall holds", () => {
+  const privadoLive = raw("app/(site)/clasificados/autos/privado/components/PrivadoVehicleHighlights.tsx");
+  const dealerLive = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewVehicleHighlights.tsx");
+  assert.ok(!privadoLive.includes('from "../../negocios/preview') && !privadoLive.includes('from "@/app/clasificados/autos/negocios/preview'), "Privado must not import any Dealer preview/UI component");
+  assert.ok(!dealerLive.includes("Privado"), "Dealer's own highlights card must remain untouched by this Privado-scoped fix");
 });
 
 if (failures.length) {

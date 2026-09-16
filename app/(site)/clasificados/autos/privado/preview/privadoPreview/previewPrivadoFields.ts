@@ -15,6 +15,7 @@ import { resolveDealerOfficePhone } from "@/app/clasificados/autos/negocios/lib/
 import { isPlausibleSellerEmail } from "@/app/clasificados/autos/privado/lib/privadoContactIntent";
 import { buildVehicleTitle, normalizeVehicleSegment } from "@/app/(site)/publicar/autos/negocios/lib/autoDealerTitle";
 import { withNormalizedVehicleIdentityForDisplay } from "@/app/lib/clasificados/autos/autosListingDisplayIdentity";
+import { localizeAutosDealerFeatureCatalogValue } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
 import { previewPrivadoCopy, type PreviewPrivadoLang } from "./previewPrivadoCopy";
 
 function nonEmpty(s: string | undefined | null): s is string {
@@ -157,7 +158,13 @@ export function buildPreviewPrivadoVm(raw: AutoDealerListing, lang: PreviewPriva
     });
   }
 
-  const features = (data.features ?? []).map((f) => f.trim()).filter(Boolean);
+  // Fixed catalog picks relocalize deterministically against the shared Autos feature taxonomy
+  // (same catalog + localizer the Dealer/Negocios highlights card uses); seller-typed free text
+  // (customEquipment / legacy otherEquipmentDetails) is never run through that lookup.
+  const features = (data.features ?? [])
+    .map((f) => f.trim())
+    .filter(Boolean)
+    .map((f) => localizeAutosDealerFeatureCatalogValue(f, lang));
   let customEquipment = (data.customEquipment ?? []).map((f) => f.trim()).filter(Boolean);
   if (customEquipment.length === 0 && nonEmpty(data.otherEquipmentDetails)) {
     customEquipment = data.otherEquipmentDetails
