@@ -318,60 +318,68 @@ export function ServiciosHorizontalResultCard({
           onNavigate={onCardNavigate}
         />
 
-        <div className="pointer-events-none relative z-[2] flex gap-3 p-4 sm:gap-4 sm:p-5">
-          <ServiciosAdaptiveLogoPlate
-            src={logoUrl}
-            alt={logoAlt}
-            fallbackMonogram={profile.identity.businessName}
-            variant="card"
-            className=""
-          />
+        <div className="relative z-[2] flex items-start justify-between gap-2 p-4 sm:gap-3 sm:p-5" data-servicios-card-header="1">
+          <div className="pointer-events-none flex min-w-0 flex-1 gap-3 sm:gap-4">
+            <ServiciosAdaptiveLogoPlate
+              src={logoUrl}
+              alt={logoAlt}
+              fallbackMonogram={profile.identity.businessName}
+              variant="card"
+              className=""
+            />
 
-          <div className="min-w-0 flex-1 space-y-1">
-            <div className="flex flex-wrap items-center gap-1">
-              {monetizationBadges.map((b) => (
-                <span
-                  key={b.key}
-                  className={`rounded-md border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
-                    b.key === "destacado" || b.key === "patrocinado"
-                      ? "border-[#C9A84A]/50 bg-[#F5F0E8] text-[#3B2117]"
-                      : b.key === "verificado_leonix"
-                        ? "border-emerald-400/60 bg-emerald-50 text-emerald-950"
-                        : "border-[#D4C4A8] bg-[#FFFCF7] text-[#5a4630]"
-                  }`}
-                >
-                  {b.label}
-                </span>
-              ))}
-              {!showEngagementControls ? (
-                <ServiciosLikeCountBadge count={likeBadgeCount} lang={lang} />
-              ) : null}
-            </div>
-
-            <h2 className={LX_COMPACT_CARD_TITLE}>
-              {profile.identity.businessName}
-            </h2>
-
-            {displayCategoryChip ? (
-              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6F6254] sm:text-[11px]">{displayCategoryChip}</p>
-            ) : null}
-
-            {locationLine ? (
-              <p className="flex items-start gap-1.5 text-[11px] text-[#4A4A4A] sm:text-xs">
-                <FiMapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#C9A84A]" aria-hidden />
-                <span className="line-clamp-2">{locationLine}</span>
-              </p>
-            ) : null}
-
-            {ratingValue != null && ratingValue > 0 ? (
-              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                <StarRow rating={ratingValue} lang={lang} />
-                {reviewCount != null ? (
-                  <span className="text-[11px] font-semibold text-[#6F6254]">{L.reviewsSuffix(reviewCount)}</span>
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex flex-wrap items-center gap-1">
+                {monetizationBadges.map((b) => (
+                  <span
+                    key={b.key}
+                    className={`rounded-md border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
+                      b.key === "destacado" || b.key === "patrocinado"
+                        ? "border-[#C9A84A]/50 bg-[#F5F0E8] text-[#3B2117]"
+                        : b.key === "verificado_leonix"
+                          ? "border-emerald-400/60 bg-emerald-50 text-emerald-950"
+                          : "border-[#D4C4A8] bg-[#FFFCF7] text-[#5a4630]"
+                    }`}
+                  >
+                    {b.label}
+                  </span>
+                ))}
+                {!showEngagementControls ? (
+                  <ServiciosLikeCountBadge count={likeBadgeCount} lang={lang} />
                 ) : null}
               </div>
-            ) : null}
+
+              <h2 className={LX_COMPACT_CARD_TITLE}>
+                {profile.identity.businessName}
+              </h2>
+
+              {displayCategoryChip ? (
+                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6F6254] sm:text-[11px]">{displayCategoryChip}</p>
+              ) : null}
+
+              {locationLine ? (
+                <p className="flex items-start gap-1.5 text-[11px] text-[#4A4A4A] sm:text-xs">
+                  <FiMapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#C9A84A]" aria-hidden />
+                  <span className="line-clamp-2">{locationLine}</span>
+                </p>
+              ) : null}
+
+              {ratingValue != null && ratingValue > 0 ? (
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                  <StarRow rating={ratingValue} lang={lang} />
+                  {reviewCount != null ? (
+                    <span className="text-[11px] font-semibold text-[#6F6254]">{L.reviewsSuffix(reviewCount)}</span>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           </div>
+
+          {translateControl ? (
+            <div className="pointer-events-auto shrink-0" data-servicios-card-translate-utility="1">
+              {translateControl}
+            </div>
+          ) : null}
         </div>
 
         {displayServiceChips.length > 0 ? (
@@ -449,7 +457,7 @@ export function ServiciosHorizontalResultCard({
               ) : null}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2" data-servicios-card-trust-translate="1">
+            <div className="flex flex-wrap items-center justify-between gap-2" data-servicios-card-trust-strip="1">
               <span className="inline-flex items-center gap-1 rounded-full border border-[#E8D7B8] bg-[#FFF9F2] px-2.5 py-1 text-[10px] font-bold text-[#7A1E2C] sm:text-[11px]">
                 🦁 {lang === "en" ? "Leonix Community" : "Comunidad Leonix"}
                 {" · "}
@@ -461,19 +469,6 @@ export function ServiciosHorizontalResultCard({
                     ? "New"
                     : "Nuevo"}
               </span>
-              {translateControl}
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <Link
-                href={vitrinaHref}
-                onClick={() => {
-                  if (row) trackServiciosResultCardClick(row);
-                }}
-                className={LX_CTA_CARD_SECONDARY}
-              >
-                {vitrinaLabel}
-              </Link>
 
               <ServiciosResultCardEngagementStrip
                 listingId={ctaAnalyticsListingKey}
@@ -488,6 +483,17 @@ export function ServiciosHorizontalResultCard({
                 persistListingEngagement={persistListingEngagement}
               />
             </div>
+
+            <Link
+              href={vitrinaHref}
+              onClick={() => {
+                if (row) trackServiciosResultCardClick(row);
+              }}
+              className={LX_CTA_CARD_SECONDARY}
+              data-servicios-card-profile-nav="1"
+            >
+              {vitrinaLabel}
+            </Link>
 
             {discoveryRefineHref?.trim() && discoveryRefineLabel?.trim() ? (
               <Link
