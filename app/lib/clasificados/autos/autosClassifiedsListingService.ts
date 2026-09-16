@@ -853,6 +853,10 @@ export async function getActiveLiveAutosBundle(
   inventory_role: "main" | "inventory_vehicle" | null;
   dealer_inventory_group_id: string | null;
   dealer_inventory_parent_listing_id: string | null;
+  /** The seller's authored/publish-time language (`autos_classifieds_listings.lang`) — distinct
+   * from `lang`, the viewer's requested display locale. This is the real Translate Ad source
+   * locale; never substitute the viewer's `?lang=` for this value. */
+  authoredLang: AutosClassifiedsLang;
 } | null> {
   const row = await getAutosClassifiedsListingById(id);
   if (!row || row.status !== "active") return null;
@@ -918,5 +922,6 @@ export async function getActiveLiveAutosBundle(
     inventory_role: row.inventory_role ?? null,
     dealer_inventory_group_id: row.dealer_inventory_group_id?.trim() || null,
     dealer_inventory_parent_listing_id: row.dealer_inventory_parent_listing_id?.trim() || null,
+    authoredLang: row.lang,
   };
 }

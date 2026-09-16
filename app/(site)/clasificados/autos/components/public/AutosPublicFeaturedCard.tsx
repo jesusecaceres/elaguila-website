@@ -63,12 +63,12 @@ export function AutosPublicFeaturedCard({
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-2 p-3.5">
         <h3 className="font-serif text-base font-semibold leading-snug tracking-tight text-[color:var(--lx-text)]">{listing.vehicleTitle}</h3>
-        <p className="text-xl font-bold tabular-nums leading-none text-[color:var(--lx-gold)]">{formatAutosUsd(listing.price)}</p>
+        <p className="text-xl font-bold tabular-nums leading-none text-[color:var(--lx-gold)]">{formatAutosUsd(listing.price, lang)}</p>
         {listing.monthlyEstimate ? (
           <p className="text-xs font-medium text-[color:var(--lx-muted)]">{listing.monthlyEstimate}</p>
         ) : null}
         <p className="text-sm text-[color:var(--lx-text-2)]">
-          {formatAutosMiles(listing.mileage)} · {loc}
+          {formatAutosMiles(listing.mileage, lang)} · {loc}
         </p>
         {listing.sellerType === "dealer" && listing.dealerName ? (
           <div className="mt-1 flex items-center gap-3 border-t border-[color:var(--lx-nav-border)] pt-3">

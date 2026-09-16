@@ -10,6 +10,7 @@ import {
   parse24HourTo12Parts,
   type AmPm,
 } from "@/app/lib/clasificados/autos/autosDealerHoursTimeUi";
+import { localizeDealerHoursDayLabel } from "@/app/clasificados/autos/negocios/lib/dealerHoursDisplay";
 
 const SELECT =
   "mt-1.5 min-h-[44px] w-full rounded-xl border border-[color:var(--lx-nav-border)] bg-[#FFFCF7] px-2 py-2 text-sm text-[color:var(--lx-text)] outline-none ring-[color:var(--lx-focus-ring)] focus:ring-2";
@@ -96,6 +97,14 @@ export function AutosDealerHoursEditor({
     <div className="space-y-3">
       {rows.map((row) => {
         const rowId = row.rowId ?? row.day;
+        // A row saved while the authoring session was in the OTHER language stores that
+        // language's day name (e.g. "Monday") — relocalizing for display/matching here means
+        // switching the form's own language mid-edit re-selects the equivalent weekday instead
+        // of falling back to an ugly, mismatched raw-value option (the exact defect confirmed in
+        // the owner's own screenshots: an English day name stranded inside an otherwise-Spanish
+        // hours editor). A dealer's own free-typed non-weekday label still passes through
+        // unchanged (localizeDealerHoursDayLabel never guesses on a non-match).
+        const displayDay = localizeDealerHoursDayLabel(row.day, lang);
         return (
           <div
             key={rowId}
@@ -106,11 +115,11 @@ export function AutosDealerHoursEditor({
                 <label className={LABEL}>{copy.day}</label>
                 <select
                   className={SELECT}
-                  value={row.day}
+                  value={displayDay}
                   onChange={(e) => onUpdateRow(rowId, { day: e.target.value })}
                 >
-                  {!weekdays.includes(row.day as (typeof weekdays)[number]) && row.day ? (
-                    <option value={row.day}>{row.day}</option>
+                  {!weekdays.includes(displayDay as (typeof weekdays)[number]) && displayDay ? (
+                    <option value={displayDay}>{displayDay}</option>
                   ) : null}
                   {weekdays.map((d) => (
                     <option key={d} value={d}>

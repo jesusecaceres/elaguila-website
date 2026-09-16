@@ -6,6 +6,7 @@ import { TbArmchair2, TbGauge, TbLayoutGrid } from "react-icons/tb";
 import type { ReactNode } from "react";
 import type { AutoDealerListing } from "../../types/autoDealerListing";
 import { useAutosNegociosPreviewCopy } from "../../lib/AutosNegociosPreviewLocaleContext";
+import { localizeAutosDealerFeatureCatalogValue } from "../../lib/autosNegociosCopy";
 import {
   autosPreviewPremiumCardClass,
   autosPreviewRectEquipmentClass,
@@ -15,38 +16,7 @@ import {
 
 const CARD = `${autosPreviewPremiumCardClass} p-5 sm:p-6`;
 
-/**
- * Display-only Spanish relabeling for common dealer-entered equipment phrases (free text,
- * no fixed taxonomy exists upstream). Never mutates `data.features`/`data.customEquipment`;
- * unrecognized/custom text passes through unchanged.
- */
-const EQUIPMENT_LABEL_ES: Record<string, string> = {
-  "keyless entry": "Entrada sin llave",
-  "fog lights": "Luces de niebla",
-  "trailer hitch": "Enganche de remolque",
-  "premium wheels": "Rines premium",
-  "blind spot monitor": "Monitor de punto ciego",
-  "adaptive cruise control": "Control crucero adaptativo",
-  "backup camera": "Cámara de reversa",
-  "rear camera": "Cámara de reversa",
-  "heated seats": "Asientos calefactables",
-  "leather steering wheel": "Volante de cuero",
-  "sunroof": "Techo solar",
-  "moonroof": "Quemacocos",
-  "third row seating": "Tercera fila de asientos",
-  "remote start": "Arranque remoto",
-  "navigation system": "Sistema de navegación",
-  "apple carplay": "Apple CarPlay",
-  "android auto": "Android Auto",
-};
-
-function translateFeatureLabel(label: string, lang: "es" | "en"): string {
-  if (lang !== "es") return label;
-  const translated = EQUIPMENT_LABEL_ES[label.trim().toLowerCase()];
-  return translated ?? label;
-}
-
-/** Avoids duplicate entries when translation collapses two dealer-entered variants (e.g. "Backup Camera" + "Rear Camera"). */
+/** Avoids duplicate entries when localization collapses two catalog-equivalent variants. */
 function dedupeLabels(labels: string[]): string[] {
   return labels.filter((label, idx, arr) => arr.findIndex((x) => x.toLowerCase() === label.toLowerCase()) === idx);
 }
@@ -95,12 +65,14 @@ function FeatureColumn({
 
 export function PreviewVehicleHighlights({ data }: { data: AutoDealerListing }) {
   const { t, lang } = useAutosNegociosPreviewCopy();
+  // Fixed catalog picks (`data.features`) are relocalized deterministically — bidirectional,
+  // positional lookup against the real taxonomy, same technique as VehicleSpecsGrid's select
+  // fields. Seller-typed free text (`data.customEquipment`) is NEVER run through that lookup —
+  // it is passed through byte-for-byte so a seller's own words are never silently rewritten.
   const checklist = dedupeLabels(
-    (data.features ?? []).map((f) => f.trim()).filter(Boolean).map((f) => translateFeatureLabel(f, lang)),
+    (data.features ?? []).map((f) => f.trim()).filter(Boolean).map((f) => localizeAutosDealerFeatureCatalogValue(f, lang)),
   );
-  const custom = dedupeLabels(
-    (data.customEquipment ?? []).map((f) => f.trim()).filter(Boolean).map((f) => translateFeatureLabel(f, lang)),
-  );
+  const custom = dedupeLabels((data.customEquipment ?? []).map((f) => f.trim()).filter(Boolean));
 
   /** Split without inventing claims: checklist → key specs; custom → highlights; else bipartite split. */
   let keySpecs: string[] = [];

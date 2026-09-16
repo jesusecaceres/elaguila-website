@@ -211,7 +211,7 @@ export function AutosNegociosDealershipPreviewPage({
 
                 {showPriceCol ? (
                   <div className="mt-4">
-                    {priceOk ? <p className={autosPreviewHeroPriceClass}>{formatUsd(data.price)}</p> : null}
+                    {priceOk ? <p className={autosPreviewHeroPriceClass}>{formatUsd(data.price, lang)}</p> : null}
                     {nonEmpty(monthlyLine) ? (
                       <p
                         className={`flex items-center gap-1.5 text-sm font-semibold text-[#5C5346] ${priceOk ? "mt-1.5" : ""}`}
@@ -239,9 +239,7 @@ export function AutosNegociosDealershipPreviewPage({
                     {showMileage ? (
                       <li className="inline-flex items-center gap-1.5">
                         <BiTachometer className="h-4 w-4 shrink-0 text-[#C9A84A]" aria-hidden />
-                        <span>
-                          {formatMiles(data.mileage)} {lang === "es" ? "millas" : "miles"}
-                        </span>
+                        <span>{formatMiles(data.mileage, lang)}</span>
                       </li>
                     ) : null}
                     {showStock ? (

@@ -128,7 +128,10 @@ export function AutosLaneCrossNav(props: Props) {
           >
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] opacity-75">
               {card.laneLabel ??
-                (card.tone === "dealer" || card.tone === "dealerPublish" ? "Dealer de Autos" : "Autos Privado")}
+                getAutosPlanDisplayCopy(
+                  props.lang,
+                  card.tone === "dealer" || card.tone === "dealerPublish" ? "negocios" : "privado",
+                ).label}
             </p>
             <h2 className={`${landing ? "mt-2 text-lg" : "mt-1.5 text-base"} font-extrabold leading-tight tracking-tight text-[#1E1810]`}>
               {card.title}

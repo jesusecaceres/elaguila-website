@@ -18,12 +18,15 @@ import { AutosVehicleProfileViewAnalytics } from "../../components/AutosVehicleP
 import type { AutosPublicListingAnalyticsProps } from "../../lib/autosAnalyticsIdentity";
 import { AutosLiveVehicleOwnerInventoryBar } from "./AutosLiveVehicleOwnerInventoryBar";
 import { AutosListingTranslationLayer } from "./AutosListingTranslationLayer";
+import { normalizeAutosNegociosLang } from "../../negocios/lib/autosNegociosLang";
 
 type PublicListingApiOk = {
   ok: true;
   listing: AutoDealerListing;
   lane: AutosClassifiedsLane;
   lang: "es" | "en";
+  /** Seller's authored/publish-time language — the real Translate Ad source locale. */
+  authored_lang?: "es" | "en" | null;
   leonix_ad_id?: string | null;
   inventory_role?: "main" | "inventory_vehicle" | null;
   dealer_inventory_group_id?: string | null;
@@ -61,7 +64,7 @@ export function AutosLiveVehicleClient({
           setData(withNormalizedVehicleIdentityForDisplay(normalizeLoadedListing({ ...payload.listing, autosLane: payload.lane })));
           setLane(payload.lane);
           setLeonixAdId(payload.leonix_ad_id?.trim() || null);
-          setListingLang(payload.lang ?? null);
+          setListingLang(payload.authored_lang ?? null);
           setInventoryRole(payload.inventory_role ?? null);
           setDealerInventoryGroupId(payload.dealer_inventory_group_id?.trim() || null);
           setDealerInventoryParentListingId(payload.dealer_inventory_parent_listing_id?.trim() || null);
@@ -157,9 +160,12 @@ export function AutosLiveVehicleClient({
           listingLang={listingLang}
           listingKey={listingKey}
         >
-          {(displayListing, translateControl) => (
-            <>
-              {translateControl}
+          {(displayListing, translateControl, adDisplayLang) => (
+            <AutosPrivadoPreviewLocaleProvider lang={normalizeAutosNegociosLang(adDisplayLang)} manageDocumentTitle={false}>
+              {/* translateControl renders as the first content on this page (no chrome
+                  precedes it) — the global Navbar is `fixed`, so without this clearance the
+                  control sits underneath it, invisible and unclickable. */}
+              {translateControl ? <div className="pt-20">{translateControl}</div> : null}
               <AutoPrivadoPreviewPage
                 data={displayListing}
                 editBackHref={undefined}
@@ -167,7 +173,7 @@ export function AutosLiveVehicleClient({
                 publicAnalytics={publicAnalytics}
                 publicUrl={publicUrl}
               />
-            </>
+            </AutosPrivadoPreviewLocaleProvider>
           )}
         </AutosListingTranslationLayer>
         {leonixAdId ? (
@@ -197,9 +203,12 @@ export function AutosLiveVehicleClient({
         listingLang={listingLang}
         listingKey={listingKey}
       >
-        {(displayListing, translateControl) => (
-          <>
-            {translateControl}
+        {(displayListing, translateControl, adDisplayLang) => (
+          <AutosNegociosPreviewLocaleProvider lang={normalizeAutosNegociosLang(adDisplayLang)} manageDocumentTitle={false}>
+            {/* translateControl renders as the first content on this page (no chrome precedes
+                it) — the global Navbar is `fixed`, so without this clearance the control sits
+                underneath it, invisible and unclickable. */}
+            {translateControl ? <div className="pt-20">{translateControl}</div> : null}
             <AutosNegociosDealershipPreviewPage
               data={displayListing}
               editBackHref={undefined}
@@ -207,7 +216,7 @@ export function AutosLiveVehicleClient({
               publicAnalytics={publicAnalytics}
               publicUrl={publicUrl}
             />
-          </>
+          </AutosNegociosPreviewLocaleProvider>
         )}
       </AutosListingTranslationLayer>
       {leonixAdId ? (
