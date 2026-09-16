@@ -86,7 +86,7 @@ export function AutosDealerInventoryVehicleCard({
         <h3 className="line-clamp-2 min-h-[2.75rem] font-serif text-[15px] font-semibold leading-snug tracking-tight text-[#1A1A1A] sm:text-base">
           {title}
         </h3>
-        <p className="text-xl font-bold tabular-nums text-[#2A7F3E] sm:text-2xl">{formatUsd(car.price)}</p>
+        <p className="text-xl font-bold tabular-nums text-[#2A7F3E] sm:text-2xl">{formatUsd(car.price, lang)}</p>
         <div className="flex items-center gap-2 text-sm text-[#4A4A4A]">
           {loc ? (
             <>
@@ -95,7 +95,7 @@ export function AutosDealerInventoryVehicleCard({
               <span className="text-[#7A7A7A]">•</span>
             </>
           ) : null}
-          <span>{formatMiles(car.mileage)}</span>
+          <span>{formatMiles(car.mileage, lang)}</span>
         </div>
         {readOnlyDraft ? (
           <span

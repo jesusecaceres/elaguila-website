@@ -30,6 +30,9 @@ export type AdTranslationPayload = {
   highlights?: string;
   body?: string;
   shareText?: string;
+  /** A short descriptive/location note distinct from structured identity data (e.g. an address's
+   * trailing human note) — additive slot, optional for every category. */
+  locationNote?: string;
   category?: string;
   listingKey?: string;
   sourceLocale?: ContentLocale;
@@ -47,6 +50,7 @@ export type TranslatableAdFieldKey = keyof Pick<
   | "highlights"
   | "body"
   | "shareText"
+  | "locationNote"
 >;
 
 export type TranslatableAdFields = Partial<Record<TranslatableAdFieldKey, string>>;

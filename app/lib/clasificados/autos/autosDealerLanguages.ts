@@ -47,6 +47,21 @@ export function dealerLanguagesForOutput(languages: string[] | undefined): strin
   return normalizeDealerLanguages(languages);
 }
 
+/**
+ * The two preset language chips ("Español"/"English") are stored under their OWN self-name
+ * regardless of which language the dealer's form happened to be in — the same "stored value IS
+ * the label" pattern as the vehicle taxonomy selects. Localize those two known presets to the
+ * viewer's own site language (matching the equivalent Servicios language-chip pattern); any
+ * other value is the dealer's own free-typed custom language entry and is returned byte-for-byte
+ * unchanged — never guessed, never relabeled, even if it looks like a misspelling.
+ */
+export function localizeAutosDealerLanguageLabel(label: string, targetLang: "es" | "en"): string {
+  const key = languageKey(label);
+  if (key === "español" || key === "espanol") return targetLang === "en" ? "Spanish" : "Español";
+  if (key === "english") return targetLang === "en" ? "English" : "Inglés";
+  return label;
+}
+
 export function toggleAutosDealerPresetLanguage(
   languages: string[] | undefined,
   preset: typeof AUTOS_DEALER_LANGUAGE_PRESET_ES | typeof AUTOS_DEALER_LANGUAGE_PRESET_EN,

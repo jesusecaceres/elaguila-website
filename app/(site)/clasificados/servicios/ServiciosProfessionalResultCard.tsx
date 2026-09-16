@@ -269,66 +269,73 @@ export function ServiciosProfessionalResultCard({
       >
         <ServiciosResultCardBodyLink href={href} ariaLabel={cardNavigateLabel} onNavigate={onCardNavigate} />
 
-        <div className={isCompact ? "pointer-events-none relative z-[2] flex gap-2.5 p-2.5 sm:col-start-1 sm:row-start-1 sm:items-center sm:p-3 sm:pb-1.5" : "pointer-events-none relative z-[2] flex gap-3 p-4 sm:gap-4 sm:p-5"}>
-          <ServiciosAdaptiveLogoPlate
-            src={thumb}
-            alt={profile.hero.logoAlt || profile.identity.businessName}
-            fallbackMonogram={profile.identity.businessName}
-            variant="card"
-            className={isCompact ? "!h-12 !w-12 sm:!h-14 sm:!w-14" : ""}
-          />
+        <div className={isCompact ? "relative z-[2] flex gap-2.5 p-2.5 sm:col-start-1 sm:row-start-1 sm:items-center sm:p-3 sm:pb-1.5" : "relative z-[2] flex items-start justify-between gap-2 p-4 sm:gap-3 sm:p-5"} data-servicios-card-header="1">
+          <div className={isCompact ? "pointer-events-none flex flex-1 gap-2.5" : "pointer-events-none flex min-w-0 flex-1 gap-3 sm:gap-4"}>
+            <ServiciosAdaptiveLogoPlate
+              src={thumb}
+              alt={profile.hero.logoAlt || profile.identity.businessName}
+              fallbackMonogram={profile.identity.businessName}
+              variant="card"
+              className={isCompact ? "!h-12 !w-12 sm:!h-14 sm:!w-14" : ""}
+            />
 
-          <div className={isCompact ? "min-w-0 flex-1 space-y-0.5" : "min-w-0 flex-1 space-y-1"}>
-            <div className="flex flex-wrap items-center gap-1">
-              {promoted ? (
-                <span className="rounded-md border border-[#C9A84A]/50 bg-[#F5F0E8] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#3B2117]">
-                  {lang === "en" ? "Featured" : "Destacado"}
-                </span>
-              ) : null}
-              {row.leonix_verified ? (
-                <span
-                  className="rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide"
-                  style={{
-                    borderColor: "rgba(45, 90, 61, 0.4)",
-                    backgroundColor: LX.trustGreenSoft,
-                    color: LX.trustGreenText,
-                  }}
-                >
-                  {lang === "en" ? "Verified" : "Verificado"}
-                </span>
-              ) : null}
-              {!showEngagementControls ? (
-                <ServiciosLikeCountBadge count={likeBadgeCount} lang={lang} />
-              ) : null}
-            </div>
-
-            <h3 className={isCompact ? "font-serif text-[14px] font-semibold leading-snug tracking-tight text-[#1E1814] sm:text-[15px]" : LX_COMPACT_CARD_TITLE}>
-              {profile.identity.businessName}
-            </h3>
-
-            {displayCategory ? (
-              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6F6254] sm:text-[11px]">{displayCategory}</p>
-            ) : null}
-
-            {location ? (
-              <p className="flex items-start gap-1.5 text-[11px] text-[#4A4A4A] sm:text-xs">
-                <FiMapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#C9A84A]" aria-hidden />
-                <span className={isCompact ? "line-clamp-1" : "line-clamp-2"}>{location}</span>
-              </p>
-            ) : null}
-
-            {ratingValue != null ? (
-              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                <StarRow rating={ratingValue} lang={lang} />
-                {reviewCount != null ? (
-                  <span className="text-[11px] font-semibold text-[#6F6254]">
-                    ({reviewCount} {lang === "en" ? "reviews" : "reseñas"})
+            <div className={isCompact ? "min-w-0 flex-1 space-y-0.5" : "min-w-0 flex-1 space-y-1"}>
+              <div className="flex flex-wrap items-center gap-1">
+                {promoted ? (
+                  <span className="rounded-md border border-[#C9A84A]/50 bg-[#F5F0E8] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#3B2117]">
+                    {lang === "en" ? "Featured" : "Destacado"}
                   </span>
                 ) : null}
+                {row.leonix_verified ? (
+                  <span
+                    className="rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide"
+                    style={{
+                      borderColor: "rgba(45, 90, 61, 0.4)",
+                      backgroundColor: LX.trustGreenSoft,
+                      color: LX.trustGreenText,
+                    }}
+                  >
+                    {lang === "en" ? "Verified" : "Verificado"}
+                  </span>
+                ) : null}
+                {!showEngagementControls ? (
+                  <ServiciosLikeCountBadge count={likeBadgeCount} lang={lang} />
+                ) : null}
               </div>
-            ) : null}
 
+              <h3 className={isCompact ? "font-serif text-[14px] font-semibold leading-snug tracking-tight text-[#1E1814] sm:text-[15px]" : LX_COMPACT_CARD_TITLE}>
+                {profile.identity.businessName}
+              </h3>
+
+              {displayCategory ? (
+                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6F6254] sm:text-[11px]">{displayCategory}</p>
+              ) : null}
+
+              {location ? (
+                <p className="flex items-start gap-1.5 text-[11px] text-[#4A4A4A] sm:text-xs">
+                  <FiMapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#C9A84A]" aria-hidden />
+                  <span className={isCompact ? "line-clamp-1" : "line-clamp-2"}>{location}</span>
+                </p>
+              ) : null}
+
+              {ratingValue != null ? (
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                  <StarRow rating={ratingValue} lang={lang} />
+                  {reviewCount != null ? (
+                    <span className="text-[11px] font-semibold text-[#6F6254]">
+                      ({reviewCount} {lang === "en" ? "reviews" : "reseñas"})
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           </div>
+
+          {!isCompact && translateControl ? (
+            <div className="pointer-events-auto shrink-0" data-servicios-card-translate-utility="1">
+              {translateControl}
+            </div>
+          ) : null}
         </div>
 
         {displayChips.length > 0 ? (
@@ -430,7 +437,7 @@ export function ServiciosProfessionalResultCard({
                 ) : null}
               </div>
 
-              <div className="flex flex-wrap items-center gap-2" data-servicios-card-trust-translate="1">
+              <div className="flex flex-wrap items-center justify-between gap-2" data-servicios-card-trust-strip="1">
                 <span className="inline-flex items-center gap-1 rounded-full border border-[#E8D7B8] bg-[#FFF9F2] px-2.5 py-1 text-[10px] font-bold text-[#7A1E2C] sm:text-[11px]">
                   🦁 {lang === "en" ? "Leonix Community" : "Comunidad Leonix"}
                   {" · "}
@@ -442,17 +449,7 @@ export function ServiciosProfessionalResultCard({
                       ? "New"
                       : "Nuevo"}
                 </span>
-                {translateControl}
-              </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <Link
-                  href={href}
-                  onClick={() => trackServiciosResultCardClick(row)}
-                  className={LX_CTA_CARD_SECONDARY}
-                >
-                  {secondaryLabel}
-                </Link>
                 <ServiciosResultCardEngagementStrip
                   listingId={ctaAnalyticsKey}
                   ownerUserId={row.owner_user_id ?? null}
@@ -466,6 +463,15 @@ export function ServiciosProfessionalResultCard({
                   persistListingEngagement={persistListingEngagement}
                 />
               </div>
+
+              <Link
+                href={href}
+                onClick={() => trackServiciosResultCardClick(row)}
+                className={LX_CTA_CARD_SECONDARY}
+                data-servicios-card-profile-nav="1"
+              >
+                {secondaryLabel}
+              </Link>
             </div>
           )}
         </div>

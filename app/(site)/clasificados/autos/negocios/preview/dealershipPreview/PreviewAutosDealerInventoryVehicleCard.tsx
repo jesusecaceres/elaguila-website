@@ -82,7 +82,7 @@ export function PreviewAutosDealerInventoryVehicleCard({
         <h3 className="line-clamp-2 min-h-[2.5rem] text-[15px] font-semibold leading-snug tracking-tight text-[#1F241C]">
           {title}
         </h3>
-        <p className="text-xl font-extrabold tabular-nums text-[#7A1E2C]">{formatUsd(car.price)}</p>
+        <p className="text-xl font-extrabold tabular-nums text-[#7A1E2C]">{formatUsd(car.price, lang)}</p>
         <div className="flex items-center gap-2 text-sm text-[#5C5346]">
           {loc ? (
             <>
@@ -91,7 +91,7 @@ export function PreviewAutosDealerInventoryVehicleCard({
               <span className="text-[#8A8074]">•</span>
             </>
           ) : null}
-          <span>{formatMiles(car.mileage)} {lang === "es" ? "millas" : "miles"}</span>
+          <span>{formatMiles(car.mileage, lang)}</span>
         </div>
         {readOnlyDraft ? (
           <span

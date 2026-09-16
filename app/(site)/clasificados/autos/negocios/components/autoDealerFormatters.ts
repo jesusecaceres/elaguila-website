@@ -1,19 +1,26 @@
 import { safeExternalHref } from "../lib/dealerDraftSanitize";
+import type { AutosNegociosLang } from "../lib/autosNegociosLang";
 
-/** USD whole dollars — e.g. `$48,950` */
-export function formatUsd(n: number | undefined): string {
+/** USD whole dollars — e.g. `$48,950`. Number grouping follows the viewer's locale; `lang`
+ * defaults to `"en"` so existing callers that don't pass it keep today's exact output. */
+export function formatUsd(n: number | undefined, lang: AutosNegociosLang = "en"): string {
   if (n === undefined || !Number.isFinite(n)) return "";
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat(lang === "es" ? "es-US" : "en-US", {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 0,
   }).format(n);
 }
 
-/** Odometer — e.g. `11,248 mi` */
-export function formatMiles(n: number | undefined): string {
+// "mi" alone reads as the Spanish possessive "my" out of context — "millas" is the unambiguous,
+// standard unit word used in Spanish-language US auto listings.
+const MILES_UNIT: Record<AutosNegociosLang, string> = { es: "millas", en: "mi" };
+
+/** Odometer — e.g. `11,248 mi` / `11,248 millas`. */
+export function formatMiles(n: number | undefined, lang: AutosNegociosLang = "en"): string {
   if (n === undefined || !Number.isFinite(n)) return "";
-  return `${new Intl.NumberFormat("en-US").format(Math.round(n))} mi`;
+  const value = new Intl.NumberFormat(lang === "es" ? "es-US" : "en-US").format(Math.round(n));
+  return `${value} ${MILES_UNIT[lang]}`;
 }
 
 /** Combined MPG — e.g. `23 / 29 MPG` */

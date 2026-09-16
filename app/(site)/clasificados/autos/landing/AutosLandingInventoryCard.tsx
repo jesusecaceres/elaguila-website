@@ -109,13 +109,13 @@ export function AutosLandingInventoryCard({
           ) : null}
         </div>
         <p className={`font-bold tabular-nums text-[color:var(--lx-gold)] ${variant === "featured" ? "text-xl" : "text-lg"}`}>
-          {formatAutosUsd(listing.price)}
+          {formatAutosUsd(listing.price, lang)}
         </p>
         {listing.monthlyEstimate && variant === "featured" ? (
           <p className="text-[11px] font-medium text-[color:var(--lx-muted)]">{listing.monthlyEstimate}</p>
         ) : null}
         <p className="text-xs text-[color:var(--lx-text-2)]">
-          {formatAutosMiles(listing.mileage)} · {loc}
+          {formatAutosMiles(listing.mileage, lang)} · {loc}
         </p>
         <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-[color:var(--lx-nav-border)] pt-2.5">
           <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-[color:var(--lx-text-2)]" title={sellerLine}>

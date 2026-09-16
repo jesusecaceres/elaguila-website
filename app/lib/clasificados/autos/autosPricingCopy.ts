@@ -37,7 +37,7 @@ const NEGOCIOS: Record<AutosNegociosLang, AutosPlanDisplayCopy> = {
     footnote: "La configuración de pagos y contratos se maneja con el sistema de administración Leonix.",
   },
   en: {
-    label: "Dealer de Autos",
+    label: "Auto Dealer",
     priceDisplay: "$399 / month",
     description: "Package for dealerships or auto businesses.",
     footnote: "Payment and contract setup is handled through the Leonix admin system.",

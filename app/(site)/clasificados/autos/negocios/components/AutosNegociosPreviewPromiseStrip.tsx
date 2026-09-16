@@ -37,7 +37,7 @@ const ITEMS: PromiseItem[] = [
     labelEs: "Detalles del vehículo",
     labelEn: "Vehicle details",
   },
-  { key: "hub", sectionId: AUTOS_PREVIEW_SECTION_IDS.businessHub, icon: <FiUsers className="h-4 w-4 text-[#7A1E2C]" aria-hidden />, labelEs: "Business Hub del concesionario", labelEn: "Dealer Business Hub" },
+  { key: "hub", sectionId: AUTOS_PREVIEW_SECTION_IDS.businessHub, icon: <FiUsers className="h-4 w-4 text-[#7A1E2C]" aria-hidden />, labelEs: "Centro de contacto del concesionario", labelEn: "Dealer Business Hub" },
   { key: "finance", sectionId: AUTOS_PREVIEW_SECTION_IDS.financing, icon: <FiCreditCard className="h-4 w-4 text-[#7A1E2C]" aria-hidden />, labelEs: "Financiamiento si aplica", labelEn: "Financing if applicable" },
   { key: "inventory", sectionId: AUTOS_PREVIEW_SECTION_IDS.relatedInventory, icon: <FiClock className="h-4 w-4 text-[#7A1E2C]" aria-hidden />, labelEs: "Vehículos adicionales", labelEn: "Additional vehicles" },
   { key: "id", sectionId: AUTOS_PREVIEW_SECTION_IDS.resultsCard, icon: <FiHash className="h-4 w-4 text-[#7A1E2C]" aria-hidden />, labelEs: "ID Leonix del anuncio", labelEn: "Leonix listing ID" },

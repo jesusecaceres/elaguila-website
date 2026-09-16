@@ -116,7 +116,7 @@ export function buildAutosDealerHoursStatus(
     const row = rows.find((r) => dayIndexFromLabel(r.day ?? "") === todayIdx);
     if (!row) return null;
     const label = lang === "es" ? "Horario de hoy" : "Today's hours";
-    return { text: `${label} · ${formatDealerHoursTimeRange(row)}`, variant: "neutral" };
+    return { text: `${label} · ${formatDealerHoursTimeRange(row, lang)}`, variant: "neutral" };
   }
 
   const todayRow = rows.find((r) => dayIndexFromLabel(r.day ?? "") === zoned.jsDay) ?? null;

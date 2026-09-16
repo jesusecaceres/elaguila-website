@@ -2,16 +2,15 @@
 
 import { FiPlay, FiX } from "react-icons/fi";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
-import { useSearchParams } from "next/navigation";
 import type { AutoDealerListing } from "../types/autoDealerListing";
-import { getAutosNegociosCopy, type AutosNegociosCopy } from "../lib/autosNegociosCopy";
+import type { AutosNegociosCopy } from "../lib/autosNegociosCopy";
+import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { deriveHeroImageUrls } from "../lib/autoDealerHeroImages";
 import {
   buildAutosGalleryMediaSets,
   type AutosGalleryLightboxItem,
 } from "@/app/lib/clasificados/autos/autosGalleryLightbox";
 import { MediaImage } from "./MediaImage";
-import { normalizeAutosNegociosLang } from "../lib/autosNegociosLang";
 import {
   AUTOS_PREVIEW_SECTION_IDS,
   autosPreviewMediaTabClass,
@@ -37,9 +36,7 @@ export function AutoGallery({
   /** When true, gallery sits inside unified vehicle canvas without its own outer card. */
   embeddedInCanvas?: boolean;
 }) {
-  const sp = useSearchParams();
-  const lang = normalizeAutosNegociosLang(sp?.get("lang"));
-  const t = getAutosNegociosCopy(lang);
+  const { lang, t } = useAutosNegociosPreviewCopy();
   const g = t.preview.gallery;
 
   const images = deriveHeroImageUrls(data);

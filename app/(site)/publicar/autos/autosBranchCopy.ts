@@ -46,7 +46,7 @@ function buildCopy(lang: AutosNegociosLang): AutosBranchCopy {
         cta: "Start private listing",
       },
       negocios: {
-        title: "Dealer de Autos",
+        title: "Auto Dealer",
         priceDisplay: negociosPlan.priceDisplay,
         body: "For dealerships and auto businesses that need a professional presence and vehicle inventory.",
         cta: "Start as dealer",

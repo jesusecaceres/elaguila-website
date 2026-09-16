@@ -24,7 +24,11 @@ export async function GET(request: Request, { params }: Props) {
     ok: true,
     listing: bundle.listing,
     lane: bundle.lane,
+    // Viewer-requested display locale — drives related-listing hrefs/copy. NOT the ad's own
+    // language; see `authored_lang` for that.
     lang,
+    // The seller's authored/publish-time language — the real Translate Ad source locale.
+    authored_lang: bundle.authoredLang,
     leonix_ad_id: bundle.leonix_ad_id,
     inventory_role: bundle.inventory_role,
     dealer_inventory_group_id: bundle.dealer_inventory_group_id,
