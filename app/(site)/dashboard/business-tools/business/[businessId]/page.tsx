@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, Suspense } from "react";
+import Link from "next/link";
 import { useParams, useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/app/lib/supabase/browser";
 import {
@@ -56,6 +57,8 @@ function CompletedBusinessIdentityPageContent() {
   const [loading, setLoading] = useState(true);
   const [errored, setErrored] = useState(false);
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
+  const [profileStatus, setProfileStatus] = useState<"draft" | "published" | "none">("none");
+  const [commercialState, setCommercialState] = useState<"not_purchased" | "active" | "complimentary" | "expired" | null>(null);
 
   useEffect(() => {
     const sb = createSupabaseBrowserClient();
@@ -88,8 +91,17 @@ function CompletedBusinessIdentityPageContent() {
       if (cancelled) return;
       if (!result.ok || result.data.business.id !== params?.businessId) {
         setErrored(true);
-      } else {
-        setSummary(result.data);
+        setLoading(false);
+        return;
+      }
+      setSummary(result.data);
+      const profileResult = await businessApiFetch<{
+        profile: { status: "draft" | "published" } | null;
+        commercial: { eligible: boolean; state: "not_purchased" | "active" | "complimentary" | "expired" };
+      }>(`/api/business/profile?businessId=${encodeURIComponent(result.data.business.id)}`);
+      if (!cancelled && profileResult.ok) {
+        setProfileStatus(profileResult.data.profile?.status ?? "none");
+        setCommercialState(profileResult.data.commercial?.state ?? null);
       }
       setLoading(false);
     }
@@ -134,6 +146,45 @@ function CompletedBusinessIdentityPageContent() {
               {t.completed.createdLabel} {new Date(summary.business.createdAt).toLocaleDateString(lang === "es" ? "es-MX" : "en-US")}
             </p>
           </header>
+
+          <section className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FBF7EF] p-6 sm:p-8">
+            <h2 className="text-base font-bold text-[#1E1810]">Perfil de Negocio Leonix / Leonix Business Profile</h2>
+            <p className="mt-1 text-xs text-[#7A7164]">
+              Así es como los clientes te encuentran en Leonix. / This is how customers find you on Leonix.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <span
+                className={`inline-flex rounded px-2 py-0.5 text-[11px] font-semibold ${
+                  profileStatus === "published" ? "bg-emerald-100 text-emerald-800" : profileStatus === "draft" ? "bg-amber-100 text-amber-800" : "bg-[#EDE6D6] text-[#7A7164]"
+                }`}
+              >
+                {profileStatus === "published" ? "Publicado / Published" : profileStatus === "draft" ? "Borrador / Draft" : "Sin comenzar / Not started"}
+              </span>
+              {commercialState ? (
+                <span
+                  className={`inline-flex rounded px-2 py-0.5 text-[11px] font-semibold ${
+                    commercialState === "active" ? "bg-emerald-100 text-emerald-800" : commercialState === "complimentary" ? "bg-sky-100 text-sky-800" : commercialState === "expired" ? "bg-amber-100 text-amber-900" : "bg-[#EDE6D6] text-[#7A7164]"
+                  }`}
+                >
+                  {commercialState === "active"
+                    ? "Paquete activo / Package active"
+                    : commercialState === "complimentary"
+                      ? "Cortesía / Complimentary"
+                      : commercialState === "expired"
+                        ? "Paquete expirado / Package expired"
+                        : "Sin paquete activo / No active package"}
+                </span>
+              ) : null}
+              <Link href={`/dashboard/business-tools/business/${params?.businessId}/profile`} className="text-xs font-semibold text-[#3B66AD] underline">
+                Editar Perfil / Edit Profile
+              </Link>
+              {profileStatus !== "none" ? (
+                <Link href={`/dashboard/business-tools/business/${params?.businessId}/profile/preview`} target="_blank" className="text-xs font-semibold text-[#3B66AD] underline">
+                  Vista previa / Preview
+                </Link>
+              ) : null}
+            </div>
+          </section>
 
           <section className="rounded-3xl border border-[#E8DFD0]/90 bg-[#FFFCF7]/95 p-6 sm:p-8">
             <h2 className="text-base font-bold text-[#1E1810]">{t.completed.sectionIdentity}</h2>

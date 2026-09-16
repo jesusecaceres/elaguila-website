@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import type { CanvassDuplicateWarning, CanvassIntakeInput, CanvassMode } from "@/app/lib/business/fieldDiscovery/types";
 import { humanizeStaffWriteError } from "@/app/admin/_lib/staffWriteErrorMessages";
@@ -28,6 +28,12 @@ type SubmitState = "idle" | "submitting" | "error" | "duplicate" | "success";
 
 export function CanvassForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Staff-Created Business Profile pipeline — the "Create Client Business Profile" quick action
+  // links here with ?intent=business_profile so a successful canvass lands the operator directly
+  // on the Business Profile section instead of the plain business-page top. Every other entry
+  // point into this form (e.g. "Add prospect") omits the param, so its redirect is unchanged.
+  const intent = searchParams?.get("intent") === "business_profile" ? "business_profile" : undefined;
   const [form, setForm] = useState<FormState>(INITIAL_STATE);
   const [state, setState] = useState<SubmitState>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -50,7 +56,7 @@ export function CanvassForm() {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, confirmCreateDespiteDuplicates: confirmDespiteDuplicates }),
+      body: JSON.stringify({ ...form, confirmCreateDespiteDuplicates: confirmDespiteDuplicates, intent }),
     });
     const body = (await res.json().catch(() => null)) as
       | { ok: true; businessId: string; nextRoute: string }
