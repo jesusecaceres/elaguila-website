@@ -5,7 +5,6 @@ import { FiGlobe } from "react-icons/fi";
 
 import type { AdTranslationResult, ContentLocale, Locale } from "@/app/lib/translation/types";
 import type { TranslateAdProviderFn } from "@/app/lib/translation/provider";
-import { translateAdLocaleDisplayName } from "@/app/lib/translation/localeCodes";
 import {
   buildTranslateCacheKey,
   clearCachedAdTranslation,
@@ -37,33 +36,53 @@ export type TranslateAdControlLabels = {
 };
 
 /**
- * SOURCE CONTENT LANGUAGE and VIEWER UI LANGUAGE are separate concepts (owner product lock,
- * 2026-09-15): the instruction text always speaks the viewer's `siteLocale`; the parenthetical
- * names the actual `originalLocale` ONLY when it is truthfully known — never fabricated. `siteLocale`
- * is always es/en across current site chrome (see `normalizeLocale`), so only those two instruction
- * templates exist; `originalLocale` can be any detected source locale and falls back to no
- * parenthetical when unknown or unnamed. Exported for verifiers.
+ * Global translate-control label repair (2026-09-16) — owner-found defect: "Traducir anuncio" /
+ * "Ver original" name neither the destination nor the source language, so a viewer who cannot
+ * read the source language has no way to discover what the control actually does. The control's
+ * whole purpose is to help exactly that viewer.
+ *
+ * Doctrine: SOURCE CONTENT LANGUAGE and VIEWER UI LANGUAGE are separate. The action always
+ * translates INTO `siteLocale` (never the reverse), so the "Translate" label can always safely
+ * name the destination language — it's simply the site's own current locale, no lookup needed.
+ * "View original" additionally names the actual source language when it's known
+ * (`originalLocale !== "unknown"`), resolved via resolveOriginalLanguageName below — never
+ * fabricated when unknown.
  */
-export function buildDefaultLabels(siteLocale: Locale, originalLocale: ContentLocale): TranslateAdControlLabels {
-  const targetName = translateAdLocaleDisplayName(siteLocale, siteLocale);
-  const originalName = translateAdLocaleDisplayName(originalLocale, siteLocale);
-
-  if (siteLocale === "es") {
-    return {
-      translateAd: targetName ? `Traducir al ${targetName}` : "Traducir anuncio",
-      showOriginal: originalName ? `Ver original (${originalName})` : "Ver original",
-      translating: "Traduciendo…",
-      error: "Traducción no disponible. Inténtalo de nuevo.",
-      unavailable: "Traducción no disponible.",
-    };
-  }
-  return {
-    translateAd: targetName ? `Translate to ${targetName}` : "Translate ad",
-    showOriginal: originalName ? `View original (${originalName})` : "View original",
+const DEFAULT_LABELS: Partial<Record<Locale, TranslateAdControlLabels>> = {
+  es: {
+    translateAd: "Traducir al español",
+    showOriginal: "Ver original",
+    translating: "Traduciendo…",
+    error: "Traducción no disponible. Inténtalo de nuevo.",
+    unavailable: "Traducción no disponible.",
+  },
+  en: {
+    translateAd: "Translate to English",
+    showOriginal: "View original",
     translating: "Translating…",
     error: "Translation unavailable. Try again.",
     unavailable: "Translation unavailable.",
-  };
+  },
+};
+
+/**
+ * The source content's language, localized into the viewer's own site locale — e.g. "Spanish" for
+ * an English-UI viewer, "inglés" for a Spanish-UI viewer. `Intl.DisplayNames` is the browser's own
+ * CLDR language-name database (already correctly cased per locale convention — English capitalizes
+ * language names, Spanish doesn't), so this never hand-maintains a translation table and never
+ * needs updating as new source locales are added to the catalog. Returns null — never a fabricated
+ * or best-guess name — whenever the source locale is genuinely unknown or the lookup fails for any
+ * reason (unsupported runtime, unrecognized code).
+ */
+export function resolveOriginalLanguageName(originalLocale: ContentLocale, siteLocale: Locale): string | null {
+  if (originalLocale === "unknown" || originalLocale === siteLocale) return null;
+  try {
+    const displayNames = new Intl.DisplayNames([siteLocale], { type: "language" });
+    const name = displayNames.of(originalLocale);
+    return name && name.trim() && name !== originalLocale ? name : null;
+  } catch {
+    return null;
+  }
 }
 
 export type TranslateAdControlProps = {
@@ -102,8 +121,12 @@ export function TranslateAdControl({
   labels: labelsOverride,
 }: TranslateAdControlProps) {
   const labels = useMemo((): TranslateAdControlLabels => {
-    const base = buildDefaultLabels(siteLocale, originalLocale);
-    return { ...base, ...labelsOverride };
+    const base = DEFAULT_LABELS[siteLocale] ?? DEFAULT_LABELS.en ?? DEFAULT_LABELS.es!;
+    const originalName = resolveOriginalLanguageName(originalLocale, siteLocale);
+    const contextual: TranslateAdControlLabels = originalName
+      ? { ...base, showOriginal: `${base.showOriginal} (${originalName})` }
+      : base;
+    return { ...contextual, ...labelsOverride };
   }, [siteLocale, originalLocale, labelsOverride]);
 
   const [viewMode, setViewMode] = useState<ViewMode>("original");
