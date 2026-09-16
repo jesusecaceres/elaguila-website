@@ -17,6 +17,9 @@ export type DealerStructuredAddressPatch = Pick<
   | "dealerAddressZip"
   | "dealerAddressCountry"
   | "dealerAddress"
+  | "dealerAddressVerificationStatus"
+  | "dealerAddressProvider"
+  | "dealerAddressProviderPlaceId"
 >;
 
 function seg(v: string | undefined): string {

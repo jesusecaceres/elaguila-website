@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import type { AutosNegociosLang } from "@/app/clasificados/autos/negocios/lib/autosNegociosLang";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
-import { AutoDealerPreviewPage } from "@/app/clasificados/autos/negocios/components/AutoDealerPreviewPage";
+import { AutosNegociosDealershipPreviewPage } from "@/app/clasificados/autos/negocios/preview/dealershipPreview/AutosNegociosDealershipPreviewPage";
 import { AutosNegociosPreviewLocaleProvider } from "@/app/clasificados/autos/negocios/lib/AutosNegociosPreviewLocaleContext";
 import { AutosNegociosPreviewCaptureBanner } from "@/app/clasificados/autos/negocios/components/AutosNegociosPreviewCaptureBanner";
 import { AutosNegociosResultsCardPreview } from "@/app/(site)/publicar/autos/negocios/components/AutosNegociosResultsCardPreview";
@@ -94,7 +94,7 @@ export function AutosNegociosChildInventoryPreviewOverlay({
           >
             <AutosNegociosResultsCardPreview lang={lang} listing={merged} additionalCount={allAdditional.length} />
           </div>
-          <AutoDealerPreviewPage data={merged} relatedPreviewOnly />
+          <AutosNegociosDealershipPreviewPage data={merged} relatedPreviewOnly />
         </AutosNegociosPreviewLocaleProvider>
       </div>
     </div>

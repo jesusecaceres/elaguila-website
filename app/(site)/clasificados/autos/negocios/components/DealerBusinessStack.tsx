@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { FiCalendar, FiMail, FiMapPin, FiMessageSquare, FiPhone } from "react-icons/fi";
 import { TbWorldWww } from "react-icons/tb";
 import { SiWhatsapp } from "react-icons/si";
+import { buildSendEmailIntent, CtaActionSheet } from "@/app/components/cta";
+import type { CtaSheetIntent } from "@/app/components/cta/types";
 import type { AutoDealerListing } from "../types/autoDealerListing";
 import { hasDealerCard } from "../lib/autoDealerPresence";
 import {
@@ -11,6 +13,7 @@ import {
   formatDealerHoursTimeRange,
   formatTodaysDealerHoursLine,
 } from "../lib/dealerHoursDisplay";
+import { buildAutosDealerHoursStatus } from "../lib/autosDealerHoursStatus";
 import { formatCityStateLabel } from "./autoDealerFormatters";
 import { MediaImage } from "./MediaImage";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
@@ -50,6 +53,16 @@ const BTN_SECONDARY_LEGACY =
 
 const SECTION_HEAD =
   "text-[11px] font-extrabold uppercase tracking-[0.16em] text-[color:var(--lx-text)]";
+
+function emailFromMailtoHref(href: string): string {
+  const h = href.trim();
+  if (!h.toLowerCase().startsWith("mailto:")) return "";
+  try {
+    return decodeURIComponent(h.slice(7).split(/[?#]/)[0] ?? "");
+  } catch {
+    return h.slice(7).split(/[?#]/)[0] ?? "";
+  }
+}
 
 function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
@@ -114,7 +127,12 @@ export function DealerBusinessStack({
   const hours = filterDealerHoursForDisplay(data.dealerHours);
   const showBuyerInventory = Boolean(buyerInventoryHref?.trim());
   const logoAlt = data.dealerName?.trim() ? data.dealerName.trim() : d.logoAltFallback;
-  const todaysHoursLine = formatTodaysDealerHoursLine(data.dealerHours, lang);
+  const liveHoursStatus = buildAutosDealerHoursStatus(
+    data.dealerHours,
+    { state: data.dealerAddressState, country: data.dealerAddressCountry },
+    lang,
+  );
+  const todaysHoursLine = liveHoursStatus?.text ?? formatTodaysDealerHoursLine(data.dealerHours, lang);
   const BTN_PRIMARY = showPremiumHubHeader ? autosPreviewBurgundyPrimaryBtnClass : BTN_PRIMARY_LEGACY;
   const BTN_SECONDARY = showPremiumHubHeader ? autosPreviewSecondaryBtnClass : BTN_SECONDARY_LEGACY;
   const BTN_WHATSAPP = showPremiumHubHeader ? autosPreviewWhatsappBtnClass : BTN_PRIMARY;
@@ -142,13 +160,28 @@ export function DealerBusinessStack({
     }
     trackAutosContactFromHref(href, contactMeta);
   };
+  const [emailSheetIntent, setEmailSheetIntent] = useState<CtaSheetIntent | null>(null);
+  const openEmail = () => {
+    if (!c.emailMailto) return;
+    trackHref(c.emailMailto);
+    const email = emailFromMailtoHref(c.emailMailto);
+    setEmailSheetIntent(
+      buildSendEmailIntent({
+        email,
+        subject: data.dealerName?.trim() ? `Leonix · ${data.dealerName.trim()}` : "Leonix",
+        body: "",
+      }),
+    );
+  };
   const showWhatsapp = Boolean(c.whatsappHref);
+  // Owner-locked final mapping: "Llamar" = personal/mobile; "Solicitar disponibilidad" = office.
   const showCall = Boolean(c.callTelHref);
+  const showAvailability = Boolean(c.availabilityTelHref);
   const showSms = Boolean(c.smsHref);
   const showSchedule = Boolean(c.bookingHref);
   const showWebsite = Boolean(c.websiteHref);
   const showEmail = Boolean(c.emailMailto);
-  const showContactGrid = showWhatsapp || showCall || showSms || showSchedule || showWebsite || showEmail;
+  const showContactGrid = showWhatsapp || showCall || showAvailability || showSms || showSchedule || showWebsite || showEmail;
   const showSocial = hub.social.length > 0;
   const showReviews = hub.reviews.length > 0;
   const showMoreLinks = hub.moreLinks.length > 0;
@@ -169,6 +202,16 @@ export function DealerBusinessStack({
   const pairRowOne: Array<{ key: string; node: ReactNode }> = [];
   const pairRowTwo: Array<{ key: string; node: ReactNode }> = [];
 
+  if (showAvailability && c.availabilityTelHref) {
+    const node = (
+      <AutosDirectContactLink href={c.availabilityTelHref} className={BTN_SECONDARY} {...sheetProps}>
+        <FiPhone className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
+        {sb.availabilityCta}
+      </AutosDirectContactLink>
+    );
+    secondaryCtas.push({ key: "availability", node });
+    pairRowOne.push({ key: "availability", node });
+  }
   if (showCall && c.callTelHref) {
     const node = (
       <AutosDirectContactLink href={c.callTelHref} className={BTN_SECONDARY} {...sheetProps}>
@@ -225,10 +268,10 @@ export function DealerBusinessStack({
     secondaryCtas.push({
       key: "email",
       node: (
-        <AutosDirectContactLink href={c.emailMailto} className={BTN_SECONDARY} {...sheetProps}>
+        <button type="button" onClick={openEmail} className={BTN_SECONDARY}>
           <FiMail className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
           {sb.emailSeller}
-        </AutosDirectContactLink>
+        </button>
       ),
     });
   }
@@ -247,6 +290,7 @@ export function DealerBusinessStack({
   }
 
   return (
+    <>
     <div
       className={`min-w-0 overflow-x-hidden ${
         showPremiumHubHeader
@@ -308,10 +352,10 @@ export function DealerBusinessStack({
                 {renderPairRow(pairRowOne)}
                 {renderPairRow(pairRowTwo)}
                 {showEmail && c.emailMailto ? (
-                  <AutosDirectContactLink href={c.emailMailto} className={BTN_SECONDARY} {...sheetProps}>
+                  <button type="button" onClick={openEmail} className={BTN_SECONDARY}>
                     <FiMail className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
                     {sb.emailSeller}
-                  </AutosDirectContactLink>
+                  </button>
                 ) : null}
               </>
             ) : secondaryCtas.length > 0 ? (
@@ -463,6 +507,22 @@ export function DealerBusinessStack({
               </li>
             ))}
           </ul>
+          {(data.dealerSpecialHoursRows ?? []).length > 0 ? (
+            <>
+              <p className={`${sectionLabelClass} mt-5`}>{d.specialHoursHeading}</p>
+              <ul className="mt-3 space-y-2">
+                {(data.dealerSpecialHoursRows ?? []).map((row, idx) => (
+                  <li
+                    key={idx}
+                    className="flex items-baseline justify-between gap-4 border-b border-[#D6C7AD]/40 pb-2 text-sm last:border-b-0 last:pb-0"
+                  >
+                    <span className="min-w-0 font-semibold text-[#1F241C]">{row.label}</span>
+                    <span className="shrink-0 text-right font-medium text-[#5C5346]">{row.note}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
         </SectionBlock>
       ) : null}
 
@@ -500,5 +560,12 @@ export function DealerBusinessStack({
       ) : null}
       </div>
     </div>
+    <CtaActionSheet
+      open={emailSheetIntent != null}
+      onClose={() => setEmailSheetIntent(null)}
+      intent={emailSheetIntent}
+      lang={lang}
+    />
+    </>
   );
 }

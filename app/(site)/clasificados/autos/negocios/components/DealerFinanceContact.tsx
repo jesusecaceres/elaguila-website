@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { FiExternalLink, FiMail, FiPhone, FiUser } from "react-icons/fi";
 import { SiWhatsapp } from "react-icons/si";
 import type { AutoDealerListing } from "../types/autoDealerListing";
@@ -13,17 +14,29 @@ import {
 } from "@/app/lib/clasificados/autos/autosDealerFinanceContact";
 import { useAutosNegociosPreviewCopy } from "../lib/AutosNegociosPreviewLocaleContext";
 import { AutosDirectContactLink } from "@/app/clasificados/autos/shared/components/AutosDirectContactLink";
+import { buildSendEmailIntent, CtaActionSheet } from "@/app/components/cta";
+import type { CtaSheetIntent } from "@/app/components/cta/types";
 import {
   autosAnalyticsTrackMeta,
   autosSheetCtaAnalyticsProps,
   type AutosPublicListingAnalyticsProps,
 } from "../../lib/autosAnalyticsIdentity";
-import { trackAutosFinancePreapprovalCta } from "../../lib/autosCtaTracking";
+import { trackAutosContactFromHref, trackAutosFinancePreapprovalCta } from "../../lib/autosCtaTracking";
 import {
   autosPreviewBusinessHubSectionLabelClass,
   autosPreviewRectActionClass,
   autosPreviewWhatsappBtnClass,
 } from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
+
+function emailFromMailtoHref(href: string): string {
+  const h = href.trim();
+  if (!h.toLowerCase().startsWith("mailto:")) return "";
+  try {
+    return decodeURIComponent(h.slice(7).split(/[?#]/)[0] ?? "");
+  } catch {
+    return h.slice(7).split(/[?#]/)[0] ?? "";
+  }
+}
 
 export function DealerFinanceContact({
   data,
@@ -39,6 +52,7 @@ export function DealerFinanceContact({
 }) {
   const { lang, t } = useAutosNegociosPreviewCopy();
   const f = t.preview.finance;
+  const [emailSheetIntent, setEmailSheetIntent] = useState<CtaSheetIntent | null>(null);
   if (!hasDealerFinanceContact(data)) return null;
 
   const name = data.financeContactName?.trim();
@@ -62,12 +76,24 @@ export function DealerFinanceContact({
           source: "detail_contact",
         })
       : undefined;
+  const openFinanceEmail = () => {
+    if (!email) return;
+    if (contactMeta) trackAutosContactFromHref(email, contactMeta);
+    setEmailSheetIntent(
+      buildSendEmailIntent({
+        email: emailFromMailtoHref(email),
+        subject: name ? `Leonix · ${name}` : "Leonix",
+        body: "",
+      }),
+    );
+  };
 
   const actionClass = premium ? autosPreviewRectActionClass : autosPreviewRectActionClass;
   const waClass = premium ? autosPreviewWhatsappBtnClass : actionClass;
   const headingClass = premium ? autosPreviewBusinessHubSectionLabelClass : "text-[11px] font-extrabold uppercase tracking-[0.16em] text-[color:var(--lx-text)]";
 
   return (
+    <>
     <div className={embedded ? "" : "mt-6 border-t border-[color:var(--lx-nav-border)] pt-6"}>
       <p className={headingClass}>{f.heading}</p>
       <p className="mt-2 text-xs leading-relaxed text-[#5C5346]">{f.intro}</p>
@@ -107,10 +133,10 @@ export function DealerFinanceContact({
             </AutosDirectContactLink>
           ) : null}
           {email ? (
-            <AutosDirectContactLink href={email} className={actionClass} {...sheetProps}>
+            <button type="button" onClick={openFinanceEmail} className={actionClass}>
               <FiMail className="h-4 w-4 shrink-0 text-[#C9A84A]" aria-hidden />
               {f.email}
-            </AutosDirectContactLink>
+            </button>
           ) : null}
         </div>
         {appHref ? (
@@ -136,5 +162,12 @@ export function DealerFinanceContact({
       ) : null}
       <p className="mt-3 text-[10px] leading-relaxed text-[#8A7A68]">{f.disclaimer}</p>
     </div>
+    <CtaActionSheet
+      open={emailSheetIntent != null}
+      onClose={() => setEmailSheetIntent(null)}
+      intent={emailSheetIntent}
+      lang={lang}
+    />
+    </>
   );
 }

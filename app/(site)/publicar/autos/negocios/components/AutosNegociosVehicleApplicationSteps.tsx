@@ -524,7 +524,7 @@ export function AutosNegociosVehicleApplicationSteps({
             {lang === "es" ? "Otros equipos, mejoras o detalles" : "Other equipment, upgrades, or details"}
           </label>
           <textarea
-            className={`${INPUT} mt-2 min-h-[90px]`}
+            className={`${INPUT} mt-2 min-h-[140px] resize-y`}
             value={draft.otherEquipmentDetails ?? ""}
             onChange={(e) => onPatch({ otherEquipmentDetails: autosDraftTextValue(e.target.value) || undefined })}
           />
@@ -559,7 +559,7 @@ export function AutosNegociosVehicleApplicationSteps({
       <section className={CARD}>
         <h2 className={SECTION}>{sectionTitle(5)}</h2>
         <textarea
-          className={`${INPUT} mt-3 min-h-[120px]`}
+          className={`${INPUT} mt-3 min-h-[240px] resize-y`}
           placeholder={t.app.placeholders.description}
           value={draft.description ?? ""}
           onChange={(e) => onPatch({ description: autosDraftTextValue(e.target.value) || undefined })}

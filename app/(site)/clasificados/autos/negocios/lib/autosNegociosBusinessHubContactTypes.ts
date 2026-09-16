@@ -29,7 +29,10 @@ export type AutosNegociosBusinessHubSocialLink = {
 
 export type AutosNegociosBusinessHubContactActions = {
   whatsappHref?: string;
+  /** Owner-locked final mapping: "Llamar" = the dealer's personal/mobile line. */
   callTelHref?: string;
+  /** Owner-locked final mapping: "Solicitar disponibilidad" = the office/dealership line. */
+  availabilityTelHref?: string;
   smsHref?: string;
   bookingHref?: string;
   websiteHref?: string;
