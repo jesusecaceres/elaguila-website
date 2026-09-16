@@ -112,7 +112,7 @@ export function AutosDealerFinanceFields({
         <div className="sm:col-span-2">
           <label className={LABEL}>{f.notes}</label>
           <textarea
-            className={`${INPUT} min-h-[80px]`}
+            className={`${INPUT} min-h-[140px] resize-y`}
             value={listing.financeNotes ?? ""}
             onChange={(e) => setListingPatch({ financeNotes: autosDraftTextValue(e.target.value) })}
           />

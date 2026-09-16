@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import { buildSendEmailIntent, CtaActionSheet } from "@/app/components/cta";
+import type { CtaSheetIntent } from "@/app/components/cta/types";
 import {
   FiCalendar,
   FiGrid,
@@ -21,6 +23,7 @@ import {
   formatDealerHoursTimeRange,
   formatTodaysDealerHoursLine,
 } from "../../lib/dealerHoursDisplay";
+import { buildAutosDealerHoursStatus } from "../../lib/autosDealerHoursStatus";
 import { formatCityStateLabel, formatUsd, polishMonthlyEstimateDisplay } from "../../components/autoDealerFormatters";
 import { MediaImage } from "../../components/MediaImage";
 import { useAutosNegociosPreviewCopy } from "../../lib/AutosNegociosPreviewLocaleContext";
@@ -51,11 +54,13 @@ import {
 } from "../../../lib/autosCtaTracking";
 import { hasListingVideo } from "../../lib/autoDealerVideo";
 import { LeonixLikeButton } from "@/app/components/clasificados/analytics/LeonixLikeButton";
+import { LeonixShareButton } from "@/app/components/clasificados/analytics/LeonixShareButton";
 import {
   autosAnalyticsContextFromProps,
   autosGlobalLikeRecorderFromContext,
+  autosGlobalShareRecorderFromContext,
 } from "@/app/lib/clasificados/autos/analytics/autosGlobalAnalytics";
-import { AUTOS_PREVIEW_SECTION_IDS } from "./previewPremiumTokens";
+import { AUTOS_GALLERY_SELECT_TAB_EVENT, AUTOS_PREVIEW_SECTION_IDS } from "./previewPremiumTokens";
 import {
   autosPreviewBurgundyPrimaryBtnClass,
   autosPreviewBusinessHubHeaderClass,
@@ -77,6 +82,16 @@ const SECTION_HEAD = "text-[11px] font-extrabold uppercase tracking-[0.16em] tex
 
 const QUICK_ACTION_CLASS =
   "inline-flex min-h-[44px] w-full items-center gap-3 rounded-[10px] border border-[#D6C7AD]/70 bg-[#FFFCF7] px-3 text-left text-sm font-semibold text-[#1F241C] transition hover:border-[#C9A84A] hover:bg-[#FBF7EF]";
+
+function emailFromMailtoHref(href: string): string {
+  const h = href.trim();
+  if (!h.toLowerCase().startsWith("mailto:")) return "";
+  try {
+    return decodeURIComponent(h.slice(7).split(/[?#]/)[0] ?? "");
+  } catch {
+    return h.slice(7).split(/[?#]/)[0] ?? "";
+  }
+}
 
 function nonEmpty(s: string | undefined | null): boolean {
   return typeof s === "string" && s.trim().length > 0;
@@ -147,7 +162,12 @@ export function PreviewDealerBusinessStack({
   const hours = filterDealerHoursForDisplay(data.dealerHours);
   const showBuyerInventory = Boolean(buyerInventoryHref?.trim());
   const logoAlt = data.dealerName?.trim() ? data.dealerName.trim() : d.logoAltFallback;
-  const todaysHoursLine = formatTodaysDealerHoursLine(data.dealerHours, lang);
+  const liveHoursStatus = buildAutosDealerHoursStatus(
+    data.dealerHours,
+    { state: data.dealerAddressState, country: data.dealerAddressCountry },
+    lang,
+  );
+  const todaysHoursLine = liveHoursStatus?.text ?? formatTodaysDealerHoursLine(data.dealerHours, lang);
   const BTN_PRIMARY = showPremiumHubHeader ? autosPreviewBurgundyPrimaryBtnClass : BTN_PRIMARY_LEGACY;
   const BTN_SECONDARY = showPremiumHubHeader ? autosPreviewSecondaryBtnClass : BTN_SECONDARY_LEGACY;
   const BTN_WHATSAPP = showPremiumHubHeader ? autosPreviewWhatsappBtnClass : BTN_PRIMARY;
@@ -175,13 +195,28 @@ export function PreviewDealerBusinessStack({
     }
     trackAutosContactFromHref(href, contactMeta);
   };
+  const [emailSheetIntent, setEmailSheetIntent] = useState<CtaSheetIntent | null>(null);
+  const openEmail = () => {
+    if (!c.emailMailto) return;
+    trackHref(c.emailMailto);
+    const email = emailFromMailtoHref(c.emailMailto);
+    setEmailSheetIntent(
+      buildSendEmailIntent({
+        email,
+        subject: data.dealerName?.trim() ? `Leonix · ${data.dealerName.trim()}` : "Leonix",
+        body: "",
+      }),
+    );
+  };
   const showWhatsapp = Boolean(c.whatsappHref);
+  // Owner-locked final mapping: "Llamar" = personal/mobile; "Solicitar disponibilidad" = office.
   const showCall = Boolean(c.callTelHref);
+  const showAvailability = Boolean(c.availabilityTelHref);
   const showSms = Boolean(c.smsHref);
   const showSchedule = Boolean(c.bookingHref);
   const showWebsite = Boolean(c.websiteHref);
   const showEmail = Boolean(c.emailMailto);
-  const showContactGrid = showWhatsapp || showCall || showSms || showSchedule || showWebsite || showEmail;
+  const showContactGrid = showWhatsapp || showCall || showAvailability || showSms || showSchedule || showWebsite || showEmail;
   const showSocial = hub.social.length > 0;
   const showReviews = hub.reviews.length > 0;
   const showMoreLinks = hub.moreLinks.length > 0;
@@ -194,7 +229,9 @@ export function PreviewDealerBusinessStack({
   const analyticsCtx = useMemo(() => autosAnalyticsContextFromProps(publicAnalytics), [publicAnalytics]);
   const priceOk = data.price !== undefined && Number.isFinite(data.price);
   const monthly = polishMonthlyEstimateDisplay(data.monthlyEstimate ?? undefined);
-  const primaryAvailabilityHref = c.whatsappHref || c.smsHref || c.emailMailto || c.bookingHref || null;
+  // Owner-locked final mapping: "Solicitar disponibilidad" is the office/dealership number first,
+  // falling back to another real availability channel (never email — Correo has its own button).
+  const primaryAvailabilityHref = c.availabilityTelHref || c.whatsappHref || c.smsHref || c.bookingHref || null;
   const chatHref = c.whatsappHref || c.smsHref || null;
   const phoneDisplay =
     data.dealerPhoneOffice?.trim() || data.dealerPhoneMobile?.trim() || data.dealerSmsPhone?.trim() || "";
@@ -222,7 +259,6 @@ export function PreviewDealerBusinessStack({
   const printLabel = lang === "es" ? "Imprimir" : "Print";
   const shareLabel = lang === "es" ? "Compartir" : "Share";
   const reportLabel = lang === "es" ? "Reportar anuncio" : "Report listing";
-  const profileLabel = lang === "es" ? "Ver perfil del negocio" : "View business profile";
 
   let sectionBorder = false;
   const nextSection = () => {
@@ -233,6 +269,15 @@ export function PreviewDealerBusinessStack({
 
   const secondaryCtas: Array<{ key: string; node: ReactNode }> = [];
 
+  if (showAvailability && c.availabilityTelHref) {
+    const node = (
+      <AutosDirectContactLink href={c.availabilityTelHref} className={BTN_SECONDARY} {...sheetProps}>
+        <FiPhone className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
+        {sb.availabilityCta}
+      </AutosDirectContactLink>
+    );
+    secondaryCtas.push({ key: "availability", node });
+  }
   if (showCall && c.callTelHref) {
     const node = (
       <AutosDirectContactLink href={c.callTelHref} className={BTN_SECONDARY} {...sheetProps}>
@@ -285,10 +330,10 @@ export function PreviewDealerBusinessStack({
     secondaryCtas.push({
       key: "email",
       node: (
-        <AutosDirectContactLink href={c.emailMailto} className={BTN_SECONDARY} {...sheetProps}>
+        <button type="button" onClick={openEmail} className={BTN_SECONDARY}>
           <FiMail className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
           {sb.emailSeller}
-        </AutosDirectContactLink>
+        </button>
       ),
     });
   }
@@ -313,6 +358,7 @@ export function PreviewDealerBusinessStack({
   const premiumHub = showPremiumHubHeader;
 
   return (
+    <>
     <div
       className={`min-w-0 overflow-x-hidden ${
         premiumHub
@@ -349,6 +395,8 @@ export function PreviewDealerBusinessStack({
                 >
                   {primaryAvailabilityHref === c.whatsappHref ? (
                     <SiWhatsapp className="h-5 w-5 shrink-0 text-white" aria-hidden />
+                  ) : primaryAvailabilityHref === c.availabilityTelHref ? (
+                    <FiPhone className="h-5 w-5 shrink-0" aria-hidden />
                   ) : (
                     <FiMessageSquare className="h-5 w-5 shrink-0" aria-hidden />
                   )}
@@ -417,10 +465,10 @@ export function PreviewDealerBusinessStack({
                 </a>
               ) : null}
               {showEmail && c.emailMailto && primaryAvailabilityHref !== c.emailMailto ? (
-                <AutosDirectContactLink href={c.emailMailto} className={BTN_SECONDARY} {...sheetProps}>
+                <button type="button" onClick={openEmail} className={BTN_SECONDARY}>
                   <FiMail className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
                   {sb.emailSeller}
-                </AutosDirectContactLink>
+                </button>
               ) : null}
             </div>
           </SectionBlock>
@@ -428,7 +476,16 @@ export function PreviewDealerBusinessStack({
 
         {premiumHub && showVideoUtility ? (
           <SectionBlock showTopBorder premium>
-            <a href={`#${AUTOS_PREVIEW_SECTION_IDS.gallery}`} className={QUICK_ACTION_CLASS}>
+            <a
+              href={`#${AUTOS_PREVIEW_SECTION_IDS.gallery}`}
+              className={QUICK_ACTION_CLASS}
+              onClick={() => {
+                // Gallery tab state lives in the sibling PreviewAutoGallery
+                // component; broadcast intent so it switches to Video instead
+                // of only scrolling the page to the section.
+                window.dispatchEvent(new CustomEvent(AUTOS_GALLERY_SELECT_TAB_EVENT, { detail: "video" }));
+              }}
+            >
               <FiPlay className="h-4 w-4 shrink-0 text-[#7A1E2C]" aria-hidden />
               <span className="flex-1">{viewVideoLabel}</span>
               <FiGrid className="h-4 w-4 shrink-0 text-[#8A6B1F]" aria-hidden />
@@ -487,7 +544,7 @@ export function PreviewDealerBusinessStack({
             ) : null}
 
             {premiumHub && (showBuyerInventory || showWebsite) ? (
-              <div className="mt-4">
+              <div className="mt-4 flex flex-col gap-3">
                 {showBuyerInventory && buyerInventoryHref ? (
                   <a
                     href={buyerInventoryHref}
@@ -496,9 +553,10 @@ export function PreviewDealerBusinessStack({
                       if (contactMeta) trackAutosDealerInventoryOpenCta(contactMeta);
                     }}
                   >
-                    {profileLabel}
+                    {sb.viewDealerInventory}
                   </a>
-                ) : showWebsite && c.websiteHref ? (
+                ) : null}
+                {showWebsite && c.websiteHref ? (
                   <a
                     href={c.websiteHref}
                     target="_blank"
@@ -506,7 +564,7 @@ export function PreviewDealerBusinessStack({
                     className={BTN_SECONDARY}
                     onClick={() => trackHref(c.websiteHref!)}
                   >
-                    {profileLabel}
+                    {sb.viewWebsite}
                   </a>
                 ) : null}
               </div>
@@ -579,7 +637,20 @@ export function PreviewDealerBusinessStack({
                   </span>
                 </div>
               ) : null}
-              {publicPlaybackOnly ? (
+              {publicPlaybackOnly && analyticsCtx && publicAnalytics?.listingSourceId ? (
+                <LeonixShareButton
+                  listingId={publicAnalytics.listingSourceId}
+                  listingUrl={publicUrl?.trim() || ""}
+                  listingTitle={data.vehicleTitle?.trim() || data.dealerName?.trim() || "Leonix Autos"}
+                  variant="default"
+                  lang={lang}
+                  category="autos"
+                  persistEngagement
+                  directNativeShare
+                  recordShareEvent={autosGlobalShareRecorderFromContext(analyticsCtx, "detail_share")}
+                  className={QUICK_ACTION_CLASS}
+                />
+              ) : publicPlaybackOnly ? (
                 <button type="button" className={QUICK_ACTION_CLASS} onClick={() => void onShare()}>
                   <FiShare2 className="h-4 w-4 shrink-0 text-[#7A1E2C]" aria-hidden />
                   {shareLabel}
@@ -752,6 +823,22 @@ export function PreviewDealerBusinessStack({
                 </li>
               ))}
             </ul>
+            {(data.dealerSpecialHoursRows ?? []).length > 0 ? (
+              <>
+                <p className={`${sectionLabelClass} mt-5`}>{d.specialHoursHeading}</p>
+                <ul className="mt-3 space-y-2">
+                  {(data.dealerSpecialHoursRows ?? []).map((row, idx) => (
+                    <li
+                      key={idx}
+                      className="flex items-baseline justify-between gap-4 border-b border-[#D6C7AD]/40 pb-2 text-sm last:border-b-0 last:pb-0"
+                    >
+                      <span className="min-w-0 font-semibold text-[#1F241C]">{row.label}</span>
+                      <span className="shrink-0 text-right font-medium text-[#5C5346]">{row.note}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
           </SectionBlock>
         ) : null}
 
@@ -789,5 +876,12 @@ export function PreviewDealerBusinessStack({
         ) : null}
       </div>
     </div>
+    <CtaActionSheet
+      open={emailSheetIntent != null}
+      onClose={() => setEmailSheetIntent(null)}
+      intent={emailSheetIntent}
+      lang={lang}
+    />
+    </>
   );
 }

@@ -1,10 +1,15 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { FiMapPin, FiPhone } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import type { ServiciosProfileResolved, ServiciosLang } from "../types/serviciosBusinessProfile";
 import type { ServiciosListingTemplate } from "@/app/(site)/clasificados/servicios/lib/serviciosTemplateRouting";
 import { serviciosAnalyticsTrackMeta, trackServiciosListingCta } from "../lib/serviciosCtaIntents";
+import {
+  fetchLeonixEndorsementSummary,
+  type LeonixEndorsementSummaryEntry,
+} from "@/app/lib/leonixCommunityTrust/leonixEndorsementClient";
 import { serviciosOpenGoogleMapsDirections } from "../lib/serviciosDirectCta";
 import { resolveServiciosProfileDirectWhatsAppHref } from "../lib/serviciosWhatsAppHref";
 import {
@@ -42,6 +47,83 @@ function StarRow({ rating, lang }: { rating: number; lang: ServiciosLang }) {
         );
       })}
       <span className="ml-0.5 text-xs font-bold text-[#FFFCF7]">{rating.toFixed(1)}</span>
+    </div>
+  );
+}
+
+/**
+ * Servicios Golden UI Closeout (2026-09-16) — compact Community Trust surfacing in the header,
+ * per owner UI decision: the full Community on Leonix section (unchanged, still lower on the
+ * page) is valuable but was too buried. Reuses the exact same `fetchLeonixEndorsementSummary`
+ * source the full section already uses — real counts only, never a fabricated rating, never
+ * "0 rating" language. `null` while loading/unavailable renders nothing (never a misleading
+ * placeholder); `listingSourceId` absent means the listing has no durable identity yet (preview/
+ * unpublished), which is its own truthful state, distinct from "zero real endorsements."
+ */
+function ServiciosHeroTrustSummary({
+  listingSourceId,
+  lang,
+}: {
+  listingSourceId?: string;
+  lang: ServiciosLang;
+}) {
+  const [summary, setSummary] = useState<LeonixEndorsementSummaryEntry[] | null>(null);
+  const targetId = (listingSourceId ?? "").trim();
+
+  useEffect(() => {
+    let cancelled = false;
+    setSummary(null);
+    if (!targetId) return;
+    void (async () => {
+      const result = await fetchLeonixEndorsementSummary("servicios", targetId);
+      if (!cancelled && result.ok) setSummary(result.summary);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [targetId]);
+
+  if (!targetId) {
+    return (
+      <p className="mt-2.5 text-[11px] text-[#FFFCF7]/70 sm:text-xs">
+        {lang === "en"
+          ? "Community endorsements turn on once this listing is published."
+          : "Los reconocimientos de la comunidad se activan al publicarse este anuncio."}
+      </p>
+    );
+  }
+
+  if (!summary) return null;
+
+  const total = summary.reduce((sum, e) => sum + e.count, 0);
+  if (total === 0) {
+    return (
+      <p className="mt-2.5 text-[11px] font-medium text-[#FFFCF7]/85 sm:text-xs">
+        🦁 {lang === "en" ? "New on Leonix" : "Nuevo en Leonix"}
+      </p>
+    );
+  }
+
+  const topTraits = [...summary]
+    .filter((e) => e.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 3);
+
+  return (
+    <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 sm:justify-start">
+      <p className="text-xs font-bold text-[#FFFCF7] sm:text-sm">
+        🦁 {lang === "en" ? `${total} recognitions on Leonix` : `${total} reconocimientos en Leonix`}
+      </p>
+      {topTraits.length > 0 ? (
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-[#FFFCF7]/80 sm:text-[11px]">
+          {topTraits.map((t, i) => (
+            <span key={t.key}>
+              {i > 0 ? <span className="mr-2 text-[#FFFCF7]/40">·</span> : null}
+              {(lang === "en" ? t.en : t.es) || t.key} {t.count}
+            </span>
+          ))}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -218,6 +300,7 @@ export function ServiciosProfessionalHero({
               ) : null}
             </div>
 
+            <ServiciosHeroTrustSummary listingSourceId={listingSourceId} lang={lang} />
           </div>
         </div>
 

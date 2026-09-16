@@ -33,8 +33,15 @@ export const autosPreviewSectionEyebrowClass =
 export const autosPreviewSectionTitleClass =
   "font-serif text-lg font-bold tracking-tight text-[#1F241C] sm:text-xl";
 
+/**
+ * Owner runtime observation (2026-09): at normal 100% desktop zoom the hero title felt oversized
+ * relative to the rest of the composition on common laptop widths (~1280-1440px). Fluid clamp()
+ * scaling replaces the old fixed step (locked at 2.25rem from `md:` up) so the title settles
+ * proportionately across the whole desktop range instead of jumping straight to its max size —
+ * same font/weight/tracking, same mobile floor, a slightly lower desktop ceiling (2.1rem vs 2.25rem).
+ */
 export const autosPreviewHeroTitleClass =
-  "font-serif text-pretty text-[1.65rem] font-bold leading-[1.12] tracking-tight text-[#1F241C] sm:text-[2rem] md:text-[2.25rem]";
+  "font-serif text-pretty text-[1.65rem] font-bold leading-[1.12] tracking-tight text-[#1F241C] sm:text-[2rem] md:text-[clamp(1.85rem,1.4rem+1.6vw,2.1rem)]";
 
 export const autosPreviewHeroPriceClass =
   "text-pretty text-3xl font-extrabold tabular-nums leading-none tracking-tight text-[#7A1E2C] sm:text-4xl lg:text-[2.5rem]";

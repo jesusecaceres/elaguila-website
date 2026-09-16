@@ -20,3 +20,9 @@ export function resolveDealerSmsPhone(data: AutoDealerListing): string | undefin
   const sms = data.dealerSmsPhone?.trim();
   return sms || undefined;
 }
+
+/** Personal/mobile line — owner-locked final mapping: this is "Llamar". Office has its own distinct "Solicitar disponibilidad" CTA. */
+export function resolveDealerMobilePhone(data: AutoDealerListing): string | undefined {
+  const mobile = data.dealerPhoneMobile?.trim();
+  return mobile || undefined;
+}
