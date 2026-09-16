@@ -546,5 +546,59 @@ export function applyServiciosTranslation(
   return next;
 }
 
+/* ==============================================================================================
+ * Servicios Final UI Truth Closeout (2026-09-16) — RESULTS-CARD-SCOPED translation.
+ *
+ * The full-profile translation above (`buildServiciosTranslatableContent`/`applyServiciosTranslation`)
+ * covers every owner-authored field on the DETAIL page (about, highlights, coupons, promotions,
+ * credentials, …) — most of which a results card never renders. Sending that whole bundle just to
+ * translate a card would violate "translate only the fields actually rendered in the card." These
+ * card-scoped variants translate ONLY the category chip (when it's owner-authored "otro" text) and
+ * the owner-authored service chip titles actually displayed on the card — nothing else. Uses a
+ * DIFFERENT `version` string at the call site so its cache entries never collide with the
+ * full-profile page's own cache for the same listing.
+ * ============================================================================================ */
+export type ServiciosCardTranslatableInput = {
+  /** Only set when the category line is owner-authored "otro" text (never a catalog preset label). */
+  categoryLine?: string;
+  /** The exact, already-displayed, owner-authored chip strings on this card (post clean/de-dup). */
+  ownerAuthoredChips: string[];
+};
+
+export function buildServiciosCardTranslatableContent(
+  input: ServiciosCardTranslatableInput,
+): TranslatableAdFields {
+  return {
+    title: input.categoryLine?.trim() || undefined,
+    details: encodeLxRecords(
+      input.ownerAuthoredChips
+        .map((c, i) => ({ key: String(i), cols: [c.trim()] }))
+        .filter((r) => r.cols[0]),
+    ),
+  };
+}
+
+export type ServiciosCardTranslationResult = {
+  categoryLine?: string;
+  /** Original displayed chip text -> translated chip text (only entries that actually changed). */
+  chipsByOriginal: Map<string, string>;
+};
+
+export function applyServiciosCardTranslation(
+  translated: Partial<TranslatableAdFields>,
+  input: ServiciosCardTranslatableInput,
+): ServiciosCardTranslationResult {
+  const categoryLine = cleanProse(translated.title) || undefined;
+  const chipsByOriginal = new Map<string, string>();
+  if (translated.details?.trim()) {
+    const byIndex = decodeLxRecords(translated.details) ?? decodeLegacyIndexed(translated.details);
+    input.ownerAuthoredChips.forEach((orig, i) => {
+      const value = byIndex.get(String(i))?.[0];
+      if (value && value !== orig) chipsByOriginal.set(orig, value);
+    });
+  }
+  return { categoryLine, chipsByOriginal };
+}
+
 /** Client-only: POST masked fields to the server translate route (no API keys). */
 export { requestAdTranslation as requestServiciosAdTranslation } from "@/app/lib/translation/requestAdTranslation";

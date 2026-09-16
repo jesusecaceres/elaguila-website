@@ -5,7 +5,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { FiMapPin, FiPhone } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
-import { relabelServiciosCanonicalPresets } from "@/app/(site)/servicios/lib/serviciosTranslateAd";
+import {
+  isOwnerAuthoredQuickFact,
+  isOwnerAuthoredService,
+  relabelServiciosCanonicalPresets,
+} from "@/app/(site)/servicios/lib/serviciosTranslateAd";
+import { canonicalBusinessTypeLabel } from "@/app/(site)/servicios/lib/serviciosCanonicalPresetLabels";
+import { useServiciosResultCardTranslation } from "@/app/servicios/components/useServiciosResultCardTranslation";
+import type { ServiciosProfileResolved } from "@/app/servicios/types/serviciosBusinessProfile";
 import type { ServiciosPublicListingRow } from "./lib/serviciosPublicListingsServer";
 import { serviciosEngagementListingKey } from "./lib/serviciosPublicListingSort";
 import {
@@ -45,6 +52,7 @@ import {
   LX_CTA_CARD_SECONDARY,
   LX_CTA_CARD_WHATSAPP,
   LX_IVORY_CARD,
+  cleanProfessionalChipLabel,
   collectHeroTrustChips,
   collectProfessionalServiceChips,
   getPrimaryCtaLabel,
@@ -54,6 +62,35 @@ import {
 
 function getProfileCtaSecondary(_template: ServiciosListingTemplate, lang: ServiciosLang): string {
   return lang === "en" ? "View profile" : "Ver perfil";
+}
+
+/**
+ * Servicios Final UI Truth Closeout (2026-09-16) — Gate 6: which of the card's already-displayed
+ * chips (service titles, specialties-line fragments, trust quick facts) are genuinely owner-
+ * authored, per the same doctrine `serviciosTranslateAd.ts` already uses for the full-profile
+ * translation bundle. Intersected against `displayed` so only chips that survived cleaning/de-dup
+ * (i.e. are actually on screen) are ever sent for translation.
+ */
+function collectOwnerAuthoredProfessionalChips(profile: ServiciosProfileResolved, displayed: string[]): string[] {
+  const owner = new Set<string>();
+  for (const s of profile.services) {
+    if (!isOwnerAuthoredService(s)) continue;
+    const c = cleanProfessionalChipLabel(s.title);
+    if (c) owner.add(c.toLowerCase());
+  }
+  const spec = profile.about?.specialtiesLine?.trim();
+  if (spec) {
+    for (const part of spec.split(/[,;|·]/)) {
+      const c = cleanProfessionalChipLabel(part);
+      if (c) owner.add(c.toLowerCase());
+    }
+  }
+  for (const f of profile.quickFacts) {
+    if (!isOwnerAuthoredQuickFact(f)) continue;
+    const c = cleanProfessionalChipLabel(f.label);
+    if (c) owner.add(c.toLowerCase());
+  }
+  return displayed.filter((chip) => owner.has(chip.toLowerCase()));
 }
 
 function StarRow({ rating, lang }: { rating: number; lang: ServiciosLang }) {
@@ -136,6 +173,21 @@ export function ServiciosProfessionalResultCard({
   const serviceChips = useMemo(() => collectProfessionalServiceChips(profile, 12), [profile]);
   const trustChips = useMemo(() => collectHeroTrustChips(profile, 3), [profile]);
   const allChips = useMemo(() => [...serviceChips, ...trustChips], [serviceChips, trustChips]);
+  const isCompact = density === "compact";
+
+  const customCategoryLine = category && canonicalBusinessTypeLabel(category, "es") == null ? category : undefined;
+  const ownerAuthoredChips = useMemo(
+    () => (isCompact ? [] : collectOwnerAuthoredProfessionalChips(profile, allChips)),
+    [isCompact, profile, allChips],
+  );
+  const { translateControl, displayCategoryLine, chipOverrides } = useServiciosResultCardTranslation({
+    categoryLine: customCategoryLine,
+    ownerAuthoredChips,
+    lang,
+    listingKey: ctaAnalyticsKey,
+    enabled: !isCompact,
+  });
+  const displayCategory = displayCategoryLine ?? category;
 
   const ratingValue =
     typeof profile.hero.rating === "number" && Number.isFinite(profile.hero.rating) && profile.hero.rating > 0
@@ -204,8 +256,9 @@ export function ServiciosProfessionalResultCard({
   const cardSurface = promoted
     ? `${LX_IVORY_CARD} ring-2 ring-[#C9A84A]/30 border-[#C9A84A]/55`
     : LX_IVORY_CARD;
-  const isCompact = density === "compact";
-  const displayChips = isCompact && allChips.length > 3 ? [...allChips.slice(0, 3), `+${allChips.length - 3}`] : allChips;
+  const displayChips = (
+    isCompact && allChips.length > 3 ? [...allChips.slice(0, 3), `+${allChips.length - 3}`] : allChips
+  ).map((c) => chipOverrides.get(c) ?? c);
 
   const body = (
     <>
@@ -253,8 +306,8 @@ export function ServiciosProfessionalResultCard({
               {profile.identity.businessName}
             </h3>
 
-            {category ? (
-              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6F6254] sm:text-[11px]">{category}</p>
+            {displayCategory ? (
+              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6F6254] sm:text-[11px]">{displayCategory}</p>
             ) : null}
 
             {location ? (
@@ -275,14 +328,6 @@ export function ServiciosProfessionalResultCard({
               </div>
             ) : null}
 
-            {!isCompact && endorsementCount > 0 ? (
-              <p className="pt-0.5 text-[11px] font-semibold text-[#7A1E2C]">
-                <span aria-hidden>🦁</span>{" "}
-                {lang === "en"
-                  ? `${endorsementCount} community endorsement${endorsementCount === 1 ? "" : "s"}`
-                  : `${endorsementCount} reconocimiento${endorsementCount === 1 ? "" : "s"} de la comunidad`}
-              </p>
-            ) : null}
           </div>
         </div>
 
@@ -383,6 +428,21 @@ export function ServiciosProfessionalResultCard({
                     {lang === "en" ? "Directions" : "Cómo llegar"}
                   </button>
                 ) : null}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2" data-servicios-card-trust-translate="1">
+                <span className="inline-flex items-center gap-1 rounded-full border border-[#E8D7B8] bg-[#FFF9F2] px-2.5 py-1 text-[10px] font-bold text-[#7A1E2C] sm:text-[11px]">
+                  🦁 {lang === "en" ? "Leonix Community" : "Comunidad Leonix"}
+                  {" · "}
+                  {endorsementCount > 0
+                    ? lang === "en"
+                      ? `${endorsementCount} recognition${endorsementCount === 1 ? "" : "s"}`
+                      : `${endorsementCount} reconocimiento${endorsementCount === 1 ? "" : "s"}`
+                    : lang === "en"
+                      ? "New"
+                      : "Nuevo"}
+                </span>
+                {translateControl}
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-2">

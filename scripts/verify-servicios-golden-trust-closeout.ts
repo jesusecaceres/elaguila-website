@@ -92,11 +92,14 @@ check("neither result card mounts a vote/toggle control — trust count is read-
     assert.ok(!src.includes("<LeonixCommunityTrust"), `${rel}: does not embed the full interactive trust component`);
   }
 });
-check("both result cards render the endorsement count as plain text driven by row.public_endorsement_count, hidden at zero", () => {
+check("both result cards render the endorsement count as plain text driven by row.public_endorsement_count", () => {
   for (const rel of [TRADE_CARD, PRO_CARD]) {
     const src = raw(rel);
     assert.ok(src.includes("row.public_endorsement_count") || src.includes("row?.public_endorsement_count"));
-    assert.ok(src.includes("endorsementCount > 0"), `${rel}: block is hidden when count is zero — no fabricated placeholder`);
+    // Servicios Final UI Truth Closeout (2026-09-16, Gate 5): owner decision changed — the branded
+    // Comunidad Leonix chip now stays visible even at zero ("Nuevo"), rather than being hidden.
+    // `endorsementCount > 0` still branches the TEXT (real count vs. "Nuevo"), never the visibility.
+    assert.ok(src.includes("endorsementCount > 0"), `${rel}: real-vs-zero text branch still present`);
   }
 });
 
