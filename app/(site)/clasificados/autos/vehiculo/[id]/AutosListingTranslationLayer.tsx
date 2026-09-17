@@ -105,9 +105,12 @@ export function AutosListingTranslationLayer({
         // custom-link labels) / shareText (special-hours label+note). v3 -> v4 (2026-09-16):
         // gained locationNote (the dealer address's trailing human note, e.g. "showroom con 18
         // plazas de estacionamiento para clientes" — the address identity prefix itself is never
-        // sent). Each bump forces a fresh request so a stale cached response can never silently
-        // present as a now-more-complete translation; does not affect any other category's cache.
-        version="autos-t6-v4"
+        // sent). v4 -> v5 (2026-09-17): gained financeTeaser (the free-typed monthly-estimate
+        // sentence, e.g. "Desde $689/mes a 60 meses..." — previously never translated, so it
+        // stayed in the dealer's authored language even after Translate). Each bump forces a
+        // fresh request so a stale cached response can never silently present as a
+        // now-more-complete translation; does not affect any other category's cache.
+        version="autos-t6-v5"
         translatableContent={translatableContent}
         onTranslated={onTranslated}
         onShowOriginal={onShowOriginal}

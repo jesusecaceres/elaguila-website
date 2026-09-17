@@ -697,6 +697,42 @@ export function PreviewDealerBusinessStack({
                 <FiPrinter className="h-4 w-4 shrink-0 text-[#7A1E2C]" aria-hidden />
                 {printLabel}
               </button>
+              {/* Owner lock (2026-09-17, Gate 01B): an explicit, ADDITIONAL Share action directly
+                  under Print — the owner wants sharing obvious in multiple places, not only the
+                  ambiguous "available after publish" line above. Same three-way identity as that
+                  row (full public analytics / canonical-active real URL / truly unavailable), but
+                  the unavailable state here is always a real disabled button, never bare text. */}
+              <div data-autos-share-under-print="1">
+                {publicPlaybackOnly && analyticsCtx && publicAnalytics?.listingSourceId ? (
+                  <LeonixShareButton
+                    listingId={publicAnalytics.listingSourceId}
+                    listingUrl={publicUrl?.trim() || ""}
+                    listingTitle={data.vehicleTitle?.trim() || data.dealerName?.trim() || "Leonix Autos"}
+                    variant="default"
+                    lang={lang}
+                    category="autos"
+                    persistEngagement
+                    directNativeShare
+                    recordShareEvent={autosGlobalShareRecorderFromContext(analyticsCtx, "detail_share")}
+                    className={QUICK_ACTION_CLASS}
+                  />
+                ) : publicPlaybackOnly || Boolean(publicUrl?.trim()) ? (
+                  <button type="button" className={QUICK_ACTION_CLASS} onClick={() => void onShare()}>
+                    <FiShare2 className="h-4 w-4 shrink-0 text-[#7A1E2C]" aria-hidden />
+                    {shareLabel}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    aria-disabled="true"
+                    className={`${QUICK_ACTION_CLASS} cursor-not-allowed opacity-60`}
+                  >
+                    <FiShare2 className="h-4 w-4 shrink-0" aria-hidden />
+                    {lang === "es" ? "Compartir (disponible al publicar)" : "Share (available after publish)"}
+                  </button>
+                )}
+              </div>
               {publicPlaybackOnly ? (
                 <a href="#autos-listing-report" className={QUICK_ACTION_CLASS}>
                   <FiMessageSquare className="h-4 w-4 shrink-0 text-[#7A1E2C]" aria-hidden />

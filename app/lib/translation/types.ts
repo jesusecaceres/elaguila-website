@@ -33,6 +33,10 @@ export type AdTranslationPayload = {
   /** A short descriptive/location note distinct from structured identity data (e.g. an address's
    * trailing human note) — additive slot, optional for every category. */
   locationNote?: string;
+  /** A free-typed finance/pricing teaser sentence (e.g. Autos' "monthly estimate" line) — buyer-
+   * facing prose that happens to embed real numbers/currency, which the provider must preserve
+   * verbatim while translating the surrounding words. Additive slot, optional for every category. */
+  financeTeaser?: string;
   category?: string;
   listingKey?: string;
   sourceLocale?: ContentLocale;
@@ -51,6 +55,7 @@ export type TranslatableAdFieldKey = keyof Pick<
   | "body"
   | "shareText"
   | "locationNote"
+  | "financeTeaser"
 >;
 
 export type TranslatableAdFields = Partial<Record<TranslatableAdFieldKey, string>>;
