@@ -220,7 +220,7 @@ async function main() {
   );
 
   resetAgenteResDraftHydrationMemoryForTests();
-  const hardRefresh = bootstrapAgenteIndividualResidencialApplicationState();
+  const hardRefresh = await bootstrapAgenteIndividualResidencialApplicationState();
   assertParentFields(fixture, hardRefresh);
   for (let i = 0; i < fixture.additionalInventoryProperties.length; i++) {
     assertChildFields(fixture.additionalInventoryProperties[i]!, hardRefresh.additionalInventoryProperties[i]!);
@@ -236,7 +236,7 @@ async function main() {
 
   resetAgenteResDraftHydrationMemoryForTests();
   sessionStore.delete(BR_AGENTE_RES_PREVIEW_DRAFT_KEY);
-  const volver = bootstrapAgenteIndividualResidencialApplicationState();
+  const volver = await bootstrapAgenteIndividualResidencialApplicationState();
   assertParentFields(fixture, volver);
   eq(
     volver.additionalInventoryProperties[0]?.title,

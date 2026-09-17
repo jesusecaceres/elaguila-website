@@ -88,6 +88,14 @@ export type CtaSheetIntent =
       whatsappDigits?: string | null;
       email?: string | null;
       contactShareExtras?: CtaContactShareExtras | null;
+      /**
+       * Servicios Final Contact Truth + Email No-Mailto Closeout (2026-09-17, Gate 9) — same
+       * opt-out as send_email.showOpenEmailApp below, extended to the quote sheet's own "Enviar
+       * por correo"/"Send via email" action (reached from Servicios' services/gallery/highlights
+       * "Cotizar" CTAs when the resolved quote destination is email-only). Defaults to `true`;
+       * every other category leaves it unset and keeps its current behavior unchanged.
+       */
+      showOpenEmailApp?: boolean;
     }
   | {
       kind: "send_email";

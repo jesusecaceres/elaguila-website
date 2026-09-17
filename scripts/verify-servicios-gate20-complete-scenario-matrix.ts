@@ -102,7 +102,7 @@ for (const [n, name] of [[7, "call only"], [8, "call + SMS"], [9, "call + WhatsA
 }
 check(13, "email-only fallback", () => {
   const src = raw("scripts/verify-servicios-gate4-contact-cta-fixture-matrix.ts");
-  assert.ok(src.includes("H. email-only fallback"));
+  assert.ok(src.includes("G. email only — rich email sheet fallback, no other channel"));
 });
 check(14, "rich email sheet", () => {
   const src = raw("scripts/verify-servicios-gate12-results-card-email-sheet.ts");
@@ -142,11 +142,11 @@ check(19, "Community real count", () => {
 /* ── 20-21: hero without WhatsApp / hero translated. ── */
 check(20, "hero without WhatsApp", () => {
   const src = raw("scripts/verify-servicios-gate8-hero-cta-fixture-matrix.ts");
-  assert.ok(src.includes('"E. no WhatsApp — Call alone, no dead WhatsApp slot"'));
+  assert.ok(src.includes("no WhatsApp — Call renders alone, no dead WhatsApp slot"));
 });
 check(21, "hero translated", () => {
   const src = raw("scripts/verify-servicios-gate8-hero-cta-fixture-matrix.ts");
-  assert.ok(src.includes("displayLang doctrine"));
+  assert.ok(src.includes("pass the hero the resolved displayLang, never the static site lang"));
 });
 
 /* ── 22-23: full-preview translated / restore — Gate 16. ── */

@@ -279,11 +279,17 @@ export function ServiciosBusinessHubContactCard({
     if (intent) setEmailSheetIntent(intent);
   };
 
+  // Servicios Final Contact Truth + Email No-Mailto Closeout (2026-09-17, Gate 1/8) — one Call
+  // action: office phone when present, principal phone as fallback. Never two separate buttons.
+  const officeCallTel = profile.contact.phoneOfficeTelHref?.trim();
+  const officeCallDisplay = profile.contact.phoneOfficeDisplay?.trim();
+  const useOfficeCall = Boolean(officeCallTel && officeCallDisplay);
+  const callTel = useOfficeCall ? officeCallTel : profile.contact.phoneTelHref?.trim();
+
   const openCall = () => {
-    const href = profile.contact.phoneTelHref?.trim();
-    if (!href) return;
+    if (!callTel) return;
     trackServiciosListingCta(listingSlug, "cta_call_click", { ...analyticsBase, source: "business_hub" });
-    serviciosOpenTelHref(href);
+    serviciosOpenTelHref(callTel);
   };
 
   const openMessage = () => {
@@ -331,10 +337,10 @@ export function ServiciosBusinessHubContactCard({
   };
 
   const contactActions: ContactAction[] = [];
-  if (profile.contact.phoneTelHref) {
+  if (callTel) {
     contactActions.push({
       id: "call",
-      label: lang === "en" ? "Call" : "Llamar",
+      label: useOfficeCall ? L.callOffice : L.call,
       onClick: openCall,
       icon: <FiPhone className="h-5 w-5 shrink-0 text-current" aria-hidden />,
     });

@@ -122,6 +122,8 @@ export function BienesRaicesLandingView() {
       primary: "",
       secondary: "",
       precio: "",
+      comercialTipo: "",
+      terrenoTipo: "",
       patio: "",
       balcony: "",
       view: "",

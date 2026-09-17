@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { fetchRentasListingForPublicDetail } from "@/app/clasificados/rentas/lib/fetchRentasListingForPublicDetail";
 import {
   findRentasDemoListingById,
@@ -46,9 +45,8 @@ export default async function RentasListingDetailPage(props: Props) {
   const listing = live ?? (process.env.NODE_ENV !== "production" ? findRentasDemoListingById(id) : undefined);
   if (!listing) notFound();
   const extra = getRentasListingDetailExtra(listing);
-  return (
-    <Suspense fallback={<div className="min-h-[50vh] bg-[#F4EDE3]" />}>
-      <RentasListingDetailClient listing={listing} extra={extra} />
-    </Suspense>
-  );
+  // BR-INV-A-FIX (F1): no `<Suspense>` around this client component — it received no async
+  // work inside the boundary (data is already resolved above), same unnecessary-Suspense
+  // pattern that broke the results routes' streamed reveal (see rentas/results/page.tsx).
+  return <RentasListingDetailClient listing={listing} extra={extra} />;
 }

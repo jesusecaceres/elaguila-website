@@ -1,7 +1,8 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { BusinessServiceArea, StructuredLocationDetailsV1 } from "../types";
+import type { AreaKind, BusinessServiceArea, StructuredLocationDetailsV1 } from "../types";
+import { normalizeServiceAreaText } from "../normalization";
 
 type ServiceAreaRow = {
   id: string;
@@ -48,7 +49,76 @@ export async function listServiceAreasForBusiness(client: SupabaseClient, busine
 }
 
 /**
- * Creation/update/delete intentionally NOT implemented as standalone client-callable functions —
- * same server-only rationale as contactsRepo.ts. Service-area rows are only ever created inside
- * the atomic finalize RPC (Phase 12).
+ * Business Information Editor (Gate 1) — the FIRST post-finalization update path for
+ * business_service_areas. Admin/service-role client only, staff-authorized caller. Same
+ * single-business-wide-primary caveat as contactsRepo.ts
+ * (`business_service_areas_one_primary_idx` is `(business_id) WHERE is_primary = true`, not
+ * one-per-area_kind) — never sets is_primary on update, always inserts a new row with
+ * is_primary=false, targeting the SAME row `buildBusinessApplicationContext` reads as "the"
+ * physical address / service-area text (first row of that areaKind).
+ *
+ * `structuredDetailsPatch` is shallow-merged onto the existing row's structured_details (never
+ * replaced wholesale), so editing e.g. just the street doesn't silently drop coverage/timezone
+ * fields a different, unrelated flow already wrote there.
  */
+export async function upsertServiceAreaAsStaff(
+  adminClient: SupabaseClient,
+  businessId: string,
+  areaKind: AreaKind,
+  input: {
+    rawText: string;
+    cityHint?: string | null;
+    country?: string | null;
+    structuredDetailsPatch?: Partial<StructuredLocationDetailsV1>;
+  },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const normalizedText = normalizeServiceAreaText(input.rawText);
+  if (!normalizedText) return { ok: false, error: "invalid_service_area_text" };
+
+  const { data: rows } = await adminClient
+    .from("business_service_areas")
+    .select("id, structured_details")
+    .eq("business_id", businessId)
+    .eq("area_kind", areaKind);
+  const existing = (rows ?? [])[0] as { id: string; structured_details: unknown } | undefined;
+
+  const nowIso = new Date().toISOString();
+  const existingStructuredDetails: unknown = existing ? existing.structured_details : null;
+  const priorDetails: StructuredLocationDetailsV1 = isStructuredDetailsV1(existingStructuredDetails)
+    ? existingStructuredDetails
+    : { schemaVersion: 1 as const };
+  // A key present in the patch with value `undefined` must NOT blank out an existing value — only
+  // explicitly-provided (defined) keys ever overwrite. A raw `{...a, ...b}` spread would assign
+  // `undefined` for any key `b` merely mentions, silently erasing whatever `a` had there.
+  const definedPatchEntries = Object.entries(input.structuredDetailsPatch ?? {}).filter(([, v]) => v !== undefined);
+  const structuredDetails: StructuredLocationDetailsV1 = { ...priorDetails, ...Object.fromEntries(definedPatchEntries) };
+
+  if (existing) {
+    const { error } = await adminClient
+      .from("business_service_areas")
+      .update({
+        raw_text: input.rawText.trim(),
+        normalized_text: normalizedText,
+        city_hint: input.cityHint?.trim() || null,
+        country: input.country?.trim() || null,
+        structured_details: structuredDetails,
+        updated_at: nowIso,
+      })
+      .eq("id", existing.id);
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  }
+
+  const { error } = await adminClient.from("business_service_areas").insert({
+    business_id: businessId,
+    area_kind: areaKind,
+    raw_text: input.rawText.trim(),
+    normalized_text: normalizedText,
+    city_hint: input.cityHint?.trim() || null,
+    is_primary: false,
+    country: input.country?.trim() || null,
+    structured_details: structuredDetails,
+  });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}

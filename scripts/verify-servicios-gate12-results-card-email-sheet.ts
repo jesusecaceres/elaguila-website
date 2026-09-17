@@ -1,11 +1,13 @@
 /**
  * Servicios False-Gates-Only Final Completion Pass — Gate 12 verifier (2026-09-17).
+ * Updated for the Final Contact Truth + Email No-Mailto Closeout pass (same day): the sheet these
+ * cards open no longer offers "Open email app" at all — see
+ * scripts/verify-servicios-no-mailto-and-email-sheet-final.ts for that removal's own proof.
  *
  * Proves the results-card email-only fallback (trade card) and the professional card's newly-added
  * email fallback now open the SAME rich CtaActionSheet `send_email` intent the full profile's
  * "Correo" CTA already uses — built from the same `buildServiciosSendEmailIntentFromMailto` helper —
- * instead of jumping straight to a bare mailto:. Also proves the sheet's "Open email app" action
- * still uses the RFC-6068-repaired mailto helper (Gate 11/13, unchanged by this gate).
+ * instead of jumping straight to a bare mailto:.
  *
  * Run: node node_modules/tsx/dist/cli.mjs scripts/verify-servicios-gate12-results-card-email-sheet.ts
  */
@@ -48,7 +50,9 @@ check("trade card: email fallback opens the rich CtaActionSheet via buildServici
 
 check("professional card: previously had NO email CTA at all; now gets the same rich sheet as the trade card", () => {
   const src = raw(PRO_CARD);
-  assert.ok(src.includes("const showEmailFallback = Boolean(!tel && !waHrefNormalized && profile.contact.emailMailtoHref);"));
+  // Servicios Final Contact Truth (2026-09-17, Gate 4/9): email fallback now also excludes the
+  // Message/SMS channel — it's the true "nothing else resolved" state, not just "no call, no WhatsApp".
+  assert.ok(src.includes("const showEmailFallback = Boolean(!tel && !smsHref && !waHrefNormalized && profile.contact.emailMailtoHref);"));
   assert.ok(src.includes("const onEmailClick = useCallback"));
   assert.ok(src.includes("buildServiciosSendEmailIntentFromMailto(mailtoHref, displayLang, row.slug, listingShareUrl || undefined)"));
   assert.ok(src.includes("setEmailSheetIntent(intent)"));

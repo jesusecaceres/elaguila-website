@@ -97,6 +97,162 @@ export function SourceFilesPanel({ sourceFiles }: { sourceFiles: readonly Busine
 }
 
 // ---------------------------------------------------------------------------
+// 5b. LEONIX BUSINESS INFORMATION EDITOR / DISCOVER FIX (Gate 2) — public-source, staff-only,
+// pre-visit prospect research. Deliberately separate from RunResearchButton below: no client
+// consent required (there is no client relationship yet), never calls the AI/LLM provider, and
+// its candidates are ephemeral (never persisted) until a human explicitly accepts one, which
+// writes straight to canonical Business Identity via PATCH /api/admin/businesses/{id}/identity.
+// ---------------------------------------------------------------------------
+
+type ProspectResearchCandidate = {
+  field: "businessName" | "phone" | "website" | "address" | "email" | "googleMapsUrl";
+  currentValue: string | null;
+  researchedValue: string;
+  source: "google_places" | "website_scan";
+};
+
+const FIELD_LABEL: Record<ProspectResearchCandidate["field"], string> = {
+  businessName: "Nombre del negocio / Business name",
+  phone: "Teléfono / Phone",
+  website: "Sitio web / Website",
+  address: "Dirección / Address",
+  email: "Correo / Email",
+  googleMapsUrl: "Google Maps",
+};
+
+const SOURCE_LABEL: Record<ProspectResearchCandidate["source"], string> = {
+  google_places: "Google Business Profile",
+  website_scan: "Sitio web del negocio / Business website",
+};
+
+function candidateToIdentityPatch(c: ProspectResearchCandidate): Record<string, unknown> {
+  switch (c.field) {
+    case "businessName":
+      return { business: { displayName: c.researchedValue } };
+    case "phone":
+      return { contacts: { phone: c.researchedValue } };
+    case "website":
+      return { contacts: { website: c.researchedValue } };
+    case "email":
+      return { contacts: { email: c.researchedValue } };
+    case "address":
+      return { address: { street: c.researchedValue } };
+    case "googleMapsUrl":
+      return { socials: { google_business: c.researchedValue } };
+  }
+}
+
+export function PublicProspectResearchPanel({ businessId, canRun }: { businessId: string; canRun: boolean }) {
+  const router = useRouter();
+  const [running, setRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [candidates, setCandidates] = useState<ProspectResearchCandidate[] | null>(null);
+  const [resolvedFields, setResolvedFields] = useState<Set<string>>(new Set());
+  const [busyField, setBusyField] = useState<string | null>(null);
+  const [ranInfo, setRanInfo] = useState<{ googlePlaces: boolean; websiteScan: boolean } | null>(null);
+
+  async function run() {
+    setRunning(true);
+    setError(null);
+    setCandidates(null);
+    setResolvedFields(new Set());
+    const { ok, body } = await postJson(`/api/admin/businesses/${businessId}/prospect-research`, "POST", {});
+    setRunning(false);
+    if (!ok) {
+      setError(humanizeStaffWriteError(body?.error as string | undefined, "No se pudo ejecutar la investigación pública. / Could not run public research."));
+      return;
+    }
+    setCandidates((body?.candidates as ProspectResearchCandidate[] | undefined) ?? []);
+    setRanInfo({ googlePlaces: Boolean(body?.ranGooglePlaces), websiteScan: Boolean(body?.ranWebsiteScan) });
+  }
+
+  async function accept(c: ProspectResearchCandidate) {
+    setBusyField(c.field);
+    const { ok } = await postJson(`/api/admin/businesses/${businessId}/identity`, "PATCH", candidateToIdentityPatch(c));
+    setBusyField(null);
+    if (ok) {
+      setResolvedFields((prev) => new Set(prev).add(c.field));
+      router.refresh();
+    }
+  }
+
+  function reject(field: string) {
+    setResolvedFields((prev) => new Set(prev).add(field));
+  }
+
+  return (
+    <div className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
+      <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Investigar información pública / Research public info</h3>
+      <p className="mt-1 text-xs text-[#6B5E47]">
+        Busca datos públicos (Google Business Profile, sitio web del negocio) para preparar este prospecto antes de una visita. No requiere consentimiento del cliente — todavía no existe relación con el cliente. / Looks up public data (Google Business Profile, the business's own website) to prepare this prospect before a visit. No client consent required — there is no client relationship yet.
+      </p>
+      {error ? <p role="alert" className="mt-1 text-xs text-red-700">{error}</p> : null}
+      {canRun ? (
+        <button
+          type="button"
+          onClick={() => void run()}
+          disabled={running}
+          className="mt-2 min-h-[40px] rounded-lg border border-[#7A1E2C] px-4 py-2 text-xs font-bold text-[#7A1E2C] disabled:opacity-50"
+        >
+          {running ? "Buscando… / Searching…" : "Investigar información pública / Research public info"}
+        </button>
+      ) : (
+        <p className="mt-2 text-xs text-[#6B5E47]">No tienes permiso para ejecutar esta búsqueda. / You don't have permission to run this lookup.</p>
+      )}
+
+      {candidates !== null ? (
+        <div className="mt-3">
+          {ranInfo && !ranInfo.googlePlaces ? (
+            <p className="text-xs text-[#9A9184]">Google Business Profile no está configurado en este entorno. / Google Business Profile is not configured in this environment.</p>
+          ) : null}
+          {ranInfo && !ranInfo.websiteScan ? (
+            <p className="text-xs text-[#9A9184]">No hay un sitio web registrado todavía para revisar. / No website on file yet to scan.</p>
+          ) : null}
+          {candidates.length === 0 ? (
+            <p className="mt-1 text-sm text-[#6B5E47]">No se encontraron datos nuevos que difieran de lo ya guardado. / No new data found that differs from what's already saved.</p>
+          ) : (
+            <ul className="mt-2 space-y-2">
+              {candidates
+                .filter((c) => !resolvedFields.has(c.field))
+                .map((c) => (
+                  <li key={c.field} className="rounded-lg border border-dashed border-[#E8DFD0] p-2">
+                    <p className="text-xs font-bold text-[#3D3428]">{FIELD_LABEL[c.field]}</p>
+                    <p className="mt-1 text-xs text-[#6B5E47]">
+                      Actual / Current: <span className="font-semibold">{c.currentValue ?? "— vacío / empty —"}</span>
+                    </p>
+                    <p className="text-xs text-[#6B5E47]">
+                      Investigado / Researched: <span className="font-semibold text-[#1E1810]">{c.researchedValue}</span>
+                      <span className="ml-2 rounded-full bg-[#FAF7F2] px-2 py-0.5 text-[10px] uppercase">{SOURCE_LABEL[c.source]}</span>
+                    </p>
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        type="button"
+                        disabled={busyField === c.field}
+                        onClick={() => void accept(c)}
+                        className="min-h-[32px] rounded-lg bg-[#7A1E2C] px-3 py-1 text-xs font-bold text-white disabled:opacity-50"
+                      >
+                        Usar valor investigado / Use researched value
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busyField === c.field}
+                        onClick={() => reject(c.field)}
+                        className="min-h-[32px] rounded-lg border border-[#E8DFD0] px-3 py-1 text-xs font-semibold text-[#3D3428] disabled:opacity-50"
+                      >
+                        Mantener actual / Keep current
+                      </button>
+                    </div>
+                  </li>
+                ))}
+            </ul>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // 6-7. Website research / AI provider status + run button
 // ---------------------------------------------------------------------------
 
@@ -133,6 +289,9 @@ export function RunResearchButton({
   return (
     <div className="rounded-2xl border border-[#E8DFD0] bg-white p-4">
       <h3 className="text-xs font-bold uppercase tracking-wide text-[#8A6B1F]">Investigación con IA / AI Research</h3>
+      <p className="mt-1 text-xs text-[#9A9184]">
+        Requiere el consentimiento del cliente (fuentes + IA) registrado en una visita — distinto de la investigación pública de prospectos abajo. / Requires client consent (sources + AI) recorded at a visit — different from the public prospect research below.
+      </p>
       <p className="mt-1 text-sm text-[#6B5E47]">
         Proveedor de síntesis / Synthesis provider: {providerAvailable ? "Gemini disponible / available" : "No configurado / Not configured"}
       </p>

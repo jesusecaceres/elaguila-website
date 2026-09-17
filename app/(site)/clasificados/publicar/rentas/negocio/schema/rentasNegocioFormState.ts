@@ -58,18 +58,22 @@ export type RentasNegocioFormState = {
   rentasEspacioEntradaPrivada: RentasPrivadoFormState["rentasEspacioEntradaPrivada"];
   rentasEspacioLavanderia: RentasPrivadoFormState["rentasEspacioLavanderia"];
   rentasEspacioMaxOcupantes: RentasPrivadoFormState["rentasEspacioMaxOcupantes"];
+  rentasEspacioEstacionamiento: RentasPrivadoFormState["rentasEspacioEstacionamiento"];
   rentasPreferenciasEspacioCompartido: RentasPrivadoFormState["rentasPreferenciasEspacioCompartido"];
   rentasAlmacenTamanoAprox: RentasPrivadoFormState["rentasAlmacenTamanoAprox"];
   rentasAlmacenAcceso24h: RentasPrivadoFormState["rentasAlmacenAcceso24h"];
   rentasAlmacenElectricidad: RentasPrivadoFormState["rentasAlmacenElectricidad"];
   rentasAlmacenSeguridad: RentasPrivadoFormState["rentasAlmacenSeguridad"];
+  rentasAlmacenCubierto: RentasPrivadoFormState["rentasAlmacenCubierto"];
   rentasAlmacenUsoPermitido: RentasPrivadoFormState["rentasAlmacenUsoPermitido"];
   rentasAlmacenDimensiones: RentasPrivadoFormState["rentasAlmacenDimensiones"];
+  rentasAlmacenRestriccionesVehiculo: RentasPrivadoFormState["rentasAlmacenRestriccionesVehiculo"];
   rentasComercialUsoPermitido: RentasPrivadoFormState["rentasComercialUsoPermitido"];
   rentasComercialTamanoFt2: RentasPrivadoFormState["rentasComercialTamanoFt2"];
   rentasComercialBanoDisponible: RentasPrivadoFormState["rentasComercialBanoDisponible"];
   rentasComercialHorarioAcceso: RentasPrivadoFormState["rentasComercialHorarioAcceso"];
   rentasComercialContratoMinimo: RentasPrivadoFormState["rentasComercialContratoMinimo"];
+  rentasComercialServiciosDisponibles: RentasPrivadoFormState["rentasComercialServiciosDisponibles"];
   rentasLoteUsoPermitido: RentasPrivadoFormState["rentasLoteUsoPermitido"];
   rentasLoteServiciosDisponibles: RentasPrivadoFormState["rentasLoteServiciosDisponibles"];
   rentasLoteAcceso: RentasPrivadoFormState["rentasLoteAcceso"];
@@ -155,18 +159,22 @@ export function createEmptyRentasNegocioFormState(): RentasNegocioFormState {
     rentasEspacioEntradaPrivada: "",
     rentasEspacioLavanderia: "",
     rentasEspacioMaxOcupantes: "",
+    rentasEspacioEstacionamiento: "",
     rentasPreferenciasEspacioCompartido: "",
     rentasAlmacenTamanoAprox: "",
     rentasAlmacenAcceso24h: "",
     rentasAlmacenElectricidad: "",
     rentasAlmacenSeguridad: "",
+    rentasAlmacenCubierto: "",
     rentasAlmacenUsoPermitido: "",
     rentasAlmacenDimensiones: "",
+    rentasAlmacenRestriccionesVehiculo: "",
     rentasComercialUsoPermitido: "",
     rentasComercialTamanoFt2: "",
     rentasComercialBanoDisponible: "",
     rentasComercialHorarioAcceso: "",
     rentasComercialContratoMinimo: "",
+    rentasComercialServiciosDisponibles: "",
     rentasLoteUsoPermitido: "",
     rentasLoteServiciosDisponibles: "",
     rentasLoteAcceso: "",
@@ -279,18 +287,22 @@ export function mergePartialRentasNegocioState(partial: Partial<RentasNegocioFor
     rentasEspacioEntradaPrivada: asPrivado.rentasEspacioEntradaPrivada,
     rentasEspacioLavanderia: asPrivado.rentasEspacioLavanderia,
     rentasEspacioMaxOcupantes: asPrivado.rentasEspacioMaxOcupantes,
+    rentasEspacioEstacionamiento: asPrivado.rentasEspacioEstacionamiento,
     rentasPreferenciasEspacioCompartido: asPrivado.rentasPreferenciasEspacioCompartido,
     rentasAlmacenTamanoAprox: asPrivado.rentasAlmacenTamanoAprox,
     rentasAlmacenAcceso24h: asPrivado.rentasAlmacenAcceso24h,
     rentasAlmacenElectricidad: asPrivado.rentasAlmacenElectricidad,
     rentasAlmacenSeguridad: asPrivado.rentasAlmacenSeguridad,
+    rentasAlmacenCubierto: asPrivado.rentasAlmacenCubierto,
     rentasAlmacenUsoPermitido: asPrivado.rentasAlmacenUsoPermitido,
     rentasAlmacenDimensiones: asPrivado.rentasAlmacenDimensiones,
+    rentasAlmacenRestriccionesVehiculo: asPrivado.rentasAlmacenRestriccionesVehiculo,
     rentasComercialUsoPermitido: asPrivado.rentasComercialUsoPermitido,
     rentasComercialTamanoFt2: asPrivado.rentasComercialTamanoFt2,
     rentasComercialBanoDisponible: asPrivado.rentasComercialBanoDisponible,
     rentasComercialHorarioAcceso: asPrivado.rentasComercialHorarioAcceso,
     rentasComercialContratoMinimo: asPrivado.rentasComercialContratoMinimo,
+    rentasComercialServiciosDisponibles: asPrivado.rentasComercialServiciosDisponibles,
     rentasLoteUsoPermitido: asPrivado.rentasLoteUsoPermitido,
     rentasLoteServiciosDisponibles: asPrivado.rentasLoteServiciosDisponibles,
     rentasLoteAcceso: asPrivado.rentasLoteAcceso,

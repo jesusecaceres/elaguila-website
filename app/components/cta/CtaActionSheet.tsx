@@ -938,10 +938,15 @@ export function CtaActionSheet({ open, onClose, intent, lang = "es", onAction }:
           emit();
           openSms(phone || waDigits, qm);
         }, !hasMsg || !hasPhone)}
-        {btnRow(t.sendEmail, "quote_email", BTN_SECONDARY, (emit) => {
-          emit();
-          openMailto(email, lang === "en" ? "Quote request" : "Solicitud de cotización", qm);
-        }, !hasMsg || !hasEmail)}
+        {/* Owner no-mailto doctrine (2026-09-17): same showOpenEmailApp opt-out as the send_email
+            branch above — Servicios' buildServiciosGetQuoteIntent sets this false, so a business
+            with only an email (no phone/WhatsApp) never gets a bare-mailto quote action. */}
+        {intent.showOpenEmailApp ?? true
+          ? btnRow(t.sendEmail, "quote_email", BTN_SECONDARY, (emit) => {
+              emit();
+              openMailto(email, lang === "en" ? "Quote request" : "Solicitud de cotización", qm);
+            }, !hasMsg || !hasEmail)
+          : null}
       </div>
     );
   } else if (

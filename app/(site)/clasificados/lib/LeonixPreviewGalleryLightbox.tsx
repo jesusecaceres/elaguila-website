@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { TouchEvent as ReactTouchEvent } from "react";
 import type { RentasLandingLang } from "@/app/clasificados/rentas/rentasLandingLang";
 import type { BienesRaicesPreviewMediaVm } from "@/app/clasificados/publicar/bienes-raices/negocio/application/mapping/bienesRaicesNegocioPreviewVm";
 import { BrNegocioStreamableVideo } from "@/app/clasificados/bienes-raices/preview/negocio/components/BrNegocioStreamableVideo";
@@ -223,6 +224,38 @@ export function LeonixPreviewGalleryLightbox({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose, tab, photoSlides.length]);
 
+  // Preload the adjacent slides so arrowing through the gallery doesn't flash/blank.
+  useEffect(() => {
+    if (!open || tab !== "fotos" || photoSlides.length <= 1) return;
+    const n = photoSlides.length;
+    const neighbors = [(photoIdx + 1) % n, (photoIdx - 1 + n) % n];
+    const preloaded = neighbors.map((i) => {
+      const url = photoSlides[i]?.url;
+      if (!url) return null;
+      const img = new Image();
+      img.src = url;
+      return img;
+    });
+    return () => {
+      for (const img of preloaded) if (img) img.src = "";
+    };
+  }, [open, tab, photoIdx, photoSlides]);
+
+  const touchStartXRef = useRef<number | null>(null);
+  const onTouchStart = (e: ReactTouchEvent) => {
+    touchStartXRef.current = e.touches[0]?.clientX ?? null;
+  };
+  const onTouchEnd = (e: ReactTouchEvent) => {
+    const startX = touchStartXRef.current;
+    touchStartXRef.current = null;
+    if (startX == null || tab !== "fotos" || photoSlides.length <= 1) return;
+    const endX = e.changedTouches[0]?.clientX ?? startX;
+    const dx = endX - startX;
+    const SWIPE_THRESHOLD = 40;
+    if (dx <= -SWIPE_THRESHOLD) setPhotoIdx((i) => (i >= photoSlides.length - 1 ? 0 : i + 1));
+    else if (dx >= SWIPE_THRESHOLD) setPhotoIdx((i) => (i <= 0 ? photoSlides.length - 1 : i - 1));
+  };
+
   const show = open && (photoSlides.length > 0 || hasVideoTab);
   const currentPhoto = photoSlides[photoIdx] ?? null;
   const headerCount =
@@ -280,7 +313,11 @@ export function LeonixPreviewGalleryLightbox({
         </div>
 
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-black">
-          <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden">
+          <div
+            className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden"
+            onTouchStart={onTouchStart}
+            onTouchEnd={onTouchEnd}
+          >
             {tab === "fotos" && currentPhoto ? (
               <ZoomablePhoto url={currentPhoto.url} caption={currentPhoto.caption} resetLabel={lb.resetZoom} />
             ) : null}

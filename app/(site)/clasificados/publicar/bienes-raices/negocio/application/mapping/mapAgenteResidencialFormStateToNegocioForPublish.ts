@@ -122,16 +122,24 @@ function residencialHighlights(s: AgenteIndividualResidencialFormState): {
     if (presetKey) presets[presetKey] = true;
     else extraLines.push(def.label);
   }
+  // Item 87/91/92 — owner-added custom highlights must reach the live listing, not just the draft.
+  extraLines.push(...(s.destacadosCustom ?? []));
   return { presets, extraLines };
 }
 
 /** Commercial/land destacado vocabularies have zero overlap with `highlightPresets` — always free text. */
 function comercialHighlightLines(s: AgenteIndividualResidencialFormState): string[] {
-  return COMERCIAL_DESTACADOS_DEFS.filter((d) => s.destacadosComercial?.[d.id]).map((d) => d.label);
+  return [
+    ...COMERCIAL_DESTACADOS_DEFS.filter((d) => s.destacadosComercial?.[d.id]).map((d) => d.label),
+    ...(s.destacadosComercialCustom ?? []),
+  ];
 }
 
 function terrenoHighlightLines(s: AgenteIndividualResidencialFormState): string[] {
-  return TERRENO_DESTACADOS_DEFS.filter((d) => s.destacadosTerreno?.[d.id]).map((d) => d.label);
+  return [
+    ...TERRENO_DESTACADOS_DEFS.filter((d) => s.destacadosTerreno?.[d.id]).map((d) => d.label),
+    ...(s.destacadosTerrenoCustom ?? []),
+  ];
 }
 
 /**
@@ -249,6 +257,9 @@ export function mapAgenteResidencialFormStateToNegocioForPublish(
     descripcionCorta: s.notasAdicionales,
     tipoPropiedad: formatTipoPropiedadLine(s, "es"),
     propertySubtype: trim(s.subtipoPropiedad),
+    // Item 150 — canonical type codes for results filtering (separate from the human label above).
+    comercialTipoCodigo: s.categoriaPropiedad === "comercial" ? s.comercialTipoCodigo : undefined,
+    terrenoTipoCodigo: s.categoriaPropiedad === "terreno_lote" ? s.terrenoTipoCodigo : undefined,
     recamaras: s.recamaras,
     banosCompletos: s.banos,
     mediosBanos: s.mediosBanos,
@@ -258,7 +269,10 @@ export function mapAgenteResidencialFormStateToNegocioForPublish(
     estacionamientos: s.estacionamientos,
     anioConstruccion: s.anoConstruccion,
     condicion: s.condicionPropiedad,
-    niveles: s.comercialNiveles,
+    // Levels/stories — residential uses its own `nivelesPropiedad` field (separate from
+    // subtype); comercial has its own `comercialNiveles`. Only one category is active per
+    // listing, so forward whichever applies.
+    niveles: trim(s.nivelesPropiedad) || s.comercialNiveles,
     highlightPresets: residencial.presets,
     customHighlightsText,
     deepDetails: buildNegocioDeepDetails(s, base.deepDetails),
@@ -359,6 +373,9 @@ export function mapAgenteResidencialFormStateToNegocioForPublish(
         endTime: trim(slot.fin),
         additionalDaysHours: trim(slot.diasHorariosAdicionales),
         notes: trim(slot.notas),
+        // Item 134
+        appointmentOnly: Boolean(slot.soloConCita),
+        bookingUrl: trim(slot.enlaceReservar),
       })),
     },
     contactChannels: contactChannelsFromAgente(s),
@@ -370,9 +387,11 @@ export function mapAgenteResidencialFormStateToNegocioForPublish(
       ...base.trust,
       mostrarLicencia: Boolean(trim(s.agenteLicencia) || trim(s.marcaLicencia)),
       // BR-INV-WAVE1-GATE1: previously inferred from marcaNombre alone, ignoring the agent's
-      // explicit toggle — an agent who typed a brand name then explicitly hid it still saw it
-      // published. Now honors `mostrarMarcaEnTarjeta` as the actual gate.
-      mostrarBrokerage: Boolean(trim(s.marcaNombre)) && s.mostrarMarcaEnTarjeta,
+      // Item 104 — content-driven, matching the main preview's hasBrandBlockVisible() and the
+      // child-hub panel above; `mostrarMarcaEnTarjeta` has no live UI control anymore (the
+      // toggle was removed per the owner's "no redundant toggle" rule), so gating on it would
+      // silently suppress brand data for any legacy draft that happens to have it stored false.
+      mostrarBrokerage: Boolean(trim(s.marcaNombre)),
       mostrarSitioWeb: Boolean(trim(s.agenteSitioWeb) || trim(s.marcaSitioWeb)),
       mostrarRedes: agenteRedes(s).length > 0,
       confirmarInformacion: s.confirmListingAccurate,

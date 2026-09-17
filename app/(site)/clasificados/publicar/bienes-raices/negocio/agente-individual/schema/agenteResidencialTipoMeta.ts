@@ -61,6 +61,22 @@ export function labelForSubtipo(codigo: TipoPropiedadCodigo, subvalor: string): 
   return hit?.label ?? "";
 }
 
+/** Item 80 — "Un solo piso"/"Dos pisos" are story-count facts, not a property subtype (that's
+ * what the separate `nivelesPropiedad` field is for), so they must not appear as selectable
+ * options in the live "Subtipo" dropdown. `SUBTIPO_POR_TIPO` itself stays unchanged (closed
+ * catalog, stored-value shape, `labelForSubtipo` for legacy reads) — this only filters which
+ * options a NEW selection can pick from. If a draft already has a story-count value stored as
+ * its subtipo (legacy), that value stays visible/selected in its own dropdown so editing an old
+ * draft never silently blanks the field — it just can't be newly chosen going forward. */
+export function selectableSubtipoOptionsForTipo(
+  codigo: TipoPropiedadCodigo,
+  currentValue?: string,
+): ReadonlyArray<{ value: string; label: string }> {
+  return SUBTIPO_POR_TIPO[codigo].filter(
+    (o) => residencialSubtipoSemanticKind(o.value) !== "story_count" || o.value === currentValue,
+  );
+}
+
 /** English labels for property type dropdown (locale toggle). */
 export const TIPO_PROPIEDAD_LABEL_EN: Record<TipoPropiedadCodigo, string> = {
   casa: "House",

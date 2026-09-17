@@ -136,6 +136,7 @@ function toBienesRaicesPrivadoShape(s: RentasPrivadoFormState): BienesRaicesPriv
       photoDataUrls: s.media.photoDataUrls,
       primaryImageIndex: 0,
       videoUrl: videos[0] ?? "",
+      videoUrls: videos,
       videoLocalDataUrl: "",
     },
     seller: {
@@ -334,7 +335,7 @@ export function mapRentasPrivadoStateToPreviewVm(
       ...base.location,
       line1,
       cityStateZip,
-      fullAddress: exact ? addressLine : line1,
+      fullAddress: addressLine,
       mapsUrl,
       hasMeaningfulAddress,
     },

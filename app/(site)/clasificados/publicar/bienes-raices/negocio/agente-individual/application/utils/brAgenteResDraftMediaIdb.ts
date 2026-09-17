@@ -65,6 +65,38 @@ export async function idbBrAgenteGetDataUrl(
   }
 }
 
+/**
+ * BR-INV-D1-FIX — true if IndexedDB still holds offloaded media for this namespace, regardless of
+ * whatever sessionStorage currently reads. Mirrors `bienesRaicesPrivadoHasPersistedMedia` (D2):
+ * used as positive evidence that a draft really did exist when a fresh-reload sessionStorage read
+ * comes back empty, so the parent bootstrap knows to keep waiting rather than conclude "no draft."
+ */
+export async function idbBrAgenteHasNamespaceEntries(namespace: string): Promise<boolean> {
+  try {
+    const db = await openDb();
+    const prefix = `br:${namespace}:`;
+    return await new Promise<boolean>((resolve, reject) => {
+      const tx = db.transaction(STORE, "readonly");
+      const req = tx.objectStore(STORE).openCursor();
+      req.onsuccess = () => {
+        const cursor = req.result;
+        if (!cursor) {
+          resolve(false);
+          return;
+        }
+        if (String(cursor.key ?? "").startsWith(prefix)) {
+          resolve(true);
+          return;
+        }
+        cursor.continue();
+      };
+      req.onerror = () => reject(req.error ?? new Error("idb cursor failed"));
+    });
+  } catch {
+    return false;
+  }
+}
+
 export async function idbBrAgenteClearNamespace(namespace: string): Promise<void> {
   try {
     const db = await openDb();

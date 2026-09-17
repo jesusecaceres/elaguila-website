@@ -1,8 +1,9 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { BusinessContact } from "../types";
+import type { BusinessContact, ContactType, ChannelKind } from "../types";
 import { queryWithSelectShrink } from "./selectShrink";
+import { normalizeContactValue } from "../normalization";
 
 type ContactRow = {
   id: string;
@@ -53,9 +54,65 @@ export async function listContactsForBusiness(client: SupabaseClient, businessId
 }
 
 /**
- * Creation/update/delete are intentionally NOT implemented as standalone client-callable
- * functions — business_contacts has no client mutation policy by design. Contact rows are
- * only ever created inside the atomic finalize RPC (Phase 12). Post-finalization contact
- * editing is out of scope for BCO-2 (Package 3's wizard only ever writes contacts through
- * finalization; a future package would add a server-side ownership-guarded update path).
+ * Business Information Editor (Gate 1) — the FIRST post-finalization update path for
+ * business_contacts. Admin/service-role client only, staff-authorized caller
+ * (requireStaffWorkspaceWriteAccess("edit_business_identity")) — no client mutation policy
+ * exists on this table by design, so a user-scoped client must never reach this function.
+ *
+ * `business_contacts_one_primary_idx` is a SINGLE business-wide unique index on
+ * `(business_id) WHERE is_primary = true` — NOT one-per-contact-type. This function never sets
+ * is_primary on an update (leaves whatever the finalize wizard originally chose untouched) and
+ * always inserts a NEW row with is_primary=false, so it can never violate that index. It targets
+ * the SAME row `buildBusinessApplicationContext` would read as "the" phone/email/website for this
+ * type (first match for that contactType+channelKind combination) — editing here and reading
+ * there always agree.
  */
+export async function upsertContactValueAsStaff(
+  adminClient: SupabaseClient,
+  businessId: string,
+  contactType: ContactType,
+  channelKind: ChannelKind | null,
+  rawValue: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const normalized = normalizeContactValue(contactType, rawValue);
+  if (!normalized) return { ok: false, error: "invalid_contact_value" };
+
+  // Fetched in full (never more than a handful of rows per business) and filtered in JS so the
+  // "which row is this field" rule stays byte-identical to buildBusinessApplicationContext's own
+  // read-side logic — e.g. "the primary phone" matches ANY channel_kind that isn't 'whatsapp'
+  // (including null), not only an exact null match.
+  const { data: rows } = await adminClient
+    .from("business_contacts")
+    .select("id, channel_kind")
+    .eq("business_id", businessId)
+    .eq("contact_type", contactType);
+  const candidates = (rows ?? []) as { id: string; channel_kind: string | null }[];
+  const existing = channelKind === "whatsapp"
+    ? candidates.find((r) => r.channel_kind === "whatsapp")
+    : candidates.find((r) => r.channel_kind !== "whatsapp");
+
+  const nowIso = new Date().toISOString();
+  if (existing) {
+    const { error } = await adminClient
+      .from("business_contacts")
+      .update({ value: normalized.value, normalized_value: normalized.normalizedValue, updated_at: nowIso })
+      .eq("id", existing.id);
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  }
+
+  const { error } = await adminClient.from("business_contacts").insert({
+    business_id: businessId,
+    contact_type: contactType,
+    value: normalized.value,
+    normalized_value: normalized.normalizedValue,
+    preferred_channel: false,
+    channel_kind: channelKind,
+    is_primary: false,
+    label: "main",
+    visibility: "public",
+    capabilities: [],
+  });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}

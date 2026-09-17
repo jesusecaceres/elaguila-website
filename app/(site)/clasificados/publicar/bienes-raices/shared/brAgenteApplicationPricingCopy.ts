@@ -10,14 +10,15 @@ export function brAgenteApplicationPricingCopy(lang: BrAgentePricingLang) {
       startShowcaseTitle: "Vitrina de agente",
       startShowcasePrice: "$399/mes",
       startShowcaseBody:
-        "Para agentes, equipos, oficinas y desarrolladores. Incluye 1 propiedad principal/destacada, centro de contacto profesional, fotos, enlaces de video, tour/folleto, página pública, visibilidad en búsquedas/resultados y acciones de contacto para compradores.",
+        "Para agentes, equipos, oficinas y desarrolladores. Incluye tu Centro de Negocio (Business Hub) en Leonix: identidad profesional, 1 propiedad principal/destacada, centro de contacto, fotos, enlaces de video, tour/folleto, página pública, visibilidad en búsquedas/resultados y acciones de contacto para compradores. Leonix conecta tu identidad profesional, tus propiedades y tus canales de contacto en un mismo lugar — no reemplaza tu MLS ni tus otras plataformas.",
       startInventoryOptional: "Opcional: agrega Paquete de inventario por +$99/mes",
       startInventoryOptionalDetail: "Agrega hasta 3 propiedades activas adicionales.",
       startPublishCta: "Publicar como agente",
       startSeeMore: "Ver más",
-      drawerTitle: "Vitrina de agente + Paquete de inventario",
-      drawerBaseTitle: "Vitrina de agente — $399/mes",
+      drawerTitle: "Centro de Negocio (Business Hub) + Paquete de inventario",
+      drawerBaseTitle: "Centro de Negocio — $399/mes",
       drawerBaseIncludes: [
+        "tu Centro de Negocio (Business Hub) en Leonix: conecta tu identidad profesional, propiedades y canales de contacto — no reemplaza tu MLS ni tus otras plataformas",
         "1 propiedad principal/destacada",
         "perfil profesional de agente/negocio",
         "centro de contacto: teléfono, correo, sitio web, WhatsApp/mapa/redes cuando los proporciones",
@@ -76,7 +77,7 @@ export function brAgenteApplicationPricingCopy(lang: BrAgentePricingLang) {
         "Entiendo que el pago es requerido después de la vista previa antes de que este anuncio quede activo.",
       confirmInventory:
         "Entiendo que el Paquete de inventario agrega +$99/mes por hasta 3 propiedades adicionales.",
-      continueToPreview: "Continuar a vista previa",
+      continueToPreview: "Vista previa",
       draftDeviceNote:
         "Borrador guardado en este dispositivo. Al actualizar esta pestaña, tu progreso debe mantenerse.",
     };
@@ -87,14 +88,15 @@ export function brAgenteApplicationPricingCopy(lang: BrAgentePricingLang) {
     startShowcaseTitle: "Agent Showcase",
     startShowcasePrice: "$399/month",
     startShowcaseBody:
-      "For agents, teams, offices, and developers. Includes 1 main/featured property, professional contact hub, photos, video links, tour/brochure links, public detail page, search/results visibility, and buyer contact actions.",
+      "For agents, teams, offices, and developers. Includes your Leonix Business Hub: professional identity, 1 main/featured property, professional contact hub, photos, video links, tour/brochure links, public detail page, search/results visibility, and buyer contact actions. Leonix connects your professional identity, your listings, and your contact channels in one place — it doesn't replace your MLS or your other platforms.",
     startInventoryOptional: "Optional: add Inventory Pack for +$99/month",
     startInventoryOptionalDetail: "Add up to 3 additional active properties.",
     startPublishCta: "Publish as agent",
     startSeeMore: "See more",
-    drawerTitle: "Agent Showcase + Inventory Pack",
-    drawerBaseTitle: "Agent Showcase — $399/month",
+    drawerTitle: "Business Hub + Inventory Pack",
+    drawerBaseTitle: "Business Hub — $399/month",
     drawerBaseIncludes: [
+      "your Leonix Business Hub: connects your professional identity, listings, and contact channels — it doesn't replace your MLS or your other platforms",
       "1 main/featured property",
       "professional agent/business profile",
       "contact hub: phone, email, website, WhatsApp/map/socials when provided",
@@ -151,7 +153,7 @@ export function brAgenteApplicationPricingCopy(lang: BrAgentePricingLang) {
     confirmPayment:
       "I understand payment is required after preview before this listing becomes active.",
     confirmInventory: "I understand the Inventory Pack adds +$99/month for up to 3 additional properties.",
-    continueToPreview: "Continue to preview",
+    continueToPreview: "Preview",
     draftDeviceNote: "Draft saved on this device. Refreshing this tab should keep your progress.",
   };
 }

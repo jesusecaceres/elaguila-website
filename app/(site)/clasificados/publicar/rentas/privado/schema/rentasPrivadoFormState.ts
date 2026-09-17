@@ -74,6 +74,7 @@ export type RentasPrivadoFormState = {
   rentasEspacioEntradaPrivada: "" | "si" | "no";
   rentasEspacioLavanderia: "" | "si" | "no";
   rentasEspacioMaxOcupantes: string;
+  rentasEspacioEstacionamiento: "" | "si" | "no";
   /** Preferencias razonables para convivencia en espacio compartido (opcional). */
   rentasPreferenciasEspacioCompartido: string;
   /** Garaje / bodega / estacionamiento */
@@ -81,14 +82,18 @@ export type RentasPrivadoFormState = {
   rentasAlmacenAcceso24h: "" | "si" | "no";
   rentasAlmacenElectricidad: "" | "si" | "no";
   rentasAlmacenSeguridad: "" | "si" | "no";
+  rentasAlmacenCubierto: "" | "si" | "no";
   rentasAlmacenUsoPermitido: string;
   rentasAlmacenDimensiones: string;
+  /** Item 237 — vehicle-size/type restrictions, distinct from the generic "permitted use" field. */
+  rentasAlmacenRestriccionesVehiculo: string;
   /** Oficina / local */
   rentasComercialUsoPermitido: string;
   rentasComercialTamanoFt2: string;
   rentasComercialBanoDisponible: "" | "si" | "no";
   rentasComercialHorarioAcceso: string;
   rentasComercialContratoMinimo: string;
+  rentasComercialServiciosDisponibles: string;
   /** Terreno en renta */
   rentasLoteUsoPermitido: string;
   rentasLoteServiciosDisponibles: string;
@@ -290,18 +295,22 @@ export function createEmptyRentasPrivadoFormState(): RentasPrivadoFormState {
     rentasEspacioEntradaPrivada: "",
     rentasEspacioLavanderia: "",
     rentasEspacioMaxOcupantes: "",
+    rentasEspacioEstacionamiento: "",
     rentasPreferenciasEspacioCompartido: "",
     rentasAlmacenTamanoAprox: "",
     rentasAlmacenAcceso24h: "",
     rentasAlmacenElectricidad: "",
     rentasAlmacenSeguridad: "",
+    rentasAlmacenCubierto: "",
     rentasAlmacenUsoPermitido: "",
     rentasAlmacenDimensiones: "",
+    rentasAlmacenRestriccionesVehiculo: "",
     rentasComercialUsoPermitido: "",
     rentasComercialTamanoFt2: "",
     rentasComercialBanoDisponible: "",
     rentasComercialHorarioAcceso: "",
     rentasComercialContratoMinimo: "",
+    rentasComercialServiciosDisponibles: "",
     rentasLoteUsoPermitido: "",
     rentasLoteServiciosDisponibles: "",
     rentasLoteAcceso: "",
@@ -464,6 +473,7 @@ export function mergePartialRentasPrivadoState(partial: Partial<RentasPrivadoFor
       typeof partial.rentasEspacioMaxOcupantes === "string"
         ? String(partial.rentasEspacioMaxOcupantes).replace(/\D/g, "")
         : base.rentasEspacioMaxOcupantes,
+    rentasEspacioEstacionamiento: coerceRentasSiNo(partial.rentasEspacioEstacionamiento),
     rentasPreferenciasEspacioCompartido:
       typeof partial.rentasPreferenciasEspacioCompartido === "string"
         ? partial.rentasPreferenciasEspacioCompartido
@@ -472,10 +482,15 @@ export function mergePartialRentasPrivadoState(partial: Partial<RentasPrivadoFor
     rentasAlmacenAcceso24h: coerceRentasSiNo(partial.rentasAlmacenAcceso24h),
     rentasAlmacenElectricidad: coerceRentasSiNo(partial.rentasAlmacenElectricidad),
     rentasAlmacenSeguridad: coerceRentasSiNo(partial.rentasAlmacenSeguridad),
+    rentasAlmacenCubierto: coerceRentasSiNo(partial.rentasAlmacenCubierto),
     rentasAlmacenUsoPermitido:
       typeof partial.rentasAlmacenUsoPermitido === "string" ? partial.rentasAlmacenUsoPermitido : base.rentasAlmacenUsoPermitido,
     rentasAlmacenDimensiones:
       typeof partial.rentasAlmacenDimensiones === "string" ? partial.rentasAlmacenDimensiones : base.rentasAlmacenDimensiones,
+    rentasAlmacenRestriccionesVehiculo:
+      typeof partial.rentasAlmacenRestriccionesVehiculo === "string"
+        ? partial.rentasAlmacenRestriccionesVehiculo
+        : base.rentasAlmacenRestriccionesVehiculo,
     rentasComercialUsoPermitido:
       typeof partial.rentasComercialUsoPermitido === "string" ? partial.rentasComercialUsoPermitido : base.rentasComercialUsoPermitido,
     rentasComercialTamanoFt2:
@@ -487,6 +502,10 @@ export function mergePartialRentasPrivadoState(partial: Partial<RentasPrivadoFor
       typeof partial.rentasComercialHorarioAcceso === "string" ? partial.rentasComercialHorarioAcceso : base.rentasComercialHorarioAcceso,
     rentasComercialContratoMinimo:
       typeof partial.rentasComercialContratoMinimo === "string" ? partial.rentasComercialContratoMinimo : base.rentasComercialContratoMinimo,
+    rentasComercialServiciosDisponibles:
+      typeof partial.rentasComercialServiciosDisponibles === "string"
+        ? partial.rentasComercialServiciosDisponibles
+        : base.rentasComercialServiciosDisponibles,
     rentasLoteUsoPermitido: typeof partial.rentasLoteUsoPermitido === "string" ? partial.rentasLoteUsoPermitido : base.rentasLoteUsoPermitido,
     rentasLoteServiciosDisponibles:
       typeof partial.rentasLoteServiciosDisponibles === "string" ? partial.rentasLoteServiciosDisponibles : base.rentasLoteServiciosDisponibles,

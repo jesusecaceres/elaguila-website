@@ -166,6 +166,9 @@ export function buildServiciosGetQuoteIntent(
     whatsappDigits: waOk ? waDigits : undefined,
     email: hasEmail ? email : undefined,
     contactShareExtras: serviciosContactShareExtras(profile, opts.listingSlug, opts.listingShareUrl),
+    // Owner no-mailto doctrine (2026-09-17) — the quote sheet's own "Enviar por correo" action must
+    // not expose the mailto launcher either, same as buildServiciosSendEmailIntentFromMailto below.
+    showOpenEmailApp: false,
   };
 }
 
