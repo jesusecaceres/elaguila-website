@@ -3,12 +3,15 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdminPageHeader } from "../../../_components/AdminPageHeader";
 import { actorHasCapability, isOwnerBootstrapActor, requireSalesWorkspaceAccess, type SalesWorkspaceDenialReason } from "../../../_lib/businessWorkspaceAccess";
+import { resolveConciergeActionDestination } from "../../../_lib/conciergeIntent";
 import { getBusinessWorkspaceDetail } from "../../../_lib/businessWorkspaceData";
 import { fetchBusinessCommercialBenefits } from "../../../_lib/businessCommercialBenefits";
 import { ADMIN_DASHBOARD_ROUTES } from "../../../_lib/adminDashboardRoutes";
 import { ALL_SALES_NOTE_OUTCOME_LABELS, BUSINESS_SALES_STATUSES, FOLLOW_UP_STATUSES, SALES_CONTACT_METHODS, computeNextHelpfulAction, computeProfileCompleteness, deriveFollowUpDisplayStatus, type ProfileCompletenessInput } from "../../../_lib/salesWorkspaceLogic";
 import { BusinessDashboardNav } from "./BusinessDashboardNav";
 import { computeBusinessDashboardNextAction } from "./businessDashboardNextAction";
+import { ProspectJourneyStrip } from "./ProspectJourneyStrip";
+import { PreparedListingsStrip } from "./PreparedListingsStrip";
 import { BROAD_BUSINESS_TYPES, BUSINESS_STAGES, CONTACT_LABELS, DIGITAL_PROFILE_PLATFORMS, OPERATING_MODELS, SALES_CHANNELS, SALES_RELATIONSHIPS } from "@/app/lib/business/constants";
 import { countryLabel } from "@/app/lib/business/countries";
 import { formatUsPhoneForDisplay } from "@/app/lib/business/phoneDisplay";
@@ -691,8 +694,18 @@ export default async function AdminBusinessDetailPage({
           ) : null}
         </dl>
 
+        {/* P0 Sales Ad Creation Flow (Gate 2) — Create Ad is the FIRST, most prominent hero action:
+            staff must not have to scroll past the journey strip and 15 dashboard sections to
+            start a real ad for a business already selected. Reuses the exact same intent resolver
+            every other Quick Action uses — no new destination, just moved to the top. */}
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-          <a href="#outreach" className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-semibold text-white">
+          <Link
+            href={resolveConciergeActionDestination("create_listing", business.id)}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-white shadow-[0_6px_16px_-6px_rgba(122,30,44,0.5)]"
+          >
+            🏷️ Crear anuncio / Create Ad
+          </Link>
+          <a href="#outreach" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
             Agregar nota / Add note
           </a>
           <a href="#outreach" className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[#C9A84A]/70 bg-[#FFFDF7] px-4 py-2 text-xs font-semibold text-[#1E1810]">
@@ -744,6 +757,47 @@ export default async function AdminBusinessDetailPage({
           {nextRightAction.whereLabel}
         </a>
       </section>
+
+      {/* LEONIX P0 FINAL ASSISTED PUBLISHING BRIDGE (Gate 3) — staff-visible inventory of
+          Leonix-prepared drafts for this business, sourced from business_listing_links. Renders
+          nothing when there are none yet, so it never adds noise to a business with no prepared
+          ads. */}
+      <PreparedListingsStrip businessId={business.id} />
+
+      {/* Staff OS — prospect preparation journey (Research → Review → Confirm truth → Prepare for
+          client). Pure presentation over data already loaded above; every button targets an
+          existing section/route on this page. See ProspectJourneyStrip.tsx for the honesty rules. */}
+      <ProspectJourneyStrip
+        businessId={business.id}
+        research={
+          fieldDiscoveryData
+            ? {
+                available: true,
+                runCount: fieldDiscoveryData.runs.length,
+                latestRunStatus: fieldDiscoveryData.latestRun?.status ?? null,
+                latestDraftReviewStatus: fieldDiscoveryData.latestDraft?.reviewStatus ?? null,
+                sourceLinkCount: fieldDiscoveryData.sourceLinks.length,
+                sourceFileCount: fieldDiscoveryData.sourceFiles.length,
+                googlePlacesAvailable: fieldDiscoveryData.googlePlacesAvailable,
+                providerAvailable: fieldDiscoveryData.providerAvailable,
+                canRun: canRunAiResearch,
+                canReview: canReviewAiBriefing,
+              }
+            : { available: false }
+        }
+        identity={{ metCount: completeness.metCount, totalCount: completeness.totalCount, nextHelpfulActionEn: nextAction.headline.en }}
+        book={{
+          available: Boolean(canViewBook && bookData),
+          confirmedFactCount: bookData?.completeness.confirmedFactCount ?? 0,
+          openUnknownCount: bookData?.completeness.openUnknownCount ?? 0,
+          unresolvedContradictionCount: bookData?.completeness.unresolvedContradictionCount ?? 0,
+        }}
+        prepare={{
+          businessProfile: Boolean(canViewBusinessProfile && businessProfileEnabled),
+          creativeStudio: Boolean(canViewCreativeStudio && creativeStudioEnabled),
+          canCreateCreativeJob: actorHasCapability(access.actor, "create_creative_job"),
+        }}
+      />
 
       <BusinessDashboardNav tabs={dashboardTabs} />
 

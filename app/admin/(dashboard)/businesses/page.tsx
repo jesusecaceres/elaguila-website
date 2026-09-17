@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { actorHasCapability, requireSalesWorkspaceAccess, toStaffWriteActor, type SalesWorkspaceDenialReason } from "../../_lib/businessWorkspaceAccess";
+import { conciergeActionLabel, normalizeConciergeAction, resolveConciergeActionDestination } from "../../_lib/conciergeIntent";
 import { listBusinessesForWorkspace } from "../../_lib/businessWorkspaceData";
 import { BUSINESS_SALES_STATUSES, labelFrom, type BusinessSalesStatus } from "../../_lib/salesWorkspaceLogic";
 import {
@@ -13,6 +14,8 @@ import {
 import { BROAD_BUSINESS_TYPES, BUSINESS_STAGES } from "@/app/lib/business/constants";
 import { countriesSortedByLabel, countryLabel } from "@/app/lib/business/countries";
 import { StaffCommandCenter } from "./StaffCommandCenter";
+import { composeStaffOperatingSystem } from "../../_lib/staffOperatingSystem";
+import { getCurrentAdminAccessContext, hasPaymentTrackerAccess } from "../../_lib/adminAccessControl";
 import { listAcceptedCurrentProposalsForHandoff, listProposalsAwaitingDecisionForStaffAttention } from "@/app/lib/business/proposals/repository";
 import { listActiveSignalsForStaffAttention } from "@/app/lib/business/advisor/repository";
 import { isAdvisorEnabled } from "@/app/lib/business/advisor/featureFlag";
@@ -41,6 +44,8 @@ type SearchParams = {
   hasWhatsapp?: string;
   hasWebsite?: string;
   hasAds?: string;
+  /** Assisted Publishing — carried Business Concierge intent (see conciergeIntent.ts). */
+  action?: string;
 };
 
 function statusBadgeClass(status: BusinessSalesStatus): string {
@@ -80,6 +85,26 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
   }
 
   const sp = (await searchParams) ?? {};
+  // Assisted Publishing — the intent carried from a Quick Action survives filtering and row
+  // selection (see conciergeIntent.ts). Unknown/absent values resolve to null = plain browsing.
+  const action = normalizeConciergeAction(sp.action);
+
+  // Staff OS — role-aware wire map. Payment Tracker visibility is the ONE thing the strict
+  // actor cannot answer (it is owner_admin OR the can_view_payments roster permission, resolved
+  // by the legacy context the Command Center already uses) — read it for link visibility only;
+  // the destination page still enforces it. Failure here must never take the home down.
+  let paymentTrackerAccess = false;
+  try {
+    paymentTrackerAccess = hasPaymentTrackerAccess(await getCurrentAdminAccessContext());
+  } catch {
+    paymentTrackerAccess = false;
+  }
+  const staffOs = composeStaffOperatingSystem({
+    role: access.actor.role,
+    actorType: access.actor.actorType,
+    capabilities: access.actor.capabilities,
+    paymentTrackerAccess,
+  });
   const toBool = (v: string | undefined) => (v === "true" ? true : v === "false" ? false : undefined);
 
   const { items, total } = await listBusinessesForWorkspace({
@@ -287,6 +312,7 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
   return (
     <div className="max-w-6xl space-y-6">
       <StaffCommandCenter
+        os={staffOs}
         home={home}
         summaryUnavailable={summaryUnavailable}
         needsAttention={needsAttention}
@@ -309,8 +335,23 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
           </p>
         </div>
 
+        {action ? (
+          <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#C9A84A]/60 bg-[#FBF7EF] px-4 py-3">
+            <p className="text-sm text-[#1E1810]">
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8A6B1F]">Acción seleccionada / Selected action · </span>
+              <span className="font-semibold">{conciergeActionLabel(action)}</span>
+              <span className="text-xs text-[#7A7164]"> — elige un negocio abajo para continuar. / pick a business below to continue.</span>
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Link href={`/admin/businesses/canvass?intent=${action}`} className="text-xs font-semibold text-[#7A1E2C] underline">Negocio nuevo / New business</Link>
+              <Link href="/admin/businesses" className="text-xs font-semibold text-[#7A7164] underline">Cancelar / Cancel</Link>
+            </div>
+          </div>
+        ) : null}
+
       {/* Filters — plain GET form so every view is a shareable/refreshable URL. */}
       <form method="get" className="rounded-2xl border border-[#E8DFD0] bg-[#FFFCF7] p-4">
+        {action ? <input type="hidden" name="action" value={action} /> : null}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label htmlFor="q" className="block text-xs font-semibold text-[#3D3428]">
@@ -395,7 +436,10 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
                 Apply filters
               </button>
               {activeFilterCount > 0 || sp.q ? (
-                <Link href="/admin/businesses" className="flex min-h-[40px] items-center justify-center rounded-lg border border-[#E8DFD0] px-3 py-1.5 text-xs font-semibold text-[#3D3428]">
+                <Link
+                  href={action ? `/admin/businesses?action=${action}#businesses-inventory` : "/admin/businesses"}
+                  className="flex min-h-[40px] items-center justify-center rounded-lg border border-[#E8DFD0] px-3 py-1.5 text-xs font-semibold text-[#3D3428]"
+                >
                   Clear all
                 </Link>
               ) : null}
@@ -413,7 +457,7 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
         {items.map((item) => (
           <li key={item.business.id}>
             <Link
-              href={`/admin/businesses/${item.business.id}`}
+              href={resolveConciergeActionDestination(action, item.business.id)}
               className="block rounded-2xl border border-[#E8DFD0] bg-white p-4 shadow-sm"
             >
               <div className="flex items-start justify-between gap-2">
@@ -460,7 +504,7 @@ export default async function AdminBusinessesListPage({ searchParams }: { search
             {items.map((item) => (
               <tr key={item.business.id} className="border-b border-[#F3EBDD] last:border-b-0 hover:bg-[#FAF7F2]/60">
                 <td className="px-4 py-3">
-                  <Link href={`/admin/businesses/${item.business.id}`} className="font-semibold text-[#1E1810] hover:underline">
+                  <Link href={resolveConciergeActionDestination(action, item.business.id)} className="font-semibold text-[#1E1810] hover:underline">
                     {item.business.displayName}
                   </Link>
                 </td>

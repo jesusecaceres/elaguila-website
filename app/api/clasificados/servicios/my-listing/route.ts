@@ -6,6 +6,8 @@ import {
   mergeServiciosPrivateAddressForOwner,
   serviciosExactAddressIsHidden,
 } from "@/app/clasificados/servicios/lib/serviciosAddressPrivacy";
+import { readAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
+import { isListingLinkedToBusiness } from "@/app/lib/business/assistedListingCustody";
 
 export const runtime = "nodejs";
 
@@ -20,20 +22,33 @@ export async function GET(req: NextRequest) {
   }
 
   const token = authTokenFromRequest(req);
-  if (!token) {
+
+  /**
+   * LEONIX P0 FINAL ASSISTED PUBLISHING BRIDGE (Gate 8 reopen) — a staff actor with a valid,
+   * server-verified assisted-publishing cookie may reopen a Leonix-prepared draft it created,
+   * WITHOUT a customer bearer token. Never a substitute for the customer bearer check below for a
+   * normal request — only unlocks the by-id lookup, and only for a row this route independently
+   * re-verifies has no customer owner AND is verified-linked to that exact business.
+   */
+  const assistedContext = !token ? readAssistedPublishingContext(req.cookies) : null;
+  const isAssistedRequest = !token && assistedContext !== null && assistedContext.category === "servicios";
+  if (!token && !isAssistedRequest) {
     return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   }
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anon) {
-    return NextResponse.json({ ok: false, error: "misconfigured" }, { status: 500 });
-  }
-
-  const authClient = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data, error } = await authClient.auth.getUser(token);
-  if (error || !data.user) {
-    return NextResponse.json({ ok: false, error: "invalid_token" }, { status: 401 });
+  let ownerAuthUserId: string | null = null;
+  if (token) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !anon) {
+      return NextResponse.json({ ok: false, error: "misconfigured" }, { status: 500 });
+    }
+    const authClient = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data, error } = await authClient.auth.getUser(token);
+    if (error || !data.user) {
+      return NextResponse.json({ ok: false, error: "invalid_token" }, { status: 401 });
+    }
+    ownerAuthUserId = data.user.id;
   }
 
   const search = req.nextUrl.searchParams;
@@ -44,14 +59,19 @@ export async function GET(req: NextRequest) {
   if (!slug && !id && !leonixAdId) {
     return NextResponse.json({ ok: false, error: "missing_identity" }, { status: 400 });
   }
+  // Assisted reopen only ever targets the canonical row id — no slug/leonixAdId lookup, matching
+  // the same "canonical UUID is the persistence authority" doctrine the publish route enforces.
+  if (isAssistedRequest && !id) {
+    return NextResponse.json({ ok: false, error: "missing_identity" }, { status: 400 });
+  }
 
   const supabase = getAdminSupabase();
   let query = supabase
     .from("servicios_public_listings")
     .select(
       "id, slug, leonix_ad_id, business_name, city, published_at, updated_at, profile_json, leonix_verified, listing_status, owner_user_id",
-    )
-    .eq("owner_user_id", data.user.id);
+    );
+  if (ownerAuthUserId) query = query.eq("owner_user_id", ownerAuthUserId);
 
   if (id) query = query.eq("id", id);
   else if (slug) query = query.eq("slug", slug);
@@ -67,6 +87,20 @@ export async function GET(req: NextRequest) {
 
   const rec = row as Record<string, unknown>;
 
+  if (isAssistedRequest) {
+    const linked =
+      rec.owner_user_id == null &&
+      typeof rec.id === "string" &&
+      (await isListingLinkedToBusiness({
+        businessId: assistedContext!.businessId,
+        listingSource: "servicios_public_listings",
+        listingId: rec.id,
+      }));
+    if (!linked) {
+      return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+    }
+  }
+
   // Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B5) — this route is owner-verified (`owner_user_id` =
   // bearer user) and runs with the service role, so it is the right place to re-attach the PRIVATE
   // exact address the public profile no longer carries. Both the dashboard edit hydration and the
@@ -74,12 +108,9 @@ export async function GET(req: NextRequest) {
   // Read only for hidden-address listings and best-effort: other listings never touch the column.
   let ownerProfile = (rec.profile_json ?? null) as ServiciosBusinessProfile | null;
   if (serviciosExactAddressIsHidden(ownerProfile) && typeof rec.id === "string") {
-    const { data: privateRow } = await supabase
-      .from("servicios_public_listings")
-      .select("private_contact")
-      .eq("id", rec.id)
-      .eq("owner_user_id", data.user.id)
-      .maybeSingle();
+    let privateQuery = supabase.from("servicios_public_listings").select("private_contact").eq("id", rec.id);
+    if (ownerAuthUserId) privateQuery = privateQuery.eq("owner_user_id", ownerAuthUserId);
+    const { data: privateRow } = await privateQuery.maybeSingle();
     ownerProfile = mergeServiciosPrivateAddressForOwner(
       ownerProfile,
       (privateRow as { private_contact?: unknown } | null)?.private_contact,

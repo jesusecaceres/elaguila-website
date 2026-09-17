@@ -96,6 +96,8 @@ export async function postServiciosPublishApi(args: {
   activationMode?: "pending_payment";
   /** Canonical row id to update. Overrides the primed session value when supplied directly. */
   existingListingId?: string | null;
+  /** LEONIX P0 FINAL ASSISTED PUBLISHING BRIDGE — see buildServiciosPublishPayload.ts. */
+  assistedAction?: "save_for_client" | "publish_for_client";
 }): Promise<{ res: Response; data: ServiciosPublishApiResponse }> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (args.accessToken) {
@@ -145,6 +147,7 @@ export async function postServiciosPublishApi(args: {
     videoPublishDiagnostics,
     args.activationMode,
     existingListingId,
+    args.assistedAction,
   );
   const raw = JSON.stringify(body);
   const byteSize = new Blob([raw]).size;

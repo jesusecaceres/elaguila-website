@@ -40,6 +40,12 @@ const QUICK_TASKS: { label: string; query: string }[] = [
   { label: "Check if a provider is down", query: "system health" },
   { label: "What does Needs Triage mean?", query: "needs triage" },
   { label: "Find a customer", query: "where are users" },
+  // Staff OS day-in-the-life questions — each resolves to a real registry entry below.
+  { label: "Create an ad for a client", query: "create for client" },
+  { label: "Research a business before a visit", query: "research a business" },
+  { label: "Record a cash or Zelle payment", query: "offline payment" },
+  { label: "Build a Business Profile for a prospect", query: "business profile" },
+  { label: "Set my availability", query: "temporary availability" },
 ];
 
 type PageProps = {

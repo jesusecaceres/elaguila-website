@@ -1,5 +1,7 @@
 import { Suspense } from "react";
+import { cookies } from "next/headers";
 import { PublishAuthGate } from "./PublishAuthGate";
+import { readAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
 
 function PublishAuthGateFallback() {
   return (
@@ -13,11 +15,25 @@ function PublishAuthGateFallback() {
   );
 }
 
-/** Wrap publish / draft-preview / publish-checkout routes — blocks forms until Supabase session exists. */
-export function PublishAuthGateLayout({ children }: { children: React.ReactNode }) {
+/**
+ * Wrap publish / draft-preview / publish-checkout routes — blocks forms until EITHER a real
+ * customer Supabase session exists OR a valid staff-assisted-publishing token is present.
+ *
+ * P0 Staff-Assisted Category Access (Gate 4) — this Server Component now reads the signed,
+ * httpOnly assisted-publishing cookie server-side (real cryptographic verification, no DB call,
+ * no client-forgeable input — see app/lib/auth/assistedPublishingSession.ts) and passes the
+ * result down to the client gate. Normal customer requests never carry this cookie, so
+ * `assisted` is `null` for 100% of real traffic and PublishAuthGate's existing Supabase-session
+ * check runs completely unchanged. This one component pair is the single choke point every
+ * category's application/preview route already renders through — no per-category changes needed.
+ */
+export async function PublishAuthGateLayout({ children }: { children: React.ReactNode }) {
+  const jar = await cookies();
+  const assisted = readAssistedPublishingContext(jar);
+
   return (
     <Suspense fallback={<PublishAuthGateFallback />}>
-      <PublishAuthGate>{children}</PublishAuthGate>
+      <PublishAuthGate assisted={assisted}>{children}</PublishAuthGate>
     </Suspense>
   );
 }

@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import type { CanvassDuplicateWarning, CanvassIntakeInput, CanvassMode } from "@/app/lib/business/fieldDiscovery/types";
 import { humanizeStaffWriteError } from "@/app/admin/_lib/staffWriteErrorMessages";
+import { normalizeConciergeAction } from "@/app/admin/_lib/conciergeIntent";
 
 type FormState = Partial<CanvassIntakeInput> & { mode: CanvassMode };
 
@@ -29,11 +30,12 @@ type SubmitState = "idle" | "submitting" | "error" | "duplicate" | "success";
 export function CanvassForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  // Staff-Created Business Profile pipeline — the "Create Client Business Profile" quick action
-  // links here with ?intent=business_profile so a successful canvass lands the operator directly
-  // on the Business Profile section instead of the plain business-page top. Every other entry
-  // point into this form (e.g. "Add prospect") omits the param, so its redirect is unchanged.
-  const intent = searchParams?.get("intent") === "business_profile" ? "business_profile" : undefined;
+  // Assisted Publishing — any Business Concierge intent (see app/admin/_lib/conciergeIntent.ts)
+  // can arrive as ?intent=<action>; a successful canvass lands the operator directly on the
+  // destination that intent resolves to (Business Profile section, Create-for-Client launcher,
+  // outreach, etc.) instead of the plain business-page top. Entry points that omit the param
+  // (e.g. "Add prospect") keep their unchanged redirect.
+  const intent = normalizeConciergeAction(searchParams?.get("intent")) ?? undefined;
   const [form, setForm] = useState<FormState>(INITIAL_STATE);
   const [state, setState] = useState<SubmitState>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);

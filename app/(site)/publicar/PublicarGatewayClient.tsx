@@ -21,10 +21,11 @@ import {
 import { LEONIX_CATEGORY_VISUALS } from "@/app/(site)/clasificados/config/categoryVisuals";
 import { normalizeLang, replaceLangInHref } from "@/app/lib/language";
 import { getPublishChooserCopy } from "@/app/lib/clasificados/publishChooserCopy";
-import { getPublicCategoryCardCopy } from "@/app/lib/clasificados/publicCategoryCopyGuard";
 import newLogo from "../../../public/logo.png";
 import {
   normalizePublicarGatewayDeepLink,
+  publicarGatewayCardCopy as cardCopy,
+  publicarGatewayVisual as visualFor,
   resolvePublicarGatewayDestination,
   type PublicarGatewayCategoryKey,
 } from "./publicarGatewayResolver";
@@ -52,44 +53,9 @@ const GRID_CATEGORIES: Array<{ key: PublicarGatewayCategoryKey; Icon: ComponentT
   { key: "comida-local", Icon: COMIDA_LOCAL_ICON },
 ];
 
-/**
- * Visual token lookup — every `PUBLICAR_GATEWAY_CATEGORY_KEYS` member either has a
- * `LEONIX_CATEGORY_VISUALS` entry already, or gets one of these two small additive fallbacks
- * (Gate I.5.2 — Comida Local/Ofertas Locales aren't part of that shared visual registry).
- */
-function visualFor(key: PublicarGatewayCategoryKey) {
-  if (key in LEONIX_CATEGORY_VISUALS) {
-    return LEONIX_CATEGORY_VISUALS[key as keyof typeof LEONIX_CATEGORY_VISUALS];
-  }
-  return {
-    emoji: "🏷️",
-    tint: "from-[#7A1E2C]/8 via-[#FFFDF7] to-[#FAF6EE]",
-    border: "border-[#7A1E2C]/35",
-    chipBg: "bg-[#7A1E2C]/10",
-    glow: "shadow-[0_10px_24px_-16px_rgba(122,30,44,0.25)]",
-  };
-}
-
-/** ES/EN-only card copy — no PT/TL, no additional-language controls (Gate I.5.2 launch rule). */
-function cardCopy(key: PublicarGatewayCategoryKey, lang: "es" | "en"): { label: string; description: string } {
-  if (key === "comida-local") {
-    return lang === "es"
-      ? { label: "Comida Local", description: "Publica tu negocio de comida local." }
-      : { label: "Local Food", description: "Publish your local food business." };
-  }
-  if (key === "ofertas-locales") {
-    return lang === "es"
-      ? { label: "Ofertas Locales", description: "Publica tus ofertas locales." }
-      : { label: "Local Deals", description: "Publish your local deals." };
-  }
-  if (key === "autos") {
-    return lang === "es"
-      ? { label: "Autos", description: "Concesionario o vendedor privado." }
-      : { label: "Autos", description: "Dealer or private seller." };
-  }
-  const copy = getPublicCategoryCardCopy(key, lang);
-  return { label: copy.label, description: copy.desc };
-}
+// `visualFor` / `cardCopy` now live in ./publicarGatewayResolver (publicarGatewayVisual /
+// publicarGatewayCardCopy) so the staff Create-for-Client launcher shares this exact
+// presentation source instead of duplicating it. Behavior is byte-identical.
 
 export default function PublicarGatewayClient({
   chooserKeys,

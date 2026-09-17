@@ -158,6 +158,14 @@ export type SalesWorkspaceCapability =
   // real owner, never act as the owner" doctrine).
   | "view_business_profile"
   | "manage_business_profile"
+  // P0 Staff-Assisted Category Access — authorizes minting a short-lived, server-signed token
+  // that lets the REAL customer-facing category application/preview render for an authenticated
+  // staff actor without a customer Supabase session. Same trust tier as manage_business_profile/
+  // conduct_canvassing: preparing a draft ad is not a consequential write (nothing is persisted
+  // to the database — every category's draft/preview is 100% browser-local until Publish, which
+  // this capability does NOT touch — the existing, unweakened, server-verified customer-bearer-
+  // token check on every publish route still applies unchanged).
+  | "assisted_category_publishing"
   // Gate 07/08 — recording a real commercial grant (a paid magazine/digital package, a
   // complimentary/partner courtesy, or a manually-cleared payment) that authorizes releasing a
   // Business Profile is a consequential, attributed commercial write — manager+ only, matching
@@ -245,6 +253,7 @@ export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] =
   "manage_project_blueprint",
   "view_business_profile",
   "manage_business_profile",
+  "assisted_category_publishing",
   "grant_business_profile_entitlement",
 ];
 
@@ -347,6 +356,7 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "manage_project_blueprint",
     "view_business_profile",
     "manage_business_profile",
+    "assisted_category_publishing",
     "grant_business_profile_entitlement",
   ],
   sales_manager: [
@@ -426,6 +436,7 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "manage_project_blueprint",
     "view_business_profile",
     "manage_business_profile",
+    "assisted_category_publishing",
     "grant_business_profile_entitlement",
   ],
   sales_rep: [
@@ -467,6 +478,7 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "manage_discovery_consent",
     "view_business_profile",
     "manage_business_profile",
+    "assisted_category_publishing",
   ],
 };
 

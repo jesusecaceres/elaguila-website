@@ -5,6 +5,9 @@ import { AdminResponsiveTabs } from "./AdminResponsiveTabs";
 
 const ITEMS: { href: string; label: string }[] = [
   { href: "/admin/team", label: "Staff Home" },
+  // Staff OS — reciprocal Team ↔ Business Concierge navigation. /admin/businesses is the one
+  // route every Sales Workspace role (incl. sales_rep) can already reach; this only surfaces it.
+  { href: "/admin/businesses", label: "Business Concierge" },
   { href: "/admin/team/website-preview", label: "Website Preview" },
   { href: "/admin/team/promo-codes", label: "Promo Codes" },
   { href: "/admin/team/clients", label: "My Clients" },

@@ -150,9 +150,6 @@ export function ServiciosProfessionalResultCard({
     internalGroup: row.internal_group,
     categoryLabel: row.profile_json.hero?.categoryLine,
   });
-  const primaryLabel = getPrimaryCtaLabel(template, lang);
-  const secondaryLabel = getProfileCtaSecondary(template, lang);
-  const servicesLabel = getServicesTitle(template, lang);
 
   const href = `/clasificados/servicios/${encodeURIComponent(row.slug)}?lang=${lang}`;
   const ctaAnalyticsKey = serviciosEngagementListingKey(row);
@@ -180,14 +177,42 @@ export function ServiciosProfessionalResultCard({
     () => (isCompact ? [] : collectOwnerAuthoredProfessionalChips(profile, allChips)),
     [isCompact, profile, allChips],
   );
-  const { translateControl, displayCategoryLine, chipOverrides } = useServiciosResultCardTranslation({
+  // Servicios Card Translate Coherence (2026-09-17): canonical (catalog) chips always have a real
+  // ES/EN pair — Translate must stay offered for them even with zero owner-authored text.
+  const hasCanonicalDisplayContent = Boolean(
+    (category && !customCategoryLine) || allChips.length > ownerAuthoredChips.length,
+  );
+  const { translateControl, displayLang, displayCategoryLine, chipOverrides } = useServiciosResultCardTranslation({
     categoryLine: customCategoryLine,
     ownerAuthoredChips,
+    hasCanonicalDisplayContent,
     lang,
     listingKey: ctaAnalyticsKey,
     enabled: !isCompact,
   });
-  const displayCategory = displayCategoryLine ?? category;
+
+  // Re-derive canonical chips/category for the DISPLAY language (unchanged reference when not
+  // translated) — mirrors ServiciosHorizontalResultCard's fix: canonical content must flip
+  // language together with owner-authored text, never leaving a mixed-language card.
+  const displayProfile = useMemo(
+    () => (displayLang !== lang ? relabelServiciosCanonicalPresets(profile, displayLang) : profile),
+    [profile, displayLang, lang],
+  );
+  const displayServiceChipsCanonical =
+    displayProfile === profile ? serviceChips : collectProfessionalServiceChips(displayProfile, 12);
+  const displayTrustChipsCanonical =
+    displayProfile === profile ? trustChips : collectHeroTrustChips(displayProfile, 3);
+  const displayAllChipsCanonical =
+    displayProfile === profile ? allChips : [...displayServiceChipsCanonical, ...displayTrustChipsCanonical];
+  const displayCategory =
+    displayCategoryLine ?? (displayLang === lang ? category : displayProfile.hero.categoryLine?.trim());
+
+  // Servicios Absolute Final Golden Closeout (2026-09-17, Gate 1/2) — every UI_CHROME string
+  // (CTA labels, section labels, aria text) follows `displayLang`, not the static site `lang`,
+  // so Translate switches the WHOLE ad-local experience instead of leaving chrome behind.
+  const primaryLabel = getPrimaryCtaLabel(template, displayLang);
+  const secondaryLabel = getProfileCtaSecondary(template, displayLang);
+  const servicesLabel = getServicesTitle(template, displayLang);
 
   const ratingValue =
     typeof profile.hero.rating === "number" && Number.isFinite(profile.hero.rating) && profile.hero.rating > 0
@@ -249,7 +274,7 @@ export function ServiciosProfessionalResultCard({
   }, [row]);
 
   const cardNavigateLabel =
-    lang === "en"
+    displayLang === "en"
       ? `View profile for ${profile.identity.businessName}`
       : `Ver perfil de ${profile.identity.businessName}`;
 
@@ -257,7 +282,9 @@ export function ServiciosProfessionalResultCard({
     ? `${LX_IVORY_CARD} ring-2 ring-[#C9A84A]/30 border-[#C9A84A]/55`
     : LX_IVORY_CARD;
   const displayChips = (
-    isCompact && allChips.length > 3 ? [...allChips.slice(0, 3), `+${allChips.length - 3}`] : allChips
+    isCompact && displayAllChipsCanonical.length > 3
+      ? [...displayAllChipsCanonical.slice(0, 3), `+${displayAllChipsCanonical.length - 3}`]
+      : displayAllChipsCanonical
   ).map((c) => chipOverrides.get(c) ?? c);
 
   const body = (
@@ -283,7 +310,7 @@ export function ServiciosProfessionalResultCard({
               <div className="flex flex-wrap items-center gap-1">
                 {promoted ? (
                   <span className="rounded-md border border-[#C9A84A]/50 bg-[#F5F0E8] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#3B2117]">
-                    {lang === "en" ? "Featured" : "Destacado"}
+                    {displayLang === "en" ? "Featured" : "Destacado"}
                   </span>
                 ) : null}
                 {row.leonix_verified ? (
@@ -295,11 +322,11 @@ export function ServiciosProfessionalResultCard({
                       color: LX.trustGreenText,
                     }}
                   >
-                    {lang === "en" ? "Verified" : "Verificado"}
+                    {displayLang === "en" ? "Verified" : "Verificado"}
                   </span>
                 ) : null}
                 {!showEngagementControls ? (
-                  <ServiciosLikeCountBadge count={likeBadgeCount} lang={lang} />
+                  <ServiciosLikeCountBadge count={likeBadgeCount} lang={displayLang} />
                 ) : null}
               </div>
 
@@ -320,10 +347,10 @@ export function ServiciosProfessionalResultCard({
 
               {ratingValue != null ? (
                 <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                  <StarRow rating={ratingValue} lang={lang} />
+                  <StarRow rating={ratingValue} lang={displayLang} />
                   {reviewCount != null ? (
                     <span className="text-[11px] font-semibold text-[#6F6254]">
-                      ({reviewCount} {lang === "en" ? "reviews" : "reseñas"})
+                      ({reviewCount} {displayLang === "en" ? "reviews" : "reseñas"})
                     </span>
                   ) : null}
                 </div>
@@ -342,7 +369,7 @@ export function ServiciosProfessionalResultCard({
           <div className={isCompact ? "pointer-events-none relative z-[2] px-2.5 pb-2 sm:col-start-1 sm:row-start-2 sm:px-3" : "pointer-events-none relative z-[2] px-4 pb-3 sm:px-5"}>
             <ServiciosServiceChipsRow
               chips={displayChips}
-              lang={lang}
+              lang={displayLang}
               profileHref={href}
               servicesLabel={servicesLabel}
             />
@@ -380,7 +407,7 @@ export function ServiciosProfessionalResultCard({
                 {showDirections ? (
                   <button type="button" onClick={onDirectionsClick} className={`${LX_CTA_CARD_MAP} sm:!min-h-[30px] sm:!w-full sm:flex-none sm:!px-2 sm:!py-1.5 sm:!text-[11px]`}>
                     <FiMapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    {lang === "en" ? "Directions" : "Cómo llegar"}
+                    {displayLang === "en" ? "Directions" : "Cómo llegar"}
                   </button>
                 ) : null}
               </div>
@@ -398,7 +425,7 @@ export function ServiciosProfessionalResultCard({
                 listingShareUrl={persistListingEngagement ? listingShareUrl || undefined : undefined}
                 listingSlug={row.slug}
                 listingSourceId={row.id ?? null}
-                lang={lang}
+                lang={displayLang}
                 publicLikeCount={likeBadgeCount}
                 showEngagementControls={showEngagementControls}
                 persistListingEngagement={persistListingEngagement}
@@ -432,20 +459,20 @@ export function ServiciosProfessionalResultCard({
                 {showDirections ? (
                   <button type="button" onClick={onDirectionsClick} className={LX_CTA_CARD_MAP}>
                     <FiMapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    {lang === "en" ? "Directions" : "Cómo llegar"}
+                    {displayLang === "en" ? "Directions" : "Cómo llegar"}
                   </button>
                 ) : null}
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-2" data-servicios-card-trust-strip="1">
                 <span className="inline-flex items-center gap-1 rounded-full border border-[#E8D7B8] bg-[#FFF9F2] px-2.5 py-1 text-[10px] font-bold text-[#7A1E2C] sm:text-[11px]">
-                  🦁 {lang === "en" ? "Leonix Community" : "Comunidad Leonix"}
+                  🦁 {displayLang === "en" ? "Leonix Community" : "Comunidad Leonix"}
                   {" · "}
                   {endorsementCount > 0
-                    ? lang === "en"
+                    ? displayLang === "en"
                       ? `${endorsementCount} recognition${endorsementCount === 1 ? "" : "s"}`
                       : `${endorsementCount} reconocimiento${endorsementCount === 1 ? "" : "s"}`
-                    : lang === "en"
+                    : displayLang === "en"
                       ? "New"
                       : "Nuevo"}
                 </span>
@@ -457,7 +484,7 @@ export function ServiciosProfessionalResultCard({
                   listingShareUrl={persistListingEngagement ? listingShareUrl || undefined : undefined}
                   listingSlug={row.slug}
                   listingSourceId={row.id ?? null}
-                  lang={lang}
+                  lang={displayLang}
                   publicLikeCount={likeBadgeCount}
                   showEngagementControls={showEngagementControls}
                   persistListingEngagement={persistListingEngagement}
