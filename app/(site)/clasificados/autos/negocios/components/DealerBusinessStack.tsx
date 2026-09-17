@@ -171,6 +171,7 @@ export function DealerBusinessStack({
         email,
         subject: data.dealerName?.trim() ? `Leonix · ${data.dealerName.trim()}` : "Leonix",
         body: buildAutosContactEmailBody({ lang, vehicleTitle: data.vehicleTitle, intent: "dealer" }),
+        showOpenEmailApp: false,
       }),
     );
   };

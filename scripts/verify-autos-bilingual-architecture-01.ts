@@ -1414,6 +1414,66 @@ check("Gate 9: a dealer's genuine free-typed custom day label (never the literal
   assert.equal(rows.length, 1, "a real custom label must survive the filter");
 });
 
+/* ================================================================================================
+ * NO-MAILTO EMAIL DOCTRINE (2026-09-17) — owner final decision: the approved Autos (and
+ * Servicios) contact sheet no longer exposes "Abrir app de correo"/"Open email app". Copy/Share
+ * remain the reliable cross-app path. This is a per-intent `showOpenEmailApp` opt-out flag, never
+ * a deletion of the shared openMailto infrastructure other categories still rely on.
+ * ============================================================================================ */
+check("no-mailto: send_email intent declares showOpenEmailApp, defaulting to true (every other category untouched unless it opts out)", () => {
+  const types = raw("app/components/cta/types.ts");
+  assert.ok(types.includes("showOpenEmailApp?: boolean;"), "type must declare the opt-out flag");
+  const builders = raw("app/components/cta/ctaIntentBuilders.ts");
+  assert.ok(builders.includes("showOpenEmailApp: input.showOpenEmailApp ?? true"), "builder must default to true");
+});
+check("no-mailto: CtaActionSheet gates the open_email button, its hint copy, AND the Gmail launcher behind showOpenEmailApp — never just deletes them from the shared component", () => {
+  const sheet = raw("app/components/cta/CtaActionSheet.tsx");
+  assert.ok(sheet.includes("const showOpenEmailApp = intent.showOpenEmailApp ?? true;"));
+  assert.ok(sheet.includes("{showOpenEmailApp && canCompose ? ("), "openEmailAppHint gated");
+  assert.ok(sheet.includes("{showOpenEmailApp && gmailHref ? ("), "Gmail launcher gated (it's still an external mail-app launcher)");
+  assert.ok(sheet.includes("showOpenEmailApp\n          ? btnRow(") || /showOpenEmailApp\s*\?\s*btnRow/.test(sheet), "open_email button gated");
+  assert.ok(sheet.includes("openMailto(em, sub, bod)"), "the launcher itself is preserved for categories that don't opt out (Gate 03)");
+  assert.ok(sheet.includes("t.openEmailApp") && sheet.includes("t.openEmailAppHint"), "copy keys preserved, not deleted");
+});
+check("no-mailto: every approved Autos email intent (Dealer main, Finance, Dealer Preview, and the Privado/AutosSheetCtaLink mailto-interceptor) explicitly opts out", () => {
+  for (const file of [
+    "app/(site)/clasificados/autos/negocios/components/DealerBusinessStack.tsx",
+    "app/(site)/clasificados/autos/negocios/components/DealerFinanceContact.tsx",
+    "app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewDealerBusinessStack.tsx",
+    "app/(site)/clasificados/autos/shared/lib/autosCtaSheet.ts",
+  ]) {
+    assert.ok(raw(file).includes("showOpenEmailApp: false"), `${file}: must opt out of the mailto launcher`);
+  }
+});
+check("no-mailto: Privado's Correo button reaches the opted-out intent — AutosSheetCtaLink -> buildAutosIntentFromHref -> autosCtaSheet.ts, the same file just proven to opt out", () => {
+  const strip = raw("app/(site)/clasificados/autos/privado/components/PrivadoContactStrip.tsx");
+  assert.ok(strip.includes("AutosSheetCtaLink"), "Privado's email button must route through the shared link interceptor");
+  assert.ok(strip.includes("mailtoHref"), "Privado's own mailto-shaped href construction is unchanged (only the sheet's launcher visibility changed)");
+});
+check("no-mailto: unrelated categories (Restaurantes, Rentas, Bienes Raíces) never opt out — they keep the mailto launcher, confirming this is scoped, not a global removal (Gate 03)", () => {
+  for (const file of [
+    "app/(site)/clasificados/bienes-raices/shared/brContactCtaSheet.tsx",
+    "app/(site)/clasificados/restaurantes/shell/RestaurantContactHub.tsx",
+    "app/(site)/clasificados/rentas/listing/components/RentasNegocioDesktopBusinessRail.tsx",
+  ]) {
+    assert.ok(!raw(file).includes("showOpenEmailApp: false"), `${file}: must NOT opt out — unrelated category, mailto launcher stays`);
+  }
+});
+check("no-mailto: Servicios' SECOND real send_email path (a mailto-shaped quote destination, buildServiciosSendEmailIntentFromMailto, reached from both ServiciosBusinessHubContactCard and ServiciosActionPanel) also opts out — proves the doctrine holds beyond the single most-obvious call site", () => {
+  const src = raw("app/(site)/servicios/lib/serviciosCtaIntents.ts");
+  const fnStart = src.indexOf("export function buildServiciosSendEmailIntentFromMailto");
+  assert.ok(fnStart >= 0);
+  const fnBlock = src.slice(fnStart, src.indexOf("\n}\n", fnStart));
+  assert.ok(fnBlock.includes("showOpenEmailApp: false"));
+  assert.ok(raw("app/(site)/servicios/components/ServiciosActionPanel.tsx").includes("buildServiciosSendEmailIntentFromMailto"));
+});
+check("no-mailto: openMailto and its underlying buildMailtoHref remain real, exported, working functions — legacy infrastructure is preserved, not deleted", () => {
+  const launchers = raw("app/components/cta/ctaLaunchers.ts");
+  assert.ok(launchers.includes("export function openMailto"));
+  const hrefs = raw("app/lib/digitalContact/humanConnection/nativeChannelHrefs.ts");
+  assert.ok(hrefs.includes("export function buildMailtoHref") || hrefs.includes("function buildMailtoHref"));
+});
+
 if (failures.length) {
   console.error(`\nverify-autos-bilingual-architecture-01: ${failures.length} failure(s)`);
   process.exit(1);

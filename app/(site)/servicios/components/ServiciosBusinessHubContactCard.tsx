@@ -310,6 +310,7 @@ export function ServiciosBusinessHubContactCard({
         email,
         subject: profile.identity?.businessName ? `Leonix · ${profile.identity.businessName}` : "Leonix",
         body: "",
+        showOpenEmailApp: false,
       }),
     );
   };

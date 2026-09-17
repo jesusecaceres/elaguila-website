@@ -93,6 +93,7 @@ export function DealerFinanceContact({
           vehicleTitle: data.vehicleTitle,
           intent: "finance",
         }),
+        showOpenEmailApp: false,
       }),
     );
   };

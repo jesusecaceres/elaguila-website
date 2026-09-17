@@ -98,6 +98,17 @@ export type CtaSheetIntent =
       contactShareExtras?: CtaContactShareExtras | null;
       /** When set, show “Open in Gmail” (Leonix share / contact parity). */
       gmailComposeHref?: string | null;
+      /**
+       * Owner doctrine (2026-09-17): the approved Autos/Servicios contact sheet no longer
+       * exposes an "Abrir app de correo"/"Open email app" mailto launcher — Copy email/Copy
+       * full message/Share are the reliable, cross-app path, since mailto's actual
+       * app-opening behavior depends on an OS-registered handler Leonix cannot guarantee.
+       * Defaults to `true` so every OTHER category (Restaurantes, Rentas, Bienes Raíces,
+       * Empleos, En Venta, Viajes, Comida Local, Recursos) keeps its current behavior
+       * unchanged unless it explicitly opts out — this never deletes the underlying
+       * `openMailto` infrastructure, only whether this one sheet exposes it.
+       */
+      showOpenEmailApp?: boolean;
     }
   | {
       kind: "website" | "booking" | "menu" | "order" | "social_link" | "other";
