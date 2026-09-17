@@ -134,10 +134,11 @@ for (const f of [
 
 // 6. No new architecture ------------------------------------------------------------------------
 assert.ok(!allTouched.some((f) => f.startsWith("supabase/migrations/")), "no new Supabase migration — draft custody stays out of the database");
-for (const f of [
-  "app/(site)/clasificados/publicar/servicios/components/ClasificadosServiciosApplication.tsx",
-  "app/(site)/publicar/restaurantes/RestauranteApplicationClient.tsx",
-]) {
+// LEONIX ASSISTED SERVICIOS NAVIGATION CLEANUP (later, explicitly-authorized, navigation-only
+// mission) legitimately touches ClasificadosServiciosApplication.tsx for a persistent assisted
+// header + extracted step-transition callbacks — no new field, no new persistence, no duplicate
+// application. See verify-p0-assisted-servicios-navigation-01.ts for the dedicated proof.
+for (const f of ["app/(site)/publicar/restaurantes/RestauranteApplicationClient.tsx"]) {
   assert.ok(!allTouched.includes(f), `${f} (a category's own form component) was not touched — no new/duplicate application`);
 }
 const returnCtxSrc = read("app/lib/business/applicationContext/conciergeReturnContext.ts");

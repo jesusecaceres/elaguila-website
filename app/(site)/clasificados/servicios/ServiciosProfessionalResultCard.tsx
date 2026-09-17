@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FiMapPin, FiPhone } from "react-icons/fi";
+import { FiMail, FiMapPin, FiPhone } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import { resolveServiciosProfile } from "@/app/servicios/lib/resolveServiciosProfile";
 import {
@@ -16,10 +16,13 @@ import type { ServiciosProfileResolved } from "@/app/servicios/types/serviciosBu
 import type { ServiciosPublicListingRow } from "./lib/serviciosPublicListingsServer";
 import { serviciosEngagementListingKey } from "./lib/serviciosPublicListingSort";
 import {
+  buildServiciosSendEmailIntentFromMailto,
   serviciosAnalyticsTrackMeta,
   trackServiciosListingCta,
   trackServiciosResultCardClick,
 } from "@/app/(site)/servicios/lib/serviciosCtaIntents";
+import { CtaActionSheet } from "@/app/components/cta";
+import type { CtaSheetIntent } from "@/app/components/cta/types";
 import {
   serviciosOpenGoogleMapsDirections,
   serviciosOpenTelHref,
@@ -167,6 +170,9 @@ export function ServiciosProfessionalResultCard({
   const waHrefNormalized = resolveServiciosProfileDirectWhatsAppHref(profile.contact) ?? "";
   const promoted = isServiciosListingPromoted(row);
   const showDirections = hasPhysicalAddress(profile);
+  // Gate 4/12 — same "no call, no WhatsApp" email-only fallback the trade card already has; this
+  // template previously had no email CTA at all when neither Call nor WhatsApp resolved.
+  const showEmailFallback = Boolean(!tel && !waHrefNormalized && profile.contact.emailMailtoHref);
   const serviceChips = useMemo(() => collectProfessionalServiceChips(profile, 12), [profile]);
   const trustChips = useMemo(() => collectHeroTrustChips(profile, 3), [profile]);
   const allChips = useMemo(() => [...serviceChips, ...trustChips], [serviceChips, trustChips]);
@@ -234,6 +240,8 @@ export function ServiciosProfessionalResultCard({
       : 0;
 
   const [listingShareUrl, setListingShareUrl] = useState("");
+  // Gate 12 — the same rich email action sheet the full profile's "Correo" CTA uses.
+  const [emailSheetIntent, setEmailSheetIntent] = useState<CtaSheetIntent | null>(null);
   useEffect(() => {
     setListingShareUrl(`${window.location.origin}${href}`);
   }, [href]);
@@ -268,6 +276,14 @@ export function ServiciosProfessionalResultCard({
       serviciosOpenGoogleMapsDirections(addr, false);
     }
   }, [ctaTrackMeta, profile.contact.mapsSearchHref, profile.contact.physicalAddressDisplay, row.slug]);
+
+  const onEmailClick = useCallback(() => {
+    const mailtoHref = profile.contact.emailMailtoHref;
+    if (!mailtoHref) return;
+    trackServiciosListingCta(row.slug, "cta_email_click", ctaTrackMeta);
+    const intent = buildServiciosSendEmailIntentFromMailto(mailtoHref, displayLang, row.slug, listingShareUrl || undefined);
+    if (intent) setEmailSheetIntent(intent);
+  }, [ctaTrackMeta, displayLang, listingShareUrl, profile.contact.emailMailtoHref, row.slug]);
 
   const onCardNavigate = useCallback(() => {
     trackServiciosResultCardClick(row);
@@ -410,6 +426,12 @@ export function ServiciosProfessionalResultCard({
                     {displayLang === "en" ? "Directions" : "Cómo llegar"}
                   </button>
                 ) : null}
+                {showEmailFallback ? (
+                  <button type="button" onClick={onEmailClick} className={`${LX_CTA_CARD_SECONDARY} sm:!min-h-[30px] sm:!w-full sm:flex-none sm:!px-2 sm:!py-1.5 sm:!text-[11px]`}>
+                    <FiMail className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {displayLang === "en" ? "Email" : "Correo"}
+                  </button>
+                ) : null}
               </div>
               <Link
                 href={href}
@@ -462,6 +484,12 @@ export function ServiciosProfessionalResultCard({
                     {displayLang === "en" ? "Directions" : "Cómo llegar"}
                   </button>
                 ) : null}
+                {showEmailFallback ? (
+                  <button type="button" onClick={onEmailClick} className={LX_CTA_CARD_SECONDARY}>
+                    <FiMail className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {displayLang === "en" ? "Email" : "Correo"}
+                  </button>
+                ) : null}
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-2" data-servicios-card-trust-strip="1">
@@ -503,6 +531,12 @@ export function ServiciosProfessionalResultCard({
           )}
         </div>
       </article>
+      <CtaActionSheet
+        open={emailSheetIntent != null}
+        onClose={() => setEmailSheetIntent(null)}
+        intent={emailSheetIntent}
+        lang={displayLang}
+      />
     </>
   );
 
