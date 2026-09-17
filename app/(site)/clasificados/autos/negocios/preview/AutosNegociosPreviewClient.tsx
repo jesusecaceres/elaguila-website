@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AutosNegociosDealershipPreviewPage } from "./dealershipPreview/AutosNegociosDealershipPreviewPage";
 import { AutosListingTranslationLayer } from "@/app/clasificados/autos/vehiculo/[id]/AutosListingTranslationLayer";
+import { autosLiveVehiclePath } from "../../filters/autosBrowseFilterContract";
 import { normalizeAutosNegociosLang } from "../lib/autosNegociosLang";
 import { AutoDealerPreviewChrome } from "../components/AutoDealerPreviewChrome";
 import { AutosNegociosPreviewEmptyState } from "../components/AutosNegociosPreviewEmptyState";
@@ -365,6 +366,15 @@ function AutosNegociosPreviewInner({
     return `${EDIT_BASE}?${p.toString()}`;
   }, [canonicalListingId, searchParams, lang]);
   const editBackHref = canonicalEditBackHref ?? genericEditBackHref;
+  /** Gate H: a canonical-active listing is a real, already-published DB row (`status === "active"`
+   * — see resolvePreviewStateForRoute's `fetched.status === "active" ? "canonical-active" : "draft"`
+   * branch) with a real public URL, so Share here must target that URL truthfully — never the
+   * Preview/dashboard-edit URL the owner is actually viewing. A pending/draft canonical listing
+   * (mode "draft") has no such URL yet and must not fabricate one. */
+  const canonicalPublicUrl = useMemo(() => {
+    if (mode !== "canonical-active" || !canonicalListingId || typeof window === "undefined") return undefined;
+    return `${window.location.origin}${autosLiveVehiclePath(canonicalListingId)}?lang=${lang}`;
+  }, [mode, canonicalListingId, lang]);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const viewModel = useMemo(
@@ -572,7 +582,12 @@ function AutosNegociosPreviewInner({
                   precedes it) — the global Navbar is `fixed`, so without this clearance the
                   control sits underneath it, invisible and unclickable. */}
               {translateControl ? <div className="pt-20">{translateControl}</div> : null}
-              <AutosNegociosDealershipPreviewPage data={displayListing} editBackHref={editBackHref} />
+              <AutosNegociosDealershipPreviewPage
+                data={displayListing}
+                editBackHref={editBackHref}
+                publicUrl={canonicalPublicUrl}
+                canonicalListingId={canonicalPublicUrl ? canonicalListingId : undefined}
+              />
             </AutosNegociosPreviewLocaleProvider>
           )}
         </AutosListingTranslationLayer>

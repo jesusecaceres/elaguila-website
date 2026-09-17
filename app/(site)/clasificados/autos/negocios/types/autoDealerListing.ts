@@ -293,6 +293,8 @@ export type AutoDealerListing = {
   financeContactTitle?: string;
   financeContactPhone?: string;
   financeContactWhatsapp?: string;
+  /** Dedicated SMS/text-capable number — distinct from financeContactPhone/Whatsapp (Negocios only). */
+  financeContactSms?: string;
   financeContactEmail?: string;
   financeApplicationUrl?: string;
   /** Optional https image URL — advisor headshot or bank/finance logo (Negocios only). */

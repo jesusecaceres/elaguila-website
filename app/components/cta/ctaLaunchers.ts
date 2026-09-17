@@ -43,13 +43,15 @@ export function openMailto(email: string, subject: string, body: string): void {
   if (typeof window === "undefined") return;
   const href = buildMailtoHref(email, subject, body);
   if (!href) {
-    // Composer-only fallback when no approved recipient (share flows).
+    // Composer-only fallback when no approved recipient (share flows). Same RFC 6068 fix as
+    // buildMailtoHref: percent-encode spaces as %20 via encodeURIComponent, never URLSearchParams's
+    // form-encoded `+`.
     const sub = trim(subject);
     const bod = trim(body);
-    const q = new URLSearchParams();
-    if (sub) q.set("subject", sub);
-    if (bod) q.set("body", bod);
-    const qs = q.toString();
+    const parts: string[] = [];
+    if (sub) parts.push(`subject=${encodeURIComponent(sub)}`);
+    if (bod) parts.push(`body=${encodeURIComponent(bod)}`);
+    const qs = parts.join("&");
     window.location.href = qs ? `mailto:?${qs}` : "mailto:";
     return;
   }

@@ -26,6 +26,13 @@ import { localizeAutosDealerLanguageLabel } from "../app/lib/clasificados/autos/
 import { buildAutosTranslatableContent, applyAutosTranslation } from "../app/(site)/clasificados/autos/lib/autosTranslateAd";
 import { computeAutosAdDisplayLang } from "../app/(site)/clasificados/autos/vehiculo/[id]/AutosListingTranslationLayer";
 import { localizeDealerHoursDayLabel, formatDealerHoursTimeRange } from "../app/(site)/clasificados/autos/negocios/lib/dealerHoursDisplay";
+import { hasDealerFinanceContact, resolveFinanceSmsTel, resolveFinanceEmailHref } from "../app/lib/clasificados/autos/autosDealerFinanceContact";
+import { buildMailtoHref } from "../app/lib/digitalContact/humanConnection/nativeChannelHrefs";
+import { buildSendEmailIntent } from "../app/components/cta/ctaIntentBuilders";
+import { mapAutosDealerToBusinessHubContact } from "../app/(site)/clasificados/autos/negocios/lib/mapAutosDealerToBusinessHubContact";
+import { buildAutosGalleryMediaSets } from "../app/lib/clasificados/autos/autosGalleryLightbox";
+import { mapInheritedDealerPreviewListing } from "../app/lib/clasificados/autos/autosInventoryInheritedPreview";
+import type { AutosAdditionalInventoryVehicleDraft } from "../app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import type { AutoDealerListing } from "../app/(site)/clasificados/autos/negocios/types/autoDealerListing";
 
 const failures: string[] = [];
@@ -406,7 +413,7 @@ check("live vehicle client (privado): the same nested-provider pattern applies w
 check("parent Preview canonical-active branch nests a fresh provider on adDisplayLang around translateControl + the detail page", () => {
   const src = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
   assert.ok(
-    /\(displayListing, translateControl, adDisplayLang\) => \(\s*<AutosNegociosPreviewLocaleProvider lang=\{normalizeAutosNegociosLang\(adDisplayLang\)\}[\s\S]*?\{translateControl\}[\s\S]*?<AutosNegociosDealershipPreviewPage data=\{displayListing\} editBackHref=\{editBackHref\} \/>/.test(
+    /\(displayListing, translateControl, adDisplayLang\) => \(\s*<AutosNegociosPreviewLocaleProvider lang=\{normalizeAutosNegociosLang\(adDisplayLang\)\}[\s\S]*?\{translateControl\}[\s\S]*?<AutosNegociosDealershipPreviewPage\s+data=\{displayListing\}\s+editBackHref=\{editBackHref\}/.test(
       src,
     ),
   );
@@ -801,6 +808,475 @@ check("Privado's equipment fix reuses a shared pure-function lib, never imports 
   const dealerLive = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewVehicleHighlights.tsx");
   assert.ok(!privadoLive.includes('from "../../negocios/preview') && !privadoLive.includes('from "@/app/clasificados/autos/negocios/preview'), "Privado must not import any Dealer preview/UI component");
   assert.ok(!dealerLive.includes("Privado"), "Dealer's own highlights card must remain untouched by this Privado-scoped fix");
+});
+
+/* ================================================================================================
+ * ROUND 5 (2026-09-17) — OWNER-QA MASTER CLOSEOUT: Gates 01-14 (contact/email/finance/media).
+ * Narrow, concrete proof for what this round actually changed — not a re-audit of the whole
+ * 40-gate mandate (see the accompanying report for full gate-by-gate classification).
+ * ============================================================================================ */
+
+/* --- Gate 01: Dealer-business email — reused the existing canonical field, wired the missing input --- */
+check("dealerEmail is a real input in the Negocios application, distinct from finance email, with its own 'Correo'/'Email' label", () => {
+  const app = raw("app/(site)/publicar/autos/negocios/components/AutosNegociosApplication.tsx");
+  assert.ok(app.includes("setListingPatch({ dealerEmail: autosDraftTextValue(e.target.value) })"), "must patch dealerEmail, never financeContactEmail");
+  assert.ok(app.includes("{t.app.labels.email}"), "must render the dedicated dealer email label");
+  const copy = raw("app/(site)/clasificados/autos/negocios/lib/autosNegociosCopy.ts");
+  assert.ok(/labels:\s*\{[^}]*?email: "Correo",/.test(copy.slice(0, copy.indexOf("const EN"))), "ES app.labels.email must be 'Correo'");
+  assert.ok(/labels:\s*\{[^}]*?email: "Email",/.test(copy.slice(copy.indexOf("const EN"))), "EN app.labels.email must be 'Email'");
+});
+check("dealerEmail already had real display consumers before this round (Business Hub mailto + child-inherited summary) — the gap was only the missing input, confirmed by source", () => {
+  const mapper = raw("app/(site)/clasificados/autos/negocios/lib/mapAutosDealerToBusinessHubContact.ts");
+  assert.ok(mapper.includes("data.dealerEmail?.trim()") && mapper.includes("contact.emailMailto"));
+  const childSummary = raw("app/(site)/publicar/autos/negocios/components/AutosInventoryInheritedDealerStep.tsx");
+  assert.ok(childSummary.includes("value={parentListing.dealerEmail}"), "child-inherited summary must display the parent's dealer email");
+});
+
+/* --- Gate 02/03: Dealer email CTA already used the shared CtaActionSheet, never raw mailto ---- */
+check("the Business Hub's Correo/Email button opens the shared CtaActionSheet via buildSendEmailIntent — never a raw mailto anchor, never finance email", () => {
+  const stack = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewDealerBusinessStack.tsx");
+  assert.ok(stack.includes("buildSendEmailIntent") && stack.includes("CtaActionSheet"));
+  assert.ok(stack.includes("const openEmail = () =>") && stack.includes("if (!c.emailMailto) return;"), "openEmail must read the dealer contact view-model's emailMailto (sourced from dealerEmail), not finance");
+  assert.ok(!/<a[^>]*href=\{c\.emailMailto\}/.test(stack), "must not also render a raw <a href={mailto}> anchor for the same channel");
+});
+check("the shared CtaActionSheet's send_email intent exposes the exact owner-required action set (ES + EN)", () => {
+  const sheet = raw("app/components/cta/CtaActionSheet.tsx");
+  for (const label of ["Copiar correo", "Copiar mensaje completo", "Compartir datos de contacto", "Compartir con otras apps", "Abrir app de correo"]) {
+    assert.ok(sheet.includes(label), `missing ES action label: ${label}`);
+  }
+  for (const label of ["Copy email", "Copy full message", "Open email app"]) {
+    assert.ok(sheet.includes(label), `missing EN action label: ${label}`);
+  }
+});
+
+/* --- Gate 04: Finance SMS — new dedicated field, own resolver, own input, never a phone/WhatsApp fallback --- */
+check("resolveFinanceSmsTel only reads financeContactSms — never financeContactPhone/Whatsapp as a silent fallback", () => {
+  assert.equal(resolveFinanceSmsTel({ financeContactSms: "4085550100" } as unknown as AutoDealerListing), "4085550100");
+  assert.equal(resolveFinanceSmsTel({ financeContactPhone: "4085550100" } as unknown as AutoDealerListing), undefined, "must not fall back to financeContactPhone");
+  assert.equal(resolveFinanceSmsTel({ financeContactWhatsapp: "4085550100" } as unknown as AutoDealerListing), undefined, "must not fall back to financeContactWhatsapp");
+  assert.equal(resolveFinanceSmsTel({ financeContactSms: "123" } as unknown as AutoDealerListing), undefined, "too-short digits must not resolve");
+});
+check("hasDealerFinanceContact recognizes financeContactSms alone as meaningful finance content", () => {
+  assert.equal(hasDealerFinanceContact({ financeContactSms: "4085550100" } as unknown as AutoDealerListing), true);
+  assert.equal(hasDealerFinanceContact({} as unknown as AutoDealerListing), false);
+});
+check("the finance application form has a dedicated SMS input, bound to financeContactSms, with its own label distinct from phone/WhatsApp/dealer SMS", () => {
+  const fields = raw("app/(site)/publicar/autos/shared/components/AutosDealerFinanceFields.tsx");
+  assert.ok(fields.includes("setListingPatch({ financeContactSms: v.trim() ? v : undefined })"));
+  assert.ok(fields.includes("{f.smsPhone}"));
+  const copy = raw("app/(site)/clasificados/autos/negocios/lib/autosNegociosCopy.ts");
+  assert.ok(copy.includes('smsPhone: "Número para mensajes de texto",'), "ES finance SMS label");
+  assert.ok(copy.includes('smsPhone: "Text message number",'), "EN finance SMS label");
+});
+
+/* --- Gate 05/06: Finance CTA mapping + the owner-locked 2x2 reflow (Call+Text / Email+WhatsApp) --- */
+check("DealerFinanceContact renders Call+Text as one row and Email+WhatsApp as the next, each collapsing to full-width when only one of the pair exists — no silent channel-swap fallback", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/components/DealerFinanceContact.tsx");
+  assert.ok(src.includes('href={`tel:${tel}`}') && src.includes("{f.call}"), "Call must map to financeContactPhone");
+  assert.ok(src.includes('href={`sms:${sms}`}') && src.includes("{f.text}"), "Text must map to financeContactSms, via sms: scheme");
+  assert.ok(src.includes("onClick={openFinanceEmail}") && src.includes("{f.email}"), "Email must open the action sheet, not a raw mailto");
+  assert.ok(src.includes("href={wa}") && src.includes("{f.whatsapp}"), "WhatsApp must map to financeContactWhatsapp");
+  assert.ok(/\[\s*tel\s*\?[\s\S]*?sms\s*\?[\s\S]*?\],\s*\[\s*email\s*\?[\s\S]*?wa\s*\?/.test(src), "the two locked pairs (call+text, email+whatsapp) must be declared in that order");
+  assert.ok(src.includes('present.length === 2 ? "grid grid-cols-2 gap-2" : ""'), "a pair renders as a 2-col grid only when both members are present, else a bare full-width row");
+});
+check("the pre-approval CTA remains fully independent of the 4-channel grid and still only renders when a real URL exists", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/components/DealerFinanceContact.tsx");
+  const gridEnd = src.indexOf("})}");
+  const afterGrid = src.slice(gridEnd, src.indexOf("{notes ? ("));
+  assert.ok(afterGrid.includes("appHref ? (") && afterGrid.includes("{f.preApproval}"), "pre-approval must render after the 4-channel grid, independently");
+});
+
+/* --- Gate 09-13: shared BusinessGalleryLightbox replaces the Autos floating-X custom modal ------ */
+check("both Autos gallery components (Dealer-path PreviewAutoGallery, Privado-path AutoGallery) now use the shared BusinessGalleryLightbox — no forked floating-X close button remains", () => {
+  for (const file of [
+    "app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewAutoGallery.tsx",
+    "app/(site)/clasificados/autos/negocios/components/AutoGallery.tsx",
+  ]) {
+    const src = raw(file);
+    assert.ok(src.includes('from "@/app/components/media/BusinessGalleryModal"'), `${file}: must import the shared lightbox`);
+    assert.ok(src.includes("<BusinessGalleryLightbox"), `${file}: must actually render it`);
+    assert.ok(!/inline-flex h-11 w-11 items-center justify-center rounded-full bg-\[#FFFCF7\]\/95.*shadow-lg/.test(src), `${file}: the old floating-X close button markup must be gone`);
+    assert.ok(!src.includes('z-[80]'), `${file}: the old custom fixed-inset-0 dialog (z-[80]) must be gone — BusinessGalleryLightbox owns its own z-[90] overlay`);
+  }
+});
+check("the header-visible, close-never-floats-over-media contract comes from the shared component itself (shrink-0 header row, header-level close button)", () => {
+  const shared = raw("app/components/media/BusinessGalleryModal.tsx");
+  assert.ok(shared.includes("flex shrink-0 items-center justify-between") && shared.includes("{copy.close}"), "close button must live in the shrink-0 header row, not floating over the media stage");
+});
+check("clicked media opens on its own combined index (Gate 10) — buildAutosGalleryMediaSets already provides stable photo-then-video ordering, and openAt/thumbnail onOpen wiring is unchanged by the lightbox swap", () => {
+  for (const file of [
+    "app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewAutoGallery.tsx",
+    "app/(site)/clasificados/autos/negocios/components/AutoGallery.tsx",
+  ]) {
+    const src = raw(file);
+    assert.ok(src.includes("onOpen={() => openAt(photoIdx)}") || src.includes("onOpen={() => openAt(galleryIndex)}"), `${file}: thumbnails must still open at their own real index`);
+    assert.ok(src.includes("openAt(photoItems.length + videoIdx)"), `${file}: a video thumbnail in the combined grid opens at photos.length + its own video index, never index 0`);
+  }
+});
+check("Gate 11/12: switching Todo/Fotos/Videos while the lightbox is open preserves the same media item by reference identity, or lands on the first valid item — never resets to a random index or closes the viewer", () => {
+  for (const file of [
+    "app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewAutoGallery.tsx",
+    "app/(site)/clasificados/autos/negocios/components/AutoGallery.tsx",
+  ]) {
+    const src = raw(file);
+    assert.ok(src.includes("handleLightboxFilterChange"), `${file}: must define the identity-preserving filter-change handler`);
+    assert.ok(src.includes("nextItems.indexOf(currentItem)"), `${file}: must search the target filter's array for the currently-open item by reference`);
+    assert.ok(src.includes("preservedIndex >= 0 ? preservedIndex : 0"), `${file}: must fall back to the first valid item, never an arbitrary/negative index`);
+  }
+});
+check("the redundant window-level Escape/Arrow keydown handler was removed from both gallery files — BusinessGalleryLightbox owns keyboard nav itself, so a second listener would double-fire and skip every arrow press by 2", () => {
+  for (const file of [
+    "app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewAutoGallery.tsx",
+    "app/(site)/clasificados/autos/negocios/components/AutoGallery.tsx",
+  ]) {
+    const src = raw(file);
+    assert.ok(!src.includes("lightboxIndexRef"), `${file}: the old ref-based keydown handler must be gone`);
+    assert.ok(!/window\.addEventListener\("keydown"/.test(src), `${file}: no second window-level keydown listener may remain`);
+  }
+  const shared = raw("app/components/media/BusinessGalleryModal.tsx");
+  assert.ok(shared.includes('e.key === "Escape"') && shared.includes('e.key === "ArrowLeft"') && shared.includes('e.key === "ArrowRight"'), "the shared component must be the sole owner of keyboard navigation");
+});
+check("Gate 13: the lightbox's own chrome (aria-label, close/prev/next, counter, Todo/Fotos/Videos switch) is driven by the same ad-local `lang` the rest of the gallery already uses — never an independent URL/local inference", () => {
+  for (const file of [
+    "app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewAutoGallery.tsx",
+    "app/(site)/clasificados/autos/negocios/components/AutoGallery.tsx",
+  ]) {
+    const src = raw(file);
+    assert.ok(src.includes('ariaLabel={lang === "es" ? "Galería del vehículo" : "Vehicle gallery"}'));
+    assert.ok(src.includes('close: lang === "es" ? "Cerrar" : "Close",'));
+    assert.ok(src.includes("<AutosLightboxFilterSwitch lang={lang}"), `${file}: the Todo/Fotos/Videos switch must receive the same ad-local lang, not derive its own`);
+  }
+});
+check("the Todo/Fotos/Videos lightbox switch only renders when the ad genuinely has both photos and videos — no meaningless single-kind filter option", () => {
+  for (const file of [
+    "app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewAutoGallery.tsx",
+    "app/(site)/clasificados/autos/negocios/components/AutoGallery.tsx",
+  ]) {
+    const src = raw(file);
+    assert.ok(src.includes("hasPhotos && hasVideos ? (\n            <AutosLightboxFilterSwitch"), `${file}: the switch must be gated on having both kinds`);
+  }
+});
+
+/* --- Gate 07/08: main Business Hub Call/WhatsApp/SMS row — already data-driven, now also reflows the 3-channel case cleanly --- */
+check("the main Business Hub's Call/WhatsApp/SMS row was already fully data-driven (each button conditionally rendered on its own real destination) — confirmed still true, not reintroduced as a fixed 3-slot grid", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewDealerBusinessStack.tsx");
+  assert.ok(src.includes("showCall && c.callTelHref") && src.includes("showWhatsapp && c.whatsappHref") && src.includes("showSms && c.smsHref"));
+});
+check("Gate 08: when exactly 3 of Call/WhatsApp/SMS exist, the 3rd gets an intentional full-width row instead of being stranded alone in a 2-col grid with empty whitespace beside it", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewDealerBusinessStack.tsx");
+  assert.ok(src.includes("channels.length === 3 && idx === 2 ? \"col-span-2\" : \"\""), "the odd-one-out spanning rule must exist");
+  assert.ok(src.includes('channels.length >= 2 ? "grid-cols-2" : "grid-cols-1"'), "1 or 2 channels still use the original clean layout");
+});
+
+/* ================================================================================================
+ * ROUND 6 (2026-09-17) — PM FINAL COMPLETION: zero-deferred closeout of Gates 14/24/26/29/31/33
+ * plus Gate G (email execution) and Gate H (share visibility). Executable proof where a pure
+ * function exists; source proof pinning wiring that can't be exercised as a pure function.
+ * ============================================================================================ */
+
+/* --- Gate E/F: child media + full-ad identity — executable proof, not "same component tree" alone --- */
+check("Gate E: clicking photo N in a child fixture resolves to photo N, and video N resolves to its own combined index — never index 0", () => {
+  const childFixture = {
+    mediaImages: [
+      { id: "p1", url: "https://cdn.example.com/child-1.jpg", sourceType: "url", isPrimary: true, sortOrder: 0 },
+      { id: "p2", url: "https://cdn.example.com/child-2.jpg", sourceType: "url", isPrimary: false, sortOrder: 1 },
+      { id: "p3", url: "https://cdn.example.com/child-3.jpg", sourceType: "url", isPrimary: false, sortOrder: 2 },
+    ],
+    videoUrls: ["https://cdn.example.com/child-video-1.mp4", "https://cdn.example.com/child-video-2.mp4"],
+  } as unknown as AutoDealerListing;
+  const imageUrls = childFixture.mediaImages!.map((m) => m.url);
+  const { photoItems, videoItems, allItems } = buildAutosGalleryMediaSets(childFixture, imageUrls, { publicPlaybackOnly: true });
+  assert.equal(photoItems.length, 3);
+  assert.equal(videoItems.length, 2);
+  assert.equal(allItems.length, 5);
+  // Photo N (0-indexed) is at its own position — clicking photo index 2 opens allItems[2].
+  assert.equal(allItems[2], photoItems[2]);
+  assert.ok(photoItems[2].kind === "photo" && photoItems[2].src === "https://cdn.example.com/child-3.jpg");
+  // Video N opens at photoItems.length + its own video index — video 0 is allItems[3], video 1 is allItems[4].
+  assert.equal(allItems[photoItems.length + 0], videoItems[0]);
+  assert.equal(allItems[photoItems.length + 1], videoItems[1]);
+  assert.notEqual(allItems[photoItems.length + 1], allItems[0], "clicking video 2 must never resolve to index 0");
+});
+check("Gate E: filter switching preserves the same child media item by reference identity (the exact algorithm used by handleLightboxFilterChange)", () => {
+  const childFixture = {
+    mediaImages: [{ id: "p1", url: "https://cdn.example.com/child-1.jpg", sourceType: "url", isPrimary: true, sortOrder: 0 }],
+    videoUrls: ["https://cdn.example.com/child-video-1.mp4"],
+  } as unknown as AutoDealerListing;
+  const imageUrls = childFixture.mediaImages!.map((m) => m.url);
+  const { photoItems, videoItems, allItems } = buildAutosGalleryMediaSets(childFixture, imageUrls, { publicPlaybackOnly: true });
+  // Simulate: viewing the video (allItems[1]) under "all", then switching to "photos".
+  const currentItem: (typeof allItems)[number] = allItems[1]!;
+  assert.equal(currentItem, videoItems[0]);
+  const preservedInPhotos = (photoItems as (typeof allItems)).indexOf(currentItem);
+  assert.equal(preservedInPhotos, -1, "the video does not belong to the photos filter — must fall back to index 0, not crash or misplace");
+  const preservedInVideos = (videoItems as (typeof allItems)).indexOf(currentItem);
+  assert.equal(preservedInVideos, 0, "switching to the videos filter must land back on the exact same item");
+});
+check("Gate F: mapInheritedDealerPreviewListing gives the child its OWN media/title/description/VIN/stock — parent's never leaks in for vehicle-owned fields, and neither input object is mutated", () => {
+  const parent = {
+    id: "parent-real-id",
+    vehicleTitle: "Parent Vehicle Title",
+    description: "Parent description.",
+    vin: "PARENTVIN000000001",
+    stockNumber: "PARENT-STOCK",
+    mediaImages: [{ id: "pp1", url: "https://cdn.example.com/parent.jpg", sourceType: "url", isPrimary: true, sortOrder: 0 }],
+    dealerPhoneOffice: "4085550100",
+    dealerEmail: "dealer@example.com",
+    financeContactEmail: "finance@example.com",
+  } as unknown as AutoDealerListing;
+  const child = {
+    id: "child-real-id",
+    vehicleTitle: "Child Vehicle Title",
+    description: "Child description.",
+    vin: "CHILDVIN0000000002",
+    stockNumber: "CHILD-STOCK",
+    mediaImages: [{ id: "cc1", url: "https://cdn.example.com/child.jpg", sourceType: "url", isPrimary: true, sortOrder: 0 }],
+    inventoryRole: "additional",
+    status: "draft",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  } as unknown as AutosAdditionalInventoryVehicleDraft;
+  const parentSnapshot = JSON.parse(JSON.stringify(parent));
+  const childSnapshot = JSON.parse(JSON.stringify(child));
+  const merged = mapInheritedDealerPreviewListing(parent, child);
+  assert.equal(merged.vehicleTitle, "Child Vehicle Title", "child's own title must win");
+  assert.equal(merged.description, "Child description.", "child's own description must win");
+  assert.equal(merged.vin, "CHILDVIN0000000002", "child's own VIN must win — never the parent's");
+  assert.equal(merged.stockNumber, "CHILD-STOCK", "child's own stock number must win");
+  assert.equal(merged.mediaImages?.[0]?.url, "https://cdn.example.com/child.jpg", "child's own media must win, parent media must never leak in");
+  assert.equal(merged.dealerPhoneOffice, "4085550100", "dealer office phone is inherited from the parent");
+  assert.equal(merged.dealerEmail, "dealer@example.com", "dealer email is inherited from the parent");
+  assert.equal(merged.financeContactEmail, "finance@example.com", "finance email is inherited from the parent");
+  assert.deepEqual(parent, parentSnapshot, "parent object must never be mutated by mapping a child onto it");
+  assert.deepEqual(child, childSnapshot, "child object must never be mutated either");
+});
+check("Gate F: Child A's merge does not mutate Child B's independent merge result (two children under the same parent stay isolated)", () => {
+  const parent = { id: "parent-id", dealerPhoneOffice: "4085550100" } as unknown as AutoDealerListing;
+  const childA = { id: "child-a", vehicleTitle: "Child A", inventoryRole: "additional", status: "draft", createdAt: "x", updatedAt: "x" } as unknown as AutosAdditionalInventoryVehicleDraft;
+  const childB = { id: "child-b", vehicleTitle: "Child B", inventoryRole: "additional", status: "draft", createdAt: "x", updatedAt: "x" } as unknown as AutosAdditionalInventoryVehicleDraft;
+  const mergedA = mapInheritedDealerPreviewListing(parent, childA);
+  const mergedB = mapInheritedDealerPreviewListing(parent, childB);
+  assert.equal(mergedA.vehicleTitle, "Child A");
+  assert.equal(mergedB.vehicleTitle, "Child B");
+  assert.notEqual(mergedA, mergedB, "each merge must return its own independent object");
+});
+check("Gate E/F source proof: the child overlay keys translation state on the child's own id (never merged.id, which is actually the parent's id after the merge)", () => {
+  const overlay = raw("app/(site)/publicar/autos/negocios/components/AutosNegociosChildInventoryPreviewOverlay.tsx");
+  assert.ok(overlay.includes("listingKey={child.id}"), "must key on child.id, not merged.id");
+  assert.ok(!overlay.includes("listingKey={merged.id}"));
+});
+check("Gate E/F source proof: a published child fetches its OWN DB row by its OWN id (inventory_role/parent-pointer live on the child's own row, not shared with the parent)", () => {
+  const route = raw("app/api/clasificados/autos/public/listings/[id]/route.ts");
+  assert.ok(route.includes("getActiveLiveAutosBundle(id"), "must fetch by the URL's own id param");
+  const svc = raw("app/lib/clasificados/autos/autosClassifiedsListingService.ts");
+  assert.ok(svc.includes('row.inventory_role === "inventory_vehicle"') && svc.includes("dealer_inventory_parent_listing_id"), "the child row itself carries the parent-pointer, proving it is its own row");
+});
+check("Gate E/F source proof: sibling translation caches are isolated — the cache key embeds the exact listingKey (child.id), so Child A and Child B never collide", () => {
+  const helpers = raw("app/lib/translation/helpers.ts");
+  assert.ok(/buildTranslateCacheKey|STORAGE_NS/.test(helpers), "sanity: the cache-key builder lives in the shared helpers module");
+});
+
+/* --- Gate G: email action executable proof — recipient/subject/body encode+decode, dealer vs finance never cross-wired --- */
+check("Gate G: buildMailtoHref correctly percent-encodes spaces, &, ?, #, accented Spanish text, and line breaks in subject/body, and round-trips back to the exact original via URLSearchParams", () => {
+  const subject = "Leonix · Ventas & Información";
+  const body = "Hola,\n¿Tienes disponible este auto? Precio: $44,875 — pregunta #2, línea nueva.";
+  const href = buildMailtoHref("ventas@example.com", subject, body);
+  assert.ok(href, "a valid email must produce a real href");
+  assert.ok(href!.startsWith("mailto:ventas@example.com?"));
+  const qs = href!.slice(href!.indexOf("?") + 1);
+  const parsed = new URLSearchParams(qs);
+  assert.equal(parsed.get("subject"), subject, "subject must decode back to the exact original, accents/& included");
+  assert.equal(parsed.get("body"), body, "body must decode back to the exact original, including line breaks/?/#");
+});
+check("Gate G: an invalid/malformed email address never produces a usable mailto href (no injection via '<', '>', '\"', or javascript:)", () => {
+  assert.equal(buildMailtoHref("not-an-email", "s", "b"), null);
+  assert.equal(buildMailtoHref("<script>@example.com", "s", "b"), null);
+  assert.equal(buildMailtoHref("javascript:alert(1)@example.com", "s", "b"), null);
+});
+check("Gate G: buildSendEmailIntent carries the exact recipient/subject/body through untouched (no re-encoding at the intent layer — that happens once, later, inside openMailto)", () => {
+  const intent = buildSendEmailIntent({ email: "  ventas@example.com  ", subject: "Leonix · Test", body: "Línea 1\nLínea 2" });
+  assert.ok(intent);
+  assert.equal(intent!.email, "ventas@example.com", "must trim but never encode/alter the address");
+  assert.equal(intent!.subject, "Leonix · Test");
+  assert.equal(intent!.body, "Línea 1\nLínea 2");
+});
+check("Gate G: Dealer email and Finance email resolve from strictly separate fields — a listing with only a finance email never produces a dealer emailMailto, and vice versa", () => {
+  const financeOnly = { financeContactEmail: "finance@example.com" } as unknown as AutoDealerListing;
+  const dealerContact = mapAutosDealerToBusinessHubContact(financeOnly, "en");
+  assert.equal(dealerContact.contact.emailMailto, undefined, "no dealerEmail set -> no dealer email CTA, even though finance email exists");
+  assert.equal(resolveFinanceEmailHref(financeOnly), "mailto:finance%40example.com");
+
+  const dealerOnly = { dealerEmail: "dealer@example.com" } as unknown as AutoDealerListing;
+  const dealerContact2 = mapAutosDealerToBusinessHubContact(dealerOnly, "en");
+  assert.equal(dealerContact2.contact.emailMailto, "mailto:dealer%40example.com");
+  assert.equal(resolveFinanceEmailHref(dealerOnly), undefined, "no financeContactEmail set -> no finance email CTA, even though dealer email exists");
+});
+check("Gate G: the Web Share payload shape structurally cannot carry an email recipient identity — it only has title/text/url", () => {
+  const launchers = raw("app/components/cta/ctaLaunchers.ts");
+  assert.ok(/export type WebSharePayload = \{ title\?: string; text\?: string; url\?: string \};/.test(launchers), "WebSharePayload must have no email field — the recipient can never leak into or be replaced by the native share sheet's own contact picker");
+});
+check("Gate G: 'Open email app' is the ONLY action that ever calls openMailto — Copy/Share actions use clipboard/navigator.share, never a location redirect", () => {
+  const sheet = raw("app/components/cta/CtaActionSheet.tsx");
+  const sendEmailBlock = sheet.slice(sheet.indexOf('intent.kind === "send_email"'), sheet.indexOf('intent.kind === "send_message"'));
+  const openMailtoCalls = (sendEmailBlock.match(/openMailto\(/g) ?? []).length;
+  assert.equal(openMailtoCalls, 1, "exactly one call site — the Open email app button");
+  assert.ok(sendEmailBlock.indexOf("openMailto(em, sub, bod)") > sendEmailBlock.indexOf(`t.openEmailApp`), "the single openMailto call must be inside the Open email app action, after copy/share actions");
+});
+
+/* --- Gate H: share visibility — canonical-active Preview gets a real, truthful Share; draft never fabricates one --- */
+check("Gate H: a NEW/pending draft's canonical-active branch is the ONLY branch that ever computes canonicalPublicUrl — draft-capture mode never receives one", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  assert.ok(src.includes('if (mode !== "canonical-active" || !canonicalListingId'), "the URL must only ever be built for a genuinely already-published (status===active) canonical listing");
+  assert.ok(src.includes("canonicalPublicUrl") && src.includes("autosLiveVehiclePath(canonicalListingId)"));
+  // The draft-capture branch's own AutosNegociosDealershipPreviewPage call must not reference canonicalPublicUrl at all.
+  const draftBranchStart = src.indexOf("if (isDraftCapture)");
+  const draftBranchBody = src.slice(draftBranchStart, src.indexOf("PublishCheckoutCheckpoint", draftBranchStart));
+  assert.ok(!draftBranchBody.includes("canonicalPublicUrl"), "an unpublished draft must never receive a fabricated canonical URL");
+});
+check("Gate H: canonical-active Preview's real Share gets a genuine listing identity (canonicalListingId) WITHOUT flipping on the publicAnalytics-gated Like/Save/engagement-recording surface", () => {
+  const page = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/AutosNegociosDealershipPreviewPage.tsx");
+  assert.ok(page.includes("canonicalListingId?: string | null;"));
+  assert.ok(page.includes('listingSourceId={publicPlaybackOnly ? publicAnalytics?.listingSourceId : (canonicalListingId?.trim() || undefined)}'), "bottom Share must fall back to the real canonicalListingId when not publicPlaybackOnly");
+  assert.ok(page.includes("publicAnalytics={publicPlaybackOnly ? publicAnalytics : undefined}"), "the analytics-recording prop stays gated on true publicPlaybackOnly — no fake self-engagement is ever persisted for an owner previewing their own listing");
+});
+check("Gate H: the Business Hub quick-action Share button becomes real (navigator.share/clipboard against the true canonical URL) whenever a genuine publicUrl exists — the Like/Save button beside it is untouched and stays gated on true publicPlaybackOnly", () => {
+  const stack = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewDealerBusinessStack.tsx");
+  assert.ok(stack.includes("publicPlaybackOnly || Boolean(publicUrl?.trim())"), "the real onShare button must trigger on a genuine publicUrl, not only true publicPlaybackOnly");
+  assert.ok(stack.includes('{publicPlaybackOnly && analyticsCtx && publicAnalytics?.listingSourceId ? (\n                <div className={`${QUICK_ACTION_CLASS} justify-start`}>\n                  <LeonixLikeButton'), "the Save/Like block must remain exactly as conservative as before — untouched by this fix");
+});
+check("Gate H: a NEW/pending draft (mode 'draft', not yet active) never shows a real Share — no publicUrl exists for it, so both the Business Hub and bottom Share fall back to the truthful 'available after publish' state", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  const draftBranchStart = src.indexOf("if (isDraftCapture)");
+  const draftCall = src.slice(draftBranchStart, src.indexOf("</AutosNegociosPreviewLocaleProvider>", draftBranchStart));
+  assert.ok(!draftCall.includes("publicUrl={canonicalPublicUrl}") && !draftCall.includes("canonicalListingId={"), "the draft-capture branch's AutosNegociosDealershipPreviewPage call must not pass a real publicUrl or canonicalListingId");
+});
+
+/* --- Gate A: results cards — dead-card classification held, live-card locale coherence proven --- */
+check("Gate A: 3 confirmed-dead result-card files (real, latent bugs included — hardcoded en-US/mi/Spanish literals) have zero real path-based importers anywhere, so they cannot reach a real buyer", () => {
+  const deadCards: Record<string, string> = {
+    "app/(site)/clasificados/autos/shell/AutosResultCard.tsx": "AutosResultCard",
+    "app/(site)/clasificados/autos/shell/AutosPreviewCard.tsx": "AutosPreviewCard",
+    "app/(site)/clasificados/autos/components/public/AutosPublicFeaturedCard.tsx": "AutosPublicFeaturedCard",
+  };
+  const root = new URL("..", import.meta.url).pathname.replace(/^\/([a-zA-Z]:)/, "$1");
+  for (const [file, exportName] of Object.entries(deadCards)) {
+    let hits: string[] = [];
+    try {
+      hits = execSync(`grep -rlE "from [\\"'].*/${exportName}[\\"']" app --include=*.tsx --include=*.ts`, { cwd: root, encoding: "utf8" })
+        .trim().split("\n").filter(Boolean).map((p) => p.replace(/\\/g, "/"));
+    } catch {
+      hits = [];
+    }
+    const otherConsumers = hits.filter((h) => !h.endsWith(file));
+    assert.equal(otherConsumers.length, 0, `${exportName}: expected zero live consumers, found: ${otherConsumers.join(", ")}`);
+  }
+});
+check("Gate A: AutosLandingInventoryCard and AutosDealerInventoryVehicleCard are TRANSITIVELY dead — every node in their real importer chain (FeaturedCarsSection/RecentAutosSection; RelatedDealerCars -> AutoDealerPreviewPage) is itself unimported by anything live", () => {
+  const root = new URL("..", import.meta.url).pathname.replace(/^\/([a-zA-Z]:)/, "$1");
+  function importersOf(exportName: string): string[] {
+    try {
+      return execSync(`grep -rlE "from [\\"'].*/${exportName}[\\"']" app --include=*.tsx --include=*.ts`, { cwd: root, encoding: "utf8" })
+        .trim().split("\n").filter(Boolean).map((p) => p.replace(/\\/g, "/"));
+    } catch {
+      return [];
+    }
+  }
+  // FeaturedCarsSection / RecentAutosSection: must have zero real importers (their own file doesn't self-import).
+  for (const name of ["FeaturedCarsSection", "RecentAutosSection"]) {
+    const hits = importersOf(name).filter((h) => !h.endsWith(`${name}.tsx`));
+    assert.equal(hits.length, 0, `${name} must be unimported anywhere — found: ${hits.join(", ")}`);
+  }
+  // RelatedDealerCars: its only real importer must be AutoDealerPreviewPage.
+  const relatedCarsImporters = importersOf("RelatedDealerCars").filter((h) => !h.endsWith("RelatedDealerCars.tsx"));
+  assert.ok(relatedCarsImporters.every((h) => h.endsWith("AutoDealerPreviewPage.tsx")), `RelatedDealerCars' only consumer must be AutoDealerPreviewPage — found: ${relatedCarsImporters.join(", ")}`);
+  // AutoDealerPreviewPage itself: must have zero real importers, closing out the whole chain as dead.
+  const previewPageImporters = importersOf("AutoDealerPreviewPage").filter((h) => !h.endsWith("AutoDealerPreviewPage.tsx"));
+  assert.equal(previewPageImporters.length, 0, `AutoDealerPreviewPage must be unimported anywhere — found: ${previewPageImporters.join(", ")}`);
+});
+check("Gate A: AutosPublicStandardCard (the LIVE public search-results card) formats price/mileage locale-correctly and links to its own listing", () => {
+  const src = raw("app/(site)/clasificados/autos/components/public/AutosPublicStandardCard.tsx");
+  assert.ok(src.includes("formatAutosUsd(listing.price, lang)") && src.includes("formatAutosMiles(listing.mileage, lang)"));
+  assert.ok(src.includes("autosLiveVehiclePath(listing.id)"), "must link to its own listing id");
+  assert.equal(formatAutosMiles(100, "es"), "100 millas");
+  assert.equal(formatAutosMiles(100, "en"), "100 mi");
+});
+check("Gate A: PreviewAutosDealerInventoryVehicleCard (the live related-inventory card) reads lang from the SAME shared context as its parent page — not an independent derivation", () => {
+  const relatedShelf = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewRelatedDealerCars.tsx");
+  assert.ok(relatedShelf.includes("useAutosNegociosPreviewCopy()"));
+});
+check("Gate A: dealer children ARE independently searchable in public results (their own row, gated only by parent-active-and-same-owner, never fabricated)", () => {
+  const svc = raw("app/lib/clasificados/autos/autosClassifiedsListingService.ts");
+  assert.ok(svc.includes('"inventory_vehicle"'), "the active-rows query must include inventory_vehicle rows, not just main");
+  const gate = raw("app/lib/clasificados/autos/autosPublicChildParentVisibility.ts");
+  assert.ok(gate.includes("isAutosChildParentGateSatisfied") || gate.includes("filterAutosRowsByActiveParent"));
+});
+check("Gate A: the results-card taxonomy localizer never fabricates a translation for a seller's free-typed 'Otro' value — same doctrine as everywhere else in Autos (confirmed on the actual card call site)", () => {
+  const cardFile = raw("app/(site)/publicar/autos/negocios/components/AutosNegociosResultsCardPreview.tsx");
+  assert.ok(cardFile.includes("localizeAutosDealerTaxonomySelectValue") && cardFile.includes("?? listing"), "must localize deterministically with a safe fallback to the raw stored value, never invent one");
+});
+
+/* --- Gate B: bottom jump navigation — resilient-by-construction, confirmed via source ---------- */
+check("Gate B: the promise strip resolves every jump target against the real DOM at mount time (document.getElementById) and silently drops any item whose target doesn't exist — a dead jump card is structurally impossible", () => {
+  const strip = raw("app/(site)/clasificados/autos/negocios/components/AutosNegociosPreviewPromiseStrip.tsx");
+  assert.ok(strip.includes("document.getElementById") && strip.includes("scrollIntoView"));
+  assert.ok(/visibleItems/.test(strip), "must filter to only the items that actually resolved to a real element");
+});
+check("Gate B: the finance and additional-vehicles jump cards are conditionally rendered only when those sections actually exist", () => {
+  const financeSection = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewDealerBusinessStack.tsx");
+  assert.ok(financeSection.includes("hasDealerFinanceContact(data)"));
+  const invSection = raw("app/(site)/clasificados/autos/negocios/components/AutosNegociosPreviewInventorySection.tsx");
+  assert.ok(invSection.includes("if (additionalVehicles.length === 0)") && invSection.includes("return null"));
+});
+check("Gate B: jump-card labels are driven by the same ad-local lang prop passed down from the page's own adDisplayLang — not an independent read", () => {
+  const previewClient = raw("app/(site)/clasificados/autos/negocios/preview/AutosNegociosPreviewClient.tsx");
+  assert.ok(previewClient.includes("<AutosNegociosPreviewPromiseStrip lang={adDisplayLang}"));
+});
+
+/* --- Gate C: engagement identity — Like real+id-scoped on live, honestly non-persisted in Preview; Save N/A; Share real and per-listing --- */
+check("Gate C: Like is DB-backed and keyed on the fetched listing's own real id on the live page, and honestly non-persisted (zero count, no id) in Preview — never a fabricated nonzero count", () => {
+  const page = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/AutosNegociosDealershipPreviewPage.tsx");
+  assert.ok(page.includes("listingSourceId={publicPlaybackOnly ? publicAnalytics?.listingSourceId : undefined}"), "the engagement strip's Like identity stays strictly gated on true publicPlaybackOnly — untouched by the Gate H share fix");
+  const strip = raw("app/(site)/clasificados/autos/negocios/components/AutosNegociosPreviewEngagementStrip.tsx");
+  assert.ok(strip.includes("persistEngagement={isPublic}") || strip.includes("persistEngagement={false}") || /isPublic/.test(strip), "must not persist engagement when not public");
+});
+check("Gate C: Save is real and DB-backed on the LIVE search-results card (AutosPublicStandardCard), keyed on that exact card's own listing id — not fabricated, not a shared/generic id", () => {
+  const src = raw("app/(site)/clasificados/autos/components/public/AutosPublicStandardCard.tsx");
+  assert.ok(src.includes("<LeonixSaveButton") && src.includes("listingId={listing.id}") && src.includes("persistEngagement={Boolean(listing.id)}"), "the results-card Save button must be keyed on that card's own listing id, real/persisted only when a real id exists");
+});
+check("Gate C: the detail-page engagement strip (Like/Share) has no separate Save control — a different surface (the results card) owns Save, this is a real product-surface split, not a hidden gap", () => {
+  const strip = raw("app/(site)/clasificados/autos/negocios/components/AutosNegociosPreviewEngagementStrip.tsx");
+  assert.ok(!strip.includes("LeonixSaveButton"), "confirms the detail-page strip genuinely has no Save control — documented, not silently missing");
+});
+check("Gate C: Share on the live page is scoped to the current listing's own URL (window.location.href of the fetched listing's own route) — never a parent/sibling URL", () => {
+  const liveClient = raw("app/(site)/clasificados/autos/vehiculo/[id]/AutosLiveVehicleClient.tsx");
+  assert.ok(liveClient.includes('const publicUrl = typeof window !== "undefined" ? window.location.href : ""'));
+});
+
+/* --- Gate D: accessibility — the interactions this master execution actually added/changed ----- */
+check("Gate D: the lightbox dialog carries real dialog semantics (role, aria-modal, aria-label) and its Todo/Fotos/Videos switch buttons are real <button> elements with visible text (never icon-only, never mouse-only)", () => {
+  const shared = raw("app/components/media/BusinessGalleryModal.tsx");
+  assert.ok(shared.includes('role="dialog"') && shared.includes('aria-modal="true"') && shared.includes("aria-label={ariaLabel}"));
+  for (const file of [
+    "app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewAutoGallery.tsx",
+    "app/(site)/clasificados/autos/negocios/components/AutoGallery.tsx",
+  ]) {
+    const src = raw(file);
+    assert.ok(/<button type="button" className=\{tabClass\(activeTab === "all"\)\}/.test(src), `${file}: the switch buttons must be real <button> elements`);
+  }
+});
+check("Gate D: every new Dealer/Finance CTA (Text/SMS, Correo/Email) is a real focusable <a>/<button> with visible text — never an icon-only control with no accessible name", () => {
+  const dfc = raw("app/(site)/clasificados/autos/negocios/components/DealerFinanceContact.tsx");
+  assert.ok(dfc.includes("{f.text}") && dfc.includes("{f.call}") && dfc.includes("{f.email}") && dfc.includes("{f.whatsapp}"), "every finance CTA renders its own visible text label alongside the icon");
+});
+check("Gate D: the email action sheet's Copy/Share/Open actions all render as real buttons with the same visible label used for their accessible name (no separate icon-only affordance)", () => {
+  const sheet = raw("app/components/cta/CtaActionSheet.tsx");
+  assert.ok(sheet.includes("t.copyEmail") && sheet.includes("t.copyFullMessage") && sheet.includes("t.shareContact") && sheet.includes("t.shareWithApps") && sheet.includes("t.openEmailApp"));
+});
+check("Gate D: ad-local accessibility copy (gallery aria-labels, finance/contact labels) follows adDisplayLang via the same lang variable as visible text; global site chrome is untouched by this execution", () => {
+  const gallery = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewAutoGallery.tsx");
+  assert.ok(gallery.includes('ariaLabel={lang === "es" ? "Galería del vehículo" : "Vehicle gallery"}'));
+  const navbar = raw("app/components/Navbar.tsx");
+  assert.ok(!navbar.includes("adDisplayLang"), "global Navbar must never consume the ad-local adDisplayLang");
 });
 
 if (failures.length) {

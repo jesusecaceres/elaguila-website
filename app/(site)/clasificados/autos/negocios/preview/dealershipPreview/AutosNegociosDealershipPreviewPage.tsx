@@ -78,6 +78,7 @@ export function AutosNegociosDealershipPreviewPage({
   publicPlaybackOnly = false,
   publicAnalytics,
   publicUrl,
+  canonicalListingId,
   relatedPreviewOnly = false,
   embeddedInShell = false,
   draftPreviewMode = false,
@@ -90,6 +91,12 @@ export function AutosNegociosDealershipPreviewPage({
   publicPlaybackOnly?: boolean;
   publicAnalytics?: AutosPublicListingAnalyticsProps;
   publicUrl?: string;
+  /** Gate H: a real DB row id, set ONLY when this is a genuinely already-published
+   * (canonical-active) listing being viewed through a non-publicPlaybackOnly route (owner
+   * Preview/dashboard-edit). Lets the bottom Share render with a real listing identity WITHOUT
+   * flipping on the full `publicAnalytics`-gated engagement/Like/Save/analytics-recording surface
+   * — no fake self-engagement is ever recorded for an owner previewing their own listing. */
+  canonicalListingId?: string | null;
   /** Draft child preview: related cards are non-navigable placeholders. */
   relatedPreviewOnly?: boolean;
   /** Parent already rendered preview chrome — skip duplicate header/logo. */
@@ -377,7 +384,7 @@ export function AutosNegociosDealershipPreviewPage({
         <div className="lg:col-start-1" style={{ gridRowStart: shareRow, order: orderShare }}>
           <AutosNegociosEndOfContentShare
             lang={lang}
-            listingSourceId={publicPlaybackOnly ? publicAnalytics?.listingSourceId : undefined}
+            listingSourceId={publicPlaybackOnly ? publicAnalytics?.listingSourceId : (canonicalListingId?.trim() || undefined)}
             leonixAdId={publicAnalytics?.leonixAdId}
             listingTitle={h1}
             listingUrl={publicUrl}

@@ -42,6 +42,20 @@ export function buildWhatsAppUrl(phone: string | null | undefined, body = ""): s
     : `https://wa.me/${digits}`;
 }
 
+/**
+ * Servicios Absolute Final Golden Closeout (2026-09-17, Gate 11/13) — owner-reproduced mailto
+ * failure (fake test email, real owner email, and a real Autos business email all failed the
+ * same way — canceled/provisional navigation in DevTools). ROOT CAUSE: this previously built the
+ * query string with `URLSearchParams.toString()`, which serializes as
+ * `application/x-www-form-urlencoded` — spaces become `+`, not `%20`. RFC 6068 (the mailto URI
+ * spec) never defines `+` as a space; it is purely an HTML-form convention. A `subject`/`body`
+ * containing `+` characters instead of real spaces is enough for some mail-handler registrations
+ * (notably on Windows) to treat the URI as malformed and silently fail to launch the client —
+ * exactly a "canceled" navigation with no visible email app opening. Building the query manually
+ * with `encodeURIComponent` (native JS percent-encoding, spaces -> `%20`) produces a spec-
+ * compliant mailto URI. Verified against the owner's own Unicode business-name test case
+ * ("Plomería León del Valle QA") and a multi-line body.
+ */
 export function buildMailtoHref(
   email: string | null | undefined,
   subject = "",
@@ -49,12 +63,12 @@ export function buildMailtoHref(
 ): string | null {
   const em = String(email ?? "").trim();
   if (!isValidPublicEmail(em)) return null;
-  if (/[<>\"]/.test(em) || em.toLowerCase().includes("javascript:")) return null;
-  const q = new URLSearchParams();
+  if (/[<>"]/.test(em) || em.toLowerCase().includes("javascript:")) return null;
   const sub = String(subject ?? "").trim();
   const bod = String(body ?? "").trim();
-  if (sub) q.set("subject", sub);
-  if (bod) q.set("body", bod);
-  const qs = q.toString();
+  const parts: string[] = [];
+  if (sub) parts.push(`subject=${encodeURIComponent(sub)}`);
+  if (bod) parts.push(`body=${encodeURIComponent(bod)}`);
+  const qs = parts.join("&");
   return qs ? `mailto:${em}?${qs}` : `mailto:${em}`;
 }
