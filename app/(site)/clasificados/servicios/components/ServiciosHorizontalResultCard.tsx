@@ -140,8 +140,6 @@ export function ServiciosHorizontalResultCard({
   discoveryRefineLabel,
   listingShareUrl,
 }: ServiciosHorizontalResultCardProps) {
-  const L = getServiciosProfileLabels(lang);
-
   const profile = useMemo(
     (): ServiciosProfileResolved | null => mapServiciosTradePresentationProfile({ previewProfile, row, lang }),
     [previewProfile, row, lang],
@@ -248,6 +246,14 @@ export function ServiciosHorizontalResultCard({
     enabled: true,
   });
 
+  // Servicios Absolute Final Golden Closeout (2026-09-17, Gate 1/2) — Translate means switching
+  // the ENTIRE ad-local experience, not just chip text. Every UI_CHROME string (CTA labels, trust
+  // copy, section labels, aria text) must follow `displayLang`, never the static site `lang` —
+  // otherwise chrome stays in the original language while only chips flip, the exact
+  // mixed-language defect owner runtime QA reported. `L` reuses the SAME established chrome
+  // dictionary (getServiciosProfileLabels) the rest of the app already relies on.
+  const L = getServiciosProfileLabels(displayLang);
+
   // Re-derive canonical labels for the DISPLAY language (unchanged reference when not
   // translated) — the same pure overlay already used to build `profile` for `lang`, now applied
   // for `displayLang` so canonical chips/category flip together with owner-authored text instead
@@ -287,15 +293,17 @@ export function ServiciosHorizontalResultCard({
   const displayCategoryChip = displayCategoryLine ?? displayCategoryChipCanonical;
 
   const vitrinaHref =
+    // The URL's own `?lang=` stays the SITE locale (not the card's ephemeral display language) —
+    // the detail page manages its own translate state independently on arrival.
     (publicDetailHref || "").trim() || `/clasificados/servicios/${encodeURIComponent(listingSlug)}?lang=${lang}`;
-  const vitrinaLabel = (publicDetailLabel || "").trim() || (lang === "en" ? "View profile" : "Ver perfil");
-  const servicesLabel = lang === "en" ? "Services" : "Servicios";
+  const vitrinaLabel = (publicDetailLabel || "").trim() || (displayLang === "en" ? "View profile" : "Ver perfil");
+  const servicesLabel = displayLang === "en" ? "Services" : "Servicios";
   const cardNavigateLabel =
-    lang === "en"
+    displayLang === "en"
       ? `View profile for ${profile.identity.businessName}`
       : `Ver perfil de ${profile.identity.businessName}`;
 
-  const monetizationBadges = row ? getServiciosPublicMonetizationBadges(row, lang).slice(0, 3) : [];
+  const monetizationBadges = row ? getServiciosPublicMonetizationBadges(row, displayLang).slice(0, 3) : [];
 
   const ratingValue =
     typeof profile.hero.rating === "number" && Number.isFinite(profile.hero.rating) ? profile.hero.rating : undefined;
@@ -382,7 +390,7 @@ export function ServiciosHorizontalResultCard({
                   </span>
                 ))}
                 {!showEngagementControls ? (
-                  <ServiciosLikeCountBadge count={likeBadgeCount} lang={lang} />
+                  <ServiciosLikeCountBadge count={likeBadgeCount} lang={displayLang} />
                 ) : null}
               </div>
 
@@ -403,7 +411,7 @@ export function ServiciosHorizontalResultCard({
 
               {ratingValue != null && ratingValue > 0 ? (
                 <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                  <StarRow rating={ratingValue} lang={lang} />
+                  <StarRow rating={ratingValue} lang={displayLang} />
                   {reviewCount != null ? (
                     <span className="text-[11px] font-semibold text-[#6F6254]">{L.reviewsSuffix(reviewCount)}</span>
                   ) : null}
@@ -423,7 +431,7 @@ export function ServiciosHorizontalResultCard({
           <div className="pointer-events-none relative z-[2] px-4 pb-3 sm:px-5">
             <ServiciosServiceChipsRow
               chips={displayServiceChips}
-              lang={lang}
+              lang={displayLang}
               profileHref={vitrinaHref}
               servicesLabel={servicesLabel}
             />
@@ -465,7 +473,7 @@ export function ServiciosHorizontalResultCard({
                   onClick={() => openContactKey("maps", mapsHref)}
                 >
                   <FiMapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                  {lang === "en" ? "Directions" : "Cómo llegar"}
+                  {displayLang === "en" ? "Directions" : "Cómo llegar"}
                 </button>
               ) : null}
               {!primaryCall && !wa && (profile.contact.emailMailtoHref || profile.contact.websiteHref) ? (
@@ -496,13 +504,13 @@ export function ServiciosHorizontalResultCard({
 
             <div className="flex flex-wrap items-center justify-between gap-2" data-servicios-card-trust-strip="1">
               <span className="inline-flex items-center gap-1 rounded-full border border-[#E8D7B8] bg-[#FFF9F2] px-2.5 py-1 text-[10px] font-bold text-[#7A1E2C] sm:text-[11px]">
-                🦁 {lang === "en" ? "Leonix Community" : "Comunidad Leonix"}
+                🦁 {displayLang === "en" ? "Leonix Community" : "Comunidad Leonix"}
                 {" · "}
                 {endorsementCount > 0
-                  ? lang === "en"
+                  ? displayLang === "en"
                     ? `${endorsementCount} recognition${endorsementCount === 1 ? "" : "s"}`
                     : `${endorsementCount} reconocimiento${endorsementCount === 1 ? "" : "s"}`
-                  : lang === "en"
+                  : displayLang === "en"
                     ? "New"
                     : "Nuevo"}
               </span>
@@ -514,7 +522,7 @@ export function ServiciosHorizontalResultCard({
                 listingShareUrl={resolvedShareUrl || undefined}
                 listingSlug={listingSlug}
                 listingSourceId={row?.id ?? null}
-                lang={lang}
+                lang={displayLang}
                 publicLikeCount={likeBadgeCount}
                 showEngagementControls={showEngagementControls}
                 persistListingEngagement={persistListingEngagement}
