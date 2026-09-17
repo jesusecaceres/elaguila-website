@@ -122,6 +122,18 @@ check("CtaActionSheet's email 'Share with other apps' action reuses the one glob
   const hits = [...sheet.matchAll(/navigator\.share/g)].length;
   assert.equal(hits, 0, "CtaActionSheet never calls navigator.share directly — only through the shared wrapper");
 });
+check("Servicios False-Gates-Only Final Completion Pass (2026-09-17, Gate 14): LeonixShareButton's directNativeShare path — the one used by every Servicios results card, hero, and profile Share control — also reuses tryWebShare/copyToClipboard instead of duplicating navigator.share/navigator.clipboard.writeText", () => {
+  const btn = raw("app/components/clasificados/analytics/LeonixShareButton.tsx");
+  assert.ok(btn.includes('import { copyToClipboard, tryWebShare } from "@/app/components/cta/ctaLaunchers";'));
+  const fnStart = btn.indexOf("const triggerNativeShare = useCallback(");
+  const fnEnd = btn.indexOf("\n  }, [listingTitle, shareText, publicUrl, lang, trackShare, allowTrack]);", fnStart);
+  assert.ok(fnStart > 0 && fnEnd > fnStart, "triggerNativeShare function located");
+  const body = btn.slice(fnStart, fnEnd);
+  assert.ok(body.includes("await tryWebShare("), "calls the shared tryWebShare wrapper");
+  assert.ok(body.includes("await copyToClipboard("), "clipboard fallback calls the shared copyToClipboard wrapper");
+  assert.equal([...body.matchAll(/navigator\.share\(/g)].length, 0, "no direct navigator.share call left in triggerNativeShare");
+  assert.equal([...body.matchAll(/navigator\.clipboard\.writeText\(/g)].length, 0, "no direct navigator.clipboard.writeText call left in triggerNativeShare");
+});
 
 if (failures.length) {
   console.error(`\nverify-servicios-card-full-chrome-language-and-mailto: ${failures.length} failure(s):\n- ${failures.join("\n- ")}`);

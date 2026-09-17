@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { FiShare2 } from "react-icons/fi";
 import { CtaActionSheet } from "@/app/components/cta/CtaActionSheet";
 import { getSafePublicAdUrl } from "@/app/components/cta/ctaDataHelpers";
+import { copyToClipboard, tryWebShare } from "@/app/components/cta/ctaLaunchers";
 import type { CtaActionCallback, CtaSheetIntent } from "@/app/components/cta/types";
 import { trackListingShare } from "@/app/lib/clasificadosAnalytics";
 
@@ -193,20 +194,25 @@ export function LeonixShareButton({
         ? { title: safeTitle, text: body, url: urlToShare }
         : { title: safeTitle, url: urlToShare }
       : { title: safeTitle, text: body || safeTitle };
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share(shareData);
-        void trackShare("web_share", { direct: true });
-      } catch {
-        /* user cancelled or unsupported — silent */
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(urlToShare || body || safeTitle);
-        void trackShare("copy_link", { direct: true, nativeFallback: true });
-        setCopyFeedback(true);
-        window.setTimeout(() => setCopyFeedback(false), COPY_FEEDBACK_MS);
-      } catch { /* silent */ }
+
+    // Servicios Absolute Final Golden Closeout (2026-09-17, Gate 14) — ONE global native-share
+    // helper for the whole app: `tryWebShare` (app/components/cta/ctaLaunchers.ts), the same
+    // wrapper the CtaActionSheet email sheet already uses. This used to call `navigator.share`
+    // directly, a second, duplicate implementation of the same capability.
+    const outcome = await tryWebShare({ title: shareData.title, text: shareData.text, url: shareData.url });
+    if (outcome === "shared") {
+      void trackShare("web_share", { direct: true });
+      return;
+    }
+    if (outcome === "aborted") return; // user cancelled — silent, unchanged from before
+
+    // No native share capability (or it failed for a non-cancel reason) — same clipboard fallback
+    // + confirmation as before, now via the shared `copyToClipboard` helper.
+    const ok = await copyToClipboard(urlToShare || body || safeTitle);
+    if (ok) {
+      void trackShare("copy_link", { direct: true, nativeFallback: true });
+      setCopyFeedback(true);
+      window.setTimeout(() => setCopyFeedback(false), COPY_FEEDBACK_MS);
     }
   }, [listingTitle, shareText, publicUrl, lang, trackShare, allowTrack]);
 

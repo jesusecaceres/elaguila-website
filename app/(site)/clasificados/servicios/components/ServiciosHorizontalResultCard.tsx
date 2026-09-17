@@ -10,10 +10,13 @@ import { getServiciosProfileLabels } from "@/app/servicios/copy/serviciosProfile
 import { getServiciosPublicMonetizationBadges } from "../lib/serviciosDestacados";
 import type { ServiciosProfileResolved } from "@/app/(site)/servicios/types/serviciosBusinessProfile";
 import {
+  buildServiciosSendEmailIntentFromMailto,
   serviciosAnalyticsTrackMeta,
   trackServiciosListingCta,
   trackServiciosResultCardClick,
 } from "@/app/(site)/servicios/lib/serviciosCtaIntents";
+import { CtaActionSheet } from "@/app/components/cta";
+import type { CtaSheetIntent } from "@/app/components/cta/types";
 import {
   buildServiciosGoogleMapsDirectionsUrl,
   serviciosOpenGoogleMapsDirections,
@@ -186,11 +189,6 @@ export function ServiciosHorizontalResultCard({
         serviciosOpenWhatsAppHref(href);
         return;
       }
-      if (key === "email") {
-        trackServiciosListingCta(slugKey, "cta_email_click", ctaTrackMeta);
-        serviciosOpenMailtoHref(href);
-        return;
-      }
       if (key === "call" || key === "callOffice") {
         trackServiciosListingCta(slugKey, "cta_call_click", ctaTrackMeta);
         serviciosOpenTelHref(href);
@@ -198,6 +196,11 @@ export function ServiciosHorizontalResultCard({
     },
     [ctaAnalyticsListingKey, ctaTrackMeta, listingSlug, profile],
   );
+  // Gate 12 — the same rich email action sheet the full profile's "Correo" CTA uses. Declared above
+  // the component's `if (!profile) return null;` early return, alongside the component's other
+  // pre-return hooks, so it obeys the Rules of Hooks (this file has a pre-existing, unrelated block
+  // of hooks declared AFTER that early return — do not add new hooks there).
+  const [emailSheetIntent, setEmailSheetIntent] = useState<CtaSheetIntent | null>(null);
 
   const onCardNavigate = useCallback(() => {
     if (row) trackServiciosResultCardClick(row);
@@ -245,6 +248,28 @@ export function ServiciosHorizontalResultCard({
     listingKey: ctaAnalyticsListingKey,
     enabled: true,
   });
+
+  // Gate 12 — a separate callback (not folded into `openContactKey` above) because it needs
+  // `displayLang`, which — like `openContactKey` itself — must stay declared before the early
+  // `if (!profile) return null;` below to respect the Rules of Hooks, but is only available once
+  // `useServiciosResultCardTranslation` (just above) has run.
+  const openEmailContact = useCallback(
+    (href: string) => {
+      const slugKey = listingSlug || ctaAnalyticsListingKey;
+      trackServiciosListingCta(slugKey, "cta_email_click", ctaTrackMeta);
+      // The results-card email-only fallback used to jump straight to a bare mailto: with no
+      // subject/body, unlike the full profile's "Correo" CTA, which opens the same rich Leonix
+      // email action sheet the owner already relies on. buildServiciosSendEmailIntentFromMailto
+      // decodes email/subject/body straight from this href, so it degrades to the same bare mailto
+      // (via the sheet's own "Open email app" action, itself RFC-6068-repaired) when there's
+      // nothing else to show. Uses the raw `listingShareUrl` prop (not the async-resolved state,
+      // which is declared after this component's early return) for the sheet's optional public link.
+      const intent = buildServiciosSendEmailIntentFromMailto(href, displayLang, slugKey, listingShareUrl || undefined);
+      if (intent) setEmailSheetIntent(intent);
+      else serviciosOpenMailtoHref(href);
+    },
+    [ctaAnalyticsListingKey, ctaTrackMeta, listingSlug, displayLang, listingShareUrl],
+  );
 
   // Servicios Absolute Final Golden Closeout (2026-09-17, Gate 1/2) — Translate means switching
   // the ENTIRE ad-local experience, not just chip text. Every UI_CHROME string (CTA labels, trust
@@ -492,7 +517,7 @@ export function ServiciosHorizontalResultCard({
                     <button
                       type="button"
                       className={LX_CTA_CARD_SECONDARY}
-                      onClick={() => openContactKey("email", profile.contact.emailMailtoHref!)}
+                      onClick={() => openEmailContact(profile.contact.emailMailtoHref!)}
                     >
                       <FiMail className="h-3.5 w-3.5 shrink-0" aria-hidden />
                       {L.email}
@@ -551,6 +576,12 @@ export function ServiciosHorizontalResultCard({
           </div>
         </div>
       </article>
+      <CtaActionSheet
+        open={emailSheetIntent != null}
+        onClose={() => setEmailSheetIntent(null)}
+        intent={emailSheetIntent}
+        lang={displayLang}
+      />
     </>
   );
 }

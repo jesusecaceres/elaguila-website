@@ -16,6 +16,13 @@ import {
  * Compact Like → Save → Share controls for live Servicios discovery result cards.
  * Save reuses the shared LeonixSaveButton + serviciosSavedListingExtras engine (same as hub).
  * Visibility (`showEngagementControls`) is separate from persistence (`persistListingEngagement`).
+ *
+ * Servicios False-Gates-Only Final Completion Pass (2026-09-17, Gate 5) — when
+ * `persistListingEngagement` is false (non-persisting preview/draft context, e.g. no durable id or
+ * share URL yet), the shared LeonixSaveButton renders permanently disabled and reads "Vista
+ * previa"/"Preview" instead of "Guardar"/"Save" — the click does nothing. That control is not useful
+ * there, so this strip hides it entirely rather than showing a dead button; Like and Share remain
+ * (Share degrades to native share without persisted analytics, which is still fully functional).
  */
 export function ServiciosResultCardEngagementStrip({
   listingId,
@@ -81,17 +88,19 @@ export function ServiciosResultCardEngagementStrip({
         tone="hub"
         recordLikeEvent={globalListing ? serviciosGlobalLikeRecorder(globalListing) : undefined}
       />
-      <LeonixSaveButton
-        listingId={lxListingId}
-        savedListingKey={sourceId || undefined}
-        ownerUserId={ownerUserId}
-        variant="small"
-        lang={lang}
-        category="servicios"
-        persistEngagement={persistEngagement}
-        saveExtras={saveExtras}
-        recordSaveEvent={globalListing ? serviciosGlobalSaveRecorder(globalListing) : undefined}
-      />
+      {persistEngagement ? (
+        <LeonixSaveButton
+          listingId={lxListingId}
+          savedListingKey={sourceId || undefined}
+          ownerUserId={ownerUserId}
+          variant="small"
+          lang={lang}
+          category="servicios"
+          persistEngagement={persistEngagement}
+          saveExtras={saveExtras}
+          recordSaveEvent={globalListing ? serviciosGlobalSaveRecorder(globalListing) : undefined}
+        />
+      ) : null}
       <LeonixShareButton
         listingId={lxListingId}
         listingUrl={shareUrl}
