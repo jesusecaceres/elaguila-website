@@ -117,6 +117,7 @@ import {
   MAX_CUSTOM_BUSINESS_HIGHLIGHTS,
 } from "../lib/serviciosHighlightCaps";
 import { digitsOnly, formatPhoneInputDisplay, formatWhatsAppInputDisplay } from "../lib/serviciosPhoneUi";
+import { formatServiciosWhatsAppDisplay } from "@/app/(site)/servicios/lib/serviciosWhatsAppHref";
 import { resolveServiciosBusinessHighlightVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosBusinessHighlightVisual";
 import { resolveServiciosServiceVisual } from "@/app/(site)/clasificados/servicios/lib/serviciosServiceVisualCatalog";
 import {
@@ -295,6 +296,12 @@ export function ClasificadosServiciosApplication() {
   const [newFieldsMissing, setNewFieldsMissing] = useState<string[]>([]);
   const [languageOtherPending, setLanguageOtherPending] = useState("");
   const [serviceAreaPending, setServiceAreaPending] = useState("");
+  // WhatsApp field display-format micro-fix — show the nicely formatted US "(XXX) XXX-XXXX" value
+  // (when applicable) while the field is NOT focused, and the raw international-safe editing value
+  // while the owner is actively typing, so keystrokes never fight a reformatting value prop. The
+  // STORED state.whatsapp value (and everything downstream: publish payload, resolver, wa.me
+  // destination) is completely untouched by this — display-only.
+  const [whatsappFieldFocused, setWhatsappFieldFocused] = useState(false);
 
   // Owner UX doctrine (INPUT -> ACCEPTED -> PERSISTED): one useAddedConfirmation() instance per
   // distinct explicit Add flow. Groups/rows that repeat a fixed, bounded set (5 amenity groups,
@@ -1923,8 +1930,14 @@ export function ClasificadosServiciosApplication() {
                     type="tel"
                     inputMode="tel"
                     placeholder={lang === "es" ? "+1 713 555 0100" : "+1 713 555 0100"}
-                    value={formatWhatsAppInputDisplay(state.whatsapp)}
+                    value={
+                      whatsappFieldFocused
+                        ? formatWhatsAppInputDisplay(state.whatsapp)
+                        : formatServiciosWhatsAppDisplay(state.whatsapp) || formatWhatsAppInputDisplay(state.whatsapp)
+                    }
                     onChange={(e) => setState((s) => ({ ...s, whatsapp: formatWhatsAppInputDisplay(e.target.value) }))}
+                    onFocus={() => setWhatsappFieldFocused(true)}
+                    onBlur={() => setWhatsappFieldFocused(false)}
                   />
                 </div>
                 <div>
