@@ -327,12 +327,13 @@ check("contact CTA analytics classify strictly by href pattern (tel:/wa.me/mailt
 /* ================================================================================================
  * Gate N — cache/version correctness: payload shape changed (finance fields added), version bumped.
  * ============================================================================================ */
-check("the Autos Translate Ad cache version was bumped after every buildAutosTranslatableContent payload shape change (finance fields, custom-link/special-hours, locationNote) — no stale v1/v2/v3 string remains", () => {
+check("the Autos Translate Ad cache version was bumped after every buildAutosTranslatableContent payload shape change (finance fields, custom-link/special-hours, locationNote, financeTeaser) — no stale v1-v4 string remains", () => {
   const layer = raw("app/(site)/clasificados/autos/vehiculo/[id]/AutosListingTranslationLayer.tsx");
   assert.ok(!layer.includes('version="autos-t5-v1"'), "the stale pre-finance-fields version string must be gone");
   assert.ok(!layer.includes('version="autos-t6-v2"'), "the stale pre-custom-link/special-hours version string must be gone");
   assert.ok(!layer.includes('version="autos-t6-v3"'), "the stale pre-locationNote version string must be gone");
-  assert.ok(/version="autos-t6-v4"/.test(layer), "version bumped to the current value");
+  assert.ok(!layer.includes('version="autos-t6-v4"'), "the stale pre-financeTeaser version string must be gone");
+  assert.ok(/version="autos-t6-v5"/.test(layer), "version bumped to the current value");
 });
 
 /* ================================================================================================
@@ -537,6 +538,7 @@ check("buildAutosTranslatableContent never leaks VIN/stock/price/mileage/make/mo
     dealerEmail: "sales@example.com",
     dealerWebsite: "https://example.com",
     description: "Excelente condición.",
+    monthlyEstimate: "Desde $500/mes",
   } as unknown as AutoDealerListing;
   const content = buildAutosTranslatableContent(listing);
   const allowedKeys = new Set([
@@ -549,10 +551,12 @@ check("buildAutosTranslatableContent never leaks VIN/stock/price/mileage/make/mo
     "body",
     "shareText",
     "locationNote",
+    "financeTeaser",
   ]);
   for (const key of Object.keys(content)) {
     assert.ok(allowedKeys.has(key), `unexpected key '${key}' leaked into the translatable payload`);
   }
+  assert.equal(content.financeTeaser, "Desde $500/mes", "financeTeaser is the one legitimately-allowed finance-prose field here — it must carry the real authored teaser, not a fabricated or dropped value");
 });
 check("applyAutosTranslation's source never assigns a translated value to any identity/spec field", () => {
   const src = raw("app/(site)/clasificados/autos/lib/autosTranslateAd.ts");
@@ -1472,6 +1476,109 @@ check("no-mailto: openMailto and its underlying buildMailtoHref remain real, exp
   assert.ok(launchers.includes("export function openMailto"));
   const hrefs = raw("app/lib/digitalContact/humanConnection/nativeChannelHrefs.ts");
   assert.ok(hrefs.includes("export function buildMailtoHref") || hrefs.includes("function buildMailtoHref"));
+});
+
+/* ================================================================================================
+ * FINAL 2-GATE CLEANUP (2026-09-17) — Gate 01: Share visible next to Like AND under Print,
+ * without regressing Like or the existing bottom Share. Gate 02: the free-typed monthly finance
+ * teaser sentence follows adDisplayLang instead of leaking the dealer's authored language.
+ * ============================================================================================ */
+
+/* --- Gate 01A: Share next to Like ---------------------------------------------------------- */
+check("Gate 01A: the Like-row engagement strip renders Share with its OWN truthful identity (shareListingId), independent of Like's stricter public/persisted-engagement gate — a canonical-active Preview gets real Share without fake Like/analytics", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/components/AutosNegociosPreviewEngagementStrip.tsx");
+  assert.ok(src.includes("shareListingId?: string | null;"), "must accept its own share identity prop");
+  assert.ok(src.includes("const shareId = isPublic ? sourceId : shareListingId?.trim() || \"\";"), "share identity must fall back to shareListingId when not fully public");
+  assert.ok(src.includes("const canShare = Boolean(shareId && listingUrl?.trim());"), "share must require BOTH a real id and a real URL — never fabricated");
+  assert.ok(!src.includes("window.location"), "must never fabricate a URL from the current page when no real one exists");
+  assert.ok(src.includes("<LeonixShareButton"), "must use the shared Share primitive, not a bespoke implementation");
+});
+check("Gate 01A: when Share is unavailable (no real canonical id/URL yet), it renders a real disabled button — never silently absent, never a fake-looking active control", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/components/AutosNegociosPreviewEngagementStrip.tsx");
+  assert.ok(src.includes('data-autos-share-unavailable="1"'));
+  assert.ok(/disabled\s*\n\s*aria-disabled="true"/.test(src));
+});
+check("Gate 01A: Like is completely unaffected by this change — same two LeonixLikeButton branches, same isPublic gate, same props, as before this pass", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/components/AutosNegociosPreviewEngagementStrip.tsx");
+  assert.ok(src.includes("persistEngagement\n") && src.includes("persistEngagement={false}"), "both the public and non-public Like branches must be present unchanged");
+  assert.equal((src.match(/<LeonixLikeButton/g) ?? []).length, 2, "exactly two Like render sites — one public, one non-public — unchanged from before this pass");
+});
+check("Gate 01A: the shared Dealer hero passes a real shareListingId (canonicalListingId when not publicPlaybackOnly) into the Like-row strip — the same identity source already proven correct for the bottom Share (Gate H)", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/AutosNegociosDealershipPreviewPage.tsx");
+  assert.ok(
+    src.includes("shareListingId={publicPlaybackOnly ? publicAnalytics?.listingSourceId : (canonicalListingId?.trim() || undefined)}"),
+    "must reuse the exact same canonicalListingId-or-public-analytics identity pattern as AutosNegociosEndOfContentShare",
+  );
+});
+
+/* --- Gate 01B: Share under Print ------------------------------------------------------------ */
+check("Gate 01B: a real, additional Share action now renders directly under Print in the right-rail Acciones block, on top of (not instead of) whatever renders above it", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewDealerBusinessStack.tsx");
+  const printIdx = src.indexOf("onClick={() => window.print()}");
+  const shareUnderPrintIdx = src.indexOf('data-autos-share-under-print="1"');
+  assert.ok(printIdx > -1 && shareUnderPrintIdx > -1 && shareUnderPrintIdx > printIdx, "the new Share block must appear in source right after the Print button");
+  const block = src.slice(shareUnderPrintIdx, src.indexOf("{publicPlaybackOnly ? (", shareUnderPrintIdx));
+  assert.ok(block.includes("<LeonixShareButton"), "full-public branch must use the shared Share primitive");
+  assert.ok(block.includes("void onShare()"), "canonical-active branch must use the real onShare handler, not a no-op");
+  assert.ok(block.includes("disabled") && block.includes('aria-disabled="true"'), "unavailable branch must be a real disabled button, never bare text (that's the OLD slot above Print's job)");
+});
+check("Gate 01B: the existing Share-or-placeholder slot above Print is completely untouched by this pass", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewDealerBusinessStack.tsx");
+  assert.ok(src.includes("Guardar y compartir disponibles al publicar"), "the original disabled-state text must still exist above Print");
+});
+
+/* --- Gate 01C: bottom Share regression guard ------------------------------------------------- */
+check("Gate 01C: the bottom Share moment (AutosNegociosEndOfContentShare) is completely untouched by this pass — still rendered unconditionally from the shared hero, still has its truthful unavailable state", () => {
+  const page = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/AutosNegociosDealershipPreviewPage.tsx");
+  assert.ok(page.includes("<AutosNegociosEndOfContentShare"));
+  const share = raw("app/(site)/clasificados/autos/negocios/components/AutosNegociosEndOfContentShare.tsx");
+  assert.ok(share.includes('data-autos-end-of-content-share-unavailable="1"'));
+});
+
+/* --- Gate 02: finance teaser follows adDisplayLang ------------------------------------------- */
+check("Gate 02 root cause: monthlyEstimate is a single free-typed sentence field (a plain text input in the application form), not structured numeric fields — confirmed by its type and its only form input", () => {
+  const type = raw("app/(site)/clasificados/autos/negocios/types/autoDealerListing.ts");
+  assert.ok(type.includes("monthlyEstimate?: string | null;"), "must be a plain string field, not structured numeric fields");
+  const form = raw("app/(site)/publicar/autos/negocios/components/AutosNegociosVehicleApplicationSteps.tsx");
+  assert.ok(form.includes("onPatch({ monthlyEstimate: autosDraftTextValue(e.target.value) })"), "must be a single free-text input, confirming this is authored prose, not composed from separate numeric fields");
+});
+check("Gate 02 fix: monthlyEstimate is now a real slot in the Autos translation payload — wired through build, all 3 shared allowlists, and apply", () => {
+  const translateAd = raw("app/(site)/clasificados/autos/lib/autosTranslateAd.ts");
+  assert.ok(translateAd.includes("financeTeaser: financeTeaser || undefined,"), "must be built into the translatable content");
+  assert.ok(translateAd.includes('next = { ...next, monthlyEstimate: translated.financeTeaser.trim() };'), "translated value must be applied back onto monthlyEstimate");
+  assert.ok(raw("app/lib/translation/types.ts").includes("financeTeaser?: string;"));
+  assert.ok(raw("app/lib/translation/helpers.ts").includes('"financeTeaser",'));
+  assert.ok(raw("app/api/translate-ad/route.ts").includes('"financeTeaser",'));
+  assert.ok(raw("app/lib/translation/unknownSourcePolicy.ts").includes('"financeTeaser",'));
+});
+check("Gate 02 fix execution: buildAutosTranslatableContent/applyAutosTranslation round-trip the finance teaser exactly like every other free-text field — numbers preserved, nothing invented", () => {
+  const listing = {
+    monthlyEstimate: "Desde $689/mes a 60 meses con crédito preaprobado OEM (sujeto a aprobación). est.",
+  } as unknown as AutoDealerListing;
+  const content = buildAutosTranslatableContent(listing);
+  assert.equal(content.financeTeaser, "Desde $689/mes a 60 meses con crédito preaprobado OEM (sujeto a aprobación). est.");
+  const englishTeaser = "From $689/month for 60 months with OEM preapproved credit (subject to approval). Est.";
+  const applied = applyAutosTranslation(listing, { financeTeaser: englishTeaser });
+  assert.equal(applied.monthlyEstimate, englishTeaser, "the translated sentence must replace monthlyEstimate on the display listing");
+  assert.ok(applied.monthlyEstimate?.includes("$689"), "the dollar figure must survive verbatim");
+  assert.ok(applied.monthlyEstimate?.includes("60"), "the term (60 months) must survive verbatim");
+});
+check("Gate 02 fix execution: an empty/missing monthlyEstimate never fabricates a finance teaser", () => {
+  const listing = {} as unknown as AutoDealerListing;
+  const content = buildAutosTranslatableContent(listing);
+  assert.equal(content.financeTeaser, undefined);
+});
+check("Gate 02B: main price block and Business Hub price card both read the SAME data.monthlyEstimate — one translation fix upstream (applyAutosTranslation) covers both surfaces, they are not two competing copy systems", () => {
+  const hero = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/AutosNegociosDealershipPreviewPage.tsx");
+  assert.ok(hero.includes("monthlyEstimateLine(data.monthlyEstimate, lang)"));
+  const hub = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewDealerBusinessStack.tsx");
+  assert.ok(hub.includes("polishMonthlyEstimateDisplay(data.monthlyEstimate ?? undefined)"));
+});
+check("Gate 02C: monthlyEstimate is vehicle-owned (childSpecific), not dealer-inherited — the child's own translated finance teaser is never overwritten by the parent's", () => {
+  const inherited = raw("app/lib/clasificados/autos/autosInventoryInheritedPreview.ts");
+  const childSpecificStart = inherited.indexOf("childSpecific: [");
+  const childSpecificBlock = inherited.slice(childSpecificStart, inherited.indexOf("]", childSpecificStart));
+  assert.ok(childSpecificBlock.includes('"monthlyEstimate",'), "monthlyEstimate must be in the childSpecific list, never inherited from the parent");
 });
 
 if (failures.length) {

@@ -116,6 +116,7 @@ export function buildAutosTranslatableContent(listing: AutoDealerListing): Trans
   const title = isStructuredVehicleTitle(listing) ? undefined : listing.vehicleTitle?.trim();
   const financeTitle = listing.financeContactTitle?.trim();
   const financeNotes = listing.financeNotes?.trim();
+  const financeTeaser = listing.monthlyEstimate?.trim();
 
   return {
     title,
@@ -127,6 +128,12 @@ export function buildAutosTranslatableContent(listing: AutoDealerListing): Trans
     customServiceText: encodeCustomLinkLabels(listing.dealerCustomLinks),
     shareText: encodeSpecialHours(listing.dealerSpecialHoursRows),
     locationNote: encodeDealerAddressNote(listing.dealerAddress),
+    // Owner lock (2026-09-17, Gate 02): `monthlyEstimate` is a single free-typed sentence (see
+    // AutosNegociosVehicleApplicationSteps.tsx's plain text input) — NOT structured numeric
+    // fields — so the dealer's own authored words must go through translation like any other
+    // prose. Numbers/currency embedded in it (e.g. "$689/mes") are preserved verbatim by the
+    // provider, same as every other free-text field here.
+    financeTeaser: financeTeaser || undefined,
   };
 }
 
@@ -192,6 +199,9 @@ export function applyAutosTranslation(
   if (translated.locationNote?.trim()) {
     const nextAddress = decodeDealerAddressNote(next.dealerAddress, translated.locationNote);
     if (nextAddress) next = { ...next, dealerAddress: nextAddress };
+  }
+  if (translated.financeTeaser?.trim()) {
+    next = { ...next, monthlyEstimate: translated.financeTeaser.trim() };
   }
 
   return next;

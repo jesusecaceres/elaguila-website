@@ -296,6 +296,7 @@ export function AutosNegociosDealershipPreviewPage({
                   lang={lang}
                   alignStart
                   listingSourceId={publicPlaybackOnly ? publicAnalytics?.listingSourceId : undefined}
+                  shareListingId={publicPlaybackOnly ? publicAnalytics?.listingSourceId : (canonicalListingId?.trim() || undefined)}
                   leonixAdId={publicAnalytics?.leonixAdId}
                   listingTitle={h1}
                   listingUrl={publicUrl}
