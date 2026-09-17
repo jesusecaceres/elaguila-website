@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { requireStaffWorkspaceWriteAccess } from "@/app/admin/_lib/businessWorkspaceAccess";
+import { normalizeConciergeAction, resolveConciergeActionDestination } from "@/app/admin/_lib/conciergeIntent";
 import { isFieldDiscoveryCanvassingEnabled } from "@/app/lib/business/fieldDiscovery/featureFlag";
 import { validateCanvassIntake } from "@/app/lib/business/fieldDiscovery/logic";
 import {
@@ -123,13 +124,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Staff-Created Business Profile pipeline — the "Create Client Business Profile" quick action
-  // sends intent="business_profile" so the operator lands directly on that section instead of the
-  // plain business-page top. Every other canvass entry point omits intent, so nextRoute is
-  // byte-identical to before this change.
-  const nextRoute = body.intent === "business_profile"
-    ? `/admin/businesses/${businessId}#business-profile`
-    : `/admin/businesses/${businessId}`;
+  // Assisted Publishing — the carried Business Concierge intent (validated against the single
+  // allow-list in app/admin/_lib/conciergeIntent.ts, never trusted raw) resolves to the same
+  // destination the inventory row links use, so "create prospect" and "select existing" land in
+  // the identical place. No intent → plain business page, byte-identical to before.
+  const nextRoute = resolveConciergeActionDestination(
+    normalizeConciergeAction(typeof body.intent === "string" ? body.intent : null),
+    businessId,
+  );
 
   return NextResponse.json({
     ok: true,

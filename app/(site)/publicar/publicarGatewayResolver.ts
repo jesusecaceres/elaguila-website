@@ -12,6 +12,8 @@ import {
   type CanonicalCategoryKey,
 } from "@/app/lib/listingIdentity";
 import { replaceLangInHref, type SupportedLang } from "@/app/lib/language";
+import { LEONIX_CATEGORY_VISUALS } from "@/app/(site)/clasificados/config/categoryVisuals";
+import { getPublicCategoryCardCopy } from "@/app/lib/clasificados/publicCategoryCopyGuard";
 
 /**
  * Every category the gateway displays a card for. Deliberately excludes "cupones" — confirmed
@@ -98,4 +100,45 @@ export function resolvePublicarGatewayDestination(key: PublicarGatewayCategoryKe
   const adapter = CATEGORY_ROUTE_REGISTRY[pipeline];
   const dest = adapter.checkpointRoute ?? adapter.hubRoute ?? adapter.applicationRoute;
   return replaceLangInHref(dest, lang);
+}
+
+/**
+ * Visual token lookup — every `PUBLICAR_GATEWAY_CATEGORY_KEYS` member either has a
+ * `LEONIX_CATEGORY_VISUALS` entry already, or gets this one small additive fallback
+ * (Gate I.5.2 — Comida Local/Ofertas Locales aren't part of that shared visual registry).
+ * Lifted from PublicarGatewayClient.tsx unchanged so the staff Create-for-Client launcher and
+ * the public gateway share ONE category presentation source instead of two.
+ */
+export function publicarGatewayVisual(key: PublicarGatewayCategoryKey) {
+  if (key in LEONIX_CATEGORY_VISUALS) {
+    return LEONIX_CATEGORY_VISUALS[key as keyof typeof LEONIX_CATEGORY_VISUALS];
+  }
+  return {
+    emoji: "🏷️",
+    tint: "from-[#7A1E2C]/8 via-[#FFFDF7] to-[#FAF6EE]",
+    border: "border-[#7A1E2C]/35",
+    chipBg: "bg-[#7A1E2C]/10",
+    glow: "shadow-[0_10px_24px_-16px_rgba(122,30,44,0.25)]",
+  };
+}
+
+/** ES/EN-only card copy — no PT/TL (Gate I.5.2 launch rule). Lifted from PublicarGatewayClient.tsx unchanged. */
+export function publicarGatewayCardCopy(key: PublicarGatewayCategoryKey, lang: "es" | "en"): { label: string; description: string } {
+  if (key === "comida-local") {
+    return lang === "es"
+      ? { label: "Comida Local", description: "Publica tu negocio de comida local." }
+      : { label: "Local Food", description: "Publish your local food business." };
+  }
+  if (key === "ofertas-locales") {
+    return lang === "es"
+      ? { label: "Ofertas Locales", description: "Publica tus ofertas locales." }
+      : { label: "Local Deals", description: "Publish your local deals." };
+  }
+  if (key === "autos") {
+    return lang === "es"
+      ? { label: "Autos", description: "Concesionario o vendedor privado." }
+      : { label: "Autos", description: "Dealer or private seller." };
+  }
+  const copy = getPublicCategoryCardCopy(key, lang);
+  return { label: copy.label, description: copy.desc };
 }

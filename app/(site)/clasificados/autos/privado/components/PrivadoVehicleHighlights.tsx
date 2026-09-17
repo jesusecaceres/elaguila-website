@@ -6,9 +6,15 @@ import { TbArmchair2, TbGauge, TbLayoutGrid } from "react-icons/tb";
 import type { ReactNode } from "react";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import { useAutosPrivadoPreviewCopy } from "../lib/AutosPrivadoPreviewLocaleContext";
+import { localizeAutosDealerFeatureCatalogValue } from "@/app/clasificados/autos/negocios/lib/autosNegociosCopy";
 import { autosPreviewPremiumCardClass, autosPreviewRectEquipmentClass, autosPreviewSectionEyebrowClass, autosPreviewSectionTitleClass } from "@/app/lib/clasificados/autos/autosNegociosPremiumPreviewTokens";
 
 const CARD = `${autosPreviewPremiumCardClass} p-5 sm:p-6`;
+
+/** Avoids duplicate entries when localization collapses two catalog-equivalent variants. */
+function dedupeLabels(labels: string[]): string[] {
+  return labels.filter((label, idx, arr) => arr.findIndex((x) => x.toLowerCase() === label.toLowerCase()) === idx);
+}
 
 function iconForFeature(label: string): ReactNode {
   const t = label.toLowerCase();
@@ -35,7 +41,16 @@ function BiCheckDecor() {
 
 export function PrivadoVehicleHighlights({ data }: { data: AutoDealerListing }) {
   const { lang } = useAutosPrivadoPreviewCopy();
-  const checklist = (data.features ?? []).map((f) => f.trim()).filter(Boolean);
+  // Fixed catalog picks (`data.features`) are relocalized deterministically — bidirectional,
+  // positional lookup against the shared Autos feature taxonomy (same catalog + localizer the
+  // Dealer/Negocios highlights card uses; Privado's own publish form draws `features` from the
+  // exact same FEATURE_OPTIONS list). Seller-typed free text (`customEquipment`/legacy
+  // `otherEquipmentDetails`) is NEVER run through that lookup — it stays byte-for-byte (and is
+  // separately covered by the AI translation payload via `body`), so a seller's own words are
+  // never silently rewritten.
+  const checklist = dedupeLabels(
+    (data.features ?? []).map((f) => f.trim()).filter(Boolean).map((f) => localizeAutosDealerFeatureCatalogValue(f, lang)),
+  );
   const custom = (data.customEquipment ?? []).map((f) => f.trim()).filter(Boolean);
   
   // Also parse legacy otherEquipmentDetails string into custom equipment if customEquipment is empty

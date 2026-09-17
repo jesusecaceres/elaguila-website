@@ -102,10 +102,12 @@ export function AutosListingTranslationLayer({
         listingKey={listingKey}
         // v1 -> v2: buildAutosTranslatableContent gained serviceLabel (finance advisor title) /
         // highlights (finance notes). v2 -> v3 (2026-09-16): gained customServiceText (dealer
-        // custom-link labels) / shareText (special-hours label+note). Each bump forces a fresh
-        // request so a stale cached response can never silently present as a now-more-complete
-        // translation; does not affect any other category's cache.
-        version="autos-t6-v3"
+        // custom-link labels) / shareText (special-hours label+note). v3 -> v4 (2026-09-16):
+        // gained locationNote (the dealer address's trailing human note, e.g. "showroom con 18
+        // plazas de estacionamiento para clientes" — the address identity prefix itself is never
+        // sent). Each bump forces a fresh request so a stale cached response can never silently
+        // present as a now-more-complete translation; does not affect any other category's cache.
+        version="autos-t6-v4"
         translatableContent={translatableContent}
         onTranslated={onTranslated}
         onShowOriginal={onShowOriginal}

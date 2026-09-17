@@ -35,6 +35,7 @@ const ALLOWED_FIELD_KEYS: ReadonlySet<TranslatableAdFieldKey> = new Set([
   "highlights",
   "body",
   "shareText",
+  "locationNote",
 ]);
 
 

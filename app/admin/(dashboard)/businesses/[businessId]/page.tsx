@@ -9,6 +9,7 @@ import { ADMIN_DASHBOARD_ROUTES } from "../../../_lib/adminDashboardRoutes";
 import { ALL_SALES_NOTE_OUTCOME_LABELS, BUSINESS_SALES_STATUSES, FOLLOW_UP_STATUSES, SALES_CONTACT_METHODS, computeNextHelpfulAction, computeProfileCompleteness, deriveFollowUpDisplayStatus, type ProfileCompletenessInput } from "../../../_lib/salesWorkspaceLogic";
 import { BusinessDashboardNav } from "./BusinessDashboardNav";
 import { computeBusinessDashboardNextAction } from "./businessDashboardNextAction";
+import { ProspectJourneyStrip } from "./ProspectJourneyStrip";
 import { BROAD_BUSINESS_TYPES, BUSINESS_STAGES, CONTACT_LABELS, DIGITAL_PROFILE_PLATFORMS, OPERATING_MODELS, SALES_CHANNELS, SALES_RELATIONSHIPS } from "@/app/lib/business/constants";
 import { countryLabel } from "@/app/lib/business/countries";
 import { formatUsPhoneForDisplay } from "@/app/lib/business/phoneDisplay";
@@ -744,6 +745,41 @@ export default async function AdminBusinessDetailPage({
           {nextRightAction.whereLabel}
         </a>
       </section>
+
+      {/* Staff OS — prospect preparation journey (Research → Review → Confirm truth → Prepare for
+          client). Pure presentation over data already loaded above; every button targets an
+          existing section/route on this page. See ProspectJourneyStrip.tsx for the honesty rules. */}
+      <ProspectJourneyStrip
+        businessId={business.id}
+        research={
+          fieldDiscoveryData
+            ? {
+                available: true,
+                runCount: fieldDiscoveryData.runs.length,
+                latestRunStatus: fieldDiscoveryData.latestRun?.status ?? null,
+                latestDraftReviewStatus: fieldDiscoveryData.latestDraft?.reviewStatus ?? null,
+                sourceLinkCount: fieldDiscoveryData.sourceLinks.length,
+                sourceFileCount: fieldDiscoveryData.sourceFiles.length,
+                googlePlacesAvailable: fieldDiscoveryData.googlePlacesAvailable,
+                providerAvailable: fieldDiscoveryData.providerAvailable,
+                canRun: canRunAiResearch,
+                canReview: canReviewAiBriefing,
+              }
+            : { available: false }
+        }
+        identity={{ metCount: completeness.metCount, totalCount: completeness.totalCount, nextHelpfulActionEn: nextAction.headline.en }}
+        book={{
+          available: Boolean(canViewBook && bookData),
+          confirmedFactCount: bookData?.completeness.confirmedFactCount ?? 0,
+          openUnknownCount: bookData?.completeness.openUnknownCount ?? 0,
+          unresolvedContradictionCount: bookData?.completeness.unresolvedContradictionCount ?? 0,
+        }}
+        prepare={{
+          businessProfile: Boolean(canViewBusinessProfile && businessProfileEnabled),
+          creativeStudio: Boolean(canViewCreativeStudio && creativeStudioEnabled),
+          canCreateCreativeJob: actorHasCapability(access.actor, "create_creative_job"),
+        }}
+      />
 
       <BusinessDashboardNav tabs={dashboardTabs} />
 

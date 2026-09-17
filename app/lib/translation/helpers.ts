@@ -18,6 +18,7 @@ const TRANSLATABLE_KEYS = new Set<TranslatableAdFieldKey>([
   "highlights",
   "body",
   "shareText",
+  "locationNote",
 ]);
 
 const STORAGE_NS = "leonix:adTranslate";
