@@ -99,8 +99,12 @@ assert.ok(myListingSrc.includes("isListingLinkedToBusiness({") && myListingSrc.i
 assert.ok(myListingSrc.includes('if (!token && !isAssistedRequest) {') && myListingSrc.includes('"auth_required"'), "a request with neither a customer bearer nor a valid assisted cookie is still refused, unchanged in spirit from the original auth_required gate");
 
 // 7. No new/duplicate category form; Restaurantes untouched this round ----------------------------
+// LEONIX ASSISTED SERVICIOS NAVIGATION CLEANUP (later, explicitly-authorized, navigation-only
+// mission) legitimately touches ClasificadosServiciosApplication.tsx to add a persistent assisted
+// header + extract the existing footer's step-transition handlers into named callbacks — no new
+// field, no new persistence call, no duplicate application. See
+// verify-p0-assisted-servicios-navigation-01.ts for the dedicated proof of that boundary.
 for (const f of [
-  "app/(site)/clasificados/publicar/servicios/components/ClasificadosServiciosApplication.tsx",
   "app/api/clasificados/restaurantes/publish/route.ts",
   "app/(site)/clasificados/restaurantes/preview/RestaurantePreviewClient.tsx",
 ]) {

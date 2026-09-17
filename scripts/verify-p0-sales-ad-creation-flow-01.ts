@@ -70,10 +70,11 @@ assert.ok(!allTouched.some((f) => f.startsWith("supabase/migrations/")), "no new
 // branch — that is not a new route file, so the real invariant here ("no new API ROUTE FILE was
 // added") is checked against untrackedFiles only, not every modified file under app/api/.
 assert.ok(!untrackedFiles.some((f) => f.startsWith("app/api/") && !f.includes("application-context")), "no new API route FILE was added");
-for (const f of [
-  "app/(site)/clasificados/publicar/servicios/components/ClasificadosServiciosApplication.tsx",
-  "app/(site)/publicar/restaurantes/RestauranteApplicationClient.tsx",
-]) {
+// LEONIX ASSISTED SERVICIOS NAVIGATION CLEANUP (later, explicitly-authorized, navigation-only
+// mission) legitimately touches ClasificadosServiciosApplication.tsx for a persistent assisted
+// header + extracted step-transition callbacks — no new Save Draft button, no new persistence
+// call. See verify-p0-assisted-servicios-navigation-01.ts for the dedicated proof.
+for (const f of ["app/(site)/publicar/restaurantes/RestauranteApplicationClient.tsx"]) {
   assert.ok(!allTouched.includes(f), `${f} (a category's own form component) was not touched — no new Save Draft button was inserted into it`);
 }
 
