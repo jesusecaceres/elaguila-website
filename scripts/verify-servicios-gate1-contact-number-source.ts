@@ -1,19 +1,20 @@
 /**
- * Servicios Final Contact Truth + Email No-Mailto Closeout (2026-09-17) — Gates 1, 2, 3, 8, 13.
+ * Servicios Final Phone Destination Closeout (2026-09-17) — Gates 1, 6, 7, 8.
  *
- * Dedicated data-model-truth verifier for the ONE live surface not covered by the results-card
- * (Gate 4) or hero (Gate 7) fixture matrices: `ServiciosBusinessHubContactCard.tsx`, the "Contact &
- * Location" section of the full profile. Also proves the SMS/WhatsApp/office-call contract holds as
- * a general truth using the real `resolveServiciosProfile` pipeline, and that every contact CTA
- * label across all four live surfaces follows `displayLang`.
+ * SUPERSEDES the previous version of this file (Final Contact Truth pass), which enforced an
+ * "office phone wins, principal falls back" rule. The owner has explicitly REVERSED that: principal
+ * and office phone are DISTINCT, independently-shown destinations. This file proves the new
+ * contract across all four live contact surfaces (both result cards, hero, Business Hub contact
+ * card): principal is never suppressed by office presence, office only shows when it genuinely
+ * resolves, they dedupe ONLY on literal-same-number (never merely both-are-a-phone), every label
+ * follows displayLang, and analytics events are not duplicated/reinvented.
  *
  * Run: node node_modules/tsx/dist/cli.mjs scripts/verify-servicios-gate1-contact-number-source.ts
  */
 import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
 import { resolveServiciosProfile } from "../app/(site)/servicios/lib/resolveServiciosProfile";
-import { resolveServiciosProfileDirectWhatsAppHref } from "../app/(site)/servicios/lib/serviciosWhatsAppHref";
-import { buildQuoteSmsHref } from "../app/(site)/servicios/lib/serviciosContactActions";
+import { normalizeServiciosPhoneForCompare } from "../app/(site)/servicios/lib/serviciosContactActions";
 import type { ServiciosBusinessProfile } from "../app/(site)/servicios/types/serviciosBusinessProfile";
 
 const failures: string[] = [];
@@ -33,34 +34,45 @@ const TRADE_CARD = "app/(site)/clasificados/servicios/components/ServiciosHorizo
 const PRO_CARD = "app/(site)/clasificados/servicios/ServiciosProfessionalResultCard.tsx";
 const HERO = "app/(site)/servicios/components/ServiciosProfessionalHero.tsx";
 
-/* ── GATE 1/8: Hub card — one Call button, office-first, never two. ── */
-check("Hub card SOURCE BINDING: office-first Call dedup, single push, no duplicate callOffice entry", () => {
-  const src = raw(HUB_CARD);
-  assert.ok(src.includes("const useOfficeCall = Boolean(officeCallTel && officeCallDisplay);"));
-  assert.ok(src.includes("const callTel = useOfficeCall ? officeCallTel : profile.contact.phoneTelHref?.trim();"));
-  assert.ok(src.includes("label: useOfficeCall ? L.callOffice : L.call,"));
-  // Only ONE contactActions.push({ id: "call", ... }) — proves no separate callOffice push exists.
-  const callPushes = [...src.matchAll(/id:\s*"call"/g)].length;
-  assert.equal(callPushes, 1, "exactly one 'call' action id — never a separate callOffice button");
-  assert.ok(!src.includes('id: "callOffice"'), "Hub card must never push a separate callOffice action");
-});
-check("Hub card SOURCE BINDING: Message already correctly gated purely on quoteMessagePhone (no WhatsApp/office crossover)", () => {
-  const mapper = raw("app/(site)/servicios/lib/mapServiciosProfileToBusinessHubContact.ts");
-  // The smsHref computation itself (not the unrelated whatsappHref line right after it) must derive
-  // exclusively from resolveServiciosQuoteDestination (which prioritizes quoteMessagePhone) and/or
-  // c.quoteMessagePhone directly — never from WhatsApp or office-phone fields.
-  const smsBlockStart = mapper.indexOf("const smsHref =");
-  const smsBlockEnd = mapper.indexOf(";", mapper.indexOf("undefined;", smsBlockStart)) + 1;
-  const smsBlock = mapper.slice(smsBlockStart, smsBlockEnd || smsBlockStart + 250);
-  assert.ok(smsBlock.includes("c.quoteMessagePhone"), "smsHref must be derived from c.quoteMessagePhone");
-  assert.ok(!/whatsapp|phoneOffice/i.test(smsBlock), `smsHref computation must not reference WhatsApp/office fields, found: ${smsBlock}`);
-});
-check("Hub card SOURCE BINDING: WhatsApp remains optional (existing resolver, no assumption)", () => {
-  const src = raw(HUB_CARD);
-  assert.ok(src.includes("resolveServiciosProfileDirectWhatsAppHref") || raw("app/(site)/servicios/lib/mapServiciosProfileToBusinessHubContact.ts").includes("resolveServiciosProfileDirectWhatsAppHref"));
+/* ── GATE 1: the old fallback-only rule is gone everywhere. ── */
+check("no surface still contains the removed 'office wins, principal falls back' ternary pattern", () => {
+  for (const rel of [TRADE_CARD, PRO_CARD, HERO, HUB_CARD]) {
+    const src = raw(rel);
+    assert.ok(!/officeTel &&\s*(officeCallDisplay|officeDisplay)\s*\?\s*(officeTel|officeCallTel)\s*:/.test(src), `${rel}: still contains the removed office-first fallback ternary`);
+  }
 });
 
-/* ── GATE 1/2/3: fixture-level truth via the real resolver, mirroring the Hub card's own logic. ── */
+/* ── GATE 1/8: each surface computes principal and office as independent destinations, deduped only on literal-same-number. ── */
+check("SOURCE BINDING: trade card — principalCall and officeCall are independent, deduped via normalizeServiciosPhoneForCompare", () => {
+  const src = raw(TRADE_CARD);
+  assert.ok(src.includes("const principalCall = tel && phoneDisplay ? { href: tel, label: L.call, key: \"call\" } : null;"));
+  assert.ok(src.includes("const officeCall = officeTel && officeDisplay && !sameCallNumber ? { href: officeTel, label: L.callOffice, key: \"callOffice\" } : null;"));
+  assert.ok(src.includes("normalizeServiciosPhoneForCompare(tel) === normalizeServiciosPhoneForCompare(officeTel)"));
+});
+check("SOURCE BINDING: professional card — tel (principal) and showOfficeCall are independent, deduped via normalizeServiciosPhoneForCompare", () => {
+  const src = raw(PRO_CARD);
+  assert.ok(src.includes("const tel = principalTel;"));
+  assert.ok(src.includes("const showOfficeCall = Boolean(officeTel && officeDisplay && !sameCallNumber);"));
+  assert.ok(src.includes("normalizeServiciosPhoneForCompare(principalTel) === normalizeServiciosPhoneForCompare(officeTel)"));
+});
+check("SOURCE BINDING: hero — tel (principal) and showOfficeCall are independent, deduped via normalizeServiciosPhoneForCompare", () => {
+  const src = raw(HERO);
+  assert.ok(src.includes("const tel = principalTel;"));
+  assert.ok(src.includes("const showOfficeCall = Boolean(officeTel && officeDisplay && !sameCallNumber);"));
+});
+check("SOURCE BINDING: Business Hub card — callTel (principal) and showOfficeCall are independent, both pushed as separate contactActions", () => {
+  const src = raw(HUB_CARD);
+  assert.ok(src.includes("const callTel = principalCallTel;"));
+  assert.ok(src.includes("const showOfficeCall = Boolean(officeCallTel && officeCallDisplay && !sameCallNumber);"));
+  assert.ok(src.includes('id: "call"'));
+  assert.ok(src.includes('id: "callOffice"'));
+  // Two independent push() calls, not one ternary choosing a single action.
+  const callPushIdx = src.indexOf('id: "call",');
+  const officePushIdx = src.indexOf('id: "callOffice",');
+  assert.ok(callPushIdx > 0 && officePushIdx > callPushIdx);
+});
+
+/* ── GATE 1/2/3/4/8: fixture-level truth via the real resolver, mirroring each surface's own logic. ── */
 type Wire = ServiciosBusinessProfile;
 function wire(overrides: Partial<Wire["contact"]>): Wire {
   return {
@@ -73,65 +85,79 @@ function wire(overrides: Partial<Wire["contact"]>): Wire {
   } as unknown as Wire;
 }
 
-function predictHubCall(w: Wire): { useOffice: boolean; callTel: string | undefined } {
+function resolveCallState(w: Wire): { principal: boolean; office: boolean; sameCallNumber: boolean } {
   const profile = resolveServiciosProfile(w, "es");
-  const officeCallTel = profile.contact.phoneOfficeTelHref?.trim();
-  const officeCallDisplay = profile.contact.phoneOfficeDisplay?.trim();
-  const useOffice = Boolean(officeCallTel && officeCallDisplay);
-  return { useOffice, callTel: useOffice ? officeCallTel : profile.contact.phoneTelHref?.trim() };
+  const principalTel = profile.contact.phoneTelHref?.trim();
+  const officeTel = profile.contact.phoneOfficeTelHref?.trim();
+  const officeDisplay = profile.contact.phoneOfficeDisplay?.trim();
+  const sameCallNumber = Boolean(
+    principalTel && officeTel && normalizeServiciosPhoneForCompare(principalTel) === normalizeServiciosPhoneForCompare(officeTel),
+  );
+  return {
+    principal: Boolean(principalTel),
+    office: Boolean(officeTel && officeDisplay && !sameCallNumber),
+    sameCallNumber,
+  };
 }
 
-const REAL_PHONE = "5551234567";
-const REAL_OFFICE_PHONE = "5559876543";
-const REAL_WHATSAPP = "5551234567";
-const REAL_MESSAGE_NUMBER = "5551119999";
+const PRINCIPAL = "5551234567";
+const OFFICE = "5559876543";
 
-check("Gate 1: office phone wins when both office and principal exist", () => {
-  const r = predictHubCall(wire({ phone: REAL_PHONE, phoneOffice: REAL_OFFICE_PHONE }));
-  assert.equal(r.useOffice, true);
+check("Gate 1: principal phone is NEVER suppressed merely because office phone exists", () => {
+  const r = resolveCallState(wire({ phone: PRINCIPAL, phoneOffice: OFFICE }));
+  assert.equal(r.principal, true, "principal must still show when office also exists");
+  assert.equal(r.office, true, "office must also show — both are valid destinations");
 });
-check("Gate 1: principal phone is the fallback when no office phone exists", () => {
-  const r = predictHubCall(wire({ phone: REAL_PHONE }));
-  assert.equal(r.useOffice, false);
-  assert.ok(r.callTel);
+check("Gate 1: office only shows when a genuine office phone resolves", () => {
+  assert.equal(resolveCallState(wire({ phone: PRINCIPAL })).office, false);
+  assert.equal(resolveCallState(wire({ phone: PRINCIPAL, phoneOffice: OFFICE })).office, true);
 });
-check("Gate 2: SMS destination is purely the message/quote number — never derived from office or WhatsApp", () => {
-  const withOfficeAndWa = resolveServiciosProfile(wire({ phoneOffice: REAL_OFFICE_PHONE, socialLinks: { whatsappUrl: REAL_WHATSAPP } }), "es");
-  assert.equal(buildQuoteSmsHref(withOfficeAndWa.contact.quoteMessagePhone, "es"), null, "no quoteMessagePhone set — SMS must not resolve from office/WhatsApp presence");
-  const withMessage = resolveServiciosProfile(wire({ quoteMessagePhone: REAL_MESSAGE_NUMBER }), "es");
-  const href = buildQuoteSmsHref(withMessage.contact.quoteMessagePhone, "es");
-  assert.ok(href?.startsWith(`sms:${REAL_MESSAGE_NUMBER}?body=`));
-});
-check("Gate 3: WhatsApp resolves only from a real configured WhatsApp destination, never assumed present", () => {
-  const withNothing = resolveServiciosProfile(wire({ phone: REAL_PHONE, phoneOffice: REAL_OFFICE_PHONE, quoteMessagePhone: REAL_MESSAGE_NUMBER }), "es");
-  assert.equal(resolveServiciosProfileDirectWhatsAppHref(withNothing.contact), null);
-  const withWa = resolveServiciosProfile(wire({ socialLinks: { whatsappUrl: REAL_WHATSAPP } }), "es");
-  assert.ok(resolveServiciosProfileDirectWhatsAppHref(withWa.contact));
-});
-
-/* ── GATE 13: every contact CTA label across all four live surfaces follows displayLang, never a static site lang. ── */
-check("Gate 13: no contact CTA surface keys its labels off a static `lang` variable named apart from displayLang", () => {
-  // Trade/pro cards and hero already use `displayLang` throughout (re-confirmed here); the Hub card
-  // receives its own `lang` prop, but BOTH real call sites pass it the resolved displayLang (proven
-  // in the Gate 7/8 hero verifier) — so `lang` inside this file IS effectively displayLang.
-  for (const [rel, marker] of [
-    [TRADE_CARD, "displayLang"],
-    [PRO_CARD, "displayLang"],
-    [HERO, "lang"],
-  ] as const) {
-    const src = raw(rel);
-    assert.ok(src.includes(marker), `${rel}: expected the ${marker} identifier to be present and driving chrome copy`);
+check("Gate 8: literal-same-number (regardless of punctuation) dedupes to ONE call action", () => {
+  const variants = ["(408) 555-0114", "4085550114", "+1 408 555 0114"];
+  for (const officeVariant of variants) {
+    const r = resolveCallState(wire({ phone: "4085550114", phoneOffice: officeVariant }));
+    assert.equal(r.sameCallNumber, true, `variant "${officeVariant}" must normalize equal to the principal`);
+    assert.equal(r.office, false, `variant "${officeVariant}": office CTA must be suppressed when identical to principal`);
+    assert.equal(r.principal, true, `variant "${officeVariant}": principal CTA must still render`);
   }
-  const hub = raw(HUB_CARD);
-  assert.ok(hub.includes('label: useOfficeCall ? L.callOffice : L.call,'), "Hub card Call label uses the shared L dictionary keyed by its (displayLang-fed) lang prop");
 });
-check("Gate 13: Message label copy matches the shared bilingual dictionary text exactly (\"Message\"/\"Mensaje\")", () => {
-  const copy = raw("app/(site)/servicios/copy/serviciosProfileCopy.ts");
-  assert.ok(copy.includes('message: "Message"'));
-  assert.ok(copy.includes('message: "Mensaje"'));
-  for (const rel of [TRADE_CARD, PRO_CARD, HERO]) {
+check("Gate 8: genuinely different numbers are NOT deduped", () => {
+  const r = resolveCallState(wire({ phone: PRINCIPAL, phoneOffice: OFFICE }));
+  assert.equal(r.sameCallNumber, false);
+  assert.equal(r.principal, true);
+  assert.equal(r.office, true);
+});
+check("normalizeServiciosPhoneForCompare produces the same key for all three owner-specified formats", () => {
+  const a = normalizeServiciosPhoneForCompare("(408) 555-0114");
+  const b = normalizeServiciosPhoneForCompare("4085550114");
+  const c = normalizeServiciosPhoneForCompare("+1 408 555 0114");
+  assert.equal(a, "4085550114");
+  assert.equal(b, "4085550114");
+  assert.equal(c, "4085550114");
+  assert.equal(a, b);
+  assert.equal(b, c);
+});
+
+/* ── GATE 6: every contact CTA label follows displayLang across all four live surfaces. ── */
+check("Gate 6: every surface computes bilingual Call office / Message labels from the display-language parameter, never a hardcoded single language", () => {
+  const hub = raw(HUB_CARD);
+  assert.ok(hub.includes("label: L.call,") && hub.includes("label: L.callOffice,"), "Hub card call labels use the shared L dictionary");
+  for (const rel of [TRADE_CARD, PRO_CARD]) {
     const src = raw(rel);
-    assert.ok(src.includes('"Message" : "Mensaje"') || src.includes("L.message"), `${rel}: Message CTA must use the exact "Message"/"Mensaje" bilingual copy`);
+    assert.ok(src.includes("L.call") || src.includes("displayLang"), `${rel}: call labels must be display-language aware`);
+  }
+  const hero = raw(HERO);
+  assert.ok(hero.includes('const officeCallLabel = lang === "en" ? "Call office" : "Llamar oficina";'));
+});
+
+/* ── GATE 7: analytics events preserved, not duplicated/reinvented — same cta_call_click for both destinations. ── */
+check("Gate 7: principal AND office call both fire the SAME existing cta_call_click event type (no new event taxonomy)", () => {
+  for (const rel of [TRADE_CARD, PRO_CARD, HERO, HUB_CARD]) {
+    const src = raw(rel);
+    const hits = [...src.matchAll(/"cta_call_click"/g)].length;
+    assert.ok(hits >= 1, `${rel}: cta_call_click must still be used for call tracking`);
+    // No invented alternative event name for office calls.
+    assert.ok(!/"cta_office_call_click"|"cta_call_office_click"/.test(src), `${rel}: must not invent a separate office-call event type`);
   }
 });
 
@@ -139,4 +165,4 @@ if (failures.length) {
   console.error(`\nverify-servicios-gate1-contact-number-source: ${failures.length} failure(s):\n- ${failures.join("\n- ")}`);
   process.exit(1);
 }
-console.log("\nverify-servicios-gate1-contact-number-source: PASS (Gates 1, 2, 3, 8, 13)");
+console.log("\nverify-servicios-gate1-contact-number-source: PASS (Gates 1, 6, 7, 8)");

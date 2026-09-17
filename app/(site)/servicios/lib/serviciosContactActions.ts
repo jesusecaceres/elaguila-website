@@ -1,8 +1,22 @@
 import type { ServiciosLang, ServiciosProfileResolved } from "../types/serviciosBusinessProfile";
 import { trimText } from "./serviciosProfileSanitize";
 import { resolveServiciosProfileDirectWhatsAppHref } from "./serviciosWhatsAppHref";
+import { getCleanPhone } from "@/app/components/cta/ctaDataHelpers";
 
 export type ServiciosQuoteDestinationKind = "sms" | "whatsapp" | "tel" | "mailto" | "website";
+
+/**
+ * Servicios Final Phone Destination Closeout (2026-09-17, Gate 8) — normalizes a phone string to a
+ * comparable digit key so genuinely identical destinations (regardless of punctuation) never render
+ * as two visually distinct CTAs to the exact same number. "(408) 555-0114", "4085550114", and
+ * "+1 408 555 0114" all normalize to "4085550114". Used ONLY for this duplicate-detection comparison
+ * — never for building a tel:/sms:/wa.me destination href, which keep their own existing logic.
+ */
+export function normalizeServiciosPhoneForCompare(raw: string | null | undefined): string {
+  const digits = getCleanPhone(raw);
+  if (digits.length === 11 && digits.startsWith("1")) return digits.slice(1);
+  return digits;
+}
 
 /** Universal quote / inquiry copy for Servicios (clasificados). */
 export const SERVICIOS_UNIVERSAL_QUOTE_MESSAGE_ES =
