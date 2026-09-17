@@ -403,33 +403,49 @@ export function PreviewDealerBusinessStack({
                 </AutosDirectContactLink>
               ) : null}
 
-              <div
-                className={`grid gap-3 ${
-                  [showCall && c.callTelHref, showWhatsapp && c.whatsappHref, showSms && c.smsHref].filter(Boolean)
-                    .length >= 2
-                    ? "grid-cols-2"
-                    : "grid-cols-1"
-                }`}
-              >
-                {showCall && c.callTelHref ? (
-                  <AutosDirectContactLink href={c.callTelHref} className={BTN_SECONDARY} {...sheetProps}>
-                    <FiPhone className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
-                    {sb.call}
-                  </AutosDirectContactLink>
-                ) : null}
-                {showWhatsapp && c.whatsappHref ? (
-                  <AutosDirectContactLink href={c.whatsappHref} className={BTN_SECONDARY} {...sheetProps}>
-                    <SiWhatsapp className="h-5 w-5 shrink-0 text-[#128C7E]" aria-hidden />
-                    {sb.whatsappCta}
-                  </AutosDirectContactLink>
-                ) : null}
-                {showSms && c.smsHref ? (
-                  <AutosDirectContactLink href={c.smsHref} className={BTN_SECONDARY} {...sheetProps}>
-                    <FiMessageSquare className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
-                    {sb.textMessageCta}
-                  </AutosDirectContactLink>
-                ) : null}
-              </div>
+              {(() => {
+                // Gate 08: a 2-column grid with exactly 3 real channels leaves the 3rd stranded
+                // alone in the left column with an empty gap beside it. Give that odd-one-out an
+                // intentional full-width row instead of accidental whitespace.
+                const channels = (
+                  [
+                    showCall && c.callTelHref
+                      ? { key: "call", node: (
+                          <AutosDirectContactLink href={c.callTelHref} className={BTN_SECONDARY} {...sheetProps}>
+                            <FiPhone className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
+                            {sb.call}
+                          </AutosDirectContactLink>
+                        ) }
+                      : null,
+                    showWhatsapp && c.whatsappHref
+                      ? { key: "whatsapp", node: (
+                          <AutosDirectContactLink href={c.whatsappHref} className={BTN_SECONDARY} {...sheetProps}>
+                            <SiWhatsapp className="h-5 w-5 shrink-0 text-[#128C7E]" aria-hidden />
+                            {sb.whatsappCta}
+                          </AutosDirectContactLink>
+                        ) }
+                      : null,
+                    showSms && c.smsHref
+                      ? { key: "sms", node: (
+                          <AutosDirectContactLink href={c.smsHref} className={BTN_SECONDARY} {...sheetProps}>
+                            <FiMessageSquare className="h-5 w-5 shrink-0 text-[#C9A84A]" aria-hidden />
+                            {sb.textMessageCta}
+                          </AutosDirectContactLink>
+                        ) }
+                      : null,
+                  ] as Array<{ key: string; node: ReactNode } | null>
+                ).filter((item): item is { key: string; node: ReactNode } => item != null);
+                if (channels.length === 0) return null;
+                return (
+                  <div className={`grid gap-3 ${channels.length >= 2 ? "grid-cols-2" : "grid-cols-1"}`}>
+                    {channels.map((item, idx) => (
+                      <div key={item.key} className={channels.length === 3 && idx === 2 ? "col-span-2" : ""}>
+                        {item.node}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
 
               {(addressDisplay || phoneDisplay) && (
                 <div className="space-y-1.5 text-sm text-[#5C5346]">

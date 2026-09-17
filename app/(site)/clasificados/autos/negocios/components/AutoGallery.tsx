@@ -1,6 +1,6 @@
 "use client";
 
-import { FiPlay, FiX } from "react-icons/fi";
+import { FiPlay } from "react-icons/fi";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import type { AutoDealerListing } from "../types/autoDealerListing";
 import type { AutosNegociosCopy } from "../lib/autosNegociosCopy";
@@ -11,6 +11,7 @@ import {
   type AutosGalleryLightboxItem,
 } from "@/app/lib/clasificados/autos/autosGalleryLightbox";
 import { MediaImage } from "./MediaImage";
+import { BusinessGalleryLightbox, type BusinessGallerySlide } from "@/app/components/media/BusinessGalleryModal";
 import {
   AUTOS_PREVIEW_SECTION_IDS,
   autosPreviewMediaTabClass,
@@ -64,63 +65,9 @@ export function AutoGallery({
     return photoItems;
   }, [activeTab, photoItems, videoItems, allItems]);
 
-  // Use refs to avoid stale closure issues and ensure stable handler
-  const lightboxIndexRef = useRef<number | null>(null);
-  const activeItemsLengthRef = useRef(0);
-
-  // Keep refs in sync with state
-  useEffect(() => {
-    lightboxIndexRef.current = lightboxIndex;
-  }, [lightboxIndex]);
-
-  useEffect(() => {
-    activeItemsLengthRef.current = activeItems.length;
-  }, [activeItems.length]);
-
-  // Stable keyboard handler that checks refs and filters targets
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    // Ignore if lightbox is not open
-    if (lightboxIndexRef.current == null) return;
-
-    // Ignore keyboard events from interactive elements
-    const target = e.target as HTMLElement;
-    const tagName = target.tagName.toLowerCase();
-    const isInteractive = 
-      tagName === "input" ||
-      tagName === "textarea" ||
-      tagName === "select" ||
-      tagName === "button" ||
-      target.isContentEditable;
-    
-    if (isInteractive) return;
-
-    if (e.key === "Escape") {
-      setLightboxIndex(null);
-      return;
-    }
-
-    if (e.key === "ArrowRight") {
-      setLightboxIndex((i) => {
-        if (i == null) return i;
-        return Math.min(activeItemsLengthRef.current - 1, i + 1);
-      });
-      return;
-    }
-
-    if (e.key === "ArrowLeft") {
-      setLightboxIndex((i) => {
-        if (i == null) return i;
-        return Math.max(0, i - 1);
-      });
-      return;
-    }
-  }, []); // No dependencies - uses refs instead
-
-  // Register single listener that stays stable
-  useEffect(() => {
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleKeyDown]);
+  // Escape/ArrowLeft/ArrowRight are now handled by BusinessGalleryLightbox's own internal
+  // keydown listener (registered only while `open`) — a second window-level handler here would
+  // double-fire and skip every arrow-key press by 2 items.
 
   const selectTab = useCallback((tab: AutosGalleryTab) => {
     setActiveTab(tab);
@@ -135,6 +82,21 @@ export function AutoGallery({
     [activeItems],
   );
 
+  /** Owner-locked Gate 11/12: switching Todo/Fotos/Videos WHILE the lightbox is open must never
+   * reset to item 0 or close the viewer — it preserves the same media item when it still belongs
+   * to the chosen filter (photoItems/videoItems/allItems all share the same object references, so
+   * reference equality is a stable identity check), or lands on the first valid item otherwise. */
+  const handleLightboxFilterChange = useCallback(
+    (nextTab: AutosGalleryTab) => {
+      const currentItem = lightboxIndex != null ? activeItems[lightboxIndex] : null;
+      const nextItems = nextTab === "video" ? videoItems : nextTab === "all" ? allItems : photoItems;
+      const preservedIndex = currentItem ? nextItems.indexOf(currentItem) : -1;
+      setActiveTab(nextTab);
+      setLightboxIndex(nextItems.length === 0 ? null : preservedIndex >= 0 ? preservedIndex : 0);
+    },
+    [lightboxIndex, activeItems, videoItems, allItems, photoItems],
+  );
+
   const primaryImageUrl = data.mediaImages?.find((m) => m.isPrimary)?.url?.trim();
   const main = (primaryImageUrl && images.includes(primaryImageUrl) ? primaryImageUrl : images[0]);
   const extra = Math.max(0, images.length - 1);
@@ -142,10 +104,19 @@ export function AutoGallery({
   const hasPhotos = photoItems.length > 0;
   const hasVideos = videoItems.length > 0;
 
+  const lightboxSlides: BusinessGallerySlide[] = useMemo(
+    () =>
+      activeItems.map((item): BusinessGallerySlide =>
+        item.kind === "photo"
+          ? { kind: "image", url: item.src, alt: altBase }
+          : { kind: "video", renderVideo: () => <GalleryVideoContent item={item} lang={lang} g={g} /> },
+      ),
+    [activeItems, altBase, g, lang],
+  );
+
   if (!hasPhotos && !hasVideos) return null;
 
   const moreLabel = extra > 0 ? g.morePhotos(extra) : "";
-  const activeItem = lightboxIndex != null ? activeItems[lightboxIndex] : null;
 
   const photoRailImages = images.slice(1, 4);
 
@@ -264,117 +235,73 @@ export function AutoGallery({
         </div>
       )}
 
-      {lightboxIndex != null && activeItem ? (
-        <div
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-label={lang === "es" ? "Galería de medios" : "Media gallery"}
-        >
-          <button
-            type="button"
-            className="absolute inset-0 cursor-default"
-            aria-label={lang === "es" ? "Cerrar galería" : "Close gallery"}
-            onClick={() => setLightboxIndex(null)}
-          />
-          <div className="relative z-10 flex w-full max-w-5xl flex-col items-stretch gap-3">
-            <div className="flex justify-end">
-              <button
-                type="button"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#FFFCF7]/95 text-[color:var(--lx-text)] shadow-lg"
-                onClick={() => setLightboxIndex(null)}
-                aria-label={lang === "es" ? "Cerrar" : "Close"}
-              >
-                <FiX className="h-6 w-6" aria-hidden />
-              </button>
-            </div>
-            <GalleryLightboxSlide item={activeItem} altBase={altBase} lang={lang} g={g} />
-            {activeItems.length > 1 ? (
-              <p className="text-center text-xs font-semibold text-[#FFFCF7]/90">
-                <GalleryLightboxCounter
-                  item={activeItem}
-                  index={lightboxIndex}
-                  total={activeItems.length}
-                  lang={lang}
-                  g={g}
-                />
-              </p>
-            ) : null}
-            {activeItems.length > 1 ? (
-              <div className="flex justify-center gap-3">
-                <button
-                  type="button"
-                  className="rounded-full border border-white/30 bg-[#FFFCF7]/15 px-4 py-2 text-sm font-bold text-[#FFFCF7] disabled:opacity-40"
-                  disabled={lightboxIndex <= 0}
-                  onClick={() => setLightboxIndex((i) => (i == null ? i : Math.max(0, i - 1)))}
-                >
-                  {lang === "es" ? "Anterior" : "Previous"}
-                </button>
-                <button
-                  type="button"
-                  className="rounded-full border border-white/30 bg-[#FFFCF7]/15 px-4 py-2 text-sm font-bold text-[#FFFCF7] disabled:opacity-40"
-                  disabled={lightboxIndex >= activeItems.length - 1}
-                  onClick={() =>
-                    setLightboxIndex((i) => (i == null ? i : Math.min(activeItems.length - 1, i + 1)))
-                  }
-                >
-                  {lang === "es" ? "Siguiente" : "Next"}
-                </button>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+      <BusinessGalleryLightbox
+        open={lightboxIndex != null}
+        onClose={() => setLightboxIndex(null)}
+        slides={lightboxSlides}
+        activeIndex={lightboxIndex ?? 0}
+        onActiveIndexChange={setLightboxIndex}
+        ariaLabel={lang === "es" ? "Galería del vehículo" : "Vehicle gallery"}
+        copy={{
+          close: lang === "es" ? "Cerrar" : "Close",
+          prev: lang === "es" ? "Anterior" : "Previous",
+          next: lang === "es" ? "Siguiente" : "Next",
+          counterLabel: lang === "es" ? "Galería del vehículo" : "Vehicle gallery",
+        }}
+        headerSlot={
+          hasPhotos && hasVideos ? (
+            <AutosLightboxFilterSwitch lang={lang} activeTab={activeTab} onChange={handleLightboxFilterChange} photoCount={photoItems.length} videoCount={videoItems.length} />
+          ) : undefined
+        }
+      />
     </div>
   );
 }
 
-function GalleryLightboxCounter({
-  item,
-  index,
-  total,
+/** Owner-locked Gate 11: Todo/Fotos/Videos switch rendered inside the shared lightbox's own
+ * header (via `headerSlot`) — only offered when the ad genuinely has both photos and videos. */
+function AutosLightboxFilterSwitch({
   lang,
-  g,
+  activeTab,
+  onChange,
+  photoCount,
+  videoCount,
 }: {
-  item: AutosGalleryLightboxItem;
-  index: number;
-  total: number;
   lang: "es" | "en";
-  g: AutosNegociosCopy["preview"]["gallery"];
+  activeTab: AutosGalleryTab;
+  onChange: (tab: AutosGalleryTab) => void;
+  photoCount: number;
+  videoCount: number;
 }) {
-  if (item.kind === "photo") {
-    return (
-      <>
-        {lang === "es" ? "Foto" : "Photo"} {index + 1} / {total}
-      </>
-    );
-  }
+  const tabClass = (active: boolean) =>
+    `rounded-lg px-2.5 py-1 text-xs font-bold transition ${
+      active ? "bg-white/20 text-white" : "text-white/60 hover:text-white/85"
+    }`;
   return (
-    <>
-      {item.videoLabel ?? g.videoBadge} · {index + 1} / {total}
-    </>
+    <div className="flex items-center gap-1">
+      <button type="button" className={tabClass(activeTab === "all")} onClick={() => onChange("all")}>
+        {lang === "es" ? "Todo" : "All"} ({photoCount + videoCount})
+      </button>
+      <button type="button" className={tabClass(activeTab === "photos")} onClick={() => onChange("photos")}>
+        {lang === "es" ? "Fotos" : "Photos"} ({photoCount})
+      </button>
+      <button type="button" className={tabClass(activeTab === "video")} onClick={() => onChange("video")}>
+        {lang === "es" ? "Videos" : "Videos"} ({videoCount})
+      </button>
+    </div>
   );
 }
 
-function GalleryLightboxSlide({
+/** Video-only slide content — `BusinessGalleryLightbox` renders the `image` slide kind itself. */
+function GalleryVideoContent({
   item,
-  altBase,
   lang,
   g,
 }: {
-  item: AutosGalleryLightboxItem;
-  altBase: string;
+  item: Exclude<AutosGalleryLightboxItem, { kind: "photo" }>;
   lang: "es" | "en";
   g: AutosNegociosCopy["preview"]["gallery"];
 }) {
-  if (item.kind === "photo") {
-    return (
-      <div className="relative h-[min(70vh,640px)] w-full overflow-hidden rounded-2xl bg-black/40">
-        <MediaImage src={item.src} alt={altBase} fill className="object-contain" sizes="100vw" />
-      </div>
-    );
-  }
-
   if (item.kind === "youtube") {
     return (
       <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-black">

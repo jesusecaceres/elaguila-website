@@ -123,6 +123,7 @@ export type AutosNegociosCopy = {
       title: string;
       phone: string;
       whatsapp: string;
+      smsPhone: string;
       email: string;
       preApprovalUrl: string;
       imageUrl: string;
@@ -263,6 +264,7 @@ export type AutosNegociosCopy = {
       intro: string;
       whatsapp: string;
       call: string;
+      text: string;
       email: string;
       preApproval: string;
       notesLabel: string;
@@ -350,6 +352,7 @@ const ES: AutosNegociosCopy = {
       phoneOffice: "Teléfono de oficina",
       phoneMobile: "Teléfono personal / móvil (opcional)",
       whatsapp: "WhatsApp",
+      email: "Correo",
       website: "Sitio web",
       bookingUrl: "URL para agendar cita",
       address: "Dirección",
@@ -521,6 +524,7 @@ const ES: AutosNegociosCopy = {
       title: "Cargo / rol",
       phone: "Teléfono",
       whatsapp: "WhatsApp",
+      smsPhone: "Número para mensajes de texto",
       email: "Correo",
       preApprovalUrl: "Enlace para pre-aprobación",
       imageUrl: "Imagen o logo de financiamiento",
@@ -686,6 +690,7 @@ const ES: AutosNegociosCopy = {
       intro: "Ayuda a tus compradores a iniciar una pre-aprobación antes de visitar el dealer.",
       whatsapp: "WhatsApp financiamiento",
       call: "Llamar",
+      text: "Enviar texto",
       email: "Correo",
       preApproval: "Iniciar pre-aprobación",
       notesLabel: "Notas",
@@ -814,6 +819,7 @@ const EN: AutosNegociosCopy = {
       phoneOffice: "Office phone",
       phoneMobile: "Personal / mobile phone (optional)",
       whatsapp: "WhatsApp",
+      email: "Email",
       website: "Website",
       bookingUrl: "Booking appointment URL",
       address: "Address",
@@ -979,6 +985,7 @@ const EN: AutosNegociosCopy = {
       title: "Title / role",
       phone: "Phone",
       whatsapp: "WhatsApp",
+      smsPhone: "Text message number",
       email: "Email",
       preApprovalUrl: "Pre-approval link",
       imageUrl: "Finance image or logo",
@@ -1142,6 +1149,7 @@ const EN: AutosNegociosCopy = {
       intro: "Help buyers start pre-approval before visiting the dealership.",
       whatsapp: "Financing WhatsApp",
       call: "Call",
+      text: "Text",
       email: "Email",
       preApproval: "Start pre-approval",
       notesLabel: "Notes",

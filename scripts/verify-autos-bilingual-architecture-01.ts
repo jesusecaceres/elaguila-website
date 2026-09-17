@@ -26,6 +26,7 @@ import { localizeAutosDealerLanguageLabel } from "../app/lib/clasificados/autos/
 import { buildAutosTranslatableContent, applyAutosTranslation } from "../app/(site)/clasificados/autos/lib/autosTranslateAd";
 import { computeAutosAdDisplayLang } from "../app/(site)/clasificados/autos/vehiculo/[id]/AutosListingTranslationLayer";
 import { localizeDealerHoursDayLabel, formatDealerHoursTimeRange } from "../app/(site)/clasificados/autos/negocios/lib/dealerHoursDisplay";
+import { hasDealerFinanceContact, resolveFinanceSmsTel } from "../app/lib/clasificados/autos/autosDealerFinanceContact";
 import type { AutoDealerListing } from "../app/(site)/clasificados/autos/negocios/types/autoDealerListing";
 
 const failures: string[] = [];
@@ -801,6 +802,164 @@ check("Privado's equipment fix reuses a shared pure-function lib, never imports 
   const dealerLive = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewVehicleHighlights.tsx");
   assert.ok(!privadoLive.includes('from "../../negocios/preview') && !privadoLive.includes('from "@/app/clasificados/autos/negocios/preview'), "Privado must not import any Dealer preview/UI component");
   assert.ok(!dealerLive.includes("Privado"), "Dealer's own highlights card must remain untouched by this Privado-scoped fix");
+});
+
+/* ================================================================================================
+ * ROUND 5 (2026-09-17) — OWNER-QA MASTER CLOSEOUT: Gates 01-14 (contact/email/finance/media).
+ * Narrow, concrete proof for what this round actually changed — not a re-audit of the whole
+ * 40-gate mandate (see the accompanying report for full gate-by-gate classification).
+ * ============================================================================================ */
+
+/* --- Gate 01: Dealer-business email — reused the existing canonical field, wired the missing input --- */
+check("dealerEmail is a real input in the Negocios application, distinct from finance email, with its own 'Correo'/'Email' label", () => {
+  const app = raw("app/(site)/publicar/autos/negocios/components/AutosNegociosApplication.tsx");
+  assert.ok(app.includes("setListingPatch({ dealerEmail: autosDraftTextValue(e.target.value) })"), "must patch dealerEmail, never financeContactEmail");
+  assert.ok(app.includes("{t.app.labels.email}"), "must render the dedicated dealer email label");
+  const copy = raw("app/(site)/clasificados/autos/negocios/lib/autosNegociosCopy.ts");
+  assert.ok(/labels:\s*\{[^}]*?email: "Correo",/.test(copy.slice(0, copy.indexOf("const EN"))), "ES app.labels.email must be 'Correo'");
+  assert.ok(/labels:\s*\{[^}]*?email: "Email",/.test(copy.slice(copy.indexOf("const EN"))), "EN app.labels.email must be 'Email'");
+});
+check("dealerEmail already had real display consumers before this round (Business Hub mailto + child-inherited summary) — the gap was only the missing input, confirmed by source", () => {
+  const mapper = raw("app/(site)/clasificados/autos/negocios/lib/mapAutosDealerToBusinessHubContact.ts");
+  assert.ok(mapper.includes("data.dealerEmail?.trim()") && mapper.includes("contact.emailMailto"));
+  const childSummary = raw("app/(site)/publicar/autos/negocios/components/AutosInventoryInheritedDealerStep.tsx");
+  assert.ok(childSummary.includes("value={parentListing.dealerEmail}"), "child-inherited summary must display the parent's dealer email");
+});
+
+/* --- Gate 02/03: Dealer email CTA already used the shared CtaActionSheet, never raw mailto ---- */
+check("the Business Hub's Correo/Email button opens the shared CtaActionSheet via buildSendEmailIntent — never a raw mailto anchor, never finance email", () => {
+  const stack = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewDealerBusinessStack.tsx");
+  assert.ok(stack.includes("buildSendEmailIntent") && stack.includes("CtaActionSheet"));
+  assert.ok(stack.includes("const openEmail = () =>") && stack.includes("if (!c.emailMailto) return;"), "openEmail must read the dealer contact view-model's emailMailto (sourced from dealerEmail), not finance");
+  assert.ok(!/<a[^>]*href=\{c\.emailMailto\}/.test(stack), "must not also render a raw <a href={mailto}> anchor for the same channel");
+});
+check("the shared CtaActionSheet's send_email intent exposes the exact owner-required action set (ES + EN)", () => {
+  const sheet = raw("app/components/cta/CtaActionSheet.tsx");
+  for (const label of ["Copiar correo", "Copiar mensaje completo", "Compartir datos de contacto", "Compartir con otras apps", "Abrir app de correo"]) {
+    assert.ok(sheet.includes(label), `missing ES action label: ${label}`);
+  }
+  for (const label of ["Copy email", "Copy full message", "Open email app"]) {
+    assert.ok(sheet.includes(label), `missing EN action label: ${label}`);
+  }
+});
+
+/* --- Gate 04: Finance SMS — new dedicated field, own resolver, own input, never a phone/WhatsApp fallback --- */
+check("resolveFinanceSmsTel only reads financeContactSms — never financeContactPhone/Whatsapp as a silent fallback", () => {
+  assert.equal(resolveFinanceSmsTel({ financeContactSms: "4085550100" } as unknown as AutoDealerListing), "4085550100");
+  assert.equal(resolveFinanceSmsTel({ financeContactPhone: "4085550100" } as unknown as AutoDealerListing), undefined, "must not fall back to financeContactPhone");
+  assert.equal(resolveFinanceSmsTel({ financeContactWhatsapp: "4085550100" } as unknown as AutoDealerListing), undefined, "must not fall back to financeContactWhatsapp");
+  assert.equal(resolveFinanceSmsTel({ financeContactSms: "123" } as unknown as AutoDealerListing), undefined, "too-short digits must not resolve");
+});
+check("hasDealerFinanceContact recognizes financeContactSms alone as meaningful finance content", () => {
+  assert.equal(hasDealerFinanceContact({ financeContactSms: "4085550100" } as unknown as AutoDealerListing), true);
+  assert.equal(hasDealerFinanceContact({} as unknown as AutoDealerListing), false);
+});
+check("the finance application form has a dedicated SMS input, bound to financeContactSms, with its own label distinct from phone/WhatsApp/dealer SMS", () => {
+  const fields = raw("app/(site)/publicar/autos/shared/components/AutosDealerFinanceFields.tsx");
+  assert.ok(fields.includes("setListingPatch({ financeContactSms: v.trim() ? v : undefined })"));
+  assert.ok(fields.includes("{f.smsPhone}"));
+  const copy = raw("app/(site)/clasificados/autos/negocios/lib/autosNegociosCopy.ts");
+  assert.ok(copy.includes('smsPhone: "Número para mensajes de texto",'), "ES finance SMS label");
+  assert.ok(copy.includes('smsPhone: "Text message number",'), "EN finance SMS label");
+});
+
+/* --- Gate 05/06: Finance CTA mapping + the owner-locked 2x2 reflow (Call+Text / Email+WhatsApp) --- */
+check("DealerFinanceContact renders Call+Text as one row and Email+WhatsApp as the next, each collapsing to full-width when only one of the pair exists — no silent channel-swap fallback", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/components/DealerFinanceContact.tsx");
+  assert.ok(src.includes('href={`tel:${tel}`}') && src.includes("{f.call}"), "Call must map to financeContactPhone");
+  assert.ok(src.includes('href={`sms:${sms}`}') && src.includes("{f.text}"), "Text must map to financeContactSms, via sms: scheme");
+  assert.ok(src.includes("onClick={openFinanceEmail}") && src.includes("{f.email}"), "Email must open the action sheet, not a raw mailto");
+  assert.ok(src.includes("href={wa}") && src.includes("{f.whatsapp}"), "WhatsApp must map to financeContactWhatsapp");
+  assert.ok(/\[\s*tel\s*\?[\s\S]*?sms\s*\?[\s\S]*?\],\s*\[\s*email\s*\?[\s\S]*?wa\s*\?/.test(src), "the two locked pairs (call+text, email+whatsapp) must be declared in that order");
+  assert.ok(src.includes('present.length === 2 ? "grid grid-cols-2 gap-2" : ""'), "a pair renders as a 2-col grid only when both members are present, else a bare full-width row");
+});
+check("the pre-approval CTA remains fully independent of the 4-channel grid and still only renders when a real URL exists", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/components/DealerFinanceContact.tsx");
+  const gridEnd = src.indexOf("})}");
+  const afterGrid = src.slice(gridEnd, src.indexOf("{notes ? ("));
+  assert.ok(afterGrid.includes("appHref ? (") && afterGrid.includes("{f.preApproval}"), "pre-approval must render after the 4-channel grid, independently");
+});
+
+/* --- Gate 09-13: shared BusinessGalleryLightbox replaces the Autos floating-X custom modal ------ */
+check("both Autos gallery components (Dealer-path PreviewAutoGallery, Privado-path AutoGallery) now use the shared BusinessGalleryLightbox — no forked floating-X close button remains", () => {
+  for (const file of [
+    "app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewAutoGallery.tsx",
+    "app/(site)/clasificados/autos/negocios/components/AutoGallery.tsx",
+  ]) {
+    const src = raw(file);
+    assert.ok(src.includes('from "@/app/components/media/BusinessGalleryModal"'), `${file}: must import the shared lightbox`);
+    assert.ok(src.includes("<BusinessGalleryLightbox"), `${file}: must actually render it`);
+    assert.ok(!/inline-flex h-11 w-11 items-center justify-center rounded-full bg-\[#FFFCF7\]\/95.*shadow-lg/.test(src), `${file}: the old floating-X close button markup must be gone`);
+    assert.ok(!src.includes('z-[80]'), `${file}: the old custom fixed-inset-0 dialog (z-[80]) must be gone — BusinessGalleryLightbox owns its own z-[90] overlay`);
+  }
+});
+check("the header-visible, close-never-floats-over-media contract comes from the shared component itself (shrink-0 header row, header-level close button)", () => {
+  const shared = raw("app/components/media/BusinessGalleryModal.tsx");
+  assert.ok(shared.includes("flex shrink-0 items-center justify-between") && shared.includes("{copy.close}"), "close button must live in the shrink-0 header row, not floating over the media stage");
+});
+check("clicked media opens on its own combined index (Gate 10) — buildAutosGalleryMediaSets already provides stable photo-then-video ordering, and openAt/thumbnail onOpen wiring is unchanged by the lightbox swap", () => {
+  for (const file of [
+    "app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewAutoGallery.tsx",
+    "app/(site)/clasificados/autos/negocios/components/AutoGallery.tsx",
+  ]) {
+    const src = raw(file);
+    assert.ok(src.includes("onOpen={() => openAt(photoIdx)}") || src.includes("onOpen={() => openAt(galleryIndex)}"), `${file}: thumbnails must still open at their own real index`);
+    assert.ok(src.includes("openAt(photoItems.length + videoIdx)"), `${file}: a video thumbnail in the combined grid opens at photos.length + its own video index, never index 0`);
+  }
+});
+check("Gate 11/12: switching Todo/Fotos/Videos while the lightbox is open preserves the same media item by reference identity, or lands on the first valid item — never resets to a random index or closes the viewer", () => {
+  for (const file of [
+    "app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewAutoGallery.tsx",
+    "app/(site)/clasificados/autos/negocios/components/AutoGallery.tsx",
+  ]) {
+    const src = raw(file);
+    assert.ok(src.includes("handleLightboxFilterChange"), `${file}: must define the identity-preserving filter-change handler`);
+    assert.ok(src.includes("nextItems.indexOf(currentItem)"), `${file}: must search the target filter's array for the currently-open item by reference`);
+    assert.ok(src.includes("preservedIndex >= 0 ? preservedIndex : 0"), `${file}: must fall back to the first valid item, never an arbitrary/negative index`);
+  }
+});
+check("the redundant window-level Escape/Arrow keydown handler was removed from both gallery files — BusinessGalleryLightbox owns keyboard nav itself, so a second listener would double-fire and skip every arrow press by 2", () => {
+  for (const file of [
+    "app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewAutoGallery.tsx",
+    "app/(site)/clasificados/autos/negocios/components/AutoGallery.tsx",
+  ]) {
+    const src = raw(file);
+    assert.ok(!src.includes("lightboxIndexRef"), `${file}: the old ref-based keydown handler must be gone`);
+    assert.ok(!/window\.addEventListener\("keydown"/.test(src), `${file}: no second window-level keydown listener may remain`);
+  }
+  const shared = raw("app/components/media/BusinessGalleryModal.tsx");
+  assert.ok(shared.includes('e.key === "Escape"') && shared.includes('e.key === "ArrowLeft"') && shared.includes('e.key === "ArrowRight"'), "the shared component must be the sole owner of keyboard navigation");
+});
+check("Gate 13: the lightbox's own chrome (aria-label, close/prev/next, counter, Todo/Fotos/Videos switch) is driven by the same ad-local `lang` the rest of the gallery already uses — never an independent URL/local inference", () => {
+  for (const file of [
+    "app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewAutoGallery.tsx",
+    "app/(site)/clasificados/autos/negocios/components/AutoGallery.tsx",
+  ]) {
+    const src = raw(file);
+    assert.ok(src.includes('ariaLabel={lang === "es" ? "Galería del vehículo" : "Vehicle gallery"}'));
+    assert.ok(src.includes('close: lang === "es" ? "Cerrar" : "Close",'));
+    assert.ok(src.includes("<AutosLightboxFilterSwitch lang={lang}"), `${file}: the Todo/Fotos/Videos switch must receive the same ad-local lang, not derive its own`);
+  }
+});
+check("the Todo/Fotos/Videos lightbox switch only renders when the ad genuinely has both photos and videos — no meaningless single-kind filter option", () => {
+  for (const file of [
+    "app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewAutoGallery.tsx",
+    "app/(site)/clasificados/autos/negocios/components/AutoGallery.tsx",
+  ]) {
+    const src = raw(file);
+    assert.ok(src.includes("hasPhotos && hasVideos ? (\n            <AutosLightboxFilterSwitch"), `${file}: the switch must be gated on having both kinds`);
+  }
+});
+
+/* --- Gate 07/08: main Business Hub Call/WhatsApp/SMS row — already data-driven, now also reflows the 3-channel case cleanly --- */
+check("the main Business Hub's Call/WhatsApp/SMS row was already fully data-driven (each button conditionally rendered on its own real destination) — confirmed still true, not reintroduced as a fixed 3-slot grid", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewDealerBusinessStack.tsx");
+  assert.ok(src.includes("showCall && c.callTelHref") && src.includes("showWhatsapp && c.whatsappHref") && src.includes("showSms && c.smsHref"));
+});
+check("Gate 08: when exactly 3 of Call/WhatsApp/SMS exist, the 3rd gets an intentional full-width row instead of being stranded alone in a 2-col grid with empty whitespace beside it", () => {
+  const src = raw("app/(site)/clasificados/autos/negocios/preview/dealershipPreview/PreviewDealerBusinessStack.tsx");
+  assert.ok(src.includes("channels.length === 3 && idx === 2 ? \"col-span-2\" : \"\""), "the odd-one-out spanning rule must exist");
+  assert.ok(src.includes('channels.length >= 2 ? "grid-cols-2" : "grid-cols-1"'), "1 or 2 channels still use the original clean layout");
 });
 
 if (failures.length) {

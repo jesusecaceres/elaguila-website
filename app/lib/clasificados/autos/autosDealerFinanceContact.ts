@@ -14,6 +14,7 @@ export function hasDealerFinanceContact(data: AutoDealerListing): boolean {
     nonEmpty(data.financeContactTitle) ||
     nonEmpty(data.financeContactPhone) ||
     nonEmpty(data.financeContactWhatsapp) ||
+    nonEmpty(data.financeContactSms) ||
     nonEmpty(data.financeContactEmail) ||
     nonEmpty(data.financeApplicationUrl) ||
     nonEmpty(data.financeContactImageUrl) ||
@@ -41,6 +42,12 @@ export function resolveFinancePhoneTel(data: AutoDealerListing): string | undefi
 
 export function resolveFinanceWhatsappHref(data: AutoDealerListing): string | undefined {
   return whatsAppHrefFromDisplay(data.financeContactWhatsapp ?? undefined) ?? undefined;
+}
+
+/** Dedicated SMS/text number — only `financeContactSms` (intentional opt-in, never a phone/WhatsApp fallback). */
+export function resolveFinanceSmsTel(data: AutoDealerListing): string | undefined {
+  const digits = phoneDigitsForTel(data.financeContactSms ?? "");
+  return digits.length >= 10 ? digits : undefined;
 }
 
 export function resolveFinanceEmailHref(data: AutoDealerListing): string | undefined {
