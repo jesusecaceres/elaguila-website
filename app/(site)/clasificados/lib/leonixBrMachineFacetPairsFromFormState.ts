@@ -28,13 +28,17 @@ import {
 import {
   composeBrApproximateMapQuery,
   composeBrExactMapQuery,
-  sanitizeBrUserMapUrl,
 } from "@/app/clasificados/lib/leonixBrGate12d";
 import {
   LEONIX_DP_BATHROOMS_COUNT,
   LEONIX_DP_BEDROOMS_COUNT,
+  LEONIX_DP_BR_CUSTOM_HIGHLIGHTS,
   LEONIX_DP_BR_LISTING_STATUS,
   LEONIX_DP_BR_MAP_URL,
+  LEONIX_DP_BR_VIDEO_URL,
+  LEONIX_DP_BR_VIDEO_URL_2,
+  LEONIX_DP_BR_VIDEO_URL_3,
+  LEONIX_DP_BR_VIDEO_URL_4,
   LEONIX_DP_FURNISHED,
   LEONIX_DP_HIGHLIGHT_SLUGS,
   LEONIX_DP_PARKING_SPOTS,
@@ -44,6 +48,8 @@ import {
   LEONIX_DP_PROPERTY_SUBTYPE,
   LEONIX_DP_RESULTS_PROPERTY_KIND,
   LEONIX_DP_BR_SHOW_EXACT_ADDRESS,
+  LEONIX_DP_BR_COMERCIAL_TIPO_CODE,
+  LEONIX_DP_BR_TERRENO_TIPO_CODE,
 } from "@/app/clasificados/lib/leonixRealEstateListingContract";
 import {
   LEONIX_PROP_COUNTRY,
@@ -51,6 +57,7 @@ import {
   normalizeLeonixLbCountry,
   normalizeLeonixLbStateCode,
 } from "@/app/clasificados/shared/constants/leonixPropertyLocationContract";
+import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
 
 function push(out: Array<{ label: string; value: string }>, label: string, value: string | number | boolean | null | undefined) {
   if (value === null || value === undefined) return;
@@ -100,12 +107,25 @@ function pushHighlightSlugsForPrivado(
   out: Array<{ label: string; value: string }>,
 ) {
   const cat = state.categoriaPropiedad;
+  if (cat === "residencial") {
+    // Owner-typed "Agregar otra característica" values aren't canonical preset keys — the slug
+    // channel below strips spaces/accents/punctuation for filtering, so free text can't survive
+    // it. Split residencial highlightKeys into known presets (slugified, filterable) vs custom
+    // text (preserved verbatim in its own pair, display-only).
+    const knownKeys = new Set(BR_HIGHLIGHT_PRESET_DEFS.map((d) => d.key));
+    const known = state.residencial.highlightKeys.filter((k) => knownKeys.has(k));
+    const custom = state.residencial.highlightKeys.filter((k) => !knownKeys.has(k));
+    const slugs = known.map((k) => String(k).trim().toLowerCase().replace(/[^a-z0-9_]/g, "")).filter(Boolean);
+    const uniq = [...new Set(slugs)].sort();
+    if (uniq.length) push(out, LEONIX_DP_HIGHLIGHT_SLUGS, uniq.join(","));
+    const customText = [...new Set(custom.map((c) => c.trim()).filter(Boolean))];
+    if (customText.length) push(out, LEONIX_DP_BR_CUSTOM_HIGHLIGHTS, customText.join("|"));
+    return;
+  }
   const slugs =
-    cat === "residencial"
-      ? state.residencial.highlightKeys.map((k) => String(k).trim().toLowerCase().replace(/[^a-z0-9_]/g, "")).filter(Boolean)
-      : cat === "comercial"
-        ? state.comercial.destacadoIds.map((id) => `comercial:${String(id).trim().toLowerCase().replace(/[^a-z0-9_]/g, "")}`)
-        : state.terreno.destacadoIds.map((id) => `terreno:${String(id).trim().toLowerCase().replace(/[^a-z0-9_]/g, "")}`);
+    cat === "comercial"
+      ? state.comercial.destacadoIds.map((id) => `comercial:${String(id).trim().toLowerCase().replace(/[^a-z0-9_]/g, "")}`)
+      : state.terreno.destacadoIds.map((id) => `terreno:${String(id).trim().toLowerCase().replace(/[^a-z0-9_]/g, "")}`);
   const uniq = [...new Set(slugs.filter(Boolean))].sort();
   if (uniq.length) push(out, LEONIX_DP_HIGHLIGHT_SLUGS, uniq.join(","));
 }
@@ -194,12 +214,14 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(
     if (state.residencial.highlightKeys.includes("piscina")) push(out, LEONIX_DP_POOL, true);
   } else if (cat === "comercial") {
     push(out, LEONIX_DP_PROPERTY_SUBTYPE, state.comercial.tipoCodigo);
+    push(out, LEONIX_DP_BR_COMERCIAL_TIPO_CODE, state.comercial.tipoCodigo);
     const bathNum = parseNonNegNumber(state.comercial.banos);
     if (bathNum != null && bathNum > 0) push(out, LEONIX_DP_BATHROOMS_COUNT, bathNum);
     const park = parseNonNegNumber(state.comercial.estacionamiento);
     if (park != null) push(out, LEONIX_DP_PARKING_SPOTS, park);
   } else {
     push(out, LEONIX_DP_PROPERTY_SUBTYPE, state.terreno.tipoCodigo);
+    push(out, LEONIX_DP_BR_TERRENO_TIPO_CODE, state.terreno.tipoCodigo);
   }
 
   if (state.petsAllowed === "yes") push(out, LEONIX_DP_PETS_ALLOWED, true);
@@ -225,31 +247,34 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesPrivadoState(
   const g12 = serializeBrGate12dV1Payload(buildBrGate12dV1FromPrivadoState(state));
   if (g12) push(out, LEONIX_DP_BR_GATE12D_V1, g12);
   if (state.estadoAnuncio) push(out, LEONIX_DP_BR_LISTING_STATUS, state.estadoAnuncio);
-  const userMap = sanitizeBrUserMapUrl(state.enlaceMapa);
-  if (userMap) {
-    push(out, LEONIX_DP_BR_MAP_URL, userMap);
-  } else {
-    const zip = normalizeZipForBrowse(String(state.gate12d?.codigoPostal ?? "").trim());
-    const mapsQuery = state.mostrarDireccionExacta
-      ? composeBrExactMapQuery({
-          streetAddress: state.ubicacionLinea,
-          unit: "",
-          neighborhood: "",
-          city: state.ciudad,
-          state: "",
-          zip,
-        })
-      : composeBrApproximateMapQuery({
-          neighborhood: state.ubicacionLinea,
-          city: state.ciudad,
-          state: "",
-          zip,
-        });
-    if (mapsQuery) {
-      const href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`;
-      push(out, LEONIX_DP_BR_MAP_URL, href);
-    }
+  const zip = normalizeZipForBrowse(String(state.gate12d?.codigoPostal ?? "").trim());
+  const mapsQuery = state.mostrarDireccionExacta
+    ? composeBrExactMapQuery({
+        streetAddress: state.ubicacionLinea,
+        unit: "",
+        neighborhood: "",
+        city: state.ciudad,
+        state: "",
+        zip,
+      })
+    : composeBrApproximateMapQuery({
+        neighborhood: state.ubicacionLinea,
+        city: state.ciudad,
+        state: "",
+        zip,
+      });
+  if (mapsQuery) {
+    const href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`;
+    push(out, LEONIX_DP_BR_MAP_URL, href);
   }
+  const videoUrls = (state.media.videoUrls.length ? state.media.videoUrls : [state.media.videoUrl])
+    .map((v) => v.trim())
+    .filter(Boolean)
+    .slice(0, 4);
+  if (videoUrls[0]) push(out, LEONIX_DP_BR_VIDEO_URL, videoUrls[0]);
+  if (videoUrls[1]) push(out, LEONIX_DP_BR_VIDEO_URL_2, videoUrls[1]);
+  if (videoUrls[2]) push(out, LEONIX_DP_BR_VIDEO_URL_3, videoUrls[2]);
+  if (videoUrls[3]) push(out, LEONIX_DP_BR_VIDEO_URL_4, videoUrls[3]);
   return out;
 }
 
@@ -261,6 +286,10 @@ export function buildLeonixMachineFacetPairsFromBienesRaicesNegocioState(
   push(out, LEONIX_DP_RESULTS_PROPERTY_KIND, rk);
   const subtype = String(state.tipoPropiedad ?? "").trim().toLowerCase().replace(/\s+/g, "_").slice(0, 64);
   if (subtype) push(out, LEONIX_DP_PROPERTY_SUBTYPE, subtype);
+  const comercialTipoCode = String(state.comercialTipoCodigo ?? "").trim();
+  if (rk === "comercial" && comercialTipoCode) push(out, LEONIX_DP_BR_COMERCIAL_TIPO_CODE, comercialTipoCode);
+  const terrenoTipoCode = String(state.terrenoTipoCodigo ?? "").trim();
+  if (rk === "terreno" && terrenoTipoCode) push(out, LEONIX_DP_BR_TERRENO_TIPO_CODE, terrenoTipoCode);
 
   const beds = parseNonNegInt(state.recamaras);
   if (beds != null) push(out, LEONIX_DP_BEDROOMS_COUNT, beds);

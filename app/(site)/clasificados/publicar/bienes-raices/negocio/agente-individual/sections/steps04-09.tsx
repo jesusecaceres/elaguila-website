@@ -14,7 +14,7 @@ import {
   sanitizeBusinessExtraLinksForDraft,
   type BienesAdditionalBusinessLink,
 } from "../../application/bienesAdditionalBusinessLinks";
-import { COMERCIAL_DESTACADOS_DEFS, TERRENO_DESTACADOS_DEFS } from "../schema/agenteComercialTerrenoMeta";
+import { COMERCIAL_DESTACADOS_CHECKLIST_DEFS, TERRENO_DESTACADOS_CHECKLIST_DEFS } from "../schema/agenteComercialTerrenoMeta";
 import { AiField, aiCardClass, aiInputClass, aiSubClass, aiTextareaClass, aiTitleClass } from "../application/formPrimitives";
 import { readFileAsDataUrl } from "../application/utils/readFileAsDataUrl";
 import { digitsOnly, formatUsPhoneDisplay, onPhoneInputChange } from "../application/utils/phoneMask";
@@ -35,6 +35,20 @@ import {
   parseBrRentasLanguagesString,
   serializeBrRentasLanguagesString,
 } from "@/app/clasificados/publicar/bienes-raices/shared/brRentasLanguagesAdapter";
+import {
+  BR_RENTAS_SERVICE_AREA_KEY,
+  BR_RENTAS_SERVICE_AREA_OPTIONS,
+  parseBrRentasServiceAreaString,
+  serializeBrRentasServiceAreaString,
+} from "@/app/clasificados/publicar/bienes-raices/shared/brRentasServiceAreaAdapter";
+import {
+  BR_COMERCIAL_USO_OTHER_KEY,
+  brComercialUsoChipOptions,
+  parseBrComercialUsoString,
+  serializeBrComercialUsoString,
+} from "@/app/clasificados/publicar/bienes-raices/shared/brComercialUsoAdapter";
+import { LeonixCustomHighlightChipAdd } from "@/app/clasificados/lib/LeonixCustomHighlightChipAdd";
+import { evaluateAddCustomHighlight } from "@/app/clasificados/lib/leonixCustomHighlightChips";
 
 function BrSqftPreview({ value }: { value: string }) {
   const shown = formatSqftDisplay(value);
@@ -52,6 +66,29 @@ export function Step04DetallesEsenciales({
   const { t, lang } = useBrAgenteResidencialCopy();
   const c = t.previewFormat.condicion;
   const cat = state.categoriaPropiedad;
+
+  const [comercialUsoPending, setComercialUsoPending] = useState("");
+  const parsedComercialUso = useMemo(() => parseBrComercialUsoString(state.comercialUso), [state.comercialUso]);
+  const toggleComercialUso = (key: string) => {
+    const has = parsedComercialUso.selectedKeys.includes(key);
+    const nextKeys = has ? parsedComercialUso.selectedKeys.filter((k) => k !== key) : [...parsedComercialUso.selectedKeys, key];
+    setState((s) => ({ ...s, comercialUso: serializeBrComercialUsoString(nextKeys, parsedComercialUso.customValues, lang) }));
+  };
+  const addComercialUso = () => {
+    const trimmed = comercialUsoPending.trim();
+    if (!trimmed) return;
+    if (parsedComercialUso.customValues.some((v) => v.toLowerCase() === trimmed.toLowerCase())) {
+      setComercialUsoPending("");
+      return;
+    }
+    const nextCustom = [...parsedComercialUso.customValues, trimmed];
+    setState((s) => ({ ...s, comercialUso: serializeBrComercialUsoString(parsedComercialUso.selectedKeys, nextCustom, lang) }));
+    setComercialUsoPending("");
+  };
+  const removeComercialUsoAt = (index: number) => {
+    const nextCustom = parsedComercialUso.customValues.filter((_, i) => i !== index);
+    setState((s) => ({ ...s, comercialUso: serializeBrComercialUsoString(parsedComercialUso.selectedKeys, nextCustom, lang) }));
+  };
 
   const condicionSelect = (
     <AiField label={t.step04.condicion} hint={t.step04.condicionHint}>
@@ -180,11 +217,21 @@ export function Step04DetallesEsenciales({
           </AiField>
           <div className="sm:col-span-2">
             <AiField label={t.step04.usoComercial} hint={t.step04.usoComercialHint}>
-              <input
-                className={aiInputClass}
-                value={state.comercialUso}
-                onChange={(e) => setState((s) => ({ ...s, comercialUso: e.target.value }))}
-                autoComplete="off"
+              <LanguagesInput
+                options={brComercialUsoChipOptions(lang)}
+                selectedKeys={parsedComercialUso.selectedKeys}
+                onToggle={toggleComercialUso}
+                otherKey={BR_COMERCIAL_USO_OTHER_KEY}
+                customValues={parsedComercialUso.customValues}
+                customInputValue={comercialUsoPending}
+                onCustomInputChange={setComercialUsoPending}
+                onAddCustom={addComercialUso}
+                onRemoveCustom={removeComercialUsoAt}
+                labels={{
+                  otherPlaceholder: lang === "es" ? "Ej. Salón de belleza" : "E.g. Beauty salon",
+                  add: lang === "es" ? "Agregar" : "Add",
+                  removeAria: (value) => (lang === "es" ? `Quitar ${value}` : `Remove ${value}`),
+                }}
               />
             </AiField>
           </div>
@@ -333,6 +380,19 @@ export function Step05Caracteristicas({
   const loc = lang === "en" ? "en" : "es";
   const cat = state.categoriaPropiedad;
 
+  const [pendingResCustom, setPendingResCustom] = useState("");
+  const [pendingComCustom, setPendingComCustom] = useState("");
+  const [pendingTerCustom, setPendingTerCustom] = useState("");
+
+  const addLabel = lang === "es" ? "Añadir" : "Add";
+  const customLabel = lang === "es" ? "Agregar otra característica" : "Add another feature";
+  const customPlaceholder = lang === "es" ? "Ej. Vista al mar" : "E.g. Ocean view";
+  const capLabel =
+    lang === "es"
+      ? "Alcanzaste el máximo de características personalizadas."
+      : "You've reached the maximum custom features.";
+  const removeAria = (label: string) => (lang === "es" ? `Quitar: ${label}` : `Remove: ${label}`);
+
   return (
     <section className={aiCardClass}>
       <h2 className={aiTitleClass}>{t.step05.title}</h2>
@@ -357,7 +417,7 @@ export function Step05Caracteristicas({
             ))
           : null}
         {cat === "comercial"
-          ? COMERCIAL_DESTACADOS_DEFS.map((def) => (
+          ? COMERCIAL_DESTACADOS_CHECKLIST_DEFS.map((def) => (
               <label key={def.id} className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm">
                 <input
                   type="checkbox"
@@ -375,7 +435,7 @@ export function Step05Caracteristicas({
             ))
           : null}
         {cat === "terreno_lote"
-          ? TERRENO_DESTACADOS_DEFS.map((def) => (
+          ? TERRENO_DESTACADOS_CHECKLIST_DEFS.map((def) => (
               <label key={def.id} className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm">
                 <input
                   type="checkbox"
@@ -393,6 +453,92 @@ export function Step05Caracteristicas({
             ))
           : null}
       </div>
+
+      {cat === "residencial" ? (
+        <LeonixCustomHighlightChipAdd
+          label={customLabel}
+          placeholder={customPlaceholder}
+          addLabel={addLabel}
+          removeAriaLabel={removeAria}
+          capReachedLabel={capLabel}
+          pendingValue={pendingResCustom}
+          onPendingChange={setPendingResCustom}
+          canAdd={Boolean(pendingResCustom.trim())}
+          atCap={state.destacadosCustom.length >= 8}
+          customValues={state.destacadosCustom}
+          inputClassName={aiInputClass}
+          labelClassName="text-xs font-bold uppercase tracking-wide text-[#5C5346]/90"
+          onAdd={() => {
+            const r = evaluateAddCustomHighlight({
+              raw: pendingResCustom,
+              existingValues: state.destacadosCustom,
+              standardLabels: AGENTE_RES_DESTACADOS_DEFS.map((d) => labelDestacadoForPublishStep(d.id, loc)),
+            });
+            if (!r.ok) return;
+            setState((s) => ({ ...s, destacadosCustom: [...s.destacadosCustom, r.label] }));
+            setPendingResCustom("");
+          }}
+          onRemove={(i) => setState((s) => ({ ...s, destacadosCustom: s.destacadosCustom.filter((_, idx) => idx !== i) }))}
+        />
+      ) : null}
+      {cat === "comercial" ? (
+        <LeonixCustomHighlightChipAdd
+          label={customLabel}
+          placeholder={customPlaceholder}
+          addLabel={addLabel}
+          removeAriaLabel={removeAria}
+          capReachedLabel={capLabel}
+          pendingValue={pendingComCustom}
+          onPendingChange={setPendingComCustom}
+          canAdd={Boolean(pendingComCustom.trim())}
+          atCap={state.destacadosComercialCustom.length >= 8}
+          customValues={state.destacadosComercialCustom}
+          inputClassName={aiInputClass}
+          labelClassName="text-xs font-bold uppercase tracking-wide text-[#5C5346]/90"
+          onAdd={() => {
+            const r = evaluateAddCustomHighlight({
+              raw: pendingComCustom,
+              existingValues: state.destacadosComercialCustom,
+              standardLabels: COMERCIAL_DESTACADOS_CHECKLIST_DEFS.map((d) => labelDestacadoComercialForPublishStep(d.id, loc)),
+            });
+            if (!r.ok) return;
+            setState((s) => ({ ...s, destacadosComercialCustom: [...s.destacadosComercialCustom, r.label] }));
+            setPendingComCustom("");
+          }}
+          onRemove={(i) =>
+            setState((s) => ({ ...s, destacadosComercialCustom: s.destacadosComercialCustom.filter((_, idx) => idx !== i) }))
+          }
+        />
+      ) : null}
+      {cat === "terreno_lote" ? (
+        <LeonixCustomHighlightChipAdd
+          label={customLabel}
+          placeholder={customPlaceholder}
+          addLabel={addLabel}
+          removeAriaLabel={removeAria}
+          capReachedLabel={capLabel}
+          pendingValue={pendingTerCustom}
+          onPendingChange={setPendingTerCustom}
+          canAdd={Boolean(pendingTerCustom.trim())}
+          atCap={state.destacadosTerrenoCustom.length >= 8}
+          customValues={state.destacadosTerrenoCustom}
+          inputClassName={aiInputClass}
+          labelClassName="text-xs font-bold uppercase tracking-wide text-[#5C5346]/90"
+          onAdd={() => {
+            const r = evaluateAddCustomHighlight({
+              raw: pendingTerCustom,
+              existingValues: state.destacadosTerrenoCustom,
+              standardLabels: TERRENO_DESTACADOS_CHECKLIST_DEFS.map((d) => labelDestacadoTerrenoForPublishStep(d.id, loc)),
+            });
+            if (!r.ok) return;
+            setState((s) => ({ ...s, destacadosTerrenoCustom: [...s.destacadosTerrenoCustom, r.label] }));
+            setPendingTerCustom("");
+          }}
+          onRemove={(i) =>
+            setState((s) => ({ ...s, destacadosTerrenoCustom: s.destacadosTerrenoCustom.filter((_, idx) => idx !== i) }))
+          }
+        />
+      ) : null}
     </section>
   );
 }
@@ -694,6 +840,27 @@ export function Step07InformacionProfesional({
     setState((s) => ({ ...s, agenteIdiomas: serializeBrRentasLanguagesString(nextKeys, nextCustom, lang) }));
   };
 
+  const [areaServicioPending, setAreaServicioPending] = useState("");
+  const parsedAreaServicio = useMemo(
+    () => parseBrRentasServiceAreaString(state.agenteAreaServicio),
+    [state.agenteAreaServicio],
+  );
+  const addAreaServicio = () => {
+    const trimmed = areaServicioPending.trim();
+    if (!trimmed) return;
+    if (parsedAreaServicio.customValues.some((v) => v.toLowerCase() === trimmed.toLowerCase())) {
+      setAreaServicioPending("");
+      return;
+    }
+    const nextCustom = [...parsedAreaServicio.customValues, trimmed];
+    setState((s) => ({ ...s, agenteAreaServicio: serializeBrRentasServiceAreaString(nextCustom) }));
+    setAreaServicioPending("");
+  };
+  const removeAreaServicioAt = (index: number) => {
+    const nextCustom = parsedAreaServicio.customValues.filter((_, i) => i !== index);
+    setState((s) => ({ ...s, agenteAreaServicio: serializeBrRentasServiceAreaString(nextCustom) }));
+  };
+
   const agentePersonalDigits = digitsOnly(state.agenteTelefonoPersonal || state.telefonoPrincipal);
   const agenteOfficeDigits = digitsOnly(state.agenteTelefonoOficina);
   const showAgentePrimaryLlamadas = agentePersonalDigits.length >= 10 && agenteOfficeDigits.length >= 10;
@@ -731,23 +898,6 @@ export function Step07InformacionProfesional({
         </AiField>
       </div>
     </>
-  );
-
-  const mostrarMarcaToggle = (
-    <div className="mt-8">
-      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#E8DFD0] bg-white px-4 py-3 text-sm text-[#2C2416]">
-        <input
-          type="checkbox"
-          className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#C9B46A] text-[#B8954A]"
-          checked={state.mostrarMarcaEnTarjeta}
-          onChange={(e) => setState((s) => ({ ...s, mostrarMarcaEnTarjeta: e.target.checked }))}
-        />
-        <span>
-          <span className="font-semibold">{s7.mostrarMarca}</span>
-          <span className="mt-0.5 block text-xs text-[#5C5346]/90">{s7.mostrarMarcaHint}</span>
-        </span>
-      </label>
-    </div>
   );
 
   const agenteBlock = (
@@ -915,8 +1065,13 @@ export function Step07InformacionProfesional({
       <p className={aiSubClass}>{s7.sub}</p>
 
       {agenteBlock}
-      {mostrarMarcaToggle}
-      {state.mostrarMarcaEnTarjeta ? <div className="mt-2">{marcaBlock}</div> : null}
+      {/* Item 43: the manual "Mostrar oficina o marca en la tarjeta" toggle was removed per the
+          owner's locked decision — if the agent fills in office/brand info, it renders
+          automatically; no separate show/hide option. The publish mapper already infers
+          visibility from whether marcaNombre is filled, matching this. The fields themselves
+          stay always-editable (previously hidden behind the toggle, which also blocked agents
+          from even filling them in when the toggle was off). */}
+      <div className="mt-2">{marcaBlock}</div>
 
       {!state.mostrarSegundoAgente ? (
         <button
@@ -1002,6 +1157,20 @@ export function Step07InformacionProfesional({
                 placeholder="(555) 555-5555"
               />
             </AiField>
+            <AiField label={s7.whatsapp} hint={s7.whatsappHint}>
+              <input
+                className={aiInputClass}
+                value={formatUsPhoneDisplay(digitsOnly(state.agente2Whatsapp))}
+                onChange={(e) => {
+                  const prev = digitsOnly(state.agente2Whatsapp);
+                  const { display } = onPhoneInputChange(e.target.value, prev);
+                  setState((s) => ({ ...s, agente2Whatsapp: display }));
+                }}
+                inputMode="numeric"
+                autoComplete="tel"
+                placeholder="(555) 555-5555"
+              />
+            </AiField>
             {digitsOnly(state.agente2TelefonoPersonal || state.agente2Telefono).length >= 10 &&
             digitsOnly(state.agente2TelefonoOficina).length >= 10 ? (
               <fieldset className="sm:col-span-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-3">
@@ -1035,6 +1204,16 @@ export function Step07InformacionProfesional({
                 value={state.agente2Correo}
                 onChange={(e) => setState((s) => ({ ...s, agente2Correo: e.target.value }))}
                 autoComplete="email"
+              />
+            </AiField>
+            <AiField label={s7.sitioWebAgente} hint={s7.sitioWebAgenteHint}>
+              <input
+                className={aiInputClass}
+                type="url"
+                value={state.agente2SitioWeb}
+                onChange={(e) => setState((s) => ({ ...s, agente2SitioWeb: e.target.value }))}
+                placeholder="https://"
+                autoComplete="url"
               />
             </AiField>
             <div className="sm:col-span-2">
@@ -1217,9 +1396,26 @@ export function Step07InformacionProfesional({
             />
           </AiField>
         </div>
-        <AiField label={s7.areaServicio}>
-          <input className={aiInputClass} value={state.agenteAreaServicio} onChange={(e) => setState((s) => ({ ...s, agenteAreaServicio: e.target.value }))} autoComplete="off" />
-        </AiField>
+        <div className="sm:col-span-2">
+          <AiField label={s7.areaServicio}>
+            <LanguagesInput
+              options={BR_RENTAS_SERVICE_AREA_OPTIONS}
+              selectedKeys={parsedAreaServicio.selectedKeys}
+              onToggle={() => {}}
+              otherKey={BR_RENTAS_SERVICE_AREA_KEY}
+              customValues={parsedAreaServicio.customValues}
+              customInputValue={areaServicioPending}
+              onCustomInputChange={setAreaServicioPending}
+              onAddCustom={addAreaServicio}
+              onRemoveCustom={removeAreaServicioAt}
+              labels={{
+                otherPlaceholder: lang === "es" ? "Ej. San José, Santa Clara" : "E.g. San José, Santa Clara",
+                add: lang === "es" ? "Agregar" : "Add",
+                removeAria: (value) => (lang === "es" ? `Quitar ${value}` : `Remove ${value}`),
+              }}
+            />
+          </AiField>
+        </div>
         <div className="sm:col-span-2">
           <AiField label={s7.idiomas}>
             <LanguagesInput
@@ -1299,6 +1495,8 @@ const emptyOpenHouseSlot = (): AgenteResOpenHouseSlot => ({
   fin: "",
   diasHorariosAdicionales: "",
   notas: "",
+  soloConCita: false,
+  enlaceReservar: "",
 });
 
 export function Step09ExtrasOpcionales({
@@ -1415,6 +1613,30 @@ export function Step09ExtrasOpcionales({
                         value={slot.notas}
                         onChange={(e) => patchSlot(i, { notas: e.target.value })}
                         data-br-oh-notes={i}
+                      />
+                    </AiField>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#E8DFD0] bg-white px-3 py-2.5 text-sm">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-[#C9B46A] text-[#B8954A]"
+                        checked={Boolean(slot.soloConCita)}
+                        onChange={(e) => patchSlot(i, { soloConCita: e.target.checked })}
+                        data-br-oh-appointment-only={i}
+                      />
+                      {s9.soloConCita}
+                    </label>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <AiField label={s9.enlaceReservar}>
+                      <input
+                        type="url"
+                        className={aiInputClass}
+                        value={slot.enlaceReservar ?? ""}
+                        onChange={(e) => patchSlot(i, { enlaceReservar: e.target.value })}
+                        placeholder="https://"
+                        data-br-oh-booking-link={i}
                       />
                     </AiField>
                   </div>

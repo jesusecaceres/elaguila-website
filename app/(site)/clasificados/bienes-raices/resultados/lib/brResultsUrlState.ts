@@ -32,6 +32,10 @@ export type BrResultsParsedState = {
   secondary: string;
   /** Legacy price band (`precio`) — mapped to min/max when numeric bounds absent. */
   precio: string;
+  /** Item 150 — canonical commercial/land type-code filters (only meaningful together with
+   * propertyType=comercial/terreno). */
+  comercialTipo: string;
+  terrenoTipo: string;
   /** Deferred characteristic filters (not yet wired to filter function). */
   patio: string;
   balcony: string;
@@ -107,6 +111,8 @@ export function parseBrResultsUrl(searchParams: URLSearchParams): BrResultsParse
     primary: searchParams.get("primary") ?? "",
     secondary: searchParams.get("secondary") ?? "",
     precio: searchParams.get("precio") ?? "",
+    comercialTipo: searchParams.get("comercialTipo") ?? "",
+    terrenoTipo: searchParams.get("terrenoTipo") ?? "",
     patio: searchParams.get("patio") === "true" ? "true" : "",
     balcony: searchParams.get("balcony") === "true" ? "true" : "",
     view: searchParams.get("view") === "true" ? "true" : "",

@@ -10,8 +10,10 @@ import {
 } from "@/app/clasificados/lib/leonixGallerySlides";
 import { LeonixPreviewGalleryLightbox } from "@/app/clasificados/lib/LeonixPreviewGalleryLightbox";
 import { LeonixListingFactsGrid } from "@/app/clasificados/lib/LeonixListingFactsGrid";
+import { LeonixChipFactsCard } from "@/app/clasificados/lib/LeonixChipFactsCard";
 import { LeonixPreviewGalleryVideoTile } from "@/app/clasificados/lib/leonixPreviewGalleryVideoTile";
 import { LeonixPrivadoPreviewQuickFactsStrip } from "@/app/clasificados/lib/leonixPrivadoPreviewQuickFacts";
+import { LeonixOpenHouseSlotCards } from "@/app/clasificados/lib/LeonixOpenHouseSlotCards";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
 import { RENTAS_RESIDENCIAL_HIGHLIGHT_FORM_VISUAL } from "@/app/clasificados/rentas/shared/rentasResidencialHighlightFormVisuals";
 import { RENTAS_SERVICIOS_INCLUIDOS_DEFS } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
@@ -678,6 +680,22 @@ export function BienesRaicesPrivadoPreviewView({
               ) : null}
             </div>
             ) : null}
+            {media?.externalVideoLinks && media.externalVideoLinks.length > 0 ? (
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                {media.externalVideoLinks.map((video) => (
+                  <a
+                    key={video.href}
+                    href={video.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex min-h-[48px] items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition hover:brightness-95"
+                    style={{ borderColor: BORDER, background: CREAM_CARD, color: CHARCOAL_DEEP }}
+                  >
+                    <span className="min-w-0 flex-1 truncate">{video.label}</span>
+                  </a>
+                ))}
+              </div>
+            ) : null}
           </section>
         ) : null}
 
@@ -727,17 +745,16 @@ export function BienesRaicesPrivadoPreviewView({
               className="min-w-0 rounded-xl border p-4 shadow-[0_12px_40px_-12px_rgba(42,36,22,0.08)] sm:p-5 md:p-5"
               style={{ borderColor: BORDER, background: CREAM_CARD }}
             >
-              <h2 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
-                {vm.openHouseCard.title}
-              </h2>
-              <ul className="mt-3 space-y-2 text-sm" style={{ color: CHARCOAL }}>
-                {vm.openHouseCard.rows.map((r) => (
-                  <li key={`${r.label}-${r.value}`} className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
-                    <span className="font-semibold">{r.label}:</span>
-                    <span className="min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere]">{r.value}</span>
-                  </li>
-                ))}
-              </ul>
+              {/* Same shared structured Open House renderer BR Negocio uses — one canonical
+                  event-card module instead of a separate flat-list implementation. */}
+              <LeonixOpenHouseSlotCards
+                title={vm.openHouseCard.title}
+                slots={[vm.openHouseCard.rows]}
+                borderColor={BORDER}
+                cardBackground="rgba(255,252,247,0.65)"
+                labelColor={MUTED}
+                valueColor={CHARCOAL}
+              />
             </div>
           </section>
         ) : null}
@@ -782,31 +799,17 @@ export function BienesRaicesPrivadoPreviewView({
               </div>
             ) : null}
             {grouped.caracteristicas.length > 0 ? <FactBlock title={ui.caracteristicas} rows={grouped.caracteristicas} /> : null}
-            {grouped.servicios.length > 0 ? (
-              <div className="rounded-xl border p-3.5 sm:p-4" style={{ borderColor: BORDER, background: CREAM_CARD }}>
-                <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>{ui.serviciosIncluidos}</h3>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {grouped.servicios.map((svc) => (
-                    <span key={svc} className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: BORDER, background: "#fff", color: CHARCOAL }}>
-                      {servicioChipText(svc)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-            {vm.hasHighlights && (vm.highlightsRows?.length ?? 0) > 0 ? (
-              <div className="rounded-xl border p-3.5 sm:p-4" style={{ borderColor: BORDER, background: CREAM_CARD }}>
-                <h3 className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: MUTED }}>
-                  {String(vm.highlightsSectionTitle ?? "").trim() || ui.destacadosFallback}
-                </h3>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {(vm.highlightsRows ?? []).map((row) => (
-                    <span key={row.label} className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: BORDER, background: "#fff", color: CHARCOAL }}>
-                      {highlightChipText(row.label)}
-                    </span>
-                  ))}
-                </div>
-              </div>
+            <LeonixChipFactsCard
+              title={ui.serviciosIncluidos}
+              items={grouped.servicios.map(servicioChipText)}
+              theme={{ borderColor: BORDER, cardBackground: CREAM_CARD, titleColor: MUTED, chipBorderColor: BORDER, chipBackground: "#fff", chipTextColor: CHARCOAL }}
+            />
+            {vm.hasHighlights ? (
+              <LeonixChipFactsCard
+                title={String(vm.highlightsSectionTitle ?? "").trim() || ui.destacadosFallback}
+                items={(vm.highlightsRows ?? []).map((row) => highlightChipText(row.label))}
+                theme={{ borderColor: BORDER, cardBackground: CREAM_CARD, titleColor: MUTED, chipBorderColor: BORDER, chipBackground: "#fff", chipTextColor: CHARCOAL }}
+              />
             ) : null}
           </div>
         </section>

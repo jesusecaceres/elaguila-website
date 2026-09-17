@@ -10,6 +10,7 @@ import {
   type BrNegocioCategoriaPropiedad,
 } from "@/app/clasificados/bienes-raices/shared/brNegocioBranchParams";
 import { ClasificadosApplicationTopActions } from "@/app/clasificados/lib/publishUi/ClasificadosApplicationTopActions";
+import { LeonixVideoUrlAddRows } from "@/app/clasificados/lib/LeonixVideoUrlAddRows";
 import { gateRentasNegocioPreview } from "@/app/clasificados/lib/publish/leonixRequiredForPreviewGates";
 import {
   RENTAS_PREVIEW_NEGOCIO,
@@ -17,6 +18,8 @@ import {
   RENTAS_PUBLICAR_NEGOCIO_PUBLIC_ENTRY,
 } from "@/app/clasificados/rentas/shared/utils/rentasPublishRoutes";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
+import { LeonixCustomHighlightChipAdd } from "@/app/clasificados/lib/LeonixCustomHighlightChipAdd";
+import { evaluateAddCustomHighlight } from "@/app/clasificados/lib/leonixCustomHighlightChips";
 import { Gate12cContactChannelsFields } from "@/app/clasificados/publicar/shared/Gate12cContactChannelsFields";
 import { RENTAS_RESIDENCIAL_HIGHLIGHT_FORM_VISUAL } from "@/app/clasificados/rentas/shared/rentasResidencialHighlightFormVisuals";
 import {
@@ -55,10 +58,10 @@ import {
   rentasResidencialFormRowsMode,
 } from "@/app/clasificados/rentas/shared/rentasRentalTypeApply";
 import {
-  COMERCIAL_DESTACADOS_DEFS,
+  COMERCIAL_DESTACADOS_CHECKLIST_DEFS,
   COMERCIAL_SUBTIPO_POR_TIPO,
   COMERCIAL_TIPO_OPCIONES,
-  TERRENO_DESTACADOS_DEFS,
+  TERRENO_DESTACADOS_CHECKLIST_DEFS,
   TERRENO_SUBTIPO_POR_TIPO,
   TERRENO_TIPO_OPCIONES,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteComercialTerrenoMeta";
@@ -73,6 +76,8 @@ import {
   loadRentasNegocioDraft,
   saveRentasNegocioDraft,
 } from "./utils/rentasNegocioDraft";
+import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
+import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { formatRentasSqftPreview } from "@/app/clasificados/rentas/shared/rentasPublishFormHelpers";
 import {
   resolveClasificadosPublishLang,
@@ -99,10 +104,7 @@ function RentasSqftPreview({ value }: { value: string }) {
 }
 
 const RENTAS_NEGOCIO_PREVIEW_ACTION_LABELS = {
-  preview: "Validar y ver vista previa",
-  openPreview: "Ver vista previa (sin validar)",
-  openPreviewTitle:
-    "Abre la vista previa enseguida con el borrador guardado en esta pestaña. No exige las confirmaciones del final ni todos los campos mínimos.",
+  preview: "Vista previa",
   deleteApplication: "Eliminar borrador",
 } as const;
 
@@ -311,12 +313,23 @@ export function RentasNegocioForm() {
   // BR-INV-WAVE1-GATE3: saveRentasNegocioDraft is now async (IndexedDB offload). Returns the
   // promise so callers that navigate right after can await it.
   const flushSave = useCallback(() => {
+    markPublishFlowOpeningPreview();
     if (editContext) {
       saveRentasListingEditWorkspace({ listingId: editContext.listingId, lane: "negocio", draft: stateRef.current });
       return Promise.resolve();
     }
     return saveRentasNegocioDraft(stateRef.current);
   }, [editContext]);
+
+  // Global unsaved-exit protection for the new-draft flow. The dashboard-edit flow above already
+  // has its own dedicated beforeunload guard (tracks `dirty` against the clean edit snapshot), so
+  // this stays off in that mode to avoid a redundant/competing listener.
+  useBusinessApplicationLeaveGuard({
+    isDirty: hydrated && !editContext && state.titulo.trim().length > 0,
+    persist: () => {
+      void saveRentasNegocioDraft(stateRef.current);
+    },
+  });
 
   const previewHref = useMemo(
     () =>
@@ -464,8 +477,6 @@ export function RentasNegocioForm() {
       await flushSave();
       router.push(previewHref);
     },
-    openPreviewHref: previewHref,
-    onBeforeOpenUnvalidatedPreview: flushSave,
     disableValidatedPreview: !confirmAll || (Boolean(editContext) && hydrationStatus !== "ready"),
     validationBlockedMessage: previewGateMessage ?? (editContext && hydrationStatus !== "ready" ? (lang === "en" ? "The published listing must finish loading before preview." : "El anuncio publicado debe terminar de cargar antes de la vista previa.") : !confirmAll ? CONFIRM_PREVIEW_BLOCKED[lang] : null),
     labels: RENTAS_NEGOCIO_PREVIEW_ACTION_LABELS,
@@ -592,15 +603,9 @@ export function RentasNegocioForm() {
 
         <ClasificadosApplicationTopActions {...previewActionsProps} />
         <p className="text-xs leading-relaxed text-[#5C5346]/88">
-          {lang === "en" ? (
-            <><strong className="text-[#1E1810]">Validate and preview</strong> requires the final confirmations and minimum requirements; if they pass, opens your test listing.{" "}
-            <strong className="text-[#1E1810]">View preview (without validation)</strong> saves the draft and opens instantly (useful while you finish optional fields).</>
-          ) : (
-            <><strong className="text-[#1E1810]">Validar y ver vista previa</strong> exige las confirmaciones del final y los
-            requisitos mínimos; si pasan, abre tu anuncio de prueba.{" "}
-            <strong className="text-[#1E1810]">Ver vista previa (sin validar)</strong> guarda el borrador y abre al instante
-            (útil mientras terminas campos opcionales).</>
-          )}
+          {lang === "en"
+            ? "Preview requires the final confirmations and minimum requirements; once they pass, it opens your listing."
+            : "Vista previa exige las confirmaciones del final y los requisitos mínimos; una vez que pasan, abre tu anuncio."}
         </p>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -724,12 +729,12 @@ export function RentasNegocioForm() {
             {state.media.photoDataUrls.length > 0 ? (
               <LeonixRealEstateSortablePhotoStrip
                 urls={state.media.photoDataUrls}
-                primaryImageIndex={0}
-                onReorder={(nextUrls) => {
+                primaryImageIndex={state.media.primaryImageIndex}
+                onReorder={(nextUrls, nextPrimary) => {
                   setState((s) => {
                     const out: RentasNegocioFormState = {
                       ...s,
-                      media: { ...s.media, photoDataUrls: nextUrls, primaryImageIndex: 0 },
+                      media: { ...s.media, photoDataUrls: nextUrls, primaryImageIndex: nextPrimary },
                     };
                     queueMicrotask(() => saveRentasNegocioDraft(out));
                     return out;
@@ -738,15 +743,26 @@ export function RentasNegocioForm() {
                 onRemove={(i) =>
                   setState((s) => {
                     const urls = s.media.photoDataUrls.filter((_, j) => j !== i);
+                    let pi = s.media.primaryImageIndex;
+                    if (pi >= urls.length) pi = Math.max(0, urls.length - 1);
                     const out: RentasNegocioFormState = {
                       ...s,
-                      media: { ...s.media, photoDataUrls: urls, primaryImageIndex: 0 },
+                      media: { ...s.media, photoDataUrls: urls, primaryImageIndex: pi },
                     };
                     queueMicrotask(() => saveRentasNegocioDraft(out));
                     return out;
                   })
                 }
-                onSetPrimary={() => null}
+                onSetPrimary={(i) =>
+                  setState((s) => {
+                    const out: RentasNegocioFormState = {
+                      ...s,
+                      media: { ...s.media, primaryImageIndex: i },
+                    };
+                    queueMicrotask(() => saveRentasNegocioDraft(out));
+                    return out;
+                  })
+                }
               />
             ) : null}
           </div>
@@ -756,40 +772,21 @@ export function RentasNegocioForm() {
               Puedes agregar hasta {MAX_VIDEO_URLS} enlaces externos. Recomendado: YouTube, TikTok, Instagram, Facebook,
               Vimeo o un MP4 público. Leonix mostrará estos enlaces como tarjetas de video en el área multimedia.
             </p>
-            <div className="mt-4 grid gap-3">
-              {Array.from({ length: MAX_VIDEO_URLS }, (_, i) => {
-                const current = normalizeVideoUrls(state.media.videoUrls?.length ? state.media.videoUrls : [state.media.videoUrl]);
-                const value = current[i] ?? "";
-                const invalid = value.trim() && !/^https?:\/\//i.test(value.trim());
-                return (
-                  <AiField
-                    key={i}
-                    label={lang === "en" ? `Video ${i + 1}` : `Video ${i + 1}`}
-                    hint={i === 0 ? (lang === "en" ? "The first link is primary for preview and published output." : "El primer enlace es el principal para la vista previa y la salida publicada.") : undefined}
-                  >
-                    <input
-                      className={fieldClass}
-                      type="url"
-                      inputMode="url"
-                      autoComplete="off"
-                      placeholder="https://youtube.com/..."
-                      value={value}
-                      onChange={(e) => onVideoUrlChange(i, e.target.value)}
-                    />
-                    {invalid ? (
-                      <p className="mt-2 text-xs font-medium text-amber-800">
-                        {lang === "en" ? "Use a full URL starting with http:// or https://." : "Usa una URL completa que empiece con http:// o https://."}
-                      </p>
-                    ) : null}
-                  </AiField>
-                );
-              })}
+            <div className="mt-4">
+              <LeonixVideoUrlAddRows
+                values={normalizeVideoUrls(state.media.videoUrls?.length ? state.media.videoUrls : [state.media.videoUrl])}
+                max={MAX_VIDEO_URLS}
+                onChange={(next) => {
+                  for (let i = 0; i < next.length; i++) onVideoUrlChange(i, next[i]);
+                }}
+                fieldLabel={lang === "en" ? "Video" : "Video"}
+                urlLabel={(n) => `Video ${n}`}
+                addLabel={lang === "en" ? "+ Add video" : "+ Agregar video"}
+                removeLabel={lang === "en" ? "Remove" : "Quitar"}
+                addedLabel={lang === "en" ? "Video added" : "Video añadido"}
+                placeholder="https://youtube.com/..."
+              />
             </div>
-            {normalizeVideoUrls(state.media.videoUrls?.length ? state.media.videoUrls : [state.media.videoUrl]).length ? (
-              <p className="mt-3 text-xs font-medium text-[#2C7A4E]">
-                Enlaces listos: se guardarán en el borrador y se mostrarán como tarjetas en el área multimedia.
-              </p>
-            ) : null}
           </div>
         </section>
 
@@ -929,7 +926,6 @@ export function RentasNegocioForm() {
               <input
                 className={fieldClass}
                 inputMode="numeric"
-                placeholder="Puede ser el mismo número de teléfono o uno diferente."
                 value={formatUsPhoneDisplay(digitsOnly(state.negocioMensajesTexto))}
                 onChange={(e) => {
                   const prev = digitsOnly(state.negocioMensajesTexto);
@@ -1195,6 +1191,71 @@ export function RentasNegocioForm() {
                   </label>
                 ))}
               </div>
+              <LeonixCustomHighlightChipAdd
+                label={lang === "es" ? "Agregar otra característica" : "Add another feature"}
+                placeholder={lang === "es" ? "Ej. Piso de mármol" : "E.g. Marble flooring"}
+                addLabel={lang === "es" ? "Añadir" : "Add"}
+                removeAriaLabel={(label) => (lang === "es" ? `Quitar: ${label}` : `Remove: ${label}`)}
+                capReachedLabel={
+                  lang === "es"
+                    ? "Alcanzaste el máximo de características personalizadas."
+                    : "You've reached the maximum custom features."
+                }
+                pendingValue={state.residencial.pendingCustomHighlight}
+                onPendingChange={(next) =>
+                  setState((s) => ({ ...s, residencial: { ...s.residencial, pendingCustomHighlight: next } }))
+                }
+                canAdd={Boolean(state.residencial.pendingCustomHighlight.trim())}
+                atCap={
+                  state.residencial.highlightKeys.filter((k) => !BR_HIGHLIGHT_PRESET_DEFS.some((d) => d.key === k))
+                    .length >= 8
+                }
+                customValues={state.residencial.highlightKeys.filter(
+                  (k) => !BR_HIGHLIGHT_PRESET_DEFS.some((d) => d.key === k),
+                )}
+                onAdd={() =>
+                  setState((s) => {
+                    const custom = s.residencial.highlightKeys.filter(
+                      (k) => !BR_HIGHLIGHT_PRESET_DEFS.some((d) => d.key === k),
+                    );
+                    const r = evaluateAddCustomHighlight({
+                      raw: s.residencial.pendingCustomHighlight,
+                      existingValues: custom,
+                      standardLabels: BR_HIGHLIGHT_PRESET_DEFS.map((d) => d.label),
+                    });
+                    if (!r.ok) return s;
+                    const out = {
+                      ...s,
+                      residencial: {
+                        ...s.residencial,
+                        highlightKeys: [...s.residencial.highlightKeys, r.label],
+                        pendingCustomHighlight: "",
+                      },
+                    };
+                    queueMicrotask(() => saveRentasNegocioDraft(out));
+                    return out;
+                  })
+                }
+                onRemove={(customIndex) =>
+                  setState((s) => {
+                    const custom = s.residencial.highlightKeys.filter(
+                      (k) => !BR_HIGHLIGHT_PRESET_DEFS.some((d) => d.key === k),
+                    );
+                    const toRemove = custom[customIndex];
+                    const out = {
+                      ...s,
+                      residencial: {
+                        ...s.residencial,
+                        highlightKeys: s.residencial.highlightKeys.filter((k) => k !== toRemove),
+                      },
+                    };
+                    queueMicrotask(() => saveRentasNegocioDraft(out));
+                    return out;
+                  })
+                }
+                inputClassName={fieldClass}
+                labelClassName={aiLabelClass}
+              />
             </div>
           </section>
         ) : null}
@@ -1318,7 +1379,7 @@ export function RentasNegocioForm() {
             <div className="mt-6">
               <span className={aiLabelClass}>Destacados</span>
               <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
-                {COMERCIAL_DESTACADOS_DEFS.map((d) => (
+                {COMERCIAL_DESTACADOS_CHECKLIST_DEFS.map((d) => (
                   <label key={d.id} className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
                     <input
                       type="checkbox"
@@ -1435,7 +1496,7 @@ export function RentasNegocioForm() {
             <div className="mt-6">
               <span className={aiLabelClass}>Destacados</span>
               <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
-                {TERRENO_DESTACADOS_DEFS.map((d) => (
+                {TERRENO_DESTACADOS_CHECKLIST_DEFS.map((d) => (
                   <label key={d.id} className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
                     <input
                       type="checkbox"
@@ -1514,16 +1575,6 @@ export function RentasNegocioForm() {
                 className="inline-flex min-h-[48px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl bg-[#3B66AD] px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699] disabled:cursor-not-allowed disabled:opacity-40 sm:max-w-xs"
               >
                 {lang === "en" ? "Preview" : "Vista previa"}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  previewActionsProps.onBeforeOpenUnvalidatedPreview();
-                  router.push(previewActionsProps.openPreviewHref);
-                }}
-                className="inline-flex min-h-[48px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl border-2 border-[#3B66AD]/45 bg-white px-4 py-3 text-sm font-bold leading-tight text-[#2f5699] shadow-sm transition hover:bg-[#3B66AD]/5 sm:max-w-xs"
-              >
-                {lang === "en" ? "View preview (draft)" : "Ver vista previa (borrador)"}
               </button>
             </div>
             {previewActionsProps.validationBlockedMessage ? (
