@@ -13,6 +13,7 @@ import {
   withAuthTimeout,
 } from "@/app/lib/supabase/browser";
 import { ConciergeReturnBanner } from "@/app/components/business/ConciergeReturnBanner";
+import { AssistedPublishingUiProvider } from "@/app/components/auth/AssistedPublishingUiContext";
 
 type GateStatus = "checking" | "authed" | "redirecting";
 
@@ -89,10 +90,10 @@ export function PublishAuthGate({
     // banner itself independently self-guards via its own sessionStorage check too, so this is
     // defense in depth, not the only thing preventing it from ever showing to a customer).
     return (
-      <>
+      <AssistedPublishingUiProvider value={assisted}>
         {assisted ? <ConciergeReturnBanner /> : null}
         {children}
-      </>
+      </AssistedPublishingUiProvider>
     );
   }
 

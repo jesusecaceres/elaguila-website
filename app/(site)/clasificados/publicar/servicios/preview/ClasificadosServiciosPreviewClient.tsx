@@ -42,6 +42,8 @@ import {
   primeServiciosExistingListingId,
   primeServiciosExistingPublicSlug,
 } from "../lib/serviciosPublishClient";
+import { useAssistedPublishingUi } from "@/app/components/auth/AssistedPublishingUiContext";
+import { readConciergeReturnContext } from "@/app/lib/business/applicationContext/conciergeReturnContext";
 import { previewModeIsListingBound, resolvePreviewMode } from "@/app/lib/listingIdentity";
 import { evaluateServiciosPublishReadiness } from "../lib/serviciosPublishReadiness";
 import { evaluateServiciosPreviewReadiness } from "../lib/serviciosPreviewReadiness";
@@ -127,6 +129,12 @@ function ServiciosSellerPreviewIncomplete({
 export function ClasificadosServiciosPreviewClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  /**
+   * LEONIX P0 FINAL ASSISTED PUBLISHING BRIDGE — server-verified via PublishAuthGate/
+   * PublishAuthGateLayout (the signed assisted-publishing cookie), never trusted client-side.
+   * Declared up top so both the listing-bound hydration effect below and the CTA bar can use it.
+   */
+  const assistedUi = useAssistedPublishingUi();
   const { routeLang, copyLang: lang } = useMemo(
     () => resolveClasificadosPublishLang(searchParams?.get("lang")),
     [searchParams],
@@ -222,7 +230,10 @@ export function ClasificadosServiciosPreviewClient() {
           const sb = createSupabaseBrowserClient();
           const { data: sess } = await withAuthTimeout(sb.auth.getSession(), AUTH_CHECK_TIMEOUT_MS);
           const accessToken = sess.session?.access_token ?? null;
-          if (!accessToken) {
+          // LEONIX P0 FINAL ASSISTED PUBLISHING BRIDGE — a staff actor reopening a Leonix-prepared
+          // draft has no customer session by design; the my-listing route independently authorizes
+          // that case via the server-verified assisted-publishing cookie instead of this header.
+          if (!accessToken && !assistedUi) {
             throw new Error(
               routeLang === "en"
                 ? "Log in to preview this published listing."
@@ -234,7 +245,7 @@ export function ClasificadosServiciosPreviewClient() {
           else if (listingSlug) q.set("slug", listingSlug);
           else if (leonixAdId) q.set("leonixAdId", leonixAdId);
           const res = await fetch(`/api/clasificados/servicios/my-listing?${q.toString()}`, {
-            headers: { Authorization: `Bearer ${accessToken}` },
+            headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
             cache: "no-store",
           });
           const data = (await res.json()) as {
@@ -305,7 +316,7 @@ export function ClasificadosServiciosPreviewClient() {
     return () => {
       cancelled = true;
     };
-  }, [lang, listingBoundPreview, listingId, listingSlug, leonixAdId, routeLang]);
+  }, [lang, listingBoundPreview, listingId, listingSlug, leonixAdId, routeLang, assistedUi]);
 
   const previewReadiness = useMemo(() => {
     if (source !== "application" || !appState) return { ok: true as const, missing: [] as { id: string; label: string }[] };
@@ -443,6 +454,52 @@ export function ClasificadosServiciosPreviewClient() {
     }
   }, [appState, canPublishFromPreview, lang, router]);
 
+  /**
+   * Business name is display-only, from the same unsigned sessionStorage record
+   * ConciergeReturnBanner already reads — never used for authorization.
+   */
+  const [assistedBusinessName, setAssistedBusinessName] = useState("");
+  useEffect(() => {
+    if (!assistedUi) return;
+    setAssistedBusinessName(readConciergeReturnContext()?.businessName ?? "");
+  }, [assistedUi]);
+
+  const [assistedBusy, setAssistedBusy] = useState<"save_for_client" | "publish_for_client" | null>(null);
+  const [assistedErr, setAssistedErr] = useState<string | null>(null);
+  const [assistedResult, setAssistedResult] = useState<{ listingId: string; status: string } | null>(null);
+
+  const handleAssistedAction = useCallback(
+    async (action: "save_for_client" | "publish_for_client") => {
+      if (!appState || !canPublishFromPreview) return;
+      setAssistedBusy(action);
+      setAssistedErr(null);
+      try {
+        await saveClasificadosServiciosApplicationResolved(appState);
+        const { data } = await postServiciosPublishApi({ state: appState, lang, accessToken: null, assistedAction: action });
+        if (!data.ok || !data.listingId) {
+          const message =
+            (data.message as string | undefined)?.trim() ||
+            (data.error === "manual_payment_not_cleared"
+              ? lang === "en"
+                ? "No cleared manual payment found for this listing yet. Record and clear it in the Payment Tracker first."
+                : "Aún no hay un pago manual verificado para este anuncio. Regístralo y acláralo en el Rastreador de Pagos primero."
+              : lang === "en"
+                ? "Could not save for the client. Try again."
+                : "No se pudo guardar para el cliente. Intenta de nuevo.");
+          setAssistedErr(message);
+          setAssistedBusy(null);
+          return;
+        }
+        setAssistedResult({ listingId: data.listingId, status: data.listingStatus ?? "draft" });
+        setAssistedBusy(null);
+      } catch {
+        setAssistedErr(lang === "en" ? "Network error." : "Error de red.");
+        setAssistedBusy(null);
+      }
+    },
+    [appState, canPublishFromPreview, lang],
+  );
+
   const profile = useMemo(() => {
     if (source !== "application" || !appDraft || !appState) return null;
     let wire = mapServiciosApplicationDraftToBusinessProfile(appDraft);
@@ -491,7 +548,7 @@ export function ClasificadosServiciosPreviewClient() {
   const offersAddonSelected = Boolean(appState?.couponsAddOn);
   const serviciosPipeline = useProfessionalPreview ? "professional" : "trades";
   const showFinalCheckout =
-    !listingBoundPreview && source === "application" && Boolean(profile) && previewReadiness.ok;
+    !assistedUi && !listingBoundPreview && source === "application" && Boolean(profile) && previewReadiness.ok;
 
   // Package C Build 3 (C5/C6) — owner-locked: coupons/offers are included in the $399/mo base
   // package. The toggle stays as content/setup intent only — never a checkout line item.
@@ -710,38 +767,109 @@ export function ClasificadosServiciosPreviewClient() {
   return (
     <div className="min-h-screen bg-[#F9F8F6]">
       <div className={PREVIEW_BAR}>
-        <div className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-end gap-2 px-4 py-3 md:px-6">
-          {showFinalCheckout ? (
-            <a
-              href="#servicios-publish-checkout-checkpoint"
-              className="inline-flex min-h-[44px] touch-manipulation items-center rounded-full bg-[#3B66AD] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699]"
-            >
-              {lang === "en" ? "Continue to payment" : "Continuar al pago"}
-            </a>
-          ) : (
-            <button
-              type="button"
-              disabled={!canPublishFromPreview || publishBusy}
-              title={
-                !canPublishFromPreview
-                  ? lang === "en"
-                    ? "Complete publish checklist and the three confirmations on the last step, then try again."
-                    : "Completa el checklist de publicación y las tres confirmaciones del último paso."
-                  : undefined
-              }
-              onClick={() => void handlePublishFromPreview()}
-              className="inline-flex min-h-[44px] touch-manipulation items-center rounded-full bg-[#3B66AD] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699] disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              {publishBusy ? (lang === "en" ? "Publishing…" : "Publicando…") : lang === "en" ? "Publish" : "Publicar"}
-            </button>
-          )}
-          <Link href={editHref} onClick={markPublishFlowReturningToEdit} className={EDIT_LINK}>
-            {backLabel}
-          </Link>
-        </div>
-        {publishErr ? (
+        {assistedUi ? (
+          <div className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-between gap-2 px-4 py-3 md:px-6">
+            <p className="min-w-0 text-sm font-bold text-[#7A1E2C]">
+              LEONIX — PREPARANDO PARA CLIENTE / PREPARING FOR CLIENT
+              <span className="block text-xs font-normal text-[#3D2C12]">
+                {assistedBusinessName || assistedUi.businessId}
+              </span>
+            </p>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              {assistedResult ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setAssistedResult(null)}
+                    className={EDIT_LINK}
+                  >
+                    {lang === "en" ? "Continue editing" : "Seguir editando"}
+                  </button>
+                  <Link
+                    href={`/admin/businesses/${encodeURIComponent(assistedUi.businessId)}#prospect-journey`}
+                    className="inline-flex min-h-[44px] touch-manipulation items-center rounded-full bg-[#7A1E2C] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#651829]"
+                  >
+                    {lang === "en" ? "Back to client" : "Volver al cliente"}
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    disabled={!canPublishFromPreview || assistedBusy !== null}
+                    onClick={() => void handleAssistedAction("save_for_client")}
+                    className="inline-flex min-h-[44px] touch-manipulation items-center rounded-full bg-[#3B66AD] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699] disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    {assistedBusy === "save_for_client"
+                      ? lang === "en"
+                        ? "Saving…"
+                        : "Guardando…"
+                      : lang === "en"
+                        ? "Save for Client"
+                        : "Guardar para Cliente"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!canPublishFromPreview || assistedBusy !== null}
+                    onClick={() => void handleAssistedAction("publish_for_client")}
+                    className="inline-flex min-h-[44px] touch-manipulation items-center rounded-full bg-[#7A1E2C] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#651829] disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    {assistedBusy === "publish_for_client"
+                      ? lang === "en"
+                        ? "Publishing…"
+                        : "Publicando…"
+                      : lang === "en"
+                        ? "Publish for Client"
+                        : "Publicar para Cliente"}
+                  </button>
+                  <Link href={editHref} onClick={markPublishFlowReturningToEdit} className={EDIT_LINK}>
+                    {backLabel}
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-end gap-2 px-4 py-3 md:px-6">
+            {showFinalCheckout ? (
+              <a
+                href="#servicios-publish-checkout-checkpoint"
+                className="inline-flex min-h-[44px] touch-manipulation items-center rounded-full bg-[#3B66AD] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699]"
+              >
+                {lang === "en" ? "Continue to payment" : "Continuar al pago"}
+              </a>
+            ) : (
+              <button
+                type="button"
+                disabled={!canPublishFromPreview || publishBusy}
+                title={
+                  !canPublishFromPreview
+                    ? lang === "en"
+                      ? "Complete publish checklist and the three confirmations on the last step, then try again."
+                      : "Completa el checklist de publicación y las tres confirmaciones del último paso."
+                    : undefined
+                }
+                onClick={() => void handlePublishFromPreview()}
+                className="inline-flex min-h-[44px] touch-manipulation items-center rounded-full bg-[#3B66AD] px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[#2f5699] disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {publishBusy ? (lang === "en" ? "Publishing…" : "Publicando…") : lang === "en" ? "Publish" : "Publicar"}
+              </button>
+            )}
+            <Link href={editHref} onClick={markPublishFlowReturningToEdit} className={EDIT_LINK}>
+              {backLabel}
+            </Link>
+          </div>
+        )}
+        {assistedResult ? (
           <div className="mx-auto max-w-[1280px] px-4 pb-2 md:px-6">
-            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{publishErr}</p>
+            <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+              {lang === "en" ? "Saved for client." : "Guardado para el cliente."} Leonix ID: {assistedResult.listingId} ({assistedResult.status})
+            </p>
+          </div>
+        ) : null}
+        {publishErr || assistedErr ? (
+          <div className="mx-auto max-w-[1280px] px-4 pb-2 md:px-6">
+            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{publishErr || assistedErr}</p>
           </div>
         ) : null}
       </div>

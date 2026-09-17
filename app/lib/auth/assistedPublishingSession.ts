@@ -60,6 +60,12 @@ export type AssistedPublishingContext = {
   /** admin_team_members.id of the staff actor this token was minted for. Never a bootstrap/fake id
    * — toStaffWriteActor() already rejects owner_bootstrap before this module is ever reached. */
   rosterId: string;
+  /** LEONIX P0 FINAL ASSISTED PUBLISHING BRIDGE — the staff actor's real Supabase Auth user id
+   * (StrictSalesActor.authUserId), re-verified fresh at mint time. Used ONLY as attribution
+   * (business_listing_links.linked_by — "who linked this record", not ownership) when a category
+   * publish route records custody of a Leonix-prepared draft. Never written to any listing's
+   * owner_user_id / customer-ownership column. */
+  authUserId: string;
   issuedAtMs: number;
   expiresAtMs: number;
 };
@@ -73,6 +79,7 @@ export function createAssistedPublishingToken(input: {
   businessId: string;
   category: string;
   rosterId: string;
+  authUserId: string;
 }): string | null {
   const secret = getAssistedPublishingSecret();
   if (!secret) return null;
@@ -82,6 +89,7 @@ export function createAssistedPublishingToken(input: {
     businessId: input.businessId,
     category: input.category,
     rosterId: input.rosterId,
+    authUserId: input.authUserId,
     issuedAtMs,
     expiresAtMs,
   };
@@ -116,6 +124,7 @@ export function readAssistedPublishingContext(cookies: CookieStore): AssistedPub
     !parsed.businessId ||
     !parsed.category ||
     !parsed.rosterId ||
+    !parsed.authUserId ||
     typeof parsed.issuedAtMs !== "number" ||
     typeof parsed.expiresAtMs !== "number"
   ) {
@@ -127,6 +136,7 @@ export function readAssistedPublishingContext(cookies: CookieStore): AssistedPub
     businessId: parsed.businessId,
     category: parsed.category,
     rosterId: parsed.rosterId,
+    authUserId: parsed.authUserId,
     issuedAtMs: parsed.issuedAtMs,
     expiresAtMs: parsed.expiresAtMs,
   };
@@ -140,7 +150,7 @@ export function readAssistedPublishingContext(cookies: CookieStore): AssistedPub
  */
 export function applyAssistedPublishingCookie(
   res: { cookies: { set: (name: string, value: string, opts: Record<string, unknown>) => void } },
-  input: { businessId: string; category: string; rosterId: string },
+  input: { businessId: string; category: string; rosterId: string; authUserId: string },
 ): boolean {
   const secure = process.env.NODE_ENV === "production";
   const base = { path: "/", httpOnly: true, sameSite: "strict" as const, secure };

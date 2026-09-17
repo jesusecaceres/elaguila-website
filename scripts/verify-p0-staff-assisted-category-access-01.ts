@@ -117,8 +117,15 @@ for (const f of PER_CATEGORY_LAYOUTS) {
     assert.ok(!allTouched.includes(f), `${f} was not touched — the adapter lives entirely in PublishAuthGate/PublishAuthGateLayout`);
   }
 }
+// LEONIX P0 FINAL ASSISTED PUBLISHING BRIDGE (later, explicitly-authorized mission) legitimately
+// extends app/api/clasificados/servicios/publish/route.ts with an isolated assisted-mode branch
+// (Save for Client / Publish for Client) — that file is intentionally no longer in this
+// "untouched" list. Its own focused verifier (verify-p0-final-assisted-publishing-bridge-01.ts,
+// contracts 4-5) independently re-proves the ORIGINAL customer owner-mutation policy and the
+// strict bearer-token / Revenue OS checkout gates inside that file are still fully intact,
+// byte-identical in shape, only additively bypassed when a server-verified assisted context is
+// present. Restaurantes and the shared bearer-auth helper remain untouched by either mission.
 for (const f of [
-  "app/api/clasificados/servicios/publish/route.ts",
   "app/api/clasificados/restaurantes/publish/route.ts",
   "app/api/clasificados/servicios/lib/serviciosPublishServerAuth.ts",
 ]) {

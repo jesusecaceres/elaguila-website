@@ -34,6 +34,12 @@ import {
   SERVICIOS_LEONIX_LOCKED_STATUSES,
   serviciosSaveAwaitsBasePurchase,
 } from "@/app/clasificados/servicios/lib/serviciosOwnerMutationPolicy";
+import { readAssistedPublishingContext } from "@/app/lib/auth/assistedPublishingSession";
+import {
+  hasClearedManualPaymentForListing,
+  isListingLinkedToBusiness,
+  linkAssistedListingToBusiness,
+} from "@/app/lib/business/assistedListingCustody";
 import { resolveServiciosReactivationAuthority } from "@/app/clasificados/servicios/lib/serviciosReactivationAuthorityServer";
 import { resolveBusinessToolsAccess } from "@/app/lib/listingPlans/categoryCommercialPlan";
 import {
@@ -245,7 +251,32 @@ export async function POST(req: NextRequest) {
   const strict = isServiciosStrictPublishEnvironment();
   const ownerUserId = await serviciosOwnerIdFromBearer(req);
 
-  if (strict && !ownerUserId) {
+  /**
+   * LEONIX P0 FINAL ASSISTED PUBLISHING BRIDGE — the ONE intentional fork. A Leonix staff actor
+   * with a valid, server-verified assisted-publishing cookie (minted only after a fresh
+   * requireStaffWorkspaceWriteAccess("assisted_category_publishing") check — see
+   * app/api/admin/businesses/[businessId]/application-context/route.ts) may save/publish a draft
+   * for a business WITHOUT a customer Supabase session. This never substitutes for, weakens, or is
+   * consulted by the real customer bearer-token check above for a normal request — it only unlocks
+   * two new, explicitly-declared request shapes (`assistedAction`), each handled by its own
+   * dedicated, isolated code path below, never interleaved with the customer owner-mutation policy.
+   */
+  const assistedContext = readAssistedPublishingContext(req.cookies);
+  const assistedActionRaw = typeof b.assistedAction === "string" ? b.assistedAction.trim() : "";
+  const isAssistedSaveForClient = assistedActionRaw === "save_for_client";
+  const isAssistedPublishForClient = assistedActionRaw === "publish_for_client";
+  const isAssistedRequest =
+    (isAssistedSaveForClient || isAssistedPublishForClient) &&
+    assistedContext !== null &&
+    assistedContext.category === "servicios";
+  if ((isAssistedSaveForClient || isAssistedPublishForClient) && !isAssistedRequest) {
+    return NextResponse.json({ ok: false, error: "assisted_context_required" }, { status: 403 });
+  }
+  if (isAssistedPublishForClient && !(typeof b.existingListingId === "string" && b.existingListingId.trim())) {
+    return NextResponse.json({ ok: false, error: "existing_listing_required" }, { status: 400 });
+  }
+
+  if (strict && !ownerUserId && !isAssistedRequest) {
     await insertServiciosAnalyticsEvent({
       listingSlug: null,
       eventType: "publish_failure",
@@ -345,7 +376,19 @@ export async function POST(req: NextRequest) {
     // Gate SERVICIOS-P7-BLOCKER-REPAIR-01 (B1) — a NULL owner is NOT permission. The row must
     // have an owner and it must be the authenticated actor; an unowned historical row is
     // reachable only through admin/ownership assignment, never by claiming it here.
-    if (!isServiciosListingOwner(row.owner_user_id, ownerUserId)) {
+    //
+    // LEONIX P0 FINAL ASSISTED PUBLISHING BRIDGE — the ONE alternate authorization: an assisted
+    // request may reopen/update this SAME row only when it still has NO customer owner AND it is
+    // already verified-linked to the exact business the staff actor's cookie was minted for.
+    const assistedAuthorizedForRow =
+      isAssistedRequest &&
+      row.owner_user_id == null &&
+      (await isListingLinkedToBusiness({
+        businessId: assistedContext!.businessId,
+        listingSource: "servicios_public_listings",
+        listingId: resolvedId,
+      }));
+    if (!isServiciosListingOwner(row.owner_user_id, ownerUserId) && !assistedAuthorizedForRow) {
       await insertServiciosAnalyticsEvent({
         listingSlug: row.slug,
         eventType: "publish_failure",
@@ -468,8 +511,11 @@ export async function POST(req: NextRequest) {
   const city = state.city.trim();
   const now = new Date().toISOString();
 
-  /** Production: first publication requires Revenue OS checkout (pending_payment save or paid webhook). */
-  if (strict && isSupabaseAdminConfigured() && !pendingPayment) {
+  /** Production: first publication requires Revenue OS checkout (pending_payment save or paid
+   * webhook). Assisted mode never goes through Revenue OS checkout — Save for Client has no
+   * payment gate at all (never public), and Publish for Client has its own, separate manual-
+   * cleared-payment gate applied in the assisted persistence branch below. */
+  if (strict && isSupabaseAdminConfigured() && !pendingPayment && !isAssistedRequest) {
     const existingForGuard = canonicalListingId
       ? await getServiciosPublicListingByIdFromDb(canonicalListingId, { visibility: "all" })
       : await getServiciosPublicListingBySlugFromDb(slug, { visibility: "all" });
@@ -503,7 +549,14 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const listingStatus = pendingPayment ? SERVICIOS_LISTING_STATUS_PENDING_PAYMENT : initialListingStatus();
+  // Assisted "Save for Client" always lands hidden as `draft` — never Revenue OS pending_payment,
+  // never immediately public. "Publish for Client" only ever targets an EXISTING row (validated
+  // above), so it never reaches this INSERT-time value.
+  const listingStatus = isAssistedSaveForClient
+    ? "draft"
+    : pendingPayment
+      ? SERVICIOS_LISTING_STATUS_PENDING_PAYMENT
+      : initialListingStatus();
   // Gate REVENUE-ACTIVE-ENTITLEMENT-GUARD-01 — the status actually persisted, which can diverge
   // from the raw `pendingPayment` request flag: an edit-save of an already-published listing
   // preserves PUBLISHED below (never regresses to pending) even when the client requested
@@ -539,7 +592,162 @@ export async function POST(req: NextRequest) {
         ? await getServiciosPublicListingByIdFromDb(canonicalListingId, { visibility: "all" })
         : await getServiciosPublicListingBySlugFromDb(slug, { visibility: "all" });
 
-      if (existing) {
+      if (isAssistedRequest) {
+        // LEONIX P0 FINAL ASSISTED PUBLISHING BRIDGE — isolated from the customer owner-mutation
+        // policy above on purpose: an assisted draft never has a customer owner (B1's rule "a NULL
+        // owner is not permission" stays completely intact for every non-assisted request), so it
+        // can never satisfy `isServiciosListingOwner` and must never be routed through
+        // `decideServiciosOwnerSaveStatus` (whose whole transition table assumes a proven customer
+        // owner). This branch is the ONLY place an unowned row may legitimately be written.
+        if (existing) {
+          const existingId = canonicalListingId ?? (typeof existing.id === "string" ? existing.id : "");
+          if (existing.owner_user_id != null || !existingId) {
+            await insertServiciosAnalyticsEvent({
+              listingSlug: slug,
+              eventType: "publish_failure",
+              meta: { reason: "listing_owner_mismatch", assisted: true },
+            });
+            return NextResponse.json({ ok: false, error: "listing_owner_mismatch" }, { status: 403 });
+          }
+          const linked = await isListingLinkedToBusiness({
+            businessId: assistedContext!.businessId,
+            listingSource: "servicios_public_listings",
+            listingId: existingId,
+          });
+          if (!linked) {
+            await insertServiciosAnalyticsEvent({
+              listingSlug: slug,
+              eventType: "publish_failure",
+              meta: { reason: "slug_conflict", assisted: true },
+            });
+            return NextResponse.json({ ok: false, error: "slug_conflict" }, { status: 409 });
+          }
+          const existingStatus = String(existing.listing_status ?? "").trim().toLowerCase();
+          if (SERVICIOS_LEONIX_LOCKED_STATUSES.has(existingStatus)) {
+            return await serviciosListingLockedResponse(slug, lang);
+          }
+          let nextStatus = "draft";
+          if (isAssistedPublishForClient) {
+            const cleared = await hasClearedManualPaymentForListing({
+              listingSource: "servicios_public_listings",
+              listingId: existingId,
+            });
+            if (!cleared) {
+              await insertServiciosAnalyticsEvent({
+                listingSlug: slug,
+                eventType: "publish_failure",
+                meta: { reason: "manual_payment_not_cleared", assisted: true },
+              });
+              return NextResponse.json(
+                {
+                  ok: false,
+                  error: "manual_payment_not_cleared",
+                  message:
+                    "No cleared manual payment found for this listing yet. Record and clear it in the Payment Tracker first.",
+                },
+                { status: 402 },
+              );
+            }
+            nextStatus = SERVICIOS_LISTING_STATUS_PUBLISHED;
+          }
+          actualListingStatus = nextStatus;
+          // owner_user_id is deliberately never written here — it stays unclaimed/null (Gate 5 #6)
+          // whether this is a hidden draft or a published-for-client row.
+          const updateQuery = supabase
+            .from("servicios_public_listings")
+            .update({
+              business_name: businessName,
+              city,
+              profile_json: publicWireForPersistence,
+              ...privateContactPatch,
+              internal_group: internalGroup,
+              listing_status: nextStatus,
+              published_at: nextStatus === SERVICIOS_LISTING_STATUS_PUBLISHED ? now : existing.published_at ?? null,
+              updated_at: now,
+            })
+            .eq("id", existingId);
+          const { data: updated, error } = await updateQuery.select("id, leonix_ad_id").maybeSingle();
+          if (!error) {
+            persistedListingId = updated?.id ? String(updated.id) : null;
+            persistedLeonixAdId = updated?.leonix_ad_id ? String(updated.leonix_ad_id) : null;
+            if (persistedListingId) {
+              persistedToDatabase = true;
+            } else {
+              persistenceDiagnostic = buildPersistenceDiagnostic({
+                operation: "identity-return",
+                requestedListingStatus: nextStatus,
+                slug,
+                existingFound: true,
+              });
+            }
+          } else {
+            persistenceDiagnostic = buildPersistenceDiagnostic({
+              operation: "update",
+              requestedListingStatus: nextStatus,
+              slug,
+              existingFound: true,
+              supabase: sanitizeSupabaseError(error),
+            });
+          }
+        } else if (existingListingIdRaw) {
+          await insertServiciosAnalyticsEvent({
+            listingSlug: slug || null,
+            eventType: "publish_failure",
+            meta: { reason: "listing_not_found", existingListingIdDeclared: true, persistStage: "insert_forbidden", assisted: true },
+          });
+          return NextResponse.json({ ok: false, error: "listing_not_found" }, { status: 404 });
+        } else {
+          // First-ever Save for Client: INSERT, owner_user_id intentionally omitted (unclaimed).
+          actualListingStatus = listingStatus;
+          const insertRow: Record<string, unknown> = {
+            slug,
+            business_name: businessName,
+            city,
+            profile_json: publicWireForPersistence,
+            ...privateContactPatch,
+            internal_group: internalGroup,
+            listing_status: listingStatus,
+            leonix_verified: false,
+            published_at: null,
+            updated_at: now,
+          };
+          const { data: inserted, error } = await supabase
+            .from("servicios_public_listings")
+            .insert(insertRow)
+            .select("id, leonix_ad_id")
+            .maybeSingle();
+          if (!error) {
+            persistedListingId = inserted?.id ? String(inserted.id) : null;
+            persistedLeonixAdId = inserted?.leonix_ad_id ? String(inserted.leonix_ad_id) : null;
+            if (persistedListingId) {
+              persistedToDatabase = true;
+            } else {
+              persistenceDiagnostic = buildPersistenceDiagnostic({
+                operation: "identity-return",
+                requestedListingStatus: listingStatus,
+                slug,
+                existingFound: false,
+              });
+            }
+          } else {
+            persistenceDiagnostic = buildPersistenceDiagnostic({
+              operation: "insert",
+              requestedListingStatus: listingStatus,
+              slug,
+              existingFound: false,
+              supabase: sanitizeSupabaseError(error),
+            });
+          }
+        }
+        if (persistedToDatabase && persistedListingId) {
+          await linkAssistedListingToBusiness({
+            businessId: assistedContext!.businessId,
+            listingSource: "servicios_public_listings",
+            listingId: persistedListingId,
+            linkedByAuthUserId: assistedContext!.authUserId,
+          });
+        }
+      } else if (existing) {
         // B1 — enforced again at the write itself. Resolution above only ever targets an owned
         // row; this also covers a slug race. A NULL owner never qualifies, so a save can no longer
         // claim an unowned row.

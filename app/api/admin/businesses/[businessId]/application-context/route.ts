@@ -36,8 +36,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ busi
   });
 
   const category = normalizePublicarGatewayDeepLink(req.nextUrl.searchParams.get("category"));
-  if (category && access.actor.rosterId && actorHasCapability(access.actor, "assisted_category_publishing")) {
-    applyAssistedPublishingCookie(res, { businessId, category, rosterId: access.actor.rosterId });
+  if (
+    category &&
+    access.actor.rosterId &&
+    access.actor.authUserId &&
+    actorHasCapability(access.actor, "assisted_category_publishing")
+  ) {
+    applyAssistedPublishingCookie(res, {
+      businessId,
+      category,
+      rosterId: access.actor.rosterId,
+      authUserId: access.actor.authUserId,
+    });
   }
 
   return res;

@@ -11,6 +11,7 @@ import { ALL_SALES_NOTE_OUTCOME_LABELS, BUSINESS_SALES_STATUSES, FOLLOW_UP_STATU
 import { BusinessDashboardNav } from "./BusinessDashboardNav";
 import { computeBusinessDashboardNextAction } from "./businessDashboardNextAction";
 import { ProspectJourneyStrip } from "./ProspectJourneyStrip";
+import { PreparedListingsStrip } from "./PreparedListingsStrip";
 import { BROAD_BUSINESS_TYPES, BUSINESS_STAGES, CONTACT_LABELS, DIGITAL_PROFILE_PLATFORMS, OPERATING_MODELS, SALES_CHANNELS, SALES_RELATIONSHIPS } from "@/app/lib/business/constants";
 import { countryLabel } from "@/app/lib/business/countries";
 import { formatUsPhoneForDisplay } from "@/app/lib/business/phoneDisplay";
@@ -756,6 +757,12 @@ export default async function AdminBusinessDetailPage({
           {nextRightAction.whereLabel}
         </a>
       </section>
+
+      {/* LEONIX P0 FINAL ASSISTED PUBLISHING BRIDGE (Gate 3) — staff-visible inventory of
+          Leonix-prepared drafts for this business, sourced from business_listing_links. Renders
+          nothing when there are none yet, so it never adds noise to a business with no prepared
+          ads. */}
+      <PreparedListingsStrip businessId={business.id} />
 
       {/* Staff OS — prospect preparation journey (Research → Review → Confirm truth → Prepare for
           client). Pure presentation over data already loaded above; every button targets an

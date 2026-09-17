@@ -191,6 +191,12 @@ export type ServiciosPublishTransportBody = {
   videoPublishDiagnostics?: { videoId: string; reason: string }[];
   /** "pending_payment" saves hidden before Revenue OS checkout (Stripe webhook activates). */
   activationMode?: "pending_payment";
+  /**
+   * LEONIX P0 FINAL ASSISTED PUBLISHING BRIDGE — declares which assisted action this save
+   * requests. Meaningless (and rejected server-side) without a valid, server-verified assisted
+   * publishing cookie; a normal customer save never sets this field.
+   */
+  assistedAction?: "save_for_client" | "publish_for_client";
 };
 
 export function buildServiciosPublishTransportBody(
@@ -200,6 +206,7 @@ export function buildServiciosPublishTransportBody(
   videoPublishDiagnostics?: { videoId: string; reason: string }[],
   activationMode?: "pending_payment",
   existingListingId?: string,
+  assistedAction?: "save_for_client" | "publish_for_client",
 ): ServiciosPublishTransportBody {
   const payload: ServiciosPublishTransportBody = {
     state: buildServiciosPublishPayload(state),
@@ -207,6 +214,9 @@ export function buildServiciosPublishTransportBody(
   };
   if (activationMode === "pending_payment") payload.activationMode = "pending_payment";
   if (existingListingId?.trim()) payload.existingListingId = existingListingId.trim();
+  if (assistedAction === "save_for_client" || assistedAction === "publish_for_client") {
+    payload.assistedAction = assistedAction;
+  }
   if (existingPublicSlug?.trim()) payload.existingPublicSlug = existingPublicSlug.trim();
   if (videoPublishDiagnostics?.length) {
     payload.videoPublishDiagnostics = videoPublishDiagnostics
