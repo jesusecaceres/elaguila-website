@@ -180,14 +180,35 @@ export function ServiciosProfessionalResultCard({
     () => (isCompact ? [] : collectOwnerAuthoredProfessionalChips(profile, allChips)),
     [isCompact, profile, allChips],
   );
-  const { translateControl, displayCategoryLine, chipOverrides } = useServiciosResultCardTranslation({
+  // Servicios Card Translate Coherence (2026-09-17): canonical (catalog) chips always have a real
+  // ES/EN pair — Translate must stay offered for them even with zero owner-authored text.
+  const hasCanonicalDisplayContent = Boolean(
+    (category && !customCategoryLine) || allChips.length > ownerAuthoredChips.length,
+  );
+  const { translateControl, displayLang, displayCategoryLine, chipOverrides } = useServiciosResultCardTranslation({
     categoryLine: customCategoryLine,
     ownerAuthoredChips,
+    hasCanonicalDisplayContent,
     lang,
     listingKey: ctaAnalyticsKey,
     enabled: !isCompact,
   });
-  const displayCategory = displayCategoryLine ?? category;
+
+  // Re-derive canonical chips/category for the DISPLAY language (unchanged reference when not
+  // translated) — mirrors ServiciosHorizontalResultCard's fix: canonical content must flip
+  // language together with owner-authored text, never leaving a mixed-language card.
+  const displayProfile = useMemo(
+    () => (displayLang !== lang ? relabelServiciosCanonicalPresets(profile, displayLang) : profile),
+    [profile, displayLang, lang],
+  );
+  const displayServiceChipsCanonical =
+    displayProfile === profile ? serviceChips : collectProfessionalServiceChips(displayProfile, 12);
+  const displayTrustChipsCanonical =
+    displayProfile === profile ? trustChips : collectHeroTrustChips(displayProfile, 3);
+  const displayAllChipsCanonical =
+    displayProfile === profile ? allChips : [...displayServiceChipsCanonical, ...displayTrustChipsCanonical];
+  const displayCategory =
+    displayCategoryLine ?? (displayLang === lang ? category : displayProfile.hero.categoryLine?.trim());
 
   const ratingValue =
     typeof profile.hero.rating === "number" && Number.isFinite(profile.hero.rating) && profile.hero.rating > 0
@@ -257,7 +278,9 @@ export function ServiciosProfessionalResultCard({
     ? `${LX_IVORY_CARD} ring-2 ring-[#C9A84A]/30 border-[#C9A84A]/55`
     : LX_IVORY_CARD;
   const displayChips = (
-    isCompact && allChips.length > 3 ? [...allChips.slice(0, 3), `+${allChips.length - 3}`] : allChips
+    isCompact && displayAllChipsCanonical.length > 3
+      ? [...displayAllChipsCanonical.slice(0, 3), `+${displayAllChipsCanonical.length - 3}`]
+      : displayAllChipsCanonical
   ).map((c) => chipOverrides.get(c) ?? c);
 
   const body = (
