@@ -113,12 +113,10 @@ export function useInheritedHubModel(
         trim(state.agenteFotoDataUrl),
     );
 
+    // Item 104 — content-driven, matching the main preview's hasBrandBlockVisible(); the
+    // mostrarMarcaEnTarjeta toggle no longer gates visibility anywhere in the app.
     const hasBrandBlock = Boolean(
-      state.mostrarMarcaEnTarjeta &&
-        (trim(state.marcaNombre) ||
-          trim(state.marcaLicencia) ||
-          trim(state.marcaSitioWeb) ||
-          trim(state.marcaLogoDataUrl)),
+      trim(state.marcaNombre) || trim(state.marcaLicencia) || trim(state.marcaSitioWeb) || trim(state.marcaLogoDataUrl),
     );
 
     const hasBrokerBlock = Boolean(

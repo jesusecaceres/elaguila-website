@@ -113,6 +113,7 @@ function privadoResidencial(title: string, sellerEmail: string) {
       photoDataUrls: [],
       primaryImageIndex: 0,
       videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      videoUrls: ["https://www.youtube.com/watch?v=dQw4w9WgXcQ"],
       videoLocalDataUrl: "",
     },
     seller: {
@@ -128,6 +129,7 @@ function privadoResidencial(title: string, sellerEmail: string) {
     residencial: {
       tipoCodigo: "casa",
       subtipo: "Residencial en esquina",
+      niveles: "2",
       recamaras: "4",
       banos: "3",
       mediosBanos: "1",
@@ -137,6 +139,7 @@ function privadoResidencial(title: string, sellerEmail: string) {
       ano: "2016",
       condicion: "excelente",
       highlightKeys: ["piscina", "patio", "comunidadCerrada"],
+      pendingCustomHighlight: "",
     },
     confirmListingAccurate: true,
     confirmPhotosRepresentItem: true,
@@ -156,7 +159,7 @@ function privadoComercial(title: string, sellerEmail: string) {
       "Local comercial de alta visibilidad con fachada lineal, piso de porcelanato, baño para clientes y medio baño de servicio. Instalaciones eléctricas trifásicas disponibles, preparación para minisplit y persianas de seguridad. Zona de alto tráfico peatonal y vehicular; ideal boutique, clínica ligera o cafetería de especialidad.",
     estadoAnuncio: "disponible",
     petsAllowed: "no",
-    media: { photoDataUrls: [], primaryImageIndex: 0, videoUrl: "", videoLocalDataUrl: "" },
+    media: { photoDataUrls: [], primaryImageIndex: 0, videoUrl: "", videoUrls: [], videoLocalDataUrl: "" },
     seller: {
       fotoDataUrl: "",
       nombre: "Grupo Inmobiliario Norte",
@@ -199,7 +202,7 @@ function privadoTerreno(title: string, sellerEmail: string) {
       "Lote residencial en fraccionamiento con caseta de acceso, servicios subterráneos y calles pavimentadas. Topografía casi plana, esquina suave con vista arbolada. Uso de suelo habitacional; listo para proyecto de vivienda unifamiliar o dúplex sujeto a reglamento del fraccionamiento.",
     estadoAnuncio: "disponible",
     petsAllowed: "yes",
-    media: { photoDataUrls: [], primaryImageIndex: 0, videoUrl: "", videoLocalDataUrl: "" },
+    media: { photoDataUrls: [], primaryImageIndex: 0, videoUrl: "", videoUrls: [], videoLocalDataUrl: "" },
     seller: {
       fotoDataUrl: "",
       nombre: "Familia Garza",

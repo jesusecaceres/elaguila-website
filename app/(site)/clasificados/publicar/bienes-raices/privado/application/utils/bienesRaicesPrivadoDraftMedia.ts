@@ -36,3 +36,13 @@ export async function inlineBienesRaicesPrivadoHeavyMediaFromIdb(
 export async function clearBienesRaicesPrivadoDraftMediaIdb(): Promise<void> {
   await store.clearNamespace(NAMESPACE);
 }
+
+/**
+ * BR-INV-D2-FIX — true if IndexedDB still holds offloaded photo/seller-photo blobs for this draft,
+ * independent of whatever sessionStorage currently reads. Used as positive evidence that a draft
+ * really did exist when the sessionStorage/localStorage JSON read comes back empty, so hydration
+ * knows to keep waiting rather than conclude "no draft" and let the empty state get autosaved.
+ */
+export async function bienesRaicesPrivadoHasPersistedMedia(): Promise<boolean> {
+  return store.hasNamespaceEntries(NAMESPACE);
+}

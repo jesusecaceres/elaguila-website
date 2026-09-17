@@ -14,6 +14,7 @@ import {
   digitsOnly,
   formatUsPhoneDisplay,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/application/utils/phoneMask";
+import { phoneTelHref, stripPhoneDigits } from "@/app/lib/leonix/phoneFormat";
 import {
   TIPO_PROPIEDAD_OPCIONES,
   labelForSubtipo,
@@ -26,7 +27,6 @@ import { sanitizeLeonixListingPublishDescriptionBody } from "@/app/clasificados/
 import {
   composeBrApproximateMapQuery,
   composeBrExactMapQuery,
-  sanitizeBrUserMapUrl,
 } from "@/app/clasificados/lib/leonixBrGate12d";
 import { buildBrGate12dHoaPreviewCard } from "@/app/clasificados/lib/leonixBrGate12dHoaPreview";
 import { normalizeLeonixHttpsUrl } from "@/app/clasificados/lib/leonixContactSocialNormalize";
@@ -93,15 +93,12 @@ function buildMailto(to: string, subject: string): string | null {
 }
 
 function buildTelHref(phoneDigits: string): string | null {
-  const d = digitsOnly(phoneDigits);
-  if (d.length < 10) return null;
-  return `tel:${d}`;
+  return phoneTelHref(phoneDigits) || null;
 }
 
 function buildSmsHref(phoneDigits: string): string | null {
-  const d = digitsOnly(phoneDigits);
-  if (d.length < 10) return null;
-  return `sms:${d}`;
+  const d = stripPhoneDigits(phoneDigits);
+  return d ? `sms:+1${d}` : null;
 }
 
 function row(label: string, value: string): BienesRaicesPreviewFact | null {
@@ -123,19 +120,27 @@ function operationSummaryFor(cat: BienesRaicesPrivadoFormState["categoriaPropied
   return "Venta terreno / lote";
 }
 
+function numberedVideoCtaLabel(index: number): string {
+  return index === 0 ? "Ver video" : `Ver video ${index + 1}`;
+}
+
 function buildMediaVm(s: BienesRaicesPrivadoFormState): BienesRaicesPreviewMediaVm {
   const urls = [...s.media.photoDataUrls];
   const n = urls.length;
   const pi = n === 0 ? 0 : Math.min(Math.max(0, s.media.primaryImageIndex), n - 1);
   const heroUrl = n > 0 ? urls[pi]! : null;
   const localV = trim(s.media.videoLocalDataUrl ?? "");
-  const urlV = trim(s.media.videoUrl);
+  const videoUrls = (s.media.videoUrls.length > 0 ? s.media.videoUrls : s.media.videoUrl ? [s.media.videoUrl] : [])
+    .map(trim)
+    .filter(Boolean);
+  const urlV = videoUrls[0] ?? "";
   /** Local file wins over URL for preview (draft-only; no Mux). */
   const primaryVideo = localV || urlV;
   const yt = !localV && urlV ? parseYoutubeId(urlV) : null;
   const hasVid = Boolean(primaryVideo);
   const thumb0 = yt ? `https://img.youtube.com/vi/${yt}/hqdefault.jpg` : null;
   const playback0 = hasVid ? (localV || urlV) : null;
+  const externalVideoLinks = videoUrls.map((href, index) => ({ label: numberedVideoCtaLabel(index), href }));
 
   const vt = normalizeLeonixHttpsUrl(trim(s.gate12d?.virtualTourUrl ?? ""));
   const metaLine =
@@ -147,6 +152,7 @@ function buildMediaVm(s: BienesRaicesPrivadoFormState): BienesRaicesPreviewMedia
     videoThumbUrls: [thumb0, null],
     videoPlaybackUrls: [playback0, null],
     youtubeIds: [yt, null],
+    externalVideoLinks,
     virtualTourUrl: vt,
     floorPlanUrls: [],
     sitePlanUrl: null,
@@ -167,18 +173,11 @@ function buildMediaVm(s: BienesRaicesPrivadoFormState): BienesRaicesPreviewMedia
 
 function buildResidencialDetails(s: BienesRaicesPrivadoFormState): BienesRaicesPreviewFact[] {
   const r = s.residencial;
-  const tipoLabel = TIPO_PROPIEDAD_OPCIONES.find((o) => o.value === r.tipoCodigo)?.label ?? "";
-  const subLbl = labelForSubtipo(r.tipoCodigo, r.subtipo);
+  // Item 198/201/202 — Tipo/Subtipo/Niveles now render in the top quick-facts strip
+  // (buildResidencialQuickFacts) so they're visible before the gallery, matching the owner's
+  // "type, subtype/levels" requirement for the top identity block; kept out of this list to
+  // avoid showing the same values twice on the same preview.
   const rows: Array<BienesRaicesPreviewFact | null> = [
-    row("Tipo", tipoLabel),
-    row(residencialSubtipoDisplayGroup(r.subtipo), subLbl),
-    row("Recámaras", prettifyPlainNumber(r.recamaras)),
-    row("Baños completos", prettifyPlainNumber(r.banos)),
-    rowOptionalCount("Medios baños", r.mediosBanos),
-    row("Tamaño interior", r.interiorSqft ? prettifySqft(r.interiorSqft) : ""),
-    row("Tamaño del lote", r.loteSqft ? prettifySqft(r.loteSqft) : ""),
-    row("Estacionamiento", r.estacionamiento),
-    row("Año de construcción", formatYearBuiltDisplay(r.ano)),
     row("Condición", r.condicion ? CONDICION_LABEL[r.condicion] ?? r.condicion : ""),
   ];
   return rows.filter((x): x is BienesRaicesPreviewFact => x != null);
@@ -191,6 +190,10 @@ function buildResidencialQuickFacts(s: BienesRaicesPrivadoFormState): BienesRaic
     const v = trim(value);
     if (v) out.push({ label, value: v, icon });
   };
+  const tipoLabel = TIPO_PROPIEDAD_OPCIONES.find((o) => o.value === r.tipoCodigo)?.label ?? "";
+  push("Tipo", tipoLabel, "home");
+  push(residencialSubtipoDisplayGroup(r.subtipo), labelForSubtipo(r.tipoCodigo, r.subtipo), "home");
+  push("Niveles / pisos", r.niveles, "home");
   push("Recámaras", prettifyPlainNumber(r.recamaras), "bed");
   push("Baños", prettifyPlainNumber(r.banos), "bath");
   const mb = trim(r.mediosBanos);
@@ -205,28 +208,25 @@ function buildResidencialQuickFacts(s: BienesRaicesPrivadoFormState): BienesRaic
 function buildResidencialHighlights(s: BienesRaicesPrivadoFormState): BienesRaicesPreviewFact[] {
   const map = new Map(BR_HIGHLIGHT_PRESET_DEFS.map((d) => [d.key, d.label]));
   const uniqueKeys = [...new Set(s.residencial.highlightKeys)];
-  return uniqueKeys
-    .map((k) => {
-      const label = map.get(k);
-      if (!label) return null;
-      return { label, value: "✓" };
-    })
-    .filter((x): x is BienesRaicesPreviewFact => x != null);
+  return uniqueKeys.map((k) => {
+    // Custom "Agregar otra característica" entries aren't in the canonical preset map — render
+    // the owner's own text as-is instead of silently dropping it.
+    const label = map.get(k) ?? k;
+    return { label, value: "✓" };
+  });
 }
 
 function buildComercialDetails(s: BienesRaicesPrivadoFormState): BienesRaicesPreviewFact[] {
   const c = s.comercial;
   const tipoLabel = COMERCIAL_TIPO_OPCIONES.find((o) => o.value === c.tipoCodigo)?.label ?? "";
   const subLbl = labelComercialSubtipo(c.tipoCodigo, c.subtipo);
+  // Item 201/202/217 — Interior/Oficinas/Baños/Niveles/Estacionamiento already render in the
+  // quick-facts strip above (buildComercialQuickFacts) — kept out of this list to avoid showing
+  // the same values twice on the same preview.
   const rows: Array<BienesRaicesPreviewFact | null> = [
     row("Tipo comercial", tipoLabel),
     row(comercialSubtipoDisplayGroup(c.subtipo), subLbl),
     row("Uso", c.uso),
-    row("Tamaño interior", c.interiorSqft ? prettifySqft(c.interiorSqft) : ""),
-    row("Oficinas", prettifyPlainNumber(c.oficinas)),
-    row("Baños", prettifyPlainNumber(c.banos)),
-    row("Niveles / pisos", prettifyPlainNumber(c.niveles)),
-    row("Estacionamiento", c.estacionamiento),
     row("Zonificación", c.zonificacion),
     row("Condición", c.condicion ? CONDICION_LABEL[c.condicion] ?? c.condicion : ""),
     row("Acceso de carga", c.accesoCarga ? "Sí" : ""),
@@ -274,13 +274,12 @@ function buildTerrenoDetails(s: BienesRaicesPrivadoFormState): BienesRaicesPrevi
   const t = s.terreno;
   const tipoLabel = TERRENO_TIPO_OPCIONES.find((o) => o.value === t.tipoCodigo)?.label ?? "";
   const subLbl = labelTerrenoSubtipo(t.tipoCodigo, t.subtipo);
+  // Item 201/202/217 — Lote/Uso-zonificación/Acceso/Servicios already render in the quick-facts
+  // strip above (buildTerrenoQuickFacts) — kept out of this list to avoid showing the same
+  // values twice on the same preview.
   const rows: Array<BienesRaicesPreviewFact | null> = [
     row("Tipo de terreno", tipoLabel),
     row(terrenoSubtipoDisplayGroup(t.subtipo), subLbl),
-    row("Tamaño del lote", t.loteSqft ? prettifySqft(t.loteSqft) : ""),
-    row("Uso / zonificación", t.usoZonificacion),
-    row("Acceso", t.acceso),
-    row("Servicios disponibles", t.servicios),
     row("Topografía", t.topografia),
     row("Listo para construir", t.listoConstruir ? "Sí" : ""),
     row("Cercado", t.cercado ? "Sí" : ""),
@@ -336,7 +335,18 @@ function buildGate12dOpenHouseCard(
     const r = row(label, value);
     if (r) rows.push(r);
   };
-  if (g.openHouseEnabled) {
+  // Item 206 — repeatable events take precedence over the single legacy date/start/end fields.
+  if (g.openHouseSlots.length) {
+    const multi = g.openHouseSlots.length > 1;
+    g.openHouseSlots.forEach((slot, i) => {
+      const suffix = multi ? ` ${i + 1}` : "";
+      if (trim(slot.fecha)) pushRow(`${L("Fecha", "Date")}${suffix}`, trim(slot.fecha));
+      const tw = [trim(slot.inicio), trim(slot.fin)].filter(Boolean).join(" – ");
+      if (tw) pushRow(`${L("Horario", "Hours")}${suffix}`, tw);
+      if (slot.soloConCita) pushRow(`${L("Solo con cita previa", "By appointment only")}${suffix}`, L("Sí", "Yes"));
+      if (trim(slot.notas)) pushRow(`${L("Notas", "Notes")}${suffix}`, trim(slot.notas));
+    });
+  } else if (g.openHouseEnabled) {
     pushRow(L("Open house", "Open house"), L("Sí", "Yes"));
     if (trim(g.openHouseDate)) pushRow(L("Fecha", "Date"), trim(g.openHouseDate));
     const tw = [trim(g.openHouseStartTime), trim(g.openHouseEndTime)].filter(Boolean).join(" – ");
@@ -414,8 +424,7 @@ export function mapBienesRaicesPrivadoStateToPreviewVm(
       });
   const q = (composedQ || (showExact ? line : "") || city).trim();
   const googleHref = q ? googleMapsSearchUrl(q) : null;
-  const userMap = sanitizeBrUserMapUrl(s.enlaceMapa);
-  const mapsUrl = userMap ?? googleHref;
+  const mapsUrl = googleHref;
 
   const desc = sanitizeLeonixListingPublishDescriptionBody(trim(s.descripcion));
   const phoneDisp = trim(s.seller.telefono) ? formatUsPhoneDisplay(digitsOnly(s.seller.telefono)) : "";

@@ -145,7 +145,10 @@ function normalizeUrl(raw: unknown): string {
   if (!s) return "";
   if (/^https?:\/\//i.test(s) || s.startsWith("data:")) return s;
   if (/^www\./i.test(s)) return `https://${s}`;
-  return s;
+  // Ledger item 30 (forward-ported from fix/br-negocio-inventory-hub-media-hydration 8e13dae7) —
+  // an unrecognized format must never produce a live CTA href; drop it rather than passing the
+  // raw, unvalidated string through.
+  return "";
 }
 
 function socialUrls(raw: unknown): string[] {

@@ -64,18 +64,22 @@ export type RentasFlowFormSlice = Pick<
   | "rentasEspacioEntradaPrivada"
   | "rentasEspacioLavanderia"
   | "rentasEspacioMaxOcupantes"
+  | "rentasEspacioEstacionamiento"
   | "rentasPreferenciasEspacioCompartido"
   | "rentasAlmacenTamanoAprox"
   | "rentasAlmacenAcceso24h"
   | "rentasAlmacenElectricidad"
   | "rentasAlmacenSeguridad"
+  | "rentasAlmacenCubierto"
   | "rentasAlmacenUsoPermitido"
   | "rentasAlmacenDimensiones"
+  | "rentasAlmacenRestriccionesVehiculo"
   | "rentasComercialUsoPermitido"
   | "rentasComercialTamanoFt2"
   | "rentasComercialBanoDisponible"
   | "rentasComercialHorarioAcceso"
   | "rentasComercialContratoMinimo"
+  | "rentasComercialServiciosDisponibles"
   | "rentasLoteUsoPermitido"
   | "rentasLoteServiciosDisponibles"
   | "rentasLoteAcceso"
@@ -221,6 +225,8 @@ function extensionRows(s: RentasFlowFormSlice, g: RentasRentalFlowGroup): Bienes
     if (lav) out.push({ label: "Lavandería disponible", value: lav });
     const mx = trim(s.rentasEspacioMaxOcupantes).replace(/\D/g, "");
     if (mx) out.push({ label: "Máximo de ocupantes", value: mx });
+    const park = siNoLabel(s.rentasEspacioEstacionamiento);
+    if (park) out.push({ label: "Estacionamiento disponible", value: park });
     const prefs = trim(s.rentasPreferenciasEspacioCompartido);
     if (prefs) out.push({ label: "Preferencias del espacio compartido", value: prefs });
   }
@@ -233,10 +239,14 @@ function extensionRows(s: RentasFlowFormSlice, g: RentasRentalFlowGroup): Bienes
     if (el) out.push({ label: "Electricidad disponible", value: el });
     const seg = siNoLabel(s.rentasAlmacenSeguridad);
     if (seg) out.push({ label: "Seguridad / acceso controlado", value: seg });
+    const cov = siNoLabel(s.rentasAlmacenCubierto);
+    if (cov) out.push({ label: "Cubierto", value: cov });
     const r2 = row("Uso permitido", s.rentasAlmacenUsoPermitido);
     if (r2) out.push(r2);
     const r3 = row("Altura / dimensiones", s.rentasAlmacenDimensiones);
     if (r3) out.push(r3);
+    const r4 = row("Restricciones de vehículo", s.rentasAlmacenRestriccionesVehiculo);
+    if (r4) out.push(r4);
   }
   if (g === "commercial_space") {
     const r0 = row("Uso permitido", s.rentasComercialUsoPermitido);
@@ -249,6 +259,8 @@ function extensionRows(s: RentasFlowFormSlice, g: RentasRentalFlowGroup): Bienes
     if (r1) out.push(r1);
     const r2 = row("Contrato mínimo", s.rentasComercialContratoMinimo);
     if (r2) out.push(r2);
+    const r3 = row("Servicios disponibles", s.rentasComercialServiciosDisponibles);
+    if (r3) out.push(r3);
   }
   if (g === "land_parcel") {
     const r0 = row("Uso permitido", s.rentasLoteUsoPermitido);
@@ -473,12 +485,14 @@ export function buildRentasPublishedFlowExtensionRows(
     push("Entrada privada", pairValue("Entrada privada"));
     push("Lavandería disponible", pairValue("Lavandería disponible"));
     push("Máximo de ocupantes", listing.rentasRoomMaxOccupants ?? pairValue("Máximo de ocupantes"));
+    push("Estacionamiento disponible", pairValue("Estacionamiento disponible"));
   }
   if (g === "storage_parking") {
     push("Tamaño aproximado", pairValue("Tamaño aproximado"));
     push("Acceso 24/7", pairValue("Acceso 24/7"));
     push("Electricidad disponible", pairValue("Electricidad disponible"));
     push("Seguridad / acceso controlado", pairValue("Seguridad / acceso controlado"));
+    push("Cubierto", pairValue("Cubierto"));
     push("Uso permitido", pairValue("Uso permitido"));
     push("Altura / dimensiones", pairValue("Altura / dimensiones"));
   }
@@ -494,6 +508,7 @@ export function buildRentasPublishedFlowExtensionRows(
     push("Baño disponible", pairValue("Baño disponible"));
     push("Horario / acceso", pairValue("Horario / acceso"));
     push("Contrato mínimo", pairValue("Contrato mínimo"));
+    push("Servicios disponibles", pairValue("Servicios disponibles"));
   }
   if (g === "land_parcel") {
     push("Uso permitido", pairValue("Uso permitido"));

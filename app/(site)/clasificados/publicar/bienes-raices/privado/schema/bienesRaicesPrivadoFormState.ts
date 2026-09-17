@@ -20,6 +20,25 @@ import {
   createEmptyLeonixContactChannelsFormSlice,
   mergePartialLeonixContactChannelsFormSlice,
 } from "@/app/clasificados/lib/leonixContactChannelsV1";
+import type { AgenteResOpenHouseSlot } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteIndividualResidencialFormState";
+
+/** Item 206 — same repeatable event shape BR Negocio already uses, so Privado adopts the
+ * approved structured model instead of inventing its own. */
+const BR_PRIVADO_MAX_OPEN_HOUSE_SLOTS = 4;
+
+function coerceBrPrivadoOpenHouseSlot(o: unknown): AgenteResOpenHouseSlot {
+  const r = (o && typeof o === "object" ? o : {}) as Record<string, unknown>;
+  return {
+    fecha: typeof r.fecha === "string" ? r.fecha : "",
+    fechaFin: typeof r.fechaFin === "string" ? r.fechaFin : "",
+    inicio: typeof r.inicio === "string" ? r.inicio : "",
+    fin: typeof r.fin === "string" ? r.fin : "",
+    diasHorariosAdicionales: typeof r.diasHorariosAdicionales === "string" ? r.diasHorariosAdicionales : "",
+    notas: typeof r.notas === "string" ? r.notas : "",
+    soloConCita: typeof r.soloConCita === "boolean" ? r.soloConCita : false,
+    enlaceReservar: typeof r.enlaceReservar === "string" ? r.enlaceReservar : "",
+  };
+}
 
 export const BR_PRIVADO_FORM_VERSION = 3 as const;
 
@@ -43,9 +62,14 @@ export type BrPrivadoGate12dSlice = {
   shortTermRentalAllowed: BrPrivadoTriBool;
   parkingRules: string;
   openHouseEnabled: boolean;
+  /** @deprecated Item 206 — Privado's Open House is now repeatable via `openHouseSlots`. These
+   * three legacy fields are kept only so old drafts/listings hydrate safely; new UI writes to
+   * `openHouseSlots` instead. */
   openHouseDate: string;
   openHouseStartTime: string;
   openHouseEndTime: string;
+  /** Item 206 — repeatable Open House events, same shape BR Negocio already uses. */
+  openHouseSlots: AgenteResOpenHouseSlot[];
   showingByAppointment: boolean;
   showingInstructions: string;
   virtualTourUrl: string;
@@ -71,6 +95,7 @@ export function createEmptyBrPrivadoGate12dSlice(): BrPrivadoGate12dSlice {
     openHouseDate: "",
     openHouseStartTime: "",
     openHouseEndTime: "",
+    openHouseSlots: [],
     showingByAppointment: false,
     showingInstructions: "",
     virtualTourUrl: "",
@@ -113,6 +138,21 @@ export function mergeBrPrivadoGate12dSlice(partial: unknown): BrPrivadoGate12dSl
     openHouseDate: typeof g.openHouseDate === "string" ? g.openHouseDate : base.openHouseDate,
     openHouseStartTime: typeof g.openHouseStartTime === "string" ? g.openHouseStartTime : base.openHouseStartTime,
     openHouseEndTime: typeof g.openHouseEndTime === "string" ? g.openHouseEndTime : base.openHouseEndTime,
+    openHouseSlots: (() => {
+      if (Array.isArray(g.openHouseSlots) && g.openHouseSlots.length > 0) {
+        return g.openHouseSlots.slice(0, BR_PRIVADO_MAX_OPEN_HOUSE_SLOTS).map(coerceBrPrivadoOpenHouseSlot);
+      }
+      // Backward compat: an old draft/listing with only the legacy single-event fields
+      // synthesizes one slot, so it hydrates safely into the repeatable model — no data loss,
+      // no destructive migration.
+      const legacyDate = typeof g.openHouseDate === "string" ? g.openHouseDate : "";
+      const legacyStart = typeof g.openHouseStartTime === "string" ? g.openHouseStartTime : "";
+      const legacyEnd = typeof g.openHouseEndTime === "string" ? g.openHouseEndTime : "";
+      if (legacyDate || legacyStart || legacyEnd) {
+        return [coerceBrPrivadoOpenHouseSlot({ fecha: legacyDate, inicio: legacyStart, fin: legacyEnd })];
+      }
+      return [];
+    })(),
     showingByAppointment: typeof g.showingByAppointment === "boolean" ? g.showingByAppointment : base.showingByAppointment,
     showingInstructions: typeof g.showingInstructions === "string" ? g.showingInstructions : base.showingInstructions,
     virtualTourUrl: typeof g.virtualTourUrl === "string" ? g.virtualTourUrl : base.virtualTourUrl,
@@ -160,13 +200,19 @@ function coerceBrPetsAllowedChoice(raw: unknown, fallback: BrPetsAllowedChoice):
   return fallback;
 }
 
+/** Canonical preset keys pass through as-is; free-text "Agregar otra característica" entries are
+ * also accepted (bounded length) so an owner-typed custom highlight isn't silently dropped. */
 function coerceResidencialHighlights(raw: unknown): string[] {
-  return coerceStringArray(raw, 24).filter((k) => VALID_RES_HIGHLIGHT.has(k));
+  return coerceStringArray(raw, 32).filter((k) => VALID_RES_HIGHLIGHT.has(k) || (k.trim().length > 0 && k.length <= 40));
 }
 
 export type BienesRaicesPrivadoResidencialFields = {
   tipoCodigo: TipoPropiedadCodigo;
   subtipo: string;
+  /** Levels/stories — a genuinely separate field from `subtipo` (property type != subtype !=
+   * levels/stories). Free text ("1", "2", "3+") so existing "un_piso"/"dos_pisos" subtipo values
+   * remain valid/displayable without any migration; new drafts should use this field instead. */
+  niveles: string;
   recamaras: string;
   banos: string;
   mediosBanos: string;
@@ -175,8 +221,11 @@ export type BienesRaicesPrivadoResidencialFields = {
   estacionamiento: string;
   ano: string;
   condicion: BrPrivadoCondicion;
-  /** Keys from `BR_HIGHLIGHT_PRESET_DEFS` */
+  /** Keys from `BR_HIGHLIGHT_PRESET_DEFS`, plus any owner-typed "Agregar otra característica"
+   * free-text entries (not in the preset defs — distinguished by lookup at render time). */
   highlightKeys: string[];
+  /** In-progress "Agregar otra característica" text, persisted so a reload doesn't lose it. */
+  pendingCustomHighlight: string;
 };
 
 export type BienesRaicesPrivadoComercialFields = {
@@ -228,8 +277,12 @@ export type BienesRaicesPrivadoFormState = {
   media: {
     photoDataUrls: string[];
     primaryImageIndex: number;
-    /** External video URL (YouTube, Vimeo, direct .mp4, etc.). */
+    /** Legacy single external video URL — superseded by `videoUrls`, kept so old drafts/published
+     * listings saved before multi-video support still hydrate correctly. */
     videoUrl: string;
+    /** External video URLs (YouTube, Vimeo, direct .mp4, etc.) — external links only, no device
+     * upload. Add-one-at-a-time, up to MAX_PRIVADO_VIDEO_URLS. */
+    videoUrls: string[];
     /**
      * Local draft video as data URL (same-tab session only). Takes precedence over `videoUrl` for preview.
      * Not uploaded to Mux until a future paid publish step.
@@ -261,6 +314,7 @@ export type BienesRaicesPrivadoFormState = {
 };
 
 const MAX_PHOTOS = 8;
+export const MAX_PRIVADO_VIDEO_URLS = 4;
 
 export function createEmptyBienesRaicesPrivadoFormState(): BienesRaicesPrivadoFormState {
   return {
@@ -279,6 +333,7 @@ export function createEmptyBienesRaicesPrivadoFormState(): BienesRaicesPrivadoFo
       photoDataUrls: [],
       primaryImageIndex: 0,
       videoUrl: "",
+      videoUrls: [],
       videoLocalDataUrl: "",
     },
     seller: {
@@ -294,6 +349,7 @@ export function createEmptyBienesRaicesPrivadoFormState(): BienesRaicesPrivadoFo
     residencial: {
       tipoCodigo: "casa",
       subtipo: "",
+      niveles: "",
       recamaras: "",
       banos: "",
       mediosBanos: "",
@@ -303,6 +359,7 @@ export function createEmptyBienesRaicesPrivadoFormState(): BienesRaicesPrivadoFo
       ano: "",
       condicion: "",
       highlightKeys: [],
+      pendingCustomHighlight: "",
     },
     comercial: {
       tipoCodigo: "oficina",
@@ -376,6 +433,17 @@ export function mergePartialBienesRaicesPrivadoState(
       photoDataUrls,
       primaryImageIndex,
       videoUrl: typeof mediaIn?.videoUrl === "string" ? mediaIn.videoUrl : base.media.videoUrl,
+      videoUrls: (() => {
+        if (Array.isArray(mediaIn?.videoUrls)) {
+          return mediaIn.videoUrls
+            .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+            .slice(0, MAX_PRIVADO_VIDEO_URLS);
+        }
+        if (base.media.videoUrls.length > 0) return base.media.videoUrls;
+        // Migration compat: an old draft/published listing only ever had a single legacy `videoUrl`.
+        const legacy = typeof mediaIn?.videoUrl === "string" ? mediaIn.videoUrl : base.media.videoUrl;
+        return legacy.trim() ? [legacy.trim()] : [];
+      })(),
       videoLocalDataUrl:
         typeof mediaIn?.videoLocalDataUrl === "string" ? mediaIn.videoLocalDataUrl : base.media.videoLocalDataUrl,
     },
@@ -395,8 +463,11 @@ export function mergePartialBienesRaicesPrivadoState(
       ...resIn,
       tipoCodigo: normalizeResidencialTipoPropiedadCodigo(resIn?.tipoCodigo ?? base.residencial.tipoCodigo),
       subtipo: typeof resIn?.subtipo === "string" ? resIn.subtipo : base.residencial.subtipo,
+      niveles: typeof resIn?.niveles === "string" ? resIn.niveles : base.residencial.niveles,
       condicion: coerceCondicion(resIn?.condicion),
       highlightKeys: coerceResidencialHighlights(resIn?.highlightKeys),
+      pendingCustomHighlight:
+        typeof resIn?.pendingCustomHighlight === "string" ? resIn.pendingCustomHighlight : base.residencial.pendingCustomHighlight,
     },
     comercial: {
       ...base.comercial,

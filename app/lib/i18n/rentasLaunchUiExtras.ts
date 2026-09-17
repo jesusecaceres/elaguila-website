@@ -121,6 +121,7 @@ export type RentasLaunchUiExtras = {
     virtualTour: string;
     virtualTourHint: string;
     invalidHttps: string;
+    tourLinkAdded: string;
   };
   residential: {
     sectionTitle: string;
@@ -324,6 +325,10 @@ export type RentasLaunchUiExtras = {
     destacado_comercial: string;
     listo_construir: string;
     cerca_servicios: string;
+    fosa_septica?: string;
+    electricidad_disponible?: string;
+    agua_disponible?: string;
+    drenaje_disponible?: string;
   };
   tipoFlow: {
     yes: string;
@@ -352,6 +357,8 @@ export type RentasLaunchUiExtras = {
     permittedUse: string;
     heightDimensions: string;
     heightDimensionsHint: string;
+    vehicleRestrictions: string;
+    vehicleRestrictionsHint: string;
     sizeSqft: string;
     sizeSqftHint: string;
     restroomAvailable: string;
@@ -362,6 +369,8 @@ export type RentasLaunchUiExtras = {
     access: string;
     zoning: string;
     zoningHint: string;
+    parkingAvailable: string;
+    covered: string;
   };
 };
 
@@ -373,7 +382,7 @@ const es: RentasLaunchUiExtras = {
     introNew: "La vista previa solo muestra lo que llenes. El borrador vive en esta sesión del navegador (misma pestaña).",
     introEdit: "Estás editando un espacio aislado. Tu anuncio publicado solo cambia al usar Guardar cambios.",
     previewExplanation:
-      "Validar y ver vista previa exige las confirmaciones del final y los requisitos mínimos; si pasan, abre tu anuncio de prueba. Ver vista previa (sin validar) guarda el borrador y abre al instante (útil mientras terminas campos opcionales).",
+      "Vista previa revisa que tengas lo mínimo necesario y abre tu anuncio de prueba.",
     draftDeviceOnly: "Borrador guardado solo en este dispositivo.",
     draftCleared: "Borrador eliminado. Puedes empezar de nuevo.",
     publishedProtected: "Anuncio publicado protegido",
@@ -388,8 +397,8 @@ const es: RentasLaunchUiExtras = {
   },
   actions: {
     backToRentals: "Volver a Rentas",
-    validatePreview: "Validar y ver vista previa",
-    viewWithoutValidation: "Ver vista previa (sin validar)",
+    validatePreview: "Vista previa",
+    viewWithoutValidation: "Ver borrador",
     deleteDraft: "Eliminar borrador",
     confirmPreviewBlocked:
       "Marca las tres confirmaciones al final del formulario para usar Vista previa con validación.",
@@ -493,6 +502,7 @@ const es: RentasLaunchUiExtras = {
     virtualTour: "Tour virtual (enlace HTTPS)",
     virtualTourHint: "Solo enlaces https seguros (Matterport, YouTube, etc.). Opcional.",
     invalidHttps: "Si el enlace no es válido, no se mostrará en el anuncio.",
+    tourLinkAdded: "Enlace añadido",
   },
   residential: {
     sectionTitle: "Detalle residencial",
@@ -534,9 +544,9 @@ const es: RentasLaunchUiExtras = {
   confirmations: {
     title: "Confirmación antes de publicar",
     desc: "Estas casillas ayudan a mantener Leonix claro y confiable para todos.",
-    accurate: "Confirmo que la información de la propiedad es veraz y actualizada.",
-    photos: "Confirmo que las fotos muestran la propiedad real que estoy publicando.",
-    rules: "Confirmo que mi anuncio respeta las reglas de la comunidad y del marketplace.",
+    accurate: "Confirmo que la información de la renta, precio, disponibilidad, dirección/área y datos de contacto es correcta y está actualizada.",
+    photos: "Confirmo que estoy autorizado para publicar esta propiedad en renta y cualquier foto o detalle incluido.",
+    rules: "Confirmo que este anuncio sigue las reglas de Rentas de Leonix y que soy responsable por la información publicada.",
     rulesLink: "Ver reglas de Leonix",
   },
   review: {
@@ -726,6 +736,8 @@ const es: RentasLaunchUiExtras = {
     permittedUse: "Uso permitido",
     heightDimensions: "Altura / dimensiones",
     heightDimensionsHint: "Si aplica (puerta, techo, van accessible…).",
+    vehicleRestrictions: "Restricciones de vehículo",
+    vehicleRestrictionsHint: "Ej. solo autos, sin RV/tráiler, altura máxima.",
     sizeSqft: "Tamaño (ft²)",
     sizeSqftHint: "Solo números (pies cuadrados aproximados).",
     restroomAvailable: "Baño disponible",
@@ -736,6 +748,8 @@ const es: RentasLaunchUiExtras = {
     access: "Acceso",
     zoning: "Zonificación",
     zoningHint: "Si aplica.",
+    parkingAvailable: "Estacionamiento disponible",
+    covered: "Cubierto",
   },
 };
 
@@ -747,7 +761,7 @@ const en: RentasLaunchUiExtras = {
     introNew: "The preview only shows what you fill in. The draft lives in this browser session (same tab).",
     introEdit: "You are editing an isolated workspace. Your published listing changes only after Save changes.",
     previewExplanation:
-      "Validate and preview requires the final confirmations and minimum requirements; if they pass, opens your test listing. View preview (without validation) saves the draft and opens instantly (useful while you finish optional fields).",
+      "Preview checks that you have the minimum required fields and opens your test listing.",
     draftDeviceOnly: "Draft saved only on this device.",
     draftCleared: "Draft cleared. You can start over.",
     publishedProtected: "Published listing protected",
@@ -762,8 +776,8 @@ const en: RentasLaunchUiExtras = {
   },
   actions: {
     backToRentals: "Back to Rentals",
-    validatePreview: "Validate and preview",
-    viewWithoutValidation: "View preview (without validation)",
+    validatePreview: "Preview",
+    viewWithoutValidation: "View draft",
     deleteDraft: "Delete draft",
     confirmPreviewBlocked: "Check all three confirmations at the bottom to use validated preview.",
     cancelEdit: "Cancel edit",
@@ -866,6 +880,7 @@ const en: RentasLaunchUiExtras = {
     virtualTour: "Virtual tour (HTTPS link)",
     virtualTourHint: "Only secure https links (Matterport, YouTube, etc.). Optional.",
     invalidHttps: "If the link is not valid, it will not be shown in the listing.",
+    tourLinkAdded: "Link added",
   },
   residential: {
     sectionTitle: "Residential details",
@@ -907,9 +922,9 @@ const en: RentasLaunchUiExtras = {
   confirmations: {
     title: "Confirmation before posting",
     desc: "These checks help keep Leonix clear and trustworthy for everyone.",
-    accurate: "I confirm the property information is accurate and up to date.",
-    photos: "I confirm the photos show the actual property I’m listing.",
-    rules: "I confirm this listing follows community and marketplace rules.",
+    accurate: "I confirm the rental information, price, availability, address/area, and contact details are accurate and up to date.",
+    photos: "I confirm I am authorized to publish this rental property and any photos or details included.",
+    rules: "I confirm this listing follows Leonix rental rules and that I am responsible for the published information.",
     rulesLink: "View Leonix rules",
   },
   review: {
@@ -1099,6 +1114,8 @@ const en: RentasLaunchUiExtras = {
     permittedUse: "Permitted use",
     heightDimensions: "Height / dimensions",
     heightDimensionsHint: "If applicable (door, ceiling, van accessible…).",
+    vehicleRestrictions: "Vehicle restrictions",
+    vehicleRestrictionsHint: "E.g. cars only, no RV/trailer, max height.",
     sizeSqft: "Size (ft²)",
     sizeSqftHint: "Numbers only (approximate square feet).",
     restroomAvailable: "Restroom available",
@@ -1109,6 +1126,8 @@ const en: RentasLaunchUiExtras = {
     access: "Access",
     zoning: "Zoning",
     zoningHint: "If applicable.",
+    parkingAvailable: "Parking available",
+    covered: "Covered",
   },
 };
 
@@ -1120,7 +1139,7 @@ const pt: RentasLaunchUiExtras = {
     introNew: "A prévia mostra apenas o que você preencher. O rascunho fica nesta sessão do navegador (mesma aba).",
     introEdit: "Você está editando um espaço isolado. Seu anúncio publicado só muda ao usar Salvar alterações.",
     previewExplanation:
-      "Validar e ver prévia exige as confirmações finais e os requisitos mínimos; se passarem, abre seu anúncio de teste. Ver prévia (sem validar) salva o rascunho e abre na hora (útil enquanto você termina campos opcionais).",
+      "Prévia confere se você tem o mínimo necessário e abre seu anúncio de teste.",
     draftDeviceOnly: "Rascunho salvo só neste dispositivo.",
     draftCleared: "Rascunho apagado. Você pode começar de novo.",
     publishedProtected: "Anúncio publicado protegido",
@@ -1135,8 +1154,8 @@ const pt: RentasLaunchUiExtras = {
   },
   actions: {
     backToRentals: "Voltar para Aluguéis",
-    validatePreview: "Validar e ver prévia",
-    viewWithoutValidation: "Ver prévia (sem validar)",
+    validatePreview: "Prévia",
+    viewWithoutValidation: "Ver rascunho",
     deleteDraft: "Excluir rascunho",
     confirmPreviewBlocked:
       "Marque as três confirmações no final do formulário para usar a prévia com validação.",
@@ -1240,6 +1259,7 @@ const pt: RentasLaunchUiExtras = {
     virtualTour: "Tour virtual (link HTTPS)",
     virtualTourHint: "Somente links https seguros (Matterport, YouTube etc.). Opcional.",
     invalidHttps: "Se o link não for válido, não será mostrado no anúncio.",
+    tourLinkAdded: "Link adicionado",
   },
   residential: {
     sectionTitle: "Detalhe residencial",
@@ -1281,9 +1301,9 @@ const pt: RentasLaunchUiExtras = {
   confirmations: {
     title: "Confirmação antes de publicar",
     desc: "Estas caixas ajudam a manter a Leonix clara e confiável para todos.",
-    accurate: "Confirmo que as informações do imóvel são verdadeiras e atualizadas.",
-    photos: "Confirmo que as fotos mostram o imóvel real que estou anunciando.",
-    rules: "Confirmo que meu anúncio respeita as regras da comunidade e do marketplace.",
+    accurate: "Confirmo que as informações do aluguel, preço, disponibilidade, endereço/área e dados de contato estão corretos e atualizados.",
+    photos: "Confirmo que estou autorizado a publicar este imóvel para aluguel e quaisquer fotos ou detalhes incluídos.",
+    rules: "Confirmo que este anúncio segue as regras de aluguel da Leonix e que sou responsável pelas informações publicadas.",
     rulesLink: "Ver regras da Leonix",
   },
   review: {
@@ -1473,6 +1493,8 @@ const pt: RentasLaunchUiExtras = {
     permittedUse: "Uso permitido",
     heightDimensions: "Altura / dimensões",
     heightDimensionsHint: "Se aplicável (porta, teto, van accessible…).",
+    vehicleRestrictions: "Restrições de veículo",
+    vehicleRestrictionsHint: "Ex. só carros, sem RV/trailer, altura máxima.",
     sizeSqft: "Tamanho (ft²)",
     sizeSqftHint: "Somente números (pés quadrados aproximados).",
     restroomAvailable: "Banheiro disponível",
@@ -1483,6 +1505,8 @@ const pt: RentasLaunchUiExtras = {
     access: "Acesso",
     zoning: "Zoneamento",
     zoningHint: "Se aplicável.",
+    parkingAvailable: "Estacionamento disponível",
+    covered: "Coberto",
   },
 };
 
@@ -1494,7 +1518,7 @@ const tl: RentasLaunchUiExtras = {
     introNew: "Ang preview ay nagpapakita lang ng nilagay mo. Nakatira ang draft sa session na ito ng browser (parehong tab).",
     introEdit: "Nag-e-edit ka sa hiwalay na workspace. Nagbabago lang ang published listing pagkatapos ng Save changes.",
     previewExplanation:
-      "Kailangan ng Validate and preview ang final confirmations at minimum requirements; kung pumasa, bubuksan ang test listing. Ang View preview (without validation) ay magse-save ng draft at agad bubukas (kapaki-pakinabang habang tinatapos ang optional fields).",
+      "Sinisiguro ng I-preview na kumpleto ang minimum na kailangan bago buksan ang test listing mo.",
     draftDeviceOnly: "Naka-save ang draft sa device na ito lang.",
     draftCleared: "Na-clear ang draft. Puwede kang magsimula ulit.",
     publishedProtected: "Protektado ang published listing",
@@ -1509,8 +1533,8 @@ const tl: RentasLaunchUiExtras = {
   },
   actions: {
     backToRentals: "Bumalik sa Rentas",
-    validatePreview: "I-validate at i-preview",
-    viewWithoutValidation: "Tingnan ang preview (walang validation)",
+    validatePreview: "I-preview",
+    viewWithoutValidation: "Tingnan ang draft",
     deleteDraft: "I-delete ang draft",
     confirmPreviewBlocked:
       "I-check ang tatlong confirmation sa ibaba para magamit ang validated preview.",
@@ -1614,6 +1638,7 @@ const tl: RentasLaunchUiExtras = {
     virtualTour: "Virtual tour (HTTPS link)",
     virtualTourHint: "Secure https links lang (Matterport, YouTube, atbp.). Optional.",
     invalidHttps: "Kung hindi valid ang link, hindi ito ipapakita sa listing.",
+    tourLinkAdded: "Naidagdag ang link",
   },
   residential: {
     sectionTitle: "Mga detalye ng residential",
@@ -1655,9 +1680,9 @@ const tl: RentasLaunchUiExtras = {
   confirmations: {
     title: "Kumpirmasyon bago mag-post",
     desc: "Tinutulungan ng mga check na ito na manatiling malinaw at mapagkakatiwalaan ang Leonix para sa lahat.",
-    accurate: "Kinukumpirma kong totoo at updated ang impormasyon ng property.",
-    photos: "Kinukumpirma kong ipinapakita ng mga larawan ang tunay na property na inililista ko.",
-    rules: "Kinukumpirma kong sumusunod ang listing na ito sa community at marketplace rules.",
+    accurate: "Kinukumpirma kong tama at updated ang impormasyon ng renta, presyo, availability, address/area, at contact details.",
+    photos: "Kinukumpirma kong may awtorisasyon akong i-publish ang property na ito para sa renta pati na ang anumang larawan o detalyeng kasama.",
+    rules: "Kinukumpirma kong sumusunod ang listing na ito sa mga Rentas rules ng Leonix at ako ang responsable sa impormasyong na-publish.",
     rulesLink: "Tingnan ang Leonix rules",
   },
   review: {
@@ -1847,6 +1872,8 @@ const tl: RentasLaunchUiExtras = {
     permittedUse: "Pinapayagang gamit",
     heightDimensions: "Taas / dimensyon",
     heightDimensionsHint: "Kung applicable (door, ceiling, van accessible…).",
+    vehicleRestrictions: "Mga restriksyon sa sasakyan",
+    vehicleRestrictionsHint: "Hal. mga sasakyan lang, walang RV/trailer, max na taas.",
     sizeSqft: "Sukat (ft²)",
     sizeSqftHint: "Numero lang (tinatayang square feet).",
     restroomAvailable: "May restroom",
@@ -1857,6 +1884,8 @@ const tl: RentasLaunchUiExtras = {
     access: "Access",
     zoning: "Zoning",
     zoningHint: "Kung applicable.",
+    parkingAvailable: "May available na parking",
+    covered: "May bubong",
   },
 };
 
