@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AutosNegociosDealershipPreviewPage } from "./dealershipPreview/AutosNegociosDealershipPreviewPage";
@@ -38,7 +38,11 @@ import {
   captureCheckoutNewsletterSubscriber,
 } from "@/app/lib/newsletter/checkoutNewsletterCapture";
 import { prepareAutosListingForApiTransport } from "@/app/(site)/publicar/autos/shared/lib/autosMuxPublishPrepare";
-import { resolveAutosDraftPhotosForPublish } from "@/app/lib/clasificados/autos/autosDraftPhotoPublishPrepare";
+import {
+  autosDraftListingHasLocalPhotos,
+  autosInventoryDraftHasLocalPhotos,
+  resolveAutosDraftPhotosForPublish,
+} from "@/app/lib/clasificados/autos/autosDraftPhotoPublishPrepare";
 import { resolveAutosNegociosDraftNamespace } from "../lib/autosNegociosDraftNamespace";
 import { countApplicationInventoryVehicles } from "@/app/lib/clasificados/autos/autosAdditionalInventoryDraft";
 import {
@@ -324,6 +328,7 @@ function AutosNegociosPreviewInner({
   canonicalListingId,
   canonicalError,
   resolvedListingLang,
+  mediaReadiness,
 }: {
   ready: boolean;
   mode: AutosNegociosPreviewMode;
@@ -334,6 +339,10 @@ function AutosNegociosPreviewInner({
   /** Real persisted authored language for a canonical (DB-backed) listing; null for a purely
    * local, never-saved draft — see PreviewResolveResult.listingLang. */
   resolvedListingLang: "es" | "en" | null;
+  /** Gate 05: truthful media-preparation progress, computed one level up (where the durable
+   * results are written back into `listing`/`additionalInventoryVehicles`). Only meaningful in
+   * the draft-capture branch, which is the only one with a real Pay action. */
+  mediaReadiness: { phase: "idle" | "preparing" | "ready"; done: number; total: number };
 }) {
   const { lang } = useAutosNegociosPreviewCopy();
   const searchParams = useSearchParams();
@@ -377,6 +386,29 @@ function AutosNegociosPreviewInner({
   }, [mode, canonicalListingId, lang]);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  /**
+   * Owner lock (2026-09-17, Gate 08): the newsletter checkout identity is the AUTHENTICATED
+   * session email — never an editable/marketing address the customer could redirect elsewhere.
+   * Resolved once on mount (mirrors Servicios' pattern) so it's visible in the checkpoint UI
+   * before the dealer ever clicks Pay, not a hidden `session.user.email` they never see.
+   */
+  const [newsletterEmail, setNewsletterEmail] = useState<string | null>(null);
+  const [newsletterCaptureNote, setNewsletterCaptureNote] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const sb = createSupabaseBrowserClient();
+        const { data } = await sb.auth.getSession();
+        if (!cancelled) setNewsletterEmail(data.session?.user?.email ?? null);
+      } catch {
+        if (!cancelled) setNewsletterEmail(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const viewModel = useMemo(
     () => mapAutosNegociosBuyerPreviewViewModel(listing, additionalInventoryVehicles, lang),
     [listing, additionalInventoryVehicles, lang],
@@ -513,28 +545,59 @@ function AutosNegociosPreviewInner({
     }) => {
       setCheckoutBusy(true);
       setCheckoutError(null);
+      setNewsletterCaptureNote(null);
+
+      // Owner lock (2026-09-17, Gate 08/10/11): resolve a fresh authenticated session for the
+      // newsletter capture's own identity (accessToken — the server resolves the canonical
+      // account email itself, never a client-supplied alternate), and fire the capture BEFORE
+      // awaiting the required listing preparation so the two independent operations overlap
+      // instead of serializing optional newsletter work ahead of required checkout work.
+      const capturePromise = (async () => {
+        let accessToken: string | null = null;
+        let sessionEmail: string | null = newsletterEmail;
+        try {
+          const sb = createSupabaseBrowserClient();
+          const { data } = await sb.auth.getSession();
+          accessToken = data.session?.access_token ?? null;
+          sessionEmail = data.session?.user?.email ?? newsletterEmail;
+        } catch {
+          /* best-effort — capture below still runs with whatever identity is already known */
+        }
+        return captureCheckoutNewsletterSubscriber({
+          checked: ctx.newsletterOptIn,
+          email: sessionEmail,
+          accessToken,
+          businessName: listing.dealerName,
+          city: listing.city,
+          zipCode: listing.zip,
+          preferredLanguage: lang,
+          lang,
+          source: CHECKOUT_NEWSLETTER_SOURCES.autosDealer,
+          interests: AUTOS_DEALER_NEWSLETTER_INTERESTS,
+          consentText:
+            lang === "es"
+              ? "Acepto recibir promociones y novedades de Leonix relacionadas con mi checkout dealer."
+              : "I agree to receive Leonix promotions and updates related to my dealer checkout.",
+        });
+      })();
+
       const pending = await ensurePendingDealerListing();
+
+      const captureResult = await capturePromise;
+      if (captureResult.status === "FAILED") {
+        console.warn("[autos-dealer-checkout] newsletter capture failed", captureResult.reason);
+        setNewsletterCaptureNote(
+          lang === "es"
+            ? "No pudimos guardar tu suscripción al boletín. Tu pago no se vio afectado."
+            : "We couldn't save your newsletter subscription. Your payment was not affected.",
+        );
+      }
+
       if (!pending.ok) {
         setCheckoutBusy(false);
         setCheckoutError(pending.message);
         return;
       }
-
-      void captureCheckoutNewsletterSubscriber({
-        checked: ctx.newsletterOptIn,
-        email: pending.customerEmail,
-        businessName: listing.dealerName,
-        city: listing.city,
-        zipCode: listing.zip,
-        preferredLanguage: lang,
-        lang,
-        source: CHECKOUT_NEWSLETTER_SOURCES.autosDealer,
-        interests: AUTOS_DEALER_NEWSLETTER_INTERESTS,
-        consentText:
-          lang === "es"
-            ? "Acepto recibir promociones y novedades de Leonix relacionadas con mi checkout dealer."
-            : "I agree to receive Leonix promotions and updates related to my dealer checkout.",
-      });
 
       const checkout = await startRevenueCategoryCheckout({
         ...AUTOS_DEALER_CHECKOUT,
@@ -554,7 +617,7 @@ function AutosNegociosPreviewInner({
       }
       redirectToRevenueCategoryCheckout(checkout.checkoutUrl);
     },
-    [ensurePendingDealerListing, lang, listing.city, listing.dealerName, listing.zip, totalVehicleCount],
+    [ensurePendingDealerListing, lang, listing.city, listing.dealerName, listing.zip, totalVehicleCount, newsletterEmail],
   );
 
   if (!ready) {
@@ -656,9 +719,19 @@ function AutosNegociosPreviewInner({
               lang={lang}
               busy={checkoutBusy}
               errorMessage={checkoutError}
+              draftReady={mediaReadiness.phase !== "preparing"}
+              draftReadyMessage={
+                mediaReadiness.phase === "preparing"
+                  ? lang === "es"
+                    ? `Preparando imágenes… ${mediaReadiness.done} de ${mediaReadiness.total}`
+                    : `Preparing images… ${mediaReadiness.done} of ${mediaReadiness.total}`
+                  : null
+              }
               onPromoApply={(code) => applyAutosDealerPreviewPromoCode({ code, lang, totalVehicleCount })}
               onCheckout={(ctx) => void onStartDealerCheckout(ctx)}
               rulesModal={AUTOS_DEALER_PREVIEW_RULES_MODAL}
+              newsletterEmail={newsletterEmail}
+              newsletterCaptureNote={newsletterCaptureNote}
               className="mx-auto w-full max-w-xl"
             />
           </div>
@@ -687,6 +760,21 @@ export function AutosNegociosPreviewClient() {
   const [canonicalError, setCanonicalError] = useState<CanonicalPreviewErrorReason | null>(null);
   const [resolvedListingLang, setResolvedListingLang] = useState<"es" | "en" | null>(null);
   const [recoverHint, setRecoverHint] = useState<string | null>(null);
+  /**
+   * Owner lock (2026-09-17, Gate 03/05): media durability moved EARLIER than Pay. While the
+   * dealer is already sitting in Preview (before ever clicking Pay), this progressively uploads
+   * any still-local draft photos using the SAME resolveAutosDraftPhotosForPublish engine Pay
+   * itself uses — so by the time Pay is actually clicked, that same call is a fast no-op (every
+   * image is already a durable URL) instead of the start of a real upload batch. "error" here
+   * never blocks Pay: Pay's own click-time call remains the real safety net and surfaces a
+   * proper localized error if photos still fail there.
+   */
+  const [mediaReadiness, setMediaReadiness] = useState<{ phase: "idle" | "preparing" | "ready"; done: number; total: number }>({
+    phase: "idle",
+    done: 0,
+    total: 0,
+  });
+  const mediaPrepStartedRef = useRef(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -745,6 +833,60 @@ export function AutosNegociosPreviewClient() {
     };
   }, [refresh]);
 
+  // Gate 03/05: begin durable media preparation as soon as the dealer is sitting in a real,
+  // signed-in draft Preview with local photos — well before Pay exists as an option. Runs once
+  // per mount (mediaPrepStartedRef) so it never re-fires on every keystroke/autosave re-render.
+  // Session-lang best-effort only (?lang= param) — this background pass renders no user-facing
+  // text of its own; the readiness message shown near Pay is computed inside AutosNegociosPreviewInner
+  // using its own real adDisplayLang-correct `lang`.
+  useEffect(() => {
+    if (!ready || mode !== "draft" || mediaPrepStartedRef.current) return;
+    if (!autosDraftListingHasLocalPhotos(listing) && !autosInventoryDraftHasLocalPhotos(additionalInventoryVehicles)) return;
+    mediaPrepStartedRef.current = true;
+    let cancelled = false;
+    const bgLang: "es" | "en" = searchParams?.get("lang") === "en" ? "en" : "es";
+    void (async () => {
+      setMediaReadiness({ phase: "preparing", done: 0, total: 0 });
+      try {
+        const sb = createSupabaseBrowserClient();
+        const { data } = await sb.auth.getSession();
+        const token = data.session?.access_token ?? null;
+        if (!token) {
+          if (!cancelled) setMediaReadiness({ phase: "idle", done: 0, total: 0 });
+          return;
+        }
+        const namespace = await resolveAutosNegociosDraftNamespace();
+        const draftId = namespace.replace(/[^a-zA-Z0-9_-]+/g, "").slice(0, 80) || "negocios";
+        const result = await resolveAutosDraftPhotosForPublish({
+          listing,
+          additionalInventoryVehicles,
+          draftNamespace: namespace,
+          draftId,
+          authToken: token,
+          lang: bgLang,
+          onProgress: (done, total) => {
+            if (!cancelled) setMediaReadiness({ phase: "preparing", done, total });
+          },
+        });
+        if (cancelled) return;
+        if (!result.ok) {
+          // Never blocks Pay — Pay's own click-time call is the real safety net and will surface
+          // a proper localized error if photos still fail there.
+          setMediaReadiness({ phase: "idle", done: 0, total: 0 });
+          return;
+        }
+        setListing(result.listing);
+        setAdditionalInventoryVehicles(result.additionalInventoryVehicles);
+        setMediaReadiness({ phase: "ready", done: 0, total: 0 });
+      } catch {
+        if (!cancelled) setMediaReadiness({ phase: "idle", done: 0, total: 0 });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, mode]);
+
   return (
     <AutosNegociosPreviewLocaleProvider>
       {process.env.NODE_ENV === "development" && recoverHint ? (
@@ -760,6 +902,7 @@ export function AutosNegociosPreviewClient() {
         canonicalListingId={resolvedCanonicalListingId}
         canonicalError={canonicalError}
         resolvedListingLang={resolvedListingLang}
+        mediaReadiness={mediaReadiness}
       />
     </AutosNegociosPreviewLocaleProvider>
   );
