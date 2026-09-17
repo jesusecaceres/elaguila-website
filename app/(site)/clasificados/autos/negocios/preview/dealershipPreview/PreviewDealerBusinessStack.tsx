@@ -674,7 +674,13 @@ export function PreviewDealerBusinessStack({
                   recordShareEvent={autosGlobalShareRecorderFromContext(analyticsCtx, "detail_share")}
                   className={QUICK_ACTION_CLASS}
                 />
-              ) : publicPlaybackOnly ? (
+              ) : publicPlaybackOnly || Boolean(publicUrl?.trim()) ? (
+                // Gate H: a canonical-active listing is genuinely already published — publicUrl is
+                // only ever set (by the Preview client) once a real public URL exists — so Share
+                // here uses the real `onShare` handler (navigator.share / clipboard fallback)
+                // against that URL. It intentionally skips the analytics-tracked LeonixShareButton
+                // branch above (no fake self-share event recorded while the owner previews their
+                // own listing) — this is a real, working action, not decorative.
                 <button type="button" className={QUICK_ACTION_CLASS} onClick={() => void onShare()}>
                   <FiShare2 className="h-4 w-4 shrink-0 text-[#7A1E2C]" aria-hidden />
                   {shareLabel}
