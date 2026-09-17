@@ -1,9 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { AdvertiseDropdown } from "@/app/components/AdvertiseDropdown";
+import Link from "next/link";
 import type { HomeFeaturedBusiness } from "./homeFeaturedBusinesses";
-import { HOME_PAGE_COPY, type HomePageLang } from "./homePageCopy";
+import { HOME_PAGE_COPY, HOME_ROUTES, type HomePageLang } from "./homePageCopy";
 import type { SupportedLang } from "@/app/lib/language";
 import { replaceLangInHref } from "@/app/lib/language";
 
@@ -27,12 +27,18 @@ type Props = {
   businesses: HomeFeaturedBusiness[];
 };
 
+/**
+ * Gate HOME-LAUNCH-6 — Featured community businesses. Real advertiser cards when populated;
+ * otherwise a tasteful reserved state with ONE discovery CTA (no advertising dropdown here —
+ * the business-growth section owns that conversation).
+ */
 export function HomeDestacadosSection({ lang, routeLang, businesses }: Props) {
   const copy = HOME_PAGE_COPY[lang].destacados;
   const hasBusinesses = businesses.length > 0;
   const count = businesses.length;
   const useSixCol = count === 5 || count === 7;
   const useFiveCol = count === 5;
+  const exploreHref = replaceLangInHref(HOME_ROUTES.featuredBusinesses, routeLang);
 
   return (
     <section
@@ -47,7 +53,6 @@ export function HomeDestacadosSection({ lang, routeLang, businesses }: Props) {
         >
           {copy.title}
         </h2>
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#3D3428] sm:text-[0.9375rem]">{copy.intro}</p>
 
         {hasBusinesses ? (
           <ul
@@ -63,21 +68,22 @@ export function HomeDestacadosSection({ lang, routeLang, businesses }: Props) {
                 key={`${business.name}-${business.href}`}
                 className={cx(useSixCol && "lg:col-span-2", featuredCardColClass(index, businesses.length))}
               >
-                <FeaturedBusinessCard business={business} lang={lang} routeLang={routeLang} viewCta={copy.viewCta} />
+                <FeaturedBusinessCard business={business} routeLang={routeLang} viewCta={copy.viewCta} />
               </li>
             ))}
           </ul>
         ) : (
-          <div className="mt-8 rounded-2xl border border-[#D6C7AD] bg-[#FAF6EE] px-6 py-10 text-center shadow-[0_12px_32px_-20px_rgba(31,36,28,0.2)] sm:px-10">
+          <div className="mt-8 rounded-2xl border border-[#D6C7AD] bg-[#FAF6EE] px-6 py-9 text-center shadow-[0_12px_32px_-20px_rgba(31,36,28,0.2)] sm:px-10">
+            <span className="mx-auto mb-4 block h-1 w-10 rounded-full bg-[#C9A84A]/80" aria-hidden />
             <p className="mx-auto max-w-lg text-sm font-medium leading-relaxed text-[#3D3428] sm:text-base">
               {copy.reserved}
             </p>
-            <AdvertiseDropdown
-              lang={lang}
-              variant="outline"
-              className="mt-6"
-              buttonLabel={copy.advertiseCta}
-            />
+            <Link
+              href={exploreHref}
+              className="mt-6 inline-flex min-h-[2.75rem] items-center justify-center rounded-full border-2 border-[#7A1E2C]/85 bg-[#FFFDF7] px-7 py-2.5 text-sm font-bold text-[#7A1E2C] transition hover:border-[#7A1E2C] hover:bg-[#FBF7EF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C]"
+            >
+              {copy.exploreCta}
+            </Link>
           </div>
         )}
       </div>
@@ -87,12 +93,10 @@ export function HomeDestacadosSection({ lang, routeLang, businesses }: Props) {
 
 function FeaturedBusinessCard({
   business,
-  lang,
   routeLang,
   viewCta,
 }: {
   business: HomeFeaturedBusiness;
-  lang: HomePageLang;
   routeLang: SupportedLang;
   viewCta: string;
 }) {
@@ -129,12 +133,12 @@ function FeaturedBusinessCard({
         {business.tagline.trim() ? (
           <p className="mt-2 flex-1 text-sm leading-snug text-[#3D3428]">{business.tagline}</p>
         ) : null}
-        <a
+        <Link
           href={href}
-          className="mt-4 inline-flex min-h-[2.5rem] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-[#FFFDF7] transition hover:bg-[#5e1721]"
+          className="mt-4 inline-flex min-h-[2.75rem] items-center justify-center rounded-lg bg-[#7A1E2C] px-4 py-2 text-xs font-bold text-[#FFFDF7] transition hover:bg-[#5e1721] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C]"
         >
           {viewCta}
-        </a>
+        </Link>
       </div>
     </article>
   );

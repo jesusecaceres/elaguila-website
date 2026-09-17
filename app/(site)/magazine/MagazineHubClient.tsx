@@ -7,76 +7,30 @@ import type { AdvertiseLang } from "@/app/lib/advertiseDropdownConfig";
 import type { PublicMagazineManifest } from "@/app/lib/magazine/magazineManifestTypes";
 import { getMagazineHubPageCopy } from "@/app/lib/magazine/magazineHubPageCopy";
 import {
-  getJune2026MonthLabel,
-  getJune2026Title,
   getMagazineUi,
   resolveMagazineLang,
   type MagazineLang,
 } from "@/app/(site)/magazine/2026/june/issueContent";
+import {
+  CURRENT_MAGAZINE_EDITION,
+  DEFAULT_MAGAZINE_FLIPBOOK,
+  magazineEditionMonthLabel,
+  magazineEditionTitle,
+  mergeEditionFromManifest,
+  type MagazineEdition,
+} from "@/app/lib/magazine/currentEdition";
 import { MagazineLanguageSelector } from "@/app/(site)/magazine/components/MagazineLanguageSelector";
 import { MagazineTranslatedReader } from "@/app/(site)/magazine/components/MagazineTranslatedReader";
 import { magazineJune2026ReaderHref } from "@/app/lib/magazine/qrBridge";
 import {useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
-type MagazineEdition = {
-  titleEs: string;
-  titleEn: string;
-  monthEs: string;
-  monthEn: string;
-  year: string;
-  monthKey: string;
-  coverImage: string;
-  pdfUrl: string;
-  flipbookUrl: string | null;
-};
-
-const DEFAULT_FLIPBOOK = "https://flip.leonixmedia.com/books/qnda/";
-
-const CURRENT_EDITION: MagazineEdition = {
-  titleEs: "Leonix Media — Revista Junio 2026",
-  titleEn: "Leonix Media — June 2026 Magazine",
-  monthEs: "Junio",
-  monthEn: "June",
-  year: "2026",
-  monthKey: "june",
-  coverImage: "/magazine/2026/june/cover.png",
-  pdfUrl: "/magazine/2026/june/leonix_media_june.pdf",
-  flipbookUrl: "https://flip.leonixmedia.com/books/qnda/",
-};
+// Gate HOME-LAUNCH-3 — the current edition record + manifest merge now live in
+// `app/lib/magazine/currentEdition.ts` so Home and this hub share ONE truth source.
+const DEFAULT_FLIPBOOK = DEFAULT_MAGAZINE_FLIPBOOK;
+const CURRENT_EDITION: MagazineEdition = CURRENT_MAGAZINE_EDITION;
 
 const PAST_EDITIONS: MagazineEdition[] = [];
-
-function mergeEditionFromManifest(
-  base: MagazineEdition,
-  manifest: PublicMagazineManifest | null,
-  role: "featured" | { year: string; month: string }
-): MagazineEdition {
-  if (!manifest) return base;
-  if (role === "featured") {
-    const f = manifest.featured;
-    if (f.year !== base.year || f.month !== base.monthKey) return base;
-    return {
-      ...base,
-      titleEs: f.title?.es?.trim() || base.titleEs,
-      titleEn: f.title?.en?.trim() || base.titleEn,
-      coverImage: (f.coverUrl && f.coverUrl.trim()) || base.coverImage,
-      pdfUrl: (f.pdfUrl && f.pdfUrl.trim()) || base.pdfUrl,
-      flipbookUrl: (f.flipbookUrl && f.flipbookUrl.trim()) || base.flipbookUrl,
-    };
-  }
-  const months = manifest.years?.[role.year]?.months ?? [];
-  const m = months.find((x) => x.month === role.month);
-  if (!m) return base;
-  return {
-    ...base,
-    titleEs: m.title?.es?.trim() || base.titleEs,
-    titleEn: m.title?.en?.trim() || base.titleEn,
-    coverImage: (m.coverUrl && m.coverUrl.trim()) || base.coverImage,
-    pdfUrl: (m.pdfUrl && m.pdfUrl.trim()) || base.pdfUrl,
-    flipbookUrl: (m.flipbookUrl && m.flipbookUrl.trim()) || base.flipbookUrl,
-  };
-}
 
 function FullscreenFlipbookModal({
   open,
@@ -188,19 +142,11 @@ function EditionActions({
 }
 
 function editionDisplayTitle(edition: MagazineEdition, lang: MagazineLang): string {
-  if (edition.monthKey === "june" && edition.year === "2026") {
-    return getJune2026Title(lang);
-  }
-  if (lang === "en") return edition.titleEn;
-  return edition.titleEs;
+  return magazineEditionTitle(edition, lang);
 }
 
 function editionMonthLabel(edition: MagazineEdition, lang: MagazineLang): string {
-  if (edition.monthKey === "june" && edition.year === "2026") {
-    return getJune2026MonthLabel(lang);
-  }
-  if (lang === "en") return edition.monthEn;
-  return edition.monthEs;
+  return magazineEditionMonthLabel(edition, lang);
 }
 
 function MagazineHubPageContent() {

@@ -5,6 +5,8 @@ import { getSiteSectionPayload } from "@/app/lib/siteSectionContent/siteSectionC
 import type { HomeMarketingPayload } from "@/app/lib/siteSectionContent/payloadTypes";
 import { mergeHomeMarketing } from "@/app/lib/siteSectionContent/homeMarketingMerge";
 import { isOfficialLaunchLang, normalizeLang } from "@/app/lib/language";
+import { resolvePublicMagazineManifest } from "@/app/lib/magazine/magazineManifestServer";
+import { resolveCurrentMagazineEdition } from "@/app/lib/magazine/currentEdition";
 import { HomeMarketingClient } from "./HomeMarketingClient";
 import { buildPublicPillarMetadata } from "@/app/lib/leonix/publicPillarSeo";
 
@@ -22,12 +24,18 @@ export default async function HomePage(props: { searchParams?: Promise<{ lang?: 
     redirect(`/coming-soon-v2?lang=${lang}`);
   }
 
-  const { payload } = await getSiteSectionPayload("home_marketing");
+  const [{ payload }, manifest] = await Promise.all([
+    getSiteSectionPayload("home_marketing"),
+    // Same public manifest the Revista hub reads (`/api/magazine/manifest`); Home never keeps
+    // its own edition record. A manifest failure falls back to the shared base edition.
+    resolvePublicMagazineManifest().catch(() => null),
+  ]);
   const content = mergeHomeMarketing(payload as unknown as HomeMarketingPayload);
+  const edition = resolveCurrentMagazineEdition(manifest);
   return (
     <>
       <PublicPillarJsonLd id="home" lang={lang} />
-      <HomeMarketingClient content={content} />
+      <HomeMarketingClient content={content} edition={edition} />
     </>
   );
 }

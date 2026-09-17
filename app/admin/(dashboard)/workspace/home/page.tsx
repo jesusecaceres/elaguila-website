@@ -19,28 +19,24 @@ export default async function AdminWorkspaceHomePage() {
 
   const hasAnnouncementCopy = m.es.announcement.trim().length > 0 || m.en.announcement.trim().length > 0;
 
+  // Home launch architecture is code-owned; legacy CMS fields retained for backward compatibility.
+  // Only the announcement strip and the hero cover-column toggle are read by the public /home.
   const rows: { step: string; detail: string }[] = [
     {
-      step: "1. Thin announcement above hero",
+      step: "1. Thin announcement above hero (CMS)",
       detail: `${yn(m.modules.showAnnouncement && hasAnnouncementCopy)} · “Show announcement strip” checkbox + copy in Content`,
     },
     {
-      step: "2. Headline, identity & subtitle",
-      detail: "Always visible (copy in Content)",
+      step: "2. Hero + current magazine edition (code-owned)",
+      detail: `Cover column: ${yn(m.modules.showHeroImage)} · headline/copy/CTAs from homePageCopy.ts · cover, month and reader link from the shared magazine source`,
     },
     {
-      step: "3. Featured links (chips)",
-      detail: `${yn(m.modules.showCallouts && m.callouts.length > 0)} · ${m.callouts.length} valid link(s) · position: ${
-        m.calloutsPlacement === "below_title" ? "below headline" : "below identity + subtitle"
-      }`,
+      step: "3–7. Discover Leonix · Featured businesses · Learn & Grow · Business visibility · Newsletter (code-owned)",
+      detail: "Copy and routes live in app/(site)/home/homePageCopy.ts; not editable here",
     },
     {
-      step: "4. Cover image + primary CTA",
-      detail: `${yn(m.modules.showHeroImage)} · image: ${m.coverImageSrc}`,
-    },
-    {
-      step: "5. Secondary line / secondary CTA & promo strip",
-      detail: `${yn(m.modules.showSecondaryLine)} · promo with copy: ${yn(m.modules.showSecondaryLine && (m.es.promoStrip.trim() !== "" || m.en.promoStrip.trim() !== ""))}`,
+      step: "Legacy fields (stored, not rendered)",
+      detail: `title/identity/subtitle, CTA labels + URLs, cover image, promo strip, ${m.callouts.length} chip link(s) · kept read-only in Content for backward compatibility`,
     },
   ];
 
@@ -74,7 +70,7 @@ export default async function AdminWorkspaceHomePage() {
       <div className={`${adminCardBase} mb-8 p-6`}>
         <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Fixed order in `/home` template</h2>
         <p className="mt-1 text-xs text-[#7A7164]">
-          Blocks follow this order in code; you can toggle and edit copy in Content. The only order variation is the chip row (below headline vs. below subtitle).
+          Blocks follow this order in code. The launch Home is code-owned; Content edits only the announcement strip and the hero cover-column toggle.
         </p>
         <ul className="mt-4 space-y-3 text-sm text-[#3D3428]">
           {rows.map((r) => (
@@ -89,10 +85,10 @@ export default async function AdminWorkspaceHomePage() {
       <div className={`${adminCardBase} p-6`}>
         <h2 className="text-sm font-bold uppercase tracking-wide text-[#5C5346]">Visibility toggles (summary)</h2>
         <ul className="mt-3 grid gap-2 text-sm text-[#3D3428] sm:grid-cols-2">
-          <li>Top announcement: {yn(m.modules.showAnnouncement)}</li>
-          <li>Hero image: {yn(m.modules.showHeroImage)}</li>
-          <li>Secondary line / secondary CTA / promo support: {yn(m.modules.showSecondaryLine)}</li>
-          <li>Featured links: {yn(m.modules.showCallouts)}</li>
+          <li>Top announcement (live): {yn(m.modules.showAnnouncement)}</li>
+          <li>Hero cover column (live): {yn(m.modules.showHeroImage)}</li>
+          <li>Secondary line / promo (legacy, not rendered): {yn(m.modules.showSecondaryLine)}</li>
+          <li>Featured links (legacy, not rendered): {yn(m.modules.showCallouts)}</li>
         </ul>
       </div>
 

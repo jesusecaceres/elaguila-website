@@ -19,6 +19,7 @@ import {
   publicNavMasWrapperClass,
 } from "../lib/publicNavConfig";
 import { AdvertiseDropdown } from "./AdvertiseDropdown";
+import { getAdvertiseDropdownCopy, getAdvertiseDropdownOptions } from "../lib/advertiseDropdownConfig";
 import { LeonixHeaderLanguageSelector } from "@/app/(site)/magazine/components/LeonixHeaderLanguageSelector";
 import { getNavbarChromeCopy } from "@/app/lib/leonix/publicNavCopy";
 import { resolveRouteLang } from "@/app/lib/language";
@@ -326,6 +327,11 @@ function NavbarContent() {
     );
   };
 
+  // Mobile drawer renders the advertise intents inline (inside the scroll area) instead of a
+  // popover, so the menu can never open below the viewport or be clipped by the drawer.
+  const advertiseCopy = getAdvertiseDropdownCopy(navLang);
+  const advertiseOptions = getAdvertiseDropdownOptions(navLang);
+
   const advertiseCta = (
     <AdvertiseDropdown
       lang={navLang}
@@ -414,7 +420,7 @@ function NavbarContent() {
                     </button>
                     {masOpen ? (
                       <div
-                        className="absolute left-0 top-full z-[60] mt-1 min-w-[12rem] overflow-visible rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] py-1 shadow-[0_12px_32px_rgba(31,36,28,0.18)]"
+                        className="absolute left-0 top-full z-[60] mt-1 max-h-[min(70vh,24rem)] min-w-[12rem] max-w-[calc(100vw-1.5rem)] overflow-y-auto overflow-x-hidden rounded-xl border border-[#D6C7AD] bg-[#FFFDF7] py-1 shadow-[0_12px_32px_rgba(31,36,28,0.18)]"
                         role="menu"
                       >
                         {PUBLIC_NAV_OVERFLOW.map((item) => (
@@ -502,17 +508,28 @@ function NavbarContent() {
                   </Link>
                 ))}
               </nav>
+
+              <div className="mt-4 border-t border-[#D6C7AD]/60 pt-4">
+                <p className="px-2 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-[#556B3E]">
+                  {advertiseCopy.button}
+                </p>
+                <ul className="mt-2 flex flex-col gap-1" aria-label={advertiseCopy.menuAria}>
+                  {advertiseOptions.map((option) => (
+                    <li key={option.id}>
+                      <Link
+                        href={option.href}
+                        onClick={() => setMobileOpen(false)}
+                        className="block rounded-xl px-2 py-2.5 text-[15px] font-semibold text-[#7A1E2C] transition hover:bg-[#FBF7EF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1E2C]"
+                      >
+                        {option.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
 
             <div className="shrink-0 space-y-3 border-t border-[#D6C7AD]/60 px-4 py-4">
-              <AdvertiseDropdown
-                lang={navLang}
-                variant="primary"
-                fullWidth
-                buttonLabel={publicNavLabel(PUBLIC_NAV_ADVERTISE, navLang)}
-                onNavigate={() => setMobileOpen(false)}
-              />
-
               {authLoading ? (
                 <div className="h-10 animate-pulse rounded-xl bg-[#D6C7AD]/30" />
               ) : user ? (
