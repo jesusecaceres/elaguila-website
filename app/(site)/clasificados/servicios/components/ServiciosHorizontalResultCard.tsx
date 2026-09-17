@@ -35,7 +35,7 @@ import { ServiciosResultCardEngagementStrip } from "@/app/servicios/components/S
 import { ServiciosServiceChipsRow } from "@/app/servicios/components/ServiciosServiceChipsRow";
 import { useServiciosResultCardTranslation } from "@/app/servicios/components/useServiciosResultCardTranslation";
 import { canonicalBusinessTypeLabel } from "@/app/(site)/servicios/lib/serviciosCanonicalPresetLabels";
-import { isOwnerAuthoredService } from "@/app/(site)/servicios/lib/serviciosTranslateAd";
+import { isOwnerAuthoredService, relabelServiciosCanonicalPresets } from "@/app/(site)/servicios/lib/serviciosTranslateAd";
 import {
   LX,
   LX_COMPACT_CARD_TITLE,
@@ -72,6 +72,22 @@ function cleanOtherLabel(raw: string): string {
 
 function mapsDirectionsHref(query: string): string {
   return buildServiciosGoogleMapsDirectionsUrl(query);
+}
+
+/** Clean + de-dupe service chip labels from a (possibly relabeled) profile — shared by the
+ * original-locale pass and the display-locale rebuild so both use byte-identical cleaning rules. */
+function collectCleanServiceChips(services: ServiciosProfileResolved["services"] | undefined): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const s of services ?? []) {
+    const c = cleanProfessionalChipLabel(cleanOtherLabel(s.title));
+    if (!c || isWeakProfessionalChipLabel(c)) continue;
+    const key = c.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(c);
+  }
+  return out;
 }
 
 function StarRow({ rating, lang }: { rating: number; lang: "es" | "en" }) {
@@ -216,13 +232,30 @@ export function ServiciosHorizontalResultCard({
     return { chips: out, ownerAuthoredChips: owner };
   }, [profile]);
 
-  const { translateControl, displayCategoryLine, chipOverrides } = useServiciosResultCardTranslation({
+  // Servicios Card Translate Coherence (2026-09-17): Translate must stay offered even when every
+  // visible chip is a canonical preset (no owner-authored text at all) — canonical labels always
+  // have a real ES/EN catalog pair, so there is still a genuine language to switch.
+  const hasCanonicalDisplayContent = Boolean(
+    (categoryChip && !customCategoryLine) || serviceChipList.length > ownerAuthoredChips.length,
+  );
+
+  const { translateControl, displayLang, displayCategoryLine, chipOverrides } = useServiciosResultCardTranslation({
     categoryLine: customCategoryLine,
     ownerAuthoredChips,
+    hasCanonicalDisplayContent,
     lang,
     listingKey: ctaAnalyticsListingKey,
     enabled: true,
   });
+
+  // Re-derive canonical labels for the DISPLAY language (unchanged reference when not
+  // translated) — the same pure overlay already used to build `profile` for `lang`, now applied
+  // for `displayLang` so canonical chips/category flip together with owner-authored text instead
+  // of leaving a mixed-language card (the exact defect owner runtime QA reported).
+  const displayProfile = useMemo(
+    () => (profile && displayLang !== lang ? relabelServiciosCanonicalPresets(profile, displayLang) : profile),
+    [profile, displayLang, lang],
+  );
 
   if (!profile) return null;
 
@@ -246,8 +279,12 @@ export function ServiciosHorizontalResultCard({
   const addressQuery = (profile.contact?.physicalAddressDisplay || "").trim();
   const mapsHref = ((profile.contact?.mapsSearchHref || "").trim() || (addressQuery ? mapsDirectionsHref(addressQuery) : "")).trim();
 
-  const displayCategoryChip = displayCategoryLine ?? categoryChip;
-  const displayServiceChips = serviceChipList.map((c) => chipOverrides.get(c) ?? c);
+  const displayServiceChipListCanonical =
+    displayProfile === profile ? serviceChipList : collectCleanServiceChips(displayProfile?.services);
+  const displayCategoryChipCanonical =
+    displayLang === lang ? categoryChip : cleanOtherLabel((displayProfile?.hero.categoryLine || "").trim());
+  const displayServiceChips = displayServiceChipListCanonical.map((c) => chipOverrides.get(c) ?? c);
+  const displayCategoryChip = displayCategoryLine ?? displayCategoryChipCanonical;
 
   const vitrinaHref =
     (publicDetailHref || "").trim() || `/clasificados/servicios/${encodeURIComponent(listingSlug)}?lang=${lang}`;

@@ -10,6 +10,23 @@
  * GREEN governance only: this is client-side navigation (a router push to an
  * existing page), never a write, never an execution, never a bypass of the
  * destination's own auth check.
+ *
+ * P0 CLIENT CRASH REPAIR (2026-09-16) — hrefFor() previously THREW at module
+ * top-level when a href wasn't found in ADMIN_GLOBAL_NAV. Because this array
+ * is built by calling hrefFor() for every entry at import time (not lazily),
+ * that throw fired the instant this module was evaluated — before any
+ * component could render or catch it — crashing the entire /admin/leo page
+ * for every owner, on every device, with Next's generic unhandled
+ * client-side-exception screen. It was silent at build time because
+ * /admin/leo is force-dynamic (never statically rendered during `next
+ * build`), so the mismatch only ever surfaced at real runtime. The trigger:
+ * a parallel Admin OS release removed "/admin/settings" from
+ * ADMIN_GLOBAL_NAV (replaced by "/admin/site-settings") on `main` while this
+ * LEO branch — which never touched adminGlobalNav.ts — still referenced the
+ * retired route below. The merge was textually clean (no conflicting lines)
+ * but not runtime-safe. Fix: a stale/renamed route now silently drops that
+ * one phrase mapping (logged, never thrown) instead of crashing the page —
+ * one missing spoken-navigation alias is not worth an owner-facing outage.
  */
 import { ADMIN_GLOBAL_NAV } from "@/app/admin/_lib/adminGlobalNav";
 
@@ -19,15 +36,27 @@ export type LeoAdminNavigationEntry = {
   phrases: readonly string[];
 };
 
-function hrefFor(href: string): string {
+/**
+ * Resolves a real ADMIN_GLOBAL_NAV href, or null if it has since been
+ * renamed/retired. Never throws — a stale route must degrade to "this one
+ * phrase mapping is dropped," not "the whole LEO page crashes for everyone."
+ */
+function hrefFor(href: string): string | null {
   const item = ADMIN_GLOBAL_NAV.find((entry) => entry.href === href);
   if (!item) {
-    throw new Error(`leoAdminNavigationRegistry: "${href}" is not a real ADMIN_GLOBAL_NAV route.`);
+    if (typeof console !== "undefined") {
+      console.error(
+        `leoAdminNavigationRegistry: "${href}" is not a real ADMIN_GLOBAL_NAV route (renamed or retired) — omitting this navigation entry instead of crashing.`,
+      );
+    }
+    return null;
   }
   return item.href;
 }
 
-export const LEO_ADMIN_NAVIGATION_REGISTRY: readonly LeoAdminNavigationEntry[] = [
+type LeoAdminNavigationRawEntry = { href: string | null; phrases: readonly string[] };
+
+const RAW_ADMIN_NAVIGATION_REGISTRY: readonly LeoAdminNavigationRawEntry[] = [
   {
     href: hrefFor("/admin"),
     phrases: [
@@ -248,6 +277,16 @@ export const LEO_ADMIN_NAVIGATION_REGISTRY: readonly LeoAdminNavigationEntry[] =
     ],
   },
 ] as const;
+
+/**
+ * The real, crash-proof registry every consumer imports. Entries whose href
+ * has drifted out of ADMIN_GLOBAL_NAV (hrefFor() returned null) are simply
+ * omitted here — never allowed to take down the whole module.
+ */
+export const LEO_ADMIN_NAVIGATION_REGISTRY: readonly LeoAdminNavigationEntry[] =
+  RAW_ADMIN_NAVIGATION_REGISTRY.filter(
+    (entry): entry is LeoAdminNavigationEntry => entry.href !== null,
+  );
 
 /** Returns the matched real Admin route, or null when no phrase matches. */
 export function resolveLeoAdminNavigationRoute(normalizedText: string): string | null {

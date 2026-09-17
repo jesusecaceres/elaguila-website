@@ -73,7 +73,12 @@ check("card-scoped content is built from ONLY the owner-authored chip (no catego
   assert.equal(hasServiciosTranslatableProse(content), true, "control would be shown — real translatable content exists");
 });
 
-check("no translatable content -> control would be hidden (no no-op button)", () => {
+check("zero owner-authored content -> nothing sent to the translation provider (the real TranslateAdControl path stays fully unused)", () => {
+  // Servicios Card Translate Coherence (2026-09-17): a card with zero owner-authored chips is no
+  // longer HIDDEN from Translate overall — canonical (catalog) chips always have a real ES/EN pair,
+  // so the card still offers a zero-network toggle (see useServiciosResultCardTranslation's
+  // ServiciosCanonicalOnlyTranslateToggle). This check narrows to what it can still prove locally:
+  // the owner-authored-only provider payload stays genuinely empty in that case.
   const input: ServiciosCardTranslatableInput = { categoryLine: undefined, ownerAuthoredChips: [] };
   const content = buildServiciosCardTranslatableContent(input);
   assert.equal(hasServiciosTranslatableProse(content), false);

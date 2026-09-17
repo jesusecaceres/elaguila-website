@@ -131,10 +131,13 @@ check("13/14: Translate control mounts in the header's top-right utility slot, n
 });
 
 /* 15 — Translate hidden if no currently rendered authored content is translatable. */
-check("15: card translate control is gated by hasServiciosTranslatableProse — never a no-op button", () => {
+check("15: card translate control is gated by real owner-authored content OR real canonical content — never a no-op button", () => {
+  // Servicios Card Translate Coherence (2026-09-17): a card with zero owner-authored text but real
+  // canonical chips still offers Translate (those chips have a real ES/EN pair) — the gate widened
+  // from "owner-authored only" to "owner-authored OR canonical", never to "always offer".
   const hook = raw(HOOK);
-  assert.ok(hook.includes("const offerTranslate = enabled && hasServiciosTranslatableProse(translatableContent);"));
-  assert.ok(hook.includes("const translateControl = offerTranslate ? ("));
+  assert.ok(hook.includes("const hasOwnerAuthoredContent = hasServiciosTranslatableProse(translatableContent);"));
+  assert.ok(hook.includes("const offerTranslate = enabled && (hasOwnerAuthoredContent || hasCanonicalDisplayContent);"));
 });
 
 /* 16/17 — Translate works against the EXACT displayed field(s); translated state feeds the real renderer. */
