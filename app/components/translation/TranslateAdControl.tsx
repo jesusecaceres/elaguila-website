@@ -15,7 +15,11 @@ import {
   unmaskTranslatableFields,
 } from "@/app/lib/translation/helpers";
 import type { TranslatableAdFields } from "@/app/lib/translation/types";
-import { buildDetectionSample, planUnknownSourceTranslation } from "@/app/lib/translation/unknownSourcePolicy";
+import {
+  buildDetectionSample,
+  oppositeActiveTranslateLocale,
+  planUnknownSourceTranslation,
+} from "@/app/lib/translation/unknownSourcePolicy";
 import { guessContentLocaleHeuristically } from "@/app/lib/translation/localLanguageGuess";
 
 /**
@@ -146,6 +150,21 @@ export function TranslateAdControl({
 }: TranslateAdControlProps) {
   const isUnknownSource = originalLocale === "unknown";
 
+  /**
+   * Owner lock (2026-09-17): a Spanish-authored ad on the Spanish site (or English-on-English)
+   * has nothing productive to translate INTO siteLocale — that would be an echo. For a KNOWN
+   * source (Autos), when the real authored language already equals siteLocale, the actual
+   * translation target flips to the opposite active locale instead (same doctrine as
+   * `planUnknownSourceTranslation`'s retargeting for unknown-source content, applied here
+   * up-front since the source is already known — no detection/guessing needed). When the known
+   * source differs from siteLocale, behavior is unchanged: translate into siteLocale so the ad
+   * matches whatever the viewer is already reading.
+   */
+  const knownSourceTargetLocale = useMemo((): Locale => {
+    if (originalLocale !== "es" && originalLocale !== "en") return siteLocale;
+    return originalLocale === siteLocale ? oppositeActiveTranslateLocale(siteLocale) : siteLocale;
+  }, [originalLocale, siteLocale]);
+
   const [viewMode, setViewMode] = useState<ViewMode>("original");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -161,10 +180,10 @@ export function TranslateAdControl({
         category,
         listingKey,
         sourceLocale: originalLocale,
-        targetLocale: siteLocale,
+        targetLocale: isUnknownSource ? siteLocale : knownSourceTargetLocale,
         version,
       }),
-    [category, listingKey, originalLocale, siteLocale, version],
+    [category, listingKey, originalLocale, siteLocale, isUnknownSource, knownSourceTargetLocale, version],
   );
 
   // Pure local sessionStorage read (no network) — deferred to an effect so server/client first
@@ -185,13 +204,14 @@ export function TranslateAdControl({
     return planUnknownSourceTranslation(siteLocale, guess).targetLocale;
   }, [isUnknownSource, siteLocale, translatableContent]);
 
-  // Known-source categories (Autos, etc.) always translate into siteLocale — unchanged. Unknown-
-  // source (Servicios) prefers REAL data (a completed translation this session, live or cached)
-  // over the heuristic prediction.
+  // Known-source categories (Autos, etc.) translate into `knownSourceTargetLocale` (siteLocale,
+  // or the opposite locale when the known source already equals siteLocale — see above).
+  // Unknown-source (Servicios) prefers REAL data (a completed translation this session, live or
+  // cached) over the heuristic prediction.
   const effectiveTargetLocale = useMemo((): Locale => {
-    if (!isUnknownSource) return siteLocale;
+    if (!isUnknownSource) return knownSourceTargetLocale;
     return lastKnownResult?.effectiveTargetLocale ?? lastKnownResult?.targetLocale ?? predictedEffectiveTargetLocale;
-  }, [isUnknownSource, siteLocale, lastKnownResult, predictedEffectiveTargetLocale]);
+  }, [isUnknownSource, knownSourceTargetLocale, lastKnownResult, predictedEffectiveTargetLocale]);
 
   // The REAL detected source language once known (never a guess) — falls back to the static prop
   // (unchanged for known-source categories, where the server never sets `detectedSourceLocale`).
@@ -226,11 +246,16 @@ export function TranslateAdControl({
       return;
     }
 
+    // The requested target for THIS network call — siteLocale for unknown-source (Servicios;
+    // real retargeting happens server-side), knownSourceTargetLocale for known-source (Autos;
+    // already resolved up-front, see the doc comment on knownSourceTargetLocale above).
+    const requestedTargetLocale = isUnknownSource ? siteLocale : knownSourceTargetLocale;
+
     // Servicios Live Launch Perfection ⚠️33 (2026-09-14) — a cached result whose text is identical
     // to the source is an ECHO (content already in the requested language), not a translation.
     // Replaying it would flip the control to "Ver original" with nothing changed and no request.
     const cached = getCachedAdTranslation(cacheKey);
-    if (cached?.translated && cached.targetLocale === siteLocale) {
+    if (cached?.translated && cached.targetLocale === requestedTargetLocale) {
       if (isNoOpTranslation(picked, cached.translated)) {
         clearCachedAdTranslation(cacheKey);
         setLastKnownResult(null);
@@ -259,7 +284,7 @@ export function TranslateAdControl({
         category,
         listingKey,
         sourceLocale: originalLocale,
-        targetLocale: siteLocale,
+        targetLocale: requestedTargetLocale,
       });
 
       const restoredTranslated = unmaskTranslatableFields(rawResult.translated, fieldMaps);
@@ -290,6 +315,8 @@ export function TranslateAdControl({
     cacheKey,
     siteLocale,
     originalLocale,
+    isUnknownSource,
+    knownSourceTargetLocale,
     category,
     listingKey,
     labels.error,

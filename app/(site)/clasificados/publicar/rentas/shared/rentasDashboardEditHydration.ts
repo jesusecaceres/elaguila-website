@@ -63,7 +63,10 @@ import { augmentLeonixDetailPairsFromStructuredColumns } from "@/app/clasificado
 import { rentasShowExactAddressFromDetailPairs } from "@/app/clasificados/rentas/lib/leonixRentasShowing";
 import { parseBrGate12dV1 } from "@/app/clasificados/lib/leonixBrGate12d";
 import { readLeonixPropertyLocationFromRow } from "@/app/clasificados/shared/constants/leonixPropertyLocationContract";
-import { rentasRentalFlowGroupForTipo } from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
+import {
+  rentasCategoriaPropiedadForTipo,
+  rentasRentalFlowGroupForTipo,
+} from "@/app/clasificados/rentas/shared/rentasRentalTypeTaxonomy";
 import {
   createEmptyRentasPrivadoFormState,
   mergePartialRentasPrivadoState,
@@ -307,10 +310,18 @@ function basePartialFromRow(row: Record<string, unknown>): Partial<RentasPrivado
   const rx = parseRentasDetailMachineRead(detailPairs);
   const lx = parseLeonixListingContract(detailPairs);
   const gallery = imagesFromRow(row.images);
-  const categoria: RentasPrivadoFormState["categoriaPropiedad"] =
+  const persistedCategoria: RentasPrivadoFormState["categoriaPropiedad"] =
     lx.categoriaPropiedad === "comercial" || lx.categoriaPropiedad === "terreno_lote"
       ? lx.categoriaPropiedad
       : "residencial";
+  // Forward-ported from fix/br-negocio-inventory-hub-media-hydration 92f14987: legacy listings can
+  // predate the tipoDeRenta/categoriaPropiedad cross-sync fix and may have a stale, mismatched
+  // categoriaPropiedad saved — re-derive it from tipoDeRenta when present so editing an old draft
+  // doesn't reload the desync (e.g. "Garaje" + "Residencial").
+  const persistedTipoDeRenta = trim(rx.rentalTypeCode);
+  const categoria: RentasPrivadoFormState["categoriaPropiedad"] = persistedTipoDeRenta
+    ? rentasCategoriaPropiedadForTipo(persistedTipoDeRenta)
+    : persistedCategoria;
   const loc = readLeonixPropertyLocationFromRow(row);
   // The structured address payload the publisher itself writes — the faithful source for the
   // raw street, neighborhood, state and ZIP the owner actually typed.

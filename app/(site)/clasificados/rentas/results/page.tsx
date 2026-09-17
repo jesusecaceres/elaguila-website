@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { fetchRentasPublicListingsForBrowse } from "@/app/clasificados/rentas/lib/fetchRentasPublicListingsForBrowse";
 import { rentasPublicIncludeDemoPool } from "@/app/clasificados/rentas/lib/rentasPublicInventoryMode";
-import { RentasResultsShell } from "./components/RentasResultsShell";
 import { RentasResultsClient } from "./RentasResultsClient";
 import { resolveClasificadosPublishLangFromSearchParams } from "@/app/lib/clasificados/clasificadosPublishLang";
 
@@ -15,31 +13,22 @@ export const dynamic = "force-dynamic";
 
 type Props = { searchParams?: Promise<{ lang?: string }> };
 
-function RentasResultsLoadingShell() {
-  return (
-    <RentasResultsShell>
-      <div
-        className="min-h-[40vh] animate-pulse rounded-xl bg-[#FAF7F2]/80"
-        aria-busy="true"
-        aria-label="Cargando resultados de rentas"
-      />
-    </RentasResultsShell>
-  );
-}
-
-async function RentasResultsWithData({ lang }: { lang: "es" | "en" }) {
-  const initialLiveListings = await fetchRentasPublicListingsForBrowse(lang);
-  return (
-    <RentasResultsClient initialLiveListings={initialLiveListings} includeDemoPool={rentasPublicIncludeDemoPool()} />
-  );
-}
-
+/**
+ * BR-INV-A-FIX — no `<Suspense>` boundary around the data fetch here. Wrapping this async work in
+ * Suspense forced Next.js to stream the resolved results inside a hidden `<div hidden>` +
+ * `<template>` pair, revealed client-side via React's `$RC(...)` boundary-reveal script. On a hard
+ * load with a `lang` query param present, that reveal reliably never fires (confirmed live: the
+ * `$RC` function exists and runs without throwing, but leaves the boundary permanently hidden;
+ * manually re-invoking it after load has no effect either) — a React/Next streaming-runtime defect,
+ * not an application bug, isolated across three passes of shared-shell bypass testing. Awaiting the
+ * fetch directly in the page component removes the streaming boundary entirely: the response is one
+ * synchronous SSR pass with real content in the initial HTML, no hidden-template reveal required.
+ */
 export default async function RentasResultsPage(props: Props) {
   const sp = props.searchParams ? await props.searchParams : {};
   const { copyLang: lang } = resolveClasificadosPublishLangFromSearchParams(sp);
+  const initialLiveListings = await fetchRentasPublicListingsForBrowse(lang);
   return (
-    <Suspense fallback={<RentasResultsLoadingShell />}>
-      <RentasResultsWithData lang={lang} />
-    </Suspense>
+    <RentasResultsClient initialLiveListings={initialLiveListings} includeDemoPool={rentasPublicIncludeDemoPool()} />
   );
 }

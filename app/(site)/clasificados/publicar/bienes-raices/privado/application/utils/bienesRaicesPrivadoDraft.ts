@@ -4,6 +4,7 @@ import {
   type BienesRaicesPrivadoFormState,
 } from "../../schema/bienesRaicesPrivadoFormState";
 import {
+  bienesRaicesPrivadoHasPersistedMedia,
   clearBienesRaicesPrivadoDraftMediaIdb,
   inlineBienesRaicesPrivadoHeavyMediaFromIdb,
   offloadBienesRaicesPrivadoHeavyMediaToIdb,
@@ -48,6 +49,37 @@ function readDraftRaw(): string | null {
 }
 
 /**
+ * BR-INV-D2-FIX — a fresh reload can hit a window where `sessionStorage.getItem` returns null for
+ * a key that was written just before the reload and only becomes readable again some time later
+ * (confirmed via direct reproduction — reliably reproduced on a heavy dev-server cold compile;
+ * the underlying trigger is browser/session-storage restore timing, not application state).
+ * IndexedDB (the offloaded photo/seller-photo blobs) is unaffected by this and stays reliably
+ * readable throughout, so it doubles as positive evidence a draft exists: retry the normal short
+ * beats first, and if IndexedDB shows leftover media for this draft, keep waiting substantially
+ * longer rather than conclude "no draft" — the caller must never treat a transient miss here as
+ * equivalent to "no draft was ever saved," since doing so is what let the empty initial state get
+ * autosaved over a real, still-recoverable draft.
+ */
+async function readDraftRawWithRetry(): Promise<string | null> {
+  const immediate = readDraftRaw();
+  if (immediate) return immediate;
+  for (const delayMs of [20, 60, 150, 300, 600]) {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    const retried = readDraftRaw();
+    if (retried) return retried;
+  }
+  // Normal short retries exhausted. Only keep waiting longer if IndexedDB proves a draft's media
+  // genuinely exists — otherwise this really is a fresh session and we should stop promptly.
+  if (!(await bienesRaicesPrivadoHasPersistedMedia())) return null;
+  for (const delayMs of [500, 1000, 1500, 2000]) {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    const retried = readDraftRaw();
+    if (retried) return retried;
+  }
+  return null;
+}
+
+/**
  * BR-INV-WAVE1-GATE3 — resolves any IndexedDB-offloaded photo/seller-photo ref tokens back to
  * real data: URLs. Async because IndexedDB is async; every caller of `loadBienesRaicesPrivadoDraft`
  * must await it (was previously synchronous).
@@ -55,7 +87,7 @@ function readDraftRaw(): string | null {
 export async function loadBienesRaicesPrivadoDraft(): Promise<BienesRaicesPrivadoFormState | null> {
   if (typeof window === "undefined") return null;
   try {
-    const raw = readDraftRaw();
+    const raw = await readDraftRawWithRetry();
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<BienesRaicesPrivadoFormState>;
     const merged = mergePartialBienesRaicesPrivadoState(parsed);

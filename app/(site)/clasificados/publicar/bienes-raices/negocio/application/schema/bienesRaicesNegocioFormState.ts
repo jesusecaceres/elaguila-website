@@ -124,6 +124,10 @@ export type BienesRaicesNegocioFormState = {
   listingStatus: BienesRaicesListingStatus;
 
   tipoPropiedad: string;
+  /** Item 150 — canonical commercial/land type codes for results filtering, distinct from the
+   * human-readable `tipoPropiedad` label line above. Optional/additive. */
+  comercialTipoCodigo?: string;
+  terrenoTipoCodigo?: string;
   recamaras: string;
   banosCompletos: string;
   mediosBanos: string;
@@ -297,6 +301,10 @@ export type BienesRaicesNegocioFormState = {
       endTime: string;
       additionalDaysHours: string;
       notes: string;
+      /** Item 134 — optional, additive-only (existing object literals elsewhere don't need to
+       * change). */
+      appointmentOnly?: boolean;
+      bookingUrl?: string;
     }>;
   };
 

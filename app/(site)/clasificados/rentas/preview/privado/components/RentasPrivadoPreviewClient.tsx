@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { clearLeonixPreviewNavSessionFlag } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import {
   resolveClasificadosPublishLang,
   withClasificadosPublishLang,
@@ -80,6 +81,10 @@ function draftVideoUrls(draft: RentasPrivadoFormState): string[] {
 export default function RentasPrivadoPreviewClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  useLayoutEffect(() => {
+    clearLeonixPreviewNavSessionFlag();
+  }, []);
   const urlCategoria = useMemo(
     () => coerceBrNegocioCategoriaPropiedad(searchParams?.get(BR_NEGOCIO_Q_PROPIEDAD) ?? null),
     [searchParams],

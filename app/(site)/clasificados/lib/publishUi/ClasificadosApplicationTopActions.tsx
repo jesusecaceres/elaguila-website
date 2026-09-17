@@ -13,13 +13,14 @@ const DEFAULT_LABELS: ClasificadosApplicationTopActionsLabels = {
   preview: "Vista previa",
   openPreview: "Abrir vista previa",
   deleteApplication: "Eliminar solicitud",
-  openPreviewTitle: "Abre la vista previa con el borrador guardado en esta sesión, sin validar pasos obligatorios.",
+  openPreviewTitle: "Abre la vista previa con el borrador guardado en esta sesión.",
 };
 
 type Props = {
   onPreviewValidated: () => void;
-  /** Same-tab preview URL (draft read from session storage on the preview page). */
-  openPreviewHref: string;
+  /** Same-tab, unvalidated preview URL. When omitted, no secondary link renders — the single
+   * validated "Vista previa" action is the only preview entry point. */
+  openPreviewHref?: string;
   /** Persist handoff immediately before opening unvalidated preview (e.g. flush sessionStorage). */
   onBeforeOpenUnvalidatedPreview?: () => void;
   onDeleteApplication: () => void;
@@ -61,15 +62,17 @@ export function ClasificadosApplicationTopActions({
         <button type="button" onClick={onPreviewValidated} disabled={disableValidatedPreview} className={BTN_PRIMARY}>
           {L.preview}
         </button>
-        <Link
-          href={openPreviewHref}
-          prefetch={false}
-          title={L.openPreviewTitle}
-          className={BTN_SECONDARY}
-          onClick={() => onBeforeOpenUnvalidatedPreview?.()}
-        >
-          {L.openPreview}
-        </Link>
+        {openPreviewHref ? (
+          <Link
+            href={openPreviewHref}
+            prefetch={false}
+            title={L.openPreviewTitle}
+            className={BTN_SECONDARY}
+            onClick={() => onBeforeOpenUnvalidatedPreview?.()}
+          >
+            {L.openPreview}
+          </Link>
+        ) : null}
         <button
           type="button"
           onClick={() => {

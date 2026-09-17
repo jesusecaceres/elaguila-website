@@ -172,7 +172,20 @@ export type SalesWorkspaceCapability =
   // approve_recommendation/decide_managed_service_request's precedent exactly. A sales_rep may
   // still view the resulting commercial state and trigger "Release to Client" once eligibility
   // already exists, but may never grant/revoke that eligibility itself.
-  | "grant_business_profile_entitlement";
+  | "grant_business_profile_entitlement"
+  // Business Information Editor. Correcting a canonical identity field (phone/email/website/
+  // address/social link) is the same trust tier as manage_business_profile/conduct_canvassing —
+  // an additive, reversible, attributed correction to a record the business hasn't claimed yet,
+  // never a destructive or consequential-commercial action. Every sales role gets it, same as
+  // manage_business_profile.
+  | "edit_business_identity"
+  // Public-source prospect research (Discover, pre-visit lane). Deliberately a SEPARATE, lighter
+  // capability from run_ai_research: it never calls the Gemini/AI provider and never requires
+  // client consent (there is no client relationship yet at the prospect-research stage — consent
+  // in business_consent_records is collected AT A VISIT, which by definition hasn't happened),
+  // so it is safe to grant at the same broad tier as conduct_canvassing/manage_business_profile
+  // rather than gating it manager+ like the real client-consented AI research engine.
+  | "run_public_research";
 
 export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] = [
   "view_business_list",
@@ -255,6 +268,8 @@ export const SALES_WORKSPACE_CAPABILITIES: readonly SalesWorkspaceCapability[] =
   "manage_business_profile",
   "assisted_category_publishing",
   "grant_business_profile_entitlement",
+  "edit_business_identity",
+  "run_public_research",
 ];
 
 /**
@@ -358,6 +373,8 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "manage_business_profile",
     "assisted_category_publishing",
     "grant_business_profile_entitlement",
+    "edit_business_identity",
+    "run_public_research",
   ],
   sales_manager: [
     "view_business_list",
@@ -438,6 +455,8 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "manage_business_profile",
     "assisted_category_publishing",
     "grant_business_profile_entitlement",
+    "edit_business_identity",
+    "run_public_research",
   ],
   sales_rep: [
     "view_business_list",
@@ -479,6 +498,8 @@ const ROLE_CAPABILITIES: Readonly<Record<SalesWorkspaceRole, readonly SalesWorks
     "view_business_profile",
     "manage_business_profile",
     "assisted_category_publishing",
+    "edit_business_identity",
+    "run_public_research",
   ],
 };
 

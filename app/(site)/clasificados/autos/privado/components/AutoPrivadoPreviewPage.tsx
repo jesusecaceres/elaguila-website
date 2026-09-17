@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { AutoDealerListing } from "@/app/clasificados/autos/negocios/types/autoDealerListing";
 import {
   hasDescriptionSection,
@@ -42,12 +43,16 @@ export function AutoPrivadoPreviewPage({
   publicPlaybackOnly = false,
   publicAnalytics,
   publicUrl,
+  translateControl,
 }: {
   data: AutoDealerListing;
   editBackHref?: string;
   publicPlaybackOnly?: boolean;
   publicAnalytics?: AutosPublicListingAnalyticsProps;
   publicUrl?: string;
+  /** Owner lock (2026-09-17): rendered directly above the title, matching the Dealer hero — see
+   * AutosNegociosDealershipPreviewPage's identical `translateControl` contract. */
+  translateControl?: ReactNode;
 }) {
   const { lang, t } = useAutosPrivadoPreviewCopy();
   const pt = t.preview.title;
@@ -133,6 +138,12 @@ export function AutoPrivadoPreviewPage({
               {lang === "es" ? "VISTA PREVIA DEL ANUNCIO" : "LISTING PREVIEW"}
             </p>
           </div>
+
+          {translateControl ? (
+            <div className="mb-6 flex justify-center" data-autos-translate-ad-slot="1">
+              {translateControl}
+            </div>
+          ) : null}
 
           {/* Title and location row */}
           {showTitle ? (

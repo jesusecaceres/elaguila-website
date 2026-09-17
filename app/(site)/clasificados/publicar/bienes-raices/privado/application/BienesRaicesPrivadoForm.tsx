@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { LeonixVideoUrlAddRows } from "@/app/clasificados/lib/LeonixVideoUrlAddRows";
 import {
   resolveClasificadosPublishLang,
   withClasificadosPublishLang,
@@ -21,7 +22,8 @@ import {
   BR_PUBLICAR_HUB,
 } from "@/app/clasificados/bienes-raices/shared/constants/brPublishRoutes";
 import { BR_HIGHLIGHT_PRESET_DEFS } from "@/app/clasificados/publicar/bienes-raices/negocio/application/schema/brHighlightMeta";
-import { Gate12cContactChannelsFields } from "@/app/clasificados/publicar/shared/Gate12cContactChannelsFields";
+import { LeonixCustomHighlightChipAdd } from "@/app/clasificados/lib/LeonixCustomHighlightChipAdd";
+import { evaluateAddCustomHighlight } from "@/app/clasificados/lib/leonixCustomHighlightChips";
 import { BrGate12dHoaCommunitySection } from "@/app/clasificados/publicar/bienes-raices/shared/BrGate12dHoaCommunitySection";
 import {
   AiField,
@@ -45,16 +47,17 @@ import { compressImageFileToJpegDataUrl } from "./utils/brPrivadoMediaCompress";
 import { LeonixRealEstateSortablePhotoStrip } from "@/app/clasificados/lib/LeonixRealEstateSortablePhotoStrip";
 import { BrPrivadoCiudadZonaCombobox } from "./components/BrPrivadoCiudadZonaCombobox";
 import {
-  COMERCIAL_DESTACADOS_DEFS,
+  COMERCIAL_DESTACADOS_CHECKLIST_DEFS,
   COMERCIAL_SUBTIPO_POR_TIPO,
   COMERCIAL_TIPO_OPCIONES,
-  TERRENO_DESTACADOS_DEFS,
+  TERRENO_DESTACADOS_CHECKLIST_DEFS,
   TERRENO_SUBTIPO_POR_TIPO,
   TERRENO_TIPO_OPCIONES,
 } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteComercialTerrenoMeta";
-import { SUBTIPO_POR_TIPO, TIPO_PROPIEDAD_OPCIONES } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteResidencialTipoMeta";
+import { TIPO_PROPIEDAD_OPCIONES, selectableSubtipoOptionsForTipo } from "@/app/clasificados/publicar/bienes-raices/negocio/agente-individual/schema/agenteResidencialTipoMeta";
 import {
   createEmptyBienesRaicesPrivadoFormState,
+  MAX_PRIVADO_VIDEO_URLS,
   type BienesRaicesPrivadoFormState,
 } from "../schema/bienesRaicesPrivadoFormState";
 import {
@@ -62,6 +65,8 @@ import {
   loadBienesRaicesPrivadoDraft,
   saveBienesRaicesPrivadoDraft,
 } from "./utils/bienesRaicesPrivadoDraft";
+import { useBusinessApplicationLeaveGuard } from "@/app/lib/businessApplications/useBusinessApplicationLeaveGuard";
+import { markPublishFlowOpeningPreview } from "@/app/clasificados/lib/publishFlowLifecycleClient";
 import { formatSqftDisplay, formatUsdWhole, priceDigitsUnbounded } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
 
 const MAX_PHOTOS = 8;
@@ -77,6 +82,95 @@ function BrSqftPreview({ value }: { value: string }) {
   const shown = formatSqftDisplay(value);
   if (!shown) return null;
   return <p className="mt-1.5 text-xs font-medium text-[#5C5346]">Vista previa: {shown}</p>;
+}
+
+const BR_PRIVADO_MAX_OPEN_HOUSE_SLOTS = 4;
+
+/** Item 206 — repeatable Open House events for BR Privado, mirroring BR Negocio's
+ * add/edit/remove pattern (same shared `AgenteResOpenHouseSlot` shape). */
+function BrPrivadoOpenHouseSlots({
+  state,
+  setState,
+  fieldClass,
+}: {
+  state: BienesRaicesPrivadoFormState;
+  setState: React.Dispatch<React.SetStateAction<BienesRaicesPrivadoFormState>>;
+  fieldClass: string;
+}) {
+  const slots = state.gate12d.openHouseSlots;
+
+  const patchSlot = (index: number, patch: Partial<(typeof slots)[number]>) => {
+    setState((s) => ({
+      ...s,
+      gate12d: {
+        ...s.gate12d,
+        openHouseSlots: s.gate12d.openHouseSlots.map((row, j) => (j === index ? { ...row, ...patch } : row)),
+      },
+    }));
+  };
+
+  const removeSlot = (index: number) => {
+    setState((s) => ({
+      ...s,
+      gate12d: { ...s.gate12d, openHouseSlots: s.gate12d.openHouseSlots.filter((_, j) => j !== index) },
+    }));
+  };
+
+  const addSlot = () => {
+    setState((s) => ({
+      ...s,
+      gate12d: {
+        ...s.gate12d,
+        openHouseSlots: [
+          ...s.gate12d.openHouseSlots,
+          { fecha: "", fechaFin: "", inicio: "", fin: "", diasHorariosAdicionales: "", notas: "", soloConCita: false, enlaceReservar: "" },
+        ].slice(0, BR_PRIVADO_MAX_OPEN_HOUSE_SLOTS),
+      },
+    }));
+  };
+
+  return (
+    <div>
+      <span className={aiLabelClass}>Open house / visitas</span>
+      <div className="mt-2 space-y-3">
+        {slots.map((slot, i) => (
+          <div key={i} className="rounded-lg border border-[#E8DFD0] bg-[#FFFDF9] p-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="text-xs font-bold uppercase tracking-wide text-[#5C5346]/90">
+                Open house{slots.length > 1 ? ` ${i + 1}` : ""}
+              </p>
+              <button type="button" className="text-xs font-semibold text-[#8B7355] underline-offset-2 hover:underline" onClick={() => removeSlot(i)}>
+                Eliminar
+              </button>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <AiField label="Fecha">
+                <input className={fieldClass} type="date" value={slot.fecha} onChange={(e) => patchSlot(i, { fecha: e.target.value })} />
+              </AiField>
+              <AiField label="Hora inicio">
+                <input className={fieldClass} type="time" value={slot.inicio} onChange={(e) => patchSlot(i, { inicio: e.target.value })} />
+              </AiField>
+              <AiField label="Hora fin">
+                <input className={fieldClass} type="time" value={slot.fin} onChange={(e) => patchSlot(i, { fin: e.target.value })} />
+              </AiField>
+              <AiField label="Notas (opcional)">
+                <input className={fieldClass} value={slot.notas} onChange={(e) => patchSlot(i, { notas: e.target.value })} />
+              </AiField>
+            </div>
+          </div>
+        ))}
+      </div>
+      {slots.length < BR_PRIVADO_MAX_OPEN_HOUSE_SLOTS ? (
+        <button
+          type="button"
+          className="mt-3 w-full rounded-lg border border-dashed border-[#C9B46A]/60 bg-[#FFFCF7] px-3 py-2.5 text-sm font-semibold text-[#5C4A28] transition hover:border-[#B8954A]/80 hover:bg-[#FFF6E7]"
+          onClick={addSlot}
+        >
+          + Añadir horario / visita
+        </button>
+      ) : null}
+    </div>
+  );
 }
 
 const CATEGORIAS: { id: BrNegocioCategoriaPropiedad; label: string }[] = [
@@ -156,6 +250,25 @@ export function BienesRaicesPrivadoForm() {
     return () => window.clearTimeout(id);
   }, [state, hydrated]);
 
+  // BR-INV-D2-FIX — flush the current draft the moment the page is about to hide/unload (matches
+  // the pattern already proven in RentasPrivadoForm/RentasNegocioForm). This form previously had
+  // no such flush, relying solely on the 280ms debounced autosave above; a reload shortly after a
+  // real edit could otherwise land between debounce ticks with only an older write on record.
+  useEffect(() => {
+    if (!hydrated) return;
+    function flush() {
+      saveBienesRaicesPrivadoDraft(stateRef.current);
+    }
+    function onVisibilityChange() {
+      if (document.visibilityState === "hidden") flush();
+    }
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [hydrated]);
 
   // BR-INV-WAVE1-GATE3: save is now async (IndexedDB offload). Returns the promise so callers that
   // navigate right after (onVerAnuncio) can await it — otherwise router.push could race ahead of
@@ -163,6 +276,13 @@ export function BienesRaicesPrivadoForm() {
   const flushSave = useCallback(() => {
     return saveBienesRaicesPrivadoDraft(stateRef.current);
   }, []);
+
+  useBusinessApplicationLeaveGuard({
+    isDirty: hydrated && state.titulo.trim().length > 0,
+    persist: () => {
+      void saveBienesRaicesPrivadoDraft(stateRef.current);
+    },
+  });
 
   const previewHref = withClasificadosPublishLang(BR_PREVIEW_PRIVADO, routeLang, {
     [BR_NEGOCIO_Q_PROPIEDAD]: state.categoriaPropiedad,
@@ -198,15 +318,30 @@ export function BienesRaicesPrivadoForm() {
     if (photosInputRef.current) photosInputRef.current.value = "";
   };
 
-  const onVideoUrlChange = (raw: string) => {
+  const normalizePrivadoVideoUrls = (urls: readonly string[]): string[] => {
+    const out: string[] = [];
+    for (const raw of urls) {
+      const v = String(raw ?? "").trim();
+      if (!v || out.includes(v)) continue;
+      out.push(v);
+      if (out.length >= MAX_PRIVADO_VIDEO_URLS) break;
+    }
+    return out;
+  };
+
+  const onVideoUrlChange = (index: number, raw: string) => {
     setMediaNotice(null);
     setState((s) => {
+      const current = normalizePrivadoVideoUrls(s.media.videoUrls.length ? s.media.videoUrls : [s.media.videoUrl]);
+      const nextInput = Array.from({ length: MAX_PRIVADO_VIDEO_URLS }, (_, i) => current[i] ?? "");
+      nextInput[index] = raw;
+      const nextUrls = normalizePrivadoVideoUrls(nextInput);
       const out: BienesRaicesPrivadoFormState = {
         ...s,
         // BR-INV-WAVE1-GATE2: device video upload removed (external URL only). Clearing any
         // legacy `videoLocalDataUrl` here so an old draft that still carries one converges to
         // URL-only as soon as the seller touches this field.
-        media: { ...s.media, videoUrl: raw, videoLocalDataUrl: "" },
+        media: { ...s.media, videoUrl: nextUrls[0] ?? "", videoUrls: nextUrls, videoLocalDataUrl: "" },
       };
       queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
       return out;
@@ -228,6 +363,7 @@ export function BienesRaicesPrivadoForm() {
     }
     setPreviewGateMessage(null);
     await flushSave();
+    markPublishFlowOpeningPreview();
     router.push(previewHref);
   };
 
@@ -296,29 +432,18 @@ export function BienesRaicesPrivadoForm() {
             <AiField
               required
               label="Precio (USD)"
-              hint="Escribe solo números (sin símbolos). Abajo ves cómo quedará en el anuncio."
+              hint="Escribe solo números; se formatea automáticamente con $ y comas."
             >
               <input
                 className={fieldClass}
                 inputMode="numeric"
-                value={state.precio}
+                value={pricePreview || state.precio}
                 onChange={(e) => setState((s) => ({ ...s, precio: priceDigitsUnbounded(e.target.value) }))}
                 autoComplete="off"
               />
-              {pricePreview ? (
-                <p className="mt-2 text-sm font-semibold [font-variant-numeric:tabular-nums] text-[#6E5418]">
-                  En el anuncio:{" "}
-                  <span className="text-[#1E1810]" aria-live="polite">
-                    {pricePreview}
-                  </span>
-                </p>
-              ) : (
-                <p className="mt-2 text-xs text-[#5C5346]/85">
-                  {state.precio.trim()
-                    ? "Revisa el número (debe ser mayor que cero)."
-                    : "Ejemplo: al escribir 120000 se mostrará como precio en dólares con formato."}
-                </p>
-              )}
+              {!pricePreview && state.precio.trim() ? (
+                <p className="mt-2 text-xs text-[#5C5346]/85">Revisa el número (debe ser mayor que cero).</p>
+              ) : null}
             </AiField>
             <AiField label="Estado del anuncio">
               <select
@@ -415,7 +540,7 @@ export function BienesRaicesPrivadoForm() {
             </AiField>
             <AiField
               label="Mostrar dirección exacta cuando aplique"
-              hint="Si no activas esta opción, mostraremos una ubicación aproximada. / If you do not enable this, we will show an approximate location."
+              hint="Si no activas esta opción, mostraremos una ubicación aproximada."
             >
               <label className="flex min-h-[44px] items-center gap-3 rounded-xl border border-[#E8DFD0] bg-[#FFFCF7] px-3 py-2 text-sm text-[#2C2416]">
                 <input
@@ -505,36 +630,9 @@ export function BienesRaicesPrivadoForm() {
                     Sí, planeo un open house
                   </label>
                 </AiField>
-                <AiField label="Fecha (AAAA-MM-DD)">
-                  <input
-                    className={fieldClass}
-                    type="date"
-                    value={state.gate12d.openHouseDate}
-                    onChange={(e) =>
-                      setState((s) => ({ ...s, gate12d: { ...s.gate12d, openHouseDate: e.target.value } }))
-                    }
-                  />
-                </AiField>
-                <AiField label="Hora inicio">
-                  <input
-                    className={fieldClass}
-                    type="time"
-                    value={state.gate12d.openHouseStartTime}
-                    onChange={(e) =>
-                      setState((s) => ({ ...s, gate12d: { ...s.gate12d, openHouseStartTime: e.target.value } }))
-                    }
-                  />
-                </AiField>
-                <AiField label="Hora fin">
-                  <input
-                    className={fieldClass}
-                    type="time"
-                    value={state.gate12d.openHouseEndTime}
-                    onChange={(e) =>
-                      setState((s) => ({ ...s, gate12d: { ...s.gate12d, openHouseEndTime: e.target.value } }))
-                    }
-                  />
-                </AiField>
+                <div className="sm:col-span-2">
+                  <BrPrivadoOpenHouseSlots state={state} setState={setState} fieldClass={fieldClass} />
+                </div>
                 <AiField label="Visitas solo con cita">
                   <label className="flex min-h-[44px] items-center gap-2 text-sm text-[#2C2416]">
                     <input
@@ -578,6 +676,9 @@ export function BienesRaicesPrivadoForm() {
                       }
                     />
                   </AiField>
+                  {/^https?:\/\/\S+/i.test(state.gate12d.virtualTourUrl.trim()) ? (
+                    <p className="mt-2 text-xs font-bold text-[#2F6B3C]">Enlace añadido</p>
+                  ) : null}
                 </div>
               </div>
             </details>
@@ -670,26 +771,24 @@ export function BienesRaicesPrivadoForm() {
           </div>
           <div className="mt-6 border-t border-[#E8DFD0] pt-5">
             <span className={aiLabelClass}>Video (opcional)</span>
-            <p className={aiHintClass}>Comparte un enlace externo (YouTube, Vimeo, mp4, etc.).</p>
+            <p className={aiHintClass}>
+              Comparte hasta {MAX_PRIVADO_VIDEO_URLS} enlaces externos (YouTube, Vimeo, mp4, etc.). No se aceptan
+              archivos de video del dispositivo.
+            </p>
             <div className="mt-4">
-              <AiField
-                label="Video por enlace"
-                hint="Pega la URL completa (YouTube, Vimeo, mp4…)."
-              >
-                <input
-                  className={fieldClass}
-                  type="text"
-                  inputMode="url"
-                  autoComplete="off"
-                  placeholder="https://"
-                  value={state.media.videoUrl}
-                  onChange={(e) => onVideoUrlChange(e.target.value)}
-                />
-              </AiField>
+              <LeonixVideoUrlAddRows
+                values={normalizePrivadoVideoUrls(state.media.videoUrls.length ? state.media.videoUrls : [state.media.videoUrl])}
+                max={MAX_PRIVADO_VIDEO_URLS}
+                onChange={(next) => {
+                  for (let i = 0; i < next.length; i++) onVideoUrlChange(i, next[i]);
+                }}
+                fieldLabel="Video por enlace"
+                urlLabel={(n) => (n === 1 ? "Video por enlace" : `Video ${n} por enlace`)}
+                addLabel="+ Agregar video"
+                removeLabel="Quitar"
+                addedLabel="Video añadido"
+              />
             </div>
-            {state.media.videoUrl.trim() ? (
-              <p className="mt-2 text-xs font-medium text-[#2C7A4E]">Enlace listo: se usará en la vista previa.</p>
-            ) : null}
           </div>
         </section>
 
@@ -785,7 +884,7 @@ export function BienesRaicesPrivadoForm() {
                 autoComplete="name"
               />
             </AiField>
-            <AiField label="Teléfono">
+            <AiField label="Teléfono" hint="Número de 10 dígitos en EE. UU., sin el 1 inicial (para que no se duplique al marcar).">
               <input
                 className={fieldClass}
                 inputMode="numeric"
@@ -798,7 +897,7 @@ export function BienesRaicesPrivadoForm() {
                 autoComplete="tel"
               />
             </AiField>
-            <AiField label="WhatsApp">
+            <AiField label="WhatsApp" hint="Puede ser el mismo número de teléfono o uno diferente.">
               <input
                 className={fieldClass}
                 inputMode="numeric"
@@ -807,6 +906,19 @@ export function BienesRaicesPrivadoForm() {
                   const prev = digitsOnly(state.seller.whatsapp);
                   const { display } = onPhoneInputChange(e.target.value, prev);
                   setState((s) => ({ ...s, seller: { ...s.seller, whatsapp: display } }));
+                }}
+                autoComplete="tel"
+              />
+            </AiField>
+            <AiField label="Número para mensajes de texto (SMS, opcional)" hint="Puede ser el mismo número de teléfono o uno diferente.">
+              <input
+                className={fieldClass}
+                inputMode="numeric"
+                value={formatUsPhoneDisplay(digitsOnly(state.seller.mensajesTexto))}
+                onChange={(e) => {
+                  const prev = digitsOnly(state.seller.mensajesTexto);
+                  const { display } = onPhoneInputChange(e.target.value, prev);
+                  setState((s) => ({ ...s, seller: { ...s.seller, mensajesTexto: display } }));
                 }}
                 autoComplete="tel"
               />
@@ -831,15 +943,6 @@ export function BienesRaicesPrivadoForm() {
                   onChange={(e) => setState((s) => ({ ...s, seller: { ...s.seller, notaContacto: e.target.value } }))}
                 />
               </AiField>
-            </div>
-            <div className="sm:col-span-2 mt-2 border-t border-black/10 pt-5">
-              <Gate12cContactChannelsFields
-                lang="es"
-                value={state.contactChannels}
-                onChange={(next) => setState((s) => ({ ...s, contactChannels: next }))}
-                fieldClass={fieldClass}
-                titleClass={aiTitleClass}
-              />
             </div>
           </div>
         </section>
@@ -872,11 +975,23 @@ export function BienesRaicesPrivadoForm() {
                   value={state.residencial.subtipo}
                   onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, subtipo: e.target.value } }))}
                 >
-                  {SUBTIPO_POR_TIPO[state.residencial.tipoCodigo].map((o) => (
+                  {selectableSubtipoOptionsForTipo(state.residencial.tipoCodigo, state.residencial.subtipo).map((o) => (
                     <option key={o.value || "none"} value={o.value}>
                       {o.label}
                     </option>
                   ))}
+                </select>
+              </AiField>
+              <AiField label="Niveles / pisos" hint="Opcional. Distinto del subtipo (ej. condominio de 2 niveles).">
+                <select
+                  className={fieldClass}
+                  value={state.residencial.niveles}
+                  onChange={(e) => setState((s) => ({ ...s, residencial: { ...s.residencial, niveles: e.target.value } }))}
+                >
+                  <option value="">— No indicado</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3+">3+</option>
                 </select>
               </AiField>
               <AiField label="Recámaras">
@@ -978,6 +1093,67 @@ export function BienesRaicesPrivadoForm() {
                   </label>
                 ))}
               </div>
+              <LeonixCustomHighlightChipAdd
+                label="Agregar otra característica"
+                placeholder="Ej. Piso de mármol"
+                addLabel="Añadir"
+                removeAriaLabel={(label) => `Quitar: ${label}`}
+                capReachedLabel="Alcanzaste el máximo de características personalizadas."
+                pendingValue={state.residencial.pendingCustomHighlight}
+                onPendingChange={(next) =>
+                  setState((s) => ({ ...s, residencial: { ...s.residencial, pendingCustomHighlight: next } }))
+                }
+                canAdd={Boolean(state.residencial.pendingCustomHighlight.trim())}
+                atCap={
+                  state.residencial.highlightKeys.filter((k) => !BR_HIGHLIGHT_PRESET_DEFS.some((d) => d.key === k))
+                    .length >= 8
+                }
+                customValues={state.residencial.highlightKeys.filter(
+                  (k) => !BR_HIGHLIGHT_PRESET_DEFS.some((d) => d.key === k),
+                )}
+                onAdd={() =>
+                  setState((s) => {
+                    const custom = s.residencial.highlightKeys.filter(
+                      (k) => !BR_HIGHLIGHT_PRESET_DEFS.some((d) => d.key === k),
+                    );
+                    const r = evaluateAddCustomHighlight({
+                      raw: s.residencial.pendingCustomHighlight,
+                      existingValues: custom,
+                      standardLabels: BR_HIGHLIGHT_PRESET_DEFS.map((d) => d.label),
+                    });
+                    if (!r.ok) return s;
+                    const out: BienesRaicesPrivadoFormState = {
+                      ...s,
+                      residencial: {
+                        ...s.residencial,
+                        highlightKeys: [...s.residencial.highlightKeys, r.label],
+                        pendingCustomHighlight: "",
+                      },
+                    };
+                    queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
+                    return out;
+                  })
+                }
+                onRemove={(customIndex) =>
+                  setState((s) => {
+                    const custom = s.residencial.highlightKeys.filter(
+                      (k) => !BR_HIGHLIGHT_PRESET_DEFS.some((d) => d.key === k),
+                    );
+                    const toRemove = custom[customIndex];
+                    const out: BienesRaicesPrivadoFormState = {
+                      ...s,
+                      residencial: {
+                        ...s.residencial,
+                        highlightKeys: s.residencial.highlightKeys.filter((k) => k !== toRemove),
+                      },
+                    };
+                    queueMicrotask(() => saveBienesRaicesPrivadoDraft(out));
+                    return out;
+                  })
+                }
+                inputClassName={fieldClass}
+                labelClassName={aiLabelClass}
+              />
             </div>
           </section>
         ) : null}
@@ -1101,7 +1277,7 @@ export function BienesRaicesPrivadoForm() {
             <div className="mt-6">
               <span className={aiLabelClass}>Destacados</span>
               <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
-                {COMERCIAL_DESTACADOS_DEFS.map((d) => (
+                {COMERCIAL_DESTACADOS_CHECKLIST_DEFS.map((d) => (
                   <label key={d.id} className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
                     <input
                       type="checkbox"
@@ -1218,7 +1394,7 @@ export function BienesRaicesPrivadoForm() {
             <div className="mt-6">
               <span className={aiLabelClass}>Destacados</span>
               <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
-                {TERRENO_DESTACADOS_DEFS.map((d) => (
+                {TERRENO_DESTACADOS_CHECKLIST_DEFS.map((d) => (
                   <label key={d.id} className="flex cursor-pointer items-start gap-3 text-sm leading-snug">
                     <input
                       type="checkbox"
@@ -1248,8 +1424,8 @@ export function BienesRaicesPrivadoForm() {
             </p>
             <p className="mt-1 text-xs leading-relaxed text-[#5C5346]/90">
               {lang === "es"
-                ? "Marca las casillas, abre «Ver anuncio» para revisar el borrador y, si todo está bien, publica en vivo desde la pantalla de vista previa."
-                : "Check the boxes, open “View listing” to review your draft, then publish live from the preview screen when you are ready."}
+                ? "Marca las casillas, abre «Vista previa» para revisar el borrador y, si todo está bien, publica en vivo desde la pantalla de vista previa."
+                : "Check the boxes, open “Preview” to review your draft, then publish live from the preview screen when you are ready."}
             </p>
           </div>
           <ListingRulesConfirmationSection
@@ -1268,18 +1444,14 @@ export function BienesRaicesPrivadoForm() {
             disableVerAnuncio={!confirmAll}
             validationMessage={verAnuncioValidationMessage}
             onReiniciar={onReiniciar}
-            openPreviewHref={previewHref}
-            onBeforeOpenUnvalidatedPreview={flushSave}
             labels={
               lang === "en"
                 ? {
-                    verAnuncio: "View listing",
-                    openPreview: "View preview (without validation)",
+                    verAnuncio: "Preview",
                     reiniciar: "Clear progress and restart",
                   }
                 : {
-                    verAnuncio: "Ver anuncio",
-                    openPreview: "Ver vista previa (sin validar)",
+                    verAnuncio: "Vista previa",
                     reiniciar: "Borrar progreso y reiniciar",
                   }
             }

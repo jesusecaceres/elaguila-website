@@ -49,6 +49,13 @@ const STAFF_WRITE_ERROR_MESSAGES: Readonly<Record<string, string>> = {
     "El plan puede estar desactualizado. Un revisor debe confirmar que se liberará contra la versión aprobada, o generar una nueva versión. / The blueprint may be stale. A reviewer must acknowledge releasing against the approved version, or generate a new version.",
   client_confirmation_missing:
     "Se requiere confirmación del cliente antes de continuar. / Client confirmation is required before continuing.",
+  // Discover fix (Gate 2) — this is the real, honest reason AI Research 409s: it requires BOTH
+  // source_research AND ai_research client consent, recorded at a visit, and today no UI writes
+  // ai_research at all (the field canvass form only collects 4 of the 5 consent types). Named
+  // explicitly rather than a generic "consent required" so staff know exactly what's missing and
+  // where to look, instead of hitting a silent surprise 409.
+  consent_not_provided:
+    "Se requiere el consentimiento del cliente (Investigación de fuentes E Investigación con IA) registrado en una visita antes de ejecutar la Investigación con IA. Si el consentimiento de IA no aparece registrado, usa la Investigación pública de prospectos en su lugar — no requiere consentimiento del cliente. / Requires client consent (BOTH Source research AND AI research) recorded at a visit before running AI Research. If AI research consent isn't recorded, use Public Prospect Research instead — it needs no client consent.",
 };
 
 /**

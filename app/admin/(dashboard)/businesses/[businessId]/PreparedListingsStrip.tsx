@@ -59,7 +59,7 @@ export async function PreparedListingsStrip({ businessId }: { businessId: string
   if (!rows.length) return null;
 
   return (
-    <section className="rounded-2xl border border-[#C9A84A]/50 bg-white p-4">
+    <section id="prepared-ads" className="scroll-mt-24 rounded-2xl border border-[#C9A84A]/50 bg-white p-4">
       <h2 className="text-[10px] font-bold uppercase tracking-wide text-[#8A6B1F]">
         Anuncios preparados por Leonix / Leonix-prepared listings
       </h2>

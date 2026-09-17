@@ -55,6 +55,7 @@ import {
   formatYearBuiltDisplay,
 } from "@/app/(site)/clasificados/bienes-raices/shared/realEstateAddressPriceFormat";
 import { digitsOnly, formatUsPhoneDisplay } from "../application/utils/phoneMask";
+import { phoneTelHref } from "@/app/lib/leonix/phoneFormat";
 
 export function trim(s: unknown): string {
   if (s == null) return "";
@@ -341,6 +342,7 @@ function buildResidencialPropertyDetailRows(
     locale === "en"
       ? {
           tipo: "Property type",
+          niveles: "Levels / stories",
           rec: "Bedrooms",
           ban: "Baths",
           med: "Half baths",
@@ -352,6 +354,7 @@ function buildResidencialPropertyDetailRows(
         }
       : {
           tipo: "Tipo de propiedad",
+          niveles: "Niveles / pisos",
           rec: "Recámaras",
           ban: "Baños",
           med: "Medios baños",
@@ -377,6 +380,7 @@ function buildResidencialPropertyDetailRows(
     ...(isCharacteristic && subLabel
       ? [{ label: residencialSubtipoDisplayGroup(s.subtipoPropiedad, locale), value: subLabel }]
       : []),
+    ...(trim(s.nivelesPropiedad) ? [{ label: L.niveles, value: trim(s.nivelesPropiedad) }] : []),
     { label: L.rec, value: formatDetailCountDisplay(s.recamaras) || trim(s.recamaras) || "—" },
     { label: L.ban, value: formatDetailCountDisplay(s.banos) || trim(s.banos) || "—" },
     { label: L.med, value: formatDetailCountDisplay(s.mediosBanos) || trim(s.mediosBanos) || "—" },
@@ -531,6 +535,7 @@ export function buildDestacadosLabels(
         out.push(locale === "en" ? COMERCIAL_DESTACADO_EN[def.id] : def.label);
       }
     }
+    out.push(...(s.destacadosComercialCustom ?? []));
     return out;
   }
   if (s.categoriaPropiedad === "terreno_lote") {
@@ -540,6 +545,7 @@ export function buildDestacadosLabels(
         out.push(locale === "en" ? TERRENO_DESTACADO_EN[def.id] : def.label);
       }
     }
+    out.push(...(s.destacadosTerrenoCustom ?? []));
     return out;
   }
   const out: string[] = [];
@@ -548,6 +554,7 @@ export function buildDestacadosLabels(
       out.push(locale === "en" ? DESTACADO_EN[def.id] : def.label);
     }
   }
+  out.push(...(s.destacadosCustom ?? []));
   return out;
 }
 
@@ -770,9 +777,7 @@ function buildMailto(to: string, subject: string, body: string): string | null {
 }
 
 function buildTelHref(phoneDigits: string): string | null {
-  const d = digitsOnly(phoneDigits);
-  if (d.length < 10) return null;
-  return `tel:${d}`;
+  return phoneTelHref(phoneDigits) || null;
 }
 
 function buildWhatsappHref(phoneDigits: string, msg: string): string | null {
@@ -828,13 +833,12 @@ export function listadoDownloadName(s: AgenteIndividualResidencialFormState): st
   return trim(s.listadoArchivoNombre) || null;
 }
 
+/** Item 43: brand-block visibility is now content-driven (same rule the publish mapper already
+ * used) rather than gated behind the removed `mostrarMarcaEnTarjeta` manual toggle — if the
+ * agent filled in office/brand info, it renders automatically. */
 export function hasBrandBlockVisible(s: AgenteIndividualResidencialFormState): boolean {
   return Boolean(
-    s.mostrarMarcaEnTarjeta &&
-      (trim(s.marcaNombre) ||
-        trim(s.marcaLogoDataUrl) ||
-        trim(s.marcaLicencia) ||
-        hrefFromUserInput(s.marcaSitioWeb)),
+    trim(s.marcaNombre) || trim(s.marcaLogoDataUrl) || trim(s.marcaLicencia) || hrefFromUserInput(s.marcaSitioWeb),
   );
 }
 
@@ -1034,7 +1038,9 @@ function formatOpenHouseDateRange(
   if (startDisp && endDisp && trim(startRaw) !== trim(endRaw)) {
     return `${startDisp}–${endDisp}`;
   }
-  return startDisp || endDisp;
+  if (startDisp) return startDisp;
+  if (endDisp) return locale === "en" ? `Through ${endDisp}` : `Hasta ${endDisp}`;
+  return "";
 }
 
 /** Un resumen por evento (texto para mini tarjeta / public). */
@@ -1076,6 +1082,8 @@ export function buildOpenHouseSlotRows(
   const labHours = locale === "en" ? "Hours" : "Horario";
   const labExtra = locale === "en" ? "Additional days/hours" : "Días/horarios adicionales";
   const labNotes = locale === "en" ? "Notes" : "Notas";
+  const labAppointment = locale === "en" ? "By appointment only" : "Solo con cita previa";
+  const labBooking = locale === "en" ? "Booking link" : "Enlace para reservar";
   const out: Array<{ label: string; value: string }[]> = [];
   for (const slot of slots) {
     const rows: { label: string; value: string }[] = [];
@@ -1085,6 +1093,8 @@ export function buildOpenHouseSlotRows(
     if (r.length) rows.push({ label: labHours, value: r.join(" – ") });
     if (trim(slot.diasHorariosAdicionales)) rows.push({ label: labExtra, value: trim(slot.diasHorariosAdicionales) });
     if (trim(slot.notas)) rows.push({ label: labNotes, value: trim(slot.notas) });
+    if (slot.soloConCita) rows.push({ label: labAppointment, value: locale === "en" ? "Yes" : "Sí" });
+    if (trim(slot.enlaceReservar)) rows.push({ label: labBooking, value: trim(slot.enlaceReservar) });
     if (rows.length) out.push(rows);
   }
   return out;
